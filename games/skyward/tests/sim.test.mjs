@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AIRCRAFT, MISSIONS, getMission } from '../public/campaign.mjs';
 import { FlightSimulation, terrainHeight } from '../public/sim.mjs';
+import { basis } from '../public/orientation.mjs';
 
 const dt = 1 / 60;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -20,7 +21,7 @@ test('cold start needs four steps and the wheel brake holds full throttle', () =
   fly(sim, 4, { throttle: 1 });
   assert.equal(sim.player.speed, 0);
   sim.action('brake');
-  fly(sim, 20, { throttle: 1, pitch: 0.35 });
+  fly(sim, 20, s => ({ throttle: 1, pitch: s.player.onGround ? 0.35 : clamp((0.15 - s.player.pitch) * 4, -0.5, 0.5) }));
   assert.equal(sim.player.onGround, false);
   assert.ok(sim.player.speed > AIRCRAFT.avro504.stallSpeed * 1.3);
   assert.ok(sim.player.y > 90);
@@ -41,9 +42,11 @@ test('first sortie can be flown through every ring and landed using only continu
     if (!p.onGround) {
       const destination = waypoint || { x: runway.x, z: runway.z + 400, y: runway.y + 1 + Math.max(0, runway.z - runway.length / 2 - p.z) * 0.1 };
       const desiredHeading = Math.atan2(destination.x - p.x, destination.z - p.z) - Math.asin(clamp(5 / Math.max(25, p.speed), -0.5, 0.5));
-      roll = clamp(angle(desiredHeading - p.heading) * 2, -0.8, 0.8);
+      const desiredBank = clamp(angle(desiredHeading - p.heading) * 2, -0.7, 0.7);
+      roll = clamp((p.roll - desiredBank) * 2, -0.8, 0.8);
       const climb = clamp((destination.y - p.y) * 0.12, -8, 11);
-      pitch = clamp(Math.asin(clamp(climb / Math.max(20, p.speed), -0.8, 0.8)) / 0.42, -0.7, 0.7);
+      const desiredPitch = Math.asin(clamp((climb - p.settlingSpeed) / Math.max(20, p.speed), -0.8, 0.8));
+      pitch = clamp((desiredPitch - p.pitch) * 4 / Math.max(0.3, Math.cos(p.roll)), -0.7, 0.7);
       throttle = waypoint ? 1 : 0.38;
     } else if (p.everAirborne) {
       if (!p.brake) s.action('brake');
@@ -56,6 +59,8 @@ test('first sortie can be flown through every ring and landed using only continu
   assert.equal(sim.player.lastLanding.runwayIndex, 1);
   assert.ok(sim.time < 300, 'The compressed training flight should not take ten minutes.');
   assert.ok(sim.player.speed < 12);
+  assert.equal(sim.player.settlingSpeed, 0);
+  assert.ok(basis(sim.player.orientation).up.y > 0.999999, 'touchdown must synchronize the aircraft quaternion with its level wheels');
 });
 
 test('low airspeed produces a stall and full throttle with a lowered nose recovers', () => {
@@ -83,8 +88,12 @@ test('an excessive-speed landing fails instead of counting as a safe arrival', (
 
 test('generation changes alter actual displacement, acceleration and turning radius', () => {
   const early = new FlightSimulation(free('camel')), jet = new FlightSimulation(free('f15'));
-  fly(early, 10, { throttle: 1, roll: 0.6 });
-  fly(jet, 10, { throttle: 1, roll: 0.6 });
+  // Hold the same bank with a rate controller; holding a roll control now
+  // correctly keeps rolling instead of targeting a world-relative bank angle.
+  const holdBank = s => ({ throttle: 1, roll: clamp((s.player.roll + 0.6) * 2, -0.8, 0.8),
+    pitch: clamp((Math.asin(clamp(-s.player.settlingSpeed / s.player.speed, -0.8, 0.8)) - s.player.pitch) * 4, -0.7, 0.7) });
+  fly(early, 10, holdBank);
+  fly(jet, 10, holdBank);
   assert.ok(jet.player.speed > early.player.speed * 4);
   assert.ok(Math.hypot(jet.player.x, jet.player.z) > Math.hypot(early.player.x, early.player.z) * 3);
   assert.ok(Math.abs(jet.player.heading) < Math.abs(early.player.heading), 'A fast jet should not trace the biplane turn.');
@@ -182,12 +191,14 @@ test('nuclear finale gates release by the route and offers a complete abort endi
 test('cooperative snapshots preserve local flight and apply only addressed damage once', () => {
   const mission = getMission('missile-age'), host = new FlightSimulation(mission, { playerId: 'host' }), guest = new FlightSimulation(mission, { playerId: 'guest' });
   guest.player.x = 333; guest.player.pitch = 0.19; guest.player.throttle = 0.7;
+  const localOrientation = structuredClone(guest.player.orientation);
   host.remoteDamage.guest = 12;
   const snapshot = host.getSnapshot();
   assert.equal(Object.hasOwn(snapshot, 'player'), false);
   assert.equal(guest.applySnapshot(snapshot), true);
   assert.equal(guest.player.x, 333);
   assert.equal(guest.player.pitch, 0.19);
+  assert.deepEqual(guest.player.orientation, localOrientation, 'world snapshots must preserve local attitude');
   assert.equal(guest.player.health, AIRCRAFT.f4.health - 12);
   guest.applySnapshot(snapshot);
   assert.equal(guest.player.health, AIRCRAFT.f4.health - 12);

@@ -2,6 +2,8 @@
  * gameplay and collision remain the same simulation as the WebGL renderer. */
 import * as THREE from './vendor/three.module.js';
 import { terrainHeight } from './sim.mjs';
+import {orientationOf,basis,deriveEuler} from './orientation.mjs';
+import {cockpitView} from './camera-pose.mjs';
 import { buildSoftwareTerrain } from './software-terrain.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
 
@@ -9,7 +11,7 @@ const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const n=(v,f=0)=>Number.isFinite(v)?v:f;
 const mix=(a,b,t)=>a+(b-a)*t;
-const V=new THREE.Vector3(),D=new THREE.Vector3(),Q=new THREE.Quaternion(),E=new THREE.Euler(),M=new THREE.Matrix4(),MV=new THREE.Matrix4(),S=new THREE.Vector3(1,1,1);
+const V=new THREE.Vector3(),D=new THREE.Vector3(),Q=new THREE.Quaternion(),M=new THREE.Matrix4(),MV=new THREE.Matrix4(),S=new THREE.Vector3(1,1,1);
 const materials=new WeakMap(),vertexBuffers=new WeakMap(),simpleCache=new Map(),colorCache=new Map();
 const colors={
   countryside:{sky:'#85aeb6',haze:'#d6d8bd',water:'#63909a',land:['#7b9272','#95a17a','#a6ac87','#718969']},
@@ -22,6 +24,10 @@ const colors={
   mountains:{sky:'#8daab4',haze:'#ccd2c6',water:'#598490',land:['#778675','#8b957f','#a3a58c','#677c6b']},
   night:{sky:'#0c1b2d',haze:'#3b4d60',water:'#263e51',land:['#2c4446','#3c514d','#4d5f53','#273d43']},
 };
+const skyStars=Array.from({length:180},(_,i)=>{
+  const azimuth=((i*173.17)%997)/997*TAU,y=.04+((i*113.43)%641)/641*.94,horizontal=Math.sqrt(1-y*y);
+  return {x:Math.sin(azimuth)*horizontal,y,z:Math.cos(azimuth)*horizontal,alpha:.25+(i%4)*.15,size:i%7===0?2:1};
+});
 function rgb(value){if(!colorCache.has(value)){const c=new THREE.Color(value);c.convertLinearToSRGB();colorCache.set(value,[c.r*255,c.g*255,c.b*255]);}return colorCache.get(value);}
 function hash(value){let s=2166136261;for(const c of String(value))s=Math.imul(s^c.charCodeAt(0),16777619);return s>>>0;}
 function random(seed){let a=seed;return()=>{a+=0x6d2b79f5;let t=Math.imul(a^a>>>15,a|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
@@ -137,11 +143,32 @@ export class SoftwareFlightRenderer{
   _surface(x,y,z,w,l,base,heading=0,alpha=1){const c=Math.cos(heading),s=Math.sin(heading),p=[[-w/2,-l/2],[-w/2,l/2],[w/2,l/2],[w/2,-l/2]].map(([xx,zz])=>[x+xx*c+zz*s,y,z+zz*c-xx*s]);this._worldQuad(...p,base,alpha,true);}
   _line(a,b,stroke,width=1.5,alpha=1){const av=this._toView(...a),bv=this._toView(...b);if(av[2]>-.6&&bv[2]>-.6)return;let aa=av,bb=bv;if(aa[2]>-.6||bb[2]>-.6){const t=(-.6-aa[2])/(bb[2]-aa[2]),cut=[mix(aa[0],bb[0],t),mix(aa[1],bb[1],t),-.6];if(aa[2]>-.6)aa=cut;else bb=cut;}const p=[this.width*.5+aa[0]*this._focal/-aa[2],this.height*.5-aa[1]*this._focal/-aa[2],this.width*.5+bb[0]*this._focal/-bb[2],this.height*.5-bb[1]*this._focal/-bb[2]];if(Math.max(p[0],p[2])<0||Math.min(p[0],p[2])>this.width||Math.max(p[1],p[3])<0||Math.min(p[1],p[3])>this.height)return;this._queue.push({type:'line',points:p,depth:-(aa[2]+bb[2])*.5,stroke,width,alpha});}
   _disc(x,y,z,r,fill,alpha=1,ratio=1){const p=this._toView(x,y,z),depth=-p[2];if(depth<.6||depth>this._visibilityFar*1.08)return;const sx=this.width*.5+p[0]*this._focal/depth,sy=this.height*.5-p[1]*this._focal/depth,sr=clamp(r*this._focal/depth,.5,this.width*2);if(sx+sr<0||sx-sr>this.width||sy+sr<0||sy-sr>this.height)return;this._queue.push({type:'disc',x:sx,y:sy,r:sr,ratio,depth,fill,alpha});}
+  _skyPoint(x,y,z){
+    const e=this._viewElements,depth=-(e[2]*x+e[6]*y+e[10]*z);if(depth<=.001)return null;
+    return {x:this.width*.5+(e[0]*x+e[4]*y+e[8]*z)*this._focal/depth,y:this.height*.5-(e[1]*x+e[5]*y+e[9]*z)*this._focal/depth};
+  }
   _background(){
-    const ctx=this.ctx;ctx.globalAlpha=1;ctx.setTransform(this.pixelRatio,0,0,this.pixelRatio,0,0);const direction=this.camera.getWorldDirection(V);const horizon=this.height*.5+direction.y/Math.max(.05,Math.hypot(direction.x,direction.z))*this._focal;
-    const g=ctx.createLinearGradient(0,0,0,this.height);g.addColorStop(0,this._night?'#0c1b2d':this._sunset?'#91aab2':this.palette.sky);g.addColorStop(clamp(horizon/this.height,.05,.94),this._sunset&&!this._night?'#e2d1b2':this.palette.haze);g.addColorStop(1,this.palette.water);ctx.fillStyle=g;ctx.fillRect(0,0,this.width,this.height);
-    if(!this._night&&horizon>0){ctx.globalAlpha=.35;ctx.fillStyle='#ffedc8';ctx.beginPath();ctx.arc(this.width*.78,Math.max(20,horizon-75),26,0,TAU);ctx.fill();ctx.globalAlpha=1;}
-    if(this._night){ctx.fillStyle='#c7d5df';for(let i=0;i<70;i++){const x=((i*173.17)%997)/997*this.width,y=((i*113.43)%641)/641*Math.max(30,horizon-20);ctx.globalAlpha=.25+(i%4)*.15;ctx.fillRect(x,y,i%7===0?2:1,1);}ctx.globalAlpha=1;}
+    const ctx=this.ctx;ctx.globalAlpha=1;ctx.setTransform(this.pixelRatio,0,0,this.pixelRatio,0,0);
+    // A screen ray's world elevation is linear in its screen coordinates.
+    // Project world-up into the camera, so the horizon and sea rotate with a
+    // banked cockpit and correctly exchange screen halves when inverted.
+    const up=this._upView,length=Math.hypot(up.x,up.y),cx=this.width*.5,cy=this.height*.5;
+    const sky=rgb(this._night?'#0c1b2d':this._sunset?'#91aab2':this.palette.sky),haze=rgb(this._sunset&&!this._night?'#e2d1b2':this.palette.haze),water=rgb(this.palette.water);
+    const band=this.height*.5,shade=elevation=>{const end=elevation>=0?sky:water,t=clamp(Math.abs(elevation)/band,0,1);return `rgb(${haze.map((v,i)=>Math.round(mix(v,end[i],t))).join(',')})`;};
+    if(length<1e-6)ctx.fillStyle=shade(-up.z*this._focal);
+    else{
+      const nx=up.x/length,ny=-up.y/length,extent=Math.abs(nx)*cx+Math.abs(ny)*cy;
+      const top=extent*length-up.z*this._focal,bottom=-extent*length-up.z*this._focal;
+      const gradient=ctx.createLinearGradient(cx+nx*extent,cy+ny*extent,cx-nx*extent,cy-ny*extent);
+      gradient.addColorStop(0,shade(top));
+      for(const elevation of [band,0,-band])if(elevation<top&&elevation>bottom)gradient.addColorStop((top-elevation)/(top-bottom),shade(elevation));
+      gradient.addColorStop(1,shade(bottom));ctx.fillStyle=gradient;
+    }
+    ctx.fillRect(0,0,this.width,this.height);
+    // Celestial points live in world directions rather than following a fixed
+    // screen position while the aircraft pitches, yaws or rolls around them.
+    if(!this._night){const sun=this._skyPoint(-.45,.14,.9);if(sun&&sun.x>-26&&sun.x<this.width+26&&sun.y>-26&&sun.y<this.height+26){ctx.globalAlpha=.35;ctx.fillStyle='#ffedc8';ctx.beginPath();ctx.arc(sun.x,sun.y,26,0,TAU);ctx.fill();ctx.globalAlpha=1;}}
+    else{ctx.fillStyle='#c7d5df';for(const star of skyStars){const point=this._skyPoint(star.x,star.y,star.z);if(point&&point.x>=0&&point.x<this.width&&point.y>=0&&point.y<this.height){ctx.globalAlpha=star.alpha;ctx.fillRect(point.x,point.y,star.size,1);}}ctx.globalAlpha=1;}
     if(this._visibilityFar<this._fogFar*.35){ctx.globalAlpha=.82*(1-this._visibilityFar/this._fogFar);ctx.fillStyle=this._night?'#526172':'#dedfce';ctx.fillRect(0,0,this.width,this.height);ctx.globalAlpha=1;}
   }
   _terrain(player){
@@ -199,7 +226,7 @@ export class SoftwareFlightRenderer{
         const base=materials.get(material),index=geometry.index?.array,total=index?index.length:position.count;for(let j=0;j<total;j+=3){const ia=(index?index[j]:j)*3,ib=(index?index[j+1]:j+1)*3,ic=(index?index[j+2]:j+2)*3;this._triangleXYZ(buffer[ia],buffer[ia+1],buffer[ia+2],buffer[ib],buffer[ib+1],buffer[ib+2],buffer[ic],buffer[ic+1],buffer[ic+2],base,n(material.opacity,1),material.side===THREE.DoubleSide,material.isMeshBasicMaterial);}
       });
     }else{
-      E.set(-n(pose.pitch),n(pose.heading),-n(pose.roll),'YXZ');Q.setFromEuler(E);M.compose(V.set(pose.x,pose.y,pose.z),Q,S);MV.multiplyMatrices(this.camera.matrixWorldInverse,M);const e=MV.elements;
+      const q=orientationOf(pose);Q.set(q.x,q.y,q.z,q.w);M.compose(V.set(pose.x,pose.y,pose.z),Q,S);MV.multiplyMatrices(this.camera.matrixWorldInverse,M);const e=MV.elements;
       const base=rgb(enemy?'#8c7964':'#a8b5a8');for(const tri of simpleModel(pose.aircraft||this.aircraft)){const transformed=[];for(let k=0;k<9;k+=3){const x=tri.p[k],y=tri.p[k+1],z=tri.p[k+2];transformed.push([e[0]*x+e[4]*y+e[8]*z+e[12],e[1]*x+e[5]*y+e[9]*z+e[13],e[2]*x+e[6]*y+e[10]*z+e[14]]);}this._triangle(...transformed,base.map(v=>v*tri.shade),1,true);}
     }
   }
@@ -254,10 +281,10 @@ export class SoftwareFlightRenderer{
     ctx.restore();
   }
   _camera(p,dt,options){
-    const mode=options.camera||'chase',heading=n(p.heading),pitch=n(p.pitch),lookX=n(options.lookX),lookY=clamp(n(options.lookY),-1.15,1.15),originY=p.y-(p.onGround?1.3:0);
-    const f=[Math.sin(heading)*Math.cos(pitch),Math.sin(pitch),Math.cos(heading)*Math.cos(pitch)],length=this._planeMeta?.length||9;
-    let pos,target;
-    if(mode==='cockpit'){pos=[p.x+f[0]*2,originY+.85+f[1]*2,p.z+f[2]*2];const yaw=heading+lookX,yp=pitch+lookY;target=[pos[0]+Math.sin(yaw)*Math.cos(yp)*100,pos[1]+Math.sin(yp)*100,pos[2]+Math.cos(yaw)*Math.cos(yp)*100];}
+    const mode=options.camera||'chase',lookX=n(options.lookX),lookY=clamp(n(options.lookY),-1.15,1.15),originY=p.y-(p.onGround?1.3:0);
+    const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),f=[forward.x,forward.y,forward.z],length=this._planeMeta?.length||9;
+    let pos,target,up={x:0,y:1,z:0};
+    if(mode==='cockpit'){const view=cockpitView(p,options,p.onGround?1.3:0);pos=[view.position.x,view.position.y,view.position.z];target=[view.target.x,view.target.y,view.target.z];up=view.up;}
     else{const distance=clamp(length*2.35+n(p.speed)*.055,23,84),angle=heading+lookX+(mode==='cinematic'?.68:0),elev=clamp(length*.4+n(p.speed)*.012,5.4,20)+Math.sin(lookY)*distance;pos=[p.x-Math.sin(angle)*distance*Math.cos(lookY),originY+elev-pitch*distance*.24,p.z-Math.cos(angle)*distance*Math.cos(lookY)];const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;target=[p.x+f[0]*ahead,originY+f[1]*ahead+length*.18,p.z+f[2]*ahead];}
     const reset=!this._cameraReady||this._cameraMode!==mode,cockpit=mode==='cockpit';
     const t=reset||cockpit?1:1-Math.exp(-dt*(this.settings.reducedMotion?12:mode==='cinematic'?3.2:10));
@@ -267,7 +294,7 @@ export class SoftwareFlightRenderer{
     this._cameraLookOffset.lerp(D.set(target[0]-p.x,target[1]-p.y,target[2]-p.z),t);
     V.set(p.x,p.y,p.z);this.camera.position.copy(this._cameraOffset).add(V);this._cameraTarget.copy(this._cameraLookOffset).add(V);
     if(!cockpit)this.camera.position.y=Math.max(height(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
-    this.camera.up.set(0,1,0);if(cockpit&&this.settings.horizonLock===false&&!this.settings.reducedMotion)this.camera.up.applyEuler(E.set(-pitch,heading,-n(p.roll),'YXZ'));
+    this.camera.up.set(up.x,up.y,up.z);
     this.camera.lookAt(this._cameraTarget);this._cameraReady=true;this._cameraMode=mode;this._view();
   }
   _weather(p){let factor=1;if(p.y>this._cloudBase-55&&p.y<this._cloudTop+55){const inside=Math.min(clamp((p.y-this._cloudBase+55)/130,0,1),clamp((this._cloudTop+55-p.y)/130,0,1));factor=1-inside*.92;}this._visibilityFar=mix(850,this._fogFar,factor);}

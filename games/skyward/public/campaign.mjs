@@ -259,7 +259,7 @@ export const MISSIONS = [
     id: 'small-runway', title: 'A Very Small Runway', year: '1982', era: 'III · Jet age', location: 'Falklands, South Atlantic',
     aircraft: 'harrier', kind: 'vtol', biome: 'south_atlantic', duration: '4–6 min',
     description: 'Launch from a small carrier, defend the task force, and return vertically.',
-    briefing: ['Release the brake and use full throttle for an assisted ski-jump launch.', 'Defeat two attackers, then return to the carrier. Reduce speed before selecting HOVER.', 'In hover, half throttle holds altitude. Pitch moves forward/back; roll moves sideways. Descend gently onto the deck.'],
+    briefing: ['Release the brake and use full throttle for an assisted ski-jump launch.', 'Defeat two attackers, then return to the carrier. Reduce speed before selecting HOVER.', 'In hover, half throttle holds height while upright. Pitch and roll tilt the aircraft to move. Keep it upright and descend gently onto the deck.'],
     lesson: 'Ski-jump launch · transition · hover recovery', weather: weather(10, -3, { cloudBase: 700, cloudTop: 1450, fog: 0.000035 }),
     start: { x: 0, y: 15, z: -90, heading: 0, speed: 0, airborne: false }, runways: [rw(0, 0, 'HMS Invincible · game deck', { carrier: true, length: 300, width: 75 })], waypoints: [],
     enemies: [enemy('south-atlantic-a', -1200, 900, 5200, 'f4', { speed: 150, health: 115, label: 'Attacking aircraft' }), enemy('south-atlantic-b', 1800, 1100, 7200, 'f4', { speed: 150, health: 115, label: 'Attacking aircraft' })], targets: [],

@@ -24,18 +24,20 @@ test('a blocked localStorage getter cannot prevent settings or logbook startup',
   }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else delete globalThis.localStorage;}
 });
 
-test('existing preferences gain night mode and controls; saved remaps survive reload without changing logbook',()=>{
+test('existing preferences adopt dual-thumb defaults; explicit pitch choices and remaps persist without changing logbook',()=>{
   const progress={completed:{training:{score:100,time:54}},lastMission:'training',totalTime:54};
   const data=new Map([
-    ['dfe.skyward.settings.v1',JSON.stringify({assist:'expert',sound:false,stickSize:130,invertPitch:true})],
+    ['dfe.skyward.settings.v1',JSON.stringify({assist:'expert',sound:false,stickSize:130,invertPitch:true,lookSensitivity:2,lookPad:false})],
     ['dfe.skyward.logbook.v1',JSON.stringify(progress)],
   ]);
   const storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
   const s=loadSettings(storage);
-  assert.equal(VERSION,'0.2.1');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.invertPitch,true);assert.equal(s.theme,'night');
+  assert.equal(VERSION,'0.3.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.touchPitch,'pull');assert.equal(DEFAULTS.stickSize,120);
+  for(const legacy of ['invertPitch','lookSensitivity','lookPad'])assert.equal(legacy in s,false,legacy+' must not keep the removed look-stick scheme');
+  for(const invertPitch of [false,true])assert.equal(normalizeSettings({invertPitch}).touchPitch,'pull');assert.equal(s.theme,'night');
   assert.deepEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);assert.notEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);
   const originalLogbook=data.get('dfe.skyward.logbook.v1');
-  s.theme='day';s.keyBindings={...s.keyBindings,pitchUp:'KeyI',fire:'KeyJ'};
+  s.theme='day';s.touchPitch='push';s.keyBindings={...s.keyBindings,pitchUp:'KeyI',fire:'KeyJ'};
   assert.equal(saveSettings(s,storage),true);
   assert.deepEqual(loadSettings(storage),s);
   assert.equal(data.get('dfe.skyward.logbook.v1'),originalLogbook);assert.deepEqual(loadProgress(storage),progress);
@@ -58,7 +60,7 @@ test('bindings reject reserved keys, recover malformed values, and resolve colli
 
 class Surface {
   constructor(tagName='DIV'){
-    this.tagName=tagName;this.handlers={};this.style={setProperty(name,value){this[name]=value;}};this.dataset={};this.value=0;this.attributes={};this.blurCount=0;
+    this.tagName=tagName;this.handlers={};this.style={setProperty(name,value){this[name]=value;}};this.dataset={};this.value=0;this.attributes={};this.blurCount=0;this.captures=new Set();this.released=[];
     const classes=new Set();this.classList={add:name=>classes.add(name),remove:name=>classes.delete(name),toggle:(name,on)=>on?classes.add(name):classes.delete(name)};
   }
   addEventListener(name,fn){(this.handlers[name]||=[]).push(fn);}
@@ -69,14 +71,16 @@ class Surface {
   }
   closest(selector){return (['INPUT','SELECT','TEXTAREA'].includes(this.tagName)&&selector.includes('input,select,textarea'))||this.isContentEditable?this:null;}
   getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
-  setPointerCapture(){}
+  setPointerCapture(id){this.captures.add(id);}
+  hasPointerCapture(id){return this.captures.has(id);}
+  releasePointerCapture(id){this.captures.delete(id);this.released.push(id);}
   setAttribute(name,value){this.attributes[name]=value;}
   blur(){this.blurCount++;}
 }
 function withControls(run,preferences={}){
   const oldWindow=globalThis.window,oldDocument=globalThis.document;
-  const window=globalThis.window=new Surface(),document=globalThis.document=new Surface();
-  const surfaces={stick:new Surface(),knob:new Surface(),look:new Surface(),fire:new Surface(),throttle:new Surface('INPUT')};
+  const window=globalThis.window=new Surface(),document=globalThis.document=new Surface();window.visualViewport=new Surface();
+  const surfaces={stick:new Surface(),knob:new Surface(),yawStick:new Surface(),yawKnob:new Surface(),fire:new Surface(),throttle:new Surface('INPUT')};
   const actions=[],state={pauses:0};
   const c=new FlightControls({...surfaces,settings:normalizeSettings(preferences),onAction:action=>actions.push(action),onPause:()=>state.pauses++});c.setActive(true);
   try{return run({c,...surfaces,window,document,actions,state});}
@@ -178,24 +182,108 @@ test('forms and browser shortcuts keep their keys; focus and pause cannot leave 
 }));
 
 test('pointer throttle releases focus, while native range-key navigation remains available',()=>withControls(({c,window,document,throttle,stick})=>{
-  stick.dispatch('pointerdown',{pointerId:1,clientX:88,clientY:50});
+  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});stick.dispatch('pointermove',{pointerId:1,clientX:88,clientY:50});
   document.dispatch('focusin',{target:throttle});assert.equal(c.read(0).roll,1,'adjusting throttle must not drop the other thumb’s flight stick');
   throttle.value=68;throttle.dispatch('input');assert.equal(c.read(0).throttle,.68);
   const arrow=window.dispatch('keydown',{target:throttle,code:'ArrowUp'});assert.equal(arrow.defaultPrevented,false);assert.equal(c.read(0).pitch,0);
   assert.equal(throttle.blurCount,0);throttle.dispatch('pointerup');assert.equal(throttle.blurCount,1);throttle.dispatch('pointercancel');assert.equal(throttle.blurCount,2);
 }));
 
-test('touch pitch inversion changes only touch; flight and look pointers stay independent and cancel cleanly',()=>withControls(({c,window,stick,look,fire})=>{
-  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:12});assert.equal(c.read(0).pitch,1);
-  c.settings.invertPitch=true;assert.equal(c.read(0).pitch,-1);stick.dispatch('pointercancel',{pointerId:1});
-  for(const invertPitch of [true,false]){
-    c.settings.invertPitch=invertPitch;window.dispatch('keydown',{code:'ArrowDown'});assert.equal(c.read(0).pitch,1);window.dispatch('keyup',{code:'ArrowDown'});
+test('touch contact begins neutral and each thumb direction matches the desktop action',()=>withControls(({c,stick,yawStick})=>{
+  const expected=[
+    [stick,0,38,'pitch',1],[stick,0,-38,'pitch',-1],[stick,-38,0,'roll',-1],[stick,38,0,'roll',1],
+    [yawStick,-38,0,'yaw',-1],[yawStick,38,0,'yaw',1],[yawStick,0,-38,'throttle',.85],[yawStick,0,38,'throttle',.15],
+  ];
+  for(const [pad,dx,dy,axis,value] of expected){
+    c.clear();c.setThrottle(.5);
+    pad.dispatch('pointerdown',{pointerId:1,clientX:17,clientY:83,pointerType:'touch'});
+    assert.deepEqual(c.read(0),{roll:0,pitch:0,yaw:0,throttle:.5,fire:false},'off-center contact must start neutral');
+    pad.dispatch('pointermove',{pointerId:1,clientX:17+dx,clientY:83+dy});
+    const input=c.read(1);assert.ok(Math.abs(input[axis]-value)<1e-9,axis+' direction');
+    for(const other of ['roll','pitch','yaw'])if(other!==axis)assert.equal(input[other],0,axis+' must not move '+other);
+    if(axis!=='throttle')assert.equal(input.throttle,.5);
+    assert.equal(input.fire,false);assert.equal(c.lookX,0);assert.equal(c.lookY,0);
+    pad.dispatch('pointerup',{pointerId:1});const held=input.throttle;
+    assert.deepEqual(c.read(1),{roll:0,pitch:0,yaw:0,throttle:held,fire:false},'release centers axes and holds the chosen thrust');
+    assert.equal(pad.captures.size,0);
+  }
+}));
+
+test('both thumbs work independently and the left thumb can release to fire while the right keeps flying',()=>withControls(({c,stick,yawStick,fire})=>{
+  c.setThrottle(.2);
+  stick.dispatch('pointerdown',{pointerId:10,clientX:70,clientY:75,isPrimary:true,pointerType:'touch'});
+  yawStick.dispatch('pointerdown',{pointerId:11,clientX:30,clientY:80,isPrimary:false,pointerType:'touch'});
+  stick.dispatch('pointermove',{pointerId:10,clientX:100,clientY:105});
+  yawStick.dispatch('pointermove',{pointerId:11,clientX:0,clientY:50});
+  const input=c.read(1);assert.ok(input.roll>.6&&input.pitch>.6&&input.yaw<-.6);assert.ok(input.throttle>.4);assert.equal(input.fire,false);
+  const throttle=input.throttle;
+  yawStick.dispatch('pointerup',{pointerId:11});
+  let next=c.read(1);assert.equal(next.yaw,0);assert.equal(next.throttle,throttle);assert.equal(next.roll,input.roll);assert.equal(next.pitch,input.pitch);assert.equal(next.fire,false);
+  fire.dispatch('pointerdown',{pointerId:11,pointerType:'touch',isPrimary:false});
+  next=c.read(1);assert.equal(next.fire,true);assert.equal(next.throttle,throttle);assert.equal(next.roll,input.roll);assert.equal(next.pitch,input.pitch);
+  fire.dispatch('pointerup',{pointerId:11});assert.equal(c.read(0).fire,false);assert.equal(c.read(0).roll,input.roll);
+}));
+
+test('extra fingers cannot steal pads or fire and unrelated releases cannot cancel their owners',()=>withControls(({c,stick,yawStick,fire})=>{
+  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});stick.dispatch('pointermove',{pointerId:1,clientX:88,clientY:50});
+  stick.dispatch('pointerdown',{pointerId:2,clientX:5,clientY:5});stick.dispatch('pointermove',{pointerId:2,clientX:-50,clientY:5});
+  yawStick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});yawStick.dispatch('pointermove',{pointerId:1,clientX:12,clientY:50});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])stick.dispatch(event,{pointerId:2});
+  assert.equal(c.read(0).roll,1);assert.equal(c.read(0).yaw,0);assert.deepEqual([...stick.captures],[1]);assert.equal(yawStick.captures.size,0);
+  fire.dispatch('pointerdown',{pointerId:3});fire.dispatch('pointerdown',{pointerId:4});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])fire.dispatch(event,{pointerId:4});
+  assert.equal(c.read(0).fire,true);assert.deepEqual([...fire.captures],[3]);
+  fire.dispatch('pointercancel',{pointerId:3});assert.equal(c.read(0).fire,false);assert.equal(c.read(0).roll,1);
+}));
+
+test('cancelled or lost captures release only their own axes and can be grabbed again without a jump',()=>withControls(({c,stick,yawStick,window})=>{
+  c.setThrottle(.4);
+  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});stick.dispatch('pointermove',{pointerId:1,clientX:50,clientY:88});
+  yawStick.dispatch('pointerdown',{pointerId:2,clientX:50,clientY:50});yawStick.dispatch('pointermove',{pointerId:2,clientX:12,clientY:50});
+  stick.dispatch('pointercancel',{pointerId:1});assert.equal(c.read(0).pitch,0);assert.equal(c.read(0).yaw,-1);assert.equal(stick.captures.size,0);
+  stick.dispatch('pointermove',{pointerId:1,clientX:50,clientY:0});assert.equal(c.read(0).pitch,0);
+  stick.dispatch('pointerdown',{pointerId:3,clientX:8,clientY:91});assert.equal(c.read(0).pitch,0);
+  stick.dispatch('pointermove',{pointerId:3,clientX:8,clientY:53});assert.equal(c.read(0).pitch,-1);
+  stick.dispatch('lostpointercapture',{pointerId:1});assert.equal(c.read(0).pitch,-1,'an old capture cannot release a new thumb');
+  yawStick.dispatch('lostpointercapture',{pointerId:2});assert.equal(c.read(0).yaw,0);assert.equal(c.read(1).throttle,.4);
+  window.dispatch('pointerup',{pointerId:3});assert.equal(c.read(0).pitch,0);assert.equal(stick.captures.size,0,'outside release must also end the owner');
+}));
+
+test('blur, pause, hiding and rotation clear every held pointer and stale thumb anchors',()=>withControls(({c,stick,yawStick,knob,yawKnob,fire,window,document})=>{
+  const interruptions=[
+    ()=>window.dispatch('blur'),()=>c.setActive(false),()=>{document.hidden=true;document.dispatch('visibilitychange');},
+    ()=>window.dispatch('resize'),()=>window.dispatch('orientationchange'),()=>window.visualViewport.dispatch('resize'),
+  ];
+  for(const interrupt of interruptions){
+    document.hidden=false;c.setActive(true);c.setThrottle(.4);
+    stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});stick.dispatch('pointermove',{pointerId:1,clientX:50,clientY:88});
+    yawStick.dispatch('pointerdown',{pointerId:2,clientX:50,clientY:50});yawStick.dispatch('pointermove',{pointerId:2,clientX:50,clientY:12});
+    fire.dispatch('pointerdown',{pointerId:3});window.dispatch('keydown',{code:'ArrowRight'});
+    interrupt();c.setActive(true);
+    for(const [pad,id] of [[stick,1],[yawStick,2]])pad.dispatch('pointermove',{pointerId:id,clientX:0,clientY:0});
+    assert.deepEqual(c.read(1),{roll:0,pitch:0,yaw:0,throttle:.4,fire:false});
+    for(const surface of [stick,yawStick,fire])assert.equal(surface.captures.size,0);
+    for(const cursor of [knob,yawKnob])assert.equal(cursor.style.transform,'translate(-50%,-50%)');
+    stick.dispatch('pointerdown',{pointerId:4,clientX:90,clientY:10});assert.equal(c.read(0).pitch,0);stick.dispatch('pointerup',{pointerId:4});
+  }
+}));
+
+test('touch dead zones and travel clamp analog axes; keyboard plus thumb cannot double the thrust rate',()=>withControls(({c,stick,yawStick,window})=>{
+  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});
+  stick.dispatch('pointermove',{pointerId:1,clientX:54,clientY:54});assert.equal(c.read(0).roll,0);assert.equal(c.read(0).pitch,0);
+  stick.dispatch('pointermove',{pointerId:1,clientX:500,clientY:50});assert.equal(c.read(0).roll,1);assert.equal(c.read(0).pitch,0);
+  stick.dispatch('pointermove',{pointerId:1,clientX:-500,clientY:-500});const diagonal=c.read(0);assert.ok(diagonal.roll>=-1&&diagonal.roll<0);assert.ok(diagonal.pitch>=-1&&diagonal.pitch<0);
+  yawStick.dispatch('pointerdown',{pointerId:2,clientX:50,clientY:50});yawStick.dispatch('pointermove',{pointerId:2,clientX:50,clientY:-500});
+  c.setThrottle(.1);window.dispatch('keydown',{code:'KeyW'});assert.ok(Math.abs(c.read(1).throttle-.45)<1e-9);
+  window.dispatch('keyup',{code:'KeyW'});window.dispatch('keydown',{code:'KeyS'});const before=c.throttleValue;assert.equal(c.read(1).throttle,before,'opposite keyboard and thumb thrust cancel');
+}));
+
+test('push-to-climb is an explicit touch-only choice and does not reverse named keyboard pitch actions',()=>withControls(({c,stick,window})=>{
+  stick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50});stick.dispatch('pointermove',{pointerId:1,clientX:50,clientY:88});
+  assert.equal(c.read(0).pitch,1);c.settings.touchPitch='push';assert.equal(c.read(0).pitch,-1);stick.dispatch('pointerup',{pointerId:1});
+  for(const touchPitch of ['pull','push']){
+    c.settings.touchPitch=touchPitch;window.dispatch('keydown',{code:'ArrowDown'});assert.equal(c.read(0).pitch,1);window.dispatch('keyup',{code:'ArrowDown'});
     window.dispatch('keydown',{code:'ArrowUp'});assert.equal(c.read(0).pitch,-1);window.dispatch('keyup',{code:'ArrowUp'});
   }
-  stick.dispatch('pointerdown',{pointerId:2,clientX:88,clientY:50});
-  look.dispatch('pointerdown',{pointerId:3,clientX:50,clientY:50});look.dispatch('pointermove',{pointerId:3,clientX:70,clientY:50});
-  const input=c.read(1/60);assert.equal(input.roll,1);assert.equal(input.fire,false);assert.ok(c.lookX>0);
-  stick.dispatch('pointercancel',{pointerId:2});assert.equal(c.read(1/60).roll,0);
-  fire.dispatch('pointerdown',{pointerId:4});assert.equal(c.read(0).fire,true);fire.dispatch('lostpointercapture',{pointerId:4});assert.equal(c.read(0).fire,false);
-  window.dispatch('blur');assert.equal(c.lookX,0);assert.equal(c.lookY,0);assert.equal(c.lookId,null);
+  assert.equal(c.lookX,0);assert.equal(c.lookY,0);
 }));

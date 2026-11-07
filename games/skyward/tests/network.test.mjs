@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocket } from '../vendor/ws/wrapper.mjs';
 import { createSkywardServer, PROTOCOL_VERSION } from '../server.mjs';
 import { SquadronClient } from '../public/network.mjs';
+import {orientationFromEuler,deriveEuler,basis} from '../public/orientation.mjs';
 
 class Peer {
   constructor(url, options) {
@@ -232,4 +233,34 @@ test('browser client speaks the real protocol and interpolates short angular pat
   const sample = host.samplePlayers()[0];
   assert.ok(Math.abs(Math.abs(sample.heading) - Math.PI) < 0.03);
   assert.ok(sample.x >= 9 && sample.x <= 12);
+});
+
+test('remote aircraft interpolate through vertical flight without an Euler-axis detour', () => {
+  const client=new SquadronClient({url:'ws://unused'}),stamp=Date.now();
+  client.roster=[{id:'wing',connected:true,name:'Wing'}];
+  const first=orientationFromEuler(0,Math.PI/2-.2,0),last=orientationFromEuler(0,Math.PI/2+.2,0);
+  client._histories.set('wing',[
+    {at:stamp-200,player:{...pose(),...deriveEuler(first)}},
+    {at:stamp,player:{...pose(),...deriveEuler(last)}}
+  ]);
+  const sample=client.samplePlayers()[0],axes=basis(sample.orientation);
+  assert.ok(axes.forward.y>.999,'the interpolated nose passes directly through vertical');
+  assert.ok(Math.abs(axes.forward.x)<1e-8,'a loop does not acquire a sideways yaw from Euler branch changes');
+  assert.ok(axes.right.x<-.999,'the wings keep their physical orientation through the pole');
+  assert.equal(sample.extrapolated,false);
+});
+
+test('remote rotation prediction stays on the same body arc and stops after the extrapolation budget', () => {
+  const client=new SquadronClient({url:'ws://unused'}),stamp=Date.now();
+  client.roster=[{id:'wing',connected:true,name:'Wing'}];
+  client._histories.set('wing',[
+    {at:stamp-500,player:{...pose(),...deriveEuler(orientationFromEuler(0,Math.PI/2-.2,0))}},
+    {at:stamp-400,player:{...pose(),...deriveEuler(orientationFromEuler(0,Math.PI/2+.2,0))}}
+  ]);
+  const predicted=client.samplePlayers()[0],axes=basis(predicted.orientation);
+  const expected=basis(orientationFromEuler(0,Math.PI/2+.5,0));
+  for(const axis of ['forward','up','right'])for(const component of ['x','y','z'])assert.ok(Math.abs(axes[axis][component]-expected[axis][component])<1e-8);
+  assert.equal(predicted.extrapolated,true);
+  client._clockOffset=10000;
+  assert.deepEqual(client.samplePlayers()[0].orientation,predicted.orientation,'a stale connection cannot continue tumbling the plane');
 });

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {FlightPresentation} from '../public/presentation.mjs';
+import {orientationFromEuler,deriveEuler,basis} from '../public/orientation.mjs';
 
 const scene=()=>({
   player:{id:'pilot',x:0,y:300,z:0,heading:0,pitch:0,roll:0,speed:120,health:100,gear:true,engine:true},
@@ -61,4 +62,23 @@ test('teleports and mission resets snap immediately rather than flying through t
   const next=scene();next.player.z=8000;presentation.reset(next);
   close(presentation.sample(0).player.z,8000);
   assert.equal(presentation.sample(.5).mission,next.mission);
+});
+
+
+test('attitude interpolation crosses vertical flight on the short body arc, not Euler branches',()=>{
+  const sim=scene(),before=orientationFromEuler(.3,89*Math.PI/180,.7),after=orientationFromEuler(.3,91*Math.PI/180,.7);
+  Object.assign(sim.player,deriveEuler(before),{orientation:{...before}});const presentation=new FlightPresentation(sim);
+  Object.assign(sim.player,deriveEuler(after));Object.assign(sim.player.orientation,after);const authoritative=structuredClone(sim.player);
+  const halfway=presentation.sample(.5).player,expected=basis(orientationFromEuler(.3,Math.PI/2,.7)),actual=basis(halfway.orientation);
+  for(const axis of ['forward','up','right'])for(const component of ['x','y','z'])close(actual[axis][component],expected[axis][component]);
+  assert.deepEqual(sim.player,authoritative);assert.notEqual(halfway.orientation,sim.player.orientation);
+  halfway.orientation.w=123;assert.deepEqual(sim.player,authoritative,'render pose cannot mutate authoritative attitude');
+  close(Math.hypot(...Object.values(presentation.sample(.5).player.orientation)),1);
+});
+
+test('equivalent quaternion signs and inverted poses never cause a full spin between frames',()=>{
+  const sim=scene(),q=orientationFromEuler(-.6,.4,Math.PI);Object.assign(sim.player,deriveEuler(q),{orientation:q});
+  const presentation=new FlightPresentation(sim);sim.player.orientation=Object.fromEntries(Object.entries(q).map(([k,v])=>[k,-v]));
+  for(const alpha of [0,.1,.5,.9,1]){const rendered=basis(presentation.sample(alpha).player.orientation),expected=basis(q);for(const axis of ['forward','up','right'])for(const key of ['x','y','z'])close(rendered[axis][key],expected[axis][key]);}
+  sim.player.x=1000;sim.player.orientation=orientationFromEuler(1.2,.2,-.3);assert.deepEqual(presentation.sample(.1).player.orientation,sim.player.orientation,'teleport snaps orientation with position');
 });

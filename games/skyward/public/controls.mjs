@@ -4,28 +4,73 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const CONTINUOUS_ACTIONS=new Set(['pitchUp','pitchDown','yawLeft','yawRight','throttleUp','throttleDown','rollLeft','rollRight','fire']);
 const isFormTarget=target=>Boolean(target?.isContentEditable||target?.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'));
 export class FlightControls {
-  constructor({stick,knob,look,fire,throttle,onAction,onPause,onAnyGesture,settings}){
-    Object.assign(this,{stick,knob,look,fire,throttle,onAction,onPause,onAnyGesture,settings});
-    this.keys=new Set();this.active=false;this.stickId=null;this.lookId=null;this.axes={roll:0,pitch:0};this.lookX=0;this.lookY=0;this.firing=false;this.throttleValue=0;
+  constructor({stick,knob,yawStick,yawKnob,fire,throttle,onAction,onPause,onAnyGesture,settings={}}){
+    Object.assign(this,{stick,knob,yawStick,yawKnob,fire,throttle,onAction,onPause,onAnyGesture,settings});
+    this.keys=new Set();this.active=false;this.axes={roll:0,pitch:0,yaw:0,thrust:0};this.lookX=0;this.lookY=0;this.fireId=null;this.firing=false;this.throttleValue=0;
+    this.pads=[
+      {element:stick,knob,xAxis:'roll',yAxis:'pitch',yDirection:1,pointerId:null,anchor:null},
+      {element:yawStick,knob:yawKnob,xAxis:'yaw',yAxis:'thrust',yDirection:-1,pointerId:null,anchor:null},
+    ];
     this.listeners=[];this.refreshBindings();this.bind();
   }
   on(el,type,fn,opts){el.addEventListener(type,fn,opts);this.listeners.push(()=>el.removeEventListener(type,fn,opts));}
+  ownsPointer(id){return this.fireId===id||this.pads.some(pad=>pad.pointerId===id);}
+  releaseCapture(element,id){
+    if(id===null)return;
+    try{if(element.hasPointerCapture?.(id))element.releasePointerCapture(id);}catch{}
+  }
+  resetPad(pad){
+    const id=pad.pointerId;pad.pointerId=null;pad.anchor=null;
+    this.axes[pad.xAxis]=this.axes[pad.yAxis]=0;
+    pad.knob.style.transform='translate(-50%,-50%)';pad.element.classList.remove('active');
+    this.releaseCapture(pad.element,id);
+  }
+  resetFire(){
+    const id=this.fireId;this.fireId=null;this.firing=false;this.fire.classList.remove('held');
+    this.releaseCapture(this.fire,id);
+  }
+  bindPad(pad){
+    this.on(pad.element,'pointerdown',e=>{
+      if(!this.active||(e.button!==undefined&&e.button!==0))return;
+      e.preventDefault();
+      if(pad.pointerId!==null||this.ownsPointer(e.pointerId)||!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY))return;
+      const rect=pad.element.getBoundingClientRect();
+      // Contact begins neutral anywhere in the pad. Only subsequent thumb
+      // travel deflects the centered knob, so placement cannot jerk the plane.
+      pad.anchor={x:e.clientX,y:e.clientY,radius:Math.max(1,Math.min(rect.width,rect.height||rect.width)*.38)};
+      pad.pointerId=e.pointerId;this.axes[pad.xAxis]=this.axes[pad.yAxis]=0;
+      pad.knob.style.transform='translate(-50%,-50%)';pad.element.classList.add('active');
+      try{pad.element.setPointerCapture(e.pointerId);}catch{this.resetPad(pad);return;}
+      this.onAnyGesture?.();
+    });
+    this.on(pad.element,'pointermove',e=>{
+      if(!this.active||pad.pointerId!==e.pointerId||!pad.anchor)return;
+      e.preventDefault();this.movePad(pad,e);
+    });
+    const end=e=>{if(e.pointerId===pad.pointerId)this.resetPad(pad);};
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])this.on(pad.element,event,end);
+  }
   bind(){
-    const {stick,look,fire,throttle}=this;
-    this.on(stick,'pointerdown',e=>{if(!this.active||this.stickId!==null)return;e.preventDefault();this.onAnyGesture?.();this.stickId=e.pointerId;stick.setPointerCapture(e.pointerId);this.moveStick(e);});
-    this.on(stick,'pointermove',e=>{if(e.pointerId===this.stickId){e.preventDefault();this.moveStick(e);}});
-    const end=e=>{if(e.pointerId===this.stickId){this.stickId=null;this.axes.roll=this.axes.pitch=0;this.knob.style.transform='translate(-50%,-50%)';}};
-    for(const ev of ['pointerup','pointercancel','lostpointercapture'])this.on(stick,ev,end);
-    this.on(look,'pointerdown',e=>{if(!this.active||this.lookId!==null)return;e.preventDefault();this.onAnyGesture?.();this.lookId=e.pointerId;this.lastLook={x:e.clientX,y:e.clientY};look.setPointerCapture(e.pointerId);look.classList.add('active');});
-    this.on(look,'pointermove',e=>{if(e.pointerId!==this.lookId)return;e.preventDefault();this.lookX=clamp(this.lookX+(e.clientX-this.lastLook.x)*.007*this.settings.lookSensitivity,-2.6,2.6);this.lookY=clamp(this.lookY+(e.clientY-this.lastLook.y)*.005*this.settings.lookSensitivity,-.8,.8);this.lastLook={x:e.clientX,y:e.clientY};});
-    const endLook=e=>{if(e.pointerId===this.lookId){this.lookId=null;look.classList.remove('active');}};
-    for(const ev of ['pointerup','pointercancel','lostpointercapture'])this.on(look,ev,endLook);
-    this.on(fire,'pointerdown',e=>{if(!this.active)return;e.preventDefault();this.onAnyGesture?.();this.firing=true;fire.setPointerCapture(e.pointerId);fire.classList.add('held');});
-    for(const ev of ['pointerup','pointercancel','lostpointercapture'])this.on(fire,ev,()=>{this.firing=false;fire.classList.remove('held');});
-    this.on(throttle,'input',()=>{this.throttleValue=Number(throttle.value)/100;this.onAnyGesture?.();});
+    const {fire,throttle}=this;
+    for(const pad of this.pads)this.bindPad(pad);
+    this.on(fire,'pointerdown',e=>{
+      if(!this.active||(e.button!==undefined&&e.button!==0))return;
+      e.preventDefault();if(this.fireId!==null||this.ownsPointer(e.pointerId))return;
+      this.fireId=e.pointerId;this.firing=true;fire.classList.add('held');
+      try{fire.setPointerCapture(e.pointerId);}catch{this.resetFire();return;}
+      this.onAnyGesture?.();
+    });
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])this.on(fire,event,e=>{if(e.pointerId===this.fireId)this.resetFire();});
+    // Also release by owner if a browser delivers the final event outside the
+    // original element. Releasing one thumb never releases the other controls.
+    for(const event of ['pointerup','pointercancel'])this.on(window,event,e=>{
+      for(const pad of this.pads)if(e.pointerId===pad.pointerId)this.resetPad(pad);
+      if(e.pointerId===this.fireId)this.resetFire();
+    });
+    this.on(throttle,'input',()=>{const value=Number(throttle.value);if(Number.isFinite(value))this.setThrottle(value/100);this.onAnyGesture?.();});
     // Pointer use returns focus to flying. Tab focus keeps native range-key
     // operation available, including to keyboard and assistive-technology users.
-    for(const ev of ['pointerup','pointercancel'])this.on(throttle,ev,()=>throttle.blur?.());
+    for(const event of ['pointerup','pointercancel'])this.on(throttle,event,()=>throttle.blur?.());
     this.on(window,'keydown',e=>{
       if(!this.active)return;
       if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey){this.keys.clear();return;}
@@ -45,12 +90,22 @@ export class FlightControls {
       else this.onAction?.(action);
     });
     this.on(window,'keyup',e=>this.keys.delete(e.code));
-    this.on(window,'blur',()=>this.clear());
+    for(const event of ['blur','resize','orientationchange'])this.on(window,event,()=>this.clear());
+    if(window.visualViewport?.addEventListener)this.on(window.visualViewport,'resize',()=>this.clear());
     this.on(document,'focusin',e=>{if(isFormTarget(e.target))this.keys.clear();});
     this.on(document,'visibilitychange',()=>{if(document.hidden)this.clear();});
     this.on(document,'contextmenu',e=>{if(this.active&&e.target.closest?.('.touch-controls, #view'))e.preventDefault();});
   }
-  moveStick(e){const r=this.stick.getBoundingClientRect(),radius=r.width*.38;let x=(e.clientX-r.left-r.width/2)/radius,y=(e.clientY-r.top-r.height/2)/radius;const mag=Math.hypot(x,y);if(mag>1){x/=mag;y/=mag;}const dead=this.settings.deadZone/100;const curve=v=>Math.abs(v)<dead?0:Math.sign(v)*(Math.abs(v)-dead)/(1-dead);this.axes.roll=curve(x);this.axes.pitch=-curve(y);this.knob.style.transform=`translate(calc(-50% + ${x*radius}px),calc(-50% + ${y*radius}px))`;}
+  movePad(pad,e){
+    if(!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY))return;
+    const {x:anchorX,y:anchorY,radius}=pad.anchor;
+    let x=(e.clientX-anchorX)/radius,y=(e.clientY-anchorY)/radius;
+    const magnitude=Math.hypot(x,y);if(magnitude>1){x/=magnitude;y/=magnitude;}
+    const dead=clamp(Number.isFinite(this.settings.deadZone)?this.settings.deadZone/100:.12,0,.95);
+    const curve=value=>Math.abs(value)<=dead?0:Math.sign(value)*(Math.abs(value)-dead)/(1-dead);
+    this.axes[pad.xAxis]=curve(x);this.axes[pad.yAxis]=curve(y*pad.yDirection);
+    pad.knob.style.transform=`translate(calc(-50% + ${x*radius}px),calc(-50% + ${y*radius}px))`;
+  }
   setActive(active){this.active=active;if(!active)this.clear();}
   setThrottle(v){this.throttleValue=clamp(v,0,1);this.throttle.value=Math.round(this.throttleValue*100);}
   refreshBindings(){
@@ -68,12 +123,13 @@ export class FlightControls {
   read(dt){
     if(!this.active)return {roll:0,pitch:0,yaw:0,throttle:this.throttleValue,fire:false};
     this.refreshBindings();const down=action=>this.keys.has(this.keyBindings[action])?1:0,elapsed=Number.isFinite(dt)?Math.max(0,dt):0;
-    this.throttleValue=clamp(this.throttleValue+(down('throttleUp')-down('throttleDown'))*elapsed*.35,0,1);this.throttle.value=Math.round(this.throttleValue*100);
-    if(this.lookId===null){const f=1-Math.exp(-elapsed*3.8);this.lookX*=1-f;this.lookY*=1-f;}
+    const thrust=clamp(this.axes.thrust+down('throttleUp')-down('throttleDown'),-1,1);
+    this.throttleValue=clamp(this.throttleValue+thrust*elapsed*.35,0,1);this.throttle.value=Math.round(this.throttleValue*100);
     const roll=this.axes.roll+down('rollRight')-down('rollLeft');
-    const pitch=this.axes.pitch*(this.settings.invertPitch?-1:1)+down('pitchUp')-down('pitchDown');
-    return {roll:clamp(roll*this.settings.sensitivity,-1,1),pitch:clamp(pitch*this.settings.sensitivity,-1,1),yaw:down('yawRight')-down('yawLeft'),throttle:this.throttleValue,fire:this.firing||Boolean(down('fire'))};
+    const pitch=this.axes.pitch*(this.settings.touchPitch==='push'?-1:1)+down('pitchUp')-down('pitchDown');
+    const sensitivity=Number.isFinite(this.settings.sensitivity)?this.settings.sensitivity:1;
+    return {roll:clamp(roll*sensitivity,-1,1),pitch:clamp(pitch*sensitivity,-1,1),yaw:clamp(this.axes.yaw+down('yawRight')-down('yawLeft'),-1,1),throttle:this.throttleValue,fire:this.firing||Boolean(down('fire'))};
   }
-  clear(){this.keys.clear();this.stickId=this.lookId=null;this.axes.roll=this.axes.pitch=0;this.lookX=this.lookY=0;this.firing=false;this.knob.style.transform='translate(-50%,-50%)';this.fire.classList.remove('held');this.look.classList.remove('active');}
+  clear(){this.keys.clear();for(const pad of this.pads)this.resetPad(pad);this.resetFire();this.lookX=this.lookY=0;}
   destroy(){this.clear();this.listeners.forEach(fn=>fn());}
 }

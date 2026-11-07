@@ -12,19 +12,22 @@ class Surface {
   removeEventListener(type,handler){this.handlers.get(type)?.delete(handler);}
   dispatch(type,event={}){for(const handler of this.handlers.get(type)||[])handler({target:this,preventDefault(){},...event});}
   closest(){return null;}
+  getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
+  setPointerCapture(){}
 }
 
 function withFlight(run,assist='assisted'){
   const oldWindow=globalThis.window,oldDocument=globalThis.document;
   const window=globalThis.window=new Surface();globalThis.document=new Surface();
   const settings=normalizeSettings({assist});
-  const controls=new FlightControls({stick:new Surface(),knob:new Surface(),look:new Surface(),fire:new Surface(),throttle:new Surface(),settings});
+  const surfaces={stick:new Surface(),knob:new Surface(),yawStick:new Surface(),yawKnob:new Surface(),fire:new Surface(),throttle:new Surface()};
+  const controls=new FlightControls({...surfaces,settings});
   const mission={...structuredClone(getMission('first-light')),id:'freeflight',kind:'free',aircraft:'f15',
     start:{x:0,y:8000,z:0,speed:200,heading:Math.PI-.01,airborne:true},waypoints:[],enemies:[],targets:[],goal:{}};
   const sim=new FlightSimulation(mission,settings),clock=new FixedStepClock(),presentation=new FlightPresentation(sim);
   controls.setActive(true);controls.setThrottle(.3);sim.player.throttle=.3;
   const step=dt=>{presentation.capture(sim);sim.step(dt,controls.read(dt));};
-  try{return run({controls,sim,clock,presentation,window,step});}
+  try{return run({controls,sim,clock,presentation,window,step,...surfaces});}
   finally{controls.destroy();globalThis.window=oldWindow;globalThis.document=oldDocument;}
 }
 
@@ -44,7 +47,7 @@ function replay(refreshRate,assist){
 }
 
 test('flight, held thrust and render sampling remain identical at 15, 30, 60, 120 and 144 Hz',()=>{
-  for(const assist of ['assisted','expert']){
+  for(const assist of ['assisted','standard','expert']){
     const reference=replay(60,assist);
     for(const refreshRate of [15,30,120,144])assert.deepEqual(replay(refreshRate,assist),reference,`${assist}, ${refreshRate} Hz must match 60 Hz`);
   }
@@ -87,3 +90,23 @@ test('a long frame has bounded catch-up without leaving a backlog for subsequent
   assert.equal(clock.advance(FIXED_STEP,step),1);
   assert.ok(Math.abs(sim.time-(.25+FIXED_STEP))<1e-9);
 }));
+
+
+test('left-thumb thrust matches W timing across display rates and holds its value after release',()=>{
+  const run=(refreshRate,touch)=>withFlight(({controls,sim,clock,window,yawStick,step})=>{
+    if(touch){yawStick.dispatch('pointerdown',{pointerId:1,clientX:50,clientY:50,pointerType:'touch'});yawStick.dispatch('pointermove',{pointerId:1,clientX:50,clientY:12});}
+    else window.dispatch('keydown',{code:'KeyW'});
+    let ticks=0;
+    for(let frame=0;frame<refreshRate;frame++){
+      controls.read(0);ticks+=clock.advance(1/refreshRate,step);
+    }
+    assert.equal(ticks,60);assert.ok(Math.abs(sim.player.throttle-.65)<1e-9);
+    if(touch)yawStick.dispatch('pointerup',{pointerId:1});else window.dispatch('keyup',{code:'KeyW'});
+    const chosen=sim.player.throttle;
+    for(let i=0;i<60;i++)clock.advance(FIXED_STEP,step);
+    assert.equal(sim.player.throttle,chosen,'released thumb must not keep accelerating or reset the selected thrust');
+    return structuredClone(sim.player);
+  });
+  const keyboard=run(60,false);
+  for(const rate of [15,30,60,120,144])assert.deepEqual(run(rate,true),keyboard,`${rate} Hz thumb input must match the keyboard`);
+});

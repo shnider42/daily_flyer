@@ -1,12 +1,13 @@
 import * as THREE from './vendor/three.module.js';
 import { terrainHeight } from './sim.mjs';
+import {orientationOf,basis,deriveEuler} from './orientation.mjs';
+import {cockpitView} from './camera-pose.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const number=(v,f=0)=>Number.isFinite(v)?v:f;
 const scratchV=new THREE.Vector3(), scratchD=new THREE.Vector3(), scratchUp=new THREE.Vector3(0,1,0);
-const scratchEuler=new THREE.Euler();
 const tempObject=new THREE.Object3D(), tempColor=new THREE.Color();
 const effectFadeColor=new THREE.Color('#7d8072');
 const axisY=new THREE.Vector3(0,1,0),axisZ=new THREE.Vector3(0,0,1);
@@ -516,13 +517,15 @@ export class FlightRenderer {
 
   _updateCamera(p,dt,options){
     const mode=options.camera||'chase';const cockpit=mode==='cockpit';this._cockpit.visible=cockpit;this._plane.visible=!cockpit;
-    const heading=number(p.heading),pitch=number(p.pitch),originY=p.y-number(this._visualGearOffset);const forward=scratchV.set(Math.sin(heading)*Math.cos(pitch),Math.sin(pitch),Math.cos(heading)*Math.cos(pitch));
+    const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),originY=p.y-number(this._visualGearOffset);
     const lookX=number(options.lookX),lookY=clamp(number(options.lookY),-1.15,1.15);
     let px,py,pz,tx,ty,tz;
     if(cockpit){
-      px=p.x+forward.x*2;py=originY+.85+forward.y*2;pz=p.z+forward.z*2;
-      const yh=heading+lookX,yp=pitch+lookY;tx=px+Math.sin(yh)*Math.cos(yp)*100;ty=py+Math.sin(yp)*100;tz=pz+Math.cos(yh)*Math.cos(yp)*100;
-      if(this.settings.horizonLock===false&&!this.settings.reducedMotion)scratchUp.set(0,1,0).applyEuler(scratchEuler.set(-pitch,heading,-number(p.roll),'YXZ'));else scratchUp.set(0,1,0);
+      const view=cockpitView(p,options,number(this._visualGearOffset));
+      ({x:px,y:py,z:pz}=view.position);({x:tx,y:ty,z:tz}=view.target);
+      // Reduced motion may steady the chase orbit; it must not detach the
+      // cockpit horizon from the airframe or flip an inverted pilot upright.
+      scratchUp.set(view.up.x,view.up.y,view.up.z);
     }else{
       const length=this._plane.userData.length||9;const distance=clamp(length*2.35+number(p.speed)*.055,23,84);
       const side=mode==='cinematic'?.68:0;const a=heading+lookX+side;

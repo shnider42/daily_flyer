@@ -1,4 +1,5 @@
 import { getAircraft, getMission } from './campaign.mjs';
+import { orientationFromEuler, orientationOf, basis, deriveEuler, slerp, isOrientation, normalizeOrientation, multiplyOrientations, integrateBodyRotation } from './orientation.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
@@ -8,9 +9,49 @@ const mix = (a, b, f) => a + (b - a) * clamp(f, 0, 1);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const flatDist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const copy = value => JSON.parse(JSON.stringify(value));
-const direction = p => ({ x: Math.sin(p.heading) * Math.cos(p.pitch || 0), y: Math.sin(p.pitch || 0), z: Math.cos(p.heading) * Math.cos(p.pitch || 0) });
+const attitudes = new WeakMap();
+const attitudeFields = ['heading', 'pitch', 'roll'];
+const quaternionFields = ['x', 'y', 'z', 'w'];
+// Legacy callers may still edit Euler pose fields (mission setup, old network
+// packets, and tools). Import those edits once; all actual flight integrates q.
+function readAttitude(p) {
+  const last = attitudes.get(p);
+  const eulerChanged = last && attitudeFields.some(key => p[key] !== last[key]);
+  const quaternionChanged = !last || !isOrientation(p.orientation)
+    || quaternionFields.some(key => p.orientation[key] !== last.orientation[key]);
+  return eulerChanged && !quaternionChanged ? orientationFromEuler(p.heading, p.pitch, p.roll) : orientationOf(p);
+}
+function setAttitude(p, orientation) {
+  p.orientation = normalizeOrientation(orientation);
+  Object.assign(p, deriveEuler(p.orientation));
+  attitudes.set(p, { heading: p.heading, pitch: p.pitch, roll: p.roll, orientation: { ...p.orientation } });
+  return basis(p.orientation);
+}
+const direction = p => basis(readAttitude(p)).forward;
 const living = o => o && o.health > 0 && o.alive !== false && !o.escaped;
 const assisted = settings => settings?.assist !== 'expert';
+
+function advanceAttitude(p, input, dt, a, damageFactor, settings) {
+  // The touch controller already applies its dead zone. Even a fine analog
+  // correction must not be opposed by a separate world-leveling rotation.
+  const active = input.pitch !== 0 || input.roll !== 0 || input.yaw !== 0;
+  if (active) p.levelAssist = 0;
+  let orientation = integrateBodyRotation(p.orientation, {
+    pitch: input.pitch * 0.55 * damageFactor,
+    roll: input.roll * a.rollRate * damageFactor,
+    yaw: input.yaw * (p.hover ? 0.65 : a.turnRate * 0.28) * damageFactor,
+  }, dt);
+  // Assistance is hands-off recovery, never a bank/pitch limit. Holding any
+  // attitude control keeps its local axis authoritative even when inverted.
+  if (!active && (p.levelAssist > 0 || settings.autoLevel !== false)) {
+    const recover = p.levelAssist > 0;
+    const targetPitch = !recover && p.takeoffAssist > 0 && !p.hover ? 0.12 : 0;
+    const rate = recover ? 3 : settings.assist === 'expert' ? 0.6 : settings.assist === 'standard' ? 1.2 : 2.2;
+    const target = orientationFromEuler(deriveEuler(orientation).heading, targetPitch, 0);
+    orientation = slerp(orientation, target, 1 - Math.exp(-rate * dt));
+  }
+  return setAttitude(p, orientation);
+}
 
 function runwayCoordinates(x, z, runway) {
   const dx = x - runway.x, dz = z - runway.z;
@@ -80,6 +121,8 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
   dt = clamp(finite(dt, 1 / 60), 0, 0.05);
   if (!dt || p.crashed || p.health <= 0) return p;
   const rollInput = clamp(finite(input.roll), -1, 1), pitchInput = clamp(finite(input.pitch), -1, 1), yawInput = clamp(finite(input.yaw), -1, 1);
+  let frame = setAttitude(p, readAttitude(p));
+  const attitudeInput = { pitch: pitchInput, roll: rollInput, yaw: yawInput };
   if (Number.isFinite(input.throttle)) p.throttle = clamp(input.throttle, 0, 1);
   p.throttle = clamp(finite(p.throttle), 0, 1);
   if (a.fixedGear) p.gear = true;
@@ -97,15 +140,17 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
   const beforeY = p.y;
 
   if (p.hover && a.vtol) {
-    p.pitch = mix(p.pitch, pitchInput * 0.18, dt * 3);
-    p.roll = mix(p.roll, rollInput * 0.2, dt * 3);
-    p.heading = angle(p.heading + yawInput * 0.65 * dt);
-    p.hoverForward = mix(finite(p.hoverForward, p.speed), -pitchInput * 45, dt * 1.4);
-    p.speed = Math.abs(p.hoverForward);
-    const sideways = rollInput * 35;
-    p.vx = Math.sin(p.heading) * p.hoverForward + Math.cos(p.heading) * sideways + windX * 0.2;
-    p.vz = Math.cos(p.heading) * p.hoverForward - Math.sin(p.heading) * sideways + windZ * 0.2;
-    p.verticalSpeed = mix(finite(p.verticalSpeed), p.engine ? (p.throttle - 0.5) * 55 : -18, dt * 1.8);
+    if (p.onGround) frame = setAttitude(p, orientationFromEuler(p.heading - yawInput * 0.65 * dt, 0, 0));
+    else frame = advanceAttitude(p, attitudeInput, dt, a, damageFactor, settings);
+    // Nozzles act along aircraft up; gravity remains world-down. Upright, the
+    // original half-throttle hover and gentle deck-descent rates are unchanged.
+    const hoverThrust = p.engine ? p.throttle * 90 : 0;
+    p.vx = mix(finite(p.vx, frame.forward.x * p.speed), frame.up.x * hoverThrust + windX * 0.2, dt * 1.4);
+    p.vz = mix(finite(p.vz, frame.forward.z * p.speed), frame.up.z * hoverThrust + windZ * 0.2, dt * 1.4);
+    p.hoverForward = p.vx * frame.forward.x + p.vz * frame.forward.z;
+    p.speed = Math.hypot(p.vx, p.vz);
+    p.verticalSpeed = mix(finite(p.verticalSpeed), p.engine ? (p.throttle * 2 * frame.up.y - 1) * 27.5 : -18, dt * 1.8);
+    p.settlingSpeed = 0;
     if (p.onGround && p.verticalSpeed > 1) { p.onGround = false; p.everAirborne = true; }
     if (!p.onGround) { p.x += p.vx * dt; p.z += p.vz * dt; p.y += p.verticalSpeed * dt; }
     p.stalled = false;
@@ -113,11 +158,11 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
     const gearDrag = p.gear && !a.fixedGear ? 0.86 : 1, flapDrag = p.flaps ? 0.76 : 1;
     const targetSpeed = p.engine ? a.maxSpeed * Math.pow(p.throttle, 0.68) * gearDrag * flapDrag * damageFactor : 0;
     const thrust = clamp((targetSpeed - p.speed) * 0.23, -a.acceleration * 0.65, a.acceleration * damageFactor);
-    p.speed = Math.max(0, p.speed + (thrust - Math.sin(finite(p.pitch)) * 2.2) * dt);
+    p.speed = Math.max(0, p.speed + (thrust - frame.forward.y * 9.81) * dt);
     if (p.onGround) {
       p.pitch = mix(p.pitch, Math.max(0, pitchInput) * 0.16, dt * 3);
       p.roll = mix(p.roll, 0, dt * 6);
-      p.heading = angle(p.heading + (yawInput + rollInput * 0.65) * a.turnRate * Math.min(p.speed / 15, 1) * dt);
+      p.heading = angle(p.heading - (yawInput + rollInput * 0.65) * a.turnRate * Math.min(p.speed / 15, 1) * dt);
       if (p.brake) p.speed = Math.max(0, p.speed - (a.acceleration * 2.3 + 10) * dt);
       const lift = p.speed > stallSpeed * 1.12 && pitchInput > 0.13;
       const autoLift = assisted(settings) && p.speed > stallSpeed * 1.32 && pitchInput > -0.2;
@@ -127,36 +172,27 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
         p.pitch = Math.max(p.pitch, assisted(settings) ? 0.14 : 0.08);
         p.verticalSpeed = Math.max(3, p.speed * Math.sin(p.pitch));
       }
+      frame = setAttitude(p, orientationFromEuler(p.heading, p.pitch, p.roll));
+      p.settlingSpeed = 0;
     } else {
-      const recover = p.levelAssist > 0;
-      if (settings.assist === 'expert' && !recover) {
-        p.roll = angle(p.roll + rollInput * a.rollRate * damageFactor * dt);
-        p.pitch = clamp(p.pitch + pitchInput * 0.55 * dt, -1.05, 1.05);
-        if (settings.autoLevel && Math.abs(rollInput) < 0.01) p.roll = mix(p.roll, 0, dt * 0.7);
-        if (settings.autoLevel && Math.abs(pitchInput) < 0.01) p.pitch = mix(p.pitch, 0, dt * 0.5);
-      } else {
-        const bankLimit = settings.assist === 'standard' ? 1.15 : 0.87;
-        if (settings.autoLevel === false && !recover) p.roll = clamp(p.roll + rollInput * a.rollRate * damageFactor * dt, -bankLimit, bankLimit);
-        else p.roll = mix(p.roll, recover ? 0 : rollInput * bankLimit, dt * a.rollRate * 2.2 * damageFactor);
-        if (settings.autoLevel !== false || settings.assist === 'assisted' || recover) {
-          const takeoffPitch = p.takeoffAssist > 0 && pitchInput > -0.2 ? 0.12 : 0;
-          p.pitch = mix(p.pitch, recover ? 0 : Math.max(pitchInput * 0.42, takeoffPitch || -1), dt * 2.7);
-        }
-        else p.pitch = clamp(p.pitch + pitchInput * 0.46 * dt, -0.75, 0.75);
-      }
+      frame = advanceAttitude(p, attitudeInput, dt, a, damageFactor, settings);
       const speedTurnFactor = clamp(Math.pow(a.cruise / Math.max(stallSpeed, p.speed), 0.4), 0.65, 1.25);
-      p.heading = angle(p.heading + (Math.sin(p.roll) * a.turnRate * speedTurnFactor + yawInput * a.turnRate * 0.28) * dt);
+      const lift = clamp(p.speed / stallSpeed, 0, 1) ** 2;
+      // Coordinated banking is a lift/gravity aid, not a world-space control.
+      // The right wing's world height is continuous even at vertical attitudes.
+      const turn = frame.right.y * a.turnRate * speedTurnFactor * lift * dt;
+      frame = setAttitude(p, multiplyOrientations(orientationFromEuler(turn, 0, 0), p.orientation));
       p.stalled = p.speed < stallSpeed;
-      let vertical = clamp(p.speed * Math.sin(p.pitch), -a.maxSpeed * 0.65, a.climbRate);
-      if (p.stalled) {
-        vertical -= 3 + (stallSpeed - p.speed) * 0.75;
-        p.pitch = mix(p.pitch, -0.12, dt * (assisted(settings) ? 0.8 : 0.35));
-      }
-      p.verticalSpeed = mix(finite(p.verticalSpeed), vertical, dt * 4);
+      const gravityAcceleration = (lift * frame.up.y - 1) * 9.81;
+      const settlingDecay = Math.exp(-0.35 * dt);
+      p.settlingSpeed = finite(p.settlingSpeed) * settlingDecay + gravityAcceleration / 0.35 * (1 - settlingDecay);
+      // Forward airspeed follows the same nose used by the camera and weapons.
+      // A separate world-down slip supplies lost lift in a bank or stall; never
+      // clamp just world Y, which would make the nose and flight path disagree.
+      p.verticalSpeed = frame.forward.y * p.speed + p.settlingSpeed;
     }
-    const heading = direction(p);
-    p.vx = heading.x * p.speed + (p.onGround ? 0 : windX);
-    p.vz = heading.z * p.speed + (p.onGround ? 0 : windZ);
+    p.vx = frame.forward.x * p.speed + (p.onGround ? 0 : windX);
+    p.vz = frame.forward.z * p.speed + (p.onGround ? 0 : windZ);
     p.x += p.vx * dt; p.z += p.vz * dt;
     if (p.onGround) p.y = surfaceHeight(p.x, p.z, mission) + 3;
     else p.y += finite(p.verticalSpeed) * dt;
@@ -171,8 +207,10 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
     const sinkSafe = p.verticalSpeed > (p.hover ? -12 : assisted(settings) ? -12 : -6.5);
     const gearSafe = p.gear || p.hover;
     const dry = terrainHeight(p.x, p.z, mission) >= 0 || runway?.carrier;
-    if (speedSafe && sinkSafe && gearSafe && Math.abs(p.roll) < (assisted(settings) ? 0.5 : 0.25) && alignment && dry) {
-      p.onGround = true; p.y = ground + 3; p.verticalSpeed = 0; p.pitch = 0; p.roll = 0;
+    const upright = frame.up.y > Math.cos(assisted(settings) ? 0.65 : 0.4);
+    if (speedSafe && sinkSafe && gearSafe && upright && Math.abs(p.roll) < (assisted(settings) ? 0.5 : 0.25) && alignment && dry) {
+      p.onGround = true; p.y = ground + 3; p.verticalSpeed = 0; p.settlingSpeed = 0;
+      frame = setAttitude(p, orientationFromEuler(p.heading, 0, 0));
       p.lastLanding = { runwayIndex, safe: true, speed: p.speed, time: p.flightTime };
       p.landings = finite(p.landings) + 1;
       if (p.hover) { p.speed = 0; p.brake = true; }
@@ -201,10 +239,11 @@ export class FlightSimulation {
       speed: finite(s.speed), throttle: s.cold ? 0.08 : s.airborne ? Math.pow(a.cruise / a.maxSpeed, 1 / 0.68) : 0.1,
       health: a.health, fuel: 100, gear: a.fixedGear || (s.gear ?? !s.airborne), flaps: false, brake: !s.airborne,
       engine: !s.cold, startupStep: s.cold ? 0 : 4, onGround: !s.airborne, aircraft: a.id,
-      verticalSpeed: 0, stalled: false, ammo: a.gun?.ammo || 0, missiles: a.missiles, bombs: a.bombs,
+      verticalSpeed: 0, settlingSpeed: 0, stalled: false, ammo: a.gun?.ammo || 0, missiles: a.missiles, bombs: a.bombs,
       hover: false, troopers: a.id === 'c47' ? 24 : 0, dropsRemaining: a.id === 'c47' ? 2 : 0,
       gunHeat: 0, flightTime: 0, everAirborne: !!s.airborne, landings: 0, vx: 0, vz: s.speed || 0,
     };
+    setAttitude(this.player, orientationFromEuler(this.player.heading, this.player.pitch, this.player.roll));
     this.enemies = copy(m.enemies || []).map((e, i) => ({ ...e, alive: true, active: true, pitch: 0, roll: 0, initialHealth: e.health, fireTimer: 1.5 + i * 0.7, missileTimer: 8 + i * 3, age: 0 }));
     this.targets = copy(m.targets || []).map(t => ({ ...t, y: ['balloon', 'city'].includes(t.type) ? t.y : Math.max(0, terrainHeight(t.x, t.z, m)) + 5, alive: true, active: true, initialHealth: t.health, fireTimer: 7 }));
     this.projectiles = []; this.effects = []; this.paratroopers = []; this.remotePlayers = [];
@@ -260,7 +299,7 @@ export class FlightSimulation {
         if (a.hasFlaps === false) { this._event('info', 'This biplane has no landing flaps. Control the approach with throttle and pitch.'); return false; }
         p.flaps = !p.flaps; this._event('control', `Flaps ${p.flaps ? 'extended' : 'retracted'}`); return true;
       case 'brake': p.brake = !p.brake; this._event('control', `Wheel brake ${p.brake ? 'set' : 'released'}`); return true;
-      case 'level': p.levelAssist = 4; p.pitch = 0; p.roll = 0; this._event('control', 'Level recovery engaged'); return true;
+      case 'level': p.levelAssist = 4; this._event('control', 'Level recovery engaged'); return true;
       case 'target': this._chooseTarget(true); return true;
       case 'radar':
         if (!a.radar) return false;
@@ -280,8 +319,12 @@ export class FlightSimulation {
         if (!a.vtol) return false;
         if (!p.hover && p.speed > 130) { this._event('info', 'Reduce speed below 130 m/s before selecting hover.'); return false; }
         p.hover = !p.hover;
-        if (p.hover) { p.gear = true; p.throttle = 0.5; p.brake = false; p.verticalSpeed = 0; p.hoverForward = p.speed; }
-        this._event('control', p.hover ? 'Hover mode · half throttle holds altitude' : 'Forward flight mode'); return true;
+        if (p.hover) {
+          const frame = setAttitude(p, readAttitude(p));
+          p.gear = true; p.throttle = 0.5; p.brake = false; p.verticalSpeed = 0; p.settlingSpeed = 0; p.hoverForward = p.speed;
+          p.vx = frame.forward.x * p.speed; p.vz = frame.forward.z * p.speed;
+        }
+        this._event('control', p.hover ? 'Hover mode · half throttle holds height while upright' : 'Forward flight mode'); return true;
       case 'abort':
         if (this.mission.goal?.type === 'decision') {
           this.ending = 'abort'; this.endingText = 'The weapon remains aboard. You turn away from Vesper. The last page of the logbook records a choice to return.';
@@ -601,7 +644,7 @@ export class FlightSimulation {
 
   _navigationHint(point) {
     const p = this.player, distance = flatDist(p, point), delta = angle(Math.atan2(point.x - p.x, point.z - p.z) - p.heading);
-    const turn = Math.abs(delta) > 0.2 ? `Bank ${delta > 0 ? 'right' : 'left'} toward the marker.` : 'Keep the marker ahead.';
+    const turn = Math.abs(delta) > 0.2 ? `Bank ${delta > 0 ? 'left' : 'right'} toward the marker.` : 'Keep the marker ahead.';
     const altitude = point.y - p.y;
     return `${turn} ${Math.abs(altitude) > 100 ? altitude > 0 ? 'Raise the nose gently.' : 'Lower the nose gently.' : 'Hold your altitude.'} ${(distance / 1000).toFixed(1)} km to go.`;
   }
@@ -610,7 +653,7 @@ export class FlightSimulation {
     if (!runway) return 'Find a clear runway and land with the gear down.';
     const p = this.player;
     if (p.onGround) return p.lastLanding?.runwayIndex === this.mission.goal.destinationRunway ? 'Throttle idle and set the brake to finish the landing.' : 'This is not the destination. Take off and follow the destination marker.';
-    if (this.aircraft.vtol) return `Return to ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. ${p.hover ? 'Half throttle holds height; use less to descend. Pitch and roll translate across the deck.' : 'Reduce speed below 130 m/s, select HOVER, then settle gently onto the deck.'}`;
+    if (this.aircraft.vtol) return `Return to ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. ${p.hover ? 'Half throttle holds height while upright; use less to descend. Pitch and roll tilt the aircraft to move across the deck.' : 'Reduce speed below 130 m/s, select HOVER, then settle gently onto the deck.'}`;
     if (!p.gear) return 'Extend the landing gear before your approach.';
     if (p.speed > this.aircraft.stallSpeed * 1.85) return this.aircraft.hasFlaps === false ? 'Reduce throttle for landing. This biplane has fixed gear and no flaps.' : 'Reduce throttle for landing. Flaps lower the stall speed and add drag.';
     return `Line up with ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. Aim for the near end, descend gently, and keep wings level. Brake after touchdown.`;
@@ -729,7 +772,8 @@ export class FlightSimulation {
     if (!this.worldAuthority || this.status !== 'flying' || !pose || ![pose.x, pose.y, pose.z, pose.heading].every(Number.isFinite)) return false;
     const name = typeof action === 'string' ? action : action?.name || action?.action || action?.type;
     // A squadron sortie uses its assigned aircraft; a pose cannot grant stores.
-    const p = { ...pose, aircraft: this.mission.aircraft, pitch: clamp(finite(pose.pitch), -1.5, 1.5) }, state = this._remoteState(p);
+    const p = { ...pose, aircraft: this.mission.aircraft }, state = this._remoteState(p);
+    setAttitude(p, orientationOf(p));
     Object.assign(p, { ammo: state.ammo, missiles: state.missiles, bombs: state.bombs, troopers: state.troopers, dropsRemaining: state.dropsRemaining, gunHeat: state.gunHeat });
     const chosen = [...this.enemies, ...this.targets].find(t => t.id === action?.targetId && living(t) && !t.friendly) || this.selectedTarget;
     let result = false;

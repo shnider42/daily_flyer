@@ -4,14 +4,26 @@
  * The host owns the mission world. The relay validates identity and message bounds,
  * not the honesty of host-authored combat. Rooms last 90 minutes and live in RAM.
  */
+import {orientationOf,deriveEuler,slerp,multiplyOrientations,isOrientation} from './orientation.mjs';
+
 const VERSION = 1;
 const INTERPOLATION_MS = 100;
 const EXTRAPOLATION_MS = 150;
 const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort']);
-const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const lerp = (a, b, t) => a + (b - a) * t;
-const angleLerp = (a, b, t) => a + wrap(b - a) * t;
 const now = () => performance.now();
+
+function predictOrientation(previous, latest, fraction) {
+  const from=orientationOf(previous),to=orientationOf(latest);
+  const delta=multiplyOrientations({x:-from.x,y:-from.y,z:-from.z,w:from.w},to);
+  if(delta.w<0)for(const key of ['x','y','z','w'])delta[key]=-delta[key];
+  const angle=2*Math.acos(Math.max(-1,Math.min(1,delta.w)));
+  if(angle<1e-8)return to;
+  // Keep prediction bounded as before, but advance one physical rotation rather
+  // than three Euler values that can change branches when the nose is vertical.
+  const advance=Math.min(.3,angle*fraction),scale=Math.sin(advance/2)/Math.sin(angle/2);
+  return multiplyOrientations(to,{x:delta.x*scale,y:delta.y*scale,z:delta.z*scale,w:Math.cos(advance/2)});
+}
 
 export class SquadronClient {
   constructor({ onStatus, onRoster, onStart, onWorld, onAction, onEnd, url } = {}) {
@@ -212,6 +224,9 @@ export class SquadronClient {
     for (const key of ['x', 'y', 'z', 'heading', 'pitch', 'roll', 'speed', 'throttle', 'health', 'fuel', 'gear', 'flaps', 'engine', 'startupStep', 'onGround', 'aircraft', 'verticalSpeed', 'stalled', 'ammo', 'missiles', 'bombs']) {
       if (player[key] !== undefined) pose[key] = player[key];
     }
+    // Preserve the existing validated wire format. Euler angles encode a pose;
+    // clients reconstruct its quaternion before interpolating the remote plane.
+    if(isOrientation(player.orientation))Object.assign(pose,deriveEuler(player.orientation));
     const sent = this._send({ type: 'pose', seq: this._poseSeq++, player: pose });
     if (sent) this._lastPose = time;
     return sent;
@@ -264,13 +279,14 @@ export class SquadronClient {
       }
       const latest = samples[samples.length - 1];
       const player = { ...a.player };
+      let orientation=orientationOf(a.player);
       let extrapolated = false;
       if (a !== b) {
         const fraction = Math.max(0, Math.min(1, (target - a.at) / Math.max(1, b.at - a.at)));
         for (const key of ['x', 'y', 'z', 'speed', 'throttle', 'verticalSpeed']) {
           if (Number.isFinite(a.player[key]) && Number.isFinite(b.player[key])) player[key] = lerp(a.player[key], b.player[key], fraction);
         }
-        for (const key of ['heading', 'pitch', 'roll']) player[key] = angleLerp(a.player[key], b.player[key], fraction);
+        orientation=slerp(orientationOf(a.player),orientationOf(b.player),fraction);
       } else if (target > latest.at && samples.length > 1) {
         const previous = samples[samples.length - 2];
         const sampleDt = Math.max(1, latest.at - previous.at);
@@ -283,9 +299,10 @@ export class SquadronClient {
         player.x += dx * ahead / sampleDt * scale;
         player.y += dy * ahead / sampleDt * scale;
         player.z += dz * ahead / sampleDt * scale;
-        for (const key of ['heading', 'pitch', 'roll']) player[key] += Math.max(-0.3, Math.min(0.3, wrap(latest.player[key] - previous.player[key]) * ahead / sampleDt));
+        orientation=predictOrientation(previous.player,latest.player,ahead/sampleDt);
         extrapolated = true;
       }
+      player.orientation=orientation;Object.assign(player,deriveEuler(orientation));
       result.push({ ...player, id, playerId: id, name: member.name, isHost: member.isHost, stale: serverNow - latest.at > 400, ageMs: Math.max(0, serverNow - latest.at), extrapolated });
     }
     return result;

@@ -1,3 +1,5 @@
+import {orientationOf,isOrientation,deriveEuler,slerp} from './orientation.mjs';
+
 // Keep simulation at a fixed cadence and interpolate only the view. Rendering
 // must never move the authoritative aircraft or change collision/weapon state.
 export const FIXED_STEP = 1 / 60;
@@ -5,6 +7,7 @@ const MAX_FRAME = .25;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const poseFields = ['x', 'y', 'z', 'heading', 'pitch', 'roll', 'speed', 'verticalSpeed', 'vx', 'vy', 'vz', 'age'];
 const angles = new Set(['heading', 'pitch', 'roll']);
+const hasAttitude = pose => isOrientation(pose.orientation) || Number.isFinite(pose.heading) || Number.isFinite(pose.pitch) || Number.isFinite(pose.roll);
 const groups = ['enemies', 'targets', 'projectiles', 'effects', 'paratroopers'];
 
 export class FixedStepClock {
@@ -31,6 +34,7 @@ function record(source) {
 
 function capture(record, source, stamp) {
   for (const field of poseFields) record.previous[field] = source[field];
+  record.previous.orientation = hasAttitude(source) ? orientationOf(source) : null;
   record.stamp = stamp;
 }
 
@@ -51,6 +55,15 @@ function sample(record, source, alpha, stamp) {
     if (angles.has(field)) difference = Math.atan2(Math.sin(difference), Math.cos(difference));
     record.view[field] = interpolate && Number.isFinite(before) ? before + difference * alpha : current;
   }
+  if (hasAttitude(source)) {
+    const current = orientationOf(source);
+    // Copy components at capture and slerp the full attitude. Euler angles can
+    // change branches at vertical flight even when the aircraft barely moved.
+    const orientation = interpolate && isOrientation(previous.orientation)
+      ? slerp(previous.orientation, current, alpha) : current;
+    record.view.orientation = orientation;
+    Object.assign(record.view, deriveEuler(orientation));
+  } else delete record.view.orientation;
   return record.view;
 }
 

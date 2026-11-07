@@ -5,10 +5,11 @@ import {SoftwareFlightRenderer} from '../public/software.mjs';
 import {buildSoftwareTerrain} from '../public/software-terrain.mjs';
 import {AIRCRAFT,MISSIONS,getMission} from '../public/campaign.mjs';
 import {FlightSimulation,terrainHeight} from '../public/sim.mjs';
+import {orientationFromEuler,basis,deriveEuler} from '../public/orientation.mjs';
 
 function mockCanvas(){
-  const noop=()=>{},calls={width:0,height:0,fill:0,strokes:[]};let width=0,height=0;
-  const ctx=new Proxy({createLinearGradient:()=>({addColorStop:noop}),fill:()=>calls.fill++,stroke(){calls.strokes.push({width:this.lineWidth,color:this.strokeStyle,alpha:this.globalAlpha});}},{get:(target,key)=>target[key]??noop});
+  const noop=()=>{},calls={width:0,height:0,fill:0,strokes:[],gradients:[],rectangles:[]};let width=0,height=0;
+  const ctx=new Proxy({createLinearGradient:(...points)=>{const gradient={points,stops:[],addColorStop(offset,color){this.stops.push([offset,color]);}};calls.gradients.push(gradient);return gradient;},fillRect(...rectangle){calls.rectangles.push({rectangle,fill:this.fillStyle});},fill:()=>calls.fill++,stroke(){calls.strokes.push({width:this.lineWidth,color:this.strokeStyle,alpha:this.globalAlpha});}},{get:(target,key)=>target[key]??noop});
   return {calls,getContext:()=>ctx,getBoundingClientRect:()=>({width:1280,height:800}),get width(){return width;},set width(v){width=v;calls.width++;},get height(){return height;},set height(v){height=v;calls.height++;}};
 }
 function renderer(){const r=new SoftwareFlightRenderer(mockCanvas(),{quality:'medium'});r.loadMission(getMission('first-light'),AIRCRAFT.avro504);return r;}
@@ -71,8 +72,9 @@ test('cockpit position and look direction remain attached when translating, look
   const r=renderer(),p={x:0,y:900,z:0,heading:0,pitch:.08,roll:.3,speed:400};r._camera(p,1/60,{camera:'chase'});
   for(let i=0;i<6;i++){
     p.x+=40;p.z+=50;p.heading+=.2;const lookX=.4,lookY=-.1;r._camera(p,1/60,{camera:'cockpit',lookX,lookY});
-    const direction=r.camera.getWorldDirection(new THREE.Vector3()),yaw=p.heading+lookX,pitch=p.pitch+lookY;
-    near(direction.x,Math.sin(yaw)*Math.cos(pitch),'cockpit yaw x');near(direction.y,Math.sin(pitch),'cockpit pitch');near(direction.z,Math.cos(yaw)*Math.cos(pitch),'cockpit yaw z');
+    const body=new THREE.Quaternion().setFromEuler(new THREE.Euler(-p.pitch,p.heading,-p.roll,'YXZ')),look=body.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-lookY,-lookX,0,'YXZ')));
+    const expected=new THREE.Vector3(0,0,1).applyQuaternion(look),direction=r.camera.getWorldDirection(new THREE.Vector3());
+    near(direction.distanceTo(expected),0,'cockpit body-relative look');near(r.camera.up.distanceTo(new THREE.Vector3(0,1,0).applyQuaternion(look)),0,'cockpit body-relative up');
   }
   r._camera(p,1/60,{camera:'chase'});const fresh=renderer();fresh._camera(p,1/60,{camera:'chase'});near(r.camera.position.distanceTo(fresh.camera.position),0,'mode reset');
 });
@@ -103,4 +105,34 @@ test('opaque terrain edges cover raster seams without outlining aircraft or pool
   assert.equal(r.canvas.calls.strokes.length,ground);
   r._triangleXYZ(-1,-1,-3,1,-1,-3,0,1,-3,[120,140,110],.4,true,false,true);r._paint();
   assert.equal(r.canvas.calls.strokes.length,ground,'transparent surfaces must not accumulate darker edge coverage');
+});
+
+
+test('CPU cockpit carries full body attitude through poles and inversion without a horizon lock',()=>{
+  const r=renderer();r.settings={...r.settings,reducedMotion:true,horizonLock:true};
+  for(const q of [orientationFromEuler(0,0,Math.PI),orientationFromEuler(.8,Math.PI/2,.7),orientationFromEuler(.4,-Math.PI/2,-1.1)]){
+    const p={x:20,y:1000,z:30,heading:0,pitch:0,roll:0,speed:100,orientation:q};r._camera(p,1/60,{camera:'cockpit'});const axes=basis(q);
+    near(r.camera.getWorldDirection(new THREE.Vector3()).distanceTo(new THREE.Vector3(axes.forward.x,axes.forward.y,axes.forward.z)),0,'body forward');
+    near(new THREE.Vector3(0,1,0).applyQuaternion(r.camera.quaternion).distanceTo(new THREE.Vector3(axes.up.x,axes.up.y,axes.up.z)),0,'body up');
+    near(r.camera.position.y,p.y+axes.forward.y*2+axes.up.y*.85,'cockpit eye height');
+  }
+});
+
+test('CPU horizon and celestial points rotate with a banked or inverted cockpit',()=>{
+  const r=renderer(),p={x:0,y:1000,z:0,heading:0,pitch:0,roll:0};
+  const frame=q=>{r.canvas.calls.gradients.length=0;r._camera({...p,orientation:q},1/60,{camera:'cockpit'});r._background();return r.canvas.calls.gradients.at(-1);};
+  const upright=frame(orientationFromEuler(0,0,0)),sun=r._skyPoint(-.45,.14,.9);
+  assert.ok(upright.points[1]<upright.points[3],'sky gradient starts above the sea');
+  const inverted=frame(orientationFromEuler(0,0,Math.PI)),flippedSun=r._skyPoint(-.45,.14,.9);
+  assert.ok(inverted.points[1]>inverted.points[3],'sky gradient starts below the sea when inverted');
+  near(sun.x+flippedSun.x,r.width,'sun rotates horizontally');near(sun.y+flippedSun.y,r.height,'sun rotates vertically');
+  const banked=frame(orientationFromEuler(0,0,Math.PI/2));near(banked.points[1],banked.points[3],'quarter bank has a vertical horizon');assert.ok(Math.abs(banked.points[0]-banked.points[2])>r.width*.9);
+  for(const pitch of [Math.PI/2,-Math.PI/2]){r.canvas.calls.rectangles.length=0;frame(orientationFromEuler(0,pitch,0));const background=r.canvas.calls.rectangles[0].fill;assert.equal(typeof background,'string','straight up/down is entirely sky or water');assert.ok(!background.includes('NaN'));}
+});
+
+test('CPU distant aircraft use quaternion poses with the same convention as legacy models',()=>{
+  const r=renderer(),q=orientationFromEuler(.7,.2,.4),p={x:0,y:1000,z:150,heading:0,pitch:0,roll:0,aircraft:'f15'};r._camera({x:0,y:1000,z:0,heading:0,pitch:0,roll:0},1/60,{camera:'cockpit'});
+  const draw=pose=>{r._queue.length=0;r._poolIndex=0;r._aircraft(null,pose,0,false);return r._queue.map(item=>({points:[...item.points],fill:item.fill}));};
+  const expected=draw({...p,...deriveEuler(q)}),actual=draw({...p,orientation:q});assert.ok(actual.length>0);assert.equal(actual.length,expected.length);
+  for(let i=0;i<actual.length;i++){assert.equal(actual[i].fill,expected[i].fill);for(let k=0;k<actual[i].points.length;k++)near(actual[i].points[k],expected[i].points[k],'distant aircraft projection');}
 });

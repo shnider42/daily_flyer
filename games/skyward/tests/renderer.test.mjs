@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
 import {FlightRenderer} from '../public/renderer.mjs';
+import {setAircraftPose} from '../public/models.mjs';
+import {orientationFromEuler,basis,integrateBodyRotation} from '../public/orientation.mjs';
 
 // Exercise renderer scene/camera code with the exact bundled Three objects.
 // These tests do not create a GL context or claim to validate GPU compilation.
@@ -35,8 +37,11 @@ test('cockpit position and look direction both follow the current interpolated p
   const r=rendererFixture();r._updateCamera(pose,1/60,{camera:'cockpit'});
   const p={...pose,x:45,y:620,z:280,heading:.9,pitch:.2,roll:.4};
   const options={camera:'cockpit',lookX:.2,lookY:-.1};r._updateCamera(p,1/60,options);
-  const heading=p.heading+options.lookX,pitch=p.pitch+options.lookY;
-  const direction=new THREE.Vector3(Math.sin(heading)*Math.cos(pitch),Math.sin(pitch),Math.cos(heading)*Math.cos(pitch));
+  const body=new THREE.Quaternion().setFromEuler(new THREE.Euler(-p.pitch,p.heading,-p.roll,'YXZ'));
+  const look=body.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-options.lookY,-options.lookX,0,'YXZ')));
+  const direction=new THREE.Vector3(0,0,1).applyQuaternion(look);
+  closeVector(r.camera.up,new THREE.Vector3(0,1,0).applyQuaternion(look),'head look stays in aircraft axes');
+  closeVector(r.camera.position,new THREE.Vector3(0,.85,2).applyQuaternion(body).add(point(p)),'eye offset follows the airframe');
   closeVector(r.camera.getWorldDirection(new THREE.Vector3()),direction,'cockpit view must not aim at a stale world target');
   assert.equal(r._plane.visible,false);assert.equal(r._cockpit.visible,true);
 });
@@ -134,4 +139,41 @@ test('empty effect pools do not upload buffers; active tracers retain their posi
   assert.equal(r._tips.count,1);assert.equal(r._troopers.count,1);assert.equal(r._tracers.geometry.drawRange.count,6);
   const expected=[1,2,3,.65,1.3,1.95];
   for(let i=0;i<expected.length;i++)assert.ok(Math.abs(r._linePositions[i]-expected[i])<1e-6);
+});
+
+
+test('cockpit follows authoritative body attitude through vertical and inverted flight even with reduced motion',()=>{
+  const r=rendererFixture();r.settings={reducedMotion:true,horizonLock:true};
+  for(const [heading,pitch,roll] of [[.3,0,Math.PI],[.8,Math.PI/2,.7],[-.4,-Math.PI/2,1.1],[.2,Math.PI*.7,-.9]]){
+    const orientation=orientationFromEuler(heading,pitch,roll),p={...pose,heading:0,pitch:0,roll:0,orientation};
+    const axes=basis(orientation);r._updateCamera(p,1/60,{camera:'cockpit'});
+    closeVector(r.camera.getWorldDirection(new THREE.Vector3()),point(axes.forward),'cockpit forward');
+    closeVector(new THREE.Vector3(0,1,0).applyQuaternion(r.camera.quaternion),point(axes.up),'cockpit up');
+    closeVector(new THREE.Vector3(1,0,0).applyQuaternion(r.camera.quaternion),point(axes.right),'pilot right');
+    assert.ok(r.camera.quaternion.toArray().every(Number.isFinite));
+  }
+});
+
+test('named pitch, yaw and roll inputs have pilot-relative screen directions at any bank',()=>{
+  const origin=new THREE.Vector3(0,1000,0),r=rendererFixture();
+  for(const orientation of [orientationFromEuler(0,0,0),orientationFromEuler(.5,.2,Math.PI/2),orientationFromEuler(-.7,0,Math.PI),orientationFromEuler(.3,Math.PI/2,.2)]){
+    const p={...pose,x:origin.x,y:origin.y,z:origin.z,orientation};r._updateCamera(p,1/60,{camera:'cockpit'});r.camera.updateMatrixWorld(true);
+    const before=basis(orientation),project=(v)=>point(v).multiplyScalar(100).add(origin).project(r.camera);
+    const nose=project(before.forward),pitched=project(basis(integrateBodyRotation(orientation,{pitch:1},.1)).forward),yawed=project(basis(integrateBodyRotation(orientation,{yaw:1},.1)).forward);
+    assert.ok(pitched.y>nose.y+.01,'pitch-up raises the nose in the pilot view');
+    assert.ok(yawed.x>nose.x+.01,'right yaw moves the nose to screen right');
+    const rightWing=(axes)=>point(axes.forward).multiplyScalar(100).addScaledVector(point(axes.right),20).add(origin).project(r.camera);
+    assert.ok(rightWing(basis(integrateBodyRotation(orientation,{roll:1},.1))).y<rightWing(before).y-.01,'right roll lowers the pilot-right wing');
+  }
+});
+
+test('aircraft meshes prefer quaternion attitude and retain the legacy Euler fallback',()=>{
+  const plane=new THREE.Group(),q=orientationFromEuler(.4,Math.PI*.6,1.2);
+  setAircraftPose(plane,{...pose,heading:0,pitch:0,roll:0,orientation:q});
+  closeVector(new THREE.Vector3(0,0,1).applyQuaternion(plane.quaternion),point(basis(q).forward),'authoritative mesh nose');
+  closeVector(new THREE.Vector3(0,1,0).applyQuaternion(plane.quaternion),point(basis(q).up),'authoritative mesh up');
+  const legacy={...pose,heading:.7,pitch:.2,roll:-.3};setAircraftPose(plane,legacy);
+  const expected=new THREE.Quaternion().setFromEuler(new THREE.Euler(-legacy.pitch,legacy.heading,-legacy.roll,'YXZ'));
+  assert.ok(1-Math.abs(plane.quaternion.dot(expected))<1e-12);
+  setAircraftPose(plane,{...legacy,orientation:{x:NaN,y:0,z:0,w:1}});assert.ok(1-Math.abs(plane.quaternion.dot(expected))<1e-12,'malformed attitude falls back safely');
 });

@@ -19,7 +19,7 @@
     <div class="home-copy"><p class="eyebrow"><span class="small-rule"></span> DAILY FLYER / AVIATION SERIES</p><h1>A little courage.<br><em>A lot of sky.</em></h1><p class="home-description">From canvas wings to the edge of tomorrow.<br>Learn to fly. Find your way home.</p><div class="home-cta"><button id="continue-button" class="primary big-button">Begin your logbook <span>→</span></button><button id="campaign-button" class="text-button">Explore the campaign <span>→</span></button></div><p class="continue-note" id="continue-note">Your first aircraft is waiting on the runway.</p></div>
     <div class="aircraft-caption"><span class="caption-line"></span><span><small>WHERE IT ALL BEGINS</small><strong>Canvas. Wood. Possibility.</strong><em>Avro 504 · 1917</em></span></div>
     <div class="home-bottom"><div class="edition"><span class="edition-number">01—18</span><span>EIGHTEEN SORTIES<br>ONE CENTURY OF FLIGHT</span></div><div class="home-links"><button id="free-button"><span class="mini-icon">→</span><span>Free flight<small>Pick a plane. Find some sky.</small></span><b>→</b></button><button id="squadron-button"><span class="mini-icon">✣</span><span>Fly together<small>A private squadron for 2–4.</small></span><b>→</b></button></div></div>
-    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.2.1</span></footer>
+    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.3.0</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -46,11 +46,33 @@
     <div id="radio-caption" class="radio-caption" aria-live="polite" hidden><span>RADIO</span><p></p></div>
     <div id="startup-panel" class="startup-panel"><span class="eyebrow">BEFORE YOU FLY</span><h2 id="startup-title">Fuel on.</h2><p id="startup-hint">Every flight begins with a little ritual.</p><div class="startup-steps" id="startup-steps"><span>FUEL</span><span>IGNITION</span><span>PRIME</span><span>PROP</span></div><button id="startup-button" class="primary">Open fuel valve <span>→</span></button></div>
     <div id="radar-panel" class="radar-panel"><canvas id="radar" width="240" height="240" aria-label="Radar and navigation display"></canvas><span id="radar-label">NAVIGATION</span></div>
-    <div id="flight-hint" class="flight-hint"><span class="hint-key">→</span><p id="hint-text">Use the left stick to steer and the right pad to look around.</p><button id="dismiss-hint" aria-label="Hide flight hint">×</button></div>
+    <div id="flight-hint" class="flight-hint"><span class="hint-key">→</span><p id="hint-text">Left thumb: yaw and thrust. Right thumb: pitch and roll. Pull down for nose up.</p><button id="dismiss-hint" aria-label="Hide flight hint">×</button></div>
     <div class="aircraft-status"><span id="hud-health">AIRFRAME <b>100%</b></span><span id="hud-fuel">FUEL <b>100%</b></span><span id="hud-stores"></span></div>
-    <div class="flight-actions" id="flight-actions"><button data-action="gear" title="G">GEAR <b id="gear-state">DOWN</b></button><button data-action="flaps" title="F">FLAPS <b id="flaps-state">UP</b></button><button data-action="brake" title="B">BRAKE <b id="brake-state">ON</b></button><button data-action="level" class="recovery" title="L">LEVEL <b>ASSIST</b></button><button data-action="hover" id="hover-action" hidden title="H">HOVER <b id="hover-state">OFF</b></button></div>
+    <div class="flight-actions" id="flight-actions" role="group" aria-label="Aircraft controls"><button data-action="gear" title="G">GEAR <b id="gear-state">DOWN</b></button><button data-action="flaps" title="F">FLAPS <b id="flaps-state">UP</b></button><button data-action="brake" title="B">BRAKE <b id="brake-state">ON</b></button><button data-action="level" class="recovery" title="L">LEVEL <b>ASSIST</b></button><button data-action="hover" id="hover-action" hidden title="H">HOVER <b id="hover-state">OFF</b></button></div>
     <div class="weapon-actions" id="weapon-actions"><button data-action="target" title="T">TARGET</button><button data-action="missile" id="missile-action" title="M">MISSILE <small id="lock-state">NO LOCK</small></button><button data-action="payload" id="payload-action" title="V">RELEASE <small id="payload-state">BOMB</small></button><button data-action="countermeasure" id="countermeasure-action" title="X">FLARE</button><button data-action="radar" id="radar-action" title="R">RADAR <small id="radar-state">ON</small></button></div>
-    <div class="touch-controls" id="touch-controls"><div id="flight-stick" class="flight-stick" aria-label="Flight stick: drag up to climb, sideways to bank"><div class="stick-axis x"></div><div class="stick-axis y"></div><div id="stick-knob" class="stick-knob"></div><span>FLY</span></div><div id="look-pad" class="look-pad" aria-label="Look pad: drag to look around"><span>LOOK</span><i>↔</i></div><div class="throttle-control"><label for="throttle">THR</label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="Throttle"><output id="throttle-output">0%</output></div><button id="fire-button" class="fire-button" aria-label="Hold to fire guns"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/></svg><span>FIRE</span></button></div>
+    <div class="touch-controls" id="touch-controls">
+      <div id="yaw-thrust-stick" class="yaw-thrust-stick touch-pad" role="group" aria-label="Yaw and thrust: drag left or right to yaw, up for more thrust, down for less thrust. Release to hold thrust.">
+        <div class="stick-axis x"></div><div class="stick-axis y"></div>
+        <span class="pad-cue pad-cue-top" aria-hidden="true">+ THRUST</span><span class="pad-cue pad-cue-bottom" aria-hidden="true">− THRUST</span>
+        <span class="pad-cue pad-cue-left" aria-hidden="true">‹</span><span class="pad-cue pad-cue-right" aria-hidden="true">›</span>
+        <div id="yaw-thrust-knob" class="stick-knob"></div><span class="pad-name" aria-hidden="true">YAW / THRUST</span>
+      </div>
+      <div id="flight-stick" class="flight-stick touch-pad" role="group" aria-label="Pitch and roll: drag down for nose up, up for nose down, left or right to roll.">
+        <div class="stick-axis x"></div><div class="stick-axis y"></div>
+        <span id="pitch-top-cue" class="pad-cue pad-cue-top" aria-hidden="true">NOSE DOWN</span><span id="pitch-bottom-cue" class="pad-cue pad-cue-bottom" aria-hidden="true">NOSE UP</span>
+        <span class="pad-cue pad-cue-left" aria-hidden="true">‹</span><span class="pad-cue pad-cue-right" aria-hidden="true">›</span>
+        <div id="stick-knob" class="stick-knob"></div><span class="pad-name" aria-hidden="true">PITCH / ROLL</span>
+      </div>
+      <div class="touch-control-bar">
+        <div class="yaw-control-tools">
+          <button id="fire-button" class="fire-button" aria-label="Hold to fire guns"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/></svg><span>FIRE</span></button>
+          <div class="touch-throttle-readout"><span>THRUST</span><output id="touch-throttle-output" aria-label="Thrust" aria-live="off">0%</output><div class="touch-throttle-meter" aria-hidden="true"><i id="touch-throttle-fill"></i></div></div>
+        </div>
+        <button id="aircraft-controls-toggle" class="hud-button" aria-expanded="false" aria-controls="flight-actions">AIRCRAFT <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
+        <button id="level-quick" class="hud-button recovery" data-action="level" aria-label="Level the aircraft">LEVEL <small>ASSIST</small></button>
+      </div>
+      <div class="throttle-control"><label for="throttle">THR</label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="Throttle"><output id="throttle-output">0%</output></div>
+    </div>
     <div id="desktop-controls" class="desktop-controls" aria-label="Current keyboard flight controls"></div>
     <button id="abort-finale" class="abort-finale" hidden>Abort mission · Return home</button>
   </section>

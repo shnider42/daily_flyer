@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {orientationOf} from './orientation.mjs';
 
 const TAU = Math.PI * 2;
 const sharedMaterials = new Map();
@@ -354,7 +355,7 @@ export function animateAircraft(plane, pose, dt, time=0) {
 
 export function setAircraftPose(plane,pose) {
   plane.position.set(pose.x||0,pose.y||0,pose.z||0);
-  plane.rotation.set(-(pose.pitch||0),pose.heading||0,-(pose.roll||0),'YXZ');
+  const q=orientationOf(pose);plane.quaternion.set(q.x,q.y,q.z,q.w);
 }
 
 export function disposeModelCache(){
