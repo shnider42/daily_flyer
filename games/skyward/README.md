@@ -77,9 +77,15 @@ Reduced motion steadies the camera, removes the menu's aircraft bobbing, and red
 
 WebGL is the default renderer. The locally bundled Three.js renderer provides the detailed aircraft, shaded terrain, cloud banks, water, runway and carrier geometry, effects, and three camera views. Static aircraft parts are combined by material; repeated scenery, clouds, projectiles, effects, and parachutes use instancing. Pixel density is capped to avoid rendering every physical display pixel on a high-density phone.
 
+The simulation and input advance together at 60 fixed steps per second. Rendered aircraft, targets and effects interpolate between those steps, including the short path through heading and roll wraparound. Camera translation follows that rendered pose, with matching damping for the chase position and look direction; cockpit view follows directly. Pausing discards pending time. A long frame has a bounded catch-up budget, so returning from a stalled tab cannot trigger an unlimited batch of simulation work.
+
+World materials and the custom water shader use the same logarithmic depth encoding. The apron meets the runway without overlapping coplanar faces; runway number decals have an explicit depth bias. Water detail fades when its frequency becomes smaller than a pixel, and cloud lobes write depth instead of relying on an unsorted transparent instance batch. Unrelated preference changes no longer resize or clear the graphics buffer.
+
 If a browser cannot create a WebGL context, the app automatically uses `SoftwareFlightRenderer`. This is a perspective 3D renderer built on Canvas 2D, with the same flight simulation, terrain collisions, controls, missions, camera positions, and screen projection API. It projects the detailed player aircraft and a smaller terrain mesh on the CPU, and uses simpler distant aircraft, scenery, cloud shapes, and effects. Setup identifies when simplified 3D graphics are active. No network asset or installation is needed for either renderer.
 
-The compatibility renderer uses explicit terrain, airfield, and aircraft drawing passes, polygon clipping, backface removal, distance limits, and a total limit of 2,800 submitted draw operations per frame. Representative startup frames use roughly 600–1,200 triangles. Mountains hide distant actors through sampled terrain line-of-sight checks; their visual occlusion is approximate rather than a per-pixel depth buffer. It provides playable compatibility, not identical visual quality or a promise of the same frame rate as WebGL. Both renderers sample the simulation terrain; a small rendering-only skirt keeps coarse terrain triangles from covering runway markings.
+The compatibility renderer uses explicit terrain, airfield, and aircraft drawing passes, polygon clipping, backface removal and view-distance culling. Its cached terrain tiles are disjoint and share boundary vertices across detail levels. A small coverage stroke on opaque ground faces prevents Canvas antialiasing from exposing the sky between adjoining triangles. Projected draw records are reused; complete visible faces are drawn rather than dropping arbitrary faces when a global draw limit is reached. Mountains hide distant actors through sampled terrain line-of-sight checks; their visual occlusion is approximate rather than a per-pixel depth buffer. It provides playable compatibility, not identical visual quality or a promise of the same frame rate as WebGL. Both renderers sample the simulation terrain; WebGL uses a small rendering-only skirt at airfields and the compatibility renderer draws the airfield after its terrain pass.
+
+**Setup → Sound & view** reports the graphics backend and the most recent flight frame rate. Read-only diagnostics are also exposed as `SKYWARD.status` and the canvas's `data-renderer`, `data-fps`, `data-frame-work-ms` and `data-version` attributes. Frame rate uses actual elapsed display time; it does not infer FPS from the capped physics interval.
 
 ## Private squadron co-op
 
@@ -91,8 +97,9 @@ The relay validates identity, room membership, sequencing, message sizes, finite
 
 - `public/campaign.mjs`: aircraft profiles, mission content, historical notes and source links.
 - `public/sim.mjs`: flight, terrain collision, combat, mission objectives, host snapshots.
+- `public/presentation.mjs`: fixed simulation clock and render-only pose interpolation.
 - `public/renderer.mjs` and `public/models.mjs`: Three.js scene, terrain, aircraft, effects, cameras.
-- `public/software.mjs`: automatic perspective 3D Canvas 2D compatibility renderer.
+- `public/software.mjs`, `public/software-terrain.mjs`: automatic perspective 3D Canvas 2D compatibility renderer and shared-edge terrain mesh.
 - `public/controls.mjs`: touch and keyboard input with pointer cancellation.
 - `public/audio.mjs`: gesture-unlocked procedural audio.
 - `public/settings.mjs`: bounded, fault-tolerant preferences and local progress.
@@ -101,7 +108,7 @@ The relay validates identity, room membership, sequencing, message sizes, finite
 
 ## Verification and limits
 
-Focused Node tests cover simulation/objective behavior, control cancellation and simultaneous pointers, storage failure, and real WebSocket room/protocol cases. Browser checks cover the real interface and playable startup using the software renderer: the available test browser reports hardware graphics as disabled and cannot create a WebGL context. WebGL source/import and aircraft-geometry checks pass, but GPU shader output and physical iPhone/Safari performance still need hardware testing. Browser checks also do not replace independent internet-connection co-op testing.
+Focused Node tests cover simulation/objective behavior, control cancellation and simultaneous pointers, storage failure, real WebSocket room/protocol cases, render interpolation, and flight/input equivalence at 15, 30, 60, 120 and 144 Hz. Graphics regressions cover terrain boundaries, camera tracking, runway geometry, terrain-only edge coverage and buffer resizing. Offline checks compiled and linked the expanded sky/water shaders on Mesa in GLSL ES 100 and 300, including fragment-depth and vertex-depth paths; native Canvas raster checks verified shared terrain edges without background leakage. Browser checks cover the real interface and playable startup using the software renderer: the available test browser reports hardware graphics as disabled and cannot create a WebGL context. Actual browser GPU output, sustained hardware performance and physical iPhone/Safari performance still need hardware testing. Browser checks also do not replace independent internet-connection co-op testing.
 
 This first release uses stylized procedural scenery, simplified cockpit systems and flight dynamics, a trusted flight lead, and browser-local campaign progress. It is designed to grow into richer terrain, more detailed handling, stronger mission scripting and more robust multiplayer without replacing the whole game.
 

@@ -32,7 +32,7 @@ test('existing preferences gain night mode and controls; saved remaps survive re
   ]);
   const storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
   const s=loadSettings(storage);
-  assert.equal(VERSION,'0.2.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.invertPitch,true);assert.equal(s.theme,'night');
+  assert.equal(VERSION,'0.2.1');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.invertPitch,true);assert.equal(s.theme,'night');
   assert.deepEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);assert.notEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);
   const originalLogbook=data.get('dfe.skyward.logbook.v1');
   s.theme='day';s.keyBindings={...s.keyBindings,pitchUp:'KeyI',fire:'KeyJ'};
@@ -131,6 +131,18 @@ test('remapping movement, guns and actions removes old keys and old aliases have
   assert.deepEqual(c.read(1),{roll:0,pitch:1,yaw:-1,throttle:.85,fire:true});assert.deepEqual(actions,['gear','startup']);
   c.settings=normalizeSettings({...c.settings,keyBindings:{...c.settings.keyBindings,pitchUp:'KeyU'}});
   assert.deepEqual(c.read(1),{roll:0,pitch:0,yaw:0,throttle:.85,fire:false},'a new mapping clears keys held under the previous mapping');
+}));
+
+test('unrelated preference updates preserve held flight input when key assignments are unchanged',()=>withControls(({c,window})=>{
+  c.setThrottle(.5);
+  for(const code of ['ArrowDown','ArrowRight','KeyA','KeyW','Space'])window.dispatch('keydown',{code});
+  const before=c.read(0);
+  assert.deepEqual(before,{roll:1,pitch:1,yaw:-1,throttle:.5,fire:true});
+  c.settings=normalizeSettings({...c.settings,sound:false,theme:'day'});
+  assert.deepEqual(c.read(0),before,'a sound or display update must not cancel a held maneuver');
+  assert.ok(Math.abs(c.read(.25).throttle-.5875)<1e-8,'held thrust must keep advancing after settings refresh');
+  window.dispatch('keyup',{code:'ArrowDown'});window.dispatch('keyup',{code:'Space'});
+  assert.equal(c.read(0).pitch,0);assert.equal(c.read(0).fire,false);
 }));
 
 test('every discrete command can be rebound and fires once per physical key press',()=>withControls(({c,window,actions,state})=>{

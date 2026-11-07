@@ -56,8 +56,13 @@ export class FlightControls {
   refreshBindings(){
     const source=this.settings.keyBindings;
     if(this.keyBindings&&source===this.bindingSource)return;
-    this.bindingSource=source;this.keyBindings=normalizeKeyBindings(source);
-    this.codeToAction=new Map(Object.entries(this.keyBindings).filter(([,code])=>code!==null).map(([action,code])=>[code,action]));
+    const bindings=normalizeKeyBindings(source);
+    this.bindingSource=source;
+    // Normalizing a sound/display preference creates a new bindings object too.
+    // Only a real reassignment should cancel controls the pilot is holding.
+    if(this.keyBindings&&Object.entries(bindings).every(([action,code])=>this.keyBindings[action]===code))return;
+    this.keyBindings=bindings;
+    this.codeToAction=new Map(Object.entries(bindings).filter(([,code])=>code!==null).map(([action,code])=>[code,action]));
     this.keys.clear();
   }
   read(dt){
