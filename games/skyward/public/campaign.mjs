@@ -40,6 +40,12 @@ export const AIRCRAFT = {
     color: '#66755e', accent: '#e9e5ce',
     summary: 'No weapons. Protect your passengers through a stable, careful drop.',
   }),
+  ac130: plane('ac130', 'AC-130U Spooky', 'Special operations', {
+    maxSpeed: 170, cruise: 117, stallSpeed: 44, acceleration: 10, turnRate: 0.17,
+    climbRate: 29, rollRate: 0.7, health: 340, role: 'Two-person gunship',
+    color: '#667483', accent: '#c5cbd0', crew: true,
+    summary: 'One shared aircraft. The pilot flies while the gunner switches between three port-side cannon stations.',
+  }),
   hellcat: plane('hellcat', 'F6F Hellcat', '1944', {
     maxSpeed: 151, cruise: 117, stallSpeed: 38, acceleration: 20, turnRate: 0.34,
     climbRate: 55, rollRate: 1.8, gun: gun(3000, 12, 12, 1600), bombs: 3,
@@ -326,8 +332,41 @@ export const MISSIONS = [
   },
 ].map((mission, index) => ({ number: index + 1, ...mission }));
 
+// Special operations never occupy a campaign chapter or alter its saved unlocks.
+export const SPECIAL_MISSIONS = [{
+  id: 'gunship-nightwatch', title: 'Nightwatch Basin', year: 'Fictional operation', era: 'Special operations',
+  location: 'Nightwatch Basin · a fictional valley', aircraft: 'ac130', kind: 'gunship', biome: 'night',
+  duration: '5–8 min', crew: { pilot: 1, gunner: 1 },
+  description: 'Share one AC-130 over a moonlit valley. One pilot keeps the ground targets on the left; one gunner switches between three first-person cannon stations.',
+  briefing: [
+    'Create a two-person crew room. The host pilots the shared AC-130; the second player is the gunner. Both see the same aircraft health, ammunition and targets.',
+    'Pilot: the target compound starts directly off your left wing. Fly a gentle left-hand orbit around the marked basin and keep enough altitude to clear the terrain.',
+    'Gunner: switch between the 25 mm rapid cannon, 40 mm medium cannon and 105 mm heavy cannon. Aim through the port-side station, zoom when needed, and fire at the marked military vehicles and buildings.',
+    'Neutralize all eight marked objectives, including the two flak positions, then fly clear. Every station has its own ammunition and reload timer; switching seats does not reset either.',
+  ],
+  lesson: 'Shared aircraft · pilot keeps targets to the left · first-person gun stations',
+  weather: weather(1, 0, { cloudBase: 2100, cloudTop: 2800, fog: 0.000018, timeOfDay: 'night' }),
+  start: airStart('ac130', { x: -2100, y: 1100, z: -600, heading: 0 }),
+  orbit: { x: 200, z: -600, radius: 2300, altitude: 1100, direction: 'left' },
+  runways: [], waypoints: [], enemies: [],
+  targets: [
+    target('nightwatch-depot', 220, -600, 'A · ammunition depot', { health: 260, hitRadius: 40 }),
+    target('nightwatch-truck-a', 460, -910, 'B · supply truck', { type: 'truck', health: 65, hitRadius: 18 }),
+    target('nightwatch-armor-a', 650, -420, 'C · armored vehicle', { type: 'armor', health: 150, hitRadius: 22 }),
+    target('nightwatch-truck-b', 10, -140, 'D · supply truck', { type: 'truck', health: 65, hitRadius: 18 }),
+    target('nightwatch-relay', 400, 140, 'E · command relay', { health: 210, hitRadius: 36 }),
+    target('nightwatch-armor-b', -260, -420, 'F · armored vehicle', { type: 'armor', health: 150, hitRadius: 22 }),
+    target('nightwatch-flak-a', -100, -1040, 'G · west flak battery', { type: 'flak', hazard: true, radius: 2900, health: 120, hitRadius: 22 }),
+    target('nightwatch-flak-b', 740, -70, 'H · east flak battery', { type: 'flak', hazard: true, radius: 2900, health: 120, hitRadius: 22 }),
+  ],
+  goal: { type: 'gunship', count: 8, targetIds: ['nightwatch-depot', 'nightwatch-truck-a', 'nightwatch-armor-a', 'nightwatch-truck-b', 'nightwatch-relay', 'nightwatch-armor-b', 'nightwatch-flak-a', 'nightwatch-flak-b'], egress: 5 },
+  historicalNote: 'The three weapon names follow the AC-130U. Nightwatch Basin, the two-player crew, all ammunition, weapon behavior and flight values are fictional game design.',
+  sources: ['https://www.af.mil/About-Us/Fact-Sheets/Display/article/104486/ac-130u/'],
+}];
+
 export const FLIGHT_SCALE_NOTE = 'Arcade flight values, weapon ranges, sensor behavior, and mission geography are game abstractions, not real operating guidance.';
 export function getMission(id) {
-  return MISSIONS.find(mission => mission.id === id || mission.number === Number(id)) ?? MISSIONS[0];
+  return SPECIAL_MISSIONS.find(mission => mission.id === id)
+    ?? MISSIONS.find(mission => mission.id === id || mission.number === Number(id)) ?? MISSIONS[0];
 }
 export function getAircraft(id) { return AIRCRAFT[id] ?? AIRCRAFT.avro504; }

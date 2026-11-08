@@ -2,6 +2,7 @@ import * as THREE from './vendor/three.module.js';
 import { orientationOf } from './orientation.mjs';
 import { buildClassicAircraft } from './aircraft-classic.mjs';
 import { buildModernAircraft } from './aircraft-modern.mjs';
+import { buildGunshipAircraft } from './aircraft-gunship.mjs';
 import { batchAircraft, aircraftGeometryStats } from './model-batching.mjs';
 import { disposeModelMaterials } from './model-parts.mjs';
 
@@ -16,10 +17,12 @@ const defaults = {
   a10: ['#889489', '#a8b2a1', '#677e73'], f15: ['#9aa9ae', '#b3bec0', '#748d94'],
   f16: ['#879a9f', '#aebbbd', '#617b86'], f22: ['#87959c', '#b7bfc1', '#637982'],
   b2: ['#485961', '#60707a', '#40515b'], mig21: ['#99a6a7', '#b3bfbc', '#687e76'],
+  ac130: ['#556773', '#647581', '#87968f'],
 };
 
 export function aircraftKind(profile) {
   const value = String(typeof profile === 'string' ? profile : (profile?.model || profile?.id || profile?.name || 'avro504')).toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (/ac130|gunship|spooky/.test(value)) return 'ac130';
   if (/b2|spirit/.test(value)) return 'b2';
   if (/a10|thunderbolt|warthog/.test(value)) return 'a10';
   if (/f22|raptor/.test(value)) return 'f22';
@@ -48,7 +51,8 @@ export function makeAircraft(profile = 'avro504', faction = 'player') {
   if (!prototypes.has(key)) {
     const group = new THREE.Group();
     const data = { kind, propellers: [], exhausts: [], gear: null, fixedGear: false, span: 10, length: 8, detail };
-    if (classicKinds.has(kind)) buildClassicAircraft(group, kind, palette, data);
+    if (kind === 'ac130') buildGunshipAircraft(group, palette, data);
+    else if (classicKinds.has(kind)) buildClassicAircraft(group, kind, palette, data);
     else buildModernAircraft(group, kind, palette, data);
     data.propellers.forEach((part, i) => part.name = 'prop-' + i);
     data.exhausts.forEach((part, i) => part.name = 'exhaust-' + i);

@@ -78,6 +78,7 @@ export class FlightControls {
         e.preventDefault();if(e.repeat)return;this.clear();this.onAnyGesture?.();this.onPause?.();return;
       }
       if(isFormTarget(e.target)){this.keys.clear();return;}
+      if(e.code==='Enter'&&e.target.closest?.('button'))return; // Keep focused buttons keyboard-operable.
       this.refreshBindings();const action=this.codeToAction.get(e.code);
       if(!action)return;
       e.preventDefault();

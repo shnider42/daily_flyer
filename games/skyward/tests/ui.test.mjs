@@ -32,7 +32,7 @@ test('existing preferences adopt dual-thumb defaults; explicit pitch choices and
   ]);
   const storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
   const s=loadSettings(storage);
-  assert.equal(VERSION,'0.4.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.touchPitch,'pull');assert.equal(DEFAULTS.stickSize,120);
+  assert.equal(VERSION,'0.5.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.touchPitch,'pull');assert.equal(DEFAULTS.stickSize,120);
   for(const legacy of ['invertPitch','lookSensitivity','lookPad'])assert.equal(legacy in s,false,legacy+' must not keep the removed look-stick scheme');
   for(const invertPitch of [false,true])assert.equal(normalizeSettings({invertPitch}).touchPitch,'pull');assert.equal(s.theme,'night');
   assert.deepEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);assert.notEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);
@@ -69,7 +69,7 @@ class Surface {
     const e={defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},target:this,...event};
     for(const fn of this.handlers[name]||[])fn(e);return e;
   }
-  closest(selector){return (['INPUT','SELECT','TEXTAREA'].includes(this.tagName)&&selector.includes('input,select,textarea'))||this.isContentEditable?this:null;}
+  closest(selector){if(this.tagName==='BUTTON'&&selector==='button')return this;return (['INPUT','SELECT','TEXTAREA'].includes(this.tagName)&&selector.includes('input,select,textarea'))||this.isContentEditable?this:null;}
   getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
   setPointerCapture(id){this.captures.add(id);}
   hasPointerCapture(id){return this.captures.has(id);}
@@ -286,4 +286,11 @@ test('push-to-climb is an explicit touch-only choice and does not reverse named 
     window.dispatch('keydown',{code:'ArrowUp'});assert.equal(c.read(0).pitch,-1);window.dispatch('keyup',{code:'ArrowUp'});
   }
   assert.equal(c.lookX,0);assert.equal(c.lookY,0);
+}));
+
+
+test('Enter activates a focused pilot button instead of issuing an engine-start command',()=>withControls(({window,actions})=>{
+  const button=new Surface('BUTTON'),event=window.dispatch('keydown',{target:button,code:'Enter'});
+  assert.equal(event.defaultPrevented,false);assert.deepEqual(actions,[]);
+  window.dispatch('keydown',{code:'Enter'});assert.deepEqual(actions,['startup']);
 }));

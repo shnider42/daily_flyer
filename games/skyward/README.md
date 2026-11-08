@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A new standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. All aircraft are also available in free flight. The historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.5.0 adds Nightwatch Basin: two players sharing one AC-130, with separate pilot and first-person gunner roles.** All aircraft are also available in free flight. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
 ## Run
 
@@ -38,6 +38,42 @@ The same server serves the browser app and squadron WebSocket endpoint. It liste
 
 Each briefing includes a short historical note and links to museum, military-history, or NATO sources. Distances and engagement behavior are intentionally compressed; this is an approachable game, not flight or weapons training.
 
+## Nightwatch Basin · AC-130 crew
+
+Nightwatch is a separate, fictional night operation with eight ground objectives. It is available immediately under **Fly together**, outside the eighteen-sortie campaign; completing it does not change campaign progress.
+
+1. Open **Fly together**, select **Nightwatch Basin · AC-130** under **Operation**, and choose **Create a squadron**. The creator is the pilot.
+2. Use **Copy invite** or share the six-character squadron code. The second player joins as gunner and selects **Ready for the gunner seat**.
+3. The pilot selects **Launch AC-130 crew →**. Both players begin aboard the same airborne aircraft.
+
+The compound starts off the aircraft's left wing, near the default gun sight. The pilot uses the existing flight controls and camera choices to fly a gentle left orbit around the basin. The gunner stays in first person and switches between three port-side stations:
+
+| Station | Default key | Game behavior |
+| --- | --- | --- |
+| 25 MM | 1 | Rapid cannon with a large ammunition supply and a small blast |
+| 40 MM | 2 | Slower cannon with a stronger hit and a medium blast |
+| 105 MM | 3 | Heavy shell with a broad blast and a longer reload |
+
+Every station retains its own ammunition and reload timer when you switch. Shells travel through the world, hit terrain and damage ground targets; choosing **NEXT TARGET** only changes the marked objective. The guns and sight turn with the aircraft, so the pilot's bank and heading determine what the gunner can reach. **AIM LIMIT · ASK PILOT TO TURN** indicates a traverse limit.
+
+### Gunner controls
+
+| Input | Action |
+| --- | --- |
+| Move mouse over the view, or arrow keys | Aim the selected station |
+| Hold primary mouse button or Space | Fire; a short click fires once when the station is ready |
+| 1 / 2 / 3 | Switch 25 mm / 40 mm / 105 mm station |
+| Z / **ZOOM** | Toggle sight zoom |
+| C / **CENTRE** | Centre the sight relative to the aircraft |
+| T / **NEXT TARGET** | Mark the next ground objective |
+| Escape / P | Pause the gun station |
+
+**Setup → Keyboard → AC-130 gunner controls** remaps the gunner keys separately from pilot keys. An assignment can be reused across the two roles. **Restore pilot keys** and **Restore gunner keys** reset only their respective layouts.
+
+On a phone, the **left thumb aims** and the **right thumb holds FIRE**. Releasing AIM holds the selected sight angle. The station buttons, ZOOM, CENTRE and NEXT TARGET remain available above the thumb controls. **Setup → Touch → Swap the two thumbs** also reverses the gunner controls. This role has no flight pads or separate look stick.
+
+Aircraft health, station ammunition, target damage and mission results are shared. Pilot pause pauses the aircraft and mission for both crew members; gunner pause stops their guns while the pilot continues flying. A lost gunner connection stops firing; a lost pilot connection pauses the room during its reconnect window. Release and press FIRE again after an interruption. The AC-130 in ordinary free flight is for handling practice; the crew operation supplies the gunner stations and ground objectives.
+
 ## Controls
 
 On a phone, each thumb controls the same pair of flight axes as one hand on the default keyboard layout:
@@ -51,7 +87,7 @@ Touching either pad starts neutral; move relative to where your thumb landed. Re
 
 **AIRCRAFT** opens a compact tray for gear, flaps, brake, and hover. It opens automatically when a cold start finishes so the brake-release step is visible. **LEVEL** remains available beside the flight controls. Engine startup and contextual targeting/weapon buttons remain separate. **Setup → Touch** can swap the two thumbs and FIRE, change the pitch direction, and adjust pad/button sizes, spacing, height, sensitivity, dead zone, and opacity. Restore touch defaults leaves keyboard bindings and other preferences unchanged. Old look-stick preferences migrate to the desktop-style pull-down-to-pitch-up default.
 
-| Keyboard | Action |
+| Pilot keyboard | Action |
 | --- | --- |
 | Down / Up arrow | Pitch up / pitch down |
 | Left / Right arrow | Roll left / roll right |
@@ -70,7 +106,7 @@ Touching either pad starts neutral; move relative to where your thumb landed. Re
 | C | Cycle chase, cockpit, and cinematic cameras |
 | Escape / P | Pause |
 
-**Setup → Keyboard** lets you remap every keyboard action. Select an action’s key button and press a replacement; if that key is already assigned, the two actions swap keys. Escape cancels a key change and always remains available to pause in flight. Restore default keys resets only the keyboard layout. Key labels in the cockpit and action tooltips update with your assignments. Pitch-up/pitch-down keys always perform their named action; the touch pitch-direction setting only changes the touch pad. Browser shortcuts and typing in form fields do not fly the plane.
+**Setup → Keyboard** lets you remap every keyboard action. Select an action’s key button and press a replacement; if that key is already assigned within the same role, the two actions swap keys. Escape cancels a key change and always remains available to pause in flight. **Restore pilot keys** resets only the pilot keyboard layout. Key labels in the cockpit and action tooltips update with your assignments. Pitch-up/pitch-down keys always perform their named action; the touch pitch-direction setting only changes the touch pad. Browser shortcuts and typing in form fields do not fly the plane.
 
 The interface starts in **Night** mode, including the hangar, mission lists, squadron panels, settings and debrief. The header appearance button or **Setup → Sound & view → Interface appearance** switches between Night and Day. This setting changes the interface, while each mission keeps its own sky and time of day. Theme and keyboard preferences survive reloads on the same browser. For actual night flying, Free flight → Conditions also offers Night sky; this uses the existing night scenery and stays separate from the interface theme.
 
@@ -94,9 +130,11 @@ Reduced motion steadies the camera, removes the menu's aircraft bobbing, and red
 
 WebGL is the default renderer. The locally bundled Three.js renderer provides the detailed aircraft, shaded terrain, cloud banks, water, runway and carrier geometry, effects, and three camera views. Static aircraft parts are combined by material; repeated scenery, clouds, projectiles, effects, and parachutes use instancing. Pixel density is capped to avoid rendering every physical display pixel on a high-density phone.
 
-### Aircraft and cockpit models · v0.4.0
+### Aircraft and cockpit models
 
-All sixteen airframe types now have distinct modeled construction. The classic set includes the long tandem-cockpit Avro 504, compact Camel, elliptical-wing Spitfire, radial-engine Hellcat, narrow Bf 109, four-engine B-17, C-47 transport and glazed-nose He 111. The modern set separates the F-4, F-15, F-16, F-22, Sea Harrier, A-10, B-2 and MiG-21 by their fuselage sections, wing planforms, intake arrangements and tail geometry. Campaign aircraft names and the existing enemy aliases are unchanged.
+The sixteen original airframe types have distinct modeled construction. The classic set includes the long tandem-cockpit Avro 504, compact Camel, elliptical-wing Spitfire, radial-engine Hellcat, narrow Bf 109, four-engine B-17, C-47 transport and glazed-nose He 111. The modern set separates the F-4, F-15, F-16, F-22, Sea Harrier, A-10, B-2 and MiG-21 by their fuselage sections, wing planforms, intake arrangements and tail geometry. Campaign aircraft names and the existing enemy aliases are unchanged.
+
+The AC-130 adds a seventeenth airframe: a broad high wing, four independently animated turboprops, a tall tail, landing-gear sponsons, sensors and three port-side gun assemblies. Both renderers support the same aircraft-relative gun sights, three first-person station interiors and shared ammunition/reload displays. Nightwatch's compound has service roads and distinct depot, relay, vehicle and flak structures. Its scenery and station fittings are stylized rather than exact reproductions of operational systems.
 
 Curved airfoil sections replace flat wing slabs. Smooth lofted skins, canopy frames, open biplane cockpits, radial engine detail, recessed jet ducts, nozzle petals, wheel hubs, undercarriage braces, stores and restrained panel/marking geometry make the models readable at close range. The F-22 uses rectangular exhausts, the Harrier has four side nozzles, and the A-10, Harrier and B-2 have no afterburner flame. Afterburning jets show their exhaust effect only at high thrust. Broad markings evoke an aircraft family rather than claiming an exact squadron, production block or museum restoration.
 
@@ -120,7 +158,9 @@ The compatibility renderer uses explicit terrain, airfield, and aircraft drawing
 
 ## Private squadron co-op
 
-Two to four pilots join a six-character room and mark themselves ready. The flight lead starts a shared mission. Each aircraft is simulated locally so steering never waits for a round trip. Player poses are sent at up to 15 Hz and sampled with 100 ms of interpolation and at most 150 ms of extrapolation. The existing validated Euler pose format remains on the wire; remote clients reconstruct quaternions for interpolation and bounded angular prediction, avoiding Euler branch changes at vertical flight. The flight lead supplies the mission world at up to 10 Hz and processes guest combat requests. RTT is visible in flight.
+For campaign squadron sorties, two to four pilots join a six-character room and mark themselves ready. The flight lead starts a shared mission. Each aircraft is simulated locally so steering never waits for a round trip. Player poses are sent at up to 15 Hz and sampled with 100 ms of interpolation and at most 150 ms of extrapolation. The existing validated Euler pose format remains on the wire; remote clients reconstruct quaternions for interpolation and bounded angular prediction, avoiding Euler branch changes at vertical flight. The flight lead supplies the mission world at up to 10 Hz and processes guest combat requests. RTT is visible in flight.
+
+Nightwatch uses a two-seat crew room. The pilot owns the only aircraft simulation, shell collisions and shared mission world. The gunner sends station, aim and trigger inputs at up to 15 Hz, with prompt trigger-edge delivery, and renders the interpolated pilot pose. Station inputs are bounded, sequenced and tied to the current sortie; they cannot supply aircraft positions, target damage or ammunition. A short press/release between physics steps is retained as one pending shot, and missing input stops held fire after 0.35 simulation seconds. Explicit pause/disconnect resets cancel pending fire.
 
 The relay validates identity, room membership, sequencing, message sizes, finite coordinate bounds, readiness, and host-only operations. It does not provide competitive anti-cheat. A private reconnect token reserves a seat briefly, and a replacement tab closes the older connection. Host loss pauses the room and ends the sortie if recovery fails. There is no host migration. Solo progress is browser-local; active rooms are server-memory-only and end when the process restarts. Use one server process for this version. Future scale requires shared room coordination.
 
@@ -128,11 +168,14 @@ The relay validates identity, room membership, sequencing, message sizes, finite
 
 - `public/campaign.mjs`: aircraft profiles, mission content, historical notes and source links.
 - `public/sim.mjs`: flight, terrain collision, combat, mission objectives, host snapshots.
+- `public/gunship.mjs`: shared station definitions, bounded crew input and quaternion-based sight/muzzle frames.
+- `public/gunner-controls.mjs`: independent gunner keyboard, mouse and two-thumb input.
+- `public/gunship-views.mjs`, `public/gunship-scenery.mjs`: first-person station interiors and shared compound geometry.
 - `public/orientation.mjs`: shared aircraft attitude, body axes and quaternion rotation/interpolation.
 - `public/camera-pose.mjs`: aircraft-relative cockpit eye, forward and up directions.
 - `public/presentation.mjs`: fixed simulation clock and render-only pose interpolation.
 - `public/renderer.mjs`: Three.js scene, terrain, effects and cameras.
-- `public/models.mjs`, `public/aircraft-classic.mjs`, `public/aircraft-modern.mjs`: aircraft model selection, distinct airframe builders and animation.
+- `public/models.mjs`, `public/aircraft-classic.mjs`, `public/aircraft-modern.mjs`, `public/aircraft-gunship.mjs`: aircraft model selection, distinct airframe builders and animation.
 - `public/model-parts.mjs`, `public/model-batching.mjs`, `public/aircraft-lighting.mjs`: reusable geometry, material/vertex batching and generated surface reflections.
 - `public/cockpit-models.mjs`: shared cockpit layouts, physical dashboards, cached instrument art and live telemetry.
 - `public/software.mjs`, `public/software-terrain.mjs`, `public/software-aircraft.mjs`: automatic Canvas 2D compatibility renderer, shared-edge terrain mesh and bounded depth-buffered aircraft rasterizer.
@@ -144,9 +187,11 @@ The relay validates identity, room membership, sequencing, message sizes, finite
 
 ## Verification and limits
 
-Focused Node tests cover simulation/objective behavior, control cancellation and simultaneous pointers, storage failure, real WebSocket room/protocol cases, render interpolation, and flight/input equivalence at 15, 30, 60, 120 and 144 Hz. Flight regressions check banked/inverted pitch and yaw, pilot-right roll, full loops and rolls in every handling mode, gravity and rotated hover thrust, smooth recovery, and vertical remote weapons. Graphics regressions cover the same body axes in both cockpit cameras, inverted sky/terrain rendering, attitude interpolation through the vertical poles, terrain boundaries, runway geometry, coverage and buffer resizing. Model regressions cover finite geometry and budgets for all sixteen types, independent cached animation, wheel contact and real open intake cavities after batching. Cockpit/raster checks cover responsive instrument placement, live telemetry, texture refresh limits, intersecting surfaces, transparent occlusion, near clipping and bounded reusable depth buffers. Offline checks compiled and linked the expanded sky/water shaders on Mesa in GLSL ES 100 and 300, including fragment-depth and vertex-depth paths; native Canvas raster checks verified shared terrain edges, inverted cockpit views and the complete rebuilt aircraft set. Browser checks cover the real interface, phone portrait/landscape layouts and playable startup using the software renderer: the available test browser reports hardware graphics as disabled and cannot create a WebGL context. Actual browser GPU output, sustained hardware performance and physical iPhone/Safari performance still need hardware testing. Browser checks also do not replace independent internet-connection co-op testing.
+Focused Node tests cover simulation/objective behavior, control cancellation and simultaneous pointers, storage failure, real WebSocket room/protocol cases, render interpolation, and flight/input equivalence at 15, 30, 60, 120 and 144 Hz. Flight regressions check banked/inverted pitch and yaw, pilot-right roll, full loops and rolls in every handling mode, gravity and rotated hover thrust, smooth recovery, and vertical remote weapons. Graphics regressions cover the same body axes in both cockpit cameras, inverted sky/terrain rendering, attitude interpolation through the vertical poles, terrain boundaries, runway geometry, coverage and buffer resizing. Model regressions cover finite geometry and budgets for all seventeen types, independent cached animation, wheel contact and real open intake cavities after batching. Cockpit/raster checks cover responsive instrument placement, live telemetry, texture refresh limits, intersecting surfaces, transparent occlusion, near clipping and bounded reusable depth buffers. Offline checks compiled and linked the expanded sky/water shaders on Mesa in GLSL ES 100 and 300, including fragment-depth and vertex-depth paths; native Canvas raster checks verified shared terrain edges, inverted cockpit views and the complete rebuilt aircraft set. Browser checks cover the real interface, phone portrait/landscape layouts and playable startup using the software renderer: the available test browser reports hardware graphics as disabled and cannot create a WebGL context. Actual browser GPU output, sustained hardware performance and physical iPhone/Safari performance still need hardware testing. Browser checks also do not replace independent internet-connection co-op testing.
 
-This first release uses stylized procedural scenery, simplified cockpit systems and flight dynamics, a trusted flight lead, and browser-local campaign progress. It is designed to grow into richer terrain, more detailed handling, stronger mission scripting and more robust multiplayer without replacing the whole game.
+Gunship regressions additionally cover station/body-frame alignment through inversion, initial target visibility, independent cadence/stores, swept shell hits, terrain occlusion, bounded subframe presses, interruption safety, shared snapshots and an entire eight-target mission flown with continuous pilot controls and physical shells. Real WebSocket tests cover crew capacity/roles, input validation, authority, replay/reconnect handling and shared damage.
+
+This release uses stylized procedural scenery, simplified cockpit systems and flight dynamics, a trusted flight lead, and browser-local campaign progress. It is designed to grow into richer terrain, more detailed handling, stronger mission scripting and more robust multiplayer without replacing the whole game.
 
 ## Third-party licenses
 

@@ -26,6 +26,24 @@ export const BINDING_ACTIONS = Object.freeze([
 
 export const DEFAULT_KEY_BINDINGS = Object.freeze(Object.fromEntries(BINDING_ACTIONS.map(({id,defaultCode})=>[id,defaultCode])));
 
+// Crew controls have their own bindings because the gunner never flies a second
+// aircraft. Reusing a key in the two different roles is intentional.
+export const GUNNER_BINDING_ACTIONS = Object.freeze([
+  {id:'aimUp',label:'Aim up',group:'Gunner aiming',defaultCode:'ArrowUp'},
+  {id:'aimDown',label:'Aim down',group:'Gunner aiming',defaultCode:'ArrowDown'},
+  {id:'aimLeft',label:'Aim left',group:'Gunner aiming',defaultCode:'ArrowLeft'},
+  {id:'aimRight',label:'Aim right',group:'Gunner aiming',defaultCode:'ArrowRight'},
+  {id:'fire',label:'Fire station gun',group:'Gunner stations',defaultCode:'Space'},
+  {id:'seat25',label:'25 mm station',group:'Gunner stations',defaultCode:'Digit1'},
+  {id:'seat40',label:'40 mm station',group:'Gunner stations',defaultCode:'Digit2'},
+  {id:'seat105',label:'105 mm station',group:'Gunner stations',defaultCode:'Digit3'},
+  {id:'zoom',label:'Toggle sight zoom',group:'Gunner stations',defaultCode:'KeyZ'},
+  {id:'recenter',label:'Centre gun sight',group:'Gunner stations',defaultCode:'KeyC'},
+  {id:'target',label:'Mark next target',group:'Gunner stations',defaultCode:'KeyT'},
+  {id:'pause',label:'Pause gun station',group:'Gunner stations',defaultCode:'KeyP'},
+].map(action=>Object.freeze(action)));
+export const DEFAULT_GUNNER_BINDINGS = Object.freeze(Object.fromEntries(GUNNER_BINDING_ACTIONS.map(({id,defaultCode})=>[id,defaultCode])));
+
 const KEY_LABELS = Object.freeze({
   ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',Space:'Space',Enter:'Enter',
   ShiftLeft:'Left Shift',ShiftRight:'Right Shift',Backspace:'Backspace',Delete:'Delete',
@@ -51,12 +69,14 @@ export function formatKeyCode(code){
   return KEY_LABELS[code];
 }
 
-export function normalizeKeyBindings(raw){
+export function normalizeKeyBindings(raw){return normalizeBindings(raw,BINDING_ACTIONS);}
+export function normalizeGunnerBindings(raw){return normalizeBindings(raw,GUNNER_BINDING_ACTIONS);}
+function normalizeBindings(raw,actions){
   const source=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const result={},used=new Set();
   // Reserve valid saved assignments before filling missing/invalid entries. This
   // keeps a custom key from being stolen by another action's default on upgrade.
-  for(const {id} of BINDING_ACTIONS){
+  for(const {id} of actions){
     if(!Object.hasOwn(source,id))continue;
     const code=source[id];
     if(code===null)result[id]=null;
@@ -65,7 +85,7 @@ export function normalizeKeyBindings(raw){
       used.add(code);
     }
   }
-  for(const {id,defaultCode} of BINDING_ACTIONS){
+  for(const {id,defaultCode} of actions){
     if(Object.hasOwn(result,id))continue;
     result[id]=used.has(defaultCode)?null:defaultCode;
     if(result[id]!==null)used.add(defaultCode);

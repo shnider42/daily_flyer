@@ -1,9 +1,9 @@
 {
   "name": "skyward-flight",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
-  "description": "SKYWARD — a century of flight, with private four-pilot squadrons",
+  "description": "SKYWARD — a century of flight, with private squadrons and a two-player AC-130 crew",
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",

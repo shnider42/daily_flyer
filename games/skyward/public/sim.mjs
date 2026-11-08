@@ -1,5 +1,6 @@
 import { getAircraft, getMission } from './campaign.mjs';
 import { orientationFromEuler, orientationOf, basis, deriveEuler, slerp, isOrientation, normalizeOrientation, multiplyOrientations, integrateBodyRotation } from './orientation.mjs';
+import { GUNSHIP_STATIONS, GUNSHIP_INPUT_TIMEOUT, clampCrewInput, createGunshipCrewState, getGunshipStation, gunshipStationPose } from './gunship.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
@@ -115,7 +116,38 @@ function lineOfSight(a, b, mission) {
   return true;
 }
 
-/** Mutates one local plane. Network snapshots deliberately never replace it. */
+function segmentSphereTime(from, to, center, radius) {
+  const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+  const ox = from.x - center.x, oy = from.y - center.y, oz = from.z - center.z;
+  const c = ox * ox + oy * oy + oz * oz - radius * radius;
+  if (c <= 0) return 0;
+  const a = dx * dx + dy * dy + dz * dz, b = ox * dx + oy * dy + oz * dz;
+  const discriminant = b * b - a * c;
+  if (a < 1e-12 || discriminant < 0) return null;
+  const time = (-b - Math.sqrt(discriminant)) / a;
+  return time >= 0 && time <= 1 ? time : null;
+}
+
+// Trace the whole step so fast shells cannot pass through a target or a slope.
+// Terrain is sampled before selecting a hit, preventing damage through a ridge.
+function segmentTerrainTime(from, to, mission) {
+  const clearance = fraction => mix(from.y, to.y, fraction) - Math.max(0,
+    terrainHeight(mix(from.x, to.x, fraction), mix(from.z, to.z, fraction), mission)) - 3;
+  if (clearance(0) <= 0) return 0;
+  const segments = Math.max(1, Math.min(64, Math.ceil(dist(from, to) / 12)));
+  for (let step = 1; step <= segments; step++) {
+    if (clearance(step / segments) > 0) continue;
+    let low = (step - 1) / segments, high = step / segments;
+    for (let i = 0; i < 9; i++) {
+      const middle = (low + high) / 2;
+      if (clearance(middle) > 0) low = middle; else high = middle;
+    }
+    return high;
+  }
+  return null;
+}
+
+/** Mutates one pilot-owned plane; crew guests receive its shared pose instead. */
 export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAircraft(player.aircraft), mission = {}, settings = {}) {
   const p = player, a = aircraft;
   dt = clamp(finite(dt, 1 / 60), 0, 0.05);
@@ -253,6 +285,8 @@ export class FlightSimulation {
     this.defense = 100; this.escortTime = 0; this.dropsLanded = 0; this.ending = null; this.endingText = '';
     this.gunCooldown = 0; this.payloadCooldown = 0; this.countermeasureCooldown = 0; this.countermeasureTime = 0;
     this.egressTime = 0; this.worldAuthority = true; this.remoteWeapons = new Map(); this.remoteDamage = {};
+    this.crew = m.kind === 'gunship' ? createGunshipCrewState() : null;
+    this._crewInputTime = -Infinity; this._pendingCrewPress = null;
     this._eventId = 0; this._entityId = 0; this._lastLandingCount = 0; this._warnedStall = false; this._rng = (m.number || 1) * 19937;
     this._chooseTarget(); this._updateBombAim(); this._updateObjective(0);
   }
@@ -280,7 +314,7 @@ export class FlightSimulation {
 
   action(name) {
     if (name && typeof name === 'object') name = name.name || name.action || name.type;
-    if (this.status !== 'flying') return false;
+    if (this.status !== 'flying' || (this.crew && !this.worldAuthority)) return false;
     const p = this.player, a = this.aircraft;
     switch (name) {
       case 'startup': {
@@ -337,6 +371,9 @@ export class FlightSimulation {
 
   step(dt, input = {}) {
     if (this.status !== 'flying') return;
+    // A gunner shares the host aircraft. Ordinary squadron members retain their
+    // independently simulated player, but a crew guest never flies a second one.
+    if (this.crew && !this.worldAuthority) return;
     dt = clamp(finite(dt, 1 / 60), 0, 0.05);
     this.time += dt;
     this.gunCooldown = Math.max(0, this.gunCooldown - dt);
@@ -358,6 +395,7 @@ export class FlightSimulation {
     this._updateLock(dt);
     this._updateBombAim();
     if (this.worldAuthority) {
+      this._advanceCrewWeapons(dt);
       this._advanceEnemies(dt); this._advanceHazards(dt); this._advanceProjectiles(dt); this._advanceParatroopers(dt); this._advanceWaypoints(); this._updateObjective(dt);
     } else {
       // Predicted shots are cosmetic; the host resolves shared hits and goals.
@@ -413,6 +451,62 @@ export class FlightSimulation {
     this.projectiles.push({ id: this._id('bullet'), type: 'bullet', x: p.x, y: p.y, z: p.z, vx: dir.x * 1000, vy: dir.y * 1000, vz: dir.z * 1000, life: 0.48, owner: remote ? p.id : 'player', cosmetic: true });
     if (best && this.worldAuthority) this._damage(best, gun.damage, 'gun');
     return true;
+  }
+
+  applyCrewInput(input, playerId = null, { reset = false } = {}) {
+    if (!this.crew || !this.worldAuthority || this.status !== 'flying') return false;
+    if (reset) { this._pendingCrewPress = null; this.crew.fire = false; }
+    const clean = clampCrewInput(input);
+    if (!clean) return false;
+    if (reset) clean.fire = false;
+    // A short click can arrive and be released between two fixed steps. Keep
+    // one press, with its original station/aim, instead of losing that edge or
+    // accumulating a firing queue. Pause/disconnect resets deliberately cancel it.
+    if (clean.fire && !this.crew.fire && !this._pendingCrewPress) this._pendingCrewPress = { ...clean, at: this.time };
+    Object.assign(this.crew, clean);
+    this.crew.gunnerId = typeof playerId === 'string' ? playerId : this.crew.gunnerId;
+    this._crewInputTime = this.time;
+    return true;
+  }
+
+  _advanceCrewWeapons(dt) {
+    if (!this.crew) return;
+    for (const state of Object.values(this.crew.stations)) state.cooldown = Math.max(0, state.cooldown - dt);
+    // Missing release packets, a paused tab or a disconnected gunner must stop
+    // firing without depending on the next network message arriving.
+    if (this.time - this._crewInputTime > GUNSHIP_INPUT_TIMEOUT) this.crew.fire = false;
+    const press = this._pendingCrewPress; this._pendingCrewPress = null;
+    const fired = press && this.time - press.at <= GUNSHIP_INPUT_TIMEOUT && this._shootCrew(press);
+    if (this.crew.fire && !fired) this._shootCrew();
+  }
+
+  _shootCrew(input = this.crew) {
+    if (!this.crew || !this.worldAuthority || this.status !== 'flying') return false;
+    const station = getGunshipStation(input.seat), state = this.crew.stations[station.id];
+    if (!state || state.ammo <= 0 || state.cooldown > 1e-9) return false;
+    const { origin, direction: aim } = gunshipStationPose(this.player, station.id, input);
+    state.ammo--; state.cooldown = 1 / station.rate; state.shots++;
+    const id = this._id('crew-shell');
+    this.projectiles.push({ id, type: 'shell', seat: station.id, owner: 'crew',
+      x: origin.x, y: origin.y, z: origin.z, vx: aim.x * station.speed, vy: aim.y * station.speed, vz: aim.z * station.speed,
+      gravity: station.gravity, life: station.range / station.speed, damage: station.damage, radius: station.radius });
+    this.crew.lastShot = { id, seat: station.id, at: this.time };
+    this._effect('flash', origin.x, origin.y, origin.z, station.id === '105mm' ? 7 : station.id === '40mm' ? 4 : 1.8, 0.12);
+    return true;
+  }
+
+  _impactCrewShell(projectile, point, directTarget = null) {
+    projectile.life = 0;
+    Object.assign(projectile, point);
+    this._effect('explosion', point.x, point.y, point.z, projectile.radius * 0.7, projectile.seat === '105mm' ? 2.3 : 1.2);
+    for (const target of this.targets) {
+      if (!living(target) || target.narrative || ['dropzone', 'balloon'].includes(target.type)) continue;
+      const distance = dist(point, target);
+      if (target !== directTarget && distance > projectile.radius) continue;
+      const damage = projectile.damage * (target === directTarget ? 1 : 1 - distance / projectile.radius * 0.7);
+      this._damage(target, damage, projectile.seat);
+      if (this.crew) this.crew.lastHit = { at: this.time, targetId: target.id, seat: projectile.seat };
+    }
   }
 
   _launchMissile(p, target, remote = false) {
@@ -581,6 +675,7 @@ export class FlightSimulation {
   _advanceProjectiles(dt, cosmeticWorld = false) {
     for (const projectile of this.projectiles) {
       if (projectile.life <= 0) continue;
+      const before = { x: projectile.x, y: projectile.y, z: projectile.z };
       projectile.life -= dt;
       let target;
       if (projectile.type === 'missile') {
@@ -596,8 +691,21 @@ export class FlightSimulation {
         }
       }
       if (projectile.type === 'bomb') projectile.vy -= 28 * dt;
+      if (projectile.type === 'shell') projectile.vy -= finite(projectile.gravity, 9) * dt;
       projectile.x += projectile.vx * dt; projectile.y += projectile.vy * dt; projectile.z += projectile.vz * dt;
       if (cosmeticWorld) continue;
+      if (projectile.type === 'shell') {
+        let fraction = segmentTerrainTime(before, projectile, this.mission), direct = null;
+        for (const candidate of this.targets) {
+          if (!living(candidate) || candidate.narrative || ['dropzone', 'balloon'].includes(candidate.type)) continue;
+          const hit = segmentSphereTime(before, projectile, candidate, finite(candidate.hitRadius, candidate.type === 'depot' ? 32 : 18));
+          if (hit !== null && (fraction === null || hit < fraction)) { fraction = hit; direct = candidate; }
+        }
+        if (fraction !== null) this._impactCrewShell(projectile, {
+          x: mix(before.x, projectile.x, fraction), y: mix(before.y, projectile.y, fraction), z: mix(before.z, projectile.z, fraction),
+        }, direct);
+        continue;
+      }
       if (projectile.owner === 'enemy') {
         const victim = projectile.targetId !== 'player' ? this.enemies.find(e => e.id === projectile.targetId) : target || (projectile.targetPlayerId && projectile.targetPlayerId !== this.player.id ? this.remotePlayers.find(p => p.id === projectile.targetPlayerId) : this.player);
         if (victim && dist(projectile, victim) < (projectile.type === 'missile' ? 65 : 38)) {
@@ -676,6 +784,24 @@ export class FlightSimulation {
     const targetList = g.targetIds ? this.targets.filter(t => g.targetIds.includes(t.id)) : this.targets.filter(t => !t.friendly && !t.hazard && !t.narrative);
     const deadGround = targetList.filter(t => t.health <= 0).length;
     let goalMet = false;
+    if (g.type === 'gunship') {
+      this.phase = 'combat';
+      this.objective = `Nightwatch Basin · ${deadGround}/${g.count} ground targets`;
+      this.progress = Math.min(1, deadGround / g.count) * 0.85;
+      this.navigationTarget = { x: m.orbit.x, y: m.orbit.altitude, z: m.orbit.z, label: 'BASIN · keep to your left' };
+      if (!p.stalled) this.hint = 'Pilot: keep the basin off the left wing. Gunner: switch stations, aim and fire at the marked ground targets.';
+      if (deadGround >= g.count) {
+        this.phase = 'egress'; this.egressTime += dt;
+        this.objective = 'Ground objectives cleared · fly the crew home';
+        this.hint = 'Keep the aircraft clear of the terrain while the crew finishes the sortie.';
+        this.progress = 0.85 + Math.min(1, this.egressTime / (g.egress || 5)) * 0.15;
+        if (this.egressTime >= (g.egress || 5)) this._finish(true, 'Nightwatch complete · all eight ground objectives cleared');
+      } else if (this.crew && Object.values(this.crew.stations).every(state => state.ammo <= 0)
+        && !this.projectiles.some(projectile => projectile.type === 'shell' && projectile.life > 0)) {
+        this._finish(false, 'All cannon ammunition expended before the ground objectives were cleared.');
+      }
+      return;
+    }
     if (g.type === 'land') {
       if (this.waypointIndex < (m.waypoints || []).length) {
         this.phase = 'route'; const waypoint = m.waypoints[this.waypointIndex];
@@ -754,7 +880,8 @@ export class FlightSimulation {
 
   _finish(success, message) {
     this.status = success ? 'success' : 'failed'; this.phase = 'complete'; this.objective = message;
-    this.hint = success ? 'Review the logbook, then continue to the next chapter.' : 'Retry the sortie, or adjust flight assistance in settings.';
+    this.hint = success ? this.crew ? 'Crew sortie complete. Return to the hangar to fly again.' : 'Review the logbook, then continue to the next chapter.' : 'Retry the sortie, or adjust flight assistance in settings.';
+    if (this.crew) { this.crew.fire = false; this._pendingCrewPress = null; }
     if (success) { this.progress = 1; this.score += Math.max(100, Math.round(this.player.health / this.aircraft.health * 250)); }
     this._event(success ? 'success' : 'failed', message);
   }
@@ -769,7 +896,7 @@ export class FlightSimulation {
   }
 
   applyRemoteAction(action, pose) {
-    if (!this.worldAuthority || this.status !== 'flying' || !pose || ![pose.x, pose.y, pose.z, pose.heading].every(Number.isFinite)) return false;
+    if (this.crew || !this.worldAuthority || this.status !== 'flying' || !pose || ![pose.x, pose.y, pose.z, pose.heading].every(Number.isFinite)) return false;
     const name = typeof action === 'string' ? action : action?.name || action?.action || action?.type;
     // A squadron sortie uses its assigned aircraft; a pose cannot grant stores.
     const p = { ...pose, aircraft: this.mission.aircraft }, state = this._remoteState(p);
@@ -793,14 +920,25 @@ export class FlightSimulation {
   getSnapshot() {
     const weaponStores = {};
     for (const [id, stores] of this.remoteWeapons) weaponStores[id] = { ammo: stores.ammo, missiles: stores.missiles, bombs: stores.bombs, troopers: stores.troopers, dropsRemaining: stores.dropsRemaining };
-    return copy({ version: 1, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores });
+    return copy({ version: 1, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores,
+      ...(this.crew ? { player: this.player, crew: this.crew } : {}) });
   }
 
   applySnapshot(snapshot) {
     if (!snapshot || snapshot.missionId !== this.mission.id || !Array.isArray(snapshot.enemies) || !Array.isArray(snapshot.targets)) return false;
+    if (this.crew && (!snapshot.player || !['x', 'y', 'z', 'health'].every(key => Number.isFinite(snapshot.player[key]))
+      || !snapshot.crew || !clampCrewInput(snapshot.crew)
+      || !GUNSHIP_STATIONS.every(station => Number.isFinite(snapshot.crew.stations?.[station.id]?.ammo)))) return false;
     this.worldAuthority = false;
     for (const key of ['enemies', 'targets', 'projectiles', 'effects', 'paratroopers', 'events']) if (Array.isArray(snapshot[key])) this[key] = copy(snapshot[key]);
     for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText']) if (snapshot[key] !== undefined) this[key] = snapshot[key];
+    if (this.crew) {
+      Object.assign(this.player, copy(snapshot.player), { aircraft: this.mission.aircraft });
+      setAttitude(this.player, orientationOf(this.player));
+      this.crew = copy(snapshot.crew); this.time = finite(snapshot.time, this.time);
+      this.status = snapshot.status;
+      return true;
+    }
     if (this.player.health > 0 && !this.player.crashed) this.status = snapshot.status;
     const stores = snapshot.weaponStores?.[this.player.id];
     if (stores) for (const key of ['ammo', 'missiles', 'bombs', 'troopers', 'dropsRemaining']) if (Number.isFinite(stores[key])) this.player[key] = Math.max(0, stores[key]);

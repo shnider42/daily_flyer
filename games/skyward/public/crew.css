@@ -1,0 +1,71 @@
+/* Shared-aircraft mission and gunner station. Flight controls remain role-specific. */
+.room-brief{border:1px solid var(--line);padding:16px;margin:18px 0;background:#7187770b}
+.room-brief strong{display:block;font:normal 23px/1.2 Georgia,serif;margin:0 0 9px}
+.room-brief p{font-size:12px;line-height:1.55;margin:0}.roster-person .crew-seat-label{display:block;margin-top:5px;font:9px/1.4 Consolas,monospace;letter-spacing:.1em;color:var(--muted)}
+.flight-screen>.flight-header{z-index:12}.flight-screen>.objective-box,.flight-screen>.radar-panel,.flight-screen>.flight-warning,.flight-screen>.radio-caption,.flight-screen>.flight-instruments{z-index:7}
+.flight-screen[data-crew-role="gunner"] :is(.touch-controls,.flight-actions,.weapon-actions,.desktop-controls,.flight-hint,#crosshair,#camera-button,#waypoint-pointer){display:none!important}
+.crew-status{position:absolute;right:25px;bottom:185px;z-index:6;width:220px;border-left:2px solid #d3b777;padding:9px 12px;background:#0d191fce;font:9px/1.7 Consolas,monospace;letter-spacing:.05em}
+.crew-status>span{display:block;color:#b5c9bf;font-size:8px}.crew-status strong{display:block;color:#f6e4b4;font-weight:500}.crew-status small{display:block;color:#c5d1ca;line-height:1.5;font-size:9px;margin-top:3px}
+.gunner-interface{position:absolute;inset:0;z-index:4;pointer-events:none;color:#e3f2d8;font-family:Consolas,"SFMono-Regular",monospace}
+.gunner-aim-surface{position:absolute;inset:0;pointer-events:auto;cursor:crosshair;touch-action:none}
+.gunner-station-readout{position:absolute;left:28px;bottom:165px;width:174px;padding:12px 15px;background:linear-gradient(90deg,#111e20dc,#111e2099);border-left:2px solid #c1dca3;font-size:8px;letter-spacing:.1em;pointer-events:none}
+.gunner-station-readout>span{display:block;opacity:.8;font-size:7px}.gunner-station-readout>span b{font-weight:400}
+.gunner-station-readout>strong{display:block;font-size:32px;font-weight:400;letter-spacing:-.04em;line-height:1.25;margin-top:7px}
+.gunner-station-readout>small{font-size:8px;color:#b9cbb0}.gunner-station-readout>div:not(.gunner-reload-track){display:flex;align-items:center;gap:7px;margin-top:12px}
+.gunner-station-readout output{font-size:22px;line-height:1;letter-spacing:0}.gunner-station-readout>div>span{font-size:6px;color:#b8c8b3}.gunner-station-readout>div>b{margin-left:auto;font-size:7px;color:#dae9a1;font-weight:400;letter-spacing:.02em}
+.gunner-reload-track{height:2px;background:#e0e9cc26;margin-top:8px}.gunner-reload-track i{display:block;height:100%;width:100%;background:#cde3ac}
+.gunner-reticle{position:absolute;top:50%;left:50%;width:58px;height:58px;transform:translate(-50%,-50%);color:#d6f4ac;filter:drop-shadow(0 1px 2px #000);pointer-events:none}
+.gunner-reticle:before,.gunner-reticle:after{content:"";position:absolute;background:currentColor}.gunner-reticle:before{width:1px;height:17px;left:50%;top:0;box-shadow:0 41px 0 currentColor}.gunner-reticle:after{height:1px;width:17px;top:50%;left:0;box-shadow:41px 0 0 currentColor}
+.gunner-reticle i{position:absolute;left:22px;top:22px;width:14px;height:14px;border:1px solid currentColor;border-radius:50%}.gunner-reticle b{position:absolute;left:28px;top:28px;width:2px;height:2px;background:currentColor}
+.gunner-reticle span{position:absolute;top:69px;left:50%;transform:translateX(-50%);width:180px;text-align:center;font-size:8px;letter-spacing:.1em;color:#f4c18c}.gunner-reticle.hit{color:#fff3d5}.gunner-reticle.hit i{border-width:3px;box-shadow:0 0 16px #ffefab}
+.gunner-seat-selector{position:absolute;bottom:89px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:344px;pointer-events:auto}
+.gunner-seat-selector button{display:grid;gap:5px;justify-items:start;min-height:65px;padding:10px 13px;color:#b5c5ba;background:#101e23e8;border:1px solid #a8c09844;text-align:left;touch-action:manipulation}
+.gunner-seat-selector button small{font-size:7px;letter-spacing:.07em}.gunner-seat-selector button strong{font-size:17px;font-weight:400;letter-spacing:-.02em}.gunner-seat-selector button span{font-size:8px;color:#a7b29f}.gunner-seat-selector button[aria-pressed="true"]{border-color:#d1e8ad;color:#effbd9;background:#334137ee;box-shadow:inset 0 2px 0 #d1e8ad}.gunner-seat-selector button[aria-pressed="true"] span{color:#d3ddb9}
+.gunner-tools{position:absolute;bottom:37px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:1fr .85fr 1.25fr;gap:6px;width:344px;pointer-events:auto}
+.gunner-tools button{min-height:42px;padding:9px 8px;color:#d6e5ca;background:#101e23e8;border:1px solid #adc09c44;font-size:8px;letter-spacing:.05em;touch-action:manipulation}.gunner-tools button span{margin-left:5px;color:#f6da9c}.gunner-tools button[aria-pressed="true"]{border-color:#d5df9e;background:#394132e8}
+.gunner-fire{position:absolute;right:46px;bottom:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:92px;height:92px;border-radius:50%;border:1px solid #f1bd84ba;background:#422e24e8;color:#ffe9c5;pointer-events:auto;touch-action:none;user-select:none;box-shadow:inset 0 0 0 5px #b5814520}
+.gunner-fire svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.2}.gunner-fire span{font-size:9px;letter-spacing:.16em}.gunner-fire.held{background:#976237e8;border-color:#ffe7b6;box-shadow:0 0 23px #dfb17144,inset 0 0 0 5px #f9d48820}
+.gunner-aim-pad{display:none}.gunner-controls-hint{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);width:max-content;max-width:65%;margin:0;text-align:center;font-size:8px;line-height:1.4;color:#c6d4bb}
+.flight-screen[data-crew-role="gunner"] .crew-status{left:28px;right:auto;bottom:107px;width:174px;padding:8px 12px;font-size:8px}.flight-screen[data-crew-role="gunner"] .crew-status>span{display:none}.flight-screen[data-crew-role="gunner"] .crew-status small{font-size:8px}
+.flight-screen[data-crew-role="gunner"] .aircraft-status{left:28px;right:auto;transform:none;bottom:25px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;font-size:8px;z-index:6}.flight-screen[data-crew-role="gunner"] #hud-stores{display:none}
+.flight-screen[data-crew-role="gunner"] #target-marker{z-index:5;pointer-events:none}.flight-screen[data-crew-role="gunner"] .radio-caption{top:auto;bottom:185px;max-width:330px;left:50%;pointer-events:none}
+.gunner-interface button:focus-visible{outline:2px solid #fff0b6;outline-offset:3px}
+@media(pointer:coarse),(max-width:1000px){
+  .gunner-aim-surface{pointer-events:none}
+  .gunner-aim-pad{display:block;position:absolute;left:calc(20px + env(safe-area-inset-left));bottom:calc(22px + env(safe-area-inset-bottom));width:112px;height:112px;border:1px solid #b9cba64d;border-radius:50%;background:radial-gradient(circle,#cde0b416 0 32%,#162329c7 33%);box-shadow:inset 0 0 0 9px #9bb28a0b;pointer-events:auto;touch-action:none;user-select:none}
+  .gunner-aim-pad.active{border-color:#d5e5b5a0;background-color:#3a4b3bc7}.gunner-aim-pad>.stick-knob{width:40px;height:40px;background:#a9bd9380;border:1px solid #def2c090;pointer-events:none}
+  .gunner-aim-pad>span{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.15em;color:#c1d0b6}
+  .gunner-fire{right:calc(26px + env(safe-area-inset-right));bottom:calc(33px + env(safe-area-inset-bottom));width:92px;height:92px}
+  .gunner-seat-selector{bottom:calc(198px + env(safe-area-inset-bottom));width:min(360px,calc(100% - 30px));gap:5px}.gunner-seat-selector button{min-height:62px;padding:9px 11px}
+  .gunner-tools{bottom:calc(145px + env(safe-area-inset-bottom));width:min(360px,calc(100% - 30px));gap:5px}.gunner-tools button{min-height:44px}
+  .gunner-controls-hint{bottom:calc(51px + env(safe-area-inset-bottom));max-width:calc(100% - 280px);font-size:7px;width:105px;line-height:1.7}
+  .flight-screen[data-crew-role="gunner"] .aircraft-status{display:none}
+  .flight-screen[data-crew-role="gunner"] .crew-status{top:212px;bottom:auto;left:15px;width:calc(100% - 30px);padding:6px 10px;background:#0d191f99;display:flex;align-items:center;gap:10px}
+  .flight-screen[data-crew-role="gunner"] .crew-status small{margin:0}.flight-screen[data-crew-role="gunner"] .crew-status strong{white-space:nowrap;font-size:7px}
+  .gunner-station-readout{left:15px;top:250px;bottom:auto;width:145px;padding:9px 11px}.gunner-station-readout>strong{font-size:26px;margin-top:3px}.gunner-station-readout>div:not(.gunner-reload-track){margin-top:7px}.gunner-station-readout output{font-size:19px}
+  .flight-screen[data-crew-role="gunner"] .radio-caption{bottom:auto;top:265px;left:auto;right:15px;width:calc(100% - 190px);transform:none;max-width:220px;padding:8px}.flight-screen[data-crew-role="gunner"] .radio-caption>span{display:none}.flight-screen[data-crew-role="gunner"] .radio-caption p{font-size:9px}
+  .crew-status{right:15px;bottom:calc(185px + env(safe-area-inset-bottom));width:190px;font-size:8px}
+  .left-handed .gunner-aim-pad{left:auto;right:calc(20px + env(safe-area-inset-right))}.left-handed .gunner-fire{right:auto;left:calc(26px + env(safe-area-inset-left))}
+}
+@media(max-width:650px){
+  .flight-screen[data-crew-role="gunner"] .flight-instruments{top:65px}.flight-screen[data-crew-role="gunner"] .objective-box{top:128px}.flight-screen[data-crew-role="gunner"] .radar-panel{top:126px}
+  .flight-screen[data-crew-role="gunner"] .flight-warning{top:357px;font-size:8px;padding:6px 9px}.gunner-reticle{width:58px;height:58px}
+  .flight-screen[data-crew-role="pilot"] .crew-status{top:254px;left:15px;right:auto;bottom:auto;width:calc(100% - 30px);display:flex;align-items:center;gap:9px;padding:6px 9px}.flight-screen[data-crew-role="pilot"] .crew-status>span{display:none}.flight-screen[data-crew-role="pilot"] .crew-status strong{white-space:nowrap;font-size:7px}.flight-screen[data-crew-role="pilot"] .crew-status small{font-size:7px;margin:0}
+}
+@media(max-width:650px) and (max-height:700px){
+  .flight-screen[data-crew-role="gunner"] .flight-instruments{display:none}.flight-screen[data-crew-role="gunner"] .objective-box{top:69px}.flight-screen[data-crew-role="gunner"] .radar-panel{top:65px}
+  .flight-screen[data-crew-role="gunner"] .crew-status{top:153px}.gunner-station-readout{top:186px;padding:7px 10px;width:128px}.gunner-station-readout>strong{font-size:23px}.gunner-station-readout>small{display:none}.gunner-station-readout>div:not(.gunner-reload-track){margin-top:4px}
+  .gunner-seat-selector{bottom:calc(160px + env(safe-area-inset-bottom))}.gunner-tools{bottom:calc(108px + env(safe-area-inset-bottom))}.gunner-aim-pad{width:88px;height:88px;bottom:calc(12px + env(safe-area-inset-bottom))}.gunner-fire{width:78px;height:78px;bottom:calc(17px + env(safe-area-inset-bottom))}.gunner-controls-hint{max-width:calc(100% - 235px);bottom:35px}
+  .flight-screen[data-crew-role="gunner"] .radio-caption{top:187px;width:calc(100% - 168px)}.flight-screen[data-crew-role="gunner"] .flight-warning{top:150px;font-size:7px}.flight-screen[data-crew-role="gunner"] .crew-status{display:none}
+}
+@media(min-width:651px) and (max-height:620px){
+  .gunner-seat-selector{bottom:calc(73px + env(safe-area-inset-bottom));width:282px}.gunner-seat-selector button{min-height:57px;padding:7px 10px;gap:3px}.gunner-seat-selector button strong{font-size:16px}.gunner-seat-selector button small{font-size:6px}
+  .gunner-tools{bottom:calc(21px + env(safe-area-inset-bottom));width:282px}.gunner-tools button{font-size:7px}
+  .gunner-aim-pad{width:104px;height:104px;bottom:calc(22px + env(safe-area-inset-bottom))}.gunner-fire{width:88px;height:88px;bottom:calc(30px + env(safe-area-inset-bottom))}
+  .gunner-station-readout{top:152px;left:15px;width:145px;padding:7px 10px}.gunner-station-readout>strong{font-size:23px;margin:2px 0}.gunner-station-readout>small{display:none}.gunner-station-readout>div:not(.gunner-reload-track){margin-top:3px}.gunner-station-readout output{font-size:18px}.gunner-station-readout>span{font-size:6px}
+  .flight-screen[data-crew-role="gunner"] .crew-status{display:none}.flight-screen[data-crew-role="gunner"] .objective-box{top:67px;width:193px}.flight-screen[data-crew-role="gunner"] .flight-instruments{top:13px;width:255px}.flight-screen[data-crew-role="gunner"] .flight-identity{max-width:190px}.flight-screen[data-crew-role="gunner"] .flight-identity strong{font-size:8px}
+  .flight-screen[data-crew-role="gunner"] .radio-caption{top:100px;left:50%;right:auto;transform:translateX(-50%);max-width:270px;width:38%;padding:5px 8px}.flight-screen[data-crew-role="gunner"] .radio-caption p{font-size:8px}.flight-screen[data-crew-role="gunner"] .flight-warning{top:66px;font-size:8px}.gunner-controls-hint{display:none}
+  .flight-screen[data-crew-role="pilot"] .crew-status{bottom:auto;top:164px;right:15px;width:150px;padding:6px 9px;font-size:7px}.flight-screen[data-crew-role="pilot"] .crew-status>span{display:none}.flight-screen[data-crew-role="pilot"] .crew-status small{font-size:7px}
+}
+
+.gunner-keyboard-heading{margin-top:30px}
