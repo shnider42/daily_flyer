@@ -1,0 +1,1 @@
+{"name":"dfe-dayboard","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check public/app.js && node --test tests/*.test.mjs"},"engines":{"node":">=22"}}

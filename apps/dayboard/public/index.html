@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181b20">
+  <meta name="description" content="A small personal board for career work, life admin, and the projects you want to finish.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Dayboard — personal workspace</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to workspace</a>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+      <a href="#board" class="brand" aria-label="Dayboard home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>dayboard<span class="brand-sub">PERSONAL WORKSPACE</span></span></a>
+      <button class="capture-button" data-action="new-task"><span aria-hidden="true">＋</span> New task <kbd>N</kbd></button>
+      <nav class="main-nav" id="main-nav" aria-label="Views"></nav>
+      <div class="nav-label">AREAS</div>
+      <nav class="area-nav" id="area-nav" aria-label="Filter by area"></nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-bottom">
+        <button class="nav-item" data-action="settings"><span class="icon-slot" data-icon="settings"></span><span>Settings & backup</span></button>
+        <div class="save-status" id="save-status"><span class="save-dot"></span><span>Saved in this browser</span></div>
+        <button class="storage-note" data-action="settings">Local workspace · no cloud sync</button>
+        <div class="sidebar-signoff"><span>Built with Daily Flyer</span><button class="icon-button" data-action="help" title="Help and keyboard shortcuts" aria-label="Help and keyboard shortcuts">?</button></div>
+      </div>
+    </aside>
+    <div class="sidebar-scrim" data-action="close-menu"></div>
+    <main id="main" class="main" tabindex="-1">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" data-action="menu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><span data-icon="menu"></span></button>
+        <div class="breadcrumb">Workspace <span>/</span> <span id="breadcrumb-view">My board</span></div>
+        <div class="topbar-tools"><label class="search-wrap"><span data-icon="search"></span><input id="search" type="search" placeholder="Find a task…" aria-label="Search tasks and projects" autocomplete="off"><kbd>/</kbd></label><button class="icon-button" data-action="theme" id="theme-button" aria-label="Switch color theme" title="Switch color theme"><span data-icon="sun"></span></button></div>
+      </header>
+      <section class="workspace-header">
+        <div><div class="page-eyebrow" id="page-eyebrow">SUNDAY, NOVEMBER 8</div><h1 id="page-title">My board</h1><p id="page-description">A place for what needs doing. One next step at a time.</p></div>
+        <div class="header-actions"><button class="button subtle" data-action="capture-list"><span data-icon="list-plus"></span><span>Paste a list</span></button><button class="button primary" data-action="new-task" aria-label="New task"><span data-icon="plus"></span><span>New task</span></button></div>
+      </section>
+      <div id="notice-region"></div>
+      <section class="focus-strip" id="focus-strip" aria-label="Today's focus"></section>
+      <section class="toolbar" id="toolbar" aria-label="Board filters"></section>
+      <div id="workspace-content" aria-live="off"></div>
+      <footer class="workspace-footer" id="workspace-footer"></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="task-dialog" class="task-dialog" aria-labelledby="task-dialog-title"></dialog>
+  <dialog id="utility-dialog" class="utility-dialog" aria-labelledby="utility-title"></dialog>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <noscript><div class="noscript">Dayboard needs JavaScript to manage your local task board. Enable JavaScript and reload this page.</div></noscript>
+</body>
+</html>
