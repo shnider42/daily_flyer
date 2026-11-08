@@ -3,6 +3,7 @@ export const DEFAULT_SETTINGS = {
   buttons: 62,
   sensitivity: 1,
   assist: 0.7,
+  touchAssist: true,
   sound: true,
   guidance: true,
   reduced: false,

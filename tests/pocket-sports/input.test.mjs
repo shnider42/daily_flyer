@@ -37,6 +37,7 @@ function fixture(options = {}) {
   const i = new Input({
     ...els,
     settings: structuredClone(DEFAULT_SETTINGS),
+    ...options.input,
     active: () => active && (options.active?.() ?? true),
     onAction: (...v) => {
       actions.push(v);
@@ -190,4 +191,102 @@ test("manual pause clears ownership so a fresh press works after resume", () => 
   assert.equal(actions.length, 1);
   assert.equal(matchControlsActive({ phase: "restart" }, true), false);
   assert.equal(matchControlsActive({ phase: "play" }, false, true), false);
+});
+
+test("gameplay input selects touch assistance without unrelated keys disabling it", () => {
+  const modes = [];
+  const { i, els } = fixture({ input: { onControlMode: (mode) => modes.push(mode) } });
+  els.pass.fire("pointerdown", { pointerId: 1, pointerType: "touch" });
+  els.pass.fire("pointerup", { pointerId: 1 });
+  assert.equal(i.controlMode, "touch");
+  window.fire("keydown", { code: "KeyZ" });
+  window.fire("keyup", { code: "Space" });
+  assert.equal(i.controlMode, "touch");
+  window.fire("keydown", { code: "KeyW" });
+  assert.equal(i.controlMode, "keyboard");
+  els.pass.fire("pointerdown", { pointerId: 2, pointerType: "touch" });
+  assert.deepEqual(modes, ["touch", "keyboard", "touch"]);
+});
+
+test("a full touch stride frees the right thumb to pass while sprinting", () => {
+  const { i, els, actions } = fixture({ input: { autoSprint: () => true } });
+  i.settings.sensitivity = 1.6;
+  els.stick.fire("pointerdown", {
+    pointerId: 1, pointerType: "touch", clientX: 70, clientY: 50,
+  });
+  assert.equal(i.vector().sprint, false, "sensitivity alone must not start a sprint");
+  els.stick.fire("pointermove", {
+    pointerId: 1, pointerType: "touch", clientX: 90, clientY: 50,
+  });
+  assert.equal(i.vector().sprint, true);
+  els.pass.fire("pointerdown", { pointerId: 2, pointerType: "touch" });
+  els.pass.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0][1].sprint, true);
+  assert.ok(i.vector().x > 0.9);
+  assert.equal(i.vector().sprint, true);
+  els.stick.fire("pointermove", {
+    pointerId: 1, pointerType: "touch", clientX: 68, clientY: 50,
+  });
+  assert.equal(i.vector().sprint, false, "easing the thumb back must stop sprinting");
+  els.stick.fire("pointercancel", { pointerId: 1 });
+  assert.deepEqual(i.vector(), { x: 0, y: 0, sprint: false });
+});
+
+test("touch sprint can be disabled and never grants automatic keyboard or mouse sprint", () => {
+  let enabled = false;
+  const { i, els } = fixture({ input: { autoSprint: () => enabled } });
+  els.stick.fire("pointerdown", {
+    pointerId: 1, pointerType: "touch", clientX: 95, clientY: 50,
+  });
+  assert.equal(i.vector().sprint, false);
+  enabled = true;
+  assert.equal(i.vector().sprint, true);
+  window.fire("keydown", { code: "KeyW" });
+  assert.equal(i.vector().sprint, false);
+  els.stick.fire("pointerup", { pointerId: 1 });
+  els.stick.fire("pointerdown", {
+    pointerId: 2, pointerType: "mouse", button: 0, clientX: 95, clientY: 50,
+  });
+  assert.equal(i.vector().sprint, false);
+  window.fire("keydown", { code: "KeyK" });
+  assert.equal(i.vector().sprint, true, "explicit sprint remains available");
+});
+
+test("a defensive press tackles immediately and cannot shoot after possession changes", () => {
+  let attacking = false;
+  const { i, els, actions } = fixture({ input: { canChargeShot: () => attacking } });
+  els.shoot.fire("pointerdown", { pointerId: 1, pointerType: "touch" });
+  assert.equal(actions.length, 1, "the tackle must happen before pointerup");
+  assert.equal(actions[0][0], "shoot");
+  assert.equal(i.chargeStart, null);
+  attacking = true;
+  els.shoot.fire("pointerup", { pointerId: 1 });
+  els.shoot.fire("lostpointercapture", { pointerId: 1 });
+  assert.equal(actions.length, 1, "winning the ball must not turn release into a shot");
+});
+
+test("losing the ball cancels an attacking hold instead of tackling on release", () => {
+  let attacking = true;
+  const { i, els, actions } = fixture({ input: { canChargeShot: () => attacking } });
+  els.shoot.fire("pointerdown", { pointerId: 1, pointerType: "touch" });
+  assert.notEqual(i.chargeStart, null);
+  attacking = false;
+  i.syncShotContext();
+  attacking = true;
+  els.shoot.fire("pointerup", { pointerId: 1 });
+  assert.equal(actions.length, 0, "regaining possession cannot revive the old charge");
+});
+
+test("a charged shot belongs to its receiver and cannot transfer across a pass", () => {
+  let owner = { id: 4 };
+  const { i, els, actions } = fixture({ input: { shotContext: () => owner } });
+  els.shoot.fire("pointerdown", { pointerId: 1, pointerType: "touch" });
+  owner = { id: 7 };
+  els.shoot.fire("pointerup", { pointerId: 1 });
+  assert.equal(actions.length, 0);
+  assert.equal(i.chargeStart, null);
+  els.shoot.fire("pointerdown", { pointerId: 2, pointerType: "touch" });
+  els.shoot.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions.length, 1, "a deliberate new press still shoots");
 });

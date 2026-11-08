@@ -55,15 +55,37 @@ const input = new Input({
   sprint: $("sprint"),
   switcher: $("switch"),
   settings,
+  controlMode: matchMedia("(pointer: coarse)").matches ? "touch" : "keyboard",
+  onControlMode: (next) => {
+    game?.setControlMode(next);
+    updateControlHint();
+  },
+  autoSprint: () => game?.sport === "soccer" && settings.touchAssist,
+  canChargeShot: () =>
+    game?.sport !== "soccer" ||
+    (game.phase === "play" && game.hasBall) ||
+    (["restart", "restart_ready"].includes(game.phase) &&
+      game.restartData?.side === 0),
+  shotContext: () =>
+    game?.sport === "soccer"
+      ? game.phase === "play"
+        ? game.owner
+        : game.restartData
+      : null,
   active: () => matchControlsActive(game, paused, $("dialog").open),
-  onAction: (a, v, p) => game?.action(a, field.toWorld(v), p),
+  onAction: (a, v, p) => {
+    game?.action(a, field.toWorld(v), p);
+    input.syncShotContext();
+  },
   onPause: () => (game ? togglePause() : null),
 });
 const clock = new FixedClock((dt) => {
   if (!game || paused || $("dialog").open) return;
   game.aimAssist = settings.assist;
   const phaseBefore = game.phase;
+  input.syncShotContext();
   game.step(dt, field.toWorld(input.vector()));
+  input.syncShotContext();
   if (phaseBefore === "play" && game.phase !== "play") input.cancelShot();
   if (game.phase === "play") {
     frames.push(game.snapshot());
@@ -77,7 +99,15 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("toast").classList.add("hidden"), 2800);
 }
+function updateControlHint() {
+  $("move-caption").textContent =
+    sport === "soccer" && input.controlMode === "touch" && settings.touchAssist
+      ? "EDGE TO SPRINT"
+      : "MOVE";
+}
 function applySettings() {
+  game?.setTouchAssist(settings.touchAssist);
+  updateControlHint();
   const fit =
     innerWidth <= 440
       ? Math.min(
@@ -131,6 +161,7 @@ window.addEventListener("resize", applySettings);
 function selectSport(next) {
   sport = next;
   document.body.dataset.sport = sport;
+  updateControlHint();
   writeStore("sport", sport);
   const url = new URL(location);
   url.searchParams.set("sport", sport);
@@ -297,7 +328,7 @@ function showHelp(startAfter = false) {
     sport === "hockey"
       ? "A little glide is part of skating. Plan the turn."
       : "Create space before you ask for the ball.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Push further for a full stride. Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold ${sport === "hockey" ? "BURST" : "SPRINT"} to spend stamina.</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. Get close, then commit.</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} ${sport === "hockey" ? "bursts" : "sprints"}. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.${sport === "soccer" ? " Keep aiming through restarts. Tap PASS to take one, or queue it during the brief setup. On an opposition restart, move to mark and use PASS to switch defender." : ""}</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. ${sport === "soccer" && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold ${sport === "hockey" ? "BURST" : "SPRINT"} to spend stamina.</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. ${sport === "soccer" ? "Get close and tap to tackle immediately." : "Get close, then commit."}</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} ${sport === "hockey" ? "bursts" : "sprints"}. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.${sport === "soccer" ? " Keep aiming through restarts. Tap PASS to take one, or queue it during the brief setup. On an opposition restart, move to mark and use PASS to switch defender." : ""}</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
@@ -308,7 +339,7 @@ $("how-open").onclick = () => showHelp();
 function showSettings() {
   modal(
     "MAKE IT YOURS",
-    "Controls are shared across both games. Changes save automatically.",
+    "Changes save automatically in this browser.",
     `<div class="settings-group"><h3>YOUR THUMBS</h3>${[
       ["stick", "Joystick size", 72, 126, 1, "px"],
       ["buttons", "Action button size", 44, 74, 1, "px"],
@@ -319,7 +350,7 @@ function showSettings() {
         ([id, label, min, max, step, unit]) =>
           `<label class="setting"><span>${label}<output id="${id}-out">${settings[id]}${unit}</output></span><input type="range" id="set-${id}" min="${min}" max="${max}" step="${step}" value="${settings[id]}" aria-label="${label}"></label>`,
       )
-      .join("")}${[
+      .join("")}${sport === "soccer" ? `<label class="setting"><span>Touch assistance</span><input type="checkbox" id="set-touchAssist" aria-describedby="touch-assist-help" ${settings.touchAssist ? "checked" : ""}></label><p class="settings-tip touch-assist-tip" id="touch-assist-help">More time to react and automatic sprinting at the stick’s outer edge.</p>` : ""}${[
       ["leftHanded", "Swap control sides"],
       ["guidance", "Passing guides"],
       ["sound", "Sound effects"],
@@ -357,7 +388,13 @@ function showSettings() {
             : "");
       applySettings();
     };
-  for (const id of ["leftHanded", "guidance", "sound", "reduced"])
+  for (const id of [
+    "leftHanded",
+    "guidance",
+    "sound",
+    "reduced",
+    ...(sport === "soccer" ? ["touchAssist"] : []),
+  ])
     $("set-" + id).onchange = (e) => {
       settings[id] = e.target.checked;
       applySettings();
@@ -468,6 +505,8 @@ function startMatch(resume = false) {
     home,
     away,
     difficulty: cup?.difficulty || $("difficulty").value,
+    controlMode: input.controlMode,
+    touchAssist: settings.touchAssist,
     seconds: cup?.seconds || +$("duration").value,
     practice: mode === "practice",
     cup: !!cup,

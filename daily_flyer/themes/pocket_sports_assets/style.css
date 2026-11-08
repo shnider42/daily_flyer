@@ -12,3 +12,5 @@ dialog{background:var(--bg);color:var(--fg);border:1px solid var(--border);paddi
 @media(max-height:520px) and (orientation:landscape){#controls .center-control{left:calc(var(--stick) + 28px);bottom:10px}body.left-handed #controls .center-control{left:auto;right:calc(var(--stick) + 28px)}}
 
 #announcement.set-piece{top:24px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);padding:9px 15px;font-family:system-ui,sans-serif;font-size:12px;line-height:1.8;letter-spacing:.4px;white-space:pre-line;background:#0a281fe8;border:1px solid #d9f78166;text-align:center;pointer-events:none}select optgroup{background:var(--panel);color:var(--fg)}
+
+.touch-assist-tip{margin:-10px 0 18px}

@@ -17,6 +17,11 @@ export class Input {
     onPause,
     active,
     settings,
+    controlMode = "keyboard",
+    onControlMode = () => {},
+    autoSprint = () => false,
+    canChargeShot = () => true,
+    shotContext = () => null,
   }) {
     this.stick = stick;
     this.knob = knob;
@@ -24,6 +29,14 @@ export class Input {
     this.keys = new Set();
     this.move = { x: 0, y: 0 };
     this.pointer = null;
+    this.stickPointerType = null;
+    this.stickTravel = 0;
+    this.controlMode = controlMode === "touch" ? "touch" : "keyboard";
+    this.onControlMode = onControlMode;
+    this.autoSprint = autoSprint;
+    this.canChargeShot = canChargeShot;
+    this.shotContext = shotContext;
+    this.chargeContext = null;
     this.sprinting = false;
     this.chargeStart = null;
     this.chargeSource = null;
@@ -42,6 +55,7 @@ export class Input {
         return;
       e.preventDefault();
       this.pointer = e.pointerId;
+      this.stickPointerType = e.pointerType;
       stick.setPointerCapture(e.pointerId);
       this.moveStick(e);
     });
@@ -52,6 +66,8 @@ export class Input {
       stick.addEventListener(event, (e) => {
         if (e.pointerId === this.pointer) {
           this.pointer = null;
+          this.stickPointerType = null;
+          this.stickTravel = 0;
           this.move = { x: 0, y: 0 };
           knob.style.transform = "translate(0px,0px)";
         }
@@ -88,10 +104,12 @@ export class Input {
         "ArrowRight",
       ];
       if (
-        moves.includes(e.code) ||
-        Object.values(settings.keys).includes(e.code)
+        !moves.includes(e.code) &&
+        !Object.values(settings.keys).includes(e.code)
       )
-        e.preventDefault();
+        return;
+      e.preventDefault();
+      this.setControlMode("keyboard");
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === settings.keys.shoot) this.startCharge("keyboard");
@@ -129,6 +147,7 @@ export class Input {
       owner = e.pointerId;
       el.setPointerCapture(e.pointerId);
       el.classList.add("held");
+      this.notePointer(e);
       down(`pointer:${owner}`);
     });
     el.addEventListener("pointerup", (e) => {
@@ -150,12 +169,27 @@ export class Input {
         el.releasePointerCapture(id);
     });
   }
+  setControlMode(mode) {
+    const next = mode === "touch" ? "touch" : "keyboard";
+    if (next === this.controlMode) return;
+    this.controlMode = next;
+    this.onControlMode(next);
+  }
+  notePointer(e) {
+    if (e.pointerType)
+      this.setControlMode(e.pointerType === "touch" ? "touch" : "keyboard");
+  }
   moveStick(e) {
+    this.notePointer(e);
     const r = this.stick.getBoundingClientRect(),
-      radius = r.width * 0.34;
+      radius = r.width * 0.34,
+      dx = e.clientX - r.left - r.width / 2,
+      dy = e.clientY - r.top - r.height / 2;
+    // Sprint follows deliberate physical travel, independent of sensitivity.
+    this.stickTravel = Math.min(1, Math.hypot(dx, dy) / radius);
     const v = stickInput(
-      (e.clientX - r.left - r.width / 2) * this.settings.sensitivity,
-      (e.clientY - r.top - r.height / 2) * this.settings.sensitivity,
+      dx * this.settings.sensitivity,
+      dy * this.settings.sensitivity,
       radius,
     );
     this.move = { x: v.x, y: -v.y };
@@ -174,7 +208,13 @@ export class Input {
     return {
       x: x / n,
       y: y / n,
-      sprint: this.sprinting || this.keys.has(this.settings.keys.sprint),
+      sprint:
+        this.sprinting ||
+        this.keys.has(this.settings.keys.sprint) ||
+        (this.controlMode === "touch" &&
+          this.stickPointerType === "touch" &&
+          this.stickTravel >= 0.94 &&
+          this.autoSprint()),
     };
   }
   command(name, power) {
@@ -182,12 +222,26 @@ export class Input {
   }
   startCharge(source = "activation") {
     if (this.active() && this.chargeSource === null) {
+      if (!this.canChargeShot()) {
+        this.command("shoot");
+        return;
+      }
       this.chargeSource = source;
+      this.chargeContext = this.shotContext();
       this.chargeStart = performance.now();
     }
   }
+  syncShotContext() {
+    if (
+      this.chargeSource !== null &&
+      (!this.canChargeShot() || this.shotContext() !== this.chargeContext)
+    )
+      this.cancelShot();
+  }
   releaseCharge(source = "activation") {
     if (this.chargeStart === null || source !== this.chargeSource) return;
+    this.syncShotContext();
+    if (this.chargeStart === null) return;
     const power = this.power();
     this.cancelShot(source);
     this.command("shoot", power);
@@ -196,6 +250,7 @@ export class Input {
     if (source !== null && source !== this.chargeSource) return;
     this.chargeStart = null;
     this.chargeSource = null;
+    this.chargeContext = null;
   }
   power() {
     return this.chargeStart === null
@@ -210,6 +265,8 @@ export class Input {
       this.stick.releasePointerCapture(stickPointer);
     this.keys.clear();
     this.move = { x: 0, y: 0 };
+    this.stickPointerType = null;
+    this.stickTravel = 0;
     this.sprinting = false;
     this.cancelShot();
     this.pointer = null;

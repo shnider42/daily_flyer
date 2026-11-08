@@ -90,3 +90,37 @@ export const DIFFICULTY = {
   club: { reaction: 0.42, accuracy: 0.14, press: 1 },
   pro: { reaction: 0.23, accuracy: 0.08, press: 1.15 },
 };
+
+// Touch football needs time to release one thumb from movement and choose an
+// action. These modifiers only apply to a human touch match with assistance on.
+// Distances are pitch units and timings are seconds of active play. Pro keeps
+// nearly full pressure while retaining the same basic touch aiming controls.
+export const SOCCER_TOUCH_ASSIST = {
+  casual: {
+    pressureSpeed: 0.88,
+    tackleReaction: 0.5,
+    receiveGrace: 0.85,
+    passSafety: 1,
+    receiveRadius: 26,
+    tackleReach: 65,
+    tackleCooldown: 0.65,
+  },
+  club: {
+    pressureSpeed: 0.88,
+    tackleReaction: 0.34,
+    receiveGrace: 0.65,
+    passSafety: 0.9,
+    receiveRadius: 25,
+    tackleReach: 62,
+    tackleCooldown: 0.7,
+  },
+  pro: {
+    pressureSpeed: 0.88,
+    tackleReaction: 0.14,
+    receiveGrace: 0.22,
+    passSafety: 0.35,
+    receiveRadius: 21,
+    tackleReach: 56,
+    tackleCooldown: 0.8,
+  },
+};

@@ -5,9 +5,9 @@ import {
   takeFootballRestart,
   footballBoundary,
 } from "../sports/football.js";
-import { SPORTS, DIFFICULTY } from "../sports/rules.js";
+import { SPORTS, DIFFICULTY, SOCCER_TOUCH_ASSIST } from "../sports/rules.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.2.0";
+export const ENGINE_VERSION = "1.3.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -19,6 +19,8 @@ export class Match {
     cup = false,
     seed = 42,
     autoplay = false,
+    controlMode = "keyboard",
+    touchAssist = true,
   }) {
     this.rules = SPORTS[sport];
     if (!this.rules || !home || !away)
@@ -26,7 +28,10 @@ export class Match {
     this.sport = sport;
     this.autoplay = autoplay;
     this.teams = [home, away];
-    this.difficulty = DIFFICULTY[difficulty] || DIFFICULTY.club;
+    this.difficultyName = DIFFICULTY[difficulty] ? difficulty : "club";
+    this.difficulty = DIFFICULTY[this.difficultyName];
+    this.setControlMode(controlMode);
+    this.setTouchAssist(touchAssist);
     this.duration = clamp(Number(seconds) || 45, 20, 240);
     this.practice = practice;
     this.cup = cup;
@@ -94,6 +99,9 @@ export class Match {
           stamina: 1,
           stun: 0,
           decision: this.random(),
+          tackleCooldown: 0,
+          tackleTarget: null,
+          tackleReadyIn: 0,
           fx: 0,
           fy: side ? 1 : -1,
         }),
@@ -110,6 +118,20 @@ export class Match {
   }
   get hasBall() {
     return this.owner?.side === 0;
+  }
+  get touchProfile() {
+    return this.sport === "soccer" &&
+      this.controlMode === "touch" &&
+      this.touchAssist &&
+      !this.autoplay
+      ? SOCCER_TOUCH_ASSIST[this.difficultyName]
+      : null;
+  }
+  setControlMode(mode) {
+    this.controlMode = mode === "touch" ? "touch" : "keyboard";
+  }
+  setTouchAssist(enabled) {
+    this.touchAssist = Boolean(enabled);
   }
   emit(type, data = {}) {
     this.events.push({ type, time: this.time, ...data });
@@ -159,7 +181,19 @@ export class Match {
     let choices = this.players.filter(
       (p) => !p.side && !p.keeper && p.id !== this.controlled,
     );
-    choices.sort((a, c) => distance(a, b) - distance(c, b));
+    if (this.touchProfile) {
+      // A defender in the attacker's path is often more useful than the nearest
+      // teammate chasing from behind. Keep proximity dominant over this bias.
+      const threat = this.owner || b;
+      const target = {
+        x: clamp(threat.x + (threat.vx || 0) * 0.22, 18, this.rules.width - 18),
+        y: clamp(threat.y + (threat.vy || 0) * 0.22, 18, this.rules.height - 18),
+      };
+      const score = (p) =>
+        distance(p, target) +
+        (this.owner?.side === 1 ? clamp(target.y - p.y, 0, 120) * 0.4 : 0);
+      choices.sort((a, c) => score(a) - score(c));
+    } else choices.sort((a, c) => distance(a, b) - distance(c, b));
     if (choices[0]) this.controlled = choices[0].id;
   }
   release(p, dx, dy, speed, shot) {
@@ -172,7 +206,13 @@ export class Match {
     this.ball.lock = 0.18;
     this.ball.shot = shot;
     this.ball.shooter = p.side;
-    if (this.sport === "soccer") this.ball.receiver = null;
+    if (this.sport === "soccer") {
+      this.ball.receiver = null;
+      this.ball.firstTouch = 0;
+      this.ball.firstTouchOwner = null;
+      this.ball.passer = null;
+      this.ball.passerLock = 0;
+    }
     this.lastTouch = p.side;
     if (shot) {
       this.stats[p.side].shots++;
@@ -184,24 +224,52 @@ export class Match {
     p.decision = 0.5;
   }
   pass(p = this.user, input = { x: 0, y: 0 }) {
-    if (this.phase !== "play" || this.ball.owner !== p.id) return false;
+    if (!p || this.phase !== "play" || this.ball.owner !== p.id) return false;
     const dir = p.side ? 1 : -1;
     const v =
       Math.hypot(input.x, input.y) > 0.2
         ? norm(input.x, input.y)
         : { x: 0, y: dir };
-    const mates = this.players.filter(
+    const profile = !p.side ? this.touchProfile : null;
+    let mates = this.players.filter(
       (q) => q.side === p.side && q.id !== p.id && !q.keeper,
     );
-    mates.sort((a, b) => {
-      const score = (q) => {
-        const d = distance(q, p);
-        return (
-          (((q.x - p.x) * v.x + (q.y - p.y) * v.y) / (d || 1)) * 150 - d * 0.16
-        );
-      };
-      return score(b) - score(a);
-    });
+    const alignment = (q) =>
+      ((q.x - p.x) * v.x + (q.y - p.y) * v.y) / (distance(q, p) || 1);
+    const opponents = profile
+      ? this.players.filter((q) => q.side !== p.side)
+      : [];
+    if (profile && mates.length) {
+      // Respect the stick's intended direction; safety must not silently turn
+      // an attacking pass into a pass to someone behind the player.
+      const bestAlignment = Math.max(...mates.map(alignment));
+      const directed = mates.filter(
+        (q) => alignment(q) >= Math.max(-0.2, bestAlignment - 0.6),
+      );
+      if (directed.length) mates = directed;
+    }
+    const score = (q) => {
+      const d = distance(q, p);
+      let value = alignment(q) * 150 - d * 0.16;
+      if (profile) {
+        let laneRisk = 0;
+        let nearestOpponent = Infinity;
+        for (const opponent of opponents) {
+          nearestOpponent = Math.min(nearestOpponent, distance(opponent, q));
+          const projection =
+            ((opponent.x - p.x) * (q.x - p.x) +
+              (opponent.y - p.y) * (q.y - p.y)) / (d * d || 1);
+          if (projection > 0.08 && projection < 1) {
+            const clearance = segmentDistance(opponent, p, q);
+            laneRisk = Math.max(laneRisk, clamp((44 - clearance) / 44, 0, 1));
+          }
+        }
+        value -= profile.passSafety *
+          (laneRisk * 155 + Math.max(0, 70 - nearestOpponent) * 1.2);
+      }
+      return value;
+    };
+    mates.sort((a, b) => score(b) - score(a));
     const q = mates[0];
     if (!q) return false;
     this.release(
@@ -212,15 +280,31 @@ export class Match {
       false,
     );
     if (this.sport === "soccer") this.ball.receiver = q.id;
+    if (profile) {
+      // The normal 180ms pickup lock sends the ball past a close receiver.
+      // Unlock before that receiver, while excluding only the passer briefly.
+      this.ball.lock = clamp(
+        (distance(p, q) - profile.receiveRadius - 10) / this.rules.pass,
+        0.025,
+        0.18,
+      );
+      this.ball.passer = p.id;
+      this.ball.passerLock = 0.28;
+    }
     return true;
   }
   shoot(p = this.user, power = 0.65, input = { x: 0, y: 0 }) {
-    if (this.phase !== "play" || this.ball.owner !== p.id) return false;
+    if (!p || this.phase !== "play" || this.ball.owner !== p.id) return false;
     const gy = p.side ? this.rules.height + 5 : -5;
-    const assist = p.side ? 1 : this.aimAssist;
-    const gx =
-      this.rules.width / 2 +
-      clamp(input.x, -1, 1) * (this.rules.goal * 0.8 + 110 * (1 - assist));
+    const assist = p.side ? 1 : clamp(this.aimAssist, 0, 1);
+    let aimWidth = this.rules.goal * 0.8 + 110 * (1 - assist);
+    if (!p.side && this.touchProfile) {
+      // The movement stick also aims the shot on a phone. Strong assistance
+      // maps that lateral motion inside the posts; assist=0 stays fully manual.
+      const steering = 1 - Math.pow(1 - assist, 3);
+      aimWidth += (this.rules.goal * 0.35 - aimWidth) * steering;
+    }
+    const gx = this.rules.width / 2 + clamp(input.x, -1, 1) * aimWidth;
     const error =
       (this.random() - 0.5) *
       (p.side ? this.difficulty.accuracy * 220 : 35 * (1 - assist));
@@ -234,27 +318,42 @@ export class Match {
     return true;
   }
   tackle(p = this.user) {
-    if (this.phase !== "play" || p.stun > 0 || p.decision > 0.05) return;
+    if (!p || this.phase !== "play" || p.stun > 0) return false;
+    const profile = this.touchProfile;
+    const manualTouch = profile && p.id === this.controlled && p.side === 0;
+    // An AI thinking/pass timer must not swallow the user's tackle after a
+    // switch. Manual touch tackles instead have their own anti-spam cooldown.
+    if (manualTouch ? p.tackleCooldown > 0 : p.decision > 0.05) return false;
     const o = this.owner;
+    if (
+      profile &&
+      p.side === 1 &&
+      o?.side === 0 &&
+      this.ball.firstTouchOwner === o.id &&
+      this.ball.firstTouch > 0
+    ) return false;
     p.decision = 0.8;
+    p.tackleCooldown = manualTouch ? profile.tackleCooldown : 0.8;
     p.stun = 0.13;
     const dir = norm((o || this.ball).x - p.x, (o || this.ball).y - p.y);
     p.vx += dir.x * 150;
     p.vy += dir.y * 150;
-    if (
-      o &&
-      o.side !== p.side &&
-      distance(p, o) < (this.sport === "hockey" ? 67 : 52)
-    ) {
+    const reach = manualTouch
+      ? profile.tackleReach
+      : this.sport === "hockey" ? 67 : 52;
+    if (o && o.side !== p.side && distance(p, o) < reach) {
       this.stats[p.side].tackles++;
       o.stun = this.sport === "hockey" ? 0.65 : 0.38;
       this.ball.owner = null;
+      this.ball.firstTouch = 0;
+      this.ball.firstTouchOwner = null;
       this.ball.vx = dir.x * 235;
       this.ball.vy = dir.y * 235;
       this.ball.lock = 0.12;
       this.lastTouch = p.side;
       this.emit("tackle", { side: p.side });
     }
+    return true;
   }
   action(name, input = { x: 0, y: 0 }, power = 0.65) {
     if (
@@ -388,8 +487,12 @@ export class Match {
     }
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.ball.lock = Math.max(0, this.ball.lock - dt);
-    if (this.sport === "soccer")
+    if (this.sport === "soccer") {
       this.ball.flight = Math.max(0, (this.ball.flight || 0) - dt);
+      this.ball.firstTouch = Math.max(0, (this.ball.firstTouch || 0) - dt);
+      this.ball.passerLock = Math.max(0, (this.ball.passerLock || 0) - dt);
+    }
+    const profile = this.touchProfile;
     const owner = this.owner;
     if (owner) this.stats[owner.side].possession += dt;
     const nearest = [0, 1].map((side) =>
@@ -401,6 +504,17 @@ export class Match {
     this.players.forEach((p) => {
       p.stun = Math.max(0, p.stun - dt);
       p.decision -= dt;
+      p.tackleCooldown = Math.max(0, p.tackleCooldown - dt);
+      const touchPressure = profile && p.side === 1 && owner?.side === 0;
+      if (touchPressure && distance(p, owner) < 72) {
+        if (p.tackleTarget !== owner.id) {
+          p.tackleTarget = owner.id;
+          p.tackleReadyIn = profile.tackleReaction;
+        } else p.tackleReadyIn = Math.max(0, p.tackleReadyIn - dt);
+      } else if (!touchPressure || distance(p, owner) > 90) {
+        p.tackleTarget = null;
+        p.tackleReadyIn = 0;
+      }
       let tx = 0,
         ty = 0,
         burst = false;
@@ -480,7 +594,8 @@ export class Match {
             owner.side !== p.side &&
             distance(p, owner) < 48 &&
             p.decision <= 0 &&
-            this.cooldown <= 0
+            this.cooldown <= 0 &&
+            (!touchPressure || p.tackleReadyIn <= 0)
           )
             this.tackle(p);
         } else {
@@ -506,8 +621,13 @@ export class Match {
           const d = distance(p, target);
           if (d > 12) {
             const v = norm(target.x - p.x, target.y - p.y);
-            tx = v.x * Math.min(1, d / 65);
-            ty = v.y * Math.min(1, d / 65);
+            // Apply pressure only to opponents closing a human ball carrier.
+            // The existing difficulty press rating now distinguishes the tiers.
+            const pressure = touchPressure && target === this.ball
+              ? Math.min(1, profile.pressureSpeed * this.difficulty.press)
+              : 1;
+            tx = v.x * Math.min(1, d / 65) * pressure;
+            ty = v.y * Math.min(1, d / 65) * pressure;
           }
         }
       }
@@ -559,11 +679,15 @@ export class Match {
         .filter(
           (p) =>
             p.stun <= 0 &&
+            !(b.passerLock > 0 && b.passer === p.id) &&
             !(
               this.sport === "soccer" &&
               (this.ball.flight > 0 || this.ball.restartKicker === p.id)
             ) &&
-            segmentDistance(p, old, b) < (p.keeper ? 25 : 19),
+            segmentDistance(p, old, b) <
+              (p.keeper ? 25 :
+                profile && !p.side && b.receiver === p.id && !b.shot
+                  ? profile.receiveRadius : 19),
         )
         .sort((a, c) => distance(a, old) - distance(c, old));
       for (const p of candidates) {
@@ -598,7 +722,13 @@ export class Match {
         }
         if (!p.keeper) {
           b.owner = p.id;
-          if (this.sport === "soccer") b.receiver = null;
+          if (this.sport === "soccer") {
+            b.receiver = null;
+            // This starts once per actual collection, never every carried frame.
+            // It prevents an instant turnover but expires even while standing.
+            b.firstTouch = profile && p.side === 0 ? profile.receiveGrace : 0;
+            b.firstTouchOwner = b.firstTouch ? p.id : null;
+          }
           b.shot = false;
           this.lastTouch = p.side;
           if (p.side === 0 && !this.autoplay) this.controlled = p.id;
