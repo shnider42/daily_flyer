@@ -3,7 +3,7 @@ import { getShipClass, SHIP_CLASSES, STATION_ROLES } from '../dist/fleet.mjs';
 import { generateSurface, movePerson, nearestEntity, repairSolution, isWalkable } from '../dist/surface.mjs';
 import { ENCOUNTERS, DIALOGUE, UPGRADES, LORE } from '../dist/content.mjs';
 import { PersistenceConflict } from './persistence.mjs';
-import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok } from './protocol.mjs';
+import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -20,7 +20,7 @@ export class Realm {
     this.persistence = persistence; this.version = version; this.onConflict = onConflict;
     this.createdAt = snapshot?.createdAt || now(); this.ownerId = snapshot?.ownerId || null;
     this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {};
-    this.revision = 0; this.persistedRevision = 0; this.flushing = null; this.storageError = null; this.conflicted = false; this.tick = 0;
+    this.revision = 0; this.persistedRevision = 0; this.flushing = null; this.storageError = null; this.conflicted = false; this.tick = 0; this.simulatedAt = now();
     for (const data of Object.values(snapshot?.captains || {})) {
       const game = Game.fromSave({ ...data.game, seed: this.seed, worlds: {} });
       const disconnectUntil = data.aboard && (data.crewRole !== 'passenger' || game.state.mode === 'ship') ? Math.max(now(), (data.lastSeen || now()) + DISCONNECT_GRACE_MS) : 0;
@@ -521,9 +521,9 @@ export class Realm {
     vessel.dockedAt = body.id; vessel.helmOwner = null; Object.assign(vessel.ship, { x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 });
   }
 
-  step(dt, tick, timestamp = now()) {
+  step(dt, tick, timestamp = now(), simulatedAt = timestamp) {
     if (this.failed || this.conflicted || this.storageError) return;
-    this.tick = tick;
+    this.tick = tick; this.simulatedAt = simulatedAt;
     const activeCaptains = [...this.captains.values()].filter(c => c.session || c.disconnectUntil > timestamp);
     const activeVessels = new Map(), occupiedSystems = new Set();
     for (const c of activeCaptains) {
@@ -583,34 +583,54 @@ export class Realm {
     const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
     return { id: vessel.id, ownerId: vessel.ownerId, ownerName: owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt, allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks, bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), grantedRoles: viewer.id === owner.id ? [...STATION_ROLES] : vessel.grants[viewer.id]?.roles || [], ...(viewer.id === owner.id ? { grants: clone(vessel.grants) } : {}) };
   }
-  snapshotFor(c, { drainEvents = true } = {}) {
-    const room = this.roomInfo(c), vessel = this.vessels.get(c.aboard || c.ownedVesselId), state = clone(c.game.state);
-    state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
-    if (c.aboard && vessel) {
-      state.ship = clone(vessel.ship); const owner = this.captains.get(vessel.ownerId);
-      state.crew = clone(owner.game.state.crew); state.boarding = this._onBoardingDeck(c, vessel) ? clone(owner.game.state.boarding || null) : null;
-      if (state.interior?.kind === 'ship') state.interior.location = this._locationForVessel(vessel);
+  snapshotFor(c, { drainEvents = true, compact = false } = {}) {
+    const room = this.roomInfo(c), vessel = this.vessels.get(c.aboard || c.ownedVesselId), ownState = c.game.state;
+    const aboardOwner = c.aboard && vessel ? this.captains.get(vessel.ownerId) : null;
+    const ship = aboardOwner ? vessel.ship : ownState.ship;
+    const boarding = aboardOwner && this._onBoardingDeck(c, vessel) ? aboardOwner.game.state.boarding || null : null;
+    let state;
+    if (compact) state = clone({ ...Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, ownState[key]])), ship, boarding });
+    else {
+      // Off-system world records live in realm persistence; do not clone them just to discard them.
+      const { worlds, ship: ownedShip, ...personalState } = ownState;
+      state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
+      state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
+      if (aboardOwner) {
+        state.crew = clone(aboardOwner.game.state.crew);
+        if (state.interior?.kind === 'ship') state.interior.location = clone(this._locationForVessel(vessel));
+      }
+      state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true };
     }
-    if (!c.aboard) state.boarding = null;
-    state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true };
-    const relevantWorld = this._room(state.systemId).runtime;
-    const world = room.kind === 'system' ? clone(relevantWorld) : { ...clone(relevantWorld), asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] };
+    const relevantWorld = this._room(state.systemId).runtime, inSpace = room.kind === 'system';
+    let world;
+    if (compact) {
+      world = clone(Object.fromEntries(MOTION_WORLD_FIELDS.map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));
+      world.asteroidStates = inSpace ? relevantWorld.asteroids.map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) : [];
+    } else if (inSpace) world = clone(relevantWorld);
+    else {
+      const { asteroids, enemies, bullets, pickups, traffic, signals, ...metadata } = relevantWorld;
+      world = clone({ ...metadata, asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] });
+    }
     for (const signal of world.signals) if (signal.id === 'hearth:story:tinbell') signal.resolved = c.game.hasFlag('belt_signal_scanned');
     const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && other.game.state.mode === 'person' && this.roomInfo(other).id === room.id && (other.session || other.aboard || other.home)).map(other => this._publicCaptain(other));
     const remoteShips = room.kind === 'system' ? [...this.vessels.values()].filter(v => v.systemId === state.systemId && v.id !== c.aboard && !v.dockedAt && [...this.captains.values()].some(other => other.aboard === v.id && (other.session || other.disconnectUntil > now()))).map(v => ({ ...this._publicVessel(v, c), ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius'].map(key => [key, v.ship[key]])), mode: 'ship', online: [...this.captains.values()].some(other => other.aboard === v.id && other.session) })) : [];
-    return { protocol: 1, tick: this.tick, serverTime: now(), ack: c.ack, state, world, room, players, remoteShips,
+    const motion = { protocol: 1, tick: this.tick, serverTime: now(), simulatedAt: this.simulatedAt, ack: c.ack, state, world, room, players, remoteShips,
+      events: drainEvents ? c.events.splice(0, 80) : clone(c.events) };
+    if (compact) return { ...motion, partial: true };
+    return { ...motion,
       crew: vessel ? [...this.captains.values()].filter(other => other.aboard === vessel.id).map(other => ({ captainId: other.id, name: other.name, role: other.crewRole, online: !!other.session })) : [],
       fleet: [...this.vessels.values()].map(v => this._publicVessel(v, c)), presence: [...this.captains.values()].map(other => { const p = this._publicCaptain(other); return { captainId: p.captainId, name: p.name, online: p.online, systemId: p.systemId, roomId: p.roomId, vesselId: p.vesselId, crewRole: p.crewRole, mode: p.mode, sleeping: p.sleeping, home: p.home }; }),
       homes: Object.values(this.leases).filter(home => home.systemId === state.systemId && home.locationId === state.locationId && (!home.expiresAt || home.expiresAt > now())).map(clone),
       homeOffers: { room: { credits: 50, permanent: true }, outpost: { credits: 180, ore: 12 }, bunk: { credits: 60, ore: 4 } },
-      realm: { code: this.id, name: this.name, seed: this.seed, online: this.onlineCount, capacity: MAX_ONLINE, persistence: this.persistence.kind },
-      events: drainEvents ? c.events.splice(0, 80) : clone(c.events) };
+      realm: { code: this.id, name: this.name, seed: this.seed, online: this.onlineCount, capacity: MAX_ONLINE, persistence: this.persistence.kind } };
   }
   document() {
     for (const room of this.rooms.values()) this._captureRoom(room);
     const captains = {};
     for (const c of this.captains.values()) {
-      const game = c.game.save(); game.worlds = {};
+      c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
+      const { worlds, ...personalState } = c.game.state;
+      const game = clone(personalState); game.worlds = {};
       captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));

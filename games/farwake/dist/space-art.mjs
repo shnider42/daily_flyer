@@ -122,12 +122,12 @@ export class SpaceRenderer{
   p.globalAlpha=1;this.nebulaCache.set(id,c);if(this.nebulaCache.size>5)this.nebulaCache.delete(this.nebulaCache.keys().next().value);return c;
  }
  draw(ctx,game,options={}){
-  const{width:w=ctx.canvas.width,height:h=ctx.canvas.height,time=0,welcome=false,tracked=null,guidance='simple',motion=true,labels}=options,s=game.state,ship=normalizeShip(s.ship),sys=game.system||{},profile=SHIP_VISUALS[resolveCabinClass(ship.shipClass)],combatTime=options.combatTime??s.stats?.time??time;
-  const emit=labelSink(ctx,labels,{width:w,height:h}),dt=clamp(time-this.lastTime,0,.06);this.lastTime=time;
+  const{width:w=ctx.canvas.width,height:h=ctx.canvas.height,time=0,welcome=false,tracked=null,guidance='simple',motion=true,labels}=options,s=game.state,ship=normalizeShip(options.ship||s.ship),sys=options.world||game.system||{},profile=SHIP_VISUALS[resolveCabinClass(ship.shipClass)],combatTime=options.combatTime??s.stats?.time??time;
+  const frameDt=clamp(options.dt??time-this.lastTime,0,.25),emit=labelSink(ctx,labels,{width:w,height:h}),dt=Math.min(frameDt,.06);this.lastTime=time;
   this.zoom=options.zoom??Math.min(w<330?.70:.82,Math.min(w,h)*.44/(ship.renderLength||profile.length));const z=this.zoom;
   const targetX=ship.x+(welcome?-160:0),targetY=ship.y+(welcome?-40:0);
   if(this.lastSystem!==s.systemId){this.camera={x:targetX,y:targetY};this.lastSystem=s.systemId;this.particles=[];this.health.clear();}
-  this.camera.x+=(targetX-this.camera.x)*(motion?.12:1);this.camera.y+=(targetY-this.camera.y)*(motion?.12:1);const cx=this.camera.x,cy=this.camera.y;this.w=w;this.h=h;
+  const follow=motion?1-Math.pow(.88,frameDt*60):1;this.camera.x+=(targetX-this.camera.x)*follow;this.camera.y+=(targetY-this.camera.y)*follow;const cx=this.camera.x,cy=this.camera.y;this.w=w;this.h=h;
   const to=(x,y)=>({x:Math.round((x-cx)*z+w/2),y:Math.round((y-cy)*z+h/2)}),visible=(p,r=35)=>p.x>-r&&p.x<w+r&&p.y>-r&&p.y<h+r;
   ctx.save();ctx.imageSmoothingEnabled=false;pixelRect(ctx,'#06121f',0,0,w,h);
   const nebula=this.nebula(s.systemId||'hearth'),nx=((Math.round(-cx*.024)%512)+512)%512,ny=((Math.round(-cy*.024)%512)+512)%512;for(let yy=ny-512;yy<h;yy+=512)for(let xx=nx-512;xx<w;xx+=512)ctx.drawImage(nebula,xx,yy);

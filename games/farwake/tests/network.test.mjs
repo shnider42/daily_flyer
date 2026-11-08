@@ -13,9 +13,11 @@ test('compact snapshot reconstruction keeps static metadata while applying canon
 });
 
 test('client prediction handles a 100ms frame and discards acknowledged input on reconciliation', () => {
-  const network = new FarwakeNetwork({ url: 'https://example.test', storage: null, autoReconnect: false }), game = new Game('prediction-regression');
+  let time = 0;
+  const network = new FarwakeNetwork({ url: 'https://example.test', storage: null, autoReconnect: false, now: () => time, wallNow: () => 1000 + time }), game = new Game('prediction-regression');
   network._snapshot({ tick: 1, ack: 0, serverTime: 1000, room: { id: 'room-a', kind: 'system' }, state: game.save(), world: {}, remoteShips: [], players: [] }, true);
   const input = { thrust: 1, turn: .3, flightAssist: true }, expected = advanceShip(network.predictedShip, .1, input);
+  time = 100;
   const predicted = network.predictShip(.1, input); assert.equal(predicted.x, expected.x); assert.equal(predicted.y, expected.y); assert.equal(predicted.angle, expected.angle);
   network.unacknowledged = [{ seq: 1, dt: .05, input }, { seq: 2, dt: .05, input }];
   network._snapshot({ tick: 2, ack: 1, serverTime: 1100, room: { id: 'room-a', kind: 'system' }, state: game.save(), world: {}, remoteShips: [], players: [] });

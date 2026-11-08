@@ -6,7 +6,8 @@ import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { Realm } from './realm.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
-import { PROTOCOL_VERSION, SIMULATION_HZ, INPUT_HZ, SNAPSHOT_HZ, MAX_ONLINE, newRealmCode, validRealmCode, normaliseRealmCode, cleanName, RateLimit } from './protocol.mjs';
+import { FixedStepClock } from './timing.mjs';
+import { PROTOCOL_VERSION, SIMULATION_HZ, INPUT_HZ, SNAPSHOT_HZ, MAX_ONLINE, newRealmCode, validRealmCode, normaliseRealmCode, cleanName, RateLimit, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -14,11 +15,9 @@ const json = (response, status, value) => { response.writeHead(status, { 'conten
 
 /** Frequent motion packets omit journals, static asteroid geometry and realm rosters. */
 export function compactSnapshot(snapshot) {
-  const stateKeys = ['mode', 'systemId', 'locationId', 'ship', 'person', 'boarding', 'credits', 'cargo', 'stats', 'pendingEncounter'];
-  const worldKeys = ['enemies', 'bullets', 'pickups', 'traffic', 'signals', 'miningTarget', 'mining', 'miningBeams'];
-  return { protocol: snapshot.protocol, partial: true, tick: snapshot.tick, serverTime: snapshot.serverTime, ack: snapshot.ack,
-    state: Object.fromEntries(stateKeys.map(key => [key, snapshot.state[key]])),
-    world: { ...Object.fromEntries(worldKeys.map(key => [key, snapshot.world[key]])), asteroidStates: (snapshot.world.asteroids || []).map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) },
+  return { protocol: snapshot.protocol, partial: true, tick: snapshot.tick, serverTime: snapshot.serverTime, simulatedAt: snapshot.simulatedAt, ack: snapshot.ack,
+    state: Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, snapshot.state[key]])),
+    world: { ...Object.fromEntries(MOTION_WORLD_FIELDS.map(key => [key, snapshot.world[key]])), asteroidStates: (snapshot.world.asteroids || []).map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) },
     room: snapshot.room, players: snapshot.players, remoteShips: snapshot.remoteShips, events: snapshot.events };
 }
 
@@ -52,7 +51,8 @@ async function readJson(request, limit = 16384) {
 export async function startServer({ port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0', persistence = persistenceFromEnvironment(), staticDir = path.resolve(directory, '../dist'), allowedOrigins = (process.env.FARWAKE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean), flushIntervalMs = 7000, snapshotHz = SNAPSHOT_HZ, heartbeatIntervalMs = 15000 } = {}) {
   await persistence.ping();
   const manager = new RealmManager(persistence), sockets = new Set(), rates = new Map();
-  const started = Date.now(); let closing = false, tick = 0, accumulator = 0, lastTime = performance.now();
+  const started = Date.now(); let closing = false, tick = 0;
+  const clock = new FixedStepClock({ hz: SIMULATION_HZ, now: performance.now() });
   const configuredOrigins = new Set(allowedOrigins);
   if (process.env.RENDER_EXTERNAL_URL) configuredOrigins.add(new URL(process.env.RENDER_EXTERNAL_URL).origin);
   function originAllowed(request) {
@@ -129,7 +129,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           if (!captain) throw new Error('Invalid captain passport.');
           const result = realm.attach(captain, session);
           if (!result.ok) { send({ type: 'error', ...result }); captain = null; ws.close(result.code === 'realm-full' ? 4003 : 1013, result.reason); return; }
-          clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot });
+          clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot });
         } catch (error) { send({ type: 'error', code: 'authentication', reason: error.message }); ws.close(4001, 'Authentication failed.'); }
         return;
       }
@@ -140,37 +140,50 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       if (typeof packet.id !== 'string' || packet.id.length > 100 || typeof packet.name !== 'string' || packet.name.length > 40) { send({ type: 'error', code: 'protocol', reason: 'Invalid command envelope.' }); return; }
       if (!commandLimit.take() || inFlight >= 6) { send({ type: 'result', id: packet.id, ok: false, result: { ok: false, reason: 'Wait for the current actions before issuing more.', code: 'rate' } }); return; }
       inFlight++;
-      try { const result = await realm.command(captain, packet.name, packet.args || {}, packet.id); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'result', id: packet.id, ok: result.ok, result, ...snapshot }); }
+      try { const result = await realm.command(captain, packet.name, packet.args || {}, packet.id); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'result', id: packet.id, ok: result.ok, result, ...snapshot }); }
       catch { send({ type: 'result', id: packet.id, ok: false, result: { ok: false, reason: 'The authority could not complete that action.', code: 'server' } }); }
       finally { inFlight--; }
     });
     ws.on('close', () => { clearTimeout(helloTimer); sockets.delete(ws); if (captain && realm) realm.detach(captain, session); });
     ws.on('error', () => {});
   });
-  const dt = 1 / SIMULATION_HZ, snapshotEvery = Math.max(1, Math.round(SIMULATION_HZ / snapshotHz));
-  const simulation = setInterval(() => {
-    const time = performance.now(); accumulator += Math.min(.25, Math.max(0, (time - lastTime) / 1000)); lastTime = time;
-    let steps = 0;
-    while (accumulator >= dt && steps < 6) {
-      tick++; steps++; accumulator -= dt;
+  const snapshotEvery = Math.max(1, Math.round(SIMULATION_HZ / snapshotHz));
+  let simulation, nextSnapshotTick = snapshotEvery;
+  const simulate = () => {
+    if (closing) return;
+    const time = performance.now(), wallTime = Date.now();
+    clock.advance(time, (dt, nextTick, remaining) => {
+      tick = nextTick;
       for (const realm of manager.realms.values()) {
-        try { realm.step(dt, tick); }
+        try { realm.step(dt, tick, wallTime, wallTime - remaining * 1000); }
         catch (error) { realm.failed = true; for (const c of realm.captains.values()) c.session?.close(1011, 'Realm validation failed. Reconnect to restore the last durable revision.'); manager.realms.delete(realm.id); console.error('Realm simulation error:', realm.id, error.message); }
       }
-      if (tick % snapshotEvery === 0) for (const realm of manager.realms.values()) for (const c of realm.captains.values()) if (c.session) {
+    });
+    if (tick >= nextSnapshotTick) {
+      nextSnapshotTick = (Math.floor(tick / snapshotEvery) + 1) * snapshotEvery;
+      // After a delayed callback, publish only the newest completed state, not a burst of obsolete frames.
+      for (const realm of manager.realms.values()) for (const c of realm.captains.values()) if (c.session) {
         // Drop superseded snapshots for a congested socket. Never wait for client acknowledgments.
         if (c.session.ws.bufferedAmount > 524288) continue;
-        try { const snapshot = realm.snapshotFor(c); const full = snapshot.room.id !== c.session.lastRoomId || snapshot.state.ship.classId !== c.session.lastShipClass || Date.now() - (c.session.lastFullAt || 0) >= 1000; if (full) { c.session.lastFullAt = Date.now(); c.session.lastRoomId = snapshot.room.id; c.session.lastShipClass = snapshot.state.ship.classId; } c.session.send({ type: 'snapshot', ...(full ? snapshot : compactSnapshot(snapshot)) }); } catch (error) { console.error('Snapshot error:', realm.id, error.message); }
+        try {
+          const room = realm.roomInfo(c), shipClass = realm.vessels.get(c.aboard || c.ownedVesselId)?.ship.classId || c.game.state.ship.classId;
+          const full = room.id !== c.session.lastRoomId || room.systemId !== c.session.lastSystemId || shipClass !== c.session.lastShipClass || Date.now() - (c.session.lastFullAt || 0) >= 1000;
+          const snapshot = realm.snapshotFor(c, { compact: !full });
+          if (full) { c.session.lastFullAt = Date.now(); c.session.lastRoomId = room.id; c.session.lastSystemId = room.systemId; c.session.lastShipClass = shipClass; }
+          c.session.send({ type: 'snapshot', ...snapshot });
+        } catch (error) { console.error('Snapshot error:', realm.id, error.message); }
       }
     }
-  }, 1000 / SIMULATION_HZ);
+    simulation = setTimeout(simulate, clock.nextDelay(performance.now())); simulation.unref?.();
+  };
+  simulation = setTimeout(simulate, clock.nextDelay(performance.now()));
   const flushing = setInterval(() => manager.flush(), flushIntervalMs);
   const heartbeat = setInterval(() => { for (const socket of sockets) { if (!socket.isAlive) { socket.terminate(); continue; } socket.isAlive = false; if (socket.readyState === 1) socket.ping(); } }, heartbeatIntervalMs);
   simulation.unref?.(); flushing.unref?.(); heartbeat.unref?.();
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, resolve); });
   const address = server.address();
   const close = async () => {
-    if (closing) return; closing = true; clearInterval(simulation); clearInterval(flushing); clearInterval(heartbeat);
+    if (closing) return; closing = true; clearTimeout(simulation); clearInterval(flushing); clearInterval(heartbeat);
     for (const realm of manager.realms.values()) for (const c of realm.captains.values()) if (c.session) { const session = c.session; realm.detach(c, session); session.close(1012, 'Authority restarting. Your passport will resume the voyage.'); }
     const saves = await Promise.allSettled([...manager.realms.values()].map(realm => realm.shutdown()));
     for (const ws of sockets) ws.terminate();

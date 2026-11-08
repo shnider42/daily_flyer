@@ -1,12 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.2.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.2.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Smoothness update · 0.2.1
+
+Shared play now replays the actual elapsed input timeline when reconciling with the server. Position and heading corrections preserve the previously displayed pose and ease back toward the authoritative result. Physics and presentation remain separate: visual smoothing cannot change collision, interaction range, damage, or authority. Neutral input keeps online coasting smooth while a menu is open. Old prediction is bounded during a connection interruption, and room changes, recovery, and teleports clear the old visual history.
+
+Moving NPC ships, traffic, and boarding actors render between server updates. The server still simulates at 30 Hz and publishes motion at 10 Hz, but now schedules each simulation deadline instead of occasionally skipping an early interval. Snapshots avoid cloning every visited system before discarding that data. HUD elements are updated only when their values change, and world-label layout measurements are cached until the layout changes.
+
+In **Settings → Show performance**, enable an optional FPS / ping display. **Settings → Performance & connection** has a copyable report with frame intervals and incoming update gaps. FPS measures browser rendering; ping measures network round-trip time; the 10 server updates per second are independent of the display frame rate. A hidden tab is excluded from frame-rate measurements. Reports contain no captain passport or galaxy access code.
+
+Local real-WebSocket measurements with one connected captain reduced the 99th-percentile simulation gap from 65.9 ms to 35.0 ms and snapshot gap from 132.1 ms to 102.6 ms, without increasing the tick or packet rate. These are controlled local comparisons, not a promise of a particular FPS or ping on a player's device. A slow peer never pauses the galaxy for other players.
+
+A deterministic local simulation checks client prediction at **60 and 120 FPS**, with **60, 120, and 200 ms round-trip latency**, variable packet delays, a 30 Hz authority, 20 Hz input transmission, and 10 Hz snapshots. In the 60 FPS maneuver case with 120 ms nominal latency and up to 23 ms of delay variation per network leg, RMS correction per rendered frame fell from **0.920 to 0.059 world units**; the largest frame correction fell from **4.259 to 0.468 units**. Reconciliation-induced position and heading discontinuities fell to zero in the tested traces, including a previous 4.97° heading jump. Steady coasting stayed within 0.002 world units RMS of the authority across all tested frame rates and latency cases. These figures measure the local prediction simulation.
 
 ## What is in this release
 
