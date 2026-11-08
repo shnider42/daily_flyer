@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b121c">
+<meta name="description" content="A small ship. A long way home. Explore a vast pixel-art galaxy, work planetside, build your ship and decide who gets to write humanity's next chapter.">
+<title>Farwake — The Quiet Earth</title>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="app" class="app">
+<header class="topbar">
+ <a class="wordmark" href="./" aria-label="Farwake home"><span class="brand-icon">✦</span>FARWAKE<span class="wordmark-sub">THE QUIET EARTH</span></a>
+ <div class="mode-pill" id="modePill"><i></i><span>SHIP MODE</span></div>
+ <nav class="desktop-nav" aria-label="Ship computer"><button data-open="galaxy">Starmap <kbd>M</kbd></button><button data-open="journal">Journal <kbd>J</kbd></button><button data-open="ship">Ship & cargo</button></nav>
+ <button id="pauseButton" class="icon-button" aria-label="Pause and settings" title="Pause and settings"><span aria-hidden="true" class="pause-glyph"></span></button>
+</header>
+<div class="resourcebar"><span class="shipname"><span class="tiny-dot"></span><b id="shipName">CINDER / SPARROW CLASS</b></span><span class="resource"><small>CREDITS</small><b id="credits">180</b><em>cr</em></span><span class="resource"><small>HOLD</small><b id="cargo">0 / 24</b></span><span class="resource fuel-resource"><small>FUEL</small><b id="fuel">73</b><em>%</em></span><span class="save-state" id="saveState">LOCAL SAVE</span></div>
+<main class="flightdeck" id="flightdeck">
+ <canvas id="gameCanvas" aria-label="Farwake game world. Use WASD or arrow keys to move; E interacts, Space fires, R mines, Shift boosts." tabindex="0"></canvas>
+ <div class="world-vignette" aria-hidden="true"></div>
+ <div class="location-card"><div class="eyebrow" id="sectorLabel">THE CINDER REACH / SECTOR 01</div><h1 id="locationName">Hearth</h1><div id="locationDetail">INDEPENDENT SPACE <span>•</span> LOCAL FLIGHT</div></div>
+ <div class="coordinate" id="coordinate">+0000 / +0000</div>
+ <aside class="contacts-panel" id="contactsPanel"><div class="panel-eyebrow"><span>LOCAL SCANNER</span><i class="live-dot"></i></div><canvas id="radarCanvas" width="200" height="154" aria-label="Local system radar"></canvas><div id="contactsList" class="contact-list"></div><div class="scanner-foot">SELECT A CONTACT TO TRACK</div></aside>
+ <div class="objective-card" id="objectiveCard"><span class="objective-icon">◇</span><div><div class="eyebrow" id="objectiveKind">YOUR FIRST CHAPTER</div><strong id="objectiveTitle">A borrowed tomorrow</strong><p id="objectiveText">Dock at Kettle Station. Someone there knows your ship.</p></div><button id="objectiveDetails" aria-label="Open mission journal">↗</button></div>
+ <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+ <div class="interaction-wrap"><button id="contextButton" class="context-button"><span class="key-label">E</span><span id="contextText">Approach a station to dock</span><span>→</span></button></div>
+ <div class="status-strip"><div class="meter-block"><span>HULL <b id="hullNumber">100</b></span><div class="meter"><i id="hullMeter"></i></div></div><div class="meter-block shield"><span>SHIELD <b id="shieldNumber">40</b></span><div class="meter"><i id="shieldMeter"></i></div></div><div class="meter-block energy"><span id="energyLabel">REACTOR <b id="energyNumber">100</b></span><div class="meter"><i id="energyMeter"></i></div></div><span class="speed-label" id="speedLabel">000 <small>m/s</small></span></div>
+ <div id="welcome" class="welcome-overlay">
+  <div class="welcome-content"><span class="edition">DAILYFLYER PRESENTS <i></i> A GALAXY OF YOUR OWN</span><h2>A small ship.<br>A long way <em>home.</em></h2><p>Earth has been silent for ninety years.<br>Out here, everyone has a different story why.</p><div class="welcome-bottom"><span class="welcome-line"></span><span>A battered skiff. A handful of credits.<br>The rest is up to you.</span></div><div class="welcome-actions"><button id="startButton" class="button-primary">Begin your voyage <span>↗</span></button><button id="continueButton" class="button-secondary" hidden>Continue voyage →</button></div><div class="welcome-meta"><span>✦ SHIP MODE + PERSON MODE</span><span>◈ 300 STAR SYSTEMS</span><span>∞ YOUR DECISIONS MATTER</span></div></div>
+  <div class="welcome-stamp"><span>INDEPENDENT EXPLORER</span><b>FW—001</b><small>THE CINDER REACH</small></div>
+ </div>
+</main>
+<section class="control-deck" id="controlDeck" aria-label="Game controls">
+ <div class="desktop-controls"><span><kbd>WASD</kbd> fly / walk</span><span><kbd>E</kbd> interact</span><span><kbd>SPACE</kbd> fire</span><span><kbd>R</kbd> mine</span><span><kbd>SHIFT</kbd> boost</span><span><kbd>X</kbd> brake</span></div>
+ <div id="stick" class="joystick" aria-label="Movement joystick"><div class="stick-cross"></div><div id="knob" class="stick-knob"><span>+</span></div><span class="stick-caption">MOVE</span></div>
+ <div class="mobile-center"><button data-open="galaxy" aria-label="Open galaxy map"><span>✧</span>MAP</button><button data-open="journal" aria-label="Open journal"><span>≡</span>LOG</button><button data-open="ship" aria-label="Open ship and crew"><span>◇</span>SHIP</button></div>
+ <div class="action-buttons"><button id="boostButton" class="action-small"><span>»</span><small>BOOST</small></button><button id="mineButton" class="action-small"><span>⌁</span><small>MINE</small></button><button id="fireButton" class="action-fire"><span>✛</span><small>FIRE</small></button></div>
+ <div class="footer-coords">FARWAKE <span>v0.1</span><i></i><span id="footerTime">YEAR 2481</span><button id="helpButton">CONTROLS & HELP ↗</button></div>
+</section>
+</div>
+<div id="modalBackdrop" class="modal-backdrop" hidden><section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"><header class="modal-header"><div><span class="eyebrow" id="modalEyebrow">SHIP COMPUTER</span><h2 id="modalTitle"></h2></div><button id="closeModal" class="close-button" aria-label="Close dialog">×</button></header><div id="modalBody" class="modal-body"></div></section></div>
+<noscript><div class="no-script">Farwake needs JavaScript enabled to run the galaxy simulation.</div></noscript>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>
