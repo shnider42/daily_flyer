@@ -1,3 +1,4 @@
+import { renderVisualEstate } from './estate-visuals.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>'\u0022]/g, char => `&#${char.charCodeAt(0)};`);
@@ -23,6 +24,9 @@ const state = {
 };
 
 const paths = {
+  rooster: 'M7 14c-5-1-5-6-3-9l2 4 2-5 2 5c2-3 5-3 7-1l2-1 2 3-3 1c0 5-3 7-8 7H7Zm4 4v4m4-5 1 5M9 22h4m1 0h4M14 6l-1-3 3 1 1 2',
+  bottle: 'M10 2h4v5l3 4v10H7V11l3-4V2Zm-2 12h8M10 5h4',
+  barrel: 'M7 3c-4 4-4 14 0 18h10c4-4 4-14 0-18H7ZM5 7h14M4 17h16M9 3v18m6-18v18',
   leaf: 'M19 3C8 2 3 7 5 14c2 7 12 7 14-11ZM5 20 15 9M9 15l-1-5m5 1 4 1',
   wine: 'M7 3h10l1 7c0 4-3 6-6 6s-6-2-6-6l1-7ZM12 16v5m-4 0h8M7 9h10',
   sun: 'M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M5.6 18.4 7 17m10-10 1.4-1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
@@ -49,6 +53,7 @@ function icon(name, className = '') {
   return `<svg class='ui-icon ${esc(className)}' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='${paths[name] || paths.leaf}'/></svg>`;
 }
 const actionIcons = { draw_vine: 'leaf', plant: 'leaf', build: 'build', tour: 'wine', trade: 'coin', summer_visitor: 'people', harvest: 'grape', make_wine: 'wine', draw_order: 'card', fill_order: 'trophy', train: 'worker', winter_visitor: 'people', work: 'coin', yoke: 'grape' };
+const placeFor = {draw_vine:'vine',plant:'plant',build:'build',tour:'tour',trade:'trade',summer_visitor:'summer',harvest:'harvest',make_wine:'make',fill_order:'fill',draw_order:'order',train:'train',winter_visitor:'winter'};
 const phaseNames = { spring: 'Spring', summer: 'Summer', autumn: 'Autumn', winter: 'Winter', discard: 'Year end', finished: 'The final vintage' };
 const phaseCopy = {
   spring: 'Choose your place in the wake-up order. Earlier starts give you first choice of spaces; later starts offer a bonus.',
@@ -60,6 +65,7 @@ const phaseCopy = {
 };
 
 function applyPreferences() {
+  document.documentElement.dataset.visual = 'tabletop';
   document.documentElement.dataset.theme = prefs.theme === 'day' ? 'day' : 'night';
   document.documentElement.dataset.guidance = guidanceNames[prefs.guidance].toLowerCase();
   document.documentElement.dataset.motion = prefs.motion ? 'on' : 'off';
@@ -87,7 +93,7 @@ function renderHome() {
   $('#app').innerHTML = `<div class='welcome'>
     <section class='hero'>
       <div class='hero-copy'><span class='eyebrow'>DAILY FLYER · A GAME AROUND THE TABLE</span><h1 class='display-title'>Good things<br>take <em>seasons.</em></h1><p class='lead'>A few workers. A little land. A vineyard to make your own.</p><p class='hero-description'>Plant your first vines, age a remarkable wine, and find the right moment to fill an order. Every worker has a season. Every choice has a cost.</p><div class='pill-row'><span class='pill'>${icon('people')} 1–6 people</span><span class='pill'>${icon('worker')} Turn based</span><span class='pill'>${icon('leaf')} Learn as you play</span></div></div>
-      <div class='hero-art' role='img' aria-label='A hillside vineyard at dusk, with a farmhouse and rows of vines'><div class='vintage-seal'>ESTATE No. 01<span>YOUR FIRST VINTAGE</span></div></div>
+      <div class='hero-art' role='img' aria-label='Hand-painted Tuscan vineyard, stone farmhouse, cypresses and rolling hills'><div class='vintage-seal'>ESTATE No. 01<span>YOUR FIRST VINTAGE</span></div></div>
     </section>
     ${saved ? `<section class='resume-card'><div>${icon('wine')}<span><strong>Your table is waiting</strong><small>Room ${esc(saved.code)} · saved on this device</small></span></div><button class='secondary' data-act='resume'>Return to table ${icon('arrow')}</button></section>` : ''}
     <div class='home-grid'>
@@ -138,6 +144,7 @@ function guideCard() {
   return `<section class='guide-card ${prefs.guidance===1?'is-brief':''}' aria-label='Turn guidance'><div class='guide-icon'>${icon('leaf')}</div><div class='guide-content'><span class='eyebrow'>${prefs.guidance===0?'A HAND WITH THIS TURN':'SEASON NOTE'}</span><h3>${esc(prefs.guidance===0?guide.headline:phaseNames[game.phase])}</h3><p>${esc(prefs.guidance===0?guide.body:phaseCopy[game.phase])}</p>${prefs.guidance===0&&recommendation&&isMyTurn()?`<button class='text-button' data-act='inspect-key' data-key='${esc(recommendation.key)}'>Explore: ${esc(recommendation.label)} ${icon('arrow')}</button>`:''}</div><button class='icon-button guide-dismiss' data-act='hide-coaching' aria-label='Hide coaching, keeping your guidance level'>${icon('close')}</button></section>`;
 }
 function renderGame() {
+  document.body.dataset.panel=state.panel;
   const game = state.game;
   if (!game) return;
   const player = me();
@@ -145,11 +152,11 @@ function renderGame() {
   const done = game.status==='finished' || game.phase==='finished';
   const handCount = Object.values(game.you?.hand || {}).reduce((sum,cards)=>sum+cards.length,0);
   $('#app').innerHTML = `<div class='table-screen'>
-    <div class='game-banner'><div class='vintage-heading'><span class='eyebrow'>${done?'THE LAST GLASS':'YOUR VINEYARD, YEAR '+game.year}</span><h1>${esc(done?'The final vintage':phaseNames[game.phase] || game.phase)}<span class='season-decoration'>${icon(game.phase==='winter'?'snow':game.phase==='summer'?'sun':'leaf')}</span></h1></div><div class='season-nav' aria-label='The year'>${['spring','summer','autumn','winter'].map((phase,i)=>`<span class='season-step ${game.phase===phase?'is-active':''}'><b>0${i+1}</b>${phaseNames[phase]}</span>`).join('')}</div><div class='table-tools'><span class='pill'>${game.finalYear?'Final year':game.target+' VP to trigger final year'}</span><button class='icon-button' data-act='share' aria-label='Share table'>${icon('share')}</button></div></div>
-    ${done?renderFinal():`<div class='turn-banner ${isMyTurn()?'is-your-turn':''}' role='status'><span class='turn-light'></span><strong>${isMyTurn()?'Your turn':esc(turn?.name || 'The table')+'’s turn'}</strong><span>${isMyTurn()?`${workerCount(player)} workers available${game.phase==='summer'?' for the whole year':''}`:'Your estate and cards are still yours to inspect.'}</span>${!state.online?`<span class='network-note'>Reconnecting…</span>`:''}${game.pending?`<span class='pill'>${esc(game.pending.label)}</span>`:''}</div>`}
-    <div class='mobile-scoreboard'>${playerBoard(true)}</div>
+    <div class='game-banner'><div class='vintage-heading'><span class='eyebrow'>${done?'THE LAST GLASS':'YOUR VINEYARD, YEAR '+game.year}</span><h1>${esc(done?'The final vintage':phaseNames[game.phase] || game.phase)}<span class='season-decoration'>${icon(game.phase==='winter'?'snow':game.phase==='summer'?'sun':'leaf')}</span></h1></div><div class='season-nav' aria-label='The year'>${['spring','summer','autumn','winter'].map((phase,i)=>`<span class='season-step ${game.phase===phase?'is-active':''}'><b>${icon(['leaf','sun','grape','snow'][i])}</b>${phaseNames[phase]}</span>`).join('')}</div><div class='table-tools'><span class='pill'>${game.finalYear?'Final year':game.target+' VP to trigger final year'}</span><button class='icon-button' data-act='share' aria-label='Share table'>${icon('share')}</button></div></div>
+    ${done?renderFinal():`<div class='turn-banner ${isMyTurn()?'is-your-turn':''}' role='status'><span class='turn-light'></span><strong>${isMyTurn()?'Your turn':esc(turn?.name || 'The table')+'’s turn'}</strong><span>${isMyTurn()?`${workerCount(player)} ${workerCount(player)===1?'worker':'workers'} available${game.phase==='summer'?' for the whole year':''}`:'Your estate and cards are still yours to inspect.'}</span>${!state.online?`<span class='network-note'>Reconnecting…</span>`:''}${game.pending?`<span class='pill'>${esc(game.pending.label)}</span>`:''}</div>`}
+    ${reputationMarkup()}<div class='mobile-scoreboard'>${playerBoard(true)}</div>
     <div class='game-shell' data-mobile-panel='${state.panel}' data-center-panel='${state.panel}'>
-      <aside class='table-sidebar'><div class='section-label'><span>AROUND THE TABLE</span><small>Room ${esc(state.room.code)}</small></div>${playerBoard()}<div class='sidebar-bottom'><div class='guidance-mini'><label for='game-guidance'>Guidance <b>${guidanceNames[prefs.guidance]}</b></label><input id='game-guidance' type='range' min='0' max='2' step='1' value='${prefs.guidance}' data-pref='guidance' aria-valuetext='${guidanceNames[prefs.guidance]}'><div class='range-labels'><span>Simple</span><span>Moderate</span><span>Expert</span></div></div>${journeyMarkup()}<button class='text-button' data-act='backup'>${icon('card')} Save recovery backup</button></div></aside>
+      <aside class='table-sidebar'><div class='section-label'><span>AROUND THE TABLE</span><small>Room ${esc(state.room.code)}</small></div>${playerBoard()}${handDock()}<div class='sidebar-bottom'><div class='guidance-mini'><label for='game-guidance'>Guidance <b>${guidanceNames[prefs.guidance]}</b></label><input id='game-guidance' type='range' min='0' max='2' step='1' value='${prefs.guidance}' data-pref='guidance' aria-valuetext='${guidanceNames[prefs.guidance]}'><div class='range-labels'><span>Simple</span><span>Moderate</span><span>Expert</span></div></div>${journeyMarkup()}<button class='text-button' data-act='backup'>${icon('card')} Save recovery backup</button></div></aside>
       <section class='game-board'>
         <nav class='desktop-tabs' aria-label='Table views'>${[['board','The board','home'],['hand','Your cards','card'],['log','Vintage journal','log']].map(([id,label,ico])=>`<button class='${state.panel===id||state.panel==='estate'&&id==='board'?'is-active':''}' data-act='panel' data-panel='${id}'>${icon(ico)}${label}${id==='hand'?` <span>${handCount}</span>`:''}</button>`).join('')}</nav>
         ${state.panel==='hand'?renderHand():state.panel==='log'?renderJournal():`${!done?guideCard():''}${renderBoard()}`}
@@ -160,6 +167,19 @@ function renderGame() {
   </div>`;
   updateHeader();
 }
+function reputationMarkup() {
+  const game=state.game;
+  return `<section class='reputation-strip' aria-label='Reputation track'><div class='reputation-label'>${icon('trophy')}<strong>Reputation</strong><small>${game.target} starts the final year</small></div><div class='reputation-track'>${Array.from({length:game.target+1},(_,value)=>`<div class='reputation-step ${value===game.target?'is-finish':''}'><span class='track-number'>${value}${value===game.target?'+':''}</span><div class='score-markers'>${game.players.filter(p=>Math.max(0,Math.min(game.target,p.score))===value).map(p=>`<span class='score-stone' style='--player-color:${esc(p.color)}' title='${esc(p.name)} · ${p.score} VP' aria-label='${esc(p.name)}: ${p.score} victory points'>${esc([...p.name.trim()][0]||'V')}</span>`).join('')}</div></div>`).join('')}</div></section>`;
+}
+function handDock() {
+  const hand=state.game.you?.hand || {};
+  return `<section class='board-decks' aria-label='Your card families'><div class='section-label'><span>YOUR CARDS</span><small>Tap to inspect</small></div><div class='deck-row'>${[['vines','Vines','leaf'],['orders','Orders','bottle'],['summer','Summer','sun'],['winter','Winter','snow']].map(([kind,label,ico])=>`<button class='deck-pile' data-deck='${kind}' data-act='hand-shortcut' data-tab='${kind}' aria-label='Inspect ${hand[kind]?.length||0} ${{vines:'vine',orders:'order',summer:'summer visitor',winter:'winter visitor'}[kind]} ${(hand[kind]?.length||0)===1?'card':'cards'}'><span class='deck-emblem'>${icon(ico)}</span><b class='deck-count'>${hand[kind]?.length||0}</b><span class='deck-label'>${label}</span></button>`).join('')}</div></section>`;
+}
+function boardLandscape(season) {
+  const captions={spring:['The first light','An early start, or a little help along the way.'],summer:['A summer in the valley','Vines, visitors, and the promise of a good vintage.'],autumn:['Guests at the gate','An invitation can change the year ahead.'],winter:['The winter vintage','Bring in the grapes. Open the cellar. Fill the orders.']};
+  const [title,copy]=captions[season]||captions.summer;
+  return `<div class='board-landscape' data-season='${esc(season)}'><div class='landscape-caption'><span class='eyebrow'>THE SHARED VINEYARD</span><h2>${title}</h2><p>${copy}</p></div><span class='vintage-counter'>YEAR <b>${state.game.year}</b></span></div>`;
+}
 function journeyMarkup() {
   if (prefs.guidance!==0 || !prefs.coaching) return '';
   const steps = state.game.guide?.steps || [];
@@ -168,8 +188,8 @@ function journeyMarkup() {
 function renderBoard() {
   const game = state.game;
   const turn = isMyTurn();
-  if (game.phase==='spring') return `<div class='season-board spring-board'><div class='board-heading'><span class='eyebrow'>BEFORE THE DAY BEGINS</span><h2>The wake-up track</h2><p>Take an early start, or trade a later turn for a little help.</p></div><div class='wake-track'>${game.wakeTrack.map(row=>{const owner=game.players.find(p=>p.id===row.playerId);return `<div class='wake-row ${owner?'is-taken':''}'><span class='wake-number'>${row.row}</span><div><strong>${esc(row.bonus)}</strong><small>${owner?esc(owner.name):'Available'}</small></div><span class='wake-marker' style='--player-color:${esc(owner?.color||'#6e7e69')}'>${owner?icon('worker'):icon('sun')}</span></div>`;}).join('')}</div>${turn?`<button class='primary full-width' data-act='action-group' data-group='wake'>Choose your start ${icon('arrow')}</button>`:`<p class='waiting-note'>Waiting for ${esc(currentPlayer()?.name)} to choose a wake-up position.</p>`}</div>`;
-  if (game.phase==='autumn') return `<div class='season-board autumn-board'><div class='board-heading'><span class='eyebrow'>A KNOCK AT THE GATE</span><h2>A visitor for your estate</h2><p>Visitors create opportunities. Summer visitors help your estate grow; winter visitors help bring in the vintage.</p></div><div class='season-choices'>${game.legalActions.filter(a=>a.group==='visitor').map(a=>`<button class='season-choice' data-act='inspect-key' data-key='${esc(a.key)}'>${icon(a.label.toLowerCase().includes('winter')?'snow':'sun')}<strong>${esc(a.label)}</strong><span>${esc(a.detail)}</span>${icon('arrow')}</button>`).join('')||`<div class='waiting-note'>${esc(currentPlayer()?.name)} is welcoming a visitor.</div>`}</div></div>`;
+  if (game.phase==='spring') return `<div class='season-board spring-board'>${boardLandscape('spring')}<div class='board-heading'><span class='eyebrow'>BEFORE THE DAY BEGINS</span><h2>The wake-up track</h2><p>Take an early start, or trade a later turn for a little help.</p></div><div class='wake-track'>${game.wakeTrack.map(row=>{const owner=game.players.find(p=>p.id===row.playerId);return `<div class='wake-row ${owner?'is-taken':''}'><span class='wake-number'>${row.row}</span><div><strong>${esc(row.bonus)}</strong><small>${owner?esc(owner.name):'Available'}</small></div><span class='wake-symbols' aria-hidden='true'>${icon(['sun','leaf','card','coin','people','trophy','worker'][row.row-1])}</span><span class='wake-marker' style='--player-color:${esc(owner?.color||'#6e7e69')}'>${owner?icon('rooster','wake-rooster'):''}</span></div>`;}).join('')}</div>${turn?`<button class='primary full-width' data-act='action-group' data-group='wake'>Choose your start ${icon('arrow')}</button>`:`<p class='waiting-note'>Waiting for ${esc(currentPlayer()?.name)} to choose a wake-up position.</p>`}</div>`;
+  if (game.phase==='autumn') return `<div class='season-board autumn-board'>${boardLandscape('autumn')}<div class='board-heading'><span class='eyebrow'>A KNOCK AT THE GATE</span><h2>A visitor for your estate</h2><p>Visitors create opportunities. Summer visitors help your estate grow; winter visitors help bring in the vintage.</p></div><div class='season-choices'>${game.legalActions.filter(a=>a.group==='visitor').map(a=>`<button class='season-choice' data-act='inspect-key' data-key='${esc(a.key)}'><span class='card-illustration' data-place='${a.label.toLowerCase().includes('winter')?'winter':'summer'}' aria-hidden='true'></span>${icon(a.label.toLowerCase().includes('winter')?'snow':'sun')}<strong>${esc(a.label)}</strong><span>${esc(a.detail)}</span>${icon('arrow')}</button>`).join('')||`<div class='waiting-note'>${esc(currentPlayer()?.name)} is welcoming a visitor.</div>`}</div></div>`;
   if (game.phase==='discard') return `<div class='season-board'><div class='board-heading'><span class='eyebrow'>PUT THE YEAR TO BED</span><h2>A hand of seven</h2><p>Choose cards to let go. Everything else in your estate stays with you.</p></div>${turn?`<button class='primary' data-act='action-group' data-group='discard'>Choose a card to discard</button>`:`<p class='waiting-note'>${esc(currentPlayer()?.name)} is choosing which cards to keep.</p>`}${renderHand()}</div>`;
   if (game.status==='finished' || game.phase==='finished') return `<div class='season-board'><div class='board-heading'><span class='eyebrow'>A SEASON WELL SPENT</span><h2>Your vineyard tells a story.</h2><p>Explore the estates, review your vintage journal, or bring everyone back for another game.</p></div><div class='button-row'><button class='secondary' data-act='panel' data-panel='log'>Read the journal ${icon('log')}</button>${state.room.hostId===state.room.youId?`<button class='primary' data-act='rematch-confirm'>Another vintage ${icon('arrow')}</button>`:`<span class='waiting-note'>The host can start another vintage.</span>`}</div></div>`;
   const season = state.previewSeason || game.phase;
@@ -177,7 +197,12 @@ function renderBoard() {
   const main = rows.filter(space=>!['work','yoke'].includes(space.id));
   const extras = rows.filter(space=>['work','yoke'].includes(space.id));
   const pass = game.legalActions.find(a=>a.group==='pass');
-  return `<div class='season-board ${esc(season)}-board'><div class='board-heading'><div><span class='eyebrow'>THE VILLAGE & YOUR VINEYARD</span><h2>${season==='summer'?'Lay the groundwork.':'Make this year count.'}</h2></div><div class='season-switch' aria-label='Preview seasonal spaces'>${['summer','winter'].map(s=>`<button class='${season===s?'is-active':''}' data-act='preview-season' data-season='${s}'>${icon(s==='summer'?'sun':'snow')}${words(s)}</button>`).join('')}</div></div>${season!==game.phase?`<div class='planning-note'>You’re looking ahead to ${esc(season)}. It is still ${esc(game.phase)}.</div>`:''}${game.pending?`<div class='continuation-banner'>${icon('wine')}<span><strong>${esc(game.pending.label)}</strong> ${esc(game.pending.remaining!==undefined?game.pending.remaining+' more available':'')}</span></div>`:''}<div class='action-grid'>${main.map(renderSpace).join('')}</div>${extras.length?`<div class='utility-spaces'>${extras.map(renderSpace).join('')}</div>`:''}<div class='board-actions'><div class='available-workers'>${icon('worker')}<div><strong>${workerCount(me())} workers available</strong><small>${game.phase==='summer'?'Keep some for winter. Workers return next year.':'Workers return when the year is complete.'}</small></div></div><button class='${pass?'secondary':'ghost'}' data-act='inspect-key' data-key='${esc(pass?.key||'')}' ${!pass?'disabled':''}>${esc(pass?.label || (game.phase==='summer'?'Pass to winter':'Finish your winter'))} ${icon('arrow')}</button></div></div>`;
+  return `<div class='season-board ${esc(season)}-board'>${boardLandscape(season)}<div class='board-heading'><div><span class='eyebrow'>THE VILLAGE & YOUR VINEYARD</span><h2>${season==='summer'?'Lay the groundwork.':'Make this year count.'}</h2></div><div class='season-switch' aria-label='Preview seasonal spaces'>${['summer','winter'].map(s=>`<button class='${season===s?'is-active':''}' data-act='preview-season' data-season='${s}'>${icon(s==='summer'?'sun':'snow')}${words(s)}</button>`).join('')}</div></div>${season!==game.phase?`<div class='planning-note'>You’re looking ahead to ${esc(season)}. It is still ${esc(game.phase)}.</div>`:''}${game.pending?`<div class='continuation-banner'>${icon('wine')}<span><strong>${esc(game.pending.label)}</strong> ${esc(game.pending.remaining!==undefined?game.pending.remaining+' more available':'')}</span></div>`:''}<div class='action-grid'>${main.map(renderSpace).join('')}</div>${extras.length?`<div class='utility-spaces'>${extras.map(renderSpace).join('')}</div>`:''}<div class='board-actions'><div class='available-workers'>${icon('worker')}<div><strong>${workerCount(me())} ${workerCount(me())===1?'worker':'workers'} available</strong><small>${game.phase==='summer'?'Keep some for winter. Workers return next year.':'Workers return when the year is complete.'}</small></div></div><button class='${pass?'secondary':'ghost'}' data-act='inspect-key' data-key='${esc(pass?.key||'')}' ${!pass?'disabled':''}>${esc(pass?.label || (game.phase==='summer'?'Pass to winter':'Finish your winter'))} ${icon('arrow')}</button></div></div>`;
+}
+function actionSymbols(id) {
+  const chip=(ico,label='')=>`<span>${icon(ico)}${label?`<b>${label}</b>`:''}</span>`;
+  const arrow=`<i>→</i>`;
+  return ({draw_vine:chip('leaf','+1'),plant:chip('leaf')+arrow+chip('home'),build:chip('coin')+arrow+chip('build'),tour:chip('coin','+2'),trade:chip('grape')+'<i>↔</i>'+chip('coin'),summer_visitor:chip('card')+arrow+chip('sun'),harvest:chip('leaf')+arrow+chip('grape'),make_wine:chip('grape')+arrow+chip('bottle','≤2'),draw_order:chip('card','+1'),fill_order:chip('bottle')+arrow+chip('trophy'),train:chip('coin','4')+arrow+chip('worker'),winter_visitor:chip('card')+arrow+chip('snow'),work:chip('coin','+1'),yoke:chip('grape')})[id]||'';
 }
 function renderSpace(space) {
   const game=state.game;
@@ -185,22 +210,20 @@ function renderSpace(space) {
   const suggested=prefs.guidance===0 && prefs.coaching && actions.some(a=>a.key===game.guide?.recommendedKey);
   const occupancy=space.occupied||[];
   const capacity=Number.isFinite(space.capacity)?space.capacity:0;
-  const slots=Array.from({length:Math.min(capacity,3)},(_,i)=>{const place=space.id==='yoke'?occupancy[0]:occupancy.find(item=>item.slot===i),owner=game.players.find(p=>p.id===place?.playerId);return `<span class='worker-slot ${place?'is-filled':''} ${i===1?'is-bonus':''}' title='${esc(owner?owner.name+(place.worker==='grande'?' · grande':''):i===1?'Bonus space':'Open space')}' style='--player-color:${esc(owner?.color||'#81755b')}'>${place?icon('worker'):i===1?'<span>＋</span>':'<i></i>'}</span>`;}).join('');
+  const piece=(place)=>`<span class='meeple-piece ${place.worker==='grande'?'is-grande':''}'>${icon('worker')}${place.worker==='grande'?'<b>G</b>':''}</span>`;
+  const slots=Array.from({length:Math.min(capacity,3)},(_,i)=>{const place=space.id==='yoke'?occupancy[0]:occupancy.find(item=>item.slot===i),owner=game.players.find(p=>p.id===place?.playerId);return `<span class='worker-slot ${place?'is-filled':''} ${place?.worker==='grande'?'is-grande':''} ${i===1?'is-bonus':''}' title='${esc(owner?owner.name+(place.worker==='grande'?' · grande':''):i===1?'Bonus: '+space.bonus:'Open worker space')}' style='--player-color:${esc(owner?.color||'#81755b')}'>${place?piece(place):i===1?'<span>＋</span>':'<i></i>'}</span>`;}).join('');
   const overflow=occupancy.filter(place=>place.slot<0&&place.worker==='grande'&&!['work','yoke'].includes(space.id));
-  return `<button class='action-space ${actions.length?'is-available':'is-disabled'} ${suggested?'is-suggested':''}' data-season='${esc(space.season)}' data-act='action-group' data-group='${esc(space.id)}' aria-label='${esc(space.title)}${actions.length?'':', inspect requirements'}'><div class='space-top'><span class='space-icon'>${icon(actionIcons[space.id]||'leaf')}</span><div class='worker-slots'>${slots}${overflow.map(place=>`<span class='grande-overflow' style='color:${esc(game.players.find(p=>p.id===place.playerId)?.color||'#9dbb90')}'>${icon('worker')}<b>G</b></span>`).join('')}${!capacity?'<span class=unlimited>∞</span>':''}</div></div><h3>${esc(space.title)}</h3><p>${esc(space.description)}</p><div class='space-footer'><span>${suggested?'A useful next step':actions.length?'Explore choices':space.season!==state.game.phase&&!['any','all','both'].includes(space.season)?words(space.season):'Inspect'}</span>${icon('arrow')}</div></button>`;
+  const utility=['work','yoke'].includes(space.id);
+  const location=placeFor[space.id]||'';
+  const placed=overflow.map(place=>`<span class='grande-overflow' title='${esc(game.players.find(p=>p.id===place.playerId)?.name||'Grande worker')}' style='--player-color:${esc(game.players.find(p=>p.id===place.playerId)?.color||'#9dbb90')}'>${piece(place)}</span>`).join('');
+  return `<button class='action-space ${actions.length?'is-available':'is-disabled'} ${suggested?'is-suggested':''} ${utility?'is-utility':''}' data-season='${esc(space.season)}' data-place='${location}' data-act='action-group' data-group='${esc(space.id)}' aria-label='${esc(space.title)}${actions.length?'':', inspect requirements'}'><div class='location-art ${utility?'location-utility':''}' data-place='${location}' aria-hidden='true'>${utility?`<span class='utility-emblem'>${icon(actionIcons[space.id])}</span>`:''}<div class='worker-slots'>${slots}${placed}${!capacity?`<span class='unlimited' title='Unlimited space'>∞</span>${occupancy.slice(0,6).map(place=>`<span class='work-meeple' style='--player-color:${esc(game.players.find(p=>p.id===place.playerId)?.color||'#9dbb90')}'>${piece(place)}</span>`).join('')}`:''}</div></div><div class='location-plaque'><h3>${esc(space.title)}</h3><span class='action-symbols' aria-hidden='true'>${actionSymbols(space.id)}</span></div><p class='space-description'>${esc(space.description)}</p><div class='space-footer'><span>${suggested?'Suggested next step':actions.length?actions.some(a=>a.worker)?'Place a worker':'Continue action':space.season!==game.phase&&!['any','all','both'].includes(space.season)?words(space.season):'Inspect requirements'}</span>${icon('arrow')}</div></button>`;
 }
 function tokenList(values, type) {
   return values?.length?values.slice().sort((a,b)=>a-b).map(value=>`<span class='token ${esc(type)}' aria-label='${words(type)} value ${esc(value)}'>${esc(value)}</span>`).join(''):`<span class='empty-rack'>—</span>`;
 }
 function renderEstate(player, mine=false) {
   if (!player) return '';
-  const cap=player.cellar || 3;
-  const regular=player.workers.available;
-  return `<div class='estate-header'><span class='eyebrow'>${mine?'YOUR LITTLE CORNER OF TUSCANY':'ESTATE LEDGER'}</span><h2>${esc(player.name)}</h2><div class='estate-worker-line'>${Array.from({length:Math.min(regular,6)},()=>`<span class='mini-worker' style='color:${esc(player.color)}'>${icon('worker')}</span>`).join('')}<span class='grande-worker ${player.workers.grandeAvailable?'':'is-spent'}'>${icon('worker')}<b>G</b></span><small>${regular} regular · ${player.workers.grandeAvailable?1:0} grande ready${player.workers.pending?' · '+player.workers.pending+' training':''}</small></div></div><div class='resource-strip'><div class='stat'>${icon('coin')}<strong>${player.coins}</strong><span>Coins</span></div><div class='stat'>${icon('trophy')}<strong>${player.score}</strong><span>Points</span></div><div class='stat'>${icon('coin')}<strong>+${player.income}</strong><span>Each year</span></div></div>
-    <div class='estate-section'><div class='section-label'><span>YOUR FIELDS</span><small>Vines stay after harvest</small></div><div class='fields-grid'>${player.fields.map((field,i)=>{const red=field.vines.reduce((n,v)=>n+(v.red||0),0),white=field.vines.reduce((n,v)=>n+(v.white||0),0);return `<div class='field-card ${field.sold?'is-sold':''} ${field.vines.length?'is-planted':''}'><div class='field-card-top'><strong>Field ${i+1} · ${['South slope','Old stone wall','Hilltop'][i]||'Vineyard'}</strong><span>${red+white}/${field.capacity}</span></div><div class='field-art' aria-hidden='true'>${Array.from({length:3},()=>`<span>${icon('leaf')}${icon('leaf')}${icon('leaf')}</span>`).join('')}</div><div class='vine-row'>${field.sold?'<span>Sold · buy back to plant</span>':field.vines.length?`<span>${red?`<b class='red-text'>${red} red</b>`:''} ${white?`<b class='white-text'>${white} white</b>`:''}</span><small>${field.harvested?'Harvested this year':'Ready each winter'}</small>`:'<span>Open land</span><small>Plant a vine to get started</small>'}</div>${field.vines.length?`<div class='vine-names'>${field.vines.map(v=>esc(v.name)).join(' · ')}</div>`:''}</div>`;}).join('')}</div></div>
-    <div class='estate-section'><div class='section-label'><span>CRUSH PAD</span><small>Grapes</small></div><div class='cellar-rack grape-rack'><div class='cellar-row'><span class='wine-type'>Red</span>${tokenList(player.grapes.red,'red')}</div><div class='cellar-row'><span class='wine-type'>White</span>${tokenList(player.grapes.white,'white')}</div></div></div>
-    <div class='estate-section'><div class='section-label'><span>YOUR CELLAR</span><small>Up to value ${cap}</small></div><div class='cellar-rack'>${['red','white','blush','sparkling'].map(type=>`<div class='cellar-row ${type==='blush'&&cap<6||type==='sparkling'&&cap<9?'is-locked':''}'><span class='wine-type'>${words(type)}</span>${tokenList(player.wines[type],type)}${type==='blush'&&cap<6?'<small>Medium cellar</small>':type==='sparkling'&&cap<9?'<small>Large cellar</small>':''}</div>`).join('')}</div><p class='rack-note'>Grapes and wines age +1 at year end, where storage allows.</p></div>
-    <div class='estate-section'><div class='section-label'><span>STRUCTURES</span></div><div class='structure-list'>${player.structures.length?player.structures.map(id=>`<span class='structure-chip'>${icon('build')}${words(id)}</span>`).join(''):`<p class='empty-note'>A fresh estate. Summer is the time to build.</p>`}</div></div>${mine?`<button class='secondary full-width' data-act='panel' data-panel='hand'>${icon('card')} Inspect your cards ${icon('arrow')}</button>`:''}`;
+  return renderVisualEstate(player,{mine,esc,icon,words}) + (mine?`<button class='secondary full-width' data-act='panel' data-panel='hand'>${icon('card')} Inspect your cards ${icon('arrow')}</button>`:'');
 }
 function renderHand() {
   const hand=state.game.you?.hand || {vines:[],orders:[],summer:[],winter:[]};
@@ -210,12 +233,15 @@ function renderHand() {
 function cardMarkup(card,kind,full=false) {
   const requirements=card.requirements || [];
   const req=Array.isArray(card.requires)?card.requires:card.requires?[card.requires]:[];
+  const artwork={vines:'vine',orders:'order',summer:'summer',winter:'winter'}[kind];
+  const portraits={'Nursery courier':'vine','Terrace mason':'build','Water finder':'plant','Roadside host':'tour','Cellar architect':'build','Planting mentor':'plant','Orchard broker':'trade','Field steward':'harvest','Cooperative sponsor':'summer','Estate patron':'tour','Barrel tender':'make','Vintage keeper':'winter','Cellar hand':'harvest','Market scout':'order','Guild recruiter':'train','Wine merchant':'fill','Pruning crew':'plant','Winter host':'winter','Reserve judge':'tour','Estate accountant':'order'};
+  const place=portraits[card.name]||artwork;
   let body='';
-  if(kind==='vines') body=`<div class='card-yield'>${card.red?`<span class='token red'>${card.red}</span><span>red</span>`:''}${card.white?`<span class='token white'>${card.white}</span><span>white</span>`:''}</div><p class='card-description'>${req.length?'Requires '+req.map(words).join(' + '):'No structures needed.'}</p><small>Produces grapes every year after planting.</small>`;
-  else if(kind==='orders') body=`<div class='order-requirements'>${requirements.map(req=>`<div><span class='token ${esc(req.type)}'>${req.value}+</span><span>${words(req.type)} wine</span></div>`).join('')}</div><div class='order-rewards'>${score(card.points)}<span>+${card.income} annual income</span></div><p class='card-description'>Use a separate wine for each requirement. Higher values also count.</p>`;
-  else body=`<div class='visitor-art'>${icon(kind==='summer'?'sun':'snow')}</div><p class='card-description'>${esc(card.description)}</p><small>Play during ${kind} · discard after use</small>`;
+  if(kind==='vines') body=`<div class='card-yield'>${card.red?`<span class='yield-cluster red'>${icon('grape')}<b>${card.red}</b></span>`:''}${card.white?`<span class='yield-cluster white'>${icon('grape')}<b>${card.white}</b></span>`:''}<small>each harvest</small></div><div class='vine-prerequisites'>${req.length?req.map(id=>`<span>${icon('build')}${words(id)}</span>`).join(''):'<span>Plant in any open field</span>'}</div>${full?'<p class=card-description>Produces grapes every year after planting. Its vines remain in the field after harvest.</p>':''}`;
+  else if(kind==='orders') body=`<div class='order-requirements'>${requirements.map(req=>`<div><span class='order-bottle ${esc(req.type)}'>${icon('bottle')}<b>${req.value}+</b></span><span>${words(req.type)}</span></div>`).join('')}</div><div class='order-rewards'><span class='vp-medallion'>${icon('trophy')}<b>${card.points}</b><small>VP</small></span><span class='income-medallion'>${icon('coin')}<b>+${card.income}</b><small>/ year</small></span></div>${full?'<p class=card-description>Use a separate wine for each requirement. Higher wine values also count. Filling an order consumes the wines.</p>':''}`;
+  else body=`<p class='card-description'>${esc(card.description)}</p><small class='visitor-season'>${icon(kind==='summer'?'sun':'snow')} ${words(kind)} visitor · one use</small>`;
   const tag=full?'article':'button';
-  return `<${tag} class='playing-card ${esc(kind)}-card' ${full?'':`data-act='inspect-card' data-kind='${esc(kind)}' data-id='${esc(card.id)}'`}><span class='card-kicker'>${kind==='vines'?'VINE':kind==='orders'?'WINE ORDER':kind.toUpperCase()+' VISITOR'}</span><h3>${esc(card.name)}</h3>${body}${!full?`<div class='card-inspect'>Inspect card ${icon('arrow')}</div>`:''}</${tag}>`;
+  return `<${tag} class='playing-card ${esc(kind)}-card' ${full?'':`data-act='inspect-card' data-kind='${esc(kind)}' data-id='${esc(card.id)}'`}><span class='card-kicker'>${kind==='vines'?'VINE':kind==='orders'?'WINE ORDER':kind.toUpperCase()+' VISITOR'}</span><div class='card-illustration' data-place='${place}' aria-hidden='true'></div><div class='card-face'><h3>${esc(card.name)}</h3>${body}</div>${!full?`<div class='card-inspect'>Inspect card ${icon('arrow')}</div>`:''}</${tag}>`;
 }
 function renderJournal() {
   const log=[...state.game.log].reverse();
@@ -232,6 +258,7 @@ function render() {
   if(state.screen==='home') renderHome();
   else if(state.room?.status==='lobby' || !state.game) renderLobby();
   else renderGame();
+  document.body.dataset.season=state.game?.phase||'home';
   document.body.classList.toggle('in-game',state.screen!=='home'&&!!state.game);
   if(state.busy) $$('[data-act=solo],[data-act=host],[data-act=join],[data-act=start]').forEach(node=>node.disabled=true);
 }
@@ -267,7 +294,7 @@ function renderActionSheet(model,space=state.game.board.find(s=>s.id===model.gro
   const title=space?.title||({wake:'Choose your wake-up time',visitor:'Welcome a visitor',pass:selected?.label||'Finish this season',discard:'Choose a card to discard'}[model.group])||'Your next choice';
   const blocked=!options.length;
   const reason=!isMyTurn()?`It is ${currentPlayer()?.name || 'another estate'}’s turn. You can inspect this space while you wait.`:space?.reason||'You need the right cards, resources, or structures to use this space. Check your estate and hand for the next step.';
-  showSheet(`${sheetHeader(space?.season?words(space.season)+' action':'YOUR NEXT DECISION',title)}<div class='sheet-body'><p class='sheet-intro'>${esc(space?.description||selected?.detail||phaseCopy[state.game.phase])}</p>${blocked?`<div class='unavailable-note'>${icon('help')}<div><strong>Not available right now</strong><p>${esc(reason)}</p></div></div>`:''}${space?.bonus&&space.capacity>1?`<div class='bonus-note'><strong>Bonus space</strong> ${esc(space.bonus)}</div>`:''}${types.length>1?`<div class='worker-picker' aria-label='Choose a worker'>${types.map(type=>`<button class='${(model.worker||'choice')===type?'is-active':''}' data-act='choose-worker' data-worker='${type}'>${icon('worker')}${type==='grande'?'Grande worker':type==='regular'?'Regular worker':'Continue action'}</button>`).join('')}</div>`:''}<div class='choice-list'>${filtered.map(action=>`<button class='choice-option ${selected?.key===action.key?'is-selected':''}' data-act='select-action' data-key='${esc(action.key)}' aria-pressed='${selected?.key===action.key}'><span class='choice-radio'>${selected?.key===action.key?icon('check'):''}</span><span><strong>${esc(action.label)}</strong><small>${esc(action.detail)}</small></span></button>`).join('')}</div>${selected?`<div class='preview-summary'><span class='eyebrow'>WHEN YOU CONFIRM</span><p>${esc(selected.detail)}</p>${selected.worker?`<small>${selected.worker==='grande'?'Your grande worker':'One regular worker'} will be used for the rest of this year.${state.game.phase==='summer'?' '+Math.max(0,workerCount(me())-1)+' workers will remain for later.':''}</small>`:''}</div>`:''}</div><div class='sheet-footer'><button class='secondary' data-act='close-sheet'>Keep thinking</button>${selected?`<button class='primary' data-act='commit-action' ${state.busy||!state.online?'disabled':''}>${state.busy?'Placing…':selected.worker==='grande'?'Place grande worker':selected.worker==='regular'?'Place worker':model.group==='discard'?'Discard this card':'Confirm choice'} ${icon('check')}</button>`:`<button class='primary' data-act='close-sheet'>Back to the table</button>`}</div>`,model);
+  showSheet(`${sheetHeader(space?.season?words(space.season)+' action':'YOUR NEXT DECISION',title)}<div class='sheet-body'>${space&&placeFor[space.id]?`<div class='action-inspection-art card-illustration' data-place='${placeFor[space.id]}' aria-hidden='true'></div>`:''}<p class='sheet-intro'>${esc(space?.description||selected?.detail||phaseCopy[state.game.phase])}</p>${blocked?`<div class='unavailable-note'>${icon('help')}<div><strong>Not available right now</strong><p>${esc(reason)}</p></div></div>`:''}${space?.bonus&&space.capacity>1?`<div class='bonus-note'><strong>Bonus space</strong> ${esc(space.bonus)}</div>`:''}${types.length>1?`<div class='worker-picker' aria-label='Choose a worker'>${types.map(type=>`<button class='${(model.worker||'choice')===type?'is-active':''}' data-act='choose-worker' data-worker='${type}'>${icon('worker')}${type==='grande'?'Grande worker':type==='regular'?'Regular worker':'Continue action'}</button>`).join('')}</div>`:''}<div class='choice-list'>${filtered.map(action=>`<button class='choice-option ${selected?.key===action.key?'is-selected':''}' data-act='select-action' data-key='${esc(action.key)}' aria-pressed='${selected?.key===action.key}'><span class='choice-radio'>${selected?.key===action.key?icon('check'):''}</span><span><strong>${esc(action.label)}</strong><small>${esc(action.detail)}</small></span></button>`).join('')}</div>${selected?`<div class='preview-summary'><span class='eyebrow'>WHEN YOU CONFIRM</span><p>${esc(selected.detail)}</p>${selected.worker?`<small>${selected.worker==='grande'?'Your grande worker':'One regular worker'} will be used for the rest of this year.${state.game.phase==='summer'?' '+Math.max(0,workerCount(me())-1)+' workers will remain for later.':''}</small>`:''}</div>`:''}</div><div class='sheet-footer'><button class='secondary' data-act='close-sheet'>Keep thinking</button>${selected?`<button class='primary' data-act='commit-action' ${state.busy||!state.online?'disabled':''}>${state.busy?'Placing…':selected.worker==='grande'?'Place grande worker':selected.worker==='regular'?'Place worker':model.group==='discard'?'Discard this card':'Confirm choice'} ${icon('check')}</button>`:`<button class='primary' data-act='close-sheet'>Back to the table</button>`}</div>`,model);
 }
 function inspectKey(key) { const action=state.game?.legalActions.find(a=>a.key===key); if(action)openAction(action.group,key); }
 function settings() {
@@ -315,7 +342,7 @@ async function create(mode,learn=false) {
   state.busy=true;render();
   try{
     const data=await api('/api/rooms',{method:'POST',token:null,body:{name:state.name,mode,bots:mode==='solo'?state.setup.bots:0,target:state.setup.target}});
-    state.session=null;state.screen='table';state.panel='board';state.lastSignature='';accept(data,{token:data.token,force:true});
+    state.session=null;state.screen='table';state.panel='board';state.lastSignature='';accept(data,{token:data.token,force:true});window.scrollTo({top:0,behavior:'instant'});
     if(mode==='solo')toast(learn?'Your first vintage begins. The coach will explain each decision.':'The table is ready. Choose your wake-up time.');
     startPolling();
   }catch(error){toast(error.message,true);}finally{state.busy=false;render();}
@@ -328,7 +355,7 @@ async function join() {
   try{
     if(state.session?.code===state.joinCode){await resume();return;}
     const data=await api(`/api/rooms/${encodeURIComponent(state.joinCode)}/join`,{method:'POST',token:null,body:{name:state.name}});
-    state.session=null;state.screen='table';state.panel='board';accept(data,{token:data.token,force:true});startPolling();
+    state.session=null;state.screen='table';state.panel='board';accept(data,{token:data.token,force:true});window.scrollTo({top:0,behavior:'instant'});startPolling();
     history.replaceState(null,'',location.pathname);
   }catch(error){toast(error.message,true);}finally{state.busy=false;render();}
 }
@@ -349,7 +376,7 @@ async function resume() {
   if(!state.session)return;
   const oldScreen=state.screen;
   state.screen='table';
-  try{await refresh({force:true});startPolling();await retryPending();}
+  try{await refresh({force:true});startPolling();await retryPending();window.scrollTo({top:0,behavior:'instant'});}
   catch(error){state.screen=oldScreen;toast(error.message,true);render();}
 }
 function startPolling() {clearTimeout(state.pollTimer);state.pollTimer=setTimeout(poll,state.retryDelay);}
@@ -366,7 +393,7 @@ async function startGame() {
   if(state.busy)return;
   const bots=Number($('#lobby-bots')?.value||0);
   state.busy=true;
-  try{const data=await api(`/api/rooms/${state.room.code}/start`,{method:'POST',body:{bots}});accept(data,{force:true});}
+  try{const data=await api(`/api/rooms/${state.room.code}/start`,{method:'POST',body:{bots}});accept(data,{force:true});window.scrollTo({top:0,behavior:'instant'});}
   catch(error){toast(error.message,true);}finally{state.busy=false;render();}
 }
 async function commitAction() {
@@ -426,7 +453,7 @@ async function restoreFile() {
     const payload=JSON.parse(await file.text());
     if(payload.format!=='vineyard-table-backup'||typeof payload.token!=='string'||typeof payload.recovery!=='string')throw new Error('This is not a Vineyard Table recovery file.');
     const data=await api('/api/restore',{method:'POST',token:payload.token,body:{recovery:payload.recovery}});
-    state.session=null;state.name=payload.name||'My Estate';state.screen='table';state.panel='board';closeSheet();accept(data,{token:payload.token,force:true});startPolling();toast('Your vineyard is back at the table.');
+    state.session=null;state.name=payload.name||'My Estate';state.screen='table';state.panel='board';closeSheet();accept(data,{token:payload.token,force:true});window.scrollTo({top:0,behavior:'instant'});startPolling();toast('Your vineyard is back at the table.');
   }catch(error){toast(error.message,true);}
 }
 
@@ -474,6 +501,7 @@ document.addEventListener('click',async event=>{
   if(action==='restore-dialog')return restoreDialog();
   if(action==='restore-file')return restoreFile();
   if(action==='panel'){state.panel=button.dataset.panel;state.previewSeason=null;renderGame();window.scrollTo({top:0,behavior:'instant'});return;}
+  if(action==='hand-shortcut'){state.handTab=button.dataset.tab;state.panel='hand';renderGame();window.scrollTo({top:0,behavior:'instant'});return;}
   if(action==='hand-tab'){state.handTab=button.dataset.tab;renderGame();return;}
   if(action==='preview-season'){state.previewSeason=button.dataset.season;renderGame();return;}
   if(action==='action-group')return openAction(button.dataset.group);
@@ -508,7 +536,7 @@ document.addEventListener('keydown',event=>{
 });
 $('#sheet').addEventListener('cancel',()=>{state.modal=null;});
 $('#sheet').addEventListener('click',event=>{if(event.target===$('#sheet')){const r=event.target.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeSheet();}});
-$('#home-button')?.addEventListener('click',()=>{closeSheet();state.screen='home';clearTimeout(state.pollTimer);render();});
+$('#home-button')?.addEventListener('click',()=>{closeSheet();state.screen='home';clearTimeout(state.pollTimer);render();window.scrollTo({top:0,behavior:'instant'});});
 $('#settings-button')?.addEventListener('click',settings);
 $('#help-button')?.addEventListener('click',()=>help());
 document.addEventListener('visibilitychange',()=>{syncAmbient();if(!document.hidden&&state.screen==='table')startPolling();});

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="night">
+<html lang="en" data-theme="night" data-visual="tabletop">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -8,6 +8,7 @@
   <title>Vineyard Table · A DailyFlyer game</title>
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/visual-v2.css">
 </head>
 <body>
   <a class="skip-link" href="#app">Skip to game</a>
@@ -28,43 +29,3 @@
   <script type="module" src="/app.js"></script>
 </body>
 </html>
-<!-- UI class protocol for app.js:
-HOME: .home-screen > .hero [background artwork automatic], .hero-copy, .eyebrow, h1,
-.lede, .hero-tags (.tag), .home-actions (.button.primary/.secondary/.ghost),
-.home-content > .setup-panel / .how-it-works, .section-label, .section-title,
-.form-grid, .form-field, .form-label, .input, .select, .hint, .divider, .notice,
-.flow-steps > .flow-step > .step-number, .resume-banner, .home-footer.
-LOBBY: .lobby-screen, .lobby-card, .room-code, .room-invite, .players-list,
-.player-row, .player-marker [--player-color], .player-info, .badge, .waiting-pulse.
-GAME: .game-screen, .game-toolbar, .season-banner[data-season], .season-icon,
-.season-heading, .season-meta, .turn-status, .connection-status; .game-layout >
-.game-sidebar, .board-column, .estate-column. .panel, .panel-heading, .panel-title.
-.guidance-panel, .guidance-labels, .guidance-range, .guide-card, .guide-title,
-.guide-body, .guide-steps > .guide-step.is-done, .guide-toggle; .players-strip,
-.score-card.is-you/.is-active, .score-name, .score-line, .score-value,
-.progress-track > span; .board-table[data-season], .board-heading, .board-caption,
-.season-tabs > .season-tab.is-active, .action-grid > .action-card.is-available/
-.is-blocked/.is-recommended, .action-icon, .action-title, .action-description,
-.action-footer, .action-cost, .occupancy > .worker-slot.is-filled,
-.meeple[--player-color], .meeple.grande, .bonus-tag. Board icon use any text or SVG.
-.wake-track > .wake-row.is-taken/.is-selected, .wake-number, .wake-reward,
-.phase-actions, .pass-button, .turn-footer; .resource-bar > .resource,
-.resource-label, .resource-value; .estate-scene (art background auto), .field-grid >
-.field-card.is-sold/.is-harvested, .field-topline, .vine-pills > .vine-pill,
-.field-capacity, .empty-field; .structures > .structure.is-built,
-.cellar, .cellar-row, .wine-token.red/.white/.blush/.sparkling,
-.cards-tabs > .card-tab.is-active, .hand-grid > .game-card.vine/.order/.summer/.winter,
-.card-kicker, .card-name, .card-copy, .card-requirements > .requirement,
-.card-footer, .empty-state; .journal > .journal-entry, .log-time.
-MOBILE NAV: .bottom-nav > button.is-active, body[data-mobile-panel='board'|'estate'|'table']
-can be used; put data-mobile-view='board' on board-column etc. Mobile panels hidden
-only when body[data-mobile-panel] is set. Without it default all stack.
-SHEETS: .sheet-header, .sheet-eyebrow, .sheet-title, .sheet-close, .sheet-body,
-.sheet-footer, .option-list > .option-card.is-selected, .option-label,
-.option-detail, .option-meta, .choice-grid > .choice-button.is-selected,
-.worker-choice, .preview-box, .confirm-button, .settings-group, .setting-row,
-.toggle, .range-row, .rules-section, .rules-list, .winner-banner, .rankings.
-UTILITIES: .button(.primary/.secondary/.ghost/.danger/.small), .text-button,
-.muted, .small, .eyebrow, .tag, .badge(.success/.warning), .inline-actions,
-.stack, .hidden, .sr-only, .loading, .error-message, .status-dot.
--->

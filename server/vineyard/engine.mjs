@@ -874,7 +874,7 @@ export function publicView(state, playerId) {
     players: state.players.map(player => ({
       id: player.id, name: player.name, color: player.color, bot: player.bot,
       coins: player.coins, score: player.score, income: player.income, wake: player.wake, passed: player.passed,
-      workers: clone(player.workers), fields: clone(player.fields), grapes: clone(player.grapes), wines: clone(player.wines),
+      workers: { ...clone(player.workers), temporary: player.temporaryWorker ? 1 : 0 }, fields: clone(player.fields), grapes: clone(player.grapes), wines: clone(player.wines),
       structures: [...player.structures], cellar: cellar(player),
       handCounts: Object.fromEntries(HAND_TYPES.map(kind => [kind, player.hand[kind].length])),
     })),

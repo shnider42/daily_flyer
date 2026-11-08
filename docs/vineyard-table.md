@@ -50,6 +50,29 @@ and the official Essential Edition rulebook. The independent game credits Jamey
 Stegmaier, Alan Stone, and Stonemaier Games in its About panel. This is not an
 official digital edition.
 
+## Illustrated tabletop edition
+
+The shared board uses original Tuscan panorama artwork and a twelve-location
+illustration atlas. Action labels and physical-looking worker wells remain HTML
+above the artwork. The circular wells and larger grande pieces reflect the
+server's actual placements, including bonus and overflow positions.
+
+The player mat is drawn from public game state: planted rows show each vine,
+harvested vines lose their fruit, sold plots show a land marker, and grape/wine
+beads occupy numbered storage positions. Built structures are distinct from
+unbuilt opportunities. The four card families use green, purple, ochre, and blue
+faces, illustrated scenes, and prominent yield/order values. A shared reputation
+track and a small personal card dock make progress and hand composition visible.
+
+`estate-visuals.js` owns the state-driven SVG player mat; `visual-v2.css` supplies
+the tabletop presentation. `assets/tuscany-board.webp` and
+`assets/action-atlas.webp` are original generated illustrations optimized as
+WebP assets. Live values, labels, rules, and choices remain accessible HTML.
+The engine only adds the public temporary-worker count for accurate pieces;
+this visual update does not change gameplay rules or save formats.
+
+![Illustrated tabletop release](vineyard-table-visual-v2.webp)
+
 ## Architecture and reuse
 
 `server/vineyard/engine.mjs` is a deterministic, serializable rules engine. It
