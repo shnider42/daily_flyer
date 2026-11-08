@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111513">
+  <meta name="description" content="The Daily Flyer collection. One home for every game, tool, story, and catch-up experience.">
+  <title>Daily Flyer — The Directory</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#collection">Skip to projects</a>
+  <header class="masthead shell">
+    <a class="brand" href="./" aria-label="Daily Flyer directory home">
+      <svg viewBox="0 0 36 36" aria-hidden="true"><path d="M5 8h25L20 18H5z" fill="currentColor"/><path d="M5 21h15L10 31H5z" fill="currentColor" opacity=".5"/></svg>
+      <span>DAILY FLYER<span class="brand-sub">THE DIRECTORY</span></span>
+    </a>
+    <span class="masthead-note"><span class="status-dot"></span> A growing collection</span>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">GAMES / TOOLS / STORIES / CATCH UP</p>
+        <h1 id="page-title">The collection<span>.</span></h1>
+        <p class="intro-copy">Games, tools, and stories. One place to find them.</p>
+      </div>
+      <div class="collection-count" aria-label="Projects in the collection"><span id="total-count">—</span><span>projects<br>and counting</span></div>
+    </section>
+
+    <section class="browse-controls" aria-label="Find a project">
+      <div class="search-sort-row">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 4.6 4.6"/></svg>
+          <label class="sr-only" for="search">Search projects, names, or URLs</label>
+          <input type="search" id="search" placeholder="Find a project, name, or URL…" autocomplete="off" spellcheck="false">
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        <div class="sort-control">
+          <label for="sort">Sort by</label>
+          <select id="sort">
+            <option value="newest">Date added · newest</option>
+            <option value="oldest">Date added · oldest</option>
+            <option value="name">Name · A–Z</option>
+            <option value="type">Type · A–Z</option>
+          </select>
+        </div>
+        <div class="view-control" aria-label="Display style">
+          <button type="button" id="view-grid" aria-label="Card view" aria-pressed="true" title="Card view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+          <button type="button" id="view-list" aria-label="List view" aria-pressed="false" title="List view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12"/><rect x="2" y="3" width="3" height="3" rx=".5"/><rect x="2" y="10" width="3" height="3" rx=".5"/><rect x="2" y="17" width="3" height="3" rx=".5"/></svg></button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <nav class="type-filters" aria-label="Filter by project type" id="type-filters">
+          <button type="button" data-type="all" aria-pressed="true">All projects <span data-count="all">—</span></button>
+          <button type="button" data-type="games" aria-pressed="false">Games <span data-count="games">—</span></button>
+          <button type="button" data-type="catch-up" aria-pressed="false">Catch up <span data-count="catch-up">—</span></button>
+          <button type="button" data-type="tools" aria-pressed="false">Tools <span data-count="tools">—</span></button>
+          <button type="button" data-type="stories" aria-pressed="false">Stories &amp; culture <span data-count="stories">—</span></button>
+        </nav>
+        <button id="favorites-filter" class="favorites-filter" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg> Favorites <span id="favorites-count">0</span></button>
+      </div>
+    </section>
+
+    <div class="results-bar">
+      <p id="results-description" role="status" aria-live="polite">Loading the collection…</p>
+      <div class="results-actions"><button type="button" id="clear-filters" hidden>Clear filters</button><button type="button" id="copy-visible" title="Copy names and URLs for the projects currently shown">Copy links <svg class="inline-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></button></div>
+    </div>
+    <section id="collection" class="project-grid" aria-label="Daily Flyer projects" tabindex="-1"></section>
+    <section id="empty-state" class="empty-state" hidden>
+      <span class="empty-symbol" aria-hidden="true">⌕</span>
+      <h2>No projects found.</h2>
+      <p id="empty-message">Try a different name or clear the filters.</p>
+      <button type="button" id="empty-reset">Show all projects</button>
+    </section>
+    <noscript><div class="empty-state"><h2>JavaScript is needed to browse this directory.</h2><p>The project names and links are also available in <a href="./projects.json">the complete catalog</a>.</p></div></noscript>
+  </main>
+
+  <footer class="footer shell">
+    <p><strong>DAILY FLYER</strong><span>Made to be explored.</span></p>
+    <details><summary>About this directory</summary><div><p>Each card opens the named project in a new tab. Favorites stay in this browser.</p><p>“Date added” uses the earliest recorded build or deployment for that theme. Approximate dates are marked; dates that aren’t recorded sort last.</p><p>Links are a directory, not a live service-status monitor. Some apps may take a moment to wake up.</p></div></details>
+  </footer>
+  <div id="toast" role="status" aria-live="polite" class="toast"></div>
+  <dialog id="copy-dialog" aria-labelledby="copy-dialog-title"><form method="dialog"><button class="dialog-close" aria-label="Close copy dialog">×</button><h2 id="copy-dialog-title">Your project links</h2><p>Copy the selected text below.</p><label class="sr-only" for="copy-text">Project names and links</label><textarea id="copy-text" readonly rows="10"></textarea><button class="dialog-done">Done</button></form></dialog>
+</body>
+</html>

@@ -1,0 +1,13 @@
+import {readFile,copyFile,mkdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+import {validateCatalog} from './catalog.js';
+import {ART_KEYS} from './artwork.js';
+const root=path.dirname(fileURLToPath(import.meta.url));
+const catalog=validateCatalog(JSON.parse(await readFile(path.join(root,'projects.json'),'utf8')));
+for(const project of catalog)if(!ART_KEYS.includes(project.art))throw new Error(`Missing artwork for ${project.id}`);
+const target=path.join(root,'dist');
+await mkdir(target,{recursive:true});
+for(const filename of ['index.html','styles.css','app.js','catalog.js','artwork.js','projects.json','favicon.svg'])await copyFile(path.join(root,filename),path.join(target,filename));
+await writeFile(path.join(target,'release.json'),JSON.stringify({version:'1.0.0',projects:catalog.length,commit:process.env.RENDER_GIT_COMMIT||'local'},null,2)+'\n');
+console.log(`Daily Flyer directory: ${catalog.length} projects built into ${target}`);

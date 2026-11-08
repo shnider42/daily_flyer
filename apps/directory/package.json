@@ -1,0 +1,1 @@
+{"name":"daily-flyer-directory","private":true,"type":"module","scripts":{"check":"node --test catalog.test.js"}}

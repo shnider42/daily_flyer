@@ -1,0 +1,782 @@
+[
+  {
+    "id": "dsl",
+    "title": "DSL",
+    "subtitle": "Double Secret Probation Squad Leader",
+    "description": "Command infantry, armor and support units in WWII hex battles, solo or with friends.",
+    "type": "games",
+    "subtype": "Tactics",
+    "tags": [
+      "Strategy",
+      "Solo",
+      "Co-op",
+      "Multiplayer"
+    ],
+    "art": "dsl",
+    "url": "https://sl-jake.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/ww2-tactics",
+    "createdAt": "2026-09-19",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Double Secret Squad Leader",
+      "Double Secret Probation Squad Leader",
+      "Squad Leader",
+      "SL Jake"
+    ]
+  },
+  {
+    "id": "gridiron",
+    "title": "Pocket Gridiron",
+    "subtitle": "American football, pocket-sized",
+    "description": "Call plays and run the field with NFL teams, special teams and College Classics.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Football",
+      "Solo",
+      "Arcade"
+    ],
+    "art": "gridiron",
+    "url": "https://dfe-pocket-gridiron.onrender.com/gridiron/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-gridiron",
+    "createdAt": "2026-11-01",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "PGI",
+      "Pocket Gridiron",
+      "NFL"
+    ]
+  },
+  {
+    "id": "infierno",
+    "title": "Infierno Liberado",
+    "subtitle": "Hell Let Loose: Vietnam field notes",
+    "description": "Track Vietnam game reports, bugs, evidence and suggestions in one place.",
+    "type": "catch-up",
+    "subtype": "Game intelligence",
+    "tags": [
+      "Gaming",
+      "Bugs",
+      "Research"
+    ],
+    "art": "infierno",
+    "url": "https://hllv-bug-track.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feature/hllv-bug-evidence-tracker",
+    "createdAt": "2026-09-02",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "HLL Vietnam",
+      "HLLV",
+      "Bug Tracker",
+      "Hell Let Loose Vietnam"
+    ]
+  },
+  {
+    "id": "further-in",
+    "title": "Further In",
+    "subtitle": "The rooms keep going",
+    "description": "Explore a three-floor liminal horror experience and piece together the way forward.",
+    "type": "games",
+    "subtype": "Horror",
+    "tags": [
+      "Solo",
+      "Exploration",
+      "Puzzles"
+    ],
+    "art": "further-in",
+    "url": "https://dfe-further-in.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/further-in",
+    "createdAt": "2026-11-04",
+    "datePrecision": "day",
+    "dateSource": "First documented build in the Further In project thread; first Render service followed 5 Nov.",
+    "aliases": [
+      "Backrooms"
+    ]
+  },
+  {
+    "id": "breach",
+    "title": "BREACH",
+    "subtitle": "Enter. Adapt. Get out.",
+    "description": "Take on first-person missions with weapons, exploration, progression and co-op.",
+    "type": "games",
+    "subtype": "Action",
+    "tags": [
+      "FPS",
+      "Co-op",
+      "Missions"
+    ],
+    "art": "breach",
+    "url": "https://dfe-breach.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/breach-fps",
+    "createdAt": "2026-10-29",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Blacksite 07",
+      "Dead Relay",
+      "Beneath the Shadow"
+    ]
+  },
+  {
+    "id": "irish-today",
+    "title": "Irish Today",
+    "subtitle": "A daily window into Ireland",
+    "description": "Read daily Irish culture, history, Gaeilge and county discoveries.",
+    "type": "stories",
+    "subtype": "Daily edition",
+    "tags": [
+      "Ireland",
+      "History",
+      "Culture"
+    ],
+    "art": "irish-today",
+    "url": "https://daily-flyer.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/master",
+    "createdAt": "2026-03-01",
+    "datePrecision": "month",
+    "dateSource": "Theme recorded in March 2026 project history; exact March day is not established. The day component is a sort anchor only.",
+    "aliases": [
+      "Irish Today Daily",
+      "Daily Flyer",
+      "Irish Today Improved"
+    ]
+  },
+  {
+    "id": "garage",
+    "title": "Garage Journey",
+    "subtitle": "A workshop for your curiosities",
+    "description": "Explore vehicles and instruments, their details, upkeep and possible upgrades.",
+    "type": "tools",
+    "subtype": "Workshop",
+    "tags": [
+      "Vehicles",
+      "Instruments",
+      "Learning"
+    ],
+    "art": "garage",
+    "url": "https://jbmw.onrender.com/?theme=garage_journey",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/agent/garage-recovery",
+    "createdAt": "2026-08-27",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Garage",
+      "J BMW",
+      "JBMW"
+    ]
+  },
+  {
+    "id": "night-transfer",
+    "title": "Night Transfer",
+    "subtitle": "An escape after lights-out",
+    "description": "Explore a first-person prison escape with notes, puzzles and the Dead Air chapter.",
+    "type": "games",
+    "subtype": "Escape room",
+    "tags": [
+      "Puzzles",
+      "Co-op",
+      "First person"
+    ],
+    "art": "night-transfer",
+    "url": "https://dfe-night-transfer.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/night-transfer-escape",
+    "createdAt": "2026-11-05",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Dead Air"
+    ]
+  },
+  {
+    "id": "mypassages",
+    "title": "MyPassages",
+    "subtitle": "Find your next passage",
+    "description": "Explore coaching, reflective prompts, practical exercises and ways to book a conversation.",
+    "type": "tools",
+    "subtype": "Coaching",
+    "tags": [
+      "Reflection",
+      "Personal growth",
+      "Coaching"
+    ],
+    "art": "mypassages",
+    "url": "https://mypassages.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/your-passage-site",
+    "createdAt": "2026-05-13",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Your Passage",
+      "New Passage",
+      "My Passages",
+      "Tim Today"
+    ]
+  },
+  {
+    "id": "saltbound",
+    "title": "Saltbound",
+    "subtitle": "Bring your crew home",
+    "description": "Sail for island loot, take on contracts and extract with your crew or on your own.",
+    "type": "games",
+    "subtype": "Adventure",
+    "tags": [
+      "Pirates",
+      "Solo",
+      "Co-op"
+    ],
+    "art": "saltbound",
+    "url": "https://dfe-saltbound.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/saltbound-extraction",
+    "createdAt": "2026-11-04",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": []
+  },
+  {
+    "id": "empires",
+    "title": "Empires",
+    "subtitle": "Choose Empires inside the DSL site",
+    "description": "Found cities, research advances and build a civilization against a rival.",
+    "type": "games",
+    "subtype": "Strategy",
+    "tags": [
+      "Turn based",
+      "Solo",
+      "Multiplayer"
+    ],
+    "art": "empires",
+    "url": "https://sl-jake.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/ww2-tactics",
+    "createdAt": "2026-10-18",
+    "datePrecision": "day",
+    "dateSource": "First documented Empires delivery in project history; it shares the earlier DSL service.",
+    "aliases": [
+      "The Riverlands",
+      "Civilization builder"
+    ]
+  },
+  {
+    "id": "huddle",
+    "title": "Huddle",
+    "subtitle": "Get back into the NFL",
+    "description": "Catch up on NFL games, teams and stories with adjustable reading depth and spoiler controls.",
+    "type": "catch-up",
+    "subtype": "NFL",
+    "tags": [
+      "Football",
+      "Spoiler controls",
+      "Teams"
+    ],
+    "art": "huddle",
+    "url": "https://dfe-nfl-catch-up.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/nfl-catch-up",
+    "createdAt": "2026-11-04",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Back in the Huddle",
+      "NFL Catch Up",
+      "NFL Catch-up"
+    ]
+  },
+  {
+    "id": "vineyard",
+    "title": "Vineyard Table",
+    "subtitle": "A season at the table",
+    "description": "Place workers, grow grapes and fill wine orders in a seasonal board game.",
+    "type": "games",
+    "subtype": "Board game",
+    "tags": [
+      "Strategy",
+      "Solo",
+      "Multiplayer"
+    ],
+    "art": "vineyard",
+    "url": "https://dfe-vineyard-table.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/vineyard-table",
+    "createdAt": "2026-11-07",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Vineyard",
+      "Viticulture inspired"
+    ]
+  },
+  {
+    "id": "roster-radar",
+    "title": "Roster Radar",
+    "subtitle": "Find the fantasy signal",
+    "description": "Review fantasy football news, league profiles and watchlists, with Sleeper imports.",
+    "type": "catch-up",
+    "subtype": "Fantasy football",
+    "tags": [
+      "Football",
+      "Watchlists",
+      "Sleeper"
+    ],
+    "art": "roster-radar",
+    "url": "https://dfe-fantasy-catch-up.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/fantasy-catch-up",
+    "createdAt": "2026-11-04",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Fantasy Catch Up",
+      "Fantasy Football Catch-up"
+    ]
+  },
+  {
+    "id": "lockstep",
+    "title": "LOCKSTEP",
+    "subtitle": "A Blackwell Escape",
+    "description": "Work through three acts of escape-room puzzles, alone or with a small co-op group.",
+    "type": "games",
+    "subtype": "Escape room",
+    "tags": [
+      "Puzzles",
+      "Solo",
+      "Co-op"
+    ],
+    "art": "lockstep",
+    "url": "https://dfe-lockstep.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/lockstep-escape",
+    "createdAt": "2026-11-05",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "A Blackwell Escape",
+      "Blackwell"
+    ]
+  },
+  {
+    "id": "next-chapter",
+    "title": "Next Chapter",
+    "subtitle": "Give career work a place",
+    "description": "Keep opportunities, contacts, follow-ups and reflections in a personal career journal.",
+    "type": "tools",
+    "subtype": "Career journal",
+    "tags": [
+      "Career",
+      "Journal",
+      "Local storage"
+    ],
+    "art": "next-chapter",
+    "url": "https://dfe-next-chapter.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/next-chapter-career",
+    "createdAt": "2026-11-03",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Prospect Tracker",
+      "Career Journal"
+    ]
+  },
+  {
+    "id": "soph-slump",
+    "title": "Soph(more) Slump(?)",
+    "subtitle": "What happens in year two?",
+    "description": "Explore second-year performance across football, baseball and bowling.",
+    "type": "tools",
+    "subtype": "Sports explorer",
+    "tags": [
+      "Football",
+      "Baseball",
+      "Bowling",
+      "Stats"
+    ],
+    "art": "soph-slump",
+    "url": "https://soph-slump.onrender.com/?theme=qb_year_two",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/qb-year-two-explorer",
+    "createdAt": "2026-09-28",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Sophomore Slump",
+      "Soph Slump",
+      "QB Year Two",
+      "Year Two Explorer"
+    ]
+  },
+  {
+    "id": "magic-catch-up",
+    "title": "Magic Catch Up",
+    "subtitle": "Back to the multiverse",
+    "description": "Rejoin Magic through format guides, milestones and reading paths for returning players.",
+    "type": "catch-up",
+    "subtype": "Card games",
+    "tags": [
+      "Magic",
+      "Learning",
+      "Formats"
+    ],
+    "art": "magic-catch-up",
+    "url": "https://mtg-catch-up.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/mtg-catch-up",
+    "createdAt": "2026-10-27",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "MTG Catch Up",
+      "Magic the Gathering Catch-up"
+    ]
+  },
+  {
+    "id": "rlcs",
+    "title": "RLCS Catch Up",
+    "subtitle": "Return to the arena",
+    "description": "Follow Rocket League esports history and pick up the story from your own starting point.",
+    "type": "catch-up",
+    "subtype": "Esports",
+    "tags": [
+      "Rocket League",
+      "Spoiler controls",
+      "History"
+    ],
+    "art": "rlcs",
+    "url": "https://rlcs-catch-up.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/rlcs-catch-up",
+    "createdAt": "2026-10-26",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Rocket League Championship Series",
+      "Rocket League Catch-up"
+    ]
+  },
+  {
+    "id": "skyward",
+    "title": "SKYWARD",
+    "subtitle": "A century of flight",
+    "description": "Fly historical aircraft through missions, free flight and shared skies.",
+    "type": "games",
+    "subtype": "Flight",
+    "tags": [
+      "Aircraft",
+      "Missions",
+      "Multiplayer"
+    ],
+    "art": "skyward",
+    "url": "https://dfe-skyward.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/skyward-flight",
+    "createdAt": "2026-11-05",
+    "datePrecision": "day",
+    "dateSource": "First documented build in the SKYWARD project thread, America/New_York; Render service followed 6 Nov.",
+    "aliases": [
+      "Skyward Flight"
+    ]
+  },
+  {
+    "id": "hockey",
+    "title": "Pocket Hockey",
+    "subtitle": "Own the ice",
+    "description": "Play 6-on-6 hockey with board rebounds, checks, goalie saves and cup play.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Hockey",
+      "Solo",
+      "Arcade"
+    ],
+    "art": "hockey",
+    "url": "https://dfe-pocket-soccer.onrender.com/sports/?sport=hockey",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-hockey-soccer",
+    "createdAt": "2026-11-07",
+    "datePrecision": "day",
+    "dateSource": "Pocket Hockey and Soccer first delivered together on 7 Nov; the shared Render service was created that evening in America/New_York.",
+    "aliases": [
+      "Pocket Sports",
+      "NHL"
+    ]
+  },
+  {
+    "id": "soccer",
+    "title": "Pocket Soccer",
+    "subtitle": "Under the floodlights",
+    "description": "Play 11-a-side soccer with European clubs, historic Dortmund sides and cup play.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Soccer",
+      "Solo",
+      "Arcade"
+    ],
+    "art": "soccer",
+    "url": "https://dfe-pocket-soccer.onrender.com/sports/?sport=soccer",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-hockey-soccer",
+    "createdAt": "2026-11-07",
+    "datePrecision": "day",
+    "dateSource": "Pocket Hockey and Soccer first delivered together on 7 Nov; the Render service was created that evening in America/New_York.",
+    "aliases": [
+      "Pocket Sports",
+      "European Football",
+      "Dortmund"
+    ]
+  },
+  {
+    "id": "sleeve-notes",
+    "title": "The Sleeve Notes",
+    "subtitle": "Follow the people behind the records",
+    "description": "Trace musicians, producers and album credits, then keep a shelf of your own records.",
+    "type": "tools",
+    "subtype": "Music discovery",
+    "tags": [
+      "Music",
+      "Connections",
+      "Records"
+    ],
+    "art": "sleeve-notes",
+    "url": "https://music-master.onrender.com/?theme=vinyl_crossovers",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/vinyl-crossovers",
+    "createdAt": "2026-09-15",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Music Graph",
+      "Vinyl Crossovers",
+      "Music Master",
+      "Sleeve Notes"
+    ]
+  },
+  {
+    "id": "battlezone",
+    "title": "Battlezone 1980",
+    "subtitle": "Green lines. Open terrain.",
+    "description": "Drive a vector tank, line up shots and survive escalating arcade waves.",
+    "type": "games",
+    "subtype": "Arcade",
+    "tags": [
+      "Tanks",
+      "Solo",
+      "Retro"
+    ],
+    "art": "battlezone",
+    "url": "https://dfe-battlezone.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/battlezone-1980",
+    "createdAt": "2026-10-15",
+    "datePrecision": "day",
+    "dateSource": "First saved Battlezone build in project history; the Render service was added later on 29 Oct.",
+    "aliases": [
+      "Battlezone"
+    ]
+  },
+  {
+    "id": "when-ants-stare",
+    "title": "WHEN ANTS STARE",
+    "subtitle": "Settle into the story",
+    "description": "Read the novel excerpt with day and night modes, reading progress and favorite-line copying.",
+    "type": "stories",
+    "subtype": "Fiction",
+    "tags": [
+      "Reading",
+      "Novel",
+      "Day / night"
+    ],
+    "art": "when-ants-stare",
+    "url": "https://when-ants-stare.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/when-ants-stare",
+    "createdAt": "2026-10-17",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "When Ants Stare"
+    ]
+  },
+  {
+    "id": "last-exit",
+    "title": "Last Exit",
+    "subtitle": "One more turn through the city",
+    "description": "Drive and explore a Boston-inspired city with traffic, police and on-foot play.",
+    "type": "games",
+    "subtype": "Driving",
+    "tags": [
+      "Driving",
+      "Exploration",
+      "Multiplayer"
+    ],
+    "art": "last-exit",
+    "url": "https://dfe-last-exit.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/last-exit-driving",
+    "createdAt": "2026-11-02",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Last Exit Driving",
+      "Boston",
+      "Cambridge"
+    ]
+  },
+  {
+    "id": "afterglow",
+    "title": "Afterglow",
+    "subtitle": "Keep the live music going",
+    "description": "Find artists, shows and venues, follow their sources and save what catches your ear.",
+    "type": "tools",
+    "subtype": "Live music",
+    "tags": [
+      "Music",
+      "Concerts",
+      "Discovery"
+    ],
+    "art": "afterglow",
+    "url": "https://dfe-afterglow.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/afterglow-live-music",
+    "createdAt": "2026-10-19",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Shows Tracker",
+      "Live Music Tracker"
+    ]
+  },
+  {
+    "id": "claim-denied",
+    "title": "Claim Denied",
+    "subtitle": "Hold the house",
+    "description": "Defend a house from zombie waves with weapons, barricades and co-op squad play.",
+    "type": "games",
+    "subtype": "Survival",
+    "tags": [
+      "Zombies",
+      "Co-op",
+      "Defense"
+    ],
+    "art": "claim-denied",
+    "url": "https://dfe-claim-denied.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/claim-denied",
+    "createdAt": "2026-11-03",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Executive Retreat"
+    ]
+  },
+  {
+    "id": "magic-duel",
+    "title": "Magic Duel",
+    "subtitle": "Five colors on the tabletop",
+    "description": "Play a card duel against the computer with colored mana, combat and blocking.",
+    "type": "games",
+    "subtype": "Card game",
+    "tags": [
+      "Cards",
+      "Solo",
+      "Strategy"
+    ],
+    "art": "magic-duel",
+    "url": "https://mag-the-gag.onrender.com/?theme=magic_duel_tabletop_v2",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feature/magic-duel-theme-v2",
+    "createdAt": "2026-08-25",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Magic Duel Tabletop",
+      "Magic Duel Tabletop v2",
+      "Mag the Gag"
+    ]
+  },
+  {
+    "id": "relay-fieldguide",
+    "title": "Relay Fieldguide",
+    "subtitle": "A race-day companion",
+    "description": "Keep relay runners and crews oriented through race-day information and planning.",
+    "type": "tools",
+    "subtype": "Running",
+    "tags": [
+      "Relay",
+      "Planning",
+      "Prototype"
+    ],
+    "art": "relay-fieldguide",
+    "url": "https://dfe-relay-fieldguide.onrender.com/#overview",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/relay-companion",
+    "createdAt": "2026-10-29",
+    "datePrecision": "day",
+    "dateSource": "First Render service recorded; America/New_York calendar date.",
+    "aliases": [
+      "Ragnar prototype",
+      "Relay Companion",
+      "Race-day Companion"
+    ]
+  },
+  {
+    "id": "farwake",
+    "title": "FARWAKE",
+    "subtitle": "The Quiet Earth",
+    "description": "Pilot your ship, explore on foot and follow old transmissions through a shared galaxy.",
+    "type": "games",
+    "subtype": "Space exploration",
+    "tags": [
+      "Space",
+      "Solo",
+      "Multiplayer"
+    ],
+    "art": "farwake",
+    "url": "https://dfe-farwake.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/farwake-galaxy",
+    "createdAt": "2026-11-08",
+    "datePrecision": "day",
+    "dateSource": "Initial FARWAKE request and first build recorded 8 Nov in America/New_York; first commit 2c2b808 at 01:26.",
+    "aliases": [
+      "The Quiet Earth",
+      "Farwake Galaxy"
+    ]
+  },
+  {
+    "id": "dayboard",
+    "title": "Dayboard",
+    "subtitle": "A little room for what is next",
+    "description": "Organize personal tasks and projects with a Kanban board, Today view and local backups.",
+    "type": "tools",
+    "subtype": "Personal board",
+    "tags": [
+      "Tasks",
+      "Planning",
+      "Local storage"
+    ],
+    "art": "dayboard",
+    "url": "https://dfe-dayboard.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/dayboard-personal",
+    "createdAt": "2026-11-08",
+    "datePrecision": "day",
+    "dateSource": "First Dayboard build commit 835956b, 8 Nov 2026 at 14:29 America/New_York.",
+    "aliases": [
+      "Personal Kanban",
+      "Life Board"
+    ]
+  }
+]
