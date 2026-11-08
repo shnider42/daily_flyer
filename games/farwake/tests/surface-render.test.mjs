@@ -82,9 +82,9 @@ test('space labels preserve world picking, fit the capital and cache artwork aft
  try{
   const game=demoGame('capital'),ctx=new FakeCanvas(200,340).ctx,renderer=new SpaceRenderer(),labels=[],remoteShips=[{id:'remote-test',name:'Captain Vale',ship:{name:'Wayfarer II',x:180,y:250,shipClass:'hauler',hull:100,maxHull:100}}],before=JSON.stringify({game,remoteShips});
   const view=renderer.draw(ctx,game,{width:200,height:340,time:1,labels,remoteShips,motion:false});
-  assert.ok(SHIP_VISUALS.capital.length*view.zoom<=200*.44+.01);assert.deepEqual(renderer.toWorld(100,170),{x:100,y:200});
-  const picked=renderer.toWorld(100+40*view.zoom,170-30*view.zoom);assert.ok(Math.hypot(picked.x-140,picked.y-170)<1e-8);assert.equal(ctx.textCalls.length,0);
-  const remote=labels.find(l=>l.kind==='remote');assert.equal(remote.text,'Wayfarer II');assert.equal(remote.x,Math.round(100+80*view.zoom));
+  assert.ok(SHIP_VISUALS.capital.length*view.zoom<=200*.44+.01);assert.deepEqual(renderer.toWorld(100,170),{x:view.cameraX,y:view.cameraY});assert.deepEqual(renderer.camera,{x:100,y:200},'the eased camera keeps its original continuous coordinates');assert.ok(Math.abs(view.cameraX-100)*view.zoom<=.5);
+  const picked=renderer.toWorld(100+40*view.zoom,170-30*view.zoom);assert.ok(Math.hypot(picked.x-(view.cameraX+40),picked.y-(view.cameraY-30))<1e-8);assert.equal(ctx.textCalls.length,0);
+  const remote=labels.find(l=>l.kind==='remote');assert.equal(remote.text,'Wayfarer II');assert.equal(remote.x,Math.round(180*view.zoom+view.offsetX));
   assert.ok(labels.some(l=>l.kind==='place'));assert.equal(JSON.stringify({game,remoteShips}),before);
   // Warm both beacon phases; a moving frame must not allocate new canvases.
   renderer.draw(ctx,game,{time:1,labels:[],motion:true,remoteShips});renderer.draw(ctx,game,{time:2,labels:[],motion:true,remoteShips});

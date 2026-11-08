@@ -1,6 +1,7 @@
 import {pixelRect,pixelLine,pixelRing,labelSink} from './pixel-art.mjs';
 import {resolveCabinClass} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
+import {beginPixelFrame,pixelCamera,worldToCanvas,canvasToWorld} from './render-viewport.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function random(seed){return()=>{seed|=0;seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^(seed>>>15),1|seed);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296;};}
@@ -138,8 +139,11 @@ export class SpaceRenderer{
   const targetX=ship.x+(welcome?-160:0),targetY=ship.y+(welcome?-40:0);
   if(this.lastSystem!==s.systemId){this.camera={x:targetX,y:targetY};this.lastSystem=s.systemId;this.particles=[];this.health.clear();}
   const follow=motion?1-Math.pow(.88,frameDt*60):1;this.camera.x+=(targetX-this.camera.x)*follow;this.camera.y+=(targetY-this.camera.y)*follow;const cx=this.camera.x,cy=this.camera.y;this.w=w;this.h=h;
-  const to=(x,y)=>({x:Math.round((x-cx)*z+w/2),y:Math.round((y-cy)*z+h/2)}),visible=(p,r=35)=>p.x>-r&&p.x<w+r&&p.y>-r&&p.y<h+r;
-  ctx.save();ctx.imageSmoothingEnabled=false;pixelRect(ctx,'#06121f',0,0,w,h);
+  // A shared integer origin keeps adjacent world pixels moving together.
+  // The eased camera above remains continuous for prediction and follow motion.
+  const view=pixelCamera({cameraX:cx,cameraY:cy,width:w,height:h,zoom:z,centered:true});this.view=view;
+  const to=(x,y)=>worldToCanvas(x,y,view),visible=(p,r=35)=>p.x>-r&&p.x<w+r&&p.y>-r&&p.y<h+r;
+  beginPixelFrame(ctx);ctx.save();pixelRect(ctx,'#06121f',0,0,w,h);
   const nebula=this.nebula(s.systemId||'hearth'),nx=((Math.round(-cx*.024)%512)+512)%512,ny=((Math.round(-cy*.024)%512)+512)%512;for(let yy=ny-512;yy<h;yy+=512)for(let xx=nx-512;xx<w;xx+=512)ctx.drawImage(nebula,xx,yy);
   for(const st of this.stars){const x=((st.x*w*2-cx*st.depth)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size,st.size);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2,y,6,1);pixelRect(ctx,st.color,x,y-2,1,6);}}ctx.globalAlpha=1;
   const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId);
@@ -199,8 +203,8 @@ export class SpaceRenderer{
    if(target){const p=to(target.x,target.y),d=Math.hypot(target.x-ship.x,target.y-ship.y);if(p.x<25||p.x>w-25||p.y<25||p.y>h-35){const ex=clamp(p.x,18,w-18),ey=clamp(p.y,28,h-35),angle=Math.atan2(p.y-sp.y,p.x-sp.x);const ax=ex+Math.cos(angle)*6,ay=ey+Math.sin(angle)*6;pixelLine(ctx,ax,ay,ex+Math.cos(angle+2.5)*5,ey+Math.sin(angle+2.5)*5,'#e6cb91',2);pixelLine(ctx,ax,ay,ex+Math.cos(angle-2.5)*5,ey+Math.sin(angle-2.5)*5,'#e6cb91',2);emit(`${target.name||'Mining belt'} · ${Math.round(d)} m`,ex+(ex>w/2?-9:9),ey-4,'#e8d4a4',13,ex>w/2?'right':'left',100,'objective');}else{pixelRing(ctx,p.x,p.y,Math.max(15,(target.radius||20)*z+7),Math.max(15,(target.radius||20)*z+7),'#d9c38b66',{dashed:true});}}
   }
   if(s.jumpFlash>0){ctx.globalAlpha=Math.min(.5,s.jumpFlash*.3);pixelRect(ctx,'#acdcd2',0,0,w,h);ctx.globalAlpha=1;}
-  ctx.restore();return{cameraX:cx,cameraY:cy,zoom:z,width:w,height:h};
+  ctx.restore();return{cameraX:view.cameraX,cameraY:view.cameraY,zoom:z,width:w,height:h,offsetX:view.offsetX,offsetY:view.offsetY};
  }
- toWorld(x,y){return{x:(x-this.w/2)/this.zoom+this.camera.x,y:(y-this.h/2)/this.zoom+this.camera.y};}
+ toWorld(x,y){return this.view?canvasToWorld(x,y,this.view):{x:(x-this.w/2)/this.zoom+this.camera.x,y:(y-this.h/2)/this.zoom+this.camera.y};}
  radar(ctx,game,tracked){const w=ctx.canvas.width,h=ctx.canvas.height,s=game.state.ship,sys=game.system||{},cx=w/2,cy=h/2,r=Math.min(w,h)/2-8;ctx.clearRect(0,0,w,h);for(const n of[.3,.65,1])pixelRing(ctx,cx,cy,r*n,r*n,'#35536288');pixelLine(ctx,cx-r,cy,cx+r,cy,'#2b475466');pixelLine(ctx,cx,cy-r,cx,cy+r,'#2b475466');const scale=r/1900,dot=(x,y,col,size=3)=>{const px=cx+(x-s.x)*scale,py=cy+(y-s.y)*scale;if(Math.hypot(px-cx,py-cy)>r)return;pixelRect(ctx,col,px-size/2,py-size/2,size,size);};for(const a of sys.asteroids||[])if(!a.depleted)dot(a.x,a.y,'#536768',2);for(const b of sys.bodies||[])dot(b.x,b.y,b.id===tracked?'#ebcf99':'#8bbfb5',b.kind==='station'?5:7);for(const e of sys.enemies||[])if(!e.dead)dot(e.x,e.y,'#db8870',4);for(const p of sys.signals||[])if(!p.resolved)dot(p.x,p.y,'#aab5d3',4);pixelLine(ctx,cx,cy,cx+Math.cos(s.angle||0)*7,cy+Math.sin(s.angle||0)*7,'#eee6c4',2);}
 }

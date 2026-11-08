@@ -6,6 +6,8 @@ import {Game, distance} from '../dist/engine.mjs';
 import {getShipClass, cabinLayout} from '../dist/fleet.mjs';
 import {generateSurface, isWalkable, nearestEntity} from '../dist/surface.mjs';
 import {TEST_SCENARIOS, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
+import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
+import {SIDEARM} from '../dist/combat.mjs';
 
 // Exercise the real app handlers with a small DOM boundary, without opening a
 // browser, invoking the render loop, or replacing the actual Game rules.
@@ -16,7 +18,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat'];
 const appCode=names.map(declaration).join('\n');
 
 function classes() {
@@ -27,16 +29,18 @@ function element() {
   return {hidden:false,value:'',textContent:'',children:[],attributes:{},classList:classes(),append(...children){this.children.push(...children);},replaceChildren(...children){this.children=[...children];},setAttribute(key,value){this.attributes[key]=value;},addEventListener(){},insertAdjacentHTML(){},focus(){},select(){}};
 }
 function fixture() {
-  const elements=new Map(),writes=[],toasts=[],opened=[],effects=[];
+  const elements=new Map(),writes=[],guidanceWrites=[],toasts=[],opened=[],effects=[];
+  const tutorial=new TutorialRuntime({nonce:'app-test-mode',storage:{getItem:()=>null,setItem:(...args)=>guidanceWrites.push(args)}});
   const normal=new Game('normal-voyage-to-preserve');normal.state.credits=623;normal.state.flags.push('a-earned-milestone');
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,
+  const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element()},dialog,
     game:normal,stored,tracked:'saved-contact',playing:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
     network:null,onlineSnapshot:null,connectionState:'offline',surface:null,surfaceKey:'',surfaceTarget:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
     stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
+    tutorial,settings:{guidance:'simple',leftHanded:false},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,hideCoach(){},
     audio:{unlock(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
     hudText:(target,text)=>{target.textContent=text;},esc:value=>String(value??''),fmt:value=>String(value),toast:(...args)=>toasts.push(args),
     saveGame:game=>{writes.push(game.serialize());return true;},readPassport:()=>null,readPassports:()=>({}),openEncounter:encounter=>effects.push(encounter),processCombatEvent:()=>false,
@@ -44,7 +48,7 @@ function fixture() {
     FarwakeNetwork:class {constructor(){throw new Error('Test mode must not construct a network transport.');}},
   });
   vm.runInContext(appCode,context);
-  return {context,normal,stored,elements,writes,toasts,opened,effects,dialog,call:(name,...args)=>context[name](...args)};
+  return {context,normal,stored,elements,writes,guidanceWrites,tutorial,toasts,opened,effects,dialog,call:(name,...args)=>context[name](...args)};
 }
 function enter(fixture,scenario='boarding') {
   const session=createTestSession({scenario,seed:'app-isolation'});fixture.call('enterTestSession',session);return session;

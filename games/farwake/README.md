@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.3.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.3.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Mobile clarity and action guidance · 0.3.1
+
+Mobile now uses a compact status strip and one captain's menu. The full mission, cargo, contacts, and systems remain available without permanently covering the world. A context action appears only when there is something to use; a single contextual teaching card replaces stacked instructions. Narrow portrait, landscape, left-handed controls, safe areas, and enlarged text/control settings have their own layout rules. Desktop keyboard flight is unchanged.
+
+The **left STEER stick points toward a world heading and adds analog thrust** as the bow turns into alignment. A hull-aware damped controller supplies ordinary turn input to the existing angular physics; it never snaps orientation or replaces velocity. The small **right STRAFE stick is horizontal only**, relative to the bow. **FIRE** is a separate button above it; **BRAKE** slows the ship. **Tools** opens held mining and boost controls. Person combat retains independent walking and aim/fire sticks.
+
+**Simple** teaches the first two confirmed uses of flight, walking, docking, interaction, work, mining, combat, boarding, and helm actions. Control progress is separate for keyboard and touch. Lessons advance on real movement or acknowledged results, not elapsed time, button presses against a wall, or another crew member's actions. Menus offer Action help, Repeat the last action tip, and Settings → Replay action tips. Moderate shows requested hints; Expert stays silent. Guidance is stored separately per solo save/shared captain, and exercises keep their learning only in memory.
+
+Pixel-art rendering uses one snapped camera raster origin while simulation stays continuous. The viewport aligns to whole device pixels; mobile expands a reusable logical canvas into a native-resolution presentation canvas with smoothing disabled. World labels remain independently drawn at native text resolution and follow text size. This removes avoidable CSS upscaling, but physical iOS Safari timing/compositor behavior still needs device testing. Test coverage includes DPR 1/1.25/2/3, fractional origins, viewport changes, exact picking, independent pointers, prediction, confirmed action learning, and existing persistent boarding behavior.
 
 ## Combat, boarding, and isolated practice · 0.3.0
 
@@ -140,15 +150,16 @@ On the galaxy map, drag to pan, select a star to inspect it, and use the wheel o
 
 ### Touch
 
-The two sticks and action buttons own their touches independently:
+The two sticks and held buttons own their touches independently:
 
-- **Left stick — JETS:** push up for thrust, down to decelerate, or sideways to strafe. In person mode it becomes **MOVE**.
-- **Right stick — TURN / FIRE ↑:** move sideways to rotate; push upward beyond the firing threshold to hold fire while continuing to turn. During boarding, push it in any direction to aim and fire your sidearm.
-- The separate **Fire** button remains available. The center controls provide **Boost / Run**, **Mine / Log**, and **Use**. The context strip handles docking and nearby interactions.
+- **Left stick — STEER:** point toward the direction you want to fly. The bow turns with angular inertia, and thrust builds as it lines up. Release to coast.
+- **Right stick — STRAFE:** slide left/right relative to the ship's bow. Vertical movement has no effect and never fires.
+- **FIRE:** hold the separate button above STRAFE to fire ship pulses.
+- **BRAKE:** hold to slow the ship; larger hulls take longer.
+- **Tools:** open the tray to hold MINE or BOOST.
+- **Person mode:** WALK moves your captain. In combat the other stick becomes a full two-axis AIM / FIRE control; the separate FIRE button uses the marked assisted target when no manual aim is held. RUN is available beside the walking controls. The world action button talks, uses a workstation, or returns through an airlock.
 
-This allows two thumbs to control thrust/strafe and turning/fire simultaneously. Map, log, ship, and crew controls open their respective panels; the ship panel also provides access to the deck and manifest.
-
-Settings can enlarge the touch controls and swap the two thumb controls. Input is cleared when a menu opens, the layout changes, the page loses focus, or a touch is cancelled, preventing a held action from carrying across those transitions.
+The header's **Menu** opens the map, log, ship, contacts, action help, and settings. **CREW** stays visible for shared-galaxy access. The compact status strip opens full ship details. Settings can enlarge controls and swap their physical positions without reversing their axes. Menus, focus loss, orientation changes, and pointer cancellation release the relevant input; a harmless viewport resize does not interrupt another held control.
 
 ## Shared galaxies
 

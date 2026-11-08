@@ -448,7 +448,7 @@ export class Game {
     this.system.bullets.push(bullet);
     sh.energy -= 3;
     this._shotTimer = 0.25;
-    this._event('shot', { x: bullet.x, y: bullet.y, angle });
+    this._event('shot', { id: bullet.id, ownerId: bullet.ownerId, shooterId: bullet.shooterId, vesselId: bullet.vesselId, x: bullet.x, y: bullet.y, angle });
   }
 
   _mine(dt) {
@@ -474,7 +474,7 @@ export class Game {
       this._flag('mined_ore'); this._flag('first_mining');
       if (this.state.stats.oreMined >= 6) this._flag('mined_six_ore');
       if (crystal) this._flag('found_crystal');
-      this._event('mined', { x: target.x, y: target.y, ore, crystal, text: `+${ore} ore${crystal ? ' · +1 crystal' : ''}` });
+      this._event('mined', { id: `mined:${this.state.systemId}:${target.id}`, ownerId: this.playerId, vesselId: this.netVesselId || sh.id, targetId: target.id, x: target.x, y: target.y, ore, crystal, text: `+${ore} ore${crystal ? ' · +1 crystal' : ''}` });
       if (ore < target.ore || crystal < target.crystal) {
         this._dropPickup({ id: `${target.id}:spill`, x: target.x, y: target.y, ore: target.ore - ore, crystal: target.crystal - crystal, credits: 0 });
       }
@@ -765,7 +765,7 @@ export class Game {
     if (!(credits || ore || crystal)) return this._fail('Your cargo hold is full.', 'cargo');
     if (!item.ore && !item.crystal) this.system.pickups = this.system.pickups.filter(p => p.id !== id);
     this.state.stats.salvaged++; this._flag('salvaged_wreck');
-    this._event('salvage', { x: item.x, y: item.y, text: `Recovered${credits ? ` ${credits} cr` : ''}${ore ? ` · ${ore} ore` : ''}${crystal ? ` · ${crystal} crystal` : ''}` });
+    this._event('salvage', { id: `salvage:${this.state.systemId}:${item.id}`, ownerId: this.playerId, vesselId: this.netVesselId || this.state.ship.id, pickupId: item.id, x: item.x, y: item.y, text: `Recovered${credits ? ` ${credits} cr` : ''}${ore ? ` · ${ore} ore` : ''}${crystal ? ` · ${crystal} crystal` : ''}` });
     this._refreshJobs(); this._checkChapters();
     return this._ok({ credits, ore, crystal });
   }

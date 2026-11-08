@@ -92,8 +92,16 @@ test('camera follow has the same response at 30, 60 and 144 Hz and preserves wor
       const renderer = new SpaceRenderer(), ctx = new FakeCanvas(400, 300).context;
       const game = {state: {systemId: 'camera-test', ship: {id: 'cinder', x: 0, y: 0, hull: 100}}, system: {bodies: [], enemies: [], traffic: [], asteroids: [], signals: [], pickups: [], bullets: []}};
       renderer.draw(ctx, game, {time: 0, labels: []}); game.state.ship.x = 100;
-      for (let i = 1; i <= fps; i++) renderer.draw(ctx, game, {time: i / fps, labels: []});
-      results.push(renderer.camera.x); close(renderer.toWorld(200, 150).x, renderer.camera.x);
+      let view;
+      for (let i = 1; i <= fps; i++) view = renderer.draw(ctx, game, {time: i / fps, labels: []});
+      results.push(renderer.camera.x); close(renderer.camera.x, 100 * (1 - Math.pow(.88, 60)));
+      assert.equal(view.offsetX, Math.round(200 - renderer.camera.x * view.zoom));
+      assert.equal(view.offsetY, Math.round(150 - renderer.camera.y * view.zoom));
+      close(renderer.toWorld(200, 150).x, view.cameraX); close(renderer.toWorld(200, 150).y, view.cameraY);
+      for (const [x, y] of [[0, 0], [73, 229], [399, 299]]) {
+        const picked = renderer.toWorld(x, y);
+        close(picked.x, (x - view.offsetX) / view.zoom); close(picked.y, (y - view.offsetY) / view.zoom);
+      }
       const before = renderer.camera.x; renderer.draw(ctx, game, {time: 1, labels: []}); close(renderer.camera.x, before);
     }
     close(results[0], results[1]); close(results[1], results[2]);

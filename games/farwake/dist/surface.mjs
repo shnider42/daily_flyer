@@ -5,6 +5,7 @@
  * movePerson mutates and returns person. dt is seconds, input is a -1..1 vector.
  * drawSurface draws only the world and returns {cameraX,cameraY,width,height}.
  */
+import {beginPixelFrame} from './render-viewport.mjs';
 import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
@@ -552,7 +553,7 @@ export function drawSurface(ctx,surface,options={}){
  const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>!effect.boardingId||effect.boardingId===options.boarding?.id):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
  const aim=combatActive?(options.combat?.aim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.shipClass)):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
- ctx.save();ctx.imageSmoothingEnabled=false;pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
+ beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)tileDraw(ctx,surface,x,y,p,time);
  for(const room of surface.rooms||[]){ctx.globalAlpha=.10;pixel(ctx,room.color, (room.x+1)*T,(room.y+1)*T,(room.w-2)*T,(room.h-2)*T);ctx.globalAlpha=1;}
