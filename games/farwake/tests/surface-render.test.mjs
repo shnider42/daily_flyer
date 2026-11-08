@@ -1,0 +1,100 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {generateSurface,isWalkable,movePerson,nearestEntity,drawSurface,repairSolution} from '../dist/surface.mjs';
+import {CABIN_CLASSES,cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
+import {SpaceRenderer,drawShip,SHIP_VISUALS} from '../dist/space-art.mjs';
+import {seededRandom} from '../dist/engine.mjs';
+
+function flood(layout){
+ const index=p=>Math.floor(p.y/24)*layout.cols+Math.floor(p.x/24),start=index(layout.spawn),parent=new Map([[start,null]]),queue=[start];
+ for(let i=0;i<queue.length;i++){
+  const n=queue[i],x=n%layout.cols,y=Math.floor(n/layout.cols);
+  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy,k=yy*layout.cols+xx;if(xx<0||xx>=layout.cols||yy<0||yy>=layout.rows||!layout.walkable[k]||parent.has(k))continue;parent.set(k,n);queue.push(k);}
+ }
+ return{parent,index};
+}
+
+for(const[classId,berths]of CABIN_CLASSES.map((c,i)=>[c,4+i*2]))test(`${classId}: cabins, crew and boarding use one reachable collision map`,()=>{
+ const crew=Array.from({length:12},(_,i)=>({id:`crew-${i}`,name:`Crew ${i}`,role:i%2?'security':'engineer',health:100}));
+ crew.unshift({id:'fallen',name:'Memorial',role:'engineer',health:0,status:'dead'});
+ const location={id:'ship:shared',kind:'ship',shipClassId:classId,crew,bunkAssignments:{1:{captainId:'guest'}}},layout=cabinLayout(location),surface=generateSurface(location,'crew-check');
+ const {parent,index}=flood(layout);
+ assert.equal(surface.berths,berths);assert.equal(surface.entities.filter(e=>e.type==='bunk').length,berths);
+ assert.equal(surface.entities.filter(e=>e.type==='crew').length,berths-1);assert.ok(!surface.entities.some(e=>e.data?.crewId==='fallen'));
+ assert.equal(surface.entities.find(e=>e.id==='ship:shared:bunk:1').data.assignedTo,'guest');
+ assert.equal(surface.entities.find(e=>e.id==='ship:shared:exit').data.stationRole,'helm');
+ assert.equal(new Set(layout.combatSpawns.map(p=>index(p))).size,4,'four raiders need distinct arrival positions');
+ assert.equal(new Set(layout.crewSpawns.map(p=>index(p))).size,9,'a capital boarding party can enter a smaller vessel');
+ for(const p of [...surface.entities,...layout.breaches,...layout.combatSpawns,...layout.crewSpawns]){
+  assert.ok(isCabinWalkable(layout,p.x,p.y),`${p.id||p.name||index(p)} is clear in the authority map`);
+  assert.ok(parent.has(index(p)),`${p.id||p.name||index(p)} can be reached through doors`);
+ }
+ for(let y=0;y<layout.rows;y++)for(let x=0;x<layout.cols;x++)assert.equal(isWalkable(surface,(x+.5)*24,(y+.5)*24),Boolean(layout.walkable[y*layout.cols+x]),`renderer and AI disagree at ${x},${y}`);
+ // Walk the actual collision code to the helm, including every corridor turn.
+ const path=[];for(let n=index(surface.exit);n!==null;n=parent.get(n))path.push(n);path.reverse();
+ const person={...surface.spawn,speed:120};
+ for(const n of path.slice(1)){const x=(n%layout.cols+.5)*24,y=(Math.floor(n/layout.cols)+.5)*24,dx=Math.abs(x-person.x)<.001?0:Math.sign(x-person.x),dy=Math.abs(y-person.y)<.001?0:Math.sign(y-person.y);movePerson(surface,person,dx,dy,.2);assert.ok(Math.hypot(person.x-x,person.y-y)<.01,`walk stopped at ${person.x},${person.y} before ${x},${y}`);}
+ assert.equal(nearestEntity(surface,person,10)?.data.stationRole,'helm');
+});
+
+class FakeCanvas{
+ static allocations=0;
+ constructor(width,height){this.width=width;this.height=height;this.ctx=new FakeContext(this);FakeCanvas.allocations++;}
+ getContext(){return this.ctx;}
+}
+class FakeContext{
+ constructor(canvas){this.canvas=canvas;this.textCalls=[];this.imageCalls=0;}
+ save(){}restore(){}translate(){}rotate(){}scale(){}fillRect(){}clearRect(){}strokeRect(){}setLineDash(){}
+ drawImage(){this.imageCalls++;}fillText(...args){this.textCalls.push(args);}measureText(s){return{width:String(s).length*6};}
+}
+test('surface labels stay sharp, camera-relative and immutable for remote crew and boarders',()=>{
+ const surface=generateSurface({id:'ship:labels',kind:'ship',shipClass:'capital'},'labels'),cameraX=600,cameraY=600,person={x:708,y:684,health:85,maxHealth:100,facing:'up'};
+ const remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:740,y:720,facing:'left'}],boardingActors=[{id:'raider',name:'Boarding raider',x:800,y:750,team:'hostile',health:23,maxHealth:52,lastShot:{x:800,y:740,targetX:708,targetY:674,until:9}}];
+ const snapshot=JSON.stringify({surface,person,remotePeople,boardingActors}),ctx=new FakeCanvas(360,260).ctx,labels=[];
+ const view=drawSurface(ctx,surface,{width:360,height:260,cameraX,cameraY,person,remotePeople,boardingActors,labels,time:15,combatTime:8});
+ assert.deepEqual(view,{cameraX,cameraY,width:360,height:260});assert.equal(ctx.textCalls.length,0,'canvas must not rasterize duplicate instructions');
+ const remote=labels.find(l=>l.kind==='remote'),hostile=labels.find(l=>l.kind==='hostile');
+ assert.equal(remote.text,'Captain Aya');assert.equal(remote.x,140);assert.equal(remote.y,73);assert.equal(remote.size,13);assert.equal(hostile.text,'Boarding raider');assert.ok(hostile.priority>remote.priority);
+ assert.ok(labels.some(l=>l.kind==='room'));assert.ok(labels.every(l=>Number.isFinite(l.x)&&Number.isFinite(l.y)));
+ assert.equal(JSON.stringify({surface,person,remotePeople,boardingActors}),snapshot);
+});
+
+test('persisted rooms and outposts have ownership labels without changing collision',()=>{
+ const surface=generateSurface('morrow','home-check'),person={...surface.spawn},homes=[
+  {id:'own-home',ownerId:'local',ownerName:'Henri',kind:'outpost',x:person.x-50,y:person.y-30,systemId:surface.systemId,locationId:surface.id},
+  {id:'other-home',ownerId:'other',ownerName:'Aya',kind:'room',x:person.x+70,y:person.y+30,systemId:surface.systemId,locationId:surface.id},
+  {id:'wrong-port',ownerId:'other',ownerName:'Elsewhere',kind:'room',x:person.x,y:person.y,locationId:'kettle'}
+ ],before=JSON.stringify({surface,person,homes}),labels=[],ctx=new FakeCanvas(400,300).ctx;
+ const walkable=homes.slice(0,2).map(h=>isWalkable(surface,h.x,h.y));
+ drawSurface(ctx,surface,{width:400,height:300,person,homes,localCaptainId:'local',labels,time:2});
+ const markers=labels.filter(l=>l.kind==='home');assert.equal(markers.length,2);
+ assert.equal(markers[0].text,'Your outpost');assert.equal(markers[0].color,'#e5be79');assert.equal(markers[1].text,'Aya’s room');assert.equal(markers[1].color,'#8ec8d2');assert.ok(markers.every(l=>l.size>=12));
+ assert.equal(ctx.textCalls.length,0);assert.equal(JSON.stringify({surface,person,homes}),before);assert.deepEqual(homes.slice(0,2).map(h=>isWalkable(surface,h.x,h.y)),walkable);
+});
+
+function demoGame(shipClass='sparrow'){
+ return{state:{systemId:'render-test',stats:{time:8},ship:{id:'player',x:100,y:200,shipClass,hull:100,maxHull:100,angle:0,vx:20,shield:30}},system:{bodies:[{id:'station-test',kind:'station',name:'Test Station',x:200,y:120,radius:35},{id:'planet-test',kind:'planet',biome:'arid',name:'Test World',x:-80,y:100,radius:55}],asteroids:[],enemies:[],traffic:[],signals:[],bullets:[],pickups:[]}};
+}
+test('space labels preserve world picking, fit the capital and cache artwork after warmup',()=>{
+ const original=globalThis.OffscreenCanvas;globalThis.OffscreenCanvas=FakeCanvas;
+ try{
+  const game=demoGame('capital'),ctx=new FakeCanvas(200,340).ctx,renderer=new SpaceRenderer(),labels=[],remoteShips=[{id:'remote-test',name:'Captain Vale',ship:{name:'Wayfarer II',x:180,y:250,shipClass:'hauler',hull:100,maxHull:100}}],before=JSON.stringify({game,remoteShips});
+  const view=renderer.draw(ctx,game,{width:200,height:340,time:1,labels,remoteShips,motion:false});
+  assert.ok(SHIP_VISUALS.capital.length*view.zoom<=200*.44+.01);assert.deepEqual(renderer.toWorld(100,170),{x:100,y:200});
+  const picked=renderer.toWorld(100+40*view.zoom,170-30*view.zoom);assert.ok(Math.hypot(picked.x-140,picked.y-170)<1e-8);assert.equal(ctx.textCalls.length,0);
+  const remote=labels.find(l=>l.kind==='remote');assert.equal(remote.text,'Wayfarer II');assert.equal(remote.x,Math.round(100+80*view.zoom));
+  assert.ok(labels.some(l=>l.kind==='place'));assert.equal(JSON.stringify({game,remoteShips}),before);
+  // Warm both beacon phases; a moving frame must not allocate new canvases.
+  renderer.draw(ctx,game,{time:1,labels:[],motion:true,remoteShips});renderer.draw(ctx,game,{time:2,labels:[],motion:true,remoteShips});
+  const allocations=FakeCanvas.allocations;
+  for(let i=0;i<30;i++)renderer.draw(ctx,game,{time:2+i*.1,labels:[],motion:true,remoteShips});
+  assert.equal(FakeCanvas.allocations,allocations);
+  assert.deepEqual(drawShip(ctx,100,100,0,'#c6d5c8',1,false,0,false,'capital'),{length:260,width:128});
+  const tracking=[];renderer.draw(ctx,game,{time:5,labels:tracking,remoteShips:[{id:'far-ship',ship:{name:'Distant Wayfarer',x:5000,y:200}}],tracked:'far-ship'});
+  assert.ok(tracking.some(l=>l.kind==='objective'&&l.text.includes('Distant Wayfarer')),'nested remote vessels remain trackable');
+ }finally{if(original===undefined)delete globalThis.OffscreenCanvas;else globalThis.OffscreenCanvas=original;}
+});
+
+test('shared repair solutions match the engine seed without importing game state',()=>{
+ for(const id of['listening:repair:0','kettle:work:2','unexplored-port:relay']){const rng=seededRandom(id);assert.deepEqual(repairSolution(id),[Math.floor(rng()*4),Math.floor(rng()*4),Math.floor(rng()*4)]);}
+});

@@ -25,8 +25,10 @@
  * Authored content lives in content.mjs. No DOM, timers, fetch, or rendering dependencies.
  */
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
+import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable } from './fleet.mjs';
+export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const WORLD_RADIUS = 2700;
 export const TAU = Math.PI * 2;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -41,6 +43,31 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const unique = list => [...new Set(Array.isArray(list) ? list : [])];
 const factionIds = () => FACTIONS.map(x => x.id);
+const cabinCache=new Map();
+const combatLayout=id=>{if(!cabinCache.has(id))cabinCache.set(id,cabinLayout(id));return cabinCache.get(id);};
+const facingOf=(dx,dy)=>Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
+const clearInteriorShot=(layout,a,b)=>{
+  const steps=Math.max(1,Math.ceil(distance(a,b)/6));
+  for(let i=1;i<steps;i++)if(!isCabinWalkable(layout,a.x+(b.x-a.x)*i/steps,a.y+(b.y-a.y)*i/steps,1))return false;
+  return true;
+};
+function interiorRoute(layout,start,target) {
+  const index=p=>Math.floor(p.y/layout.tile)*layout.cols+Math.floor(p.x/layout.tile);
+  const from=index(start),to=index(target);
+  if(!layout.walkable[from]||!layout.walkable[to])return [];
+  const queue=[from],prev=new Int32Array(layout.walkable.length).fill(-1);prev[from]=from;
+  for(let n=0;n<queue.length&&prev[to]<0;n++){
+    const cell=queue[n],x=cell%layout.cols,y=Math.floor(cell/layout.cols);
+    for(const [nx,ny] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]){
+      if(nx<0||ny<0||nx>=layout.cols||ny>=layout.rows)continue;
+      const next=ny*layout.cols+nx;if(!layout.walkable[next]||prev[next]>=0)continue;
+      prev[next]=cell;queue.push(next);
+    }
+  }
+  if(prev[to]<0)return [];
+  const route=[];for(let cell=to;cell!==from;cell=prev[cell])route.push({x:(cell%layout.cols+.5)*layout.tile,y:(Math.floor(cell/layout.cols)+.5)*layout.tile});
+  return route.reverse();
+}
 const hash = input => {
   let n = 2166136261;
   for (const c of String(input)) n = Math.imul(n ^ c.charCodeAt(0), 16777619);
@@ -99,9 +126,9 @@ function initialState(seed) {
     version: SAVE_VERSION, seed: String(seed || 'farwake'), mode: 'ship', systemId: 'hearth', locationId: null,
     credits: 180, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [],
-    crew: [], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
+    crew: [], formerCrew: [], memorial: [], fleet:{owned:['sparrow'],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
-    ship: { x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 9, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1 },
+    ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:'sparrow', humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1 },
     person: { x: 480, y: 570, health: 100, facing: 'up' },
     rng: hash(`${seed}:runtime`), nextEncounterAt: 95, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
@@ -125,6 +152,7 @@ export class Game {
     this._runtime = null;
     this._updateStats(false);
     this._loadSystem(this.state.systemId);
+    if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
     if (this.state.mode === 'person' && !this.state.interior && !this.system.bodies.some(b => b.id === this.state.locationId)) {
       this.state.mode = 'ship'; this.state.locationId = null;
     }
@@ -143,6 +171,11 @@ export class Game {
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
   get chapter() { return STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
   get activeChapter() { return this.chapter; }
+  get playerId() { return this._playerId || 'local'; }
+  get shipClass() { return getShipClass(this.state.ship.classId); }
+  get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
+  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))); }
+  get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
   get hasHyperdrive() { return Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0; }
 
   _restore(fresh, raw) {
@@ -157,12 +190,20 @@ export class Game {
     s.rep = { ...fresh.rep, ...(raw.rep || {}) };
     for (const id of factionIds()) s.rep[id] = clamp(finite(s.rep[id]), -100, 100);
     for (const name of ['flags', 'visited', 'discovered', 'completedJobs', 'encounterHistory', 'knownLore', 'completedChapters', 'activityTokens']) s[name] = unique(raw[name] || fresh[name]);
-    for (const name of ['missions', 'journal', 'crew']) s[name] = Array.isArray(raw[name]) ? clone(raw[name]) : [];
+    for (const name of ['missions', 'journal', 'crew', 'formerCrew', 'memorial', 'boardingHistory']) s[name] = Array.isArray(raw[name]) ? clone(raw[name]) : [];
+    s.ship.classId = getShipClass(s.ship.classId).id;
+    s.ship.humanOccupants = clamp(Math.floor(finite(s.ship.humanOccupants,1)),1,10);
+    s.fleet = { owned:unique(['sparrow',s.ship.classId,...(Array.isArray(raw.fleet?.owned)?raw.fleet.owned:[])]).filter(id=>SHIP_CLASSES.some(c=>c.id===id)), history:Array.isArray(raw.fleet?.history)?clone(raw.fleet.history):[] };
+    s.crew=s.crew.map((crew,index)=>{
+      const maxHealth=Math.max(1,finite(crew.maxHealth,CREW_ROLES[crew.role]?.health||100));
+      const health=clamp(finite(crew.health,crew.status==='dead'?0:maxHealth),0,maxHealth);
+      return {...crew,id:crew.id||`legacy-crew-${index}`,maxHealth,health,status:health<=0?'dead':crew.status==='injured'?'injured':'active'};
+    });
     s.upgrades = raw.upgrades && typeof raw.upgrades === 'object' ? clone(raw.upgrades) : {};
     s.abandonedJobs = raw.abandonedJobs && typeof raw.abandonedJobs === 'object' && !Array.isArray(raw.abandonedJobs) ? clone(raw.abandonedJobs) : {};
     s.worlds = raw.worlds && typeof raw.worlds === 'object' ? clone(raw.worlds) : {};
     s.rng = finite(s.rng, fresh.rng) >>> 0;
-    for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
+    for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
     s.person.health = clamp(finite(s.person.health, 100), 1, 100);
     if (s.pendingEncounter && !ENCOUNTERS.some(e => e.id === s.pendingEncounter.id)) s.pendingEncounter = null;
     return s;
@@ -193,7 +234,11 @@ export class Game {
     const record = this._record();
     record.pickups = this.system.pickups.map(x => clone(x));
     record.enemyHealth ||= {};
-    for (const e of this.system.enemies) if (e.hp > 0) record.enemyHealth[e.id] = e.hp;
+    record.enemyStates ||= {};
+    for (const e of this.system.enemies) if (e.hp > 0) {
+      record.enemyHealth[e.id] = e.hp;
+      record.enemyStates[e.id]={x:e.x,y:e.y,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0};
+    }
     record.asteroidHealth ||= {};
     for (const a of this.system.asteroids) if (a.hp > 0 && a.hp < a.maxHp) record.asteroidHealth[a.id] = a.hp;
   }
@@ -203,7 +248,7 @@ export class Game {
     const r = seededRandom(`${this.state.seed}:${id}`);
     const record = this._record();
     for (const key of ['depleted', 'defeated', 'resolved', 'scanned', 'pickups', 'spawned']) record[key] ||= [];
-    record.asteroidHealth ||= {}; record.enemyHealth ||= {};
+    record.asteroidHealth ||= {}; record.enemyHealth ||= {}; record.enemyStates ||= {};
     const bodies = data.bodies.map((b, i) => {
       const angle = -0.55 + i * 2.3;
       let x = i === 0 ? 0 : Math.cos(angle) * (780 + i * 190);
@@ -238,6 +283,9 @@ export class Game {
         reward: 35 + data.danger * 12, active: false
       };
       if (record.enemyHealth[enemy.id] !== undefined) enemy.hp = record.enemyHealth[enemy.id];
+      Object.assign(enemy,record.enemyStates[enemy.id]||{});
+      enemy.disabled=enemy.hp>0&&(enemy.disabled||enemy.hp<=enemy.maxHp*.4);
+      enemy.classId=data.danger>=3?'hauler':'sparrow';
       if (!record.defeated.includes(enemy.id)) enemies.push(enemy);
     }
     for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e, hp: record.enemyHealth[e.id] ?? e.hp });
@@ -255,14 +303,15 @@ export class Game {
       if (moon) signals.unshift({id:'hearth:story:tinbell',kind:'story',name:'Tinbell evacuation beacon',x:moon.x+moon.radius+165,y:moon.y+85,radius:24,story:true,resolved:record.resolved.includes('hearth:story:tinbell'),scanned:record.scanned.includes('hearth:story:tinbell')});
     }
     const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, radius: 12 }));
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     record.visits = (record.visits || 0) + 1;
   }
 
   _updateStats(heal = false) {
     const sh = this.state.ship;
     const previous = { hull: sh.maxHull || 100, shield: sh.maxShield || 35, fuel: sh.maxFuel || 30 };
-    const values = { maxHull: 100, maxShield: 35, maxEnergy: 100, maxFuel: 30, cargoCap: 24, speed: 255, turn: 9, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1 };
+    const hullClass=getShipClass(sh.classId);
+    const values = { ...hullClass.stats, classId:hullClass.id, berths:hullClass.berths, turn:hullClass.stats.angularAcceleration, warpRange:0 };
     const mapping = { hull: 'maxHull', shield: 'maxShield', fuelMax: 'maxFuel', cargo: 'cargoCap', speed: 'speed', turn: 'turn', damage: 'damage', range: 'range', warpRange: 'warpRange', scanRange: 'scanRange', energy: 'maxEnergy', mining: 'mining' };
     for (const u of UPGRADES) {
       if (!this.state.upgrades[u.id]) continue;
@@ -275,10 +324,16 @@ export class Game {
     if (Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) && values.warpRange < 6) values.warpRange = 6;
     // Crew bonuses are small, predictable and describe their effect in the crew panel.
     for (const crew of this.state.crew || []) {
+      if (crew.health <= 0 || crew.status === 'dead') continue;
       if (crew.role === 'engineer') values.maxHull += 10;
       if (crew.role === 'navigator') values.scanRange += 45;
       if (crew.role === 'medic') values.maxEnergy += 10;
+      if (crew.role === 'gunner') values.damage += 3;
+      if (crew.role === 'quartermaster') values.cargoCap += 8;
+      if (crew.role === 'scientist') {values.scanRange += 30;values.mining *= 1.1;}
     }
+    values.angularAcceleration=values.turn;
+    values.maxAngularVelocity+=Math.max(0,values.turn-hullClass.stats.angularAcceleration)*.15;
     Object.assign(sh, values);
     sh.hull = clamp(sh.hull + (heal ? Math.max(0, values.maxHull - previous.hull) : 0), 1, sh.maxHull);
     sh.shield = clamp(sh.shield + (heal ? Math.max(0, values.maxShield - previous.shield) : 0), 0, sh.maxShield);
@@ -286,67 +341,96 @@ export class Game {
     sh.energy = clamp(sh.energy, 0, sh.maxEnergy);
   }
 
+  /** Bind every pilot in a room to the same live world and persistent record. */
+  bindSharedWorld(runtime, record, playerId = this.playerId) {
+    if (!runtime || runtime.id !== this.state.systemId) return this._fail('The shared world does not match this pilot’s system.', 'system');
+    this._runtime=runtime;this.state.worlds[this.state.systemId]=record || this._record();this._playerId=String(playerId);this._sharedWorld=true;
+    this.system.miningBeams ||= {};
+    return this._ok();
+  }
+
   step(delta, input = {}) {
-    const dt = clamp(finite(delta), 0, 0.1);
-    if (!dt) return;
-    this.state.stats.time += dt;
-    this._shotTimer = Math.max(0, this._shotTimer - dt);
-    this._hitTimer = Math.max(0, this._hitTimer - dt);
-    this._recoveryTimer = Math.max(0, this._recoveryTimer - dt);
-    const sh = this.state.ship;
-    if (this.state.mode !== 'ship') {
-      sh.energy = Math.min(sh.maxEnergy, sh.energy + dt * 14);
-      return;
-    }
-    let ix = clamp(finite(input.x), -1, 1), iy = clamp(finite(input.y), -1, 1);
-    let magnitude = Math.hypot(ix, iy);
-    if (magnitude > 1) { ix /= magnitude; iy /= magnitude; magnitude = 1; }
-    const boosting = Boolean(input.boost) && magnitude > 0.05 && sh.energy > 8;
-    if (magnitude > 0.05) {
-      const target = Math.atan2(iy, ix);
-      const angleDelta = Math.atan2(Math.sin(target - sh.angle), Math.cos(target - sh.angle));
-      sh.angle += clamp(angleDelta, -sh.turn * dt, sh.turn * dt);
-      const accel = boosting ? 490 : 335;
-      sh.vx += Math.cos(sh.angle) * accel * magnitude * dt;
-      sh.vy += Math.sin(sh.angle) * accel * magnitude * dt;
-    }
-    const damping = input.brake ? 5.5 : input.flightAssist === false ? 0.035 : magnitude < 0.05 ? 1.4 : 0.6;
-    sh.vx *= Math.exp(-damping * dt); sh.vy *= Math.exp(-damping * dt);
-    const speed = Math.hypot(sh.vx, sh.vy);
-    const maxSpeed = sh.speed * (boosting ? 1.65 : 1);
-    if (speed > maxSpeed) { sh.vx *= maxSpeed / speed; sh.vy *= maxSpeed / speed; }
-    sh.x += sh.vx * dt; sh.y += sh.vy * dt;
-    this.state.stats.distance += Math.hypot(sh.vx, sh.vy) * dt;
-    if (Math.abs(sh.x) > WORLD_RADIUS || Math.abs(sh.y) > WORLD_RADIUS) {
-      sh.x = clamp(sh.x, -WORLD_RADIUS, WORLD_RADIUS); sh.y = clamp(sh.y, -WORLD_RADIUS, WORLD_RADIUS);
-      sh.vx *= 0.9; sh.vy *= 0.9;
-    }
-    sh.energy = clamp(sh.energy + (boosting ? -18 : input.mine ? -1 : 11) * dt, 0, sh.maxEnergy);
-    if (!this._hitTimer) sh.shield = Math.min(sh.maxShield, sh.shield + 4 * dt);
-    if (input.fire && !this._shotTimer && sh.energy >= 3) this._fire();
-    this.system.miningTarget = null;
-    this.system.mining = null;
-    if (input.mine) this._mine(dt);
-    this._updateEnemies(dt);
-    this._updateBullets(dt);
-    this._updatePickups(dt);
-    for (const t of this.system.traffic) {
-      t.x += Math.cos(t.angle) * t.speed * dt; t.y += Math.sin(t.angle) * t.speed * dt;
-      if (Math.abs(t.x) > 2300 || Math.abs(t.y) > 2300) t.angle += Math.PI;
-    }
-    for (const a of this.system.asteroids) a.angle += a.spin * dt;
-    if (this.state.stats.time > this.state.nextEncounterAt && !this.state.pendingEncounter && !this.system.enemies.some(e => e.active && distance(e, sh) < 650)) {
-      this.state.nextEncounterAt = this.state.stats.time + 100 + this._rand() * 75;
-      const bodyNear = this.system.bodies.some(b => distance(b, sh) < b.radius + 220);
-      if (!bodyNear && this.state.stats.distance > 1200) {
-        const result = this.triggerEncounter();
-        if (result.ok) this._event('encounter', { id: result.encounter.id, encounter: result.encounter });
-      }
+    const dt=clamp(finite(delta),0,.1);
+    if(!dt)return;
+    this.stepPilot(dt,input);
+    this.stepWorld(dt,[this]);
+  }
+
+  /** Per-pilot rules only. A multiplayer room calls stepWorld exactly once afterward. */
+  stepPilot(delta, input = {}, options = {}) {
+    const dt=clamp(finite(delta),0,.1);
+    if(!dt)return;
+    this.state.stats.time+=dt;
+    for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer'])this[key]=Math.max(0,finite(this[key])-dt);
+    const sh=this.state.ship;
+    this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
+    this.system.miningTarget=null;this.system.mining=null;
+    if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
+    const operate=this.state.mode==='ship'||(options.operateShip && this.state.interior?.kind==='ship');
+    if(!operate){sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
+    const flight=normaliseFlightInput(input),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
+    const oldX=sh.x,oldY=sh.y;
+    Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
+    this.state.stats.distance+=Math.hypot(sh.x-oldX,sh.y-oldY);
+    sh.energy=clamp(sh.energy+(boosting?-18:input.mine?-1:11)*dt,0,sh.maxEnergy);
+    if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+4*dt);
+    if(input.fire)this.fireWeapons();
+    if(input.mine)this._mine(dt);
+    if(this.state.mode==='ship'&&this.state.stats.time>this.state.nextEncounterAt&&!this.state.pendingEncounter&&this.state.boarding?.phase!=='active'&&!this.system.enemies.some(e=>e.active&&distance(e,sh)<650)){
+      this.state.nextEncounterAt=this.state.stats.time+100+this._rand()*75;
+      const bodyNear=this.system.bodies.some(b=>distance(b,sh)<b.radius+220);
+      if(!bodyNear&&this.state.stats.distance>1200){const result=this.triggerEncounter();if(result.ok)this._event('encounter',{id:result.encounter.id,encounter:result.encounter});}
     }
     this._checkChapters();
   }
 
-  _fire() {
+  /** Once-per-room simulation. Recipients may include crew whose parked ships are not targets. */
+  stepWorld(delta, participants = [this], {recipients=[]} = {}) {
+    const dt=clamp(finite(delta),0,.1);if(!dt)return;
+    const games=[...new Set(participants)].filter(g=>g?.state?.systemId===this.state.systemId);
+    this._worldGames=games;
+    this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
+    const targets=games.filter(g=>g.netTargetEligible!==false&&(g.state.mode==='ship'||g.state.interior?.kind==='ship'||g.netTargetEligible===true));
+    this._updateEnemies(dt,targets);
+    this._updateBullets(dt,targets);
+    this._updatePickups(dt,targets);
+    for(const t of this.system.traffic){t.x+=Math.cos(t.angle)*t.speed*dt;t.y+=Math.sin(t.angle)*t.speed*dt;if(Math.abs(t.x)>2300||Math.abs(t.y)>2300)t.angle+=Math.PI;}
+    for(const a of this.system.asteroids)a.angle+=a.spin*dt;
+  }
+
+  fireWeapons(shooterId = this.playerId) {
+    if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Ship weapons require a vessel in space.', 'mode');
+    if(this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
+    if(this.state.ship.energy<3)return this._fail('The pulse emitter needs reactor charge.', 'energy');
+    this._fire(shooterId);return this._ok();
+  }
+
+  repairFromStation() {
+    if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the engineering station aboard an active ship.', 'mode');
+    const sh=this.state.ship;
+    if(sh.hull>=sh.maxHull)return this._fail('Hull integrity is already full.', 'full');
+    if(this._repairTimer>0)return this._fail('The repair rig is cooling.', 'cooldown');
+    if(sh.energy<18)return this._fail('The repair rig needs 18 reactor charge.', 'energy');
+    sh.energy-=18;sh.hull=Math.min(sh.maxHull,sh.hull+8);this._repairTimer=4;
+    this._event('service',{text:'Engineering restored 8 hull integrity.'});return this._ok({hull:8});
+  }
+
+  medicalFromStation(patients = [this]) {
+    if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
+    if(this._crewHealTimer>0)return this._fail('The medical station is preparing the next treatment.','cooldown');
+    const people=(Array.isArray(patients)?patients:[this]).filter(g=>g?.state?.person?.health>0&&g.state.person.health<100);
+    const crew=this.livingCrew.filter(c=>c.health<c.maxHealth);
+    if(!people.length&&!crew.length)return this._fail('Everyone aboard is already healthy.','full');
+    if(this.state.ship.energy<15)return this._fail('The medical station needs 15 reactor charge.','energy');
+    this.state.ship.energy-=15;this._crewHealTimer=6;
+    for(const g of people)g.state.person.health=Math.min(100,g.state.person.health+12);
+    for(const c of crew){c.health=Math.min(c.maxHealth,c.health+8);c.status=c.health===c.maxHealth?'active':'injured';}
+    if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
+    this._event('service',{text:'Medical treatment restored vitality to the injured crew.'});
+    return this._ok({healedPeople:people.length,healedCrew:crew.length,energy:15});
+  }
+
+  _fire(shooterId = this.playerId) {
     const sh = this.state.ship;
     let angle = sh.angle;
     const candidates = this.system.enemies.filter(e => e.hp > 0 && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
@@ -354,7 +438,7 @@ export class Game {
       const target = Math.atan2(e.y - sh.y, e.x - sh.x);
       if (Math.abs(Math.atan2(Math.sin(target - angle), Math.cos(target - angle))) < 0.25) { angle = target; break; }
     }
-    const bullet = { id: `shot-${this.state.stats.time}`, x: sh.x + Math.cos(angle) * 24, y: sh.y + Math.sin(angle) * 24, vx: Math.cos(angle) * 650 + sh.vx * 0.3, vy: Math.sin(angle) * 650 + sh.vy * 0.3, ttl: sh.range / 650, damage: sh.damage, owner: 'player', radius: 4 };
+    const bullet = { id: `shot-${this.state.stats.time}`, x: sh.x + Math.cos(angle) * 24, y: sh.y + Math.sin(angle) * 24, vx: Math.cos(angle) * 650 + sh.vx * 0.3, vy: Math.sin(angle) * 650 + sh.vy * 0.3, ttl: sh.range / 650, damage: sh.damage, owner: 'player', ownerId: String(shooterId), shooterId: String(shooterId), vesselId: sh.id, radius: 4 };
     this.system.bullets.push(bullet);
     sh.energy -= 3;
     this._shotTimer = 0.25;
@@ -367,7 +451,8 @@ export class Game {
     const target = this.system.asteroids.filter(a => a.hp > 0 && distance(a, sh) < 225 + a.radius).sort((a, b) => distance(a, sh) - distance(b, sh))[0];
     if (!target) return;
     this.system.miningTarget = target.id;
-    this.system.mining = { x1: sh.x, y1: sh.y, x2: target.x, y2: target.y, targetId: target.id };
+    this.system.mining = { x1: sh.x, y1: sh.y, x2: target.x, y2: target.y, targetId: target.id, ownerId:this.playerId };
+    this.system.miningBeams ||= {};this.system.miningBeams[this.playerId]=this.system.mining;
     target.hp -= dt * 10 * (sh.mining || 1);
     this._record().asteroidHealth[target.id] = Math.max(0, target.hp);
     if (target.hp <= 0) {
@@ -391,58 +476,61 @@ export class Game {
     }
   }
 
-  _updateEnemies(dt) {
-    const sh = this.state.ship;
-    for (const e of this.system.enemies) {
-      if (e.hp <= 0) continue;
-      const dist = distance(e, sh);
-      const factionFriendly = this.state.rep[e.faction] >= 45;
-      if (dist < 650 && !factionFriendly) e.active = true;
-      if (dist > 1100 || factionFriendly) e.active = false;
-      e.cooldown -= dt;
-      if (!e.active) {
-        e.angle += dt * 0.18;
-        e.x += Math.cos(e.angle) * 16 * dt; e.y += Math.sin(e.angle) * 16 * dt;
-        continue;
+  _worldEvent(type,data={}) {
+    for(const game of this._worldGames?.length?this._worldGames:[this])game._event(type,data);
+  }
+
+  _updateEnemies(dt, targets = [this]) {
+    for(const e of this.system.enemies){
+      if(e.hp<=0)continue;
+      if(e.disabled||e.boardingTargetId){e.active=false;e.vx=0;e.vy=0;continue;}
+      const target=targets.filter(g=>(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
+      const sh=target?.state.ship,dist=sh?distance(e,sh):Infinity;
+      if(dist<650)e.active=true;if(dist>1100||!target)e.active=false;
+      e.cooldown-=dt;
+      if(!e.active){e.angle+=dt*.18;e.x+=Math.cos(e.angle)*16*dt;e.y+=Math.sin(e.angle)*16*dt;e.boardingCharge=0;continue;}
+      e.targetId=target.playerId;e.angle=Math.atan2(sh.y-e.y,sh.x-e.x);
+      e.boardingCooldown=Math.max(0,(e.boardingCooldown||0)-dt);
+      const exposed=sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
+      const side=e.id.length%2?1:-1;
+      const moveAngle=e.angle+(exposed?(dist<90?Math.PI*.5*side:0):(dist<220?Math.PI*.65*side:.2*side));
+      const moveSpeed=e.speed*(exposed&&dist<150?.25:1);
+      e.vx=Math.cos(moveAngle)*moveSpeed;e.vy=Math.sin(moveAngle)*moveSpeed;e.x+=e.vx*dt;e.y+=e.vy*dt;
+      if(exposed&&dist<175+sh.radius){
+        if(!e.boardingCharge)target._event('boarding-warning',{enemyId:e.id,text:'Pirate grapples are locking on. Boost away or restore your shields.'});
+        e.boardingCharge=(e.boardingCharge||0)+dt;
+        if(e.boardingCharge>=3){const result=target.startBoarding(e.id);if(result.ok){e.boardingCharge=0;continue;}}
+      }else e.boardingCharge=0;
+      if(e.cooldown<=0&&dist<520){
+        const angle=e.angle+(this._rand()-.5)*.16;
+        this.system.bullets.push({x:e.x,y:e.y,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage,owner:e.id,ownerId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+        e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
       }
-      e.angle = Math.atan2(sh.y - e.y, sh.x - e.x);
-      const side = e.id.length % 2 ? 1 : -1;
-      const moveAngle = e.angle + (dist < 220 ? Math.PI * 0.65 * side : 0.2 * side);
-      e.vx = Math.cos(moveAngle) * e.speed; e.vy = Math.sin(moveAngle) * e.speed;
-      e.x += e.vx * dt; e.y += e.vy * dt;
-      if (e.cooldown <= 0 && dist < 520) {
-        const angle = e.angle + (this._rand() - 0.5) * 0.16;
-        this.system.bullets.push({ x: e.x, y: e.y, vx: Math.cos(angle) * 280, vy: Math.sin(angle) * 280, ttl: 2.1, damage: e.damage, owner: e.id, radius: 4 });
-        e.cooldown = 1.2 + this._rand() * 0.8;
-        this._event('enemy-shot', { x: e.x, y: e.y, angle });
-      }
-      if (dist < 28) { this._damageShip(4 * dt); sh.vx += Math.cos(e.angle) * 30 * dt; sh.vy += Math.sin(e.angle) * 30 * dt; }
+      if(dist<sh.radius+e.radius-2){target._damageShip(4*dt);sh.vx+=Math.cos(e.angle)*30*dt;sh.vy+=Math.sin(e.angle)*30*dt;}
     }
   }
 
-  _updateBullets(dt) {
-    const sh = this.state.ship;
-    for (const b of this.system.bullets) {
-      const fromX=b.x, fromY=b.y;
-      b.x += b.vx * dt; b.y += b.vy * dt; b.ttl -= dt;
-      if (b.ttl <= 0) continue;
-      if (b.owner === 'player') {
-        for (const e of this.system.enemies) {
-          if (e.hp > 0 && segmentDistance(e,fromX,fromY,b.x,b.y) <= e.radius + b.radius + 4) {
-            e.hp -= b.damage; e.active = true; b.ttl = 0;
-            this._record().enemyHealth[e.id] = Math.max(0, e.hp);
-            this._event('hit', { x: b.x, y: b.y, target: 'enemy', damage: b.damage });
-            if (e.hp <= 0) this._defeat(e);
-            break;
-          }
-        }
-      } else if (segmentDistance(sh,fromX,fromY,b.x,b.y) <= 18) {
-        this._damageShip(b.damage); b.ttl = 0;
-        this._event('hit', { x: sh.x, y: sh.y, target: 'player', damage: b.damage });
+  _updateBullets(dt, targets = [this]) {
+    for(const b of this.system.bullets){
+      const fromX=b.x,fromY=b.y;
+      const travelTime=Math.min(dt,Math.max(0,b.ttl));
+      b.x+=b.vx*travelTime;b.y+=b.vy*travelTime;b.ttl-=dt;
+      if(!travelTime)continue;
+      if(b.owner==='player'){
+        const hit=this.system.enemies.filter(e=>e.hp>0&&!e.boardingTargetId&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).sort((a,c)=>Math.hypot(a.x-fromX,a.y-fromY)-Math.hypot(c.x-fromX,c.y-fromY))[0];
+        if(!hit)continue;
+        hit.hp-=b.damage;hit.active=true;b.ttl=0;
+        this._record().enemyHealth[hit.id]=Math.max(0,hit.hp);
+        this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',damage:b.damage});
+        if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>g.state.ship.id===b.vesselId)||this;this._defeat(hit,owner);}
+        else if(hit.hp<=hit.maxHp*.4&&!hit.disabled){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:`${hit.name} disabled. Close to board, or finish the hull.`});}
+      }else{
+        const hit=targets.filter(g=>segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
+        if(hit){hit._damageShip(b.damage);b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,damage:b.damage});}
       }
     }
-    this.system.bullets = this.system.bullets.filter(b => b.ttl > 0);
-    this.system.enemies = this.system.enemies.filter(e => e.hp > 0);
+    this.system.bullets=this.system.bullets.filter(b=>b.ttl>0);
+    this.system.enemies=this.system.enemies.filter(e=>e.hp>0);
   }
 
   _damageShip(amount) {
@@ -453,34 +541,33 @@ export class Game {
     this._hitTimer = 5;
     if (sh.hull <= 0) this._rescue('A passing tug caught your emergency beacon. Your ship survived; some cargo did not.');
   }
-  _defeat(enemy) {
+  _defeat(enemy, credited = this) {
     const record = this._record();
     if (record.defeated.includes(enemy.id)) return;
     record.defeated.push(enemy.id);
     delete record.enemyHealth[enemy.id];
-    this.state.stats.kills++;
-    this.progressJob('bounty', 1, {token:enemy.id});
-    this._flag('won_battle'); this._flag('first_victory');
-    this.state.rep.freewake = clamp(this.state.rep.freewake + 2, -100, 100);
+    credited.state.stats.kills++;
+    credited.progressJob('bounty', 1, {token:enemy.id});
+    credited._flag('won_battle'); credited._flag('first_victory');
+    credited.state.rep.freewake = clamp(credited.state.rep.freewake + 2, -100, 100);
     this._dropPickup({ id: `${enemy.id}:wreck`, x: enemy.x, y: enemy.y, credits: enemy.reward, ore: 1, crystal: 0, name: 'Raider salvage' });
-    this._event('explosion', { x: enemy.x, y: enemy.y, size: 25, text: 'Raider disabled' });
-    this._refreshJobs();
+    this._worldEvent('explosion', { x: enemy.x, y: enemy.y, size: 25, text: 'Raider defeated' });
+    credited._refreshJobs();
   }
   _dropPickup(item) { if (!this.system.pickups.some(p => p.id === item.id)) this.system.pickups.push({ radius: 12, ...item }); }
-  _updatePickups(dt) {
-    const sh = this.state.ship;
-    for (const p of [...this.system.pickups]) {
-      const dist = distance(p, sh);
-      if (dist < 90) {
-        p.x += (sh.x - p.x) * Math.min(1, dt * 4); p.y += (sh.y - p.y) * Math.min(1, dt * 4);
-        if (dist < 35) this.salvage(p.id);
-      }
+  _updatePickups(dt, targets = [this]) {
+    for(const p of [...this.system.pickups]){
+      const game=targets.filter(g=>g.cargoUsed<g.state.ship.cargoCap||p.credits).sort((a,b)=>distance(p,a.state.ship)-distance(p,b.state.ship))[0];
+      if(!game)continue;const sh=game.state.ship,dist=distance(p,sh);
+      if(dist<90){p.x+=(sh.x-p.x)*Math.min(1,dt*4);p.y+=(sh.y-p.y)*Math.min(1,dt*4);if(dist<35)game.salvage(p.id);}
     }
   }
 
   interact() {
     if (this.state.mode !== 'ship') return null;
     const sh = this.state.ship;
+    const disabled=this.system.enemies.filter(e=>e.hp>0&&e.disabled&&!e.boardingTargetId&&distance(e,sh)<sh.radius+e.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
+    if(disabled)return {type:'board',id:disabled.id,name:disabled.name,enemy:disabled,distance:distance(disabled,sh),range:sh.radius+disabled.radius+110};
     const bodies = this.system.bodies.map(body => ({ type: 'dock', id: body.id, bodyId: body.id, name: body.name, body, distance: distance(sh, body), range: body.radius + 150 })).filter(t => t.distance <= t.range).sort((a, b) => a.distance - b.distance);
     if (bodies.length) return bodies[0];
     const signal = this.system.signals.filter(s => !s.resolved && distance(sh, s) <= sh.scanRange).sort((a, b) => distance(sh, a) - distance(sh, b))[0];
@@ -508,7 +595,7 @@ export class Game {
       }
     }
     this.state.mode = 'person'; this.state.locationId = body.id; this.state.lastBodyId = body.id;
-    this.state.ship.vx = 0; this.state.ship.vy = 0;
+    this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angularVelocity=0;
     this.state.person = { ...this.state.person, x: 480, y: 570, facing: 'up' };
     this.state.stats.dockings++;
     this._flag(`visited_${body.id}`); this._flag(`landed_${body.id}`); this._flag('first_landing');
@@ -531,7 +618,7 @@ export class Game {
     const body = this.currentBody || this.system.bodies[0];
     this.state.mode = 'ship'; this.state.locationId = null;
     this.state.ship.x = body.x; this.state.ship.y = body.y + body.radius + 75;
-    this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angle = Math.PI / 2;
+    this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angle = Math.PI / 2; this.state.ship.angularVelocity=0;
     this._flag('first_launch');
     this._event('launch', { body, text: `Departing ${body.name}` });
     return this._ok({ body });
@@ -629,7 +716,7 @@ export class Game {
   }
 
   salvage(id) {
-    if (this.state.mode !== 'ship') return this._fail('Salvage is collected from your ship.', 'mode');
+    if (this.state.mode !== 'ship' && this.state.interior?.kind !== 'ship') return this._fail('Salvage is collected from your ship.', 'mode');
     const item = this.system.pickups.find(p => p.id === id);
     if (!item) return this._fail('There is no salvage left here.', 'target');
     if (distance(item, this.state.ship) > 150) return this._fail('Fly closer to collect the salvage.', 'distance');
@@ -768,11 +855,59 @@ export class Game {
     }
   }
 
+  classInfo(id) {
+    const shipClass=SHIP_CLASSES.find(c=>c.id===id);
+    if(!shipClass)return this._fail('Unknown vessel class.','target');
+    const base={shipClass,owned:this.state.fleet.owned.includes(id),active:this.state.ship.classId===id};
+    if(base.active)return {...this._fail('This is your active hull.','owned'),...base};
+    if(base.owned){const fit=this._canActivateClass(shipClass);return fit.ok?this._ok(base):{...fit,...base};}
+    if(shipClass.requiresClass&&!this.state.fleet.owned.includes(shipClass.requiresClass))return {...this._fail(`First commission a ${getShipClass(shipClass.requiresClass).name}.`,'prerequisite'),...base};
+    if(shipClass.requires?.some(key=>!this.state.upgrades[key]))return {...this._fail(`Requires ${shipClass.requires.map(key=>UPGRADES.find(u=>u.id===key)?.name||key).join(', ')}.`,'prerequisite'),...base};
+    if(!this.conditionsMet(shipClass.conditions))return {...this._fail('Continue the Quiet Earth expedition before this yard will commission that hull.','story'),...base};
+    if(this.state.credits<shipClass.cost||this.state.cargo.ore<shipClass.ore)return {...this._fail(`Commissioning needs ${shipClass.cost} credits and ${shipClass.ore} ore.`,'cost'),...base};
+    return this._ok(base);
+  }
+  _canActivateClass(shipClass) {
+    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard.','capacity');
+    const capacity=shipClass.stats.cargoCap+(this.state.ship.cargoCap-this.shipClass.stats.cargoCap);
+    if(this.cargoUsed>capacity)return this._fail('Unload cargo before switching to a smaller hold.','cargo');
+    return this._ok();
+  }
+  _activateClass(id, commissioned = false) {
+    const sh=this.state.ship,condition={hull:sh.hull/sh.maxHull,shield:sh.shield/sh.maxShield,fuel:sh.fuel/sh.maxFuel,energy:sh.energy/sh.maxEnergy};
+    sh.classId=id;this._updateStats(false);
+    for(const [key,max] of [['hull','maxHull'],['shield','maxShield'],['fuel','maxFuel'],['energy','maxEnergy']])sh[key]=Math.max(key==='hull'?1:0,sh[max]*(commissioned?1:clamp(finite(condition[key],1),0,1)));
+    this.state.ship.angularVelocity=clamp(finite(this.state.ship.angularVelocity),-this.state.ship.maxAngularVelocity,this.state.ship.maxAngularVelocity);
+    this.state.fleet.history.push({classId:id,time:this.state.stats.time,systemId:this.state.systemId});
+    this._event('ship-class',{shipClass:this.shipClass,text:`Cinder is now a ${this.shipClass.name}. ${this.shipClass.berths} berths ready.`});
+    return this._ok({shipClass:this.shipClass});
+  }
+  buyShip(id) {
+    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Commission a new hull at an inhabited port.','mode');
+    const info=this.classInfo(id);if(info.owned)return {...this._fail('This hull is already in your fleet.','owned'),shipClass:info.shipClass,owned:true};if(!info.ok)return info;
+    const capacity=this._canActivateClass(info.shipClass);if(!capacity.ok)return capacity;
+    this.state.credits-=info.shipClass.cost;this.state.cargo.ore-=info.shipClass.ore;
+    this.state.fleet.owned.push(id);const result=this._activateClass(id,true);
+    this._flag(`fleet_${id}`);this._log(`Commissioned: ${info.shipClass.name}`,info.shipClass.description,'fleet');
+    this._refreshJobs();return result;
+  }
+  selectShip(id) {
+    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Change hulls at an inhabited port.','mode');
+    if(!this.state.fleet.owned.includes(id))return this._fail('This hull is not in your fleet.','owned');
+    if(this.state.ship.classId===id)return this._fail('This hull is already active.','same-class');
+    const capacity=this._canActivateClass(getShipClass(id));if(!capacity.ok)return capacity;
+    return this._activateClass(id);
+  }
+  _cabinLocation() {
+    const c=this.shipClass;
+    return {id:'own-ship',vesselId:this.state.ship.id,name:`${this.state.ship.name||'Cinder'} · ${c.name}`,kind:'ship',biome:'ship',faction:'freewake',shipClass:c.id,berths:c.berths,crew:clone(this.state.crew),lore:`${c.berths} berths aboard your ${c.name}. A small home that crosses a very large sky.`};
+  }
+
   enterCabin() {
     if (this.state.mode !== 'ship') return this._fail('Take the helm before entering the cabin.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
     if (this.system.enemies.some(e => e.active && distance(e, this.state.ship) < 600)) return this._fail('You need to clear immediate danger before leaving the helm.', 'combat');
-    return this._enterInterior({ id: 'own-ship', name: 'Cinder · your ship', kind: 'ship', biome: 'ship', faction: 'freewake', crew: clone(this.state.crew), lore: 'A sleeping berth, three empty seats, and the engines you trust your life to.' }, 'ship');
+    return this._enterInterior(this._cabinLocation(), 'ship');
   }
   exitCabin() { return this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
   boardDerelict(signalId) {
@@ -786,10 +921,11 @@ export class Game {
   leaveDerelict() { return this.state.interior?.kind === 'derelict' ? this._leaveInterior() : this._fail('You are not on a derelict.', 'mode'); }
   _enterInterior(location, kind, signalId = null) {
     const sh = this.state.ship;
-    this.state.interior = {kind, location, signalId, returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle},returnLocation:this.state.locationId};
+    this.state.interior = {kind, location, signalId, liveVessel:!!this._sharedWorld&&kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
     this.state.mode='person';this.state.locationId=location.id;
-    sh.vx=0;sh.vy=0;
-    this.state.person={...this.state.person,x:kind==='ship'?348:156,y:kind==='ship'?276:348};
+    if(!this.state.interior.liveVessel){sh.vx=0;sh.vy=0;sh.angularVelocity=0;}
+    const spawn=kind==='ship'||kind==='enemy'?cabinLayout(location.shipClass||'sparrow').spawn:{x:156,y:348};
+    this.state.person={...this.state.person,...spawn};
     this._flag(kind==='ship'?'entered_cabin':'boarded_derelict');
     this._event('dock',{body:location,text:kind==='ship'?'You leave the helm.':'Docking tether secured.'});
     return this._ok({body:location});
@@ -797,27 +933,220 @@ export class Game {
   _leaveInterior() {
     if (!this.state.interior) return this._fail('No interior to leave.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
+    if(this.state.boarding?.phase==='active')return this._fail('Clear the boarders or retreat through the airlock first.','boarding');
     const interior=this.state.interior;
-    Object.assign(this.state.ship,interior.returnShip);
+    if(!interior.liveVessel)Object.assign(this.state.ship,interior.returnShip);
+    if(this.state.boarding)this.state.boarding=null;
     this.state.mode='ship';this.state.locationId=interior.returnLocation||null;this.state.interior=null;
     this._event('launch',{body:interior.location,text:'You take the helm.'});
     return this._ok({body:interior.location});
   }
   recruitCrew(role, identity = {}) {
-    if (this.state.mode !== 'person' || this.state.interior || !this.currentBody) return this._fail('Meet potential crew at an inhabited port.', 'mode');
-    const roles={engineer:{cost:160,name:'Iona Vale',description:'Adds 10 hull integrity and keeps the machinery running.'},navigator:{cost:140,name:'Sera Venn',description:'Extends scanner range by 45 metres.'},medic:{cost:150,name:'Jun Bell',description:'Improves crew stamina and ship capacitor reserve by 10.'}};
-    const definition=roles[role];
-    if (!definition) return this._fail('Unknown crew role.', 'target');
+    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Meet potential crew at an inhabited port.','mode');
+    const definition=CREW_ROLES[role];if(!definition)return this._fail('Unknown crew role.','target');
     const details=typeof identity==='string'?{id:identity,name:identity}:identity||{};
-    if (this.state.crew.some(c=>c.role===role || details.id && c.id===details.id)) return this._fail('This berth is already filled.', 'duplicate');
-    if (this.state.credits<definition.cost) return this._fail(`Signing this crew member costs ${definition.cost} credits.`, 'cost');
-    const crew={id:details.id||`crew-${role}`,name:details.name||definition.name,role,color:details.color||'#acd7ce',description:details.description||definition.description};
-    this.state.credits-=definition.cost;this.state.crew.push(crew);
-    if(this.state.interior?.kind==='ship') this.state.interior.location.crew=clone(this.state.crew);
-    this._updateStats(true);this._flag(`crew_${role}`);this._log(`Welcome aboard, ${crew.name}`,definition.description,'crew');
-    this._event('crew',{crew,text:`${crew.name} joined your crew`});
-    return this._ok({crew,cost:definition.cost});
+    if(!details.id&&this.livingCrew.some(c=>c.role===role))return this._fail('This specialist role is already filled.','duplicate');
+    let id=details.id||`crew-${role}`,serial=1;
+    if(!details.id)while([...this.state.crew,...this.state.formerCrew].some(c=>c.id===id))id=`crew-${role}-${++serial}`;
+    if(this.state.crew.some(c=>c.id===id))return this._fail('This person is already in your crew records.','duplicate');
+    if(this.freeBerths<1)return this._fail(`All ${this.state.ship.berths} berths are occupied. Commission a larger hull or free a berth first.`,'capacity');
+    if(this.state.credits<definition.cost)return this._fail(`Signing this crew member costs ${definition.cost} credits.`,'cost');
+    const names={engineer:'Anik Sol',navigator:'Jules Aster',medic:'Tavi Sen',gunner:'Rook Venn',security:'Mara Kest',scientist:'Sera Ilan',quartermaster:'Orrin Hale'};
+    const replacements=['Kellan Rho','Meri Ash','Ives Noon','Asha Pell','Kori Fen','Lin Voss','Beck Vale'];
+    const replacement=serial>1?replacements[(serial+Object.keys(CREW_ROLES).indexOf(role)-2)%replacements.length]:names[role];
+    const crew={id,name:details.name||replacement,role,color:details.color||definition.color,description:details.description||definition.description,health:definition.health,maxHealth:definition.health,status:'active'};
+    this.state.credits-=definition.cost;this.state.crew.push(crew);this._updateStats(true);
+    this._flag(`crew_${role}`);this._log(`Welcome aboard, ${crew.name}`,definition.description,'crew');
+    this._event('crew',{crew,text:`${crew.name} joined your crew`});return this._ok({crew,cost:definition.cost});
   }
+
+  dismissCrew(id) {
+    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Crew can disembark safely at an inhabited port.','mode');
+    const crew=this.state.crew.find(c=>c.id===id&&c.health>0);if(!crew)return this._fail('This crew member is not aboard.','target');
+    if(crew.role==='quartermaster'&&this.cargoUsed>this.state.ship.cargoCap-8)return this._fail('Unload cargo before releasing your quartermaster’s storage arrangements.','cargo');
+    this.state.formerCrew.push({...clone(crew),status:'released',departedAt:this.state.stats.time,systemId:this.state.systemId,locationId:this.state.locationId});
+    this.state.crew.splice(this.state.crew.indexOf(crew),1);this._updateStats(false);
+    this._log(`Safe travels, ${crew.name}`,`${crew.name} disembarked at ${this.currentBody.name}. Their berth is free for another traveler.`,'crew');
+    this._event('crew',{crew,text:`${crew.name} disembarked. A berth is now free.`});return this._ok({crew});
+  }
+
+  boardEnemy(enemyId) {
+    if(this.state.mode!=='ship')return this._fail('Approach the disabled ship from the helm.','mode');
+    if(this.state.pendingEncounter)return this._fail('Resolve the open transmission first.','encounter');
+    const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0);
+    if(!enemy||!enemy.disabled)return this._fail('Disable the target’s engines before boarding.','disabled');
+    if(enemy.boardingTargetId)return this._fail('Another boarding party already has the tether.','occupied');
+    if(distance(enemy,this.state.ship)>this.state.ship.radius+enemy.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');
+    const shipClass=enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow');
+    const result=this._enterInterior({id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,kind:'ship',biome:'ship',shipClass,berths:getShipClass(shipClass).berths,crew:clone(this.livingCrew),faction:enemy.faction},'enemy',enemy.id);
+    if(!result.ok)return result;
+    return this._beginBoarding(enemy,'assault',shipClass);
+  }
+
+  /** Called by an NPC's completed grapple, never by a random casualty roll. */
+  startBoarding(enemyId) {
+    if(this.state.boarding?.phase==='active')return this._fail('A boarding action is already underway.','boarding');
+    if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('This vessel is not exposed in space.','mode');
+    const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.disabled);
+    if(!enemy||enemy.boardingTargetId)return this._fail('That pirate ship cannot attach a boarding tether.','target');
+    if(this.state.ship.shield>Math.max(4,this.state.ship.maxShield*.2))return this._fail('Your shields block the grapples.','shield');
+    if(distance(enemy,this.state.ship)>175+this.state.ship.radius)return this._fail('The pirate grapples cannot reach your hull.','distance');
+    if(this.state.mode==='ship')this._enterInterior(this._cabinLocation(),'ship');
+    return this._beginBoarding(enemy,'defense',this.state.ship.classId);
+  }
+
+  _beginBoarding(enemy,kind,shipClass) {
+    const layout=combatLayout(shipClass),count=Math.min(4,2+Math.floor((this.currentSystem.danger||1)/2));
+    const id=`boarding:${enemy.id}:${kind}`;
+    const enemies=Array.from({length:count},(_,i)=>{
+      const point=layout.combatSpawns[i%layout.combatSpawns.length];
+      return {id:`${id}:hostile:${i}`,name:i?'Boarding raider':'Pirate breacher',...point,health:52,maxHealth:52,team:'hostile',role:'raider',color:'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
+    });
+    const allies=this.livingCrew.map((crew,i)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,role:crew.role,...layout.crewSpawns[i%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+i*.15,speed:crew.role==='security'?64:50,status:'active'}));
+    enemy.boardingTargetId=this.playerId;enemy.boardingCharge=0;
+    this.state.boarding={id,kind,phase:'active',shipClass,vesselId:this.state.ship.id,locationId:this.state.locationId,targetId:enemy.id,enemies,allies,elapsed:0,combatTime:this.state.stats.time,unopposedTime:0,startedAt:this.state.stats.time};
+    this.state.person.down=false;
+    this._event('boarding',{boarding:this.state.boarding,text:kind==='defense'?'Boarders are inside Cinder. Defend your crew and clear the deck.':'Tether secured. Clear the hostile crew to claim the vessel’s stores.'});
+    this._log(kind==='defense'?'Boarding alarm':'Across the tether',`${enemy.name}: ${enemies.length} armed contacts on the deck.`,'boarding');
+    return this._ok({boarding:this.state.boarding,body:this.currentBody});
+  }
+
+  attackBoarder(enemyId = null, attacker = this) {
+    const boarding=this.state.boarding;
+    if(boarding?.phase!=='active')return this._fail('There are no active boarders to fight.','boarding');
+    if(attacker.state.mode!=='person'||attacker.state.person.health<=0)return this._fail('You must be on the deck and able to fight.','mode');
+    if(attacker._boardingShotTimer>0)return this._fail('Your sidearm is cycling.','cooldown');
+    const person=attacker.state.person,layout=combatLayout(boarding.shipClass);
+    const enemies=boarding.enemies.filter(e=>e.health>0).sort((a,b)=>distance(a,person)-distance(b,person));
+    const target=enemyId?enemies.find(e=>e.id===enemyId):enemies.find(e=>distance(e,person)<=172&&clearInteriorShot(layout,person,e));
+    if(!target)return this._fail('Move into sight of a hostile boarder.','target');
+    if(distance(target,person)>172)return this._fail('That boarder is outside sidearm range.','distance');
+    if(!clearInteriorShot(layout,person,target))return this._fail('A bulkhead blocks the shot.','sight');
+    attacker._boardingShotTimer=.32;person.facing=facingOf(target.x-person.x,target.y-person.y);
+    person.attackUntil=this.state.stats.time+.14;person.lastShot={x:person.x,y:person.y,targetX:target.x,targetY:target.y,until:person.attackUntil};
+    target.health=Math.max(0,target.health-24);target.lastHitBy=attacker.playerId;
+    this._event('person-shot',{...person.lastShot,attackerId:attacker.playerId,targetId:target.id,damage:24});
+    if(target.health<=0){target.status='dead';this._event('boarder-down',{actorId:target.id,text:`${target.name} neutralized.`});}
+    if(boarding.enemies.every(e=>e.health<=0))this._finishBoarding('won');
+    return this._ok({targetId:target.id,damage:24,health:target.health});
+  }
+  repelBoarders(enemyId = null, attacker = this) {return this.attackBoarder(enemyId,attacker);}
+
+  retreatBoarding() {
+    const boarding=this.state.boarding;
+    if(boarding?.phase!=='active')return this._leaveInterior();
+    if(boarding.kind!=='assault')return this._fail('The boarders are on your own ship. Clear them before taking the helm.','defense');
+    const layout=combatLayout(boarding.shipClass);
+    if(distance(this.state.person,layout.spawn)>70)return this._fail('Return to the entry airlock to withdraw across the tether.','distance');
+    this._finishBoarding('retreated');return this._leaveInterior();
+  }
+  leaveInterior() {return this.state.boarding?.phase==='active'?this.retreatBoarding():this._leaveInterior();}
+
+  _advanceBoardingActor(actor,target,layout,dt) {
+    actor.facing=facingOf(target.x-actor.x,target.y-actor.y);
+    actor.pathTimer=(actor.pathTimer||0)-dt;
+    if(actor.pathTimer<=0||!actor.path?.length){actor.path=interiorRoute(layout,actor,target);actor.pathTimer=.55;}
+    let goal=actor.path?.[0];
+    if(!goal&&clearInteriorShot(layout,actor,target))goal=target;
+    if(!goal)return;
+    const dx=goal.x-actor.x,dy=goal.y-actor.y,d=Math.hypot(dx,dy),speed=actor.speed||52;
+    if(d<1){actor.path?.shift();return;}
+    const step=Math.min(d,speed*dt),x=actor.x+dx/d*step,y=actor.y+dy/d*step;
+    if(isCabinWalkable(layout,x,y,5)){actor.x=x;actor.y=y;}
+    else {actor.path=[];actor.pathTimer=0;}
+    if(step===d)actor.path?.shift();
+  }
+
+  _actorShot(actor,target) {
+    actor.facing=facingOf(target.x-actor.x,target.y-actor.y);actor.attackUntil=this.state.stats.time+.16;
+    actor.lastShot={x:actor.x,y:actor.y,targetX:target.x,targetY:target.y,until:actor.attackUntil};
+    this._event('person-shot',{...actor.lastShot,attackerId:actor.id,targetId:target.id,damage:actor.damage});
+  }
+
+  _stepBoarding(dt,input,participants) {
+    const boarding=this.state.boarding;if(boarding?.phase!=='active')return;
+    const layout=combatLayout(boarding.shipClass),humans=participants===undefined?[this]:participants;
+    for(const human of humans)if(human!==this)human._boardingShotTimer=Math.max(0,finite(human._boardingShotTimer)-dt);
+    this._boardingHumans=humans;
+    boarding.elapsed+=dt;boarding.combatTime=this.state.stats.time;
+    if(participants===undefined&&input.fire&&this.state.mode==='person')this.attackBoarder();
+    if(boarding.phase!=='active')return;
+    for(const ally of boarding.allies){const crew=this.state.crew.find(c=>c.id===ally.crewId);if(crew){ally.health=crew.health;ally.status=crew.status;}}
+    const people=humans.filter(g=>g.state.mode==='person'&&g.state.person.health>0).map(g=>({id:g.playerId,...g.state.person,game:g,team:'friendly'}));
+    const targets=[...people,...boarding.allies.filter(a=>a.health>0)];
+    for(const hostile of boarding.enemies){
+      if(hostile.health<=0)continue;hostile.cooldown=Math.max(0,(hostile.cooldown||0)-dt);
+      const target=targets.filter(t=>t.game?t.game.state.person.health>0:t.health>0).sort((a,b)=>distance(a,hostile)-distance(b,hostile))[0];
+      if(!target)continue;
+      if(distance(hostile,target)>116||!clearInteriorShot(layout,hostile,target))this._advanceBoardingActor(hostile,target,layout,dt);
+      else if(!hostile.cooldown){
+        hostile.cooldown=1.05;this._actorShot(hostile,target);
+        if(target.game){const person=target.game.state.person;person.health=Math.max(0,person.health-hostile.damage);if(person.health<=0){person.down=true;target.game._event('person-down',{boardingId:boarding.id,text:'You are down. Your crew can still clear the deck.'});}}
+        else this._damageCrew(target.crewId,hostile.damage,`Boarding action against ${this.system.enemies.find(e=>e.id===boarding.targetId)?.name||'pirates'}`);
+      }
+    }
+    for(const ally of boarding.allies){
+      const crew=this.state.crew.find(c=>c.id===ally.crewId);if(!crew||crew.health<=0)continue;
+      ally.health=crew.health;ally.cooldown=Math.max(0,(ally.cooldown||0)-dt);ally.healTimer=Math.max(0,(ally.healTimer||0)-dt);
+      if(ally.role==='medic'&&!ally.healTimer){
+        const injured=[...people.filter(p=>p.game.state.person.health>0&&p.game.state.person.health<100),...boarding.allies.filter(a=>a.health>0&&a.health<a.maxHealth)];
+        const patient=injured.find(a=>distance(a,ally)<88&&clearInteriorShot(layout,ally,a));
+        if(patient){if(patient.game)patient.game.state.person.health=Math.min(100,patient.game.state.person.health+7);else{const c=this.state.crew.find(c=>c.id===patient.crewId);if(c)c.health=Math.min(c.maxHealth,c.health+7);}ally.healTimer=2;}
+      }
+      const target=boarding.enemies.filter(e=>e.health>0).sort((a,b)=>distance(a,ally)-distance(b,ally))[0];if(!target)continue;
+      if(distance(ally,target)>150||!clearInteriorShot(layout,ally,target))this._advanceBoardingActor(ally,target,layout,dt);
+      else if(!ally.cooldown){ally.cooldown=ally.role==='security'?.65:.95;this._actorShot(ally,target);target.health=Math.max(0,target.health-ally.damage);if(target.health<=0)target.status='dead';}
+    }
+    if(boarding.enemies.every(e=>e.health<=0)){this._finishBoarding('won');return;}
+    const conscious=humans.some(g=>g.state.person.health>0)||this.livingCrew.length>0;
+    boarding.unopposedTime=conscious?0:boarding.unopposedTime+dt;
+    if((participants===undefined&&this.state.person.health<=0)||boarding.unopposedTime>=12)this._finishBoarding('lost');
+  }
+
+  _damageCrew(id,amount,cause='Boarding combat') {
+    const crew=this.state.crew.find(c=>c.id===id);if(!crew||crew.health<=0)return;
+    crew.health=Math.max(0,crew.health-amount);crew.status=crew.health<=0?'dead':crew.health<crew.maxHealth?'injured':'active';
+    const actor=this.state.boarding?.allies.find(a=>a.crewId===id);if(actor){actor.health=crew.health;actor.status=crew.status;}
+    if(crew.health<=0){
+      if(!this.state.memorial.some(m=>m.crewId===id))this.state.memorial.push({id:`memorial:${id}`,crewId:id,name:crew.name,role:crew.role,cause,systemId:this.state.systemId,time:this.state.stats.time,shipClass:this.state.ship.classId});
+      this._updateStats(false);this._log(`In memory of ${crew.name}`,`${crew.name}, ${crew.role}, died defending the crew. ${cause}.`,'memorial');
+      this._event('crew-death',{crewId:id,crew,text:`${crew.name} has died. Their name is in your crew memorial.`});
+    }
+    if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
+  }
+
+  _finishBoarding(phase) {
+    const boarding=this.state.boarding;if(boarding?.phase!=='active')return;
+    boarding.phase=phase;boarding.endedAt=this.state.stats.time;
+    this.state.boardingHistory.push({id:boarding.id,kind:boarding.kind,phase,systemId:this.state.systemId,time:this.state.stats.time,casualties:boarding.allies.filter(a=>a.health<=0).map(a=>a.crewId)});
+    const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);
+    if(enemy){delete enemy.boardingTargetId;enemy.boardingCooldown=60;enemy.active=false;enemy.boardingCharge=0;}
+    if(phase==='won'){
+      if(enemy){enemy.hp=0;this._defeat(enemy);}
+      const reward=boarding.kind==='assault'?95:45;this.state.credits+=reward;
+      this.state.stats.boardingsWon=(this.state.stats.boardingsWon||0)+1;this._flag('won_ground_fight');this._flag(boarding.kind==='assault'?'captured_vessel':'repelled_boarders');
+      this._event('boarding-complete',{phase,text:`Deck secure. ${reward} credits recovered. Your surviving crew remain aboard.`});
+      this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
+      if(this.state.person.health<=0){this.state.person.health=35;this.state.person.down=false;}
+    }else if(phase==='lost'){
+      this.state.stats.boardingsLost=(this.state.stats.boardingsLost||0)+1;
+      this.state.mode='ship';this.state.locationId=null;this.state.interior=null;
+      this.state.person.health=55;this.state.person.down=false;
+      this._rescue('The surviving crew escaped in the sealed command capsule. A tug recovered Cinder after the pirates withdrew.');
+      this._event('boarding-complete',{phase,text:'The pirates took part of your cargo. Surviving crew were recovered; casualties remain in the memorial.'});
+    }else this._event('boarding-complete',{phase,text:'Boarding party withdrawn. The disabled vessel remains in the system.'});
+  }
+
+  healCrew(id) {
+    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Crew treatment is available at port infirmaries.','mode');
+    const crew=this.state.crew.find(c=>c.id===id);
+    if(!crew||crew.health<=0)return this._fail('This crew member cannot receive treatment.','target');
+    const cost=Math.ceil((crew.maxHealth-crew.health)*.4);
+    if(!cost)return this._fail('This crew member is already healthy.','full');
+    if(this.state.credits<cost)return this._fail(`Treatment costs ${cost} credits.`,'cost');
+    this.state.credits-=cost;crew.health=crew.maxHealth;crew.status='active';this._event('crew',{crew,text:`${crew.name} recovered at the infirmary.`});return this._ok({cost,crew});
+  }
+
   storyAction(action, details = {}) {
     const ids = {archive:'listening_archive',ally:'ledger_alliance',vault:'buried_weather',council:'earth_council'};
     const id = ids[action];

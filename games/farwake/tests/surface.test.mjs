@@ -66,8 +66,8 @@ test('main-story contacts match their authored identity and keep stable action r
 });
 test('an uncrewed cabin has consoles; assigned crew occupy stations exactly once',()=>{
  const empty=generateSurface({kind:'ship',id:'own-ship'},1);assert.equal(empty.entities.filter(e=>e.type==='crew').length,0);
- for(const slot of['engineer','navigator']){const e=empty.entities.find(e=>e.id===`own-ship:${slot}`);assert.equal(e.type,'terminal');assert.equal(e.data.vacant,true);}
+ for(const slot of['engineering','navigation','medical','security']){const e=empty.entities.find(e=>e.id===`own-ship:station:${slot}`);assert.equal(e.type,'station');assert.equal(e.data.stationRole,slot);}
  const crew=[{id:'anik',name:'Anik Sol',role:'engineer'},{id:'jules',name:'Jules Aster',role:'navigator'},{id:'tavi',name:'Tavi Sen',role:'medic'}],staffed=generateSurface({kind:'ship',id:'own-ship',crew},1),people=staffed.entities.filter(e=>e.type==='crew');
- assert.equal(people.length,3);assert.equal(new Set(people.map(e=>e.data.crewId)).size,3);assert.equal(staffed.entities.find(e=>e.id==='own-ship:engineer').name,'Anik Sol');assert.equal(staffed.entities.find(e=>e.id==='own-ship:navigator').name,'Jules Aster');
+ assert.equal(people.length,3);assert.equal(new Set(people.map(e=>e.data.crewId)).size,3);assert.equal(staffed.entities.find(e=>e.data.crewId==='anik').name,'Anik Sol');assert.equal(staffed.entities.find(e=>e.data.crewId==='jules').name,'Jules Aster');
  for(const e of people)assert.ok(isWalkable(staffed,e.x,e.y));
 });

@@ -1,0 +1,7 @@
+node_modules/
+.openai/*.local.*
+*.zip
+qa/
+
+.farwake-data/
+dist/qa-mobile.html

@@ -1,6 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Controls } from '../dist/input.mjs';
+import {Controls,inputVector} from '../dist/input.mjs';
+
+test('desktop ship controls separate thrust, braking, strafe and rotation while walking stays unchanged',()=>{
+  const flight=inputVector({keys:new Set(['KeyW','KeyA','ArrowRight'])});
+  assert.equal(flight.thrust,1);assert.equal(flight.strafe,-1);assert.equal(flight.turn,1);
+  const brake=inputVector({keys:new Set(['KeyS'])});assert.equal(brake.thrust,-1);assert.equal(brake.strafe,0);assert.equal(brake.turn,0);
+  const arrows=inputVector({keys:new Set(['ArrowUp','ArrowLeft'])});assert.equal(arrows.thrust,1);assert.equal(arrows.strafe,0);assert.equal(arrows.turn,-1);
+  const walk=inputVector({mode:'person',keys:new Set(['KeyW','KeyD'])});assert.ok(Math.abs(walk.x-Math.SQRT1_2)<1e-12);assert.ok(Math.abs(walk.y+Math.SQRT1_2)<1e-12);assert.equal(walk.turn,0);assert.equal(walk.thrust,0);
+});
+
+test('mobile left stick supplies local jets and aim-stick up fires while turning',()=>{
+  const v=inputVector({move:{x:.5,y:-1},aim:{x:.6,y:-.8}});
+  assert.equal(v.thrust,1);assert.equal(v.strafe,.5);assert.equal(v.turn,.6);assert.equal(v.fire,true);assert.equal(v.aimY,-.8);
+  assert.equal(inputVector({aim:{x:1,y:0}}).fire,false);
+  assert.equal(inputVector({mode:'person',aim:{x:0,y:-.7}}).fire,true);
+});
+
+class Surface {
+  constructor(){this.listeners={};this.style={};this.captured=new Set();this.classes=new Set();this.classList={add:k=>this.classes.add(k),remove:k=>this.classes.delete(k)};}
+  addEventListener(type,fn){(this.listeners[type]||=[]).push(fn);}
+  emit(type,values={}){const event={pointerId:0,pointerType:'touch',button:0,clientX:50,clientY:50,cancelable:true,preventDefault(){},target:this,...values};for(const fn of this.listeners[type]||[])fn(event);}
+  getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
+  setPointerCapture(id){this.captured.add(id);}
+  hasPointerCapture(id){return this.captured.has(id);}
+  releasePointerCapture(id){this.captured.delete(id);this.emit('lostpointercapture',{pointerId:id});}
+}
+
+test('independent touch ownership survives one stick or fire pointer being cancelled',()=>{
+  const oldWindow=globalThis.window,oldDocument=globalThis.document;
+  globalThis.window=new Surface();globalThis.document=new Surface();
+  try{
+    const stick=new Surface(),aimStick=new Surface(),fire=new Surface(),mine=new Surface(),boost=new Surface(),knob=new Surface(),aimKnob=new Surface();
+    const commands=[];const controls=new Controls({stick,knob,aimStick,aimKnob,fire,mine,boost,active:()=>true,onCommand:c=>commands.push(c),getMode:()=> 'ship'});
+    stick.emit('pointerdown',{pointerId:11,clientX:50,clientY:14});aimStick.emit('pointerdown',{pointerId:22,clientX:86,clientY:14});fire.emit('pointerdown',{pointerId:33});
+    assert.equal(controls.vector().thrust,1);assert.ok(controls.vector().turn>.6);assert.equal(controls.vector().fire,true);assert.deepEqual(commands,['primaryDown']);
+    aimStick.emit('pointercancel',{pointerId:999});assert.equal(controls.aimOwner,22);
+    fire.emit('pointercancel',{pointerId:33});assert.equal(controls.vector().fire,true,'Aim-stick firing remains held');assert.equal(controls.vector().thrust,1);
+    stick.emit('pointercancel',{pointerId:11});assert.equal(controls.vector().thrust,0);assert.ok(controls.vector().turn>.6);assert.equal(controls.vector().fire,true);
+    controls.clear();assert.equal(controls.owner,null);assert.equal(controls.aimOwner,null);assert.equal(controls.vector().fire,false);assert.equal(controls.vector().turn,0);assert.equal(controls.held.size,0);
+  }finally{globalThis.window=oldWindow;globalThis.document=oldDocument;}
+});
 
 // EventTarget gives these controls real event dispatch / preventDefault semantics.
 // Geometry and pointer capture are the only browser facilities that need doubles.
@@ -28,7 +68,7 @@ function fixture(){
  const controls=new Controls({...elements,active:()=>active,onCommand:name=>commands.push(name)});
  return{...elements,controls,commands,deactivate:()=>{active=false;}};
 }
-const idle={x:0,y:0,fire:false,mine:false,boost:false,brake:false};
+const idle={x:0,y:0,thrust:0,strafe:0,turn:0,aimY:0,fire:false,mine:false,boost:false,brake:false};
 
 test('touch controls keep independent owners and ignore another finger’s release',()=>{
  const{stick,fire,mine,controls,commands}=fixture();
