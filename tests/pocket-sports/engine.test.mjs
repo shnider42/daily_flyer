@@ -12,14 +12,38 @@ const data = Object.fromEntries(
     ),
   ]),
 );
-const make = (sport = "hockey", extra = {}) =>
-  new Match({
+const make = (sport = "hockey", extra = {}) => {
+  const g = new Match({
     sport,
     home: data[sport].teams[1],
     away: data[sport].teams[2],
     seed: 42,
     ...extra,
   });
+  live(g);
+  return g;
+};
+function live(g, side = 0) {
+  if (g.sport !== "soccer") return;
+  g.phase = "play";
+  g.restartData = null;
+  const p = g.players.find(
+    (p) => p.side === side && p.slot === g.rules.count - 1,
+  );
+  p.x = g.rules.width / 2;
+  p.y = g.rules.height / 2;
+  g.ball = {
+    x: p.x,
+    y: p.y,
+    vx: 0,
+    vy: 0,
+    owner: p.id,
+    lock: 0.55,
+    shot: false,
+  };
+  g.lastTouch = side;
+  if (!side && !g.autoplay) g.controlled = p.id;
+}
 function clearLane(g) {
   for (const p of g.players) {
     p.x = 50;
@@ -32,7 +56,7 @@ function clearLane(g) {
 for (const sport of ["hockey", "soccer"]) {
   test(sport + ": complete catalogues and authentic distinct lineups", () => {
     const teams = data[sport].teams;
-    assert.equal(teams.length, sport === "hockey" ? 32 : 16);
+    assert.equal(teams.length, sport === "hockey" ? 32 : 19);
     assert.equal(new Set(teams.map((t) => t.id)).size, teams.length);
     for (const t of teams) {
       assert.equal(t.players.length, sport === "hockey" ? 6 : 11);
@@ -47,7 +71,7 @@ for (const sport of ["hockey", "soccer"]) {
       );
     }
   });
-  test(sport + ": proper on-field count and controlled kickoff", () => {
+  test(sport + ": proper on-field count and controlled live play", () => {
     const g = make(sport);
     assert.equal(g.players.length, sport === "hockey" ? 12 : 22);
     assert.equal(g.owner.id, g.controlled);
@@ -56,7 +80,7 @@ for (const sport of ["hockey", "soccer"]) {
   test(sport + ": scoring swept line increments once and freezes ball", () => {
     const g = make(sport);
     clearLane(g);
-    Object.assign(g.ball, { x: 340, y: 4, vx: 0, vy: -1000 });
+    Object.assign(g.ball, { x: g.rules.width / 2, y: 4, vx: 0, vy: -1000 });
     g.step(1 / 60);
     assert.deepEqual(g.score, [1, 0]);
     assert.equal(g.phase, "goal");
@@ -75,9 +99,9 @@ for (const sport of ["hockey", "soccer"]) {
     const g = make(sport);
     clearLane(g);
     const keeper = g.players.find((p) => p.side === 1 && p.keeper);
-    Object.assign(keeper, { x: 340, y: 60, stun: 0 });
+    Object.assign(keeper, { x: g.rules.width / 2, y: 60, stun: 0 });
     Object.assign(g.ball, {
-      x: 340,
+      x: g.rules.width / 2,
       y: 77,
       vx: 0,
       vy: -1000,
@@ -114,6 +138,7 @@ for (const sport of ["hockey", "soccer"]) {
   test(sport + ": tackle requires proximity and has cooldown", () => {
     const g = make(sport);
     g.kickoff(1);
+    live(g, 1);
     const p = g.user,
       o = g.owner;
     p.decision = 0;
@@ -133,7 +158,7 @@ for (const sport of ["hockey", "soccer"]) {
     g.step(1 / 60);
     assert.equal(g.period, g.rules.periods + 1);
     g.goal(0);
-    for (let i = 0; i < 180; i++) g.step(1 / 60);
+    for (let i = 0; i < 360; i++) g.step(1 / 60);
     assert.equal(g.phase, "finished");
     assert.equal(g.winner, 0);
   });
@@ -179,7 +204,12 @@ test("hockey boards rebound while soccer creates a throw-in", () => {
   for (const sport of ["hockey", "soccer"]) {
     const g = make(sport);
     clearLane(g);
-    Object.assign(g.ball, { x: 679, y: 540, vx: 500, vy: 0 });
+    Object.assign(g.ball, {
+      x: g.rules.width - 1,
+      y: g.rules.height / 2,
+      vx: 500,
+      vy: 0,
+    });
     g.step(1 / 60);
     if (sport === "hockey") {
       assert.equal(g.phase, "play");

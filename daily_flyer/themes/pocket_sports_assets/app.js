@@ -55,7 +55,12 @@ const input = new Input({
   sprint: $("sprint"),
   switcher: $("switch"),
   settings,
-  active: () => !!game && !paused && game.phase === "play" && !$("dialog").open,
+  active: () =>
+    !!game &&
+    !paused &&
+    (game.phase === "play" ||
+      (game.phase === "restart_ready" && game.restartData?.side === 0)) &&
+    !$("dialog").open,
   onAction: (a, v, p) => game?.action(a, field.toWorld(v), p),
   onPause: () => (game ? togglePause() : null),
 });
@@ -157,8 +162,19 @@ function populate() {
   const saved = readStore(sport + ".teams", defaults);
   for (const [i, id] of ["home", "away"].entries()) {
     const el = $(id);
-    el.innerHTML = teams
-      .map((t) => `<option value="${t.id}">${esc(t.name)}</option>`)
+    const groups = new Map();
+    for (const t of teams) {
+      const group =
+        t.group ||
+        (sport === "hockey" ? "NHL" : "Champions League · 2025/26 last 16");
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(t);
+    }
+    el.innerHTML = [...groups]
+      .map(
+        ([label, clubs]) =>
+          `<optgroup label="${esc(label)}">${clubs.map((t) => `<option value="${t.id}">${esc(t.name)}${t.season ? " · " + esc(t.season) : ""}</option>`).join("")}</optgroup>`,
+      )
       .join("");
     el.value = teams.some((t) => t.id === saved[i]) ? saved[i] : teams[i].id;
   }
@@ -262,8 +278,10 @@ function showRoster(side) {
   const t = team($(side).value);
   modal(
     t.name,
-    "Representative arcade lineup · " + data[sport].season,
-    `<table class="roster-table">${t.players.map((p) => `<tr><td>${p.number}</td><td>${esc(p.name)}</td><td>${esc(p.position)}</td></tr>`).join("")}</table><p class="settings-tip">Snapshot: ${esc(data[sport].asOf)}. ${sport === "hockey" ? "One playable line and a goalie; line changes are not included." : "Representative XI; availability and substitutions are not modeled."}</p>${t.sourceUrls.map((s, i) => `<a class="dialog-link" target="_blank" rel="noopener" href="${esc(s)}">Official roster source ${i + 1} →</a>`).join("")}`,
+    (sport === "hockey"
+      ? "Representative arcade lineup · "
+      : "Representative arcade XI · ") + (t.season || data[sport].season),
+    `<table class="roster-table">${t.players.map((p) => `<tr><td>${p.number}</td><td>${esc(p.name)}</td><td>${esc(p.position)}</td></tr>`).join("")}</table><p class="settings-tip">Snapshot: ${esc(t.asOf || data[sport].asOf)}. ${sport === "hockey" ? "One playable line and a goalie; line changes are not included." : "Representative XI; availability and substitutions are not modelled."}</p>${t.notes ? `<p class="settings-tip">${esc(t.notes)}</p>` : ""}${t.sourceUrls.map((s, i) => `<a class="dialog-link" target="_blank" rel="noopener" href="${esc(s)}">Official roster source ${i + 1} →</a>`).join("")}`,
   );
 }
 $("home-roster").onclick = () => showRoster("home");
@@ -271,7 +289,7 @@ $("away-roster").onclick = () => showRoster("away");
 function showAbout() {
   modal(
     "ROSTERS & RULES",
-    "Pocket Sports · DailyFlyer · First playable release",
+    "Pocket Sports · DailyFlyer · 1.1",
     `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Team abilities are balanced arcade behavior; this build does not claim official ratings. The away team wears a light kit for readability. This is an independent fan-made game.</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. Solo play only in this release.</p></div>`,
   );
 }
@@ -282,7 +300,7 @@ function showHelp(startAfter = false) {
     sport === "hockey"
       ? "A little glide is part of skating. Plan the turn."
       : "Create space before you ask for the ball.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Push further for a full stride. Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold BURST to spend stamina.</p></div><div class="help-card"><b>ON DEFENSE</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. Get close, then commit.</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} bursts. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Push further for a full stride. Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold ${sport === "hockey" ? "BURST" : "SPRINT"} to spend stamina.</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. Get close, then commit.</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} ${sport === "hockey" ? "bursts" : "sprints"}. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.${sport === "soccer" ? " At a restart, wait for players to get set, aim with the left stick and press PASS to take it. You choose when to restart." : ""}</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
@@ -319,7 +337,7 @@ function showSettings() {
       )}</div><div class="settings-group"><h3>YOUR KEYBOARD</h3><p class="settings-tip">Movement: WASD / arrows. Pause: P / Esc. Select an action, then press a key.</p>${[
       ["shoot", "Shoot / tackle"],
       ["pass", "Pass / switch"],
-      ["sprint", "Burst"],
+      ["sprint", sport === "hockey" ? "Burst" : "Sprint"],
       ["switch", "Switch player"],
     ]
       .map(
@@ -511,7 +529,7 @@ function result() {
   const homeWin = game.winner === 0;
   let title =
     game.winner === null
-      ? "HONORS EVEN"
+      ? "HONOURS EVEN"
       : homeWin
         ? "THAT’S A WIN."
         : "NEXT ONE IS YOURS.";
@@ -561,8 +579,13 @@ function hud() {
     : game.period > game.rules.periods
       ? "GOLDEN GOAL"
       : `${game.rules.periodName} ${game.period}`;
-  $("possession").textContent =
-    game.ball.owner === null
+  const restart =
+    game.restartData && ["restart", "restart_ready"].includes(game.phase)
+      ? game.restartData
+      : null;
+  $("possession").textContent = restart
+    ? `${game.teams[restart.side].short} · ${restart.type}`
+    : game.ball.owner === null
       ? "LOOSE " + game.rules.noun.toUpperCase()
       : game.hasBall
         ? "YOUR POSSESSION"
@@ -571,22 +594,43 @@ function hud() {
     ? `${game.user.number} · ${game.user.name}`
     : "";
   $("stamina").style.width = (game.user?.stamina || 0) * 100 + "%";
-  $("pass").querySelector("span").textContent = game.hasBall
-    ? "PASS"
-    : "SWITCH";
-  $("shoot").querySelector("span").textContent = game.hasBall
-    ? "SHOOT"
-    : sport === "hockey"
-      ? "CHECK"
-      : "TACKLE";
+  $("pass").querySelector("span").textContent = restart
+    ? game.phase === "restart_ready" && restart.side === 0
+      ? restart.type === "THROW-IN"
+        ? "THROW"
+        : "PASS"
+      : "WAIT"
+    : game.hasBall
+      ? "PASS"
+      : "SWITCH";
+  $("shoot").querySelector("span").textContent = restart
+    ? game.phase === "restart_ready" && restart.side === 0
+      ? restart.type === "THROW-IN"
+        ? "THROW"
+        : restart.type === "KICK-OFF"
+          ? "PASS"
+          : "KICK"
+      : "WAIT"
+    : game.hasBall
+      ? "SHOOT"
+      : sport === "hockey"
+        ? "CHECK"
+        : "TACKLE";
   $("charge").style.height = input.power() * 100 + "%";
-  const announce = ["goal", "break", "restart"].includes(game.phase);
+  $("sprint").querySelector("span").textContent =
+    sport === "hockey" ? "BURST" : "SPRINT";
+  const announce = ["goal", "break", "restart", "restart_ready"].includes(
+    game.phase,
+  );
+  $("announcement").classList.toggle("set-piece", !!restart);
   $("announcement").classList.toggle("hidden", !announce);
   $("announcement").textContent =
     game.phase === "goal"
       ? (game.nextSide === 1 ? game.teams[0].short : game.teams[1].short) +
         " GOAL!"
-      : game.message;
+      : restart
+        ? `${restart.type} · ${game.teams[restart.side].short}\n${game.phase === "restart" ? "Getting into position…" : restart.side === 0 ? "Aim with the stick · Tap " + (restart.type === "THROW-IN" ? "THROW" : "PASS") : "Waiting for the restart…"}`
+        : game.message;
   const ev = game.events.filter((e) => e.time > lastEvent);
   for (const e of ev) {
     sound.event(e.type, sport);

@@ -1,4 +1,4 @@
-const TEAM_COUNTS = { hockey: 32, soccer: 16 };
+const TEAM_COUNTS = { hockey: 32, soccer: 19 };
 export function validateCatalogue(sport, data) {
   const expected = TEAM_COUNTS[sport];
   if (

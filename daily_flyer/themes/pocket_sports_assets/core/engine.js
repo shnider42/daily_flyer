@@ -1,6 +1,12 @@
+import {
+  setupFootballRestart,
+  stepFootballRestart,
+  takeFootballRestart,
+  footballBoundary,
+} from "../sports/football.js";
 import { SPORTS, DIFFICULTY } from "../sports/rules.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.0.0";
+export const ENGINE_VERSION = "1.1.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -41,8 +47,8 @@ export class Match {
     this.lastTouch = 0;
     this.players = [];
     this.ball = {
-      x: 340,
-      y: 540,
+      x: this.rules.width / 2,
+      y: this.rules.height / 2,
       vx: 0,
       vy: 0,
       owner: null,
@@ -109,18 +115,26 @@ export class Match {
     if (this.events.length > 80) this.events.shift();
   }
   kickoff(side = 0) {
+    if (this.sport === "soccer")
+      return setupFootballRestart(
+        this,
+        "KICK-OFF",
+        side,
+        this.rules.width / 2,
+        this.rules.height / 2,
+      );
     this.players.forEach((p) => {
       const f = this.rules.formation[p.slot];
-      p.x = f[0] * 680;
-      p.y = (p.side ? 1 - f[1] : f[1]) * 1080;
+      p.x = f[0] * this.rules.width;
+      p.y = (p.side ? 1 - f[1] : f[1]) * this.rules.height;
       p.vx = p.vy = 0;
       p.stun = 0;
     });
     const p = this.players.find(
       (p) => p.side === side && p.slot === this.rules.count - 1,
     );
-    p.x = 340;
-    p.y = 540;
+    p.x = this.rules.width / 2;
+    p.y = this.rules.height / 2;
     this.ball = {
       x: p.x,
       y: p.y,
@@ -150,13 +164,14 @@ export class Match {
   release(p, dx, dy, speed, shot) {
     const v = norm(dx, dy);
     this.ball.owner = null;
-    this.ball.x = p.x + v.x * 21;
-    this.ball.y = p.y + v.y * 21;
+    this.ball.x = p.x + v.x * (this.sport === "soccer" ? 0 : 21);
+    this.ball.y = p.y + v.y * (this.sport === "soccer" ? 0 : 21);
     this.ball.vx = v.x * speed;
     this.ball.vy = v.y * speed;
     this.ball.lock = 0.18;
     this.ball.shot = shot;
     this.ball.shooter = p.side;
+    if (this.sport === "soccer") this.ball.receiver = null;
     this.lastTouch = p.side;
     if (shot) {
       this.stats[p.side].shots++;
@@ -195,14 +210,15 @@ export class Match {
       this.rules.pass,
       false,
     );
+    if (this.sport === "soccer") this.ball.receiver = q.id;
     return true;
   }
   shoot(p = this.user, power = 0.65, input = { x: 0, y: 0 }) {
     if (this.phase !== "play" || this.ball.owner !== p.id) return false;
-    const gy = p.side ? 1085 : -5;
+    const gy = p.side ? this.rules.height + 5 : -5;
     const assist = p.side ? 1 : this.aimAssist;
     const gx =
-      340 +
+      this.rules.width / 2 +
       clamp(input.x, -1, 1) * (this.rules.goal * 0.8 + 110 * (1 - assist));
     const error =
       (this.random() - 0.5) *
@@ -240,6 +256,8 @@ export class Match {
     }
   }
   action(name, input = { x: 0, y: 0 }, power = 0.65) {
+    if (this.phase === "restart_ready" && this.restartData?.side === 0)
+      return takeFootballRestart(this, name, input, power);
     if (this.phase !== "play") return;
     if (name === "switch") return this.switchPlayer();
     if (name === "pass") {
@@ -252,11 +270,17 @@ export class Match {
     }
   }
   restart(type, side, x, y) {
+    if (this.sport === "soccer")
+      return setupFootballRestart(this, type, side, x, y);
     this.ball.owner = null;
     this.ball.vx = this.ball.vy = 0;
     this.phase = "restart";
     this.timer = 1.15;
-    this.restartData = { side, x: clamp(x, 28, 652), y: clamp(y, 25, 1055) };
+    this.restartData = {
+      side,
+      x: clamp(x, 28, this.rules.width - 28),
+      y: clamp(y, 25, this.rules.height - 25),
+    };
     this.message = type;
     this.emit("restart", { label: type });
   }
@@ -286,7 +310,7 @@ export class Match {
   goal(side) {
     this.score[side]++;
     this.phase = "goal";
-    this.timer = 2.8;
+    this.timer = this.sport === "soccer" ? 4.5 : 2.8;
     this.nextSide = 1 - side;
     this.message = "GOAL";
     this.emit("goal", { side, score: [...this.score] });
@@ -306,6 +330,13 @@ export class Match {
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) return;
     if (this.phase === "finished") return;
     this.time += dt;
+    if (
+      this.sport === "soccer" &&
+      ["restart", "restart_ready"].includes(this.phase)
+    ) {
+      stepFootballRestart(this, dt);
+      return;
+    }
     if (this.phase !== "play") {
       this.timer -= dt;
       if (this.timer <= 0) {
@@ -313,7 +344,10 @@ export class Match {
           if (this.winner !== undefined) this.finish();
           else this.kickoff(this.nextSide);
         } else if (this.phase === "restart") this.resumeRestart();
-        else if (this.phase === "break") this.kickoff(this.period % 2);
+        else if (this.phase === "break")
+          this.kickoff(
+            this.sport === "soccer" ? (this.period - 1) % 2 : this.period % 2,
+          );
       }
       return;
     }
@@ -324,7 +358,7 @@ export class Match {
           this.period++;
           this.remaining = this.duration;
           this.phase = "break";
-          this.timer = 2;
+          this.timer = this.sport === "soccer" ? 6 : 2;
           this.message = this.sport === "hockey" ? "NEXT PERIOD" : "HALF TIME";
           this.emit("break");
           return;
@@ -342,6 +376,8 @@ export class Match {
     }
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.ball.lock = Math.max(0, this.ball.lock - dt);
+    if (this.sport === "soccer")
+      this.ball.flight = Math.max(0, (this.ball.flight || 0) - dt);
     const owner = this.owner;
     if (owner) this.stats[owner.side].possession += dt;
     const nearest = [0, 1].map((side) =>
@@ -364,11 +400,11 @@ export class Match {
         ty /= n;
         burst = input.sprint && p.stamina > 0.12;
       } else if (p.keeper) {
-        const homeY = p.side ? 58 : 1022;
+        const homeY = p.side ? 58 : this.rules.height - 58;
         const targetX = clamp(
-          340 + (this.ball.x - 340) * 0.32,
-          340 - this.rules.goal * 0.42,
-          340 + this.rules.goal * 0.42,
+          this.rules.width / 2 + (this.ball.x - this.rules.width / 2) * 0.32,
+          this.rules.width / 2 - this.rules.goal * 0.42,
+          this.rules.width / 2 + this.rules.goal * 0.42,
         );
         const targetY = homeY + (this.ball.y - homeY) * 0.018;
         const d = distance(p, { x: targetX, y: targetY });
@@ -383,12 +419,15 @@ export class Match {
         const own = owner?.side === p.side;
         if (owner?.id === p.id) {
           target = {
-            x: 340 + Math.sin(this.time * 0.7 + p.id) * 110,
-            y: p.side ? 1060 : 20,
+            x: this.rules.width / 2 + Math.sin(this.time * 0.7 + p.id) * 110,
+            y: p.side ? this.rules.height - 20 : 20,
           };
-          const fromGoal = Math.abs(p.y - (p.side ? 1080 : 0));
+          const fromGoal = Math.abs(p.y - (p.side ? this.rules.height : 0));
           if (p.decision <= 0 && this.cooldown <= 0) {
-            if (fromGoal < 410 && Math.abs(p.x - 340) < 210) {
+            if (
+              fromGoal < (this.sport === "soccer" ? 360 : 410) &&
+              Math.abs(p.x - this.rules.width / 2) < 210
+            ) {
               this.shoot(p, 0.65, {
                 x: (this.random() - 0.5) * 0.9,
                 y: attack,
@@ -396,9 +435,29 @@ export class Match {
               p.decision = this.difficulty.reaction;
             } else if (this.random() < 0.24) {
               this.pass(p);
-              p.decision = 0.7;
-            } else p.decision = this.difficulty.reaction;
+              p.decision = this.sport === "soccer" ? 1.1 : 0.7;
+            } else
+              p.decision =
+                this.difficulty.reaction * (this.sport === "soccer" ? 2 : 1);
           }
+        } else if (
+          !owner &&
+          this.sport === "soccer" &&
+          this.ball.receiver === p.id
+        ) {
+          // The intended receiver comes to the pass instead of continuing a formation run.
+          target = {
+            x: clamp(
+              this.ball.x + this.ball.vx * 0.12,
+              18,
+              this.rules.width - 18,
+            ),
+            y: clamp(
+              this.ball.y + this.ball.vy * 0.12,
+              18,
+              this.rules.height - 18,
+            ),
+          };
         } else if (
           nearest[p.side].slice(0, owner ? 1 : 2).includes(p.id) &&
           (!own || !owner)
@@ -414,15 +473,20 @@ export class Match {
             this.tackle(p);
         } else {
           const f = this.rules.formation[p.slot];
-          const baseY = (p.side ? 1 - f[1] : f[1]) * 1080;
+          const baseY = (p.side ? 1 - f[1] : f[1]) * this.rules.height;
           target = {
-            x: clamp(f[0] * 680 + (this.ball.x - 340) * 0.24, 38, 642),
+            x: clamp(
+              f[0] * this.rules.width +
+                (this.ball.x - this.rules.width / 2) * 0.24,
+              38,
+              this.rules.width - 38,
+            ),
             y: clamp(
               baseY +
-                (this.ball.y - 540) * (own ? 0.36 : 0.26) +
+                (this.ball.y - this.rules.height / 2) * (own ? 0.36 : 0.26) +
                 (own ? attack * 65 : 0),
               65,
-              1015,
+              this.rules.height - 65,
             ),
           };
         }
@@ -452,8 +516,8 @@ export class Match {
         p.vx *= drag;
         p.vy *= drag;
       }
-      p.x = clamp(p.x + p.vx * dt, 18, 662);
-      p.y = clamp(p.y + p.vy * dt, 18, 1062);
+      p.x = clamp(p.x + p.vx * dt, 18, this.rules.width - 18);
+      p.y = clamp(p.y + p.vy * dt, 18, this.rules.height - 18);
     });
     // Soft separation prevents teammate piles without moving the controlled player by AI.
     for (let i = 0; i < this.players.length; i++)
@@ -480,6 +544,7 @@ export class Match {
       this.ball.x = p.x + facing.x * 16;
       this.ball.y = p.y + facing.y * 16;
       this.ball.vx = this.ball.vy = 0;
+      if (this.sport === "soccer") footballBoundary(this, { x: p.x, y: p.y });
       return;
     }
     const old = { x: this.ball.x, y: this.ball.y };
@@ -493,11 +558,20 @@ export class Match {
       const candidates = this.players
         .filter(
           (p) =>
-            p.stun <= 0 && segmentDistance(p, old, b) < (p.keeper ? 25 : 19),
+            p.stun <= 0 &&
+            !(
+              this.sport === "soccer" &&
+              (this.ball.flight > 0 || this.ball.restartKicker === p.id)
+            ) &&
+            segmentDistance(p, old, b) < (p.keeper ? 25 : 19),
         )
         .sort((a, c) => distance(a, old) - distance(c, old));
       for (const p of candidates) {
         const speed = Math.hypot(b.vx, b.vy);
+        if (this.sport === "soccer") {
+          b.restartKicker = null;
+          b.noDirectGoal = false;
+        }
         if (b.shot && speed > 300 && !p.keeper) {
           if (p.side === b.shooter) continue;
           b.vx *= 0.4;
@@ -511,6 +585,10 @@ export class Match {
         if (p.keeper && b.shot) {
           this.stats[p.side].saves++;
           this.emit("save", { side: p.side });
+          if (this.sport === "soccer" && speed < 630) {
+            setupFootballRestart(this, "KEEPER BALL", p.side, p.x, p.y);
+            break;
+          }
           b.vx = (b.x - p.x) * 18 + (this.random() - 0.5) * 150;
           b.vy = p.side ? 280 : -280;
           b.lock = 0.25;
@@ -520,13 +598,18 @@ export class Match {
         }
         if (!p.keeper) {
           b.owner = p.id;
+          if (this.sport === "soccer") b.receiver = null;
           b.shot = false;
           this.lastTouch = p.side;
           if (p.side === 0 && !this.autoplay) this.controlled = p.id;
           p.decision = this.difficulty.reaction;
           break;
         } else {
-          b.vx = (340 - p.x) * 2;
+          if (this.sport === "soccer") {
+            setupFootballRestart(this, "KEEPER BALL", p.side, p.x, p.y);
+            break;
+          }
+          b.vx = (this.rules.width / 2 - p.x) * 2;
           b.vy = p.side ? 350 : -350;
           b.lock = 0.3;
           this.lastTouch = p.side;
@@ -534,13 +617,17 @@ export class Match {
         }
       }
     }
-    if (b.owner !== null) return;
+    if (b.owner !== null || this.phase !== "play") return;
+    if (this.sport === "soccer") {
+      footballBoundary(this, old);
+      return;
+    }
     // Swept line crossing: fast shots cannot skip a goal or score through the side wall.
-    if (b.y < 0 || b.y > 1080) {
-      const line = b.y < 0 ? 0 : 1080;
+    if (b.y < 0 || b.y > this.rules.height) {
+      const line = b.y < 0 ? 0 : this.rules.height;
       const t = (line - old.y) / (b.y - old.y || 1);
       const crossX = old.x + (b.x - old.x) * clamp(t, 0, 1);
-      if (Math.abs(crossX - 340) < this.rules.goal / 2) {
+      if (Math.abs(crossX - this.rules.width / 2) < this.rules.goal / 2) {
         this.goal(b.y < 0 ? 0 : 1);
         return;
       }
@@ -556,20 +643,9 @@ export class Match {
         b.vy *= -0.82;
         this.emit("board");
       }
-    } else if (b.x < 0 || b.x > 680)
-      this.restart("THROW-IN", 1 - this.lastTouch, b.x < 0 ? 25 : 655, b.y);
-    else if (b.y < 0 || b.y > 1080) {
-      const defender = b.y < 0 ? 1 : 0;
-      if (this.lastTouch === defender)
-        this.restart(
-          "CORNER",
-          1 - defender,
-          b.x < 340 ? 25 : 655,
-          b.y < 0 ? 25 : 1055,
-        );
-      else this.restart("GOAL KICK", defender, 340, b.y < 0 ? 100 : 980);
     }
   }
+
   snapshot() {
     return {
       time: this.time,

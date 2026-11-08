@@ -2,7 +2,7 @@
   "season": "2025/26 UEFA Champions League round of 16",
   "asOf": "2026-03-18",
   "researchedAt": "2026-11-07",
-  "notes": "The 16 clubs are the last completed round of 16. These are representative arcade XIs drawn from official March 2026 match squads, not live transfer rosters or exact tactical starting lineups. Positions are simplified to GK/D/M/F; team colors are approximate display palettes, not licensed brand specifications. Injury and suspension availability is not modeled.",
+  "notes": "The 16 clubs are the last completed round of 16. These are representative arcade XIs drawn from official March 2026 match squads, not live transfer rosters or exact tactical starting lineups. Positions are simplified to GK/D/M/F; team colors are approximate display palettes, not licensed brand specifications. Injury and suspension availability is not modeled. Also includes Borussia Dortmund 2026/27 and Club Classics from the 2013 Champions League final and 2015/16. These additions have their own season dates and official sources shown in the lineups; the original Champions League snapshot is unchanged.",
   "teams": [
     {
       "id": "ars",
@@ -1126,6 +1126,236 @@
       "sourceUrls": [
         "https://www.uefa.com/newsfiles/UCL/2026/2048056_LU.pdf"
       ]
+    },
+    {
+      "id": "bvb",
+      "name": "Borussia Dortmund",
+      "short": "BVB",
+      "city": "Dortmund",
+      "colors": [
+        "#FDE100",
+        "#171717"
+      ],
+      "season": "2026/27",
+      "asOf": "2026-11-07",
+      "researchedAt": "2026-11-08",
+      "group": "Current clubs",
+      "players": [
+        {
+          "name": "Gregor Kobel",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Daniel Svensson",
+          "number": 24,
+          "position": "LB"
+        },
+        {
+          "name": "Waldemar Anton",
+          "number": 3,
+          "position": "CB"
+        },
+        {
+          "name": "Nico Schlotterbeck",
+          "number": 4,
+          "position": "CB"
+        },
+        {
+          "name": "Julian Ryerson",
+          "number": 26,
+          "position": "RB"
+        },
+        {
+          "name": "Joey Veerman",
+          "number": 25,
+          "position": "CM"
+        },
+        {
+          "name": "Felix Nmecha",
+          "number": 8,
+          "position": "CM"
+        },
+        {
+          "name": "Jobe Bellingham",
+          "number": 7,
+          "position": "CM"
+        },
+        {
+          "name": "Maximilian Beier",
+          "number": 14,
+          "position": "LW"
+        },
+        {
+          "name": "Fábio Silva",
+          "number": 21,
+          "position": "RW"
+        },
+        {
+          "name": "Serhou Guirassy",
+          "number": 9,
+          "position": "ST"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.bvb.de/de/en/news/news-overview/news.html/2026/8/20/These-are-the-jersey-numbers-for-the-2026/27-season.html",
+        "https://www.uefa.com/uefachampionsleague/clubs/52758/squad/",
+        "https://www.bvb.de/de/en/news/news-overview/news.html/2026/11/7/BVB-Grinds-Out-Another-Home-Win-Behind-Nmechas-Brace.html"
+      ],
+      "notes": "Current 2026/27 membership and shirt numbers verified against BVB and UEFA sources, with a dated 7 November 2026 BVB match report. This is a representative season XI, not the exact XI from that match. Guirassy remains included despite the muscle strain noted in that report. Representative arcade XI; no player or team ability boosts."
+    },
+    {
+      "id": "bvb2013",
+      "name": "Borussia Dortmund 2013",
+      "short": "B13",
+      "city": "Dortmund",
+      "colors": [
+        "#FDE100",
+        "#171717"
+      ],
+      "season": "2012/13",
+      "asOf": "2013-05-25",
+      "researchedAt": "2026-11-08",
+      "group": "Club classics",
+      "players": [
+        {
+          "name": "Roman Weidenfeller",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Marcel Schmelzer",
+          "number": 29,
+          "position": "LB"
+        },
+        {
+          "name": "Neven Subotić",
+          "number": 4,
+          "position": "CB"
+        },
+        {
+          "name": "Mats Hummels",
+          "number": 15,
+          "position": "CB"
+        },
+        {
+          "name": "Łukasz Piszczek",
+          "number": 26,
+          "position": "RB"
+        },
+        {
+          "name": "Sven Bender",
+          "number": 6,
+          "position": "CM"
+        },
+        {
+          "name": "İlkay Gündoğan",
+          "number": 8,
+          "position": "CM"
+        },
+        {
+          "name": "Marco Reus",
+          "number": 11,
+          "position": "AM"
+        },
+        {
+          "name": "Kevin Großkreutz",
+          "number": 19,
+          "position": "LW"
+        },
+        {
+          "name": "Jakub Błaszczykowski",
+          "number": 16,
+          "position": "RW"
+        },
+        {
+          "name": "Robert Lewandowski",
+          "number": 9,
+          "position": "ST"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/uefachampionsleague/match/2009612--dortmund-vs-bayern/lineups/",
+        "https://www.uefa.com/newsfiles/UCL/2013/2009612_FR.pdf"
+      ],
+      "notes": "Starting XI from the Champions League final at Wembley on 25 May 2013. Player identities and shirt numbers match the final; tactical spacing uses the shared arcade formation. No player or team ability boosts."
+    },
+    {
+      "id": "bvb2016",
+      "name": "Borussia Dortmund 2016",
+      "short": "B16",
+      "city": "Dortmund",
+      "colors": [
+        "#FDE100",
+        "#171717"
+      ],
+      "season": "2015/16",
+      "asOf": "2016-05-21",
+      "researchedAt": "2026-11-08",
+      "group": "Club classics",
+      "players": [
+        {
+          "name": "Roman Bürki",
+          "number": 38,
+          "position": "GK"
+        },
+        {
+          "name": "Marcel Schmelzer",
+          "number": 29,
+          "position": "LB"
+        },
+        {
+          "name": "Sokratis Papastathopoulos",
+          "number": 25,
+          "position": "CB"
+        },
+        {
+          "name": "Mats Hummels",
+          "number": 15,
+          "position": "CB"
+        },
+        {
+          "name": "Łukasz Piszczek",
+          "number": 26,
+          "position": "RB"
+        },
+        {
+          "name": "Julian Weigl",
+          "number": 33,
+          "position": "CM"
+        },
+        {
+          "name": "İlkay Gündoğan",
+          "number": 8,
+          "position": "CM"
+        },
+        {
+          "name": "Shinji Kagawa",
+          "number": 23,
+          "position": "CM"
+        },
+        {
+          "name": "Marco Reus",
+          "number": 11,
+          "position": "LW"
+        },
+        {
+          "name": "Henrikh Mkhitaryan",
+          "number": 10,
+          "position": "RW"
+        },
+        {
+          "name": "Pierre-Emerick Aubameyang",
+          "number": 17,
+          "position": "ST"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/MultimediaFiles/Download/uefaorg/General/02/40/05/26/2400526_DOWNLOAD.pdf",
+        "https://datencenter.dfb.de/competitions/bundesliga/seasons/2015-2016/teams/borussia-dortmund",
+        "https://www.dfb.de/fileadmin/_dfbdam/104150-VW_Pressemappe_Postmatch.pdf"
+      ],
+      "notes": "2016 means the 2015/16 season under Thomas Tuchel, not the 2016/17 squad. This season selection includes Gündoğan even though he missed the 21 May 2016 cup final; it is not that match’s starting XI. Mkhitaryan and Reus occupy the arcade wide-forward slots. Period shirt numbers are retained, including Bürki 38 and Gündoğan 8. Representative arcade XI; no player or team ability boosts."
     }
   ]
 }

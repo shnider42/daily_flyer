@@ -10,6 +10,7 @@ export class Arena {
     this.scale = 1;
     this.x = 0;
     this.y = 0;
+    this.rules = SPORTS.hockey;
     this.trail = [];
     this.spark = [];
     this.resize();
@@ -25,18 +26,25 @@ export class Arena {
     this.canvas.height = Math.max(1, Math.round(r.height * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.rotated = r.width / Math.max(1, r.height) > 1.25;
+    const { width: pitchWidth, height: pitchHeight } = this.rules;
     this.scale = Math.max(
       0.01,
       this.rotated
-        ? Math.min((r.width - 30) / 1190, (r.height - 30) / 760)
-        : Math.min((r.width - 30) / 760, (r.height - 30) / 1190),
+        ? Math.min(
+            (r.width - 30) / (pitchHeight + 110),
+            (r.height - 30) / (pitchWidth + 80),
+          )
+        : Math.min(
+            (r.width - 30) / (pitchWidth + 80),
+            (r.height - 30) / (pitchHeight + 110),
+          ),
     );
     this.x = this.rotated
-      ? (r.width + 1080 * this.scale) / 2
-      : (r.width - 680 * this.scale) / 2;
+      ? (r.width + pitchHeight * this.scale) / 2
+      : (r.width - pitchWidth * this.scale) / 2;
     this.y = this.rotated
-      ? (r.height - 680 * this.scale) / 2
-      : (r.height - 1080 * this.scale) / 2;
+      ? (r.height - pitchWidth * this.scale) / 2
+      : (r.height - pitchHeight * this.scale) / 2;
   }
   toWorld(input) {
     return screenToWorld(input, this.rotated);
@@ -45,6 +53,11 @@ export class Arena {
     game,
     { guide = true, preview = false, replay = null, reduced = false } = {},
   ) {
+    if (this.rules !== game.rules) {
+      this.rules = game.rules;
+      this.trail = [];
+      this.resize();
+    }
     const ctx = this.ctx,
       w = this.width,
       h = this.height;
@@ -78,7 +91,20 @@ export class Arena {
     if (this.rotated) ctx.rotate(Math.PI / 2);
     ctx.scale(this.scale, this.scale);
     if (hockey) this.ice(ctx);
-    else this.pitch(ctx);
+    else {
+      ctx.save();
+      ctx.scale(r.width / 680, r.height / 1080);
+      this.pitch(ctx);
+      ctx.restore();
+    }
+    if (!hockey && game.restartData && !replay) {
+      const spot = game.restartData;
+      ctx.strokeStyle = "#e3fa85";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(spot.x, spot.y, 28, 0, TAU);
+      ctx.stroke();
+    }
     // Ball path is short and disappears on possession changes.
     if (!replay && !reduced) {
       this.trail.push({ x: state.ball.x, y: state.ball.y });
@@ -289,7 +315,7 @@ export class Arena {
     c.beginPath();
     c.arc(340, 540, 4, 0, TAU);
     c.fill();
-    this.net(c, 178, false);
+    this.net(c, (this.rules.goal * 680) / this.rules.width, false);
     c.fillStyle = "#09281c28";
     c.beginPath();
     c.moveTo(0, 0);
@@ -324,6 +350,7 @@ export class Arena {
       Math.sin(time * 13 + p.id) * Math.min(7, Math.hypot(p.vx, p.vy) / 27);
     c.save();
     c.translate(p.x, p.y);
+    if (!hockey) c.scale(1.12, 1.12);
     c.fillStyle = "#00121a30";
     c.beginPath();
     c.ellipse(3, 8, 17, 9, 0, 0, TAU);

@@ -11,7 +11,7 @@ def load_catalogue(asset_root: Path, sport: str) -> dict:
     if sport not in SPORTS:
         raise ValueError("Unknown sport")
     data = json.loads((asset_root / "data" / f"teams-{sport}.json").read_text(encoding="utf-8"))
-    expected = 32 if sport == "hockey" else 16
+    expected = 32 if sport == "hockey" else 19
     if len(data.get("teams", [])) != expected:
         raise ValueError("Incomplete roster snapshot")
     ids = [team["id"] for team in data["teams"]]
@@ -47,7 +47,7 @@ def create_sports_blueprint(asset_root: Path) -> Blueprint:
 
     @bp.get("/api/v1/sports")
     def registry():
-        return jsonify({"schema_version": 1, "engine_version": "1.0.0", "sports": SPORTS})
+        return jsonify({"schema_version": 1, "engine_version": "1.1.0", "sports": SPORTS})
 
     @bp.get("/api/v1/sports/<sport>/teams")
     def teams(sport):
