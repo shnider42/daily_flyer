@@ -1,3 +1,4 @@
+import { movePlayer } from "./movement.js";
 import {
   setupFootballRestart,
   stepFootballRestart,
@@ -6,7 +7,7 @@ import {
 } from "../sports/football.js";
 import { SPORTS, DIFFICULTY } from "../sports/rules.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.1.0";
+export const ENGINE_VERSION = "1.2.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -256,8 +257,19 @@ export class Match {
     }
   }
   action(name, input = { x: 0, y: 0 }, power = 0.65) {
-    if (this.phase === "restart_ready" && this.restartData?.side === 0)
-      return takeFootballRestart(this, name, input, power);
+    if (
+      this.sport === "soccer" &&
+      ["restart", "restart_ready"].includes(this.phase)
+    ) {
+      if (this.restartData.side === 1) {
+        if (name === "switch" || name === "pass") this.switchPlayer();
+      } else if (["pass", "shoot"].includes(name)) {
+        if (this.phase === "restart_ready")
+          return takeFootballRestart(this, name, input, power);
+        this.restartData.pending = { name, power };
+      }
+      return;
+    }
     if (this.phase !== "play") return;
     if (name === "switch") return this.switchPlayer();
     if (name === "pass") {
@@ -310,7 +322,7 @@ export class Match {
   goal(side) {
     this.score[side]++;
     this.phase = "goal";
-    this.timer = this.sport === "soccer" ? 4.5 : 2.8;
+    this.timer = this.sport === "soccer" ? 1.8 : 2.8;
     this.nextSide = 1 - side;
     this.message = "GOAL";
     this.emit("goal", { side, score: [...this.score] });
@@ -334,7 +346,7 @@ export class Match {
       this.sport === "soccer" &&
       ["restart", "restart_ready"].includes(this.phase)
     ) {
-      stepFootballRestart(this, dt);
+      stepFootballRestart(this, dt, input);
       return;
     }
     if (this.phase !== "play") {
@@ -358,7 +370,7 @@ export class Match {
           this.period++;
           this.remaining = this.duration;
           this.phase = "break";
-          this.timer = this.sport === "soccer" ? 6 : 2;
+          this.timer = 2;
           this.message = this.sport === "hockey" ? "NEXT PERIOD" : "HALF TIME";
           this.emit("break");
           return;
@@ -499,25 +511,13 @@ export class Match {
           }
         }
       }
-      if (p.stun > 0) tx = ty = 0;
-      p.stamina = clamp(p.stamina + (burst ? -0.24 : 0.13) * dt, 0, 1);
-      const speed =
-        (p.keeper ? this.rules.keeperSpeed : this.rules.speed) *
-        (burst ? 1.32 : 1) *
-        (owner?.id === p.id ? 0.93 : 1);
-      const gain = 1 - Math.exp(-this.rules.accel * dt);
-      if (Math.hypot(tx, ty) > 0.02) {
-        p.vx += (tx * speed - p.vx) * gain;
-        p.vy += (ty * speed - p.vy) * gain;
-        p.fx = tx;
-        p.fy = ty;
-      } else {
-        const drag = Math.exp(-this.rules.drag * dt);
-        p.vx *= drag;
-        p.vy *= drag;
-      }
-      p.x = clamp(p.x + p.vx * dt, 18, this.rules.width - 18);
-      p.y = clamp(p.y + p.vy * dt, 18, this.rules.height - 18);
+      movePlayer(
+        p,
+        this.rules,
+        dt,
+        { x: tx, y: ty, sprint: burst },
+        owner?.id === p.id,
+      );
     });
     // Soft separation prevents teammate piles without moving the controlled player by AI.
     for (let i = 0; i < this.players.length; i++)

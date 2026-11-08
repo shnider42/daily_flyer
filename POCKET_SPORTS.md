@@ -41,7 +41,8 @@ franchise economy, online leaderboard or multiplayer transport in this release.
 | --- | --- |
 | `core/pgi-controls.js` | Extracted PGI button activation, radial dead zone, normalized movement, scoped Safari gesture protection |
 | `core/device-audio.js` | PGI iPhone playback-session activation and route recovery |
-| `core/input.js` | Pointer ownership, cancellation, held inputs, charge/release, action remapping |
+| `core/input.js` | Independent pointer ownership, cancellation, held input continuity, charge/release, action remapping |
+| `core/movement.js` | Shared acceleration, stamina and movement for live play and dead-ball marking |
 | `core/engine.js` | Seeded simulation, CPU positioning, possession, physical passes/shots, match lifecycle, event stream |
 | `sports/football.js` | Football-only set-piece preparation, taker selection, stationary restarts and swept boundary decisions |
 | `sports/rules.js` | Sport dimensions, movement coefficients, formations, period counts and documented rules |
@@ -96,7 +97,7 @@ Source branch: `feat/pocket-hockey-soccer`, based on PGI
 DFE routes: `/hockey/`, `/soccer/`, `/sports/`. DFE defaults recognize
 `pocket_hockey`, `pocket_soccer` and `pocket_sports`.
 
-## Football pacing update — engine 1.1.0
+## Football pacing and input update — engine 1.2.0
 
 The pitch is 880 × 1400 world units (was 680 × 1080), about 68% more area.
 Running speed is 150 (was 202), with gentler acceleration and slower passes.
@@ -104,14 +105,26 @@ Sprint is still available for short bursts. Camera fitting, goal mouths, CPU
 positions and boundary detection use the sport dimensions; hockey coefficients
 and rink dimensions are unchanged.
 
-Football restarts have two states: `restart` while players walk into position,
-then `restart_ready`. Throw-ins wait at least four seconds, goal kicks/corners
-five, kick-offs 3.5, and controlled goalkeeper catches 2.5. Preparation can take
-longer if the taker or opponents have not reached legal starting positions.
+Football restarts have two states: `restart` during brief preparation, then
+`restart_ready`. Minimum setup is 0.65 seconds for throw-ins, 0.9 for goal kicks
+and corners, 0.6 for kick-offs, and 0.35 for goalkeeper distribution. The taker's
+arrival takes at most 1.8 seconds; preparation no longer waits for every player
+to settle. The CPU releases 0.25 seconds after readiness. Goal celebrations take
+1.8 seconds and half-time takes 2 seconds before the next restart.
+
 The human side aims with normal movement input and takes the restart with PASS
-(or SHOOT for a kick); it never automatically releases after an idle timeout.
-The CPU takes a restart after a short ready delay. Match time counts active
-play only, avoiding short arcade halves being consumed by stoppages.
+(or SHOOT for a kick). A command pressed during preparation is queued once and
+uses the latest aim when ready. An idle human restart never releases itself.
+Match time counts active play only. On opposition restarts, the controlled
+player can move, sprint and switch defenders throughout preparation and release;
+only restart-specific exclusion areas constrain movement. Throw-ins preserve
+the existing team shape while nearby receivers move into position.
+
+Automatic stoppages keep stick capture, heading, keyboard movement and sprint
+held. Only stale shot charge is cancelled when play stops. Manual menus, tab
+hiding and lost focus release controls. Each action surface owns its initiating
+pointer, so another finger's release/cancel cannot cancel a held button; touch
+and keyboard shot ownership are also separate.
 
 Goal kicks use the goalkeeper, opponents clear the area, and the released ball
 must travel to a recipient. Throw-ins have a short airborne phase, cannot score
@@ -127,8 +140,24 @@ older catalogues and hockey roster displays keep the same interface.
 
 Backport this revision as a unit: engine, renderer, football restart module,
 rules, app, catalogue JSON/validators, backend and tests. Football behavior
-lives in `sports/football.js`; PGI input and device-audio exports are unchanged.
+lives in `sports/football.js`; carry `core/movement.js` with the engine. PGI
+input and device-audio exports are unchanged. The new `core/input.js` ownership
+logic can be adopted independently by games that use that adapter.
 
 Validation adds regression scenarios for restart timing and player authority,
 goalkeeper distribution, both touchlines, direct throw-in goals, second touches,
 corner crossings, close-range shots, second-half kick-off and Dortmund's final XI.
+
+## Render deployment
+
+Use the existing Flask application on branch `feat/pocket-hockey-soccer`:
+
+- Runtime: Python; region: Virginia; instance: Free.
+- Build: `pip install -r requirements.txt`
+- Start: `gunicorn web:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60`
+- Environment: `DEFAULT_THEME=pocket_soccer`
+- Auto-deploy the branch. `/` opens football; `/hockey/` opens hockey.
+
+Verify `/api/v1/sports` reports engine `1.2.0`, both catalogue routes return
+teams, and the browser can start a match after a successful deploy. The service
+needs no database, secrets, persistent disk or scheduled roster scraping.

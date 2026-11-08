@@ -3,7 +3,7 @@ import { SPORTS } from "./sports/rules.js";
 import { Match } from "./core/engine.js";
 import { FixedClock, seeded } from "./core/math.js";
 import { Arena } from "./core/view.js";
-import { Input } from "./core/input.js";
+import { Input, matchControlsActive } from "./core/input.js";
 import { Sound } from "./core/sound.js";
 import {
   DEFAULT_SETTINGS,
@@ -55,19 +55,16 @@ const input = new Input({
   sprint: $("sprint"),
   switcher: $("switch"),
   settings,
-  active: () =>
-    !!game &&
-    !paused &&
-    (game.phase === "play" ||
-      (game.phase === "restart_ready" && game.restartData?.side === 0)) &&
-    !$("dialog").open,
+  active: () => matchControlsActive(game, paused, $("dialog").open),
   onAction: (a, v, p) => game?.action(a, field.toWorld(v), p),
   onPause: () => (game ? togglePause() : null),
 });
 const clock = new FixedClock((dt) => {
   if (!game || paused || $("dialog").open) return;
   game.aimAssist = settings.assist;
+  const phaseBefore = game.phase;
   game.step(dt, field.toWorld(input.vector()));
+  if (phaseBefore === "play" && game.phase !== "play") input.cancelShot();
   if (game.phase === "play") {
     frames.push(game.snapshot());
     if (frames.length > 130) frames.shift();
@@ -289,7 +286,7 @@ $("away-roster").onclick = () => showRoster("away");
 function showAbout() {
   modal(
     "ROSTERS & RULES",
-    "Pocket Sports · DailyFlyer · 1.1",
+    "Pocket Sports · DailyFlyer · 1.2",
     `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Team abilities are balanced arcade behavior; this build does not claim official ratings. The away team wears a light kit for readability. This is an independent fan-made game.</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. Solo play only in this release.</p></div>`,
   );
 }
@@ -300,7 +297,7 @@ function showHelp(startAfter = false) {
     sport === "hockey"
       ? "A little glide is part of skating. Plan the turn."
       : "Create space before you ask for the ball.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Push further for a full stride. Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold ${sport === "hockey" ? "BURST" : "SPRINT"} to spend stamina.</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. Get close, then commit.</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} ${sport === "hockey" ? "bursts" : "sprints"}. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.${sport === "soccer" ? " At a restart, wait for players to get set, aim with the left stick and press PASS to take it. You choose when to restart." : ""}</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Push further for a full stride. Attack toward the arrow above the playing surface.</p></div><div class="help-card"><b>RIGHT THUMB</b><p>Tap PASS. Hold SHOOT, then release for power. Hold ${sport === "hockey" ? "BURST" : "SPRINT"} to spend stamina.</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p>PASS becomes SWITCH. SHOOT becomes ${sport === "hockey" ? "CHECK" : "TACKLE"}. Get close, then commit.</p></div><div class="help-card"><b>ON DESKTOP</b><p>WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} ${sport === "hockey" ? "bursts" : "sprints"}. Remap in settings.</p></div></div><p class="dialog-subtitle">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.${sport === "soccer" ? " Keep aiming through restarts. Tap PASS to take one, or queue it during the brief setup. On an opposition restart, move to mark and use PASS to switch defender." : ""}</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
@@ -595,22 +592,22 @@ function hud() {
     : "";
   $("stamina").style.width = (game.user?.stamina || 0) * 100 + "%";
   $("pass").querySelector("span").textContent = restart
-    ? game.phase === "restart_ready" && restart.side === 0
+    ? restart.side === 0
       ? restart.type === "THROW-IN"
         ? "THROW"
         : "PASS"
-      : "WAIT"
+      : "SWITCH"
     : game.hasBall
       ? "PASS"
       : "SWITCH";
   $("shoot").querySelector("span").textContent = restart
-    ? game.phase === "restart_ready" && restart.side === 0
+    ? restart.side === 0
       ? restart.type === "THROW-IN"
         ? "THROW"
         : restart.type === "KICK-OFF"
           ? "PASS"
           : "KICK"
-      : "WAIT"
+      : "MARK"
     : game.hasBall
       ? "SHOOT"
       : sport === "hockey"
@@ -629,7 +626,7 @@ function hud() {
       ? (game.nextSide === 1 ? game.teams[0].short : game.teams[1].short) +
         " GOAL!"
       : restart
-        ? `${restart.type} · ${game.teams[restart.side].short}\n${game.phase === "restart" ? "Getting into position…" : restart.side === 0 ? "Aim with the stick · Tap " + (restart.type === "THROW-IN" ? "THROW" : "PASS") : "Waiting for the restart…"}`
+        ? `${restart.type} · ${game.teams[restart.side].short}\n${restart.side === 1 ? "Move to mark · PASS switches player" : restart.pending ? "Restart queued · Keep aiming" : game.phase === "restart" ? "Getting set · Tap PASS to queue" : "Aim with the stick · Tap " + (restart.type === "THROW-IN" ? "THROW" : "PASS")}`
         : game.message;
   const ev = game.events.filter((e) => e.time > lastEvent);
   for (const e of ev) {
@@ -637,7 +634,7 @@ function hud() {
     if (e.type === "goal") {
       goalFrames = frames.slice();
       replayTime = 0;
-      input.clear();
+      input.cancelShot();
     }
     if (e.type === "finished") result();
   }

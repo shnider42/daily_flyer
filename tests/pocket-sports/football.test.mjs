@@ -5,7 +5,12 @@ import { Match } from "../../daily_flyer/themes/pocket_sports_assets/core/engine
 import { SPORTS } from "../../daily_flyer/themes/pocket_sports_assets/sports/rules.js";
 import { footballBoundary } from "../../daily_flyer/themes/pocket_sports_assets/sports/football.js";
 const teams = JSON.parse(
-  fs.readFileSync(new URL("../../daily_flyer/themes/pocket_sports_assets/data/teams-soccer.json", import.meta.url)),
+  fs.readFileSync(
+    new URL(
+      "../../daily_flyer/themes/pocket_sports_assets/data/teams-soccer.json",
+      import.meta.url,
+    ),
+  ),
 ).teams;
 const match = (extra = {}) =>
   new Match({
@@ -51,8 +56,7 @@ test("kick-off waits for player input; clock and ball stay still during the dela
   const g = match();
   assert.equal(g.phase, "restart");
   const remaining = g.remaining;
-  g.action("pass");
-  advance(g, 2);
+  advance(g, 0.3);
   assert.equal(g.phase, "restart");
   ready(g);
   advance(g, 15);
@@ -66,7 +70,7 @@ test("kick-off waits for player input; clock and ball stay still during the dela
   advance(g, 0.1);
   assert.ok(g.remaining < remaining);
 });
-test("throw-in has a four-second minimum and walks the taker to the actual touchline", () => {
+test("throw-in prepares quickly and walks the taker to the actual touchline", () => {
   const g = match();
   ready(g);
   g.action("pass");
@@ -78,12 +82,12 @@ test("throw-in has a four-second minimum and walks the taker to the actual touch
     g.players.map((p) => ({ x: p.x, y: p.y })),
     before,
   );
-  g.action("pass");
-  advance(g, 3.8);
+  advance(g, 0.3);
   assert.equal(g.phase, "restart");
   assert.equal(g.ball.x, 0);
   assert.equal(g.ball.y, 500);
   ready(g);
+  assert.ok(r.elapsed <= 1.85);
   const p = g.players[r.taker];
   assert.ok(Math.hypot(p.x, p.y - 500) < 3);
   assert.equal(g.action("shoot"), true);
@@ -217,7 +221,7 @@ test("second half kick-off goes to the other side", () => {
   g.remaining = 0.001;
   g.step(1 / 60);
   assert.equal(g.phase, "break");
-  advance(g, 6.1);
+  advance(g, 2.05);
   assert.equal(g.restartData.side, 1);
 });
 test("Dortmund has three dated teams, including the exact Wembley starting XI and no rating overrides", () => {
@@ -275,4 +279,76 @@ test("an AI receiver moves to meet a deliberate pass", () => {
     g.step(1 / 60);
   assert.equal(g.phase, "play");
   assert.equal(g.ball.owner, q.id);
+});
+
+test("defender can run and switch throughout an opposition throw-in", () => {
+  const g = match();
+  advance(g, 0.1);
+  g.restart("THROW-IN", 1, 0, 700);
+  const p = g.user;
+  Object.assign(p, { x: 440, y: 750, vx: 0, vy: 0 });
+  const time = g.remaining;
+  for (let i = 0; i < 24; i++) g.step(1 / 60, { x: 1, y: 0, sprint: true });
+  assert.ok(p.x > 480);
+  assert.equal(g.remaining, time);
+  assert.equal(g.ball.owner, null);
+  const old = g.controlled;
+  g.action("pass");
+  assert.notEqual(g.controlled, old);
+  const next = g.user;
+  Object.assign(next, { x: 440, y: 750, vx: 0, vy: 0 });
+  for (let i = 0; i < 12; i++) g.step(1 / 60, { x: -1, y: 0 });
+  assert.ok(next.x < 430);
+  for (let i = 0; i < 150 && g.phase !== "play"; i++)
+    g.step(1 / 60, { x: 1, y: 0 });
+  assert.equal(g.phase, "play");
+});
+test("neutral defender is never dragged to a restart formation", () => {
+  const g = match();
+  advance(g, 0.1);
+  g.restart("THROW-IN", 1, 880, 900);
+  const p = g.user;
+  Object.assign(p, { x: 400, y: 800, vx: 0, vy: 0 });
+  for (let i = 0; i < 30; i++) g.step(1 / 60);
+  assert.equal(p.x, 400);
+  assert.equal(p.y, 800);
+});
+test("camping on a throw-in cannot hold up the opponent indefinitely", () => {
+  const g = match();
+  advance(g, 0.1);
+  g.restart("THROW-IN", 1, 0, 700);
+  Object.assign(g.user, { x: 18, y: 700 });
+  for (let i = 0; i < 135 && g.phase !== "play"; i++)
+    g.step(1 / 60, { x: -1, y: 0 });
+  assert.equal(g.phase, "play");
+  assert.ok(g.user.x >= 29);
+});
+test("restart delay is bounded even if the taker is far from the spot", () => {
+  for (const type of [
+    "THROW-IN",
+    "GOAL KICK",
+    "CORNER",
+    "KICK-OFF",
+    "KEEPER BALL",
+  ]) {
+    const g = match({ autoplay: true });
+    advance(g, 0.1);
+    for (const p of g.players) {
+      p.x = 440;
+      p.y = 1000;
+    }
+    g.restart(type, 1, 0, 0);
+    for (let i = 0; i < 135 && g.phase !== "play"; i++) g.step(1 / 60);
+    assert.equal(g.phase, "play", type);
+  }
+});
+test("an early restart command queues once and uses the latest stick aim", () => {
+  const g = match();
+  g.action("pass", { x: -1, y: 0 });
+  assert.equal(g.restartData.pending.name, "pass");
+  for (let i = 0; i < 135 && g.phase !== "play"; i++)
+    g.step(1 / 60, { x: 1, y: 0 });
+  assert.equal(g.phase, "play");
+  assert.ok(g.ball.vx > 0);
+  assert.equal(g.stats[0].passes, 1);
 });

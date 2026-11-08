@@ -82,7 +82,7 @@ export const SPORTS = {
     ],
     description: "Find the space. Make the run. Own the night.",
     rules:
-      "11-on-11 arcade football. Two halves, throw-ins, corners, goal kicks, tackles and goalkeeper saves. Players get into position before restarts; aim and press PASS when ready. The short match clock counts active play, pausing at stoppages. No offside, cards or substitutions yet. Cup ties use golden goal, not the real competition’s two-leg format.",
+      "11-on-11 arcade football. Two halves, throw-ins, corners, goal kicks, tackles and goalkeeper saves. Brief restarts allow early PASS input; keep aiming as players get set. Move and switch defenders during opposition restarts. The short match clock counts active play, pausing at stoppages. No offside, cards or substitutions yet. Cup ties use golden goal, not the real competition’s two-leg format.",
   },
 };
 export const DIFFICULTY = {

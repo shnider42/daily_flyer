@@ -1,3 +1,4 @@
+import { movePlayer } from "../core/movement.js";
 import { clamp, distance, norm } from "../core/math.js";
 // Restarts use match coordinates and normal player movement; no magic possession reset.
 export function setupFootballRestart(g, type, side, x, y) {
@@ -30,12 +31,12 @@ export function setupFootballRestart(g, type, side, x, y) {
         )[0];
   const wait =
     {
-      "THROW-IN": 4,
-      "GOAL KICK": 5,
-      CORNER: 5,
-      "KICK-OFF": 3.5,
-      "KEEPER BALL": 2.5,
-    }[type] || 4;
+      "THROW-IN": 0.65,
+      "GOAL KICK": 0.9,
+      CORNER: 0.9,
+      "KICK-OFF": 0.6,
+      "KEEPER BALL": 0.35,
+    }[type] || 0.7;
   g.restartData = {
     type,
     side,
@@ -46,6 +47,8 @@ export function setupFootballRestart(g, type, side, x, y) {
     readyElapsed: 0,
     wait,
     targets: {},
+    takerSpeed: Math.max(g.rules.speed * 1.8, distance(taker, { x, y }) / 1.8),
+    pending: null,
   };
   g.phase = "restart";
   g.timer = wait;
@@ -53,14 +56,15 @@ export function setupFootballRestart(g, type, side, x, y) {
   g.ball = { x, y, vx: 0, vy: 0, owner: null, lock: 0, shot: false };
   g.lastTouch = side;
   if (side === 0 && !g.autoplay) g.controlled = taker.id;
-  const mates = g.players.filter(
-    (p) => p.side === side && !p.keeper && p.id !== taker.id,
-  );
+  // Recover an outfield defender if a previous goalkeeper distribution held control.
+  if (side === 1 && !g.autoplay && (!g.user || g.user.keeper)) g.switchPlayer();
+  const mates = g.players
+    .filter((p) => p.side === side && !p.keeper && p.id !== taker.id)
+    .sort((a, b) => distance(a, { x, y }) - distance(b, { x, y }));
   for (const p of g.players) {
     const f = g.rules.formation[p.slot];
     let target = { x: f[0] * w, y: (p.side ? 1 - f[1] : f[1]) * h };
-    if (type === "THROW-IN")
-      target.y = clamp(target.y + (y - h / 2) * 0.45, 65, h - 65);
+    if (type === "THROW-IN") target = { x: p.x, y: p.y };
     if (type === "CORNER" && !p.keeper)
       target.y = clamp(
         target.y + (y < h / 2 ? -h * 0.28 : h * 0.28),
@@ -96,60 +100,98 @@ export function setupFootballRestart(g, type, side, x, y) {
     }
     if (p.id === taker.id) target = { x, y };
     g.restartData.targets[p.id] = target;
-    p.vx = p.vy = 0;
+    if (p.id !== g.controlled || side === 0) p.vx = p.vy = 0;
+    p.decision = Math.max(0.3, p.decision);
   }
   // Opening positions are assigned before a match starts; subsequent restarts walk to shape.
   if (g.time === 0)
     for (const p of g.players) Object.assign(p, g.restartData.targets[p.id]);
   g.emit("restart", { label: type });
 }
-export function stepFootballRestart(g, dt) {
+// Keep marking freedom outside only the restart's restricted space. Apply to
+// every defender so camping on the ball cannot delay a CPU restart indefinitely.
+function respectRestartSpace(g, p, r) {
+  if (p.id === r.taker) return;
+  const { width: w, height: h } = g.rules;
+  if (r.type === "KICK-OFF")
+    p.y = p.side ? Math.min(p.y, h / 2 - 18) : Math.max(p.y, h / 2 + 18);
+  if (p.side === r.side) return;
+  if (r.type === "GOAL KICK") {
+    const left = (w * 143) / 680,
+      right = (w * 537) / 680,
+      depth = (h * 170) / 1080 + 4;
+    const inside =
+      p.x > left && p.x < right && (r.side ? p.y < depth : p.y > h - depth);
+    if (inside) {
+      const exits = [
+        { d: p.x - left, x: left - 4, y: p.y },
+        { d: right - p.x, x: right + 4, y: p.y },
+        {
+          d: r.side ? depth - p.y : p.y - (h - depth),
+          x: p.x,
+          y: r.side ? depth : h - depth,
+        },
+      ];
+      const e = exits.sort((a, b) => a.d - b.d)[0];
+      p.x = e.x;
+      p.y = e.y;
+    }
+  }
+  const radius = ["CORNER", "KICK-OFF"].includes(r.type) ? 122 : 30;
+  if (distance(p, r) < radius) {
+    const v = norm(p.x - r.x || (r.x < w / 2 ? 1 : -1), p.y - r.y);
+    p.x = clamp(r.x + v.x * radius, 18, w - 18);
+    p.y = clamp(r.y + v.y * radius, 18, h - 18);
+  }
+}
+export function stepFootballRestart(
+  g,
+  dt,
+  input = { x: 0, y: 0, sprint: false },
+) {
   const r = g.restartData;
   r.elapsed += dt;
   g.timer = Math.max(0, r.wait - r.elapsed);
-  let settled = true;
   for (const p of g.players) {
-    const target = r.targets[p.id],
-      d = distance(p, target);
-    if (d > 3) {
-      const v = norm(target.x - p.x, target.y - p.y),
-        step = Math.min(d, 125 * dt);
-      p.x += v.x * step;
-      p.y += v.y * step;
-      p.vx = v.x * 125;
-      p.vy = v.y * 125;
-      p.fx = v.x;
-      p.fy = v.y;
-      settled = false;
-    } else {
-      p.vx = p.vy = 0;
-    }
-    p.stamina = clamp(p.stamina + 0.08 * dt, 0, 1);
     p.stun = 0;
+    if (r.side === 1 && p.id === g.controlled && !g.autoplay) {
+      const x = Number.isFinite(input.x) ? input.x : 0,
+        y = Number.isFinite(input.y) ? input.y : 0,
+        n = Math.max(1, Math.hypot(x, y));
+      movePlayer(p, g.rules, dt, { x: x / n, y: y / n, sprint: input.sprint });
+    } else {
+      const target = r.targets[p.id],
+        d = distance(p, target);
+      if (d > 2) {
+        const v = norm(target.x - p.x, target.y - p.y);
+        const speed = p.id === r.taker ? r.takerSpeed : g.rules.speed * 1.3;
+        const step = Math.min(d, speed * dt);
+        p.x += v.x * step;
+        p.y += v.y * step;
+        p.vx = v.x * speed;
+        p.vy = v.y * speed;
+        p.fx = v.x;
+        p.fy = v.y;
+      } else {
+        p.vx = p.vy = 0;
+      }
+      p.stamina = clamp(p.stamina + 0.08 * dt, 0, 1);
+    }
+    respectRestartSpace(g, p, r);
   }
-  const taker = g.players[r.taker];
-  const opponentsReady = g.players
-    .filter((p) => p.side !== r.side)
-    .every(
-      (p) =>
-        distance(p, r) > 26 &&
-        (r.type !== "GOAL KICK" ||
-          (r.side ? p.y >= 220 : p.y <= g.rules.height - 220)),
-    );
   if (
     g.phase === "restart" &&
     r.elapsed >= r.wait &&
-    distance(taker, r) < 3 &&
-    opponentsReady &&
-    (settled || r.elapsed > 7)
+    distance(g.players[r.taker], r) < 3
   ) {
     g.phase = "restart_ready";
-    g.message = r.type;
     g.timer = 0;
   }
   if (g.phase === "restart_ready") {
     r.readyElapsed += dt;
-    if ((r.side === 1 || g.autoplay) && r.readyElapsed >= 1.2)
+    if (r.side === 0 && !g.autoplay && r.pending)
+      takeFootballRestart(g, r.pending.name, input, r.pending.power);
+    else if ((r.side === 1 || g.autoplay) && r.readyElapsed >= 0.25)
       takeFootballRestart(g, "pass");
   }
 }

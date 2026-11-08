@@ -1,5 +1,10 @@
 import { stickInput, protectGameSurface } from "./pgi-controls.js";
 import { clamp } from "./math.js";
+// Automatic match stoppages keep input tracking alive; only menus, hiding and
+// the end of the match should release held controls.
+export function matchControlsActive(game, paused = false, dialogOpen = false) {
+  return !!game && !paused && !dialogOpen && game.phase !== "finished";
+}
 export class Input {
   constructor({
     stick,
@@ -21,13 +26,20 @@ export class Input {
     this.pointer = null;
     this.sprinting = false;
     this.chargeStart = null;
+    this.chargeSource = null;
+    this.bindings = [];
     this.active = active;
     this.onAction = onAction;
     this.onPause = onPause;
     protectGameSurface(stick);
     [shoot, pass, sprint, switcher].forEach(protectGameSurface);
     stick.addEventListener("pointerdown", (e) => {
-      if (!active() || this.pointer !== null) return;
+      if (
+        !active() ||
+        this.pointer !== null ||
+        (e.pointerType === "mouse" && e.button !== 0)
+      )
+        return;
       e.preventDefault();
       this.pointer = e.pointerId;
       stick.setPointerCapture(e.pointerId);
@@ -46,9 +58,9 @@ export class Input {
       });
     this.bind(
       shoot,
-      () => this.startCharge(),
-      () => this.releaseCharge(),
-      () => (this.chargeStart = null),
+      (source) => this.startCharge(source),
+      (source) => this.releaseCharge(source),
+      (source) => this.cancelShot(source),
     );
     this.bind(pass, () => this.command("pass"));
     this.bind(switcher, () => this.command("switch"));
@@ -82,13 +94,13 @@ export class Input {
         e.preventDefault();
       this.keys.add(e.code);
       if (e.repeat) return;
-      if (e.code === settings.keys.shoot) this.startCharge();
+      if (e.code === settings.keys.shoot) this.startCharge("keyboard");
       if (e.code === settings.keys.pass) this.command("pass");
       if (e.code === settings.keys.switch) this.command("switch");
     });
     window.addEventListener("keyup", (e) => {
       this.keys.delete(e.code);
-      if (e.code === settings.keys.shoot) this.releaseCharge();
+      if (e.code === settings.keys.shoot) this.releaseCharge("keyboard");
     });
     window.addEventListener("blur", () => this.clear());
     document.addEventListener("visibilitychange", () => {
@@ -96,29 +108,46 @@ export class Input {
     });
   }
   bind(el, down, up = () => {}, cancel = up) {
+    // Every surface owns one pointer. A different finger (or a stale capture
+    // event) must never end the current press on this or another surface.
+    let owner = null;
+    const finish = (e, cancelled) => {
+      if (owner === null || e.pointerId !== owner) return;
+      const source = `pointer:${owner}`;
+      owner = null; // implicit lostpointercapture after pointerup is now a no-op
+      el.classList.remove("held");
+      (cancelled ? cancel : up)(source);
+    };
     el.addEventListener("pointerdown", (e) => {
-      if (!this.active() || (e.pointerType === "mouse" && e.button !== 0))
+      if (
+        !this.active() ||
+        owner !== null ||
+        (e.pointerType === "mouse" && e.button !== 0)
+      )
         return;
       e.preventDefault();
+      owner = e.pointerId;
       el.setPointerCapture(e.pointerId);
       el.classList.add("held");
-      down();
+      down(`pointer:${owner}`);
     });
     el.addEventListener("pointerup", (e) => {
       e.preventDefault();
-      el.classList.remove("held");
-      up();
+      finish(e, false);
     });
-    for (const n of ["pointercancel", "lostpointercapture"])
-      el.addEventListener(n, () => {
-        el.classList.remove("held");
-        cancel();
-      });
+    for (const type of ["pointercancel", "lostpointercapture"])
+      el.addEventListener(type, (e) => finish(e, true));
     el.addEventListener("click", (e) => {
-      if (e.detail === 0 && this.active()) {
-        down();
-        up();
+      if (e.detail === 0 && owner === null && this.active()) {
+        down("activation");
+        up("activation");
       }
+    });
+    this.bindings.push(() => {
+      const id = owner;
+      if (id !== null) finish({ pointerId: id }, true);
+      if (id !== null && el.hasPointerCapture?.(id))
+        el.releasePointerCapture(id);
     });
   }
   moveStick(e) {
@@ -151,14 +180,22 @@ export class Input {
   command(name, power) {
     if (this.active()) this.onAction(name, this.vector(), power);
   }
-  startCharge() {
-    if (this.active()) this.chargeStart = performance.now();
+  startCharge(source = "activation") {
+    if (this.active() && this.chargeSource === null) {
+      this.chargeSource = source;
+      this.chargeStart = performance.now();
+    }
   }
-  releaseCharge() {
-    if (this.chargeStart === null) return;
+  releaseCharge(source = "activation") {
+    if (this.chargeStart === null || source !== this.chargeSource) return;
     const power = this.power();
-    this.chargeStart = null;
+    this.cancelShot(source);
     this.command("shoot", power);
+  }
+  cancelShot(source = null) {
+    if (source !== null && source !== this.chargeSource) return;
+    this.chargeStart = null;
+    this.chargeSource = null;
   }
   power() {
     return this.chargeStart === null
@@ -166,10 +203,15 @@ export class Input {
       : clamp((performance.now() - this.chargeStart) / 850, 0.22, 1);
   }
   clear() {
+    for (const cancel of this.bindings) cancel();
+    const stickPointer = this.pointer;
+    this.pointer = null;
+    if (stickPointer !== null && this.stick.hasPointerCapture?.(stickPointer))
+      this.stick.releasePointerCapture(stickPointer);
     this.keys.clear();
     this.move = { x: 0, y: 0 };
     this.sprinting = false;
-    this.chargeStart = null;
+    this.cancelShot();
     this.pointer = null;
     this.knob.style.transform = "translate(0px,0px)";
   }
