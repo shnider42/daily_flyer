@@ -25,6 +25,21 @@ const point=p=>new THREE.Vector3(p.x,p.y,p.z);
 const closeVector=(actual,expected,message)=>assert.ok(actual.distanceTo(expected)<1e-8,`${message}: ${actual.toArray()} vs ${expected.toArray()}`);
 const pose={x:0,y:500,z:0,heading:0,pitch:0,roll:0,speed:80,fuel:70};
 
+test('cockpit rebuilds select the aircraft family and release the previous camera-attached model',()=>{
+  const r=rendererFixture();r._buildCockpit({id:'avro504'});const original=r._cockpit;
+  const geometry=original.children.find(o=>o.isMesh).geometry;let disposed=0;geometry.addEventListener('dispose',()=>disposed++);
+  assert.equal(original.userData.layout.family,'open');original.visible=true;
+  r._buildCockpit({id:'f22'});assert.equal(r._cockpit.userData.layout.family,'glass');assert.equal(r._cockpit.visible,true);
+  assert.equal(original.parent,null);assert.equal(disposed,1);assert.equal(r.camera.children.filter(o=>o.name.startsWith('cockpit-')).length,1);
+});
+
+test('the WebGL player and cockpit use the active airframe ground offset',()=>{
+  const r=rendererFixture(),p={...pose,onGround:true,y:103};r._plane.userData.groundOffset=.6;r._visualGearOffset=.6;
+  r._updateEntities=()=>{};r._updatePools=()=>{};r._updateWeather=()=>{};r._rings=[];r.renderer={render(){},info:{render:{calls:0,triangles:0}}};
+  r.render({player:p},1/60,{camera:'cockpit'});
+  assert.ok(Math.abs(r._plane.position.y-102.4)<1e-8);assert.ok(Math.abs(r.camera.position.y-103.25)<1e-8);
+});
+
 test('chase camera follows aircraft translation without adding another world-position lag',()=>{
   const r=rendererFixture();r._updateCamera(pose,1/60,{camera:'chase'});
   const offset=r.camera.position.clone().sub(point(pose)),direction=r.camera.getWorldDirection(new THREE.Vector3());

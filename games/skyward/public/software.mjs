@@ -4,7 +4,9 @@ import * as THREE from './vendor/three.module.js';
 import { terrainHeight } from './sim.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
 import {cockpitView} from './camera-pose.mjs';
+import {makeSoftwareCockpit,drawSoftwareCockpit} from './cockpit-models.mjs';
 import { buildSoftwareTerrain } from './software-terrain.mjs';
+import {SoftwareAircraftRasterizer} from './software-aircraft.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
 
 const TAU=Math.PI*2;
@@ -67,6 +69,7 @@ export class SoftwareFlightRenderer{
     this.width=1;this.height=1;this.time=0;this._mode=null;this._plane=null;this._queue=[];this._drawPool=[];this._poolIndex=0;this._clipBuffer=[];this._pointBuffer=[];this._terrainCache=new Map();this._terrainMesh=null;
     this._cameraReady=false;this._cameraTarget=new THREE.Vector3();this._cameraOffset=new THREE.Vector3();this._cameraLookOffset=new THREE.Vector3();this._sunView=new THREE.Vector3();this._upView=new THREE.Vector3();
     this.stats={fps:60,triangles:0,drawCalls:0,pixelRatio:1};this.contextLost=false;this.setSettings(settings);
+    this._aircraftRaster=new SoftwareAircraftRasterizer();
   }
   setSettings(settings={}){this.settings={...this.settings,...settings};this.pixelRatio=Math.min(n(globalThis.devicePixelRatio,1),this.settings.quality==='high'?1.4:1);this.resize();}
   resize(){
@@ -77,12 +80,14 @@ export class SoftwareFlightRenderer{
     if(this.canvas.width!==backingWidth)this.canvas.width=backingWidth;
     if(this.canvas.height!==backingHeight)this.canvas.height=backingHeight;
     this.width=width;this.height=height;this.ctx.setTransform(this.pixelRatio,0,0,this.pixelRatio,0,0);
+    if(changed&&this.aircraft)this._cockpitPanel=makeSoftwareCockpit(this.aircraft,width,height);
     if(changed){this.camera.aspect=width/height;this.camera.fov=width<height?67:59;this.camera.updateProjectionMatrix();}
     this.stats.pixelRatio=this.pixelRatio;
   }
   loadMission(mission,aircraft){
     this.mission=mission;this.aircraft=typeof aircraft==='string'?{id:aircraft}:aircraft||{id:mission.aircraft};this._mode='flight';this._plane=makeAircraft(this.aircraft);this._planeMeta=this._plane.userData;
-    this._cameraReady=false;this._terrainCache.clear();this._terrainMesh=null;this._groundOffset=mission.start?.airborne===false?1.3:0;this.camera.fov=this.width<this.height?67:59;this.camera.updateProjectionMatrix();
+    this._cameraReady=false;this._terrainCache.clear();this._terrainMesh=null;this._groundOffset=mission.start?.airborne===false?n(this._planeMeta.groundOffset,1.3):0;this.camera.fov=this.width<this.height?67:59;this.camera.updateProjectionMatrix();
+    this._cockpitPanel=makeSoftwareCockpit(this.aircraft,this.width,this.height);
     this._configureAtmosphere(mission);const rand=random(hash(mission.id));this._clouds=[];
     for(let i=0;i<28;i++){const x=(rand()-.5)*27000,z=(rand()-.15)*27000,y=this._cloudBase+rand()*(this._cloudTop-this._cloudBase);for(let k=0;k<3;k++)this._clouds.push({x:x+k*200,y:y+Math.sin(k)*30,z:z+(rand()-.5)*180,r:170+rand()*180});}
     this._scenery=[];
@@ -215,7 +220,9 @@ export class SoftwareFlightRenderer{
   }
   _aircraft(model,pose,dt,full=true,enemy=false){
     if(full){
-      setAircraftPose(model,pose);if(pose.onGround)model.position.y-=1.3;animateAircraft(model,pose,dt,this.time);model.updateMatrixWorld(true);
+      setAircraftPose(model,pose);if(pose.onGround)model.position.y-=n(model.userData.groundOffset,1.3);animateAircraft(model,pose,dt,this.time);model.updateMatrixWorld(true);
+      const raster=this._aircraftRaster?.render(model,{viewMatrix:this.camera.matrixWorldInverse,width:this.width,height:this.height,focal:this._focal,pixelRatio:this.pixelRatio,quality:this.settings.quality,sun:this._sunView,up:this._upView,night:this._night,fogFar:this._visibilityFar,fogColor:this._fogColor});
+      if(raster!==false&&raster!==undefined){if(raster){const item=this._primitive('aircraft');Object.assign(item,raster);}return;}
       model.traverse(mesh=>{
         if(!mesh.isMesh||!mesh.visible)return;let ancestor=mesh.parent;while(ancestor&&ancestor!==model){if(!ancestor.visible)return;ancestor=ancestor.parent;}
         const geometry=mesh.geometry,material=mesh.material;if(!geometry||!material||Array.isArray(material))return;const position=geometry.attributes.position;
@@ -223,7 +230,13 @@ export class SoftwareFlightRenderer{
         MV.multiplyMatrices(this.camera.matrixWorldInverse,mesh.matrixWorld);const e=MV.elements,p=position.array;
         for(let i=0;i<position.count;i++){const k=i*3,x=p[k],y=p[k+1],z=p[k+2];buffer[k]=e[0]*x+e[4]*y+e[8]*z+e[12];buffer[k+1]=e[1]*x+e[5]*y+e[9]*z+e[13];buffer[k+2]=e[2]*x+e[6]*y+e[10]*z+e[14];}
         if(!materials.has(material)){const c=material.color?.clone()||new THREE.Color('#c8c3a2');c.convertLinearToSRGB();materials.set(material,[c.r*255,c.g*255,c.b*255]);}
-        const base=materials.get(material),index=geometry.index?.array,total=index?index.length:position.count;for(let j=0;j<total;j+=3){const ia=(index?index[j]:j)*3,ib=(index?index[j+1]:j+1)*3,ic=(index?index[j+2]:j+2)*3;this._triangleXYZ(buffer[ia],buffer[ia+1],buffer[ia+2],buffer[ib],buffer[ib+1],buffer[ib+2],buffer[ic],buffer[ic+1],buffer[ic+2],base,n(material.opacity,1),material.side===THREE.DoubleSide,material.isMeshBasicMaterial);}
+        const base=materials.get(material),index=geometry.index?.array,total=index?index.length:position.count,back=material.side===THREE.BackSide;
+        // Canvas fills antialias both sides of each shared edge independently.
+        // Dense curved skins otherwise expose a pale wireframe of background.
+        // Less than one physical pixel closes it without a heavy silhouette;
+        // translucent glazing, prop discs and effects keep ordinary coverage.
+        const coverage=!material.transparent&&n(material.opacity,1)===1?.8:false;
+        for(let j=0;j<total;j+=3){const ia=(index?index[j]:j)*3,ib=(index?index[j+(back?2:1)]:j+(back?2:1))*3,ic=(index?index[j+(back?1:2)]:j+(back?1:2))*3;this._triangleXYZ(buffer[ia],buffer[ia+1],buffer[ia+2],buffer[ib],buffer[ib+1],buffer[ib+2],buffer[ic],buffer[ic+1],buffer[ic+2],base,n(material.opacity,1),material.side===THREE.DoubleSide,material.isMeshBasicMaterial,coverage);}
       });
     }else{
       const q=orientationOf(pose);Q.set(q.x,q.y,q.z,q.w);M.compose(V.set(pose.x,pose.y,pose.z),Q,S);MV.multiplyMatrices(this.camera.matrixWorldInverse,M);const e=MV.elements;
@@ -267,24 +280,23 @@ export class SoftwareFlightRenderer{
         // Canvas antialiases each adjacent fill separately. Cover the shared
         // ground edges with the same color, in physical pixels, so sky cannot
         // leak through them. Aircraft and translucent surfaces keep exact edges.
-        if(item.coverEdges&&item.alpha===1){ctx.strokeStyle=item.fill;ctx.lineWidth=1.25/this.pixelRatio;ctx.lineJoin='round';ctx.stroke();}
+        if(item.coverEdges&&item.alpha===1){ctx.strokeStyle=item.fill;ctx.lineWidth=(item.coverEdges===true?1.25:item.coverEdges)/this.pixelRatio;ctx.lineJoin='round';ctx.stroke();}
         triangles++;}
+      else if(item.type==='aircraft'){ctx.drawImage(item.canvas,0,0,item.sourceWidth,item.sourceHeight,item.x,item.y,item.width,item.height);triangles+=item.triangles;}
       else if(item.type==='line'){ctx.strokeStyle=item.stroke;ctx.lineWidth=item.width;ctx.beginPath();ctx.moveTo(item.points[0],item.points[1]);ctx.lineTo(item.points[2],item.points[3]);ctx.stroke();}
       else{ctx.fillStyle=item.fill;ctx.beginPath();ctx.ellipse(item.x,item.y,item.r,item.r*item.ratio,0,0,TAU);ctx.fill();}
     }
     ctx.globalAlpha=1;this.stats.triangles+=triangles;this.stats.drawCalls+=this._queue.length;this._queue.length=0;
   }
   _cockpit(p){
-    const ctx=this.ctx;ctx.save();ctx.strokeStyle='#6f817b';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(this.width*.5,this.height*.55,this.width*.43,this.height*.47,0,Math.PI,TAU);ctx.stroke();ctx.fillStyle='#27393b';ctx.beginPath();ctx.moveTo(0,this.height);ctx.lineTo(this.width*.09,this.height*.84);ctx.quadraticCurveTo(this.width*.5,this.height*.75,this.width*.91,this.height*.84);ctx.lineTo(this.width,this.height);ctx.fill();
-    const radius=clamp(this.width*.043,17,40),cy=this.height*.9;
-    for(let i=0;i<3;i++){const cx=this.width*.5+(i-1)*radius*2.7;ctx.fillStyle='#c8c8ae';ctx.beginPath();ctx.arc(cx,cy,radius,0,TAU);ctx.fill();ctx.fillStyle='#203438';ctx.beginPath();ctx.arc(cx,cy,radius*.89,0,TAU);ctx.fill();ctx.strokeStyle='#c9d0b8';ctx.lineWidth=1;for(let k=0;k<10;k++){const a=k/10*TAU;ctx.beginPath();ctx.moveTo(cx+Math.sin(a)*radius*.7,cy+Math.cos(a)*radius*.7);ctx.lineTo(cx+Math.sin(a)*radius*.83,cy+Math.cos(a)*radius*.83);ctx.stroke();}const a=(i===0?n(p.speed)*.018:i===1?n(p.y)*.004:n(p.fuel,100)*.05)-Math.PI;ctx.strokeStyle='#eeb46a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.sin(a)*radius*.7,cy+Math.cos(a)*radius*.7);ctx.stroke();}
-    ctx.restore();
+    if(!this._cockpitPanel)this._cockpitPanel=makeSoftwareCockpit(this.aircraft,this.width,this.height);
+    drawSoftwareCockpit(this.ctx,this._cockpitPanel,p);
   }
   _camera(p,dt,options){
-    const mode=options.camera||'chase',lookX=n(options.lookX),lookY=clamp(n(options.lookY),-1.15,1.15),originY=p.y-(p.onGround?1.3:0);
+    const mode=options.camera||'chase',lookX=n(options.lookX),lookY=clamp(n(options.lookY),-1.15,1.15),groundOffset=p.onGround?n(this._planeMeta?.groundOffset,1.3):0,originY=p.y-groundOffset;
     const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),f=[forward.x,forward.y,forward.z],length=this._planeMeta?.length||9;
     let pos,target,up={x:0,y:1,z:0};
-    if(mode==='cockpit'){const view=cockpitView(p,options,p.onGround?1.3:0);pos=[view.position.x,view.position.y,view.position.z];target=[view.target.x,view.target.y,view.target.z];up=view.up;}
+    if(mode==='cockpit'){const view=cockpitView(p,options,groundOffset);pos=[view.position.x,view.position.y,view.position.z];target=[view.target.x,view.target.y,view.target.z];up=view.up;}
     else{const distance=clamp(length*2.35+n(p.speed)*.055,23,84),angle=heading+lookX+(mode==='cinematic'?.68:0),elev=clamp(length*.4+n(p.speed)*.012,5.4,20)+Math.sin(lookY)*distance;pos=[p.x-Math.sin(angle)*distance*Math.cos(lookY),originY+elev-pitch*distance*.24,p.z-Math.cos(angle)*distance*Math.cos(lookY)];const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;target=[p.x+f[0]*ahead,originY+f[1]*ahead+length*.18,p.z+f[2]*ahead];}
     const reset=!this._cameraReady||this._cameraMode!==mode,cockpit=mode==='cockpit';
     const t=reset||cockpit?1:1-Math.exp(-dt*(this.settings.reducedMotion?12:mode==='cinematic'?3.2:10));
@@ -311,5 +323,5 @@ export class SoftwareFlightRenderer{
     const span=this._planeMeta.span||11,distance=Math.max(23,span*2.7),portrait=this.width<this.height;this.camera.fov=portrait?53:46;this.camera.updateProjectionMatrix();this.camera.position.set(p.x+distance*.68,p.y+distance*.23,p.z+distance*.72);const shift=portrait?0:span*.76;this.camera.up.set(0,1,0);this.camera.lookAt(p.x-.727*shift,p.y+(portrait?-span*.48:span*.05),p.z+.687*shift);this._view();this._visibilityFar=19000;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;this._background();this._terrain(p);this._paint();this._runways();this._paint();this._environment();this._aircraft(this._plane,p,dt,true);this._paint();
   }
   project(x,y,z){this.camera.updateMatrixWorld(true);const p=V.set(x,y,z).project(this.camera);return{x:(p.x*.5+.5)*this.width,y:(-.5*p.y+.5)*this.height,visible:p.z>-1&&p.z<1&&Math.abs(p.x)<1.12&&Math.abs(p.y)<1.12,depth:p.z};}
-  dispose(){this._queue=[];this._drawPool=[];this._terrainMesh=null;this._terrainCache.clear();this._plane=null;}
+  dispose(){this._queue=[];this._drawPool=[];this._terrainMesh=null;this._terrainCache.clear();this._plane=null;this._cockpitPanel=null;this._aircraftRaster?.dispose();}
 }

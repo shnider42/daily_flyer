@@ -15,6 +15,28 @@ function mockCanvas(){
 function renderer(){const r=new SoftwareFlightRenderer(mockCanvas(),{quality:'medium'});r.loadMission(getMission('first-light'),AIRCRAFT.avro504);return r;}
 const near=(a,b,message)=>assert.ok(Math.abs(a-b)<1e-7,`${message}: ${a} vs ${b}`);
 
+test('software cockpit theme changes with the aircraft and follows resize without resetting controls',()=>{
+  const r=renderer();assert.equal(r._cockpitPanel.layout.family,'open');
+  const mission=MISSIONS.find(m=>m.aircraft==='f22');r.loadMission(mission,AIRCRAFT.f22);assert.equal(r._cockpitPanel.layout.family,'glass');const old=r._cockpitPanel;
+  r.canvas.getBoundingClientRect=()=>({width:390,height:844});r.resize();assert.notEqual(r._cockpitPanel,old);assert.equal(r._cockpitPanel.layout.w,390);assert.equal(r._cockpitPanel.layout.family,'glass');
+  const resized=r._cockpitPanel;r.setSettings({sound:false});assert.equal(r._cockpitPanel,resized,'unrelated settings preserve the cached panel');
+});
+
+test('software aircraft and cockpit share the active airframe ground offset',()=>{
+  const r=renderer(),p={x:0,y:103,z:0,heading:0,pitch:0,roll:0,speed:0,fuel:70,onGround:true};r._planeMeta.groundOffset=.6;
+  r._camera(p,1/60,{camera:'cockpit'});near(r.camera.position.y,103.25,'cockpit eye follows gear geometry');
+  r._aircraft(r._plane,p,1/60,true);near(r._plane.position.y,102.4,'player wheels share the camera ground correction');
+});
+
+test('software renderer respects inward-facing duct materials instead of culling their visible walls',()=>{
+  const r=renderer();r.camera.position.set(0,0,0);r.camera.quaternion.identity();r._view();
+  const model=new THREE.Group(),material=new THREE.MeshStandardMaterial({side:THREE.FrontSide}),wall=new THREE.Mesh(new THREE.PlaneGeometry(4,4),material);wall.rotation.y=Math.PI;model.add(wall);
+  const pose={x:0,y:0,z:-10,orientation:{x:0,y:0,z:0,w:1}};
+  r._aircraft(model,pose,0,true);assert.equal(r._queue.length,0,'the outward side is facing away');
+  material.side=THREE.BackSide;r._aircraft(model,pose,0,true);assert.equal(r._queue.length,2,'the dark inner wall is visible');
+  assert.ok(r._queue.every(item=>item.points.every(Number.isFinite)));
+});
+
 test('CPU terrain tiles cover once and share complete edges across detail levels',()=>{
   for(const [x,z,cell] of [[0,0,160],[1680,-1270,160],[-8500,13300,192]]){
     const mesh=buildSoftwareTerrain({x,z,cell,radius:14000,sampleHeight:(x,z)=>30+Math.sin(x/1300)*18+Math.cos(z/1600)*12});
@@ -94,17 +116,26 @@ test('CPU renderer projects near-plane clipping and campaign aircraft with finit
 });
 
 
-test('opaque terrain edges cover raster seams without outlining aircraft or pooled transparent faces',()=>{
+test('terrain coverage does not leak into ordinary world primitives or pooled transparent faces',()=>{
   const r=renderer(),p={x:0,y:200,z:-800,heading:0,pitch:-.02,roll:0,speed:44};r.pixelRatio=1.4;r._camera(p,1/60,{camera:'chase'});r._terrain(p);
   const ground=r._queue.length;assert.ok(ground>0);assert.ok(r._queue.every(item=>item.coverEdges===true));r._paint();
   assert.equal(r.canvas.calls.strokes.length,ground);for(const stroke of r.canvas.calls.strokes){near(stroke.width*r.pixelRatio,1.25,'physical-pixel edge coverage');assert.equal(stroke.alpha,1);}
-  // A pooled ground record becomes an ordinary aircraft face next frame. Its
-  // coverage flag must be reset so the aircraft does not acquire an outline.
+  // A pooled ground record becomes an ordinary world face next frame. Its
+  // coverage flag must reset; coverage is explicitly chosen for aircraft below.
   const reused=r._drawPool[0];r._poolIndex=0;
   r._triangle([-1,-1,-3],[1,-1,-3],[0,1,-3],[120,140,110],1,true);assert.equal(r._queue[0],reused);assert.equal(r._queue[0].coverEdges,false);r._paint();
   assert.equal(r.canvas.calls.strokes.length,ground);
   r._triangleXYZ(-1,-1,-3,1,-1,-3,0,1,-3,[120,140,110],.4,true,false,true);r._paint();
   assert.equal(r.canvas.calls.strokes.length,ground,'transparent surfaces must not accumulate darker edge coverage');
+});
+
+test('opaque aircraft seams receive subpixel coverage while glass and prop transparency stay unchanged',()=>{
+  const r=renderer();r.pixelRatio=1.4;r.camera.position.set(0,0,0);r.camera.quaternion.identity();r._view();
+  const model=new THREE.Group(),material=new THREE.MeshStandardMaterial({color:'#d9cfb0'});model.add(new THREE.Mesh(new THREE.PlaneGeometry(4,4),material));
+  const pose={x:0,y:0,z:-10,orientation:{x:0,y:0,z:0,w:1}};
+  r._aircraft(model,pose,0,true);assert.equal(r._queue.length,2);assert.ok(r._queue.every(item=>item.coverEdges===.8));r._paint();
+  assert.equal(r.canvas.calls.strokes.length,2);for(const stroke of r.canvas.calls.strokes)near(stroke.width*r.pixelRatio,.8,'aircraft edge coverage in physical pixels');
+  material.transparent=true;material.opacity=.45;r._poolIndex=0;r._aircraft(model,pose,0,true);assert.ok(r._queue.every(item=>item.coverEdges===false));r._paint();assert.equal(r.canvas.calls.strokes.length,2,'transparent surfaces never receive the opaque outline');
 });
 
 

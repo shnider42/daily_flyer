@@ -2,6 +2,8 @@ import * as THREE from './vendor/three.module.js';
 import { terrainHeight } from './sim.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
 import {cockpitView} from './camera-pose.mjs';
+import {makeCockpit,fitCockpit,updateCockpit} from './cockpit-models.mjs';
+import {makeSkyReflection} from './aircraft-lighting.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
 
 const TAU=Math.PI*2;
@@ -80,12 +82,14 @@ export class FlightRenderer {
       this.renderer.setDrawingBufferSize(width,height,this.pixelRatio);this._bufferPixelRatio=this.pixelRatio;
     }
     this.width=width;this.height=height;
+    if(this._cockpit&&(!this._cockpit.userData.layout||this._cockpit.userData.layout.w!==width||this._cockpit.userData.layout.h!==height))this._buildCockpit(this.aircraft);
     this._setProjection(this._mode==='menu'?(width<height?53:46):clamp(number(this.settings.fov,width<height?67:59),45,90));
   }
 
   _setProjection(fov){
     const aspect=this.width/this.height;
     if(this.camera.aspect!==aspect||this.camera.fov!==fov){this.camera.aspect=aspect;this.camera.fov=fov;this.camera.updateProjectionMatrix();}
+    fitCockpit(this._cockpit,this.camera);
   }
 
   _buildSky(){
@@ -113,6 +117,9 @@ export class FlightRenderer {
     this.sun.color.set(palette.light);this.sun.intensity=night?.75:sunset?2.5:2.8;
     this.sun.position.copy(this.skyMaterial.uniforms.sunDirection.value).multiplyScalar(12000);
     this.hemi.color.set(night?'#7089a7':palette.horizon);this.hemi.groundColor.set(night?'#17242a':'#526254');this.hemi.intensity=night?1.3:2.0;
+    this._reflection?.dispose();
+    this._reflection=makeSkyReflection({top:this.skyMaterial.uniforms.top.value,horizon:this.skyMaterial.uniforms.horizon.value,ground:palette.ground[0],sun:this.skyMaterial.uniforms.sunColor.value,sunDirection:this.skyMaterial.uniforms.sunDirection.value,night});
+    this.scene.environment=this._reflection;
     let fog=number(mission.weather?.fog,0);
     this._fogFar=fog>100?clamp(fog,1700,35000):fog>0&&fog<.01?clamp(.55/fog,5000,35000):lerp(21000,6000,clamp(fog,0,1));
     if(menu)this._fogFar=19000;
@@ -139,7 +146,8 @@ export class FlightRenderer {
     this._plane=makeAircraft(this.aircraft);this.actorsRoot.add(this._plane);
     const start=mission.start||{x:0,y:14,z:0,heading:0};setAircraftPose(this._plane,start);
     this._targetProfile=aircraftKind(this.aircraft);
-    this._cockpit.visible=false;this._visualGearOffset=start.airborne===false?1.3:0;
+    this._buildCockpit(this.aircraft);
+    this._cockpit.visible=false;this._visualGearOffset=start.airborne===false?number(this._plane.userData.groundOffset,1.3):0;
     this.camera.up.set(0,1,0);this._setProjection(clamp(number(this.settings.fov,this.width<this.height?67:59),45,90));
   }
 
@@ -500,19 +508,11 @@ export class FlightRenderer {
     if(lineCount){this._tracers.geometry.attributes.position.needsUpdate=true;this._tracers.geometry.attributes.color.needsUpdate=true;}
   }
 
-  _buildCockpit(){
-    this._cockpit=new THREE.Group();this._cockpit.visible=false;this.camera.add(this._cockpit);
-    const black=worldMaterial('#273536'),edge=worldMaterial('#7b8979');
-    box(this._cockpit,0,-.52,-.76,1.35,.23,.2,black);
-    const arc=new THREE.Mesh(new THREE.TorusGeometry(.57,.012,6,48,Math.PI),edge);arc.position.set(0,-.08,-.86);this._cockpit.add(arc);
-    for(const s of[-1,1]){const strut=box(this._cockpit,s*.57,-.34,-.88,.018,.55,.018,edge);strut.rotation.z=s*.08;}
-    this._needles=[];
-    for(let i=0;i<3;i++){
-      const disc=new THREE.Mesh(new THREE.CircleGeometry(.076,28),basic('#e4ddbd'));disc.position.set((i-1)*.2,-.44,-.65);this._cockpit.add(disc);
-      const inner=new THREE.Mesh(new THREE.CircleGeometry(.067,28),basic('#22343a'));inner.position.copy(disc.position);inner.position.z+=.002;this._cockpit.add(inner);
-      for(let n=0;n<8;n++){const a=TAU*n/8;const tick=box(this._cockpit,disc.position.x+Math.sin(a)*.057,disc.position.y+Math.cos(a)*.057,-.646,.004,.011,.002,basic('#b8c1aa'));tick.rotation.z=-a;}
-      const pivot=new THREE.Group();pivot.position.set(disc.position.x,disc.position.y,-.642);box(pivot,0,.023,0,.004,.05,.002,basic('#e5a75e'));this._cockpit.add(pivot);this._needles.push(pivot);
-    }
+  _buildCockpit(profile=this.aircraft){
+    const visible=this._cockpit?.visible||false;
+    if(this._cockpit){this._cockpit.removeFromParent();this._disposeUnique(this._cockpit);}
+    this._cockpit=makeCockpit(profile||'avro504',this.width,this.height);this._cockpit.visible=visible;this.camera.add(this._cockpit);
+    this._needles=this._cockpit.userData.needles.map(item=>item.object);fitCockpit(this._cockpit,this.camera);
   }
 
   _updateCamera(p,dt,options){
@@ -548,7 +548,7 @@ export class FlightRenderer {
     if(!cockpit)this.camera.position.y=Math.max(height(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
     this._cameraTarget.copy(this._cameraLookOffset).add(scratchV);this.camera.up.copy(scratchUp);
     this.camera.lookAt(this._cameraTarget);this._cameraInitialized=true;this._cameraMode=mode;
-    if(cockpit){this._needles[0].rotation.z=-number(p.speed)*.017;this._needles[1].rotation.z=-number(p.y)*.004;this._needles[2].rotation.z=-number(p.fuel,100)*.05;}
+    if(cockpit)updateCockpit(this._cockpit,p,this.time);
   }
 
   _updateWeather(p,dt){
@@ -564,7 +564,7 @@ export class FlightRenderer {
   render(sim,dt=1/60,options={}){
     if(this.contextLost||!sim?.player||!this._plane)return;
     dt=clamp(number(dt,1/60),0,.1);this.time+=dt;
-    const p=sim.player;setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?1.3:0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
+    const p=sim.player;setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
     this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim);this._updateWeather(p,dt);
     const active=number(sim.waypointIndex);const guidance=this.settings.guidance||this.settings.assist;
     for(const wp of this._rings){
@@ -609,6 +609,6 @@ export class FlightRenderer {
 
   dispose(){
     this.canvas.removeEventListener('webglcontextlost',this._lost);this.canvas.removeEventListener('webglcontextrestored',this._restored);
-    this._clearWorld();this._disposeUnique(this.effectsRoot);this._disposeUnique(this._cockpit);this._disposeUnique(this.sky);disposeModelCache();this.renderer.dispose();
+    this._clearWorld();this._disposeUnique(this.effectsRoot);this._disposeUnique(this._cockpit);this._disposeUnique(this.sky);this._reflection?.dispose();disposeModelCache();this.renderer.dispose();
   }
 }
