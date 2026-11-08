@@ -14,3 +14,32 @@ dialog{background:var(--bg);color:var(--fg);border:1px solid var(--border);paddi
 #announcement.set-piece{top:24px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);padding:9px 15px;font-family:system-ui,sans-serif;font-size:12px;line-height:1.8;letter-spacing:.4px;white-space:pre-line;background:#0a281fe8;border:1px solid #d9f78166;text-align:center;pointer-events:none}select optgroup{background:var(--panel);color:var(--fg)}
 
 .touch-assist-tip{margin:-10px 0 18px}
+
+/* Soccer keeps the familiar Xbox face-button positions on either control side. */
+.button-letter{display:none}
+.action[hidden]{display:none!important}
+body[data-sport=soccer] #controls{gap:6px}
+body[data-sport=soccer] .action-controls{display:block;position:relative;flex:0 0 auto;width:calc(var(--button) * 2.55);height:calc(var(--button) * 2.55);padding:0;background:transparent;border-radius:0}
+body[data-sport=soccer] .action-controls .action{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:var(--button);height:var(--button);padding:2px;border:2px solid var(--face-color);background:radial-gradient(circle at 35% 22%,#35463b,#101a16 80%);color:#f1f4eb;box-shadow:0 4px 8px #0005,inset 0 1px 1px #ffffff35;letter-spacing:0;grid-column:auto;grid-row:auto}
+body[data-sport=soccer] .face-a{--face-color:#83d76b;left:calc((100% - var(--button))/2);bottom:0}
+body[data-sport=soccer] .face-b{--face-color:#ff7876;right:0;top:calc((100% - var(--button))/2)}
+body[data-sport=soccer] .face-x{--face-color:#78baff;left:0;top:calc((100% - var(--button))/2)}
+body[data-sport=soccer] .face-y{--face-color:#f8d86a;left:calc((100% - var(--button))/2);top:0}
+body[data-sport=soccer] .button-letter{display:block;color:var(--face-color);font:800 clamp(18px,calc(var(--button) * .38),29px)/1 'DM Sans',system-ui,sans-serif}
+body[data-sport=soccer] .action-controls .action-label{font-size:clamp(7px,calc(var(--button) * .135),10px);font-weight:700;line-height:1.1;white-space:nowrap}
+body[data-sport=soccer] .action-controls kbd{font-size:7px;line-height:1;margin-top:0}
+body[data-sport=soccer] .action-controls .action>*{position:relative;z-index:2;pointer-events:none}
+body[data-sport=soccer] .action-controls #charge{position:absolute;z-index:1;background:#ff78764d}
+body[data-sport=soccer] .action-controls .action.held{filter:brightness(1.35);box-shadow:0 0 14px color-mix(in srgb,var(--face-color) 35%,transparent),inset 0 2px 8px #0008}
+body[data-sport=soccer] .action-controls .action.unavailable{opacity:.48}
+body[data-sport=soccer] .center-control{flex:0 0 50px;min-width:50px;max-width:50px;gap:6px}
+body[data-sport=soccer] .center-control .stamina{width:42px}
+body[data-sport=soccer] .center-control #switch,body[data-sport=soccer] .center-control #sprint{position:relative;width:50px;height:44px;margin:0;padding:4px 2px;border:1px solid var(--border);border-radius:9px;background:var(--panel);color:var(--muted);font-size:8px;line-height:1.1;letter-spacing:0}
+body[data-sport=soccer] .center-control #sprint{color:var(--accent)}
+body[data-sport=soccer] .center-control kbd{margin-top:3px;font-size:7px}
+.help-action{display:inline-block;min-width:16px;font-weight:800}
+.help-action.a{color:#83d76b}.help-action.b{color:#ff7876}.help-action.x{color:#78baff}.help-action.y{color:#f8d86a}
+.help-card p.control-lines{line-height:1.9}
+.help-note{margin-top:18px}
+@media(max-width:440px){body[data-sport=soccer] #controls{padding-left:12px;padding-right:12px}}
+@media(max-height:520px) and (orientation:landscape){body[data-sport=soccer] #controls{left:calc(env(safe-area-inset-left) + 12px);right:calc(env(safe-area-inset-right) + 12px);bottom:12px;align-items:flex-end;height:max(calc(var(--button) * 2.55),calc(var(--stick) + 82px));padding:0}body[data-sport=soccer] .game-stage{width:calc(100% - var(--landscape-move-space) - var(--landscape-action-space));margin-left:var(--landscape-move-space);margin-right:var(--landscape-action-space)}body[data-sport=soccer].left-handed .game-stage{margin-left:var(--landscape-action-space);margin-right:var(--landscape-move-space)}body[data-sport=soccer] #controls .center-control{position:absolute;left:0;right:auto;bottom:calc(var(--stick) + 14px);display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:5px;min-width:108px;max-width:none;width:calc(var(--stick) + 20px)}body[data-sport=soccer].left-handed #controls .center-control{left:auto;right:0}body[data-sport=soccer] .center-control .stamina{width:100%;height:3px;margin:0 10px}body[data-sport=soccer] .center-control>span{display:none}body[data-sport=soccer] .center-control #switch,body[data-sport=soccer] .center-control #sprint{height:38px}body[data-sport=soccer] .center-control kbd{display:none}body[data-sport=soccer] .move-control{width:calc(var(--stick) + 20px);background:transparent}body[data-sport=soccer] .action-controls{background:transparent}body[data-sport=soccer] .action-controls kbd{display:none}}

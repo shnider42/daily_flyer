@@ -11,6 +11,8 @@ export class Input {
     knob,
     shoot,
     pass,
+    lob,
+    through,
     sprint,
     switcher,
     onAction,
@@ -22,6 +24,8 @@ export class Input {
     autoSprint = () => false,
     canChargeShot = () => true,
     shotContext = () => null,
+    footballControls = () => false,
+    defending = () => false,
   }) {
     this.stick = stick;
     this.knob = knob;
@@ -36,6 +40,9 @@ export class Input {
     this.autoSprint = autoSprint;
     this.canChargeShot = canChargeShot;
     this.shotContext = shotContext;
+    this.footballControls = footballControls;
+    this.defending = defending;
+    this.defensiveHolds = { contain: new Set(), keeperRush: new Set() };
     this.chargeContext = null;
     this.sprinting = false;
     this.chargeStart = null;
@@ -45,7 +52,9 @@ export class Input {
     this.onAction = onAction;
     this.onPause = onPause;
     protectGameSurface(stick);
-    [shoot, pass, sprint, switcher].forEach(protectGameSurface);
+    [shoot, pass, lob, through, sprint, switcher]
+      .filter(Boolean)
+      .forEach(protectGameSurface);
     stick.addEventListener("pointerdown", (e) => {
       if (
         !active() ||
@@ -78,7 +87,17 @@ export class Input {
       (source) => this.releaseCharge(source),
       (source) => this.cancelShot(source),
     );
-    this.bind(pass, () => this.command("pass"));
+    this.bind(
+      pass,
+      (source) => this.faceButton("pass", source),
+      (source) => this.releaseDefence("contain", source),
+    );
+    this.bind(lob, (source) => this.faceButton("lob", source));
+    this.bind(
+      through,
+      (source) => this.faceButton("through", source),
+      (source) => this.releaseDefence("keeperRush", source),
+    );
     this.bind(switcher, () => this.command("switch"));
     this.bind(
       sprint,
@@ -113,12 +132,21 @@ export class Input {
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === settings.keys.shoot) this.startCharge("keyboard");
-      if (e.code === settings.keys.pass) this.command("pass");
-      if (e.code === settings.keys.switch) this.command("switch");
+      else if (e.code === settings.keys.pass)
+        this.faceButton("pass", "keyboard:pass");
+      else if (e.code === settings.keys.lob)
+        this.faceButton("lob", "keyboard:lob");
+      else if (e.code === settings.keys.through)
+        this.faceButton("through", "keyboard:through");
+      else if (e.code === settings.keys.switch) this.command("switch");
     });
     window.addEventListener("keyup", (e) => {
       this.keys.delete(e.code);
       if (e.code === settings.keys.shoot) this.releaseCharge("keyboard");
+      if (e.code === settings.keys.pass)
+        this.releaseDefence("contain", "keyboard:pass");
+      if (e.code === settings.keys.through)
+        this.releaseDefence("keeperRush", "keyboard:through");
     });
     window.addEventListener("blur", () => this.clear());
     document.addEventListener("visibilitychange", () => {
@@ -126,6 +154,7 @@ export class Input {
     });
   }
   bind(el, down, up = () => {}, cancel = up) {
+    if (!el) return;
     // Every surface owns one pointer. A different finger (or a stale capture
     // event) must never end the current press on this or another surface.
     let owner = null;
@@ -196,6 +225,7 @@ export class Input {
     this.knob.style.transform = `translate(${v.px}px,${v.py}px)`;
   }
   vector() {
+    this.syncDefensiveHolds();
     let x =
         this.move.x +
         (this.keys.has("KeyD") || this.keys.has("ArrowRight") ? 1 : 0) -
@@ -205,7 +235,7 @@ export class Input {
         (this.keys.has("KeyS") || this.keys.has("ArrowDown") ? 1 : 0) -
         (this.keys.has("KeyW") || this.keys.has("ArrowUp") ? 1 : 0);
     const n = Math.max(1, Math.hypot(x, y));
-    return {
+    const vector = {
       x: x / n,
       y: y / n,
       sprint:
@@ -216,6 +246,37 @@ export class Input {
           this.stickTravel >= 0.94 &&
           this.autoSprint()),
     };
+    if (this.footballControls()) {
+      vector.contain = this.defensiveHolds.contain.size > 0;
+      vector.keeperRush = this.defensiveHolds.keeperRush.size > 0;
+    }
+    return vector;
+  }
+  faceButton(button, source) {
+    if (!this.active()) return;
+    if (!this.footballControls()) {
+      if (button === "pass") this.command("pass");
+      return;
+    }
+    if (this.defending()) {
+      if (button === "pass") this.defensiveHolds.contain.add(source);
+      else if (button === "through")
+        this.defensiveHolds.keeperRush.add(source);
+      else if (button === "lob") this.command("slide");
+      return;
+    }
+    this.command(button === "pass" ? "ground" : button);
+  }
+  releaseDefence(action, source) {
+    this.defensiveHolds[action].delete(source);
+  }
+  syncDefensiveHolds() {
+    // A press belongs to the defensive phase in which it began. A turnover,
+    // stoppage or menu cancels it; releasing later must never fire a pass.
+    if (!this.active() || !this.footballControls() || !this.defending()) {
+      this.defensiveHolds.contain.clear();
+      this.defensiveHolds.keeperRush.clear();
+    }
   }
   command(name, power) {
     if (this.active()) this.onAction(name, this.vector(), power);
@@ -232,6 +293,7 @@ export class Input {
     }
   }
   syncShotContext() {
+    this.syncDefensiveHolds();
     if (
       this.chargeSource !== null &&
       (!this.canChargeShot() || this.shotContext() !== this.chargeContext)
@@ -268,6 +330,8 @@ export class Input {
     this.stickPointerType = null;
     this.stickTravel = 0;
     this.sprinting = false;
+    this.defensiveHolds.contain.clear();
+    this.defensiveHolds.keeperRush.clear();
     this.cancelShot();
     this.pointer = null;
     this.knob.style.transform = "translate(0px,0px)";

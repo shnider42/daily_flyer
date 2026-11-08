@@ -47,7 +47,7 @@ def create_sports_blueprint(asset_root: Path) -> Blueprint:
 
     @bp.get("/api/v1/sports")
     def registry():
-        return jsonify({"schema_version": 1, "engine_version": "1.3.0", "sports": SPORTS})
+        return jsonify({"schema_version": 1, "engine_version": "1.4.0", "sports": SPORTS})
 
     @bp.get("/api/v1/sports/<sport>/teams")
     def teams(sport):

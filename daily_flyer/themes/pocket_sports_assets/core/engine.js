@@ -5,9 +5,23 @@ import {
   takeFootballRestart,
   footballBoundary,
 } from "../sports/football.js";
+import {
+  resetFootballFlight,
+  clearFootballActions,
+  footballDefensiveHolds,
+  footballCanCross,
+  footballThroughPass,
+  footballLobPass,
+  stepFootballBall,
+  footballReachable,
+  footballContainAxes,
+  footballRushTarget,
+  startFootballSlide,
+  stepFootballSlide,
+} from "../sports/football-controls.js";
 import { SPORTS, DIFFICULTY, SOCCER_TOUCH_ASSIST } from "../sports/rules.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.3.0";
+export const ENGINE_VERSION = "1.4.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -133,6 +147,18 @@ export class Match {
   setTouchAssist(enabled) {
     this.touchAssist = Boolean(enabled);
   }
+  canCross(p = this.user) {
+    return footballCanCross(this, p);
+  }
+  throughPass(p = this.user, input = { x: 0, y: 0 }) {
+    return footballThroughPass(this, p, input);
+  }
+  lobPass(p = this.user, input = { x: 0, y: 0 }, power = 0.65) {
+    return footballLobPass(this, p, input, power);
+  }
+  slide(p = this.user, input = { x: 0, y: 0 }) {
+    return startFootballSlide(this, p, input);
+  }
   emit(type, data = {}) {
     this.events.push({ type, time: this.time, ...data });
     if (this.events.length > 80) this.events.shift();
@@ -207,7 +233,11 @@ export class Match {
     this.ball.shot = shot;
     this.ball.shooter = p.side;
     if (this.sport === "soccer") {
+      resetFootballFlight(this.ball);
       this.ball.receiver = null;
+      this.ball.passTarget = null;
+      this.ball.passType = shot ? "shot" : "ground";
+      this.ball.flight = 0;
       this.ball.firstTouch = 0;
       this.ball.firstTouchOwner = null;
       this.ball.passer = null;
@@ -224,7 +254,7 @@ export class Match {
     p.decision = 0.5;
   }
   pass(p = this.user, input = { x: 0, y: 0 }) {
-    if (!p || this.phase !== "play" || this.ball.owner !== p.id) return false;
+    if (!p || this.phase !== "play" || this.ball.owner !== p.id || p.slideTimer > 0) return false;
     const dir = p.side ? 1 : -1;
     const v =
       Math.hypot(input.x, input.y) > 0.2
@@ -294,7 +324,7 @@ export class Match {
     return true;
   }
   shoot(p = this.user, power = 0.65, input = { x: 0, y: 0 }) {
-    if (!p || this.phase !== "play" || this.ball.owner !== p.id) return false;
+    if (!p || this.phase !== "play" || this.ball.owner !== p.id || p.slideTimer > 0) return false;
     const gy = p.side ? this.rules.height + 5 : -5;
     const assist = p.side ? 1 : clamp(this.aimAssist, 0, 1);
     let aimWidth = this.rules.goal * 0.8 + 110 * (1 - assist);
@@ -318,7 +348,7 @@ export class Match {
     return true;
   }
   tackle(p = this.user) {
-    if (!p || this.phase !== "play" || p.stun > 0) return false;
+    if (!p || this.phase !== "play" || p.stun > 0 || p.slideTimer > 0) return false;
     const profile = this.touchProfile;
     const manualTouch = profile && p.id === this.controlled && p.side === 0;
     // An AI thinking/pass timer must not swallow the user's tackle after a
@@ -345,6 +375,12 @@ export class Match {
       this.stats[p.side].tackles++;
       o.stun = this.sport === "hockey" ? 0.65 : 0.38;
       this.ball.owner = null;
+      if (this.sport === "soccer") {
+        resetFootballFlight(this.ball);
+        this.ball.receiver = null;
+        this.ball.passTarget = null;
+        this.ball.passType = null;
+      }
       this.ball.firstTouch = 0;
       this.ball.firstTouchOwner = null;
       this.ball.vx = dir.x * 235;
@@ -362,7 +398,7 @@ export class Match {
     ) {
       if (this.restartData.side === 1) {
         if (name === "switch" || name === "pass") this.switchPlayer();
-      } else if (["pass", "shoot"].includes(name)) {
+      } else if (["pass", "ground", "lob", "through", "shoot"].includes(name)) {
         if (this.phase === "restart_ready")
           return takeFootballRestart(this, name, input, power);
         this.restartData.pending = { name, power };
@@ -371,6 +407,12 @@ export class Match {
     }
     if (this.phase !== "play") return;
     if (name === "switch") return this.switchPlayer();
+    if (this.sport === "soccer") {
+      if (name === "ground") return this.hasBall ? this.pass(this.user, input) : false;
+      if (name === "through") return this.hasBall ? this.throughPass(this.user, input) : false;
+      if (name === "lob") return this.hasBall ? this.lobPass(this.user, input, power) : false;
+      if (name === "slide") return this.slide(this.user, input);
+    }
     if (name === "pass") {
       if (this.hasBall) return this.pass(this.user, input);
       return this.switchPlayer();
@@ -419,6 +461,7 @@ export class Match {
     this.cooldown = 0.7;
   }
   goal(side) {
+    if (this.sport === "soccer") clearFootballActions(this);
     this.score[side]++;
     this.phase = "goal";
     this.timer = this.sport === "soccer" ? 1.8 : 2.8;
@@ -428,6 +471,7 @@ export class Match {
     if (this.period > this.rules.periods) this.winner = side;
   }
   finish() {
+    if (this.sport === "soccer") clearFootballActions(this);
     this.phase = "finished";
     this.winner =
       this.score[0] === this.score[1]
@@ -441,6 +485,9 @@ export class Match {
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) return;
     if (this.phase === "finished") return;
     this.time += dt;
+    const defensiveHolds = this.sport === "soccer"
+      ? footballDefensiveHolds(this, input)
+      : { contain: false, keeperRush: false };
     if (
       this.sport === "soccer" &&
       ["restart", "restart_ready"].includes(this.phase)
@@ -469,6 +516,7 @@ export class Match {
           this.period++;
           this.remaining = this.duration;
           this.phase = "break";
+          if (this.sport === "soccer") clearFootballActions(this);
           this.timer = 2;
           this.message = this.sport === "hockey" ? "NEXT PERIOD" : "HALF TIME";
           this.emit("break");
@@ -505,6 +553,11 @@ export class Match {
       p.stun = Math.max(0, p.stun - dt);
       p.decision -= dt;
       p.tackleCooldown = Math.max(0, p.tackleCooldown - dt);
+      if (this.sport === "soccer") {
+        p.containing = false;
+        p.keeperRushing = false;
+        if (stepFootballSlide(this, p, dt)) return;
+      }
       const touchPressure = profile && p.side === 1 && owner?.side === 0;
       if (touchPressure && distance(p, owner) < 72) {
         if (p.tackleTarget !== owner.id) {
@@ -524,15 +577,27 @@ export class Match {
         const n = Math.max(1, Math.hypot(tx, ty));
         tx /= n;
         ty /= n;
+        if (defensiveHolds.contain && !p.keeper) {
+          p.containing = true;
+          const axes = footballContainAxes(this, p, { x: tx, y: ty });
+          tx = axes.x;
+          ty = axes.y;
+        }
         burst = input.sprint && p.stamina > 0.12;
       } else if (p.keeper) {
         const homeY = p.side ? 58 : this.rules.height - 58;
-        const targetX = clamp(
+        let targetX = clamp(
           this.rules.width / 2 + (this.ball.x - this.rules.width / 2) * 0.32,
           this.rules.width / 2 - this.rules.goal * 0.42,
           this.rules.width / 2 + this.rules.goal * 0.42,
         );
-        const targetY = homeY + (this.ball.y - homeY) * 0.018;
+        let targetY = homeY + (this.ball.y - homeY) * 0.018;
+        if (p.side === 0 && defensiveHolds.keeperRush) {
+          p.keeperRushing = true;
+          const target = footballRushTarget(this);
+          targetX = target.x;
+          targetY = target.y;
+        }
         const d = distance(p, { x: targetX, y: targetY });
         if (d > 3) {
           const v = norm(targetX - p.x, targetY - p.y);
@@ -571,8 +636,9 @@ export class Match {
           this.sport === "soccer" &&
           this.ball.receiver === p.id
         ) {
-          // The intended receiver comes to the pass instead of continuing a formation run.
-          target = {
+          // Ground passes are met; through balls and lofts ask the receiver to
+          // continue to their lead/landing point instead of turning back.
+          target = this.ball.passTarget || {
             x: clamp(
               this.ball.x + this.ball.vx * 0.12,
               18,
@@ -664,16 +730,34 @@ export class Match {
       this.ball.x = p.x + facing.x * 16;
       this.ball.y = p.y + facing.y * 16;
       this.ball.vx = this.ball.vy = 0;
-      if (this.sport === "soccer") footballBoundary(this, { x: p.x, y: p.y });
+      if (this.sport === "soccer") {
+        this.ball.z = 0;
+        // A rushing keeper can claim a carried ball too; the loose-ball loop
+        // below is never reached while an attacker still owns it.
+        const keeper = this.players.find((q) => q.keeper && q.side === 0);
+        if (defensiveHolds.keeperRush && p.side === 1 && keeper?.stun <= 0 &&
+            distance(keeper, this.ball) < 29) {
+          this.emit("keeper-claim", { side: 0 });
+          setupFootballRestart(this, "KEEPER BALL", 0, keeper.x, keeper.y);
+          return;
+        }
+        footballBoundary(this, { x: p.x, y: p.y, z: 0 });
+      }
       return;
     }
-    const old = { x: this.ball.x, y: this.ball.y };
+    const old = {
+      x: this.ball.x, y: this.ball.y,
+      z: this.ball.z || 0, vz: this.ball.vz || 0, dt,
+    };
     const b = this.ball;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    const decay = Math.exp(-this.rules.ballDrag * dt);
-    b.vx *= decay;
-    b.vy *= decay;
+    if (this.sport === "soccer") stepFootballBall(this, dt);
+    else {
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      const decay = Math.exp(-this.rules.ballDrag * dt);
+      b.vx *= decay;
+      b.vy *= decay;
+    }
     if (b.lock <= 0) {
       const candidates = this.players
         .filter(
@@ -682,7 +766,8 @@ export class Match {
             !(b.passerLock > 0 && b.passer === p.id) &&
             !(
               this.sport === "soccer" &&
-              (this.ball.flight > 0 || this.ball.restartKicker === p.id)
+              (this.ball.flight > 0 || this.ball.restartKicker === p.id ||
+                p.slideTimer > 0 || !footballReachable(p, old, b))
             ) &&
             segmentDistance(p, old, b) <
               (p.keeper ? 25 :
@@ -701,6 +786,11 @@ export class Match {
           b.vx *= 0.4;
           b.vy *= -0.35;
           b.shot = false;
+          if (this.sport === "soccer") {
+            resetFootballFlight(b);
+            b.passTarget = null;
+            b.receiver = null;
+          }
           b.lock = 0.08;
           this.lastTouch = p.side;
           this.emit("block");
@@ -713,6 +803,11 @@ export class Match {
             setupFootballRestart(this, "KEEPER BALL", p.side, p.x, p.y);
             break;
           }
+          if (this.sport === "soccer") {
+            resetFootballFlight(b);
+            b.passTarget = null;
+            b.receiver = null;
+          }
           b.vx = (b.x - p.x) * 18 + (this.random() - 0.5) * 150;
           b.vy = p.side ? 280 : -280;
           b.lock = 0.25;
@@ -723,7 +818,10 @@ export class Match {
         if (!p.keeper) {
           b.owner = p.id;
           if (this.sport === "soccer") {
+            resetFootballFlight(b);
             b.receiver = null;
+            b.passTarget = null;
+            b.passType = null;
             // This starts once per actual collection, never every carried frame.
             // It prevents an instant turnover but expires even while standing.
             b.firstTouch = profile && p.side === 0 ? profile.receiveGrace : 0;
@@ -780,8 +878,15 @@ export class Match {
     return {
       time: this.time,
       score: [...this.score],
-      players: this.players.map((p) => ({ ...p })),
-      ball: { ...this.ball },
+      players: this.players.map((p) => ({
+        ...p,
+        ...(p.slideDir ? { slideDir: { ...p.slideDir } } : {}),
+      })),
+      ball: {
+        ...this.ball,
+        ...(this.ball.airTarget ? { airTarget: { ...this.ball.airTarget } } : {}),
+        ...(this.ball.passTarget ? { passTarget: { ...this.ball.passTarget } } : {}),
+      },
       controlled: this.controlled,
       sport: this.sport,
     };

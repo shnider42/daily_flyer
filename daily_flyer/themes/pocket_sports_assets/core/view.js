@@ -143,6 +143,17 @@ export class Arena {
         ctx.restore();
       }
     }
+    const b = state.ball;
+    if (!hockey && guide && b.z > 8 && b.airTarget) {
+      ctx.save();
+      ctx.strokeStyle = "#f8edb79c";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 7]);
+      ctx.beginPath();
+      ctx.ellipse(b.airTarget.x, b.airTarget.y, 21, 15, 0, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
     state.players.forEach((p) =>
       this.player(
         ctx,
@@ -154,13 +165,20 @@ export class Arena {
         preview,
       ),
     );
-    const b = state.ball;
+    const height = hockey ? 0 : Math.max(0, b.z || 0);
     ctx.save();
     ctx.translate(b.x, b.y);
-    ctx.fillStyle = "#06101844";
+    ctx.fillStyle = height > 8 ? "#06101860" : "#06101844";
     ctx.beginPath();
-    ctx.ellipse(2, 4, hockey ? 8 : 10, 5, 0, 0, TAU);
+    ctx.ellipse(2, 4, hockey ? 8 : 10 + height * 0.035, 5, 0, 0, TAU);
     ctx.fill();
+    // Height always lifts the ball toward the top of the screen, including
+    // the rotated landscape pitch. The shadow marks its actual ground path.
+    ctx.translate(this.rotated ? -height : 0, this.rotated ? 0 : -height);
+    if (height) {
+      const airScale = 1 + Math.min(0.3, height / 300);
+      ctx.scale(airScale, airScale);
+    }
     ctx.fillStyle = hockey ? "#071521" : "#fffdf0";
     ctx.strokeStyle = hockey ? "#ffffff" : "#163a25";
     ctx.lineWidth = 2;
@@ -368,59 +386,114 @@ export class Arena {
       c.lineTo(0, -26);
       c.fill();
     }
-    if (hockey) {
-      c.strokeStyle = "#172b39";
-      c.lineWidth = 4;
+    if (!hockey && (p.containing || p.keeperRushing) && !preview) {
+      c.strokeStyle = p.keeperRushing ? "#f5c76a" : "#9de5d7";
+      c.lineWidth = 2;
       c.beginPath();
-      c.moveTo(-7, 13);
-      c.lineTo(-11 - run, 21);
-      c.moveTo(7, 13);
-      c.lineTo(11 + run, 21);
+      c.arc(0, 2, 29, Math.PI * 0.12, Math.PI * 0.88);
       c.stroke();
-      c.strokeStyle = "#2e2a22";
-      c.lineWidth = 4;
+    }
+    const sliding = !hockey && p.slideTimer > 0;
+    if (sliding) {
+      const direction = p.slideDir || { x: p.fx, y: p.fy };
+      c.save();
+      c.rotate(Math.atan2(direction.y, direction.x));
+      c.fillStyle = "#00121a38";
       c.beginPath();
-      c.moveTo(12, 0);
-      c.lineTo(22 + p.fx * 12, 23 + p.fy * 10);
-      c.lineTo(32 + p.fx * 12, 21 + p.fy * 10);
+      c.ellipse(0, 4, 31, 11, 0, 0, TAU);
+      c.fill();
+      c.strokeStyle = p.side ? primary : "#eee8d9";
+      c.lineWidth = 8;
+      c.lineCap = "round";
+      c.beginPath();
+      c.moveTo(0, -4);
+      c.lineTo(23, -8);
+      c.moveTo(0, 5);
+      c.lineTo(12, 13);
+      c.lineTo(26, 12);
       c.stroke();
-    } else {
-      c.fillStyle = p.side ? primary : "#eee8d9";
-      c.fillRect(-10, -2, 8, 18 + run);
-      c.fillRect(2, -2, 8, 18 - run);
       c.fillStyle = "#14261f";
-      c.fillRect(-11, 14 + run, 9, 5);
-      c.fillRect(2, 14 - run, 9, 5);
+      c.fillRect(22, -12, 8, 6);
+      c.fillRect(24, 9, 8, 6);
+      c.fillStyle = jersey;
+      c.strokeStyle = p.side ? primary : "#081622";
+      c.lineWidth = 2;
+      this.round(c, -21, -11, 25, 23, 6);
+      c.fill();
+      c.stroke();
+      c.fillStyle = trim;
+      c.fillRect(-18, -10, 4, 21);
+      c.fillStyle = "#c79b78";
+      c.beginPath();
+      c.arc(-26, 0, 7, 0, TAU);
+      c.fill();
+      if (p.sliding) {
+        c.strokeStyle = "#d3ddaf70";
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(-37, -7);
+        c.lineTo(-49, -9);
+        c.moveTo(-38, 7);
+        c.lineTo(-53, 11);
+        c.stroke();
+      }
+      c.restore();
+    } else {
+      if (hockey) {
+        c.strokeStyle = "#172b39";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(-7, 13);
+        c.lineTo(-11 - run, 21);
+        c.moveTo(7, 13);
+        c.lineTo(11 + run, 21);
+        c.stroke();
+        c.strokeStyle = "#2e2a22";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(12, 0);
+        c.lineTo(22 + p.fx * 12, 23 + p.fy * 10);
+        c.lineTo(32 + p.fx * 12, 21 + p.fy * 10);
+        c.stroke();
+      } else {
+        c.fillStyle = p.side ? primary : "#eee8d9";
+        c.fillRect(-10, -2, 8, 18 + run);
+        c.fillRect(2, -2, 8, 18 - run);
+        c.fillStyle = "#14261f";
+        c.fillRect(-11, 14 + run, 9, 5);
+        c.fillRect(2, 14 - run, 9, 5);
+      }
+      c.fillStyle = p.keeper ? (hockey ? jersey : "#e4ab56") : jersey;
+      c.strokeStyle = p.side ? primary : "#081622";
+      c.lineWidth = 2;
+      this.round(c, -14, -12, 28, 28, hockey ? 7 : 5);
+      c.fill();
+      c.stroke();
+      c.fillStyle = trim;
+      c.fillRect(-13, 5, 26, hockey ? 5 : 3);
+      if (hockey && p.keeper) {
+        c.fillStyle = "#f1f2e6";
+        c.fillRect(-16, 9, 12, 17);
+        c.fillRect(4, 9, 12, 17);
+      }
+      c.fillStyle = hockey ? (p.side ? "#f6f3e7" : primary) : "#c79b78";
+      c.strokeStyle = "#192b30";
+      c.lineWidth = 2;
+      c.beginPath();
+      c.arc(0, -15, hockey ? 9 : 7, 0, TAU);
+      c.fill();
+      c.stroke();
+      c.fillStyle = p.side ? primary : "#ffffff";
+      c.font = "bold 12px system-ui";
+      c.textAlign = "center";
+      c.save();
+      if (this.rotated) c.rotate(-Math.PI / 2);
+      c.fillText(String(p.number), 0, 3);
+      c.restore();
     }
-    c.fillStyle = p.keeper ? (hockey ? jersey : "#e4ab56") : jersey;
-    c.strokeStyle = p.side ? primary : "#081622";
-    c.lineWidth = 2;
-    this.round(c, -14, -12, 28, 28, hockey ? 7 : 5);
-    c.fill();
-    c.stroke();
-    c.fillStyle = trim;
-    c.fillRect(-13, 5, 26, hockey ? 5 : 3);
-    if (hockey && p.keeper) {
-      c.fillStyle = "#f1f2e6";
-      c.fillRect(-16, 9, 12, 17);
-      c.fillRect(4, 9, 12, 17);
-    }
-    c.fillStyle = hockey ? (p.side ? "#f6f3e7" : primary) : "#c79b78";
-    c.strokeStyle = "#192b30";
-    c.lineWidth = 2;
-    c.beginPath();
-    c.arc(0, -15, hockey ? 9 : 7, 0, TAU);
-    c.fill();
-    c.stroke();
-    c.fillStyle = p.side ? primary : "#ffffff";
-    c.font = "bold 12px system-ui";
-    c.textAlign = "center";
-    c.save();
-    if (this.rotated) c.rotate(-Math.PI / 2);
-    c.fillText(String(p.number), 0, 3);
-    c.restore();
     if (selected && !preview) {
       if (this.rotated) c.rotate(-Math.PI / 2);
+      c.textAlign = "center";
       const surname = p.name.split(" ").slice(-1)[0];
       c.font = "bold 16px system-ui";
       const width = c.measureText(surname).width + 16;

@@ -1,7 +1,9 @@
 import { movePlayer } from "../core/movement.js";
 import { clamp, distance, norm } from "../core/math.js";
+import { FOOTBALL_HEIGHT, clearFootballActions, footballHeightAt } from "./football-controls.js";
 // Restarts use match coordinates and normal player movement; no magic possession reset.
 export function setupFootballRestart(g, type, side, x, y) {
+  clearFootballActions(g);
   const { width: w, height: h } = g.rules;
   if (type === "THROW-IN") x = x < w / 2 ? 0 : w;
   if (type === "GOAL KICK") {
@@ -53,7 +55,10 @@ export function setupFootballRestart(g, type, side, x, y) {
   g.phase = "restart";
   g.timer = wait;
   g.message = type;
-  g.ball = { x, y, vx: 0, vy: 0, owner: null, lock: 0, shot: false };
+  g.ball = {
+    x, y, vx: 0, vy: 0, owner: null, lock: 0, shot: false,
+    z: 0, vz: 0, airTime: 0, airTarget: null, passTarget: null,
+  };
   g.lastTouch = side;
   if (side === 0 && !g.autoplay) g.controlled = taker.id;
   // Recover an outfield defender if a previous goalkeeper distribution held control.
@@ -201,7 +206,7 @@ export function takeFootballRestart(
   input = { x: 0, y: 0 },
   power = 0.65,
 ) {
-  if (g.phase !== "restart_ready" || !["pass", "shoot"].includes(action))
+  if (g.phase !== "restart_ready" || !["pass", "ground", "lob", "through", "shoot"].includes(action))
     return false;
   const r = g.restartData,
     p = g.players[r.taker];
@@ -209,20 +214,36 @@ export function takeFootballRestart(
   g.ball.owner = p.id;
   g.cooldown = 0.8;
   const isThrow = r.type === "THROW-IN";
-  if (action === "shoot" && !isThrow && r.type !== "KICK-OFF")
-    g.shoot(p, power, input);
-  else g.pass(p, input);
+  let played;
+  if (action === "lob") played = g.lobPass(p, input, power);
+  else if (action === "through") played = g.throughPass(p, input);
+  else if (action === "shoot" && ["KEEPER BALL", "GOAL KICK"].includes(r.type))
+    played = g.lobPass(p, input, 1);
+  else if (action === "shoot" && !isThrow && r.type !== "KICK-OFF")
+    played = g.shoot(p, power, input);
+  else played = g.pass(p, input);
+  if (!played) {
+    g.phase = "restart_ready";
+    g.ball.owner = null;
+    return false;
+  }
   // Release from the actual stationary ball position, not from a teleported receiver.
   g.ball.x = r.x;
   g.ball.y = r.y;
+  if (g.ball.airTarget && g.ball.airTime > 0) {
+    g.ball.vx = (g.ball.airTarget.x - r.x) / g.ball.airTime;
+    g.ball.vy = (g.ball.airTarget.y - r.y) / g.ball.airTime;
+  }
   g.ball.lock = 0.15;
   g.ball.restartKicker = p.id;
   g.ball.noDirectGoal = isThrow;
   g.ball.restartSide = r.side;
   if (isThrow) {
     g.ball.flight = 0.35;
-    g.ball.vx *= 0.75;
-    g.ball.vy *= 0.75;
+    if (!g.ball.airTarget) {
+      g.ball.vx *= 0.75;
+      g.ball.vy *= 0.75;
+    }
   }
   if (r.side === 0 && !g.autoplay) {
     const next =
@@ -263,7 +284,9 @@ export function footballBoundary(g, old) {
     return true;
   }
   const defender = edge.y === 0 ? 1 : 0;
-  if (Math.abs(x - w / 2) < g.rules.goal / 2 && !b.noDirectGoal) {
+  const height = footballHeightAt(old, b, edge.t);
+  if (Math.abs(x - w / 2) < g.rules.goal / 2 &&
+      height <= FOOTBALL_HEIGHT.bar && !b.noDirectGoal) {
     g.goal(1 - defender);
     return true;
   }
