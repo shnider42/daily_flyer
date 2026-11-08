@@ -1,12 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.2.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.3.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Combat, boarding, and isolated practice · 0.3.0
+
+Every captain carries a **Pulse sidearm** as standard airlock equipment. In boarding combat, **WASD moves, the mouse or arrow keys aim, and left-click or Space fires**. Touch players move with the left stick and aim/fire with the right. With no manual aim, a visible bracket identifies the assisted target. Muzzle flashes, shots, wall impacts, confirmed damage, sounds, and attacker-attributed casualties make the action readable. A shot can miss; walls block it. The weapon never fires automatically for the player.
+
+Boarding takes place on the **target vessel's persistent deck**. Its exterior scale follows its interior class. Wounded defenders, hull damage, location, and occupation survive retreat and return. The source and target remain separate exposed hulls; a third party can attack either. Return through the entry airlock while the origin is in tether range, or clear the deck and use the target helm. Taking a captured NPC ship leaves the surviving old ship at its original location. Shared player ships retain their legal owner; hostile control is temporary commandeering rather than silently deleting ownership or progression.
+
+Hostile occupation blocks recovery into that vessel, including bunk respawns. Defeated captains recover at a safe port; if their owned ship is occupied or destroyed, recovery uses a separate basic hull. This does not repair, teleport, or reclaim the occupied target. Ordinary friendly crew are protected. A player must explicitly **declare hostility** before ship-versus-player damage or forced boarding; both sides can then fight. Friendly-fire balance remains deliberately limited to that rule in this release.
+
+**Test mode** is at the bottom of the main menu; enter **123**. Choose ship combat, boarding a disabled target, person combat, or pirate raid defense. Only the smallest half of hulls by exterior size are offered as enemy choices. The player starts with the same cutter, no allied gunners, and no story/progression rewards. Exercises are separate unsavable sessions: retry, switch exercises, or exit without changing a solo voyage or joining a shared galaxy.
+
+The top-right **CREW** label remains visible after connecting. To board a friend's ship, the owner grants access in **CREW → Shared ship & stations**; the friend selects the vessel in CREW and uses **Board with permission**. Meet at the same port or within 220 metres in space at low speed, with a spare berth and no immediate fight. A nearby ship also exposes its boarding/crew actions through the context button. The menu identifies its captain so two ships named Cinder are distinguishable.
 
 ## Smoothness update · 0.2.1
 
@@ -66,7 +78,7 @@ Every ship class has a walkable interior with a helm, engineering, medical, navi
 
 ### Boarding and crew survival
 
-Damaged enemies can become disabled. Stop firing if you want to take them intact, approach until **Board** appears, and enter their deck. Move through its rooms and hold **Fire** to shoot a nearby hostile in range and line of sight. Your NPC crew can fight alongside you. An assault can be abandoned by returning to its entry point.
+Damaged enemies can become disabled. Stop firing if you want to take them intact, approach until **Board** appears, and enter their deck. Move with WASD, aim with the mouse or arrows, and left-click or hold Space to fire. A visible target bracket shows aim assist when no manual direction is held. Your NPC crew can fight alongside you. An assault can be abandoned by returning to its entry point.
 
 Pirates can also grapple your ship when your shields are weak. A warning precedes the boarding attempt; create distance or recover shields to break it. If they reach the deck, the encounter becomes a live fight. Crew and hostiles move through the same doors and corridors you use, and walls block their shots.
 
@@ -107,7 +119,9 @@ Berths count **everyone aboard, including the captain**. The starter ship can ca
 | **S** or **↓** | Decelerate the ship; this does not apply reverse thrust |
 | **A / D** | Strafe left / right relative to the ship's facing |
 | **← / →** | Apply rotational acceleration left / right |
-| **WASD** or **arrow keys**, on foot | Walk |
+| **WASD**, on foot | Walk; outside combat, arrow keys also walk |
+| **Mouse / arrow keys**, during boarding | Aim independently of movement |
+| **Left-click**, during boarding | Fire the sidearm toward your aim |
 | **E** | Context action: dock, land, talk, use, collect, or investigate |
 | **Space** | Hold to fire; during boarding, shoot on foot; otherwise interact on foot |
 | **R** | Hold to mine in ship mode; open the mission log on foot |
@@ -129,7 +143,7 @@ On the galaxy map, drag to pan, select a star to inspect it, and use the wheel o
 The two sticks and action buttons own their touches independently:
 
 - **Left stick — JETS:** push up for thrust, down to decelerate, or sideways to strafe. In person mode it becomes **MOVE**.
-- **Right stick — TURN / FIRE ↑:** move sideways to rotate; push upward beyond the firing threshold to hold fire while continuing to turn. During boarding, its upward action fires your sidearm.
+- **Right stick — TURN / FIRE ↑:** move sideways to rotate; push upward beyond the firing threshold to hold fire while continuing to turn. During boarding, push it in any direction to aim and fire your sidearm.
 - The separate **Fire** button remains available. The center controls provide **Boost / Run**, **Mine / Log**, and **Use**. The context strip handles docking and nearby interactions.
 
 This allows two thumbs to control thrust/strafe and turning/fire simultaneously. Map, log, ship, and crew controls open their respective panels; the ship panel also provides access to the deck and manifest.
@@ -166,7 +180,7 @@ Captains can travel independently in their own ships, or stay aboard a crewed ve
 | Surface outpost | 180 credits + 12 ore on a planet or moon |
 | Ship bunk | Owner fits each additional bunk for 60 credits + 4 ore; an allowed captain visits an unclaimed fitted bunk to register it |
 
-A ship home travels with the vessel. Bunk assignment and boarding permissions are checked when a captain returns; an unavailable berth falls back to Kettle. Rooms and outposts are persistent location registrations and recovery points. They are not a separate construction or decoration system.
+A ship home travels with the vessel. Bunk assignment, boarding permissions, hull survival, and hostile occupation are checked when a captain returns; an unavailable or contested berth falls back to a safe port. Rooms and outposts are persistent location registrations and recovery points. They are not a separate construction or decoration system.
 
 Use **Sign off safely** from CREW to leave. Online menus release your controls but **do not pause the shared galaxy**. Other captains keep moving; a connection loss is not an immediate escape from combat. The server has a short disconnect grace period, then handles recovery and any applicable penalty. Empty systems retain their recorded state without running unattended combat.
 

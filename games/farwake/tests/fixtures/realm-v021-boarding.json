@@ -1,0 +1,700 @@
+{
+  "format": 1,
+  "realmId": "LEGACY21",
+  "name": "Existing shared voyage",
+  "seed": "legacy-v021-preservation",
+  "ownerId": "captain_legacy_owner",
+  "createdAt": 1794172052405,
+  "updatedAt": 1794172052425,
+  "captains": {
+    "captain_legacy_owner": {
+      "id": "captain_legacy_owner",
+      "name": "Existing captain",
+      "tokenHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "createdAt": 1,
+      "lastSeen": 1,
+      "home": {
+        "kind": "port",
+        "systemId": "hearth",
+        "locationId": "kettle"
+      },
+      "ownedVesselId": "vessel_captain_legacy_owner",
+      "aboard": "vessel_captain_legacy_owner",
+      "crewRole": "security",
+      "combatAtDisconnect": false,
+      "recentCommands": [],
+      "game": {
+        "version": 4,
+        "seed": "legacy-v021-preservation",
+        "mode": "person",
+        "systemId": "hearth",
+        "locationId": "boarded-legacy-raider",
+        "credits": 477,
+        "cargo": {
+          "ore": 13,
+          "crystal": 0
+        },
+        "rep": {
+          "concord": 0,
+          "freewake": 0,
+          "meridian": 0,
+          "lantern": 0,
+          "cinder": 0
+        },
+        "flags": [
+          "started",
+          "legacy-quest-kept",
+          "boarded_derelict"
+        ],
+        "upgrades": {},
+        "visited": [
+          "hearth"
+        ],
+        "discovered": [
+          "hearth",
+          "brindle",
+          "meridian",
+          "vesper",
+          "nacre",
+          "cinder",
+          "sector-119",
+          "sector-120",
+          "sector-134",
+          "sector-135",
+          "sector-136",
+          "sector-137",
+          "sector-150",
+          "sector-151",
+          "sector-152",
+          "sector-153",
+          "sector-167",
+          "sector-168"
+        ],
+        "missions": [],
+        "completedJobs": [],
+        "abandonedJobs": {},
+        "journal": [
+          {
+            "id": "log-0.00-1",
+            "title": "Across the tether",
+            "text": "Existing raider: 2 armed contacts on the deck.",
+            "type": "boarding",
+            "systemId": "hearth",
+            "time": 0
+          },
+          {
+            "id": "log-0.00-0",
+            "title": "A ship of your own",
+            "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+            "type": "story",
+            "systemId": "hearth",
+            "time": 0
+          }
+        ],
+        "encounterHistory": [],
+        "crew": [
+          {
+            "id": "legacy-engineer",
+            "name": "Existing engineer",
+            "role": "engineer",
+            "health": 78,
+            "maxHealth": 100,
+            "status": "injured"
+          }
+        ],
+        "formerCrew": [],
+        "memorial": [],
+        "fleet": {
+          "owned": [
+            "sparrow"
+          ],
+          "history": []
+        },
+        "boarding": {
+          "id": "boarding:legacy-raider:assault",
+          "kind": "assault",
+          "phase": "active",
+          "shipClass": "sparrow",
+          "vesselId": "vessel_captain_legacy_owner",
+          "locationId": "boarded-legacy-raider",
+          "targetId": "legacy-raider",
+          "enemies": [
+            {
+              "id": "boarding:legacy-raider:assault:hostile:0",
+              "name": "Pirate breacher",
+              "x": 108,
+              "y": 276,
+              "health": 19,
+              "maxHealth": 52,
+              "team": "hostile",
+              "role": "raider",
+              "color": "#e69079",
+              "facing": "right",
+              "damage": 7,
+              "cooldown": 1.8,
+              "speed": 52,
+              "status": "active"
+            },
+            {
+              "id": "boarding:legacy-raider:assault:hostile:1",
+              "name": "Boarding raider",
+              "x": 132,
+              "y": 300,
+              "health": 0,
+              "maxHealth": 52,
+              "team": "hostile",
+              "role": "raider",
+              "color": "#e69079",
+              "facing": "right",
+              "damage": 7,
+              "cooldown": 2.15,
+              "speed": 52,
+              "status": "active"
+            }
+          ],
+          "allies": [
+            {
+              "id": "boarding:legacy-raider:assault:crew:legacy-engineer",
+              "crewId": "legacy-engineer",
+              "name": "Existing engineer",
+              "role": "engineer",
+              "x": 228,
+              "y": 444,
+              "health": 78,
+              "maxHealth": 100,
+              "team": "friendly",
+              "facing": "left",
+              "damage": 9,
+              "cooldown": 0.8,
+              "speed": 50,
+              "status": "active"
+            }
+          ],
+          "elapsed": 0,
+          "combatTime": 0,
+          "unopposedTime": 0,
+          "startedAt": 0
+        },
+        "boardingHistory": [],
+        "knownLore": [],
+        "completedChapters": [],
+        "pendingEncounter": null,
+        "stats": {
+          "time": 0,
+          "oreMined": 0,
+          "crystalsMined": 0,
+          "kills": 0,
+          "jobs": 0,
+          "scans": 0,
+          "salvaged": 0,
+          "jumps": 0,
+          "dockings": 0,
+          "work": 0,
+          "talks": 0,
+          "rescues": 0,
+          "distance": 0,
+          "decisions": 0
+        },
+        "ship": {
+          "id": "vessel_captain_legacy_owner",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 2,
+          "x": 20,
+          "y": 90,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 67,
+          "maxHull": 100,
+          "shield": 11,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 4
+        },
+        "person": {
+          "x": 372,
+          "y": 300,
+          "health": 61,
+          "facing": "up",
+          "down": false
+        },
+        "rng": 2281942569,
+        "nextEncounterAt": 95,
+        "lastBodyId": "kettle",
+        "jobSerial": 0,
+        "activityTokens": [],
+        "lastSaveAt": 0,
+        "interior": {
+          "kind": "enemy",
+          "location": {
+            "id": "boarded-legacy-raider",
+            "vesselId": "legacy-raider",
+            "name": "Existing raider · boarding deck",
+            "kind": "ship",
+            "biome": "ship",
+            "shipClass": "sparrow",
+            "berths": 4,
+            "crew": [
+              {
+                "id": "legacy-engineer",
+                "name": "Existing engineer",
+                "role": "engineer",
+                "health": 78,
+                "maxHealth": 100,
+                "status": "injured"
+              }
+            ],
+            "faction": "covenant"
+          },
+          "signalId": "legacy-raider",
+          "liveVessel": false,
+          "returnShip": {
+            "x": 20,
+            "y": 90,
+            "vx": 0,
+            "vy": 0,
+            "angle": -1.5707963267948966,
+            "angularVelocity": 0
+          },
+          "returnLocation": null
+        },
+        "storyActions": [],
+        "worlds": {}
+      }
+    },
+    "captain_legacy_friend": {
+      "id": "captain_legacy_friend",
+      "name": "Existing friend",
+      "tokenHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "createdAt": 1,
+      "lastSeen": 1,
+      "home": {
+        "kind": "port",
+        "systemId": "hearth",
+        "locationId": "kettle"
+      },
+      "ownedVesselId": "vessel_captain_legacy_friend",
+      "aboard": "vessel_captain_legacy_owner",
+      "crewRole": "passenger",
+      "combatAtDisconnect": false,
+      "recentCommands": [],
+      "game": {
+        "version": 4,
+        "seed": "legacy-v021-preservation",
+        "mode": "person",
+        "systemId": "hearth",
+        "locationId": "ship:vessel_captain_legacy_owner",
+        "credits": 180,
+        "cargo": {
+          "ore": 0,
+          "crystal": 0
+        },
+        "rep": {
+          "concord": 0,
+          "freewake": 0,
+          "meridian": 0,
+          "lantern": 0,
+          "cinder": 0
+        },
+        "flags": [
+          "started",
+          "entered_cabin"
+        ],
+        "upgrades": {},
+        "visited": [
+          "hearth"
+        ],
+        "discovered": [
+          "hearth",
+          "brindle",
+          "meridian",
+          "vesper",
+          "nacre",
+          "cinder",
+          "sector-119",
+          "sector-120",
+          "sector-134",
+          "sector-135",
+          "sector-136",
+          "sector-137",
+          "sector-150",
+          "sector-151",
+          "sector-152",
+          "sector-153",
+          "sector-167",
+          "sector-168"
+        ],
+        "missions": [],
+        "completedJobs": [],
+        "abandonedJobs": {},
+        "journal": [
+          {
+            "id": "log-0.00-0",
+            "title": "A ship of your own",
+            "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+            "type": "story",
+            "systemId": "hearth",
+            "time": 0
+          }
+        ],
+        "encounterHistory": [],
+        "crew": [],
+        "formerCrew": [],
+        "memorial": [],
+        "fleet": {
+          "owned": [
+            "sparrow"
+          ],
+          "history": []
+        },
+        "boarding": null,
+        "boardingHistory": [],
+        "knownLore": [],
+        "completedChapters": [],
+        "pendingEncounter": null,
+        "stats": {
+          "time": 0,
+          "oreMined": 0,
+          "crystalsMined": 0,
+          "kills": 0,
+          "jobs": 0,
+          "scans": 0,
+          "salvaged": 0,
+          "jumps": 0,
+          "dockings": 0,
+          "work": 0,
+          "talks": 0,
+          "rescues": 0,
+          "distance": 0,
+          "decisions": 0
+        },
+        "ship": {
+          "id": "vessel_captain_legacy_friend",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 1,
+          "x": 0,
+          "y": 150,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 100,
+          "maxHull": 100,
+          "shield": 35,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 4
+        },
+        "person": {
+          "x": 372,
+          "y": 300,
+          "health": 100,
+          "facing": "up"
+        },
+        "rng": 2281942569,
+        "nextEncounterAt": 95,
+        "lastBodyId": "kettle",
+        "jobSerial": 0,
+        "activityTokens": [],
+        "lastSaveAt": 0,
+        "interior": {
+          "kind": "ship",
+          "location": {
+            "id": "ship:vessel_captain_legacy_owner",
+            "name": "Cinder · crew deck",
+            "kind": "ship",
+            "biome": "ship",
+            "classId": "sparrow",
+            "shipClassId": "sparrow",
+            "crew": [],
+            "bunkAssignments": {
+              "0": "captain_legacy_owner"
+            }
+          },
+          "returnLocation": null,
+          "returnShip": {
+            "x": 20,
+            "y": 90,
+            "vx": 0,
+            "vy": 0,
+            "angle": -1.5707963267948966
+          }
+        },
+        "storyActions": [],
+        "worlds": {}
+      }
+    }
+  },
+  "vessels": {
+    "vessel_captain_legacy_owner": {
+      "id": "vessel_captain_legacy_owner",
+      "ownerId": "captain_legacy_owner",
+      "name": "Cinder",
+      "systemId": "hearth",
+      "dockedAt": null,
+      "ship": {
+        "id": "vessel_captain_legacy_owner",
+        "name": "Cinder",
+        "classId": "sparrow",
+        "humanOccupants": 2,
+        "x": 20,
+        "y": 90,
+        "vx": 0,
+        "vy": 0,
+        "angle": -1.5707963267948966,
+        "angularVelocity": 0,
+        "hull": 67,
+        "maxHull": 100,
+        "shield": 11,
+        "maxShield": 35,
+        "energy": 100,
+        "maxEnergy": 100,
+        "fuel": 22,
+        "maxFuel": 30,
+        "cargoCap": 24,
+        "speed": 255,
+        "turn": 4.6,
+        "damage": 16,
+        "range": 850,
+        "warpRange": 0,
+        "scanRange": 235,
+        "mining": 1,
+        "mass": 1,
+        "radius": 21,
+        "renderLength": 64,
+        "renderWidth": 42,
+        "thrustAcceleration": 230,
+        "strafeAcceleration": 165,
+        "angularAcceleration": 4.6,
+        "maxAngularVelocity": 2.6,
+        "angularDamping": 1.65,
+        "berths": 4
+      },
+      "allowCrew": true,
+      "grants": {},
+      "helmOwner": null,
+      "bunks": {
+        "0": "captain_legacy_owner"
+      },
+      "installedBunks": 1,
+      "flightAssist": true,
+      "combatInterior": {
+        "kind": "enemy",
+        "location": {
+          "id": "boarded-legacy-raider",
+          "vesselId": "legacy-raider",
+          "name": "Existing raider · boarding deck",
+          "kind": "ship",
+          "biome": "ship",
+          "shipClass": "sparrow",
+          "berths": 4,
+          "crew": [
+            {
+              "id": "legacy-engineer",
+              "name": "Existing engineer",
+              "role": "engineer",
+              "health": 78,
+              "maxHealth": 100,
+              "status": "injured"
+            }
+          ],
+          "faction": "covenant"
+        },
+        "signalId": "legacy-raider",
+        "liveVessel": false,
+        "returnShip": {
+          "x": 20,
+          "y": 90,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0
+        },
+        "returnLocation": null
+      },
+      "boardingLeaderId": "captain_legacy_owner"
+    },
+    "vessel_captain_legacy_friend": {
+      "id": "vessel_captain_legacy_friend",
+      "ownerId": "captain_legacy_friend",
+      "name": "Cinder",
+      "systemId": "hearth",
+      "dockedAt": "kettle",
+      "ship": {
+        "id": "vessel_captain_legacy_friend",
+        "name": "Cinder",
+        "classId": "sparrow",
+        "humanOccupants": 1,
+        "x": 0,
+        "y": 150,
+        "vx": 0,
+        "vy": 0,
+        "angle": -1.5707963267948966,
+        "angularVelocity": 0,
+        "hull": 100,
+        "maxHull": 100,
+        "shield": 35,
+        "maxShield": 35,
+        "energy": 100,
+        "maxEnergy": 100,
+        "fuel": 22,
+        "maxFuel": 30,
+        "cargoCap": 24,
+        "speed": 255,
+        "turn": 4.6,
+        "damage": 16,
+        "range": 850,
+        "warpRange": 0,
+        "scanRange": 235,
+        "mining": 1,
+        "mass": 1,
+        "radius": 21,
+        "renderLength": 64,
+        "renderWidth": 42,
+        "thrustAcceleration": 230,
+        "strafeAcceleration": 165,
+        "angularAcceleration": 4.6,
+        "maxAngularVelocity": 2.6,
+        "angularDamping": 1.65,
+        "berths": 4
+      },
+      "allowCrew": false,
+      "grants": {},
+      "helmOwner": null,
+      "bunks": {
+        "0": "captain_legacy_friend"
+      },
+      "installedBunks": 1,
+      "flightAssist": true
+    }
+  },
+  "worlds": {
+    "hearth": {
+      "record": {
+        "depleted": [],
+        "defeated": [],
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [
+          {
+            "id": "legacy-raider",
+            "name": "Existing raider",
+            "x": 140,
+            "y": 90,
+            "angle": 0,
+            "classId": "sparrow",
+            "radius": 18,
+            "hp": 22,
+            "maxHp": 70,
+            "shield": 0,
+            "disabled": true,
+            "active": false,
+            "speed": 0,
+            "cooldown": 90,
+            "damage": 6,
+            "reward": 20,
+            "faction": "covenant"
+          }
+        ],
+        "asteroidHealth": {},
+        "enemyHealth": {
+          "legacy-raider": 22
+        },
+        "enemyStates": {
+          "legacy-raider": {
+            "x": 140,
+            "y": 90,
+            "angle": 0,
+            "disabled": true,
+            "boardingTargetId": "captain_legacy_owner",
+            "boardingCharge": 0,
+            "boardingCooldown": 0
+          }
+        },
+        "visits": 1
+      },
+      "enemies": [
+        {
+          "id": "legacy-raider",
+          "x": 140,
+          "y": 90,
+          "angle": 0,
+          "hp": 22,
+          "cooldown": 90
+        }
+      ],
+      "traffic": [
+        {
+          "id": "hearth:traffic:0",
+          "x": 674.90398529917,
+          "y": -452.72093126550317,
+          "angle": 5.042351342515796
+        },
+        {
+          "id": "hearth:traffic:1",
+          "x": 1125.4653708077967,
+          "y": 356.30916664376855,
+          "angle": 4.47450211747628
+        },
+        {
+          "id": "hearth:traffic:2",
+          "x": 883.1848377361894,
+          "y": -139.44189879111946,
+          "angle": 6.086255571557069
+        },
+        {
+          "id": "hearth:traffic:3",
+          "x": 787.6724589150399,
+          "y": -348.19461847655475,
+          "angle": 0.7950007927797919
+        }
+      ],
+      "savedAt": 1794172052425
+    }
+  },
+  "leases": {}
+}

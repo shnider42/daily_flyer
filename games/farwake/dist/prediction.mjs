@@ -6,7 +6,7 @@ export const CORRECTION_RATE = 14;
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const axes = ['x', 'y', 'thrust', 'strafe', 'turn', 'aimX', 'aimY'];
-const buttons = ['fire', 'mine', 'boost', 'brake'];
+const buttons = ['fire', 'mine', 'boost', 'brake', 'aiming'];
 
 export function predictionInput(input = {}) {
   const value = {};

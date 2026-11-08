@@ -64,14 +64,14 @@ test('disabled ships are boardable, boarding is live combat, and victories canno
   for(let n=0;n<120&&!enemy.disabled;n++)g.step(1/60,{fire:true});assert.equal(enemy.disabled,true);assert.ok(enemy.hp>0);
   assert.equal(g.interact().type,'board');const saved=Game.fromSave(g.serialize());assert.equal(saved.system.enemies.find(e=>e.id===enemy.id).disabled,true);
   ok(saved.boardEnemy(enemy.id));assert.equal(saved.state.mode,'person');assert.equal(saved.state.boarding.phase,'active');assert.equal(saved.state.boarding.kind,'assault');
-  assert.equal(saved.attackBoarder().ok,false,'The entry airlock is initially out of pistol range');
+  assert.equal(saved.attackBoarder().hit,false,'Firing at the entry airlock emits a visible miss before hostiles enter range');
   const first=saved.state.boarding.enemies[0],x=first.x;frame(saved,{},30);assert.notEqual(first.x,x,'Hostiles actually move through the deck');
   Object.assign(saved.state.person,{x:252,y:300});assert.ok(isCabinWalkable(cabinLayout('sparrow'),252,300));
   const before=saved.state.credits;for(let n=0;n<600&&saved.state.boarding.phase==='active';n++)saved.step(1/60,{fire:true});
   assert.equal(saved.state.boarding.phase,'won');assert.equal(saved.state.credits,before+95);assert.ok(saved.state.boarding.enemies.every(e=>e.health===0));
   const reward=saved.state.credits;assert.equal(saved.attackBoarder().ok,false);frame(saved,{},30);assert.equal(saved.state.credits,reward);
-  ok(saved.leaveInterior());assert.equal(saved.state.mode,'ship');assert.equal(saved.state.boarding,null);
-  assert.ok(!Game.fromSave(saved.serialize()).system.enemies.some(e=>e.id===enemy.id));
+  Object.assign(saved.state.person,cabinLayout(saved.state.boarding.shipClass).spawn);ok(saved.leaveInterior());assert.equal(saved.state.mode,'ship');assert.equal(saved.state.boarding,null);
+  const retained=Game.fromSave(saved.serialize()).system.enemies.find(e=>e.id===enemy.id);assert.ok(retained?.hp>0);assert.equal(retained.deck.cleared,true);assert.equal(retained.deck.rewardClaimed,true);
 });
 
 test('weak shields permit a telegraphed pirate grapple and crew casualties come from actual combat',()=>{

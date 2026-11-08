@@ -23,6 +23,8 @@ for(const[classId,berths]of CABIN_CLASSES.map((c,i)=>[c,4+i*2]))test(`${classId}
  assert.equal(surface.entities.filter(e=>e.type==='crew').length,berths-1);assert.ok(!surface.entities.some(e=>e.data?.crewId==='fallen'));
  assert.equal(surface.entities.find(e=>e.id==='ship:shared:bunk:1').data.assignedTo,'guest');
  assert.equal(surface.entities.find(e=>e.id==='ship:shared:exit').data.stationRole,'helm');
+ const airlock=surface.entities.find(e=>e.id==='ship:shared:entry-airlock');assert.equal(airlock.type,'exit');assert.equal(airlock.data.stationRole,undefined);assert.equal(airlock.data.airlock,true);assert.equal(airlock.x,layout.spawn.x);assert.equal(airlock.y,layout.spawn.y);
+ assert.equal(nearestEntity(surface,layout.spawn,10)?.id,airlock.id,'the arrival collar is usable independently of the helm');
  assert.equal(new Set(layout.combatSpawns.map(p=>index(p))).size,4,'four raiders need distinct arrival positions');
  assert.equal(new Set(layout.crewSpawns.map(p=>index(p))).size,9,'a capital boarding party can enter a smaller vessel');
  for(const p of [...surface.entities,...layout.breaches,...layout.combatSpawns,...layout.crewSpawns]){
@@ -97,4 +99,24 @@ test('space labels preserve world picking, fit the capital and cache artwork aft
 
 test('shared repair solutions match the engine seed without importing game state',()=>{
  for(const id of['listening:repair:0','kettle:work:2','unexplored-port:relay']){const rng=seededRandom(id);assert.deepEqual(repairSolution(id),[Math.floor(rng()*4),Math.floor(rng()*4),Math.floor(rng()*4)]);}
+});
+
+test('boarded vessels keep their name and tether while parked hulls remain visible without duplicate shared hulls',()=>{
+ const original=globalThis.OffscreenCanvas;globalThis.OffscreenCanvas=FakeCanvas;
+ try{
+  const game=demoGame(),renderer=new SpaceRenderer(),ctx=new FakeCanvas(500,400).ctx,labels=[];
+  game.state.boarding={phase:'active',originVesselId:'player',targetVesselId:'target'};
+  game.system.enemies=[{id:'target',name:'Copper Finch',classId:'hauler',x:220,y:200,hp:30,maxHp:100,disabled:true,boardingOriginId:'player',boardingTargetId:'player',occupation:{contested:true}}];
+  game.system.parkedShips=[{id:'parked',name:'Homeward',classId:'sparrow',x:80,y:310,hull:70,maxHull:100}];
+  renderer.draw(ctx,game,{width:500,height:400,time:1,labels,motion:false});
+  assert.ok(labels.some(label=>label.kind==='boarding'&&label.text==='Copper Finch'));
+  assert.ok(labels.some(label=>label.kind==='boarding'&&label.text.startsWith('CONTESTED · 6 BERTHS')));
+  assert.equal(labels.filter(label=>label.kind==='boarding-link').length,1);
+  assert.ok(labels.some(label=>label.kind==='parked'&&label.text==='Homeward'));
+  game.system.enemies[0].canonicalVesselId='target';
+  const promotedLabels=[];
+  renderer.draw(ctx,game,{width:500,height:400,time:1.1,labels:promotedLabels,motion:false,remoteShips:[{id:'target',ship:{id:'target',name:'Copper Finch',classId:'hauler',x:220,y:200,hull:30,maxHull:100}}]});
+  assert.equal(promotedLabels.filter(label=>label.text==='Copper Finch').length,1,'the canonical shared hull replaces its NPC exterior');
+  assert.equal(promotedLabels.filter(label=>label.kind==='boarding-link').length,1);
+ }finally{if(original===undefined)delete globalThis.OffscreenCanvas;else globalThis.OffscreenCanvas=original;}
 });

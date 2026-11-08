@@ -3,6 +3,7 @@ import { getShipClass, SHIP_CLASSES, STATION_ROLES } from '../dist/fleet.mjs';
 import { generateSurface, movePerson, nearestEntity, repairSolution, isWalkable } from '../dist/surface.mjs';
 import { ENCOUNTERS, DIALOGUE, UPGRADES, LORE } from '../dist/content.mjs';
 import { PersistenceConflict } from './persistence.mjs';
+import { BoardingAuthority } from './boarding.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
@@ -14,8 +15,9 @@ const usable = result => result && result.ok !== false;
 const smallId = value => typeof value === 'string' && value.length > 0 && value.length < 160;
 
 /** One authority for an invitation realm. Simulation never awaits a network client. */
-export class Realm {
+export class Realm extends BoardingAuthority {
   constructor({ id, name, seed, persistence, version = 0, snapshot = null, onConflict = () => {} }) {
+    super();
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
     this.persistence = persistence; this.version = version; this.onConflict = onConflict;
     this.createdAt = snapshot?.createdAt || now(); this.ownerId = snapshot?.ownerId || null;
@@ -28,18 +30,22 @@ export class Realm {
     }
     for (const data of Object.values(snapshot?.vessels || {})) {
       const owner = this.captains.get(data.ownerId); if (!owner) continue;
-      const vessel = { ...data, actor: null, grants: data.grants || {}, bunks: data.bunks || {}, installedBunks: data.installedBunks || 1 };
-      if (data.ship) owner.game.state.ship = data.ship;
-      vessel.ship = owner.game.state.ship; vessel.ship.id = vessel.id; this.vessels.set(vessel.id, vessel);
+      const vessel = { ...data, actor: null, grants: data.grants || {}, bunks: data.bunks || {}, installedBunks: data.installedBunks ?? 1 };
+      vessel.ship = data.ship || (data.id === owner.ownedVesselId ? owner.game.state.ship : null); if (!vessel.ship) continue;
+      vessel.ship.id = vessel.id; vessel.boarding = data.boarding ?? (data.id === owner.ownedVesselId ? owner.game.state.boarding : null);
+      if (data.id === owner.ownedVesselId) owner.game.state.ship = vessel.ship;
+      vessel.inventory ||= { crew: [], formerCrew: [], memorial: [], boardingHistory: [] };
+      this.vessels.set(vessel.id, vessel);
     }
     for (const captain of this.captains.values()) if (!this.vessels.has(captain.ownedVesselId)) this._createVessel(captain);
+    this._migrateLegacyBoarding();
   }
 
   get onlineCount() { return [...this.captains.values()].filter(c => c.session).length; }
   markDirty() { return ++this.revision; }
   _createVessel(captain) {
     const id = captain.ownedVesselId || `vessel_${captain.id}`; captain.ownedVesselId = id;
-    const vessel = { id, ownerId: captain.id, name: 'Cinder', systemId: captain.game.state.systemId, dockedAt: captain.game.state.mode === 'person' && !captain.game.state.interior ? captain.game.state.locationId : null, ship: captain.game.state.ship, allowCrew: false, grants: {}, helmOwner: captain.game.state.mode === 'ship' ? captain.id : null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true };
+    const vessel = { id, ownerId: captain.id, name: 'Cinder', systemId: captain.game.state.systemId, dockedAt: captain.game.state.mode === 'person' && !captain.game.state.interior ? captain.game.state.locationId : null, ship: captain.game.state.ship, allowCrew: false, grants: {}, helmOwner: captain.game.state.mode === 'ship' ? captain.id : null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true, boarding: null, hostileTo: [] };
     vessel.ship.id = id; this.vessels.set(id, vessel); return vessel;
   }
   async createCaptain(name) {
@@ -96,7 +102,9 @@ export class Realm {
     const elapsed = Math.min(15, Math.max(0, (now() - (saved.savedAt || now())) / 1000));
     for (const traffic of runtime.traffic) { traffic.x = clamp(traffic.x + Math.cos(traffic.angle) * traffic.speed * elapsed, -2300, 2300); traffic.y = clamp(traffic.y + Math.sin(traffic.angle) * traffic.speed * elapsed, -2300, 2300); }
     coordinator.bindSharedWorld(runtime, record, `world:${systemId}`); coordinator.netTargetEligible = false;
-    room = { systemId, coordinator, runtime, record, lastActive: now(), ticks: 0 }; this.rooms.set(systemId, room); return room;
+    room = { systemId, coordinator, runtime, record, lastActive: now(), ticks: 0 }; this.rooms.set(systemId, room);
+    for (const vessel of this.vessels.values()) if (vessel.systemId === systemId && vessel.npcEnemyId) this._linkNpcVessel(vessel);
+    return room;
   }
   _captureRoom(room) {
     room.coordinator._persistRuntime();
@@ -107,68 +115,99 @@ export class Realm {
     const vessel = captain.aboard && this.vessels.get(captain.aboard);
     if (vessel) captain.game.state.systemId = vessel.systemId;
     const room = this._room(captain.game.state.systemId);
-    captain.game.bindSharedWorld(room.runtime, room.record, captain.id); room.lastActive = now(); return room;
+    captain.game.bindSharedWorld(room.runtime, room.record, captain.id); captain.game._playerName = captain.name; room.lastActive = now(); return room;
   }
   _actor(vessel) {
-    const owner = this.captains.get(vessel.ownerId), room = this._room(vessel.systemId);
-    if (!vessel.actor) vessel.actor = Game.fromSave({ ...owner.game.save(), systemId: vessel.systemId, mode: 'ship', locationId: null, interior: null, ship: vessel.ship, worlds: {} });
+    const owner = this.captains.get(vessel.ownerId), beneficiary = this.captains.get(vessel.occupation?.controllerId) || this.captains.get(vessel.boardingLeaderId) || owner, room = this._room(vessel.systemId), primary = vessel.id === owner.ownedVesselId;
+    if (!vessel.actor) vessel.actor = Game.fromSave({ ...owner.game.save(), systemId: vessel.systemId, mode: 'ship', locationId: null, interior: null, boarding: null, ship: vessel.ship, worlds: {} });
     const actor = vessel.actor;
-    for (const field of HOST_FIELDS) actor.state[field] = owner.game.state[field];
-    actor.state.ship = vessel.ship; actor.state.credits = owner.game.state.credits; actor._creditBaseline = owner.game.state.credits;
+    for (const field of HOST_FIELDS) if (!['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory'].includes(field)) actor.state[field] = beneficiary.game.state[field];
+    const inventory = this._inventoryFor(vessel);
+    for (const field of ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory']) actor.state[field] = inventory[field];
+    actor.state.boarding = vessel.pvp ? null : vessel.boarding || null;
+    actor.state.ship = vessel.ship; actor.state.credits = beneficiary.game.state.credits; actor._creditBaseline = beneficiary.game.state.credits; actor._economyCaptainId = beneficiary.id;
     actor.state.systemId = vessel.systemId; actor.state.mode = vessel.dockedAt ? 'person' : 'ship'; actor.state.locationId = vessel.dockedAt || null;
     actor.state.interior = null; actor.state.person = owner.aboard === vessel.id ? owner.game.state.person : { x: 0, y: 0, health: 100, facing: 'up' };
-    if (vessel.combatInterior && owner.game.state.boarding?.kind === 'assault') { actor.state.interior = clone(vessel.combatInterior); actor.state.mode = 'person'; actor.state.locationId = vessel.combatInterior.location.id; const leader = this.captains.get(vessel.boardingLeaderId); if (leader) actor.state.person = leader.game.state.person; }
+    const leader = this.captains.get(vessel.boardingLeaderId), assaultPresent = leader?.aboard === vessel.id && leader.game.state.mode === 'person' && leader.game.state.interior?.kind === 'enemy';
+    if (vessel.combatInterior && vessel.boarding?.kind === 'assault' && assaultPresent) { actor.state.interior = clone(vessel.combatInterior); actor.state.mode = 'person'; actor.state.locationId = `ship:${vessel.id}`; actor.state.person = leader.game.state.person; }
     actor.state.pendingEncounter = null; actor.state.nextEncounterAt = Infinity;
-    actor.state.ship.humanOccupants = Math.max(1, 1 + [...this.captains.values()].filter(c => c.id !== owner.id && c.aboard === vessel.id).length);
-    actor.bindSharedWorld(room.runtime, room.record, owner.id); actor.netTargetEligible = !vessel.dockedAt;
+    actor.state.ship.humanOccupants = [...this.captains.values()].filter(c => c.aboard === vessel.id).length;
+    actor.bindSharedWorld(room.runtime, room.record, beneficiary.id); actor.netVesselId = vessel.id; actor.netTargetEligible = !vessel.dockedAt && !vessel.destroyed;
+    actor._boardingLeaderId = vessel.boardingLeaderId || vessel.helmOwner || owner.id; actor._playerName = this.captains.get(actor._boardingLeaderId)?.name || owner.name;
+    actor.startBoarding = enemyId => {
+      if (vessel.pvp?.phase === 'active' || vessel.npcOccupied) return fail('A boarding party already contests this deck.', 'boarding');
+      const result = Game.prototype.startBoarding.call(actor, enemyId);
+      if (result.ok) { vessel.pvp = null; vessel.boardingLeaderId = vessel.helmOwner || actor._boardingLeaderId; }
+      return result;
+    };
+    actor.netCanDamage = other => this._shipsHostile(vessel, this.vessels.get(other.netVesselId || other.state.ship.id));
+    actor.netOnShipDestroyed = details => this._destroyVessel(vessel, details);
+    actor.netOnBoardedTargetDestroyed = () => this._destroyVessel(vessel);
+    actor.netOnBoardingLost = boarding => {
+      if (boarding.kind === 'defense') { vessel.npcOccupied = true; vessel.npcHostile = true; vessel.occupation = { boarderId: boarding.targetId, controllerId: null, contested: true }; }
+      for (const captain of [...this.captains.values()]) if (captain.aboard === vessel.id) this._recoverCaptain(captain, `Your escape capsule reached a safe port. ${vessel.name} remains damaged and occupied in space.`);
+      return true;
+    };
     return actor;
   }
   _syncActor(vessel) {
     const owner = this.captains.get(vessel.ownerId), actor = vessel.actor; if (!actor || !owner) return;
-    owner.game.state.credits += actor.state.credits - (actor._creditBaseline ?? actor.state.credits); actor.state.credits = owner.game.state.credits; actor._creditBaseline = actor.state.credits; owner.game.state.ship = vessel.ship = actor.state.ship;
-    for (const key of ['crew', 'formerCrew', 'boarding', 'boardingHistory', 'memorial', 'crewMemorial']) if (actor.state[key] !== undefined) owner.game.state[key] = actor.state[key];
-    if (actor.state.boarding?.phase === 'active' && actor.state.boarding.kind === 'defense' && vessel.lastBoardingId !== actor.state.boarding.id) {
-      vessel.lastBoardingId = actor.state.boarding.id;
+    const beneficiary = this.captains.get(actor._economyCaptainId) || owner;
+    beneficiary.game.state.credits += actor.state.credits - (actor._creditBaseline ?? actor.state.credits); actor.state.credits = beneficiary.game.state.credits; actor._creditBaseline = actor.state.credits;
+    vessel.ship = actor.state.ship;
+    const primary = vessel.id === owner.ownedVesselId, inventory = this._inventoryFor(vessel);
+    if (primary) owner.game.state.ship = vessel.ship;
+    for (const key of ['cargo', 'upgrades', 'crew', 'formerCrew', 'boardingHistory', 'memorial']) if (actor.state[key] !== undefined) inventory[key] = actor.state[key];
+    if (!vessel.pvp) vessel.boarding = actor.state.boarding;
+    if (primary) owner.game.state.boarding = owner.aboard === vessel.id ? vessel.boarding : null;
+    if (vessel.boarding?.phase === 'active' && vessel.boarding.kind === 'defense' && vessel.lastBoardingId !== vessel.boarding.id) {
+      vessel.lastBoardingId = vessel.boarding.id;
       const helm = this.captains.get(vessel.helmOwner);
       if (helm?.aboard === vessel.id) this._cabin(helm, vessel);
       vessel.helmOwner = null;
     }
-    const boarding = actor.state.boarding;
+    const boarding = vessel.boarding;
     if (boarding && boarding.phase !== 'active' && vessel.lastBoardingOutcome !== `${boarding.id}:${boarding.phase}`) {
       vessel.lastBoardingOutcome = `${boarding.id}:${boarding.phase}`;
-      for (const captain of this.captains.values()) if (captain.aboard === vessel.id) {
-        if (captain.game.state.person.health <= 0 || captain.game.state.person.down) { captain.game.state.person.health = boarding.phase === 'lost' ? 55 : 35; captain.game.state.person.down = false; }
-        if (boarding.phase === 'lost' && captain.game.state.interior?.kind === 'enemy') this._cabin(captain, vessel);
+      if (boarding.phase === 'won') {
+        vessel.npcOccupied = false; vessel.npcHostile = false;
+        if (vessel.npcEnemyId && boarding.kind === 'assault') { vessel.captured = true; if (this.captains.has(vessel.boardingLeaderId)) vessel.ownerId = vessel.boardingLeaderId; vessel.occupation = { boarderId: vessel.boardingLeaderId, controllerId: vessel.boardingLeaderId, controllerTeam: vessel.ownerId, contested: false }; }
+        for (const captain of this.captains.values()) if (captain.aboard === vessel.id && (captain.game.state.person.health <= 0 || captain.game.state.person.down)) { captain.game.state.person.health = 35; captain.game.state.person.down = false; }
       }
-      if (boarding.phase === 'lost') { vessel.combatInterior = null; vessel.boardingLeaderId = null; vessel.helmOwner = null; }
     }
+    this._linkNpcVessel(vessel);
     const events = actor.drainEvents();
     for (const captain of this.captains.values()) if (captain.aboard === vessel.id || captain.id === owner.id) captain.events.push(...events);
   }
   _withShip(captain, vessel, callback, { forceShip = false } = {}) {
-    const original = captain.game.state.ship, mode = captain.game.state.mode;
-    captain.game.state.ship = vessel.ship;
-    if (forceShip) captain.game.state.mode = 'ship';
-    try { return callback(); } finally { vessel.ship = captain.game.state.ship; captain.game.state.ship = original; if (forceShip) captain.game.state.mode = mode; }
+    const fields = ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory'], inventory = this._inventoryFor(vessel), state = captain.game.state;
+    const original = Object.fromEntries(['ship', ...fields].map(key => [key, state[key]])), mode = state.mode;
+    const primary = captain.id === vessel.ownerId && captain.ownedVesselId === vessel.id;
+    state.ship = vessel.ship; for (const field of fields) state[field] = inventory[field];
+    if (forceShip) state.mode = 'ship';
+    try { return callback(); } finally {
+      vessel.ship = state.ship; for (const field of fields) inventory[field] = state[field];
+      if (!primary) for (const [key, value] of Object.entries(original)) state[key] = value;
+      if (forceShip) state.mode = mode;
+    }
   }
   _inCombat(vessel) {
     if (!vessel || vessel.dockedAt) return false;
     const room = this.rooms.get(vessel.systemId);
-    return !!(vessel.actor?._hitTimer > 0 || this.captains.get(vessel.ownerId)?.game.state.boarding?.phase === 'active' || room?.runtime.enemies.some(e => e.hp > 0 && e.active && distance(e, vessel.ship) < 700));
+    return !!(vessel.actor?._hitTimer > 0 || vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active' || room?.runtime.enemies.some(e => e.hp > 0 && e.active && distance(e, vessel.ship) < 700));
   }
-  _canBoard(captain, vessel) { return vessel.ownerId === captain.id || (vessel.grants[captain.id] ? vessel.grants[captain.id].allowed === true : vessel.allowCrew); }
+  _canBoard(captain, vessel) { if (vessel && !vessel.destroyed && !vessel.npcOccupied && vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; return !!vessel && !vessel.destroyed && !this._hostileOccupied(vessel) && (vessel.ownerId === captain.id || (vessel.grants[captain.id] ? vessel.grants[captain.id].allowed === true : vessel.allowCrew)); }
   _hasBerth(captain, vessel) {
-    const guests = [...this.captains.values()].filter(other => other.id !== vessel.ownerId && other.id !== captain.id && other.aboard === vessel.id).length;
-    const humans = 1 + guests + (captain.id === vessel.ownerId ? 0 : 1);
-    const hired = this.captains.get(vessel.ownerId).game.state.crew.filter(member => !member.dead && (member.health ?? 100) > 0).length;
+    const humans = 1 + [...this.captains.values()].filter(other => other.id !== captain.id && other.aboard === vessel.id).length;
+    const hired = this._crewFor(vessel).filter(member => !member.dead && (member.health ?? 100) > 0).length;
     return humans + hired <= getShipClass(vessel.ship.classId).berths;
   }
-  _canRole(captain, vessel, role) { return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role))); }
+  _canRole(captain, vessel, role) { if (!vessel || vessel.destroyed) return false; if (vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; if (this._hostileOccupied(vessel)) return false; return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role))); }
   _helm(captain, vessel) { return !!vessel && vessel.helmOwner === captain.id && captain.aboard === vessel.id && captain.game.state.mode === 'ship'; }
   _location(captain) {
-    if (captain.game.state.interior?.kind === 'ship' && captain.aboard) {
-      const vessel = this.vessels.get(captain.aboard), owner = this.captains.get(vessel.ownerId);
-      return { id: `ship:${vessel.id}`, name: `${vessel.name} · crew deck`, kind: 'ship', biome: 'ship', classId: vessel.ship.classId, shipClassId: vessel.ship.classId, crew: owner.game.state.crew, bunkAssignments: vessel.bunks, systemId: vessel.systemId, faction: 'freewake' };
+    if (['ship', 'enemy'].includes(captain.game.state.interior?.kind) && captain.aboard) {
+      const vessel = this.vessels.get(captain.aboard);
+      return { ...captain.game.state.interior.location, ...this._locationForVessel(vessel, captain) };
     }
     return captain.game.currentBody;
   }
@@ -200,19 +239,26 @@ export class Realm {
     return !!this._surface(captain)?.entities.some(entity => entity.data?.stationRole === wanted && distance(entity, captain.game.state.person) <= SURFACE_RANGE);
   }
   _onBoardingDeck(captain, vessel) {
-    const boarding = this.captains.get(vessel.ownerId)?.game.state.boarding;
-    if (!boarding || captain.aboard !== vessel.id || captain.game.state.mode !== 'person') return false;
-    return boarding.kind === 'assault' ? captain.game.state.interior?.kind === 'enemy' && captain.game.state.locationId === vessel.combatInterior?.location.id : captain.game.state.interior?.kind === 'ship';
+    return !!(vessel && (vessel.boarding || vessel.pvp) && captain.aboard === vessel.id && captain.game.state.mode === 'person' && ['ship', 'enemy'].includes(captain.game.state.interior?.kind));
   }
   _cabin(captain, vessel) {
-    captain.aboard = vessel.id; captain.game.state.systemId = vessel.systemId; captain.game.state.mode = 'person';
+    captain.aboard = vessel.id; captain.portVesselId = null; captain.game.state.systemId = vessel.systemId; captain.game.state.mode = 'person';
     captain.game.state.locationId = `ship:${vessel.id}`; captain.crewRole = 'passenger';
-    captain.game.state.interior = { kind: 'ship', location: this._locationForVessel(vessel), returnLocation: null, returnShip: { x: vessel.ship.x, y: vessel.ship.y, vx: vessel.ship.vx, vy: vessel.ship.vy, angle: vessel.ship.angle } };
+    captain.game.state.interior = { kind: 'ship', location: this._locationForVessel(vessel, captain), returnLocation: null, returnShip: { x: vessel.ship.x, y: vessel.ship.y, vx: vessel.ship.vx, vy: vessel.ship.vy, angle: vessel.ship.angle } };
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true); captain.game._flag('entered_cabin');
   }
-  _locationForVessel(vessel) { return { id: `ship:${vessel.id}`, name: `${vessel.name} · crew deck`, kind: 'ship', biome: 'ship', classId: vessel.ship.classId, shipClassId: vessel.ship.classId, crew: this.captains.get(vessel.ownerId).game.state.crew, bunkAssignments: vessel.bunks }; }
+  _locationForVessel(vessel, viewer = null) {
+    const owner = this.captains.get(vessel.ownerId), pirate = vessel.npcOccupied || vessel.npcHostile && !vessel.captured;
+    const source = viewer && this.vessels.get(viewer.aboard || viewer.ownedVesselId), hostile = !!(pirate || viewer && (source?.id === vessel.id ? this._captainTeam(viewer, vessel) !== vessel.ownerId && vessel.occupation?.controllerId !== viewer.id : this._shipsHostile(source, vessel)));
+    const ownerName = pirate ? 'Pirate crew' : owner?.name || 'Independent crew', ownership = pirate ? 'hostile' : viewer?.id === vessel.ownerId ? 'owned' : viewer?.id === vessel.occupation?.controllerId ? 'commandeered' : hostile ? 'hostile' : 'crew';
+    return { id: `ship:${vessel.id}`, vesselId: vessel.id, vesselName: vessel.name, ownerName, ownerId: vessel.ownerId, ownership, hostile,
+      name: pirate ? `${vessel.name} · pirate deck` : `${vessel.name} · ${ownerName}’s deck`, kind: 'ship', biome: 'ship', classId: vessel.ship.classId, shipClass: vessel.ship.classId, shipClassId: vessel.ship.classId,
+      crew: this._crewFor(vessel), bunkAssignments: vessel.bunks, systemId: vessel.systemId, faction: pirate ? this._enemyFor(vessel)?.faction || 'covenant' : 'freewake' };
+  }
   _landCharacter(captain, systemId, bodyId, position) {
-    captain.aboard = null; captain.crewRole = 'passenger'; captain.game.state.systemId = systemId; captain.game.state.locationId = bodyId; captain.game.state.mode = 'person'; captain.game.state.interior = null;
+    const previous = this.vessels.get(captain.aboard), owned = this.vessels.get(captain.ownedVesselId);
+    captain.portVesselId = previous?.dockedAt === bodyId && previous.systemId === systemId && this._canRole(captain, previous, 'helm') ? previous.id : owned?.dockedAt === bodyId && owned.systemId === systemId && this._canRole(captain, owned, 'helm') ? owned.id : null;
+    captain.aboard = null; captain.boardingTeam = null; captain.returnVesselId = null; captain.crewRole = 'passenger'; captain.game.state.systemId = systemId; captain.game.state.locationId = bodyId; captain.game.state.mode = 'person'; captain.game.state.interior = null;
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true);
     if (position && isWalkable(this._surface(captain), position.x, position.y)) Object.assign(captain.game.state.person, position);
   }
@@ -237,12 +283,16 @@ export class Realm {
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
     const id = a.id ?? a.systemId ?? a.bodyId ?? a.signalId;
     if (game.state.person.health <= 0 && !['renameCaptain', 'setCrewAccess'].includes(name)) return fail('You are incapacitated. Your crew can still clear the deck.', 'incapacitated');
+    if (name === 'declareHostility') return this._declareHostility(c, a);
+    if (name === 'boardHostileShip') return this._boardHostileShip(c, a);
+    if (name === 'takeCapturedHelm') return this._takeCapturedHelm(c);
+    if (name === 'returnToOwnShip' || name === 'retreatBoarding') return this._returnToOwnShip(c);
     if (name === 'surfaceAction') return this._surfaceAction(c, a);
     if (name === 'medicalFromStation') return this._crewCommand(c, 'crewAction', { action: 'heal' });
     if (name === 'repairFromStation') return this._crewCommand(c, 'crewAction', { action: 'repair' });
     if (name === 'setCrewAccess' || name === 'boardShip' || name === 'takeStation' || name === 'leaveCrew' || name === 'returnToShip' || name === 'crewAction') return this._crewCommand(c, name, a);
     if (name === 'setHome' || name === 'installBunk') return this._homeCommand(c, name, a);
-    if (name === 'renameShip') { if (!owned) return fail('Ship unavailable.'); owned.name = cleanName(a.name, 'Cinder'); return ok({ text: `Your ship is now ${owned.name}.` }); }
+    if (name === 'renameShip') { if (!owned) return fail('Ship unavailable.'); owned.name = cleanName(a.name, 'Cinder'); owned.ship.name = owned.name; return ok({ text: `Your ship is now ${owned.name}.` }); }
     if (name === 'renameCaptain') { c.name = cleanName(a.name); return ok({ text: 'Captain name updated.' }); }
     if (name === 'dock') {
       if (!this._helm(c, active)) return fail('Only the current helmsman may dock this vessel.', 'helm');
@@ -251,14 +301,14 @@ export class Realm {
       return result;
     }
     if (name === 'launch') {
-      const vessel = active || this.vessels.get(a.vesselId || c.ownedVesselId);
+      const vessel = active || this.vessels.get(a.vesselId || c.portVesselId || c.ownedVesselId);
       if (!vessel || !this._canRole(c, vessel, 'helm')) return fail('The owner has not granted you the helm.', 'permission');
       if (vessel.systemId !== game.state.systemId || !vessel.dockedAt || !active && vessel.dockedAt !== game.state.locationId) return fail('Your vessel is not docked here. Return to its port or board it first.', 'location');
       if (!active && !this._nearTypes(c, ['exit'])) return fail('Walk to the departure shuttle or airlock first.', 'distance');
       if (vessel.helmOwner && vessel.helmOwner !== c.id) return fail('Another captain holds the helm.', 'station-occupied');
       const actor = this._actor(vessel); actor.state.mode = 'person'; actor.state.locationId = vessel.dockedAt; actor.state.interior = null;
       const result = actor.launch(); this._syncActor(vessel);
-      if (result.ok) { vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
+      if (result.ok) { vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.portVesselId = null; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
       return result;
     }
     if (name === 'travel') {
@@ -294,29 +344,26 @@ export class Realm {
       if (this._inCombat(active)) return fail('Clear the attack before boarding.', 'combat');
       const result = game.boardDerelict(id); if (result.ok) { active.helmOwner = null; c.crewRole = 'passenger'; c.aboard = null; this._ensurePersonPosition(c, true); } return result;
     }
-    if (name === 'boardEnemy') {
-      if (!this._helm(c, active)) return fail('Approach the disabled vessel from the helm.', 'helm');
-      const actor = this._actor(active), result = actor.boardEnemy(a.enemyId || id);
-      if (result.ok) {
-        active.combatInterior = clone(actor.state.interior); active.boardingLeaderId = c.id; active.helmOwner = null;
-        active.ship.vx = 0; active.ship.vy = 0;
-        game.state.mode = 'person'; game.state.interior = clone(actor.state.interior); game.state.locationId = actor.state.locationId; game.state.person = clone(actor.state.person); c.crewRole = 'security'; c.surfaceCache = null;
-        this._ensurePersonPosition(c, true);
-      }
-      this._syncActor(active); return result;
-    }
-    if (name === 'retreatBoarding') {
-      if (!active || game.state.interior?.kind !== 'enemy' || active.boardingLeaderId !== c.id) return fail('Only the boarding leader can withdraw the tethered party.', 'location');
-      const actor = this._actor(active); actor.state.person = game.state.person;
-      const result = actor.retreatBoarding(); this._syncActor(active);
-      if (result.ok) { active.combatInterior = null; active.boardingLeaderId = null; active.helmOwner = c.id; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.interior = null; game.state.locationId = null; c.surfaceCache = null; }
-      return result;
-    }
+    if (name === 'boardEnemy') return this._boardEnemy(c, { ...a, id });
     if (name === 'acceptJob' || name === 'turnInJob') { if (!this._nearTypes(c, ['jobboard'])) return fail('Visit the contract exchange in person.', 'distance'); return game[name](id); }
     if (name === 'abandonJob') return game.abandonJob(id);
-    if (name === 'buyUpgrade' || name === 'buyShip' || name === 'selectShip') { if (!this._nearTypes(c, ['mechanic']) || game.state.interior) return fail('Visit a port shipwright to fit equipment or change hulls.', 'distance'); this._actor(owned); const result = game[name](id); if (result.ok) { owned.ship = game.state.ship; owned.actor = null; } return result; }
-    if (name === 'service') { if (!this._nearTypes(c, a.action === 'rest' ? ['medic'] : ['mechanic', 'merchant', 'jobboard', 'npc'])) return fail('Visit the appropriate port service in person.', 'distance'); return game.service(a.action); }
-    if (name === 'recruitCrew') { if (!this._nearTypes(c, ['npc', 'crew', 'medic', 'mechanic'])) return fail('Meet potential crew in person at a port.', 'distance'); this._actor(owned); const result = game.recruitCrew(a.role, { name: cleanName(a.name, '') }); if (result.ok) owned.actor = null; return result; }
+    if (name === 'buyUpgrade' || name === 'buyShip' || name === 'selectShip') {
+      const vessel = this.vessels.get(c.portVesselId || c.ownedVesselId);
+      if (!this._nearTypes(c, ['mechanic']) || game.state.interior || vessel.ownerId !== c.id || vessel.dockedAt !== game.state.locationId || vessel.systemId !== game.state.systemId || this._hostileOccupied(vessel) || vessel.destroyed) return fail('Bring your permitted vessel to this port shipwright before fitting equipment or changing hulls.', 'distance');
+      const result = this._withShip(c, vessel, () => game[name](id)); if (result.ok) { vessel.actor = null; this._linkNpcVessel(vessel); } return result;
+    }
+    if (name === 'service') {
+      if (!this._nearTypes(c, a.action === 'rest' ? ['medic'] : ['mechanic', 'merchant', 'jobboard', 'npc'])) return fail('Visit the appropriate port service in person.', 'distance');
+      if (a.action === 'rest') return game.service(a.action);
+      const vessel = this.vessels.get(c.portVesselId || c.ownedVesselId);
+      if (!vessel || vessel.dockedAt !== game.state.locationId || vessel.systemId !== game.state.systemId || !this._canRole(c, vessel, 'helm')) return fail('This service needs your controlled vessel at the same port.', 'location');
+      return this._withShip(c, vessel, () => game.service(a.action));
+    }
+    if (name === 'recruitCrew') {
+      const vessel = this.vessels.get(c.portVesselId || c.ownedVesselId);
+      if (!this._nearTypes(c, ['npc', 'crew', 'medic', 'mechanic']) || !vessel || vessel.ownerId !== c.id || vessel.dockedAt !== game.state.locationId || vessel.systemId !== game.state.systemId || this._hostileOccupied(vessel)) return fail('Meet potential crew at the same port as your permitted vessel.', 'distance');
+      const result = this._withShip(c, vessel, () => game.recruitCrew(a.role, { name: cleanName(a.name, '') })); if (result.ok) vessel.actor = null; return result;
+    }
     if (name === 'dismissCrew') {
       if (game.state.mode !== 'person' || game.state.interior || owned.systemId !== game.state.systemId || owned.dockedAt !== game.state.locationId) return fail('Bring your vessel to the same inhabited port before dismissing hired crew.', 'location');
       const result = game.dismissCrew(a.crewId || id); if (result.ok) { owned.actor = null; c.surfaceCache = null; } return result;
@@ -328,7 +375,7 @@ export class Realm {
     }
     if (name === 'applyChoice') return active ? this._withShip(c, active, () => game.applyChoice(a.encounterId, a.choice ?? a.index)) : game.applyChoice(a.encounterId, a.choice ?? a.index);
     if (name === 'dismissEncounter') return game.dismissEncounter();
-    if (name === 'attackBoarder') { if (!active || !this._onBoardingDeck(c, active)) return fail('You must be on the deck where this boarding action is taking place.', 'location'); const actor = this._actor(active); const result = actor.attackBoarder(a.enemyId || id, game); this._syncActor(active); return result; }
+    if (name === 'attackBoarder') return this._attackDeck(c, a.enemyId || id);
     return fail('This action is not accepted by the multiplayer authority.', 'command');
   }
 
@@ -382,7 +429,7 @@ export class Realm {
       const roles = Array.isArray(a.roles) ? [...new Set(a.roles.map(roleName).filter(role => STATION_ROLES.includes(role) && role !== 'passenger'))] : ['weapons', 'engineering', 'scanner', 'navigation', 'medical', 'security'];
       vessel.grants[a.captainId] = { allowed: !!a.allowed, roles, allowBunk: a.allowBunk !== false };
       const guest = this.captains.get(a.captainId);
-      if (!a.allowed && guest.aboard === vessel.id) {
+      if (!a.allowed && guest.aboard === vessel.id && this._captainTeam(guest, vessel) === vessel.ownerId) {
         if (vessel.helmOwner === guest.id) vessel.helmOwner = null;
         if (vessel.dockedAt) this._landCharacter(guest, vessel.systemId, vessel.dockedAt);
         else this._cabin(guest, vessel);
@@ -401,12 +448,8 @@ export class Realm {
       if (!samePort && !nearbyShip) return fail('Meet at the same port or approach within 220 metres at low speed.', 'distance');
       if (!this._hasBerth(c, vessel)) return fail('This vessel has no free berth. Human and hired crew share its capacity.', 'capacity');
       if (active?.helmOwner === c.id) active.helmOwner = null;
-      if (c.id !== vessel.ownerId) {
-        // The captain's owned ship remains a separate, parked vessel at its departure port.
-        const port = this._room(owned.systemId).runtime.bodies.find(b => b.kind === 'station') || this._room(owned.systemId).runtime.bodies[0];
-        if (!owned.dockedAt) { owned.dockedAt = port.id; Object.assign(owned.ship, { x: port.x, y: port.y + port.radius + 80, vx: 0, vy: 0 }); }
-        owned.helmOwner = null;
-      }
+      if (active && active.id !== vessel.id) c.returnVesselId = active.id;
+      c.boardingTeam = vessel.occupation?.controllerId === c.id ? vessel.occupation.controllerTeam || c.id : null;
       this._cabin(c, vessel); return ok({ text: `Welcome aboard ${vessel.name}.`, vesselId: vessel.id, body: this._location(c) });
     }
     if (name === 'takeStation') {
@@ -415,12 +458,12 @@ export class Realm {
       if (role === 'passenger') { if (vessel.helmOwner === c.id) vessel.helmOwner = null; this._cabin(c, vessel); return ok({ text: 'You leave the station.' }); }
       const entity = this._entity(c, a.entityId, ['station', 'exit']);
       const wanted = ['weapons', 'security'].includes(role) ? 'security' : ['scanner', 'navigation'].includes(role) ? 'navigation' : role;
-      const actual = entity?.data?.stationRole || (entity?.type === 'exit' ? 'helm' : entity?.data?.role);
+      const actual = entity?.data?.stationRole || (entity?.type === 'station' ? entity?.data?.role : null);
       if (!entity || actual !== wanted) return fail('Walk to that station inside the vessel first.', 'distance');
       const occupied = [...this.captains.values()].find(other => other.id !== c.id && other.aboard === vessel.id && roleName(other.crewRole) === role && (other.session || other.disconnectUntil > now()));
       if (occupied) return fail(`${occupied.name} is using that station.`, 'station-occupied');
       if (role === 'helm') {
-        if (this.captains.get(vessel.ownerId).game.state.boarding?.phase === 'active') return fail('Resolve the boarding action before taking the helm.', 'boarding');
+        if (vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active') return fail('Resolve the boarding action before taking the helm.', 'boarding');
         const previousHelm = this.captains.get(vessel.helmOwner);
         if (previousHelm && !previousHelm.session && previousHelm.disconnectUntil <= now()) { vessel.helmOwner = null; previousHelm.crewRole = 'passenger'; }
         if (vessel.helmOwner && vessel.helmOwner !== c.id) return fail('Another captain holds the helm.', 'station-occupied');
@@ -437,7 +480,8 @@ export class Realm {
     }
     if (name === 'returnToShip') {
       if (game.state.mode !== 'person' || game.state.interior || !game.currentBody) return fail('Book passage from an inhabited port or settlement.', 'location');
-      if (this._inCombat(owned)) return fail('Your ship cannot receive a transfer during combat.', 'combat');
+      if (this._inCombat(owned) || this._hostileOccupied(owned) || owned.destroyed) return fail('Your ship cannot receive a transfer while occupied or damaged beyond recovery.', 'combat');
+      if (!owned.dockedAt) { this._cabin(c, owned); return ok({ text: 'A recovery shuttle brought you to your drifting vessel. Its hull has not moved.', vesselId: owned.id }); }
       const port = this._room(owned.systemId).runtime.bodies.find(b => b.id === owned.dockedAt) || this._room(owned.systemId).runtime.bodies.find(b => b.kind === 'station') || this._room(owned.systemId).runtime.bodies[0];
       owned.dockedAt = port.id; owned.helmOwner = null; Object.assign(owned.ship, { x: port.x, y: port.y + port.radius + 80, vx: 0, vy: 0 });
       this._landCharacter(c, owned.systemId, port.id); return ok({ text: 'A port shuttle brings you back to your parked vessel.' });
@@ -492,16 +536,16 @@ export class Realm {
     this.leases[leaseId] = lease; c.home = clone(lease); return ok({ text: a.kind === 'room' ? 'Your room lease is recorded. It does not expire.' : 'Your outpost is established and recorded as your home.', home: clone(c.home) });
   }
 
-  _restoreAtHome(c, { combatPenalty = false } = {}) {
+  _restoreAtHome(c, { combatPenalty = false, forceSafe = false, preserveShips = false } = {}) {
     let home = c.home || starterHome();
     if (home.expiresAt && home.expiresAt <= now()) home = starterHome();
     const owned = this.vessels.get(c.ownedVesselId);
     const previousVessel = this.vessels.get(c.aboard);
     if (previousVessel?.helmOwner === c.id) previousVessel.helmOwner = null;
     if (combatPenalty) { c.game.state.credits = Math.floor(c.game.state.credits * .85); c.game.state.cargo.ore = Math.floor(c.game.state.cargo.ore * .8); c.events.push({ type: 'rescue', text: 'Your lost-connection beacon brought a recovery tug. Emergency towing cost 15% of your credits and part of your ore.' }); }
-    if (home.kind === 'bunk') {
+    if (home.kind === 'bunk' && !forceSafe) {
       const vessel = this.vessels.get(home.vesselId);
-      if (vessel && vessel.bunks[home.bunkIndex] === c.id && this._canBoard(c, vessel) && this._hasBerth(c, vessel)) {
+      if (vessel && !vessel.destroyed && !this._hostileOccupied(vessel) && vessel.bunks[home.bunkIndex] === c.id && this._canBoard(c, vessel) && this._hasBerth(c, vessel)) {
         const otherCrewOnline = [...this.captains.values()].some(other => other.id !== c.id && other.aboard === vessel.id && other.session);
         if (!otherCrewOnline && !vessel.dockedAt) this._park(vessel);
         this._cabin(c, vessel);
@@ -510,13 +554,16 @@ export class Realm {
       }
       home = starterHome();
     }
+    if (home.kind === 'bunk') home = starterHome();
     const bodyExists = c.game.galaxy.find(s => s.id === home.systemId)?.bodies.some(b => b.id === home.locationId);
     if (!bodyExists) home = starterHome();
     const ownedHasOtherCrew = [...this.captains.values()].some(other => other.id !== c.id && other.aboard === owned.id && other.session);
-    if (!ownedHasOtherCrew) { owned.systemId = home.systemId; owned.dockedAt = home.locationId; owned.helmOwner = null; owned.actor = null; const body = this._room(home.systemId).runtime.bodies.find(b => b.id === home.locationId); Object.assign(owned.ship, { x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 }); }
+    if (!forceSafe && !preserveShips && !combatPenalty && !c.returnVesselId && !owned.destroyed && !this._hostileOccupied(owned) && !ownedHasOtherCrew) { owned.systemId = home.systemId; owned.dockedAt = home.locationId; owned.helmOwner = null; owned.actor = null; const body = this._room(home.systemId).runtime.bodies.find(b => b.id === home.locationId); Object.assign(owned.ship, { x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 }); }
     this._landCharacter(c, home.systemId, home.locationId, home); c.game.state.person.health = Math.max(25, c.game.state.person.health); c.game.state.person.down = false;
+    if (owned.destroyed || this._hostileOccupied(owned)) this._recoveryCutter(c, owned);
   }
   _park(vessel) {
+    if (!vessel || vessel.destroyed || this._hostileOccupied(vessel)) return;
     const room = this._room(vessel.systemId), body = room.runtime.bodies.find(b => b.kind === 'station') || room.runtime.bodies[0];
     vessel.dockedAt = body.id; vessel.helmOwner = null; Object.assign(vessel.ship, { x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 });
   }
@@ -525,7 +572,7 @@ export class Realm {
     if (this.failed || this.conflicted || this.storageError) return;
     this.tick = tick; this.simulatedAt = simulatedAt;
     const activeCaptains = [...this.captains.values()].filter(c => c.session || c.disconnectUntil > timestamp);
-    const activeVessels = new Map(), occupiedSystems = new Set();
+    const activeVessels = new Map(), occupiedSystems = new Set(), timeBefore = new Map([...this.captains.values()].map(c => [c.id, c.game.state.stats.time]));
     for (const c of activeCaptains) {
       this._bindCaptain(c); occupiedSystems.add(c.game.state.systemId);
       const input = timestamp - c.inputAt <= INPUT_TIMEOUT_MS && c.session ? c.input : { ...EMPTY_INPUT };
@@ -536,16 +583,20 @@ export class Realm {
       const vessel = this.vessels.get(c.aboard);
       if (vessel) { activeVessels.set(vessel.id, vessel); occupiedSystems.add(vessel.systemId); }
     }
+    // Physical hulls do not disappear when their last pilot crosses a tether.
+    for (const vessel of this.vessels.values()) if (occupiedSystems.has(vessel.systemId) && !vessel.dockedAt && !vessel.destroyed) activeVessels.set(vessel.id, vessel);
     const actorsBySystem = new Map();
     for (const vessel of activeVessels.values()) {
       const actor = this._actor(vessel), helm = this.captains.get(vessel.helmOwner);
+      actor.state.stats.time = timeBefore.get(actor._economyCaptainId || vessel.ownerId) || 0;
       const participants = activeCaptains.filter(c => this._onBoardingDeck(c, vessel));
       const pilot = helm && this._helm(helm, vessel) && helm.session ? helm.appliedInput || EMPTY_INPUT : { ...EMPTY_INPUT, flightAssist: vessel.flightAssist !== false };
       if (helm?.session) vessel.flightAssist = pilot.flightAssist;
       const weapons = activeCaptains.find(c => c.aboard === vessel.id && c.crewRole === 'weapons' && this._canRole(c, vessel, 'weapons') && this._atStation(c, 'weapons') && c.appliedInput?.fire);
       actor.stepPilot(dt, { ...pilot, fire: false }, { operateShip: !vessel.dockedAt, boardingParticipants: participants.map(c => c.game) });
       if (!vessel.dockedAt && actor.state.boarding?.phase !== 'active' && (weapons || pilot.fire)) actor.fireWeapons(weapons?.id || helm?.id || vessel.ownerId);
-      for (const person of participants) if (person.appliedInput?.fire && actor.state.boarding?.phase === 'active') actor.attackBoarder(null, person.game);
+      for (const person of participants) if (!vessel.pvp && actor.state.boarding?.phase === 'active') { actor.updatePersonAim(person.game, person.appliedInput || {}); if (person.appliedInput?.fire) actor.attackBoarder(null, person.game, person.appliedInput); }
+      if (vessel.pvp) this._stepPvP(vessel, dt, activeCaptains);
       if (!actorsBySystem.has(vessel.systemId)) actorsBySystem.set(vessel.systemId, []); actorsBySystem.get(vessel.systemId).push(actor);
       this._syncActor(vessel);
     }
@@ -556,7 +607,7 @@ export class Realm {
     }
     for (const vessel of activeVessels.values()) this._syncActor(vessel);
     for (const c of activeCaptains) {
-      if (!activeVessels.has(c.ownedVesselId)) c.game.state.stats.time += dt;
+      c.game.state.stats.time = (timeBefore.get(c.id) || 0) + dt;
       c.events.push(...c.game.drainEvents()); if (c.events.length > 80) c.events.splice(0, c.events.length - 80);
       if (c.session) c.lastSeen = timestamp;
     }
@@ -573,21 +624,36 @@ export class Realm {
   }
 
   roomInfo(c) {
-    const s = c.game.state;
-    const kind = s.mode === 'ship' ? 'system' : s.interior?.kind === 'ship' ? 'ship' : s.interior?.kind === 'enemy' ? 'boarding' : s.interior?.kind === 'derelict' ? 'derelict' : 'surface';
-    const suffix = kind === 'system' ? s.systemId : kind === 'ship' ? c.aboard : `${s.systemId}:${s.locationId}`;
+    const s = c.game.state, vessel = this.vessels.get(c.aboard);
+    const kind = s.mode === 'ship' ? 'system' : vessel && ['ship', 'enemy'].includes(s.interior?.kind) ? vessel.boarding?.kind === 'assault' ? 'boarding' : 'ship' : s.interior?.kind === 'derelict' ? 'derelict' : 'surface';
+    const suffix = kind === 'system' ? s.systemId : ['ship', 'boarding'].includes(kind) ? c.aboard : `${s.systemId}:${s.locationId}`;
     return { id: `${this.id}:${kind}:${suffix}`, kind, systemId: s.systemId, locationId: s.locationId, vesselId: c.aboard || null };
   }
-  _publicCaptain(c) { const room = this.roomInfo(c); return { captainId: c.id, name: c.name, online: !!c.session, systemId: c.game.state.systemId, roomId: room.id, vesselId: c.aboard || null, crewRole: c.crewRole, mode: c.game.state.mode, x: c.game.state.person.x, y: c.game.state.person.y, vx: c.game.state.person.vx || 0, vy: c.game.state.person.vy || 0, facing: c.game.state.person.facing, health: c.game.state.person.health, sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null }; }
+  _publicCaptain(c, viewer = null) {
+    const room = this.roomInfo(c), person = c.game.state.person, vessel = this.vessels.get(c.aboard);
+    const hostile = viewer && vessel && viewer.aboard === vessel.id && this._captainTeam(c, vessel) !== this._captainTeam(viewer, vessel);
+    return { captainId: c.id, name: c.name, online: !!c.session, systemId: c.game.state.systemId, roomId: room.id, vesselId: c.aboard || null, crewRole: c.crewRole, mode: c.game.state.mode,
+      x: person.x, y: person.y, vx: person.vx || 0, vy: person.vy || 0, facing: person.facing, health: person.health, down: !!person.down,
+      weapon: person.weapon, weaponDrawn: person.weaponDrawn, aimAngle: person.aimAngle, aimManual: person.aimManual, lastShot: clone(person.lastShot || null), aimTargetId: person.aimTargetId, attackUntil: person.attackUntil, hitUntil: person.hitUntil, team: hostile ? 'hostile' : 'friendly',
+      sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null };
+  }
   _publicVessel(vessel, viewer) {
-    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
-    return { id: vessel.id, ownerId: vessel.ownerId, ownerName: owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt, allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks, bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), grantedRoles: viewer.id === owner.id ? [...STATION_ROLES] : vessel.grants[viewer.id]?.roles || [], ...(viewer.id === owner.id ? { grants: clone(vessel.grants) } : {}) };
+    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard);
+    return { id: vessel.id, ownerId: vessel.ownerId, ownerName: owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt,
+      ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius', 'renderLength', 'renderWidth'].map(key => [key, vessel.ship[key]])),
+      allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks,
+      bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), destroyed: !!vessel.destroyed,
+      disabled: !vessel.destroyed && vessel.ship.hull <= vessel.ship.maxHull * .48 && vessel.ship.shield <= vessel.ship.maxShield * .2,
+      hostile: this._shipsHostile(source, vessel), occupation: clone(vessel.occupation || null), npcHostile: !!vessel.npcHostile, captured: !!vessel.captured,
+      canDeclareHostility: this._canDeclareHostility(viewer, vessel), canHostileBoard: this._canHostileBoard(viewer, vessel), canTakeHelm: viewer.aboard === vessel.id && this._canTakeCapturedHelm(viewer, vessel),
+      canReturn: viewer.aboard === vessel.id && this._canReturn(viewer),
+      grantedRoles: viewer.id === owner.id ? [...STATION_ROLES] : vessel.grants[viewer.id]?.roles || [], ...(viewer.id === owner.id ? { grants: clone(vessel.grants) } : {}) };
   }
   snapshotFor(c, { drainEvents = true, compact = false } = {}) {
-    const room = this.roomInfo(c), vessel = this.vessels.get(c.aboard || c.ownedVesselId), ownState = c.game.state;
-    const aboardOwner = c.aboard && vessel ? this.captains.get(vessel.ownerId) : null;
+    const room = this.roomInfo(c), vessel = this.vessels.get(c.aboard || c.portVesselId || c.ownedVesselId), ownState = c.game.state;
+    const aboardOwner = (c.aboard || c.portVesselId) && vessel ? this.captains.get(vessel.ownerId) : null;
     const ship = aboardOwner ? vessel.ship : ownState.ship;
-    const boarding = aboardOwner && this._onBoardingDeck(c, vessel) ? aboardOwner.game.state.boarding || null : null;
+    const boarding = aboardOwner && this._onBoardingDeck(c, vessel) ? this._viewBoarding(c, vessel) : null;
     let state;
     if (compact) state = clone({ ...Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, ownState[key]])), ship, boarding });
     else {
@@ -596,11 +662,16 @@ export class Realm {
       state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
       state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
       if (aboardOwner) {
-        state.crew = clone(aboardOwner.game.state.crew);
-        if (state.interior?.kind === 'ship') state.interior.location = clone(this._locationForVessel(vessel));
+        state.crew = clone(this._crewFor(vessel));
+        if (state.interior?.kind === 'ship') state.interior.location = clone(this._locationForVessel(vessel, c));
       }
-      state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true };
+
     }
+    if (aboardOwner) { state.cargo = clone(this._inventoryFor(vessel).cargo); if (!compact) state.upgrades = clone(this._inventoryFor(vessel).upgrades); }
+    state.interior = clone(ownState.interior);
+    if (state.interior && c.aboard && ['ship', 'enemy'].includes(state.interior.kind)) state.interior.location = { ...state.interior.location, ...clone(this._locationForVessel(vessel, c)), vesselId: vessel.id, hull: vessel.ship.hull, maxHull: vessel.ship.maxHull };
+    state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true,
+      returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };
     const relevantWorld = this._room(state.systemId).runtime, inSpace = room.kind === 'system';
     let world;
     if (compact) {
@@ -611,9 +682,10 @@ export class Realm {
       const { asteroids, enemies, bullets, pickups, traffic, signals, ...metadata } = relevantWorld;
       world = clone({ ...metadata, asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] });
     }
+    world.enemies = (world.enemies || []).filter(enemy => !enemy.canonicalVesselId && !enemy.promotedVesselId);
     for (const signal of world.signals) if (signal.id === 'hearth:story:tinbell') signal.resolved = c.game.hasFlag('belt_signal_scanned');
-    const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && other.game.state.mode === 'person' && this.roomInfo(other).id === room.id && (other.session || other.aboard || other.home)).map(other => this._publicCaptain(other));
-    const remoteShips = room.kind === 'system' ? [...this.vessels.values()].filter(v => v.systemId === state.systemId && v.id !== c.aboard && !v.dockedAt && [...this.captains.values()].some(other => other.aboard === v.id && (other.session || other.disconnectUntil > now()))).map(v => ({ ...this._publicVessel(v, c), ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius'].map(key => [key, v.ship[key]])), mode: 'ship', online: [...this.captains.values()].some(other => other.aboard === v.id && other.session) })) : [];
+    const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && other.game.state.mode === 'person' && this.roomInfo(other).id === room.id && (other.session || other.aboard || other.home)).map(other => this._publicCaptain(other, c));
+    const remoteShips = room.kind === 'system' ? [...this.vessels.values()].filter(v => v.systemId === state.systemId && v.id !== c.aboard && !v.dockedAt).map(v => ({ ...this._publicVessel(v, c), ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius'].map(key => [key, v.ship[key]])), mode: 'ship', online: [...this.captains.values()].some(other => other.aboard === v.id && other.session) })) : [];
     const motion = { protocol: 1, tick: this.tick, serverTime: now(), simulatedAt: this.simulatedAt, ack: c.ack, state, world, room, players, remoteShips,
       events: drainEvents ? c.events.splice(0, 80) : clone(c.events) };
     if (compact) return { ...motion, partial: true };
@@ -631,7 +703,7 @@ export class Realm {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
       const { worlds, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
-      captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
+      captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
     return { format: 1, realmId: this.id, name: this.name, seed: this.seed, ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), captains, vessels, worlds: clone(this.worlds), leases: clone(this.leases) };

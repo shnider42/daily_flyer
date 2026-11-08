@@ -25,7 +25,8 @@
  * Authored content lives in content.mjs. No DOM, timers, fetch, or rendering dependencies.
  */
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
-import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable } from './fleet.mjs';
+import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
+import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from './combat.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 4;
@@ -129,7 +130,7 @@ function initialState(seed) {
     crew: [], formerCrew: [], memorial: [], fleet:{owned:['sparrow'],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:'sparrow', humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1 },
-    person: { x: 480, y: 570, health: 100, facing: 'up' },
+    person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, weaponDrawn: false },
     rng: hash(`${seed}:runtime`), nextEncounterAt: 95, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
 }
@@ -152,6 +153,7 @@ export class Game {
     this._runtime = null;
     this._updateStats(false);
     this._loadSystem(this.state.systemId);
+    this._restoreBoardingDeck();
     if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
     if (this.state.mode === 'person' && !this.state.interior && !this.system.bodies.some(b => b.id === this.state.locationId)) {
       this.state.mode = 'ship'; this.state.locationId = null;
@@ -183,7 +185,7 @@ export class Game {
     s.seed = String(raw.seed || fresh.seed);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
     s.ship = { ...fresh.ship, ...(raw.ship || {}) };
-    s.person = { ...fresh.person, ...(raw.person || {}) };
+    s.person = { ...fresh.person, ...(raw.person || {}) };ensureSidearm(s.person);s.person.weaponDrawn=s.mode==='person'&&s.boarding?.phase==='active';
     s.stats = { ...fresh.stats, ...(raw.stats || {}) };
     s.cargo = { ore: Math.max(0, Math.floor(finite(raw.cargo?.ore))), crystal: Math.max(0, Math.floor(finite(raw.cargo?.crystal))) };
     s.credits = Math.max(0, Math.floor(finite(s.credits)));
@@ -204,7 +206,7 @@ export class Game {
     s.worlds = raw.worlds && typeof raw.worlds === 'object' ? clone(raw.worlds) : {};
     s.rng = finite(s.rng, fresh.rng) >>> 0;
     for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
-    s.person.health = clamp(finite(s.person.health, 100), 1, 100);
+    s.person.health = clamp(finite(s.person.health, 100), s.person.down ? 0 : 1, 100);
     if (s.pendingEncounter && !ENCOUNTERS.some(e => e.id === s.pendingEncounter.id)) s.pendingEncounter = null;
     return s;
   }
@@ -237,8 +239,9 @@ export class Game {
     record.enemyStates ||= {};
     for (const e of this.system.enemies) if (e.hp > 0) {
       record.enemyHealth[e.id] = e.hp;
-      record.enemyStates[e.id]={x:e.x,y:e.y,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0};
+      record.enemyStates[e.id]={classId:e.classId,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
     }
+    record.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0).map(clone);
     record.asteroidHealth ||= {};
     for (const a of this.system.asteroids) if (a.hp > 0 && a.hp < a.maxHp) record.asteroidHealth[a.id] = a.hp;
   }
@@ -285,10 +288,10 @@ export class Game {
       if (record.enemyHealth[enemy.id] !== undefined) enemy.hp = record.enemyHealth[enemy.id];
       Object.assign(enemy,record.enemyStates[enemy.id]||{});
       enemy.disabled=enemy.hp>0&&(enemy.disabled||enemy.hp<=enemy.maxHp*.4);
-      enemy.classId=data.danger>=3?'hauler':'sparrow';
+      Object.assign(enemy,enemyHullProfile(record.enemyStates[enemy.id]?.classId|| (data.danger>=3?'hauler':'sparrow')));
       if (!record.defeated.includes(enemy.id)) enemies.push(enemy);
     }
-    for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e, hp: record.enemyHealth[e.id] ?? e.hp });
+    for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e,...(record.enemyStates[e.id]||{}),...enemyHullProfile(record.enemyStates[e.id]?.classId||e.classId|| (data.danger>=3?'hauler':'sparrow')), hp: record.enemyHealth[e.id] ?? e.hp });
     const signals = [];
     const tags = ['distress', 'derelict', 'anomaly', 'survey', 'beacon'];
     for (let i = 0; i < 7; i++) {
@@ -303,7 +306,7 @@ export class Game {
       if (moon) signals.unshift({id:'hearth:story:tinbell',kind:'story',name:'Tinbell evacuation beacon',x:moon.x+moon.radius+165,y:moon.y+85,radius:24,story:true,resolved:record.resolved.includes('hearth:story:tinbell'),scanned:record.scanned.includes('hearth:story:tinbell')});
     }
     const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, radius: 12 }));
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     record.visits = (record.visits || 0) + 1;
   }
 
@@ -335,7 +338,7 @@ export class Game {
     values.angularAcceleration=values.turn;
     values.maxAngularVelocity+=Math.max(0,values.turn-hullClass.stats.angularAcceleration)*.15;
     Object.assign(sh, values);
-    sh.hull = clamp(sh.hull + (heal ? Math.max(0, values.maxHull - previous.hull) : 0), 1, sh.maxHull);
+    sh.hull = clamp(sh.hull + (heal ? Math.max(0, values.maxHull - previous.hull) : 0), sh.destroyed?0:1, sh.maxHull);
     sh.shield = clamp(sh.shield + (heal ? Math.max(0, values.maxShield - previous.shield) : 0), 0, sh.maxShield);
     sh.fuel = clamp(sh.fuel + (heal ? Math.max(0, values.maxFuel - previous.fuel) : 0), 0, sh.maxFuel);
     sh.energy = clamp(sh.energy, 0, sh.maxEnergy);
@@ -390,10 +393,12 @@ export class Game {
     const games=[...new Set(participants)].filter(g=>g?.state?.systemId===this.state.systemId);
     this._worldGames=games;
     this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
-    const targets=games.filter(g=>g.netTargetEligible!==false&&(g.state.mode==='ship'||g.state.interior?.kind==='ship'||g.netTargetEligible===true));
+    const targets=[...games.filter(g=>g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
     this._updateEnemies(dt,targets);
     this._updateBullets(dt,targets);
-    this._updatePickups(dt,targets);
+    this._updatePickups(dt,targets.filter(g=>!g._parkedVessel));
+    for(const game of games)game._syncBoardedVessel();
+    this.system.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0);
     for(const t of this.system.traffic){t.x+=Math.cos(t.angle)*t.speed*dt;t.y+=Math.sin(t.angle)*t.speed*dt;if(Math.abs(t.x)>2300||Math.abs(t.y)>2300)t.angle+=Math.PI;}
     for(const a of this.system.asteroids)a.angle+=a.spin*dt;
   }
@@ -433,12 +438,13 @@ export class Game {
   _fire(shooterId = this.playerId) {
     const sh = this.state.ship;
     let angle = sh.angle;
-    const candidates = this.system.enemies.filter(e => e.hp > 0 && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
+    const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
     for (const e of candidates) {
       const target = Math.atan2(e.y - sh.y, e.x - sh.x);
       if (Math.abs(Math.atan2(Math.sin(target - angle), Math.cos(target - angle))) < 0.25) { angle = target; break; }
     }
-    const bullet = { id: `shot-${this.state.stats.time}`, x: sh.x + Math.cos(angle) * 24, y: sh.y + Math.sin(angle) * 24, vx: Math.cos(angle) * 650 + sh.vx * 0.3, vy: Math.sin(angle) * 650 + sh.vy * 0.3, ttl: sh.range / 650, damage: sh.damage, owner: 'player', ownerId: String(shooterId), shooterId: String(shooterId), vesselId: sh.id, radius: 4 };
+    const vesselId=this.netVesselId||sh.id,serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
+    const bullet = { id: `${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`, x: sh.x + Math.cos(angle) * 24, y: sh.y + Math.sin(angle) * 24, vx: Math.cos(angle) * 650 + sh.vx * 0.3, vy: Math.sin(angle) * 650 + sh.vy * 0.3, ttl: sh.range / 650, damage: sh.damage, owner: 'player', ownerId: String(shooterId), shooterId: String(shooterId), vesselId, radius: 4 };
     this.system.bullets.push(bullet);
     sh.energy -= 3;
     this._shotTimer = 0.25;
@@ -482,8 +488,8 @@ export class Game {
 
   _updateEnemies(dt, targets = [this]) {
     for(const e of this.system.enemies){
-      if(e.hp<=0)continue;
-      if(e.disabled||e.boardingTargetId){e.active=false;e.vx=0;e.vy=0;continue;}
+      if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId)continue;
+      if(e.disabled||e.boardingTargetId||e.capturedBy){e.active=false;e.vx=0;e.vy=0;continue;}
       const target=targets.filter(g=>(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
       const sh=target?.state.ship,dist=sh?distance(e,sh):Infinity;
       if(dist<650)e.active=true;if(dist>1100||!target)e.active=false;
@@ -491,7 +497,7 @@ export class Game {
       if(!e.active){e.angle+=dt*.18;e.x+=Math.cos(e.angle)*16*dt;e.y+=Math.sin(e.angle)*16*dt;e.boardingCharge=0;continue;}
       e.targetId=target.playerId;e.angle=Math.atan2(sh.y-e.y,sh.x-e.x);
       e.boardingCooldown=Math.max(0,(e.boardingCooldown||0)-dt);
-      const exposed=sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
+      const exposed=!target._parkedVessel&&sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
       const side=e.id.length%2?1:-1;
       const moveAngle=e.angle+(exposed?(dist<90?Math.PI*.5*side:0):(dist<220?Math.PI*.65*side:.2*side));
       const moveSpeed=e.speed*(exposed&&dist<150?.25:1);
@@ -503,7 +509,8 @@ export class Game {
       }else e.boardingCharge=0;
       if(e.cooldown<=0&&dist<520){
         const angle=e.angle+(this._rand()-.5)*.16;
-        this.system.bullets.push({x:e.x,y:e.y,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage,owner:e.id,ownerId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+        const serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
+        this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}`,x:e.x,y:e.y,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
         e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
       }
       if(dist<sh.radius+e.radius-2){target._damageShip(4*dt);sh.vx+=Math.cos(e.angle)*30*dt;sh.vy+=Math.sin(e.angle)*30*dt;}
@@ -517,29 +524,57 @@ export class Game {
       b.x+=b.vx*travelTime;b.y+=b.vy*travelTime;b.ttl-=dt;
       if(!travelTime)continue;
       if(b.owner==='player'){
-        const hit=this.system.enemies.filter(e=>e.hp>0&&!e.boardingTargetId&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).sort((a,c)=>Math.hypot(a.x-fromX,a.y-fromY)-Math.hypot(c.x-fromX,c.y-fromY))[0];
-        if(!hit)continue;
-        hit.hp-=b.damage;hit.active=true;b.ttl=0;
-        this._record().enemyHealth[hit.id]=Math.max(0,hit.hp);
-        this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',damage:b.damage});
-        if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>g.state.ship.id===b.vesselId)||this;this._defeat(hit,owner);}
+        const shooter=targets.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this._worldGames?.find(g=>g.playerId===b.ownerId);
+        const hostileVessel=g=>{
+          if(g===shooter||(g.netVesselId||g.state.ship.id)===b.vesselId)return false;
+          if(typeof shooter?.netCanDamage==='function')return shooter.netCanDamage(g,b)===true;
+          const sourceId=shooter?.netVesselId||shooter?.state.ship.id,targetId=g.netVesselId||g.state.ship.id;
+          return !!(shooter?.netHostileTo?.has(targetId)&&g.netHostileTo?.has(sourceId));
+        };
+        const hits=[
+          ...this.system.enemies.filter(e=>e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId&&e.capturedBy!==b.ownerId&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).map(e=>({point:e,enemy:e})),
+          ...targets.filter(g=>g.state.ship.hull>0&&hostileVessel(g)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).map(g=>({point:g.state.ship,game:g}))
+        ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
+        const collision=hits[0];if(!collision)continue;b.ttl=0;
+        if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
+        const hit=collision.enemy;hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
+        this._record().enemyHealth[hit.id]=hit.hp;
+        this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',vesselId:hit.id,damage:b.damage});
+        if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
         else if(hit.hp<=hit.maxHp*.4&&!hit.disabled){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:`${hit.name} disabled. Close to board, or finish the hull.`});}
       }else{
-        const hit=targets.filter(g=>segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
-        if(hit){hit._damageShip(b.damage);b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,damage:b.damage});}
+        const hit=targets.filter(g=>g.state.ship.hull>0&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
+        if(hit){hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId||b.ownerId,bullet:b});b.ttl=0;this._worldEvent('hit',{x:hit.state.ship.x,y:hit.state.ship.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||hit.state.ship.id,damage:b.damage});}
       }
     }
     this.system.bullets=this.system.bullets.filter(b=>b.ttl>0);
     this.system.enemies=this.system.enemies.filter(e=>e.hp>0);
   }
 
-  _damageShip(amount) {
+  _damageShip(amount, details = {}) {
     if (this._recoveryTimer) return;
     const sh = this.state.ship;
+    if(sh.destroyed||sh.hull<=0)return;
     const absorbed = Math.min(sh.shield, amount);
-    sh.shield -= absorbed; sh.hull -= amount - absorbed;
+    sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-(amount-absorbed));
     this._hitTimer = 5;
-    if (sh.hull <= 0) this._rescue('A passing tug caught your emergency beacon. Your ship survived; some cargo did not.');
+    if(sh.hull<=0){
+      this._worldEvent('vessel-destroyed',{vesselId:this.netVesselId||sh.id,name:sh.name,...details});
+      if(this.netOnShipDestroyed?.({vesselId:this.netVesselId||sh.id,...details})===true)return;
+      if(this.state.interior?.kind==='enemy'){
+        sh.destroyed=true;sh.vx=0;sh.vy=0;this.state.interior.originDestroyed=true;
+        this._event('origin-destroyed',{vesselId:sh.id,text:`${sh.name||'Your ship'} was destroyed outside. Secure this vessel to escape, or call for recovery.`});
+      }else this._rescue('A passing tug caught your emergency beacon. Your ship survived; some cargo did not.');
+    }
+  }
+
+  _parkedActors() {
+    return (this.system.parkedShips||[]).filter(ship=>ship.hull>0).map(ship=>({
+      _parkedVessel:true,netVesselId:ship.id,playerId:ship.ownerId||this.playerId,
+      state:{ship,mode:'ship',systemId:this.state.systemId,rep:this.state.rep,boarding:null},
+      _event:(type,data)=>this._event(type,data),startBoarding:()=>this._fail('This vessel has no crew aboard.','empty'),
+      _damageShip:(amount,details={})=>{const absorbed=Math.min(ship.shield||0,amount);ship.shield=Math.max(0,(ship.shield||0)-absorbed);ship.hull=Math.max(0,ship.hull-(amount-absorbed));if(!ship.hull){ship.destroyed=true;this._worldEvent('vessel-destroyed',{vesselId:ship.id,name:ship.name,...details});}}
+    }));
   }
   _defeat(enemy, credited = this) {
     const record = this._record();
@@ -566,7 +601,9 @@ export class Game {
   interact() {
     if (this.state.mode !== 'ship') return null;
     const sh = this.state.ship;
-    const disabled=this.system.enemies.filter(e=>e.hp>0&&e.disabled&&!e.boardingTargetId&&distance(e,sh)<sh.radius+e.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
+    const parked=(this.system.parkedShips||[]).filter(v=>v.hull>0&&distance(v,sh)<sh.radius+v.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
+    if(parked)return {type:'parked-ship',id:parked.id,name:parked.name,vessel:parked,distance:distance(parked,sh),range:sh.radius+parked.radius+110};
+    const disabled=this.system.enemies.filter(e=>e.hp>0&&e.disabled&&!e.boardingTargetId&&!e.promotedVesselId&&!e.canonicalVesselId&&distance(e,sh)<sh.radius+e.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
     if(disabled)return {type:'board',id:disabled.id,name:disabled.name,enemy:disabled,distance:distance(disabled,sh),range:sh.radius+disabled.radius+110};
     const bodies = this.system.bodies.map(body => ({ type: 'dock', id: body.id, bodyId: body.id, name: body.name, body, distance: distance(sh, body), range: body.radius + 150 })).filter(t => t.distance <= t.range).sort((a, b) => a.distance - b.distance);
     if (bodies.length) return bodies[0];
@@ -921,9 +958,9 @@ export class Game {
   leaveDerelict() { return this.state.interior?.kind === 'derelict' ? this._leaveInterior() : this._fail('You are not on a derelict.', 'mode'); }
   _enterInterior(location, kind, signalId = null) {
     const sh = this.state.ship;
-    this.state.interior = {kind, location, signalId, liveVessel:!!this._sharedWorld&&kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
+    this.state.interior = {kind, location, signalId, liveVessel:kind==='enemy'||!!this._sharedWorld&&kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
     this.state.mode='person';this.state.locationId=location.id;
-    if(!this.state.interior.liveVessel){sh.vx=0;sh.vy=0;sh.angularVelocity=0;}
+    if(!this.state.interior.liveVessel||kind==='enemy'){sh.vx=0;sh.vy=0;sh.angularVelocity=0;}
     const spawn=kind==='ship'||kind==='enemy'?cabinLayout(location.shipClass||'sparrow').spawn:{x:156,y:348};
     this.state.person={...this.state.person,...spawn};
     this._flag(kind==='ship'?'entered_cabin':'boarded_derelict');
@@ -935,8 +972,11 @@ export class Game {
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
     if(this.state.boarding?.phase==='active')return this._fail('Clear the boarders or retreat through the airlock first.','boarding');
     const interior=this.state.interior;
+    if(interior.kind==='enemy'){const access=this._boardingReturnCheck();if(!access.ok)return access;}
     if(!interior.liveVessel)Object.assign(this.state.ship,interior.returnShip);
+    if(interior.kind==='enemy')this._releaseBoardingTether();
     if(this.state.boarding)this.state.boarding=null;
+    this.state.person.weaponDrawn=false;
     this.state.mode='ship';this.state.locationId=interior.returnLocation||null;this.state.interior=null;
     this._event('launch',{body:interior.location,text:'You take the helm.'});
     return this._ok({body:interior.location});
@@ -973,12 +1013,13 @@ export class Game {
   boardEnemy(enemyId) {
     if(this.state.mode!=='ship')return this._fail('Approach the disabled ship from the helm.','mode');
     if(this.state.pendingEncounter)return this._fail('Resolve the open transmission first.','encounter');
-    const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0);
+    const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId);
     if(!enemy||!enemy.disabled)return this._fail('Disable the target’s engines before boarding.','disabled');
     if(enemy.boardingTargetId)return this._fail('Another boarding party already has the tether.','occupied');
     if(distance(enemy,this.state.ship)>this.state.ship.radius+enemy.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');
-    const shipClass=enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow');
-    const result=this._enterInterior({id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,kind:'ship',biome:'ship',shipClass,berths:getShipClass(shipClass).berths,crew:clone(this.livingCrew),faction:enemy.faction},'enemy',enemy.id);
+    Object.assign(enemy,enemyHullProfile(enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow')));
+    const shipClass=enemy.classId;
+    const result=this._enterInterior(this._enemyLocation(enemy),'enemy',enemy.id);
     if(!result.ok)return result;
     return this._beginBoarding(enemy,'assault',shipClass);
   }
@@ -998,37 +1039,131 @@ export class Game {
   _beginBoarding(enemy,kind,shipClass) {
     const layout=combatLayout(shipClass),count=Math.min(4,2+Math.floor((this.currentSystem.danger||1)/2));
     const id=`boarding:${enemy.id}:${kind}`;
-    const enemies=Array.from({length:count},(_,i)=>{
+    const freshEnemies=()=>Array.from({length:count},(_,i)=>{
       const point=layout.combatSpawns[i%layout.combatSpawns.length];
       return {id:`${id}:hostile:${i}`,name:i?'Boarding raider':'Pirate breacher',...point,health:52,maxHealth:52,team:'hostile',role:'raider',color:'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
     });
+    if(kind==='assault')enemy.deck ||= {shipClass,enemies:freshEnemies(),cleared:false,rewardClaimed:false,occupation:null,shotSerial:0};
+    const enemies=kind==='assault'?enemy.deck.enemies:freshEnemies();
     const allies=this.livingCrew.map((crew,i)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,role:crew.role,...layout.crewSpawns[i%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+i*.15,speed:crew.role==='security'?64:50,status:'active'}));
-    enemy.boardingTargetId=this.playerId;enemy.boardingCharge=0;
-    this.state.boarding={id,kind,phase:'active',shipClass,vesselId:this.state.ship.id,locationId:this.state.locationId,targetId:enemy.id,enemies,allies,elapsed:0,combatTime:this.state.stats.time,unopposedTime:0,startedAt:this.state.stats.time};
-    this.state.person.down=false;
-    this._event('boarding',{boarding:this.state.boarding,text:kind==='defense'?'Boarders are inside Cinder. Defend your crew and clear the deck.':'Tether secured. Clear the hostile crew to claim the vessel’s stores.'});
+    const leaderId=this._boardingLeaderId||this.playerId,originVesselId=this.netVesselId||this.state.ship.id;
+    enemy.boardingTargetId=leaderId;enemy.boardingOriginId=originVesselId;enemy.boardingCharge=0;
+    if(kind==='assault')enemy.occupation=enemy.deck.occupation={boarderId:leaderId,controllerId:enemy.deck.occupation?.controllerId||enemy.capturedBy||null,contested:!enemy.deck.cleared};
+    const phase=kind==='assault'&&enemy.deck.cleared?'won':'active';
+    this.state.boarding={id,kind,phase,shipClass,systemId:this.state.systemId,vesselId:kind==='assault'?enemy.id:originVesselId,originVesselId,targetVesselId:enemy.id,locationId:this.state.locationId,targetId:enemy.id,enemies,allies,elapsed:0,combatTime:this.state.stats.time,unopposedTime:0,startedAt:this.state.stats.time,shotSerial:enemy.deck?.shotSerial||0,leaderId};
+    ensureSidearm(this.state.person);this.state.person.down=false;this.state.person.weaponDrawn=phase==='active';this.state.person.lastShot=null;
+    this._event('boarding',{boarding:this.state.boarding,text:phase==='won'?`${enemy.name} is still secure. Return across the tether or take its helm.`:kind==='defense'?`Boarders are inside ${this.state.ship.name||'your ship'}. Defend your crew and clear the deck.`:`Tether secured to ${enemy.name}. Clear its hostile crew to secure the bridge.`});
     this._log(kind==='defense'?'Boarding alarm':'Across the tether',`${enemy.name}: ${enemies.length} armed contacts on the deck.`,'boarding');
     return this._ok({boarding:this.state.boarding,body:this.currentBody});
   }
 
-  attackBoarder(enemyId = null, attacker = this) {
+  _enemyLocation(enemy) {
+    const ship=enemyShipState(enemy),hull=getShipClass(enemy.classId);
+    return {id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,vesselName:enemy.name,kind:'ship',biome:'ship',shipClass:hull.id,berths:hull.berths,crew:clone(this.livingCrew),faction:enemy.faction,
+      hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id};
+  }
+
+  _restoreBoardingDeck() {
+    const boarding=this.state.boarding;if(!boarding)return;
+    boarding.originVesselId ||= this.state.ship.id;
+    boarding.targetVesselId ||= boarding.targetId;
+    if(boarding.kind!=='assault')return;
+    boarding.vesselId=boarding.targetVesselId;
+    const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);if(!enemy)return;
+    enemy.deck ||= {shipClass:boarding.shipClass,enemies:boarding.enemies,cleared:boarding.phase==='won',rewardClaimed:boarding.phase==='won',occupation:null};
+    // The active deck is saved with the captain as well as the system. Rejoin the
+    // canonical array so retreat/save/reboard can never regenerate living guards.
+    enemy.deck.enemies=boarding.enemies;enemy.deck.shotSerial=boarding.shotSerial||0;
+    enemy.occupation=enemy.deck.occupation ||= {boarderId:boarding.leaderId||this.playerId,controllerId:enemy.capturedBy||null,contested:boarding.phase==='active'};
+    enemy.boardingTargetId=boarding.leaderId||this.playerId;enemy.boardingOriginId=boarding.originVesselId;
+    if(this.state.interior?.kind==='enemy'){this.state.interior.liveVessel=true;this.state.interior.location={...this.state.interior.location,...this._enemyLocation(enemy),originVesselId:boarding.originVesselId};}
+  }
+
+  _syncBoardedVessel() {
+    const boarding=this.state.boarding;
+    if(boarding?.kind!=='assault'||this.state.interior?.kind!=='enemy')return;
+    const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);
+    if(!enemy)return;
+    if(enemy.deck)enemy.deck.shotSerial=boarding.shotSerial||0;
+    Object.assign(this.state.interior.location,this._enemyLocation(enemy),{originVesselId:boarding.originVesselId});
+  }
+
+  _releaseBoardingTether() {
+    const boarding=this.state.boarding;
+    if(boarding?.kind!=='assault')return;
+    const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);if(!enemy)return;
+    delete enemy.boardingTargetId;delete enemy.boardingOriginId;
+    if(enemy.deck){enemy.deck.shotSerial=boarding.shotSerial||0;enemy.deck.occupation={boarderId:null,controllerId:enemy.capturedBy||null,contested:false};enemy.occupation=enemy.deck.occupation;}
+  }
+
+  _boardedTargetDestroyed(enemy) {
+    for(const game of this._worldGames?.length?this._worldGames:[this]){
+      const boarding=game.state.boarding;
+      if(boarding?.kind!=='assault'||boarding.targetId!==enemy.id||!game.state.interior)continue;
+      if(game.netOnBoardedTargetDestroyed?.(enemy,boarding)===true)continue;
+      if(boarding.phase==='active')game._finishBoarding('destroyed');
+      else boarding.phase='destroyed';
+      for(const crew of game.livingCrew)game._damageCrew(crew.id,60,`Hull destruction aboard ${enemy.name}`);
+      game.state.person.health=Math.max(1,game.state.person.health-60);game.state.person.down=false;game.state.person.weaponDrawn=false;
+      game.state.mode='ship';game.state.interior=null;game.state.locationId=null;game.state.boarding=null;
+      if(game.state.ship.destroyed||game.state.ship.hull<=0)game._rescue('Both ships were lost. A station rescue crew recovered your escape capsule.');
+      game._event('boarding-complete',{phase:'destroyed',vesselId:enemy.id,text:`${enemy.name} was destroyed during boarding. The emergency tether brought survivors back; the blast injured the boarding party.`});
+    }
+  }
+
+  updatePersonAim(attacker = this, input = {}) {
+    const person=ensureSidearm(attacker.state.person),boarding=this.state.boarding;
+    person.weaponDrawn=attacker.state.mode==='person'&&boarding?.phase==='active'&&person.health>0&&!person.down;
+    if(!person.weaponDrawn){person.aimTargetId=null;return null;}
+    const aim=sidearmAim(person,boarding.enemies,input,boarding.shipClass);
+    person.aimAngle=aim.angle;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;
+    return aim;
+  }
+
+  _personShot(actor, aim, {attackerId=actor.id,actorName=actor.name||'Captain',team=actor.team||'friendly',damage=SIDEARM.damage,weaponId=SIDEARM.id}={}) {
+    const boarding=this.state.boarding,at=this.state.stats.time,id=`${boarding.id}:shot:${boarding.shotSerial=(boarding.shotSerial||0)+1}`;
+    const target=aim.target||null,shot={id,boardingId:boarding.id,at,until:at+SIDEARM.shotDuration,team,attackerId,actorName,weaponId,angle:aim.angle,
+      from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,
+      hit:!!target,blocked:!!aim.blocked,damage:target?damage:0};
+    actor.facing=facingOf(Math.cos(aim.angle),Math.sin(aim.angle));actor.aimAngle=aim.angle;actor.weapon=weaponId;actor.attackUntil=shot.until;actor.lastShot=shot;
+    this._event('person-shot',shot);return shot;
+  }
+
+  _personHit(target,shot,health=target.health,maxHealth=target.maxHealth||100) {
+    target.hitUntil=this.state.stats.time+.24;target.lastHitBy=shot.attackerId;
+    const event={id:shot.id+':hit',boardingId:this.state.boarding.id,at:shot.at,until:shot.at+.65,x:target.x,y:target.y,targetId:target.id,
+      targetName:target.name||'Captain',attackerId:shot.attackerId,actorName:shot.actorName,team:shot.team,weaponId:shot.weaponId,damage:shot.damage,health,maxHealth};
+    this._event('person-hit',event);return event;
+  }
+
+  _boarderDown(target,shot) {
+    target.status='dead';target.lastHitBy=shot.attackerId;
+    const b=this.state.boarding;b.kills ||= {player:0,crew:0};b.kills[shot.team==='player'?'player':'crew']++;
+    this._event('boarder-down',{id:shot.id+':down',boardingId:b.id,at:shot.at,until:shot.at+1.5,x:target.x,y:target.y,actorId:target.id,targetId:target.id,
+      targetName:target.name,attackerId:shot.attackerId,actorName:shot.actorName,team:shot.team,text:`${shot.actorName} neutralized ${target.name}.`});
+  }
+
+  attackBoarder(enemyId = null, attacker = this, input = {}) {
     const boarding=this.state.boarding;
     if(boarding?.phase!=='active')return this._fail('There are no active boarders to fight.','boarding');
-    if(attacker.state.mode!=='person'||attacker.state.person.health<=0)return this._fail('You must be on the deck and able to fight.','mode');
+    if(attacker.state.mode!=='person'||attacker.state.person.health<=0||attacker.state.person.down)return this._fail('You must be on the deck and able to fight.','mode');
     if(attacker._boardingShotTimer>0)return this._fail('Your sidearm is cycling.','cooldown');
-    const person=attacker.state.person,layout=combatLayout(boarding.shipClass);
-    const enemies=boarding.enemies.filter(e=>e.health>0).sort((a,b)=>distance(a,person)-distance(b,person));
-    const target=enemyId?enemies.find(e=>e.id===enemyId):enemies.find(e=>distance(e,person)<=172&&clearInteriorShot(layout,person,e));
-    if(!target)return this._fail('Move into sight of a hostile boarder.','target');
-    if(distance(target,person)>172)return this._fail('That boarder is outside sidearm range.','distance');
-    if(!clearInteriorShot(layout,person,target))return this._fail('A bulkhead blocks the shot.','sight');
-    attacker._boardingShotTimer=.32;person.facing=facingOf(target.x-person.x,target.y-person.y);
-    person.attackUntil=this.state.stats.time+.14;person.lastShot={x:person.x,y:person.y,targetX:target.x,targetY:target.y,until:person.attackUntil};
-    target.health=Math.max(0,target.health-24);target.lastHitBy=attacker.playerId;
-    this._event('person-shot',{...person.lastShot,attackerId:attacker.playerId,targetId:target.id,damage:24});
-    if(target.health<=0){target.status='dead';this._event('boarder-down',{actorId:target.id,text:`${target.name} neutralized.`});}
+    const person=ensureSidearm(attacker.state.person),layout=combatLayout(boarding.shipClass);
+    const candidates=boarding.enemies;let aimingInput=input;
+    if(enemyId){const chosen=candidates.find(e=>e.id===enemyId&&e.health>0);if(!chosen)return this._fail('That hostile is no longer a target.','target');
+      if(distance(chosen,person)>SIDEARM.range)return this._fail('That boarder is outside sidearm range.','distance');
+      if(!clearSidearmSight(layout,person,chosen))return this._fail('A bulkhead blocks the shot.','sight');
+      if(!input.aiming)aimingInput={...input,aiming:true,aimX:chosen.x-person.x,aimY:chosen.y-person.y};
+    }
+    const aim=sidearmAim(person,candidates,aimingInput,layout),target=aim.target;
+    attacker._boardingShotTimer=SIDEARM.cooldown;person.weaponDrawn=true;person.weaponReadyAt=this.state.stats.time+SIDEARM.cooldown;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;
+    const shot=this._personShot(person,aim,{attackerId:attacker.playerId,actorName:attacker._playerName|| (attacker.playerId==='local'?'You':'Captain'),team:'player'});
+    attacker.state.stats.personShots=(attacker.state.stats.personShots||0)+1;
+    if(target){target.health=Math.max(0,target.health-SIDEARM.damage);this._personHit(target,shot);attacker.state.stats.personHits=(attacker.state.stats.personHits||0)+1;
+      if(target.health<=0){this._boarderDown(target,shot);attacker.state.stats.personKills=(attacker.state.stats.personKills||0)+1;}
+    }
     if(boarding.enemies.every(e=>e.health<=0))this._finishBoarding('won');
-    return this._ok({targetId:target.id,damage:24,health:target.health});
+    return this._ok({shot,targetId:target?.id||null,damage:target?SIDEARM.damage:0,health:target?.health??null,hit:!!target});
   }
   repelBoarders(enemyId = null, attacker = this) {return this.attackBoarder(enemyId,attacker);}
 
@@ -1036,11 +1171,78 @@ export class Game {
     const boarding=this.state.boarding;
     if(boarding?.phase!=='active')return this._leaveInterior();
     if(boarding.kind!=='assault')return this._fail('The boarders are on your own ship. Clear them before taking the helm.','defense');
-    const layout=combatLayout(boarding.shipClass);
-    if(distance(this.state.person,layout.spawn)>70)return this._fail('Return to the entry airlock to withdraw across the tether.','distance');
+    const access=this._boardingReturnCheck();if(!access.ok)return access;
     this._finishBoarding('retreated');return this._leaveInterior();
   }
   leaveInterior() {return this.state.boarding?.phase==='active'?this.retreatBoarding():this._leaveInterior();}
+
+  _boardingReturnCheck() {
+    const boarding=this.state.boarding,interior=this.state.interior,person=this.state.person,origin=this.state.ship;
+    if(person.health<=0||person.down)return this._fail('You are incapacitated. Surviving crew must secure the deck before recovery.','incapacitated');
+    if(interior?.originDestroyed||origin.destroyed||origin.hull<=0)return this._fail('Your original ship was destroyed. Secure this bridge and take its helm.','destroyed');
+    const enemy=this.system.enemies.find(e=>e.id===(boarding?.targetId||interior?.signalId)&&e.hp>0);
+    if(!enemy)return this._fail('The target hull is no longer intact.','destroyed');
+    if(boarding?.systemId&&boarding.systemId!==this.state.systemId||boarding?.originVesselId&&boarding.originVesselId!==origin.id||distance(enemy,origin)>270+Math.max(origin.radius||0,enemy.radius||0))return this._fail('Your original ship must remain nearby and within tether range.','distance');
+    const layout=combatLayout(boarding?.shipClass||interior?.location?.shipClass);
+    if(distance(person,layout.spawn)>70)return this._fail('Return to the entry airlock to cross back to your ship.','distance');
+    return this._ok();
+  }
+
+  returnToOwnShip() {
+    if(this.state.interior?.kind!=='enemy'){
+      if(this.state.mode==='ship'&&this.state.returnVesselId)return this.boardParkedShip(this.state.returnVesselId);
+      return this._fail('You are not aboard a tethered vessel.','mode');
+    }
+    return this.state.boarding?.phase==='active'?this.retreatBoarding():this._leaveInterior();
+  }
+
+  _parkCurrentVessel() {
+    const ship=this.state.ship;
+    if(ship.hull<=0||ship.destroyed)return null;
+    const parked={...clone(ship),vx:0,vy:0,angularVelocity:0,ownerId:this.playerId,storedUpgrades:clone(this.state.upgrades),systemId:this.state.systemId};
+    this.system.parkedShips ||= [];
+    const old=this.system.parkedShips.findIndex(v=>v.id===ship.id);
+    if(old>=0)this.system.parkedShips.splice(old,1);
+    this.system.parkedShips.push(parked);return parked;
+  }
+
+  takeCapturedHelm() {
+    const boarding=this.state.boarding;
+    if(this.state.interior?.kind!=='enemy'||boarding?.kind!=='assault')return this._fail('You must be aboard the target vessel to take its helm.','mode');
+    if(this.state.person.health<=0||this.state.person.down)return this._fail('You are incapacitated and cannot take the helm.','incapacitated');
+    const enemy=this.system.enemies.find(e=>e.id===boarding.targetId&&e.hp>0);
+    if(!enemy)return this._fail('The target hull is no longer intact.','destroyed');
+    if(boarding.phase!=='won'||!enemy.deck?.cleared)return this._fail('Clear every hostile from this deck before taking its helm.','boarding');
+    if(distance(this.state.person,combatLayout(boarding.shipClass).stations.helm)>46)return this._fail('Walk to this vessel’s bridge helm before taking command.','distance');
+    const hull=getShipClass(enemy.classId);
+    if(this.livingCrew.length+1>hull.berths)return this._fail(`This hull has ${hull.berths} berths. Return to your ship and arrange a smaller crew before transferring command.`,'capacity');
+    if(this.cargoUsed>hull.stats.cargoCap)return this._fail('Unload cargo before transferring command to this smaller hold.','capacity');
+    const origin=this._parkCurrentVessel(),ship=enemyShipState(enemy),fraction=ship.hull/ship.maxHull;
+    this._releaseBoardingTether();
+    enemy.promotedVesselId=ship.id;enemy.capturedBy=boarding.leaderId||this.playerId;enemy.disabled=true;enemy.active=false;
+    enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy,contested:false};
+    this.state.ship={...ship,disabled:false};this.state.upgrades=clone(enemy.storedUpgrades||{});this._updateStats(false);this.state.ship.hull=this.state.ship.maxHull*fraction;
+    this.state.returnVesselId=origin?.id||null;this.state.boarding=null;this.state.interior=null;this.state.mode='ship';this.state.locationId=null;this.state.person.weaponDrawn=false;
+    this.state.fleet.owned=unique([...this.state.fleet.owned,hull.id]);
+    this.state.fleet.history.push({type:'capture',vesselId:ship.id,classId:hull.id,name:ship.name,time:this.state.stats.time,systemId:this.state.systemId});
+    this._event('vessel-captured',{vesselId:ship.id,originVesselId:origin?.id||null,text:`You take ${ship.name}'s helm. Its hull damage remains.${origin?` ${origin.name||'Your original ship'} is parked beside the tether.`:''}`});
+    return this._ok({ship:this.state.ship,originVesselId:origin?.id||null,text:`Command transferred to ${ship.name}.`});
+  }
+
+  boardParkedShip(vesselId) {
+    if(this.state.mode!=='ship')return this._fail('Approach your parked vessel from the helm.','mode');
+    const target=(this.system.parkedShips||[]).find(v=>v.id===vesselId&&v.hull>0);
+    if(!target)return this._fail('That vessel is no longer parked in this system.','target');
+    if(target.ownerId&&target.ownerId!==this.playerId)return this._fail('That vessel is not under your command.','permission');
+    if(distance(target,this.state.ship)>this.state.ship.radius+target.radius+110)return this._fail('Close to your parked vessel to transfer command.','distance');
+    if(this.livingCrew.length+1>target.berths||this.cargoUsed>target.cargoCap)return this._fail('Your crew or cargo will not fit aboard that vessel.','capacity');
+    const previous=this._parkCurrentVessel();
+    this.system.parkedShips=this.system.parkedShips.filter(v=>v.id!==target.id);
+    const {storedUpgrades,ownerId,systemId,...ship}=clone(target);
+    this.state.ship=ship;this.state.upgrades=storedUpgrades||{};this._updateStats(false);this.state.returnVesselId=previous?.id||null;
+    this._event('launch',{vesselId:ship.id,text:`You take ${ship.name||'your ship'}'s helm. The other vessel remains parked.`});
+    return this._ok({ship:this.state.ship,text:`Command transferred to ${ship.name||'your ship'}.`});
+  }
 
   _advanceBoardingActor(actor,target,layout,dt) {
     actor.facing=facingOf(target.x-actor.x,target.y-actor.y);
@@ -1058,9 +1260,8 @@ export class Game {
   }
 
   _actorShot(actor,target) {
-    actor.facing=facingOf(target.x-actor.x,target.y-actor.y);actor.attackUntil=this.state.stats.time+.16;
-    actor.lastShot={x:actor.x,y:actor.y,targetX:target.x,targetY:target.y,until:actor.attackUntil};
-    this._event('person-shot',{...actor.lastShot,attackerId:actor.id,targetId:target.id,damage:actor.damage});
+    const angle=Math.atan2(target.y-actor.y,target.x-actor.x),from={x:actor.x,y:actor.y},to={x:target.x,y:target.y};
+    return this._personShot(actor,{angle,from,to,target,blocked:false},{attackerId:actor.id,actorName:actor.name,team:actor.team,damage:actor.damage});
   }
 
   _stepBoarding(dt,input,participants) {
@@ -1069,10 +1270,11 @@ export class Game {
     for(const human of humans)if(human!==this)human._boardingShotTimer=Math.max(0,finite(human._boardingShotTimer)-dt);
     this._boardingHumans=humans;
     boarding.elapsed+=dt;boarding.combatTime=this.state.stats.time;
-    if(participants===undefined&&input.fire&&this.state.mode==='person')this.attackBoarder();
+    if(participants===undefined){this.updatePersonAim(this,input);if(input.fire&&this.state.mode==='person')this.attackBoarder(null,this,input);}
+    else for(const human of humans){ensureSidearm(human.state.person);human.state.person.weaponDrawn=human.state.person.health>0&&!human.state.person.down;}
     if(boarding.phase!=='active')return;
     for(const ally of boarding.allies){const crew=this.state.crew.find(c=>c.id===ally.crewId);if(crew){ally.health=crew.health;ally.status=crew.status;}}
-    const people=humans.filter(g=>g.state.mode==='person'&&g.state.person.health>0).map(g=>({id:g.playerId,...g.state.person,game:g,team:'friendly'}));
+    const people=humans.filter(g=>g.state.mode==='person'&&g.state.person.health>0).map(g=>({id:g.playerId,name:g._playerName||(g.playerId==='local'?'You':'Captain'),...g.state.person,game:g,team:'friendly'}));
     const targets=[...people,...boarding.allies.filter(a=>a.health>0)];
     for(const hostile of boarding.enemies){
       if(hostile.health<=0)continue;hostile.cooldown=Math.max(0,(hostile.cooldown||0)-dt);
@@ -1080,9 +1282,9 @@ export class Game {
       if(!target)continue;
       if(distance(hostile,target)>116||!clearInteriorShot(layout,hostile,target))this._advanceBoardingActor(hostile,target,layout,dt);
       else if(!hostile.cooldown){
-        hostile.cooldown=1.05;this._actorShot(hostile,target);
-        if(target.game){const person=target.game.state.person;person.health=Math.max(0,person.health-hostile.damage);if(person.health<=0){person.down=true;target.game._event('person-down',{boardingId:boarding.id,text:'You are down. Your crew can still clear the deck.'});}}
-        else this._damageCrew(target.crewId,hostile.damage,`Boarding action against ${this.system.enemies.find(e=>e.id===boarding.targetId)?.name||'pirates'}`);
+        hostile.cooldown=1.05;const shot=this._actorShot(hostile,target);
+        if(target.game){const person=target.game.state.person;person.health=Math.max(0,person.health-hostile.damage);person.hitUntil=this.state.stats.time+.24;this._personHit(target,shot,person.health,100);if(person.health<=0){person.down=true;target.game._event('person-down',{...shot,id:shot.id+':down',targetId:target.id,targetName:target.name,boardingId:boarding.id,text:`${hostile.name} downed you. Your crew can still clear the deck.`});}}
+        else{this._damageCrew(target.crewId,hostile.damage,`Boarding action against ${this.system.enemies.find(e=>e.id===boarding.targetId)?.name||'pirates'}`,shot);this._personHit(target,shot);}
       }
     }
     for(const ally of boarding.allies){
@@ -1095,46 +1297,74 @@ export class Game {
       }
       const target=boarding.enemies.filter(e=>e.health>0).sort((a,b)=>distance(a,ally)-distance(b,ally))[0];if(!target)continue;
       if(distance(ally,target)>150||!clearInteriorShot(layout,ally,target))this._advanceBoardingActor(ally,target,layout,dt);
-      else if(!ally.cooldown){ally.cooldown=ally.role==='security'?.65:.95;this._actorShot(ally,target);target.health=Math.max(0,target.health-ally.damage);if(target.health<=0)target.status='dead';}
+      else if(!ally.cooldown){ally.cooldown=ally.role==='security'?.65:.95;const shot=this._actorShot(ally,target);target.health=Math.max(0,target.health-ally.damage);this._personHit(target,shot);if(target.health<=0)this._boarderDown(target,shot);}
     }
     if(boarding.enemies.every(e=>e.health<=0)){this._finishBoarding('won');return;}
     const conscious=humans.some(g=>g.state.person.health>0)||this.livingCrew.length>0;
     boarding.unopposedTime=conscious?0:boarding.unopposedTime+dt;
-    if((participants===undefined&&this.state.person.health<=0)||boarding.unopposedTime>=12)this._finishBoarding('lost');
+    if(boarding.unopposedTime>=12)this._finishBoarding('lost');
   }
 
-  _damageCrew(id,amount,cause='Boarding combat') {
+  _damageCrew(id,amount,cause='Boarding combat',shot=null) {
     const crew=this.state.crew.find(c=>c.id===id);if(!crew||crew.health<=0)return;
     crew.health=Math.max(0,crew.health-amount);crew.status=crew.health<=0?'dead':crew.health<crew.maxHealth?'injured':'active';
     const actor=this.state.boarding?.allies.find(a=>a.crewId===id);if(actor){actor.health=crew.health;actor.status=crew.status;}
     if(crew.health<=0){
       if(!this.state.memorial.some(m=>m.crewId===id))this.state.memorial.push({id:`memorial:${id}`,crewId:id,name:crew.name,role:crew.role,cause,systemId:this.state.systemId,time:this.state.stats.time,shipClass:this.state.ship.classId});
       this._updateStats(false);this._log(`In memory of ${crew.name}`,`${crew.name}, ${crew.role}, died defending the crew. ${cause}.`,'memorial');
-      this._event('crew-death',{crewId:id,crew,text:`${crew.name} has died. Their name is in your crew memorial.`});
+      this._event('crew-death',{...(shot?{id:shot.id+':down',boardingId:shot.boardingId,at:shot.at,until:shot.at+1.5,actorId:actor?.id,targetId:actor?.id,targetName:crew.name,x:actor?.x,y:actor?.y,attackerId:shot.attackerId,actorName:shot.actorName,team:shot.team}:{}),crewId:id,crew,text:`${crew.name} has died. Their name is in your crew memorial.`});
     }
     if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
   }
 
   _finishBoarding(phase) {
     const boarding=this.state.boarding;if(boarding?.phase!=='active')return;
-    boarding.phase=phase;boarding.endedAt=this.state.stats.time;
-    this.state.boardingHistory.push({id:boarding.id,kind:boarding.kind,phase,systemId:this.state.systemId,time:this.state.stats.time,casualties:boarding.allies.filter(a=>a.health<=0).map(a=>a.crewId)});
+    boarding.phase=phase;boarding.endedAt=this.state.stats.time;this.state.person.weaponDrawn=false;for(const human of this._boardingHumans||[])human.state.person.weaponDrawn=false;
+    this.state.boardingHistory.push({id:boarding.id,kind:boarding.kind,phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,systemId:this.state.systemId,time:this.state.stats.time,casualties:boarding.allies.filter(a=>a.health<=0).map(a=>a.crewId)});
     const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);
-    if(enemy){delete enemy.boardingTargetId;enemy.boardingCooldown=60;enemy.active=false;enemy.boardingCharge=0;}
+    if(enemy){
+      enemy.boardingCooldown=60;enemy.active=false;enemy.boardingCharge=0;
+      if(boarding.kind==='assault'&&enemy.deck){enemy.deck.enemies=boarding.enemies;enemy.deck.shotSerial=boarding.shotSerial||0;}
+      if(boarding.kind!=='assault'||phase!=='won'){delete enemy.boardingTargetId;delete enemy.boardingOriginId;}
+    }
     if(phase==='won'){
-      if(enemy){enemy.hp=0;this._defeat(enemy);}
-      const reward=boarding.kind==='assault'?95:45;this.state.credits+=reward;
+      let reward=boarding.kind==='assault'?95:45;
+      if(enemy&&boarding.kind==='assault'){
+        reward=enemy.deck.rewardClaimed?0:reward;enemy.deck.cleared=true;enemy.deck.rewardClaimed=true;
+        enemy.capturedBy=boarding.leaderId||this._boardingLeaderId||this.playerId;enemy.disabled=true;
+        enemy.deck.occupation=enemy.occupation={boarderId:enemy.capturedBy,controllerId:enemy.capturedBy,contested:false};
+      }else if(enemy){enemy.disabled=true;enemy.vx=0;enemy.vy=0;}
+      this.state.credits+=reward;
       this.state.stats.boardingsWon=(this.state.stats.boardingsWon||0)+1;this._flag('won_ground_fight');this._flag(boarding.kind==='assault'?'captured_vessel':'repelled_boarders');
-      this._event('boarding-complete',{phase,text:`Deck secure. ${reward} credits recovered. Your surviving crew remain aboard.`});
+      const text=boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The pirate hull remains outside.`;
+      this._event('boarding-complete',{phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,text});
       this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
       if(this.state.person.health<=0){this.state.person.health=35;this.state.person.down=false;}
     }else if(phase==='lost'){
       this.state.stats.boardingsLost=(this.state.stats.boardingsLost||0)+1;
+      if(enemy?.deck&&boarding.kind==='assault'){enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy||null,contested:false};}
+      if(this.netOnBoardingLost?.(boarding)===true)return;
+      if(boarding.kind==='defense')this._abandonOccupiedShip(boarding,enemy);
       this.state.mode='ship';this.state.locationId=null;this.state.interior=null;
       this.state.person.health=55;this.state.person.down=false;
-      this._rescue('The surviving crew escaped in the sealed command capsule. A tug recovered Cinder after the pirates withdrew.');
-      this._event('boarding-complete',{phase,text:'The pirates took part of your cargo. Surviving crew were recovered; casualties remain in the memorial.'});
-    }else this._event('boarding-complete',{phase,text:'Boarding party withdrawn. The disabled vessel remains in the system.'});
+      this._rescue(boarding.kind==='defense'?'Your escape capsule reached the station. The occupied ship remains in space; a recovery cutter carries the survivors.':'The surviving boarding party escaped to a station. The target remains in space with its surviving defenders.');
+      this._event('boarding-complete',{phase,text:boarding.kind==='defense'?'Your ship is occupied. Survivors recovered at port aboard a basic cutter; crew casualties remain in the memorial.':'The boarding party withdrew after defeat. Surviving guards still hold the target.'});
+    }else if(phase==='retreated'){
+      this._releaseBoardingTether();
+      this._event('boarding-complete',{phase,text:'Boarding party withdrawn. The damaged vessel and its surviving crew remain in the system.'});
+    }
+    this._syncBoardedVessel();
+  }
+
+  _abandonOccupiedShip(boarding,raider) {
+    const ship=this.state.ship,id=ship.id,hostiles=boarding.enemies.filter(e=>e.health>0);
+    const occupied={id,name:ship.name||'Occupied ship',classId:ship.classId,...enemyHullProfile(ship.classId),x:ship.x,y:ship.y,vx:0,vy:0,angle:ship.angle,
+      hp:Math.max(1,ship.hull),maxHp:ship.maxHull,faction:raider?.faction||'cinder',disabled:true,active:false,speed:ship.speed,damage:ship.damage,reward:0,cooldown:999,
+      deck:{shipClass:ship.classId,enemies:hostiles,cleared:false,rewardClaimed:true,occupation:{boarderId:raider?.id||'pirates',controllerId:raider?.id||'pirates',contested:true}},storedUpgrades:clone(this.state.upgrades)};
+    occupied.occupation=occupied.deck.occupation;
+    this.system.enemies.push(occupied);this._record().spawned.push(clone(occupied));
+    const replacement=initialState(this.state.seed).ship;
+    this.state.ship={...replacement,id:`recovery-${hash(`${id}:${this.state.stats.time}`).toString(36)}`,name:'Recovery cutter'};this.state.upgrades={};this._updateStats(false);
   }
 
   healCrew(id) {
@@ -1378,6 +1608,7 @@ export class Game {
 
   _rescue(message) {
     const sh = this.state.ship;
+    delete sh.destroyed;
     const body = this.system.bodies.find(b => b.kind === 'station') || this.system.bodies[0];
     sh.hull = Math.ceil(sh.maxHull * 0.6); sh.shield = 0; sh.energy = sh.maxEnergy;
     sh.x = body.x; sh.y = body.y + body.radius + 80; sh.vx = 0; sh.vy = 0;

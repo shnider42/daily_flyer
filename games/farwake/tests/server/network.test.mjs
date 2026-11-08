@@ -95,7 +95,9 @@ test('ten separate systems advance independently while a 200ms client is delayed
     assert.ok(Math.hypot(c.game.state.ship.x, c.game.state.ship.y) > 8, 'Each captain advances without waiting for another input acknowledgment.');
     assert.ok(Math.abs((room.ticks - beforeRooms.get(systems[i])) - ticks) <= 1, 'The world advances once per system tick.');
     await until(() => clients[i].latest?.room.systemId === systems[i]);
-    assert.equal(clients[i].latest.remoteShips.length, 0); assert.equal(clients[i].latest.players.length, 0);
+    const localHullIds = [...realm.vessels.values()].filter(v => v.systemId === systems[i] && v.id !== c.aboard && !v.dockedAt).map(v => v.id).sort();
+    assert.deepEqual(clients[i].latest.remoteShips.map(v => v.id).sort(), localHullIds, 'Only physical hulls in this system are visible, including the unconnected eleventh passport’s ship in Hearth.');
+    assert.equal(clients[i].latest.players.length, 0);
     assert.ok(!('x' in clients[i].latest.presence.find(p => p.captainId !== passports[i].captainId)), 'Cross-room presence contains no detailed movement.');
   }
   const overflow = await f.register('join', created.passport.realmCode); assert.equal(overflow.status, 409);
@@ -124,7 +126,8 @@ test('ten humans aboard one capital share one canonical vessel and one helm, wit
   assert.equal(realm._actor(vessel).state.ship.humanOccupants, 10);
   assert.equal(realm.snapshotFor(owner).fleet.find(v => v.id === vessel.id).occupants, 10);
   assert.equal(realm.snapshotFor(owner).players.length, 9);
-  assert.ok([...realm.vessels.values()].filter(v => v.id !== vessel.id).every(v => v.dockedAt), 'All owned guest vessels are parked.');
+  assert.ok([...realm.vessels.values()].filter(v => v.id !== vessel.id).every(v => !v.dockedAt), 'Guest vessels remain physically in space after a crew transfer.');
+  assert.equal(realm.snapshotFor(owner).remoteShips.length, 0, 'Person mode does not render external hulls.');
   const guest = realm.captains.get(passports[1].captainId), second = realm.captains.get(passports[2].captainId);
   const before = { ...guest.game.state.person }, secondBefore = { ...second.game.state.person };
   clients[1].hold({ x: 1, y: 0 }); await pause(260); clients[1].hold({}); await pause(80);
@@ -214,11 +217,15 @@ test('assault and retreat use the canonical vessel; unrelated deck and surface v
   const room = realm.rooms.get('hearth'); room.runtime.enemies.push({ id: 'network-disabled-ship', name: 'Disabled raider', x: vessel.ship.x + 50, y: vessel.ship.y, angle: 0, radius: 18, classId: 'sparrow', hp: 40, maxHp: 100, shield: 0, disabled: true, active: false, cooldown: 60, faction: 'covenant', speed: 0, damage: 5, reward: 20 });
   const boarded = await ownerClient.command('boardEnemy', { id: 'network-disabled-ship' }); assert.equal(boarded.ok, true);
   assert.equal(owner.game.state.interior.kind, 'enemy'); assert.equal(vessel.helmOwner, null);
+  const targetVessel = realm.vessels.get(owner.aboard);
+  assert.notEqual(targetVessel.id, vessel.id); assert.equal(owner.returnVesselId, vessel.id); assert.equal(owner.game.state.ship, vessel.ship);
+  assert.equal(realm.snapshotFor(owner).state.ship.id, targetVessel.id); assert.equal(guest.aboard, vessel.id);
   assert.equal(realm.snapshotFor(owner).room.kind, 'boarding'); assert.equal(realm.snapshotFor(owner).state.boarding.phase, 'active');
   assert.equal(realm.snapshotFor(guest).state.boarding, null, 'Friendly deck does not display enemy-deck combat.');
   assert.equal((await guestClient.command('attackBoarder')).result.code, 'location');
   assert.equal((await ownerClient.command('retreatBoarding')).ok, true);
-  assert.equal(owner.game.state.mode, 'ship'); assert.equal(vessel.helmOwner, owner.id); assert.equal(owner.game.state.boarding, null); assert.equal(owner.game.state.boardingHistory.at(-1).phase, 'retreated');
+  assert.equal(owner.game.state.mode, 'ship'); assert.equal(vessel.helmOwner, owner.id); assert.equal(owner.aboard, vessel.id); assert.equal(owner.game.state.boarding, null); assert.equal(owner.game.state.boardingHistory.at(-1).phase, 'retreated');
+  assert.equal(targetVessel.boarding.phase, 'retreated'); assert.ok(targetVessel.ship.hull > 0); assert.equal(targetVessel.dockedAt, null);
   landAt(realm, owner); assert.equal(realm.snapshotFor(owner).state.boarding, null, 'A planetary view never renders stale ship boarders.');
 });
 

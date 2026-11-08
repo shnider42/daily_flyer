@@ -3,7 +3,27 @@ export class Soundscape{
  constructor(enabled=()=>true){this.enabled=enabled;this.ctx=null;this.master=null;this.last={};this.ambient=null;bindAudioActivation(()=>this.unlock(),{enabled});}
  unlock(){if(!this.enabled())return;try{playbackSession();if(!this.ctx){this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=.17;this.master.connect(this.ctx.destination);}if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null){if(!this.enabled()||!this.ctx||this.ctx.state!=='running')return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.03);}catch{}}
- play(name){const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;switch(name){case'fire':this.tone(520,.13,'square',.11,90);break;case'hit':this.tone(80,.18,'sawtooth',.22,20);break;case'mine':this.tone(260,.14,'triangle',.13,320);break;case'pickup':this.tone(480,.12,'sine',.3,760);break;case'dock':this.tone(180,.65,'triangle',.2,540);break;case'jump':this.tone(65,1.2,'sawtooth',.2,900);break;case'click':this.tone(680,.04,'sine',.15);break;case'footstep':this.tone(60,.05,'triangle',.13,35);break;case'quest':this.tone(440,.4,'sine',.22);setTimeout(()=>this.tone(660,.5,'sine',.2),140);break;case'alert':this.tone(220,.25,'triangle',.2);break;}}
+ play(name){
+  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
+  switch(name){
+   case'sidearm':this.tone(740,.095,'square',.20,210);this.tone(1340,.045,'triangle',.10,640);break;
+   case'crewShot':this.tone(470,.09,'triangle',.13,180);break;
+   case'enemyShot':this.tone(250,.12,'sawtooth',.13,95);break;
+   case'sidearmHit':this.tone(910,.06,'sine',.18,590);break;
+   case'personHit':this.tone(94,.17,'triangle',.28,32);this.tone(180,.07,'square',.09,80);break;
+   case'personDown':this.tone(175,.28,'triangle',.19,56);break;
+   case'fire':this.tone(520,.13,'square',.11,90);break;
+   case'hit':this.tone(80,.18,'sawtooth',.22,20);break;
+   case'mine':this.tone(260,.14,'triangle',.13,320);break;
+   case'pickup':this.tone(480,.12,'sine',.3,760);break;
+   case'dock':this.tone(180,.65,'triangle',.2,540);break;
+   case'jump':this.tone(65,1.2,'sawtooth',.2,900);break;
+   case'click':this.tone(680,.04,'sine',.15);break;
+   case'footstep':this.tone(60,.05,'triangle',.13,35);break;
+   case'quest':this.tone(440,.4,'sine',.22);setTimeout(()=>this.tone(660,.5,'sine',.2),140);break;
+   case'alert':this.tone(220,.25,'triangle',.2);break;
+  }
+ }
  atmosphere(time,mode,music){if(!music||!this.enabled())return;if(time-(this.musicTime??-10)<4.8)return;this.musicTime=time;const notes=mode==='person'?[130.81,164.81,196,146.83,174.61,196,164.81,146.83]:[65.41,98,130.81,82.41,110,146.83,98,73.42];const i=(this.noteIndex??0)%notes.length;this.noteIndex=i+1;this.tone(notes[i],4.5,'sine',.10);this.tone(notes[i]*1.5,3.8,'sine',.035);}
  mute(){if(this.master)this.master.gain.value=this.enabled()?.17:0;}
 }

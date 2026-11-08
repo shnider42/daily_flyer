@@ -9,6 +9,11 @@ const defaultStorage = () => { try { return globalThis.localStorage; } catch { r
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
 const zeroCorrection = () => ({ x: 0, y: 0, angle: 0 });
 const resetEvents = new Set(['jump', 'dock', 'launch', 'ship-class', 'rescue']);
+const aboardIdentity = state => state?.multiplayer?.aboardVesselId || state?.interior?.vesselId || state?.interior?.location?.vesselId || state?.ship?.id || null;
+const hullClass = value => value?.classId || value?.shipClassId || value?.shipClass || null;
+const sameRemoteContext = (a, b) => (a?.roomId ?? null) === (b?.roomId ?? null) && (a?.systemId ?? null) === (b?.systemId ?? null) &&
+  (a?.vesselId ?? null) === (b?.vesselId ?? null) && (a?.mode ?? null) === (b?.mode ?? null) &&
+  hullClass(a?.ship || a) === hullClass(b?.ship || b) && (a?.ship?.id ?? null) === (b?.ship?.id ?? null);
 
 export function readPassports(storage = defaultStorage()) {
   try { return JSON.parse(storage?.getItem(PASSPORT_STORAGE_KEY) || '{}'); } catch { return {}; }
@@ -32,6 +37,8 @@ export function mergeSnapshot(previous, packet) {
     world.asteroids = (previous.world?.asteroids || []).map(rock => { const values = states.get(rock.id); return values ? { ...rock, angle: values[1], hp: values[2], ore: values[3], crystal: values[4] } : rock; });
     delete world.asteroidStates;
   }
+  // Compact ship, multiplayer and interior values are complete replacements.
+  // In particular, null clears a departed deck and false clears old permissions.
   return { ...previous, ...packet, partial: false, state: { ...previous.state, ...packet.state }, world };
 }
 
@@ -56,14 +63,20 @@ export class RemoteInterpolator {
     const blend = (kind, idKey) => latest[kind].map(current => {
       const left = a[kind].find(v => v[idKey] === current[idKey]) || current;
       const right = b[kind].find(v => v[idKey] === current[idKey]) || left;
+      // One captain can change decks or take another hull without the observer
+      // changing rooms. Never interpolate that transition through empty space.
+      if (!sameRemoteContext(left, current) || !sameRemoteContext(right, current) || current.down || current.health <= 0 ||
+        Math.hypot((left.x || 0) - (current.x || 0), (left.y || 0) - (current.y || 0)) >= 250 ||
+        Math.hypot((right.x || 0) - (current.x || 0), (right.y || 0) - (current.y || 0)) >= 250) return copy(current);
+      const value = copy(current);
       if (b.at > a.at) {
-        const t = bounded((target - a.at) / (b.at - a.at), 0, 1), value = { ...current };
+        const t = bounded((target - a.at) / (b.at - a.at), 0, 1);
         for (const key of ['x', 'y']) value[key] = (left[key] || 0) + ((right[key] || 0) - (left[key] || 0)) * t;
-        if (typeof left.angle === 'number') value.angle = left.angle + Math.atan2(Math.sin((right.angle || 0) - left.angle), Math.cos((right.angle || 0) - left.angle)) * t;
+        for (const key of ['angle', 'aimAngle']) if (typeof left[key] === 'number' && typeof right[key] === 'number') value[key] = left[key] + Math.atan2(Math.sin(right[key] - left[key]), Math.cos(right[key] - left[key])) * t;
         return value;
       }
       const seconds = bounded((target - a.at) / 1000, 0, .25);
-      return { ...current, x: (left.x || 0) + (left.vx || 0) * seconds, y: (left.y || 0) + (left.vy || 0) * seconds, angle: (left.angle || 0) + (left.angularVelocity || 0) * seconds };
+      return { ...value, x: (left.x || 0) + (left.vx || 0) * seconds, y: (left.y || 0) + (left.vy || 0) * seconds, angle: (left.angle || 0) + (left.angularVelocity || 0) * seconds };
     });
     return { remoteShips: blend('remoteShips', 'id'), players: blend('players', 'captainId') };
   }
@@ -185,19 +198,21 @@ export class FarwakeNetwork {
     const now = this.now(); this._advancePrediction(now);
     const previous = this.predictedShip, displayed = this.renderedShip;
     const changedRoom = this.lastRoomId !== packet.room?.id || this.state?.systemId !== packet.state.systemId || this.state?.mode !== packet.state.mode;
-    const changedClass = this.state?.ship?.classId !== packet.state.ship?.classId || this.state?.ship?.id !== packet.state.ship?.id;
+    const changedClass = hullClass(this.state?.ship) !== hullClass(packet.state.ship);
+    const changedVessel = this.state?.ship?.id !== packet.state.ship?.id || aboardIdentity(this.state) !== aboardIdentity(packet.state);
     const transition = packet.resetPrediction || packet.teleport || packet.events?.some(event => resetEvents.has(event.type));
     const authorityAt = this.snapshotTime(packet, now);
     this.latest = packet; this.state = packet.state; this.world = packet.world; this.room = packet.room;
     this.authorityAt = authorityAt;
     this.unacknowledged = this.unacknowledged.filter(frame => frame.seq > (packet.ack || 0));
     let predicted = { ...packet.state.ship };
-    const explicitReset = reset || !previous || changedRoom || changedClass || transition;
+    const explicitReset = reset || !previous || changedRoom || changedClass || changedVessel || transition;
     if (!explicitReset && this._predictsShip()) for (const frame of this.inputHistory.frames(authorityAt, Math.min(now, authorityAt + MAX_PREDICTION_MS))) predicted = advanceShip(predicted, frame.dt, frame.input, { worldRadius: this._radius() });
     const error = previous ? Math.hypot(previous.x - predicted.x, previous.y - predicted.y) : Infinity;
-    this.predictionReset = reset || !previous ? 'welcome' : changedRoom ? 'room' : changedClass ? 'class' : transition || error >= 250 ? 'teleport' : null;
+    this.predictionReset = reset || !previous ? 'welcome' : changedRoom ? 'room' : changedClass ? 'class' : changedVessel ? 'vessel' : transition || error >= 250 ? 'teleport' : null;
     if (this.predictionReset) {
       this.visualOffset = zeroCorrection(); this.input = {}; this.inputHistory.reset(now); this.authorityAt = now;
+      this.unacknowledged = []; this.lastInputSentAt = null; this.lastInputRecordAt = now;
     } else this.visualOffset = poseCorrection(displayed, predicted);
     this.lastRoomId = packet.room?.id; this.predictedShip = predicted; this.predictedAt = this.clampPredictionTime(now); this.visualAt = now;
     this.renderedShip = correctedPose(predicted, this.visualOffset, this._radius());

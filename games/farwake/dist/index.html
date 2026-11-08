@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
+<meta name="application-version" content="0.3.0">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css">
 </head>
@@ -14,6 +15,7 @@
  <button id="onlineButton" data-open="online" class="network-button"><i></i><span id="networkLabel">CREW</span></button>
  <button id="pauseButton" class="icon-button" aria-label="Settings and pause" title="Settings and pause"><span aria-hidden="true" class="pause-glyph"></span></button>
 </header>
+<div id="testBar" class="test-bar" hidden><span><b>TEST MODE</b> <span id="testScenarioName">Isolated practice</span></span><div><button id="retryTest">Retry</button><button id="chooseTest">Scenarios</button><button id="exitTest">Exit test</button></div></div>
 <main class="flightdeck" id="flightdeck">
  <canvas id="gameCanvas" aria-label="Farwake game world. W thrust, S slow, A and D strafe, arrow keys turn. E interacts, Space fires, R mines." tabindex="0"></canvas>
  <canvas id="labelCanvas" aria-hidden="true"></canvas>
@@ -23,6 +25,7 @@
  <div class="coordinate" id="coordinate">+0000 / +0000</div>
  <aside class="contacts-panel" id="contactsPanel" hidden><div class="panel-eyebrow"><span>LOCAL SCANNER</span><i class="live-dot"></i></div><canvas id="radarCanvas" width="200" height="154" aria-label="Local system radar"></canvas><div id="contactsList" class="contact-list"></div><div class="scanner-foot">CHOOSE A CONTACT TO TRACK</div></aside>
  <div class="objective-card" id="objectiveCard"><span class="objective-icon">◇</span><div><div class="eyebrow" id="objectiveKind">THE QUIET EARTH</div><strong id="objectiveTitle">A borrowed tomorrow</strong><p id="objectiveText">Dock at Kettle Station. Someone there knows your ship.</p></div><button id="objectiveDetails" aria-label="Open mission journal">→</button><button id="objectiveToggle" aria-label="Collapse objective">−</button></div>
+ <aside id="combatPanel" class="combat-panel" aria-label="Sidearm and boarding status" hidden><div class="combat-heading"><span class="sidearm-glyph" aria-hidden="true"></span><strong id="weaponName">Pulse sidearm</strong><span id="weaponState">READY</span></div><p class="combat-controls"><span class="desktop-combat-hint">Mouse / arrows aim · Click / Space fire<br>WASD move · E use</span><span class="touch-combat-hint">Left stick moves · Right stick aims &amp; fires<br>FIRE uses the marked target</span></p><div id="aimStatus" class="aim-status">Aim assist ready</div><div id="combatCount" class="combat-count"></div><div id="combatFeed" class="combat-feed" aria-live="polite"></div><button id="combatHelp">Weapon &amp; boarding help</button></aside>
  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
  <div class="interaction-wrap"><button id="contextButton" class="context-button"><span class="key-label">E</span><span id="contextText">Approach a station to dock</span><span>→</span></button></div>
  <div class="cockpit">
@@ -30,7 +33,7 @@
   <div class="resourcebar"><span class="shipname"><span class="tiny-dot"></span><b id="shipName">CINDER / SPARROW</b></span><span class="resource"><small>CR</small><b id="credits">180</b></span><span class="resource"><small>HOLD</small><b id="cargo">0 / 24</b></span><span class="resource fuel-resource"><small>FUEL</small><b id="fuel">73</b><em>%</em></span><span class="save-state" id="saveState">SOLO SAVE</span></div>
  </div>
  <div id="welcome" class="welcome-overlay">
-  <div class="welcome-content"><span class="edition">DAILYFLYER · A SHARED GALAXY</span><h2>FARWAKE<span>THE QUIET EARTH</span></h2><p class="welcome-hook">One ship.<br>A thousand reasons to keep going.</p><p class="welcome-lore">Earth has been silent for ninety years.<br>Out here, everyone has a different story why.</p><div class="welcome-actions"><button id="resumeGalaxy" class="button-primary" hidden>Return to your galaxy <span>→</span></button><button id="createGalaxy" class="button-primary">Create a shared galaxy <span>→</span></button><button id="joinGalaxy" class="button-secondary">Join with a galaxy code</button></div><div class="solo-actions"><button id="continueButton" hidden>Continue solo voyage</button><button id="startButton">Play solo</button></div><div class="welcome-meta"><span>1–10 CAPTAINS</span><span>300 SYSTEMS</span><span>YOUR CHOICES STAY</span></div></div>
+  <div class="welcome-content"><span class="edition">DAILYFLYER · A SHARED GALAXY</span><h2>FARWAKE<span>THE QUIET EARTH</span></h2><p class="welcome-hook">One ship.<br>A thousand reasons to keep going.</p><p class="welcome-lore">Earth has been silent for ninety years.<br>Out here, everyone has a different story why.</p><div class="welcome-actions"><button id="resumeGalaxy" class="button-primary" hidden>Return to your galaxy <span>→</span></button><button id="createGalaxy" class="button-primary">Create a shared galaxy <span>→</span></button><button id="joinGalaxy" class="button-secondary">Join with a galaxy code</button></div><div class="solo-actions"><button id="continueButton" hidden>Continue solo voyage</button><button id="startButton">Play solo</button></div><div class="welcome-meta"><span>1–10 CAPTAINS</span><span>300 SYSTEMS</span><span>YOUR CHOICES STAY</span></div><button id="testModeButton" class="test-mode-link">Test mode</button></div>
   <div class="welcome-stamp"><span>TRANSMISSION 001</span><b>IS ANYONE<br>STILL HOME?</b><small>ORIGIN: SOL · SIGNAL: UNKNOWN</small></div>
  </div>
 </main>

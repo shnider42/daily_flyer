@@ -1,0 +1,340 @@
+/** Persistent physical hulls and authoritative deck combat for a shared realm. */
+import { Game, distance } from '../dist/engine.mjs';
+import { getShipClass, enemyHullProfile, enemyShipState, cabinLayout, CREW_ROLES } from '../dist/fleet.mjs';
+import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from '../dist/combat.mjs';
+import { clone, fail, ok, SURFACE_RANGE } from './protocol.mjs';
+
+const alive = captain => captain.game.state.person.health > 0 && !captain.game.state.person.down;
+const present = (captain, vessel) => captain.aboard === vessel.id && alive(captain);
+const weak = vessel => !vessel.destroyed && vessel.ship.hull > 0 && vessel.ship.hull <= vessel.ship.maxHull * .48 && vessel.ship.shield <= vessel.ship.maxShield * .2;
+const airborne = vessel => vessel && !vessel.dockedAt && !vessel.destroyed && vessel.ship.hull > 0;
+const close = (one, two, range = 220) => one && two && one.systemId === two.systemId && distance(one.ship, two.ship) <= range + Math.max(one.ship.radius || 0, two.ship.radius || 0);
+const liveCrew = crew => !crew.dead && crew.health > 0;
+
+export class BoardingAuthority {
+  _migrateLegacyBoarding() {
+    for (const source of [...this.vessels.values()]) {
+      const old = source.boarding;
+      if (source.npcEnemyId || !source.combatInterior || old?.kind !== 'assault') continue;
+      const people = [...this.captains.values()].filter(c => c.aboard === source.id && c.game.state.interior?.kind === 'enemy');
+      if (!people.length) continue;
+      const leader = people.find(c => c.id === source.boardingLeaderId) || people[0], room = this._room(source.systemId);
+      let enemy = room.runtime.enemies.find(enemy => enemy.id === old.targetId);
+      if (!enemy) {
+        // Earlier versions removed a hull on a boarding victory; preserve the
+        // already-earned clear without awarding its stores a second time.
+        const recorded = this.worlds[source.systemId]?.enemies?.find(enemy => enemy.id === old.targetId);
+        const maximum = recorded?.maxHp || 100, hp = recorded?.hp > 0 ? recorded.hp : maximum * .35;
+        enemy = { id: old.targetId, name: source.combatInterior.location?.name?.replace(/ ·.*$/, '') || 'Boarded vessel', classId: old.shipClass || 'sparrow',
+          x: recorded?.x ?? source.ship.x + source.ship.radius + 85, y: recorded?.y ?? source.ship.y, hp, maxHp: maximum, shield: 0, angle: recorded?.angle || 0,
+          disabled: true, active: false, cooldown: 99, speed: 0, damage: 5, reward: 0, faction: 'covenant' };
+        room.runtime.enemies.push(enemy); room.record.defeated = room.record.defeated.filter(id => id !== enemy.id); room.record.spawned.push(clone(enemy));
+      }
+      Object.assign(enemy, enemyHullProfile(old.shipClass || enemy.classId));
+      const id = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy); ship.id = id;
+      const occupation = { boarderId: leader.id, controllerId: old.phase === 'won' ? leader.id : null, controllerTeam: old.phase === 'won' ? leader.id : null, contested: old.phase === 'active' };
+      const boarding = { ...old, originVesselId: source.id, vesselId: id, targetVesselId: id, locationId: `ship:${id}`, leaderId: leader.id, allies: [] };
+      enemy.deck = { shipClass: ship.classId, enemies: boarding.enemies, cleared: old.phase === 'won', rewardClaimed: old.phase === 'won', occupation, shotSerial: old.shotSerial || 0 }; enemy.occupation = occupation;
+      const target = { id, ownerId: leader.id, name: enemy.name, systemId: source.systemId, dockedAt: null, ship, npcEnemyId: enemy.id, npcHostile: old.phase !== 'won', captured: old.phase === 'won',
+        allowCrew: false, grants: {}, helmOwner: null, bunks: {}, installedBunks: 0, actor: null, flightAssist: true, hostileTo: [], inventory: { crew: [], formerCrew: [], memorial: [], boardingHistory: [] },
+        boarding, boardingLeaderId: leader.id, occupation, combatInterior: clone(source.combatInterior) };
+      target.combatInterior.location = { ...target.combatInterior.location, ...this._locationForVessel(target), vesselId: target.id, shipClass: ship.classId };
+      this.vessels.set(id, target); source.boarding = null; source.combatInterior = null; source.boardingLeaderId = null; source.helmOwner = null;
+      const owner = this.captains.get(source.ownerId); if (owner) owner.game.state.boarding = null;
+      for (const captain of people) { captain.aboard = id; captain.returnVesselId = source.id; captain.boardingTeam = source.ownerId; captain.game.state.boarding = null;
+        captain.game.state.interior = clone(target.combatInterior); captain.game.state.locationId = `ship:${id}`; captain.surfaceCache = null; this._bindCaptain(captain);
+        captain.events.push({ type: 'boarding', text: `Your boarding party remains aboard ${target.name}. Your original ship and its hired crew are at the tether.` }); }
+      this._linkNpcVessel(target);
+    }
+  }
+  _inventoryFor(vessel) {
+    const owner = this.captains.get(vessel.ownerId);
+    if (vessel.id === owner?.ownedVesselId) return owner.game.state;
+    const inventory = vessel.inventory ||= {};
+    for (const field of ['crew', 'formerCrew', 'memorial', 'boardingHistory']) inventory[field] ||= [];
+    inventory.cargo ||= { ore: 0, crystal: 0 }; inventory.upgrades ||= {}; return inventory;
+  }
+  _crewFor(vessel) {
+    const owner = this.captains.get(vessel.ownerId);
+    return this._inventoryFor(vessel).crew;
+  }
+  _vesselTeam(vessel) { return vessel.occupation?.controllerTeam || vessel.ownerId; }
+  _captainTeam(captain, vessel) { return captain?.boardingTeam || vessel.ownerId; }
+  _hostileOccupied(vessel) {
+    if (!vessel) return false;
+    if (vessel.npcOccupied || vessel.npcHostile && !vessel.captured) return true;
+    if (vessel.boarding?.phase === 'active' && vessel.boarding.kind === 'defense') return true;
+    return [...this.captains.values()].some(c => present(c, vessel) && this._captainTeam(c, vessel) !== vessel.ownerId) || !!(vessel.occupation?.controllerId && vessel.occupation.controllerTeam !== vessel.ownerId);
+  }
+  _shipsHostile(source, target) {
+    if (!source || !target || source.id === target.id || this._vesselTeam(source) === this._vesselTeam(target) && !target.npcHostile) return false;
+    return !!(target.npcHostile || source.npcHostile || source.hostileTo?.includes(target.id) || target.hostileTo?.includes(source.id));
+  }
+  _canDeclareHostility(captain, target) {
+    const source = this.vessels.get(captain.aboard);
+    return !!(airborne(source) && airborne(target) && this._helm(captain, source) && this._canRole(captain, source, 'helm') && source.id !== target.id && this._vesselTeam(source) !== this._vesselTeam(target) && close(source, target, 900));
+  }
+  _canHostileBoard(captain, target) {
+    const source = this.vessels.get(captain.aboard);
+    return !!(airborne(source) && airborne(target) && this._helm(captain, source) && source.id !== target.id && this._shipsHostile(source, target) && weak(target) && close(source, target) && Math.hypot(target.ship.vx || 0, target.ship.vy || 0) < 90);
+  }
+  _canTakeCapturedHelm(captain, vessel) {
+    if (!vessel || !present(captain, vessel) || vessel.destroyed || captain.game.state.mode !== 'person') return false;
+    if (vessel.boarding?.phase === 'active') return false;
+    if (!vessel.pvp && vessel.npcEnemyId) return !vessel.npcOccupied && !!(vessel.boarding?.phase === 'won' || vessel.captured || this._enemyFor(vessel)?.deck?.cleared);
+    if (!vessel.pvp || this._captainTeam(captain, vessel) === vessel.ownerId) return false;
+    const team = this._captainTeam(captain, vessel);
+    return ![...this.captains.values()].some(other => present(other, vessel) && this._captainTeam(other, vessel) !== team) && !this._crewFor(vessel).some(liveCrew);
+  }
+  _canReturn(captain) {
+    const source = this.vessels.get(captain.returnVesselId), target = this.vessels.get(captain.aboard);
+    return !!(source && target && source.id !== target.id && airborne(source) && close(source, target, 270) && this._canBoard(captain, source) && !this._hostileOccupied(source));
+  }
+  _declareHostility(captain, args) {
+    const target = this.vessels.get(args.vesselId || args.id), source = this.vessels.get(captain.aboard);
+    if (!this._canDeclareHostility(captain, target)) return fail('Declare hostility from a permitted helm within 900 metres of another undocked vessel.', 'distance');
+    source.hostileTo ||= []; target.hostileTo ||= [];
+    if (!source.hostileTo.includes(target.id)) source.hostileTo.push(target.id);
+    if (!target.hostileTo.includes(source.id)) target.hostileTo.push(source.id);
+    const event = { type: 'hostility', attackerId: captain.id, vesselId: source.id, targetVesselId: target.id, text: `${captain.name} declared ${source.name} hostile to ${target.name}. Both vessels can now exchange fire.` };
+    for (const person of this.captains.values()) if ([source.id, target.id].includes(person.aboard) || person.id === target.ownerId) person.events.push(event);
+    return ok({ text: `Hostility declared against ${target.name}.`, vesselId: target.id });
+  }
+  _enemyFor(vessel) { return vessel.npcEnemyId ? this._room(vessel.systemId).runtime.enemies.find(enemy => enemy.id === vessel.npcEnemyId) : null; }
+  _linkNpcVessel(vessel) {
+    const enemy = this._enemyFor(vessel); if (!enemy) return;
+    enemy.canonicalVesselId = vessel.id; enemy.promotedVesselId = vessel.id; enemy.hp = vessel.ship.hull; enemy.maxHp = vessel.ship.maxHull;
+    enemy.x = vessel.ship.x; enemy.y = vessel.ship.y; enemy.vx = vessel.ship.vx || 0; enemy.vy = vessel.ship.vy || 0; enemy.angle = vessel.ship.angle;
+    enemy.shield = vessel.ship.shield; enemy.active = false; enemy.disabled = weak(vessel); enemy.occupation = vessel.occupation || enemy.occupation;
+    if (enemy.deck && vessel.boarding?.enemies) enemy.deck.enemies = vessel.boarding.enemies;
+  }
+  _boardEnemy(captain, args) {
+    const source = this.vessels.get(captain.aboard), id = args.enemyId || args.id;
+    if (!this._helm(captain, source)) return fail('Approach the damaged vessel from the helm.', 'helm');
+    const enemy = this._room(source.systemId).runtime.enemies.find(candidate => candidate.id === id);
+    if (!enemy) return fail('That vessel is no longer here.', 'target');
+    let target = enemy.canonicalVesselId && this.vessels.get(enemy.canonicalVesselId);
+    if (target && (target.captured || target.pvp || target.dockedAt)) return fail('This hull has a player-controlled berth. Use crew access or explicitly declare a hostile boarding action.', 'permission');
+    if (target && (target.destroyed || [...this.captains.values()].some(other => other.id !== captain.id && present(other, target)))) return fail('That vessel already has an active boarding party.', 'boarding');
+    if (target) { this._linkNpcVessel(target); enemy.disabled = weak(target) || target.captured; }
+    const actor = this._actor(source); actor.state.person = captain.game.state.person; actor._boardingLeaderId = captain.id; actor._playerName = captain.name;
+    let result;
+    if (target) {
+      if (!weak(target) && !target.captured) return fail('Disable the target hull and shields before crossing.', 'disabled');
+      if (distance(source.ship, target.ship) > source.ship.radius + target.ship.radius + 110) return fail('Close to the damaged vessel before attaching a tether.', 'distance');
+      result = actor._enterInterior(actor._enemyLocation(enemy), 'enemy', enemy.id);
+      if (result.ok) result = actor._beginBoarding(enemy, 'assault', target.ship.classId);
+    } else result = actor.boardEnemy(id);
+    if (!result.ok) return result;
+    const boarding = actor.state.boarding, interior = clone(actor.state.interior);
+    boarding.originVesselId = source.id;
+    if (!target) {
+      const vesselId = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy); ship.id = vesselId;
+      target = { id: vesselId, ownerId: captain.id, name: enemy.name, systemId: source.systemId, dockedAt: null, ship, npcEnemyId: enemy.id, npcHostile: true, captured: false,
+        allowCrew: false, grants: {}, helmOwner: null, bunks: {}, installedBunks: 0, actor: null, flightAssist: true, hostileTo: [], inventory: { crew: [], formerCrew: [], memorial: [], boardingHistory: [] } };
+      this.vessels.set(target.id, target);
+    }
+    // Hired crew remain on the source ship. A person never occupies two hulls.
+    boarding.allies = []; boarding.vesselId = target.id; boarding.targetVesselId = target.id;
+    target.boarding = boarding; target.boardingLeaderId = captain.id; target.combatInterior = interior;
+    target.occupation = { boarderId: captain.id, controllerId: null, controllerTeam: null, contested: boarding.phase === 'active' };
+    if (enemy.deck) enemy.deck.occupation = target.occupation;
+    interior.location.id = `ship:${target.id}`; interior.location.vesselId = target.id; interior.location.classId = target.ship.classId; interior.location.shipClassId = target.ship.classId;
+    target.combatInterior = interior; target.actor = null;
+    source.boarding = null; actor.state.boarding = null; actor.state.interior = null; actor.state.mode = 'ship'; source.helmOwner = null;
+    if (source.id === captain.ownedVesselId) captain.game.state.boarding = null;
+    captain.returnVesselId = source.id; captain.boardingTeam = this._vesselTeam(source); captain.aboard = target.id; captain.crewRole = 'security';
+    captain.game.state.mode = 'person'; captain.game.state.interior = clone(interior); captain.game.state.locationId = interior.location.id; captain.game.state.person = clone(actor.state.person);
+    captain.surfaceCache = null; this._bindCaptain(captain); this._ensurePersonPosition(captain, true); this._linkNpcVessel(target);
+    for (const event of actor.drainEvents()) captain.events.push(event);
+    return ok({ text: `You crossed to ${target.name}. Your ship remains at the tether.`, vesselId: target.id, boarding: clone(boarding), body: this._location(captain) });
+  }
+  _boardHostileShip(captain, args) {
+    const target = this.vessels.get(args.vesselId || args.id), source = this.vessels.get(captain.aboard);
+    if (!this._canHostileBoard(captain, target)) return fail('Declare hostility, disable the target hull and shields, then approach within 220 metres at low speed.', 'boarding');
+    if (target.npcOccupied && target.boarding?.enemies.some(enemy => enemy.health > 0)) {
+      source.helmOwner = null; captain.returnVesselId = source.id; captain.boardingTeam = target.ownerId; this._cabin(captain, target); captain.crewRole = 'security';
+      target.boarding.phase = 'active'; target.boarding.unopposedTime = 0; target.boardingLeaderId = captain.id; target.lastBoardingOutcome = null; target.actor = null;
+      return ok({ text: `You returned to the occupied deck of ${target.name}. The surviving pirates are still aboard.`, vesselId: target.id });
+    }
+    if (target.npcEnemyId && !target.captured) return this._boardEnemy(captain, { id: target.npcEnemyId });
+    if (target.boarding?.phase === 'active' && target.boarding.kind !== 'pvp') return fail('Clear the existing pirate boarding action before another party crosses.', 'boarding');
+    this._ensurePvP(target);
+    source.helmOwner = null; captain.returnVesselId = source.id; captain.boardingTeam = this._vesselTeam(source);
+    this._cabin(captain, target); captain.crewRole = 'security'; ensureSidearm(captain.game.state.person).weaponDrawn = true;
+    const oldHelm = this.captains.get(target.helmOwner);
+    if (oldHelm && oldHelm.id !== captain.id) {
+      this._cabin(oldHelm, target);
+      const bridge = this._surface(oldHelm)?.entities.find(entity => entity.data?.stationRole === 'helm');
+      if (bridge) Object.assign(oldHelm.game.state.person, { x: bridge.x, y: bridge.y });
+    }
+    target.helmOwner = null; target.pvp.phase = 'active'; target.pvp.attackerIds ||= [];
+    if (!target.pvp.attackerIds.includes(captain.id)) target.pvp.attackerIds.push(captain.id);
+    this._refreshOccupation(target);
+    this._deckEvent(target, { type: 'boarding', boardingId: target.pvp.id, attackerId: captain.id, text: `${captain.name} crossed the tether. The hulls remain exposed to space combat.` });
+    return ok({ text: `You are aboard ${target.name}. Clear its defenders to take the bridge.`, vesselId: target.id });
+  }
+  _ensurePvP(vessel) {
+    if (vessel.pvp) return vessel.pvp;
+    const layout = cabinLayout(vessel.ship.classId), crew = this._crewFor(vessel);
+    vessel.pvp = { id: `pvp:${vessel.id}:${this.tick}`, phase: 'active', shipClass: vessel.ship.classId, startedAt: this.simulatedAt, combatTime: 0, shotSerial: 0, attackerIds: [], crewActors: crew.filter(liveCrew).map((member, i) => ({ id: `crew:${member.id}`, crewId: member.id, name: member.name, role: member.role,
+      ...layout.crewSpawns[i % layout.crewSpawns.length], health: member.health, maxHealth: member.maxHealth || 100, damage: CREW_ROLES[member.role]?.damage || 8, speed: 52, cooldown: 1.5 + i * .2, teamId: vessel.ownerId, color: member.color, facing: 'down' })) };
+    return vessel.pvp;
+  }
+  _refreshOccupation(vessel) {
+    if (!vessel?.pvp) return;
+    const living = [...this.captains.values()].filter(c => present(c, vessel)), invaders = living.filter(c => this._captainTeam(c, vessel) !== vessel.ownerId);
+    const teams = new Set(living.map(c => this._captainTeam(c, vessel))); if (this._crewFor(vessel).some(liveCrew)) teams.add(vessel.ownerId);
+    const controller = this.captains.get(vessel.occupation?.controllerId);
+    const controllerPresent = controller && present(controller, vessel);
+    vessel.occupation = { boarderId: invaders[0]?.id || null, controllerId: controllerPresent ? controller.id : null, controllerTeam: controllerPresent ? this._captainTeam(controller, vessel) : null, contested: teams.size > 1 };
+    vessel.pvp.phase = teams.size > 1 ? 'active' : invaders.length ? 'won' : 'repelled';
+    if (!controllerPresent && vessel.helmOwner && this._captainTeam(this.captains.get(vessel.helmOwner), vessel) !== vessel.ownerId) vessel.helmOwner = null;
+  }
+  _returnToOwnShip(captain) {
+    const target = this.vessels.get(captain.aboard), origin = this.vessels.get(captain.returnVesselId);
+    if (!this._canReturn(captain)) return fail('Your return vessel must be intact, free of boarders, and within tether range.', 'distance');
+    if (captain.game.state.mode !== 'person') return fail('Step into the cabin before crossing the tether.', 'mode');
+    const airlock = cabinLayout(target.ship.classId).spawn;
+    if (distance(captain.game.state.person, airlock) > 70) return fail('Return to the entry airlock before crossing back.', 'distance');
+    if (target.helmOwner === captain.id) target.helmOwner = null;
+    const wasNpc = !!target.npcEnemyId;
+    if (wasNpc && target.boarding?.phase === 'active') {
+      const event = { ...target.boarding, phase: 'retreated', endedAt: captain.game.state.stats.time };
+      captain.game.state.boardingHistory.push({ id: event.id, kind: 'assault', phase: 'retreated', systemId: target.systemId, time: event.endedAt, casualties: [] });
+      target.boarding.phase = 'retreated'; target.boardingLeaderId = null; target.occupation = { boarderId: null, controllerId: null, contested: false };
+      const enemy = this._enemyFor(target); if (enemy) { delete enemy.boardingTargetId; delete enemy.boardingOriginId; if (enemy.deck) enemy.deck.occupation = target.occupation; }
+    }
+    captain.returnVesselId = null; captain.boardingTeam = null; captain.game.state.boarding = null;
+    this._cabin(captain, origin);
+    if (!origin.helmOwner && this._canRole(captain, origin, 'helm')) { origin.helmOwner = captain.id; captain.crewRole = 'helm'; captain.game.state.mode = 'ship'; captain.game.state.locationId = null; captain.game.state.interior = null; }
+    this._refreshOccupation(target); this._linkNpcVessel(target);
+    return ok({ text: `You returned to ${origin.name}. ${target.name} remains where you left it.`, vesselId: origin.id });
+  }
+  _takeCapturedHelm(captain) {
+    const vessel = this.vessels.get(captain.aboard);
+    if (!this._canTakeCapturedHelm(captain, vessel)) return fail('Clear the opposing crew before claiming the bridge.', 'boarding');
+    const bridge = this._surface(captain)?.entities.find(entity => entity.data?.stationRole === 'helm');
+    if (!bridge || distance(bridge, captain.game.state.person) > SURFACE_RANGE) return fail('Walk to the bridge helm first.', 'distance');
+    if (vessel.helmOwner && vessel.helmOwner !== captain.id) return fail('Another captain holds the helm.', 'station-occupied');
+    if (vessel.npcEnemyId && !vessel.pvp) { vessel.captured = true; vessel.npcHostile = false; vessel.ownerId = captain.id; captain.boardingTeam = captain.id; }
+    vessel.occupation = { boarderId: captain.id, controllerId: captain.id, controllerTeam: this._captainTeam(captain, vessel), contested: false };
+    vessel.helmOwner = captain.id; captain.crewRole = 'helm'; captain.game.state.mode = 'ship'; captain.game.state.interior = null; captain.game.state.locationId = null; captain.game.state.boarding = null;
+    vessel.actor = null; this._linkNpcVessel(vessel);
+    return ok({ text: `You take ${vessel.name}'s helm. Your original ship remains in this system.`, vesselId: vessel.id });
+  }
+  _deckEvent(vessel, event) { for (const captain of this.captains.values()) if (captain.aboard === vessel.id) captain.events.push(event.teamId ? { ...event, team: event.attackerId === captain.id ? 'player' : event.teamId === this._captainTeam(captain, vessel) ? 'friendly' : 'hostile' } : event); }
+  _deckPeople(vessel) {
+    return [...this.captains.values()].filter(c => c.aboard === vessel.id && c.game.state.mode === 'person').map(c => ({ ...c.game.state.person, id: c.id, captainId: c.id, human: true, name: c.name, maxHealth: 100, teamId: this._captainTeam(c, vessel) }));
+  }
+  _crewActors(vessel) {
+    if (!vessel.pvp) return [];
+    for (const actor of vessel.pvp.crewActors) { const crew = this._crewFor(vessel).find(member => member.id === actor.crewId); if (crew) actor.health = crew.health; }
+    return vessel.pvp.crewActors;
+  }
+  _viewBoarding(captain, vessel) {
+    if (!vessel || captain.game.state.mode !== 'person' || captain.aboard !== vessel.id) return null;
+    if (vessel.pvp) {
+      const team = this._captainTeam(captain, vessel), people = [...this._deckPeople(vessel), ...this._crewActors(vessel)];
+      return { id: vessel.pvp.id, kind: team === vessel.ownerId ? 'defense' : 'assault', phase: vessel.pvp.phase === 'active' ? 'active' : 'won', pvp: true,
+        shipClass: vessel.ship.classId, vesselId: vessel.id, targetVesselId: vessel.id, originVesselId: captain.returnVesselId || null, targetId: vessel.id,
+        locationId: `ship:${vessel.id}`, combatTime: vessel.pvp.combatTime, occupation: clone(vessel.occupation),
+        enemies: people.filter(person => person.teamId !== team).map(person => ({ ...person, team: 'hostile' })), allies: people.filter(person => person.id !== captain.id && person.teamId === team).map(person => ({ ...person, team: 'friendly' })) };
+    }
+    return vessel.boarding || null;
+  }
+  _attackDeck(captain, enemyId, input = captain.appliedInput || captain.input || {}) {
+    const vessel = this.vessels.get(captain.aboard);
+    if (!vessel || captain.game.state.mode !== 'person' || !alive(captain)) return fail('You must be conscious on the occupied deck.', 'location');
+    if (!vessel.pvp) {
+      if (!vessel.boarding || vessel.boarding.phase !== 'active') return fail('There are no active boarders on this deck.', 'location');
+      const actor = this._actor(vessel); captain.game._playerName = captain.name;
+      const result = actor.attackBoarder(enemyId, captain.game, input); this._syncActor(vessel); return result;
+    }
+    if (captain.game._boardingShotTimer > 0) return fail('Your sidearm is cycling.', 'cooldown');
+    const team = this._captainTeam(captain, vessel), candidates = [...this._deckPeople(vessel), ...this._crewActors(vessel)].filter(person => person.teamId !== team && person.health > 0);
+    if (enemyId && !candidates.some(person => person.id === enemyId)) return fail('That person is not a hostile target on this deck.', 'target');
+    const requested = enemyId && candidates.find(person => person.id === enemyId), person = captain.game.state.person;
+    let shotInput = input;
+    if (requested && !input.aiming) { const length = Math.hypot(requested.x - person.x, requested.y - person.y); shotInput = length > 0 ? { ...input, aiming: true, aimX: (requested.x - person.x) / length, aimY: (requested.y - person.y) / length } : input; }
+    const aim = sidearmAim(person, candidates, shotInput, vessel.ship.classId);
+    captain.game._boardingShotTimer = SIDEARM.cooldown;
+    const result = this._deckShot(vessel, captain.game.state.person, aim, { id: captain.id, name: captain.name, teamId: team, damage: SIDEARM.damage });
+    captain.game.state.stats.personShots = (captain.game.state.stats.personShots || 0) + 1;
+    if (aim.target) captain.game.state.stats.personHits = (captain.game.state.stats.personHits || 0) + 1;
+    this._refreshOccupation(vessel); return ok({ shot: result, targetId: aim.targetId, hit: aim.hit, damage: aim.hit ? SIDEARM.damage : 0 });
+  }
+  _deckShot(vessel, person, aim, attacker) {
+    const combat = vessel.pvp, at = combat.combatTime, target = aim.target;
+    ensureSidearm(person); person.weaponDrawn = true; person.aimAngle = aim.angle; person.aimTargetId = aim.targetId; person.aimManual = aim.manual; person.attackUntil = at + SIDEARM.shotDuration;
+    const shot = { type: 'person-shot', id: `${combat.id}:shot:${++combat.shotSerial}`, boardingId: combat.id, at, until: person.attackUntil,
+      attackerId: attacker.id, actorName: attacker.name, team: 'player', teamId: attacker.teamId, weaponId: SIDEARM.id, angle: aim.angle,
+      from: clone(aim.from), to: clone(aim.to), x: aim.from.x, y: aim.from.y, targetX: aim.to.x, targetY: aim.to.y, targetId: aim.targetId, targetName: target?.name || null,
+      hit: !!target, blocked: aim.blocked, damage: target ? attacker.damage : 0 };
+    person.lastShot = shot; this._deckEvent(vessel, shot);
+    if (!target) return shot;
+    const human = target.human && this.captains.get(target.captainId), member = target.crewId && this._crewFor(vessel).find(crew => crew.id === target.crewId);
+    const victim = human?.game.state.person || member; if (!victim) return shot;
+    victim.health = Math.max(0, victim.health - attacker.damage); victim.hitUntil = at + .24; victim.lastHitBy = attacker.id; target.health = victim.health;
+    this._deckEvent(vessel, { ...shot, type: 'person-hit', id: `${shot.id}:hit`, until: at + .65, x: target.x, y: target.y, health: victim.health, maxHealth: target.maxHealth || 100 });
+    if (!victim.health) {
+      const event = { ...shot, type: human ? 'person-down' : 'boarder-down', id: `${shot.id}:down`, x: target.x, y: target.y, actorId: target.id, until: at + 1.5, text: `${attacker.name} downed ${target.name}.` };
+      this._deckEvent(vessel, event);
+      if (human) this._recoverCaptain(human, `${attacker.name} forced you off ${vessel.name}. Your recovery berth is outside the occupied ship.`);
+      else { victim.status = 'dead'; victim.dead = true; const owner = this.captains.get(vessel.ownerId); if (owner && !owner.game.state.memorial.some(entry => entry.crewId === victim.id)) owner.game.state.memorial.push({ id: `memorial:${victim.id}`, crewId: victim.id, name: victim.name, role: victim.role, cause: `Boarded by ${attacker.name}`, systemId: vessel.systemId, time: at, shipClass: vessel.ship.classId }); }
+      const killer = this.captains.get(attacker.id); if (killer) killer.game.state.stats.personKills = (killer.game.state.stats.personKills || 0) + 1;
+    }
+    return shot;
+  }
+  _stepPvP(vessel, dt, captains) {
+    const combat = vessel.pvp; if (!combat) return;
+    combat.combatTime += dt;
+    for (const captain of captains.filter(c => c.aboard === vessel.id && c.game.state.mode === 'person')) {
+      if (captain.aboard !== vessel.id || captain.game.state.mode !== 'person') continue;
+      captain.game._boardingShotTimer = Math.max(0, (captain.game._boardingShotTimer || 0) - dt);
+      const view = this._viewBoarding(captain, vessel), person = ensureSidearm(captain.game.state.person), aim = sidearmAim(person, view.enemies, captain.appliedInput || {}, vessel.ship.classId);
+      person.weaponDrawn = view.phase === 'active'; person.aimAngle = aim.angle; person.aimTargetId = aim.targetId; person.aimManual = aim.manual;
+      if (captain.appliedInput?.fire) this._attackDeck(captain, null, captain.appliedInput);
+    }
+    const layout = cabinLayout(vessel.ship.classId), actor = vessel.actor;
+    for (const guard of this._crewActors(vessel)) {
+      if (guard.health <= 0) continue; guard.cooldown = Math.max(0, (guard.cooldown || 0) - dt);
+      const targets = this._deckPeople(vessel).filter(person => person.health > 0 && person.teamId !== guard.teamId), target = targets.sort((a, b) => distance(guard, a) - distance(guard, b))[0];
+      if (!target) continue;
+      if (distance(guard, target) > 135 || !clearSidearmSight(layout, guard, target)) actor._advanceBoardingActor(guard, target, layout, dt);
+      else if (!guard.cooldown) { guard.cooldown = guard.role === 'security' ? .8 : 1.15; this._deckShot(vessel, guard, sidearmAim(guard, targets, {}, layout), { id: guard.id, name: guard.name, teamId: guard.teamId, damage: guard.damage }); }
+    }
+    this._refreshOccupation(vessel);
+  }
+  _recoverCaptain(captain, text) {
+    const previous = this.vessels.get(captain.aboard); if (previous?.helmOwner === captain.id) previous.helmOwner = null;
+    captain.game.state.person.health = 55; captain.game.state.person.down = false; captain.game.state.person.weaponDrawn = false;
+    captain.game.state.boarding = null; captain.game._boardingShotTimer = 0; captain.returnVesselId = null; captain.boardingTeam = null;
+    this._restoreAtHome(captain, { forceSafe: true, preserveShips: true });
+    const owned = this.vessels.get(captain.ownedVesselId);
+    if (owned && (owned.destroyed || this._hostileOccupied(owned))) this._recoveryCutter(captain, owned);
+    captain.events.push({ type: 'rescue', text }); this._refreshOccupation(previous);
+  }
+  _recoveryCutter(captain, previous) {
+    // Keep the old manifest with its physical hull before assigning a new primary ship.
+    previous.inventory = { cargo: captain.game.state.cargo, upgrades: captain.game.state.upgrades, crew: captain.game.state.crew, formerCrew: captain.game.state.formerCrew, memorial: captain.game.state.memorial, boardingHistory: captain.game.state.boardingHistory };
+    const ship = new Game(this.seed).state.ship, id = `recovery:${captain.id}:${this.tick}:${this.vessels.size}`;
+    const body = this._room(captain.game.state.systemId).runtime.bodies.find(body => body.id === captain.game.state.locationId);
+    Object.assign(ship, { id, name: 'Recovery cutter', x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 });
+    const vessel = { id, ownerId: captain.id, name: 'Recovery cutter', systemId: captain.game.state.systemId, dockedAt: body.id, ship, allowCrew: false, grants: {}, helmOwner: null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true, boarding: null, hostileTo: [] };
+    this.vessels.set(id, vessel); captain.ownedVesselId = id; captain.portVesselId = id; captain.game.state.ship = ship; captain.game.state.cargo = { ore: 0, crystal: 0 }; captain.game.state.crew = []; captain.game.state.boarding = null;
+    captain.game.state.formerCrew = []; captain.game.state.boardingHistory = [...captain.game.state.boardingHistory]; captain.game.state.upgrades = {};
+    if (previous.actor) { previous.actor.state.ship = previous.ship; previous.actor.state.crew = previous.inventory.crew; }
+    captain.events.push({ type: 'crew', text: 'The recovery service supplied a basic cutter. Your previous vessel remains where it was lost.' });
+  }
+  _destroyVessel(vessel, details = {}) {
+    if (vessel.destroyed) return true;
+    vessel.destroyed = true; vessel.ship.hull = 0; vessel.ship.shield = 0; vessel.helmOwner = null; vessel.ship.vx = 0; vessel.ship.vy = 0;
+    const occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
+    for (const member of this._crewFor(vessel)) if (liveCrew(member)) { member.health = 0; member.status = 'dead'; member.dead = true; }
+    for (const captain of occupants) this._recoverCaptain(captain, `${vessel.name} was destroyed. An escape capsule brought you to a safe port; its wreck remains in space.`);
+    if (vessel.boarding) vessel.boarding.phase = 'lost'; if (vessel.pvp) vessel.pvp.phase = 'destroyed';
+    vessel.occupation = { boarderId: null, controllerId: null, contested: false };
+    this._linkNpcVessel(vessel); this.markDirty(); return true;
+  }
+}

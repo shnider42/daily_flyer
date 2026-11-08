@@ -68,7 +68,29 @@ function fixture(){
  const controls=new Controls({...elements,active:()=>active,onCommand:name=>commands.push(name)});
  return{...elements,controls,commands,deactivate:()=>{active=false;}};
 }
-const idle={x:0,y:0,thrust:0,strafe:0,turn:0,aimY:0,fire:false,mine:false,boost:false,brake:false};
+const idle={x:0,y:0,thrust:0,strafe:0,turn:0,aimX:0,aimY:0,aiming:false,fire:false,mine:false,boost:false,brake:false};
+
+test('boarding keyboard aim is independent of walking and does not shoot until fire is held',()=>{
+ const walkAndAim=inputVector({mode:'person',combat:true,keys:new Set(['KeyW','ArrowRight'])});
+ assert.equal(walkAndAim.y,-1);assert.equal(walkAndAim.x,0);
+ assert.equal(walkAndAim.aimX,1);assert.equal(walkAndAim.aimY,0);assert.equal(walkAndAim.aiming,true);assert.equal(walkAndAim.fire,false);
+ assert.equal(inputVector({mode:'person',combat:true,keys:new Set(['ArrowRight','Space'])}).fire,true);
+ const assisted=inputVector({mode:'person',combat:true,keys:new Set(['Space'])});
+ assert.equal(assisted.fire,true);assert.equal(assisted.aiming,false,'Fire alone leaves selection to the marked aim-assist target');
+ const ordinaryWalk=inputVector({mode:'person',keys:new Set(['ArrowRight'])});
+ assert.equal(ordinaryWalk.x,1);assert.equal(ordinaryWalk.aiming,false,'Outside combat the arrows still walk');
+});
+
+test('boarding touch aim fires in every direction while the left stick keeps walking',()=>{
+ for(const aim of[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){
+  const vector=inputVector({mode:'person',combat:true,move:{x:-.6,y:.8},aim});
+  assert.equal(vector.x,-.6);assert.equal(vector.y,.8);assert.equal(vector.aiming,true);assert.equal(vector.fire,true);
+  assert.equal(vector.aimX,aim.x);assert.equal(vector.aimY,aim.y);
+ }
+ assert.equal(inputVector({mode:'person',combat:true,aim:{x:.1,y:.1}}).fire,false,'The thumbstick center has a deliberate firing deadzone');
+ const released=inputVector({mode:'person',combat:true,move:{x:0,y:-1}});
+ assert.equal(released.y,-1);assert.equal(released.aiming,false);assert.equal(released.fire,false);
+});
 
 test('touch controls keep independent owners and ignore another finger’s release',()=>{
  const{stick,fire,mine,controls,commands}=fixture();

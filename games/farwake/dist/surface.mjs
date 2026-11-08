@@ -8,6 +8,7 @@
 import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
+import {sidearmAim,facingAngle} from './combat.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -31,6 +32,12 @@ function hash(input){let h=2166136261;for(const c of String(input)){h^=c.charCod
 function random(seed){let a=hash(seed);return()=>{a+=0x6D2B79F5;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 function noise(x,y,seed=0){let n=Math.imul(x+31,374761393)^Math.imul(y+71,668265263)^seed;n=Math.imul(n^(n>>>13),1274126177);return((n^(n>>>16))>>>0)/4294967296;}
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+function vesselPalette(location){
+ const key=hash(location.vesselId||location.shipId||location.id||location.name),hostile=location.ownership==='hostile'||location.hostile===true||location.faction==='cinder';
+ const colors=hostile?['#d8a170','#c98d72','#d2b079']:location.faction==='meridian'?['#9bb7d4','#adb1d8','#9dc8ce']:['#8cc5c8','#a6c5ad','#c7bd8d'];
+ const accent=colors[key%colors.length];
+ return{...PALETTES.ship,...(hostile?{floor:'#3a3438',floor2:'#312f36',edge:'#65544e',wall:'#29272f',wallTop:'#81695d',path:'#4a4040'}:{}),accent,light:accent};
+}
 export function repairSolution(entityId){const rng=random(String(entityId));return Array.from({length:3},()=>Math.floor(rng()*4));}
 const AUTHORED_BODIES=new Map(NAMED_SYSTEMS.flatMap(system=>system.bodies.map(body=>[body.id,{body,system}])));
 const LORE_BY_ID=new Map(LORE.map(entry=>[entry.id,entry]));
@@ -206,8 +213,10 @@ function derelict(location,seed){
 }
 function ship(location,seed){
  const layout=cabinLayout(location),m=makeMap(layout.cols,layout.rows,'ship',location.name||'Your ship · interior',location.id||'own-ship',seed,'ship');
+ m.vesselId=location.vesselId||location.shipId||location.id;m.vesselName=location.vesselName||location.shipName||location.name||'Independent vessel';m.ownership=location.ownership||null;m.palette=vesselPalette(location);
  m.shipClass=layout.shipClass;m.berths=layout.berths;m.rooms=layout.rooms.map(r=>({...r}));m.stations=layout.stations;m.bunks=layout.bunks;m.breaches=layout.breaches;m.combatSpawns=layout.combatSpawns;m.crewSpawns=layout.crewSpawns;m.walkable=[...layout.walkable];
  m.spawn={...layout.spawn};m.exit={x:layout.stations.helm.x,y:layout.stations.helm.y};
+ entity(m,'entry-airlock','exit','Entry airlock','Boarding entry',Math.floor(layout.spawn.x/T),Math.floor(layout.spawn.y/T),m.palette.accent,{airlock:true,vesselId:m.vesselId,shared:true,roleLabel:'Entry airlock'},'The collar where you entered this deck. Use it to return across the tether when your origin ship is alongside.');
  for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)if(layout.floor[y*m.cols+x])m.tiles[y][x]=TILE.FLOOR;
  for(const c of layout.corridors)rect(m,c.x,c.y,c.w,c.h,TILE.PATH);
  for(let y=1;y<m.rows-1;y++)for(let x=1;x<m.cols-1;x++)if(!layout.floor[y*m.cols+x]&&[-1,0,1].some(dy=>[-1,0,1].some(dx=>layout.floor[(y+dy)*m.cols+x+dx])))m.tiles[y][x]=TILE.WALL;
@@ -233,9 +242,11 @@ function ship(location,seed){
  }
  entity(m,'lore','terminal','Captain’s archive','Journal & lore',Math.floor(layout.archive.x/T),Math.floor(layout.archive.y/T),'#8bc5c9',{journal:true},'Recovered signals, crew notes, and the history you carry with you.');
  entity(m,'crew-console','terminal','Crew manifest','Crew & alliances',Math.floor(layout.manifest.x/T),Math.floor(layout.manifest.y/T),'#aec6aa',{crew:true},`${layout.name} cabin · ${layout.berths} berths. Every berth is a promise to bring someone home.`);
- for(const d of layout.doors)prop(m,'doorframe',d.x,d.y,d.w,d.h,'#7fa5a8',false);
+ for(const d of layout.doors)prop(m,'doorframe',d.x,d.y,d.w,d.h,m.palette.accent,false);
  for(const c of layout.corridors){if(c.w>c.h)for(let x=c.x+3;x<c.x+c.w-2;x+=7)prop(m,'light',x,c.y,1,.22,'#c5c79d',false);else for(let y=c.y+3;y<c.y+c.h-2;y+=7)prop(m,'light',c.x,y,c.w,.14,'#a4c9c6',false);}
  for(const breach of layout.breaches)prop(m,'airlock',Math.floor(breach.x/T)-.5,Math.floor(breach.y/T)-.5,2,2,'#bda374',false);
+ prop(m,'airlock',layout.spawn.x/T-1,layout.spawn.y/T-.5,2,1,m.palette.accent,false);
+ prop(m,'vesselmark',Math.max(3,layout.spawn.x/T-3),layout.spawn.y/T+.8,6,.6,m.palette.accent,false);
  return m;
 }
 /** Build a walkable place from a body object or authored body ID. */
@@ -307,9 +318,11 @@ function tileDraw(ctx,m,x,y,p,time){
 }
 /** Human sprite anchored at feet. scale is an optional integer for portraits. */
 export function drawCharacter(ctx,x,y,options={}){
- const seed=hash(options.id||options.name||'captain'),facing=options.facing||'down',skin=options.skin||['#d4af88','#bb8d68','#e1bf9c','#a67558','#8f644e','#cba281'][seed%6],hair=options.hair||['#433a35','#706257','#a7a79a','#513b36','#303440'][Math.floor(seed/7)%5],scale=options.scale||1,time=options.time||0;
+ const equipped=!!options.weapon||options.team==='hostile'||options.firing,armed=equipped&&(options.armed??true),angle=Number.isFinite(options.aimAngle)?options.aimAngle:facingAngle(options.facing||'down');
+ const aimedFacing=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?Math.cos(angle)<0?'left':'right':Math.sin(angle)<0?'up':'down';
+ const seed=hash(options.id||options.name||'captain'),facing=armed?aimedFacing:options.facing||'down',skin=options.skin||['#d4af88','#bb8d68','#e1bf9c','#a67558','#8f644e','#cba281'][seed%6],hair=options.hair||['#433a35','#706257','#a7a79a','#513b36','#303440'][Math.floor(seed/7)%5],scale=options.scale||1,time=options.time||0;
  const moving=options.walking||options.moving||Math.hypot(options.vx||0,options.vy||0)>2,bob=moving?Math.round(Math.sin(time*13)):0,step=moving?(Math.sin(time*13)>0?1:-1):0;
- const hurt=(options.hurtUntil||0)>time,dead=options.dead||Number.isFinite(options.health)&&options.health<=0,c=hurt&&Math.floor(time*12)%2?'#e7c4b2':options.color||'#c4a879';
+ const hurt=(options.hurtUntil||options.hitUntil||0)>time,dead=options.dead||Number.isFinite(options.health)&&options.health<=0,c=hurt&&Math.floor(time*12)%2?'#e7c4b2':options.color||'#c4a879';
  ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);
  pixel(ctx,'#081923',-8,-2,16,4);
  if(dead){pixel(ctx,'#2c3b42',-12,-6,24,5);pixel(ctx,c,-9,-9,15,6);pixel(ctx,skin,7,-8,6,5);pixel(ctx,hair,10,-8,4,3);ctx.restore();return;}
@@ -327,16 +340,23 @@ export function drawCharacter(ctx,x,y,options={}){
   pixel(ctx,'#ebd59d',2,-12+bob,2,2);
  }
  if(options.helmet||options.team==='hostile'){pixel(ctx,'#253b46',-6,-24+bob,12,7);pixel(ctx,options.team==='hostile'?'#d9a07b':'#91c8ce',-4,-19+bob,9,3);pixel(ctx,'#152e3b',-5,-24+bob,10,2);pixel(ctx,c,-8,-14+bob,3,5);pixel(ctx,c,5,-14+bob,3,5);}
- if(options.weapon||options.firing||options.team==='hostile'){
-  const dir=facing==='left'?[-1,0]:facing==='right'?[1,0]:facing==='up'?[0,-1]:[0,1],gx=dir[0]*8,gy=-10+dir[1]*7;
-  pixel(ctx,'#15252e',gx-2,gy-2,5,5);pixelLine(ctx,gx,gy,gx+dir[0]*6,gy+dir[1]*6,'#a2b6b7',2);
-  if(options.firing||(options.attackUntil||0)>time){pixel(ctx,'#ffe8b8',gx+dir[0]*9-2,gy+dir[1]*9-2,4,4);pixel(ctx,'#eeb271',gx+dir[0]*12,gy+dir[1]*12,2,2);}
+ if(armed){
+  const dx=Math.cos(angle),dy=Math.sin(angle),gx=dx*7,gy=-11+dy*7,mx=dx*19,my=-11+dy*19;
+  pixelLine(ctx,gx,gy,mx,my,'#0b1d29',5);pixelLine(ctx,gx,gy,mx,my,'#b7cbcb',3);pixelLine(ctx,gx-dy*2,gy+dx*2,gx-dy*5,gy+dx*5,'#38505c',3);
+  pixel(ctx,skin,gx-2,gy-2,3,3);pixel(ctx,options.team==='hostile'?'#eea58b':'#91e4df',dx*12-1,-12+dy*12,2,2);
+  if(options.firing||(options.attackUntil||0)>time){pixel(ctx,'#fff1c6',mx+dx*3-2,my+dy*3-2,5,5);pixel(ctx,'#f2bc75',mx+dx*7-1,my+dy*7-1,3,3);}
+ }else if(equipped){
+  pixel(ctx,'#102534',6,-10,5,9);pixel(ctx,'#b1c8c5',7,-10,3,5);pixel(ctx,'#83d5d0',7,-9,2,2);
  }
  if(options.carried){pixel(ctx,'#785d43',-9,-10,18,11);pixel(ctx,'#c2a572',-8,-10,16,3);pixel(ctx,'#e8d39c',-1,-8,2,9);}
  ctx.restore();
 }
 function drawProp(ctx,d,m,time,emit){
- const{x,y,w,h}=d,p=PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
+ const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
+ if(d.kind==='vesselmark'){
+  pixel(ctx,'#162b34',x,y,w,h);pixel(ctx,c,x,y,3,h);pixel(ctx,c,x+w-3,y,3,h);pixel(ctx,c,x+7,y+h-2,w-14,1);
+  if(emit)emit(String(m.vesselName).replace(/ · interior$/i,'').slice(0,28).toUpperCase(),x+w/2,y+3,c,13,'center',28,'vessel');return;
+ }
  if(d.kind==='floorarrows'){for(let i=0;i<3;i++){const xx=x+14+i*18,yy=y+h/2;pixelLine(ctx,xx-4,yy-4,xx+1,yy,c);pixelLine(ctx,xx+1,yy,xx-4,yy+4,c);}return;}
  if(d.kind==='awning'){pixel(ctx,'#283b40',x,y+3,w,h+3);pixel(ctx,c,x,y,w,h);for(let i=3;i<w;i+=13)pixel(ctx,'#d2c3a0',x+i,y,4,h-2);pixel(ctx,'#514b42',x,y+h-2,w,3);return;}
  if(d.kind==='planter'){pixel(ctx,'#1a3238',x+2,y+6,w-4,h-1);pixel(ctx,'#8b8f75',x,y,w,h-4);pixel(ctx,'#c4b994',x+2,y,w-4,3);pixel(ctx,'#304d3e',x+4,y+4,w-8,h-11);for(let yy=7;yy<h-9;yy+=10)for(let xx=7;xx<w-7;xx+=10){pixel(ctx,c,x+xx-2,y+yy-3,6,7);pixel(ctx,'#a3c28a',x+xx-1,y+yy-4,3,3);}return;}
@@ -457,7 +477,37 @@ function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;
  if(hostile||health<maximum||actor.showHealth){const x=Math.round(actor.x)-12,y=Math.round(actor.y)-34;pixel(ctx,'#10232b',x-1,y-1,26,5);pixel(ctx,hostile?'#653c38':'#3b5956',x,y,24,3);pixel(ctx,hostile?'#e79a7b':'#9acbb0',x,y,Math.round(24*clamp(health/maximum,0,1)),3);}
- if((actor.hurtUntil||0)>time){pixel(ctx,'#eab49b',actor.x-10,actor.y-18,2,2);pixel(ctx,'#eab49b',actor.x+9,actor.y-7,2,2);}
+ if((actor.hurtUntil||actor.hitUntil||0)>time){pixel(ctx,'#eab49b',actor.x-10,actor.y-18,2,2);pixel(ctx,'#eab49b',actor.x+9,actor.y-7,2,2);}
+}
+function aimBracket(ctx,x,y,color){
+ for(const sx of[-1,1])for(const sy of[-1,1]){const px=x+sx*13,py=y+sy*15;pixel(ctx,color,px-(sx>0?4:0),py,5,1);pixel(ctx,color,px,py-(sy>0?4:0),1,5);}
+}
+function drawCombatAim(ctx,person,aim){
+ if(!aim||person.health<=0)return;
+ const angle=aim.angle??facingAngle(person.facing),dx=Math.cos(angle),dy=Math.sin(angle),color=aim.targetId?'#e9d395':aim.manual?'#9ed9d5':'#859d9d';
+ pixelRing(ctx,person.x,person.y,12,5,'#b7d4c1',{dashed:true});
+ const end=aim.to||{x:aim.targetX,y:aim.targetY},length=Math.min(58,Math.hypot(end.x-person.x,end.y-person.y));
+ ctx.globalAlpha=.6;for(let d=25;d<length;d+=9)pixelLine(ctx,person.x+dx*d,person.y-11+dy*d,person.x+dx*(d+3),person.y-11+dy*(d+3),color);ctx.globalAlpha=1;
+ if(aim.targetId)aimBracket(ctx,end.x,end.y-13,color);
+ else if(aim.manual){const x=end.x,y=end.y-11;pixelLine(ctx,x-4,y,x+4,y,color);pixelLine(ctx,x,y-4,x,y+4,color);pixel(ctx,'#0a202b',x-1,y-1,3,3);}
+}
+function drawCombatEffects(ctx,effects,emit){
+ for(const effect of effects){
+  const age=effect.age||0,progress=effect.progress||0,color=effect.team==='hostile'?'#efa58b':effect.team==='friendly'?'#9bdedb':'#f3df9e',to=effect.to;
+  if(!to||!Number.isFinite(to.x)||!Number.isFinite(to.y))continue;
+  if(effect.kind==='shot'&&effect.from){
+   const from=effect.from,angle=Math.atan2(to.y-from.y,to.x-from.x),dx=Math.cos(angle),dy=Math.sin(angle),distance=Math.hypot(to.x-from.x,to.y-from.y),offset=Math.min(20,distance),sx=from.x+dx*offset,sy=from.y-11+dy*offset,tx=to.x,ty=to.y-11;
+   ctx.globalAlpha=Math.max(.14,1-progress)*.38;pixelLine(ctx,sx,sy,tx,ty,color,3);ctx.globalAlpha=Math.max(.25,1-progress);pixelLine(ctx,sx,sy,tx,ty,'#fff0ce');
+   if(age<.13){pixel(ctx,color,sx-3,sy-3,7,7);pixel(ctx,'#fff5da',sx-2,sy-2,4,4);pixel(ctx,color,sx+dx*5-1,sy+dy*5-1,3,3);}
+   const burst=3+Math.floor(progress*7);for(let i=0;i<4;i++){const a=angle+i*Math.PI/2;pixel(ctx,color,tx+Math.cos(a)*burst,ty+Math.sin(a)*burst,2,2);}ctx.globalAlpha=1;
+  }else if(effect.kind==='hit'){
+   if(age<.26){const r=11+Math.floor(age*12);for(const s of[-1,1]){pixel(ctx,color,to.x+s*r,to.y-18,2,3);pixel(ctx,color,to.x+s*(r-4),to.y-26,2,2);}}
+   if(effect.damage>0)emit(`−${Math.round(effect.damage)}`,to.x,to.y-49-Math.round(progress*12),color,16,'center',110,'combat-hit');
+  }else if(effect.kind==='down'){
+   const name=effect.actorName||(effect.team==='player'?'You':effect.team==='friendly'?'Crew':'Hostile');
+   emit(`DOWN · ${name}`,to.x,to.y-31-Math.round(progress*6),color,13,'center',98,'combat-down');
+  }
+ }
 }
 function normalizedActors(options){
  const list=[];
@@ -497,8 +547,11 @@ export function drawSurface(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height,time=options.time||0,combatTime=options.combatTime??options.gameTime??time;
  const center=(v,world,viewport)=>world<viewport?(world-viewport)/2:clamp(v-viewport/2,0,world-viewport);
  const cameraX=Math.round(options.cameraX??center(person.x,surface.width,width)),cameraY=Math.round(options.cameraY??center(person.y,surface.height,height));
- const p=PALETTES[surface.biome]||PALETTES.station,flags=options.flags instanceof Set?options.flags:new Set(options.flags||surface.flags||[]),emit=labelSink(ctx,options.labels,{cameraX,cameraY,width,height});
+ const p=surface.palette||PALETTES[surface.biome]||PALETTES.station,flags=options.flags instanceof Set?options.flags:new Set(options.flags||surface.flags||[]),emit=labelSink(ctx,options.labels,{cameraX,cameraY,width,height});
  const actors=normalizedActors(options),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),homes=visibleHomes(surface,options);
+ const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>!effect.boardingId||effect.boardingId===options.boarding?.id):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
+ const aim=combatActive?(options.combat?.aim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.shipClass)):null;
+ const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
  ctx.save();ctx.imageSmoothingEnabled=false;pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)tileDraw(ctx,surface,x,y,p,time);
@@ -506,9 +559,10 @@ export function drawSurface(ctx,surface,options={}){
  // Walls cast a short hard-edged shadow; light strips remain emissive pixels.
  for(let y=minY;y<maxY-1;y++)for(let x=minX;x<maxX;x++)if(surface.tiles[y][x]===TILE.WALL&&[TILE.FLOOR,TILE.PATH].includes(surface.tiles[y+1]?.[x])){ctx.globalAlpha=.2;pixel(ctx,'#06131d',x*T,(y+1)*T,T,5);ctx.globalAlpha=1;}
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
- const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning']);
+ const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark']);
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,emit);
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
+ if(aim)drawCombatAim(ctx,person,aim);
  const near=nearestEntity(surface,person,43),targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
  for(const e of surface.entities){
@@ -523,12 +577,15 @@ export function drawSurface(ctx,surface,options={}){
   if(item.prop)drawProp(ctx,item.prop,surface,time,emit);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor;drawCharacter(ctx,a.x,a.y,{...a,color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,a,combatTime);}
-  else{drawCharacter(ctx,person.x,person.y,{...person,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,person,combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
- for(const actor of [...actors,person]){
+ // Event cues survive sparse network snapshots. Older callers can still show lastShot.
+ if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){
   const shot=actor.lastShot;if(shot&&shot.until>combatTime&&Number.isFinite(shot.targetX)&&Number.isFinite(shot.targetY)){ctx.globalAlpha=.7;pixelLine(ctx,shot.x??actor.x,shot.y??actor.y-10,shot.targetX,shot.targetY,actor.team==='hostile'?'#eaa983':'#d6e7b9');ctx.globalAlpha=1;pixel(ctx,'#ffe1ac',shot.targetX-1,shot.targetY-1,3,3);}
  }
+ drawCombatEffects(ctx,effects,emit);
+ if(aim?.targetId){const target=actors.find(a=>(a.id||a.captainId)===aim.targetId);if(target)emit(aim.manual?'MANUAL AIM':'AIM ASSIST',target.x,target.y+13,'#e9d395',12,'center',91,'combat-target');}
  for(const e of surface.entities){
   if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||e.type==='crew'&&actorCrew.has(e.data?.crewId))continue;
   if(e.x<cameraX||e.x>cameraX+width||e.y<cameraY||e.y>cameraY+height)continue;

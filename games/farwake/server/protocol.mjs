@@ -4,7 +4,7 @@ export const PROTOCOL_VERSION = 1;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 20;
 export const SNAPSHOT_HZ = 10;
-export const MOTION_STATE_FIELDS = Object.freeze(['mode', 'systemId', 'locationId', 'ship', 'person', 'boarding', 'credits', 'cargo', 'stats', 'pendingEncounter']);
+export const MOTION_STATE_FIELDS = Object.freeze(['mode', 'systemId', 'locationId', 'ship', 'person', 'boarding', 'interior', 'multiplayer', 'credits', 'cargo', 'stats', 'pendingEncounter']);
 export const MOTION_WORLD_FIELDS = Object.freeze(['enemies', 'bullets', 'pickups', 'traffic', 'signals', 'miningTarget', 'mining', 'miningBeams']);
 export const MAX_ONLINE = 10;
 export const DISCONNECT_GRACE_MS = 30000;
@@ -26,7 +26,7 @@ export function verifySecret(secret, expected) {
 export function cleanName(value, fallback = 'Independent captain') { return String(value || fallback).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 32) || fallback; }
 export function cleanInput(raw = {}) {
   const axis = key => clamp(finite(raw[key]), -1, 1);
-  return { thrust: axis('thrust'), strafe: axis('strafe'), turn: axis('turn'), x: axis('x'), y: axis('y'), brake: !!raw.brake, boost: !!raw.boost, fire: !!raw.fire, mine: !!raw.mine, flightAssist: raw.flightAssist !== false, aimX: clamp(finite(raw.aimX), -1, 1), aimY: clamp(finite(raw.aimY), -1, 1) };
+  return { thrust: axis('thrust'), strafe: axis('strafe'), turn: axis('turn'), x: axis('x'), y: axis('y'), brake: !!raw.brake, boost: !!raw.boost, fire: !!raw.fire, mine: !!raw.mine, flightAssist: raw.flightAssist !== false, aimX: clamp(finite(raw.aimX), -1, 1), aimY: clamp(finite(raw.aimY), -1, 1), aiming: !!raw.aiming };
 }
 export const EMPTY_INPUT = Object.freeze(cleanInput());
 export const fail = (reason, code = 'unavailable') => ({ ok: false, reason, message: reason, code });

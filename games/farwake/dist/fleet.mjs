@@ -28,6 +28,22 @@ export const CREW_ROLES = Object.freeze({
 export const STATION_ROLES = Object.freeze(['helm','weapons','engineering','scanner','navigation','medical','security','passenger']);
 export const getShipClass = id => SHIP_CLASSES.find(c => c.id === id) || SHIP_CLASSES[0];
 
+/** One hull class controls exterior scale, collision size and its boarding deck. */
+export function enemyHullProfile(classId='sparrow') {
+  const hull=getShipClass(classId),stats=hull.stats;
+  return {classId:hull.id,interiorClassId:hull.id,berths:hull.berths,radius:stats.radius,renderLength:stats.renderLength,renderWidth:stats.renderWidth,boardable:hull.berths>=3};
+}
+
+/** A captured hull keeps its damage fraction when entering normal vessel physics. */
+export function enemyShipState(enemy) {
+  const hull=getShipClass(enemy?.classId),stats=hull.stats;
+  const maximum=Math.max(1,number(enemy?.maxHp,stats.maxHull)),fraction=clamp(number(enemy?.hp,maximum)/maximum,0,1);
+  return {...stats,...enemyHullProfile(hull.id),id:String(enemy?.id||'captured-vessel'),name:String(enemy?.name||hull.name),humanOccupants:1,
+    x:number(enemy?.x),y:number(enemy?.y),vx:number(enemy?.vx),vy:number(enemy?.vy),angle:number(enemy?.angle),angularVelocity:0,
+    hull:stats.maxHull*fraction,shield:0,energy:Math.min(30,stats.maxEnergy),fuel:Math.min(10,stats.maxFuel),turn:stats.angularAcceleration,warpRange:0,
+    captured:true,capturedFromId:enemy?.id,disabled:!!enemy?.disabled};
+}
+
 /** Input is expressed in the ship's own frame. Negative thrust applies the brakes. */
 export function normaliseFlightInput(input = {}) {
   const thrust = clamp(number(input.thrust, -number(input.y)), -1, 1);
