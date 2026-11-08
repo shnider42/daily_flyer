@@ -1,5 +1,9 @@
 # Farwake multiplayer: operation and implementation
 
+Public game: https://dfe-farwake.onrender.com/
+
+Authority and direct game: https://dfe-farwake-universe.onrender.com/
+
 Farwake supports a shared invitation realm with up to **ten simultaneously connected captains**. A captain can explore a separate system, work on a planet, or join a permitted friend's ship. A capital ship has ten berths; living hired NPC crew and human crew share those berths. The server maintains one vessel and one world simulation, regardless of how many people are aboard.
 
 This is a small-group authoritative multiplayer implementation. It is not a distributed MMO service. The current deployment model is one Node process, with durable realm records behind an authenticated storage gateway.

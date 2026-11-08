@@ -2,6 +2,8 @@
 
 **Version 0.2.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
+[Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
