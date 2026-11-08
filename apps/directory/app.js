@@ -13,7 +13,8 @@ const initialType=fromURL?(params.get('type')||'all'):(stored.type||'all');
 const initialSort=fromURL?(params.get('sort')||'newest'):(stored.sort||'newest');
 const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'all',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
 const favorites=new Set(Array.isArray(stored.favorites)?stored.favorites.filter(x=>typeof x==='string'):[]);
-let projects=[],visible=[],toastTimer;
+let projects=[],visible=[],toastTimer,catalogReady=false;
+function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({type:state.type,sort:state.sort,view:state.view,favorites:[...favorites]}));}catch{}}
 function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='all')url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
@@ -49,7 +50,7 @@ function render({persist=true}={}){
   $('sort').value=state.sort;
   const filtered=state.query||state.type!=='all'||state.favoritesOnly||state.kind;
   $('results-description').textContent=`${String(visible.length).padStart(2,'0')} ${visible.length===1?'project':'projects'}${filtered?` of ${projects.length}`:''}${state.favoritesOnly?' · saved favorites':state.type!=='all'?` · ${TYPE_LABELS[state.type].toLowerCase()}`:' · the full collection'}`;
-  $('clear-filters').hidden=!filtered;$('copy-visible').disabled=!visible.length;$('empty-state').hidden=visible.length>0;
+  $('clear-filters').hidden=!filtered;$('copy-visible').disabled=!catalogReady||!visible.length;$('empty-state').hidden=visible.length>0;
   $('empty-message').textContent=state.favoritesOnly&&!favorites.size?'Save a project with its star, then find it here.':'Try a different name or clear the filters.';
   $('game-kind').hidden=state.type!=='games';$('game-kind').value=state.kind;
   if(persist){save();updateURL();}
@@ -63,11 +64,11 @@ async function init(){
     $('total-count').textContent=projects.length;
     document.querySelectorAll('[data-count]').forEach(el=>el.textContent=el.dataset.count==='all'?projects.length:projects.filter(p=>p.type===el.dataset.count).length);
     const kinds=[...new Set(projects.filter(p=>p.type==='games').map(p=>p.subtype))].sort();
-    const kindSelect=document.createElement('select');kindSelect.id='game-kind';kindSelect.className='game-kind';kindSelect.setAttribute('aria-label','Filter games by kind');kindSelect.innerHTML='<option value="">All game types</option>'+kinds.map(k=>`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
+    const kindSelect=document.createElement('select');kindSelect.id='game-kind';kindSelect.className='game-kind';kindSelect.disabled=true;kindSelect.setAttribute('aria-label','Filter games by kind');kindSelect.innerHTML='<option value="">All game types</option>'+kinds.map(k=>`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
     $('favorites-filter').before(kindSelect);
     if(state.type!=='games'||!kinds.includes(state.kind))state.kind='';
     kindSelect.addEventListener('change',()=>{state.kind=kindSelect.value;render();});
-    $('search').value=state.query;render({persist:false});
+    $('search').value=state.query;
     $('search').addEventListener('input',()=>{state.query=$('search').value;render();});
     $('sort').addEventListener('change',()=>{state.sort=$('sort').value;render();});
     $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;state.type=b.dataset.type;state.kind='';render();});
@@ -81,8 +82,10 @@ async function init(){
     });
     $('copy-visible').addEventListener('click',()=>copy(visible.map(p=>`${p.title}\n${projectLink(p)}`).join('\n\n'),`${visible.length} project ${visible.length===1?'link':'links'} copied`));
     document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&!$('copy-dialog').open){e.preventDefault();$('search').focus();}if(e.key==='Escape'&&document.activeElement===$('search')){state.query='';$('search').value='';render();$('search').blur();}});
+    render({persist:false});catalogReady=true;setBrowseEnabled(true);
   }catch(error){
-    console.error(error);$('results-description').textContent='The collection could not load.';$('empty-state').hidden=false;$('empty-state').querySelector('h2').textContent='Please try again.';$('empty-message').textContent='Reload the page to fetch the project directory.';$('empty-reset').textContent='Reload directory';$('empty-reset').addEventListener('click',()=>location.reload());$('copy-visible').disabled=true;
+    catalogReady=false;setBrowseEnabled(false);
+    console.error(error);$('results-description').textContent='The collection could not load.';$('empty-state').hidden=false;$('empty-state').querySelector('h2').textContent='Please try again.';$('empty-message').textContent='Reload the page to fetch the project directory.';$('empty-reset').textContent='Reload directory';$('empty-reset').disabled=false;$('empty-reset').addEventListener('click',()=>location.reload());
   }
 }
 init();

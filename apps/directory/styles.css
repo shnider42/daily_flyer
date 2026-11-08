@@ -14,3 +14,4 @@
 .game-kind{min-height:38px;max-width:160px;flex-shrink:0;border:1px solid var(--line);background:#191e1b;color:#b9c6b0;border-radius:6px;font-size:11px;padding:0 10px;margin-left:auto}.game-kind:not([hidden])+.favorites-filter{margin-left:0}@media(max-width:760px){.game-kind{margin-left:0;flex:1;max-width:none}.favorites-filter{margin-left:auto}}
 
 .launch-arrow{width:15px;height:15px;display:inline;fill:none;stroke:currentColor;stroke-width:1.4;vertical-align:baseline}.inline-arrow{display:inline;width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.4;margin-left:5px}
+@media(max-width:600px){.intro{display:block;padding:28px 0}.collection-count{display:none}.intro-copy{max-width:none}}

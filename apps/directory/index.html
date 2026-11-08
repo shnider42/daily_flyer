@@ -35,12 +35,12 @@
         <div class="search-box">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 4.6 4.6"/></svg>
           <label class="sr-only" for="search">Search projects, names, or URLs</label>
-          <input type="search" id="search" placeholder="Find a project, name, or URL…" autocomplete="off" spellcheck="false">
+          <input type="search" id="search" placeholder="Find a project, name, or URL…" autocomplete="off" spellcheck="false" disabled>
           <kbd aria-hidden="true">/</kbd>
         </div>
         <div class="sort-control">
           <label for="sort">Sort by</label>
-          <select id="sort">
+          <select id="sort" disabled>
             <option value="newest">Date added · newest</option>
             <option value="oldest">Date added · oldest</option>
             <option value="name">Name · A–Z</option>
@@ -48,32 +48,32 @@
           </select>
         </div>
         <div class="view-control" aria-label="Display style">
-          <button type="button" id="view-grid" aria-label="Card view" aria-pressed="true" title="Card view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
-          <button type="button" id="view-list" aria-label="List view" aria-pressed="false" title="List view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12"/><rect x="2" y="3" width="3" height="3" rx=".5"/><rect x="2" y="10" width="3" height="3" rx=".5"/><rect x="2" y="17" width="3" height="3" rx=".5"/></svg></button>
+          <button type="button" id="view-grid" aria-label="Card view" aria-pressed="true" title="Card view" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+          <button type="button" id="view-list" aria-label="List view" aria-pressed="false" title="List view" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12"/><rect x="2" y="3" width="3" height="3" rx=".5"/><rect x="2" y="10" width="3" height="3" rx=".5"/><rect x="2" y="17" width="3" height="3" rx=".5"/></svg></button>
         </div>
       </div>
       <div class="filter-row">
         <nav class="type-filters" aria-label="Filter by project type" id="type-filters">
-          <button type="button" data-type="all" aria-pressed="true">All projects <span data-count="all">—</span></button>
-          <button type="button" data-type="games" aria-pressed="false">Games <span data-count="games">—</span></button>
-          <button type="button" data-type="catch-up" aria-pressed="false">Catch up <span data-count="catch-up">—</span></button>
-          <button type="button" data-type="tools" aria-pressed="false">Tools <span data-count="tools">—</span></button>
-          <button type="button" data-type="stories" aria-pressed="false">Stories &amp; culture <span data-count="stories">—</span></button>
+          <button type="button" data-type="all" aria-pressed="true" disabled>All projects <span data-count="all">—</span></button>
+          <button type="button" data-type="games" aria-pressed="false" disabled>Games <span data-count="games">—</span></button>
+          <button type="button" data-type="catch-up" aria-pressed="false" disabled>Catch up <span data-count="catch-up">—</span></button>
+          <button type="button" data-type="tools" aria-pressed="false" disabled>Tools <span data-count="tools">—</span></button>
+          <button type="button" data-type="stories" aria-pressed="false" disabled>Stories &amp; culture <span data-count="stories">—</span></button>
         </nav>
-        <button id="favorites-filter" class="favorites-filter" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg> Favorites <span id="favorites-count">0</span></button>
+        <button id="favorites-filter" class="favorites-filter" type="button" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg> Favorites <span id="favorites-count">0</span></button>
       </div>
     </section>
 
     <div class="results-bar">
       <p id="results-description" role="status" aria-live="polite">Loading the collection…</p>
-      <div class="results-actions"><button type="button" id="clear-filters" hidden>Clear filters</button><button type="button" id="copy-visible" title="Copy names and URLs for the projects currently shown">Copy links <svg class="inline-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></button></div>
+      <div class="results-actions"><button type="button" id="clear-filters" hidden disabled>Clear filters</button><button type="button" id="copy-visible" title="Copy names and URLs for the projects currently shown" disabled>Copy links <svg class="inline-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></button></div>
     </div>
     <section id="collection" class="project-grid" aria-label="Daily Flyer projects" tabindex="-1"></section>
     <section id="empty-state" class="empty-state" hidden>
       <span class="empty-symbol" aria-hidden="true">⌕</span>
       <h2>No projects found.</h2>
       <p id="empty-message">Try a different name or clear the filters.</p>
-      <button type="button" id="empty-reset">Show all projects</button>
+      <button type="button" id="empty-reset" disabled>Show all projects</button>
     </section>
     <noscript><div class="empty-state"><h2>JavaScript is needed to browse this directory.</h2><p>The project names and links are also available in <a href="./projects.json">the complete catalog</a>.</p></div></noscript>
   </main>
