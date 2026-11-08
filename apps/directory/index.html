@@ -54,14 +54,15 @@
       </div>
       <div class="filter-row">
         <nav class="type-filters" aria-label="Filter by project type" id="type-filters">
-          <button type="button" data-type="all" aria-pressed="true" disabled>All projects <span data-count="all">—</span></button>
-          <button type="button" data-type="games" aria-pressed="false" disabled>Games <span data-count="games">—</span></button>
+          <button type="button" data-type="all" aria-pressed="false" disabled>All projects <span data-count="all">—</span></button>
+          <button type="button" data-type="games" aria-pressed="true" disabled>Games <span data-count="games">—</span></button>
           <button type="button" data-type="catch-up" aria-pressed="false" disabled>Catch up <span data-count="catch-up">—</span></button>
           <button type="button" data-type="tools" aria-pressed="false" disabled>Tools <span data-count="tools">—</span></button>
           <button type="button" data-type="stories" aria-pressed="false" disabled>Stories &amp; culture <span data-count="stories">—</span></button>
         </nav>
         <button id="favorites-filter" class="favorites-filter" type="button" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg> Favorites <span id="favorites-count">0</span></button>
       </div>
+      <p id="collection-hint" class="collection-hint" hidden>Tools, catch-ups, and stories are here too. <button type="button" id="explore-all" disabled>View all <span data-count="all">—</span> projects</button></p>
     </section>
 
     <div class="results-bar">

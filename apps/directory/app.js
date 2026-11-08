@@ -9,14 +9,15 @@ const ACCENTS={dsl:'#c4cf9d',gridiron:'#cfeaa4',infierno:'#dfaf9e','further-in':
 function readStored(){try{const value=JSON.parse(localStorage.getItem(STORE)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
 const stored=readStored(),params=new URLSearchParams(location.search);
 const fromURL=['q','type','sort','saved','kind'].some(k=>params.has(k));
-const initialType=fromURL?(params.get('type')||'all'):(stored.type||'all');
-const initialSort=fromURL?(params.get('sort')||'newest'):(stored.sort||'newest');
-const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'all',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
+// Older shared links omitted "all"; preserve those while making the root Games.
+const initialType=params.get('type')||(fromURL?'all':'games');
+const initialSort=params.get('sort')||'newest';
+const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'games',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
 const favorites=new Set(Array.isArray(stored.favorites)?stored.favorites.filter(x=>typeof x==='string'):[]);
 let projects=[],visible=[],toastTimer,catalogReady=false;
 function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
-function save(){try{localStorage.setItem(STORE,JSON.stringify({type:state.type,sort:state.sort,view:state.view,favorites:[...favorites]}));}catch{}}
-function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='all')url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
+function save(){try{localStorage.setItem(STORE,JSON.stringify({view:state.view,favorites:[...favorites]}));}catch{}}
+function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='games'||state.query||state.sort!=='newest'||state.favoritesOnly||state.kind)url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
 async function copy(text,message){try{await navigator.clipboard.writeText(text);toast(message);}catch{$('copy-text').value=text;$('copy-dialog').showModal();$('copy-text').focus();$('copy-text').select();}}
 function displayURL(link){const url=new URL(link);return url.hostname+(url.pathname==='/'?'':url.pathname)+(url.search||'');}
@@ -53,6 +54,7 @@ function render({persist=true}={}){
   $('clear-filters').hidden=!filtered;$('copy-visible').disabled=!catalogReady||!visible.length;$('empty-state').hidden=visible.length>0;
   $('empty-message').textContent=state.favoritesOnly&&!favorites.size?'Save a project with its star, then find it here.':'Try a different name or clear the filters.';
   $('game-kind').hidden=state.type!=='games';$('game-kind').value=state.kind;
+  $('collection-hint').hidden=state.type!=='games';
   if(persist){save();updateURL();}
 }
 function reset(){state.query='';state.type='all';state.kind='';state.favoritesOnly=false;$('search').value='';render();}
@@ -74,7 +76,7 @@ async function init(){
     $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;state.type=b.dataset.type;state.kind='';render();});
     $('favorites-filter').addEventListener('click',()=>{state.favoritesOnly=!state.favoritesOnly;render();});
     for(const view of ['grid','list'])$(`view-${view}`).addEventListener('click',()=>{state.view=view;render();});
-    $('clear-filters').addEventListener('click',reset);$('empty-reset').addEventListener('click',reset);
+    $('clear-filters').addEventListener('click',reset);$('empty-reset').addEventListener('click',reset);$('explore-all').addEventListener('click',reset);
     $('collection').addEventListener('click',e=>{
       const fav=e.target.closest('[data-favorite]');
       if(fav){const id=fav.dataset.favorite;favorites.has(id)?favorites.delete(id):favorites.add(id);render();const button=document.querySelector(`[data-favorite="${id}"]`);if(button)button.focus({preventScroll:true});else $('favorites-filter').focus({preventScroll:true});return;}

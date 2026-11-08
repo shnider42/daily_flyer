@@ -19,6 +19,8 @@ The `createdAt` field records the earliest documented theme addition/build or fi
 
 Types are `games`, `catch-up`, `tools`, and `stories`. Subtypes support filtering the games further. Search includes names, former names, descriptions, genres, tags, and launch URLs. Sorting supports newest, oldest, name, and type. Favorites and view choices are local to the visitor's browser. Filter/search state can be shared through the URL.
 
+The root URL opens Games sorted newest first, including for returning visitors. Explicit URL filters take precedence; `?type=all` opens the complete collection. The Games view includes a shortcut to all projects and a reminder of the other categories.
+
 `artwork.js` contains original lightweight SVG cover scenes with no network dependencies. Add a matching artwork key when adding a theme, or intentionally reuse an existing relevant scene. The build validates catalog data and artwork mappings before publishing.
 
 Empires is a separate game within the DSL site, which has no reliable direct-selection URL; the card explains that choice. Pocket Hockey and Pocket Soccer share hosting but use different `sport` query values. The Sleeve Notes, Magic Duel, and WHEN ANTS STARE use their verified Render service hosts rather than old source-only or private-preview links.
