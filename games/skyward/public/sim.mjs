@@ -1,4 +1,7 @@
 import { getAircraft, getMission } from './campaign.mjs';
+import { normalizeArenaConfig, spawnForPlayer, prepareMissionStarts, ARENA_RESPAWN_DELAY, MISSION_RESPAWN_DELAY } from './arena.mjs';
+import { terrainHeight, surfaceHeight, runwayAt, runwayCoordinates, segmentTerrainTime, lineOfSight, terrainClearance, carrierObstacleTime } from './terrain.mjs';
+export { terrainHeight, surfaceHeight, runwayAt, runwayCoordinates, segmentTerrainTime, lineOfSight, terrainClearance, carrierObstacleTime } from './terrain.mjs';
 import { orientationFromEuler, orientationOf, basis, deriveEuler, slerp, isOrientation, normalizeOrientation, multiplyOrientations, integrateBodyRotation } from './orientation.mjs';
 import { GUNSHIP_STATIONS, GUNSHIP_INPUT_TIMEOUT, clampCrewInput, createGunshipCrewState, getGunshipStation, gunshipStationPose } from './gunship.mjs';
 
@@ -54,68 +57,6 @@ function advanceAttitude(p, input, dt, a, damageFactor, settings) {
   return setAttitude(p, orientation);
 }
 
-function runwayCoordinates(x, z, runway) {
-  const dx = x - runway.x, dz = z - runway.z;
-  return { across: dx * Math.cos(runway.heading) - dz * Math.sin(runway.heading), along: dx * Math.sin(runway.heading) + dz * Math.cos(runway.heading) };
-}
-
-function runwayAt(x, z, mission, margin = 0) {
-  return (mission.runways || []).findIndex(runway => {
-    const q = runwayCoordinates(x, z, runway);
-    return Math.abs(q.across) <= runway.width / 2 + margin && Math.abs(q.along) <= runway.length / 2 + margin;
-  });
-}
-
-/** Shared terrain; negative values are open water, sea level is zero. */
-export function terrainHeight(x, z, mission = {}) {
-  x = finite(x); z = finite(z);
-  let height;
-  const biome = typeof mission === 'string' ? mission : mission.biome;
-  if (biome === 'pacific' || biome === 'south_atlantic') {
-    const islandA = 1 - Math.hypot((x - 6500) / 3300, (z - 7000) / 4300);
-    const islandB = 1 - Math.hypot((x + 7000) / 2200, (z - 13500) / 2900);
-    const island = Math.max(islandA, islandB);
-    height = island > 0 ? 4 + Math.pow(island, 1.3) * (biome === 'pacific' ? 550 : 360) : -8;
-  } else if (biome === 'channel' && z > 3400 && z < 11500) {
-    height = -8;
-  } else if (biome === 'coast' && x > 2600 + Math.sin(z / 2500) * 500) {
-    height = -8;
-  } else if (biome === 'mountains') {
-    height = 45 + Math.pow(Math.max(0, Math.sin((x + z * 0.32) / 1700)), 2) * 1100
-      + Math.pow(Math.max(0, Math.cos((z - x * 0.22) / 2400)), 2) * 620;
-  } else if (biome === 'jungle') {
-    height = 35 + Math.pow(Math.sin(x / 1600 + z / 2800), 2) * 135 + Math.pow(Math.sin(z / 1900), 2) * 95;
-  } else if (biome === 'desert') {
-    height = 18 + Math.sin(x / 650) * 6 + Math.cos(z / 930) * 7 + Math.max(0, Math.abs(x) - 6000) * 0.035;
-  } else if (biome === 'night') {
-    height = 19 + Math.sin(x / 2400) * 7 + Math.cos(z / 3100) * 8;
-  } else {
-    height = Math.max(2, 20 + Math.sin(x / 1800) * 12 + Math.sin(z / 2300) * 15 + Math.sin((x + z) / 3400) * 8);
-  }
-  if (typeof mission === 'object') {
-    for (const runway of mission.runways || []) {
-      if (runway.carrier) continue;
-      const q = runwayCoordinates(x, z, runway);
-      const outside = Math.max(Math.abs(q.across) - runway.width * 1.1, Math.abs(q.along) - runway.length * 0.56, 0);
-      if (outside < 250) height = mix(runway.y, height, outside / 250);
-    }
-  }
-  return height;
-}
-
-function surfaceHeight(x, z, mission) {
-  const index = runwayAt(x, z, mission, 3);
-  return index >= 0 ? Math.max(0, terrainHeight(x, z, mission), mission.runways[index].y) : Math.max(0, terrainHeight(x, z, mission));
-}
-
-function lineOfSight(a, b, mission) {
-  for (let i = 1; i < 15; i++) {
-    const f = i / 15;
-    if (mix(a.y, b.y, f) < Math.max(0, terrainHeight(mix(a.x, b.x, f), mix(a.z, b.z, f), mission)) + 9) return false;
-  }
-  return true;
-}
-
 function segmentSphereTime(from, to, center, radius) {
   const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
   const ox = from.x - center.x, oy = from.y - center.y, oz = from.z - center.z;
@@ -126,25 +67,6 @@ function segmentSphereTime(from, to, center, radius) {
   if (a < 1e-12 || discriminant < 0) return null;
   const time = (-b - Math.sqrt(discriminant)) / a;
   return time >= 0 && time <= 1 ? time : null;
-}
-
-// Trace the whole step so fast shells cannot pass through a target or a slope.
-// Terrain is sampled before selecting a hit, preventing damage through a ridge.
-function segmentTerrainTime(from, to, mission) {
-  const clearance = fraction => mix(from.y, to.y, fraction) - Math.max(0,
-    terrainHeight(mix(from.x, to.x, fraction), mix(from.z, to.z, fraction), mission)) - 3;
-  if (clearance(0) <= 0) return 0;
-  const segments = Math.max(1, Math.min(64, Math.ceil(dist(from, to) / 12)));
-  for (let step = 1; step <= segments; step++) {
-    if (clearance(step / segments) > 0) continue;
-    let low = (step - 1) / segments, high = step / segments;
-    for (let i = 0; i < 9; i++) {
-      const middle = (low + high) / 2;
-      if (clearance(middle) > 0) low = middle; else high = middle;
-    }
-    return high;
-  }
-  return null;
 }
 
 /** Mutates one pilot-owned plane; crew guests receive its shared pose instead. */
@@ -169,7 +91,8 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
   const wind = mission.weather?.wind || {};
   const gust = Math.sin(p.flightTime * 0.43 + p.z / 1300) * 0.7;
   const windX = finite(wind.x) + gust, windZ = finite(wind.z);
-  const beforeY = p.y;
+  const beforeY = p.y, beforePosition = { x: p.x, y: p.y, z: p.z, orientation: { ...p.orientation } }, wasOnGround = p.onGround;
+  const previousRunway = mission.runways?.[runwayAt(p.x, p.z, mission, 3)];
 
   if (p.hover && a.vtol) {
     if (p.onGround) frame = setAttitude(p, orientationFromEuler(p.heading - yawInput * 0.65 * dt, 0, 0));
@@ -190,7 +113,8 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
     const gearDrag = p.gear && !a.fixedGear ? 0.86 : 1, flapDrag = p.flaps ? 0.76 : 1;
     const targetSpeed = p.engine ? a.maxSpeed * Math.pow(p.throttle, 0.68) * gearDrag * flapDrag * damageFactor : 0;
     const thrust = clamp((targetSpeed - p.speed) * 0.23, -a.acceleration * 0.65, a.acceleration * damageFactor);
-    p.speed = Math.max(0, p.speed + (thrust - frame.forward.y * 9.81) * dt);
+    const launchAssist = p.onGround && previousRunway?.carrier && p.carrierLaunch && !p.brake && p.throttle > 0.8 ? a.acceleration * 0.55 : 0;
+    p.speed = Math.max(0, p.speed + (thrust + launchAssist - frame.forward.y * 9.81) * dt);
     if (p.onGround) {
       p.pitch = mix(p.pitch, Math.max(0, pitchInput) * 0.16, dt * 3);
       p.roll = mix(p.roll, 0, dt * 6);
@@ -226,19 +150,36 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
     p.vx = frame.forward.x * p.speed + (p.onGround ? 0 : windX);
     p.vz = frame.forward.z * p.speed + (p.onGround ? 0 : windZ);
     p.x += p.vx * dt; p.z += p.vz * dt;
-    if (p.onGround) p.y = surfaceHeight(p.x, p.z, mission) + 3;
+    if (p.onGround && previousRunway?.carrier && runwayAt(p.x, p.z, mission, 3) < 0) {
+      // Retain deck height when rolling beyond its end; falling toward the sea
+      // is physical flight, never an instant snap to the water surface.
+      p.onGround = false; p.y = beforeY; p.verticalSpeed = -3; p.settlingSpeed = -3;
+    } else if (p.onGround) p.y = surfaceHeight(p.x, p.z, mission) + 3;
     else p.y += finite(p.verticalSpeed) * dt;
   }
 
+  const carrierHit = carrierObstacleTime(beforePosition, p, a, mission);
+  if (carrierHit !== null) {
+    p.x = mix(beforePosition.x, p.x, carrierHit); p.y = mix(beforePosition.y, p.y, carrierHit); p.z = mix(beforePosition.z, p.z, carrierHit);
+    p.health = 0; p.crashed = true; p.crashCause = 'The wing or airframe struck the carrier island.';
+  }
+  if (!p.crashed && !wasOnGround && !p.onGround) {
+    const swept = segmentTerrainTime(beforePosition, p, mission, 3, true);
+    if (swept !== null && swept < 0.999 && p.y > surfaceHeight(p.x, p.z, mission) + 3) {
+      p.x = mix(beforePosition.x, p.x, swept); p.z = mix(beforePosition.z, p.z, swept);
+      p.y = surfaceHeight(p.x, p.z, mission) + 3; p.health = 0; p.crashed = true;
+      p.crashCause = 'The aircraft struck the terrain.';
+    }
+  }
   const ground = surfaceHeight(p.x, p.z, mission);
-  if (!p.onGround && p.y <= ground + 3) {
+  if (!p.crashed && !p.onGround && p.y <= ground + 3) {
     const runwayIndex = runwayAt(p.x, p.z, mission, assisted(settings) ? 16 : 2);
     const runway = mission.runways?.[runwayIndex];
     const alignment = !runway || p.hover || Math.abs(Math.sin(p.heading - runway.heading)) < (assisted(settings) ? 0.75 : 0.4);
     const speedSafe = p.hover ? p.speed < 28 : p.speed < stallSpeed * (assisted(settings) ? 2.05 : 1.65);
     const sinkSafe = p.verticalSpeed > (p.hover ? -12 : assisted(settings) ? -12 : -6.5);
     const gearSafe = p.gear || p.hover;
-    const dry = terrainHeight(p.x, p.z, mission) >= 0 || runway?.carrier;
+    const dry = terrainHeight(p.x, p.z, mission) >= 0 || runway?.carrier && runwayAt(p.x, p.z, mission, 3) >= 0;
     const upright = frame.up.y > Math.cos(assisted(settings) ? 0.65 : 0.4);
     if (speedSafe && sinkSafe && gearSafe && upright && Math.abs(p.roll) < (assisted(settings) ? 0.5 : 0.25) && alignment && dry) {
       p.onGround = true; p.y = ground + 3; p.verticalSpeed = 0; p.settlingSpeed = 0;
@@ -260,22 +201,29 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
   return p;
 }
 
+function createPilot(aircraft, start = {}, id = 'local', lifeId = 1) {
+  const a = getAircraft(aircraft), s = start;
+  const p = {
+    id, lifeId, alive: true, x: finite(s.x), y: finite(s.y, 500), z: finite(s.z), heading: finite(s.heading), pitch: 0, roll: 0,
+    speed: finite(s.speed), throttle: s.cold ? 0.08 : s.airborne ? Math.pow(a.cruise / a.maxSpeed, 1 / 0.68) : 0.1,
+    health: a.health, fuel: 100, gear: a.fixedGear || (s.gear ?? !s.airborne), flaps: false, brake: !s.airborne,
+    engine: !s.cold, startupStep: s.cold ? 0 : 4, onGround: !s.airborne, aircraft: a.id,
+    verticalSpeed: 0, settlingSpeed: 0, stalled: false, ammo: a.gun?.ammo || 0, missiles: a.missiles, bombs: a.bombs,
+    hover: false, troopers: a.id === 'c47' ? 24 : 0, dropsRemaining: a.id === 'c47' ? 2 : 0,
+    gunHeat: 0, flightTime: 0, everAirborne: !!s.airborne, landings: 0, vx: Math.sin(finite(s.heading)) * finite(s.speed), vz: Math.cos(finite(s.heading)) * finite(s.speed),
+    carrierLaunch: !!s.carrierLaunch,
+  };
+  setAttitude(p, orientationFromEuler(p.heading, p.pitch, p.roll));
+  return p;
+}
+
 export class FlightSimulation {
   constructor(mission, settings = {}) {
     this.mission = typeof mission === 'string' ? getMission(mission) : mission;
     this.settings = { assist: 'assisted', guidance: 'guided', autoLevel: true, ...settings };
     this.aircraft = getAircraft(this.mission.aircraft);
     const m = this.mission, a = this.aircraft, s = m.start || {};
-    this.player = {
-      id: settings.playerId || 'local', x: finite(s.x), y: finite(s.y, 500), z: finite(s.z), heading: finite(s.heading), pitch: 0, roll: 0,
-      speed: finite(s.speed), throttle: s.cold ? 0.08 : s.airborne ? Math.pow(a.cruise / a.maxSpeed, 1 / 0.68) : 0.1,
-      health: a.health, fuel: 100, gear: a.fixedGear || (s.gear ?? !s.airborne), flaps: false, brake: !s.airborne,
-      engine: !s.cold, startupStep: s.cold ? 0 : 4, onGround: !s.airborne, aircraft: a.id,
-      verticalSpeed: 0, settlingSpeed: 0, stalled: false, ammo: a.gun?.ammo || 0, missiles: a.missiles, bombs: a.bombs,
-      hover: false, troopers: a.id === 'c47' ? 24 : 0, dropsRemaining: a.id === 'c47' ? 2 : 0,
-      gunHeat: 0, flightTime: 0, everAirborne: !!s.airborne, landings: 0, vx: 0, vz: s.speed || 0,
-    };
-    setAttitude(this.player, orientationFromEuler(this.player.heading, this.player.pitch, this.player.roll));
+    this.player = createPilot(a.id, s, settings.playerId || 'local');
     this.enemies = copy(m.enemies || []).map((e, i) => ({ ...e, alive: true, active: true, pitch: 0, roll: 0, initialHealth: e.health, fireTimer: 1.5 + i * 0.7, missileTimer: 8 + i * 3, age: 0 }));
     this.targets = copy(m.targets || []).map(t => ({ ...t, y: ['balloon', 'city'].includes(t.type) ? t.y : Math.max(0, terrainHeight(t.x, t.z, m)) + 5, alive: true, active: true, initialHealth: t.health, fireTimer: 7 }));
     this.projectiles = []; this.effects = []; this.paratroopers = []; this.remotePlayers = [];
@@ -287,11 +235,233 @@ export class FlightSimulation {
     this.egressTime = 0; this.worldAuthority = true; this.remoteWeapons = new Map(); this.remoteDamage = {};
     this.crew = m.kind === 'gunship' ? createGunshipCrewState() : null;
     this._crewInputTime = -Infinity; this._pendingCrewPress = null;
+    this.multiplayer = null; this.participants = new Map(); this.round = null; this._seenActions = new Set();
     this._eventId = 0; this._entityId = 0; this._lastLandingCount = 0; this._warnedStall = false; this._rng = (m.number || 1) * 19937;
     this._chooseTarget(); this._updateBombAim(); this._updateObjective(0);
   }
 
-  get selectedTarget() { return [...this.enemies, ...this.targets].find(t => t.id === this.targetId && living(t)) || null; }
+  configureMultiplayer({ mode, config = {}, players = [], playerId, hostId, runId } = {}) {
+    const options = normalizeArenaConfig({ ...config, mode: mode || config.mode || 'squadron' });
+    this.multiplayer = { ...options, runId: runId || null, hostId: hostId || playerId || this.player.id };
+    // The AC-130 is one shared aircraft. Its death may end that sortie, while
+    // the room itself remains available for another crew flight.
+    if (options.mode === 'crew' || this.crew) return this;
+    this.mission = prepareMissionStarts(this.mission, players);
+    this.worldAuthority = !hostId || (playerId || this.player.id) === hostId;
+    const localId = playerId || this.player.id;
+    const roster = players.length ? players : [{ id: localId, aircraft: this.mission.aircraft, name: 'Pilot' }];
+    this.participants.clear(); this.remoteWeapons.clear(); this._seenActions.clear();
+    this.round = { duration: options.mode === 'dogfight' ? options.durationSeconds : null,
+      elapsed: 0, remaining: options.mode === 'dogfight' ? options.durationSeconds : null, ended: false };
+    roster.forEach((entry, index) => {
+      const aircraft = getAircraft(entry.aircraft || this.mission.aircraft).id;
+      const startMode = entry.startMode || (this.mission.start?.airborne ? 'airborne' : 'mission');
+      const spawn = spawnForPlayer(this.mission, aircraft, index, startMode, 1);
+      const pose = createPilot(aircraft, spawn, entry.id, 1);
+      const record = { id: entry.id, name: entry.name || `Pilot ${index + 1}`, aircraft, startMode, index,
+        lifeId: 1, alive: true, health: pose.health, livesRemaining: ['freeflight', 'dogfight'].includes(options.mode) ? null : options.lives,
+        kills: 0, deaths: 0, damageId: 0, respawnAt: null, connected: entry.connected !== false,
+        spawn, pose, invulnerableUntil: 0, lastPoseTime: this.time, lockProgress: 0, lockTargetId: null };
+      this.participants.set(record.id, record);
+      if (entry.id === localId) { this.player = pose; this.aircraft = getAircraft(aircraft); this.radarOn = this.aircraft.radar; }
+    });
+    this.remotePlayers = [...this.participants.values()].filter(record => record.id !== localId).map(record => record.pose);
+    this.player.targetId = this.targetId; this.player.radarOn = this.radarOn;
+    this._chooseTarget(); this._updateObjective(0);
+    return this;
+  }
+
+  get localParticipant() { return this.participants.get(this.player.id) || null; }
+  get scoreboard() {
+    return [...this.participants.values()].map(({ id, name, aircraft, kills, deaths, alive, livesRemaining, connected }) => ({
+      id, name, aircraft, kills, deaths, alive, livesRemaining, connected, kd: deaths ? kills / deaths : kills,
+    })).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.name.localeCompare(b.name));
+  }
+  get canRespawn() {
+    const record = this.localParticipant;
+    return !!record && !record.alive && this.status === 'flying' && (record.livesRemaining === null || record.livesRemaining > 0)
+      && this.time >= record.respawnAt;
+  }
+
+  updateRoster(players = []) {
+    for (const record of this.participants.values()) {
+      const row = players.find(player => player.id === record.id);
+      record.connected = !!row && row.connected !== false;
+      if (row?.name) record.name = row.name;
+    }
+  }
+
+  setRemotePlayers(poses = []) {
+    if (!this.participants.size) { this.remotePlayers = poses; return; }
+    for (const pose of poses) {
+      const record = this.participants.get(pose?.id);
+      if (!record || record.id === this.player.id || pose.lifeId !== record.lifeId || !record.alive) continue;
+      if (!['x', 'y', 'z', 'heading'].every(key => Number.isFinite(pose[key]))) continue;
+      const a = getAircraft(record.aircraft), previous = record.pose;
+      const elapsed = Math.max(1 / 15, Math.min(2, this.time - record.lastPoseTime));
+      // Clients own prediction, but a pose cannot teleport a gun across a map,
+      // switch airframes, change stores or heal damage on the authority.
+      if (this.worldAuthority && (dist(previous, pose) > a.maxSpeed * 1.75 * elapsed + 95
+        || finite(pose.speed) > a.maxSpeed * 1.75 || Math.abs(pose.y) > 60000)) continue;
+      const wasOnGround = previous.onGround;
+      const terrainHit = this.worldAuthority && !wasOnGround && segmentTerrainTime(previous, pose, this.mission, 1.8, true);
+      const carrierHit = this.worldAuthority ? carrierObstacleTime(previous, pose, record.aircraft, this.mission) : null;
+      const before = { x: previous.x, y: previous.y, z: previous.z };
+      const stores = { ammo: previous.ammo, missiles: previous.missiles, bombs: previous.bombs,
+        troopers: previous.troopers, dropsRemaining: previous.dropsRemaining, gunHeat: previous.gunHeat };
+      Object.assign(previous, pose, stores, { id: record.id, lifeId: record.lifeId, aircraft: record.aircraft,
+        health: record.health, alive: record.alive, crashed: false, type: 'player', label: record.name });
+      setAttitude(previous, orientationOf(pose));
+      const ground = surfaceHeight(previous.x, previous.z, this.mission);
+      previous.onGround = !!pose.onGround && Math.abs(previous.y - ground - 3) < 5;
+      previous.everAirborne ||= !previous.onGround;
+      if (previous.onGround && !wasOnGround) {
+        previous.lastLanding = { runwayIndex: runwayAt(previous.x, previous.z, this.mission, 3), safe: true, speed: previous.speed, time: this.time };
+        previous.landings = finite(previous.landings) + 1;
+      }
+      record.lastPoseTime = this.time;
+      if (carrierHit !== null) {
+        previous.x = mix(before.x, previous.x, carrierHit); previous.y = mix(before.y, previous.y, carrierHit); previous.z = mix(before.z, previous.z, carrierHit);
+        this._killParticipant(record, null, 'Carrier island collision');
+      } else if (terrainHit !== false && terrainHit !== null && terrainHit !== undefined) this._killParticipant(record, null, 'Terrain collision');
+      else if (this.worldAuthority && (previous.y < ground + 1.8 || (!wasOnGround || pose.crashed)
+        && previous.y <= ground + 3.1 && this._validatedCrash(previous, !!pose.crashed))) this._killParticipant(record, null, 'Aircraft lost on landing');
+    }
+    this.remotePlayers = [...this.participants.values()].filter(record => record.id !== this.player.id)
+      .map(record => Object.assign(record.pose, { alive: record.alive, health: record.health, connected: record.connected,
+        friendly: this.multiplayer.mode !== 'dogfight', label: record.name, type: 'player' }));
+  }
+
+  _validatedCrash(pose, claimed = false) {
+    if (carrierObstacleTime(pose, pose, pose.aircraft, this.mission) !== null) return true;
+    const ground = surfaceHeight(pose.x, pose.z, this.mission);
+    if (pose.y > ground + 3.5) return false;
+    const a = getAircraft(pose.aircraft), runway = this.mission.runways?.[runwayAt(pose.x, pose.z, this.mission, claimed ? 2 : 16)];
+    const water = terrainHeight(pose.x, pose.z, this.mission) < 0 && !runway?.carrier;
+    const stall = a.stallSpeed * (pose.flaps ? 0.84 : 1), attitude = deriveEuler(orientationOf(pose));
+    // Personal assistance can be stricter than the host's. A declared crash
+    // still needs actual ground contact and a landing failure under a supported
+    // assistance mode; a pilot cannot report somebody else's destruction.
+    const speedUnsafe = pose.speed >= (pose.hover ? 28 : stall * (claimed ? 1.65 : 2.05));
+    const sinkUnsafe = finite(pose.verticalSpeed) <= (pose.hover ? -12 : claimed ? -6.5 : -12);
+    const alignmentUnsafe = runway && !pose.hover && Math.abs(Math.sin(attitude.heading - runway.heading)) >= (claimed ? 0.4 : 0.75);
+    return water || !pose.gear && !pose.hover || speedUnsafe || sinkUnsafe || alignmentUnsafe
+      || basis(orientationOf(pose)).up.y <= Math.cos(claimed ? 0.4 : 0.65)
+      || Math.abs(attitude.roll) >= (claimed ? 0.25 : 0.5) || pose.y < ground + 1.8;
+  }
+
+  _participantTargets(shooterId) {
+    if (this.multiplayer?.mode !== 'dogfight') return [];
+    return [...this.participants.values()].filter(record => record.id !== shooterId && record.alive && record.connected)
+      .map(record => Object.assign(record.pose, { type: 'player', label: record.name, health: record.health, alive: record.alive }));
+  }
+
+  _killParticipant(record, attackerId = null, reason = 'Aircraft destroyed') {
+    if (!this.worldAuthority || !record?.alive) return false;
+    if (!attackerId && this.time - finite(record.lastDamageAt, -Infinity) < 12) attackerId = record.lastAttackerId;
+    record.alive = false; record.health = 0; record.deaths++; record.damageId++;
+    if (record.livesRemaining !== null) record.livesRemaining = Math.max(0, record.livesRemaining - 1);
+    record.respawnAt = this.time + (['freeflight', 'dogfight'].includes(this.multiplayer.mode) ? ARENA_RESPAWN_DELAY : MISSION_RESPAWN_DELAY);
+    Object.assign(record.pose, { health: 0, alive: false, crashed: true });
+    record.lockProgress = 0; record.lockTargetId = null;
+    if (record.id === this.player.id) { this.lockProgress = 0; this.targetId = null; }
+    const attacker = this.participants.get(attackerId);
+    if (this.multiplayer.mode === 'dogfight' && attacker && attacker !== record) attacker.kills++;
+    this._effect('explosion', record.pose.x, record.pose.y, record.pose.z, 105, 5);
+    this._event('destroyed', attacker && attacker !== record ? `${attacker.name} downed ${record.name}` : `${record.name} · ${reason}`);
+    return true;
+  }
+
+  _damageParticipant(record, amount, attackerId, weapon) {
+    if (!this.worldAuthority || !record?.alive || this.time < record.invulnerableUntil || amount <= 0) return false;
+    if (attackerId && this.participants.has(attackerId) && this.multiplayer.mode !== 'dogfight') return false;
+    if (attackerId && attackerId !== record.id && this.participants.has(attackerId)) { record.lastAttackerId = attackerId; record.lastDamageAt = this.time; }
+    record.health = Math.max(0, record.health - amount); record.damageId++;
+    record.pose.health = record.health;
+    this._effect('impact', record.pose.x, record.pose.y, record.pose.z, 22, 0.45);
+    if (!record.health) this._killParticipant(record, attackerId, weapon || 'Aircraft destroyed');
+    return true;
+  }
+
+  requestRespawn(playerId = this.player.id) {
+    const record = this.participants.get(playerId);
+    if (!this.worldAuthority || this.status !== 'flying' || !record || record.alive
+      || record.livesRemaining !== null && record.livesRemaining <= 0 || this.time < record.respawnAt) return false;
+    record.lifeId++; record.alive = true; record.health = getAircraft(record.aircraft).health; record.damageId++;
+    record.spawn = spawnForPlayer(this.mission, record.aircraft, record.index, record.startMode, record.lifeId);
+    record.pose = createPilot(record.aircraft, record.spawn, record.id, record.lifeId);
+    record.respawnAt = null; record.invulnerableUntil = this.time + 3; record.lastPoseTime = this.time;
+    record.lockProgress = 0; record.lockTargetId = null; record.lastAttackerId = null; record.lastDamageAt = null; this.remoteWeapons.delete(record.id);
+    if (record.id === this.player.id) {
+      this.player = record.pose; this.gunCooldown = 0; this.missileCooldown = 0; this.payloadCooldown = 0;
+      this.countermeasureCooldown = 0; this.countermeasureTime = 0; this._lastLandingCount = 0;
+      this.radarOn = this.aircraft.radar; this._chooseTarget();
+    }
+    this.setRemotePlayers([]); this._event('respawn', `${record.name} returned to flight`);
+    return true;
+  }
+
+  _advanceMultiplayer(dt) {
+    if (!this.participants.size || !this.worldAuthority) return;
+    const local = this.localParticipant;
+    if (local?.alive) {
+      local.health = Math.min(local.health, this.player.health); local.pose = this.player;
+      if (this.player.crashed || this.player.health <= 0) this._killParticipant(local, null, this.player.crashCause || 'Aircraft lost');
+    }
+    for (const record of this.participants.values()) {
+      if (!record.alive || record.id === this.player.id) continue;
+      const p = record.pose, a = getAircraft(record.aircraft);
+      const target = [...this.enemies, ...this.targets, ...this._participantTargets(p.id)]
+        .find(candidate => candidate.id === p.targetId && living(candidate) && !candidate.friendly);
+      if (record.lockTargetId !== target?.id) { record.lockProgress = 0; record.lockTargetId = target?.id || null; }
+      const d = target ? dist(p, target) : Infinity, forward = direction(p);
+      const dot = target ? ((target.x - p.x) * forward.x + (target.y - p.y) * forward.y + (target.z - p.z) * forward.z) / Math.max(1, d) : 0;
+      const clear = !!target && lineOfSight(p, target, this.mission);
+      if (a.radar && p.radarOn !== false && d <= a.missileRange && dot > 0.8 && clear)
+        record.lockProgress = Math.min(1, record.lockProgress + dt / a.lockTime);
+      else record.lockProgress = clear ? Math.max(0, record.lockProgress - dt * 1.1) : 0;
+    }
+    if (!this._wallClockRounds) this.round.elapsed = this.time;
+    this._checkRoundEnd();
+    if (this.multiplayer.mode === 'squadron' && [...this.participants.values()].filter(record => record.connected)
+      .every(record => !record.alive && record.livesRemaining === 0)) this._finish(false, 'The squadron has exhausted its aircraft.');
+  }
+
+  advanceRoundTime(elapsedSeconds) {
+    if (!this.worldAuthority || this.multiplayer?.mode !== 'dogfight' || this.status !== 'flying') return false;
+    this._wallClockRounds = true;
+    this.round.elapsed += Math.max(0, finite(elapsedSeconds));
+    this._checkRoundEnd();
+    return true;
+  }
+
+  _checkRoundEnd() {
+    if (!this.round || this.round.duration === null) return;
+    this.round.remaining = Math.max(0, this.round.duration - this.round.elapsed);
+    if (this.round.remaining <= 0 && !this.round.ended) {
+      this.round.elapsed = this.round.duration; this.round.ended = true;
+      this.status = 'success'; this.phase = 'complete'; this.progress = 1;
+      this.objective = 'Dogfight complete · final standings'; this.hint = 'The scoreboard is final. Regroup to fly another round.';
+      this._event('success', 'Round complete');
+    }
+  }
+
+  _updateThreat() {
+    this.threatWarning = '';
+    if (this._trackedThreat > 0 && this.threat <= this._trackedThreat + 1e-9) this.threat = 0;
+    this._trackedThreat = 0;
+    if (!living(this.player)) { this.threat = 0; return; }
+    const incoming = this.projectiles.some(projectile => projectile.type === 'missile' && projectile.life > 0
+      && (projectile.targetPlayerId === this.player.id || projectile.owner === 'enemy' && projectile.targetId === 'player' && !projectile.targetPlayerId)
+      && (projectile.targetLifeId === undefined || projectile.targetLifeId === this.player.lifeId));
+    const locks = [...this.participants.values()].filter(record => record.id !== this.player.id && record.alive
+      && record.lockTargetId === this.player.id && record.lockProgress > 0.05 && lineOfSight(record.pose, this.player, this.mission));
+    if (incoming) { this._trackedThreat = 1; this.threat = 1; this.threatWarning = 'MISSILE INCOMING · USE TERRAIN OR COUNTERMEASURES'; }
+    else if (locks.some(record => record.lockProgress >= 0.98)) { this._trackedThreat = 0.8; this.threat = Math.max(this.threat, 0.8); this.threatWarning = 'RADAR LOCK · BREAK LINE OF SIGHT'; }
+    else if (locks.length) { this._trackedThreat = 0.45; this.threat = Math.max(this.threat, 0.45); this.threatWarning = 'RADAR TRACK · ENEMY ACQUIRING'; }
+  }
+
+  get selectedTarget() { return [...this.enemies, ...this.targets, ...this._participantTargets(this.player.id)].find(t => t.id === this.targetId && living(t)) || null; }
   _random() { this._rng = (this._rng * 1664525 + 1013904223) >>> 0; return this._rng / 4294967296; }
   _id(prefix) { return `${prefix}-${++this._entityId}`; }
   _event(kind, text) {
@@ -299,7 +469,7 @@ export class FlightSimulation {
     if (this.events.length > 32) this.events.splice(0, this.events.length - 32);
   }
   _effect(type, x, y, z, radius = 35, life = 1.4) { this.effects.push({ id: this._id('effect'), type, x, y, z, radius, age: 0, life }); }
-  _hostiles() { return [...this.enemies, ...this.targets].filter(t => living(t) && !t.friendly && !t.narrative && t.type !== 'dropzone'); }
+  _hostiles(shooterId = this.player.id) { return [...this.enemies, ...this.targets, ...this._participantTargets(shooterId)].filter(t => living(t) && !t.friendly && !t.narrative && t.type !== 'dropzone'); }
   _chooseTarget(cycle = false) {
     const list = this._hostiles().filter(t => t.detected !== false).sort((a, b) => {
       const score = t => flatDist(this.player, t) + Math.abs(angle(Math.atan2(t.x - this.player.x, t.z - this.player.z) - this.player.heading)) * 3500;
@@ -309,11 +479,13 @@ export class FlightSimulation {
     const index = list.findIndex(t => t.id === this.targetId);
     const next = cycle && index >= 0 ? list[(index + 1) % list.length] : list[0];
     if (next.id !== this.targetId) this.lockProgress = 0;
-    this.targetId = next.id;
+    this.targetId = next.id; this.player.targetId = next.id;
   }
 
   action(name) {
     if (name && typeof name === 'object') name = name.name || name.action || name.type;
+    if (name === 'respawn') return this.requestRespawn();
+    if (this.participants.size && (!this.localParticipant?.alive || this.player.crashed || this.player.health <= 0)) return false;
     if (this.status !== 'flying' || (this.crew && !this.worldAuthority)) return false;
     const p = this.player, a = this.aircraft;
     switch (name) {
@@ -337,7 +509,7 @@ export class FlightSimulation {
       case 'target': this._chooseTarget(true); return true;
       case 'radar':
         if (!a.radar) return false;
-        this.radarOn = !this.radarOn; this.lockProgress = 0; this._event('control', `Radar ${this.radarOn ? 'on' : 'off'}`); return true;
+        this.radarOn = !this.radarOn; this.player.radarOn = this.radarOn; this.lockProgress = 0; this._event('control', `Radar ${this.radarOn ? 'on' : 'off'}`); return true;
       case 'missile': return this._launchMissile(p, this.selectedTarget, false);
       case 'payload': return this._payload(p, false);
       case 'fire': return this._shoot(p, false);
@@ -345,7 +517,7 @@ export class FlightSimulation {
         if (!a.radar || this.countermeasureCooldown > 0) return false;
         this.countermeasureCooldown = 6; this.countermeasureTime = 3.5; this.threat *= 0.2;
         for (const projectile of this.projectiles) {
-          if (projectile.owner === 'enemy' && projectile.type === 'missile' && dist(projectile, p) < 2800) { projectile.life = 0; this._effect('flash', projectile.x, projectile.y, projectile.z, 55, 0.5); }
+          if ((projectile.owner === 'enemy' || projectile.targetPlayerId === p.id) && projectile.type === 'missile' && dist(projectile, p) < 2800) { projectile.life = 0; this._effect('flash', projectile.x, projectile.y, projectile.z, 55, 0.5); }
         }
         this._effect('flare', p.x, p.y, p.z, 60, 2.2); this._event('countermeasure', 'Countermeasures released · incoming track disrupted'); return true;
       }
@@ -383,16 +555,24 @@ export class FlightSimulation {
     this.countermeasureTime = Math.max(0, this.countermeasureTime - dt);
     this.player.gunHeat = Math.max(0, this.player.gunHeat - dt * 0.22);
     this.threat = Math.max(0, this.threat - dt * 0.12);
-    advancePlayer(this.player, input, dt, this.aircraft, this.mission, this.settings);
+    const active = !this.participants.size || this.localParticipant?.alive;
+    if (active) advancePlayer(this.player, input, dt, this.aircraft, this.mission, this.settings);
     if (this.player.crashed || this.player.health <= 0) {
-      this._effect('explosion', this.player.x, this.player.y, this.player.z, 90, 3);
-      this._finish(false, this.player.crashCause || 'The aircraft could not continue.'); return;
+      this.player.alive = false;
+      if (!this.participants.size) {
+        this._effect('explosion', this.player.x, this.player.y, this.player.z, 90, 4);
+        this._finish(false, this.player.crashCause || 'The aircraft could not continue.'); return;
+      }
     }
+    this._advanceMultiplayer(dt);
+    if (this.status !== 'flying') return;
     if (this.player.landings > this._lastLandingCount) { this._lastLandingCount = this.player.landings; this._event('landing', 'Safe touchdown'); }
     if (this.player.stalled && !this._warnedStall) { this._warnedStall = true; this._event('warning', 'Low airspeed · lower the nose and increase throttle'); }
     if (!this.player.stalled) this._warnedStall = false;
-    if (input.fire) this._shoot(this.player, false);
-    this._updateLock(dt);
+    if (input.fire && active && this.player.health > 0) this._shoot(this.player, false);
+    if (active && this.player.health > 0) this._updateLock(dt);
+    this.player.targetId = this.targetId; this.player.radarOn = this.radarOn;
+    if (this.localParticipant && this.worldAuthority) { this.localParticipant.lockTargetId = this.targetId; this.localParticipant.lockProgress = this.lockProgress; }
     this._updateBombAim();
     if (this.worldAuthority) {
       this._advanceCrewWeapons(dt);
@@ -404,41 +584,48 @@ export class FlightSimulation {
     for (const effect of this.effects) effect.age += dt;
     this.effects = this.effects.filter(e => e.age < e.life);
     this.projectiles = this.projectiles.filter(p => p.life > 0);
+    this._updateThreat();
   }
 
   _advanceWaypoints() {
     const waypoint = this.mission.waypoints?.[this.waypointIndex];
-    if (waypoint && dist(this.player, waypoint) < waypoint.radius) {
+    const pilots = this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose) : [this.player];
+    if (waypoint && pilots.some(pilot => dist(pilot, waypoint) < waypoint.radius)) {
       this.waypointIndex++; this.score += 75; this._event('waypoint', waypoint.label || 'Waypoint reached');
     }
   }
 
   _updateLock(dt) {
-    for (const e of this.enemies) {
+    const previousTarget = this.selectedTarget;
+    const terrainMasked = previousTarget && !lineOfSight(this.player, previousTarget, this.mission);
+    for (const e of [...this.enemies, ...this._participantTargets(this.player.id)]) {
       const visible = lineOfSight(this.player, e, this.mission), distance = dist(this.player, e);
       e.radarVisible = this.radarOn && distance < this.aircraft.missileRange * 1.8 && visible;
       e.detected = !this.aircraft.radar || e.friendly || (distance < 2800 && visible) || e.radarVisible;
     }
     if (!living(this.selectedTarget) || this.selectedTarget?.detected === false) this._chooseTarget();
     const target = this.selectedTarget;
-    if (!this.aircraft.radar || !this.radarOn || !target) { this.lockProgress = Math.max(0, this.lockProgress - dt * 2); return; }
+    if (!this.aircraft.radar || !this.radarOn || !target) {
+      this.lockReason = terrainMasked ? 'Terrain masks the contact' : !this.radarOn && this.aircraft.radar ? 'Radar is off' : 'Select a visible contact';
+      this.lockProgress = terrainMasked ? 0 : Math.max(0, this.lockProgress - dt * 2); return;
+    }
     const p = this.player, d = dist(p, target), dir = direction(p);
     const dot = ((target.x - p.x) * dir.x + (target.y - p.y) * dir.y + (target.z - p.z) * dir.z) / Math.max(1, d);
     const visible = lineOfSight(p, target, this.mission);
     this.lockReason = !visible ? 'Terrain masks the contact' : d > this.aircraft.missileRange ? 'Outside game missile range' : dot < 0.8 ? 'Point the nose toward the contact' : 'Acquiring track';
     if (d <= this.aircraft.missileRange && dot > 0.8 && visible) this.lockProgress = Math.min(1, this.lockProgress + dt / this.aircraft.lockTime);
-    else this.lockProgress = Math.max(0, this.lockProgress - dt * 1.1);
+    else this.lockProgress = visible ? Math.max(0, this.lockProgress - dt * 1.1) : 0;
   }
 
   _shoot(p, remote = false) {
     const a = getAircraft(p.aircraft), gun = a.gun;
     const state = remote ? this._remoteState(p) : this;
-    if (!gun || (state.gunCooldown || 0) > 0 || p.ammo <= 0 || p.gunHeat > 0.98) return false;
+    if (!living(p) || !gun || (state.gunCooldown || 0) > 0 || p.ammo <= 0 || p.gunHeat > 0.98) return false;
     state.gunCooldown = 1 / gun.rate;
     p.ammo--; p.gunHeat = finite(p.gunHeat) + 0.045;
     const dir = direction(p), cone = gun.cone * (this.settings.assist === 'expert' ? 0.65 : 1.3);
     let best = null, bestScore = Infinity;
-    for (const target of this._hostiles()) {
+    for (const target of this._hostiles(p.id)) {
       const distance = dist(p, target);
       if (distance > gun.range || distance < 2) continue;
       const alignment = ((target.x - p.x) * dir.x + (target.y - p.y) * dir.y + (target.z - p.z) * dir.z) / distance;
@@ -449,7 +636,7 @@ export class FlightSimulation {
       }
     }
     this.projectiles.push({ id: this._id('bullet'), type: 'bullet', x: p.x, y: p.y, z: p.z, vx: dir.x * 1000, vy: dir.y * 1000, vz: dir.z * 1000, life: 0.48, owner: remote ? p.id : 'player', cosmetic: true });
-    if (best && this.worldAuthority) this._damage(best, gun.damage, 'gun');
+    if (best && this.worldAuthority) this._damage(best, gun.damage, 'gun', p.id);
     return true;
   }
 
@@ -481,7 +668,7 @@ export class FlightSimulation {
   }
 
   _shootCrew(input = this.crew) {
-    if (!this.crew || !this.worldAuthority || this.status !== 'flying') return false;
+    if (!this.crew || !this.worldAuthority || this.status !== 'flying' || !living(this.player)) return false;
     const station = getGunshipStation(input.seat), state = this.crew.stations[station.id];
     if (!state || state.ammo <= 0 || state.cooldown > 1e-9) return false;
     const { origin, direction: aim } = gunshipStationPose(this.player, station.id, input);
@@ -511,12 +698,16 @@ export class FlightSimulation {
 
   _launchMissile(p, target, remote = false) {
     const a = getAircraft(p.aircraft);
-    if (!a.radar || p.missiles <= 0 || !living(target)) { if (!remote) this._event('info', p.missiles <= 0 ? 'No missiles remaining. Guns are still available.' : 'Select a target first.'); return false; }
+    if (!living(p) || !a.radar || p.missiles <= 0 || !living(target)) { if (!remote) this._event('info', p.missiles <= 0 ? 'No missiles remaining. Guns are still available.' : 'Select a target first.'); return false; }
     const state = remote ? this._remoteState(p) : this;
     if ((state.missileCooldown || 0) > 0) return false;
+    if (remote && this.participants.size) {
+      const record = this.participants.get(p.id);
+      if (!record || record.lockTargetId !== target.id || record.lockProgress < 0.98 || p.radarOn === false) return false;
+    }
     if (!remote && (this.lockProgress < 0.98 || !this.radarOn)) { this._event('info', 'Hold the target in front of the aircraft until LOCK is full.'); return false; }
     if (dist(p, target) > a.missileRange || !lineOfSight(p, target, this.mission)) return false;
-    const owner = remote ? p.id : 'player';
+    const owner = this.participants.size ? p.id : remote ? p.id : 'player';
     if (this.projectiles.some(projectile => projectile.type === 'missile' && projectile.owner === owner && projectile.targetId === target.id && projectile.life > 0)) {
       if (!remote) this._event('info', 'A missile is already tracking that contact. Select another target or wait for the result.');
       return false;
@@ -527,7 +718,7 @@ export class FlightSimulation {
     }
     state.missileCooldown = 0.7; p.missiles--;
     const dir = direction(p), speed = Math.max(460, p.speed + 360);
-    this.projectiles.push({ id: this._id('missile'), type: 'missile', x: p.x, y: p.y - 2, z: p.z, vx: dir.x * speed, vy: dir.y * speed, vz: dir.z * speed, speed, life: 24, owner, targetId: target.id, damage: a.missileDamage });
+    this.projectiles.push({ id: this._id('missile'), type: 'missile', x: p.x, y: p.y - 2, z: p.z, vx: dir.x * speed, vy: dir.y * speed, vz: dir.z * speed, speed, life: 24, owner, ownerLifeId: p.lifeId, targetId: target.id, targetPlayerId: this.participants.has(target.id) ? target.id : undefined, targetLifeId: target.lifeId, damage: a.missileDamage });
     if (!remote) this._event('missile', 'Missile away');
     return true;
   }
@@ -546,6 +737,7 @@ export class FlightSimulation {
   }
 
   _payload(p, remote = false) {
+    if (!living(p)) return false;
     const payloadState = remote ? this._remoteState(p) : this;
     if (payloadState.payloadCooldown > 0) return false;
     const goal = this.mission.goal || {};
@@ -579,11 +771,18 @@ export class FlightSimulation {
     this._event('payload', 'Payload released'); return true;
   }
 
-  _damage(target, amount, weapon) {
+  _damage(target, amount, weapon, attackerId = null) {
+    const participant = this.participants.get(target?.id);
+    if (participant) return this._damageParticipant(participant, amount, attackerId, weapon);
     if (!living(target)) return;
     target.health = Math.max(0, target.health - amount);
     if (target.health > 0) { this._effect('impact', target.x, target.y, target.z, 15, 0.3); return; }
     target.alive = false; target.active = false;
+    // Squadron AIR kills count hostile aircraft, while ground objectives keep
+    // contributing the existing shared mission points. A defeated entity is
+    // no longer living, so repeated damage or an old projectile cannot score it.
+    const attacker = this.participants.get(attackerId === 'player' ? this.player.id : attackerId);
+    if (attacker && this.enemies.includes(target) && !target.friendly && !target.escaped) attacker.kills++;
     this.score += target.friendly ? -150 : target.type === 'bomber' ? 200 : 125;
     this._effect('explosion', target.x, target.y, target.z, target.type === 'balloon' ? 130 : 80, 2.1);
     this._event('destroyed', `${target.label || 'Target'} ${target.friendly ? 'lost' : 'neutralized'}`);
@@ -597,7 +796,8 @@ export class FlightSimulation {
       state.countermeasureCooldown = Math.max(0, finite(state.countermeasureCooldown) - dt);
       state.gunHeat = Math.max(0, state.gunHeat - dt * 0.22);
     }
-    const p = this.player;
+    const pilots = this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose)
+      : [this.player, ...this.remotePlayers].filter(pilot => living(pilot));
     for (const e of this.enemies) {
       if (!living(e)) continue;
       const a = getAircraft(e.aircraft); e.age += dt;
@@ -605,11 +805,13 @@ export class FlightSimulation {
         e.x += Math.sin(e.heading) * e.speed * dt; e.z += Math.cos(e.heading) * e.speed * dt;
         e.y = Math.max(e.y, terrainHeight(e.x, e.z, this.mission) + 180); continue;
       }
-      let victim = p;
+      let victim = pilots[0];
       const escort = this.enemies.find(o => o.friendly && living(o));
       if (escort && e.id.endsWith('2')) victim = escort;
-      for (const remote of this.remotePlayers) {
-        if (remote && Number.isFinite(remote.x) && Number.isFinite(remote.y) && flatDist(e, remote) + 300 < flatDist(e, victim)) victim = remote;
+      for (const remote of pilots) if (!victim || flatDist(e, remote) + 300 < flatDist(e, victim)) victim = remote;
+      if (!victim) {
+        e.x += Math.sin(e.heading) * e.speed * dt; e.z += Math.cos(e.heading) * e.speed * dt;
+        e.y = Math.max(e.y, terrainHeight(e.x, e.z, this.mission) + 180); continue;
       }
       if (e.type === 'bomber') {
         e.heading = mix(e.heading, Math.PI, dt * 0.2); e.pitch = 0;
@@ -631,7 +833,7 @@ export class FlightSimulation {
       if (e.fireTimer <= 0 && distance < 1700 && dot > 0.86 && lineOfSight(e, victim, this.mission)) {
         e.fireTimer = this.settings.assist === 'expert' ? 1.1 : 1.9;
         const aim = { x: (victim.x - e.x) / distance, y: (victim.y - e.y) / distance, z: (victim.z - e.z) / distance };
-        this.projectiles.push({ id: this._id('enemy-bullet'), type: 'bullet', x: e.x, y: e.y, z: e.z, vx: aim.x * 850, vy: aim.y * 850, vz: aim.z * 850, life: 2.7, owner: 'enemy', targetId: victim === escort ? victim.id : 'player', targetPlayerId: victim.id, damage: this.settings.assist === 'expert' ? 9 : 5 });
+        this.projectiles.push({ id: this._id('enemy-bullet'), type: 'bullet', x: e.x, y: e.y, z: e.z, vx: aim.x * 850, vy: aim.y * 850, vz: aim.z * 850, life: 2.7, owner: 'enemy', targetId: victim === escort ? victim.id : 'player', targetPlayerId: victim.id, targetLifeId: victim.lifeId, damage: this.settings.assist === 'expert' ? 9 : 5 });
         this.threat = Math.max(this.threat, 0.35);
       }
       if (e.missiles && e.missileTimer <= 0 && distance > 1200 && distance < 6000 && dot > 0.75 && lineOfSight(e, victim, this.mission)) {
@@ -646,18 +848,20 @@ export class FlightSimulation {
 
   _enemyMissile(origin, victim) {
     const distance = Math.max(1, dist(origin, victim)), speed = 430;
-    this.projectiles.push({ id: this._id('enemy-missile'), type: 'missile', x: origin.x, y: origin.y + 8, z: origin.z, vx: (victim.x - origin.x) / distance * speed, vy: (victim.y - origin.y) / distance * speed, vz: (victim.z - origin.z) / distance * speed, speed, life: 18, owner: 'enemy', targetId: 'player', targetPlayerId: victim.id, damage: this.settings.assist === 'expert' ? 45 : 25 });
+    this.projectiles.push({ id: this._id('enemy-missile'), type: 'missile', x: origin.x, y: origin.y + 8, z: origin.z, vx: (victim.x - origin.x) / distance * speed, vy: (victim.y - origin.y) / distance * speed, vz: (victim.z - origin.z) / distance * speed, speed, life: 18, owner: 'enemy', targetId: 'player', targetPlayerId: victim.id, targetLifeId: victim.lifeId, damage: this.settings.assist === 'expert' ? 45 : 25 });
     this.threat = 1;
   }
 
   _advanceHazards(dt) {
-    const p = this.player;
+    const pilots = this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose) : [this.player].filter(living);
     for (const target of this.targets) {
       if (!target.hazard || !living(target)) continue;
       target.fireTimer -= dt;
+      const p = pilots.filter(pilot => !pilot.onGround).sort((a, b) => flatDist(a, target) - flatDist(b, target))[0];
+      if (!p) continue;
       const distance = flatDist(p, target), range = target.radius || 1200;
-      if (distance > range || p.onGround) continue;
-      const exposure = this.aircraft.stealth ? this.radarOn ? 1 : 0.3 : 1;
+      if (distance > range) continue;
+      const a = getAircraft(p.aircraft), exposure = a.stealth ? (p === this.player ? this.radarOn : p.radarOn) ? 1 : 0.3 : 1;
       this.threat = Math.max(this.threat, (1 - distance / range) * exposure * 0.7);
       if (target.fireTimer <= 0) {
         target.fireTimer = target.type === 'sam' ? 13 / exposure : 3.3;
@@ -666,7 +870,11 @@ export class FlightSimulation {
         } else if (target.type === 'flak') {
           const burst = { x: p.x + (this._random() - 0.5) * 220, y: p.y + (this._random() - 0.5) * 180, z: p.z + (this._random() - 0.5) * 220 };
           this._effect('smoke', burst.x, burst.y, burst.z, 90, 3);
-          if (dist(p, burst) < 90) p.health = Math.max(1, p.health - (this.settings.assist === 'expert' ? 11 : 5));
+          if (dist(p, burst) < 90) {
+            const amount = this.settings.assist === 'expert' ? 11 : 5, participant = this.participants.get(p.id);
+            if (participant) this._damageParticipant(participant, amount, null, 'Flak');
+            else p.health = Math.max(1, p.health - amount);
+          }
         }
       }
     }
@@ -677,13 +885,21 @@ export class FlightSimulation {
       if (projectile.life <= 0) continue;
       const before = { x: projectile.x, y: projectile.y, z: projectile.z };
       projectile.life -= dt;
+      if (projectile.life <= 0) continue;
       let target;
       if (projectile.type === 'missile') {
-        if (projectile.owner === 'enemy') {
-          target = projectile.targetPlayerId && projectile.targetPlayerId !== this.player.id ? this.remotePlayers.find(p => p.id === projectile.targetPlayerId) || this.player : this.player;
-          if (this.countermeasureTime > 0 && target === this.player) { projectile.life = 0; continue; }
-        } else target = [...this.enemies, ...this.targets].find(t => t.id === projectile.targetId && living(t));
-        if (target) {
+        if (projectile.targetPlayerId) {
+          const participant = this.participants.get(projectile.targetPlayerId);
+          target = participant ? participant.alive && (projectile.targetLifeId === undefined || projectile.targetLifeId === participant.lifeId) ? participant.pose : null
+            : projectile.targetPlayerId === this.player.id ? this.player : this.remotePlayers.find(p => p.id === projectile.targetPlayerId);
+        } else if (projectile.owner === 'enemy') target = this.player;
+        else target = [...this.enemies, ...this.targets].find(t => t.id === projectile.targetId && living(t));
+        if (!living(target)) target = null;
+        if (target === this.player && this.countermeasureTime > 0) { projectile.life = 0; continue; }
+        // A seeker does not steer toward a target through a mountain. The
+        // missile carries its existing momentum, then strikes the actual wall.
+        if (target && !lineOfSight(projectile, target, this.mission, 3)) projectile.seekerLost = true;
+        if (target && !projectile.seekerLost) {
           const distance = Math.max(1, dist(projectile, target)), steer = projectile.owner === 'enemy' ? 1.9 : 4.8, speed = projectile.speed || 650;
           projectile.vx = mix(projectile.vx, (target.x - projectile.x) / distance * speed, dt * steer);
           projectile.vy = mix(projectile.vy, (target.y - projectile.y) / distance * speed, dt * steer);
@@ -694,8 +910,9 @@ export class FlightSimulation {
       if (projectile.type === 'shell') projectile.vy -= finite(projectile.gravity, 9) * dt;
       projectile.x += projectile.vx * dt; projectile.y += projectile.vy * dt; projectile.z += projectile.vz * dt;
       if (cosmeticWorld) continue;
+      const terrainHit = segmentTerrainTime(before, projectile, this.mission, 3, true);
       if (projectile.type === 'shell') {
-        let fraction = segmentTerrainTime(before, projectile, this.mission), direct = null;
+        let fraction = terrainHit, direct = null;
         for (const candidate of this.targets) {
           if (!living(candidate) || candidate.narrative || ['dropzone', 'balloon'].includes(candidate.type)) continue;
           const hit = segmentSphereTime(before, projectile, candidate, finite(candidate.hitRadius, candidate.type === 'depot' ? 32 : 18));
@@ -706,30 +923,41 @@ export class FlightSimulation {
         }, direct);
         continue;
       }
+      let victim = null;
       if (projectile.owner === 'enemy') {
-        const victim = projectile.targetId !== 'player' ? this.enemies.find(e => e.id === projectile.targetId) : target || (projectile.targetPlayerId && projectile.targetPlayerId !== this.player.id ? this.remotePlayers.find(p => p.id === projectile.targetPlayerId) : this.player);
-        if (victim && dist(projectile, victim) < (projectile.type === 'missile' ? 65 : 38)) {
-          projectile.life = 0;
-          if (victim === this.player) {
-            this.player.health = Math.max(0, this.player.health - projectile.damage);
-            this._effect('impact', victim.x, victim.y, victim.z, 40, 0.4); this._event('hit', 'Aircraft hit');
-          } else if (victim.friendly) this._damage(victim, projectile.damage, 'enemy');
-          else if (victim.id) this.remoteDamage[victim.id] = finite(this.remoteDamage[victim.id]) + projectile.damage;
-        }
-      } else if (projectile.type === 'missile' && target && dist(projectile, target) < 85) {
-        projectile.life = 0; this._damage(target, projectile.damage, 'missile');
-      }
-      const ground = Math.max(0, terrainHeight(projectile.x, projectile.z, this.mission));
-      if (projectile.y <= ground + 3) {
+        victim = projectile.targetId !== 'player' ? this.enemies.find(e => e.id === projectile.targetId)
+          : target || (projectile.targetPlayerId && projectile.targetPlayerId !== this.player.id ? this.remotePlayers.find(p => p.id === projectile.targetPlayerId) : this.player);
+      } else if (projectile.type === 'missile') victim = target;
+      if (victim && projectile.targetLifeId !== undefined && victim.lifeId !== projectile.targetLifeId) victim = null;
+      const hit = living(victim) ? segmentSphereTime(before, projectile, victim, projectile.type === 'missile' ? 65 : 38) : null;
+      // Terrain is ordered against the swept proximity hit. End-point checks
+      // alone let a fast missile cross a wall and damage the pilot behind it.
+      if (hit !== null && (terrainHit === null || hit < terrainHit)) {
+        projectile.life = 0;
+        const participant = this.participants.get(victim.id);
+        if (participant) this._damageParticipant(participant, projectile.damage, projectile.owner === 'enemy' ? null : projectile.owner, projectile.type);
+        else if (victim === this.player) {
+          this.player.health = Math.max(0, this.player.health - projectile.damage);
+          this._effect('impact', victim.x, victim.y, victim.z, 40, 0.4); this._event('hit', 'Aircraft hit');
+        } else if (victim.friendly || projectile.owner !== 'enemy') this._damage(victim, projectile.damage, projectile.type, projectile.owner);
+        else if (victim.id) this.remoteDamage[victim.id] = finite(this.remoteDamage[victim.id]) + projectile.damage;
+        if (projectile.type === 'missile') this._effect('explosion', victim.x, victim.y, victim.z, 65, 2.8);
+      } else if (terrainHit !== null) {
+        projectile.x = mix(before.x, projectile.x, terrainHit); projectile.y = mix(before.y, projectile.y, terrainHit); projectile.z = mix(before.z, projectile.z, terrainHit);
         projectile.life = 0;
         if (projectile.type === 'bomb') {
-          this._effect('explosion', projectile.x, ground + 8, projectile.z, projectile.radius * 0.45, 2.6);
-          for (const t of this.targets) {
+          this._effect('explosion', projectile.x, projectile.y + 5, projectile.z, projectile.radius * 0.45, 4.2);
+          const blast = { x: projectile.x, y: projectile.y + 6, z: projectile.z };
+          for (const t of [...this.targets, ...this._participantTargets(projectile.owner === 'player' ? this.player.id : projectile.owner)]) {
             if (!living(t) || t.narrative || t.type === 'dropzone' || t.type === 'balloon') continue;
-            const distance = flatDist(projectile, t);
-            if (distance < projectile.radius) this._damage(t, projectile.damage * (0.5 + 0.5 * (1 - distance / projectile.radius)), 'bomb');
+            const distance = dist(blast, t);
+            if (distance < projectile.radius && lineOfSight(blast, t, this.mission, 0))
+              this._damage(t, projectile.damage * (0.5 + 0.5 * (1 - distance / projectile.radius)), 'bomb', projectile.owner === 'player' ? this.player.id : projectile.owner);
           }
-        }
+        } else if (projectile.type === 'missile') {
+          this._effect('explosion', projectile.x, projectile.y + 3, projectile.z, 70, 3.5);
+          this._event('terrain', 'Missile intercepted by terrain');
+        } else this._effect('impact', projectile.x, projectile.y, projectile.z, 10, 0.35);
       }
     }
   }
@@ -750,8 +978,11 @@ export class FlightSimulation {
     }
   }
 
+  _missionPilots() { return this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose) : [this.player].filter(living); }
+  _missionPilot() { return this._missionPilots().find(pilot => this.mission.goal?.type === 'drop' && pilot.aircraft === 'c47') || this._missionPilots()[0] || this.player; }
+
   _navigationHint(point) {
-    const p = this.player, distance = flatDist(p, point), delta = angle(Math.atan2(point.x - p.x, point.z - p.z) - p.heading);
+    const p = this._missionPilot(), distance = flatDist(p, point), delta = angle(Math.atan2(point.x - p.x, point.z - p.z) - p.heading);
     const turn = Math.abs(delta) > 0.2 ? `Bank ${delta > 0 ? 'left' : 'right'} toward the marker.` : 'Keep the marker ahead.';
     const altitude = point.y - p.y;
     return `${turn} ${Math.abs(altitude) > 100 ? altitude > 0 ? 'Raise the nose gently.' : 'Lower the nose gently.' : 'Hold your altitude.'} ${(distance / 1000).toFixed(1)} km to go.`;
@@ -759,19 +990,24 @@ export class FlightSimulation {
 
   _landingHint(runway) {
     if (!runway) return 'Find a clear runway and land with the gear down.';
-    const p = this.player;
+    const p = this._missionPilot();
     if (p.onGround) return p.lastLanding?.runwayIndex === this.mission.goal.destinationRunway ? 'Throttle idle and set the brake to finish the landing.' : 'This is not the destination. Take off and follow the destination marker.';
-    if (this.aircraft.vtol) return `Return to ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. ${p.hover ? 'Half throttle holds height while upright; use less to descend. Pitch and roll tilt the aircraft to move across the deck.' : 'Reduce speed below 130 m/s, select HOVER, then settle gently onto the deck.'}`;
+    if (getAircraft(p.aircraft).vtol) return `Return to ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. ${p.hover ? 'Half throttle holds height while upright; use less to descend. Pitch and roll tilt the aircraft to move across the deck.' : 'Reduce speed below 130 m/s, select HOVER, then settle gently onto the deck.'}`;
     if (!p.gear) return 'Extend the landing gear before your approach.';
-    if (p.speed > this.aircraft.stallSpeed * 1.85) return this.aircraft.hasFlaps === false ? 'Reduce throttle for landing. This biplane has fixed gear and no flaps.' : 'Reduce throttle for landing. Flaps lower the stall speed and add drag.';
+    if (p.speed > getAircraft(p.aircraft).stallSpeed * 1.85) return getAircraft(p.aircraft).hasFlaps === false ? 'Reduce throttle for landing. This biplane has fixed gear and no flaps.' : 'Reduce throttle for landing. Flaps lower the stall speed and add drag.';
     return `Line up with ${runway.label} · ${(flatDist(p, runway) / 1000).toFixed(1)} km. Aim for the near end, descend gently, and keep wings level. Brake after touchdown.`;
   }
 
   _updateObjective(dt) {
     if (this.status !== 'flying') return;
-    const m = this.mission, g = m.goal || {}, p = this.player;
+    const m = this.mission, g = m.goal || {}, p = this._missionPilot();
     this.navigationTarget = null;
     if (g.protectIds?.some(id => !living(this.targets.find(t => t.id === id)))) { this._finish(false, 'A protected friendly unit was lost. Check the target markings before firing.'); return; }
+    if (this.multiplayer?.mode === 'dogfight') {
+      this.objective = `Dogfight · ${Math.ceil(this.round.remaining / 60)} min remaining`;
+      this.hint = this.localParticipant?.alive ? 'Select a contact, build a lock or close to gun range. Mountains block radar and intercept missiles.' : this.canRespawn ? 'A new aircraft is ready. Respawn or keep spectating.' : 'Spectating while your next aircraft is prepared.';
+      this.progress = this.round.duration ? this.round.elapsed / this.round.duration : 0; return;
+    }
     if (m.kind === 'free') { this.objective = 'Free flight · explore at your own pace'; this.hint = p.onGround ? p.brake ? 'Release the brake and raise throttle to take off.' : 'Build airspeed, then raise the nose gently.' : p.stalled ? 'Lower the nose and add throttle to recover airspeed.' : 'Explore the terrain. Pause to change aircraft or return to the hangar.'; this.progress = 0; return; }
     if (!p.engine) { this.phase = 'startup'; this.objective = `Start the engine · ${p.startupStep}/4`; this.hint = ['Open the fuel valve. Tap START to begin the simplified checklist.', 'Switch on the magnetos. Tap START again.', 'Prime the engine. Tap START again.', 'Turn the propeller. Tap START once more.'][Math.min(3, p.startupStep)]; this.progress = p.startupStep * 0.025; return; }
     if (!p.everAirborne) {
@@ -811,14 +1047,14 @@ export class FlightSimulation {
         this.phase = 'landing'; const runway = m.runways[g.destinationRunway];
         this.navigationTarget = { x: runway.x, y: runway.y + 35, z: runway.z, label: `LAND · ${runway.label}` };
         this.objective = `Land at ${runway.label}, then slow to a stop`; this.hint = this._landingHint(runway); this.progress = 0.78;
-        if (p.onGround && p.lastLanding?.runwayIndex === g.destinationRunway && p.speed < (g.stopSpeed || 12)) this._finish(true, 'Flight complete · safe arrival');
+        if (this._missionPilots().some(pilot => pilot.onGround && pilot.lastLanding?.runwayIndex === g.destinationRunway && pilot.speed < (g.stopSpeed || 12))) this._finish(true, 'Flight complete · safe arrival');
       }
       return;
     }
     if (g.type === 'escort') {
       const escort = this.enemies.find(e => e.id === g.protectId);
       if (!living(escort)) { this._finish(false, 'The reconnaissance aircraft was lost. Stay close enough to protect it.'); return; }
-      const close = flatDist(p, escort) < g.escortRadius;
+      const close = this._missionPilots().some(pilot => flatDist(pilot, escort) < g.escortRadius);
       this.navigationTarget = { x: escort.x, y: escort.y, z: escort.z, label: 'RECON · protect the crew' };
       if (close) this.escortTime += dt;
       this.phase = 'escort'; this.progress = this.escortTime / g.duration;
@@ -833,7 +1069,7 @@ export class FlightSimulation {
       this.objective = `Deliver paratroopers safely · ${this.dropsLanded}/${g.count} landed`;
       this.hint = this.paratroopers.some(t => !t.landed) ? 'Parachutes descending. Keep your aircraft safe while they reach the ground.' : distance > g.dropRadius ? `Fly to the blue drop zone · ${(distance / 1000).toFixed(1)} km. Stay 250–900 m above terrain.` : 'Wings level, speed below 105 m/s, altitude 250–900 m above terrain. Press PAYLOAD to release the paratroopers.';
       if (this.dropsLanded >= g.count) this._finish(true, 'The paratroopers landed safely in the zone');
-      else if (p.troopers === 0 && this.paratroopers.length && this.paratroopers.every(t => t.landed)) this._finish(false, 'Too few parachutes reached the zone. Try releasing closer to its center.');
+      else if (!this._missionPilots().some(pilot => pilot.troopers > 0) && ![...this.participants.values()].some(record => record.aircraft === 'c47' && record.livesRemaining > 1) && this.paratroopers.length && this.paratroopers.every(t => t.landed)) this._finish(false, 'Too few parachutes reached the zone. Try releasing closer to its center.');
       return;
     }
     if (g.type === 'decision') {
@@ -853,7 +1089,7 @@ export class FlightSimulation {
       const runway = m.runways[g.destinationRunway];
       this.navigationTarget = { x: runway.x, y: runway.y + 30, z: runway.z, label: 'CARRIER · hover recovery' };
       this.phase = 'landing'; this.progress = 0.8; this.objective = 'Return to the carrier and land in hover'; this.hint = this._landingHint(m.runways[g.destinationRunway]);
-      if (p.onGround && p.lastLanding?.runwayIndex === g.destinationRunway && p.speed < g.stopSpeed) this._finish(true, 'Task force protected · safe carrier recovery'); return;
+      if (this._missionPilots().some(pilot => pilot.onGround && pilot.lastLanding?.runwayIndex === g.destinationRunway && pilot.speed < g.stopSpeed)) this._finish(true, 'Task force protected · safe carrier recovery'); return;
     }
     this.phase = 'combat';
     if (g.type === 'targets') { this.objective = `Complete the strike · ${deadGround}/${g.count} objectives`; this.progress = deadGround / g.count * 0.85; goalMet = deadGround >= g.count; }
@@ -895,22 +1131,38 @@ export class FlightSimulation {
     return this.remoteWeapons.get(id);
   }
 
-  applyRemoteAction(action, pose) {
+  applyRemoteAction(action, pose, metadata = {}) {
     if (this.crew || !this.worldAuthority || this.status !== 'flying' || !pose || ![pose.x, pose.y, pose.z, pose.heading].every(Number.isFinite)) return false;
     const name = typeof action === 'string' ? action : action?.name || action?.action || action?.type;
-    // A squadron sortie uses its assigned aircraft; a pose cannot grant stores.
-    const p = { ...pose, aircraft: this.mission.aircraft }, state = this._remoteState(p);
+    let p;
+    if (this.participants.size) {
+      const record = this.participants.get(pose.id);
+      const lifeId = metadata.lifeId ?? action?.lifeId ?? pose.lifeId;
+      const runId = metadata.runId ?? action?.runId;
+      const actionId = metadata.actionId ?? action?.actionId;
+      if (!record || record.id === this.player.id || lifeId !== record.lifeId || !record.connected
+        || runId && runId !== this.multiplayer.runId) return false;
+      if (actionId && this._seenActions.has(actionId)) return false;
+      if (actionId) { this._seenActions.add(actionId); if (this._seenActions.size > 2000) this._seenActions.delete(this._seenActions.values().next().value); }
+      if (name === 'respawn') return this.requestRespawn(record.id);
+      if (!record.alive) return false;
+      this.setRemotePlayers([pose]);
+      if (!record.alive) return name === 'crash';
+      p = record.pose;
+      if (name === 'crash') return this._validatedCrash(p, true) ? this._killParticipant(record, null, 'Terrain collision') : false;
+    } else p = { ...pose, aircraft: this.mission.aircraft, health: finite(pose.health, getAircraft(this.mission.aircraft).health), alive: pose.alive !== false };
+    const state = this._remoteState(p);
     setAttitude(p, orientationOf(p));
     Object.assign(p, { ammo: state.ammo, missiles: state.missiles, bombs: state.bombs, troopers: state.troopers, dropsRemaining: state.dropsRemaining, gunHeat: state.gunHeat });
-    const chosen = [...this.enemies, ...this.targets].find(t => t.id === action?.targetId && living(t) && !t.friendly) || this.selectedTarget;
+    const chosen = this._hostiles(p.id).find(t => t.id === (action?.targetId || p.targetId)) || (this.participants.size ? null : this.selectedTarget);
     let result = false;
     if (name === 'fire') result = this._shoot(p, true);
     else if (name === 'missile') result = this._launchMissile(p, chosen, true);
     else if (name === 'payload') result = this._payload(p, true);
     else if (name === 'countermeasure') {
-      if (state.countermeasureCooldown > 0) return false;
+      if (!getAircraft(p.aircraft).radar || state.countermeasureCooldown > 0) return false;
       state.countermeasureCooldown = 6;
-      for (const projectile of this.projectiles) if (projectile.owner === 'enemy' && projectile.targetPlayerId === p.id && dist(projectile, p) < 2800) projectile.life = 0;
+      for (const projectile of this.projectiles) if (projectile.type === 'missile' && projectile.targetPlayerId === p.id && dist(projectile, p) < 2800) projectile.life = 0;
       this._effect('flare', p.x, p.y, p.z, 60, 2.2); result = true;
     }
     for (const key of ['ammo', 'missiles', 'bombs', 'troopers', 'dropsRemaining', 'gunHeat']) state[key] = p[key];
@@ -920,7 +1172,8 @@ export class FlightSimulation {
   getSnapshot() {
     const weaponStores = {};
     for (const [id, stores] of this.remoteWeapons) weaponStores[id] = { ammo: stores.ammo, missiles: stores.missiles, bombs: stores.bombs, troopers: stores.troopers, dropsRemaining: stores.dropsRemaining };
-    return copy({ version: 1, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores,
+    return copy({ version: this.participants.size ? 2 : 1, runId: this.multiplayer?.runId, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores,
+      ...(this.participants.size ? { participants: [...this.participants.values()].map(record => ({ ...record, pose: { ...record.pose }, stores: { ammo: record.pose.ammo, missiles: record.pose.missiles, bombs: record.pose.bombs, troopers: record.pose.troopers, dropsRemaining: record.pose.dropsRemaining } })), round: this.round } : {}),
       ...(this.crew ? { player: this.player, crew: this.crew } : {}) });
   }
 
@@ -929,6 +1182,8 @@ export class FlightSimulation {
     if (this.crew && (!snapshot.player || !['x', 'y', 'z', 'health'].every(key => Number.isFinite(snapshot.player[key]))
       || !snapshot.crew || !clampCrewInput(snapshot.crew)
       || !GUNSHIP_STATIONS.every(station => Number.isFinite(snapshot.crew.stations?.[station.id]?.ammo)))) return false;
+    if (this.participants.size && snapshot.runId && this.multiplayer.runId && snapshot.runId !== this.multiplayer.runId) return false;
+    if (this.participants.size && finite(snapshot.time) < finite(this._lastSnapshotTime, -Infinity)) return false;
     this.worldAuthority = false;
     for (const key of ['enemies', 'targets', 'projectiles', 'effects', 'paratroopers', 'events']) if (Array.isArray(snapshot[key])) this[key] = copy(snapshot[key]);
     for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText']) if (snapshot[key] !== undefined) this[key] = snapshot[key];
@@ -937,6 +1192,36 @@ export class FlightSimulation {
       setAttitude(this.player, orientationOf(this.player));
       this.crew = copy(snapshot.crew); this.time = finite(snapshot.time, this.time);
       this.status = snapshot.status;
+      return true;
+    }
+    if (this.participants.size && Array.isArray(snapshot.participants)) {
+      this.time = finite(snapshot.time, this.time); this._lastSnapshotTime = this.time;
+      for (const incoming of snapshot.participants) {
+        const record = this.participants.get(incoming.id);
+        if (!record || !Number.isInteger(incoming.lifeId) || incoming.lifeId < record.lifeId || incoming.damageId < record.damageId) continue;
+        const newLife = incoming.lifeId > record.lifeId;
+        const local = incoming.id === this.player.id;
+        const predicted = local ? this.player : record.pose;
+        Object.assign(record, copy(incoming));
+        if (local) {
+          if (newLife) {
+            this.player = createPilot(record.aircraft, record.spawn, record.id, record.lifeId);
+            if (record.pose) Object.assign(this.player, copy(record.pose));
+            setAttitude(this.player, orientationOf(this.player));
+            this._receivedDamage = 0; this.gunCooldown = 0; this.missileCooldown = 0; this.payloadCooldown = 0;
+            this.countermeasureCooldown = 0; this.countermeasureTime = 0; this._lastLandingCount = 0;
+            this.radarOn = this.aircraft.radar; this.lockProgress = 0; this.targetId = null;
+          } else this.player = predicted;
+          Object.assign(this.player, { lifeId: record.lifeId, health: record.health, alive: record.alive,
+            aircraft: record.aircraft, crashed: record.alive ? this.player.crashed : true });
+          for (const key of ['ammo', 'missiles', 'bombs', 'troopers', 'dropsRemaining'])
+            if (Number.isFinite(record.stores?.[key])) this.player[key] = Math.max(0, record.stores[key]);
+          record.pose = this.player;
+        }
+      }
+      if (snapshot.round) this.round = copy(snapshot.round);
+      this.status = snapshot.status;
+      this.setRemotePlayers([]); this._updateThreat();
       return true;
     }
     if (this.player.health > 0 && !this.player.crashed) this.status = snapshot.status;

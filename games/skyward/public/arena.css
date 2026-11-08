@@ -1,0 +1,54 @@
+/* Multiplayer flight planning and readable in-flight status. */
+.squadron-layout{max-width:1060px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+.squadron-session,.room-setup{min-width:0}.room-setup h2{font:normal 30px/1.15 Georgia,serif;letter-spacing:-.03em;margin:8px 0 16px}
+.room-setup .eyebrow{color:var(--orange);font-size:9px}.room-setup label{font-size:12px}.room-setup select{max-width:100%}
+.room-mode-description{font-size:12px;line-height:1.65;color:var(--muted);margin:18px 0;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.room-loadout{margin-top:25px}.room-loadout>.eyebrow{margin-bottom:13px}.room-loadout .small-note{margin:-8px 0 16px}
+.room-brief>strong{font:normal 27px/1.2 Georgia,serif}.room-brief>p{font-size:12px;color:var(--muted);line-height:1.65}
+.roster-person{align-items:center}.roster-person>strong{font-weight:500;min-width:0;overflow-wrap:anywhere}.roster-person>small{flex-shrink:0;text-align:right}
+.roster-person .crew-seat-label{font-size:9px;line-height:1.5;margin-top:6px}.squadron-connection-note{padding:0 6px}
+.carrier-warning{border-left:3px solid #d59657;background:#ad673b12;padding:13px 15px;font-size:12px!important;line-height:1.65!important;color:var(--ink);text-align:left!important;margin:0 0 20px!important}
+.carrier-warning[data-risk="compatible"]{border-color:#75a991}.carrier-warning[data-risk="high-risk"]{border-color:#df805f;background:#ba493015}
+.room-setup :disabled{opacity:.7;cursor:default}.room-setup label:has(select:disabled){color:var(--muted)}
+.clearance-track{width:100%;height:3px;background:#afcfbb30;margin-top:7px;overflow:hidden;border-radius:2px}.clearance-track i{display:block;width:100%;height:100%;background:#c1ddbd;transition:width .12s linear,background .15s}
+.altitude[data-clearance="caution"]{color:#ffd09a}.altitude[data-clearance="danger"]{color:#ffad86}.altitude[data-clearance="danger"] .clearance-track i{background:#ff976d}.altitude[data-clearance="caution"] .clearance-track i{background:#ffd09a}
+.round-readout{position:absolute;top:112px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#122c36c9;padding:8px 12px;border:1px solid #e1d8ba42;border-radius:3px;text-shadow:none;white-space:nowrap}
+.round-readout>span{font-size:8px;letter-spacing:.1em;color:#e7c9a2}.round-readout>strong{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}.round-readout>small{font-size:9px;color:#c0d1cf}.round-readout[data-ending="true"]{border-color:#edba7c;color:#ffd39e}
+.scoreboard-panel{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:620px;max-width:calc(100% - 32px);max-height:70%;overflow:auto;background:#10212bf5;border:1px solid #b3c9c34f;box-shadow:0 18px 75px #0008;backdrop-filter:blur(12px);padding:22px;pointer-events:auto;z-index:40;text-shadow:none;color:#f1eee0}
+.scoreboard-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.scoreboard-heading .eyebrow{font-size:8px;color:#d6b48a;margin:0 0 6px}.scoreboard-heading h2{font:normal 29px/1.2 Georgia,serif;margin:0}.scoreboard-heading>button{font-size:20px;min-width:44px}
+.scoreboard-table{overflow-x:auto}.scoreboard-table table{width:100%;border-collapse:collapse;font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:left;font-variant-numeric:tabular-nums}
+.scoreboard-table th{font:9px/1.4 Consolas,monospace;letter-spacing:.07em;color:#9bb0b0;padding:9px 8px;border-bottom:1px solid #b1c7c434;white-space:nowrap}.scoreboard-table td{padding:12px 8px;border-bottom:1px solid #b1c7c420;vertical-align:middle}.scoreboard-table td:first-child{width:30px;color:#d9b88f;font:11px Consolas,monospace}.scoreboard-table td:nth-child(n+3),.scoreboard-table th:nth-child(n+3){text-align:right;width:50px}.scoreboard-table td strong{display:block;font-weight:600}.scoreboard-table td small{display:block;color:#a0b5b5;font-size:10px;margin-top:4px}.scoreboard-table tr[data-self="true"]{background:#b6d1c910}.scoreboard-table tr[data-alive="false"] td strong{color:#bec8c5}.scoreboard-note{font-size:10px;color:#9fb0af;line-height:1.55;margin:15px 0 0}
+.spectator-panel{position:absolute;right:24px;bottom:105px;width:330px;max-width:calc(100% - 32px);padding:20px;background:#12222cef;border:1px solid #cfba905c;box-shadow:0 10px 40px #0004;text-shadow:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;pointer-events:auto;z-index:20}
+.spectator-panel>.eyebrow{font:9px Consolas,monospace;letter-spacing:.11em;color:#e4b58d;margin:0 0 10px}.spectator-panel h2{font:normal 29px/1.15 Georgia,serif;margin:0 0 9px}.spectator-panel>p:not(.eyebrow){font-size:12px;line-height:1.6;color:#b8cbc8;margin:0 0 16px}.spectator-follow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}.spectator-follow>div{text-align:center;min-width:0}.spectator-follow small{display:block;font:8px Consolas,monospace;letter-spacing:.1em;color:#9db6b5}.spectator-follow strong{display:block;margin:6px 0;font-size:14px;overflow-wrap:anywhere}.spectator-follow span{display:block;font-size:10px;color:#c4b79c}.spectator-panel button:disabled{opacity:.5;cursor:default}.spectator-panel>.primary{min-height:44px;font-size:12px}
+.flight-screen.spectating :is(.touch-controls,.flight-actions,.weapon-actions,.crosshair,.startup-panel,.desktop-controls,.flight-hint,.aircraft-status,.impact-marker,.touch-control-bar){display:none!important}
+.flight-screen.spectating .flight-instruments{opacity:.8}.flight-screen.spectating .flight-warning{display:none}.flight-screen.spectating .radio-caption{top:205px}.flight-screen.spectating #target-marker{display:none}
+#debrief-scoreboard{margin:20px -8px 24px;text-align:left}#debrief-scoreboard td small{color:var(--muted)}#debrief-scoreboard th{color:var(--muted)}#debrief-scoreboard td,#debrief-scoreboard th{border-color:var(--line)}
+.debrief-card:has(#debrief-scoreboard:not([hidden])){max-width:690px}.debrief-card:has(#debrief-scoreboard:not([hidden])) .debrief-insignia{font-size:35px;margin-bottom:8px}.debrief-card:has(#debrief-scoreboard:not([hidden])) h1{font-size:40px}
+@media(max-width:760px){
+ .squadron-layout{grid-template-columns:1fr;gap:20px}.room-setup{order:-1}.squadron-session{display:contents}.squadron-connect,.squadron-room{order:-2}.squadron-session>.network-status{order:-1;margin-top:0}.squadron-connection-note{order:2}.room-setup h2{font-size:27px}
+ .scoreboard-panel{padding:15px;top:23%;max-height:72%}.scoreboard-heading{margin-bottom:12px}.scoreboard-heading h2{font-size:25px}.scoreboard-table th{font-size:8px;padding:8px 5px}.scoreboard-table td{font-size:11px;padding:10px 5px}.scoreboard-table td:nth-child(n+3),.scoreboard-table th:nth-child(n+3){width:36px}.scoreboard-table td:first-child{width:22px}.scoreboard-note{font-size:9px}
+ .spectator-panel{right:50%;transform:translateX(50%);bottom:max(24px,env(safe-area-inset-bottom));padding:18px;width:340px}.spectator-panel h2{font-size:27px}
+ .debrief-card:has(#debrief-scoreboard:not([hidden])) h1{font-size:31px}
+}
+@media(pointer:coarse),(max-width:1000px){
+ .flight-screen .flight-header-actions #flight-network{display:none}
+ .flight-screen #scoreboard-button{font-size:8px;padding:8px;min-width:44px}.flight-screen[data-multiplayer="true"] .flight-identity strong{max-width:135px}
+ .clearance-track{margin-top:4px;height:2px}.flight-screen .altitude>span{font-size:6px;letter-spacing:.03em}
+ .round-readout{top:calc(var(--touch-safe-top) + 218px);left:calc(var(--touch-safe-left) + 16px);transform:none;padding:6px 9px;gap:9px}.round-readout>strong{font-size:15px}.round-readout>span{font-size:7px}.round-readout>small{font-size:8px}
+ .flight-screen.spectating .radio-caption{top:auto;bottom:310px}.flight-screen.spectating .objective-box{max-width:calc(100% - 115px)}
+}
+@media(orientation:landscape) and (max-height:600px) and (pointer:coarse),(orientation:landscape) and (max-height:600px) and (max-width:1000px){
+ .round-readout{top:calc(var(--touch-safe-top) + 148px);left:auto;right:calc(var(--touch-safe-right) + 16px);padding:5px 8px;gap:7px}.round-readout>span{display:none}.round-readout>strong{font-size:14px}.round-readout>small{font-size:8px}
+ .flight-screen .flight-header-actions #flight-network{top:49px;font-size:7px}.flight-screen .flight-instruments{left:51%;max-width:calc(var(--touch-usable-width) - 440px);min-width:240px}
+ .scoreboard-panel{top:14px;max-height:calc(100% - 28px);width:550px;padding:15px}.scoreboard-heading{margin-bottom:7px}.scoreboard-table td{padding:8px}.scoreboard-note{margin-top:9px}
+ .spectator-panel{right:24px;transform:none;bottom:16px;width:310px;padding:14px 16px}.spectator-panel h2{font-size:24px}.spectator-panel>p:not(.eyebrow){margin-bottom:9px;font-size:11px}.spectator-panel>.eyebrow{margin-bottom:6px}.spectator-follow{margin-bottom:10px}.spectator-panel .primary{padding:10px 16px}
+ .flight-screen.spectating .radio-caption{left:24px;transform:none;bottom:35px;max-width:40%;width:320px}
+}
+@media(max-width:359px),(max-width:600px) and (max-height:700px) and (orientation:portrait){
+ .flight-screen .altitude .clearance-track{display:none}
+ .flight-screen #hud-fuel{display:none}
+ .flight-screen[data-multiplayer="true"] .flight-identity strong{max-width:115px;font-size:8px}.flight-screen[data-multiplayer="true"] .flight-identity>span{display:none}.flight-screen[data-multiplayer="true"] .flight-identity small{grid-column:1;font-size:6px}
+ .flight-screen .flight-header-actions #flight-network{top:43px;font-size:6px;max-width:85px}
+ .round-readout{top:calc(var(--touch-safe-top) + 169px);font-size:8px;padding:4px 7px;gap:8px}.round-readout>strong{font-size:13px}.round-readout>span{font-size:6px}.round-readout>small{font-size:7px}
+ .spectator-panel{bottom:16px;padding:14px 16px}.spectator-panel h2{font-size:24px}.spectator-panel>p:not(.eyebrow){font-size:11px;margin-bottom:10px}.spectator-follow{margin-bottom:10px}.spectator-panel>.eyebrow{margin-bottom:7px}
+}

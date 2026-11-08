@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b141c"><meta name="description" content="SKYWARD: a century of flight. An 18-sortie 3D aviation campaign from canvas wings to the edge of tomorrow. A Daily Flyer game for touch and desktop.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
@@ -18,8 +18,8 @@
   <main id="home-screen" class="screen home-screen" data-screen="home">
     <div class="home-copy"><p class="eyebrow"><span class="small-rule"></span> DAILY FLYER / AVIATION SERIES</p><h1>A little courage.<br><em>A lot of sky.</em></h1><p class="home-description">From canvas wings to the edge of tomorrow.<br>Learn to fly. Find your way home.</p><div class="home-cta"><button id="continue-button" class="primary big-button">Begin your logbook <span>→</span></button><button id="campaign-button" class="text-button">Explore the campaign <span>→</span></button></div><p class="continue-note" id="continue-note">Your first aircraft is waiting on the runway.</p></div>
     <div class="aircraft-caption"><span class="caption-line"></span><span><small>WHERE IT ALL BEGINS</small><strong>Canvas. Wood. Possibility.</strong><em>Avro 504 · 1917</em></span></div>
-    <div class="home-bottom"><div class="edition"><span class="edition-number">01—18</span><span>EIGHTEEN SORTIES<br>ONE CENTURY OF FLIGHT</span></div><div class="home-links"><button id="free-button"><span class="mini-icon">→</span><span>Free flight<small>Pick a plane. Find some sky.</small></span><b>→</b></button><button id="squadron-button"><span class="mini-icon">✣</span><span>Fly together<small>AC-130 crew or 2–4 pilots.</small></span><b>→</b></button></div></div>
-    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.5.0</span></footer>
+    <div class="home-bottom"><div class="edition"><span class="edition-number">01—18</span><span>EIGHTEEN SORTIES<br>ONE CENTURY OF FLIGHT</span></div><div class="home-links"><button id="free-button"><span class="mini-icon">→</span><span>Free flight<small>Pick a plane. Find some sky.</small></span><b>→</b></button><button id="squadron-button"><span class="mini-icon">✣</span><span>Fly together<small>Dogfight · free flight · AC-130 crew.</small></span><b>→</b></button></div></div>
+    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.6.0</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -29,18 +29,56 @@
 
   <section id="free-screen" class="screen panel-screen" data-screen="free" hidden>
     <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">FREE FLIGHT</p><h1>No orders. Just the horizon.</h1><p>Every aircraft is available. Learn its feel at your own pace.</p></div>
-    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="runway">Engine off, on the runway</option></select></label><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
+    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
   </section>
 
   <section id="squadron-screen" class="screen panel-screen" data-screen="squadron" hidden>
-    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SQUADRON</p><h1>One aircraft. Two jobs.</h1><p>Crew an AC-130 together, or fly separate aircraft in a campaign squadron.</p></div>
-    <div class="squadron-layout"><div class="paper-panel squadron-connect" id="squadron-connect"><label>Your callsign<input id="callsign" maxlength="18" value="Pilot" autocomplete="nickname"></label><h2>Lead a flight</h2><label>Operation<select id="room-mission"></select></label><p id="room-mission-preview" class="small-note"></p><button id="create-room" class="primary wide">Create a squadron <span>→</span></button><div class="or-divider">OR JOIN YOUR FRIENDS</div><label>Squadron code<input id="room-code" maxlength="6" placeholder="ABC123" autocapitalize="characters" autocomplete="off" spellcheck="false"></label><button id="join-room" class="secondary wide">Join squadron <span>→</span></button></div><div class="paper-panel squadron-room" id="squadron-room" hidden><p class="eyebrow">SQUADRON CODE</p><div class="room-code-line"><strong id="room-code-display"></strong><button id="copy-room" class="secondary">Copy invite</button></div><p id="room-role" class="small-note"></p><div id="room-brief" class="room-brief"></div><div id="roster" class="roster"></div><div class="room-actions"><button id="ready-room" class="secondary wide">Ready to fly</button><button id="start-room" class="primary wide">Launch squadron →</button><button id="leave-room" class="text-button">Leave squadron</button></div></div><aside class="squadron-notes"><span class="squadron-symbol">✣</span><h2>Meet your crew.</h2><p><strong>Nightwatch Basin · AC-130</strong><br>The room creator pilots. The second player takes the gunner seat, switching between the 25 mm, 40 mm and 105 mm guns in first person.</p><p>Keep the marked targets on the aircraft’s left side. The pilot flies the orbit; the gunner aims, fires and manages each station’s ammunition.</p><p>Share the invite link, have your crew choose Ready, then launch. Campaign sorties still support up to four pilots in separate aircraft.</p><p class="small-note">The pilot runs the shared mission. A lost connection gets a short reconnect window; leaving the room ends the sortie. Rooms are private and temporary.</p><div id="network-status" class="network-status" role="status">Ready when you are.</div></aside></div>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">YOUR SQUADRON / YOUR SKY</p><h1>Every era. One horizon.</h1><p>Fly together, hunt through the canyons, or crew a gunship. Every aircraft has its own strengths.</p></div>
+    <div class="squadron-layout">
+      <div class="squadron-session">
+        <div class="paper-panel squadron-connect" id="squadron-connect">
+          <label>Your callsign<input id="callsign" maxlength="18" value="Pilot" autocomplete="nickname"></label>
+          <h2>Lead a flight</h2><p class="small-note">Choose your flight and aircraft, then invite up to three friends.</p>
+          <button id="create-room" class="primary wide">Create a squadron <span>→</span></button>
+          <div class="or-divider">OR JOIN YOUR FRIENDS</div>
+          <label>Squadron code<input id="room-code" maxlength="6" placeholder="ABC123" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+          <button id="join-room" class="secondary wide">Join squadron <span>→</span></button>
+        </div>
+        <div class="paper-panel squadron-room" id="squadron-room" hidden>
+          <p class="eyebrow">SQUADRON CODE</p><div class="room-code-line"><strong id="room-code-display"></strong><button id="copy-room" class="secondary">Copy invite</button></div>
+          <p id="room-role" class="small-note"></p><div id="room-brief" class="room-brief"></div><div id="roster" class="roster"></div>
+          <div class="room-actions"><button id="ready-room" class="secondary wide">Ready to fly</button><button id="start-room" class="primary wide">Launch squadron →</button><button id="leave-room" class="text-button">Leave squadron</button></div>
+        </div>
+        <div id="network-status" class="network-status" role="status">Ready when you are.</div>
+        <p class="small-note squadron-connection-note">Private rooms · 2–4 pilots, or 2 AC-130 crew. The flight lead runs the shared world. Crashing does not close the room; leaving it does. Keep the host’s tab open during the sortie.</p>
+      </div>
+      <aside class="paper-panel room-setup">
+        <p class="eyebrow">FLIGHT PLAN</p><h2>Choose your sky.</h2>
+        <p id="room-config-note" class="small-note">The flight lead sets the mission. Everyone chooses their own aircraft.</p>
+        <div id="room-flight-config">
+          <label>Mode<select id="room-mode"><option value="dogfight">Dogfight · every pilot for themselves</option><option value="freeflight">Free flight · explore together</option><option value="squadron">Mission squadron · fly the campaign</option><option value="crew">AC-130 crew · pilot + gunner</option></select></label>
+          <label id="room-map-field">Map<select id="room-map"><option value="canyon">Razorback Canyons</option><option value="islands">Open Ocean Islands</option></select></label>
+          <label id="room-duration-field">Round length<select id="room-duration"><option value="300">5 minutes</option><option value="600" selected>10 minutes</option><option value="1200">20 minutes</option></select></label>
+          <label id="room-lives-field" hidden>Lives per pilot<select id="room-lives"><option value="1">1 life · then spectate</option><option value="3" selected>3 lives · then spectate</option><option value="5">5 lives · then spectate</option></select></label>
+          <label id="room-mission-field" hidden>Campaign sortie<select id="room-mission"></select></label>
+        </div>
+        <p id="room-mission-preview" class="room-mode-description"></p>
+        <div id="room-loadout" class="room-loadout">
+          <p class="eyebrow">YOUR AIRCRAFT</p>
+          <label>Aircraft<select id="room-aircraft"></select></label>
+          <p id="room-aircraft-note" class="small-note"></p>
+          <label>Start from<select id="room-start"><option value="airborne">Already in the air</option><option value="runway">Runway · engine running</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label>
+          <p id="room-carrier-warning" class="carrier-warning" hidden></p>
+        </div>
+        <p id="room-crew-note" class="room-mode-description" hidden>The room creator pilots the shared AC-130. The second player switches between first-person 25 mm, 40 mm and 105 mm gun stations.</p>
+      </aside>
+    </div>
   </section>
 
   <section id="flight-screen" class="screen flight-screen" data-screen="flight" hidden>
-    <header class="flight-header"><div class="flight-identity"><span id="flight-mission-number">01 / 18</span><strong id="flight-title">FIRST LIGHT</strong><small id="flight-aircraft">AVRO 504</small></div><div class="flight-header-actions"><span id="flight-network" hidden></span><button id="camera-button" class="hud-button" aria-label="Change camera">VIEW</button><button id="pause-button" class="hud-button" aria-label="Pause flight">II</button></div></header>
+    <header class="flight-header"><div class="flight-identity"><span id="flight-mission-number">01 / 18</span><strong id="flight-title">FIRST LIGHT</strong><small id="flight-aircraft">AVRO 504</small></div><div class="flight-header-actions"><span id="flight-network" hidden></span><button id="scoreboard-button" class="hud-button" aria-expanded="false" aria-controls="scoreboard-panel" hidden>SCORES</button><button id="camera-button" class="hud-button" aria-label="Change camera">VIEW</button><button id="pause-button" class="hud-button" aria-label="Pause flight">II</button></div></header>
     <div class="objective-box" id="objective-box"><div class="objective-meta"><span id="objective-label">FLIGHT ORDERS</span><span id="mission-progress">0%</span></div><strong id="objective-text">Prepare the aircraft</strong><div class="objective-track"><i id="objective-progress"></i></div></div>
-    <div class="flight-instruments"><div class="instrument speed"><small id="speed-unit">KM/H</small><strong id="hud-speed">0</strong><span>AIRSPEED</span></div><div class="heading-strip"><span id="hud-wind">WIND 4 KT →</span><strong id="hud-heading">000<span>°</span></strong><small id="hud-compass">N</small></div><div class="instrument altitude"><small id="altitude-unit">METRES AGL</small><strong id="hud-altitude">0</strong><span>ALTITUDE</span></div></div>
+    <div class="flight-instruments"><div class="instrument speed"><small id="speed-unit">KM/H</small><strong id="hud-speed">0</strong><span>AIRSPEED</span></div><div class="heading-strip"><span id="hud-wind">WIND 4 KT →</span><strong id="hud-heading">000<span>°</span></strong><small id="hud-compass">N</small></div><div class="instrument altitude"><small id="altitude-unit">METRES AGL</small><strong id="hud-altitude">0</strong><span id="terrain-clearance-label">GROUND CLEARANCE</span><div class="clearance-track" aria-hidden="true"><i id="clearance-fill"></i></div></div></div>
     <div id="crosshair" class="crosshair" aria-hidden="true"><i></i><b></b></div><div id="target-marker" class="target-marker" hidden><span id="target-name">CONTACT</span><small id="target-distance"></small></div><div id="waypoint-pointer" class="waypoint-pointer" hidden></div>
     <div id="flight-warning" class="flight-warning" role="status" aria-live="polite" hidden></div>
     <div id="radio-caption" class="radio-caption" aria-live="polite" hidden><span>RADIO</span><p></p></div>
@@ -73,6 +111,16 @@
       </div>
       <div class="throttle-control"><label for="throttle">THR</label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="Throttle"><output id="throttle-output">0%</output></div>
     </div>
+    <div id="round-readout" class="round-readout" hidden><span id="round-mode">DOGFIGHT</span><strong id="round-clock">10:00</strong><small id="round-personal-score">0 K / 0 D</small></div>
+    <section id="scoreboard-panel" class="scoreboard-panel" aria-label="Live scoreboard" hidden>
+      <div class="scoreboard-heading"><div><span class="eyebrow">SQUADRON</span><h2 id="scoreboard-title">Live standings</h2></div><button id="close-scoreboard" class="hud-button" aria-label="Close scoreboard">×</button></div>
+      <div id="scoreboard-table" class="scoreboard-table"></div><p id="scoreboard-note" class="scoreboard-note">Ranked by kills, then fewer deaths. K/D is kills ÷ deaths; — means no deaths yet.</p>
+    </section>
+    <aside id="spectator-panel" class="spectator-panel" aria-label="Spectator controls" hidden>
+      <p id="spectator-status" class="eyebrow">AIRCRAFT LOST</p><h2 id="spectator-title">Still in the sortie.</h2><p id="spectator-note"></p>
+      <div class="spectator-follow"><button id="spectate-previous" class="hud-button" aria-label="Spectate previous pilot">←</button><div><small>WATCHING</small><strong id="spectator-name">Waiting for a pilot</strong><span id="spectator-aircraft"></span></div><button id="spectate-next" class="hud-button" aria-label="Spectate next pilot">→</button></div>
+      <button id="respawn-button" class="primary wide">Return to the sky</button>
+    </aside>
     <aside id="crew-status" class="crew-status" hidden><span id="crew-role-badge">PILOT</span><strong id="crew-station-status">GUNNER · 25 MM</strong><small id="crew-contact-status">Keep the targets to your left</small></aside>
     <section id="gunner-interface" class="gunner-interface" aria-label="AC-130 gunner station" hidden>
       <div id="gunner-aim-surface" class="gunner-aim-surface" aria-label="Move the mouse to aim; hold the primary mouse button to fire"></div>
@@ -88,9 +136,9 @@
     <button id="abort-finale" class="abort-finale" hidden>Abort mission · Return home</button>
   </section>
 
-  <section id="debrief-screen" class="screen debrief-screen" data-screen="debrief" hidden><article class="debrief-card"><p class="eyebrow" id="debrief-kicker">FLIGHT LOG</p><span class="debrief-insignia" id="debrief-insignia">✦</span><h1 id="debrief-title">Back on the ground.</h1><p id="debrief-description"></p><div id="debrief-stats" class="debrief-stats"></div><div id="debrief-actions" class="debrief-actions"><button id="next-mission" class="primary wide">Next sortie →</button><button id="retry-mission" class="secondary wide">Fly again</button><button class="text-button" data-home>Return to the hangar</button></div></article></section>
+  <section id="debrief-screen" class="screen debrief-screen" data-screen="debrief" hidden><article class="debrief-card"><p class="eyebrow" id="debrief-kicker">FLIGHT LOG</p><span class="debrief-insignia" id="debrief-insignia">✦</span><h1 id="debrief-title">Back on the ground.</h1><p id="debrief-description"></p><div id="debrief-stats" class="debrief-stats"></div><div id="debrief-scoreboard" class="scoreboard-table" hidden></div><p id="debrief-score-note" class="small-note" hidden></p><div id="debrief-actions" class="debrief-actions"><button id="next-mission" class="primary wide">Next sortie →</button><button id="retry-mission" class="secondary wide">Fly again</button><button id="debrief-room" class="secondary wide" hidden>Return to squadron</button><button class="text-button" data-home>Return to the hangar</button></div></article></section>
 
-  <dialog id="pause-dialog" class="pause-dialog"><p class="eyebrow">TAKE A BREATH</p><h2>Holding position.</h2><p id="pause-note">Your flight is paused.</p><button id="resume-button" class="primary wide">Back to the sky →</button><button class="secondary wide" data-open-settings>Controls & settings</button><button id="pause-restart" class="secondary wide">Restart sortie</button><button id="pause-home" class="text-button">Return to hangar</button></dialog>
+  <dialog id="pause-dialog" class="pause-dialog"><p class="eyebrow">TAKE A BREATH</p><h2>Holding position.</h2><p id="pause-note">Your flight is paused.</p><button id="resume-button" class="primary wide">Back to the sky →</button><button class="secondary wide" data-open-settings>Controls & settings</button><button id="pause-restart" class="secondary wide">Restart sortie</button><button id="pause-room" class="secondary wide" hidden>Regroup in squadron room</button><button id="pause-home" class="text-button">Return to hangar</button></dialog>
 
   <dialog id="settings-dialog" class="settings-dialog"><div class="settings-heading"><div><p class="eyebrow">MAKE YOURSELF AT HOME</p><h2>Your cockpit. Your way.</h2></div><button id="close-settings" class="close-button" aria-label="Close settings">×</button></div><nav class="settings-tabs" aria-label="Settings sections"><button data-settings-tab="keyboard">Keyboard</button><button data-settings-tab="controls" class="active">Touch</button><button data-settings-tab="flight">Flying</button><button data-settings-tab="display">Sound & view</button></nav><div id="settings-content" class="settings-content"></div><footer class="settings-footer"><button id="reset-settings" class="text-button">Reset preferences</button><button id="done-settings" class="primary">Done <span>✓</span></button></footer></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

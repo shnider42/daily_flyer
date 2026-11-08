@@ -6,12 +6,19 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer, WebSocket } from './vendor/ws/wrapper.mjs';
 import { GUNSHIP_SEATS, GUNSHIP_AIM_LIMITS } from './public/gunship.mjs';
+import { AIRCRAFT, MISSIONS, SPECIAL_MISSIONS } from './public/campaign.mjs';
 
 export const PROTOCOL_VERSION = 1;
 const ROOT = resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_MESSAGE_BYTES = 64 * 1024;
-const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort']);
+const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort', 'crash', 'respawn']);
+const ROOM_MODES = new Set(['squadron', 'crew', 'freeflight', 'dogfight']);
+const ARENA_MAPS = new Set(['canyon', 'islands']);
+const START_MODES = new Set(['airborne', 'runway', 'carrier']);
+const ROUND_DURATIONS = new Set([300, 600, 1200]);
+const MISSION_LIVES = new Set([1, 3, 5]);
+const isArena = mode => mode === 'freeflight' || mode === 'dogfight';
 const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -87,11 +94,19 @@ export function cleanPose(value) {
     if (!finiteRange(value[key], ...range)) return null;
     result[key] = ['heading', 'pitch', 'roll'].includes(key) ? wrap(value[key]) : value[key];
   }
-  for (const key of ['engine', 'onGround', 'stalled', 'gear', 'flaps']) {
+  for (const key of ['engine', 'onGround', 'stalled', 'gear', 'flaps', 'crashed', 'radarOn', 'hover', 'brake']) {
     if (typeof value[key] === 'boolean') result[key] = value[key];
     else if (['gear', 'flaps'].includes(key) && finiteRange(value[key], 0, 1)) result[key] = value[key];
   }
   if (typeof value.aircraft === 'string' && /^[a-z0-9_-]{1,48}$/i.test(value.aircraft)) result.aircraft = value.aircraft;
+  if (value.targetId !== undefined && value.targetId !== null) {
+    if (typeof value.targetId !== 'string' || !/^[a-z0-9_.:-]{1,80}$/i.test(value.targetId)) return null;
+    result.targetId = value.targetId;
+  } else if (value.targetId === null) result.targetId = null;
+  if (value.lifeId !== undefined) {
+    if (!Number.isSafeInteger(value.lifeId) || value.lifeId < 1 || value.lifeId > 1000000) return null;
+    result.lifeId = value.lifeId;
+  }
   return result;
 }
 
@@ -121,24 +136,58 @@ export async function createSkywardServer(options = {}) {
   const maxRooms = options.maxRooms ?? 100;
   const maxConnections = options.maxConnections ?? 480;
   const tickMs = options.tickMs ?? 1000;
-  let missionIds = options.missionIds ? new Set(options.missionIds) : null;
-  const crewMissionIds = new Set(options.crewMissionIds || []);
-  if (!missionIds || options.crewMissionIds === undefined) {
-    try {
-      const { MISSIONS, SPECIAL_MISSIONS = [] } = await import('./public/campaign.mjs');
-      const missions = [...MISSIONS, ...SPECIAL_MISSIONS];
-      if (!missionIds) missionIds = new Set(missions.map(m => m.id));
-      if (options.crewMissionIds === undefined) for (const m of missions) if (m.kind === 'gunship') crewMissionIds.add(m.id);
-    }
-    catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }
-  }
+  const missions = new Map([...MISSIONS, ...SPECIAL_MISSIONS].map(m => [m.id, m]));
+  const missionIds = new Set(options.missionIds || missions.keys());
+  for (const map of ARENA_MAPS) missionIds.add(`arena-${map}`);
+  const crewMissionIds = new Set(options.crewMissionIds || [...missions.values()].filter(m => m.kind === 'gunship').map(m => m.id));
   const rooms = new Map();
   const connections = new Set();
   const attempts = new Map();
   const validMission = id => typeof id === 'string' && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(id) && (!missionIds || missionIds.has(id));
-  const missionMode = id => crewMissionIds.has(id) ? 'crew' : 'squadron';
+  const missionMode = id => crewMissionIds.has(id) ? 'crew' : ARENA_MAPS.has(id?.replace(/^arena-/, '')) ? 'freeflight' : 'squadron';
   const maxPlayers = room => room.mode === 'crew' ? 2 : 4;
   const playerRole = (room, player) => room.mode === 'crew' && player.id !== room.hostId ? 'gunner' : 'pilot';
+
+  function configuration(missionId, value = {}, previous = null) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    let mode = value.mode ?? previous?.mode ?? missionMode(missionId);
+    if (!ROOM_MODES.has(mode)) return null;
+    const mapId = value.mapId ?? previous?.mapId ?? (missionId?.startsWith('arena-') ? missionId.slice(6) : 'canyon');
+    if (!ARENA_MAPS.has(mapId)) return null;
+    const lives = value.lives ?? previous?.lives ?? 3;
+    if (!MISSION_LIVES.has(lives)) return null;
+    if (value.durationSeconds !== undefined && !ROUND_DURATIONS.has(value.durationSeconds) && !(value.durationSeconds === 0 && mode !== 'dogfight')) return null;
+    const durationSeconds = mode === 'dogfight' ? value.durationSeconds ?? (ROUND_DURATIONS.has(previous?.durationSeconds) ? previous.durationSeconds : 600) : 0;
+    if (isArena(mode)) missionId = `arena-${mapId}`;
+    else {
+      if (isArena(missionMode(missionId))) missionId = [...missionIds].find(id => missionMode(id) === 'squadron');
+      if (mode === 'crew' && !crewMissionIds.has(missionId)) return null;
+      mode = missionMode(missionId);
+    }
+    if (!validMission(missionId)) return null;
+    return { missionId, mode, config: { mode, mapId, durationSeconds, lives } };
+  }
+  function loadout(room, value = {}, previous = null) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const mission = missions.get(room.missionId);
+    const aircraft = value.aircraft ?? previous?.aircraft ?? (isArena(room.mode) ? 'f16' : mission?.aircraft || 'avro504');
+    const startMode = value.startMode ?? previous?.startMode ?? (mission?.start?.airborne === false ? 'runway' : 'airborne');
+    if (!Object.hasOwn(AIRCRAFT, aircraft) || !START_MODES.has(startMode)) return null;
+    // Carrier suitability is a warning in the UI, never an authorization check.
+    return { aircraft, startMode };
+  }
+  const acceptedLoadout = (room, player) => room.mode === 'crew' ? { aircraft: 'ac130', startMode: 'airborne' } : { aircraft: player.aircraft, startMode: player.startMode };
+  function playerList(room) {
+    return [...room.players.values()].map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, role: playerRole(room, p), ready: p.ready, connected: !!p.socket, ...acceptedLoadout(room, p) }));
+  }
+  function configureRoom(room, next) {
+    const changed = room.missionId !== next.missionId || JSON.stringify(room.config) !== JSON.stringify(next.config);
+    Object.assign(room, next);
+    if (changed) for (const p of room.players.values()) {
+      if (!p.loadoutExplicit) Object.assign(p, loadout(room));
+      if (p.id !== room.hostId) p.ready = false;
+    }
+  }
 
   const server = http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -173,28 +222,29 @@ export async function createSkywardServer(options = {}) {
   function roster(room) {
     broadcast(room, {
       type: 'roster', code: room.code, hostId: room.hostId, missionId: room.missionId,
-      state: room.paused ? 'paused' : room.phase, mode: room.mode, maxPlayers: maxPlayers(room),
-      players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, role: playerRole(room, p), ready: p.ready, connected: !!p.socket }))
+      state: room.paused ? 'paused' : room.phase, mode: room.mode, config: room.config, maxPlayers: maxPlayers(room),
+      players: playerList(room)
     });
   }
   function issueSession(room, player) {
     send(player.socket, {
       type: 'session', code: room.code, id: player.id, token: player.token,
       isHost: player.id === room.hostId, hostId: room.hostId, missionId: room.missionId,
-      mode: room.mode, role: playerRole(room, player), maxPlayers: maxPlayers(room),
+      mode: room.mode, config: room.config, players: playerList(room), ...acceptedLoadout(room, player), role: playerRole(room, player), maxPlayers: maxPlayers(room),
       state: room.paused ? 'paused' : room.phase, reconnectGraceMs,
-      poseSeq: player.poseSeq, worldSeq: room.worldSeq, crewSeq: player.crewSeq
+      poseSeq: player.poseSeq, actionSeq: player.actionSeq, worldSeq: room.worldSeq, crewSeq: player.crewSeq,
+      lifeId: room.participants.get(player.id)?.lifeId || 1
     });
   }
   function startMessage(room, resumed = false) {
     return { type: 'start', missionId: room.missionId, seed: room.seed, runId: room.runId, resumed,
-      mode: room.mode, maxPlayers: maxPlayers(room), hostId: room.hostId };
+      mode: room.mode, config: room.config, players: room.runPlayers || playerList(room), maxPlayers: maxPlayers(room), hostId: room.hostId };
   }
   function stopCrew(room, player, reason) {
     if (room.mode !== 'crew' || player.id === room.hostId) return;
     player.crewInput = { ...(player.crewInput || { seat: '25mm', yaw: 0, pitch: 0 }), fire: false };
     player.crewCancellable = false;
-    send(room.players.get(room.hostId)?.socket, { type: 'crew-input', playerId: player.id,
+    send(room.players.get(room.hostId)?.socket, { type: 'crew-input', runId: room.runId, playerId: player.id,
       input: player.crewInput, seq: player.crewSeq, reset: true, reason });
   }
   function endRoom(room, message) {
@@ -209,12 +259,13 @@ export async function createSkywardServer(options = {}) {
     }
     room.players.clear();
   }
-  function addPlayer(room, socket, name, isHost = false) {
+  function addPlayer(room, socket, name, isHost = false, selection = {}) {
     const now = Date.now();
     const player = {
       id: randomBytes(9).toString('hex'), token: randomBytes(24).toString('hex'), name: cleanName(name),
       ready: isHost, socket, disconnectedAt: 0, pose: null, poseSeq: -1, poseAt: 0,
-      poseBucket: bucket(2, now), actionBucket: bucket(4, now),
+      ...loadout(room, selection), loadoutExplicit: selection.aircraft !== undefined || selection.startMode !== undefined,
+      poseBucket: bucket(2, now), actionBucket: bucket(4, now), actionSeq: -1,
       crewSeq: -1, crewInput: null, crewCancellable: false, crewBucket: bucket(3, now)
     };
     room.players.set(player.id, player);
@@ -247,6 +298,38 @@ export async function createSkywardServer(options = {}) {
     if (!s || s.room.phase !== 'flying') { error(socket, 'not_flying', 'The host must start the mission first.'); return null; }
     if (s.room.paused) { error(socket, 'host_reconnecting', 'Flight is paused while the host reconnects.'); return null; }
     return s;
+  }
+  function currentRun(socket, msg) {
+    const room = socket.session.room;
+    // Older unconfigured campaign clients may omit the field. New clients and
+    // every arena always bind all traffic to the specific sortie, not just a room.
+    if (msg.runId === room.runId || msg.runId === undefined && !socket.flightProtocol && !room.strictFlight && !isArena(room.mode)) return true;
+    error(socket, 'stale_run', 'An update from an earlier sortie was ignored.');
+    return false;
+  }
+  function currentLife(socket, value) {
+    const { room, player } = socket.session;
+    const lifeId = room.participants.get(player.id)?.lifeId || 1;
+    if (value === lifeId || value === undefined && !socket.flightProtocol && !room.strictFlight && !isArena(room.mode)) return lifeId;
+    error(socket, 'stale_life', 'An update from an earlier aircraft life was ignored.');
+    return null;
+  }
+  function participantUpdates(room, snapshot) {
+    if (snapshot.participants === undefined) return isArena(room.mode) ? null : new Map();
+    if (!Array.isArray(snapshot.participants) || snapshot.participants.length > 4) return null;
+    const updates = new Map(), pilots = new Map((room.runPlayers || []).map(p => [p.id, p]));
+    for (const p of snapshot.participants) {
+      const previous = room.participants.get(p?.id), pilot = pilots.get(p?.id);
+      if (!pilot || updates.has(p.id) || !Number.isSafeInteger(p.lifeId) || p.lifeId < 1 || p.lifeId > 1000000 ||
+          typeof p.alive !== 'boolean' || !finiteRange(p.health, 0, 10000)) return null;
+      if (previous && (p.lifeId < previous.lifeId || p.lifeId > previous.lifeId + 1 || p.lifeId === previous.lifeId && !previous.alive && p.alive)) return null;
+      for (const key of ['kills', 'deaths', 'damageId']) if (p[key] !== undefined && (!validSequence(p[key]) || p[key] < (previous?.[key] || 0))) return null;
+      if (p.livesRemaining !== undefined && p.livesRemaining !== null && (!Number.isSafeInteger(p.livesRemaining) || p.livesRemaining < 0 || p.livesRemaining > 5)) return null;
+      Object.assign(p, { aircraft: pilot.aircraft, startMode: pilot.startMode });
+      updates.set(p.id, { lifeId: p.lifeId, alive: p.alive, health: p.health, kills: p.kills || 0, deaths: p.deaths || 0, damageId: p.damageId || 0 });
+    }
+    if (isArena(room.mode) && updates.size !== pilots.size) return null;
+    return updates;
   }
 
   server.on('upgrade', (req, socket, head) => {
@@ -299,11 +382,12 @@ export async function createSkywardServer(options = {}) {
           return;
         }
         socket.handshaken = true;
+        socket.flightProtocol = msg.flightProtocol === 2;
         send(socket, { type: 'welcome', version: PROTOCOL_VERSION, time: now });
         return;
       }
       if (msg.type === 'ping') { if (Number.isSafeInteger(msg.nonce)) send(socket, { type: 'pong', nonce: msg.nonce, time: now }); return; }
-      if (['create', 'join', 'resume', 'ready', 'mission', 'start', 'leave'].includes(msg.type) && !take(socket.lobbyBucket, 1, 8, now)) {
+      if (['create', 'join', 'resume', 'ready', 'mission', 'configure', 'loadout', 'start', 'lobby', 'leave'].includes(msg.type) && !take(socket.lobbyBucket, 2, 12, now)) {
         error(socket, 'slow_down', 'Please wait a moment before another lobby action.'); return;
       }
       if (['create', 'join', 'resume'].includes(msg.type) && socket.session) {
@@ -311,12 +395,16 @@ export async function createSkywardServer(options = {}) {
       }
       if (msg.type === 'create') {
         if (rooms.size >= maxRooms) { error(socket, 'server_full', 'The hangar is full. Please try again shortly.'); return; }
-        if (!validMission(msg.missionId)) { error(socket, 'bad_mission', 'Choose a mission from the campaign.'); return; }
+        const settings = configuration(msg.missionId, msg.config);
+        if (!settings) { error(socket, 'bad_mission', 'Choose an available mission or arena and valid round settings.'); return; }
+        if (!loadout(settings, msg)) { error(socket, 'bad_loadout', 'Choose an available aircraft and an airborne, runway, or carrier start.'); return; }
         let code;
         do { code = Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''); } while (rooms.has(code));
-        const room = { code, hostId: null, players: new Map(), createdAt: now, phase: 'lobby', paused: false, missionId: msg.missionId, mode: missionMode(msg.missionId), seed: 0, runId: null, worldSeq: -1, world: null, worldBucket: bucket(2, now), lastStart: 0 };
+        const room = { code, hostId: null, players: new Map(), createdAt: now, phase: 'lobby', paused: false, ...settings,
+          strictFlight: socket.flightProtocol || Object.keys(msg.config || {}).length > 0,
+          seed: 0, runId: null, runPlayers: null, participants: new Map(), actionSerial: 0, worldSeq: -1, world: null, worldBucket: bucket(2, now), lastStart: 0 };
         rooms.set(code, room);
-        addPlayer(room, socket, msg.name, true);
+        addPlayer(room, socket, msg.name, true, msg);
         return;
       }
       if (msg.type === 'join') {
@@ -326,7 +414,8 @@ export async function createSkywardServer(options = {}) {
         if (room.phase !== 'lobby') { error(socket, 'flight_in_progress', 'That squadron is already flying. Ask the host to create a fresh room for you.'); return; }
         if (room.paused) { error(socket, 'host_reconnecting', 'The host is reconnecting. Try again in a moment.'); return; }
         if (room.players.size >= maxPlayers(room)) { error(socket, 'room_full', room.mode === 'crew' ? 'This AC-130 already has its pilot and gunner.' : 'That squadron already has four pilots.'); return; }
-        addPlayer(room, socket, msg.name);
+        if (!loadout(room, msg)) { error(socket, 'bad_loadout', 'Choose an available aircraft and an airborne, runway, or carrier start.'); return; }
+        addPlayer(room, socket, msg.name, false, msg);
         return;
       }
       if (msg.type === 'resume') {
@@ -354,8 +443,8 @@ export async function createSkywardServer(options = {}) {
         issueSession(room, p);
         if (room.phase === 'flying') {
           send(socket, startMessage(room, true));
-          if (room.world) send(socket, { type: 'world', snapshot: room.world, seq: room.worldSeq, at: now });
-          for (const other of room.players.values()) if (other.id !== p.id && other.pose) send(socket, { type: 'pose', playerId: other.id, player: other.pose, seq: other.poseSeq, at: other.poseAt });
+          if (room.world) send(socket, { type: 'world', runId: room.runId, snapshot: room.world, seq: room.worldSeq, at: now });
+          for (const other of room.players.values()) if (other.id !== p.id && other.pose) send(socket, { type: 'pose', runId: room.runId, playerId: other.id, player: other.pose, seq: other.poseSeq, at: other.poseAt });
           if (room.mode === 'crew' && p.id === room.hostId) for (const member of room.players.values()) stopCrew(room, member, 'host-reconnected');
         }
         if (wasPaused && !room.paused) broadcast(room, { type: 'resume-play', message: 'Host reconnected. The squadron can continue.', state: room.phase });
@@ -365,72 +454,136 @@ export async function createSkywardServer(options = {}) {
       if (!socket.session) { error(socket, 'no_room', 'Create or join a squadron first.'); return; }
       const { room, player } = socket.session;
       if (msg.type === 'leave') { depart(socket, true); send(socket, { type: 'left' }); socket.close(1000, 'Left room'); return; }
+      if (msg.type === 'lobby') {
+        if (player.id !== room.hostId) { error(socket, 'host_only', 'Only the host can return the squadron to its lobby.'); return; }
+        if (room.paused) return;
+        if (room.mode === 'crew') for (const member of room.players.values()) stopCrew(room, member, 'returned-to-lobby');
+        room.phase = 'lobby'; room.runId = null; room.runPlayers = null;
+        room.world = null; room.worldSeq = -1; room.participants.clear();
+        for (const member of room.players.values()) {
+          member.ready = member.id === room.hostId; member.pose = null;
+        }
+        broadcast(room, { type: 'lobby', missionId: room.missionId, mode: room.mode, config: room.config, players: playerList(room), hostId: room.hostId });
+        roster(room); return;
+      }
       if (msg.type === 'ready') {
         if (typeof msg.ready !== 'boolean') return;
+        if (room.phase !== 'lobby') { error(socket, 'lobby_only', 'Readiness changes are available before takeoff.'); return; }
         player.ready = player.id === room.hostId ? true : msg.ready;
         roster(room); return;
+      }
+      if (msg.type === 'loadout') {
+        if (room.phase !== 'lobby') { error(socket, 'loadout_locked', 'Choose your aircraft and start before the sortie begins.'); return; }
+        if (room.mode === 'crew') { error(socket, 'crew_aircraft', 'The pilot and gunner share the AC-130 in this operation.'); return; }
+        const chosen = loadout(room, msg, player);
+        if (!chosen) { error(socket, 'bad_loadout', 'Choose an available aircraft and an airborne, runway, or carrier start.'); return; }
+        if (chosen.aircraft !== player.aircraft || chosen.startMode !== player.startMode) {
+          Object.assign(player, chosen); player.loadoutExplicit = true;
+          if (player.id !== room.hostId) player.ready = false;
+        }
+        roster(room); return;
+      }
+      if (msg.type === 'configure') {
+        if (player.id !== room.hostId) { error(socket, 'host_only', 'Only the host can configure the sortie.'); return; }
+        if (room.phase !== 'lobby') { error(socket, 'mission_locked', 'Create a new room to change settings after takeoff.'); return; }
+        const settings = configuration(msg.missionId ?? room.missionId, msg.config, room.config);
+        if (!settings) { error(socket, 'bad_config', 'Choose free flight or a 5, 10, or 20 minute dogfight and 1, 3, or 5 mission lives.'); return; }
+        if (settings.mode === 'crew' && room.players.size > 2) { error(socket, 'crew_capacity', 'An AC-130 crew has one pilot and one gunner. Use a two-person room for this mission.'); return; }
+        room.strictFlight = true;
+        configureRoom(room, settings); roster(room); return;
       }
       if (msg.type === 'mission') {
         if (player.id !== room.hostId) { error(socket, 'host_only', 'Only the host can choose a mission.'); return; }
         if (room.phase !== 'lobby') { error(socket, 'mission_locked', 'Create a new room to change the mission after takeoff.'); return; }
         if (!validMission(msg.missionId)) { error(socket, 'bad_mission', 'Choose a mission from the campaign.'); return; }
         if (missionMode(msg.missionId) === 'crew' && room.players.size > 2) { error(socket, 'crew_capacity', 'An AC-130 crew has one pilot and one gunner. Use a two-person room for this mission.'); return; }
-        if (room.missionId !== msg.missionId) {
-          room.missionId = msg.missionId; room.mode = missionMode(msg.missionId);
-          for (const p of room.players.values()) if (p.id !== room.hostId) p.ready = false;
-        }
+        const settings = configuration(msg.missionId, { mode: missionMode(msg.missionId), ...(isArena(missionMode(msg.missionId)) ? { mapId: msg.missionId.slice(6) } : {}) }, room.config);
+        configureRoom(room, settings);
         roster(room); return;
       }
       if (msg.type === 'start') {
         if (player.id !== room.hostId) { error(socket, 'host_only', 'Only the host can choose and start a mission.'); return; }
         if (room.paused) return;
-        if (!validMission(msg.missionId)) { error(socket, 'bad_mission', 'Choose a mission from the campaign.'); return; }
-        const mode = missionMode(msg.missionId);
+        const missionId = msg.missionId ?? room.missionId;
+        const settings = configuration(missionId, { mode: missionId === room.missionId ? room.mode : missionMode(missionId), ...(isArena(missionMode(missionId)) ? { mapId: missionId.slice(6) } : {}) }, room.config);
+        if (!settings) { error(socket, 'bad_mission', 'Choose an available mission or arena.'); return; }
+        const { mode } = settings;
         if (mode === 'crew' && room.players.size > 2) { error(socket, 'crew_capacity', 'An AC-130 crew has one pilot and one gunner. Use a two-person room for this mission.'); return; }
         const present = [...room.players.values()].filter(p => p.socket);
         if (present.length < 2) { error(socket, 'need_wingmate', mode === 'crew' ? 'Invite a gunner to join your AC-130 before starting.' : 'A squadron needs at least two connected pilots. Invite a wingmate or fly solo from the campaign.'); return; }
         if (present.some(p => !p.ready)) { error(socket, 'not_ready', 'Wait until every connected wingmate is ready.'); return; }
         if (now - room.lastStart < 1000) { error(socket, 'slow_down', 'Please wait a moment before restarting.'); return; }
-        room.phase = 'flying'; room.missionId = msg.missionId; room.mode = mode; room.seed = randomInt(0x7fffffff); room.runId = randomBytes(8).toString('hex');
+        Object.assign(room, settings);
+        room.strictFlight ||= socket.flightProtocol;
+        room.phase = 'flying'; room.seed = randomInt(0x7fffffff); room.runId = randomBytes(8).toString('hex');
         room.world = null; room.worldSeq = -1; room.worldBucket = bucket(2, now); room.lastStart = now;
         for (const p of room.players.values()) {
+          if (!p.loadoutExplicit) Object.assign(p, loadout(room));
           p.pose = null; p.poseSeq = -1; p.poseBucket = bucket(2, now);
+          p.actionSeq = -1; p.actionBucket = bucket(4, now);
           p.crewSeq = -1; p.crewInput = null; p.crewCancellable = false; p.crewBucket = bucket(3, now);
         }
+        room.runPlayers = playerList(room); room.actionSerial = 0;
+        room.participants = new Map(room.runPlayers.map(p => [p.id, { lifeId: 1, alive: true, health: AIRCRAFT[p.aircraft].health, kills: 0, deaths: 0, damageId: 0 }]));
         broadcast(room, startMessage(room)); roster(room); return;
       }
       if (msg.type === 'pose') {
         if (!requireFlight(socket)) return;
         if (room.mode === 'crew' && player.id !== room.hostId) { error(socket, 'pilot_only', 'The pilot controls the shared AC-130.'); return; }
+        if (!currentRun(socket, msg)) return;
         if (!validSequence(msg.seq) || msg.seq <= player.poseSeq) { error(socket, 'stale_sequence', 'An old plane update was ignored.'); return; }
         const pose = cleanPose(msg.player);
         if (!pose) { error(socket, 'bad_pose', 'An invalid plane update was ignored.'); return; }
+        const lifeId = currentLife(socket, pose.lifeId);
+        if (lifeId === null) return;
         if (!take(player.poseBucket, 15, 2, now)) return;
+        Object.assign(pose, acceptedLoadout(room, player), { lifeId });
+        const participant = room.participants.get(player.id);
+        if (participant && room.world?.participants) Object.assign(pose, { health: participant.health, alive: participant.alive });
         player.poseSeq = msg.seq; player.pose = pose; player.poseAt = now;
-        broadcast(room, { type: 'pose', playerId: player.id, player: pose, seq: msg.seq, at: now }, player.id);
+        broadcast(room, { type: 'pose', runId: room.runId, playerId: player.id, player: pose, seq: msg.seq, at: now }, player.id);
         return;
       }
       if (msg.type === 'world') {
         if (player.id !== room.hostId) { error(socket, 'host_only', 'Only the host can update the mission world.'); return; }
         if (!requireFlight(socket)) return;
+        if (!currentRun(socket, msg)) return;
         if (!validSequence(msg.seq) || msg.seq <= room.worldSeq) { error(socket, 'stale_sequence', 'An old world update was ignored.'); return; }
         if (!validWorld(msg.snapshot)) { error(socket, 'bad_world', 'The mission update exceeded safe bounds.'); return; }
+        const updates = participantUpdates(room, msg.snapshot);
+        if (!updates) { error(socket, 'bad_participants', 'The player-life update contained an invalid identity or generation.'); return; }
         if (!take(room.worldBucket, 10, 2, now)) return;
         if (room.mode === 'crew' && msg.snapshot.teamPaused && !room.world?.teamPaused) {
           for (const member of room.players.values()) stopCrew(room, member, 'mission-paused');
         }
+        for (const [id, participant] of updates) {
+          const p = room.players.get(id);
+          if (participant.lifeId !== room.participants.get(id)?.lifeId && p) p.pose = null;
+          room.participants.set(id, participant);
+        }
         room.world = msg.snapshot; room.worldSeq = msg.seq;
-        broadcast(room, { type: 'world', snapshot: msg.snapshot, seq: msg.seq, at: now }, player.id);
+        broadcast(room, { type: 'world', runId: room.runId, snapshot: msg.snapshot, seq: msg.seq, at: now }, player.id);
         return;
       }
       if (msg.type === 'action') {
         if (!requireFlight(socket)) return;
         if (player.id === room.hostId) return;
         if (room.mode === 'crew') { error(socket, 'crew_input_required', 'Use the gun station controls for this shared aircraft.'); return; }
+        if (!currentRun(socket, msg)) return;
+        const seq = msg.seq ?? (!socket.flightProtocol && !room.strictFlight && !isArena(room.mode) ? player.actionSeq + 1 : undefined);
+        if (!validSequence(seq) || seq <= player.actionSeq) { error(socket, 'stale_sequence', 'An old control action was ignored.'); return; }
+        const lifeId = currentLife(socket, msg.lifeId);
+        if (lifeId === null) return;
         const action = cleanAction(msg.action);
-        if (!action || !player.pose) { error(socket, 'bad_action', 'That action needs a current plane position.'); return; }
+        const name = typeof action === 'string' ? action : action?.name;
+        const participant = room.participants.get(player.id);
+        if (!action || !player.pose && name !== 'respawn') { error(socket, 'bad_action', 'That action needs a current plane position.'); return; }
+        if (name !== 'respawn' && participant?.alive === false) { error(socket, 'pilot_down', 'Respawn or spectate while this aircraft is down.'); return; }
+        if (room.world?.round?.ended || room.world?.teamPaused) { error(socket, 'mission_paused', 'This sortie is paused or complete.'); return; }
         if (!take(player.actionBucket, 10, 4, now)) return;
-        send(room.players.get(room.hostId)?.socket, { type: 'action', action, playerId: player.id, player: { ...player.pose, id: player.id, playerId: player.id, name: player.name } });
+        player.actionSeq = seq;
+        const actionId = `${room.runId}:${++room.actionSerial}`;
+        send(room.players.get(room.hostId)?.socket, { type: 'action', runId: room.runId, lifeId, actionId, seq, action, playerId: player.id, player: { ...player.pose, ...acceptedLoadout(room, player), lifeId, id: player.id, playerId: player.id, name: player.name } });
         return;
       }
       if (msg.type === 'crew-input') {
@@ -450,7 +603,7 @@ export async function createSkywardServer(options = {}) {
         player.crewSeq = msg.seq; player.crewInput = input;
         if (input.fire) player.crewCancellable = true;
         else if (reset) player.crewCancellable = false;
-        send(room.players.get(room.hostId)?.socket, { type: 'crew-input', playerId: player.id, input, seq: msg.seq, reset });
+        send(room.players.get(room.hostId)?.socket, { type: 'crew-input', runId: room.runId, playerId: player.id, input, seq: msg.seq, reset });
       }
     });
     socket.on('close', () => { connections.delete(socket); depart(socket); });

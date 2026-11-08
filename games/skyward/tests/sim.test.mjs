@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { AIRCRAFT, MISSIONS, getMission } from '../public/campaign.mjs';
 import { FlightSimulation, terrainHeight } from '../public/sim.mjs';
 import { basis } from '../public/orientation.mjs';
+import { carrierLaunchLane } from '../public/terrain.mjs';
 
 const dt = 1 / 60;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -160,7 +161,9 @@ test('transport rejects an unstable drop and counts parachutes only after safe g
 test('Harrier hover supports deck recovery after the defense objectives', () => {
   const sim = new FlightSimulation(getMission('small-runway'));
   for (const e of sim.enemies) { e.health = 0; e.alive = false; }
-  Object.assign(sim.player, { x: 0, y: 65, z: 0, speed: 0, engine: true, gear: true, onGround: false, everAirborne: true, brake: false });
+  // Start over the visible, unobstructed lane so the wind does not drift the
+  // aircraft's wing into the carrier island during the uncorrected descent.
+  Object.assign(sim.player, { x: carrierLaunchLane(sim.mission.runways[0]), y: 65, z: 0, speed: 0, engine: true, gear: true, onGround: false, everAirborne: true, brake: false });
   assert.equal(sim.action('hover'), true);
   assert.equal(sim.player.throttle, 0.5);
   fly(sim, 15, { throttle: 0.38 });

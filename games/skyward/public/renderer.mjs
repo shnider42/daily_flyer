@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { terrainHeight } from './sim.mjs';
+import {terrainHeight,surfaceHeight,carrierIslandParts,carrierLaunchLane} from './terrain.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
 import {cockpitView} from './camera-pose.mjs';
 import {makeCockpit,fitCockpit,updateCockpit} from './cockpit-models.mjs';
@@ -9,13 +9,15 @@ import {GUNSHIP_SITE_COLORS,GUNSHIP_ROAD_TILES,gunshipTargetParts} from './gunsh
 import {batchAircraft} from './model-batching.mjs';
 import {makeSkyReflection} from './aircraft-lighting.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
+import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET} from './combat-visuals.mjs';
+import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
+import {TerrainStream} from './terrain-stream.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const number=(v,f=0)=>Number.isFinite(v)?v:f;
 const scratchV=new THREE.Vector3(), scratchD=new THREE.Vector3(), scratchUp=new THREE.Vector3(0,1,0);
 const tempObject=new THREE.Object3D(), tempColor=new THREE.Color();
-const effectFadeColor=new THREE.Color('#7d8072');
 const axisY=new THREE.Vector3(0,1,0),axisZ=new THREE.Vector3(0,0,1);
 
 function seedOf(text){let a=2166136261;for(const c of String(text))a=Math.imul(a^c.charCodeAt(0),16777619);return a>>>0;}
@@ -28,6 +30,14 @@ function box(parent,x,y,z,sx,sy,sz,material){const m=new THREE.Mesh(new THREE.Bo
 function sphere(parent,x,y,z,r,material,detail=1){const m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,detail),material);m.position.set(x,y,z);parent.add(m);return m;}
 function cylinder(parent,x,y,z,r,h,material,sides=8){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,sides),material);m.position.set(x,y,z);parent.add(m);return m;}
 function height(x,z,mission){try{return number(terrainHeight(x,z,mission),-8);}catch{return 0;}}
+function fadingEffectMaterial(soft=true){
+  const material=basic('#ffffff',{transparent:true,opacity:1,depthWrite:false});
+  material.onBeforeCompile=shader=>{
+    shader.vertexShader='attribute float effectOpacity;\nvarying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvEffectOpacity=effectOpacity;vEffectLocal=position;');
+    shader.fragmentShader='varying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.fragmentShader.replace('#include <opaque_fragment>',`diffuseColor.a*=vEffectOpacity${soft?'*(1.0-smoothstep(.35,1.0,dot(vEffectLocal.xy,vEffectLocal.xy)))':''};\n#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey=()=> 'skyward-effect-opacity-v2-'+soft;return material;
+}
 
 const palettes={
   countryside:{top:'#7dabad',horizon:'#d6d7bc',fog:'#c9d2bd',ground:['#71856b','#829476','#a1a784','#647e65'],water:'#477f8c',light:'#fff0cf'},
@@ -38,6 +48,7 @@ const palettes={
   south_atlantic:{top:'#7b969f',horizon:'#c3c8c4',fog:'#a8b8ba',ground:['#708075','#87907a','#a0a491','#566b63'],water:'#3c697e',light:'#ebdfc4'},
   desert:{top:'#88abb2',horizon:'#e1caaa',fog:'#d9c3a4',ground:['#bb9b72','#cbae84','#ddc59a','#ac8e68'],water:'#548391',light:'#fff0ce'},
   mountains:{top:'#8fabb4',horizon:'#d3d1c3',fog:'#bbc8ca',ground:['#687d70','#7c8a7a','#aaad9b','#506b60'],water:'#4d7d8d',light:'#f2e7ce'},
+  canyon:{top:'#668fa9',horizon:'#d8c6a8',fog:'#b9bdba',ground:['#998b69','#a97e5c','#5e7565','#b2a17b'],water:'#3f7d88',light:'#ffe7be'},
   night:{top:'#071426',horizon:'#34475c',fog:'#273d52',ground:['#263f40','#364c45','#4a584b','#22373a'],water:'#172e43',light:'#a4bbd0'},
 };
 
@@ -73,7 +84,6 @@ export class FlightRenderer {
     if(Number.isFinite(this.settings.resolution))this.pixelRatio=clamp(this.settings.resolution,.65,2);
     this.resize();
     this.renderer.toneMappingExposure=number(this.settings.brightness,1)>2?1.12:number(this.settings.brightness,1)*1.12;
-    if(this._explosions)this._explosions.material.opacity=this.settings.reducedMotion?.28:.57;
     if(this._clouds)this._clouds.count=Math.min(this._cloudCapacity||225,quality==='low'?140:this._cloudCapacity||225);
     this.stats.pixelRatio=this.pixelRatio;
   }
@@ -135,6 +145,7 @@ export class FlightRenderer {
   }
 
   _clearWorld(){
+    this._terrainStream?.dispose();this._terrainStream=null;
     if(this._world){
       this.scene.remove(this._world);const geometries=new Set(),materials=new Set(),textures=new Set();
       this._world.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material])){materials.add(m);if(m.map)textures.add(m.map);}});
@@ -142,7 +153,7 @@ export class FlightRenderer {
     }
     for(const target of this._targets.values())this._disposeUnique(target);
     this.actorsRoot.clear();this._actors.clear();this._targets.clear();this._remote.clear();this._plane=null;this._rings=[];this._sceneryAnimations=[];this._clouds=null;
-    this._world=new THREE.Group();this.scene.add(this._world);
+    this._world=new THREE.Group();this.scene.add(this._world);this._terrainSceneMesh=null;this._terrainData=null;this._localRocks=null;this._localTrees=null;this._groundShadow=null;this._detailAnchor=null;this._focusId=null;
     this._cameraInitialized=false;
   }
 
@@ -152,7 +163,7 @@ export class FlightRenderer {
     this._buildWorld(mission);
     this._plane=makeAircraft(this.aircraft);this.actorsRoot.add(this._plane);
     const start=mission.start||{x:0,y:14,z:0,heading:0};setAircraftPose(this._plane,start);
-    this._targetProfile=aircraftKind(this.aircraft);
+    this._targetProfile=aircraftKind(this.aircraft);this._focusAircraftKey=JSON.stringify([this._targetProfile,this.aircraft.color]);
     this._buildCockpit(this.aircraft);
     if(this._gunshipStation)this._gunshipStation.visible=false;
     this._cockpit.visible=false;this._visualGearOffset=start.airborne===false?number(this._plane.userData.groundOffset,1.3):0;
@@ -165,34 +176,72 @@ export class FlightRenderer {
     for(const p of points){minX=Math.min(minX,number(p.x));maxX=Math.max(maxX,number(p.x));minZ=Math.min(minZ,number(p.z));maxZ=Math.max(maxZ,number(p.z));}
     this.worldCenter={x:(minX+maxX)*.5,z:(minZ+maxZ)*.5};
     this.worldSize=Math.max(52000,maxX-minX+18000,maxZ-minZ+18000);
-    this._buildTerrain(mission);this._buildWater(mission);this._buildClouds(mission);this._buildScenery(mission);
+    this._buildTerrain(mission);this._buildWater(mission);this._buildClouds(mission);this._buildScenery(mission);this._buildGroundReadability();
     if(mission.kind==='gunship')this._buildGunshipSite(mission);
     for(const r of mission.runways||[])this._buildRunway(r,mission);
     this._buildWaypoints(mission);
   }
 
   _buildTerrain(mission){
-    const quality=this.settings.quality||this.settings.graphics;const steps=quality==='low'?118:162;
-    const geometry=new THREE.PlaneGeometry(this.worldSize,this.worldSize,steps,steps);geometry.rotateX(-Math.PI/2);
-    const positions=geometry.attributes.position,colors=new Float32Array(positions.count*3);const shades=this.palette.ground.map(color);
-    for(let i=0;i<positions.count;i++){
-      const x=positions.getX(i)+this.worldCenter.x,z=positions.getZ(i)+this.worldCenter.z;let y=height(x,z,mission);
-      // A coarse distant triangle must never interpolate over the airfield.
-      // This rendering skirt leaves the simulation's collision terrain intact.
-      for(const runway of mission.runways||[]){if(runway.carrier)continue;const dx=x-runway.x,dz=z-runway.z,c=Math.cos(runway.heading||0),s=Math.sin(runway.heading||0),pad=this.worldSize/steps*1.2;
-        if(Math.abs(dx*c-dz*s)<number(runway.width,45)*.5+pad&&Math.abs(dx*s+dz*c)<number(runway.length,1000)*.5+pad)y=Math.min(y,number(runway.y,12)-.4);
+    this._terrainStream=new TerrainStream();
+    const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true});material.extensions={derivatives:true};
+    // Small world-space grain fades before a feature becomes subpixel. It adds
+    // ground motion cues without a repeated image or a second coplanar surface.
+    material.onBeforeCompile=shader=>{
+      shader.vertexShader='varying vec3 vTerrainWorld;\nvarying float vTerrainSlope;\n'+shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvTerrainWorld=(modelMatrix*vec4(transformed,1.0)).xyz;vTerrainSlope=1.0-clamp(normal.y,0.0,1.0);');
+      shader.fragmentShader='varying vec3 vTerrainWorld;\nvarying float vTerrainSlope;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+        vec2 terrainPhase=vTerrainWorld.xz*vec2(.075,.092);
+        float terrainFilter=1.0-smoothstep(.25,1.1,max(fwidth(terrainPhase.x),fwidth(terrainPhase.y)));
+        float terrainGrain=sin(terrainPhase.x+sin(terrainPhase.y*.41))*sin(terrainPhase.y);
+        diffuseColor.rgb*=1.0+terrainGrain*.065*terrainFilter;
+        ${mission.biome==='canyon'?`float rockPhase=vTerrainWorld.y*.052+sin(vTerrainWorld.x*.003+vTerrainWorld.z*.001)*.4;
+        float rockFilter=1.0-smoothstep(.25,1.1,fwidth(rockPhase)*2.7);
+        float rockBand=sin(rockPhase)*.13+sin(rockPhase*2.7)*.045;
+        diffuseColor.rgb*=1.0+rockBand*rockFilter*smoothstep(.15,.55,vTerrainSlope);`:''}
+      `);
+    };
+    material.customProgramCacheKey=()=> 'skyward-ground-grain-v2-'+mission.biome;
+    this._terrainSceneMesh=new THREE.Mesh(new THREE.BufferGeometry(),material);this._terrainSceneMesh.frustumCulled=false;this._world.add(this._terrainSceneMesh);
+    this._updateTerrain(mission.start||{x:0,z:0});
+  }
+
+  _updateTerrain(p){
+    if(!this._terrainSceneMesh)return;
+    const mission=this.mission,quality=this.settings.quality||this.settings.graphics||'medium',config=terrainMeshSettings(mission,quality),ax=Math.round(p.x/config.focusStep)*config.focusStep,az=Math.round(p.z/config.focusStep)*config.focusStep;
+    const ready=this._terrainStream?.take();if(ready&&Math.max(Math.abs(ready.mesh.anchorX-ax),Math.abs(ready.mesh.anchorZ-az))<Math.max(1024,config.near*.75))this._applyTerrain(ready.mesh,ready.geometry,ready.quality);
+    if(this._terrainData?.anchorX===ax&&this._terrainData?.anchorZ===az&&this._terrainQuality===quality)return;
+    const job={key:ax+','+az+','+quality,x:p.x,z:p.z,mission,quality,radius:Math.min(26000,this._fogFar*1.12),palette:this.palette.ground};
+    const near=this._terrainData&&Math.max(Math.abs(this._terrainData.anchorX-ax),Math.abs(this._terrainData.anchorZ-az))<Math.max(1024,config.near*.75);
+    if(near&&this._terrainStream?.request(job))return;
+    const mesh=buildSceneTerrain({...job,sampleHeight:(x,z)=>height(x,z,mission)});this._applyTerrain(mesh,packTerrainGeometry(mesh,mission,this.palette.ground),quality);
+  }
+
+  _applyTerrain(mesh,buffers,quality){
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(buffers.positions,3));geometry.setAttribute('normal',new THREE.BufferAttribute(buffers.normals,3));geometry.setAttribute('color',new THREE.BufferAttribute(buffers.colors,3));geometry.setIndex(new THREE.BufferAttribute(buffers.indices,1));geometry.computeBoundingSphere();
+    this._terrainSceneMesh.geometry.dispose();this._terrainSceneMesh.geometry=geometry;this._terrainData=mesh;this._terrainQuality=quality;
+  }
+
+  _buildGroundReadability(){
+    this._localRocks=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),worldMaterial('#918775'),384);
+    this._localTrees=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,7),worldMaterial('#496d54'),384);
+    for(const pool of[this._localRocks,this._localTrees]){pool.count=0;pool.frustumCulled=false;pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);this._world.add(pool);}
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(180),3).setUsage(THREE.DynamicDrawUsage));geometry.setDrawRange(0,0);
+    this._groundShadow=new THREE.Mesh(geometry,basic('#24302c',{transparent:true,opacity:.2,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2,side:THREE.DoubleSide}));this._groundShadow.frustumCulled=false;this._world.add(this._groundShadow);
+  }
+
+  _updateGroundReadability(p){
+    if(!this._localRocks)return;
+    const ax=Math.round(p.x/288),az=Math.round(p.z/288),key=ax+','+az;
+    if(this._detailAnchor!==key){
+      const details=groundDetails(p.x,p.z,this.mission,(x,z)=>height(x,z,this.mission),this.settings.quality==='low'?160:300);let rocks=0,trees=0;
+      for(const d of details){const rock=d.kind==='rock',pool=rock?this._localRocks:this._localTrees,index=rock?rocks++:trees++;
+        tempObject.position.set(d.x,d.y+d.size*(rock?.32:.5),d.z);tempObject.scale.set(d.size*(rock?.8:.34),d.size*(rock?.45:1),d.size*(rock?.65:.34));tempObject.rotation.set(rock?d.angle*.2:0,d.angle,rock?.15:0);tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);
       }
-      positions.setXYZ(i,x,y-.12,z);
-      const field=Math.abs(Math.imul(Math.floor(x/300),73856093)^Math.imul(Math.floor(z/260),19349663))%4;
-      tempColor.copy(shades[field]);
-      const variation=.93+.1*Math.sin(x*.006+z*.007);tempColor.multiplyScalar(variation);
-      if(y<9&&mission.biome!=='desert')tempColor.lerp(color('#b3b18a'),.48);
-      if(y>1050)tempColor.lerp(color('#8c9690'),clamp((y-1050)/1600,0,.72));
-      if(y>2350)tempColor.lerp(color('#e0e3d7'),clamp((y-2350)/950,0,.9));
-      colors.set([tempColor.r,tempColor.g,tempColor.b],i*3);
+      this._localRocks.count=rocks;this._localTrees.count=trees;for(const pool of[this._localRocks,this._localTrees])pool.instanceMatrix.needsUpdate=true;this._detailAnchor=key;
     }
-    geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.computeVertexNormals();
-    const terrain=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}));this._world.add(terrain);
+    const sample=(x,z)=>surfaceHeight(x,z,this.mission);
+    const shadow=aircraftGroundShadow(p,this._plane.userData,sample);this._groundShadow.visible=!!shadow;
+    if(shadow){const positions=this._groundShadow.geometry.attributes.position;let index=0;for(let i=0;i<shadow.ring.length;i++)for(const v of[shadow.center,shadow.ring[i],shadow.ring[(i+1)%shadow.ring.length]])positions.setXYZ(index++,...v);positions.needsUpdate=true;this._groundShadow.geometry.setDrawRange(0,index);this._groundShadow.material.opacity=shadow.alpha;}
   }
 
   _buildWater(){
@@ -267,12 +316,12 @@ export class FlightRenderer {
   }
 
   _buildScenery(mission){
-    const random=rng(seedOf(mission.id||'menu')+338);const desert=mission.biome==='desert';const count=this.settings.quality==='low'?180:480;
+    const random=rng(seedOf(mission.id||'menu')+338);const desert=mission.biome==='desert'||mission.biome==='canyon';const count=this.settings.quality==='low'?180:480;
     const trees=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,desert?5:7),worldMaterial(desert?'#a78d6c':'#3c6655'),count);
     let written=0;
     for(let i=0;i<count*5&&written<count;i++){
       const x=this.worldCenter.x+(random()-.5)*23000,z=this.worldCenter.z+(random()-.5)*26000,y=height(x,z,mission);
-      if(y<5||y>1800||!this._clearOfRunways(x,z,100))continue;
+      if(y<5||y>1800||!this._clearOfRunways(x,z,100)||mission.biome==='canyon'&&Math.max(Math.abs(height(x+16,z,mission)-y),Math.abs(height(x,z+16,mission)-y))>8)continue;
       const size=desert?8+random()*20:10+random()*13;
       tempObject.position.set(x,y+size*.5,z);tempObject.scale.set(size*.38,size,size*.38);tempObject.rotation.set(0,random()*TAU,0);tempObject.updateMatrix();trees.setMatrixAt(written,tempObject.matrix);
       tempColor.set(desert?'#a38b6b':'#3d6755').multiplyScalar(.8+random()*.36);trees.setColorAt(written,tempColor);written++;
@@ -288,7 +337,7 @@ export class FlightRenderer {
       const target=(mission.targets||[])[t];if(target){tx=target.x+600;tz=target.z+450;}
       for(let b=0;b<22;b++){
         const x=tx+(b%5)*52+(random()-.5)*12,z=tz+Math.floor(b/5)*64+(random()-.5)*14,y=height(x,z,mission);
-        if(y<4||!this._clearOfRunways(x,z,170))continue;
+        if(y<4||!this._clearOfRunways(x,z,170)||mission.biome==='canyon'&&Math.max(Math.abs(height(x+24,z,mission)-y),Math.abs(height(x,z+24,mission)-y))>6)continue;
         const sx=14+random()*15,sz=18+random()*18,sy=8+random()*14;
         tempObject.position.set(x,y+sy*.5,z);tempObject.scale.set(sx,sy,sz);tempObject.rotation.set(0,.1,0);tempObject.updateMatrix();blocks.setMatrixAt(written,tempObject.matrix);
         tempColor.set(this._night?'#64707a':'#b8b19a').multiplyScalar(.75+random()*.4);blocks.setColorAt(written,tempColor);
@@ -296,7 +345,7 @@ export class FlightRenderer {
       }
     }
     blocks.count=written;roofs.count=written;blocks.instanceMatrix.needsUpdate=true;roofs.instanceMatrix.needsUpdate=true;this._world.add(blocks,roofs);
-    if(mission.kind==='nuclear'||mission.aircraft==='b2')this._buildCity(mission);
+    if(mission.kind==='nuclear'||!mission.arena&&mission.aircraft==='b2')this._buildCity(mission);
   }
 
   _buildCity(mission){
@@ -315,23 +364,32 @@ export class FlightRenderer {
 
   _buildRunway(runway,mission){
     const carrier=!!runway.carrier;const group=new THREE.Group();group.position.set(runway.x||0,number(runway.y,12),runway.z||0);group.rotation.y=runway.heading||0;this._world.add(group);
-    const length=number(runway.length,carrier?270:1100),width=number(runway.width,carrier?40:48);
+    const length=number(runway.length,carrier?310:1100),width=number(runway.width,carrier?40:48),lane=carrier?carrierLaunchLane(runway):0;
     const asphalt=worldMaterial(carrier?'#566b70':this._night?'#394449':'#626c65');const paint=basic('#ebe6cf');const amber=basic('#d28c50');
     if(carrier){
       box(group,0,-7.5,0,width*.95,15,length*.91,worldMaterial('#43565d'));
       const bow=new THREE.Mesh(new THREE.ConeGeometry(width*.48,length*.19,4),worldMaterial('#4d6269'));bow.rotation.x=Math.PI/2;bow.rotation.z=Math.PI/4;bow.scale.z=.45;bow.position.set(0,-4,length*.43);group.add(bow);
       box(group,0,-.25,0,width,.5,length,asphalt);
-      box(group,width*.37,5,-length*.12,width*.24,10,length*.23,worldMaterial('#74878a'));
-      box(group,width*.4,13,-length*.13,width*.2,6,length*.11,worldMaterial('#809193'));
-      box(group,width*.4,18,-length*.17,1,10,1,worldMaterial('#8c9b98'));
-      box(group,width*.4,21,-length*.17,width*.23,.5,.5,paint);
-      if(mission.aircraft==='harrier'){
-        const ramp=box(group,-width*.12,1.35,length*.43,width*.61,.4,length*.13,asphalt);ramp.rotation.x=-.17;
-        for(const s of[-1,1]){const edge=box(group,-width*.12+s*width*.295,1.7,length*.43,.45,.3,length*.13,paint);edge.rotation.x=-.17;}
+      const islandMaterials={body:worldMaterial('#74878a'),bridge:worldMaterial('#809193'),glass:worldMaterial('#233e48',{roughness:.3}),mast:worldMaterial('#8c9b98'),paint};
+      for(const part of carrierIslandParts(runway))box(group,part.x,part.y,part.z,part.width,part.height,part.length,islandMaterials[part.material]);
+      if(mission.aircraft==='harrier'&&!mission.arena){
+        const ramp=box(group,lane,1.35,length*.43,width*.61,.4,length*.13,asphalt);ramp.rotation.x=-.17;
+        for(const s of[-1,1]){const edge=box(group,lane+s*width*.295,1.7,length*.43,.45,.3,length*.13,paint);edge.rotation.x=-.17;}
       }
       for(let i=0;i<4;i++)box(group,0,.12,-length*.28+i*7,width*.72,.14,.4,paint);
-      const wake=box(group,0,-number(runway.y,12)+.2,-length*.8,width*1.3,.15,length*.66,basic('#91a9a4',{transparent:true,opacity:.2,depthWrite:false}));
-      wake.rotation.y=.05;
+      const track=worldMaterial('#263b41'),yellow=basic('#e5b654'),green=basic('#a4e2b1'),red=basic('#f47a64');
+      for(const x of[lane-width*.03,lane+width*.03])box(group,x,.19,length*.03,.23,.08,length*.77,track);
+      for(const z of[-length*.18,length*.08,length*.3]){
+        box(group,lane,.22,z,.65,.08,7,yellow);
+        for(const side of[-1,1]){const arrow=box(group,lane+side*1.12,.22,z+2,2.9,.08,.55,yellow);arrow.rotation.y=-side*.6;}
+      }
+      // Scale cues remain visible on the deck at night and from a low cockpit.
+      for(let z=-length*.47;z<length*.5;z+=18)for(const side of[-1,1])box(group,side*width*.475,.43,z,.7,.55,1.1,z>length*.39?green:z<-length*.4?red:paint);
+      for(let i=0;i<9;i++)box(group,-width*.44+i*width*.11,.27,length*.493,width*.055,.12,.95,i%2?paint:red);
+      for(const side of[-1,1]){
+        const wake=box(group,side*width*.52,-number(runway.y,12)+.18,-length*.73,width*.2,.1,length*.64,basic('#c6d7cc',{transparent:true,opacity:.25,depthWrite:false}));
+        wake.rotation.y=side*-.14;wake.userData.animated=true;this._sceneryAnimations.push({type:'wake',object:wake,offset:side});
+      }
     }else{
       box(group,0,-.65,0,width+110,1.1,length+110,worldMaterial(mission.biome==='desert'?'#c0a37b':'#7b8b6d'));
       box(group,0,-.12,0,width,.24,length,asphalt);
@@ -348,7 +406,7 @@ export class FlightRenderer {
     }
     const inset=carrier?width*.15:width*.07;
     for(const s of[-1,1])box(group,s*(width*.5-inset),.13,0,.55,.12,length*.95,paint);
-    for(let z=-length*.4;z<=length*.4;z+=carrier?23:52)box(group,carrier?-width*.12:0,.15,z,carrier?.7:1.2,.12,carrier?9:22,paint);
+    for(let z=-length*.4;z<=length*.4;z+=carrier?23:52)box(group,lane,.15,z,carrier?.7:1.2,.12,carrier?9:22,paint);
     for(const end of[-1,1])for(let i=-3;i<=3;i++)box(group,i*width*.087,.16,end*(length*.46),width*.045,.12,carrier?7:25,paint);
     if(!carrier){
       const strip=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,1.3,1.1),basic(this._night?'#ffcd75':'#dfce99'),Math.ceil(length/70)*2);let idx=0;
@@ -356,6 +414,7 @@ export class FlightRenderer {
       this._runwayNumber(group,runway.heading||0,length,width);
     }
     const label=this._label(runway.label|| (carrier?'CARRIER':'AIRFIELD'),carrier?'#d5d9c9':'#f0e7cb');label.position.set(width*.7,carrier?45:35,-length*.4);label.scale.set(150,24,1);group.add(label);
+    if(carrier){group.name='carrier-deck';batchAircraft(group);}
   }
 
   _runwayNumber(group,heading,length,width){
@@ -491,8 +550,10 @@ export class FlightRenderer {
     const remoteSeen=new Set();
     for(const remote of remotePlayers||[]){
       const pose=remote.pose||remote.player||remote,id=String(remote.id||pose.id);if(!Number.isFinite(pose.x))continue;remoteSeen.add(id);
-      let model=this._remote.get(id);if(!model){model=makeAircraft(pose.aircraft||this.aircraft,'ally');this._remote.set(id,model);this.actorsRoot.add(model);}
-      model.visible=number(pose.health,100)>0;setAircraftPose(model,pose);animateAircraft(model,pose,dt,this.time);
+      const profile=pose.aircraft||remote.aircraft||this.aircraft,kind=aircraftKind(profile),hostile=sim.multiplayer?.mode==='dogfight'||this.mission.kind==='dogfight';let model=this._remote.get(id);
+      if(model&&(model.userData.kind!==kind||model.userData.remoteHostile!==hostile)){model.removeFromParent();this._remote.delete(id);model=null;}
+      if(!model){model=makeAircraft(profile,hostile?'enemy':'ally');model.userData.remoteHostile=hostile;this._remote.set(id,model);this.actorsRoot.add(model);}
+      model.visible=number(pose.health,100)>0&&pose.alive!==false&&id!==this._focusId;setAircraftPose(model,pose);animateAircraft(model,pose,dt,this.time);
     }
     for(const[id,model]of this._remote)if(!remoteSeen.has(id)){model.removeFromParent();this._remote.delete(id);}
   }
@@ -502,13 +563,16 @@ export class FlightRenderer {
     const linesGeometry=new THREE.BufferGeometry();linesGeometry.setAttribute('position',new THREE.BufferAttribute(this._linePositions,3).setUsage(THREE.DynamicDrawUsage));linesGeometry.setAttribute('color',new THREE.BufferAttribute(this._lineColors,3).setUsage(THREE.DynamicDrawUsage));
     this._tracers=new THREE.LineSegments(linesGeometry,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.85,depthWrite:false}));this._tracers.frustumCulled=false;this.effectsRoot.add(this._tracers);
     this._tips=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),basic('#f8d68a'),160);this._tips.frustumCulled=false;this.effectsRoot.add(this._tips);
-    this._explosions=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),basic('#ffbb66',{transparent:true,opacity:.57,depthWrite:false}),100);this._explosions.frustumCulled=false;this.effectsRoot.add(this._explosions);
+    const burstGeometry=new THREE.IcosahedronGeometry(1,1);burstGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));
+    this._explosions=new THREE.InstancedMesh(burstGeometry,fadingEffectMaterial(),EFFECT_BUDGET.layers);this._explosions.frustumCulled=false;this.effectsRoot.add(this._explosions);
+    const ringGeometry=new THREE.RingGeometry(.965,1,40);ringGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.effects),1).setUsage(THREE.DynamicDrawUsage));
+    this._shockwaves=new THREE.InstancedMesh(ringGeometry,fadingEffectMaterial(false),EFFECT_BUDGET.effects);this._shockwaves.frustumCulled=false;this.effectsRoot.add(this._shockwaves);
     this._canopies=new THREE.InstancedMesh(new THREE.SphereGeometry(4.1,10,5,0,TAU,0,Math.PI*.56),worldMaterial('#e3dec3',{side:THREE.DoubleSide}),80);this._canopies.frustumCulled=false;this.effectsRoot.add(this._canopies);
     this._troopers=new THREE.InstancedMesh(new THREE.CapsuleGeometry(.45,1.5,2,5),worldMaterial('#606c50'),80);this._troopers.frustumCulled=false;this.effectsRoot.add(this._troopers);
-    for(const pool of[this._tips,this._explosions,this._canopies,this._troopers])pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    for(const pool of[this._tips,this._explosions]){pool.setColorAt(0,tempColor.set('#ffffff'));pool.instanceColor.setUsage(THREE.DynamicDrawUsage);}
-    this._effectSort=[];this._effectSortRecords=[];
-    this._tips.count=this._explosions.count=this._canopies.count=this._troopers.count=0;linesGeometry.setDrawRange(0,0);
+    for(const pool of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    for(const pool of[this._tips,this._explosions,this._shockwaves]){pool.setColorAt(0,tempColor.set('#ffffff'));pool.instanceColor.setUsage(THREE.DynamicDrawUsage);}
+    this._effectSort=[];
+    this._tips.count=this._explosions.count=this._shockwaves.count=this._canopies.count=this._troopers.count=0;linesGeometry.setDrawRange(0,0);
   }
 
   _updatePools(sim){
@@ -522,22 +586,16 @@ export class FlightRenderer {
       if(!bomb)writeLine(p.x,p.y,p.z,p.x-number(p.vx)*tail,p.y-number(p.vy)*tail,p.z-number(p.vz)*tail,1,missile?.78:.9,missile?.42:.55,missile?.65:.6,missile?.75:.36,missile?.75:.12);
       tempObject.position.set(p.x,p.y,p.z);const r=bomb?1.0:missile?1.2:heavy?1.1:medium?.65:.3;tempObject.scale.set(r,r,r);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();this._tips.setMatrixAt(tips,tempObject.matrix);this._tips.setColorAt(tips,tempColor.set(bomb?'#525a51':missile||heavy?'#ffd58a':'#fff1bc'));tips++;
     }
-    // Three cannot sort the instances inside a transparent batch. Keep its
-    // alpha-blended effects back-to-front without changing simulation order.
-    const sorted=this._effectSort;sorted.length=0;scratchV.set(0,0,-1).applyQuaternion(this.camera.quaternion);
-    for(const effect of sim.effects||[]){
-      if(sorted.length>=100)break;const f=clamp(number(effect.age)/Math.max(.1,number(effect.life,2)),0,1);if(f>=1)continue;
-      const index=sorted.length,entry=this._effectSortRecords[index]||(this._effectSortRecords[index]={});
-      entry.effect=effect;entry.f=f;entry.index=index;entry.type=effect.type||effect.kind;entry.y=number(effect.y)+(entry.type==='smoke'?f*12:0);
-      entry.depth=(number(effect.x)-this.camera.position.x)*scratchV.x+(entry.y-this.camera.position.y)*scratchV.y+(number(effect.z)-this.camera.position.z)*scratchV.z;sorted.push(entry);
-    }
-    sorted.sort((a,b)=>b.depth-a.depth||a.index-b.index);
-    let ecount=0;
-    for(const {effect,f,type,y} of sorted){
-      let r=number(effect.radius,type==='flash'?100:12)*(1+f*1.3);
-      if(type==='smoke')r*=1.8;
-      tempObject.position.set(number(effect.x),y,number(effect.z));tempObject.scale.set(r,r*(type==='impact'?.55:1),r);tempObject.rotation.set(f*.8,number(effect.x)*.03,0);tempObject.updateMatrix();this._explosions.setMatrixAt(ecount,tempObject.matrix);
-      tempColor.set(type==='smoke'?'#79817b':type==='flash'?'#fff0ca':type==='drop'?'#d9debb':'#f4b762').lerp(effectFadeColor,f*.9);this._explosions.setColorAt(ecount,tempColor);ecount++;
+    // Sort the derived layers, never simulation effects. Every transparent
+    // instance receives its own fading opacity, including the last smoke puff.
+    const sorted=sampleCombatEffects(sim.effects,{reducedMotion:this.settings.reducedMotion,wind:this.mission?.weather?.wind,capacity:this.settings.quality==='low'?288:EFFECT_BUDGET.layers},this._effectSort);
+    scratchV.set(0,0,-1).applyQuaternion(this.camera.quaternion);sortEffectLayers(sorted,this.camera.position,scratchV);
+    let ecount=0,rings=0;
+    for(const layer of sorted){
+      const ring=layer.kind==='ring',pool=ring?this._shockwaves:this._explosions,index=ring?rings++:ecount++,r=layer.radius;
+      tempObject.position.set(layer.x,layer.y,layer.z);tempObject.scale.set(r,r*layer.stretch,r);tempObject.quaternion.copy(this.camera.quaternion);
+      if(!ring)tempObject.rotateZ(layer.angle);
+      tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);pool.setColorAt(index,tempColor.set(layer.color));pool.geometry.attributes.effectOpacity.setX(index,layer.alpha);
     }
     let troopCount=0;
     for(const p of sim.paratroopers||[]){
@@ -546,9 +604,8 @@ export class FlightRenderer {
       tempObject.position.set(p.x,p.y,p.z);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();this._troopers.setMatrixAt(troopCount,tempObject.matrix);
       for(const s of[-1,1])writeLine(p.x+s*.4,p.y+.5,p.z,p.x+s*3.6,p.y+4,p.z,.65,.67,.55,.65,.67,.55);troopCount++;
     }
-    this._tips.count=tips;this._explosions.count=ecount;this._canopies.count=troopCount;this._troopers.count=troopCount;
-    for(const m of[this._tips,this._explosions,this._canopies,this._troopers])if(m.count){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
-    if(ecount)this._explosions.computeBoundingSphere();
+    this._tips.count=tips;this._explosions.count=ecount;this._shockwaves.count=rings;this._canopies.count=troopCount;this._troopers.count=troopCount;
+    for(const m of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])if(m.count){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;if(m.geometry.attributes.effectOpacity)m.geometry.attributes.effectOpacity.needsUpdate=true;}
     this._tracers.geometry.setDrawRange(0,lineCount*2);
     if(lineCount){this._tracers.geometry.attributes.position.needsUpdate=true;this._tracers.geometry.attributes.color.needsUpdate=true;}
   }
@@ -567,9 +624,21 @@ export class FlightRenderer {
     this.camera.add(this._gunshipStation);fitGunshipStation(this._gunshipStation,this.camera);
   }
 
+  _focusPlayer(p,options){
+    const focusId=options.playerId==null?null:String(options.playerId),profile=p.aircraft||this.aircraft;
+    if(focusId!==this._focusId){this._cameraInitialized=false;this._focusId=focusId;}
+    if(!profile)return;
+    const normalized=typeof profile==='string'?{id:profile}:profile,key=JSON.stringify([aircraftKind(normalized),normalized.color]);
+    if(this._focusAircraftKey!==undefined&&key!==this._focusAircraftKey){
+      this._plane.removeFromParent();this.aircraft=normalized;this._plane=makeAircraft(normalized);this.actorsRoot.add(this._plane);this._buildCockpit(normalized);this._cameraInitialized=false;
+      this._visualGearOffset=p.onGround?number(this._plane.userData.groundOffset,1.3):0;
+    }
+    this._focusAircraftKey=key;
+  }
+
   _updateCamera(p,dt,options){
     const mode=options.camera||'chase',cockpit=mode==='cockpit',gunner=mode==='gunner',firstPerson=cockpit||gunner;
-    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson;
+    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&number(p.health,100)>0&&p.alive!==false;
     if(this._gunshipStation)this._gunshipStation.visible=gunner;
     const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),originY=p.y-number(this._visualGearOffset);
     const lookX=number(options.lookX),lookY=clamp(number(options.lookY),-1.15,1.15);
@@ -618,14 +687,17 @@ export class FlightRenderer {
     this.scene.fog.far=lerp(750,this._fogFar,visibility)*(p.y>3500?Math.min(2.1,1+(p.y-3500)/10000):1);this.scene.fog.near=Math.min(this._fogNear,this.scene.fog.far*.08);
     if(this.waterMaterial){this.waterMaterial.uniforms.time.value=this.time;this.waterMaterial.uniforms.fogColor.value.copy(this.scene.fog.color);this.waterMaterial.uniforms.fogNear.value=this.scene.fog.near;this.waterMaterial.uniforms.fogFar.value=this.scene.fog.far;}
     if(this._clouds){const wind=this.mission.weather?.wind;const wx=typeof wind==='number'?wind:number(wind?.x,4),wz=typeof wind==='number'?0:number(wind?.z,0);this._clouds.position.set(Math.sin(this.time*.0003)*wx*1800,0,Math.sin(this.time*.0003)*wz*1800);}
-    for(const item of this._sceneryAnimations)if(item.type==='windsock'){item.object.rotation.y=.6+Math.sin(this.time*.5+item.offset)*.12;item.object.rotation.z=Math.sin(this.time*2+item.offset)*.035;}
+    for(const item of this._sceneryAnimations){
+      if(item.type==='windsock'){item.object.rotation.y=.6+Math.sin(this.time*.5+item.offset)*.12;item.object.rotation.z=Math.sin(this.time*2+item.offset)*.035;}
+      else if(item.type==='wake'){item.object.material.opacity=.19+Math.sin(this.time*1.3+item.offset)*.035;item.object.scale.z=1+Math.sin(this.time*.6+item.offset)*.045;}
+    }
   }
 
   render(sim,dt=1/60,options={}){
     if(this.contextLost||!sim?.player||!this._plane)return;
     dt=clamp(number(dt,1/60),0,.1);this.time+=dt;
-    const p=sim.player;setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
-    this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim);this._updateWeather(p,dt);
+    const p=options.player||sim.player;this._focusPlayer(p,options);setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
+    this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim);this._updateWeather(p,dt);
     if(options.camera==='gunner')updateGunshipStation(this._gunshipStation,sim.crew,this.time);
     const active=number(sim.waypointIndex);const guidance=this.settings.guidance||this.settings.assist;
     for(const wp of this._rings){

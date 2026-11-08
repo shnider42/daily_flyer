@@ -10,7 +10,8 @@ import { GUNSHIP_SEATS, GUNSHIP_AIM_LIMITS } from './gunship.mjs';
 const VERSION = 1;
 const INTERPOLATION_MS = 100;
 const EXTRAPOLATION_MS = 150;
-const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort']);
+const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort', 'crash', 'respawn']);
+const ROOM_MODES = new Set(['squadron', 'crew', 'freeflight', 'dogfight']);
 const lerp = (a, b, t) => a + (b - a) * t;
 const now = () => performance.now();
 
@@ -34,18 +35,20 @@ function predictOrientation(previous, latest, fraction) {
 }
 
 export class SquadronClient {
-  constructor({ onStatus, onRoster, onStart, onWorld, onAction, onCrewInput, onEnd, url } = {}) {
-    this.callbacks = { onStatus, onRoster, onStart, onWorld, onAction, onCrewInput, onEnd };
+  constructor({ onStatus, onRoster, onStart, onWorld, onAction, onCrewInput, onLobby, onEnd, url } = {}) {
+    this.callbacks = { onStatus, onRoster, onStart, onWorld, onAction, onCrewInput, onLobby, onEnd };
     this.url = url || (typeof location !== 'undefined' ? `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws` : '');
     this.code = ''; this.id = ''; this.isHost = false; this.connected = false;
     this.mode = 'squadron'; this.role = 'pilot'; this.maxPlayers = 4; this.hostId = ''; this.missionId = '';
+    this.config = null; this.aircraft = ''; this.startMode = 'airborne';
     this.latency = null; this.roster = []; this.paused = false; this.hostStale = false; this.roomState = 'offline';
     this._lastWorldReceived = 0;
     this._ws = null; this._token = null; this._intent = null; this._manual = true;
-    this._connectResolve = null; this._pendingWorld = null; this._worldTimer = null;
+    this._connectResolve = null; this._pendingWorld = null; this._worldTimer = null; this._pendingTransition = null;
     this._generation = 0; this._attempt = 0; this._retry = null; this._pingTimer = null;
     this._reconnectUntil = 0; this._graceMs = 20000; this._clockOffset = 0;
     this._poseSeq = 0; this._worldSeq = 0; this._lastWorldSeq = -1;
+    this._actionSeq = 0; this._lifeId = 1; this._participants = new Map(); this._participantTime = 0; this._receivedActions = new Map();
     this._lastPose = -Infinity; this._lastWorld = -Infinity; this._lastActions = new Map();
     this._histories = new Map(); this._runId = null; this._pings = new Map();
     this._crewSeq = 0; this._lastCrew = -Infinity; this._lastCrewInput = null;
@@ -73,11 +76,27 @@ export class SquadronClient {
     this._lastCrewInput = null; this._lastCrew = -Infinity;
   }
   _roomInfo(msg) {
-    this.mode = msg.mode === 'crew' ? 'crew' : 'squadron';
+    this.mode = ROOM_MODES.has(msg.mode) ? msg.mode : this.mode;
     this.role = this.mode === 'crew' && !this.isHost ? 'gunner' : 'pilot';
     this.maxPlayers = this.mode === 'crew' ? 2 : 4;
     if (msg.missionId) this.missionId = msg.missionId;
     if (msg.hostId) this.hostId = msg.hostId;
+    if (msg.config) this.config = { ...msg.config };
+    const selection = msg.players?.find(p => p.id === this.id) || msg;
+    if (selection.aircraft) this.aircraft = selection.aircraft;
+    if (selection.startMode) this.startMode = selection.startMode;
+  }
+  _syncParticipants(snapshot, at = Date.now() + this._clockOffset) {
+    if (!Array.isArray(snapshot?.participants)) return;
+    this._participantTime = at;
+    for (const participant of snapshot.participants) {
+      if (!participant?.id || !Number.isSafeInteger(participant.lifeId)) continue;
+      const old = this._participants.get(participant.id);
+      if (old && participant.lifeId < old.lifeId) continue;
+      if (old && old.lifeId !== participant.lifeId) this._histories.delete(participant.id);
+      this._participants.set(participant.id, participant);
+      if (participant.id === this.id) this._lifeId = participant.lifeId;
+    }
   }
   _settleConnect(connected) {
     const resolve = this._connectResolve; this._connectResolve = null; resolve?.(connected);
@@ -91,8 +110,11 @@ export class SquadronClient {
     this._open();
     return result;
   }
-  create(name = 'Pilot', missionId) { return this._begin({ type: 'create', name, missionId }); }
-  join(code, name = 'Pilot') { return this._begin({ type: 'join', code: String(code || '').trim().toUpperCase(), name }); }
+  create(name = 'Pilot', missionId, options = {}) {
+    const config = options.config || Object.fromEntries(['mode', 'mapId', 'durationSeconds', 'lives'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
+    return this._begin({ type: 'create', name, missionId, config, aircraft: options.aircraft, startMode: options.startMode });
+  }
+  join(code, name = 'Pilot', options = {}) { return this._begin({ type: 'join', code: String(code || '').trim().toUpperCase(), name, aircraft: options.aircraft, startMode: options.startMode }); }
 
   _open() {
     if (this._manual) return;
@@ -139,13 +161,14 @@ export class SquadronClient {
       case 'hello':
         if (msg.version !== VERSION) { this._finish('The squadron server uses a newer game version. Reload to continue.'); return; }
         this._clockOffset = msg.time - Date.now();
-        this._send({ type: 'hello', version: VERSION });
+        this._send({ type: 'hello', version: VERSION, flightProtocol: 2 });
         break;
       case 'welcome':
         if (this._token) this._send({ type: 'resume', code: this.code, playerId: this.id, token: this._token });
         else this._send(this._intent);
         break;
       case 'session':
+        this._pendingTransition = null;
         this.id = msg.id; this.code = msg.code; this._token = msg.token;
         this.isHost = msg.isHost; this.connected = true; this.roomState = msg.state;
         this._roomInfo(msg);
@@ -153,6 +176,9 @@ export class SquadronClient {
         this._poseSeq = Math.max(this._poseSeq, (msg.poseSeq ?? -1) + 1);
         this._worldSeq = Math.max(this._worldSeq, (msg.worldSeq ?? -1) + 1);
         this._crewSeq = Math.max(this._crewSeq, (msg.crewSeq ?? -1) + 1);
+        this._actionSeq = Math.max(this._actionSeq, (msg.actionSeq ?? -1) + 1);
+        this._lifeId = msg.lifeId || 1;
+        if (Array.isArray(msg.players)) this.roster = msg.players;
         this._reconnectUntil = 0; this._attempt = 0;
         this._settleConnect(true);
         this._status(this.paused ? 'paused' : msg.state, msg.state === 'lobby'
@@ -170,48 +196,69 @@ export class SquadronClient {
         break;
       }
       case 'start': {
+        this._pendingTransition = null;
         const isNew = this._runId !== msg.runId;
         this._runId = msg.runId; this.roomState = 'flying'; this.paused = false; this.hostStale = false;
         this._roomInfo(msg);
+        if (Array.isArray(msg.players)) this.roster = msg.players;
         this._lastWorldReceived = now();
         if (isNew) {
-          this._histories.clear(); this._poseSeq = 0; this._worldSeq = 0; this._lastWorldSeq = -1;
+          this._histories.clear(); this._participants.clear(); this._receivedActions.clear(); this._lastWorldSeq = -1;
+          if (!msg.resumed) { this._poseSeq = 0; this._worldSeq = 0; this._actionSeq = 0; this._lifeId = 1; this._crewSeq = 0; }
           this._lastPose = this._lastWorld = -Infinity; this._lastActions.clear();
           clearTimeout(this._worldTimer); this._worldTimer = null; this._pendingWorld = null;
-          this._clearCrew(); this._crewSeq = 0; this._crewWorldPaused = false; this._crewNeedsRelease = false;
-          this._call('onStart', { missionId: msg.missionId, seed: msg.seed, mode: this.mode, role: this.role });
+          this._clearCrew(); this._crewWorldPaused = false; this._crewNeedsRelease = false;
+          this._call('onStart', { missionId: msg.missionId, seed: msg.seed, runId: msg.runId, mode: this.mode, role: this.role, config: this.config, players: this.roster, hostId: this.hostId });
         }
         this._status('flying', msg.resumed ? 'Reconnected to the mission.' : 'Squadron airborne.');
         break;
       }
       case 'pose': {
+        if (msg.runId !== this._runId) break;
         if (msg.playerId === this.id || !msg.player) break;
         if (this.mode === 'crew' && msg.playerId !== this.hostId) break;
+        const participant = this._participants.get(msg.playerId);
+        if (participant && msg.player.lifeId !== participant.lifeId) break;
         const history = this._histories.get(msg.playerId) || [];
         if (history.length && msg.seq <= history[history.length - 1].seq) break;
+        if (history.length && history[history.length - 1].player.lifeId !== msg.player.lifeId) history.length = 0;
         history.push({ player: msg.player, at: msg.at, seq: msg.seq });
         if (history.length > 24) history.shift();
         this._histories.set(msg.playerId, history);
         break;
       }
       case 'world':
-        if (msg.seq > this._lastWorldSeq) {
+        if (msg.runId === this._runId && msg.seq > this._lastWorldSeq) {
           this._lastWorldSeq = msg.seq;
           this._lastWorldReceived = now();
           this._crewWorldPaused = !!msg.snapshot?.teamPaused;
+          this._syncParticipants(msg.snapshot, msg.at);
           if (this._crewWorldPaused) { this._clearCrew(); this._crewNeedsRelease = true; }
           if (this.hostStale) { this.hostStale = false; this._status('flying', 'The host’s mission updates have resumed.'); }
           this._call('onWorld', msg.snapshot);
         }
         break;
       case 'action':
-        if (this.isHost) this._call('onAction', { action: msg.action, playerId: msg.playerId, player: msg.player });
+        if (this.isHost && msg.runId === this._runId && msg.seq > (this._receivedActions.get(msg.playerId) ?? -1)) {
+          this._receivedActions.set(msg.playerId, msg.seq);
+          this._call('onAction', { action: msg.action, playerId: msg.playerId, player: msg.player, runId: msg.runId, lifeId: msg.lifeId, actionId: msg.actionId, seq: msg.seq });
+        }
         break;
       case 'crew-input':
-        if (this.isHost && this.mode === 'crew') {
+        if (this.isHost && this.mode === 'crew' && msg.runId === this._runId) {
           const input = crewInput(msg.input);
           if (input) this._call('onCrewInput', { playerId: msg.playerId, input, seq: msg.seq, reset: !!msg.reset });
         }
+        break;
+      case 'lobby':
+        this._pendingTransition = null;
+        this._roomInfo(msg); this.roster = msg.players || this.roster;
+        this.roomState = 'lobby'; this.paused = false; this.hostStale = false; this._runId = null;
+        this._histories.clear(); this._participants.clear(); this._receivedActions.clear(); this._lastActions.clear();
+        clearTimeout(this._worldTimer); this._worldTimer = null; this._pendingWorld = null;
+        this._clearCrew(); this._crewWorldPaused = false; this._lifeId = 1;
+        this._call('onLobby', { missionId: this.missionId, mode: this.mode, config: this.config, players: this.roster, hostId: this.hostId });
+        this._status('lobby', 'Squadron regrouped. Choose aircraft and ready up for another sortie.');
         break;
       case 'pong': {
         const sent = this._pings.get(msg.nonce);
@@ -233,6 +280,7 @@ export class SquadronClient {
         this._status(msg.state, msg.message);
         break;
       case 'error':
+        this._pendingTransition = null;
         this._status('error', msg.message);
         if (['resume_denied', 'version_mismatch'].includes(msg.code)) this._finish(msg.message);
         else if (!this._token) this.leave(false);
@@ -253,27 +301,46 @@ export class SquadronClient {
     if (this._pings.size > 6) this._pings.delete(this._pings.keys().next().value);
     this._send({ type: 'ping', nonce });
   }
-  ready(value = true) { return this.connected && this._send({ type: 'ready', ready: !!value }); }
+  ready(value = true) { return this.connected && this.roomState === 'lobby' && this._send({ type: 'ready', ready: !!value }); }
   setMission(missionId) { return this.connected && this.isHost && this.roomState === 'lobby' && this._send({ type: 'mission', missionId }); }
-  start(missionId) { return this.connected && this.isHost && this._send({ type: 'start', missionId }); }
+  configure(config) {
+    return this.connected && this.isHost && this.roomState === 'lobby' && this._send({ type: 'configure', config, missionId: config?.missionId });
+  }
+  setLoadout(aircraft, startMode) {
+    const chosen = typeof aircraft === 'object' ? aircraft : { aircraft, startMode };
+    return this.connected && this.roomState === 'lobby' && this.mode !== 'crew' && this._send({ type: 'loadout', aircraft: chosen?.aircraft, startMode: chosen?.startMode });
+  }
+  _transition(message) {
+    if (!this.connected || !this.isHost || this.paused || this._pendingTransition || !this._send(message)) return false;
+    this._pendingTransition = message.type;
+    // Do not let a delayed final world race a replay or lobby acknowledgement.
+    // The accepted transition, or its error, re-enables normal traffic.
+    clearTimeout(this._worldTimer); this._worldTimer = null; this._pendingWorld = null;
+    this._clearCrew();
+    return true;
+  }
+  start(missionId = this.missionId) { return this._transition({ type: 'start', missionId }); }
+  returnToLobby() { return this._transition({ type: 'lobby' }); }
 
   sendPose(player) {
     const time = now();
-    if (!this.connected || this.paused || this.roomState !== 'flying' || (this.mode === 'crew' && !this.isHost) || time - this._lastPose < 1000 / 15) return false;
+    if (!this.connected || this.paused || this._pendingTransition || this.roomState !== 'flying' || (this.mode === 'crew' && !this.isHost) || time - this._lastPose < 1000 / 15) return false;
     // Copy fields only; never serialize a simulation or Three.js object graph.
     const pose = {};
-    for (const key of ['x', 'y', 'z', 'heading', 'pitch', 'roll', 'speed', 'throttle', 'health', 'fuel', 'gear', 'flaps', 'engine', 'startupStep', 'onGround', 'aircraft', 'verticalSpeed', 'stalled', 'ammo', 'missiles', 'bombs']) {
+    for (const key of ['x', 'y', 'z', 'heading', 'pitch', 'roll', 'speed', 'throttle', 'health', 'fuel', 'gear', 'flaps', 'engine', 'startupStep', 'onGround', 'aircraft', 'verticalSpeed', 'stalled', 'ammo', 'missiles', 'bombs', 'crashed', 'targetId', 'radarOn', 'hover', 'brake']) {
       if (player[key] !== undefined) pose[key] = player[key];
     }
     // Preserve the existing validated wire format. Euler angles encode a pose;
     // clients reconstruct its quaternion before interpolating the remote plane.
     if(isOrientation(player.orientation))Object.assign(pose,deriveEuler(player.orientation));
-    const sent = this._send({ type: 'pose', seq: this._poseSeq++, player: pose });
+    pose.lifeId = Number.isSafeInteger(player.lifeId) ? player.lifeId : this._lifeId;
+    const sent = this._send({ type: 'pose', runId: this._runId, seq: this._poseSeq++, player: pose });
     if (sent) this._lastPose = time;
     return sent;
   }
   sendWorld(snapshot) {
-    if (!this.connected || !this.isHost || this.paused || this.roomState !== 'flying') return false;
+    if (!this.connected || !this.isHost || this.paused || this._pendingTransition || this.roomState !== 'flying') return false;
+    this._syncParticipants(snapshot);
     // Retain the latest snapshot even between ticks. A final or pause update must
     // survive switching screens, when the caller may stop sending every frame.
     this._pendingWorld = snapshot;
@@ -283,30 +350,31 @@ export class SquadronClient {
   }
   _flushWorld() {
     clearTimeout(this._worldTimer); this._worldTimer = null;
-    if (!this.connected || !this.isHost || this.paused || this.roomState !== 'flying') { this._pendingWorld = null; return false; }
+    if (!this.connected || !this.isHost || this.paused || this._pendingTransition || this.roomState !== 'flying') { this._pendingWorld = null; return false; }
     if (this._pendingWorld === null) return false;
     const time = now();
     if (time - this._lastWorld < 100) {
       this._worldTimer = setTimeout(() => this._flushWorld(), Math.ceil(100 - (time - this._lastWorld)));
       return true;
     }
-    const sent = this._send({ type: 'world', seq: this._worldSeq++, snapshot: this._pendingWorld });
+    const sent = this._send({ type: 'world', runId: this._runId, seq: this._worldSeq++, snapshot: this._pendingWorld });
     if (sent) { this._lastWorld = time; this._pendingWorld = null; }
     else this._worldTimer = setTimeout(() => this._flushWorld(), 100);
     return sent;
   }
   sendAction(action) {
     const time = now(), name = typeof action === 'string' ? action : action?.name;
-    if (!ACTIONS.has(name) || !this.connected || this.isHost || this.mode === 'crew' || this.paused || this.roomState !== 'flying') return false;
+    if (!ACTIONS.has(name) || !this.connected || this.isHost || this.mode === 'crew' || this.paused || this._pendingTransition || this.hostStale || this._crewWorldPaused || this.roomState !== 'flying') return false;
+    if (name !== 'respawn' && this._participants.get(this.id)?.alive === false) return false;
     // Holding the gun must not swallow a one-shot missile/payload command.
     if (time - (this._lastActions.get(name) ?? -Infinity) < (name === 'fire' ? 100 : 200)) return false;
-    const sent = this._send({ type: 'action', action });
+    const sent = this._send({ type: 'action', runId: this._runId, lifeId: this._lifeId, seq: this._actionSeq++, action });
     if (sent) this._lastActions.set(name, time);
     return sent;
   }
 
   sendCrewInput(value, { reset = false } = {}) {
-    if (!this.connected || this.mode !== 'crew' || this.isHost || this.paused || this.hostStale || this._crewWorldPaused || this.roomState !== 'flying') return false;
+    if (!this.connected || this.mode !== 'crew' || this.isHost || this.paused || this._pendingTransition || this.hostStale || this._crewWorldPaused || this.roomState !== 'flying') return false;
     const input = crewInput(value);
     if (!input || typeof reset !== 'boolean' || reset && input.fire) return false;
     // A trigger held through a disconnect/pause cannot resume shooting by itself.
@@ -323,7 +391,7 @@ export class SquadronClient {
   }
   _flushCrew() {
     clearTimeout(this._crewTimer); this._crewTimer = null;
-    if (!this.connected || this.mode !== 'crew' || this.isHost || this.paused || this.hostStale || this._crewWorldPaused || this.roomState !== 'flying') { this._pendingCrew = null; this._pendingCrewReset = false; return false; }
+    if (!this.connected || this.mode !== 'crew' || this.isHost || this.paused || this._pendingTransition || this.hostStale || this._crewWorldPaused || this.roomState !== 'flying') { this._pendingCrew = null; this._pendingCrewReset = false; return false; }
     if (!this._pendingCrew) return false;
     const time = now(), interval = 1000 / 15;
     const triggerEdge = this._lastCrewInput && this._pendingCrew.fire !== this._lastCrewInput.fire;
@@ -350,7 +418,11 @@ export class SquadronClient {
     const serverNow = Date.now() + this._clockOffset;
     const target = serverNow - INTERPOLATION_MS;
     const result = [];
-    for (const [id, samples] of this._histories) {
+    const ids = new Set([...this._histories.keys(), ...this._participants.keys()]);
+    for (const id of ids) {
+      if (id === this.id) continue;
+      const participant = this._participants.get(id);
+      const samples = this._histories.get(id) || (participant?.pose ? [{ player: participant.pose, at: this._participantTime, seq: -1 }] : []);
       if (!samples.length) continue;
       const member = this.roster.find(p => p.id === id);
       if (!member?.connected) continue;
@@ -385,7 +457,7 @@ export class SquadronClient {
         extrapolated = true;
       }
       player.orientation=orientation;Object.assign(player,deriveEuler(orientation));
-      result.push({ ...player, id, playerId: id, name: member.name, isHost: member.isHost, stale: serverNow - latest.at > 400, ageMs: Math.max(0, serverNow - latest.at), extrapolated });
+      result.push({ ...player, ...(participant ? { lifeId: participant.lifeId, alive: participant.alive, health: participant.health } : {}), aircraft: member.aircraft || player.aircraft, startMode: member.startMode || player.startMode, id, playerId: id, name: member.name, isHost: member.isHost, connected: member.connected, stale: serverNow - latest.at > 400, ageMs: Math.max(0, serverNow - latest.at), extrapolated });
     }
     return result;
   }
@@ -403,9 +475,12 @@ export class SquadronClient {
     this._clearTimers();
     if (this._ws && this._ws.readyState < 2) this._ws.close(1000, 'Leaving squadron');
     this._ws = null; this._token = null; this._intent = null; this._runId = null;
+    this._pendingTransition = null;
     this.connected = false; this.paused = false; this.hostStale = false; this.roomState = 'offline';
     this.id = ''; this.code = ''; this.isHost = false; this.latency = null;
     this.mode = 'squadron'; this.role = 'pilot'; this.maxPlayers = 4; this.hostId = ''; this.missionId = '';
+    this.config = null; this.aircraft = ''; this.startMode = 'airborne';
+    this._actionSeq = 0; this._lifeId = 1; this._participants.clear(); this._receivedActions.clear();
     this._crewSeq = 0; this._crewWorldPaused = false; this._crewNeedsRelease = false;
     this.roster = []; this._histories.clear(); this._reconnectUntil = 0;
     if (announce) { this._call('onRoster', []); this._status('offline', 'Left the squadron.'); }
