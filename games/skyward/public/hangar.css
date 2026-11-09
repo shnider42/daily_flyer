@@ -65,7 +65,7 @@ body[data-screen="home"] .header-actions .icon-button:hover { background: #eae9d
   color: var(--hangar-ink);
   font-family: Arial, Helvetica, sans-serif;
   background:
-    linear-gradient(180deg, rgba(14, 23, 28, .42), transparent 36%, rgba(14, 23, 28, .55)),
+    linear-gradient(180deg, rgba(14, 23, 28, .92), rgba(14, 23, 28, .65) 20%, transparent 42%, rgba(14, 23, 28, .62) 64%, rgba(14, 23, 28, .92)),
     linear-gradient(90deg, #111b20 0%, rgba(17, 27, 32, .98) 29%, rgba(17, 27, 32, .72) 47%, rgba(17, 27, 32, .11) 75%);
 }
 #home-screen button { border-radius: 0; }
@@ -306,7 +306,7 @@ body[data-screen="home"] .header-actions .icon-button:hover { background: #eae9d
     height: 100svh;
     padding: 76px 4vw 12px;
     gap: 10px 28px;
-    background: linear-gradient(90deg, #111b20 0%, rgba(17, 27, 32, .97) 32%, rgba(17, 27, 32, .55) 60%, rgba(17, 27, 32, .25));
+    background: linear-gradient(180deg, rgba(17, 27, 32, .7), transparent 42%, rgba(17, 27, 32, .7)), linear-gradient(90deg, #111b20 0%, rgba(17, 27, 32, .97) 32%, rgba(17, 27, 32, .55) 60%, rgba(17, 27, 32, .25));
   }
   .hangar-title { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .hangar-title h1 { font-size: clamp(40px, 6.2vw, 56px); margin: 0; }
