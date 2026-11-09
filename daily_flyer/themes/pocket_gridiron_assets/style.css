@@ -454,3 +454,6 @@ body[data-mode="college"] #teamIdentity{display:none}
  .plays .booknav button:hover:not(:disabled){background:#476047}
 }
 @media(max-width:600px){.trychoice{top:15%;padding:14px}.trychoice h3{font-size:17px}.trychoice p{font-size:11px}.trychoice kbd{display:none}}
+
+/* Camera controls live in setup and Pause, away from the playing surface. */
+.camerapanel{border-block:1px solid #91a79c3b;margin:16px 0;padding:12px 0}.camerapanel summary{font:11px monospace;letter-spacing:.06em;color:#e8d597;cursor:pointer;min-height:28px}.camerapanel .settingrow{font-size:12px}.camerapanel select{max-width:65%;min-height:44px;background:#203539;color:#f3ecd8;border:1px solid #596e67;border-radius:3px;padding:7px}.camerazoom{display:flex;align-items:center;justify-content:flex-end;gap:9px;max-width:68%;min-width:0}.camerazoom input{min-width:0;width:150px;min-height:38px;accent-color:#efbb76;touch-action:pan-y}.camerazoom output{width:49px;text-align:right;font:12px monospace;flex:none}.camerapanel input:disabled,.camerapanel select:disabled{opacity:.5}.camerapanel .fineprint{font-size:11px;line-height:1.55}.pause-sportshome{display:block;text-align:center;padding:14px;color:#e4c68c;font:12px monospace}.sportshome:focus-visible{outline:2px solid #edcf8d;outline-offset:4px}#pauseDialog{max-height:92dvh;overflow-y:auto;overscroll-behavior:contain}

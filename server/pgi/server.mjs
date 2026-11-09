@@ -10,6 +10,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 export function createDuelServer(options = {}) {
   const directory = resolve(options.directory || resolve(ROOT, 'daily_flyer/themes/pocket_gridiron_assets'));
+  const sharedDirectory = resolve(options.sharedDirectory || resolve(ROOT, 'daily_flyer/themes/pocket_sports_assets'));
   const rooms = options.rooms || new DuelRooms({ maxRooms: Number(process.env.PGI_DUEL_MAX_ROOMS) || 4 });
   const allowed = new Set((options.allowedOrigins || process.env.PGI_DUEL_ALLOWED_ORIGINS || 'https://dfe-pgi-duels.onrender.com').split(',').map(v => v.trim()).filter(Boolean));
   const connections = new Set(), upgradeWindows = new Map();
@@ -25,14 +26,23 @@ export function createDuelServer(options = {}) {
       response.writeHead(healthy ? 200 : 503, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
       return response.end(request.method === 'HEAD' ? '' : JSON.stringify({ ok: healthy, service: 'pgi-duels', version: '1.0.0', protocol: PROTOCOL, activeRooms: rooms.rooms.size, maxRooms: rooms.maxRooms, maxPlayersPerRoom: 2 }));
     }
+    if (pathname === '/pocket-sports' || pathname === '/pocket-sports/') {
+      response.writeHead(302, { Location: 'https://dfe-pocket-gridiron.onrender.com/pocket-sports/', 'Cache-Control': 'no-store' });
+      return response.end();
+    }
     if (pathname === '/') pathname = '/index.html';
-    const path = resolve(directory, '.' + pathname);
-    if (!path.startsWith(directory + sep) || pathname.includes('\0') || pathname.split('/').some(part => part.startsWith('.'))) { response.writeHead(404); return response.end('Not found'); }
+    // The solo and duel clients share input and camera modules. Expose only
+    // that asset tree, never the repository or server sources around it.
+    const shared = pathname.startsWith('/pocket_sports_assets/');
+    const assetRoot = shared ? sharedDirectory : directory;
+    const assetPath = shared ? pathname.slice('/pocket_sports_assets'.length) : pathname;
+    const path = resolve(assetRoot, '.' + assetPath);
+    if (!path.startsWith(assetRoot + sep) || assetPath.includes('\0') || assetPath.split('/').some(part => part.startsWith('.'))) { response.writeHead(404); return response.end('Not found'); }
     try {
       const info = await stat(path);
       if (!info.isFile()) throw new Error('Not a file');
       let body = await readFile(path);
-      if (path.endsWith('index.html')) body=Buffer.from(body.toString().replace('<body>', '<body><script>window.PGI_DUEL=true;</script>'));
+      if (!shared && path.endsWith('index.html')) body=Buffer.from(body.toString().replace('<body>', '<body><script>window.PGI_DUEL=true;</script>'));
       response.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', 'Content-Length': body.length, 'Cache-Control': path.includes('/vendor/') ? 'public, max-age=86400' : 'no-cache' });
       response.end(request.method === 'HEAD' ? '' : body);
     } catch { response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end('Not found'); }

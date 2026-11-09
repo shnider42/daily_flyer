@@ -26,6 +26,10 @@ def create_sports_blueprint(asset_root: Path) -> Blueprint:
     root = Path(asset_root).resolve()
     bp = Blueprint("pocket_sports", __name__)
 
+    @bp.get("/pocket-sports/")
+    def hub():
+        return send_from_directory(root, "hub.html")
+
     @bp.get("/sports/", defaults={"filename": "index.html"})
     @bp.get("/sports/<path:filename>")
     def assets(filename):
@@ -47,7 +51,11 @@ def create_sports_blueprint(asset_root: Path) -> Blueprint:
 
     @bp.get("/api/v1/sports")
     def registry():
-        return jsonify({"schema_version": 1, "engine_version": "1.4.0", "sports": SPORTS})
+        return jsonify({"schema_version": 1, "engine_version": "1.5.0", "sports": SPORTS,
+                        "hub": "/pocket-sports/", "games": {
+                            "gridiron": {"title": "Pocket Gridiron", "url": "/gridiron/"},
+                            "soccer": {"title": "Pocket Soccer", "url": "/sports/?sport=soccer"},
+                            "hockey": {"title": "Pocket Hockey", "url": "/sports/?sport=hockey"}}})
 
     @bp.get("/api/v1/sports/<sport>/teams")
     def teams(sport):

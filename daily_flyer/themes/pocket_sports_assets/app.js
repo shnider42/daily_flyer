@@ -7,6 +7,7 @@ import { Input, matchControlsActive } from "./core/input.js";
 import { Sound } from "./core/sound.js";
 import {
   DEFAULT_SETTINGS,
+  defaultCameraSettings,
   loadSettings,
   readStore,
   writeStore,
@@ -371,11 +372,37 @@ function showHelp(startAfter = false) {
   };
 }
 $("how-open").onclick = () => showHelp();
+function cameraSettingsMarkup() {
+  const camera = settings.camera[sport];
+  return `<div class="settings-group camera-settings"><h3>YOUR VIEW · ${sport === "hockey" ? "HOCKEY" : "SOCCER"}</h3><label class="setting"><span>Camera</span><select id="set-camera-mode" aria-describedby="camera-mode-help"><option value="full" ${camera.mode === "full" ? "selected" : ""}>Full view · stable</option><option value="fit" ${camera.mode === "fit" ? "selected" : ""}>Fit ${sport === "hockey" ? "boards" : "sidelines"}</option><option value="follow" ${camera.mode === "follow" ? "selected" : ""}>Follow play</option></select></label><label class="setting"><span>Zoom<output id="camera-zoom-out">${camera.zoom.toFixed(2)}×</output></span><input type="range" id="set-camera-zoom" min="1" max="2.2" step="0.05" value="${camera.zoom}" aria-label="Camera zoom" aria-describedby="camera-mode-help"></label><label class="setting"><span>Focus</span><select id="set-camera-focus"><option value="play" ${camera.focus === "play" ? "selected" : ""}>Play</option><option value="ball" ${camera.focus === "ball" ? "selected" : ""}>${sport === "hockey" ? "Puck" : "Ball"}</option><option value="player" ${camera.focus === "player" ? "selected" : ""}>Selected player</option></select></label><label class="setting"><span>Overview when zoomed</span><input type="checkbox" id="set-camera-minimap" ${camera.minimap ? "checked" : ""}></label><p class="settings-tip" id="camera-mode-help"></p><p class="settings-tip">The camera allows small movements before following gently. ${sport === "hockey" ? "Amber marks the puck; the blue ring marks your skater." : "The bright ring marks your player."} Edge arrows point to action outside your view. Settings save separately for each sport.</p></div>`;
+}
+function bindCameraSettings() {
+  const camera = settings.camera[sport];
+  const refresh = () => {
+    $("set-camera-zoom").disabled = camera.mode !== "follow";
+    $("set-camera-focus").disabled = camera.mode === "full";
+    $("set-camera-minimap").disabled = camera.mode === "full";
+    $("camera-zoom-out").textContent = camera.mode === "follow" ? `${camera.zoom.toFixed(2)}×` : "Auto fit";
+    $("camera-mode-help").textContent = camera.mode === "full"
+      ? `The whole ${sport === "hockey" ? "rink" : "pitch"} stays in view with no camera movement. Zoom and focus are available in Follow play.`
+      : camera.mode === "fit"
+        ? `Keeps both ${sport === "hockey" ? "side boards" : "sidelines"} visible and follows along the ${sport === "hockey" ? "rink" : "pitch"}. Zoom is automatic; turn to landscape for a side-to-side view.`
+        : "Drag to bring the play closer. Zoom stays at your chosen level, including passes and possession changes. Choose Full view for a stationary camera.";
+  };
+  for (const key of ["mode", "focus", "minimap", "zoom"]) {
+    $("set-camera-" + key)[key === "zoom" ? "oninput" : "onchange"] = (event) => {
+      camera[key] = key === "zoom" ? +event.target.value : key === "minimap" ? event.target.checked : event.target.value;
+      refresh();
+      applySettings();
+    };
+  }
+  refresh();
+}
 function showSettings() {
   modal(
-    "MAKE IT YOURS",
+    "CAMERA & CONTROLS",
     "Changes save automatically in this browser.",
-    `<div class="settings-group"><h3>YOUR THUMBS</h3>${[
+    `${cameraSettingsMarkup()}<div class="settings-group"><h3>YOUR THUMBS</h3>${[
       ["stick", "Joystick size", 72, 126, 1, "px"],
       ["buttons", "Action button size", 44, 74, 1, "px"],
       ["sensitivity", "Stick sensitivity", 0.6, 1.6, 0.1, "×"],
@@ -415,8 +442,9 @@ function showSettings() {
       )
       .join(
         "",
-      )}</div><button class="secondary" id="restore-settings">RESTORE DEFAULTS</button><button class="start-button" id="settings-done"><span>${game ? "RESUME MATCH" : "DONE"}</span><span>→</span></button>`,
+      )}</div><button class="secondary" id="restore-settings">RESTORE DEFAULTS</button><button class="start-button" id="settings-done"><span>${game ? "RESUME MATCH" : "DONE"}</span><span>→</span></button><a class="sports-home-link" href="/pocket-sports/">← POCKET SPORTS HOME</a>${game ? '<p class="settings-tip">Returning home leaves this match.</p>' : ""}`,
   );
+  bindCameraSettings();
   for (const id of ["stick", "buttons", "sensitivity", "assist"])
     $("set-" + id).oninput = (e) => {
       settings[id] = +e.target.value;
@@ -450,6 +478,8 @@ function showSettings() {
   );
   $("restore-settings").onclick = () => {
     Object.assign(settings, structuredClone(DEFAULT_SETTINGS));
+    const touch = matchMedia("(pointer: coarse)").matches;
+    settings.camera = { hockey: defaultCameraSettings(touch), soccer: defaultCameraSettings(touch) };
     applySettings();
     showSettings();
   };
@@ -494,6 +524,7 @@ window.addEventListener(
   true,
 );
 $("settings-open").onclick = showSettings;
+$("camera-open").onclick = showSettings;
 function togglePause() {
   if (!game) return;
   if ($("dialog").open) return closeModal();
@@ -501,7 +532,7 @@ function togglePause() {
   modal(
     "TIME OUT",
     `${game.teams[0].name} ${game.score[0]} — ${game.score[1]} ${game.teams[1].name}`,
-    `<button class="start-button" id="resume"><span>RESUME MATCH</span><span>→</span></button><button class="secondary" id="pause-settings">CONTROLS & SOUND</button><button class="secondary" id="pause-help">HOW TO PLAY</button><button class="secondary" id="leave">LEAVE MATCH</button><p class="settings-tip">${cup ? "Completed cup rounds are saved. Leaving this match lets you restart this round." : "Leaving discards this match."}</p>`,
+    `<button class="start-button" id="resume"><span>RESUME MATCH</span><span>→</span></button><button class="secondary" id="pause-settings">CAMERA, CONTROLS & SOUND</button><button class="secondary" id="pause-help">HOW TO PLAY</button><button class="secondary" id="leave">LEAVE MATCH</button><a class="sports-home-link" href="/pocket-sports/">← POCKET SPORTS HOME</a><p class="settings-tip">${cup ? "Completed cup rounds are saved. Leaving this match lets you restart this round." : "Leaving or returning home discards this match."}</p>`,
   );
   $("resume").onclick = closeModal;
   $("pause-settings").onclick = showSettings;
@@ -778,6 +809,8 @@ function frame(now) {
       guide: settings.guidance,
       replay,
       reduced: settings.reduced,
+      camera: settings.camera[sport],
+      dt,
     });
   } else if (previewGame && !document.hidden) {
     previewTick += dt;
@@ -789,6 +822,7 @@ function frame(now) {
       guide: false,
       preview: true,
       reduced: settings.reduced,
+      dt,
     });
   }
   requestAnimationFrame(frame);

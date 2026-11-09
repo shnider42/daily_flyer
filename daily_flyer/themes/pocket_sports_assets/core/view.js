@@ -1,5 +1,6 @@
 import { screenToWorld } from "./math.js";
 import { SPORTS } from "../sports/rules.js";
+import { SportsCamera } from "./sports-camera.js";
 const TAU = Math.PI * 2;
 export class Arena {
   constructor(canvas) {
@@ -13,6 +14,7 @@ export class Arena {
     this.rules = SPORTS.hockey;
     this.trail = [];
     this.spark = [];
+    this.camera = new SportsCamera();
     this.resize();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
@@ -25,33 +27,16 @@ export class Arena {
     this.canvas.width = Math.max(1, Math.round(r.width * dpr));
     this.canvas.height = Math.max(1, Math.round(r.height * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.rotated = r.width / Math.max(1, r.height) > 1.25;
-    const { width: pitchWidth, height: pitchHeight } = this.rules;
-    this.scale = Math.max(
-      0.01,
-      this.rotated
-        ? Math.min(
-            (r.width - 30) / (pitchHeight + 110),
-            (r.height - 30) / (pitchWidth + 80),
-          )
-        : Math.min(
-            (r.width - 30) / (pitchWidth + 80),
-            (r.height - 30) / (pitchHeight + 110),
-          ),
-    );
-    this.x = this.rotated
-      ? (r.width + pitchHeight * this.scale) / 2
-      : (r.width - pitchWidth * this.scale) / 2;
-    this.y = this.rotated
-      ? (r.height - pitchWidth * this.scale) / 2
-      : (r.height - pitchHeight * this.scale) / 2;
+    this.camera.resize(r.width, r.height, this.rules);
+    this.rotated = this.camera.rotated;
   }
   toWorld(input) {
     return screenToWorld(input, this.rotated);
   }
   draw(
     game,
-    { guide = true, preview = false, replay = null, reduced = false } = {},
+    { guide = true, preview = false, replay = null, reduced = false,
+      camera = {}, dt = 1 / 60 } = {},
   ) {
     if (this.rules !== game.rules) {
       this.rules = game.rules;
@@ -65,6 +50,10 @@ export class Arena {
     const hockey = game.sport === "hockey",
       r = SPORTS[game.sport],
       state = replay || game;
+    this.camera.update({ game, state, settings: camera, dt, preview, reduced, replay: !!replay });
+    this.scale = this.camera.scale;
+    this.x = this.camera.x;
+    this.y = this.camera.y;
     ctx.fillStyle = hockey ? "#111f2c" : "#102922";
     ctx.fillRect(0, 0, w, h);
     // Stadium seating stays quiet around the playing surface.
@@ -106,7 +95,13 @@ export class Arena {
       ctx.stroke();
     }
     // Ball path is short and disappears on possession changes.
-    if (!replay && !reduced) {
+    if (this.renderGame !== game || this.lastOwner !== state.ball.owner || this.lastReplay !== !!replay || state.time < this.lastTime)
+      this.trail = [];
+    this.renderGame = game;
+    this.lastOwner = state.ball.owner;
+    this.lastReplay = !!replay;
+    this.lastTime = state.time;
+    if (!reduced) {
       this.trail.push({ x: state.ball.x, y: state.ball.y });
       if (this.trail.length > 7) this.trail.shift();
     }
@@ -161,7 +156,7 @@ export class Arena {
         game.teams[p.side],
         p.id === state.controlled,
         hockey,
-        game.time,
+        state.time ?? game.time,
         preview,
       ),
     );
@@ -179,11 +174,23 @@ export class Arena {
       const airScale = 1 + Math.min(0.3, height / 300);
       ctx.scale(airScale, airScale);
     }
+    if (hockey && !preview) {
+      // A constant screen-space halo makes the puck identifiable at any zoom;
+      // neither its simulation size nor the shot/possession rules change.
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(13, 9 / this.scale), 0, TAU);
+      ctx.fillStyle = "#f3ae3d2b";
+      ctx.fill();
+      ctx.strokeStyle = "#a96318";
+      ctx.lineWidth = Math.max(1.5, 1.25 / this.scale);
+      ctx.stroke();
+    }
     ctx.fillStyle = hockey ? "#071521" : "#fffdf0";
     ctx.strokeStyle = hockey ? "#ffffff" : "#163a25";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(2, (hockey ? 1.3 : 1) / this.scale);
     ctx.beginPath();
-    ctx.ellipse(0, 0, hockey ? 7 : 8, hockey ? 5 : 8, 0, 0, TAU);
+    const ballRadius = preview ? (hockey ? 7 : 8) : Math.max(hockey ? 7 : 8, (hockey ? 4.8 : 4) / this.scale);
+    ctx.ellipse(0, 0, ballRadius, hockey ? ballRadius * 0.72 : ballRadius, 0, 0, TAU);
     ctx.fill();
     ctx.stroke();
     if (!hockey) {
@@ -195,11 +202,102 @@ export class Arena {
     ctx.restore();
     ctx.restore();
     if (!preview) {
+      if (this.camera.zoomed) {
+        if (camera.minimap !== false) this.overview(ctx, state, hockey);
+        this.edgeIndicator(ctx, state.ball, hockey ? "PUCK" : "BALL", "#ffd279");
+        const selected = state.players[state.controlled];
+        if (selected) this.edgeIndicator(ctx, selected, "YOU", hockey ? "#83e6ff" : "#e0ff8a");
+      }
       ctx.textAlign = "center";
-      ctx.fillStyle = hockey ? "#a5bccb" : "#c7d9b7";
+      ctx.fillStyle = "#0a1d26db";
+      this.round(ctx, w / 2 - 43, 2, 86, 18, 5);
+      ctx.fill();
+      ctx.fillStyle = hockey ? "#c9e4f1" : "#e0eccb";
       ctx.font = "600 10px system-ui";
       ctx.fillText(this.rotated ? "ATTACK →" : "ATTACK ↑", w / 2, 13);
     }
+  }
+  edgeIndicator(ctx, point, label, color) {
+    const edge = this.camera.edge(point);
+    if (!edge) return;
+    ctx.save();
+    ctx.translate(edge.x, edge.y);
+    ctx.rotate(edge.angle);
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-4, -6);
+    ctx.lineTo(-4, 6);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#081b27";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    const lx = Math.max(24, Math.min(this.width - 24, edge.x - Math.cos(edge.angle) * 25));
+    const ly = Math.max(32, Math.min(this.height - 28, edge.y - Math.sin(edge.angle) * 20));
+    ctx.fillStyle = "#081b27e8";
+    this.round(ctx, lx - 20, ly - 8, 40, 16, 4);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.font = "800 8px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(label, lx, ly + 3);
+  }
+  overview(ctx, state, hockey) {
+    const r = this.rules;
+    const width = this.rotated ? 100 : 62;
+    const height = this.rotated ? 62 : 100;
+    const x = this.width - width - 13, y = 29;
+    const inset = 6;
+    const mapScale = Math.min(
+      (width - inset * 2) / (this.rotated ? r.height : r.width),
+      (height - inset * 2) / (this.rotated ? r.width : r.height),
+    );
+    const mw = (this.rotated ? r.height : r.width) * mapScale;
+    const mh = (this.rotated ? r.width : r.height) * mapScale;
+    const mx = x + (width - mw) / 2, my = y + (height - mh) / 2;
+    const project = (p) => this.rotated
+      ? { x: mx + (r.height - p.y) * mapScale, y: my + p.x * mapScale }
+      : { x: mx + p.x * mapScale, y: my + p.y * mapScale };
+    ctx.save();
+    ctx.fillStyle = "#081b27ce";
+    this.round(ctx, x, y, width, height, 6);
+    ctx.fill();
+    ctx.strokeStyle = "#c0d2db80";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mx, my, mw, mh);
+    ctx.beginPath();
+    if (this.rotated) { ctx.moveTo(mx + mw / 2, my); ctx.lineTo(mx + mw / 2, my + mh); }
+    else { ctx.moveTo(mx, my + mh / 2); ctx.lineTo(mx + mw, my + mh / 2); }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.rect(mx, my, mw, mh);
+    ctx.clip();
+    const a = project({ x: this.camera.center.x - this.camera.viewWidth / 2,
+      y: this.camera.center.y - this.camera.viewHeight / 2 });
+    const b = project({ x: this.camera.center.x + this.camera.viewWidth / 2,
+      y: this.camera.center.y + this.camera.viewHeight / 2 });
+    ctx.fillStyle = "#d9f8ff14";
+    ctx.strokeStyle = "#e6f7ff9e";
+    ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    for (const player of state.players) {
+      const p = project(player);
+      ctx.fillStyle = player.id === state.controlled ? (hockey ? "#83e6ff" : "#e0ff8a")
+        : player.side === 0 ? "#759fa9" : "#f3d1c6";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, player.id === state.controlled ? 2.6 : 1.5, 0, TAU);
+      ctx.fill();
+    }
+    const puck = project(state.ball);
+    ctx.fillStyle = "#ffd279";
+    ctx.strokeStyle = "#152b35";
+    ctx.beginPath();
+    ctx.arc(puck.x, puck.y, 2.5, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
   ice(c) {
     c.shadowColor = "#0009";
@@ -366,6 +464,7 @@ export class Arena {
     const trim = p.side ? primary : secondary;
     const run =
       Math.sin(time * 13 + p.id) * Math.min(7, Math.hypot(p.vx, p.vy) / 27);
+    const apparentScale = this.scale * (hockey ? 1 : 1.12);
     c.save();
     c.translate(p.x, p.y);
     if (!hockey) c.scale(1.12, 1.12);
@@ -374,16 +473,21 @@ export class Arena {
     c.ellipse(3, 8, 17, 9, 0, 0, TAU);
     c.fill();
     if (selected && !preview) {
-      c.strokeStyle = hockey ? "#1682a6" : "#e0ff8a";
-      c.lineWidth = 3;
+      const ring = Math.max(25, 14 / apparentScale);
+      c.strokeStyle = "#082738";
+      c.lineWidth = Math.max(6, 4 / apparentScale);
       c.beginPath();
-      c.ellipse(0, 2, 25, 24, 0, 0, TAU);
+      c.ellipse(0, 2, ring, ring * 0.96, 0, 0, TAU);
       c.stroke();
-      c.fillStyle = hockey ? "#167998" : "#e3fa85";
+      c.strokeStyle = hockey ? "#69d4f0" : "#e0ff8a";
+      c.lineWidth = Math.max(3, 2 / apparentScale);
+      c.stroke();
+      c.fillStyle = hockey ? "#126487" : "#e3fa85";
+      const pointer = Math.max(6, 4 / apparentScale);
       c.beginPath();
-      c.moveTo(-6, -34);
-      c.lineTo(6, -34);
-      c.lineTo(0, -26);
+      c.moveTo(-pointer, -ring - pointer * 1.7);
+      c.lineTo(pointer, -ring - pointer * 1.7);
+      c.lineTo(0, -ring - 2);
       c.fill();
     }
     if (!hockey && (p.containing || p.keeperRushing) && !preview) {
@@ -495,13 +599,15 @@ export class Arena {
       if (this.rotated) c.rotate(-Math.PI / 2);
       c.textAlign = "center";
       const surname = p.name.split(" ").slice(-1)[0];
-      c.font = "bold 16px system-ui";
-      const width = c.measureText(surname).width + 16;
+      const fontSize = Math.max(16, 10 / apparentScale);
+      c.font = `bold ${fontSize}px system-ui`;
+      const width = c.measureText(surname).width + fontSize;
+      const labelY = Math.max(31, 18 / apparentScale);
       c.fillStyle = hockey ? "#082334e8" : "#0a281fe8";
-      this.round(c, -width / 2, 31, width, 24, 5);
+      this.round(c, -width / 2, labelY, width, fontSize * 1.5, 5);
       c.fill();
       c.fillStyle = "#f1f8ed";
-      c.fillText(surname, 0, 49);
+      c.fillText(surname, 0, labelY + fontSize * 1.12);
     }
     c.restore();
   }

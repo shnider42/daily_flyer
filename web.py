@@ -55,6 +55,11 @@ def _parse_seed(raw: str | None) -> int | None:
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
+    if theme_name == "pocket_sports" or (
+        theme_name in {"pocket_hockey", "pocket_soccer", "pocket_gridiron"}
+        and not request.args.get("theme")
+    ):
+        return redirect(url_for("pocket_sports.hub"))
     if theme_name in {"pocket_hockey", "pocket_soccer", "pocket_sports"}:
         sport = "soccer" if theme_name == "pocket_soccer" else "hockey"
         return redirect(f"/sports/?sport={sport}")
