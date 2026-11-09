@@ -51,7 +51,19 @@
     if(!game.completed||!away.length||away.length!==home.length)return [];
     let a=0,h=0;return [{quarter:0,away:0,home:0},...away.map((v,i)=>({quarter:i+1,away:a+=v,home:h+=home[i]}))];
   }
-  function gameRead(game){
+  function gameRead(game,locale='en-US'){
+    if(locale==='de-AT'){
+      if(!game.completed)return {kind:'Angesetzt',text:'Diese Begegnung wurde in dieser Ausgabe noch nicht gespielt.'};
+      const margin=Math.abs(game.away.score-game.home.score),winner=game.away.score>game.home.score?game.away:game.home,loser=winner===game.away?game.home:game.away;
+      if(margin===0)return {kind:'Unentschieden',text:`Beide Teams beendeten das Spiel mit ${game.home.score} Punkten. Für beide zählt ein Unentschieden in der Bilanz.`};
+      const half=side=>(side.quarters||[]).slice(0,2).reduce((a,b)=>a+b,0),hasHalf=(winner.quarters||[]).length>=4&&(loser.quarters||[]).length>=4;
+      const deficit=hasHalf?half(loser)-half(winner):0;
+      if(deficit>=10)return {kind:'Aufholjagd',text:`${winner.team} holte einen Halbzeitrückstand von ${deficit} Punkten auf und gewann mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung.`};
+      if(/OT/.test(game.status))return {kind:'Verlängerung',text:`${winner.team} gewann in der Verlängerung mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung. Nach der regulären Spielzeit stand es unentschieden.`};
+      if(loser.score===0)return {kind:'Zu null',text:`${winner.team} ließ gegen ${loser.team} keine Punkte zu und gewann mit ${margin} Punkten Vorsprung.`};
+      if(margin<=7)return {kind:'Knappe Entscheidung',text:`${winner.team} gewann mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung – höchstens einem Touchdown samt Extrapunkt.`};
+      return {kind:margin>=17?'Deutlicher Vorsprung':'Endstand',text:`${winner.team} erzielte ${margin} Punkte mehr als ${loser.team}.`};
+    }
     if(!game.completed)return {kind:'Scheduled',text:'This matchup has not been played in this edition.'};
     const margin=Math.abs(game.away.score-game.home.score),winner=game.away.score>game.home.score?game.away:game.home,loser=winner===game.away?game.home:game.away;
     if(margin===0)return {kind:'Tie game',text:`Both teams finished with ${game.home.score} points. Each adds a tie to its record.`};
@@ -64,24 +76,41 @@
     return {kind:margin>=17?'Clear margin':'Final result',text:`${winner.team} outscored ${loser.team} by ${margin} points.`};
   }
   function normalize(raw,data) {
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
+    const locale=raw.locale==='de-AT'?'de-AT':'en-US';
+    const validTeam=id=>data.teams.some(t=>t.id===id);
     const defaultSince=new Date(Date.parse(data.as_of+'T12:00:00Z')-7*86400000).toISOString().slice(0,10);
     const isDate=s=>/^2026-\d{2}-\d{2}$/.test(s||'') && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0,10)===s;
-    return {depth:['little','basics','well'].includes(raw.depth)?raw.depth:'basics',
+    return {locale,depth:['little','basics','well'].includes(raw.depth)?raw.depth:'basics',
       since:isDate(raw.since)&&raw.since<=(data.as_of||'2026-11-04')?raw.since:defaultSince,
-      team:data.teams.some(t=>t.id===raw.team)?raw.team:'ALL',
+      team:raw.team==='ALL'||validTeam(raw.team)?raw.team:locale==='de-AT'?'MIN':'ALL',
+      englishTeam:raw.englishTeam==='ALL'||validTeam(raw.englishTeam)?raw.englishTeam:'ALL',
+      englishTeamFocus:validTeam(raw.englishTeamFocus)?raw.englishTeamFocus:'NE',
       topic:['all','games','roster','injuries'].includes(raw.topic)?raw.topic:'all',
       query:typeof raw.query==='string'?raw.query.slice(0,80):'',
       order:raw.order==='latest'?'latest':'impact', spoilers:raw.spoilers===true,
       tab:['brief','league','games','teams','learn'].includes(raw.tab)?raw.tab:'brief',
       theme:raw.theme==='light'?'light':'dark',
       conference:['ALL','AFC','NFC'].includes(raw.conference)?raw.conference:'ALL',
-      teamFocus:data.teams.some(t=>t.id===raw.teamFocus)?raw.teamFocus:'NE',
+      teamFocus:validTeam(raw.teamFocus)?raw.teamFocus:locale==='de-AT'?'MIN':'NE',
       gameStatus:['all','final','scheduled'].includes(raw.gameStatus)?raw.gameStatus:'all',
       gameQuery:typeof raw.gameQuery==='string'?raw.gameQuery.slice(0,80):'',
       closeGames:raw.closeGames===true&&raw.spoilers!==true,
       game:data.games.some(g=>g.id===raw.game)?raw.game:null,
       week:raw.week==='all'?'all':Number.isInteger(Number(raw.week))&&Number(raw.week)>=1&&Number(raw.week)<=18?Number(raw.week):(data.latest_week||data.through_week)};
   }
-  const api={localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,teamBrief};
+  function switchLocale(state,locale,data){
+    const next=locale==='de-AT'?'de-AT':'en-US';
+    if(next===state.locale)return normalize(state,data);
+    return normalize(next==='de-AT'?{...state,locale:next,englishTeam:state.team,englishTeamFocus:state.teamFocus,team:'MIN',teamFocus:'MIN'}:{...state,locale:next,team:state.englishTeam,teamFocus:state.englishTeamFocus},data);
+  }
+  function formatKickoff(iso,locale='en-US',compact=false){
+    const austrian=locale==='de-AT';
+    return new Date(iso).toLocaleString(austrian?'de-AT':'en-US',{
+      timeZone:austrian?'Europe/Vienna':'America/New_York',month:'short',day:'numeric',
+      ...(compact?{}:austrian?{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}:{hour:'numeric',minute:'2-digit'})
+    })+(compact?'':austrian?' Uhr · Wien':' ET');
+  }
+  const api={localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,switchLocale,formatKickoff,teamBrief};
   if(typeof module!=='undefined')module.exports=api;else root.NFLCatchUp=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -121,3 +121,37 @@ test('expanded game evidence is consistent and reporting gaps remain explicit',(
   }
   assert.equal(r.teams.ATL.transactions_status,'unavailable');assert.equal(r.teams.DAL.transactions_status,'unavailable');
 });
+
+test('Austrian mode starts with the Vikings while explicit team choices remain valid',()=>{
+  const austrian=C.normalize({locale:'de-AT'},S);
+  assert.equal(austrian.locale,'de-AT');assert.equal(austrian.team,'MIN');assert.equal(austrian.teamFocus,'MIN');
+  assert.equal(C.normalize({locale:'de-AT',team:'GB',teamFocus:'SEA'},S).team,'GB');
+  assert.equal(C.normalize({locale:'de-AT',team:'ALL'},S).team,'ALL');
+  assert.equal(C.normalize({locale:'unsupported'},S).locale,'en-US');
+  assert.equal(C.normalize(null,S).team,'ALL');
+});
+test('language toggle preserves English preferences and does not reset manual choices on reload',()=>{
+  const english=C.normalize({team:'NE',teamFocus:'BUF',depth:'well',spoilers:true,theme:'light'},S);
+  const austrian=C.switchLocale(english,'de-AT',S);
+  assert.equal(austrian.team,'MIN');assert.equal(austrian.teamFocus,'MIN');
+  const changed=C.normalize({...austrian,team:'GB',teamFocus:'SEA'},S);
+  const reloaded=C.normalize(JSON.parse(JSON.stringify(changed)),S);
+  assert.equal(reloaded.locale,'de-AT');assert.equal(reloaded.team,'GB');assert.equal(reloaded.teamFocus,'SEA');
+  const restored=C.switchLocale(reloaded,'en-US',S);
+  assert.equal(restored.team,'NE');assert.equal(restored.teamFocus,'BUF');
+  assert.equal(restored.spoilers,true);assert.equal(restored.depth,'well');assert.equal(restored.theme,'light');
+});
+test('Vienna kickoff dates and daylight-saving offsets use the actual game instant',()=>{
+  assert.match(C.formatKickoff('2026-11-09T01:20:00Z','de-AT'),/9\..*Nov.*02:20 Uhr · Wien/);
+  assert.match(C.formatKickoff('2026-09-11T00:20:00Z','de-AT'),/11\..*Sep.*02:20 Uhr · Wien/);
+  assert.match(C.formatKickoff('2026-03-15T18:00:00Z','de-AT'),/19:00 Uhr · Wien/);
+  assert.match(C.formatKickoff('2026-11-09T01:20:00Z','en-US'),/Nov 8.*8:20 PM ET/);
+  assert.equal(C.localDate('2026-11-09T01:20:00Z'),'2026-11-08');
+});
+test('Austrian content preserves editorial identities and translates all learning and stat definitions',()=>{
+  const AT=require('../static/nfl_catch_up/content-de-at.js');
+  assert.deepEqual(Object.keys(AT.stories).sort(),D.stories.map(s=>s.id).sort());
+  for(const story of D.stories)for(const field of ['title','safe_title','summary','context','before','after','detail','meaning'])assert.ok(AT.stories[story.id][field],story.id+' '+field);
+  assert.equal(AT.lessons.length,6);assert.equal(AT.statDefs.length,16);
+  for(const g of S.games){const read=C.gameRead(g,'de-AT');assert.ok(read.kind&&read.text);assert.notEqual(read.text,C.gameRead(g).text);}
+});

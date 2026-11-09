@@ -24,8 +24,13 @@ is explicitly marked rather than invented. The collector does not change the
 editorial review date. Its temporary detail cache is under /tmp/huddle-game-details;
 remove that cache before refreshing finalized games to capture source corrections.
 
-Dates display in America/New_York. Unconfirmed dates/kickoffs display TBD rather
-than provider placeholder timestamps. Future games never enter records or charts.
+English uses America/New_York for displayed game dates and kickoffs. The optional
+Austrian German mode uses localized dates and Europe/Vienna kickoff times on a
+24-hour clock. Result cutoffs and catch-up date filters continue to use Eastern
+game dates in both languages, so switching language does not change records or
+which results belong to a selected window. Unconfirmed dates/kickoffs display TBD
+or its localized equivalent rather than provider placeholder timestamps. Future
+games never enter records or charts.
 Injuries are dated reports, not current availability guarantees. The UI states its
 coverage and warns as the edition ages. Automated game reads use only scores and
 quarter totals; they are not full recaps. Charts use quarter-end cumulative points,
@@ -93,6 +98,43 @@ External sources may contain spoilers. No server-side profile collection.
 
 The rendering/product registration reuses the DFE v2 engine. Other products and
 other deployment branches are unchanged.
+
+## Austrian German variation
+
+The header toggle enables **Deutsch (Österreich)** (`de-AT`), using Austrian
+Standard German rather than dialect. English (`en-US`) remains the default.
+Switching the toggle on selects the Minnesota Vikings (`MIN`) for both the
+catch-up team filter and the team room. Visitors can then select any other team;
+their Austrian-mode selection and language survive reloads. Switching back to
+English restores the team filter and team room that were selected before Austrian
+mode was enabled. Each new switch from English to Austrian mode starts with the
+Vikings again.
+
+The existing optional browser preferences store the language. Shared briefing
+links include the locale and current team selection and still open with outcomes
+hidden. The direct entry link
+`https://dfe-nfl-catch-up.onrender.com/?lang=de-AT` also enables Austrian mode.
+Changing the toggle updates the current preference without leaving a conflicting
+language override in the URL.
+
+Navigation, controls, generated game reads, team briefings, statistics and
+explanations are localized. `static/nfl_catch_up/content-de-at.js` contains the ten
+translated editorial stories, six beginner lessons, sixteen statistic definitions
+and source-label translations. News headlines, official transaction descriptions,
+scoring-play descriptions and research source excerpts retain their original
+wording and are identified as original-language material. Team and player names,
+scores, source links and the dated November 8 data snapshot are unchanged.
+
+Kickoff dates and times use Vienna time, including daylight-saving transitions;
+the interface identifies the time-zone difference from Eastern date filtering.
+The Austrian display uses localized date and number formatting and a 24-hour clock.
+
+Football questions carry the selected locale to the research service. Austrian
+mode requests answers in Austrian Standard German and offers German question
+starters and status messages. When generated answers are unavailable, the live
+reference fallback searches German Wikipedia and labels its excerpts as reference
+results. This language support does not activate written answers: the existing
+server-side `OPENAI_API_KEY` requirement and the limitations below still apply.
 
 ## November 8 data and team context
 

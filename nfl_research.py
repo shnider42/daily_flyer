@@ -26,6 +26,24 @@ quota_lock = threading.Lock()
 daily = deque()
 visitors = OrderedDict()
 STOP = set('when did does do the a an to have has is are was were will would could should why how what who which where of in on only for and with about explain please me it they their that this football nfl american'.split())
+STOP_DE = set('wann warum wieso weshalb wie was wer welche welcher welches wo ist sind war waren wird werden wurde wurden hat haben hatte hatten der die das den dem des ein eine einer einem einen eines im in am an auf für von zum zur zu bei und oder mit über um als nur sich es sie er wir ihr ich mir mich man bitte erklär erkläre erklären kann können könnte könnten würde würden soll sollen denn doch eigentlich'.split())
+MESSAGES_DE = {
+ 'Enter a football question.':'Gib eine Frage zu American Football ein.',
+ 'Use 3–500 characters for your question.':'Deine Frage muss 3–500 Zeichen lang sein.',
+ 'Choose a valid explanation level.':'Wähle eine gültige Erklärungsstufe.',
+ 'Start a new thread after six questions.':'Beginne ein neues Gespräch, um weitere Fragen zu stellen.',
+ 'Invalid conversation context.':'Der Gesprächsverlauf konnte nicht verarbeitet werden.',
+ 'Research is busy. Please try again in ten minutes.':'Die Recherche ist gerade ausgelastet. Versuch es in zehn Minuten noch einmal.',
+ 'Two questions are being researched. Please try again shortly.':'Gerade werden zwei Fragen recherchiert. Versuch es in Kürze noch einmal.',
+ 'The research source did not return a usable result. No answer was generated. Please retry.':'Die Recherchequelle hat kein brauchbares Ergebnis geliefert. Es wurde keine Antwort erstellt. Versuch es bitte noch einmal.',
+ 'The question or conversation is too long. Start a new thread.':'Die Frage oder der Gesprächsverlauf ist zu lang. Beginne ein neues Gespräch.',
+ 'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.':'Die aktuelle Quellensuche ist verfügbar. Ausformulierte Antworten und die Prüfung der Annahmen in deiner Frage sind noch nicht aktiviert. Diese Auszüge können weiterhelfen, sind aber keine geprüfte Antwort auf deine Frage.',
+ 'Written from sources searched for this question. Check the linked evidence for important details.':'Diese Antwort beruht auf Quellen, die für deine Frage recherchiert wurden. Prüfe wichtige Details in den verlinkten Quellen.',
+}
+
+def normalize_locale(value):return 'de-AT' if value=='de-AT' else 'en-US'
+
+def message(text,locale='en-US'):return MESSAGES_DE.get(text,text) if normalize_locale(locale)=='de-AT' else text
 
 def stamp():return datetime.now(timezone.utc).isoformat()
 
@@ -47,17 +65,18 @@ def get_json(url, body=None, key=None):
 
 def validate(payload):
  if not isinstance(payload,dict):raise ValueError('Enter a football question.')
+ locale=normalize_locale(payload.get('locale'))
  q=payload.get('question')
- if not isinstance(q,str) or not 3<=len(q.strip())<=500:raise ValueError('Use 3–500 characters for your question.')
+ if not isinstance(q,str) or not 3<=len(q.strip())<=500:raise ValueError(message('Use 3–500 characters for your question.',locale))
  depth=payload.get('depth','little')
- if depth not in ('little','basics','well'):raise ValueError('Choose a valid explanation level.')
+ if depth not in ('little','basics','well'):raise ValueError(message('Choose a valid explanation level.',locale))
  history=payload.get('history',[])
- if not isinstance(history,list) or len(history)>6:raise ValueError('Start a new thread after six questions.')
+ if not isinstance(history,list) or len(history)>6:raise ValueError(message('Start a new thread after six questions.',locale))
  clean=[]
  for turn in history:
-  if not isinstance(turn,dict) or turn.get('role') not in ('user','assistant') or not isinstance(turn.get('content'),str) or len(turn['content'])>6000:raise ValueError('Invalid conversation context.')
+  if not isinstance(turn,dict) or turn.get('role') not in ('user','assistant') or not isinstance(turn.get('content'),str) or len(turn['content'])>6000:raise ValueError(message('Invalid conversation context.',locale))
   clean.append({'role':turn['role'],'content':turn['content']})
- return q.strip(),depth,clean,payload.get('hide_outcomes') is True
+ return q.strip(),depth,clean,payload.get('hide_outcomes') is True,locale
 
 def visitor_identity(payload):
  # Render's immediate proxy address is shared. An anonymous tab identifier keeps
@@ -80,26 +99,33 @@ def take_quota(identity):
   while len(visitors)>2000:visitors.popitem(last=False)
   return True
 
-def live_references(question,history):
+def live_references(question,history,locale='en-US'):
  # Query terms are derived from each request, not a fixed question-to-answer map.
+ locale=normalize_locale(locale)
  context=' '.join(t['content'] for t in history if t['role']=='user')+' '+question
- terms=[w for w in re.findall(r"[A-Za-z0-9]+",context) if w.lower() not in STOP][-16:]
+ stop=STOP|STOP_DE if locale=='de-AT' else STOP
+ # Keep umlauts and ß intact; ASCII tokenization would damage German searches.
+ terms=[w for w in re.findall(r"[^\W_]+",context,re.UNICODE) if w.lower() not in stop][-16:]
  query=' '.join(terms) or question
  if not re.search(r'\b(nfl|football|super bowl)\b',query,re.I):query+=' American football'
- url='https://en.wikipedia.org/w/api.php?'+urlencode({'action':'query','list':'search','srsearch':query,'srlimit':5,'format':'json'})
+ wiki='https://de.wikipedia.org' if locale=='de-AT' else 'https://en.wikipedia.org'
+ url=wiki+'/w/api.php?'+urlencode({'action':'query','list':'search','srsearch':query,'srlimit':5,'format':'json'})
  data=get_json(url)
  sources=[]
  for item in data.get('query',{}).get('search',[]):
   # Attribution and short quotations; the result is explicitly not a synthesized answer.
   excerpt=html.unescape(re.sub('<[^>]*>','',item.get('snippet','')))
-  sources.append({'title':item['title'],'url':'https://en.wikipedia.org/?curid='+str(item['pageid']),
-                  'excerpt':' '.join(excerpt.split()[:22])+'…','publisher':'Wikipedia · search excerpt'})
- return {'mode':'references','question':question,'checked_at':stamp(),'sources':sources,
-         'notice':'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.',
+  sources.append({'title':item['title'],'url':wiki+'/?curid='+str(item['pageid']),
+                  'excerpt':' '.join(excerpt.split()[:22])+'…','publisher':'Wikipedia · Suchauszug' if locale=='de-AT' else 'Wikipedia · search excerpt'})
+ return {'mode':'references','question':question,'checked_at':stamp(),'sources':sources,'locale':locale,
+         'notice':message('Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.',locale),
          'query':query,'blocks':[]}
 
-def answer_payload(question,depth,history,hide):
+def answer_payload(question,depth,history,hide,locale='en-US'):
+ language=('Write the answer in Austrian Standard German (de-AT), with natural Austrian spelling and vocabulary, not exaggerated dialect. Use familiar NFL terms such as Down, Quarterback and Touchdown, explaining them in German when needed. Display any kickoff times in Europe/Vienna with a 24-hour clock and an explicit time zone. Keep source titles and names accurate; German and English primary sources are both welcome.'
+           if normalize_locale(locale)=='de-AT' else 'Write the answer in English (en-US).')
  instructions=f'''You are HUDDLE, a careful American-football research guide. Today is {datetime.now(timezone.utc).date()} UTC.
+{language}
 Answer the visitor's actual open-ended football question, including history, culture, rules, tactics, teams and current events. Do not use a canned FAQ.
 First verify the question's premise. If it is false or uncertain, say so plainly, then explain the accurate version. Never invent a rule, date, quote or consensus.
 Search the web on EVERY request, including follow-ups. Prefer NFL Football Operations for rules, team/league/stadium announcements for facts, and dated credible reporting for current events. Check season and rule changes; distinguish publication date from event date. Do not use stale injury reports as current status. Distinguish confirmed moves, reports and speculation.
@@ -115,7 +141,7 @@ The client needs clickable URL citation annotations. Do not invent citation URLs
          'tool_choice':'required','max_tool_calls':5,'max_output_tokens':2400,
          'include':['web_search_call.action.sources'],'store':False}
 
-def parse_answer(data,question):
+def parse_answer(data,question,locale='en-US'):
  if data.get('status')!='completed':raise ValueError('Research did not complete')
  searched=any(o.get('type')=='web_search_call' and o.get('status')=='completed' for o in data.get('output',[]))
  if not searched:raise ValueError('No completed search')
@@ -132,7 +158,7 @@ def parse_answer(data,question):
     citations.append(citation);sources[url]={'url':url,'title':citation['title'],'publisher':urlsplit(url).hostname}
    blocks.append({'text':text,'citations':citations})
  if not blocks or not sources:raise ValueError('No cited answer returned')
- return {'mode':'answer','question':question,'checked_at':stamp(),'blocks':blocks,'sources':list(sources.values()),'notice':'Written from sources searched for this question. Check the linked evidence for important details.'}
+ return {'mode':'answer','question':question,'checked_at':stamp(),'blocks':blocks,'sources':list(sources.values()),'locale':normalize_locale(locale),'notice':message('Written from sources searched for this question. Check the linked evidence for important details.',locale)}
 
 @app.after_request
 def headers(response):
@@ -148,23 +174,24 @@ def headers(response):
  return response
 
 @app.get('/healthz')
-def health():return jsonify(status='ok',answers_enabled=bool(os.environ.get('OPENAI_API_KEY')),reference_search=True)
+def health():return jsonify(status='ok',answers_enabled=bool(os.environ.get('OPENAI_API_KEY')),reference_search=True,locales=['en-US','de-AT'])
 
 @app.route('/api/ask',methods=['POST','OPTIONS'])
 def ask():
  if request.headers.get('Origin') not in ORIGINS:return jsonify(error='This endpoint is for the HUDDLE website.'),403
  if request.method=='OPTIONS':return '',204
  if not request.is_json:return jsonify(error='Send a JSON question.'),415
- try:q,depth,history,hide=validate(request.get_json(silent=True))
+ payload=request.get_json(silent=True)
+ try:q,depth,history,hide,locale=validate(payload)
  except ValueError as e:return jsonify(error=str(e)),400
- if not take_quota(visitor_identity(request.get_json())):return jsonify(error='Research is busy. Please try again in ten minutes.'),429
- if not gate.acquire(blocking=False):return jsonify(error='Two questions are being researched. Please try again shortly.'),429
+ if not take_quota(visitor_identity(payload)):return jsonify(error=message('Research is busy. Please try again in ten minutes.',locale)),429
+ if not gate.acquire(blocking=False):return jsonify(error=message('Two questions are being researched. Please try again shortly.',locale)),429
  try:
   key=os.environ.get('OPENAI_API_KEY')
-  if key:return jsonify(parse_answer(get_json('https://api.openai.com/v1/responses',answer_payload(q,depth,history,hide),key),q))
-  return jsonify(live_references(q,history))
+  if key:return jsonify(parse_answer(get_json('https://api.openai.com/v1/responses',answer_payload(q,depth,history,hide,locale),key),q,locale))
+  return jsonify(live_references(q,history,locale))
  except (HTTPError,URLError,TimeoutError,ValueError,KeyError,TypeError):
-  return jsonify(error='The research source did not return a usable result. No answer was generated. Please retry.'),503
+  return jsonify(error=message('The research source did not return a usable result. No answer was generated. Please retry.',locale)),503
  finally:gate.release()
 
 @app.get('/')

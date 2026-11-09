@@ -5,6 +5,17 @@
 <title>HUDDLE / The whole season, in focus.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d16'/%3E%3Cpath d='M16 14h9v14h14V14h9v36h-9V36H25v14h-9z' fill='%23cbfa73'/%3E%3C/svg%3E">
 <style>/* HUDDLE — an entire season, in focus. */
+/* The language switch remains reachable on a narrow phone header. */
+.locale-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-size:11px;line-height:1.2;white-space:nowrap}
+.locale-toggle[aria-checked=true]{border-color:var(--accent);color:var(--accent)}
+.austrian-flag{display:inline-block;width:17px;height:12px;flex:none;border-radius:2px;background:linear-gradient(#d53c4b 0 33.33%,#fff 33.33% 66.66%,#d53c4b 66.66%);box-shadow:0 0 0 1px #ffffff26}
+.locale-switch{width:24px;height:14px;background:var(--dim);border-radius:10px;position:relative;flex:none}
+.locale-switch:after{content:'';position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--bg)}
+.locale-toggle[aria-checked=true] .locale-switch{background:var(--accent)}
+.locale-toggle[aria-checked=true] .locale-switch:after{left:12px}
+.locale-note{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;margin:0 0 18px;color:var(--muted)}
+.locale-note span{color:var(--dim)}
+.original-source-note{font-size:11px;margin-top:14px;color:var(--muted)}
 :root{color-scheme:dark;--bg:#090d16;--sidebar:#0d121d;--panel:#121a27;--panel2:#182232;--hover:#202d40;--text:#edf2f9;--muted:#a1aec2;--dim:#71819a;--line:#293447;--lime:#cbfa73;--accent:#cbfa73;--accent-ink:#13210a;--cyan:#89c8ff;--violet:#b5a5ff;--orange:#ffb089;--shadow:0 20px 90px #0008;--radius:14px;--display:Impact,'Arial Narrow','Franklin Gothic Medium',sans-serif;--font:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 :root[data-theme=light]{color-scheme:light;--bg:#f1f3ef;--sidebar:#e9ede6;--panel:#fff;--panel2:#e9eee5;--hover:#dfe6d9;--text:#18221b;--muted:#536257;--dim:#68786d;--line:#cbd6c7;--accent:#41671b;--accent-ink:#13210a;--cyan:#2265a1;--violet:#7055bd;--orange:#ab4c22;--shadow:0 20px 80px #22331a22}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--font);-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button,a,input,select,summary{-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit}button{border:0}a{color:inherit;text-decoration:none}a:hover{text-decoration:underline}button:hover{filter:brightness(1.1)}button:disabled{cursor:not-allowed;opacity:.45}button,input,select,summary{touch-action:manipulation}button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:4px}h1,h2,h3,p{margin:0}h2{font-size:25px;line-height:1.2;letter-spacing:-.8px}h3{line-height:1.3;letter-spacing:-.3px}p{color:var(--muted)}[hidden]{display:none!important}em{font-style:normal;color:var(--accent)}svg{display:block;max-width:100%}small{font-size:11px}button,select,input{min-height:44px}select,input[type=search],input[type=date],input[readonly]{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 12px;max-width:100%}input::placeholder{color:var(--dim)}select{padding-right:28px}input[type=checkbox]{accent-color:var(--accent);min-height:auto}input[type=search]::-webkit-search-cancel-button{cursor:pointer}i{font-style:normal}::selection{background:var(--lime);color:#15200a}.skip{position:fixed;left:12px;top:-80px;background:var(--lime);color:#14200c;padding:12px 18px;z-index:200}.skip:focus{top:12px}.eyebrow,.tiny{font-size:10px;font-weight:750;letter-spacing:1.6px;line-height:1.6}.eyebrow{color:var(--muted)}.subtle{font-size:13px;line-height:1.6}.microcopy{font-size:11px;line-height:1.7;color:var(--dim);margin-top:16px}.microcopy a{color:var(--muted);text-decoration:underline}.accent-dot{display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:7px;vertical-align:middle}.primary-button,.secondary-button,.load-more{display:inline-flex;align-items:center;justify-content:center;gap:20px;font-size:12px;font-weight:750;border-radius:7px;padding:12px 18px;min-height:44px}.primary-button{background:var(--lime);color:#14200b}.primary-button span{font-size:20px}.secondary-button{background:var(--panel2);border:1px solid var(--line);color:var(--text)}.text-button{background:transparent;color:var(--accent);padding:8px 0;font-size:12px;font-weight:650}.icon-button{width:42px;background:transparent;font-size:23px;border-radius:8px}.icon-button:hover{background:var(--panel2)}.round-button{background:var(--accent);color:var(--bg);border-radius:50%;width:42px;min-width:42px;font-size:24px}.load-more{width:100%;background:var(--panel2);border:1px solid var(--line);margin-top:20px;justify-content:space-between}.load-more:hover{border-color:var(--accent)}.load-more span{color:var(--muted)}
@@ -37,6 +48,18 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
 .team-briefing,.team-reporting{margin:32px 0}.briefing-lead{font-size:21px;line-height:1.45;color:var(--text);max-width:900px;margin:18px 0 24px}.facet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.facet{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;min-width:0}.facet h3{margin:12px 0;font-size:21px}.facet small{display:block;color:var(--muted);margin-top:12px}.team-briefing .explanation{margin-top:16px}.reporting-facets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}.reporting-facet,.transaction-log,.deep-game>details,.player-box>details{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:16px;min-width:0}.reporting-facet summary,.transaction-log summary,.deep-game summary{cursor:pointer;font-weight:700;min-height:32px}.reporting-facet summary b,.transaction-log summary span,.deep-game summary span{font-size:11px;color:var(--muted);font-weight:400;margin-left:12px}.report-link{display:block;border-top:1px solid var(--line);padding:14px 0}.report-link time,.report-link small{display:block;color:var(--muted);font-size:10px;margin:5px 0}.report-link strong{font-size:13px;line-height:1.5;display:block}.coverage-gap{font-size:12px;padding:12px 0}.transaction-log ol{list-style:none;padding:0;margin:12px 0}.transaction-log li{display:grid;grid-template-columns:55px 1fr;gap:12px;border-top:1px solid var(--line);padding:12px 0}.transaction-log time{font-size:11px;color:var(--accent)}.transaction-log p{font-size:12px}.deep-game{margin:24px 0}.deep-game>details{margin:12px 0}.player-box h3{margin:24px 0 12px}.player-box>details{margin-bottom:8px}.player-box summary{text-transform:capitalize}.line-score-wrap{max-width:100%;overflow:auto}.player-box .line-score{min-width:500px}.scoring-log{list-style:none;padding:0}.scoring-log li{display:grid;grid-template-columns:75px 1fr 50px;gap:12px;padding:13px 0;border-top:1px solid var(--line);font-size:12px}.scoring-log span{color:var(--muted);font-size:10px}.scoring-log b{display:block;color:var(--accent)}.scoring-log strong{text-align:right}
 .research-panel{border:1px solid var(--line);border-radius:18px;padding:32px;background:linear-gradient(135deg,var(--panel),var(--bg));margin-bottom:36px;min-width:0}.research-intro{display:flex;justify-content:space-between;gap:20px}.research-intro h2{font-size:clamp(30px,4vw,51px);letter-spacing:-2px;margin:14px 0 18px;line-height:1.04}.research-intro p{max-width:620px}.research-symbol{font-size:115px;line-height:1.1;font-weight:800;color:var(--accent);opacity:.7}.research-notice{background:var(--panel2);padding:12px 15px;border-radius:7px;font-size:12px;line-height:1.6;margin:20px 0;color:var(--muted)}#research-form label{display:block;margin-bottom:10px;font-weight:650}#football-question{font:inherit;line-height:1.5;display:block;width:100%;max-width:100%;min-height:115px;resize:vertical;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:16px}#football-question:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.research-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:15px;align-items:center}#research-progress,#research-error{margin-top:12px;font-size:12px}#research-error{color:var(--orange)}.question-starters{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px}.question-starters>span{width:100%}.question-starters button{background:var(--panel2);border:1px solid var(--line);border-radius:24px;padding:8px 14px;font-size:11px;text-align:left}.research-answer{border-top:1px solid var(--line);padding:24px 0;margin-bottom:20px;overflow-wrap:anywhere}.research-answer h3{font-size:23px;line-height:1.4;margin:8px 0 18px}.research-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:18px}.research-meta time{color:var(--muted);letter-spacing:0}.answer-prose{white-space:pre-wrap;line-height:1.8;font-size:15px;color:var(--text);margin-bottom:20px;max-width:850px}.inline-citation{display:inline;color:var(--accent);text-decoration:underline;font-size:11px;padding:1px 4px;background:var(--panel2);border-radius:4px}.research-sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}.research-sources>a{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:15px}.research-sources strong,.research-sources small{display:block;margin-bottom:7px}.research-sources small{color:var(--muted)}.research-sources p{font-size:12px}.quick-basics summary{font-size:18px;font-weight:650;cursor:pointer;margin-bottom:20px}.research-answer details>summary{cursor:pointer;color:var(--muted)}
 @media(max-width:760px){.research-panel{padding:20px}.research-symbol{font-size:70px}.research-intro h2{letter-spacing:-1px}.facet-grid,.reporting-facets,.research-sources{grid-template-columns:1fr}.facet{padding:18px}.briefing-lead{font-size:18px}.team-briefing .section-heading,.team-reporting .section-heading{align-items:flex-start;gap:12px;flex-wrap:wrap}.research-actions .primary-button{flex:1}.research-answer h3{font-size:20px}.scoring-log li{grid-template-columns:55px 1fr 40px;gap:8px}.research-intro .eyebrow{font-size:8px}.transaction-log summary span{display:block;margin:8px 0}.reporting-facet summary b{float:right}}
+/* Austrian copy needs flexible labels, without shrinking touch targets. */
+html[lang="de-AT"] .main-nav button{white-space:normal}
+html[lang="de-AT"] .feature-top{flex-wrap:wrap}
+html[lang="de-AT"] .feature-top .eyebrow{max-width:100%}
+html[lang="de-AT"] .feature-match>div{min-width:0}
+html[lang="de-AT"] .hero-copy h1>span{white-space:normal}
+html[lang="de-AT"] .game-card-bottom .text-button{text-align:left}
+html[lang="de-AT"] .story-main,html[lang="de-AT"] .facet{overflow-wrap:break-word}
+@media(max-width:1150px){.top-actions .date-stamp{display:none}.top-actions{gap:8px}}
+@media(max-width:760px){.topbar{gap:10px}.top-actions{gap:5px}.locale-toggle{font-size:10px;padding:7px 8px;gap:6px}.locale-note{font-size:10px;gap:5px}.original-source-note{font-size:10px}html[lang="de-AT"] .main-nav button{font-size:8px}html[lang="de-AT"] .depths button{padding-left:7px;padding-right:7px}}
+@media(max-width:480px){.mobile-brand>span{display:none}.topbar .icon-button{width:34px;min-width:34px}.topbar .share-button{padding:7px 9px;min-height:44px}.share-button span{display:none}.top-actions{gap:6px}.locale-toggle{min-height:44px}}
+@media(max-width:340px){.topbar{padding-left:12px;padding-right:12px}.locale-toggle{padding-left:7px;padding-right:7px}.locale-toggle .austrian-flag{display:none}html[lang="de-AT"] .depths button{font-size:9px}}
 </style>
 </head>
 <body>
@@ -54,9 +77,10 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
 <div class="sidebar-bottom"><div class="edition-dot"></div><p>AN ENTIRE SEASON.<br><strong>YOUR WAY INTO IT.</strong></p><a href="#edition-notes">Sources & coverage ↗</a></div>
 </aside>
 <div class="app-shell">
-<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
+<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><button id="locale-toggle" class="locale-toggle" type="button" role="switch" aria-checked="false" aria-label="Deutsch (Österreich)" title="Switch to Austrian German; starts with the Minnesota Vikings"><span class="austrian-flag" aria-hidden="true"></span><span lang="de-AT">Deutsch (AT)</span><span class="locale-switch" aria-hidden="true"></span></button><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
 <div id="score-strip" class="score-strip" aria-label="Week 8 score strip"></div>
 <main id="main">
+<p id="locale-note" class="locale-note" lang="de-AT" hidden>Deutsch für Österreich <span>·</span> Anstoßzeiten in Wien <span>·</span> Startteam: Vikings</p>
 <section class="control-deck" aria-label="Customize your catch up">
 <div class="awareness"><label>HOW MUCH CONTEXT?</label><div class="depths" role="group" aria-label="Football familiarity"><button data-depth="little" title="Explain football terms and what each change means">A little</button><button data-depth="basics" title="Connect the important changes">The basics</button><button data-depth="well" title="Open more stats and reporting">Very well</button></div></div>
 <div class="deck-filter"><label for="period">LAST CHECKED IN</label><select id="period"><option value="2026-11-01">Last week</option><option value="2026-10-25">Two weeks ago</option><option value="2026-10-08">A month ago</option><option value="2026-09-01">Before kickoff</option><option value="2026-02-09">After last season</option><option value="custom">Custom date</option></select></div>
@@ -128,7 +152,19 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     if(!game.completed||!away.length||away.length!==home.length)return [];
     let a=0,h=0;return [{quarter:0,away:0,home:0},...away.map((v,i)=>({quarter:i+1,away:a+=v,home:h+=home[i]}))];
   }
-  function gameRead(game){
+  function gameRead(game,locale='en-US'){
+    if(locale==='de-AT'){
+      if(!game.completed)return {kind:'Angesetzt',text:'Diese Begegnung wurde in dieser Ausgabe noch nicht gespielt.'};
+      const margin=Math.abs(game.away.score-game.home.score),winner=game.away.score>game.home.score?game.away:game.home,loser=winner===game.away?game.home:game.away;
+      if(margin===0)return {kind:'Unentschieden',text:`Beide Teams beendeten das Spiel mit ${game.home.score} Punkten. Für beide zählt ein Unentschieden in der Bilanz.`};
+      const half=side=>(side.quarters||[]).slice(0,2).reduce((a,b)=>a+b,0),hasHalf=(winner.quarters||[]).length>=4&&(loser.quarters||[]).length>=4;
+      const deficit=hasHalf?half(loser)-half(winner):0;
+      if(deficit>=10)return {kind:'Aufholjagd',text:`${winner.team} holte einen Halbzeitrückstand von ${deficit} Punkten auf und gewann mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung.`};
+      if(/OT/.test(game.status))return {kind:'Verlängerung',text:`${winner.team} gewann in der Verlängerung mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung. Nach der regulären Spielzeit stand es unentschieden.`};
+      if(loser.score===0)return {kind:'Zu null',text:`${winner.team} ließ gegen ${loser.team} keine Punkte zu und gewann mit ${margin} Punkten Vorsprung.`};
+      if(margin<=7)return {kind:'Knappe Entscheidung',text:`${winner.team} gewann mit ${margin} ${margin===1?'Punkt':'Punkten'} Vorsprung – höchstens einem Touchdown samt Extrapunkt.`};
+      return {kind:margin>=17?'Deutlicher Vorsprung':'Endstand',text:`${winner.team} erzielte ${margin} Punkte mehr als ${loser.team}.`};
+    }
     if(!game.completed)return {kind:'Scheduled',text:'This matchup has not been played in this edition.'};
     const margin=Math.abs(game.away.score-game.home.score),winner=game.away.score>game.home.score?game.away:game.home,loser=winner===game.away?game.home:game.away;
     if(margin===0)return {kind:'Tie game',text:`Both teams finished with ${game.home.score} points. Each adds a tie to its record.`};
@@ -141,45 +177,766 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     return {kind:margin>=17?'Clear margin':'Final result',text:`${winner.team} outscored ${loser.team} by ${margin} points.`};
   }
   function normalize(raw,data) {
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
+    const locale=raw.locale==='de-AT'?'de-AT':'en-US';
+    const validTeam=id=>data.teams.some(t=>t.id===id);
     const defaultSince=new Date(Date.parse(data.as_of+'T12:00:00Z')-7*86400000).toISOString().slice(0,10);
     const isDate=s=>/^2026-\d{2}-\d{2}$/.test(s||'') && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0,10)===s;
-    return {depth:['little','basics','well'].includes(raw.depth)?raw.depth:'basics',
+    return {locale,depth:['little','basics','well'].includes(raw.depth)?raw.depth:'basics',
       since:isDate(raw.since)&&raw.since<=(data.as_of||'2026-11-04')?raw.since:defaultSince,
-      team:data.teams.some(t=>t.id===raw.team)?raw.team:'ALL',
+      team:raw.team==='ALL'||validTeam(raw.team)?raw.team:locale==='de-AT'?'MIN':'ALL',
+      englishTeam:raw.englishTeam==='ALL'||validTeam(raw.englishTeam)?raw.englishTeam:'ALL',
+      englishTeamFocus:validTeam(raw.englishTeamFocus)?raw.englishTeamFocus:'NE',
       topic:['all','games','roster','injuries'].includes(raw.topic)?raw.topic:'all',
       query:typeof raw.query==='string'?raw.query.slice(0,80):'',
       order:raw.order==='latest'?'latest':'impact', spoilers:raw.spoilers===true,
       tab:['brief','league','games','teams','learn'].includes(raw.tab)?raw.tab:'brief',
       theme:raw.theme==='light'?'light':'dark',
       conference:['ALL','AFC','NFC'].includes(raw.conference)?raw.conference:'ALL',
-      teamFocus:data.teams.some(t=>t.id===raw.teamFocus)?raw.teamFocus:'NE',
+      teamFocus:validTeam(raw.teamFocus)?raw.teamFocus:locale==='de-AT'?'MIN':'NE',
       gameStatus:['all','final','scheduled'].includes(raw.gameStatus)?raw.gameStatus:'all',
       gameQuery:typeof raw.gameQuery==='string'?raw.gameQuery.slice(0,80):'',
       closeGames:raw.closeGames===true&&raw.spoilers!==true,
       game:data.games.some(g=>g.id===raw.game)?raw.game:null,
       week:raw.week==='all'?'all':Number.isInteger(Number(raw.week))&&Number(raw.week)>=1&&Number(raw.week)<=18?Number(raw.week):(data.latest_week||data.through_week)};
   }
-  const api={localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,teamBrief};
+  function switchLocale(state,locale,data){
+    const next=locale==='de-AT'?'de-AT':'en-US';
+    if(next===state.locale)return normalize(state,data);
+    return normalize(next==='de-AT'?{...state,locale:next,englishTeam:state.team,englishTeamFocus:state.teamFocus,team:'MIN',teamFocus:'MIN'}:{...state,locale:next,team:state.englishTeam,teamFocus:state.englishTeamFocus},data);
+  }
+  function formatKickoff(iso,locale='en-US',compact=false){
+    const austrian=locale==='de-AT';
+    return new Date(iso).toLocaleString(austrian?'de-AT':'en-US',{
+      timeZone:austrian?'Europe/Vienna':'America/New_York',month:'short',day:'numeric',
+      ...(compact?{}:austrian?{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}:{hour:'numeric',minute:'2-digit'})
+    })+(compact?'':austrian?' Uhr · Wien':' ET');
+  }
+  const api={localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,switchLocale,formatKickoff,teamBrief};
   if(typeof module!=='undefined')module.exports=api;else root.NFLCatchUp=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
-</script><script>(() => {
+</script><script>/* Austrian Standard German edition copy. Source facts, dates and URLs stay in
+ * the original data; merge only these display fields for the de-AT experience. */
+(function (root) {
+  'use strict';
+  const content = {
+    edition: 'Dein Überblick zur 9. Spielwoche',
+    coverage_note: 'Alle 272 Spiele der Regular Season in 18 Spielwochen und alle 32 Teams. Der Datenstand vom 8. November umfasst 134 abgeschlossene Spiele: sämtliche Spiele bis einschließlich Woche 8 und 13 Spiele aus Woche 9. Zwei Spiele aus Woche 9 stehen noch aus. Zu abgeschlossenen Spielen gibt es Viertelergebnisse, 16 Teamstatistiken, punktbringende Spielzüge und verfügbare Spielerstatistiken. Die Teambereiche ergänzen 316 gesammelte Schlagzeilen und 827 Einträge aus offiziellen Transaktionslisten; für Atlanta und Dallas sind diese Listen nicht verfügbar. Zehn ausgewählte redaktionelle Beiträge wurden am 4. November geprüft und bleiben gesondert gekennzeichnet. Das ist eine datierte Momentaufnahme, kein Live-Ticker.',
+    stories: {
+      'bears-rise': {
+        title: 'Chicago meldet Ansprüche an.',
+        safe_title: 'Ein Montagabend-Test in Seattle',
+        kicker: 'Das Rennen in der NFC',
+        metric_label: 'Chicago gewinnt gegen Seattle',
+        summary: 'Die Bears schlugen den Titelverteidiger in Seattle und stehen nach dem dritten Sieg in Folge bei 6–2.',
+        before: 'Chicago ging mit 5–2 in das Spiel.',
+        after: '6–2, nach drei Siegen in Folge.',
+        context: 'Die NFL ist in zwei Conferences aufgeteilt. Chicago und Seattle spielen beide in der NFC. Dieses Ergebnis zählt daher im selben Rennen um die Playoff-Plätze.',
+        detail: 'Caleb Williams brachte 24 von 34 Pässen für 247 Yards an. Nachdem Seattle auf 20–17 verkürzt hatte, erzielte Chicago die letzten 14 Punkte. D’Andre Swift kam auf drei Touchdowns durch Läufe.',
+        meaning: 'Ein Sieg gegen ein anderes NFC-Team verbessert die Bilanz innerhalb der Conference. Diese zählt bei manchen Regeln zur Auflösung eines Gleichstands. Ein Playoff-Platz ist damit noch nicht gesichert.'
+      },
+      'ravens-qb': {
+        title: 'Ein neuer Quarterback für Baltimore.',
+        safe_title: 'Ein neuer Quarterback für Baltimore',
+        kicker: 'Wer führt den Angriff?',
+        metric_label: 'Joe Fagnano startet',
+        summary: 'Nach den Verletzungen von Lamar Jackson und Tyler Huntley ernannte Baltimore den ungedrafteten Rookie Joe Fagnano zum Starting Quarterback gegen Jacksonville.',
+        before: 'Jackson, Huntley und Fagnano bildeten die Quarterback-Gruppe.',
+        after: 'Fagnano startet; Kedon Slovis und Austin Reed kommen dazu.',
+        context: 'Der Quarterback steuert den Angriff und wirft üblicherweise die Pässe. Wenn sowohl der Stammspieler als auch sein Ersatz ausfallen, kann das die Auswahl an möglichen Spielzügen verändern.',
+        detail: 'Fagnano hatte im Training ebenfalls Probleme mit dem Knöchel. Head Coach Jesse Minter bestätigte die Entscheidung am 3. November und betonte die Bedeutung des Laufspiels sowie der Unterstützung durch die anderen Mannschaftsteile. Das ist eine datierte Teammeldung, keine Vorhersage seiner Leistung.',
+        meaning: 'Ein Donnerstagsspiel lässt weniger Vorbereitungszeit als eine normale Woche von Sonntag zu Sonntag. Die Aufstellung ist bestätigt; der Ausgang war zum Zeitpunkt dieser Meldung noch offen.'
+      },
+      'denver-lead': {
+        title: 'Die AFC West hat einen neuen Spitzenreiter.',
+        safe_title: 'Ein Divisionsduell in Denver',
+        kicker: 'Wechsel an der Spitze',
+        metric_label: 'Denvers neue Bilanz',
+        summary: 'Mit dem 28–24 nach einer Aufholjagd gegen Kansas City holte Denver den vierten Sieg in Folge und Platz eins in der Division.',
+        before: 'Kansas City führte die AFC West an.',
+        after: 'Denver übernimmt die Tabellenführung.',
+        context: 'Eine Division besteht aus vier Teams. Ihr Sieger erhält einen Playoff-Platz. Duelle innerhalb einer Division beeinflussen deshalb sowohl die Tabelle als auch die Regeln bei Gleichstand.',
+        detail: 'Denver lag vor dem letzten Viertel 13–24 zurück und erzielte dann 15 Punkte ohne Gegenpunkte. Die Defense verteidigte die Führung spät im Spiel. Die Broncos verbesserten sich auf 6–2; die Chiefs fielen auf 5–2 zurück.',
+        meaning: 'Die Teams haben unterschiedlich viele Spiele absolviert. Vergleiche deshalb neben der Zahl der Siege auch die Siegquote, wenn du die Tabelle liest.'
+      },
+      'minnesota-loss': {
+        title: 'Minnesotas Serie ohne Niederlage endet.',
+        safe_title: 'Detroit empfängt Minnesota',
+        kicker: 'Die NFC North rückt zusammen',
+        metric_label: 'Detroit gewinnt daheim',
+        summary: 'Detroit fügte Minnesota die erste Niederlage zu. Die Lions stehen bei 5–2, die Vikings bei 6–1.',
+        before: 'Minnesota war mit 6–0 noch ungeschlagen.',
+        after: 'Detroit gewinnt und steht in Divisionsduellen bei 2–0.',
+        context: 'Ein Team kann ein Spiel verlieren und trotzdem seine Division anführen. Minnesota hat die bessere Siegquote; Detroit hat dafür den direkten Vergleich gewonnen.',
+        detail: 'Jared Goff fand Jameson Williams zum entscheidenden Touchdown. Detroit ließ nur 266 Yards zu und brachte Kyler Murray dreimal hinter der Anspiellinie zu Boden – drei Sacks. Ein später Stopp der Defense erlaubte den Lions, die Uhr auslaufen zu lassen.',
+        meaning: 'Direkte Duelle und Divisionsergebnisse können bei einer gleichen Bilanz am Saisonende entscheidend sein. Ein einzelnes Ergebnis im November legt die endgültige Reihenfolge noch nicht fest.'
+      },
+      'pats-comeback': {
+        title: 'New England dreht das Spiel.',
+        safe_title: 'New England zu Gast in Miami',
+        kicker: 'Die Antwort nach der Halbzeit',
+        metric_label: 'Punkte der Patriots: Halbzeit → Endstand',
+        summary: 'Nach einem 3–13 zur Halbzeit erzielte New England drei Touchdowns in Folge und schlug Miami mit 24–19.',
+        before: 'Zehn Punkte Rückstand zur Halbzeit.',
+        after: 'Ein Auswärtssieg und eine Bilanz von 5–3.',
+        context: 'Ein Touchdown bringt sechs Punkte, meistens gefolgt von einem Kick für einen Zusatzpunkt. Drei Touchdowns mit erfolgreichen Zusatzkicks können ein Spiel rasch drehen.',
+        detail: 'Drake Maye führte die Aufholjagd an, obwohl dem Angriff mehrere Spieler fehlten. Kyle Williams fing einen Touchdown-Pass über 43 Yards, DeMario Douglas einen über 48 Yards. Hunter Henry verließ das Spiel mit einer Fußverletzung. Dieser Spielbericht ist keine aktuelle Auskunft über seine Einsatzfähigkeit.',
+        meaning: 'Der Endstand sagt dir, wer gewonnen hat. Der Verlauf erklärt, warum es eine Aufholjagd war und kein von Beginn an ungefährdeter Sieg.'
+      },
+      'jags-control': {
+        title: 'Jacksonville verschafft sich Luft.',
+        safe_title: 'Ein AFC-South-Duell in Jacksonville',
+        kicker: 'Mehr Abstand in der Division',
+        metric_label: 'Jacksonville gewinnt gegen Indianapolis',
+        summary: 'Jacksonville dominierte Indianapolis und steht nun bei 5–2. Die Colts rutschten nach der vierten Niederlage in Folge auf 2–6 ab.',
+        before: 'Jacksonville ging mit 4–2 ins Spiel, Indianapolis mit 2–5.',
+        after: 'Die Jaguars bauen ihren Vorsprung in der AFC South aus.',
+        context: 'Diese Teams spielen in derselben Division. Ein direktes Duell verbessert die Bilanz des einen Teams und verschlechtert gleichzeitig jene eines unmittelbaren Rivalen.',
+        detail: 'Trevor Lawrence warf drei Touchdown-Pässe. Jacksonville erlief 183 Yards, davon 104 durch Bhayshul Tuten, und führte zur Halbzeit 28–0. Houston hatte bei einer Bilanz von 2–5 spielfrei.',
+        meaning: 'Ein großer Punkteabstand beschreibt dieses eine Spiel. Er garantiert weder das nächste Ergebnis noch ersetzt er die Bewertung der gesamten Saison.'
+      },
+      'simmons-trade': {
+        title: 'Jeffery Simmons wechselt das Team.',
+        safe_title: 'Jeffery Simmons wechselt das Team',
+        kicker: 'Ein großer Kaderwechsel',
+        metric_label: 'Innere Defensive Line',
+        summary: 'Chicago holte Jeffery Simmons aus Tennessee und gab dafür zwei Erstrundenpicks und einen Viertrundenpick ab.',
+        before: 'Simmons spielte in Tennessees Defensive Line.',
+        after: 'Chicago holt Simmons und erhält einen Fünftrundenpick für 2028.',
+        context: 'Teams können aktuelle Spieler gegen künftige Auswahlrechte im Draft tauschen. Ein Erstrundenpick bietet eine frühe Gelegenheit, einen neuen Spieler auszuwählen. Zwei davon abzugeben ist daher eine erhebliche Investition.',
+        detail: 'Tennessee erhielt Chicagos Erstrundenpicks für 2027 und 2028 sowie den Viertrundenpick für 2027. Die Bears bestätigten den Wechsel am 29. Oktober.',
+        meaning: 'Hier werden künftige Auswahlmöglichkeiten gegen einen Spieler getauscht, der sofort helfen kann. Ob sich der Wechsel auszahlt, bleibt sportlich zu beurteilen.'
+      },
+      'cardinals-qb': {
+        title: 'Arizona ordnet seine Quarterbacks neu.',
+        safe_title: 'Arizona ordnet seine Quarterbacks neu',
+        kicker: 'Eine neue Reihenfolge',
+        metric_label: 'Als Starting Quarterback bestätigt',
+        summary: 'Arizona ernannte Gardner Minshew zum Starter. Rookie Carson Beck ist sein Ersatz, Jacoby Brissett übernimmt die Notfallrolle.',
+        before: 'Brissett startete im vorherigen Spiel.',
+        after: 'Minshew ist Nummer eins, Beck Nummer zwei, Brissett Nummer drei.',
+        context: 'Die Depth Chart zeigt die Reihenfolge der Spieler auf jeder Position. Ein neuer Starter verändert, wer die Hauptrolle übernimmt. Der Kader muss sich dafür nicht ändern.',
+        detail: 'Head Coach Mike LaFleur gab die Reihenfolge am 2. November bekannt. Das bestätigt die Entscheidung über den Starter, aber keinen Trade mit Brissett.',
+        meaning: 'Eine geänderte Aufstellung und ein Spielertransfer sind verschiedene Vorgänge. Die Teammeldung bestätigt hier die geänderte Aufstellung.'
+      },
+      'brown-reminder': {
+        title: 'Ja, A.J. Brown ist jetzt ein Patriot.',
+        safe_title: 'A.J. Brown kommt nach New England',
+        kicker: 'Rückblick auf die Offseason',
+        metric_label: 'Bekannter Name, neues Team',
+        summary: 'New England holte Wide Receiver A.J. Brown im Juni aus Philadelphia.',
+        before: 'Brown spielte für Philadelphia.',
+        after: 'Die Patriots gaben den Wechsel am 1. Juni bekannt.',
+        context: 'Ein Wide Receiver fängt Pässe. Falls du Football zuletzt vor dem Sommer verfolgt hast: Hier trägt ein bekannter Spieler inzwischen ein anderes Trikot.',
+        detail: 'Laut offizieller Mitteilung von New England waren künftige Draft-Auswahlrechte Teil des Trades; die genauen Bedingungen wurden nicht genannt. Außerdem teilte das Team mit, dass Julian Hill auf die Verletztenliste Injured Reserve gesetzt wurde.',
+        meaning: 'Das ist Hintergrund aus der Offseason, kein neuer Wechsel im November. Ob Brown für ein bestimmtes Spiel einsatzbereit ist, muss gesondert geprüft werden.'
+      },
+      'murray-reminder': {
+        title: 'Kyler Murray wechselte nach Minnesota.',
+        safe_title: 'Kyler Murray wechselt nach Minnesota',
+        kicker: 'Rückblick auf die Offseason',
+        metric_label: 'Eine neue Quarterback-Gruppe',
+        summary: 'Minnesota nahm Kyler Murray im März nach seinen Jahren in Arizona unter Vertrag.',
+        before: 'Murray hatte seine bisherige NFL-Karriere bei den Cardinals verbracht.',
+        after: 'Die Vikings verpflichteten ihn am 12. März.',
+        context: 'Eine Verpflichtung bringt einen Spieler ins Team. Sie beweist für sich allein noch nicht, wer in jedem Spiel der Saison starten wird.',
+        detail: 'Die Vikings beschrieben den Schritt als Verstärkung mit Erfahrung und mehr Auswahl auf der Quarterback-Position. Zum Zeitpunkt der Bekanntgabe gehörten auch J.J. McCarthy und Max Brosmer zu dieser Gruppe.',
+        meaning: 'Nutze das als Erinnerung an einen Kaderwechsel. Ältere Vertragsmeldungen sind weder aktuelle Aufstellungsübersichten noch aktuelle Verletzungsberichte.'
+      }
+    },
+    lessons: [
+      ['01', 'DIE VERSUCHE', 'Vier Versuche. Zehn Yards.', 'Der Angriff hat normalerweise vier Versuche – Downs –, um zehn Yards zu schaffen. Erreicht er das Ziel, beginnt eine neue Serie von vier Versuchen. Beim vierten Versuch entscheiden sich Teams oft für einen Punt, ein Field Goal oder den Versuch, den Angriff fortzusetzen.', 'Third-and-6 bedeutet: dritter Versuch, noch sechs Yards bis zu einem neuen First Down.'],
+      ['02', 'DIE PUNKTE', 'So entsteht der Spielstand.', 'Ein Touchdown bringt sechs Punkte. Danach folgt entweder ein Kick für einen Zusatzpunkt oder ein Spielzug für zwei Punkte. Ein Field Goal zählt drei Punkte, ein Safety zwei.', 'Ein Rückstand von sieben Punkten lässt sich mit einem Touchdown und einem Zusatzkick ausgleichen.'],
+      ['03', 'DER SPIELPLAN', '17 Spiele. 18 Wochen.', 'Jedes Team bestreitet 17 Spiele in der Regular Season und hat eine spielfreie Woche, die Bye Week. Deshalb können zwei Teams zum selben Zeitpunkt unterschiedlich viele Spiele absolviert haben.', '5–2 bedeutet sieben absolvierte Spiele. 5–3 bedeutet acht.'],
+      ['04', 'DAS RENNEN', 'Der Weg in die Playoffs.', 'In jeder Conference qualifizieren sich sieben Teams: die vier Divisionssieger und drei Wild Cards. Nur das bestplatzierte Team hat in der ersten Playoff-Runde spielfrei.', 'Eine Wild Card ist ein Playoff-Teilnehmer, der seine Division nicht gewonnen hat.'],
+      ['05', 'DIE STATISTIK', 'Yards sind noch keine Punkte.', 'Die gesamten Yards zeigen, wie weit der Angriff den Ball bewegt hat. Turnovers geben den Ballbesitz an den Gegner ab. Die Ballbesitzzeit misst, wie lange ein Team den Ball hatte. Keine dieser Zahlen entscheidet allein über den Sieg.', 'Ein Team kann weniger Yards erzielen und trotzdem gewinnen. Entscheidend ist der Endstand.'],
+      ['06', 'DIE EINORDNUNG', 'Was sagt eine Meldung wirklich?', 'Ein Trade verändert den Kader. Eine Änderung der Depth Chart verändert die Reihenfolge der Spieler. Ein Verletzungsbericht beschreibt den Stand zu einem bestimmten Zeitpunkt. „Questionable“ heißt fraglich, nicht sicher ausgefallen.', 'Ein älterer Spielbericht bestätigt nicht, wer am nächsten Sonntag spielen wird.']
+    ],
+    statDefs: [
+      ['totalYards', 'Gesamte Yards', 'Wie weit der Angriff den Ball bewegt hat.'],
+      ['netPassingYards', 'Pass-Yards', 'Netto-Raumgewinn durch Pässe, einschließlich Verlusten durch Sacks.'],
+      ['rushingYards', 'Lauf-Yards', 'Raumgewinn durch Läufe mit dem Ball.'],
+      ['firstDowns', 'First Downs', 'Wie oft der Angriff eine neue Serie von vier Versuchen erreicht hat.'],
+      ['thirdDownEff', 'Dritte Versuche', 'Erfolgreiche dritte Versuche im Verhältnis zu allen dritten Versuchen.'],
+      ['turnovers', 'Ballverluste', 'Ballbesitz an den Gegner verloren. Weniger ist üblicherweise besser.'],
+      ['possessionTime', 'Ballbesitzzeit', 'Zeit mit eigenem Ballbesitz.'],
+      ['yardsPerPlay', 'Yards pro Spielzug', 'Durchschnittlicher Raumgewinn pro Angriffsspielzug.'],
+      ['fourthDownEff', 'Vierte Versuche', 'Erfolgreiche vierte Versuche und Gesamtzahl der Versuche.'],
+      ['redZoneAttempts', 'Red Zone', 'Erfolgsquote in der gegnerischen 20-Yard-Zone laut Quelle.'],
+      ['totalPenaltiesYards', 'Strafen / Yards', 'Angenommene Strafen und die damit verbundenen Yards.'],
+      ['sacksYardsLost', 'Sacks / verlorene Yards', 'Wie oft der Quarterback vor einem Pass zu Boden gebracht wurde und wie viele Yards dabei verloren gingen.'],
+      ['totalOffensivePlays', 'Angriffsspielzüge', 'Gesamtzahl der Snaps im Angriff.'],
+      ['totalDrives', 'Angriffsserien', 'Zusammenhängende Phasen mit eigenem Ballbesitz.'],
+      ['fumblesLost', 'Verlorene Fumbles', 'Fallengelassene Bälle, die der Gegner erobert hat.'],
+      ['interceptions', 'Geworfene Interceptions', 'Pässe, die von der gegnerischen Defense gefangen wurden.']
+    ],
+    sourceLabels: {
+      passing: 'Passspiel',
+      rushing: 'Laufspiel',
+      receiving: 'Passfänge',
+      defensive: 'Defense',
+      fumbles: 'Fumbles',
+      interceptions: 'Interceptions',
+      kickReturns: 'Kickoff-Returns',
+      'kick Returns': 'Kickoff-Returns',
+      puntReturns: 'Punt-Returns',
+      'punt Returns': 'Punt-Returns',
+      kicking: 'Kicks',
+      punting: 'Punts',
+      'Passing Yards': 'Pass-Yards',
+      'Receiving Yards': 'Yards durch Passfänge',
+      'Rushing Yards': 'Lauf-Yards',
+      'Adjusted QBR': 'Bereinigter QBR-Wert',
+      'Average Punt Yards': 'Durchschnittliche Punt-Weite in Yards',
+      'Completions/Attempts': 'Angekommene Pässe / Passversuche',
+      'Extra Points Made/Attempts': 'Erfolgreiche Zusatzkicks / Versuche',
+      'Field Goal Percentage': 'Field-Goal-Erfolgsquote',
+      'Field Goals Made/Attempts': 'Erfolgreiche Field Goals / Versuche',
+      Fumbles: 'Fallengelassene Bälle (Fumbles)',
+      'Fumbles Lost': 'Verlorene Fumbles',
+      'Fumbles Recovered': 'Eroberte Fumbles',
+      Interceptions: 'Abgefangene Pässe (Interceptions)',
+      'Kick Returns': 'Kickoff-Returns',
+      'Kicking Points': 'Punkte durch Kicks',
+      'Longest Field Goal Made': 'Längstes erfolgreiches Field Goal',
+      'Longest Kick Return': 'Längster Kickoff-Return',
+      'Longest Punt': 'Längster Punt',
+      'Longest Punt Return': 'Längster Punt-Return',
+      'Longest Reception': 'Längster Raumgewinn durch einen Passfang',
+      'Longest Run': 'Längster Lauf',
+      'Passer Rating': 'Passer Rating',
+      'Passes Defended': 'Abgewehrte Pässe',
+      'Punt Returns': 'Punt-Returns',
+      Punts: 'Punts',
+      'Punts Inside 20': 'Punts innerhalb der gegnerischen 20-Yard-Linie',
+      'Quarterback Hits': 'Treffer am Quarterback',
+      'Receiving Targets': 'Pässe in Richtung des Spielers',
+      Receptions: 'Gefangene Pässe',
+      'Rushing Attempts': 'Laufversuche',
+      Sacks: 'Sacks',
+      'Solo Tackles': 'Allein ausgeführte Tackles',
+      Tackles: 'Tackles',
+      'Tackles For Loss': 'Tackles mit Raumverlust für den Gegner',
+      Touchbacks: 'Touchbacks',
+      Touchdowns: 'Touchdowns',
+      Yards: 'Yards',
+      'Yards Per Kick Return': 'Yards pro Kickoff-Return',
+      'Yards Per Pass Attempt': 'Yards pro Passversuch',
+      'Yards Per Punt Return': 'Yards pro Punt-Return',
+      'Yards Per Reception': 'Yards pro Passfang',
+      'Yards Per Rushing Attempt': 'Yards pro Laufversuch'
+    }
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = content;
+  root.HuddleContentAT = content;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+(function (root, factory) {
+  'use strict';
+  const api = factory(root);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.HuddleLocale = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
+  'use strict';
+  let locale = 'en-US';
+  const originals = new WeakMap();
+  const attributes = new WeakMap();
+  const copy = {
+    'Skip to content': 'Zum Inhalt',
+    'Huddle home': 'Huddle Startseite',
+    'Main navigation': 'Hauptnavigation',
+    'THE SEASON': 'DIE SAISON',
+    'Catch up': 'Überblick',
+    'All games': 'Alle Spiele',
+    'Team rooms': 'Teams',
+    'Standings': 'Tabelle',
+    'New to football': 'Football lernen',
+    'CATCH UP': 'ÜBERBLICK',
+    'ALL GAMES': 'ALLE SPIELE',
+    'TEAM ROOMS': 'TEAMS',
+    'STANDINGS': 'TABELLE',
+    'NEW TO FOOTBALL': 'FOOTBALL LERNEN',
+    'AN ENTIRE SEASON.': 'DIE GANZE SAISON.',
+    'YOUR WAY INTO IT.': 'DEIN EINSTIEG.',
+    'Sources & coverage': 'Quellen & Abdeckung',
+    'Switch to day mode': 'Zum hellen Modus wechseln',
+    'Switch to night mode': 'Zum Nachtmodus wechseln',
+    'Share': 'Teilen',
+    'Customize your catch up': 'Deinen Überblick anpassen',
+    'HOW MUCH CONTEXT?': 'WIE VIEL ERKLÄRUNG?',
+    'Football familiarity': 'Deine Football-Kenntnisse',
+    'A little': 'Einsteiger',
+    'The basics': 'Grundwissen',
+    'Very well': 'Fortgeschritten',
+    'Explain football terms and what each change means': 'Football-Begriffe und die Bedeutung der Veränderungen erklären',
+    'Connect the important changes': 'Die wichtigen Veränderungen einordnen',
+    'Open more stats and reporting': 'Mehr Statistiken und Berichte anzeigen',
+    'LAST CHECKED IN': 'ZULETZT DABEI',
+    'Last week': 'Letzte Woche',
+    'Two weeks ago': 'Vor zwei Wochen',
+    'A month ago': 'Vor einem Monat',
+    'Before kickoff': 'Vor Saisonbeginn',
+    'After last season': 'Nach der letzten Saison',
+    'Custom date': 'Datum wählen',
+    'STARTING DATE': 'AB DATUM',
+    'FOLLOWING': 'DEIN TEAM',
+    'The whole NFL': 'Die ganze NFL',
+    'Hide outcomes': 'Ergebnisse ausblenden',
+    'Latest completed games': 'Zuletzt beendete Spiele',
+    'A little: football context, as you go.': 'Einsteiger: Football Schritt für Schritt erklärt.',
+    'The basics: the changes and the connections.': 'Grundwissen: Veränderungen und Zusammenhänge.',
+    'Very well: the reporting and full available stats.': 'Fortgeschritten: Berichte und alle verfügbaren Statistiken.',
+    'THE RECEIPTS': 'DIE QUELLEN',
+    'Context you can check.': 'Einordnung zum Nachlesen.',
+    'Scores, schedules, quarter totals, scoring plays and player box scores come from ESPN. Recent reporting headlines are collected from ESPN; roster transactions come from official team logs. Editorial stories link to team announcements and reports. Automated game reads describe the score and quarter totals; they are not full game recaps.': 'Ergebnisse, Spielpläne, Viertelstände, Punktgewinne und Spielerstatistiken stammen von ESPN. Aktuelle Schlagzeilen werden bei ESPN gesammelt, Kaderbewegungen aus den offiziellen Team-Meldungen. Unsere Einordnungen verlinken Team-Mitteilungen und Berichte. Automatische Spielzusammenfassungen beschreiben Ergebnis und Viertelstände; sie ersetzen keinen vollständigen Spielbericht.',
+    'Equal winning percentages are ordered alphabetically, not by official playoff tiebreakers. Future dates and broadcasters can change; unconfirmed kickoffs are marked TBD. No playoff seeds or clinches are implied.': 'Bei gleicher Siegquote wird alphabetisch sortiert; die offiziellen Playoff-Regeln zur Reihung werden nicht angewendet. Künftige Termine und Übertragungen können sich ändern. Noch nicht bestätigte Anstoßzeiten sind als offen gekennzeichnet. Daraus lässt sich keine Playoff-Setzliste oder bereits gesicherte Qualifikation ableiten.',
+    'Preferences stay in your browser. No accounts or analytics. Questions submitted in New to football are sent to the research service; written answers use OpenAI when enabled. Team images load from ESPN’s image service. We are an independent Daily Flyer project, unaffiliated with the NFL. External sources may contain spoilers.': 'Deine Einstellungen bleiben in deinem Browser. Es gibt keine Konten und keine Nutzungsanalyse. Fragen unter „Football lernen“ werden an den Recherchedienst gesendet; ausformulierte Antworten nutzen OpenAI, sofern aktiviert. Team-Bilder werden von ESPN geladen. Huddle ist ein unabhängiges Daily-Flyer-Projekt ohne Verbindung zur NFL. Externe Quellen können Ergebnisse verraten.',
+    'Official standings': 'Offizielle Tabelle',
+    'Official schedule': 'Offizieller Spielplan',
+    'Reset preferences': 'Einstellungen zurücksetzen',
+    'A DAILY FLYER EXPERIENCE': 'EIN DAILY-FLYER-PROJEKT',
+    'Every game has a story. Find your way in.': 'Jedes Spiel hat seine Geschichte. Finde deinen Einstieg.',
+    'Close game details': 'Spieldetails schließen',
+    'Pass the briefing.': 'Den Überblick teilen.',
+    'Copy this link. Scores and outcomes start hidden for the recipient.': 'Kopiere diesen Link. Beim Öffnen bleiben Ergebnisse zunächst ausgeblendet.',
+    'Shareable briefing URL': 'Link zum Teilen dieses Überblicks',
+    'Done': 'Fertig',
+    'This interactive season guide needs JavaScript.': 'Dieser interaktive Saisonüberblick benötigt JavaScript.',
+    'Open official NFL scores': 'Offizielle NFL-Ergebnisse öffnen',
+    'YOUR SEASON MAP': 'DEIN SAISONÜBERBLICK',
+    'Season weeks': 'Saisonwochen',
+    'ALL': 'ALLE',
+    'WK': 'WO',
+    'WEEK': 'WOCHE',
+    'Upcoming · unconfirmed times marked TBD': 'Kommende Spiele · unbestätigte Zeiten sind als offen markiert',
+    'THE LAST': 'DER LETZTE',
+    'WHISTLE': 'ABPFIFF',
+    'FINAL · HIDDEN': 'BEENDET · VERBORGEN',
+    'Final · hidden': 'Beendet · verborgen',
+    'Final': 'Beendet',
+    'Final/OT': 'Beendet / Verlängerung',
+    'Final/2OT': 'Beendet / 2. Verlängerung',
+    'A bye week here. The full season is one click away.': 'Hier gibt es in dieser Woche kein abgeschlossenes Spiel. Der gesamte Spielplan ist nur einen Klick entfernt.',
+    'LAST GAME IN THE BOOKS': 'DAS ZULETZT BEENDETE SPIEL',
+    'YOUR TEAM’S LATEST GAME': 'DAS LETZTE SPIEL DEINES TEAMS',
+    'OUTCOME HIDDEN': 'ERGEBNIS VERBORGEN',
+    'OUTCOMES HIDDEN': 'ERGEBNISSE VERBORGEN',
+    'AWAY': 'AUSWÄRTS',
+    'HOME': 'HEIM',
+    'DESIGNATED HOME': 'NOMINELLES HEIMTEAM',
+    'Ready when you are.': 'Bereit, sobald du es bist.',
+    'Open featured game': 'Hervorgehobenes Spiel öffnen',
+    'Scores protected': 'Ergebnisse ausgeblendet',
+    'Broadcast TBD': 'Übertragung noch offen',
+    'Inside the game': 'Zum Spiel',
+    'Matchup preview': 'Spielvorschau',
+    'All stories': 'Alle Berichte',
+    'Game stories': 'Spielberichte',
+    'Roster moves': 'Kaderbewegungen',
+    'Injuries': 'Verletzungen',
+    'A sourced game story is ready. Reveal it when you’re ready for the result.': 'Eine Einordnung mit Quellen wartet auf dich. Blende sie ein, wenn du das Ergebnis erfahren möchtest.',
+    'Reveal this story': 'Diesen Bericht einblenden',
+    'THE FOOTBALL PART': 'FOOTBALL ERKLÄRT',
+    'THEN': 'DAVOR',
+    'AT THE TIME': 'DANACH',
+    'More context & the source': 'Mehr Einordnung & die Quelle',
+    'OUR CONTEXT': 'UNSERE EINORDNUNG',
+    'Supporting report': 'Ergänzender Bericht',
+    'Most recent results, oldest to newest': 'Die letzten Ergebnisse, von alt nach neu',
+    'Records can give the game away.': 'Auch Bilanzen verraten Ergebnisse.',
+    'Team form and results stay hidden while outcome protection is on.': 'Form und Ergebnisse bleiben verborgen, solange der Ergebnisschutz aktiv ist.',
+    'Show outcomes': 'Ergebnisse einblenden',
+    'No completed games in this date window.': 'Keine beendeten Spiele in diesem Zeitraum.',
+    'Tap a team to see its full season.': 'Wähle ein Team, um seine gesamte Saison zu sehen.',
+    'Most wins in your window; ties use season win percentage, then name. Tap a team to see its full season.': 'Die meisten Siege im gewählten Zeitraum; bei Gleichstand zählen die Siegquote der Saison und danach der Name. Wähle ein Team, um seine gesamte Saison zu sehen.',
+    'YOUR 2026 NFL RE-ENTRY POINT': 'DEIN EINSTIEG IN DIE NFL-SAISON 2026',
+    'THE SEASON.': 'DIE SAISON.',
+    'IN FOCUS.': 'IM BLICK.',
+    'Every matchup. The stories you missed.': 'Jedes Spiel. Die Geschichten, die du verpasst hast.',
+    'Exactly as much context as you need.': 'Genau so viel Erklärung, wie du brauchst.',
+    'Every result, the next matchup, and what changed.': 'Alle Ergebnisse, das nächste Spiel und die Veränderungen.',
+    'Explore all 272 games': 'Alle 272 Spiele entdecken',
+    'FINAL': 'BEENDET',
+    'UPCOMING': 'KOMMENDE SPIELE',
+    'TEAMS': 'TEAMS',
+    'Selected story context.': 'Ausgewählte Einordnungen.',
+    'Search stories or players': 'Berichte oder Spieler suchen',
+    'Search stories': 'Berichte suchen',
+    'Sort stories': 'Berichte sortieren',
+    'Big picture': 'Überblick',
+    'Latest': 'Neueste zuerst',
+    'No stories in this view.': 'Keine Berichte in dieser Ansicht.',
+    'Broaden filters': 'Filter erweitern',
+    'The movement.': 'Was sich verändert hat.',
+    'Records before and after your time away.': 'Die Bilanzen vor und nach deiner Pause.',
+    'ON THE HORIZON': 'ALS NÄCHSTES',
+    'The next whistle.': 'Der nächste Anstoß.',
+    'You don’t need to know the jargon.': 'Du musst die Fachbegriffe noch nicht kennen.',
+    'You know the game. Fill in the gaps.': 'Du kennst das Spiel. Hol das Verpasste nach.',
+    'Follow the numbers a little further.': 'Schau genauer auf die Zahlen.',
+    'Game panels explain scoring, the numbers, and what changed. The basics are always a tap away.': 'Die Spielansichten erklären Punkte, Statistiken und Veränderungen. Die Grundlagen sind jederzeit erreichbar.',
+    'Before-and-after records and quarter scores connect each result to the bigger season.': 'Bilanzen davor und danach sowie Viertelstände ordnen jedes Ergebnis in die Saison ein.',
+    'Game panels include the full available stat comparison, player leaders and quarter-by-quarter scoring.': 'Die Spielansichten enthalten alle verfügbaren Teamvergleiche, führende Spieler und die Punkte pro Viertel.',
+    'Football, explained': 'Football erklärt',
+    'THE GAMES BEHIND THE STORIES': 'DIE SPIELE HINTER DEN GESCHICHTEN',
+    'Your window, on the field.': 'Dein Zeitraum auf dem Spielfeld.',
+    'Open game explorer': 'Spielübersicht öffnen',
+    'No games in this date window. The full schedule is still available.': 'Keine Spiele in diesem Zeitraum. Der vollständige Spielplan bleibt verfügbar.',
+    'No upcoming game remains in the regular-season schedule.': 'In der regulären Saison ist kein weiteres Spiel angesetzt.',
+    'AT': 'BEI',
+    'at': 'bei',
+    'Open matchup': 'Begegnung öffnen',
+    'NO MISSING WEEKS': 'ALLE WOCHEN IM BLICK',
+    'ALL THE': 'ALLE',
+    'GAMES.': 'SPIELE.',
+    'Every regular-season matchup, from the opening kickoff to Week 18.': 'Jede Begegnung der regulären Saison, vom ersten Anstoß bis Woche 18.',
+    'GAMES / 18 WEEKS': 'SPIELE / 18 WOCHEN',
+    'Game status': 'Spielstatus',
+    'Completed': 'Beendet',
+    'Upcoming': 'Kommende Spiele',
+    'Team or stadium': 'Team oder Stadion',
+    'Search games': 'Spiele suchen',
+    'Within 7 points': 'Höchstens 7 Punkte Abstand',
+    'Open any matchup for the details': 'Öffne eine Begegnung für die Details',
+    'Outcomes protected · close-finish filter disabled': 'Ergebnisse verborgen · Filter für knappe Spiele deaktiviert',
+    'IN THE BOOKS': 'ABGESCHLOSSEN',
+    'PARTLY COMPLETE': 'TEILWEISE ABGESCHLOSSEN',
+    'STILL TO COME': 'STEHT NOCH BEVOR',
+    'No games match these filters.': 'Keine Spiele passen zu diesen Filtern.',
+    'A team may be on its bye, or your selected week may not have completed or upcoming games.': 'Das Team hat möglicherweise spielfrei. Oder es gibt in der gewählten Woche keine Spiele mit diesem Status.',
+    'Show the full schedule': 'Vollständigen Spielplan anzeigen',
+    'Season progression hidden with outcomes.': 'Der Saisonverlauf bleibt zusammen mit den Ergebnissen verborgen.',
+    'Cumulative wins by week. Dashed line = last fully completed week. Finals from the current week are included.': 'Aufsummierte Siege nach Woche. Die gestrichelte Linie markiert die letzte vollständig abgeschlossene Woche. Beendete Spiele der aktuellen Woche sind bereits enthalten.',
+    'PICK A SIDE. SEE THE WHOLE STORY.': 'DEIN TEAM. DIE GANZE GESCHICHTE.',
+    'TEAM': 'TEAM',
+    'ROOMS.': 'ÜBERBLICK.',
+    'One team, all 17 games, and its path through the season.': 'Ein Team, alle 17 Spiele und sein Weg durch die Saison.',
+    'YOUR TEAM ROOM': 'DEIN TEAM IM ÜBERBLICK',
+    'Choose a team': 'Ein Team wählen',
+    'Following in your catch up': 'Für deinen Überblick ausgewählt',
+    'Follow in my catch up': 'Für meinen Überblick auswählen',
+    'REGULAR-SEASON RECORD': 'BILANZ DER REGULÄREN SAISON',
+    'POINTS / GAME': 'PUNKTE / SPIEL',
+    'ALLOWED / GAME': 'GEGENPUNKTE / SPIEL',
+    'GAMES TO GO': 'SPIELE VERBLEIBEND',
+    'The season’s shape.': 'Der Saisonverlauf.',
+    'CUMULATIVE WINS': 'SIEGE INSGESAMT',
+    'Next up.': 'Als Nächstes.',
+    'Matchup details': 'Details zur Begegnung',
+    'Regular-season schedule complete.': 'Der Spielplan der regulären Saison ist abgeschlossen.',
+    'ALL 18 WEEKS, INCLUDING THE BYE': 'ALLE 18 WOCHEN, INKLUSIVE SPIELFREIER WOCHE',
+    'The whole road.': 'Der gesamte Spielplan.',
+    '17 GAMES': '17 SPIELE',
+    'BYE': 'SPIELFREI',
+    'Week off': 'Spielfreie Woche',
+    'Date / time TBD': 'Datum / Uhrzeit noch offen',
+    'Selected deeper reads.': 'Weiterführende Berichte.',
+    'The games are here. The reporting is selective.': 'Die Spiele sind vollständig. Die Berichte sind eine Auswahl.',
+    'No reviewed editorial story is included for this team yet. All of its regular-season matchups are above.': 'Für dieses Team gibt es noch keinen redaktionell geprüften Bericht in dieser Ausgabe. Alle Spiele der regulären Saison findest du oben.',
+    'Your team’s story is ready.': 'Der Überblick zu deinem Team ist bereit.',
+    'Form, offensive production, defense and player performances can reveal results.': 'Form, Angriffs- und Abwehrleistung sowie Spielerstatistiken können Ergebnisse verraten.',
+    'Show the team briefing': 'Team-Überblick einblenden',
+    '01 / THE LATEST CHAPTER': '01 / DAS LETZTE KAPITEL',
+    'A quieter window': 'Ein ruhigerer Zeitraum',
+    'Widen your starting date to connect more games.': 'Wähle ein früheres Startdatum, um mehr Spiele einzuordnen.',
+    'Latest game evidence': 'Details zum letzten Spiel',
+    '02 / THE OFFENSE': '02 / DER ANGRIFF',
+    'Waiting for a game': 'Noch kein Spiel in diesem Zeitraum',
+    'No offense averages for this date window.': 'Für diesen Zeitraum gibt es keine Angriffsdurchschnitte.',
+    '03 / DEFENSE & POSSESSION': '03 / ABWEHR & BALLBESITZ',
+    'No results in this window': 'Keine Ergebnisse in diesem Zeitraum',
+    'Defensive production appears after completed games.': 'Abwehrstatistiken erscheinen nach beendeten Spielen.',
+    'Points allowed are team totals, including non-offensive scores.': 'Die Gegenpunkte umfassen alle Punkte des Gegners, auch jene durch Abwehr oder Special Teams.',
+    '04 / THE QUARTERBACK': '04 / DER QUARTERBACK',
+    'No passing leader available': 'Kein führender Passgeber verfügbar',
+    'Open individual box scores for available player production.': 'Öffne die einzelnen Spielstatistiken für die verfügbaren Spielerleistungen.',
+    'Passing leader, not confirmation of the next starter.': 'Führender Passgeber im Spiel; keine Bestätigung für die nächste Startaufstellung.',
+    'CONNECTING THE DOTS': 'DIE ZUSAMMENHÄNGE',
+    'Points decide games. Yards describe movement. A takeaway gives your team the ball; a giveaway hands it to the opponent. These numbers describe what happened, but do not establish why a coach or player made a decision.': 'Punkte entscheiden Spiele. Yards beschreiben den Raumgewinn. Bei einem Takeaway gewinnt dein Team den Ball, bei einem Giveaway verliert es ihn. Diese Zahlen zeigen, was passiert ist. Sie erklären allein aber nicht die Entscheidungen von Trainern oder Spielern.',
+    'Around the NFL.': 'Rund um die NFL.',
+    'All 32 team briefings': 'Alle 32 Team-Überblicke',
+    'The latest collected headlines. Open a team room for its full context, injury reporting, coaching news and official roster moves.': 'Die zuletzt gesammelten Schlagzeilen. Im Team-Überblick findest du die Einordnung, Verletzungsberichte, Trainer-News und offizielle Kaderbewegungen.',
+    'ESPN · reported headline': 'ESPN · Schlagzeile im englischen Original',
+    'No collected headlines in this date window.': 'Keine gesammelten Schlagzeilen in diesem Zeitraum.',
+    'Reporting coverage is not available for this team.': 'Für dieses Team sind keine gesammelten Berichte verfügbar.',
+    'Off the field, too.': 'Auch abseits des Spielfelds.',
+    'Reporting can mention results. Turn off outcome protection to open this team’s dated news and transactions.': 'Berichte können Ergebnisse nennen. Deaktiviere den Ergebnisschutz, um die datierten Nachrichten und Kaderbewegungen dieses Teams zu öffnen.',
+    'Show reporting': 'Berichte einblenden',
+    'Quarterback': 'Quarterback',
+    'Health': 'Verletzungen & Verfügbarkeit',
+    'Coaching': 'Trainerteam',
+    'Roster': 'Kader',
+    'Around the team': 'Rund ums Team',
+    'THE PEOPLE BEHIND THE RECORD': 'DIE MENSCHEN HINTER DER BILANZ',
+    'Beyond the scoreboard.': 'Mehr als das Ergebnis.',
+    'No matching report in this collected feed and date window. This is a coverage gap, not confirmation that nothing changed.': 'In den gesammelten Meldungen gibt es für diesen Zeitraum keinen passenden Bericht. Das ist eine Lücke in der Abdeckung und kein Beleg dafür, dass sich nichts verändert hat.',
+    'Official roster transaction log': 'Offizielle Kaderbewegungen',
+    'No listed transaction in this window.': 'Keine Kaderbewegung in diesem Zeitraum aufgeführt.',
+    'The official log could not be collected. Open the team’s site for roster news; no absence of activity is implied.': 'Die offiziellen Meldungen konnten nicht gesammelt werden. Kader-News findest du auf der Team-Website. Daraus lässt sich nicht schließen, dass es keine Veränderungen gab.',
+    'Official team transaction log': 'Offizielle Kader-Meldungen des Teams',
+    'Official team news': 'Offizielle Team-Nachrichten',
+    'Recent feed coverage is limited to up to 24 articles per team, starting September 1. Category labels are automated and can be imperfect. Earlier off-season history is not covered comprehensively.': 'Die Sammlung umfasst bis zu 24 aktuelle Artikel pro Team ab dem 1. September. Kategorien werden automatisch zugeordnet und können ungenau sein. Frühere Entwicklungen in der Saisonpause sind nicht vollständig abgedeckt.',
+    'More from the team': 'Mehr vom Team',
+    'THE BIGGER PICTURE': 'DAS GROSSE GANZE',
+    'THE': 'DIE',
+    'STANDINGS.': 'TABELLE.',
+    'Both conferences': 'Beide Conferences',
+    'Standings tell you who won.': 'Die Tabelle verrät Ergebnisse.',
+    'Records, streaks and points stay hidden while outcome protection is on.': 'Bilanzen, Serien und Punkte bleiben verborgen, solange der Ergebnisschutz aktiv ist.',
+    'Show the league picture': 'Die Tabelle einblenden',
+    'THE QUICK READ': 'KURZ ERKLÄRT',
+    'W–L–T': 'S–N–U',
+    'W': 'S',
+    'L': 'N',
+    'T': 'U',
+    'W–L–T means wins, losses and ties. Teams are grouped into four-team divisions. Byes mean some have played fewer games; winning percentage accounts for that.': 'S–N–U steht für Siege, Niederlagen und Unentschieden. Je vier Teams bilden eine Division. Wegen der spielfreien Wochen haben manche Teams weniger Spiele absolviert; die Siegquote berücksichtigt das.',
+    'Sorted by winning percentage, then name. This is not playoff seeding: official tiebreakers are not applied. Ties count as half a win. Full-season records ignore the catch-up date filter.': 'Sortiert nach Siegquote, danach nach Namen. Das ist keine Playoff-Setzliste: Die offiziellen Regeln bei Gleichstand werden nicht angewendet. Unentschieden zählen als halber Sieg. Die Saisonbilanzen gelten unabhängig vom gewählten Zeitraum.',
+    'A WAY INTO THE CONVERSATION': 'DEIN EINSTIEG INS GESPRÄCH',
+    'FOOTBALL.': 'FOOTBALL.',
+    'DECODED.': 'VERSTEHEN.',
+    'Start anywhere. Ask in your own words, then follow the answer further.': 'Steig ein, wo du möchtest. Frag in deinen eigenen Worten und hake nach.',
+    'Keep a few basics handy': 'Die wichtigsten Grundlagen',
+    'Reference:': 'Quelle:',
+    'NFL Football Operations · Football terms': 'NFL Football Operations · Football-Begriffe',
+    'Quarter scores are not available in the source for this game.': 'Für dieses Spiel sind in der Quelle keine Viertelstände verfügbar.',
+    'Points scored in each quarter': 'Punkte pro Viertel',
+    'CUMULATIVE POINTS AT QUARTER END': 'GESAMTPUNKTE AM ENDE DES VIERTELS',
+    'KICKOFF': 'ANSTOSS',
+    'Detailed team statistics were unavailable from the source. The verified result is shown above.': 'Detaillierte Teamstatistiken waren in der Quelle nicht verfügbar. Das geprüfte Ergebnis steht oben.',
+    'The numbers underneath.': 'Die Zahlen zum Spiel.',
+    'TEAM COMPARISON': 'TEAMVERGLEICH',
+    'These are box-score comparisons, not a rating of which team played better.': 'Diese Statistiken vergleichen die Zahlen. Sie bewerten nicht, welches Team besser gespielt hat.',
+    'Names behind the numbers.': 'Die Spieler hinter den Zahlen.',
+    'Every scoring play': 'Alle Spielzüge mit Punktgewinn',
+    'Scoring-play data is unavailable for this game.': 'Für dieses Spiel sind keine Daten zu den einzelnen Punktgewinnen verfügbar.',
+    'Full player box score': 'Vollständige Spielerstatistiken',
+    'Passing to special teams': 'Vom Passspiel bis zu den Special Teams',
+    'Source categories and available player rows. Scroll tables horizontally on small screens. Hover column labels for definitions.': 'Kategorien und verfügbare Spielerwerte aus der Quelle. Auf kleinen Bildschirmen kannst du die Tabellen seitlich verschieben. Die Spaltenüberschriften bieten Erklärungen.',
+    'Player': 'Spieler',
+    'Player box scores were not available from the source.': 'Spielerstatistiken waren in der Quelle nicht verfügbar.',
+    'The whole result is protected.': 'Das gesamte Ergebnis bleibt verborgen.',
+    'Revealing this game opens its score, quarter-by-quarter story, statistics and player leaders.': 'Wenn du dieses Spiel einblendest, erscheinen Ergebnis, Viertelstände, Statistiken und führende Spieler.',
+    'Reveal this game': 'Dieses Spiel einblenden',
+    'Calculated from the score and quarter totals.': 'Aus Ergebnis und Viertelständen berechnet.',
+    'BEFORE → AFTER': 'DAVOR → DANACH',
+    'READING THE GAME': 'DAS SPIEL VERSTEHEN',
+    'Each quarter’s points add up to the final score. The chart shows the score at the end of each quarter, not every scoring play.': 'Die Punkte aller Viertel ergeben den Endstand. Die Grafik zeigt den Stand am Ende jedes Viertels, nicht jeden einzelnen Punktgewinn.',
+    'Player leaders': 'Führende Spieler',
+    'Broadcast not yet confirmed': 'Übertragung noch nicht bestätigt',
+    'The date and kickoff are still to be confirmed. Check the official schedule closer to game week.': 'Datum und Anstoßzeit sind noch nicht bestätigt. Prüfe den offiziellen Spielplan kurz vor der Spielwoche.',
+    'Current team records are hidden while outcome protection is on.': 'Die aktuellen Teambilanzen bleiben verborgen, solange der Ergebnisschutz aktiv ist.',
+    'ESPN game page': 'ESPN-Seite zum Spiel',
+    'This game is now visible.': 'Dieses Spiel ist jetzt eingeblendet.',
+    'This story is now visible.': 'Dieser Bericht ist jetzt eingeblendet.',
+    'Reset. Night mode is the default.': 'Zurückgesetzt. Der Nachtmodus ist voreingestellt.',
+    'Link copied. Outcomes start hidden.': 'Link kopiert. Ergebnisse sind beim Öffnen ausgeblendet.',
+    'YOUR QUESTION': 'DEINE FRAGE',
+    'SEARCHED & EXPLAINED': 'RECHERCHIERT & ERKLÄRT',
+    'LIVE REFERENCE SEARCH': 'AKTUELLE QUELLENSUCHE',
+    'No matching references were returned. Try naming the rule, player or team more explicitly.': 'Es wurden keine passenden Quellen gefunden. Versuche, die Regel, den Spieler oder das Team genauer zu benennen.',
+    'NEW TO AMERICAN FOOTBALL / CURIOUS AT ANY LEVEL': 'NEU BEIM FOOTBALL / NEUGIERIG AUF MEHR',
+    'Ask the question': 'Stell die Frage,',
+    'in your head.': 'die dich beschäftigt.',
+    'Rules, history, strategy, or something you heard on Sunday. Use your own words. Keep asking until it makes sense.': 'Regeln, Geschichte, Taktik oder etwas, das du am Sonntag gehört hast. Frag in deinen eigenen Worten und hake nach, bis es klar ist.',
+    'Checking research availability…': 'Verfügbarkeit der Recherche wird geprüft …',
+    'Ask a follow-up, or a different football question': 'Stell eine Rückfrage oder eine andere Football-Frage',
+    'What would you like to understand?': 'Was möchtest du verstehen?',
+    'When did the NFL choose to have Super Bowls only indoors?': 'Wann hat die NFL beschlossen, Super Bowls nur noch in Hallen auszutragen?',
+    'Researching…': 'Recherche läuft …',
+    'Search current references': 'Aktuelle Quellen suchen',
+    'Research my question': 'Meine Frage recherchieren',
+    'Stop waiting': 'Warten abbrechen',
+    'New conversation': 'Neues Gespräch',
+    'Connecting to research sources. The first request can take about a minute.': 'Verbindung zu den Recherchequellen wird hergestellt. Die erste Anfrage kann etwa eine Minute dauern.',
+    'A STARTING POINT, NOT A MENU': 'IDEEN FÜR DEINE ERSTE FRAGE',
+    'Why do teams punt on fourth down?': 'Warum punten Teams beim vierten Versuch?',
+    'How is a Super Bowl host city chosen?': 'Wie wird der Austragungsort des Super Bowls ausgewählt?',
+    'What changed in the NFL overtime rules?': 'Was hat sich bei den NFL-Regeln zur Verlängerung geändert?',
+    'Live answers available · each question triggers a fresh web search': 'Aktuelle Antworten verfügbar · jede Frage löst eine neue Websuche aus',
+    'Live reference search available · written answers and premise checking are not enabled yet.': 'Aktuelle Quellensuche verfügbar · ausformulierte Antworten und die Prüfung von Annahmen sind noch nicht aktiviert.',
+    'Research availability could not be confirmed. Try submitting a question; the service may need a moment to wake.': 'Die Verfügbarkeit konnte nicht bestätigt werden. Versuche, eine Frage abzusenden; der Dienst braucht möglicherweise kurz zum Starten.',
+    'Stopped waiting. The server may still finish the submitted request.': 'Das Warten wurde abgebrochen. Der Server bearbeitet die bereits gesendete Anfrage möglicherweise noch.',
+    'Start a new conversation to research more questions.': 'Starte ein neues Gespräch, um weitere Fragen zu recherchieren.',
+    'Research is unavailable. Please retry.': 'Die Recherche ist gerade nicht verfügbar. Bitte versuche es erneut.',
+    'Research timed out. No answer was received. Please retry.': 'Die Recherche hat zu lange gedauert. Es ist keine Antwort eingegangen. Bitte versuche es erneut.',
+    'The research service is waking up or unavailable. Please retry.': 'Der Recherchedienst startet gerade oder ist nicht verfügbar. Bitte versuche es erneut.',
+    'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.': 'Eine aktuelle Quellensuche ist verfügbar. Ausformulierte Antworten und die Prüfung von Annahmen sind noch nicht aktiviert. Diese Auszüge können helfen, belegen aber noch keine Antwort auf deine Frage.',
+    'Research is busy. Please try again in ten minutes.': 'Die Recherche ist ausgelastet. Bitte versuche es in zehn Minuten erneut.',
+    'Two questions are being researched. Please try again shortly.': 'Gerade werden zwei Fragen recherchiert. Bitte versuche es in Kürze erneut.',
+    'The research source did not return a usable result. No answer was generated. Please retry.': 'Die Recherchequelle hat kein brauchbares Ergebnis geliefert. Es wurde keine Antwort erstellt. Bitte versuche es erneut.',
+    'The question or conversation is too long. Start a new thread.': 'Die Frage oder das Gespräch ist zu lang. Starte ein neues Gespräch.',
+    'Written from sources searched for this question. Check the linked evidence for important details.': 'Auf Basis der für diese Frage recherchierten Quellen verfasst. Prüfe die verlinkten Belege für wichtige Einzelheiten.',
+    'Enter a football question.': 'Gib eine Football-Frage ein.',
+    'Use 3–500 characters for your question.': 'Verwende 3–500 Zeichen für deine Frage.',
+    'Choose a valid explanation level.': 'Wähle eine gültige Erklärungsstufe.',
+    'Invalid conversation context.': 'Ungültiger Gesprächsverlauf.',
+    'Send a JSON question.': 'Die Frage konnte nicht gesendet werden.',
+    'This endpoint is for the HUDDLE website.': 'Dieser Dienst ist für die HUDDLE-Website vorgesehen.'
+  };
+
+  // These patterns match complete UI phrases only. External reporting and quotes
+  // are excluded by the caller's data-original-language boundary.
+  const patterns = [
+    [/^WEEK (\d+) EDITION$/, (_, n) => `AUSGABE WOCHE ${n}`],
+    [/^Week (\d+) score strip$/, (_, n) => `Ergebnisleiste für Woche ${n}`],
+    [/^(\d+) weeks$/, (_, n) => `${n} Wochen`],
+    [/^(\d+) games$/, (_, n) => `${n} ${n === '1' ? 'Spiel' : 'Spiele'}`],
+    [/^WEEK (\d+)$/, (_, n) => `WOCHE ${n}`],
+    [/^WEEK (\d+) \/ (.+)$/, (_, n, date) => `WOCHE ${n} / ${date}`],
+    [/^(.+) \/ WEEK (\d+)$/, (_, date, n) => `${date} / WOCHE ${n}`],
+    [/^Week (\d+) · Kickoff TBD$/, (_, n) => `Woche ${n} · Anstoß noch offen`],
+    [/^Week (\d+), (\d+) games(, completed)?$/, (_, w, n, done) => `Woche ${w}, ${n} Spiele${done ? ', abgeschlossen' : ''}`],
+    [/^Weeks 1–(\d+) complete; Week (\d+) finals included$/, (_, a, b) => `Wochen 1–${a} abgeschlossen; beendete Spiele aus Woche ${b} enthalten`],
+    [/^Open (.+) at (.+), week (\d+)$/, (_, a, h, w) => `${a} bei ${h}, Woche ${w}, öffnen`],
+    [/^Open (.+) at (.+)$/, (_, a, h) => `${a} bei ${h} öffnen`],
+    [/^(\d+)-point margin$/, (_, n) => `${n} Punkte Abstand`],
+    [/^(.+) · (home|neutral)$/, (_, location, type) => `${location} · ${type === 'home' ? 'Heimspiel' : 'neutraler Spielort'}`],
+    [/^(.+) · Neutral site$/, (_, venue) => `${venue} · neutraler Spielort`],
+    [/^Event (.+) · Published (.+) · Reviewed (.+), 2026$/, (_, event, published, reviewed) => `Ereignis ${event} · Veröffentlicht ${published} · Geprüft ${reviewed}, 2026`],
+    [/^Week (\d+): ([WLT])$/, (_, week, outcome) => `Woche ${week}: ${{W:'Sieg',L:'Niederlage',T:'Unentschieden'}[outcome]}`],
+    [/^([WLT]) (\d+[–-]\d+)$/, (_, outcome, score) => `${{W:'S',L:'N',T:'U'}[outcome]} ${score}`],
+    [/^(\d+)W · (\d+)L(?: · (\d+)T)? in your window$/, (_, w, l, t) => `${w} S · ${l} N${t ? ` · ${t} U` : ''} im gewählten Zeitraum`],
+    [/^Your way back into the (.+) season\.$/, (_, name) => `Dein Wiedereinstieg in die Saison der ${name}.`],
+    [/^SINCE (.+)$/, (_, date) => `SEIT ${date}`],
+    [/^(\d+) STORIES$/, (_, n) => `${n} BERICHTE`],
+    [/^(\d+) SOURCED STORIES$/, (_, n) => `${n} BERICHTE MIT QUELLEN`],
+    [/^(\d+) game results match your team and date\. Reviewed stories are selective; try a broader filter or open all games\.$/, (_, n) => `${n} Spielergebnisse passen zu Team und Zeitraum. Geprüfte Berichte sind eine Auswahl. Erweitere die Filter oder öffne alle Spiele.`],
+    [/^Show (\d+) more stories$/, (_, n) => `${n} weitere Berichte anzeigen`],
+    [/^Selected reporting, reviewed (.+)\. Every game is available in the game explorer\.$/, (_, date) => `Ausgewählte Berichte, geprüft am ${date}. Alle Spiele findest du in der Spielübersicht.`],
+    [/^(\d+) completed games since (.+?)(?: involving (.+))?\. Showing the latest six\.$/, (_, n, date, name) => `${n} beendete Spiele seit ${date}${name ? ` mit ${name}` : ''}. Angezeigt werden die letzten sechs.`],
+    [/^matching games(?: \/ (.+))?$/, (_, name) => `passende Spiele${name ? ` / ${name}` : ''}`],
+    [/^(Outcomes protected · close-finish filter disabled|Open any matchup for the details) · (Eastern Time|Wiener Zeit|Vienna time)( · Datumsauswahl nach US-Ostküstenzeit)?$/, (_, message, zone, dateNote) => `${copy[message]} · ${zone === 'Eastern Time' ? 'US-Ostküstenzeit' : 'Wiener Zeit'}${dateNote || ''}`],
+    [/^Load the next (\d+) games$/, (_, n) => `Die nächsten ${n} Spiele laden`],
+    [/^The week selector replaces your catch-up date filter here\. This is the 272-game regular season; future postseason matchups are not yet determined\. Schedule checked (.+), 2026\.$/, (_, date) => `Hier ersetzt die Wochenauswahl den Datumsfilter. Gezeigt wird die reguläre Saison mit 272 Spielen; spätere Playoff-Begegnungen stehen noch nicht fest. Spielplan geprüft am ${date}, 2026.`],
+    [/^(.+) cumulative wins: (\d+) through (\d+) games$/, (_, name, wins, games) => `${name}: insgesamt ${wins} Siege nach ${games} Spielen`],
+    [/^WHAT YOU MISSED \/ SINCE (.+)$/, (_, date) => `WAS DU VERPASST HAST / SEIT ${date}`],
+    [/^WHAT YOU MISSED \/ (.+)$/, (_, name) => `WAS DU VERPASST HAST / ${name}`],
+    [/^The (.+) story\.$/, (_, name) => `Die Saison der ${name}.`],
+    [/^(\d+) GAMES IN YOUR WINDOW$/, (_, n) => `${n} SPIELE IN DEINEM ZEITRAUM`],
+    [/^Window averages · (\d+) available yardage box scores$/, (_, n) => `Durchschnitt im Zeitraum · ${n} verfügbare Statistiken zum Raumgewinn`],
+    [/^Latest final: (.+)\. Passing leader, not confirmation of the next starter\.$/, (_, date) => `Letztes beendetes Spiel: ${date}. Führender Passgeber, keine Bestätigung der nächsten Startaufstellung.`],
+    [/^Calculated from ESPN game results and available box scores\. Full season: (\d+) completed games\. News and roster changes below are dated separately\.$/, (_, n) => `Aus ESPN-Ergebnissen und verfügbaren Spielstatistiken berechnet. Gesamte Saison: ${n} beendete Spiele. Nachrichten und Kaderbewegungen unten sind gesondert datiert.`],
+    [/^Ask a question about (.+)$/, (_, name) => `Eine Frage zu den ${name} stellen`],
+    [/^REPORTING CHECKED (.+)$/, (_, date) => `BERICHTE GEPRÜFT ${date}`],
+    [/^CHECKED (.+)$/, (_, date) => `GEPRÜFT ${date}`],
+    [/^(.+) \/ (Quarterback|Health|Coaching|Roster|Around the team)$/, (_, date, category) => `${date} / ${copy[category]}`],
+    [/^([A-Z]{2,3}) team room$/, (_, id) => `${id}: Team-Überblick`],
+    [/^Dated reports since (.+)\. Headlines are links to reporting, not independently confirmed roster facts\. An old injury report does not tell you who can play today\.$/, (_, date) => `Datierte Berichte seit ${date}. Die Schlagzeilen verlinken Berichte und sind keine unabhängig bestätigten Kaderinformationen. Ein alter Verletzungsbericht sagt nicht aus, wer heute spielen kann.`],
+    [/^(\d+) reports?$/, (_, n) => `${n} ${n === '1' ? 'Bericht' : 'Berichte'}`],
+    [/^(\d+) entries in your window$/, (_, n) => `${n} Meldungen in deinem Zeitraum`],
+    [/^Show (\d+) earlier entries$/, (_, n) => `${n} frühere Meldungen anzeigen`],
+    [/^Finals checked (.+)\. Week (\d+) is partly complete\.$/, (_, date, week) => `Ergebnisse geprüft am ${date}. Woche ${week} ist teilweise abgeschlossen.`],
+    [/^([\d.,]+)% win rate(?: · ([+−–-]?\d+) point diff)?$/, (_, rate, diff) => `${rate.replace('.', ',')} % Siegquote${diff ? ` · ${diff} Punktedifferenz` : ''}`],
+    [/^(\d+) PF \/ (\d+) PA$/, (_, pf, pa) => `${pf} Punkte / ${pa} Gegenpunkte`],
+    [/^Quarter-end score progression for (.+) and (.+)$/, (_, a, h) => `Spielstand am Viertelende für ${a} und ${h}`],
+    [/^(\d+) plays$/, (_, n) => `${n} ${n === '1' ? 'Spielzug' : 'Spielzüge'}`],
+    [/^(\d+) players$/, (_, n) => `${n} Spieler`],
+    [/^([A-Z]{2,3}) (passing|rushing|receiving|defensive|fumbles|interceptions|kickReturns|puntReturns|kicking|punting)$/, (_, id, category) => `${id} ${root.HuddleContentAT?.sourceLabels?.[category] || category}`],
+    [/^(.+) · Schedule checked (.+), 2026\.$/, (_, broadcast, date) => `${copy[broadcast] || broadcast} · Spielplan geprüft am ${date}, 2026.`],
+    [/^([\d.,]+) points per game$/, (_, n) => `${n.replace('.', ',')} Punkte pro Spiel`],
+    [/^([\d.,]+) allowed per game$/, (_, n) => `${n.replace('.', ',')} Gegenpunkte pro Spiel`],
+    [/^Current season averages from completed games as of (.+), not a forecast of this matchup\.$/, (_, date) => `Aktuelle Saisondurchschnitte aus beendeten Spielen mit Stand ${date}; keine Vorhersage für diese Begegnung.`],
+    [/^Snapshot: (.+), 2026\. External pages may contain other results\.$/, (_, date) => `Datenstand: ${date}, 2026. Externe Seiten können weitere Ergebnisse verraten.`],
+    [/^DATA (.+)$/, (_, date) => `DATEN ${date}`],
+    [/^(.+), 2026 DATA EDITION$/, (_, date) => `DATENAUSGABE ${date}, 2026`],
+    [/^(.+) · 2026 edition$/, (_, date) => `${date} · Ausgabe 2026`],
+    [/^This is the (.+) edition, now (\d+) days past its date\. New results and roster changes may be missing; check the linked official sources for the latest\.$/, (_, date, age) => `Dies ist die Ausgabe vom ${date}, inzwischen ${age} Tage alt. Neuere Ergebnisse und Kaderbewegungen können fehlen. Aktuelle Informationen findest du in den verlinkten offiziellen Quellen.`],
+    [/^(.+): context updated\.$/, (_, level) => `${copy[level] || level}: Erklärungsstufe aktualisiert.`],
+    [/^(.+) selected for your catch up\.$/, (_, name) => `${name} für deinen Überblick ausgewählt.`],
+    [/^(\d+) cited sources$/, (_, n) => `${n} ${n === '1' ? 'zitierte Quelle' : 'zitierte Quellen'}`],
+    [/^(\d+) search matches$/, (_, n) => `${n} Suchtreffer`],
+    [/^Search used: (.+)\. Results can be incomplete or irrelevant\. These are excerpts, not a verified answer\.$/, (_, query) => `Suchanfrage: ${query}. Die Treffer können unvollständig oder unpassend sein. Dies sind Auszüge, keine geprüfte Antwort.`],
+    [/^Submitting sends your question and this conversation to our research service; written answers use OpenAI web search when enabled\. The thread stays in this tab and clears on reload\. Outcome protection is (on; reference search results may still contain spoilers|off)\. Don’t include personal information\.$/, (_, setting) => `Mit dem Absenden werden deine Frage und dieser Gesprächsverlauf an unseren Recherchedienst gesendet. Ausformulierte Antworten nutzen die OpenAI-Websuche, sofern aktiviert. Das Gespräch bleibt in diesem Tab und wird beim Neuladen gelöscht. Der Ergebnisschutz ist ${setting === 'off' ? 'ausgeschaltet' : 'eingeschaltet; Suchtreffer können trotzdem Ergebnisse verraten'}. Gib keine persönlichen Daten ein.`]
+  ];
+
+  function setLocale(value) {
+    locale = value === 'de-AT' ? 'de-AT' : 'en-US';
+    return locale;
+  }
+  function getLocale() { return locale; }
+  function translate(value) {
+    if (Object.prototype.hasOwnProperty.call(copy, value)) return copy[value];
+    const sourceLabels = root.HuddleContentAT && root.HuddleContentAT.sourceLabels;
+    if (sourceLabels && Object.prototype.hasOwnProperty.call(sourceLabels, value)) return sourceLabels[value];
+    for (const [pattern, replace] of patterns) {
+      const found = value.match(pattern);
+      if (found) return replace(...found);
+    }
+    // Decorative action marks are independent of the translatable label.
+    const decorated = value.match(/^(.*?)\s*([↗✓])$/u);
+    if (decorated) {
+      const translated = translate(decorated[1].trimEnd());
+      if (translated !== decorated[1].trimEnd()) return translated + ' ' + decorated[2];
+    }
+    return value;
+  }
+  function text(value) {
+    const input = String(value == null ? '' : value);
+    if (locale !== 'de-AT' || !input.trim()) return input;
+    const content = input.trim();
+    const start = input.indexOf(content);
+    return input.slice(0, start) + translate(content) + input.slice(start + content.length);
+  }
+  function excluded(element, forText) {
+    return !element || !!element.closest(forText
+      ? 'script,style,textarea,code,pre,[data-original-language]'
+      : 'script,style,code,pre,[data-original-language]');
+  }
+  function apply(target) {
+    const document = target && target.ownerDocument || root.document;
+    if (!document) return;
+    target = target || document.body;
+    if (!target) return;
+    const walker = document.createTreeWalker(target, 4 /* SHOW_TEXT */);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (excluded(node.parentElement, true)) continue;
+      const previous = originals.get(node);
+      const source = previous && node.nodeValue === previous.output ? previous.source : node.nodeValue;
+      const output = text(source);
+      if (node.nodeValue !== output) node.nodeValue = output;
+      originals.set(node, { source, output });
+    }
+    const elements = target.nodeType === 1
+      ? [target, ...target.querySelectorAll('[aria-label],[title],[placeholder]')]
+      : [...target.querySelectorAll('[aria-label],[title],[placeholder]')];
+    for (const element of elements) {
+      if (excluded(element, false)) continue;
+      let previous = attributes.get(element);
+      if (!previous) { previous = {}; attributes.set(element, previous); }
+      for (const name of ['aria-label', 'title', 'placeholder']) {
+        if (!element.hasAttribute(name)) { delete previous[name]; continue; }
+        const current = element.getAttribute(name), saved = previous[name];
+        const source = saved && current === saved.output ? saved.source : current;
+        const output = text(source);
+        if (current !== output) element.setAttribute(name, output);
+        previous[name] = { source, output };
+      }
+    }
+  }
+  return { setLocale, getLocale, text, apply };
+});
+
+(() => {
   'use strict';
   const API=['localhost','127.0.0.1'].includes(location.hostname)?'': 'https://dfe-nfl-research.onrender.com';
-  const clientId=crypto.randomUUID();
+  const clientId=crypto.randomUUID(), L=HuddleLocale;
+  const isAT=()=>locale==='de-AT';
+  const starterQuestions=()=>isAT()?['Warum punten Teams beim vierten Versuch?','Wie wird der Austragungsort des Super Bowls ausgewählt?','Was hat sich bei den NFL-Regeln für die Verlängerung geändert?']:['Why do teams punt on fourth down?','How is a Super Bowl host city chosen?','What changed in the NFL overtime rules?'];
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const url=u=>{try{const p=new URL(u);return p.protocol==='https:'?p.href:'#';}catch{return '#';}};
-  let turns=[],draft='',pending=false,error='',controller=null,requestId=0,depth='little',hide=false,mode=null;
+  let turns=[],draft='',pending=false,error='',controller=null,requestId=0,depth='little',hide=false,mode=null,locale='en-US';
   function cited(block){
     const chars=Array.from(block.text),cs=[...(block.citations||[])].sort((a,b)=>a.start-b.start);let cursor=0,out='';
     for(const c of cs){if(c.start<cursor||c.end>chars.length)continue;out+=esc(chars.slice(cursor,c.start).join(''))+`<a class="inline-citation" href="${esc(url(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.title)} ↗</a>`;cursor=c.end;}
     return out+esc(chars.slice(cursor).join(''));
   }
   function thread(){
-    return turns.map(t=>`<article class="research-answer"><span class="eyebrow">YOUR QUESTION</span><h3>${esc(t.question)}</h3><div class="research-meta"><span>${t.mode==='answer'?'SEARCHED & EXPLAINED':'LIVE REFERENCE SEARCH'}</span><time>${esc(new Date(t.checked_at).toLocaleString())}</time></div>${t.mode==='answer'?t.blocks.map(b=>`<div class="answer-prose">${cited(b)}</div>`).join(''):`<p class="research-notice">${esc(t.notice)}</p>`}<details ${t.mode==='references'?'open':''}><summary>${t.sources.length} ${t.mode==='answer'?'cited sources':'search matches'}</summary><div class="research-sources">${t.sources.map(s=>`<a href="${esc(url(s.url))}" target="_blank" rel="noopener noreferrer"><small>${esc(s.publisher)}</small><strong>${esc(s.title)} ↗</strong>${s.excerpt?`<p>“${esc(s.excerpt)}”</p>`:''}</a>`).join('')||'<p>No matching references were returned. Try naming the rule, player or team more explicitly.</p>'}</div>${t.mode==='references'?`<p class="microcopy">Search used: ${esc(t.query)}. Results can be incomplete or irrelevant. These are excerpts, not a verified answer.</p>`:''}</details></article>`).join('');
+    return turns.map(t=>`<article class="research-answer"><span class="eyebrow">YOUR QUESTION</span><h3 data-original-language="user">${esc(t.question)}</h3><div class="research-meta"><span>${t.mode==='answer'?'SEARCHED & EXPLAINED':'LIVE REFERENCE SEARCH'}</span><time>${esc(new Date(t.checked_at).toLocaleString(locale,isAT()?{timeZone:'Europe/Vienna',hourCycle:'h23'}:{}))}</time></div>${t.mode==='answer'?t.blocks.map(b=>`<div class="answer-prose" data-original-language="answer" lang="${t.locale||'en-US'}">${cited(b)}</div>`).join(''):`<p class="research-notice">${esc(t.notice)}</p>`}<details ${t.mode==='references'?'open':''}><summary>${t.sources.length} ${t.mode==='answer'?'cited sources':'search matches'}</summary><div class="research-sources">${t.sources.map(s=>`<a href="${esc(url(s.url))}" target="_blank" rel="noopener noreferrer"><small data-original-language="source">${esc(s.publisher)}</small><strong data-original-language="source">${esc(s.title)} ↗</strong>${s.excerpt?`<p data-original-language="source">“${esc(s.excerpt)}”</p>`:''}</a>`).join('')||'<p>No matching references were returned. Try naming the rule, player or team more explicitly.</p>'}</div>${t.mode==='references'?`<p class="microcopy">Search used: ${esc(t.query)}. Results can be incomplete or irrelevant. These are excerpts, not a verified answer.</p>`:''}</details></article>`).join('');
   }
-  function markup(d,s){depth=d;hide=s;return `<section class="research-panel" aria-labelledby="ask-title"><div class="research-intro"><div><span class="eyebrow">NEW TO AMERICAN FOOTBALL / CURIOUS AT ANY LEVEL</span><h2 id="ask-title">Ask the question<br>in your head.</h2><p>Rules, history, strategy, or something you heard on Sunday. Use your own words. Keep asking until it makes sense.</p></div><span class="research-symbol" aria-hidden="true">?</span></div><p id="research-capability" class="research-notice" role="status">Checking research availability…</p><div id="research-thread" aria-live="polite">${thread()}</div><form id="research-form"><label for="football-question">${turns.length?'Ask a follow-up, or a different football question':'What would you like to understand?'}</label><textarea id="football-question" name="question" rows="3" minlength="3" maxlength="500" required placeholder="When did the NFL choose to have Super Bowls only indoors?" ${pending?'disabled':''}>${esc(draft)}</textarea><div class="research-actions"><button class="primary-button" type="submit" ${pending?'disabled':''}>${pending?'Researching…':mode==='references'?'Search current references ↗':'Research my question ↗'}</button>${pending?'<button class="secondary-button" type="button" data-research-cancel>Stop waiting</button>':''}${turns.length?'<button class="text-button" type="button" data-research-clear>New conversation</button>':''}</div><p id="research-progress" role="status">${pending?'Connecting to research sources. The first request can take about a minute.':''}</p><p id="research-error" role="alert">${esc(error)}</p></form><p class="microcopy">Submitting sends your question and this conversation to our research service; written answers use OpenAI web search when enabled. The thread stays in this tab and clears on reload. Outcome protection is ${hide?'on; reference search results may still contain spoilers':'off'}. Don’t include personal information.</p><div class="question-starters"><span class="eyebrow">A STARTING POINT, NOT A MENU</span>${['Why do teams punt on fourth down?','How is a Super Bowl host city chosen?','What changed in the NFL overtime rules?'].map(q=>`<button type="button" data-research-draft="${esc(q)}">${esc(q)} ↗</button>`).join('')}</div></section>`;}
-  function refresh(){const host=document.querySelector('.research-panel');if(host){host.outerHTML=markup(depth,hide);bind();}}
-  function capability(){const el=document.querySelector('#research-capability');if(el)el.textContent=mode==='answer'?'Live answers available · each question triggers a fresh web search':mode==='references'?'Live reference search available · written answers and premise checking are not enabled yet.':'Research availability could not be confirmed. Try submitting a question; the service may need a moment to wake.';}
+  function markup(d,s,l=locale){depth=d;hide=s;locale=l;return `<section class="research-panel" aria-labelledby="ask-title"><div class="research-intro"><div><span class="eyebrow">NEW TO AMERICAN FOOTBALL / CURIOUS AT ANY LEVEL</span><h2 id="ask-title">Ask the question<br>in your head.</h2><p>Rules, history, strategy, or something you heard on Sunday. Use your own words. Keep asking until it makes sense.</p></div><span class="research-symbol" aria-hidden="true">?</span></div><p id="research-capability" class="research-notice" role="status">Checking research availability…</p><div id="research-thread" aria-live="polite">${thread()}</div><form id="research-form"><label for="football-question">${turns.length?'Ask a follow-up, or a different football question':'What would you like to understand?'}</label><textarea id="football-question" name="question" rows="3" minlength="3" maxlength="500" required placeholder="When did the NFL choose to have Super Bowls only indoors?" ${pending?'disabled':''}>${esc(draft)}</textarea><div class="research-actions"><button class="primary-button" type="submit" ${pending?'disabled':''}>${pending?'Researching…':mode==='references'?'Search current references ↗':'Research my question ↗'}</button>${pending?'<button class="secondary-button" type="button" data-research-cancel>Stop waiting</button>':''}${turns.length?'<button class="text-button" type="button" data-research-clear>New conversation</button>':''}</div><p id="research-progress" role="status">${pending?'Connecting to research sources. The first request can take about a minute.':''}</p><p id="research-error" role="alert">${esc(error)}</p></form><p class="microcopy">Submitting sends your question and this conversation to our research service; written answers use OpenAI web search when enabled. The thread stays in this tab and clears on reload. Outcome protection is ${hide?'on; reference search results may still contain spoilers':'off'}. Don’t include personal information.</p><div class="question-starters"><span class="eyebrow">A STARTING POINT, NOT A MENU</span>${starterQuestions().map(q=>`<button type="button" data-research-draft="${esc(q)}">${esc(q)} ↗</button>`).join('')}</div></section>`;}
+  function refresh(){const host=document.querySelector('.research-panel');if(host){host.outerHTML=markup(depth,hide,locale);L.apply(document.querySelector('.research-panel'));bind();}}
+  function capability(){const el=document.querySelector('#research-capability');if(el)el.textContent=mode==='answer'?'Live answers available · each question triggers a fresh web search':mode==='references'?'Live reference search available · written answers and premise checking are not enabled yet.':'Research availability could not be confirmed. Try submitting a question; the service may need a moment to wake.';if(el)L.apply(el);}
   async function bind(){
     const form=document.querySelector('#research-form');if(!form)return;
     form.onsubmit=submit;
@@ -188,14 +945,14 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     document.querySelector('[data-research-clear]')?.addEventListener('click',()=>{requestId++;controller?.abort();turns=[];draft='';pending=false;error='';refresh();});
     document.querySelector('[data-research-cancel]')?.addEventListener('click',()=>{requestId++;controller?.abort();pending=false;error='Stopped waiting. The server may still finish the submitted request.';refresh();});
     if(mode===null){try{const r=await fetch(API+'/healthz',{signal:AbortSignal.timeout(70000)});if(!r.ok)throw Error();const d=await r.json();mode=d.answers_enabled?'answer':'references';}catch{mode='unavailable';}}
-    capability();const button=document.querySelector('#research-form button[type=submit]');if(button&&!pending)button.textContent=mode==='references'?'Search current references ↗':'Research my question ↗';
+    capability();const button=document.querySelector('#research-form button[type=submit]');if(button&&!pending)button.textContent=L.text(mode==='references'?'Search current references ↗':'Research my question ↗');
   }
   async function submit(e){
     e.preventDefault();if(pending)return;const q=document.querySelector('#football-question').value.trim();if(q.length<3)return;
     if(turns.length>=3){error='Start a new conversation to research more questions.';refresh();return;}
     draft=q;pending=true;error='';const id=++requestId;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);refresh();
     const history=turns.flatMap(t=>[{role:'user',content:t.question},{role:'assistant',content:t.mode==='answer'?t.blocks.map(b=>b.text).join('\n').slice(0,6000):'Reference search only; no answer was established.'}]);
-    try{const r=await fetch(API+'/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,depth,hide_outcomes:hide,history,client_id:clientId}),signal:controller.signal});const data=await r.json();if(!r.ok)throw Error(data.error||'Research is unavailable. Please retry.');if(id!==requestId)return;turns.push(data);mode=data.mode;draft='';}
+    try{const r=await fetch(API+'/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,depth,hide_outcomes:hide,history,client_id:clientId,locale}),signal:controller.signal});const data=await r.json();if(!r.ok)throw Error(data.error||'Research is unavailable. Please retry.');if(id!==requestId)return;turns.push(data);mode=data.mode;draft='';}
     catch(e){if(id!==requestId)return;error=e.name==='AbortError'?'Research timed out. No answer was received. Please retry.':(e instanceof SyntaxError?'The research service is waking up or unavailable. Please retry.':e.message);}
     finally{clearTimeout(timer);if(id===requestId){pending=false;refresh();document.querySelector('#research-thread')?.scrollIntoView({behavior:'smooth',block:'start'});}}
   }
@@ -204,21 +961,30 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
 
 (() => {
   'use strict';
-  const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp;
+  const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp, L=HuddleLocale, AT=HuddleContentAT;
+  const isAT=()=>state.locale==='de-AT';
+  const number=n=>Number(n).toLocaleString(state.locale,{minimumFractionDigits:1,maximumFractionDigits:1});
+  const gameDay=iso=>C.formatKickoff(iso,state.locale,true);
+  const sourceNote=()=>isAT()?'<p class="original-source-note">Englische Originalquellen · Schlagzeilen und Spielzüge bleiben im Wortlaut der Quelle.</p>':'';
+  const editorial=()=>({...D,stories:isAT()?D.stories.map(s=>({...s,...AT.stories[s.id]})):D.stories});
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const fmt=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'America/New_York'});
+  const fmt=d=>new Date(d+'T12:00:00Z').toLocaleDateString(state.locale,{month:'short',day:'numeric',timeZone:'UTC'});
   const teamMap=Object.fromEntries(S.teams.map(t=>[t.id,t]));
   const team=id=>teamMap[id], full=id=>team(id)?.name||id, short=id=>team(id)?.short||id;
   const names={brief:'CATCH UP',games:'ALL GAMES',teams:'TEAM ROOMS',league:'STANDINGS',learn:'NEW TO FOOTBALL'};
   const topics={all:'All stories',games:'Game stories',roster:'Roster moves',injuries:'Injuries'};
   const KEY='dfe-nfl-huddle-v1'; let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}');}catch{}
-  let linked={};try{if(location.hash.startsWith('#catchup=')){linked=JSON.parse(decodeURIComponent(location.hash.slice(9)));linked.spoilers=true;}}catch{}
-  let state=C.normalize({...saved,...linked},S), revealed=new Set(), storyLimit=6, gameLimit=48, toastTimer, openedGame=null;
+  let linked={};try{if(location.hash.startsWith('#catchup=')){const parsed=JSON.parse(decodeURIComponent(location.hash.slice(9)));if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))linked={...parsed,spoilers:true};}}catch{}
+  const urlLocale=new URLSearchParams(location.search).get('lang');
+  let state=C.normalize({...C.switchLocale(C.normalize(saved,S),linked.locale||C.normalize(saved,S).locale,S),...linked},S), revealed=new Set(), storyLimit=6, gameLimit=48, toastTimer, openedGame=null;
+  if(['de-AT','en-US'].includes(urlLocale)&&!linked.locale)state=C.switchLocale(state,urlLocale,S);
+  L.setLocale(state.locale);
+  persist();
   const current=C.records(S), recordMap=Object.fromEntries(current.map(r=>[r.id,r]));
   const completed=S.games.filter(g=>g.completed), remaining=S.games.filter(g=>!g.completed);
   function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}}
-  function notice(s){$('#toast').textContent=s;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').textContent='',3500);}
+  function notice(s){$('#toast').textContent=L.text(s);clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').textContent='',3500);}
   function safeLink(url){try{const u=new URL(url);return u.protocol==='https:'?esc(u.href):'#';}catch{return '#';}}
   function locked(id){return state.spoilers&&!revealed.has(id);}
   function badge(id,size='normal'){
@@ -231,8 +997,8 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
   }
   function when(g,compact=false){
     if(!g.time_confirmed&&!g.completed)return `Week ${g.week} · Kickoff TBD`;
-    if(g.completed)return `${fmt(C.localDate(g.date))} · ${locked(g.id)?'Final':g.status}`;
-    return new Date(g.date).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',...(compact?{}:{hour:'numeric',minute:'2-digit'})})+(compact?'':' ET');
+    if(g.completed)return `${gameDay(g.date)} · ${locked(g.id)?L.text('Final'):L.text(g.status)}`;
+    return C.formatKickoff(g.date,state.locale,compact);
   }
   function seasonTimeline(active=state.week){
     return `<div class="season-timeline"><div class="timeline-heading"><span class="eyebrow">YOUR SEASON MAP</span><span>18 weeks <i>/</i> 272 games</span></div><div class="week-rail" role="group" aria-label="Season weeks"><button data-week="all" class="all-weeks ${active==='all'?'active':''}" aria-pressed="${active==='all'}">ALL<span>272</span></button>${Array.from({length:18},(_,i)=>{const w=i+1,n=S.games.filter(g=>g.week===w).length;return `<button data-week="${w}" class="${w<=S.through_week?'played':'future'} ${active===w?'active':''}" aria-pressed="${active===w}" aria-label="Week ${w}, ${n} games${w<=S.through_week?', completed':''}"><span>WK</span>${String(w).padStart(2,'0')}<i></i></button>`;}).join('')}</div><div class="timeline-legend"><span><i class="played-dot"></i> Weeks 1–${S.through_week} complete; Week ${S.latest_week||S.through_week} finals included</span><span><i></i> Upcoming · unconfirmed times marked TBD</span></div></div>`;
@@ -243,11 +1009,11 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
   }
   function featuredGame(){return [...completed].reverse().find(g=>state.team==='ALL'||[g.away.team,g.home.team].includes(state.team))||completed[completed.length-1];}
   function feature(g){
-    const hide=locked(g.id),read=C.gameRead(g);
-    return `<article class="feature-game"><div class="feature-top"><span class="eyebrow">${state.team==='ALL'?'LAST GAME IN THE BOOKS':'YOUR TEAM’S LATEST GAME'}</span><span class="status-pill">${hide?'OUTCOME HIDDEN':esc(read.kind)}</span></div><div class="feature-match"><div>${badge(g.away.team,'giant')}<h3>${esc(short(g.away.team))}</h3><span>AWAY</span></div><div class="feature-score"><strong>${hide?'—':g.away.score}<i>:</i>${hide?'—':g.home.score}</strong><span>${fmt(C.localDate(g.date))} / WEEK ${g.week}</span></div><div>${badge(g.home.team,'giant')}<h3>${esc(short(g.home.team))}</h3><span>${g.neutral?'DESIGNATED HOME':'HOME'}</span></div></div><div class="feature-bottom"><span>${hide?'Ready when you are.':esc(read.text)}</span><button class="round-button" data-game="${g.id}" aria-label="Open featured game">↗</button></div></article>`;
+    const hide=locked(g.id),read=C.gameRead(g,state.locale);
+    return `<article class="feature-game"><div class="feature-top"><span class="eyebrow">${state.team==='ALL'?'LAST GAME IN THE BOOKS':'YOUR TEAM’S LATEST GAME'}</span><span class="status-pill">${hide?'OUTCOME HIDDEN':esc(read.kind)}</span></div><div class="feature-match"><div>${badge(g.away.team,'giant')}<h3>${esc(short(g.away.team))}</h3><span>AWAY</span></div><div class="feature-score"><strong>${hide?'—':g.away.score}<i>:</i>${hide?'—':g.home.score}</strong><span>${gameDay(g.date)} / WEEK ${g.week}</span></div><div>${badge(g.home.team,'giant')}<h3>${esc(short(g.home.team))}</h3><span>${g.neutral?'DESIGNATED HOME':'HOME'}</span></div></div><div class="feature-bottom"><span>${hide?'Ready when you are.':esc(read.text)}</span><button class="round-button" data-game="${g.id}" aria-label="Open featured game">↗</button></div></article>`;
   }
   function resultCard(g,compact=false){
-    const hide=g.completed&&locked(g.id),read=C.gameRead(g),rows=[g.away,g.home];
+    const hide=g.completed&&locked(g.id),read=C.gameRead(g,state.locale),rows=[g.away,g.home];
     return `<article class="game-card ${g.completed?'final-game':'scheduled-game'}"><div class="game-card-top"><span>W${String(g.week).padStart(2,'0')} <i>·</i> ${esc(when(g,true))}</span>${g.completed&&!hide?`<span class="game-tag">${esc(read.kind)}</span>`:!g.completed?'<span class="scheduled-dot"></span>':''}</div><button class="game-open" data-game="${g.id}" aria-label="Open ${esc(full(g.away.team))} at ${esc(full(g.home.team))}, week ${g.week}">${rows.map((r,i)=>`<span class="game-team ${g.completed&&!hide&&r.score>rows[1-i].score?'winner':''}">${badge(r.team)}<span><strong>${esc(short(r.team))}</strong><small>${esc(team(r.team).location)}${i?' · '+(g.neutral?'neutral':'home'):''}</small></span><b>${g.completed?(hide?'—':r.score):'—'}</b></span>`).join('')}</button><div class="game-card-bottom"><span>${hide?'Scores protected':g.completed?`${Math.abs(g.home.score-g.away.score)}-point margin`:esc(g.broadcasts?.join(' / ')||'Broadcast TBD')}</span><button class="text-button" data-game="${g.id}">${g.completed?'Inside the game':'Matchup preview'} ↗</button></div>${compact?'':`<p class="venue">${esc(g.venue)}</p>`}</article>`;
   }
   function storiesMarkup(ss){return ss.slice(0,storyLimit).map((s,i)=>{
@@ -263,7 +1029,7 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     return `<div class="movement-list">${rows.slice(0,4).map(r=>`<button class="mover" data-team-room="${r.id}">${badge(r.id)}<span><b>${esc(r.short)}</b><small>${r.w-oldMap[r.id].w}W · ${r.l-oldMap[r.id].l}L${r.t-oldMap[r.id].t?' · '+(r.t-oldMap[r.id].t)+'T':''} in your window</small></span><strong><small>${C.record(oldMap[r.id])} → </small>${C.record(r)}</strong><i>↗</i></button>`).join('')||'<p class="subtle">No completed games in this date window.</p>'}</div><p class="microcopy">${state.team==='ALL'?'Most wins in your window; ties use season win percentage, then name. ':''}Tap a team to see its full season.</p>`;
   }
   function brief(){
-    const ss=C.stories(D,state),gs=C.games(S,state),fg=featuredGame();
+    const ss=C.stories(editorial(),state),gs=C.games(S,state),fg=featuredGame();
     return `<section class="home-hero"><div class="hero-copy"><span class="eyebrow"><i class="accent-dot"></i> YOUR 2026 NFL RE-ENTRY POINT</span><h1><span>THE SEASON.</span><br><em>IN FOCUS.</em></h1><p>${state.team==='ALL'?'Every matchup. The stories you missed.<br>Exactly as much context as you need.':`Your way back into the ${esc(short(state.team))} season.<br>Every result, the next matchup, and what changed.`}</p><button class="primary-button" data-all-games>Explore all 272 games <span>↗</span></button><div class="hero-statline"><span><b>${completed.length}</b> FINAL</span><span><b>${remaining.length}</b> UPCOMING</span><span><b>32</b> TEAMS</span></div></div>${feature(fg)}</section>${seasonTimeline(S.latest_week||S.through_week)}${state.team!=='ALL'?teamBriefing(state.team)+teamReporting(state.team):recentReporting()}
     <div class="dashboard-grid"><section class="story-section"><div class="section-heading"><div><span class="eyebrow">SINCE ${fmt(state.since).toUpperCase()}</span><h2>Selected story context.</h2></div><span class="count-label">${ss.length} STORIES</span></div><div class="story-filters"><div class="chip-row">${Object.entries(topics).map(([id,n])=>`<button data-topic="${id}" class="chip ${state.topic===id?'active':''}" aria-pressed="${state.topic===id}">${n}</button>`).join('')}</div><div class="search-row"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Search stories or players" aria-label="Search stories" value="${esc(state.query)}"></label><select id="order" aria-label="Sort stories"><option value="impact" ${state.order==='impact'?'selected':''}>Big picture</option><option value="latest" ${state.order==='latest'?'selected':''}>Latest</option></select></div></div><div class="story-feed">${ss.length?storiesMarkup(ss):`<div class="empty"><h3>No stories in this view.</h3><p>${gs.length} game results match your team and date. Reviewed stories are selective; try a broader filter or open all games.</p><button class="secondary-button" data-reset-filters>Broaden filters</button></div>`}</div>${ss.length>storyLimit?`<button class="load-more" id="more">Show ${ss.length-storyLimit} more stories <span>+</span></button>`:''}<p class="microcopy">Selected reporting, reviewed ${fmt(D.reviewed_at)}. Every game is available in the game explorer.</p></section>
     <aside class="right-column"><section class="panel"><div class="section-heading small"><h2>The movement.</h2><span>↗</span></div><p class="subtle">Records before and after your time away.</p>${movement()}</section><section class="next-panel"><span class="eyebrow">ON THE HORIZON</span><h2>The next whistle.</h2>${nextGame()}</section><section class="awareness-note"><span class="orb">◎</span><h3>${{little:'You don’t need to know the jargon.',basics:'You know the game. Fill in the gaps.',well:'Follow the numbers a little further.'}[state.depth]}</h3><p>${{little:'Game panels explain scoring, the numbers, and what changed. The basics are always a tap away.',basics:'Before-and-after records and quarter scores connect each result to the bigger season.',well:'Game panels include the full available stat comparison, player leaders and quarter-by-quarter scoring.'}[state.depth]}</p><button class="text-button" data-tab="learn">Football, explained ↗</button></section></aside></div>
@@ -278,7 +1044,7 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     const filtered=C.schedule(S,state),shown=filtered.slice(0,gameLimit),groups=[...new Set(shown.map(g=>g.week))];
     return `<div class="page-title"><div><span class="eyebrow">NO MISSING WEEKS</span><h1>ALL THE <em>GAMES.</em></h1><p>Every regular-season matchup, from the opening kickoff to Week 18.</p></div><div class="big-total"><b>272</b><span>GAMES / 18 WEEKS</span></div></div>${seasonTimeline()}
     <div class="game-toolbar"><div class="chip-row" role="group" aria-label="Game status">${[['all','All games'],['final','Completed'],['scheduled','Upcoming']].map(([id,n])=>`<button class="chip ${state.gameStatus===id?'active':''}" data-status="${id}" aria-pressed="${state.gameStatus===id}">${n}</button>`).join('')}</div><label class="search-box"><span>⌕</span><input id="game-search" type="search" placeholder="Team or stadium" aria-label="Search games" value="${esc(state.gameQuery)}"></label><label class="close-filter"><input id="close-games" type="checkbox" ${state.closeGames?'checked':''} ${state.spoilers?'disabled':''}> Within 7 points</label></div>
-    <div class="results-meta"><span><b>${filtered.length}</b> matching games ${state.team==='ALL'?'':`/ ${esc(full(state.team))}`}</span><span>${state.spoilers?'Outcomes protected · close-finish filter disabled':'Open any matchup for the details'} · Eastern Time</span></div>
+    <div class="results-meta"><span><b>${filtered.length}</b> matching games ${state.team==='ALL'?'':`/ ${esc(full(state.team))}`}</span><span>${state.spoilers?'Outcomes protected · close-finish filter disabled':'Open any matchup for the details'} · ${isAT()?'Wiener Zeit · Datumsauswahl nach US-Ostküstenzeit':'Eastern Time'}</span></div>
     ${filtered.length?groups.map(w=>`<section class="week-group"><div class="week-group-title"><h2>WEEK <span>${String(w).padStart(2,'0')}</span></h2><span>${w<=S.through_week?'IN THE BOOKS':w===S.latest_week?'PARTLY COMPLETE':'STILL TO COME'}</span></div><div class="games-grid">${shown.filter(g=>g.week===w).map(g=>resultCard(g)).join('')}</div></section>`).join(''):`<div class="empty"><h3>No games match these filters.</h3><p>A team may be on its bye, or your selected week may not have completed or upcoming games.</p><button class="secondary-button" data-clear-game-filters>Show the full schedule</button></div>`}
     ${filtered.length>shown.length?`<button id="more-games" class="load-more">Load the next ${Math.min(48,filtered.length-shown.length)} games <span>${shown.length} / ${filtered.length}</span></button>`:''}<p class="microcopy">The week selector replaces your catch-up date filter here. This is the 272-game regular season; future postseason matchups are not yet determined. Schedule checked ${fmt(S.as_of)}, 2026.</p>`;
   }
@@ -289,34 +1055,34 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     return `<svg class="progress-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(row.name)} cumulative wins: ${row.w} through ${row.gp} games"><g class="chart-grid">${[0,2,4,6,8].map(n=>`<path d="M${pad} ${y(n)}H${W-pad}"/><text x="8" y="${y(n)+3}">${n}</text>`).join('')}</g><path class="chart-future" d="M${x(S.through_week)} 15V${H-pad}"/><polyline class="chart-line" points="${pts.map(p=>`${x(p.w)},${y(p.n)}`).join(' ')}"/>${pts.map(p=>`<circle cx="${x(p.w)}" cy="${y(p.n)}" r="3"/>`).join('')}<g class="chart-labels">${[1,4,8,12,18].map(w=>`<text x="${x(w)}" y="${H-5}" text-anchor="middle">W${w}</text>`).join('')}</g></svg><p class="microcopy">Cumulative wins by week. Dashed line = last fully completed week. Finals from the current week are included.</p>`;
   }
   function teamRoom(){
-    const id=state.teamFocus,row=recordMap[id],games=S.games.filter(g=>[g.home.team,g.away.team].includes(id)),related=D.stories.filter(s=>s.teams.includes(id));
+    const id=state.teamFocus,row=recordMap[id],games=S.games.filter(g=>[g.home.team,g.away.team].includes(id)),related=editorial().stories.filter(s=>s.teams.includes(id));
     const next=games.find(g=>!g.completed),last=games.filter(g=>g.completed).slice(-1)[0];
     return `<div class="page-title"><div><span class="eyebrow">PICK A SIDE. SEE THE WHOLE STORY.</span><h1>TEAM <em>ROOMS.</em></h1><p>One team, all 17 games, and its path through the season.</p></div><label class="room-select">YOUR TEAM ROOM<select id="team-focus">${S.teams.map(t=>`<option value="${t.id}" ${t.id===id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label></div><div class="team-roster" role="group" aria-label="Choose a team">${S.teams.map(t=>`<button data-team-room="${t.id}" class="${t.id===id?'active':''}" aria-pressed="${t.id===id}" title="${esc(t.name)}" aria-label="${esc(t.name)}">${badge(t.id,'small')}<span>${t.id}</span></button>`).join('')}</div>
-    <section class="team-room-hero"><div class="room-identity">${badge(id,'giant')}<div><span class="eyebrow">${row.division}</span><h2>${esc(row.location)}<strong>${esc(row.short)}</strong></h2><button class="text-button" data-follow-team="${id}">${state.team===id?'Following in your catch up ✓':'Follow in my catch up ↗'}</button></div></div><div class="room-record"><strong>${state.spoilers?'—':C.record(row)}</strong><span>${state.spoilers?'OUTCOMES HIDDEN':'REGULAR-SEASON RECORD'}</span>${state.spoilers?'':formDots(row,8)}</div><div class="room-stats"><span><b>${state.spoilers?'—':(row.pf/row.gp).toFixed(1)}</b>POINTS / GAME</span><span><b>${state.spoilers?'—':(row.pa/row.gp).toFixed(1)}</b>ALLOWED / GAME</span><span><b>${17-row.gp}</b>GAMES TO GO</span></div></section>
+    <section class="team-room-hero"><div class="room-identity">${badge(id,'giant')}<div><span class="eyebrow">${row.division}</span><h2>${esc(row.location)}<strong>${esc(row.short)}</strong></h2><button class="text-button" data-follow-team="${id}">${state.team===id?'Following in your catch up ✓':'Follow in my catch up ↗'}</button></div></div><div class="room-record"><strong>${state.spoilers?'—':C.record(row)}</strong><span>${state.spoilers?'OUTCOMES HIDDEN':'REGULAR-SEASON RECORD'}</span>${state.spoilers?'':formDots(row,8)}</div><div class="room-stats"><span><b>${state.spoilers?'—':number(row.pf/row.gp)}</b>POINTS / GAME</span><span><b>${state.spoilers?'—':number(row.pa/row.gp)}</b>ALLOWED / GAME</span><span><b>${17-row.gp}</b>GAMES TO GO</span></div></section>
     ${teamBriefing(id)}<div class="team-room-grid"><section class="panel"><div class="section-heading small"><h2>The season’s shape.</h2><span class="eyebrow">CUMULATIVE WINS</span></div>${progressChart(row)}</section><section class="panel compact-match"><div class="section-heading small"><h2>Next up.</h2></div>${next?`<div class="compact-match-row">${badge(next.away.team,'large')}<strong>${next.away.team}<span>at</span>${next.home.team}</strong>${badge(next.home.team,'large')}</div><p class="subtle">${esc(when(next))}</p><button class="secondary-button" data-game="${next.id}">Matchup details ↗</button>`:'<p>Regular-season schedule complete.</p>'}</section></div>
-    <div class="section-heading"><div><span class="eyebrow">ALL 18 WEEKS, INCLUDING THE BYE</span><h2>The whole road.</h2></div><span class="count-label">17 GAMES</span></div><div class="team-schedule">${Array.from({length:18},(_,i)=>{const w=i+1,g=games.find(g=>g.week===w);if(!g)return `<div class="schedule-stop bye"><span>W${String(w).padStart(2,'0')}</span><b>BYE</b><small>Week off</small></div>`;const own=g.home.team===id?g.home:g.away,opp=own===g.home?g.away:g.home,hide=locked(g.id),result=own.score>opp.score?'W':own.score<opp.score?'L':'T';return `<button data-game="${g.id}" class="schedule-stop ${g.completed&&!hide?result.toLowerCase():'pending'}"><span>W${String(w).padStart(2,'0')}</span>${badge(opp.team,'small')}<b>${own===g.away?'@ ':''}${opp.team}</b><small>${g.completed?(hide?'Final · hidden':`${result} ${own.score}–${opp.score}`):g.time_confirmed?fmt(C.localDate(g.date)):'Date / time TBD'}</small></button>`;}).join('')}</div>
+    <div class="section-heading"><div><span class="eyebrow">ALL 18 WEEKS, INCLUDING THE BYE</span><h2>The whole road.</h2></div><span class="count-label">17 GAMES</span></div><div class="team-schedule">${Array.from({length:18},(_,i)=>{const w=i+1,g=games.find(g=>g.week===w);if(!g)return `<div class="schedule-stop bye"><span>W${String(w).padStart(2,'0')}</span><b>BYE</b><small>Week off</small></div>`;const own=g.home.team===id?g.home:g.away,opp=own===g.home?g.away:g.home,hide=locked(g.id),result=own.score>opp.score?'W':own.score<opp.score?'L':'T';return `<button data-game="${g.id}" class="schedule-stop ${g.completed&&!hide?result.toLowerCase():'pending'}"><span>W${String(w).padStart(2,'0')}</span>${badge(opp.team,'small')}<b>${own===g.away?'@ ':''}${opp.team}</b><small>${g.completed?(hide?'Final · hidden':`${result} ${own.score}–${opp.score}`):g.time_confirmed?gameDay(g.date):'Date / time TBD'}</small></button>`;}).join('')}</div>
     ${teamReporting(id)}<div class="section-heading"><h2>Selected deeper reads.</h2><span class="count-label">${related.length} SOURCED STORIES</span></div><div class="story-feed room-stories">${related.length?storiesMarkup(related):'<div class="empty"><h3>The games are here. The reporting is selective.</h3><p>No reviewed editorial story is included for this team yet. All of its regular-season matchups are above.</p></div>'}</div>`;
   }
   function teamBriefing(id){
     const b=C.teamBrief(S,id,state.since),n=b.window.length;
     if(state.spoilers)return `<section class="team-briefing panel"><span class="eyebrow">WHAT YOU MISSED / ${esc(short(id))}</span><h2>Your team’s story is ready.</h2><p>Form, offensive production, defense and player performances can reveal results.</p><button class="secondary-button" data-show-outcomes>Show the team briefing</button></section>`;
-    const num=x=>x?x.value.toFixed(1):'unavailable';
-    const trajectory=n?`${short(id)} went ${b.delta.w}–${b.delta.l}${b.delta.t?'–'+b.delta.t:''} since ${fmt(state.since)}, moving from ${C.record(b.before)} to ${C.record(b.now)}.`:`No completed ${short(id)} game falls in this window. Their season record is ${C.record(b.now)}.`;
-    return `<section class="team-briefing"><div class="section-heading"><div><span class="eyebrow">WHAT YOU MISSED / SINCE ${fmt(state.since).toUpperCase()}</span><h2>The ${esc(short(id))} story.</h2></div><span class="count-label">${n} GAMES IN YOUR WINDOW</span></div><p class="briefing-lead">${esc(trajectory)}</p><div class="facet-grid"><article class="facet"><span class="eyebrow">01 / THE LATEST CHAPTER</span><h3>${n?esc(C.gameRead(b.window.at(-1)).kind):'A quieter window'}</h3><p>${n?esc(C.gameRead(b.window.at(-1)).text):'Widen your starting date to connect more games.'}</p>${b.latest?`<button class="text-button" data-game="${b.latest.id}">Latest game evidence ↗</button>`:''}</article><article class="facet"><span class="eyebrow">02 / THE OFFENSE</span><h3>${n?num(b.points)+' points per game':'Waiting for a game'}</h3><p>${n?`${num(b.yards)} total yards per game: ${num(b.pass)} net passing and ${num(b.rush)} rushing. Season scoring average: ${num(b.seasonPoints)}.`:'No offense averages for this date window.'}</p><small>Window averages · ${b.yards?.n||0} available yardage box scores</small></article><article class="facet"><span class="eyebrow">03 / DEFENSE & POSSESSION</span><h3>${n?num(b.allowed)+' points allowed per game':'No results in this window'}</h3><p>${n?`${num(b.conceded)} opponent yards per game. ${num(b.takeaways)} takeaways versus ${num(b.turnovers)} giveaways per game.`:'Defensive production appears after completed games.'}</p><small>Points allowed are team totals, including non-offensive scores.</small></article><article class="facet"><span class="eyebrow">04 / THE QUARTERBACK</span><h3>${esc(b.passer?.name||'No passing leader available')}</h3><p>${b.passer?esc(b.passer.stat):'Open individual box scores for available player production.'}</p><small>${b.latest?'Latest final: '+fmt(C.localDate(b.latest.date))+'. ':''}Passing leader, not confirmation of the next starter.</small></article></div>${state.depth==='little'?'<div class="explanation"><b>CONNECTING THE DOTS</b><p>Points decide games. Yards describe movement. A takeaway gives your team the ball; a giveaway hands it to the opponent. These numbers describe what happened, but do not establish why a coach or player made a decision.</p></div>':''}<p class="microcopy">Calculated from ESPN game results and available box scores. Full season: ${b.all.length} completed games. News and roster changes below are dated separately.</p><button class="text-button" data-research-team="${id}">Ask a question about ${esc(short(id))} ↗</button></section>`;
+    const num=x=>x?number(x.value):isAT()?'nicht verfügbar':'unavailable';
+    const trajectory=isAT()?(n?`${short(id)} verbuchte seit ${fmt(state.since)} ${b.delta.w} ${b.delta.w===1?'Sieg':'Siege'} und ${b.delta.l} ${b.delta.l===1?'Niederlage':'Niederlagen'}${b.delta.t?' sowie '+b.delta.t+' Unentschieden':''}. Die Saisonbilanz änderte sich von ${C.record(b.before)} auf ${C.record(b.now)}.`:`In diesem Zeitraum gibt es kein abgeschlossenes Spiel von ${short(id)}. Die Saisonbilanz steht bei ${C.record(b.now)}.`):(n?`${short(id)} went ${b.delta.w}–${b.delta.l}${b.delta.t?'–'+b.delta.t:''} since ${fmt(state.since)}, moving from ${C.record(b.before)} to ${C.record(b.now)}.`:`No completed ${short(id)} game falls in this window. Their season record is ${C.record(b.now)}.`);
+    return `<section class="team-briefing"><div class="section-heading"><div><span class="eyebrow">WHAT YOU MISSED / SINCE ${fmt(state.since).toUpperCase()}</span><h2>The ${esc(short(id))} story.</h2></div><span class="count-label">${n} GAMES IN YOUR WINDOW</span></div><p class="briefing-lead">${esc(trajectory)}</p><div class="facet-grid"><article class="facet"><span class="eyebrow">01 / THE LATEST CHAPTER</span><h3>${n?esc(C.gameRead(b.window.at(-1),state.locale).kind):'A quieter window'}</h3><p>${n?esc(C.gameRead(b.window.at(-1),state.locale).text):'Widen your starting date to connect more games.'}</p>${b.latest?`<button class="text-button" data-game="${b.latest.id}">Latest game evidence ↗</button>`:''}</article><article class="facet"><span class="eyebrow">02 / THE OFFENSE</span><h3>${n?num(b.points)+(isAT()?' Punkte pro Spiel':' points per game'):'Waiting for a game'}</h3><p>${n?(isAT()?`${num(b.yards)} Yards Raumgewinn pro Spiel: ${num(b.pass)} durch Pässe (netto) und ${num(b.rush)} durch Läufe. Punkteschnitt der gesamten Saison: ${num(b.seasonPoints)}.`:`${num(b.yards)} total yards per game: ${num(b.pass)} net passing and ${num(b.rush)} rushing. Season scoring average: ${num(b.seasonPoints)}.`):'No offense averages for this date window.'}</p><small>Window averages · ${b.yards?.n||0} available yardage box scores</small></article><article class="facet"><span class="eyebrow">03 / DEFENSE & POSSESSION</span><h3>${n?num(b.allowed)+(isAT()?' Gegenpunkte pro Spiel':' points allowed per game'):'No results in this window'}</h3><p>${n?(isAT()?`${num(b.conceded)} gegnerische Yards pro Spiel. Dazu ${num(b.takeaways)} eroberte Bälle (Takeaways) und ${num(b.turnovers)} Ballverluste (Giveaways) pro Spiel.`:`${num(b.conceded)} opponent yards per game. ${num(b.takeaways)} takeaways versus ${num(b.turnovers)} giveaways per game.`):'Defensive production appears after completed games.'}</p><small>Points allowed are team totals, including non-offensive scores.</small></article><article class="facet"><span class="eyebrow">04 / THE QUARTERBACK</span><h3>${esc(b.passer?.name||'No passing leader available')}</h3><p>${b.passer?esc(b.passer.stat):'Open individual box scores for available player production.'}</p><small>${b.latest?'Latest final: '+gameDay(b.latest.date)+'. ':''}Passing leader, not confirmation of the next starter.</small></article></div>${state.depth==='little'?'<div class="explanation"><b>CONNECTING THE DOTS</b><p>Points decide games. Yards describe movement. A takeaway gives your team the ball; a giveaway hands it to the opponent. These numbers describe what happened, but do not establish why a coach or player made a decision.</p></div>':''}<p class="microcopy">Calculated from ESPN game results and available box scores. Full season: ${b.all.length} completed games. News and roster changes below are dated separately.</p><button class="text-button" data-research-team="${id}">Ask a question about ${esc(short(id))} ↗</button></section>`;
   }
   function recentReporting(){
     if(state.spoilers)return '';
     const unique=new Map();
     for(const [id,t] of Object.entries(D.reporting.teams)){for(const a of t.news){if(a.date<state.since)continue;const found=unique.get(a.id);if(found)found.teams.push(id);else unique.set(a.id,{...a,teams:[id]});}}
     const items=[...unique.values()].sort((a,b)=>b.published.localeCompare(a.published)).slice(0,6);
-    return `<section class="team-reporting"><div class="section-heading"><div><span class="eyebrow">REPORTING CHECKED ${fmt(D.reporting.as_of).toUpperCase()}</span><h2>Around the NFL.</h2></div><button class="text-button" data-tab="teams">All 32 team briefings ↗</button></div><p class="subtle">The latest collected headlines. Open a team room for its full context, injury reporting, coaching news and official roster moves.</p><div class="reporting-facets">${items.map(a=>`<article class="facet"><span class="eyebrow">${fmt(a.date)} / ${esc(a.category)}</span><a class="report-link" href="${safeLink(a.source)}" target="_blank" rel="noopener noreferrer"><strong>${esc(a.title)} ↗</strong><small>ESPN · reported headline</small></a>${a.teams.map(id=>`<button class="text-button" data-team-room="${id}">${id} team room ↗</button>`).join(' · ')}</article>`).join('')||'<p>No collected headlines in this date window.</p>'}</div></section>`;
+    return `<section class="team-reporting"><div class="section-heading"><div><span class="eyebrow">REPORTING CHECKED ${fmt(D.reporting.as_of).toUpperCase()}</span><h2>Around the NFL.</h2></div><button class="text-button" data-tab="teams">All 32 team briefings ↗</button></div><p class="subtle">The latest collected headlines. Open a team room for its full context, injury reporting, coaching news and official roster moves.</p>${sourceNote()}<div class="reporting-facets">${items.map(a=>`<article class="facet"><span class="eyebrow">${fmt(a.date)} / ${esc(a.category)}</span><a class="report-link" href="${safeLink(a.source)}" target="_blank" rel="noopener noreferrer"><strong data-original-language="en" lang="en">${esc(a.title)} ↗</strong><small>${isAT()?'ESPN · englische Originalschlagzeile':'ESPN · reported headline'}</small></a>${a.teams.map(id=>`<button class="text-button" data-team-room="${id}">${id} team room ↗</button>`).join(' · ')}</article>`).join('')||'<p>No collected headlines in this date window.</p>'}</div></section>`;
   }
   function teamReporting(id){
     const r=D.reporting?.teams[id];if(!r)return '<p class="empty">Reporting coverage is not available for this team.</p>';
     if(state.spoilers)return `<section class="panel"><h2>Off the field, too.</h2><p>Reporting can mention results. Turn off outcome protection to open this team’s dated news and transactions.</p><button class="text-button" data-show-outcomes>Show reporting ↗</button></section>`;
     const news=r.news.filter(x=>x.date>=state.since),moves=r.transactions.filter(x=>x.date>=state.since);
     const facets=['Quarterback','Health','Coaching','Roster','Around the team'];
-    return `<section class="team-reporting"><div class="section-heading"><div><span class="eyebrow">THE PEOPLE BEHIND THE RECORD</span><h2>Beyond the scoreboard.</h2></div><span class="count-label">CHECKED ${fmt(D.reporting.as_of).toUpperCase()}</span></div><p class="subtle">Dated reports since ${fmt(state.since)}. Headlines are links to reporting, not independently confirmed roster facts. An old injury report does not tell you who can play today.</p><div class="reporting-facets">${facets.map(f=>{const items=news.filter(x=>x.category===f);return `<details class="reporting-facet" ${items.length?'open':''}><summary><span>${f}</span><b>${items.length} ${items.length===1?'report':'reports'}</b></summary>${items.length?items.map(x=>`<a class="report-link" href="${safeLink(x.source)}" target="_blank" rel="noopener noreferrer"><time>${fmt(x.date)}</time><strong>${esc(x.title)} ↗</strong><small>ESPN · reported headline</small></a>`).join(''):`<p class="coverage-gap">No matching report in this collected feed and date window. This is a coverage gap, not confirmation that nothing changed.</p>`}</details>`;}).join('')}</div><details class="transaction-log" open><summary>Official roster transaction log <span>${moves.length} entries in your window</span></summary>${r.transactions_status==='available'?`<ol>${moves.slice(0,12).map(x=>`<li><time>${fmt(x.date)}</time><p>${esc(x.text)}</p></li>`).join('')||'<li>No listed transaction in this window.</li>'}</ol>${moves.length>12?`<details><summary>Show ${moves.length-12} earlier entries</summary><ol>${moves.slice(12).map(x=>`<li><time>${fmt(x.date)}</time><p>${esc(x.text)}</p></li>`).join('')}</ol></details>`:''}`:'<p class="coverage-gap">The official log could not be collected. Open the team’s site for roster news; no absence of activity is implied.</p>'}<a class="text-button" href="${safeLink(r.transactions_status==='available'?r.transactions_source:r.official_news)}" target="_blank" rel="noopener noreferrer">Official team ${r.transactions_status==='available'?'transaction log':'news'} ↗</a></details><p class="microcopy">Recent feed coverage is limited to up to 24 articles per team, starting September 1. Category labels are automated and can be imperfect. Earlier off-season history is not covered comprehensively. <a href="${safeLink(r.official_news)}" target="_blank" rel="noopener noreferrer">More from the team ↗</a></p></section>`;
+    return `<section class="team-reporting"><div class="section-heading"><div><span class="eyebrow">THE PEOPLE BEHIND THE RECORD</span><h2>Beyond the scoreboard.</h2></div><span class="count-label">CHECKED ${fmt(D.reporting.as_of).toUpperCase()}</span></div><p class="subtle">Dated reports since ${fmt(state.since)}. Headlines are links to reporting, not independently confirmed roster facts. An old injury report does not tell you who can play today.</p>${sourceNote()}<div class="reporting-facets">${facets.map(f=>{const items=news.filter(x=>x.category===f);return `<details class="reporting-facet" ${items.length?'open':''}><summary><span>${f}</span><b>${items.length} ${items.length===1?'report':'reports'}</b></summary>${items.length?items.map(x=>`<a class="report-link" href="${safeLink(x.source)}" target="_blank" rel="noopener noreferrer"><time>${fmt(x.date)}</time><strong data-original-language="en" lang="en">${esc(x.title)} ↗</strong><small>${isAT()?'ESPN · englische Originalschlagzeile':'ESPN · reported headline'}</small></a>`).join(''):`<p class="coverage-gap">No matching report in this collected feed and date window. This is a coverage gap, not confirmation that nothing changed.</p>`}</details>`;}).join('')}</div><details class="transaction-log" open><summary>Official roster transaction log <span>${moves.length} entries in your window</span></summary>${r.transactions_status==='available'?`<ol>${moves.slice(0,12).map(x=>`<li><time>${fmt(x.date)}</time><p data-original-language="en" lang="en">${esc(x.text)}</p></li>`).join('')||'<li>No listed transaction in this window.</li>'}</ol>${moves.length>12?`<details><summary>Show ${moves.length-12} earlier entries</summary><ol>${moves.slice(12).map(x=>`<li><time>${fmt(x.date)}</time><p data-original-language="en" lang="en">${esc(x.text)}</p></li>`).join('')}</ol></details>`:''}`:'<p class="coverage-gap">The official log could not be collected. Open the team’s site for roster news; no absence of activity is implied.</p>'}<a class="text-button" href="${safeLink(r.transactions_status==='available'?r.transactions_source:r.official_news)}" target="_blank" rel="noopener noreferrer">Official team ${r.transactions_status==='available'?'transaction log':'news'} ↗</a></details><p class="microcopy">Recent feed coverage is limited to up to 24 articles per team, starting September 1. Category labels are automated and can be imperfect. Earlier off-season history is not covered comprehensively. <a href="${safeLink(r.official_news)}" target="_blank" rel="noopener noreferrer">More from the team ↗</a></p></section>`;
   }
   function standings(){
     const rows=current.filter(r=>state.conference==='ALL'||r.division.startsWith(state.conference));
@@ -324,7 +1090,7 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     if(state.spoilers)return html+`<div class="protected-panel wide"><span>◉</span><h3>Standings tell you who won.</h3><p>Records, streaks and points stay hidden while outcome protection is on.</p><button class="primary-button" data-show-outcomes>Show the league picture ↗</button></div>`;
     if(state.depth==='little')html+=`<div class="explanation"><b>THE QUICK READ</b><p>W–L–T means wins, losses and ties. Teams are grouped into four-team divisions. Byes mean some have played fewer games; winning percentage accounts for that.</p></div>`;
     const divisions=[...new Set(rows.map(r=>r.division))].sort();
-    html+=`<div class="division-grid">${divisions.map(div=>`<section class="division"><div class="division-title"><h2>${div}</h2><span>W–L–T</span></div>${C.sortRecords(rows.filter(r=>r.division===div)).map(r=>`<button class="standings-row ${state.team===r.id?'followed':''}" data-team-room="${r.id}">${badge(r.id)}<span class="standing-name"><b>${esc(r.short)}</b><span class="pct-bar"><i style="width:${r.pct*100}%"></i></span><small>${(r.pct*100).toFixed(1)}% win rate ${state.depth==='well'?`· ${r.pf-r.pa>0?'+':''}${r.pf-r.pa} point diff`:''}</small></span><span class="standing-record"><b>${C.record(r)}</b>${state.depth==='well'?`<small>${r.pf} PF / ${r.pa} PA</small>`:''}</span></button>`).join('')}</section>`).join('')}</div><p class="microcopy">Sorted by winning percentage, then name. This is not playoff seeding: official tiebreakers are not applied. Ties count as half a win. Full-season records ignore the catch-up date filter. <a href="https://www.nfl.com/standings/" target="_blank" rel="noopener noreferrer">Official standings ↗</a></p>`;
+    html+=`<div class="division-grid">${divisions.map(div=>`<section class="division"><div class="division-title"><h2>${div}</h2><span>W–L–T</span></div>${C.sortRecords(rows.filter(r=>r.division===div)).map(r=>`<button class="standings-row ${state.team===r.id?'followed':''}" data-team-room="${r.id}">${badge(r.id)}<span class="standing-name"><b>${esc(r.short)}</b><span class="pct-bar"><i style="width:${r.pct*100}%"></i></span><small>${number(r.pct*100)}% win rate ${state.depth==='well'?`· ${r.pf-r.pa>0?'+':''}${r.pf-r.pa} point diff`:''}</small></span><span class="standing-record"><b>${C.record(r)}</b>${state.depth==='well'?`<small>${r.pf} PF / ${r.pa} PA</small>`:''}</span></button>`).join('')}</section>`).join('')}</div><p class="microcopy">Sorted by winning percentage, then name. This is not playoff seeding: official tiebreakers are not applied. Ties count as half a win. Full-season records ignore the catch-up date filter. <a href="https://www.nfl.com/standings/" target="_blank" rel="noopener noreferrer">Official standings ↗</a></p>`;
     return html;
   }
   const lessons=[
@@ -335,7 +1101,7 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     ['05','THE STATS','Yards aren’t points.','Total yards describe how far the offense moved the ball. Turnovers hand possession to the opponent. Possession time measures how long a team held the ball. None of these alone decides the winner.','A team can gain fewer yards and still win. The final score decides.'],
     ['06','THE CONTEXT','Know what a report says.','A trade changes the roster. A depth-chart move changes who starts. An injury report is a dated availability update. “Questionable” is not the same as definitely out.','A past game recap cannot confirm who will play next Sunday.']
   ];
-  function learn(){return `<div class="page-title"><div><span class="eyebrow">A WAY INTO THE CONVERSATION</span><h1>FOOTBALL.<br><em>DECODED.</em></h1><p>Start anywhere. Ask in your own words, then follow the answer further.</p></div><div class="learn-decoration" aria-hidden="true">X <span>→</span> O</div></div>${HuddleResearch.markup(state.depth,state.spoilers)}<details class="quick-basics"><summary>Keep a few basics handy</summary><div class="learn-grid">${lessons.map(([n,k,t,p,e])=>`<article class="lesson"><div><span class="lesson-number">${n}</span><span class="eyebrow">${k}</span></div><h2>${t}</h2><p>${p}</p><div class="lesson-example">${e}</div></article>`).join('')}</div></details><p class="microcopy">Reference: <a href="https://operations.nfl.com/rules-officiating/nfl-football-basics/football-terms" target="_blank" rel="noopener noreferrer">NFL Football Operations · Football terms ↗</a></p>`;}
+  function learn(){return `<div class="page-title"><div><span class="eyebrow">A WAY INTO THE CONVERSATION</span><h1>FOOTBALL.<br><em>DECODED.</em></h1><p>Start anywhere. Ask in your own words, then follow the answer further.</p></div><div class="learn-decoration" aria-hidden="true">X <span>→</span> O</div></div>${HuddleResearch.markup(state.depth,state.spoilers,state.locale)}<details class="quick-basics"><summary>Keep a few basics handy</summary><div class="learn-grid">${(isAT()?AT.lessons:lessons).map(([n,k,t,p,e])=>`<article class="lesson"><div><span class="lesson-number">${n}</span><span class="eyebrow">${k}</span></div><h2>${t}</h2><p>${p}</p><div class="lesson-example">${e}</div></article>`).join('')}</div></details><p class="microcopy">Reference: <a href="https://operations.nfl.com/rules-officiating/nfl-football-basics/football-terms" target="_blank" rel="noopener noreferrer">NFL Football Operations · Football terms ↗</a></p>`;}
   function lineScore(g){
     const n=Math.max(g.away.quarters?.length||0,g.home.quarters?.length||0);if(!n)return '<p class="subtle">Quarter scores are not available in the source for this game.</p>';
     return `<div class="line-score-wrap"><table class="line-score"><caption>Points scored in each quarter</caption><thead><tr><th scope="col">TEAM</th>${Array.from({length:n},(_,i)=>`<th scope="col">${i<4?'Q'+(i+1):'OT'+(i>4?i-3:'')}</th>`).join('')}<th scope="col">FINAL</th></tr></thead><tbody>${[g.away,g.home].map(r=>`<tr><th scope="row">${r.team}</th>${Array.from({length:n},(_,i)=>`<td>${r.quarters?.[i]??'—'}</td>`).join('')}<td><strong>${r.score}</strong></td></tr>`).join('')}</tbody></table></div>`;
@@ -348,7 +1114,8 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
   const statDefs=[['totalYards','Total yards','How far the offense moved the ball.'],['netPassingYards','Passing yards','Net yards through the air, including sack losses.'],['rushingYards','Rushing yards','Yards gained running the ball.'],['firstDowns','First downs','Times the offense earned a new set of downs.'],['thirdDownEff','Third downs','Conversions versus attempts on third down.'],['turnovers','Turnovers','Possessions lost to the opponent. Fewer is generally better.'],['possessionTime','Possession','Time with the ball.'],['yardsPerPlay','Yards per play','Average gain per offensive play.'],['fourthDownEff','Fourth downs','Conversions and attempts.'],['redZoneAttempts','Red zone','Source red-zone efficiency.'],['totalPenaltiesYards','Penalties / yards','Accepted penalties and yards.'],['sacksYardsLost','Sacks / yards lost','Times sacked and lost yardage.'],['totalOffensivePlays','Offensive plays','Total offensive snaps.'],['totalDrives','Drives','Offensive possessions.'],['fumblesLost','Fumbles lost','Fumbles recovered by the other team.'],['interceptions','Interceptions thrown','Passes caught by the defense.']];
   function statsPanel(g){
     if(!g.stats||Object.keys(g.stats).length!==2)return '<div class="empty"><p>Detailed team statistics were unavailable from the source. The verified result is shown above.</p></div>';
-    const defs=state.depth==='little'?statDefs.filter(([k])=>['totalYards','turnovers','possessionTime'].includes(k)):state.depth==='basics'?statDefs.slice(0,6):statDefs;
+    const localizedDefs=isAT()?AT.statDefs:statDefs;
+    const defs=state.depth==='little'?localizedDefs.filter(([k])=>['totalYards','turnovers','possessionTime'].includes(k)):state.depth==='basics'?localizedDefs.slice(0,6):localizedDefs;
     return `<section class="game-stat-panel"><h3>The numbers underneath.</h3><div class="stat-team-labels"><b>${g.away.team}</b><span>TEAM COMPARISON</span><b>${g.home.team}</b></div>${defs.map(([key,label,explain])=>{const a=g.stats[g.away.team]?.[key],h=g.stats[g.home.team]?.[key];if(a==null||h==null)return '';let av=parseFloat(a),hv=parseFloat(h),sum=av+hv,bar=!['thirdDownEff','possessionTime'].includes(key)&&Number.isFinite(sum)&&sum>0;return `<div class="comparison-row"><div><strong>${esc(a)}</strong><span>${label}${state.depth==='little'?`<small>${explain}</small>`:''}</span><strong>${esc(h)}</strong></div>${bar?`<div class="comparison-bar"><i style="width:${av/sum*100}%"></i><i style="width:${hv/sum*100}%"></i></div>`:''}</div>`;}).join('')}<p class="microcopy">These are box-score comparisons, not a rating of which team played better.</p></section>`;
   }
   function leadersPanel(g){
@@ -356,10 +1123,10 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     return `<section class="leaders-panel"><h3>Names behind the numbers.</h3><div class="leader-grid">${g.leaders.map(l=>`<article>${badge(l.team,'small')}<div><span>${esc(l.kind)}</span><b>${esc(l.name)}</b><p>${esc(l.stat)}</p></div></article>`).join('')}</div></section>`;
   }
   function deepGame(g){
-    return `<section class="deep-game"><details><summary>Every scoring play <span>${g.scoring_plays?.length||0} plays</span></summary>${g.scoring_plays?.length?`<ol class="scoring-log">${g.scoring_plays.map(p=>`<li><span>Q${esc(p.quarter)} · ${esc(p.clock)}<b>${esc(p.team)}</b></span><p>${esc(p.text)}</p><strong>${p.away}–${p.home}</strong></li>`).join('')}</ol>`:'<p>Scoring-play data is unavailable for this game.</p>'}</details><details><summary>Full player box score <span>Passing to special teams</span></summary><p class="microcopy">Source categories and available player rows. Scroll tables horizontally on small screens. Hover column labels for definitions.</p>${(g.player_stats||[]).map(t=>`<section class="player-box"><h3>${esc(full(t.team))}</h3>${t.categories.filter(c=>c.players.length).map(c=>`<details><summary>${esc(c.name.replace(/([A-Z])/g,' $1'))} <span>${c.players.length} players</span></summary><div class="line-score-wrap"><table class="line-score"><caption>${esc(t.team+' '+c.name)}</caption><thead><tr><th scope="col">Player</th>${c.labels.map((l,i)=>`<th scope="col" title="${esc(c.descriptions[i]||l)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${c.players.map(p=>`<tr><th scope="row">${esc(p.name)}</th>${p.stats.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`).join('')}</section>`).join('')||'<p>Player box scores were not available from the source.</p>'}</details></section>`;
+    return `<section class="deep-game">${sourceNote()}<details><summary>Every scoring play <span>${g.scoring_plays?.length||0} plays</span></summary>${g.scoring_plays?.length?`<ol class="scoring-log">${g.scoring_plays.map(p=>`<li><span>Q${esc(p.quarter)} · ${esc(p.clock)}<b>${esc(p.team)}</b></span><p data-original-language="en" lang="en">${esc(p.text)}</p><strong>${p.away}–${p.home}</strong></li>`).join('')}</ol>`:'<p>Scoring-play data is unavailable for this game.</p>'}</details><details><summary>Full player box score <span>Passing to special teams</span></summary><p class="microcopy">Source categories and available player rows. Scroll tables horizontally on small screens. Hover column labels for definitions.</p>${(g.player_stats||[]).map(t=>`<section class="player-box"><h3>${esc(full(t.team))}</h3>${t.categories.filter(c=>c.players.length).map(c=>`<details><summary>${esc(isAT()?(AT.sourceLabels[c.name]||L.text(c.name.replace(/([A-Z])/g,' $1'))):c.name.replace(/([A-Z])/g,' $1'))} <span>${c.players.length} players</span></summary><div class="line-score-wrap"><table class="line-score"><caption>${esc(t.team+' '+(isAT()?(AT.sourceLabels[c.name]||c.name):c.name))}</caption><thead><tr><th scope="col">Player</th>${c.labels.map((l,i)=>`<th scope="col" title="${esc(c.descriptions[i]||l)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${c.players.map(p=>`<tr><th scope="row">${esc(p.name)}</th>${p.stats.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`).join('')}</section>`).join('')||'<p>Player box scores were not available from the source.</p>'}</details></section>`;
   }
   function gameDetail(g){
-    const hide=g.completed&&locked(g.id),read=C.gameRead(g),ctx=C.gameContext(S,g);
+    const hide=g.completed&&locked(g.id),read=C.gameRead(g,state.locale),ctx=C.gameContext(S,g);
     let html=`<div class="game-detail-head"><span class="eyebrow">WEEK ${String(g.week).padStart(2,'0')} / ${esc(when(g))}</span><h2 id="game-dialog-title">${esc(short(g.away.team))} <span>at</span> ${esc(short(g.home.team))}</h2><p>${esc(g.venue)}${g.neutral?' · Neutral site':''}</p></div><div class="detail-scoreboard"><div>${badge(g.away.team,'large')}<b>${esc(full(g.away.team))}</b></div><strong>${g.completed?(hide?'—':g.away.score):'VS'}<i>${g.completed?':':''}</i>${g.completed?(hide?'—':g.home.score):''}</strong><div>${badge(g.home.team,'large')}<b>${esc(full(g.home.team))}</b></div></div>`;
     if(hide)return html+`<div class="protected-panel"><span>◉</span><h3>The whole result is protected.</h3><p>Revealing this game opens its score, quarter-by-quarter story, statistics and player leaders.</p><button class="primary-button" data-reveal-game="${g.id}">Reveal this game ↗</button></div>`;
     if(g.completed){
@@ -367,16 +1134,26 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     }else{
       html+=`<div class="upcoming-note"><span class="status-pill">STILL TO COME</span><h3>${esc(when(g))}</h3><p>${esc(g.broadcasts?.join(' / ')||'Broadcast not yet confirmed')} · Schedule checked ${fmt(S.as_of)}, 2026.</p>${!g.time_confirmed?'<p>The date and kickoff are still to be confirmed. Check the official schedule closer to game week.</p>':''}</div>`;
       if(state.spoilers)html+='<p class="protected-inline">Current team records are hidden while outcome protection is on.</p>';
-      else html+=`<div class="matchup-comparison">${[g.away,g.home].map(r=>{const t=recordMap[r.team];return `<article><span>${t.id}</span><strong>${C.record(t)}</strong><p>${(t.pf/t.gp).toFixed(1)} points per game<br>${(t.pa/t.gp).toFixed(1)} allowed per game</p>${formDots(t)}</article>`;}).join('')}</div><p class="microcopy">Current season averages from completed games as of ${fmt(S.as_of)}, not a forecast of this matchup.</p>`;
+      else html+=`<div class="matchup-comparison">${[g.away,g.home].map(r=>{const t=recordMap[r.team];return `<article><span>${t.id}</span><strong>${C.record(t)}</strong><p>${number(t.pf/t.gp)} points per game<br>${number(t.pa/t.gp)} allowed per game</p>${formDots(t)}</article>`;}).join('')}</div><p class="microcopy">Current season averages from completed games as of ${fmt(S.as_of)}, not a forecast of this matchup.</p>`;
     }
     if(g.completed)html+=deepGame(g);
     html+=`<div class="detail-footer"><a class="secondary-button" href="${safeLink(g.source)}" target="_blank" rel="noopener noreferrer">ESPN game page ↗</a><span>Snapshot: ${fmt(S.as_of)}, 2026. External pages may contain other results.</span></div>`;
     return html;
   }
-  function openGame(id){const g=S.games.find(g=>g.id===id);if(!g)return;openedGame=id;state.game=id;persist();$('#game-detail').innerHTML=gameDetail(g);if(!$('#game-dialog').open)$('#game-dialog').showModal();}
+  function openGame(id){const g=S.games.find(g=>g.id===id);if(!g)return;openedGame=id;state.game=id;persist();$('#game-detail').innerHTML=gameDetail(g);L.apply($('#game-dialog'));if(!$('#game-dialog').open)$('#game-dialog').showModal();}
   function closeGame(){openedGame=null;state.game=null;persist();$('#game-dialog').close();}
   function render(){
+    L.setLocale(state.locale);
+    document.documentElement.lang=state.locale;
     document.documentElement.dataset.theme=state.theme;
+    document.title=isAT()?'HUDDLE / Die NFL-Saison im Überblick.':'HUDDLE / The whole season, in focus.';
+    $('#locale-toggle').setAttribute('aria-checked',String(isAT()));
+    $('#locale-toggle').title=isAT()?'Zu Englisch wechseln und die vorherige Teamauswahl wiederherstellen':'Switch to Austrian German; starts with the Minnesota Vikings';
+    $('#locale-note').hidden=!isAT();
+    $('#coverage-note').textContent=isAT()?AT.coverage_note:D.coverage_note;
+    const age=Math.floor((Date.now()-Date.parse(S.as_of+'T23:59:59-05:00'))/86400000);
+    $('#freshness').hidden=age<2;
+    if(age>=2)$('#freshness').textContent=isAT()?`Das ist die Ausgabe vom ${fmt(S.as_of)}. Sie ist inzwischen ${age} Tage alt. Neuere Ergebnisse und Kaderänderungen können fehlen. Aktuelles findest du bei den verlinkten offiziellen Quellen.`:`This is the ${fmt(S.as_of)} edition, now ${age} days past its date. New results and roster changes may be missing; check the linked official sources for the latest.`;
     $('meta[name="theme-color"]').content=state.theme==='dark'?'#090d16':'#f0f2ed';
     $('#theme-toggle').textContent=state.theme==='dark'?'☾':'☀';$('#theme-toggle').setAttribute('aria-label',state.theme==='dark'?'Switch to day mode':'Switch to night mode');$('#theme-toggle').title=state.theme==='dark'?'Switch to day mode':'Switch to night mode';
     $$('.depths button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.depth===state.depth)));
@@ -386,11 +1163,9 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     $('#breadcrumb-view').textContent=names[state.tab];$('#coverage-line').textContent=`${fmt(state.since)} – ${fmt(S.as_of)} · 2026 edition`;
     scoreStrip();$('#view').innerHTML=({brief,games:gamesView,teams:teamRoom,league:standings,learn}[state.tab])();if(state.tab==='learn')HuddleResearch.bind();
     if(openedGame)$('#game-detail').innerHTML=gameDetail(S.games.find(g=>g.id===openedGame));
+    L.apply(document.body);
   }
   S.teams.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name;$('#team').append(o);});
-  $('#coverage-note').textContent=D.coverage_note;
-  const age=Math.floor((Date.now()-Date.parse(S.as_of+'T23:59:59-05:00'))/86400000);
-  if(age>=2){$('#freshness').hidden=false;$('#freshness').textContent=`This is the ${fmt(S.as_of)} edition, now ${age} days past its date. New results and roster changes may be missing; check the linked official sources for the latest.`;}
   document.addEventListener('click',e=>{
     if(e.target.closest('[data-home]')){e.preventDefault();setState({tab:'brief'},{focus:true});return;}
     const b=e.target.closest('button');if(!b)return;
@@ -400,7 +1175,7 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     else if(b.dataset.game)openGame(b.dataset.game);
     else if(b.hasAttribute('data-close-game'))closeGame();
     else if(b.dataset.revealGame){revealed.add(b.dataset.revealGame);render();notice('This game is now visible.');}
-    else if(b.dataset.researchTeam){HuddleResearch.draft('What has changed for the '+full(b.dataset.researchTeam)+' since '+state.since+'? Explain the games, quarterback, coaching, injuries and roster moves.');setState({tab:'learn'},{focus:true});}
+    else if(b.dataset.researchTeam){HuddleResearch.draft(isAT()?'Was hat sich bei den '+full(b.dataset.researchTeam)+' seit '+fmt(state.since)+' 2026 verändert? Erkläre die Spiele, die Quarterback-Situation, Trainer, Verletzungen und Kaderänderungen.':'What has changed for the '+full(b.dataset.researchTeam)+' since '+state.since+'? Explain the games, quarterback, coaching, injuries and roster moves.');setState({tab:'learn'},{focus:true});}
     else if(b.dataset.teamRoom){setState({tab:'teams',teamFocus:b.dataset.teamRoom},{focus:true});}
     else if(b.dataset.followTeam){setState({team:b.dataset.followTeam});notice(`${full(state.team)} selected for your catch up.`);}
     else if(b.dataset.topic)setState({topic:b.dataset.topic});
@@ -413,8 +1188,14 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
     else if(b.hasAttribute('data-reset-filters'))setState({team:'ALL',topic:'all',query:'',since:C.normalize({},S).since});
     else if(b.id==='more'){storyLimit+=6;render();}
     else if(b.id==='more-games'){gameLimit+=48;render();}
+    else if(b.id==='locale-toggle'){
+      state=C.switchLocale(state,isAT()?'en-US':'de-AT',S);
+      const u=new URL(location.href);u.searchParams.delete('lang');if(u.hash.startsWith('#catchup='))u.hash='';history.replaceState(null,'',u.pathname+u.search+u.hash);
+      storyLimit=state.depth==='little'?3:6;gameLimit=48;persist();render();
+      notice(isAT()?'Deutsch (Österreich) ist aktiv. Dein Startteam sind die Minnesota Vikings.':'English restored with your previous team selection.');
+    }
     else if(b.id==='theme-toggle')setState({theme:state.theme==='dark'?'light':'dark'},{keepLimit:true});
-    else if(b.id==='reset'){revealed.clear();history.replaceState(null,'',location.pathname+location.search);state=C.normalize({},S);storyLimit=6;gameLimit=48;persist();render();notice('Reset. Night mode is the default.');}
+    else if(b.id==='reset'){revealed.clear();const u=new URL(location.href);u.searchParams.delete('lang');history.replaceState(null,'',u.pathname+u.search);state=C.normalize({},S);storyLimit=6;gameLimit=48;persist();render();notice('Reset. Night mode is the default.');}
   });
   $('#period').addEventListener('change',e=>{if(e.target.value==='custom'){$('#custom-wrap').hidden=false;$('#since').focus();}else setState({since:e.target.value});});
   $('#since').addEventListener('change',e=>{if(e.target.validity.valid&&e.target.value)setState({since:e.target.value});});
@@ -431,13 +1212,14 @@ dialog{color:var(--text);background:var(--bg);border:1px solid var(--line);borde
   });
   $('#game-dialog').addEventListener('close',()=>{openedGame=null;state.game=null;persist();});
   $('#share').addEventListener('click',async()=>{
-    const shareState={...state,spoilers:true},url=location.origin+location.pathname+'#catchup='+encodeURIComponent(JSON.stringify(shareState));
+    const {englishTeam,englishTeamFocus,...shareable}=state;
+    const shareState={...shareable,spoilers:true},url=location.origin+location.pathname+'#catchup='+encodeURIComponent(JSON.stringify(shareState));
     try{await navigator.clipboard.writeText(url);notice('Link copied. Outcomes start hidden.');}catch{$('#share-url').value=url;$('#share-dialog').showModal();$('#share-url').select();}
   });
   $('#close-share').addEventListener('click',()=>$('#share-dialog').close());
   window.addEventListener('hashchange',()=>{
     if(!location.hash.startsWith('#catchup='))return;
-    try{const incoming=JSON.parse(decodeURIComponent(location.hash.slice(9)));revealed.clear();if($('#game-dialog').open)closeGame();state=C.normalize({...incoming,spoilers:true},S);storyLimit=6;gameLimit=48;persist();render();if(state.game)openGame(state.game);}catch{}
+    try{const incoming=JSON.parse(decodeURIComponent(location.hash.slice(9)));if(!incoming||typeof incoming!=='object'||Array.isArray(incoming))return;revealed.clear();if($('#game-dialog').open)closeGame();state=C.normalize({...C.switchLocale(state,incoming.locale||state.locale,S),...incoming,spoilers:true},S);storyLimit=6;gameLimit=48;persist();render();if(state.game)openGame(state.game);}catch{}
   });
   render();if(linked.game&&state.game)openGame(state.game);
 })();
