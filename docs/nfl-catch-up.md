@@ -93,3 +93,23 @@ External sources may contain spoilers. No server-side profile collection.
 
 The rendering/product registration reuses the DFE v2 engine. Other products and
 other deployment branches are unchanged.
+
+## November 8 data and team context
+
+The edition now includes 134 final results (121 through Week 8 and 13 in Week 9), all 272 regular-season fixtures, 16 team box-score statistics, 1,159 scoring plays and the available player rows in ten box-score categories. `through_week` means **fully completed weeks**; `latest_week` is the newest week containing a final. Records and date-window narratives count every final, including a partly completed week.
+
+`python scripts/refresh_nfl_catch_up.py --through-week 8 --as-of 2026-11-08` collects scores and details. `python scripts/refresh_nfl_reporting.py --as-of 2026-11-08` collects ESPN reporting headlines and official team transaction tables. The latter produced 316 headlines and 827 transaction entries across 32 teams; Atlanta and Dallas logs are explicitly unavailable. Neither collector silently promotes old editorial review dates. The feeds are not a complete historical archive or a current injury-status database.
+
+Team briefings calculate before/after records and window averages, link the latest game's evidence, distinguish the latest passing leader from a confirmed starting quarterback, and separate reported headlines from official transactions. Empty categories mean absent collected coverage, not “nothing changed.”
+
+## Open-ended football research
+
+`nfl_research.py` is a separate Flask service for the existing static site. It accepts arbitrary questions and up to three question/answer turns, carries familiarity and spoiler settings, and requires fresh web search for each generated answer. The prompt checks premises, prefers primary sources, distinguishes dates and uncertainty, and asks for concise explanations. Clickable citations are rendered from provider annotations, never from untrusted answer HTML. No question-to-answer lookup table is used.
+
+**Activation still required:** set `OPENAI_API_KEY` securely in the Render service environment, then redeploy. Never put the key in a browser field, commit, or static export. `HUDDLE_MODEL` defaults to the current documented `gpt-6-astra` model and can be overridden to a supported web-search model. Without the key, `/healthz` reports `answers_enabled: false` and the app explicitly offers live Wikipedia reference search only; it does not generate answers or claim to check the premise. Real generated-answer quality has not been tested without credentials. Mocked transport tests establish request/response handling, not answer correctness.
+
+Deploy the companion as one free Python web service, branch `feat/nfl-catch-up`, build `pip install -r requirements.txt && python -m unittest discover -s tests -p test_nfl_research.py`, start `gunicorn nfl_research:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 100`. The static frontend calls `https://dfe-nfl-research.onrender.com`. The free service can take about a minute to wake; the interface distinguishes loading, timeout, provider failure and unavailable generation.
+
+Limits: two concurrent requests, six requests per client address per ten minutes, and an 80-request process-wide rolling-day allowance (override with `HUDDLE_DAILY_LIMIT`). Limits are in memory and reset on restart; use a provider project spending limit before wider public promotion. One worker is intentional. CORS permits only the two HUDDLE deployment origins; CORS is not authentication. POST bodies are bounded; follow-up roles are validated; credentials are server-only; no question content is logged or durably stored by this application. Provider retention policies remain separate. The browser thread clears on reload. Reference results can contain spoilers and the interface says so.
+
+Validation: Node season/data tests; Python API tests for input limits, CORS, provider failure, missing credentials, citations, follow-ups, spoiler instructions and quotas; export consistency/escaping tests. Live provider generation remains a separate activation check.

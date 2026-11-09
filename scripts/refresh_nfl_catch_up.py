@@ -1,4 +1,4 @@
-"""Collect a dated ESPN score snapshot. Never publish partial or wrong-season data.
+"""Collect a dated ESPN snapshot, including finals in a partially completed week.
 
 Usage: python scripts/refresh_nfl_catch_up.py --through-week 8 --as-of 2026-11-04
 Editorial stories are reviewed separately; this never updates their review date.
@@ -11,6 +11,7 @@ from pathlib import Path
 import urllib.request
 from collections import Counter
 import time
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 DIVISIONS = {
@@ -47,7 +48,7 @@ def collect(week):
                       'broadcasts':list(dict.fromkeys(n for b in comp.get('broadcasts',[]) for n in b.get('names',[])))})
     return games, teams
 
-DETAIL_STATS=['totalYards','netPassingYards','rushingYards','firstDowns','thirdDownEff','turnovers','possessionTime','yardsPerPlay']
+DETAIL_STATS=['totalYards','netPassingYards','rushingYards','firstDowns','thirdDownEff','turnovers','possessionTime','yardsPerPlay','fourthDownEff','redZoneAttempts','totalPenaltiesYards','sacksYardsLost','totalOffensivePlays','totalDrives','fumblesLost','interceptions']
 
 def details(game):
     if not game['completed']:return game
@@ -71,6 +72,13 @@ def details(game):
                               'name':leader['athlete']['displayName'],'stat':leader['displayValue']}
                               for t in data.get('leaders',[]) for category in t.get('leaders',[]) for leader in category.get('leaders',[])[:1]]
             game['detail_status']='available' if len(game['stats'])==2 else 'partial'
+            game['scoring_plays']=[{'text':p.get('text',''), 'team':p.get('team',{}).get('abbreviation',''),
+                'quarter':p.get('period',{}).get('number'), 'clock':p.get('clock',{}).get('displayValue',''),
+                'home':p.get('homeScore'), 'away':p.get('awayScore')} for p in data.get('scoringPlays',[])]
+            game['player_stats']=[{'team':t['team']['abbreviation'], 'categories':[
+                {'name':c['name'],'labels':c.get('labels',[]),'descriptions':c.get('descriptions',[]),
+                 'players':[{'name':a['athlete']['displayName'],'stats':a.get('stats',[])} for a in c.get('athletes',[])]}
+                for c in t.get('statistics',[])]} for t in data.get('boxscore',{}).get('players',[])]
             return game
         except Exception as e:
             if attempt==2:
@@ -80,7 +88,7 @@ def details(game):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--through-week',type=int,required=True);p.add_argument('--as-of',required=True)
     args=p.parse_args();assert 1<=args.through_week<=18
-    cutoff=datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc)
+    cutoff=datetime.fromisoformat(args.as_of).date()
     games=[];teams={}
     with ThreadPoolExecutor(max_workers=4) as pool:
         for gs,ts in pool.map(collect,range(1,19)):
@@ -92,12 +100,12 @@ def main():
     for g in games:
         if g['week']<=args.through_week:
             assert g['completed'],f'Week {g["week"]} has unfinished games'
-            assert datetime.fromisoformat(g['date'].replace('Z','+00:00'))<cutoff
-        else:
-            assert not g['completed'], 'The requested completed-week cutoff is stale'
+        if g['completed']:
+            assert datetime.fromisoformat(g['date'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York')).date()<=cutoff
     print(f'Full schedule validated. Loading details for {sum(g["completed"] for g in games)} completed games…',flush=True)
     with ThreadPoolExecutor(max_workers=5) as pool:games=list(pool.map(details,games))
     result={'season':2026,'as_of':args.as_of,'through_week':args.through_week,
+            'latest_week':max(g['week'] for g in games if g['completed']),
             'collected_at':datetime.now(timezone.utc).isoformat(),'provider':'ESPN scoreboards',
             'schedule_weeks':18,'teams':sorted(teams.values(),key=lambda t:t['name']),
             'games':sorted(games,key=lambda g:(g['week'],g['date'],g['id']))}
