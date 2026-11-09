@@ -19,9 +19,9 @@ async function getLeague(id) {
     try {
       const [league,rosters,users]=await Promise.all(['','/rosters','/users'].map(s=>fetchJSON(`${SLEEPER}/league/${id}${s}`)));
       if(league?.sport!=='nfl' || !Array.isArray(rosters) || !Array.isArray(users) || !rosters.length)throw Error('An NFL league was not found for this ID.');
-      if(!Number.isInteger(league.total_rosters) || rosters.length!==league.total_rosters || rosters.some(r=>r.players!==null && !Array.isArray(r.players)))throw Error('Sleeper returned an incomplete roster snapshot. Please try again later.');
+      if(!Number.isInteger(league.total_rosters) || rosters.length!==league.total_rosters || new Set(rosters.map(r=>r.roster_id)).size!==rosters.length || rosters.some(r=>!Number.isInteger(r.roster_id) || (r.players!==null && !Array.isArray(r.players)) || ['reserve','taxi'].some(key=>r[key]!=null && !Array.isArray(r[key]))))throw Error('Sleeper returned an incomplete roster snapshot. Please try again later.');
       const data={id,name:league.name,season:league.season,status:league.status,settings:league.settings,scoring:league.scoring_settings,positions:league.roster_positions,
-        checkedAt:new Date().toISOString(),rosters:rosters.map(r=>({id:r.roster_id,owner:r.owner_id,name:users.find(u=>u.user_id===r.owner_id)?.metadata?.team_name || users.find(u=>u.user_id===r.owner_id)?.display_name || `Team ${r.roster_id}`,players:r.players || [],starters:r.starters || [],reserve:r.reserve || [],record:{wins:r.settings?.wins || 0,losses:r.settings?.losses || 0}}))};
+        checkedAt:new Date().toISOString(),rosters:rosters.map(r=>({id:r.roster_id,owner:r.owner_id,name:users.find(u=>u.user_id===r.owner_id)?.metadata?.team_name || users.find(u=>u.user_id===r.owner_id)?.display_name || `Team ${r.roster_id}`,players:r.players || [],starters:r.starters || [],reserve:r.reserve || [],taxi:r.taxi || [],record:{wins:r.settings?.wins || 0,losses:r.settings?.losses || 0}}))};
       if(leagueCache.size>=30)leagueCache.delete(leagueCache.keys().next().value);
       leagueCache.set(id,{at:Date.now(),data});return data;
     } finally { leagueActive--; }
