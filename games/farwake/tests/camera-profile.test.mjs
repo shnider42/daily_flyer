@@ -22,6 +22,46 @@ function fixture() {
 }
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+test('default browser timers retain their host receiver while queuing, replacing, and flushing a save', async () => {
+  const originalSchedule = globalThis.setTimeout, originalCancel = globalThis.clearTimeout;
+  const timers = new Map(), calls = [];
+  let timerId = 0, profile, flushed;
+  // Browser host timers can reject a CameraProfile receiver with "Illegal
+  // invocation". Node's timers and injected arrow-function fakes do not.
+  globalThis.setTimeout = function (callback, delay) {
+    assert.equal(this, globalThis, 'setTimeout must be called on its host');
+    calls.push(['schedule', delay]);
+    timers.set(++timerId, callback);
+    return timerId;
+  };
+  globalThis.clearTimeout = function (id) {
+    assert.equal(this, globalThis, 'clearTimeout must be called on its host');
+    calls.push(['cancel', id]);
+    timers.delete(id);
+  };
+  try {
+    profile = new CameraProfile();
+    const shared = { key: 'realm:captain', preferences: prefs(), revision: 1, send: async () => reply(2, prefs(1, .75)) };
+    profile.activateShared(shared);
+    profile.set('ship', .8);
+    profile.set('ship', .7);
+    assert.equal(timers.size, 1, 'a replacement slider edit keeps one debounce');
+    profile.activateLocal(prefs());
+    assert.equal(timers.size, 0, 'switching scope cancels the browser timer');
+    profile.activateShared(shared);
+    profile.set('person', .75);
+    flushed = profile.flush();
+    assert.equal(timers.size, 0, 'explicit flush clears its browser debounce');
+  } finally {
+    globalThis.setTimeout = originalSchedule;
+    globalThis.clearTimeout = originalCancel;
+  }
+  assert.equal(await flushed, true);
+  assert.equal(profile.status, 'saved');
+  assert.equal(calls.filter(([kind]) => kind === 'schedule').length, 3);
+  assert.equal(calls.filter(([kind]) => kind === 'cancel').length, 3);
+});
+
 test('local modes normalize independently and practice can restore the previous local values', async () => {
   const { profile } = fixture();
   profile.activateLocal(prefs(.8, 1.2));

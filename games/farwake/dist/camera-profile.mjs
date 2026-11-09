@@ -25,7 +25,7 @@ function authorityFrom(value) {
  * failure, rejected command, exhausted conflict retries, or a profile switch.
  */
 export class CameraProfile {
-  constructor({ onChange = () => {}, schedule = setTimeout, cancel = clearTimeout, delay = 250 } = {}) {
+  constructor({ onChange = () => {}, schedule = (callback, ms) => globalThis.setTimeout(callback, ms), cancel = timer => globalThis.clearTimeout(timer), delay = 250 } = {}) {
     this._onChange = onChange;
     this._schedule = schedule;
     this._cancel = cancel;
