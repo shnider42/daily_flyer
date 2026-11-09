@@ -1,0 +1,25 @@
+/* Combat feedback stays clear of the thumb controls and never intercepts input. */
+.combat-feedback{position:absolute;inset:0;z-index:12;pointer-events:none}
+.combat-feedback *{pointer-events:none!important}
+.hit-vignette,.blast-wash{position:absolute;inset:0;opacity:0}
+.hit-vignette{background:radial-gradient(ellipse at center,transparent 38%,#ce331900 54%,#c82e1ba8 83%,#ff5d38e8 100%);box-shadow:inset 0 0 26px 5px #ff4e2d9c}
+.blast-wash{background:radial-gradient(ellipse at center,#ffe8b226,transparent 60%,#ffa45d85);mix-blend-mode:screen}
+.damage-bearing{position:absolute;left:50%;top:50%;width:200px;height:200px;overflow:visible;fill:none;stroke:#ff784d;stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 1px 3px #390a04);transform:translate(-50%,-50%)}
+.damage-chevron{stroke:#fff2cf;stroke-width:2.5}
+.damage-notice{position:absolute;left:50%;top:calc(50% + 94px);transform:translateX(-50%);padding:9px 15px 10px;max-width:calc(100% - 40px);width:max-content;text-align:center;background:#38100de8;border:1px solid #ff96749e;border-top:3px solid #ff8158;box-shadow:0 3px 18px #1306045c;text-shadow:none;border-radius:2px}
+.damage-notice strong{display:block;color:#fff1d9;font:700 14px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.11em}
+.damage-notice span{display:block;color:#ffbe9c;font:10px/1.3 "SFMono-Regular",Consolas,monospace;margin-top:6px;letter-spacing:.055em}
+#hud-health.taking-damage{color:#fff1d9;background:#a53220e8;box-shadow:0 0 0 4px #a53220e8}
+#hud-health.critical-damage{color:#ffb6a0;border-bottom:2px solid #f47555}
+.reduce-motion .hit-vignette{box-shadow:inset 0 0 16px #ff674b66}
+@media(pointer:coarse),(max-width:1000px){
+ .damage-bearing{top:46%;width:164px;height:164px}
+ .damage-notice{top:calc(46% + 76px);padding:8px 12px}
+ .damage-notice strong{font-size:12px}.damage-notice span{font-size:9px}
+}
+@media(orientation:landscape) and (max-height:600px){
+ .damage-bearing{top:48%;width:122px;height:122px}
+ .damage-notice{top:calc(48% + 56px);padding:6px 10px;max-width:38%}
+ .damage-notice strong{font-size:11px}.damage-notice span{font-size:8px;margin-top:4px}
+}
+@media(max-width:359px){.damage-notice{top:calc(46% + 66px)}.damage-bearing{width:145px;height:145px}.damage-notice strong{font-size:11px}}

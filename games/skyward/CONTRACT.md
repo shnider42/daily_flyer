@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.6.0
+# SKYWARD module contract · v0.6.1
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 
@@ -58,6 +58,7 @@ Use a fresh simulation for each `onStart`. Crew mode retains its shared-aircraft
   lifeId, alive, health,
   livesRemaining,             // null for unlimited, otherwise remaining aircraft
   kills, deaths, damageId,    // damageId is monotonic, including across respawn
+  lastDamage,               // latest life-scoped feedback receipt, or null
   respawnAt,                 // simulation time, or null while alive
   spawn, pose, connected,
   stores: { ammo, missiles, bombs, troopers, dropsRemaining }
@@ -73,6 +74,12 @@ Each aircraft loss consumes a mission life, including the initial aircraft. Aren
 Ordinary squadron AIR kills/deaths/K/D credits a hostile AI aircraft kill exactly once to the participant responsible for its final damage; ground-target destruction adds shared mission points without increasing participant air kills.
 
 Configured snapshots have `version:2`, `runId`, `participants:[]` and `round:{duration,elapsed,remaining,ended}`, alongside existing world fields. Guests preserve prediction for the current living local aircraft, apply authoritative damage/stores, and replace it with the host's spawn/pose when `lifeId` increases. New-life application resets weapon/recovery state; the app clears held input and presentation interpolation. Host snapshots must reach the relay before guest poses for a new generation are accepted. Publish immediately after a respawn.
+
+### Damage feedback receipts
+
+Accepted aircraft damage emits an event with `{id,kind:'damage',text,targetId,targetLifeId,damageId,damage,health,maxHealth,weapon,source,position,at}`. `damage` is the health actually removed, including clamped overkill; `source` and `position` are copied `{x,y,z}` points, with `source:null` when unknown. `at` is simulation time. Gun sources use the shooter position, incoming bullet/missile sources use their pre-impact position, and flak/bombs use their blast position. Rejected PvP, invulnerability, cosmetic prediction and zero damage do not emit a receipt. Solo flak retains its existing one-health floor.
+
+`participant.lastDamage` and `player.lastDamage` retain the same event plus `eventId:id`, allowing the UI to recover a hit after it leaves the snapshot's short event tail. This metadata never reapplies damage. Respawn clears the receipt, and local snapshot reconciliation copies it onto the predicted player. For both AC-130 seats, address feedback to `sim.player.id` and `sim.player.lifeId`: the gunner's crew snapshot copies the pilot's shared aircraft identity, which differs from the gunner's transport identity. The old untargeted solo `hit` cue is not emitted alongside the addressed event.
 
 ### Round clock
 
@@ -136,7 +143,8 @@ renderer.render(sim, dt, {
   camera: 'gunner', // also 'chase', 'cockpit' or 'cinematic'
   lookX, lookY, remotePlayers: [],
   gunner: { seat: '25mm', yaw: 0, pitch: 0, zoom: false },
-  player, playerId // optional spectator focus pose and identity
+  player, playerId, // optional spectator focus pose and identity
+  combatKick: { pitch, yaw, roll, x, y } // optional local presentation offset
 })
 ```
 
@@ -152,7 +160,19 @@ When `options.player` is supplied, both renderers focus that pose instead of `si
 
 `terrain-stream.mjs` exports `TerrainStream(WorkerClass=globalThis.Worker)` with `request(job)`, `take()` and `dispose()`. Jobs carry `{key,x,z,mission,quality,software,radius,palette}`. `request` returns false when no worker is available, allowing synchronous generation. At most one job runs and one latest pending job is retained. `take` returns the completed result once. `terrain-worker.mjs` uses the same terrain/mesh builders, returns `{key,quality,mesh,geometry?}`, and transfers GPU buffer ownership for WebGL jobs. Renderers keep their current mesh while a nearby replacement is prepared; initial terrain, large moves and worker failure have a synchronous fallback. The stream does not own terrain collision or round timing.
 
-`combat-visuals.mjs` exports `EFFECT_BUDGET`, `sampleCombatEffects(effects,options,out)` and `sortEffectLayers(layers,eye,forward)`. Effects are presentation-only and derive deterministically from each event's ID/seed and age. A bounded reused layer array describes bright cores, fire lobes, rising smoke, embers and shock rings. WebGL batches these layers with per-instance opacity; Canvas draws the same recipe with depth ordering and terrain occlusion approximations. Reduced motion attenuates bright expanding elements. Rendering never adds damage or secondary physics particles.
+`combat-visuals.mjs` exports `EFFECT_BUDGET`, `sampleCombatEffects(effects,options,out)`, `sortEffectLayers(layers,eye,forward)`, `DamageSmokeTrails` and `effectViewAlpha(layer,eye)`. Effects are presentation-only and derive deterministically from each ID/seed and age. A bounded reused layer array describes crisp cores, fire lobes, dark rising smoke, impact sparks, outward embers/debris and shock rings. New explosions and impacts take priority over older smoke. `DamageSmokeTrails.sample(sim,options,out)` emits bounded world-space puffs from damaged living aircraft and clears a source across life changes. WebGL batches layers with per-instance opacity and a fixed nearby-blast light pool; Canvas draws the same recipe with depth ordering and terrain occlusion approximations. `effectViewAlpha` thins very near particles when the camera sits inside an effect. Reduced motion attenuates bright expanding elements and lowers smoke emission. Rendering never adds damage or secondary physics particles.
+
+### Combat feedback, camera and sound
+
+`combat-feedback.mjs` exports `CombatFeedback`, `combatDirection(source,listener,camera)` and `explosionStrength(effect,listener)`. A controller supports `reset(sim)` and `update(sim,elapsed,{listener,camera,suspended,spectating,reducedMotion})`, returning `{hit,blast,visible,title,detail,bearing,angle,critical,kick,cues}`. Consume its cue list during that update. Hits are filtered by aircraft/life identity and deduplicated across the event and retained receipt; stale receipts older than 1.5 simulation seconds are ignored. Sortie or life changes reset feedback. Camera world axes supply bearings when available, otherwise normalized aircraft axes do; inverted and side-facing views must keep their own right/up/forward directions.
+
+Fresh explosion IDs generate distance-scaled audio and nearby concussion; old smoke-phase effects do not replay. Overlapping bursts coalesce, and at most three new explosion cues are produced per update. A nearby explosion by itself does not produce a received-damage notice. Paused or connection-held feedback is consumed silently, preventing a burst on resume. Spectator cameras receive no kick, while the own-aircraft destruction sound can still play during the transition to a watched pilot.
+
+`combat-camera.mjs` applies `{pitch,yaw,roll,x,y}` after the normal camera calculation in both renderers. Angular values are radians and offsets are camera-local. Every frame starts from the base camera, so the reaction cannot accumulate or modify simulation movement, targeting, aiming or collision. Reduced motion zeroes the kick and attenuates hit/blast flashes while retaining warning text, bearings and audio. The app displays an edge flash, directional mark, weapon-specific hit notice and remaining airframe percentage; critical health also emphasizes the health readout. These cues are independent of radio-caption and sound preferences.
+
+`FlightAudio.cue(kind,details={})` accepts hit/explosion details including `{intensity,pan,weapon,distance,radius}`. `combat-audio.mjs` synthesizes and caches separate layered hit, heavy-hit, explosion and weapon buffers once per audio context. Sharp midrange impact transients, metallic debris, low body and rolling tails feed a compressed effects bus; engine/wind ambience ducks briefly during major sounds. Voice and cadence limits bound concurrent playback, and muting stops active effects. Existing master/effects/engine settings and gesture-unlock requirements apply. **Setup → Sound & view → Test hit & explosion sounds** previews a bullet hit and then an explosion using those settings.
+
+If destruction ends the local sortie (`status:'failed'` and a crashed/dead player), the app disables controls and keeps the flight view visible for 1.25 seconds before debrief. Effect age advances for presentation during that interval and behind the debrief; authoritative simulation time and failure rules do not change. Independent multiplayer death with the shared world still flying retains the immediate spectator/respawn flow.
 
 ## Input and room transport
 
@@ -221,6 +241,6 @@ Rooms live in one server process's memory, expire after 90 minutes and disappear
 
 ## Verification boundary
 
-Run `node --test games/skyward/tests/*.test.mjs` from the repository root. The suites cover the campaign and crew regressions alongside arena equipment, terrain cover, collision, elapsed round time, lives/respawns, model and effect geometry, worker behavior, and input/UI contracts. Real WebSocket tests include actual host/guest simulations, weapon attribution, host death, authenticated recovery, room replay and old-run/old-life rejection.
+Run `node --test games/skyward/tests/*.test.mjs` from the repository root. The suites cover the campaign and crew regressions alongside arena equipment, terrain cover, collision, elapsed round time, lives/respawns, model and effect geometry, worker behavior, and input/UI contracts. Combat coverage includes addressed receipts, event-tail fallback, life/run deduplication, camera-relative directions, reduced-motion reactions, effect/smoke budgets, audio synthesis/mixing limits and the actual app's fatal-destruction display before debrief. Real WebSocket tests include actual host/guest simulations, weapon attribution, host death, authenticated recovery, room replay and old-run/old-life rejection.
 
-Canvas/native raster checks and browser smoke tests can verify the software path when WebGL is unavailable. They do not establish actual GPU output, sustained device performance, physical iPhone/Safari input behavior, or independent internet-connection multiplayer quality. Keep those hardware and deployment checks separate from passing source-level tests; do not infer a frame-rate promise from simulation frequency or synthetic timing.
+Canvas/native raster checks and browser smoke tests can verify the software path when WebGL is unavailable. They do not establish actual GPU output, sustained device performance, physical iPhone/Safari input behavior, speaker loudness/reproduction, or independent internet-connection multiplayer quality. Keep those hardware and deployment checks separate from passing source-level tests; do not infer a frame-rate promise from simulation frequency or synthetic timing.

@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b141c"><meta name="description" content="SKYWARD: a century of flight. An 18-sortie 3D aviation campaign from canvas wings to the edge of tomorrow. A Daily Flyer game for touch and desktop.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
@@ -19,7 +19,7 @@
     <div class="home-copy"><p class="eyebrow"><span class="small-rule"></span> DAILY FLYER / AVIATION SERIES</p><h1>A little courage.<br><em>A lot of sky.</em></h1><p class="home-description">From canvas wings to the edge of tomorrow.<br>Learn to fly. Find your way home.</p><div class="home-cta"><button id="continue-button" class="primary big-button">Begin your logbook <span>→</span></button><button id="campaign-button" class="text-button">Explore the campaign <span>→</span></button></div><p class="continue-note" id="continue-note">Your first aircraft is waiting on the runway.</p></div>
     <div class="aircraft-caption"><span class="caption-line"></span><span><small>WHERE IT ALL BEGINS</small><strong>Canvas. Wood. Possibility.</strong><em>Avro 504 · 1917</em></span></div>
     <div class="home-bottom"><div class="edition"><span class="edition-number">01—18</span><span>EIGHTEEN SORTIES<br>ONE CENTURY OF FLIGHT</span></div><div class="home-links"><button id="free-button"><span class="mini-icon">→</span><span>Free flight<small>Pick a plane. Find some sky.</small></span><b>→</b></button><button id="squadron-button"><span class="mini-icon">✣</span><span>Fly together<small>Dogfight · free flight · AC-130 crew.</small></span><b>→</b></button></div></div>
-    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.6.0</span></footer>
+    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.6.1</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -76,6 +76,11 @@
   </section>
 
   <section id="flight-screen" class="screen flight-screen" data-screen="flight" hidden>
+    <div id="combat-feedback" class="combat-feedback" hidden>
+      <div id="hit-vignette" class="hit-vignette" aria-hidden="true"></div><div id="blast-wash" class="blast-wash" aria-hidden="true"></div>
+      <svg id="damage-bearing" class="damage-bearing" viewBox="0 0 100 100" aria-hidden="true" hidden><path d="M 22 16 A 44 44 0 0 1 78 16"/><path class="damage-chevron" d="M 44 10 L 50 17 L 56 10"/></svg>
+      <div id="damage-notice" class="damage-notice" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="damage-title">AIRFRAME HIT</strong><span id="damage-detail"></span></div>
+    </div>
     <header class="flight-header"><div class="flight-identity"><span id="flight-mission-number">01 / 18</span><strong id="flight-title">FIRST LIGHT</strong><small id="flight-aircraft">AVRO 504</small></div><div class="flight-header-actions"><span id="flight-network" hidden></span><button id="scoreboard-button" class="hud-button" aria-expanded="false" aria-controls="scoreboard-panel" hidden>SCORES</button><button id="camera-button" class="hud-button" aria-label="Change camera">VIEW</button><button id="pause-button" class="hud-button" aria-label="Pause flight">II</button></div></header>
     <div class="objective-box" id="objective-box"><div class="objective-meta"><span id="objective-label">FLIGHT ORDERS</span><span id="mission-progress">0%</span></div><strong id="objective-text">Prepare the aircraft</strong><div class="objective-track"><i id="objective-progress"></i></div></div>
     <div class="flight-instruments"><div class="instrument speed"><small id="speed-unit">KM/H</small><strong id="hud-speed">0</strong><span>AIRSPEED</span></div><div class="heading-strip"><span id="hud-wind">WIND 4 KT →</span><strong id="hud-heading">000<span>°</span></strong><small id="hud-compass">N</small></div><div class="instrument altitude"><small id="altitude-unit">METRES AGL</small><strong id="hud-altitude">0</strong><span id="terrain-clearance-label">GROUND CLEARANCE</span><div class="clearance-track" aria-hidden="true"><i id="clearance-fill"></i></div></div></div>

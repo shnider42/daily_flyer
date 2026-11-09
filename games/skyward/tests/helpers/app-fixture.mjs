@@ -12,6 +12,7 @@ import { terrainHeight } from '../../public/sim.mjs';
 import { FlightControls } from '../../public/controls.mjs';
 import { GunnerControls } from '../../public/gunner-controls.mjs';
 import { FixedStepClock, FlightPresentation } from '../../public/presentation.mjs';
+import { CombatFeedback } from '../../public/combat-feedback.mjs';
 
 // Execute the actual application with small browser adapters. These are boundary
 // substitutes for DOM/graphics/transport, not a second implementation of its
@@ -126,10 +127,11 @@ class RendererAdapter {
   project() { return { x: 0, y: 0, visible: false }; }
 }
 class AudioAdapter {
+  constructor(){this.cues=[];}
   unlock() { return Promise.resolve(); }
   setSettings() {}
   setActive(value) { this.active = value; }
-  cue() {}
+  cue(kind,details){if(this.active)this.cues.push({kind,details});}
   update() {}
 }
 
@@ -150,14 +152,14 @@ export async function appFixture(t) {
   t.after(() => { for (const key of Object.keys(replacements)) if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key]; });
   let clock = 1000, timer = 0;
   const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, FlightSimulation, terrainHeight,
-    FlightControls, GunnerControls, FixedStepClock, FlightPresentation,
+    FlightControls, GunnerControls, FixedStepClock, FlightPresentation, CombatFeedback,
     SquadronClient: RelayAdapter, FlightRenderer: RendererAdapter, SoftwareFlightRenderer: RendererAdapter, FlightAudio: AudioAdapter,
     ...replacements, performance: { now: () => clock }, console, URL, structuredClone,
     location: { href: 'https://example.test/', protocol: 'https:', host: 'example.test' }, navigator: {},
     innerWidth: 1200, innerHeight: 800, requestAnimationFrame() {}, setTimeout() { return ++timer; }, clearTimeout() {} });
   // Imports are provided above; the rest of app.mjs runs verbatim. Inspectable
   // bindings are appended only in this test VM, never to the shipped application.
-  vm.runInContext(source.replace(/^import .*;\r?\n/gm, '') + '\nglobalThis.__app = { get team(){return team}, get sim(){return sim}, get screen(){return screen}, get renderer(){return renderer}, get audio(){return audio}, get paused(){return paused}, get spectatorView(){return spectatorView}, controls, gunnerControls, frame };', context);
+  vm.runInContext(source.replace(/^import .*;\r?\n/gm, '') + '\nglobalThis.__app = { get team(){return team}, get sim(){return sim}, get screen(){return screen}, get renderer(){return renderer}, get audio(){return audio}, get paused(){return paused}, get spectatorView(){return spectatorView}, controls, gunnerControls, frame, startMission };', context);
   const app = context.__app;
   t.after(() => { app.controls.destroy(); app.gunnerControls.destroy(); });
   return { app, document, window, frame: (delta = 17) => { clock += delta; app.frame(clock); } };

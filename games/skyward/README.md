@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.6.0 adds private multiplayer dogfights and peaceful free flight, individual aircraft and launch choices, mission lives and spectating, and Razorback Canyons with physical terrain cover.** The two-person AC-130 operation and the full campaign remain available. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.6.1 strengthens combat feedback with directional hit warnings, layered impact and explosion audio, brief camera reactions, and damaged-aircraft smoke.** The v0.6 multiplayer dogfights and peaceful free flight, individual aircraft and launch choices, mission lives and spectating, and Razorback Canyons with physical terrain cover remain available alongside the two-person AC-130 operation and full campaign. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
 ## Run
 
@@ -159,11 +159,21 @@ Forward airspeed follows that same rotated nose direction on all three world axe
 
 **Setup → Flying → Auto-level when you release flight controls** enables optional recovery only while all pitch, roll and yaw inputs are released. Any attitude input takes priority. Turn it off to stop automatic leveling after release. **LEVEL** starts a smooth recovery toward upright flight and yields immediately to a flight-control input. Ground steering and the simplified takeoff procedure remain separate from airborne body-axis rotation.
 
+## Combat feedback
+
+An accepted hit on your aircraft produces a red edge flash, a direction indicator, a brief camera reaction, and an explicit **AIRFRAME HIT**, **MISSILE HIT** or **FLAK HIT** notice with the remaining airframe percentage. Incoming direction follows the current view, including an inverted cockpit or a side-facing AC-130 gun station. The health display emphasizes recent damage and critical health. These cues remain available with sound muted and with radio captions disabled.
+
+The simulation identifies the aircraft and life that received each hit. The interface combines the shared event with a retained `lastDamage` receipt, so a busy multiplayer event stream can still report the latest hit without playing it twice. Repeated snapshots, old lives, invulnerable hits and another pilot's damage do not trigger your own hit warning. Both AC-130 seats observe damage to their one shared aircraft. Camera reactions affect presentation only; they do not move the aircraft or alter collision, weapon aim or flight controls.
+
+Nearby explosions add a brief warm flash and concussion; their sound and camera reaction weaken with distance. A nearby explosion alone does not claim that your aircraft was damaged. Explosions have a bright initial core, irregular flame, dark rising smoke and outward debris, while damaged aircraft leave smoke trails. When a local destruction ends the sortie, the flight view remains visible for **1.25 seconds** with controls disabled before the debrief, allowing the impact and burst to register. Multiplayer losses that leave the shared sortie running keep the existing spectator and respawn flow.
+
 ## Audio and accessibility
 
-Audio is generated locally with Web Audio: propeller/jet engines, wind, gunfire, explosions, missile release, and warning tones. The browser starts sound after a user gesture. All necessary warnings and orders have visual equivalents. Browser visibility changes pause a solo sortie and clear held inputs. Each mobile pad and FIRE independently owns its pointer, so a second thumb or unrelated release cannot steal a held control. Pause, blur, interrupted touches, resize, and orientation changes release held input. Mobile layouts account for safe-area insets in both portrait and landscape.
+Audio is generated locally with Web Audio: propeller/jet engines, wind, gunfire, explosions, missile release, and warning tones. Combat sounds use cached, layered waveforms: sharp metallic bullet strikes, heavier concussion hits, and explosions with a crack, low body, rolling tail and debris. Midrange transients convey the impact without depending entirely on deep bass. Stereo direction and distance filtering place the sound, while brief engine/wind ducking makes an impact stand out. Compression, voice limits and short repeat guards bound busy firefights. Master, engine/wind and effects volume controls remain independent, and muting stops active effects.
 
-Reduced motion steadies the camera, removes the menu's aircraft bobbing, and reduces effect opacity. Graphics settings cap rendering resolution and scene detail for mobile devices.
+The browser starts sound after a user gesture. **Setup → Sound & view → Test hit & explosion sounds** previews a bullet hit followed by an explosion at the current sound settings. All necessary warnings and orders have visual equivalents. Browser visibility changes pause a solo sortie and clear held inputs. Each mobile pad and FIRE independently owns its pointer, so a second thumb or unrelated release cannot steal a held control. Pause, blur, interrupted touches, resize, and orientation changes release held input. Mobile layouts account for safe-area insets in both portrait and landscape.
+
+Reduced motion removes combat camera kicks, steadies the camera, removes the menu's aircraft bobbing, and reduces bright flashes and smoke emission. It retains directional warnings, hit labels and sound. Graphics settings cap rendering resolution and scene detail for mobile devices.
 
 ## Graphics and compatibility
 
@@ -193,7 +203,7 @@ Terrain drawing now uses a shared, world-aligned mesh builder for WebGL and Canv
 
 Routine terrain regeneration runs in a module worker. The current mesh remains visible while a replacement sector is prepared; requests coalesce to the latest sector, and WebGL receives transferable geometry buffers. Initial terrain, a large position jump, an unavailable worker or a failed worker uses the synchronous path. The worker reduces work during normal movement; it does not make terrain generation free or establish a device-independent performance guarantee.
 
-Explosions share a deterministic visual recipe across both renderers: a brief bright core, irregular fire lobes, rising wind-drifted smoke, outward embers and a fading shock ring. Effects derive from the host event's identity and age, with bounded layer pools and no extra simulated damage particles. Flash intensity responds to reduced-motion settings; the blast's visual radius does not change combat rules. Spectating switches the displayed airframe, cockpit and camera to the selected surviving pilot without moving or reviving the local aircraft.
+Explosions share a deterministic visual recipe across both renderers: a crisp bright core, irregular fire lobes, dark wind-drifted smoke, outward embers and debris, and a fading shock ring. Aircraft impacts add short sparks; damaged aircraft emit bounded world-space smoke puffs that follow their traveled path. Recent bursts and impacts take precedence over old smoke within the effect budget. WebGL adds a fixed small pool of nearby blast lights. Effects derive from identity and age, with bounded layer pools and no extra simulated damage particles. Very near particles become more transparent so a camera inside a blast retains a view. Flash intensity responds to reduced-motion settings; the blast's visual radius does not change combat rules. Spectating switches the displayed airframe, cockpit and camera to the selected surviving pilot without moving or reviving the local aircraft.
 
 If a browser cannot create a WebGL context, the app automatically uses `SoftwareFlightRenderer`. This is a perspective 3D renderer built on Canvas 2D, with the same flight simulation, terrain collisions, controls, missions, camera positions, and screen projection API. It projects the detailed player aircraft and a smaller terrain mesh on the CPU, and uses simpler distant aircraft, scenery, cloud shapes, and effects. Setup identifies when simplified 3D graphics are active. No network asset or installation is needed for either renderer.
 
@@ -223,7 +233,8 @@ The relay validates identity, membership, readiness, finite coordinate bounds, m
 - `public/sim.mjs`: flight, combat, participants/lives, mission objectives, elapsed round time and host snapshots.
 - `public/terrain.mjs`: shared surface heights, runway/deck lookup, swept collision, radar line of sight and ground-clearance prediction.
 - `public/terrain-visuals.mjs`, `public/terrain-stream.mjs`, `public/terrain-worker.mjs`: shared terrain mesh and colors, ground references/shadows, coalesced worker jobs and geometry transfer.
-- `public/combat-visuals.mjs`: bounded, deterministic visual effect layers used by both renderers.
+- `public/combat-visuals.mjs`: bounded, deterministic visual effect layers and damaged-aircraft smoke used by both renderers.
+- `public/combat-feedback.mjs`, `public/combat-camera.mjs`, `public/combat-feedback.css`: addressed-hit deduplication, directional HUD, distance-scaled blast feedback and presentation-only camera reactions.
 - `public/multiplayer-ui.mjs`, `public/arena.css`: score formatting, spectator selection, equipment notes and multiplayer presentation.
 - `public/gunship.mjs`: shared station definitions, bounded crew input and quaternion-based sight/muzzle frames.
 - `public/gunner-controls.mjs`: independent gunner keyboard, mouse and two-thumb input.
@@ -237,7 +248,7 @@ The relay validates identity, membership, readiness, finite coordinate bounds, m
 - `public/cockpit-models.mjs`: shared cockpit layouts, physical dashboards, cached instrument art and live telemetry.
 - `public/software.mjs`, `public/software-terrain.mjs`, `public/software-aircraft.mjs`: automatic Canvas 2D compatibility renderer, shared-edge terrain mesh and bounded depth-buffered aircraft rasterizer.
 - `public/controls.mjs`: touch and keyboard input with pointer cancellation.
-- `public/audio.mjs`: gesture-unlocked procedural audio.
+- `public/audio.mjs`, `public/combat-audio.mjs`: gesture-unlocked audio, cached layered combat sounds, stereo placement, ducking and bounded voice mixing.
 - `public/settings.mjs`: bounded, fault-tolerant preferences and local progress.
 - `public/app.mjs`, `index.html`, `style.css`: hangar, campaign, HUD, briefings, settings and integration.
 - `public/network.mjs`, `server.mjs`: room transport, interpolation, relay and static hosting.
@@ -247,6 +258,8 @@ The relay validates identity, membership, readiness, finite coordinate bounds, m
 Focused Node tests cover simulation/objective behavior, control cancellation and simultaneous pointers, storage failure, real WebSocket room/protocol cases, render interpolation, and flight/input equivalence at different frame rates. Flight regressions check banked/inverted pitch and yaw, pilot-right roll, full loops and rolls, gravity and rotated hover thrust, smooth recovery, and vertical remote weapons. Graphics regressions cover both cockpit cameras, terrain boundaries and shared canyon diagonals, runway/deck geometry, effect lifetime/budgets, worker request coalescing, coverage and buffer resizing. Model and cockpit/raster tests cover finite geometry, independent animation, wheel contact, open intake cavities, live telemetry, intersecting surfaces, transparent occlusion, near clipping and bounded reusable buffers.
 
 Arena tests exercise per-aircraft equipment, permitted carrier attempts, terrain-masked radar and missiles, ground collision, host death with continuing play, per-pilot mission lives, respawn generations, duplicate damage protection and final standings. Real WebSocket integration runs actual guest gunfire through the host simulation, confirms kill/death attribution and both pilots' respawns, preserves score during authenticated recovery, and rejects old-run or old-life messages. Timer regressions distinguish elapsed round time from capped physics stepping. Lobby coverage includes all flyable aircraft, all three supported round lengths, readiness changes, same-room replay and return to lobby.
+
+Combat-feedback regressions cover addressed damage receipts, event-tail recovery, duplicate and old-life suppression, shared AC-130 identity, inverted and camera-relative bearings, distance attenuation, reduced motion, noncumulative camera kicks, bounded smoke/effect pools, and audio waveform/mixing limits. App-level checks exercise the actual damage HUD and the brief fatal-destruction interval before debrief. These checks do not establish loudness, speaker reproduction or sustained rendering performance on a particular device.
 
 Browser checks in an environment without a WebGL context exercise the real interface and the software renderer, including phone-sized portrait/landscape layouts; they do not verify the WebGL image. Geometry, shader-compilation and Canvas tests also do not establish sustained GPU performance. Actual GPU output, extended hardware sessions, physical iPhone/Safari controls and performance, and multiplayer over independent internet connections still require device testing. The diagnostics report the active backend and measured session frame rate rather than promising a fixed frame rate.
 

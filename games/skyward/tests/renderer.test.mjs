@@ -137,11 +137,14 @@ test('transparent effects sort back-to-front without changing simulation order',
   const r=rendererFixture();r._buildPools();
   const near={type:'smoke',x:0,y:0,z:-10,age:.2,life:2},far={type:'impact',x:0,y:0,z:-100,age:.2,life:2};
   const effects=[near,far];r._updatePools({effects});
-  const matrix=new THREE.Matrix4();r._explosions.getMatrixAt(0,matrix);assert.equal(matrix.elements[14],-100);
-  r._explosions.getMatrixAt(1,matrix);assert.equal(matrix.elements[14],-10);
+  const matrix=new THREE.Matrix4(),depths=()=>Array.from({length:r._explosions.count},(_,i)=>{r._explosions.getMatrixAt(i,matrix);return matrix.elements[14];});
+  const forward=depths();assert.ok(forward.length>2,'an impact contains its spark fragments');
+  assert.ok(forward[0]<-90);assert.equal(forward.at(-1),-10);
+  for(let i=1;i<forward.length;i++)assert.ok(forward[i]>=forward[i-1],'all transparent fragment depths are ordered');
   assert.deepEqual(effects,[near,far]);
   r.camera.rotation.y=Math.PI;r._updatePools({effects});
-  r._explosions.getMatrixAt(0,matrix);assert.equal(matrix.elements[14],-10,'ordering follows camera direction');
+  const backward=depths();assert.equal(backward[0],-10,'ordering follows camera direction');
+  for(let i=1;i<backward.length;i++)assert.ok(backward[i]<=backward[i-1]);
 });
 
 test('empty effect pools do not upload buffers; active tracers retain their positions',()=>{

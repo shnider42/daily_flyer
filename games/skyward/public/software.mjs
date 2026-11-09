@@ -10,7 +10,8 @@ import {makeSoftwareGunshipStation,drawSoftwareGunshipStation} from './gunship-v
 import {GUNSHIP_SITE_COLORS,GUNSHIP_ROAD_TILES,gunshipTargetParts} from './gunship-scenery.mjs';
 import {buildSceneTerrain,terrainMeshSettings,colorSoftwareTerrain,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
-import {sampleCombatEffects} from './combat-visuals.mjs';
+import {sampleCombatEffects,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
+import {applyCombatCameraKick} from './combat-camera.mjs';
 import {SoftwareAircraftRasterizer} from './software-aircraft.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
 
@@ -95,6 +96,7 @@ export class SoftwareFlightRenderer{
     this._terrainStream?.dispose();this._terrainStream=new TerrainStream();
     this.mission=mission;this.aircraft=typeof aircraft==='string'?{id:aircraft}:aircraft||{id:mission.aircraft};this._mode='flight';this._plane=makeAircraft(this.aircraft);this._planeMeta=this._plane.userData;
     this._cameraReady=false;this._terrainCache.clear();this._terrainMesh=null;this._groundOffset=mission.start?.airborne===false?n(this._planeMeta.groundOffset,1.3):0;this.camera.fov=this.width<this.height?67:59;this.camera.updateProjectionMatrix();
+    this._damageSmoke=new DamageSmokeTrails();this._damagePuffs=[];
     this._focusId=null;this._focusAircraftKey=JSON.stringify([aircraftKind(this.aircraft),this.aircraft.color]);this._detailAnchor=null;this._localDetails=[];this._effectLayers=[];
     this._cockpitPanel=makeSoftwareCockpit(this.aircraft,this.width,this.height);
     this._configureAtmosphere(mission);const rand=random(hash(mission.id));this._clouds=[];
@@ -361,16 +363,18 @@ export class SoftwareFlightRenderer{
       for(let k=0;k<=32;k++){const a=k/32*TAU,p=[wp.x+(right.x*Math.cos(a)+up.x*Math.sin(a))*r,wp.y+(right.y*Math.cos(a)+up.y*Math.sin(a))*r,wp.z+(right.z*Math.cos(a)+up.z*Math.sin(a))*r];if(last)this._line(last,p,i===index?'#e9bb72':'#d1dfc5',i===index?2:1,i===index?.85:.3);last=p;}
     }
   }
-  _effects(sim){
+  _effects(sim,options={}){
     for(const p of sim.projectiles||[]){if(p.life<=0||this._terrainHides(p.x,p.y,p.z,2))continue;const missile=p.type==='missile',bomb=p.type==='bomb',heavy=p.type==='shell'&&p.seat==='105mm',medium=p.type==='shell'&&p.seat==='40mm',tail=missile?.16:heavy?.12:medium?.07:.035;if(!bomb)this._line([p.x,p.y,p.z],[p.x-n(p.vx)*tail,p.y-n(p.vy)*tail,p.z-n(p.vz)*tail],missile||heavy?'#ffd894':'#ffe2a5',heavy?3:missile||medium?2.5:1.5,.9);else this._disc(p.x,p.y,p.z,1.1,'#535c54');}
-    const effects=(sim.effects||[]).filter(e=>!this._terrainHides(e.x,e.y,e.z,n(e.radius,12)*.5));
+    this._damageSmoke??=new DamageSmokeTrails();
+    const puffs=this._damageSmoke.sample(sim,{time:this.time,remotePlayers:options.remotePlayers,reducedMotion:this.settings.reducedMotion},this._damagePuffs||=[]);
+    const effects=[...(sim.effects||[]),...puffs].filter(e=>!this._terrainHides(e.x,e.y,e.z,n(e.radius,12)*.5));
     const layers=sampleCombatEffects(effects,{capacity:this.settings.quality==='low'?192:320,reducedMotion:this.settings.reducedMotion,wind:this.mission.weather?.wind},this._effectLayers||=[]);
     for(const layer of layers){
-      if(layer.kind==='ember'&&layer.y<surfaceHeight(layer.x,layer.z,this.mission))continue;
+      if((layer.kind==='ember'||layer.kind==='debris')&&layer.y<surfaceHeight(layer.x,layer.z,this.mission))continue;
       const p=this._toView(layer.x,layer.y,layer.z),depth=-p[2];if(depth<.6||depth>this._visibilityFar)continue;
       const x=this.width*.5+p[0]*this._focal/depth,y=this.height*.5-p[1]*this._focal/depth,r=clamp(layer.radius*this._focal/depth,.6,this.width*1.5);
       if(x+r<0||x-r>this.width||y+r<0||y-r>this.height)continue;
-      this._queue.push({type:'effect',kind:layer.kind,x,y,r,ratio:layer.stretch,angle:layer.angle,depth,fill:layer.color,alpha:layer.alpha});
+      this._queue.push({type:'effect',kind:layer.kind,x,y,r,ratio:layer.stretch,angle:layer.angle,depth,fill:layer.color,alpha:effectViewAlpha(layer,this.camera.position)});
     }
     for(const p of sim.paratroopers||[]){if(p.landed||p.life<=0)continue;this._disc(p.x,p.y+4,p.z,4.5,'#e8e2c6',1,.55);this._line([p.x-3,p.y+4,p.z],[p.x,p.y,p.z],'#c8cbb2',1);this._line([p.x+3,p.y+4,p.z],[p.x,p.y,p.z],'#c8cbb2',1);this._disc(p.x,p.y,p.z,.9,'#5b6b51',1,1.4);}
   }
@@ -388,10 +392,18 @@ export class SoftwareFlightRenderer{
       else if(item.type==='effect'){
         if(item.kind==='ring'){ctx.strokeStyle=item.fill;ctx.lineWidth=Math.max(.65,item.r*.02);ctx.beginPath();ctx.ellipse(item.x,item.y,item.r,item.r,0,0,TAU);ctx.stroke();}
         else{
-          ctx.save();ctx.translate(item.x,item.y);if(item.kind==='ember')ctx.rotate(item.angle);ctx.scale(1,item.ratio);
-          const gradient=ctx.createRadialGradient?.(0,0,item.r*.08,0,0,item.r),tint=rgb(item.fill).map(Math.round);
-          if(gradient?.addColorStop){gradient.addColorStop(0,item.fill);gradient.addColorStop(item.kind==='fire'?.65:.5,`rgba(${tint.join(',')},.82)`);gradient.addColorStop(1,`rgba(${tint.join(',')},0)`);ctx.fillStyle=gradient;}else ctx.fillStyle=item.fill;
-          ctx.beginPath();ctx.arc(0,0,item.r,0,TAU);ctx.fill();ctx.restore();
+          ctx.save();ctx.translate(item.x,item.y);ctx.rotate(item.angle);ctx.scale(1,item.ratio);
+          if(item.kind==='debris'||item.kind==='ember'){
+            ctx.fillStyle=item.fill;ctx.beginPath();ctx.moveTo(-item.r*.42,-item.r);ctx.lineTo(item.r*.55,-item.r*.35);ctx.lineTo(item.r*.28,item.r);ctx.lineTo(-item.r*.35,item.r*.7);ctx.closePath();ctx.fill();
+          }else{
+            const gradient=ctx.createRadialGradient?.(0,0,item.r*.08,0,0,item.r),tint=rgb(item.fill).map(Math.round),hot=item.kind==='core'||item.kind==='glow',fire=item.kind==='fire';
+            if(gradient?.addColorStop){gradient.addColorStop(0,hot?'#fffbe8':item.fill);gradient.addColorStop(hot?.44:fire?.75:.6,`rgba(${tint.join(',')},${hot?.98:fire?.94:.88})`);gradient.addColorStop(1,`rgba(${tint.join(',')},0)`);ctx.fillStyle=gradient;}else ctx.fillStyle=item.fill;
+            ctx.beginPath();
+            if(fire){for(let j=0;j<13;j++){const angle=j/12*TAU,radius=item.r*(.82+Math.sin(j*2.9+item.angle*3)*.14);if(j===0)ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);else ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();}
+            else ctx.arc(0,0,item.r,0,TAU);
+            ctx.fill();
+          }
+          ctx.restore();
         }
       }
       else{ctx.fillStyle=item.fill;ctx.beginPath();ctx.ellipse(item.x,item.y,item.r,item.r*item.ratio,0,0,TAU);ctx.fill();}
@@ -427,15 +439,15 @@ export class SoftwareFlightRenderer{
     V.set(p.x,p.y,p.z);this.camera.position.copy(this._cameraOffset).add(V);this._cameraTarget.copy(this._cameraLookOffset).add(V);
     if(!firstPerson)this.camera.position.y=Math.max(height(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
     this.camera.up.set(up.x,up.y,up.z);
-    this.camera.lookAt(this._cameraTarget);this._cameraReady=true;this._cameraMode=mode;this._view();
+    this.camera.lookAt(this._cameraTarget);applyCombatCameraKick(this.camera,options.combatKick,this.settings.reducedMotion);this._cameraReady=true;this._cameraMode=mode;this._view();
   }
   _weather(p){let factor=1;if(p.y>this._cloudBase-55&&p.y<this._cloudTop+55){const inside=Math.min(clamp((p.y-this._cloudBase+55)/130,0,1),clamp((this._cloudTop+55-p.y)/130,0,1));factor=1-inside*.92;}this._visibilityFar=mix(850,this._fogFar,factor);}
   render(sim,dt=1/60,options={}){
     if(!sim?.player||!this._plane)return;dt=clamp(n(dt,1/60),0,.1);this.time+=dt;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;
     const p=options.player||sim.player;this._focusPlayer(p,options);this._camera(p,dt,options);this._weather(p);this._background();this._cloudLayer();this._paint();
     this._terrain(p);this._paint();this._runways();this._gunshipSite();this._paint();
-    this._groundReadability(p);this._environment();this._entities(sim,dt,options.remotePlayers||[]);this._waypoints(sim);this._effects(sim);
-    if(options.camera!=='cockpit'&&options.camera!=='gunner'&&n(p.health,100)>0&&p.alive!==false)this._aircraft(this._plane,p,dt,true);
+    this._groundReadability(p);this._environment();this._entities(sim,dt,options.remotePlayers||[]);this._waypoints(sim);this._effects(sim,options);
+    if(options.camera!=='cockpit'&&options.camera!=='gunner'&&n(p.health,100)>0&&p.alive!==false&&!p.crashed)this._aircraft(this._plane,p,dt,true);
     this._paint();if(options.camera==='cockpit')this._cockpit(p);
     if(options.camera==='gunner')drawSoftwareGunshipStation(this.ctx,this._gunshipPanel,sim.crew,this.time);
     this.stats.fps=mix(this.stats.fps,dt?1/dt:60,.03);

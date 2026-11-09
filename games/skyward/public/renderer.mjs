@@ -9,7 +9,8 @@ import {GUNSHIP_SITE_COLORS,GUNSHIP_ROAD_TILES,gunshipTargetParts} from './gunsh
 import {batchAircraft} from './model-batching.mjs';
 import {makeSkyReflection} from './aircraft-lighting.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
-import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET} from './combat-visuals.mjs';
+import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
+import {applyCombatCameraKick} from './combat-camera.mjs';
 import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
 
@@ -145,6 +146,7 @@ export class FlightRenderer {
   }
 
   _clearWorld(){
+    this._damageSmoke?.reset();
     this._terrainStream?.dispose();this._terrainStream=null;
     if(this._world){
       this.scene.remove(this._world);const geometries=new Set(),materials=new Set(),textures=new Set();
@@ -571,11 +573,12 @@ export class FlightRenderer {
     this._troopers=new THREE.InstancedMesh(new THREE.CapsuleGeometry(.45,1.5,2,5),worldMaterial('#606c50'),80);this._troopers.frustumCulled=false;this.effectsRoot.add(this._troopers);
     for(const pool of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     for(const pool of[this._tips,this._explosions,this._shockwaves]){pool.setColorAt(0,tempColor.set('#ffffff'));pool.instanceColor.setUsage(THREE.DynamicDrawUsage);}
-    this._effectSort=[];
+    this._effectSort=[];this._damageSmoke=new DamageSmokeTrails();this._damagePuffs=[];
+    this._blastLights=Array.from({length:2},()=>{const light=new THREE.PointLight('#ffc278',0,600,2);this.effectsRoot.add(light);return light;});
     this._tips.count=this._explosions.count=this._shockwaves.count=this._canopies.count=this._troopers.count=0;linesGeometry.setDrawRange(0,0);
   }
 
-  _updatePools(sim){
+  _updatePools(sim,options={}){
     let lineCount=0,tips=0;const writeLine=(ax,ay,az,bx,by,bz,r1,g1,b1,r2,g2,b2)=>{
       if(lineCount>=320)return;const o=lineCount*6,p=this._linePositions,c=this._lineColors;
       p[o]=ax;p[o+1]=ay;p[o+2]=az;p[o+3]=bx;p[o+4]=by;p[o+5]=bz;
@@ -588,14 +591,19 @@ export class FlightRenderer {
     }
     // Sort the derived layers, never simulation effects. Every transparent
     // instance receives its own fading opacity, including the last smoke puff.
-    const sorted=sampleCombatEffects(sim.effects,{reducedMotion:this.settings.reducedMotion,wind:this.mission?.weather?.wind,capacity:this.settings.quality==='low'?288:EFFECT_BUDGET.layers},this._effectSort);
+    const puffs=this._damageSmoke.sample(sim,{time:this.time,remotePlayers:options.remotePlayers,reducedMotion:this.settings.reducedMotion},this._damagePuffs);
+    const sorted=sampleCombatEffects([...(sim.effects||[]),...puffs],{reducedMotion:this.settings.reducedMotion,wind:this.mission?.weather?.wind,capacity:this.settings.quality==='low'?288:EFFECT_BUDGET.layers},this._effectSort);
+    // Two unshadowed lights give nearby metal and terrain the same short blast
+    // flash. Fixed light count avoids shader recompilation during combat.
+    const flashes=(sim.effects||[]).filter(e=>(e.type==='explosion'||e.type==='impact')&&number(e.age)<.55).sort((a,b)=>{const strength=e=>number(e.radius,20)**2/(this.camera.position.distanceToSquared(e)+100);return strength(b)-strength(a);});
+    for(let i=0;i<this._blastLights.length;i++){const light=this._blastLights[i],e=flashes[i];if(!e){light.intensity=0;continue;}const r=clamp(number(e.radius,20),5,180),fade=Math.pow(clamp(1-number(e.age)/.55,0,1),1.7);light.position.set(e.x,e.y,e.z);light.distance=r*7;light.intensity=r*r*6*fade*(this.settings.reducedMotion?.35:1);}
     scratchV.set(0,0,-1).applyQuaternion(this.camera.quaternion);sortEffectLayers(sorted,this.camera.position,scratchV);
     let ecount=0,rings=0;
     for(const layer of sorted){
       const ring=layer.kind==='ring',pool=ring?this._shockwaves:this._explosions,index=ring?rings++:ecount++,r=layer.radius;
       tempObject.position.set(layer.x,layer.y,layer.z);tempObject.scale.set(r,r*layer.stretch,r);tempObject.quaternion.copy(this.camera.quaternion);
       if(!ring)tempObject.rotateZ(layer.angle);
-      tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);pool.setColorAt(index,tempColor.set(layer.color));pool.geometry.attributes.effectOpacity.setX(index,layer.alpha);
+      tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);pool.setColorAt(index,tempColor.set(layer.color));pool.geometry.attributes.effectOpacity.setX(index,effectViewAlpha(layer,this.camera.position));
     }
     let troopCount=0;
     for(const p of sim.paratroopers||[]){
@@ -638,7 +646,7 @@ export class FlightRenderer {
 
   _updateCamera(p,dt,options){
     const mode=options.camera||'chase',cockpit=mode==='cockpit',gunner=mode==='gunner',firstPerson=cockpit||gunner;
-    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&number(p.health,100)>0&&p.alive!==false;
+    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&number(p.health,100)>0&&p.alive!==false&&!p.crashed;
     if(this._gunshipStation)this._gunshipStation.visible=gunner;
     const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),originY=p.y-number(this._visualGearOffset);
     const lookX=number(options.lookX),lookY=clamp(number(options.lookY),-1.15,1.15);
@@ -676,7 +684,7 @@ export class FlightRenderer {
     this.camera.position.copy(this._cameraOffset).add(scratchV);
     if(!firstPerson)this.camera.position.y=Math.max(height(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
     this._cameraTarget.copy(this._cameraLookOffset).add(scratchV);this.camera.up.copy(scratchUp);
-    this.camera.lookAt(this._cameraTarget);this._cameraInitialized=true;this._cameraMode=mode;
+    this.camera.lookAt(this._cameraTarget);applyCombatCameraKick(this.camera,options.combatKick,this.settings.reducedMotion);this._cameraInitialized=true;this._cameraMode=mode;
     if(cockpit)updateCockpit(this._cockpit,p,this.time);
   }
 
@@ -697,7 +705,7 @@ export class FlightRenderer {
     if(this.contextLost||!sim?.player||!this._plane)return;
     dt=clamp(number(dt,1/60),0,.1);this.time+=dt;
     const p=options.player||sim.player;this._focusPlayer(p,options);setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
-    this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim);this._updateWeather(p,dt);
+    this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim,options);this._updateWeather(p,dt);
     if(options.camera==='gunner')updateGunshipStation(this._gunshipStation,sim.crew,this.time);
     const active=number(sim.waypointIndex);const guidance=this.settings.guidance||this.settings.assist;
     for(const wp of this._rings){
