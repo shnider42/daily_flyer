@@ -16,7 +16,9 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 110 issue dossiers and 33 feature topics. The October 28 source review refreshes six existing dossiers and adds seven separately scoped reports from October 22–27 public replies. Patch 1.7 remains the latest verified release. Support escalation and diagnostic advice do not establish reproduction, root cause or a shipped fix; the single positive voice-volume outcome remains player-reported. Existing statuses, feature baselines and Catch Up gameplay rules are preserved. Coverage and exclusions are in `reviews/2026-10-28-source-review.json`.
+The current tracker contains 117 issue dossiers, 43 feature topics and 19 Catch Up briefings. The November 9 review incorporates Community Feedback #9 (November 6), seven new qualified reports and recent Support follow-ups. Patch 1.7 (October 21) remains the latest verified release. Certain PS5 crashes now have an official memory explanation; additional memory, replication and NVIDIA settings fixes remain unreleased. New feature targets stay separate from live behavior. Coverage, source checks and exclusions are in `reviews/2026-11-09-source-review.json`.
+
+The October 28 snapshot contained 110 issue dossiers and 33 feature topics. The October 28 source review refreshes six existing dossiers and adds seven separately scoped reports from October 22–27 public replies. Patch 1.7 remains the latest verified release. Support escalation and diagnostic advice do not establish reproduction, root cause or a shipped fix; the single positive voice-volume outcome remains player-reported. Existing statuses, feature baselines and Catch Up gameplay rules are preserved. Coverage and exclusions are in `reviews/2026-10-28-source-review.json`.
 
 The October 21 Patch 1.7 review updates 15 existing dossiers, adds 19 scoped release-documented defects, updates five feature topics and adds 17 functionality/content topics. Voice-volume scaling and manual-exit boat shutdown have release evidence; broader replication, persistence and rendering issues are not automatically closed. Khe Sanh and ANZAC remain future 2.0 content; base-PS5 QSSR has no stated release date. Coverage and limits are in `reviews/2026-10-21-patch-1-7-review.json`.
 
@@ -66,7 +68,7 @@ Then open `/hllv_tracker/`.
 
 The existing Render static site is `hllv-bug-track`, service `srv-dac8c36k1f9s73dfq2cg`, in the approved My Workspace. It auto-deploys `feature/hllv-bug-evidence-tracker` from `hllv_tracker` with no build step. Do not create another service or change sibling Daily Flyer deployments.
 
-The site reads the committed `data/issues.json`; a reload or deployment does not research new reports. The October 5 maintenance workflow is a guarded one-time migration, not a schedule or an unattended evidence classifier. Original issue dates, player observations and uncertainty are retained. `generated_at` identifies the snapshot review; `last_updated` identifies the most recent recorded issue evidence.
+The site reads a published immutable snapshot built from the committed `data/issues.json`. The scheduled collector separately refreshes `official-feed.json` and reply-discovery leads; it never approves bug statuses or rewrites reviewed explanations. A reload or deployment does not perform an editorial review. The October 5 maintenance workflow is a guarded one-time migration, not a schedule or an unattended evidence classifier. Original issue dates, player observations and uncertainty are retained. `generated_at` identifies the snapshot review; `last_updated` identifies the most recent recorded issue evidence.
 
 ## Page-wide Last updated
 
@@ -83,11 +85,11 @@ The original Suggestion Box pilot was closed by default and invitation-only. UI 
 ## Catch Up gameplay guide
 
 `/#catch-up` is linked from the homepage introduction and the top navigation. It
-offers ten reviewed returning-player briefings with independent date, familiarity
+offers nineteen reviewed returning-player briefings with independent date, familiarity
 and optional role controls. Three reading levels present factual comparisons,
 current rules, official sources and related bug records. Every level preserves
 access to all reviewed facts; Catch Up does not provide tactical advice. It covers
-selected October 7–21, 2026 changes, reviewed October 23; it is not a complete
+selected October 7–21, 2026 changes, reviewed November 9; it is not a complete
 tutorial. Filtered briefings and expanded topics are shareable through the URL.
 
 Source, review locks and maintenance instructions are in `.github/hllv-catch-up/`.

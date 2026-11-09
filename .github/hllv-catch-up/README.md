@@ -1,9 +1,16 @@
 # Catch Up: returning-player guide
 
 Public route: `/#catch-up`. The homepage introduction and top navigation link here.
-Ten curated topics describe released mechanics from the content ledger. The guide
-is partial coverage of October 7–21, 2026, reviewed October 23. It is not a complete
+Nineteen curated topics describe released mechanics from the content ledger. The guide
+is partial coverage of October 7–21, 2026, reviewed November 9. It is not a complete
 tutorial, tactical ranking, or independent gameplay test.
+
+The November 9 review adds graphics/display options, server-browser persistence,
+Vote Kick, the Official Server inactivity timer, menus/tutorial labels, Unit naming,
+vehicle impacts, Commander indicators and Tunnel-collapse timing. The latter two
+retain the earlier Patch 1.6 documentation where Patch 1.7 repeats a rule. Existing
+live baseline hashes remain unchanged; newly included baselines were checked
+against the released notes before adding their locks.
 
 An optional `since=YYYY-MM-DD` includes release events on that calendar date and
 later. Role filtering includes shared topics. Current rules always describe the
@@ -36,6 +43,14 @@ feature `current` objects and source text hashes. A changed baseline or cited
 source stops publication until the facts are re-reviewed and the lock deliberately
 updated. Do not regenerate locks blindly. The SHA-256 feature hash is canonical
 JSON with sorted keys, UTF-8, ensure_ascii=False and separators=(',', ':').
+
+`reviewed_source_ids` records newer official announcements that were checked but
+did not release new gameplay rules. The November 6 Community Feedback #9 is pinned
+by source identity and content hash for that purpose. It is included in the built
+source list so the browser does not flag an already-reviewed announcement again;
+it does not extend `coverage_through`, add a release comparison or promote a future
+feature into a live baseline. Edited known sources and newer announcements still
+require review. Source publication/review dates and the review lock are validated.
 
 The existing announcement collector supplies review flags only. New posts and
 changed cited source text display a notice; candidate feature matches can flag a

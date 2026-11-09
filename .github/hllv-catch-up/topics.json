@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "reviewed_at": "2026-10-23",
+  "reviewed_at": "2026-11-09",
   "coverage_from": "2026-10-07",
   "coverage_through": "2026-10-21",
   "release": "Patch 1.7",
@@ -17,7 +17,7 @@
         "HLLV-F008"
       ],
       "takeaway": "Manual driver exit now stops the engine automatically. Driver death keeps it running and still prevents transport-boat spawning.",
-      "caution": "This engine change does not establish that every missing-spawn problem is resolved.",
+      "caution": "This engine rule is separate from missing-spawn and asset-replication reports; the linked bug record retains the latest investigation and fix status.",
       "issue_ids": [
         "HLLV-046"
       ],
@@ -44,7 +44,7 @@
         "HLLV-F001"
       ],
       "takeaway": "Level 1 defenses cost no Supplies; upgrades still do. Barbed Wire increased from two to three per Engineer, capped at 50 per side.",
-      "caution": "Free Level 1 construction does not remove upgrade costs or placement limits.",
+      "caution": "Free Level 1 construction does not remove upgrade costs or placement limits. Announced future defensive additions are outside these released rules.",
       "issue_ids": [],
       "changes": [
         {
@@ -236,7 +236,7 @@
         "HLLV-F003"
       ],
       "takeaway": "All controller layouts now offer a Crouch / Melee input swap.",
-      "caution": "Full controller remapping and a Radio / Equipment swap are not established by this release.",
+      "caution": "This released option only swaps Crouch and Melee. Other controller options and Tactical Map changes retain their own development status in the content tracker.",
       "issue_ids": [],
       "changes": [
         {
@@ -274,6 +274,261 @@
       "overview_order": 10,
       "overview": "Friendly deaths caused by Commander abilities no longer add the associated punishment to the Commander.",
       "context": "The affected abilities include Napalm, Artillery Strikes and Bombing Runs."
+    },
+    {
+      "id": "graphics-options",
+      "title": "Graphics & display options",
+      "area": "PC & PlayStation",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F010",
+        "HLLV-F021"
+      ],
+      "overview": "PS5 Pro, compatible PS5 displays and supported AMD PC graphics cards gained different graphics options.",
+      "takeaway": "PS5 Pro gained PSSR; PS5 and PS5 Pro gained VRR on compatible displays. Supported AMD GPUs gained FSR Frame Generation.",
+      "context": "PSSR reconstructs the image on PS5 Pro. VRR matches display refresh to changing frame delivery. Frame Generation inserts extra frames on supported AMD hardware; these are separate technologies.",
+      "caution": "PSSR is specific to PS5 Pro, and VRR requires a compatible display. The AMD addition does not establish a fix for NVIDIA DLSS settings reports.",
+      "issue_ids": [
+        "HLLV-006",
+        "HLLV-057",
+        "HLLV-060"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Released PSSR for PS5 Pro, VRR for compatible PS5 displays, and AMD FSR Frame Generation on supported 5000-series-and-newer GPUs.",
+          "before": "These PS5 and AMD options had not been released in the reviewed patch history. Xbox Series X|S already supported VRR.",
+          "after": "The new options are available on their supported hardware. They do not apply equally to every console or PC."
+        }
+      ],
+      "overview_order": 11
+    },
+    {
+      "id": "server-browser",
+      "title": "Finding & saving servers",
+      "area": "Joining a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F006"
+      ],
+      "overview": "The server list prioritises fuller matches. Filters and saved favourites received persistence fixes.",
+      "takeaway": "Higher-population servers move up the list. Filters survive a game restart, and Favourites saving and server targeting have release-documented fixes.",
+      "context": "These changes affect the order of the server list and whether choices survive between sessions. They are separate from the number of servers a player may save.",
+      "caution": "The released corrections do not establish that every missing-server report is resolved or that Favourites capacity has increased.",
+      "issue_ids": [
+        "HLLV-058",
+        "HLLV-059",
+        "HLLV-069"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Prioritised fuller servers and corrected filter persistence and Favourites saving/targeting.",
+          "before": "Filters could reset after restarting, and Favourites could fail to save or select the intended server. Fuller-server ordering was not prioritised as it is now.",
+          "after": "Fuller servers are prioritised, selected filters persist, and the notes document corrections to Favourites saving and targeting."
+        }
+      ],
+      "overview_order": 12
+    },
+    {
+      "id": "vote-kick",
+      "title": "Vote Kick visibility & timing",
+      "area": "Server moderation",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F012"
+      ],
+      "overview": "Votes to remove a player are visible by default, with more time to respond.",
+      "takeaway": "Vote Kick notifications default to visible. The released changelog increases the response window from 15 to 30 seconds.",
+      "context": "Vote Kick lets players respond to a removal vote within their server. This update changes the notification default and the time available for a response.",
+      "caution": "Players can still choose to hide notifications. A longer, more visible vote does not establish that disruptive behavior has been eliminated.",
+      "issue_ids": [
+        "HLLV-063"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Made Vote Kick notifications visible by default and doubled the voting window.",
+          "before": "The released changelog identifies a 15-second voting window and a default setting that hid Vote Kick notices.",
+          "after": "Votes allow 30 seconds, with notifications visible unless the player chooses to hide them."
+        }
+      ],
+      "overview_order": 13
+    },
+    {
+      "id": "official-afk-timer",
+      "title": "Official Server inactivity timer",
+      "area": "Joining & staying in a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F024"
+      ],
+      "overview": "Official Servers now remove inactive players after ten minutes instead of thirty.",
+      "takeaway": "The Official Server AFK timeout fell from 30 minutes to 10 minutes.",
+      "context": "AFK means inactive or away from the controls. This timer governs removal for inactivity while occupying a server slot.",
+      "caution": "The announcement specifies Official Servers. It does not establish a universal setting for community-run servers.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Reduced the Official Server inactivity timeout by twenty minutes.",
+          "before": "Official Servers used a 30-minute AFK timeout.",
+          "after": "Official Servers use a 10-minute AFK timeout."
+        }
+      ],
+      "overview_order": 14
+    },
+    {
+      "id": "menus-tutorial-labels",
+      "title": "Menus, settings & tutorial labels",
+      "area": "Before joining a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F025",
+        "HLLV-F031"
+      ],
+      "overview": "Barracks menus have shorter transitions, unsaved settings trigger a warning, and tutorial completion labels are clearer.",
+      "takeaway": "Long Barracks camera transitions are removed. Leaving front-end Options with unsaved edits produces a prompt, and tutorial status labels distinguish completed from incomplete entries more clearly.",
+      "context": "These are menu and information-display changes. A clearer label and an unsaved-edit warning describe what the interface shows.",
+      "caution": "Neither change confirms that tutorial completion or every video setting will remain saved after restarting. Those reports retain separate bug records.",
+      "issue_ids": [
+        "HLLV-033",
+        "HLLV-084"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Shortened Barracks navigation and improved feedback about unsaved settings and tutorial completion.",
+          "before": "Barracks entry and exit used lengthy camera transitions. The new unsaved-edit prompt was absent, and tutorial completion labels were less clear.",
+          "after": "Barracks transitions are shorter, front-end Options warn about unsaved edits, and tutorial status is more clearly labelled."
+        }
+      ],
+      "overview_order": 15
+    },
+    {
+      "id": "unit-names",
+      "title": "Unit naming",
+      "area": "Recognising your unit",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F026"
+      ],
+      "overview": "Units now use names such as Alfa, Bravo and Charlie from the NATO phonetic alphabet.",
+      "takeaway": "The Unit naming scheme changed to the NATO phonetic alphabet, including Alfa, Bravo and Charlie.",
+      "context": "These words identify lettered Units. Returning players may encounter a different spoken or displayed Unit name.",
+      "caution": "This change concerns Unit naming. It does not release Clan Tags or change the number of players in a Unit.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Changed the Unit naming scheme to NATO phonetic names.",
+          "before": "The previous naming scheme was replaced; this announcement does not enumerate every former name.",
+          "after": "Units use NATO phonetic names, including Alfa, Bravo, Charlie and Delta."
+        }
+      ],
+      "overview_order": 16
+    },
+    {
+      "id": "vehicle-impact",
+      "title": "Slow-vehicle collision deaths",
+      "area": "Infantry & vehicles",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F027"
+      ],
+      "overview": "Vehicles must be moving faster than before for an impact to kill infantry.",
+      "takeaway": "The vehicle speed required for a collision to kill infantry was raised again. The patch does not give the old or new speed threshold.",
+      "context": "This changes when a vehicle impact is lethal. It is separate from weapon damage to vehicles or vehicle movement speed.",
+      "caution": "No exact safe speed or immunity to vehicle impacts is established by the notes.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Raised the vehicle impact speed threshold again to reduce deaths from slowly moving vehicles.",
+          "before": "A lower vehicle speed could trigger a lethal infantry impact; no numerical threshold is provided.",
+          "after": "A higher speed is required for a lethal impact. The new threshold is not quantified."
+        }
+      ],
+      "overview_order": 17
+    },
+    {
+      "id": "commander-indicators",
+      "title": "Commander limits & ability indicators",
+      "area": "Commander",
+      "roles": [
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F032"
+      ],
+      "overview": "The Commander interface shows vehicle limits and whether the Encourage ability is active.",
+      "takeaway": "Vehicle Orders display the active vehicle limit. Patch 1.7 also documents an active-state indicator for Encourage.",
+      "context": "The display helps explain a vehicle-order limit and an ability’s current state. The notes describe interface feedback, not an increase to vehicle capacity.",
+      "caution": "Patch 1.6 already documented the vehicle-limit display and separately named a Reinforce indicator. The 1.7 notes name Encourage; they do not establish that the two ability names are interchangeable.",
+      "issue_ids": [
+        "HLLV-096"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Documented vehicle-order active-limit information in the Commander interface.",
+          "before": "The vehicle-order limit was not shown through the added UI information.",
+          "after": "Vehicle Orders display how many vehicles of each type can be active."
+        },
+        {
+          "source_id": "patch17",
+          "summary": "Reiterated vehicle-limit information and documented an indicator for active Encourage.",
+          "before": "Vehicle-limit information was already documented in 1.6. That earlier changelog named a Reinforce indicator, not Encourage.",
+          "after": "The 1.7 notes explicitly describe active Encourage feedback alongside the vehicle-limit display."
+        }
+      ],
+      "overview_order": 18
+    },
+    {
+      "id": "tunnel-collapse",
+      "title": "Tunnel collapse during travel",
+      "area": "Infantry & tunnel travel",
+      "roles": [
+        "infantry",
+        "engineer",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F033"
+      ],
+      "overview": "A player travelling through a Tunnel dies immediately if that network collapses.",
+      "takeaway": "Tunnel-network collapse kills players in transit immediately, rather than waiting until their travel finishes. This was documented in 1.6 and restated in 1.7.",
+      "context": "This is the outcome when a network collapses while a player is travelling through it. It does not describe an ordinary completed Tunnel journey.",
+      "caution": "The rule does not establish a fix for every Tunnel connection, visibility or spawn-replication issue.",
+      "issue_ids": [
+        "HLLV-046"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Moved the in-transit death to the moment the Tunnel network collapses.",
+          "before": "Death following a network collapse occurred when the Tunnel journey completed.",
+          "after": "A player in transit dies immediately when the network collapses; 1.7 later repeats this rule."
+        }
+      ],
+      "overview_order": 19
     }
+  ],
+  "reviewed_source_ids": [
+    "cf9"
   ]
 }

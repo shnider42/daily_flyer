@@ -23,7 +23,17 @@ def build(topics=None, features=None, issues=None, lock=None):
     by_issue = {i['id']: i for i in issues['issues']}
     by_source = {s['id']: s for s in features['sources']}
     result = {k: v for k, v in topics.items() if k != 'topics'}
-    result['topics'], used_sources, ids = [], set(), set()
+    # A reviewed announcement can leave the released rules unchanged. Retain its
+    # identity/hash so the browser does not repeatedly flag it as unreviewed;
+    # it is not a release event and cannot extend the release coverage window.
+    reviewed_sources = topics.get('reviewed_source_ids', [])
+    assert isinstance(reviewed_sources, list) and all(isinstance(s, str) for s in reviewed_sources)
+    assert len(reviewed_sources) == len(set(reviewed_sources))
+    assert set(reviewed_sources) <= by_source.keys(), 'Reviewed announcement is missing from the source ledger'
+    for sid in reviewed_sources:
+        s = by_source[sid]
+        assert s['published_at'][:10] <= s['reviewed_at'] <= topics['reviewed_at'], 'Announcement review dates are inconsistent'
+    result['topics'], used_sources, ids = [], set(reviewed_sources), set()
     for topic in topics['topics']:
         assert re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', topic['id']) and topic['id'] not in ids
         ids.add(topic['id'])

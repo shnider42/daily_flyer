@@ -1,9 +1,48 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-21",
+  "reviewed_at": "2026-11-09",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected functionality from Community Feedback 6–8 and Patches 1.6–1.7. October 21 distinguishes released changes from future 2.0 and QSSR plans; this is not a complete roadmap or independent gameplay verification.",
+  "coverage_note": "Selected functionality from Community Feedback 6–9 and Patches 1.6–1.7, reviewed through November 9. Patch 1.7 remains the latest verified release; November 6 statements describe further work and targets, not a new patch. This is not a complete roadmap or independent gameplay verification.",
   "sources": [
+    {
+      "id": "cf9",
+      "announcement_id": "1848664643345363",
+      "title": "Community Feedback #9 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
+      "published_at": "2026-11-06T12:26:02Z",
+      "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02",
+      "reviewed_at": "2026-11-09",
+      "review_scope": "Feature plans, targets and current-behavior clarifications. Statements were reviewed in full; no new release or independent gameplay validation is established."
+    },
+    {
+      "id": "ama2_live",
+      "announcement_id": "1847920302238261",
+      "title": "Watch the Livestream Today | Dev AMA #2",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609663",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302238261",
+      "published_at": "2026-10-30T12:00:31Z",
+      "content_sha256": "64501cdc9bc10fcdd74ce59de4ed2620445383a6e4bb6f64111d890c82fce0e9",
+      "reviewed_at": "2026-11-09",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
+    },
+    {
+      "id": "ama2_invitation",
+      "announcement_id": "1847920302231605",
+      "title": "Developer AMA #2 Livestream | Hell Let Loose: Vietnam",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609659",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302231605",
+      "published_at": "2026-10-28T16:00:20Z",
+      "content_sha256": "88b48fd31154d52bf56a6a34220c54b8cfeebecaae4734e99c2d17fc4b442516",
+      "reviewed_at": "2026-11-09",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
+    },
     {
       "id": "patch17",
       "announcement_id": "1847286114028257",
@@ -55,6 +94,19 @@
       "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
       "reviewed_at": "2026-10-16",
       "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+    },
+    {
+      "id": "commandpost_15_16",
+      "announcement_id": "1845383656387240",
+      "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656387240",
+      "published_at": "2026-10-02T17:47:33Z",
+      "content_sha256": "8308f924252dfc1362b9746a800beff9241c73d0fdf4a122eb58dc6d0509db1a",
+      "reviewed_at": "2026-11-09",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
     },
     {
       "id": "cf6",
@@ -339,15 +391,20 @@
           "patch16"
         ]
       },
-      "status": "under_consideration",
-      "change": "A higher Favourites limit is under technical review.",
-      "target": "No confirmed release",
-      "latest_source_id": "cf8",
+      "status": "planned",
+      "change": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live.",
+      "target": "Update 2.0",
+      "latest_source_id": "cf9",
       "history": [
         {
           "source_id": "cf8",
           "status": "under_consideration",
           "summary": "A capacity increase is conditional on technical feasibility."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live."
         }
       ],
       "related_issue_ids": [
@@ -357,6 +414,25 @@
       "monitor_terms": [
         "favourites",
         "favorites"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "A higher Favourites limit is under technical review.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        }
       ]
     },
     {
@@ -431,9 +507,9 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated.",
+      "change": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed.",
       "target": "Update 2.0 · November 2026 target",
-      "latest_source_id": "patch17",
+      "latest_source_id": "cf9",
       "history": [
         {
           "source_id": "cf8",
@@ -444,13 +520,19 @@
           "source_id": "patch17",
           "status": "planned",
           "summary": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed."
         }
       ],
       "related_issue_ids": [],
       "related_suggestions": [],
       "monitor_terms": [
         "khe sanh",
-        "map variety"
+        "map variety",
+        "weather"
       ],
       "editorial_history": [
         {
@@ -464,6 +546,21 @@
             "change": "Khe Sanh is announced as the next new map.",
             "status": "planned",
             "target": "Update 2.0"
+          }
+        },
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "patch17"
           }
         }
       ]
@@ -668,21 +765,44 @@
         "summary": "The reviewed statement does not establish availability.",
         "source_ids": []
       },
-      "status": "under_consideration",
-      "change": "Clan Tags are named among community requests the publisher is tracking; development is not confirmed.",
-      "target": "No confirmed release",
-      "latest_source_id": "cf8",
+      "status": "planned",
+      "change": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation.",
+      "target": "Update 3.0 target",
+      "latest_source_id": "cf9",
       "history": [
         {
           "source_id": "cf8",
           "status": "under_consideration",
           "summary": "Publisher acknowledges the request without a delivery commitment."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation."
         }
       ],
       "related_issue_ids": [],
       "related_suggestions": [],
       "monitor_terms": [
-        "clan tags"
+        "clan tags",
+        "battalions"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Clan Tags are named among community requests the publisher is tracking; development is not confirmed.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        }
       ]
     },
     {
@@ -696,20 +816,45 @@
         "source_ids": []
       },
       "status": "under_consideration",
-      "change": "Rank emblems are named among community requests the publisher is tracking; development is not confirmed.",
+      "change": "The team is exploring better ways to display player experience and rank; a specific emblem implementation remains unconfirmed.",
       "target": "No confirmed release",
-      "latest_source_id": "cf8",
+      "latest_source_id": "cf9",
       "history": [
         {
           "source_id": "cf8",
           "status": "under_consideration",
           "summary": "Publisher acknowledges the request without a delivery commitment."
+        },
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "The team is exploring better ways to display player experience and rank; a specific emblem implementation remains unconfirmed."
         }
       ],
       "related_issue_ids": [],
       "related_suggestions": [],
       "monitor_terms": [
-        "rank emblems"
+        "rank emblems",
+        "player experience",
+        "representing player",
+        "rank"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Rank emblems are named among community requests the publisher is tracking; development is not confirmed.",
+            "status": "under_consideration",
+            "target": "No confirmed release",
+            "latest_source_id": "cf8"
+          }
+        }
       ]
     },
     {
@@ -1088,14 +1233,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated.",
-      "target": "No confirmed release date",
-      "latest_source_id": "patch17",
+      "change": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed.",
+      "target": "Dependent on Sony availability · no confirmed release date",
+      "latest_source_id": "cf9",
       "history": [
         {
           "source_id": "patch17",
           "status": "planned",
           "summary": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated."
+        },
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed."
         }
       ],
       "related_issue_ids": [
@@ -1104,6 +1254,23 @@
       "related_suggestions": [],
       "monitor_terms": [
         "qssr"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Community Feedback #9 review; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated.",
+            "status": "planned",
+            "target": "No confirmed release date",
+            "latest_source_id": "patch17"
+          }
+        }
       ]
     },
     {
@@ -1183,14 +1350,19 @@
         ]
       },
       "status": "released",
-      "change": "Adds feedback about limits and current ability state.",
-      "target": "Released in Patch 1.7",
+      "change": "Patch 1.7 repeats the vehicle-limit UI listed in 1.6 and names an Encourage indicator. The 1.6 notes called their ability indicator Reinforce; equivalence is not established.",
+      "target": "Vehicle limits documented in 1.6 · Encourage listed in 1.7",
       "latest_source_id": "patch17",
       "history": [
         {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Vehicle-order active limits and a Reinforce active-state indicator are listed in Patch 1.6."
+        },
+        {
           "source_id": "patch17",
           "status": "released",
-          "summary": "Adds feedback about limits and current ability state."
+          "summary": "Patch 1.7 repeats the vehicle-limit UI listed in 1.6 and names an Encourage indicator. The 1.6 notes called their ability indicator Reinforce; equivalence is not established."
         }
       ],
       "related_issue_ids": [
@@ -1200,6 +1372,31 @@
       "monitor_terms": [
         "encourage",
         "active vehicle limit"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Cross-check of Patch 1.6 establishes earlier documentation; Patch 1.7 baseline retained.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Commander vehicle Orders show the active vehicle limit; Encourage has an active-state indicator.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Adds feedback about limits and current ability state.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "history": [
+              {
+                "source_id": "patch17",
+                "status": "released",
+                "summary": "Adds feedback about limits and current ability state."
+              }
+            ]
+          }
+        }
       ]
     },
     {
@@ -1215,14 +1412,19 @@
         ]
       },
       "status": "released",
-      "change": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity.",
-      "target": "Released in Patch 1.7",
+      "change": "Patch 1.7 repeats the immediate tunnel-collapse outcome already documented in 1.6; broader replication and connectivity fixes are separate.",
+      "target": "Released by Patch 1.6 · reiterated in 1.7",
       "latest_source_id": "patch17",
       "history": [
         {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Players in transit die immediately when their Tunnel network collapses, rather than when travel finishes."
+        },
+        {
           "source_id": "patch17",
           "status": "released",
-          "summary": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity."
+          "summary": "Patch 1.7 repeats the immediate tunnel-collapse outcome already documented in 1.6; broader replication and connectivity fixes are separate."
         }
       ],
       "related_issue_ids": [],
@@ -1230,6 +1432,327 @@
       "monitor_terms": [
         "tunnel network collapses",
         "travelling"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-09",
+          "reason": "Cross-check of Patch 1.6 establishes earlier documentation; Patch 1.7 baseline retained.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Players in transit are killed immediately if their Tunnel network collapses.",
+              "source_ids": [
+                "patch17"
+              ]
+            },
+            "change": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity.",
+            "status": "released",
+            "target": "Released in Patch 1.7",
+            "history": [
+              {
+                "source_id": "patch17",
+                "status": "released",
+                "summary": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-F034",
+      "title": "In-match Party Chat across Units",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced in-match extension is not confirmed live; earlier lobby Party Voice Chat fixes are a separate record.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion.",
+      "target": "Update 2.0 target · subject to completion",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "in_development",
+          "summary": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-038"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "party chat",
+        "party voice",
+        "different units"
+      ]
+    },
+    {
+      "id": "HLLV-F035",
+      "title": "New Engineer bunker type",
+      "category": "Gameplay",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The additional bunker type is not confirmed live. Existing Engineer buildables and Barbed Wire limits remain as previously released.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified.",
+      "target": "Update 2.0",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "new bunker",
+        "bunker type",
+        "defensive variety"
+      ]
+    },
+    {
+      "id": "HLLV-F036",
+      "title": "More progression-unlocked cosmetics",
+      "category": "Community tools",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The expanded cosmetic selection is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression.",
+      "target": "Update 2.0",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "unlockable cosmetics",
+        "free cosmetics",
+        "progression rewards"
+      ]
+    },
+    {
+      "id": "HLLV-F037",
+      "title": "Player commendations",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Commendations are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified.",
+      "target": "2027 target",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "in_development",
+          "summary": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "commendations"
+      ]
+    },
+    {
+      "id": "HLLV-F038",
+      "title": "Controller Tactical Map markers",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced controller-map changes are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "testing",
+      "change": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains.",
+      "target": "Update 2.0 · subject to final testing",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "testing",
+          "summary": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-105"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tactical map",
+        "marker menu",
+        "d-pad",
+        "placing a marker"
+      ]
+    },
+    {
+      "id": "HLLV-F039",
+      "title": "M16A1 visual recoil",
+      "category": "Weapons",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "No visual recoil adjustment is confirmed released. The developer describes existing M16A1 mechanical recoil as lower than the AK.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Visual handling is being investigated because the carry handle and firing speed can exaggerate perceived recoil. No AK recoil increase is announced.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "Visual handling is being investigated because the carry handle and firing speed can exaggerate perceived recoil. No AK recoil increase is announced."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "m16a1 recoil",
+        "ak recoil",
+        "carry handle",
+        "perceived recoil"
+      ]
+    },
+    {
+      "id": "HLLV-F040",
+      "title": "Bullet penetration system",
+      "category": "Weapons",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The broader penetration-system work is not confirmed released; specific collision fixes have their own issue history.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Calibre/material penetration-system investigation is planned for 2027. Incorrect asset collision continues to receive separate batches of corrections.",
+      "target": "2027 investigation and improvement work",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Calibre/material penetration-system investigation is planned for 2027. Incorrect asset collision continues to receive separate batches of corrections."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-004"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "bullet penetration",
+        "light cover",
+        "fishing nets"
+      ]
+    },
+    {
+      "id": "HLLV-F041",
+      "title": "Future battlefield variety",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional urban-style battlefields are not confirmed live in this announcement.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named.",
+      "target": "Future maps · no confirmed dates",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "urban environments",
+        "urban-style",
+        "environmental variety",
+        "future battlefields"
+      ]
+    },
+    {
+      "id": "HLLV-F042",
+      "title": "Additional weapons and faction equipment",
+      "category": "Weapons",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The further arsenal expansion is not confirmed live; the Thompson and M16A1 magazine option already shipped in 1.7.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates.",
+      "target": "Update 2.0 arsenal expansion · further content undated",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "planned",
+          "summary": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "available arsenal",
+        "faction-specific",
+        "more weapons"
+      ]
+    },
+    {
+      "id": "HLLV-F043",
+      "title": "Deeper role progression",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "An expanded role-progression system is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Deeper role progression is being explored. This has no confirmed delivery target and is separate from the 2.0 cosmetic plan and 2027 commendations.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf9",
+      "history": [
+        {
+          "source_id": "cf9",
+          "status": "under_consideration",
+          "summary": "Deeper role progression is being explored. This has no confirmed delivery target and is separate from the 2.0 cosmetic plan and 2027 commendations."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "role progression",
+        "progression depth"
       ]
     }
   ]

@@ -20,7 +20,8 @@ issues=json.loads(Path('hllv_tracker/data/issues.json').read_text())
 
 class FeatureTests(unittest.TestCase):
     def test_reviewed_records(self):
-        self.assertEqual(v.validate(data,issues['issues']),33)
+        self.assertGreaterEqual(len(data['features']),33)
+        self.assertEqual(v.validate(data,issues['issues']),len(data['features']))
 
     def test_invalid_authority_live_claim_and_relationship(self):
         changes=[lambda d:d['sources'][0].update(authority='community_moderator'),

@@ -46,5 +46,30 @@ class GuideEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'before and after'):
             module['build'](topics=topics)
 
+    def test_reviewed_announcement_does_not_become_a_release(self):
+        data = module['build']()
+        self.assertIn('cf9', {s['id'] for s in data['sources']})
+        self.assertEqual(data['coverage_through'], '2026-10-21')
+        self.assertEqual(data['reviewed_at'], '2026-11-09')
+        self.assertNotIn('cf9', {c['source_id'] for t in data['topics'] for c in t['changes']})
+        # The current frontend compares announcement IDs/hashes and uses the
+        # newest reviewed source as its review boundary. Its data now includes
+        # the checked post while release comparisons still stop at Patch 1.7.
+        source = next(s for s in data['sources'] if s['id'] == 'cf9')
+        self.assertEqual(source['announcement_id'], '1848664643345363')
+        self.assertEqual(source['content_sha256'], 'b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02')
+
+    def test_edited_reviewed_announcement_requires_another_review(self):
+        changed = copy.deepcopy(features)
+        next(s for s in changed['sources'] if s['id'] == 'cf9')['content_sha256'] = '0' * 64
+        with self.assertRaisesRegex(AssertionError, 'source changed'):
+            module['build'](features=changed)
+
+    def test_unknown_reviewed_announcement_is_rejected(self):
+        topics = json.loads(Path('.github/hllv-catch-up/topics.json').read_text())
+        topics['reviewed_source_ids'] = ['unreviewed-post']
+        with self.assertRaisesRegex(AssertionError, 'missing from the source ledger'):
+            module['build'](topics=topics)
+
 if __name__ == '__main__':
     unittest.main()
