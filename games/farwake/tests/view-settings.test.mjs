@@ -30,7 +30,7 @@ test('view defaults provide separate cameras without changing text or control sc
   const boundary = settingsBoundary();
   try {
     const settings = readSettings();
-    assert.deepEqual(normalizeCameraPreferences(settings), { shipZoom: 1, personZoom: 1 });
+    assert.deepEqual(normalizeCameraPreferences(settings), { shipZoom: .25, personZoom: .8 });
     assert.equal('worldZoom' in settings, false);
     for (const key of ['immersiveHud', 'translucentHud', 'compactTips']) assert.equal(settings[key], true);
     assert.equal(settings.textScale, 1); assert.equal(settings.controlScale, 1);
@@ -95,13 +95,13 @@ test('invalid mode zoom values recover finite ranges and malformed storage retai
   const boundary = settingsBoundary();
   try {
     const settings = readSettings();
-    for (const [value, ship, person] of [[.1, .25, .5], [20, 1.6, 1.6], ['1.35', 1.35, 1.35], ['invalid', 1, 1], [NaN, 1, 1], [Infinity, 1, 1]]) {
+    for (const [value, ship, person] of [[.1, .25, .5], [20, 1.6, 1.6], ['1.35', 1.35, 1.35], ['invalid', .25, .8], [NaN, .25, .8], [Infinity, .25, .8]]) {
       settings.shipZoom = value; settings.personZoom = value; applySettings(settings);
       assert.equal(settings.shipZoom, ship, String(value)); assert.equal(settings.personZoom, person, String(value));
       assert.equal(settings.textScale, 1); assert.equal(settings.controlScale, 1);
     }
     boundary.storage.setItem(SETTINGS_KEY, '{broken-json'); const beforeWrites = boundary.writes.length, recovered = readSettings();
-    assert.deepEqual(normalizeCameraPreferences(recovered), { shipZoom: 1, personZoom: 1 });
+    assert.deepEqual(normalizeCameraPreferences(recovered), { shipZoom: .25, personZoom: .8 });
     for (const key of ['immersiveHud', 'translucentHud', 'compactTips']) assert.equal(recovered[key], true);
     assert.equal(boundary.writes.length, beforeWrites); assert.equal(boundary.entries.get(SAVE_KEY), 'normal-voyage-to-preserve');
   } finally { boundary.restore(); }
@@ -152,10 +152,11 @@ test('actual mode controls preserve gameplay and debounce solo metadata while pr
       const f = viewFixture(boundary, { practice }), before = gameplayState(f.game);
       const shipSettingTitle = { textContent: '' }, personSettingTitle = { textContent: '' };
       boundary.selectors.set('label[for="setting-shipZoom"] strong', shipSettingTitle); boundary.selectors.set('label[for="setting-personZoom"] strong', personSettingTitle);
+      f.call('setModeZoom', 'ship', .5);
       f.call('setModeZoom', 'ship', .25);
       assert.equal(f.getElement('shipZoomValue').textContent, '25%'); assert.equal(f.getElement('shipZoom').attributes['aria-valuetext'], '25 percent ship zoom');
       assert.equal(f.getElement('setting-shipZoom').value, '0.25'); assert.equal(shipSettingTitle.textContent, 'Ship zoom · 25%');
-      assert.equal(f.getElement('shipZoomOut').disabled, true); assert.equal(f.getElement('shipZoomIn').disabled, false); assert.equal(f.settings.personZoom, 1);
+      assert.equal(f.getElement('shipZoomOut').disabled, true); assert.equal(f.getElement('shipZoomIn').disabled, false); assert.equal(f.settings.personZoom, .8);
       f.call('setModeZoom', 'person', .5);
       assert.equal(f.getElement('personZoomValue').textContent, '50%'); assert.equal(f.getElement('personZoomOut').disabled, true); assert.equal(f.settings.shipZoom, .25);
       assert.equal(f.getElement('setting-personZoom').value, '0.5'); assert.equal(personSettingTitle.textContent, 'Person zoom · 50%');
@@ -168,7 +169,7 @@ test('actual mode controls preserve gameplay and debounce solo metadata while pr
       f.runTimers();
       if (practice) {
         assert.equal(f.voyageWrites.length, 0); assert.equal('cameraPreferences' in f.game.state, false); assert.equal(boundary.entries.get(SAVE_KEY), 'normal-voyage-to-preserve');
-        assert.deepEqual(normalizeCameraPreferences(readSettings()), { shipZoom: 1, personZoom: 1 }); assert.match(f.getElement('cameraSaveStatus').textContent, /Practice only/);
+        assert.deepEqual(normalizeCameraPreferences(readSettings()), { shipZoom: .25, personZoom: .8 }); assert.match(f.getElement('cameraSaveStatus').textContent, /Practice only/);
       } else {
         assert.equal(f.voyageWrites.length, 1, 'A burst of camera edits creates one debounced local voyage save.');
         assert.deepEqual(JSON.parse(f.voyageWrites[0]).cameraPreferences, { shipZoom: 1.6, personZoom: 1.6 });
@@ -235,14 +236,14 @@ test('view layout reset preserves accessibility, gameplay, tutorials, and saved 
   try {
     const f = viewFixture(boundary, { practice: true }), before = gameplayState(f.game);
     for (const key of ['immersiveHud', 'translucentHud', 'compactTips']) f.call('setViewPreference', key, false);
-    f.call('setModeZoom', 'ship', .25); f.call('setModeZoom', 'person', .5);
+    f.call('setModeZoom', 'ship', 1.6); f.call('setModeZoom', 'person', .5);
     for (const id of ['viewImmersive', 'viewTranslucent', 'viewCompactTips']) assert.equal(f.getElement(id).checked, false);
     assert.ok(f.effects.some(([effect]) => effect === 'resize'));
     const writesBefore = boundary.writes.length; f.call('setViewPreference', 'textScale', 1); assert.equal(boundary.writes.length, writesBefore);
     f.call('resetView'); f.runTimers();
-    assert.deepEqual(normalizeCameraPreferences(f.settings), { shipZoom: 1, personZoom: 1 });
+    assert.deepEqual(normalizeCameraPreferences(f.settings), { shipZoom: .25, personZoom: .8 });
     for (const key of ['immersiveHud', 'translucentHud', 'compactTips']) assert.equal(f.settings[key], true);
-    for (const mode of ['ship', 'person']) assert.equal(f.getElement(mode + 'ZoomValue').textContent, '100%');
+    assert.equal(f.getElement('shipZoomValue').textContent, '25%'); assert.equal(f.getElement('personZoomValue').textContent, '80%');
     assert.equal(f.settings.textScale, 1.4); assert.equal(f.settings.controlScale, 1.2); assert.equal(f.settings.leftHanded, true); assert.equal(f.settings.guidance, 'moderate');
     assert.equal(gameplayState(f.game), before); assert.equal(f.voyageWrites.length, 0); assert.ok(boundary.writes.every(([key]) => key === SETTINGS_KEY));
     assert.deepEqual(normalizeCameraPreferences(readSettings()), { shipZoom: .6, personZoom: 1.2 });

@@ -5,8 +5,9 @@ import {PERSON_ZOOM,normalizeModeZoom} from './camera-preferences.mjs';
 // Legacy imports use the person range; new callers choose their mode explicitly.
 export const WORLD_ZOOM = PERSON_ZOOM;
 const finite=(value,fallback)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
-export const normalizeShipZoom=(value,fallback=1)=>normalizeModeZoom(value,'ship',fallback);
-export const normalizePersonZoom=(value,fallback=1)=>normalizeModeZoom(value,'person',fallback);
+// Renderer transforms keep a neutral 100% fallback; preferences supply the chosen view.
+export const normalizeShipZoom=(value,fallback=1)=>normalizeModeZoom(value,'ship',normalizeModeZoom(fallback,'ship',1));
+export const normalizePersonZoom=(value,fallback=1)=>normalizeModeZoom(value,'person',normalizeModeZoom(fallback,'person',1));
 export const normalizeWorldZoom=normalizePersonZoom;
 
 /** A surface camera is a top-left world origin, unlike the centered ship camera. */

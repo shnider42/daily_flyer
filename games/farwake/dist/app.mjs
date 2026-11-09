@@ -541,7 +541,7 @@ function setViewPreference(key,value){
  settings[key]=!!value;applySettings(settings,{cameraPreferences:localCameraPreferences});controls?.clear();clearPointerAim();coachExpanded=false;document.body.classList.remove('coach-expanded');resize();syncViewControls();hudDirty=true;
 }
 function resetView(){
- Object.assign(settings,{immersiveHud:true,translucentHud:true,compactTips:true});cameraProfile.set('ship',1);cameraProfile.set('person',1);applySettings(settings,{cameraPreferences:localCameraPreferences});controls?.clear();clearPointerAim();coachExpanded=false;document.body.classList.remove('coach-expanded');resize();syncViewControls();hudDirty=true;
+ Object.assign(settings,{immersiveHud:true,translucentHud:true,compactTips:true});cameraProfile.set('ship',zoomLimits('ship').default);cameraProfile.set('person',zoomLimits('person').default);applySettings(settings,{cameraPreferences:localCameraPreferences});controls?.clear();clearPointerAim();coachExpanded=false;document.body.classList.remove('coach-expanded');resize();syncViewControls();hudDirty=true;
 }
 function setViewPanel(open,{restoreFocus=true}={}){
  if(open&&(!playing||dialog.opened))return;
@@ -652,7 +652,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.3.3',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.3.4',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }

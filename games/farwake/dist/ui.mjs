@@ -15,7 +15,7 @@ export const STORAGE_KEY='dfe.farwake.save.v1';
 export function readSave(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return null;const parsed=JSON.parse(raw);return parsed?.state??parsed;}catch{return null;}}
 export function saveGame(game){try{const serialized=game.serialize();localStorage.setItem(STORAGE_KEY,typeof serialized==='string'?serialized:JSON.stringify(serialized));$('saveState').textContent='SAVED JUST NOW';return true;}catch{$('saveState').textContent='SAVE UNAVAILABLE';return false;}}
 export function readSettings(){
- const defaults={guidance:'simple',controlScale:1,textScale:1,shipZoom:1,personZoom:1,immersiveHud:true,translucentHud:true,compactTips:true,sound:true,music:true,reduceMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches,leftHanded:false,flightAssist:true,showPerformance:false};
+ const defaults={guidance:'simple',controlScale:1,textScale:1,...normalizeCameraPreferences(),immersiveHud:true,translucentHud:true,compactTips:true,sound:true,music:true,reduceMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches,leftHanded:false,flightAssist:true,showPerformance:false};
  try{const raw=JSON.parse(localStorage.getItem('dfe.farwake.settings.v1')||'{}'),legacy={shipZoom:normalizeModeZoom(raw?.worldZoom,'ship'),personZoom:normalizeModeZoom(raw?.worldZoom,'person')};const settings={...defaults,...raw,...normalizeCameraPreferences(raw,legacy)};delete settings.worldZoom;return settings;}catch{return defaults;}
 }
 export function applySettings(settings,{cameraPreferences=settings}={}){

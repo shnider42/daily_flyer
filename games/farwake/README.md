@@ -1,6 +1,6 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.3.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.3.4 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
@@ -8,9 +8,13 @@ You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutt
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
 
+## Wider default cameras · 0.3.4
+
+New captains and **Reset view** start with ship zoom at **25%**, the widest available view, and person zoom at **80%**. Existing saved camera choices are preserved; use **View → Reset view** to adopt the new defaults. Zoom ranges and the meaning of each percentage are unchanged.
+
 ## Clear zoom-out and saved cameras · 0.3.3
 
-**View** and **Settings** now have independent **Ship zoom (25–160%)** and **Person zoom (50–160%)** controls. Each defaults to 100%, with 5% slider steps. Switching between flying, landing, and boarding restores that mode's camera. At 25%, the ship camera spans four times the width and height of its normal view; small hulls retain heading brackets, readable shots, and contact cues. Text, buttons, physics, and interaction distances stay independent of zoom.
+**View** and **Settings** now have independent **Ship zoom (25–160%)** and **Person zoom (50–160%)** controls. Both use 5% slider steps. Switching between flying, landing, and boarding restores that mode's camera. At 25%, the ship camera spans four times the width and height of its 100% view; small hulls retain heading brackets, readable shots, and contact cues. Text, buttons, physics, and interaction distances stay independent of zoom.
 
 Below 100%, the world renders directly to the physical display grid, with nearest-neighbor sprite sampling. This avoids throwing detail away in a coarse intermediate canvas before enlarging it. Native buffers are bounded by the physical viewport; an extra full-resolution copy is skipped. Camera picking, labels, markers, and combat cues use the same density-aware transform. The established 100% and zoom-in rendering remains unchanged.
 

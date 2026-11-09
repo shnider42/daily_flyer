@@ -19,7 +19,7 @@ export function pixelViewport({ width = 1, height = 1, left = 0, top = 0, dpr = 
   width = Math.max(1, number(width, 1)); height = Math.max(1, number(height, 1));
   left = number(left); top = number(top); visualOffsetX = number(visualOffsetX); visualOffsetY = number(visualOffsetY);
   const deviceScale = positive(dpr) * positive(visualScale), baselinePixelsPerPixel = Math.max(1, Math.round(positive(scale, 2) * deviceScale));
-  const physicalPixelsPerPixel = normalizeModeZoom(zoom, mode) < 1 ? 1 : baselinePixelsPerPixel, rasterScale = baselinePixelsPerPixel / physicalPixelsPerPixel;
+  const physicalPixelsPerPixel = normalizeModeZoom(zoom, mode, 1) < 1 ? 1 : baselinePixelsPerPixel, rasterScale = baselinePixelsPerPixel / physicalPixelsPerPixel;
   const cssScale = physicalPixelsPerPixel / deviceScale;
   // Floor the origin so alignment never reveals a thin uncovered strip.
   const physicalLeft = Math.floor((left - visualOffsetX) * deviceScale + 1e-8), physicalTop = Math.floor((top - visualOffsetY) * deviceScale + 1e-8);

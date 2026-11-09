@@ -83,7 +83,7 @@ function placeInSpace(realm, captain, systemId = 'hearth') {
 
 test('camera zoom schema keeps independent ranges and finite, stepped fallbacks', () => {
   assert.equal(zoomLimits('ship'), SHIP_ZOOM); assert.equal(zoomLimits('person'), PERSON_ZOOM);
-  assert.deepEqual(normalizeCameraPreferences(), { shipZoom: 1, personZoom: 1 });
+  assert.deepEqual(normalizeCameraPreferences(), { shipZoom: .25, personZoom: .8 });
   assert.deepEqual(normalizeCameraPreferences({ shipZoom: .1, personZoom: 2 }), { shipZoom: .25, personZoom: 1.6 });
   assert.equal(normalizeModeZoom(.79, 'ship'), .8);
   assert.equal(normalizeModeZoom(.27, 'ship'), .25);
@@ -91,13 +91,13 @@ test('camera zoom schema keeps independent ranges and finite, stepped fallbacks'
   assert.equal(normalizeModeZoom('0.35', 'ship'), .35);
   for (const invalid of [null, '', ' ', false, {}, [], Infinity, NaN]) assert.equal(normalizeModeZoom(invalid, 'ship', .6), .6);
   assert.deepEqual(normalizeCameraPreferences({ personZoom: .75 }, { shipZoom: .3, personZoom: 1.5 }), { shipZoom: .3, personZoom: .75 });
-  assert.deepEqual(normalizeCameraPreferences({ shipZoom: 'broken' }, { shipZoom: null, personZoom: Infinity }), { shipZoom: 1, personZoom: 1 });
+  assert.deepEqual(normalizeCameraPreferences({ shipZoom: 'broken' }, { shipZoom: null, personZoom: Infinity }), { shipZoom: .25, personZoom: .8 });
 });
 
 test('authenticated camera settings remain private, survive restart, and reject stale or repeated writes', async t => {
   const f = await fixture(t), created = await f.register('create'), second = await f.register('join', created.passport.realmCode);
   const owner = await f.connect(created.passport), guest = await f.connect(second.passport);
-  assert.deepEqual(owner.welcome.cameraPreferences, { shipZoom: 1, personZoom: 1 }); assert.equal(owner.welcome.cameraRevision, 0);
+  assert.deepEqual(owner.welcome.cameraPreferences, { shipZoom: .25, personZoom: .8 }); assert.equal(owner.welcome.cameraRevision, 0);
   await assert.rejects(f.connect({ ...created.passport, token: 'invalid-camera-passport' }), /passport/i);
   const response = await fetch(f.server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'resume', passport: { ...created.passport, token: 'invalid-camera-passport' } }) });
   assert.equal(response.status, 401);
@@ -187,7 +187,7 @@ test('legacy captains can seed camera once; validation and camera changes do not
   document.captains[initial.id].game.cameraPreferences = { shipZoom: .3, personZoom: 1.6 };
   document.captains[initial.id].game.cameraRevision = 44;
   const realm = new Realm({ id: 'CAMERA01', persistence, version: original.version, snapshot: document }), captain = realm.captains.get(initial.id);
-  assert.deepEqual(captain.cameraPreferences, { shipZoom: 1, personZoom: 1 }); assert.equal(captain.cameraRevision, 0);
+  assert.deepEqual(captain.cameraPreferences, { shipZoom: .25, personZoom: .8 }); assert.equal(captain.cameraRevision, 0);
   assert.equal('cameraPreferences' in captain.game.state, false, 'Raw local-save metadata never initializes an authenticated captain profile.');
   assert.equal('cameraRevision' in captain.game.state, false);
   captain.game.state.person.health = 0;
@@ -204,7 +204,7 @@ test('legacy captains can seed camera once; validation and camera changes do not
     assert.equal(result.code, 'camera-invalid'); assert.equal(captain.cameraRevision, 0);
   }
   for (const args of [null, [], false, '.5']) assert.equal((await realm.command(captain, 'setCameraPreferences', args)).code, 'protocol');
-  const initialized = await realm.command(captain, 'setCameraPreferences', { shipZoom: 1, personZoom: 1, expectedRevision: 0 });
+  const initialized = await realm.command(captain, 'setCameraPreferences', { shipZoom: .25, personZoom: .8, expectedRevision: 0 });
   assert.equal(initialized.ok, true); assert.equal(initialized.cameraRevision, 1, 'Saving defaults still marks a legacy local migration complete.');
   const clamped = await realm.command(captain, 'setCameraPreferences', { shipZoom: -100, personZoom: 100, expectedRevision: 1 });
   assert.equal(clamped.ok, true); assert.deepEqual(clamped.cameraPreferences, { shipZoom: .25, personZoom: 1.6 });
