@@ -31,6 +31,8 @@ Touch uses independent movement, look and action pointers. The left stick floats
 
 Desktop: WASD or arrows move; mouse looks; E interacts; F toggles the torch; Shift runs; C toggles crouch; Space jumps; Q or locked left mouse pulses the earned arc driver; J opens the journal; M opens the station plan; Escape pauses. Drag look remains available if pointer lock is denied. The click that captures the pointer does not also fire.
 
+Touch play ignores foreground window-focus changes, preserving held movement, look and action pointers. Automatic pause uses actual page visibility or page navigation; desktop window-focus and mouse-lock loss still pause. Automatic pauses explain their cause in the pause menu. Version 0.1.1 fixes repeated mobile pauses without changing the saved-progress or settings format.
+
 ## Comfort and guidance
 
 Simple, Moderate and Expert change objective and hint presentation, not the available content or enemy damage. Simple includes a destination marker and explicit next step. Moderate gives short objectives with requested clues. Expert relies on environmental signs and calibration plates. All essential clues are visible and recorded notes can be reread.

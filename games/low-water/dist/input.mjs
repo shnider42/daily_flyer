@@ -31,8 +31,15 @@ export class Input {
 
     this.listen(window,'keydown',e=>this.keyDown(e));
     this.listen(window,'keyup',e=>this.keyUp(e));
-    this.listen(window,'blur',()=>this.pause('blur'));
+    this.listen(window,'blur',()=>{
+      // Focus and page visibility are different. Touch browsers can move focus
+      // while the game remains visible; do not discard the player's held thumbs
+      // or open a pause dialog for those foreground focus changes.
+      if(document.hidden)this.pause('visibility');
+      else if(!this.isTouchLayout()||this.wasLocked||document.pointerLockElement===this.canvas)this.pause('blur');
+    });
     this.listen(document,'visibilitychange',()=>{if(document.hidden)this.pause('visibility');});
+    this.listen(window,'pagehide',()=>this.pause('pagehide'));
     this.listen(document,'pointerlockchange',()=>{
       const locked=document.pointerLockElement===this.canvas;
       const lost=this.wasLocked&&!locked;

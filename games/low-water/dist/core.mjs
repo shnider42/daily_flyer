@@ -1,6 +1,6 @@
 import { LEVELS, getLevel } from './levels.mjs';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 export const SAVE_KEY = 'low-water-progress-v1';
 export const SETTINGS_KEY = 'low-water-settings-v1';
 export const DEFAULT_SETTINGS = Object.freeze({

@@ -1,10 +1,10 @@
 import * as THREE from './vendor/three.module.js';
 import { LEVELS, getLevel, floorAt, roomAt, collides } from './levels.mjs';
 import { World } from './world.mjs';
-import { Input } from './input.mjs';
+import { Input } from './input.mjs?v=0.1.1';
 import { Soundscape } from './audio.mjs';
 import { SoftwareView } from './software.mjs';
-import { VERSION, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, freshState, restoreState, serializable, enterLevel, interact, objective, objectiveTarget, hint } from './core.mjs';
+import { VERSION, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, freshState, restoreState, serializable, enterLevel, interact, objective, objectiveTarget, hint } from './core.mjs?v=0.1.1';
 
 const $ = id => document.getElementById(id);
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
@@ -69,7 +69,7 @@ const activeCanvas=$('scene');
 const input=new Input({
   canvas:activeCanvas,moveZone:$('move-zone'),lookZone:$('look-zone'),stick:$('stick'),stickKnob:$('stick-knob'),
   buttons:Object.fromEntries(['use','jump','crouch','run','tool','flashlight'].map(key=>[key,$(`touch-${key}`)])),
-  settings,onAction:action,onPause:()=>{if(playing&&!transitioning)showPause();},onGesture:()=>sound.unlock()
+  settings,onAction:action,onPause:reason=>{if(playing&&!transitioning)showPause(reason);},onGesture:()=>sound.unlock()
 });
 
 function resize(){
@@ -82,7 +82,7 @@ function resize(){
 }
 addEventListener('resize',resize);
 globalThis.visualViewport?.addEventListener('resize',resize);
-activeCanvas.addEventListener('webglcontextlost',e=>{e.preventDefault();showPause();notify('Graphics paused by the browser. Your checkpoint is saved; reload to continue.',12);});
+activeCanvas.addEventListener('webglcontextlost',e=>{e.preventDefault();showPause('graphics');notify('Graphics paused by the browser. Your checkpoint is saved; reload to continue.',12);});
 activeCanvas.addEventListener('webglcontextrestored',()=>location.reload());
 
 function applySettings(){
@@ -365,8 +365,9 @@ function closeDialog(){
   $('overlay').hidden=true;dialogMode='';
   if(started&&!menuOpen&&!state.completed){setPlaying(true);if(!touchMode())input.requestPointerLock();}
 }
-function showPause(){
-  openDialog('Take a breath.','FIELD REPORT / PAUSED',`<p>${escapeHTML(level.name)} · ${escapeHTML(roomAt(level,state.player.x,state.player.z)?.name||'Bellwether Station')}</p><div class="pause-grid"><button id="resume-play">RESUME EXPLORATION <span>→</span></button><button id="pause-settings">Controls & comfort</button><button id="pause-journal">Field journal</button><button id="pause-map">Station plan</button><button id="restart-checkpoint">Restart checkpoint</button><button id="pause-chapters">Chapter select</button><button id="back-menu">Return to title</button></div><div class="pause-meta"><span>CHECKPOINTS SAVE ON THIS BROWSER</span><span>${software?'COMPATIBILITY VIEW':'3D VIEW'} · v${VERSION}</span></div>`);
+function showPause(reason='manual'){
+  const explanation={visibility:'Paused because the game went into the background.',pagehide:'Paused because you left the game page.',blur:'Paused because the game window lost focus.',pointerlock:'Paused because mouse look was released.',graphics:'The browser interrupted 3D graphics. Reload the game to return to your saved checkpoint.'}[reason];
+  openDialog('Take a breath.','FIELD REPORT / PAUSED',`<p>${escapeHTML(level.name)} · ${escapeHTML(roomAt(level,state.player.x,state.player.z)?.name||'Bellwether Station')}</p>${explanation?`<p class="pause-reason">${explanation}</p>`:''}<div class="pause-grid"><button id="resume-play">RESUME EXPLORATION <span>→</span></button><button id="pause-settings">Controls & comfort</button><button id="pause-journal">Field journal</button><button id="pause-map">Station plan</button><button id="restart-checkpoint">Restart checkpoint</button><button id="pause-chapters">Chapter select</button><button id="back-menu">Return to title</button></div><div class="pause-meta"><span>CHECKPOINTS SAVE ON THIS BROWSER</span><span>${software?'COMPATIBILITY VIEW':'3D VIEW'} · v${VERSION}</span></div>`);
   $('resume-play').onclick=closeDialog;$('pause-settings').onclick=showSettings;$('pause-journal').onclick=showJournal;$('pause-map').onclick=showMap;$('restart-checkpoint').onclick=restartCheckpoint;$('pause-chapters').onclick=showChapters;$('back-menu').onclick=returnMenu;
 }
 
@@ -430,7 +431,7 @@ function showEnding(){
 function returnMenu(){setPlaying(false);menuOpen=true;started=false;$('overlay').hidden=true;$('hud').hidden=true;$('menu').hidden=false;$('chapter-card').hidden=true;state=freshState();buildLevel(0);$('continue').hidden=!saved;}
 
 $('start').onclick=()=>{if(saved){openDialog('Begin a new shift?','NEW FIELD REPORT',`<p>This replaces your saved LOW WATER checkpoint. Your control and comfort settings stay in place.</p><button class="primary" id="confirm-new">BEGIN NEW SHIFT <span>→</span></button><button class="text-button" id="cancel-new">Keep my checkpoint</button>`,'new');$('confirm-new').onclick=()=>beginGame(false);$('cancel-new').onclick=closeDialog;}else beginGame(false);};
-$('continue').onclick=()=>beginGame(true);$('menu-settings').onclick=showSettings;$('pause-button').onclick=showPause;$('journal-button').onclick=showJournal;$('map-button').onclick=showMap;
+$('continue').onclick=()=>beginGame(true);$('menu-settings').onclick=showSettings;$('pause-button').onclick=()=>showPause();$('journal-button').onclick=showJournal;$('map-button').onclick=showMap;
 $('dialog-close').onclick=()=>{if(dialogMode==='death')restartCheckpoint();else if(dialogMode==='ending')returnMenu();else closeDialog();};
 $('hint-button').onclick=()=>{caption(hint(state,hintCount++>0),8);};
 addEventListener('keydown',event=>{if(event.code==='Escape'&&!event.defaultPrevented&&!$('overlay').hidden){event.preventDefault();if(dialogMode==='death')restartCheckpoint();else if(dialogMode==='ending')returnMenu();else closeDialog();}});
