@@ -8,8 +8,8 @@ export const SPORTS = {
     start: "DROP THE PUCK",
     periods: 3,
     periodName: "PERIOD",
-    width: 680,
-    height: 1080,
+    width: 880,
+    height: 1400,
     goal: 138,
     count: 6,
     speed: 235,
@@ -31,7 +31,7 @@ export const SPORTS = {
     positions: ["G", "D", "D", "LW", "RW", "C"],
     description: "Fast ice. Tight corners. One more pass.",
     rules:
-      "6-on-6 arcade hockey. Three periods, board rebounds, body checks, goalie saves and golden-goal overtime. No icing, offside or penalty box in this first version.",
+      "6-on-6 arcade hockey on a larger rink. Three periods, board rebounds, wrist and slap shots, aerial dumps, saucer passes, checks and goalie saves. Direct puck-over-glass from your defensive zone brings a delay-of-game minor; mutual fights bring matching majors. Penalties use shorter arcade countdowns, with matching fight penalties keeping teams at even strength. No icing or offside yet. Golden-goal overtime settles ties.",
   },
   soccer: {
     id: "soccer",

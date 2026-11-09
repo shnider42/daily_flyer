@@ -75,7 +75,8 @@ export class SportsCamera {
     this.viewWidth = across / this.scale;
     this.viewHeight = along / this.scale;
     const ball = state.ball || { x: r.width / 2, y: r.height / 2 };
-    const selected = state.players?.[state.controlled];
+    const candidate = state.players?.[state.controlled];
+    const selected = candidate?.offIce ? null : candidate;
     let target = { x: ball.x, y: ball.y };
     if (settings.focus === "player" && selected) {
       target = { x: selected.x, y: selected.y };

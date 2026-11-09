@@ -432,3 +432,131 @@ test("hockey keeps its original pass action and ignores soccer-only buttons", ()
   assert.deepEqual(actions.map(([name]) => name), ["pass"]);
   assert.deepEqual(i.vector(), { x: 0, y: 0, sprint: false });
 });
+
+function hockeyFixture() {
+  const state = { playable: true, actor: 5, context: "5:possession:1" };
+  const f = fixture({ input: {
+    hockeyControls: () => true,
+    hockeyActor: () => state.actor,
+    canChargeShot: () => state.playable,
+    shotContext: () => state.context,
+  } });
+  return { ...f, state };
+}
+
+test("hockey face actions use the controlled skater's puck context", () => {
+  const { els, actions, state } = hockeyFixture();
+  els.pass.fire("pointerdown", { pointerId: 1 });
+  els.pass.fire("pointerup", { pointerId: 1 });
+  els.lob.fire("pointerdown", { pointerId: 2 });
+  els.lob.fire("pointerup", { pointerId: 2 });
+  state.playable = false;
+  els.lob.fire("pointerdown", { pointerId: 3 });
+  els.shoot.fire("pointerdown", { pointerId: 4 });
+  assert.deepEqual(actions.map(([name]) => name), ["hockey-pass", "hockey-saucer", "hockey-poke", "hockey-hit"]);
+  els.shoot.fire("pointerup", { pointerId: 4 });
+  assert.equal(actions.length, 4, "releasing a hit cannot create a shot");
+});
+
+test("B sends a shot hold to authority and releases with a bounded power", () => {
+  const { i, els, actions } = hockeyFixture();
+  els.shoot.fire("pointerdown", { pointerId: 2 });
+  assert.equal(i.vector().shotHeld, true);
+  i.chargeStart -= 600;
+  els.shoot.fire("pointerup", { pointerId: 2 });
+  assert.equal(i.vector().shotHeld, false);
+  assert.equal(actions[0][0], "hockey-shot");
+  assert.ok(actions[0][2] > 0.5 && actions[0][2] <= 1);
+  assert.ok(actions[0][3].heldSeconds >= 0.6);
+});
+
+test("Y charges a dump independently while the left thumb keeps moving", () => {
+  const { i, els, actions } = hockeyFixture();
+  els.stick.fire("pointerdown", { pointerId: 1, pointerType: "touch", clientX: 95, clientY: 50 });
+  els.through.fire("pointerdown", { pointerId: 2, pointerType: "touch" });
+  i.hockeyHold.started -= 1100;
+  assert.equal(i.vector().dumpHeld, true);
+  assert.equal(i.vector().fightHeld, false);
+  els.through.fire("pointerup", { pointerId: 3 });
+  assert.equal(actions.length, 0, "a different finger cannot release the dump");
+  assert.equal(i.hockeyProgress().kind, "dump");
+  els.through.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions[0][0], "hockey-dump");
+  assert.ok(actions[0][2] >= 0.75 && actions[0][2] <= 1);
+  assert.ok(i.vector().x > 0.9);
+});
+
+test("Y's off-puck gesture remains held input instead of a client-timed fight", () => {
+  const { i, els, actions, state } = hockeyFixture();
+  state.playable = false;
+  els.through.fire("pointerdown", { pointerId: 2 });
+  i.hockeyHold.started -= 3200;
+  assert.equal(i.vector().fightHeld, true);
+  assert.equal(i.vector().dumpHeld, false);
+  assert.equal(i.hockeyProgress().power, 1);
+  assert.equal(actions.length, 0, "the simulation must measure the three-second hold");
+  els.through.fire("pointerup", { pointerId: 2 });
+  assert.equal(i.vector().fightHeld, false);
+  assert.equal(actions.length, 0);
+});
+
+test("losing the puck cannot turn a held dump into a fight attempt", () => {
+  const { i, els, actions, state } = hockeyFixture();
+  els.through.fire("pointerdown", { pointerId: 2 });
+  state.playable = false;
+  i.syncShotContext();
+  assert.equal(i.vector().dumpHeld, false);
+  assert.equal(i.vector().fightHeld, false);
+  state.playable = true;
+  els.through.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions.length, 0);
+});
+
+test("winning the puck cannot turn a held fight gesture into a dump", () => {
+  const { i, els, actions, state } = hockeyFixture();
+  state.playable = false;
+  els.through.fire("pointerdown", { pointerId: 2 });
+  state.playable = true;
+  i.syncShotContext();
+  state.playable = false;
+  assert.equal(i.vector().fightHeld, false);
+  els.through.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions.length, 0);
+});
+
+test("switching skaters invalidates hockey holds even if the next skater can play the puck", () => {
+  const { i, els, actions, state } = hockeyFixture();
+  els.shoot.fire("pointerdown", { pointerId: 2 });
+  els.through.fire("pointerdown", { pointerId: 3 });
+  state.actor = 4;
+  state.context = "4:possession:2";
+  i.syncShotContext();
+  els.shoot.fire("pointerup", { pointerId: 2 });
+  els.through.fire("pointerup", { pointerId: 3 });
+  assert.equal(actions.length, 0);
+  assert.equal(i.vector().shotHeld, false);
+  assert.equal(i.vector().dumpHeld, false);
+});
+
+test("pointer cancellation and blur never release hockey shots or dumps", () => {
+  const { i, els, actions } = hockeyFixture();
+  els.through.fire("pointerdown", { pointerId: 2 });
+  els.through.fire("pointercancel", { pointerId: 2 });
+  assert.equal(actions.length, 0);
+  els.through.fire("pointerdown", { pointerId: 3 });
+  els.shoot.fire("pointerdown", { pointerId: 4 });
+  window.fire("blur");
+  assert.equal(i.vector().dumpHeld, false);
+  assert.equal(i.vector().shotHeld, false);
+  assert.equal(actions.length, 0);
+});
+
+test("keyboard Y release cannot end a touch-owned dump", () => {
+  const { i, els, actions } = hockeyFixture();
+  els.through.fire("pointerdown", { pointerId: 2 });
+  window.fire("keyup", { code: i.settings.keys.through });
+  assert.equal(i.vector().dumpHeld, true);
+  assert.equal(actions.length, 0);
+  els.through.fire("pointerup", { pointerId: 2 });
+  assert.equal(actions.length, 1);
+});

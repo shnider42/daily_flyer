@@ -20,8 +20,14 @@ import {
   stepFootballSlide,
 } from "../sports/football-controls.js";
 import { SPORTS, DIFFICULTY, SOCCER_TOUCH_ASSIST } from "../sports/rules.js";
+import {
+  hockeyActive, canPlayHockeyPuck, hockeyControlContext, setHockeyControllers,
+  hockeyHumanInputs, hockeySwitchPlayer, hockeyPossessionControl, hockeyAction,
+  resetHockeyFlight, stepHockeyPlayer, stepHockeyDiscipline, stepHockeyPuck,
+  hockeyReachable, hockeyBoundary, hockeyGoalPenalties,
+} from "../sports/hockey.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.4.0";
+export const ENGINE_VERSION = "1.6.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -66,6 +72,14 @@ export class Match {
     this.message = "";
     this.lastTouch = 0;
     this.players = [];
+    if (sport === "hockey") {
+      this.puckEpoch = 0;
+      this.penalties = [];
+      this.fight = null;
+      this.fightChallenge = null;
+      this.controllers = [];
+      this.localControllerId = null;
+    }
     this.ball = {
       x: this.rules.width / 2,
       y: this.rules.height / 2,
@@ -131,7 +145,27 @@ export class Match {
     return this.ball.owner === null ? null : this.players[this.ball.owner];
   }
   get hasBall() {
-    return this.owner?.side === 0;
+    return this.owner?.side === (this.sport === "hockey" ? this.user?.side ?? 0 : 0);
+  }
+  canPlayPuck(p = this.user) {
+    return canPlayHockeyPuck(this, p);
+  }
+  puckControlContext(p = this.user) {
+    return hockeyControlContext(this, p);
+  }
+  isPlayerActive(p) {
+    return this.sport !== "hockey" || hockeyActive(p);
+  }
+  setControllers(seats, localSeatId = null) {
+    return setHockeyControllers(this, seats, localSeatId);
+  }
+  controllerAction(id, name, input = {}, power = 0.65, details = {}) {
+    const seat = this.controllers?.find((s) => s.id === id);
+    if (!seat) return false;
+    return hockeyAction(this, name, input, power, details, seat);
+  }
+  get manpower() {
+    return [0, 1].map((side) => this.players.filter((p) => p.side === side && !p.keeper && hockeyActive(p)).length);
   }
   get touchProfile() {
     return this.sport === "soccer" &&
@@ -173,15 +207,15 @@ export class Match {
         this.rules.height / 2,
       );
     this.players.forEach((p) => {
+      if (!hockeyActive(p)) return;
       const f = this.rules.formation[p.slot];
       p.x = f[0] * this.rules.width;
       p.y = (p.side ? 1 - f[1] : f[1]) * this.rules.height;
       p.vx = p.vy = 0;
       p.stun = 0;
     });
-    const p = this.players.find(
-      (p) => p.side === side && p.slot === this.rules.count - 1,
-    );
+    const p = this.players.find((p) => p.side === side && p.slot === this.rules.count - 1 && hockeyActive(p)) ||
+      this.players.find((p) => p.side === side && !p.keeper && hockeyActive(p));
     p.x = this.rules.width / 2;
     p.y = this.rules.height / 2;
     this.ball = {
@@ -192,13 +226,18 @@ export class Match {
       owner: p.id,
       lock: 0.55,
       shot: false,
+      z: 0, vz: 0, airTime: 0, airTarget: null,
     };
+    this.puckEpoch++;
+    this.fightChallenge = null;
     this.lastTouch = side;
-    if (!side && !this.autoplay) this.controlled = p.id;
+    hockeyPossessionControl(this, p);
     this.phase = "play";
     this.cooldown = 0.3;
   }
   switchPlayer() {
+    if (this.sport === "hockey")
+      return hockeySwitchPlayer(this, this.controllers?.find((s) => s.id === this.localControllerId) || null);
     if (this.hasBall) {
       this.controlled = this.owner.id;
       return;
@@ -222,7 +261,7 @@ export class Match {
     } else choices.sort((a, c) => distance(a, b) - distance(c, b));
     if (choices[0]) this.controlled = choices[0].id;
   }
-  release(p, dx, dy, speed, shot) {
+  release(p, dx, dy, speed, shot, kind = "pass") {
     const v = norm(dx, dy);
     this.ball.owner = null;
     this.ball.x = p.x + v.x * (this.sport === "soccer" ? 0 : 21);
@@ -242,15 +281,24 @@ export class Match {
       this.ball.firstTouchOwner = null;
       this.ball.passer = null;
       this.ball.passerLock = 0;
+    } else {
+      this.puckEpoch++;
+      resetHockeyFlight(this.ball);
+      this.ball.flightKind = null;
+      this.ball.launch = null;
+      this.ball.receiver = null;
+      this.ball.passTarget = null;
+      this.ball.passer = p.id;
+      this.ball.passerLock = 0.24;
     }
     this.lastTouch = p.side;
     if (shot) {
       this.stats[p.side].shots++;
       this.emit("shot", { side: p.side });
-    } else {
+    } else if (kind === "pass") {
       this.stats[p.side].passes++;
       this.emit("pass", { side: p.side });
-    }
+    } else this.emit(kind, { side: p.side, player: p.id });
     p.decision = 0.5;
   }
   pass(p = this.user, input = { x: 0, y: 0 }) {
@@ -262,7 +310,8 @@ export class Match {
         : { x: 0, y: dir };
     const profile = !p.side ? this.touchProfile : null;
     let mates = this.players.filter(
-      (q) => q.side === p.side && q.id !== p.id && !q.keeper,
+      (q) => q.side === p.side && q.id !== p.id && !q.keeper &&
+        (this.sport !== "hockey" || hockeyActive(q)),
     );
     const alignment = (q) =>
       ((q.x - p.x) * v.x + (q.y - p.y) * v.y) / (distance(q, p) || 1);
@@ -309,7 +358,7 @@ export class Match {
       this.rules.pass,
       false,
     );
-    if (this.sport === "soccer") this.ball.receiver = q.id;
+    this.ball.receiver = q.id;
     if (profile) {
       // The normal 180ms pickup lock sends the ball past a close receiver.
       // Unlock before that receiver, while excluding only the passer briefly.
@@ -320,13 +369,20 @@ export class Match {
       );
       this.ball.passer = p.id;
       this.ball.passerLock = 0.28;
+    } else if (this.sport === "hockey") {
+      // Let a close teammate receive before the puck has travelled past them;
+      // the passer's separate exclusion still prevents an immediate re-pickup.
+      this.ball.lock = clamp((distance(p, q) - 38) / this.rules.pass, 0.02, 0.14);
     }
     return true;
   }
   shoot(p = this.user, power = 0.65, input = { x: 0, y: 0 }) {
     if (!p || this.phase !== "play" || this.ball.owner !== p.id || p.slideTimer > 0) return false;
     const gy = p.side ? this.rules.height + 5 : -5;
-    const assist = p.side ? 1 : clamp(this.aimAssist, 0, 1);
+    // Once a human can play the away side, both teams' AI use the same shooting
+    // model. Keep the existing solo home-versus-CPU balance intact.
+    const hockeyVersus = this.sport === "hockey" && this.controllers?.some((seat) => seat.side === 1);
+    const assist = p.side || hockeyVersus ? 1 : clamp(this.aimAssist, 0, 1);
     let aimWidth = this.rules.goal * 0.8 + 110 * (1 - assist);
     if (!p.side && this.touchProfile) {
       // The movement stick also aims the shot on a phone. Strong assistance
@@ -337,7 +393,7 @@ export class Match {
     const gx = this.rules.width / 2 + clamp(input.x, -1, 1) * aimWidth;
     const error =
       (this.random() - 0.5) *
-      (p.side ? this.difficulty.accuracy * 220 : 35 * (1 - assist));
+      (p.side || hockeyVersus ? this.difficulty.accuracy * 220 : 35 * (1 - assist));
     this.release(
       p,
       gx - p.x + error,
@@ -375,6 +431,13 @@ export class Match {
       this.stats[p.side].tackles++;
       o.stun = this.sport === "hockey" ? 0.65 : 0.38;
       this.ball.owner = null;
+      if (this.sport === "hockey") {
+        this.puckEpoch++;
+        resetHockeyFlight(this.ball);
+        this.ball.receiver = null;
+        this.ball.passTarget = null;
+        if (this.ball.launch) this.ball.launch.deflected = true;
+      }
       if (this.sport === "soccer") {
         resetFootballFlight(this.ball);
         this.ball.receiver = null;
@@ -391,7 +454,11 @@ export class Match {
     }
     return true;
   }
-  action(name, input = { x: 0, y: 0 }, power = 0.65) {
+  action(name, input = { x: 0, y: 0 }, power = 0.65, details = {}) {
+    if (this.sport === "hockey") {
+      const seat = this.controllers?.find((s) => s.id === this.localControllerId) || null;
+      return hockeyAction(this, name, input, power, details, seat);
+    }
     if (
       this.sport === "soccer" &&
       ["restart", "restart_ready"].includes(this.phase)
@@ -427,6 +494,9 @@ export class Match {
       return setupFootballRestart(this, type, side, x, y);
     this.ball.owner = null;
     this.ball.vx = this.ball.vy = 0;
+    resetHockeyFlight(this.ball);
+    this.puckEpoch++;
+    this.fightChallenge = null;
     this.phase = "restart";
     this.timer = 1.15;
     this.restartData = {
@@ -440,7 +510,7 @@ export class Match {
   resumeRestart() {
     const r = this.restartData;
     const ps = this.players
-      .filter((p) => p.side === r.side && !p.keeper)
+      .filter((p) => p.side === r.side && !p.keeper && hockeyActive(p))
       .sort((a, b) => distance(a, r) - distance(b, r));
     const p = ps[0];
     p.x = r.x;
@@ -454,14 +524,17 @@ export class Match {
       vy: 0,
       lock: 0.8,
       shot: false,
+      z: 0, vz: 0, airTime: 0, airTarget: null,
     };
+    this.puckEpoch++;
     this.lastTouch = r.side;
-    if (!r.side && !this.autoplay) this.controlled = p.id;
+    hockeyPossessionControl(this, p);
     this.phase = "play";
     this.cooldown = 0.7;
   }
   goal(side) {
     if (this.sport === "soccer") clearFootballActions(this);
+    else hockeyGoalPenalties(this, side);
     this.score[side]++;
     this.phase = "goal";
     this.timer = this.sport === "soccer" ? 1.8 : 2.8;
@@ -481,10 +554,12 @@ export class Match {
           : 1;
     this.emit("finished", { winner: this.winner });
   }
-  step(dt, input = { x: 0, y: 0, sprint: false }) {
+  step(dt, input = { x: 0, y: 0, sprint: false }, controllerInputs = {}) {
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) return;
     if (this.phase === "finished") return;
     this.time += dt;
+    const hockeyInputs = this.sport === "hockey" ? hockeyHumanInputs(this, input, controllerInputs) : null;
+    if (this.sport === "hockey" && stepHockeyDiscipline(this, dt, hockeyInputs)) return;
     const defensiveHolds = this.sport === "soccer"
       ? footballDefensiveHolds(this, input)
       : { contain: false, keeperRush: false };
@@ -539,20 +614,22 @@ export class Match {
       this.ball.flight = Math.max(0, (this.ball.flight || 0) - dt);
       this.ball.firstTouch = Math.max(0, (this.ball.firstTouch || 0) - dt);
       this.ball.passerLock = Math.max(0, (this.ball.passerLock || 0) - dt);
-    }
+    } else this.ball.passerLock = Math.max(0, (this.ball.passerLock || 0) - dt);
     const profile = this.touchProfile;
     const owner = this.owner;
     if (owner) this.stats[owner.side].possession += dt;
     const nearest = [0, 1].map((side) =>
       this.players
-        .filter((p) => p.side === side && !p.keeper)
+        .filter((p) => p.side === side && !p.keeper && (this.sport !== "hockey" || hockeyActive(p)))
         .sort((a, b) => distance(a, this.ball) - distance(b, this.ball))
         .map((p) => p.id),
     );
     this.players.forEach((p) => {
+      if (this.sport === "hockey" && !hockeyActive(p)) return;
       p.stun = Math.max(0, p.stun - dt);
       p.decision -= dt;
       p.tackleCooldown = Math.max(0, p.tackleCooldown - dt);
+      if (this.sport === "hockey") stepHockeyPlayer(this, p, dt);
       if (this.sport === "soccer") {
         p.containing = false;
         p.keeperRushing = false;
@@ -571,9 +648,10 @@ export class Match {
       let tx = 0,
         ty = 0,
         burst = false;
-      if (p.id === this.controlled) {
-        tx = Number.isFinite(input.x) ? input.x : 0;
-        ty = Number.isFinite(input.y) ? input.y : 0;
+      const humanInput = this.sport === "hockey" ? hockeyInputs.get(p.id) : p.id === this.controlled ? input : null;
+      if (humanInput) {
+        tx = Number.isFinite(humanInput.x) ? humanInput.x : 0;
+        ty = Number.isFinite(humanInput.y) ? humanInput.y : 0;
         const n = Math.max(1, Math.hypot(tx, ty));
         tx /= n;
         ty /= n;
@@ -583,7 +661,7 @@ export class Match {
           tx = axes.x;
           ty = axes.y;
         }
-        burst = input.sprint && p.stamina > 0.12;
+        burst = humanInput.sprint && p.stamina > 0.12;
       } else if (p.keeper) {
         const homeY = p.side ? 58 : this.rules.height - 58;
         let targetX = clamp(
@@ -633,7 +711,6 @@ export class Match {
           }
         } else if (
           !owner &&
-          this.sport === "soccer" &&
           this.ball.receiver === p.id
         ) {
           // Ground passes are met; through balls and lofts ask the receiver to
@@ -711,14 +788,15 @@ export class Match {
         const a = this.players[i],
           b = this.players[j],
           d = distance(a, b);
+        if (this.sport === "hockey" && (!hockeyActive(a) || !hockeyActive(b))) continue;
         if (d > 0 && d < 24) {
           const n = norm(a.x - b.x, a.y - b.y),
             s = (24 - d) * 0.25;
-          if (a.id !== this.controlled) {
+          if (this.sport === "hockey" ? !hockeyInputs.has(a.id) : a.id !== this.controlled) {
             a.x += n.x * s;
             a.y += n.y * s;
           }
-          if (b.id !== this.controlled) {
+          if (this.sport === "hockey" ? !hockeyInputs.has(b.id) : b.id !== this.controlled) {
             b.x -= n.x * s;
             b.y -= n.y * s;
           }
@@ -730,6 +808,7 @@ export class Match {
       this.ball.x = p.x + facing.x * 16;
       this.ball.y = p.y + facing.y * 16;
       this.ball.vx = this.ball.vy = 0;
+      if (this.sport === "hockey") this.ball.z = 0;
       if (this.sport === "soccer") {
         this.ball.z = 0;
         // A rushing keeper can claim a carried ball too; the loose-ball loop
@@ -748,21 +827,17 @@ export class Match {
     const old = {
       x: this.ball.x, y: this.ball.y,
       z: this.ball.z || 0, vz: this.ball.vz || 0, dt,
+      flightKind: this.ball.flightKind,
     };
     const b = this.ball;
     if (this.sport === "soccer") stepFootballBall(this, dt);
-    else {
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-      const decay = Math.exp(-this.rules.ballDrag * dt);
-      b.vx *= decay;
-      b.vy *= decay;
-    }
+    else stepHockeyPuck(this, dt);
     if (b.lock <= 0) {
       const candidates = this.players
         .filter(
           (p) =>
             p.stun <= 0 &&
+            (this.sport !== "hockey" || (hockeyActive(p) && hockeyReachable(p, old, b))) &&
             !(b.passerLock > 0 && b.passer === p.id) &&
             !(
               this.sport === "soccer" &&
@@ -780,7 +855,7 @@ export class Match {
         if (this.sport === "soccer") {
           b.restartKicker = null;
           b.noDirectGoal = false;
-        }
+        } else if (b.launch) b.launch.deflected = true;
         if (b.shot && speed > 300 && !p.keeper) {
           if (p.side === b.shooter) continue;
           b.vx *= 0.4;
@@ -790,6 +865,10 @@ export class Match {
             resetFootballFlight(b);
             b.passTarget = null;
             b.receiver = null;
+          } else {
+            resetHockeyFlight(b);
+            b.receiver = null;
+            b.passTarget = null;
           }
           b.lock = 0.08;
           this.lastTouch = p.side;
@@ -807,6 +886,10 @@ export class Match {
             resetFootballFlight(b);
             b.passTarget = null;
             b.receiver = null;
+          } else {
+            resetHockeyFlight(b);
+            b.receiver = null;
+            b.passTarget = null;
           }
           b.vx = (b.x - p.x) * 18 + (this.random() - 0.5) * 150;
           b.vy = p.side ? 280 : -280;
@@ -826,10 +909,16 @@ export class Match {
             // It prevents an instant turnover but expires even while standing.
             b.firstTouch = profile && p.side === 0 ? profile.receiveGrace : 0;
             b.firstTouchOwner = b.firstTouch ? p.id : null;
+          } else {
+            resetHockeyFlight(b);
+            b.receiver = null;
+            b.passTarget = null;
+            b.flightKind = null;
           }
           b.shot = false;
           this.lastTouch = p.side;
-          if (p.side === 0 && !this.autoplay) this.controlled = p.id;
+          if (this.sport === "hockey") hockeyPossessionControl(this, p);
+          else if (p.side === 0 && !this.autoplay) this.controlled = p.id;
           p.decision = this.difficulty.reaction;
           break;
         } else {
@@ -850,28 +939,7 @@ export class Match {
       footballBoundary(this, old);
       return;
     }
-    // Swept line crossing: fast shots cannot skip a goal or score through the side wall.
-    if (b.y < 0 || b.y > this.rules.height) {
-      const line = b.y < 0 ? 0 : this.rules.height;
-      const t = (line - old.y) / (b.y - old.y || 1);
-      const crossX = old.x + (b.x - old.x) * clamp(t, 0, 1);
-      if (Math.abs(crossX - this.rules.width / 2) < this.rules.goal / 2) {
-        this.goal(b.y < 0 ? 0 : 1);
-        return;
-      }
-    }
-    if (this.sport === "hockey") {
-      if (b.x < 8 || b.x > 672) {
-        b.x = clamp(b.x, 8, 672);
-        b.vx *= -0.83;
-        this.emit("board");
-      }
-      if (b.y < 8 || b.y > 1072) {
-        b.y = clamp(b.y, 8, 1072);
-        b.vy *= -0.82;
-        this.emit("board");
-      }
-    }
+    hockeyBoundary(this, old);
   }
 
   snapshot() {
@@ -889,6 +957,14 @@ export class Match {
       },
       controlled: this.controlled,
       sport: this.sport,
+      ...(this.sport === "hockey" ? {
+        controllers: this.controllers.map((seat) => ({ ...seat })),
+        localControllerId: this.localControllerId,
+        penalties: this.penalties.map((p) => ({ ...p })),
+        fight: this.fight ? { ...this.fight, players: [...this.fight.players] } : null,
+        fightChallenge: this.fightChallenge ? { ...this.fightChallenge } : null,
+        puckEpoch: this.puckEpoch,
+      } : {}),
     };
   }
 }

@@ -79,7 +79,12 @@ export class Arena {
     ctx.translate(this.x, this.y);
     if (this.rotated) ctx.rotate(Math.PI / 2);
     ctx.scale(this.scale, this.scale);
-    if (hockey) this.ice(ctx);
+    if (hockey) {
+      ctx.save();
+      ctx.scale(r.width / 680, r.height / 1080);
+      this.ice(ctx);
+      ctx.restore();
+    }
     else {
       ctx.save();
       ctx.scale(r.width / 680, r.height / 1080);
@@ -116,9 +121,9 @@ export class Arena {
     }
     if (guide && !preview && !replay) {
       const p = state.players[state.controlled];
-      if (p && game.hasBall) {
+      if (p && !p.offIce && (hockey ? game.canPlayPuck?.(p) : game.hasBall)) {
         const mates = state.players
-          .filter((q) => q.side === 0 && q.id !== p.id && !q.keeper)
+          .filter((q) => q.side === p.side && q.id !== p.id && !q.keeper && !q.offIce)
           .sort(
             (a, b) =>
               Math.hypot(a.x - p.x, a.y - p.y) -
@@ -139,7 +144,7 @@ export class Arena {
       }
     }
     const b = state.ball;
-    if (!hockey && guide && b.z > 8 && b.airTarget) {
+    if (guide && b.z > 8 && b.airTarget) {
       ctx.save();
       ctx.strokeStyle = "#f8edb79c";
       ctx.lineWidth = 3;
@@ -149,7 +154,7 @@ export class Arena {
       ctx.stroke();
       ctx.restore();
     }
-    state.players.forEach((p) =>
+    state.players.filter((p) => !p.offIce).forEach((p) =>
       this.player(
         ctx,
         p,
@@ -158,14 +163,15 @@ export class Arena {
         hockey,
         state.time ?? game.time,
         preview,
+        hockey && state.fight?.players?.includes(p.id),
       ),
     );
-    const height = hockey ? 0 : Math.max(0, b.z || 0);
+    const height = Math.max(0, b.z || 0);
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.fillStyle = height > 8 ? "#06101860" : "#06101844";
     ctx.beginPath();
-    ctx.ellipse(2, 4, hockey ? 8 : 10 + height * 0.035, 5, 0, 0, TAU);
+    ctx.ellipse(2, 4, (hockey ? 8 : 10) + height * 0.035, 5, 0, 0, TAU);
     ctx.fill();
     // Height always lifts the ball toward the top of the screen, including
     // the rotated landscape pitch. The shadow marks its actual ground path.
@@ -205,7 +211,7 @@ export class Arena {
       if (this.camera.zoomed) {
         this.edgeIndicator(ctx, state.ball, hockey ? "PUCK" : "BALL", "#ffd279");
         const selected = state.players[state.controlled];
-        if (selected) this.edgeIndicator(ctx, selected, "YOU", hockey ? "#83e6ff" : "#e0ff8a");
+        if (selected && !selected.offIce) this.edgeIndicator(ctx, selected, "YOU", hockey ? "#83e6ff" : "#e0ff8a");
       }
       ctx.textAlign = "center";
       ctx.fillStyle = "#0a1d26db";
@@ -213,7 +219,8 @@ export class Arena {
       ctx.fill();
       ctx.fillStyle = hockey ? "#c9e4f1" : "#e0eccb";
       ctx.font = "600 10px system-ui";
-      ctx.fillText(this.rotated ? "ATTACK →" : "ATTACK ↑", w / 2, 13);
+      const away = hockey && game.localSide === 1;
+      ctx.fillText(this.rotated ? (away ? "ATTACK ←" : "ATTACK →") : (away ? "ATTACK ↓" : "ATTACK ↑"), w / 2, 13);
     }
   }
   edgeIndicator(ctx, point, label, color) {
@@ -280,6 +287,7 @@ export class Arena {
     ctx.strokeRect(viewport.x * box.width, viewport.y * box.height,
       viewport.width * box.width, viewport.height * box.height);
     for (const player of state.players) {
+      if (player.offIce) continue;
       const p = project(player);
       ctx.fillStyle = player.id === state.controlled ? (hockey ? "#83e6ff" : "#e0ff8a")
         : player.side === 0 ? "#759fa9" : "#f3d1c6";
@@ -374,7 +382,7 @@ export class Arena {
       c.stroke();
     }
     c.restore();
-    this.net(c, 138, true);
+    this.net(c, this.rules.goal * 680 / this.rules.width, true);
     c.save();
     c.fillStyle = "#6d8b9b";
     c.font = "800 15px system-ui";
@@ -455,7 +463,7 @@ export class Arena {
       }
     }
   }
-  player(c, p, team, selected, hockey, time, preview) {
+  player(c, p, team, selected, hockey, time, preview, fighting = false) {
     const [primary, secondary] = team.colors;
     const jersey = p.side ? "#f0eee5" : primary;
     const trim = p.side ? primary : secondary;
@@ -553,8 +561,9 @@ export class Arena {
         c.lineWidth = 4;
         c.beginPath();
         c.moveTo(12, 0);
-        c.lineTo(22 + p.fx * 12, 23 + p.fy * 10);
-        c.lineTo(32 + p.fx * 12, 21 + p.fy * 10);
+      const windup = Math.min(1, (p.shotHold || 0) / 0.45);
+      c.lineTo(22 + p.fx * (12 - windup * 32), 23 + p.fy * (10 - windup * 28));
+      c.lineTo(32 + p.fx * (12 - windup * 32), 21 + p.fy * (10 - windup * 28));
         c.stroke();
       } else {
         c.fillStyle = p.side ? primary : "#eee8d9";
@@ -591,6 +600,18 @@ export class Arena {
       if (this.rotated) c.rotate(-Math.PI / 2);
       c.fillText(String(p.number), 0, 3);
       c.restore();
+    }
+    if (hockey && fighting) {
+      const swing = Math.sin(time * 18 + p.id) * 5;
+      c.fillStyle = "#a73236";
+      c.strokeStyle = "#ffe4b4";
+      c.lineWidth = 2;
+      for (const side of [-1, 1]) {
+        c.beginPath();
+        c.arc(side * (17 + swing), -5, 7, 0, TAU);
+        c.fill();
+        c.stroke();
+      }
     }
     if (selected && !preview) {
       if (this.rotated) c.rotate(-Math.PI / 2);

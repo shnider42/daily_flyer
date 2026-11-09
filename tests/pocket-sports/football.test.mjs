@@ -49,7 +49,7 @@ test("football gains meaningful space and time without slowing the hockey rules"
       SPORTS.hockey.pass,
       SPORTS.hockey.shot,
     ],
-    [680, 1080, 235, 650, 970],
+    [880, 1400, 235, 650, 970],
   );
 });
 test("kick-off waits for player input; clock and ball stay still during the delay", () => {

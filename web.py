@@ -12,6 +12,8 @@ REPO_ROOT = Path(__file__).resolve().parent
 
 from daily_flyer.sports import create_sports_blueprint
 app.register_blueprint(create_sports_blueprint(REPO_ROOT / "daily_flyer" / "themes" / "pocket_sports_assets"))
+from daily_flyer.sports_rooms import create_hockey_rooms_blueprint
+app.register_blueprint(create_hockey_rooms_blueprint(REPO_ROOT))
 
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 THEME_ROUTE_ALIASES = {

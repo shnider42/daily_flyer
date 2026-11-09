@@ -26,6 +26,8 @@ export class Input {
     shotContext = () => null,
     footballControls = () => false,
     defending = () => false,
+    hockeyControls = () => false,
+    hockeyActor = () => null,
   }) {
     this.stick = stick;
     this.knob = knob;
@@ -42,6 +44,10 @@ export class Input {
     this.shotContext = shotContext;
     this.footballControls = footballControls;
     this.defending = defending;
+    this.hockeyControls = hockeyControls;
+    this.hockeyActor = hockeyActor;
+    this.hockeyHold = null;
+    this.chargeKind = null;
     this.defensiveHolds = { contain: new Set(), keeperRush: new Set() };
     this.chargeContext = null;
     this.sprinting = false;
@@ -96,7 +102,8 @@ export class Input {
     this.bind(
       through,
       (source) => this.faceButton("through", source),
-      (source) => this.releaseDefence("keeperRush", source),
+      (source) => this.releaseThrough(source),
+      (source) => this.cancelThrough(source),
     );
     this.bind(switcher, () => this.command("switch"));
     this.bind(
@@ -146,7 +153,7 @@ export class Input {
       if (e.code === settings.keys.pass)
         this.releaseDefence("contain", "keyboard:pass");
       if (e.code === settings.keys.through)
-        this.releaseDefence("keeperRush", "keyboard:through");
+        this.releaseThrough("keyboard:through");
     });
     window.addEventListener("blur", () => this.clear());
     document.addEventListener("visibilitychange", () => {
@@ -226,6 +233,7 @@ export class Input {
   }
   vector() {
     this.syncDefensiveHolds();
+    this.syncHockeyHold();
     let x =
         this.move.x +
         (this.keys.has("KeyD") || this.keys.has("ArrowRight") ? 1 : 0) -
@@ -250,10 +258,22 @@ export class Input {
       vector.contain = this.defensiveHolds.contain.size > 0;
       vector.keeperRush = this.defensiveHolds.keeperRush.size > 0;
     }
+    if (this.hockeyControls()) {
+      vector.shotHeld = this.chargeSource !== null && this.chargeKind === "hockey-shot";
+      vector.dumpHeld = this.hockeyHold?.kind === "dump";
+      vector.fightHeld = this.hockeyHold?.kind === "fight";
+    }
     return vector;
   }
   faceButton(button, source) {
     if (!this.active()) return;
+    if (this.hockeyControls()) {
+      if (button === "pass") this.command("hockey-pass");
+      else if (button === "lob")
+        this.command(this.canChargeShot() ? "hockey-saucer" : "hockey-poke");
+      else if (button === "through") this.startThrough(source);
+      return;
+    }
     if (!this.footballControls()) {
       if (button === "pass") this.command("pass");
       return;
@@ -270,6 +290,51 @@ export class Input {
   releaseDefence(action, source) {
     this.defensiveHolds[action].delete(source);
   }
+  startThrough(source) {
+    if (this.hockeyHold || !this.active()) return;
+    const actor = this.hockeyActor();
+    if (actor === null || actor === undefined) return;
+    const playable = this.canChargeShot();
+    this.hockeyHold = {
+      source,
+      kind: playable ? "dump" : "fight",
+      actor,
+      context: playable ? this.shotContext() : null,
+      started: performance.now(),
+    };
+  }
+  syncHockeyHold() {
+    const hold = this.hockeyHold;
+    if (!hold) return;
+    if (!this.active() || !this.hockeyControls() || this.hockeyActor() !== hold.actor ||
+        (hold.kind === "dump"
+          ? !this.canChargeShot() || this.shotContext() !== hold.context
+          : this.canChargeShot())) this.hockeyHold = null;
+  }
+  releaseThrough(source) {
+    this.releaseDefence("keeperRush", source);
+    this.syncHockeyHold();
+    const hold = this.hockeyHold;
+    if (!hold || hold.source !== source) return;
+    this.hockeyHold = null;
+    if (hold.kind === "dump") {
+      const seconds = Math.max(0, (performance.now() - hold.started) / 1000);
+      this.command("hockey-dump", clamp(seconds / 1.4, 0.08, 1), { heldSeconds: seconds });
+    }
+    // Fights are attempted by the simulation only after three uninterrupted
+    // seconds of fightHeld input. A client cannot turn a tap into a fight.
+  }
+  cancelThrough(source = null) {
+    if (source !== null) this.releaseDefence("keeperRush", source);
+    if (source === null || this.hockeyHold?.source === source) this.hockeyHold = null;
+  }
+  hockeyProgress() {
+    this.syncHockeyHold();
+    const hold = this.hockeyHold;
+    if (!hold) return { kind: null, seconds: 0, power: 0 };
+    const seconds = Math.max(0, (performance.now() - hold.started) / 1000);
+    return { kind: hold.kind, seconds, power: clamp(seconds / (hold.kind === "fight" ? 3 : 1.4), 0, 1) };
+  }
   syncDefensiveHolds() {
     // A press belongs to the defensive phase in which it began. A turnover,
     // stoppage or menu cancels it; releasing later must never fire a pass.
@@ -278,22 +343,24 @@ export class Input {
       this.defensiveHolds.keeperRush.clear();
     }
   }
-  command(name, power) {
-    if (this.active()) this.onAction(name, this.vector(), power);
+  command(name, power, details) {
+    if (this.active()) this.onAction(name, this.vector(), power, details);
   }
   startCharge(source = "activation") {
     if (this.active() && this.chargeSource === null) {
       if (!this.canChargeShot()) {
-        this.command("shoot");
+        this.command(this.hockeyControls() ? "hockey-hit" : "shoot");
         return;
       }
       this.chargeSource = source;
+      this.chargeKind = this.hockeyControls() ? "hockey-shot" : "shoot";
       this.chargeContext = this.shotContext();
       this.chargeStart = performance.now();
     }
   }
   syncShotContext() {
     this.syncDefensiveHolds();
+    this.syncHockeyHold();
     if (
       this.chargeSource !== null &&
       (!this.canChargeShot() || this.shotContext() !== this.chargeContext)
@@ -305,14 +372,17 @@ export class Input {
     this.syncShotContext();
     if (this.chargeStart === null) return;
     const power = this.power();
+    const kind = this.chargeKind;
+    const heldSeconds = Math.max(0, (performance.now() - this.chargeStart) / 1000);
     this.cancelShot(source);
-    this.command("shoot", power);
+    this.command(kind || "shoot", power, kind === "hockey-shot" ? { heldSeconds } : undefined);
   }
   cancelShot(source = null) {
     if (source !== null && source !== this.chargeSource) return;
     this.chargeStart = null;
     this.chargeSource = null;
     this.chargeContext = null;
+    this.chargeKind = null;
   }
   power() {
     return this.chargeStart === null
@@ -333,6 +403,7 @@ export class Input {
     this.defensiveHolds.contain.clear();
     this.defensiveHolds.keeperRush.clear();
     this.cancelShot();
+    this.cancelThrough();
     this.pointer = null;
     this.knob.style.transform = "translate(0px,0px)";
   }

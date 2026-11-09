@@ -7,6 +7,8 @@ import { placeSportsMinimap } from "./core/sports-camera.js";
 import { bindMinimapInput } from "./core/minimap-input.js";
 import { Input, matchControlsActive } from "./core/input.js";
 import { Sound } from "./core/sound.js";
+import { HockeyNetwork } from "./core/hockey-network.js";
+import { HockeyRoomUI } from "./core/hockey-room-ui.js";
 import {
   DEFAULT_SETTINGS,
   defaultCameraSettings,
@@ -52,7 +54,9 @@ let data = {},
   minimapInput = null,
   minimapFrameKey = null,
   minimapPlacementKey = null,
-  minimapGame = null;
+  minimapGame = null,
+  networkState = { room: null, game: null, seatId: null, connected: false, rtt: null },
+  roomUI = null;
 const field = new Arena($("field")),
   preview = new Arena($("preview"));
 const cameraMap = $("camera-map"),
@@ -75,9 +79,11 @@ const input = new Input({
   },
   autoSprint: () => game?.sport === "soccer" && settings.touchAssist,
   footballControls: () => game?.sport === "soccer",
+  hockeyControls: () => game?.sport === "hockey",
+  hockeyActor: () => game?.sport === "hockey" && game.phase === "play" && game.isPlayerActive(game.user) ? game.user?.id : null,
   defending: () =>
     game?.sport === "soccer" && game.phase === "play" && !game.hasBall,
-  canChargeShot: () =>
+  canChargeShot: () => game?.sport === "hockey" ? game.canPlayPuck() :
     game?.sport !== "soccer" ||
     (game.phase === "play" && game.hasBall) ||
     (["restart", "restart_ready"].includes(game.phase) &&
@@ -87,10 +93,11 @@ const input = new Input({
       ? game.phase === "play"
         ? game.owner
         : game.restartData
-      : null,
-  active: () => matchControlsActive(game, paused, $("dialog").open),
-  onAction: (a, v, p) => {
-    game?.action(a, field.toWorld(v), p);
+      : game?.puckControlContext(),
+  active: () => matchControlsActive(game, paused || (game?.network && (networkState.room?.status !== "playing" || !networkState.connected)), $("dialog").open),
+  onAction: (a, v, p, details) => {
+    if (game?.network) hockeyNetwork.action(a, field.toWorld(v), p, details);
+    else game?.action(a, field.toWorld(v), p, details);
     input.syncShotContext();
   },
   onPause: () => (game ? togglePause() : null),
@@ -174,18 +181,55 @@ function renderMinimap(state, replay) {
   field.overview(cameraOverview, state, sport === "hockey");
 }
 const clock = new FixedClock((dt) => {
-  if (!game || paused || $("dialog").open) return;
+  if (!game || game.network || paused || $("dialog").open) return;
   game.aimAssist = settings.assist;
   const phaseBefore = game.phase;
   input.syncShotContext();
   game.step(dt, field.toWorld(input.vector()));
   input.syncShotContext();
-  if (phaseBefore === "play" && game.phase !== "play") input.cancelShot();
+  if (phaseBefore === "play" && game.phase !== "play") { input.cancelShot(); input.cancelThrough(); }
   if (game.phase === "play") {
     frames.push(game.snapshot());
     if (frames.length > 130) frames.shift();
   }
   if (game.phase === "goal") replayTime += dt;
+});
+const hockeyNetwork = new HockeyNetwork({
+  onError: (error) => toast(error.message),
+  onUpdate: (state) => {
+    const wasOnline = !!game?.network;
+    networkState = state;
+    if (state.room && !state.game && data.hockey) {
+      const config = state.room.config;
+      if ($("home").value !== config.homeTeamId || $("away").value !== config.awayTeamId) {
+        $("home").value = config.homeTeamId;
+        $("away").value = config.awayTeamId;
+        updateTeams();
+      }
+      $("difficulty").value = config.difficulty;
+      $("duration").value = config.duration;
+    }
+    if (!state.game || state.room?.status === "closed") roomUI?.render(state);
+    if (state.game && state.room?.status !== "closed") {
+      if (game !== state.game) {
+        cup = null;
+        enterMatchView(state.game);
+        toast("Match connected. Your highlighted skater is yours to control.");
+      }
+      if (state.room.status !== "playing" || !state.connected) input.clear();
+    } else if (wasOnline) {
+      leaveGame(false);
+      if (state.room?.reason) toast(state.room.reason);
+    }
+  },
+});
+roomUI = new HockeyRoomUI({
+  network: hockeyNetwork,
+  resumeCode: HockeyNetwork.savedRoom(),
+  getOptions: () => ({ homeTeamId: $("home").value, awayTeamId: $("away").value,
+    difficulty: $("difficulty").value, duration: Number($("duration").value) }),
+  onNotice: toast,
+  onChanged: () => { if (!game) updateMode(); },
 });
 function toast(msg) {
   $("toast").textContent = msg;
@@ -204,15 +248,13 @@ function applySettings() {
   minimapPlacementKey = null;
   game?.setTouchAssist(settings.touchAssist);
   updateControlHint();
-  const soccer = sport === "soccer";
   const fit =
     innerWidth <= 440
       ? Math.min(
           1,
-          (innerWidth - (soccer ? 86 : 82)) /
+          (innerWidth - 86) /
             (Number(settings.stick) +
-              Number(settings.buttons) * (soccer ? 2.55 : 2.14) +
-              (soccer ? 0 : 4)),
+              Number(settings.buttons) * 2.55),
         )
       : 1;
   const stickSize = Number(settings.stick) * fit,
@@ -248,15 +290,14 @@ function applySettings() {
   if (!writeStore("settings", settings))
     toast("Settings work for this visit; browser storage is unavailable.");
   const touch = matchMedia("(max-width:760px)").matches;
-  const size = soccer
-    ? Math.max(155, Math.ceil(buttonSize * 2.55 + 20), stickSize + 40)
-    : Math.max(155, Number(settings.buttons) * 2 + 22, Number(settings.stick) + 40);
+  const size = Math.max(155, Math.ceil(buttonSize * 2.55 + 20), stickSize + 40);
   $("game").style.setProperty(
     "grid-template-rows",
     matchMedia("(max-height:520px) and (orientation:landscape)").matches
       ? "48px 1fr"
       : `${touch ? 56 : 64}px minmax(0,1fr) ${size}px ${touch ? 0 : 25}px`,
   );
+  sound.update(game, { paused: paused || (game?.network && networkState.room?.status !== "playing"), menu: $("dialog").open || !game });
 }
 function keyLabel(code) {
   return code === "Space"
@@ -266,19 +307,22 @@ function keyLabel(code) {
 applySettings();
 window.addEventListener("resize", applySettings);
 function selectSport(next) {
+  if (next !== sport && hockeyNetwork.room) hockeyNetwork.leave();
+  if (next !== "hockey" && mode === "online") mode = "quick";
   minimapInput?.cancel();
   field.camera.clearManualViews();
   cameraMap.hidden = true;
   sport = next;
   document.body.dataset.sport = sport;
   const soccer = sport === "soccer";
-  const actionControls = document.querySelector(".action-controls");
-  if (soccer) document.querySelector(".center-control").append($("sprint"));
-  else actionControls.insertBefore($("sprint"), $("shoot"));
-  for (const id of ["lob", "through"]) $(id).hidden = !soccer;
+  document.querySelector(".center-control").append($("sprint"));
+  for (const id of ["lob", "through"]) $(id).hidden = false;
+  $("online-tab").hidden = soccer;
+  $("hockey-status").hidden = soccer;
+  $("hockey-hold-status").hidden = soccer;
   $("control-preview-actions").textContent = soccer
     ? "Pass · loft · through · shoot"
-    : "Pass · shoot · burst";
+    : "Pass · shoot · saucer · dump";
   $("sprint").querySelector(".action-label").textContent = soccer
     ? "SPRINT"
     : "BURST";
@@ -364,16 +408,31 @@ function updateTeams(changed = "home") {
   previewGame.controlled = -1;
   previewGame.time = 1;
   previewTick = 0;
+  if (sport === "hockey") {
+    const select = $("hockey-player"), previous = Number(select.value) || readStore("hockey.player", 1);
+    select.innerHTML = previewGame.players.filter((p) => p.side === 0 && !p.keeper)
+      .map((p) => `<option value="${p.id}">${p.number} · ${esc(p.name)} · ${esc(p.role)}</option>`).join("");
+    if ([...select.options].some((option) => Number(option.value) === previous)) select.value = previous;
+    select.disabled = $("hockey-control-mode").value !== "skater";
+  }
 }
 function updateMode() {
   document.querySelectorAll("[data-mode]").forEach((b) => {
     b.classList.toggle("selected", b.dataset.mode === mode);
     b.setAttribute("aria-selected", b.dataset.mode === mode);
   });
-  $("away").disabled = mode === "cup";
-  $("duration").disabled = mode === "practice";
+  const online = sport === "hockey" && mode === "online";
+  const inRoom = !!networkState.room && networkState.room.status !== "closed";
+  $("hockey-online").hidden = !online;
+  $("hockey-control-options").hidden = sport !== "hockey" || online;
+  $("start").hidden = online;
+  $("home").disabled = inRoom;
+  $("away").disabled = mode === "cup" || inRoom;
+  $("duration").disabled = mode === "practice" || inRoom;
+  $("difficulty").disabled = inRoom;
   $("mode-note").textContent =
-    mode === "cup"
+    online ? "Private hockey · Up to four players · Any mix of sides and locked skaters"
+      : mode === "cup"
       ? "Four wins to the cup · Single-match ties · Saved between rounds"
       : mode === "practice"
         ? "Unlimited clock · CPU opposition · Learn the controls"
@@ -387,15 +446,22 @@ function updateMode() {
   const saved = readStore(sport + ".cup", null);
   $("resume-cup").classList.toggle(
     "hidden",
-    !saved ||
+    online || !saved ||
       saved.finished ||
       !data[sport]?.teams.some((t) => t.id === saved.home),
   );
 }
+$("hockey-control-mode").value = readStore("hockey.control-mode", "team");
+$("hockey-control-mode").onchange = () => {
+  $("hockey-player").disabled = $("hockey-control-mode").value !== "skater";
+  writeStore("hockey.control-mode", $("hockey-control-mode").value);
+};
+$("hockey-player").onchange = () => writeStore("hockey.player", Number($("hockey-player").value));
 for (const b of document.querySelectorAll(".sport-switch button"))
   b.onclick = () => selectSport(b.dataset.sport);
 for (const b of document.querySelectorAll("[data-mode]"))
   b.onclick = () => {
+    if (b.dataset.mode !== "online" && hockeyNetwork.room) hockeyNetwork.leave();
     mode = b.dataset.mode;
     updateMode();
   };
@@ -404,6 +470,7 @@ $("away").onchange = () => updateTeams("away");
 function modal(title, subtitle, html) {
   minimapInput?.cancel();
   input.clear();
+  if (game?.network) hockeyNetwork.clearInput();
   if (game) paused = true;
   $("dialog-content").innerHTML =
     `<div class="dialog-top"><h2>${title}</h2><button class="close" aria-label="Close dialog">×</button></div>${subtitle ? `<p class="dialog-subtitle">${subtitle}</p>` : ""}${html}`;
@@ -418,6 +485,7 @@ function closeModal() {
     paused = false;
     clock.reset();
     lastNow = performance.now();
+    if (game.network && networkState.room?.status === "paused") hockeyNetwork.resume().catch((error) => toast(error.message));
   }
 }
 $("dialog").addEventListener("cancel", (e) => {
@@ -440,7 +508,7 @@ function showAbout() {
   modal(
     "ROSTERS & RULES",
     `Pocket Sports · DailyFlyer · ${ENGINE_VERSION}`,
-    `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Team abilities are balanced arcade behavior; this build does not claim official ratings. The away team wears a light kit for readability. This is an independent fan-made game.</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. Solo play only in this release.</p></div>`,
+    `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Team abilities are balanced arcade behavior; this build does not claim official ratings. The away team wears a light kit for readability. This is an independent fan-made game.${sport === "hockey" ? " Matching fighting penalties bring generic bench skaters onto the ice." : ""}</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. ${sport === "hockey" ? "Private online matches support up to four players on either side, switching skaters or locking one player. Rooms are temporary; use the invite link to play on the same server." : "Soccer is solo play."}</p></div>`,
   );
 }
 $("about-open").onclick = showAbout;
@@ -448,19 +516,20 @@ function showHelp(startAfter = false) {
   const soccer = sport === "soccer";
   const attackHelp = soccer
     ? `<span class="help-action a">A</span> Ground pass<br><span class="help-action b">B</span> Hold, release to shoot<br><span class="help-action x">X</span> Lofted pass / cross<br><span class="help-action y">Y</span> Through ball into space`
-    : "Tap PASS. Hold SHOOT, then release for power. Hold BURST to spend stamina.";
+    : `<span class="help-action a">A</span> Ground pass<br><span class="help-action b">B</span> Tap for a wrist shot; hold for a slap shot<br><span class="help-action x">X</span> Saucer pass over sticks<br><span class="help-action y">Y</span> Hold, then release for a high dump`;
   const defenceHelp = soccer
     ? `Hold <span class="help-action a">A</span> to contain<br><span class="help-action b">B</span> Standing tackle<br><span class="help-action x">X</span> Sliding tackle<br>Hold <span class="help-action y">Y</span> to rush your keeper`
-    : "PASS becomes SWITCH. SHOOT becomes CHECK. Get close, then commit.";
+    : `<span class="help-action a">A</span> Switch skater, or call for a pass when locked<br><span class="help-action b">B</span> Body check<br><span class="help-action x">X</span> Poke check<br><span class="help-action y">Y</span> Hold for 3 seconds to challenge a nearby opponent`;
   modal(
-    soccer ? "FOUR BUTTONS. YOUR GAME." : "TWO THUMBS. ONE GAME.",
+    "FOUR BUTTONS. YOUR GAME.",
     soccer
       ? "Y on top. B right. A below. X left. The letters stay put; their jobs change with possession."
-      : "A little glide is part of skating. Plan the turn.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player and aim passes. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>${soccer ? "IN POSSESSION" : "RIGHT THUMB"}</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE BALL</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : ""}</div><div class="help-card"><b>${soccer ? "SWITCH & SPRINT" : "ON DESKTOP"}</b><p>${soccer ? "Use the separate SWITCH button to choose your defender. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : `WASD or arrows move. ${keyLabel(settings.keys.pass)} passes, ${keyLabel(settings.keys.shoot)} shoots, ${keyLabel(settings.keys.sprint)} bursts. Remap in settings.`}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Y leads a runner along the ground. Shots are assisted toward goal; steer across goal to pick a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and use SWITCH.</p><p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${keyLabel(settings.keys.switch)} switches player; ${keyLabel(settings.keys.sprint)} sprints. Remap in settings.</p>` : '<p class="dialog-subtitle help-note">Passing follows your movement direction toward a teammate. Shots are assisted toward goal; steer across the goal to pick a side. You control movement; teammates handle their own positions.</p>'}<button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+      : "Y on top. B right. A below. X left. Your own skater’s puck reach decides the action.",
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player and aim passes. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>IN POSSESSION</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE ${soccer ? "BALL" : "PUCK"}</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : '<p>Reachable loose pucks count as playable. A teammate’s possession does not turn your own buttons into passes or shots.</p>'}</div><div class="help-card"><b>${soccer ? "SWITCH & SPRINT" : "YOUR SKATER"}</b><p>${soccer ? "Use the separate SWITCH button to choose your defender. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : "Switch skaters to run a team, or lock one skater in the lobby. In a lock, A asks an AI teammate for a pass. Hold BURST for speed; a little glide is part of skating."}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Y leads a runner along the ground. Shots are assisted toward goal; steer across goal to pick a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and use SWITCH.</p>` : '<p class="dialog-subtitle help-note">Hold B for about half a second to wind up a slap shot. Longer Y holds give a higher, longer dump; aiming it straight over the glass from your defensive zone brings a delay-of-game minor. Aim up ice or play it off the boards.</p><p class="dialog-subtitle">Off the puck, Y needs an uninterrupted three-second hold near an opponent. Human opponents accept by holding Y themselves; an AI can decline. Fighting brings matching majors. Penalty clocks are shortened for arcade matches; a locked skater stays in the box until released. No icing or offside yet.</p>'}<p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${keyLabel(settings.keys.switch)} ${soccer ? "switches player" : "switches or calls"}; ${keyLabel(settings.keys.sprint)} ${soccer ? "sprints" : "bursts"}. Remap in settings.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
+    if (sport === "hockey") writeStore("hockey.abxy-learned", true);
     closeModal();
   };
 }
@@ -494,12 +563,13 @@ function bindCameraSettings() {
 function showSettings() {
   modal(
     "CAMERA & CONTROLS",
-    "Changes save automatically in this browser.",
+    `Changes save automatically in this browser.${game?.network && networkState.room?.status === "playing" ? " The online match continues while this menu is open." : ""}`,
     `${cameraSettingsMarkup()}<div class="settings-group"><h3>YOUR THUMBS</h3>${[
       ["stick", "Joystick size", 72, 126, 1, "px"],
       ["buttons", "Action button size", 44, 74, 1, "px"],
       ["sensitivity", "Stick sensitivity", 0.6, 1.6, 0.1, "×"],
-      ["assist", "Shot assist", 0, 1, 0.05, ""],
+      ["assist", game?.network ? "Shot assist · shared online" : "Shot assist", 0, 1, 0.05, ""],
+      ...(sport === "hockey" ? [["crowd", "Crowd volume", 0, 1, 0.05, ""]] : []),
     ]
       .map(
         ([id, label, min, max, step, unit]) =>
@@ -508,7 +578,7 @@ function showSettings() {
       .join("")}${sport === "soccer" ? `<label class="setting"><span>Touch assistance</span><input type="checkbox" id="set-touchAssist" aria-describedby="touch-assist-help" ${settings.touchAssist ? "checked" : ""}></label><p class="settings-tip touch-assist-tip" id="touch-assist-help">More time to react and automatic sprinting at the stick’s outer edge.</p>` : ""}${[
       ["leftHanded", "Swap control sides"],
       ["guidance", "Passing guides"],
-      ["sound", "Sound effects"],
+      ["sound", sport === "hockey" ? "Arena sound" : "Sound effects"],
       ["reduced", "Reduce animation"],
     ]
       .map(
@@ -518,14 +588,14 @@ function showSettings() {
       .join(
         "",
       )}</div><div class="settings-group"><h3>YOUR KEYBOARD</h3><p class="settings-tip">Movement: WASD / arrows. Pause: P / Esc. Select an action, then press a key.</p>${[
-      ["shoot", sport === "soccer" ? "B · Shoot / tackle" : "Shoot / check"],
-      ["pass", sport === "soccer" ? "A · Pass / hold contain" : "Pass / switch"],
+      ["shoot", sport === "soccer" ? "B · Shoot / tackle" : "B · Shoot / hold slap shot / hit"],
+      ["pass", sport === "soccer" ? "A · Pass / hold contain" : "A · Pass / switch / call"],
       ...(sport === "soccer"
         ? [
             ["lob", "X · Loft / cross / slide"],
             ["through", "Y · Through / hold keeper rush"],
           ]
-        : []),
+        : [["lob", "X · Saucer pass / poke check"], ["through", "Y · Dump / hold to fight"]]),
       ["sprint", sport === "hockey" ? "Burst" : "Sprint"],
       ["switch", "Switch player"],
     ]
@@ -538,7 +608,12 @@ function showSettings() {
       )}</div><button class="secondary" id="restore-settings">RESTORE DEFAULTS</button><button class="start-button" id="settings-done"><span>${game ? "RESUME MATCH" : "DONE"}</span><span>→</span></button><a class="sports-home-link" href="/pocket-sports/">← POCKET SPORTS HOME</a>${game ? '<p class="settings-tip">Returning home leaves this match.</p>' : ""}`,
   );
   bindCameraSettings();
-  for (const id of ["stick", "buttons", "sensitivity", "assist"])
+  $("set-assist").disabled = !!game?.network;
+  if (game?.network) {
+    $("set-assist").value = game.aimAssist;
+    $("assist-out").textContent = game.aimAssist;
+  }
+  for (const id of ["stick", "buttons", "sensitivity", "assist", ...(sport === "hockey" ? ["crowd"] : [])])
     $("set-" + id).oninput = (e) => {
       settings[id] = +e.target.value;
       $(id + "-out").textContent =
@@ -619,14 +694,20 @@ window.addEventListener(
 );
 $("settings-open").onclick = showSettings;
 $("camera-open").onclick = showSettings;
-function togglePause() {
+async function togglePause() {
   if (!game) return;
   if ($("dialog").open) return closeModal();
+  if (game.network && networkState.room?.status === "playing") {
+    input.clear();
+    try { await hockeyNetwork.pause(); }
+    catch (error) { toast(error.message); }
+    if (!game) return;
+  }
   paused = true;
   modal(
     "TIME OUT",
     `${game.teams[0].name} ${game.score[0]} — ${game.score[1]} ${game.teams[1].name}`,
-    `<button class="start-button" id="resume"><span>RESUME MATCH</span><span>→</span></button><button class="secondary" id="pause-settings">CAMERA, CONTROLS & SOUND</button><button class="secondary" id="pause-help">HOW TO PLAY</button><button class="secondary" id="leave">LEAVE MATCH</button><a class="sports-home-link" href="/pocket-sports/">← POCKET SPORTS HOME</a><p class="settings-tip">${cup ? "Completed cup rounds are saved. Leaving this match lets you restart this round." : "Leaving or returning home discards this match."}</p>`,
+    `<button class="start-button" id="resume"><span>RESUME MATCH</span><span>→</span></button><button class="secondary" id="pause-settings">CAMERA, CONTROLS & SOUND</button><button class="secondary" id="pause-help">HOW TO PLAY</button><button class="secondary" id="leave">LEAVE MATCH</button><a class="sports-home-link" href="/pocket-sports/">← POCKET SPORTS HOME</a><p class="settings-tip">${game.network ? "Pausing stops play for the whole room. Everyone chooses Resume when ready. Leaving this match ends the room; a brief connection interruption allows reconnection from this tab." : cup ? "Completed cup rounds are saved. Leaving this match lets you restart this round." : "Leaving or returning home discards this match."}</p>`,
   );
   $("resume").onclick = closeModal;
   $("pause-settings").onclick = showSettings;
@@ -658,6 +739,7 @@ function createCup() {
   };
 }
 function startMatch(resume = false) {
+  if (mode === "online") return;
   minimapInput?.cancel();
   cameraMap.hidden = true;
   sound.unlock();
@@ -680,6 +762,22 @@ function startMatch(resume = false) {
     cup: !!cup,
     seed: Date.now(),
   });
+  if (sport === "hockey") {
+    game.setControllers([{ id: "local", side: 0, mode: $("hockey-control-mode").value,
+      playerId: Number($("hockey-player").value) }], "local");
+  }
+  enterMatchView(game);
+  if (!readStore(sport === "hockey" ? "hockey.abxy-learned" : sport + ".learned", false)) showHelp(true);
+  else if (cup) showCupRound();
+}
+function enterMatchView(match) {
+  game = match;
+  sport = game.sport;
+  document.body.dataset.sport = sport;
+  minimapInput?.cancel();
+  cameraMap.hidden = true;
+  field.camera.clearManualViews();
+  sound.unlock();
   finishedShown = false;
   paused = false;
   frames = [];
@@ -689,14 +787,12 @@ function startMatch(resume = false) {
   document.body.classList.add("playing");
   $("lobby").classList.add("hidden");
   $("game").classList.remove("hidden");
-  $("score-home").textContent = home.short;
-  $("score-away").textContent = away.short;
+  $("score-home").textContent = game.teams[0].short;
+  $("score-away").textContent = game.teams[1].short;
   field.resize();
   input.clear();
   clock.reset();
   lastNow = performance.now();
-  if (!readStore(sport + ".learned", false)) showHelp(true);
-  else if (cup) showCupRound();
 }
 function showCupRound() {
   const names = ["ROUND OF 16", "QUARTER-FINAL", "SEMI-FINAL", "FINAL"];
@@ -712,7 +808,8 @@ $("resume-cup").onclick = () => {
   mode = "cup";
   startMatch(true);
 };
-function leaveGame() {
+function leaveGame(leaveRoom = true) {
+  if (leaveRoom && hockeyNetwork.room) hockeyNetwork.leave();
   minimapInput?.cancel();
   field.camera.clearManualViews();
   cameraMap.hidden = true;
@@ -733,7 +830,7 @@ function result() {
   if (finishedShown) return;
   finishedShown = true;
   paused = true;
-  const homeWin = game.winner === 0;
+  const homeWin = game.winner === (game.network ? game.localSide : 0);
   let title =
     game.winner === null
       ? "HONOURS EVEN"
@@ -763,11 +860,12 @@ function result() {
   modal(
     title,
     `${game.teams[0].name} vs ${game.teams[1].name}`,
-    `<div class="result-score">${game.score[0]} — ${game.score[1]}</div>${["shots", "saves", "passes", "tackles"].map((key) => `<div class="stat-row"><b>${game.stats[0][key]}</b><span>${key.toUpperCase()}</span><b>${game.stats[1][key]}</b></div>`).join("")}<div class="stat-row"><b>${Math.round((game.stats[0].possession / total) * 100)}%</b><span>POSSESSION</span><b>${Math.round((game.stats[1].possession / total) * 100)}%</b></div><button class="start-button" style="margin-top:22px" id="result-next"><span>${advance ? "NEXT ROUND" : cup ? "BACK TO CLUBHOUSE" : "PLAY AGAIN"}</span><span>→</span></button><button class="secondary" id="result-home">BACK TO CLUBHOUSE</button>`,
+    `<div class="result-score">${game.score[0]} — ${game.score[1]}</div>${["shots", "saves", "passes", "tackles"].map((key) => `<div class="stat-row"><b>${game.stats[0][key]}</b><span>${key.toUpperCase()}</span><b>${game.stats[1][key]}</b></div>`).join("")}<div class="stat-row"><b>${Math.round((game.stats[0].possession / total) * 100)}%</b><span>POSSESSION</span><b>${Math.round((game.stats[1].possession / total) * 100)}%</b></div><button class="start-button" style="margin-top:22px" id="result-next"><span>${game.network ? "BACK TO MULTIPLAYER" : advance ? "NEXT ROUND" : cup ? "BACK TO CLUBHOUSE" : "PLAY AGAIN"}</span><span>→</span></button><button class="secondary" id="result-home">BACK TO CLUBHOUSE</button>`,
   );
   $("result-next").onclick = () => {
     closeModal();
-    if (advance) startMatch(true);
+    if (game.network) leaveGame();
+    else if (advance) startMatch(true);
     else if (cup) leaveGame();
     else startMatch();
   };
@@ -810,11 +908,22 @@ function hud() {
       : game.hasBall
         ? "YOUR POSSESSION"
         : "DEFEND YOUR GOAL";
+  if (sport === "hockey") {
+    $("possession").textContent = game.user?.offIce ? "IN THE PENALTY BOX"
+      : game.canPlayPuck() ? "PLAY THE PUCK"
+      : game.owner?.side === (game.user?.side ?? game.localSide ?? 0) ? "TEAMMATE HAS PUCK"
+      : game.owner ? "DEFEND YOUR GOAL" : "LOOSE PUCK";
+  }
   $("player-name").textContent = game.user
     ? `${game.user.number} · ${game.user.name}`
     : "";
   $("stamina").style.width = (game.user?.stamina || 0) * 100 + "%";
   if (sport === "soccer") {
+    if ($("switch").dataset.label !== "SWITCH") {
+      $("switch").dataset.label = "SWITCH";
+      $("switch").innerHTML = `SWITCH <kbd>${keyLabel(settings.keys.switch)}</kbd>`;
+      $("switch").setAttribute("aria-label", "Switch player");
+    }
     const ownRestart = restart?.side === 0,
       attacking = ownRestart || (!restart && game.hasBall),
       available = game.phase === "play" || ownRestart,
@@ -861,13 +970,54 @@ function hud() {
       available,
     );
   } else {
-    setActionLabel("pass", game.hasBall ? "PASS" : "SWITCH");
-    setActionLabel("shoot", game.hasBall ? "SHOOT" : "CHECK");
+    const playable = game.canPlayPuck(), actor = game.user;
+    const locked = game.controllers?.find((seat) => seat.id === game.localControllerId)?.mode === "skater";
+    const available = game.phase === "play" && game.isPlayerActive(actor) && (!game.network || networkState.room?.status === "playing");
+    const slap = input.chargeKind === "hockey-shot" && input.chargeStart !== null &&
+      (game.network ? (actor?.shotHold || 0) >= 0.45 : (performance.now() - input.chargeStart) >= 450);
+    const progress = input.hockeyProgress();
+    if (progress.kind === "fight" && game.network) {
+      progress.seconds = actor?.fightHold || 0;
+      progress.power = Math.min(1, progress.seconds / 3);
+    }
+    setActionLabel("pass", playable ? "PASS" : locked ? "CALL" : "SWITCH",
+      playable ? "A: pass the puck" : locked ? "A: call for a pass from an AI teammate" : "A: switch skater", available);
+    setActionLabel("shoot", playable ? slap ? "SLAP" : "SHOOT" : "HIT",
+      playable ? "B: tap for a wrist shot; hold, then release for a slap shot" : "B: body check", available);
+    setActionLabel("lob", playable ? "SAUCER" : "POKE",
+      playable ? "X: saucer pass over sticks" : "X: poke check", available);
+    setActionLabel("through", playable ? "DUMP" : "FIGHT",
+      playable ? "Y: hold, then release to dump the puck" : "Y: hold for three seconds near an opponent to challenge or accept a fight", available);
+    $("dump-charge").style.height = (progress?.power || 0) * 100 + "%";
+    $("through").classList.toggle("fight-ready", progress?.kind === "fight" && progress.seconds >= 3);
+    const holdText = progress?.kind === "fight" ? `FIGHT\n${Math.min(3, Math.floor(progress.seconds * 10) / 10).toFixed(1)}/3`
+      : progress?.kind === "dump" ? `DUMP\n${Math.round(progress.power * 100)}%`
+      : slap ? "SLAP" : "";
+    if ($("hockey-hold-status").textContent !== holdText) $("hockey-hold-status").textContent = holdText;
+    const penalties = (game.penalties || []).map((penalty) => `${game.teams[penalty.side].short} ${penalty.kind} · ${penalty.queued ? "queued" : Math.ceil(penalty.remaining) + "s"}`);
+    $("hockey-penalty-status").textContent = penalties.join("  /  ");
+    const challenge = game.fightChallenge;
+    $("hockey-fight-status").textContent = actor?.offIce && actor.penalty
+      ? `${actor.penalty.kind} · Back in ${Math.ceil(actor.penalty.remaining)}s of play`
+      : challenge?.target === actor?.id ? "FIGHT CHALLENGE · Hold Y for 3s to accept"
+      : challenge?.from === actor?.id ? "Challenge sent · Waiting for opponent"
+      : "";
+    $("hockey-network-status").textContent = game.network
+      ? !networkState.connected ? "Reconnecting…"
+        : networkState.room?.status === "paused" ? networkState.room.players.find((seat) => seat.id === networkState.seatId)?.ready ? "PAUSED · Waiting for everyone to resume" : "PAUSED · Open pause and choose Resume"
+        : `${game.teams[game.localSide].short} · ${locked ? "Locked skater" : "Switch skaters"}${networkState.rtt == null ? "" : ` · ${networkState.rtt}ms`}`
+      : locked ? "LOCKED SKATER · A calls for a pass" : "";
+    const switchLabel = locked ? "CALL" : "SWITCH";
+    if ($("switch").dataset.label !== switchLabel) {
+      $("switch").dataset.label = switchLabel;
+      $("switch").innerHTML = `${switchLabel} <kbd>${keyLabel(settings.keys.switch)}</kbd>`;
+      $("switch").setAttribute("aria-label", locked ? "Call for a pass" : "Switch player");
+    }
   }
   $("charge").style.height = input.power() * 100 + "%";
   $("sprint").querySelector(".action-label").textContent =
     sport === "hockey" ? "BURST" : "SPRINT";
-  const announce = ["goal", "break", "restart", "restart_ready"].includes(
+  const announce = ["goal", "break", "restart", "restart_ready", "fight"].includes(
     game.phase,
   );
   $("announcement").classList.toggle("set-piece", !!restart);
@@ -879,24 +1029,39 @@ function hud() {
       : restart
         ? `${restart.type} · ${game.teams[restart.side].short}\n${restart.side === 1 ? "Move to mark · SWITCH changes player" : restart.pending ? "Restart queued · Keep aiming" : game.phase === "restart" ? "Getting set · Tap A to queue" : "Aim with the stick · Tap A to " + (restart.type === "THROW-IN" ? "throw" : "pass")}`
         : game.message;
-  const ev = game.events.filter((e) => e.time > lastEvent);
+  const ev = game.events.filter((e) => (game.network ? e.networkId : e.time) > lastEvent);
   for (const e of ev) {
-    sound.event(e.type, sport);
+    sound.event(e.type, sport, e);
     if (e.type === "goal") {
       goalFrames = frames.slice();
       replayTime = 0;
       input.cancelShot();
+      input.cancelThrough();
+    }
+    if (["fight-declined", "fight-challenge", "penalty"].includes(e.type) && sport === "hockey") {
+      if (e.type === "fight-declined" && e.player === game.controlled) toast(e.reason || "Fight declined.");
+      if (e.type === "penalty") toast(`${game.teams[e.side].short} · ${e.kind}`);
     }
     if (e.type === "finished") result();
   }
-  if (game.events.length) lastEvent = game.events.at(-1).time;
+  if (game.events.length) lastEvent = game.network ? game.events.at(-1).networkId : game.events.at(-1).time;
   if (game.phase === "finished" && !finishedShown) result();
 }
 function frame(now) {
   const dt = Math.min(0.12, (now - lastNow) / 1000 || 0);
   lastNow = now;
+  sound.update(game, { paused: paused || (game?.network && networkState.room?.status !== "playing"), menu: $("dialog").open || !game, dt });
   if (game) {
-    clock.advance(dt);
+    if (game.network) {
+      input.syncShotContext();
+      const active = input.active() && !document.hidden;
+      hockeyNetwork.setInput(active ? field.toWorld(input.vector()) : {});
+      hockeyNetwork.step(dt);
+      if (networkState.room?.status === "playing") {
+        if (game.phase === "play") { frames.push(game.snapshot()); if (frames.length > 130) frames.shift(); }
+        if (game.phase === "goal") replayTime += dt;
+      }
+    } else clock.advance(dt);
     hud();
     let replay = null;
     if (game.phase === "goal" && goalFrames.length > 20 && !settings.reduced) {
@@ -934,6 +1099,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden && game && !paused && game.phase !== "finished")
     togglePause();
 });
+if (sport === "hockey" && (new URLSearchParams(location.search).has("room") || HockeyNetwork.savedRoom())) mode = "online";
 selectSport(sport);
 requestAnimationFrame(frame);
 try {

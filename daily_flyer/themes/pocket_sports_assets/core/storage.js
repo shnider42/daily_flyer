@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS = {
   assist: 0.7,
   touchAssist: true,
   sound: true,
+  crowd: 0.55,
   guidance: true,
   reduced: false,
   leftHanded: false,
@@ -77,6 +78,7 @@ export function loadSettings() {
   return {
     ...DEFAULT_SETTINGS,
     ...s,
+    crowd: Number.isFinite(Number(s.crowd)) ? Math.max(0, Math.min(1, Number(s.crowd))) : DEFAULT_SETTINGS.crowd,
     keys,
     camera: {
       hockey: sanitizeCameraSettings(s.camera?.hockey, touch),
