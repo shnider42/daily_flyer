@@ -2,6 +2,10 @@
 
 A static, accessible launch directory for the Daily Flyer collection. Catalog metadata is separate from presentation and artwork. No server, account, framework, external fonts, or runtime dependencies are required.
 
+The interface is a compact project library: persistent category navigation on desktop, a category strip on mobile, a cover grid, and a dense list view. Original project covers use a 640×420 aspect ratio. Search and direct URL text remain visible; sports routes and theme parameters are shown separately beneath the hostname so shared hosts are distinguishable.
+
+Production builds fingerprint styles, scripts, artwork, and fetched catalog data. The HTML and module imports point at that exact asset set to prevent browsers mixing designs across deployments. Source preview remains buildless.
+
 ## Run and build
 
 - Validation: `node --test apps/directory/catalog.test.js`

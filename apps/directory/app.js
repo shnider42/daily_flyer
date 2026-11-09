@@ -15,28 +15,26 @@ const initialSort=params.get('sort')||'newest';
 const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'games',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
 const favorites=new Set(Array.isArray(stored.favorites)?stored.favorites.filter(x=>typeof x==='string'):[]);
 let projects=[],visible=[],toastTimer,catalogReady=false;
-function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
+function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset,#explore-all').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({view:state.view,favorites:[...favorites]}));}catch{}}
 function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='games'||state.query||state.sort!=='newest'||state.favoritesOnly||state.kind)url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
 async function copy(text,message){try{await navigator.clipboard.writeText(text);toast(message);}catch{$('copy-text').value=text;$('copy-dialog').showModal();$('copy-text').focus();$('copy-text').select();}}
-function displayURL(link){const url=new URL(link);return url.hostname+(url.pathname==='/'?'':url.pathname)+(url.search||'');}
+function displayURL(link){const url=new URL(link);return {host:url.hostname,path:(url.pathname==='/'?'':url.pathname)+url.search+url.hash};}
 function card(p){
-  const link=projectLink(p),title=escapeHTML(p.title),isFavorite=favorites.has(p.id);
+  const link=projectLink(p),title=escapeHTML(p.title),isFavorite=favorites.has(p.id),address=displayURL(link);
   const access=p.linkKind==='source'?'Source project':p.linkKind==='preview'?'Preview':p.access==='signin'?'Sign-in required':'';
-  const note=p.id==='empires'?'Choose Empires inside the DSL site.':'';
+  const note=p.id==='empires'?'Opens DSL. Choose Empires inside the site.':'';
   return `<article class="project-card" data-project="${escapeHTML(p.id)}" data-art="${escapeHTML(p.art)}" style="--card-accent:${ACCENTS[p.art]||'#d9ecae'}">
     <a class="card-visual" href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">${renderArtwork(p)}</a>
-    <button type="button" class="favorite-button" data-favorite="${escapeHTML(p.id)}" aria-label="${isFavorite?'Remove':'Add'} ${title} ${isFavorite?'from':'to'} favorites" aria-pressed="${isFavorite}" title="${isFavorite?'Remove favorite':'Save favorite'}">${star}</button>
     <div class="card-body">
-      <p class="card-kicker">${escapeHTML(TYPE_LABELS[p.type])}<span class="type-dot" aria-hidden="true"></span>${escapeHTML(p.subtype)}</p>
-      <h2><a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${title} in a new tab">${title}<svg class="launch-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></a></h2>
+      <div class="card-heading"><h2><a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${title} in a new tab">${title}<svg class="launch-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></a></h2><button type="button" class="favorite-button" data-favorite="${escapeHTML(p.id)}" aria-label="${isFavorite?'Remove':'Add'} ${title} ${isFavorite?'from':'to'} favorites" aria-pressed="${isFavorite}" title="${isFavorite?'Remove favorite':'Save favorite'}">${star}</button></div>
+      <div class="card-meta"><span class="card-kind">${escapeHTML(p.subtype)}</span><span title="${p.datePrecision==='month'?'Added in this approximate month; the exact day is not recorded.':'Added: first recorded theme build or deployment.'}"><time${p.createdAt?` datetime="${escapeHTML(p.datePrecision==='month'?p.createdAt.slice(0,7):p.createdAt)}"`:''}>${escapeHTML(formatAddedDate(p))}</time></span></div>
       <p class="card-description">${escapeHTML(p.description)}</p>
-      <div class="card-tags">${(p.tags||[]).slice(0,3).map(t=>`<span>${escapeHTML(t)}</span>`).join('')}</div>
       ${note?`<p class="card-note">${escapeHTML(note)}</p>`:''}
-      <div class="card-meta"><span title="${p.datePrecision==='month'?'Approximate month; the exact day is not recorded.':'First recorded theme build or deployment.'}"><span class="date-prefix">Added </span><time${p.createdAt?` datetime="${escapeHTML(p.datePrecision==='month'?p.createdAt.slice(0,7):p.createdAt)}"`:''}>${escapeHTML(formatAddedDate(p))}</time></span>${access?`<span class="access-label">${escapeHTML(access)}</span>`:''}</div>
+      ${access?`<p class="access-label">${escapeHTML(access)}</p>`:''}
+      <div class="card-footer"><span class="url-label" title="${escapeHTML(link)}"><span class="url-host">${escapeHTML(address.host)}</span>${address.path?`<span class="url-path">${escapeHTML(address.path)}</span>`:''}</span><button type="button" class="copy-link" data-copy="${escapeHTML(p.id)}" aria-label="Copy ${title} link" title="Copy link">${copyIcon}</button></div>
     </div>
-    <div class="card-footer"><span class="url-label" title="${escapeHTML(link)}">${escapeHTML(displayURL(link))}</span><button type="button" class="copy-link" data-copy="${escapeHTML(p.id)}" aria-label="Copy ${title} link" title="Copy link">${copyIcon}</button></div>
   </article>`;
 }
 function render({persist=true}={}){
@@ -49,11 +47,15 @@ function render({persist=true}={}){
   $('favorites-count').textContent=favorites.size;
   document.querySelectorAll('[data-type]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.type===state.type)));
   $('sort').value=state.sort;
-  const filtered=state.query||state.type!=='all'||state.favoritesOnly||state.kind;
-  $('results-description').textContent=`${String(visible.length).padStart(2,'0')} ${visible.length===1?'project':'projects'}${filtered?` of ${projects.length}`:''}${state.favoritesOnly?' · saved favorites':state.type!=='all'?` · ${TYPE_LABELS[state.type].toLowerCase()}`:' · the full collection'}`;
-  $('clear-filters').hidden=!filtered;$('copy-visible').disabled=!catalogReady||!visible.length;$('empty-state').hidden=visible.length>0;
-  $('empty-message').textContent=state.favoritesOnly&&!favorites.size?'Save a project with its star, then find it here.':'Try a different name or clear the filters.';
-  $('game-kind').hidden=state.type!=='games';$('game-kind').value=state.kind;
+  const scopedCount=state.type==='all'?projects.length:projects.filter(p=>p.type===state.type).length;
+  const narrowed=state.query||state.favoritesOnly||state.kind;
+  const noun=state.type==='games'?'game':'project';
+  $('page-title').textContent=state.type==='all'?'All projects':TYPE_LABELS[state.type];
+  $('results-description').textContent=`${visible.length}${narrowed?` of ${scopedCount}`:''} ${noun}${visible.length===1&&!narrowed?'':'s'}${state.favoritesOnly?' · favorites':''}`;
+  $('clear-filters').hidden=!narrowed;$('copy-visible').disabled=!catalogReady||!visible.length;$('empty-state').hidden=visible.length>0;
+  $('empty-state').querySelector('h2').textContent=state.favoritesOnly&&!favorites.size?'No favorites yet.':`No matches${state.type==='all'?'':` in ${TYPE_LABELS[state.type]}`}.`;
+  $('empty-message').textContent=state.favoritesOnly&&!favorites.size?'Star a project to save it here.':'Try another title or show all projects.';
+  $('game-kind').hidden=state.type!=='games';$('game-kind-slot').hidden=state.type!=='games';$('game-kind').value=state.kind;
   $('collection-hint').hidden=state.type!=='games';
   if(persist){save();updateURL();}
 }
@@ -64,16 +66,17 @@ async function init(){
     projects=validateCatalog(await response.json());
     for(const id of favorites)if(!projects.some(p=>p.id===id))favorites.delete(id);
     $('total-count').textContent=projects.length;
+    $('other-projects-count').textContent=projects.filter(p=>p.type!=='games').length;
     document.querySelectorAll('[data-count]').forEach(el=>el.textContent=el.dataset.count==='all'?projects.length:projects.filter(p=>p.type===el.dataset.count).length);
     const kinds=[...new Set(projects.filter(p=>p.type==='games').map(p=>p.subtype))].sort();
     const kindSelect=document.createElement('select');kindSelect.id='game-kind';kindSelect.className='game-kind';kindSelect.disabled=true;kindSelect.setAttribute('aria-label','Filter games by kind');kindSelect.innerHTML='<option value="">All game types</option>'+kinds.map(k=>`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
-    $('favorites-filter').before(kindSelect);
+    $('game-kind-slot').append(kindSelect);
     if(state.type!=='games'||!kinds.includes(state.kind))state.kind='';
     kindSelect.addEventListener('change',()=>{state.kind=kindSelect.value;render();});
     $('search').value=state.query;
     $('search').addEventListener('input',()=>{state.query=$('search').value;render();});
     $('sort').addEventListener('change',()=>{state.sort=$('sort').value;render();});
-    $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;state.type=b.dataset.type;state.kind='';render();});
+    $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;state.type=b.dataset.type;state.kind='';render();window.scrollTo({top:0,behavior:'auto'});});
     $('favorites-filter').addEventListener('click',()=>{state.favoritesOnly=!state.favoritesOnly;render();});
     for(const view of ['grid','list'])$(`view-${view}`).addEventListener('click',()=>{state.view=view;render();});
     $('clear-filters').addEventListener('click',reset);$('empty-reset').addEventListener('click',reset);$('explore-all').addEventListener('click',reset);
@@ -87,7 +90,7 @@ async function init(){
     render({persist:false});catalogReady=true;setBrowseEnabled(true);
   }catch(error){
     catalogReady=false;setBrowseEnabled(false);
-    console.error(error);$('results-description').textContent='The collection could not load.';$('empty-state').hidden=false;$('empty-state').querySelector('h2').textContent='Please try again.';$('empty-message').textContent='Reload the page to fetch the project directory.';$('empty-reset').textContent='Reload directory';$('empty-reset').disabled=false;$('empty-reset').addEventListener('click',()=>location.reload());
+    console.error(error);$('results-description').textContent='The library could not load.';$('empty-state').hidden=false;$('empty-state').querySelector('h2').textContent='Please try again.';$('empty-message').textContent='Reload the page to fetch the project directory.';$('empty-reset').textContent='Reload directory';$('empty-reset').disabled=false;$('empty-reset').addEventListener('click',()=>location.reload());
   }
 }
 init();

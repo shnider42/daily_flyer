@@ -1,185 +1,299 @@
-/** Original, lightweight SVG cover art for the Daily Flyer directory.
- * Each scene is decorative; its card supplies the accessible title and link.
- * No requests, external assets, animation loops, or canvas contexts are used.
+/** Original Daily Flyer cover designs. Fixed vectors; no external assets.
+ * The visible card supplies the accessible name. These covers are decorative.
  */
-
 export const ART_PALETTES = Object.freeze({
-  dsl: { background: '#29322b', foreground: '#e6e4c9', accent: '#c9b879' },
-  gridiron: { background: '#182d32', foreground: '#f5e8c7', accent: '#eaa950' },
-  infierno: { background: '#251e20', foreground: '#f1dcca', accent: '#df6651' },
-  'further-in': { background: '#a99b49', foreground: '#fff3b2', accent: '#dccb74' },
-  breach: { background: '#201d24', foreground: '#ffe6c8', accent: '#f27c4d' },
-  'irish-today': { background: '#183e35', foreground: '#f5ebd2', accent: '#d5b168' },
-  garage: { background: '#1c3446', foreground: '#d0e7ee', accent: '#7bbfdb' },
-  'night-transfer': { background: '#173039', foreground: '#d8e8de', accent: '#e3ae61' },
-  mypassages: { background: '#c8ddd7', foreground: '#244d4b', accent: '#a46a42' },
-  saltbound: { background: '#154a51', foreground: '#f2dfb5', accent: '#edb46b' },
-  empires: { background: '#d6c6a0', foreground: '#3e5143', accent: '#ad633f' },
-  huddle: { background: '#243c38', foreground: '#eee6cd', accent: '#e0ae5a' },
-  vineyard: { background: '#e4d8b9', foreground: '#374a37', accent: '#923e53' },
-  'roster-radar': { background: '#163a30', foreground: '#d9ead6', accent: '#b9d772' },
-  lockstep: { background: '#34322b', foreground: '#f3dfad', accent: '#dab76f' },
-  'next-chapter': { background: '#ddd6c6', foreground: '#373d3d', accent: '#b56548' },
-  'soph-slump': { background: '#dcd4b9', foreground: '#363b33', accent: '#a56f36' },
-  'magic-catch-up': { background: '#382941', foreground: '#f4e1c5', accent: '#d0a15f' },
-  rlcs: { background: '#152c4a', foreground: '#dcecf4', accent: '#ee9c56' },
-  skyward: { background: '#7d9eae', foreground: '#f0eee1', accent: '#f0b568' },
-  hockey: { background: '#d8e7e8', foreground: '#1f3e52', accent: '#d46b58' },
-  soccer: { background: '#283d2a', foreground: '#f2e8b5', accent: '#f0d747' },
-  'sleeve-notes': { background: '#c66d45', foreground: '#fff1d5', accent: '#f7d68f' },
-  battlezone: { background: '#101f1c', foreground: '#cbefb0', accent: '#8cd482' },
-  'when-ants-stare': { background: '#27242a', foreground: '#e7c8a7', accent: '#be875a' },
-  'last-exit': { background: '#22253d', foreground: '#f4d1cc', accent: '#e489a8' },
-  afterglow: { background: '#392c48', foreground: '#ffe6c8', accent: '#e6a288' },
-  'claim-denied': { background: '#332124', foreground: '#e9d8b7', accent: '#d66a54' },
-  'magic-duel': { background: '#472b36', foreground: '#f2ddbd', accent: '#d3a56b' },
-  'relay-fieldguide': { background: '#d8d3b8', foreground: '#384a43', accent: '#c66f3f' },
-  farwake: { background: '#192638', foreground: '#cce5e4', accent: '#cfa77c' },
-  dayboard: { background: '#e6e3d9', foreground: '#33464b', accent: '#b86845' },
+  dsl:{background:'#5c6746',foreground:'#f0edd8',accent:'#e58b53'},
+  gridiron:{background:'#202631',foreground:'#fff0c8',accent:'#efac32'},
+  infierno:{background:'#e8dfc8',foreground:'#26251f',accent:'#ba342e'},
+  'further-in':{background:'#c3b351',foreground:'#282919',accent:'#e5d577'},
+  breach:{background:'#e45f32',foreground:'#f9ebcc',accent:'#242629'},
+  'irish-today':{background:'#eae1c8',foreground:'#233e2d',accent:'#9b6c3f'},
+  garage:{background:'#1c56a2',foreground:'#f1ebd7',accent:'#e3b13e'},
+  'night-transfer':{background:'#142b2c',foreground:'#dee6d8',accent:'#e5ae58'},
+  mypassages:{background:'#f0e8d6',foreground:'#276b60',accent:'#b26745'},
+  saltbound:{background:'#163e44',foreground:'#efdfb7',accent:'#d8793d'},
+  empires:{background:'#253f32',foreground:'#e3c38d',accent:'#aa5c3e'},
+  huddle:{background:'#eae6d2',foreground:'#234b3a',accent:'#c99638'},
+  vineyard:{background:'#e9dfc5',foreground:'#593541',accent:'#657443'},
+  'roster-radar':{background:'#172a22',foreground:'#d6ed8c',accent:'#77b591'},
+  lockstep:{background:'#2b2c27',foreground:'#f1ddb0',accent:'#e8b14a'},
+  'next-chapter':{background:'#f0e7d3',foreground:'#37352d',accent:'#c45f3d'},
+  'soph-slump':{background:'#dbb23d',foreground:'#252924',accent:'#e9dfc7'},
+  'magic-catch-up':{background:'#342945',foreground:'#e7d7ae',accent:'#a98a58'},
+  rlcs:{background:'#1f4b9d',foreground:'#f3ebda',accent:'#ef8c3a'},
+  skyward:{background:'#b8cbd0',foreground:'#223f4c',accent:'#c86e38'},
+  hockey:{background:'#e5e8df',foreground:'#234a7e',accent:'#ce4e39'},
+  soccer:{background:'#e6c836',foreground:'#212821',accent:'#69884a'},
+  'sleeve-notes':{background:'#de6d3c',foreground:'#f2e2b8',accent:'#263f63'},
+  battlezone:{background:'#111c17',foreground:'#b0df7d',accent:'#d9edac'},
+  'when-ants-stare':{background:'#292326',foreground:'#d4ac7f',accent:'#f0d9b8'},
+  'last-exit':{background:'#272539',foreground:'#f1e4d2',accent:'#d6859e'},
+  afterglow:{background:'#533047',foreground:'#f5c894',accent:'#e68873'},
+  'claim-denied':{background:'#d9cfb2',foreground:'#292a23',accent:'#b63d2e'},
+  'magic-duel':{background:'#4b2937',foreground:'#e6c18b',accent:'#769893'},
+  'relay-fieldguide':{background:'#d9decb',foreground:'#2c493c',accent:'#d86e34'},
+  farwake:{background:'#142329',foreground:'#e5e4cd',accent:'#d8874b'},
+  dayboard:{background:'#e9e5d9',foreground:'#252c29',accent:'#db7040'},
 });
+const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
+const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+function type(text,x,y,size,color,o={}){
+  const {family='display',width,weight=900,spacing=0,italic=false,anchor='start',stroke,strokeWidth=1,opacity=1}=o;
+  return `<text x="${x}" y="${y}" font-family="${esc(F[family]||family)}" font-size="${size}" font-weight="${weight}" letter-spacing="${spacing}" text-anchor="${anchor}" fill="${color}" opacity="${opacity}"${width?` textLength="${width}" lengthAdjust="spacingAndGlyphs"`:''}${italic?' font-style="italic"':''}${stroke?` stroke="${stroke}" stroke-width="${strokeWidth}" paint-order="stroke fill"`:''}>${esc(text)}</text>`;
+}
+const note=(text,x,y,color,o={})=>type(text,x,y,o.size||13,color,{family:'mono',weight:700,spacing:1.4,...o});
+const rect=(x,y,w,h,fill,extra='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" ${extra}/>`;
+const line=(d,color,width=1,extra='')=>`<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" ${extra}/>`;
+const paper=(u,opacity=.22)=>rect(0,0,640,420,`url(#${u}-grain)`,`opacity="${opacity}"`);
+const dotfield=(u,x,y,w,h,opacity=.18)=>rect(x,y,w,h,`url(#${u}-dots)`,`opacity="${opacity}"`);
+const hatch=(u,x,y,w,h,opacity=.2)=>rect(x,y,w,h,`url(#${u}-hatch)`,`opacity="${opacity}"`);
+const jet='M0-108 11-63 16-22 89 38 89 48 19 23 13 78 38 96 37 105 0 93-37 105-38 96-13 78-19 23-89 48-89 38-16-22-11-63Z';
+const ship='M0-116 19-51 42-15 51 47 21 36 13 90-13 90-21 36-51 47-42-15-19-51Z';
 
-const label = (x, y, value, fill = '#fff', size = 12, tracking = 2) =>
-  `<text x="${x}" y="${y}" fill="${fill}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="${size}" letter-spacing="${tracking}">${value}</text>`;
-
-const paths = {
-  plane: 'M0-36 8-7 48 12 48 18 8 9 6 31 20 40 20 45 0 39-20 45-20 40-6 31-8 9-48 18-48 12-8-7Z',
-  car: 'M-60 16-50-5-25-21 27-21 48-5 60 3 60 21-60 21Z',
-  worker: 'M0-17a8 8 0 1 0 0 16 8 8 0 1 0 0-16M-7 1-18 18-10 24-4 14-6 37 6 37 4 14 10 24 18 18 7 1Z',
+const covers={
+  dsl:u=>({
+    defs:`<pattern id="${u}-hex" width="70" height="60" patternUnits="userSpaceOnUse"><path d="M18 1H52L70 30 52 59H18L0 30Z" fill="none" stroke="#d9d9a9" stroke-width="1"/></pattern>`,
+    body:`${rect(0,0,640,420,'#5c6746')}${rect(0,0,640,420,`url(#${u}-hex)`,'opacity=".19"')}${rect(459,0,181,420,'#202e25')}${hatch(u,459,0,181,420,.13)}
+      ${note('DOUBLE SECRET',32,41,'#e4e1c7',{size:17,spacing:4})}${type('DSL',22,272,245,'#efe9c9',{width:425})}
+      ${rect(30,292,420,3,'#ece5c2')}${type('SQUAD LEADER',31,337,49,'#f0e9c9',{width:418})}${note('WWII HEX TACTICS',33,378,'#d4d9b7',{size:12,spacing:2})}
+      ${line('M500 40V135L584 184V273L500 326V392','#df8e54',4,'stroke-dasharray="9 7"')}
+      <g fill="#d7d4af" stroke="#1d2b22" stroke-width="3"><rect x="476" y="72" width="49" height="38"/><rect x="560" y="185" width="49" height="38"/><rect x="476" y="326" width="49" height="38"/></g>
+      ${line('M484 80 517 102M517 80 484 102M569 193 600 215M600 193 569 215','#33432d',2)}<ellipse cx="500" cy="345" rx="15" ry="8" fill="none" stroke="#33432d" stroke-width="2"/>
+      ${line('M32 152H445M28 228H450','#5c6746',4)}${line('M19 20V401H435','#c1c5a0',1,'opacity=".6"')}${paper(u,.26)}`,
+  }),
+  gridiron:u=>({
+    body:`${rect(0,0,640,420,'#202631')}<path d="M0 0H640V51L0 110Z" fill="#efac32"/><path d="M0 114 640 55V82L0 142Z" fill="#cf4939"/>
+      ${note('POCKET',32,85,'#202631',{size:31,spacing:5})}${dotfield(u,0,143,640,277,.1)}
+      ${type('GRIDIRON',29,251,144,'#cf4939',{width:580,stroke:'#202631',strokeWidth:8})}${type('GRIDIRON',23,240,144,'#fff0c8',{width:580,stroke:'#202631',strokeWidth:3})}
+      <path d="M0 319 347 276 640 305V420H0Z" fill="#304835"/>${line('M0 358 347 312 640 342M0 397 347 350 640 380','#b9c89b',2)}${line('M81 420 153 299M224 420 254 287M369 420 355 281M514 420 455 288','#b9c89b',2,'stroke-dasharray="7 11"')}
+      <g transform="translate(510 330) rotate(-24)"><path d="M-82 0Q0-69 82 0 0 69-82 0Z" fill="#c7753f" stroke="#fff0c8" stroke-width="4"/>${line('M-43 0H43M-27-12V12M-9-12V12M9-12V12M27-12V12','#fff0c8',4)}</g>
+      ${note('NFL + COLLEGE CLASSICS',28,394,'#e4e7c4',{size:12,spacing:1})}${paper(u,.19)}`,
+  }),
+  infierno:u=>({
+    body:`${rect(0,0,640,420,'#e8dfc8')}${rect(0,0,19,420,'#b9372f')}${rect(33,26,574,368,'none','stroke="#282720" stroke-width="1.5"')}${dotfield(u,346,29,260,362,.1)}
+      ${note('REPORTS / EVIDENCE / COMMUNITY',49,57,'#4a483b',{size:12,spacing:1.8})}${line('M49 75H592','#282720',2)}
+      ${type('INFIERNO',45,176,116,'#27271f',{width:546})}${type('LIBERADO',45,280,116,'#b9372f',{width:546})}
+      ${rect(48,298,159,12,'#27271f')}${rect(216,298,84,12,'#27271f')}${rect(310,298,229,12,'#27271f')}
+      <g transform="translate(361 321) rotate(-5)"><rect width="226" height="48" fill="none" stroke="#ad3029" stroke-width="3"/>${type('FIELD NOTES',12,34,34,'#ad3029',{width:202})}</g>
+      ${line('M49 340H296M49 354H276M49 368H238','#6c6955',2)}${line('M130 0 117 420','#b6aa8b',1,'opacity=".6"')}${paper(u,.35)}`,
+  }),
+  'further-in':u=>({
+    defs:`<pattern id="${u}-wall" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M16 1 23 8 16 15 9 8ZM16 17 23 24 16 31 9 24Z" fill="none" stroke="#615e2e" stroke-opacity=".3"/></pattern>`,
+    body:`${rect(0,0,640,420,'#c3b351')}${rect(0,0,640,420,`url(#${u}-wall)`)}
+      ${rect(361,44,213,376,'#6b642b')}${rect(379,62,177,358,'#8e8032')}${rect(397,80,141,340,'#554d22')}${rect(414,98,106,322,'#262b1f')}${rect(436,121,61,299,'#101f1d')}
+      ${line('M0 420 414 98M640 420 520 98','#716a31',2,'opacity=".6"')}
+      ${type('FURTHER',21,166,126,'#27291a',{width:589})}${type('FURTHER',19,162,126,'#e3d078',{width:589,stroke:'#27291a',strokeWidth:2.5})}
+      ${type('IN',27,366,216,'#27291a',{width:297})}${type('IN',31,365,216,'none',{width:297,stroke:'#e2cf72',strokeWidth:1})}
+      ${rect(21,179,590,6,'#c3b351')}${note('LIMINAL HORROR',32,398,'#34371e',{size:11,spacing:2})}${paper(u,.4)}`,
+  }),
+  breach:u=>({
+    body:`${rect(0,0,640,420,'#242629')}
+      <path d="M368-20 640 0V420H142L289 288 208 225 401 139 339 87Z" fill="#e45f32"/><path d="M538 0 413 135 476 180 324 272 408 296 318 420H384L489 279 404 255 555 166 491 124 611 0Z" fill="#f19b53" opacity=".55"/>
+      ${hatch(u,373,0,267,420,.19)}${note('FIRST-PERSON ACTION',27,35,'#f5d6ac',{size:13,spacing:3})}
+      <g transform="translate(4 4)">${type('BREACH',21,249,174,'#181f20',{width:594,stroke:'#181f20',strokeWidth:12})}</g>
+      ${type('BREACH',21,239,174,'#f9ebcc',{width:594})}${line('M22 166 615 152M24 210 613 196','#242629',4)}
+      <path d="M0 305 138 270 207 307 123 420H0Z" fill="#121e20"/>${line('M31 336H109M70 299V376','#e45f32',3)}<path d="m50 317 20-18 20 18m-40 42 20 17 20-17" fill="none" stroke="#e45f32" stroke-width="2"/>
+      ${type('CO-OP MISSIONS',253,380,35,'#211f20',{width:342})}${paper(u,.28)}`,
+  }),
+  'irish-today':u=>({
+    body:`${rect(0,0,640,420,'#eae1c8')}${rect(16,16,608,388,'none','stroke="#2c4933" stroke-width="2"')}${line('M28 30H612M28 390H612','#9b6c3f',1)}
+      ${note('HISTORY · LANGUAGE · PLACE',36,57,'#5f684c',{size:12,spacing:1.5})}${line('M36 76H604','#3e5438',2)}
+      ${type('Irish',32,184,117,'#233e2d',{family:'serif',weight:400,italic:true,width:328})}${type('Today',32,302,121,'#233e2d',{family:'serif',weight:700,width:361})}
+      <g transform="translate(462 113)" stroke="#3e5438" stroke-width="2" fill="none"><path d="M-51 228-43 38 0-24 42 38 50 228Z" fill="#c5c4a3"/><path d="M-43 38 0-24 42 38Z" fill="#334a32"/><path d="M-43 42H42M-44 67H43M-45 92H44M-46 117H45M-47 142H46M-48 167H47M-49 192H48M-50 217H49"/><path d="M-20 42V67M11 67V92M-22 92V117M10 117V142M-21 142V167M10 167V192M-21 192V217M11 217V228"/><path d="M-14 228V193Q0 168 14 193V228" fill="#334a32"/><path d="M-10 82V104H10V82Q0 63-10 82Z" fill="#334a32"/></g>
+      ${line('M385 344H565M394 350H553M407 356H577','#3e5438',2)}${type('A daily Irish edition.',36,362,25,'#656b4b',{family:'serif',weight:400,italic:true,width:281})}${paper(u,.34)}`,
+  }),
+  garage:u=>({
+    defs:`<pattern id="${u}-grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#c3d3d2" stroke-opacity=".15"/></pattern>`,
+    body:`${rect(0,0,640,420,'#1c56a2')}${rect(0,0,640,420,`url(#${u}-grid)`)}${rect(0,0,25,420,'#e3b13e')}${line('M3 0 25 22M3 35 25 57M3 70 25 92M3 105 25 127M3 140 25 162M3 175 25 197M3 210 25 232M3 245 25 267M3 280 25 302M3 315 25 337M3 350 25 372M3 385 25 407','#173d70',10)}
+      ${type('GARAGE',44,118,108,'#f1ebd7',{width:548})}${note('VEHICLES + INSTRUMENTS',48,148,'#c4d9e4',{size:13,spacing:2})}
+      <g transform="translate(41 155)" stroke="#e0e6d5" stroke-width="2.5" fill="none" stroke-linejoin="round"><path d="M35 113 51 78 107 66 157 23H315L366 63 454 75 516 105 512 129H35Z"/><path d="M120 65 166 34H235V64ZM251 34H307L349 64H251Z"/><path d="M157 24 157 128M250 24V129M315 25 359 68 363 128M44 108H72M142 108H373M449 108H512"/><circle cx="107" cy="124" r="33" fill="#1c56a2"/><circle cx="107" cy="124" r="20"/><circle cx="415" cy="124" r="33" fill="#1c56a2"/><circle cx="415" cy="124" r="20"/><path d="M107 104V144M87 124H127M415 104V144M395 124H435" stroke-width="1"/></g>
+      ${type('JOURNEY',44,390,95,'none',{width:548,stroke:'#f1ebd7',strokeWidth:2})}${paper(u,.2)}`,
+  }),
+  'night-transfer':u=>({
+    body:`${rect(0,0,640,420,'#142b2c')}${rect(33,31,574,358,'none','stroke="#6c8781" stroke-width="1"')}${hatch(u,0,0,121,420,.12)}
+      ${rect(456,285,96,135,'#b89051')}${rect(471,298,66,122,'#192e2d')}${line('M480 315H529M480 332H529M480 349H529M490 300V354M510 300V354M528 300V354','#8c9e8b',3)}
+      ${type('NIGHT',40,156,135,'#dee6d8',{width:551})}${type('TRANSFER',40,252,106,'#dee6d8',{width:551})}
+      ${rect(19,40,13,337,'#080f14')}${rect(603,32,18,361,'#080f14')}${rect(138,14,7,391,'#080f14','opacity=".35"')}${rect(364,18,8,389,'#080f14','opacity=".3"')}
+      ${rect(42,273,368,2,'#6c8781')}${note('A PRISON ESCAPE',43,307,'#9ab6aa',{size:14,spacing:2})}
+      <g transform="translate(44 333)" fill="#e5ae58"><rect width="4" height="42"/><rect x="9" width="2" height="42"/><rect x="15" width="7" height="42"/><rect x="27" width="3" height="42"/><rect x="36" width="6" height="42"/><rect x="48" width="2" height="42"/><rect x="55" width="4" height="42"/><rect x="66" width="8" height="42"/><rect x="80" width="3" height="42"/><rect x="88" width="5" height="42"/><rect x="99" width="3" height="42"/><rect x="108" width="6" height="42"/></g>${paper(u,.24)}`,
+  }),
+  mypassages:u=>({
+    body:`${rect(0,0,640,420,'#f0e8d6')}${rect(0,0,31,420,'#276b60')}${line('M44 0V420','#b7c6b4',1)}
+      <path d="M559-10V87Q559 120 523 120H476Q443 120 443 157V265Q443 298 487 298H527Q559 298 559 331V435" fill="none" stroke="#9bc0b0" stroke-width="30"/>
+      <path d="M559-10V87Q559 120 523 120H476Q443 120 443 157V265Q443 298 487 298H527Q559 298 559 331V435" fill="none" stroke="#f0e8d6" stroke-width="24"/>
+      ${type('my',67,139,84,'#276b60',{family:'serif',weight:400,italic:true,width:141})}${type('Passages',65,251,103,'#276b60',{family:'serif',weight:400,width:507})}
+      ${line('M66 271Q227 263 397 273M69 280Q216 270 333 282','#b26745',2)}${type('Coaching with Tim.',69,334,30,'#547666',{family:'serif',weight:400,italic:true,width:327})}
+      ${note('COACHING / CONVERSATION / PRACTICE',70,385,'#668674',{size:10,spacing:.8})}${paper(u,.25)}`,
+  }),
+  saltbound:u=>({
+    defs:`<pattern id="${u}-sea" width="83" height="32" patternUnits="userSpaceOnUse"><path d="M0 16Q20 3 41 16T83 16M0 23Q20 10 41 23T83 23" fill="none" stroke="#bfcbaa" stroke-width="1"/></pattern>`,
+    body:`${rect(0,0,640,420,'#163e44')}${rect(0,290,640,130,`url(#${u}-sea)`,'opacity=".35"')}${rect(0,0,640,18,'#d8793d')}
+      ${type('SALT',29,174,164,'#efdfb7',{width:361})}${type('BOUND',29,310,150,'#efdfb7',{width:570})}
+      <g transform="translate(494 117) scale(.8)" fill="#efdfb7"><path d="M-63 71H77L53 96H-34Z"/><path d="M-1-97V74" stroke="#efdfb7" stroke-width="4"/><path d="M-10-82Q-74-43-72 57H-10Z"/><path d="M7-80Q66-35 59 57H7Z"/><path d="M1-97 42-90 1-76Z" fill="#d8793d"/>${line('M-59 17H-12M-65 37H-12M9 16H45M9 36H54','#163e44',2)}<path d="M-90 104Q-18 120 89 106" fill="none" stroke="#d8793d" stroke-width="3"/></g>
+      ${rect(29,327,570,2,'#b1c7ac')}${note('PIRATE EXTRACTION / CO-OP',31,367,'#c7d0b1',{size:13,spacing:1.5})}${paper(u,.3)}`,
+  }),
+  empires:u=>({
+    body:`${rect(0,0,640,420,'#253f32')}${rect(18,18,604,384,'none','stroke="#a38c5a" stroke-width="2"')}${rect(26,26,588,368,'none','stroke="#a38c5a" stroke-width=".75"')}
+      ${type('EMPIRES',37,130,103,'#e3c38d',{family:'serif',weight:400,width:566})}${line('M43 149H597','#b69b66',1)}
+      <g stroke="#b89e6c" stroke-width="2" fill="#304c39"><path d="M109 357V246H131V221H154V246H178V357ZM462 357V246H486V221H509V246H533V357Z"/><path d="M177 357V210H205V184H233V210H258V357ZM382 357V210H407V184H435V210H463V357Z"/><path d="M255 357V257L320 205 385 257V357Z"/><path d="M294 357V289Q320 249 346 289V357" fill="#172e28"/><path d="M277 257H365M277 271H365M293 227H347M109 303H177M463 303H533M181 265H255M385 265H459"/><path d="M320 205V157"/><path d="M321 159H365L354 172 365 184H321Z" fill="#a35439"/></g>
+      ${line('M68 357H574M85 365H556M102 373H538','#9b8c60',1)}${note('TURN-BASED STRATEGY',151,391,'#c8b783',{size:11,spacing:1.8})}${dotfield(u,33,160,574,221,.08)}${paper(u,.19)}`,
+  }),
+  huddle:u=>({
+    body:`${rect(0,0,640,420,'#eae6d2')}${rect(23,23,594,374,'none','stroke="#234b3a" stroke-width="1"')}${note('BACK IN THE',37,54,'#234b3a',{size:17,spacing:4})}
+      ${type('HUDDLE',31,190,148,'#234b3a',{width:577})}${rect(34,208,573,155,'#234b3a')}
+      <g fill="none" stroke="#e4e4ca" stroke-width="2.5"><circle cx="103" cy="324" r="10"/><circle cx="159" cy="324" r="10"/><circle cx="215" cy="324" r="10"/><circle cx="271" cy="324" r="10"/><circle cx="327" cy="324" r="10"/><circle cx="383" cy="324" r="10"/><path d="M92 283 114 305M114 283 92 305M148 283 170 305M170 283 148 305M204 283 226 305M226 283 204 305M260 283 282 305M282 283 260 305M316 283 338 305M338 283 316 305"/></g>
+      ${line('M103 308V239H64M383 307V243L448 226M271 309 312 340H444V268','#d4ae4c',4,'stroke-linecap="round" stroke-linejoin="round"')}${line('m75 231-11 8 11 8m360-16 13-5-3 13m-10 40 9-11 9 11','#d4ae4c',3)}
+      ${type('NFL',484,328,77,'#c7d2b2',{width:102})}${note('GAMES / TEAMS / STORIES',39,385,'#466551',{size:12,spacing:2})}${paper(u,.3)}`,
+  }),
+  vineyard:u=>({
+    body:`${rect(0,0,640,420,'#e9dfc5')}${rect(17,17,606,386,'none','stroke="#593541" stroke-width="2"')}${rect(26,26,588,368,'none','stroke="#a79b70" stroke-width=".8"')}
+      <g stroke="#657443" stroke-width="2" fill="none"><path d="M57 369Q29 293 83 220T78 79Q67 36 133 34M586 368Q618 303 568 229T562 84Q579 45 513 34"/><path d="M59 330 108 296M62 285 31 245M77 238 131 217M91 187 49 161M88 132 139 99M579 327 530 295M578 281 608 246M570 236 518 209M556 180 599 153M558 127 508 96"/></g>
+      <g fill="#7c8553" stroke="#59683e" stroke-width="1.2"><path d="M107 297Q75 266 113 254 132 279 107 297ZM47 267Q15 250 30 220 65 226 47 267ZM123 225Q103 187 143 183 153 213 123 225ZM62 174Q20 166 35 132 73 133 62 174ZM130 114Q107 78 145 73 160 102 130 114ZM532 297Q505 270 532 253 563 268 532 297ZM592 267Q575 235 610 220 630 250 592 267ZM522 222Q495 205 509 174 547 182 522 222ZM588 170Q569 138 604 126 625 158 588 170ZM511 110Q482 93 502 66 537 74 511 110Z"/></g>
+      <g fill="#65404b" stroke="#e9dfc5" stroke-width="1"><circle cx="83" cy="89" r="9"/><circle cx="94" cy="99" r="9"/><circle cx="75" cy="104" r="9"/><circle cx="85" cy="115" r="9"/><circle cx="79" cy="128" r="8"/><circle cx="559" cy="90" r="9"/><circle cx="570" cy="102" r="9"/><circle cx="552" cy="105" r="9"/><circle cx="562" cy="118" r="9"/><circle cx="560" cy="131" r="8"/></g>
+      ${type('Vineyard',125,207,75,'#593541',{family:'serif',weight:400,italic:true,width:390})}${type('TABLE',177,279,68,'#593541',{family:'serif',weight:400,width:286,spacing:5})}${line('M185 298H454','#9d895f',1)}${note('WORKER PLACEMENT',202,328,'#7b7354',{size:11,spacing:1.5})}${paper(u,.28)}`,
+  }),
+  'roster-radar':u=>({
+    body:`${rect(0,0,640,420,'#172a22')}${rect(0,0,19,420,'#d6ed8c')}${hatch(u,430,0,210,420,.1)}
+      ${note('FANTASY FOOTBALL',39,42,'#a2c3a1',{size:13,spacing:2})}${type('ROSTER',34,169,130,'#d6ed8c',{width:562})}${type('RADAR',34,291,139,'#d6ed8c',{width:429})}
+      <g transform="translate(527 282)" fill="none" stroke="#7bad80" stroke-width="1.3"><path d="M-87 0H87M0-87V87"/><circle r="75"/><circle r="52"/><circle r="28"/><path d="M0 0 55-51" stroke="#d6ed8c" stroke-width="3"/><path d="M0 0 55-51A75 75 0 0 1 75 0Z" fill="#d6ed8c" stroke="none" opacity=".12"/><path d="M-43 39H-29M-36 32V46M28-26H40M34-32V-20" stroke="#d6ed8c" stroke-width="3"/></g>
+      ${rect(39,320,335,2,'#5e8266')}${note('LEAGUES / NEWS / WATCHLISTS',40,356,'#b2ccaa',{size:12,spacing:1})}${line('M39 380H199M213 380H265M279 380H322','#7c9e74',4)}${paper(u,.18)}`,
+  }),
+  lockstep:u=>({
+    body:`${rect(0,0,640,420,'#2b2c27')}${rect(0,0,640,19,'#e8b14a')}${line('M5 0 24 19M46 0 65 19M87 0 106 19M128 0 147 19M169 0 188 19M210 0 229 19M251 0 270 19M292 0 311 19M333 0 352 19M374 0 393 19M415 0 434 19M456 0 475 19M497 0 516 19M538 0 557 19M579 0 598 19M620 0 639 19','#2b2c27',15)}
+      ${type('LOCK',29,184,169,'#f1ddb0',{width:426})}${type('STEP',186,325,170,'#e8b14a',{width:425})}
+      <g transform="translate(535 136)"><path d="M-41 2V-38Q-41-79 0-79T41-38V2" fill="none" stroke="#e8b14a" stroke-width="12"/><rect x="-54" y="0" width="108" height="83" fill="#e8b14a"/><circle cy="29" r="10" fill="#2b2c27"/><path d="M-5 34-11 57H11L5 34Z" fill="#2b2c27"/></g>
+      <path d="M31 212H104V281H155V350H216" fill="none" stroke="#91846a" stroke-width="4"/>${note('A BLACKWELL ESCAPE',32,391,'#c0b18f',{size:13,spacing:2.5})}${paper(u,.34)}`,
+  }),
+  'next-chapter':u=>({
+    body:`${rect(0,0,640,420,'#f0e7d3')}${rect(0,0,31,420,'#c45f3d')}${line('M45 0V420','#bcae8e',1)}
+      <path d="M526 0H640V112Z" fill="#dac9aa"/><path d="M526 0 526 112H640" fill="#f9f0dc" stroke="#c3b18f" stroke-width="1"/>
+      ${note('A CAREER FIELD JOURNAL',67,57,'#746d57',{size:12,spacing:2})}${type('Next',60,181,120,'#37352d',{family:'serif',weight:400,italic:true,width:343})}${type('Chapter',58,296,114,'#37352d',{family:'serif',weight:400,width:523})}
+      ${line('M67 317H571','#c45f3d',3)}${type('Opportunities, notes, follow-ups.',67,359,27,'#746d57',{family:'serif',weight:400,italic:true,width:441})}
+      <path d="M465 0V126L488 110 510 126V0Z" fill="#c45f3d"/>${line('M68 390H206M216 390H384M394 390H560','#b5ad90',1)}${paper(u,.33)}`,
+  }),
+  'soph-slump':u=>({
+    body:`${rect(0,0,640,420,'#dbb23d')}${dotfield(u,304,0,336,420,.15)}${rect(24,23,592,374,'none','stroke="#252924" stroke-width="2"')}
+      ${type('SOPH(MORE)',41,102,69,'#252924',{width:543})}${type('SLUMP',37,253,151,'#252924',{width:439})}${type('?',445,350,288,'#e9dfc7',{family:'serif',weight:700,width:163})}
+      <g fill="none" stroke="#252924" stroke-width="2" opacity=".8"><path d="M44 290V369H436"/><path d="m57 351 57-43 57 18 57-25 57 39 57-8 76 29" stroke-width="4"/><path d="m57 336 57-8 57-29 57 15 57-25 57-11 76 23" stroke-width="3" stroke-dasharray="7 6"/></g>
+      ${note('THE SECOND-YEAR QUESTION',45,388,'#252924',{size:10,spacing:1.5})}${paper(u,.38)}`,
+  }),
+  'magic-catch-up':u=>({
+    body:`${rect(0,0,640,420,'#342945')}${rect(22,20,596,380,'none','stroke="#a98a58" stroke-width="1.5"')}${rect(30,28,580,364,'none','stroke="#a98a58" stroke-width=".65"')}
+      <path d="M32 95Q320-42 608 95M32 325Q320 462 608 325" fill="none" stroke="#a98a58" stroke-width="1"/>
+      ${type('MAGIC',62,169,115,'#e7d7ae',{family:'serif',weight:400,width:516})}${line('M89 192H551','#a98a58',1)}${type('CATCH UP',92,274,81,'#e7d7ae',{family:'serif',weight:400,width:455})}
+      <g transform="translate(320 337)" fill="none" stroke="#bd9e65" stroke-width="1.5"><path d="M-90 0-48-15 0-8 48-15 90 0 48 16 0 8-48 16Z"/><path d="M-90 0-48-15V16M0-8V8M48-15V16M-90 5-48 21 0 13 48 21 90 5"/><path d="M0-27 7-14 0-8-7-14Z" fill="#bd9e65"/></g>
+      ${note('FORMATS / MILESTONES',196,68,'#aa91b0',{size:11,spacing:2})}<g fill="#bd9e65"><path d="m49 213 4-12 4 12-4 12Zm534 0 4-12 4 12-4 12Z"/></g>${paper(u,.22)}`,
+  }),
+  rlcs:u=>({
+    body:`${rect(0,0,640,420,'#1f4b9d')}<path d="M465 0H640V420H139Z" fill="#ef8c3a"/><path d="M435 0H453L127 420H109ZM483 0H495L170 420H158Z" fill="#e6d5b8" opacity=".5"/>
+      ${note('ROCKET LEAGUE ESPORTS',28,39,'#d6e4e4',{size:13,spacing:2})}${type('RLCS',23,226,210,'#153872',{width:584,stroke:'#153872',strokeWidth:9})}${type('RLCS',17,216,210,'#f3ebda',{width:584})}
+      ${rect(29,252,445,71,'#183361')}${type('CATCH UP',45,304,56,'#f3ebda',{width:411})}
+      <g transform="translate(529 318) rotate(-17)" stroke="#263e65" stroke-width="3"><path d="M-51 19-43-8-15-24H24L43-7 51 19Z" fill="#f3ebda"/><path d="M-13-18H21L31-7H-29Z" fill="#3863a2"/><path d="M-42 18V31M42 18V31" stroke="#263e65" stroke-width="15"/></g>
+      ${line('M28 370H375M28 384H319','#bcd6df',3)}${note('ESPORTS HISTORY',397,390,'#273a5b',{size:12,spacing:.8})}${paper(u,.2)}`,
+  }),
+  skyward:u=>({
+    defs:`<pattern id="${u}-grid" width="37" height="37" patternUnits="userSpaceOnUse"><path d="M37 0H0V37" stroke="#3c5c68" stroke-opacity=".13" fill="none"/></pattern>`,
+    body:`${rect(0,0,640,420,'#b8cbd0')}${rect(0,0,640,420,`url(#${u}-grid)`)}<path d="M416 0H489L218 420H145Z" fill="#e8dfc4"/><path d="M503 0H522L251 420H232Z" fill="#c86e38"/>
+      ${note('FLIGHT / EXPLORATION / COMBAT',28,35,'#3f5d65',{size:12,spacing:1.1})}
+      <g transform="translate(420 184) rotate(34) scale(.92)"><path d="${jet}" fill="#223f4c"/>${line('M0-75V77M-9-34 0-50 9-34M-69 35-15 5M69 35 15 5','#93afb7',2)}</g>
+      <g transform="translate(128 174) rotate(34)" fill="none" stroke="#274b59" stroke-width="2.5"><path d="M0-54V66M-67-19H67M-57 12H57M-22 47H22M-51-19V12M51-19V12M-20-19V12M20-19V12M-14-58H14"/><path d="M-6-47Q-14-5-6 57H6Q14-5 6-47Z" fill="#b8cbd0"/></g>
+      ${type('SKYWARD',24,365,112,'#223f4c',{width:591})}${line('M28 385H611','#3c5c68',2)}${note('CAMPAIGN / FREE FLIGHT',29,405,'#3f5d65',{size:10,spacing:1.4})}${paper(u,.27)}`,
+  }),
+  hockey:u=>({
+    body:`${rect(0,0,640,420,'#e5e8df')}<path d="M0 0H640V23H0Z" fill="#234a7e"/><path d="M0 244 640 161V190L0 273Z" fill="#ce4e39"/><path d="M0 284 640 201V212L0 295Z" fill="#234a7e"/>
+      ${note('POCKET',30,69,'#234a7e',{size:27,spacing:5})}${type('HOCKEY',20,199,136,'#234a7e',{width:601})}
+      <g transform="translate(470 316) rotate(-16)"><path d="M0-72 43 47 94 57 98 77 26 65-12-67Z" fill="#23364a"/><path d="M0-72-12-67" stroke="#ce4e39" stroke-width="8"/><path d="M33 47 40 66M43 50 50 69M53 51 60 72M63 53 70 73M73 55 80 75" stroke="#e5e8df" stroke-width="2"/></g>
+      <ellipse cx="334" cy="346" rx="32" ry="11" fill="#253746"/><path d="M302 338V347Q334 367 366 347V338" fill="#253746"/><path d="M58 342Q169 376 285 347" fill="none" stroke="#98b1bd" stroke-width="2"/><path d="M67 355Q186 391 285 357" fill="none" stroke="#98b1bd" stroke-width="1"/>
+      ${note('6 ON 6',30,397,'#234a7e',{size:13,spacing:2})}${dotfield(u,0,287,280,133,.07)}${paper(u,.3)}`,
+  }),
+  soccer:u=>({
+    body:`${rect(0,0,640,420,'#e6c836')}${rect(0,0,640,420,'none','stroke="#212821" stroke-width="22"')}${note('POCKET',31,65,'#212821',{size:30,spacing:6})}
+      ${type('SOCCER',22,216,155,'#212821',{width:595})}${rect(22,238,596,160,'#212821')}
+      <g transform="translate(28 246)" stroke="#a5b872" stroke-width="1.5" fill="none"><path d="M0 0H360V145H0ZM180 0V145"/><circle cx="180" cy="72" r="31"/><path d="M0 34H55V111H0M360 34H305V111H360"/></g>
+      <g transform="translate(502 319)"><circle r="66" fill="#e6dfb9"/><path d="M0-30 29-9 18 26H-18L-29-9Z" fill="#252d24"/><path d="m0-30-6-34 27 3 30 20-22 32M18 26l18 28-29 12-25-40M-29-9l-34-5 14-28 21-16-4 33M-18 26-45 48-17 64 6 50" fill="#252d24"/><circle r="66" fill="none" stroke="#e6c836" stroke-width="3"/></g>
+      ${note('CLUB FOOTBALL',39,381,'#d6c75a',{size:12,spacing:2})}${paper(u,.26)}`,
+  }),
+  'sleeve-notes':u=>({
+    body:`${rect(0,0,640,420,'#de6d3c')}${rect(19,18,602,384,'none','stroke="#f2e2b8" stroke-width="1.5"')}${rect(363,18,258,384,'#263f63')}
+      <g transform="translate(516 209)"><circle r="146" fill="#232d31"/><g stroke="#c1a887" stroke-opacity=".27" fill="none"><circle r="131"/><circle r="120"/><circle r="109"/><circle r="98"/><circle r="87"/><circle r="76"/><circle r="65"/></g><circle r="48" fill="#de6d3c"/><path d="M-39 0H39" stroke="#f2e2b8" stroke-width="1"/><circle r="6" fill="#232d31"/></g>
+      ${type('the',35,85,45,'#f2e2b8',{family:'serif',weight:400,italic:true,width:85})}${type('Sleeve',33,205,114,'#f2e2b8',{family:'serif',weight:700,width:397})}${type('Notes',33,313,111,'#f2e2b8',{family:'serif',weight:700,italic:true,width:373})}
+      ${line('M36 335H340','#f2e2b8',1)}${note('ARTISTS / ALBUM CREDITS',38,373,'#f2e2b8',{size:11,spacing:1.5})}${paper(u,.3)}`,
+  }),
+  battlezone:u=>({
+    body:`${rect(0,0,640,420,'#111c17')}${rect(16,16,608,388,'none','stroke="#75ad61" stroke-width="1"')}
+      ${type('BATTLE',35,131,112,'none',{family:'mono',weight:700,width:566,stroke:'#b0df7d',strokeWidth:2})}${type('ZONE',34,237,112,'#b0df7d',{family:'mono',weight:700,width:387})}${type('1980',449,233,67,'#d9edac',{family:'mono',weight:400,width:151})}
+      <g stroke="#75ad61" fill="none" stroke-width="1.1"><path d="M0 302H640M0 420 173 302M640 420 467 302M111 420 224 302M524 420 415 302M251 420 292 302M387 420 348 302M0 339H640M0 382H640"/></g>
+      <g transform="translate(323 324)" fill="#111c17" stroke="#b0df7d" stroke-width="2"><path d="M-86 18-57-33H59L88 18 67 53H-68Z"/><path d="M-86 18H88M-57-33-34 18-45 53M59-33 34 18 46 53"/><path d="M-40-16-27-51H30L45-16Z"/><path d="M-27-51 0-64 30-51M0-64V-37M0-37 18-99 29-96 14-31Z"/></g>
+      ${note('VECTOR ARCADE',35,392,'#94c57d',{size:12,spacing:2})}${rect(0,0,640,420,`url(#${u}-scan)`,'opacity=".45"')}`,
+  }),
+  'when-ants-stare':u=>({
+    body:`${rect(0,0,640,420,'#292326')}${rect(21,20,598,380,'none','stroke="#826044" stroke-width="1"')}
+      ${type('WHEN',35,115,101,'#d4ac7f',{family:'serif',weight:400,width:349})}${type('ANTS',35,224,112,'#d4ac7f',{family:'serif',weight:400,width:347})}${type('STARE',33,341,115,'#f0d9b8',{family:'serif',weight:400,width:566})}
+      <g fill="none" stroke="#977052" stroke-width="1" opacity=".75"><path d="M393 75Q496 12 601 75M397 87Q496 25 597 87M404 99Q496 38 590 99M412 111Q496 51 582 111M421 123Q496 66 572 123M431 135Q496 80 561 135M443 147Q496 96 549 147"/><path d="M393 75Q496 208 601 75M397 87Q496 217 597 87M404 99Q496 228 590 99M412 111Q496 235 582 111M421 123Q496 241 572 123M431 135Q496 246 561 135M443 147Q496 249 549 147"/></g>
+      <g transform="translate(499 137)" fill="#d4ac7f" stroke="#d4ac7f" stroke-width="1.3"><ellipse cy="8" rx="6" ry="10"/><ellipse cy="-7" rx="4" ry="6"/><circle cy="-17" r="4"/><path d="M-3-20-8-27M3-20 8-27M-4-9-12-13-17-10M4-9 12-13 17-10M-4-4-13 1-17 5M4-4 13 1 17 5M-4 8-11 17-15 22M4 8 11 17 15 22" fill="none"/></g>
+      ${note('WHAT STARES BACK?',38,379,'#9e7b5c',{size:12,spacing:3})}${paper(u,.36)}`,
+  }),
+  'last-exit':u=>({
+    body:`${rect(0,0,640,420,'#272539')}<path d="M428 0H640V420H163Z" fill="#8c4c73"/><path d="M482 0H505L231 420H208Z" fill="#c58096" opacity=".4"/>
+      ${type('LAST',27,142,122,'#c58096',{width:348})}${type('LAST',22,135,122,'#f1e4d2',{width:348})}${type('EXIT',22,281,161,'#f1e4d2',{width:397})}
+      <g stroke="#d39aab" stroke-width="1" fill="none" opacity=".75"><path d="M427 255V123H461V160H483V71H516V131H538V103H562V165H585V86H614V253"/><path d="M492 86H507M492 100H507M492 114H507M593 101H606M593 116H606"/></g>
+      <path d="M244 420 400 263H472L635 420Z" fill="#202536"/>${line('M435 294V310M435 335V361M435 386V420','#e6c286',4)}
+      <g transform="translate(438 343)"><path d="M-90 25-81-14-48-42H49L81-14 93 25Z" fill="#465169" stroke="#171e2c" stroke-width="3"/><path d="M-41-34H43L64-14H-62Z" fill="#a2849c"/><path d="M-77 3H-39M40 3H78" stroke="#e5b5a5" stroke-width="5"/><path d="M-76 27V41M77 27V41" stroke="#171e2c" stroke-width="15"/><rect x="-17" y="11" width="34" height="9" fill="#d9c49e"/></g>
+      ${note('BOSTON / CAMBRIDGE',28,391,'#c6a8b4',{size:11,spacing:1.3})}${paper(u,.25)}`,
+  }),
+  afterglow:u=>({
+    body:`${rect(0,0,640,420,'#533047')}${rect(19,20,602,380,'none','stroke="#cc826b" stroke-width="1"')}${dotfield(u,0,0,640,420,.12)}
+      <g transform="rotate(-5 320 210)">${type('after',32,184,157,'#e68873',{family:'serif',weight:700,italic:true,width:501})}${type('glow',119,310,158,'#f5c894',{family:'serif',weight:700,italic:true,width:493})}</g>
+      <path d="M-10 36Q134 85 320 41T650 31M-10 45Q134 94 320 50T650 40M-10 54Q134 103 320 59T650 49" fill="none" stroke="#cc826b" stroke-width="1.5"/>
+      ${line('M28 344H611','#cc826b',1)}${note('ARTISTS / SHOWS / VENUES',31,378,'#f5c894',{size:15,spacing:2})}
+      <path d="M547 347V400" stroke="#cc826b" stroke-width="2" stroke-dasharray="3 5"/>${type('LIVE',565,381,25,'#f5c894',{family:'sans',weight:700,width:41})}${paper(u,.25)}`,
+  }),
+  'claim-denied':u=>({
+    body:`${rect(0,0,640,420,'#242721')}<path d="M19 12 96 18 160 8 214 16 302 11 373 19 439 9 504 18 617 12 607 70 623 129 611 194 621 248 610 319 619 406 558 398 481 412 412 400 348 408 280 400 211 411 140 398 78 408 20 400 29 328 17 266 28 203 16 129 26 67Z" fill="#d9cfb2"/>
+      ${line('M45 55H593M45 73H593M45 345H593M45 365H593M45 385H593','#8b8569',1)}${note('CO-OP ZOMBIE SURVIVAL',45,46,'#595d48',{size:12,spacing:2})}
+      <g transform="rotate(-6 320 210)">${type('CLAIM',40,196,139,'#b63d2e',{width:544})}${type('DENIED',38,308,128,'#b63d2e',{width:563})}${rect(32,83,577,242,'none','stroke="#b63d2e" stroke-width="6"')}</g>
+      ${line('M117 0 104 420M490 0 507 420','#80795e',1,'opacity=".3"')}
+      <g transform="translate(522 368)" fill="#343a2e"><path d="M-32 19V-18L0-43 32-18V19Z"/><path d="M-42-17 0-52 42-17-6-24 0-29-25-3Z"/><path d="M-11 19V-6H10V19" fill="#d9cfb2"/></g>${paper(u,.45)}`,
+  }),
+  'magic-duel':u=>({
+    body:`${rect(0,0,640,420,'#4b2937')}<path d="M320 0H640V420H320Z" fill="#294445"/>${rect(19,19,602,382,'none','stroke="#bb9a67" stroke-width="1.5"')}
+      ${type('MAGIC',106,104,88,'#e6c18b',{family:'serif',weight:400,width:429})}
+      <g transform="translate(111 122) rotate(-11 76 94)"><rect width="151" height="181" fill="#803b43" stroke="#e6c18b" stroke-width="2"/><rect x="10" y="10" width="131" height="161" fill="none" stroke="#bb9a67" stroke-width="1"/><path d="M75 35Q29 82 52 113T102 129Q129 108 95 59 100 95 76 84 93 59 75 35Z" fill="#d7a36b"/></g>
+      <g transform="translate(379 122) rotate(11 76 94)"><rect width="151" height="181" fill="#3d6664" stroke="#e6c18b" stroke-width="2"/><rect x="10" y="10" width="131" height="161" fill="none" stroke="#bb9a67" stroke-width="1"/><path d="M75 35 108 79 94 131H57L42 79Z" fill="none" stroke="#b6c9af" stroke-width="5"/><path d="M75 35V131M42 79H108M57 131 75 79 94 131" stroke="#b6c9af" stroke-width="2" fill="none"/></g>
+      <path d="m320 153 12 30 25 15-25 15-12 30-12-30-25-15 25-15Z" fill="#e6c18b"/>
+      ${type('DUEL',167,377,91,'#e6c18b',{family:'serif',weight:700,width:307})}${paper(u,.22)}`,
+  }),
+  'relay-fieldguide':u=>({
+    defs:`<pattern id="${u}-contours" width="218" height="154" patternUnits="userSpaceOnUse"><path d="M-20 71Q38-18 109 40T238 29M-20 83Q38-6 109 52T238 41M-20 95Q38 6 109 64T238 53M-20 107Q38 18 109 76T238 65M-20 119Q38 30 109 88T238 77" fill="none" stroke="#71856b" stroke-width="1"/></pattern>`,
+    body:`${rect(0,0,640,420,'#d9decb')}${rect(0,0,640,420,`url(#${u}-contours)`,'opacity=".28"')}${rect(0,0,34,420,'#d86e34')}${note('CREW COPY',55,43,'#2c493c',{size:12,spacing:3})}
+      ${type('RELAY',49,200,163,'#2c493c',{width:546})}${rect(51,220,545,68,'#2c493c')}${type('FIELDGUIDE',63,267,48,'#d9decb',{width:519})}
+      <path d="M60 367 137 332 196 350 280 315 365 348 436 328 531 365 593 328" fill="none" stroke="#d86e34" stroke-width="5" stroke-dasharray="8 6"/>
+      <g fill="#d9decb" stroke="#2c493c" stroke-width="3"><rect x="129" y="324" width="16" height="16"/><rect x="272" y="307" width="16" height="16"/><rect x="428" y="320" width="16" height="16"/><rect x="585" y="320" width="16" height="16"/></g>${note('RACE-DAY CREW GUIDE',55,397,'#2c493c',{size:12,spacing:3})}${paper(u,.25)}`,
+  }),
+  farwake:u=>({
+    body:`${rect(0,0,640,420,'#142329')}${rect(17,17,606,386,'none','stroke="#71877d" stroke-width="1"')}
+      <g stroke="#789084" stroke-width="1" opacity=".55" fill="none"><path d="M0 0 320 163 640 0M0 420 320 163 640 420M0 86 320 163 640 86M0 304 320 163 640 304M115 0 320 163 525 0M93 420 320 163 547 420M234 0 320 163 406 0M238 420 320 163 403 420"/></g>
+      <path d="M273 96H367L417 163 367 230H273L223 163Z" fill="#142329" stroke="#d8874b" stroke-width="15"/><path d="M284 113H356L394 163 356 213H284L246 163Z" fill="none" stroke="#e5e4cd" stroke-width="2"/>
+      <g transform="translate(320 191) scale(.77)"><path d="${ship}" fill="#e5e4cd" stroke="#263d43" stroke-width="2"/><path d="M0-85 10-46 6-16H-6L-10-46Z" fill="#385d66"/><path d="M-18 20-30 49-25 66M18 20 30 49 25 66M0 6V89" fill="none" stroke="#789185" stroke-width="3"/><path d="M-9 89 0 149 9 89" fill="#d8874b"/></g>
+      ${rect(18,301,604,102,'#142329')}${type('FARWAKE',26,374,105,'#e5e4cd',{width:589,spacing:2})}${note('SPACE EXPLORATION',28,45,'#bdc7af',{size:13,spacing:3})}${line('M507 38H594M572 29 594 38 572 47','#d8874b',2)}
+      <g fill="#d1d6be"><path d="M81 115H91M86 110V120M541 243H551M546 238V248M165 211H173M169 207V215" stroke="#d1d6be" stroke-width="1"/><circle cx="505" cy="107" r="1.8"/><circle cx="192" cy="70" r="1.4"/><circle cx="66" cy="275" r="1.5"/></g>${paper(u,.18)}`,
+  }),
+  dayboard:u=>({
+    body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}
+      ${type('DAY',42,204,169,'#252c29',{width:414})}${type('BOARD',42,299,102,'#252c29',{width:548})}
+      <path d="M484 44H611V209H484Z" fill="#db7040"/><path d="M496 55H599V197H496Z" fill="none" stroke="#e9e5d9" stroke-width="1"/>${note('TODAY',508,86,'#252c29',{size:14,spacing:1.5})}<path d="m510 129 17 17 43-47" fill="none" stroke="#252c29" stroke-width="7"/>
+      ${line('M29 322H611M223 322V397M417 322V397','#252c29',1.5)}${note('PLAN',46,352,'#5b665b',{size:12,spacing:2})}${note('DO',240,352,'#5b665b',{size:12,spacing:2})}${note('DONE',434,352,'#5b665b',{size:12,spacing:2})}
+      ${rect(46,367,143,10,'#c6ccbb')}${rect(240,367,143,10,'#db7040')}${rect(434,367,143,10,'#758979')}${paper(u,.24)}`,
+  }),
 };
 
-const scenes = {
-  dsl: (u) => ({
-    defs: `<pattern id="${u}-hex" width="78" height="68" patternUnits="userSpaceOnUse"><path d="M20 1H58L78 34 58 67H20L0 34Z" fill="none" stroke="#cad0a7" stroke-opacity=".12"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#29322b"/><path d="M0 55 113 30 181 81 265 34 338 67 444 18 640 49V300H0Z" fill="#344134"/><path d="M0 214 101 194 181 251 283 186 392 213 481 144 640 167V300H0Z" fill="#3f4b39"/><path d="M-10 104Q92 152 167 120T324 142 460 101 660 91" fill="none" stroke="#6d8281" stroke-width="20"/><path d="M-10 104Q92 152 167 120T324 142 460 101 660 91" fill="none" stroke="#a9b9a1" stroke-opacity=".3" stroke-width="2"/><rect width="640" height="300" fill="url(#${u}-hex)"/><path d="M54 264 173 186 289 195 386 137 553 39" stroke="#c6b581" stroke-width="4" fill="none" stroke-dasharray="10 7"/><g fill="#b8bd92" opacity=".6"><path d="M402 215 411 193 420 215H415L425 229H397L408 215Z"/><path d="M444 241 453 219 462 241H457L467 255H439L450 241Z"/><path d="M74 54 83 32 92 54H87L97 68H69L80 54Z"/></g><g transform="translate(279 182)"><rect x="-24" y="-18" width="48" height="36" rx="3" fill="#d4c996" stroke="#202921" stroke-width="3"/><path d="M-15-11 15 11M15-11-15 11" stroke="#3a4637" stroke-width="2"/></g><g transform="translate(438 112)"><rect x="-22" y="-17" width="44" height="34" rx="3" fill="#ab6554" stroke="#202921" stroke-width="3"/><ellipse rx="14" ry="8" fill="none" stroke="#e4cfb5" stroke-width="2"/></g><g stroke="#d7d4b5" fill="none" opacity=".7"><circle cx="551" cy="230" r="27"/><path d="M551 197V263M518 230H584"/><path d="m551 202 6 24-6-4-6 4Z" fill="#d7d4b5"/></g>${label(28, 35, 'SECTOR 04 / WESTERN FRONT', '#d9dbb9', 11)}${label(28, 279, 'PLAN · MOVE · HOLD', '#c6cca8', 12)}`,
-  }),
-  gridiron: (u) => ({
-    defs: `<linearGradient id="${u}-field" x2="0" y2="1"><stop stop-color="#2c5848"/><stop offset="1" stop-color="#163b35"/></linearGradient><pattern id="${u}-stands" width="14" height="12" patternUnits="userSpaceOnUse"><rect width="6" height="3" fill="#c9c6a2" opacity=".45"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#182d32"/><path d="M0 0H640V55L557 79H83L0 55Z" fill="#263c40"/><path d="M0 10H640V45L549 64H91L0 45Z" fill="url(#${u}-stands)"/><path d="M87 80H553L640 300H0Z" fill="url(#${u}-field)"/><path d="M87 80H553L640 300H0Z" fill="none" stroke="#bccdb6" stroke-width="3"/><g fill="none" stroke="#cfddc1" stroke-opacity=".55" stroke-width="2"><path d="M74 112H566M59 148H581M44 185H596M26 231H614M7 282H633"/><path d="M190 80 141 300M450 80 499 300" stroke-dasharray="3 14"/></g><path d="M282 63V33H358V63M320 33V10" fill="none" stroke="#e3be69" stroke-width="4"/><g fill="#e4b163" stroke="#182d32" stroke-width="3"><rect x="258" y="148" width="14" height="22"/><rect x="292" y="145" width="14" height="22"/><rect x="326" y="145" width="14" height="22"/><rect x="360" y="148" width="14" height="22"/><rect x="309" y="195" width="18" height="25"/></g><g fill="#dce3cd" stroke="#182d32" stroke-width="3"><rect x="271" y="111" width="12" height="20"/><rect x="306" y="108" width="12" height="20"/><rect x="341" y="111" width="12" height="20"/><rect x="205" y="132" width="12" height="20"/><rect x="416" y="132" width="12" height="20"/></g><path d="M320 198 350 181 402 178 446 134" fill="none" stroke="#e9b15e" stroke-width="4" stroke-dasharray="8 7"/><path d="m430 137 16-3-2 17" fill="none" stroke="#e9b15e" stroke-width="4"/>${label(24, 284, '4TH &amp; GOAL', '#f0dcaa', 16, 2)}${label(487, 284, '00:08', '#f0dcaa', 21, 3)}`,
-  }),
-  infierno: (u) => ({
-    defs: `<pattern id="${u}-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#d0afa1" stroke-opacity=".08"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#251e20"/><rect width="640" height="300" fill="url(#${u}-grid)"/><g transform="translate(70 37) rotate(-7 115 115)"><rect width="219" height="247" rx="3" fill="#bcb398"/><path d="M21 36H198M21 58H169M21 80H190M21 144H197M21 167H156M21 190H181" stroke="#514e47" stroke-width="6" opacity=".45"/><rect x="22" y="99" width="131" height="23" fill="#494540"/><rect x="164" y="99" width="31" height="23" fill="#494540"/><path d="M171 13V38Q171 48 179 48T187 38V7Q187-1 179-1T171 7" fill="none" stroke="#dad5bf" stroke-width="3"/></g><g transform="translate(370 56) rotate(7 103 96)"><rect width="206" height="193" fill="#d8cbb2"/><rect x="12" y="12" width="182" height="130" fill="#4b5146"/><path d="M12 108 48 76 82 101 116 53 160 92 194 71V142H12Z" fill="#6d7764"/><path d="m59 121 10-25 24-4 16 17 17 5-3 8Z" fill="#262f2b"/><circle cx="79" cy="125" r="10" fill="#262f2b"/><circle cx="112" cy="125" r="10" fill="#262f2b"/><path d="M22 161H170M22 174H126" stroke="#7c7866" stroke-width="4"/></g><path d="M206 93 459 174 230 204" fill="none" stroke="#d56954" stroke-width="2"/><g fill="#e78c6e" stroke="#4b2c2b" stroke-width="3"><circle cx="206" cy="93" r="6"/><circle cx="459" cy="174" r="6"/><circle cx="230" cy="204" r="6"/></g><g transform="translate(271 225) rotate(-8)"><rect width="145" height="42" rx="2" fill="none" stroke="#d96753" stroke-width="3"/>${label(13, 28, 'VERIFIED', '#e27963', 21, 2)}</g>${label(25, 27, 'FIELD REPORT / 0017', '#ba9a8e', 11)}`,
-  }),
-  'further-in': () => ({
-    body: `<rect width="640" height="300" fill="#aea04e"/><path d="M0 0H640L389 106H238Z" fill="#c5b974"/><path d="M0 300H640L389 197H238Z" fill="#8e8450"/><path d="M0 0 238 106V197L0 300Z" fill="#b6a759"/><path d="M640 0 389 106V197L640 300Z" fill="#b9aa5e"/><path d="M238 106H389V197H238Z" fill="#847b3f"/><path d="M259 118H367V197H259Z" fill="#a2944c"/><path d="M276 132H349V197H276Z" fill="#746a35"/><path d="M292 143H333V197H292Z" fill="#3c3b24"/><g stroke="#766c37" stroke-width="2" opacity=".4"><path d="M49 21V279M97 43V258M145 65V237M194 86V216M594 20V279M545 41V257M497 63V235M448 84V215"/><path d="M0 151 238 151M389 151 640 151"/></g><path d="M78 31 166 31 209 50H138Z" fill="#e9dfaa"/><path d="M268 79H348L355 84H263Z" fill="#e8dda0"/><path d="M289 108H331L334 112H287Z" fill="#d6ca82"/><path d="M0 300 238 197M640 300 389 197M111 300 270 197M525 300 355 197M220 300 298 197M417 300 328 197" stroke="#a49b66" stroke-opacity=".4"/><path d="M0 265H640M70 229H571M179 208H459" stroke="#a49b66" stroke-opacity=".35"/><path d="M53 81V196L91 184V98Z" fill="#706934"/><path d="M58 88V191L85 182V101Z" fill="#68622f"/><path d="M564 88V208L520 190V109Z" fill="#9d904b"/>${label(27, 279, 'SOMEWHERE FAMILIAR.', '#e0d29b', 12, 3)}`,
-  }),
-  breach: (u) => ({
-    defs: `<linearGradient id="${u}-glow" x2="0" y2="1"><stop stop-color="#d96b43"/><stop offset="1" stop-color="#452d2d"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="#201d24"/><path d="M0 0H640L417 82H222Z" fill="#353039"/><path d="M0 300H640L417 225H222Z" fill="#302c33"/><path d="M0 0 222 82V225L0 300Z" fill="#282630"/><path d="M640 0 417 82V225L640 300Z" fill="#2c2831"/><path d="M232 87H407V225H232Z" fill="#171b23"/><rect x="272" y="110" width="96" height="115" fill="url(#${u}-glow)"/><rect x="292" y="125" width="56" height="100" fill="#332323"/><path d="M83 0V278M160 58V251M479 58V251M557 0V278" stroke="#52434a" stroke-width="9"/><path d="M34 20 196 87M443 87 605 20M49 275 211 222M428 222 594 275" stroke="#ee804d" stroke-width="4"/><path d="M258 89V215M381 89V215" stroke="#f39058" stroke-width="3"/><path d="M140 300 257 225M500 300 383 225" stroke="#ee804d" stroke-opacity=".6" stroke-width="2"/><g transform="translate(57 116)"><path d="M0 0H59V60H0Z" fill="#162b31" stroke="#725951" stroke-width="3"/><path d="M10 15H47M10 26H34M10 39H50" stroke="#82b6b4" stroke-width="3"/></g><path d="M475 128H557V182H475Z" fill="#443039"/><path d="m486 163 18-25 17 25Z" fill="none" stroke="#d77e59" stroke-width="3"/><path d="M542 138V168M534 153H550" stroke="#d77e59" stroke-width="3"/>${label(25, 30, 'BLACKSITE / ACCESS 07', '#b4a0a1', 11)}${label(439, 280, 'SYSTEM ONLINE', '#ec9971', 11)}`,
-  }),
-  'irish-today': (u) => ({
-    defs: `<pattern id="${u}-paper" width="13" height="13" patternUnits="userSpaceOnUse"><circle cx="3" cy="4" r=".7" fill="#bda578" opacity=".18"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#193e35"/><rect x="20" y="20" width="600" height="260" rx="1" fill="#e9e0c6"/><rect x="20" y="20" width="600" height="260" fill="url(#${u}-paper)"/><rect x="31" y="31" width="578" height="238" fill="none" stroke="#b2a47e"/><circle cx="446" cy="112" r="52" fill="#c9a65f" opacity=".7"/><path d="M33 230Q135 178 217 211T393 216 609 203V268H33Z" fill="#68866a"/><path d="M33 249Q160 216 292 242T609 222V268H33Z" fill="#335e4c"/><g transform="translate(390 49)"><path d="M-27 176-22 53-12 31 0 19 13 31 24 53 28 176Z" fill="#7f8170" stroke="#345247" stroke-width="2"/><path d="M-22 53 0 9 24 53Z" fill="#40574c"/><path d="M-8 176V149Q0 135 8 149V176" fill="#2e453b"/><path d="M-7 74V89H7V74Q0 64-7 74" fill="#374d42"/><path d="M-20 105H23M-21 126H24M-22 147H-8M9 147H26M-3 91V105M8 106V125M-7 127V144" stroke="#b7b39a" stroke-width="2" opacity=".7"/></g><text x="62" y="99" fill="#284d3d" font-family="Georgia, serif" font-size="44" font-style="italic">A little</text><text x="62" y="146" fill="#284d3d" font-family="Georgia, serif" font-size="44" font-style="italic">closer to home.</text><path d="M62 168H252" stroke="#b39861" stroke-width="2"/>${label(62, 192, 'HISTORY · LANGUAGE · PLACE', '#55705a', 10, 1.2)}<g fill="none" stroke="#b99e65" stroke-width="2"><circle cx="558" cy="68" r="15"/><circle cx="551" cy="61" r="8"/><circle cx="565" cy="61" r="8"/><circle cx="558" cy="73" r="8"/></g>`,
-  }),
-  garage: (u) => ({
-    defs: `<pattern id="${u}-grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#9bc3d4" stroke-opacity=".12"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#1c3446"/><rect width="640" height="300" fill="url(#${u}-grid)"/><g fill="none" stroke="#a5d3e3" stroke-width="2.5" stroke-linejoin="round"><path d="M94 193 103 161 158 148 209 104 359 104 411 142 506 154 550 176 547 200H94Z"/><path d="M173 147 219 113H288V146ZM303 113H354L397 145H303Z"/><path d="M212 104 209 198M303 104V199M359 104 407 144 411 199M114 166H157M489 165H530"/><path d="M97 186H137M210 186H418M490 186H547"/><circle cx="177" cy="198" r="36" fill="#1c3446"/><circle cx="177" cy="198" r="22"/><circle cx="455" cy="198" r="36" fill="#1c3446"/><circle cx="455" cy="198" r="22"/><path d="M177 176V220M155 198H199M455 176V220M433 198H477" stroke-width="1"/><path d="M274 158H286M383 158H395"/></g><g stroke="#699bad" fill="none" stroke-width="1"><path d="M94 247H550M94 236V258M550 236V258M74 104V231M63 104H85M63 231H85M177 77H455M177 68V87M455 68V87"/><path d="m101 243-7 4 7 4m442-8 7 4-7 4M70 111l4-7 4 7M70 224l4 7 4-7"/></g>${label(28, 32, 'WORKSHOP / BUILT TO BE DRIVEN', '#b5d5df', 11)}${label(265, 269, '4,362 mm', '#83b7c8', 11)}${label(257, 68, 'WHEELBASE', '#83b7c8', 10)}<g transform="translate(573 62)" fill="none" stroke="#a5d3e3" stroke-width="2"><path d="m-13-18 9 14-9 15 7 7L10 1Q23-3 16-18L9-6 0-9-1-20Z"/></g>`,
-  }),
-  'night-transfer': (u) => ({
-    defs: `<linearGradient id="${u}-corridor" x2="0" y2="1"><stop stop-color="#17343d"/><stop offset="1" stop-color="#28454a"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="url(#${u}-corridor)"/><path d="M0 300 256 194H385L640 300Z" fill="#426063"/><path d="M0 0 256 74V194L0 300Z" fill="#1b3942"/><path d="M640 0 385 74V194L640 300Z" fill="#26434b"/><path d="M256 74H385V194H256Z" fill="#101e26"/><path d="M298 98H344V194H298Z" fill="#b1814b"/><path d="M304 105H337V194H304Z" fill="#524d3f"/><path d="M0 38 228 92M0 75 228 112M0 113 228 132M0 152 228 152M0 190 228 172" stroke="#56767a" stroke-opacity=".35"/><g stroke="#65878a" stroke-width="6"><path d="M34 30V285M75 44V266M116 56V248M157 69V230M197 83V212"/></g><g stroke="#0c242f" stroke-width="5"><path d="M20 0V300M63 0V300M106 0V300M149 0V300M192 0V300"/></g><path d="M429 81V229L594 283V24Z" fill="#182e38" stroke="#4d6c72" stroke-width="4"/><g stroke="#4d6c72" stroke-width="5"><path d="M464 71V240M500 58V252M537 45V266M573 32V278"/><path d="M429 148H594"/></g><path d="M239 49H402L382 61H260Z" fill="#e7c486"/><path d="M271 81H369L359 87H280Z" fill="#c3ac77"/><path d="M298 194 344 194 399 300H245Z" fill="#b9a177" opacity=".12"/>${label(225, 280, 'NIGHT TRANSFER', '#d2c8a2', 13, 2)}`,
-  }),
-  mypassages: () => ({
-    body: `<rect width="640" height="300" fill="#d7e4dc"/><circle cx="493" cy="67" r="68" fill="#eee5ca"/><path d="M0 159Q83 101 177 151T372 145 640 131V300H0Z" fill="#aacac0"/><path d="M0 215Q121 126 244 192T450 182 640 185V300H0Z" fill="#7eafa3"/><path d="M0 270Q99 215 195 246T395 224 640 227V300H0Z" fill="#427f75"/><path d="M297 300Q436 239 352 206T395 159Q431 137 416 118" fill="none" stroke="#ece1c1" stroke-width="31"/><path d="M297 300Q436 239 352 206T395 159Q431 137 416 118" fill="none" stroke="#f4ebd0" stroke-width="23"/><g transform="translate(137 156)" fill="#2d625b"><path d="M0 92V-10" stroke="#2d625b" stroke-width="6"/><path d="M0 4Q-48-34-64 5-27 33 0 12M0 30Q40-11 65 20 43 51 0 39M0 63Q-39 24-62 56-29 81 0 71"/></g><text x="43" y="65" fill="#2b5953" font-family="Georgia, serif" font-size="30" font-style="italic">Every next step</text><text x="44" y="99" fill="#2b5953" font-family="Georgia, serif" font-size="30" font-style="italic">starts somewhere.</text><g fill="none" stroke="#46736a" stroke-width="2" opacity=".7"><path d="M481 126q9-10 18 0 9-10 18 0M541 109q7-8 14 0 7-8 14 0"/></g>`,
-  }),
-  saltbound: (u) => ({
-    defs: `<pattern id="${u}-waves" width="77" height="42" patternUnits="userSpaceOnUse"><path d="M8 17q11-7 22 0t22 0" fill="none" stroke="#96c6b8" stroke-width="1.4" opacity=".3"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#154a51"/><rect width="640" height="300" fill="url(#${u}-waves)"/><path d="M9 35 52 18 93 41 113 68 86 94 43 102 11 82Z" fill="#dfc693"/><path d="M14 47 54 31 86 50 94 67 78 83 44 89 20 77Z" fill="#669474"/><path d="M493 189 542 174 582 196 628 195 640 246 599 275 543 260 515 233Z" fill="#dfc693"/><path d="M512 199 544 187 575 209 615 207 626 241 595 260 551 247 530 228Z" fill="#5c8569"/><path d="M490 40 520 28 543 40 547 67 522 82 496 70Z" fill="#d5bf8e"/><path d="M499 45 521 37 533 45 535 63 521 70 505 64Z" fill="#58856b"/><path d="M100 129Q185 79 236 109T360 145 485 108" fill="none" stroke="#e7bc7b" stroke-width="2.5" stroke-dasharray="6 9"/><g transform="translate(313 174) rotate(-15)"><path d="M-72 28H72L47 52H-36Z" fill="#3b2d29" stroke="#e6b977" stroke-width="2"/><path d="M-54 23H61" stroke="#ddc69a" stroke-width="5"/><path d="M-1-75V29" stroke="#e5cba0" stroke-width="4"/><path d="M-8-66Q-63-32-58 12H-8Z" fill="#eee0b3"/><path d="M7-62Q58-23 52 12H7Z" fill="#d1bb8c"/><path d="M0-75 26-72 0-59Z" fill="#d68d5e"/><path d="M-64 59Q-17 78 53 65" fill="none" stroke="#9cc9b7" stroke-width="2" opacity=".6"/></g><g stroke="#d9bc87" fill="none" stroke-width="2" transform="translate(82 226)"><circle r="31"/><path d="M0-43V43M-43 0H43"/><path d="M0-28 8 0 0 28-8 0Z" fill="#d9bc87"/><path d="M-27 0 0-7 27 0 0 7Z"/></g>${label(28, 29, 'A CHARTER OF YOUR OWN', '#c8d8b8', 10, 2)}`,
-  }),
-  empires: (u) => ({
-    defs: `<pattern id="${u}-hex" width="100" height="86" patternUnits="userSpaceOnUse"><path d="M25 1H75L100 43 75 85H25L0 43Z" fill="none" stroke="#6b7853" stroke-opacity=".2"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#d6c6a0"/><path d="M0 86Q122 37 220 93T407 62 640 44V300H0Z" fill="#bcc29a"/><path d="M0 212Q116 157 211 205T424 195 640 154V300H0Z" fill="#a1b38a"/><path d="M-20 160Q91 137 157 172T312 153 480 177 660 153" fill="none" stroke="#7daca6" stroke-width="25"/><rect width="640" height="300" fill="url(#${u}-hex)"/><g stroke="#6c7555" stroke-width="2"><path d="M67 130 99 71 134 130Z" fill="#859274"/><path d="m99 71-10 21 10-5 11 5Z" fill="#e5dfbc"/><path d="M117 141 156 70 194 141Z" fill="#9aa27e"/><path d="m156 70-13 24 13-6 13 6Z" fill="#e5dfbc"/></g><g transform="translate(318 176)" stroke="#4e5e49" stroke-width="2"><path d="M-57 0-57-55H-42V-68H-27V-55H-11V0Z" fill="#e3d7b1"/><path d="M12 0V-57H27V-72H42V-57H57V0Z" fill="#d9c99e"/><path d="M-28 0V-34L0-60 28-34V0Z" fill="#e6d8af"/><path d="M-10 0V-20Q0-37 10-20V0" fill="#4e5e49"/><path d="M0-61V-107"/><path d="M1-105H36L26-94 36-84H1Z" fill="#a65f43"/></g><g fill="#536d4d"><path d="M451 88 461 65 472 88H468L479 104H443L455 88Z"/><path d="M490 112 503 84 516 112H511L523 129H483L496 112Z"/><path d="M544 73 555 48 566 73H562L573 89H537L549 73Z"/></g><g stroke="#64744e" stroke-width="2" fill="none"><path d="M111 229H217M102 241H208M94 253H200"/><path d="m112 218 105 47m-70-47 63 29m-105-17 86 37" opacity=".4"/></g>${label(29, 31, 'A WORLD TO BUILD', '#56654b', 11, 2)}${label(451, 272, 'DISCOVER · GROW', '#4e6248', 10, 1.5)}`,
-  }),
-  huddle: () => ({
-    body: `<rect width="640" height="300" fill="#243c38"/><rect x="24" y="21" width="592" height="258" rx="2" fill="none" stroke="#c2c5ac" stroke-opacity=".35" stroke-width="2"/><path d="M24 208H616" stroke="#c2c5ac" stroke-opacity=".5" stroke-width="2" stroke-dasharray="10 5"/><g stroke="#e2e2c8" stroke-width="3" fill="none"><circle cx="173" cy="221" r="11"/><circle cx="225" cy="221" r="11"/><circle cx="277" cy="221" r="11"/><circle cx="329" cy="221" r="11"/><circle cx="381" cy="221" r="11"/><circle cx="453" cy="221" r="11"/><circle cx="277" cy="258" r="11"/><path d="M161 170 185 194M185 170 161 194M214 170 238 194M238 170 214 194M266 170 290 194M290 170 266 194M318 170 342 194M342 170 318 194M370 170 394 194M394 170 370 194M440 123 464 147M464 123 440 147"/></g><g fill="none" stroke="#e1b46e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M453 205V78L531 47"/><path d="m517 44 14 3-6 13"/><path d="M173 206V112H102"/><path d="m114 102-12 10 12 10"/><path d="M277 246 348 256 401 184V115"/><path d="m392 126 9-11 9 11"/></g><text x="53" y="69" fill="#ede3c3" font-family="Georgia, serif" font-size="30" font-style="italic">Back in the game.</text>${label(53, 93, 'EVERY TEAM. EVERY STORY.', '#9daf9d', 10, 1.5)}<g transform="translate(536 232) rotate(-23)"><ellipse rx="31" ry="17" fill="#a9754e"/><path d="M-17 0H17M-11-6V6M0-6V6M11-6V6" stroke="#e4d8b4" stroke-width="2"/></g>`,
-  }),
-  vineyard: (u) => ({
-    defs: `<pattern id="${u}-rows" width="27" height="27" patternTransform="rotate(24)" patternUnits="userSpaceOnUse"><path d="M0 0V27" stroke="#365a3e" stroke-width="4" stroke-opacity=".55"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#e4d8b9"/><circle cx="485" cy="66" r="35" fill="#d7aa62"/><path d="M0 143Q91 54 215 116T418 108 640 106V300H0Z" fill="#b5bd84"/><path d="M0 203Q142 103 267 165T455 149 640 176V300H0Z" fill="#729461"/><path d="M0 203Q142 103 267 165T455 149 640 176V300H0Z" fill="url(#${u}-rows)"/><path d="M0 251Q129 194 271 233T640 220V300H0Z" fill="#bca271"/><g transform="translate(379 144)"><path d="M0-41H87V19H0Z" fill="#ead6a6"/><path d="M-8-42 44-74 96-42Z" fill="#a46648"/><path d="M12-25H27V-8H12ZM55-25H70V-8H55Z" fill="#5d6550"/><path d="M37 19V-7Q44-21 51-7V19" fill="#795b44"/><path d="M75-59V-88H88V-50" fill="#c8ad7f"/></g><g transform="translate(507 191)"><path d="M0 42V-34H30V42Z" fill="#46553a"/><path d="M8-34V-65H22V-34" fill="#46553a"/><path d="M7-49H23" stroke="#bc8d60" stroke-width="5"/><rect x="3" y="-5" width="24" height="27" fill="#e1cb9f"/><path d="M13 1V15M7 7H20" stroke="#7b4051" stroke-width="2"/></g><g transform="translate(575 207)" fill="none" stroke="#f4e5c6" stroke-width="3"><path d="M-15-32H15V-16Q15 0 0 0T-15-16Z"/><path d="M0 0V26M-14 26H14"/><path d="M-13-19H13V-14Q13-2 0-2T-13-14Z" fill="#873b51" stroke="none"/></g><g transform="translate(92 204) scale(.8)" fill="#84465a"><path d="${paths.worker}"/></g><g transform="translate(149 225) scale(.65)" fill="#e6c270"><path d="${paths.worker}"/></g>${label(28, 34, 'A SEASON WELL SPENT', '#69704e', 11, 2)}<g fill="#6a8a50"><ellipse cx="31" cy="80" rx="16" ry="8" transform="rotate(-25 31 80)"/><ellipse cx="49" cy="63" rx="16" ry="8" transform="rotate(25 49 63)"/><path d="M30 115Q49 82 43 47" fill="none" stroke="#6a8a50" stroke-width="2"/></g>`,
-  }),
-  'roster-radar': (u) => ({
-    defs: `<radialGradient id="${u}-radar"><stop stop-color="#406f4b"/><stop offset="1" stop-color="#1d4838"/></radialGradient>`,
-    body: `<rect width="640" height="300" fill="#163a30"/><circle cx="196" cy="150" r="124" fill="url(#${u}-radar)"/><g stroke="#8bb575" stroke-width="1" fill="none" opacity=".55"><circle cx="196" cy="150" r="124"/><circle cx="196" cy="150" r="92"/><circle cx="196" cy="150" r="61"/><circle cx="196" cy="150" r="30"/><path d="M72 150H320M196 26V274"/><path d="m109 63 174 174M109 237 174-174"/></g><path d="M196 150 266 48A124 124 0 0 1 320 150Z" fill="#b6d577" opacity=".12"/><path d="M196 150 266 48" stroke="#c7de8a" stroke-width="2"/><g fill="#c8dc8d"><circle cx="154" cy="93" r="5"/><circle cx="266" cy="120" r="6"/><circle cx="168" cy="203" r="4"/><circle cx="231" cy="221" r="5"/></g><circle cx="266" cy="120" r="13" fill="none" stroke="#c8dc8d" stroke-opacity=".5"/><g transform="translate(365 57)"><rect width="232" height="190" rx="6" fill="#244c3c" stroke="#73966b" stroke-opacity=".4"/><path d="M18 40H211M18 89H211M18 139H211" stroke="#73966b" stroke-opacity=".35"/><g fill="#c8d7b6"><circle cx="28" cy="63" r="10"/><circle cx="28" cy="113" r="10"/><circle cx="28" cy="162" r="10"/></g><g stroke="#c8d7b6" stroke-width="5"><path d="M50 59H134M50 109H149M50 159H124"/></g><g stroke="#8da681" stroke-width="3"><path d="M50 73H104M50 123H116M50 173H98"/></g><g fill="#c0d884"><path d="m183 70 8-14 8 14Z"/><path d="m183 119 8-14 8 14Z"/></g><path d="M182 163H200" stroke="#bca26c" stroke-width="3"/>${label(18, 25, 'YOUR WATCHLIST', '#c3d5ae', 11, 1.5)}</g>${label(29, 28, 'ON YOUR RADAR', '#a7c38d', 11, 2)}`,
-  }),
-  lockstep: (u) => ({
-    defs: `<pattern id="${u}-stone" width="88" height="42" patternUnits="userSpaceOnUse"><path d="M0 0H88M0 42H88M0 0V42M44 0V42" fill="none" stroke="#8a8263" stroke-opacity=".14"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#34322b"/><rect width="640" height="300" fill="url(#${u}-stone)"/><path d="M225 300V91Q225 7 320 7T415 91V300" fill="#1f2424" stroke="#817659" stroke-width="15"/><path d="M247 300V96Q247 30 320 30T393 96V300" fill="#494a3b" stroke="#b59b67" stroke-width="3"/><g stroke="#222b2b" stroke-width="7"><path d="M275 53V300M305 33V300M335 33V300M365 53V300M247 112H393M247 191H393M247 270H393"/></g><path d="M310 170H348V213H310Z" fill="#b3945e"/><circle cx="329" cy="185" r="6" fill="#333329"/><path d="M326 188 323 201H335L332 188Z" fill="#333329"/><g transform="translate(142 164) rotate(-33)"><circle cx="0" cy="0" r="24" fill="none" stroke="#d5bc80" stroke-width="8"/><path d="M22 0H100M79 0V18M95 0V13" fill="none" stroke="#d5bc80" stroke-width="9"/></g><g transform="translate(468 101)"><rect width="98" height="117" rx="3" fill="#c8b586" transform="rotate(7 49 58)"/><path d="M21 28H74M21 45H65M21 62H80M21 79H58" stroke="#6b654b" stroke-width="3" transform="rotate(7 49 58)"/></g>${label(29, 33, 'EVERY DETAIL IS A WAY OUT', '#bab28b', 10, 1.5)}`,
-  }),
-  'next-chapter': (u) => ({
-    defs: `<pattern id="${u}-lines" width="100" height="23" patternUnits="userSpaceOnUse"><path d="M0 22H100" stroke="#a8a692" stroke-opacity=".35"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#ddd6c6"/><path d="M80 286 123 30 482 42 503 285Z" fill="#a8a08c" opacity=".3"/><g transform="translate(113 23) rotate(3 178 132)"><rect width="357" height="271" rx="4" fill="#f3ebd8"/><rect x="37" y="54" width="291" height="198" fill="url(#${u}-lines)"/><path d="M31 0V271" stroke="#c88774" stroke-opacity=".6"/><path d="M0 19H27M0 50H27M0 81H27M0 112H27M0 143H27M0 174H27M0 205H27M0 236H27" stroke="#6d766d" stroke-width="4" stroke-linecap="round"/><text x="51" y="42" font-family="Georgia, serif" font-size="26" fill="#414c48" font-style="italic">What comes next?</text><g fill="none" stroke="#718170" stroke-width="2"><rect x="51" y="76" width="14" height="14"/><path d="m53 82 4 5 11-13"/><rect x="51" y="122" width="14" height="14"/><path d="m53 128 4 5 11-13"/><rect x="51" y="168" width="14" height="14"/></g><path d="M80 83H268M80 129H247M80 175H283" stroke="#73766a" stroke-width="4"/><path d="M80 105H213M80 151H183M80 197H218" stroke="#a7a48d" stroke-width="3"/><path d="M290 0V50L304 38 318 50V0Z" fill="#b96e50"/></g><g transform="translate(492 70) rotate(18)"><rect width="10" height="164" rx="3" fill="#3d5952"/><path d="M0 164 5 187 10 164Z" fill="#c4a177"/><path d="M3 178 5 187 7 178Z" fill="#414640"/><path d="M0 14H10" stroke="#c9ad74" stroke-width="5"/></g>${label(29, 280, 'MAKE ROOM FOR WHAT MATTERS', '#777461', 10, 1.5)}`,
-  }),
-  'soph-slump': () => ({
-    body: `<rect width="640" height="300" fill="#dcd4b9"/><rect x="27" y="23" width="586" height="254" fill="#e9e2cc" stroke="#b9b096"/><g stroke="#b6b39b" stroke-width="1" opacity=".6"><path d="M75 73H566M75 118H566M75 163H566M75 208H566M75 253H566"/><path d="M75 73V253M173 73V253M271 73V253M369 73V253M467 73V253M565 73V253"/></g><path d="M75 253H567M75 73V253" stroke="#737c67" stroke-width="2"/><path d="m86 231 64-39 69 23 67-64 71 18 75-73 67 29 56-46" fill="none" stroke="#547a6a" stroke-width="4"/><path d="m86 217 64-45 69 9 67-51 71 63 75-25 67 42 56-28" fill="none" stroke="#b88343" stroke-width="4"/><g fill="#547a6a"><circle cx="150" cy="192" r="5"/><circle cx="286" cy="151" r="5"/><circle cx="432" cy="96" r="5"/><circle cx="555" cy="79" r="5"/></g><g fill="#b88343"><circle cx="150" cy="172" r="5"/><circle cx="286" cy="130" r="5"/><circle cx="432" cy="168" r="5"/><circle cx="555" cy="182" r="5"/></g><path d="M357 77V250" stroke="#4d6557" stroke-width="2" stroke-dasharray="4 6"/><rect x="328" y="34" width="114" height="33" rx="3" fill="#3c554a"/>${label(345, 56, 'YEAR TWO', '#ece4c9', 14, 1)}${label(52, 48, 'THE NEXT SEASON', '#6a715e', 11, 1.5)}${label(84, 270, 'ROOKIE', '#8c8873', 9, 1)}${label(501, 270, 'CAREER', '#8c8873', 9, 1)}`,
-  }),
-  'magic-catch-up': (u) => ({
-    defs: `<radialGradient id="${u}-orb"><stop stop-color="#efcc8b"/><stop offset=".45" stop-color="#b88a63"/><stop offset="1" stop-color="#745272"/></radialGradient>`,
-    body: `<rect width="640" height="300" fill="#382941"/><circle cx="328" cy="149" r="121" fill="none" stroke="#8f6e83" stroke-opacity=".5"/><circle cx="328" cy="149" r="132" fill="none" stroke="#8f6e83" stroke-opacity=".2"/><g transform="translate(123 53) rotate(-16 78 108)"><rect width="156" height="219" rx="9" fill="#6d566f" stroke="#ad8a80" stroke-width="2"/><rect x="12" y="32" width="132" height="123" rx="3" fill="#4b3b58"/><path d="M20 146 56 89 79 116 110 63 137 146Z" fill="#8f7796"/><path d="M22 173H128M22 187H111M22 200H120" stroke="#b89d9f" stroke-width="3"/></g><g transform="translate(364 48) rotate(14 78 108)"><rect width="156" height="219" rx="9" fill="#564b69" stroke="#ad8a80" stroke-width="2"/><rect x="12" y="32" width="132" height="123" rx="3" fill="#323749"/><path d="M26 139 63 96 77 119 100 78 132 139Z" fill="#678481"/><path d="M22 173H128M22 187H111M22 200H120" stroke="#b89d9f" stroke-width="3"/></g><g transform="translate(245 32)"><rect width="157" height="229" rx="9" fill="#b79769" stroke="#e0c397" stroke-width="2"/><rect x="11" y="31" width="135" height="130" rx="2" fill="#4b3c57"/><circle cx="79" cy="94" r="42" fill="url(#${u}-orb)"/><path d="m79 57 8 26 27 11-27 10-8 27-10-27-26-10 26-11Z" fill="none" stroke="#f4d49b" stroke-width="2"/><rect x="11" y="172" width="135" height="45" rx="2" fill="#e2cdab"/><path d="M22 185H129M22 197H114M22 208H95" stroke="#866e5e" stroke-width="3"/>${label(14, 22, 'A NEW CHAPTER', '#3f3241', 9, 1)}</g><g fill="#c6a584"><circle cx="80" cy="83" r="2"/><circle cx="559" cy="189" r="3"/><circle cx="452" cy="19" r="2"/><circle cx="185" cy="24" r="2"/></g>`,
-  }),
-  rlcs: (u) => ({
-    defs: `<linearGradient id="${u}-arena" x2="1" y2="0"><stop stop-color="#214b73"/><stop offset=".5" stop-color="#2a3652"/><stop offset="1" stop-color="#744d45"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="#152c4a"/><path d="M0 50 140 88H500L640 50V300H0Z" fill="url(#${u}-arena)"/><path d="M0 184 135 137H504L640 184" fill="none" stroke="#92b6c9" stroke-opacity=".4" stroke-width="2"/><path d="M0 300 135 137M640 300 504 137M320 137V300M0 245H640" stroke="#a8c6d2" stroke-opacity=".25" stroke-width="2"/><ellipse cx="320" cy="214" rx="79" ry="35" fill="none" stroke="#adcad3" stroke-opacity=".45" stroke-width="2"/><path d="M19 150V79H117V139M523 139V79H621V150" fill="none" stroke="#82bde2" stroke-width="5"/><path d="M523 139V79H621V150" stroke="#eab07b" stroke-width="5"/><g stroke="#82bde2" stroke-width="1" opacity=".35"><path d="M43 79V141M68 79V139M93 79V139M19 100H117M19 121H117"/></g><g stroke="#eab07b" stroke-width="1" opacity=".35"><path d="M547 79V139M572 79V139M597 79V141M523 100H621M523 121H621"/></g><circle cx="353" cy="113" r="34" fill="#cbd9d2" stroke="#102b3b" stroke-width="3"/><path d="m353 94 17 12-7 20H343L336 106Z" fill="#637d8c"/><path d="m353 94 2-15m15 27 15 1m-22 19 9 15m-29-15-12 12m5-32-13-6" stroke="#637d8c" stroke-width="4"/><g transform="translate(226 219) rotate(-11)"><path d="M-50 17-45-7-18-27H25L45-7 53 17Z" fill="#72abc9" stroke="#17354b" stroke-width="3"/><path d="M-16-22H22L34-9H-30Z" fill="#253c50"/><rect x="-55" y="9" width="17" height="22" rx="4" fill="#192935"/><rect x="36" y="9" width="17" height="22" rx="4" fill="#192935"/><path d="M-38 22-81 34-63 14-108 10-45 0" fill="#e2b073" opacity=".7"/></g>${label(27, 30, 'THE ROAD BACK TO CHAMPIONSHIP', '#b3c9d8', 10, 1.5)}`,
-  }),
-  skyward: (u) => ({
-    defs: `<linearGradient id="${u}-sky" x2="0" y2="1"><stop stop-color="#63899e"/><stop offset="1" stop-color="#c2d1c7"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="url(#${u}-sky)"/><circle cx="496" cy="78" r="38" fill="#eed9ab"/><path d="M-50 118Q0 90 63 114T177 100 286 109" fill="none" stroke="#e4e6d6" stroke-width="12" stroke-linecap="round" opacity=".5"/><path d="M383 33Q427 18 474 35T575 26 668 37" fill="none" stroke="#e4e6d6" stroke-width="8" stroke-linecap="round" opacity=".4"/><path d="M0 250 96 135 161 211 246 100 354 231 439 134 558 242 640 173V300H0Z" fill="#728c94"/><path d="m246 100-43 58 28-7 15 13 18-12 28 7Z" fill="#dce1d1"/><path d="m96 135-24 32 24-5 18 8Z" fill="#dce1d1"/><path d="M0 300 131 213 224 280 332 161 417 260 515 204 640 291V300Z" fill="#426777"/><path d="M103 300 190 257 257 300M405 300 448 264 491 300" fill="#304f63"/><path d="M46 140Q130 127 209 99T365 72" fill="none" stroke="#eae7d3" stroke-width="2" opacity=".65"/><g transform="translate(367 79) rotate(63) scale(.78)"><path d="${paths.plane}" fill="#e7e3ca" stroke="#466270" stroke-width="2"/><path d="M0-23V29" stroke="#5e7880" stroke-width="3"/></g>${label(26, 31, 'A LITTLE FURTHER INTO THE SKY', '#e2e5d6', 10, 1.5)}<g stroke="#e2e5d6" stroke-opacity=".5" fill="none"><circle cx="561" cy="233" r="31"/><path d="M561 195V271M523 233H599M534 225H548M574 225H588"/></g>`,
-  }),
-  hockey: (u) => ({
-    defs: `<pattern id="${u}-ice" width="93" height="57" patternUnits="userSpaceOnUse"><path d="M9 43 62 17M32 52 89 23" stroke="#9bbac2" stroke-opacity=".13" stroke-width="1"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#253d4e"/><rect x="29" y="23" width="582" height="254" rx="91" fill="#d8e7e8" stroke="#8aabb7" stroke-width="7"/><rect x="29" y="23" width="582" height="254" rx="91" fill="url(#${u}-ice)"/><path d="M320 25V275" stroke="#cb6f64" stroke-width="3" stroke-dasharray="9 4"/><path d="M205 25V275M435 25V275" stroke="#668eac" stroke-width="6"/><circle cx="320" cy="150" r="46" fill="none" stroke="#668eac" stroke-width="2"/><g fill="none" stroke="#cb6f64" stroke-width="2"><circle cx="144" cy="94" r="29"/><circle cx="144" cy="206" r="29"/><circle cx="495" cy="94" r="29"/><circle cx="495" cy="206" r="29"/><path d="M93 43V258M547 43V258"/></g><path d="M93 127H71V173H93M547 127H569V173H547" fill="#c4d7dc" stroke="#b96157" stroke-width="3"/><path d="M94 121Q128 150 94 179M547 121Q513 150 547 179" fill="#91bdcf" opacity=".45"/><g fill="#29495d" stroke="#eef3e8" stroke-width="2"><circle cx="278" cy="176" r="11"/><circle cx="218" cy="82" r="11"/><circle cx="374" cy="91" r="11"/></g><g fill="#b96555" stroke="#eef3e8" stroke-width="2"><circle cx="379" cy="190" r="11"/><circle cx="420" cy="112" r="11"/><circle cx="475" cy="218" r="11"/></g><g stroke="#28434d" stroke-width="3" fill="none" stroke-linecap="round"><path d="m282 183 22 23 15-3m64-6 21 17 11-8m-30-109 22 19 15-2"/></g><ellipse cx="323" cy="198" rx="5" ry="3" fill="#263b43"/><path d="M185 226Q233 211 272 182" fill="none" stroke="#6b91a5" stroke-width="2" stroke-dasharray="5 5"/>`,
-  }),
-  soccer: (u) => ({
-    defs: `<pattern id="${u}-grass" width="77" height="300" patternUnits="userSpaceOnUse"><rect width="38.5" height="300" fill="#466044"/><rect x="38.5" width="38.5" height="300" fill="#3c573c"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#283d2a"/><rect x="26" y="26" width="588" height="248" fill="url(#${u}-grass)"/><g stroke="#c6d3aa" stroke-width="2" fill="none"><rect x="45" y="41" width="550" height="218"/><path d="M320 41V259"/><circle cx="320" cy="150" r="40"/><path d="M45 90H121V210H45M595 90H519V210H595M45 118H78V182H45M595 118H562V182H595M121 119Q148 150 121 181M519 119Q492 150 519 181"/></g><path d="M45 129H29V171H45M595 129H611V171H595" fill="none" stroke="#e5dfb3" stroke-width="3"/><g fill="#efd444" stroke="#26392b" stroke-width="3"><circle cx="247" cy="147" r="10"/><circle cx="174" cy="83" r="10"/><circle cx="150" cy="213" r="10"/><circle cx="365" cy="94" r="10"/><circle cx="380" cy="212" r="10"/></g><g fill="#d8dcc4" stroke="#26392b" stroke-width="3"><circle cx="465" cy="87" r="10"/><circle cx="447" cy="204" r="10"/><circle cx="339" cy="159" r="10"/><circle cx="490" cy="150" r="10"/><circle cx="258" cy="221" r="10"/></g><circle cx="263" cy="149" r="5" fill="#f5edc9" stroke="#283d2a" stroke-width="2"/><path d="M272 146Q322 119 360 98" fill="none" stroke="#f3db68" stroke-width="2" stroke-dasharray="5 6"/><path d="m347 96 14 1-6 11" fill="none" stroke="#f3db68" stroke-width="2"/><g stroke="#e8d863" opacity=".3"><path d="M0 9H640M0 291H640"/></g>`,
-  }),
-  'sleeve-notes': (u) => ({
-    defs: `<pattern id="${u}-paper" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".6" fill="#673e34" opacity=".18"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#c66d45"/><rect width="640" height="300" fill="url(#${u}-paper)"/><g transform="translate(62 36) rotate(-7 115 115)"><rect width="228" height="228" fill="#f0d6a4"/><rect x="10" y="10" width="208" height="208" fill="none" stroke="#bf9d71"/><path d="M27 169 69 68 113 140 150 48 203 171Z" fill="#6b6156"/><path d="M27 189H202" stroke="#bc6e46" stroke-width="6"/>${label(25, 35, 'SIDE A', '#775f49', 12, 3)}</g><g transform="translate(286 151)"><circle r="113" fill="#2d3030" stroke="#b6805f" stroke-width="2"/><g stroke="#77776b" stroke-opacity=".4" fill="none"><circle r="100"/><circle r="91"/><circle r="82"/><circle r="73"/><circle r="64"/><circle r="55"/></g><circle r="36" fill="#dba56b"/><circle r="26" fill="none" stroke="#b77550"/><circle r="6" fill="#302f2a"/><path d="M-79-79 72 81M-89-63 58 92" stroke="#d8d4b3" stroke-width="8" stroke-opacity=".05"/></g><g fill="none" stroke="#edcf9c" stroke-width="2" opacity=".8"><path d="M418 83 484 49 563 91 518 159 580 229 456 242 433 174 484 49M418 83 433 174 518 159 563 91"/></g><g fill="#f3dba7" stroke="#94523c" stroke-width="3"><circle cx="418" cy="83" r="10"/><circle cx="484" cy="49" r="15"/><circle cx="563" cy="91" r="9"/><circle cx="518" cy="159" r="16"/><circle cx="580" cy="229" r="10"/><circle cx="456" cy="242" r="12"/><circle cx="433" cy="174" r="8"/></g>${label(427, 283, 'FOLLOW THE CREDITS', '#f4d4a5', 10, 1.5)}`,
-  }),
-  battlezone: (u) => ({
-    defs: `<pattern id="${u}-scan" width="4" height="5" patternUnits="userSpaceOnUse"><path d="M0 4H4" stroke="#8cd482" stroke-opacity=".08"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#101f1c"/><g stroke="#8ecb80" fill="none" stroke-width="1.5"><path d="M0 172H640M0 300 155 172M640 300 485 172M119 300 228 172M518 300 411 172M254 300 294 172M387 300 347 172M0 206H640M0 251H640" opacity=".4"/><path d="M0 166 47 112 78 147 128 78 180 142 229 106 274 165M365 165 405 119 442 155 489 76 533 138 578 111 640 170"/><path d="m111 102 17-24 18 23M469 103l20-27 21 30"/></g><g transform="translate(320 211)" fill="#10231c" stroke="#a0db8a" stroke-width="2"><path d="M-63 10-42-27H43L64 10 49 36H-50Z"/><path d="M-63 10H64M-42-27-25 10-33 36M43-27 25 10 34 36"/><path d="M-29-15-20-41H22L33-15Z"/><path d="M-20-41 0-50 22-41M0-50V-30M0-30 13-75 21-73 10-26Z"/><path d="M-56 15H-37M-51 24H-35M37 15H56M35 24H51"/></g><g stroke="#7fb870" fill="none" stroke-width="1.5"><path d="M267 33H293M280 20V46M347 33H373M360 20V46"/><circle cx="541" cy="55" r="31"/><path d="M541 24V86M510 55H572M541 55 560 35"/><path d="M26 22H87M26 22V83M614 278H553M614 278V217"/></g>${label(29, 275, 'VECTOR SYSTEM / 1980', '#91ca7e', 10, 1.5)}${label(28, 51, '1UP  024800', '#91ca7e', 13, 2)}<rect width="640" height="300" fill="url(#${u}-scan)"/>`,
-  }),
-  'when-ants-stare': (u) => ({
-    defs: `<radialGradient id="${u}-halo"><stop offset=".35" stop-color="#d7a16d" stop-opacity=".6"/><stop offset=".55" stop-color="#bb7954" stop-opacity=".3"/><stop offset="1" stop-color="#bb7954" stop-opacity="0"/></radialGradient>`,
-    body: `<rect width="640" height="300" fill="#27242a"/><circle cx="412" cy="138" r="137" fill="url(#${u}-halo)"/><circle cx="412" cy="138" r="69" fill="#c29262"/><circle cx="427" cy="127" r="66" fill="#27242a"/><circle cx="412" cy="138" r="81" fill="none" stroke="#a87554" stroke-opacity=".45"/><circle cx="412" cy="138" r="90" fill="none" stroke="#a87554" stroke-opacity=".2"/><path d="M24 251H616M24 260H616" stroke="#a07859" stroke-opacity=".5"/><text x="40" y="84" fill="#d4b895" font-family="Georgia, serif" font-size="30" letter-spacing="2">WHEN</text><text x="40" y="125" fill="#d4b895" font-family="Georgia, serif" font-size="37" letter-spacing="2">ANTS STARE</text><path d="M41 144H215" stroke="#9f7554"/><text x="41" y="173" fill="#ad937b" font-family="Georgia, serif" font-size="17" font-style="italic">What stares back?</text><g stroke="#c6a17b" stroke-width="1.5" fill="#c6a17b" transform="translate(545 251)"><ellipse cy="-8" rx="7" ry="10"/><ellipse cy="-23" rx="5" ry="6"/><circle cy="-33" r="5"/><path d="M-3-36-9-43M3-36 9-43M-5-24-14-29-20-25M5-24 14-29 20-25M-5-20-15-16-19-12M5-20 15-16 19-12M-4-13-13-5-17 0M4-13 13-5 17 0" fill="none"/></g><g fill="#c6a17b" opacity=".6"><circle cx="77" cy="220" r="1"/><circle cx="250" cy="55" r="1.4"/><circle cx="534" cy="76" r="1.2"/><circle cx="584" cy="156" r="1"/></g>${label(40, 283, 'A NOVEL IN PROGRESS', '#94775e', 9, 2)}`,
-  }),
-  'last-exit': (u) => ({
-    defs: `<linearGradient id="${u}-night" x2="0" y2="1"><stop stop-color="#22253d"/><stop offset="1" stop-color="#72506a"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="url(#${u}-night)"/><circle cx="495" cy="68" r="32" fill="#c6a4ac" opacity=".55"/><path d="M0 201V90H57V150H85V70H121V123H153V44H195V126H227V94H251V203M405 203V113H440V74H467V144H493V97H527V125H547V53H579V121H611V83H640V205Z" fill="#24283f"/><g fill="#b996a0" opacity=".55"><path d="M163 60H170V68H163ZM180 60H187V68H180ZM163 82H170V90H163ZM180 82H187V90H180ZM163 104H170V112H163ZM96 86H103V95H96ZM96 107H103V116H96ZM555 70H563V80H555ZM570 70H576V80H570ZM555 92H563V102H555ZM450 91H458V100H450Z"/></g><path d="M220 300 287 181H354L421 300" fill="#252b3f"/><path d="M0 300 287 181M640 300 354 181" stroke="#986c8b" stroke-width="3"/><path d="M320 300V276M320 254V238M320 221V211M320 200V194" stroke="#d9b48e" stroke-width="4"/><path d="M252 173V90M386 173V90M252 100 319 160 386 100M252 117 319 171 386 117" stroke="#9e8fa3" stroke-width="2" fill="none"/><path d="M235 178H406" stroke="#a693a5" stroke-width="3"/><g transform="translate(317 243)"><path d="M-70 23-63-8-36-32H38L64-9 72 23Z" fill="#455a72" stroke="#15263b" stroke-width="3"/><path d="M-30-26H32L48-10H-47Z" fill="#b494a8"/><path d="M-61 5H-37M39 5H62" stroke="#e59b9b" stroke-width="5"/><rect x="-13" y="11" width="26" height="7" fill="#cebd9e"/><path d="M-60 25V35M61 25V35" stroke="#1b2332" stroke-width="12"/></g>${label(27, 31, 'BOSTON / AFTER HOURS', '#c0aab6', 11, 1.5)}`,
-  }),
-  afterglow: (u) => ({
-    defs: `<linearGradient id="${u}-beam" x2="0" y2="1"><stop stop-color="#e9ae93" stop-opacity=".4"/><stop offset="1" stop-color="#e9ae93" stop-opacity="0"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="#392c48"/><path d="M84 0 26 272H267L115 0Z" fill="url(#${u}-beam)"/><path d="M307 0 191 272H455L336 0Z" fill="url(#${u}-beam)" opacity=".6"/><path d="M528 0 391 272H639L559 0Z" fill="url(#${u}-beam)"/><path d="M0 249H640V300H0Z" fill="#242333"/><g fill="#282535"><circle cx="42" cy="255" r="18"/><circle cx="89" cy="260" r="17"/><circle cx="133" cy="252" r="20"/><circle cx="187" cy="259" r="19"/><circle cx="229" cy="247" r="18"/><circle cx="278" cy="261" r="21"/><circle cx="330" cy="249" r="20"/><circle cx="382" cy="258" r="18"/><circle cx="428" cy="251" r="20"/><circle cx="478" cy="260" r="18"/><circle cx="526" cy="253" r="21"/><circle cx="578" cy="259" r="19"/><circle cx="626" cy="250" r="20"/></g><g transform="translate(141 62) rotate(-7 180 75)"><path d="M0 0H359V49Q340 49 340 69T359 89V139H0V89Q19 89 19 69T0 49Z" fill="#e6b797"/><path d="M268 11V129" stroke="#aa795f" stroke-width="2" stroke-dasharray="5 6"/><text x="29" y="59" fill="#573c4c" font-family="Georgia, serif" font-size="33" font-style="italic">Find your next night.</text>${label(31, 88, 'LIVE MUSIC / GOOD COMPANY', '#8b615b', 9, 1.5)}<path d="M31 109H237" stroke="#b7856b" stroke-width="2"/><g stroke="#674551" stroke-width="3"><path d="M284 28V108M292 28V108M303 28V108M308 28V108M318 28V108M331 28V108M337 28V108"/></g></g>`,
-  }),
-  'claim-denied': (u) => ({
-    defs: `<radialGradient id="${u}-moon"><stop stop-color="#c29b78"/><stop offset="1" stop-color="#87585a"/></radialGradient>`,
-    body: `<rect width="640" height="300" fill="#332124"/><circle cx="457" cy="72" r="47" fill="url(#${u}-moon)" opacity=".65"/><path d="M0 244Q123 219 257 237T487 228 640 239V300H0Z" fill="#211e23"/><g stroke="#4d3438" stroke-width="8" fill="none"><path d="M70 250 54 70M57 108 21 64M61 150 102 103M565 253 589 68M582 119 619 90M578 153 546 113"/></g><path d="M187 251V128L315 48 444 128V251Z" fill="#654044"/><path d="M168 133 315 36 462 133 447 150 315 67 182 150Z" fill="#241f27"/><path d="M385 88V44H411V107" fill="#4b3136"/><rect x="214" y="144" width="55" height="64" fill="#d1a46b"/><rect x="359" y="144" width="55" height="64" fill="#d1a46b"/><path d="M285 251V163H341V251" fill="#211e23"/><path d="M206 155 276 183M206 188 276 167M351 155 421 183M351 188 421 167" stroke="#92704e" stroke-width="10"/><path d="M214 210H269M359 210H414" stroke="#2a2227" stroke-width="5"/><path d="M296 174H329V208H296Z" fill="#645240"/><g fill="#171c21"><circle cx="118" cy="236" r="10"/><path d="M109 244 98 300H137L128 244Z"/><path d="M108 255 78 242 73 252 108 268Z"/><circle cx="515" cy="229" r="11"/><path d="M505 239 495 300H537L526 239Z"/><path d="M526 250 550 225 558 231 536 263Z"/></g>${label(28, 29, 'KEEP THE LIGHTS ON', '#cba18a', 11, 2)}`,
-  }),
-  'magic-duel': (u) => ({
-    defs: `<radialGradient id="${u}-table"><stop stop-color="#74525b"/><stop offset="1" stop-color="#362831"/></radialGradient>`,
-    body: `<rect width="640" height="300" fill="url(#${u}-table)"/><ellipse cx="320" cy="150" rx="260" ry="118" fill="none" stroke="#a07b69" stroke-opacity=".45"/><ellipse cx="320" cy="150" rx="247" ry="107" fill="none" stroke="#a07b69" stroke-opacity=".22"/><g transform="translate(136 53) rotate(-12 61 86)"><rect width="122" height="173" rx="7" fill="#a78a66" stroke="#e4c59a" stroke-width="2"/><rect x="10" y="25" width="102" height="98" fill="#314e4f"/><path d="M20 109 46 61 60 79 83 45 103 109Z" fill="#90ada0"/><path d="M19 141H101M19 153H82" stroke="#ded0ad" stroke-width="4"/></g><g transform="translate(387 70) rotate(12 61 86)"><rect width="122" height="173" rx="7" fill="#b68c68" stroke="#e4c59a" stroke-width="2"/><rect x="10" y="25" width="102" height="98" fill="#793f4b"/><path d="M61 42Q31 77 47 97T77 108Q100 96 80 64 79 95 63 82 79 66 61 42Z" fill="#d6a36e"/><path d="M19 141H101M19 153H82" stroke="#e4d2ac" stroke-width="4"/></g><path d="M260 159Q320 107 381 159M260 159Q320 212 381 159" fill="none" stroke="#d7b284" stroke-width="2" stroke-dasharray="4 6"/><path d="m320 124 8 25 25 10-25 10-8 25-8-25-25-10 25-10Z" fill="#d8b480"/><g fill="#d1b28b" stroke="#48313a" stroke-width="2"><circle cx="275" cy="49" r="10"/><circle cx="306" cy="41" r="10"/><circle cx="338" cy="41" r="10"/><circle cx="369" cy="49" r="10"/></g>${label(27, 29, 'YOUR NEXT MOVE', '#cba88d', 11, 2)}${label(283, 276, '20 : 20', '#dfc09a', 17, 2)}`,
-  }),
-  'relay-fieldguide': (u) => ({
-    defs: `<pattern id="${u}-contour" width="212" height="190" patternUnits="userSpaceOnUse"><path d="M-10 80Q48 3 102 53T222 34M-10 97Q48 20 102 70T222 51M-10 114Q48 37 102 87T222 68M-10 131Q48 54 102 104T222 85M-10 148Q48 71 102 121T222 102" fill="none" stroke="#879177" stroke-opacity=".24"/></pattern>`,
-    body: `<rect width="640" height="300" fill="#d8d3b8"/><rect width="640" height="300" fill="url(#${u}-contour)"/><path d="M-10 230Q83 126 157 184T329 180 468 202 650 95" fill="none" stroke="#8ca9a0" stroke-width="17"/><path d="M68 240Q78 134 164 127T281 71 359 104 399 197 551 164" fill="none" stroke="#ebdfbf" stroke-width="12"/><path d="M68 240Q78 134 164 127T281 71 359 104 399 197 551 164" fill="none" stroke="#bc6c42" stroke-width="4" stroke-dasharray="8 6"/><g fill="#eadfc4" stroke="#4e6a5b" stroke-width="3"><circle cx="68" cy="240" r="14"/><circle cx="164" cy="127" r="14"/><circle cx="310" cy="79" r="14"/><circle cx="407" cy="194" r="14"/><circle cx="551" cy="164" r="14"/></g><g fill="#4e6a5b" font-family="ui-monospace, monospace" font-size="12" text-anchor="middle"><text x="68" y="244">1</text><text x="164" y="131">2</text><text x="310" y="83">3</text><text x="407" y="198">4</text><text x="551" y="168">5</text></g><g transform="translate(452 33) rotate(5 67 46)"><rect width="138" height="89" rx="3" fill="#f0e6cd" stroke="#b0aa89"/><path d="M15 22H116M15 42H87M15 61H104" stroke="#7e8d73" stroke-width="4"/><path d="M15 75H70" stroke="#c6804a" stroke-width="3"/></g>${label(27, 33, 'ONE TEAM. EVERY MILE.', '#5d705b', 11, 2)}${label(392, 278, 'NEXT EXCHANGE →', '#68775e', 11, 1.5)}`,
-  }),
-  farwake: (u) => ({
-    defs: `<linearGradient id="${u}-planet" x2="1" y2="1"><stop stop-color="#789b9a"/><stop offset=".5" stop-color="#40657a"/><stop offset="1" stop-color="#26384f"/></linearGradient>`,
-    body: `<rect width="640" height="300" fill="#192638"/><path d="M-20 274Q181 130 379 91T665 4" fill="none" stroke="#406073" stroke-width="56" opacity=".16"/><g fill="#b6d3d2"><circle cx="42" cy="57" r="1.2"/><circle cx="87" cy="170" r="1"/><circle cx="155" cy="39" r="1.6"/><circle cx="236" cy="88" r="1"/><circle cx="289" cy="229" r="1.4"/><circle cx="391" cy="32" r="1.2"/><circle cx="584" cy="55" r="1.3"/><circle cx="594" cy="227" r="1.4"/><circle cx="356" cy="270" r="1"/><circle cx="36" cy="245" r="1.5"/><circle cx="556" cy="136" r="1"/><circle cx="106" cy="86" r="1"/><circle cx="314" cy="54" r="1"/></g><circle cx="473" cy="158" r="91" fill="url(#${u}-planet)"/><path d="M407 97Q450 112 478 93T535 121M387 143Q425 164 469 143T558 166M393 186Q442 206 474 183T558 207" fill="none" stroke="#8da99d" stroke-opacity=".22" stroke-width="12"/><ellipse cx="473" cy="158" rx="137" ry="26" transform="rotate(-23 473 158)" fill="none" stroke="#b5aa90" stroke-opacity=".65" stroke-width="5"/><path d="M393 115A91 91 0 0 1 551 111L548 197A91 91 0 0 0 393 115" fill="#192638" opacity=".12"/><g transform="translate(231 143) rotate(36)"><path d="M0-69 19-11 46 18 37 34 12 22 0 38-12 22-37 34-46 18-19-11Z" fill="#b7c5bf" stroke="#304856" stroke-width="3"/><path d="M0-44 9-12 0 3-9-12Z" fill="#44778b"/><path d="M-13 27-8 64 0 81 8 64 13 27Z" fill="#d9af7b" opacity=".7"/><path d="M-5 30 0 60 5 30Z" fill="#ead8a5"/><path d="M-29 16-15-7M29 16 15-7" stroke="#758e94" stroke-width="4"/></g>${label(27, 31, 'BEYOND THE FAMILIAR', '#9ab6bd', 11, 2)}${label(27, 277, 'SHARED SKY. YOUR OWN COURSE.', '#7898a4', 10, 1.5)}`,
-  }),
-  dayboard: () => ({
-    body: `<rect width="640" height="300" fill="#e6e3d9"/><rect x="27" y="25" width="586" height="251" rx="7" fill="#f4f1e8" stroke="#c3c9be"/><path d="M27 62H613" stroke="#c3c9be"/><circle cx="47" cy="44" r="4" fill="#b96d4d"/><circle cx="62" cy="44" r="4" fill="#c6b48a"/><circle cx="77" cy="44" r="4" fill="#82988a"/>${label(441, 48, 'MAKE TODAY COUNT', '#6e7f75', 9, 1)}<g fill="#e3e8df"><rect x="43" y="81" width="173" height="178" rx="5"/><rect x="233" y="81" width="173" height="178" rx="5"/><rect x="423" y="81" width="173" height="178" rx="5"/></g>${label(56, 103, 'NEXT', '#5b7065', 11, 1.5)}${label(246, 103, 'IN PROGRESS', '#5b7065', 11, 1)}${label(436, 103, 'DONE', '#5b7065', 11, 1.5)}<g fill="#faf7ee" stroke="#ccd1c2"><rect x="54" y="118" width="151" height="58" rx="4"/><rect x="54" y="185" width="151" height="58" rx="4"/><rect x="244" y="118" width="151" height="76" rx="4"/><rect x="434" y="118" width="151" height="58" rx="4"/><rect x="434" y="185" width="151" height="58" rx="4"/></g><g stroke="#617b70" stroke-width="4"><path d="M66 133H161M66 199H177M257 134H365M446 133H542M446 200H523"/></g><g stroke="#b0b8a6" stroke-width="3"><path d="M66 144H146M66 210H154M257 146H336M446 145H532M446 212H555"/></g><rect x="66" y="155" width="35" height="10" rx="3" fill="#d2af8d"/><rect x="66" y="221" width="43" height="10" rx="3" fill="#afc3b7"/><rect x="257" y="172" width="42" height="10" rx="3" fill="#d2af8d"/><path d="m558 155 5 5 9-12m-14 76 5 5 9-12" fill="none" stroke="#68927a" stroke-width="3"/><path d="M244 122V190" stroke="#b96d4d" stroke-width="4"/>`,
-  }),
-};
-
-export const ART_KEYS = Object.freeze(Object.keys(scenes));
-
-/** Return fixed decorative markup for a known scene, with per-card SVG IDs. */
-export function renderArtwork(project = {}) {
-  const key = Object.prototype.hasOwnProperty.call(scenes, project.art) ? project.art : 'dayboard';
-  const rawId = String(project.id || key);
-  const uid = `dfe-art-${rawId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-  const { defs = '', body } = scenes[key](uid);
-  return `<svg class="project-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300" preserveAspectRatio="xMidYMid slice" role="presentation" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%"><defs>${defs}</defs>${body}</svg>`;
+export const ART_KEYS=Object.freeze(Object.keys(covers));
+/** Produce a title-led decorative cover. Unknown keys use the Dayboard design. */
+export function renderArtwork(project={}){
+  const key=Object.prototype.hasOwnProperty.call(covers,project.art)?project.art:'dayboard';
+  const uid=`dfe-cover-${String(project.id||key).replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+  const palette=ART_PALETTES[key];
+  const {defs='',body}=covers[key](uid);
+  const common=`<pattern id="${uid}-grain" width="89" height="73" patternUnits="userSpaceOnUse"><g fill="${palette.foreground}"><circle cx="6" cy="11" r=".8"/><circle cx="39" cy="46" r=".7"/><circle cx="76" cy="19" r=".65"/><circle cx="61" cy="63" r=".8"/><circle cx="16" cy="58" r=".6"/><circle cx="50" cy="9" r=".6"/></g><path d="M12 34h5M64 38h3M33 68h4M81 55h2" stroke="${palette.foreground}" stroke-width=".6"/></pattern><pattern id="${uid}-dots" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="${palette.foreground}"/></pattern><pattern id="${uid}-hatch" width="9" height="9" patternUnits="userSpaceOnUse"><path d="M-2 2 2-2M0 9 9 0M7 11 11 7" fill="none" stroke="${palette.foreground}" stroke-width="1"/></pattern><pattern id="${uid}-scan" width="4" height="5" patternUnits="userSpaceOnUse"><path d="M0 4H4" fill="none" stroke="${palette.foreground}" stroke-width=".6"/></pattern>`;
+  return `<svg class="project-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" preserveAspectRatio="xMidYMid slice" role="presentation" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%"><defs>${common}${defs}</defs>${body}</svg>`;
 }
