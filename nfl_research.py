@@ -59,6 +59,14 @@ def validate(payload):
   clean.append({'role':turn['role'],'content':turn['content']})
  return q.strip(),depth,clean,payload.get('hide_outcomes') is True
 
+def visitor_identity(payload):
+ # Render's immediate proxy address is shared. An anonymous tab identifier keeps
+ # ordinary visitors independent; the separate global quota remains the cost bound.
+ client=payload.get('client_id','')
+ if not isinstance(client,str) or not re.fullmatch(r'[a-f0-9-]{36}',client):
+  return request.remote_addr or 'unknown'
+ return 'tab:'+client
+
 def take_quota(identity):
  now=time.monotonic()
  with quota_lock:
@@ -149,7 +157,7 @@ def ask():
  if not request.is_json:return jsonify(error='Send a JSON question.'),415
  try:q,depth,history,hide=validate(request.get_json(silent=True))
  except ValueError as e:return jsonify(error=str(e)),400
- if not take_quota(request.remote_addr or 'unknown'):return jsonify(error='Research is busy. Please try again in ten minutes.'),429
+ if not take_quota(visitor_identity(request.get_json())):return jsonify(error='Research is busy. Please try again in ten minutes.'),429
  if not gate.acquire(blocking=False):return jsonify(error='Two questions are being researched. Please try again shortly.'),429
  try:
   key=os.environ.get('OPENAI_API_KEY')

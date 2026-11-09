@@ -57,4 +57,12 @@ class ResearchTests(unittest.TestCase):
   r=self.client.post('/api/ask',headers=ORIGIN,json={'question':'x'*15000})
   self.assertEqual(r.status_code,413)
 
+ def test_visitors_behind_one_proxy_have_separate_buckets(self):
+  with service.app.test_request_context('/api/ask'):
+   a=service.visitor_identity({'client_id':'11111111-1111-4111-8111-111111111111'})
+   b=service.visitor_identity({'client_id':'22222222-2222-4222-8222-222222222222'})
+   self.assertNotEqual(a,b)
+   for _ in range(6):self.assertTrue(service.take_quota(a))
+   self.assertFalse(service.take_quota(a));self.assertTrue(service.take_quota(b))
+
 if __name__=='__main__':unittest.main()

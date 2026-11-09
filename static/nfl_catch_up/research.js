@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const API=['localhost','127.0.0.1'].includes(location.hostname)?'': 'https://dfe-nfl-research.onrender.com';
+  const clientId=crypto.randomUUID();
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const url=u=>{try{const p=new URL(u);return p.protocol==='https:'?p.href:'#';}catch{return '#';}};
   let turns=[],draft='',pending=false,error='',controller=null,requestId=0,depth='little',hide=false,mode=null;
@@ -30,7 +31,7 @@
     if(turns.length>=3){error='Start a new conversation to research more questions.';refresh();return;}
     draft=q;pending=true;error='';const id=++requestId;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);refresh();
     const history=turns.flatMap(t=>[{role:'user',content:t.question},{role:'assistant',content:t.mode==='answer'?t.blocks.map(b=>b.text).join('\n').slice(0,6000):'Reference search only; no answer was established.'}]);
-    try{const r=await fetch(API+'/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,depth,hide_outcomes:hide,history}),signal:controller.signal});const data=await r.json();if(!r.ok)throw Error(data.error||'Research is unavailable. Please retry.');if(id!==requestId)return;turns.push(data);mode=data.mode;draft='';}
+    try{const r=await fetch(API+'/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,depth,hide_outcomes:hide,history,client_id:clientId}),signal:controller.signal});const data=await r.json();if(!r.ok)throw Error(data.error||'Research is unavailable. Please retry.');if(id!==requestId)return;turns.push(data);mode=data.mode;draft='';}
     catch(e){if(id!==requestId)return;error=e.name==='AbortError'?'Research timed out. No answer was received. Please retry.':(e instanceof SyntaxError?'The research service is waking up or unavailable. Please retry.':e.message);}
     finally{clearTimeout(timer);if(id===requestId){pending=false;refresh();document.querySelector('#research-thread')?.scrollIntoView({behavior:'smooth',block:'start'});}}
   }
