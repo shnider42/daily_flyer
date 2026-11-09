@@ -205,3 +205,34 @@ test('devices without a stereo panner use mono output and reset remains safe',as
   assert.equal(audio.nodes.size,0);
   assert.equal(audio.state,null);
 });
+
+test('the archive motor clearly distinguishes movement cover from the quiet phase',async()=>{
+  const state=makeState(5,'quiet'),audio=await soundFor(state);
+  state.puzzle={hum:true,warning:false};
+  audio.update(state,.016);
+  const running=audio.hum.gain.value;
+  assert(running>.08);
+  state.puzzle.hum=false;
+  audio.event('generator-off',state);
+  audio.update(state,.016);
+  assert(audio.hum.gain.value<running/20);
+  assert.equal(voices(audio,'whisper').length,0,'the new floors reserve whispers for the existing finale');
+  state.puzzle.hum=true;
+  audio.event('generator-on',state);
+  audio.update(state,.016);
+  assert(audio.hum.gain.value>.08);
+});
+
+test('service-floor cues are transient and a restart cannot leave a drain or inspection sound behind',async()=>{
+  const state=makeState(4,'drain'),audio=await soundFor(state);
+  for(const cue of ['valve','drain','generator-on','generator-off','attention','inspection','safe','latch','transit'])audio.event(cue,state);
+  const previous=voices(audio);
+  assert(previous.length>0);
+  assert(previous.every(v=>Number.isFinite(v.source.stopAt)&&v.source.stopAt<=audio.ctx.currentTime+4.1));
+  audio.reset(makeState(6,'inspection'));
+  assert.equal(audio.nodes.size,0);
+  assert(previous.every(v=>v.cleaned));
+  audio.setPaused(true);
+  audio.event('inspection',state);
+  assert.equal(audio.nodes.size,0);
+});

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {unlockAdmin,isAdminUnlocked,lockAdmin,getTestingLaunch,buildTestUrl,progressStore} from '../dist/admin-session.mjs';
+import {LEVEL_ORDER,floorNumber} from '../dist/core.mjs';
 
 function memoryStorage(){
   const values=new Map();
@@ -31,7 +32,7 @@ test('unavailable browser storage never grants test access',()=>{
 
 test('legacy floor links and shortcut links cannot launch tests while locked',()=>{
   const storage=memoryStorage();
-  for(const search of ['?level=1','?level=2','?level=3','?test=1&level=3&action=ghost&telemetry=1']){
+  for(const search of ['?level=1','?level=2','?level=3','?level=4','?level=5','?level=6','?test=1&level=3&action=ghost&telemetry=1']){
     assert.equal(getTestingLaunch(search,storage),null);
   }
   unlockAdmin('4321',storage);
@@ -42,14 +43,14 @@ test('legacy floor links and shortcut links cannot launch tests while locked',()
 
 test('an unlocked ordinary game URL still runs as a normal campaign',()=>{
   const storage=memoryStorage();unlockAdmin('4321',storage);
-  for(const search of ['', '?test=1', '?action=ghost', '?telemetry=1', '?level=0', '?level=4', '?level=3.0']){
+  for(const search of ['', '?test=1', '?action=ghost', '?telemetry=1', '?level=0', '?level=7', '?level=3.0', '?level=03', '?level=-1', '?level=Infinity', '?level=true']){
     assert.equal(getTestingLaunch(search,storage),null);
   }
 });
 
 test('each admin shortcut and telemetry option survives a launch link round trip',()=>{
   const storage=memoryStorage();unlockAdmin('4321',storage);
-  for(const [level,action] of [[1,''],[2,''],[3,''],[1,'pattern'],[2,'chase'],[2,'hole'],[3,'ghost']]){
+  for(const [level,action] of [[1,''],[2,''],[4,''],[5,''],[6,''],[3,''],[1,'pattern'],[2,'chase'],[2,'hole'],[4,'drain'],[5,'breakers'],[6,'transit'],[3,'ghost']]){
     for(const telemetry of [false,true]){
       const url=buildTestUrl(level,action,telemetry);
       assert.deepEqual(getTestingLaunch(url.slice(2),storage),{level,action:action||null,telemetry});
@@ -60,11 +61,25 @@ test('each admin shortcut and telemetry option survives a launch link round trip
 
 test('mismatched or unrecognized shortcuts are rejected',()=>{
   const storage=memoryStorage();unlockAdmin('4321',storage);
-  assert.throws(()=>buildTestUrl(4),RangeError);
+  for(const level of [0,7,-1,1.5,'3',NaN,Infinity])assert.throws(()=>buildTestUrl(level),RangeError);
   assert.throws(()=>buildTestUrl(1,'ghost'),RangeError);
   assert.throws(()=>buildTestUrl(3,'toString'),RangeError);
+  assert.throws(()=>buildTestUrl(4,'breakers'),RangeError);
+  assert.throws(()=>buildTestUrl(6,'drain'),RangeError);
   assert.deepEqual(getTestingLaunch('?level=1&action=ghost',storage),{level:1,action:null,telemetry:false});
   assert.deepEqual(getTestingLaunch('?level=2&action=unknown&telemetry=true',storage),{level:2,action:null,telemetry:false});
+});
+
+test('campaign numbering inserts three floors without changing legacy finale links or saves',()=>{
+  const session=memoryStorage(),normal=memoryStorage();unlockAdmin('4321',session);
+  assert.deepEqual(LEVEL_ORDER,[1,2,4,5,6,3]);
+  assert.deepEqual(LEVEL_ORDER.map(floorNumber),[1,2,3,4,5,6]);
+  const legacy={floor:3,tool:true,medal:true};
+  normal.setItem('further-in-progress',JSON.stringify(legacy));
+  assert.deepEqual(progressStore(false,normal,session).read(),legacy);
+  assert.equal(floorNumber(legacy.floor),6);
+  assert.deepEqual(getTestingLaunch('?level=3&action=ghost',session),{level:3,action:'ghost',telemetry:false});
+  assert.deepEqual(getTestingLaunch('?level=4&action=ghost',session),{level:4,action:null,telemetry:false});
 });
 
 test('test progress and medals cannot overwrite normal campaign progress',()=>{

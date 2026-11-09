@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  CELL, PATTERN, createGame, update, interact, target, pulse,
+  CELL, PATTERN, LEVEL_ORDER, validLevel, floorNumber, nextLevel, rng, createGame, update, interact, target, pulse,
   beginChase, developerAction, finalHall, pathBetween, openAt, distance,
 } from '../dist/core.mjs';
 
@@ -39,8 +39,10 @@ function reachableFloorCount(state) {
   return visited.size;
 }
 
-test('all three floors start independently, with reproducible seeds', () => {
-  for (const level of [1, 2, 3]) {
+test('all six floors start independently, with reproducible seeds and persistent identities', () => {
+  assert.deepEqual(LEVEL_ORDER,[1,2,4,5,6,3]);
+  assert.equal(floorNumber(3),6,'Existing finale save ID retains its identity');
+  for (const level of LEVEL_ORDER) {
     const first = createGame(level, 104), replay = createGame(level, 104);
     assert.equal(first.level, level);
     assert.equal(first.status, 'playing');
@@ -48,7 +50,13 @@ test('all three floors start independently, with reproducible seeds', () => {
     assert.ok(openAt(first.map, first.player.x, first.player.z));
     assert.deepEqual(first.map, replay.map);
     assert.equal(first.ghostDoor, replay.ghostDoor);
+    assert.equal(validLevel(level),true);
   }
+  for(const invalid of [0,7,1.2,'4',NaN]){assert.equal(validLevel(invalid),false);assert.equal(nextLevel(invalid),null);}
+  assert.throws(()=>createGame(7),RangeError);
+  assert.equal(nextLevel(2),4);
+  assert.equal(nextLevel(6),3);
+  assert.equal(nextLevel(3),null);
   assert.equal(createGame(1, 104).phase, 'explore');
   assert.equal(createGame(2, 104).chasing, false);
   assert.equal(createGame(3, 104).phase, 'garden');
@@ -179,7 +187,7 @@ test('dropping through the hole advances to the third floor', () => {
     assert.equal(interact(state), true);
     advance(state, 1.3);
     assert.equal(state.status, 'next');
-    assert.equal(state.nextLevel, 3);
+    assert.equal(state.nextLevel, 4);
   }
 });
 

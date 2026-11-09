@@ -1,6 +1,8 @@
 // A session gate keeps playtest controls out of the normal player journey.
+import {LEVEL_ORDER, validLevel} from './core.mjs';
+
 const ADMIN_KEY = 'further-in-admin-v1';
-const ACTION_LEVEL = Object.freeze({pattern: 1, chase: 2, hole: 2, ghost: 3});
+const ACTION_LEVEL = Object.freeze({pattern: 1, chase: 2, hole: 2, drain: 4, breakers: 5, transit: 6, ghost: 3});
 
 export function isAdminUnlocked(storage) {
   try { return storage?.getItem(ADMIN_KEY) === 'unlocked'; }
@@ -26,7 +28,8 @@ export function getTestingLaunch(search, storage) {
   if (!isAdminUnlocked(storage)) return null;
   const params = new URLSearchParams(search);
   const rawLevel = params.get('level');
-  if (!['1', '2', '3'].includes(rawLevel)) return null;
+  // URLs retain stable level IDs, even when a new floor changes the descent order.
+  if (!LEVEL_ORDER.some(level => String(level) === rawLevel)) return null;
   const level = Number(rawLevel);
   const requestedAction = params.get('action');
   return {
@@ -37,7 +40,7 @@ export function getTestingLaunch(search, storage) {
 }
 
 export function buildTestUrl(level, action = '', telemetry = false) {
-  if (![1, 2, 3].includes(level)) throw new RangeError('Unknown floor');
+  if (!Number.isInteger(level) || !validLevel(level)) throw new RangeError('Unknown floor');
   if (action && ACTION_LEVEL[action] !== level) throw new RangeError('Shortcut does not belong to this floor');
   const params = new URLSearchParams({test: '1', level: String(level)});
   if (action) params.set('action', action);

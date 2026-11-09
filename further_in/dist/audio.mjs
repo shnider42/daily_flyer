@@ -13,6 +13,7 @@ export class Sound{
     this.whisperClock=.6;
     this.lastChoices=0;
     this.gardenStarted=false;
+    this.serviceClock=4.5;
   }
 
   async unlock(){
@@ -79,6 +80,7 @@ export class Sound{
     this.whisperClock=.6;
     this.lastChoices=state?.choices||0;
     this.gardenStarted=false;
+    this.serviceClock=4.5;
     if(this.ctx){
       const t=this.ctx.currentTime;
       for(const node of[this.hum,this.air,this.whispers]){
@@ -233,6 +235,39 @@ export class Sound{
     if(type==='cut')this.tone(60,16,.45,.07);
     if(type==='release')for(const f of[146.8,220,293.7])this.tone(f,f,3.5,.06);
     if(type==='pickup')this.tone(440,550,.12,.04);
+    if(type==='valve'){
+      this.tone(118,72,.34,.055,'triangle',-.15);
+      this.breath(.42,.12,520,-.15);
+    }
+    if(type==='drain'){
+      this.breath(4,.16,360,.25);
+      this.tone(57,32,3.5,.07,'sine');
+    }
+    if(type==='generator-on'){
+      this.tone(34,60,1.1,.065,'triangle',-.35);
+      this.breath(.9,.075,210,-.35);
+    }
+    if(type==='generator-off'){
+      this.tone(60,24,.65,.045,'triangle',-.35);
+      this.breath(.15,.04,470);
+    }
+    if(type==='attention'){
+      // A scrape through a partition, not another pursuit-floor scream.
+      this.breath(.72,.14,950,.65);
+      this.tone(78,57,.45,.035,'triangle',.65);
+    }
+    if(type==='inspection'){
+      this.breath(.13,.07,720,.3);
+      this.tone(92,61,.12,.035,'triangle');
+    }
+    if(type==='latch'||type==='safe'){
+      this.tone(109,44,.17,.045,'triangle');
+      this.breath(.12,.065,410);
+    }
+    if(type==='transit'){
+      this.tone(51,36,1.1,.055,'sine');
+      this.breath(.8,.08,290);
+    }
   }
 
   update(s,rawDt){
@@ -248,6 +283,23 @@ export class Sound{
     let hum=0,air=.04,whisperGain=1;
     if(s.level===1){hum=.025;air=.05;}
     if(s.level===2){hum=.07+.006*Math.sin(s.time*1.2);air=0;}
+    if(s.level===4){
+      hum=.012;air=.027;
+      this.serviceClock-=dt;
+      if(this.serviceClock<=0&&!s.transition){
+        this.serviceClock=6.2+Math.random()*2.8;
+        if((s.puzzle?.water||0)>.1){
+          this.tone(610,380,.11,.018,'sine',Math.sin(s.time)*.65);
+          this.breath(.14,.025,1600,Math.sin(s.time)*.65);
+        }
+      }
+    }
+    if(s.level===5){
+      // The motor is a usable cue: its quieter phase stays audible without headphones.
+      hum=s.puzzle?.hum ? .095+.009*Math.sin(s.time*9) : .001;
+      air=s.puzzle?.hum ? .018 : .007;
+    }
+    if(s.level===6){hum=.008;air=.025;}
     if(s.phase==='garden'){
       air=.025;
       if(!this.gardenStarted){
@@ -293,8 +345,10 @@ export class Sound{
     if(!footsteps||s.moving<.075||s.step<this.lastStep)this.lastStep=s.step;
     else if(s.step-this.lastStep>1.45){
       this.lastStep=s.step;
-      this.breath(.11,.16,260,0,'footstep');
-      this.tone(90,45,.09,.035,'sine',0,'footstep');
+      const water=s.level===4&&(s.puzzle?.water||0)>.15&&s.player&&
+        (s.waterAreas||[]).some(a=>Math.abs(s.player.x-a.x)<a.width/2&&Math.abs(s.player.z-a.z)<a.depth/2);
+      this.breath(water?.19:.11,water?.12:.16,water?780:260,0,'footstep');
+      this.tone(water?112:90,45,.09,.035,'sine',0,'footstep');
     }
   }
 }
