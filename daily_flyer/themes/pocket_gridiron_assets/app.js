@@ -1,4 +1,5 @@
-import {GridironCamera,cameraPreferences,gridironBall,edgeMarker} from './camera.js?v=34';
+import {GridironCamera,cameraPreferences,gridironBall,edgeMarker,minimapLayout} from './camera.js?v=35';
+import {bindMinimapInput} from '../pocket_sports_assets/core/minimap-input.js?v=1';
 import {roleFor,defenseBoard,offenseBoard} from './huddle.js?v=33';
 import {bindHuddleSwipe} from './huddle-input.js?v=33';
 import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=33';
@@ -46,12 +47,41 @@ $('gameLength').onchange=()=>{setLength();renderMode();};setLength();
 let roster,game=null,custom=safeRead('pg-lineups',{}),rafTime=0,toastUntil=0,keys={},stick={x:0,y:0},joyPointer=null,selectedPlay='slants',hudTimer=0,endShown=false,lastPhase='';
 const field=$('field'),ctx=field.getContext('2d'),attract=$('attract'),atx=attract.getContext('2d');
 const fieldSurface={width:360,height:460},liveCamera=new GridironCamera(),replayCamera=new GridironCamera();
-let cameraSettings=cameraPreferences(safeRead('pg-camera',{}),window.matchMedia('(pointer:coarse)').matches),cameraOffense=null;
+let cameraSettings=cameraPreferences(safeRead('pg-camera',{}),window.matchMedia('(pointer:coarse)').matches),cameraOffense=null,duelCameraSession={};
 const quick=el('div',undefined,'quickcall');quick.append(el('span','CALL YOUR PLAY','eyebrow'));const quickButtons=el('div',undefined,'plays');const quickHelp=el('p',undefined,'quickhelp');quick.append(quickHelp,quickButtons);document.querySelector('.fieldwrap').append(quick);
 const quickKicks=el('div',undefined,'kicks');quickKicks.hidden=true;
 const quickPunt=el('button','Punt'),quickFieldGoal=el('button','Field goal');quickKicks.append(quickPunt,quickFieldGoal);quick.append(quickKicks);
 const aimCue=el('div','','aimcue');aimCue.hidden=true;document.querySelector('.fieldwrap').append(aimCue);
 const fieldWrap=document.querySelector('.fieldwrap');
+const cameraMap=el('div',undefined,'camera-map');cameraMap.hidden=true;
+const mapStatus=el('span','DRAG TO PAN','camera-map-status'),mapPad=el('button',undefined,'camera-map-pad'),mapCanvas=el('canvas'),mapFollow=el('button','Follow play','camera-map-follow');
+mapPad.type=mapFollow.type='button';mapPad.setAttribute('aria-label','Field overview. Click or drag to position the camera. Arrow keys pan; Enter follows play.');
+mapPad.title='Click or drag the view. Arrow keys pan; Enter follows play.';mapCanvas.setAttribute('aria-hidden','true');mapPad.append(mapCanvas);cameraMap.append(mapStatus,mapPad,mapFollow);fieldWrap.append(cameraMap);
+let currentMapFrame=null,currentMapCamera=null,replayCameraClip=null;
+function cameraMatch(camera=liveCamera){return camera===replayCamera?replay.active?.clip:duel?duelCameraSession:game;}
+function resumeCameraFollow(){
+ minimapInput.cancel();
+ if(cameraSettings.cameraMode==='full'){cameraSettings={...cameraSettings,cameraMode:'follow'};syncCameraSettings();}
+ currentMapCamera?.resumeFollow();
+}
+const minimapInput=bindMinimapInput(mapPad,{
+ enabled:()=>!!game&&!game.paused&&!cameraMap.hidden&&!document.querySelector('dialog[open]'),
+ getViewRect:()=>{if(!currentMapFrame)return null;const m=minimapLayout(currentMapFrame);return {x:m.center.x-m.viewport.x/2,y:m.center.y-m.viewport.y/2,width:m.viewport.x,height:m.viewport.y};},
+ onPan:point=>{
+  if(!currentMapFrame||!game)return;
+  if(cameraSettings.cameraMode==='full'){cameraSettings={...cameraSettings,cameraMode:'follow'};currentMapCamera?.reset();syncCameraSettings();}
+  const target=minimapLayout(currentMapFrame).toWorld(point),match=cameraMatch(currentMapCamera);
+  currentMapCamera?.panTo(target,match);
+ },
+ onStart:()=>{cameraMap.dataset.dragging='true';},
+ onEnd:()=>{delete cameraMap.dataset.dragging;},
+ onFollow:resumeCameraFollow,
+});
+bindGameButton(mapFollow,resumeCameraFollow);
+// Preserve the button's native keyboard click without also snapping/bursting.
+mapFollow.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')e.stopPropagation();});
+const cameraDialogObserver=new MutationObserver(()=>{if(document.querySelector('dialog[open]'))minimapInput.cancel();});
+cameraDialogObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
 // Match the drawing surface to the space actually left by Safari's browser bars.
 // Changing the buffer's aspect ratio reveals more field instead of shrinking it.
 const compactGame=window.matchMedia('(max-width:600px), (max-width:1000px) and (max-height:600px)');
@@ -59,7 +89,7 @@ const desktopInput=window.matchMedia('(min-width:901px) and (pointer:fine)');
 function resizeField(){
  const r=fieldWrap.getBoundingClientRect();if(!r.width||!r.height)return;
  const h=Math.max(1,360*r.height/r.width),dpr=Math.min(window.devicePixelRatio||1,2),w=Math.round(r.width*dpr),bh=Math.round(r.height*dpr);
- if(field.width!==w||field.height!==bh){fieldSurface.height=h;field.width=w;field.height=bh;liveCamera.reset();replayCamera.reset();}
+ if(field.width!==w||field.height!==bh){minimapInput.cancel();fieldSurface.height=h;field.width=w;field.height=bh;liveCamera.reset();replayCamera.reset();}
 }
 function syncCameraSettings(){
  for(const prefix of ['setup','pause']){
@@ -73,7 +103,7 @@ function syncCameraSettings(){
  safeWrite('pg-camera',cameraSettings);
 }
 for(const prefix of ['setup','pause']){
- for(const [name,key] of [['Mode','cameraMode'],['Focus','cameraFocus']])$(prefix+'Camera'+name).onchange=e=>{cameraSettings=cameraPreferences({...cameraSettings,[key]:e.target.value});syncCameraSettings();};
+ for(const [name,key] of [['Mode','cameraMode'],['Focus','cameraFocus']])$(prefix+'Camera'+name).onchange=e=>{minimapInput.cancel();cameraSettings=cameraPreferences({...cameraSettings,[key]:e.target.value});syncCameraSettings();};
  $(prefix+'CameraZoom').oninput=e=>{cameraSettings=cameraPreferences({...cameraSettings,cameraZoom:Number(e.target.value)});syncCameraSettings();};
  for(const [name,key] of [['Steady','cameraSteady'],['Overview','cameraOverview']])$(prefix+'Camera'+name).onchange=e=>{cameraSettings={...cameraSettings,[key]:e.target.checked};syncCameraSettings();};
 }
@@ -243,9 +273,9 @@ function renderPlaybook(){
 }
 function start(){if(!roster)return;if(!duel&&['training','campaign','college'].includes(mode)){startChallenge();return;}if(duel){audioUnlock();if(duel.room?.status==='final'){duel.ready();$('resultTitle').textContent='Rematch requested · waiting for your friend';return;}duel.create({home:$('homeTeam').value,away:$('awayTeam').value,length:$('gameLength').value});return;}replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value,Math.random,{length:$('gameLength').value,defensePackage:$('defensePackage').value,format:Number($('fieldFormat').value),playClock:$('playClockSetting').checked,tvTimeouts:$('tvTimeoutSetting').checked,weather:forecast,ruleset:teamFor($('homeTeam').value).college?'college':'pro'});resetPlaybook();bookSide='';endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);game.paused=true;openBroadcast(pregameReport(game.teams,game.match,game.weather));}
 $('start').onclick=start;$('rematch').onclick=start;
-function menu(){if(duel?.room)duel.leave();replay.reset();stadium.soundtrack.stopScore();game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();renderMode();window.scrollTo(0,0);}
+function menu(){minimapInput.cancel();cameraMap.hidden=true;currentMapFrame=currentMapCamera=null;if(duel?.room)duel.leave();replay.reset();stadium.soundtrack.stopScore();game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();renderMode();window.scrollTo(0,0);}
 $('quit').onclick=menu;$('newTeams').onclick=menu;
-function pause(){if(!game||game.phase==='final')return;if(halftimeShow.openNow||game.phase==='halftime'||$('challengeBrief').open||$('challengeResult').open){keys={};resetStick();return;}for(const id of ['defenderDialog','lessonDialog'])if($(id).open)$(id).close();if(duel)duel.pause();else game.paused=true;keys={};resetStick();if(!$('pauseDialog').open)showDialog('pauseDialog');}
+function pause(){minimapInput.cancel();if(!game||game.phase==='final')return;if(halftimeShow.openNow||game.phase==='halftime'||$('challengeBrief').open||$('challengeResult').open){keys={};resetStick();return;}for(const id of ['defenderDialog','lessonDialog'])if($(id).open)$(id).close();if(duel)duel.pause();else game.paused=true;keys={};resetStick();if(!$('pauseDialog').open)showDialog('pauseDialog');}
 $('pause').onclick=pause;$('resume').onclick=()=>{if(duel){duel.resume();$('resume').textContent='READY · WAITING FOR FRIEND';return;}game.paused=false;$('pauseDialog').close();updateHUD();field.focus({preventScroll:true});audioUnlock();};$('pauseDialog').addEventListener('cancel',e=>{e.preventDefault();$('resume').click();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stadium.chatter.stop();pause();}});window.addEventListener('blur',()=>{if(game&&!duel)pause();});
 function snap(){if(game&&!game.paused&&game.userOffense&&game.snap(0)){toastUntil=0;$('message').replaceChildren();updateHUD();renderPlaybook();audioUnlock();}}
@@ -263,7 +293,7 @@ for(let i=0;i<3;i++)bindGameButton($('pass'+i),()=>receiverAction(i));
 function openDefenders(){if(!game||game.userOffense||game.paused||!['call','ready'].includes(game.phase))return;if(!duel)game.paused=true;resetStick();keys={};$('defenderList').replaceChildren(...game.defenders.map((p,i)=>{const b=el('button',`#${p.number} ${p.name} · ${p.pos}${i===game.selected?' · SELECTED':''}`,'defenderchoice');b.append(el('small',guidance==='expert'?`Tackle ${p.tackling} · Coverage ${p.coverage} · Reads ${p.recognition}`:p.slot<2?'Defensive front':p.slot<4?'Linebacker':'Secondary'));b.onclick=()=>{if(!duel)game.paused=false;game.selectDefender(i);$('defenderDialog').close();updateHUD();};return b;}));$('defenderDialog').showModal();}
 function closeDefenders(){if(game&&!duel)game.paused=false;$('defenderDialog').close();updateHUD();}
 $('closeDefenders').onclick=closeDefenders;$('defenderDialog').addEventListener('cancel',e=>{e.preventDefault();closeDefenders();});
-field.addEventListener('pointerdown',e=>{if(replay.active||!game||game.userOffense||game.paused||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();const r=field.getBoundingClientRect(),index=hitDefender(defenderHits,e.clientX-r.left,e.clientY-r.top,28);if(index!==null){game.selectDefender(index);updateHUD();}});
+field.addEventListener('pointerdown',e=>{if(e.defaultPrevented||replay.active||!game||game.userOffense||game.paused||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();const r=field.getBoundingClientRect(),index=hitDefender(defenderHits,e.clientX-r.left,e.clientY-r.top,28);if(index!==null){game.selectDefender(index);updateHUD();}});
 const seenLessons=safeRead('pg-lessons',{});
 function maybeLesson(){if(duel||game instanceof ChallengeGame)return;if(!game||game.paused||guidance!=='simple')return;let key='';if(game.phase==='kick_ready')key='kick';else if(game.phase==='call')key=game.userOffense?'offense':'defense';if(!key||seenLessons[key])return;const lessons={kick:['Track, then return.','Tap READY TO RETURN. Steer to the landing ring with your left thumb, then turn upfield. BURST is bottom right.'],offense:['Four downs. One gold line.','Tap one of four diagram cards to call it. Swipe left or right for more plays; the first page adapts to the situation. SNAP is bottom right. Pass with A, B or C. Hold the left stick to place the pass in that direction; center it for assisted placement. Near a tackler, the action becomes BREAK TACKLE; a move costs stamina and may expose the ball.'],defense:['Choose the defender you want.','The opponent’s play is hidden. Choose coverage, then tap a defender on the field or open PICK. NEAREST selects near the ball, NEXT cycles. Stay behind the blue line: the CPU snaps automatically.']};[$('lessonTitle').textContent,$('lessonText').textContent]=lessons[key];$('lessonDialog').dataset.lesson=key;game.paused=true;resetStick();$('lessonDialog').showModal();}
 function dismissLesson(){seenLessons[$('lessonDialog').dataset.lesson]=true;safeWrite('pg-lessons',seenLessons);$('lessonDialog').close();if(game)game.paused=false;updateHUD();audioUnlock();}
@@ -272,7 +302,7 @@ function kick(type){if(!game||game.paused||!game.kick(type))return false;updateH
 for(const b of [$('punt'),quickPunt])bindGameButton(b,()=>kick('punt'));
 for(const b of [$('fieldGoal'),quickFieldGoal])bindGameButton(b,()=>kick('fieldgoal'));
 window.addEventListener('keydown',e=>{
- if(!game||e.ctrlKey||e.metaKey||e.altKey||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
+ if(!game||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
  const key=e.key.toLowerCase(),dialog=document.querySelector('dialog[open]');
  if(dialog){if(dialog.id==='pauseDialog'&&key==='p'){e.preventDefault();$('resume').click();}return;}
  if(halftimeShow.openNow||game.phase==='halftime')return;
@@ -402,24 +432,38 @@ function drawCameraOverlay(frame,ball,player,people=[],receivers=[]){
  marker(ball,'BALL','#fff1bd');marker(player,'YOU','#f9da7d');
  for(const {p,label} of receivers)marker(p,label,'#c3e9ff');
  if(player&&frame.zoomed){const q=screenPoint(player);if(q.x>20&&q.x<width-20&&q.y>34*scale&&q.y<height-18){const y=q.y-21*scale;rect(ctx,q.x-13,y-9,26,11,'#192c28dd');txt(ctx,'YOU',q.x,y,7,'#f9da7d');}}
- if(frame.zoomed&&frame.prefs.cameraOverview&&height>155){
-  const mw=40,mh=84,mx=width-mw-9,my=height-mh-10;
-  rect(ctx,mx-4,my-4,mw+8,mh+8,'#10272bea');ctx.strokeStyle='#aec5a783';ctx.lineWidth=1;ctx.strokeRect(mx,my,mw,mh);
-  const mini=p=>({x:mx+clamp(p.x/53.333333,0,1)*mw,y:my+clamp((110-p.y)/120,0,1)*mh});
-  for(const y of [0,50,100]){const q=mini({x:0,y});rect(ctx,mx,q.y,mw,1,'#afc3a755');}
-  for(const p of people){const q=mini(p);rect(ctx,q.x-1,q.y-1,2,2,p.team===0?'#82caff88':'#f9a68188');}
-  const left=clamp((frame.center.x-frame.viewWidth/2-29)/(53.333333*5.65),0,1),right=clamp((frame.center.x+frame.viewWidth/2-29)/(53.333333*5.65),0,1);
-  const top=clamp((frame.center.y-frame.viewHeight/2-20)/(120*frame.yardScale),0,1),bottom=clamp((frame.center.y+frame.viewHeight/2-20)/(120*frame.yardScale),0,1);
-  ctx.strokeStyle='#d5e6cf';ctx.strokeRect(mx+left*mw,my+top*mh,(right-left)*mw,(bottom-top)*mh);
-  if(player){const q=mini(player);ctx.strokeStyle='#f9da7d';ctx.strokeRect(q.x-2,q.y-2,4,4);}
-  if(ball){const q=mini(ball);ctx.fillStyle='#fff5ce';ctx.beginPath();ctx.arc(q.x,q.y,2,0,Math.PI*2);ctx.fill();}
- }
+
+ drawMinimap(frame,ball,player,people);
  ctx.restore();
 }
+function drawMinimap(frame,ball,player,people){
+ currentMapFrame=frame;
+ // The compact playbook occupies the field; leave every card/page button clear.
+ const compactPlaybook=compactGame.matches&&game?.phase==='call'&&!quick.hidden;
+ cameraMap.hidden=!game||!frame.prefs.cameraOverview||compactPlaybook;
+ if(cameraMap.hidden){minimapInput.cancel();return;}
+ const label=frame.manual&&frame.prefs.cameraMode!=='full'?'MANUAL':frame.prefs.cameraMode==='full'?'TAP TO ZOOM':'DRAG TO PAN';
+ if(mapStatus.textContent!==label)mapStatus.textContent=label;
+ cameraMap.dataset.manual=String(frame.manual);mapFollow.setAttribute('aria-label',frame.manual?'Resume following play':'Recenter on play');
+ const r=mapPad.getBoundingClientRect();if(!r.width||!r.height)return;
+ const dpr=Math.min(window.devicePixelRatio||1,2),w=r.width,h=r.height;
+ if(mapCanvas.width!==Math.round(w*dpr)||mapCanvas.height!==Math.round(h*dpr)){mapCanvas.width=Math.round(w*dpr);mapCanvas.height=Math.round(h*dpr);}
+ const c=mapCanvas.getContext('2d');c.setTransform(mapCanvas.width/w,0,0,mapCanvas.height/h,0,0);
+ rect(c,0,0,w,h,'#10272bf5');const m=minimapLayout(frame),mini=p=>{const q=m.toMap(p);return {x:q.x*w,y:q.y*h};};
+ rect(c,0,0,w,h/12,'#335750');rect(c,0,h*11/12,w,h/12,'#335750');
+ for(const y of [0,50,100]){const q=mini({x:0,y});rect(c,0,q.y,w,1,'#afc3a777');}
+ for(const p of people){const q=mini(p);rect(c,q.x-1,q.y-1,2,2,p.team===0?'#82caffbb':'#f9a681bb');}
+ const left=clamp(m.center.x-m.viewport.x/2,0,1),right=clamp(m.center.x+m.viewport.x/2,0,1),top=clamp(m.center.y-m.viewport.y/2,0,1),bottom=clamp(m.center.y+m.viewport.y/2,0,1);
+ rect(c,left*w,top*h,(right-left)*w,(bottom-top)*h,frame.manual?'#e9b85722':'#d9efe31a');
+ c.strokeStyle=frame.manual?'#f9d985':'#e0eedb';c.lineWidth=2;c.strokeRect(left*w+1,top*h+1,Math.max(0,(right-left)*w-2),Math.max(0,(bottom-top)*h-2));
+ if(player){const q=mini(player);c.strokeStyle='#f9da7d';c.lineWidth=1.5;c.strokeRect(q.x-2.5,q.y-2.5,5,5);}
+ if(ball){const q=mini(ball);c.fillStyle='#fff5ce';c.beginPath();c.arc(q.x,q.y,2.3,0,Math.PI*2);c.fill();}
+}
 function drawGame(dt=1/60){if(!game)return;
+ if(currentMapCamera!==liveCamera){minimapInput.cancel();currentMapCamera=liveCamera;}
  const g=game,ball=gridironBall(g),player=g.controlled||g.carrier;
  if(cameraOffense!==g.offense){liveCamera.reset();cameraOffense=g.offense;}
- const camera=liveCamera.frame({...fieldSurface,format:g.format,ball,player,settings:cameraSettings,dt,scene:g,returnSetup:g.userOffense&&!g.userKicking&&!g.special?.goal&&g.phase.startsWith('kick_')}),view={width:360,height:camera.worldHeight};
+ const camera=liveCamera.frame({...fieldSurface,format:g.format,ball,player,settings:cameraSettings,dt,scene:cameraMatch(),match:cameraMatch(),returnSetup:g.userOffense&&!g.userKicking&&!g.special?.goal&&g.phase.startsWith('kick_')}),view={width:360,height:camera.worldHeight};
  beginCamera(camera);
  const {px,py}=drawField(ctx,view,camera.fieldCamera,g.teams[g.offense],g.teams[1-g.offense],g.time,g.format===11,g.teams[0],g.rules);weatherSurface(ctx,view,{px,py},g.weather);if(!g.special&&!g.returnInfo){const lineY=py(g.spot),targetY=py(g.target);rect(ctx,29,lineY,302,2,'#70c5ee');rect(ctx,29,targetY,302,2,'#efc65b');txt(ctx,'1ST',322,targetY-5,8,'#f8dc86');}
  if(showOffensiveRoutes(g)){
@@ -466,9 +510,9 @@ function drawGame(dt=1/60){if(!game)return;
  drawCameraOverlay(camera,ball,player,[...g.players.map(p=>({...p,team:g.offense})),...g.defenders.map(p=>({...p,team:1-g.offense}))],g.userOffense&&g.canPass?g.players.slice(2,5).map((p,i)=>({p,label:'ABC'[i]})):[]);
 }
 function drawReplay(f,dt=1/60){
- if(!f)return;const flip=f.anchor===1,xy=p=>({x:flip?53-p.x:p.x,y:flip?100-p.y:p.y});
+ if(!f)return;if(currentMapCamera!==replayCamera||replayCameraClip!==replay.active?.clip){minimapInput.cancel();currentMapCamera=replayCamera;replayCameraClip=replay.active?.clip;}const flip=f.anchor===1,xy=p=>({x:flip?53-p.x:p.x,y:flip?100-p.y:p.y});
  const ball=xy(f.ball),selected=f.people.find(p=>p.selected)||f.people.find(p=>p.carrier),player=selected?xy(selected):ball;
- const camera=replayCamera.frame({...fieldSurface,format:game.format,ball,player,settings:cameraSettings,dt,scene:replay.active?.clip}),view={width:360,height:camera.worldHeight};
+ const camera=replayCamera.frame({...fieldSurface,format:game.format,ball,player,settings:cameraSettings,dt,scene:replay.active?.clip,match:cameraMatch(replayCamera)}),view={width:360,height:camera.worldHeight};
  beginCamera(camera);
  const {px,py}=drawField(ctx,view,camera.fieldCamera,game.teams[f.anchor],game.teams[1-f.anchor],0,game.format===11,game.teams[0],game.rules);weatherSurface(ctx,view,{px,py},f.weather||game.weather);
  if(!f.returning){for(const [yard,color] of [[f.spot,'#70c5ee'],[f.target,'#efc65b']])rect(ctx,29,py(flip?100-yard:yard),302,2,color);}
@@ -615,7 +659,7 @@ if(window.PGI_DUEL){
   state(view,fresh){
    // Preserve already received events until the next paint drains them.
    const queued=fresh?[]:game?.events||[];game=view;game.events=[...queued,...view.events];
-   if(fresh){replay.reset();resetPlaybook();bookSide='';endShown=false;lastPhase='';keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Private 1v1 · you play '+game.teams[duel.team].abbr;renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);audioUnlock();if(duel.room?.status==='pregame')openBroadcast(pregameReport(game.teams,game.match,game.weather));else if(duel.room?.status==='paused')$('pauseDialog').showModal();else if(duel.room?.status==='halftime')showHalftime();else if(duel.room?.status==='final')finishGame();}
+   if(fresh){minimapInput.cancel();duelCameraSession={};replay.reset();resetPlaybook();bookSide='';endShown=false;lastPhase='';keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Private 1v1 · you play '+game.teams[duel.team].abbr;renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);audioUnlock();if(duel.room?.status==='pregame')openBroadcast(pregameReport(game.teams,game.match,game.weather));else if(duel.room?.status==='paused')$('pauseDialog').showModal();else if(duel.room?.status==='halftime')showHalftime();else if(duel.room?.status==='final')finishGame();}
    updateHUD();
   },
   room(room){

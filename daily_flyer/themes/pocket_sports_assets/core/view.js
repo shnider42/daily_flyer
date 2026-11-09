@@ -203,7 +203,6 @@ export class Arena {
     ctx.restore();
     if (!preview) {
       if (this.camera.zoomed) {
-        if (camera.minimap !== false) this.overview(ctx, state, hockey);
         this.edgeIndicator(ctx, state.ball, hockey ? "PUCK" : "BALL", "#ffd279");
         const selected = state.players[state.controlled];
         if (selected) this.edgeIndicator(ctx, selected, "YOU", hockey ? "#83e6ff" : "#e0ff8a");
@@ -244,27 +243,25 @@ export class Arena {
     ctx.textAlign = "center";
     ctx.fillText(label, lx, ly + 3);
   }
-  overview(ctx, state, hockey) {
-    const r = this.rules;
-    const width = this.rotated ? 100 : 62;
-    const height = this.rotated ? 62 : 100;
-    const x = this.width - width - 13, y = 29;
-    const inset = 6;
-    const mapScale = Math.min(
-      (width - inset * 2) / (this.rotated ? r.height : r.width),
-      (height - inset * 2) / (this.rotated ? r.width : r.height),
-    );
-    const mw = (this.rotated ? r.height : r.width) * mapScale;
-    const mh = (this.rotated ? r.width : r.height) * mapScale;
-    const mx = x + (width - mw) / 2, my = y + (height - mh) / 2;
-    const project = (p) => this.rotated
-      ? { x: mx + (r.height - p.y) * mapScale, y: my + p.x * mapScale }
-      : { x: mx + p.x * mapScale, y: my + p.y * mapScale };
+  overview(canvas, state, hockey) {
+    const box = canvas.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    const pixelWidth = Math.max(1, Math.round(box.width * dpr));
+    const pixelHeight = Math.max(1, Math.round(box.height * dpr));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const layout = this.camera.minimapLayout(box.width, box.height);
+    const { x: mx, y: my, pitchWidth: mw, pitchHeight: mh } = layout;
+    const project = (point) => this.camera.minimapProject(point, layout);
     ctx.save();
-    ctx.fillStyle = "#081b27ce";
-    this.round(ctx, x, y, width, height, 6);
-    ctx.fill();
-    ctx.strokeStyle = "#c0d2db80";
+    ctx.fillStyle = "#0b202b";
+    ctx.fillRect(0, 0, box.width, box.height);
+    ctx.strokeStyle = "#c0d2db99";
     ctx.lineWidth = 1;
     ctx.strokeRect(mx, my, mw, mh);
     ctx.beginPath();
@@ -274,14 +271,14 @@ export class Arena {
     ctx.beginPath();
     ctx.rect(mx, my, mw, mh);
     ctx.clip();
-    const a = project({ x: this.camera.center.x - this.camera.viewWidth / 2,
-      y: this.camera.center.y - this.camera.viewHeight / 2 });
-    const b = project({ x: this.camera.center.x + this.camera.viewWidth / 2,
-      y: this.camera.center.y + this.camera.viewHeight / 2 });
-    ctx.fillStyle = "#d9f8ff14";
-    ctx.strokeStyle = "#e6f7ff9e";
-    ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
-    ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    const viewport = this.camera.minimapViewRect(layout);
+    ctx.fillStyle = this.camera.manual ? "#ffd27925" : "#d9f8ff18";
+    ctx.strokeStyle = this.camera.manual ? "#ffd279" : "#b9e9f5";
+    ctx.lineWidth = 2;
+    ctx.fillRect(viewport.x * box.width, viewport.y * box.height,
+      viewport.width * box.width, viewport.height * box.height);
+    ctx.strokeRect(viewport.x * box.width, viewport.y * box.height,
+      viewport.width * box.width, viewport.height * box.height);
     for (const player of state.players) {
       const p = project(player);
       ctx.fillStyle = player.id === state.controlled ? (hockey ? "#83e6ff" : "#e0ff8a")

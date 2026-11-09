@@ -50,3 +50,12 @@ body[data-sport=soccer] .center-control kbd{margin-top:3px;font-size:7px}
 .setting select:disabled,.setting input:disabled{opacity:.45}.camera-settings .settings-tip{margin:2px 0 15px}.camera-settings input[type=range]{min-height:32px}
 .sports-home-link{display:block;text-align:center;color:var(--accent);font-size:10px;font-weight:700;letter-spacing:1px;text-decoration:none;padding:18px 10px 5px;min-height:44px}.sports-home-link:hover{text-decoration:underline}
 @media(max-width:440px){.camera-settings .setting{gap:9px}.camera-settings .setting>span{max-width:48%}.camera-settings .setting output{display:block;margin:4px 0 0}.camera-settings .setting select{font-size:11px}}
+
+/* A dedicated minimap surface owns its pointer; match controls stay independent. */
+.camera-map{position:absolute;right:10px;bottom:35px;width:100px;z-index:3;border:1px solid #9ebdcb75;border-radius:7px;background:#0b202bf2;box-shadow:0 3px 12px #0004;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+.camera-map[hidden]{display:none!important}.camera-map-state{display:block;padding:6px 2px 3px;text-align:center;color:#b9e9f5;font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.6px}
+.camera-map.manual .camera-map-state{color:#ffd279}.camera-map.manual{border-color:#ffd279a8}
+#camera-overview{display:block;width:100%;height:108px;touch-action:none;cursor:grab;outline:none}#camera-overview:focus-visible{outline:2px solid #ffd279;outline-offset:-3px}#camera-overview.dragging{cursor:grabbing}
+#camera-follow{display:block;width:100%;min-height:36px;padding:5px 2px;border:0;border-top:1px solid #9ebdcb55;background:#173949;color:#f2f6eb;font:700 10px/1.2 system-ui,sans-serif;touch-action:manipulation}#camera-follow:disabled{background:#0b202b;color:#9eb9c3;opacity:.78}#camera-follow:focus-visible{outline:2px solid #ffd279;outline-offset:-3px}
+.camera-map.landscape{width:132px}.camera-map.landscape #camera-overview{height:76px}
+@media(max-height:520px) and (orientation:landscape){.camera-map{bottom:10px;right:8px}}

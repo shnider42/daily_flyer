@@ -3,6 +3,8 @@ import { SPORTS } from "./sports/rules.js";
 import { Match, ENGINE_VERSION } from "./core/engine.js";
 import { FixedClock, seeded } from "./core/math.js";
 import { Arena } from "./core/view.js";
+import { placeSportsMinimap } from "./core/sports-camera.js";
+import { bindMinimapInput } from "./core/minimap-input.js";
 import { Input, matchControlsActive } from "./core/input.js";
 import { Sound } from "./core/sound.js";
 import {
@@ -46,9 +48,16 @@ let data = {},
   cup = null,
   finishedShown = false,
   toastTimer,
-  activeBinding = null;
+  activeBinding = null,
+  minimapInput = null,
+  minimapFrameKey = null,
+  minimapPlacementKey = null,
+  minimapGame = null;
 const field = new Arena($("field")),
   preview = new Arena($("preview"));
+const cameraMap = $("camera-map"),
+  cameraOverview = $("camera-overview"),
+  cameraFollow = $("camera-follow");
 const input = new Input({
   stick: $("stick"),
   knob: $("knob"),
@@ -86,6 +95,84 @@ const input = new Input({
   },
   onPause: () => (game ? togglePause() : null),
 });
+function minimapLayout() {
+  const box = cameraOverview.getBoundingClientRect();
+  return box.width && box.height ? field.camera.minimapLayout(box.width, box.height) : null;
+}
+function updateMinimapLabel() {
+  const manual = field.camera.manual;
+  cameraMap.classList.toggle("manual", manual);
+  $("camera-map-state").textContent = manual ? "MANUAL VIEW" : "FOLLOWING PLAY";
+  cameraFollow.disabled = !manual;
+  cameraFollow.textContent = manual ? "Follow play" : "Tap / drag to look";
+}
+function followPlay() {
+  minimapInput?.cancel();
+  field.camera.followPlay();
+  updateMinimapLabel();
+}
+minimapInput = bindMinimapInput(cameraOverview, {
+  enabled: () => !!game && !paused && !$("dialog").open && !cameraMap.hidden && field.camera.zoomed,
+  getViewRect: () => {
+    const layout = minimapLayout();
+    return layout ? field.camera.minimapViewRect(layout) : null;
+  },
+  onPan: ({ x, y }) => {
+    const layout = minimapLayout();
+    if (!layout) return;
+    field.camera.setManualCenter(field.camera.minimapUnproject({ x: x * layout.width, y: y * layout.height }, layout));
+    updateMinimapLabel();
+  },
+  onStart: () => {
+    cameraOverview.classList.add("dragging");
+  },
+  onEnd: () => cameraOverview.classList.remove("dragging"),
+  onFollow: followPlay,
+});
+cameraFollow.onclick = (event) => {
+  event.stopPropagation();
+  followPlay();
+};
+// The shared map handler owns only its navigation keys. WASD and pause still
+// reach gameplay while the map has focus, and previously held keys can release.
+// The sibling button owns its native activation keys so Space/Enter cannot
+// begin a gameplay action as well as returning the camera to the play.
+cameraFollow.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " " || event.code === "Space")
+    event.stopPropagation();
+});
+function positionMinimap() {
+  const landscape = matchMedia("(max-height:520px) and (orientation:landscape)").matches;
+  const key = `${landscape}:${field.width}:${field.height}:${innerWidth}:${innerHeight}:${sport}:${settings.stick}:${settings.buttons}:${settings.leftHanded}`;
+  if (minimapPlacementKey === key) return;
+  minimapPlacementKey = key;
+  cameraMap.style.removeProperty("right");
+  cameraMap.style.removeProperty("bottom");
+  if (!landscape) return;
+  const stage = $("field").getBoundingClientRect();
+  const size = cameraMap.getBoundingClientRect();
+  const controls = [...document.querySelectorAll("#controls .move-control, #controls .action-controls, #controls .center-control")]
+    .map((element) => element.getBoundingClientRect());
+  const placement = placeSportsMinimap(stage, size, controls);
+  cameraMap.style.right = `${placement.right}px`;
+  cameraMap.style.bottom = `${placement.bottom}px`;
+}
+function renderMinimap(state, replay) {
+  const visible = field.camera.zoomed && (settings.camera[sport].minimap || field.camera.manual);
+  const frameKey = `${!!replay}:${field.width}:${field.height}`;
+  if (!visible || minimapFrameKey !== frameKey || minimapGame !== game) minimapInput.cancel();
+  minimapFrameKey = frameKey;
+  minimapGame = game;
+  cameraMap.hidden = !visible;
+  if (!visible) {
+    minimapPlacementKey = null;
+    return;
+  }
+  cameraMap.classList.toggle("landscape", field.rotated);
+  positionMinimap();
+  updateMinimapLabel();
+  field.overview(cameraOverview, state, sport === "hockey");
+}
 const clock = new FixedClock((dt) => {
   if (!game || paused || $("dialog").open) return;
   game.aimAssist = settings.assist;
@@ -113,6 +200,8 @@ function updateControlHint() {
       : "MOVE";
 }
 function applySettings() {
+  minimapInput?.cancel();
+  minimapPlacementKey = null;
   game?.setTouchAssist(settings.touchAssist);
   updateControlHint();
   const soccer = sport === "soccer";
@@ -177,6 +266,9 @@ function keyLabel(code) {
 applySettings();
 window.addEventListener("resize", applySettings);
 function selectSport(next) {
+  minimapInput?.cancel();
+  field.camera.clearManualViews();
+  cameraMap.hidden = true;
   sport = next;
   document.body.dataset.sport = sport;
   const soccer = sport === "soccer";
@@ -310,6 +402,7 @@ for (const b of document.querySelectorAll("[data-mode]"))
 $("home").onchange = () => updateTeams("home");
 $("away").onchange = () => updateTeams("away");
 function modal(title, subtitle, html) {
+  minimapInput?.cancel();
   input.clear();
   if (game) paused = true;
   $("dialog-content").innerHTML =
@@ -387,7 +480,7 @@ function bindCameraSettings() {
       ? `The whole ${sport === "hockey" ? "rink" : "pitch"} stays in view with no camera movement. Zoom and focus are available in Follow play.`
       : camera.mode === "fit"
         ? `Keeps both ${sport === "hockey" ? "side boards" : "sidelines"} visible and follows along the ${sport === "hockey" ? "rink" : "pitch"}. Zoom is automatic; turn to landscape for a side-to-side view.`
-        : "Drag to bring the play closer. Zoom stays at your chosen level, including passes and possession changes. Choose Full view for a stationary camera.";
+        : "Drag this slider to bring the play closer. Tap the bottom-right overview to center anywhere, or drag its view rectangle. The view stays there until Follow play; zoom stays unchanged.";
   };
   for (const key of ["mode", "focus", "minimap", "zoom"]) {
     $("set-camera-" + key)[key === "zoom" ? "oninput" : "onchange"] = (event) => {
@@ -477,6 +570,7 @@ function showSettings() {
       }),
   );
   $("restore-settings").onclick = () => {
+    field.camera.clearManualViews();
     Object.assign(settings, structuredClone(DEFAULT_SETTINGS));
     const touch = matchMedia("(pointer: coarse)").matches;
     settings.camera = { hockey: defaultCameraSettings(touch), soccer: defaultCameraSettings(touch) };
@@ -564,6 +658,8 @@ function createCup() {
   };
 }
 function startMatch(resume = false) {
+  minimapInput?.cancel();
+  cameraMap.hidden = true;
   sound.unlock();
   if (mode === "cup") {
     cup = resume ? readStore(sport + ".cup", null) : createCup();
@@ -617,6 +713,9 @@ $("resume-cup").onclick = () => {
   startMatch(true);
 };
 function leaveGame() {
+  minimapInput?.cancel();
+  field.camera.clearManualViews();
+  cameraMap.hidden = true;
   game = null;
   cup = null;
   paused = false;
@@ -812,6 +911,7 @@ function frame(now) {
       camera: settings.camera[sport],
       dt,
     });
+    renderMinimap(replay || game, replay);
   } else if (previewGame && !document.hidden) {
     previewTick += dt;
     if (previewTick > 1 / 30) {
