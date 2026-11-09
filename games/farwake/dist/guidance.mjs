@@ -223,6 +223,8 @@ export class GuidanceController {
       if((ctx.helm?.available||near.data?.stationRole==='helm'||near.stationRole==='helm')&&(ctx.helm?.near||near.data?.stationRole==='helm'||near.stationRole==='helm'||intent==='helm'))return this._helm(ctx,forced);
       if(['npc','crew','mechanic','medic','merchant'].includes(near.type)&&this._eligible('person-use',ctx,forced))return descriptor('person-use',`Talk to ${name||'this person'}`,
         `${useInstruction(ctx,'TALK')} while standing close to ${name||'them'}. Choose a reply in the conversation.`,`${touch?text(near.controlLabel,'TALK'):control(ctx,'use')} · Talk to ${name||'this person'}.`,'use');
+      if(['siteEntrance','siteExit','siteRecord','siteCache','siteChoice'].includes(near.type)&&this._eligible('person-use',ctx,forced))return descriptor('person-use',text(near.controlLabel,'Explore this place'),
+        `${useInstruction(ctx,'USE',near.controlLabel)} while close to ${name||'this place'}. Entrances lead inside; records, supplies, and equipment have their own actions.`,`${touch?text(near.controlLabel,'USE'):control(ctx,'use')} · Use this place while standing close.`,'use');
       if(job.accepted&&!job.ready&&(!job.type||job.type==='work')&&(this._eligible('work',ctx,forced)||(near.completed||near.done)&&this.count('work',ctx)<GUIDANCE_LIMIT))return descriptor('work','Find an unfinished workstation',
         'Walk to a workstation marked for your active job. Use it to begin the task; finished relays do not need repeating.','Walk to an unfinished workstation for this job.','move',{id:'work:approach'});
       return this._eligible('person-move',ctx,forced)?this._walk(ctx):null;
@@ -280,8 +282,8 @@ export class GuidanceController {
     const next=forced&&FLOW_ACTIONS.combat.includes(preferred)?preferred:this._next(FLOW_ACTIONS.combat,ctx,forced);if(!next)return null;
     const touch=ctx.device==='touch',c=ctx.combat||{};
     if(c.blocked||c.targetVisible===false)return descriptor(next,c.blocked?'Find a clear shot':'Move toward a visible hostile',
-      c.blocked?`Walk along the bulkhead until you have a clear line to a hostile. Your pulses stop at walls.`:'Walk into a position where a hostile can be seen. Your sight marks an enemy within sidearm range.',
-      c.blocked?'Move around the bulkhead for a clear shot.':'Move into sight of a hostile.','move',{id:'combat:clear-shot',flow:'combat'});
+      c.blocked?`Move around the wall until you have a clear line to a hostile. Your pulses stop at walls.`:'Walk into a position where a hostile can be seen. Your sight marks an enemy within sidearm range.',
+      c.blocked?'Move around the wall for a clear shot.':'Move into sight of a hostile.','move',{id:'combat:clear-shot',flow:'combat'});
     if(next==='person-aim')return descriptor(next,'Your sidearm is equipped',
       touch?`Move ${control(ctx,'aim')} toward a hostile. Your standard Pulse sidearm is ready; pushing that stick also fires.`:'Move the mouse over a hostile or hold an arrow key to aim. Your standard Pulse sidearm is ready; WASD still walks.',
       `${control(ctx,'aim')} · Aim your equipped sidearm.`,'aim');

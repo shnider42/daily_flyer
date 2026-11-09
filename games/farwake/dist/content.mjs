@@ -207,7 +207,7 @@ export const UPGRADES = [
   {id:'tank_1',name:'Long-haul tanks',slot:'fuel',level:1,cost:130,ore:3,description:'A safer margin between “we can reach it” and “we can return.”',stats:{fuelMax:16}},
   {id:'fold_2',name:'Fold Drive II',slot:'drive',level:2,cost:520,ore:12,requires:['fold_1'],description:'A more stable field reaches deeper systems and makes the old home a practical destination.',stats:{warpRange:9}},
   {id:'shield_2',name:'Layered shield',slot:'shield',level:2,cost:290,ore:9,requires:['shield_1'],description:'Stronger protection for contested lanes and the mistakes you have not made yet.',stats:{shield:70}},
-  {id:'hull_2',name:'Deep-range frame',slot:'hull',level:2,cost:280,ore:10,requires:['hull_1'],description:'Replaces your tired load-bearing frame. A Sparrow with this much work becomes a personal matter.',stats:{hull:75}},
+  {id:'hull_2',name:'Deep-range frame',slot:'hull',level:2,cost:280,ore:10,requires:['hull_1'],description:'Replaces your tired load-bearing frame. A ship with this much work becomes a personal matter.',stats:{hull:75}},
   {id:'laser_2',name:'Coherent pulse array',slot:'weapon',level:2,cost:330,ore:9,requires:['laser_1'],description:'Better targeting and a harder punch for dangerous patrol sectors.',stats:{damage:12,range:140}},
   {id:'cargo_2',name:'Modular freight bay',slot:'cargo',level:2,cost:240,ore:8,requires:['cargo_1'],description:'Trade routes and major repair contracts finally fit in your hold.',stats:{cargo:28}},
   {id:'thrusters_2',name:'Inertial vector pack',slot:'engine',level:2,cost:260,ore:8,requires:['thrusters_1'],description:'More responsive turning and stronger braking. Especially welcome in a crowded asteroid belt.',stats:{speed:60,turn:1.1}},

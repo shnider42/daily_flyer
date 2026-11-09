@@ -74,7 +74,7 @@ export function createTestSession({ scenario = 'ship-combat', enemyClassId = all
   const permitted = allowedClasses(), hull = permitted.find(item => item.id === enemyClassId);
   if (!hull) throw new RangeError('That hull is not available in test mode.');
   const sessionSeed = String(seed).slice(0, 128), game = new ExerciseGame(`farwake-test:${sessionSeed}`);
-  const danger = 1 + permitted.indexOf(hull) * 2;
+  const danger = Math.min(5, 1 + permitted.indexOf(hull) * 2);
   game.isTestMode = true;
   game.state.testMode = true;
   game.state.systemId = RANGE_ID;

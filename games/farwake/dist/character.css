@@ -1,0 +1,113 @@
+.captain-setup-dialog{border-top-color:#bbcebb;max-width:100%;width:960px!important}
+.captain-setup-dialog .modal-body{background:#101e2c;scroll-padding-bottom:84px;overflow-x:hidden}
+.captain-setup{--captain-mint:#a7cdbc;--captain-faint:#aebfc8;font-size:max(15px,1.08rem);line-height:1.5;min-width:0}
+.captain-setup button,.captain-setup select{font-size:inherit;line-height:1.45;min-height:46px}
+.captain-setup button{white-space:normal}
+.captain-steps{list-style:none;display:flex;gap:24px;align-items:center;padding:0 0 15px;margin:0 0 20px;border-bottom:1px solid #344957;font-size:1em;color:#8196a3}
+.captain-steps li{display:flex;gap:9px;align-items:center}
+.captain-steps li[aria-current]{color:#e8e7cb}
+.captain-steps li span{font-variant-numeric:tabular-nums;color:#8ea8ad}
+.captain-steps li[aria-current] span{color:#ffce75}
+.captain-intro{font-size:1.15em;color:#edf0db;line-height:1.5;margin-bottom:12px}
+.captain-note{font-size:1em;color:var(--captain-faint);line-height:1.6;margin:14px 0}
+.captain-included{display:flex;align-items:baseline;gap:9px 18px;flex-wrap:wrap;margin:0 0 18px;padding:10px 12px;border-left:3px solid #a7cdbc;background:#192e34;color:#d3e2d7;font-size:1em}
+.captain-included>span{font-size:1em;color:#a7cdbc;letter-spacing:.035em;font-weight:bold}
+.captain-included strong{margin-left:auto;white-space:nowrap;color:#f0dfae}
+.captain-ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.captain-ship{display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;padding:15px 13px 12px;background:#132332;border:1px solid #3b5261;border-bottom:3px solid #07101b;border-radius:3px}
+.captain-ship:hover{background:#192d3b}
+.captain-ship.selected{border-color:#e1c284;border-bottom-color:#ae884d;box-shadow:inset 0 3px 0 #e1c284;background:#1b2e38}
+.captain-ship-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;min-height:29px}
+.captain-ship-head>strong{font-size:1.3em;letter-spacing:.015em;color:#efead2}
+.captain-selected{color:#b9c5bd;font-size:1em}
+.captain-ship.selected .captain-selected{color:#ffce75}
+.captain-ship-type{display:block;color:#a4b8c4;font-size:1em;margin:2px 0 11px}
+.captain-ship canvas{width:100%;height:auto;aspect-ratio:18/7;image-rendering:pixelated;border:1px solid #2a414c;margin-bottom:13px;pointer-events:none}
+.captain-ship-role{font-size:1.02em;color:#f0ecd9;margin:0 0 9px}
+.captain-ship-benefit,.captain-ship-cost{display:block;font-size:1em;line-height:1.55;margin-bottom:7px;color:#bdd2c6}
+.captain-ship-cost{color:#d6b49c}
+.captain-ship-spec{display:flex;flex-wrap:wrap;column-gap:6px;font-size:1em;margin-top:auto;padding-top:12px;border-top:1px solid #354b56;color:#c2cbd1}
+.captain-ship-spec>span{color:#708895}
+.captain-identity{display:grid;grid-template-columns:148px minmax(0,1fr);gap:24px;align-items:start;padding:4px 0 18px;border-bottom:1px solid #344957}
+.captain-portrait{position:sticky;top:0;text-align:center;padding:10px;background:#152a35;border-top:3px solid var(--captain-suit,#79b3ad)}
+.captain-portrait canvas{width:128px;height:128px;max-width:100%;image-rendering:pixelated;margin:0 auto 9px}
+.captain-portrait>span{display:block;color:#c6d4ce;font-size:1em;line-height:1.4}
+.captain-identity-copy{min-width:0}
+.captain-identity-copy>.captain-note{margin:0 0 16px}
+.captain-appearance-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 17px}
+.captain-appearance-fields label{display:flex;flex-direction:column;gap:6px;color:#c8d3d4;min-width:0;font-size:1em}
+.captain-appearance-fields select{width:100%;max-width:100%;min-width:0;font-size:max(16px,1.08rem);background:#0b1b28;border-color:#536b76;padding:9px 10px;min-height:46px}
+.captain-traits{padding-top:18px}
+.captain-traits-heading{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.captain-traits-heading h3{font-size:1.22em;margin:0;color:#f0e8cc}
+.captain-traits-heading>span{font-size:1em;font-variant-numeric:tabular-nums;white-space:nowrap;color:#e3c690}
+.captain-trait-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.captain-trait{display:flex;flex-direction:column;align-items:stretch;padding:14px;text-align:left;background:#142735;border:1px solid #3a5260;border-bottom:3px solid #08141d;min-width:0}
+.captain-trait.selected{border-color:#91c2b2;background:#1b343c;box-shadow:inset 3px 0 0 #91c2b2}
+.captain-trait:disabled{opacity:.62}
+.captain-trait-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.captain-trait-top strong{font-size:1.08em;color:#eee8cc}
+.captain-trait-mark{display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;border:1px solid #678581;color:#b3cec2;font-weight:bold}
+.captain-trait.selected .captain-trait-mark{border-color:#a7cdbc;background:#a7cdbc;color:#132c31}
+.captain-trait-description{display:block;line-height:1.55;color:#b6c5cc;font-size:1em;margin-bottom:10px}
+.captain-trait-benefit,.captain-trait-cost{display:block;line-height:1.5;color:#b6d9c4;font-size:1em;margin-top:5px}
+.captain-trait-cost{color:#dfbca3}
+.captain-trait-benefit b,.captain-trait-cost b{font-weight:normal;color:inherit;text-decoration:underline;text-underline-offset:3px;margin-right:4px}
+.captain-trait-hint{font-size:1em;color:#b6c8ca;line-height:1.5;margin:12px 0 0;min-height:1.5em}
+.captain-finalize{display:flex;align-items:flex-start;gap:12px;padding:13px;margin:0 0 16px;background:#1b2e38;border:1px solid #526873;cursor:pointer}
+.captain-finalize input{flex:0 0 auto;margin:3px 0 0;width:24px;height:24px}
+.captain-finalize strong,.captain-finalize small{display:block;font-size:1em;line-height:1.5;color:#d4ded9}
+.captain-finalize small{font-weight:normal;color:#b1c3ca;margin-top:3px}
+.captain-locked-traits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.captain-locked-traits>div{padding:12px 14px;border-left:3px solid #789c95;background:#172c36}
+.captain-locked-traits strong,.captain-locked-traits span{display:block;font-size:1em;line-height:1.5}
+.captain-locked-traits span{margin-top:4px}
+.captain-locked-traits>p{grid-column:1/-1;padding:14px;margin:0;background:#172b35}
+.captain-summary{display:flex;flex-direction:column;gap:5px;padding:14px 15px;border:1px solid #53676c;background:#192e35;margin-top:20px;font-size:1em;line-height:1.65}
+.captain-summary>strong{color:#efe1bb}
+.captain-summary>span{color:#c5d3d3}
+.captain-error{font-size:1em;color:#ffc4b8;line-height:1.5;margin:0}
+.captain-error:not(:empty){margin-top:15px;padding:12px;background:#3c2931;border-left:3px solid #e2a397}
+.captain-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;position:sticky;bottom:-24px;z-index:2;margin:20px -1px -1px;padding:14px 0 4px;border-top:1px solid #435965;background:#101e2cf5}
+.captain-actions .captain-cancel{margin-right:auto;color:#c0cbd0;border:0;background:transparent;text-decoration:underline;text-underline-offset:3px}
+.captain-actions .button-primary{min-width:190px}
+@media(max-width:680px){
+ .captain-setup-dialog .modal-body{padding:16px}
+ .captain-ships{grid-template-columns:1fr;gap:12px}
+ .captain-ship{display:grid;grid-template-columns:112px minmax(0,1fr);column-gap:14px;row-gap:3px;padding:14px}
+ .captain-ship-head,.captain-ship-type,.captain-ship-role,.captain-ship-benefit,.captain-ship-cost{grid-column:2;min-width:0}
+ .captain-ship-head{gap:6px}
+ .captain-ship-head>strong{font-size:1.2em}
+ .captain-selected{font-size:1em}
+ .captain-ship-type{margin:0 0 5px}
+ .captain-ship canvas{grid-column:1;grid-row:1/6;width:112px;height:112px;aspect-ratio:1;object-fit:contain;align-self:center;background:#0a1824;margin:0}
+ .captain-ship-role{margin:3px 0 2px}
+ .captain-ship-benefit,.captain-ship-cost{margin:0}
+ .captain-ship-spec{grid-column:1/-1;margin-top:8px;padding-top:10px}
+ .captain-identity{grid-template-columns:100px minmax(0,1fr);gap:14px;padding-bottom:18px}
+ .captain-portrait{padding:6px;position:static}
+ .captain-portrait canvas{width:86px;height:86px}
+ .captain-portrait>span{font-size:1em}
+ .captain-identity-copy>.captain-intro{margin-top:0;font-size:1.12em}
+ .captain-appearance-fields{grid-template-columns:1fr;gap:10px}
+ .captain-identity-copy>.captain-note{margin-bottom:13px}
+ .captain-trait-grid,.captain-locked-traits{grid-template-columns:1fr}
+ .captain-trait{padding:13px}
+ .captain-actions{bottom:-16px;padding-bottom:6px;gap:8px}
+ .captain-actions .button-primary{flex:1 1 100%;order:3;min-height:50px}
+ .captain-actions .captain-cancel{order:1}
+ .captain-actions [data-captain-back]{order:2}
+ .captain-included{align-items:flex-start;gap:6px 10px}
+ .captain-included>span{flex:1 1 100%}
+ .captain-included strong{margin-left:0}
+}
+@media(max-width:370px){
+ .captain-ship{grid-template-columns:84px minmax(0,1fr);gap:4px 10px;padding:12px}
+ .captain-ship canvas{width:84px;height:98px}
+ .captain-identity{grid-template-columns:76px minmax(0,1fr);gap:12px}
+ .captain-portrait{padding:4px}
+ .captain-portrait canvas{width:66px;height:66px}
+}
+
+.captain-setup-dialog .captain-setup p{font-size:1em}
+.captain-setup-dialog .captain-setup .captain-intro{font-size:1.15em}

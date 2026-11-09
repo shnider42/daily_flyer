@@ -25,5 +25,20 @@ export class Soundscape{
   }
  }
  atmosphere(time,mode,music){if(!music||!this.enabled())return;if(time-(this.musicTime??-10)<4.8)return;this.musicTime=time;const notes=mode==='person'?[130.81,164.81,196,146.83,174.61,196,164.81,146.83]:[65.41,98,130.81,82.41,110,146.83,98,73.42];const i=(this.noteIndex??0)%notes.length;this.noteIndex=i+1;this.tone(notes[i],4.5,'sine',.10);this.tone(notes[i]*1.5,3.8,'sine',.035);}
+ /** Sparse location sounds are effects, so a quiet room still has a voice with music off. */
+ siteAtmosphere(time,atmosphere){
+  if(!atmosphere||!this.enabled())return null;
+  if(this.siteSoundKind!==atmosphere){this.siteSoundKind=atmosphere;this.nextSiteSound=time+1.2;this.siteSoundIndex=0;}
+  if(time<(this.nextSiteSound??0))return null;
+  const index=(this.siteSoundIndex??0);this.siteSoundIndex=index+1;this.nextSiteSound=time+11+(index%4)*3;
+  if(atmosphere==='cave'){
+   if(index%2===0){this.tone(820,.19,'sine',.075,470);setTimeout(()=>this.tone(630,.4,'sine',.025,410),260);return'A drop falls somewhere beyond the lamplight.';}
+   this.tone(58,2.3,'triangle',.07,31);this.tone(95,1.6,'sine',.025,55);return'A low rumble travels through the stone.';
+  }
+  if(atmosphere==='ice'){this.tone(460,1.8,'sine',.035,710);this.tone(63,.5,'triangle',.07,35);return'Ice shifts beneath the shelter.';}
+  if(atmosphere==='machinery'){this.tone(78,.8,'triangle',.075,42);setTimeout(()=>this.tone(96,.18,'triangle',.04,48),420);return'A pipe knocks twice inside the wall.';}
+  if(atmosphere==='signal'){this.tone(310,.7,'sine',.045,180);setTimeout(()=>this.tone(740,.09,'sine',.03,690),870);return'A receiver catches half of a distant call.';}
+  this.tone(index%2?95:140,.9,'triangle',.04,38);setTimeout(()=>this.tone(62,.25,'sine',.035,36),520);return'The empty room settles. Something taps behind the wall.';
+ }
  mute(){if(this.master)this.master.gain.value=this.enabled()?.17:0;}
 }

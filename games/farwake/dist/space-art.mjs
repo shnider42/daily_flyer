@@ -16,7 +16,12 @@ export const SHIP_VISUALS={
  sparrow:{length:64,width:42,thrusters:[[-30,-14],[-30,14]]},
  hauler:{length:104,width:66,thrusters:[[-50,-21],[-50,0],[-50,21]]},
  frigate:{length:154,width:72,thrusters:[[-74,-27],[-69,-10],[-69,10],[-74,27]]},
- capital:{length:260,width:128,thrusters:[[-125,-44],[-122,-27],[-119,-10],[-119,10],[-122,27],[-125,44]]}
+ capital:{length:260,width:128,thrusters:[[-125,-44],[-122,-27],[-119,-10],[-119,10],[-122,27],[-125,44]]},
+ kestrel:{length:56,width:30,thrusters:[[-26,-8],[-26,8]]},
+ mule:{length:70,width:48,thrusters:[[-33,-17],[-33,17]]},
+ petrel:{length:90,width:52,thrusters:[[-43,-18],[-43,18]]},
+ marten:{length:126,width:76,thrusters:[[-60,-26],[-60,0],[-60,26]]},
+ atlas:{length:214,width:116,thrusters:[[-104,-44],[-104,-23],[-104,23],[-104,44]]}
 };
 const palettes={temperate:['#193d48','#2f6d70','#598f7d','#b5b982','#c4d1bd'],earth:['#183e56','#2b6d79','#5e956f','#a7b88b','#d5ddcb'],forest:['#173e42','#356b56','#6a8b58','#a7a16c','#c5caa6'],garden:['#183e46','#3c7772','#6b9f75','#a8b787','#d7dbc2'],arid:['#674a3b','#a07554','#c29e70','#dec59b','#f0dcbd'],desert:['#694a3c','#a37652','#c79e69','#d7b77e','#ebd2a7'],ice:['#244056','#4c788a','#83afbc','#c4d6d6','#edf2e4'],ocean:['#183d59','#2b6581','#5c96a1','#84aea2','#d6e0cc'],volcanic:['#342e39','#5e4042','#8c5545','#c47851','#e8ac6d'],industrial:['#34343b','#61545a','#8a7a71','#b59f7e','#d2c6a3'],ruin:['#343f42','#62766c','#8b9b82','#b4b59a','#d1d2b8'],barren:['#343b47','#58616b','#7d8990','#a3ada8','#d1d4c2'],station:['#233b4a','#385560','#718d8e','#a4b4a5','#d9d6b4']};
 const shipCache=new Map(),workCanvases=new Map(),stationCache=new Map();
@@ -40,6 +45,47 @@ function hullSprite(shipClass,color,damage=0){
   pixelLine(ctx,-52,-16,6,-19,light,2);pixelLine(ctx,7,-19,65,-4,light);p('#253f4e',-32,-9,39,18);p('#90a9a9',-29,-10,32,4);p('#7bbbc7',-17,-5,16,10);p('#c5e4d8',-15,-5,11,2);p('#526f7d',-52,-8,14,16);p('#d7bd83',14,-5,23,3);p('#71858b',22,5,19,2);
   for(const[x,y]of[[-34,-24],[-34,24],[18,-17],[18,17]]){p('#233d4b',x-4,y-4,9,9);p('#a5b6ae',x-3,y-3,7,6);p('#c6ceba',x+2,y-1,10,2);}
   for(let x=-50;x<44;x+=12){p('#afcbc2',x,11,4,1);p('#2c4958',x,-12,5,1);}
+ }else if(shipClass==='kestrel'){
+  // A narrow arrowhead and swept engine wings distinguish the scout at a glance.
+  polygon(ctx,[[-28,-11],[-17,-15],[-4,-9],[27,-2],[28,0],[27,2],[-4,9],[-17,15],[-28,11]],dark);
+  polygon(ctx,[[-23,-7],[-4,-7],[25,-1],[25,1],[-4,7],[-23,7]],shade);
+  polygon(ctx,[[-18,-6],[-2,-6],[20,-1],[20,1],[-2,5],[-18,5]],color);
+  p(light,-16,-6,13,2);p('#1f3b4b',1,-4,13,7);p('#7ec6d0',3,-3,9,5);p('#d5e4c6',4,-3,6,1);
+  for(const side of[-1,1]){const y=side<0?-13:8;polygon(ctx,[[-26,y],[-17,y],[-8,y+3],[-23,y+5]],edge);p(color,-24,y,9,3);p('#17313f',-28,y+1,5,3);}
+  p('#dfc68a',-13,-3,5,6);pixelLine(ctx,16,-2,26,-2,light);p('#6b939e',-5,-13,2,5);p('#bddecd',-5,-14,2,2);
+ }else if(shipClass==='mule'){
+  // Forward salvage jaws enclose an open cradle rather than a pointed bow.
+  polygon(ctx,[[-35,-18],[-25,-24],[27,-24],[35,-18],[35,-10],[8,-10],[8,10],[35,10],[35,18],[27,24],[-25,24],[-35,18]],dark);
+  p(edge,-31,-19,28,38);p(color,-28,-17,25,34);p(light,-26,-17,21,3);p('#41606a',-31,-11,7,22);
+  for(const side of[-1,1]){const y=side<0?-22:12;p(shade,-7,y,36,10);p(color,-5,y+1,31,7);p(light,-4,y+1,26,2);p('#d7ae67',25,y+1,8,7);p('#573f35',29,y+1,2,7);p('#17313f',-35,side<0?-20:14,7,7);}
+  p('#1b3443',-19,-8,18,16);p('#7fb8ba',-16,-6,11,10);p('#d2e0ca',-15,-6,8,2);p('#b5a07c',-21,10,15,4);
+  p('#586b6c',3,-7,3,14);p('#d3b67c',6,-6,4,3);p('#d3b67c',6,3,4,3);for(const y of[-15,12])for(let x=1;x<21;x+=6)p('#253e47',x,y,3,3);
+ }else if(shipClass==='petrel'){
+  // Long survey nacelles flank a slim pressure hull and a visible listening dish.
+  polygon(ctx,[[-44,-11],[-25,-15],[13,-12],[44,-4],[45,0],[44,4],[13,12],[-25,15],[-44,11]],dark);
+  p(edge,-31,-22,50,44);p('#193441',-27,-18,42,36);p(shade,-30,-12,57,24);
+  for(const side of[-1,1]){const y=side<0?-25:16;p('#152d3d',-44,y,66,10);p(color,-40,y+1,58,7);p(light,-38,y+1,51,2);p('#1c3847',-45,y+2,7,6);p('#9dd2c7',14,y+2,7,3);pixelLine(ctx,24,side*20,37,side*12,'#8baea6',2);}
+  polygon(ctx,[[-33,-10],[13,-9],[42,-3],[42,3],[13,8],[-33,10]],color);p(light,-29,-10,38,2);
+  p('#213b4b',19,-6,15,12);p('#8bbfc9',21,-4,10,8);p('#c4e2d5',22,-4,7,1);
+  pixelRing(ctx,-9,0,9,8,'#516f7d',{step:1});pixelRing(ctx,-9,0,6,6,'#c9d3b4',{step:1});pixelLine(ctx,-9,-7,-9,7,'#9ab9b4');pixelLine(ctx,-16,0,-2,0,'#9ab9b4');p('#d2bb83',-10,-1,3,3);
+ }else if(shipClass==='marten'){
+  // Armored shoulders and paired forward pulse mounts make the escort recognizable.
+  polygon(ctx,[[-63,-26],[-49,-38],[12,-35],[56,-17],[63,-7],[63,7],[56,17],[12,35],[-49,38],[-63,26]],dark);
+  polygon(ctx,[[-58,-23],[-46,-33],[10,-30],[48,-15],[55,-6],[55,6],[48,15],[10,30],[-46,33],[-58,23]],shade);
+  polygon(ctx,[[-50,-18],[-36,-27],[12,-24],[43,-12],[51,0],[43,12],[12,24],[-36,27],[-50,18]],color);
+  pixelLine(ctx,-34,-27,12,-24,light,2);p('#708894',-58,-16,14,32);p('#172f3e',-63,-5,8,10);
+  for(const side of[-1,1]){const y=side<0?-32:22;p(edge,-42,y,40,10);p(light,-39,y,32,2);p('#2d4654',7,side<0?-23:14,34,9);p('#9caea8',12,side<0?-22:15,31,6);p('#c6c9b3',32,side<0?-20:17,29,3);p('#172e3d',-62,side<0?-29:22,8,7);}
+  p('#294452',-26,-13,37,26);p('#91aaa8',-23,-12,31,4);p('#234350',-17,-6,24,12);p('#7fb7c7',-14,-4,17,8);p('#d4e2c8',-12,-4,12,2);p('#dfbd7c',15,-4,20,7);p('#243f4d',19,-3,12,5);
+  for(const x of[-39,-23,-7]){p('#344d5b',x,12,10,3);p('#a6b6ac',x,12,10,1);}
+ }else if(shipClass==='atlas'){
+  // A broad industrial stern carries two long salvage arms and an exposed cradle.
+  polygon(ctx,[[-107,-45],[-92,-58],[17,-58],[107,-43],[107,-25],[19,-21],[19,21],[107,25],[107,43],[17,58],[-92,58],[-107,45]],dark);
+  p(edge,-101,-48,101,96);p(shade,-96,-44,91,88);p(color,-90,-39,74,78);p(light,-87,-39,67,3);
+  for(const side of[-1,1]){const y=side<0?-53:27;polygon(ctx,[[-18,y],[17,y-2],[101,y+8],[101,y+23],[-18,y+24]],shade);p(color,-15,y+3,107,17);p(light,-12,y+3,99,3);p('#c5aa70',89,y+5,14,12);for(let x=-3;x<85;x+=16){p('#25414e',x,y+7,10,8);p('#6d9097',x+1,y+8,8,2);}}
+  p('#1d3745',-77,-23,55,46);p('#637f87',-73,-20,47,40);p('#bbcbba',-69,-20,39,3);p('#244957',-57,-12,29,24);p('#82bbc3',-54,-9,21,18);p('#c4e0ca',-52,-9,17,2);
+  p('#1e3947',-12,-19,26,38);p('#799590',-9,-16,18,32);for(const y of[-11,1]){p('#a19375',-7,y,14,8);p('#d7be87',-5,y,10,2);}
+  for(const y of[-42,-24,18,36]){p('#193341',-107,y,10,9);p('#8eaaa6',-95,y+1,8,7);}
+  for(let y=-27;y<=24;y+=17){p('#506b74',-87,y,10,11);p('#9fb7ac',-86,y,8,2);}pixelLine(ctx,15,-21,78,-21,'#8da6a2',2);pixelLine(ctx,15,21,78,21,'#8da6a2',2);
  }else{
   polygon(ctx,[[-128,-42],[-104,-59],[-65,-64],[47,-48],[105,-24],[132,-5],[134,0],[132,5],[105,24],[47,48],[-65,64],[-104,59],[-128,42]],dark);
   polygon(ctx,[[-122,-38],[-100,-53],[-64,-59],[46,-43],[104,-20],[128,-3],[128,3],[104,20],[46,43],[-64,59],[-100,53],[-122,38]],shade);

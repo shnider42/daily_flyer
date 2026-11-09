@@ -79,13 +79,13 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       try {
         const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
-        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends')); ({ captain, passport } = await realm.createCaptain(body.name)); }
+        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends')); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,character:body.character})); }
         else {
           const code = normaliseRealmCode(body.realmCode || body.passport?.realmCode);
           if (!validRealmCode(code)) return json(response, 400, { ok: false, reason: 'Enter a valid invitation realm code.' });
           realm = await manager.get(code); if (!realm) return json(response, 404, { ok: false, reason: 'That realm code was not found.' });
           if (action === 'resume') { captain = realm.authenticate(body.passport); if (!captain) return json(response, 401, { ok: false, reason: 'This captain passport is not valid for the realm.' }); passport = { realmCode: code, captainId: captain.id, token: body.passport.token }; }
-          else if (action === 'join') ({ captain, passport } = await realm.createCaptain(body.name));
+          else if (action === 'join') ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,character:body.character}));
           else return json(response, 400, { ok: false, reason: 'Choose create, join, or resume.' });
         }
         if (!captain.session && realm.onlineCount >= MAX_ONLINE) return json(response, 409, { ok: false, reason: 'This realm already has ten online captains.' });

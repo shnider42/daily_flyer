@@ -47,17 +47,21 @@ export class WorldPresentation {
     const boarding = snapshot.state?.boarding;
     const actors = boarding?.phase === 'active' ? [...(boarding.enemies || []), ...(boarding.allies || [])] : [];
     const boardKey = boarding ? `${boarding.id}:${boarding.startedAt ?? ''}:${boarding.phase}` : '';
-    const frame = { time, enemies: poses(snapshot.world.enemies), traffic: poses(snapshot.world.traffic), boarders: poses(actors), boardKey };
+    const exploration = snapshot.state?.exploration;
+    const explorationKey = exploration?.key ? `${roomKey}:${exploration.key}` : '';
+    const explorationActors = explorationKey ? exploration.encounter?.monsters || [] : [];
+    const frame = { time, enemies: poses(snapshot.world.enemies), traffic: poses(snapshot.world.traffic), boarders: poses(actors), explorers: poses(explorationActors), boardKey, explorationKey };
     if (this.frames.at(-1)?.time === time) this.frames[this.frames.length - 1] = frame;
     else this.frames.push(frame);
     if (this.frames.length > 8) this.frames.shift();
-    this.latest = { world: snapshot.world, actors, boardKey, time };
+    this.latest = { world: snapshot.world, actors, boardKey, explorationActors, explorationKey, time };
     return true;
   }
 
   _pose(entity, kind, before, after, targetTime) {
-    if ((entity.health ?? entity.hp ?? 1) <= 0) return entity;
-    if (kind === 'boarders' && (before.boardKey !== this.latest.boardKey || after.boardKey !== this.latest.boardKey)) return entity;
+    if (entity.dead || (entity.health ?? entity.hp ?? 1) <= 0) return entity;
+    const scope = kind === 'boarders' ? 'boardKey' : kind === 'explorers' ? 'explorationKey' : null;
+    if (scope && (before[scope] !== this.latest[scope] || after[scope] !== this.latest[scope])) return entity;
     const left = before[kind].get(entity.id), right = after[kind].get(entity.id);
     if (!left || !right) return entity;
     if (Math.hypot(right.x - left.x, right.y - left.y) > this.teleportDistance) return entity;
@@ -65,22 +69,22 @@ export class WorldPresentation {
       const fraction = clamp((targetTime - before.time) / (after.time - before.time), 0, 1);
       const result = { ...entity, x: left.x + (right.x - left.x) * fraction, y: left.y + (right.y - left.y) * fraction };
       if (finite(left.angle) && finite(right.angle)) result.angle = left.angle + angleDelta(left.angle, right.angle) * fraction;
-      if (kind === 'boarders') Object.assign(result, velocity(right, left, (after.time - before.time) / 1000));
+      if (scope) Object.assign(result, velocity(right, left, (after.time - before.time) / 1000));
       return result;
     }
     const previousFrame = this.frames.length > 1 ? this.frames[this.frames.length - 2] : null;
     let previousPose = previousFrame?.[kind].get(entity.id);
-    if (previousPose && (Math.hypot(right.x - previousPose.x, right.y - previousPose.y) > this.teleportDistance || kind === 'boarders' && previousFrame.boardKey !== this.latest.boardKey)) previousPose = null;
+    if (previousPose && (Math.hypot(right.x - previousPose.x, right.y - previousPose.y) > this.teleportDistance || scope && previousFrame[scope] !== this.latest[scope])) previousPose = null;
     const seconds = clamp(targetTime - after.time, 0, this.maxExtrapolationMs) / 1000;
     const motion = velocity(right, previousPose, previousFrame ? (after.time - previousFrame.time) / 1000 : 0);
     const result = { ...entity, x: right.x + motion.vx * seconds, y: right.y + motion.vy * seconds };
     if (finite(right.angle)) result.angle = right.angle + (right.angularVelocity || 0) * seconds;
-    if (kind === 'boarders') Object.assign(result, motion);
+    if (scope) Object.assign(result, motion);
     return result;
   }
 
   sample(serverTime = Date.now()) {
-    if (!this.latest) return { world: null, boardingActors: [] };
+    if (!this.latest) return { world: null, boardingActors: [], explorationActors: [] };
     if (!finite(serverTime)) serverTime = this.latest.time;
     const targetTime = serverTime - this.delayMs;
     let before = this.frames[0], after = before;
@@ -99,7 +103,8 @@ export class WorldPresentation {
     }));
     return {
       world: { ...this.latest.world, enemies: interpolate(this.latest.world.enemies, 'enemies'), traffic: interpolate(this.latest.world.traffic, 'traffic'), bullets },
-      boardingActors: interpolate(this.latest.actors, 'boarders')
+      boardingActors: interpolate(this.latest.actors, 'boarders'),
+      explorationActors: interpolate(this.latest.explorationActors, 'explorers')
     };
   }
 }

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateSurface,isWalkable,movePerson,nearestEntity,drawSurface,repairSolution} from '../dist/surface.mjs';
 import {CABIN_CLASSES,cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
+import {getShipClass} from '../dist/fleet.mjs';
 import {SpaceRenderer,drawShip,SHIP_VISUALS} from '../dist/space-art.mjs';
 import {seededRandom} from '../dist/engine.mjs';
 
@@ -14,7 +15,7 @@ function flood(layout){
  return{parent,index};
 }
 
-for(const[classId,berths]of CABIN_CLASSES.map((c,i)=>[c,4+i*2]))test(`${classId}: cabins, crew and boarding use one reachable collision map`,()=>{
+for(const[classId,berths]of CABIN_CLASSES.map(c=>[c,getShipClass(c).berths]))test(`${classId}: cabins, crew and boarding use one reachable collision map`,()=>{
  const crew=Array.from({length:12},(_,i)=>({id:`crew-${i}`,name:`Crew ${i}`,role:i%2?'security':'engineer',health:100}));
  crew.unshift({id:'fallen',name:'Memorial',role:'engineer',health:0,status:'dead'});
  const location={id:'ship:shared',kind:'ship',shipClassId:classId,crew,bunkAssignments:{1:{captainId:'guest'}}},layout=cabinLayout(location),surface=generateSurface(location,'crew-check');

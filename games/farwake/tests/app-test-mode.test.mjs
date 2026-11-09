@@ -20,7 +20,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
 const appCode=names.map(declaration).join('\n');
 
 function classes() {

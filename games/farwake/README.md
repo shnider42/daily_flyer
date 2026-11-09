@@ -1,12 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.3.4 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.4.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
-You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
+You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Beyond the landing zone · 0.4.0
+
+Outdoor planet and moon surfaces are **108 × 80 tiles**, five times the previous 48 × 36 area. Landing zones, existing services, and story contacts retain their positions. Morrow adds six enterable sites connected by trails. Other worlds have seeded cave, shelter/igloo, and relay variants; barren moons have sparse landing areas instead of copied storefronts. Ship-mode body sizes are unchanged.
+
+Sites include hostile wildlife, readable environmental records, one-time supplies, persistent local choices, and intentionally empty rooms with sparse atmospheric sounds. The standard Pulse sidearm is explicitly introduced at entry. Desktop uses WASD to move, mouse/arrows to aim, and Click/Space to fire. Touch uses WALK plus AIM/FIRE. Entrances remain usable during combat. A field defeat returns the captain to the planetary landing zone at 35% vitality, costs 10% of credits, and leaves the ship parked where it was.
+
+Solo saves retain each site's creatures, recovered supplies, and decisions. Shared galaxies simulate an occupied site once for all captains there, with shared wounds and one-time rewards; separate sites remain independent. Server restarts and reconnects retain those records. Wildlife uses the same snapshot interpolation as boarding actors, with immediate damage/death feedback. The local chart draws directly from tile runs into a bounded 720px canvas instead of allocating an entire world raster.
+
+Five additional ship classes bring the fleet to nine. New solo and shared captains choose **Sparrow / Kestrel / Mule** at no cost. Later hulls offer surveying, escort, or industrial specializations, with matching exterior scale, cabin capacity, stations, handling, and progression requirements. New designs appear in appropriate traffic and hostile groups. Starting menus expose only the three choices; the shipyard introduces later designs when their progression requirements are met, and practice still limits opponents to the smaller half of hulls. Existing captains and owned fleets remain intact.
+
+Captain creation provides skin, suit, hair, and head-style choices plus up to two optional traits. Choosing none is valid. Trait benefits and drawbacks affect actual walking, vitality, sidearm damage/cooldown, mining rate, job pay, or port service costs. **Ship → Your captain** (also in Settings) edits appearance. Pre-0.4 captains get one optional trait-selection opportunity there; traits are fixed after confirmation, while appearance remains editable in a safe location. Appearance and traits are included in solo exports and shared captain persistence. Accepted contracts keep their agreed pay.
+
+Shipyard purchases, crew hiring, medical/port services, home/bunk costs, and paid story choices show cost alongside current funds/resources. Purchase cards show the remainder or exact shortfall. Funds and requirements are still checked by the authoritative rules when the action is performed.
 
 ## Wider default cameras · 0.3.4
 
@@ -73,11 +87,12 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Factions | Five, with persistent reputation and an authored alliance decision |
 | Encounters | 25 authored choice events, including conditional follow-ups |
 | Ship equipment | 16 upgrades, including three fold-drive tiers |
-| Fleet | Four earnable hull classes with distinct handling and 4 / 6 / 8 / 10-berth interiors |
+| Fleet | Nine hull classes, three included starter choices, and distinct 3–10-berth interiors |
 | Crew | Seven NPC specialist roles, shared human/NPC capacity, injuries, and persistent memorials |
 | Boarding | Assault disabled ships or defend your own deck against pirate boarders |
 | Lore | 14 collectible records, plus location descriptions and NPC conversations |
-| Local activities | Contract work, relay repairs, freight carrying, field samples, trade, and recruitment |
+| Local activities | Larger planetary maps, enterable caves and shelters, wildlife combat, persistent supplies and decisions, plus contract work, repairs, freight, surveys, trade and recruitment |
+| Captain | Appearance choices and six optional traits; choose up to two with explicit benefits and drawbacks |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
 The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 288 separate handcrafted campaigns. The main story and encounter text are authored in [dist/content.mjs](dist/content.mjs).

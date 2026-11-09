@@ -1,6 +1,6 @@
 /** Shared, DOM-free cabin geometry for rendering, server validation and boarding AI. */
 export const CABIN_TILE = 24;
-export const CABIN_CLASSES = ['sparrow','hauler','frigate','capital'];
+export const CABIN_CLASSES = ['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas'];
 const pt=(x,y)=>({x:(x+.5)*CABIN_TILE,y:(y+.5)*CABIN_TILE});
 const room=(id,name,x,y,w,h,color)=>({id,name,x,y,w,h,color});
 const fixture=(kind,x,y,w=1,h=1,color=null,solid=true)=>({kind,x,y,w,h,color,solid});
@@ -42,6 +42,27 @@ const definitions={
   fixtures:[fixture('bed',5,4,1,3,'#94c9b9'),fixture('bed',8,4,1,3,'#94c9b9'),fixture('bed',17,4,1,3,'#94c9b9'),fixture('cabinet',13,3,2,1,'#7ba49d'),fixture('console',24,3,10,1,'#628e9c'),fixture('armory',39,4,4,1,'#9c9183'),fixture('armory',49,4,4,1,'#9c9183'),fixture('table',39,8,3,1,'#897d67'),fixture('cargo',5,32,3,2,'#9e8c6d'),fixture('cargo',13,32,3,2,'#6c8c8d'),fixture('shuttle',5,35,7,3,'#98b8b7',false),fixture('engine',24,33,2,4,'#60969e'),fixture('engine',32,33,2,4,'#60969e'),fixture('table',39,32,4,1,'#9d8b6f'),fixture('table',47,32,4,1,'#9d8b6f'),fixture('books',52,35,1,3,'#8d9d8f'),fixture('plant',39,37,1,1,'#76a78b',false),fixture('window',24,2,10,1,null,false),fixture('window',4,2,15,1,null,false),fixture('window',38,2,15,1,null,false)]
  }
 };
+/** Working decks share construction rules, while dimensions and fittings follow the hull. */
+function specialistDeck({name,cols,rows,berths,workroom,workColor,fixtureKind}){
+ const mid=Math.floor(rows*.46),left=2,usable=cols-4,split1=left+Math.floor(usable/3),split2=left+Math.floor(usable*2/3),right=cols-2;
+ const upperHeight=mid-2,lowerY=mid+3,lowerHeight=rows-lowerY-2,qx=split1,qw=right-qx;
+ const center=(a,b)=>Math.floor((a+b)/2),engX=center(left,split1),navX=center(split1,split2),helmX=center(split2,right),medX=engX;
+ const bunkY=rows-4,bunkStep=Math.max(2,Math.floor((qw-7)/Math.max(1,berths-1))),bunks=Array.from({length:berths},(_,i)=>[qx+3+i*bunkStep,bunkY]);
+ const rooms=[room('engineering','DRIVE & SYSTEMS',left,2,split1-left,upperHeight,'#d9b47d'),room('work',workroom,split1,2,split2-split1,upperHeight,workColor),room('bridge','FLIGHT DECK',split2,2,right-split2,upperHeight,'#9bcbd0'),room('medical','MEDICAL & MESS',left,lowerY,split1-left,lowerHeight,'#8bc8b3'),room('quarters',`${berths} CREW BERTHS`,qx,lowerY,qw,lowerHeight,'#aab3d5')];
+ const doors=[...[[engX,mid-1],[navX,mid-1],[helmX,mid-1],[medX,lowerY],[center(qx,right),lowerY]].map(([x,y])=>({x,y,w:2,h:1}))];
+ const stations={helm:[helmX,6],engineering:[engX,mid-4],medical:[medX,lowerY+3],security:[Math.max(4,split2-1),mid+1],navigation:[navX,mid-4]};
+ const fixtures=[fixture('engine',left+2,4,1,Math.max(2,upperHeight-5),'#628c99'),fixture(fixtureKind,split1+2,3,Math.max(2,split2-split1-4),1,workColor),fixture('console',split2+2,3,Math.max(3,right-split2-4),1,'#648d96'),fixture('bed',left+2,lowerY+2,1,2,'#91c5b7'),fixture('table',left+2,rows-5,Math.max(2,split1-left-4),1,'#9a866b'),fixture('window',split2+2,2,Math.max(3,right-split2-4),1,null,false)];
+ if(cols>=38){fixtures.push(fixture('books',split1+2,5,1,2,workColor),fixture('equipment',right-4,8,1,2,'#879a99'));}
+ if(name==='Atlas'){fixtures.push(fixture('cargo',left+3,8,3,2,'#ad956e'),fixture('cargo',left+8,8,3,2,'#7f9c99'),fixture('shuttle',split1+3,6,7,3,'#a2b9ae',false));}
+ return{name,cols,rows,berths,rooms,corridors:[{x:2,y:mid,w:cols-4,h:3}],doors,stations,spawn:[Math.floor(cols/2),mid+1],bunks,breaches:[[2,mid+1],[cols-3,mid+1]],combatSpawns:[[3,mid],[3,mid+2],[cols-4,mid],[cols-4,mid+2]],crewSpawns:Array.from({length:9},(_,i)=>[4+i*2,mid+1]),archive:[qx+2,lowerY+2],manifest:[qx+2,lowerY+3],fixtures};
+}
+Object.assign(definitions,{
+ kestrel:specialistDeck({name:'Kestrel',cols:28,rows:22,berths:3,workroom:'CHART ROOM',workColor:'#89bdc8',fixtureKind:'console'}),
+ mule:specialistDeck({name:'Mule',cols:34,rows:28,berths:4,workroom:'SALVAGE BENCH',workColor:'#d4b47e',fixtureKind:'workbench'}),
+ petrel:specialistDeck({name:'Petrel',cols:38,rows:32,berths:6,workroom:'SURVEY LAB',workColor:'#90c7b5',fixtureKind:'equipment'}),
+ marten:specialistDeck({name:'Marten',cols:42,rows:32,berths:6,workroom:'READY ROOM',workColor:'#d8a590',fixtureKind:'armory'}),
+ atlas:specialistDeck({name:'Atlas',cols:56,rows:38,berths:10,workroom:'SALVAGE CONTROL',workColor:'#cfbd8a',fixtureKind:'console'})
+});
 export function resolveCabinClass(value='sparrow'){
  const key=typeof value==='object'?value.shipClassId||value.shipClass||value.classId||value.id:value;
  return CABIN_CLASSES.includes(key)?key:'sparrow';

@@ -27,9 +27,12 @@
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from './combat.mjs';
+import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
+import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
+import { ExpeditionRules } from './expedition-rules.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const WORLD_RADIUS = 2700;
 export const TAU = Math.PI * 2;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -44,6 +47,8 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const unique = list => [...new Set(Array.isArray(list) ? list : [])];
 const factionIds = () => FACTIONS.map(x => x.id);
+// Keep port availability aligned with the uninhabited surface generator.
+const hasPortServices = body => !!body && !(['moon', 'asteroid'].includes(body.kind) && /barren|rock|dust/.test(String(body.biome)));
 const cabinCache=new Map();
 const combatLayout=id=>{if(!cabinCache.has(id))cabinCache.set(id,cabinLayout(id));return cabinCache.get(id);};
 const facingOf=(dx,dy)=>Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
@@ -122,26 +127,27 @@ export function buildGalaxy(seed = 'farwake') {
   return systems;
 }
 
-function initialState(seed) {
+function initialState(seed, options = {}) {
+  const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
   return {
     version: SAVE_VERSION, seed: String(seed || 'farwake'), mode: 'ship', systemId: 'hearth', locationId: null,
-    credits: 180, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
+    credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [],
-    crew: [], formerCrew: [], memorial: [], fleet:{owned:['sparrow'],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
+    crew: [], formerCrew: [], memorial: [], fleet:{owned:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
-    ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:'sparrow', humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1 },
+    ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
     person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, weaponDrawn: false },
     rng: hash(`${seed}:runtime`), nextEncounterAt: 95, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
 }
 
 export class Game {
-  constructor(seedOrSave = 'farwake') {
+  constructor(seedOrSave = 'farwake', options = {}) {
     let supplied = seedOrSave;
     if (typeof supplied === 'string' && supplied.trim().startsWith('{')) supplied = JSON.parse(supplied);
     if (supplied?.state) supplied = supplied.state;
     const isSave = supplied && typeof supplied === 'object';
-    const fresh = initialState(isSave ? supplied.seed : supplied);
+    const fresh = initialState(isSave ? supplied.seed : supplied, isSave ? {} : options);
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
     this.galaxy = buildGalaxy(this.state.seed);
     if (!this.galaxy.some(s => s.id === this.state.systemId)) this.state.systemId = 'hearth';
@@ -151,13 +157,17 @@ export class Game {
     this._mineTimer = 0;
     this._recoveryTimer = 0;
     this._runtime = null;
+    this._updateCharacter();
+    if(!isSave)this.state.person.health=this.state.person.maxHealth;
     this._updateStats(false);
     this._loadSystem(this.state.systemId);
     this._restoreBoardingDeck();
+    this._restoreExploration();
     if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
     if (this.state.mode === 'person' && !this.state.interior && !this.system.bodies.some(b => b.id === this.state.locationId)) {
       this.state.mode = 'ship'; this.state.locationId = null;
     }
+    if (isSave) this._relocateLegacyJobs();
     if (!isSave) {
       this._log('A ship of your own', 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
       this._flag('started');
@@ -170,6 +180,7 @@ export class Game {
   get system() { return this._runtime; }
   get currentSystem() { return this.galaxy.find(s => s.id === this.state.systemId); }
   get currentBody() { return this.state.interior?.location || this.system.bodies.find(b => b.id === this.state.locationId) || null; }
+  get atInhabitedPort() { return this.state.mode === 'person' && !this.state.interior && hasPortServices(this.currentBody); }
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
   get chapter() { return STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
   get activeChapter() { return this.chapter; }
@@ -178,6 +189,7 @@ export class Game {
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
   get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))); }
   get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
+  get characterEffects() { return characterModifiers(this.state.character); }
   get hasHyperdrive() { return Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0; }
 
   _restore(fresh, raw) {
@@ -185,6 +197,10 @@ export class Game {
     s.seed = String(raw.seed || fresh.seed);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
     s.ship = { ...fresh.ship, ...(raw.ship || {}) };
+    s.character = normalizeCharacter(raw.character);
+    s.characterLocked = raw.characterLocked === true;
+    s.explorationRecords = raw.explorationRecords && typeof raw.explorationRecords === 'object' && !Array.isArray(raw.explorationRecords) ? clone(raw.explorationRecords) : {};
+    s.exploration = raw.exploration && typeof raw.exploration === 'object' ? clone(raw.exploration) : null;
     s.person = { ...fresh.person, ...(raw.person || {}) };ensureSidearm(s.person);s.person.weaponDrawn=s.mode==='person'&&s.boarding?.phase==='active';
     s.stats = { ...fresh.stats, ...(raw.stats || {}) };
     s.cargo = { ore: Math.max(0, Math.floor(finite(raw.cargo?.ore))), crystal: Math.max(0, Math.floor(finite(raw.cargo?.crystal))) };
@@ -195,7 +211,7 @@ export class Game {
     for (const name of ['missions', 'journal', 'crew', 'formerCrew', 'memorial', 'boardingHistory']) s[name] = Array.isArray(raw[name]) ? clone(raw[name]) : [];
     s.ship.classId = getShipClass(s.ship.classId).id;
     s.ship.humanOccupants = clamp(Math.floor(finite(s.ship.humanOccupants,1)),1,10);
-    s.fleet = { owned:unique(['sparrow',s.ship.classId,...(Array.isArray(raw.fleet?.owned)?raw.fleet.owned:[])]).filter(id=>SHIP_CLASSES.some(c=>c.id===id)), history:Array.isArray(raw.fleet?.history)?clone(raw.fleet.history):[] };
+    s.fleet = { owned:unique([s.ship.classId,...(Array.isArray(raw.fleet?.owned)?raw.fleet.owned:['sparrow'])]).filter(id=>SHIP_CLASSES.some(c=>c.id===id)), history:Array.isArray(raw.fleet?.history)?clone(raw.fleet.history):[] };
     s.crew=s.crew.map((crew,index)=>{
       const maxHealth=Math.max(1,finite(crew.maxHealth,CREW_ROLES[crew.role]?.health||100));
       const health=clamp(finite(crew.health,crew.status==='dead'?0:maxHealth),0,maxHealth);
@@ -206,9 +222,30 @@ export class Game {
     s.worlds = raw.worlds && typeof raw.worlds === 'object' ? clone(raw.worlds) : {};
     s.rng = finite(s.rng, fresh.rng) >>> 0;
     for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
-    s.person.health = clamp(finite(s.person.health, 100), s.person.down ? 0 : 1, 100);
+    s.person.health = clamp(finite(s.person.health, 100), s.person.down ? 0 : 1, Math.round(100 * characterModifiers(s.character).maxHealth));
     if (s.pendingEncounter && !ENCOUNTERS.some(e => e.id === s.pendingEncounter.id)) s.pendingEncounter = null;
     return s;
+  }
+
+  _updateCharacter() {
+    this.state.character = normalizeCharacter(this.state.character);
+    const person = this.state.person, effects = this.characterEffects;
+    person.maxHealth = Math.round(100 * effects.maxHealth);
+    person.health = clamp(finite(person.health, person.maxHealth), person.down ? 0 : 1, person.maxHealth);
+    person.appearance = { ...this.state.character.appearance };
+    person.speed = 112 * effects.walkSpeed;
+  }
+  customizeCharacter({appearance, traits, chooseTraits = false} = {}) {
+    if(this.state.person.health <= 0 || this.state.boarding?.phase === 'active' || this.state.exploration) return this._fail('Find a safe place before changing your captain.', 'combat');
+    if(chooseTraits && this.state.characterLocked) return this._fail('Your traits are already part of this captain. Appearance can still change.', 'locked');
+    const fraction = this.state.person.health / (this.state.person.maxHealth || 100);
+    const next = normalizeCharacter({ appearance: appearance === undefined ? this.state.character.appearance : normalizeAppearance(appearance), traits: chooseTraits ? traits : this.state.character.traits });
+    this.state.character = next;
+    if(chooseTraits) this.state.characterLocked = true;
+    this._updateCharacter();
+    this.state.person.health = Math.max(1, Math.min(this.state.person.maxHealth, fraction * this.state.person.maxHealth));
+    this._event('captain-customized', {text: chooseTraits ? 'Captain traits recorded. Your appearance can be changed any time you are safe.' : 'Captain appearance updated.'});
+    return this._ok({character:clone(next), characterLocked:this.state.characterLocked});
   }
 
   _rand() {
@@ -273,6 +310,13 @@ export class Game {
       else if (record.asteroidHealth[rock.id] !== undefined) rock.hp = record.asteroidHealth[rock.id];
       asteroids.push(rock);
     }
+    // Hull choice uses its own stable hash so adding designs cannot move the
+    // existing rocks, signals or traffic. Saved/captured ships keep their class.
+    const hullFor=(entityId,civilian=false)=>{
+      const tier=data.danger||1;
+      const pool=civilian?(tier>=4?['hauler','petrel','atlas','mule']:tier>=2?['hauler','petrel','mule','kestrel']:['sparrow','kestrel','mule']):(tier>=5?['marten','hauler','frigate']:tier>=3?['hauler','marten','mule']:['sparrow','kestrel']);
+      return pool[hash(`${this.state.seed}:${id}:${entityId}:hull`)%pool.length];
+    };
     const enemies = [];
     const count = id === 'hearth' ? 2 : 1 + data.danger;
     for (let i = 0; i < count; i++) {
@@ -288,10 +332,10 @@ export class Game {
       if (record.enemyHealth[enemy.id] !== undefined) enemy.hp = record.enemyHealth[enemy.id];
       Object.assign(enemy,record.enemyStates[enemy.id]||{});
       enemy.disabled=enemy.hp>0&&(enemy.disabled||enemy.hp<=enemy.maxHp*.4);
-      Object.assign(enemy,enemyHullProfile(record.enemyStates[enemy.id]?.classId|| (data.danger>=3?'hauler':'sparrow')));
+      Object.assign(enemy,enemyHullProfile(record.enemyStates[enemy.id]?.classId||hullFor(enemy.id)));
       if (!record.defeated.includes(enemy.id)) enemies.push(enemy);
     }
-    for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e,...(record.enemyStates[e.id]||{}),...enemyHullProfile(record.enemyStates[e.id]?.classId||e.classId|| (data.danger>=3?'hauler':'sparrow')), hp: record.enemyHealth[e.id] ?? e.hp });
+    for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e,...(record.enemyStates[e.id]||{}),...enemyHullProfile(record.enemyStates[e.id]?.classId||e.classId||hullFor(e.id)), hp: record.enemyHealth[e.id] ?? e.hp });
     const signals = [];
     const tags = ['distress', 'derelict', 'anomaly', 'survey', 'beacon'];
     for (let i = 0; i < 7; i++) {
@@ -305,7 +349,7 @@ export class Game {
       const moon = bodies.find(b => b.id === 'tinbell');
       if (moon) signals.unshift({id:'hearth:story:tinbell',kind:'story',name:'Tinbell evacuation beacon',x:moon.x+moon.radius+165,y:moon.y+85,radius:24,story:true,resolved:record.resolved.includes('hearth:story:tinbell'),scanned:record.scanned.includes('hearth:story:tinbell')});
     }
-    const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, radius: 12 }));
+    const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, ...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true)) }));
     this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     record.visits = (record.visits || 0) + 1;
   }
@@ -369,6 +413,7 @@ export class Game {
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
+    if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
     const operate=this.state.mode==='ship'||(options.operateShip && this.state.interior?.kind==='ship');
     if(!operate){sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
     const flight=normaliseFlightInput(input),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
@@ -423,12 +468,12 @@ export class Game {
   medicalFromStation(patients = [this]) {
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
     if(this._crewHealTimer>0)return this._fail('The medical station is preparing the next treatment.','cooldown');
-    const people=(Array.isArray(patients)?patients:[this]).filter(g=>g?.state?.person?.health>0&&g.state.person.health<100);
+    const people=(Array.isArray(patients)?patients:[this]).filter(g=>g?.state?.person?.health>0&&g.state.person.health<(g.state.person.maxHealth||100));
     const crew=this.livingCrew.filter(c=>c.health<c.maxHealth);
     if(!people.length&&!crew.length)return this._fail('Everyone aboard is already healthy.','full');
     if(this.state.ship.energy<15)return this._fail('The medical station needs 15 reactor charge.','energy');
     this.state.ship.energy-=15;this._crewHealTimer=6;
-    for(const g of people)g.state.person.health=Math.min(100,g.state.person.health+12);
+    for(const g of people)g.state.person.health=Math.min(g.state.person.maxHealth||100,g.state.person.health+12);
     for(const c of crew){c.health=Math.min(c.maxHealth,c.health+8);c.status=c.health===c.maxHealth?'active':'injured';}
     if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
     this._event('service',{text:'Medical treatment restored vitality to the injured crew.'});
@@ -459,7 +504,7 @@ export class Game {
     this.system.miningTarget = target.id;
     this.system.mining = { x1: sh.x, y1: sh.y, x2: target.x, y2: target.y, targetId: target.id, ownerId:this.playerId };
     this.system.miningBeams ||= {};this.system.miningBeams[this.playerId]=this.system.mining;
-    target.hp -= dt * 10 * (sh.mining || 1);
+    target.hp -= dt * 10 * (sh.mining || 1) * this.characterEffects.mining;
     this._record().asteroidHealth[target.id] = Math.max(0, target.hp);
     if (target.hp <= 0) {
       target.hp = 0;
@@ -856,7 +901,7 @@ export class Game {
     }
     this.state.ship.fuel = clamp(this.state.ship.fuel + finite(effect.fuel), 0, this.state.ship.maxFuel);
     this.state.ship.hull = clamp(this.state.ship.hull + finite(effect.hull), 1, this.state.ship.maxHull);
-    this.state.person.health = clamp(this.state.person.health + finite(effect.health), 1, 100);
+    this.state.person.health = clamp(this.state.person.health + finite(effect.health), 1, this.state.person.maxHealth || 100);
     for (const [id, amount] of Object.entries(effect.rep || {})) if (id in this.state.rep) this.state.rep[id] = clamp(this.state.rep[id] + finite(amount), -100, 100);
     for (const flag of effect.flags || []) this._flag(flag);
     for (const lore of effect.lore || []) if (!this.state.knownLore.includes(lore)) this.state.knownLore.push(lore);
@@ -898,7 +943,7 @@ export class Game {
     const base={shipClass,owned:this.state.fleet.owned.includes(id),active:this.state.ship.classId===id};
     if(base.active)return {...this._fail('This is your active hull.','owned'),...base};
     if(base.owned){const fit=this._canActivateClass(shipClass);return fit.ok?this._ok(base):{...fit,...base};}
-    if(shipClass.requiresClass&&!this.state.fleet.owned.includes(shipClass.requiresClass))return {...this._fail(`First commission a ${getShipClass(shipClass.requiresClass).name}.`,'prerequisite'),...base};
+    if(shipClass.requiresClass&&!this.state.fleet.owned.includes(shipClass.requiresClass)&&!(shipClass.requiresClass==='sparrow'&&this.state.fleet.owned.some(id=>STARTER_SHIP_IDS.includes(id))))return {...this._fail(`First commission a ${getShipClass(shipClass.requiresClass).name}.`,'prerequisite'),...base};
     if(shipClass.requires?.some(key=>!this.state.upgrades[key]))return {...this._fail(`Requires ${shipClass.requires.map(key=>UPGRADES.find(u=>u.id===key)?.name||key).join(', ')}.`,'prerequisite'),...base};
     if(!this.conditionsMet(shipClass.conditions))return {...this._fail('Continue the Quiet Earth expedition before this yard will commission that hull.','story'),...base};
     if(this.state.credits<shipClass.cost||this.state.cargo.ore<shipClass.ore)return {...this._fail(`Commissioning needs ${shipClass.cost} credits and ${shipClass.ore} ore.`,'cost'),...base};
@@ -920,7 +965,7 @@ export class Game {
     return this._ok({shipClass:this.shipClass});
   }
   buyShip(id) {
-    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Commission a new hull at an inhabited port.','mode');
+    if(!this.atInhabitedPort)return this._fail('Commission a new hull at an inhabited port.','mode');
     const info=this.classInfo(id);if(info.owned)return {...this._fail('This hull is already in your fleet.','owned'),shipClass:info.shipClass,owned:true};if(!info.ok)return info;
     const capacity=this._canActivateClass(info.shipClass);if(!capacity.ok)return capacity;
     this.state.credits-=info.shipClass.cost;this.state.cargo.ore-=info.shipClass.ore;
@@ -929,7 +974,7 @@ export class Game {
     this._refreshJobs();return result;
   }
   selectShip(id) {
-    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Change hulls at an inhabited port.','mode');
+    if(!this.atInhabitedPort)return this._fail('Change hulls at an inhabited port.','mode');
     if(!this.state.fleet.owned.includes(id))return this._fail('This hull is not in your fleet.','owned');
     if(this.state.ship.classId===id)return this._fail('This hull is already active.','same-class');
     const capacity=this._canActivateClass(getShipClass(id));if(!capacity.ok)return capacity;
@@ -968,6 +1013,7 @@ export class Game {
     return this._ok({body:location});
   }
   _leaveInterior() {
+    if(this.state.interior?.kind === 'site') return this.exitSite();
     if (!this.state.interior) return this._fail('No interior to leave.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
     if(this.state.boarding?.phase==='active')return this._fail('Clear the boarders or retreat through the airlock first.','boarding');
@@ -982,7 +1028,7 @@ export class Game {
     return this._ok({body:interior.location});
   }
   recruitCrew(role, identity = {}) {
-    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Meet potential crew at an inhabited port.','mode');
+    if(!this.atInhabitedPort)return this._fail('Meet potential crew at an inhabited port.','mode');
     const definition=CREW_ROLES[role];if(!definition)return this._fail('Unknown crew role.','target');
     const details=typeof identity==='string'?{id:identity,name:identity}:identity||{};
     if(!details.id&&this.livingCrew.some(c=>c.role===role))return this._fail('This specialist role is already filled.','duplicate');
@@ -1001,7 +1047,7 @@ export class Game {
   }
 
   dismissCrew(id) {
-    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Crew can disembark safely at an inhabited port.','mode');
+    if(!this.atInhabitedPort)return this._fail('Crew can disembark safely at an inhabited port.','mode');
     const crew=this.state.crew.find(c=>c.id===id&&c.health>0);if(!crew)return this._fail('This crew member is not aboard.','target');
     if(crew.role==='quartermaster'&&this.cargoUsed>this.state.ship.cargoCap-8)return this._fail('Unload cargo before releasing your quartermaster’s storage arrangements.','cargo');
     this.state.formerCrew.push({...clone(crew),status:'released',departedAt:this.state.stats.time,systemId:this.state.systemId,locationId:this.state.locationId});
@@ -1156,14 +1202,15 @@ export class Game {
       if(!input.aiming)aimingInput={...input,aiming:true,aimX:chosen.x-person.x,aimY:chosen.y-person.y};
     }
     const aim=sidearmAim(person,candidates,aimingInput,layout),target=aim.target;
-    attacker._boardingShotTimer=SIDEARM.cooldown;person.weaponDrawn=true;person.weaponReadyAt=this.state.stats.time+SIDEARM.cooldown;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;
-    const shot=this._personShot(person,aim,{attackerId:attacker.playerId,actorName:attacker._playerName|| (attacker.playerId==='local'?'You':'Captain'),team:'player'});
+    const effects=attacker.characterEffects, damage=SIDEARM.damage*effects.sidearmDamage, cooldown=SIDEARM.cooldown*effects.sidearmCooldown;
+    attacker._boardingShotTimer=cooldown;person.weaponDrawn=true;person.weaponReadyAt=this.state.stats.time+cooldown;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;
+    const shot=this._personShot(person,aim,{attackerId:attacker.playerId,actorName:attacker._playerName|| (attacker.playerId==='local'?'You':'Captain'),team:'player',damage});
     attacker.state.stats.personShots=(attacker.state.stats.personShots||0)+1;
-    if(target){target.health=Math.max(0,target.health-SIDEARM.damage);this._personHit(target,shot);attacker.state.stats.personHits=(attacker.state.stats.personHits||0)+1;
+    if(target){target.health=Math.max(0,target.health-damage);this._personHit(target,shot);attacker.state.stats.personHits=(attacker.state.stats.personHits||0)+1;
       if(target.health<=0){this._boarderDown(target,shot);attacker.state.stats.personKills=(attacker.state.stats.personKills||0)+1;}
     }
     if(boarding.enemies.every(e=>e.health<=0))this._finishBoarding('won');
-    return this._ok({shot,targetId:target?.id||null,damage:target?SIDEARM.damage:0,health:target?.health??null,hit:!!target});
+    return this._ok({shot,targetId:target?.id||null,damage:target?damage:0,health:target?.health??null,hit:!!target});
   }
   repelBoarders(enemyId = null, attacker = this) {return this.attackBoarder(enemyId,attacker);}
 
@@ -1283,7 +1330,7 @@ export class Game {
       if(distance(hostile,target)>116||!clearInteriorShot(layout,hostile,target))this._advanceBoardingActor(hostile,target,layout,dt);
       else if(!hostile.cooldown){
         hostile.cooldown=1.05;const shot=this._actorShot(hostile,target);
-        if(target.game){const person=target.game.state.person;person.health=Math.max(0,person.health-hostile.damage);person.hitUntil=this.state.stats.time+.24;this._personHit(target,shot,person.health,100);if(person.health<=0){person.down=true;target.game._event('person-down',{...shot,id:shot.id+':down',targetId:target.id,targetName:target.name,boardingId:boarding.id,text:`${hostile.name} downed you. Your crew can still clear the deck.`});}}
+        if(target.game){const person=target.game.state.person;person.health=Math.max(0,person.health-hostile.damage);person.hitUntil=this.state.stats.time+.24;this._personHit(target,shot,person.health,person.maxHealth||100);if(person.health<=0){person.down=true;target.game._event('person-down',{...shot,id:shot.id+':down',targetId:target.id,targetName:target.name,boardingId:boarding.id,text:`${hostile.name} downed you. Your crew can still clear the deck.`});}}
         else{this._damageCrew(target.crewId,hostile.damage,`Boarding action against ${this.system.enemies.find(e=>e.id===boarding.targetId)?.name||'pirates'}`,shot);this._personHit(target,shot);}
       }
     }
@@ -1291,9 +1338,9 @@ export class Game {
       const crew=this.state.crew.find(c=>c.id===ally.crewId);if(!crew||crew.health<=0)continue;
       ally.health=crew.health;ally.cooldown=Math.max(0,(ally.cooldown||0)-dt);ally.healTimer=Math.max(0,(ally.healTimer||0)-dt);
       if(ally.role==='medic'&&!ally.healTimer){
-        const injured=[...people.filter(p=>p.game.state.person.health>0&&p.game.state.person.health<100),...boarding.allies.filter(a=>a.health>0&&a.health<a.maxHealth)];
+        const injured=[...people.filter(p=>p.game.state.person.health>0&&p.game.state.person.health<(p.game.state.person.maxHealth||100)),...boarding.allies.filter(a=>a.health>0&&a.health<a.maxHealth)];
         const patient=injured.find(a=>distance(a,ally)<88&&clearInteriorShot(layout,ally,a));
-        if(patient){if(patient.game)patient.game.state.person.health=Math.min(100,patient.game.state.person.health+7);else{const c=this.state.crew.find(c=>c.id===patient.crewId);if(c)c.health=Math.min(c.maxHealth,c.health+7);}ally.healTimer=2;}
+        if(patient){if(patient.game)patient.game.state.person.health=Math.min(patient.game.state.person.maxHealth||100,patient.game.state.person.health+7);else{const c=this.state.crew.find(c=>c.id===patient.crewId);if(c)c.health=Math.min(c.maxHealth,c.health+7);}ally.healTimer=2;}
       }
       const target=boarding.enemies.filter(e=>e.health>0).sort((a,b)=>distance(a,ally)-distance(b,ally))[0];if(!target)continue;
       if(distance(ally,target)>150||!clearInteriorShot(layout,ally,target))this._advanceBoardingActor(ally,target,layout,dt);
@@ -1368,7 +1415,7 @@ export class Game {
   }
 
   healCrew(id) {
-    if(this.state.mode!=='person'||this.state.interior||!this.currentBody)return this._fail('Crew treatment is available at port infirmaries.','mode');
+    if(!this.atInhabitedPort)return this._fail('Crew treatment is available at port infirmaries.','mode');
     const crew=this.state.crew.find(c=>c.id===id);
     if(!crew||crew.health<=0)return this._fail('This crew member cannot receive treatment.','target');
     const cost=Math.ceil((crew.maxHealth-crew.health)*.4);
@@ -1430,12 +1477,38 @@ export class Game {
     return this._ok({ first });
   }
 
+  _relocateLegacyJobs() {
+    for (const mission of this.state.missions) {
+      if (mission.status === 'completed' || this.state.completedJobs.includes(mission.id)) continue;
+      const targetSystem = this.galaxy.find(system => system.id === mission.targetSystem);
+      const formerBody = targetSystem?.bodies.find(body => body.id === mission.targetBody);
+      if (!formerBody || hasPortServices(formerBody)) continue;
+      const originSystem = this.galaxy.find(system => system.id === mission.originSystem);
+      const originBody = originSystem?.bodies.find(body => body.id === mission.originBody && hasPortServices(body));
+      const destinationSystem = originBody ? originSystem : targetSystem;
+      const destination = originBody || destinationSystem.bodies.find(hasPortServices);
+      if (!destination) continue;
+      mission.relocatedFrom = { systemId: targetSystem.id, bodyId: formerBody.id };
+      mission.targetSystem = destinationSystem.id;
+      mission.targetBody = destination.id;
+      if (mission.type === 'delivery') {
+        mission.title = `A parcel for ${destination.name}`;
+        mission.description = `Carry the sealed medicine parcel to ${destination.name}. Its contract exchange now handles the ${formerBody.name} handoff.`;
+      } else if (mission.type === 'work') {
+        mission.description = `Complete any remaining service panels at ${destination.name}, then return to its contract exchange. Your recorded work carries over.`;
+      } else {
+        mission.description = `${mission.description || 'Complete the recorded contract requirements.'} Payment has moved from ${formerBody.name} to ${destination.name}.`;
+      }
+      this._log('Contract exchange moved', `${mission.title}: ${formerBody.name} no longer has a staffed exchange. Finish this contract at ${destination.name}. Your agreed ${mission.reward} credits and recorded work are unchanged.`, 'job');
+    }
+  }
+
   availableJobs(bodyId = this.state.locationId || this.state.lastBodyId) {
     const body = this.system.bodies.find(b => b.id === bodyId);
-    if (!body) return [];
+    if (!hasPortServices(body)) return [];
     const epoch = Math.floor(this.state.stats.jobs / 4);
     const root = `${this.state.systemId}:${bodyId}:jobs:${epoch}`;
-    const otherBody = this.system.bodies.find(b => b.id !== bodyId) || body;
+    const otherBody = this.system.bodies.find(b => b.id !== bodyId && hasPortServices(b)) || body;
     const definitions = [
       { id: `${root}:work`, type: 'work', title: 'An honest shift', description: 'Repair three service panels on foot, then return to the job board.', goal: 3, reward: 120, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'tool' },
       { id: `${root}:delivery`, type: 'delivery', title: `A parcel for ${otherBody.name}`, description: `Carry a sealed medicine parcel to ${otherBody.name}. Hand it in at the local job board.`, goal: 1, reward: 145, oreCost: 0, targetBody: otherBody.id, targetSystem: this.state.systemId, faction: 'lantern', icon: 'parcel' },
@@ -1445,11 +1518,11 @@ export class Game {
     ];
     return definitions.map(d => {
       const mission = this.state.missions.find(m => m.id === d.id);
-      return { ...d, originBody: bodyId, originSystem: this.state.systemId, status: this.state.completedJobs.includes(d.id) ? 'completed' : mission?.status || 'available', progress: mission?.progress || 0 };
+      return { ...d, reward:mission?.reward ?? Math.round(d.reward*this.characterEffects.jobRewards), originBody: bodyId, originSystem: this.state.systemId, status: this.state.completedJobs.includes(d.id) ? 'completed' : mission?.status || 'available', progress: mission?.progress || 0 };
     });
   }
   acceptJob(id) {
-    if (this.state.mode !== 'person' || this.state.interior || !this.currentBody) return this._fail('Land and visit a job board to take work.', 'mode');
+    if (!this.atInhabitedPort) return this._fail('Visit a job board at an inhabited port to take work.', 'mode');
     if (this.state.missions.some(m => m.id === id) || this.state.completedJobs.includes(id)) return this._fail('You already took this contract.', 'duplicate');
     if (this.state.missions.filter(m => m.status !== 'completed').length >= 6) return this._fail('Your log can hold six active contracts.', 'capacity');
     const job = this.availableJobs().find(j => j.id === id && j.status === 'available');
@@ -1494,7 +1567,7 @@ export class Game {
     return this._ok({ progressed, jobs: matching, ready: matching.filter(m => m.status === 'ready') });
   }
   turnInJob(id) {
-    if (this.state.mode !== 'person' || this.state.interior || !this.currentBody) return this._fail('Visit the destination job board to collect payment.', 'mode');
+    if (!this.atInhabitedPort) return this._fail('Visit the destination job board at an inhabited port to collect payment.', 'mode');
     const m = this.state.missions.find(job => job.id === id);
     if (!m || m.status === 'completed' || this.state.completedJobs.includes(id)) return this._fail('This contract has already been paid or is not active.', 'duplicate');
     this._refreshJobs();
@@ -1539,7 +1612,7 @@ export class Game {
     return this._ok({ upgrade: u });
   }
   buyUpgrade(id) {
-    if (this.state.mode !== 'person' || this.state.interior) return this._fail('Land and visit the outfitter to fit an upgrade.', 'mode');
+    if (!this.atInhabitedPort) return this._fail('Visit an inhabited port outfitter to fit an upgrade.', 'mode');
     const info = this.upgradeInfo(id);
     if (!info.ok) return info;
     const u = info.upgrade;
@@ -1559,10 +1632,10 @@ export class Game {
   }
 
   serviceQuote(action) {
-    const sh = this.state.ship;
-    if (action === 'repair') return { action, cost: Math.ceil(Math.max(0, sh.maxHull - sh.hull) * 0.65), label: 'Repair hull' };
-    if (action === 'refuel') return { action, cost: Math.ceil(Math.max(0, sh.maxFuel - sh.fuel) * 2), label: 'Fill fuel tanks' };
-    if (action === 'rest') return { action, cost: Math.ceil((100 - this.state.person.health) * 0.25), label: 'Visit the infirmary' };
+    const sh = this.state.ship, rate=this.characterEffects.serviceCost;
+    if (action === 'repair') return { action, cost: Math.ceil(Math.max(0, sh.maxHull - sh.hull) * 0.65 * rate), label: 'Repair hull' };
+    if (action === 'refuel') return { action, cost: Math.ceil(Math.max(0, sh.maxFuel - sh.fuel) * 2 * rate), label: 'Fill fuel tanks' };
+    if (action === 'rest') return { action, cost: Math.ceil(Math.max(0,(this.state.person.maxHealth||100) - this.state.person.health) * 0.25 * rate), label: 'Visit the infirmary' };
     if (action === 'sell' || action === 'sellOre' || action === 'sellCrystal') {
       const ore = action === 'sellCrystal' ? 0 : this.state.cargo.ore;
       const crystal = action === 'sellOre' ? 0 : this.state.cargo.crystal;
@@ -1573,7 +1646,7 @@ export class Game {
     return null;
   }
   service(action) {
-    if (this.state.mode !== 'person' || this.state.interior) return this._fail('Port services are available after landing.', 'mode');
+    if (!this.atInhabitedPort) return this._fail('Services and trading are available at inhabited ports.', 'mode');
     const quote = this.serviceQuote(action);
     if (!quote) return this._fail('Unknown port service.', 'target');
     if (quote.cost > this.state.credits) return this._fail(`This service costs ${quote.cost} credits.`, 'cost');
@@ -1601,7 +1674,7 @@ export class Game {
     this.state.credits -= quote.cost;
     if (action === 'repair') sh.hull = sh.maxHull;
     if (action === 'refuel') sh.fuel = sh.maxFuel;
-    if (action === 'rest') this.state.person.health = 100;
+    if (action === 'rest') this.state.person.health = this.state.person.maxHealth || 100;
     this._event('service', { text: `${quote.label} · −${quote.cost} cr` });
     return this._ok({ cost: quote.cost, text: quote.label });
   }
@@ -1632,4 +1705,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
+Object.assign(Game.prototype, ExpeditionRules);
 export default Game;

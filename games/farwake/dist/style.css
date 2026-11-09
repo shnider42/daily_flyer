@@ -23,3 +23,16 @@
 @media(max-height:650px) and (min-width:801px){.combat-panel{bottom:112px;padding:10px;width:290px}.combat-controls{margin:5px 0}.combat-count{margin:5px 0}.combat-panel>button{min-height:28px;margin-top:4px}.combat-active .objective-card{display:none}.welcome-content{max-height:calc(100% - 16px);overflow:auto}.test-mode-link{margin-top:.35rem}}
 
 @media(min-width:801px){.combat-active .toast-stack{left:24px;right:auto;bottom:145px;max-width:360px}}
+
+/* Purchases keep the price, available funds and remainder together. */
+.purchase-cost{display:flex;flex-direction:column;gap:.3em;line-height:1.45;font-size:1rem;margin:.25rem 0 .65rem;min-width:0;white-space:normal}
+.purchase-cost strong{color:var(--gold,#e0c58c);font-weight:600}
+.purchase-cost span{color:var(--ink,#d1dbd5)}
+.purchase-cost small{font-size:.94em;color:#9fbead}
+.purchase-cost.shortfall small{color:#e6ac8b}
+.surface-map-wrap{background:#0a1924;border:1px solid #395660;border-radius:8px;overflow:hidden;max-width:720px;margin:1rem auto}
+.surface-map-wrap canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.map-legend .map-self{color:#f2f5df}.map-legend .map-place{color:#82ccc9}.map-legend .map-exit{color:#a8d4a0}.map-legend .map-target{color:#f4c97f}
+#localPlaces button{white-space:normal;text-align:left;min-height:44px;line-height:1.45;font-size:1rem}
+#localPlaces button.selected{border-color:#f4c97f;color:#f4c97f}
+@media(max-width:600px){.entry-foot:has(.purchase-cost){align-items:stretch;flex-wrap:wrap;gap:.75rem}.entry-foot .purchase-cost{flex-basis:100%}.entry-foot:has(.purchase-cost)>button{width:100%;min-height:44px}}

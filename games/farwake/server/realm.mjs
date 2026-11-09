@@ -5,6 +5,7 @@ import { ENCOUNTERS, DIALOGUE, UPGRADES, LORE } from '../dist/content.mjs';
 import { PersistenceConflict } from './persistence.mjs';
 import { BoardingAuthority } from './boarding.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
+import { explorationLocation, createSiteState, stepSiteEncounter } from '../dist/exploration.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
@@ -22,7 +23,7 @@ export class Realm extends BoardingAuthority {
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
     this.persistence = persistence; this.version = version; this.onConflict = onConflict;
     this.createdAt = snapshot?.createdAt || now(); this.ownerId = snapshot?.ownerId || null;
-    this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {};
+    this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {}; this.sites = snapshot?.sites || {}; this.normalizedSites = new Set();
     this.revision = 0; this.persistedRevision = 0; this.flushing = null; this.storageError = null; this.conflicted = false; this.tick = 0; this.simulatedAt = now();
     for (const data of Object.values(snapshot?.captains || {})) {
       const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...savedGame } = data.game || {};
@@ -50,11 +51,11 @@ export class Realm extends BoardingAuthority {
     const vessel = { id, ownerId: captain.id, name: 'Cinder', systemId: captain.game.state.systemId, dockedAt: captain.game.state.mode === 'person' && !captain.game.state.interior ? captain.game.state.locationId : null, ship: captain.game.state.ship, allowCrew: false, grants: {}, helmOwner: captain.game.state.mode === 'ship' ? captain.id : null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true, boarding: null, hostileTo: [] };
     vessel.ship.id = id; this.vessels.set(id, vessel); return vessel;
   }
-  async createCaptain(name) {
+  async createCaptain(name, options = {}) {
     if (this.conflicted || this.storageError) throw new Error('Realm persistence is temporarily unavailable.');
     if (this.onlineCount >= MAX_ONLINE) throw new Error('This realm already has ten online captains.');
     if (this.captains.size >= 256) throw new Error('This realm has reached its saved-passport limit.');
-    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed);
+    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, name:cleanName(name)});
     const angle = this.captains.size * 2.399963;
     game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155;
     const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: starterHome(), game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId: `vessel_${id}`, aboard: `vessel_${id}`, crewRole: 'helm', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
@@ -117,7 +118,38 @@ export class Realm extends BoardingAuthority {
     const vessel = captain.aboard && this.vessels.get(captain.aboard);
     if (vessel) captain.game.state.systemId = vessel.systemId;
     const room = this._room(captain.game.state.systemId);
-    captain.game.bindSharedWorld(room.runtime, room.record, captain.id); captain.game._playerName = captain.name; room.lastActive = now(); return room;
+    captain.game.bindSharedWorld(room.runtime, room.record, captain.id); this._bindExploration(captain); captain.game._playerName = captain.name; room.lastActive = now(); return room;
+  }
+  _prepareExploration(captain, bodyId, siteId) {
+    const game=captain.game, body=game.system.bodies.find(value=>value.id===bodyId), location=body&&explorationLocation(body,siteId,this.seed);
+    if(!location)return null;
+    const key=`${game.state.systemId}:${bodyId}:${siteId}`;
+    if(!this.normalizedSites.has(key)){
+      this.sites[key]=createSiteState(location.site,this.sites[key]||game.state.exploration?.encounter);
+      this.normalizedSites.add(key);
+    }
+    game.state.explorationRecords=this.sites;
+    return this.sites[key];
+  }
+  _bindExploration(captain) {
+    const active=captain.game.state.exploration;
+    captain.game.state.explorationRecords=this.sites;
+    if(!active)return;
+    const encounter=this._prepareExploration(captain,active.bodyId,active.siteId);
+    if(encounter)active.encounter=encounter;
+  }
+  _stepExplorations(captains,dt) {
+    const groups=new Map();
+    for(const captain of captains){const active=captain.game.state.exploration;if(!active)continue;if(!groups.has(active.key))groups.set(active.key,[]);groups.get(active.key).push(captain);}
+    for(const crew of groups.values()){
+      const leader=crew[0],encounter=leader.game.state.exploration.encounter,surface=this._surface(leader);
+      const events=stepSiteEncounter(encounter,crew.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
+      for(const captain of crew){
+        const game=captain.game;game.recordExplorationEvents(events);
+        if(game.state.person.health<=0){game._siteDownTime=(game._siteDownTime||0)+dt;if(game._siteDownTime>=2.5){game._returnFromSite(true);captain.surfaceCache=null;}}
+        else game._siteDownTime=0;
+      }
+    }
   }
   _actor(vessel) {
     const owner = this.captains.get(vessel.ownerId), beneficiary = this.captains.get(vessel.occupation?.controllerId) || this.captains.get(vessel.boardingLeaderId) || owner, room = this._room(vessel.systemId), primary = vessel.id === owner.ownedVesselId;
@@ -128,6 +160,8 @@ export class Realm extends BoardingAuthority {
     for (const field of ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory']) actor.state[field] = inventory[field];
     actor.state.boarding = vessel.pvp ? null : vessel.boarding || null;
     actor.state.ship = vessel.ship; actor.state.credits = beneficiary.game.state.credits; actor._creditBaseline = beneficiary.game.state.credits; actor._economyCaptainId = beneficiary.id;
+    actor.state.character = (this.captains.get(vessel.helmOwner)||beneficiary).game.state.character;
+    actor.state.exploration=null; actor.state.explorationRecords={};
     actor.state.systemId = vessel.systemId; actor.state.mode = vessel.dockedAt ? 'person' : 'ship'; actor.state.locationId = vessel.dockedAt || null;
     actor.state.interior = null; actor.state.person = owner.aboard === vessel.id ? owner.game.state.person : { x: 0, y: 0, health: 100, facing: 'up' };
     const leader = this.captains.get(vessel.boardingLeaderId), assaultPresent = leader?.aboard === vessel.id && leader.game.state.mode === 'person' && leader.game.state.interior?.kind === 'enemy';
@@ -244,6 +278,7 @@ export class Realm extends BoardingAuthority {
     return !!(vessel && (vessel.boarding || vessel.pvp) && captain.aboard === vessel.id && captain.game.state.mode === 'person' && ['ship', 'enemy'].includes(captain.game.state.interior?.kind));
   }
   _cabin(captain, vessel) {
+    captain.game.state.exploration=null; captain.game.state.person.weaponDrawn=false;
     captain.aboard = vessel.id; captain.portVesselId = null; captain.game.state.systemId = vessel.systemId; captain.game.state.mode = 'person';
     captain.game.state.locationId = `ship:${vessel.id}`; captain.crewRole = 'passenger';
     captain.game.state.interior = { kind: 'ship', location: this._locationForVessel(vessel, captain), returnLocation: null, returnShip: { x: vessel.ship.x, y: vessel.ship.y, vx: vessel.ship.vx, vy: vessel.ship.vy, angle: vessel.ship.angle } };
@@ -260,6 +295,7 @@ export class Realm extends BoardingAuthority {
   _landCharacter(captain, systemId, bodyId, position) {
     const previous = this.vessels.get(captain.aboard), owned = this.vessels.get(captain.ownedVesselId);
     captain.portVesselId = previous?.dockedAt === bodyId && previous.systemId === systemId && this._canRole(captain, previous, 'helm') ? previous.id : owned?.dockedAt === bodyId && owned.systemId === systemId && this._canRole(captain, owned, 'helm') ? owned.id : null;
+    captain.game.state.exploration=null; captain.game.state.person.weaponDrawn=false;
     captain.aboard = null; captain.boardingTeam = null; captain.returnVesselId = null; captain.crewRole = 'passenger'; captain.game.state.systemId = systemId; captain.game.state.locationId = bodyId; captain.game.state.mode = 'person'; captain.game.state.interior = null;
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true);
     if (position && isWalkable(this._surface(captain), position.x, position.y)) Object.assign(captain.game.state.person, position);
@@ -312,6 +348,13 @@ export class Realm extends BoardingAuthority {
     if (name === 'takeCapturedHelm') return this._takeCapturedHelm(c);
     if (name === 'returnToOwnShip' || name === 'retreatBoarding') return this._returnToOwnShip(c);
     if (name === 'surfaceAction') return this._surfaceAction(c, a);
+    if (name === 'customizeCharacter') { const result=game.customizeCharacter(a);if(result.ok&&owned)owned.actor=null;return result; }
+    if (name === 'enterSite') {
+      this._prepareExploration(c,game.state.locationId,a.siteId||id);
+      const result=game.enterSite(a.siteId||id);if(result.ok){c.surfaceCache=null;this._bindExploration(c);}return result;
+    }
+    if (name === 'exitSite') {const result=game.exitSite();if(result.ok)c.surfaceCache=null;return result;}
+    if (name === 'siteAction') return game.siteAction(a.entityId,a.action,a.optionId);
     if (name === 'medicalFromStation') return this._crewCommand(c, 'crewAction', { action: 'heal' });
     if (name === 'repairFromStation') return this._crewCommand(c, 'crewAction', { action: 'repair' });
     if (name === 'setCrewAccess' || name === 'boardShip' || name === 'takeStation' || name === 'leaveCrew' || name === 'returnToShip' || name === 'crewAction') return this._crewCommand(c, name, a);
@@ -357,6 +400,7 @@ export class Realm extends BoardingAuthority {
       this._cabin(c, active); if (active.helmOwner === c.id) active.helmOwner = null; return ok({ body: this._location(c), text: 'You step away from the helm.' });
     }
     if (name === 'leaveInterior' || name === 'exitCabin' || name === 'leaveDerelict') {
+      if(game.state.interior?.kind==='site')return this._command(c,'exitSite',a);
       if (game.state.interior?.kind === 'enemy') return this._command(c, 'retreatBoarding', a);
       if (game.state.interior?.kind === 'derelict') { const result = game.leaveDerelict(); if (result.ok) { c.aboard = owned.id; c.crewRole = 'helm'; owned.helmOwner = c.id; } return result; }
       if (!active) return fail('There is no ship interior to leave.', 'mode');
@@ -561,6 +605,13 @@ export class Realm extends BoardingAuthority {
   }
 
   _restoreAtHome(c, { combatPenalty = false, forceSafe = false, preserveShips = false } = {}) {
+    // A restart must finish an already-triggered field rescue before ordinary
+    // offline home restoration can move the captain or their parked vessel.
+    if (c.game.state.exploration && (c.game.state.person.health <= 0 || c.game.state.person.down)) {
+      this._bindCaptain(c);
+      const recovered = c.game._returnFromSite(true);
+      if (recovered.ok) { c.surfaceCache = null; return; }
+    }
     let home = c.home || starterHome();
     if (home.expiresAt && home.expiresAt <= now()) home = starterHome();
     const owned = this.vessels.get(c.ownedVesselId);
@@ -602,11 +653,12 @@ export class Realm extends BoardingAuthority {
       const input = timestamp - c.inputAt <= INPUT_TIMEOUT_MS && c.session ? c.input : { ...EMPTY_INPUT };
       c.appliedInput = input; c.ack = c.inputSeq;
       if (c.game.state.mode === 'person' && c.game.state.person.health > 0) {
-        const surface = this._surface(c); if (surface) { c.game.state.person.speed = input.boost ? 155 : 112; movePerson(surface, c.game.state.person, input.x, input.y, dt); }
+        const surface = this._surface(c); if (surface) { c.game.state.person.speed = (input.boost ? 155 : 112)*c.game.characterEffects.walkSpeed; movePerson(surface, c.game.state.person, input.x, input.y, dt); }
       }
       const vessel = this.vessels.get(c.aboard);
       if (vessel) { activeVessels.set(vessel.id, vessel); occupiedSystems.add(vessel.systemId); }
     }
+    this._stepExplorations(activeCaptains,dt);
     // Physical hulls do not disappear when their last pilot crosses a tether.
     for (const vessel of this.vessels.values()) if (occupiedSystems.has(vessel.systemId) && !vessel.dockedAt && !vessel.destroyed) activeVessels.set(vessel.id, vessel);
     const actorsBySystem = new Map();
@@ -649,7 +701,7 @@ export class Realm extends BoardingAuthority {
 
   roomInfo(c) {
     const s = c.game.state, vessel = this.vessels.get(c.aboard);
-    const kind = s.mode === 'ship' ? 'system' : vessel && ['ship', 'enemy'].includes(s.interior?.kind) ? vessel.boarding?.kind === 'assault' ? 'boarding' : 'ship' : s.interior?.kind === 'derelict' ? 'derelict' : 'surface';
+    const kind = s.mode === 'ship' ? 'system' : vessel && ['ship', 'enemy'].includes(s.interior?.kind) ? vessel.boarding?.kind === 'assault' ? 'boarding' : 'ship' : s.interior?.kind === 'derelict' ? 'derelict' : s.interior?.kind === 'site' ? 'site' : 'surface';
     const suffix = kind === 'system' ? s.systemId : ['ship', 'boarding'].includes(kind) ? c.aboard : `${s.systemId}:${s.locationId}`;
     return { id: `${this.id}:${kind}:${suffix}`, kind, systemId: s.systemId, locationId: s.locationId, vesselId: c.aboard || null };
   }
@@ -657,7 +709,7 @@ export class Realm extends BoardingAuthority {
     const room = this.roomInfo(c), person = c.game.state.person, vessel = this.vessels.get(c.aboard);
     const hostile = viewer && vessel && viewer.aboard === vessel.id && this._captainTeam(c, vessel) !== this._captainTeam(viewer, vessel);
     return { captainId: c.id, name: c.name, online: !!c.session, systemId: c.game.state.systemId, roomId: room.id, vesselId: c.aboard || null, crewRole: c.crewRole, mode: c.game.state.mode,
-      x: person.x, y: person.y, vx: person.vx || 0, vy: person.vy || 0, facing: person.facing, health: person.health, down: !!person.down,
+      appearance: clone(person.appearance), maxHealth:person.maxHealth||100, x: person.x, y: person.y, vx: person.vx || 0, vy: person.vy || 0, facing: person.facing, health: person.health, down: !!person.down,
       weapon: person.weapon, weaponDrawn: person.weaponDrawn, aimAngle: person.aimAngle, aimManual: person.aimManual, lastShot: clone(person.lastShot || null), aimTargetId: person.aimTargetId, attackUntil: person.attackUntil, hitUntil: person.hitUntil, team: hostile ? 'hostile' : 'friendly',
       sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null };
   }
@@ -682,7 +734,7 @@ export class Realm extends BoardingAuthority {
     if (compact) state = clone({ ...Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, ownState[key]])), ship, boarding });
     else {
       // Off-system world records live in realm persistence; do not clone them just to discard them.
-      const { worlds, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
+      const { worlds, explorationRecords, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
       state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
       state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
       if (aboardOwner) {
@@ -725,12 +777,12 @@ export class Realm extends BoardingAuthority {
     const captains = {};
     for (const c of this.captains.values()) {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
-      const { worlds, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = c.game.state;
+      const { worlds, explorationRecords, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
       captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), captains, vessels, worlds: clone(this.worlds), leases: clone(this.leases) };
+    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');

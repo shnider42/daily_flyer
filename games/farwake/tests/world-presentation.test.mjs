@@ -55,7 +55,7 @@ test('room changes and teleports snap instead of sweeping through unrelated spac
   const arrival = packet(900, -50, {room: {id: 'realm:system:vesper'}, state: {systemId: 'vesper'}});
   assert.ok(presentation.push(arrival)); assert.equal(presentation.frames.length, 1);
   close(presentation.sample(900).world.enemies[0].x, -50);
-  presentation.reset(); assert.deepEqual(presentation.sample(1200), {world: null, boardingActors: []});
+  presentation.reset(); assert.deepEqual(presentation.sample(1200), {world: null, boardingActors: [], explorationActors: []});
 });
 
 test('anonymous bullets use bounded velocity and current membership rather than array-index pairing', () => {
@@ -120,4 +120,28 @@ test('SpaceRenderer consumes visual ship/world poses without replacing authorita
     assert.ok(labels.some(label => label.text === 'Smoothed raider')); assert.equal(game.system, authoritative); assert.equal(authoritative.enemies.length, 0);
     assert.deepEqual(renderer.camera, {x: 40, y: 10}); assert.equal(JSON.stringify(game.state), originalState); assert.equal(ship.x, 40);
   } finally { if (original === undefined) delete globalThis.OffscreenCanvas; else globalThis.OffscreenCanvas = original; }
+});
+
+
+test('exploration wildlife interpolates at snapshot rate while latest hits, deaths and removals stay immediate', () => {
+ const presentation=new WorldPresentation();
+ const make=(time,x,patch={})=>packet(time,0,{room:{id:'realm:site:hearth:morrow:site:chalkfold'},state:{systemId:'hearth',exploration:{key:'hearth:morrow:chalkfold',encounter:{monsters:[{id:'stoneback',x,y:200,health:96,facing:'left',...patch}]}}}});
+ const first=make(1000,200),second=make(1100,206,{health:72,hitUntil:5,lastHitBy:'captain',alert:true});
+ const original=JSON.stringify([first,second]);presentation.push(first);presentation.push(second);
+ const actor=presentation.sample(1150).explorationActors[0];close(actor.x,203);close(actor.vx,60);assert.equal(actor.health,72);assert.equal(actor.hitUntil,5);assert.equal(actor.lastHitBy,'captain');assert.equal(actor.alert,true);
+ const poses=Array.from({length:7},(_,i)=>presentation.sample(1100+i*100/6).explorationActors[0].x);
+ for(let i=1;i<poses.length;i++)close(poses[i]-poses[i-1],1);
+ close(presentation.sample(9000).explorationActors[0].x,215);assert.equal(JSON.stringify([first,second]),original);
+ const dead=make(1200,208,{health:0,status:'dead'});presentation.push(dead);assert.equal(presentation.sample(1250).explorationActors[0],dead.state.exploration.encounter.monsters[0]);
+ const removed=make(1300,208);removed.state.exploration.encounter.monsters=[];presentation.push(removed);assert.deepEqual(presentation.sample(1300).explorationActors,[]);assert.equal(presentation.push(first),false);
+});
+
+test('exploration poses cannot interpolate across site keys, room changes, teleports, or exiting a site', () => {
+ const presentation=new WorldPresentation();
+ const make=(time,x,key='first',room='shared-room')=>packet(time,0,{room:{id:room},state:{systemId:'hearth',exploration:{key,encounter:{monsters:[{id:'same-id',x,y:200,health:96}]}}}});
+ presentation.push(make(1000,200));presentation.push(make(1100,210));close(presentation.sample(1150).explorationActors[0].x,205);
+ presentation.push(make(1200,330,'second'));close(presentation.sample(1200).explorationActors[0].x,330);close(presentation.sample(1500).explorationActors[0].x,330);
+ presentation.push(make(1300,1600,'second'));close(presentation.sample(1350).explorationActors[0].x,1600);
+ assert.equal(presentation.push(make(900,40,'second','another-room')),true);assert.equal(presentation.frames.length,1);close(presentation.sample(900).explorationActors[0].x,40);
+ presentation.push(packet(1000,0,{room:{id:'another-room'},state:{systemId:'hearth',exploration:null}}));assert.deepEqual(presentation.sample(1000).explorationActors,[]);
 });
