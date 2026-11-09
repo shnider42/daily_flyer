@@ -39,6 +39,23 @@ test('player matching honors name boundaries, punctuation, and explicit athlete 
   assert.deepEqual(byId.get('3').players,['c']);
 });
 
+test('a rolling article puts headline subjects before broad athlete tags and description names',()=>{
+  const players=[
+    {id:'metcalf',name:'DK Metcalf',espnId:'50'},
+    {id:'burrow',name:'Joe Burrow',espnId:'30'},
+    {id:'saquon',name:'Saquon Barkley',espnId:'10'},
+    {id:'lamb',name:'CeeDee Lamb',espnId:'20'},
+    {id:'wilson',name:'Michael Wilson',espnId:'40'},
+    {id:'unmatched',name:'Unmentioned Player',espnId:'60'},
+  ];
+  const result=cleanNews({articles:[rawReport('1','Fantasy buzz: Cardinals’ Michael Wilson out for season with neck injury','2026-11-09T12:00:00Z',{
+    description:'DK Metcalf also appears in this rolling news article.',
+    categories:[10,20,30,40].map(athleteId=>({type:'athlete',athleteId})),
+  })]},players,now);
+  assert.deepEqual(result[0].players,['wilson','saquon','lamb','burrow','metcalf']);
+  assert.equal(result[0].kind,'Availability');
+});
+
 test('news categories follow the headline development before background description',()=>{
   const result=cleanNews({articles:[
     rawReport('1','Giants trade for injury-plagued receiver','2026-11-09T12:00:00Z'),

@@ -31,9 +31,14 @@ export function cleanPlayers(raw) {
 export function cleanNews(raw, players = [], now = Date.now()) {
   if (!Array.isArray(raw?.articles)) throw Error('Invalid news feed');
   return raw.articles.filter(a => a && a.type !== 'Media' && a.id != null && a.headline && a.published).map(a => {
-    const text = ` ${normalizeWords(`${a.headline} ${a.description || ''}`)} `;
-    const athletes = new Set((a.categories || []).filter(c => c.type === 'athlete' && c.athleteId != null).map(c => String(c.athleteId)));
-    const people = players.filter(p => (p.espnId && athletes.has(p.espnId)) || (p.name && text.includes(` ${normalizeWords(p.name)} `)));
+    const headline = ` ${normalizeWords(a.headline)} `, description = ` ${normalizeWords(a.description)} `;
+    const athletes = new Map((a.categories || []).filter(c => c.type === 'athlete' && c.athleteId != null).map((c,i) => [String(c.athleteId),i]));
+    // Rolling articles can tag dozens of players. Show the named subject before
+    // broader source tags or description matches instead of using directory rank.
+    const people = players.map(p => {
+      const name=normalizeWords(p.name), inHeadline=name?headline.indexOf(` ${name} `):-1, inDescription=name?description.indexOf(` ${name} `):-1;
+      return {player:p,priority:inHeadline>=0?0:athletes.has(p.espnId)?1:inDescription>=0?2:3,order:inHeadline>=0?inHeadline:athletes.get(p.espnId) ?? inDescription};
+    }).filter(match=>match.priority<3).sort((a,b)=>a.priority-b.priority || a.order-b.order).map(match=>match.player);
     const published = Date.parse(a.published), modified = Date.parse(a.lastModified);
     // Bad source timestamps must not turn an old story into a permanent "new" report.
     const updated = Number.isFinite(modified) && modified >= published && modified <= now+300000 ? a.lastModified : a.published;

@@ -1,4 +1,4 @@
-import {defaults,normalizeSettings,inferSettings,filterNews,playerLens,newsLens,statusChanges,byeTeams,leagueIsCurrent,orderFixtures,normalizeSearch} from './logic.js?v=20261109-desk';
+import {defaults,normalizeSettings,inferSettings,filterNews,playerLens,newsLens,statusChanges,byeTeams,leagueIsCurrent,orderFixtures,normalizeSearch} from './logic.js?v=20261109-desk2';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,6 +32,7 @@ function trackedPlayers(){const ids=tracked();return (data?.players||[]).filter(
 function rosterFresh(){return validLeague(league)&&leagueIsCurrent(league,data?.state?.season);}
 function available(){if(!rosterFresh())return new Set();const owned=new Set(league.rosters.flatMap(rosterPlayers));return new Set((data?.players||[]).filter(p=>!owned.has(p.id)).map(p=>p.id));}
 function currentByes(){return data?byeTeams(data.schedule,data.players,data.state,data.sources.schedule):new Set();}
+function byesConfirmed(){return Boolean(data?.schedule?.complete&&Array.isArray(data.schedule.byeTeams)&&sourceState('schedule')==='current');}
 function fixtureFor(team){return orderFixtures(data?.schedule?.games||[]).find(g=>g.home.team===team||g.away.team===team);}
 function formatLabel(){return `${settings.size} teams · ${{standard:'Standard',half:'Half PPR',ppr:'PPR',custom:'Custom'}[settings.scoring]}`;}
 function leagueIssue(){if(!league)return 'Import a Sleeper league to check which players are unrostered.';if(String(league.season)!==String(data?.state?.season))return `This league is from ${league.season}. Import a league for the current season to check availability.`;return 'Your roster snapshot is overdue. Refresh the league before checking player availability.';}
@@ -77,7 +78,7 @@ function overview(){
  const invalidScope=settings.scope==='available'&&!rosterFresh(),scope=invalidScope?'all':settings.scope;
  const scoped=filterNews(data.news,{...settings,scope},tracked(),available(),lastSeen),news=topic==='all'?scoped:scoped.filter(n=>n.kind===topic);
  const oldest=data.newsCoverage?.oldestPublished||data.news.at(-1)?.published;
- const summary=mine.length?`<div class="desk-summary"><button data-go="players"><strong>${mine.length}</strong> following</button><span class="summary-divider"></span><button data-go="players" class="${flags.length?'flagged':''}"><strong>${flags.length}</strong> status flags</button><span class="summary-divider"></span><button data-go="players"><strong>${resting.length}</strong> on bye</button></div>`:'';
+ const summary=mine.length?`<div class="desk-summary"><button data-go="players"><strong>${mine.length}</strong> following</button><span class="summary-divider"></span><button data-go="players" class="${flags.length?'flagged':''}"><strong>${flags.length}</strong> status flags</button><span class="summary-divider"></span><button data-go="players"><strong>${byesConfirmed()?resting.length:'—'}</strong> ${byesConfirmed()?'on bye':'byes unconfirmed'}</button></div>`:'';
  const staleNotice=invalidScope?`<div class="notice warning">${esc(leagueIssue())} Showing all reports for now. <button data-go="league">Review league</button></div>`:'';
  const intro=!mine.length?'<div class="notice"><button data-find-player>Follow a player</button> to bring their reports and status changes into this view.</div>':'';
  const changeNotice=changes.length?`<div class="notice"><strong>${changes.length} directory change${changes.length===1?'':'s'} since your checkpoint.</strong> ${changes.slice(0,3).map(c=>`${esc(c.player.name)}: ${esc(c.before.status||'no flag')} → ${esc(c.after.status||'no flag')}${c.before.team!==c.after.team?`; ${esc(c.before.team||'FA')} → ${esc(c.after.team||'FA')}`:''}`).join('. ')}. <button data-go="players">View players</button></div>`:'';
