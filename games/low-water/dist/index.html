@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101918">
+  <meta name="description" content="LOW WATER — a first-person journey through Bellwether Station. Explore a coastal research facility, restore its machinery, and find what the tide left behind.">
+  <title>LOW WATER — Bellwether Station</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="game" aria-label="Low Water first-person game">
+    <canvas id="scene" aria-label="Bellwether Station 3D view" tabindex="0"></canvas>
+    <div class="film-grain" aria-hidden="true"></div>
+    <div id="damage" aria-hidden="true"></div>
+    <div id="fade" aria-hidden="true"></div>
+
+    <section id="menu" class="screen main-menu" aria-label="Main menu">
+      <header class="masthead">
+        <div class="station-mark"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 28 20 5l16 23H4Zm5 7h22M15 28l5-9 5 9"/></svg><span>BELLWETHER<br><small>MARINE RESEARCH STATION</small></span></div>
+        <div class="edition"><i></i> SIGNAL PRESENT <span>DFE / 001</span></div>
+      </header>
+      <div class="menu-content">
+        <p class="eyebrow">A FIRST-PERSON FIELD REPORT</p>
+        <h1>LOW<br><span>WATER</span><b aria-hidden="true">_</b></h1>
+        <p class="tagline">The tide went out.<br>Something stayed.</p>
+        <p class="premise">Your shift was supposed to be routine.<br>Restore the power. Find the crew. Get home.</p>
+        <div class="menu-actions">
+          <button id="start" class="primary">ENTER THE STATION <span>→</span></button>
+          <button id="continue" class="secondary" hidden>CONTINUE FIELD REPORT <span>→</span></button>
+          <button id="menu-settings" class="text-button">Controls & comfort <span>+</span></button>
+        </div>
+        <div class="guidance-intro"><span>HOW MUCH GUIDANCE?</span><div class="segmented" aria-label="Guidance level" id="menu-guidance"><button data-guidance="simple">Simple</button><button data-guidance="moderate" class="selected">Moderate</button><button data-guidance="expert">Expert</button></div><p id="guidance-description">Brief objectives. Find the details yourself.</p></div>
+      </div>
+      <div class="menu-scene-caption" aria-hidden="true"><span>01 / NIGHT SHIFT</span><strong>BELLWETHER STATION</strong><small>NORTH ATLANTIC · 23:47</small></div>
+      <footer class="menu-footer"><span><i class="status-dot"></i> FIVE CONNECTED CHAPTERS</span><span>HEADPHONES SUGGESTED</span><span id="load-status">PREPARING THE STATION…</span></footer>
+    </section>
+
+    <section id="hud" hidden aria-label="Game interface">
+      <header class="hud-top"><div class="hud-location"><span id="chapter-number">01 / NIGHT SHIFT</span><strong id="room-name">Arrival concourse</strong><p id="objective"></p></div><nav><button id="journal-button" title="Field journal (J)" aria-label="Field journal">JOURNAL</button><button id="map-button" title="Station plan (M)" aria-label="Station plan">PLAN</button><button id="pause-button" title="Pause (Escape)" aria-label="Pause game"><span aria-hidden="true">II</span></button></nav></header>
+      <div id="crosshair" aria-hidden="true"><i></i></div>
+      <div id="waypoint" hidden aria-hidden="true"><span>◇</span><small></small></div>
+      <div id="interaction" hidden><span class="key-hint" id="interact-key">E</span><div><strong id="interact-label"></strong><small id="interact-description"></small></div></div>
+      <div id="caption" aria-live="polite"></div>
+      <div id="toast" role="status"></div>
+      <div class="status-panel"><div><span>CONDITION</span><strong id="health">100</strong></div><div class="stamina-track"><i id="stamina-fill"></i></div><small id="noise">MOVEMENT · QUIET</small></div>
+      <div class="equipment-panel"><span id="equipment-name">FIELD TORCH</span><strong id="equipment-state">ONLINE</strong><i id="charge"></i></div>
+      <div id="desktop-help">WASD <span>MOVE</span> · MOUSE <span>LOOK</span> · E <span>USE</span> · F <span>TORCH</span></div>
+      <div id="look-reminder" hidden>Click the scene to look around <span>or drag with the mouse</span></div>
+      <button id="hint-button" title="Ask for a clue">Need a clue?</button>
+      <div id="touch-controls">
+        <div id="move-zone" aria-label="Movement area"><div id="stick"><div id="stick-knob"></div><span>MOVE</span></div></div>
+        <div id="look-zone" aria-label="Look area"><div class="look-guide"><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M5 22h34M22 5v34m-17-17 5-5M5 22l5 5m29-5-5-5m5 5-5 5M22 5l-5 5m5-5 5 5M22 39l-5-5m5 5 5-5"/></svg><span>DRAG TO LOOK</span></div></div>
+        <div class="touch-actions"><button id="touch-flashlight" class="small-action" aria-label="Toggle torch">TORCH</button><button id="touch-tool" class="tool-action" aria-label="Pulse arc driver" disabled>PULSE<small>NO TOOL</small></button><button id="touch-use" class="use-action" aria-label="Use nearby object">USE<small>LOOK AT OBJECT</small></button><div class="posture-actions"><button id="touch-crouch" aria-label="Toggle crouch">CROUCH</button><button id="touch-jump" aria-label="Jump">JUMP</button></div></div>
+        <button id="touch-run" aria-label="Toggle run">RUN</button>
+      </div>
+    </section>
+
+    <div id="chapter-card" hidden><span id="chapter-card-number"></span><h2 id="chapter-card-title"></h2><p id="chapter-card-text"></p></div>
+
+    <section id="overlay" class="overlay" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <header><div><span class="eyebrow" id="dialog-kicker">BELLWETHER / FIELD REPORT</span><h2 id="dialog-title">Take a breath.</h2></div><button id="dialog-close" class="close-button" aria-label="Close dialog">×</button></header>
+        <div id="dialog-body"></div>
+      </div>
+    </section>
+    <div id="error" hidden role="alert"><h2>The station could not start.</h2><p id="error-message"></p><button onclick="location.reload()">TRY AGAIN</button></div>
+    <noscript><p class="no-script">LOW WATER needs JavaScript to run the 3D game.</p></noscript>
+  </main>
+  <script type="module" src="./main.mjs"></script>
+</body>
+</html>
