@@ -898,7 +898,7 @@ function hud() {
       ? "GOLDEN GOAL"
       : `${game.rules.periodName} ${game.period}`;
   const restart =
-    game.restartData && ["restart", "restart_ready"].includes(game.phase)
+    sport === "soccer" && game.restartData && ["restart", "restart_ready"].includes(game.phase)
       ? game.restartData
       : null;
   $("possession").textContent = restart
@@ -1020,7 +1020,7 @@ function hud() {
   const announce = ["goal", "break", "restart", "restart_ready", "fight"].includes(
     game.phase,
   );
-  $("announcement").classList.toggle("set-piece", !!restart);
+  $("announcement").classList.toggle("set-piece", !!restart || (sport === "hockey" && game.phase === "restart"));
   $("announcement").classList.toggle("hidden", !announce);
   $("announcement").textContent =
     game.phase === "goal"
