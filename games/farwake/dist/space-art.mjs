@@ -2,6 +2,7 @@ import {pixelRect,pixelLine,pixelRing,labelSink} from './pixel-art.mjs';
 import {resolveCabinClass} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
 import {beginPixelFrame,pixelCamera,worldToCanvas,canvasToWorld} from './render-viewport.mjs';
+import {normalizeWorldZoom} from './camera-view.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function random(seed){return()=>{seed|=0;seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^(seed>>>15),1|seed);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296;};}
@@ -135,7 +136,7 @@ export class SpaceRenderer{
  draw(ctx,game,options={}){
   const{width:w=ctx.canvas.width,height:h=ctx.canvas.height,time=0,welcome=false,tracked=null,guidance='simple',motion=true,labels}=options,s=game.state,ship=normalizeShip(options.ship||s.ship),sys=options.world||game.system||{},profile=SHIP_VISUALS[resolveCabinClass(ship.shipClass)],combatTime=options.combatTime??s.stats?.time??time;
   const frameDt=clamp(options.dt??time-this.lastTime,0,.25),emit=labelSink(ctx,labels,{width:w,height:h}),dt=Math.min(frameDt,.06);this.lastTime=time;
-  this.zoom=options.zoom??Math.min(w<330?.70:.82,Math.min(w,h)*.44/(ship.renderLength||profile.length));const z=this.zoom;
+  this.zoom=options.zoom??Math.min(w<330?.70:.82,Math.min(w,h)*.44/(ship.renderLength||profile.length))*normalizeWorldZoom(options.zoomMultiplier);const z=this.zoom;
   const targetX=ship.x+(welcome?-160:0),targetY=ship.y+(welcome?-40:0);
   if(this.lastSystem!==s.systemId){this.camera={x:targetX,y:targetY};this.lastSystem=s.systemId;this.particles=[];this.health.clear();}
   const follow=motion?1-Math.pow(.88,frameDt*60):1;this.camera.x+=(targetX-this.camera.x)*follow;this.camera.y+=(targetY-this.camera.y)*follow;const cx=this.camera.x,cy=this.camera.y;this.w=w;this.h=h;

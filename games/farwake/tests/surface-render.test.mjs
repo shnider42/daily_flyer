@@ -54,7 +54,7 @@ test('surface labels stay sharp, camera-relative and immutable for remote crew a
  const remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:740,y:720,facing:'left'}],boardingActors=[{id:'raider',name:'Boarding raider',x:800,y:750,team:'hostile',health:23,maxHealth:52,lastShot:{x:800,y:740,targetX:708,targetY:674,until:9}}];
  const snapshot=JSON.stringify({surface,person,remotePeople,boardingActors}),ctx=new FakeCanvas(360,260).ctx,labels=[];
  const view=drawSurface(ctx,surface,{width:360,height:260,cameraX,cameraY,person,remotePeople,boardingActors,labels,time:15,combatTime:8});
- assert.deepEqual(view,{cameraX,cameraY,width:360,height:260});assert.equal(ctx.textCalls.length,0,'canvas must not rasterize duplicate instructions');
+ assert.deepEqual(view,{cameraX,cameraY,width:360,height:260,zoom:1,offsetX:-cameraX,offsetY:-cameraY});assert.equal(ctx.textCalls.length,0,'canvas must not rasterize duplicate instructions');
  const remote=labels.find(l=>l.kind==='remote'),hostile=labels.find(l=>l.kind==='hostile');
  assert.equal(remote.text,'Captain Aya');assert.equal(remote.x,140);assert.equal(remote.y,73);assert.equal(remote.size,13);assert.equal(hostile.text,'Boarding raider');assert.ok(hostile.priority>remote.priority);
  assert.ok(labels.some(l=>l.kind==='room'));assert.ok(labels.every(l=>Number.isFinite(l.x)&&Number.isFinite(l.y)));

@@ -104,3 +104,143 @@
 .touch-layout.touch-landscape .welcome-content{max-width:740px}.touch-layout.touch-landscape .welcome-content h2{font-size:2.8rem;margin:.5rem 0 1rem}.touch-layout.touch-landscape .welcome-hook{display:none}.touch-layout.touch-landscape .welcome-lore{font-size:.9rem;margin-bottom:10px}.touch-layout.touch-landscape .welcome-actions{display:flex;flex-wrap:wrap;margin-top:10px;max-width:none}.touch-layout.touch-landscape .welcome-actions button{width:auto;flex:1}.touch-layout.touch-landscape .welcome-meta{display:none}.touch-layout.touch-landscape .edition{font-size:.8rem}.touch-layout.touch-landscape .test-mode-link{margin:0 auto;min-height:36px}
 @media(max-width:375px){.touch-layout{--thumb-edge:12px;--right-edge:12px;--thumb-size:calc(86px * var(--control-scale))}.touch-layout #aimStick{width:calc(84px * var(--control-scale))}.touch-layout #fireButton{right:calc(var(--right-edge) + 2px * var(--control-scale))}.touch-layout.left-handed #fireButton{right:auto;left:calc(var(--thumb-edge) + 2px * var(--control-scale))}.touch-layout #brakeButton,.touch-layout .tools-toggle,.touch-layout.large-text #brakeButton,.touch-layout.large-text .tools-toggle{width:calc(68px * var(--control-scale))}.touch-layout .mobile-readout{gap:6px;font-size:.82rem}.touch-layout .mobile-vitals{gap:7px}.touch-layout .wordmark{font-size:.96rem;letter-spacing:.08em}.touch-layout .topbar{gap:5px;padding-left:12px}.touch-layout .brand-icon{display:none}}
 @media(prefers-reduced-motion:reduce){.coach-highlight{transition:none!important}}
+
+/* Camera controls change the world view only. These remain native-size DOM. */
+.view-button{display:none}
+.view-panel{position:absolute;top:18px;right:18px;width:min(330px,calc(100% - 36px));max-height:calc(100% - 36px);overflow:auto;overscroll-behavior:contain;z-index:30;padding:14px 16px 16px;background:#0c1d2bf5;border:1px solid #66818a;border-radius:12px;box-shadow:0 8px 24px #0006}
+.view-panel[hidden]{display:none!important}
+.view-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:1rem;color:#e0eadc}
+.view-heading button{flex:0 0 44px;min-width:44px;min-height:44px;padding:0;background:transparent;border:0;font-size:1.5rem;color:#b7cdd2}
+.view-panel p{margin:7px 0 12px;font-size:.9rem;line-height:1.5;color:#b4c9cf}
+.view-controls{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:9px;align-items:center;margin:9px 0}
+.view-controls button{padding:0;min-width:44px;min-height:44px;font-size:1.4rem;border:1px solid #5c7b83;border-radius:50%;background:#203d48}
+.view-controls input[type=range]{width:100%;max-width:none;min-width:0;min-height:44px;margin:0;touch-action:pan-x}
+.view-panel output{font-variant-numeric:tabular-nums;color:#e6dbb4;font-size:.95rem}
+.view-panel label:not(.view-heading){display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;font-size:.95rem;line-height:1.4;color:#cbdcdd}
+.view-option{padding:7px 0}.view-option span{min-width:0}.view-option small{display:block;margin-top:4px;font-size:.85rem;line-height:1.45;color:#a8bec5}.view-panel .view-zoom-label{margin-top:6px}
+.view-panel input[type=checkbox]{flex:0 0 23px}
+.view-panel #resetView{min-height:44px;width:100%;margin:10px 0 5px;padding:7px 12px;border:1px solid #4f717a;background:#18333e;color:#cddedb}
+#coachExpand{display:none}
+.touch-layout .view-button{display:block;min-height:44px;min-width:54px;padding:8px 10px;border:1px solid #3e5968;background:#122432;font-size:.95rem;white-space:nowrap}
+.touch-layout.welcome-active .view-button,.welcome-active .view-panel{display:none!important}
+.touch-layout:not(.welcome-active):not(.immersive-hud) .wordmark{display:none}
+.touch-layout:not(.welcome-active):not(.immersive-hud) .network-button{margin-left:0;margin-right:auto}
+.touch-layout .view-panel{top:12px;right:max(12px,env(safe-area-inset-right));left:auto;width:min(340px,calc(100% - max(12px,env(safe-area-inset-left)) - max(12px,env(safe-area-inset-right))));max-height:calc(100% - 24px)}
+.touch-layout .coach-card>button{flex-basis:44px;min-width:44px;min-height:44px}
+.touch-layout.compact-tips #coachExpand{display:block;font-size:1.2rem}
+.touch-layout.compact-tips:not(.coach-expanded) .coach-step{display:none}
+.touch-layout.compact-tips:not(.coach-expanded) .coach-copy p{margin-top:4px;line-height:1.4}
+.touch-layout.compact-tips .coach-card{gap:2px;padding-right:3px}
+.touch-layout.coach-expanded .coach-card .coach-copy{max-height:min(240px,42dvh);overflow:auto}
+
+/* The default mobile cockpit floats over the world; no top or bottom band
+   consumes the camera viewport. Turn Immersive view off for the framed deck. */
+.touch-layout.immersive-hud:not(.welcome-active){--hud-top:calc(env(safe-area-inset-top,0px) + 8px);--hud-edge:max(12px,env(safe-area-inset-left));--hud-right:max(12px,env(safe-area-inset-right));--readout-height:44px;--coach-top:calc(var(--hud-top) + 52px + var(--readout-height) + 8px);--hud-surface:#102534;--hud-soft:#142c3b;--hud-border:#71939b99;--hud-shadow:0 3px 12px #020b144d}
+.touch-layout.immersive-hud:not(.welcome-active) .app{display:block}
+.touch-layout.immersive-hud:not(.welcome-active) .flightdeck{position:absolute;inset:0;width:100%;height:100%;min-height:100%;overflow:hidden;flex:none}
+.touch-layout.immersive-hud:not(.welcome-active) .topbar{position:absolute;top:var(--hud-top);left:var(--hud-edge);right:var(--hud-right);height:44px;min-height:44px;padding:0;gap:8px;border:0;background:none;box-shadow:none;pointer-events:none;z-index:25}
+.touch-layout.immersive-hud:not(.welcome-active) .topbar>*{pointer-events:auto}
+.touch-layout.immersive-hud:not(.welcome-active) .wordmark{display:none}
+.touch-layout.immersive-hud:not(.welcome-active) .network-button{margin-left:0;margin-right:auto;min-width:64px;max-width:40%!important;background:var(--hud-surface);border:1px solid var(--hud-border);border-radius:24px;box-shadow:var(--hud-shadow);padding:8px 12px;overflow:hidden;text-overflow:ellipsis}
+.touch-layout.immersive-hud:not(.welcome-active) .view-button{margin-left:auto}
+.touch-layout.immersive-hud:not(.welcome-active) #pauseButton{margin-left:0}
+.touch-layout.immersive-hud:not(.welcome-active) :is(.icon-button,.view-button){min-height:44px;min-width:60px;height:44px;padding:7px 13px;border:1px solid var(--hud-border);border-radius:24px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) .mobile-readout{position:absolute;top:calc(var(--hud-top) + 52px);left:var(--hud-edge);right:auto;display:flex;align-items:center;flex-direction:row;gap:12px;width:max-content;max-width:calc(100% - var(--hud-edge) - var(--hud-right));min-height:var(--readout-height);height:auto;padding:7px 12px;background:var(--hud-surface);border:0;border-radius:12px;box-shadow:var(--hud-shadow);font-size:.86rem;z-index:21}
+.touch-layout.immersive-hud:not(.welcome-active) #mobileLocation{max-width:min(30vw,180px);font-size:inherit}
+.touch-layout.immersive-hud:not(.welcome-active) .mobile-vitals{gap:10px;width:auto;flex:0 1 auto;justify-content:flex-start;font-size:inherit}
+.touch-layout.immersive-hud:not(.welcome-active) .control-deck{position:absolute;left:0;right:0;bottom:0;height:calc(var(--deck-base) + var(--deck-bottom));min-height:0;padding:0;background:none;border:0;box-shadow:none;pointer-events:none;z-index:15}
+.touch-layout.immersive-hud:not(.welcome-active) .control-deck>*{pointer-events:auto}
+.touch-layout.immersive-hud:not(.welcome-active) .action-buttons{pointer-events:none}
+.touch-layout.immersive-hud:not(.welcome-active) .action-buttons>*{pointer-events:auto}
+.touch-layout.immersive-hud:not(.welcome-active) :is(#stick,#aimStick){background:var(--hud-soft);border-color:#9ac2bd99;box-shadow:inset 0 0 0 5px #061a2638,var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) .stick-knob{background:#456a75;border-color:#b1d4cd;box-shadow:inset 0 0 0 3px #b2d5d51a,0 2px 5px #02101766}
+.touch-layout.immersive-hud:not(.welcome-active) #aimStick .stick-knob{background:#5c795f;border-color:#c0d6b4}
+.touch-layout.immersive-hud:not(.welcome-active) #brakeButton{border:1px solid var(--hud-border);border-radius:12px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) #fireButton{border:1px solid #d2ac78b3;border-radius:14px;background:#775235;box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) :is(.tools-toggle,#boostButton){border:1px solid var(--hud-border);border-radius:12px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) .stick-caption{color:#c5d9d9;text-shadow:0 1px 3px #020a14,0 0 6px #020a14}
+.touch-layout.immersive-hud:not(.welcome-active) .world-vignette{box-shadow:none}
+.touch-layout.immersive-hud:not(.welcome-active) .coach-card{top:var(--coach-top);left:var(--hud-edge);right:var(--hud-right);width:auto;max-width:420px;transform:none;padding:9px 3px 10px 12px;border:0;border-left:2px solid #a9d5c2;border-radius:4px 12px 12px 4px;background:var(--hud-surface);box-shadow:var(--hud-shadow);z-index:8}
+.touch-layout.immersive-hud:not(.welcome-active) .coach-card .coach-copy{max-height:min(180px,32dvh)}
+.touch-layout.immersive-hud:not(.welcome-active) .coach-copy strong{display:block;font-size:.95rem;line-height:1.35}
+.touch-layout.immersive-hud:not(.welcome-active) .coach-copy p{font-size:.9rem;line-height:1.45;margin-top:4px}
+.touch-layout.immersive-hud:not(.welcome-active) .coach-card>button{align-self:flex-start;min-width:44px;min-height:44px;flex-basis:44px}
+.touch-layout.immersive-hud:not(.welcome-active) .interaction-wrap{bottom:calc(var(--deck-base) + var(--deck-bottom) + 8px);max-width:calc(100% - var(--hud-edge) - var(--hud-right))}
+.touch-layout.immersive-hud:not(.welcome-active) .context-button{border:1px solid #c4d8b4b3;border-radius:16px;background:#aec6a0;color:#10251f;box-shadow:var(--hud-shadow);padding:9px 15px;min-height:48px}
+.touch-layout.immersive-hud:not(.welcome-active) .tool-tray:not([hidden]){border:1px solid var(--hud-border);border-radius:14px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud.tools-open:not(.welcome-active) .interaction-wrap{bottom:calc(var(--deck-base) + var(--deck-bottom) + 92px)}
+.touch-layout.immersive-hud:not(.welcome-active) .toast-stack{bottom:calc(var(--deck-base) + var(--deck-bottom) + 70px);left:var(--hud-edge);right:var(--hud-right);max-width:420px}
+.touch-layout.immersive-hud:not(.welcome-active) .toast{border-radius:10px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) .contacts-panel{top:var(--coach-top);right:var(--hud-right);max-height:calc(100% - var(--coach-top) - 18px);background:#0c202ef5;border-radius:12px;border:1px solid #66818a;z-index:22}
+.touch-layout.immersive-hud:not(.welcome-active) .mobile-weapon{top:auto;bottom:calc(var(--deck-base) + var(--deck-bottom) + 8px);left:var(--hud-edge);right:var(--hud-right);width:max-content;max-width:calc(100% - var(--hud-edge) - var(--hud-right));padding:4px 7px 4px 10px;min-height:44px;gap:8px;border:0;border-radius:12px;background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.immersive-hud:not(.welcome-active) #mobileWeaponHelp{min-height:44px;border:0}
+.touch-layout.immersive-hud.combat-active:not(.welcome-active) .interaction-wrap{bottom:calc(var(--deck-base) + var(--deck-bottom) + 62px)}
+.touch-layout.immersive-hud.combat-active:not(.welcome-active) .toast-stack{bottom:calc(var(--deck-base) + var(--deck-bottom) + 120px)}
+.touch-layout.immersive-hud:not(.welcome-active) .test-bar{position:absolute;top:var(--hud-top);left:var(--hud-edge);right:auto;width:max-content;max-width:calc(100% - 165px - var(--hud-edge) - var(--hud-right));min-height:44px;height:44px;gap:7px;padding:0 0 0 10px;border:0;border-radius:24px;background:#382e21;box-shadow:var(--hud-shadow);z-index:26}
+.touch-layout.immersive-hud:not(.welcome-active) .test-bar>span{flex:0 0 auto}
+.touch-layout.immersive-hud:not(.welcome-active) .test-bar>div{min-width:0;margin:0}
+.touch-layout.immersive-hud:not(.welcome-active) #chooseTest{min-height:44px;height:44px;min-width:44px;padding:7px 10px;border:0;border-radius:24px;background:transparent;overflow:hidden;text-overflow:ellipsis}
+.touch-layout.immersive-hud:not(.welcome-active) :is(#retryTest,#exitTest){display:none}
+.touch-layout.immersive-hud:not(.welcome-active) .view-panel{top:calc(var(--hud-top) + 52px);right:var(--hud-right);max-height:calc(100% - var(--hud-top) - 68px);z-index:29}
+.touch-layout.immersive-hud.view-open:not(.welcome-active) .mobile-readout{visibility:hidden;pointer-events:none}
+.touch-layout.immersive-hud.view-open:not(.welcome-active) .control-deck{visibility:hidden;pointer-events:none}
+.touch-layout.immersive-hud.view-open:not(.welcome-active) .control-deck *{pointer-events:none}
+.touch-layout.immersive-hud.performance-visible:not(.welcome-active) .coordinate{bottom:calc(var(--deck-base) + var(--deck-bottom) + 3px);right:var(--hud-right);border-radius:6px;background:var(--hud-surface)}
+
+/* Transparency affects surfaces, never the legibility of text or artwork. */
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active){--hud-surface:#102534b3;--hud-soft:#18374566;--hud-border:#93b8bd66;--hud-shadow:0 2px 9px #020b1433}
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active) .stick-knob{background:#416875b8}
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active) #aimStick .stick-knob{background:#57785bb8}
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active) #fireButton{background:#775235b8}
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active) .context-button{background:#aec6a0d9}
+.touch-layout.immersive-hud.translucent-hud:not(.welcome-active) .test-bar{background:#382e21b3}
+
+.touch-layout.immersive-hud.large-text:not(.welcome-active){--readout-height:66px}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-readout{align-items:flex-start;flex-direction:column;gap:2px;padding:5px 10px}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) #mobileLocation{max-width:100%;font-size:.86rem}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-vitals{width:100%;gap:10px;font-size:.82rem;flex-wrap:wrap}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-weapon{width:auto;max-width:calc(100% - var(--hud-edge) - var(--hud-right))}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .coach-card .coach-copy{max-height:min(140px,28dvh)}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .test-bar{max-width:calc(100% - 195px - var(--hud-edge) - var(--hud-right));padding-left:0}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) .test-bar>span{display:none}
+.touch-layout.immersive-hud.large-text:not(.welcome-active) #chooseTest{font-size:.8rem;max-width:100%}
+
+/* Landscape keeps the middle open and the status beside the thumb controls. */
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active){--readout-height:44px;--coach-top:calc(var(--hud-top) + 58px)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .mobile-readout{top:var(--hud-top);left:calc(var(--hud-edge) + 82px);max-width:calc(100% - var(--hud-edge) - var(--hud-right) - 235px);height:44px;min-height:44px;flex-direction:row;align-items:center;gap:12px;padding:6px 10px}
+.touch-layout.immersive-hud.touch-landscape.test-mode:not(.welcome-active) .mobile-readout{left:calc(var(--hud-edge) + 155px);max-width:calc(100% - var(--hud-edge) - var(--hud-right) - 308px)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) #mobileLocation{max-width:110px}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .mobile-vitals{width:auto;flex:0 1 auto;gap:9px;justify-content:flex-start;flex-wrap:wrap;line-height:1.2}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .coach-card{left:50%;right:auto;transform:translateX(-50%);width:min(440px,calc(100% - 2 * max(116px,env(safe-area-inset-left))));max-width:none;padding-top:6px;padding-bottom:7px}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .coach-card .coach-copy{max-height:min(110px,30dvh)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .coach-step{display:none}
+.touch-layout.immersive-hud.touch-landscape.compact-tips:not(.coach-expanded):not(.welcome-active) .coach-copy strong{display:none}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .coach-copy p{margin-top:0}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .interaction-wrap,.touch-layout.immersive-hud.touch-landscape.combat-active:not(.welcome-active) .interaction-wrap{bottom:calc(12px + var(--deck-bottom));max-width:calc(100% - 400px)}
+.touch-layout.immersive-hud.touch-landscape.tools-open:not(.welcome-active) .interaction-wrap{bottom:calc(12px + var(--deck-bottom))}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .toast-stack,.touch-layout.immersive-hud.touch-landscape.combat-active:not(.welcome-active) .toast-stack{left:28%;right:28%;bottom:calc(75px + var(--deck-bottom));max-width:none}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .contacts-panel{max-height:calc(100% - var(--coach-top) - 14px)}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .mobile-readout{flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;font-size:.8rem;max-width:calc(100% - var(--hud-edge) - var(--hud-right) - 295px)}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) #mobileLocation{display:none}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .mobile-vitals{font-size:.78rem;gap:10px;line-height:1.2}
+.touch-layout.immersive-hud.touch-landscape.large-text.test-mode:not(.welcome-active) .mobile-readout{left:calc(var(--hud-edge) + 140px);max-width:calc(100% - var(--hud-edge) - var(--hud-right) - 335px)}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .coach-card{width:min(450px,calc(100% - 230px));max-height:calc(100% - var(--coach-top) - 150px);overflow:auto}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .coach-card .coach-copy{max-height:none}
+.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .interaction-wrap{max-width:calc(100% - 460px)}
+
+@media(max-width:375px){
+ .touch-layout .view-button{min-width:50px;padding:8px;font-size:.9rem}
+ .touch-layout.immersive-hud:not(.welcome-active) .topbar{gap:6px}
+ .touch-layout.immersive-hud:not(.welcome-active) :is(.icon-button,.view-button){min-width:55px;padding:7px 10px}
+ .touch-layout.immersive-hud:not(.welcome-active) .mobile-readout{gap:8px;padding:6px 10px;font-size:.82rem}
+ .touch-layout.immersive-hud:not(.welcome-active) #mobileLocation{max-width:23vw;min-width:25px}
+ .touch-layout.immersive-hud:not(.welcome-active) .mobile-vitals{gap:8px}
+ .touch-layout.immersive-hud:not(.welcome-active) .coach-card{padding-left:9px}
+ .touch-layout.immersive-hud:not(.welcome-active) .coach-card>button{flex-basis:44px;min-width:44px}
+ .touch-layout.immersive-hud:not(.welcome-active) .test-bar{max-width:calc(100% - 145px - var(--hud-edge) - var(--hud-right));padding-left:0}
+ .touch-layout.immersive-hud:not(.welcome-active) .test-bar>span{display:none}
+ .touch-layout.immersive-hud.large-text:not(.welcome-active) .test-bar{max-width:calc(100% - 190px - var(--hud-edge) - var(--hud-right))}
+ .touch-layout.immersive-hud.large-text:not(.welcome-active) #mobileLocation{max-width:100%}
+ .touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-readout{gap:2px}
+ .touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-vitals{gap:9px;font-size:.77rem}
+}

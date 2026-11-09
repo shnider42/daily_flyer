@@ -1,12 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.3.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.3.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Mobile world view · 0.3.2
+
+Mobile gameplay now fills the available viewport behind floating controls by default. The header, status, and thumb controls no longer reserve solid bands. Their translucent surfaces keep the world visible while text stays opaque. Safe areas, compact action tips, narrow screens, landscape, enlarged accessibility settings, and left-handed controls remain supported. Desktop keeps its established layout and default camera scale.
+
+**View** opens a small camera panel with a **60–160% world zoom** slider and plus/minus buttons. Zoom changes the field of view in space and on foot; it does not scale text, buttons, interaction ranges, or physics. Pointer aiming, contact selection, and destination markers use the actual camera transform. Surface zoom uses a reusable nearest-neighbor pixel layer to avoid smoothing its pixel edges.
+
+The panel offers independent **Fill the screen**, **See-through controls**, and **Compact action tips** toggles, all on by default. Turning off Fill the screen restores the framed cockpit. Compact tips retain the immediate instruction and expand with +. **Reset view** restores only camera and view defaults; existing text size, thumb size, guidance, and save data remain intact. Preferences persist in the existing settings record, and older settings receive the new defaults without a voyage reset. View is also available from the captain’s menu; its controls never send gameplay commands or pause a shared galaxy.
 
 ## Mobile clarity and action guidance · 0.3.1
 

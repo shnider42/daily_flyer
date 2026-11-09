@@ -41,7 +41,7 @@ function fixture() {
     network:null,onlineSnapshot:null,connectionState:'offline',surface:null,surfaceKey:'',surfaceTarget:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
     stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
     tutorial,settings:{guidance:'simple',leftHanded:false},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,hideCoach(){},
-    audio:{unlock(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
+    audio:{unlock(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},setViewPanel(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
     hudText:(target,text)=>{target.textContent=text;},esc:value=>String(value??''),fmt:value=>String(value),toast:(...args)=>toasts.push(args),
     saveGame:game=>{writes.push(game.serialize());return true;},readPassport:()=>null,readPassports:()=>({}),openEncounter:encounter=>effects.push(encounter),processCombatEvent:()=>false,
     openCombatHelp:()=>effects.push('combat-help'),openLocalMapContent:()=>effects.push('local-chart'),

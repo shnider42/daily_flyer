@@ -1,11 +1,12 @@
 /**
- * Farwake person mode. All positions and width/height are WORLD PIXELS.
+ * Farwake person mode. Surface positions and dimensions are WORLD PIXELS.
  * cols/rows are tile counts; one tile is 24 pixels. Person x/y is their feet.
  * generateSurface(location, seed, flags) is deterministic and JSON serializable.
  * movePerson mutates and returns person. dt is seconds, input is a -1..1 vector.
- * drawSurface draws only the world and returns {cameraX,cameraY,width,height}.
+ * drawSurface draws only the world and returns its camera transform and zoom.
  */
 import {beginPixelFrame} from './render-viewport.mjs';
+import {surfaceCamera,surfaceWorldToCanvas} from './camera-view.mjs';
 import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
@@ -539,12 +540,40 @@ function drawHomeMarker(ctx,home,localCaptainId,time,raised=false){
  pixel(ctx,'#152e3a',x-13,y+1,26,4);pixel(ctx,shade,x-11,y+1,22,1);
 }
 /**
+ * Renderer width/height are logical canvas pixels, independent of world zoom.
  * Optional labels[] receives informational text in logical canvas coordinates;
  * size is a CSS font size. No informational text is rasterized when supplied.
  * remotePeople / boardingActors use world-map pixels and optional combatTime is
  * the engine ship-time used by lastShot.until / attackUntil / hurtUntil.
  */
+const zoomLayers=new WeakMap();
+function zoomLayer(ctx,width,height){
+ let layer=zoomLayers.get(ctx);
+ if(!layer){
+  const canvas=typeof OffscreenCanvas==='function'?new OffscreenCanvas(width,height):(ctx.canvas.ownerDocument||document).createElement('canvas');
+  layer={canvas,ctx:canvas.getContext('2d',{alpha:false})};zoomLayers.set(ctx,layer);
+ }
+ if(layer.canvas.width!==width)layer.canvas.width=width;
+ if(layer.canvas.height!==height)layer.canvas.height=height;
+ return layer;
+}
+
 export function drawSurface(ctx,surface,options={}){
+ const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height;
+ const view=surfaceCamera({x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,cameraX:options.cameraX,cameraY:options.cameraY});
+ if(view.zoom===1){drawSurfacePixels(ctx,surface,{...options,cameraX:view.cameraX,cameraY:view.cameraY});return view;}
+ // Fractional transforms antialias fillRect edges even with image smoothing off.
+ // Draw the world at its original pixel scale, then sample it without smoothing.
+ const cameraX=Math.floor(view.cameraX),cameraY=Math.floor(view.cameraY),sx=view.cameraX-cameraX,sy=view.cameraY-cameraY,sw=width/view.zoom,sh=height/view.zoom;
+ const layer=zoomLayer(ctx,Math.ceil(sw)+2,Math.ceil(sh)+2),labels=[];
+ drawSurfacePixels(layer.ctx,surface,{...options,width:layer.canvas.width,height:layer.canvas.height,cameraX,cameraY,labels});
+ beginPixelFrame(ctx);ctx.save();ctx.drawImage(layer.canvas,sx,sy,sw,sh,0,0,width,height);ctx.restore();
+ const emit=labelSink(ctx,options.labels,{width,height});
+ for(const label of labels){const point=surfaceWorldToCanvas(label.x+cameraX,label.y+cameraY,view);emit(label.text,point.x,point.y,label.color,label.size,label.align,label.priority,label.kind);}
+ return view;
+}
+
+function drawSurfacePixels(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height,time=options.time||0,combatTime=options.combatTime??options.gameTime??time;
  const center=(v,world,viewport)=>world<viewport?(world-viewport)/2:clamp(v-viewport/2,0,world-viewport);
  const cameraX=Math.round(options.cameraX??center(person.x,surface.width,width)),cameraY=Math.round(options.cameraY??center(person.y,surface.height,height));
