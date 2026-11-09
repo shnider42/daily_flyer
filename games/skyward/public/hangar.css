@@ -1,0 +1,341 @@
+@font-face {
+  font-family: "Skyward Condensed";
+  src: url("./fonts/open-sans-condensed-bold.woff") format("woff");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* The front end uses the aircraft and a flight-selection menu as its identity.
+   Keep these rules outside the in-flight instruments and touch controls. */
+.home-brand { display: none; }
+body[data-screen="home"] .menu-brand { display: none; }
+body[data-screen="home"] .home-brand { display: block; }
+body[data-screen="home"] { background: #111b20; }
+:root:not([data-theme="day"]) body[data-screen="home"] #scene-vignette,
+body[data-screen="home"] #scene-vignette { background: none; }
+body[data-screen="home"] .main-header {
+  top: max(25px, env(safe-area-inset-top));
+  left: 5vw;
+  right: 5vw;
+  padding-bottom: 19px;
+  border-bottom: 1px solid rgba(232, 237, 227, .18);
+  color: #eae9df;
+}
+body[data-screen="home"] .wordmark { gap: 11px; }
+body[data-screen="home"] .wordmark svg { width: 30px; height: 30px; }
+body[data-screen="home"] .wordmark > span {
+  font: 700 12px/1.2 Arial, Helvetica, sans-serif;
+  letter-spacing: .07em;
+}
+body[data-screen="home"] .wordmark small {
+  font: 10px/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .12em;
+  margin-top: 4px;
+  color: #a2adb0;
+}
+body[data-screen="home"] .header-actions { gap: 20px; }
+body[data-screen="home"] .header-actions .icon-button {
+  min-height: 44px;
+  font: 12px/1 Arial, Helvetica, sans-serif;
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body[data-screen="home"] .header-actions .icon-button:hover { background: #eae9df12; color: #e6b76d; }
+
+#home-screen {
+  --hangar-ink: #f0eee4;
+  --hangar-muted: #a8b4b7;
+  --hangar-line: rgba(222, 232, 228, .24);
+  --hangar-accent: #dfb26d;
+  --hangar-accent-ink: #1e2527;
+  --hangar-hover: rgba(224, 233, 227, .07);
+  display: grid;
+  grid-template-columns: minmax(300px, .8fr) minmax(0, 1.2fr);
+  grid-template-rows: auto 1fr auto;
+  column-gap: clamp(32px, 5vw, 90px);
+  row-gap: 26px;
+  min-height: 710px;
+  height: 100svh;
+  padding: 130px 5vw 28px;
+  overflow: hidden;
+  color: var(--hangar-ink);
+  font-family: Arial, Helvetica, sans-serif;
+  background:
+    linear-gradient(180deg, rgba(14, 23, 28, .42), transparent 36%, rgba(14, 23, 28, .55)),
+    linear-gradient(90deg, #111b20 0%, rgba(17, 27, 32, .98) 29%, rgba(17, 27, 32, .72) 47%, rgba(17, 27, 32, .11) 75%);
+}
+#home-screen button { border-radius: 0; }
+#home-screen button:focus-visible { outline: 2px solid var(--hangar-accent); outline-offset: 5px; }
+.hangar-title { grid-column: 1; grid-row: 1; }
+.hangar-title h1 {
+  font: 700 clamp(82px, 8.6vw, 138px)/.94 "Skyward Condensed", "Arial Narrow", Arial, sans-serif;
+  letter-spacing: -.018em;
+  margin: -5px 0 14px;
+}
+.hangar-title p {
+  font: 11px/1.4 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .3em;
+  margin: 0;
+  color: var(--hangar-muted);
+}
+.hangar-label {
+  margin: 0;
+  font: 10px/1.4 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .11em;
+  color: var(--hangar-muted);
+}
+.flight-menu { grid-column: 1; grid-row: 2; align-self: end; padding-bottom: 32px; }
+.flight-menu > .hangar-label { margin-bottom: 17px; }
+.flight-menu-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 105px;
+  padding: 18px 14px 18px 4px;
+  border-top: 1px solid var(--hangar-line);
+  text-align: left;
+  background: transparent;
+  color: var(--hangar-ink);
+  transition: background-color .15s, color .15s;
+}
+.flight-menu-item:last-child { border-bottom: 1px solid var(--hangar-line); }
+.flight-menu-item:hover { background: var(--hangar-hover); }
+.mode-number { align-self: center; font: 11px/1 "SFMono-Regular", Consolas, monospace; color: var(--hangar-muted); }
+.mode-copy { min-width: 0; }
+.mode-title {
+  display: block;
+  font: 700 clamp(27px, 2.5vw, 36px)/1.1 "Skyward Condensed", "Arial Narrow", Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+}
+.mode-description { display: block; margin-top: 7px; font: 12px/1.45 Arial, Helvetica, sans-serif; color: var(--hangar-muted); }
+.flight-menu-item .mode-arrow { width: 22px; height: 22px; stroke-width: 1.6; opacity: .8; }
+.campaign-entry { margin-bottom: 12px; }
+.campaign-entry-button {
+  padding-left: 16px;
+  padding-right: 16px;
+  min-height: 108px;
+  background: var(--hangar-accent);
+  color: var(--hangar-accent-ink);
+  border: 0;
+}
+.campaign-entry-button .mode-number,
+.campaign-entry-button .mode-description { color: #39413f; }
+.campaign-entry-button:hover { background: #edc58a; }
+.mission-select {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 3px;
+  background: transparent;
+  color: var(--hangar-muted);
+  font: 12px/1.2 Arial, Helvetica, sans-serif;
+}
+.mission-select:hover { color: var(--hangar-ink); }
+.mission-select svg { color: var(--hangar-accent); width: 16px; height: 16px; }
+
+.hangar-viewer {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 6px 0 32px;
+}
+.hangar-viewer-heading { display: flex; justify-content: space-between; align-items: center; padding: 0 0 20px; }
+.hangar-position { color: var(--hangar-muted); font: 11px/1.4 "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+.hangar-position > span:first-child { color: var(--hangar-ink); }
+.hangar-stage { position: relative; flex: 1; min-height: 240px; }
+.stage-tick { position: absolute; top: 48%; width: 13px; height: 28px; border-top: 1px solid var(--hangar-line); border-bottom: 1px solid var(--hangar-line); }
+.stage-tick-left { left: 0; border-left: 1px solid var(--hangar-line); }
+.stage-tick-right { right: 0; border-right: 1px solid var(--hangar-line); }
+.aircraft-manifest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 20px;
+  row-gap: 6px;
+  align-items: center;
+  margin-top: 15px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hangar-line);
+}
+.aircraft-identity { min-height: 96px; }
+.aircraft-year { display: block; color: var(--hangar-accent); font: 11px/1.4 "SFMono-Regular", Consolas, monospace; margin-bottom: 5px; }
+.aircraft-identity h2 { font: 700 clamp(27px, 2.8vw, 39px)/1.1 "Skyward Condensed", "Arial Narrow", Arial, sans-serif; text-transform: uppercase; letter-spacing: .015em; margin: 0 0 5px; }
+.aircraft-identity p { color: var(--hangar-muted); font: 12px/1.5 Arial, Helvetica, sans-serif; margin: 0; }
+.hangar-controls { display: flex; gap: 8px; }
+.hangar-controls button { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border: 1px solid var(--hangar-line); background: rgba(17, 27, 32, .35); color: var(--hangar-ink); }
+.hangar-controls button:hover { color: var(--hangar-accent); border-color: var(--hangar-accent); background: #111b20b3; }
+.hangar-controls svg { width: 18px; height: 18px; }
+.hangar-fly { grid-column: 1 / -1; justify-self: start; display: flex; align-items: center; gap: 13px; min-height: 44px; background: none; padding: 5px 0; color: var(--hangar-accent); font: 12px/1.2 Arial, Helvetica, sans-serif; }
+.hangar-fly svg { width: 19px; height: 19px; }
+.hangar-fly:hover { color: var(--hangar-ink); }
+.hangar-footer { grid-column: 1 / -1; grid-row: 3; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 22px; border-top: 1px solid var(--hangar-line); color: var(--hangar-muted); font: 10px/1.4 "SFMono-Regular", Consolas, monospace; letter-spacing: .05em; }
+.hangar-footer b { color: var(--hangar-ink); font-weight: 400; }
+.hangar-footer i { padding: 0 10px; font-style: normal; opacity: .5; }
+.hangar-inputs { margin-left: auto; margin-right: 18px; }
+
+/* The first-level setup screens carry the same typography and plain labels. */
+.panel-heading h1 { font: 700 58px/1.05 "Skyward Condensed", "Arial Narrow", Arial, sans-serif; text-transform: uppercase; letter-spacing: .005em; }
+.paper-panel h2 { font: 700 31px/1.15 "Skyward Condensed", "Arial Narrow", Arial, sans-serif; letter-spacing: .005em; }
+
+:root[data-theme="day"] body[data-screen="home"] .main-header { color: #202c2f; border-color: #25373840; }
+:root[data-theme="day"] body[data-screen="home"] .wordmark small { color: #526466; }
+:root[data-theme="day"] body[data-screen="home"] .header-actions .icon-button:hover { background: #182a3012; color: #743e1d; }
+:root[data-theme="day"] #home-screen {
+  --hangar-ink: #233236;
+  --hangar-muted: #4e6266;
+  --hangar-line: rgba(30, 53, 56, .27);
+  --hangar-accent: #9a4c2b;
+  --hangar-accent-ink: #fff9e9;
+  --hangar-hover: rgba(40, 57, 49, .07);
+  background:
+    linear-gradient(180deg, rgba(237, 234, 220, .4), transparent 36%, rgba(237, 234, 220, .67)),
+    linear-gradient(90deg, #edeadc 0%, rgba(237, 234, 220, .98) 29%, rgba(237, 234, 220, .7) 47%, rgba(237, 234, 220, .08) 75%);
+}
+:root[data-theme="day"] .campaign-entry-button .mode-number,
+:root[data-theme="day"] .campaign-entry-button .mode-description { color: #fff0db; }
+:root[data-theme="day"] .campaign-entry-button:hover { background: #804124; }
+:root[data-theme="day"] .hangar-controls button { background: #edeadc66; }
+:root[data-theme="day"] .hangar-controls button:hover { background: #edeadcdd; }
+
+@media (min-width: 1600px) {
+  #home-screen { grid-template-columns: minmax(360px, .72fr) minmax(0, 1.28fr); padding-top: 150px; }
+  .flight-menu { max-width: 530px; }
+}
+@media (min-width: 761px) and (max-height: 800px) {
+  #home-screen { min-height: 640px; padding-top: 112px; padding-bottom: 20px; row-gap: 18px; }
+  .hangar-title h1 { font-size: clamp(76px, 7.6vw, 108px); }
+  .flight-menu, .hangar-viewer { padding-bottom: 10px; }
+  .flight-menu-item, .campaign-entry-button { min-height: 88px; padding-top: 13px; padding-bottom: 13px; }
+  .mode-title { font-size: 30px; }
+  .mode-description { margin-top: 5px; }
+  .flight-menu > .hangar-label { margin-bottom: 12px; }
+  .hangar-viewer-heading { padding-bottom: 4px; }
+  .hangar-stage { min-height: 200px; }
+  .aircraft-manifest { padding-top: 14px; margin-top: 6px; }
+  .hangar-footer { padding-top: 16px; }
+}
+@media (max-width: 760px) {
+  body[data-screen="home"] .main-header { top: max(14px, env(safe-area-inset-top)); left: 22px; right: 22px; padding-bottom: 12px; }
+  body[data-screen="home"] .wordmark svg { width: 24px; height: 24px; }
+  body[data-screen="home"] .wordmark > span { font-size: 10px; }
+  body[data-screen="home"] .wordmark small { font-size: 8px; }
+  body[data-screen="home"] .header-actions { gap: 5px; }
+  body[data-screen="home"] .header-actions .icon-button { padding: 8px; min-width: 40px; font-size: 11px; }
+  body[data-screen="home"] #sound-button .sound-label { display: none; }
+  body[data-screen="home"] #theme-button { gap: 5px; }
+  body[data-screen="home"] #theme-button svg { width: 17px; }
+  body[data-screen="home"] [data-open-settings] span { display: none; }
+  #home-screen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(210px, 1fr) auto auto;
+    gap: 17px;
+    height: 100svh;
+    min-height: 790px;
+    padding: 96px 22px 20px;
+    background: linear-gradient(180deg, rgba(17, 27, 32, .92) 0%, rgba(17, 27, 32, .3) 23%, rgba(17, 27, 32, .3) 42%, #111b20 58%);
+  }
+  .hangar-title { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .hangar-title h1 { font-size: clamp(57px, 14vw, 82px); margin: -4px 0 0; }
+  .hangar-title p { width: 84px; font-size: 9px; line-height: 1.65; letter-spacing: .16em; }
+  .hangar-viewer { grid-column: 1; grid-row: 2; padding: 0; min-height: 0; }
+  .hangar-viewer-heading { padding: 0; }
+  .hangar-viewer-heading .hangar-label { font-size: 8px; }
+  .hangar-position { font-size: 9px; }
+  .hangar-stage { min-height: 138px; }
+  .stage-tick { height: 20px; width: 8px; }
+  .aircraft-manifest { grid-template-columns: minmax(0, 1fr) auto; margin-top: 0; padding-top: 9px; column-gap: 12px; row-gap: 0; }
+  .aircraft-identity { min-height: 61px; }
+  .aircraft-year { font-size: 9px; margin-bottom: 3px; }
+  .aircraft-identity h2 { font-size: clamp(22px, 6.4vw, 31px); margin-bottom: 1px; }
+  .aircraft-identity p { font-size: 10px; }
+  .hangar-controls { gap: 6px; }
+  .hangar-controls button { width: 44px; height: 44px; }
+  .hangar-fly { grid-column: 2; grid-row: 2; justify-self: end; min-height: 44px; font-size: 10px; gap: 4px; }
+  .hangar-fly svg { width: 16px; }
+  .flight-menu { grid-column: 1; grid-row: 3; padding: 0; }
+  .flight-menu > .hangar-label { display: none; }
+  .flight-menu-item { min-height: 76px; grid-template-columns: 21px minmax(0, 1fr) 20px; gap: 10px; padding: 12px 10px 12px 3px; }
+  .campaign-entry-button { padding-left: 13px; padding-right: 13px; }
+  .mode-title { font-size: 28px; }
+  .mode-number { font-size: 10px; }
+  .mode-description { font-size: 11px; margin-top: 4px; }
+  .campaign-entry { margin-bottom: 4px; }
+  .mission-select { min-height: 44px; padding: 5px 2px; font-size: 11px; }
+  .hangar-footer { grid-column: 1; grid-row: 4; padding-top: 14px; gap: 8px; font-size: 8px; }
+  .hangar-footer i { padding: 0 6px; }
+  .hangar-inputs { margin: 0 0 0 auto; font-size: 7px; }
+  .panel-heading h1 { font-size: 44px; }
+  :root[data-theme="day"] #home-screen { background: linear-gradient(180deg, rgba(237, 234, 220, .94), rgba(237, 234, 220, .2) 23%, rgba(237, 234, 220, .2) 42%, #edeadc 58%); }
+}
+@media (max-width: 760px) and (max-height: 790px) {
+  #home-screen { min-height: 710px; padding-top: 88px; padding-bottom: 14px; gap: 12px; grid-template-rows: auto minmax(190px, 1fr) auto auto; }
+  .hangar-title h1 { font-size: 56px; }
+  .hangar-stage { min-height: 118px; }
+  .flight-menu-item { min-height: 68px; padding-top: 10px; padding-bottom: 10px; }
+  .mode-title { font-size: 25px; }
+  .mode-description { font-size: 10px; }
+  .hangar-footer { padding-top: 10px; }
+}
+@media (max-width: 360px) {
+  #home-screen { padding-left: 16px; padding-right: 16px; }
+  body[data-screen="home"] .main-header { left: 16px; right: 16px; }
+  body[data-screen="home"] .home-brand small { display: none; }
+  body[data-screen="home"] .wordmark { gap: 6px; }
+  .hangar-title h1 { font-size: 50px; }
+  .hangar-title p { font-size: 8px; width: 74px; }
+  .hangar-inputs { display: none; }
+}
+@media (orientation: landscape) and (min-width: 561px) and (max-height: 500px) {
+  body[data-screen="home"] .main-header { top: max(10px, env(safe-area-inset-top)); padding-bottom: 8px; left: 4vw; right: 4vw; }
+  #home-screen {
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    grid-template-rows: auto 1fr auto;
+    min-height: 390px;
+    height: 100svh;
+    padding: 76px 4vw 12px;
+    gap: 10px 28px;
+    background: linear-gradient(90deg, #111b20 0%, rgba(17, 27, 32, .97) 32%, rgba(17, 27, 32, .55) 60%, rgba(17, 27, 32, .25));
+  }
+  .hangar-title { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hangar-title h1 { font-size: clamp(40px, 6.2vw, 56px); margin: 0; }
+  .hangar-title p { font-size: 8px; width: 80px; letter-spacing: .1em; line-height: 1.5; }
+  .flight-menu { grid-column: 1; grid-row: 2; padding: 0; }
+  .flight-menu > .hangar-label { display: none; }
+  .flight-menu-item { min-height: 52px; padding: 7px 10px 7px 4px; grid-template-columns: 19px minmax(0, 1fr) 19px; gap: 9px; }
+  .campaign-entry-button { padding-left: 12px; }
+  .mode-title { font-size: 23px; }
+  .mode-description { font-size: 9px; line-height: 1.2; margin-top: 3px; }
+  .mode-number { font-size: 9px; }
+  .campaign-entry { margin-bottom: 3px; }
+  .mission-select { min-height: 44px; padding: 4px 0; font-size: 10px; }
+  .hangar-viewer { grid-column: 2; grid-row: 1 / 3; padding: 0; }
+  .hangar-viewer-heading { padding: 0; }
+  .hangar-viewer-heading .hangar-label, .hangar-position { font-size: 8px; }
+  .hangar-stage { min-height: 114px; }
+  .aircraft-manifest { margin-top: 0; padding-top: 9px; gap: 0 12px; }
+  .aircraft-identity { min-height: 58px; }
+  .aircraft-year { font-size: 8px; margin-bottom: 2px; }
+  .aircraft-identity h2 { font-size: 23px; margin-bottom: 2px; }
+  .aircraft-identity p { font-size: 10px; }
+  .hangar-controls { gap: 5px; }
+  .hangar-controls button { width: 44px; height: 44px; }
+  .hangar-fly { grid-column: 1 / -1; grid-row: auto; justify-self: start; min-height: 44px; font-size: 10px; }
+  .hangar-footer { grid-column: 1 / -1; grid-row: 3; padding-top: 9px; font-size: 8px; }
+  .hangar-inputs { margin-right: 0; }
+  :root[data-theme="day"] #home-screen { background: linear-gradient(90deg, #edeadc 0%, rgba(237, 234, 220, .97) 32%, rgba(237, 234, 220, .55) 60%, rgba(237, 234, 220, .25)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #home-screen *, #home-screen *::before, #home-screen *::after { transition: none !important; animation: none !important; }
+}

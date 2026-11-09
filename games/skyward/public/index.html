@@ -2,38 +2,72 @@
 <html lang="en" data-theme="night">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b141c"><meta name="description" content="SKYWARD: a century of flight. An 18-sortie 3D aviation campaign from canvas wings to the edge of tomorrow. A Daily Flyer game for touch and desktop.">
+  <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 14 aircraft across 18 campaign missions, explore in free flight, or join friends for dogfights and co-op. A Daily Flyer aviation game for keyboard and touch.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
   <div id="loading" class="loading"><span class="loading-mark">S / W</span><p>Opening the hangar<span class="dots">…</span></p></div>
   <div id="render-error" class="render-error" hidden><h1>The sky couldn’t open.</h1><p id="render-error-text">The flight display could not start. Try reloading or opening this link in Safari or Chrome.</p><button onclick="location.reload()">Try again</button></div>
   <header id="main-header" class="main-header">
-    <button class="wordmark" id="home-button" aria-label="Skyward home"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 24 18 36 26 36 30 23 26 23 33 27 36 27 38 20 36 13 38 13 36 17 33 17 26 4 30 4 26 16 18Z"/></svg><span>SKYWARD<small>A CENTURY OF FLIGHT</small></span></button>
+    <button class="wordmark" id="home-button" aria-label="Skyward home · Daily Flyer Games"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 24 18 36 26 36 30 23 26 23 33 27 36 27 38 20 36 13 38 13 36 17 33 17 26 4 30 4 26 16 18Z"/></svg><span class="menu-brand">SKYWARD<small>A CENTURY OF FLIGHT</small></span><span class="home-brand">DAILY FLYER<small>GAMES</small></span></button>
     <div class="header-actions"><button id="theme-button" class="icon-button" aria-label="Switch to day mode" aria-pressed="true" title="Switch to day mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.4A8.7 8.7 0 0 1 9.6 4a8.8 8.8 0 1 0 10.4 10.4Z"/></svg><span id="theme-label">Night</span></button><button id="sound-button" class="icon-button" aria-label="Toggle sound" title="Toggle sound"><span id="sound-glyph">◖</span><span class="sound-label">Sound on</span></button><button class="icon-button" data-open-settings aria-label="Open settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg><span>Setup</span></button></div>
   </header>
 
   <main id="home-screen" class="screen home-screen" data-screen="home">
-    <div class="home-copy"><p class="eyebrow"><span class="small-rule"></span> DAILY FLYER / AVIATION SERIES</p><h1>A little courage.<br><em>A lot of sky.</em></h1><p class="home-description">From canvas wings to the edge of tomorrow.<br>Learn to fly. Find your way home.</p><div class="home-cta"><button id="continue-button" class="primary big-button">Begin your logbook <span>→</span></button><button id="campaign-button" class="text-button">Explore the campaign <span>→</span></button></div><p class="continue-note" id="continue-note">Your first aircraft is waiting on the runway.</p></div>
-    <div class="aircraft-caption"><span class="caption-line"></span><span><small>WHERE IT ALL BEGINS</small><strong>Canvas. Wood. Possibility.</strong><em>Avro 504 · 1917</em></span></div>
-    <div class="home-bottom"><div class="edition"><span class="edition-number">01—18</span><span>EIGHTEEN SORTIES<br>ONE CENTURY OF FLIGHT</span></div><div class="home-links"><button id="free-button"><span class="mini-icon">→</span><span>Free flight<small>Pick a plane. Find some sky.</small></span><b>→</b></button><button id="squadron-button"><span class="mini-icon">✣</span><span>Fly together<small>Dogfight · free flight · AC-130 crew.</small></span><b>→</b></button></div></div>
-    <footer class="home-footer"><span>BUILT ON DAILY FLYER ENGINE</span><span>TOUCH + KEYBOARD <i>·</i> v0.6.1</span></footer>
+    <div class="hangar-title">
+      <h1>SKYWARD</h1>
+      <p>A CENTURY OF FLIGHT</p>
+    </div>
+
+    <nav class="flight-menu" aria-label="Choose a game mode">
+      <p class="hangar-label">SELECT FLIGHT</p>
+      <div class="campaign-entry">
+        <button id="continue-button" class="flight-menu-item campaign-entry-button">
+          <span class="mode-number" aria-hidden="true">01</span>
+          <span class="mode-copy"><span class="mode-title" id="continue-label">Start campaign</span><span class="mode-description" id="continue-note">First Light · Avro 504</span></span>
+          <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+        </button>
+        <button id="campaign-button" class="mission-select">Mission select <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></button>
+      </div>
+      <button id="free-button" class="flight-menu-item">
+        <span class="mode-number" aria-hidden="true">02</span>
+        <span class="mode-copy"><span class="mode-title">Free flight</span><span class="mode-description">Choose aircraft and terrain</span></span>
+        <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+      </button>
+      <button id="squadron-button" class="flight-menu-item">
+        <span class="mode-number" aria-hidden="true">03</span>
+        <span class="mode-copy"><span class="mode-title">Multiplayer</span><span class="mode-description">Dogfights · Co-op · AC-130 crew</span></span>
+        <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+      </button>
+    </nav>
+
+    <section class="hangar-viewer" aria-label="Browse aircraft">
+      <div class="hangar-viewer-heading"><span class="hangar-label">AIRCRAFT HANGAR</span><span class="hangar-position"><span id="hangar-index">01</span> / <span id="hangar-total">14</span></span></div>
+      <div id="hangar-stage" class="hangar-stage" aria-hidden="true"><i class="stage-tick stage-tick-left"></i><i class="stage-tick stage-tick-right"></i></div>
+      <div class="aircraft-manifest">
+        <div class="aircraft-identity" aria-live="polite" aria-atomic="true"><span id="hangar-era" class="aircraft-year">1917</span><h2 id="hangar-name">Avro 504</h2><p id="hangar-role">Flight trainer</p></div>
+        <div class="hangar-controls"><button id="hangar-prev" aria-label="Previous aircraft"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><button id="hangar-next" aria-label="Next aircraft"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7"/></svg></button></div>
+        <button id="hangar-fly" class="hangar-fly">Fly this aircraft <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
+      </div>
+    </section>
+
+    <footer class="hangar-footer"><span><b id="home-aircraft-count">14</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.6.2</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
-    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">THE CAMPAIGN</p><h1>A century in the air.</h1><p>Follow the logbook, or jump to any sortie.</p></div>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SINGLE PLAYER</p><h1>Campaign</h1><p>18 missions. Start at the beginning or select a sortie.</p></div>
     <div class="campaign-layout"><div class="mission-index"><div id="era-filters" class="era-filters" role="group" aria-label="Filter missions by era"></div><div id="mission-list" class="mission-list" aria-label="Campaign missions"></div></div><article id="mission-detail" class="mission-detail"></article></div>
   </section>
 
   <section id="free-screen" class="screen panel-screen" data-screen="free" hidden>
-    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">FREE FLIGHT</p><h1>No orders. Just the horizon.</h1><p>Every aircraft is available. Learn its feel at your own pace.</p></div>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SINGLE PLAYER</p><h1>Free flight</h1><p>Choose an aircraft, landscape, and starting point.</p></div>
     <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
   </section>
 
   <section id="squadron-screen" class="screen panel-screen" data-screen="squadron" hidden>
-    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">YOUR SQUADRON / YOUR SKY</p><h1>Every era. One horizon.</h1><p>Fly together, hunt through the canyons, or crew a gunship. Every aircraft has its own strengths.</p></div>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">PRIVATE ROOMS / 2–4 PLAYERS</p><h1>Multiplayer</h1><p>Dogfights, free flight, campaign co-op, and a two-person AC-130 crew.</p></div>
     <div class="squadron-layout">
       <div class="squadron-session">
         <div class="paper-panel squadron-connect" id="squadron-connect">
@@ -53,7 +87,7 @@
         <p class="small-note squadron-connection-note">Private rooms · 2–4 pilots, or 2 AC-130 crew. The flight lead runs the shared world. Crashing does not close the room; leaving it does. Keep the host’s tab open during the sortie.</p>
       </div>
       <aside class="paper-panel room-setup">
-        <p class="eyebrow">FLIGHT PLAN</p><h2>Choose your sky.</h2>
+        <p class="eyebrow">FLIGHT PLAN</p><h2>Room setup</h2>
         <p id="room-config-note" class="small-note">The flight lead sets the mission. Everyone chooses their own aircraft.</p>
         <div id="room-flight-config">
           <label>Mode<select id="room-mode"><option value="dogfight">Dogfight · every pilot for themselves</option><option value="freeflight">Free flight · explore together</option><option value="squadron">Mission squadron · fly the campaign</option><option value="crew">AC-130 crew · pilot + gunner</option></select></label>

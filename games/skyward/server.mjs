@@ -25,7 +25,7 @@ const CONTENT_TYPES = {
   '.json': 'application/json; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2', '.wav': 'audio/wav', '.mp3': 'audio/mpeg'
+  '.woff': 'font/woff', '.woff2': 'font/woff2', '.wav': 'audio/wav', '.mp3': 'audio/mpeg'
 };
 
 function send(socket, message) {

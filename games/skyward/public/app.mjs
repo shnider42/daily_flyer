@@ -39,7 +39,9 @@ const participantList=()=>typeof sim?.participants?.values==='function'?[...sim.
 const sharedWorldPaused=()=>!!(coop&&team.isHost&&paused&&!isArenaFlight()&&!isSpectating());
 const currentAircraft=()=>sim?.aircraft||aircraftOf(sim?.mission||selectedMission);
 const instrumentPlayer=()=>isSpectating()&&spectatorView?spectatorView:sim.player;
-let selectedMission=MISSIONS.find(m=>m.id===progress.lastMission)||MISSIONS[0],selectedAircraft=Object.values(AIRCRAFT)[0],eraFilter='all';
+const hangarAircraft=Object.values(AIRCRAFT);
+let hangarIndex=Math.max(0,hangarAircraft.findIndex(a=>a.id==='avro504')),hangarPreviewOptions,hangarMeasurePending=false;
+let selectedMission=MISSIONS.find(m=>m.id===progress.lastMission)||MISSIONS[0],selectedAircraft=hangarAircraft[0],eraFilter='all';
 let lastFrame=performance.now(),lastRoundFrame=performance.now(),lastHud=0,lastWorld=0,lastRemoteFire=0,lastCaption=0,toastTimeout=null,hintDismissed=false;
 const flightClock=new FixedStepClock(),presentation=new FlightPresentation();
 let renderView=null,markerBounds=[],markerBoundsDirty=true;
@@ -63,8 +65,33 @@ function paintCombatFeedback(state){
 }
 
 function toast(text,ms=3400){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').hidden=true,ms);}
-function showScreen(name){screen=name;document.body.dataset.screen=name;$$('.screen[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight'){impactMarker.hidden=true;paintCombatFeedback(null);setAircraftTray(false);setScoreboard(false);}setFlightInputs(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);}
-function refreshHome(){const complete=Object.keys(progress.completed).length;const next=MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0];$('continue-button').innerHTML=(complete?'Continue your logbook':'Begin your logbook')+' <span>→</span>';$('continue-note').textContent=complete?`${complete} of ${MISSIONS.length} sorties logged. Next: ${next.title}.`:'Your first aircraft is waiting on the runway.';}
+function showScreen(name){screen=name;document.body.dataset.screen=name;$$('.screen[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight'){impactMarker.hidden=true;paintCombatFeedback(null);setAircraftTray(false);setScoreboard(false);}setFlightInputs(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);measureHangarFrame();}
+function refreshHome(){
+  const complete=MISSIONS.filter(m=>progress.completed[m.id]).length,next=MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0];
+  const label=$('continue-label');if(label)label.textContent=complete?'Continue campaign':'Start campaign';
+  $('continue-note').textContent=complete===MISSIONS.length?`${complete}/${MISSIONS.length} complete · Replay ${next.title}`:complete?`${complete}/${MISSIONS.length} complete · Next: ${next.title}`:`${next.title} · ${aircraftOf(next).name}`;
+  for(const [id,value] of [['home-aircraft-count',hangarAircraft.length],['home-mission-count',MISSIONS.length]]){const el=$(id);if(el)el.textContent=String(value);}
+  refreshHangar();
+}
+function refreshHangar(){
+  const aircraft=hangarAircraft[hangarIndex];
+  for(const [id,value] of [['hangar-name',aircraft.name],['hangar-era',aircraft.era],['hangar-role',aircraft.role],['hangar-index',String(hangarIndex+1).padStart(2,'0')],['hangar-total',String(hangarAircraft.length).padStart(2,'0')]]){const el=$(id);if(el)el.textContent=value;}
+  $('hangar-fly')?.setAttribute('aria-label',`Fly this aircraft: ${aircraft.name}`);
+  $('hangar-prev')?.setAttribute('aria-label',`Previous aircraft: ${hangarAircraft[(hangarIndex-1+hangarAircraft.length)%hangarAircraft.length].name}`);
+  $('hangar-next')?.setAttribute('aria-label',`Next aircraft: ${hangarAircraft[(hangarIndex+1)%hangarAircraft.length].name}`);
+}
+function browseHangar(direction){hangarIndex=(hangarIndex+direction+hangarAircraft.length)%hangarAircraft.length;refreshHangar();scheduleHangarMeasurement();}
+function scheduleHangarMeasurement(){
+  if(screen!=='home'||hangarMeasurePending)return;
+  hangarMeasurePending=true;
+  requestAnimationFrame(()=>{hangarMeasurePending=false;if(screen==='home')measureHangarFrame();});
+}
+function measureHangarFrame(){
+  hangarPreviewOptions=undefined;
+  const stage=$('hangar-stage');if(screen!=='home'||!stage||stage.hidden||$('home-screen').hidden)return;
+  const {x,y,width,height}=stage.getBoundingClientRect();
+  if([x,y,width,height].every(Number.isFinite)&&width>1&&height>1)hangarPreviewOptions={frame:{x,y,width,height}};
+}
 function goHome(){stopGunnerFire();coop=false;team.leave();closeDialogs();paused=remotePaused=false;crewRole=null;sim=null;activeStart=null;spectatedId=spectatorView=null;endHandled=false;syncCrewUI();refreshHome();showScreen('home');}
 function closeDialogs(){cancelBindingCapture();setAircraftTray(false);settingsFromPause=resumeAfterSettings=false;for(const d of [$('pause-dialog'),$('settings-dialog')])if(d.open)d.close();}
 function setAircraftTray(open){
@@ -463,6 +490,8 @@ function updateSettings(){
 $('continue-button').onclick=()=>openCampaign(MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0]);$('campaign-button').onclick=()=>openCampaign();$('home-button').onclick=goHome;$$('[data-home]').forEach(b=>b.onclick=goHome);
 $('free-button').onclick=()=>{renderFree();showScreen('free');};$('launch-free').onclick=()=>startMission(buildFreeMission());
 $('squadron-button').onclick=()=>{updateRoom();showScreen('squadron');};
+for(const [id,direction] of [['hangar-prev',-1],['hangar-next',1]]){const button=$(id);if(button)button.onclick=()=>browseHangar(direction);}
+const hangarFly=$('hangar-fly');if(hangarFly)hangarFly.onclick=()=>{selectedAircraft=hangarAircraft[hangarIndex];renderFree();showScreen('free');};
 $('era-filters').onclick=e=>{const b=e.target.closest('[data-era]');if(b){eraFilter=b.dataset.era;renderCampaign();}};
 $('mission-list').onclick=e=>{const b=e.target.closest('[data-mission]');if(b){selectedMission=missionOf(b.dataset.mission);renderCampaign();}};
 $('aircraft-list').onclick=e=>{const b=e.target.closest('[data-aircraft]');if(b){selectedAircraft=AIRCRAFT[b.dataset.aircraft];renderFree();}};
@@ -527,7 +556,9 @@ function retryFlight(){
   startMission(sim.mission);
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&bindingCapture)cancelBindingCapture('Key change cancelled.');if(document.hidden&&screen==='flight'&&!paused){pauseFlight();}if(!document.hidden){lastFrame=performance.now();flightClock.reset();if(sim)presentation.reset(sim);}});
-window.addEventListener('resize',()=>{renderer?.resize();setAircraftTray(false);markerBoundsDirty=true;refreshKeyboardHints();refreshTouchHints();});
+window.addEventListener('resize',()=>{renderer?.resize();setAircraftTray(false);markerBoundsDirty=true;refreshKeyboardHints();refreshTouchHints();measureHangarFrame();});
+window.addEventListener('scroll',scheduleHangarMeasurement,{passive:true});
+if(document.fonts?.ready)document.fonts.ready.then(scheduleHangarMeasurement,()=>{});
 
 function graphicsStatus(){
   const mode=renderer?.backend==='software'?'Compatibility graphics · hardware 3D was unavailable.':'Hardware 3D graphics.';
@@ -587,7 +618,8 @@ function frame(now){
     updateMarkers(renderView);
     if(sim.status!=='flying'&&!endHandled&&(!destroyed||now-destructionAt>=1250))finishFlight();
   }else if(screen==='debrief'&&sim){if(coop&&team.isHost&&team.connected&&now-lastWorld>=100){team.sendWorld({...sim.getSnapshot(),teamPaused:false});lastWorld=now;}renderView=presentation.sample(1);if(destructionAt!==null)for(const effect of renderView.effects||[])effect.age+=Math.max(0,(now-destructionAt)/1000);renderer.render(renderView,dt,{camera:'cinematic',lookX:0,lookY:0,remotePlayers:[]});}
-  else {renderer.renderMenu(now/1000,screen==='free'?selectedAircraft:Object.values(AIRCRAFT)[0]);}
+  else if(screen==='home'){renderer.renderMenu(now/1000,hangarAircraft[hangarIndex],hangarPreviewOptions);}
+  else {renderer.renderMenu(now/1000,screen==='free'?selectedAircraft:hangarAircraft[0]);}
   recordFrame(elapsed,performance.now()-workStart,running);
 }
 

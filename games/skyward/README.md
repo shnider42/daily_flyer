@@ -1,6 +1,8 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.6.1 strengthens combat feedback with directional hit warnings, layered impact and explosion audio, brief camera reactions, and damaged-aircraft smoke.** The v0.6 multiplayer dogfights and peaceful free flight, individual aircraft and launch choices, mission lives and spectating, and Razorback Canyons with physical terrain cover remain available alongside the two-person AC-130 operation and full campaign. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.6.2 replaces the introductory homepage with a flight-selection menu and a browsable aircraft hangar.** Campaign, Free flight and Multiplayer share one navigation hierarchy. The hangar shows all 14 actual game aircraft, fits their models to desktop and phone layouts, and opens free-flight setup with the chosen aircraft. A locally served condensed typeface and direct menu labels replace the previous promotional headlines. Day/night preferences, campaign saves, flight controls and multiplayer behavior are preserved.
+
+The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
 ## Run
 

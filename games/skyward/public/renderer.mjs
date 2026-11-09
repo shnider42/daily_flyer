@@ -13,6 +13,7 @@ import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET,DamageSmokeTrails,eff
 import {applyCombatCameraKick} from './combat-camera.mjs';
 import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
+import {frameMenuAircraft} from './menu-framing.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -717,7 +718,7 @@ export class FlightRenderer {
     this.stats.fps=lerp(this.stats.fps,dt>0?1/dt:60,.025);this.stats.drawCalls=this.renderer.info.render.calls;this.stats.triangles=this.renderer.info.render.triangles;
   }
 
-  renderMenu(time=0,aircraft={id:'avro504'}){
+  renderMenu(time=0,aircraft={id:'avro504'},options={}){
     const profile=typeof aircraft==='string'?{id:aircraft}:aircraft;const key=JSON.stringify([profile?.id,profile?.model,profile?.color]);
     if(this._mode!=='menu'||this._menuAircraftKey!==key){
       const menu={id:'skyward-menu',biome:'countryside',aircraft:profile.id||'avro504',weather:{wind:4,cloudBase:980,cloudTop:1400,timeOfDay:'sunset',fog:.08},runways:[{x:-1700,z:3600,y:12,length:1100,width:44,heading:.45,label:'THE BEGINNING'}],waypoints:[],targets:[],start:{x:0,y:420,z:0}};
@@ -729,10 +730,14 @@ export class FlightRenderer {
     setAircraftPose(this._plane,p);animateAircraft(this._plane,p,dt,seconds);this._plane.visible=true;
     const span=this._plane.userData.span||11;const distance=Math.max(23,span*2.7);const portrait=this.width<this.height;
     this._setProjection(portrait?53:46);
-    this.camera.position.set(p.x+distance*.68,p.y+distance*.23,p.z+distance*.72);
-    const right=scratchV.set(.72,0,-.68).normalize();
-    const shift=portrait?0:span*.76;
-    this.camera.up.set(0,1,0);this.camera.lookAt(p.x-right.x*shift,p.y+(portrait?-span*.48:span*.05),p.z-right.z*shift);
+    const framing=frameMenuAircraft({width:this.width,height:this.height,frame:options?.frame,aircraft:profile,pose:p,fov:this.camera.fov});
+    this.camera.up.set(0,1,0);
+    if(framing){this.camera.position.set(...framing.position);this.camera.lookAt(...framing.target);}
+    else{
+      this.camera.position.set(p.x+distance*.68,p.y+distance*.23,p.z+distance*.72);
+      const right=scratchV.set(.72,0,-.68).normalize(),shift=portrait?0:span*.76;
+      this.camera.lookAt(p.x-right.x*shift,p.y+(portrait?-span*.48:span*.05),p.z-right.z*shift);
+    }
     this.sky.position.copy(this.camera.position);
     this.scene.fog.near=1200;this.scene.fog.far=19000;
     if(this.waterMaterial){this.waterMaterial.uniforms.time.value=seconds;this.waterMaterial.uniforms.fogNear.value=this.scene.fog.near;this.waterMaterial.uniforms.fogFar.value=this.scene.fog.far;}

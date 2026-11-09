@@ -14,6 +14,7 @@ import {sampleCombatEffects,DamageSmokeTrails,effectViewAlpha} from './combat-vi
 import {applyCombatCameraKick} from './combat-camera.mjs';
 import {SoftwareAircraftRasterizer} from './software-aircraft.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
+import {frameMenuAircraft} from './menu-framing.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -452,12 +453,17 @@ export class SoftwareFlightRenderer{
     if(options.camera==='gunner')drawSoftwareGunshipStation(this.ctx,this._gunshipPanel,sim.crew,this.time);
     this.stats.fps=mix(this.stats.fps,dt?1/dt:60,.03);
   }
-  renderMenu(time=0,aircraft={id:'avro504'}){
+  renderMenu(time=0,aircraft={id:'avro504'},options={}){
     const profile=typeof aircraft==='string'?{id:aircraft}:aircraft,key=JSON.stringify([profile.id,profile.color]);
     if(this._mode!=='menu'||this._menuKey!==key){this.loadMission({id:'skyward-menu',biome:'countryside',aircraft:profile.id||'avro504',weather:{wind:{x:4,z:0},cloudBase:980,cloudTop:1400,timeOfDay:'sunset',fog:.000025},runways:[{x:-1700,z:3600,y:12,length:1100,width:44,heading:.45}],waypoints:[],targets:[],start:{x:0,y:420,z:0,airborne:true}},profile);this._mode='menu';this._menuKey=key;}
     const seconds=n(time),dt=clamp(seconds-n(this._lastMenuTime,seconds-1/60),.001,.06);this._lastMenuTime=seconds;this.time=seconds;const motion=this.settings.reducedMotion?0:1;
     const p={x:70*Math.sin(seconds*.012)*motion,y:440+Math.sin(seconds*.31)*1.5*motion,z:Math.sin(seconds*.008)*1600*motion,heading:-.32,pitch:.025+Math.sin(seconds*.22)*.01*motion,roll:.04+Math.sin(seconds*.27)*.025*motion,throttle:.62,engine:true,gear:/avro|camel/.test(this._planeMeta.kind)};
-    const span=this._planeMeta.span||11,distance=Math.max(23,span*2.7),portrait=this.width<this.height;this.camera.fov=portrait?53:46;this.camera.updateProjectionMatrix();this.camera.position.set(p.x+distance*.68,p.y+distance*.23,p.z+distance*.72);const shift=portrait?0:span*.76;this.camera.up.set(0,1,0);this.camera.lookAt(p.x-.727*shift,p.y+(portrait?-span*.48:span*.05),p.z+.687*shift);this._view();this._visibilityFar=19000;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;this._background();this._cloudLayer();this._paint();this._terrain(p);this._paint();this._runways();this._paint();this._environment();this._aircraft(this._plane,p,dt,true);this._paint();
+    const span=this._planeMeta.span||11,distance=Math.max(23,span*2.7),portrait=this.width<this.height;this.camera.fov=portrait?53:46;this.camera.updateProjectionMatrix();
+    const framing=frameMenuAircraft({width:this.width,height:this.height,frame:options?.frame,aircraft:profile,pose:p,fov:this.camera.fov});
+    this.camera.up.set(0,1,0);
+    if(framing){this.camera.position.set(...framing.position);this.camera.lookAt(...framing.target);}
+    else{this.camera.position.set(p.x+distance*.68,p.y+distance*.23,p.z+distance*.72);const shift=portrait?0:span*.76;this.camera.lookAt(p.x-.727*shift,p.y+(portrait?-span*.48:span*.05),p.z+.687*shift);}
+    this._view();this._visibilityFar=19000;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;this._background();this._cloudLayer();this._paint();this._terrain(p);this._paint();this._runways();this._paint();this._environment();this._aircraft(this._plane,p,dt,true);this._paint();
   }
   project(x,y,z){this.camera.updateMatrixWorld(true);const p=V.set(x,y,z).project(this.camera);return{x:(p.x*.5+.5)*this.width,y:(-.5*p.y+.5)*this.height,visible:p.z>-1&&p.z<1&&Math.abs(p.x)<1.12&&Math.abs(p.y)<1.12,depth:p.z};}
   dispose(){this._queue=[];this._drawPool=[];this._terrainMesh=null;this._terrainStream?.dispose();this._terrainCache.clear();this._plane=null;this._cockpitPanel=null;this._gunshipPanel=null;this._aircraftRaster?.dispose();}
