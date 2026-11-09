@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.3.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.3.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, a worn Sparrow-class utility cutter, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Clear zoom-out and saved cameras · 0.3.3
+
+**View** and **Settings** now have independent **Ship zoom (25–160%)** and **Person zoom (50–160%)** controls. Each defaults to 100%, with 5% slider steps. Switching between flying, landing, and boarding restores that mode's camera. At 25%, the ship camera spans four times the width and height of its normal view; small hulls retain heading brackets, readable shots, and contact cues. Text, buttons, physics, and interaction distances stay independent of zoom.
+
+Below 100%, the world renders directly to the physical display grid, with nearest-neighbor sprite sampling. This avoids throwing detail away in a coarse intermediate canvas before enlarging it. Native buffers are bounded by the physical viewport; an extra full-resolution copy is skipped. Camera picking, labels, markers, and combat cues use the same density-aware transform. The established 100% and zoom-in rendering remains unchanged.
+
+Shared camera settings are private to the authenticated **captain**, saved durably on the galaxy server and restored through that captain's existing passport on another device. **CREW → Captain passport** downloads the private identity backup; restore it to resume the same captain. On a new device, a galaxy invitation code alone creates a different captain. Camera preferences do not belong to a ship or helmsman role and are not sent to other crew members. Updates are debounced, versioned, and acknowledged after storage; a slow camera save never pauses other players.
+
+Solo cameras travel in the existing voyage save/export format. Old browser `worldZoom` settings migrate into both modes once. Practice camera changes last only for that test session and restore the normal cameras on exit. Device-specific text size, thumb controls, handedness, and HUD toggles keep their existing browser preferences. Unsent shared edits can retry from a browser-local draft for the same captain and server revision; newer settings saved by another device take priority.
 
 ## Mobile world view · 0.3.2
 

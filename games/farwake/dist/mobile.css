@@ -119,6 +119,10 @@
 .view-panel label:not(.view-heading){display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;font-size:.95rem;line-height:1.4;color:#cbdcdd}
 .view-option{padding:7px 0}.view-option span{min-width:0}.view-option small{display:block;margin-top:4px;font-size:.85rem;line-height:1.45;color:#a8bec5}.view-panel .view-zoom-label{margin-top:6px}
 .view-panel input[type=checkbox]{flex:0 0 23px}
+.view-zoom-group+.view-zoom-group{border-top:1px solid #344d58;margin-top:7px;padding-top:5px}
+.view-panel .view-active{display:inline-block;margin-left:5px;color:#a9dfca;font-size:.68em;letter-spacing:.06em;vertical-align:middle}
+.view-panel .view-active[hidden]{display:none}
+.view-panel .view-save-status{font-size:.85rem;color:#a9c7be;margin-top:-3px;padding-bottom:8px;border-bottom:1px solid #344d58}
 .view-panel #resetView{min-height:44px;width:100%;margin:10px 0 5px;padding:7px 12px;border:1px solid #4f717a;background:#18333e;color:#cddedb}
 #coachExpand{display:none}
 .touch-layout .view-button{display:block;min-height:44px;min-width:54px;padding:8px 10px;border:1px solid #3e5968;background:#122432;font-size:.95rem;white-space:nowrap}

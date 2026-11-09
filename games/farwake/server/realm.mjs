@@ -4,6 +4,7 @@ import { generateSurface, movePerson, nearestEntity, repairSolution, isWalkable 
 import { ENCOUNTERS, DIALOGUE, UPGRADES, LORE } from '../dist/content.mjs';
 import { PersistenceConflict } from './persistence.mjs';
 import { BoardingAuthority } from './boarding.mjs';
+import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
@@ -24,9 +25,10 @@ export class Realm extends BoardingAuthority {
     this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {};
     this.revision = 0; this.persistedRevision = 0; this.flushing = null; this.storageError = null; this.conflicted = false; this.tick = 0; this.simulatedAt = now();
     for (const data of Object.values(snapshot?.captains || {})) {
-      const game = Game.fromSave({ ...data.game, seed: this.seed, worlds: {} });
+      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...savedGame } = data.game || {};
+      const game = Game.fromSave({ ...savedGame, seed: this.seed, worlds: {} });
       const disconnectUntil = data.aboard && (data.crewRole !== 'passenger' || game.state.mode === 'ship') ? Math.max(now(), (data.lastSeen || now()) + DISCONNECT_GRACE_MS) : 0;
-      this.captains.set(data.id, { ...data, game, session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil, events: [], recentCommands: data.recentCommands || [], surfaceCache: null, needsRestoration: true });
+      this.captains.set(data.id, { ...data, game, cameraPreferences: normalizeCameraPreferences(data.cameraPreferences), cameraRevision: Number.isSafeInteger(data.cameraRevision) && data.cameraRevision >= 0 ? data.cameraRevision : 0, session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil, events: [], recentCommands: data.recentCommands || [], surfaceCache: null, needsRestoration: true });
     }
     for (const data of Object.values(snapshot?.vessels || {})) {
       const owner = this.captains.get(data.ownerId); if (!owner) continue;
@@ -55,7 +57,7 @@ export class Realm extends BoardingAuthority {
     const id = newCaptainId(), token = newSecret(), game = new Game(this.seed);
     const angle = this.captains.size * 2.399963;
     game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155;
-    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: starterHome(), game, ownedVesselId: `vessel_${id}`, aboard: `vessel_${id}`, crewRole: 'helm', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
+    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: starterHome(), game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId: `vessel_${id}`, aboard: `vessel_${id}`, crewRole: 'helm', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
     this.captains.set(id, captain); this._createVessel(captain); if (!this.ownerId) this.ownerId = id;
     const revision = this.markDirty(); await this.flush(revision);
     return { captain, passport: { realmCode: this.id, captainId: id, token } };
@@ -271,15 +273,37 @@ export class Realm extends BoardingAuthority {
     try { result = this._command(captain, name, args); } catch (error) { this.failed = true; this.onConflict(this, error); return fail('This realm must reload its last durable revision before continuing.', 'invalid-action'); }
     result ||= fail('Unknown action.', 'command');
     if (!result.ok) return result;
-    captain.lastSeen = now(); this._bindCaptain(captain);
-    captain.events.push(...captain.game.drainEvents()); if (captain.events.length > 80) captain.events.splice(0, captain.events.length - 80);
+    captain.lastSeen = now();
+    if (name !== 'setCameraPreferences') {
+      this._bindCaptain(captain);
+      captain.events.push(...captain.game.drainEvents()); if (captain.events.length > 80) captain.events.splice(0, captain.events.length - 80);
+    }
     if (requestId) { captain.recentCommands.push({ id: requestId, result: clone(result) }); if (captain.recentCommands.length > 80) captain.recentCommands.shift(); }
     const revision = this.markDirty();
     try { await this.flush(revision); } catch { return fail('The storage service has not confirmed this action. Reconnect before retrying.', 'storage-unconfirmed'); }
     return result;
   }
 
+  _setCameraPreferences(c, args) {
+    const values = () => ({ cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision });
+    const keys = Object.keys(args), zoomKeys = keys.filter(key => key === 'shipZoom' || key === 'personZoom');
+    if (!zoomKeys.length || keys.some(key => !['shipZoom', 'personZoom', 'expectedRevision'].includes(key)) ||
+        !Number.isSafeInteger(args.expectedRevision) || args.expectedRevision < 0 ||
+        zoomKeys.some(key => typeof args[key] !== 'number' || !Number.isFinite(args[key]))) {
+      return { ...fail('Send a finite camera zoom and its current revision.', 'camera-invalid'), ...values() };
+    }
+    if (args.expectedRevision !== c.cameraRevision) {
+      return { ...fail('Camera settings changed on another connection. Use the saved settings before changing them again.', 'camera-conflict'), ...values() };
+    }
+    if (c.cameraRevision >= Number.MAX_SAFE_INTEGER) return { ...fail('Camera settings cannot be revised further.', 'camera-invalid'), ...values() };
+    c.cameraPreferences = normalizeCameraPreferences(args, c.cameraPreferences);
+    // Revision zero also means that an older captain has not imported local preferences yet.
+    c.cameraRevision++;
+    return ok({ ...values() });
+  }
+
   _command(c, name, a) {
+    if (name === 'setCameraPreferences') return this._setCameraPreferences(c, a);
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
     const id = a.id ?? a.systemId ?? a.bodyId ?? a.signalId;
     if (game.state.person.health <= 0 && !['renameCaptain', 'setCrewAccess'].includes(name)) return fail('You are incapacitated. Your crew can still clear the deck.', 'incapacitated');
@@ -658,7 +682,7 @@ export class Realm extends BoardingAuthority {
     if (compact) state = clone({ ...Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, ownState[key]])), ship, boarding });
     else {
       // Off-system world records live in realm persistence; do not clone them just to discard them.
-      const { worlds, ship: ownedShip, ...personalState } = ownState;
+      const { worlds, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
       state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
       state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
       if (aboardOwner) {
@@ -689,7 +713,7 @@ export class Realm extends BoardingAuthority {
     const motion = { protocol: 1, tick: this.tick, serverTime: now(), simulatedAt: this.simulatedAt, ack: c.ack, state, world, room, players, remoteShips,
       events: drainEvents ? c.events.splice(0, 80) : clone(c.events) };
     if (compact) return { ...motion, partial: true };
-    return { ...motion,
+    return { ...motion, cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision,
       crew: vessel ? [...this.captains.values()].filter(other => other.aboard === vessel.id).map(other => ({ captainId: other.id, name: other.name, role: other.crewRole, online: !!other.session })) : [],
       fleet: [...this.vessels.values()].map(v => this._publicVessel(v, c)), presence: [...this.captains.values()].map(other => { const p = this._publicCaptain(other); return { captainId: p.captainId, name: p.name, online: p.online, systemId: p.systemId, roomId: p.roomId, vesselId: p.vesselId, crewRole: p.crewRole, mode: p.mode, sleeping: p.sleeping, home: p.home }; }),
       homes: Object.values(this.leases).filter(home => home.systemId === state.systemId && home.locationId === state.locationId && (!home.expiresAt || home.expiresAt > now())).map(clone),
@@ -701,9 +725,9 @@ export class Realm extends BoardingAuthority {
     const captains = {};
     for (const c of this.captains.values()) {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
-      const { worlds, ...personalState } = c.game.state;
+      const { worlds, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
-      captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
+      captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
     return { format: 1, realmId: this.id, name: this.name, seed: this.seed, ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), captains, vessels, worlds: clone(this.worlds), leases: clone(this.leases) };

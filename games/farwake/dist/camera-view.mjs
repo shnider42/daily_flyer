@@ -1,19 +1,17 @@
 /** Presentation-only zoom. It never changes simulation coordinates or UI scale. */
 import {pixelCamera} from './render-viewport.mjs';
+import {PERSON_ZOOM,normalizeModeZoom} from './camera-preferences.mjs';
 
-export const WORLD_ZOOM = Object.freeze({min:.6,max:1.6,step:.05,default:1});
+// Legacy imports use the person range; new callers choose their mode explicitly.
+export const WORLD_ZOOM = PERSON_ZOOM;
 const finite=(value,fallback)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
-const numeric=value=>typeof value==='number'||typeof value==='string'&&value.trim()!==''?Number(value):NaN;
-
-export function normalizeWorldZoom(value,fallback=WORLD_ZOOM.default){
- const initial=numeric(value),backup=numeric(fallback),number=Number.isFinite(initial)?initial:Number.isFinite(backup)?backup:WORLD_ZOOM.default;
- const bounded=Math.max(WORLD_ZOOM.min,Math.min(WORLD_ZOOM.max,number));
- return Math.round((WORLD_ZOOM.min+Math.round((bounded-WORLD_ZOOM.min)/WORLD_ZOOM.step)*WORLD_ZOOM.step)*100)/100;
-}
+export const normalizeShipZoom=(value,fallback=1)=>normalizeModeZoom(value,'ship',fallback);
+export const normalizePersonZoom=(value,fallback=1)=>normalizeModeZoom(value,'person',fallback);
+export const normalizeWorldZoom=normalizePersonZoom;
 
 /** A surface camera is a top-left world origin, unlike the centered ship camera. */
-export function surfaceCamera({x=0,y=0,worldWidth=1,worldHeight=1,width=1,height=1,zoom=1,cameraX,cameraY}={}){
- zoom=normalizeWorldZoom(zoom);width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));
+export function surfaceCamera({x=0,y=0,worldWidth=1,worldHeight=1,width=1,height=1,zoom=1,rasterScale=1,cameraX,cameraY}={}){
+ rasterScale=Math.max(1,finite(rasterScale,1));zoom=normalizePersonZoom(zoom)*rasterScale;width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,1));
  const visibleWidth=width/zoom,visibleHeight=height/zoom;
  const center=(value,world,viewport)=>world<viewport?(world-viewport)/2:Math.max(0,Math.min(world-viewport,value-viewport/2));
  let cx=finite(cameraX,center(x,worldWidth,visibleWidth)),cy=finite(cameraY,center(y,worldHeight,visibleHeight));

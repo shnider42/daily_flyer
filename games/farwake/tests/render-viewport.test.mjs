@@ -31,6 +31,37 @@ test('DPR3 toolbar movement and visual zoom retain integer physical pixels witho
   assert.deepEqual(pixelViewport({ width: 428, height: 926, dpr: 3 }), pixelViewport({ width: 428, height: 926, dpr: 3, visualScale: 1, visualOffsetX: 0, visualOffsetY: 0 }));
 });
 
+test('zooming out uses a bounded native raster while 100% and zoom-in keep the original art grid',()=>{
+ for(const dpr of[1,1.25,2,3])for(const mode of['ship','person']){
+  const input={width:390.333,height:844.667,left:.375,top:54.5,dpr,mode},base=pixelViewport(input);
+  assert.deepEqual(pixelViewport({...input,zoom:1}),base);assert.deepEqual(pixelViewport({...input,zoom:1.6}),base);
+  for(const zoom of[.25,.5,.8,.95]){
+   const view=pixelViewport({...input,zoom});
+   assert.equal(view.physicalPixelsPerPixel,1,'never shrink detail into coarse blocks before enlargement');
+   assert.equal(view.logicalWidth,view.physicalWidth);assert.equal(view.logicalHeight,view.physicalHeight);
+   near(view.cssScale*view.rasterScale,base.cssScale,'extra samples must not change world size');
+   assert.ok(view.logicalWidth<=Math.ceil(input.width*dpr)+1&&view.logicalHeight<=Math.ceil(input.height*dpr)+1,'native buffer stays within a one-pixel viewport alignment allowance');
+  }
+ }
+});
+
+test('80% zoom retains one-pixel details without coarse-grid dropouts or panning shimmer',()=>{
+ for(const dpr of[1,1.25,2,3])for(const mode of['ship','person']){
+  const viewport=pixelViewport({width:390,height:844,dpr,zoom:.8,mode}),zoom=.8*(mode==='ship'?.7:1)*viewport.rasterScale;
+  let previous;
+  for(let frame=0;frame<30;frame++){
+   const view=pixelCamera({cameraX:100.37+frame*.037,cameraY:0,width:viewport.logicalWidth,height:viewport.logicalHeight,zoom,centered:true});
+   // A run of alternating one-world-pixel trim details must give every color
+   // a physical sample. The old coarse intermediate raster loses some entirely.
+   const widths=Array.from({length:64},(_,x)=>worldToCanvas(x+1,0,view).x-worldToCanvas(x,0,view).x);
+   assert.ok(Math.min(...widths)>=1,'one-pixel hull/window detail survives');
+   assert.ok(Math.max(...widths)-Math.min(...widths)<=1,'any uneven spacing is at most one physical screen pixel');
+   if(previous)assert.deepEqual(widths,previous,'the world grid has stable phase while the camera moves');
+   previous=widths;
+  }
+ }
+});
+
 test('labels and pointer picking use the same aligned canvas bounds, including actual measured CSS rounding', () => {
   const viewport = pixelViewport({ width: 428.25, height: 799.5, left: .125, top: 54.5, dpr: 3, visualScale: 1.1 });
   const rect = { left: viewport.left + .003, top: viewport.top - .002, width: viewport.cssWidth + .005, height: viewport.cssHeight - .004 };

@@ -29,6 +29,7 @@ function fixture({ health = 100, down = false } = {}) {
     personPredictedAt: null, personVisualAt: null, personVisualOffset: { x: 0, y: 0 },
     combatPresentation: { reset() {} }, combatFeed: [], clearPointerAim() {},
     controls: { clear() {} }, worldPresentation: { push() {} }, frameMonitor: { snapshot() {} },
+    receiveCameraPreferences() {}, // Camera profile persistence is exercised separately; these packets contain only walking state.
     ensureSurface() { context.surface = context.game.state.mode === 'person' ? openHall : null; }, updateSurfaceFlags() {}, processEvents() {},
   });
   vm.runInContext(walkingCode, context);

@@ -133,6 +133,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
         } catch (error) { send({ type: 'error', code: 'authentication', reason: error.message }); ws.close(4001, 'Authentication failed.'); }
         return;
       }
+      if (captain.session !== session) { ws.close(4009, 'This passport connected in another window.'); return; }
       if (packet.type === 'input') { realm.acceptInput(captain, packet.seq, packet.input); return; }
       if (packet.type === 'ping') { send({ type: 'pong', sentAt: Number(packet.sentAt) || Date.now(), serverTime: Date.now() }); return; }
       if (packet.type === 'goodbye') { ws.close(1000, 'Voyage safely disconnected.'); return; }

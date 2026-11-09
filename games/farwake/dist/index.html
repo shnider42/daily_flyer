@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
-<meta name="application-version" content="0.3.2">
+<meta name="application-version" content="0.3.3">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css">
 </head>
@@ -30,9 +30,16 @@
  <aside id="coachCard" class="coach-card" aria-label="Action guide" hidden><div class="coach-copy" aria-live="polite"><span id="coachStep" class="coach-step">GETTING STARTED</span><strong id="coachTitle"></strong><p id="coachBody"></p></div><button id="coachExpand" aria-label="Expand this action tip" aria-expanded="false" aria-controls="coachBody">+</button><button id="coachDismiss" aria-label="Hide this tip. Find action help in Menu.">×</button></aside>
  <aside id="viewPanel" class="view-panel" aria-label="Camera and screen layout" hidden>
   <div class="view-heading"><strong>Camera &amp; view</strong><button id="closeView" aria-label="Close camera controls">×</button></div>
-  <label class="view-zoom-label" for="worldZoom">World zoom <output id="worldZoomValue" for="worldZoom">100%</output></label>
-  <div class="view-controls"><button id="zoomOutView" aria-label="Zoom out">−</button><input id="worldZoom" type="range" min="0.6" max="1.6" step="0.05" value="1" aria-describedby="viewZoomHelp"><button id="zoomInView" aria-label="Zoom in">+</button></div>
+  <section id="shipZoomGroup" class="view-zoom-group" aria-label="Ship camera">
+   <label class="view-zoom-label" for="shipZoom"><span>Ship zoom <small id="shipZoomActive" class="view-active">ACTIVE</small></span><output id="shipZoomValue" for="shipZoom">100%</output></label>
+   <div class="view-controls"><button id="shipZoomOut" aria-label="Zoom ship camera out">−</button><input id="shipZoom" type="range" min="0.25" max="1.6" step="0.05" value="1" aria-describedby="viewZoomHelp"><button id="shipZoomIn" aria-label="Zoom ship camera in">+</button></div>
+  </section>
+  <section id="personZoomGroup" class="view-zoom-group" aria-label="Person camera">
+   <label class="view-zoom-label" for="personZoom"><span>Person zoom <small id="personZoomActive" class="view-active" hidden>ACTIVE</small></span><output id="personZoomValue" for="personZoom">100%</output></label>
+   <div class="view-controls"><button id="personZoomOut" aria-label="Zoom person camera out">−</button><input id="personZoom" type="range" min="0.5" max="1.6" step="0.05" value="1" aria-describedby="viewZoomHelp"><button id="personZoomIn" aria-label="Zoom person camera in">+</button></div>
+  </section>
   <p id="viewZoomHelp" class="view-help">Wider view ← → Closer view<br>Text and touch controls stay the same size.</p>
+  <p id="cameraSaveStatus" class="view-save-status" role="status">Saved in this browser</p>
   <label class="view-option"><span>Fill the screen<small>Turn off for the framed cockpit.</small></span><input id="viewImmersive" type="checkbox" checked></label>
   <label class="view-option"><span>See-through controls<small>Keep the world visible beneath the HUD.</small></span><input id="viewTranslucent" type="checkbox" checked></label>
   <label class="view-option"><span>Compact action tips<small>Tap + on a tip for its full explanation.</small></span><input id="viewCompactTips" type="checkbox" checked></label>

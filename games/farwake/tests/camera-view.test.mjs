@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeWorldZoom,surfaceCamera,surfaceCanvasToWorld,surfaceWorldToCanvas} from '../dist/camera-view.mjs';
+import {normalizeWorldZoom,normalizeShipZoom,normalizePersonZoom,surfaceCamera,surfaceCanvasToWorld,surfaceWorldToCanvas} from '../dist/camera-view.mjs';
+import {pixelViewport} from '../dist/render-viewport.mjs';
 import {drawSurface,generateSurface} from '../dist/surface.mjs';
 import {SpaceRenderer} from '../dist/space-art.mjs';
 
@@ -8,8 +9,14 @@ const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} differs from ${b}`);
 test('world zoom has bounded steps and safe defaults for old or malformed settings',()=>{
  assert.equal(normalizeWorldZoom(undefined),1);assert.equal(normalizeWorldZoom(null),1);assert.equal(normalizeWorldZoom(''),1);
  assert.equal(normalizeWorldZoom('1.3'),1.3);assert.equal(normalizeWorldZoom(.82),.8);assert.equal(normalizeWorldZoom(.83),.85);
- assert.equal(normalizeWorldZoom(-10),.6);assert.equal(normalizeWorldZoom(99),1.6);
+ assert.equal(normalizeWorldZoom(-10),.5);assert.equal(normalizeWorldZoom(99),1.6);
  assert.equal(normalizeWorldZoom(Infinity),1);assert.equal(normalizeWorldZoom(NaN,.9),.9);assert.equal(normalizeWorldZoom('bad','bad'),1);
+});
+
+test('ship overview and walking zoom use their separate shared ranges',()=>{
+ assert.equal(normalizeShipZoom(0),.25);assert.equal(normalizePersonZoom(0),.5);
+ assert.equal(normalizeShipZoom(.27),.25);assert.equal(normalizePersonZoom(.27),.5);
+ assert.equal(normalizeShipZoom(2),1.6);assert.equal(normalizePersonZoom(2),1.6);
 });
 
 test('surface camera changes field of view while pointer and marker transforms stay inverse',()=>{
@@ -50,8 +57,8 @@ class FakeCanvas{
  getContext(){return this.ctx;}
 }
 class FakeContext{
- constructor(canvas){this.canvas=canvas;this.textCalls=[];this.images=[];this.scales=[];this.transforms=[];this.imageSmoothingEnabled=true;}
- save(){}restore(){}translate(){}rotate(){}fillRect(){}clearRect(){}strokeRect(){}setLineDash(){}
+ constructor(canvas){this.canvas=canvas;this.textCalls=[];this.images=[];this.scales=[];this.transforms=[];this.fills=[];this.captureFills=false;this.imageSmoothingEnabled=true;}
+ save(){}restore(){}translate(){}rotate(){}fillRect(x,y,w,h){if(this.captureFills)this.fills.push({color:this.fillStyle,x,y,w,h});}clearRect(){}strokeRect(){}setLineDash(){}
  scale(...args){this.scales.push(args);}setTransform(...args){this.transforms.push(args);}
  drawImage(...args){this.images.push(args);}fillText(...args){this.textCalls.push(args);}measureText(s){return{width:String(s).length*6};}
 }
@@ -87,4 +94,40 @@ test('space zoom preserves hull-aware framing, picking, and continuous camera st
  }
  const explicit=renderer.draw(ctx,game,{width:214,height:400,zoom:.73,zoomMultiplier:1.6,motion:false,time:1,labels:[]});assert.equal(explicit.zoom,.73);
  assert.equal(JSON.stringify(game),before);
+}));
+
+test('native zoom-out samples retain camera coverage, precise picking, and CSS label sizes',()=>withCanvas(()=>{
+ const surface=generateSurface({id:'ship:density',kind:'ship',shipClass:'capital'},'camera'),person={x:708.2,y:684.6,health:100},remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:740,y:720}];
+ const game={state:{systemId:'density',ship:{id:'local',shipClass:'sparrow',x:100.123,y:200.789,hull:100,maxHull:100}},system:{bodies:[],asteroids:[],enemies:[],traffic:[],signals:[],bullets:[],pickups:[]}},renderer=new SpaceRenderer();
+ for(const dpr of[1,1.25,2,3]){
+  const viewport=pixelViewport({width:420,height:800,dpr,zoom:.8,mode:'person'}),rasterScale=viewport.rasterScale,width=viewport.logicalWidth,height=viewport.logicalHeight,ctx=new FakeCanvas(width,height).ctx,labels=[];
+  const view=drawSurface(ctx,surface,{person,remotePeople,width,height,zoom:.8,rasterScale,labels});
+  close(view.zoom,.8*rasterScale);close(width/view.zoom,viewport.cssWidth/(viewport.cssScale*rasterScale*.8));
+  const label=labels.find(l=>l.kind==='remote'),expected=surfaceWorldToCanvas(740,673,view);assert.equal(label.size,13);assert.equal(label.x,Math.round(expected.x));assert.equal(label.y,Math.round(expected.y));
+  const sample=ctx.images.at(-1);close(sample[3],width/(.8*rasterScale));close(sample[4],height/(.8*rasterScale));
+  assert.ok(sample[0].width<300&&sample[0].height<510,'visible-world source buffer does not grow with DPR');
+  for(const zoomMultiplier of[.25,.4,.8]){
+   const space=renderer.draw(ctx,game,{width,height,rasterScale,zoomMultiplier,motion:false,labels:[]});
+   close(space.zoom/rasterScale,.7*zoomMultiplier);
+   const point=renderer.toWorld(space.offsetX+235.567*space.zoom,space.offsetY-72.123*space.zoom);close(point.x,235.567);close(point.y,-72.123);
+   close(width/space.zoom,viewport.cssWidth/(viewport.cssScale*rasterScale*.7*zoomMultiplier));
+  }
+ }
+}));
+
+test('dense ship sampling retains combat cue sizes and asteroid details; overview brackets do not enlarge hulls',()=>withCanvas(()=>{
+ const ship={id:'local',shipClass:'sparrow',x:100,y:200,angle:.3,hull:100,maxHull:100},enemy={id:'enemy',name:'Raider',shipClass:'sparrow',x:120,y:230,hp:60,maxHp:100,hostile:true};
+ const game={state:{systemId:'cues',ship},system:{bodies:[],asteroids:[{id:'crystal',x:170,y:200,radius:16,seed:23,type:'crystal',hp:100,maxHp:100}],enemies:[enemy],traffic:[],signals:[],bullets:[{x:130,y:210,vx:100,vy:0,owner:'player'}],pickups:[]}};
+ for(const rasterScale of[2,4,6]){
+  const ctx=new FakeCanvas(195*rasterScale,320*rasterScale).ctx;ctx.captureFills=true;const labels=[],renderer=new SpaceRenderer(),view=renderer.draw(ctx,game,{rasterScale,zoomMultiplier:.8,motion:false,labels});
+  const bar=ctx.fills.find(f=>f.color==='#543b3c'),bullet=ctx.fills.find(f=>f.color==='#fff0c6'),crystal=ctx.fills.find(f=>f.color==='#a8d7c6');
+  assert.equal(bar.h,3*rasterScale);assert.equal(bullet.w,2*rasterScale);assert.equal(bullet.h,2*rasterScale);
+  assert.equal(crystal.w,Math.round(2*.8*rasterScale),'crystal facets must scale along with their rock, not become single device-pixel specks');
+  const label=labels.find(l=>l.kind==='hostile');assert.equal(label.size,13);
+  const enemyY=Math.round(enemy.y*view.zoom+view.offsetY);assert.ok(Math.abs(label.y-enemyY-(42*view.zoom*.6+8*rasterScale))<=.5,'label spacing scales while its CSS font size stays fixed');
+ }
+ const ctx=new FakeCanvas(390,640).ctx;ctx.captureFills=true;new SpaceRenderer().draw(ctx,game,{rasterScale:2,zoomMultiplier:.25,motion:false,labels:[]});
+ assert.ok(ctx.fills.some(f=>f.color==='#c6dfcf'),'the DPR1 overview keeps a visible local-ship bracket');
+ close(ctx.scales.at(-1)[0],.35);close(ctx.scales.at(-1)[1],.35);
+ assert.equal(game.state.ship,ship);assert.equal(ship.hull,100);
 }));

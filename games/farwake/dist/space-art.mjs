@@ -2,7 +2,7 @@ import {pixelRect,pixelLine,pixelRing,labelSink} from './pixel-art.mjs';
 import {resolveCabinClass} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
 import {beginPixelFrame,pixelCamera,worldToCanvas,canvasToWorld} from './render-viewport.mjs';
-import {normalizeWorldZoom} from './camera-view.mjs';
+import {normalizeShipZoom} from './camera-view.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function random(seed){return()=>{seed|=0;seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^(seed>>>15),1|seed);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296;};}
@@ -82,9 +82,9 @@ export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,ti
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));ctx.rotate(angle);ctx.scale(factor,factor);ctx.drawImage(work,-work.width/2,-work.height/2);ctx.restore();
  return{length:profile.length*factor,width:profile.width*factor};
 }
-function stationSprite(ctx,x,y,r,time,id){
- const cacheKey=id+':'+(Math.sin(time*3)>0?1:0),cached=stationCache.get(cacheKey),cachedScale=Math.max(.62,r/66);if(cached){ctx.drawImage(cached,Math.round(x-96*cachedScale),Math.round(y-96*cachedScale),Math.round(192*cachedScale),Math.round(192*cachedScale));return;}
- const variant=id==='listening'?2:id==='ledger'?1:hash(id)%3,scale=Math.max(.62,r/66),c=makeCanvas(192,192),p=c.getContext('2d'),q=(col,a,b,w,h)=>pixelRect(p,col,a+96,b+96,w,h);
+function stationSprite(ctx,x,y,r,time,id,minScale=.62){
+ const cacheKey=id+':'+(Math.sin(time*3)>0?1:0),cached=stationCache.get(cacheKey),cachedScale=Math.max(minScale,r/66);if(cached){ctx.drawImage(cached,Math.round(x-96*cachedScale),Math.round(y-96*cachedScale),Math.round(192*cachedScale),Math.round(192*cachedScale));return;}
+ const variant=id==='listening'?2:id==='ledger'?1:hash(id)%3,scale=Math.max(minScale,r/66),c=makeCanvas(192,192),p=c.getContext('2d'),q=(col,a,b,w,h)=>pixelRect(p,col,a+96,b+96,w,h);
  if(variant===1){
   pixelRing(p,96,96,66,66,'#5e7881',{step:1});pixelRing(p,96,96,57,57,'#2e4b59',{step:1});pixelRing(p,96,96,62,62,'#7b8c86',{step:1});
   for(let i=0;i<8;i++){const a=i/8*TAU,xx=Math.round(Math.cos(a)*63),yy=Math.round(Math.sin(a)*63);pixelLine(p,96,96,xx+96,yy+96,'#304f5d',7);q('#193644',xx-12,yy-9,24,18);q('#6b858b',xx-11,yy-9,22,4);q('#adbca7',xx-7,yy-2,3,2);q('#83b7b0',xx+4,yy-2,3,2);}
@@ -100,11 +100,11 @@ function stationSprite(ctx,x,y,r,time,id){
  stationCache.set(cacheKey,c);if(stationCache.size>40)stationCache.delete(stationCache.keys().next().value);
  ctx.imageSmoothingEnabled=false;ctx.drawImage(c,Math.round(x-96*scale),Math.round(y-96*scale),Math.round(192*scale),Math.round(192*scale));
 }
-function asteroid(ctx,x,y,r,seed,type,damage=0){
+function asteroid(ctx,x,y,r,seed,type,damage=0,detailScale=1){
  const rng=random(seed),points=[];for(let i=0;i<9;i++){const a=i/9*TAU,d=r*(.76+rng()*.24);points.push([Math.round(x+Math.cos(a)*d),Math.round(y+Math.sin(a)*d)]);}
- polygon(ctx,points,type==='crystal'?'#385c66':'#4b5961');polygon(ctx,points.map(([a,b])=>[a,b-2]).slice(0,5),type==='crystal'?'#66999b':'#7d8a85');pixelRect(ctx,'#273c48',x+r*.12,y+r*.13,Math.max(3,r*.35),Math.max(2,r*.21));pixelLine(ctx,x-r*.45,y-r*.13,x+r*.14,y+r*.35,'#334851');
- if(type==='crystal'){for(let i=0;i<3;i++){const px=x-r*.3+i*r*.25,py=y-r*.18+(i%2)*r*.25;pixelRect(ctx,'#a8d7c6',px,py,2,Math.max(3,r*.3));pixelRect(ctx,'#70b6ba',px+2,py+2,2,Math.max(2,r*.2));}}else if(seed%3===0)pixelRect(ctx,'#b6a781',x-r*.3,y-r*.3,Math.max(2,r*.23),2);
- if(damage>.2){pixelLine(ctx,x-r*.2,y-r*.3,x+r*.3,y+r*.3,'#192d38');pixelLine(ctx,x+r*.3,y+r*.3,x+r*.5,y,'#192d38');}
+ polygon(ctx,points,type==='crystal'?'#385c66':'#4b5961');polygon(ctx,points.map(([a,b])=>[a,b-2*detailScale]).slice(0,5),type==='crystal'?'#66999b':'#7d8a85');pixelRect(ctx,'#273c48',x+r*.12,y+r*.13,Math.max(3*detailScale,r*.35),Math.max(2*detailScale,r*.21));pixelLine(ctx,x-r*.45,y-r*.13,x+r*.14,y+r*.35,'#334851',detailScale);
+ if(type==='crystal'){for(let i=0;i<3;i++){const px=x-r*.3+i*r*.25,py=y-r*.18+(i%2)*r*.25;pixelRect(ctx,'#a8d7c6',px,py,2*detailScale,Math.max(3*detailScale,r*.3));pixelRect(ctx,'#70b6ba',px+2*detailScale,py+2*detailScale,2*detailScale,Math.max(2*detailScale,r*.2));}}else if(seed%3===0)pixelRect(ctx,'#b6a781',x-r*.3,y-r*.3,Math.max(2*detailScale,r*.23),2*detailScale);
+ if(damage>.2){pixelLine(ctx,x-r*.2,y-r*.3,x+r*.3,y+r*.3,'#192d38',detailScale);pixelLine(ctx,x+r*.3,y+r*.3,x+r*.5,y,'#192d38',detailScale);}
 }
 /** Exterior dimensions follow the deck class, including older enemy snapshots. */
 export function vesselVisualProfile(value={}){
@@ -136,30 +136,34 @@ export class SpaceRenderer{
  draw(ctx,game,options={}){
   const{width:w=ctx.canvas.width,height:h=ctx.canvas.height,time=0,welcome=false,tracked=null,guidance='simple',motion=true,labels}=options,s=game.state,ship=normalizeShip(options.ship||s.ship),sys=options.world||game.system||{},profile=SHIP_VISUALS[resolveCabinClass(ship.shipClass)],combatTime=options.combatTime??s.stats?.time??time;
   const frameDt=clamp(options.dt??time-this.lastTime,0,.25),emit=labelSink(ctx,labels,{width:w,height:h}),dt=Math.min(frameDt,.06);this.lastTime=time;
-  this.zoom=options.zoom??Math.min(w<330?.70:.82,Math.min(w,h)*.44/(ship.renderLength||profile.length))*normalizeWorldZoom(options.zoomMultiplier);const z=this.zoom;
+  const rasterScale=Number.isFinite(options.rasterScale)&&options.rasterScale>=1?options.rasterScale:1,r=rasterScale,frameWidth=w/r,frameHeight=h/r,zoomMultiplier=normalizeShipZoom(options.zoomMultiplier);
+  // Frame the ship in the established game units, then sample at the chosen
+  // raster density. More display pixels must never make the camera zoom in.
+  const framing=Math.min(frameWidth<330?.70:.82,Math.min(frameWidth,frameHeight)*.44/(ship.renderLength||profile.length));
+  this.zoom=(options.zoom??framing*zoomMultiplier)*r;const z=this.zoom;
   const targetX=ship.x+(welcome?-160:0),targetY=ship.y+(welcome?-40:0);
   if(this.lastSystem!==s.systemId){this.camera={x:targetX,y:targetY};this.lastSystem=s.systemId;this.particles=[];this.health.clear();}
   const follow=motion?1-Math.pow(.88,frameDt*60):1;this.camera.x+=(targetX-this.camera.x)*follow;this.camera.y+=(targetY-this.camera.y)*follow;const cx=this.camera.x,cy=this.camera.y;this.w=w;this.h=h;
   // A shared integer origin keeps adjacent world pixels moving together.
   // The eased camera above remains continuous for prediction and follow motion.
   const view=pixelCamera({cameraX:cx,cameraY:cy,width:w,height:h,zoom:z,centered:true});this.view=view;
-  const to=(x,y)=>worldToCanvas(x,y,view),visible=(p,r=35)=>p.x>-r&&p.x<w+r&&p.y>-r&&p.y<h+r;
+  const to=(x,y)=>worldToCanvas(x,y,view),visible=(p,margin=35*r)=>p.x>-margin&&p.x<w+margin&&p.y>-margin&&p.y<h+margin,ring={width:r,step:2*r},bodyMinScale=r*Math.min(1,zoomMultiplier);
   beginPixelFrame(ctx);ctx.save();pixelRect(ctx,'#06121f',0,0,w,h);
-  const nebula=this.nebula(s.systemId||'hearth'),nx=((Math.round(-cx*.024)%512)+512)%512,ny=((Math.round(-cy*.024)%512)+512)%512;for(let yy=ny-512;yy<h;yy+=512)for(let xx=nx-512;xx<w;xx+=512)ctx.drawImage(nebula,xx,yy);
-  for(const st of this.stars){const x=((st.x*w*2-cx*st.depth)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size,st.size);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2,y,6,1);pixelRect(ctx,st.color,x,y-2,1,6);}}ctx.globalAlpha=1;
+  const nebula=this.nebula(s.systemId||'hearth'),tile=512*r,nx=((Math.round(-cx*.024*r)%tile)+tile)%tile,ny=((Math.round(-cy*.024*r)%tile)+tile)%tile;for(let yy=ny-tile;yy<h;yy+=tile)for(let xx=nx-tile;xx<w;xx+=tile)ctx.drawImage(nebula,xx,yy,tile,tile);
+  for(const st of this.stars){const x=((st.x*w*2-cx*st.depth*r)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth*r)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size*r,st.size*r);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2*r,y,6*r,r);pixelRect(ctx,st.color,x,y-2*r,r,6*r);}}ctx.globalAlpha=1;
   const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId);
-  for(const b of bodies){const p=to(b.x,b.y),radius=(b.radius??b.r??65)*z;if(!visible(p,radius*2+40))continue;
-   if(b.kind==='station')stationSprite(ctx,p.x,p.y,Math.max(24,radius),motion?time:0,b.id);
-   else{const r=Math.max(18,radius);if(b.rings||b.biome==='arid'||b.biome==='desert'){pixelRing(ctx,p.x,p.y,r*1.56,r*.42,'#6f777180');pixelRing(ctx,p.x,p.y,r*1.72,r*.47,'#aaa88b70');}ctx.drawImage(this.planet(b),Math.round(p.x-r),Math.round(p.y-r),Math.round(r*2),Math.round(r*2));}
-   const labelRadius=b.kind==='station'?Math.max(.62,Math.max(24,radius)/66)*86:Math.max(18,radius);
-   if(!welcome){emit(b.name,p.x,p.y+labelRadius+13,b.id===tracked?'#efd6a0':'#bbcfcf',b.id===tracked?15:14,'center',b.id===tracked?75:35,'place');if(b.id===tracked)emit(`${b.kind==='station'?'DOCKING PORT':(b.kind||'world').toUpperCase()} · ${Math.round(Math.hypot(b.x-ship.x,b.y-ship.y))} m`,p.x,p.y+labelRadius+26,'#91b4bb',12,'center',50,'distance');}
+  for(const b of bodies){const p=to(b.x,b.y),radius=(b.radius??b.r??65)*z;if(!visible(p,radius*2+40*r))continue;
+   if(b.kind==='station')stationSprite(ctx,p.x,p.y,Math.max(24*bodyMinScale,radius),motion?time:0,b.id,.62*bodyMinScale);
+   else{const radiusPx=Math.max(18*bodyMinScale,radius);if(b.rings||b.biome==='arid'||b.biome==='desert'){pixelRing(ctx,p.x,p.y,radiusPx*1.56,radiusPx*.42,'#6f777180',ring);pixelRing(ctx,p.x,p.y,radiusPx*1.72,radiusPx*.47,'#aaa88b70',ring);}ctx.drawImage(this.planet(b),Math.round(p.x-radiusPx),Math.round(p.y-radiusPx),Math.round(radiusPx*2),Math.round(radiusPx*2));}
+   const labelRadius=b.kind==='station'?Math.max(.62*bodyMinScale,Math.max(24*bodyMinScale,radius)/66)*86:Math.max(18*bodyMinScale,radius);
+   if(!welcome){emit(b.name,p.x,p.y+labelRadius+13*r,b.id===tracked?'#efd6a0':'#bbcfcf',b.id===tracked?15:14,'center',b.id===tracked?75:35,'place');if(b.id===tracked)emit(`${b.kind==='station'?'DOCKING PORT':(b.kind||'world').toUpperCase()} · ${Math.round(Math.hypot(b.x-ship.x,b.y-ship.y))} m`,p.x,p.y+labelRadius+26*r,'#91b4bb',12,'center',50,'distance');}
   }
-  for(const a of sys.asteroids||[]){if(a.depleted||a.hp===0||a.health===0)continue;const p=to(a.x,a.y),r=(a.radius??a.r??16)*z;if(visible(p,r))asteroid(ctx,p.x,p.y,r,a.seed??hash(a.id),a.type??a.resource,1-(a.hp??a.health??100)/(a.maxHp??a.maxHealth??100));}
-  for(const item of sys.pickups||[]){const p=to(item.x,item.y);if(!visible(p,8))continue;const col=item.type==='ore'?'#ddc78f':'#8fcfc7';pixelRect(ctx,'#213c49',p.x-5,p.y-3,10,7);pixelRect(ctx,col,p.x-3,p.y-2,6,5);pixelRect(ctx,'#e2e5be',p.x-2,p.y-2,3,1);}
-  for(const sig of sys.signals||[]){if(sig.resolved)continue;const p=to(sig.x,sig.y);if(!visible(p,45))continue;
+  for(const a of sys.asteroids||[]){if(a.depleted||a.hp===0||a.health===0)continue;const p=to(a.x,a.y),radius=(a.radius??a.r??16)*z;if(visible(p,radius))asteroid(ctx,p.x,p.y,radius,a.seed??hash(a.id),a.type??a.resource,1-(a.hp??a.health??100)/(a.maxHp??a.maxHealth??100),r*Math.min(1,zoomMultiplier));}
+  for(const item of sys.pickups||[]){const p=to(item.x,item.y);if(!visible(p,8*r))continue;const col=item.type==='ore'?'#ddc78f':'#8fcfc7';pixelRect(ctx,'#213c49',p.x-5*r,p.y-3*r,10*r,7*r);pixelRect(ctx,col,p.x-3*r,p.y-2*r,6*r,5*r);pixelRect(ctx,'#e2e5be',p.x-2*r,p.y-2*r,3*r,r);}
+  for(const sig of sys.signals||[]){if(sig.resolved)continue;const p=to(sig.x,sig.y);if(!visible(p,45*r))continue;
    if(sig.kind==='derelict')drawShip(ctx,p.x,p.y,-.25,'#73817f',z*.75,false,time,false,{shipClass:'hauler',damage:.8,disabled:true});
-   else{pixelRect(ctx,'#1a3647',p.x-5,p.y-7,10,14);pixelRect(ctx,'#a1c7c4',p.x-4,p.y-6,8,3);pixelRect(ctx,'#5a8e9b',p.x-9,p.y-2,18,4);pixelRect(ctx,'#cfc499',p.x-1,p.y-11,2,5);}
-   pixelRing(ctx,p.x,p.y,17+Math.floor((motion?time:0)%2*6),17+Math.floor((motion?time:0)%2*6),'#7dbab477',{dashed:true,phase:time*4});emit(sig.name||'Unidentified signal',p.x,p.y+(sig.kind==='derelict'?34:28),'#9acbc7',13,'center',sig.id===tracked?75:25,'signal');
+   else{pixelRect(ctx,'#1a3647',p.x-5*r,p.y-7*r,10*r,14*r);pixelRect(ctx,'#a1c7c4',p.x-4*r,p.y-6*r,8*r,3*r);pixelRect(ctx,'#5a8e9b',p.x-9*r,p.y-2*r,18*r,4*r);pixelRect(ctx,'#cfc499',p.x-r,p.y-11*r,2*r,5*r);}
+   const signalRadius=(17+Math.floor((motion?time:0)%2*6))*r;pixelRing(ctx,p.x,p.y,signalRadius,signalRadius,'#7dbab477',{...ring,dashed:true,phase:time*4});emit(sig.name||'Unidentified signal',p.x,p.y+(sig.kind==='derelict'?34:28)*r,'#9acbc7',13,'center',sig.id===tracked?75:25,'signal');
   }
   // A boarding party leaves two physical hulls in the system. Draw their tether
   // from stable vessel IDs, including when the target is a shared vessel actor.
@@ -170,38 +174,46 @@ export class SpaceRenderer{
   for(const link of links.values()){
    if((link.source.hull??link.source.hp??1)<=0||(link.target.hull??link.target.hp??1)<=0)continue;
    const a=to(link.source.x,link.source.y),b=to(link.target.x,link.target.y),length=Math.hypot(b.x-a.x,b.y-a.y),color=link.contested?'#d6aa75':'#8ec9bf';
-   if(!length||!visible(a,160)&&!visible(b,160))continue;
-   ctx.globalAlpha=.68;for(let d=0;d<length;d+=8){const end=Math.min(d+4,length);pixelLine(ctx,a.x+(b.x-a.x)*d/length,a.y+(b.y-a.y)*d/length,a.x+(b.x-a.x)*end/length,a.y+(b.y-a.y)*end/length,color);}ctx.globalAlpha=1;
-   emit(link.contested?'BOARDING LINK':'DOCKING LINK',(a.x+b.x)/2,(a.y+b.y)/2-13,color,12,'center',62,'boarding-link');
+   if(!length||!visible(a,160*r)&&!visible(b,160*r))continue;
+   ctx.globalAlpha=.68;for(let d=0;d<length;d+=8*r){const end=Math.min(d+4*r,length);pixelLine(ctx,a.x+(b.x-a.x)*d/length,a.y+(b.y-a.y)*d/length,a.x+(b.x-a.x)*end/length,a.y+(b.y-a.y)*end/length,color,r);}ctx.globalAlpha=1;
+   emit(link.contested?'BOARDING LINK':'DOCKING LINK',(a.x+b.x)/2,(a.y+b.y)/2-13*r,color,12,'center',62,'boarding-link');
   }
   const paintVessel=(v,{remote=false,enemy=false,traffic=false,self=false,parked=false}={})=>{
    const data=normalizeShip(v),kind=resolveCabinClass(data.shipClass),pr=SHIP_VISUALS[kind],p=to(data.x,data.y),length=(data.renderLength||pr.length)*z;if(!visible(p,length))return;
    const hull=data.hull??data.hp??100,maxHull=data.maxHull??data.maxHp??100,disabled=data.disabled||data.disabledUntil>combatTime,speed=Math.hypot(data.vx||0,data.vy||0),hostile=(enemy||data.hostile===true)&&data.hostile!==false&&!data.capturedBy,col=self?'#c6d5c8':data.color|| (hostile?'#bb8d7b':remote||parked?'#9bbdc3':'#889fa8');
    if(hull<=0||data.dead)return;
    drawShip(ctx,p.x,p.y,data.angle||0,col,z,traffic||speed>10,motion?time:0,data.boosting||data.boost,{shipClass:kind,size:data.renderLength,damage:1-hull/maxHull,disabled,thrusters:data.thrusters,firing:(data.lastShot?.until||0)>combatTime});
-   if((data.shield||0)>0&&(self||data.shieldHitUntil>combatTime)){ctx.globalAlpha=data.shieldHitUntil>combatTime?.55:.15;pixelRing(ctx,p.x,p.y,length*.57,(data.renderWidth||pr.width)*z*.68,'#8bced5');ctx.globalAlpha=1;}
-   if(enemy){
-    const barWidth=clamp(length*.55,30,70),labelY=p.y+data.renderWidth*z*.6+8;
-    pixelRect(ctx,'#543b3c',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7,barWidth,3);pixelRect(ctx,disabled?'#d9bf85':'#dc9781',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7,barWidth*clamp(hull/maxHull,0,1),3);
-    emit(data.name||'Hostile vessel',p.x,labelY,disabled?'#e6cc8c':'#e8b09a',13,'center',disabled?86:55,disabled?'boarding':'hostile');
-    if(disabled||data.occupation?.contested||data.capturedBy){const status=data.occupation?.contested?'CONTESTED':data.capturedBy?'SECURED':data.boardable===false?'DISABLED':'BOARD';emit(`${status} · ${data.berths} BERTHS · ${data.subtitle.toUpperCase()}`,p.x,labelY+13,data.capturedBy?'#a8d7c9':'#c9b995',12,'center',85,'boarding');}
+   if((data.shield||0)>0&&(self||data.shieldHitUntil>combatTime)){ctx.globalAlpha=data.shieldHitUntil>combatTime?.55:.15;pixelRing(ctx,p.x,p.y,length*.57,(data.renderWidth||pr.width)*z*.68,'#8bced5',ring);ctx.globalAlpha=1;}
+   // At overview range a small hull stays its true size. Separate brackets and
+   // a heading tick identify the contact without exaggerating its collision or
+   // boarding footprint, or replacing its art with an undiscovered ship type.
+   if(zoomMultiplier<=.45&&length/r<18){
+    const mark=self?'#c6dfcf':hostile?'#dca18b':'#8fbec7',radius=Math.max(length*.63,8*r),corner=3*r;
+    for(const side of[-1,1])for(const vertical of[-1,1]){const x=p.x+side*radius,y=p.y+vertical*radius;pixelLine(ctx,x,y,x-side*corner,y,mark,r);pixelLine(ctx,x,y,x,y-vertical*corner,mark,r);}
+    const angle=data.angle||0;pixelLine(ctx,p.x+Math.cos(angle)*(radius+2*r),p.y+Math.sin(angle)*(radius+2*r),p.x+Math.cos(angle)*(radius+5*r),p.y+Math.sin(angle)*(radius+5*r),mark,r);
    }
-   if(remote)emit(data.name||data.displayName||'Independent captain',p.x,p.y+(data.renderWidth||pr.width)*z*.6+10,'#add9d7',14,'center',70,'remote');
-   if(parked){emit(data.name||'Parked vessel',p.x,p.y+data.renderWidth*z*.6+10,'#b7d2c6',14,'center',72,'parked');emit('PARKED · BOARD',p.x,p.y+data.renderWidth*z*.6+23,'#93b7b3',12,'center',65,'boarding');}
+   if(enemy){
+    const barWidth=clamp(length*.55,30*r,70*r),labelY=p.y+data.renderWidth*z*.6+8*r;
+    pixelRect(ctx,'#543b3c',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth,3*r);pixelRect(ctx,disabled?'#d9bf85':'#dc9781',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth*clamp(hull/maxHull,0,1),3*r);
+    emit(data.name||'Hostile vessel',p.x,labelY,disabled?'#e6cc8c':'#e8b09a',13,'center',disabled?86:55,disabled?'boarding':'hostile');
+    if(disabled||data.occupation?.contested||data.capturedBy){const status=data.occupation?.contested?'CONTESTED':data.capturedBy?'SECURED':data.boardable===false?'DISABLED':'BOARD';emit(`${status} · ${data.berths} BERTHS · ${data.subtitle.toUpperCase()}`,p.x,labelY+13*r,data.capturedBy?'#a8d7c9':'#c9b995',12,'center',85,'boarding');}
+   }
+   if(remote)emit(data.name||data.displayName||'Independent captain',p.x,p.y+(data.renderWidth||pr.width)*z*.6+10*r,'#add9d7',14,'center',70,'remote');
+   if(parked){emit(data.name||'Parked vessel',p.x,p.y+data.renderWidth*z*.6+10*r,'#b7d2c6',14,'center',72,'parked');emit('PARKED · BOARD',p.x,p.y+data.renderWidth*z*.6+23*r,'#93b7b3',12,'center',65,'boarding');}
    const old=this.health.get(data.id|| (self?'player':null));if(old!==undefined&&hull<old&&motion)for(let i=0;i<7;i++)this.particles.push({x:data.x,y:data.y,vx:Math.cos(i*1.8+time)*35,vy:Math.sin(i*1.8+time)*35,ttl:.3+i*.035,color:i%2?'#d9b77f':'#97c0bd'});this.health.set(data.id||(self?'player':null),hull);
   };
   for(const t of sys.traffic||[])paintVessel(t,{traffic:true});
   for(const e of enemies)paintVessel(e,{enemy:true});
   for(const parked of parkedShips)if(!remoteShips.some(remote=>remote.id===parked.id||remote.ship?.id===parked.id)&&ship.id!==parked.id)paintVessel(parked,{parked:true});
   for(const remote of remoteShips)paintVessel(remote,{remote:true});
-  for(const b of sys.bullets||[]){const p=to(b.x,b.y);if(!visible(p,12))continue;const col=b.owner==='player'||b.friendly?'#eddfaa':'#e8a182',back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*.018,b.y-(b.vy||Math.sin(b.angle||0)*400)*.018);pixelLine(ctx,p.x,p.y,back.x,back.y,col,2);pixelRect(ctx,'#fff0c6',p.x,p.y,2,2);}
+  for(const b of sys.bullets||[]){const p=to(b.x,b.y);if(!visible(p,12*r))continue;const col=b.owner==='player'||b.friendly?'#eddfaa':'#e8a182',back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*.018,b.y-(b.vy||Math.sin(b.angle||0)*400)*.018);pixelLine(ctx,p.x,p.y,back.x,back.y,col,2*r);pixelRect(ctx,'#fff0c6',p.x,p.y,2*r,2*r);}
   const sp=to(ship.x,ship.y);let mining=ship.miningTarget||sys.miningTarget||game.miningTarget;if(typeof mining==='string')mining=(sys.asteroids||[]).find(a=>a.id===mining);
-  if(mining){const p=to(mining.x,mining.y);ctx.globalAlpha=.35;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#69cdbd',3);ctx.globalAlpha=1;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#c9f2d5');for(let i=0;i<5;i++){const a=time*13+i*1.3,d=2+(i*3+time*21)%11;pixelRect(ctx,i%2?'#eedba2':'#a8dbc3',p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,1,1);}}
+  if(mining){const p=to(mining.x,mining.y);ctx.globalAlpha=.35;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#69cdbd',3*r);ctx.globalAlpha=1;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#c9f2d5',r);for(let i=0;i<5;i++){const a=time*13+i*1.3,d=(2+(i*3+time*21)%11)*r;pixelRect(ctx,i%2?'#eedba2':'#a8dbc3',p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,r,r);}}
   paintVessel(ship,{self:true});
-  for(const particle of this.particles){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.ttl-=dt;const p=to(particle.x,particle.y);ctx.globalAlpha=clamp(particle.ttl*3,0,1);pixelRect(ctx,particle.color,p.x,p.y,2,1);}ctx.globalAlpha=1;this.particles=this.particles.filter(p=>p.ttl>0).slice(-150);
+  for(const particle of this.particles){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.ttl-=dt;const p=to(particle.x,particle.y);ctx.globalAlpha=clamp(particle.ttl*3,0,1);pixelRect(ctx,particle.color,p.x,p.y,2*r,r);}ctx.globalAlpha=1;this.particles=this.particles.filter(p=>p.ttl>0).slice(-150);
   if(!welcome&&guidance!=='expert'){
    const target=[...bodies,...(sys.signals||[]),...(sys.asteroids||[]),...enemies,...parkedShips,...remoteShips].find(b=>b.id===tracked);
-   if(target){const p=to(target.x,target.y),d=Math.hypot(target.x-ship.x,target.y-ship.y);if(p.x<25||p.x>w-25||p.y<25||p.y>h-35){const ex=clamp(p.x,18,w-18),ey=clamp(p.y,28,h-35),angle=Math.atan2(p.y-sp.y,p.x-sp.x);const ax=ex+Math.cos(angle)*6,ay=ey+Math.sin(angle)*6;pixelLine(ctx,ax,ay,ex+Math.cos(angle+2.5)*5,ey+Math.sin(angle+2.5)*5,'#e6cb91',2);pixelLine(ctx,ax,ay,ex+Math.cos(angle-2.5)*5,ey+Math.sin(angle-2.5)*5,'#e6cb91',2);emit(`${target.name||'Mining belt'} · ${Math.round(d)} m`,ex+(ex>w/2?-9:9),ey-4,'#e8d4a4',13,ex>w/2?'right':'left',100,'objective');}else{pixelRing(ctx,p.x,p.y,Math.max(15,(target.radius||20)*z+7),Math.max(15,(target.radius||20)*z+7),'#d9c38b66',{dashed:true});}}
+   if(target){const p=to(target.x,target.y),d=Math.hypot(target.x-ship.x,target.y-ship.y);if(p.x<25*r||p.x>w-25*r||p.y<25*r||p.y>h-35*r){const ex=clamp(p.x,18*r,w-18*r),ey=clamp(p.y,28*r,h-35*r),angle=Math.atan2(p.y-sp.y,p.x-sp.x);const ax=ex+Math.cos(angle)*6*r,ay=ey+Math.sin(angle)*6*r;pixelLine(ctx,ax,ay,ex+Math.cos(angle+2.5)*5*r,ey+Math.sin(angle+2.5)*5*r,'#e6cb91',2*r);pixelLine(ctx,ax,ay,ex+Math.cos(angle-2.5)*5*r,ey+Math.sin(angle-2.5)*5*r,'#e6cb91',2*r);emit(`${target.name||'Mining belt'} · ${Math.round(d)} m`,ex+(ex>w/2?-9:9)*r,ey-4*r,'#e8d4a4',13,ex>w/2?'right':'left',100,'objective');}else{pixelRing(ctx,p.x,p.y,Math.max(15*r,(target.radius||20)*z+7*r),Math.max(15*r,(target.radius||20)*z+7*r),'#d9c38b66',{...ring,dashed:true});}}
   }
   if(s.jumpFlash>0){ctx.globalAlpha=Math.min(.5,s.jumpFlash*.3);pixelRect(ctx,'#acdcd2',0,0,w,h);ctx.globalAlpha=1;}
   ctx.restore();return{cameraX:view.cameraX,cameraY:view.cameraY,zoom:z,width:w,height:h,offsetX:view.offsetX,offsetY:view.offsetY};

@@ -8,6 +8,8 @@ import {generateSurface, isWalkable, nearestEntity} from '../dist/surface.mjs';
 import {TEST_SCENARIOS, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {SIDEARM} from '../dist/combat.mjs';
+import {CameraProfile} from '../dist/camera-profile.mjs';
+import {normalizeCameraPreferences,normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
 
 // Exercise the real app handlers with a small DOM boundary, without opening a
 // browser, invoking the render loop, or replacing the actual Game rules.
@@ -18,7 +20,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
 const appCode=names.map(declaration).join('\n');
 
 function classes() {
@@ -29,18 +31,22 @@ function element() {
   return {hidden:false,value:'',textContent:'',children:[],attributes:{},classList:classes(),append(...children){this.children.push(...children);},replaceChildren(...children){this.children=[...children];},setAttribute(key,value){this.attributes[key]=value;},addEventListener(){},insertAdjacentHTML(){},focus(){},select(){}};
 }
 function fixture() {
-  const elements=new Map(),writes=[],guidanceWrites=[],toasts=[],opened=[],effects=[];
+  const elements=new Map(),storageEntries=new Map(),writes=[],guidanceWrites=[],preferenceWrites=[],toasts=[],opened=[],effects=[],timers=new Map();let timerSerial=0;
+  const schedule=(callback,delay)=>{const id=++timerSerial;timers.set(id,{callback,delay});return id;},cancel=id=>timers.delete(id);
   const tutorial=new TutorialRuntime({nonce:'app-test-mode',storage:{getItem:()=>null,setItem:(...args)=>guidanceWrites.push(args)}});
   const normal=new Game('normal-voyage-to-preserve');normal.state.credits=623;normal.state.flags.push('a-earned-milestone');
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
   const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,
-    $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element()},dialog,
+    $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
+    localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
     network:null,onlineSnapshot:null,connectionState:'offline',surface:null,surfaceKey:'',surfaceTarget:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
     stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
-    tutorial,settings:{guidance:'simple',leftHanded:false},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,hideCoach(){},
+    tutorial,settings:{guidance:'simple',leftHanded:false,shipZoom:.65,personZoom:1.15,immersiveHud:true,translucentHud:true,compactTips:true},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,hideCoach(){},
+    localCameraPreferences:{shipZoom:.65,personZoom:1.15},cameraScope:'local',cameraKey:null,cameraSaveTimer:null,normalizeCameraPreferences,normalizeModeZoom,zoomLimits,labelLayoutDirty:false,hudDirty:false,
+    setTimeout:schedule,clearTimeout:cancel,applySettings(settings,{cameraPreferences=settings}={}){preferenceWrites.push(normalizeCameraPreferences(cameraPreferences));},queueResize(){},updatePerformanceHUD(){},
     audio:{unlock(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},setViewPanel(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
     hudText:(target,text)=>{target.textContent=text;},esc:value=>String(value??''),fmt:value=>String(value),toast:(...args)=>toasts.push(args),
     saveGame:game=>{writes.push(game.serialize());return true;},readPassport:()=>null,readPassports:()=>({}),openEncounter:encounter=>effects.push(encounter),processCombatEvent:()=>false,
@@ -48,7 +54,9 @@ function fixture() {
     FarwakeNetwork:class {constructor(){throw new Error('Test mode must not construct a network transport.');}},
   });
   vm.runInContext(appCode,context);
-  return {context,normal,stored,elements,writes,guidanceWrites,tutorial,toasts,opened,effects,dialog,call:(name,...args)=>context[name](...args)};
+  const cameraProfile=new CameraProfile({onChange:(...args)=>context.applyCameraState(...args),schedule,cancel});context.cameraProfile=cameraProfile;
+  context.activateLocalCamera(context.localCameraPreferences);preferenceWrites.length=0;
+  return {context,normal,stored,elements,writes,guidanceWrites,preferenceWrites,cameraProfile,timers,tutorial,toasts,opened,effects,dialog,call:(name,...args)=>context[name](...args),runTimers(){const ready=[...timers];for(const[id,task]of ready)if(timers.delete(id))task.callback();}};
 }
 function enter(fixture,scenario='boarding') {
   const session=createTestSession({scenario,seed:'app-isolation'});fixture.call('enterTestSession',session);return session;
@@ -87,6 +95,23 @@ test('an active shared connection cannot be replaced by a test exercise',()=>{
   const session=createTestSession();f.call('enterTestSession',session);
   assert.equal(f.context.game,f.normal);assert.equal(f.context.network,network);assert.equal(f.context.testSession,null);assert.equal(f.context.testReturn,null);
   assert.equal(f.context.playing,false);assert.match(f.toasts.at(-1)[0],/Sign off/);assert.equal(f.writes.length,0);
+});
+
+test('practice camera edits survive exercise retries but restore both saved cameras on exit',()=>{
+  const f=fixture(),saved=f.cameraProfile.preferences,before=JSON.stringify(f.normal.state);
+  enter(f,'ship-combat');
+  assert.equal(f.cameraProfile.status,'practice');assert.deepEqual(f.context.testReturn.cameraPreferences,saved);
+  f.call('setModeZoom','ship',.25);f.call('setModeZoom','person',1.6);f.runTimers();
+  assert.deepEqual(f.cameraProfile.preferences,{shipZoom:.25,personZoom:1.6});
+  assert.equal(f.writes.length,0);assert.equal('cameraPreferences' in f.context.game.state,false);
+  assert.ok(f.preferenceWrites.every(value=>value.shipZoom===saved.shipZoom&&value.personZoom===saved.personZoom),'Practice settings writes retain the saved solo camera values.');
+  f.call('retryTest');assert.deepEqual(f.cameraProfile.preferences,{shipZoom:.25,personZoom:1.6});
+  f.call('enterTestSession',createTestSession({scenario:'person-combat',seed:'camera-practice-switch'}));
+  assert.deepEqual(f.cameraProfile.preferences,{shipZoom:.25,personZoom:1.6});
+  f.call('exitTestMode');f.runTimers();
+  assert.equal(f.cameraProfile.status,'local');assert.deepEqual(f.cameraProfile.preferences,saved);
+  assert.deepEqual(normalizeCameraPreferences(f.context.settings),saved);assert.deepEqual(normalizeCameraPreferences(f.context.localCameraPreferences),saved);
+  assert.equal(f.context.game,f.normal);assert.equal(JSON.stringify(f.normal.state),before);assert.equal(f.writes.length,0);assert.equal(f.timers.size,0);
 });
 
 test('normal progression, importing, connection menus, and stale start callbacks stay behind test mode',async()=>{

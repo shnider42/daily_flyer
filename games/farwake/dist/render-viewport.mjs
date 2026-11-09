@@ -1,4 +1,5 @@
 /** Pixel-art presentation geometry. Simulation and network coordinates stay continuous. */
+import { normalizeModeZoom } from './camera-preferences.mjs';
 const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const positive = (value, fallback = 1) => { const n = number(value, fallback); return n > 0 ? n : fallback; };
 const zero = value => Math.abs(value) < 1e-10 ? 0 : value;
@@ -8,11 +9,17 @@ const zero = value => Math.abs(value) < 1e-10 ? 0 : value;
  * `left/top` are its boundingClientRect origin; visual offsets/scale come from
  * visualViewport when available. Apply cssWidth/Height and offsetX/Y directly;
  * never subsequently stretch the canvas back to 100% of the container.
+ * Below 100%, render straight onto the physical display grid. Shrinking source
+ * art into the old coarse game grid first discards details that its final
+ * enlargement cannot recover. rasterScale compensates the world transform so
+ * this extra sampling resolution changes neither the camera nor the UI size.
+ * The buffer never exceeds the physical viewport; this is not supersampling.
  */
-export function pixelViewport({ width = 1, height = 1, left = 0, top = 0, dpr = 1, scale = 2, visualScale = 1, visualOffsetX = 0, visualOffsetY = 0 } = {}) {
+export function pixelViewport({ width = 1, height = 1, left = 0, top = 0, dpr = 1, scale = 2, visualScale = 1, visualOffsetX = 0, visualOffsetY = 0, zoom = 1, mode = 'ship' } = {}) {
   width = Math.max(1, number(width, 1)); height = Math.max(1, number(height, 1));
   left = number(left); top = number(top); visualOffsetX = number(visualOffsetX); visualOffsetY = number(visualOffsetY);
-  const deviceScale = positive(dpr) * positive(visualScale), physicalPixelsPerPixel = Math.max(1, Math.round(positive(scale, 2) * deviceScale));
+  const deviceScale = positive(dpr) * positive(visualScale), baselinePixelsPerPixel = Math.max(1, Math.round(positive(scale, 2) * deviceScale));
+  const physicalPixelsPerPixel = normalizeModeZoom(zoom, mode) < 1 ? 1 : baselinePixelsPerPixel, rasterScale = baselinePixelsPerPixel / physicalPixelsPerPixel;
   const cssScale = physicalPixelsPerPixel / deviceScale;
   // Floor the origin so alignment never reveals a thin uncovered strip.
   const physicalLeft = Math.floor((left - visualOffsetX) * deviceScale + 1e-8), physicalTop = Math.floor((top - visualOffsetY) * deviceScale + 1e-8);
@@ -20,7 +27,7 @@ export function pixelViewport({ width = 1, height = 1, left = 0, top = 0, dpr = 
   const logicalWidth = Math.max(1, Math.ceil((width - offsetX) / cssScale - 1e-9)), logicalHeight = Math.max(1, Math.ceil((height - offsetY) / cssScale - 1e-9));
   return { logicalWidth, logicalHeight, cssWidth: logicalWidth * cssScale, cssHeight: logicalHeight * cssScale, cssScale, offsetX, offsetY,
     left: left + offsetX, top: top + offsetY, deviceScale, physicalPixelsPerPixel, physicalWidth: logicalWidth * physicalPixelsPerPixel, physicalHeight: logicalHeight * physicalPixelsPerPixel,
-    physicalLeft, physicalTop };
+    physicalLeft, physicalTop, rasterScale };
 }
 
 /** Use the measured canvas rect when available, including its aligned overflow. */

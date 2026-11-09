@@ -560,10 +560,12 @@ function zoomLayer(ctx,width,height){
 
 export function drawSurface(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height;
- const view=surfaceCamera({x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,cameraX:options.cameraX,cameraY:options.cameraY});
+ const view=surfaceCamera({x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,rasterScale:options.rasterScale,cameraX:options.cameraX,cameraY:options.cameraY});
  if(view.zoom===1){drawSurfacePixels(ctx,surface,{...options,cameraX:view.cameraX,cameraY:view.cameraY});return view;}
  // Fractional transforms antialias fillRect edges even with image smoothing off.
- // Draw the world at its original pixel scale, then sample it without smoothing.
+ // Draw only the visible world at its original pixel scale, then sample it
+ // without smoothing. When zoomed out, rasterScale supplies a native display
+ // grid, preserving source pixels without enlarging this source-world buffer.
  const cameraX=Math.floor(view.cameraX),cameraY=Math.floor(view.cameraY),sx=view.cameraX-cameraX,sy=view.cameraY-cameraY,sw=width/view.zoom,sh=height/view.zoom;
  const layer=zoomLayer(ctx,Math.ceil(sw)+2,Math.ceil(sh)+2),labels=[];
  drawSurfacePixels(layer.ctx,surface,{...options,width:layer.canvas.width,height:layer.canvas.height,cameraX,cameraY,labels});
