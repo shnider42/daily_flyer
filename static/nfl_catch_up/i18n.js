@@ -379,8 +379,8 @@
     [/^WHAT YOU MISSED \/ SINCE (.+)$/, (_, date) => `WAS DU VERPASST HAST / SEIT ${date}`],
     [/^WHAT YOU MISSED \/ (.+)$/, (_, name) => `WAS DU VERPASST HAST / ${name}`],
     [/^The (.+) story\.$/, (_, name) => `Die Saison der ${name}.`],
-    [/^(\d+) GAMES IN YOUR WINDOW$/, (_, n) => `${n} SPIELE IN DEINEM ZEITRAUM`],
-    [/^Window averages · (\d+) available yardage box scores$/, (_, n) => `Durchschnitt im Zeitraum · ${n} verfügbare Statistiken zum Raumgewinn`],
+    [/^(\d+) GAMES IN YOUR WINDOW$/, (_, n) => `${n} ${n === '1' ? 'SPIEL' : 'SPIELE'} IN DEINEM ZEITRAUM`],
+    [/^Window averages · (\d+) available yardage box scores$/, (_, n) => `Durchschnitt im Zeitraum · ${n} ${n === '1' ? 'verfügbare Statistik' : 'verfügbare Statistiken'} zum Raumgewinn`],
     [/^Latest final: (.+)\. Passing leader, not confirmation of the next starter\.$/, (_, date) => `Letztes beendetes Spiel: ${date}. Führender Passgeber, keine Bestätigung der nächsten Startaufstellung.`],
     [/^Calculated from ESPN game results and available box scores\. Full season: (\d+) completed games\. News and roster changes below are dated separately\.$/, (_, n) => `Aus ESPN-Ergebnissen und verfügbaren Spielstatistiken berechnet. Gesamte Saison: ${n} beendete Spiele. Nachrichten und Kaderbewegungen unten sind gesondert datiert.`],
     [/^Ask a question about (.+)$/, (_, name) => `Eine Frage zu den ${name} stellen`],
@@ -425,15 +425,15 @@
     if (Object.prototype.hasOwnProperty.call(copy, value)) return copy[value];
     const sourceLabels = root.HuddleContentAT && root.HuddleContentAT.sourceLabels;
     if (sourceLabels && Object.prototype.hasOwnProperty.call(sourceLabels, value)) return sourceLabels[value];
-    for (const [pattern, replace] of patterns) {
-      const found = value.match(pattern);
-      if (found) return replace(...found);
-    }
     // Decorative action marks are independent of the translatable label.
     const decorated = value.match(/^(.*?)\s*([↗✓])$/u);
     if (decorated) {
       const translated = translate(decorated[1].trimEnd());
       if (translated !== decorated[1].trimEnd()) return translated + ' ' + decorated[2];
+    }
+    for (const [pattern, replace] of patterns) {
+      const found = value.match(pattern);
+      if (found) return replace(...found);
     }
     return value;
   }
@@ -442,7 +442,7 @@
     if (locale !== 'de-AT' || !input.trim()) return input;
     const content = input.trim();
     const start = input.indexOf(content);
-    return input.slice(0, start) + translate(content) + input.slice(start + content.length);
+    return input.slice(0, start) + translate(content).replace(/([\p{L}])\.\.(?=\s|$)/gu, '$1.') + input.slice(start + content.length);
   }
   function excluded(element, forText) {
     return !element || !!element.closest(forText
