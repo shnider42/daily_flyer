@@ -16,6 +16,7 @@ const aboardIdentity = state => state?.multiplayer?.aboardVesselId || state?.int
 const hullClass = value => value?.classId || value?.shipClassId || value?.shipClass || null;
 const sameRemoteContext = (a, b) => (a?.roomId ?? null) === (b?.roomId ?? null) && (a?.systemId ?? null) === (b?.systemId ?? null) &&
   (a?.vesselId ?? null) === (b?.vesselId ?? null) && (a?.mode ?? null) === (b?.mode ?? null) &&
+  (a?.perspective ?? null) === (b?.perspective ?? null) && (a?.station ?? null) === (b?.station ?? null) &&
   hullClass(a?.ship || a) === hullClass(b?.ship || b) && (a?.ship?.id ?? null) === (b?.ship?.id ?? null);
 
 export function readPassports(storage = defaultStorage()) {
@@ -70,7 +71,7 @@ export class RemoteInterpolator {
       const right = b[kind].find(v => v[idKey] === current[idKey]) || left;
       // One captain can change decks or take another hull without the observer
       // changing rooms. Never interpolate that transition through empty space.
-      if (!sameRemoteContext(left, current) || !sameRemoteContext(right, current) || current.down || current.health <= 0 ||
+      if (!sameRemoteContext(left, current) || !sameRemoteContext(right, current) || current.station === 'helm' && current.perspective === 'ship' || current.down || current.health <= 0 ||
         Math.hypot((left.x || 0) - (current.x || 0), (left.y || 0) - (current.y || 0)) >= 250 ||
         Math.hypot((right.x || 0) - (current.x || 0), (right.y || 0) - (current.y || 0)) >= 250) return copy(current);
       const value = copy(current);

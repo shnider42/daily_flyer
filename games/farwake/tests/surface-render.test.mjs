@@ -65,6 +65,19 @@ test('surface labels stay sharp, camera-relative and immutable for remote crew a
  assert.equal(JSON.stringify({surface,person,remotePeople,boardingActors}),snapshot);
 });
 
+test('a physical helm projection stays visible and identifies the pilot without duplicating them',()=>{
+ const surface=generateSurface({id:'ship:pilot',kind:'ship',shipClass:'sparrow'},'helm-presence'),person={...surface.spawn,health:100},helm=surface.stations.helm;
+ const pilot={captainId:'guest',name:'Captain Aya',mode:'person',perspective:'ship',station:'helm',crewRole:'helm',x:helm.x,y:helm.y,vx:0,vy:0,facing:'up',health:100};
+ const remotePeople=[pilot,{...pilot}, {...pilot,captainId:'other',name:'Other vessel pilot',mode:'ship'}],before=JSON.stringify({surface,person,remotePeople});
+ const render=(people)=>{const labels=[];drawSurface(new FakeCanvas(520,620).ctx,surface,{width:520,height:620,cameraX:0,cameraY:0,person,remotePeople:people,labels,time:3});return labels.filter(label=>label.kind==='remote');};
+ let labels=render(remotePeople);assert.equal(labels.length,1,'the authoritative deck representation appears once; unprojected ship views do not become extra people');
+ assert.equal(labels[0].text,'Captain Aya · Piloting');assert.equal(labels[0].color,'#e6c58a');assert.equal(labels[0].x,helm.x);assert.equal(labels[0].y,helm.y-47);
+ labels=render([{...pilot,sleeping:true}]);assert.equal(labels[0].text,'Captain Aya · Helm (away)','an offline helmsman is visible without claiming active input');
+ labels=render([{...pilot,perspective:'person',station:null,crewRole:'passenger'}]);assert.equal(labels[0].text,'Captain Aya','leaving the helm removes the flying cue');
+ labels=render([{...pilot,health:0,down:true}]);assert.equal(labels.length,0,'a casualty is not labelled as still piloting');
+ assert.equal(JSON.stringify({surface,person,remotePeople}),before,'presentation does not mutate physical crew or deck state');
+});
+
 test('interior camera shake keeps rendered labels and pointer picking on the same snapped view',()=>{
  const original=globalThis.OffscreenCanvas;globalThis.OffscreenCanvas=FakeCanvas;
  try{

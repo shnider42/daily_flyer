@@ -7,6 +7,39 @@ const action=(label,command,detail,targetId=null)=>({label,command,args:{},enabl
 const blocked=(value,reason)=>({...value,enabled:false,reason});
 const canPilot=(vessel,captainId)=>!!vessel&&(vessel.ownerId===captainId||vessel.occupation?.controllerId===captainId&&!vessel.occupation?.contested||vessel.canBoard!==false&&vessel.grantedRoles?.includes('helm'));
 const stationHeld=(vessel,captainId,releaseExpired=false)=>!!vessel?.helmOwner&&vessel.helmOwner!==captainId&&(!releaseExpired||vessel.helmOccupied!==false);
+const boardAccess=(vessel,captainId)=>!!vessel&&vessel.canBoard!==false&&(vessel.canBoard===true||vessel.ownerId===captainId||vessel.occupation?.controllerId===captainId&&!vessel.occupation?.contested||vessel.allowCrew||vessel.grantedRoles?.length>0);
+
+/** Boarding permission and a free berth are independent of who operates the helm. */
+export function getBoardingAction(game,vessel,{fleet=[],connected=true}={}){
+ const state=game?.state||{},mp=state.multiplayer||{};
+ let result={...action(vessel?.name?`Board ${vessel.name}`:'Board ship','boardShip','Walk aboard the docked ship. Boarding does not launch it.'),args:{vesselId:vessel?.id}};
+ if(!connected)return blocked(result,'Reconnecting to the galaxy. Boarding will be ready when your captain is connected.');
+ if(state.person?.health<=0||state.person?.down)return blocked(result,'You are incapacitated. Wait for recovery before boarding.');
+ if(!vessel)return blocked(result,'Waiting for this ship’s status.');
+ if(mp.aboardVesselId===vessel.id)return blocked(result,'You are already aboard this ship.');
+ if(dead(vessel))return blocked(result,'This hull is no longer intact.');
+ if(vessel.occupation?.contested||vessel.npcHostile&&!vessel.captured||vessel.hostile)return blocked(result,'This ship is hostile or occupied. Use its boarding contact to resolve the encounter.');
+ if(!boardAccess(vessel,mp.captainId))return blocked(result,'The owner must allow you aboard. Open CREW to review ship access.');
+ if(vessel.systemId!==state.systemId)return blocked(result,'Travel to the same star system before boarding.');
+ if(state.interior||state.exploration)return blocked(result,'Leave this interior and reach the ship’s port or approach in your own ship.');
+ if(state.mode==='person'){
+  if(!vessel.dockedAt||vessel.dockedAt!==state.locationId)return blocked(result,'This ship is not parked at your port. Meet it at its actual landing area.');
+ }else{
+  const source=fleet.find(ship=>ship.id===mp.aboardVesselId)||state.ship;
+  if(vessel.dockedAt)return blocked(result,'Dock at this ship’s port before boarding it.');
+  if(distance(source,vessel)>=220||Math.hypot(vessel.vx||0,vessel.vy||0)>=90)return blocked(result,'Approach within 220 metres while the other ship is moving slowly.');
+  result={...result,detail:'Cross to this ship’s crew deck. Your current hull stays where you leave it.'};
+ }
+ const available=Number.isFinite(vessel.availableBerths)?vessel.availableBerths:Number.isFinite(vessel.berths)&&Number.isFinite(vessel.occupants)?vessel.berths-vessel.occupants:Infinity;
+ if(available<1)return blocked(result,'No free berth. Captains, hired crew, and passengers share this ship’s capacity.');
+ return result;
+}
+
+export function getLocalPortVessels(game,fleet=[]){
+ const state=game?.state||{},mp=state.multiplayer||{};
+ if(state.mode!=='person'||state.interior||state.exploration)return [];
+ return fleet.filter(vessel=>vessel.systemId===state.systemId&&vessel.dockedAt===state.locationId&&!dead(vessel)&&!vessel.hostile&&!vessel.occupation?.contested&&boardAccess(vessel,mp.captainId));
+}
 
 function helmAction(game,{shared,fleet}){
  const state=game.state,mp=state.multiplayer||{},interior=state.interior,boarding=state.boarding;
@@ -18,11 +51,11 @@ function helmAction(game,{shared,fleet}){
  if(shared){
   if(!vessel)return blocked(result,'Waiting for the current ship’s status.');
   if(dead(vessel))return blocked(result,'This hull is no longer intact.');
-  if(stationHeld(vessel,mp.captainId,!captured))return blocked(result,'Another captain is at the helm. They must step onto the deck first.');
+  if(stationHeld(vessel,mp.captainId,!captured))return blocked({...result,label:vessel.helmName?`${vessel.helmName} at helm`:'Helm occupied'},`${vessel.helmName||'Another captain'} is at the helm. They must step onto the deck before you can pilot.`);
   if(captured){
    if(!(mp.canTakeHelm||vessel.canTakeHelm||boarding?.phase==='won'||vessel.captured&&canPilot(vessel,mp.captainId)))return blocked(result,'Secure this ship’s deck before taking its helm.');
   }else if(vessel.npcHostile&&!vessel.captured)return blocked(result,'Clear the hostile occupation before taking this ship’s helm.');
-  else if(!canPilot(vessel,mp.captainId))return blocked(result,'The owner has not granted you helm access. Ask them through Menu → Crew.');
+  else if(!canPilot(vessel,mp.captainId))return blocked(result,'The owner has not granted you helm access. They can turn on Allow piloting in CREW.');
  }else if(captured){
   if(!target||dead(target))return blocked(result,'The target hull is no longer intact.');
   if(boarding?.phase!=='won'||!target.deck?.cleared)return blocked(result,'Secure this ship’s deck before taking its helm.');
@@ -53,17 +86,14 @@ function launchAction(game,{shared,fleet}){
  if(state.interior||state.exploration)return blocked(result,'Leave this interior before returning to your ship.');
  const body=game.system?.bodies?.find(body=>body.id===state.locationId);
  if(!body)return blocked(result,'Reach your ship’s landing area before launching.');
- let carrier=state.ship;
  if(shared){
-  const vessel=fleet.find(ship=>ship.id===(mp.portVesselId||mp.ownedVesselId));
-  if(!vessel)return blocked(result,'Waiting for your parked ship’s status.');
-  if(dead(vessel))return blocked(result,'Your parked ship is no longer intact.');
-  if(vessel.systemId!==state.systemId||vessel.dockedAt!==state.locationId)return blocked(result,'Your ship is not parked at this landing area. Return to its actual port first.');
-  if(!canPilot(vessel,mp.captainId))return blocked(result,'The owner has not granted you helm access. Ask them through Menu → Crew.');
-  if(stationHeld(vessel,mp.captainId))return blocked(result,'Another captain is at the helm. They must step onto the deck first.');
-  if(vessel.occupation?.contested||vessel.npcHostile&&!vessel.captured)return blocked(result,'Clear the hostile occupation before returning to this ship.');
-  carrier=vessel;
- }else if(dead(state.ship))return blocked(result,'Your parked ship is no longer intact.');
+  const local=getLocalPortVessels(game,fleet),remembered=fleet.find(ship=>ship.id===mp.portVesselId&&ship.systemId===state.systemId&&ship.dockedAt===state.locationId),owned=local.find(ship=>ship.id===mp.ownedVesselId);
+  if(!remembered&&!owned&&local.length>1)return action('Board a ship','openPortShips','Choose which docked ship to board. Each ship stays at the port until a pilot launches it.');
+  const vessel=remembered||owned||local[0]||fleet.find(ship=>ship.id===(mp.portVesselId||mp.ownedVesselId));
+  return getBoardingAction(game,vessel,{fleet});
+ }
+ const carrier=state.ship;
+ if(dead(carrier))return blocked(result,'Your parked ship is no longer intact.');
  if(distance(carrier,body)>(body.radius||0)+155)return blocked(result,'Your ship is no longer at this landing area. Return to its actual port first.');
  if(game._hitTimer>0||game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,carrier)<700))return blocked(result,'Clear the immediate attack before returning to your parked ship.');
  return result;
@@ -72,11 +102,11 @@ function launchAction(game,{shared,fleet}){
 /** A read-only description suitable for every frame, including compact shared snapshots. */
 export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],surface=null}={}){
  const state=game?.state||{},interior=state.interior,boarding=state.boarding,mp=state.multiplayer||{};
- const localBorrowed=shared&&fleet.find(vessel=>vessel.id===mp.portVesselId&&vessel.systemId===state.systemId&&vessel.dockedAt===state.locationId&&canPilot(vessel,mp.captainId));
+ const localBoarding=shared&&getLocalPortVessels(game,fleet).length>0;
  let result;
  if(state.npcContract?.active){
   result=action('Crew duty','openCrewDuty','View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
- }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBorrowed&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
+ }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBoarding&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
   result=action('Port services','openPortServices','Find work, buy passenger passage, or visit the shipwright.');
  }else if(state.mode==='ship'){
   result=action('Walk deck','enterCabin','Leave the helm and walk inside this ship. Its momentum continues.');

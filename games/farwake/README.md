@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.6.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.6.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Shared boarding and visible pilots · 0.6.1
+
+**CREW** opens a named crew and boarding panel. On mobile, use **Menu → Crew**. Owners can turn **Allow aboard** and **Allow piloting** on separately for each captain. Ship cards show the actual location, occupied and available berths, people aboard, and the current pilot. Visitors see which permissions they have and why a boarding or helm action is unavailable.
+
+At a port in a shared galaxy, **Board ship** enters the chosen vessel's deck while it stays docked. **Launch ship** is a separate action. Both captains can disembark and reboard the same hull in either order, including when a guest piloted it to the station or someone stayed aboard. The port shortcut retains the arriving permitted vessel for passengers with boarding access as well as pilots, across reconnects and server restoration. Privately owned ships parked elsewhere stay where they were left; berth limits still include human crew, hired crew, and passengers.
+
+Before departure, the game names online crewmates from that vessel who are still ashore at the same port. The pilot can wait for them or explicitly choose to depart without them. The check affects departure only; offline players and people at other destinations do not hold up the ship or pause the galaxy.
+
+Taking the helm keeps the pilot's person physically at the console. Crewmates on deck see their character and **Name · Piloting**, and the helm controls identify who is using it. The same physical position is used for damage aboard. Walking away clears the piloting cue, and people on other ships or planets do not appear on this deck.
 
 ## Privacy and data access
 
@@ -49,7 +59,7 @@ Approach a marked compartment and use **Damage control**, or find it through **M
 
 ## Direct perspective controls · 0.5.2
 
-A persistent action button replaces the passive perspective label. **Walk deck** enters the current ship; **Take helm** returns to piloting it from anywhere on a cleared crew deck. At an outdoor landing, **Return to ship** uses the actual locally parked permitted vessel and launches. A docked crew deck shows **Launch ship**. Sites and active boarding keep their physical entrances and tether rules; the shortcut marks the required exit and explains what is blocking it.
+A persistent action button replaces the passive perspective label. **Walk deck** enters the current ship; **Take helm** returns to piloting it from anywhere on a cleared crew deck. In solo play, **Return to ship** at an outdoor landing uses the actual locally parked permitted vessel and launches. Shared play now uses **Board ship** first, as described above. A docked crew deck shows **Launch ship**. Sites and active boarding keep their physical entrances and tether rules; the shortcut marks the required exit and explains what is blocking it.
 
 Mobile gameplay places this button at the top left beside **View** and **Menu**, using the old Crew slot. **Menu → Crew** retains the multiplayer and boarding controls. The floating layout keeps its world space, scales with text settings, and supports narrow portrait and short landscape screens. Practice retains a compact **TEST** badge; exercise controls remain in Menu. Desktop uses the same direct action in the former mode badge position.
 

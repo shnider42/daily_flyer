@@ -107,3 +107,21 @@ test('remote aim interpolates on one deck while vessel switches and casualties s
   interpolation.push(packet(1300,{...player,x:90,vx:100,roomId:'deck:b',vesselId:'b',health:0,down:true}),1300);
   assert.equal(interpolation.sample(1350).players[0].x,90,'a fallen captain cannot slide along an old movement frame');
 });
+
+test('taking and leaving the helm keeps the visible pilot at the physical station', () => {
+  const interpolation=new RemoteInterpolator();
+  const walking={captainId:'guest',roomId:'deck:owner',vesselId:'owner',systemId:'hearth',mode:'person',x:150,y:220,vx:60,vy:-30,health:100};
+  const packet=(serverTime,person)=>({serverTime,room:{id:'deck:owner'},players:[person],remoteShips:[]});
+  interpolation.push(packet(1000,walking),1000);
+  const piloting={...walking,perspective:'ship',station:'helm',x:160,y:180,vx:0,vy:0};
+  interpolation.push(packet(1100,piloting),1100);
+  assert.deepEqual(interpolation.sample(1150).players[0],piloting,'taking command immediately places the body at the helm instead of tweening through the cabin');
+  interpolation.push(packet(1200,piloting),1200);
+  const held=interpolation.sample(1700).players[0];
+  assert.equal(held.x,160);assert.equal(held.y,180);assert.equal(held.station,'helm','stale movement does not drift the pilot away from the console');
+  const released={...walking,x:160,y:185,vx:0,vy:20};
+  interpolation.push(packet(1300,released),1300);
+  assert.deepEqual(interpolation.sample(1350).players[0],released,'leaving the helm clears its projected pose and role immediately');
+  interpolation.push({...packet(1400,released),players:[]},1400);
+  assert.equal(interpolation.sample(1450).players.length,0,'a departed crewmate is removed rather than retained as a station ghost');
+});

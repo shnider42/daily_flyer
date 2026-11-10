@@ -992,7 +992,9 @@ function drawSurfacePixels(ctx,surface,options={}){
   if(actor.x<cameraX+4||actor.x>cameraX+width-4||actor.y<cameraY+4||actor.y>cameraY+height+22)continue;
   if((actor.health??100)<=0)continue;
   const hostile=actor.team==='hostile'||actor.hostile===true,name=actor.name||actor.displayName||actor.crewRole|| (hostile?'Boarder':'Crewmate');
-  emit(name,actor.x,actor.y-47,hostile?'#f1b296':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
+  const piloting=actor.station==='helm'&&actor.perspective==='ship'&&!actor.down;
+  const label=piloting?`${name} · ${actor.sleeping?'Helm (away)':'Piloting'}`:name;
+  emit(label,actor.x,actor.y-47,hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
  }
  for(const home of homes){const mine=!!options.localCaptainId&&home.ownerId===options.localCaptainId,nearby=Math.hypot(home.x-person.x,home.y-person.y)<70,owner=mine?'Your':home.ownerName?`${home.ownerName}’s`:'Captain’s';emit(`${owner} ${home.kind==='outpost'?'outpost':'room'}`,home.x,home.y-(home.kind==='outpost'?48:27),mine?'#e5be79':'#8ec8d2',13,'center',nearby?70:mine?45:30,'home');}
  if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}

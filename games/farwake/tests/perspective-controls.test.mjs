@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.mjs';
 import {generateSurface} from '../dist/surface.mjs';
 import {cabinLayout} from '../dist/interior-layouts.mjs';
-import {getPerspectiveAction} from '../dist/perspective-controls.mjs';
+import {getPerspectiveAction,getBoardingAction,getLocalPortVessels} from '../dist/perspective-controls.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 
 const ok=result=>assert.equal(result.ok,true,result.reason);
@@ -58,21 +58,52 @@ test('occupied stations, boarders, missing hulls and disconnected captains expla
  assert.equal(choice(game,{shared:true,fleet:[]}).enabled,false);
 });
 
-test('planet return launches only the actual locally parked permitted hull',()=>{
+test('shared port return boards the remembered carrier without taking its helm or launching',()=>{
  const game=new Game('perspective-departure'),body=game.system.bodies.find(body=>body.id==='kettle');
  Object.assign(game.state.ship,{x:body.x,y:body.y+body.radius+30});ok(game.dock(body.id));
- assert.equal(choice(game).command,'quickLaunch');assert.equal(choice(game).enabled,true);
+ assert.equal(choice(game).command,'quickLaunch','The solo shortcut retains its flight transition.');
  game.state.multiplayer={captainId:'captain',ownedVesselId:'original',portVesselId:'friend'};
- const original=vessel(game,{id:'original',dockedAt:'elsewhere'}),current=vessel(game,{id:'friend',ownerId:'friend-owner',dockedAt:'kettle',grantedRoles:['helm']}),fleet=[original,current];
- assert.equal(choice(game,{shared:true,fleet}).enabled,true);
- current.dockedAt='morrow';assert.match(choice(game,{shared:true,fleet}).reason,/not parked/);
- current.dockedAt='kettle';current.systemId='afterlight';assert.equal(choice(game,{shared:true,fleet}).enabled,false);
- current.systemId='hearth';current.grantedRoles=[];assert.match(choice(game,{shared:true,fleet}).reason,/not granted/);
- current.grantedRoles=['helm'];current.helmOwner='other';assert.match(choice(game,{shared:true,fleet}).reason,/Another captain/);
- current.helmOccupied=false;assert.equal(choice(game,{shared:true,fleet}).enabled,false,'Departure preserves the authority’s occupied-station check.');
- current.helmOwner=null;current.canBoard=false;assert.equal(choice(game,{shared:true,fleet}).enabled,false,'Revoked boarding access cannot retain a visible helm grant.');current.canBoard=true;
- current.x=2000;assert.match(choice(game,{shared:true,fleet}).reason,/no longer at this landing area/);
- current.x=game.state.ship.x;game._hitTimer=1;assert.match(choice(game,{shared:true,fleet}).reason,/immediate attack/);
+ const original=vessel(game,{id:'original',dockedAt:'elsewhere'}),current=vessel(game,{id:'friend',name:'Wayfarer',ownerId:'friend-owner',dockedAt:'kettle',canBoard:true,grantedRoles:[],berths:2,occupants:0}),fleet=[original,current];
+ const before=JSON.stringify(game.state),action=choice(game,{shared:true,fleet});
+ assert.equal(action.command,'boardShip');assert.equal(action.label,'Board Wayfarer');assert.deepEqual(action.args,{vesselId:'friend'});assert.equal(action.enabled,true);
+ current.helmOwner='friend-owner';current.helmOccupied=true;current.helmName='Ari';current.occupants=1;
+ assert.equal(choice(game,{shared:true,fleet}).enabled,true,'Passenger boarding does not require piloting or an empty helm.');
+ assert.equal(JSON.stringify(game.state),before);assert.equal(current.dockedAt,'kettle');
+ current.availableBerths=0;assert.match(choice(game,{shared:true,fleet}).reason,/No free berth/);
+ current.availableBerths=1;current.canBoard=false;assert.match(choice(game,{shared:true,fleet}).reason,/allow you aboard/);
+ current.canBoard=true;current.dockedAt='morrow';assert.match(choice(game,{shared:true,fleet}).reason,/not parked/);
+ current.dockedAt='kettle';current.systemId='afterlight';assert.match(choice(game,{shared:true,fleet}).reason,/same star system/);
+ current.systemId='hearth';current.hull=0;assert.match(choice(game,{shared:true,fleet}).reason,/no longer intact/);
+ game._hitTimer=1;assert.match(choice(game).reason,/immediate attack/,'Solo departure still refuses an immediate attack.');
+});
+
+test('a shipless passenger can board locally without a helm grant, and choose when several ships are available',()=>{
+ const game=new Game('perspective-shipless',{startMode:'hardcore'});
+ game.state.multiplayer={serverAuthoritative:true,captainId:'visitor',ownedVesselId:null,aboardVesselId:null,portVesselId:'friend'};
+ const friend=vessel(game,{id:'friend',name:'Lantern',ownerId:'owner',dockedAt:'morrow',canBoard:true,grantedRoles:[],availableBerths:1}),fleet=[friend];
+ assert.equal(choice(game,{shared:true,fleet}).command,'boardShip');assert.equal(choice(game,{shared:true,fleet}).enabled,true);
+ assert.deepEqual(getLocalPortVessels(game,fleet).map(v=>v.id),['friend']);
+ game.state.multiplayer.portVesselId=null;fleet.push({...friend,id:'second',name:'Second ship'});
+ assert.equal(choice(game,{shared:true,fleet}).command,'openPortShips','An unassigned passenger chooses between local ships.');
+ assert.equal(choice(game,{shared:true,fleet,connected:false}).enabled,false);
+});
+
+test('boarding feedback distinguishes location, permission, capacity and destruction',()=>{
+ const game=new Game('boarding-feedback');game.state.multiplayer={captainId:'visitor',aboardVesselId:'own'};
+ const own=vessel(game,{id:'own',ownerId:'visitor'}),friend=vessel(game,{id:'friend',ownerId:'owner',canBoard:true,berths:2,occupants:1});
+ const check=()=>getBoardingAction(game,friend,{fleet:[own,friend]});
+ assert.equal(check().enabled,true);friend.dockedAt='kettle';assert.match(check().reason,/Dock at/);
+ friend.dockedAt=null;friend.x=own.x+250;assert.match(check().reason,/220 metres/);
+ friend.x=own.x;friend.vx=100;assert.equal(check().enabled,false);friend.vx=0;
+ friend.availableBerths=0;assert.match(check().reason,/No free berth/);friend.availableBerths=1;
+ friend.canBoard=false;assert.match(check().reason,/allow you aboard/);friend.canBoard=true;
+ friend.destroyed=true;assert.match(check().reason,/no longer intact/);friend.destroyed=false;
+ game.state.person.health=0;assert.match(check().reason,/incapacitated/);
+});
+
+test('an occupied helm names the actual pilot in the perspective action',()=>{
+ const{game,current,fleet}=sharedDeck();current.helmOwner='other';current.helmName='Ari';current.helmOccupied=true;
+ const action=choice(game,{shared:true,fleet});assert.equal(action.enabled,false);assert.equal(action.label,'Ari at helm');assert.match(action.reason,/Ari is at the helm/);
 });
 
 test('active target boarding exposes the real airlock return and never a distant escape',()=>{

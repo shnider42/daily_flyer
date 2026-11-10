@@ -240,11 +240,11 @@ export class GuidanceController {
     const shared=ctx.shared;
     if(shared&&(intent==='crew'||near.type==='shared-ship'||shared.permissionNeeded)){
       if(shared.permissionNeeded&&!shared.canBoard&&this._eligible('crew-permission',ctx,forced))return descriptor('crew-permission',shared.canManageCrew?'Choose crew access':'Crew access is required',
-        shared.canManageCrew?`Open ${touch?'Menu → Crew':'CREW'}, choose the captain you want aboard, and review their access before granting it.`:`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. ${touch?'Menu → Crew':'CREW'} shows the current access; boarding becomes available after approval.`,
+        shared.canManageCrew?`Open ${touch?'Menu → Crew':'CREW'}, find your friend by name, and turn on Allow aboard. Allow piloting is a separate choice.`:`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. ${touch?'Menu → Crew':'CREW'} shows the current access; boarding becomes available after approval.`,
         shared.canManageCrew?`${touch?'Menu → Crew':'CREW'} · Review access for the intended captain.`:'Ask the owner for boarding permission.','crew');
-      if(shared.canBoard===true&&this._eligible('board-friend',ctx,forced))return descriptor('board-friend',shared.inRange===false?'Meet your crew’s ship':'Board with permission',
-        shared.inRange===false?`Approach ${text(shared.name,'the permitted ship')} slowly, or meet it at the same port.`:`${touch?'Tap the ship contact':'Press E at the ship contact'} and choose Board with permission. Your own hull remains behind.`,
-        shared.inRange===false?'Approach the permitted ship at low speed.':'Open this contact and choose Board with permission.',shared.inRange===false?'flight':'use',{id:shared.inRange===false?'board-friend:approach':'board-friend'});
+      if(shared.canBoard===true&&this._eligible('board-friend',ctx,forced))return descriptor('board-friend',shared.inRange===false?'Meet your crew’s ship':'Board your crew’s ship',
+        shared.inRange===false?`Approach ${text(shared.name,'the permitted ship')} slowly, or meet it at the same port.`:`${touch?'Tap the ship contact':'Press E at the ship contact'} and choose Board ship. Your own hull remains behind.`,
+        shared.inRange===false?'Approach the permitted ship at low speed.':'Open this contact and choose Board ship.',shared.inRange===false?'flight':'use',{id:shared.inRange===false?'board-friend:approach':'board-friend'});
     }
     if((ctx.docking&&(ctx.docking.inRange||intent==='dock')||near.type==='dock')&&this._eligible('dock',ctx,forced))return this._dock(ctx);
     if((ctx.ship?.threat||intent==='combat'||near.hostile===true&&near.disabled!==true)&&this._eligible('ship-fire',ctx,forced))return this._flight('ship-fire',ctx);

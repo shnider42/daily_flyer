@@ -20,6 +20,12 @@ const now = () => Date.now();
 const starterHome = () => ({ kind: 'port', systemId: 'hearth', locationId: 'kettle' });
 const usable = result => result && result.ok !== false;
 const smallId = value => typeof value === 'string' && value.length > 0 && value.length < 160;
+const helmPoints = new Map();
+const helmPoint = vessel => {
+  const key = vessel.ship.classId;
+  if (!helmPoints.has(key)) { const point = cabinLayout(key).stations.helm; helmPoints.set(key, { x: point.x, y: point.y }); }
+  return helmPoints.get(key);
+};
 
 /** One authority for an invitation realm. Simulation never awaits a network client. */
 export class Realm extends BoardingAuthority {
@@ -158,7 +164,12 @@ export class Realm extends BoardingAuthority {
   _bindCaptain(captain) {
     captain.game._directorShared=this.director;
     const vessel = captain.aboard && this.vessels.get(captain.aboard);
-    if (vessel) captain.game.state.systemId = vessel.systemId;
+    if (vessel) {
+      captain.game.state.systemId = vessel.systemId;
+      // Taking a ship perspective leaves the same physical person at its helm.
+      // Interior damage and other crew must see the same authored deck position.
+      if (this._helm(captain, vessel)) Object.assign(captain.game.state.person, helmPoint(vessel), { vx: 0, vy: 0, moving: false, facing: 'up', weaponDrawn: false, aimManual: false, lastShot: null, attackUntil: 0 });
+    }
     const room = this._room(captain.game.state.systemId);
     captain.game.bindSharedWorld(room.runtime, room.record, captain.id); this._bindExploration(captain); captain.game._playerName = captain.name; room.lastActive = now(); return room;
   }
@@ -318,11 +329,33 @@ export class Realm extends BoardingAuthority {
     }
     return counts;
   }
-  _hasBerth(captain, vessel) {
-    const humans = 1 + [...this.captains.values()].filter(other => other.id !== captain.id && other.aboard === vessel.id).length;
+  _berthsUsed(vessel) {
+    const humans = [...this.captains.values()].filter(other => other.aboard === vessel.id).length;
     const hired = this._crewFor(vessel).filter(member => !member.dead && (member.health ?? 100) > 0).length;
     const passengers = this._passengerBerths(vessel), reserved = rescuedBerthCount(vessel.ship) + passengers.narrative + passengers.professions;
-    return humans + hired + reserved <= getShipClass(vessel.ship.classId).berths;
+    return humans + hired + reserved;
+  }
+  _hasBerth(captain, vessel) { return this._berthsUsed(vessel) + (captain.aboard === vessel.id ? 0 : 1) <= getShipClass(vessel.ship.classId).berths; }
+  _crewAshore(vessel, departingCaptainId = null) {
+    if (!vessel?.dockedAt) return [];
+    return [...this.captains.values()].filter(c => c.id !== departingCaptainId && c.session && !c.aboard && c.portVesselId === vessel.id && c.game.state.mode === 'person' && c.game.state.systemId === vessel.systemId && (c.game.state.exploration?.bodyId || c.game.state.locationId) === vessel.dockedAt && c.game.state.person.health > 0 && !c.game.state.person.down && this._canBoard(c, vessel)).map(c => ({ captainId: c.id, name: c.name }));
+  }
+  _departureCheck(captain, vessel, args = {}) {
+    const crewAshore = this._crewAshore(vessel, captain.id);
+    if (crewAshore.length && args.leaveCrewBehind !== true) return { ...fail(`${crewAshore.map(c => c.name).join(', ')} ${crewAshore.length === 1 ? 'is' : 'are'} still ashore. Wait for your crew to board, or explicitly depart without them.`, 'crew-ashore'), vesselId: vessel.id, crewAshore };
+    return null;
+  }
+  _refreshCrewPermission(vessel, guest) {
+    const allowed = this._canBoard(guest, vessel);
+    if (!allowed && guest.portVesselId === vessel.id) guest.portVesselId = null;
+    if (guest.aboard !== vessel.id || this._captainTeam(guest, vessel) !== vessel.ownerId) return;
+    if (allowed && this._canRole(guest, vessel, guest.crewRole)) return;
+    if (vessel.helmOwner === guest.id) vessel.helmOwner = null;
+    const point = { x: guest.game.state.person.x, y: guest.game.state.person.y };
+    if (!allowed && vessel.dockedAt) this._landCharacter(guest, vessel.systemId, vessel.dockedAt);
+    else if (guest.game.state.mode === 'ship' || !allowed) { this._cabin(guest, vessel); Object.assign(guest.game.state.person, safeCabinPoint(cabinLayout(vessel.ship.classId), point)); }
+    guest.crewRole = 'passenger'; guest.input = { ...EMPTY_INPUT }; guest.appliedInput = { ...EMPTY_INPUT };
+    guest.events.push({ type: 'crew', text: allowed ? 'The owner changed your station access. You are still aboard as crew.' : 'The owner withdrew station access. You may disembark at the next port.' });
   }
   _canRole(captain, vessel, role) { if (!vessel || vessel.destroyed) return false; if(vessel.npcContractId)return this._canBoard(captain,vessel)&&(role==='passenger'||vessel.grants[captain.id]?.roles?.includes(role)); if (vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; if (this._hostileOccupied(vessel)) return false; return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role))); }
   _helm(captain, vessel) { return !!vessel && vessel.helmOwner === captain.id && captain.aboard === vessel.id && captain.game.state.mode === 'ship'; }
@@ -383,8 +416,9 @@ export class Realm extends BoardingAuthority {
       crew: this._crewFor(vessel), guests:rescueOccupants(vessel.ship),bunkAssignments: vessel.bunks, systemId: vessel.systemId, npcContractId:vessel.npcContractId||null, faction: pirate ? this._enemyFor(vessel)?.faction || 'covenant' : 'freewake' };
   }
   _landCharacter(captain, systemId, bodyId, position) {
-    const previous = this.vessels.get(captain.aboard), owned = this.vessels.get(captain.ownedVesselId);
-    captain.portVesselId = previous?.dockedAt === bodyId && previous.systemId === systemId && this._canRole(captain, previous, 'helm') ? previous.id : owned?.dockedAt === bodyId && owned.systemId === systemId && this._canRole(captain, owned, 'helm') ? owned.id : null;
+    const previous = this.vessels.get(captain.aboard), remembered = this.vessels.get(captain.portVesselId), owned = this.vessels.get(captain.ownedVesselId);
+    // A return berth belongs to passengers as well as permitted pilots.
+    captain.portVesselId = [previous, remembered, owned].find(vessel => vessel?.dockedAt === bodyId && vessel.systemId === systemId && this._canBoard(captain, vessel))?.id || null;
     captain.game.state.exploration=null; captain.game.state.person.weaponDrawn=false;
     captain.aboard = null; captain.boardingTeam = null; captain.returnVesselId = null; captain.crewRole = 'passenger'; captain.game.state.systemId = systemId; captain.game.state.locationId = bodyId; captain.game.state.mode = 'person'; captain.game.state.interior = null;
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true);
@@ -428,7 +462,7 @@ export class Realm extends BoardingAuthority {
     return ok({ ...values() });
   }
 
-  _quickHelm(c) {
+  _quickHelm(c, args = {}) {
     const game=c.game,s=game.state,person=s.person,vessel=this.vessels.get(c.aboard);
     if(s.mode!=='person'||s.exploration||!['ship','enemy'].includes(s.interior?.kind)||!vessel||vessel.systemId!==s.systemId)return fail('You must be aboard this ship’s crew deck to take its helm.','mode');
     if(person.health<=0||person.down)return fail('You are incapacitated and cannot take the helm.','incapacitated');
@@ -446,13 +480,13 @@ export class Realm extends BoardingAuthority {
     Object.assign(person,{x:helm.x,y:helm.y});
     // An already controlled prize at a port must use the normal departure path.
     const claim=captured&&!(vessel.dockedAt&&vessel.occupation?.controllerId===c.id);
-    const result=claim?this._takeCapturedHelm(c):this._crewCommand(c,'takeStation',{role:'helm',entityId:helm.id});
+    const result=claim?this._takeCapturedHelm(c):this._crewCommand(c,'takeStation',{role:'helm',entityId:helm.id,leaveCrewBehind:args.leaveCrewBehind===true});
     if(!result.ok)Object.assign(person,pose);
     else{person.moving=false;c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}
     return result;
   }
 
-  _quickLaunch(c) {
+  _quickLaunch(c, args = {}) {
     const game=c.game,s=game.state,person=s.person,body=game.system.bodies.find(value=>value.id===s.locationId);
     if(s.mode!=='person'||s.interior||s.exploration||c.aboard||!body)return fail('Return outside to your ship’s landing before launching.','location');
     if(person.health<=0||person.down)return fail('You are incapacitated and cannot launch.','incapacitated');
@@ -467,7 +501,7 @@ export class Realm extends BoardingAuthority {
     if(!exit)return fail('There is no departure point at this landing.','location');
     const pose={x:person.x,y:person.y};
     Object.assign(person,{x:exit.x,y:exit.y});
-    const result=this._command(c,'launch',{vesselId:vessel.id});
+    const result=this._command(c,'launch',{vesselId:vessel.id,leaveCrewBehind:args.leaveCrewBehind===true});
     if(!result.ok)Object.assign(person,pose);
     else{person.moving=false;c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}
     return result;
@@ -483,8 +517,8 @@ export class Realm extends BoardingAuthority {
     if(name==='acceptNpcContract')return this._startNpcContract(c,a);
     if(['npcContractAction','completeNpcContract','cancelNpcContract'].includes(name))return this._npcContractCommand(c,name,a);
     if(game.state.npcContract?.active&&['boardShip','setCrewAccess','installBunk','setHome','renameShip','buyShip','selectShip','buyUpgrade','recruitCrew','dismissCrew','returnToShip','leaveCrew','leaveInterior','exitCabin'].includes(name))return fail('Complete your crew watch or request a return to port through Crew duty before changing vessels.','contract');
-    if (name === 'quickHelm') return this._quickHelm(c);
-    if (name === 'quickLaunch') return this._quickLaunch(c);
+    if (name === 'quickHelm') return this._quickHelm(c, a);
+    if (name === 'quickLaunch') return this._quickLaunch(c, a);
     if(name==='damageControl'){
       if(!active||active.destroyed||game.state.mode!=='person'||!['ship','enemy'].includes(game.state.interior?.kind))return fail('Work from inside the actual damaged ship.','vessel');
       const permitted=this._canRole(c,active,'engineering')||this._canRole(c,active,'helm')||this._canTakeCapturedHelm(c,active);
@@ -559,6 +593,8 @@ export class Realm extends BoardingAuthority {
       if (vessel.systemId !== game.state.systemId || !vessel.dockedAt || !active && vessel.dockedAt !== game.state.locationId) return fail('Your vessel is not docked here. Return to its port or board it first.', 'location');
       if (!active && !this._nearTypes(c, ['exit'])) return fail('Walk to the departure shuttle or airlock first.', 'distance');
       if (vessel.helmOwner && vessel.helmOwner !== c.id) return fail('Another captain holds the helm.', 'station-occupied');
+      if (!active && !this._hasBerth(c, vessel)) return fail('This vessel has no free berth. Human and hired crew share its capacity.', 'capacity');
+      const departure = this._departureCheck(c, vessel, a); if (departure) return departure;
       const actor = this._actor(vessel); actor.state.mode = 'person'; actor.state.locationId = vessel.dockedAt; actor.state.interior = null;
       const result = actor.launch(); this._syncActor(vessel);
       if (result.ok) { vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.portVesselId = null; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
@@ -679,17 +715,12 @@ export class Realm extends BoardingAuthority {
     if (name === 'setCrewAccess') {
       const vessel = this.vessels.get(a.vesselId || c.ownedVesselId);
       if (!vessel || vessel.ownerId !== c.id) return fail('Only the vessel owner can change boarding permissions.', 'ownership');
-      if (!a.captainId) { vessel.allowCrew = !!a.allowed; return ok({ text: vessel.allowCrew ? 'Realm friends may board. Helm access still requires a personal grant.' : 'Boarding now requires a personal invitation.' }); }
+      if (!a.captainId) { vessel.allowCrew = !!a.allowed; for (const guest of this.captains.values()) if (guest.id !== c.id) this._refreshCrewPermission(vessel, guest); return ok({ text: vessel.allowCrew ? 'Realm friends may board. Helm access still requires a personal grant.' : 'Boarding now requires a personal invitation.' }); }
       if (!this.captains.has(a.captainId) || a.captainId === c.id) return fail('Choose another captain in this realm.', 'captain');
       const roles = Array.isArray(a.roles) ? [...new Set(a.roles.map(roleName).filter(role => STATION_ROLES.includes(role) && role !== 'passenger'))] : ['weapons', 'engineering', 'scanner', 'navigation', 'medical', 'security'];
       vessel.grants[a.captainId] = { allowed: !!a.allowed, roles, allowBunk: a.allowBunk !== false };
       const guest = this.captains.get(a.captainId);
-      if (!a.allowed && guest.aboard === vessel.id && this._captainTeam(guest, vessel) === vessel.ownerId) {
-        if (vessel.helmOwner === guest.id) vessel.helmOwner = null;
-        if (vessel.dockedAt) this._landCharacter(guest, vessel.systemId, vessel.dockedAt);
-        else this._cabin(guest, vessel);
-        guest.crewRole = 'passenger'; guest.events.push({ type: 'crew', text: 'The owner withdrew station access. You may disembark at the next port.' });
-      }
+      this._refreshCrewPermission(vessel, guest);
       return ok({ text: a.allowed ? 'Crew permission recorded.' : 'Crew permission withdrawn.' });
     }
     if (name === 'boardShip') {
@@ -722,8 +753,10 @@ export class Realm extends BoardingAuthority {
         const previousHelm = this.captains.get(vessel.helmOwner);
         if (previousHelm && !previousHelm.session && previousHelm.disconnectUntil <= now()) { vessel.helmOwner = null; previousHelm.crewRole = 'passenger'; }
         if (vessel.helmOwner && vessel.helmOwner !== c.id) return fail('Another captain holds the helm.', 'station-occupied');
+        // Launch can refuse while someone is ashore. Do not reserve the helm
+        // or change this captain's station until that departure succeeds.
+        if (vessel.dockedAt) return this._command(c, 'launch', { leaveCrewBehind: a.leaveCrewBehind === true });
         vessel.helmOwner = c.id; c.crewRole = role;
-        if (vessel.dockedAt) return this._command(c, 'launch', {});
         game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null;
       } else { if (vessel.helmOwner === c.id) vessel.helmOwner = null; c.crewRole = role; }
       return ok({ text: `You take the ${role} station.`, role });
@@ -912,10 +945,11 @@ export class Realm extends BoardingAuthority {
       sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null };
   }
   _publicVessel(vessel, viewer) {
-    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard), helmsman = this.captains.get(vessel.helmOwner);
+    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard), helmsman = this.captains.get(vessel.helmOwner), occupiedBerths = this._berthsUsed(vessel);
     return { id: vessel.id, ownerId: vessel.ownerId, ownerName: vessel.npcContractId?'Local service cooperative':owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt,
       ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius', 'renderLength', 'renderWidth'].map(key => [key, vessel.ship[key]])),
-      allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, helmOccupied: !!vessel.helmOwner && (!helmsman || !!helmsman.session || helmsman.disconnectUntil > now()), berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks,
+      allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, helmName: helmsman?.name || null, helmOccupied: !!vessel.helmOwner && (!helmsman || !!helmsman.session || helmsman.disconnectUntil > now()), berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, occupiedBerths, availableBerths: Math.max(0, getShipClass(vessel.ship.classId).berths - occupiedBerths), installedBunks: vessel.installedBunks,
+      crewAshore: this._crewAshore(vessel), canPilot: this._canRole(viewer, vessel, 'helm'),
       bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), destroyed: !!vessel.destroyed,
       disabled: !vessel.destroyed && vessel.ship.hull <= vessel.ship.maxHull * .48 && vessel.ship.shield <= vessel.ship.maxShield * .2,
       hostile: this._shipsHostile(source, vessel), occupation: clone(vessel.occupation || null), npcHostile: !!vessel.npcHostile, captured: !!vessel.captured,
@@ -960,7 +994,12 @@ export class Realm extends BoardingAuthority {
     }
     world.enemies = (world.enemies || []).filter(enemy => !enemy.canonicalVesselId && !enemy.promotedVesselId);
     for (const signal of world.signals) if (signal.id === 'hearth:story:tinbell') signal.resolved = c.game.hasFlag('belt_signal_scanned');
-    const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && other.game.state.mode === 'person' && this.roomInfo(other).id === room.id && (other.session || other.aboard || other.home)).map(other => this._publicCaptain(other, c));
+    const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && (other.session || other.aboard || other.home) && (other.game.state.mode === 'person' && this.roomInfo(other).id === room.id || ['ship', 'boarding'].includes(room.kind) && other.aboard === c.aboard && this._helm(other, vessel))).map(other => {
+      const person = this._publicCaptain(other, c);
+      // The space camera does not remove the pilot's body from this deck.
+      // Presence still reports their ship perspective; only this deck view is projected.
+      return this._helm(other, vessel) ? { ...person, ...helmPoint(vessel), mode: 'person', perspective: 'ship', station: 'helm', roomId: room.id, vx: 0, vy: 0, facing: 'up', weaponDrawn: false, aimManual: false, lastShot: null, attackUntil: 0 } : person;
+    });
     const remoteShips = room.kind === 'system' ? [...this.vessels.values()].filter(v => v.systemId === state.systemId && v.id !== c.aboard && !v.dockedAt).map(v => ({ ...this._publicVessel(v, c), ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius'].map(key => [key, v.ship[key]])), mode: 'ship', online: [...this.captains.values()].some(other => other.aboard === v.id && other.session) })) : [];
     const motion = { protocol: 1, tick: this.tick, serverTime: now(), simulatedAt: this.simulatedAt, ack: c.ack, state, world, room, players, remoteShips,
       events: drainEvents ? c.events.splice(0, 80) : clone(c.events) };

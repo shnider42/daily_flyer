@@ -20,7 +20,7 @@ function declaration(name){
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 }
-const appCode=['currentPerspectiveAction','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','result','saveNow','ensureSurface','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
+const appCode=['currentPerspectiveAction','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const pose=ship=>Object.fromEntries(['id','x','y','vx','vy','angle','angularVelocity','hull','shield','fuel'].map(key=>[key,ship[key]]));
 function element(){return{hidden:false,disabled:false,textContent:'',value:'',dataset:{},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);}};}
@@ -36,7 +36,7 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,
     testSession:null,stored:null,settings:{...cameraPreferences,guidance:'simple',immersiveHud:true,translucentHud:true,compactTips:true},
     cameraProfile:{status:'local',preferences:cameraPreferences},tutorial,dismissedRoute:'',dismissedGuideEpisode:'',coachPrompt:null,
-    dialog:{opened:false},document:{querySelector:()=>null},
+    dialog:{opened:false,items:[],open(title,kind){this.opened=true;this.kind=kind;this.title=title;this.items=[];},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},close(){this.opened=false;}},esc:value=>String(value),openSharedShip(){},openOnline(){},document:{querySelector:()=>null},
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},
     controls:{clear(){clearCount++;heldInput={};}},
     hudText(target,text){const changed=target.textContent!==text;target.textContent=text;return changed;},
@@ -160,4 +160,19 @@ test('the perspective shortcut is hidden outside play and cannot act through an 
   f.context.playing=true;f.context.dialog.opened=true;f.call('updatePerspectiveControl');
   assert.equal(f.elements.get('modePill').hidden,false);await f.call('switchPerspective');assert.equal(f.calls.length,0);
   assert.equal(f.clearCount,0);assert.equal(f.game.state.mode,'ship');
+});
+
+
+test('a departure refusal opens a named crew check and only explicit confirmation sends leaveCrewBehind',async()=>{
+ const game=new Game('app-crew-departure');assert.equal(game.enterCabin().ok,true);
+ const f=fixture({shared:true,game}),vessel=f.context.onlineSnapshot.fleet[0];vessel.dockedAt='kettle';
+ const refusal={ok:false,result:{ok:false,code:'crew-ashore',vesselId:vessel.id,crewAshore:[{captainId:'friend',name:'Ari'}],reason:'Ari is still ashore.'}};
+ const first=f.call('switchPerspective');assert.equal(f.packets[0].name,'quickHelm');f.packets[0].resolve(refusal);await first;
+ assert.equal(f.context.dialog.kind,'crew-departure');assert.match(f.context.dialog.htmlText,/Ari/);assert.equal(f.context.actionPending,false);assert.equal(f.toasts.length,0,'The named dialog replaces a generic failure toast.');
+ const wait=f.context.dialog.items.find(item=>item.label==='Wait for my crew');wait.action();
+ assert.equal(f.context.dialog.opened,false);assert.equal(f.packets.length,1);assert.equal(vessel.dockedAt,'kettle');
+ const second=f.call('switchPerspective');f.packets[1].resolve(refusal);await second;
+ const depart=f.context.dialog.items.find(item=>item.label==='Depart without them').action();
+ assert.equal(f.packets[2].name,'quickHelm');assert.equal(f.packets[2].args.leaveCrewBehind,true);assert.equal(f.packets[2].args.vesselId,vessel.id);
+ f.packets[2].resolve({ok:true,result:{ok:true}});await depart;assert.equal(f.context.dialog.opened,false);
 });

@@ -16,6 +16,7 @@ async function fixture(){
 }
 function approach(realm,captain,predicate){const entity=realm._surface(captain).entities.find(predicate);assert.ok(entity);Object.assign(captain.game.state.person,{x:entity.x,y:entity.y});return entity;}
 async function invite(f,{helm=true,bunk=true}={}){return ok(await f.realm.command(f.owner,'setCrewAccess',{captainId:f.guest.id,allowed:true,roles:helm?['helm','engineering','weapons','medical']:['engineering'],allowBunk:bunk}));}
+// These visitor tests intentionally leave the owner ashore while the guest borrows the hull.
 async function visit(f){await invite(f);ok(await f.realm.command(f.guest,'boardShip',{vesselId:f.vessel.id}));}
 function assertShipless(realm,guest){
  assert.equal(guest.ownedVesselId,null);assert.equal(guest.game.ownsShip,false);assert.equal(guest.game.state.ship.unowned,true);assert.deepEqual(guest.game.state.fleet.owned,[]);
@@ -38,7 +39,7 @@ test('a shipless friend needs permission, pilots the actual borrowed hull, and p
  await visit(f);assert.equal(guest.aboard,vessel.id);assertShipless(realm,guest);
  const snapshot=realm.snapshotFor(guest,{drainEvents:false}),client=Game.fromSave(snapshot.state);
  assert.equal(snapshot.state.ship.id,vessel.id);assert.equal(client.hasActiveVessel,true);assert.equal(client.ownsShip,false);assert.deepEqual(client.state.fleet.owned,[]);
- ok(await realm.command(guest,'quickHelm'));assert.equal(vessel.helmOwner,guest.id);assert.equal(vessel.dockedAt,null);assert.equal(guest.game.state.mode,'ship');
+ ok(await realm.command(guest,'quickHelm',{leaveCrewBehind:true}));assert.equal(vessel.helmOwner,guest.id);assert.equal(vessel.dockedAt,null);assert.equal(guest.game.state.mode,'ship');
  const before={x:vessel.ship.x,y:vessel.ship.y};realm.acceptInput(guest,1,{thrust:1});tick(realm,6);assert.ok(Math.hypot(vessel.ship.x-before.x,vessel.ship.y-before.y)>0);
  const port=room.runtime.bodies.find(body=>body.id==='kettle');Object.assign(vessel.ship,{x:port.x,y:port.y+port.radius+80,vx:0,vy:0});ok(await realm.command(guest,'dock',{id:port.id}));
  assert.equal(vessel.dockedAt,'kettle');assert.equal(guest.aboard,null);assert.equal(owner.game.state.locationId,'morrow');assertShipless(realm,guest);
@@ -48,14 +49,14 @@ test('a shipless friend needs permission, pilots the actual borrowed hull, and p
 
 test('borrowing a friend’s helm does not complete the first-owned-ship chapter',async()=>{
  const f=await fixture(),{realm,guest,vessel,room}=f;guest.game._flag('talked_mechanic');guest.game._flag('first_job');
- await visit(f);ok(await realm.command(guest,'quickHelm'));
+ await visit(f);ok(await realm.command(guest,'quickHelm',{leaveCrewBehind:true}));
  const body=room.runtime.bodies.find(body=>body.id==='kettle');Object.assign(vessel.ship,{x:body.x,y:body.y+body.radius+80,vx:0,vy:0});
  const credits=guest.game.state.credits;ok(await realm.command(guest,'dock',{id:body.id}));
  assertShipless(realm,guest);assert.equal(guest.game.state.completedChapters.includes('first_shift'),false);assert.equal(guest.game.state.credits,credits);assert.equal(guest.game.chapter.id,'earn_first_ship');
 });
 
 test('a shipless helmsman resumes the same borrowed vessel through an immediate authority restart',async()=>{
- const f=await fixture(),{realm,guest,vessel}=f;await visit(f);ok(await realm.command(guest,'quickHelm'));
+ const f=await fixture(),{realm,guest,vessel}=f;await visit(f);ok(await realm.command(guest,'quickHelm',{leaveCrewBehind:true}));
  const pose={x:vessel.ship.x,y:vessel.ship.y},saved=realm.document(),restored=new Realm({id:realm.id,snapshot:saved,persistence:persistence()}),returned=restored.captains.get(guest.id),carrier=restored.vessels.get(vessel.id);
  ok(restored.attach(returned,{close(){}}));assert.equal(returned.aboard,vessel.id);assert.equal(carrier.helmOwner,guest.id);assert.equal(returned.game.state.mode,'ship');assert.equal(returned.crewRole,'helm');
  assert.deepEqual({x:carrier.ship.x,y:carrier.ship.y},pose);assert.equal(restored.vessels.size,1);assertShipless(restored,returned);
@@ -75,7 +76,7 @@ test('a paid fitted bunk can be a shipless guest’s persistent home without bec
 });
 
 test('permission loss and destruction recover a shipless guest without giving them the owner’s replacement',async()=>{
- const f=await fixture(),{realm,owner,guest,vessel}=f;await visit(f);ok(await realm.command(guest,'quickHelm'));
+ const f=await fixture(),{realm,owner,guest,vessel}=f;await visit(f);ok(await realm.command(guest,'quickHelm',{leaveCrewBehind:true}));
  ok(await realm.command(owner,'setCrewAccess',{captainId:guest.id,allowed:false}));assert.equal(vessel.helmOwner,null);assert.equal(guest.crewRole,'passenger');assert.equal(guest.aboard,vessel.id);
  assert.equal((await realm.command(guest,'quickHelm')).code,'permission');assert.equal((await realm.command(guest,'leaveCrew')).code,'location');
  realm._destroyVessel(vessel);assert.equal(guest.aboard,null);assert.equal(guest.game.state.mode,'person');assert.ok(guest.game.state.person.health>0);assertShipless(realm,guest);
@@ -92,7 +93,7 @@ test('return-to-ship assistance cannot bypass a fare between inhabited ports',as
 test('a permitted shipless helmsman rescues into the borrowed carrier without acquiring its berths',async()=>{
  const f=await fixture(),{realm,owner,guest,vessel,room}=f;
  owner.game.state.fleet.owned.push('tern');owner.game._activateClass('tern',true);vessel.actor=null;
- await visit(f);ok(await realm.command(guest,'quickHelm'));
+ await visit(f);ok(await realm.command(guest,'quickHelm',{leaveCrewBehind:true}));
  const sourceId='visitor-lifeboat',vesselId=`contact:${sourceId}`,signal={id:sourceId,name:'Weak lifeboat transponder',kind:'distress',encounterId:'lifeboat',vesselId,x:vessel.ship.x+70,y:vessel.ship.y,radius:20,resolved:false,scanned:false};
  const contact={id:vesselId,name:'Unpowered lifeboat',signalId:sourceId,encounterId:'lifeboat',...enemyHullProfile('kestrel'),x:signal.x,y:signal.y,angle:0,speed:0,faction:'freewake',contact:true};
  room.runtime.signals.push(signal);room.runtime.traffic.push(contact);room.record.encounterContacts||={};room.record.encounterContacts[vesselId]=structuredClone(contact);

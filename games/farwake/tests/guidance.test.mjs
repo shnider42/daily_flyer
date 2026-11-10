@@ -217,7 +217,7 @@ test('crew boarding requires actual permission and owner management never silent
   const guide=new GuidanceController(),ctx=ship({intent:'crew',shared:{id:'friend',name:'Lantern',ownerName:'Sol',permissionNeeded:true,canBoard:false,inRange:true}});flew(guide,ctx,2);
   const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Ask Sol/);assert.equal(ask.controlTarget,'onlineButton');
   assert.deepEqual(ask.action,{type:'highlight',target:'onlineButton'});
-  const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});assert.match(manage.body,/review their access before granting it/);
+  const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});assert.match(manage.body,/turn on Allow aboard/);assert.match(manage.body,/Allow piloting is a separate choice/);
   const allowed={...ctx,shared:{...ctx.shared,permissionNeeded:false,canBoard:true,inRange:false}};
   assert.equal(guide.update(allowed).id,'board-friend:approach');
   assert.equal(guide.update({...allowed,shared:{...allowed.shared,inRange:true}}).id,'board-friend');
