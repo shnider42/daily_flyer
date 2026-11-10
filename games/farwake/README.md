@@ -1,12 +1,41 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.4.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.5.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## People, professions, and a living frontier · 0.5.0
+
+The chart now contains **900 systems**, including eight additional authored frontier systems. The original 300 retain their identifiers, coordinates, body definitions, and generation order. Existing saves retain their routes, visited places, owned ships, and decisions. Black holes are nonlandable hazards with visible warning contours, gradual gravity, bounded tidal damage, and matching client prediction; the slowest industrial hull can still escape under thrust.
+
+**31 additional enterable places across 16 worlds** add markets, clinics, laboratories, conservatories, theatres, Choral rooms, hostile sites, and deliberately quiet rooms. Twenty neighborhood/interior residents add context. Original Morrow landing geometry, its first six interiors, and recovered-item identifiers remain unchanged. New Choral contacts have a distinct world sprite and matching dialogue portrait.
+
+The captain’s notebook connects **11 authored threads (nine longer stories and two passing encounters), 45 stages, 13 recurring contacts, and 11 physical story objects**. Threads include passenger work, specific bounty investigations, gangster obligations, scarce medical supplies, unsettling recordings, alien contact, and rescue decisions. Choices alter money, faction standing, NPC trust, remembered conversations, later invitations, and subsequent debriefs. Signal sequencing, circuit dials, and evidence matching use visible clues without reaction-time requirements. Only discovered or locally available leads appear in the notebook.
+
+Passage desks offer repeatable fares between inhabited ports. Accepted prices and the assigned hull persist; a passenger uses a real spare berth and requires physical pickup and drop-off. An optional smooth-passage tip is lost on actual hull damage, even if repaired later. Story passengers, patients, hired crew, and human crew share the same capacity. Faction liaisons accept local pledges; switching has a quoted cost and cooldown, and work can affect rival standing.
+
+### Public services and careers
+
+Approach the **Public services** contact beside a port clinic, or use **Log → Work & service → Find the public-services desk**. Enrollment is free. Each accepted shift shows its supply cost, current funds, and expected pay before confirmation. One assignment is active at a time; four careers retain experience, rank, completed shifts, and pay bonuses.
+
+- **Paramedic:** Leave the dispatching hospital, fly to another port, physically collect a patient, and return for admission. The patient reserves a berth on the assigned hull. A lost carrier ends the assignment without pay and transfers the patient to emergency care, including when its owner was safely aboard another ship.
+- **Doctor:** Complete three clinic scanner/triage puzzles under the duty supervisor. Correct completion pays once. Medical credentials work at other inhabited clinics, including Earth after lawful landing, and the local clinic receives the standing benefit.
+- **Law enforcement:** Enroll with a local faction, investigate a complaint at another port, and choose civilian protection or enforcement. An arrest requires actual combat participation, disabled engines, a close approach, and a living surrender. A fatal outcome has a different report, payment, and reputation consequence.
+- **Military:** Join a faction’s service and undertake a named patrol or assist a live engagement. Combat contribution is recorded; payment requires a return debrief. Employer ports issue faction work, and rival standing changes with service.
+
+### Events continue without intervention
+
+A persisted world director schedules rescue calls, convoy raids, clinic overloads, and border clashes. Incidents move from warning to active response to a recorded outcome. Interventions through completed care actions or actual combat change that outcome. Unassisted incidents resolve through local crews and leave shortages, clinic strain, or inspections; successful relief leaves its own favorable condition. Temporary conditions affect repair, refueling, and infirmary prices.
+
+Solo incidents advance with play time and pause with solo menus. Shared galaxies use **one clock for the entire realm**, independent of online captain count. Elapsed time catches up after server downtime; processing, histories, and conditions are bounded. Active systems instantiate real hostile and watch ships, while unattended systems resolve at the event level rather than continuously simulating every projectile in 900 systems. Damaged, boarded, captured, and promoted vessels persist separately from incident expiration.
+
+Rewards require recorded individual participation and cannot be claimed twice. Personal stories and relationships belong to each captain; incidents, local conditions, physical ships, and existing site claims are shared. A boarded bounty hull’s destruction produces the same persistent wreck evidence as an ordinary NPC hull, without duplicating salvage rewards. Flight readings use the actual vessel at the helm, and custody/patient delivery requires the actual carrier at port.
+
+The notebook places the next objective, destination, and affordable choices together. Active duties appear first; career ranks, completed shifts, and event history can be folded away. Mobile navigation and controls retain their existing full-screen layout and independent zoom defaults.
 
 ## Beyond the landing zone · 0.4.0
 
@@ -82,7 +111,7 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 
 | Content | Current scope |
 | --- | --- |
-| Galaxy | **300 systems:** 12 authored hubs and 288 procedural systems |
+| Galaxy | **900 systems:** 20 authored hubs and 880 procedural systems |
 | Campaign | Eight linked chapters involving both gameplay modes |
 | Factions | Five, with persistent reputation and an authored alliance decision |
 | Encounters | 25 authored choice events, including conditional follow-ups |
@@ -91,11 +120,14 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Crew | Seven NPC specialist roles, shared human/NPC capacity, injuries, and persistent memorials |
 | Boarding | Assault disabled ships or defend your own deck against pirate boarders |
 | Lore | 14 collectible records, plus location descriptions and NPC conversations |
-| Local activities | Larger planetary maps, enterable caves and shelters, wildlife combat, persistent supplies and decisions, plus contract work, repairs, freight, surveys, trade and recruitment |
+| Local activities | Larger planetary maps, enterable settlements and wilderness sites, wildlife combat, persistent supplies and decisions, plus contract work, repairs, freight, surveys, trade and recruitment |
+| Stories and relationships | 11 additional threads, 45 stages, recurring contacts, remembered choices, clue-based puzzles, and faction pledges |
+| Professions | Paramedic, doctor, faction law enforcement, and military service with persistent ranks and paid assignments |
+| Living frontier | Shared rescue calls, raids, outbreaks, and border clashes that resolve with or without player participation |
 | Captain | Appearance choices and six optional traits; choose up to two with explicit benefits and drawbacks |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
-The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 288 separate handcrafted campaigns. The main story and encounter text are authored in [dist/content.mjs](dist/content.mjs).
+The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 880 separate handcrafted campaigns. The original campaign and encounters are authored in [dist/content.mjs](dist/content.mjs); the additional threads and recurring contacts are in [dist/quest-content.mjs](dist/quest-content.mjs).
 
 ### How the dynamic story works
 

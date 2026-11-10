@@ -3,6 +3,7 @@ import {resolveCabinClass} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
 import {beginPixelFrame,pixelCamera,worldToCanvas,canvasToWorld} from './render-viewport.mjs';
 import {normalizeShipZoom} from './camera-view.mjs';
+import {cosmicInfluence,COSMIC_RULES} from './galaxy-expansion.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function random(seed){return()=>{seed|=0;seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^(seed>>>15),1|seed);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296;};}
@@ -25,6 +26,27 @@ export const SHIP_VISUALS={
 };
 const palettes={temperate:['#193d48','#2f6d70','#598f7d','#b5b982','#c4d1bd'],earth:['#183e56','#2b6d79','#5e956f','#a7b88b','#d5ddcb'],forest:['#173e42','#356b56','#6a8b58','#a7a16c','#c5caa6'],garden:['#183e46','#3c7772','#6b9f75','#a8b787','#d7dbc2'],arid:['#674a3b','#a07554','#c29e70','#dec59b','#f0dcbd'],desert:['#694a3c','#a37652','#c79e69','#d7b77e','#ebd2a7'],ice:['#244056','#4c788a','#83afbc','#c4d6d6','#edf2e4'],ocean:['#183d59','#2b6581','#5c96a1','#84aea2','#d6e0cc'],volcanic:['#342e39','#5e4042','#8c5545','#c47851','#e8ac6d'],industrial:['#34343b','#61545a','#8a7a71','#b59f7e','#d2c6a3'],ruin:['#343f42','#62766c','#8b9b82','#b4b59a','#d1d2b8'],barren:['#343b47','#58616b','#7d8990','#a3ada8','#d1d4c2'],station:['#233b4a','#385560','#718d8e','#a4b4a5','#d9d6b4']};
 const shipCache=new Map(),workCanvases=new Map(),stationCache=new Map();
+const blackHoleCache=new Map();
+function blackHoleSprite(phase){
+ const frame=((phase%4)+4)%4;if(blackHoleCache.has(frame))return blackHoleCache.get(frame);
+ const c=makeCanvas(256,184),ctx=c.getContext('2d'),x=128,y=92;
+ // Four small integer-pixel frames are shared by every stellar remnant.
+ for(const [rx,ry,color] of [[117,36,'#60424b'],[111,32,'#b06c54'],[104,29,'#e1a470'],[97,26,'#f1ce91'],[91,23,'#8c5860']])pixelRing(ctx,x,y,rx,ry,color,{width:2,step:1});
+ for(let i=0;i<=75;i++){const a=Math.PI+i/75*Math.PI;pixelRect(ctx,'#7e85a2',x+Math.cos(a)*48,y+Math.sin(a)*58,2,2);}
+ for(let yy=-43;yy<=43;yy++){const half=Math.sqrt(43*43-yy*yy);pixelRect(ctx,'#03070f',x-half,y+yy,half*2+1,1);}
+ pixelRing(ctx,x,y,44,44,'#8a83a1',{width:2,step:1});pixelRing(ctx,x,y,41,41,'#202233',{step:1});
+ for(let i=0;i<=90;i++){const a=i/90*Math.PI;pixelRect(ctx,i%7===frame?'#fff0bc':'#dba06c',x+Math.cos(a)*105,y+Math.sin(a)*29,2,2);}
+ for(let i=0;i<20;i++){const a=(i/20+frame/80)*TAU;const xx=x+Math.cos(a)*111,yy=y+Math.sin(a)*32;if(Math.hypot(xx-x,yy-y)>45)pixelRect(ctx,i%3?'#e5ba80':'#fff0bd',xx,yy,3,2);}
+ blackHoleCache.set(frame,c);return c;
+}
+function hazardBoundary(ctx,x,y,radius,color,{width,height,rasterScale=1,dashed=true}={}){
+ const step=2*rasterScale,n=Math.min(1100,Math.max(72,Math.ceil(radius*Math.PI/step)));
+ for(let i=0;i<n;i++){
+  if(dashed&&i%8>=4)continue;const a=i/n*TAU,px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;
+  if(px<0||py<0||px>width||py>height)continue;
+  pixelRect(ctx,color,px,py,rasterScale,rasterScale);
+ }
+}
 function hullSprite(shipClass,color,damage=0){
  const key=`${shipClass}:${color}:${Math.floor(damage*4)}`;if(shipCache.has(key))return shipCache.get(key);
  const profile=SHIP_VISUALS[shipClass],c=makeCanvas(profile.length+14,profile.width+14),ctx=c.getContext('2d');ctx.translate(c.width/2,c.height/2);const p=(col,x,y,w,h)=>pixelRect(ctx,col,x,y,w,h),dark='#152b38',edge='#526e7a',light=mix(color,1.13),shade=mix(color,.62);
@@ -198,12 +220,19 @@ export class SpaceRenderer{
   const nebula=this.nebula(s.systemId||'hearth'),tile=512*r,nx=((Math.round(-cx*.024*r)%tile)+tile)%tile,ny=((Math.round(-cy*.024*r)%tile)+tile)%tile;for(let yy=ny-tile;yy<h;yy+=tile)for(let xx=nx-tile;xx<w;xx+=tile)ctx.drawImage(nebula,xx,yy,tile,tile);
   for(const st of this.stars){const x=((st.x*w*2-cx*st.depth*r)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth*r)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size*r,st.size*r);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2*r,y,6*r,r);pixelRect(ctx,st.color,x,y-2*r,r,6*r);}}ctx.globalAlpha=1;
   const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId);
-  for(const b of bodies){const p=to(b.x,b.y),radius=(b.radius??b.r??65)*z;if(!visible(p,radius*2+40*r))continue;
-   if(b.kind==='station')stationSprite(ctx,p.x,p.y,Math.max(24*bodyMinScale,radius),motion?time:0,b.id,.62*bodyMinScale);
+  const stellarHazard=cosmicInfluence(ship,bodies).hazard;
+  for(const b of bodies){const p=to(b.x,b.y),radius=(b.radius??b.r??65)*z,well=b.kind==='blackhole',margin=well?(b.warningRadius||COSMIC_RULES.warningRadius)*z:radius*2+40*r;if(!visible(p,margin))continue;
+   if(well){
+    hazardBoundary(ctx,p.x,p.y,(b.warningRadius||COSMIC_RULES.warningRadius)*z,'#ccaa6a88',{width:w,height:h,rasterScale:r});
+    hazardBoundary(ctx,p.x,p.y,(b.tideRadius||COSMIC_RULES.tideRadius)*z,'#d9857177',{width:w,height:h,rasterScale:r});
+    if(visible(p,radius*3)){const core=Math.max(9*r,radius),sprite=blackHoleSprite(motion?Math.floor(time*.6)%4:0);ctx.drawImage(sprite,Math.round(p.x-core*128/43),Math.round(p.y-core*92/43),Math.round(core*256/43),Math.round(core*184/43));}
+   }
+   else if(b.kind==='station')stationSprite(ctx,p.x,p.y,Math.max(24*bodyMinScale,radius),motion?time:0,b.id,.62*bodyMinScale);
    else{const radiusPx=Math.max(18*bodyMinScale,radius);if(b.rings||b.biome==='arid'||b.biome==='desert'){pixelRing(ctx,p.x,p.y,radiusPx*1.56,radiusPx*.42,'#6f777180',ring);pixelRing(ctx,p.x,p.y,radiusPx*1.72,radiusPx*.47,'#aaa88b70',ring);}ctx.drawImage(this.planet(b),Math.round(p.x-radiusPx),Math.round(p.y-radiusPx),Math.round(radiusPx*2),Math.round(radiusPx*2));}
-   const labelRadius=b.kind==='station'?Math.max(.62*bodyMinScale,Math.max(24*bodyMinScale,radius)/66)*86:Math.max(18*bodyMinScale,radius);
-   if(!welcome){emit(b.name,p.x,p.y+labelRadius+13*r,b.id===tracked?'#efd6a0':'#bbcfcf',b.id===tracked?15:14,'center',b.id===tracked?75:35,'place');if(b.id===tracked)emit(`${b.kind==='station'?'DOCKING PORT':(b.kind||'world').toUpperCase()} · ${Math.round(Math.hypot(b.x-ship.x,b.y-ship.y))} m`,p.x,p.y+labelRadius+26*r,'#91b4bb',12,'center',50,'distance');}
+   const labelRadius=well?Math.max(9*r,radius)*1.5:b.kind==='station'?Math.max(.62*bodyMinScale,Math.max(24*bodyMinScale,radius)/66)*86:Math.max(18*bodyMinScale,radius);
+   if(!welcome){emit(b.name,p.x,p.y+labelRadius+13*r,well?'#e7bd87':b.id===tracked?'#efd6a0':'#bbcfcf',b.id===tracked?15:14,'center',b.id===tracked?75:35,'place');if(well||b.id===tracked)emit(`${well?'BLACK HOLE · NO LANDING':b.kind==='station'?'DOCKING PORT':(b.kind||'world').toUpperCase()} · ${Math.round(Math.hypot(b.x-ship.x,b.y-ship.y))} m`,p.x,p.y+labelRadius+26*r,well?'#c5a58b':'#91b4bb',12,'center',50,'distance');}
   }
+  if(!welcome&&stellarHazard){const danger=stellarHazard.level==='danger';emit(stellarHazard.warning,w/2,32*r,danger?'#f2b3a0':'#edd3a2',14,'center',120,'hazard');}
   for(const a of sys.asteroids||[]){if(a.depleted||a.hp===0||a.health===0)continue;const p=to(a.x,a.y),radius=(a.radius??a.r??16)*z;if(visible(p,radius))asteroid(ctx,p.x,p.y,radius,a.seed??hash(a.id),a.type??a.resource,1-(a.hp??a.health??100)/(a.maxHp??a.maxHealth??100),r*Math.min(1,zoomMultiplier));}
   for(const item of sys.pickups||[]){const p=to(item.x,item.y);if(!visible(p,8*r))continue;const col=item.type==='ore'?'#ddc78f':'#8fcfc7';pixelRect(ctx,'#213c49',p.x-5*r,p.y-3*r,10*r,7*r);pixelRect(ctx,col,p.x-3*r,p.y-2*r,6*r,5*r);pixelRect(ctx,'#e2e5be',p.x-2*r,p.y-2*r,3*r,r);}
   for(const sig of sys.signals||[]){if(sig.resolved)continue;const p=to(sig.x,sig.y);if(!visible(p,45*r))continue;
@@ -258,12 +287,12 @@ export class SpaceRenderer{
   paintVessel(ship,{self:true});
   for(const particle of this.particles){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.ttl-=dt;const p=to(particle.x,particle.y);ctx.globalAlpha=clamp(particle.ttl*3,0,1);pixelRect(ctx,particle.color,p.x,p.y,2*r,r);}ctx.globalAlpha=1;this.particles=this.particles.filter(p=>p.ttl>0).slice(-150);
   if(!welcome&&guidance!=='expert'){
-   const target=[...bodies,...(sys.signals||[]),...(sys.asteroids||[]),...enemies,...parkedShips,...remoteShips].find(b=>b.id===tracked);
+   const target=[...bodies,...(sys.signals||[]),...(sys.asteroids||[]),...enemies,...parkedShips,...remoteShips,...(options.waypoint?[options.waypoint]:[])].find(b=>b.id===tracked);
    if(target){const p=to(target.x,target.y),d=Math.hypot(target.x-ship.x,target.y-ship.y);if(p.x<25*r||p.x>w-25*r||p.y<25*r||p.y>h-35*r){const ex=clamp(p.x,18*r,w-18*r),ey=clamp(p.y,28*r,h-35*r),angle=Math.atan2(p.y-sp.y,p.x-sp.x);const ax=ex+Math.cos(angle)*6*r,ay=ey+Math.sin(angle)*6*r;pixelLine(ctx,ax,ay,ex+Math.cos(angle+2.5)*5*r,ey+Math.sin(angle+2.5)*5*r,'#e6cb91',2*r);pixelLine(ctx,ax,ay,ex+Math.cos(angle-2.5)*5*r,ey+Math.sin(angle-2.5)*5*r,'#e6cb91',2*r);emit(`${target.name||'Mining belt'} · ${Math.round(d)} m`,ex+(ex>w/2?-9:9)*r,ey-4*r,'#e8d4a4',13,ex>w/2?'right':'left',100,'objective');}else{pixelRing(ctx,p.x,p.y,Math.max(15*r,(target.radius||20)*z+7*r),Math.max(15*r,(target.radius||20)*z+7*r),'#d9c38b66',{...ring,dashed:true});}}
   }
   if(s.jumpFlash>0){ctx.globalAlpha=Math.min(.5,s.jumpFlash*.3);pixelRect(ctx,'#acdcd2',0,0,w,h);ctx.globalAlpha=1;}
   ctx.restore();return{cameraX:view.cameraX,cameraY:view.cameraY,zoom:z,width:w,height:h,offsetX:view.offsetX,offsetY:view.offsetY};
  }
  toWorld(x,y){return this.view?canvasToWorld(x,y,this.view):{x:(x-this.w/2)/this.zoom+this.camera.x,y:(y-this.h/2)/this.zoom+this.camera.y};}
- radar(ctx,game,tracked){const w=ctx.canvas.width,h=ctx.canvas.height,s=game.state.ship,sys=game.system||{},cx=w/2,cy=h/2,r=Math.min(w,h)/2-8;ctx.clearRect(0,0,w,h);for(const n of[.3,.65,1])pixelRing(ctx,cx,cy,r*n,r*n,'#35536288');pixelLine(ctx,cx-r,cy,cx+r,cy,'#2b475466');pixelLine(ctx,cx,cy-r,cx,cy+r,'#2b475466');const scale=r/1900,dot=(x,y,col,size=3)=>{const px=cx+(x-s.x)*scale,py=cy+(y-s.y)*scale;if(Math.hypot(px-cx,py-cy)>r)return;pixelRect(ctx,col,px-size/2,py-size/2,size,size);};for(const a of sys.asteroids||[])if(!a.depleted)dot(a.x,a.y,'#536768',2);for(const b of sys.bodies||[])dot(b.x,b.y,b.id===tracked?'#ebcf99':'#8bbfb5',b.kind==='station'?5:7);for(const e of sys.enemies||[])if(!e.dead)dot(e.x,e.y,'#db8870',4);for(const p of sys.signals||[])if(!p.resolved)dot(p.x,p.y,'#aab5d3',4);pixelLine(ctx,cx,cy,cx+Math.cos(s.angle||0)*7,cy+Math.sin(s.angle||0)*7,'#eee6c4',2);}
+ radar(ctx,game,tracked){const w=ctx.canvas.width,h=ctx.canvas.height,s=game.state.ship,sys=game.system||{},cx=w/2,cy=h/2,r=Math.min(w,h)/2-8;ctx.clearRect(0,0,w,h);for(const n of[.3,.65,1])pixelRing(ctx,cx,cy,r*n,r*n,'#35536288');pixelLine(ctx,cx-r,cy,cx+r,cy,'#2b475466');pixelLine(ctx,cx,cy-r,cx,cy+r,'#2b475466');const scale=r/1900,dot=(x,y,col,size=3)=>{const px=cx+(x-s.x)*scale,py=cy+(y-s.y)*scale;if(Math.hypot(px-cx,py-cy)>r)return;pixelRect(ctx,col,px-size/2,py-size/2,size,size);};for(const a of sys.asteroids||[])if(!a.depleted)dot(a.x,a.y,'#536768',2);for(const b of sys.bodies||[]){if(b.kind==='blackhole'){const px=cx+(b.x-s.x)*scale,py=cy+(b.y-s.y)*scale;if(Math.hypot(px-cx,py-cy)<r){pixelRing(ctx,px,py,6,6,b.id===tracked?'#f0d6a0':'#d09b78');pixelRect(ctx,'#03070f',px-2,py-2,4,4);}}else dot(b.x,b.y,b.id===tracked?'#ebcf99':'#8bbfb5',b.kind==='station'?5:7);}for(const e of sys.enemies||[])if(!e.dead)dot(e.x,e.y,'#db8870',4);for(const p of sys.signals||[])if(!p.resolved)dot(p.x,p.y,'#aab5d3',4);pixelLine(ctx,cx,cy,cx+Math.cos(s.angle||0)*7,cy+Math.sin(s.angle||0)*7,'#eee6c4',2);}
 }

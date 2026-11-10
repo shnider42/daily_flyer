@@ -13,6 +13,9 @@ import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
 import {sidearmAim,facingAngle} from './combat.mjs';
 import {explorationSites} from './exploration.mjs';
 import {appearancePalette} from './character.mjs';
+import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
+import {DISTRICT_RESIDENTS,INTERIOR_RESIDENTS,districtNames} from './planet-content.mjs';
+import {QUEST_CONTACTS,QUEST_OBJECTS} from './quest-content.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -46,7 +49,7 @@ function vesselPalette(location){
  return{...PALETTES.ship,...(hostile?{floor:'#3a3438',floor2:'#312f36',edge:'#65544e',wall:'#29272f',wallTop:'#81695d',path:'#4a4040'}:{}),accent,light:accent};
 }
 export function repairSolution(entityId){const rng=random(String(entityId));return Array.from({length:3},()=>Math.floor(rng()*4));}
-const AUTHORED_BODIES=new Map(NAMED_SYSTEMS.flatMap(system=>system.bodies.map(body=>[body.id,{body,system}])));
+const AUTHORED_BODIES=new Map([...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].flatMap(system=>system.bodies.map(body=>[body.id,{body,system}])));
 const LORE_BY_ID=new Map(LORE.map(entry=>[entry.id,entry]));
 const BODY_LORE={kettle:'kettle_history',morrow:'union_charter',tinbell:'open_frequency',orchard:'union_charter',weighhouse:'union_charter',serein:'meridian_patent',ledger:'meridian_patent',cairn:'lanes',lilt:'severance',listening:'living_registry',ward:'quiet_earth',bastion:'quiet_earth',kiln:'cinder_debt',patchwork:'cinder_debt',palimpsest:'silent_engine',blindpost:'silent_engine',tallow:'meridian_patent',checkpoint:'open_frequency',newshore:'union_charter',porch:'lanes',stillwater:'seedvault',census:'living_registry',earth:'air_pact',luna:'return_ethic',threshold:'return_ethic',wide:'open_frequency',door:'open_frequency'};
 const FACTION_LORE={freewake:'union_charter',meridian:'meridian_patent',lantern:'open_frequency',concord:'quiet_earth',cinder:'cinder_debt'};
@@ -59,7 +62,7 @@ const ROLE_LABELS={bartender:'Common-room keeper',scientist:'Field researcher',c
 // of requiring every docking / save-load caller to rebuild its own lore data.
 function resolveLocation(value={}){
  const source=typeof value==='string'?{id:value}:value||{},authored=AUTHORED_BODIES.get(source.id);
- const system=authored?.system||NAMED_SYSTEMS.find(s=>s.id===source.systemId),location={...authored?.body,...source};
+ const system=authored?.system||AUTHORED_BODIES.get(source.parentId)?.system||[...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].find(s=>s.id===source.systemId),location={...authored?.body,...source};
  location.kind=source.kind||source.type||authored?.body.kind||'planet';
  const kind=kindOf(location);
  location.id=source.id||(source.name?`place-${hash(source.name).toString(36)}`:({station:'station',ship:'own-ship',derelict:'derelict',planet:'world'}[kind]));
@@ -202,6 +205,7 @@ function planet(location,seed){
 }
 /** The original port remains in place, with distinct districts beyond its old boundary. */
 function expandFrontier(m,location,seed,rng){
+ const names=districtNames(location);
  // A river, orchards and exposed uplands make routes readable before any map is opened.
  for(let y=37;y<73;y++)for(let x=59;x<66;x++)if(Math.abs(x-(62+Math.sin(y/7)*2))<2)m.tiles[y][x]=TILE.WATER;
  for(let y=45;y<67;y+=4)for(let x=14;x<37;x+=4){rect(m,x,y,2,1,TILE.PATH);prop(m,m.biome==='verdant'||m.biome==='ocean'?'planter':'cargo',x,y,2,1,m.biome==='ice'?'#a5c3be':'#7c9b6e',false);}
@@ -210,7 +214,7 @@ function expandFrontier(m,location,seed,rng){
  room(m,51,29,12,9,57);line(m,57,37,57,39,TILE.PATH,2);
  personEntity(m,location,'field-keeper','npc','settler',57,34,'#9fb596',{roleLabel:'Outer district keeper',text:location.id==='morrow'?'The old landing district is only the beginning of Morrow. The orchards stretch south; follow the lamps east for the ridge path. Somebody should check the pump house. Northwatch has been calling without a voice.':`The paths beyond ${location.name} are marked with old survey stakes. Shelters are open to travelers; what is inside them is another question.`,rumors:['The route loops back to the landing. You can turn around whenever you need to.','Not every empty building is waiting to reward you. Some just need somebody to remember they were here.']});
  prop(m,'table',54,31,3,1,'#92866e',true);prop(m,'books',60,31,1,3,'#7f9e96',true);prop(m,'antenna',52,27,1,2,'#a1b4ad',false);
- label(m,location.id==='morrow'?'OUTER MORROW':'FIELD COOPERATIVE',52,30,'#c4d2b2');label(m,'ORCHARD ROAD',16,42,'#becb9b');label(m,'RIDGE PATH',73,36,'#cbbd96');
+ label(m,names[0].toUpperCase(),52,30,'#c4d2b2');label(m,names[1].toUpperCase(),16,42,'#becb9b');label(m,names[2].toUpperCase(),73,36,'#cbbd96');
  prop(m,'sign',43,29,1,1,'#d6c89c',false,{text:'RIDGE →'});prop(m,'sign',28,40,1,1,'#d6c89c',false,{text:'LANDING ↑'});prop(m,'sign',82,64,1,1,'#d6c89c',false,{text:'COAST →'});
  addFrontierSites(m,location,seed);
  for(let y=3;y<m.rows-3;y+=3)for(let x=3;x<m.cols-3;x+=3){
@@ -221,7 +225,30 @@ function expandFrontier(m,location,seed,rng){
  }
  // Light stakes and return arrows give the enlarged region landmarks without a UI overlay.
  for(const[x,y]of[[48,28],[48,42],[48,60],[72,38],[86,49],[72,66],[37,66],[25,51]])prop(m,'trail-light',x,y,1,1,'#b5c6a9',false);
- m.districts=[{name:'Landing district',x:10*T,y:26*T},{name:'Outer cooperative',x:57*T,y:34*T},{name:'Orchard road',x:25*T,y:53*T},{name:'Ridge country',x:76*T,y:25*T},{name:'Salt flats',x:88*T,y:65*T}];
+ m.districts=[{name:'Landing district',x:10*T,y:26*T},{name:names[0],x:57*T,y:34*T},{name:names[1],x:25*T,y:53*T},{name:names[2],x:76*T,y:25*T},{name:names[3],x:88*T,y:65*T}];
+ developDistrict(m,location);
+}
+function developDistrict(m,location){
+ const color=m.biome==='ice'?'#a4bcb9':m.biome==='volcanic'?'#b28e72':m.biome==='arid'?'#bd9d72':'#a6b88b';
+ // Neighborhoods use existing routes. Fixtures are off the road and never seal a service.
+ for(const[x,y]of[[51,42],[76,59],[91,40]]){prop(m,'bench',x,y,3,1,color,false);prop(m,'trail-light',x-1,y,1,1,color,false);}
+ if(location.alienCulture==='choral'){
+  for(const[x,y]of[[52,41],[78,42],[89,58],[40,63]])prop(m,'resonator',x,y,2,2,'#b4c9b8',false);
+  for(const[x,y]of[[54,48],[57,50],[80,61],[91,54]])prop(m,'alien-plant',x,y,2,2,'#abc3b4',false);
+ }else if(m.biome==='ice'){
+  for(const[x,y]of[[53,45],[55,45],[77,63]])prop(m,'heater',x,y,2,2,'#8ca5aa',false);
+  for(const[x,y]of[[50,45],[78,61]])prop(m,'pipe',x,y,1,5,'#9caaa3',false);
+ }else if(m.biome==='arid'){
+  for(const[x,y]of[[52,44],[79,60]]){prop(m,'cistern',x,y,3,3,'#8eaaaa',false);prop(m,'awning',x-1,y-1,5,.7,'#c4a77e',false);}
+ }else if(m.biome==='volcanic'||location.biome==='industrial'){
+  for(const[x,y]of[[52,43],[79,60]]){prop(m,'cargo',x,y,3,2,'#a38b6f',false);prop(m,'workbench',x,y+3,4,1,'#7f9690',false);}
+ }else{
+  for(const[x,y]of[[52,44],[78,60]]){prop(m,'market-stall',x,y,4,2,'#9caf8d',false);prop(m,'plant',x+4,y+1,1,1,'#9bbd86',false);}
+ }
+ for(const resident of DISTRICT_RESIDENTS[location.id]||[]){
+  const x=resident.tileX,y=resident.tileY;line(m,x,y,x,52,TILE.PATH);line(m,x,52,48,52,TILE.PATH);
+  const e=personEntity(m,location,'district:'+resident.id,'npc',resident.role,x,y,resident.color||color,resident);if(resident.species){e.species=resident.species;e.data.species=resident.species;}
+ }
 }
 function addFrontierSites(m,location,seed){
  m.sites=explorationSites(location,seed);
@@ -229,7 +256,8 @@ function addFrontierSites(m,location,seed){
   const x=site.tileX,y=site.tileY,joinY=y<38?38:66;
   line(m,x,y,x,joinY,TILE.PATH,2);line(m,x,joinY,48,joinY,TILE.PATH,2);
   entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary},site.summary);
-  prop(m,site.kind==='cave'?'cave-mouth':site.kind==='igloo'?'igloo':site.kind==='observatory'?'dome':'frontier-hut',x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':'#8b9b96',false);
+  const facade={cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house'}[site.kind]||'frontier-hut';
+  prop(m,facade,x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':site.kind==='sanctum'?'#b1c5c3':'#8b9b96',false);
   prop(m,'trail-light',x-2,y,1,1,site.hostile?'#d6ae82':'#a6c9bd',false);
  }
 }
@@ -253,6 +281,8 @@ function expeditionSurface(location,seed){
   for(const[x,y]of[[6,13],[13,14],[21,14]])prop(m,'trail-light',x,y,1,1,'#c4bc8b',false);
   prop(m,'bones',27,13,2,1,'#a8a28a',false);prop(m,'clawmarks',21,20,2,1,'#a88c74',false);prop(m,'cargo',31,25,1,1,'#7e8e85',false);
   m.spawn=point(5,16);m.exit=point(3,16);label(m,'DAYLIGHT ←',4,17,'#bfcebd');
+ }else if(['market','clinic','laboratory','conservatory','theatre','sanctum'].includes(site.kind)){
+  developedInterior(m,site);
  }else{
   rect(m,3,3,m.cols-6,m.rows-6,TILE.FLOOR);rect(m,3,12,m.cols-6,1,TILE.WALL);rect(m,12,12,3,1,TILE.FLOOR);rect(m,4,13,3,5,TILE.PATH);
   m.spawn=point(6,16);m.exit=point(4,16);
@@ -267,7 +297,52 @@ function expeditionSurface(location,seed){
  for(const cache of site.caches)entity(m,'cache:'+cache.id,'siteCache',cache.name,'Recover supplies',cache.x,cache.y,'#d7c292',{siteId:site.id,cacheId:cache.id},cache.text);
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
+ for(const person of INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=person.species;}
  return m;
+}
+
+/** Six recognizable interiors share a safe retreat corridor, not a floor plan. */
+function developedInterior(m,site){
+ rect(m,3,3,m.cols-6,m.rows-6,TILE.FLOOR);rect(m,3,14,m.cols-6,4,TILE.PATH);
+ m.spawn=point(5,16);m.exit=point(3,16);
+ label(m,'SURFACE ←',4,18,'#c8d8c3');
+ const tint={market:['#4c4543','#bba07c'],clinic:['#334c50','#a0c9be'],laboratory:['#293f49','#92b9c5'],conservatory:['#354b42','#b9cb96'],theatre:['#403b49','#c7a6a1'],sanctum:['#354c50','#bed7cc']}[site.kind];
+ m.palette={...PALETTES.shelter,floor:tint[0],floor2:tint[0],accent:tint[1],light:tint[1]};
+ prop(m,'light',5,3,4,.3,tint[1],false);prop(m,'light',29,3,4,.3,tint[1],false);
+ if(site.kind==='market'){
+  label(m,'COMMON MARKET',5,3,'#ddc59a');label(m,'BACK ROOM',26,20,'#c8aa9e');
+  for(const[x,y,c]of[[6,6,'#b69078'],[17,6,'#899f8b'],[28,6,'#a3a0bf'],[7,21,'#a8a378']])prop(m,'market-stall',x,y,5,2,c,true);
+  rect(m,23,20,1,9,TILE.WALL);rect(m,23,23,1,3,TILE.FLOOR);prop(m,'banner',23,19,.5,3,'#9e6262',false);
+  prop(m,'table',28,21,4,2,'#9c7e64',true);prop(m,'cabinet',38,21,1,5,'#7d8c83',true);prop(m,'cargo',35,26,2,1,'#a18b71',true);prop(m,'vending',18,25,2,2,'#6c9c94',true);
+ }else if(site.kind==='clinic'){
+  label(m,'WALK-IN / TRIAGE',5,3,'#c5e1ce');label(m,'CARE BAY',26,20,'#c5e1ce');
+  prop(m,'clinic-sign',5,5,1,1,'#93c8bb',false);prop(m,'console',8,5,7,1,'#719d9c',true);prop(m,'bench',5,10,5,1,'#99ae9b',true);
+  for(const[x,y]of[[19,5],[28,5],[36,5],[8,21],[20,22],[29,22]]){prop(m,'bed',x,y,2,4,'#91b7ab',true);prop(m,'equipment',x+2,y,1,2,'#739f9e',true);}
+  rect(m,17,3,1,10,TILE.WALL);rect(m,17,9,1,3,TILE.FLOOR);prop(m,'cabinet',37,24,2,3,'#7faaa0',true);prop(m,'roomstripe',18,13,22,.1,'#9fb9ae',false);
+ }else if(site.kind==='laboratory'){
+  label(m,site.hostile?'SEALED RESEARCH WING':'RESEARCH / NIGHT SHIFT',5,3,'#c7c5b6');
+  rect(m,20,3,1,10,TILE.WALL);rect(m,20,8,1,3,TILE.FLOOR);rect(m,23,19,1,10,TILE.WALL);rect(m,23,22,1,3,TILE.FLOOR);
+  prop(m,'console',6,5,10,1,'#7e9eab',true);prop(m,'glass-tank',26,5,4,5,'#79b0b2',true);prop(m,'glass-tank',34,5,4,5,'#99a8bc',true);
+  prop(m,'workbench',6,22,5,2,'#8b9b92',true);prop(m,'engine',17,21,2,5,'#748f8d',true);prop(m,'pipe',38,19,1,7,'#8c8e7b',false);
+  if(site.hostile){prop(m,'clawmarks',22,13,2,1,'#ba957d',false);prop(m,'bones',27,20,2,1,'#a7a590',false);label(m,'INNER SEAL BREACHED',26,19,'#d9ac8b');}else label(m,'CLOSED SHIFT',26,19,'#aebfc0');
+ }else if(site.kind==='conservatory'){
+  label(m,'SEED / SOIL / SHARED WATER',5,3,'#d1d8a8');
+  rect(m,17,5,3,7,TILE.WATER);rect(m,23,20,3,7,TILE.WATER);
+  for(const[x,y]of[[6,5],[26,5],[35,5],[6,20],[16,22],[35,20]])prop(m,'planter',x,y,3,5,'#86a46b',true);
+  prop(m,'books',22,6,1,5,'#9ca88f',true);prop(m,'table',27,26,4,1,'#95a183',true);prop(m,'alien-plant',30,9,2,2,'#b0c2a0',false);
+  if(site.hostile){prop(m,'clawmarks',21,13,2,1,'#ba957d',false);label(m,'KEEP CLEAR OF GROWTH',26,19,'#d8bd8d');}else label(m,'RETURN WHAT YOU CAN',5,19,'#b4cfa4');
+ }else if(site.kind==='theatre'){
+  label(m,'ASSEMBLY HALL',5,3,'#d9b9b0');rect(m,21,4,18,8,TILE.METAL);
+  prop(m,'banner',21,3,1,8,'#976b75',false);prop(m,'banner',38,3,1,8,'#976b75',false);prop(m,'resonator',29,6,2,2,'#bac5b2',false);
+  for(const y of[6,10,21,25])for(const x of[6,15])prop(m,'bench',x,y,5,1,'#8e7b76',true);
+  prop(m,'coat',37,21,1,1,'#aa9397',false);prop(m,'window',27,28,7,1,null,false);label(m,'PLEASE KEEP THE AISLE CLEAR',23,20,'#bca9a6');
+ }else{
+  // The Choral room has no counters, human beds or conventional stage.
+  rect(m,5,5,4,5,TILE.WATER);rect(m,35,20,4,6,TILE.WATER);
+  for(const[x,y]of[[17,6],[29,6],[20,23],[29,23]])prop(m,'resonator',x,y,2,3,'#a9ccc5',true);
+  for(const[x,y]of[[6,23],[35,5],[24,10]])prop(m,'alien-plant',x,y,2,2,'#b8c7a9',false);
+  prop(m,'roomstripe',12,12,23,.1,'#7cb1ad',false);prop(m,'roomstripe',12,20,20,.1,'#7cb1ad',false);label(m,'A PLACE FOR LISTENING',11,3,'#c6ded1');
+ }
 }
 
 function derelict(location,seed){
@@ -328,6 +403,53 @@ function ship(location,seed){
  prop(m,'vesselmark',Math.max(3,layout.spawn.x/T-3),layout.spawn.y/T+.8,6,.6,m.palette.accent,false);
  return m;
 }
+function reachableTiles(m){
+ const seen=new Uint8Array(m.cols*m.rows),walkable=new Int8Array(seen.length),start=Math.floor(m.spawn.y/T)*m.cols+Math.floor(m.spawn.x/T),queue=[start];
+ seen[start]=1;
+ for(let i=0;i<queue.length;i++){
+  const n=queue[i],x=n%m.cols,y=Math.floor(n/m.cols);
+  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+   const xx=x+dx,yy=y+dy,k=yy*m.cols+xx;if(xx<0||yy<0||xx>=m.cols||yy>=m.rows||seen[k])continue;
+   if(!walkable[k])walkable[k]=isWalkable(m,(xx+.5)*T,(yy+.5)*T,6)?1:-1;
+   if(walkable[k]<0)continue;seen[k]=1;queue.push(k);
+  }
+ }
+ return queue;
+}
+/** New contacts choose open reachable floor without moving a legacy service or door. */
+function addQuestEntities(m,location){
+ const outdoors=(m.kind==='station'||m.kind==='planet')&&!m.barren;if(!outdoors&&m.kind!=='site')return;
+ const bodyId=m.kind==='site'?location.parentId:location.id,siteId=m.kind==='site'?location.site?.id:null;
+ const matches=entry=>entry.bodyId===bodyId&&(!entry.systemId||entry.systemId===location.systemId)&&((entry.siteId||null)===siteId);
+ const contacts=QUEST_CONTACTS.filter(matches),objects=QUEST_OBJECTS.filter(matches);
+ if(!outdoors&&!contacts.length&&!objects.length)return;
+ const reachable=reachableTiles(m);
+ const openSpot=(x,y)=>{
+  let best=null,distance=Infinity;
+  for(const n of reachable){const tx=n%m.cols,ty=Math.floor(n/m.cols),p=point(tx,ty),score=(tx-x)**2+(ty-y)**2;
+   if(score>=distance||m.entities.some(e=>Math.hypot(e.x-p.x,e.y-p.y)<40)||Math.hypot(m.spawn.x-p.x,m.spawn.y-p.y)<30)continue;
+   best={x:tx,y:ty};distance=score;
+  }
+  return best;
+ };
+ const addContact=(entry,x,y)=>{
+  const p=openSpot(entry.tileX??x,entry.tileY??y);if(!p)return null;
+  const e=personEntity(m,location,'quest:'+entry.id,'npc',entry.role||'contact',p.x,p.y,entry.color||'#9dbfb2',{name:entry.name,roleLabel:entry.roleLabel,text:entry.text,rumors:entry.rumors||[],data:{contactId:entry.id,bodyId,homeLocationId:bodyId,species:entry.species||'human',...entry.data}});
+  e.id='quest:'+entry.id;e.species=entry.species||'human';return e;
+ };
+ if(outdoors){
+  const station=m.kind==='station';
+  addContact({id:'passage-desk:'+bodyId,name:'Passage desk',role:'pilot',roleLabel:'Passenger dispatch',text:`Travelers at ${location.name} are waiting for a captain. The desk lists the destination, fare and any care needs before you accept.`,color:'#9cbccc'},station?10:13,station?13:26);
+  addContact({id:'liaison:'+bodyId,name:'Faction liaison',role:'broker',roleLabel:'Local affiliation office',text:`The liaison can explain who claims this port, who disputes that claim, and what taking their side would mean.`,color:'#b6ba91'},station?15:17,station?16:25);
+  const service=addContact({id:'profession-desk:'+bodyId,name:'Public services',role:'medic',roleLabel:'Clinic & service desk',text:`The clinic coordinates care flights, supervised hospital shifts, patrol reports and service enlistment. Ask what the job needs before taking responsibility.`,color:'#a4c8bb',data:{professionDesk:true,bodyId}},station?27:25,station?7:9);
+  if(service){delete service.data.contactId;prop(m,'clinic-sign',service.x/T-1.7,service.y/T-1.3,1,1,'#94ccbc',false);}
+ }
+ contacts.forEach((entry,index)=>addContact(entry,m.kind==='station'?20+(index%4)*3:m.kind==='site'?9+(index%4)*4:19+(index%4)*3,m.kind==='station'?14+Math.floor(index/4)*3:m.kind==='site'?20:24+Math.floor(index/4)*3));
+ objects.forEach((entry,index)=>{
+  const p=openSpot(entry.tileX??(m.kind==='station'?29+(index%2)*3:m.kind==='site'?12+(index%4)*5:30+(index%3)*3),entry.tileY??(m.kind==='station'?16+Math.floor(index/2)*3:m.kind==='site'?21:24+Math.floor(index/3)*3));if(!p)return;
+  const e=entity(m,'quest:'+entry.id,'questObject',entry.name,entry.kind==='evidence'?'Examine':'Read',p.x,p.y,'#b8c9ad',{objectId:entry.id,objectKind:entry.kind,bodyId,homeLocationId:bodyId,systemId:location.systemId,siteId:entry.siteId||null},entry.text);e.id='quest:'+entry.id;
+ });
+}
 /** Build a walkable place from a body object or authored body ID. */
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
@@ -337,6 +459,7 @@ export function generateSurface(location={},seed='farwake',flags=[]){
  // but items and characters never fence in an interaction or a landing spawn.
  if(m.kind!=='ship')m.solids=m.solids.filter(s=>![m.spawn,m.exit,...m.entities].some(e=>e.x>s.x-15&&e.x<s.x+s.w+15&&e.y>s.y-15&&e.y<s.y+s.h+15));
  for(const e of m.entities){const tx=Math.floor(e.x/T),ty=Math.floor(e.y/T);if(BLOCKED.has(m.tiles[ty]?.[tx]))m.tiles[ty][tx]=m.kind==='planet'?TILE.GROUND:TILE.FLOOR;}
+ addQuestEntities(m,location);
  if(m.kind==='site'){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
  return m;
 }
@@ -411,8 +534,22 @@ function tileDraw(ctx,m,x,y,p,time){
  if(n>.55){pixel(ctx,'#607779',wx+3,wy+3,1,1);pixel(ctx,'#607779',wx+20,wy+20,1,1);}if(n>.93){pixel(ctx,'#334e55',wx+6,wy+8,13,1);pixel(ctx,'#334e55',wx+6,wy+11,8,1);}
  if(tile===TILE.METAL){pixel(ctx,'#b9a787',wx+3,wy+3,18,2);pixel(ctx,p.edge,wx+3,wy+19,18,2);}
 }
-/** Human sprite anchored at feet. scale is an optional integer for portraits. */
+function drawChoral(ctx,x,y,options={}){
+ const scale=options.scale||1,time=options.time||0,moving=options.moving||options.walking,bob=moving?Math.round(Math.sin(time*8)):0,color=options.color||'#a9cfc9',dead=options.dead||Number.isFinite(options.health)&&options.health<=0;
+ ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);pixel(ctx,'#112931',-12,-2,24,4);
+ if(dead){pixel(ctx,'#658c8b',-14,-8,28,6);pixel(ctx,color,-8,-11,18,5);pixel(ctx,'#d5e1c9',8,-9,7,4);ctx.restore();return;}
+ // Four feet, a narrow trunk and a three-lobed crest give a different silhouette
+ // at game scale. Their luminous marks are opaque pixels, never a blur filter.
+ for(const[leg,step]of[[-9,-bob],[-4,bob],[3,-bob],[8,bob]]){pixel(ctx,'#6c9395',leg,-9,2,8+step);pixel(ctx,'#bfccbc',leg-1,-2+step,4,2);}
+ pixel(ctx,'#294d59',-6,-19+bob,12,12);pixel(ctx,color,-4,-20+bob,8,12);pixel(ctx,'#ceddc9',-1,-22+bob,2,15);
+ pixel(ctx,'#83aaa6',-9,-18+bob,3,10);pixel(ctx,'#83aaa6',7,-18+bob,3,10);pixel(ctx,color,-12,-12+bob,4,3);pixel(ctx,color,9,-12+bob,4,3);
+ pixel(ctx,'#759ca4',-7,-31+bob,14,11);pixel(ctx,color,-10,-29+bob,20,7);pixel(ctx,'#c5ddd1',-7,-31+bob,14,3);pixel(ctx,'#bfd4cb',-8,-35+bob,3,6);pixel(ctx,'#d3e2c7',-1,-37+bob,3,7);pixel(ctx,'#bfd4cb',5,-35+bob,3,6);
+ if(options.facing!=='up'){for(const eye of[-5,0,5])pixel(ctx,'#eff1bd',eye,-26+bob,2,2);pixel(ctx,'#395969',-3,-21+bob,6,1);}else pixel(ctx,'#bad0c9',-5,-27+bob,10,5);
+ pixel(ctx,'#c0c7a0',-7,-16+bob,3,2);pixel(ctx,'#c0c7a0',5,-16+bob,3,2);ctx.restore();
+}
+/** Pixel sprite anchored at feet. scale is an optional integer for portraits. */
 export function drawCharacter(ctx,x,y,options={}){
+ if(options.species==='choral'){drawChoral(ctx,x,y,options);return;}
  const look=options.appearance?appearancePalette(options.appearance):null;
  const equipped=!!options.weapon||options.team==='hostile'||options.firing,armed=equipped&&(options.armed??true),angle=Number.isFinite(options.aimAngle)?options.aimAngle:facingAngle(options.facing||'down');
  const aimedFacing=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?Math.cos(angle)<0?'left':'right':Math.sin(angle)<0?'up':'down';
@@ -448,8 +585,40 @@ export function drawCharacter(ctx,x,y,options={}){
  if(options.carried){pixel(ctx,'#785d43',-9,-10,18,11);pixel(ctx,'#c2a572',-8,-10,16,3);pixel(ctx,'#e8d39c',-1,-8,2,9);}
  ctx.restore();
 }
+/** Same species sprite in dialogue and the world; a 32 × 40 canvas is sufficient. */
+export function drawContactPortrait(ctx,entity={}){
+ const width=ctx.canvas?.width||32,height=ctx.canvas?.height||40,scale=Math.max(1,Math.floor(Math.min(width/28,height/40)));
+ pixel(ctx,'#173543',0,0,width,height);pixel(ctx,'#294b53',2,2,width-4,height-4);
+ drawCharacter(ctx,Math.floor(width/2),height-3,{id:entity.id,name:entity.name,color:entity.color,species:entity.species||entity.data?.species,facing:'down',scale});
+}
 function drawProp(ctx,d,m,time,emit){
  const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
+ if(d.kind==='clinic-sign'){
+  pixel(ctx,'#233d43',x+8,y+7,3,h+4);pixel(ctx,'#d4dec7',x+1,y-7,21,20);pixel(ctx,'#4b8a80',x+9,y-4,5,14);pixel(ctx,'#4b8a80',x+5,y,13,5);return;
+ }
+ if(d.kind==='resonator'){
+  pixel(ctx,'#25474b',x+3,y+h-8,w-6,9);pixel(ctx,'#86aaa5',x+9,y+4,w-18,h-12);pixel(ctx,c,x+12,y+1,w-24,h-16);pixel(ctx,'#d1dfc4',x+15,y+5,w-30,3);pixel(ctx,'#2c606a',x+16,y+12,w-32,h-28);pixel(ctx,'#aacfc3',x+w/2-1,y+14,2,Math.max(2,h-32));pixel(ctx,'#cddab8',x+5,y+h-10,5,3);pixel(ctx,'#cddab8',x+w-10,y+h-10,5,3);return;
+ }
+ if(d.kind==='alien-plant'){
+  pixel(ctx,'#2a4c4a',x+6,y+h-7,w-12,8);for(const[dx,dy]of[[0,1],[9,-8],[19,-3]]){pixel(ctx,'#729491',x+9+dx,y+10+dy,3,h-14-dy);pixel(ctx,c,x+3+dx,y+6+dy,15,8);pixel(ctx,'#d0d9ad',x+6+dx,y+3+dy,10,5);pixel(ctx,'#7caca7',x+7+dx,y+7+dy,2,4);}return;
+ }
+ if(d.kind==='cistern'||d.kind==='glass-tank'){
+  const glass=d.kind==='glass-tank';pixel(ctx,'#213b41',x+3,y+h-8,w-6,10);pixel(ctx,c,x+4,y+4,w-8,h-10);pixel(ctx,'#cfcec0',x+7,y+1,w-14,5);pixel(ctx,glass?'#284d5b':'#56797b',x+9,y+8,w-18,h-19);pixel(ctx,'#94c6c1',x+10,y+9,2,h-22);pixel(ctx,'#91bab0',x+11,y+h-18,w-23,3);if(glass){pixel(ctx,'#a6c6ac',x+w/2-5,y+h/2-4,10,17);pixel(ctx,'#6b9d9b',x+w/2-10,y+h/2,8,3);}else pixel(ctx,'#c1b089',x+w-12,y+h-17,15,5);return;
+ }
+ if(d.kind==='market-stall'){
+  pixel(ctx,'#233a3d',x+4,y+10,w-8,h-6);pixel(ctx,'#856e58',x+4,y+h-10,w-8,9);pixel(ctx,c,x-2,y-7,w+4,15);for(let i=3;i<w-3;i+=14)pixel(ctx,'#dac7a3',x+i,y-7,5,13);pixel(ctx,'#a19c7c',x+5,y+18,w-10,8);for(let i=11;i<w-10;i+=17){pixel(ctx,i%3?'#bfa16d':'#9db687',x+i,y+12,8,7);pixel(ctx,'#d7c59a',x+i+1,y+11,6,2);}pixel(ctx,'#d0b083',x+4,y+2,3,h);pixel(ctx,'#d0b083',x+w-7,y+2,3,h);return;
+ }
+ if(['market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house'].includes(d.kind)){
+  const kind=d.kind,roof=kind==='market-house'?'#a47f6f':kind==='clinic-house'?'#91b9aa':kind==='lab-house'?'#7893a2':kind==='theatre-house'?'#987c8e':'#9ab7ae';
+  pixel(ctx,'#172f37',x-4,y+h-6,w+8,10);pixel(ctx,roof,x+3,y+13,w-6,h-17);pixel(ctx,'#bad0bd',x+7,y+9,w-14,5);pixel(ctx,'#294955',x+w/2-12,y+h-28,24,28);pixel(ctx,'#c5d6b5',x+w/2-13,y+h-31,26,3);
+  if(kind==='market-house'){pixel(ctx,'#b39475',x-2,y+17,w+4,13);for(let i=3;i<w;i+=15)pixel(ctx,'#dfc99a',x+i,y+17,6,12);pixel(ctx,'#88725d',x+8,y+h-19,18,15);pixel(ctx,'#b9b18a',x+10,y+h-22,14,5);}
+  else if(kind==='clinic-house'){pixel(ctx,'#d9e1cc',x+13,y+18,18,18);pixel(ctx,'#528e7c',x+20,y+20,4,14);pixel(ctx,'#528e7c',x+15,y+25,14,4);pixel(ctx,'#b9d0c2',x+w-27,y+24,16,8);}
+  else if(kind==='lab-house'){for(let i=11;i<w-12;i+=19){pixel(ctx,'#224654',x+i,y+18,12,12);pixel(ctx,'#91bcc1',x+i,y+18,12,2);}pixel(ctx,'#c6b18a',x+7,y+h-7,20,3);pixel(ctx,'#c6b18a',x+w-27,y+h-7,20,3);pixel(ctx,'#7f999a',x+w-12,y-3,3,17);}
+  else if(kind==='choral-house'){pixel(ctx,'#6b9392',x+5,y+4,20,18);pixel(ctx,'#a6c8b7',x+13,y-3,15,18);pixel(ctx,'#6b9392',x+w-25,y+4,20,18);pixel(ctx,'#a6c8b7',x+w-28,y-3,15,18);pixel(ctx,'#c9d9c6',x+w/2-16,y-6,32,18);pixel(ctx,'#acd9cd',x+w/2-2,y+16,4,9);}
+  else if(kind==='glass-house'){pixel(ctx,'#385f69',x+7,y+4,w-14,16);pixel(ctx,'#9cc0b3',x+12,y, w-24,5);for(let i=16;i<w-8;i+=18)pixel(ctx,'#c2d6c0',x+i,y+4,2,16);pixel(ctx,'#acc59d',x+9,y+28,16,12);pixel(ctx,'#94b68f',x+w-25,y+25,16,15);}
+  else{pixel(ctx,'#b6a2ac',x+9,y+3,w-18,8);pixel(ctx,'#6d5166',x+7,y+15,8,h-20);pixel(ctx,'#6d5166',x+w-15,y+15,8,h-20);pixel(ctx,'#d0bfa2',x+18,y+20,10,18);pixel(ctx,'#73616e',x+20,y+23,6,12);}
+  return;
+ }
  if(d.kind==='vesselmark'){
   pixel(ctx,'#162b34',x,y,w,h);pixel(ctx,c,x,y,3,h);pixel(ctx,c,x+w-3,y,3,h);pixel(ctx,c,x+7,y+h-2,w-14,1);
   if(emit)emit(String(m.vesselName).replace(/ · interior$/i,'').slice(0,28).toUpperCase(),x+w/2,y+3,c,13,'center',28,'vessel');return;
@@ -547,7 +716,7 @@ function isDone(entity,flags){return!!entity.completed||flags.has(entity.data?.f
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.id,color:c,facing:e.facing||'down',time,health:e.data?.health,role:e.role});if(e.type==='medic'){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#d47b6c',x-1,y-22,2,5);}}
+ if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,role:e.role});if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
  else if(e.type==='station'){
   pixel(ctx,'#0e2733',x-14,y-21,28,26);pixel(ctx,'#557985',x-13,y-23,26,22);pixel(ctx,'#173a48',x-10,y-20,20,12);pixel(ctx,c,x-8,y-18,16,2);pixel(ctx,c,x-2,y-17,4,7);pixel(ctx,'#a9c9bd',x-8,y-5,3,2);pixel(ctx,'#dcc59a',x+5,y-5,3,2);
   if(e.data?.stationRole==='medical'){pixel(ctx,'#bfe1c9',x-6,y-14,12,3);pixel(ctx,'#bfe1c9',x-2,y-18,4,11);}
@@ -572,7 +741,8 @@ function drawEntity(ctx,e,m,time,flags,near){
   if(Math.floor(time*2)%2===0)pixel(ctx,'#dfeecb',x+9,y-19,2,2);
  }
  else if(e.type==='siteCache'){pixel(ctx,'#162b34',x-12,y-1,24,5);pixel(ctx,done?'#596965':'#9d8b68',x-11,y-16,22,18);pixel(ctx,done?'#2a3c40':'#cbb68a',x-11,y-17,22,4);pixel(ctx,'#30454a',x-8,y-10,16,7);pixel(ctx,done?'#647a75':'#afd4bc',x-2,y-12,4,4);}
- else if(e.type==='siteRecord'){pixel(ctx,'#2b3e44',x-11,y-6,22,8);pixel(ctx,'#bcbca2',x-8,y-17,16,17);pixel(ctx,'#dae0c2',x-7,y-17,14,2);for(let j=0;j<3;j++)pixel(ctx,'#687f7d',x-5,y-12+j*3,10,1);}
+ else if(e.type==='siteRecord'||e.type==='questObject'&&e.data?.objectKind==='evidence'){pixel(ctx,'#2b3e44',x-11,y-6,22,8);pixel(ctx,'#bcbca2',x-8,y-17,16,17);pixel(ctx,'#dae0c2',x-7,y-17,14,2);for(let j=0;j<3;j++)pixel(ctx,'#687f7d',x-5,y-12+j*3,10,1);}
+ else if(e.type==='questObject'&&e.data?.objectId==='chora-translation'){drawProp(ctx,{kind:'resonator',x:x-24,y:y-36,w:48,h:40,color:'#b4d5cc'},m,time,null);}
  else if(e.type==='crate'){
   if(done||flags.has(e.data?.carriedFlag))return;
   pixel(ctx,'#192d32',x-10,y-1,22,5);pixel(ctx,'#806749',x-10,y-16,20,18);pixel(ctx,c,x-9,y-17,18,4);pixel(ctx,'#a98b59',x-7,y-12,14,11);pixel(ctx,'#dec98e',x-2,y-14,4,15);pixel(ctx,'#404844',x+4,y-10,3,4);
@@ -589,7 +759,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   const yy=y-36+Math.round(Math.sin(time*3));pixel(ctx,'#e5d7ac',x-2,yy,4,2);pixel(ctx,'#e5d7ac',x-1,yy+2,2,2);
  }
 }
-function shortRole(e){if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.role;return{jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
+function shortRole(e){if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
 function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;
@@ -708,15 +878,15 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
   for(let x=1;x<=surface.cols;x++)if(x===surface.cols||row[x]!==row[start]){box(colors[row[start]]||palette.floor,offsetX+start*cell,offsetY+y*cell,(x-start)*cell,cell);start=x;}
  }
  // Large entrances have recognizable footprints without drawing individual furniture.
- for(const decor of surface.decor)if(['frontier-hut','dome','igloo','cave-mouth'].includes(decor.kind)){
+ for(const decor of surface.decor)if(['frontier-hut','dome','igloo','cave-mouth','market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house'].includes(decor.kind)){
   const p=project(decor.x,decor.y);box(decor.kind==='cave-mouth'?'#a6977f':'#8ca8aa',p.x,p.y,Math.max(3,decor.w*scale),Math.max(3,decor.h*scale));
  }
  const markers=[],ordinary=[],exits=[];
- const kinds={siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
+ const kinds={siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',questObject:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
  for(const entity of surface.entities){
-  if(entity.hidden||entity.disabled)continue;const selected=entity.id===targetEntityId,kind=kinds[entity.type];if(!kind&&!selected)continue;
+  if(entity.hidden||entity.disabled)continue;const selected=entity.id===targetEntityId,kind=entity.data?.professionDesk?'service':kinds[entity.type];if(!kind&&!selected)continue;
   const done=!!entity.completed||exploration?.collected?.includes(entity.data?.cacheId)||!!exploration?.choices?.[entity.data?.choiceId],point=project(entity.x,entity.y),exit=kind==='exit';
-  const marker={id:entity.id,name:entity.name,kind:kind||'person',...point,selected,done,color:exit?'#a8d4a0':done?'#708e82':'#82ccc9'};
+  const marker={id:entity.id,name:entity.name,kind:kind||'person',siteKind:entity.data?.siteKind,...point,selected,done,color:exit?'#a8d4a0':done?'#708e82':entity.data?.siteKind==='clinic'?'#b9d6b8':entity.data?.siteKind==='market'?'#d2b088':entity.data?.siteKind==='sanctum'?'#bdb0d6':'#82ccc9'};
   markers.push(marker);(exit?exits:ordinary).push(marker);
  }
  const mark=(marker)=>{const radius=marker.kind==='exit'?5:marker.kind==='site'?4:3;box('#0b1c27',marker.x-radius-1,marker.y-radius-1,radius*2+3,radius*2+3);box(marker.color,marker.x-radius,marker.y-radius,radius*2+1,radius*2+1);if(marker.kind==='exit'){box('#294039',marker.x-1,marker.y-3,3,7);box('#294039',marker.x-3,marker.y-1,7,3);}else if(marker.done)box('#213d38',marker.x-1,marker.y-1,3,3);};
@@ -781,7 +951,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   if(item.prop)drawProp(ctx,item.prop,surface,time,emit);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.species)drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.species&&a.species!=='human'&&a.species!=='choral')drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time);

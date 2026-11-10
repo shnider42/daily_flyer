@@ -30,9 +30,13 @@ import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from './combat.
 import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
 import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
+import { NarrativeRules } from './quest-rules.mjs';
+import { ProfessionRules } from './profession-rules.mjs';
+import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
+import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const WORLD_RADIUS = 2700;
 export const TAU = Math.PI * 2;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -48,7 +52,7 @@ const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(
 const unique = list => [...new Set(Array.isArray(list) ? list : [])];
 const factionIds = () => FACTIONS.map(x => x.id);
 // Keep port availability aligned with the uninhabited surface generator.
-const hasPortServices = body => !!body && !(['moon', 'asteroid'].includes(body.kind) && /barren|rock|dust/.test(String(body.biome)));
+const hasPortServices = body => !!body && body.landable !== false && body.kind !== 'blackhole' && !(['moon', 'asteroid'].includes(body.kind) && /barren|rock|dust/.test(String(body.biome)));
 const cabinCache=new Map();
 const combatLayout=id=>{if(!cabinCache.has(id))cabinCache.set(id,cabinLayout(id));return cabinCache.get(id);};
 const facingOf=(dx,dy)=>Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
@@ -124,7 +128,7 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return systems;
+  return expandGalaxy(systems, seed);
 }
 
 function initialState(seed, options = {}) {
@@ -173,6 +177,12 @@ export class Game {
       this._flag('started');
       this._discoverNear('hearth');
     }
+    this.initializeNarrative();
+    this.initializeProfessions();
+    this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
+    this.syncNarrativeWorld();
+    this.syncProfessionWorld();
+    syncDirectorWorld(this,this.worldDirector);
     this._checkChapters();
   }
 
@@ -185,9 +195,10 @@ export class Game {
   get chapter() { return STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
   get activeChapter() { return this.chapter; }
   get playerId() { return this._playerId || 'local'; }
+  get worldDirector() { return this._directorShared || this.state.worldDirector; }
   get shipClass() { return getShipClass(this.state.ship.classId); }
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
-  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))); }
+  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()); }
   get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
   get characterEffects() { return characterModifiers(this.state.character); }
   get hasHyperdrive() { return Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0; }
@@ -296,6 +307,7 @@ export class Game {
       if (id === 'hearth' && b.id === 'morrow') { x = 840; y = -420; }
       return { ...clone(b), faction: b.faction || data.faction, x: finite(b.x, x), y: finite(b.y, y), radius: b.kind === 'planet' ? 122 : b.kind === 'moon' ? 76 : 70, color: FACTIONS.find(f => f.id === (b.faction || data.faction))?.color || '#5edac0' };
     });
+    bodies.push(...systemCosmicBodies(data, this.state.seed));
     const asteroids = [];
     for (let i = 0; i < 46; i++) {
       const cluster = i % 4;
@@ -352,6 +364,9 @@ export class Game {
     const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, ...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true)) }));
     this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     record.visits = (record.visits || 0) + 1;
+    if(this.state.narrative)this.syncNarrativeWorld();
+    if(this.state.professions)this.syncProfessionWorld();
+    if(this.worldDirector)syncDirectorWorld(this,this.worldDirector);
   }
 
   _updateStats(heal = false) {
@@ -393,6 +408,8 @@ export class Game {
     if (!runtime || runtime.id !== this.state.systemId) return this._fail('The shared world does not match this pilot’s system.', 'system');
     this._runtime=runtime;this.state.worlds[this.state.systemId]=record || this._record();this._playerId=String(playerId);this._sharedWorld=true;
     this.system.miningBeams ||= {};
+    if(this.state.narrative)this.syncNarrativeWorld();
+    if(this.state.professions)this.syncProfessionWorld();
     return this._ok();
   }
 
@@ -400,6 +417,13 @@ export class Game {
     const dt=clamp(finite(delta),0,.1);
     if(!dt)return;
     this.stepPilot(dt,input);
+    if(!this._sharedWorld){
+      const result=advanceWorldDirector(this.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy});
+      if(result.state!==this.state.worldDirector){
+        this.state.worldDirector=result.state;syncDirectorWorld(this,result.state);this.syncProfessionWorld();
+        for(const event of result.transitions)if(event.systemId===this.state.systemId)this._event(event.type,event);
+      }
+    }
     this.stepWorld(dt,[this]);
   }
 
@@ -415,10 +439,16 @@ export class Game {
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
     const operate=this.state.mode==='ship'||(options.operateShip && this.state.interior?.kind==='ship');
-    if(!operate){sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
+    if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
     const flight=normaliseFlightInput(input),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
     const oldX=sh.x,oldY=sh.y;
     Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
+    const cosmic=applyCosmicHazards(sh,dt,this.system.bodies,{damage:true});
+    Object.assign(sh,cosmic.ship);
+    const warningKey=cosmic.hazard?`${cosmic.hazard.id}:${cosmic.hazard.level}`:null;
+    if(warningKey&&warningKey!==this._cosmicWarningKey)this._event('cosmic-warning',{...cosmic.hazard,text:cosmic.hazard.warning});
+    this._cosmicWarningKey=warningKey;this.state.cosmicWarning=cosmic.hazard||null;
+    if(cosmic.damage>0){this._damageShip(cosmic.damage,{sourceId:cosmic.hazard?.id,cause:'tidal forces'});if(sh.destroyed||sh.hull<=0||this._recoveryTimer)return;}
     this.state.stats.distance+=Math.hypot(sh.x-oldX,sh.y-oldY);
     sh.energy=clamp(sh.energy+(boosting?-18:input.mine?-1:11)*dt,0,sh.maxEnergy);
     if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+4*dt);
@@ -582,7 +612,8 @@ export class Game {
         ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
         const collision=hits[0];if(!collision)continue;b.ttl=0;
         if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
-        const hit=collision.enemy;hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
+        const hit=collision.enemy,damage=Math.min(hit.hp,b.damage);hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
+        recordDirectorDamage(this.worldDirector,hit,b.ownerId||this.playerId,damage);
         this._record().enemyHealth[hit.id]=hit.hp;
         this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',vesselId:hit.id,damage:b.damage});
         if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
@@ -601,7 +632,10 @@ export class Game {
     const sh = this.state.ship;
     if(sh.destroyed||sh.hull<=0)return;
     const absorbed = Math.min(sh.shield, amount);
-    sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-(amount-absorbed));
+    const hullDamage=Math.min(sh.hull,Math.max(0,amount-absorbed));
+    sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-hullDamage);
+    this.recordPassengerDamage(hullDamage);
+    if(hullDamage>0)this.netOnHullDamaged?.({...details,hullDamage});
     this._hitTimer = 5;
     if(sh.hull<=0){
       this._worldEvent('vessel-destroyed',{vesselId:this.netVesselId||sh.id,name:sh.name,...details});
@@ -650,7 +684,7 @@ export class Game {
     if(parked)return {type:'parked-ship',id:parked.id,name:parked.name,vessel:parked,distance:distance(parked,sh),range:sh.radius+parked.radius+110};
     const disabled=this.system.enemies.filter(e=>e.hp>0&&e.disabled&&!e.boardingTargetId&&!e.promotedVesselId&&!e.canonicalVesselId&&distance(e,sh)<sh.radius+e.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
     if(disabled)return {type:'board',id:disabled.id,name:disabled.name,enemy:disabled,distance:distance(disabled,sh),range:sh.radius+disabled.radius+110};
-    const bodies = this.system.bodies.map(body => ({ type: 'dock', id: body.id, bodyId: body.id, name: body.name, body, distance: distance(sh, body), range: body.radius + 150 })).filter(t => t.distance <= t.range).sort((a, b) => a.distance - b.distance);
+    const bodies = this.system.bodies.filter(body=>body.landable!==false&&body.kind!=='blackhole').map(body => ({ type: 'dock', id: body.id, bodyId: body.id, name: body.name, body, distance: distance(sh, body), range: body.radius + 150 })).filter(t => t.distance <= t.range).sort((a, b) => a.distance - b.distance);
     if (bodies.length) return bodies[0];
     const signal = this.system.signals.filter(s => !s.resolved && distance(sh, s) <= sh.scanRange).sort((a, b) => distance(sh, a) - distance(sh, b))[0];
     if (signal) return { type: 'signal', id: signal.id, signalId: signal.id, name: signal.name, signal, distance: distance(sh, signal), range: sh.scanRange };
@@ -666,6 +700,7 @@ export class Game {
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
     const body = this.system.bodies.find(b => b.id === bodyId);
     if (!body) return this._fail('That destination is not in this system.', 'target');
+    if (body.landable === false || body.kind === 'blackhole') return this._fail('This is a gravitational hazard. Keep clear of its tidal boundary; there is nowhere to land.', 'hazard');
     if (distance(this.state.ship, body) > body.radius + 150) return this._fail(`Fly closer to ${body.name} to ${body.kind === 'station' ? 'dock' : 'land'}.`, 'distance');
     if (body.id === 'earth') {
       if (!this.hasFlag('vault_recovered') || !this.hasFlag('homeward_signal')) return this._fail('Earth’s quarantine corridor is closed. Recover the safe approach from Witness first.', 'quarantine');
@@ -950,7 +985,7 @@ export class Game {
     return this._ok(base);
   }
   _canActivateClass(shipClass) {
-    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard.','capacity');
+    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)+this.narrativeBerths()+this.professionBerths()>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard, including passengers and patients.','capacity');
     const capacity=shipClass.stats.cargoCap+(this.state.ship.cargoCap-this.shipClass.stats.cargoCap);
     if(this.cargoUsed>capacity)return this._fail('Unload cargo before switching to a smaller hold.','cargo');
     return this._ok();
@@ -1404,6 +1439,7 @@ export class Game {
   }
 
   _abandonOccupiedShip(boarding,raider) {
+    this.professionRescue?.();
     const ship=this.state.ship,id=ship.id,hostiles=boarding.enemies.filter(e=>e.health>0);
     const occupied={id,name:ship.name||'Occupied ship',classId:ship.classId,...enemyHullProfile(ship.classId),x:ship.x,y:ship.y,vx:0,vy:0,angle:ship.angle,
       hp:Math.max(1,ship.hull),maxHp:ship.maxHull,faction:raider?.faction||'cinder',disabled:true,active:false,speed:ship.speed,damage:ship.damage,reward:0,cooldown:999,
@@ -1632,7 +1668,9 @@ export class Game {
   }
 
   serviceQuote(action) {
-    const sh = this.state.ship, rate=this.characterEffects.serviceCost;
+    const sh = this.state.ship,condition=this.worldDirector?.conditions?.[`${this.state.systemId}:${this.state.locationId}`];
+    const localRate=condition&&condition.until>this.worldDirector.time?condition.serviceMultiplier:1;
+    const rate=this.characterEffects.serviceCost*clamp(finite(localRate,1),.8,1.2);
     if (action === 'repair') return { action, cost: Math.ceil(Math.max(0, sh.maxHull - sh.hull) * 0.65 * rate), label: 'Repair hull' };
     if (action === 'refuel') return { action, cost: Math.ceil(Math.max(0, sh.maxFuel - sh.fuel) * 2 * rate), label: 'Fill fuel tanks' };
     if (action === 'rest') return { action, cost: Math.ceil(Math.max(0,(this.state.person.maxHealth||100) - this.state.person.health) * 0.25 * rate), label: 'Visit the infirmary' };
@@ -1690,6 +1728,8 @@ export class Game {
     const cost = Math.floor(this.state.credits * 0.12); this.state.credits -= cost;
     sh.fuel = Math.max(8, sh.fuel);
     this.state.stats.rescues++;
+    this.narrativeRescue();
+    this.professionRescue?.();
     this._recoveryTimer = 8;
     this._runtime.bullets.length = 0;
     this._log('Emergency tow', message, 'log');
@@ -1705,5 +1745,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules);
 export default Game;

@@ -38,6 +38,12 @@ export class Soundscape{
   if(atmosphere==='ice'){this.tone(460,1.8,'sine',.035,710);this.tone(63,.5,'triangle',.07,35);return'Ice shifts beneath the shelter.';}
   if(atmosphere==='machinery'){this.tone(78,.8,'triangle',.075,42);setTimeout(()=>this.tone(96,.18,'triangle',.04,48),420);return'A pipe knocks twice inside the wall.';}
   if(atmosphere==='signal'){this.tone(310,.7,'sine',.045,180);setTimeout(()=>this.tone(740,.09,'sine',.03,690),870);return'A receiver catches half of a distant call.';}
+  if(atmosphere==='market'){this.tone(230,.18,'triangle',.025,170);return index%2?'A cup is set down behind a curtain.':'Low voices carry between the stalls.';}
+  if(atmosphere==='clinic'){this.tone(540,.12,'sine',.022,520);return index%2?'A monitor chimes softly in the next bay.':'A trolley wheel clicks across a seam in the floor.';}
+  if(atmosphere==='choral'){this.tone(196,2.1,'sine',.04);this.tone(293.66,1.4,'sine',.022);return index%2?'One clear note answers another, then leaves a long silence.':'The vessel beside you sounds a note too low for your translator.';}
+  if(atmosphere==='garden'){this.tone(360,.75,'sine',.024,170);return index%2?'Leaves brush glass without any wind.':'Water moves through the irrigation lines.';}
+  if(atmosphere==='theatre'){this.tone(130,1.8,'sine',.028,72);return index%2?'A chair creaks in the dark beyond the stage.':'A breath reaches you from the empty hall.';}
+  if(atmosphere==='drain'){this.tone(63,1.4,'triangle',.045,39);this.tone(610,.12,'sine',.02,260);return index%2?'A pipe answers a knock you did not make.':'A drop rings in a tank that should be dry.';}
   this.tone(index%2?95:140,.9,'triangle',.04,38);setTimeout(()=>this.tone(62,.25,'sine',.035,36),520);return'The empty room settles. Something taps behind the wall.';
  }
  mute(){if(this.master)this.master.gain.value=this.enabled()?.17:0;}

@@ -318,6 +318,7 @@ export class BoardingAuthority {
     captain.events.push({ type: 'rescue', text }); this._refreshOccupation(previous);
   }
   _recoveryCutter(captain, previous) {
+    captain.game.professionRescue?.();
     // Keep the old manifest with its physical hull before assigning a new primary ship.
     previous.inventory = { cargo: captain.game.state.cargo, upgrades: captain.game.state.upgrades, crew: captain.game.state.crew, formerCrew: captain.game.state.formerCrew, memorial: captain.game.state.memorial, boardingHistory: captain.game.state.boardingHistory };
     const ship = new Game(this.seed).state.ship, id = `recovery:${captain.id}:${this.tick}:${this.vessels.size}`;
@@ -326,6 +327,7 @@ export class BoardingAuthority {
     const vessel = { id, ownerId: captain.id, name: 'Recovery cutter', systemId: captain.game.state.systemId, dockedAt: body.id, ship, allowCrew: false, grants: {}, helmOwner: null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true, boarding: null, hostileTo: [] };
     this.vessels.set(id, vessel); captain.ownedVesselId = id; captain.portVesselId = id; captain.game.state.ship = ship; captain.game.state.cargo = { ore: 0, crystal: 0 }; captain.game.state.crew = []; captain.game.state.boarding = null;
     captain.game.state.formerCrew = []; captain.game.state.boardingHistory = [...captain.game.state.boardingHistory]; captain.game.state.upgrades = {};
+    captain.game.narrativeRescue();
     if (previous.actor) { previous.actor.state.ship = previous.ship; previous.actor.state.crew = previous.inventory.crew; }
     captain.events.push({ type: 'crew', text: 'The recovery service supplied a basic cutter. Your previous vessel remains where it was lost.' });
   }
@@ -333,10 +335,19 @@ export class BoardingAuthority {
     if (vessel.destroyed) return true;
     vessel.destroyed = true; vessel.ship.hull = 0; vessel.ship.shield = 0; vessel.helmOwner = null; vessel.ship.vx = 0; vessel.ship.vy = 0;
     const occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
+    for(const captain of this.captains.values())if(captain.game.state.ship.id===vessel.id){
+      captain.game.professionRescue?.();
+      if(!occupants.includes(captain))captain.game.narrativeRescue();
+    }
     for (const member of this._crewFor(vessel)) if (liveCrew(member)) { member.health = 0; member.status = 'dead'; member.dead = true; }
     for (const captain of occupants) this._recoverCaptain(captain, `${vessel.name} was destroyed. An escape capsule brought you to a safe port; its wreck remains in space.`);
     if (vessel.boarding) vessel.boarding.phase = 'lost'; if (vessel.pvp) vessel.pvp.phase = 'destroyed';
     vessel.occupation = { boarderId: null, controllerId: null, contested: false };
+    if(vessel.npcEnemyId){
+      const record=this._room(vessel.systemId).record;
+      if(!record.defeated.includes(vessel.npcEnemyId))record.defeated.push(vessel.npcEnemyId);
+      delete record.enemyHealth[vessel.npcEnemyId];
+    }
     this._linkNpcVessel(vessel); this.markDirty(); return true;
   }
 }

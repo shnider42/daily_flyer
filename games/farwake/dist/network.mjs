@@ -1,4 +1,5 @@
 import { advanceShip } from './fleet.mjs';
+import { applyCosmicHazards } from './galaxy-expansion.mjs';
 import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayCorrection } from './prediction.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
@@ -183,10 +184,11 @@ export class FarwakeNetwork {
   }
   _predictsShip() { return this.state?.mode === 'ship' && this.room?.kind === 'system'; }
   _radius() { const radius = Number(this.world?.radius); return Number.isFinite(radius) && radius > 0 ? radius : 2700; }
+  _predictFlight(ship,frame) { return applyCosmicHazards(advanceShip(ship,frame.dt,frame.input,{worldRadius:this._radius()}),frame.dt,this.world?.bodies||[],{damage:false}).ship; }
   _advancePrediction(now) {
     if (!this.predictedShip) return;
     const target = this.clampPredictionTime(now);
-    if (this._predictsShip() && this.predictedAt !== null) for (const frame of this.inputFrames(this.predictedAt, target)) this.predictedShip = advanceShip(this.predictedShip, frame.dt, frame.input, { worldRadius: this._radius() });
+    if (this._predictsShip() && this.predictedAt !== null) for (const frame of this.inputFrames(this.predictedAt, target)) this.predictedShip = this._predictFlight(this.predictedShip,frame);
     this.predictedAt = Math.max(this.predictedAt ?? target, target);
     this.visualOffset = decayCorrection(this.visualOffset, now - (this.visualAt ?? now)); this.visualAt = now;
     this.renderedShip = correctedPose(this.predictedShip, this.visualOffset, this._radius());
@@ -207,7 +209,7 @@ export class FarwakeNetwork {
     this.unacknowledged = this.unacknowledged.filter(frame => frame.seq > (packet.ack || 0));
     let predicted = { ...packet.state.ship };
     const explicitReset = reset || !previous || changedRoom || changedClass || changedVessel || transition;
-    if (!explicitReset && this._predictsShip()) for (const frame of this.inputHistory.frames(authorityAt, Math.min(now, authorityAt + MAX_PREDICTION_MS))) predicted = advanceShip(predicted, frame.dt, frame.input, { worldRadius: this._radius() });
+    if (!explicitReset && this._predictsShip()) for (const frame of this.inputHistory.frames(authorityAt, Math.min(now, authorityAt + MAX_PREDICTION_MS))) predicted = this._predictFlight(predicted,frame);
     const error = previous ? Math.hypot(previous.x - predicted.x, previous.y - predicted.y) : Infinity;
     this.predictionReset = reset || !previous ? 'welcome' : changedRoom ? 'room' : changedClass ? 'class' : changedVessel ? 'vessel' : transition || error >= 250 ? 'teleport' : null;
     if (this.predictionReset) {
