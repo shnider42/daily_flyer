@@ -10,6 +10,7 @@ import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {SIDEARM} from '../dist/combat.mjs';
 import {CameraProfile} from '../dist/camera-profile.mjs';
 import {normalizeCameraPreferences,normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
+import {rescueOccupants} from '../dist/rescue-rules.mjs';
 
 // Exercise the real app handlers with a small DOM boundary, without opening a
 // browser, invoking the render loop, or replacing the actual Game rules.
@@ -38,7 +39,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,
+  const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',

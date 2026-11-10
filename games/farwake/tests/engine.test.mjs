@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider,findDerelict} from './helpers/combat-fixtures.mjs';
 import { Game, buildGalaxy, distance } from '../dist/engine.mjs';
 import { ENCOUNTERS, STORY_CHAPTERS } from '../dist/content.mjs';
 
@@ -144,7 +145,7 @@ test('mining, partial deposits, defeated hostiles and salvage survive saving',()
   frame(g,{mine:true},180);assert.equal(rock.hp,0);assert.ok(g.state.cargo.ore>0);
   const id=rock.id,ore=g.state.cargo.ore;
   const restored=Game.fromSave(g.serialize());assert.equal(restored.system.asteroids.find(a=>a.id===id).hp,0);assert.equal(restored.state.cargo.ore,ore);
-  const e=g.system.enemies[0];Object.assign(e,{x:100,y:200,hp:16,speed:0,cooldown:999,active:true});
+  const e=placeRaider(g);Object.assign(e,{x:100,y:200,hp:16,speed:0,cooldown:999,active:true});
   Object.assign(g.state.ship,{x:0,y:200,vx:0,vy:0,angle:0});frame(g,{fire:true,brake:true},30);
   assert.equal(g.state.stats.kills,1);assert.ok(!g.system.enemies.some(x=>x.id===e.id));
   const afterKill=Game.fromSave(g.serialize());assert.ok(!afterKill.system.enemies.some(x=>x.id===e.id));
@@ -205,7 +206,7 @@ test('cabin and derelict sessions restore the exact ship position and velocity a
   assert.equal(g.buyUpgrade('hull_1').code,'mode');assert.equal(g.service('repair').code,'mode');assert.equal(g.recruitCrew('engineer').code,'mode');assert.equal(g.acceptJob('anything').code,'mode');
   const resumed=Game.fromSave(g.serialize());assert.equal(resumed.currentBody.kind,'ship');ok(resumed.exitCabin());
   assert.deepEqual(Object.fromEntries(Object.keys(expected).map(k=>[k,resumed.state.ship[k]])),expected);assert.equal(resumed.state.locationId,null);
-  const signal=resumed.system.signals.find(s=>s.kind==='derelict');Object.assign(resumed.state.ship,{x:signal.x,y:signal.y,vx:-2,vy:9});
+  const signal=findDerelict(resumed);Object.assign(resumed.state.ship,{x:signal.x,y:signal.y,vx:-2,vy:9});
   ok(resumed.boardDerelict(signal.id));assert.equal(resumed.currentBody.kind,'derelict');assert.equal(resumed.service('refuel').code,'mode');
   const again=Game.fromSave(resumed.serialize());ok(again.launch());assert.equal(again.state.ship.x,signal.x);assert.equal(again.state.ship.y,signal.y);assert.equal(again.state.ship.vx,-2);assert.equal(again.state.ship.vy,9);
 });
@@ -299,7 +300,7 @@ test('Earth remains quarantined until the Witness approach and arrival decision,
 });
 
 test('fast projectiles hit targets crossed between frames',()=>{
-  const g=new Game('swept-pulse'),enemy=g.system.enemies[0];
+  const g=new Game('swept-pulse'),enemy=placeRaider(g);
   Object.assign(enemy,{x:50,y:0,hp:16,speed:0,cooldown:999,radius:8});
   Object.assign(g.state.ship,{x:0,y:0,vx:0,vy:0,angle:0});
   g.step(.1,{fire:true,brake:true});assert.equal(g.state.stats.kills,1);

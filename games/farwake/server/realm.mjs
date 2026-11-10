@@ -9,6 +9,7 @@ import { BoardingAuthority } from './boarding.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
 import { explorationLocation, createSiteState, stepSiteEncounter } from '../dist/exploration.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
+import { rescueOccupants, rescuedBerthCount } from '../dist/rescue-rules.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -248,14 +249,21 @@ export class Realm extends BoardingAuthority {
     for (const captain of this.captains.values()) if (captain.aboard === vessel.id || captain.id === owner.id) captain.events.push(...events);
   }
   _withShip(captain, vessel, callback, { forceShip = false } = {}) {
-    const fields = ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory'], inventory = this._inventoryFor(vessel), state = captain.game.state;
+    const fields = ['cargo', 'upgrades', 'crew', 'formerCrew', 'memorial', 'boardingHistory'], inventory = this._inventoryFor(vessel), game = captain.game, state = game.state;
     const original = Object.fromEntries(['ship', ...fields].map(key => [key, state[key]])), mode = state.mode;
+    const berthMethods = ['narrativeBerths', 'professionBerths'].map(key => [key, Object.getOwnPropertyDescriptor(game, key)]);
     const primary = captain.id === vessel.ownerId && captain.ownedVesselId === vessel.id;
+    vessel.ship.humanOccupants = Math.max(1, [...this.captains.values()].filter(other => other.aboard === vessel.id).length);
     state.ship = vessel.ship; for (const field of fields) state[field] = inventory[field];
+    // Reservations belong to their physical carrier; the underlying quests and
+    // patients remain on the captain who accepted them, including a visiting pilot.
+    game.narrativeBerths = () => this._passengerBerths(vessel).narrative;
+    game.professionBerths = () => this._passengerBerths(vessel).professions;
     if (forceShip) state.mode = 'ship';
     try { return callback(); } finally {
       vessel.ship = state.ship; for (const field of fields) inventory[field] = state[field];
       if (!primary) for (const [key, value] of Object.entries(original)) state[key] = value;
+      for (const [key, descriptor] of berthMethods) { if (descriptor) Object.defineProperty(game, key, descriptor); else delete game[key]; }
       if (forceShip) state.mode = mode;
     }
   }
@@ -265,10 +273,21 @@ export class Realm extends BoardingAuthority {
     return !!(vessel.actor?._hitTimer > 0 || vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active' || room?.runtime.enemies.some(e => e.hp > 0 && e.active && distance(e, vessel.ship) < 700));
   }
   _canBoard(captain, vessel) { if (vessel && !vessel.destroyed && !vessel.npcOccupied && vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; return !!vessel && !vessel.destroyed && !this._hostileOccupied(vessel) && (vessel.ownerId === captain.id || (vessel.grants[captain.id] ? vessel.grants[captain.id].allowed === true : vessel.allowCrew)); }
+  _passengerBerths(vessel) {
+    const counts = { narrative: 0, professions: 0 };
+    for (const captain of this.captains.values()) {
+      const view = { state: { ship: vessel.ship, narrative: captain.game.state.narrative, professions: captain.game.state.professions } };
+      // Use the unbound rules so an active _withShip scope cannot count the
+      // aggregate again for another captain or move passengers between hulls.
+      counts.narrative += Game.prototype.narrativeBerths.call(view);
+      counts.professions += Game.prototype.professionBerths.call(view);
+    }
+    return counts;
+  }
   _hasBerth(captain, vessel) {
     const humans = 1 + [...this.captains.values()].filter(other => other.id !== captain.id && other.aboard === vessel.id).length;
     const hired = this._crewFor(vessel).filter(member => !member.dead && (member.health ?? 100) > 0).length;
-    const reserved=[...this.captains.values()].filter(c=>c.game.state.ship.id===vessel.id).reduce((sum,c)=>sum+c.game.narrativeBerths()+c.game.professionBerths(),0);
+    const passengers = this._passengerBerths(vessel), reserved = rescuedBerthCount(vessel.ship) + passengers.narrative + passengers.professions;
     return humans + hired + reserved <= getShipClass(vessel.ship.classId).berths;
   }
   _canRole(captain, vessel, role) { if (!vessel || vessel.destroyed) return false; if (vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; if (this._hostileOccupied(vessel)) return false; return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role))); }
@@ -282,7 +301,7 @@ export class Realm extends BoardingAuthority {
   }
   _surface(captain) {
     const location = this._location(captain); if (!location) return null;
-    const key = `${location.id}:${location.classId || ''}:${JSON.stringify(location.crew || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
+    const key = `${location.id}:${location.classId || ''}:${!!location.evacuated}:${JSON.stringify(location.crew || [])}:${JSON.stringify(location.guests || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
     if (captain.surfaceCache?.key !== key) captain.surfaceCache = { key, value: generateSurface(location, this.seed, captain.game.state.flags) };
     return captain.surfaceCache.value;
   }
@@ -323,7 +342,7 @@ export class Realm extends BoardingAuthority {
     const ownerName = pirate ? 'Pirate crew' : owner?.name || 'Independent crew', ownership = pirate ? 'hostile' : viewer?.id === vessel.ownerId ? 'owned' : viewer?.id === vessel.occupation?.controllerId ? 'commandeered' : hostile ? 'hostile' : 'crew';
     return { id: `ship:${vessel.id}`, vesselId: vessel.id, vesselName: vessel.name, ownerName, ownerId: vessel.ownerId, ownership, hostile,
       name: pirate ? `${vessel.name} · pirate deck` : `${vessel.name} · ${ownerName}’s deck`, kind: 'ship', biome: 'ship', classId: vessel.ship.classId, shipClass: vessel.ship.classId, shipClassId: vessel.ship.classId,
-      crew: this._crewFor(vessel), bunkAssignments: vessel.bunks, systemId: vessel.systemId, faction: pirate ? this._enemyFor(vessel)?.faction || 'covenant' : 'freewake' };
+      crew: this._crewFor(vessel), guests:rescueOccupants(vessel.ship),bunkAssignments: vessel.bunks, systemId: vessel.systemId, faction: pirate ? this._enemyFor(vessel)?.faction || 'covenant' : 'freewake' };
   }
   _landCharacter(captain, systemId, bodyId, position) {
     const previous = this.vessels.get(captain.aboard), owned = this.vessels.get(captain.ownedVesselId);
@@ -427,8 +446,10 @@ export class Realm extends BoardingAuthority {
     if (name === 'renameCaptain') { c.name = cleanName(a.name); return ok({ text: 'Captain name updated.' }); }
     if (name === 'dock') {
       if (!this._helm(c, active)) return fail('Only the current helmsman may dock this vessel.', 'helm');
+      if(active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Clear the boarders before docking this ship.','boarding');
       const result = this._withShip(c, active, () => game.dock(id));
       if (result.ok) { active.dockedAt = id; active.helmOwner = null; this._landCharacter(c, active.systemId, id); }
+      else if(game.state.boarding?.source==='rescued-pirates'&&game.state.boarding.phase==='active'){active.boarding=game.state.boarding;active.actor=null;this._cabin(c,active);active.helmOwner=null;}
       return result;
     }
     if (name === 'launch') {
@@ -502,8 +523,8 @@ export class Realm extends BoardingAuthority {
     }
     if (name === 'triggerEncounter' || name === 'beginEncounter') {
       if (game.state.mode === 'person') { if (!this._entity(c, a.entityId, ['npc', 'crew', 'terminal'])) return fail('Approach a person or archive before starting this conversation.', 'distance'); }
-      else if (id !== 'earth_arrival' && !game.system.signals.some(s => !s.resolved && distance(s, active?.ship || game.state.ship) <= (active?.ship.scanRange || game.state.ship.scanRange)) && !game.system.traffic.some(t => distance(t, active?.ship || game.state.ship) < 220)) return fail('Approach a signal or passing ship first.', 'distance');
-      return game.triggerEncounter(id);
+      else if(!this._helm(c,active))return fail('Take the helm or use the scanner console before hailing a ship.','helm');
+      return active?this._withShip(c,active,()=>game.triggerEncounter(id,{sourceId:a.sourceId,sourceType:a.sourceType})):game.triggerEncounter(id);
     }
     if (name === 'applyChoice') return active ? this._withShip(c, active, () => game.applyChoice(a.encounterId, a.choice ?? a.index)) : game.applyChoice(a.encounterId, a.choice ?? a.index);
     if (name === 'dismissEncounter') return game.dismissEncounter();
@@ -812,6 +833,7 @@ export class Realm extends BoardingAuthority {
     if (aboardOwner) { state.cargo = clone(this._inventoryFor(vessel).cargo); if (!compact) state.upgrades = clone(this._inventoryFor(vessel).upgrades); }
     state.interior = clone(ownState.interior);
     if (state.interior && c.aboard && ['ship', 'enemy'].includes(state.interior.kind)) state.interior.location = { ...state.interior.location, ...clone(this._locationForVessel(vessel, c)), vesselId: vessel.id, hull: vessel.ship.hull, maxHull: vessel.ship.maxHull };
+    else if (state.interior?.kind === 'derelict') state.interior.location = clone(this._location(c));
     state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true,
       returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };
     const relevantWorld = this._room(state.systemId).runtime, inSpace = room.kind === 'system';

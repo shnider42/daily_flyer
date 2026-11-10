@@ -50,10 +50,23 @@ export function enemyHullProfile(classId='sparrow') {
 }
 
 /** A captured hull keeps its damage fraction when entering normal vessel physics. */
-export function enemyShipState(enemy) {
+export function enemyShipState(enemy, vesselId=enemy?.id) {
   const hull=getShipClass(enemy?.classId),stats=hull.stats;
   const maximum=Math.max(1,number(enemy?.maxHp,stats.maxHull)),fraction=clamp(number(enemy?.hp,maximum)/maximum,0,1);
-  return {...stats,...enemyHullProfile(hull.id),id:String(enemy?.id||'captured-vessel'),name:String(enemy?.name||hull.name),humanOccupants:1,
+  const id=String(vesselId||enemy?.id||'captured-vessel'),actors=enemy?.deck?.enemies||[];
+  // The occupied hull retains its passengers. A later boarding action may have
+  // wounded or killed its hijackers, so use the persistent deck's identities.
+  const rescueGroups=JSON.parse(JSON.stringify(Array.isArray(enemy?.rescueGroups)?enemy.rescueGroups:[])).map(group=>{
+    group.shipId=id;
+    for(const member of group.members||[]){
+      const actor=actors.find(actor=>actor.rescueGuestId===member.id||actor.id===member.id);if(!actor)continue;
+      member.health=clamp(number(actor.health),0,number(member.maxHealth,68));member.x=number(actor.x,member.x);member.y=number(actor.y,member.y);member.status=member.health>0?'hostile':'dead';
+    }
+    if(group.pirates&&['hostile','hijacked'].includes(group.status)&&!(group.members||[]).some(member=>member.health>0))group.status='defeated';
+    return group;
+  });
+  const rescueHistory=JSON.parse(JSON.stringify(Array.isArray(enemy?.rescueHistory)?enemy.rescueHistory:[]));
+  return {...stats,...enemyHullProfile(hull.id),id,name:String(enemy?.name||hull.name),humanOccupants:1,rescueGroups,rescueHistory,
     x:number(enemy?.x),y:number(enemy?.y),vx:number(enemy?.vx),vy:number(enemy?.vy),angle:number(enemy?.angle),angularVelocity:0,
     hull:stats.maxHull*fraction,shield:0,energy:Math.min(30,stats.maxEnergy),fuel:Math.min(10,stats.maxFuel),turn:stats.angularAcceleration,warpRange:0,
     captured:true,capturedFromId:enemy?.id,disabled:!!enemy?.disabled};

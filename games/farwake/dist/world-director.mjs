@@ -1,10 +1,12 @@
 /** A single, persisted clock for local crises. DOM-free; authority advances it once. */
 import { enemyHullProfile } from './fleet.mjs';
+import { systemContext, incidentTypeWeight } from './encounter-context.mjs';
 
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clone=value=>JSON.parse(JSON.stringify(value));
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
+const roll=value=>{let n=hash(value);n=Math.imul(n^(n>>>16),0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return((n^(n>>>16))>>>0)/4294967296;};
 const object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const factions=['concord','freewake','meridian','lantern','cinder'];
 const rival={concord:'cinder',freewake:'meridian',meridian:'freewake',lantern:'cinder',cinder:'concord'};
@@ -12,7 +14,7 @@ const hasPort=body=>body&&body.landable!==false&&!['blackhole','site','ship'].in
 const validPlayer=id=>typeof id==='string'&&id.length>0&&id.length<=160&&!['__proto__','constructor','prototype'].includes(id);
 const token=value=>String(value??'').slice(0,200);
 
-export const WORLD_DIRECTOR_RULES=Object.freeze({version:1,tickSeconds:5,intervalSeconds:180,warningSeconds:45,eventSeconds:540,maxCatchupCycles:32,maxEvents:8,maxHistory:24,maxConditions:48,maxContributors:32});
+export const WORLD_DIRECTOR_RULES=Object.freeze({version:2,tickSeconds:5,intervalSeconds:1110,jitterSeconds:195,minIntervalSeconds:720,maxIntervalSeconds:1500,warningSeconds:90,eventSeconds:900,quietCycleChance:.25,maxCatchupCycles:32,maxEvents:8,maxHistory:24,maxConditions:48,maxContributors:32,maxSystemCooldowns:1024});
 const types=['rescue','raid','outbreak','clash'];
 const descriptions={
  rescue:{title:'Distress dispatch',text:'An independent shuttle has lost its life-support reserve. Local crews are evacuating its passengers; the clinic needs additional transport.',objective:'Bring patients to a clinic before the dispatch closes.',required:2},
@@ -21,26 +23,41 @@ const descriptions={
  clash:{title:'Border standoff',text:'Two patrols claim the same shipping lane. Civilian freighters are caught between them; a warning exchange is turning into live fire.',objective:'Stop the attacking patrol or evacuate the people in its path.',required:2}
 };
 
-function eventFor(seed,cycle,startedAt,systems){
- const inhabited=systems.filter(system=>system?.bodies?.some(hasPort));
- if(!inhabited.length)return null;
- // The opening signals are accessible without a fold drive. Later dispatches spread.
- const near=inhabited.filter(system=>Math.hypot(finite(system.gx),finite(system.gy))<=14);
- const authored=inhabited.filter(system=>!String(system.id).startsWith('sector-')&&!String(system.id).startsWith('frontier-'));
- const pool=cycle<12?(near.length?near:inhabited):(cycle%4===0?inhabited:(authored.length?authored:inhabited));
- const h=hash(`${seed}:world-director:${cycle}`),system=cycle<2?(inhabited.find(system=>system.id==='hearth')||pool[h%pool.length]):pool[h%pool.length];
- const bodies=system.bodies.filter(hasPort),body=bodies[(h>>>8)%bodies.length],type=types[cycle%types.length],definition=descriptions[type];
- const startAt=startedAt+cycle*WORLD_DIRECTOR_RULES.intervalSeconds;
+// One candidate per irregular 12–25 minute gap; some candidates remain quiet.
+// Fixed slots with bounded jitter permit O(1) jumps over a long server absence.
+function scheduledAt(seed,cycle,epoch){return epoch+(cycle+1)*WORLD_DIRECTOR_RULES.intervalSeconds+Math.floor(roll(`${seed}:quiet-slot:${cycle}`)*(2*WORLD_DIRECTOR_RULES.jitterSeconds+1))-WORLD_DIRECTOR_RULES.jitterSeconds;}
+function dueCycle(seed,epoch,now){
+ let cycle=Math.floor((now-epoch+WORLD_DIRECTOR_RULES.jitterSeconds)/WORLD_DIRECTOR_RULES.intervalSeconds)-1;
+ if(cycle>=0&&scheduledAt(seed,cycle,epoch)>now)cycle--;
+ return Math.max(-1,cycle);
+}
+function eventFor(seed,cycle,startAt,systems,state){
+ if(roll(`${seed}:quiet-cycle:${cycle}`)<WORLD_DIRECTOR_RULES.quietCycleChance)return null;
+ const choices=[];let total=0;
+ for(const system of systems){
+  if(!system?.bodies?.some(hasPort)||(state.systemCooldowns[system.id]||0)>startAt)continue;
+  const authored=system.authored||!String(system.id).startsWith('sector-')&&!String(system.id).startsWith('frontier-');
+  for(const type of types){const weight=incidentTypeWeight(system,type)*(authored?6:1);if(weight>0){total+=weight;choices.push({system,type,until:total});}}
+ }
+ if(!choices.length)return null;
+ const draw=roll(`${seed}:world-director:quiet:${cycle}`)*total;
+ const {system,type}=choices.find(choice=>draw<choice.until)||choices.at(-1),definition=descriptions[type];
+ const bodies=system.bodies.filter(hasPort),body=bodies[hash(`${seed}:${cycle}:incident-port`)%bodies.length];
  const factionId=factions.includes(body.faction)?body.faction:factions.includes(system.faction)?system.faction:'freewake';
- const id=`world:${hash(seed).toString(36)}:${cycle}`;
+ const id=`world:${hash(seed).toString(36)}:quiet:${cycle}`;
  return{id,cycle,type,title:definition.title,text:definition.text,objective:definition.objective,systemId:system.id,systemName:system.name,bodyId:body.id,bodyName:body.name,factionId,rivalFactionId:rival[factionId],startAt,activeAt:startAt+WORLD_DIRECTOR_RULES.warningSeconds,expiresAt:startAt+WORLD_DIRECTOR_RULES.eventSeconds,status:'warning',required:definition.required,progress:0,neutralized:[],contributors:{},spawnIds:['raid','clash'].includes(type)?[`${id}:hostile:0`,`${id}:hostile:1`]:[],outcome:null};
 }
 
-function freshState(now){return{version:1,startedAt:now,time:now,nextTickAt:now,cycle:-1,revision:0,skippedCycles:0,events:[],history:[],conditions:{},factionPressure:Object.fromEntries(factions.map(id=>[id,0]))};}
+function freshState(now){return{version:2,startedAt:now,scheduleEpoch:now,time:now,nextTickAt:now,cycle:-1,revision:0,skippedCycles:0,events:[],history:[],conditions:{},systemCooldowns:{},factionPressure:Object.fromEntries(factions.map(id=>[id,0]))};}
 function validEvent(event){return event&&typeof event.id==='string'&&types.includes(event.type)&&typeof event.systemId==='string'&&typeof event.bodyId==='string'&&Number.isFinite(event.expiresAt)&&Number.isFinite(event.startAt);}
 function normalizeState(raw,now){
- if(!raw||raw.version!==1||!Number.isFinite(raw.startedAt))return freshState(now);
- const state=clone(raw);
+ if(!raw||![1,2].includes(raw.version)||!Number.isFinite(raw.startedAt))return freshState(now);
+ const state=clone(raw),legacy=raw.version===1;
+ state.version=2;state.scheduleEpoch=legacy?now:finite(state.scheduleEpoch,state.startedAt);
+ // Preserve ongoing incidents and their contribution/reward evidence. Only the
+ // future schedule resets; a real fight never disappears because of an upgrade.
+ if(legacy){state.legacyCycle=state.cycle;state.cycle=-1;}
+ state.systemCooldowns=Object.fromEntries(Object.entries(object(state.systemCooldowns)).filter(([id,until])=>id.length<160&&Number.isFinite(until)&&until>now).slice(-WORLD_DIRECTOR_RULES.maxSystemCooldowns));
  state.time=Math.max(state.startedAt,finite(state.time,state.startedAt));state.cycle=Math.max(-1,Math.floor(finite(state.cycle,-1)));
  state.revision=Math.max(0,Math.floor(finite(state.revision)));state.skippedCycles=Math.max(0,Math.floor(finite(state.skippedCycles)));
  state.events=(Array.isArray(state.events)?state.events:[]).filter(validEvent).slice(-WORLD_DIRECTOR_RULES.maxEvents);
@@ -66,12 +83,12 @@ function closeEvent(state,event,at,transitions){
  state.factionPressure[event.factionId]=clamp((state.factionPressure[event.factionId]||0)+(success?2:-2),-100,100);
  state.factionPressure[event.rivalFactionId]=clamp((state.factionPressure[event.rivalFactionId]||0)+(success?-1:1),-100,100);
  state.history.push(event);state.history=state.history.slice(-WORLD_DIRECTOR_RULES.maxHistory);
- transitions.push({type:'world-resolved',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,outcome:event.outcome,text:`${event.bodyName}: ${event.resultText}`});
+ transitions.push({type:'world-resolved',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,outcome:event.outcome,text:`${event.bodyName}: ${event.resultText}`,at});
 }
 
 function expire(state,at,transitions){
  for(const event of state.events){
-  if(event.status==='warning'&&at>=event.activeAt){event.status='active';transitions.push({type:'world-active',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,text:`${event.title} · ${event.bodyName}`});}
+  if(event.status==='warning'&&at>=event.activeAt){event.status='active';transitions.push({type:'world-active',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,text:`${event.title} · ${event.bodyName}`,at:event.activeAt});}
   if(event.progress>=event.required||at>=event.expiresAt)closeEvent(state,event,Math.min(at,event.expiresAt),transitions);
  }
  state.events=state.events.filter(event=>event.status!=='resolved');
@@ -87,23 +104,29 @@ export function eventSpawnDescriptors(event){
 /** Pure, monotonic advancement. Old unresolved events finish even after a long absence. */
 export function advanceWorldDirector(raw,absoluteSeconds,{seed='farwake',systems=[]}={}){
  const now=Math.max(0,finite(absoluteSeconds));
- if(raw?.version===1&&Number.isFinite(raw.time)&&(now<raw.nextTickAt||now<raw.time))return{state:raw,transitions:[],spawns:[]};
- const state=normalizeState(raw,now),transitions=[];
- const target=Math.max(0,Math.floor((now-state.startedAt)/WORLD_DIRECTOR_RULES.intervalSeconds));
+ if(raw?.version===2&&Number.isFinite(raw.time)&&(now<raw.nextTickAt||now<raw.time))return{state:raw,transitions:[],spawns:[]};
+ const state=normalizeState(raw,now),transitions=[],previousTime=finite(raw?.time,now);
+ // Old saves can have an incident already in progress. Its port is protected
+ // against a repeat while that incident finishes on its original clock.
+ for(const event of state.events){const system=systems.find(value=>value.id===event.systemId);if(system)state.systemCooldowns[event.systemId]=Math.max(state.systemCooldowns[event.systemId]||0,event.startAt+systemContext(system).localIncidentCooldownSeconds);}
+ const target=dueCycle(seed,state.scheduleEpoch,now);
  let first=state.cycle+1;
  if(target-first>=WORLD_DIRECTOR_RULES.maxCatchupCycles){
   expire(state,now,transitions);const skip=target-first-WORLD_DIRECTOR_RULES.maxCatchupCycles+1;
   state.skippedCycles+=skip;first+=skip;
  }
  for(let cycle=first;cycle<=target;cycle++){
-  const at=state.startedAt+cycle*WORLD_DIRECTOR_RULES.intervalSeconds;
+  const at=scheduledAt(seed,cycle,state.scheduleEpoch);
   expire(state,at,transitions);
-  const event=eventFor(seed,cycle,state.startedAt,systems);
-  if(event){state.events.push(event);transitions.push({type:'world-warning',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,text:`${event.title} · ${event.bodyName}. ${WORLD_DIRECTOR_RULES.warningSeconds}s warning.`});}
+  const event=eventFor(seed,cycle,at,systems,state);
+  if(event){state.events.push(event);state.systemCooldowns[event.systemId]=at+systemContext(systems.find(system=>system.id===event.systemId)).localIncidentCooldownSeconds;transitions.push({type:'world-warning',eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,text:`${event.title} · ${event.bodyName}. ${WORLD_DIRECTOR_RULES.warningSeconds}s warning.`,at});}
  }
  state.cycle=target;expire(state,now,transitions);
- state.time=now;state.nextTickAt=now+WORLD_DIRECTOR_RULES.tickSeconds;state.revision++;
- return{state,transitions:transitions.slice(-WORLD_DIRECTOR_RULES.maxHistory*3),spawns:state.events.flatMap(eventSpawnDescriptors)};
+ for(const[id,until]of Object.entries(state.systemCooldowns))if(until<=now)delete state.systemCooldowns[id];
+ state.time=Math.max(state.time,now);state.nextTickAt=now+WORLD_DIRECTOR_RULES.tickSeconds;state.revision++;
+ // Historical outcomes remain in the notebook, not a burst of stale alerts.
+ const deliveryFloor=Math.max(previousTime,now-30);
+ return{state,transitions:transitions.filter(event=>event.at>=deliveryFloor).slice(-8),spawns:state.events.flatMap(eventSpawnDescriptors)};
 }
 
 function contributor(event,playerId){

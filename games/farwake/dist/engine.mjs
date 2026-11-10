@@ -34,9 +34,12 @@ import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules } from './profession-rules.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
 import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
+import { systemContext } from './encounter-context.mjs';
+import { contextualSignals, materializeEncounterContacts, encounterSource, encounterFitsPlace, pendingSourceAvailable, resolvePhysicalEncounter } from './encounter-rules.mjs';
+import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 export const WORLD_RADIUS = 2700;
 export const TAU = Math.PI * 2;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -141,7 +144,7 @@ function initialState(seed, options = {}) {
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
     person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, weaponDrawn: false },
-    rng: hash(`${seed}:runtime`), nextEncounterAt: 95, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
+    rng: hash(`${seed}:runtime`), encounterPolicyVersion: 2, nextEncounterAt: null, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
 }
 
@@ -179,6 +182,8 @@ export class Game {
     }
     this.initializeNarrative();
     this.initializeProfessions();
+    this.initializeRescueOccupants();
+    if(this.state.pendingEncounter&&!pendingSourceAvailable(this,this.state.pendingEncounter))this.state.pendingEncounter=null;
     this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
     this.syncNarrativeWorld();
     this.syncProfessionWorld();
@@ -189,7 +194,14 @@ export class Game {
   static fromSave(save) { return new Game(save); }
   get system() { return this._runtime; }
   get currentSystem() { return this.galaxy.find(s => s.id === this.state.systemId); }
-  get currentBody() { return this.state.interior?.location || this.system.bodies.find(b => b.id === this.state.locationId) || null; }
+  get currentBody() {
+    const interior=this.state.interior;
+    if(interior?.kind==='derelict'){
+      const contact=this.state.worlds[this.state.systemId]?.encounterContacts?.[`contact:${interior.signalId}`];
+      return {...interior.location,evacuated:!!(interior.location.evacuated||contact?.evacuated)};
+    }
+    return interior?.location || this.system.bodies.find(b => b.id === this.state.locationId) || null;
+  }
   get atInhabitedPort() { return this.state.mode === 'person' && !this.state.interior && hasPortServices(this.currentBody); }
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
   get chapter() { return STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
@@ -198,7 +210,7 @@ export class Game {
   get worldDirector() { return this._directorShared || this.state.worldDirector; }
   get shipClass() { return getShipClass(this.state.ship.classId); }
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
-  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()); }
+  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()-this.rescuedBerths()); }
   get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
   get characterEffects() { return characterModifiers(this.state.character); }
   get hasHyperdrive() { return Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0; }
@@ -235,6 +247,14 @@ export class Game {
     for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
     s.person.health = clamp(finite(s.person.health, 100), s.person.down ? 0 : 1, Math.round(100 * characterModifiers(s.character).maxHealth));
     if (s.pendingEncounter && !ENCOUNTERS.some(e => e.id === s.pendingEncounter.id)) s.pendingEncounter = null;
+    // A legacy overdue timer is not an event waiting at the helm. Conversations
+    // now require a physical source; retain only real source-bound invitations.
+    if(raw.encounterPolicyVersion!==2&&s.pendingEncounter){
+      const encounter=ENCOUNTERS.find(e=>e.id===s.pendingEncounter.id);
+      if(encounter?.mode==='ship'&&encounter.id!=='earth_arrival'&&!s.pendingEncounter.sourceId)s.pendingEncounter=null;
+    }
+    s.encounterPolicyVersion=2;s.nextEncounterAt=null;
+    if(s.interior?.kind==='ship')s.interior.liveVessel=true;
     return s;
   }
 
@@ -330,6 +350,9 @@ export class Game {
       return pool[hash(`${this.state.seed}:${id}:${entityId}:hull`)%pool.length];
     };
     const enemies = [];
+    const context=systemContext(data);
+    // Consume the old seeded draws to keep rocks, routes and story beacons fixed.
+    // Only persistent/involved old hulls survive a newly protected region.
     const count = id === 'hearth' ? 2 : 1 + data.danger;
     for (let i = 0; i < count; i++) {
       const a = r() * TAU;
@@ -345,7 +368,8 @@ export class Game {
       Object.assign(enemy,record.enemyStates[enemy.id]||{});
       enemy.disabled=enemy.hp>0&&(enemy.disabled||enemy.hp<=enemy.maxHp*.4);
       Object.assign(enemy,enemyHullProfile(record.enemyStates[enemy.id]?.classId||hullFor(enemy.id)));
-      if (!record.defeated.includes(enemy.id)) enemies.push(enemy);
+      const saved=record.enemyStates[enemy.id],involved=enemy.hp<enemy.maxHp||enemy.disabled||saved?.deck||saved?.boardingTargetId||saved?.capturedBy||saved?.promotedVesselId||saved?.canonicalVesselId;
+      if (!record.defeated.includes(enemy.id)&&(i<context.backgroundHostileCount||involved)) enemies.push(enemy);
     }
     for (const e of record.spawned) if (!record.defeated.includes(e.id)) enemies.push({ ...e,...(record.enemyStates[e.id]||{}),...enemyHullProfile(record.enemyStates[e.id]?.classId||e.classId||hullFor(e.id)), hp: record.enemyHealth[e.id] ?? e.hp });
     const signals = [];
@@ -361,8 +385,16 @@ export class Game {
       const moon = bodies.find(b => b.id === 'tinbell');
       if (moon) signals.unshift({id:'hearth:story:tinbell',kind:'story',name:'Tinbell evacuation beacon',x:moon.x+moon.radius+165,y:moon.y+85,radius:24,story:true,resolved:record.resolved.includes('hearth:story:tinbell'),scanned:record.scanned.includes('hearth:story:tinbell')});
     }
-    const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, ...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true)) }));
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals, traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, ...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true)) })).slice(0,context.trafficCount);
+    const commuter=seededRandom(`${this.state.seed}:${id}:civilian-lanes`),trafficNames=['Market shuttle','Port tug','Local ferry','Supply lighter','Watch patrol','Mail courier','Transit tender','Freight shuttle'];
+    for(let i=4;i<context.trafficCount;i++){
+      const origin=bodies[i%bodies.length],destination=bodies[(i+1)%bodies.length],leg=.15+commuter()*.7;
+      const x=origin.x+(destination.x-origin.x)*leg+(commuter()-.5)*250,y=origin.y+(destination.y-origin.y)*leg+(commuter()-.5)*250;
+      traffic.push({id:`${id}:traffic:${i}`,name:`${trafficNames[(i-4)%trafficNames.length]} ${i-3}`,faction:data.faction,x,y,angle:Math.atan2(destination.y-y,destination.x-x),speed:24+commuter()*28,...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true))});
+    }
+    for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    materializeEncounterContacts(this);
     record.visits = (record.visits || 0) + 1;
     if(this.state.narrative)this.syncNarrativeWorld();
     if(this.state.professions)this.syncProfessionWorld();
@@ -434,13 +466,15 @@ export class Game {
     this.state.stats.time+=dt;
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer'])this[key]=Math.max(0,finite(this[key])-dt);
     const sh=this.state.ship;
+    this.stepRescueOccupants(dt);
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
-    const operate=this.state.mode==='ship'||(options.operateShip && this.state.interior?.kind==='ship');
+    const operate=this.state.mode==='ship'||this.state.interior?.kind==='ship';
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
-    const flight=normaliseFlightInput(input),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
+    const helmInput=this.state.mode==='ship'||options.operateShip?input:{};
+    const flight=normaliseFlightInput(helmInput),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
     const oldX=sh.x,oldY=sh.y;
     Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
     const cosmic=applyCosmicHazards(sh,dt,this.system.bodies,{damage:true});
@@ -450,15 +484,10 @@ export class Game {
     this._cosmicWarningKey=warningKey;this.state.cosmicWarning=cosmic.hazard||null;
     if(cosmic.damage>0){this._damageShip(cosmic.damage,{sourceId:cosmic.hazard?.id,cause:'tidal forces'});if(sh.destroyed||sh.hull<=0||this._recoveryTimer)return;}
     this.state.stats.distance+=Math.hypot(sh.x-oldX,sh.y-oldY);
-    sh.energy=clamp(sh.energy+(boosting?-18:input.mine?-1:11)*dt,0,sh.maxEnergy);
+    sh.energy=clamp(sh.energy+(boosting?-18:helmInput.mine?-1:11)*dt,0,sh.maxEnergy);
     if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+4*dt);
-    if(input.fire)this.fireWeapons();
-    if(input.mine)this._mine(dt);
-    if(this.state.mode==='ship'&&this.state.stats.time>this.state.nextEncounterAt&&!this.state.pendingEncounter&&this.state.boarding?.phase!=='active'&&!this.system.enemies.some(e=>e.active&&distance(e,sh)<650)){
-      this.state.nextEncounterAt=this.state.stats.time+100+this._rand()*75;
-      const bodyNear=this.system.bodies.some(b=>distance(b,sh)<b.radius+220);
-      if(!bodyNear&&this.state.stats.distance>1200){const result=this.triggerEncounter();if(result.ok)this._event('encounter',{id:result.encounter.id,encounter:result.encounter});}
-    }
+    if(helmInput.fire)this.fireWeapons();
+    if(helmInput.mine)this._mine(dt);
     this._checkChapters();
   }
 
@@ -702,6 +731,7 @@ export class Game {
     if (!body) return this._fail('That destination is not in this system.', 'target');
     if (body.landable === false || body.kind === 'blackhole') return this._fail('This is a gravitational hazard. Keep clear of its tidal boundary; there is nowhere to land.', 'hazard');
     if (distance(this.state.ship, body) > body.radius + 150) return this._fail(`Fly closer to ${body.name} to ${body.kind === 'station' ? 'dock' : 'land'}.`, 'distance');
+    const rescueAccess=this.rescueDockCheck();if(!rescueAccess.ok)return rescueAccess;
     if (body.id === 'earth') {
       if (!this.hasFlag('vault_recovered') || !this.hasFlag('homeward_signal')) return this._fail('Earth’s quarantine corridor is closed. Recover the safe approach from Witness first.', 'quarantine');
       if (!this.hasFlag('threshold_answered')) {
@@ -715,6 +745,7 @@ export class Game {
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angularVelocity=0;
     this.state.person = { ...this.state.person, x: 480, y: 570, facing: 'up' };
     this.state.stats.dockings++;
+    this.disembarkRescuedOccupants(body);
     this._flag(`visited_${body.id}`); this._flag(`landed_${body.id}`); this._flag('first_landing');
     if (body.id === 'kettle') this._flag('docked_kettle');
     if (body.id === 'morrow') this._flag('landed_morrow');
@@ -864,23 +895,23 @@ export class Game {
     return true;
   }
 
-  availableEncounters(mode = this.state.mode) {
-    return ENCOUNTERS.filter(e => (e.mode === mode || e.mode === 'any') && (!e.once || !this.state.encounterHistory.includes(e.id)) && this.conditionsMet(e.conditions));
+  availableEncounters(mode = this.state.mode, source = null) {
+    return ENCOUNTERS.filter(e => (e.mode === mode || e.mode === 'any') && (!e.once || !this.state.encounterHistory.includes(e.id)) && this.conditionsMet(e.conditions)&&encounterFitsPlace(this,e,source));
   }
   triggerEncounter(id, source = {}) {
     if (this.state.pendingEncounter) {
       const open = ENCOUNTERS.find(e => e.id === this.state.pendingEncounter.id);
       return id && id !== open?.id ? this._fail('A conversation is already open.', 'encounter') : this._ok({ encounter: open, existing: true });
     }
-    let list = this.availableEncounters();
+    const origin=this.state.mode==='ship'?encounterSource(this,source,id):null;
+    let list = this.availableEncounters(this.state.mode,origin);
     if (id) list = list.filter(e => e.id === id);
     if (!list.length) return this._fail('No new transmission is waiting.', 'no-encounter');
-    // Prefer encounter flavor that fits the signal, while every signal remains useful.
+    // Sources must match. An ordinary survey is never a fallback rescue or attack.
     list = list.filter(e => e.id !== 'earth_arrival' || this.state.systemId === 'sol');
     if (!list.length) return this._fail('No new transmission is waiting.', 'no-encounter');
-    const tagged = source.tag ? list.filter(e => e.tag === source.tag || e.tag?.includes(source.tag)) : [];
-    const encounter = id ? list[0] : pick(() => this._rand(), tagged.length ? tagged : list);
-    this.state.pendingEncounter = { id: encounter.id, sourceId: source.sourceId || null, sourceType: source.sourceType || this.state.mode, locationId: this.state.locationId, systemId: this.state.systemId };
+    const encounter = id ? list[0] : pick(() => this._rand(),list);
+    this.state.pendingEncounter = { ...origin,id: encounter.id, sourceId: origin?.sourceId || null, sourceType: origin?.sourceType || this.state.mode, shipId:this.state.ship.id,locationId: this.state.locationId, systemId: this.state.systemId };
     return this._ok({ encounter });
   }
   beginEncounter(id, source = {}) { return this.triggerEncounter(id, source); }
@@ -890,6 +921,8 @@ export class Game {
     const choice = typeof index === 'number' ? e?.choices[index] : e?.choices.find(c => c.id === index);
     if (!choice) return false;
     if (!this.conditionsMet(choice.conditions)) return false;
+    if(this.state.pendingEncounter?.id===encounterId&&!pendingSourceAvailable(this,this.state.pendingEncounter))return false;
+    if(!this.rescueAdmissionCheck(encounterId,choice.id).ok)return false;
     const fx = choice.effects || {};
     return this.state.credits + finite(fx.credits) >= 0 && this.state.cargo.ore + finite(fx.ore) >= 0 && this.state.cargo.crystal + finite(fx.crystal) >= 0 && this.state.ship.fuel + finite(fx.fuel) >= 0;
   }
@@ -900,6 +933,9 @@ export class Game {
     const choice = typeof index === 'number' ? encounter.choices[index] : encounter.choices.find(c => c.id === index);
     if (!choice || !this.choiceAvailable(encounterId, index)) return this._fail('You do not have what this choice requires.', 'requirements');
     const pending = this.state.pendingEncounter;
+    if(!pendingSourceAvailable(this,pending))return this._fail('That contact is no longer alongside this ship. Approach the same source again.','source');
+    if(this.rescueAdmissionCheck(encounterId,choice.id).count){const rescue=this.takeRescueOccupants(encounterId,choice.id,pending);if(!rescue.ok)return rescue;}
+    const hostileContact=resolvePhysicalEncounter(this,pending,choice);
     this._effects(choice.effects || {});
     const allied = (choice.effects?.flags || []).find(flag => flag.startsWith('allied_'));
     if (allied) this.state.alliance = allied.slice(7);
@@ -919,7 +955,7 @@ export class Game {
     this._log(encounter.title, `${choice.label}\n${resultText}`, 'decision');
     this._event('choice', { title: encounter.title, text: resultText, effects: choice.effects });
     this._refreshJobs(); this._checkChapters();
-    return this._ok({ text: resultText, choice, encounter });
+    return this._ok({ text: resultText, choice, encounter,hostileContactId:hostileContact?.id||null });
   }
   dismissEncounter() {
     if (!this.state.pendingEncounter) return this._ok();
@@ -985,7 +1021,7 @@ export class Game {
     return this._ok(base);
   }
   _canActivateClass(shipClass) {
-    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)+this.narrativeBerths()+this.professionBerths()>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard, including passengers and patients.','capacity');
+    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)+this.narrativeBerths()+this.professionBerths()+this.rescuedBerths()>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard, including passengers and patients.','capacity');
     const capacity=shipClass.stats.cargoCap+(this.state.ship.cargoCap-this.shipClass.stats.cargoCap);
     if(this.cargoUsed>capacity)return this._fail('Unload cargo before switching to a smaller hold.','cargo');
     return this._ok();
@@ -1017,7 +1053,7 @@ export class Game {
   }
   _cabinLocation() {
     const c=this.shipClass;
-    return {id:'own-ship',vesselId:this.state.ship.id,name:`${this.state.ship.name||'Cinder'} · ${c.name}`,kind:'ship',biome:'ship',faction:'freewake',shipClass:c.id,berths:c.berths,crew:clone(this.state.crew),lore:`${c.berths} berths aboard your ${c.name}. A small home that crosses a very large sky.`};
+    return {id:'own-ship',vesselId:this.state.ship.id,name:`${this.state.ship.name||'Cinder'} · ${c.name}`,kind:'ship',biome:'ship',faction:'freewake',shipClass:c.id,berths:c.berths,crew:clone(this.state.crew),guests:rescueOccupants(this.state.ship),lore:`${c.berths} berths aboard your ${c.name}. A small home that crosses a very large sky.`};
   }
 
   enterCabin() {
@@ -1033,12 +1069,13 @@ export class Game {
     const signal = this.system.signals.find(s => s.id === signalId && s.kind === 'derelict');
     if (!signal) return this._fail('This is not a boardable derelict.', 'target');
     if (distance(signal, this.state.ship) > 190) return this._fail('Get within 190 metres to attach the docking tether.', 'distance');
-    return this._enterInterior({id: `derelict-${signal.id}`, name: 'Silent freighter', kind:'derelict',biome:'derelict',faction:'cinder',lore:'quiet_earth'}, 'derelict', signal.id);
+    const contact=this._record().encounterContacts?.[signal.vesselId||`contact:${signal.id}`];
+    return this._enterInterior({id: `derelict-${signal.id}`, name: 'Silent freighter', kind:'derelict',biome:'derelict',faction:'cinder',lore:'quiet_earth',evacuated:!!contact?.evacuated}, 'derelict', signal.id);
   }
   leaveDerelict() { return this.state.interior?.kind === 'derelict' ? this._leaveInterior() : this._fail('You are not on a derelict.', 'mode'); }
   _enterInterior(location, kind, signalId = null) {
     const sh = this.state.ship;
-    this.state.interior = {kind, location, signalId, liveVessel:kind==='enemy'||!!this._sharedWorld&&kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
+    this.state.interior = {kind, location, signalId, liveVessel:kind==='enemy'||kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
     this.state.mode='person';this.state.locationId=location.id;
     if(!this.state.interior.liveVessel||kind==='enemy'){sh.vx=0;sh.vy=0;sh.angularVelocity=0;}
     const spawn=kind==='ship'||kind==='enemy'?cabinLayout(location.shipClass||'sparrow').spawn:{x:156,y:348};
@@ -1140,7 +1177,7 @@ export class Game {
 
   _enemyLocation(enemy) {
     const ship=enemyShipState(enemy),hull=getShipClass(enemy.classId);
-    return {id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,vesselName:enemy.name,kind:'ship',biome:'ship',shipClass:hull.id,berths:hull.berths,crew:clone(this.livingCrew),faction:enemy.faction,
+    return {id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,vesselName:enemy.name,kind:'ship',biome:'ship',shipClass:hull.id,berths:hull.berths,crew:clone(this.livingCrew),guests:rescueOccupants(ship),faction:enemy.faction,
       hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id};
   }
 
@@ -1296,14 +1333,14 @@ export class Game {
     if(!enemy)return this._fail('The target hull is no longer intact.','destroyed');
     if(boarding.phase!=='won'||!enemy.deck?.cleared)return this._fail('Clear every hostile from this deck before taking its helm.','boarding');
     if(distance(this.state.person,combatLayout(boarding.shipClass).stations.helm)>46)return this._fail('Walk to this vessel’s bridge helm before taking command.','distance');
-    const hull=getShipClass(enemy.classId);
-    if(this.livingCrew.length+1>hull.berths)return this._fail(`This hull has ${hull.berths} berths. Return to your ship and arrange a smaller crew before transferring command.`,'capacity');
+    const hull=getShipClass(enemy.classId),ship=enemyShipState(enemy);
+    if(this.livingCrew.length+1+this.rescuedBerths(ship)>hull.berths)return this._fail(`This hull has ${hull.berths} berths, including its rescued passengers. Return to your ship and arrange a smaller crew before transferring command.`,'capacity');
     if(this.cargoUsed>hull.stats.cargoCap)return this._fail('Unload cargo before transferring command to this smaller hold.','capacity');
-    const origin=this._parkCurrentVessel(),ship=enemyShipState(enemy),fraction=ship.hull/ship.maxHull;
+    const origin=this._parkCurrentVessel(),fraction=ship.hull/ship.maxHull;
     this._releaseBoardingTether();
     enemy.promotedVesselId=ship.id;enemy.capturedBy=boarding.leaderId||this.playerId;enemy.disabled=true;enemy.active=false;
     enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy,contested:false};
-    this.state.ship={...ship,disabled:false};this.state.upgrades=clone(enemy.storedUpgrades||{});this._updateStats(false);this.state.ship.hull=this.state.ship.maxHull*fraction;
+    this.state.ship={...ship,disabled:false};this.initializeRescueOccupants();this.syncRescueCombat();this.state.upgrades=clone(enemy.storedUpgrades||{});this._updateStats(false);this.state.ship.hull=this.state.ship.maxHull*fraction;
     this.state.returnVesselId=origin?.id||null;this.state.boarding=null;this.state.interior=null;this.state.mode='ship';this.state.locationId=null;this.state.person.weaponDrawn=false;
     this.state.fleet.owned=unique([...this.state.fleet.owned,hull.id]);
     this.state.fleet.history.push({type:'capture',vesselId:ship.id,classId:hull.id,name:ship.name,time:this.state.stats.time,systemId:this.state.systemId});
@@ -1317,11 +1354,11 @@ export class Game {
     if(!target)return this._fail('That vessel is no longer parked in this system.','target');
     if(target.ownerId&&target.ownerId!==this.playerId)return this._fail('That vessel is not under your command.','permission');
     if(distance(target,this.state.ship)>this.state.ship.radius+target.radius+110)return this._fail('Close to your parked vessel to transfer command.','distance');
-    if(this.livingCrew.length+1>target.berths||this.cargoUsed>target.cargoCap)return this._fail('Your crew or cargo will not fit aboard that vessel.','capacity');
+    if(this.livingCrew.length+1+this.rescuedBerths(target)>target.berths||this.cargoUsed>target.cargoCap)return this._fail('Your crew, cargo, and that vessel’s rescued passengers will not fit aboard that vessel.','capacity');
     const previous=this._parkCurrentVessel();
     this.system.parkedShips=this.system.parkedShips.filter(v=>v.id!==target.id);
     const {storedUpgrades,ownerId,systemId,...ship}=clone(target);
-    this.state.ship=ship;this.state.upgrades=storedUpgrades||{};this._updateStats(false);this.state.returnVesselId=previous?.id||null;
+    this.state.ship=ship;this.initializeRescueOccupants();this.state.upgrades=storedUpgrades||{};this._updateStats(false);this.state.returnVesselId=previous?.id||null;
     this._event('launch',{vesselId:ship.id,text:`You take ${ship.name||'your ship'}'s helm. The other vessel remains parked.`});
     return this._ok({ship:this.state.ship,text:`Command transferred to ${ship.name||'your ship'}.`});
   }
@@ -1402,6 +1439,7 @@ export class Game {
   _finishBoarding(phase) {
     const boarding=this.state.boarding;if(boarding?.phase!=='active')return;
     boarding.phase=phase;boarding.endedAt=this.state.stats.time;this.state.person.weaponDrawn=false;for(const human of this._boardingHumans||[])human.state.person.weaponDrawn=false;
+    this.syncRescueCombat();
     this.state.boardingHistory.push({id:boarding.id,kind:boarding.kind,phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,systemId:this.state.systemId,time:this.state.stats.time,casualties:boarding.allies.filter(a=>a.health<=0).map(a=>a.crewId)});
     const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);
     if(enemy){
@@ -1410,7 +1448,7 @@ export class Game {
       if(boarding.kind!=='assault'||phase!=='won'){delete enemy.boardingTargetId;delete enemy.boardingOriginId;}
     }
     if(phase==='won'){
-      let reward=boarding.kind==='assault'?95:45;
+      let reward=boarding.source==='rescued-pirates'?0:boarding.kind==='assault'?95:45;
       if(enemy&&boarding.kind==='assault'){
         reward=enemy.deck.rewardClaimed?0:reward;enemy.deck.cleared=true;enemy.deck.rewardClaimed=true;
         enemy.capturedBy=boarding.leaderId||this._boardingLeaderId||this.playerId;enemy.disabled=true;
@@ -1418,7 +1456,7 @@ export class Game {
       }else if(enemy){enemy.disabled=true;enemy.vx=0;enemy.vy=0;}
       this.state.credits+=reward;
       this.state.stats.boardingsWon=(this.state.stats.boardingsWon||0)+1;this._flag('won_ground_fight');this._flag(boarding.kind==='assault'?'captured_vessel':'repelled_boarders');
-      const text=boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The pirate hull remains outside.`;
+      const text=boarding.source==='rescued-pirates'?'The hijackers are defeated. Your ship is secure; the people who tried to seize it are accounted for.':boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The pirate hull remains outside.`;
       this._event('boarding-complete',{phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,text});
       this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
       if(this.state.person.health<=0){this.state.person.health=35;this.state.person.down=false;}
@@ -1440,12 +1478,16 @@ export class Game {
 
   _abandonOccupiedShip(boarding,raider) {
     this.professionRescue?.();
+    this.syncRescueCombat();
     const ship=this.state.ship,id=ship.id,hostiles=boarding.enemies.filter(e=>e.health>0);
     const occupied={id,name:ship.name||'Occupied ship',classId:ship.classId,...enemyHullProfile(ship.classId),x:ship.x,y:ship.y,vx:0,vy:0,angle:ship.angle,
       hp:Math.max(1,ship.hull),maxHp:ship.maxHull,faction:raider?.faction||'cinder',disabled:true,active:false,speed:ship.speed,damage:ship.damage,reward:0,cooldown:999,
-      deck:{shipClass:ship.classId,enemies:hostiles,cleared:false,rewardClaimed:true,occupation:{boarderId:raider?.id||'pirates',controllerId:raider?.id||'pirates',contested:true}},storedUpgrades:clone(this.state.upgrades)};
+      deck:{shipClass:ship.classId,enemies:hostiles,cleared:false,rewardClaimed:true,occupation:{boarderId:raider?.id||'pirates',controllerId:raider?.id||'pirates',contested:true}},storedUpgrades:clone(this.state.upgrades),
+      rescueGroups:clone(ship.rescueGroups||[]),rescueHistory:clone(ship.rescueHistory||[])};
     occupied.occupation=occupied.deck.occupation;
-    this.system.enemies.push(occupied);this._record().spawned.push(clone(occupied));
+    const old=this.system.enemies.findIndex(enemy=>enemy.id===id),record=this._record(),saved=record.spawned.findIndex(enemy=>enemy.id===id);
+    if(old>=0)this.system.enemies.splice(old,1,occupied);else this.system.enemies.push(occupied);
+    if(saved>=0)record.spawned.splice(saved,1,clone(occupied));else record.spawned.push(clone(occupied));
     const replacement=initialState(this.state.seed).ship;
     this.state.ship={...replacement,id:`recovery-${hash(`${id}:${this.state.stats.time}`).toString(36)}`,name:'Recovery cutter'};this.state.upgrades={};this._updateStats(false);
   }
@@ -1540,6 +1582,16 @@ export class Game {
   }
 
   availableJobs(bodyId = this.state.locationId || this.state.lastBodyId) {
+    // Protected ports no longer invent raiders for old contracts. Keep their
+    // agreed pay and existing evidence while moving only the patrol scope.
+    for(const mission of this.state.missions){
+      const origin=this.galaxy.find(system=>system.id===mission.originSystem);
+      if(mission.type==='bounty'&&mission.status!=='completed'&&!mission.bountyScope&&origin&&systemContext(origin).backgroundHostileCount===0){
+        const port=this.galaxy.find(system=>system.id===mission.targetSystem)?.bodies.find(body=>body.id===mission.targetBody);
+        mission.bountyScope='frontier';
+        mission.description=`The port watch has extended this contract to frontier routes. Defeat hostile ships there, then return to ${port?.name||'the original contract exchange'} for the agreed ${mission.reward} credits. Your recorded progress carries over.`;
+      }
+    }
     const body = this.system.bodies.find(b => b.id === bodyId);
     if (!hasPortServices(body)) return [];
     const epoch = Math.floor(this.state.stats.jobs / 4);
@@ -1550,11 +1602,12 @@ export class Game {
       { id: `${root}:delivery`, type: 'delivery', title: `A parcel for ${otherBody.name}`, description: `Carry a sealed medicine parcel to ${otherBody.name}. Hand it in at the local job board.`, goal: 1, reward: 145, oreCost: 0, targetBody: otherBody.id, targetSystem: this.state.systemId, faction: 'lantern', icon: 'parcel' },
       { id: `${root}:mining`, type: 'mining', title: 'Hull metal wanted', description: 'Bring six units of ore to this port. The yard pays above the open market.', goal: 6, reward: 150, oreCost: 6, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'ore' },
       { id: `${root}:survey`, type: 'survey', title: 'Signals in the dark', description: 'Scan two unexplored signals in this system, then return with your survey.', goal: 2, reward: 160, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: 'lantern', icon: 'scan' },
-      { id: `${root}:bounty`, type: 'bounty', title: 'Keep the lanes clear', description: 'Disable two hostile ships. The port will pay when you return.', goal: 2, reward: 220, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'target' }
+      { id: `${root}:bounty`, type: 'bounty', bountyScope:'local', title: 'Keep the lanes clear', description: 'Defeat two hostile ships in this system. The port will pay when you return.', goal: 2, reward: 220, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'target' }
     ];
-    return definitions.map(d => {
+    const targets=this.system.enemies.filter(enemy=>enemy.hp>0&&enemy.id.startsWith(`${this.state.systemId}:raider:`)&&!enemy.surrendered&&!enemy.capturedBy&&!enemy.promotedVesselId&&!enemy.canonicalVesselId);
+    return definitions.filter(d=>d.type!=='bounty'||this.state.missions.some(m=>m.id===d.id)||this.state.completedJobs.includes(d.id)||systemContext(this.currentSystem).backgroundHostileCount>=2&&targets.length>=d.goal).map(d => {
       const mission = this.state.missions.find(m => m.id === d.id);
-      return { ...d, reward:mission?.reward ?? Math.round(d.reward*this.characterEffects.jobRewards), originBody: bodyId, originSystem: this.state.systemId, status: this.state.completedJobs.includes(d.id) ? 'completed' : mission?.status || 'available', progress: mission?.progress || 0 };
+      return { ...d, ...(mission?.type==='bounty'?{description:mission.description,bountyScope:mission.bountyScope}:{}), reward:mission?.reward ?? Math.round(d.reward*this.characterEffects.jobRewards), originBody: bodyId, originSystem: this.state.systemId, status: this.state.completedJobs.includes(d.id) ? 'completed' : mission?.status || 'available', progress: mission?.progress || 0 };
     });
   }
   acceptJob(id) {
@@ -1591,7 +1644,16 @@ export class Game {
     for (const m of matching) {
       if (!['work', 'survey', 'bounty'].includes(m.type)) continue;
       if (m.type === 'work' && (this.state.mode !== 'person' || m.targetBody !== this.state.locationId)) continue;
-      if (m.type !== 'work' && m.originSystem !== this.state.systemId) continue;
+      if(m.type==='bounty'){
+        const origin=this.galaxy.find(system=>system.id===m.originSystem);
+        if(!m.bountyScope&&origin&&systemContext(origin).backgroundHostileCount===0){
+          const port=this.galaxy.find(system=>system.id===m.targetSystem)?.bodies.find(body=>body.id===m.targetBody);
+          m.bountyScope='frontier';
+          m.description=`The port watch has extended this contract to frontier routes. Defeat hostile ships there, then return to ${port?.name||'the original contract exchange'} for the agreed ${m.reward} credits. Your recorded progress carries over.`;
+        }
+        if(typeof details.token!=='string'||!this._record().defeated.includes(details.token))continue;
+        if(m.bountyScope==='frontier'?systemContext(this.currentSystem).backgroundHostileCount===0:m.originSystem!==this.state.systemId)continue;
+      }else if (m.type !== 'work' && m.originSystem !== this.state.systemId) continue;
       const token = details.token || `${m.type}:${Math.floor(this.state.stats.time)}`;
       m.tokens ||= [];
       if (m.tokens.includes(token)) continue;
@@ -1745,5 +1807,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules);
 export default Game;

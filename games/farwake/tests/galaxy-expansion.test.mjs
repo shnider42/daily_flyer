@@ -13,17 +13,34 @@ const legacyHashes={
  farwake:'9c4b45b8cfd3de1173e06978fdf73f91bedbd0fe5f1f241b009019c85cb3e572',
  'quiet-earth':'6a1a1920b93e72d5cbad82ee7ba2a8851fa00e9731060fae2bfaa38254498d33'
 };
+// These two intentional 0.5.1 descriptions clarify the existing core port. Only
+// prose is normalized; the released checksums still protect every other field.
+function releasedChartProjection(systems){
+ const projected=structuredClone(systems),hearth=projected.find(system=>system.id==='hearth');
+ hearth.description='A tired orange star and a station built from ships that never made it home.';
+ hearth.bodies.find(body=>body.id==='kettle').lore='A salvage port where every welded corridor remembers a different ship. Cinder is the smallest vessel on the departure board.';
+ return projected;
+}
 
-test('expanded charts preserve every released system byte for byte and append unique deterministic places',()=>{
+test('expanded charts preserve released system bytes except the two intentional core descriptions and append unique deterministic places',()=>{
  for(const[seed,expected]of Object.entries(legacyHashes)){
   const current=buildGalaxy(seed),base=current.slice(0,300),before=JSON.stringify(base),expanded=expandGalaxy(base,seed);
-  assert.equal(checksum(base),expected,'existing stars, body IDs and authored data retain their released values');
+  assert.equal(checksum(releasedChartProjection(base)),expected,'existing stars, body IDs and all data except the two named prose fields retain their released values');
   assert.equal(expanded.length,GALAXY_SYSTEM_COUNT);assert.equal(new Set(expanded.map(system=>system.id)).size,GALAXY_SYSTEM_COUNT);
   assert.equal(new Set(expanded.flatMap(system=>system.bodies.map(body=>body.id))).size,expanded.reduce((n,system)=>n+system.bodies.length,0));
   assert.equal(JSON.stringify(base),before);assert.ok(base.every((system,index)=>expanded[index]===system));
   assert.deepEqual(expandGalaxy(base,seed),expanded);assert.equal(expandGalaxy(expanded,seed),expanded,'a second load cannot add duplicates');
   assert.equal(expanded.filter(system=>system.frontier&&system.authored).length,8);
   assert.ok(FRONTIER_SYSTEMS.every(system=>expanded.some(candidate=>candidate.id===system.id)));
+ }
+});
+
+test('Hearth remains the central starter system and describes its busy inhabited port',()=>{
+ for(const seed of Object.keys(legacyHashes)){
+  const hearth=buildGalaxy(seed).find(system=>system.id==='hearth'),kettle=hearth.bodies.find(body=>body.id==='kettle');
+  assert.equal(hearth.gx,0);assert.equal(hearth.gy,0);
+  assert.equal(hearth.description,'The crowded heart of the settled lanes. Ferries, supply ships, port tugs and watch patrols cross beneath a tired orange star; emergencies usually reach a staffed service long before a passing captain.');
+  assert.equal(kettle.lore,'A busy city of welded ship corridors, markets and apartment rings. Ferries queue beside the freight locks while the port watch directs traffic. Cinder is a small name on a very long departure board.');
  }
 });
 

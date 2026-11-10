@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {Game} from '../dist/engine.mjs';
 import {enemyShipState} from '../dist/fleet.mjs';
 import {cabinLayout} from '../dist/interior-layouts.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason);return result;};
 function assault(seed='persistent-deck') {
-  const game=new Game(seed),origin=game.state.ship,enemy=game.system.enemies[0];
+  const game=new Game(seed),origin=game.state.ship,enemy=placeRaider(game);
   Object.assign(origin,{x:0,y:450,vx:0,vy:0,hull:71,shield:0});
   Object.assign(enemy,{x:90,y:450,hp:14,maxHp:46,disabled:true,active:false,angle:1.1,cooldown:999});
   game.system.enemies=[enemy];ok(game.boardEnemy(enemy.id));
@@ -128,7 +129,7 @@ test('shared ship damage requires explicit hostility and identifies the physical
 });
 
 test('canonical promoted enemies collide once through the authoritative vessel actor',()=>{
-  const source=new Game('canonical-target'),enemy=source.system.enemies[0],target=new Game('target-actor');
+  const source=new Game('canonical-target'),enemy=placeRaider(source),target=new Game('target-actor');
   Object.assign(enemy,{x:200,y:450,hp:14,maxHp:46,canonicalVesselId:enemy.id});source.system.enemies=[enemy];
   target.state.ship=enemyShipState(enemy);target.netVesselId=enemy.id;source.netVesselId=source.state.ship.id;
   source.netCanDamage=other=>other===target;
@@ -138,7 +139,7 @@ test('canonical promoted enemies collide once through the authoritative vessel a
 });
 
 test('same-tick pulses from different physical ships and NPCs keep distinct presentation identities',()=>{
-  const one=new Game('pulse-identity'),two=new Game('pulse-identity');
+  const one=new Game('pulse-identity'),two=new Game('pulse-identity');placeRaider(one);placeRaider(one);
   one.netVesselId='owned-hull';two.netVesselId='captured-hull';two.bindSharedWorld(one.system,one._record(),'shared-owner');one._playerId='shared-owner';
   const enemies=one.system.enemies;one.system.enemies=[];ok(one.fireWeapons('shared-owner'));ok(two.fireWeapons('shared-owner'));
   assert.equal(new Set(one.system.bullets.map(bullet=>bullet.id)).size,2);assert.deepEqual(new Set(one.system.bullets.map(bullet=>bullet.vesselId)),new Set(['owned-hull','captured-hull']));
@@ -159,7 +160,7 @@ test('shared destruction and boarding loss hooks prevent automatic ship healing 
 });
 
 test('losing a defensive boarding leaves the occupied hull in space and recovers aboard a different cutter',()=>{
-  const game=new Game('occupied-loss'),origin=game.state.ship,enemy=game.system.enemies[0],originId=origin.id;
+  const game=new Game('occupied-loss'),origin=game.state.ship,enemy=placeRaider(game),originId=origin.id;
   Object.assign(origin,{x:0,y:450,shield:0,hull:60});Object.assign(enemy,{x:90,y:450,disabled:false});game.system.enemies=[enemy];
   ok(game.startBoarding(enemy.id));game.state.person.health=0;game.state.person.down=true;game._finishBoarding('lost');
   assert.notEqual(game.state.ship.id,originId);

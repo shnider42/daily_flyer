@@ -31,7 +31,7 @@ export class BoardingAuthority {
         room.runtime.enemies.push(enemy); room.record.defeated = room.record.defeated.filter(id => id !== enemy.id); room.record.spawned.push(clone(enemy));
       }
       Object.assign(enemy, enemyHullProfile(old.shipClass || enemy.classId));
-      const id = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy); ship.id = id;
+      const id = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy, id);
       const occupation = { boarderId: leader.id, controllerId: old.phase === 'won' ? leader.id : null, controllerTeam: old.phase === 'won' ? leader.id : null, contested: old.phase === 'active' };
       const boarding = { ...old, originVesselId: source.id, vesselId: id, targetVesselId: id, locationId: `ship:${id}`, leaderId: leader.id, allies: [] };
       enemy.deck = { shipClass: ship.classId, enemies: boarding.enemies, cleared: old.phase === 'won', rewardClaimed: old.phase === 'won', occupation, shotSerial: old.shotSerial || 0 }; enemy.occupation = occupation;
@@ -129,7 +129,7 @@ export class BoardingAuthority {
     const boarding = actor.state.boarding, interior = clone(actor.state.interior);
     boarding.originVesselId = source.id;
     if (!target) {
-      const vesselId = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy); ship.id = vesselId;
+      const vesselId = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy, vesselId);
       target = { id: vesselId, ownerId: captain.id, name: enemy.name, systemId: source.systemId, dockedAt: null, ship, npcEnemyId: enemy.id, npcHostile: true, captured: false,
         allowCrew: false, grants: {}, helmOwner: null, bunks: {}, installedBunks: 0, actor: null, flightAssist: true, hostileTo: [], inventory: { crew: [], formerCrew: [], memorial: [], boardingHistory: [] } };
       this.vessels.set(target.id, target);

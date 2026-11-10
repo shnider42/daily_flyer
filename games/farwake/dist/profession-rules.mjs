@@ -48,7 +48,7 @@ function ownShipHere(game,job){
 }
 function spareBerths(game){
  const humans=Math.max(1,finite(game.state.ship.humanOccupants,1)),crew=(game.livingCrew||[]).length,narrative=game.narrativeBerths?.()||0;
- return Math.max(0,finite(game.state.ship.berths,1)-humans-crew-narrative-game.professionBerths());
+ return Math.max(0,finite(game.state.ship.berths,1)-humans-crew-narrative-game.professionBerths()-finite(game.rescuedBerths?.()));
 }
 function atName(game,where){const system=game.galaxy.find(s=>s.id===where?.systemId),body=system?.bodies.find(b=>b.id===where?.bodyId);return body?`${body.name} · ${system.name}`:'The named service desk';}
 function employerAt(game,body){return body?.faction||game.currentSystem.faction||'freewake';}

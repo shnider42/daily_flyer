@@ -1,12 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.5.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.5.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Quiet lanes, physical encounters · 0.5.1
+
+Hearth starts at the galactic center as a busy, serviced home system: 22 civilian traffic ships, navigation beacons, and no guaranteed ambient raiders, lifeboats, or abandoned freighters. Regional context controls traffic, rare distress contacts, and incident selection. Protected core and settled lanes cannot receive random convoy raids or border battles. Remote and dangerous systems have fewer ordinary ships and a greater, still limited, chance of a stranded vessel. Existing damaged, boarded, and captured ships are retained.
+
+Personal ship encounters no longer use a repeating pop-up timer. Approach and investigate a real signal or hail the appropriate actual ship. Ordinary survey and navigation signals cannot fall back to unrelated emergencies. A toll refusal or false distress call turns the visible contact into a persistent armed ship; damage comes from its actual projectiles. The world director schedules a galaxy-wide opportunity after 15–22 minutes, then at irregular 12–25 minute intervals with a 25% quiet outcome and separate regional cooldowns. Those are opportunities across the whole galaxy, not a promise of an event near each captain. Existing active incidents and their participation records survive the pacing update.
+
+Walking aboard a solo ship now leaves its actual hull coasting in the shared space simulation. Person controls do not operate its thrusters. Outside attacks damage that same hull, and returning to the helm resumes its live position, heading, and momentum. Existing shared vessel simulation retains one authoritative update per hull. Time spent on foot and repeated view changes cannot generate overdue encounter pop-ups.
+
+Rescuing a lifeboat brings two named occupants aboard; evacuating a freighter brings three. They occupy actual free berths alongside humans, specialists, fares, and patients, appear on the carrier's deck, and remain attached to that hull across saves, crew changes, and capture. Their manifest shows the people being carried. Docking that carrier at an inhabited port transfers peaceful survivors ashore. Evacuated wrecks remain physical empty ships and do not regenerate their survivor.
+
+Each rescued group has a saved, source-specific **10% chance** of being pirates. A concealed group can reveal itself after 30–75 seconds aboard, using the same people's names, positions, and health as actual armed boarding actors. The timer advances once per hull, independent of perspective and online crew count; reloading or changing views does not reroll it. An active hijack must be resolved before docking, and the actual fight remains on the actual carrier even when its owner is elsewhere. Defeat, lost hulls, and recapture preserve passenger and combat outcomes rather than moving people into replacement ships.
+
+Protected ports stop offering impossible ambient-pirate bounties. Already accepted protected-system bounties retain their pay and progress but credit genuine frontier hostile-ship defeats, with payment at the original port. New frontier bounties remain local and require real ship-defeat evidence.
 
 ## People, professions, and a living frontier · 0.5.0
 

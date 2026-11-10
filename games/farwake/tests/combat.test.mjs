@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider} from './helpers/combat-fixtures.mjs';
 import { Game } from '../dist/engine.mjs';
 import { SIDEARM, sidearmAim, clearSidearmSight } from '../dist/combat.mjs';
 import { enemyHullProfile, enemyShipState, getShipClass } from '../dist/fleet.mjs';
 import { cleanInput } from '../server/protocol.mjs';
 
 function boarded(seed='sidearm-test') {
- const game=new Game(seed),enemy=game.system.enemies[0];game.system.enemies=[enemy];
+ const game=new Game(seed),enemy=placeRaider(game);game.system.enemies=[enemy];
  Object.assign(enemy,{x:game.state.ship.x+80,y:game.state.ship.y,hp:14,disabled:true,cooldown:999,speed:0});
  assert.equal(game.boardEnemy(enemy.id).ok,true);game.drainEvents();
  for(const hostile of game.state.boarding.enemies)hostile.cooldown=999;
@@ -68,7 +69,7 @@ test('allied kills identify the crew member and do not increment captain kill cr
 });
 
 test('enemy exterior geometry and captured vessel damage share the same hull class',()=>{
- const game=new Game('enemy-scale');
+ const game=new Game('enemy-scale');game.state.systemId='cinder';game._loadSystem('cinder');assert.ok(game.system.enemies.length>0);
  for(const enemy of game.system.enemies){const profile=enemyHullProfile(enemy.classId);assert.equal(enemy.radius,profile.radius);assert.equal(enemy.renderLength,profile.renderLength);assert.equal(enemy.renderWidth,profile.renderWidth);assert.equal(enemy.berths,profile.berths);}
  const source={id:'damaged-hauler',name:'Test transport',classId:'hauler',hp:10,maxHp:50,x:700,y:300,angle:.4,disabled:true};
  const ship=enemyShipState(source);assert.equal(ship.classId,'hauler');assert.equal(ship.id,source.id);assert.equal(ship.hull/ship.maxHull,.2);assert.equal(ship.renderLength,getShipClass('hauler').stats.renderLength);assert.equal(ship.x,700);assert.equal(ship.shield,0);

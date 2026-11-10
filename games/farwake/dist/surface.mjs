@@ -353,7 +353,7 @@ function derelict(location,seed){
  rect(m,4,13,30,3,TILE.GRATE);rect(m,8,12,3,7,TILE.PATH);
  m.spawn=point(6,14);m.exit=point(4,14);
  entity(m,'exit','exit','Docking tether','Return to ship',4,14,'#d7b490');
- personEntity(m,location,'survivor','npc','survivor',21,7,'#bea698',{data:{encounter:true,story:true}});
+ if(!location.evacuated)personEntity(m,location,'survivor','npc','survivor',21,7,'#bea698',{data:{encounter:true,story:true}});
  addArchive(m,location,29,6,'Black-box recorder');
  entity(m,'jobs','jobboard','Salvage manifest','Jobs & salvage',8,9,'#99b6ae');
  entity(m,'mechanic','mechanic','Emergency fabricator','Repair station',29,21,'#b59875',{automated:true},'The surviving fabricator can stabilize equipment and fit salvage.');
@@ -393,6 +393,20 @@ function ship(location,seed){
   const c=crew[i],p=layout.crewSpawns[i],dialogueRole=c.role==='navigator'?'pilot':c.role,base=DIALOGUE[dialogueRole];
   const role=String(c.role||'crewmate'),name=c.name||base?.name||'Crewmate';
   entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,dialogueRole,roleLabel:base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
+ }
+ // These are the people admitted onto this particular hull. Their positions
+ // and identities survive saves and become the same actors if trouble starts.
+ const guests=(Array.isArray(location.guests)?location.guests:[]).filter(guest=>guest&&typeof guest.id==='string'&&(!guest.shipId||guest.shipId===m.vesselId)&&!['dead','hostile','disembarked'].includes(guest.status)&&(guest.health??100)>0).slice(0,Math.max(0,layout.berths-1-crew.length));
+ const guestIds=new Set(),occupied=[...m.entities,layout.spawn,layout.archive,layout.manifest];
+ const guestPoint=point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y)&&isWalkable(m,point.x,point.y)&&occupied.every(other=>Math.hypot(point.x-other.x,point.y-other.y)>=20);
+ for(const guest of guests){
+  if(guestIds.has(guest.id))continue;
+  let p=guestPoint(guest)?{x:guest.x,y:guest.y}:layout.crewSpawns.slice(crew.length).find(guestPoint);
+  if(!p)for(let y=1;y<layout.rows-1&&!p;y++)for(let x=1;x<layout.cols-1;x++){const candidate={x:(x+.5)*T,y:(y+.5)*T};if(guestPoint(candidate)){p=candidate;break;}}
+  if(!p)continue;
+  const greeting=guest.greeting||'Thank you for stopping. A berth at the next inhabited port will be enough.';
+  const person=entity(m,'guest:'+guest.id,'npc',guest.name||'Rescued passenger','rescued passenger',Math.floor(p.x/T),Math.floor(p.y/T),guest.color||'#adc8ba',{rescuePassenger:true,guestId:guest.id,groupId:guest.groupId,shipId:m.vesselId,roleLabel:'Rescued passenger',greeting,health:guest.health??100,maxHealth:guest.maxHealth??100,status:guest.status||'aboard',bunkIndex:guest.berthIndex},greeting);
+  Object.assign(person,p);occupied.push(person);guestIds.add(guest.id);
  }
  entity(m,'lore','terminal','Captain’s archive','Journal & lore',Math.floor(layout.archive.x/T),Math.floor(layout.archive.y/T),'#8bc5c9',{journal:true},'Recovered signals, crew notes, and the history you carry with you.');
  entity(m,'crew-console','terminal','Crew manifest','Crew & alliances',Math.floor(layout.manifest.x/T),Math.floor(layout.manifest.y/T),'#aec6aa',{crew:true},`${layout.name} cabin · ${layout.berths} berths. Every berth is a promise to bring someone home.`);
@@ -716,7 +730,7 @@ function isDone(entity,flags){return!!entity.completed||flags.has(entity.data?.f
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,role:e.role});if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
+ if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,role:e.role});if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
  else if(e.type==='station'){
   pixel(ctx,'#0e2733',x-14,y-21,28,26);pixel(ctx,'#557985',x-13,y-23,26,22);pixel(ctx,'#173a48',x-10,y-20,20,12);pixel(ctx,c,x-8,y-18,16,2);pixel(ctx,c,x-2,y-17,4,7);pixel(ctx,'#a9c9bd',x-8,y-5,3,2);pixel(ctx,'#dcc59a',x+5,y-5,3,2);
   if(e.data?.stationRole==='medical'){pixel(ctx,'#bfe1c9',x-6,y-14,12,3);pixel(ctx,'#bfe1c9',x-2,y-18,4,11);}
@@ -922,7 +936,8 @@ function drawSurfacePixels(ctx,surface,options={}){
  const cameraX=Math.round(options.cameraX??center(person.x,surface.width,width)),cameraY=Math.round(options.cameraY??center(person.y,surface.height,height));
  const p=surface.palette||PALETTES[surface.biome]||PALETTES.station,flags=new Set(options.flags||surface.flags||[]),emit=labelSink(ctx,options.labels,{cameraX,cameraY,width,height});
  for(const e of surface.entities)if(options.exploration?.collected?.includes(e.data?.cacheId)||options.exploration?.choices?.[e.data?.choiceId])flags.add('done:'+e.id);
- const actors=normalizedActors(options),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),homes=visibleHomes(surface,options);
+ const actors=normalizedActors(options),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),actorGuests=new Set(actors.flatMap(a=>[a.id,a.rescueGuestId]).filter(Boolean)),homes=visibleHomes(surface,options);
+ const represented=entity=>entity.type==='crew'&&actorCrew.has(entity.data?.crewId)||entity.data?.rescuePassenger&&actorGuests.has(entity.data.guestId);
  const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>!effect.boardingId||effect.boardingId===options.boarding?.id):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
  const aim=combatActive?(options.combat?.aim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass)):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
@@ -937,10 +952,10 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,emit);
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
  if(aim)drawCombatAim(ctx,person,aim);
- const near=nearestEntity(surface,person,43),targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
+ const candidate=nearestEntity(surface,person,43),near=candidate&&!represented(candidate)?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
  for(const e of surface.entities){
-  if(e.hidden||e.type==='crew'&&actorCrew.has(e.data?.crewId))continue;
+  if(e.hidden||represented(e))continue;
   if(e.x<cameraX-45||e.x>cameraX+width+45||e.y<cameraY-45||e.y>cameraY+height+45)continue;
   if(e.type==='delivery'||e.type==='bunk'||e.type==='exit'&&!e.data?.stationRole)drawEntity(ctx,e,surface,time,flags,near===e);else items.push({y:e.y,entity:e});
  }
@@ -962,7 +977,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  drawCombatEffects(ctx,effects,emit);
  if(aim?.targetId){const target=actors.find(a=>(a.id||a.captainId)===aim.targetId);if(target)emit(aim.manual?'MANUAL AIM':'AIM ASSIST',target.x,target.y+13,'#e9d395',12,'center',91,'combat-target');}
  for(const e of surface.entities){
-  if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||e.type==='crew'&&actorCrew.has(e.data?.crewId))continue;
+  if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||represented(e))continue;
   if(e.x<cameraX||e.x>cameraX+width||e.y<cameraY||e.y>cameraY+height)continue;
   const selected=near===e,targeted=e.id===targetId,important=['jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
   if(!important&&!selected&&!targeted)continue;
@@ -976,7 +991,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   emit(name,actor.x,actor.y-47,hostile?'#f1b296':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
  }
  for(const home of homes){const mine=!!options.localCaptainId&&home.ownerId===options.localCaptainId,nearby=Math.hypot(home.x-person.x,home.y-person.y)<70,owner=mine?'Your':home.ownerName?`${home.ownerName}’s`:'Captain’s';emit(`${owner} ${home.kind==='outpost'?'outpost':'room'}`,home.x,home.y-(home.kind==='outpost'?48:27),mine?'#e5be79':'#8ec8d2',13,'center',nearby?70:mine?45:30,'home');}
- if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden);if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}
+ if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}
  if(near&&!near.hidden){pixel(ctx,'#e9d8ab',near.x-2,near.y-36,4,2);pixel(ctx,'#e9d8ab',near.x-1,near.y-34,2,2);}
  if(options.boarding?.phase==='active'||actors.some(a=>a.team==='hostile'&&(a.health??1)>0)){
   const pulse=.05+(Math.sin(time*4)+1)*.025;ctx.globalAlpha=pulse;pixel(ctx,'#dc785b',cameraX,cameraY,width,4);pixel(ctx,'#dc785b',cameraX,cameraY+height-4,width,4);ctx.globalAlpha=1;

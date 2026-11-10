@@ -31,41 +31,51 @@ function shoot(game,enemy,damage,playerId=game.playerId){
  game._updateBullets(.05,[game]);
 }
 
+function scheduledIncident(game,type,status='active'){
+ const options={seed:game.state.seed,systems:game.galaxy};
+ for(let seconds=30;seconds<=86400;seconds+=30){
+  game.state.worldDirector=advanceWorldDirector(game.worldDirector,seconds,options).state;
+  const incident=game.worldDirector.events.find(event=>event.type===type&&event.status===status);
+  if(incident){game.state.stats.time=seconds;game._persistRuntime();game.state.systemId=incident.systemId;game._loadSystem(incident.systemId);return incident;}
+ }
+ assert.fail(`No ${status} ${type} occurred during the simulated day`);
+}
+
 test('director uses monotonic, deterministic clocks and bounded offline catch-up',()=>{
  const systems=buildGalaxy('director-clock'),options={seed:'director-clock',systems};
- const first=advanceWorldDirector(null,0,options);assert.equal(first.state.cycle,0);assert.equal(first.state.events[0].status,'warning');
+ const first=advanceWorldDirector(null,0,options);assert.equal(first.state.cycle,-1);assert.equal(first.state.events.length,0);
  const frozen=JSON.stringify(first.state),same=advanceWorldDirector(first.state,2,options);assert.equal(same.state,first.state);assert.equal(JSON.stringify(first.state),frozen);
  assert.equal(advanceWorldDirector(first.state,-4,options).state,first.state);
- let stepped=first.state;for(let now=5;now<=1800;now+=5)stepped=advanceWorldDirector(stepped,now,options).state;
- const direct=advanceWorldDirector(first.state,1800,options).state;
+ let stepped=first.state;for(let now=5;now<=6000;now+=5)stepped=advanceWorldDirector(stepped,now,options).state;
+ const direct=advanceWorldDirector(first.state,6000,options).state;
  for(const key of ['events','history','conditions','factionPressure','cycle'])assert.deepEqual(direct[key],stepped[key],key);
  assert.ok(direct.history.some(event=>event.outcome==='unassisted'));
  assert.ok(Object.values(direct.conditions).some(condition=>condition.serviceMultiplier>1));
  const future=advanceWorldDirector(direct,365*86400,options).state;
- assert.ok(future.skippedCycles>100000);assert.ok(future.events.length<=WORLD_DIRECTOR_RULES.maxEvents);assert.ok(future.history.length<=24);assert.ok(Object.keys(future.conditions).length<=48);
+ assert.ok(future.skippedCycles>20000);assert.ok(future.events.length<=WORLD_DIRECTOR_RULES.maxEvents);assert.ok(future.history.length<=24);assert.ok(Object.keys(future.conditions).length<=48);
  assert.equal(new Set(future.history.map(event=>event.id)).size,future.history.length);
  const persisted=JSON.parse(JSON.stringify(future));assert.deepEqual(advanceWorldDirector(persisted,365*86400,options).state,persisted);
 });
 
 test('raid warning becomes real ships; repeated synchronization is idempotent and damaged hulls persist',()=>{
  const game=new Game('director-ships'),options={seed:game.state.seed,systems:game.galaxy};
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,180,options).state;syncDirectorWorld(game,game.worldDirector);
+ const incident=scheduledIncident(game,'raid','warning');syncDirectorWorld(game,game.worldDirector);
  assert.equal(game.system.enemies.filter(enemy=>enemy.directorEventId).length,0);
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,225,options).state;syncDirectorWorld(game,game.worldDirector);
+ game.state.worldDirector=advanceWorldDirector(game.worldDirector,incident.activeAt,options).state;syncDirectorWorld(game,game.worldDirector);
  const raiders=game.system.enemies.filter(enemy=>enemy.directorEventId);assert.equal(raiders.length,2);assert.ok(raiders.every(enemy=>enemy.boardable&&enemy.renderLength>=56));
  syncDirectorWorld(game,game.worldDirector);assert.equal(game.system.enemies.filter(enemy=>enemy.directorEventId).length,2);
  raiders[0].hp-=5;game._record().enemyHealth[raiders[0].id]=raiders[0].hp;
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,725,options).state;syncDirectorWorld(game,game.worldDirector);
+ game.state.worldDirector=advanceWorldDirector(game.worldDirector,incident.expiresAt+5,options).state;syncDirectorWorld(game,game.worldDirector);
  assert.ok(game.system.enemies.some(enemy=>enemy.id===raiders[0].id));assert.ok(!game.system.enemies.some(enemy=>enemy.id===raiders[1].id));
 });
 
 test('each real contributor can receive one relief stipend; a late arrival cannot',()=>{
  const game=new Game('director-team');game._playerId='medic-one';const options={seed:game.state.seed,systems:game.galaxy};
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,225,options).state;syncDirectorWorld(game,game.worldDirector);
+ scheduledIncident(game,'raid');syncDirectorWorld(game,game.worldDirector);
  const raid=game.worldDirector.events.find(event=>event.type==='raid'),enemies=game.system.enemies.filter(enemy=>enemy.directorEventId===raid.id);
  enemies[0].hp=25;recordDirectorDamage(game.worldDirector,enemies[0],'medic-one',40);
  enemies[1].hp=30;recordDirectorDamage(game.worldDirector,enemies[1],'medic-two',50);
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,230,options).state;
+ game.state.worldDirector=advanceWorldDirector(game.worldDirector,game.worldDirector.time+5,options).state;
  const event=game.worldDirector.history.find(event=>event.id===raid.id);assert.equal(event.outcome,'stabilized');
  const entityId=clinic(game,event.bodyId),before=game.state.credits;
  assert.equal(game.professionAction({action:'claimRelief',eventId:event.id,entityId}).ok,true);assert.equal(game.state.credits,before+45);
@@ -76,10 +86,10 @@ test('each real contributor can receive one relief stipend; a late arrival canno
 });
 
 test('medical contributions use once-only physical action tokens',()=>{
- const game=new Game('director-aid'),options={seed:game.state.seed,systems:game.galaxy};game.state.worldDirector=advanceWorldDirector(game.worldDirector,45,options).state;
- const event=game.worldDirector.events[0];assert.equal(recordDirectorAid(game.worldDirector,event.id,'local','completed-shift-1'),true);assert.equal(recordDirectorAid(game.worldDirector,event.id,'local','completed-shift-1'),false);
+ const game=new Game('director-aid'),options={seed:game.state.seed,systems:game.galaxy};
+ const event=scheduledIncident(game,'rescue');assert.equal(recordDirectorAid(game.worldDirector,event.id,'local','completed-shift-1'),true);assert.equal(recordDirectorAid(game.worldDirector,event.id,'local','completed-shift-1'),false);
  assert.equal(event.progress,1);assert.equal(recordDirectorAid(game.worldDirector,event.id,'colleague','completed-shift-2'),true);
- game.state.worldDirector=advanceWorldDirector(game.worldDirector,50,options).state;assert.equal(game.worldDirector.history[0].outcome,'stabilized');
+ game.state.worldDirector=advanceWorldDirector(game.worldDirector,game.worldDirector.time+5,options).state;assert.equal(game.worldDirector.history.find(value=>value.id===event.id).outcome,'stabilized');
 });
 
 test('paramedic shift requires both real docking legs, assigned hull and a real spare berth',()=>{

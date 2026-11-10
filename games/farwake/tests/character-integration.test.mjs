@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider} from './helpers/combat-fixtures.mjs';
 import { Game } from '../dist/engine.mjs';
 import { STARTER_SHIPS, enemyHullProfile, cabinLayout } from '../dist/fleet.mjs';
 import { SIDEARM } from '../dist/combat.mjs';
@@ -23,7 +24,7 @@ function legacy(seed='legacy-character') {
 function boarded(traits=[],withMedic=false) {
   const game=captain('trait-boarding',traits);
   if(withMedic){land(game);ok(game.recruitCrew('medic'));ok(game.launch());}
-  const enemy=game.system.enemies[0];
+  const enemy=placeRaider(game);
   game.system.enemies=[enemy];
   Object.assign(enemy,enemyHullProfile('sparrow'),{x:game.state.ship.x+80,y:game.state.ship.y,hp:14,disabled:true,cooldown:999,speed:0});
   ok(game.boardEnemy(enemy.id));

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {Game,SHIP_CLASSES,CREW_ROLES} from '../dist/engine.mjs';
 import {cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
 const ok=r=>{assert.equal(r?.ok,true,r?.reason);return r;};
 const frame=(g,input={},n=1)=>{for(let i=0;i<n;i++)g.step(1/60,input);};
 function port(g){const b=g.system.bodies.find(b=>b.id==='kettle')||g.system.bodies[0];Object.assign(g.state.ship,{x:b.x,y:b.y+b.radius+60});ok(g.dock(b.id));}
 function funded(g){g.state.credits=15000;g.state.flags.push('first_fold_done','archive_decoded','ally_chosen');Object.assign(g.state.upgrades,{fold_1:1,fold_2:1,fold_3:1});g._updateStats();}
-function closeEnemy(g){const enemy=g.system.enemies[0];g.system.enemies=[enemy];Object.assign(enemy,{x:g.state.ship.x+100,y:g.state.ship.y,hp:46,maxHp:46,speed:0,cooldown:999,disabled:false});return enemy;}
+function closeEnemy(g){const enemy=placeRaider(g);g.system.enemies=[enemy];Object.assign(enemy,{x:g.state.ship.x+100,y:g.state.ship.y,hp:46,maxHp:46,speed:0,cooldown:999,disabled:false});return enemy;}
 
 test('fleet commissioning enforces earned prerequisites, prices and port mode while preserving the canonical ship object',()=>{
   const g=new Game('fleet-buy'),reference=g.state.ship;

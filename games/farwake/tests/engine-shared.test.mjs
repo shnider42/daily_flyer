@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {Game} from '../dist/engine.mjs';
-const bind=(count,seed)=>{const games=Array.from({length:count},()=>new Game(seed)),runtime=games[0].system,record=games[0]._record();games.forEach((g,i)=>g.bindSharedWorld(runtime,record,`pilot-${i}`));return games;};
+const bind=(count,seed)=>{const games=Array.from({length:count},()=>new Game(seed)),runtime=games[0].system,record=games[0]._record();placeRaider(games[0]);games.forEach((g,i)=>g.bindSharedWorld(runtime,record,`pilot-${i}`));return games;};
 
 test('ten pilots step independently while NPCs, traffic and projectiles advance exactly once per room',()=>{
   const games=bind(10,'ten-pilot-room'),world=games[0].system;games.forEach((g,i)=>Object.assign(g.state.ship,{x:-2000,y:-1800+i*50}));

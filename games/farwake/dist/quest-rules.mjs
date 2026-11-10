@@ -52,7 +52,7 @@ export function occupiedNarrativeBerths(game){
 function capacity(game){
  // Do not use Game.freeBerths: the application subtracts this module's occupants there.
  const crew=(game.livingCrew||[]).length,humans=Math.max(1,finite(game.state.ship.humanOccupants,1));
- return Math.max(0,finite(game.state.ship.berths,game.shipClass?.berths||1)-crew-humans-occupiedNarrativeBerths(game)-finite(game.professionBerths?.()));
+ return Math.max(0,finite(game.state.ship.berths,game.shipClass?.berths||1)-crew-humans-occupiedNarrativeBerths(game)-finite(game.professionBerths?.())-finite(game.rescuedBerths?.()));
 }
 function requirements(game,definition){
  const state=nstate(game),need=definition.requires||{},complete=id=>state.quests[id]?.status==='completed';
