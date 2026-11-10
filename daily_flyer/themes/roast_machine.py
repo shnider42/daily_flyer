@@ -26,7 +26,7 @@ THEME_CONFIG = {
 # The shared renderer is intentionally unchanged. Remove its card chrome only
 # in this theme, then apply the same stylesheet used by the standalone site.
 _WRAPPER_CSS = """
-body { margin: 0; background: #ede7db; min-height: 100vh; }
+body { margin: 0; background: #211e1e; min-height: 100vh; }
 body::before, body::after, .site-bg { display: none; }
 .page-shell > .hero-wrap, .page-shell > footer { display: none; }
 .page-shell > main { display: block; width: 100%; max-width: none; padding: 0; margin: 0; }

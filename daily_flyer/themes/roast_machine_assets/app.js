@@ -78,7 +78,7 @@
     if (!engine) return;
     const inputs = getInputs();
     if (!inputs.name) {
-      nameError("Give us a name. First names and nicknames work best.");
+      nameError("Enter a name or nickname.");
       $("rm-name").focus();
       return;
     }
@@ -111,7 +111,7 @@
     $("rm-copy-label").textContent = "Copy roast";
     $("rm-detail-note").textContent = result.detailNote || "";
     $("rm-detail-note").hidden = !result.detailNote;
-    $("rm-form-status").textContent = "Freshly served. Same person, another roast?";
+    $("rm-form-status").textContent = "Roast ready.";
     $("rm-output-status").textContent = "Roast " + roastNumber + " for " + (result.name || inputs.name) + " is ready.";
 
     const printer = $("rm-printer");
@@ -144,7 +144,7 @@
     setChoice("habit", ["late"]);
     updateCount();
     nameError("");
-    $("rm-form-status").textContent = "Exhibit A: Alex. Make changes, or hit ROAST.";
+    $("rm-form-status").textContent = "Example loaded. Edit it or hit ROAST.";
     $("rm-name").focus({ preventScroll: true });
   });
 
@@ -165,9 +165,9 @@
     $("rm-copy-text").value = "";
     $("rm-roast-text").replaceChildren();
     $("rm-target-name").textContent = "";
-    $("rm-receipt-heat").textContent = "Awaiting material";
+    $("rm-receipt-heat").textContent = "Ready";
     $("rm-receipt").setAttribute("aria-labelledby", "rm-receipt-title");
-    $("rm-form-status").textContent = "One name. Eight ways to make it personal.";
+    $("rm-form-status").textContent = "";
     $("rm-output-status").textContent = "Machine cleared.";
     window.clearTimeout(copyTimer);
     $("rm-copy-label").textContent = "Copy roast";
@@ -184,7 +184,7 @@
       await navigator.clipboard.writeText(copyText);
       if (lastResult !== copiedResult) return;
       $("rm-copy-label").textContent = "Copied!";
-      $("rm-output-status").textContent = "Roast copied. Use this power questionably.";
+      $("rm-output-status").textContent = "Copied.";
       window.clearTimeout(copyTimer);
       copyTimer = window.setTimeout(() => { $("rm-copy-label").textContent = "Copy roast"; }, 2500);
     } catch (error) {

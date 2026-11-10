@@ -3,88 +3,79 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#ede7db">
-  <meta name="description" content="Give us a name, a few questionable habits, and some ammunition. The Roast Machine handles the rest.">
+  <meta name="theme-color" content="#211e1e">
+  <meta name="description" content="Pick a few habits, add a name, and make a roast.">
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Roast Machine — Personal insults. Made to order.</title>
+  <title>Roast Machine</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="rm-app">
-    <a class="rm-skip" href="#rm-name">Skip to the machine</a>
+    <a class="rm-skip" href="#rm-name">Skip to the form</a>
     <header class="rm-masthead">
-      <div class="rm-wordmark" aria-label="Roast Machine"><span class="rm-monogram" aria-hidden="true">RM</span><span>Personal insults.<br>Made to order.</span></div>
-      <div class="rm-machine-id"><span class="rm-status-dot" aria-hidden="true"></span><span>Ready when you are</span></div>
+      <h1 id="rm-title">Roast Machine</h1>
+      <p>Pick a few habits. Hit ROAST.</p>
     </header>
 
     <main class="rm-main">
-      <section class="rm-intro" aria-labelledby="rm-title">
-        <h1 id="rm-title">ROAST<span>MACHINE<span class="rm-star" aria-hidden="true">✳</span></span></h1>
-        <div class="rm-intro-copy"><p>Everybody has material.</p><p>Pick a person. Supply the evidence.<br>Let the machine do its worst.</p></div>
-      </section>
-
       <div class="rm-workbench">
         <section class="rm-input-panel" aria-label="Build your roast">
           <form id="rm-form" method="post" autocomplete="off" novalidate>
-            <div class="rm-section-rule"><span>01 / Load the machine</span><button class="rm-text-button" type="button" id="rm-example">Load an example <span aria-hidden="true">↗</span></button></div>
             <div class="rm-name-field">
-              <label for="rm-name">Who's in the hot seat?</label>
-              <input id="rm-name" name="name" type="text" placeholder="Their first name or nickname" maxlength="50" required autocomplete="off" spellcheck="false" aria-describedby="rm-name-error">
+              <div class="rm-name-label"><label for="rm-name">Name or nickname</label><button class="rm-text-button" type="button" id="rm-example">Try an example</button></div>
+              <input id="rm-name" name="name" type="text" placeholder="e.g. Alex" maxlength="50" required autocomplete="off" spellcheck="false" aria-describedby="rm-name-error">
               <p id="rm-name-error" class="rm-error" hidden></p>
             </div>
 
-            <div class="rm-traits-header"><h2>A little ammunition</h2><p>Pick a few. Skip what doesn't fit.</p></div>
+            <div class="rm-traits-header"><h2>Traits</h2><p>Skip anything that doesn't fit.</p></div>
             <div class="rm-select-grid" id="rm-select-grid">
-              <div class="rm-field"><label for="rm-personality"><span>01</span> Personality</label><select id="rm-personality" name="personality"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-job"><span>02</span> Day job</label><select id="rm-job" name="job"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-hobby"><span>03</span> Hobby</label><select id="rm-hobby" name="hobby"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-chat"><span>04</span> Group chat</label><select id="rm-chat" name="chat"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-style"><span>05</span> Dress code</label><select id="rm-style" name="style"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-habit"><span>06</span> Bad habit</label><select id="rm-habit" name="habit"><option value="">Leave this out</option></select></div>
-              <div class="rm-field"><label for="rm-occasion"><span>07</span> The occasion</label><select id="rm-occasion" name="occasion"><option value="just_because">Just because</option></select></div>
-              <div class="rm-field rm-heat-field"><label for="rm-heat"><span>08</span> How hot?</label><select id="rm-heat" name="heat" aria-describedby="rm-heat-description"><option value="mild">Mild</option><option value="medium" selected>Medium</option><option value="savage">Savage</option></select></div>
+              <div class="rm-field"><label for="rm-personality">Personality</label><select id="rm-personality" name="personality"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-job">Day job</label><select id="rm-job" name="job"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-hobby">Hobby</label><select id="rm-hobby" name="hobby"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-chat">Group chat</label><select id="rm-chat" name="chat"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-style">Dress code</label><select id="rm-style" name="style"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-habit">Bad habit</label><select id="rm-habit" name="habit"><option value="">Leave this out</option></select></div>
+              <div class="rm-field"><label for="rm-occasion">Occasion</label><select id="rm-occasion" name="occasion"><option value="just_because">Just because</option></select></div>
+              <div class="rm-field rm-heat-field"><label for="rm-heat">Heat</label><select id="rm-heat" name="heat" aria-describedby="rm-heat-description"><option value="mild">Mild</option><option value="medium" selected>Medium</option><option value="savage">Savage</option></select></div>
             </div>
             <p class="rm-heat-description" id="rm-heat-description">Medium: a few bruises to the ego.</p>
 
             <div class="rm-notes-field">
-              <div class="rm-notes-label"><label for="rm-details">Anything else we should know?</label><span id="rm-count" aria-hidden="true">0 / 600</span></div>
-              <textarea id="rm-details" name="details" maxlength="600" rows="3" placeholder="Always 20 minutes late. Talks about the gym more than going. Thinks every group needs a podcast." aria-describedby="rm-details-help"></textarea>
-              <p id="rm-details-help">Keep it to quirks. Leave private stuff out.</p>
+              <div class="rm-notes-label"><label for="rm-details">Details <span>(optional)</span></label><span id="rm-count" aria-hidden="true">0 / 600</span></div>
+              <textarea id="rm-details" name="details" maxlength="600" rows="3" placeholder="Says “five minutes away” before leaving the house." aria-describedby="rm-details-help"></textarea>
+              <p id="rm-details-help">Habits and quirks work best. Keep private information out.</p>
             </div>
 
-            <button class="rm-roast-button" id="rm-roast" type="submit" disabled><span>ROAST</span><span class="rm-roast-arrow" aria-hidden="true">↗</span></button>
-            <div class="rm-under-button"><span id="rm-form-status" role="status">One name. Eight ways to make it personal.</span><button class="rm-text-button" id="rm-reset" type="button">Start over</button></div>
+            <div class="rm-submit-row"><button class="rm-roast-button" id="rm-roast" type="submit" disabled>ROAST</button><button class="rm-text-button rm-reset-button" id="rm-reset" type="button">Clear</button></div>
+            <p class="rm-under-button" id="rm-form-status" role="status"></p>
           </form>
         </section>
 
         <section class="rm-output-panel" aria-labelledby="rm-output-label">
-          <div class="rm-section-rule rm-output-rule"><span id="rm-output-label">02 / Take the heat</span><span class="rm-batch" id="rm-batch">No. 000</span></div>
+          <div class="rm-output-rule"><h2 id="rm-output-label">Your roast</h2><span class="rm-batch" id="rm-batch">No. 000</span></div>
           <div class="rm-printer" id="rm-printer">
-            <div class="rm-printer-top" aria-hidden="true"><span class="rm-screw"></span><span class="rm-slot"></span><span class="rm-screw"></span></div>
+            <div class="rm-printer-top" aria-hidden="true"><span class="rm-slot"></span></div>
             <div class="rm-receipt" id="rm-receipt" tabindex="-1" aria-labelledby="rm-receipt-title">
-              <div class="rm-receipt-heading"><span>ROAST MACHINE</span><span id="rm-receipt-heat">Awaiting material</span></div>
+              <div class="rm-receipt-heading"><span>ROAST MACHINE</span><span id="rm-receipt-heat">Ready</span></div>
               <div class="rm-empty" id="rm-empty">
-                <div class="rm-empty-mark" aria-hidden="true">✳</div>
-                <h2 id="rm-receipt-title">THIS COULD<br>GET PERSONAL.</h2>
-                <p>Your roast comes out here.<br>Try to look surprised.</p>
-                <div class="rm-empty-stamp">EGO NOT INCLUDED</div>
+                <h2 id="rm-receipt-title">Nothing yet.</h2>
+                <p>Fill in the form and press ROAST.<br>We'll print it here.</p>
               </div>
               <div class="rm-result" id="rm-result" hidden>
-                <p class="rm-recipient-label">On the receiving end</p>
+                <p class="rm-recipient-label">For:</p>
                 <h2 id="rm-target-name"></h2>
                 <div id="rm-roast-text" class="rm-roast-text"></div>
-                <div class="rm-receipt-end"><span>That'll do it.</span><span aria-hidden="true">✳</span></div>
               </div>
-              <div class="rm-receipt-footer"><div class="rm-barcode" aria-hidden="true"></div><span>NO REFUNDS ON FEELINGS</span></div>
+              <div class="rm-receipt-footer"><span>End of roast</span></div>
             </div>
-            <div class="rm-printer-bottom" aria-hidden="true"><span>Freshly served.</span><span>RM—01</span></div>
+            <div class="rm-printer-bottom" aria-hidden="true"></div>
           </div>
           <p id="rm-detail-note" class="rm-detail-note" hidden></p>
           <div class="rm-result-actions" id="rm-result-actions" hidden>
-            <button class="rm-action-button rm-again-button" id="rm-again" type="button"><span aria-hidden="true">↻</span> Roast again</button>
-            <button class="rm-action-button" id="rm-copy" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1"></rect><path d="M16 8V3H3v13h5"></path></svg><span id="rm-copy-label">Copy roast</span></button>
+            <button class="rm-action-button rm-again-button" id="rm-again" type="button">Roast again</button>
+            <button class="rm-action-button" id="rm-copy" type="button"><span id="rm-copy-label">Copy roast</span></button>
           </div>
           <p class="rm-output-status" id="rm-output-status" role="status" aria-live="polite"></p>
           <div class="rm-copy-fallback" id="rm-copy-fallback" hidden><label for="rm-copy-text">Select and copy your roast</label><textarea id="rm-copy-text" readonly rows="6"></textarea></div>
@@ -92,8 +83,8 @@
       </div>
     </main>
 
-    <footer class="rm-footer"><span>Built with DailyFlyer.</span><span>Names and details stay in this tab.</span></footer>
-    <noscript><div class="rm-noscript">The machine needs JavaScript. Enable it and reload to make a roast.</div></noscript>
+    <footer class="rm-footer"><span>DailyFlyer</span><span>Names and details stay in this tab.</span></footer>
+    <noscript><div class="rm-noscript">Enable JavaScript and reload to make a roast.</div></noscript>
   </div>
   <script src="engine.js"></script>
   <script src="app.js"></script>
