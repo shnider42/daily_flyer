@@ -14,8 +14,9 @@ as a blueprint. No build step or paid API is needed for the playable client.
   matches, difficulty settings, adjustable match length, goal replays and results.
 - Mobile: left movement thumb, right contextual pass/shoot/burst cluster; sizes,
   sensitivity, shot assistance and handedness are adjustable while paused.
-- Desktop: WASD/arrows, J pass, hold/release Space shoot, K burst, Q switch;
-  actions are remappable. P/Esc pauses.
+- Desktop: WASD/arrows, J pass or switch, hold/release Space shoot, K burst.
+  Hold Q to contain in soccer; Q switches skaters in hockey. Actions are
+  remappable. P/Esc pauses.
 
 The NHL lineups use a **2025-10-07 opening-roster snapshot** (including some
 injured-list players), not live November 2026 rosters. The original football XIs are
@@ -158,7 +159,7 @@ Use the existing Flask application on branch `feat/pocket-hockey-soccer`:
 - Environment: `DEFAULT_THEME=pocket_soccer`
 - Auto-deploy the branch. `/` opens football; `/hockey/` opens hockey.
 
-Verify `/api/v1/sports` reports engine `1.7.0`, both catalogue routes return
+Verify `/api/v1/sports` reports engine `1.7.1`, both catalogue routes return
 teams, and the browser can start a match after a successful deploy. The service
 needs no database, secrets, persistent disk or scheduled roster scraping.
 
@@ -214,3 +215,13 @@ ratings, pressure/fatigue/range/power, directional lead, misses at boundaries,
 fixed aerial flight, pure previews, CPU intent, hockey side parity, and network
 and replay metadata. Run the existing Gridiron and Pocket Sports suites as well
 as the Flask sports and hockey-room tests before publishing.
+
+## Soccer defensive control swap — engine 1.7.1
+
+Soccer A passes in possession and switches players off the ball, including
+during an opponent's restart. The separate center button is now CONTAIN: hold
+it while defending to stay goal-side, then release to move freely. Contain
+does not tackle. The default keyboard bindings are J for A (pass/switch) and
+Q for hold contain, and both remain remappable. The on-screen labels, restart
+prompt, controls help and settings reflect these jobs. Hockey's controls and
+soccer's attacking A pass, B tackle, X slide and Y keeper rush are unchanged.

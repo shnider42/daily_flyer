@@ -93,11 +93,7 @@ export class Input {
       (source) => this.releaseCharge(source),
       (source) => this.cancelShot(source),
     );
-    this.bind(
-      pass,
-      (source) => this.faceButton("pass", source),
-      (source) => this.releaseDefence("contain", source),
-    );
+    this.bind(pass, (source) => this.faceButton("pass", source));
     this.bind(lob, (source) => this.faceButton("lob", source));
     this.bind(
       through,
@@ -105,7 +101,11 @@ export class Input {
       (source) => this.releaseThrough(source),
       (source) => this.cancelThrough(source),
     );
-    this.bind(switcher, () => this.command("switch"));
+    this.bind(
+      switcher,
+      (source) => this.switchButton(source),
+      (source) => this.releaseDefence("contain", source),
+    );
     this.bind(
       sprint,
       () => (this.sprinting = true),
@@ -145,13 +145,14 @@ export class Input {
         this.faceButton("lob", "keyboard:lob");
       else if (e.code === settings.keys.through)
         this.faceButton("through", "keyboard:through");
-      else if (e.code === settings.keys.switch) this.command("switch");
+      else if (e.code === settings.keys.switch)
+        this.switchButton("keyboard:switch");
     });
     window.addEventListener("keyup", (e) => {
       this.keys.delete(e.code);
       if (e.code === settings.keys.shoot) this.releaseCharge("keyboard");
-      if (e.code === settings.keys.pass)
-        this.releaseDefence("contain", "keyboard:pass");
+      if (e.code === settings.keys.switch)
+        this.releaseDefence("contain", "keyboard:switch");
       if (e.code === settings.keys.through)
         this.releaseThrough("keyboard:through");
     });
@@ -278,14 +279,26 @@ export class Input {
       if (button === "pass") this.command("pass");
       return;
     }
+    // The match resolves A as a pass or a player switch, including restarts.
+    if (button === "pass") {
+      this.command("pass");
+      return;
+    }
     if (this.defending()) {
-      if (button === "pass") this.defensiveHolds.contain.add(source);
-      else if (button === "through")
+      if (button === "through")
         this.defensiveHolds.keeperRush.add(source);
       else if (button === "lob") this.command("slide");
       return;
     }
-    this.command(button === "pass" ? "ground" : button);
+    this.command(button);
+  }
+  switchButton(source) {
+    if (!this.active()) return;
+    if (this.footballControls()) {
+      if (this.defending()) this.defensiveHolds.contain.add(source);
+      return;
+    }
+    this.command("switch");
   }
   releaseDefence(action, source) {
     this.defensiveHolds[action].delete(source);

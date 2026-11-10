@@ -524,14 +524,14 @@ function showHelp(startAfter = false) {
     ? `<span class="help-action a">A</span> Ground pass<br><span class="help-action b">B</span> Hold, release to shoot<br><span class="help-action x">X</span> Lofted pass / cross<br><span class="help-action y">Y</span> Through ball into space`
     : `<span class="help-action a">A</span> Ground pass<br><span class="help-action b">B</span> Tap for a wrist shot; hold for a slap shot<br><span class="help-action x">X</span> Saucer pass over sticks<br><span class="help-action y">Y</span> Hold, then release for a high dump`;
   const defenceHelp = soccer
-    ? `Hold <span class="help-action a">A</span> to contain<br><span class="help-action b">B</span> Standing tackle<br><span class="help-action x">X</span> Sliding tackle<br>Hold <span class="help-action y">Y</span> to rush your keeper`
+    ? `<span class="help-action a">A</span> Switch player<br><span class="help-action b">B</span> Standing tackle<br><span class="help-action x">X</span> Sliding tackle<br>Hold <span class="help-action y">Y</span> to rush your keeper`
     : `<span class="help-action a">A</span> Switch skater, or call for a pass when locked<br><span class="help-action b">B</span> Body check<br><span class="help-action x">X</span> Poke check<br><span class="help-action y">Y</span> Hold for 3 seconds to challenge a nearby opponent`;
   modal(
     "FOUR BUTTONS. YOUR GAME.",
     soccer
       ? "Y on top. B right. A below. X left. The letters stay put; their jobs change with possession."
       : "Y on top. B right. A below. X left. Your own skater’s puck reach decides the action.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Point toward a teammate to choose a pass; the same stick adds lead in that direction. Ease the stick toward the middle for a pass closer to their feet. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>IN POSSESSION</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE ${soccer ? "BALL" : "PUCK"}</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : '<p>Reachable loose pucks count as playable. A teammate’s possession does not turn your own buttons into passes or shots.</p>'}</div><div class="help-card"><b>${soccer ? "SWITCH & SPRINT" : "YOUR SKATER"}</b><p>${soccer ? "Use the separate SWITCH button to choose your defender. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : "Switch skaters to run a team, or lock one skater in the lobby. In a lock, A asks an AI teammate for a pass. Hold BURST for speed; a little glide is part of skating."}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Steer to place it ahead, behind or across the runner. Y plays further into space along the ground. Hold B for power and aim as you release; steer across goal to choose a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and use SWITCH.</p>` : '<p class="dialog-subtitle help-note">Hold B for about half a second to wind up a slap shot. Aim with the stick as you release B or Y. Longer Y holds give a higher, longer dump; aiming it straight over the glass from your defensive zone brings a delay-of-game minor. Aim up ice or play it off the boards.</p><p class="dialog-subtitle">Off the puck, Y needs an uninterrupted three-second hold near an opponent. Human opponents accept by holding Y themselves; an AI can decline. Fighting brings matching majors. Penalty clocks are shortened for arcade matches; a locked skater stays in the box until released. No icing or offside yet.</p>'}<p class="dialog-subtitle help-note"><b>PLACEMENT &amp; ACCURACY</b> · The small cross marks your intended target; its letter matches the action button and its number is that player’s action rating. The shaded area shows room for error. Pressure, tired legs, awkward movement and long or powerful attempts widen it. Even a 99 can miss under pressure. See your lineup for Pass, ${soccer ? "Cross" : "Loft"} and Shot ratings. Turn aiming guides off in settings for a cleaner view.</p><p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${keyLabel(settings.keys.switch)} ${soccer ? "switches player" : "switches or calls"}; ${keyLabel(settings.keys.sprint)} ${soccer ? "sprints" : "bursts"}. Remap in settings.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Point toward a teammate to choose a pass; the same stick adds lead in that direction. Ease the stick toward the middle for a pass closer to their feet. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>IN POSSESSION</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE ${soccer ? "BALL" : "PUCK"}</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : '<p>Reachable loose pucks count as playable. A teammate’s possession does not turn your own buttons into passes or shots.</p>'}</div><div class="help-card"><b>${soccer ? "CONTAIN & SPRINT" : "YOUR SKATER"}</b><p>${soccer ? "Hold the separate CONTAIN button to stay goal-side while defending. Release it to move freely. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : "Switch skaters to run a team, or lock one skater in the lobby. In a lock, A asks an AI teammate for a pass. Hold BURST for speed; a little glide is part of skating."}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Steer to place it ahead, behind or across the runner. Y plays further into space along the ground. Hold B for power and aim as you release; steer across goal to choose a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and tap A to switch defenders.</p>` : '<p class="dialog-subtitle help-note">Hold B for about half a second to wind up a slap shot. Aim with the stick as you release B or Y. Longer Y holds give a higher, longer dump; aiming it straight over the glass from your defensive zone brings a delay-of-game minor. Aim up ice or play it off the boards.</p><p class="dialog-subtitle">Off the puck, Y needs an uninterrupted three-second hold near an opponent. Human opponents accept by holding Y themselves; an AI can decline. Fighting brings matching majors. Penalty clocks are shortened for arcade matches; a locked skater stays in the box until released. No icing or offside yet.</p>'}<p class="dialog-subtitle help-note"><b>PLACEMENT &amp; ACCURACY</b> · The small cross marks your intended target; its letter matches the action button and its number is that player’s action rating. The shaded area shows room for error. Pressure, tired legs, awkward movement and long or powerful attempts widen it. Even a 99 can miss under pressure. See your lineup for Pass, ${soccer ? "Cross" : "Loft"} and Shot ratings. Turn aiming guides off in settings for a cleaner view.</p><p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${soccer ? "Hold " : ""}${keyLabel(settings.keys.switch)} ${soccer ? "to contain while defending" : "switches or calls"}; ${keyLabel(settings.keys.sprint)} ${soccer ? "sprints" : "bursts"}. Remap in settings.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
@@ -595,7 +595,7 @@ function showSettings() {
         "",
       )}</div><div class="settings-group"><h3>YOUR KEYBOARD</h3><p class="settings-tip">Movement: WASD / arrows. Pause: P / Esc. Select an action, then press a key.</p>${[
       ["shoot", sport === "soccer" ? "B · Shoot / tackle" : "B · Shoot / hold slap shot / hit"],
-      ["pass", sport === "soccer" ? "A · Pass / hold contain" : "A · Pass / switch / call"],
+      ["pass", sport === "soccer" ? "A · Pass / switch player" : "A · Pass / switch / call"],
       ...(sport === "soccer"
         ? [
             ["lob", "X · Loft / cross / slide"],
@@ -603,7 +603,7 @@ function showSettings() {
           ]
         : [["lob", "X · Saucer pass / poke check"], ["through", "Y · Dump / hold to fight"]]),
       ["sprint", sport === "hockey" ? "Burst" : "Sprint"],
-      ["switch", "Switch player"],
+      ["switch", sport === "soccer" ? "Hold contain" : "Switch player"],
     ]
       .map(
         ([id, label]) =>
@@ -925,10 +925,10 @@ function hud() {
     : "";
   $("stamina").style.width = (game.user?.stamina || 0) * 100 + "%";
   if (sport === "soccer") {
-    if ($("switch").dataset.label !== "SWITCH") {
-      $("switch").dataset.label = "SWITCH";
-      $("switch").innerHTML = `SWITCH <kbd>${keyLabel(settings.keys.switch)}</kbd>`;
-      $("switch").setAttribute("aria-label", "Switch player");
+    if ($("switch").dataset.label !== "CONTAIN") {
+      $("switch").dataset.label = "CONTAIN";
+      $("switch").innerHTML = `CONTAIN <kbd>${keyLabel(settings.keys.switch)}</kbd>`;
+      $("switch").setAttribute("aria-label", "Hold to contain while defending");
     }
     const ownRestart = restart?.side === 0,
       attacking = ownRestart || (!restart && game.hasBall),
@@ -937,11 +937,11 @@ function hud() {
       crossing = attacking && game.canCross();
     setActionLabel(
       "pass",
-      attacking ? (throwIn ? "THROW" : "PASS") : "CONTAIN",
+      attacking ? (throwIn ? "THROW" : "PASS") : "SWITCH",
       attacking
         ? `A: ${throwIn ? "short throw" : "ground pass"}`
-        : "A: hold to contain",
-      available,
+        : "A: switch player",
+      game.phase === "play" || !!restart,
     );
     setActionLabel(
       "shoot",
@@ -1033,7 +1033,7 @@ function hud() {
       ? (game.nextSide === 1 ? game.teams[0].short : game.teams[1].short) +
         " GOAL!"
       : restart
-        ? `${restart.type} · ${game.teams[restart.side].short}\n${restart.side === 1 ? "Move to mark · SWITCH changes player" : restart.pending ? "Restart queued · Keep aiming" : game.phase === "restart" ? "Getting set · Tap A to queue" : "Aim with the stick · Tap A to " + (restart.type === "THROW-IN" ? "throw" : "pass")}`
+        ? `${restart.type} · ${game.teams[restart.side].short}\n${restart.side === 1 ? "Move to mark · A switches player" : restart.pending ? "Restart queued · Keep aiming" : game.phase === "restart" ? "Getting set · Tap A to queue" : "Aim with the stick · Tap A to " + (restart.type === "THROW-IN" ? "throw" : "pass")}`
         : game.message;
   const ev = game.events.filter((e) => (game.network ? e.networkId : e.time) > lastEvent);
   for (const e of ev) {

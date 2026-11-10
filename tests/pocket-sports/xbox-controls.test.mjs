@@ -102,10 +102,10 @@ function passFixture() {
   return { game, passer, receiver };
 }
 
-test("A makes a physical ground pass and never switches the defender", () => {
+test("A passes with possession and switches the defender without possession", () => {
   const { game, passer, receiver } = passFixture();
   const original = { x: receiver.x, y: receiver.y };
-  assert.equal(game.action("ground", { x: 0, y: -1 }), true);
+  assert.equal(game.action("pass", { x: 0, y: -1 }), true);
   assert.equal(game.ball.owner, null);
   assert.equal(game.ball.receiver, receiver.id);
   assert.equal(game.ball.passType, "ground");
@@ -119,8 +119,10 @@ test("A makes a physical ground pass and never switches the defender", () => {
   game.controlled = passer.id;
   giveBall(game, opponent);
   const passes = game.stats[0].passes;
-  game.action("ground", { x: 0, y: -1 });
-  assert.equal(game.controlled, passer.id, "defensive A must not inherit PASS's switch");
+  game.action("pass", { x: 0, y: -1 });
+  assert.notEqual(game.controlled, passer.id, "defensive A must choose another defender");
+  assert.equal(game.user.side, 0);
+  assert.equal(game.user.keeper, false);
   assert.equal(game.ball.owner, opponent.id);
   assert.equal(game.stats[0].passes, passes);
 });
@@ -307,7 +309,7 @@ function containFixture() {
   return { game, defender, opponent };
 }
 
-test("holding A positions a defender without tackling and release stops the assistance", () => {
+test("holding contain positions a defender without tackling and release stops the assistance", () => {
   const { game, defender, opponent } = containFixture();
   const startDistance = Math.hypot(defender.x - opponent.x, defender.y - opponent.y);
   advance(game, 1.2, { ...neutral, contain: true });
@@ -408,13 +410,19 @@ for (const [type, x, y] of restarts) {
   }
 }
 
-test("A does not switch or queue an attacking action during an opponent restart", () => {
+test("A switches defenders during an opponent restart without queuing an attacking action", () => {
   const game = match();
   game.restart("THROW-IN", 1, 0, 700);
   const controlled = game.controlled;
-  game.action("ground", { x: 0, y: -1 });
-  assert.equal(game.controlled, controlled);
+  const passes = game.stats[0].passes;
+  game.action("pass", { x: 0, y: -1 });
+  assert.notEqual(game.controlled, controlled);
+  assert.equal(game.user.side, 0);
+  assert.equal(game.user.keeper, false);
+  assert.equal(game.phase, "restart");
+  assert.equal(game.ball.owner, null);
   assert.equal(game.restartData.pending, null);
+  assert.equal(game.stats[0].passes, passes);
 });
 
 test("soccer-only buttons and defensive holds leave hockey behavior unchanged", () => {

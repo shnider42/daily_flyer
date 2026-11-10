@@ -28,7 +28,7 @@ import {
   hockeyReachable, hockeyBoundary, hockeyGoalPenalties,
 } from "../sports/hockey.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.7.0";
+export const ENGINE_VERSION = "1.7.1";
 export class Match {
   constructor({
     sport = "hockey",

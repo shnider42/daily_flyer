@@ -303,30 +303,39 @@ test("soccer face buttons send distinct grounded, lofted and through passes", ()
     els[button].fire("pointerup", { pointerId });
     els[button].fire("click", { detail: 1 });
   }
-  assert.deepEqual(actions.map(([name]) => name), ["ground", "lob", "through"]);
+  assert.deepEqual(actions.map(([name]) => name), ["pass", "lob", "through"]);
   assert.ok(actions.every(([, v]) => v.x > 0.9));
   assert.ok(i.vector().x > 0.9, "the moving thumb remains independent");
 });
 
-test("defensive A and Y hold separate actions without passing or switching", () => {
+test("defensive A switches once while separate contain and Y holds keep their own pointers", () => {
   const { i, els, actions } = fixture({
     input: { footballControls: () => true, defending: () => true },
   });
+  els.stick.fire("pointerdown", { pointerId: 1, pointerType: "touch", clientX: 90, clientY: 50 });
   els.pass.fire("pointerdown", { pointerId: 2, pointerType: "touch" });
-  els.through.fire("pointerdown", { pointerId: 3, pointerType: "touch" });
+  assert.deepEqual(actions.map(([name]) => name), ["pass"], "contextual A switches on the press edge");
+  assert.equal(i.vector().contain, false, "A must not also start contain");
+  els.switcher.fire("pointerdown", { pointerId: 3, pointerType: "touch" });
+  els.through.fire("pointerdown", { pointerId: 4, pointerType: "touch" });
   assert.equal(i.vector().contain, true);
   assert.equal(i.vector().keeperRush, true);
-  assert.equal(actions.length, 0);
-  els.pass.fire("pointerup", { pointerId: 3 });
-  els.through.fire("pointercancel", { pointerId: 2 });
-  assert.equal(i.vector().contain, true, "Y's finger cannot release A");
-  assert.equal(i.vector().keeperRush, true, "A's finger cannot cancel Y");
+  assert.equal(actions.length, 1, "contain and keeper rush are held input, not switch commands");
+  els.switcher.fire("pointerup", { pointerId: 4 });
+  els.through.fire("pointercancel", { pointerId: 3 });
+  assert.equal(i.vector().contain, true, "Y's finger cannot release contain");
+  assert.equal(i.vector().keeperRush, true, "contain's finger cannot cancel Y");
   els.pass.fire("pointerup", { pointerId: 2 });
+  els.pass.fire("lostpointercapture", { pointerId: 2 });
+  els.pass.fire("click", { detail: 1 });
+  assert.equal(actions.length, 1, "A release and compatibility click must not switch again");
+  els.switcher.fire("pointerup", { pointerId: 3 });
   assert.equal(i.vector().contain, false);
   assert.equal(i.vector().keeperRush, true);
-  els.through.fire("lostpointercapture", { pointerId: 3 });
+  els.through.fire("lostpointercapture", { pointerId: 4 });
   assert.equal(i.vector().keeperRush, false);
-  assert.equal(actions.length, 0);
+  assert.ok(i.vector().x > 0.9, "neither action may reset the movement thumb");
+  assert.equal(actions.length, 1);
 });
 
 test("defensive X slides on contact once rather than on release", () => {
@@ -345,7 +354,7 @@ test("winning possession cancels defensive holds without firing an attacking act
   const { i, els, actions } = fixture({
     input: { footballControls: () => true, defending: () => defence },
   });
-  els.pass.fire("pointerdown", { pointerId: 2 });
+  els.switcher.fire("pointerdown", { pointerId: 2 });
   els.through.fire("pointerdown", { pointerId: 3 });
   defence = false;
   i.syncShotContext();
@@ -354,12 +363,18 @@ test("winning possession cancels defensive holds without firing an attacking act
   defence = true;
   assert.equal(i.vector().contain, false, "a later turnover cannot revive an old hold");
   assert.equal(i.vector().keeperRush, false);
-  els.pass.fire("pointerup", { pointerId: 2 });
+  els.switcher.fire("pointerup", { pointerId: 2 });
   els.through.fire("pointerup", { pointerId: 3 });
   assert.equal(actions.length, 0);
   defence = false;
   els.pass.fire("pointerdown", { pointerId: 4 });
-  assert.equal(actions.at(-1)[0], "ground", "a fresh press uses current possession");
+  assert.equal(actions.at(-1)[0], "pass", "a fresh A press uses current possession");
+  els.switcher.fire("pointerdown", { pointerId: 5 });
+  assert.equal(i.vector().contain, false, "contain pressed in possession must do nothing");
+  defence = true;
+  assert.equal(i.vector().contain, false, "a hold begun in attack cannot arm itself on a later turnover");
+  els.switcher.fire("pointerup", { pointerId: 5 });
+  assert.equal(actions.length, 1, "the separate contain control must never send a switch action in soccer");
 });
 
 test("soccer defensive keyboard holds coexist with touches and ignore repeats", () => {
@@ -368,17 +383,20 @@ test("soccer defensive keyboard holds coexist with touches and ignore repeats", 
   });
   i.settings.keys.lob = "KeyL";
   i.settings.keys.through = "KeyI";
-  els.pass.fire("pointerdown", { pointerId: 2 });
+  els.switcher.fire("pointerdown", { pointerId: 2 });
+  window.fire("keydown", { code: "KeyQ" });
   window.fire("keydown", { code: "KeyJ" });
+  window.fire("keydown", { code: "KeyJ", repeat: true });
   window.fire("keydown", { code: "KeyI" });
   window.fire("keydown", { code: "KeyL" });
   window.fire("keydown", { code: "KeyL", repeat: true });
   assert.equal(i.vector().contain, true);
   assert.equal(i.vector().keeperRush, true);
-  assert.deepEqual(actions.map(([name]) => name), ["slide"]);
+  assert.deepEqual(actions.map(([name]) => name), ["pass", "slide"]);
   window.fire("keyup", { code: "KeyJ" });
+  window.fire("keyup", { code: "KeyQ" });
   assert.equal(i.vector().contain, true, "keyboard release preserves the touch hold");
-  els.pass.fire("pointerup", { pointerId: 2 });
+  els.switcher.fire("pointerup", { pointerId: 2 });
   assert.equal(i.vector().contain, false);
   window.fire("keyup", { code: "KeyI" });
   assert.equal(i.vector().keeperRush, false);
@@ -388,40 +406,40 @@ test("pausing or hiding cancels face-button holds and allows fresh presses", () 
   const { i, els, actions } = fixture({
     input: { footballControls: () => true, defending: () => true },
   });
-  els.pass.fire("pointerdown", { pointerId: 2 });
+  els.switcher.fire("pointerdown", { pointerId: 2 });
   els.through.fire("pointerdown", { pointerId: 3 });
   document.hidden = true;
   document.fire("visibilitychange");
   assert.equal(i.vector().contain, false);
   assert.equal(i.vector().keeperRush, false);
   document.hidden = false;
-  els.pass.fire("pointerup", { pointerId: 2 });
+  els.switcher.fire("pointerup", { pointerId: 2 });
   els.through.fire("pointerup", { pointerId: 3 });
   assert.equal(actions.length, 0);
-  els.pass.fire("pointerdown", { pointerId: 4 });
+  els.switcher.fire("pointerdown", { pointerId: 4 });
   assert.equal(i.vector().contain, true);
   i.clear();
   assert.equal(i.vector().contain, false);
 });
 
-test("leaving live defence for a restart invalidates old A and Y holds", () => {
+test("leaving live defence for a restart invalidates old contain and Y holds", () => {
   let live = true;
   const { i, els, actions } = fixture({
     input: { footballControls: () => true, defending: () => live },
   });
-  els.pass.fire("pointerdown", { pointerId: 2 });
+  els.switcher.fire("pointerdown", { pointerId: 2 });
   els.through.fire("pointerdown", { pointerId: 3 });
   live = false;
   i.syncShotContext();
   live = true;
   assert.equal(i.vector().contain, false);
   assert.equal(i.vector().keeperRush, false);
-  els.pass.fire("pointerup", { pointerId: 2 });
+  els.switcher.fire("pointerup", { pointerId: 2 });
   els.through.fire("pointerup", { pointerId: 3 });
   assert.equal(actions.length, 0);
 });
 
-test("hockey keeps its original pass action and ignores soccer-only buttons", () => {
+test("hockey keeps its original pass and separate switch actions and ignores soccer-only buttons", () => {
   const { i, els, actions } = fixture({
     input: { footballControls: () => false, defending: () => true },
   });
@@ -429,7 +447,9 @@ test("hockey keeps its original pass action and ignores soccer-only buttons", ()
     els[button].fire("pointerdown", { pointerId });
     els[button].fire("pointerup", { pointerId });
   }
-  assert.deepEqual(actions.map(([name]) => name), ["pass"]);
+  els.switcher.fire("pointerdown", { pointerId: 5 });
+  els.switcher.fire("pointerup", { pointerId: 5 });
+  assert.deepEqual(actions.map(([name]) => name), ["pass", "switch"]);
   assert.deepEqual(i.vector(), { x: 0, y: 0, sprint: false });
 });
 
