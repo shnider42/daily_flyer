@@ -772,6 +772,18 @@ export class Game {
     return this._ok({ body });
   }
 
+  /** A departure shortcut only for the hull already parked at this landing. */
+  quickLaunch() {
+    const s=this.state,body=this.system.bodies.find(value=>value.id===s.locationId);
+    if(s.mode!=='person'||s.interior||s.exploration||!body)return this._fail('Return outside to your ship’s landing before launching.','location');
+    if(s.person.health<=0||s.person.down)return this._fail('You are incapacitated and cannot launch.','incapacitated');
+    if(s.pendingEncounter)return this._fail('Finish this conversation before launching.','encounter');
+    if(s.ship.destroyed||s.ship.hull<=0)return this._fail('Your ship is no longer intact.','destroyed');
+    if(s.boarding?.phase==='active'||this._hitTimer>0||this.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,s.ship)<700))return this._fail('Resolve the immediate attack before using the departure shortcut.','combat');
+    if(body.landable===false||distance(s.ship,body)>body.radius+155)return this._fail('Your ship must be parked at this landing to launch from here.','location');
+    return this.launch();
+  }
+
   _discoverNear(id) {
     const source = this.galaxy.find(s => s.id === id);
     if (!source) return;
@@ -1063,6 +1075,23 @@ export class Game {
     return this._enterInterior(this._cabinLocation(), 'ship');
   }
   exitCabin() { return this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
+  /** Move to the helm within the occupied cabin, never to a different hull. */
+  quickHelm() {
+    const s=this.state,interior=s.interior,person=s.person;
+    if(s.mode!=='person'||s.exploration||!['ship','enemy'].includes(interior?.kind))return this._fail('You must be aboard a ship’s crew deck to take its helm.','mode');
+    if(person.health<=0||person.down)return this._fail('You are incapacitated and cannot take the helm.','incapacitated');
+    if(s.pendingEncounter)return this._fail('Finish this conversation before taking the helm.','encounter');
+    if(s.boarding?.phase==='active')return this._fail('Clear the hostile boarders before taking the helm.','boarding');
+    const captured=interior.kind==='enemy',target=captured?this.system.enemies.find(enemy=>enemy.id===s.boarding?.targetId&&enemy.hp>0):s.ship;
+    if(!target||target.destroyed||(captured?target.hp:target.hull)<=0)return this._fail('The ship you are aboard is no longer intact.','destroyed');
+    if(interior.location?.vesselId&&interior.location.vesselId!==target.id)return this._fail('This helm belongs to a different vessel.','vessel');
+    if(captured&&(s.boarding?.kind!=='assault'||s.boarding.phase!=='won'||!target.deck?.cleared))return this._fail('Clear this vessel’s defenders before claiming its helm.','boarding');
+    const pose={x:person.x,y:person.y},helm=cabinLayout(target.classId).stations.helm;
+    Object.assign(person,{x:helm.x,y:helm.y});
+    const result=captured?this.takeCapturedHelm():this.exitCabin();
+    if(!result.ok)Object.assign(person,pose);else Object.assign(person,{facing:'up',moving:false});
+    return result;
+  }
   boardDerelict(signalId) {
     if (this.state.mode !== 'ship') return this._fail('Approach the derelict in your ship first.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');

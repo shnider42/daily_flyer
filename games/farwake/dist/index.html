@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
-<meta name="application-version" content="0.5.1">
+<meta name="application-version" content="0.5.2">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css"><link rel="stylesheet" href="./character.css"><link rel="stylesheet" href="./narrative.css">
 </head>
@@ -10,7 +10,7 @@
 <div id="app" class="app">
 <header class="topbar">
  <a class="wordmark" href="./" aria-label="Farwake home"><span class="brand-icon">✦</span>FARWAKE</a>
- <div class="mode-pill" id="modePill"><i></i><span>SHIP MODE</span></div>
+ <button class="mode-pill perspective-button" id="modePill" type="button" hidden aria-label="Walk deck — enter person mode" title="Walk around the ship you are piloting"><i aria-hidden="true"></i><span id="perspectiveLabel">Walk deck</span><span class="perspective-arrow" aria-hidden="true">⇄</span><small class="perspective-test-tag" aria-hidden="true">TEST</small></button>
  <nav class="desktop-nav" aria-label="Ship computer"><button data-open="galaxy">Starmap <kbd>M</kbd></button><button data-open="journal">Log <kbd>J</kbd></button><button data-open="ship">Ship <kbd>I</kbd></button></nav>
  <button id="onlineButton" data-open="online" class="network-button"><i></i><span id="networkLabel">CREW</span></button>
  <button id="viewButton" class="view-button" aria-label="Camera zoom and screen layout" aria-controls="viewPanel" aria-expanded="false"><span aria-hidden="true">⊖</span> View</button>

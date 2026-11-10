@@ -1,12 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.5.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.5.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Direct perspective controls · 0.5.2
+
+A persistent action button replaces the passive perspective label. **Walk deck** enters the current ship; **Take helm** returns to piloting it from anywhere on a cleared crew deck. At an outdoor landing, **Return to ship** uses the actual locally parked permitted vessel and launches. A docked crew deck shows **Launch ship**. Sites and active boarding keep their physical entrances and tether rules; the shortcut marks the required exit and explains what is blocking it.
+
+Mobile gameplay places this button at the top left beside **View** and **Menu**, using the old Crew slot. **Menu → Crew** retains the multiplayer and boarding controls. The floating layout keeps its world space, scales with text settings, and supports narrow portrait and short landscape screens. Practice retains a compact **TEST** badge; exercise controls remain in Menu. Desktop uses the same direct action in the former mode badge position.
+
+Shared commands determine the occupied or parked hull on the server. A visitor with helm access pilots that friend's ship, while another pilot's station, active boarders, contested control, incapacity, and capture requirements remain enforced. Cleared prize ships use their own helm and normal port departure. Switching preserves live hull momentum, damage, and identity; movement and fire inputs clear before and after an acknowledgement. Repeated taps wait for the first command, and failed actions restore availability with an explanation. Each perspective retains its own saved camera setting. Simple guidance teaches the helm button through two confirmed uses.
 
 ## Quiet lanes, physical encounters · 0.5.1
 

@@ -197,6 +197,22 @@ test('an active assault permits an instructed retreat only through a reachable a
   assert.notEqual(guide.update({...ctx,intent:'helm',boarding:{...ctx.boarding,atHelm:true}})?.successAction,'take-helm');
 });
 
+test('quick helm guidance highlights the persistent shortcut and stops after two confirmed uses',()=>{
+  for(const device of ['touch','keyboard']){
+    const guide=new GuidanceController(),ctx=person({device,locationId:'own-ship',helm:{available:true,quick:true,near:false,label:'Take helm'}});walked(guide,ctx,2);
+    const prompt=guide.update(ctx);assert.equal(prompt.successAction,'take-helm');assert.equal(prompt.controlTarget,'modePill');
+    assert.deepEqual(prompt.action,{type:'highlight',target:'modePill'});
+    assert.match(prompt.body,device==='touch'?/Tap Take helm at the top/:/Click Take helm at the top/);
+    assert.match(prompt.body,/same ship.*current motion, crew, and damage/);assert.doesNotMatch(prompt.body,/walk to the bridge|Press E|USE HELM/i);
+    for(let n=0;n<5;n++)guide.update(ctx);assert.equal(guide.count('take-helm'),0);
+    assert.equal(guide.record({action:'take-helm',id:'unconfirmed'},ctx),false);
+    success(guide,'take-helm',ctx);
+    const next={...ctx,vesselId:'second-hull'};assert.equal(guide.update(next).attempt,2);
+    success(guide,'take-helm',next);assert.equal(guide.count('take-helm'),2);
+    assert.equal(guide.update({...next,vesselId:'third-hull'}),null);
+  }
+});
+
 test('crew boarding requires actual permission and owner management never silently grants it',()=>{
   const guide=new GuidanceController(),ctx=ship({intent:'crew',shared:{id:'friend',name:'Lantern',ownerName:'Sol',permissionNeeded:true,canBoard:false,inRange:true}});flew(guide,ctx,2);
   const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Ask Sol/);assert.equal(ask.controlTarget,'onlineButton');
@@ -206,6 +222,14 @@ test('crew boarding requires actual permission and owner management never silent
   assert.equal(guide.update(allowed).id,'board-friend:approach');
   assert.equal(guide.update({...allowed,shared:{...allowed.shared,inRange:true}}).id,'board-friend');
   assert.equal(guide.count('crew-permission'),0);assert.equal(guide.count('board-friend'),0);
+});
+
+test('touch crew guidance points visitors and owners to Menu → Crew',()=>{
+  const guide=new GuidanceController(),ctx=ship({device:'touch',intent:'crew',shared:{id:'friend',name:'Lantern',ownerName:'Sol',permissionNeeded:true,canBoard:false,inRange:true}});flew(guide,ctx,2);
+  const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Menu → Crew shows the current access/);
+  const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});
+  assert.match(manage.body,/Open Menu → Crew/);assert.match(manage.compactBody,/Menu → Crew/);
+  assert.equal(guide.count('crew-permission'),0,'Reading the menu instructions never grants access.');
 });
 
 test('dismissal hides only the current tip; repeat restores it without credit or obsolete cross-mode instructions',()=>{

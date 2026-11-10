@@ -390,12 +390,59 @@ export class Realm extends BoardingAuthority {
     return ok({ ...values() });
   }
 
+  _quickHelm(c) {
+    const game=c.game,s=game.state,person=s.person,vessel=this.vessels.get(c.aboard);
+    if(s.mode!=='person'||s.exploration||!['ship','enemy'].includes(s.interior?.kind)||!vessel||vessel.systemId!==s.systemId)return fail('You must be aboard this ship’s crew deck to take its helm.','mode');
+    if(person.health<=0||person.down)return fail('You are incapacitated and cannot take the helm.','incapacitated');
+    if(s.pendingEncounter)return fail('Finish this conversation before taking the helm.','encounter');
+    if(vessel.destroyed||vessel.ship.destroyed||vessel.ship.hull<=0)return fail('The ship you are aboard is no longer intact.','destroyed');
+    if(s.interior.location?.vesselId&&s.interior.location.vesselId!==vessel.id)return fail('This helm belongs to a different vessel.','vessel');
+    if(vessel.boarding?.phase==='active'||vessel.pvp?.phase==='active'||vessel.occupation?.contested)return fail('Resolve the boarding action before taking the helm.','boarding');
+    const captured=s.interior.kind==='enemy'||!!(c.boardingTeam&&this._captainTeam(c,vessel)!==vessel.ownerId);
+    if(captured?!this._canTakeCapturedHelm(c,vessel):!this._canRole(c,vessel,'helm'))return fail(captured?'Clear this vessel’s defenders before claiming its helm.':'The owner has not granted you the helm.',captured?'boarding':'permission');
+    const previous=this.captains.get(vessel.helmOwner);
+    if(vessel.helmOwner&&vessel.helmOwner!==c.id&&(captured||!previous||previous.session||previous.disconnectUntil>now()))return fail('Another captain holds the helm.','station-occupied');
+    const helm=this._surface(c)?.entities.find(entity=>!entity.hidden&&entity.data?.stationRole==='helm');
+    if(!helm)return fail('This deck has no usable helm.','location');
+    const pose={x:person.x,y:person.y};
+    Object.assign(person,{x:helm.x,y:helm.y});
+    // An already controlled prize at a port must use the normal departure path.
+    const claim=captured&&!(vessel.dockedAt&&vessel.occupation?.controllerId===c.id);
+    const result=claim?this._takeCapturedHelm(c):this._crewCommand(c,'takeStation',{role:'helm',entityId:helm.id});
+    if(!result.ok)Object.assign(person,pose);
+    else{person.moving=false;c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}
+    return result;
+  }
+
+  _quickLaunch(c) {
+    const game=c.game,s=game.state,person=s.person,body=game.system.bodies.find(value=>value.id===s.locationId);
+    if(s.mode!=='person'||s.interior||s.exploration||c.aboard||!body)return fail('Return outside to your ship’s landing before launching.','location');
+    if(person.health<=0||person.down)return fail('You are incapacitated and cannot launch.','incapacitated');
+    if(s.pendingEncounter)return fail('Finish this conversation before launching.','encounter');
+    const vessel=this.vessels.get(c.portVesselId||c.ownedVesselId);
+    if(!vessel||vessel.systemId!==s.systemId||vessel.dockedAt!==body.id||body.landable===false||distance(vessel.ship,body)>body.radius+155)return fail('Your permitted vessel must be parked at this landing.','location');
+    if(vessel.destroyed||vessel.ship.destroyed||vessel.ship.hull<=0)return fail('Your ship is no longer intact.','destroyed');
+    if(!this._canRole(c,vessel,'helm'))return fail('The owner has not granted you the helm.','permission');
+    if(vessel.helmOwner&&vessel.helmOwner!==c.id)return fail('Another captain holds the helm.','station-occupied');
+    if(vessel.boarding?.phase==='active'||vessel.pvp?.phase==='active'||vessel.occupation?.contested||vessel.npcOccupied||this._hostileOccupied(vessel)&&vessel.occupation?.controllerId!==c.id||this._inCombat(vessel)||vessel.actor?._hitTimer>0||game.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,vessel.ship)<700))return fail('Resolve the immediate attack before using the departure shortcut.','combat');
+    const exit=this._surface(c)?.entities.find(entity=>!entity.hidden&&entity.type==='exit'&&!entity.data?.stationRole);
+    if(!exit)return fail('There is no departure point at this landing.','location');
+    const pose={x:person.x,y:person.y};
+    Object.assign(person,{x:exit.x,y:exit.y});
+    const result=this._command(c,'launch',{vesselId:vessel.id});
+    if(!result.ok)Object.assign(person,pose);
+    else{person.moving=false;c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}
+    return result;
+  }
+
   _command(c, name, a) {
     if (name === 'setCameraPreferences') return this._setCameraPreferences(c, a);
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
     if(owned)owned.ship.humanOccupants=Math.max(1,[...this.captains.values()].filter(other=>other.aboard===owned.id).length);
     const id = a.id ?? a.systemId ?? a.bodyId ?? a.signalId;
     if (game.state.person.health <= 0 && !['renameCaptain', 'setCrewAccess'].includes(name)) return fail('You are incapacitated. Your crew can still clear the deck.', 'incapacitated');
+    if (name === 'quickHelm') return this._quickHelm(c);
+    if (name === 'quickLaunch') return this._quickLaunch(c);
     if (name === 'declareHostility') return this._declareHostility(c, a);
     if (name === 'boardHostileShip') return this._boardHostileShip(c, a);
     if (name === 'takeCapturedHelm') return this._takeCapturedHelm(c);
@@ -800,10 +847,10 @@ export class Realm extends BoardingAuthority {
       sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null };
   }
   _publicVessel(vessel, viewer) {
-    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard);
+    const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard), helmsman = this.captains.get(vessel.helmOwner);
     return { id: vessel.id, ownerId: vessel.ownerId, ownerName: owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt,
       ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius', 'renderLength', 'renderWidth'].map(key => [key, vessel.ship[key]])),
-      allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks,
+      allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, helmOccupied: !!vessel.helmOwner && (!helmsman || !!helmsman.session || helmsman.disconnectUntil > now()), berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, installedBunks: vessel.installedBunks,
       bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), destroyed: !!vessel.destroyed,
       disabled: !vessel.destroyed && vessel.ship.hull <= vessel.ship.maxHull * .48 && vessel.ship.shield <= vessel.ship.maxShield * .2,
       hostile: this._shipsHostile(source, vessel), occupation: clone(vessel.occupation || null), npcHostile: !!vessel.npcHostile, captured: !!vessel.captured,

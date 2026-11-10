@@ -20,7 +20,7 @@ export const GUIDANCE_ACTIONS=Object.freeze([
 ]);
 export const GUIDANCE_CONTROL_TARGETS=Object.freeze({
   move:'stick',flight:'stick',strafe:'aimStick',aim:'aimStick',fire:'fireButton',
-  brake:'brakeButton',mine:'mineButton',use:'contextButton',crew:'onlineButton',weapon:'weaponState'
+  brake:'brakeButton',mine:'mineButton',use:'contextButton',crew:'onlineButton',weapon:'weaponState',perspective:'modePill'
 });
 const ACTIONS=new Set(GUIDANCE_ACTIONS);
 const CONTROL_ACTIONS=new Set(['flight-thrust','flight-turn','flight-strafe','flight-brake','ship-fire','person-move','person-aim','person-fire','person-hit']);
@@ -220,7 +220,7 @@ export class GuidanceController {
       if((near.type==='jobboard'||job.nearBoard)&&!job.accepted&&!job.ready&&this._eligible('job-accept',ctx,forced))return descriptor('job-accept','Choose a local job',
         ctx.menu==='jobs'||ctx.dialogKind==='jobs'?'Choose a local contract and select Accept. Its objective will show what to do next.':`${useInstruction(ctx)} to open the contract exchange and see the work available here.`,
         ctx.menu==='jobs'||ctx.dialogKind==='jobs'?'Accept a local contract.':`${control(ctx,'use')} · Open the contract exchange.`,'use');
-      if((ctx.helm?.available||near.data?.stationRole==='helm'||near.stationRole==='helm')&&(ctx.helm?.near||near.data?.stationRole==='helm'||near.stationRole==='helm'||intent==='helm'))return this._helm(ctx,forced);
+      if((ctx.helm?.available||near.data?.stationRole==='helm'||near.stationRole==='helm')&&(ctx.helm?.quick||ctx.helm?.near||near.data?.stationRole==='helm'||near.stationRole==='helm'||intent==='helm'))return this._helm(ctx,forced);
       if(['npc','crew','mechanic','medic','merchant'].includes(near.type)&&this._eligible('person-use',ctx,forced))return descriptor('person-use',`Talk to ${name||'this person'}`,
         `${useInstruction(ctx,'TALK')} while standing close to ${name||'them'}. Choose a reply in the conversation.`,`${touch?text(near.controlLabel,'TALK'):control(ctx,'use')} · Talk to ${name||'this person'}.`,'use');
       if(['siteEntrance','siteExit','siteRecord','siteCache','siteChoice'].includes(near.type)&&this._eligible('person-use',ctx,forced))return descriptor('person-use',text(near.controlLabel,'Explore this place'),
@@ -240,8 +240,8 @@ export class GuidanceController {
     const shared=ctx.shared;
     if(shared&&(intent==='crew'||near.type==='shared-ship'||shared.permissionNeeded)){
       if(shared.permissionNeeded&&!shared.canBoard&&this._eligible('crew-permission',ctx,forced))return descriptor('crew-permission',shared.canManageCrew?'Choose crew access':'Crew access is required',
-        shared.canManageCrew?'Open CREW, choose the captain you want aboard, and review their access before granting it.':`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. CREW shows the current access; boarding becomes available after approval.`,
-        shared.canManageCrew?'CREW · Review access for the intended captain.':'Ask the owner for boarding permission.','crew');
+        shared.canManageCrew?`Open ${touch?'Menu → Crew':'CREW'}, choose the captain you want aboard, and review their access before granting it.`:`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. ${touch?'Menu → Crew':'CREW'} shows the current access; boarding becomes available after approval.`,
+        shared.canManageCrew?`${touch?'Menu → Crew':'CREW'} · Review access for the intended captain.`:'Ask the owner for boarding permission.','crew');
       if(shared.canBoard===true&&this._eligible('board-friend',ctx,forced))return descriptor('board-friend',shared.inRange===false?'Meet your crew’s ship':'Board with permission',
         shared.inRange===false?`Approach ${text(shared.name,'the permitted ship')} slowly, or meet it at the same port.`:`${touch?'Tap the ship contact':'Press E at the ship contact'} and choose Board with permission. Your own hull remains behind.`,
         shared.inRange===false?'Approach the permitted ship at low speed.':'Open this contact and choose Board with permission.',shared.inRange===false?'flight':'use',{id:shared.inRange===false?'board-friend:approach':'board-friend'});
@@ -303,6 +303,9 @@ export class GuidanceController {
   }
   _helm(ctx,forced) {
     if(!this._eligible('take-helm',ctx,forced)||ctx.boarding?.phase==='active'||ctx.boarding?.canTakeHelm===false||ctx.helm?.available===false)return null;
+    if(ctx.helm?.quick){const label=text(ctx.helm.label,'Take helm');return descriptor('take-helm','Return to ship view',
+      `${ctx.device==='touch'?'Tap':'Click'} ${label} at the top of the screen. You will pilot this same ship with its current motion, crew, and damage.`,
+      `${ctx.device==='touch'?'Tap':'Click'} ${label} at the top to fly this ship.`,'perspective',{id:'take-helm'});}
     const at=ctx.boarding?.atHelm||ctx.helm?.near||ctx.nearby?.stationRole==='helm'||ctx.nearby?.data?.stationRole==='helm';
     return descriptor('take-helm',at?'Take this ship’s helm':'Walk to the bridge',
       at?`${useInstruction(ctx,'USE HELM')} at the helm and choose Take the helm. You will pilot this physical hull with its existing damage.`:'Walk to the bridge helm. A secured deck gives you a place to take command of this hull.',
