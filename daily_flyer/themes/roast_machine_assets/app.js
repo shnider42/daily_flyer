@@ -14,18 +14,17 @@
   const engine = window.RoastMachine;
   const fields = ["personality", "job", "hobby", "chat", "style", "habit", "occasion", "heat"];
   const heatDescriptions = {
-    mild: "Mild: a little toast, plenty of affection.",
-    medium: "Medium: a few bruises to the ego.",
-    savage: "Savage: the ego is on its own."
+    mild: "Mild: gentle teasing.",
+    medium: "Medium: sharper jokes.",
+    savage: "Savage: the harshest jokes."
   };
   const heatLabels = { mild: "Mild", medium: "Medium", savage: "Savage" };
   let lastResult = null;
   let roastNumber = 0;
-  let animationTimer = null;
   let copyTimer = null;
 
   if (!engine || typeof engine.generate !== "function" || !Array.isArray(engine.fields)) {
-    $("rm-form-status").textContent = "The machine didn't load. Please refresh and try again.";
+    $("rm-form-status").textContent = "Couldn't load the generator. Refresh and try again.";
     return;
   }
 
@@ -88,7 +87,7 @@
       result = engine.generate(inputs, { previous: lastResult ? lastResult.text : "" });
       if (!result || !Array.isArray(result.paragraphs) || !result.paragraphs.length || !result.text) throw new Error("Empty roast");
     } catch (error) {
-      $("rm-form-status").textContent = "The machine jammed. Try again with a shorter note.";
+      $("rm-form-status").textContent = "Couldn't make a roast. Try again with a shorter note.";
       return;
     }
 
@@ -114,12 +113,6 @@
     $("rm-form-status").textContent = "Roast ready.";
     $("rm-output-status").textContent = "Roast " + roastNumber + " for " + (result.name || inputs.name) + " is ready.";
 
-    const printer = $("rm-printer");
-    printer.classList.remove("rm-printing");
-    void printer.offsetWidth;
-    printer.classList.add("rm-printing");
-    window.clearTimeout(animationTimer);
-    animationTimer = window.setTimeout(() => printer.classList.remove("rm-printing"), 450);
     $("rm-receipt").focus({ preventScroll: true });
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     $("rm-output-label").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
@@ -168,7 +161,7 @@
     $("rm-receipt-heat").textContent = "Ready";
     $("rm-receipt").setAttribute("aria-labelledby", "rm-receipt-title");
     $("rm-form-status").textContent = "";
-    $("rm-output-status").textContent = "Machine cleared.";
+    $("rm-output-status").textContent = "Cleared.";
     window.clearTimeout(copyTimer);
     $("rm-copy-label").textContent = "Copy roast";
     $("rm-name").focus();

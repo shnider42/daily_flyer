@@ -19,14 +19,14 @@ ASSETS = Path(__file__).with_name("roast_machine_assets")
 THEME_CONFIG = {
     "page_title": "Roast Machine",
     "header_title": "Roast Machine",
-    "header_subtitle": "A name. A few questionable habits. A freshly printed roast.",
+    "header_subtitle": "Choose a few habits and make a roast.",
     "footer_text": "A DailyFlyer original. Names and details stay in this tab.",
 }
 
 # The shared renderer is intentionally unchanged. Remove its card chrome only
 # in this theme, then apply the same stylesheet used by the standalone site.
 _WRAPPER_CSS = """
-body { margin: 0; background: #211e1e; min-height: 100vh; }
+body { margin: 0; background: #f7f4ef; min-height: 100vh; }
 body::before, body::after, .site-bg { display: none; }
 .page-shell > .hero-wrap, .page-shell > footer { display: none; }
 .page-shell > main { display: block; width: 100%; max-width: none; padding: 0; margin: 0; }
@@ -59,7 +59,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     # inline. The independent static build uses the stricter external-only CSP
     # in index.html. Neither delivery path permits network calls from the app.
     head = (
-        '<meta name="description" content="Pick the habits. Set the heat. Print a personalized roast.">'
+        '<meta name="description" content="Choose a name, a few habits, and a heat level to make a personalized roast.">'
         '<meta name="robots" content="noindex, nofollow">'
         '<meta name="referrer" content="no-referrer">'
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '

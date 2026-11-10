@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#211e1e">
+  <meta name="theme-color" content="#f7f4ef">
   <meta name="description" content="Pick a few habits, add a name, and make a roast.">
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
@@ -16,7 +16,6 @@
     <a class="rm-skip" href="#rm-name">Skip to the form</a>
     <header class="rm-masthead">
       <h1 id="rm-title">Roast Machine</h1>
-      <p>Pick a few habits. Hit ROAST.</p>
     </header>
 
     <main class="rm-main">
@@ -29,7 +28,7 @@
               <p id="rm-name-error" class="rm-error" hidden></p>
             </div>
 
-            <div class="rm-traits-header"><h2>Traits</h2><p>Skip anything that doesn't fit.</p></div>
+            <p class="rm-traits-help">Choose what fits. The dropdowns are optional.</p>
             <div class="rm-select-grid" id="rm-select-grid">
               <div class="rm-field"><label for="rm-personality">Personality</label><select id="rm-personality" name="personality"><option value="">Leave this out</option></select></div>
               <div class="rm-field"><label for="rm-job">Day job</label><select id="rm-job" name="job"><option value="">Leave this out</option></select></div>
@@ -40,7 +39,7 @@
               <div class="rm-field"><label for="rm-occasion">Occasion</label><select id="rm-occasion" name="occasion"><option value="just_because">Just because</option></select></div>
               <div class="rm-field rm-heat-field"><label for="rm-heat">Heat</label><select id="rm-heat" name="heat" aria-describedby="rm-heat-description"><option value="mild">Mild</option><option value="medium" selected>Medium</option><option value="savage">Savage</option></select></div>
             </div>
-            <p class="rm-heat-description" id="rm-heat-description">Medium: a few bruises to the ego.</p>
+            <p class="rm-heat-description" id="rm-heat-description">Medium: sharper jokes.</p>
 
             <div class="rm-notes-field">
               <div class="rm-notes-label"><label for="rm-details">Details <span>(optional)</span></label><span id="rm-count" aria-hidden="true">0 / 600</span></div>
@@ -54,23 +53,17 @@
         </section>
 
         <section class="rm-output-panel" aria-labelledby="rm-output-label">
-          <div class="rm-output-rule"><h2 id="rm-output-label">Your roast</h2><span class="rm-batch" id="rm-batch">No. 000</span></div>
-          <div class="rm-printer" id="rm-printer">
-            <div class="rm-printer-top" aria-hidden="true"><span class="rm-slot"></span></div>
+          <div class="rm-output-rule"><h2 id="rm-output-label">Roast</h2><span id="rm-receipt-heat" class="rm-heat-summary"></span><span id="rm-batch" hidden>No. 000</span></div>
+          <div id="rm-printer">
             <div class="rm-receipt" id="rm-receipt" tabindex="-1" aria-labelledby="rm-receipt-title">
-              <div class="rm-receipt-heading"><span>ROAST MACHINE</span><span id="rm-receipt-heat">Ready</span></div>
               <div class="rm-empty" id="rm-empty">
-                <h2 id="rm-receipt-title">Nothing yet.</h2>
-                <p>Fill in the form and press ROAST.<br>We'll print it here.</p>
+                <p id="rm-receipt-title">Your roast will appear here.</p>
               </div>
               <div class="rm-result" id="rm-result" hidden>
-                <p class="rm-recipient-label">For:</p>
                 <h2 id="rm-target-name"></h2>
                 <div id="rm-roast-text" class="rm-roast-text"></div>
               </div>
-              <div class="rm-receipt-footer"><span>End of roast</span></div>
             </div>
-            <div class="rm-printer-bottom" aria-hidden="true"></div>
           </div>
           <p id="rm-detail-note" class="rm-detail-note" hidden></p>
           <div class="rm-result-actions" id="rm-result-actions" hidden>

@@ -17,6 +17,10 @@ a ROAST button. The dropdowns cover personality, day job, hobby, group chat,
 style, habit, occasion, and heat. Trait dropdowns can be left empty. The result
 can be regenerated or copied. Names and input details remain in tab memory.
 
+The visual design is a simple warm-white page with ink text, a restrained red
+button, native form controls, and an open reading area. The earlier printer,
+receipt, and decorative machine effects have been removed.
+
 The generator combines an authored joke bank, selected traits, cross-category
 callbacks, and recognized everyday details. It is a local text generator, not
 a remote AI service, and does not claim to understand arbitrary prose. The
