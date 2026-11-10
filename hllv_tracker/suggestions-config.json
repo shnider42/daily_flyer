@@ -2,12 +2,13 @@
   "enabled": true,
   "supabase_url": "https://uwbhjgvpaetrhfvcpvsg.supabase.co",
   "publishable_key": "sb_publishable_S_ZARhEa6AK4BJyG6_Lhmw_tsCUFOn5",
-  "participant_contact": "",
-  "retention_notice": "",
+  "participant_contact": "chris@holtsnidertech.com",
+  "retention_notice": "Withdrawal hides public submissions. Saved text, prior wording, private conversations, and history remain until the operator removes them. Provider logs and any backups have separate retention. Read the privacy policy or email the operator to make a request.",
   "policy_version": "community-v1",
   "connection_mode": "community",
   "community_enabled": true,
   "account_registration": "self_service",
   "approval_mode": "site_moderator",
-  "email_verification_required": true
+  "email_verification_required": true,
+  "privacy_policy_url": "./privacy.html"
 }

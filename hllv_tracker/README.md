@@ -2,6 +2,10 @@
 
 A public evidence ledger for Hell Let Loose: Vietnam bugs, features, changing functionality and moderated community ideas.
 
+## Privacy policy
+
+`/privacy.html` describes Infierno Liberado's account and community data, public visibility, providers and storage, browser preferences and sessions, retention, and manual privacy requests. It is linked from the shared footer, the community disclosure, and the registration/submission acknowledgments. Form links open in a new tab so reading the policy preserves unsaved input. The policy applies only to Infierno Liberado. Its source and maintenance instructions are in `.github/hllv-privacy/`; publish deliberate changes with `python .github/hllv-privacy/publish.py`. The account/database submission policy identifier remains `community-v1`.
+
 ## Features & changes
 
 The `#features` section tracks current behavior separately from a feature's latest
