@@ -7,6 +7,7 @@ import { WebSocketServer } from 'ws';
 import { Realm } from './realm.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
 import { FixedStepClock } from './timing.mjs';
+import { PRIVACY_EXPORT_VERSION, RequestRateLimits, validExportPassport, authenticateExport, createPrivacyExport } from './privacy.mjs';
 import { PROTOCOL_VERSION, SIMULATION_HZ, INPUT_HZ, SNAPSHOT_HZ, MAX_ONLINE, newRealmCode, validRealmCode, normaliseRealmCode, cleanName, RateLimit, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
@@ -50,7 +51,7 @@ async function readJson(request, limit = 16384) {
 /** Starts an HTTP/static/WebSocket authority; tests supply a temporary persistence adapter. */
 export async function startServer({ port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0', persistence = persistenceFromEnvironment(), staticDir = path.resolve(directory, '../dist'), allowedOrigins = (process.env.FARWAKE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean), flushIntervalMs = 7000, snapshotHz = SNAPSHOT_HZ, heartbeatIntervalMs = 15000 } = {}) {
   await persistence.ping();
-  const manager = new RealmManager(persistence), sockets = new Set(), rates = new Map();
+  const manager = new RealmManager(persistence), sockets = new Set(), rates = new RequestRateLimits();
   const started = Date.now(); let closing = false, tick = 0;
   const clock = new FixedStepClock({ hz: SIMULATION_HZ, now: performance.now() });
   const configuredOrigins = new Set(allowedOrigins);
@@ -61,7 +62,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     const hostHeader = request.headers.host;
     return origin === `http://${hostHeader}` || origin === `https://${hostHeader}`;
   }
-  function rateFor(request) { const key = request.socket.remoteAddress || 'local'; if (!rates.has(key)) rates.set(key, new RateLimit(2, 40)); if (rates.size > 5000) rates.delete(rates.keys().next().value); return rates.get(key); }
+  const withinRate = (request, purpose = 'realm') => rates.take(request.socket.remoteAddress || 'local', purpose);
   const server = http.createServer(async (request, response) => {
     response.setHeader('x-content-type-options', 'nosniff'); response.setHeader('referrer-policy', 'same-origin');
     if (!originAllowed(request)) return json(response, 403, { ok: false, reason: 'This web origin is not allowed to use the multiplayer service.' });
@@ -72,10 +73,33 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       const storageHealthy = [...manager.realms.values()].every(realm => !realm.storageError);
       return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0) });
     }
-    if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz });
+    if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz, privacyExportVersion: PRIVACY_EXPORT_VERSION });
+    if (pathname === '/api/privacy/export') {
+      if (request.method !== 'POST') return json(response, 405, { ok: false, reason: 'Use POST to request your captain data.' });
+      if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
+      if (!withinRate(request, 'privacy')) return json(response, 429, { ok: false, reason: 'Please wait a few seconds before requesting another export.' });
+      if (Number(request.headers['content-length'] || 0) > 4096) return json(response, 413, { ok: false, reason: 'The export request is too large.' });
+      const invalidPassport = () => json(response, 401, { ok: false, reason: 'This captain passport is not valid.' });
+      try {
+        const body = await readJson(request, 4096), passport = body?.passport;
+        if (!validExportPassport(passport)) return invalidPassport();
+        const code = normaliseRealmCode(passport.realmCode), active = manager.realms.get(code);
+        // A privacy request must not create a Realm, open a game session, mark
+        // lastSeen, advance the world, or persist a fresh record of the request.
+        let source, sourceKind, version;
+        if (active && !active.failed && !active.conflicted) { source = active; sourceKind = 'live-authority'; version = active.version; }
+        else { const saved = await persistence.load(code); source = saved.snapshot; sourceKind = 'durable-snapshot'; version = saved.version; }
+        const captain = authenticateExport(source, passport);
+        if (!captain) return invalidPassport();
+        return json(response, 200, { ok: true, export: createPrivacyExport(source, captain, { sourceKind, version, credentialValues: [passport.token] }) });
+      } catch (error) {
+        return json(response, /large/.test(error.message) ? 413 : /JSON/.test(error.message) ? 400 : 503,
+          { ok: false, reason: /large/.test(error.message) ? 'The export request is too large.' : /JSON/.test(error.message) ? 'A JSON request body is required.' : 'Your saved data is temporarily unavailable. Try again shortly.' });
+      }
+    }
     if (pathname === '/api/realms' && request.method === 'POST') {
       if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
-      if (!rateFor(request).take()) return json(response, 429, { ok: false, reason: 'Please wait before creating or resuming another passport.' });
+      if (!withinRate(request)) return json(response, 429, { ok: false, reason: 'Please wait before creating or resuming another passport.' });
       try {
         const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
@@ -180,11 +204,12 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
   simulation = setTimeout(simulate, clock.nextDelay(performance.now()));
   const flushing = setInterval(() => manager.flush(), flushIntervalMs);
   const heartbeat = setInterval(() => { for (const socket of sockets) { if (!socket.isAlive) { socket.terminate(); continue; } socket.isAlive = false; if (socket.readyState === 1) socket.ping(); } }, heartbeatIntervalMs);
-  simulation.unref?.(); flushing.unref?.(); heartbeat.unref?.();
+  const rateCleanup = setInterval(() => rates.prune(), 60000);
+  simulation.unref?.(); flushing.unref?.(); heartbeat.unref?.(); rateCleanup.unref?.();
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, resolve); });
   const address = server.address();
   const close = async () => {
-    if (closing) return; closing = true; clearTimeout(simulation); clearInterval(flushing); clearInterval(heartbeat);
+    if (closing) return; closing = true; clearTimeout(simulation); clearInterval(flushing); clearInterval(heartbeat); clearInterval(rateCleanup);
     for (const realm of manager.realms.values()) for (const c of realm.captains.values()) if (c.session) { const session = c.session; realm.detach(c, session); session.close(1012, 'Authority restarting. Your passport will resume the voyage.'); }
     const saves = await Promise.allSettled([...manager.realms.values()].map(realm => realm.shutdown()));
     for (const ws of sockets) ws.terminate();

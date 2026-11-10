@@ -8,6 +8,14 @@ Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice 
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
 
+## Privacy and data access
+
+Open **Privacy & data** from the title screen or Settings. A browser-data report covers recognized Farwake storage on that device; a separate server-data report covers the selected shared captain whose passport proves access. Neither report contains recovery credentials or grants access to a captain. The existing save and captain-passport backups retain their recovery purpose.
+
+The [public privacy notice](https://dfe-farwake.onrender.com/privacy.html) explains storage, shared visibility, retention, export limits, and manual requests through the existing public Holtsnider Tech contact. Farwake uses a nickname and captain passport, not an email-based account. Exporting does not require joining a galaxy or creating a new identity, and the server does not retain generated export files.
+
+See [the data-access implementation notes](docs/privacy-data.md) before changing stored fields, authentication, providers, or report coverage. Meaningful export tests cover credential exclusion, selected-captain isolation, malformed data, and read-only operation. Device settings are restricted to recognized fields, outgoing passport payloads contain only their three required fields, and temporary request-limit address records expire after ten minutes of inactivity.
+
 ## Small beginnings and paid passage · 0.6.0
 
 The three starter interiors are small working cabins: **Sparrow has two berths, Kestrel one, and Mule two**, counting the captain. Their revised footprints are 71–79% smaller than before, with compact stations and fold-down bunks. Five additional earned hulls bring the fleet to **14 classes**, with distinct exterior shapes, matching decks, equipment, handling, and tradeoffs. Later shipyard choices appear as their progression requirements are met. Starting choices still show only the three starters, and practice exposes only the smaller half of the fleet; boarding exercises filter out hulls too small for an assault.

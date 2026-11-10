@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="What Farwake saves, where it is stored, and how to download a copy of your browser or captain data.">
+  <title>Your data in Farwake</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./privacy-notice.css">
+</head>
+<body>
+  <a class="skip-link" href="#notice">Skip to the notice</a>
+  <header><a class="wordmark" href="./">FARWAKE</a><a href="./">Return to the game</a></header>
+  <main id="notice">
+    <p class="eyebrow">PRIVACY &amp; DATA</p>
+    <h1>Your data in Farwake</h1>
+    <p class="intro">You should be able to see what the game remembers about you, why it needs it, and where it goes.</p>
+    <p class="updated">Effective and last updated <time datetime="2026-11-10">November 10, 2026</time></p>
+    <section class="essentials" aria-labelledby="essentials-title">
+      <h2 id="essentials-title">The essentials</h2>
+      <ul>
+        <li>Farwake does not ask for an email address, a real name, or an account password. Use a nickname for your captain.</li>
+        <li>A solo voyage is saved in your browser. A shared captain’s progress is saved on the server so you can return to the same galaxy.</li>
+        <li>Your private captain passport grants access to that captain. A data report leaves out the recovery credential.</li>
+        <li>Open <strong>Privacy &amp; data</strong> on the title screen or in Settings to download a report.</li>
+      </ul>
+    </section>
+
+    <nav aria-label="Notice sections"><ol>
+      <li><a href="#stored">What is saved</a></li>
+      <li><a href="#sharing">What other players can see</a></li>
+      <li><a href="#export">What the downloads contain</a></li>
+      <li><a href="#location">Where data is stored</a></li>
+      <li><a href="#retention">Retention and choices</a></li>
+      <li><a href="#contact">Requests and contact</a></li>
+    </ol></nav>
+
+    <section id="stored">
+      <h2>1. What is saved, and why</h2>
+      <h3>In this browser</h3>
+      <p>The local solo save contains your fictional captain, appearance and traits, ships, cargo, credits, missions, discoveries, choices, journal, game statistics, and current position in the game. Device preferences cover controls, audio, accessibility, guidance, screen layout, and camera zoom.</p>
+      <p>The action guide remembers a bounded amount of tutorial progress, such as completed actions and which controls you have used, so it can avoid repeating instructions. It keeps up to 16 local profiles. Pending shared-camera changes may be kept here until the server accepts them.</p>
+      <p>If you play in a shared galaxy, the browser also remembers your captain passport: a galaxy code, captain identifier, and private recovery credential. The game uses browser storage for these features. These records are not advertising cookies.</p>
+      <h3>On the shared-galaxy server</h3>
+      <p>The server stores your captain’s chosen name, identifier, creation and last-seen times, a hash used to check the recovery credential, and gameplay progress. Saved game records include ships and their permissions, home berths, missions, inventory, fictional character details, camera preferences, and relevant contributions to the shared world.</p>
+      <p>It also keeps bounded game histories and recent command results to preserve progress and avoid applying the same action twice. Live movement inputs, network timing, and connections are handled in memory; Farwake does not save a separate recording of every input.</p>
+      <p>Appearance, traits, health, and locations in these records describe a fictional game character. They are not measurements of your real body or physical location. A nickname or information you put into a name can still identify you.</p>
+      <h3>Technical requests</h3>
+      <p>Render and Supabase process network requests to serve and protect the game. Their technical records may contain IP addresses, browser information, request paths, timestamps, errors, and other operational metadata. Farwake’s own request limiter temporarily uses a network address in memory; entries expire after ten minutes without a request and are checked for removal every minute.</p>
+      <p>The current application has no advertising trackers, third-party behavioral analytics, session replay, or external AI service receiving your gameplay. Local tutorial progress and game statistics still record game activity for the features described above. Frame-rate and connection diagnostics stay in memory unless you choose to copy a diagnostic report.</p>
+    </section>
+
+    <section id="sharing">
+      <h2>2. What other players can see</h2>
+      <p>A shared galaxy is a multiplayer space. Other captains in it can see information needed to play together, including captain names, appearances, presence, locations within the game, ships, roles, and shared-world activity. Boarding, crew, and shared-ship features expose relevant ship and gameplay information to participants.</p>
+      <p>Anyone with a galaxy invitation code can use it to join. The invitation code does not prove ownership of another captain or authorize their data report. A captain’s private recovery credential does.</p>
+      <p>Authorized operators and hosting providers may access stored information for operation, support, and security. Shared saves are not end-to-end encrypted. Information may also be disclosed where required by law or necessary to address abuse or protect the service.</p>
+    </section>
+
+    <section id="export">
+      <h2>3. What the downloads contain</h2>
+      <dl>
+        <div><dt>Browser data</dt><dd>A readable JSON report of recognized Farwake records stored in this browser: the solo save, device settings, local action-guide progress, saved-captain references, and pending camera preferences. It does not contact the game server. A shared device may hold records from more than one person; the report is labeled as browser data for that reason.</dd></div>
+        <div><dt>Selected captain’s server data</dt><dd>A JSON report for the captain you select, authenticated with that captain’s private passport. It includes their retained captain record, gameplay data, owned ships and homes, and relevant relationships and contributions in shared records. The request does not join a galaxy, create a captain, or update their last-seen time. Only that selected captain is requested.</dd></div>
+      </dl>
+      <p>Each report identifies its scope, generation time, and limitations. The server report uses current authority data when that galaxy is loaded, or its last durable save otherwise. A failed request is shown as a failure, rather than presented as a complete server report.</p>
+      <p><strong>Reports exclude private recovery credentials, credential hashes, and other captains’ private records.</strong> They also do not retrieve provider infrastructure logs, historical backups, records from other websites, or a captain whose passport is not available to you. Shared-world records are filtered; you do not receive a copy of the entire galaxy database.</p>
+      <p>The report is assembled for your request and downloaded to your device. Farwake does not create a stored export archive or email a download link. Providers may still record the technical request. Your browser or device may retain or synchronize the file after download.</p>
+      <p>A report can contain names and detailed game history, so keep it somewhere appropriate. It is <strong>not a recovery backup</strong>: use the existing solo-save export or private captain-passport backup to continue playing on another device.</p>
+    </section>
+
+    <section id="location">
+      <h2>4. Where data is stored</h2>
+      <ul>
+        <li><strong>Your browser:</strong> solo progress, settings, tutorial progress, saved passports, and pending camera changes. Solo saves are not automatically uploaded to the shared server.</li>
+        <li><strong>Render:</strong> the public website is delivered through a global content delivery network. The official shared-galaxy authority runs in Render’s Oregon region in the United States.</li>
+        <li><strong>Supabase:</strong> durable shared-galaxy snapshots are stored in a PostgreSQL project whose primary region is AWS Oregon, United States (<code>us-west-2</code>). Access goes through the game server; browser clients do not have direct access to the snapshot tables.</li>
+        <li><strong>GitHub:</strong> holds the application’s source code and deployment files. Player saves and recovery credentials are not published as source files.</li>
+      </ul>
+      <p>The Supabase project also supports other Holtsnider Tech applications. Administration of that project is shared, but Farwake’s captain passports are separate from those applications’ email accounts. Farwake does not create a Supabase Auth email account for a captain.</p>
+      <p>The primary database region does not guarantee that every log, support record, or infrastructure operation stays there. Providers’ policies describe their own processing and retention: <a href="https://render.com/privacy" target="_blank" rel="noopener noreferrer">Render</a>, <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, <a href="https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq" target="_blank" rel="noopener noreferrer">Supabase data residency</a>, and <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+    </section>
+
+    <section id="retention">
+      <h2>5. Retention and choices</h2>
+      <p>Browser records remain until replaced by the game or removed through browser controls. Clearing site data removes local records and can remove your only copy of a solo save or captain passport. Back up progress you want to keep first. Clearing browser data does not delete a shared captain from the server.</p>
+      <p><strong>Shared captains currently have no automatic inactivity-deletion schedule.</strong> Their saved progress remains until the operator removes it. Keeping a shared galaxy available is the reason for retaining those records. Gameplay histories are bounded in several places, but that is not the same as deleting an inactive captain.</p>
+      <p>Farwake stores only recognized device-setting fields and sends only the required passport fields when identifying a captain. The temporary rate-limit address records described above expire automatically. The export feature adds no new tracking profile or export-history table.</p>
+      <p>Provider logs and any backups have separate retention and deletion behavior. Copies downloaded or shared by players are outside the operator’s control. We do not promise that a removal request instantly erases every historical copy.</p>
+    </section>
+
+    <section id="contact">
+      <h2>6. Requests and contact</h2>
+      <p>Farwake is operated by Christopher Holtsnider through Holtsnider Tech in the United States. This notice covers <a href="https://dfe-farwake.onrender.com/">dfe-farwake.onrender.com</a> and the official <a href="https://dfe-farwake-universe.onrender.com/">shared-galaxy service</a>. Separately operated servers and other DailyFlyer themes have their own practices.</p>
+      <p>For questions, corrections, or a deletion or broader access request, email <a href="mailto:chris@holtsnidertech.com?subject=Farwake%20privacy%20request">chris@holtsnidertech.com</a> with the subject “Farwake privacy request.” You may include your galaxy code and captain identifier, but <strong>do not email your private passport or recovery credential</strong>. We will arrange an appropriate ownership check before disclosing or removing private records.</p>
+      <p>Requests beyond the automatic export are handled manually. A shared world may contain relationships involving several players, so removing one captain requires care with those records. Depending on the laws that apply to you, additional rights may include access, correction, deletion, objection or restriction, and a complaint to a privacy regulator. Applicable legal requirements govern the response.</p>
+      <p>If you email us, your address, message, and any attachments are handled through the operator’s email service and may remain in the mailbox until removed; the provider may retain separate technical records. We do not sell personal information or use it for targeted advertising.</p>
+      <p>We will update this page and its date when the practices change. Reading this notice is separate from choosing to join a shared galaxy or disclose information to other players.</p>
+    </section>
+    <footer><a href="./">Return to Farwake</a><a href="#notice">Back to top</a></footer>
+  </main>
+</body>
+</html>

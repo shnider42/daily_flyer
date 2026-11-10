@@ -2,6 +2,7 @@ import { advanceShip } from './fleet.mjs';
 import { hullEnergyAfterStep } from './hull-systems.mjs';
 import { applyCosmicHazards } from './galaxy-expansion.mjs';
 import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayCorrection } from './prediction.mjs';
+import { normalizePassport } from './privacy-data.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
 export const PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.v1';
@@ -18,9 +19,11 @@ const sameRemoteContext = (a, b) => (a?.roomId ?? null) === (b?.roomId ?? null) 
   hullClass(a?.ship || a) === hullClass(b?.ship || b) && (a?.ship?.id ?? null) === (b?.ship?.id ?? null);
 
 export function readPassports(storage = defaultStorage()) {
-  try { return JSON.parse(storage?.getItem(PASSPORT_STORAGE_KEY) || '{}'); } catch { return {}; }
+  try { const value = JSON.parse(storage?.getItem(PASSPORT_STORAGE_KEY) || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; }
 }
 export function savePassport(passport, storage = defaultStorage()) {
+  passport = normalizePassport(passport);
+  if (!passport) throw new Error('This captain passport is incomplete or invalid.');
   const passports = readPassports(storage);
   passports[passport.realmCode] = passport; passports.lastRealm = passport.realmCode;
   try { storage?.setItem(PASSPORT_STORAGE_KEY, JSON.stringify(passports)); } catch { /* The caller may still export the returned passport. */ }
@@ -101,8 +104,10 @@ export class FarwakeNetwork {
   }
   async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, character } = {}) {
     this.manualClose = false;
-    this.passport = passport || (!create ? readPassport(realmCode, this.storage) : null);
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, passport: this.passport }) });
+    const suppliedPassport = passport || (!create ? readPassport(realmCode, this.storage) : null);
+    this.passport = suppliedPassport ? normalizePassport(suppliedPassport) : null;
+    if (suppliedPassport && !this.passport) throw new Error('This captain passport is incomplete or invalid. Restore a valid backup to continue.');
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
     this.passport = savePassport(registration.passport || this.passport, this.storage);
@@ -115,7 +120,7 @@ export class FarwakeNetwork {
       const socket = this.socket = new this.WebSocket(endpoint.href);
       let welcomed = false, helloAt = this.now(), helloWall = this.wallNow();
       const timeout = setTimeout(() => { socket.close(); reject(new Error('Timed out while connecting to the realm.')); }, 15000);
-      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, passport: this.passport })); });
+      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, passport: normalizePassport(this.passport) })); });
       socket.addEventListener('message', event => {
         let packet; try { packet = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)); } catch { return; }
         if (packet.type === 'welcome') {
@@ -242,6 +247,6 @@ export class FarwakeNetwork {
   disconnect() {
     this.manualClose = true; this.setInput({}); this._send({ type: 'goodbye' }); clearTimeout(this.reconnectTimer); this._clearTimers(); this.socket?.close(1000, 'Captain disconnected'); this.connected = false;
   }
-  exportPassport() { return JSON.stringify(this.passport, null, 2); }
+  exportPassport() { return JSON.stringify(normalizePassport(this.passport), null, 2); }
   get latency() { return { rtt: this.rtt, interpolationMs: this.interpolator.delayMs, unacknowledgedInputs: this.unacknowledged.length }; }
 }
