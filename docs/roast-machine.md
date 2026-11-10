@@ -2,6 +2,10 @@
 
 Standalone DailyFlyer theme on branch `feat/roast-machine`.
 
+Public URL: <https://dfe-roast-machine.onrender.com/>
+
+Render static service: `srv-dbpn648n74is73ckjme0` in the existing DFE workspace.
+
 **Do not add this project to `dfe-directory` or its project catalog.** This is an
 explicit product requirement. The dedicated Render URL is public and shareable;
 being absent from the directory does not make it private.
@@ -30,7 +34,10 @@ python -m http.server 8765 --directory dist/roast-machine
 ```
 
 The build uses Python's standard library and publishes only five application
-assets plus `robots.txt`. There is no dependency installation or web process.
+assets plus `robots.txt`. Styles and scripts receive content-based filenames
+and the HTML references those exact files, so updates cannot reuse a stale
+stylesheet or script URL. The build verifies each output and logs its byte
+count. There is no application dependency installation or web process.
 
 Render static-site settings:
 

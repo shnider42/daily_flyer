@@ -33,13 +33,27 @@ class RoastMachineThemeTests(unittest.TestCase):
         spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory() as directory:
             output = module.build(Path(directory))
+            names = {
+                name: module.asset_name(name, (module.SOURCE / name).read_bytes())
+                for name in module.FILES
+            }
             self.assertEqual(
                 {item.name for item in output.iterdir()},
-                {"index.html", "styles.css", "engine.js", "app.js", "favicon.svg", "robots.txt"},
+                set(names.values()) | {"robots.txt"},
             )
+            html = (output / "index.html").read_text()
             for name in module.FILES:
-                self.assertEqual((output / name).read_bytes(), (module.SOURCE / name).read_bytes())
+                if name == "index.html":
+                    continue
+                self.assertEqual((output / names[name]).read_bytes(), (module.SOURCE / name).read_bytes())
+                self.assertIn(names[name], html)
             self.assertIn("Disallow: /", (output / "robots.txt").read_text())
+            self.assertNotIn('href="styles.css"', html)
+            self.assertNotIn('src="engine.js"', html)
+            # A second build remains deterministic and clears obsolete assets.
+            (output / "styles.000000000000.css").write_text("stale")
+            module.build(output)
+            self.assertEqual({item.name for item in output.iterdir()}, set(names.values()) | {"robots.txt"})
 
 
 if __name__ == "__main__":
