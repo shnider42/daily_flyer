@@ -37,6 +37,8 @@ import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-e
 import { systemContext } from './encounter-context.mjs';
 import { contextualSignals, materializeEncounterContacts, encounterSource, encounterFitsPlace, pendingSourceAvailable, resolvePhysicalEncounter } from './encounter-rules.mjs';
 import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
+import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInteriorDamage, relocateHullOccupants } from './interior-damage.mjs';
+import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -183,6 +185,7 @@ export class Game {
     this.initializeNarrative();
     this.initializeProfessions();
     this.initializeRescueOccupants();
+    this.initializeInteriorDamage();
     if(this.state.pendingEncounter&&!pendingSourceAvailable(this,this.state.pendingEncounter))this.state.pendingEncounter=null;
     this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
     this.syncNarrativeWorld();
@@ -307,7 +310,7 @@ export class Game {
     record.enemyStates ||= {};
     for (const e of this.system.enemies) if (e.hp > 0) {
       record.enemyHealth[e.id] = e.hp;
-      record.enemyStates[e.id]={classId:e.classId,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
+      record.enemyStates[e.id]={classId:e.classId,damageControl:e.damageControl?clone(e.damageControl):null,energy:e.energy,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
     }
     record.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0).map(clone);
     record.asteroidHealth ||= {};
@@ -395,6 +398,7 @@ export class Game {
     for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
     this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     materializeEncounterContacts(this);
+    for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
     record.visits = (record.visits || 0) + 1;
     if(this.state.narrative)this.syncNarrativeWorld();
     if(this.state.professions)this.syncProfessionWorld();
@@ -464,8 +468,9 @@ export class Game {
     const dt=clamp(finite(delta),0,.1);
     if(!dt)return;
     this.state.stats.time+=dt;
-    for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer'])this[key]=Math.max(0,finite(this[key])-dt);
+    for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
     const sh=this.state.ship;
+    this.stepInteriorDamage(dt);
     this.stepRescueOccupants(dt);
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
@@ -473,7 +478,8 @@ export class Game {
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
     const operate=this.state.mode==='ship'||this.state.interior?.kind==='ship';
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
-    const helmInput=this.state.mode==='ship'||options.operateShip?input:{};
+    const pilotConscious=this._damageHumans!==undefined||this.state.person.health>0&&!this.state.person.down;
+    const helmInput=pilotConscious&&(this.state.mode==='ship'||options.operateShip)?input:{};
     const flight=normaliseFlightInput(helmInput),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
     const oldX=sh.x,oldY=sh.y;
     Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
@@ -484,8 +490,8 @@ export class Game {
     this._cosmicWarningKey=warningKey;this.state.cosmicWarning=cosmic.hazard||null;
     if(cosmic.damage>0){this._damageShip(cosmic.damage,{sourceId:cosmic.hazard?.id,cause:'tidal forces'});if(sh.destroyed||sh.hull<=0||this._recoveryTimer)return;}
     this.state.stats.distance+=Math.hypot(sh.x-oldX,sh.y-oldY);
-    sh.energy=clamp(sh.energy+(boosting?-18:helmInput.mine?-1:11)*dt,0,sh.maxEnergy);
-    if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+4*dt);
+    sh.energy=hullEnergyAfterStep(sh,dt,helmInput);
+    if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+getHullSystems(sh.classId).shieldRecharge*dt);
     if(helmInput.fire)this.fireWeapons();
     if(helmInput.mine)this._mine(dt);
     this._checkChapters();
@@ -500,6 +506,12 @@ export class Game {
     const targets=[...games.filter(g=>g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
     this._updateEnemies(dt,targets);
     this._updateBullets(dt,targets);
+    for(const ship of [...(this.system.parkedShips||[]),...this.system.enemies.filter(enemy=>!enemy.promotedVesselId&&!enemy.canonicalVesselId)]){
+      if(!ship.damageControl)continue;
+      stepShipDamage(ship,dt);
+      const occupant=games.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===ship.id);
+      (occupant||this)._hurtInteriorOccupants(ship,{delta:dt});
+    }
     this._updatePickups(dt,targets.filter(g=>!g._parkedVessel));
     for(const game of games)game._syncBoardedVessel();
     this.system.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0);
@@ -510,37 +522,41 @@ export class Game {
   fireWeapons(shooterId = this.playerId) {
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Ship weapons require a vessel in space.', 'mode');
     if(this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
-    if(this.state.ship.energy<3)return this._fail('The pulse emitter needs reactor charge.', 'energy');
+    if(this.state.ship.energy<getHullSystems(this.state.ship.classId).pulseEnergy)return this._fail('The pulse emitter needs reactor charge.', 'energy');
     this._fire(shooterId);return this._ok();
   }
 
   repairFromStation() {
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the engineering station aboard an active ship.', 'mode');
-    const sh=this.state.ship;
+    const sh=this.state.ship,system=getHullSystems(sh.classId);
     if(sh.hull>=sh.maxHull)return this._fail('Hull integrity is already full.', 'full');
     if(this._repairTimer>0)return this._fail('The repair rig is cooling.', 'cooldown');
-    if(sh.energy<18)return this._fail('The repair rig needs 18 reactor charge.', 'energy');
-    sh.energy-=18;sh.hull=Math.min(sh.maxHull,sh.hull+8);this._repairTimer=4;
-    this._event('service',{text:'Engineering restored 8 hull integrity.'});return this._ok({hull:8});
+    if(sh.energy<system.repairEnergy)return this._fail(`The repair rig needs ${system.repairEnergy} reactor charge.`, 'energy');
+    const restored=Math.min(system.repairHull,sh.maxHull-sh.hull);
+    sh.energy-=system.repairEnergy;sh.hull+=restored;this._repairTimer=system.repairCooldown;
+    this._event('service',{text:`Engineering restored ${restored} hull integrity.`});return this._ok({hull:restored,energy:system.repairEnergy});
   }
 
   medicalFromStation(patients = [this]) {
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
     if(this._crewHealTimer>0)return this._fail('The medical station is preparing the next treatment.','cooldown');
+    const system=getHullSystems(this.state.ship.classId);
     const people=(Array.isArray(patients)?patients:[this]).filter(g=>g?.state?.person?.health>0&&g.state.person.health<(g.state.person.maxHealth||100));
     const crew=this.livingCrew.filter(c=>c.health<c.maxHealth);
-    if(!people.length&&!crew.length)return this._fail('Everyone aboard is already healthy.','full');
-    if(this.state.ship.energy<15)return this._fail('The medical station needs 15 reactor charge.','energy');
-    this.state.ship.energy-=15;this._crewHealTimer=6;
-    for(const g of people)g.state.person.health=Math.min(g.state.person.maxHealth||100,g.state.person.health+12);
-    for(const c of crew){c.health=Math.min(c.maxHealth,c.health+8);c.status=c.health===c.maxHealth?'active':'injured';}
+    const rescued=(this.state.ship.rescueGroups||[]).filter(group=>group.status==='aboard').flatMap(group=>group.members||[]).filter(person=>person.health>0&&person.health<(person.maxHealth||68));
+    if(!people.length&&!crew.length&&!rescued.length)return this._fail('Everyone aboard is already healthy.','full');
+    if(this.state.ship.energy<system.healEnergy)return this._fail(`The medical station needs ${system.healEnergy} reactor charge.`,'energy');
+    this.state.ship.energy-=system.healEnergy;this._crewHealTimer=system.healCooldown;
+    for(const g of people)g.state.person.health=Math.min(g.state.person.maxHealth||100,g.state.person.health+system.healPerson);
+    for(const c of crew){c.health=Math.min(c.maxHealth,c.health+system.healCrew);c.status=c.health===c.maxHealth?'active':'injured';}
+    for(const person of rescued)person.health=Math.min(person.maxHealth||68,person.health+system.healCrew);
     if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
     this._event('service',{text:'Medical treatment restored vitality to the injured crew.'});
-    return this._ok({healedPeople:people.length,healedCrew:crew.length,energy:15});
+    return this._ok({healedPeople:people.length,healedCrew:crew.length,healedPassengers:rescued.length,energy:system.healEnergy});
   }
 
   _fire(shooterId = this.playerId) {
-    const sh = this.state.ship;
+    const sh = this.state.ship,system=getHullSystems(sh.classId);
     let angle = sh.angle;
     const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
     for (const e of candidates) {
@@ -548,17 +564,20 @@ export class Game {
       if (Math.abs(Math.atan2(Math.sin(target - angle), Math.cos(target - angle))) < 0.25) { angle = target; break; }
     }
     const vesselId=this.netVesselId||sh.id,serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
-    const bullet = { id: `${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`, x: sh.x + Math.cos(angle) * 24, y: sh.y + Math.sin(angle) * 24, vx: Math.cos(angle) * 650 + sh.vx * 0.3, vy: Math.sin(angle) * 650 + sh.vy * 0.3, ttl: sh.range / 650, damage: sh.damage, owner: 'player', ownerId: String(shooterId), shooterId: String(shooterId), vesselId, radius: 4 };
-    this.system.bullets.push(bullet);
-    sh.energy -= 3;
-    this._shotTimer = 0.25;
-    this._event('shot', { id: bullet.id, ownerId: bullet.ownerId, shooterId: bullet.shooterId, vesselId: bullet.vesselId, x: bullet.x, y: bullet.y, angle });
+    const volleyId=`${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`,nose=Math.max(24,(sh.renderLength||getShipClass(sh.classId).stats.renderLength)*.42),bullets=[];
+    for(let mount=0;mount<system.pulseCount;mount++){
+      const side=system.pulseCount===1?0:(mount*2-1)*system.pulseOffset;
+      const bullet={id:system.pulseCount===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(angle)*nose-Math.sin(angle)*side,y:sh.y+Math.sin(angle)*nose+Math.cos(angle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*system.pulseDamageScale,owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,radius:4};
+      bullets.push(bullet);this.system.bullets.push(bullet);
+    }
+    sh.energy-=system.pulseEnergy;this._shotTimer=system.pulseCooldown;
+    const first=bullets[0];this._event('shot',{id:volleyId,ownerId:first.ownerId,shooterId:first.shooterId,vesselId,x:first.x,y:first.y,angle,projectileIds:bullets.map(bullet=>bullet.id)});
   }
 
   _mine(dt) {
     const sh = this.state.ship;
     if (sh.energy < 1 || this.cargoUsed >= sh.cargoCap) return;
-    const target = this.system.asteroids.filter(a => a.hp > 0 && distance(a, sh) < 225 + a.radius).sort((a, b) => distance(a, sh) - distance(b, sh))[0];
+    const target = this.system.asteroids.filter(a => a.hp > 0 && distance(a, sh) < getHullSystems(sh.classId).miningReach + a.radius).sort((a, b) => distance(a, sh) - distance(b, sh))[0];
     if (!target) return;
     this.system.miningTarget = target.id;
     this.system.mining = { x1: sh.x, y1: sh.y, x2: target.x, y2: target.y, targetId: target.id, ownerId:this.playerId };
@@ -613,11 +632,14 @@ export class Game {
       }else e.boardingCharge=0;
       if(e.cooldown<=0&&dist<520){
         const angle=e.angle+(this._rand()-.5)*.16;
-        const serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
-        this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}`,x:e.x,y:e.y,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+        const serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1,equipment=getHullSystems(e.classId);
+        for(let mount=0;mount<equipment.pulseCount;mount++){
+          const side=equipment.pulseCount===1?0:(mount*2-1)*equipment.pulseOffset;
+          this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x-Math.sin(angle)*side,y:e.y+Math.cos(angle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+        }
         e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
       }
-      if(dist<sh.radius+e.radius-2){target._damageShip(4*dt);sh.vx+=Math.cos(e.angle)*30*dt;sh.vy+=Math.sin(e.angle)*30*dt;}
+      if(dist<sh.radius+e.radius-2){target._damageShip(4*dt,{sourceX:e.x,sourceY:e.y,cause:'collision'});sh.vx+=Math.cos(e.angle)*30*dt;sh.vy+=Math.sin(e.angle)*30*dt;}
     }
   }
 
@@ -641,7 +663,9 @@ export class Game {
         ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
         const collision=hits[0];if(!collision)continue;b.ttl=0;
         if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
-        const hit=collision.enemy,damage=Math.min(hit.hp,b.damage);hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
+        const hit=collision.enemy,damage=Math.min(hit.hp,b.damage);ensureDamageControl(hit);hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
+        const interiorOwner=this._worldGames?.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===hit.id);
+        (interiorOwner||this)._registerInteriorHit(hit,damage,0,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});
         recordDirectorDamage(this.worldDirector,hit,b.ownerId||this.playerId,damage);
         this._record().enemyHealth[hit.id]=hit.hp;
         this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',vesselId:hit.id,damage:b.damage});
@@ -663,9 +687,14 @@ export class Game {
     const absorbed = Math.min(sh.shield, amount);
     const hullDamage=Math.min(sh.hull,Math.max(0,amount-absorbed));
     sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-hullDamage);
+    const hullAfterImpact=sh.hull;
+    this._registerInteriorHit(sh,hullDamage,absorbed,details);
+    // Losing a specialist recalculates stats. Its ordinary one-hull minimum
+    // must not resurrect a vessel destroyed by this same penetrating hit.
+    sh.hull=Math.min(sh.hull,hullAfterImpact);
     this.recordPassengerDamage(hullDamage);
     if(hullDamage>0)this.netOnHullDamaged?.({...details,hullDamage});
-    this._hitTimer = 5;
+    this._hitTimer = getHullSystems(sh.classId).shieldDelay;
     if(sh.hull<=0){
       this._worldEvent('vessel-destroyed',{vesselId:this.netVesselId||sh.id,name:sh.name,...details});
       if(this.netOnShipDestroyed?.({vesselId:this.netVesselId||sh.id,...details})===true)return;
@@ -681,7 +710,7 @@ export class Game {
       _parkedVessel:true,netVesselId:ship.id,playerId:ship.ownerId||this.playerId,
       state:{ship,mode:'ship',systemId:this.state.systemId,rep:this.state.rep,boarding:null},
       _event:(type,data)=>this._event(type,data),startBoarding:()=>this._fail('This vessel has no crew aboard.','empty'),
-      _damageShip:(amount,details={})=>{const absorbed=Math.min(ship.shield||0,amount);ship.shield=Math.max(0,(ship.shield||0)-absorbed);ship.hull=Math.max(0,ship.hull-(amount-absorbed));if(!ship.hull){ship.destroyed=true;this._worldEvent('vessel-destroyed',{vesselId:ship.id,name:ship.name,...details});}}
+      _damageShip:(amount,details={})=>{const absorbed=Math.min(ship.shield||0,amount),hullDamage=Math.min(ship.hull,Math.max(0,amount-absorbed));ship.shield=Math.max(0,(ship.shield||0)-absorbed);ship.hull=Math.max(0,ship.hull-hullDamage);this._registerInteriorHit(ship,hullDamage,absorbed,details);if(!ship.hull){ship.destroyed=true;this._worldEvent('vessel-destroyed',{vesselId:ship.id,name:ship.name,...details});}}
     }));
   }
   _defeat(enemy, credited = this) {
@@ -700,9 +729,9 @@ export class Game {
   _dropPickup(item) { if (!this.system.pickups.some(p => p.id === item.id)) this.system.pickups.push({ radius: 12, ...item }); }
   _updatePickups(dt, targets = [this]) {
     for(const p of [...this.system.pickups]){
-      const game=targets.filter(g=>g.cargoUsed<g.state.ship.cargoCap||p.credits).sort((a,b)=>distance(p,a.state.ship)-distance(p,b.state.ship))[0];
+      const game=targets.filter(g=>(g.cargoUsed<g.state.ship.cargoCap||p.credits)&&distance(p,g.state.ship)<getHullSystems(g.state.ship.classId).salvagePullRange).sort((a,b)=>distance(p,a.state.ship)-distance(p,b.state.ship))[0];
       if(!game)continue;const sh=game.state.ship,dist=distance(p,sh);
-      if(dist<90){p.x+=(sh.x-p.x)*Math.min(1,dt*4);p.y+=(sh.y-p.y)*Math.min(1,dt*4);if(dist<35)game.salvage(p.id);}
+      if(dist<getHullSystems(sh.classId).salvagePullRange){p.x+=(sh.x-p.x)*Math.min(1,dt*4);p.y+=(sh.y-p.y)*Math.min(1,dt*4);if(dist<35)game.salvage(p.id);}
     }
   }
 
@@ -717,8 +746,8 @@ export class Game {
     if (bodies.length) return bodies[0];
     const signal = this.system.signals.filter(s => !s.resolved && distance(sh, s) <= sh.scanRange).sort((a, b) => distance(sh, a) - distance(sh, b))[0];
     if (signal) return { type: 'signal', id: signal.id, signalId: signal.id, name: signal.name, signal, distance: distance(sh, signal), range: sh.scanRange };
-    const pickup = this.system.pickups.find(p => distance(p, sh) < 150);
-    if (pickup) return { type: 'salvage', id: pickup.id, name: pickup.name || 'Loose salvage', pickup, distance: distance(pickup, sh), range: 150 };
+    const salvageReach=getHullSystems(sh.classId).salvageReach,pickup=this.system.pickups.find(p=>distance(p,sh)<salvageReach);
+    if (pickup) return { type: 'salvage', id: pickup.id, name: pickup.name || 'Loose salvage', pickup, distance: distance(pickup, sh), range: salvageReach };
     const traffic = this.system.traffic.find(t => distance(t, sh) < 185);
     if (traffic) return { type: 'hail', id: traffic.id, name: traffic.name, traffic, distance: distance(traffic, sh), range: 185 };
     return null;
@@ -787,7 +816,7 @@ export class Game {
   _discoverNear(id) {
     const source = this.galaxy.find(s => s.id === id);
     if (!source) return;
-    const range = Math.max(7.5, this.state.ship.warpRange * 1.6);
+    const range = Math.max(7.5, this.state.ship.warpRange * 1.6)*getHullSystems(this.state.ship.classId).surveyMultiplier;
     for (const s of this.galaxy) if (Math.hypot(s.gx - source.gx, s.gy - source.gy) < range && !this.state.discovered.includes(s.id)) this.state.discovered.push(s.id);
   }
   travelInfo(id) {
@@ -795,7 +824,7 @@ export class Game {
     if (!target) return this._fail('Unknown star system.', 'target');
     const current = this.currentSystem;
     const dist = Math.hypot(target.gx - current.gx, target.gy - current.gy);
-    const fuelCost = Math.ceil(2 + dist * 0.65);
+    const fuelCost = Math.ceil((2+dist*.65)*getHullSystems(this.state.ship.classId).foldFuelMultiplier);
     const base = { target, distance: dist, fuelCost, range: this.state.ship.warpRange };
     if (id === current.id) return this._fail('You are already in this system.', 'same-system');
     if (this.state.mode !== 'ship') return { ...this._fail('Launch your ship before jumping.', 'mode'), ...base };
@@ -879,7 +908,7 @@ export class Game {
     if (this.state.mode !== 'ship' && this.state.interior?.kind !== 'ship') return this._fail('Salvage is collected from your ship.', 'mode');
     const item = this.system.pickups.find(p => p.id === id);
     if (!item) return this._fail('There is no salvage left here.', 'target');
-    if (distance(item, this.state.ship) > 150) return this._fail('Fly closer to collect the salvage.', 'distance');
+    if (distance(item, this.state.ship) > getHullSystems(this.state.ship.classId).salvageReach) return this._fail('Fly closer to collect the salvage.', 'distance');
     const ore = Math.min(item.ore || 0, Math.max(0, this.state.ship.cargoCap - this.cargoUsed));
     this.state.cargo.ore += ore; item.ore = (item.ore || 0) - ore;
     const crystal = Math.min(item.crystal || 0, Math.max(0, this.state.ship.cargoCap - this.cargoUsed));
@@ -1040,8 +1069,9 @@ export class Game {
   }
   _activateClass(id, commissioned = false) {
     const sh=this.state.ship,condition={hull:sh.hull/sh.maxHull,shield:sh.shield/sh.maxShield,fuel:sh.fuel/sh.maxFuel,energy:sh.energy/sh.maxEnergy};
-    sh.classId=id;this._updateStats(false);
+    sh.classId=id;delete sh.damageControl;this._updateStats(false);
     for(const [key,max] of [['hull','maxHull'],['shield','maxShield'],['fuel','maxFuel'],['energy','maxEnergy']])sh[key]=Math.max(key==='hull'?1:0,sh[max]*(commissioned?1:clamp(finite(condition[key],1),0,1)));
+    ensureDamageControl(sh);
     this.state.ship.angularVelocity=clamp(finite(this.state.ship.angularVelocity),-this.state.ship.maxAngularVelocity,this.state.ship.maxAngularVelocity);
     this.state.fleet.history.push({classId:id,time:this.state.stats.time,systemId:this.state.systemId});
     this._event('ship-class',{shipClass:this.shipClass,text:`Cinder is now a ${this.shipClass.name}. ${this.shipClass.berths} berths ready.`});
@@ -1205,9 +1235,10 @@ export class Game {
   }
 
   _enemyLocation(enemy) {
+    ensureDamageControl(enemy);
     const ship=enemyShipState(enemy),hull=getShipClass(enemy.classId);
     return {id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,vesselName:enemy.name,kind:'ship',biome:'ship',shipClass:hull.id,berths:hull.berths,crew:clone(this.livingCrew),guests:rescueOccupants(ship),faction:enemy.faction,
-      hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id};
+      damageControl:enemy.damageControl||null,hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id};
   }
 
   _restoreBoardingDeck() {
@@ -1512,7 +1543,7 @@ export class Game {
     const occupied={id,name:ship.name||'Occupied ship',classId:ship.classId,...enemyHullProfile(ship.classId),x:ship.x,y:ship.y,vx:0,vy:0,angle:ship.angle,
       hp:Math.max(1,ship.hull),maxHp:ship.maxHull,faction:raider?.faction||'cinder',disabled:true,active:false,speed:ship.speed,damage:ship.damage,reward:0,cooldown:999,
       deck:{shipClass:ship.classId,enemies:hostiles,cleared:false,rewardClaimed:true,occupation:{boarderId:raider?.id||'pirates',controllerId:raider?.id||'pirates',contested:true}},storedUpgrades:clone(this.state.upgrades),
-      rescueGroups:clone(ship.rescueGroups||[]),rescueHistory:clone(ship.rescueHistory||[])};
+      energy:ship.energy,damageControl:ship.damageControl?clone(ship.damageControl):null,rescueGroups:clone(ship.rescueGroups||[]),rescueHistory:clone(ship.rescueHistory||[])};
     occupied.occupation=occupied.deck.occupation;
     const old=this.system.enemies.findIndex(enemy=>enemy.id===id),record=this._record(),saved=record.spawned.findIndex(enemy=>enemy.id===id);
     if(old>=0)this.system.enemies.splice(old,1,occupied);else this.system.enemies.push(occupied);
@@ -1801,7 +1832,7 @@ export class Game {
     }
     if (!quote.cost) return this._fail('No service is needed.', 'full');
     this.state.credits -= quote.cost;
-    if (action === 'repair') sh.hull = sh.maxHull;
+    if (action === 'repair') { sh.hull = sh.maxHull; clearInteriorDamage(sh); }
     if (action === 'refuel') sh.fuel = sh.maxFuel;
     if (action === 'rest') this.state.person.health = this.state.person.maxHealth || 100;
     this._event('service', { text: `${quote.label} · −${quote.cost} cr` });
@@ -1813,6 +1844,7 @@ export class Game {
     delete sh.destroyed;
     const body = this.system.bodies.find(b => b.kind === 'station') || this.system.bodies[0];
     sh.hull = Math.ceil(sh.maxHull * 0.6); sh.shield = 0; sh.energy = sh.maxEnergy;
+    clearInteriorDamage(sh);
     sh.x = body.x; sh.y = body.y + body.radius + 80; sh.vx = 0; sh.vy = 0;
     this.state.cargo.ore = Math.floor(this.state.cargo.ore * 0.5);
     this.state.cargo.crystal = Math.floor(this.state.cargo.crystal * 0.5);
@@ -1836,5 +1868,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules);
 export default Game;

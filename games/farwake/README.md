@@ -1,12 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.5.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.5.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Hull identity and damage aboard · 0.5.3
+
+All nine hulls have authored, bow-up deck footprints based on their exterior silhouettes, with their own compartments, passages, stations, fixtures, and berth placement. Open salvage cradles are actual void, not walkable floor. Boarding, crew movement, bullets, local repairs, and rendering share the same collision geometry. Old valid positions remain; positions invalidated by a revised deck move to nearby safe floor on the actual occupied hull.
+
+Each class has native equipment with real effects and a tradeoff, shown in its existing ship panel and eligible shipyard card. The starter Sparrow has a faster-recharging reserve bus; the Kestrel has a stronger, more energy-hungry boost; the Mule has a longer-reaching mining and salvage tractor. Later hulls add their own propulsion, shield, survey, weapon, workshop, or medical specialization. Starting choices and practice opponents retain their discovery limits. Client boost prediction uses the same energy rules as authority.
+
+Actual outside hits map into compartments according to the hull's heading and the incoming projectile. Shield absorption gives a light deck impulse. Penetrating damage leaves persistent scars and can start localized fires or pressure breaches. People near the affected point can be hurt, including captains, visitors, sleeping players, hired crew, boarders, and rescued people; intact bulkheads block exposure. Crew casualties remain permanent. Fires exhaust their fuel slowly; breaches persist until patched. Each physical hull advances once regardless of its online occupant count, and damage stays on that hull across retreat, capture, reconnect, and server restart. Empty rooms keep the existing dormant simulation policy; they do not apply retroactive offline casualties.
+
+Person view presents brief bounded impact shake, a quiet two-tone alarm, pixel flames, venting, scorch marks, and injured-crew health bars. Reduced motion removes shake and flashes, and the existing sound setting controls the alarm. Repeated snapshots and changing perspective do not replay old hits. Mobile uses its existing status line, contextual action, and Simple guide rather than adding another permanent bar.
+
+Approach a marked compartment and use **Damage control**, or find it through **Menu / Ship → Damage control**. Nearby consoles and people remain usable beside damage. Suppression costs 2 reactor charge; patching costs 3 charge and 1 ore; compartment repairs cost 4 charge and 1 ore. Panels show costs alongside current supplies. Actual range, intervening walls, tool cooldown, resources, and shared engineering/helm permissions are checked on the authority. Compartment repairs restore local equipment condition; engineering repairs global hull integrity, and paid port repairs also restore compartments. Noncombat interior incapacitation has a short recovery path that preserves ship damage, hazards, and casualties.
+
+**Test mode → password 123 → Damage control** starts inside the starter cutter. One ordinary external projectile arrives after a brief delay, causing a real fire and breach. Six ore cover the repair exercise. No repeated attack, story rewards, saved progression, or additional hull previews are introduced. Completion requires suppressing, patching, and repairing the actual affected compartment.
 
 ## Direct perspective controls · 0.5.2
 

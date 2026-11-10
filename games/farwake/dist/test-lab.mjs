@@ -1,6 +1,7 @@
 /** Isolated exercises. This module has no storage, transport, or DOM access. */
 import { Game, WORLD_RADIUS } from './engine.mjs';
 import { SHIP_CLASSES, enemyHullProfile } from './fleet.mjs';
+import { interiorDamageSummary } from './interior-damage.mjs';
 
 const clone = value => structuredClone(value);
 const RANGE_ID = 'test-range';
@@ -11,7 +12,8 @@ export const TEST_SCENARIOS = Object.freeze([
   { id: 'ship-combat', title: 'Ship combat', description: 'Fight one pirate with your starting cutter. Practice thrust, turning, braking, and controlled fire.', goal: 'Disable the marked pirate ship. Stop firing when its engines fail, or finish the hull.' },
   { id: 'boarding', title: 'Board a disabled ship', description: 'Start beside a disabled pirate. Cross the tether and clear its crew with your sidearm.', goal: 'Board the marked ship and secure its bridge. Then return to your ship or take its helm.' },
   { id: 'person-combat', title: 'Person combat', description: 'Begin inside the target ship. Practice aiming, firing, cover, and identifying who hit whom.', goal: 'Clear the hostile crew and secure the target bridge. Your sidearm is ready; you have no allied gunners.' },
-  { id: 'raid-defense', title: 'Repel a pirate raid', description: 'A pirate is close and your shields are down. Hold position to let the grapples attach, then defend your own deck.', goal: 'Survive the boarding alarm and clear the pirates from your ship.' }
+  { id: 'raid-defense', title: 'Repel a pirate raid', description: 'A pirate is close and your shields are down. Hold position to let the grapples attach, then defend your own deck.', goal: 'Survive the boarding alarm and clear the pirates from your ship.' },
+  { id: 'damage-control', title: 'Damage control', description: 'Walk your starter ship’s deck as one controlled external hit starts a local fire and pressure leak. No repeating attack.', goal: 'Find the marked compartment, suppress its fire, patch its breach, and repair its damage. Your cutter carries 6 ore for the work.' }
 ].map(scenario => Object.freeze(scenario)));
 
 function allowedClasses() {
@@ -46,6 +48,23 @@ class ExerciseGame extends Game {
     const nearby = super.interact();
     return nearby?.type === 'dock' ? null : nearby;
   }
+  stepWorld(delta, participants = [this], options = {}) {
+    const exercise = this._testDamageShot;
+    if (exercise && !exercise.fired && this.state.stats.time >= exercise.at) {
+      const ship = this.state.ship;
+      // One ordinary projectile: its collision, impact, injuries, and hazards use
+      // the same authority as an outside attacker in a normal voyage.
+      this.system.bullets.push({
+        id: 'test-range:controlled-impact', owner: 'test-range:impact-source',
+        ownerId: 'test-range:impact-source', vesselId: 'test-range:impact-source',
+        x: ship.x, y: ship.y + ship.radius + 40,
+        vx: ship.vx, vy: ship.vy - 280, ttl: 2, radius: 4, damage: 18
+      });
+      exercise.fired = true;
+      exercise.firedAt = this.state.stats.time;
+    }
+    return super.stepWorld(delta, participants, options);
+  }
   // A missed UI save guard must not replace the player's normal voyage.
   save() { throw new Error('Test exercises cannot be saved as a voyage.'); }
   serialize() { throw new Error('Test exercises cannot be saved as a voyage.'); }
@@ -58,7 +77,7 @@ function rangeWorld(seed, danger) {
   ].map(([x, y, radius], index) => ({ id: `${RANGE_ID}:rock:${index}`, x, y, radius, hp: 20, maxHp: 20, ore: 1, crystal: 0, angle: index * .6, spin: .025 * (index % 2 ? 1 : -1), seed: index + seed.length }));
   return {
     id: RANGE_ID, name: 'Test range', faction: 'freewake', danger, biome: 'barren',
-    description: 'A separate practice area with one marked target.',
+    description: danger === 0 ? 'A separate practice area for one controlled shipboard impact.' : 'A separate practice area with one marked target.',
     bodies: [recovery], asteroids, enemies: [], bullets: [], pickups: [], signals: [], traffic: [],
     miningTarget: null, mining: null, miningBeams: {}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS
   };
@@ -71,10 +90,11 @@ function rangeWorld(seed, danger) {
 export function createTestSession({ scenario = 'ship-combat', enemyClassId = allowedClasses()[0].id, seed = 'practice' } = {}) {
   const exercise = TEST_SCENARIOS.find(item => item.id === scenario);
   if (!exercise) throw new RangeError('Choose one of the available test exercises.');
-  const permitted = allowedClasses(), hull = permitted.find(item => item.id === enemyClassId);
-  if (!hull) throw new RangeError('That hull is not available in test mode.');
+  const permitted = allowedClasses(), selectedHull = permitted.find(item => item.id === enemyClassId);
+  if (!selectedHull) throw new RangeError('That hull is not available in test mode.');
+  const damageExercise = scenario === 'damage-control', hull = damageExercise ? SHIP_CLASSES[0] : selectedHull;
   const sessionSeed = String(seed).slice(0, 128), game = new ExerciseGame(`farwake-test:${sessionSeed}`);
-  const danger = Math.min(5, 1 + permitted.indexOf(hull) * 2);
+  const danger = damageExercise ? 0 : Math.min(5, 1 + permitted.indexOf(hull) * 2);
   game.isTestMode = true;
   game.state.testMode = true;
   game.state.systemId = RANGE_ID;
@@ -101,14 +121,14 @@ export function createTestSession({ scenario = 'ship-combat', enemyClassId = all
   const maxHp = 36 + danger * 10;
   const close = scenario !== 'ship-combat';
   const disabled = scenario === 'boarding' || scenario === 'person-combat';
-  const enemy = {
+  const enemy = damageExercise ? null : {
     id: TARGET_ID, name: `Practice pirate · ${hull.name}`, faction: 'cinder',
     ...enemyHullProfile(hull.id), x: close ? 140 : 430, y: 0, vx: 0, vy: 0, angle: Math.PI,
     hp: disabled ? Math.floor(maxHp * .35) : maxHp, maxHp, disabled,
     active: !disabled, speed: 80 + danger * 10, damage: 5 + danger,
     cooldown: scenario === 'raid-defense' ? 4 : 2.4, reward: 0, boardingCooldown: 0, boardingCharge: 0
   };
-  game.system.enemies.push(enemy);
+  if (enemy) game.system.enemies.push(enemy);
   if (scenario === 'raid-defense') {
     game.state.ship.shield = 0;
     game._hitTimer = 8; // The ordinary damage-recovery delay lets the normal grapple complete.
@@ -117,12 +137,21 @@ export function createTestSession({ scenario = 'ship-combat', enemyClassId = all
     const boarded = game.boardEnemy(enemy.id);
     if (!boarded.ok) throw new Error('The boarding exercise could not be prepared.');
   }
+  if (damageExercise) {
+    game.state.cargo.ore = 6;
+    game.state.ship.energy = game.state.ship.maxEnergy;
+    game.state.ship.shield = 0;
+    game._hitTimer = 8;
+    const entered = game.enterCabin();
+    if (!entered.ok) throw new Error('The damage-control exercise could not be prepared.');
+    game._testDamageShot = { at: game.state.stats.time + 3, fired: false, firedAt: null };
+  }
   game.events.length = 0;
   game.state.journal.length = 0;
   const config = Object.freeze({ scenario: exercise.id, enemyClassId: hull.id, seed: sessionSeed });
   return {
     game, config, scenario: exercise, scenarioId: exercise.id, enemyClassId: hull.id,
-    targetId: enemy.id, goal: exercise.goal, startedAt: game.state.stats.time
+    targetId: enemy?.id || null, goal: exercise.goal, startedAt: game.state.stats.time
   };
 }
 
@@ -142,6 +171,17 @@ export function testSessionStatus(session) {
   const outcome = boarding?.phase === 'active' ? null : boarding?.phase ? boarding : priorOutcome;
   const result = (phase, title, detail) => ({ phase, complete: phase === 'complete', title, detail, objective: session.goal, targetId: session.targetId, enemiesRemaining: remaining });
   if (game.state.stats.rescues > 0 || outcome?.phase === 'lost') return result('failed', 'Exercise ended', 'Your captain was recovered. Retry the exercise with a fresh ship and crew deck.');
+  if (session.scenarioId === 'damage-control') {
+    const ship = game.state.ship, damage = interiorDamageSummary(ship), shot = game._testDamageShot;
+    if (!shot?.fired || !ship.damageControl?.serial) {
+      if (shot?.fired && game.state.stats.time - shot.firedAt > 2.1) return result('failed', 'Practice pulse missed', 'Retry and stay aboard your deck for the controlled hit. No further shots will arrive.');
+      return result('ready', 'One controlled hit incoming', 'Stay on your deck. After the impact, follow the damaged-compartment marker. Your reactor is charged and 6 ore are aboard.');
+    }
+    const section = damage.sections.find(item => item.fire > .1) || damage.sections.find(item => item.breach > .1) || damage.sections.find(item => item.damage > .1);
+    if (!section) return result('complete', 'Damage contained', 'The fire is out, the breach is sealed, and the compartment is repaired. No further shots will arrive. Retry or choose another exercise.');
+    const treatment = section.fire > .1 ? 'Suppress fire' : section.breach > .1 ? 'Patch breach' : 'Repair compartment';
+    return { ...result('active', `${treatment} · ${section.name}`, `Walk to the marked ${section.name.toLowerCase()} compartment and use ${treatment}. Each tool cycle needs a short recharge. You have ${game.state.cargo.ore} ore and ${Math.floor(ship.energy)} energy.`), sectionId: section.id, action: section.fire > .1 ? 'suppress' : section.breach > .1 ? 'patch' : 'repair' };
+  }
   if (outcome?.phase === 'won') return result('complete', 'Deck secure', outcome.kind === 'defense' ? 'The pirates are cleared from your ship. Retry or choose another exercise.' : 'The hostile crew is cleared. Return across the tether or take the target helm.');
   if (outcome?.phase === 'retreated') return result('withdrawn', 'Back across the tether', 'You withdrew safely. Retry when you want another boarding attempt.');
   if (boarding?.phase === 'active') return result('active', boarding.kind === 'defense' ? 'Defend your deck' : 'Clear the target deck', `${remaining} hostile ${remaining === 1 ? 'crew member remains' : 'crew members remain'}. Your sidearm is ready; no allied gunners are present.`);

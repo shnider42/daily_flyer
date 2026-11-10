@@ -9,6 +9,7 @@ import {beginPixelFrame} from './render-viewport.mjs';
 import {surfaceCamera,surfaceWorldToCanvas} from './camera-view.mjs';
 import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
+import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
 import {sidearmAim,facingAngle} from './combat.mjs';
 import {explorationSites} from './exploration.mjs';
@@ -368,12 +369,11 @@ function derelict(location,seed){
 function ship(location,seed){
  const layout=cabinLayout(location),m=makeMap(layout.cols,layout.rows,'ship',location.name||'Your ship · interior',location.id||'own-ship',seed,'ship');
  m.vesselId=location.vesselId||location.shipId||location.id;m.vesselName=location.vesselName||location.shipName||location.name||'Independent vessel';m.ownership=location.ownership||null;m.palette=vesselPalette(location);
- m.shipClass=layout.shipClass;m.berths=layout.berths;m.rooms=layout.rooms.map(r=>({...r}));m.stations=layout.stations;m.bunks=layout.bunks;m.breaches=layout.breaches;m.combatSpawns=layout.combatSpawns;m.crewSpawns=layout.crewSpawns;m.walkable=[...layout.walkable];
+ m.shipClass=layout.shipClass;m.deckRevision=layout.revision;m.hullForward=layout.hullForward;m.hullOutline=layout.hullOutline.map(p=>({...p}));m.hullMask=[...layout.hullMask];m.berths=layout.berths;m.rooms=layout.rooms.map(r=>({...r}));m.stations=layout.stations;m.bunks=layout.bunks;m.breaches=layout.breaches;m.combatSpawns=layout.combatSpawns;m.crewSpawns=layout.crewSpawns;m.walkable=[...layout.walkable];
  m.spawn={...layout.spawn};m.exit={x:layout.stations.helm.x,y:layout.stations.helm.y};
  entity(m,'entry-airlock','exit','Entry airlock','Boarding entry',Math.floor(layout.spawn.x/T),Math.floor(layout.spawn.y/T),m.palette.accent,{airlock:true,vesselId:m.vesselId,shared:true,roleLabel:'Entry airlock'},'The collar where you entered this deck. Use it to return across the tether when your origin ship is alongside.');
- for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)if(layout.floor[y*m.cols+x])m.tiles[y][x]=TILE.FLOOR;
- for(const c of layout.corridors)rect(m,c.x,c.y,c.w,c.h,TILE.PATH);
- for(let y=1;y<m.rows-1;y++)for(let x=1;x<m.cols-1;x++)if(!layout.floor[y*m.cols+x]&&[-1,0,1].some(dy=>[-1,0,1].some(dx=>layout.floor[(y+dy)*m.cols+x+dx])))m.tiles[y][x]=TILE.WALL;
+ for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){const i=y*m.cols+x;if(layout.hullMask[i])m.tiles[y][x]=layout.floor[i]?TILE.FLOOR:TILE.WALL;}
+ for(const c of layout.corridors)for(let y=c.y;y<c.y+c.h;y++)for(let x=c.x;x<c.x+c.w;x++)if(layout.floor[y*m.cols+x])m.tiles[y][x]=TILE.PATH;
  for(const r of layout.rooms){label(m,r.name,r.x+1,r.y+.3,r.color);prop(m,'roomstripe',r.x+1,r.y+r.h-1,r.w-2,.15,r.color,false);}
  for(const f of layout.fixtures)prop(m,f.kind,f.x,f.y,f.w,f.h,f.color,false);
  m.solids=layout.fixtures.filter(f=>f.solid).map(f=>({x:f.x*T,y:f.y*T,w:f.w*T,h:f.h*T}));
@@ -730,7 +730,7 @@ function isDone(entity,flags){return!!entity.completed||flags.has(entity.data?.f
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,role:e.role});if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
+ if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role});if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
  else if(e.type==='station'){
   pixel(ctx,'#0e2733',x-14,y-21,28,26);pixel(ctx,'#557985',x-13,y-23,26,22);pixel(ctx,'#173a48',x-10,y-20,20,12);pixel(ctx,c,x-8,y-18,16,2);pixel(ctx,c,x-2,y-17,4,7);pixel(ctx,'#a9c9bd',x-8,y-5,3,2);pixel(ctx,'#dcc59a',x+5,y-5,3,2);
   if(e.data?.stationRole==='medical'){pixel(ctx,'#bfe1c9',x-6,y-14,12,3);pixel(ctx,'#bfe1c9',x-2,y-18,4,11);}
@@ -915,7 +915,9 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
 
 export function drawSurface(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height;
- const view=surfaceCamera({x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,rasterScale:options.rasterScale,cameraX:options.cameraX,cameraY:options.cameraY});
+ const cameraOptions={x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,rasterScale:options.rasterScale,cameraX:options.cameraX,cameraY:options.cameraY};
+ let view=surfaceCamera(cameraOptions);
+ if(options.cameraShake&&(options.cameraShake.x||options.cameraShake.y))view=surfaceCamera({...cameraOptions,cameraX:view.cameraX+Math.max(-3.5,Math.min(3.5,Number(options.cameraShake.x)||0)),cameraY:view.cameraY+Math.max(-3.5,Math.min(3.5,Number(options.cameraShake.y)||0))});
  if(view.zoom===1){drawSurfacePixels(ctx,surface,{...options,cameraX:view.cameraX,cameraY:view.cameraY});return view;}
  // Fractional transforms antialias fillRect edges even with image smoothing off.
  // Draw only the visible world at its original pixel scale, then sample it
@@ -944,18 +946,19 @@ function drawSurfacePixels(ctx,surface,options={}){
  beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)tileDraw(ctx,surface,x,y,p,time);
- for(const room of surface.rooms||[]){ctx.globalAlpha=.10;pixel(ctx,room.color, (room.x+1)*T,(room.y+1)*T,(room.w-2)*T,(room.h-2)*T);ctx.globalAlpha=1;}
+ for(const room of surface.rooms||[]){ctx.globalAlpha=.10;if(surface.kind==='ship'){for(let y=Math.max(minY,room.y+1);y<Math.min(maxY,room.y+room.h-1);y++)for(let x=Math.max(minX,room.x+1);x<Math.min(maxX,room.x+room.w-1);x++)if([TILE.FLOOR,TILE.PATH].includes(surface.tiles[y]?.[x]))pixel(ctx,room.color,x*T,y*T,T,T);}else pixel(ctx,room.color,(room.x+1)*T,(room.y+1)*T,(room.w-2)*T,(room.h-2)*T);ctx.globalAlpha=1;}
  // Walls cast a short hard-edged shadow; light strips remain emissive pixels.
  for(let y=minY;y<maxY-1;y++)for(let x=minX;x<maxX;x++)if(surface.tiles[y][x]===TILE.WALL&&[TILE.FLOOR,TILE.PATH].includes(surface.tiles[y+1]?.[x])){ctx.globalAlpha=.2;pixel(ctx,'#06131d',x*T,(y+1)*T,T,5);ctx.globalAlpha=1;}
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
  const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark']);
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,emit);
+ drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
  if(aim)drawCombatAim(ctx,person,aim);
- const candidate=nearestEntity(surface,person,43),near=candidate&&!represented(candidate)?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
+ const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
  for(const e of surface.entities){
-  if(e.hidden||represented(e))continue;
+  if(e.hidden||e.type==='damageControl'||represented(e))continue;
   if(e.x<cameraX-45||e.x>cameraX+width+45||e.y<cameraY-45||e.y>cameraY+height+45)continue;
   if(e.type==='delivery'||e.type==='bunk'||e.type==='exit'&&!e.data?.stationRole)drawEntity(ctx,e,surface,time,flags,near===e);else items.push({y:e.y,entity:e});
  }
@@ -969,6 +972,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.species&&a.species!=='human'&&a.species!=='choral')drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
+ drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
  if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time);
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){

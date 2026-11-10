@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../dist/engine.mjs';
 import { SHIP_CLASSES, enemyHullProfile } from '../dist/fleet.mjs';
+import { cabinLayout, isCabinWalkable } from '../dist/interior-layouts.mjs';
+import { DAMAGE_CONTROL_ACTIONS } from '../dist/interior-damage.mjs';
 import { TEST_SCENARIOS, unlockTestMode, testEnemyChoices, createTestSession, resetTestSession, testSessionStatus } from '../dist/test-lab.mjs';
 
 function frames(game, input = {}, count = 60) { for (let index = 0; index < count; index++) game.step(1 / 60, input); }
@@ -16,6 +18,7 @@ test('test mode accepts its requested code and exposes only the smaller half of 
   assert.deepEqual(choices.map(choice => choice.id), bySize.slice(0, cutoff).map(hull => hull.id));
   assert.deepEqual(Object.keys(choices[0]).sort(), ['berths', 'id', 'name', 'renderLength', 'renderWidth', 'subtitle'].sort());
   for (const hidden of bySize.slice(cutoff)) assert.throws(() => createTestSession({ enemyClassId: hidden.id }), /not available in test mode/);
+  for (const hidden of bySize.slice(cutoff)) assert.throws(() => createTestSession({ scenario: 'damage-control', enemyClassId: hidden.id }), /not available in test mode/);
   assert.throws(() => createTestSession({ enemyClassId: 'made-up-hull' }), /not available in test mode/);
   assert.throws(() => createTestSession({ scenario: 'unlock-everything' }), /available test exercises/);
 });
@@ -119,6 +122,80 @@ test('goal summaries preserve a completed boarding after leaving the deck and re
   assert.equal(game.state.completedChapters.length, 0);
 });
 
+test('damage-control practice begins on the starter deck and receives one real, delayed external impact', () => {
+  const voyage = new Game('damage-practice-untouched'), original = voyage.serialize();
+  const session = createTestSession({ scenario: 'damage-control', enemyClassId: testEnemyChoices().at(-1).id });
+  const { game } = session, ship = game.state.ship;
+  assert.equal(ship.classId, 'sparrow');
+  assert.equal(session.enemyClassId, 'sparrow');
+  assert.equal(session.targetId, null);
+  assert.equal(game.state.mode, 'person');
+  assert.equal(game.state.interior.kind, 'ship');
+  assert.equal(game.currentBody.vesselId, ship.id);
+  assert.equal(game.system.enemies.length, 0);
+  assert.equal(game.state.cargo.ore, 6);
+  assert.equal(ship.energy, ship.maxEnergy);
+  assert.equal(testSessionStatus(session).phase, 'ready');
+  frames(game, {}, 120);
+  assert.equal(ship.hull, ship.maxHull);
+  assert.equal(ship.damageControl.serial, 0);
+  frames(game, {}, 120);
+  assert.equal(ship.hull, ship.maxHull - 18);
+  assert.equal(ship.damageControl.serial, 1);
+  assert.equal(game.state.person.health, 100, 'The captain begins safely away from the controlled impact.');
+  const section = ship.damageControl.sections.find(item => item.breach > 0), layout = cabinLayout(ship.classId);
+  assert.ok(section);
+  assert.ok(section.fire > 0 && section.damage > 0);
+  assert.ok(isCabinWalkable(layout, section.x, section.y));
+  assert.equal(testSessionStatus(session).sectionId, section.id);
+  assert.equal(testSessionStatus(session).action, 'suppress');
+  assert.ok(game.drainEvents().some(event => event.type === 'hit' && event.vesselId === ship.id));
+  frames(game, {}, 1800);
+  assert.equal(ship.damageControl.serial, 1, 'The exercise never repeats its attack.');
+  assert.equal(ship.hull, ship.maxHull - 18);
+  assert.equal(game.state.pendingEncounter, null);
+  assert.deepEqual(game.state.completedChapters, []);
+  assert.throws(() => game.save(), /cannot be saved/);
+  assert.equal(voyage.serialize(), original);
+});
+
+test('damage-control guidance follows actual suppression, patching, and repairs before completing', () => {
+  const session = createTestSession({ scenario: 'damage-control' }), { game } = session;
+  frames(game, {}, 240);
+  const ship = game.state.ship, section = ship.damageControl.sections.find(item => item.breach > 0);
+  assert.equal(game.damageControl(section.id, 'suppress').code, 'distance');
+  assert.equal(testSessionStatus(session).complete, false);
+  Object.assign(game.state.person, { x: section.x, y: section.y });
+  let oreSpent = 0;
+  for (const action of ['suppress', 'patch', 'repair']) {
+    const spec = DAMAGE_CONTROL_ACTIONS[action];
+    assert.equal(testSessionStatus(session).action, action);
+    while (section[spec.field] > .1) {
+      const energy = ship.energy, ore = game.state.cargo.ore;
+      assert.equal(game.damageControl(section.id, action).ok, true);
+      assert.equal(ship.energy, energy - spec.energy);
+      assert.equal(game.state.cargo.ore, ore - spec.ore);
+      oreSpent += spec.ore;
+      frames(game, {}, 73);
+    }
+    if (action !== 'repair') assert.equal(testSessionStatus(session).complete, false);
+  }
+  assert.equal(testSessionStatus(session).title, 'Damage contained');
+  assert.equal(testSessionStatus(session).complete, true);
+  assert.ok(ship.damageControl.sections.every(item => item.fire === 0 && item.breach === 0 && item.damage === 0));
+  assert.equal(game.state.cargo.ore, 6 - oreSpent);
+  assert.equal(oreSpent, 3);
+  assert.ok(game.state.person.health > 0, 'There is time to finish every repair using the real tool cooldown.');
+  const beforeSummary = structuredClone(game.state);
+  testSessionStatus(session);
+  assert.deepEqual(game.state, beforeSummary, 'Reading the practice objective does not mutate the voyage.');
+  const retry = resetTestSession(session);
+  assert.equal(testSessionStatus(retry).phase, 'ready');
+  assert.equal(retry.game.state.ship.damageControl.serial, 0);
+  assert.equal(retry.game.state.ship.hull, retry.game.state.ship.maxHull);
+  assert.equal(retry.game.state.cargo.ore, 6);
+});
+
 test('all advertised exercise choices produce a fresh playable setup and reject non-test resets', () => {
   for (const scenario of TEST_SCENARIOS) {
     const session = createTestSession({ scenario: scenario.id });
@@ -126,7 +203,7 @@ test('all advertised exercise choices produce a fresh playable setup and reject 
     assert.ok(session.goal.length > 20);
     assert.ok(testSessionStatus(session));
     assert.equal(session.game.state.person.health, 100);
-    assert.equal(session.game.system.enemies.length, 1);
+    assert.equal(session.game.system.enemies.length, scenario.id === 'damage-control' ? 0 : 1);
   }
   assert.equal(testSessionStatus({ game: new Game('normal') }), null);
   assert.throws(() => resetTestSession({ game: new Game('normal') }), /test exercise first/);

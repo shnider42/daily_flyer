@@ -8,9 +8,9 @@ import {
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SHIP_NOTES={
-  sparrow:{role:'A little of everything',benefit:'Steady handling and room for a small crew.',cost:'No specialist advantage.',color:'#b7c8bc'},
-  kestrel:{role:'Go farther. Find more.',benefit:'Quick engines and a longer-range scanner.',cost:'Light armor and a smaller hold.',color:'#92b8c4'},
-  mule:{role:'Make a living in the belt',benefit:'More cargo room and faster mining.',cost:'Slower engines and turning.',color:'#c2ab7e'}
+  sparrow:{role:'A little of everything',benefit:'A reserve bus recovers reactor charge faster between bursts.',cost:'Balanced engines and weapons; a modest cargo hold.',color:'#b7c8bc'},
+  kestrel:{role:'Go farther. Find more.',benefit:'Stronger vector BOOST and a longer-range scanner.',cost:'Light armor and a smaller hold.',color:'#92b8c4'},
+  mule:{role:'Make a living in the belt',benefit:'A long-reach tractor rig, faster mining, and more cargo.',cost:'Slower engines and turning.',color:'#c2ab7e'}
 };
 const options=(items,current)=>items.map(item=>`<option value="${esc(item.id)}"${item.id===current?' selected':''}>${esc(item.name)}</option>`).join('');
 const traitName=id=>CHARACTER_TRAITS.find(trait=>trait.id===id)?.name||'';

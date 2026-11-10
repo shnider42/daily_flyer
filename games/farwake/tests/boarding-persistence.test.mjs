@@ -3,9 +3,17 @@ import assert from 'node:assert/strict';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {Game} from '../dist/engine.mjs';
 import {enemyShipState} from '../dist/fleet.mjs';
-import {cabinLayout} from '../dist/interior-layouts.mjs';
+import {cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
+import {clearSidearmSight} from '../dist/combat.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason);return result;};
+function firingPoint(game) {
+  const layout=cabinLayout(game.state.boarding.shipClass),target=layout.combatSpawns[0];
+  const point={x:(layout.spawn.x+target.x)/2,y:(layout.spawn.y+target.y)/2};
+  assert.ok(isCabinWalkable(layout,point.x,point.y));assert.ok(clearSidearmSight(layout,point,target));
+  assert.ok(Math.hypot(point.x-layout.spawn.x,point.y-layout.spawn.y)>70,'Combat takes place away from the entry airlock.');
+  return point;
+}
 function assault(seed='persistent-deck') {
   const game=new Game(seed),origin=game.state.ship,enemy=placeRaider(game);
   Object.assign(origin,{x:0,y:450,vx:0,vy:0,hull:71,shield:0});
@@ -15,8 +23,9 @@ function assault(seed='persistent-deck') {
   return {game,origin,enemy};
 }
 function secure(game) {
-  Object.assign(game.state.person,{x:252,y:300,health:100});
-  game.state.boarding.enemies.forEach((enemy,index)=>Object.assign(enemy,{x:140+index*30,y:300,cooldown:999}));
+  const layout=cabinLayout(game.state.boarding.shipClass);
+  Object.assign(game.state.person,firingPoint(game),{health:100});
+  game.state.boarding.enemies.forEach((enemy,index)=>Object.assign(enemy,layout.combatSpawns[index%layout.combatSpawns.length],{cooldown:999}));
   for(let i=0;i<120&&game.state.boarding.phase==='active';i++)game.step(.1,{fire:true});
   assert.equal(game.state.boarding.phase,'won');
 }
@@ -29,8 +38,8 @@ test('assault has a distinct target identity and guard wounds survive retreat, s
   assert.equal(game.state.ship,origin);assert.notEqual(boarding.vesselId,origin.id);
   assert.equal(boarding.originVesselId,origin.id);assert.equal(boarding.targetVesselId,enemy.id);
   assert.equal(game.currentBody.vesselId,enemy.id);assert.match(game.currentBody.name,new RegExp(enemy.name));
-  Object.assign(game.state.person,{x:252,y:300});
-  Object.assign(boarding.enemies[0],{x:140,y:300});
+  Object.assign(game.state.person,firingPoint(game));
+  Object.assign(boarding.enemies[0],cabinLayout(boarding.shipClass).combatSpawns[0]);
   const targetId=boarding.enemies[0].id;ok(game.attackBoarder(targetId));
   const remainingHealth=boarding.enemies[0].health;
   assert.equal(remainingHealth,28);assert.equal(game.returnToOwnShip().code,'distance');

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 import { Game } from '../dist/engine.mjs';
-import { STARTER_SHIPS, enemyHullProfile, cabinLayout } from '../dist/fleet.mjs';
-import { SIDEARM } from '../dist/combat.mjs';
+import { STARTER_SHIPS, enemyHullProfile, cabinLayout, isCabinWalkable } from '../dist/fleet.mjs';
+import { SIDEARM, clearSidearmSight } from '../dist/combat.mjs';
 import { normalizeCharacter, characterModifiers } from '../dist/character.mjs';
 import { movePerson, generateSurface, isWalkable } from '../dist/surface.mjs';
 import { Realm } from '../server/realm.mjs';
@@ -28,9 +28,12 @@ function boarded(traits=[],withMedic=false) {
   game.system.enemies=[enemy];
   Object.assign(enemy,enemyHullProfile('sparrow'),{x:game.state.ship.x+80,y:game.state.ship.y,hp:14,disabled:true,cooldown:999,speed:0});
   ok(game.boardEnemy(enemy.id));
-  Object.assign(game.state.person,{x:252,y:300});
+  const layout=cabinLayout(game.state.boarding.shipClass),hostilePoint=layout.combatSpawns[0];
+  const firingPoint={x:(layout.spawn.x+hostilePoint.x)/2,y:(layout.spawn.y+hostilePoint.y)/2};
+  assert.ok(isCabinWalkable(layout,firingPoint.x,firingPoint.y));assert.ok(clearSidearmSight(layout,firingPoint,hostilePoint));
+  Object.assign(game.state.person,firingPoint);
   const target=game.state.boarding.enemies[0];
-  Object.assign(target,{x:180,y:300,health:1000,maxHealth:1000,cooldown:999,speed:0});
+  Object.assign(target,hostilePoint,{health:1000,maxHealth:1000,cooldown:999,speed:0});
   for(const other of game.state.boarding.enemies.slice(1))Object.assign(other,{health:0,status:'dead'});
   game.drainEvents();return {game,target};
 }
@@ -116,7 +119,7 @@ test('boarding damage and firing cooldown use the shooter traits rather than the
     ok(game.attackBoarder(null,game,{aiming:true,aimX:-1,aimY:0}));
   }
   const {game:host,target}=boarded(),visitor=captain('visitor-traits',['hot_cell']);
-  visitor.state.mode='person';Object.assign(visitor.state.person,{x:252,y:300});
+  visitor.state.mode='person';Object.assign(visitor.state.person,{x:host.state.person.x,y:host.state.person.y});
   const health=target.health;ok(host.attackBoarder(null,visitor,{aiming:true,aimX:-1,aimY:0}));
   close(health-target.health,30);close(visitor._boardingShotTimer,.416);assert.equal(host._boardingShotTimer||0,0);
 });
@@ -157,7 +160,9 @@ test('story effects and boarding medics respect both higher and lower captain he
   assert.equal(light.state.person.health,85,'Story healing uses the captain health cap.');
   for(const traits of [['long_stride'],['bulkhead_born']]) {
     const {game}=boarded(traits,true),max=game.state.person.maxHealth,medic=game.state.boarding.allies.find(ally=>ally.role==='medic');
-    assert.ok(medic);game.state.person.health=max-1;Object.assign(medic,{x:275,y:300,healTimer:0});
+    const layout=cabinLayout(game.state.boarding.shipClass),medicPoint={x:game.state.person.x+layout.tile,y:game.state.person.y};
+    assert.ok(isCabinWalkable(layout,medicPoint.x,medicPoint.y));assert.ok(clearSidearmSight(layout,medicPoint,game.state.person));
+    assert.ok(medic);game.state.person.health=max-1;Object.assign(medic,medicPoint,{healTimer:0});
     game.stepPilot(.01,{});assert.equal(game.state.person.health,max,'Medics heal toward the actual captain maximum.');
   }
 });

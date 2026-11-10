@@ -1,4 +1,5 @@
 /** Shared, DOM-free vessel definitions and deterministic flight integration. */
+import { getHullSystems } from './hull-systems.mjs';
 export { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -23,7 +24,7 @@ export const SHIP_CLASSES = Object.freeze([
     stats:{mass:4.1, radius:36, renderLength:126, renderWidth:76, maxHull:255, maxShield:125, maxEnergy:150, maxFuel:36, cargoCap:34, speed:235, thrustAcceleration:155, strafeAcceleration:95, angularAcceleration:1.8, maxAngularVelocity:1.45, angularDamping:1.3, damage:30, range:1050, scanRange:260, mining:.9} },
   { id:'atlas', name:'Atlas', subtitle:'Salvage tender', description:'Ten berths share a working deck above a vast salvage cradle. Heavy mining equipment, repair stores, and a broad hold support a roaming crew; the industrial frame is slow to reposition.', berths:10, cost:4800, ore:48, requiresClass:'hauler', requires:['fold_2'], conditions:{flags:['archive_decoded']},
     stats:{mass:10.5, radius:61, renderLength:214, renderWidth:116, maxHull:465, maxShield:115, maxEnergy:230, maxFuel:72, cargoCap:190, speed:165, thrustAcceleration:62, strafeAcceleration:44, angularAcceleration:.78, maxAngularVelocity:.75, angularDamping:.85, damage:24, range:980, scanRange:330, mining:2.3} }
-].map(c => Object.freeze({...c, stats:Object.freeze(c.stats)})));
+].map(c => Object.freeze({...c, systems:getHullSystems(c.id), stats:Object.freeze(c.stats)})));
 
 /** Public new-captain choices; later hulls are never included in this catalog. */
 export const STARTER_SHIP_IDS = Object.freeze(['sparrow','kestrel','mule']);
@@ -66,9 +67,9 @@ export function enemyShipState(enemy, vesselId=enemy?.id) {
     return group;
   });
   const rescueHistory=JSON.parse(JSON.stringify(Array.isArray(enemy?.rescueHistory)?enemy.rescueHistory:[]));
-  return {...stats,...enemyHullProfile(hull.id),id,name:String(enemy?.name||hull.name),humanOccupants:1,rescueGroups,rescueHistory,
+  return {...stats,...enemyHullProfile(hull.id),id,name:String(enemy?.name||hull.name),humanOccupants:1,rescueGroups,rescueHistory,damageControl:enemy?.damageControl?JSON.parse(JSON.stringify(enemy.damageControl)):undefined,
     x:number(enemy?.x),y:number(enemy?.y),vx:number(enemy?.vx),vy:number(enemy?.vy),angle:number(enemy?.angle),angularVelocity:0,
-    hull:stats.maxHull*fraction,shield:0,energy:Math.min(30,stats.maxEnergy),fuel:Math.min(10,stats.maxFuel),turn:stats.angularAcceleration,warpRange:0,
+    hull:stats.maxHull*fraction,shield:0,energy:clamp(number(enemy?.energy,Math.min(30,stats.maxEnergy)),0,stats.maxEnergy),fuel:Math.min(10,stats.maxFuel),turn:stats.angularAcceleration,warpRange:0,
     captured:true,capturedFromId:enemy?.id,disabled:!!enemy?.disabled};
 }
 
@@ -104,7 +105,7 @@ export function advanceShip(ship, delta, input = {}, options = {}) {
   const radius=number(options.worldRadius,2700);
   const count=Math.max(1,Math.ceil(dt/(1/240))),h=dt/count;
   const brake=Math.max(controls.brake,Math.max(0,-controls.thrust));
-  const propulsion=Math.max(0,controls.thrust)*(boost?1.7:1);
+  const propulsion=Math.max(0,controls.thrust)*(boost?getHullSystems(ship.classId).boostMultiplier:1);
   const damping=brake*(4.8/Math.sqrt(stats.mass))+(controls.flightAssist?((propulsion||controls.strafe)?.36:1.2):.018);
   const angularDamping=baseDamping*(controls.flightAssist?1:.2)+(controls.brake?2.4:0);
   for(let i=0;i<count;i++) {

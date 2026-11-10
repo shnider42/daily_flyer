@@ -105,7 +105,7 @@ export class BoardingAuthority {
     const enemy = this._enemyFor(vessel); if (!enemy) return;
     enemy.canonicalVesselId = vessel.id; enemy.promotedVesselId = vessel.id; enemy.hp = vessel.ship.hull; enemy.maxHp = vessel.ship.maxHull;
     enemy.x = vessel.ship.x; enemy.y = vessel.ship.y; enemy.vx = vessel.ship.vx || 0; enemy.vy = vessel.ship.vy || 0; enemy.angle = vessel.ship.angle;
-    enemy.shield = vessel.ship.shield; enemy.active = false; enemy.disabled = weak(vessel); enemy.occupation = vessel.occupation || enemy.occupation;
+    enemy.damageControl = vessel.ship.damageControl; enemy.energy = vessel.ship.energy; enemy.shield = vessel.ship.shield; enemy.active = false; enemy.disabled = weak(vessel); enemy.occupation = vessel.occupation || enemy.occupation;
     if (enemy.deck && vessel.boarding?.enemies) enemy.deck.enemies = vessel.boarding.enemies;
   }
   _boardEnemy(captain, args) {

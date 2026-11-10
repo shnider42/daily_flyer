@@ -6,6 +6,14 @@ import { cabinLayout, enemyHullProfile, getShipClass, isCabinWalkable } from '..
 import { SIDEARM } from '../../dist/combat.mjs';
 
 const storage = () => ({ kind: 'memory', save: async (_id, version) => ({ version: version + 1 }) });
+function assertLegacyShipPreserved(ship, original) {
+  const { damageControl, ...existingFields } = ship;
+  assert.deepEqual(existingFields, original, 'Migration preserves every existing physical ship property.');
+  assert.equal(damageControl.version, 1);
+  assert.ok(damageControl.sections.length > 0);
+  assert.ok(damageControl.sections.every(section => section.fire === 0 && section.breach === 0), 'Old wounds acquire scars without invented emergencies.');
+  assert.deepEqual(damageControl.impacts, []);
+}
 async function fixture(count = 2) {
   const realm = new Realm({ id: 'BOARD123', seed: 'boarding-authority', persistence: storage() });
   const captains = [];
@@ -163,7 +171,7 @@ test('an authentic v0.2.1 active assault migrates without overwriting the source
   const before = structuredClone(legacy), ownerId = 'captain_legacy_owner', friendId = 'captain_legacy_friend', sourceId = before.captains[ownerId].ownedVesselId;
   const realm = new Realm({ id: legacy.realmId, snapshot: legacy, persistence: storage() }), captain = realm.captains.get(ownerId), friend = realm.captains.get(friendId), source = realm.vessels.get(sourceId), target = realm.vessels.get(captain.aboard);
   assert.notEqual(target.id, source.id); assert.equal(captain.ownedVesselId, source.id); assert.equal(captain.returnVesselId, source.id); assert.equal(friend.aboard, source.id);
-  assert.deepEqual(source.ship, before.vessels[sourceId].ship); assert.equal(source.ship, captain.game.state.ship); assert.notEqual(source.ship, target.ship);
+  assertLegacyShipPreserved(source.ship, before.vessels[sourceId].ship); assert.equal(source.ship, captain.game.state.ship); assert.notEqual(source.ship, target.ship);
   assert.equal(captain.game.state.credits, 477); assert.equal(captain.game.state.cargo.ore, 13); assert.ok(captain.game.state.flags.includes('legacy-quest-kept')); assert.equal(captain.game.state.person.health, 61);
   assert.equal(realm._crewFor(source)[0].health, 78); assert.deepEqual(realm._crewFor(target), []); assert.equal(target.boarding.enemies[0].health, 19); assert.equal(target.boarding.enemies[1].health, 0);
   assert.equal(realm.snapshotFor(captain).state.ship.id, target.id); assert.equal(realm.snapshotFor(friend).state.boarding, null);
@@ -183,7 +191,7 @@ test('v0.2.1 normal play and an existing defensive boarding keep the same ship, 
     if (defensive) { owner.game.boarding.kind = 'defense'; owner.game.boarding.vesselId = id; owner.game.interior.kind = 'ship'; owner.game.interior.location.id = `ship:${id}`; owner.game.locationId = `ship:${id}`; }
     else { owner.game.boarding = null; owner.game.interior = null; owner.game.locationId = null; owner.game.mode = 'ship'; vessel.helmOwner = owner.id; }
     const before = structuredClone(snapshot), realm = new Realm({ id: snapshot.realmId, snapshot, persistence: storage() }), loaded = realm.captains.get(owner.id), hull = realm.vessels.get(id);
-    assert.equal(realm.vessels.size, Object.keys(before.vessels).length); assert.equal(loaded.ownedVesselId, id); assert.equal(loaded.aboard, id); assert.deepEqual(hull.ship, before.vessels[id].ship);
+    assert.equal(realm.vessels.size, Object.keys(before.vessels).length); assert.equal(loaded.ownedVesselId, id); assert.equal(loaded.aboard, id); assertLegacyShipPreserved(hull.ship, before.vessels[id].ship);
     assert.equal(loaded.game.state.credits, 477); assert.equal(loaded.game.state.cargo.ore, 13); assert.equal(realm._crewFor(hull)[0].health, 78); assert.ok(loaded.game.state.flags.includes('legacy-quest-kept'));
     if (defensive) { assert.equal(hull.boarding.kind, 'defense'); assert.equal(hull.boarding.enemies[0].health, 19); assert.equal(hull.boarding.enemies[1].health, 0); assert.equal(realm.snapshotFor(loaded).state.boarding.phase, 'active'); }
     else assert.equal(realm.snapshotFor(loaded).state.boarding, null);

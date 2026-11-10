@@ -10,6 +10,8 @@ import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {SIDEARM} from '../dist/combat.mjs';
 import {CameraProfile} from '../dist/camera-profile.mjs';
 import {normalizeCameraPreferences,normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
+import {syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus} from '../dist/interior-presentation.mjs';
+import {DAMAGE_CONTROL_ACTIONS,interiorDamageSummary} from '../dist/interior-damage.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
 import {getPerspectiveAction} from '../dist/perspective-controls.mjs';
 
@@ -22,7 +24,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
 const appCode=names.map(declaration).join('\n');
 
 function classes() {
@@ -40,7 +42,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({Game,distance,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,getPerspectiveAction,
+  const context=vm.createContext({Game,distance,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,getPerspectiveAction,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
@@ -169,4 +171,32 @@ test('test mode permits real engineering and medical actions aboard the player s
   await f.dialog.items.find(item=>item.label==='Repair the hull').action();assert.equal(game.state.ship.hull,58);assert.equal(game.state.ship.energy,82);
   const medical=f.context.surface.entities.find(entity=>entity.data?.stationRole==='medical');f.call('openStation',medical);
   await f.dialog.items.find(item=>item.label==='Treat injuries').action();assert.equal(game.state.person.health,52);assert.equal(game.state.ship.energy,67);assert.equal(f.writes.length,0);
+});
+
+test('damage-control practice hides the opponent selector and uses the real marked compartment and supplies',async()=>{
+  const f=fixture();f.context.testUnlocked=true;f.context.testConfig.scenario='damage-control';f.call('openTestMenu');
+  assert.equal(f.elements.get('testTarget').hidden,true);assert.equal(f.elements.get('testEnemy').disabled,true);
+  assert.equal(f.elements.get('testLayout').classList.contains('solo-exercise'),true);
+  const session=enter(f,'damage-control'),game=session.game;
+  for(let i=0;i<240;i++)game.step(1/60,{});
+  const section=game.state.ship.damageControl.sections.find(s=>s.fire>0&&s.breach>0);assert.ok(section);
+  Object.assign(game.state.person,{x:section.x,y:section.y});f.call('ensureSurface');
+  assert.ok(f.context.surface.entities.some(e=>e.type==='damageControl'&&e.data.sectionId===section.id));
+  const fire=section.fire;f.call('openDamageSection',section.id);
+  assert.match(f.dialog.htmlText,/100 reactor charge · 6 ore/);
+  const suppress=f.dialog.items.find(i=>i.label==='Suppress fire');assert.equal(suppress.disabled,false);assert.match(suppress.detail,/Cost 2 charge/);
+  await suppress.action();assert.equal(section.fire,Math.max(0,fire-35));assert.equal(game.state.ship.energy,98);assert.equal(game.state.cargo.ore,6);
+  assert.equal(f.dialog.opened,false);assert.equal(f.writes.length,0);
+  f.call('openDamageSection',section.id);const remaining=section.fire;await f.dialog.items.find(i=>i.label==='Suppress fire').action();
+  assert.equal(f.dialog.opened,false,'A recharge rejection returns to the deck so the paused tool can recover.');
+  assert.equal(section.fire,remaining);assert.equal(game.state.ship.energy,98);assert.equal(f.writes.length,0);
+});
+
+test('damage panels show the boarded physical hull instead of the source ship',()=>{
+  const f=fixture(),session=enter(f,'person-combat'),game=session.game;
+  const target=game.currentDamageHull(),source=game.state.ship;target.energy=17;source.energy=99;
+  target.damageControl.sections[0].damage=12;source.damageControl.sections[0].fire=30;
+  f.call('openDamageOverview');assert.match(f.dialog.htmlText,/17 reactor charge/);assert.doesNotMatch(f.dialog.htmlText,/99 reactor charge/);
+  assert.ok(f.opened.at(-1).title.includes(target.name));assert.equal(f.dialog.items.filter(i=>i.label===target.damageControl.sections[0].name).length,1);
+  assert.equal(source.damageControl.sections[0].fire,30);assert.equal(f.writes.length,0);
 });

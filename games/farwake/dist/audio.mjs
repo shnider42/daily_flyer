@@ -4,7 +4,7 @@ export class Soundscape{
  unlock(){if(!this.enabled())return;try{playbackSession();if(!this.ctx){this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=.17;this.master.connect(this.ctx.destination);}if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null){if(!this.enabled()||!this.ctx||this.ctx.state!=='running')return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){
-  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
+  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shipAlarm:3000,repair:180}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
    case'sidearm':this.tone(740,.095,'square',.20,210);this.tone(1340,.045,'triangle',.10,640);break;
    case'crewShot':this.tone(470,.09,'triangle',.13,180);break;
@@ -13,6 +13,9 @@ export class Soundscape{
    case'personHit':this.tone(94,.17,'triangle',.28,32);this.tone(180,.07,'square',.09,80);break;
    case'personDown':this.tone(175,.28,'triangle',.19,56);break;
    case'fire':this.tone(520,.13,'square',.11,90);break;
+   case'bulkhead':this.tone(62,.27,'triangle',.24,23);this.tone(135,.08,'square',.045,72);break;
+   case'shipAlarm':this.tone(330,.34,'triangle',.09,270);setTimeout(()=>this.tone(270,.34,'triangle',.075,220),380);break;
+   case'repair':this.tone(310,.13,'triangle',.09,510);break;
    case'hit':this.tone(80,.18,'sawtooth',.22,20);break;
    case'mine':this.tone(260,.14,'triangle',.13,320);break;
    case'pickup':this.tone(480,.12,'sine',.3,760);break;
@@ -24,6 +27,7 @@ export class Soundscape{
    case'alert':this.tone(220,.25,'triangle',.2);break;
   }
  }
+ interiorAlarm(time,{active=false}={}){if(!active){this.nextInteriorAlarm=null;return;}if(!this.enabled())return;if(this.nextInteriorAlarm===null||this.nextInteriorAlarm===undefined||time>=this.nextInteriorAlarm){this.play('shipAlarm');this.nextInteriorAlarm=time+3.5;}}
  atmosphere(time,mode,music){if(!music||!this.enabled())return;if(time-(this.musicTime??-10)<4.8)return;this.musicTime=time;const notes=mode==='person'?[130.81,164.81,196,146.83,174.61,196,164.81,146.83]:[65.41,98,130.81,82.41,110,146.83,98,73.42];const i=(this.noteIndex??0)%notes.length;this.noteIndex=i+1;this.tone(notes[i],4.5,'sine',.10);this.tone(notes[i]*1.5,3.8,'sine',.035);}
  /** Sparse location sounds are effects, so a quiet room still has a voice with music off. */
  siteAtmosphere(time,atmosphere){

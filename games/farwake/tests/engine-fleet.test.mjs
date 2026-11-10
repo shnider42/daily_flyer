@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {Game,SHIP_CLASSES,CREW_ROLES} from '../dist/engine.mjs';
 import {cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
+import {clearSidearmSight} from '../dist/combat.mjs';
 const ok=r=>{assert.equal(r?.ok,true,r?.reason);return r;};
 const frame=(g,input={},n=1)=>{for(let i=0;i<n;i++)g.step(1/60,input);};
 function port(g){const b=g.system.bodies.find(b=>b.id==='kettle')||g.system.bodies[0];Object.assign(g.state.ship,{x:b.x,y:b.y+b.radius+60});ok(g.dock(b.id));}
 function funded(g){g.state.credits=15000;g.state.flags.push('first_fold_done','archive_decoded','ally_chosen');Object.assign(g.state.upgrades,{fold_1:1,fold_2:1,fold_3:1});g._updateStats();}
 function closeEnemy(g){const enemy=placeRaider(g);g.system.enemies=[enemy];Object.assign(enemy,{x:g.state.ship.x+100,y:g.state.ship.y,hp:46,maxHp:46,speed:0,cooldown:999,disabled:false});return enemy;}
+function firingPoint(g){const layout=cabinLayout(g.state.boarding.shipClass),target=layout.combatSpawns[0],point={x:(layout.spawn.x+target.x)/2,y:(layout.spawn.y+target.y)/2};assert.ok(isCabinWalkable(layout,point.x,point.y));assert.ok(clearSidearmSight(layout,point,target));return point;}
 
 test('fleet commissioning enforces earned prerequisites, prices and port mode while preserving the canonical ship object',()=>{
   const g=new Game('fleet-buy'),reference=g.state.ship;
@@ -67,7 +69,7 @@ test('disabled ships are boardable, boarding is live combat, and victories canno
   ok(saved.boardEnemy(enemy.id));assert.equal(saved.state.mode,'person');assert.equal(saved.state.boarding.phase,'active');assert.equal(saved.state.boarding.kind,'assault');
   assert.equal(saved.attackBoarder().hit,false,'Firing at the entry airlock emits a visible miss before hostiles enter range');
   const first=saved.state.boarding.enemies[0],x=first.x;frame(saved,{},30);assert.notEqual(first.x,x,'Hostiles actually move through the deck');
-  Object.assign(saved.state.person,{x:252,y:300});assert.ok(isCabinWalkable(cabinLayout('sparrow'),252,300));
+  Object.assign(saved.state.person,firingPoint(saved));
   const before=saved.state.credits;for(let n=0;n<600&&saved.state.boarding.phase==='active';n++)saved.step(1/60,{fire:true});
   assert.equal(saved.state.boarding.phase,'won');assert.equal(saved.state.credits,before+95);assert.ok(saved.state.boarding.enemies.every(e=>e.health===0));
   const reward=saved.state.credits;assert.equal(saved.attackBoarder().ok,false);frame(saved,{},30);assert.equal(saved.state.credits,reward);
@@ -80,11 +82,11 @@ test('weak shields permit a telegraphed pirate grapple and crew casualties come 
   const enemy=closeEnemy(g);g.state.ship.shield=0;g._hitTimer=10;
   frame(g,{},90);assert.equal(g.state.boarding,null,'A grapple takes time');frame(g,{},100);
   assert.equal(g.state.boarding?.kind,'defense');assert.equal(g.state.boarding.phase,'active');assert.ok(g.drainEvents().some(e=>e.type==='boarding-warning'));
-  const ally=g.state.boarding.allies[0];g.state.crew[0].health=7;ally.health=7;Object.assign(ally,{x:140,y:300});Object.assign(g.state.person,{x:612,y:132});
+  const layout=cabinLayout(g.state.boarding.shipClass),ally=g.state.boarding.allies[0];g.state.crew[0].health=7;ally.health=7;Object.assign(ally,layout.combatSpawns[0]);Object.assign(g.state.person,layout.stations.helm);
   frame(g,{},180);assert.equal(g.state.crew[0].health,0);assert.equal(g.state.crew[0].status,'dead');assert.equal(g.state.memorial.length,1);assert.equal(g.state.memorial[0].crewId,'crew-engineer');
   const resumed=Game.fromSave(g.serialize());assert.equal(resumed.state.crew[0].name,'Mara');assert.equal(resumed.state.crew[0].health,0);assert.equal(resumed.state.memorial.length,1);assert.equal(resumed.state.ship.maxHull,100);
   assert.equal(resumed.retreatBoarding().code,'defense');assert.ok(enemy.boardingTargetId);
-  Object.assign(resumed.state.person,{x:252,y:300});
+  Object.assign(resumed.state.person,firingPoint(resumed));
   for(let i=0;i<600&&resumed.state.boarding.phase==='active';i++)resumed.step(1/60,{fire:true});
   assert.equal(resumed.state.boarding.phase,'won');ok(resumed.leaveInterior());port(resumed);
   const replacement=ok(resumed.recruitCrew('engineer')).crew;
@@ -94,7 +96,7 @@ test('weak shields permit a telegraphed pirate grapple and crew casualties come 
 test('live boarding persists actors, hull momentum, and shared-character sidearm cooldowns through saves',()=>{
   const actor=new Game('boarding-save');Object.assign(actor.state.ship,{x:0,y:450,vx:12,vy:-7,angle:.7,angularVelocity:.3});const enemy=closeEnemy(actor);enemy.disabled=true;enemy.hp=14;
   ok(actor.boardEnemy(enemy.id));const resumed=Game.fromSave(actor.serialize());assert.equal(resumed.state.boarding.enemies.length,2);assert.equal(resumed.state.interior.returnShip.angularVelocity,.3);
-  const character=new Game('visitor');character._playerId='visitor';character.state.mode='person';Object.assign(character.state.person,{x:252,y:300});
+  const character=new Game('visitor');character._playerId='visitor';character.state.mode='person';Object.assign(character.state.person,firingPoint(resumed));
   ok(resumed.attackBoarder(null,character));assert.equal(resumed.attackBoarder(null,character).code,'cooldown');
   for(let i=0;i<11;i++)resumed.stepPilot(1/30,{}, {boardingParticipants:[character]});assert.ok(character._boardingShotTimer===0);ok(resumed.attackBoarder(null,character));
 });

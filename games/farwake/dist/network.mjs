@@ -1,4 +1,5 @@
 import { advanceShip } from './fleet.mjs';
+import { hullEnergyAfterStep } from './hull-systems.mjs';
 import { applyCosmicHazards } from './galaxy-expansion.mjs';
 import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayCorrection } from './prediction.mjs';
 
@@ -184,7 +185,7 @@ export class FarwakeNetwork {
   }
   _predictsShip() { return this.state?.mode === 'ship' && this.room?.kind === 'system'; }
   _radius() { const radius = Number(this.world?.radius); return Number.isFinite(radius) && radius > 0 ? radius : 2700; }
-  _predictFlight(ship,frame) { return applyCosmicHazards(advanceShip(ship,frame.dt,frame.input,{worldRadius:this._radius()}),frame.dt,this.world?.bodies||[],{damage:false}).ship; }
+  _predictFlight(ship,frame) { const next=applyCosmicHazards(advanceShip(ship,frame.dt,frame.input,{worldRadius:this._radius()}),frame.dt,this.world?.bodies||[],{damage:false}).ship;next.energy=hullEnergyAfterStep(ship,frame.dt,frame.input);return next; }
   _advancePrediction(now) {
     if (!this.predictedShip) return;
     const target = this.clampPredictionTime(now);

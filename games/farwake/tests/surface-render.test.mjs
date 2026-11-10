@@ -5,6 +5,7 @@ import {CABIN_CLASSES,cabinLayout,isCabinWalkable} from '../dist/interior-layout
 import {getShipClass} from '../dist/fleet.mjs';
 import {SpaceRenderer,drawShip,SHIP_VISUALS} from '../dist/space-art.mjs';
 import {seededRandom} from '../dist/engine.mjs';
+import {surfaceCanvasToWorld,surfaceWorldToCanvas} from '../dist/camera-view.mjs';
 
 function flood(layout){
  const index=p=>Math.floor(p.y/24)*layout.cols+Math.floor(p.x/24),start=index(layout.spawn),parent=new Map([[start,null]]),queue=[start];
@@ -51,8 +52,8 @@ class FakeContext{
  drawImage(){this.imageCalls++;}fillText(...args){this.textCalls.push(args);}measureText(s){return{width:String(s).length*6};}
 }
 test('surface labels stay sharp, camera-relative and immutable for remote crew and boarders',()=>{
- const surface=generateSurface({id:'ship:labels',kind:'ship',shipClass:'capital'},'labels'),cameraX=600,cameraY=600,person={x:708,y:684,health:85,maxHealth:100,facing:'up'};
- const remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:740,y:720,facing:'left'}],boardingActors=[{id:'raider',name:'Boarding raider',x:800,y:750,team:'hostile',health:23,maxHealth:52,lastShot:{x:800,y:740,targetX:708,targetY:674,until:9}}];
+ const surface=generateSurface({id:'ship:labels',kind:'ship',shipClass:'capital'},'labels'),bridge=surface.rooms.find(room=>room.id==='bridge'),cameraX=bridge.x*24,cameraY=bridge.y*24-24,person={x:cameraX+108,y:cameraY+84,health:85,maxHealth:100,facing:'up'};
+ const remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:cameraX+140,y:cameraY+120,facing:'left'}],boardingActors=[{id:'raider',name:'Boarding raider',x:cameraX+200,y:cameraY+150,team:'hostile',health:23,maxHealth:52,lastShot:{x:cameraX+200,y:cameraY+140,targetX:person.x,targetY:person.y-10,until:9}}];
  const snapshot=JSON.stringify({surface,person,remotePeople,boardingActors}),ctx=new FakeCanvas(360,260).ctx,labels=[];
  const view=drawSurface(ctx,surface,{width:360,height:260,cameraX,cameraY,person,remotePeople,boardingActors,labels,time:15,combatTime:8});
  assert.deepEqual(view,{cameraX,cameraY,width:360,height:260,zoom:1,offsetX:-cameraX,offsetY:-cameraY});assert.equal(ctx.textCalls.length,0,'canvas must not rasterize duplicate instructions');
@@ -60,6 +61,29 @@ test('surface labels stay sharp, camera-relative and immutable for remote crew a
  assert.equal(remote.text,'Captain Aya');assert.equal(remote.x,140);assert.equal(remote.y,73);assert.equal(remote.size,13);assert.equal(hostile.text,'Boarding raider');assert.ok(hostile.priority>remote.priority);
  assert.ok(labels.some(l=>l.kind==='room'));assert.ok(labels.every(l=>Number.isFinite(l.x)&&Number.isFinite(l.y)));
  assert.equal(JSON.stringify({surface,person,remotePeople,boardingActors}),snapshot);
+});
+
+test('interior camera shake keeps rendered labels and pointer picking on the same snapped view',()=>{
+ const original=globalThis.OffscreenCanvas;globalThis.OffscreenCanvas=FakeCanvas;
+ try{
+  const surface=generateSurface({id:'ship:shaken',kind:'ship',shipClass:'sparrow'},'shake'),person={...surface.spawn,health:100};
+  const remotePeople=[{captainId:'guest',name:'Captain Aya',mode:'person',x:person.x+40,y:person.y+25}],before=JSON.stringify({surface,person,remotePeople});
+  const ctx=new FakeCanvas(360,260).ctx;
+  for(const [zoom,rasterScale] of [[1,1],[.8,3],[1.6,1]]){
+   const options={width:360,height:260,person,remotePeople,zoom,rasterScale},base=drawSurface(ctx,surface,{...options,labels:[]});
+   const labels=[],view=drawSurface(ctx,surface,{...options,labels,cameraShake:{x:99,y:-99}});
+   assert.notEqual(view.offsetX,base.offsetX);assert.notEqual(view.offsetY,base.offsetY);
+   assert.ok(Math.abs(view.cameraX-base.cameraX)<=3.5+.5/view.zoom);
+   assert.ok(Math.abs(view.cameraY-base.cameraY)<=3.5+.5/view.zoom);
+   assert.ok(Number.isInteger(view.offsetX)&&Number.isInteger(view.offsetY),'shake stays on the raster grid');
+   const remote=remotePeople[0],label=labels.find(label=>label.kind==='remote'),labelPoint=surfaceWorldToCanvas(remote.x,remote.y-47,view);
+   assert.equal(label.x,Math.round(labelPoint.x));assert.equal(label.y,Math.round(labelPoint.y));assert.equal(label.size,13);
+   const target=surfaceWorldToCanvas(remote.x,remote.y,view),picked=surfaceCanvasToWorld(target.x,target.y,view);
+   assert.ok(Math.abs(picked.x-remote.x)<1e-8&&Math.abs(picked.y-remote.y)<1e-8,'aiming uses the displayed shaken position');
+   assert.deepEqual(drawSurface(ctx,surface,{...options,labels:[],cameraShake:{x:0,y:0}}),base,'an expired impulse leaves no camera drift');
+  }
+  assert.equal(JSON.stringify({surface,person,remotePeople}),before,'shake never moves the physical people or deck');
+ }finally{if(original===undefined)delete globalThis.OffscreenCanvas;else globalThis.OffscreenCanvas=original;}
 });
 
 test('persisted rooms and outposts have ownership labels without changing collision',()=>{
