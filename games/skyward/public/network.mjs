@@ -40,7 +40,7 @@ export class SquadronClient {
     this.url = url || (typeof location !== 'undefined' ? `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws` : '');
     this.code = ''; this.id = ''; this.isHost = false; this.connected = false;
     this.mode = 'squadron'; this.role = 'pilot'; this.maxPlayers = 4; this.hostId = ''; this.missionId = '';
-    this.config = null; this.aircraft = ''; this.startMode = 'airborne';
+    this.config = null; this.aircraft = ''; this.startMode = 'airborne'; this.payload = 'conventional';
     this.latency = null; this.roster = []; this.paused = false; this.hostStale = false; this.roomState = 'offline';
     this._lastWorldReceived = 0;
     this._ws = null; this._token = null; this._intent = null; this._manual = true;
@@ -85,6 +85,7 @@ export class SquadronClient {
     const selection = msg.players?.find(p => p.id === this.id) || msg;
     if (selection.aircraft) this.aircraft = selection.aircraft;
     if (selection.startMode) this.startMode = selection.startMode;
+    if (selection.payload) this.payload = selection.payload;
   }
   _syncParticipants(snapshot, at = Date.now() + this._clockOffset) {
     if (!Array.isArray(snapshot?.participants)) return;
@@ -112,9 +113,9 @@ export class SquadronClient {
   }
   create(name = 'Pilot', missionId, options = {}) {
     const config = options.config || Object.fromEntries(['mode', 'mapId', 'durationSeconds', 'lives'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
-    return this._begin({ type: 'create', name, missionId, config, aircraft: options.aircraft, startMode: options.startMode });
+    return this._begin({ type: 'create', name, missionId, config, aircraft: options.aircraft, startMode: options.startMode, payload: options.payload });
   }
-  join(code, name = 'Pilot', options = {}) { return this._begin({ type: 'join', code: String(code || '').trim().toUpperCase(), name, aircraft: options.aircraft, startMode: options.startMode }); }
+  join(code, name = 'Pilot', options = {}) { return this._begin({ type: 'join', code: String(code || '').trim().toUpperCase(), name, aircraft: options.aircraft, startMode: options.startMode, payload: options.payload }); }
 
   _open() {
     if (this._manual) return;
@@ -306,9 +307,9 @@ export class SquadronClient {
   configure(config) {
     return this.connected && this.isHost && this.roomState === 'lobby' && this._send({ type: 'configure', config, missionId: config?.missionId });
   }
-  setLoadout(aircraft, startMode) {
-    const chosen = typeof aircraft === 'object' ? aircraft : { aircraft, startMode };
-    return this.connected && this.roomState === 'lobby' && this.mode !== 'crew' && this._send({ type: 'loadout', aircraft: chosen?.aircraft, startMode: chosen?.startMode });
+  setLoadout(aircraft, startMode, payload) {
+    const chosen = typeof aircraft === 'object' ? aircraft : { aircraft, startMode, payload };
+    return this.connected && this.roomState === 'lobby' && this.mode !== 'crew' && this._send({ type: 'loadout', aircraft: chosen?.aircraft, startMode: chosen?.startMode, payload: chosen?.payload });
   }
   _transition(message) {
     if (!this.connected || !this.isHost || this.paused || this._pendingTransition || !this._send(message)) return false;
@@ -479,7 +480,7 @@ export class SquadronClient {
     this.connected = false; this.paused = false; this.hostStale = false; this.roomState = 'offline';
     this.id = ''; this.code = ''; this.isHost = false; this.latency = null;
     this.mode = 'squadron'; this.role = 'pilot'; this.maxPlayers = 4; this.hostId = ''; this.missionId = '';
-    this.config = null; this.aircraft = ''; this.startMode = 'airborne';
+    this.config = null; this.aircraft = ''; this.startMode = 'airborne'; this.payload = 'conventional';
     this._actionSeq = 0; this._lifeId = 1; this._participants.clear(); this._receivedActions.clear();
     this._crewSeq = 0; this._crewWorldPaused = false; this._crewNeedsRelease = false;
     this.roster = []; this._histories.clear(); this._reconnectUntil = 0;

@@ -33,12 +33,14 @@ function sphere(parent,x,y,z,r,material,detail=1){const m=new THREE.Mesh(new THR
 function cylinder(parent,x,y,z,r,h,material,sides=8){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,sides),material);m.position.set(x,y,z);parent.add(m);return m;}
 function height(x,z,mission){try{return number(terrainHeight(x,z,mission),-8);}catch{return 0;}}
 function fadingEffectMaterial(soft=true){
-  const material=basic('#ffffff',{transparent:true,opacity:1,depthWrite:false});
+  const material=basic('#ffffff',{transparent:true,opacity:1,depthWrite:false,side:soft?THREE.FrontSide:THREE.DoubleSide});
   material.onBeforeCompile=shader=>{
-    shader.vertexShader='attribute float effectOpacity;\nvarying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvEffectOpacity=effectOpacity;vEffectLocal=position;');
-    shader.fragmentShader='varying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.fragmentShader.replace('#include <opaque_fragment>',`diffuseColor.a*=vEffectOpacity${soft?'*(1.0-smoothstep(.35,1.0,dot(vEffectLocal.xy,vEffectLocal.xy)))':''};\n#include <opaque_fragment>`);
+    const shade=soft?'attribute float effectShade;\nvarying float vEffectShade;\n':'';
+    shader.vertexShader=shade+'attribute float effectOpacity;\nvarying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvEffectOpacity=effectOpacity;vEffectLocal=position;'+(soft?'vEffectShade=effectShade;':''));
+    const lighting=soft?'diffuseColor.rgb*=mix(1.0,.63+.45*max(0.0,dot(normalize(vEffectLocal),normalize(vec3(-.35,.7,.65)))),vEffectShade);\n':'';
+    shader.fragmentShader=(soft?'varying float vEffectShade;\n':'')+'varying float vEffectOpacity;\nvarying vec3 vEffectLocal;\n'+shader.fragmentShader.replace('#include <opaque_fragment>',lighting+`diffuseColor.a*=vEffectOpacity${soft?'*(1.0-smoothstep(mix(.35,.87,vEffectShade),1.0,dot(vEffectLocal.xy,vEffectLocal.xy)))':''};\n#include <opaque_fragment>`);
   };
-  material.customProgramCacheKey=()=> 'skyward-effect-opacity-v2-'+soft;return material;
+  material.customProgramCacheKey=()=> 'skyward-effect-opacity-v3-'+soft;return material;
 }
 
 const palettes={
@@ -566,10 +568,10 @@ export class FlightRenderer {
     const linesGeometry=new THREE.BufferGeometry();linesGeometry.setAttribute('position',new THREE.BufferAttribute(this._linePositions,3).setUsage(THREE.DynamicDrawUsage));linesGeometry.setAttribute('color',new THREE.BufferAttribute(this._lineColors,3).setUsage(THREE.DynamicDrawUsage));
     this._tracers=new THREE.LineSegments(linesGeometry,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.85,depthWrite:false}));this._tracers.frustumCulled=false;this.effectsRoot.add(this._tracers);
     this._tips=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),basic('#f8d68a'),160);this._tips.frustumCulled=false;this.effectsRoot.add(this._tips);
-    const burstGeometry=new THREE.IcosahedronGeometry(1,1);burstGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));
+    const burstGeometry=new THREE.IcosahedronGeometry(1,1);burstGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));burstGeometry.setAttribute('effectShade',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));
     this._explosions=new THREE.InstancedMesh(burstGeometry,fadingEffectMaterial(),EFFECT_BUDGET.layers);this._explosions.frustumCulled=false;this.effectsRoot.add(this._explosions);
-    const ringGeometry=new THREE.RingGeometry(.965,1,40);ringGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.effects),1).setUsage(THREE.DynamicDrawUsage));
-    this._shockwaves=new THREE.InstancedMesh(ringGeometry,fadingEffectMaterial(false),EFFECT_BUDGET.effects);this._shockwaves.frustumCulled=false;this.effectsRoot.add(this._shockwaves);
+    const ringGeometry=new THREE.RingGeometry(.988,1,48);ringGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));
+    this._shockwaves=new THREE.InstancedMesh(ringGeometry,fadingEffectMaterial(false),EFFECT_BUDGET.layers);this._shockwaves.frustumCulled=false;this.effectsRoot.add(this._shockwaves);
     this._canopies=new THREE.InstancedMesh(new THREE.SphereGeometry(4.1,10,5,0,TAU,0,Math.PI*.56),worldMaterial('#e3dec3',{side:THREE.DoubleSide}),80);this._canopies.frustumCulled=false;this.effectsRoot.add(this._canopies);
     this._troopers=new THREE.InstancedMesh(new THREE.CapsuleGeometry(.45,1.5,2,5),worldMaterial('#606c50'),80);this._troopers.frustumCulled=false;this.effectsRoot.add(this._troopers);
     for(const pool of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -588,7 +590,7 @@ export class FlightRenderer {
     for(const p of sim.projectiles||[]){
       if(p.life<=0||tips>=160)continue;const missile=p.type==='missile',bomb=p.type==='bomb',shell=p.type==='shell',heavy=shell&&p.seat==='105mm',medium=shell&&p.seat==='40mm',tail=missile?.18:bomb?.025:heavy?.12:medium?.07:.035;
       if(!bomb)writeLine(p.x,p.y,p.z,p.x-number(p.vx)*tail,p.y-number(p.vy)*tail,p.z-number(p.vz)*tail,1,missile?.78:.9,missile?.42:.55,missile?.65:.6,missile?.75:.36,missile?.75:.12);
-      tempObject.position.set(p.x,p.y,p.z);const r=bomb?1.0:missile?1.2:heavy?1.1:medium?.65:.3;tempObject.scale.set(r,r,r);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();this._tips.setMatrixAt(tips,tempObject.matrix);this._tips.setColorAt(tips,tempColor.set(bomb?'#525a51':missile||heavy?'#ffd58a':'#fff1bc'));tips++;
+      tempObject.position.set(p.x,p.y,p.z);const r=bomb?(p.payload&&p.payload!=='conventional'?1.7:1.0):missile?1.2:heavy?1.1:medium?.65:.3;tempObject.scale.set(r,r,r);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();this._tips.setMatrixAt(tips,tempObject.matrix);this._tips.setColorAt(tips,tempColor.set(bomb?'#525a51':missile||heavy?'#ffd58a':'#fff1bc'));tips++;
     }
     // Sort the derived layers, never simulation effects. Every transparent
     // instance receives its own fading opacity, including the last smoke puff.
@@ -596,15 +598,21 @@ export class FlightRenderer {
     const sorted=sampleCombatEffects([...(sim.effects||[]),...puffs],{reducedMotion:this.settings.reducedMotion,wind:this.mission?.weather?.wind,capacity:this.settings.quality==='low'?288:EFFECT_BUDGET.layers},this._effectSort);
     // Two unshadowed lights give nearby metal and terrain the same short blast
     // flash. Fixed light count avoids shader recompilation during combat.
-    const flashes=(sim.effects||[]).filter(e=>(e.type==='explosion'||e.type==='impact')&&number(e.age)<.55).sort((a,b)=>{const strength=e=>number(e.radius,20)**2/(this.camera.position.distanceToSquared(e)+100);return strength(b)-strength(a);});
-    for(let i=0;i<this._blastLights.length;i++){const light=this._blastLights[i],e=flashes[i];if(!e){light.intensity=0;continue;}const r=clamp(number(e.radius,20),5,180),fade=Math.pow(clamp(1-number(e.age)/.55,0,1),1.7);light.position.set(e.x,e.y,e.z);light.distance=r*7;light.intensity=r*r*6*fade*(this.settings.reducedMotion?.35:1);}
+    const flashes=(sim.effects||[]).filter(e=>e.type==='nuclear'?number(e.age)<3.8:(e.type==='explosion'||e.type==='impact')&&number(e.age)<.55).sort((a,b)=>{const strength=e=>number(e.radius,20)**2/(this.camera.position.distanceToSquared(e)+100);return strength(b)-strength(a);});
+    for(let i=0;i<this._blastLights.length;i++){
+      const light=this._blastLights[i],e=flashes[i];if(!e){light.intensity=0;continue;}
+      const nuclear=e.type==='nuclear',r=clamp(number(e.radius,20),5,nuclear?12000:180),age=number(e.age);
+      const fade=nuclear?Math.exp(-age*1.6)*.8+Math.pow(clamp(1-age/3.8,0,1),2)*.12:Math.pow(clamp(1-age/.55,0,1),1.7);
+      light.position.set(e.x,e.y+(nuclear?r*.05:0),e.z);light.color.set(nuclear&&age<.3?'#fff5db':'#ffc278');
+      light.distance=r*(nuclear?2.5:7);light.intensity=r*r*(nuclear?1.1:6)*fade*(this.settings.reducedMotion?.18:1);
+    }
     scratchV.set(0,0,-1).applyQuaternion(this.camera.quaternion);sortEffectLayers(sorted,this.camera.position,scratchV);
     let ecount=0,rings=0;
     for(const layer of sorted){
-      const ring=layer.kind==='ring',pool=ring?this._shockwaves:this._explosions,index=ring?rings++:ecount++,r=layer.radius;
+      const ring=layer.kind==='ring'||layer.kind==='wave'||layer.kind==='ground-ring',pool=ring?this._shockwaves:this._explosions,index=ring?rings++:ecount++,r=layer.radius;
       tempObject.position.set(layer.x,layer.y,layer.z);tempObject.scale.set(r,r*layer.stretch,r);tempObject.quaternion.copy(this.camera.quaternion);
-      if(!ring)tempObject.rotateZ(layer.angle);
-      tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);pool.setColorAt(index,tempColor.set(layer.color));pool.geometry.attributes.effectOpacity.setX(index,effectViewAlpha(layer,this.camera.position));
+      if(layer.kind==='ground-ring')tempObject.rotation.set(-Math.PI/2,0,0);else if(!ring)tempObject.rotateZ(layer.angle);
+      tempObject.updateMatrix();pool.setMatrixAt(index,tempObject.matrix);pool.setColorAt(index,tempColor.set(layer.color));pool.geometry.attributes.effectOpacity.setX(index,effectViewAlpha(layer,this.camera.position));if(!ring)pool.geometry.attributes.effectShade.setX(index,layer.kind==='cloud'?1:layer.kind==='dust'?.6:0);
     }
     let troopCount=0;
     for(const p of sim.paratroopers||[]){
@@ -614,7 +622,7 @@ export class FlightRenderer {
       for(const s of[-1,1])writeLine(p.x+s*.4,p.y+.5,p.z,p.x+s*3.6,p.y+4,p.z,.65,.67,.55,.65,.67,.55);troopCount++;
     }
     this._tips.count=tips;this._explosions.count=ecount;this._shockwaves.count=rings;this._canopies.count=troopCount;this._troopers.count=troopCount;
-    for(const m of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])if(m.count){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;if(m.geometry.attributes.effectOpacity)m.geometry.attributes.effectOpacity.needsUpdate=true;}
+    for(const m of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])if(m.count){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;if(m.geometry.attributes.effectOpacity)m.geometry.attributes.effectOpacity.needsUpdate=true;if(m.geometry.attributes.effectShade)m.geometry.attributes.effectShade.needsUpdate=true;}
     this._tracers.geometry.setDrawRange(0,lineCount*2);
     if(lineCount){this._tracers.geometry.attributes.position.needsUpdate=true;this._tracers.geometry.attributes.color.needsUpdate=true;}
   }

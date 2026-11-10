@@ -185,12 +185,14 @@ test('browser clients configure rounds and individual loadouts, return together 
   assert.equal(host.configure({ mode: 'dogfight', mapId: 'canyon', durationSeconds: 1200, lives: 5 }), true);
   await until(() => guest.config?.durationSeconds === 1200 && guest.missionId === 'arena-canyon');
   guest.ready(); await until(() => host.roster.every(p => p.ready));
-  guest.setLoadout('b2', 'carrier');
+  guest.setLoadout('b2', 'carrier', 'hydrogen');
   await until(() => host.roster.some(p => p.id === guest.id && p.aircraft === 'b2' && !p.ready));
   guest.ready(); await until(() => host.roster.every(p => p.ready));
   host.start(); await until(() => hostStarts.length === 1 && guestStarts.length === 1);
   assert.deepEqual(hostStarts[0], guestStarts[0]);
   assert.deepEqual(hostStarts[0].players.map(p => [p.aircraft, p.startMode]), [['c47', 'carrier'], ['b2', 'carrier']]);
+  assert.equal(guest.payload, 'hydrogen');
+  assert.equal(hostStarts[0].players.find(p => p.id === guest.id).payload, 'hydrogen');
   const firstRun = hostStarts[0].runId;
   host.sendWorld(snapshot(hostStarts[0].players.map(p => participant(p))));
   await until(() => worlds.length === 1);
@@ -360,4 +362,31 @@ test('actual guest gunfire earns one host-verified kill, host death preserves th
   assert.equal(guestSim.round.remaining, 0); assert.equal(guestSim.scoreboard.length, 2);
   assert.ok(guestSim.scoreboard.every(row => row.kills === 1 && row.deaths === 1));
   assert.deepEqual(errors, [], 'the actual combat snapshots satisfy the relay bounds and life protocol');
+});
+
+test('nuclear loadouts are B-2 only, reset readiness, and cannot change through flight packets', async t => {
+  const { connect } = await setup(t), host = await connect(), guest = await connect();
+  host.send({ type: 'create', name: 'Lead', missionId: 'arena-islands', config: { mode: 'dogfight', mapId: 'islands', durationSeconds: 300 }, aircraft: 'b2', startMode: 'high', payload: 'tsar' });
+  const hs = await host.next('session');
+  assert.equal(hs.payload, 'tsar'); assert.equal(hs.startMode, 'high');
+  guest.send({ type: 'join', code: hs.code, aircraft: 'f16', payload: 'hydrogen' });
+  assert.equal((await guest.next('error')).code, 'bad_loadout');
+  guest.send({ type: 'join', code: hs.code, aircraft: 'b2', payload: 'hydrogen' });
+  const gs = await guest.next('session'); assert.equal(gs.payload, 'hydrogen');
+  guest.send({ type: 'ready', ready: true });
+  await host.next('roster', m => m.players.length === 2 && m.players.every(p => p.ready));
+  guest.send({ type: 'loadout', aircraft: 'b2', startMode: 'high', payload: 'atomic' });
+  await host.next('roster', m => m.players.some(p => p.id === gs.id && p.payload === 'atomic' && !p.ready));
+  guest.send({ type: 'ready', ready: true });
+  await host.next('roster', m => m.players.length === 2 && m.players.every(p => p.ready));
+  host.send({ type: 'start' });
+  const start = await host.next('start'); await guest.next('start');
+  assert.deepEqual(start.players.map(p => p.payload), ['tsar', 'atomic']);
+  guest.send({ type: 'pose', runId: start.runId, seq: 0, player: { ...pose(1, 'b2'), payload: 'tsar' } });
+  const position = await host.next('pose'); assert.equal(position.player.payload, 'atomic');
+  guest.send({ type: 'action', runId: start.runId, seq: 0, lifeId: 1, action: { name: 'payload', payload: 'tsar', damage: 99999 } });
+  const release = await host.next('action');
+  assert.deepEqual(release.action, { name: 'payload' }); assert.equal(release.player.payload, 'atomic');
+  guest.send({ type: 'loadout', aircraft: 'b2', payload: 'tsar' });
+  assert.equal((await guest.next('error')).code, 'loadout_locked');
 });

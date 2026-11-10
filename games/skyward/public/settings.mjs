@@ -1,6 +1,6 @@
 import {DEFAULT_KEY_BINDINGS,normalizeKeyBindings,DEFAULT_GUNNER_BINDINGS,normalizeGunnerBindings} from './keybindings.mjs';
 
-export const VERSION = '0.6.2';
+export const VERSION = '0.7.0';
 export const DEFAULTS = Object.freeze({
   assist:'assisted',guidance:'guided',stickSize:120,buttonSize:58,controlOpacity:80,
   sensitivity:1,deadZone:12,touchPitch:'pull',leftHanded:false,

@@ -3,11 +3,18 @@
  * These are not aircraft specifications or real operating procedures. */
 
 const gun = (ammo, damage, rate, range, cone = 0.105) => ({ ammo, damage, rate, range, cone });
+// Dimensionless game airframe size: wider/heavier aircraft carry more rotational
+// inertia. It controls pitch, roll and recovery rather than flight speed.
+const handlingSize = { avro504: .95, camel: .85, spitfire: 1.05, hellcat: 1.2, f16: 1.15,
+  harrier: 1.15, f15: 1.4, f22: 1.5, f4: 1.6, a10: 2, c47: 3.2, b17: 3.6, ac130: 4.8, b2: 5.2 };
 const plane = (id, name, era, stats) => ({
   id, name, shortName: name, era, model: id, color: '#c9b28c', accent: '#b94139',
   health: 120, gun: null, missiles: 0, bombs: 0, radar: false, stealth: false,
   vtol: false, fixedGear: false, hasFlaps: true, missileRange: 5500, missileDamage: 130, lockTime: 1.25,
   bombRadius: 330, bombDamage: 180, role: '', summary: '', ...stats,
+  handlingSize: handlingSize[id], pitchRate: .62 / handlingSize[id] ** .6,
+  rollRate: Math.min(stats.rollRate, 2.15 / handlingSize[id] ** .8),
+  attitudeResponse: 12 / handlingSize[id], recoveryScale: 1 / handlingSize[id] ** .7,
 });
 
 export const AIRCRAFT = {
@@ -96,7 +103,7 @@ export const AIRCRAFT = {
     maxSpeed: 278, cruise: 207, stallSpeed: 58, acceleration: 24, turnRate: 0.14,
     climbRate: 56, rollRate: 0.85, health: 200, bombs: 1, radar: true,
     stealth: true, role: 'Strategic bomber', color: '#414d5b', accent: '#75808c',
-    summary: 'A quiet final flight, a fictional target, and a consequential choice.',
+    summary: 'A broad, heavy flying wing. Choose a conventional or nuclear payload and leave room to turn away.',
   }),
 };
 
@@ -320,10 +327,10 @@ export const MISSIONS = [
   },
   {
     id: 'last-light', title: 'Last Light', year: 'Fictional future', era: 'V · Beyond the horizon', location: 'Vesper · a fictional city',
-    aircraft: 'b2', kind: 'nuclear', biome: 'night', duration: '3–4 min',
+    aircraft: 'b2', kind: 'nuclear', payload: 'atomic', biome: 'night', duration: '3–4 min',
     description: 'Fly a high-altitude approach with a nuclear weapon. The final decision remains yours.',
-    briefing: ['Follow the high-altitude route above the cloud layer toward the fictional city of Vesper.', 'At the final marker, PAYLOAD commits the fictional strike. ABORT ends the mission with the weapon unreleased.', 'Both choices conclude the campaign. The ending is restrained and non-graphic.'],
-    lesson: 'High-altitude navigation · mission decision', weather: weather(11, -5, { cloudBase: 1200, cloudTop: 2300, fog: 0.000025, timeOfDay: 'night' }),
+    briefing: ['Follow the high-altitude route above the cloud layer toward the fictional city of Vesper.', 'At the final marker, PAYLOAD releases the selected weapon. ABORT is available until release.', 'The blast can destroy your own aircraft. Build height and separation, then fly through the escape phase. All blast rules are fictional arcade balance.'],
+    lesson: 'High-altitude navigation · decision · escape', weather: weather(11, -5, { cloudBase: 1200, cloudTop: 2300, fog: 0.000025, timeOfDay: 'night' }),
     start: airStart('b2', { y: 3900 }), runways: [],
     waypoints: [wp(-650, 3900, 5000, 'Above the cloud', 1200), wp(0, 3900, 10500, 'Final approach', 1300)], enemies: [],
     targets: [target('vesper', 0, 15500, 'Vesper · fictional city', { type: 'city', health: 1, narrative: true })],

@@ -7,6 +7,7 @@ import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer, WebSocket } from './vendor/ws/wrapper.mjs';
 import { GUNSHIP_SEATS, GUNSHIP_AIM_LIMITS } from './public/gunship.mjs';
 import { AIRCRAFT, MISSIONS, SPECIAL_MISSIONS } from './public/campaign.mjs';
+import { getNuclearPayload, normalizePayload } from './public/payloads.mjs';
 
 export const PROTOCOL_VERSION = 1;
 const ROOT = resolve(fileURLToPath(new URL('./public/', import.meta.url)));
@@ -15,7 +16,7 @@ const MAX_MESSAGE_BYTES = 64 * 1024;
 const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort', 'crash', 'respawn']);
 const ROOM_MODES = new Set(['squadron', 'crew', 'freeflight', 'dogfight']);
 const ARENA_MAPS = new Set(['canyon', 'islands']);
-const START_MODES = new Set(['airborne', 'runway', 'carrier']);
+const START_MODES = new Set(['airborne', 'high', 'runway', 'carrier']);
 const ROUND_DURATIONS = new Set([300, 600, 1200]);
 const MISSION_LIVES = new Set([1, 3, 5]);
 const isArena = mode => mode === 'freeflight' || mode === 'dogfight';
@@ -173,10 +174,13 @@ export async function createSkywardServer(options = {}) {
     const aircraft = value.aircraft ?? previous?.aircraft ?? (isArena(room.mode) ? 'f16' : mission?.aircraft || 'avro504');
     const startMode = value.startMode ?? previous?.startMode ?? (mission?.start?.airborne === false ? 'runway' : 'airborne');
     if (!Object.hasOwn(AIRCRAFT, aircraft) || !START_MODES.has(startMode)) return null;
+    if (value.payload !== undefined && (typeof value.payload !== 'string' || value.payload !== 'conventional' && (!getNuclearPayload(value.payload) || aircraft !== 'b2'))) return null;
+    let payload = normalizePayload(aircraft, value.payload ?? previous?.payload, mission?.kind === 'nuclear' ? 'atomic' : 'conventional');
+    if (aircraft === 'b2' && mission?.kind === 'nuclear' && !getNuclearPayload(payload)) payload = 'atomic';
     // Carrier suitability is a warning in the UI, never an authorization check.
-    return { aircraft, startMode };
+    return { aircraft, startMode, payload };
   }
-  const acceptedLoadout = (room, player) => room.mode === 'crew' ? { aircraft: 'ac130', startMode: 'airborne' } : { aircraft: player.aircraft, startMode: player.startMode };
+  const acceptedLoadout = (room, player) => room.mode === 'crew' ? { aircraft: 'ac130', startMode: 'airborne', payload: 'conventional' } : { aircraft: player.aircraft, startMode: player.startMode, payload: player.payload };
   function playerList(room) {
     return [...room.players.values()].map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, role: playerRole(room, p), ready: p.ready, connected: !!p.socket, ...acceptedLoadout(room, p) }));
   }
@@ -185,6 +189,7 @@ export async function createSkywardServer(options = {}) {
     Object.assign(room, next);
     if (changed) for (const p of room.players.values()) {
       if (!p.loadoutExplicit) Object.assign(p, loadout(room));
+      else if (room.mode !== 'crew') Object.assign(p, loadout(room, {}, p));
       if (p.id !== room.hostId) p.ready = false;
     }
   }
@@ -264,7 +269,7 @@ export async function createSkywardServer(options = {}) {
     const player = {
       id: randomBytes(9).toString('hex'), token: randomBytes(24).toString('hex'), name: cleanName(name),
       ready: isHost, socket, disconnectedAt: 0, pose: null, poseSeq: -1, poseAt: 0,
-      ...loadout(room, selection), loadoutExplicit: selection.aircraft !== undefined || selection.startMode !== undefined,
+      ...loadout(room, selection), loadoutExplicit: selection.aircraft !== undefined || selection.startMode !== undefined || selection.payload !== undefined,
       poseBucket: bucket(2, now), actionBucket: bucket(4, now), actionSeq: -1,
       crewSeq: -1, crewInput: null, crewCancellable: false, crewBucket: bucket(3, now)
     };
@@ -325,7 +330,8 @@ export async function createSkywardServer(options = {}) {
       if (previous && (p.lifeId < previous.lifeId || p.lifeId > previous.lifeId + 1 || p.lifeId === previous.lifeId && !previous.alive && p.alive)) return null;
       for (const key of ['kills', 'deaths', 'damageId']) if (p[key] !== undefined && (!validSequence(p[key]) || p[key] < (previous?.[key] || 0))) return null;
       if (p.livesRemaining !== undefined && p.livesRemaining !== null && (!Number.isSafeInteger(p.livesRemaining) || p.livesRemaining < 0 || p.livesRemaining > 5)) return null;
-      Object.assign(p, { aircraft: pilot.aircraft, startMode: pilot.startMode });
+      Object.assign(p, { aircraft: pilot.aircraft, startMode: pilot.startMode, payload: pilot.payload });
+      if (p.pose && typeof p.pose === 'object') p.pose.payload = pilot.payload;
       updates.set(p.id, { lifeId: p.lifeId, alive: p.alive, health: p.health, kills: p.kills || 0, deaths: p.deaths || 0, damageId: p.damageId || 0 });
     }
     if (isArena(room.mode) && updates.size !== pilots.size) return null;
@@ -477,7 +483,7 @@ export async function createSkywardServer(options = {}) {
         if (room.mode === 'crew') { error(socket, 'crew_aircraft', 'The pilot and gunner share the AC-130 in this operation.'); return; }
         const chosen = loadout(room, msg, player);
         if (!chosen) { error(socket, 'bad_loadout', 'Choose an available aircraft and an airborne, runway, or carrier start.'); return; }
-        if (chosen.aircraft !== player.aircraft || chosen.startMode !== player.startMode) {
+        if (chosen.aircraft !== player.aircraft || chosen.startMode !== player.startMode || chosen.payload !== player.payload) {
           Object.assign(player, chosen); player.loadoutExplicit = true;
           if (player.id !== room.hostId) player.ready = false;
         }

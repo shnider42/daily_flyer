@@ -7,6 +7,7 @@ import * as gunship from '../../public/gunship.mjs';
 import * as arena from '../../public/arena.mjs';
 import * as terrain from '../../public/terrain.mjs';
 import * as multiplayerUI from '../../public/multiplayer-ui.mjs';
+import * as payloads from '../../public/payloads.mjs';
 import { FlightSimulation } from '../../public/sim.mjs';
 import { terrainHeight } from '../../public/sim.mjs';
 import { FlightControls } from '../../public/controls.mjs';
@@ -113,7 +114,7 @@ class RelayAdapter {
   ready() {}
   setMission() {}
   configure(config) { this.config = config; }
-  setLoadout(aircraft, startMode) { this.aircraft = aircraft; this.startMode = startMode; }
+  setLoadout(aircraft, startMode, payload) { this.aircraft = aircraft; this.startMode = startMode; this.payload = payload; }
   sendAction(action) { this.actions.push(action); return true; }
   returnToLobby() { this.lobbyRequested = true; }
 }
@@ -151,7 +152,7 @@ export async function appFixture(t) {
   }
   t.after(() => { for (const key of Object.keys(replacements)) if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key]; });
   let clock = 1000, timer = 0;
-  const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, FlightSimulation, terrainHeight,
+  const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, ...payloads, FlightSimulation, terrainHeight,
     FlightControls, GunnerControls, FixedStepClock, FlightPresentation, CombatFeedback,
     SquadronClient: RelayAdapter, FlightRenderer: RendererAdapter, SoftwareFlightRenderer: RendererAdapter, FlightAudio: AudioAdapter,
     ...replacements, performance: { now: () => clock }, console, URL, structuredClone,

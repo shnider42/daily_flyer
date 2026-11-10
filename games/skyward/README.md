@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.6.2 replaces the introductory homepage with a flight-selection menu and a browsable aircraft hangar.** Campaign, Free flight and Multiplayer share one navigation hierarchy. The hangar shows all 14 actual game aircraft, fits their models to desktop and phone layouts, and opens free-flight setup with the chosen aircraft. A locally served condensed typeface and direct menu labels replace the previous promotional headlines. Day/night preferences, campaign saves, flight controls and multiplayer behavior are preserved.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.7.0 clears the mobile cockpit, gives larger airframes slower pitch/roll response, and adds three B-2 nuclear game payloads with a real escape phase.** The flight-selection homepage and browsable hangar show all 14 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
 
 The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
@@ -15,6 +15,18 @@ node --test games/skyward/tests/*.test.mjs
 
 The same server serves the browser app and squadron WebSocket endpoint. It listens on `0.0.0.0`, uses `PORT` when present, and otherwise uses port 3000. `/health` reports server readiness. The dedicated Render service uses this branch and directory; other Daily Flyer games are unchanged.
 
+## Mobile cockpit and B-2 payloads
+
+The default phone view keeps airspeed, heading, terrain clearance and airframe health above the flight scene. Two translucent corner pads retain their full touch areas. **NAV** reveals mission orders, radar, fuel/stores and scores; **SYSTEMS** reveals weapons, gear, flaps, brake and hover. Both trays close after use or when pausing, changing screens or resizing. FIRE remains available on armed fighters; bombers have a direct **DROP** button. LEVEL remains beside the pads. Critical warnings always remain visible. These rules also cover left-handed controls and the shared AC-130 cockpit.
+
+Larger game airframes have slower pitch and roll, slower buildup/reversal of rotation, and gentler leveling recovery. Existing local aircraft axes and independent pitch/roll/yaw controls are retained. The B-2, B-17, C-47 and AC-130 require deliberate turns; light aircraft respond sooner.
+
+Select **B-2 → Payload** in Free flight or an independent multiplayer room. Choices are Conventional, Atomic (Hiroshima class), Hydrogen and Tsar Bomba class. Last Light offers the three nuclear choices in its briefing. Payload selection is fixed for the sortie and retained across replacement aircraft. **High altitude** is an explicit airborne start at 6,500 game metres above the terrain, available in solo and multiplayer setup.
+
+The three nuclear tiers have progressively higher AGL release floors and larger, more damaging blast waves. The displayed release floor only unlocks the bomb; it does not promise survival. A rejected low release keeps ammunition aboard. A release creates a falling bomb, followed by an expanding wave: nearby aircraft are destroyed, aircraft near the outer edge take less damage, and turning clear while the bomb falls can make the difference. The largest tier can still destroy an aircraft that starts high and flies straight. Damage is applied once per aircraft life, and replacement aircraft do not inherit an old blast. Peaceful free flight and campaign co-op retain protection from other pilots, while the releasing pilot remains vulnerable to their own bomb. Dogfight permits blast damage to opponents and normal kill/death credit.
+
+Last Light stays playable after release through detonation and escape. Other campaign successes also wait for an outstanding nuclear hazard, and a replacement aircraft cannot count as the original releasing crew surviving. Abort remains available until release. The effects have a single flash, rising fireball, expanding terrain dust front, mushroom stem/canopy and lingering cloud; sound and camera concussion arrive with the wave. Reduced motion suppresses broad flashes and camera shake. All altitudes, distances, timing, handling and damage are fictional arcade rules, not real weapon or aircraft specifications.
+
 ## Fly together
 
 **Fly together** offers four private room modes:
@@ -27,8 +39,8 @@ The same server serves the browser app and squadron WebSocket endpoint. It liste
 | AC-130 crew | Exactly 2 | One pilot and one gunner share Nightwatch's aircraft, weapons and mission result |
 
 1. Choose the mode. For dogfight/free flight, choose **Razorback Canyons** or **Open Ocean Islands**. Set the dogfight round length or the mission squadron's lives as appropriate.
-2. Each independent pilot chooses an aircraft and **Already in the air**, **Runway · engine running**, or **Aircraft carrier · attempt any aircraft**. Create a squadron, then share its six-character code or invite link.
-3. Guests join and mark themselves ready. A changed aircraft or launch choice clears that guest's readiness; changing the shared flight plan clears guest readiness. The host launches when everyone is connected and ready.
+2. Each independent pilot chooses an aircraft and **Already in the air**, **High altitude**, **Runway · engine running**, or **Aircraft carrier · attempt any aircraft**. Create a squadron, then share its six-character code or invite link.
+3. Guests join and mark themselves ready. A changed aircraft, payload or launch choice clears that guest's readiness; changing the shared flight plan clears guest readiness. The host launches when everyone is connected and ready.
 4. In flight, **SCORES** shows the standings. After a loss, watch another surviving pilot with the spectator controls and select **Return to the sky →** once a replacement is available. Arena replacements have a four-second delay; mission replacements have a five-second delay. Each aircraft loss consumes one mission life, with the initial aircraft included in the selected allowance.
 5. During any shared flight, the host can open the pause menu and choose **Regroup in squadron room** to change the setup without closing the room; this also gives untimed free flight a way back to its lobby. After a round, the host can **Fly again with squadron** using the same setup, or **Return to squadron** to change the map, mode, duration, aircraft or launch choices. Guests remain attached to the same room. Returning the room to its lobby also permits new pilots to join.
 
@@ -111,7 +123,7 @@ Every station retains its own ammunition and reload timer when you switch. Shell
 
 **Setup → Keyboard → AC-130 gunner controls** remaps the gunner keys separately from pilot keys. An assignment can be reused across the two roles. **Restore pilot keys** and **Restore gunner keys** reset only their respective layouts.
 
-On a phone, the **left thumb aims** and the **right thumb holds FIRE**. Releasing AIM holds the selected sight angle. The station buttons, ZOOM, CENTRE and NEXT TARGET remain available above the thumb controls. **Setup → Touch → Swap the two thumbs** also reverses the gunner controls. This role has no flight pads or separate look stick.
+On a phone, the **left thumb aims** and the **right thumb holds FIRE**. Releasing AIM holds the selected sight angle. The station buttons remain above the thumb controls. NAV reveals ZOOM, CENTRE and NEXT TARGET. **Setup → Touch → Swap the two thumbs** also reverses the gunner controls. This role has no flight pads or separate look stick.
 
 Aircraft health, station ammunition, target damage and mission results are shared. Pilot pause pauses the aircraft and mission for both crew members; gunner pause stops their guns while the pilot continues flying. A lost gunner connection stops firing; a lost pilot connection pauses the room during its reconnect window. Release and press FIRE again after an interruption. The AC-130 in ordinary free flight is for handling practice; the crew operation supplies the gunner stations and ground objectives.
 
@@ -126,7 +138,7 @@ On a phone, each thumb controls the same pair of flight axes as one hand on the 
 
 Touching either pad starts neutral; move relative to where your thumb landed. Releasing the left pad centers yaw and **holds the selected thrust**, so it is safe to move that thumb to **FIRE** while the right thumb keeps flying. Thrust adjustment uses the same rate as W/S. There is no look stick; the camera follows the aircraft, and the camera button cycles the available views.
 
-**AIRCRAFT** opens a compact tray for gear, flaps, brake, and hover. It opens automatically when a cold start finishes so the brake-release step is visible. **LEVEL** remains available beside the flight controls. Engine startup and contextual targeting/weapon buttons remain separate. **Setup → Touch** can swap the two thumbs and FIRE, change the pitch direction, and adjust pad/button sizes, spacing, height, sensitivity, dead zone, and opacity. Restore touch defaults leaves keyboard bindings and other preferences unchanged. Old look-stick preferences migrate to the desktop-style pull-down-to-pitch-up default.
+**SYSTEMS** opens a compact tray for weapons, gear, flaps, brake, and hover. **NAV** shows mission orders and navigation details. It opens automatically when a cold start finishes so the brake-release step is visible. **LEVEL** remains available beside the flight controls. Engine startup appears only while needed; secondary weapon controls stay in SYSTEMS on phones. **Setup → Touch** can swap the two thumbs and FIRE, change the pitch direction, and adjust pad/button sizes, spacing, height, sensitivity, dead zone, and opacity. Restore touch defaults leaves keyboard bindings and other preferences unchanged. Old look-stick preferences migrate to the desktop-style pull-down-to-pitch-up default.
 
 | Pilot keyboard | Action |
 | --- | --- |

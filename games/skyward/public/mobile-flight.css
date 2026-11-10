@@ -1,0 +1,259 @@
+/* Flight first on a phone. Navigation and systems are temporary trays; the
+   default cockpit keeps only flight-critical readouts and corner controls. */
+#flight-nav-toggle{display:none}
+
+@media(pointer:coarse),(max-width:1000px){
+  .flight-screen{
+    --touch-edge-x:clamp(12px,var(--control-x),24px);
+    --touch-edge-y:clamp(12px,var(--control-y),28px);
+    --touch-pad-size:max(80px,min(var(--stick-size),calc((var(--touch-usable-width) - var(--touch-edge-x)*2 - 64px)/2),calc((100dvh - var(--touch-safe-top) - var(--touch-safe-bottom))*.28)));
+    --touch-fire-size:clamp(44px,var(--button-size),60px);
+    --mobile-top:calc(var(--touch-safe-top) + 8px);
+    --mobile-tray-bottom:calc(var(--touch-base-bottom) + var(--touch-pad-size) + var(--touch-fire-size) + 18px);
+  }
+  body[data-screen="flight"] #scene-vignette{background:linear-gradient(180deg,#0b192c30,transparent 18%,transparent 90%,#0b192c18)}
+
+  /* One compact instrument line. No boxed cards behind the numbers. */
+  .flight-screen .flight-header{
+    top:var(--mobile-top);left:calc(var(--touch-safe-left) + 12px);right:calc(var(--touch-safe-right) + 12px);
+    height:44px;align-items:flex-start;
+  }
+  .flight-screen .flight-header-actions{margin-left:auto;gap:4px}
+  .flight-screen .flight-header .hud-button{
+    min-width:44px;min-height:44px;width:44px;padding:7px 3px;font-size:9px;
+    border-color:#e5edda4d;border-radius:2px;background:#13273166;backdrop-filter:none;box-shadow:none;
+  }
+  .flight-screen #pause-button{font-size:19px}
+  .flight-screen #flight-nav-toggle{display:block;position:absolute;left:0;top:50px}
+  .flight-screen #flight-nav-toggle[aria-expanded="true"]{border-color:#eac48b;background:#213f49e8;color:#ffdbab}
+  .flight-screen .flight-header-actions #flight-network{display:none}
+  .flight-screen .flight-instruments{
+    top:var(--mobile-top);left:calc(var(--touch-safe-left) + 12px);transform:none;
+    width:calc(var(--touch-usable-width) - 124px);min-width:0;max-width:300px;
+    display:grid;grid-template-columns:minmax(48px,1fr) minmax(38px,.7fr) minmax(65px,1.25fr);gap:5px;
+    align-items:start;text-shadow:0 1px 3px #071b25,0 0 9px #071b2570;
+  }
+  .flight-screen .instrument{
+    position:relative;min-width:0;padding:0 3px;border:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;
+  }
+  .flight-screen .instrument strong{font-size:24px;line-height:1.1;order:0}
+  .flight-screen .instrument small{order:1;font-size:7px;line-height:1.5;letter-spacing:.025em}
+  .flight-screen .instrument>span,.flight-screen #hud-wind{display:none}
+  .flight-screen .heading-strip{padding-top:1px}
+  .flight-screen .heading-strip strong{font-size:20px;line-height:1.2;margin:0 0 1px;letter-spacing:0}
+  .flight-screen .heading-strip strong span{font-size:12px}
+  .flight-screen .heading-strip small{font-size:7px;line-height:1.5}
+  .flight-screen .altitude .clearance-track{display:block;order:2;height:2px;max-width:72px;margin-top:3px;opacity:.8}
+  .flight-screen .aircraft-status{
+    top:calc(var(--touch-safe-top) + 73px);left:calc(var(--touch-safe-left) + 66px);right:auto;bottom:auto;transform:none;
+    max-width:calc(var(--touch-usable-width) - 180px);gap:7px;white-space:normal;font-size:8px;letter-spacing:0;line-height:1.4;
+    text-shadow:0 1px 3px #071b25,0 0 7px #071b2580;
+  }
+  .flight-screen .aircraft-status b{font-size:9px;margin-left:3px}
+  .flight-screen #hud-health{white-space:nowrap}
+  .flight-screen .round-readout{
+    top:calc(var(--touch-safe-top) + 68px);right:calc(var(--touch-safe-right) + 12px);left:auto;bottom:auto;transform:none;
+    margin:0;padding:0;gap:5px;border:0;border-radius:0;background:none;box-shadow:none;text-shadow:0 1px 4px #071b25;
+  }
+  .flight-screen .round-readout>span{display:none}
+  .flight-screen .round-readout>strong{font-size:14px}
+  .flight-screen .round-readout>small{font-size:7px}
+
+  /* NAV is explicit: the normal view has no mission card, radar or tutorial. */
+  .flight-screen:not(.flight-nav-open) :is(.flight-identity,.objective-box,.radar-panel,.flight-hint,#hud-fuel,#hud-stores,#scoreboard-button,.crew-status,#abort-finale){display:none}
+  .flight-screen.flight-nav-open .flight-identity{
+    display:grid;position:absolute;top:104px;left:0;max-width:calc(var(--touch-usable-width) - 132px);gap:4px 8px;
+    background:#102831d9;padding:7px 9px;border-left:2px solid #c5d1c9;
+  }
+  .flight-screen.flight-nav-open .flight-identity>span{font-size:8px}
+  .flight-screen.flight-nav-open .flight-identity strong{max-width:200px;font-size:10px;line-height:1.3;letter-spacing:.035em}
+  .flight-screen.flight-nav-open .flight-identity small{font-size:8px;letter-spacing:.045em}
+  .flight-screen.flight-nav-open #scoreboard-button{position:absolute;right:0;top:50px;width:55px;font-size:8px}
+  .flight-screen.flight-nav-open .round-readout{top:calc(var(--touch-safe-top) + 116px)}
+  .flight-screen.flight-nav-open .aircraft-status{max-width:calc(var(--touch-usable-width) - 140px);flex-wrap:wrap;row-gap:3px;top:calc(var(--touch-safe-top) + 65px)}
+  .flight-screen.flight-nav-open #hud-fuel,.flight-screen.flight-nav-open #hud-stores{display:inline;font-size:8px;max-width:none;overflow:visible;white-space:normal}
+  .flight-screen.flight-nav-open .objective-box{
+    display:block;top:calc(var(--touch-safe-top) + 164px);left:calc(var(--touch-safe-left) + 12px);
+    width:calc(var(--touch-usable-width) - 124px);max-width:400px;padding:10px 12px;visibility:visible;
+    background:#102831e8;border-color:#d6b27d;backdrop-filter:none;z-index:8;
+  }
+  .flight-screen.flight-nav-open .objective-box strong{font-size:12px;line-height:1.4;display:block;overflow:visible;-webkit-line-clamp:unset}
+  .flight-screen.flight-nav-open .objective-meta{display:flex;font-size:7px;letter-spacing:.05em;margin-bottom:6px}
+  .flight-screen.flight-nav-open .objective-track{margin-top:8px}
+  .flight-screen.flight-nav-open .radar-panel{
+    display:block;top:calc(var(--touch-safe-top) + 156px);right:calc(var(--touch-safe-right) + 12px);width:88px;height:104px;visibility:visible;
+  }
+  .flight-screen.flight-nav-open .radar-panel canvas{width:88px;height:88px;background:#102831dc}
+  .flight-screen.flight-nav-open .radar-panel>span{font-size:7px;letter-spacing:.025em;line-height:1.3}
+  .flight-screen.flight-nav-open .flight-hint{
+    display:flex;top:auto;bottom:var(--mobile-tray-bottom);left:50%;right:auto;transform:translateX(-50%);
+    width:calc(var(--touch-usable-width) - 24px);max-width:480px;max-height:none;min-height:44px;visibility:visible;
+    padding:0 0 0 12px;background:#102831e8;border:1px solid #b2c4bc66;border-radius:2px;z-index:8;
+  }
+  .flight-screen.flight-nav-open .flight-hint p{display:block;overflow:visible;font-size:11px;line-height:1.4;padding:9px 0;-webkit-line-clamp:unset}
+  .flight-screen.flight-nav-open #abort-finale{
+    top:calc(var(--touch-safe-top) + 280px);left:calc(var(--touch-safe-left) + 12px);transform:none;max-width:calc(var(--touch-usable-width) - 24px);
+    min-height:44px;padding:8px 12px;font-size:10px;z-index:9;
+  }
+
+  /* Warnings are never in a tray. Radio messages are transient, not a stack. */
+  .flight-screen .flight-warning{
+    top:calc(var(--touch-safe-top) + 106px);bottom:auto;left:50%;right:auto;transform:translateX(-50%);
+    width:max-content;max-width:calc(var(--touch-usable-width) - 24px);max-height:none;
+    padding:8px 11px;font-size:10px;line-height:1.4;letter-spacing:.035em;z-index:15;
+  }
+  .flight-screen .radio-caption,.flight-screen:has(#weapon-actions:not([hidden])) .radio-caption{
+    top:calc(var(--touch-safe-top) + 106px);bottom:auto;left:50%;right:auto;transform:translateX(-50%);
+    width:max-content;max-width:min(480px,calc(var(--touch-usable-width) - 24px));max-height:none;min-height:0;
+    padding:7px 10px;background:#102831ad;border:0;border-radius:2px;visibility:visible;z-index:8;
+  }
+  .flight-screen .radio-caption>span{display:none}
+  .flight-screen .radio-caption p{display:block;overflow:visible;font-size:11px;line-height:1.35;-webkit-line-clamp:unset;padding:0}
+  .flight-screen.flight-nav-open .radio-caption,
+  .flight-screen.aircraft-controls-open .radio-caption,
+  .flight-screen:has(#flight-warning:not([hidden])) .radio-caption{visibility:hidden}
+  #flight-screen.flight-nav-open #radio-caption,
+  #flight-screen.aircraft-controls-open #radio-caption{visibility:hidden}
+  #flight-screen.flight-nav-open #flight-hint{visibility:visible}
+
+  /* Translucent pads live in the corners. Their input surface stays full-sized. */
+  .flight-screen .touch-pad{
+    background:#0c202c1a;border-color:#e1ecdb73;border-radius:50%;box-shadow:none;
+  }
+  .flight-screen .touch-pad.active{background:#132c3b54;border-color:#ffe3b6;box-shadow:none}
+  .flight-screen .stick-knob{background:#e0d7bb55;border-color:#fff0d0a1;box-shadow:none}
+  .flight-screen .stick-axis{background:#dce9d525}
+  .flight-screen .touch-pad .pad-name{display:none}
+  .flight-screen .touch-pad .pad-cue-top,.flight-screen .touch-pad .pad-cue-bottom{font-size:7px;letter-spacing:0;color:#f0eddbb5}
+  .flight-screen .touch-pad .pad-cue-top{top:8px}
+  .flight-screen .touch-pad .pad-cue-bottom{bottom:8px}
+  .flight-screen .touch-pad .pad-cue-left,.flight-screen .touch-pad .pad-cue-right{font-size:18px;color:#f0eddbab}
+  .flight-screen .touch-control-bar,.flight-screen .yaw-control-tools{display:contents}
+  .flight-screen .fire-button,.flight-screen #payload-quick{
+    position:absolute;left:calc(var(--touch-safe-left) + var(--touch-edge-x));right:auto;top:auto;
+    bottom:calc(var(--touch-base-bottom) + var(--touch-pad-size) + 8px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    width:var(--touch-fire-size);height:var(--touch-fire-size);min-width:44px;min-height:44px;flex:none;padding:5px;
+    border:1px solid #eac194b5;border-radius:50%;background:#563a2c88;color:#ffead1;box-shadow:none;backdrop-filter:none;
+    pointer-events:auto;touch-action:none;
+  }
+  .flight-screen .fire-button svg{width:20px;height:20px}
+  .flight-screen .fire-button span,.flight-screen #payload-quick>span{font:8px/1.15 Consolas,monospace;letter-spacing:.035em}
+  .flight-screen #payload-quick{font:10px/1.15 Consolas,monospace}
+  .flight-screen #payload-quick small{display:block;max-width:100%;font:7px/1.1 Consolas,monospace;letter-spacing:0;overflow-wrap:anywhere}
+  .flight-screen #payload-quick.ready{border-color:#f8ce91;background:#53523a99}
+  .flight-screen .touch-throttle-readout{
+    position:absolute;top:auto;right:auto;left:calc(var(--touch-safe-left) + var(--touch-edge-x) + var(--touch-fire-size) + 6px);
+    bottom:calc(var(--touch-base-bottom) + var(--touch-pad-size) + 19px);width:50px;max-width:none;min-width:0;text-align:left;
+  }
+  .flight-screen .touch-throttle-readout>span{font-size:7px;letter-spacing:0}
+  .flight-screen .touch-throttle-readout output{font-size:12px;margin:2px 0 0;color:#f4d3a4}
+  .flight-screen .touch-throttle-meter{display:none}
+  .flight-screen #aircraft-controls-toggle,.flight-screen #level-quick{
+    position:absolute;left:50%;right:auto;top:auto;transform:translateX(-50%);margin:0;
+    width:56px;min-width:44px;min-height:44px;height:44px;padding:4px 2px;
+    display:flex;align-items:center;justify-content:center;gap:2px;font-size:8px;line-height:1.2;
+    background:#132b3566;border-color:#cedbd35c;border-radius:2px;box-shadow:none;backdrop-filter:none;
+  }
+  .flight-screen #aircraft-controls-toggle{bottom:var(--touch-base-bottom)}
+  .flight-screen #aircraft-controls-toggle svg{width:8px;height:8px}
+  .flight-screen #level-quick{bottom:calc(var(--touch-base-bottom) + 50px)}
+  .flight-screen #level-quick small{display:none}
+  .flight-screen #aircraft-controls-toggle[aria-expanded="true"]{background:#29454de8;border-color:#f1c48b;color:#ffdbab}
+  .left-handed .flight-screen .fire-button,.left-handed .flight-screen #payload-quick{left:auto;right:calc(var(--touch-safe-right) + var(--touch-edge-x))}
+  .left-handed .flight-screen .touch-throttle-readout{left:auto;right:calc(var(--touch-safe-right) + var(--touch-edge-x) + var(--touch-fire-size) + 6px);text-align:right}
+  .left-handed .flight-screen #level-quick{left:50%;right:auto;margin:0}
+
+  /* SYSTEMS reveals both weapon and airframe controls. Fire/drop stay one tap. */
+  .flight-screen:not(.aircraft-controls-open) .weapon-actions{display:none}
+  .flight-screen .flight-actions,.flight-screen:has(#weapon-actions:not([hidden])) .flight-actions{
+    top:auto;bottom:var(--mobile-tray-bottom);left:50%;right:auto;transform:translateX(-50%);
+    width:calc(var(--touch-usable-width) - 24px);max-width:480px;gap:6px;padding:8px;
+    background:#102831f2;border:1px solid #a6bcb16b;border-radius:2px;box-shadow:none;z-index:10;
+  }
+  .flight-screen.aircraft-controls-open .flight-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(48px,1fr))}
+  .flight-screen .flight-actions button{min-height:48px;padding:6px 4px;font-size:9px;backdrop-filter:none}
+  .flight-screen .flight-actions button b{font-size:8px;margin-top:4px}
+  .flight-screen.aircraft-controls-open .weapon-actions{
+    display:flex;top:auto;bottom:calc(var(--mobile-tray-bottom) + 66px);left:50%;right:auto;transform:translateX(-50%);
+    width:calc(var(--touch-usable-width) - 24px);max-width:480px;gap:5px;padding:8px;flex-wrap:nowrap;justify-content:center;
+    background:#102831f2;border:1px solid #a6bcb16b;border-radius:2px;z-index:10;
+  }
+  .flight-screen .weapon-actions button{min-height:48px;min-width:44px;max-width:none;padding:6px 3px;font-size:8px;backdrop-filter:none}
+  .flight-screen .weapon-actions button small{font-size:7px;margin-top:4px}
+
+  /* Shared-aircraft roles use the same clear top edge. */
+  .flight-screen[data-crew-role="gunner"] .flight-instruments{display:grid;top:var(--mobile-top);width:calc(var(--touch-usable-width) - 80px);max-width:300px}
+  .flight-screen[data-crew-role="gunner"] .aircraft-status{display:none}
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout{
+    top:calc(var(--touch-safe-top) + 65px);bottom:auto;left:calc(var(--touch-safe-left) + 66px);right:auto;
+    width:auto;max-width:calc(var(--touch-usable-width) - 90px);padding:0;border:0;background:none;display:flex;align-items:center;gap:9px;
+  }
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout>span,
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout>small,
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout .gunner-reload-track{display:none}
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout>strong{font-size:18px;margin:0;white-space:nowrap}
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout>div:not(.gunner-reload-track){margin:0;gap:5px}
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout output{font-size:15px}
+  .flight-screen[data-crew-role="gunner"] .gunner-station-readout>div>span{display:none}
+  .flight-screen[data-crew-role="gunner"] .flight-warning{top:calc(var(--touch-safe-top) + 106px);font-size:10px}
+  .flight-screen[data-crew-role="gunner"] .radio-caption{top:calc(var(--touch-safe-top) + 106px);bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(var(--touch-usable-width) - 24px);padding:7px 10px}
+  .flight-screen .gunner-aim-pad{width:var(--touch-pad-size);height:var(--touch-pad-size);left:calc(var(--touch-safe-left) + var(--touch-edge-x));bottom:var(--touch-base-bottom);background:#10263030;box-shadow:none}
+  .flight-screen .gunner-aim-pad>span,.flight-screen .gunner-controls-hint{display:none}
+  .flight-screen .gunner-fire{width:84px;height:84px;right:calc(var(--touch-safe-right) + var(--touch-edge-x));bottom:var(--touch-base-bottom);box-shadow:none;background:#563a2c88}
+  .flight-screen .gunner-seat-selector{bottom:calc(var(--touch-base-bottom) + var(--touch-pad-size) + 12px);width:min(360px,calc(var(--touch-usable-width) - 24px))}
+  .flight-screen .gunner-seat-selector button{min-height:48px;padding:7px 10px;gap:3px}
+  .flight-screen .gunner-seat-selector button small{display:none}
+  .flight-screen .gunner-seat-selector button strong{font-size:15px}
+  .flight-screen .gunner-seat-selector button span{font-size:8px}
+  .flight-screen:not(.flight-nav-open) .gunner-tools{display:none}
+  .flight-screen.flight-nav-open .gunner-tools{display:grid;bottom:calc(var(--touch-base-bottom) + var(--touch-pad-size) + 68px);width:min(360px,calc(var(--touch-usable-width) - 24px))}
+  .flight-screen .gunner-tools button{min-height:44px}
+  .left-handed .flight-screen .gunner-aim-pad{left:auto;right:calc(var(--touch-safe-right) + var(--touch-edge-x))}
+  .left-handed .flight-screen .gunner-fire{right:auto;left:calc(var(--touch-safe-left) + var(--touch-edge-x))}
+  .flight-screen.flight-nav-open .crew-status{
+    top:calc(var(--touch-safe-top) + 272px);bottom:auto;left:calc(var(--touch-safe-left) + 12px);right:auto;
+    width:calc(var(--touch-usable-width) - 24px);max-width:400px;padding:7px 10px;display:flex;align-items:center;gap:8px;background:#102831e8;
+  }
+  .flight-screen.flight-nav-open .crew-status>span{display:none}
+  .flight-screen.flight-nav-open .crew-status strong{font-size:8px;white-space:nowrap}
+  .flight-screen.flight-nav-open .crew-status small{font-size:8px;margin:0}
+  .flight-screen.spectating #flight-nav-toggle{display:block}
+  .flight-screen.spectating .radio-caption{top:calc(var(--touch-safe-top) + 106px);bottom:auto;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(var(--touch-usable-width) - 24px)}
+  .high-contrast .flight-screen :is(.touch-pad,.gunner-aim-pad){background:#112b3b66;border-color:#eef4dd}
+  .high-contrast .flight-screen :is(.hud-button,.fire-button,#payload-quick){background:#102a35df;border-color:#e2ecd9}
+}
+
+@media(pointer:coarse) and (orientation:landscape) and (max-height:620px),(max-width:1000px) and (orientation:landscape) and (max-height:620px){
+  .flight-screen{--touch-pad-size:max(80px,min(var(--stick-size),calc((100dvh - var(--touch-safe-top) - var(--touch-safe-bottom))*.28)));--touch-middle-width:calc(var(--touch-usable-width) - var(--touch-edge-x)*2 - var(--touch-pad-size)*2 - 24px)}
+  .flight-screen .flight-instruments{max-width:275px}
+  .flight-screen .flight-warning,
+  .flight-screen[data-crew-role="gunner"] .flight-warning{top:calc(var(--touch-safe-top) + 60px);max-width:min(420px,max(180px,calc(var(--touch-usable-width) - 340px)));font-size:9px;left:54%}
+  .flight-screen .radio-caption,.flight-screen:has(#weapon-actions:not([hidden])) .radio-caption,
+  .flight-screen[data-crew-role="gunner"] .radio-caption{top:calc(var(--touch-safe-top) + 60px);max-width:min(420px,max(180px,calc(var(--touch-usable-width) - 340px)));left:54%;font-size:10px}
+  .flight-screen .radio-caption p{font-size:10px}
+  .flight-screen .flight-actions,.flight-screen:has(#weapon-actions:not([hidden])) .flight-actions,
+  .flight-screen.aircraft-controls-open .weapon-actions{width:min(480px,var(--touch-middle-width));bottom:calc(var(--touch-base-bottom) + 105px)}
+  .flight-screen.aircraft-controls-open .weapon-actions{bottom:calc(var(--touch-base-bottom) + 171px)}
+  .flight-screen.flight-nav-open .flight-hint{top:calc(var(--touch-safe-top) + 112px);bottom:auto;left:54%;width:min(400px,calc(var(--touch-usable-width) - 480px));min-width:160px}
+  .flight-screen.flight-nav-open .flight-identity{top:99px;max-width:200px}
+  .flight-screen.flight-nav-open .objective-box{top:calc(var(--touch-safe-top) + 157px);max-width:215px;width:calc(var(--touch-usable-width)*.3)}
+  .flight-screen.flight-nav-open .objective-box strong{font-size:11px}
+  .flight-screen.flight-nav-open .radar-panel{top:calc(var(--touch-safe-top) + 108px);width:76px;height:90px}
+  .flight-screen.flight-nav-open .radar-panel canvas{width:76px;height:76px}
+  .flight-screen.flight-nav-open .crew-status{display:none}
+  .flight-screen.flight-nav-open #abort-finale{top:auto;bottom:calc(var(--touch-base-bottom) + 153px);left:50%;transform:translateX(-50%);max-width:var(--touch-middle-width)}
+  .flight-screen .gunner-seat-selector{bottom:var(--touch-base-bottom);width:min(310px,var(--touch-middle-width))}
+  .flight-screen.flight-nav-open .gunner-tools{bottom:calc(var(--touch-base-bottom) + 56px);width:min(310px,var(--touch-middle-width))}
+  .flight-screen .gunner-fire{width:76px;height:76px}
+  .flight-screen.spectating .radio-caption{top:calc(var(--touch-safe-top) + 60px);bottom:auto;max-width:min(420px,max(180px,calc(var(--touch-usable-width) - 340px)));left:54%}
+}
+
+@media(max-width:359px){
+  .flight-screen .flight-instruments{gap:2px;width:calc(var(--touch-usable-width) - 116px)}
+  .flight-screen .instrument strong{font-size:22px}
+  .flight-screen .heading-strip strong{font-size:18px}
+  .flight-screen .instrument small{font-size:6.5px}
+  .flight-screen .touch-throttle-readout{width:42px;font-size:10px}
+  .flight-screen .round-readout>small{display:none}
+}

@@ -365,12 +365,17 @@ export class SoftwareFlightRenderer{
     }
   }
   _effects(sim,options={}){
-    for(const p of sim.projectiles||[]){if(p.life<=0||this._terrainHides(p.x,p.y,p.z,2))continue;const missile=p.type==='missile',bomb=p.type==='bomb',heavy=p.type==='shell'&&p.seat==='105mm',medium=p.type==='shell'&&p.seat==='40mm',tail=missile?.16:heavy?.12:medium?.07:.035;if(!bomb)this._line([p.x,p.y,p.z],[p.x-n(p.vx)*tail,p.y-n(p.vy)*tail,p.z-n(p.vz)*tail],missile||heavy?'#ffd894':'#ffe2a5',heavy?3:missile||medium?2.5:1.5,.9);else this._disc(p.x,p.y,p.z,1.1,'#535c54');}
+    for(const p of sim.projectiles||[]){if(p.life<=0||this._terrainHides(p.x,p.y,p.z,2))continue;const missile=p.type==='missile',bomb=p.type==='bomb',heavy=p.type==='shell'&&p.seat==='105mm',medium=p.type==='shell'&&p.seat==='40mm',tail=missile?.16:heavy?.12:medium?.07:.035;if(!bomb)this._line([p.x,p.y,p.z],[p.x-n(p.vx)*tail,p.y-n(p.vy)*tail,p.z-n(p.vz)*tail],missile||heavy?'#ffd894':'#ffe2a5',heavy?3:missile||medium?2.5:1.5,.9);else this._disc(p.x,p.y,p.z,p.payload&&p.payload!=='conventional'?1.8:1.1,'#535c54');}
     this._damageSmoke??=new DamageSmokeTrails();
     const puffs=this._damageSmoke.sample(sim,{time:this.time,remotePlayers:options.remotePlayers,reducedMotion:this.settings.reducedMotion},this._damagePuffs||=[]);
     const effects=[...(sim.effects||[]),...puffs].filter(e=>!this._terrainHides(e.x,e.y,e.z,n(e.radius,12)*.5));
     const layers=sampleCombatEffects(effects,{capacity:this.settings.quality==='low'?192:320,reducedMotion:this.settings.reducedMotion,wind:this.mission.weather?.wind},this._effectLayers||=[]);
     for(const layer of layers){
+      if(layer.kind==='ground-ring'){
+        const segments=this.settings.quality==='low'?32:48;let last=null;
+        for(let i=0;i<=segments;i++){const a=i/segments*TAU,point=[layer.x+Math.cos(a)*layer.radius,layer.y,layer.z+Math.sin(a)*layer.radius];if(last)this._line(last,point,layer.color,1.6,layer.alpha);last=point;}
+        continue;
+      }
       if((layer.kind==='ember'||layer.kind==='debris')&&layer.y<surfaceHeight(layer.x,layer.z,this.mission))continue;
       const p=this._toView(layer.x,layer.y,layer.z),depth=-p[2];if(depth<.6||depth>this._visibilityFar)continue;
       const x=this.width*.5+p[0]*this._focal/depth,y=this.height*.5-p[1]*this._focal/depth,r=clamp(layer.radius*this._focal/depth,.6,this.width*1.5);
@@ -391,16 +396,22 @@ export class SoftwareFlightRenderer{
       else if(item.type==='aircraft'){ctx.drawImage(item.canvas,0,0,item.sourceWidth,item.sourceHeight,item.x,item.y,item.width,item.height);triangles+=item.triangles;}
       else if(item.type==='line'){ctx.strokeStyle=item.stroke;ctx.lineWidth=item.width;ctx.beginPath();ctx.moveTo(item.points[0],item.points[1]);ctx.lineTo(item.points[2],item.points[3]);ctx.stroke();}
       else if(item.type==='effect'){
-        if(item.kind==='ring'){ctx.strokeStyle=item.fill;ctx.lineWidth=Math.max(.65,item.r*.02);ctx.beginPath();ctx.ellipse(item.x,item.y,item.r,item.r,0,0,TAU);ctx.stroke();}
+        if(item.kind==='ring'||item.kind==='wave'){ctx.strokeStyle=item.fill;ctx.lineWidth=Math.max(.65,item.r*(item.kind==='wave'?.005:.02));ctx.beginPath();ctx.ellipse(item.x,item.y,item.r,item.r,0,0,TAU);ctx.stroke();}
         else{
           ctx.save();ctx.translate(item.x,item.y);ctx.rotate(item.angle);ctx.scale(1,item.ratio);
           if(item.kind==='debris'||item.kind==='ember'){
             ctx.fillStyle=item.fill;ctx.beginPath();ctx.moveTo(-item.r*.42,-item.r);ctx.lineTo(item.r*.55,-item.r*.35);ctx.lineTo(item.r*.28,item.r);ctx.lineTo(-item.r*.35,item.r*.7);ctx.closePath();ctx.fill();
           }else{
-            const gradient=ctx.createRadialGradient?.(0,0,item.r*.08,0,0,item.r),tint=rgb(item.fill).map(Math.round),hot=item.kind==='core'||item.kind==='glow',fire=item.kind==='fire';
-            if(gradient?.addColorStop){gradient.addColorStop(0,hot?'#fffbe8':item.fill);gradient.addColorStop(hot?.44:fire?.75:.6,`rgba(${tint.join(',')},${hot?.98:fire?.94:.88})`);gradient.addColorStop(1,`rgba(${tint.join(',')},0)`);ctx.fillStyle=gradient;}else ctx.fillStyle=item.fill;
+            const cloud=item.kind==='cloud',dust=item.kind==='dust',gradient=ctx.createRadialGradient?.(cloud?-item.r*.26:0,cloud?-item.r*.3:0,item.r*.08,0,0,item.r),tint=rgb(item.fill).map(Math.round),hot=item.kind==='core'||item.kind==='glow',fire=item.kind==='fire';
+            if(gradient?.addColorStop){
+              gradient.addColorStop(0,hot?'#fffbe8':item.fill);
+              if(cloud){const shade=tint.map(v=>Math.round(v*.79));gradient.addColorStop(.38,`rgba(${tint.join(',')},.98)`);gradient.addColorStop(.75,`rgba(${shade.join(',')},.84)`);gradient.addColorStop(.95,`rgba(${shade.join(',')},.3)`);gradient.addColorStop(1,`rgba(${shade.join(',')},0)`);}
+              else{gradient.addColorStop(hot?.44:fire?.75:dust?.72:.6,`rgba(${tint.join(',')},${hot?.98:fire?.94:dust?.85:.88})`);gradient.addColorStop(1,`rgba(${tint.join(',')},0)`);}
+              ctx.fillStyle=gradient;
+            }else ctx.fillStyle=item.fill;
             ctx.beginPath();
-            if(fire){for(let j=0;j<13;j++){const angle=j/12*TAU,radius=item.r*(.82+Math.sin(j*2.9+item.angle*3)*.14);if(j===0)ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);else ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();}
+            if(cloud){for(let j=0;j<=28;j++){const angle=j/28*TAU,radius=item.r*(.94+Math.sin(angle*5+item.angle)*.045+Math.sin(angle*9-item.angle*.6)*.025);if(j===0)ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);else ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();}
+            else if(fire){for(let j=0;j<13;j++){const angle=j/12*TAU,radius=item.r*(.82+Math.sin(j*2.9+item.angle*3)*.14);if(j===0)ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);else ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();}
             else ctx.arc(0,0,item.r,0,TAU);
             ctx.fill();
           }

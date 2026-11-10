@@ -1,4 +1,5 @@
 import {orientationFromPose,basisFromOrientation} from './orientation.mjs';
+import {getNuclearPayload} from './payloads.mjs';
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const number=(v,f=0)=>Number.isFinite(v)?v:f;
@@ -38,7 +39,7 @@ export class CombatFeedback {
   reset(sim){
     this.sim=sim;this.identity=sim?this._identity(sim):null;this.seenHits=new Set();this.seenEffects=new Set();
     this.age=0;this.hit=0;this.blast=0;this.noticeTime=0;this.notice=null;this.direction={known:false,angle:0,pan:0,label:''};
-    this.jolt=0;this.joltAge=0;this.joltSide=1;this.cues=[];
+    this.jolt=0;this.joltAge=0;this.joltSide=1;this.rumble=0;this.rumbleAge=0;this.cues=[];
     return this;
   }
   _identity(sim){return `${sim.multiplayer?.runId||sim.mission?.id||''}:${sim.player.id}:${sim.player.lifeId||1}`;}
@@ -50,7 +51,7 @@ export class CombatFeedback {
     if(identity!==this.identity){this.reset(sim);}
     const dt=clamp(number(elapsed),0,.2),p=sim.player,listener=options.listener||p;
     const reduced=!!options.reducedMotion,suspended=!!options.suspended;
-    this.age+=dt;this.joltAge+=dt;this.hit*=Math.exp(-dt*5.8);this.blast*=Math.exp(-dt*7);
+    this.age+=dt;this.joltAge+=dt;this.rumbleAge+=dt;this.rumble*=Math.exp(-dt*1.6);this.hit*=Math.exp(-dt*5.8);this.blast*=Math.exp(-dt*7);
     this.jolt*=Math.exp(-dt*6.8);this.noticeTime=Math.max(0,this.noticeTime-dt);this.cues.length=0;
     const latest=sim.localParticipant?.lastDamage||p.lastDamage;
     const candidates=[...(sim.events||[]).filter(e=>e.kind==='damage'),...(latest?[latest]:[])];
@@ -93,8 +94,32 @@ export class CombatFeedback {
       this.blast=Math.max(this.blast,blast.proximity*.65);
       if(blast.proximity>.05){this.jolt=Math.max(this.jolt,blast.proximity*.6);this.joltAge=0;}
     }
+    // Light arrives first. The concussion and rolling boom arrive with the
+    // expanding game wave, so a distant detonation does not kick the cockpit
+    // at the instant of the flash. Each receipt is consumed once, even paused.
+    for(const effect of sim.effects||[]){
+      if(effect.type!=='nuclear'||!point(effect))continue;
+      const profile=getNuclearPayload(effect.payload);if(!profile)continue;
+      const key=effect.id??`${effect.x}:${effect.y}:${effect.z}:${effect.payload}`,age=number(effect.age),d=distance(effect,listener);
+      const radius=Math.max(1,number(effect.radius,profile.blastRadius)),intensity=clamp(1/(1+(d/(radius*1.45))**1.7),0,1);
+      const flashKey=`nuclear-flash:${key}`;
+      if(!this.seenEffects.has(flashKey)){
+        this.seenEffects.add(flashKey);
+        if(!suspended&&age<.65)this.blast=Math.max(this.blast,intensity*.8*Math.pow(1-age/.65,1.3));
+      }
+      const arrival=d/profile.waveSpeed,boomKey=`nuclear-boom:${key}`;
+      if(age>=arrival&&!this.seenEffects.has(boomKey)){
+        this.seenEffects.add(boomKey);
+        if(!suspended&&age-arrival<.8&&intensity>.04){
+          const direction=combatDirection(effect,listener,options.camera),proximity=clamp(1-d/(radius*1.1),0,1);
+          this.cues.push({kind:'nuclear',details:{intensity,pan:direction.pan,distance:d,radius,payload:profile.id}});
+          this.rumble=Math.max(this.rumble,proximity*.95);this.rumbleAge=0;this.joltSide=direction.pan<0?-1:1;
+          this.blast=Math.max(this.blast,proximity*.12);
+        }
+      }
+    }
     this._trim(this.seenHits);this._trim(this.seenEffects);
-    if(suspended){this.hit=this.blast=this.jolt=this.noticeTime=0;}
+    if(suspended){this.hit=this.blast=this.jolt=this.rumble=this.noticeTime=0;}
     const kick=blankKick(),jolt=options.spectating?0:this.jolt;
     if(!reduced&&!suspended&&jolt>.005){
       const t=this.joltAge;
@@ -103,10 +128,15 @@ export class CombatFeedback {
       kick.roll=Math.cos(t*34)*jolt*.017*this.joltSide;
       kick.x=Math.sin(t*41)*jolt*.075; kick.y=Math.cos(t*36)*jolt*.065;
     }
+    if(!reduced&&!suspended&&!options.spectating&&this.rumble>.005){
+      const t=this.rumbleAge,r=this.rumble;
+      kick.pitch+=Math.sin(t*17+.4)*r*.018;kick.yaw+=Math.sin(t*13)*r*.009*this.joltSide;
+      kick.roll+=Math.sin(t*15)*r*.024*this.joltSide;kick.x+=Math.sin(t*19)*r*.14;kick.y+=Math.cos(t*16)*r*.12;
+    }
     const visible=this.noticeTime>0&&!!this.notice;
     const health=visible?Math.round(this.notice.health/this.notice.maxHealth*100):Math.round(number(p.health)/Math.max(1,sim.aircraft?.health||100)*100);
     const weapon=String(this.notice?.weapon||'').toLowerCase();
-    const title=health<=0?'AIRCRAFT DESTROYED':weapon.includes('missile')?'MISSILE HIT':weapon.includes('flak')?'FLAK HIT':weapon.includes('bomb')?'BLAST DAMAGE':'AIRFRAME HIT';
+    const title=health<=0?'AIRCRAFT DESTROYED':weapon.includes('missile')?'MISSILE HIT':weapon.includes('flak')?'FLAK HIT':(weapon.includes('bomb')||weapon.includes('nuclear'))?'BLAST DAMAGE':'AIRFRAME HIT';
     return {hit:this.hit*(reduced?.42:1),blast:this.blast*(reduced?.2:1),visible,
       title,detail:`${this.direction.known?'FROM '+this.direction.label+' · ':''}${health}% AIRFRAME`,
       bearing:visible&&this.direction.known,angle:this.direction.angle,

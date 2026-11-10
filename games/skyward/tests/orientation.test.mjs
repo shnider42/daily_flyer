@@ -82,7 +82,7 @@ test('pulling while inverted lowers both the nose and the flight path in every a
   for (const assist of ['assisted', 'standard', 'expert']) {
     const sim = flight(assist);
     attitude(sim, 0, 0, Math.PI);
-    fly(sim, 0.5, { pitch: 1, throttle: 0.7 });
+    fly(sim, 0.7, { pitch: 1, throttle: 0.7 });
     const p = sim.player, frame = basis(p.orientation);
     assert.ok(frame.forward.y < -0.25, `${assist}: inverted pull must point the nose toward the ground`);
     assert.ok(frame.up.y < -0.9, 'active controls must not trigger forced upright recovery');
@@ -106,9 +106,11 @@ test('right yaw rotates about local up at level, banked and inverted attitudes',
 
 test('every assistance mode allows full rolls and loops without angle clamps or pole jumps', () => {
   for (const assist of ['assisted', 'standard', 'expert']) for (const control of ['pitch', 'roll']) {
-    const sim = flight(assist), rate = control === 'pitch' ? 0.55 : sim.aircraft.rollRate;
+    const sim = flight(assist), rate = control === 'pitch' ? sim.aircraft.pitchRate : sim.aircraft.rollRate;
     let inverted = false, previous = sim.player.orientation;
-    for (let i = 0; i < Math.ceil(2 * Math.PI / rate / dt); i++) {
+    // The airframe takes time to accelerate to its steady angular rate.
+    const duration = 2 * Math.PI / rate + 1 / sim.aircraft.attitudeResponse;
+    for (let i = 0; i < Math.ceil(duration / dt); i++) {
       sim.step(dt, { [control]: 1, throttle: 1 });
       assert.equal(sim.status, 'flying');
       const orientation = sim.player.orientation;
@@ -145,7 +147,7 @@ test('LEVEL recovery is smooth and immediately yields to an aircraft-relative co
   const priorBank = sim.player.roll;
   sim.action('level'); sim.step(dt, { roll: 1, throttle: 0.7 });
   assert.equal(sim.player.levelAssist, 0, 'pilot input must cancel explicit recovery');
-  assert.ok(sim.player.roll < priorBank - 0.025, 'right roll must respond immediately from the remaining recovery attitude');
+  assert.ok(sim.player.roll < priorBank - 0.001, 'right roll must begin responding immediately, with the airframe inertia still applied');
 });
 
 test('fine thumb corrections suspend automatic leveling just as full keyboard controls do', () => {

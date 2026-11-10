@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.6.1
+# SKYWARD module contract · v0.7.0
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 
@@ -31,13 +31,25 @@ Aircraft shape: {id,name,shortName,era,model,color,accent,maxSpeed,cruise,stallS
 
 Room modes are `squadron`, `crew`, `freeflight`, and `dogfight`. Independent modes accept 2–4 players; crew accepts exactly two. `mapId` is `canyon` or `islands`; dogfight duration is 300, 600 or 1200 seconds; ordinary mission `lives` is 1, 3 or 5, default 3. The server rejects invalid settings rather than relying on the local normalizer. Accepted server config uses `durationSeconds:0` outside dogfight; simulation rounds use `duration:null` / `remaining:null` when untimed.
 
-Each independent roster entry carries `aircraft` and `startMode:'airborne'|'runway'|'carrier'`. The accepted choices apply to ordinary missions as well as arena modes and remain fixed until another sortie. Multiplayer runway starts are hot; solo free-flight setup can request a cold runway start. `lifeId` changes deterministic respawn placement and separates a replacement from its predecessor. Carrier compatibility describes modeled assistance and risk; all fourteen aircraft remain allowed to attempt a departure.
+Each independent roster entry carries `aircraft` and `startMode:'airborne'|'high'|'runway'|'carrier'`, and `payload:'conventional'|'atomic'|'hydrogen'|'tsar'`. The accepted choices apply to ordinary missions as well as arena modes and remain fixed until another sortie. High starts are 6,500 game metres AGL at the normal airborne horizontal spawn. Multiplayer runway starts are hot; solo free-flight setup can request a cold runway start. `lifeId` changes deterministic respawn placement and separates a replacement from its predecessor. Carrier compatibility describes modeled assistance and risk; all fourteen aircraft remain allowed to attempt a departure.
 
 ## Simulation
 
 `sim.mjs` exports `FlightSimulation`, `advancePlayer(player,input,dt,aircraft,mission,settings)` and re-exports `terrainHeight`, `surfaceHeight`, `runwayAt`, `runwayCoordinates`, `segmentTerrainTime`, `lineOfSight`, `terrainClearance` and `carrierObstacleTime` from the shared terrain module. `new FlightSimulation(mission,settings)` accepts an object or ID. `.player` carries quaternion `orientation`, position, Euler pose, speed, throttle, health, fuel, gear/flaps/brake, engine/startup state, aircraft ID, vertical speed, stall state and stores. Multiplayer adds `lifeId`, `alive`, `targetId` and `radarOn`. `.step(dt,{roll,pitch,yaw,throttle,fire})` advances flight. `.action(name)` supports startup, gear, flaps, brake, level, target, missile, payload, fire, countermeasure, radar, hover, abort and respawn.
 
 World properties: `.enemies`, `.targets`, `.projectiles`, `.effects`, `.paratroopers`, `.waypointIndex`, `.status` (`flying`/`success`/`failed`), `.objective`, `.hint`, `.progress`, `.time`, `.score`, `.events`, `.targetId`, `.lockProgress`, `.radarOn`, `.threat` and `.threatWarning`. `.getSnapshot()` serializes the host world. Legacy unconfigured squadron `.applySnapshot(snapshot)` preserves the guest's own plane and applies shared damage/stores. Configured multiplayer uses the participant contract below.
+
+### Handling and nuclear payloads
+
+Aircraft profiles expose dimensionless `handlingSize`, `pitchRate`, `rollRate`, `attitudeResponse` and `recoveryScale`. Pilot angular rates ease toward input using time-based response, then integrate around the aircraft's body axes. Heavy airframes turn and recover more slowly; no bank or pitch clamp is added. Transient angular rates live outside serialized poses and reset for new aircraft/ground handling.
+
+`payloads.mjs` exports `NUCLEAR_PAYLOADS`, `getNuclearPayload`, `normalizePayload`, `nuclearDamageAtDistance` and `expandingBlastTime`. Nuclear payloads are B-2 only. Their profile values are fictional game balance. Selection travels as `mission.payload`, roster/participant `payload`, and `player.payload`. The relay accepts only supported loadouts and freezes them during flight, overriding pose/action payload claims with accepted roster data. Last Light requires a nuclear payload and falls back to Atomic.
+
+A nuclear release checks actual terrain AGL and stores before creating a `type:'bomb'` projectile with `payload`, owner/life identity and the eligible life IDs captured at release. Its terrain collision creates a `type:'nuclear'` effect with shared profile radius, age/life and the same identity data. Only the host resolves the expanding wave using swept aircraft positions and a once-per-life hit set. Self-blast remains dangerous in peaceful modes, while peer damage follows existing dogfight-only rules. New lives never inherit earlier hazards. Guests receive projectiles/effects and authoritative damage through normal snapshots.
+
+`sim.nuclearThreat` returns the most relevant hazard as `{phase:'falling'|'blast',payload,distance,radius,remaining,escaped,waveRadius?}` or null. The HUD uses this for always-visible escape warnings. `nuclearRelease` records Last Light's release, detonation and original pilot life in snapshots. Release does not immediately finish the mission; the aircraft remains controllable during the escape. Abort cannot undo an already released bomb.
+
+The shared effect sampler derives fireball, wave, ground dust, stem and canopy layers under the existing fixed budgets. Both renderers use `age × waveSpeed` for the pressure front. Combat feedback owns nuclear sound timing: `processEvents` must not directly play the `nuclear` event, because the delayed wave cue supplies the boom and reduced-motion-aware camera response.
 
 ### Independent multiplayer state
 
@@ -54,7 +66,7 @@ Use a fresh simulation for each `onStart`. Crew mode retains its shared-aircraft
 
 ```js
 {
-  id, name, aircraft, startMode,
+  id, name, aircraft, payload, startMode,
   lifeId, alive, health,
   livesRemaining,             // null for unlimited, otherwise remaining aircraft
   kills, deaths, damageId,    // damageId is monotonic, including across respawn
@@ -184,11 +196,11 @@ Desktop gunner defaults: mouse or arrows aim, primary mouse button/Space fire, 1
 
 | Method | Purpose |
 | --- | --- |
-| `create(name,missionId,options={})` | Creates a room; options accept `{mode,mapId,durationSeconds,lives,aircraft,startMode}` or a nested `config` plus loadout |
-| `join(code,name,options={})` | Joins a lobby with optional `{aircraft,startMode}` |
+| `create(name,missionId,options={})` | Creates a room; options accept `{mode,mapId,durationSeconds,lives,aircraft,startMode,payload}` or a nested `config` plus loadout |
+| `join(code,name,options={})` | Joins a lobby with optional `{aircraft,startMode,payload}` |
 | `configure(config)` | Host-only lobby configuration; include `missionId` for an atomic mode/mission change |
 | `setMission(id)` | Legacy host lobby mission selection |
-| `setLoadout(aircraft,startMode)` | Changes the caller's lobby selection; an equivalent object argument is accepted |
+| `setLoadout(aircraft,startMode,payload)` | Changes the caller's lobby selection; an equivalent object argument is accepted |
 | `ready(bool=true)` | Guest readiness in the lobby; the host remains ready |
 | `start(id=this.missionId)` | Host starts/replays a sortie with a new run ID |
 | `returnToLobby()` | Host returns all members to the same lobby without closing the room |
@@ -198,7 +210,7 @@ Desktop gunner defaults: mouse or arrows aim, primary mouse button/Space fire, 1
 | `samplePlayers()`, `samplePilot()` | Interpolated independent aircraft or the crew's shared pilot pose |
 | `leave()` | Leaves the room; explicit host departure ends it |
 
-Properties include `code`, `id`, `isHost`, `connected`, `latency`, `roster`, `mode`, `role` (`pilot`/`gunner`), `maxPlayers`, `hostId`, `missionId`, `config`, `aircraft`, `startMode`, `roomState`, `paused` and `hostStale`. A roster entry is `{id,name,isHost,role,ready,connected,aircraft,startMode}`; private reconnect tokens never appear in the roster.
+Properties include `code`, `id`, `isHost`, `connected`, `latency`, `roster`, `mode`, `role` (`pilot`/`gunner`), `maxPlayers`, `hostId`, `missionId`, `config`, `aircraft`, `startMode`, `payload`, `roomState`, `paused` and `hostStale`. A roster entry is `{id,name,isHost,role,ready,connected,aircraft,startMode,payload}`; private reconnect tokens never appear in the roster.
 
 Callbacks are:
 

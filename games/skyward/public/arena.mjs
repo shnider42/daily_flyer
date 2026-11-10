@@ -82,6 +82,10 @@ export function createArenaMission(config = {}, aircraft = 'f16') {
 
 export function spawnForPlayer(mission, aircraft, index = 0, startMode = 'airborne', lifeId = 1) {
   const a = getAircraft(typeof aircraft === 'string' ? aircraft : aircraft.id), i = Math.max(0, index | 0);
+  if (startMode === 'high') {
+    const spawn = spawnForPlayer(mission, a.id, i, 'airborne', lifeId);
+    return { ...spawn, y: Math.max(0, terrainHeight(spawn.x, spawn.z, mission)) + 6500, airborne: true, cold: false, gear: a.fixedGear };
+  }
   if (startMode === 'carrier') {
     const carrier = mission.runways?.find(runway => runway.carrier);
     if (carrier) {

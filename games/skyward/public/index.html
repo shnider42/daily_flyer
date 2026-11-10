@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 14 aircraft across 18 campaign missions, explore in free flight, or join friends for dogfights and co-op. A Daily Flyer aviation game for keyboard and touch.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css"><link rel="stylesheet" href="./mobile-flight.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
@@ -53,7 +53,7 @@
       </div>
     </section>
 
-    <footer class="hangar-footer"><span><b id="home-aircraft-count">14</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.6.2</span></footer>
+    <footer class="hangar-footer"><span><b id="home-aircraft-count">14</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.7.0</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -63,7 +63,7 @@
 
   <section id="free-screen" class="screen panel-screen" data-screen="free" hidden>
     <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SINGLE PLAYER</p><h1>Free flight</h1><p>Choose an aircraft, landscape, and starting point.</p></div>
-    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
+    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="high">High altitude · 6,500 m AGL</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><div id="free-payload-field" class="payload-config" hidden><label>B-2 payload<select id="free-payload"><option value="conventional">Conventional bomb</option><option value="atomic">Atomic · Hiroshima class</option><option value="hydrogen">Hydrogen bomb</option><option value="tsar">Tsar Bomba class</option></select></label><p id="free-payload-note" class="small-note payload-note"></p></div><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
   </section>
 
   <section id="squadron-screen" class="screen panel-screen" data-screen="squadron" hidden>
@@ -101,7 +101,8 @@
           <p class="eyebrow">YOUR AIRCRAFT</p>
           <label>Aircraft<select id="room-aircraft"></select></label>
           <p id="room-aircraft-note" class="small-note"></p>
-          <label>Start from<select id="room-start"><option value="airborne">Already in the air</option><option value="runway">Runway · engine running</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label>
+          <div id="room-payload-field" class="payload-config" hidden><label>B-2 payload<select id="room-payload"><option value="conventional">Conventional bomb</option><option value="atomic">Atomic · Hiroshima class</option><option value="hydrogen">Hydrogen bomb</option><option value="tsar">Tsar Bomba class</option></select></label><p id="room-payload-note" class="small-note payload-note"></p></div>
+          <label>Start from<select id="room-start"><option value="airborne">Already in the air</option><option value="high">High altitude · 6,500 m AGL</option><option value="runway">Runway · engine running</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label>
           <p id="room-carrier-warning" class="carrier-warning" hidden></p>
         </div>
         <p id="room-crew-note" class="room-mode-description" hidden>The room creator pilots the shared AC-130. The second player switches between first-person 25 mm, 40 mm and 105 mm gun stations.</p>
@@ -115,7 +116,7 @@
       <div id="damage-bearing" class="damage-bearing" aria-hidden="true" hidden><svg viewBox="0 0 100 100"><path d="M 22 16 A 44 44 0 0 1 78 16"/><path class="damage-chevron" d="M 44 10 L 50 17 L 56 10"/></svg></div>
       <div id="damage-notice" class="damage-notice" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="damage-title">AIRFRAME HIT</strong><span id="damage-detail"></span></div>
     </div>
-    <header class="flight-header"><div class="flight-identity"><span id="flight-mission-number">01 / 18</span><strong id="flight-title">FIRST LIGHT</strong><small id="flight-aircraft">AVRO 504</small></div><div class="flight-header-actions"><span id="flight-network" hidden></span><button id="scoreboard-button" class="hud-button" aria-expanded="false" aria-controls="scoreboard-panel" hidden>SCORES</button><button id="camera-button" class="hud-button" aria-label="Change camera">VIEW</button><button id="pause-button" class="hud-button" aria-label="Pause flight">II</button></div></header>
+    <header class="flight-header"><div class="flight-identity"><span id="flight-mission-number">01 / 18</span><strong id="flight-title">FIRST LIGHT</strong><small id="flight-aircraft">AVRO 504</small></div><div class="flight-header-actions"><span id="flight-network" hidden></span><button id="flight-nav-toggle" class="hud-button" aria-expanded="false" aria-controls="objective-box radar-panel" aria-label="Show navigation and mission details">NAV</button><button id="scoreboard-button" class="hud-button" aria-expanded="false" aria-controls="scoreboard-panel" hidden>SCORES</button><button id="camera-button" class="hud-button" aria-label="Change camera">VIEW</button><button id="pause-button" class="hud-button" aria-label="Pause flight">II</button></div></header>
     <div class="objective-box" id="objective-box"><div class="objective-meta"><span id="objective-label">FLIGHT ORDERS</span><span id="mission-progress">0%</span></div><strong id="objective-text">Prepare the aircraft</strong><div class="objective-track"><i id="objective-progress"></i></div></div>
     <div class="flight-instruments"><div class="instrument speed"><small id="speed-unit">KM/H</small><strong id="hud-speed">0</strong><span>AIRSPEED</span></div><div class="heading-strip"><span id="hud-wind">WIND 4 KT →</span><strong id="hud-heading">000<span>°</span></strong><small id="hud-compass">N</small></div><div class="instrument altitude"><small id="altitude-unit">METRES AGL</small><strong id="hud-altitude">0</strong><span id="terrain-clearance-label">GROUND CLEARANCE</span><div class="clearance-track" aria-hidden="true"><i id="clearance-fill"></i></div></div></div>
     <div id="crosshair" class="crosshair" aria-hidden="true"><i></i><b></b></div><div id="target-marker" class="target-marker" hidden><span id="target-name">CONTACT</span><small id="target-distance"></small></div><div id="waypoint-pointer" class="waypoint-pointer" hidden></div>
@@ -143,9 +144,10 @@
       <div class="touch-control-bar">
         <div class="yaw-control-tools">
           <button id="fire-button" class="fire-button" aria-label="Hold to fire guns"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/></svg><span>FIRE</span></button>
+          <button id="payload-quick" class="fire-button" data-action="payload" aria-label="Drop payload" hidden><span>DROP</span><small id="payload-quick-state">READY</small></button>
           <div class="touch-throttle-readout"><span>THRUST</span><output id="touch-throttle-output" aria-label="Thrust" aria-live="off">0%</output><div class="touch-throttle-meter" aria-hidden="true"><i id="touch-throttle-fill"></i></div></div>
         </div>
-        <button id="aircraft-controls-toggle" class="hud-button" aria-expanded="false" aria-controls="flight-actions">AIRCRAFT <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
+        <button id="aircraft-controls-toggle" class="hud-button" aria-expanded="false" aria-controls="flight-actions weapon-actions">SYSTEMS <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
         <button id="level-quick" class="hud-button recovery" data-action="level" aria-label="Level the aircraft">LEVEL <small>ASSIST</small></button>
       </div>
       <div class="throttle-control"><label for="throttle">THR</label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="Throttle"><output id="throttle-output">0%</output></div>

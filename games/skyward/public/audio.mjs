@@ -83,7 +83,7 @@ export class FlightAudio {
     // behind a burst of bullets; other duplicates in one packet are coalesced.
     if(t-finite(this.lastCombat[group],-Infinity)<interval&&!(hit&&profile.sound==='heavyhit'&&this.lastHitSound!=='heavyhit'))return false;
     const buffer=this.combatBuffers[profile.sound];if(!buffer)return false;
-    const rate=[1,.97,1.045,.94][this.variation++%4],duration=buffer.duration/rate;
+    const rate=[1,.97,1.045,.94][this.variation++%4]*profile.playbackRate,duration=buffer.duration/rate;
     const voice=this._voice(kind,duration,profile.gain,profile.pan,profile.priority);if(!voice)return false;
     const c=this.ctx,s=c.createBufferSource(),f=c.createBiquadFilter();s.buffer=buffer;s.playbackRate.value=rate;f.type='lowpass';f.frequency.value=profile.lowpass;f.Q.value=.45;
     s.connect(f);f.connect(voice.gain);voice.nodes.push(s,f);voice.sources.push(s);s.onended=voice.finish;s.start(t);s.stop(t+duration+.01);
@@ -105,7 +105,7 @@ export class FlightAudio {
     if(!this._audible())return;const t=this.ctx.currentTime;
     switch(kind){
       case'gun':if(this._combat('gun',details))this.lastGun=t;break;
-      case'cannon':case'heavycannon':case'explosion':case'hit':case'major-hit':case'heavyhit':this._combat(kind,details);break;
+      case'cannon':case'heavycannon':case'explosion':case'nuclear':case'hit':case'major-hit':case'heavyhit':this._combat(kind,details);break;
       case'missile':case'payload':this.noise(.45,.35,1700);break;
       case'lock':this.tone(1000,.14,'sine',.075);break;
       case'warning':this.tone(640,.25,'triangle',.08,520);break;

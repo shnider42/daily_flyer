@@ -1,6 +1,6 @@
 {
   "name": "skyward-flight",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "SKYWARD — a century of flight, with private dogfights, shared free flight, campaign squadrons and an AC-130 crew",

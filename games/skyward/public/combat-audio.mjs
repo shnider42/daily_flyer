@@ -3,11 +3,12 @@
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const TAU=Math.PI*2;
 export const COMBAT_AUDIO_LIMITS=Object.freeze({voices:12,hitInterval:.055,explosionInterval:.045});
-export const COMBAT_SOUND_SECONDS=Object.freeze({hit:.34,heavyhit:.95,explosion:2.25,gun:.115,cannon:.62,heavycannon:1.3});
+export const COMBAT_SOUND_SECONDS=Object.freeze({hit:.34,heavyhit:.95,explosion:2.25,nuclear:6.8,gun:.115,cannon:.62,heavycannon:1.3});
 const decay=(t,life)=>t<0?0:Math.exp(-t/life);
 const HIT_DEBRIS=[[.028,.26],[.069,.17],[.116,.08]];
 const HEAVY_DEBRIS=[[.036,.28],[.093,.23],[.17,.17],[.29,.11],[.42,.06]];
 const BLAST_ROLL=[[.065,.6,.07],[.145,.41,.11],[.27,.28,.16]];
+const NUCLEAR_ROLL=[[.22,.7,.28],[.61,.55,.42],[1.12,.46,.6],[1.86,.38,.78],[2.7,.26,.9],[3.7,.17,1.1]];
 const BLAST_DEBRIS=[[.10,.26],[.18,.22],[.32,.17],[.49,.13],[.71,.1],[.97,.07],[1.26,.04]];
 
 /** Deterministic PCM permits the same sound and checks on every device. The
@@ -36,6 +37,14 @@ export function synthesizeCombatSound(kind,sampleRate=48000,seed=0x51a7c0de){
       s+=Math.sin(TAU*(108*t-35*t*t))*decay(t,.22)*.72;
       s+=metal(t,412,.14)*.21+metal(t,887,.063)*.18;
       for(const [at,gain] of HEAVY_DEBRIS)s+=high*decay(t-at,.014)*gain;
+    }else if(kind==='nuclear'){
+      // Broad pressure crack, descending body and a long turbulent roll. The
+      // 200–900 Hz layer survives phone speakers; bass is not the sole cue.
+      s=high*decay(t,.026)*.85+band*decay(t,.21)*1.8;
+      s+=Math.sin(TAU*(72*t-5.2*t*t))*decay(t,.82)*.75;
+      s+=low*decay(t,2.35)*4.4+body*decay(t,1.6)*2.2;
+      s+=band*decay(t,2.1)*(.35+.12*Math.sin(t*8.3)+.08*Math.sin(t*17.7));
+      for(const [at,gain,life] of NUCLEAR_ROLL)s+=(body*2.3+band*.6)*decay(t-at,life)*gain;
     }else if(kind==='gun'){
       s=high*decay(t,.006)*.88+band*decay(t,.025)*1.5;
       s+=Math.sin(TAU*(205*t-490*t*t))*decay(t,.024)*.58;
@@ -63,15 +72,15 @@ export function combatCueProfile(kind,details={}){
   const intensity=clamp(Number.isFinite(details.intensity)?details.intensity:1,0,1);
   const pan=clamp(Number.isFinite(details.pan)?details.pan:0,-.85,.85);
   const distance=Math.max(0,Number.isFinite(details.distance)?details.distance:0);
-  const explosive=/missile|bomb|rocket|flak|105|40mm|cannon/i.test(String(details.weapon||''));
+  const explosive=/missile|bomb|nuclear|rocket|flak|105|40mm|cannon/i.test(String(details.weapon||''));
   const heavy=kind==='major-hit'||kind==='heavyhit'||kind==='hit'&&(explosive||intensity>=.7);
-  const sound=heavy?'heavyhit':kind;
+  const sound=heavy?'heavyhit':kind,nuclear=kind==='nuclear';
   const hit=kind==='hit'||kind==='major-hit'||kind==='heavyhit';
-  return {sound,intensity,pan,distance,
-    gain:(hit?.82:kind==='explosion'?.9:kind==='gun'?.39:.65)*Math.sqrt(intensity),
-    lowpass:hit?7200:clamp(7600/(1+distance/650),950,7600),
-    priority:hit?8:kind==='explosion'?6:kind==='gun'?2:4,
-    duck:hit?.77:kind==='explosion'?.68*intensity:kind==='heavycannon'?.36:0,
-    duckSeconds:hit?(heavy?.55:.29):kind==='explosion'?.35+intensity*.4:.2,
+  return {sound,intensity,pan,distance,playbackRate:nuclear?(details.payload==='tsar'?.8:details.payload==='hydrogen'?.9:1):1,
+    gain:(hit?.82:nuclear?.9:kind==='explosion'?.9:kind==='gun'?.39:.65)*Math.sqrt(intensity),
+    lowpass:hit?7200:nuclear?clamp(5200/(1+distance/4500),700,5200):clamp(7600/(1+distance/650),950,7600),
+    priority:hit?8:nuclear?7:kind==='explosion'?6:kind==='gun'?2:4,
+    duck:hit?.77:nuclear?.8*intensity:kind==='explosion'?.68*intensity:kind==='heavycannon'?.36:0,
+    duckSeconds:hit?(heavy?.55:.29):nuclear?1.5+intensity*2.2:kind==='explosion'?.35+intensity*.4:.2,
   };
 }

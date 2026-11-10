@@ -186,9 +186,14 @@ test('nuclear finale gates release by the route and offers a complete abort endi
   }
   Object.assign(release.player, { x: 0, y: 3900, z: 15000 });
   assert.equal(release.action('payload'), true);
-  assert.equal(release.status, 'success');
+  assert.equal(release.status, 'flying', 'release begins a real escape phase rather than ending the flight');
   assert.equal(release.ending, 'strike');
   assert.equal(release.player.bombs, 0);
+  assert.equal(release.action('abort'), false, 'an already released weapon cannot become an unreleased abort ending');
+  assert.equal(release.projectiles.at(-1).payload, 'atomic');
+  fly(release, 40, { throttle: release.player.throttle });
+  assert.equal(release.status, 'success', 'the finale concludes after the actual detonation and escape phase');
+  assert.equal(release.nuclearRelease.detonated, true);
 });
 
 test('cooperative snapshots preserve local flight and apply only addressed damage once', () => {
