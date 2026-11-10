@@ -1,9 +1,9 @@
 {
-  "data_url": "data/issues.5791830323ca26f0.json",
-  "data_sha256": "5791830323ca26f0861422bd8df362eee14390afad40114a526e7c479dae08e1",
+  "data_url": "data/issues.4ec26be72a7da4ef.json",
+  "data_sha256": "4ec26be72a7da4effac0738f2e2b9ea3aee680b89d4dec30a9541f76c7f90e74",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.5791830323ca26f0.json",
+    "data/issues.4ec26be72a7da4ef.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
@@ -36,23 +36,23 @@
     "assets/submission-thread-aef8d3439e715791.js",
     "assets/community-9968024fdcdfaa9d.js",
     "assets/river-valley-mobile-2019c320c527506a.webp",
-    "data/features.ef826a2bc5a3bc47.json",
+    "data/features.5cadd3efa8179c28.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css",
     "assets/official-feed-97c176eeab312d3d.js",
-    "data/catch-up.8f650b14c05cb2e9.json",
+    "data/catch-up.eeae62c5da436eae.json",
     "assets/catch-up-01461101d822eb59.js",
     "assets/catch-up-8cd19f2c68ee351a.css"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.",
-  "feature_data_url": "data/features.ef826a2bc5a3bc47.json",
+  "feature_data_url": "data/features.5cadd3efa8179c28.json",
   "feature_assets": [
-    "data/features.ef826a2bc5a3bc47.json",
+    "data/features.5cadd3efa8179c28.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css"
   ],
   "catch_up_assets": [
-    "data/catch-up.8f650b14c05cb2e9.json",
+    "data/catch-up.eeae62c5da436eae.json",
     "assets/catch-up-01461101d822eb59.js",
     "assets/catch-up-8cd19f2c68ee351a.css"
   ]

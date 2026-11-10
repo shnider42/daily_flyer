@@ -50,7 +50,7 @@ class GuideEvidenceTests(unittest.TestCase):
         data = module['build']()
         self.assertIn('cf9', {s['id'] for s in data['sources']})
         self.assertEqual(data['coverage_through'], '2026-10-21')
-        self.assertEqual(data['reviewed_at'], '2026-11-09')
+        self.assertEqual(data['reviewed_at'], '2026-11-10')
         self.assertNotIn('cf9', {c['source_id'] for t in data['topics'] for c in t['changes']})
         # The current frontend compares announcement IDs/hashes and uses the
         # newest reviewed source as its review boundary. Its data now includes

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "reviewed_at": "2026-11-09",
+  "reviewed_at": "2026-11-10",
   "coverage_from": "2026-10-07",
   "coverage_through": "2026-10-21",
   "release": "Patch 1.7",
@@ -526,6 +526,34 @@
         }
       ],
       "overview_order": 19
+    },
+    {
+      "id": "combat-audio",
+      "title": "Combat audio & spawn sounds",
+      "area": "Recognising battlefield sounds",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F049"
+      ],
+      "overview": "Weapons, explosions and spawn points sound different after Patch 1.6.",
+      "takeaway": "Spawn sounds account for intervening objects. Tunnel sounds carry less far, including to helicopters. Distant gunfire and explosions received new mixes.",
+      "context": "Background battle sounds are ambience; they do not necessarily indicate player actions.",
+      "caution": "This audio pass does not close VOIP, missing-sound or crash reports.",
+      "issue_ids": [
+        "HLLV-028",
+        "HLLV-099"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Refreshed combat, spawn and background audio.",
+          "before": "Earlier weapon mixes and spawn-sound behavior were replaced.",
+          "after": "New mixes, ambient battle sounds, spawn occlusion and reduced tunnel audibility are released."
+        }
+      ],
+      "overview_order": 20
     }
   ],
   "reviewed_source_ids": [

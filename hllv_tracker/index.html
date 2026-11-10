@@ -160,7 +160,7 @@
 <link id="hllv-favicon-fallback" rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="./assets/infierno-favicon.ico">
 <link id="hllv-favicon" rel="icon" type="image/svg+xml" href="./assets/infierno-favicon.svg">
 <link id="hllv-apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="./assets/infierno-apple-touch-icon.png">
-<script id="hllv-catch-up" src="./assets/catch-up-01461101d822eb59.js" data-source="./data/catch-up.8f650b14c05cb2e9.json" defer></script>
+<script id="hllv-catch-up" src="./assets/catch-up-01461101d822eb59.js" data-source="./data/catch-up.eeae62c5da436eae.json" defer></script>
 <link id="hllv-catch-up-style" rel="stylesheet" href="./assets/catch-up-8cd19f2c68ee351a.css">
 </head>
 <body>
@@ -278,7 +278,7 @@
     </main>
   </div>
   <script id="hllv-source-responses" src="./assets/source-responses-cdb29d5e3bbdf5dc.js" defer></script>
-  <script id="hllv-features" src="./assets/features-a7b2fc411110e11e.js" data-source="./data/features.ef826a2bc5a3bc47.json" defer></script>
+  <script id="hllv-features" src="./assets/features-a7b2fc411110e11e.js" data-source="./data/features.5cadd3efa8179c28.json" defer></script>
   <script id="hllv-source-feed" src="./assets/official-feed-97c176eeab312d3d.js" defer></script>
   <script src="./freshness.js?v=20261007"></script>
   <script id="hllv-evidence-v1" src="./assets/evidence-f81896b2b5901f3b.js"></script>
@@ -299,7 +299,7 @@
     document.addEventListener('hllv-date-order',e=>{if(e.detail==='practice-history'){const items=[...document.querySelectorAll('#privatePractice [data-event-date]')];HLLVDates.sorted(items.map(node=>({node,date:node.dataset.eventDate})),'date',HLLVDates.direction('practice-history')).forEach(x=>x.node.parentNode.appendChild(x.node));}});
     document.getElementById('patchDateOrder').innerHTML=HLLVDates.control('patches','Release date order');
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.5791830323ca26f0.json";
+    const TRACKER_DATA_URL = "./data/issues.4ec26be72a7da4ef.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary',browseScrollTop=0,browseReturnId='';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());

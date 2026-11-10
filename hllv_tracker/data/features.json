@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-11-09",
+  "reviewed_at": "2026-11-10",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected functionality from Community Feedback 6–9 and Patches 1.6–1.7, reviewed through November 9. Patch 1.7 remains the latest verified release; November 6 statements describe further work and targets, not a new patch. This is not a complete roadmap or independent gameplay verification.",
+  "coverage_note": "Selected functionality from Community Feedback 6–9 and Patches 1.6–1.7, reviewed through November 10. Added coverage of earlier audio changes and five previously omitted feature discussions. Patch 1.7 remains the latest verified release; November 6 statements describe further work and targets, not a new patch. This is not a complete roadmap or independent gameplay verification.",
   "sources": [
     {
       "id": "cf9",
@@ -14,8 +14,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
       "published_at": "2026-11-06T12:26:02Z",
       "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02",
-      "reviewed_at": "2026-11-09",
-      "review_scope": "Feature plans, targets and current-behavior clarifications. Statements were reviewed in full; no new release or independent gameplay validation is established."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Feature plans, targets and current-behavior clarifications. Statements were reviewed in full; no new release or independent gameplay validation is established. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "ama2_live",
@@ -27,8 +27,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302238261",
       "published_at": "2026-10-30T12:00:31Z",
       "content_sha256": "64501cdc9bc10fcdd74ce59de4ed2620445383a6e4bb6f64111d890c82fce0e9",
-      "reviewed_at": "2026-11-09",
-      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "ama2_invitation",
@@ -40,8 +40,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847920302231605",
       "published_at": "2026-10-28T16:00:20Z",
       "content_sha256": "88b48fd31154d52bf56a6a34220c54b8cfeebecaae4734e99c2d17fc4b442516",
-      "reviewed_at": "2026-11-09",
-      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "patch17",
@@ -53,8 +53,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
       "published_at": "2026-10-21T10:00:57Z",
       "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
-      "reviewed_at": "2026-10-21",
-      "review_scope": "Released functionality, hardware limits and separately stated future plans in the full Patch 1.7 announcement; no independent gameplay test."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Released functionality, hardware limits and separately stated future plans in the full Patch 1.7 announcement; no independent gameplay test. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "cf8",
@@ -66,8 +66,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
       "published_at": "2026-10-15T16:00:50Z",
       "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
-      "reviewed_at": "2026-10-20",
-      "review_scope": "Selected functionality statements, including Clan Tags and rank emblems. Re-read October 20; the publisher text hash is unchanged. Tracked requests are not confirmed development."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected functionality statements, including Clan Tags and rank emblems. Re-read October 20; the publisher text hash is unchanged. Tracked requests are not confirmed development. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "cf7",
@@ -79,8 +79,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
       "published_at": "2026-10-09T15:37:43Z",
       "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
-      "reviewed_at": "2026-10-16",
-      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "patch16",
@@ -92,8 +92,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067925606",
       "published_at": "2026-10-07T10:01:03Z",
       "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
-      "reviewed_at": "2026-10-16",
-      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "commandpost_15_16",
@@ -105,8 +105,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656387240",
       "published_at": "2026-10-02T17:47:33Z",
       "content_sha256": "8308f924252dfc1362b9746a800beff9241c73d0fdf4a122eb58dc6d0509db1a",
-      "reviewed_at": "2026-11-09",
-      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Announcement text reviewed; video not watched. Event or video notice, with no independent evidence of an additional feature release. Re-read November 10; publisher text is unchanged and no later release is established."
     },
     {
       "id": "cf6",
@@ -118,8 +118,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656381776",
       "published_at": "2026-10-01T15:12:24Z",
       "content_sha256": "15b2da22c6d9e7eed823ce0764640a7797e63f8ad90c5f05816e24c8c3fcf83a",
-      "reviewed_at": "2026-10-16",
-      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
     }
   ],
   "features": [
@@ -1753,6 +1753,188 @@
       "monitor_terms": [
         "role progression",
         "progression depth"
+      ]
+    },
+    {
+      "id": "HLLV-F044",
+      "title": "Separate VOIP audio output",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Separate voice-output selection is not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Developers want to support separate voice output; additional audio-system work is needed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Routing request acknowledged; delivery uncommitted."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "audio routing",
+        "audio output",
+        "voice comms"
+      ]
+    },
+    {
+      "id": "HLLV-F045",
+      "title": "Aim Assist improvements",
+      "category": "Controls",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The announced improvements are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "in_development",
+      "change": "Aim Assist work targets 2.0, conditional on development and testing.",
+      "target": "Update 2.0 target · subject to development and testing",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "in_development",
+          "summary": "Conditional target announced."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-034"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "aim assist"
+      ]
+    },
+    {
+      "id": "HLLV-F046",
+      "title": "Mounted machine-gun usability",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Broader mounted-weapon improvements are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Deployment, elevation and forced aiming-down-sights complaints are tracked for future improvements.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Usability feedback acknowledged; no implementation specified."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-064"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "mounted machine guns",
+        "mounted weapons",
+        "forced into ads"
+      ]
+    },
+    {
+      "id": "HLLV-F047",
+      "title": "Weapon access across roles",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional M14 or SKS role access is not confirmed by this discussion.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Developers are reviewing requests for wider weapon access while preserving role differences.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Loadout changes remain open to feedback, without named new combinations."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "weapon and role",
+        "m14",
+        "sks"
+      ]
+    },
+    {
+      "id": "HLLV-F048",
+      "title": "Player markers & nameplate controls",
+      "category": "Interface",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional visibility controls are not confirmed released.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "More control over player markers and nameplates is part of longer-term interface discussions.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Future interface flexibility discussed."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "nameplate visibility",
+        "player markers",
+        "ui/ux"
+      ]
+    },
+    {
+      "id": "HLLV-F049",
+      "title": "Combat audio & spawn sounds",
+      "category": "Audio",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Patch 1.6 remixed weapons and explosions, added ambient battle sounds, and changed how spawn sounds travel through cover.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "released",
+      "change": "The audio refresh is released.",
+      "target": "Released in Patch 1.6",
+      "latest_source_id": "patch16",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Combat and spawn audio updated."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-028",
+        "HLLV-099"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "audio overhaul",
+        "audio pass",
+        "spawn audio",
+        "distant gunfire"
       ]
     }
   ]

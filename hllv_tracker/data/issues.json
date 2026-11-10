@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-09",
+  "generated_at": "2026-11-10",
   "latest_change": {
-    "date": "2026-11-09",
-    "label": "November developer update reviewed",
-    "url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
-    "summary": "Certain PS5 crashes now have a memory-related explanation; further replication and NVIDIA settings fixes remain pending. Seven newer Support-backed reports are added. Patch 1.7 remains the latest verified release."
+    "date": "2026-11-10",
+    "label": "Fresh bug reports and broader coverage",
+    "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsf4a8/so_crashy/",
+    "summary": "New crash and PS5 graphics reports, a qualified white-flicker workaround report, six previously untracked content topics and a combat-audio Catch Up briefing. Patch 1.7 remains the latest verified release; no newly shipped fix is established."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -292,11 +292,11 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "Developers identify memory exhaustion in certain PS5 crashes preceded by audio loss. Memory improvements are in development; PC tank-fire and other crash reports remain separate.",
+      "bottom_line": "November 10 player reports describe audio loss or looping followed by freezes, including an explicitly identified PS5 case. Developers have linked some PS5 crashes to memory exhaustion; further memory fixes remain unreleased.",
       "official_short": "Some PS5 causes identified",
       "fix_short": "Earlier fixes live; memory work pending",
       "cause_short": "Multiple causes; PS5 memory finding",
-      "last_updated": "2026-11-06",
+      "last_updated": "2026-11-10",
       "scope": [
         "PC",
         "PS5",
@@ -316,7 +316,8 @@
         "October 7 release-note review: Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work.",
         "October 9 follow-up: The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement.",
         "Two October 23 Support replies concern freezing or crashing when a tank gunner fires; they record escalation and diagnostic requests.",
-        "November 6: the developer identifies insufficient available memory in the specific PS5 cases associated with preceding audio loss; memory improvements are in development."
+        "November 6: the developer identifies insufficient available memory in the specific PS5 cases associated with preceding audio loss; memory improvements are in development.",
+        "November 10: two Reddit discussions describe match-ending freezes with audio symptoms; one author explicitly identifies PS5. These remain player reports with no measured crash rate."
       ],
       "unknown": [
         "Remaining crash causes are not fully enumerated.",
@@ -324,7 +325,8 @@
         "Independent post-hotfix verification is not recorded.",
         "Independent gameplay verification of the Patch 1.6 outcome is not recorded.",
         "Whether the tank-fire reports share a cause with each other or with an earlier released correction.",
-        "Which future update will deliver each memory improvement, and whether it resolves a particular player’s crash."
+        "Which future update will deliver each memory improvement, and whether it resolves a particular player’s crash.",
+        "Whether the newly reported freezes share the November 6 memory diagnosis; a similar symptom is not a confirmed common cause."
       ],
       "timeline": [
         {
@@ -441,6 +443,12 @@
           "event": "Community Feedback #9",
           "detail": "Developers attribute the discussed PS5 crashes to memory exhaustion, not audio, and describe memory improvements in development. No new released fix or universal crash cause is established.",
           "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989"
+        },
+        {
+          "date": "2026-11-10",
+          "event": "Further player crash reports",
+          "detail": "Current reports include audio looping and freezing on PS5. A separate author says reinstalling did not prevent audio loss and freezes. No new developer diagnosis or shipped fix follows from either report.",
+          "source_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsm1t6/game_crashed_4_games_in_a_row/"
         }
       ],
       "sources": [
@@ -764,9 +772,37 @@
           "source_category": "Team17 Support",
           "claim": "For a GeForce NOW crash report, Support says assistance with cloud or remote play is limited and refers the player to Nvidia. This is a Support-scope statement, not evidence of a general service outage.",
           "authority_checked_at": "2026-11-09T22:20:38Z"
+        },
+        {
+          "type": "player report",
+          "publisher": "Reddit community",
+          "title": "Game crashed 4 games in a row",
+          "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsm1t6/game_crashed_4_games_in_a_row/",
+          "date": "2026-11-10",
+          "source_published_at": "2026-11-10",
+          "source_reviewed_via": "Public indexed post and reply text; direct page retrieval was unavailable.",
+          "source_locator": "Indexed post and reply text reviewed November 10; original page unavailable. November 10 opening post and author follow-up identifying PS5",
+          "content_sha256": "1292b12c0aa0aa462b3c20ff05e50bfcfe5cbb6f45a272d3e629679fee802540",
+          "hash_scope": "Whitespace-normalized indexed opening-post text; replies are contextual evidence, not part of this hash.",
+          "claim": "A self-identified PS5 player reports repeated late-match audio looping followed by freezes. This is a current player observation, not a reproduced crash, measured prevalence or proof of a shared memory cause.",
+          "indexed_text_reviewed_at": "2026-11-10"
+        },
+        {
+          "type": "player report",
+          "publisher": "Reddit community",
+          "title": "So crashy.",
+          "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsf4a8/so_crashy/",
+          "date": "2026-11-10",
+          "source_published_at": "2026-11-10",
+          "source_reviewed_via": "Public indexed post and reply text; direct page retrieval was unavailable.",
+          "source_locator": "Indexed post and reply text reviewed November 10; original page unavailable. November 10 opening post and follow-up describing audio loss, freezing and an unsuccessful reinstall",
+          "content_sha256": "7bd6cfcdeb2a132677ddc3fdab421de724ac3d0568e3219f9c0af8d6842551e0",
+          "hash_scope": "Whitespace-normalized indexed opening-post text; replies are contextual evidence, not part of this hash.",
+          "claim": "A separate discussion reports inability to finish matches and audio loss preceding freezes despite reinstalling. The console model is not established by the retrieved author text; suggested PS-button workarounds are unverified.",
+          "indexed_text_reviewed_at": "2026-11-10"
         }
       ],
-      "last_reviewed": "2026-11-09",
+      "last_reviewed": "2026-11-10",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -862,6 +898,14 @@
               "Whether the tank-fire reports share a cause with each other or with an earlier released correction."
             ],
             "last_reviewed": "2026-10-28"
+          }
+        },
+        {
+          "date": "2026-11-10",
+          "reason": "Added current player observations without changing the official diagnosis, released-fix status or older evidence dates.",
+          "previous": {
+            "bottom_line": "Developers identify memory exhaustion in certain PS5 crashes preceded by audio loss. Memory improvements are in development; PC tank-fire and other crash reports remain separate.",
+            "last_updated": "2026-11-06"
           }
         }
       ]
@@ -1720,24 +1764,25 @@
       "kind": "server issue family",
       "status_key": "partial",
       "status_label": "Specific fixes released; wider causes open",
-      "bottom_line": "The October 9 update still acknowledges long-session replication failures despite 1.5.2 improvements. It does not identify the cause of every server crash or disconnect.",
+      "bottom_line": "The November 6 update says another spawn/asset replication fix is prepared for the next update. That work is not confirmed released and does not establish the cause of every server crash or disconnect.",
       "official_short": "Acknowledged family",
       "fix_short": "1.5.2 + earlier specific fixes",
       "cause_short": "Multiple / unknown",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-11-06",
       "scope": [
         "community servers",
         "match servers",
         "all platforms"
       ],
       "symptom": "Players can lose connection to the host or be returned to the menu during a match; some community servers may restart or disappear.",
-      "official_position": "Community Feedback #7 confirms that remaining missing or unusable spawn points are under investigation after longer server sessions. This is evidence about replication degradation, not proof that an unrelated disconnect, server process crash, administrator restart or SoulSniper hosting incident has the same cause.",
+      "official_position": "Community Feedback #9 advances the replication strand of this record: earlier changes reduced reports and a further fix is prepared. The update concerns missing or malfunctioning Garrisons, Outposts, vehicles, supplies and other assets. It does not establish a shared cause for unrelated disconnects, process crashes, administrator restarts or SoulSniper hosting incidents.",
       "workaround": null,
       "known": [
         "Team17 Support said the team was working on server-crash reports.",
         "At least one specific NVA Tunnel crash was reproduced and fixed in Patch 1.2.",
         "Developers reported improved server stability after Patch 1.2.",
-        "October 9 follow-up: The publisher says long-session spawn/replication failures have improved but still occur. That evidence does not establish a cause for unrelated process crashes, restarts, disconnects or hosting incidents."
+        "October 9 follow-up: The publisher says long-session spawn/replication failures have improved but still occur. That evidence does not establish a cause for unrelated process crashes, restarts, disconnects or hosting incidents.",
+        "November 6 follow-up: further replication work is prepared, with post-release monitoring planned; its release and complete recovery remain unverified."
       ],
       "unknown": [
         "A client 'lost connection' message does not prove the server process crashed.",
@@ -1779,6 +1824,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The publisher says long-session spawn/replication failures have improved but still occur. That evidence does not establish a cause for unrelated process crashes, restarts, disconnects or hosting incidents."
+        },
+        {
+          "date": "2026-11-06",
+          "event": "Community Feedback #9 — replication context",
+          "detail": "A further spawn/asset replication fix is prepared for the next update. This is not a release announcement or general server-crash resolution.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989"
         }
       ],
       "sources": [
@@ -1863,9 +1914,23 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #9 | Command Post",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
+          "date": "2026-11-06",
+          "source_published_at": "2026-11-06T12:26:02Z",
+          "source_reviewed_at": "2026-11-10",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
+          "announcement_id": "1848664643345363",
+          "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02",
+          "source_locator": "Bugs & Issues / Spawn & Asset Replication",
+          "claim": "The November 6 publisher update reports fewer spawn/asset replication failures after earlier changes and another fix prepared for the next update. It does not diagnose unrelated server crashes, disconnects or hosting incidents."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-11-10",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -1873,6 +1938,15 @@
           "previous": {
             "bottom_line": "Hotfix 1.5.2 addressed a long-session replication problem. Early operator feedback is encouraging, but this does not explain or resolve every server crash or disconnect.",
             "official_position": "September 29 fixes targeted Iris replication degradation during longer server sessions. On October 1, developers reported encouraging early feedback from several community-server owners, while declining to call the replication issue completely resolved. Disconnects, process crashes, hosting incidents and administrative restarts still require separate evidence."
+          }
+        },
+        {
+          "date": "2026-11-10",
+          "reason": "Aligned the existing replication context with Community Feedback #9 while preserving distinct server-crash and hosting causes.",
+          "previous": {
+            "bottom_line": "The October 9 update still acknowledges long-session replication failures despite 1.5.2 improvements. It does not identify the cause of every server crash or disconnect.",
+            "official_position": "Community Feedback #7 confirms that remaining missing or unusable spawn points are under investigation after longer server sessions. This is evidence about replication degradation, not proof that an unrelated disconnect, server process crash, administrator restart or SoulSniper hosting incident has the same cause.",
+            "last_updated": "2026-10-09"
           }
         }
       ]
@@ -1953,11 +2027,11 @@
       "kind": "support-level report cluster",
       "status_key": "reported",
       "status_label": "Reports escalated",
-      "bottom_line": "Team17 escalated reports of brief white flashes. Reports include both AMD and Nvidia systems, so the cause remains unclear.",
+      "bottom_line": "A November 8 player reports that disabling AMD Instant Replay helped white ground flicker. Other reports have mixed outcomes, and earlier reports include Nvidia hardware; neither a universal workaround nor a released fix is established.",
       "official_short": "Support acknowledged",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-08-14",
+      "last_updated": "2026-11-08",
       "scope": [
         "PC",
         "AMD reports",
@@ -1965,16 +2039,18 @@
       ],
       "symptom": "The screen, ground, or world can briefly flash white or show an artifact-like flicker during play.",
       "official_position": "Team17 Support said the reports were passed to the team for deeper investigation. Early replies focused on AMD systems, but later reports in the same thread included Nvidia hardware.",
-      "workaround": "Support suggested DX12 launch options and disabling the AMD Adrenalin overlay; individual results in the thread were mixed, so neither is treated as a confirmed fix.",
+      "workaround": "Some players report improvement with AMD Instant Replay disabled, including a November 8 reply. Others in the same thread report no improvement after changing related settings. Earlier Support suggestions covered launch options and the AMD overlay; all remain case-specific troubleshooting.",
       "known": [
         "The support thread contains reports from multiple players.",
         "Team17 Support escalated the issue.",
-        "Reports are not limited to one GPU brand."
+        "Reports are not limited to one GPU brand.",
+        "November 8: a player reports improvement after disabling Instant Replay; earlier participants report both success and continued flicker."
       ],
       "unknown": [
         "Developer reproduction has not been publicly established.",
         "It is not clear whether every described flicker is the same defect.",
-        "No shipped fix is identified in the reviewed record."
+        "No shipped fix is identified in the reviewed record.",
+        "The successful November reply does not identify hardware, game build or observation duration, and does not establish a cause for all white-flash reports."
       ],
       "timeline": [
         {
@@ -1986,6 +2062,12 @@
           "date": "2026-08-14",
           "event": "Team17 Support",
           "detail": "Support escalates the reports and offers launch-option and overlay troubleshooting."
+        },
+        {
+          "date": "2026-11-08",
+          "event": "Player reports a troubleshooting outcome",
+          "detail": "A player says disabling Instant Replay helped. The thread also contains unsuccessful attempts, so the observation is not promoted to a verified fix.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/0/631219394426482804/?ctp=1#c572680221973568054"
         }
       ],
       "sources": [
@@ -2001,8 +2083,35 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "possible fix for the ground flickering white / AMD instant replay",
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/631219394426482804/?ctp=1#c572680221973568054",
+          "date": "2026-11-08",
+          "source_published_at": "2026-11-08T17:04:48Z",
+          "source_reviewed_at": "2026-11-10",
+          "source_locator": "Reply 572680221973568054; original post and all eight replies reviewed",
+          "source_author_id": "76561199099275109",
+          "source_author_label": "deadeye",
+          "source_category": "Player observation",
+          "content_sha256": "140a50b32d2540ac0a3939b218e7fd46086789e6ffafc889db922dbb9d5958f9",
+          "claim": "One player reports improvement with Instant Replay disabled. Earlier participants report mixed outcomes; no official acknowledgement, reproduced cause or general fix is supplied by this thread."
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-10",
+          "reason": "Added a recent first-person troubleshooting outcome and retained contradictory results; no developer diagnosis or status change.",
+          "previous": {
+            "bottom_line": "Team17 escalated reports of brief white flashes. Reports include both AMD and Nvidia systems, so the cause remains unclear.",
+            "workaround": "Support suggested DX12 launch options and disabling the AMD Adrenalin overlay; individual results in the thread were mixed, so neither is treated as a confirmed fix.",
+            "last_updated": "2026-08-14"
+          }
+        }
+      ],
+      "last_reviewed": "2026-11-10"
     },
     {
       "id": "HLLV-011",
@@ -10587,6 +10696,94 @@
           "authority_checked_at": "2026-11-09T22:20:38Z"
         }
       ]
+    },
+    {
+      "id": "HLLV-118",
+      "title": "Severe graphics distortion reported on PS5",
+      "category": "graphics",
+      "kind": "individual player report",
+      "status_key": "reported",
+      "status_label": "Player report · outcome unverified",
+      "bottom_line": "A PS5 player reports distorted scenery and no recurrence so far after reinstalling on November 10. No cause or released fix is established.",
+      "official_short": "No verified official response",
+      "fix_short": "None confirmed",
+      "cause_short": "Unknown",
+      "last_updated": "2026-11-10",
+      "last_reviewed": "2026-11-10",
+      "scope": [
+        "PS5",
+        "Single reported rendering case"
+      ],
+      "symptom": "The November 7 thread describes abnormal stretched scenery. The reporter associates it with the latest update; a regression has not been verified.",
+      "official_position": "No verified developer diagnosis or release note is linked. A reply requesting a Support ticket is not assigned official authority because its author was not verified.",
+      "workaround": "The reporter describes no recurrence so far after reinstalling; duration and repeatability are unknown.",
+      "known": [
+        "The report and follow-up come from one player, not independent corroboration."
+      ],
+      "unknown": [
+        "Affected assets, map, exact build and reproducibility.",
+        "Relationship to existing foliage, sky-pattern or memory issues.",
+        "Whether the reported recovery lasts; no general repair is established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-07",
+          "event": "PS5 player report",
+          "detail": "A visual-corruption report is posted; no cause is verified.",
+          "source_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/graphics_glitch/"
+        },
+        {
+          "date": "2026-11-10",
+          "event": "Reporter follow-up",
+          "detail": "Reinstalling is followed by no recurrence so far; the outcome remains unverified.",
+          "source_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19sfb71twnbuq/"
+        }
+      ],
+      "sources": [
+        {
+          "type": "player report",
+          "publisher": "Reddit / u/ryanmcc97",
+          "title": "Graphics glitch",
+          "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/graphics_glitch/",
+          "date": "2026-11-07",
+          "source_published_at": "2026-11-07",
+          "source_reviewed_at": "2026-11-10",
+          "source_locator": "Opening post identifying PS5; surrounding discussion reviewed",
+          "source_reviewed_via": "Public source text; linked image could not be fetched for independent visual inspection.",
+          "source_author_label": "u/ryanmcc97",
+          "content_sha256": "54a308dcf176f6a4ff7fc8cd40e56ec414607ca659f14111e85cd06611de38e8",
+          "hash_scope": "Whitespace-normalized opening-post text only, excluding image and comments.",
+          "claim": "A PS5 player reports a visual glitch. Discussion describes stretched scenery; the image was not independently inspected."
+        },
+        {
+          "type": "player report",
+          "publisher": "Reddit / u/ryanmcc97",
+          "title": "Graphics glitch — reporter context",
+          "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19samp0mizrgl/",
+          "date": "2026-11-07",
+          "source_published_at": "2026-11-07",
+          "source_reviewed_at": "2026-11-10",
+          "source_locator": "Author reply 19samp0mizrgl",
+          "source_author_label": "u/ryanmcc97",
+          "content_sha256": "f2455f7ca08ed4cdb2b41cb54493640212a14c163ca164f2ceffdb1ac2c51d3f",
+          "hash_scope": "Whitespace-normalized retrieved author-reply text.",
+          "claim": "The author reports seeing the symptom only in this game after the latest update; onset and regression are unverified."
+        },
+        {
+          "type": "player report",
+          "publisher": "Reddit / u/ryanmcc97",
+          "title": "Graphics glitch — reinstall follow-up",
+          "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19sfb71twnbuq/",
+          "date": "2026-11-10",
+          "source_published_at": "2026-11-10",
+          "source_reviewed_at": "2026-11-10",
+          "source_locator": "Author reply 19sfb71twnbuq",
+          "source_author_label": "u/ryanmcc97",
+          "content_sha256": "7e633576a9beb5593a6ae003d79c63033b23c61246c511eb48eee7f3c72d3ce5",
+          "hash_scope": "Whitespace-normalized retrieved author-reply text.",
+          "claim": "The author reports no recurrence so far after reinstalling. This is a single preliminary outcome, not a confirmed fix."
+        }
+      ]
     }
   ],
   "incidents": [
@@ -10599,7 +10796,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "November 9: Community Feedback #9, recent Support replies and returning-player summaries reviewed. Nine existing dossiers refreshed, seven reports added, 43 content topics and 19 Catch Up briefings. Patch 1.7 remains the latest verified release; planned work and unverified player outcomes stay separate. Earlier reports are not automatically renewed or closed. October 28: rechecked publisher announcements and reviewed selected October 22–27 Support/player replies. Six dossiers updated and seven qualified reports added; existing statuses and all original evidence dates preserved. Patch 1.7 remains the latest verified release. Coverage and exclusions are in review_history. Previous review: October 21: reviewed Patch 1.7 release evidence; historical assessments and source dates retained. October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "November 10: three existing bug dossiers refreshed and one separately scoped PS5 graphics report added. Recent player outcomes remain unverified; no existing bug status changed. Six previously omitted content topics bring the content tracker to 49, with 20 Catch Up briefings. Existing release coverage remains October 7–21; November 10 is the review date. Source access, exclusions and coverage limits are recorded in reviews/2026-11-10-source-review.json. November 9: Community Feedback #9, recent Support replies and returning-player summaries reviewed. Nine existing dossiers refreshed, seven reports added, 43 content topics and 19 Catch Up briefings. Patch 1.7 remains the latest verified release; planned work and unverified player outcomes stay separate. Earlier reports are not automatically renewed or closed. October 28: rechecked publisher announcements and reviewed selected October 22–27 Support/player replies. Six dossiers updated and seven qualified reports added; existing statuses and all original evidence dates preserved. Patch 1.7 remains the latest verified release. Coverage and exclusions are in review_history. Previous review: October 21: reviewed Patch 1.7 release evidence; historical assessments and source dates retained. October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -10666,8 +10863,8 @@
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   },
-  "page_updated_at": "2026-11-09T22:21:48Z",
-  "review_release": "2026-11-09-source-review",
+  "page_updated_at": "2026-11-10T18:03:00Z",
+  "review_release": "2026-11-10-source-review",
   "review_history": [
     {
       "date": "2026-10-07",
@@ -11833,6 +12030,60 @@
         "All nine released patch entries and their release dates",
         "Private submissions, accounts, moderation and existing collection schedule"
       ]
+    },
+    {
+      "date": "2026-11-10",
+      "review_release": "2026-11-10-source-review",
+      "base_commit": "7aa19610dff70c8a1b22fc31cb815044c8ccf3ed",
+      "page_updated_at": "2026-11-10T18:03:00Z",
+      "updated_issues": [
+        "HLLV-003",
+        "HLLV-008",
+        "HLLV-010"
+      ],
+      "new_issues": [
+        "HLLV-118"
+      ],
+      "new_features": [
+        "HLLV-F044",
+        "HLLV-F045",
+        "HLLV-F046",
+        "HLLV-F047",
+        "HLLV-F048",
+        "HLLV-F049"
+      ],
+      "new_catch_up_topics": [
+        "combat-audio"
+      ],
+      "issue_count": 118,
+      "feature_count": 49,
+      "catch_up_topic_count": 20,
+      "source_references": 287,
+      "distinct_issue_source_urls": 98,
+      "changed_existing_statuses": [],
+      "latest_verified_release": {
+        "title": "Patch 1.7",
+        "date": "2026-10-21"
+      },
+      "latest_official_announcement": {
+        "id": "1848664643345363",
+        "title": "Community Feedback #9 | Command Post",
+        "published_at": "2026-11-06T12:26:02Z",
+        "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02"
+      },
+      "independent_gameplay_testing": false,
+      "scope": "Reviewed registered publisher texts, scanned tracked Steam replies, checked bounded discussion discovery and selected current Reddit reports; refreshed bugs, missing content topics and linked Catch Up summaries.",
+      "limitations": [
+        "No independent gameplay testing; no new released patch or existing bug-status closure was established.",
+        "HTTP accessibility checks cover 98 recorded bug-source URLs, but do not validate each claim. One tracked Steam thread redirects away from its original discussion, so 57 of 58 reply scans completed.",
+        "Broader Steam discovery remains bounded to two active listing pages per forum and 24 candidate scans in this pass: 18 completed; 78 eligible candidates were not fully rescanned. This is not exhaustive community coverage.",
+        "Two current Reddit crash threads were read through indexed primary-source text; direct page retrieval was unavailable. Their full-source review dates are deliberately unset and their indexed-text review dates are recorded separately.",
+        "The graphics report and exact author reply links were readable, but the attached image was not independently inspected. Player workarounds and post-reinstall outcomes remain unverified.",
+        "SoulSniper and Gebatron directory relationships were checked, but channel videos and comments remain outside the connected collector. Manual channel-page checks did not yield usable current content; no creator-video or private Discord claims were added.",
+        "Developer video notices were reviewed as written announcements. The linked videos were not watched.",
+        "One existing content-preview hold and one discovery identity-review gap are preserved; no unverified speaker is promoted to Team17 authority.",
+        "Historical source dates and uncertainty remain intact. Unchanged official Steam hashes are not proof that every historical player report remains active or resolved."
+      ]
     }
   ],
   "source_access_review": {
@@ -12105,7 +12356,7 @@
         "PSSR reaches PS5 Pro, VRR reaches compatible PS5 displays, and supported AMD GPUs gain FSR Frame Generation. Controller Crouch/Melee swapping and punishment/AFK changes are live.",
         "Specific fixes cover voice-volume scaling, right-click ADS, moving-boat exits, foliage at distance, and map collisions. Khe Sanh and ANZAC remain future Update 2.0 content."
       ],
-      "caution": "As reviewed November 9, Patch 1.7 is the latest verified release. The November 6 post describes further PS5 memory, spawn/asset replication and NVIDIA settings work; it does not announce those fixes as released. Tutorial persistence and the earlier Huey M60 ADS target also remain unclosed by these notes. Driver death deliberately leaves boat engines running.",
+      "caution": "As reviewed November 10, Patch 1.7 is the latest verified release. The November 6 post describes further PS5 memory, spawn/asset replication and NVIDIA settings work; it does not announce those fixes as released. Tutorial persistence and the earlier Huey M60 ADS target also remain unclosed by these notes. Driver death deliberately leaves boat engines running.",
       "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
       "source_title": "Patch 1.7 | Full Changelog | Now Live!",
       "related_issues": [
@@ -12113,8 +12364,8 @@
         "HLLV-062",
         "HLLV-057"
       ],
-      "review_basis": "Patch 1.7 publisher text re-read against its unchanged announcement hash; later Community Feedback #9 reviewed for current caveats. Released mechanics and future plans remain separate; no independent gameplay testing.",
-      "reviewed_at": "2026-11-09",
+      "review_basis": "Full released Patch 1.7 text and the November 6 developer update re-read; normalized announcement hashes remain unchanged. Current crash reports do not establish a new release or common cause. No independent gameplay testing.",
+      "reviewed_at": "2026-11-10",
       "announcement_id": "1847286114028257",
       "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
       "editorial_history": [
@@ -12124,6 +12375,14 @@
             "caution": "A released change is not universal recovery. Missing-spawn replication, lost tutorial progress, DLSS reapplication and the Huey M60 ADS target are not explicitly closed. Driver death deliberately leaves boat engines running.",
             "reviewed_at": "2026-10-21",
             "review_basis": "Full official Steam publisher announcement reviewed, matched to announcement ID 1847286114028257 and its normalized content hash. Selected summary and scoped records; no independent gameplay testing."
+          }
+        },
+        {
+          "date": "2026-11-10",
+          "previous": {
+            "caution": "As reviewed November 9, Patch 1.7 is the latest verified release. The November 6 post describes further PS5 memory, spawn/asset replication and NVIDIA settings work; it does not announce those fixes as released. Tutorial persistence and the earlier Huey M60 ADS target also remain unclosed by these notes. Driver death deliberately leaves boat engines running.",
+            "reviewed_at": "2026-11-09",
+            "review_basis": "Patch 1.7 publisher text re-read against its unchanged announcement hash; later Community Feedback #9 reviewed for current caveats. Released mechanics and future plans remain separate; no independent gameplay testing."
           }
         }
       ],
@@ -12326,7 +12585,7 @@
       "reviewed_at": "2026-10-07"
     }
   ],
-  "patch_notes_reviewed_at": "2026-11-09",
+  "patch_notes_reviewed_at": "2026-11-10",
   "developer_updates": [
     {
       "id": "community-feedback-7",
@@ -12364,7 +12623,7 @@
       "id": "community-feedback-9",
       "title": "Community Feedback #9",
       "date": "2026-11-06",
-      "reviewed_at": "2026-11-09",
+      "reviewed_at": "2026-11-10",
       "type": "official update",
       "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
       "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
@@ -12380,7 +12639,7 @@
       "caution": "This is a developer progress update, not a release announcement. Targets can change. Older reports retain their own evidence dates; no independent gameplay verification is claimed."
     }
   ],
-  "patch_notes_review_scope": "Patch 1.7 remains the newest verified release. Its summary was re-read against Community Feedback #9; older release summaries retain their historical review dates. New developer plans are not added as released patches.",
+  "patch_notes_review_scope": "Patch 1.7 and the configured official content announcements were re-read November 10. No newer release was established. Earlier release dates remain historical; developer targets and current player reports do not become shipped fixes.",
   "source_access_history": [
     {
       "date": "2026-10-07",

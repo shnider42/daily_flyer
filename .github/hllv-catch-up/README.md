@@ -1,9 +1,14 @@
 # Catch Up: returning-player guide
 
 Public route: `/#catch-up`. The homepage introduction and top navigation link here.
-Nineteen curated topics describe released mechanics from the content ledger. The guide
-is partial coverage of October 7–21, 2026, reviewed November 9. It is not a complete
+Twenty curated topics describe released mechanics from the content ledger. The guide
+is partial coverage of October 7–21, 2026, reviewed November 10. It is not a complete
 tutorial, tactical ranking, or independent gameplay test.
+
+The November 10 review rechecks the existing official sources and adds the previously
+omitted Patch 1.6 combat-audio and spawn-sound changes. The released comparison window
+remains October 7–21; no newer patch is established. Existing baseline locks and source
+hashes are preserved; only the newly reviewed audio baseline gains a lock.
 
 The November 9 review adds graphics/display options, server-browser persistence,
 Vote Kick, the Official Server inactivity timer, menus/tutorial labels, Unit naming,
