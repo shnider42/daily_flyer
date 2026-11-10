@@ -35,7 +35,7 @@ export class Arena {
   }
   draw(
     game,
-    { guide = true, preview = false, replay = null, reduced = false,
+    { guide = true, aim = [], preview = false, replay = null, reduced = false,
       camera = {}, dt = 1 / 60 } = {},
   ) {
     if (this.rules !== game.rules) {
@@ -119,32 +119,10 @@ export class Arena {
       );
       ctx.stroke();
     }
-    if (guide && !preview && !replay) {
-      const p = state.players[state.controlled];
-      if (p && !p.offIce && (hockey ? game.canPlayPuck?.(p) : game.hasBall)) {
-        const mates = state.players
-          .filter((q) => q.side === p.side && q.id !== p.id && !q.keeper && !q.offIce)
-          .sort(
-            (a, b) =>
-              Math.hypot(a.x - p.x, a.y - p.y) -
-              Math.hypot(b.x - p.x, b.y - p.y),
-          )
-          .slice(0, 2);
-        ctx.save();
-        ctx.setLineDash([7, 14]);
-        ctx.strokeStyle = hockey ? "#1b8aa744" : "#f0ffc555";
-        ctx.lineWidth = 2;
-        mates.forEach((q) => {
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(q.x, q.y);
-          ctx.stroke();
-        });
-        ctx.restore();
-      }
-    }
+    if (guide && !preview && !replay)
+      aim.forEach((plan) => this.aimGuide(ctx, plan, state));
     const b = state.ball;
-    if (guide && b.z > 8 && b.airTarget) {
+    if (guide && !preview && b.z > 8 && b.airTarget) {
       ctx.save();
       ctx.strokeStyle = "#f8edb79c";
       ctx.lineWidth = 3;
@@ -207,6 +185,8 @@ export class Arena {
     }
     ctx.restore();
     ctx.restore();
+    if (guide && !preview && !replay)
+      aim.forEach((plan) => this.aimBadge(ctx, plan, state));
     if (!preview) {
       if (this.camera.zoomed) {
         this.edgeIndicator(ctx, state.ball, hockey ? "PUCK" : "BALL", "#ffd279");
@@ -222,6 +202,71 @@ export class Arena {
       const away = hockey && game.localSide === 1;
       ctx.fillText(this.rotated ? (away ? "ATTACK ←" : "ATTACK →") : (away ? "ATTACK ↓" : "ATTACK ↑"), w / 2, 13);
     }
+  }
+  aimGuide(ctx, plan, state) {
+    const target = plan?.intendedTarget, origin = plan?.origin;
+    if (!target || !origin || !Number.isFinite(target.x) || !Number.isFinite(target.y)) return;
+    const color = state.sport === "hockey"
+      ? plan.label === "B" ? "#875320" : plan.label === "X" || plan.label === "Y" ? "#245b90" : "#23633b"
+      : plan.label === "B" ? "#ffe0a0" : plan.label === "X" || plan.label === "Y" ? "#acd8ff" : "#e2f7bb";
+    const unit = 1 / this.scale;
+    ctx.save();
+    ctx.lineWidth = 1.2 * unit;
+    ctx.strokeStyle = color + "70";
+    ctx.setLineDash([3 * unit, 7 * unit]);
+    ctx.beginPath();
+    ctx.moveTo(origin.x, origin.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const receiver = state.players.find((p) => p.id === plan.receiverId);
+    if (receiver) {
+      ctx.beginPath();
+      ctx.arc(receiver.x, receiver.y, Math.max(24, 9 * unit), 0, TAU);
+      ctx.stroke();
+    }
+    // This area shows execution uncertainty, not a promised landing spot.
+    // Both axes use the very same launch envelope as the simulation.
+    ctx.translate(target.x, target.y);
+    ctx.save();
+    const shooting = plan.action === "shooting";
+    ctx.rotate(shooting ? 0 : Math.atan2(target.y - origin.y, target.x - origin.x));
+    ctx.fillStyle = color + "1c";
+    ctx.strokeStyle = color + "85";
+    ctx.setLineDash([3 * unit, 3 * unit]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, Math.max(0.5, (shooting ? plan.lateralRadius : plan.depthRadius) || 0), Math.max(0.5, shooting ? 0 : plan.lateralRadius || 0), 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    if (this.rotated) ctx.rotate(-Math.PI / 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4 * unit;
+    ctx.beginPath();
+    ctx.moveTo(-4 * unit, 0); ctx.lineTo(4 * unit, 0);
+    ctx.moveTo(0, -4 * unit); ctx.lineTo(0, 4 * unit);
+    ctx.stroke();
+    ctx.restore();
+  }
+  aimBadge(ctx, plan, state) {
+    const target = plan?.intendedTarget;
+    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) return;
+    const point = this.camera.project(target);
+    if (point.x < 0 || point.x > this.width || point.y < 0 || point.y > this.height) return;
+    const receiver = state.players.find((p) => p.id === plan.receiverId);
+    const receiverPoint = receiver ? this.camera.project(receiver) : null;
+    const above = receiverPoint && Math.abs(receiverPoint.x - point.x) < 32 && receiverPoint.y >= point.y;
+    const x = Math.max(18, Math.min(this.width - 18, point.x));
+    const y = Math.max(24, Math.min(this.height - 10, point.y + (above ? -16 : 18)));
+    ctx.save();
+    ctx.fillStyle = "#0b1c23ed";
+    this.round(ctx, x - 16, y - 8, 32, 15, 3);
+    ctx.fill();
+    ctx.fillStyle = plan.label === "B" ? "#ffe0a0" : plan.label === "X" || plan.label === "Y" ? "#acd8ff" : "#e2f7bb";
+    ctx.font = "700 9px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(`${plan.label} ${plan.rating}`, x, y + 3);
+    ctx.restore();
   }
   edgeIndicator(ctx, point, label, color) {
     const edge = this.camera.edge(point);

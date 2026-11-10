@@ -1,6 +1,7 @@
 import { loadCatalogue } from "./core/catalogue.js";
 import { SPORTS } from "./sports/rules.js";
 import { Match, ENGINE_VERSION } from "./core/engine.js";
+import { playerActionRatings } from "./core/ballistics.js";
 import { FixedClock, seeded } from "./core/math.js";
 import { Arena } from "./core/view.js";
 import { placeSportsMinimap } from "./core/sports-camera.js";
@@ -494,12 +495,17 @@ $("dialog").addEventListener("cancel", (e) => {
 });
 function showRoster(side) {
   const t = team($(side).value);
+  const aerial = sport === "soccer" ? "crossing" : "lofting";
+  const rows = t.players.map((p) => {
+    const ratings = playerActionRatings(p, sport);
+    return `<tr><td>${p.number}</td><th scope="row">${esc(p.name)}<small>${esc(p.position)}</small></th><td>${ratings.passing}</td><td>${ratings[aerial]}</td><td>${ratings.shooting}</td></tr>`;
+  }).join("");
   modal(
     t.name,
     (sport === "hockey"
       ? "Representative arcade lineup · "
       : "Representative arcade XI · ") + (t.season || data[sport].season),
-    `<table class="roster-table">${t.players.map((p) => `<tr><td>${p.number}</td><td>${esc(p.name)}</td><td>${esc(p.position)}</td></tr>`).join("")}</table><p class="settings-tip">Snapshot: ${esc(t.asOf || data[sport].asOf)}. ${sport === "hockey" ? "One playable line and a goalie; line changes are not included." : "Representative XI; availability and substitutions are not modelled."}</p>${t.notes ? `<p class="settings-tip">${esc(t.notes)}</p>` : ""}${t.sourceUrls.map((s, i) => `<a class="dialog-link" target="_blank" rel="noopener" href="${esc(s)}">Official roster source ${i + 1} →</a>`).join("")}`,
+    `<p class="settings-tip">Action ratings out of 99. These are arcade ratings based on position, shared across clubs. Higher ratings mean more accurate execution; pressure, fatigue and difficult deliveries still matter.</p><table class="roster-table action-ratings"><thead><tr><th scope="col">No.</th><th scope="col">Player</th><th scope="col">Pass</th><th scope="col">${sport === "soccer" ? "Cross" : "Loft"}</th><th scope="col">Shot</th></tr></thead><tbody>${rows}</tbody></table><p class="settings-tip">Snapshot: ${esc(t.asOf || data[sport].asOf)}. ${sport === "hockey" ? "One playable line and a goalie; line changes are not included." : "Representative XI; availability and substitutions are not modelled."}</p>${t.notes ? `<p class="settings-tip">${esc(t.notes)}</p>` : ""}${t.sourceUrls.map((s, i) => `<a class="dialog-link" target="_blank" rel="noopener" href="${esc(s)}">Official roster source ${i + 1} →</a>`).join("")}`,
   );
 }
 $("home-roster").onclick = () => showRoster("home");
@@ -508,7 +514,7 @@ function showAbout() {
   modal(
     "ROSTERS & RULES",
     `Pocket Sports · DailyFlyer · ${ENGINE_VERSION}`,
-    `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Team abilities are balanced arcade behavior; this build does not claim official ratings. The away team wears a light kit for readability. This is an independent fan-made game.${sport === "hockey" ? " Matching fighting penalties bring generic bench skaters onto the ice." : ""}</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. ${sport === "hockey" ? "Private online matches support up to four players on either side, switching skaters or locking one player. Rooms are temporary; use the invite link to play on the same server." : "Soccer is solo play."}</p></div>`,
+    `<div class="settings-group"><h3>THE GAME</h3><p class="dialog-subtitle">${SPORTS[sport].rules}</p></div><div class="settings-group"><h3>THE TEAMS</h3><p class="dialog-subtitle">${esc(data[sport]?.notes || "Loading roster information.")}</p><p class="settings-tip">Player names and numbers are roster facts. Action ratings are balanced by playing position, with the same role values across clubs. They are arcade ratings, not official player rankings. Your direction sets the intended placement; ability and the difficulty of the attempt affect execution. The away team wears a light kit for readability. This is an independent fan-made game.${sport === "hockey" ? " Matching fighting penalties bring generic bench skaters onto the ice." : ""}</p></div><div class="settings-group"><h3>YOUR PROGRESS</h3><p class="dialog-subtitle">Settings, completed matches and your cup are saved in this browser. ${sport === "hockey" ? "Private online matches support up to four players on either side, switching skaters or locking one player. Rooms are temporary; use the invite link to play on the same server." : "Soccer is solo play."}</p></div>`,
   );
 }
 $("about-open").onclick = showAbout;
@@ -525,7 +531,7 @@ function showHelp(startAfter = false) {
     soccer
       ? "Y on top. B right. A below. X left. The letters stay put; their jobs change with possession."
       : "Y on top. B right. A below. X left. Your own skater’s puck reach decides the action.",
-    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player and aim passes. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>IN POSSESSION</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE ${soccer ? "BALL" : "PUCK"}</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : '<p>Reachable loose pucks count as playable. A teammate’s possession does not turn your own buttons into passes or shots.</p>'}</div><div class="help-card"><b>${soccer ? "SWITCH & SPRINT" : "YOUR SKATER"}</b><p>${soccer ? "Use the separate SWITCH button to choose your defender. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : "Switch skaters to run a team, or lock one skater in the lobby. In a lock, A asks an AI teammate for a pass. Hold BURST for speed; a little glide is part of skating."}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Y leads a runner along the ground. Shots are assisted toward goal; steer across goal to pick a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and use SWITCH.</p>` : '<p class="dialog-subtitle help-note">Hold B for about half a second to wind up a slap shot. Longer Y holds give a higher, longer dump; aiming it straight over the glass from your defensive zone brings a delay-of-game minor. Aim up ice or play it off the boards.</p><p class="dialog-subtitle">Off the puck, Y needs an uninterrupted three-second hold near an opponent. Human opponents accept by holding Y themselves; an AI can decline. Fighting brings matching majors. Penalty clocks are shortened for arcade matches; a locked skater stays in the box until released. No icing or offside yet.</p>'}<p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${keyLabel(settings.keys.switch)} ${soccer ? "switches player" : "switches or calls"}; ${keyLabel(settings.keys.sprint)} ${soccer ? "sprints" : "bursts"}. Remap in settings.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
+    `<div class="help-grid"><div class="help-card"><b>LEFT THUMB</b><p>Move your highlighted player. Point toward a teammate to choose a pass; the same stick adds lead in that direction. Ease the stick toward the middle for a pass closer to their feet. ${soccer && settings.touchAssist ? "On touch, push to the outer edge to sprint; ease back to save stamina." : "Push further for a full stride."} Attack toward the arrow.</p></div><div class="help-card"><b>IN POSSESSION</b><p class="control-lines">${attackHelp}</p></div><div class="help-card"><b>WITHOUT THE ${soccer ? "BALL" : "PUCK"}</b><p class="control-lines">${defenceHelp}</p>${soccer ? '<p>Contain helps you stay goal-side; it does not tackle. A slide commits your player, so time it carefully.</p>' : '<p>Reachable loose pucks count as playable. A teammate’s possession does not turn your own buttons into passes or shots.</p>'}</div><div class="help-card"><b>${soccer ? "SWITCH & SPRINT" : "YOUR SKATER"}</b><p>${soccer ? "Use the separate SWITCH button to choose your defender. Hold SPRINT for a burst of speed. Release Y to bring your keeper back toward goal." : "Switch skaters to run a team, or lock one skater in the lobby. In a lock, A asks an AI teammate for a pass. Hold BURST for speed; a little glide is part of skating."}</p></div></div>${soccer ? `<p class="dialog-subtitle help-note">X crosses into the box from an attacking wing; elsewhere it sends a lofted pass. Steer to place it ahead, behind or across the runner. Y plays further into space along the ground. Hold B for power and aim as you release; steer across goal to choose a side.</p><p class="dialog-subtitle">At restarts, keep aiming and choose a pass or kick; you can queue it during the brief setup. For throw-ins, A is short, X is long and Y leads a runner. On an opponent’s restart, move to mark and use SWITCH.</p>` : '<p class="dialog-subtitle help-note">Hold B for about half a second to wind up a slap shot. Aim with the stick as you release B or Y. Longer Y holds give a higher, longer dump; aiming it straight over the glass from your defensive zone brings a delay-of-game minor. Aim up ice or play it off the boards.</p><p class="dialog-subtitle">Off the puck, Y needs an uninterrupted three-second hold near an opponent. Human opponents accept by holding Y themselves; an AI can decline. Fighting brings matching majors. Penalty clocks are shortened for arcade matches; a locked skater stays in the box until released. No icing or offside yet.</p>'}<p class="dialog-subtitle help-note"><b>PLACEMENT &amp; ACCURACY</b> · The small cross marks your intended target; its letter matches the action button and its number is that player’s action rating. The shaded area shows room for error. Pressure, tired legs, awkward movement and long or powerful attempts widen it. Even a 99 can miss under pressure. See your lineup for Pass, ${soccer ? "Cross" : "Loft"} and Shot ratings. Turn aiming guides off in settings for a cleaner view.</p><p class="settings-tip"><b>KEYBOARD</b> · WASD / arrows move. ${keyLabel(settings.keys.pass)} = A, ${keyLabel(settings.keys.shoot)} = B, ${keyLabel(settings.keys.lob)} = X, ${keyLabel(settings.keys.through)} = Y. ${keyLabel(settings.keys.switch)} ${soccer ? "switches player" : "switches or calls"}; ${keyLabel(settings.keys.sprint)} ${soccer ? "sprints" : "bursts"}. Remap in settings.</p><button class="start-button" id="help-done"><span>${startAfter ? "LET’S PLAY" : "GOT IT"}</span><span>→</span></button>`,
   );
   $("help-done").onclick = () => {
     writeStore(sport + ".learned", true);
@@ -577,7 +583,7 @@ function showSettings() {
       )
       .join("")}${sport === "soccer" ? `<label class="setting"><span>Touch assistance</span><input type="checkbox" id="set-touchAssist" aria-describedby="touch-assist-help" ${settings.touchAssist ? "checked" : ""}></label><p class="settings-tip touch-assist-tip" id="touch-assist-help">More time to react and automatic sprinting at the stick’s outer edge.</p>` : ""}${[
       ["leftHanded", "Swap control sides"],
-      ["guidance", "Passing guides"],
+      ["guidance", "Aiming guides"],
       ["sound", sport === "hockey" ? "Arena sound" : "Sound effects"],
       ["reduced", "Reduce animation"],
     ]
@@ -1047,6 +1053,26 @@ function hud() {
   if (game.events.length) lastEvent = game.network ? game.events.at(-1).networkId : game.events.at(-1).time;
   if (game.phase === "finished" && !finishedShown) result();
 }
+function aimingGuides() {
+  if (!settings.guidance || !game || paused || $("dialog").open || game.phase !== "play") return [];
+  const vector = field.toWorld(input.vector());
+  const guides = [];
+  const add = (name, label, power = 0.65) => {
+    const plan = game.aimPreview(name, vector, power);
+    if (plan) guides.push({ ...plan, label });
+  };
+  if (input.chargeStart !== null) {
+    add(sport === "soccer" ? "shoot" : "hockey-shot", "B", input.power());
+  } else {
+    const hold = input.hockeyProgress();
+    if (sport === "hockey" && hold.kind === "dump") add("hockey-dump", "Y", hold.power);
+    else {
+      add(sport === "soccer" ? "ground" : "hockey-pass", "A");
+      if (sport === "soccer" && game.canCross()) add("lob", "X");
+    }
+  }
+  return guides;
+}
 function frame(now) {
   const dt = Math.min(0.12, (now - lastNow) / 1000 || 0);
   lastNow = now;
@@ -1071,6 +1097,7 @@ function frame(now) {
     $("replay-tag").classList.toggle("hidden", !replay);
     field.draw(game, {
       guide: settings.guidance,
+      aim: replay ? [] : aimingGuides(),
       replay,
       reduced: settings.reduced,
       camera: settings.camera[sport],

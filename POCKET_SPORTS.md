@@ -27,7 +27,7 @@ There are 192 hockey and 209 football player entries; full benches are not model
 Player identities are factual, while behavior is balanced arcade behavior, not
 official ratings or a real-world statistical model.
 
-## Boundaries of this release
+## Boundaries of the original release
 
 Solo vs CPU. Hockey does not yet enforce icing, offside or penalties. Soccer does
 not yet implement offside, cards or substitutions. Cup ties are one-match arcade
@@ -158,6 +158,59 @@ Use the existing Flask application on branch `feat/pocket-hockey-soccer`:
 - Environment: `DEFAULT_THEME=pocket_soccer`
 - Auto-deploy the branch. `/` opens football; `/hockey/` opens hockey.
 
-Verify `/api/v1/sports` reports engine `1.2.0`, both catalogue routes return
+Verify `/api/v1/sports` reports engine `1.7.0`, both catalogue routes return
 teams, and the browser can start a match after a successful deploy. The service
 needs no database, secrets, persistent disk or scheduled roster scraping.
+
+## Placement and accuracy — engine 1.7.0
+
+Soccer and hockey share `core/ballistics.js` for intended placement, action
+ratings and release accuracy. Pass, cross, shot and loft ratings are arcade
+defaults based on roster position, identical for the same position across clubs.
+They are not real-world player evaluations. An optional numeric `ratings`
+object on a roster player can override `passing`, `crossing`, `shooting` and
+`lofting` independently; missing or invalid values retain the position default.
+The lineup dialog displays the same values used by the simulation.
+
+The movement stick both selects a teammate and adds a modest directional lead
+to the delivery. A neutral stick uses the assisted target. Tap A for a ground
+pass, X for a loft/cross in soccer or a saucer in hockey, and Y for a soccer
+through ball. B keeps its existing hold/release power control; in hockey Y
+keeps its charged dump. These remain immediate contextual actions with the
+existing multitouch ownership and defensive meanings. Gridiron's controls and
+passing model are unchanged.
+
+At release, a bounded centered error affects placement and, on ground passes,
+pace. The relevant rating, distance, nearby pressure, fatigue, sprinting,
+movement balance and excessive power determine the envelope. A clean 99 has
+very little baseline error; pressure and poor aiming still matter. CPU players
+use the same model, with the existing solo difficulty handicap retained.
+Changing the human's assistance slider does not change CPU shot intention.
+
+Crosses, lobs, saucers and dumps have fixed sampled landing points and physical
+height. They never home toward a receiver or clamp an inaccurate delivery back
+inside the pitch/goal. Receivers and opponents must reach the actual ball;
+existing height, interception, goal-line, board and penalty handling decides
+the result. Hockey's authoritative host samples every online release; clients
+receive its ratings and trajectory through the existing snapshot protocol.
+
+With aiming guides enabled, the crosshair marks intended placement, the letter
+names the button, and the number gives the action rating. A faint shaded area
+shows execution uncertainty. The A guide follows the currently selected pass;
+X adds a cross guide from an attacking wing. Holding B or hockey Y switches
+to that action's guide. Shot uncertainty lies across the goal line. Previews
+use the same planning function as launches and consume no random numbers.
+Guides respect the camera's portrait/landscape transform and can be disabled
+in settings.
+
+The existing shared deployment uses both `feat/pocket-hockey-soccer` (separate
+Soccer service) and `feat/pocket-gridiron` (combined `/pocket-sports/` hub).
+Keep this release synchronized on both branches after checking their remote
+heads; do not overwrite unrelated changes. Hockey already includes its 1.6.0
+online controller/room support on these branches.
+
+Regression coverage includes progressive 70/90/99 accuracy, independent action
+ratings, pressure/fatigue/range/power, directional lead, misses at boundaries,
+fixed aerial flight, pure previews, CPU intent, hockey side parity, and network
+and replay metadata. Run the existing Gridiron and Pocket Sports suites as well
+as the Flask sports and hockey-room tests before publishing.

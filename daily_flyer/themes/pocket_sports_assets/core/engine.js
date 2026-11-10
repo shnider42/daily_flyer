@@ -1,4 +1,5 @@
 import { movePlayer } from "./movement.js";
+import { playerActionRatings, planAction, releaseAction } from "./ballistics.js";
 import {
   setupFootballRestart,
   stepFootballRestart,
@@ -27,7 +28,7 @@ import {
   hockeyReachable, hockeyBoundary, hockeyGoalPenalties,
 } from "../sports/hockey.js";
 import { clamp, norm, distance, seeded, segmentDistance } from "./math.js";
-export const ENGINE_VERSION = "1.6.0";
+export const ENGINE_VERSION = "1.7.0";
 export class Match {
   constructor({
     sport = "hockey",
@@ -119,6 +120,8 @@ export class Match {
           name: data.name,
           number: data.number || i + 1,
           role: this.rules.positions[i],
+          position: data.position,
+          ratings: playerActionRatings(data, this.sport),
           keeper: i === 0,
           x: 0,
           y: 0,
@@ -192,6 +195,21 @@ export class Match {
   }
   slide(p = this.user, input = { x: 0, y: 0 }) {
     return startFootballSlide(this, p, input);
+  }
+  aimPreview(name, input = { x: 0, y: 0 }, power = 0.65, actor = this.user) {
+    if (!actor) return null;
+    let action = name, strength = power;
+    if (this.sport === "soccer" && ["restart", "restart_ready"].includes(this.phase)) {
+      const restart = this.restartData;
+      if (!restart || actor.id !== restart.taker) return null;
+      if (name === "shoot" && ["KEEPER BALL", "GOAL KICK"].includes(restart.type)) {
+        action = "lob";
+        strength = 1;
+      }
+      else if (name === "shoot" && ["KICK-OFF", "THROW-IN"].includes(restart.type)) action = "ground";
+    } else if (this.phase !== "play" || actor.slideTimer > 0 ||
+        (this.sport === "hockey" ? !this.canPlayPuck(actor) : this.ball.owner !== actor.id)) return null;
+    return planAction(this, actor, action, input, strength);
   }
   emit(type, data = {}) {
     this.events.push({ type, time: this.time, ...data });
@@ -271,6 +289,10 @@ export class Match {
     this.ball.lock = 0.18;
     this.ball.shot = shot;
     this.ball.shooter = p.side;
+    this.ball.intendedTarget = null;
+    this.ball.actionRating = null;
+    this.ball.accuracyRadius = 0;
+    this.ball.actionKey = null;
     if (this.sport === "soccer") {
       resetFootballFlight(this.ball);
       this.ball.receiver = null;
@@ -303,104 +325,29 @@ export class Match {
   }
   pass(p = this.user, input = { x: 0, y: 0 }) {
     if (!p || this.phase !== "play" || this.ball.owner !== p.id || p.slideTimer > 0) return false;
-    const dir = p.side ? 1 : -1;
-    const v =
-      Math.hypot(input.x, input.y) > 0.2
-        ? norm(input.x, input.y)
-        : { x: 0, y: dir };
-    const profile = !p.side ? this.touchProfile : null;
-    let mates = this.players.filter(
-      (q) => q.side === p.side && q.id !== p.id && !q.keeper &&
-        (this.sport !== "hockey" || hockeyActive(q)),
-    );
-    const alignment = (q) =>
-      ((q.x - p.x) * v.x + (q.y - p.y) * v.y) / (distance(q, p) || 1);
-    const opponents = profile
-      ? this.players.filter((q) => q.side !== p.side)
-      : [];
-    if (profile && mates.length) {
-      // Respect the stick's intended direction; safety must not silently turn
-      // an attacking pass into a pass to someone behind the player.
-      const bestAlignment = Math.max(...mates.map(alignment));
-      const directed = mates.filter(
-        (q) => alignment(q) >= Math.max(-0.2, bestAlignment - 0.6),
-      );
-      if (directed.length) mates = directed;
-    }
-    const score = (q) => {
-      const d = distance(q, p);
-      let value = alignment(q) * 150 - d * 0.16;
-      if (profile) {
-        let laneRisk = 0;
-        let nearestOpponent = Infinity;
-        for (const opponent of opponents) {
-          nearestOpponent = Math.min(nearestOpponent, distance(opponent, q));
-          const projection =
-            ((opponent.x - p.x) * (q.x - p.x) +
-              (opponent.y - p.y) * (q.y - p.y)) / (d * d || 1);
-          if (projection > 0.08 && projection < 1) {
-            const clearance = segmentDistance(opponent, p, q);
-            laneRisk = Math.max(laneRisk, clamp((44 - clearance) / 44, 0, 1));
-          }
-        }
-        value -= profile.passSafety *
-          (laneRisk * 155 + Math.max(0, 70 - nearestOpponent) * 1.2);
-      }
-      return value;
-    };
-    mates.sort((a, b) => score(b) - score(a));
-    const q = mates[0];
-    if (!q) return false;
-    this.release(
-      p,
-      q.x + q.vx * 0.16 - p.x,
-      q.y + q.vy * 0.16 - p.y,
-      this.rules.pass,
-      false,
-    );
+    const plan = planAction(this, p, "ground", input);
+    if (!plan) return false;
+    const result = releaseAction(this, p, plan);
+    const q = this.players[plan.receiverId];
     this.ball.receiver = q.id;
-    if (profile) {
-      // The normal 180ms pickup lock sends the ball past a close receiver.
-      // Unlock before that receiver, while excluding only the passer briefly.
-      this.ball.lock = clamp(
-        (distance(p, q) - profile.receiveRadius - 10) / this.rules.pass,
-        0.025,
-        0.18,
-      );
-      this.ball.passer = p.id;
-      this.ball.passerLock = 0.28;
-    } else if (this.sport === "hockey") {
-      // Let a close teammate receive before the puck has travelled past them;
-      // the passer's separate exclusion still prevents an immediate re-pickup.
-      this.ball.lock = clamp((distance(p, q) - 38) / this.rules.pass, 0.02, 0.14);
-    }
+    this.ball.passTarget = { ...result.target };
+    // Even keyboard passes need to unlock before a close receiver. Excluding
+    // just the passer avoids an immediate re-pickup without swallowing a pass.
+    const profile = !p.side ? this.touchProfile : null;
+    this.ball.lock = clamp(
+      (distance(p, q) - (this.sport === "hockey" ? 38 : (profile?.receiveRadius || 19) + 10)) / result.speed,
+      this.sport === "hockey" ? 0.02 : 0.025,
+      this.sport === "hockey" ? 0.14 : 0.18,
+    );
+    this.ball.passer = p.id;
+    this.ball.passerLock = 0.28;
     return true;
   }
   shoot(p = this.user, power = 0.65, input = { x: 0, y: 0 }) {
     if (!p || this.phase !== "play" || this.ball.owner !== p.id || p.slideTimer > 0) return false;
-    const gy = p.side ? this.rules.height + 5 : -5;
-    // Once a human can play the away side, both teams' AI use the same shooting
-    // model. Keep the existing solo home-versus-CPU balance intact.
-    const hockeyVersus = this.sport === "hockey" && this.controllers?.some((seat) => seat.side === 1);
-    const assist = p.side || hockeyVersus ? 1 : clamp(this.aimAssist, 0, 1);
-    let aimWidth = this.rules.goal * 0.8 + 110 * (1 - assist);
-    if (!p.side && this.touchProfile) {
-      // The movement stick also aims the shot on a phone. Strong assistance
-      // maps that lateral motion inside the posts; assist=0 stays fully manual.
-      const steering = 1 - Math.pow(1 - assist, 3);
-      aimWidth += (this.rules.goal * 0.35 - aimWidth) * steering;
-    }
-    const gx = this.rules.width / 2 + clamp(input.x, -1, 1) * aimWidth;
-    const error =
-      (this.random() - 0.5) *
-      (p.side || hockeyVersus ? this.difficulty.accuracy * 220 : 35 * (1 - assist));
-    this.release(
-      p,
-      gx - p.x + error,
-      gy - p.y,
-      this.rules.shot * (0.65 + clamp(power, 0, 1) * 0.35),
-      true,
-    );
+    const plan = planAction(this, p, "shoot", input, power);
+    if (!plan) return false;
+    releaseAction(this, p, plan);
     return true;
   }
   tackle(p = this.user) {
@@ -948,10 +895,12 @@ export class Match {
       score: [...this.score],
       players: this.players.map((p) => ({
         ...p,
+        ...(p.ratings ? { ratings: { ...p.ratings } } : {}),
         ...(p.slideDir ? { slideDir: { ...p.slideDir } } : {}),
       })),
       ball: {
         ...this.ball,
+        ...(this.ball.intendedTarget ? { intendedTarget: { ...this.ball.intendedTarget } } : {}),
         ...(this.ball.airTarget ? { airTarget: { ...this.ball.airTarget } } : {}),
         ...(this.ball.passTarget ? { passTarget: { ...this.ball.passTarget } } : {}),
       },

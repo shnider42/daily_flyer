@@ -1,4 +1,5 @@
 import { clamp, distance, norm, segmentDistance } from "../core/math.js";
+import { planAction, releaseAction } from "../core/ballistics.js";
 
 export const HOCKEY = {
   gravity: 720, stickHeight: 16, keeperHeight: 44, bar: 46,
@@ -145,21 +146,20 @@ export function callHockeyPass(g, p) {
   const blocked = g.players.some((q) => q.side !== p.side && hockeyActive(q) &&
     segmentDistance(q, owner, p) < 28 && distance(owner, q) < distance(owner, p));
   if (blocked || owner.decision > 0.5) return true;
-  g.release(owner, p.x + p.vx * 0.18 - owner.x, p.y + p.vy * 0.18 - owner.y, g.rules.pass, false);
+  const plan = planAction(g, owner, "ground", {}, 0.65, { receiver: p });
+  const result = releaseAction(g, owner, plan);
+  if (!result) return true;
   g.ball.receiver = p.id;
-  g.ball.lock = Math.min(0.14, Math.max(0.02, (distance(owner, p) - 38) / g.rules.pass));
+  g.ball.passTarget = { ...result.target };
+  g.ball.lock = Math.min(0.14, Math.max(0.02, (distance(owner, p) - 38) / result.speed));
   return true;
 }
 
 function strike(g, p, input, power, style) {
   if (g.ball.owner !== p.id || !hockeyActive(p) || g.phase !== "play") return false;
-  const assist = clamp(g.aimAssist, 0, 1);
-  const goalY = p.side ? g.rules.height + 5 : -5;
-  const width = g.rules.goal * (0.36 + 0.44 * (1 - assist));
-  const scatter = (g.random() - 0.5) * (style === "slap" ? 30 : 14);
-  const goalX = g.rules.width / 2 + clamp(input.x || 0, -1, 1) * width + scatter;
-  const speed = g.rules.shot * (style === "slap" ? 1.04 + power * 0.2 : 0.74 + power * 0.12);
-  g.release(p, goalX - p.x, goalY - p.y, speed, true);
+  const plan = planAction(g, p, "hockey-shot", input, power, { style });
+  if (!plan) return false;
+  releaseAction(g, p, plan);
   p.shotStyle = style;
   p.shotPoseTime = style === "slap" ? 0.36 : 0.18;
   g.ball.shotStyle = style;
@@ -183,32 +183,19 @@ export function hockeyShot(g, p, input, power = 0.65, details = {}) {
 
 function launch(g, p, input, power, kind) {
   if (!claim(g, p)) return false;
-  const aim = direction(p, input), strength = clamp(Number(power) || 0, 0, 1);
-  let target, duration;
+  const plan = planAction(g, p, kind, input, power);
+  if (!plan) return false;
+  const result = releaseAction(g, p, plan, kind === "dump" ? "dump" : "pass");
   if (kind === "saucer") {
-    const mates = g.players.filter((q) => q.side === p.side && !q.keeper && q.id !== p.id && hockeyActive(q));
-    mates.sort((a, b) => {
-      const rank = (q) => ((q.x - p.x) * aim.x + (q.y - p.y) * aim.y) / (distance(q, p) || 1) * 170 - distance(q, p) * 0.16;
-      return rank(b) - rank(a);
-    });
-    if (!mates.length) return false;
-    const q = mates[0];
-    target = { x: clamp(q.x + q.vx * 0.18, 25, g.rules.width - 25), y: clamp(q.y + q.vy * 0.18, 25, g.rules.height - 25) };
-    duration = clamp(distance(p, target) / g.rules.pass, 0.38, 0.7);
-    g.release(p, target.x - p.x, target.y - p.y, distance(p, target) / duration, false);
-    g.ball.receiver = q.id;
-    g.ball.passTarget = { ...target };
+    g.ball.receiver = plan.receiverId;
+    g.ball.passTarget = { ...result.target };
     g.emit("saucer", { side: p.side, player: p.id });
-  } else {
-    duration = 0.58 + strength * 1.16;
-    const speed = 420 + strength * 340;
-    g.release(p, aim.x, aim.y, speed, false, "dump");
-    target = { x: g.ball.x + aim.x * speed * duration, y: g.ball.y + aim.y * speed * duration };
   }
   Object.assign(g.ball, {
-    z: 0, vz: HOCKEY.gravity * duration / 2, airTime: duration,
-    airTarget: { ...target }, flightKind: kind,
-    vx: (target.x - g.ball.x) / duration, vy: (target.y - g.ball.y) / duration,
+    z: 0, vz: HOCKEY.gravity * result.duration / 2, airTime: result.duration,
+    airTarget: { ...result.target }, flightKind: kind,
+    vx: (result.target.x - g.ball.x) / result.duration,
+    vy: (result.target.y - g.ball.y) / result.duration,
     launch: { side: p.side, playerId: p.id, x: g.ball.x, y: g.ball.y, deflected: false },
   });
   return true;

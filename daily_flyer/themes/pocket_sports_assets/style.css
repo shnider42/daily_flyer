@@ -104,3 +104,10 @@ body[data-sport=hockey] .lobby-tabs button{min-height:36px;font-size:9px;white-s
 #online-leave{min-height:44px;padding:12px 0;color:var(--muted);font-size:9px}
 @media(max-width:440px){.online-panel{padding:16px}.online-heading h2{font-size:29px}.hockey-control-options{gap:12px}.hockey-control-options .online-field{font-size:8px}.hockey-control-options select{font-size:11px;padding-left:8px;padding-right:6px}.online-room-actions{grid-template-columns:1fr}.online-room-actions .start-button{order:-1}.hockey-status{left:8px;top:31px;font-size:8px;max-width:52%}.hockey-status>div{padding:3px 6px}}
 @media(max-height:520px) and (orientation:landscape){.hockey-status{top:27px;left:8px;max-width:56%;font-size:8px}.hockey-status .hockey-network-status{font-size:7px}}
+.action-ratings thead th{padding:8px 5px;border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;font-weight:600;text-align:right}
+.action-ratings thead th:nth-child(2){text-align:left}
+.action-ratings tbody th{padding:10px 5px;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;text-align:left}
+.action-ratings tbody th small{display:block;margin-top:4px;font-size:10px;color:var(--muted)}
+.action-ratings tbody td:not(:first-child){width:38px;text-align:right;font-size:12px;color:var(--fg);font-variant-numeric:tabular-nums}
+.action-ratings tbody td:first-child{width:29px;font-size:11px}
+@media(max-width:440px){.action-ratings tbody th{font-size:11px}.action-ratings tbody td:not(:first-child){width:32px;font-size:11px}}

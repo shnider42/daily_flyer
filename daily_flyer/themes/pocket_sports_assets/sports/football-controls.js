@@ -1,4 +1,5 @@
 import { clamp, distance, norm, segmentDistance } from "../core/math.js";
+import { planAction, releaseAction } from "../core/ballistics.js";
 
 // New actions have their own ball/contact parameters; existing running speed,
 // pitch size, difficulty profiles and restart waits remain in the shared rules.
@@ -60,57 +61,20 @@ export function footballCanCross(g, p = g.user) {
     Math.abs(p.x - g.rules.width / 2) > g.rules.width * 0.24;
 }
 
-function passDirection(p, input) {
-  const x = Number.isFinite(input.x) ? input.x : 0;
-  const y = Number.isFinite(input.y) ? input.y : 0;
-  return Math.hypot(x, y) > 0.2 ? norm(x, y) : { x: 0, y: p.side ? 1 : -1 };
-}
-
-function chooseReceiver(g, p, input, kind, power) {
-  const direction = passDirection(p, input);
-  const mates = g.players.filter((q) => q.side === p.side && q.id !== p.id && !q.keeper);
-  const attack = p.side ? 1 : -1;
-  const ideal = { x: g.rules.width / 2, y: p.side ? g.rules.height - 155 : 155 };
-  const desiredRange = g.rules.width * (0.28 + 0.22 * power);
-  const score = (q) => {
-    if (kind === "cross") return -distance(q, ideal) - Math.abs(q.x - ideal.x) * 0.18;
-    const d = distance(p, q);
-    const alignment = ((q.x - p.x) * direction.x + (q.y - p.y) * direction.y) / (d || 1);
-    if (kind === "lob") return alignment * 160 - Math.abs(d - desiredRange) * 0.15;
-    return alignment * 160 - d * 0.12 + (q.y - p.y) * attack * 0.025;
-  };
-  return mates.sort((a, b) => score(b) - score(a))[0];
-}
-
 export function footballThroughPass(g, p = g.user, input = { x: 0, y: 0 }) {
   if (g.sport !== "soccer" || !p || g.phase !== "play" || g.ball.owner !== p.id || p.slideTimer > 0)
     return false;
-  const q = chooseReceiver(g, p, input, "through", 0.65);
-  if (!q) return false;
-  const flightTime = clamp(distance(p, q) / g.rules.pass + 0.22, 0.42, 1.5);
-  const lead = clamp(g.rules.speed * (flightTime - 0.15) * 0.72, 32, 135);
-  const running = Math.hypot(q.vx, q.vy) > 30
-    ? norm(q.vx, q.vy)
-    : passDirection(p, input);
-  const target = {
-    x: clamp(q.x + running.x * lead, 30, g.rules.width - 30),
-    y: clamp(q.y + running.y * lead, 38, g.rules.height - 38),
-  };
-  // Account for normal ground drag, so a short through ball is playable and a
-  // long one still asks the runner to reach space rather than changing owner.
-  const speed = clamp(
-    distance(p, target) * g.rules.ballDrag / (1 - Math.exp(-g.rules.ballDrag * flightTime)),
-    210,
-    g.rules.pass * 1.22,
-  );
-  g.release(p, target.x - p.x, target.y - p.y, speed, false);
+  const plan = planAction(g, p, "through", input);
+  if (!plan) return false;
+  const result = releaseAction(g, p, plan);
+  const q = g.players[plan.receiverId];
   Object.assign(g.ball, {
     receiver: q.id,
     passType: "through",
-    passTarget: target,
+    passTarget: { ...result.target },
     passer: p.id,
     passerLock: 0.28,
-    lock: clamp((distance(p, q) - 29) / speed, 0.025, 0.18),
+    lock: clamp((distance(p, q) - 29) / result.speed, 0.025, 0.18),
   });
   return true;
 }
@@ -118,35 +82,23 @@ export function footballThroughPass(g, p = g.user, input = { x: 0, y: 0 }) {
 export function footballLobPass(g, p = g.user, input = { x: 0, y: 0 }, power = 0.65) {
   if (g.sport !== "soccer" || !p || g.phase !== "play" || g.ball.owner !== p.id || p.slideTimer > 0)
     return false;
-  const strength = clamp(power, 0, 1);
-  const kind = footballCanCross(g, p) ? "cross" : "lob";
-  const q = chooseReceiver(g, p, input, kind, strength);
-  if (!q) return false;
-  const attack = p.side ? 1 : -1;
-  const depth = p.side ? g.rules.height - q.y : q.y;
-  const target = kind === "cross"
-    ? {
-        x: clamp(q.x + q.vx * 0.18, g.rules.width / 2 - g.rules.goal * 1.05, g.rules.width / 2 + g.rules.goal * 1.05),
-        y: p.side ? g.rules.height - clamp(depth - 32, 70, 255) : clamp(depth - 32, 70, 255),
-      }
-    : {
-        x: clamp(q.x + q.vx * 0.24, 30, g.rules.width - 30),
-        y: clamp(q.y + q.vy * 0.24 + attack * 12, 38, g.rules.height - 38),
-      };
-  const duration = clamp(0.65 + distance(p, target) / 760, 0.7, 1.65);
-  g.release(p, target.x - p.x, target.y - p.y, distance(p, target) / duration, false);
+  const plan = planAction(g, p, "lob", input, power);
+  if (!plan) return false;
+  const result = releaseAction(g, p, plan);
   Object.assign(g.ball, {
     z: 0,
-    vz: FOOTBALL_HEIGHT.gravity * duration / 2,
-    airTime: duration,
-    airTarget: { ...target },
-    passTarget: { ...target },
-    passType: kind,
-    receiver: q.id,
+    vz: FOOTBALL_HEIGHT.gravity * result.duration / 2,
+    airTime: result.duration,
+    airTarget: { ...result.target },
+    passTarget: { ...result.target },
+    passType: plan.kind,
+    receiver: plan.receiverId,
     passer: p.id,
     passerLock: 0.28,
+    vx: (result.target.x - g.ball.x) / result.duration,
+    vy: (result.target.y - g.ball.y) / result.duration,
   });
-  g.emit(kind, { side: p.side });
+  g.emit(plan.kind, { side: p.side });
   return true;
 }
 
