@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {placeRaider,findDerelict} from './helpers/combat-fixtures.mjs';
+import {withHull} from './helpers/fleet-fixtures.mjs';
+import {getShipClass} from '../dist/fleet.mjs';
 import { Game, buildGalaxy, distance } from '../dist/engine.mjs';
 import { ENCOUNTERS, STORY_CHAPTERS } from '../dist/content.mjs';
 
@@ -212,9 +214,9 @@ test('cabin and derelict sessions restore the exact ship position and velocity a
 });
 
 test('crew recruit once in person and bonuses survive saves',()=>{
-  const g=new Game('crew');assert.equal(g.recruitCrew('engineer').code,'mode');land(g,'kettle');g.state.credits=600;
+  const g=withHull(new Game('crew'),'quill');assert.equal(g.recruitCrew('engineer').code,'mode');land(g,'kettle');g.state.credits=600;
   for(const [role,cost] of [['engineer',160],['navigator',140],['medic',150]]){const before=g.state.credits;ok(g.recruitCrew(role,{id:role,name:'Crew '+role,cost}));assert.equal(g.state.credits,before-cost);assert.equal(g.recruitCrew(role).code,'duplicate');}
-  const saved=Game.fromSave(g.serialize());assert.equal(saved.state.crew.length,3);assert.equal(saved.state.ship.maxHull,110);assert.equal(saved.state.ship.scanRange,280);assert.equal(saved.state.ship.maxEnergy,110);
+  const saved=Game.fromSave(g.serialize()),base=getShipClass('quill').stats;assert.equal(saved.state.crew.length,3);assert.equal(saved.state.ship.maxHull,base.maxHull+10);assert.equal(saved.state.ship.scanRange,base.scanRange+45);assert.equal(saved.state.ship.maxEnergy,base.maxEnergy+10);
 });
 
 test('flight assist toggles inertia, braking works, energy and hull stay bounded',()=>{

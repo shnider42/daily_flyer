@@ -19,6 +19,7 @@ async function fixture(count = 2) {
   const captains = [];
   for (let i = 0; i < count; i++) {
     const { captain } = await realm.createCaptain(`Captain ${i + 1}`); realm.attach(captain, { close() {} });
+    captain.game.state.fleet.owned.push('tern'); captain.game._activateClass('tern',true);
     const vessel = realm.vessels.get(captain.ownedVesselId); Object.assign(vessel.ship, { x: i * 130, y: 0, angle: 0, vx: 0, vy: 0 });
     captains.push(captain);
   }
@@ -26,7 +27,7 @@ async function fixture(count = 2) {
   return { realm, captains, room, vessels: captains.map(c => realm.vessels.get(c.ownedVesselId)) };
 }
 const tick = (realm, count = 1) => { for (let i = 0; i < count; i++) realm.step(1 / 30, realm.tick + 1, Date.now()); };
-function enemyFixture(room, source, classId = 'sparrow') {
+function enemyFixture(room, source, classId = 'tern') {
   const enemy = { id: 'persistent-raider', name: 'Practice raider', ...enemyHullProfile(classId), x: source.ship.x + 130, y: source.ship.y, angle: 0,
     hp: 35, maxHp: 100, shield: 0, disabled: true, active: false, cooldown: 99, speed: 0, damage: 5, reward: 20, faction: 'covenant' };
   room.runtime.enemies.push(enemy); return enemy;
@@ -68,11 +69,12 @@ test('guard wounds, hull damage and canonical occupation survive retreat, reboar
   realm._command(captain, 'boardEnemy', { id: enemy.id }); const target = realm.vessels.get(captain.aboard), guard = target.boarding.enemies[0];
   Object.assign(captain.game.state.person, { x: guard.x, y: guard.y });
   const shot = realm._command(captain, 'attackBoarder', { enemyId: guard.id }); assert.equal(shot.ok, true); assert.equal(guard.health, 52 - SIDEARM.damage);
+  const woundedHull=getShipClass(target.ship.classId).stats.maxHull*.35-5;
   target.ship.hull -= 5; Object.assign(captain.game.state.person, cabinLayout(target.ship.classId).spawn);
-  assert.equal(realm._command(captain, 'returnToOwnShip', {}).ok, true); assert.equal(captain.aboard, source.id); assert.equal(target.ship.hull, 30);
+  assert.equal(realm._command(captain, 'returnToOwnShip', {}).ok, true); assert.equal(captain.aboard, source.id); assert.equal(target.ship.hull, woundedHull);
   assert.equal(realm._command(captain, 'boardEnemy', { id: enemy.id }).ok, true); assert.equal(target.boarding.enemies[0].health, 28);
   const restored = new Realm({ id: realm.id, snapshot: realm.document(), persistence: realm.persistence }), person = restored.captains.get(captain.id), prize = restored.vessels.get(target.id);
-  assert.equal(person.aboard, target.id); assert.equal(person.returnVesselId, source.id); assert.equal(prize.ship.hull, 30); assert.equal(prize.boarding.enemies[0].health, 28);
+  assert.equal(person.aboard, target.id); assert.equal(person.returnVesselId, source.id); assert.equal(prize.ship.hull, woundedHull); assert.equal(prize.boarding.enemies[0].health, 28);
   assert.equal(restored.snapshotFor(person).state.ship.id, target.id); assert.equal(restored.vessels.get(source.id).ship, person.game.state.ship); assert.notEqual(prize.ship, person.game.state.ship);
   tick(restored); assert.equal(prize.boarding.enemies[0].health, 28);
 });
@@ -81,7 +83,7 @@ test('cleared NPC prizes keep their hull and can take the helm without replacing
   const { realm, captains: [captain], vessels: [source], room } = await fixture(1), enemy = enemyFixture(room, source);
   realm._command(captain, 'boardEnemy', { id: enemy.id }); const target = realm.vessels.get(captain.aboard), actor = realm._actor(target);
   for (const guard of target.boarding.enemies) guard.health = 0; actor._finishBoarding('won'); realm._syncActor(target);
-  assert.equal(enemy.hp, 35); assert.equal(enemy.deck.cleared, true); assert.equal(target.ship.hull, 35); assert.equal(target.captured, true);
+  assert.equal(enemy.hp, target.ship.hull); assert.equal(enemy.hp/enemy.maxHp,.35); assert.equal(enemy.deck.cleared, true); assert.equal(target.ship.hull, getShipClass(target.ship.classId).stats.maxHull*.35); assert.equal(target.captured, true);
   const bridge = realm._surface(captain).entities.find(entity => entity.data?.stationRole === 'helm'); Object.assign(captain.game.state.person, { x: bridge.x, y: bridge.y });
   assert.equal(realm._command(captain, 'takeCapturedHelm', {}).ok, true); assert.equal(target.helmOwner, captain.id); assert.equal(captain.game.state.mode, 'ship'); assert.equal(captain.ownedVesselId, source.id);
   const before = target.ship.x; realm.acceptInput(captain, 1, { thrust: 1 }); tick(realm, 8); assert.ok(target.ship.x > before); assert.equal(captain.game.state.ship, source.ship);

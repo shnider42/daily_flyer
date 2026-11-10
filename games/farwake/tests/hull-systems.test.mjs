@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.mjs';
-import {SHIP_CLASSES,STARTER_SHIP_IDS,getShipClass,advanceShip,enemyShipState} from '../dist/fleet.mjs';
+import {SHIP_CLASSES,STARTER_SHIP_IDS,getShipClass,advanceShip,enemyHullProfile,enemyShipState} from '../dist/fleet.mjs';
 import {getHullSystems,hullEnergyAfterStep} from '../dist/hull-systems.mjs';
 import {FarwakeNetwork} from '../dist/network.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
@@ -14,8 +14,8 @@ function vessel(id='sparrow'){
  game.system.enemies=[];return game;
 }
 
-test('all nine hulls have distinct immutable equipment without expanding the starting choices',()=>{
- assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.systems.name)).size,9);
+test('all fourteen hulls have distinct immutable equipment without expanding the starting choices',()=>{
+ assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.systems.name)).size,14);
  assert.deepEqual(STARTER_SHIP_IDS,['sparrow','kestrel','mule']);
  for(const hull of SHIP_CLASSES){assert.equal(hull.systems,getHullSystems(hull.id));assert.ok(Object.isFrozen(hull.systems));assert.ok(hull.systems.description&&hull.systems.tradeoff);}
  assert.equal(getHullSystems('old-missing-class'),getHullSystems('sparrow'));
@@ -126,4 +126,56 @@ test('captured ships retain localized damage and the charge already spent aboard
  const damageControl={version:1,impacts:[{id:'scar',x:20,y:40}],fires:[{id:'fire'}]},enemy={id:'prize',classId:'marten',hp:60,maxHp:100,energy:17,damageControl};
  const ship=enemyShipState(enemy);assert.equal(ship.energy,17);assert.deepEqual(ship.damageControl,damageControl);assert.notEqual(ship.damageControl,damageControl);
  assert.equal(getHullSystems(ship.classId).pulseCount,2);ship.damageControl.fires.length=0;assert.equal(enemy.damageControl.fires.length,1);
+});
+
+test('the shuttle service bus trades slower shield recovery for real reactor recharge',()=>{
+ const shuttle=vessel('tern'),cutter=vessel();
+ for(const game of [shuttle,cutter]){game.state.ship.shield=10;game._hitTimer=0;game.stepPilot(.1,{});}
+ near(shuttle.state.ship.energy,51.7);near(cutter.state.ship.energy,51.4);
+ near(shuttle.state.ship.shield,10.3);near(cutter.state.ship.shield,10.4);
+});
+
+test('the dispatch drive reduces both a quoted fold charge and actual sustained boost drain',()=>{
+ const courier=vessel('quill'),cutter=vessel(),target=courier.galaxy.find(s=>s.id==='vesper');
+ const distance=Math.hypot(target.gx-courier.currentSystem.gx,target.gy-courier.currentSystem.gy);
+ assert.equal(courier.travelInfo(target.id).fuelCost,Math.ceil((2+distance*.65)*.8));
+ assert.ok(courier.travelInfo(target.id).fuelCost<cutter.travelInfo(target.id).fuelCost);
+ const input={thrust:1,boost:true,flightAssist:false};courier.stepPilot(.1,input);near(courier.state.ship.energy,48.4);
+ const ordinary=advanceShip({...courier.state.ship,classId:'sparrow',vx:0,vy:0},.1,input),dispatch=advanceShip({...courier.state.ship,vx:0,vy:0},.1,input);
+ near(dispatch.vx/ordinary.vx,1.8/1.7);
+});
+
+test('the ambulance gives a real injured crew and rescued passenger a faster triage cycle',()=>{
+ const game=vessel('mender');game.state.person.health=30;
+ game.state.crew=[{id:'patient',name:'Ira',role:'engineer',health:25,maxHealth:100,status:'injured'}];
+ ok(game.takeRescueOccupants('lifeboat','rescue',{sourceId:'ambulance-fixture'}));
+ const patient=game.state.ship.rescueGroups[0].members[0];patient.health=20;
+ ok(game.enterCabin());const before=game.state.ship.energy;ok(game.medicalFromStation());
+ assert.equal(game.state.person.health,54);assert.equal(game.state.crew[0].health,43);assert.equal(patient.health,38);
+ assert.equal(game.state.ship.energy,before-17);assert.equal(game._crewHealTimer,5);
+ assert.equal(game.medicalFromStation().code,'cooldown');
+});
+
+test('the gunship fires three centered attributed pulses with its advertised cost and actual damage',()=>{
+ const game=vessel('bulwark'),enemy=placeRaider(game,{...enemyHullProfile('hauler'),x:190,y:500,hp:250,maxHp:250,active:false}),before=game.state.ship.energy;
+ game.drainEvents();ok(game.fireWeapons('guest-gunner'));
+ const shots=game.system.bullets;assert.equal(shots.length,3);assert.equal(new Set(shots.map(b=>b.id)).size,3);
+ assert.deepEqual(shots.map(b=>b.y-game.state.ship.y),[-28,0,28]);
+ assert.ok(shots.every(b=>b.ownerId==='guest-gunner'&&b.vesselId===game.state.ship.id));
+ near(shots.reduce((total,b)=>total+b.damage,0),game.state.ship.damage*1.35);
+ near(game.state.ship.energy,before-8);near(game._shotTimer,.38);
+ assert.equal(game.drainEvents().filter(e=>e.type==='shot').length,1);
+ game._updateBullets(.2,[game]);near(enemy.hp,250-game.state.ship.damage*1.35);
+});
+
+test('the mining barge cuts and retrieves real ore beyond the starting tug’s working range',()=>{
+ const barge=vessel('cairn'),tug=vessel('mule');
+ for(const game of [barge,tug]){
+  game.system.asteroids=[{id:'deep-rock',x:380,y:500,radius:12,hp:1,ore:4,crystal:0}];game._mine(.1);
+  game.system.pickups=[{id:'distant-ore',x:285,y:500,ore:2,crystal:0,credits:0}];game._updatePickups(.1,[game]);
+ }
+ assert.equal(barge.state.cargo.ore,4);assert.equal(tug.state.cargo.ore,0);
+ assert.ok(barge.system.pickups[0].x<285);assert.equal(tug.system.pickups[0].x,285);
+ barge.system.pickups[0].x=310;ok(barge.salvage('distant-ore'));assert.equal(barge.state.cargo.ore,6);
+ tug.system.pickups[0].x=310;assert.equal(tug.salvage('distant-ore').code,'distance');
 });

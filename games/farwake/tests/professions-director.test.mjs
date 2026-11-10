@@ -62,7 +62,8 @@ test('raid warning becomes real ships; repeated synchronization is idempotent an
  const incident=scheduledIncident(game,'raid','warning');syncDirectorWorld(game,game.worldDirector);
  assert.equal(game.system.enemies.filter(enemy=>enemy.directorEventId).length,0);
  game.state.worldDirector=advanceWorldDirector(game.worldDirector,incident.activeAt,options).state;syncDirectorWorld(game,game.worldDirector);
- const raiders=game.system.enemies.filter(enemy=>enemy.directorEventId);assert.equal(raiders.length,2);assert.ok(raiders.every(enemy=>enemy.boardable&&enemy.renderLength>=56));
+ const raiders=game.system.enemies.filter(enemy=>enemy.directorEventId);assert.equal(raiders.length,2);assert.deepEqual(raiders.map(enemy=>enemy.classId),['tern','kestrel']);
+ assert.equal(raiders[0].boardable,true);assert.equal(raiders[0].berths,3);assert.equal(raiders[1].boardable,false);assert.equal(raiders[1].berths,1);assert.ok(raiders.every(enemy=>enemy.renderLength>=56));
  syncDirectorWorld(game,game.worldDirector);assert.equal(game.system.enemies.filter(enemy=>enemy.directorEventId).length,2);
  raiders[0].hp-=5;game._record().enemyHealth[raiders[0].id]=raiders[0].hp;
  game.state.worldDirector=advanceWorldDirector(game.worldDirector,incident.expiresAt+5,options).state;syncDirectorWorld(game,game.worldDirector);

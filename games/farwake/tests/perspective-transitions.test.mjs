@@ -59,7 +59,7 @@ test('quick launch cannot retrieve a distant hull or bypass site, combat, conver
  const mutations=[
   ['location',g=>{g.state.interior={kind:'site',location:{id:'cave'}};g.state.exploration={key:'cave'};}],
   ['location',g=>{g.state.interior={kind:'ship',location:{id:'own-ship'}};}],
-  ['location',g=>{g.state.ship.x+=2000;}],
+  ['ship-location',g=>{g.state.ship.x+=2000;}],
   ['incapacitated',g=>{g.state.person.down=true;}],
   ['encounter',g=>{g.state.pendingEncounter={id:'union_strike'};}],
   ['destroyed',g=>{g.state.ship.destroyed=true;}],

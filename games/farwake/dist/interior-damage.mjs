@@ -47,11 +47,27 @@ export function ensureDamageControl(ship){
  const prior=old&&typeof old==='object'?old:null,sections=Array.isArray(prior?.sections)?prior.sections:[];
  const state={version:1,layoutRevision:revision,clock:Math.max(0,finite(prior?.clock)),serial:Math.max(0,Math.floor(finite(prior?.serial))),
   sections:layout.rooms.map(room=>sectionFor(layout,room,sections.find(value=>value?.id===room.id))),impacts:[]};
+ // A compacted deck can merge several old compartments into one room. Keep
+ // their strongest recorded hazards instead of repairing them during loading
+ // or adding their severities together into a new, more dangerous emergency.
+ const migratedIds=new Map();
+ for(const orphan of sections){
+  if(!orphan||typeof orphan.id!=='string'||state.sections.some(section=>section.id===orphan.id))continue;
+  const target=safeCabinPoint(layout,orphan);
+  const candidates=layout.rooms.map(room=>({room,point:roomPoint(layout,room,target)})).sort((a,b)=>dist(a.point,target)-dist(b.point,target));
+  const destination=candidates[0],section=state.sections.find(section=>section.id===destination?.room.id);if(!section)continue;
+  const values=Object.fromEntries(['damage','fire','breach'].map(key=>[key,clamp(finite(orphan[key]),0,100)]));
+  const previousSeverity=Math.max(section.damage,section.fire,section.breach);
+  if(Math.max(...Object.values(values))>previousSeverity)Object.assign(section,destination.point);
+  for(const key of ['damage','fire','breach'])section[key]=Math.max(section[key],values[key]);
+  migratedIds.set(orphan.id,section.id);
+ }
  // Existing saves gain scars, never surprise fires or retroactive casualties.
  if(!prior){const missing=clamp(1-hullHealth(ship)/hullMaximum(ship),0,1)*100;if(missing>1){const section=state.sections.find(value=>value.id==='engineering')||state.sections[0];if(section)section.damage=missing;}}
  state.impacts=(Array.isArray(prior?.impacts)?prior.impacts:[]).filter(value=>value&&Number.isFinite(value.serial)&&Number.isFinite(value.at)&&value.at<=state.clock&&state.clock-value.at<=4).slice(-6).map(value=>{
-  const section=state.sections.find(item=>item.id===value.sectionId)||state.sections[0];
-  return{serial:Math.max(0,Math.floor(value.serial)),at:Math.max(0,value.at),x:finite(value.x,section?.x),y:finite(value.y,section?.y),strength:clamp(finite(value.strength),0,1),shieldOnly:!!value.shieldOnly,sectionId:section?.id,hullDamage:Math.max(0,finite(value.hullDamage))};
+  const sectionId=migratedIds.get(value.sectionId)||value.sectionId,section=state.sections.find(item=>item.id===sectionId)||state.sections[0];
+  const point=safeCabinPoint(layout,{x:finite(value.x,section?.x),y:finite(value.y,section?.y)});
+  return{serial:Math.max(0,Math.floor(value.serial)),at:Math.max(0,value.at),...point,strength:clamp(finite(value.strength),0,1),shieldOnly:!!value.shieldOnly,sectionId:section?.id,hullDamage:Math.max(0,finite(value.hullDamage))};
  });
  ship.damageControl=state;normalized.set(ship,{state,classId:layout.shipClass,revision});return state;
 }

@@ -22,7 +22,12 @@ export const SHIP_VISUALS={
  mule:{length:70,width:48,thrusters:[[-33,-17],[-33,17]]},
  petrel:{length:90,width:52,thrusters:[[-43,-18],[-43,18]]},
  marten:{length:126,width:76,thrusters:[[-60,-26],[-60,0],[-60,26]]},
- atlas:{length:214,width:116,thrusters:[[-104,-44],[-104,-23],[-104,23],[-104,44]]}
+ atlas:{length:214,width:116,thrusters:[[-104,-44],[-104,-23],[-104,23],[-104,44]]},
+ tern:{length:78,width:50,thrusters:[[-37,-15],[-37,15]]},
+ quill:{length:110,width:58,thrusters:[[-53,-13],[-50,0],[-53,13]]},
+ mender:{length:126,width:76,thrusters:[[-61,-8],[-61,8]]},
+ bulwark:{length:166,width:100,thrusters:[[-80,-22],[-78,0],[-80,22]]},
+ cairn:{length:188,width:136,thrusters:[[-91,-34],[-91,-11],[-91,11],[-91,34]]}
 };
 const palettes={temperate:['#193d48','#2f6d70','#598f7d','#b5b982','#c4d1bd'],earth:['#183e56','#2b6d79','#5e956f','#a7b88b','#d5ddcb'],forest:['#173e42','#356b56','#6a8b58','#a7a16c','#c5caa6'],garden:['#183e46','#3c7772','#6b9f75','#a8b787','#d7dbc2'],arid:['#674a3b','#a07554','#c29e70','#dec59b','#f0dcbd'],desert:['#694a3c','#a37652','#c79e69','#d7b77e','#ebd2a7'],ice:['#244056','#4c788a','#83afbc','#c4d6d6','#edf2e4'],ocean:['#183d59','#2b6581','#5c96a1','#84aea2','#d6e0cc'],volcanic:['#342e39','#5e4042','#8c5545','#c47851','#e8ac6d'],industrial:['#34343b','#61545a','#8a7a71','#b59f7e','#d2c6a3'],ruin:['#343f42','#62766c','#8b9b82','#b4b59a','#d1d2b8'],barren:['#343b47','#58616b','#7d8990','#a3ada8','#d1d4c2'],station:['#233b4a','#385560','#718d8e','#a4b4a5','#d9d6b4']};
 const shipCache=new Map(),workCanvases=new Map(),stationCache=new Map();
@@ -108,6 +113,47 @@ function hullSprite(shipClass,color,damage=0){
   p('#1e3947',-12,-19,26,38);p('#799590',-9,-16,18,32);for(const y of[-11,1]){p('#a19375',-7,y,14,8);p('#d7be87',-5,y,10,2);}
   for(const y of[-42,-24,18,36]){p('#193341',-107,y,10,9);p('#8eaaa6',-95,y+1,8,7);}
   for(let y=-27;y<=24;y+=17){p('#506b74',-87,y,10,11);p('#9fb7ac',-86,y,8,2);}pixelLine(ctx,15,-21,78,-21,'#8da6a2',2);pixelLine(ctx,15,21,78,21,'#8da6a2',2);
+ }else if(shipClass==='tern'){
+  // A blunt shuttle nose and a broad glazed saloon: visibly one size above a starter.
+  polygon(ctx,[[-39,-18],[-30,-25],[23,-25],[39,-12],[39,12],[23,25],[-30,25],[-39,18]],dark);
+  polygon(ctx,[[-34,-16],[-27,-21],[21,-21],[34,-10],[34,10],[21,21],[-27,21],[-34,16]],shade);
+  p(color,-27,-18,46,36);p(light,-24,-18,39,3);polygon(ctx,[[18,-18],[33,-9],[33,9],[18,18]],color);
+  p('#1d3949',18,-11,12,22);p('#84c8ca',21,-8,7,16);p('#d5e3ce',22,-8,5,2);
+  for(const side of[-1,1]){const y=side<0?-19:15;p('#d7bd83',-22,y,37,4);p('#24434e',-21,side<0?-13:8,31,5);for(let x=-18;x<8;x+=8)p('#90c1bd',x,side<0?-12:9,5,3);p('#1a3544',-39,side<0?-18:11,7,7);}
+  p('#65858a',-32,-9,11,18);p('#b7c5ad',-30,-9,7,3);p('#ad9878',-13,-5,17,10);p('#715f50',-10,-3,11,6);
+ }else if(shipClass==='quill'){
+  // A long dispatch nose and swept, ribbon-like drive shoulders.
+  polygon(ctx,[[-55,-16],[-42,-29],[-16,-23],[17,-11],[55,-3],[55,3],[17,11],[-16,23],[-42,29],[-55,16]],dark);
+  for(const side of[-1,1]){polygon(ctx,[[-51,side*14],[-41,side*25],[-16,side*20],[16,side*9],[-17,side*12]],shade);pixelLine(ctx,-40,side*24,-16,side*19,light,2);p(color,-44,side<0?-21:13,20,8);p('#1a3443',-55,side<0?-16:10,7,6);p('#e0bf7e',-33,side<0?-20:14,8,2);}
+  polygon(ctx,[[-45,-10],[-15,-13],[20,-8],[52,-2],[52,2],[20,8],[-15,13],[-45,10]],color);
+  pixelLine(ctx,-16,-13,20,-8,light,2);pixelLine(ctx,20,-8,49,-2,light);p('#67858d',-49,-7,12,14);p('#203b4c',-4,-7,25,14);p('#8cc5d1',-1,-5,17,10);p('#d3e8d7',0,-5,13,2);
+  p('#a9b7aa',-28,-6,17,12);p('#3c5961',-26,-3,13,6);p('#dcbd82',24,-2,17,4);p('#193341',-54,-3,8,6);
+ }else if(shipClass==='mender'){
+  // Medical side pods form the same cross-shaped plan as the treatment ward.
+  polygon(ctx,[[-63,-13],[-30,-13],[-30,-38],[25,-38],[25,-15],[63,-10],[63,10],[25,15],[25,38],[-30,38],[-30,13],[-63,13]],dark);
+  p(edge,-27,-35,49,70);p(shade,-24,-32,43,64);p(color,-22,-30,39,60);p(light,-20,-30,35,3);
+  p(edge,-59,-10,116,20);p(color,-55,-8,108,16);p(light,-52,-8,99,2);
+  for(const side of[-1,1]){const y=side<0?-31:19;p('#afc6b4',-20,y,35,12);p('#598d88',-17,y+2,29,8);for(let x=-14;x<12;x+=9)p('#b8d8cb',x,y+3,5,5);p('#7fb1a1',-29,side<0?-27:18,5,9);}
+  p('#1c3b4b',31,-8,19,16);p('#94ced0',34,-6,12,12);p('#d6e9d6',35,-6,9,2);p('#94b9ad',-13,-11,23,22);p('#dae1c7',-6,-8,8,16);p('#dae1c7',-10,-4,16,8);p('#6c9b8b',-6,-4,8,8);
+  p('#657f88',-50,-9,16,18);p('#273f4b',-63,-11,8,7);p('#273f4b',-63,4,8,7);for(const y of[-35,31])p('#d3c695',-8,y,15,3);
+ }else if(shipClass==='bulwark'){
+  // Armored shoulders protect a central magazine and three exposed pulse barrels.
+  polygon(ctx,[[-83,-24],[-64,-50],[22,-50],[70,-30],[83,-14],[83,14],[70,30],[22,50],[-64,50],[-83,24]],dark);
+  polygon(ctx,[[-77,-22],[-60,-44],[20,-44],[65,-26],[76,-12],[76,12],[65,26],[20,44],[-60,44],[-77,22]],shade);
+  polygon(ctx,[[-65,-24],[-51,-37],[15,-37],[54,-22],[64,-9],[64,9],[54,22],[15,37],[-51,37],[-65,24]],color);
+  pixelLine(ctx,-50,-37,15,-37,light,2);pixelLine(ctx,15,-37,54,-22,light,2);p('#718890',-75,-19,18,38);
+  for(const side of[-1,1]){const y=side<0?-43:30;p(edge,-53,y,65,13);p(light,-49,y+1,54,2);for(let x=-44;x<9;x+=14){p('#2b4653',x,y+4,9,7);p('#a2b4a9',x,y+4,9,2);}p('#203847',34,side<0?-25:14,36,11);p('#aeb9ae',40,side<0?-23:16,37,7);p('#d4c6a5',62,side<0?-21:18,23,3);p('#183340',-82,side<0?-25:18,9,8);}
+  p('#283e4a',-35,-20,55,40);p('#788f92',-32,-17,49,34);p('#bbc8b9',-30,-17,45,3);p('#233f4d',-21,-11,31,22);p('#7db9c5',-18,-8,23,16);p('#d1e2cf',-16,-8,18,2);
+  p('#3b5460',22,-6,44,12);p('#b7bda9',39,-4,43,8);p('#e2cea4',65,-2,23,4);p('#233a49',-83,-5,9,10);p('#d3ac78',-50,-5,10,10);
+ }else if(shipClass==='cairn'){
+  // Broad paired ore tanks surround the inhabited control spine and rear service deck.
+  polygon(ctx,[[-94,-43],[-74,-68],[52,-68],[94,-34],[94,34],[52,68],[-74,68],[-94,43]],dark);
+  polygon(ctx,[[-87,-39],[-69,-61],[49,-61],[86,-30],[86,30],[49,61],[-69,61],[-87,39]],shade);
+  p(edge,-78,-54,126,108);p(color,-74,-49,118,98);p(light,-70,-49,110,3);
+  for(const side of[-1,1]){const y=side<0?-59:24;p('#25434d',-69,y,115,35);p('#8b9180',-65,y+3,106,29);p('#c0ac81',-61,y+3,98,3);for(let x=-58;x<36;x+=22){p('#516e72',x,y+8,16,19);p('#a5b5a2',x+1,y+8,14,3);p('#c9ad73',x+5,y+13,6,12);}polygon(ctx,[[45,y+2],[78,side<0?-34:25],[78,side<0?-24:34],[45,y+30]],edge);p('#c9ad73',70,side<0?-35:25,16,10);}
+  p('#37535c',-68,-18,130,36);p(color,-61,-15,120,30);p(light,-57,-15,109,3);p('#788f91',-20,-18,48,36);p('#b1c1af',-17,-18,42,3);p('#234552',22,-11,38,22);p('#8cc1c4',26,-8,28,16);p('#dae5ce',28,-8,22,2);
+  for(let x=-56;x<-25;x+=12){p('#bea57b',x,-9,8,18);p('#7b6b53',x+2,-6,4,12);}p('#d0b780',64,-5,24,10);p('#695b43',69,-3,3,6);p('#695b43',77,-3,3,6);
+  for(const y of[-38,-15,8,31]){p('#193341',-94,y,11,9);p('#8ca5a0',-80,y,8,8);}
  }else{
   polygon(ctx,[[-128,-42],[-104,-59],[-65,-64],[47,-48],[105,-24],[132,-5],[134,0],[132,5],[105,24],[47,48],[-65,64],[-104,59],[-128,42]],dark);
   polygon(ctx,[[-122,-38],[-100,-53],[-64,-59],[46,-43],[104,-20],[128,-3],[128,3],[104,20],[46,43],[-64,59],[-100,53],[-122,38]],shade);
@@ -125,7 +171,7 @@ function hullSprite(shipClass,color,damage=0){
   for(const[x,y]of SHIP_VISUALS.capital.thrusters)p('#132e3e',x-3,y-4,9,8);
  }
  // Readable habitation windows and a docking hatch distinguish crew hulls from fighters.
- const berths=getShipClass(shipClass).berths,windows=Math.ceil(berths/2),spacing=shipClass==='sparrow'?8:Math.min(16,profile.length*.075),start=-profile.length*.29;
+ const berths=getShipClass(shipClass).berths,windows=Math.ceil(berths/2),spacing=shipClass==='sparrow'?8:Math.min(16,profile.length*.075),start=shipClass==='mender'?-24:-profile.length*.29;
  for(let i=0;i<windows;i++)for(const side of[-1,1]){const x=start+i*spacing,y=side*profile.width*.19;p('#19313e',x-1,y-1,5,4);p('#b9d7c7',x,y,3,2);}
  const hatchX=-profile.length*.12,hatchY=profile.width*.28;p('#112d3a',hatchX-5,hatchY-4,10,8);p('#94a9a6',hatchX-4,hatchY-3,8,6);p('#294a57',hatchX-2,hatchY-2,4,4);p('#d8c18b',hatchX-5,hatchY-4,3,2);p('#d8c18b',hatchX+2,hatchY+2,3,2);
  if(damage>.2){const r=random(hash(key));for(let i=0;i<Math.floor(damage*14);i++){const x=(r()-.5)*profile.length*.65,y=(r()-.5)*profile.width*.45;p('#273c43',x,y,5+r()*8,2+r()*4);if(damage>.6)p('#c8916f',x+1,y,2,1);}}

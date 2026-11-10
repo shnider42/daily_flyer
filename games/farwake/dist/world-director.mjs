@@ -98,7 +98,7 @@ function expire(state,at,transitions){
 
 export function eventSpawnDescriptors(event){
  if(!event||event.status!=='active'||!['raid','clash'].includes(event.type))return[];
- return event.spawnIds.filter(id=>!event.neutralized.includes(id)).map((id,index)=>({id,eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,classId:index?'sparrow':'kestrel',faction:event.rivalFactionId,name:event.type==='raid'?`Convoy raider ${index+1}`:`${event.rivalFactionId==='meridian'?'Combine':'Border'} interdiction ${index+1}`,index}));
+ return event.spawnIds.filter(id=>!event.neutralized.includes(id)).map((id,index)=>({id,eventId:event.id,systemId:event.systemId,bodyId:event.bodyId,classId:index?'kestrel':'tern',faction:event.rivalFactionId,name:event.type==='raid'?`Convoy raider ${index+1}`:`${event.rivalFactionId==='meridian'?'Combine':'Border'} interdiction ${index+1}`,index}));
 }
 
 /** Pure, monotonic advancement. Old unresolved events finish even after a long absence. */

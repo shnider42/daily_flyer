@@ -32,6 +32,8 @@ import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
 import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules } from './profession-rules.mjs';
+import { LivelihoodRules, normalizeStartMode } from './livelihoods.mjs';
+import { NpcContractRules } from './npc-contracts.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
 import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
 import { systemContext } from './encounter-context.mjs';
@@ -138,15 +140,16 @@ export function buildGalaxy(seed = 'farwake') {
 
 function initialState(seed, options = {}) {
   const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
+  const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
-    version: SAVE_VERSION, seed: String(seed || 'farwake'), mode: 'ship', systemId: 'hearth', locationId: null,
+    version: SAVE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [],
-    crew: [], formerCrew: [], memorial: [], fleet:{owned:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
+    crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
-    ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
+    ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, ...(shipless?{unowned:true}:{}), humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
     person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, weaponDrawn: false },
-    rng: hash(`${seed}:runtime`), encounterPolicyVersion: 2, nextEncounterAt: null, lastBodyId: 'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
+    rng: hash(`${seed}:runtime`), encounterPolicyVersion: 2, nextEncounterAt: null, lastBodyId: shipless?'morrow':'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
 }
 
@@ -170,6 +173,8 @@ export class Game {
     if(!isSave)this.state.person.health=this.state.person.maxHealth;
     this._updateStats(false);
     this._loadSystem(this.state.systemId);
+    this.initializeLivelihoods();
+    if(!isSave&&!this.ownsShip)this._arriveAsPassenger(this.currentBody,{discovery:false});
     this._restoreBoardingDeck();
     this._restoreExploration();
     if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
@@ -178,7 +183,8 @@ export class Game {
     }
     if (isSave) this._relocateLegacyJobs();
     if (!isSave) {
-      this._log('A ship of your own', 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
+      if(this.ownsShip)this._log('A ship of your own', 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
+      else this._log('Your first ship is still ahead', 'You arrive on Morrow with 180 credits and no ship. The contract exchange offers paid maintenance shifts, the clinic hires assistants, and crew contracts pay for work aboard someone else’s ship. Passenger ferries connect the inhabited ports. A used starter hull costs credits, with no ore or trade-in required.', 'story');
       this._flag('started');
       this._discoverNear('hearth');
     }
@@ -186,6 +192,7 @@ export class Game {
     this.initializeProfessions();
     this.initializeRescueOccupants();
     this.initializeInteriorDamage();
+    this.initializeNpcContracts();
     if(this.state.pendingEncounter&&!pendingSourceAvailable(this,this.state.pendingEncounter))this.state.pendingEncounter=null;
     this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
     this.syncNarrativeWorld();
@@ -207,22 +214,27 @@ export class Game {
   }
   get atInhabitedPort() { return this.state.mode === 'person' && !this.state.interior && hasPortServices(this.currentBody); }
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
-  get chapter() { return STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
+  get chapter() { return !this.ownsShip?{id:'earn_first_ship',title:'00 · A ship to earn',brief:'Your first hull is still ahead. Every local port has paid work and passage to other inhabited ports.',objective:'Earn credits from local jobs or crew contracts, then buy a used starter ship at an outfitter.',mode:'person',targetSystem:this.state.systemId,targetBody:this.state.locationId||this.state.lastBodyId}:STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
   get activeChapter() { return this.chapter; }
   get playerId() { return this._playerId || 'local'; }
   get worldDirector() { return this._directorShared || this.state.worldDirector; }
+  get personalShip() { return this.state.npcContract?.personal?.ship || this.state.ship; }
+  get ownsShip() { return this.state.multiplayer?.serverAuthoritative&&Object.hasOwn(this.state.multiplayer,'ownedVesselId')?!!this.state.multiplayer.ownedVesselId:this.personalShip?.unowned !== true; }
+  get hasActiveVessel() { return !!this.state.ship && this.state.ship.unowned !== true; }
   get shipClass() { return getShipClass(this.state.ship.classId); }
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
-  get crewCapacity() { return Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()-this.rescuedBerths()); }
+  get crewCapacity() { return this.hasActiveVessel?Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()-this.rescuedBerths()):0; }
   get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
   get characterEffects() { return characterModifiers(this.state.character); }
-  get hasHyperdrive() { return Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0; }
+  get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
   _restore(fresh, raw) {
     const s = { ...fresh, ...clone(raw), version: SAVE_VERSION };
     s.seed = String(raw.seed || fresh.seed);
+    s.startMode=normalizeStartMode(raw.startMode);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
     s.ship = { ...fresh.ship, ...(raw.ship || {}) };
+    if(raw.ship?.unowned!==true)delete s.ship.unowned;
     s.character = normalizeCharacter(raw.character);
     s.characterLocked = raw.characterLocked === true;
     s.explorationRecords = raw.explorationRecords && typeof raw.explorationRecords === 'object' && !Array.isArray(raw.explorationRecords) ? clone(raw.explorationRecords) : {};
@@ -237,7 +249,8 @@ export class Game {
     for (const name of ['missions', 'journal', 'crew', 'formerCrew', 'memorial', 'boardingHistory']) s[name] = Array.isArray(raw[name]) ? clone(raw[name]) : [];
     s.ship.classId = getShipClass(s.ship.classId).id;
     s.ship.humanOccupants = clamp(Math.floor(finite(s.ship.humanOccupants,1)),1,10);
-    s.fleet = { owned:unique([s.ship.classId,...(Array.isArray(raw.fleet?.owned)?raw.fleet.owned:['sparrow'])]).filter(id=>SHIP_CLASSES.some(c=>c.id===id)), history:Array.isArray(raw.fleet?.history)?clone(raw.fleet.history):[] };
+    const personalShip=raw.npcContract?.personal?.ship||s.ship,sharedShipless=raw.multiplayer?.serverAuthoritative&&Object.hasOwn(raw.multiplayer,'ownedVesselId')&&!raw.multiplayer.ownedVesselId;
+    s.fleet = { owned:personalShip.unowned===true||sharedShipless?[]:unique([personalShip.classId,...(Array.isArray(raw.fleet?.owned)?raw.fleet.owned:['sparrow'])]).filter(id=>SHIP_CLASSES.some(c=>c.id===id)), history:Array.isArray(raw.fleet?.history)?clone(raw.fleet.history):[] };
     s.crew=s.crew.map((crew,index)=>{
       const maxHealth=Math.max(1,finite(crew.maxHealth,CREW_ROLES[crew.role]?.health||100));
       const health=clamp(finite(crew.health,crew.status==='dead'?0:maxHealth),0,maxHealth);
@@ -469,17 +482,17 @@ export class Game {
     if(!dt)return;
     this.state.stats.time+=dt;
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
+    this.stepNpcContract(dt,input);
     const sh=this.state.ship;
-    this.stepInteriorDamage(dt);
-    this.stepRescueOccupants(dt);
+    if(this.hasActiveVessel){this.stepInteriorDamage(dt);this.stepRescueOccupants(dt);}
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
-    const operate=this.state.mode==='ship'||this.state.interior?.kind==='ship';
+    const operate=this.hasActiveVessel&&(this.state.mode==='ship'||this.state.interior?.kind==='ship');
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
     const pilotConscious=this._damageHumans!==undefined||this.state.person.health>0&&!this.state.person.down;
-    const helmInput=pilotConscious&&(this.state.mode==='ship'||options.operateShip)?input:{};
+    const helmInput=this.npcContractPilot()||(pilotConscious&&(this.state.mode==='ship'||options.operateShip)?input:{});
     const flight=normaliseFlightInput(helmInput),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
     const oldX=sh.x,oldY=sh.y;
     Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
@@ -503,7 +516,7 @@ export class Game {
     const games=[...new Set(participants)].filter(g=>g?.state?.systemId===this.state.systemId);
     this._worldGames=games;
     this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
-    const targets=[...games.filter(g=>g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
+    const targets=[...games.filter(g=>g.hasActiveVessel&&g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
     this._updateEnemies(dt,targets);
     this._updateBullets(dt,targets);
     for(const ship of [...(this.system.parkedShips||[]),...this.system.enemies.filter(enemy=>!enemy.promotedVesselId&&!enemy.canonicalVesselId)]){
@@ -520,6 +533,7 @@ export class Game {
   }
 
   fireWeapons(shooterId = this.playerId) {
+    if(!this.hasActiveVessel)return this._fail('You do not have an active ship or its weapons.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Ship weapons require a vessel in space.', 'mode');
     if(this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
     if(this.state.ship.energy<getHullSystems(this.state.ship.classId).pulseEnergy)return this._fail('The pulse emitter needs reactor charge.', 'energy');
@@ -527,6 +541,7 @@ export class Game {
   }
 
   repairFromStation() {
+    if(!this.hasActiveVessel)return this._fail('There is no ship to repair.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the engineering station aboard an active ship.', 'mode');
     const sh=this.state.ship,system=getHullSystems(sh.classId);
     if(sh.hull>=sh.maxHull)return this._fail('Hull integrity is already full.', 'full');
@@ -538,6 +553,7 @@ export class Game {
   }
 
   medicalFromStation(patients = [this]) {
+    if(!this.hasActiveVessel)return this._fail('Visit a port clinic for treatment until you have access to a ship’s medical station.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
     if(this._crewHealTimer>0)return this._fail('The medical station is preparing the next treatment.','cooldown');
     const system=getHullSystems(this.state.ship.classId);
@@ -556,6 +572,7 @@ export class Game {
   }
 
   _fire(shooterId = this.playerId) {
+    if(!this.hasActiveVessel)return;
     const sh = this.state.ship,system=getHullSystems(sh.classId);
     let angle = sh.angle;
     const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
@@ -566,7 +583,7 @@ export class Game {
     const vesselId=this.netVesselId||sh.id,serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
     const volleyId=`${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`,nose=Math.max(24,(sh.renderLength||getShipClass(sh.classId).stats.renderLength)*.42),bullets=[];
     for(let mount=0;mount<system.pulseCount;mount++){
-      const side=system.pulseCount===1?0:(mount*2-1)*system.pulseOffset;
+      const side=(mount*2-(system.pulseCount-1))*system.pulseOffset;
       const bullet={id:system.pulseCount===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(angle)*nose-Math.sin(angle)*side,y:sh.y+Math.sin(angle)*nose+Math.cos(angle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*system.pulseDamageScale,owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,radius:4};
       bullets.push(bullet);this.system.bullets.push(bullet);
     }
@@ -575,6 +592,7 @@ export class Game {
   }
 
   _mine(dt) {
+    if(!this.hasActiveVessel)return;
     const sh = this.state.ship;
     if (sh.energy < 1 || this.cargoUsed >= sh.cargoCap) return;
     const target = this.system.asteroids.filter(a => a.hp > 0 && distance(a, sh) < getHullSystems(sh.classId).miningReach + a.radius).sort((a, b) => distance(a, sh) - distance(b, sh))[0];
@@ -620,7 +638,7 @@ export class Game {
       if(!e.active){e.angle+=dt*.18;e.x+=Math.cos(e.angle)*16*dt;e.y+=Math.sin(e.angle)*16*dt;e.boardingCharge=0;continue;}
       e.targetId=target.playerId;e.angle=Math.atan2(sh.y-e.y,sh.x-e.x);
       e.boardingCooldown=Math.max(0,(e.boardingCooldown||0)-dt);
-      const exposed=!target._parkedVessel&&sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
+      const exposed=getShipClass(e.classId).berths>=3&&getShipClass(sh.classId).berths>=3&&!target._parkedVessel&&sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
       const side=e.id.length%2?1:-1;
       const moveAngle=e.angle+(exposed?(dist<90?Math.PI*.5*side:0):(dist<220?Math.PI*.65*side:.2*side));
       const moveSpeed=e.speed*(exposed&&dist<150?.25:1);
@@ -634,7 +652,7 @@ export class Game {
         const angle=e.angle+(this._rand()-.5)*.16;
         const serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1,equipment=getHullSystems(e.classId);
         for(let mount=0;mount<equipment.pulseCount;mount++){
-          const side=equipment.pulseCount===1?0:(mount*2-1)*equipment.pulseOffset;
+          const side=(mount*2-(equipment.pulseCount-1))*equipment.pulseOffset;
           this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x-Math.sin(angle)*side,y:e.y+Math.cos(angle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
         }
         e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
@@ -681,6 +699,7 @@ export class Game {
   }
 
   _damageShip(amount, details = {}) {
+    if(!this.hasActiveVessel)return;
     if (this._recoveryTimer) return;
     const sh = this.state.ship;
     if(sh.destroyed||sh.hull<=0)return;
@@ -736,7 +755,7 @@ export class Game {
   }
 
   interact() {
-    if (this.state.mode !== 'ship') return null;
+    if (this.state.mode !== 'ship'||!this.hasActiveVessel||this.state.npcContract?.active) return null;
     const sh = this.state.ship;
     const parked=(this.system.parkedShips||[]).filter(v=>v.hull>0&&distance(v,sh)<sh.radius+v.radius+110).sort((a,b)=>distance(a,sh)-distance(b,sh))[0];
     if(parked)return {type:'parked-ship',id:parked.id,name:parked.name,vessel:parked,distance:distance(parked,sh),range:sh.radius+parked.radius+110};
@@ -755,6 +774,7 @@ export class Game {
 
   dock(bodyId) {
     if (this.state.mode !== 'ship') return this._fail('You are already on foot.', 'mode');
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
     const body = this.system.bodies.find(b => b.id === bodyId);
     if (!body) return this._fail('That destination is not in this system.', 'target');
@@ -772,6 +792,7 @@ export class Game {
     }
     this.state.mode = 'person'; this.state.locationId = body.id; this.state.lastBodyId = body.id;
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angularVelocity=0;
+    this.state.livelihoods.parkedShip=null;
     this.state.person = { ...this.state.person, x: 480, y: 570, facing: 'up' };
     this.state.stats.dockings++;
     this.disembarkRescuedOccupants(body);
@@ -790,12 +811,14 @@ export class Game {
 
   launch() {
     if (this.state.mode !== 'person') return this._fail('You are already flying.', 'mode');
+    const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return vesselAccess;
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
     if (this.state.interior) return this._leaveInterior();
     const body = this.currentBody || this.system.bodies[0];
     this.state.mode = 'ship'; this.state.locationId = null;
     this.state.ship.x = body.x; this.state.ship.y = body.y + body.radius + 75;
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angle = Math.PI / 2; this.state.ship.angularVelocity=0;
+    this.state.livelihoods.parkedShip=null;
     this._flag('first_launch');
     this._event('launch', { body, text: `Departing ${body.name}` });
     return this._ok({ body });
@@ -803,11 +826,13 @@ export class Game {
 
   /** A departure shortcut only for the hull already parked at this landing. */
   quickLaunch() {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     const s=this.state,body=this.system.bodies.find(value=>value.id===s.locationId);
     if(s.mode!=='person'||s.interior||s.exploration||!body)return this._fail('Return outside to your ship’s landing before launching.','location');
     if(s.person.health<=0||s.person.down)return this._fail('You are incapacitated and cannot launch.','incapacitated');
     if(s.pendingEncounter)return this._fail('Finish this conversation before launching.','encounter');
     if(s.ship.destroyed||s.ship.hull<=0)return this._fail('Your ship is no longer intact.','destroyed');
+    const portAccess=this.ownShipAccess({atPort:true});if(!portAccess.ok)return portAccess;
     if(s.boarding?.phase==='active'||this._hitTimer>0||this.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,s.ship)<700))return this._fail('Resolve the immediate attack before using the departure shortcut.','combat');
     if(body.landable===false||distance(s.ship,body)>body.radius+155)return this._fail('Your ship must be parked at this landing to launch from here.','location');
     return this.launch();
@@ -828,6 +853,7 @@ export class Game {
     const base = { target, distance: dist, fuelCost, range: this.state.ship.warpRange };
     if (id === current.id) return this._fail('You are already in this system.', 'same-system');
     if (this.state.mode !== 'ship') return { ...this._fail('Launch your ship before jumping.', 'mode'), ...base };
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return {...vesselAccess,...base};
     if (!this.hasHyperdrive) return { ...this._fail('Fit Vector thrusters, an Echo scanner and a Fold Drive at a port first.', 'hyperdrive'), ...base };
     if (dist > this.state.ship.warpRange) return { ...this._fail('Beyond your drive range. Follow nearer stars or upgrade the drive.', 'range'), ...base };
     if (this.state.ship.fuel < fuelCost) return { ...this._fail(`This jump needs ${fuelCost} fuel. Refuel at a port.`, 'fuel'), ...base };
@@ -859,6 +885,7 @@ export class Game {
   }
 
   scan(signalId) {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship') return this._fail('Scanners are operated from the ship.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve your open transmission first.', 'encounter');
     const signal = this.system.signals.find(s => s.id === signalId);
@@ -905,6 +932,7 @@ export class Game {
   }
 
   salvage(id) {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship' && this.state.interior?.kind !== 'ship') return this._fail('Salvage is collected from your ship.', 'mode');
     const item = this.system.pickups.find(p => p.id === id);
     if (!item) return this._fail('There is no salvage left here.', 'target');
@@ -1025,6 +1053,7 @@ export class Game {
   }
 
   _checkChapters() {
+    if(!this.ownsShip)return;
     // Chapters are awarded in order; an action completed early still counts later.
     for (const chapter of STORY_CHAPTERS) {
       if (this.state.completedChapters.includes(chapter.id)) continue;
@@ -1052,13 +1081,14 @@ export class Game {
   classInfo(id) {
     const shipClass=SHIP_CLASSES.find(c=>c.id===id);
     if(!shipClass)return this._fail('Unknown vessel class.','target');
-    const base={shipClass,owned:this.state.fleet.owned.includes(id),active:this.state.ship.classId===id};
+    const used=STARTER_SHIP_IDS.includes(id),quote=used?this.usedStarterQuote(id):{cost:shipClass.cost,ore:shipClass.ore};
+    const base={shipClass,owned:this.state.fleet.owned.includes(id),active:this.ownsShip&&this.state.ship.classId===id,cost:quote.cost,ore:quote.ore,used};
     if(base.active)return {...this._fail('This is your active hull.','owned'),...base};
     if(base.owned){const fit=this._canActivateClass(shipClass);return fit.ok?this._ok(base):{...fit,...base};}
     if(shipClass.requiresClass&&!this.state.fleet.owned.includes(shipClass.requiresClass)&&!(shipClass.requiresClass==='sparrow'&&this.state.fleet.owned.some(id=>STARTER_SHIP_IDS.includes(id))))return {...this._fail(`First commission a ${getShipClass(shipClass.requiresClass).name}.`,'prerequisite'),...base};
     if(shipClass.requires?.some(key=>!this.state.upgrades[key]))return {...this._fail(`Requires ${shipClass.requires.map(key=>UPGRADES.find(u=>u.id===key)?.name||key).join(', ')}.`,'prerequisite'),...base};
     if(!this.conditionsMet(shipClass.conditions))return {...this._fail('Continue the Quiet Earth expedition before this yard will commission that hull.','story'),...base};
-    if(this.state.credits<shipClass.cost||this.state.cargo.ore<shipClass.ore)return {...this._fail(`Commissioning needs ${shipClass.cost} credits and ${shipClass.ore} ore.`,'cost'),...base};
+    if(this.state.credits<base.cost||this.state.cargo.ore<base.ore)return {...this._fail(used?`This used starter costs ${base.cost} credits. You have ${Math.floor(this.state.credits)} credits.`:`Commissioning needs ${base.cost} credits and ${base.ore} ore.`,'cost'),...base};
     return this._ok(base);
   }
   _canActivateClass(shipClass) {
@@ -1079,15 +1109,20 @@ export class Game {
   }
   buyShip(id) {
     if(!this.atInhabitedPort)return this._fail('Commission a new hull at an inhabited port.','mode');
+    if(this.state.npcContract?.active)return this._fail('Finish your crew contract before buying a personal ship.','contract');
+    const firstShip=!this.ownsShip;
+    if(!firstShip){const access=this.ownShipAccess({atPort:true});if(!access.ok)return access;}
     const info=this.classInfo(id);if(info.owned)return {...this._fail('This hull is already in your fleet.','owned'),shipClass:info.shipClass,owned:true};if(!info.ok)return info;
     const capacity=this._canActivateClass(info.shipClass);if(!capacity.ok)return capacity;
-    this.state.credits-=info.shipClass.cost;this.state.cargo.ore-=info.shipClass.ore;
+    this.state.credits-=info.cost;this.state.cargo.ore-=info.ore;
     this.state.fleet.owned.push(id);const result=this._activateClass(id,true);
+    if(firstShip)this.claimFirstShip();
     this._flag(`fleet_${id}`);this._log(`Commissioned: ${info.shipClass.name}`,info.shipClass.description,'fleet');
     this._refreshJobs();return result;
   }
   selectShip(id) {
     if(!this.atInhabitedPort)return this._fail('Change hulls at an inhabited port.','mode');
+    const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return vesselAccess;
     if(!this.state.fleet.owned.includes(id))return this._fail('This hull is not in your fleet.','owned');
     if(this.state.ship.classId===id)return this._fail('This hull is already active.','same-class');
     const capacity=this._canActivateClass(getShipClass(id));if(!capacity.ok)return capacity;
@@ -1099,6 +1134,7 @@ export class Game {
   }
 
   enterCabin() {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship') return this._fail('Take the helm before entering the cabin.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
     if (this.system.enemies.some(e => e.active && distance(e, this.state.ship) < 600)) return this._fail('You need to clear immediate danger before leaving the helm.', 'combat');
@@ -1107,6 +1143,8 @@ export class Game {
   exitCabin() { return this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
   /** Move to the helm within the occupied cabin, never to a different hull. */
   quickHelm() {
+    if(this.state.npcContract?.active)return this._fail('This is your employer’s helm. Complete your assigned crew work while the NPC captain flies.','contract');
+    if(!this.hasActiveVessel&&this.state.interior?.kind!=='enemy')return this._fail('You do not own a ship yet.','no-ship');
     const s=this.state,interior=s.interior,person=s.person;
     if(s.mode!=='person'||s.exploration||!['ship','enemy'].includes(interior?.kind))return this._fail('You must be aboard a ship’s crew deck to take its helm.','mode');
     if(person.health<=0||person.down)return this._fail('You are incapacitated and cannot take the helm.','incapacitated');
@@ -1123,6 +1161,7 @@ export class Game {
     return result;
   }
   boardDerelict(signalId) {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship') return this._fail('Approach the derelict in your ship first.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
     const signal = this.system.signals.find(s => s.id === signalId && s.kind === 'derelict');
@@ -1145,6 +1184,7 @@ export class Game {
   }
   _leaveInterior() {
     if(this.state.interior?.kind === 'site') return this.exitSite();
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (!this.state.interior) return this._fail('No interior to leave.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
     if(this.state.boarding?.phase==='active')return this._fail('Clear the boarders or retreat through the airlock first.','boarding');
@@ -1160,6 +1200,7 @@ export class Game {
   }
   recruitCrew(role, identity = {}) {
     if(!this.atInhabitedPort)return this._fail('Meet potential crew at an inhabited port.','mode');
+    const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return vesselAccess;
     const definition=CREW_ROLES[role];if(!definition)return this._fail('Unknown crew role.','target');
     const details=typeof identity==='string'?{id:identity,name:identity}:identity||{};
     if(!details.id&&this.livingCrew.some(c=>c.role===role))return this._fail('This specialist role is already filled.','duplicate');
@@ -1188,6 +1229,7 @@ export class Game {
   }
 
   boardEnemy(enemyId) {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if(this.state.mode!=='ship')return this._fail('Approach the disabled ship from the helm.','mode');
     if(this.state.pendingEncounter)return this._fail('Resolve the open transmission first.','encounter');
     const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId);
@@ -1195,6 +1237,7 @@ export class Game {
     if(enemy.boardingTargetId)return this._fail('Another boarding party already has the tether.','occupied');
     if(distance(enemy,this.state.ship)>this.state.ship.radius+enemy.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');
     Object.assign(enemy,enemyHullProfile(enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow')));
+    if(!enemy.boardable)return this._fail('This craft is too small for a boarding party.','capacity');
     const shipClass=enemy.classId;
     const result=this._enterInterior(this._enemyLocation(enemy),'enemy',enemy.id);
     if(!result.ok)return result;
@@ -1203,10 +1246,13 @@ export class Game {
 
   /** Called by an NPC's completed grapple, never by a random casualty roll. */
   startBoarding(enemyId) {
+    if(!this.hasActiveVessel)return this._fail('There is no hull here to board.','no-ship');
+    if(this.shipClass.berths<3)return this._fail('This small craft cannot accept an external boarding party.','capacity');
     if(this.state.boarding?.phase==='active')return this._fail('A boarding action is already underway.','boarding');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('This vessel is not exposed in space.','mode');
     const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.disabled);
     if(!enemy||enemy.boardingTargetId)return this._fail('That pirate ship cannot attach a boarding tether.','target');
+    if(!enemyHullProfile(enemy.classId).boardable)return this._fail('That small raider cannot carry an external boarding party.','capacity');
     if(this.state.ship.shield>Math.max(4,this.state.ship.maxShield*.2))return this._fail('Your shields block the grapples.','shield');
     if(distance(enemy,this.state.ship)>175+this.state.ship.radius)return this._fail('The pirate grapples cannot reach your hull.','distance');
     if(this.state.mode==='ship')this._enterInterior(this._cabinLocation(),'ship');
@@ -1377,7 +1423,7 @@ export class Game {
 
   _parkCurrentVessel() {
     const ship=this.state.ship;
-    if(ship.hull<=0||ship.destroyed)return null;
+    if(!this.hasActiveVessel||ship.hull<=0||ship.destroyed)return null;
     const parked={...clone(ship),vx:0,vy:0,angularVelocity:0,ownerId:this.playerId,storedUpgrades:clone(this.state.upgrades),systemId:this.state.systemId};
     this.system.parkedShips ||= [];
     const old=this.system.parkedShips.findIndex(v=>v.id===ship.id);
@@ -1386,6 +1432,7 @@ export class Game {
   }
 
   takeCapturedHelm() {
+    if(this.state.npcContract?.active)return this._fail('Finish your employer’s crew contract before taking another vessel.','contract');
     const boarding=this.state.boarding;
     if(this.state.interior?.kind!=='enemy'||boarding?.kind!=='assault')return this._fail('You must be aboard the target vessel to take its helm.','mode');
     if(this.state.person.health<=0||this.state.person.down)return this._fail('You are incapacitated and cannot take the helm.','incapacitated');
@@ -1409,6 +1456,7 @@ export class Game {
   }
 
   boardParkedShip(vesselId) {
+    const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if(this.state.mode!=='ship')return this._fail('Approach your parked vessel from the helm.','mode');
     const target=(this.system.parkedShips||[]).find(v=>v.id===vesselId&&v.hull>0);
     if(!target)return this._fail('That vessel is no longer parked in this system.','target');
@@ -1537,6 +1585,8 @@ export class Game {
   }
 
   _abandonOccupiedShip(boarding,raider) {
+    if(this.state.npcContract?.active&&this.recoverNpcContract?.('The employer’s hull was overrun. The port rescue service recovered the surviving crew.'))return;
+    if(!this.ownsShip)return this.recoverOnFoot('The port rescue service recovered you. You still need to earn a ship of your own.');
     this.professionRescue?.();
     this.syncRescueCombat();
     const ship=this.state.ship,id=ship.id,hostiles=boarding.enemies.filter(e=>e.health>0);
@@ -1656,9 +1706,15 @@ export class Game {
     if (!hasPortServices(body)) return [];
     const epoch = Math.floor(this.state.stats.jobs / 4);
     const root = `${this.state.systemId}:${bodyId}:jobs:${epoch}`;
+    // A port never runs out of ordinary paid work. Each finished shift opens a
+    // fresh set of relay tasks independently of space-only contract progress.
+    const workRoot=`${this.state.systemId}:${bodyId}:jobs:`;
+    const currentWork=this.state.missions.find(m=>m.type==='work'&&m.originSystem===this.state.systemId&&m.originBody===bodyId&&m.status!=='completed');
+    const shifts=this.state.completedJobs.filter(id=>id.startsWith(workRoot)&&id.endsWith(':work')).length;
+    const workId=currentWork?.id||`${workRoot}shift-${shifts}:work`;
     const otherBody = this.system.bodies.find(b => b.id !== bodyId && hasPortServices(b)) || body;
     const definitions = [
-      { id: `${root}:work`, type: 'work', title: 'An honest shift', description: 'Repair three service panels on foot, then return to the job board.', goal: 3, reward: 120, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'tool' },
+      { id: workId, type: 'work', title: 'An honest shift', description: 'Repair three service panels on foot, then return to the job board. No ship or entry fee required; another paid shift is available after this one.', goal: 3, reward: 120, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'tool' },
       { id: `${root}:delivery`, type: 'delivery', title: `A parcel for ${otherBody.name}`, description: `Carry a sealed medicine parcel to ${otherBody.name}. Hand it in at the local job board.`, goal: 1, reward: 145, oreCost: 0, targetBody: otherBody.id, targetSystem: this.state.systemId, faction: 'lantern', icon: 'parcel' },
       { id: `${root}:mining`, type: 'mining', title: 'Hull metal wanted', description: 'Bring six units of ore to this port. The yard pays above the open market.', goal: 6, reward: 150, oreCost: 6, targetBody: bodyId, targetSystem: this.state.systemId, faction: body.faction, icon: 'ore' },
       { id: `${root}:survey`, type: 'survey', title: 'Signals in the dark', description: 'Scan two unexplored signals in this system, then return with your survey.', goal: 2, reward: 160, oreCost: 0, targetBody: bodyId, targetSystem: this.state.systemId, faction: 'lantern', icon: 'scan' },
@@ -1731,6 +1787,7 @@ export class Game {
     this._refreshJobs();
     if (m.status !== 'ready') return this._fail('This contract still has work left to do.', 'requirements');
     if (m.targetSystem !== this.state.systemId || m.targetBody !== this.state.locationId) return this._fail('Payment is waiting at the contract destination.', 'location');
+    if(m.oreCost&&this.ownsShip&&!this.canUseOwnShipHere())return this._fail('Bring the ship holding this ore to the destination before unloading it.','ship-location');
     if (m.oreCost && this.state.cargo.ore < m.oreCost) return this._fail('You need to deliver the promised ore.', 'cargo');
     this.state.cargo.ore -= m.oreCost || 0;
     this.state.credits += m.reward;
@@ -1761,6 +1818,7 @@ export class Game {
   upgradeInfo(id) {
     const u = UPGRADES.find(x => x.id === id);
     if (!u) return this._fail('Unknown upgrade.', 'target');
+    const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return {...vesselAccess,upgrade:u};
     if (this.state.upgrades[id]) return { ...this._fail('Already installed.', 'owned'), upgrade: u, owned: true };
     const requirements = [...new Set([...(u.requires || []), ...(u.id === 'fold_1' ? ['thrusters_1', 'scanner_1'] : [])])];
     const missing = requirements.filter(required => !this.state.upgrades[required] && !Object.keys(this.state.upgrades).some(k => normId(k) === normId(required)));
@@ -1790,6 +1848,9 @@ export class Game {
   }
 
   serviceQuote(action) {
+    if(['repair','refuel','emergency'].includes(action)){
+      const access=this.ownShipAccess({atPort:true});if(!access.ok)return {action,cost:0,label:{repair:'Repair hull',refuel:'Fill fuel tanks',emergency:'Emergency port assistance'}[action],unavailable:true,...access};
+    }
     const sh = this.state.ship,condition=this.worldDirector?.conditions?.[`${this.state.systemId}:${this.state.locationId}`];
     const localRate=condition&&condition.until>this.worldDirector.time?condition.serviceMultiplier:1;
     const rate=this.characterEffects.serviceCost*clamp(finite(localRate,1),.8,1.2);
@@ -1807,6 +1868,7 @@ export class Game {
   }
   service(action) {
     if (!this.atInhabitedPort) return this._fail('Services and trading are available at inhabited ports.', 'mode');
+    if(['repair','refuel','emergency'].includes(action)||this.ownsShip&&action.startsWith('sell')){const access=this.ownShipAccess({atPort:true});if(!access.ok)return access;}
     const quote = this.serviceQuote(action);
     if (!quote) return this._fail('Unknown port service.', 'target');
     if (quote.cost > this.state.credits) return this._fail(`This service costs ${quote.cost} credits.`, 'cost');
@@ -1840,12 +1902,15 @@ export class Game {
   }
 
   _rescue(message) {
+    if(this.state.npcContract?.active&&this.recoverNpcContract?.(message))return;
+    if(!this.ownsShip)return this.recoverOnFoot(message);
     const sh = this.state.ship;
     delete sh.destroyed;
     const body = this.system.bodies.find(b => b.kind === 'station') || this.system.bodies[0];
     sh.hull = Math.ceil(sh.maxHull * 0.6); sh.shield = 0; sh.energy = sh.maxEnergy;
     clearInteriorDamage(sh);
     sh.x = body.x; sh.y = body.y + body.radius + 80; sh.vx = 0; sh.vy = 0;
+    this.state.livelihoods.parkedShip=null;
     this.state.cargo.ore = Math.floor(this.state.cargo.ore * 0.5);
     this.state.cargo.crystal = Math.floor(this.state.cargo.crystal * 0.5);
     const cost = Math.floor(this.state.credits * 0.12); this.state.credits -= cost;
@@ -1868,5 +1933,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules);
 export default Game;

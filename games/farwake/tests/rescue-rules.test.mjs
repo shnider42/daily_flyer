@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { Game } from '../dist/engine.mjs';
 import { cabinLayout, isCabinWalkable, enemyShipState } from '../dist/fleet.mjs';
 import { placeRaider } from './helpers/combat-fixtures.mjs';
+import { withHull } from './helpers/fleet-fixtures.mjs';
 import { RescueRules, RESCUE_RULES, pirateRescueRoll, rescueDisposition, rescueOccupants, rescuedBerthCount } from '../dist/rescue-rules.mjs';
 
 Object.assign(Game.prototype,RescueRules);
 const source={sourceId:'hearth:signal:0'};
 function seedFor(pirates){for(let i=0;i<1000;i++){const seed=`rescue-person-${i}`;if(rescueDisposition(seed,'hearth',source.sourceId,'lifeboat').pirates===pirates)return seed;}throw new Error('No suitable deterministic seed');}
-function gameFor(pirates=false){const game=new Game(seedFor(pirates));game.initializeRescueOccupants();return game;}
+function gameFor(pirates=false){const game=withHull(new Game(seedFor(pirates)),'quill');game.initializeRescueOccupants();return game;}
 function rescue(game){const result=game.takeRescueOccupants('lifeboat','rescue',source);assert.equal(result.ok,true,result.reason);return game.state.ship.rescueGroups[0];}
 function advance(game,seconds){for(let spent=0;spent<seconds;spent+=.1){const dt=Math.min(.1,seconds-spent);game.state.stats.time+=dt;game.stepRescueOccupants(dt);}}
 function atPort(game,bodyId='kettle'){const body=game.system.bodies.find(body=>body.id===bodyId);Object.assign(game.state.ship,{x:body.x,y:body.y+body.radius+30});game.state.mode='person';game.state.locationId=body.id;game.state.interior=null;return body;}

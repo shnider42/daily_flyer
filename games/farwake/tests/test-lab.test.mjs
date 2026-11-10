@@ -56,11 +56,12 @@ test('exercises cannot save, mutate a normal voyage, unlock story, or leave thei
   assert.equal(voyage.serialize(), original);
 });
 
-test('ship-combat exercise uses real pulses and a size-matched boardable target', () => {
+test('ship-combat exercise uses real pulses and a size-matched target with honest boarding eligibility', () => {
   for (const hull of testEnemyChoices()) {
     const session = createTestSession({ scenario: 'ship-combat', enemyClassId: hull.id });
     const { game } = session, enemy = game.system.enemies[0], profile = enemyHullProfile(hull.id);
     for (const key of ['classId', 'interiorClassId', 'radius', 'renderLength', 'renderWidth']) assert.equal(enemy[key], profile[key]);
+    assert.equal(enemy.boardable,hull.berths>=3);
     assert.equal(testSessionStatus(session).complete, false);
     const initialHp = enemy.hp;
     // Hold the exercise target still to isolate the ordinary swept-pulse collision.
@@ -74,7 +75,7 @@ test('ship-combat exercise uses real pulses and a size-matched boardable target'
 });
 
 test('boarding exercises enter the selected hull through the real boarding rules without allied kills', () => {
-  for (const hull of testEnemyChoices()) {
+  for (const hull of testEnemyChoices().filter(hull=>hull.berths>=3)) {
     const session = createTestSession({ scenario: 'boarding', enemyClassId: hull.id });
     const { game } = session;
     assert.equal(game.state.mode, 'ship');
@@ -105,7 +106,8 @@ test('person-combat starts inside the target and raid-defense reaches the ordina
   for (let index = 0; index < 240 && !raid.game.state.boarding; index++) raid.game.step(1 / 60, {});
   assert.equal(raid.game.state.mode, 'person');
   assert.equal(raid.game.state.boarding?.kind, 'defense');
-  assert.equal(raid.game.state.boarding?.shipClass, SHIP_CLASSES[0].id);
+  assert.equal(raid.game.state.ship.classId,'tern');
+  assert.equal(raid.game.state.boarding?.shipClass,'tern');
   assert.equal(testSessionStatus(raid).phase, 'active');
 });
 

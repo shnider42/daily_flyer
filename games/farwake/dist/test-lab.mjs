@@ -12,7 +12,7 @@ export const TEST_SCENARIOS = Object.freeze([
   { id: 'ship-combat', title: 'Ship combat', description: 'Fight one pirate with your starting cutter. Practice thrust, turning, braking, and controlled fire.', goal: 'Disable the marked pirate ship. Stop firing when its engines fail, or finish the hull.' },
   { id: 'boarding', title: 'Board a disabled ship', description: 'Start beside a disabled pirate. Cross the tether and clear its crew with your sidearm.', goal: 'Board the marked ship and secure its bridge. Then return to your ship or take its helm.' },
   { id: 'person-combat', title: 'Person combat', description: 'Begin inside the target ship. Practice aiming, firing, cover, and identifying who hit whom.', goal: 'Clear the hostile crew and secure the target bridge. Your sidearm is ready; you have no allied gunners.' },
-  { id: 'raid-defense', title: 'Repel a pirate raid', description: 'A pirate is close and your shields are down. Hold position to let the grapples attach, then defend your own deck.', goal: 'Survive the boarding alarm and clear the pirates from your ship.' },
+  { id: 'raid-defense', title: 'Repel a pirate raid', description: 'Borrow a small three-berth training shuttle. Your shields are down: hold position, let the grapples attach, and defend its deck.', goal: 'Survive the boarding alarm and clear the pirates from your training shuttle.' },
   { id: 'damage-control', title: 'Damage control', description: 'Walk your starter ship’s deck as one controlled external hit starts a local fire and pressure leak. No repeating attack.', goal: 'Find the marked compartment, suppress its fire, patch its breach, and repair its damage. Your cutter carries 6 ore for the work.' }
 ].map(scenario => Object.freeze(scenario)));
 
@@ -24,8 +24,9 @@ function allowedClasses() {
 }
 
 /** Returns only the permitted early hulls, without later names, unlocks, or prices. */
-export function testEnemyChoices() {
-  return allowedClasses().map(hull => Object.freeze({
+export function testEnemyChoices(scenario='ship-combat') {
+  const boarding=['boarding','person-combat','raid-defense'].includes(scenario);
+  return allowedClasses().filter(hull=>!boarding||hull.berths>=3).map(hull => Object.freeze({
     id: hull.id, name: hull.name, subtitle: hull.subtitle, berths: hull.berths,
     renderLength: hull.stats.renderLength, renderWidth: hull.stats.renderWidth
   }));
@@ -87,11 +88,13 @@ function rangeWorld(seed, danger) {
  * The session owns a fresh, unsavable Game. It accepts neither an existing Game
  * nor a save/passport, so preparing or resetting it cannot mutate a voyage.
  */
-export function createTestSession({ scenario = 'ship-combat', enemyClassId = allowedClasses()[0].id, seed = 'practice' } = {}) {
+export function createTestSession({ scenario = 'ship-combat', enemyClassId = null, seed = 'practice' } = {}) {
   const exercise = TEST_SCENARIOS.find(item => item.id === scenario);
   if (!exercise) throw new RangeError('Choose one of the available test exercises.');
+  enemyClassId ||= testEnemyChoices(scenario)[0].id;
   const permitted = allowedClasses(), selectedHull = permitted.find(item => item.id === enemyClassId);
   if (!selectedHull) throw new RangeError('That hull is not available in test mode.');
+  if(['boarding','person-combat','raid-defense'].includes(scenario)&&selectedHull.berths<3)throw new RangeError('That craft is too small for boarding. Choose a three-berth or larger practice hull.');
   const damageExercise = scenario === 'damage-control', hull = damageExercise ? SHIP_CLASSES[0] : selectedHull;
   const sessionSeed = String(seed).slice(0, 128), game = new ExerciseGame(`farwake-test:${sessionSeed}`);
   const danger = damageExercise ? 0 : Math.min(5, 1 + permitted.indexOf(hull) * 2);
@@ -107,13 +110,14 @@ export function createTestSession({ scenario = 'ship-combat', enemyClassId = all
   game.state.credits = 0;
   game.state.cargo = { ore: 0, crystal: 0 };
   game.state.upgrades = {};
-  game.state.fleet = { owned: [SHIP_CLASSES[0].id], history: [] };
+  const playerHull=scenario==='raid-defense'?'tern':SHIP_CLASSES[0].id;
+  game.state.fleet = { owned: [playerHull], history: [] };
   for (const key of ['crew', 'formerCrew', 'memorial', 'boardingHistory', 'missions', 'completedJobs', 'journal', 'knownLore', 'completedChapters', 'encounterHistory', 'activityTokens', 'storyActions', 'flags']) game.state[key] = [];
   game.state.boarding = null;
   game.state.worlds = {};
   game.state.visited = [RANGE_ID];
   game.state.discovered = [RANGE_ID];
-  Object.assign(game.state.ship, { id: 'test-cutter', name: 'Test cutter', classId: SHIP_CLASSES[0].id, x: 0, y: 0, vx: 0, vy: 0, angle: 0, angularVelocity: 0 });
+  Object.assign(game.state.ship, { id: 'test-cutter', name: scenario==='raid-defense'?'Training shuttle':'Test cutter', classId: playerHull, x: 0, y: 0, vx: 0, vy: 0, angle: 0, angularVelocity: 0 });
   game._updateStats(true);
   game.state.person = { ...game.state.person, health: 100, down: false, facing: 'right' };
   game._runtime = rangeWorld(sessionSeed, danger);

@@ -14,6 +14,13 @@
 .captain-included>span{font-size:1em;color:#a7cdbc;letter-spacing:.035em;font-weight:bold}
 .captain-included strong{margin-left:auto;white-space:nowrap;color:#f0dfae}
 .captain-ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.captain-origins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.captain-origin{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;text-align:left;background:#142735;border:1px solid #526873;color:#c8d3d4;line-height:1.5}
+.captain-origin strong{font-size:1.12em;color:#efe1bb}
+.captain-origin.selected{border-color:#e1c284;box-shadow:inset 3px 0 0 #e1c284;background:#1b2e38}
+.captain-origin span{font-size:1em}
+.captain-included p{flex-basis:100%;margin:3px 0}
+.captain-included strong{white-space:normal}
 .captain-ship{display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;padding:15px 13px 12px;background:#132332;border:1px solid #3b5261;border-bottom:3px solid #07101b;border-radius:3px}
 .captain-ship:hover{background:#192d3b}
 .captain-ship.selected{border-color:#e1c284;border-bottom-color:#ae884d;box-shadow:inset 0 3px 0 #e1c284;background:#1b2e38}
@@ -72,6 +79,7 @@
 .captain-actions .captain-cancel{margin-right:auto;color:#c0cbd0;border:0;background:transparent;text-decoration:underline;text-underline-offset:3px}
 .captain-actions .button-primary{min-width:190px}
 @media(max-width:680px){
+ .captain-origins{grid-template-columns:1fr;gap:9px}
  .captain-setup-dialog .modal-body{padding:16px}
  .captain-ships{grid-template-columns:1fr;gap:12px}
  .captain-ship{display:grid;grid-template-columns:112px minmax(0,1fr);column-gap:14px;row-gap:3px;padding:14px}

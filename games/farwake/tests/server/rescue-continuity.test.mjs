@@ -21,6 +21,8 @@ async function fixture(count=2,{pirates=false,starterShip='sparrow'}={}){
  const realm=new Realm({id:'RESCUE01',seed:pirates?seeds.pirates:seeds.safe,persistence}),captains=[];
  for(let index=0;index<count;index++){
   const {captain}=await realm.createCaptain(`Captain ${index+1}`,{starterShip});ok(realm.attach(captain,{close(){}}));captains.push(captain);
+  // Rescue crews use an already-earned four-berth carrier, not a starter cabin.
+  captain.game.state.fleet.owned.push('quill');captain.game._activateClass('quill',true);
   Object.assign(realm.vessels.get(captain.ownedVesselId).ship,{x:index*100,y:500,angle:0,vx:0,vy:0,angularVelocity:0});
  }
  const room=realm._room('hearth');room.runtime.enemies=[];room.runtime.bullets=[];room.runtime.asteroids=[];room.runtime.pickups=[];room.runtime.signals=[];room.runtime.traffic=[];

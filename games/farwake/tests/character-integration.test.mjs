@@ -26,7 +26,7 @@ function boarded(traits=[],withMedic=false) {
   if(withMedic){land(game);ok(game.recruitCrew('medic'));ok(game.launch());}
   const enemy=placeRaider(game);
   game.system.enemies=[enemy];
-  Object.assign(enemy,enemyHullProfile('sparrow'),{x:game.state.ship.x+80,y:game.state.ship.y,hp:14,disabled:true,cooldown:999,speed:0});
+  Object.assign(enemy,enemyHullProfile('hauler'),{x:game.state.ship.x+80,y:game.state.ship.y,hp:14,disabled:true,cooldown:999,speed:0});
   ok(game.boardEnemy(enemy.id));
   const layout=cabinLayout(game.state.boarding.shipClass),hostilePoint=layout.combatSpawns[0];
   const firingPoint={x:(layout.spawn.x+hostilePoint.x)/2,y:(layout.spawn.y+hostilePoint.y)/2};

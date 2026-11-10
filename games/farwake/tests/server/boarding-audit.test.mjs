@@ -8,6 +8,8 @@ async function fixture(count=2) {
   const realm=new Realm({id:'AUDIT123',seed:'capture-authority-audit',persistence:{kind:'memory',save:async(_id,version)=>({version:version+1})}}),captains=[];
   for(let i=0;i<count;i++){
     const {captain}=await realm.createCaptain(`Captain ${i+1}`);realm.attach(captain,{close(){}});
+    // These later-game boarding scenarios start with an earned crew hull.
+    captain.game.state.fleet.owned.push('tern');captain.game._activateClass('tern',true);
     Object.assign(realm.vessels.get(captain.ownedVesselId).ship,{x:i*130,y:0,angle:0,vx:0,vy:0,shield:0});captains.push(captain);
   }
   const room=realm._room('hearth');for(const key of ['enemies','bullets','asteroids','pickups','signals'])room.runtime[key]=[];
@@ -17,7 +19,7 @@ const bridge=(realm,captain,vessel)=>Object.assign(captain.game.state.person,cab
 const tick=(realm,count=1)=>{for(let i=0;i<count;i++)realm.step(1/30,realm.tick+1,Date.now());};
 function capturedNpc(f,captain=f.captains[0]) {
   const {realm,room}=f,source=realm.vessels.get(captain.aboard);
-  const enemy={id:'audit-pirate',name:'Copper Finch',...enemyHullProfile(),x:source.ship.x+130,y:source.ship.y,angle:0,hp:35,maxHp:100,shield:0,disabled:true,active:false,cooldown:99,speed:0,damage:5,reward:0,faction:'cinder'};
+  const enemy={id:'audit-pirate',name:'Copper Finch',...enemyHullProfile('tern'),x:source.ship.x+130,y:source.ship.y,angle:0,hp:35,maxHp:100,shield:0,disabled:true,active:false,cooldown:99,speed:0,damage:5,reward:0,faction:'cinder'};
   room.runtime.enemies.push(enemy);ok(realm._command(captain,'boardEnemy',{id:enemy.id}));
   const target=realm.vessels.get(captain.aboard),actor=realm._actor(target);
   for(const guard of target.boarding.enemies)guard.health=0;
@@ -83,7 +85,7 @@ test('ordinary home restoration provisions one recovery cutter when the original
 test('losing a later pirate raid on an already-captured prize blocks its bunk and never tows the occupied prize home',async()=>{
   const f=await fixture(1),{target,captain}=capturedNpc(f),{realm,room}=f;
   target.bunks[0]=captain.id;target.installedBunks=1;captain.home={kind:'bunk',vesselId:target.id,bunkIndex:0,systemId:'hearth'};
-  const pirate={id:'second-raider',name:'Second raider',...enemyHullProfile(),x:target.ship.x+100,y:target.ship.y,hp:100,maxHp:100,disabled:false,active:true,cooldown:99,speed:0,damage:5,faction:'cinder'};room.runtime.enemies.push(pirate);
+  const pirate={id:'second-raider',name:'Second raider',...enemyHullProfile('tern'),x:target.ship.x+100,y:target.ship.y,hp:100,maxHp:100,disabled:false,active:true,cooldown:99,speed:0,damage:5,faction:'cinder'};room.runtime.enemies.push(pirate);
   target.ship.shield=0;const actor=realm._actor(target);ok(actor.startBoarding(pirate.id));realm._syncActor(target);
   assert.equal(realm._canTakeCapturedHelm(captain,target),false,'An earlier capture cannot skip a fresh pirate raid.');
   assert.equal(realm._command(captain,'takeCapturedHelm',{}).code,'boarding');

@@ -384,26 +384,26 @@ function ship(location,seed){
   const id=role==='helm'?'exit':'station:'+role,type=role==='helm'?'exit':'station';
   entity(m,id,type,names[role],role,p.tileX,p.tileY,colors[role],{stationRole:role,shipClass:layout.shipClass,vesselId:location.vesselId||location.shipId||location.id,shared:true,console:role,roleLabel:role==='helm'?'Pilot the ship':'Crew duty station'},descriptions[role]);
  }
- const crew=(Array.isArray(location.crew)?location.crew:[]).filter(c=>c&&(typeof c==='string'||typeof c==='object'&&c.status!=='dead'&&(c.health===undefined||c.health>0))).slice(0,layout.berths-1).map((c,i)=>typeof c==='string'?{id:`crew-${i}`,name:c,role:'crewmate'}:{...c,id:c.id||`crew-${i}`});
+ const crew=(Array.isArray(location.crew)?location.crew:[]).filter(c=>c&&(typeof c==='string'||typeof c==='object'&&c.status!=='dead'&&(c.health===undefined||c.health>0))).map((c,i)=>typeof c==='string'?{id:`crew-${i}`,name:c,role:'crewmate'}:{...c,id:c.id||`crew-${i}`});
  for(const bunk of layout.bunks){
   const assignment=location.bunkAssignments?.[bunk.index]??location.bunkAssignments?.[String(bunk.index)],assignedTo=typeof assignment==='object'?assignment.captainId||assignment.id:assignment;
   entity(m,'bunk:'+bunk.index,'bunk',bunk.index===0?'Captain’s berth':`Crew berth ${String(bunk.index+1).padStart(2,'0')}`,'Rest & respawn',bunk.tileX,bunk.tileY,bunk.index===0?'#d5bd8a':'#9caed0',{bunkIndex:bunk.index,respawn:true,claimable:true,assignedTo:assignedTo||null,vesselId:location.vesselId||location.shipId||location.id,bed:{x:bunk.x,y:bunk.y-3*T}},'Set this berth as your recovery point. A claimed berth remains aboard this vessel when its captain travels.');
  }
  for(let i=0;i<crew.length;i++){
-  const c=crew[i],p=layout.crewSpawns[i],dialogueRole=c.role==='navigator'?'pilot':c.role,base=DIALOGUE[dialogueRole];
+  const c=crew[i],p=Number.isFinite(c.x)&&Number.isFinite(c.y)&&isWalkable(m,c.x,c.y)?c:layout.crewSpawns[i%layout.crewSpawns.length]||layout.spawn,dialogueRole=c.role==='navigator'?'pilot':c.role,base=DIALOGUE[dialogueRole];
   const role=String(c.role||'crewmate'),name=c.name||base?.name||'Crewmate';
   entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,dialogueRole,roleLabel:base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
  }
  // These are the people admitted onto this particular hull. Their positions
  // and identities survive saves and become the same actors if trouble starts.
- const guests=(Array.isArray(location.guests)?location.guests:[]).filter(guest=>guest&&typeof guest.id==='string'&&(!guest.shipId||guest.shipId===m.vesselId)&&!['dead','hostile','disembarked'].includes(guest.status)&&(guest.health??100)>0).slice(0,Math.max(0,layout.berths-1-crew.length));
+ const guests=(Array.isArray(location.guests)?location.guests:[]).filter(guest=>guest&&typeof guest.id==='string'&&(!guest.shipId||guest.shipId===m.vesselId)&&!['dead','hostile','disembarked'].includes(guest.status)&&(guest.health??100)>0);
  const guestIds=new Set(),occupied=[...m.entities,layout.spawn,layout.archive,layout.manifest];
  const guestPoint=point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y)&&isWalkable(m,point.x,point.y)&&occupied.every(other=>Math.hypot(point.x-other.x,point.y-other.y)>=20);
  for(const guest of guests){
   if(guestIds.has(guest.id))continue;
   let p=guestPoint(guest)?{x:guest.x,y:guest.y}:layout.crewSpawns.slice(crew.length).find(guestPoint);
   if(!p)for(let y=1;y<layout.rows-1&&!p;y++)for(let x=1;x<layout.cols-1;x++){const candidate={x:(x+.5)*T,y:(y+.5)*T};if(guestPoint(candidate)){p=candidate;break;}}
-  if(!p)continue;
+  if(!p)p=layout.crewSpawns[guestIds.size%layout.crewSpawns.length]||layout.spawn;
   const greeting=guest.greeting||'Thank you for stopping. A berth at the next inhabited port will be enough.';
   const person=entity(m,'guest:'+guest.id,'npc',guest.name||'Rescued passenger','rescued passenger',Math.floor(p.x/T),Math.floor(p.y/T),guest.color||'#adc8ba',{rescuePassenger:true,guestId:guest.id,groupId:guest.groupId,shipId:m.vesselId,roleLabel:'Rescued passenger',greeting,health:guest.health??100,maxHealth:guest.maxHealth??100,status:guest.status||'aboard',bunkIndex:guest.berthIndex},greeting);
   Object.assign(person,p);occupied.push(person);guestIds.add(guest.id);

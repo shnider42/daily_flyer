@@ -21,11 +21,11 @@ const percent=value=>`${value>=1?'+':'−'}${Math.round(Math.abs(value-1)*100)}%
  * New captains lock their choice (including no traits); old captains opt in once.
  */
 export function openCaptainSetup(dialog,{
-  mode='create',character={},locked=false,starterShip='sparrow',
+  mode='create',character={},locked=false,starterShip='sparrow',startMode='regular',
   onComplete=()=>{},onCancel=()=>{}
 }={}) {
   const creating=mode!=='edit',original=normalizeCharacter(character),draft=normalizeCharacter(character);
-  let selectedShip=normalizeStarterShip(starterShip),step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
+  let selectedShip=normalizeStarterShip(starterShip),selectedStart=startMode==='hardcore'?'hardcore':'regular',step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
   const previousClose=dialog.onClose,closeButton=dialog.el?.querySelector('#closeModal');
   const previousCloseDisabled=closeButton?.disabled||false;
   const stopDismiss=e=>{
@@ -55,7 +55,7 @@ export function openCaptainSetup(dialog,{
   function selection(){
     const profile=normalizeCharacter(draft);
     if(!creating&&(!chooseTraits||locked))profile.traits=[...original.traits];
-    return {starterShip:selectedShip,character:profile,chooseTraits:creating||(!locked&&chooseTraits)};
+    return {starterShip:selectedShip,startMode:selectedStart,character:profile,chooseTraits:creating||(!locked&&chooseTraits)};
   }
   async function submit(){
     if(busy||finished)return;
@@ -81,17 +81,17 @@ export function openCaptainSetup(dialog,{
   function render(){
     if(finished)return;
     const isShip=step==='ship';
-    dialog.open(isShip?'Choose your first ship':creating?'Make this captain yours':'Your captain','captain-setup',{
-      eyebrow:creating?`NEW VOYAGE / ${isShip?'1 · YOUR SHIP':'2 · YOUR CAPTAIN'}`:'CAPTAIN’S LOCKER',wide:true
+    dialog.open(isShip?'Where does your story begin?':creating?'Make this captain yours':'Your captain','captain-setup',{
+      eyebrow:creating?`NEW VOYAGE / ${isShip?'1 · YOUR START':'2 · YOUR CAPTAIN'}`:'CAPTAIN’S LOCKER',wide:true
     });
     dialog.el?.classList.add('captain-setup-dialog');
     dialog.html(`<section class="captain-setup" aria-label="${creating?'New captain setup':'Customize your captain'}">
-      ${creating?`<ol class="captain-steps" aria-label="Setup progress"><li${isShip?' aria-current="step"':''}><span>01</span> Ship</li><li${!isShip?' aria-current="step"':''}><span>02</span> Captain</li></ol>`:''}
+      ${creating?`<ol class="captain-steps" aria-label="Setup progress"><li${isShip?' aria-current="step"':''}><span>01</span> Starting life</li><li${!isShip?' aria-current="step"':''}><span>02</span> Captain</li></ol>`:''}
       ${isShip?shipMarkup():captainMarkup()}
       <p class="captain-error" role="alert" data-captain-error>${esc(error)}</p>
       <div class="captain-actions">
         <button type="button" class="captain-cancel" data-captain-cancel>Cancel</button>
-        ${creating&&!isShip?'<button type="button" class="button-secondary" data-captain-back>← Ship choice</button>':''}
+        ${creating&&!isShip?'<button type="button" class="button-secondary" data-captain-back>← Starting life</button>':''}
         <button type="button" class="button-primary" ${isShip?'data-captain-next':'data-captain-submit'}>${isShip?'Make your captain →':creating?'Begin voyage →':'Save captain'}</button>
       </div>
     </section>`);
@@ -103,7 +103,9 @@ export function openCaptainSetup(dialog,{
     root.querySelector('[data-captain-submit]')?.addEventListener('click',submit);
   }
   function shipMarkup(){
-    return `<p class="captain-intro">Three working ships. Pick the kind of first voyage you want.</p>
+    const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR. Pick your first hull below.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">The starting ship is the only difference. Jobs, paid passage, crew contracts, combat, and recovery rules are the same in both modes.</p>`;
+    if(selectedStart==='hardcore')return `${origin}<div class="captain-included"><span>YOUR FIRST MORNING / MORROW</span><strong>Find work. Book a passage. Earn your own ship.</strong><p>Take a local maintenance shift or sign aboard an NPC vessel as a gunner, firehand, or medic. Passenger services charge a fare. Your first ship is bought with credits at the shipwright.</p></div>`;
+    return `${origin}<p class="captain-intro">Three compact working ships. A cockpit, a berth, and room to begin.</p>
       <p class="captain-included"><span>DEPARTURE GRANT</span> Your first ship is included. <strong>Cost: 0 CR</strong></p>
       <div class="captain-ships" role="group" aria-label="Choose your starter ship">${STARTER_SHIPS.map(hull=>{
         const note=SHIP_NOTES[hull.id];
@@ -114,12 +116,13 @@ export function openCaptainSetup(dialog,{
           <strong class="captain-ship-role">${esc(note.role)}</strong>
           <span class="captain-ship-benefit">${esc(note.benefit)}</span>
           <span class="captain-ship-cost">${esc(note.cost)}</span>
-          <span class="captain-ship-spec">${hull.berths} berths <span>·</span> ${hull.stats.cargoCap} cargo <span>·</span> ${hull.stats.maxHull} hull</span>
+          <span class="captain-ship-spec">${hull.berths} ${hull.berths===1?'berth':'berths'} <span>·</span> ${hull.stats.cargoCap} cargo <span>·</span> ${hull.stats.maxHull} hull</span>
         </button>`;
       }).join('')}</div>
-      <p class="captain-note">All three have a walkable crew deck. You can earn another ship as your voyage grows.</p>`;
+      <p class="captain-note">All three have a small walkable cabin. Larger quarters and more crew come with ships you earn later.</p>`;
   }
   function bindShips(root){
+    for(const button of root.querySelectorAll('[data-start-mode]'))button.onclick=()=>{selectedStart=button.dataset.startMode;render();};
     for(const canvas of root.querySelectorAll('[data-ship-preview]')){
       const compact=canvas.getBoundingClientRect().width<150,id=canvas.dataset.shipPreview,height=compact?288:112;
       canvas.width=288;canvas.height=height;const ctx=canvas.getContext('2d');
@@ -161,7 +164,7 @@ export function openCaptainSetup(dialog,{
         <p class="captain-trait-hint" data-trait-hint aria-live="polite"></p>`:
         `<p class="captain-note">Your traits were chosen at departure. Appearance can still be changed.</p><div class="captain-locked-traits">${original.traits.length?original.traits.map(id=>{const trait=CHARACTER_TRAITS.find(value=>value.id===id);return `<div><strong>${esc(trait.name)}</strong><span>${esc(trait.benefit)}</span><span class="captain-trait-cost">${esc(trait.cost)}</span></div>`;}).join(''):'<p>No traits · balanced abilities.</p>'}</div>`}
     </section>
-    <div class="captain-summary" aria-live="polite"><strong>${creating?`${esc(STARTER_SHIPS.find(hull=>hull.id===selectedShip).name)} · ready when you are`:'Your captain’s abilities'}</strong><span data-captain-summary></span></div>
+    <div class="captain-summary" aria-live="polite"><strong>${creating?(selectedStart==='hardcore'?'Morrow · 180 CR · no ship':`${esc(STARTER_SHIPS.find(hull=>hull.id===selectedShip).name)} · 180 CR · ready when you are`):'Your captain’s abilities'}</strong><span data-captain-summary></span></div>
     ${creating?'<p class="captain-note">Traits are fixed after departure. Your ship choice and appearance do not lock you out of the story.</p>':''}`;
   }
   function bindCaptain(root){

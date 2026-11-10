@@ -44,9 +44,10 @@ function access(game,entityId,where=null){
 }
 function ownShipHere(game,job){
  const body=currentBody(game),ship=game.state.ship;
- return !!(body&&ship.id===job.shipId&&ship.hull>0&&distance(ship,body)<=body.radius+160);
+ return !!(game.ownsShip!==false&&!game.state.npcContract?.active&&game.canUseOwnShipHere?.()!==false&&body&&ship.id===job.shipId&&ship.hull>0&&distance(ship,body)<=body.radius+160);
 }
 function spareBerths(game){
+ if(game.ownsShip===false||game.state.npcContract?.active||game.atInhabitedPort&&game.canUseOwnShipHere?.()===false)return 0;
  const humans=Math.max(1,finite(game.state.ship.humanOccupants,1)),crew=(game.livingCrew||[]).length,narrative=game.narrativeBerths?.()||0;
  return Math.max(0,finite(game.state.ship.berths,1)-humans-crew-narrative-game.professionBerths()-finite(game.rescuedBerths?.()));
 }
@@ -155,7 +156,7 @@ export const ProfessionRules={
   const careers=PROFESSIONS.map(def=>{const c=state.careers[def.id],r=rankAt(c.xp),localFaction=body?.faction||this.currentSystem.faction||'freewake';return{...def,...c,rank:rankNames[def.id][r],rankIndex:r,nextRank:r<3?[3,8,16][r]:null,benefit:`${Math.round((rankBonus[r]-1)*100)}% shift-pay bonus${r>=2?' · 20% fewer supply costs':''}`,actions:c.enlisted?[]:[{action:'enlist',professionId:def.id,factionId:localFaction,entityId:id,label:`Join ${def.name}`,available:check.ok,reason:check.reason||null}]};});
   const offers=PROFESSIONS.map(def=>offer(this,def,body)).filter(Boolean).map(value=>{
    const career=state.careers[value.professionId],wait=Math.max(0,Math.ceil(state.cooldownUntil[value.professionId]-time(this)));
-   const reason=!check.ok?check.reason:!career.enlisted?'Enroll at this desk first.':wrongEmployer(this,profession(value.professionId),body)|| (state.active?'Complete or return your current assignment.':wait?`Dispatch resets in ${wait}s.`:this.state.credits<value.cost?`Supplies cost ${value.cost} cr; you have ${Math.floor(this.state.credits)} cr.`:value.professionId==='paramedic'&&spareBerths(this)<1?'A patient requires one free berth.':null);
+   const reason=!check.ok?check.reason:!career.enlisted?'Enroll at this desk first.':wrongEmployer(this,profession(value.professionId),body)|| (state.active?'Complete or return your current assignment.':wait?`Dispatch resets in ${wait}s.`:value.professionId==='military'&&this.canUseOwnShipHere?.()===false?'This patrol needs your own ship at this port. Crew contracts offer paid shipboard work before you own one.':this.state.credits<value.cost?`Supplies cost ${value.cost} cr; you have ${Math.floor(this.state.credits)} cr.`:value.professionId==='paramedic'&&spareBerths(this)<1?'A patient requires one free berth.':null);
    return{id:value.id,professionId:value.professionId,title:value.title,text:value.text,objective:`Begin at ${body?.name}.`,target:{...target(value.originSystem,value.originBody),label:atName(this,target(value.originSystem,value.originBody))},reward:value.reward,cost:value.cost,eventId:value.eventId,actions:[{action:'accept',jobId:value.id,eventId:value.eventId,entityId:id,label:`Start shift · ${value.cost} cr supplies`,available:!reason,reason}]};
   });
   const events=world.events.map(event=>({...event,actions:[]}));
@@ -184,6 +185,7 @@ export const ProfessionRules={
    if(state.cooldownUntil[offered.professionId]>time(this))return this._fail('Dispatch is preparing your next shift.','cooldown');
    if(this.state.credits<offered.cost)return this._fail(`Supplies cost ${offered.cost} cr; you have ${Math.floor(this.state.credits)} cr.`,'cost');
    if(offered.professionId==='paramedic'&&spareBerths(this)<1)return this._fail('A patient needs one spare berth alongside all crew and passengers.','capacity');
+   if(offered.professionId==='military'&&this.canUseOwnShipHere?.()===false)return this._fail('This patrol needs your own ship at this port. Take a paid crew contract if you want shipboard work before owning a hull.','no-ship');
    this.state.credits-=offered.cost;state.serial++;
    state.active={...offered,phase:{paramedic:'pickup',doctor:'triage',law:'investigate',military:'patrol'}[offered.professionId],startedAt:time(this),round:0,errors:0,decision:null,outcomeText:'',outcomeFactor:1,dockingsAtStart:integer(this.state.stats.dockings),dockingsAtPickup:0,targetId:['law','military'].includes(offered.professionId)?`${offered.id}:target`:null};
    this.syncProfessionWorld();this._event('profession-progress',{text:jobView(this,state.active).objective});

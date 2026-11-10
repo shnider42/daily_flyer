@@ -82,7 +82,8 @@ test('allied kills identify the crew member and do not increment captain kill cr
  for(const hostile of b.enemies)hostile.health=0;
  Object.assign(target,cabinLayout(b.shipClass).combatSpawns[0],{health:1,cooldown:999});
  const crew={id:'crew-defense',name:'Mara',role:'security',health:140,maxHealth:140,status:'active'};game.state.crew=[crew];
- b.allies=[{id:'guard-mara',crewId:crew.id,name:crew.name,role:'security',...firingPoint(game),health:140,maxHealth:140,team:'friendly',damage:16,cooldown:0,speed:64}];
+ const supportPoint={x:target.x+120,y:target.y};assert.ok(isCabinWalkable(cabinLayout(b.shipClass),supportPoint.x,supportPoint.y));assert.ok(clearSidearmSight(cabinLayout(b.shipClass),supportPoint,target));
+ b.allies=[{id:'guard-mara',crewId:crew.id,name:crew.name,role:'security',...supportPoint,health:140,maxHealth:140,team:'friendly',damage:16,cooldown:0,speed:64}];
  game.step(1/60,{});
  const down=game.drainEvents().find(e=>e.type==='boarder-down');assert.ok(down);assert.equal(down.attackerId,'guard-mara');assert.equal(down.actorName,'Mara');assert.equal(down.team,'friendly');
  assert.equal(game.state.stats.personKills||0,0);assert.equal(b.kills.crew,1);

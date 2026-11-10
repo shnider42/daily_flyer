@@ -1,16 +1,33 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.5.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.6.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
-You begin beside Kettle Station in **Cinder**, your choice of a balanced Sparrow, a quick Kestrel scout, or a cargo-focused Mule tug, with 180 credits and no fold drive. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
+Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
 
+## Small beginnings and paid passage · 0.6.0
+
+The three starter interiors are small working cabins: **Sparrow has two berths, Kestrel one, and Mule two**, counting the captain. Their revised footprints are 71–79% smaller than before, with compact stations and fold-down bunks. Five additional earned hulls bring the fleet to **14 classes**, with distinct exterior shapes, matching decks, equipment, handling, and tradeoffs. Later shipyard choices appear as their progression requirements are met. Starting choices still show only the three starters, and practice exposes only the smaller half of the fleet; boarding exercises filter out hulls too small for an assault.
+
+**Hardcore is a shipless origin, not a separate difficulty ruleset.** It begins on Morrow with the same 180 credits, traits, health, and economy as Regular. It does not grant an invisible vessel, a free replacement, or ownership of a ship visited as a crewmate. Earning a first hull opens the normal ship campaign. Existing voyages keep their ships, progress, passengers, and crew; revised cabins relocate people to safe floor and map existing compartment damage into the corresponding smaller deck.
+
+At an inhabited port, use **Port services** or **Menu → Port services**. Every captain can:
+
+- **Find local work:** the contract exchange always offers a repeatable three-relay maintenance shift without a ship or entry fee. Repair three distinct marked relays and collect the contract payment at the board.
+- **Buy passenger passage:** pay for travel to another eligible inhabited planet or station in the current system. The panel shows the fare, current balance, and balance after purchase. Arrival is on foot, quarantine restrictions still apply, and any privately owned ship stays at its actual berth.
+- **Sign on as paid crew:** serve as a gunner, fire crew member, or ship medic aboard an employer's actual vessel. Sign-on is free, and the employer provides its ship and supplies.
+- **Buy a first ship:** used starter hulls cost **420 / 420 / 480 credits** for Sparrow / Kestrel / Mule, with no ore requirement for the first purchase. A first hull must be bought at the shipwright; visiting or working aboard another ship does not satisfy that milestone.
+
+Crew contracts use a real NPC captain, real flight, and physical stations. A gunner operates the ship's exterior guns against a marked raider; fire crew suppress and repair a compartment incident; a medic treats the injured worker aboard. **Crew duty → Mark my duty location** points to the appropriate station or compartment. Full base pay is **210 / 170 / 180 credits**, respectively, before applicable character-trait adjustments. The captain returns to the hiring port after completion or an early-return request. Pay requires recorded work and physical docking, pays only once, and grants no wages for idle or interrupted service. Partial completed work can earn a reduced payment on an early return.
+
+These are three bounded local service runs, not a simulation of every NPC captain's career. Passenger tickets currently connect ports within one system. The same services and ownership checks run in solo and shared play. Shared contracts retain their physical vessel, crew, progress, and ownership across reconnects and server restoration; a parked personal ship remains separate from the employer's hull.
+
 ## Hull identity and damage aboard · 0.5.3
 
-All nine hulls have authored, bow-up deck footprints based on their exterior silhouettes, with their own compartments, passages, stations, fixtures, and berth placement. Open salvage cradles are actual void, not walkable floor. Boarding, crew movement, bullets, local repairs, and rendering share the same collision geometry. Old valid positions remain; positions invalidated by a revised deck move to nearby safe floor on the actual occupied hull.
+All hulls have authored, bow-up deck footprints based on their exterior silhouettes, with their own compartments, passages, stations, fixtures, and berth placement. Open salvage cradles are actual void, not walkable floor. Boarding, crew movement, bullets, local repairs, and rendering share the same collision geometry. Old valid positions remain; positions invalidated by a revised deck move to nearby safe floor on the actual occupied hull.
 
 Each class has native equipment with real effects and a tradeoff, shown in its existing ship panel and eligible shipyard card. The starter Sparrow has a faster-recharging reserve bus; the Kestrel has a stronger, more energy-hungry boost; the Mule has a longer-reaching mining and salvage tractor. Later hulls add their own propulsion, shield, survey, weapon, workshop, or medical specialization. Starting choices and practice opponents retain their discovery limits. Client boost prediction uses the same energy rules as authority.
 
@@ -127,7 +144,7 @@ Boarding takes place on the **target vessel's persistent deck**. Its exterior sc
 
 Hostile occupation blocks recovery into that vessel, including bunk respawns. Defeated captains recover at a safe port; if their owned ship is occupied or destroyed, recovery uses a separate basic hull. This does not repair, teleport, or reclaim the occupied target. Ordinary friendly crew are protected. A player must explicitly **declare hostility** before ship-versus-player damage or forced boarding; both sides can then fight. Friendly-fire balance remains deliberately limited to that rule in this release.
 
-**Test mode** is at the bottom of the main menu; enter **123**. Choose ship combat, boarding a disabled target, person combat, or pirate raid defense. Only the smallest half of hulls by exterior size are offered as enemy choices. The player starts with the same cutter, no allied gunners, and no story/progression rewards. Exercises are separate unsavable sessions: retry, switch exercises, or exit without changing a solo voyage or joining a shared galaxy.
+**Test mode** is at the bottom of the main menu; enter **123**. Choose ship combat, boarding a disabled target, person combat, pirate raid defense, or damage control. Only the smallest half of hulls by exterior size are offered as enemy choices; boarding-related exercises require a boardable target. Most exercises use the starter cutter; raid defense lends a small three-berth vessel so the boarding can physically take place. There are no allied gunners or story/progression rewards. Exercises are separate unsavable sessions: retry, switch exercises, or exit without changing a solo voyage or joining a shared galaxy.
 
 The top-right **CREW** label remains visible after connecting. To board a friend's ship, the owner grants access in **CREW → Shared ship & stations**; the friend selects the vessel in CREW and uses **Board with permission**. Meet at the same port or within 220 metres in space at low speed, with a spare berth and no immediate fight. A nearby ship also exposes its boarding/crew actions through the context button. The menu identifies its captain so two ships named Cinder are distinguishable.
 
@@ -152,15 +169,17 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Factions | Five, with persistent reputation and an authored alliance decision |
 | Encounters | 25 authored choice events, including conditional follow-ups |
 | Ship equipment | 16 upgrades, including three fold-drive tiers |
-| Fleet | Nine hull classes, three included starter choices, and distinct 3–10-berth interiors |
+| Fleet | 14 hull classes, three included starter choices, and distinct 1–10-berth interiors |
 | Crew | Seven NPC specialist roles, shared human/NPC capacity, injuries, and persistent memorials |
 | Boarding | Assault disabled ships or defend your own deck against pirate boarders |
 | Lore | 14 collectible records, plus location descriptions and NPC conversations |
 | Local activities | Larger planetary maps, enterable settlements and wilderness sites, wildlife combat, persistent supplies and decisions, plus contract work, repairs, freight, surveys, trade and recruitment |
 | Stories and relationships | 11 additional threads, 45 stages, recurring contacts, remembered choices, clue-based puzzles, and faction pledges |
 | Professions | Paramedic, doctor, faction law enforcement, and military service with persistent ranks and paid assignments |
+| Civilian travel and crew work | Paid local passenger tickets, repeatable work without a ship, and gunner/fire crew/medic contracts aboard NPC-piloted vessels |
 | Living frontier | Shared rescue calls, raids, outbreaks, and border clashes that resolve with or without player participation |
 | Captain | Appearance choices and six optional traits; choose up to two with explicit benefits and drawbacks |
+| Starting origins | Regular with a small ship, or Hardcore without one; same 180 credits and gameplay rules |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
 The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 880 separate handcrafted campaigns. The original campaign and encounters are authored in [dist/content.mjs](dist/content.mjs); the additional threads and recurring contacts are in [dist/quest-content.mjs](dist/quest-content.mjs).
@@ -187,19 +206,21 @@ Fold travel is selected on the starmap and requires a drive with sufficient rang
 
 Walk through stations, settlements, your cabin, and boardable derelicts. Approach an NPC or workstation and use **Talk / Use**. Available activities include conversations, contract collection, carrying a crate to a loading pad, collecting field samples, and calibrating maintenance relays with a small conductor puzzle.
 
-Contract payment is collected at the stated destination's job board after the requirements are met. A maintenance contract requires three distinct repairs. Return to a landing shuttle, airlock, or helm to resume ship mode.
+Contract payment is collected at the stated destination's job board after the requirements are met. A maintenance contract requires three distinct repairs. Return to a landing shuttle, airlock, or helm to resume ship mode when a usable ship is present. Without a local ship, **Port services** offers work, paid passage, and crew contracts instead.
 
 Every ship class has a walkable interior with a helm, engineering, medical, navigation, security, and bunks. Engineering spends reactor charge to repair the hull; medical spends charge to treat injured captains and living crew. In shared play, station permissions let one person fly while others operate weapons, sensors, and support systems.
 
 ### Boarding and crew survival
 
-Damaged enemies can become disabled. Stop firing if you want to take them intact, approach until **Board** appears, and enter their deck. Move with WASD, aim with the mouse or arrows, and left-click or hold Space to fire. A visible target bracket shows aim assist when no manual direction is held. Your NPC crew can fight alongside you. An assault can be abandoned by returning to its entry point.
+Damaged enemies can become disabled. Boardable targets have at least three berths; tiny one- and two-berth craft do not produce impossible boarding interiors. Stop firing if you want to take a suitable target intact, approach until **Board** appears, and enter its deck. Move with WASD, aim with the mouse or arrows, and left-click or hold Space to fire. A visible target bracket shows aim assist when no manual direction is held. Your NPC crew can fight alongside you. An assault can be abandoned by returning to its entry point.
 
 Pirates can also grapple your ship when your shields are weak. A warning precedes the boarding attempt; create distance or recover shields to break it. If they reach the deck, the encounter becomes a live fight. Crew and hostiles move through the same doors and corridors you use, and walls block their shots.
 
 **NPC crew deaths are permanent for that voyage.** Casualties come from damage during the fight, are recorded in the memorial, and remove that specialist's contribution. Treatment helps living crew; it does not resurrect the dead. Recruit a replacement at an inhabited port when a berth is available. Ship defeat and captain recovery apply penalties rather than deleting the campaign.
 
 ### A useful opening route
+
+For a shipless beginning, take maintenance shifts or paid crew work at Morrow, then visit the shipwright when you can afford a used starter. Paid passenger passage offers another way to reach Kettle and its jobs. Your first hull opens the same opening route as Regular:
 
 1. Dock at Kettle Station and meet Iona at the shipyard.
 2. Take a maintenance shift from the contract exchange. Repair the three marked relays and return for payment.
@@ -215,14 +236,15 @@ The campaign requires actions and decisions, not just arrival at a destination. 
 
 Commission hulls from an inhabited port's shipyard after earning their preceding class, equipment, and campaign milestone. Equipment upgrades carry forward. Owned hulls remain available to activate at a port, subject to cargo and crew capacity; changing hulls is not a free repair.
 
-| Hull | Total berths | Commission cost | Progression requirement | Character |
-| --- | ---: | --- | --- | --- |
-| **Sparrow** utility cutter | 4 | Starting ship | None | Compact deck, quick acceleration and turning |
-| **Wayfarer** long-haul freighter | 6 | 1,150 credits + 20 ore | Sparrow, Fold I, first-fold chapter | Cargo spine, larger hold, heavier handling |
-| **Peregrine** expedition frigate | 8 | 2,900 credits + 38 ore | Wayfarer, Fold II, archive chapter | Protected operations deck and stronger defenses |
-| **Horizon** expedition carrier | 10 | 6,400 credits + 60 ore | Peregrine, Fold III, alliance chapter | Separate wings, greatest capacity, slowest angular response |
+| Starter hull | Total berths | Used first-hull price | Character |
+| --- | ---: | ---: | --- |
+| **Sparrow** utility cutter | 2 | 420 credits | Shared cockpit and work bay, balanced handling |
+| **Kestrel** scout courier | 1 | 420 credits | Narrow solo cabin, fast thrust, small hold |
+| **Mule** salvage tug | 2 | 480 credits | Cramped working cabin, greater mining reach and cargo room |
 
-Berths count **everyone aboard, including the captain**. The starter ship can carry its captain and three NPCs; a Horizon can carry ten human players if no NPCs occupy those places. Engineers, navigators, medics, gunners, security officers, scientists, and quartermasters offer different ship benefits and boarding support. The crew manifest shows health, vacancies, and the memorial. Dismiss living specialists at a port to free space for other crew.
+Regular includes one of these three at creation; a captain without an owned hull pays the listed first-hull price with no ore requirement. Subsequent commissions use the shipyard's normal resource and progression requirements. The eleven earned designs range from modest working vessels to ten-berth ships and introduce their abilities as you progress.
+
+Berths count **everyone aboard, including the captain**. Sparrow and Mule each have room for one additional person; Kestrel is a solo craft. Large ten-berth vessels can carry ten human players if no NPCs occupy those places. Engineers, navigators, medics, gunners, security officers, scientists, and quartermasters offer different ship benefits and boarding support. The crew manifest shows health, vacancies, and the memorial. Dismiss living specialists at a port to free space for other crew. Older saves keep existing crew and passengers even if their reduced starter cabin is already over capacity; that does not create spare berths for new recruits.
 
 ## Controls
 
@@ -271,7 +293,7 @@ The header's **Menu** opens the map, log, ship, contacts, action help, and setti
 ### Joining and returning
 
 1. From the title, choose **Create a shared galaxy** and enter a captain and galaxy name. Use **Join with a galaxy code** to enter an existing one. The **CREW** panel offers the same paths during a solo voyage.
-2. Share the **galaxy code** from CREW with friends. Each new join creates a distinct captain with their own progression and starting ship. The galaxy allows up to ten captains online at once.
+2. Share the **galaxy code** from CREW with friends. Each new join creates a distinct captain with their own progression and selected Regular or Hardcore origin. The galaxy allows up to ten captains online at once.
 3. Use **Return to your galaxy** or your saved captain entry to resume that identity. Players can return at different times; everyone does not need to be online together.
 4. Open **CREW → Captain passport → Download captain passport** to back up your identity. On another device, choose **Restore a captain passport** and paste that JSON.
 
@@ -291,7 +313,7 @@ Captains can travel independently in their own ships, or stay aboard a crewed ve
 
 | Home | Cost and requirements |
 | --- | --- |
-| Kettle recovery berth | Starting fallback |
+| Port recovery berth | Starting fallback at Kettle for Regular or Morrow for a shipless origin |
 | Port room | 50 credits at an inhabited port; the lodging registration does not expire |
 | Surface outpost | 180 credits + 12 ore on a planet or moon |
 | Ship bunk | Owner fits each additional bunk for 60 credits + 4 ore; an allowed captain visits an unclaimed fitted bunk to register it |
@@ -314,7 +336,7 @@ To move a voyage between devices or keep a backup:
 2. On the destination browser, begin or continue a voyage and open the same save panel.
 3. Open the exported JSON as text, paste its contents into the import box, and choose **Check and import save**. Import replaces the current local voyage.
 
-The save includes the galaxy seed, pseudorandom state, hull class and fleet, ship position and angular momentum, crew health and memorials, active boarding, resources, contracts, decisions, campaign progress, discoveries, and recorded changes to visited systems. Restoration rebuilds the seeded galaxy and reapplies its saved changes. A seed by itself reproduces the base world; the full save is needed to restore the player's history.
+The save includes the galaxy seed, pseudorandom state, starting origin and actual ship ownership, hull class and fleet, parked-ship location, paid passenger journeys, active NPC crew contracts, ship position and angular momentum, crew health and memorials, active boarding, resources, contracts, decisions, campaign progress, discoveries, and recorded changes to visited systems. Restoration rebuilds the seeded galaxy and reapplies its saved changes. A seed by itself reproduces the base world; the full save is needed to restore the player's history.
 
 Settings are stored separately and are not included in the voyage export. The current engine save format is **version 4**. Earlier saves acquire starter-class and angular-motion defaults without discarding their existing crew or progress. The solo browser storage keys retain their existing names:
 
@@ -373,7 +395,10 @@ For solo-only static hosting, publish the **contents of `dist/`** with `index.ht
 | [dist/app.mjs](dist/app.mjs) | Browser entry point, game loop, modes, menus, online action routing, crisp label overlay, and save orchestration |
 | [dist/engine.mjs](dist/engine.mjs) | DOM-free rules: seeded galaxy, combat, mining, contracts, fleet, boarding, campaign gates, and save restoration |
 | [dist/fleet.mjs](dist/fleet.mjs) | Hull and crew definitions; pure body-relative flight integration used by server and browser prediction |
-| [dist/interior-layouts.mjs](dist/interior-layouts.mjs) | Shared walkable geometry, stations, bunks, and combat spawn points for all four hull classes |
+| [dist/interior-layouts.mjs](dist/interior-layouts.mjs) | Shared walkable geometry, stations, bunks, and combat spawn points for all hull classes |
+| [dist/livelihoods.mjs](dist/livelihoods.mjs) | Shipless origin, actual ownership and parked-ship checks, paid passenger routes, and first-hull purchases |
+| [dist/livelihood-ui.mjs](dist/livelihood-ui.mjs) | Contextual port services, fare quotes, paid crew offers, and duty guidance |
+| [dist/npc-contracts.mjs](dist/npc-contracts.mjs) | NPC-piloted service runs, actual station work, incident progress, return navigation, and wage settlement |
 | [dist/content.mjs](dist/content.mjs) | Original factions, authored hubs, NPC dialogue, lore, encounters, chapters, and equipment definitions |
 | [dist/surface.mjs](dist/surface.mjs) | Seeded walkable maps, collision, interaction entities, location-specific residents, and surface drawing |
 | [dist/space-art.mjs](dist/space-art.mjs) | Procedural planets, ships, stations, rocks, effects, camera, and radar drawing |
@@ -385,6 +410,7 @@ For solo-only static hosting, publish the **contents of `dist/`** with `index.ht
 | [dist/shared/device-audio.mjs](dist/shared/device-audio.mjs) | Shared DailyFlyer/DFE gesture activation and device-audio routing helpers |
 | [server/index.mjs](server/index.mjs) | Static HTTP service, realm entry, WebSocket sessions, simulation clock, and health endpoint |
 | [server/realm.mjs](server/realm.mjs) | Authoritative rooms, captains, vessels, command validation, station permissions, homes, and recovery |
+| [server/livelihoods.mjs](server/livelihoods.mjs) | Shared passenger travel, employer vessel custody, crew wages, and creation of a paid first hull |
 | [server/protocol.mjs](server/protocol.mjs) | Protocol limits, input validation, passport secrets, and rate limits |
 | [server/persistence.mjs](server/persistence.mjs) | Versioned development files and durable production gateway adapter |
 | [deployment/](deployment/) | Persistence gateway implementation and database schema |
@@ -406,6 +432,8 @@ npm test
 `npm test` runs the full browser-rule and server suite. `npm run check` performs syntax checks on the main browser, engine, surface, network, and server modules. `npm run test:network` runs the network-focused server tests.
 
 Meaningful cases include galaxy determinism and connectivity, all eight earned campaign stages, economic and reward guards, abandoned/reaccepted contracts, independent translation and rotation, matching flight behavior across frame rates, saved angular momentum, fleet prerequisites and capacity, real boarding damage and permanent casualties, interior restoration, dual-stick ownership, surface reachability and collision, shared-world updates once per system, concurrent mining and kill credit, authoritative actions, reconnects, and persistence restoration.
+
+The 0.6.0 regressions also cover both origin choices through the HTTP entry points, shipless access without a phantom vessel, repeatable land-based earnings, credit-only first purchases, fare validation and quarantine, parked-ship custody, permitted visits to friends' ships, reduced-cabin migration without losing people or damage, and actual NPC work before payment. Shared contract checks include ten independent watches in separate systems and ten watches in one system, plus reconnect and restart restoration.
 
 For a release, also exercise the browser: start and restore a solo voyage; dock, work, and launch; make an encounter choice; export/import a save and a passport; join the same galaxy in separate sessions; share a vessel and take different stations; enter and leave an actual boarding fight; reconnect from a home berth; and resize the interface at 160% text. Check simultaneous two-thumb flight/fire, audio activation, and touch cancellation on the intended physical devices. Automated rules and emulated phone viewports do not establish physical-device compatibility on their own.
 

@@ -7,6 +7,8 @@ import {Realm} from '../server/realm.mjs';
 import {generateSurface} from '../dist/surface.mjs';
 import {QUEST_THREADS,QUEST_CONTACTS,questThread,questContact} from '../dist/quest-content.mjs';
 import {occupiedNarrativeBerths} from '../dist/quest-rules.mjs';
+import {enemyHullProfile} from '../dist/fleet.mjs';
+import {withHull} from './helpers/fleet-fixtures.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason||result?.message);return result;};
 const fresh=seed=>{const game=new Game(seed||'story-tests');game.state.credits=5000;game.state.cargo.ore=30;return game;};
@@ -156,7 +158,7 @@ test('separate captains share physical bounty state without sharing choices or g
 });
 
 test('restore whitelists story IDs and choices, limits memory, and rescue preserves people without inventing a fare',()=>{
- const game=fresh('narrative-restore');accept(game,'last_fare');go(game,deskTarget('hearth','kettle'));const offer=game.passengerOffers()[0];ok(game.acceptPassenger(offer.id,offer.sourceEntityId));
+ const game=withHull(fresh('narrative-restore'),'quill');accept(game,'last_fare');go(game,deskTarget('hearth','kettle'));const offer=game.passengerOffers()[0];ok(game.acceptPassenger(offer.id,offer.sourceEntityId));
  const raw=game.save();raw.narrative.quests.invented={status:'completed',rewardQuote:100000};raw.narrative.quests.last_fare.choices={privacy:'invented-choice'};raw.narrative.quests.last_fare.rewardQuote=100000;raw.narrative.met.push('invented-contact');raw.narrative.relations['len-vale'].memories=Array.from({length:40},()=>({text:'<bad>test',at:0}));
  const restored=Game.fromSave(raw);assert.equal(restored.state.narrative.quests.invented,undefined);assert.deepEqual(restored.state.narrative.quests.last_fare.choices,{});assert.equal(restored.state.narrative.quests.last_fare.rewardQuote,Math.ceil(95*1.5));assert.ok(!restored.state.narrative.met.includes('invented-contact'));assert.equal(restored.state.narrative.relations['len-vale'].memories.length,6);assert.ok(!restored.state.narrative.relations['len-vale'].memories[0].text.includes('<'));
  const credits=restored.state.credits;restored.state.ship.id='replacement';restored._rescue('Test emergency recovery');assert.equal(restored.state.narrative.passenger,null);assert.equal(restored.state.credits,credits-Math.floor(credits*.12));assert.equal(restored.state.narrative.quests.last_fare.shipId,'replacement');assert.equal(restored.narrativeBerths(),1);assert.equal(restored.state.narrative.quests.last_fare.evacuated,true);
@@ -209,13 +211,16 @@ test('a boarded bounty hull keeps a durable wreck record without inheriting its 
  const evidence=questThread('paper_bounty').stages[1];walk(realm,captain,evidence.at.entityId);ok(await realm.command(captain,'threadAction',{threadId:'paper_bounty',action:'solve',entityId:evidence.at.entityId,solution:evidence.puzzle.solution}));
  walk(realm,captain,realm._surface(captain).entities.find(e=>e.type==='siteExit').id);ok(await realm.command(captain,'exitSite'));await launch(realm,captain);
  const room=realm._room('hearth'),owned=realm.vessels.get(captain.ownedVesselId),enemy=room.runtime.enemies.find(e=>e.id===captain.game.state.narrative.quests.paper_bounty.targetId),source=realm._actor(owned);
+ // This promotion regression needs a crew-capable prize. Rook's normal solo
+ // scout remains too small to board; the warrant can still be negotiated.
+ Object.assign(enemy,enemyHullProfile('hauler'));
  Object.assign(owned.ship,{x:enemy.x-155,y:enemy.y,angle:0,vx:0,vy:0,energy:owned.ship.maxEnergy});
  for(let shot=0;shot<3;shot++){source._shotTimer=0;ok(source.fireWeapons(captain.id));room.coordinator._updateBullets(.25,[source]);}assert.equal(enemy.disabled,true);
  owned.ship.x=enemy.x-100;ok(await realm.command(captain,'boardEnemy',{id:enemy.id}));const prize=realm.vessels.get(enemy.canonicalVesselId),prizeActor=realm._actor(prize);assert.ok(prize);
  assert.equal(source.narrativeBerths(),1);assert.equal(prizeActor.narrativeBerths(),0,'the borrowed actor state must not place the private fare aboard the prize');prizeActor.recordPassengerDamage(5);assert.equal(captain.game.state.narrative.passenger.damageTaken,0);
  ok(await realm.command(captain,'returnToOwnShip'));const primary=realm._actor(owned),targetActor=realm._actor(prize),credits=captain.game.state.credits,pickups=room.runtime.pickups.length;
  Object.assign(owned.ship,{x:prize.ship.x-155,y:prize.ship.y,angle:0,vx:0,vy:0,energy:owned.ship.maxEnergy});
- for(let shot=0;shot<2;shot++){primary._shotTimer=0;ok(primary.fireWeapons(captain.id));room.coordinator._updateBullets(.25,[primary,targetActor]);}
+ for(let shot=0;shot<12&&!prize.destroyed;shot++){primary._shotTimer=0;ok(primary.fireWeapons(captain.id));room.coordinator._updateBullets(.25,[primary,targetActor]);}
  assert.equal(prize.destroyed,true);assert.equal(room.record.defeated.filter(id=>id===enemy.id).length,1);assert.equal(room.record.enemyHealth[enemy.id],undefined);assert.equal(captain.game.state.credits,credits);assert.equal(room.runtime.pickups.length,pickups);
  realm._destroyVessel(prize);assert.equal(room.record.defeated.filter(id=>id===enemy.id).length,1);
  const restored=new Realm({id:realm.id,snapshot:realm.document(),persistence}),returned=restored.captains.get(captain.id);ok(restored.attach(returned,{close(){}}));assert.equal(restored.vessels.get(prize.id).destroyed,true);assert.ok(!restored._room('hearth').runtime.enemies.some(e=>e.id===enemy.id));

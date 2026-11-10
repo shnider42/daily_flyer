@@ -155,12 +155,12 @@ test('the target helm is a command-transfer action, stays locked during combat, 
 });
 
 test('the entry airlock routes an active assault back to the actual source hull',async()=>{
-  const f=fixture(),session=enter(f,'person-combat'),game=session.game,origin=game.state.ship;
+  const f=fixture(),session=enter(f,'person-combat'),game=session.game,origin=game.state.ship,targetHull=game.system.enemies.find(enemy=>enemy.id===session.targetId).hp;
   const airlock=f.context.surface.entities.find(entity=>entity.type==='exit'&&!entity.data?.stationRole);assert.ok(airlock,'A separate entry-airlock action must exist on the target deck.');
   Object.assign(game.state.person,cabinLayout(game.state.boarding.shipClass).spawn);
   await f.call('handleEntity',airlock);
   assert.equal(game.state.ship,origin);assert.equal(game.state.mode,'ship');assert.equal(game.state.boarding,null);
-  assert.equal(game.system.enemies.find(enemy=>enemy.id===session.targetId).hp,16);assert.equal(f.writes.length,0);
+  assert.equal(game.system.enemies.find(enemy=>enemy.id===session.targetId).hp,targetHull);assert.equal(f.writes.length,0);
 });
 
 test('test mode permits real engineering and medical actions aboard the player ship',async()=>{

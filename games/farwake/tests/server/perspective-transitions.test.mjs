@@ -67,7 +67,7 @@ test('a PvP boarder cannot switch perspective until the actual deck is clear',as
 });
 
 test('a secured NPC prize can use quick helm after the origin hull is destroyed',async()=>{
- const{realm,captains:[c],vessels:[origin],room}=await fixture(1),enemy={id:'quick-prize',name:'Damaged cutter',...enemyHullProfile('sparrow'),x:origin.ship.x+130,y:origin.ship.y,angle:.4,hp:35,maxHp:100,shield:0,disabled:true,active:false,cooldown:99,speed:0,damage:5,reward:20,faction:'cinder'};
+ const{realm,captains:[c],vessels:[origin],room}=await fixture(1),enemy={id:'quick-prize',name:'Damaged shuttle',...enemyHullProfile('tern'),x:origin.ship.x+130,y:origin.ship.y,angle:.4,hp:35,maxHp:100,shield:0,disabled:true,active:false,cooldown:99,speed:0,damage:5,reward:20,faction:'cinder'};
  room.runtime.enemies.push(enemy);ok(await realm.command(c,'boardEnemy',{id:enemy.id}));const prize=realm.vessels.get(c.aboard),actor=realm._actor(prize);
  for(const guard of prize.boarding.enemies)guard.health=0;actor._finishBoarding('won');realm._syncActor(prize);origin.destroyed=true;origin.ship.hull=0;const before=pose(prize.ship);
  Object.assign(c.game.state.person,cabinLayout(prize.ship.classId).spawn);ok(await realm.command(c,'quickHelm'));assert.equal(c.aboard,prize.id);assert.equal(prize.helmOwner,c.id);assert.deepEqual(pose(prize.ship),before);assert.equal(origin.ship.hull,0);

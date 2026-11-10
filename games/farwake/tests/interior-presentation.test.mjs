@@ -5,8 +5,8 @@ import { ensureDamageControl, impactSection, registerShipImpact } from '../dist/
 import { generateSurface, isWalkable } from '../dist/surface.mjs';
 
 const impact=(serial,at,extra={})=>({serial,at,x:348,y:612,strength:1,shieldOnly:false,sectionId:'bridge',hullDamage:20,...extra});
-function hull(id='physical-hull') {
- const ship={id,classId:'sparrow',hull:100,maxHull:100,energy:20};
+function hull(id='physical-hull',classId='sparrow') {
+ const ship={id,classId,hull:100,maxHull:100,energy:20};
  ensureDamageControl(ship);ship.damageControl.clock=100;
  return ship;
 }
@@ -14,8 +14,8 @@ function addImpact(ship,extra={}) {
  const dc=ship.damageControl;dc.clock+=.1;const hit=impact(++dc.serial,dc.clock,extra);dc.impacts.push(hit);
  return hit;
 }
-function deck(id='physical-hull') {
- const ship=hull(id);
+function deck(id='physical-hull',classId='sparrow') {
+ const ship=hull(id,classId);
  const surface=generateSurface({id:`ship:${id}`,vesselId:id,kind:'ship',shipClass:ship.classId,name:'Test vessel',crew:[{id:'engineer',name:'Mara',role:'engineer',health:100}],guests:[{id:'guest',name:'Rescued passenger',shipId:id,status:'aboard',health:80}]},'interior-presentation');
  return {ship,surface};
 }
@@ -136,7 +136,7 @@ test('Reduce motion removes camera impulses and flashes while keeping actual dan
 });
 
 test('only actual damaged sections become reachable deck markers, and updates preserve real people and stations',()=>{
- const {ship,surface}=deck(),originalEntities=[...surface.entities];
+ const {ship,surface}=deck('physical-hull','tern'),originalEntities=[...surface.entities];
  assert.ok(originalEntities.some(entity=>entity.type==='crew'));assert.ok(originalEntities.some(entity=>entity.type==='npc'));assert.ok(originalEntities.some(entity=>entity.type==='station'));
  syncDamageMarkers(surface,ship);assert.equal(markers(surface).length,0,'decorative layout breach points are not real emergencies');
  const [burning,leaking,scarred]=ship.damageControl.sections;
@@ -195,7 +195,7 @@ for(const [classId,role] of [['sparrow','navigation'],['kestrel','medical']])tes
  const surface=generateSurface({id:`ship:${ship.id}`,vesselId:ship.id,kind:'ship',shipClass:classId},'station-damage');
  const station=surface.entities.find(entity=>entity.data?.stationRole===role),person={x:station.x,y:station.y};
  // Use a real projected outside hit; this position must occur in normal play.
- const source=Array.from({length:24},(_,i)=>({sourceX:500*Math.cos(i*Math.PI/12),sourceY:500*Math.sin(i*Math.PI/12)}))
+ const source=Array.from({length:360},(_,i)=>({sourceX:500*Math.cos(i*Math.PI/180),sourceY:500*Math.sin(i*Math.PI/180)}))
   .find(details=>{const {point}=impactSection(ship,details);return Math.hypot(point.x-station.x,point.y-station.y)<29;});
  assert.ok(source,'the test exercises an actual hit close enough to cover the console’s entire use range');
  const hit=registerShipImpact(ship,{...source,hullDamage:1}),section=ship.damageControl.sections.find(section=>section.id===hit.sectionId);
@@ -204,7 +204,10 @@ for(const [classId,role] of [['sparrow','navigation'],['kestrel','medical']])tes
   Object.assign(section,severity);syncDamageMarkers(surface,ship);
   const marker=nearestDamageMarker(surface,person);assert.ok(marker);assert.equal(marker.data.sectionId,section.id);
   assert.equal(nearestDeckInteraction(surface,person),station,'the real console remains usable without first buying a repair');
-  const unavailable={...surface,entities:surface.entities.map(entity=>entity===station?{...entity,disabled:true}:entity)};
+  const disabledStation={...surface,entities:surface.entities.map(entity=>entity===station?{...entity,disabled:true}:entity)};
+  const alternate=nearestDeckInteraction(disabledStation,person);
+  assert.ok(alternate===marker||alternate.type!=='damageControl'&&Math.hypot(alternate.x-person.x,alternate.y-person.y)<=43,'Another real nearby console may remain usable in a small cabin.');
+  const unavailable={...surface,entities:surface.entities.map(entity=>entity.type==='damageControl'?entity:{...entity,disabled:true})};
   assert.equal(nearestDeckInteraction(unavailable,person),marker,'an unusable console does not hide nearby damage control');
  }
  assert.ok(isWalkable(surface,person.x,person.y,6));

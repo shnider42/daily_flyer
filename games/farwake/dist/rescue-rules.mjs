@@ -74,6 +74,7 @@ export const RescueRules={
  rescueManifest(ship=this.state.ship){return rescueOccupants(ship);},
  rescueAdmissionCheck(encounterId,choiceId){
   const spec=rescueSpec(encounterId,choiceId);if(!spec)return this._ok({count:0});
+  if(!this.hasActiveVessel||!this.ownsShip&&this._permittedVessel!==this.state.ship||this.state.npcContract?.active)return this._fail('You need command of a real ship with free berths before taking survivors aboard. Call the port rescue service instead.','no-ship');
   const ship=this.state.ship;
   const humans=Math.max(1,Math.floor(finite(ship.humanOccupants,1))),hired=(this.livingCrew||[]).length;
   const occupied=humans+hired+finite(this.narrativeBerths?.())+finite(this.professionBerths?.())+rescuedBerthCount(ship);

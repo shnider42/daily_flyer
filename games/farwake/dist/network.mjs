@@ -99,10 +99,10 @@ export class FarwakeNetwork {
     this.now = now; this.wallNow = wallNow; this.inputHistory = new InputTimeline(now()); this.lastInputRecordAt = null;
     this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null;
   }
-  async connect({ create = false, realmCode, name, realmName, passport, starterShip, character } = {}) {
+  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, character } = {}) {
     this.manualClose = false;
     this.passport = passport || (!create ? readPassport(realmCode, this.storage) : null);
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, character, passport: this.passport }) });
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
     this.passport = savePassport(registration.passport || this.passport, this.storage);

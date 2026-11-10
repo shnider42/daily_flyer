@@ -69,6 +69,10 @@ function placeInSpace(realm, captain, systemId = 'hearth', { x = 0, y = 0 } = {}
   const room = realm._bindCaptain(captain); room.runtime.enemies.length = 0;
   return vessel;
 }
+function useEarnedCrewHull(realm,captain,classId){
+  captain.game.state.fleet.owned.push(classId);captain.game._activateClass(classId,true);
+  const vessel=realm.vessels.get(captain.ownedVesselId);vessel.actor=null;return vessel;
+}
 function landAt(realm, captain, bodyId = 'kettle', systemId = 'hearth') {
   const vessel = realm.vessels.get(captain.ownedVesselId); vessel.systemId = systemId; vessel.dockedAt = bodyId; vessel.helmOwner = null; vessel.actor = null; realm._landCharacter(captain, systemId, bodyId); return vessel;
 }
@@ -214,7 +218,7 @@ test('assault and retreat use the canonical vessel; unrelated deck and surface v
   const realm = f.server.manager.realms.get(created.passport.realmCode), owner = realm.captains.get(created.passport.captainId), guest = realm.captains.get(second.passport.captainId), vessel = placeInSpace(realm, owner);
   placeInSpace(realm, guest); vessel.allowCrew = true;
   assert.equal((await guestClient.command('boardShip', { vesselId: vessel.id })).ok, true);
-  const room = realm.rooms.get('hearth'); room.runtime.enemies.push({ id: 'network-disabled-ship', name: 'Disabled raider', x: vessel.ship.x + 50, y: vessel.ship.y, angle: 0, radius: 18, classId: 'sparrow', hp: 40, maxHp: 100, shield: 0, disabled: true, active: false, cooldown: 60, faction: 'covenant', speed: 0, damage: 5, reward: 20 });
+  const room = realm.rooms.get('hearth'); room.runtime.enemies.push({ id: 'network-disabled-ship', name: 'Disabled raider', x: vessel.ship.x + 50, y: vessel.ship.y, angle: 0, radius: 26, classId: 'tern', hp: 40, maxHp: 100, shield: 0, disabled: true, active: false, cooldown: 60, faction: 'covenant', speed: 0, damage: 5, reward: 20 });
   const boarded = await ownerClient.command('boardEnemy', { id: 'network-disabled-ship' }); assert.equal(boarded.ok, true);
   assert.equal(owner.game.state.interior.kind, 'enemy'); assert.equal(vessel.helmOwner, null);
   const targetVessel = realm.vessels.get(owner.aboard);
@@ -233,8 +237,9 @@ test('defensive boarding moves the helm onto the shared deck; downed guests cann
   const f = await fixture(t), created = await f.register('create'), second = await f.register('join', created.passport.realmCode);
   const ownerClient = await f.connect(created.passport), guestClient = await f.connect(second.passport);
   const realm = f.server.manager.realms.get(created.passport.realmCode), owner = realm.captains.get(created.passport.captainId), guest = realm.captains.get(second.passport.captainId), vessel = placeInSpace(realm, owner);
+  useEarnedCrewHull(realm,owner,'tern');
   placeInSpace(realm, guest); vessel.allowCrew = true; assert.equal((await guestClient.command('boardShip', { vesselId: vessel.id })).ok, true);
-  const room = realm.rooms.get('hearth'); room.runtime.enemies.push({ id: 'network-breacher', name: 'Breacher', x: 45, y: 0, angle: 0, radius: 18, hp: 90, maxHp: 90, shield: 0, active: false, cooldown: 99, faction: 'covenant', speed: 0, damage: 5, reward: 20 });
+  const room = realm.rooms.get('hearth'); room.runtime.enemies.push({ id: 'network-breacher', name: 'Breacher', x: 45, y: 0, angle: 0, radius: 26, classId:'tern', hp: 90, maxHp: 90, shield: 0, active: false, cooldown: 99, faction: 'covenant', speed: 0, damage: 5, reward: 20 });
   vessel.ship.shield = 0; const actor = realm._actor(vessel); assert.equal(actor.startBoarding('network-breacher').ok, true); realm._syncActor(vessel);
   assert.equal(owner.game.state.mode, 'person'); assert.equal(owner.game.state.interior.kind, 'ship'); assert.equal(vessel.helmOwner, null);
   guest.game.state.person.health = 0; guest.game.state.person.down = true; const position = { x: guest.game.state.person.x, y: guest.game.state.person.y };
@@ -249,6 +254,7 @@ test('restart expires a disconnected helm and a returning bunk owner cannot exce
   const f = await fixture(t), created = await f.register('create'), second = await f.register('join', created.passport.realmCode);
   const ownerClient = await f.connect(created.passport), guestClient = await f.connect(second.passport);
   let realm = f.server.manager.realms.get(created.passport.realmCode), owner = realm.captains.get(created.passport.captainId), guest = realm.captains.get(second.passport.captainId), vessel = placeInSpace(realm, owner);
+  useEarnedCrewHull(realm,owner,'quill');
   placeInSpace(realm, guest); vessel.grants[guest.id] = { allowed: true, roles: ['helm'], allowBunk: true }; vessel.installedBunks = 2; vessel.bunks[1] = guest.id;
   assert.equal((await guestClient.command('boardShip', { vesselId: vessel.id })).ok, true);
   guest.home = { kind: 'bunk', vesselId: vessel.id, bunkIndex: 1, systemId: 'hearth', locationId: `ship:${vessel.id}` };
@@ -261,7 +267,7 @@ test('restart expires a disconnected helm and a returning bunk owner cannot exce
   assert.equal((await returnedGuestClient.command('takeStation', { role: 'helm', entityId: helm.id })).ok, true);
   landAt(realm, guest); owner.game.state.crew = Array.from({ length: 3 }, (_, i) => ({ id: `hired-${i}`, role: 'engineer', name: `Engineer ${i}`, health: 100, maxHealth: 100 }));
   realm._restoreAtHome(guest);
-  assert.notEqual(guest.aboard, vessel.id, 'A full four-berth Sparrow cannot restore a fifth human/NPC occupant.');
+  assert.notEqual(guest.aboard, vessel.id, 'A full four-berth Quill cannot restore a fifth human/NPC occupant.');
   assert.equal(guest.game.state.locationId, 'kettle'); assert.equal(getShipClass(vessel.ship.classId).berths, 4);
 });
 

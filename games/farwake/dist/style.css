@@ -58,3 +58,7 @@
 .hull-system{margin:1rem 0;padding:.9rem 1rem;border-left:3px solid var(--cyan);background:#172f3b}.hull-system strong{color:#b3ddd6;font-size:1rem}.hull-system p{margin:.5rem 0;font-size:.95rem}.hull-system small{display:block;line-height:1.6;color:var(--muted);font-size:.88rem}.damage-condition{color:#efc68e;font-weight:600}
 
 .test-layout.solo-exercise{grid-template-columns:1fr}
+
+/* A captain without a ship has no fabricated hull or reactor readout. */
+.shipless .status-strip .meter-block,.shipless .resourcebar .fuel-resource,.shipless .resourcebar .resource:has(#cargo){display:none}
+.shipless .status-strip{justify-content:flex-end}

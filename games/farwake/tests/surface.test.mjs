@@ -23,7 +23,7 @@ for(const fixture of fixtures){
  test(`${fixture.kind} ${fixture.biome||''}: every interaction can be reached from landing`,()=>{
   for(const seed of['farwake','test-route','another']){
    const m=generateSurface(fixture,seed);assert.equal(m.width,m.cols*24);assert.equal(m.height,m.rows*24);assert.ok(isWalkable(m,m.spawn.x,m.spawn.y));assert.equal(m.tiles.length,m.rows);assert.ok(m.tiles.every(row=>row.length===m.cols));
-   const reachable=flood(m);assert.ok(reachable.size>70);
+   const reachable=flood(m);if(fixture.kind==='ship')assert.equal(reachable.size,m.walkable.filter(Boolean).length,'Every tile of the compact starter cabin is reachable.');else assert.ok(reachable.size>70);
    for(const e of m.entities){assert.ok(isWalkable(m,e.x,e.y),`${fixture.id}/${e.id} must stand on clear ground`);const accessible=[...reachable].some(key=>{const[x,y]=key.split(',').map(Number);return Math.hypot((x+.5)*24-e.x,(y+.5)*24-e.y)<=34;});assert.ok(accessible,`${fixture.id}/${seed}: cannot reach ${e.id}`);}
   }
  });

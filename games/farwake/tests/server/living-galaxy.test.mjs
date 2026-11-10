@@ -10,7 +10,7 @@ function clock(t){let value=1_800_000_000_000;t.mock.method(Date,'now',()=>value
 function storage(){return{kind:'memory',snapshot:null,version:0,async save(id,version,snapshot){this.snapshot=structuredClone(snapshot);this.version=version+1;return{version:this.version};}};}
 async function fixture(count=2,options={}){
  const persistence=storage(),realm=new Realm({id:'LIVING01',seed:options.seed||'living-authority',persistence}),captains=[];
- for(let index=0;index<count;index++){const{captain}=await realm.createCaptain(`Captain ${index+1}`,options.starterShip?{starterShip:options.starterShip}:{});ok(realm.attach(captain,{close(){}}));captains.push(captain);}
+ for(let index=0;index<count;index++){const{captain}=await realm.createCaptain(`Captain ${index+1}`,options.starterShip?{starterShip:options.starterShip}:{});ok(realm.attach(captain,{close(){}}));if(options.ownedHull){captain.game.state.fleet.owned.push(options.ownedHull);captain.game._activateClass(options.ownedHull,true);}captains.push(captain);}
  const room=realm._room('hearth');room.runtime.enemies=[];room.runtime.bullets=[];room.runtime.signals=[];
  return{realm,captains,persistence};
 }
@@ -114,7 +114,7 @@ test('one physical raid and authoritative projectile collisions credit the actua
 });
 
 test('story passengers and patients reserve berths against fares, hired crew and human boarding',async t=>{
- clock(t);const{realm,captains:[captain,friend]}=await fixture(2,{starterShip:'kestrel'});await land(realm,captain,'kettle');await acceptStory(realm,captain,'last_fare','len-vale');
+ clock(t);const{realm,captains:[captain,friend]}=await fixture(2,{ownedHull:'tern'});await land(realm,captain,'kettle');await acceptStory(realm,captain,'last_fare','len-vale');
  assert.equal(captain.game.narrativeBerths(),1);const job=await startJob(realm,captain,'paramedic');await land(realm,captain,job.targetBody);const entityId=`quest:profession-desk:${job.targetBody}`;walk(realm,captain,entityId);ok(await realm.command(captain,'professionAction',{action:'pickupPatient',jobId:job.id,entityId}));
  assert.equal(captain.game.professionBerths(),1);assert.equal(captain.game.freeBerths,0);const fareId=`quest:passage-desk:${job.targetBody}`;walk(realm,captain,fareId);const fare=captain.game.passengerOffers()[0];assert.equal(fare.available,false);assert.equal((await realm.command(captain,'acceptPassenger',{offerId:fare.id,entityId:fareId})).code,'capacity');
  assert.equal(captain.game.recruitCrew('engineer').code,'capacity');await launch(realm,captain);ok(await realm.command(captain,'setCrewAccess',{allowed:true}));
@@ -124,13 +124,13 @@ test('story passengers and patients reserve berths against fares, hired crew and
 });
 
 test('a paid fare also blocks overbooking a story passenger or medical dispatch',async t=>{
- clock(t);const{realm,captains:[captain]}=await fixture(1,{starterShip:'kestrel'});await land(realm,captain,'kettle');captain.game.state.credits=2000;ok(captain.game.recruitCrew('engineer'));await acceptFare(realm,captain);assert.equal(captain.game.freeBerths,0);
+ clock(t);const{realm,captains:[captain]}=await fixture(1,{ownedHull:'tern'});await land(realm,captain,'kettle');captain.game.state.credits=2000;ok(captain.game.recruitCrew('engineer'));await acceptFare(realm,captain);assert.equal(captain.game.freeBerths,0);
  walk(realm,captain,'quest:len-vale');assert.equal((await realm.command(captain,'threadAction',{threadId:'last_fare',action:'accept',entityId:'quest:len-vale'})).code,'capacity');
  const entityId=await enroll(realm,captain,'paramedic'),offer=captain.game.professionBoard(entityId).offers.find(offer=>offer.professionId==='paramedic'),before=captain.game.state.credits;assert.equal((await realm.command(captain,'professionAction',{action:'accept',jobId:offer.id,entityId})).code,'capacity');assert.equal(captain.game.state.credits,before);assert.equal(captain.game.state.professions.active,null);
 });
 
 test('remote foot travel cannot deliver a fare or pick up a patient left with the owner’s parked hull',async t=>{
- clock(t);const{realm,captains:[captain]}=await fixture(1);await land(realm,captain,'kettle');await acceptStory(realm,captain,'last_fare','len-vale');walk(realm,captain,'quest:passenger-slip');ok(await realm.command(captain,'threadAction',{threadId:'last_fare',action:'advance',entityId:'quest:passenger-slip'}));
+ clock(t);const{realm,captains:[captain]}=await fixture(1,{ownedHull:'quill'});await land(realm,captain,'kettle');await acceptStory(realm,captain,'last_fare','len-vale');walk(realm,captain,'quest:passenger-slip');ok(await realm.command(captain,'threadAction',{threadId:'last_fare',action:'advance',entityId:'quest:passenger-slip'}));
  const fare=await acceptFare(realm,captain),job=await startJob(realm,captain,'paramedic'),owned=realm.vessels.get(captain.ownedVesselId),before=captain.game.state.credits;
  assert.equal(fare.targetBody,job.targetBody);realm._landCharacter(captain,job.targetSystem,job.targetBody);const passDesk=`quest:passage-desk:${fare.targetBody}`;walk(realm,captain,passDesk);
  assert.equal((await realm.command(captain,'deliverPassenger',{entityId:passDesk})).code,'vessel');const medDesk=`quest:profession-desk:${job.targetBody}`;walk(realm,captain,medDesk);assert.equal((await realm.command(captain,'professionAction',{action:'pickupPatient',jobId:job.id,entityId:medDesk})).code,'vessel');

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
+import {withHull} from './helpers/fleet-fixtures.mjs';
 import {Game,SHIP_CLASSES,CREW_ROLES} from '../dist/engine.mjs';
 import {cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
 import {clearSidearmSight} from '../dist/combat.mjs';
@@ -24,11 +25,11 @@ test('fleet commissioning enforces earned prerequisites, prices and port mode wh
   const save=Game.fromSave(g.serialize());assert.equal(save.state.ship.classId,'hauler');assert.ok(save.state.fleet.owned.includes('sparrow'));
 });
 
-test('four hulls support 4/6/8/10 occupied berths, expanded NPC roles, and safe downsizing',()=>{
+test('earned hulls grow from 2 to 3/6/8/10 occupied berths with expanded NPC roles and safe downsizing',()=>{
   const g=new Game('capacity');port(g);funded(g);
-  for(const role of ['engineer','navigator','medic'])ok(g.recruitCrew(role));
+  ok(g.recruitCrew('engineer'));
   assert.equal(g.freeBerths,0);assert.equal(g.recruitCrew('gunner').code,'capacity');
-  for(const [id,roles]of [['hauler',['gunner','security']],['frigate',['scientist','quartermaster']],['capital',['engineer','security']]]){
+  for(const [id,roles]of [['tern',['navigator']],['hauler',['medic','gunner','security']],['frigate',['scientist','quartermaster']],['capital',['engineer','security']]]){
     g.state.cargo.ore=SHIP_CLASSES.find(c=>c.id===id).ore;ok(g.buyShip(id));
     for(const [i,role] of roles.entries())ok(g.recruitCrew(role,{id:`${id}-${role}-${i}`,name:`${id} ${role}`}));
     assert.equal(g.livingCrew.length+1,g.shipClass.berths);assert.equal(g.freeBerths,0);
@@ -39,9 +40,9 @@ test('four hulls support 4/6/8/10 occupied berths, expanded NPC roles, and safe 
 });
 
 test('human occupants share the same capacity and dismissed specialists leave persistent departure records',()=>{
-  const g=new Game('human-berths');port(g);g.state.credits=1000;g.state.ship.humanOccupants=3;
+  const g=withHull(new Game('human-berths'),'quill');port(g);g.state.credits=1000;g.state.ship.humanOccupants=3;
   ok(g.recruitCrew('engineer'));assert.equal(g.freeBerths,0);assert.equal(g.recruitCrew('navigator').code,'capacity');
-  ok(g.dismissCrew('crew-engineer'));assert.equal(g.freeBerths,1);assert.equal(g.state.formerCrew.length,1);assert.equal(g.state.ship.maxHull,100);
+  ok(g.dismissCrew('crew-engineer'));assert.equal(g.freeBerths,1);assert.equal(g.state.formerCrew.length,1);assert.equal(g.state.ship.maxHull,145);
   ok(g.recruitCrew('navigator'));assert.equal(g.livingCrew.length,1);
   const restored=Game.fromSave(g.serialize());assert.equal(restored.state.formerCrew[0].id,'crew-engineer');assert.equal(restored.state.ship.humanOccupants,3);
 });
@@ -55,7 +56,7 @@ test('legacy saves retain crew identities, facing and casualties without discard
 });
 
 test('engineering and medical stations spend reactor charge, respect cooldowns, and never revive dead crew',()=>{
-  const g=new Game('station-routines');port(g);g.state.credits=1000;ok(g.recruitCrew('engineer'));ok(g.recruitCrew('medic'));ok(g.launch());
+  const g=withHull(new Game('station-routines'));port(g);g.state.credits=1000;ok(g.recruitCrew('engineer'));ok(g.recruitCrew('medic'));ok(g.launch());
   Object.assign(g.state.ship,{x:500,y:-700,hull:60});g.state.person.health=50;g.state.crew[0].health=60;g.state.crew[0].status='injured';
   ok(g.enterCabin());const energy=g.state.ship.energy;ok(g.repairFromStation());assert.equal(g.state.ship.hull,68);assert.equal(g.state.ship.energy,energy-18);assert.equal(g.repairFromStation().code,'cooldown');
   ok(g.medicalFromStation());assert.equal(g.state.person.health,62);assert.equal(g.state.crew[0].health,68);assert.equal(g.medicalFromStation().code,'cooldown');
@@ -78,13 +79,13 @@ test('disabled ships are boardable, boarding is live combat, and victories canno
 });
 
 test('weak shields permit a telegraphed pirate grapple and crew casualties come from actual combat',()=>{
-  const g=new Game('defense');port(g);g.state.credits=500;ok(g.recruitCrew('engineer',{name:'Mara'}));ok(g.launch());
+  const g=withHull(new Game('defense'));port(g);g.state.credits=500;ok(g.recruitCrew('engineer',{name:'Mara'}));ok(g.launch());
   const enemy=closeEnemy(g);g.state.ship.shield=0;g._hitTimer=10;
   frame(g,{},90);assert.equal(g.state.boarding,null,'A grapple takes time');frame(g,{},100);
   assert.equal(g.state.boarding?.kind,'defense');assert.equal(g.state.boarding.phase,'active');assert.ok(g.drainEvents().some(e=>e.type==='boarding-warning'));
   const layout=cabinLayout(g.state.boarding.shipClass),ally=g.state.boarding.allies[0];g.state.crew[0].health=7;ally.health=7;Object.assign(ally,layout.combatSpawns[0]);Object.assign(g.state.person,layout.stations.helm);
   frame(g,{},180);assert.equal(g.state.crew[0].health,0);assert.equal(g.state.crew[0].status,'dead');assert.equal(g.state.memorial.length,1);assert.equal(g.state.memorial[0].crewId,'crew-engineer');
-  const resumed=Game.fromSave(g.serialize());assert.equal(resumed.state.crew[0].name,'Mara');assert.equal(resumed.state.crew[0].health,0);assert.equal(resumed.state.memorial.length,1);assert.equal(resumed.state.ship.maxHull,100);
+  const resumed=Game.fromSave(g.serialize());assert.equal(resumed.state.crew[0].name,'Mara');assert.equal(resumed.state.crew[0].health,0);assert.equal(resumed.state.memorial.length,1);assert.equal(resumed.state.ship.maxHull,140);
   assert.equal(resumed.retreatBoarding().code,'defense');assert.ok(enemy.boardingTargetId);
   Object.assign(resumed.state.person,firingPoint(resumed));
   for(let i=0;i<600&&resumed.state.boarding.phase==='active';i++)resumed.step(1/60,{fire:true});

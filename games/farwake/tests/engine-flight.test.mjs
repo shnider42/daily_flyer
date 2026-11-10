@@ -54,7 +54,7 @@ test('flight fields and angular momentum persist through save and an offline cab
   const expected=Object.fromEntries(['x','y','vx','vy','angle','angularVelocity'].map(k=>[k,restored.state.ship[k]]));
   assert.ok(restored.enterCabin().ok);const cabin=Game.fromSave(restored.serialize());assert.ok(cabin.exitCabin().ok);
   assert.deepEqual(Object.fromEntries(Object.keys(expected).map(k=>[k,cabin.state.ship[k]])),expected);
-  assert.equal(cabin.state.ship.classId,'sparrow');assert.equal(cabin.state.ship.berths,4);
+  assert.equal(cabin.state.ship.classId,'sparrow');assert.equal(cabin.state.ship.berths,2);
 });
 
 test('invalid and over-range input is normalized before prediction or authoritative physics',()=>{

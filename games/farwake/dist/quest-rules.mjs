@@ -50,6 +50,7 @@ export function occupiedNarrativeBerths(game){
 }
 
 function capacity(game){
+ if(game.ownsShip===false||game.state.npcContract?.active||game.atInhabitedPort&&game.canUseOwnShipHere?.()===false)return 0;
  // Do not use Game.freeBerths: the application subtracts this module's occupants there.
  const crew=(game.livingCrew||[]).length,humans=Math.max(1,finite(game.state.ship.humanOccupants,1));
  return Math.max(0,finite(game.state.ship.berths,game.shipClass?.berths||1)-crew-humans-occupiedNarrativeBerths(game)-finite(game.professionBerths?.())-finite(game.rescuedBerths?.()));
@@ -114,9 +115,11 @@ function choiceForRecord(definition,record,choice){
  return{...choice,...dead};
 }
 function stageAccess(game,definition,record,step,action,entityId){
+ if((definition.id==='last_fare'&&step.id==='arrival'||definition.id==='paper_bounty'&&step.id==='judgment'&&record.huntOutcome==='captured')&&game.canUseOwnShipHere?.()===false)return{ok:false,reason:'Bring the actual ship carrying this person to this port. A passenger-ferry ticket does not move your ship or its occupants.',code:'vessel'};
  if(definition.id==='last_fare'&&step.id==='arrival'&&record.shipId!==game.state.ship.id)return{ok:false,reason:'Nessa is aboard the ship that accepted this passage. Bring that ship to Morrow.',code:'vessel'};
  if(definition.id==='paper_bounty'&&step.id==='judgment'&&record.huntOutcome==='captured'&&record.shipId!==game.state.ship.id)return{ok:false,reason:'Bring the ship carrying Rook to Kettle before settling the warrant.',code:'vessel'};
  if(step.kind==='hunt'){
+  if(game.ownsShip===false||game.state.npcContract?.active)return{ok:false,reason:'This interception requires command of your own physical ship.',code:'no-ship'};
   if(game.state.systemId!==step.at.systemId)return{ok:false,reason:'The target was last sighted in Hearth.',code:'location'};
   if(action==='confirmKill'){
    if(!record.targetId||!game._record().defeated.includes(record.targetId))return{ok:false,reason:'There is no confirmed wreck for this target.',code:'requirements'};
@@ -133,6 +136,7 @@ function stageAccess(game,definition,record,step,action,entityId){
   return{ok:true,enemy};
  }
  if(step.kind==='ship-scan'){
+  if(game.hasActiveVessel===false||game.state.npcContract?.active)return{ok:false,reason:'This reading requires command of an actual survey ship.',code:'no-ship'};
   if(game.state.mode!=='ship'||game.state.systemId!==step.at.systemId||game.state.ship.hull<=0||game.state.person.health<=0||game.state.person.down)return{ok:false,reason:'Take this reading from your ship in Umbra.',code:'location'};
   if(distance(game.state.ship,step.at)>Math.max(140,Math.min(420,game.state.ship.scanRange||235)))return{ok:false,reason:'Fly to the marked outer-contour reading point. You do not need to approach the dark center.',code:'distance'};
   return{ok:true};
@@ -295,6 +299,7 @@ export const NarrativeRules={
   const offer=passengerOffer(this,bodyFor(this),state.passengerSerial);return offer?[{...offer,available:capacity(this)>=1&&!(this.state.rep[offer.faction]<-35),reason:capacity(this)<1?'A passenger needs one free berth.':this.state.rep[offer.faction]<-35?'The local dispatch office will not book your ship at this standing.':null}]:[];
  },
  acceptPassenger(offerId,entityId){
+  const vesselAccess=this.ownShipAccess?.({atPort:true});if(vesselAccess&&!vesselAccess.ok)return vesselAccess;
   const state=nstate(this);if(state.passenger)return this._fail('Deliver your current passenger before taking another fare.','capacity');
   const origin=bodyFor(this),target={systemId:this.state.systemId,bodyId:origin?.id,entityId:genericId('passage-desk',origin?.id)},access=nearEntity(this,entityId,target);if(!access.ok)return this._fail(access.reason,access.code);
   if(!this.atInhabitedPort)return this._fail('Passenger bookings require an inhabited port.','mode');
@@ -319,6 +324,7 @@ export const NarrativeRules={
  deliverPassenger(entityId){
   const state=nstate(this),passenger=state.passenger;if(!passenger)return this._fail('There is no passenger to deliver.','target');
   const target={systemId:passenger.targetSystem,bodyId:passenger.targetBody,entityId:passenger.targetEntityId},access=nearEntity(this,entityId,target);if(!access.ok)return this._fail(access.reason,access.code);
+  if(this.canUseOwnShipHere?.()===false)return this._fail('Bring the actual ship carrying this passenger to this port. Your own ferry ticket does not deliver them.','vessel');
   if(this.state.ship.id!==passenger.shipId)return this._fail('Bring the ship carrying this passenger to their destination.','vessel');
   const safe=passenger.damageTaken===0&&this.state.ship.hull>=passenger.hullAtPickup,tip=safe?passenger.bonus:0,paid=passenger.fare+tip;
   this.state.credits+=paid;state.passengerCompleted++;this.state.stats.passengers=(this.state.stats.passengers||0)+1;
@@ -330,6 +336,7 @@ export const NarrativeRules={
  abandonPassenger(){
   const state=nstate(this),passenger=state.passenger;if(!passenger)return this._fail('There is no passenger booking to end.','target');
   if(!this.atInhabitedPort)return this._fail('Reach an inhabited passage desk to arrange a safe end to the booking.','mode');
+  if(this.canUseOwnShipHere?.()===false)return this._fail('Bring the passenger’s ship to this port before arranging their disembarkation.','vessel');
   const body=bodyFor(this),access=nearEntity(this,genericId('passage-desk',body.id),{systemId:this.state.systemId,bodyId:body.id,entityId:genericId('passage-desk',body.id)});if(!access.ok)return this._fail(access.reason,access.code);
   state.passenger=null;this._log('Booking ended',`${passenger.name} disembarked at ${body.name}. No fare was paid.`,'passage');return this._ok({text:'The passenger has disembarked safely. No fare was paid.'});
  },

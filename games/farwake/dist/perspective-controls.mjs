@@ -72,8 +72,13 @@ function launchAction(game,{shared,fleet}){
 /** A read-only description suitable for every frame, including compact shared snapshots. */
 export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],surface=null}={}){
  const state=game?.state||{},interior=state.interior,boarding=state.boarding,mp=state.multiplayer||{};
+ const localBorrowed=shared&&fleet.find(vessel=>vessel.id===mp.portVesselId&&vessel.systemId===state.systemId&&vessel.dockedAt===state.locationId&&canPilot(vessel,mp.captainId));
  let result;
- if(state.mode==='ship'){
+ if(state.npcContract?.active){
+  result=action('Crew duty','openCrewDuty','View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
+ }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBorrowed&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
+  result=action('Port services','openPortServices','Find work, buy passenger passage, or visit the shipwright.');
+ }else if(state.mode==='ship'){
   result=action('Walk deck','enterCabin','Leave the helm and walk inside this ship. Its momentum continues.');
   if(dead(state.ship))result=blocked(result,'This hull is no longer intact.');
   else if(!shared&&game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,state.ship)<600))result=blocked(result,'Clear the immediate attack before leaving the helm.');

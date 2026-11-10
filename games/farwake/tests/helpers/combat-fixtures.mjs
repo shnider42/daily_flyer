@@ -11,7 +11,7 @@ export function placeRaider(game,overrides={}){
   template=structuredClone(frontier.system.enemies[0]);
  }
  const serial=game._record().spawned.filter(enemy=>enemy.testFixture).length;
- const enemy={...structuredClone(template),...enemyHullProfile('sparrow'),id:`${game.state.systemId}:test-raider:${serial}`,name:'Controlled raider',testFixture:true,x:1900,y:1800,vx:0,vy:0,hp:46,maxHp:46,speed:90,damage:6,reward:47,cooldown:2,active:false,disabled:false,...overrides};
+ const enemy={...structuredClone(template),...enemyHullProfile('hauler'),id:`${game.state.systemId}:test-raider:${serial}`,name:'Controlled raider',testFixture:true,x:1900,y:1800,vx:0,vy:0,hp:46,maxHp:46,speed:90,damage:6,reward:47,cooldown:2,active:false,disabled:false,...overrides};
  game.system.enemies.push(enemy);game._record().spawned.push(structuredClone(enemy));return enemy;
 }
 

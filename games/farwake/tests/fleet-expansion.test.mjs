@@ -7,15 +7,15 @@ import {cabinLayout} from '../dist/interior-layouts.mjs';
 import {drawShip,SHIP_VISUALS} from '../dist/space-art.mjs';
 import {testEnemyChoices,createTestSession} from '../dist/test-lab.mjs';
 
-const newClasses=['kestrel','mule','petrel','marten','atlas'];
+const newClasses=['kestrel','mule','petrel','marten','atlas','tern','quill','mender','bulwark','cairn'];
 const ok=result=>assert.equal(result.ok,true,result.reason);
 function dock(game){const body=game.system.bodies.find(body=>body.id==='kettle');Object.assign(game.state.ship,{x:body.x,y:body.y+body.radius+60});ok(game.dock(body.id));}
 
 test('starter catalog exposes three modest, meaningfully different hulls without later discoveries',()=>{
- assert.equal(SHIP_CLASSES.length,9);assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.id)).size,9);
+ assert.equal(SHIP_CLASSES.length,14);assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.id)).size,14);
  assert.deepEqual(STARTER_SHIP_IDS,['sparrow','kestrel','mule']);assert.deepEqual(STARTER_SHIPS.map(hull=>hull.id),STARTER_SHIP_IDS);
- for(const id of STARTER_SHIP_IDS){assert.equal(normalizeStarterShip(id),id);assert.ok(getShipClass(id).berths>=3);}
- for(const invalid of [undefined,null,'capital','atlas','petrel',{},['mule'],'MULE'])assert.equal(normalizeStarterShip(invalid),'sparrow');
+ for(const [id,berths] of [['sparrow',2],['kestrel',1],['mule',2]]){assert.equal(normalizeStarterShip(id),id);assert.equal(getShipClass(id).berths,berths);assert.equal(enemyHullProfile(id).boardable,false);}
+ for(const invalid of [undefined,null,'capital','atlas','petrel','tern','quill','mender','bulwark','cairn',{},['mule'],'MULE'])assert.equal(normalizeStarterShip(invalid),'sparrow');
  const [cutter,scout,tug]=STARTER_SHIPS;
  assert.ok(scout.stats.speed>cutter.stats.speed&&scout.stats.scanRange>cutter.stats.scanRange&&scout.stats.maxHull<cutter.stats.maxHull&&scout.stats.cargoCap<cutter.stats.cargoCap);
  assert.ok(tug.stats.mining>cutter.stats.mining&&tug.stats.cargoCap>cutter.stats.cargoCap&&tug.stats.speed<cutter.stats.speed&&tug.stats.angularAcceleration<cutter.stats.angularAcceleration);
@@ -23,14 +23,15 @@ test('starter catalog exposes three modest, meaningfully different hulls without
  assert.ok(travel(scout)>travel(cutter)&&travel(cutter)>travel(tug),'the advertised handling differences affect the common flight integrator');
 });
 
-test('five new hulls commission through ordinary costs, persist, and preserve their captured deck identity',()=>{
+test('expanded hulls commission through ordinary costs, persist, and preserve their captured deck identity',()=>{
  for(const id of newClasses){
   const game=new Game(`commission-${id}`);dock(game);game.state.credits=15000;game.state.cargo.ore=100;
-  if(['petrel','marten','atlas'].includes(id))assert.equal(game.classInfo(id).ok,false,'later hulls are gated even with ample funds');
+  if(getShipClass(id).requires?.length)assert.equal(game.classInfo(id).ok,false,'later hulls are gated even with ample funds');
   Object.assign(game.state.upgrades,{fold_1:1,fold_2:1,fold_3:1});game.state.flags.push('first_fold_done','archive_decoded','ally_chosen');
   if(id==='atlas'){game.state.cargo.ore=getShipClass('hauler').ore;ok(game.buyShip('hauler'));}
-  const hull=getShipClass(id);game.state.cargo.ore=hull.ore;const credits=game.state.credits,ore=game.state.cargo.ore;
-  ok(game.buyShip(id));assert.equal(game.state.credits,credits-hull.cost);assert.equal(game.state.cargo.ore,ore-hull.ore);
+  const hull=getShipClass(id);game.state.cargo.ore=hull.ore;const credits=game.state.credits,ore=game.state.cargo.ore,orePrice=hull.starter?0:hull.ore;
+  assert.equal(game.classInfo(id).ore,orePrice,'Used starter hulls are a credits-only purchase for every captain.');
+  ok(game.buyShip(id));assert.equal(game.state.credits,credits-hull.cost);assert.equal(game.state.cargo.ore,ore-orePrice);
   assert.equal(game.state.ship.classId,id);assert.equal(game.state.ship.berths,hull.berths);assert.equal(game.state.ship.cargoCap,hull.stats.cargoCap);
   const restored=Game.fromSave(game.serialize());assert.equal(restored.state.ship.classId,id);assert.ok(restored.state.fleet.owned.includes(id));
   const profile=enemyHullProfile(id),captured=enemyShipState({id:'captured',...profile,hp:24,maxHp:100,disabled:true});
@@ -74,7 +75,7 @@ test('every new silhouette renders at its real hull dimensions and reuses its ar
 });
 
 test('the expanded practice range still reveals only the smaller half and keeps its player cutter fixed',()=>{
- const choices=testEnemyChoices();assert.equal(choices.length,4);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','sparrow','mule','petrel']);
+ const choices=testEnemyChoices();assert.equal(choices.length,7);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','sparrow','mule','tern','petrel','quill','hauler']);
  for(const choice of choices){const practice=createTestSession({enemyClassId:choice.id});assert.equal(practice.game.state.ship.classId,'sparrow');assert.equal(practice.game.system.enemies[0].classId,choice.id);assert.ok(practice.game.currentSystem.danger<=5);}
- for(const id of ['marten','atlas','capital','frigate','hauler'])assert.throws(()=>createTestSession({enemyClassId:id}),/not available/);
+ for(const id of ['marten','atlas','capital','frigate','mender','bulwark','cairn'])assert.throws(()=>createTestSession({enemyClassId:id}),/not available/);
 });

@@ -1,7 +1,7 @@
 /** Shared, DOM-free deck geometry. Fore is up; each plan follows its physical hull. */
 export const CABIN_TILE=24;
-export const CABIN_REVISION=2;
-export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas'];
+export const CABIN_REVISION=3;
+export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','bulwark','cairn'];
 const pt=(x,y)=>({x:(x+.5)*CABIN_TILE,y:(y+.5)*CABIN_TILE});
 const room=(id,name,x,y,w,h,color)=>({id,name,x,y,w,h,color});
 const fixture=(kind,x,y,w=1,h=1,color=null,solid=true)=>({kind,x,y,w,h,color,solid});
@@ -18,29 +18,34 @@ const silhouettes={
  marten:[[-63,-26],[-49,-38],[12,-35],[56,-17],[63,-7],[63,7],[56,17],[12,35],[-49,38],[-63,26]],
  frigate:[[-75,-29],[-50,-35],[7,-31],[76,-5],[78,0],[76,5],[7,31],[-50,35],[-75,29]],
  atlas:[[-107,-45],[-92,-58],[17,-58],[107,-43],[107,-25],[19,-21],[19,21],[107,25],[107,43],[17,58],[-92,58],[-107,45]],
- capital:[[-128,-42],[-104,-59],[-65,-64],[47,-48],[105,-24],[134,0],[105,24],[47,48],[-65,64],[-104,59],[-128,42]]
+ capital:[[-128,-42],[-104,-59],[-65,-64],[47,-48],[105,-24],[134,0],[105,24],[47,48],[-65,64],[-104,59],[-128,42]],
+ tern:[[-39,-18],[-30,-25],[23,-25],[39,-12],[39,12],[23,25],[-30,25],[-39,18]],
+ quill:[[-55,-16],[-42,-29],[-16,-23],[17,-11],[55,-3],[55,3],[17,11],[-16,23],[-42,29],[-55,16]],
+ mender:[[-63,-13],[-30,-13],[-30,-38],[25,-38],[25,-15],[63,-10],[63,10],[25,15],[25,38],[-30,38],[-30,13],[-63,13]],
+ bulwark:[[-83,-24],[-64,-50],[22,-50],[70,-30],[83,-14],[83,14],[70,30],[22,50],[-64,50],[-83,24]],
+ cairn:[[-94,-43],[-74,-68],[52,-68],[94,-34],[94,34],[52,68],[-74,68],[-94,43]]
 };
 const definitions={
- sparrow:{name:'Sparrow',cols:30,rows:44,berths:4,plan:'A pointed cockpit, a central work bay, and two habitable engine shoulders.',
-  rooms:[room('bridge','FLIGHT DECK',10,7,10,12,C.bridge),room('work','UTILITY BAY',9,18,12,12,C.cargo),room('medical','PORT SICKBAY',3,26,9,11,C.medical),room('quarters','STARBOARD BERTHS',18,26,9,11,C.quarters),room('engineering','TWIN DRIVES',9,31,12,11,C.engineering)],
-  corridors:[passage(14,15,3,24),passage(5,24,20,3)],doors:[passage(8,26,2,2),passage(22,26,2,2),passage(14,30,3,2)],
-  stations:{helm:[14,11],navigation:[17,16],engineering:[15,36],medical:[8,31],security:[19,25]},
-  spawn:[14,25],bunks:[[19,33],[21,33],[23,33],[25,33]],breaches:[[5,25],[24,25]],combatSpawns:[[5,25],[6,24],[6,26],[7,25]],crewSpawns:[[15,34],[16,15],[8,33],[18,25],[11,21],[20,34],[24,34],[14,29],[16,39]],archive:[11,22],manifest:[11,24],
-  fixtures:[fixture('console',13,8,4,1,'#59878f'),fixture('window',13,7,4,1,null,false),fixture('workbench',10,19,3,1,'#9c896a'),fixture('bed',5,28,1,2,'#91c3b3'),fixture('cabinet',5,33,1,2,'#779b9f'),fixture('engine',11,34,2,4,'#528491'),fixture('engine',18,34,1,4,'#528491'),fixture('table',19,27,2,1,'#8b7963')]
+ sparrow:{name:'Sparrow',cols:14,rows:20,berths:2,plan:'A small cockpit opens directly into one shared work cabin with two fold-down bunks.',
+  rooms:[room('bridge','COCKPIT',4,5,6,7,C.bridge),room('work','WORK CABIN',2,11,10,7,C.cargo)],
+  corridors:[passage(6,8,2,9)],doors:[passage(6,11,2,2)],
+  stations:{helm:[6,8],navigation:[7,10],engineering:[6,16],medical:[4,15],security:[9,15]},
+  spawn:[6,13],bunks:[[3,16],[9,16]],breaches:[[4,14],[10,16]],combatSpawns:[[4,14],[5,14],[8,15],[10,16]],crewSpawns:[[6,11],[7,11],[5,13],[7,13],[8,13],[4,14],[5,15],[7,15],[8,15],[7,16]],archive:[6,14],manifest:[7,14],
+  fixtures:[fixture('console',6,6,2,1,'#59878f'),fixture('window',6,5,2,1,null,false),fixture('workbench',5,12,1,1,'#9c896a'),fixture('engine',8,16,1,1,'#528491')]
  },
- kestrel:{name:'Kestrel',cols:24,rows:44,berths:3,plan:'A slender survey cockpit over a single passage, with swept aft engine pods.',
-  rooms:[room('bridge','SCOUT COCKPIT',8,8,8,13,C.bridge),room('quarters','THREE BUNKS',7,20,5,18,C.quarters),room('medical','FIELD MEDICAL',13,22,5,12,C.medical),room('engineering','PORT DRIVE',3,32,8,10,C.engineering),room('chart','CHART POD',14,32,7,10,C.science)],
-  corridors:[passage(11,16,2,25),passage(6,32,13,2),passage(6,37,13,2)],doors:[passage(11,23,3,2),passage(12,28,3,2)],
-  stations:{helm:[11,12],navigation:[12,18],engineering:[7,37],medical:[15,27],security:[16,34]},
-  spawn:[11,32],bunks:[[9,25],[9,30],[9,35]],breaches:[[6,32],[18,33]],combatSpawns:[[7,36],[7,38],[16,37],[17,38]],crewSpawns:[[11,22],[11,25],[12,28],[11,35],[12,38],[15,24],[18,35],[7,35],[13,16]],archive:[17,39],manifest:[12,35],
-  fixtures:[fixture('console',10,9,4,1,'#6498a0'),fixture('window',10,8,4,1,null,false),fixture('engine',4,35,1,4,'#628c99'),fixture('equipment',17,35,1,1,'#89bdc8'),fixture('bed',14,24,1,2,'#91c5b7'),fixture('table',14,39,2,1,'#9a866b')]
+ kestrel:{name:'Kestrel',cols:12,rows:22,berths:1,plan:'A narrow cockpit and a single bunk share a tiny aft service cabin; there are no separate wings.',
+  rooms:[room('bridge','SCOUT COCKPIT',3,6,6,8,C.bridge),room('quarters','SOLO CABIN',2,12,8,8,C.quarters)],
+  corridors:[passage(5,9,2,10)],doors:[passage(5,12,2,2)],
+  stations:{helm:[5,9],navigation:[6,11],engineering:[7,18],medical:[4,17],security:[7,15]},
+  spawn:[5,15],bunks:[[3,18]],breaches:[[4,13],[7,17]],combatSpawns:[[4,13],[5,13],[6,16],[7,17]],crewSpawns:[[4,10],[6,12],[4,13],[6,13],[4,15],[6,15],[3,17],[7,16],[7,17],[5,18]],archive:[6,17],manifest:[5,17],
+  fixtures:[fixture('console',5,7,2,1,'#6498a0'),fixture('window',5,6,2,1,null,false),fixture('engine',8,16,1,2,'#628c99'),fixture('equipment',7,13,1,1,'#89bdc8')]
  },
- mule:{name:'Mule',cols:32,rows:46,berths:4,plan:'Two forward salvage jaws surround an open cradle; the bridge sits in the aft crossbeam.',
-  rooms:[room('portwork','PORT GRAPPLE ARM',3,4,8,23,C.cargo),room('starboardwork','STARBOARD CUTTER ARM',21,4,8,23,C.cargo),room('bridge','CRADLE CONTROL',12,25,10,10,C.bridge),room('engineering','REINFORCED DRIVE',3,29,10,14,C.engineering),room('medical','MEDICAL LOCKER',22,29,7,8,C.medical),room('quarters','AFT BERTHS',13,34,16,9,C.quarters)],
-  corridors:[passage(6,9,2,21),passage(24,9,2,21),passage(6,27,20,3),passage(15,28,2,14)],doors:[passage(11,36,5,2),passage(21,31,3,2),passage(23,36,2,3)],
-  stations:{helm:[16,28],navigation:[19,31],engineering:[9,36],medical:[25,33],security:[7,24]},
-  spawn:[15,29],bunks:[[17,40],[20,40],[23,40],[26,40]],breaches:[[6,13],[25,13]],combatSpawns:[[6,21],[7,21],[24,21],[25,21]],crewSpawns:[[9,38],[18,28],[25,35],[7,23],[7,12],[25,12],[16,41],[19,41],[27,41]],archive:[14,38],manifest:[13,28],
-  fixtures:[fixture('workbench',4,7,2,3,'#d4b47e'),fixture('cargo',4,15,2,3,'#9f936d'),fixture('equipment',26,7,1,4,'#7e9d9b'),fixture('cargo',26,17,1,3,'#9d946b'),fixture('console',14,26,6,1,'#648d96'),fixture('engine',5,32,2,6,'#628c99'),fixture('bed',23,30,1,2,'#91c5b7'),fixture('window',14,25,6,1,null,false)]
+ mule:{name:'Mule',cols:18,rows:24,berths:2,plan:'Narrow salvage arms surround an open cradle ahead of a small shared bridge and two-bunk service cabin.',
+  rooms:[room('portwork','GRAPPLE',2,2,4,10,C.cargo),room('starboardwork','CUTTER',12,2,4,10,C.cargo),room('bridge','CRADLE CONTROL',6,10,6,6,C.bridge),room('engineering','DRIVE',2,15,6,7,C.engineering),room('medical','SERVICE LOCKER',10,10,6,6,C.medical),room('quarters','TWO BUNKS',10,14,6,8,C.quarters)],
+  corridors:[passage(3,11,12,3),passage(7,12,3,9),passage(3,19,12,1)],doors:[passage(4,9,1,4),passage(13,9,1,4),passage(10,14,2,7)],
+  stations:{helm:[8,13],navigation:[10,12],engineering:[5,19],medical:[13,13],security:[4,11]},
+  spawn:[8,17],bunks:[[11,20],[13,20]],breaches:[[4,8],[13,8]],combatSpawns:[[4,11],[5,12],[12,12],[13,11]],crewSpawns:[[4,13],[5,13],[7,14],[8,15],[9,15],[9,18],[12,19],[14,19],[5,20],[8,20]],archive:[7,16],manifest:[10,17],
+  fixtures:[fixture('workbench',3,4,1,3,'#d4b47e'),fixture('cargo',14,5,1,2,'#9f936d'),fixture('console',7,11,3,1,'#648d96'),fixture('engine',3,16,1,3,'#628c99'),fixture('window',7,10,3,1,null,false)]
  },
  hauler:{name:'Wayfarer Hauler',cols:38,rows:58,berths:6,plan:'A forward bridge feeds a long freight spine between paired cargo pods and aft living spaces.',
   rooms:[room('bridge','FORWARD BRIDGE',13,6,12,13,C.bridge),room('portcargo','PORT CARGO PODS',3,19,12,15,C.cargo),room('starboardcargo','STARBOARD CARGO PODS',23,19,12,15,C.cargo),room('medical','MEDICAL & MESS',3,34,12,8,C.medical),room('security','FREIGHT CONTROL',14,28,10,11,C.security),room('galley','CREW MESS',23,34,12,8,C.common),room('engineering','CARGO ENGINES',3,41,12,14,C.engineering),room('quarters','SIX AFT BERTHS',23,38,12,17,C.quarters)],
@@ -77,6 +82,41 @@ const definitions={
   spawn:[26,54],bunks:[[37,82],[39,82],[41,82],[43,82],[45,82],[37,91],[39,91],[41,91],[43,91],[45,91]],breaches:[[11,16],[43,16]],combatSpawns:[[12,54],[13,53],[13,55],[14,54]],crewSpawns:[[12,87],[27,64],[28,79],[44,54],[20,54],[38,92],[44,92],[26,90],[27,73]],archive:[29,92],manifest:[22,54],
   fixtures:[fixture('workbench',8,9,3,2,'#ad956e'),fixture('equipment',45,9,1,5,'#8ba29d'),fixture('cargo',5,30,4,4,'#ad956e'),fixture('cargo',5,40,4,4,'#7f9c99'),fixture('workbench',46,31,3,2,'#cfbd8a'),fixture('equipment',46,39,2,4,'#879a99'),fixture('console',23,57,8,1,'#648d96'),fixture('window',23,56,8,1,null,false),fixture('engine',7,76,3,8,'#628c99'),fixture('engine',15,76,3,8,'#628c99'),fixture('bed',23,76,1,3,'#91c5b7'),fixture('table',22,88,3,1,'#9a866b'),fixture('table',29,88,2,1,'#9a866b')]
  },
+ tern:{name:'Tern',cols:20,rows:30,berths:3,plan:'A blunt shuttle cockpit opens into a little passenger saloon, with three bunks and a drive cupboard aft.',
+  rooms:[room('bridge','SHUTTLE COCKPIT',6,4,8,8,C.bridge),room('saloon','PASSENGER SALOON',4,12,12,8,C.common),room('quarters','THREE BERTHS',3,20,8,7,C.quarters),room('engineering','SERVICE DRIVE',11,20,6,7,C.engineering)],
+  corridors:[passage(9,8,2,18),passage(5,19,10,3)],doors:[passage(9,11,2,3)],
+  stations:{helm:[9,7],navigation:[11,9],engineering:[12,24],medical:[6,17],security:[13,17]},
+  spawn:[9,19],bunks:[[4,25],[6,25],[8,25]],breaches:[[5,19],[14,19]],combatSpawns:[[5,19],[6,19],[7,20],[14,19]],crewSpawns:[[9,11],[10,13],[6,15],[8,17],[12,17],[10,22],[12,25],[5,25],[7,25],[9,25]],archive:[11,15],manifest:[11,19],
+  fixtures:[fixture('console',8,5,4,1,'#729b9d'),fixture('window',8,4,4,1,null,false),fixture('seat',5,14,2,1,'#8d9d9c'),fixture('seat',13,14,2,1,'#8d9d9c'),fixture('table',8,15,2,1,'#aa906e'),fixture('engine',14,22,1,3,'#628c99')]
+ },
+ quill:{name:'Quill',cols:24,rows:46,berths:4,plan:'A long courier nose feeds a chart spine, with four stacked bunks to port and dispatch lockers to starboard.',
+  rooms:[room('bridge','DISPATCH COCKPIT',9,8,6,12,C.bridge),room('navigation','ROUTE SPINE',9,19,6,10,C.science),room('quarters','COURIER BERTHS',4,28,7,13,C.quarters),room('medical','PARCELS & MEDICAL',13,28,7,10,C.cargo),room('engineering','SLIPSTREAM DRIVE',8,37,8,7,C.engineering)],
+  corridors:[passage(11,13,2,29),passage(6,28,12,2),passage(6,33,12,2),passage(9,38,4,2)],doors:[passage(12,26,2,3)],
+  stations:{helm:[11,12],navigation:[12,22],engineering:[11,40],medical:[15,32],security:[15,35]},
+  spawn:[11,33],bunks:[[6,34],[8,34],[6,39],[8,39]],breaches:[[6,28],[17,28]],combatSpawns:[[6,28],[7,28],[16,28],[17,29]],crewSpawns:[[11,17],[12,25],[10,28],[14,29],[16,32],[10,34],[12,38],[13,40],[7,39],[9,39]],archive:[10,26],manifest:[13,33],
+  fixtures:[fixture('console',11,9,2,1,'#689aa2'),fixture('window',11,8,2,1,null,false),fixture('cargo',17,30,1,2,'#a39075'),fixture('cabinet',17,35,1,2,'#779b9f'),fixture('engine',9,40,1,2,'#628c99'),fixture('engine',14,40,1,2,'#628c99'),fixture('equipment',10,21,1,2,'#90c7b5')]
+ },
+ mender:{name:'Mender',cols:28,rows:48,berths:5,plan:'A cross-shaped rescue hull: treatment ward to port, crew recovery bunks to starboard, and a narrow flight-to-drive spine.',
+  rooms:[room('bridge','RESCUE BRIDGE',10,5,8,11,C.bridge),room('medical','TRIAGE WARD',3,16,10,19,C.medical),room('quarters','RECOVERY BERTHS',15,17,10,17,C.quarters),room('engineering','LIFE-SUPPORT DRIVE',10,35,8,10,C.engineering)],
+  corridors:[passage(12,11,4,32),passage(8,20,12,2),passage(8,30,12,3)],doors:[passage(12,16,4,2),passage(12,33,4,3)],
+  stations:{helm:[13,9],navigation:[15,12],engineering:[14,40],medical:[7,25],security:[18,32]},
+  spawn:[13,30],bunks:[[16,23],[19,23],[22,23],[16,30],[19,30]],breaches:[[5,24],[23,24]],combatSpawns:[[5,24],[6,24],[22,24],[23,24]],crewSpawns:[[13,14],[14,18],[9,23],[8,26],[10,30],[15,31],[21,31],[14,37],[13,42],[20,24]],archive:[10,32],manifest:[15,30],
+  fixtures:[fixture('console',12,6,4,1,'#84b3b3'),fixture('window',12,5,4,1,null,false),fixture('bed',4,18,1,3,'#91c5b7'),fixture('bed',7,18,1,3,'#91c5b7'),fixture('bed',4,28,1,3,'#91c5b7'),fixture('cabinet',10,18,1,2,'#779b9f'),fixture('workbench',5,32,3,1,'#9caa9e'),fixture('engine',11,38,1,4,'#628c99'),fixture('engine',16,38,1,4,'#628c99')]
+ },
+ bulwark:{name:'Bulwark',cols:36,rows:60,berths:8,plan:'A blunt armored bow shields the central magazine; paired weapons shoulders sit ahead of two four-person berth bays.',
+  rooms:[room('bridge','PATROL BRIDGE',12,6,12,13,C.bridge),room('magazine','CENTRAL MAGAZINE',12,20,12,15,C.security),room('portbattery','PORT BATTERY',3,19,10,15,C.security),room('starboardbattery','STARBOARD BATTERY',23,19,10,15,C.security),room('portquarters','PORT BERTHS',3,36,10,17,C.quarters),room('starboardquarters','STARBOARD BERTHS',23,36,10,17,C.quarters),room('medical','PATROL MEDICAL',13,37,10,9,C.medical),room('engineering','REACTOR & DRIVES',12,47,12,10,C.engineering)],
+  corridors:[passage(16,15,3,41),passage(7,33,22,3),passage(7,45,22,2)],doors:[passage(7,35,2,3),passage(26,35,2,3),passage(11,28,3,2),passage(22,28,3,2)],
+  stations:{helm:[17,11],navigation:[20,15],engineering:[18,52],medical:[17,41],security:[20,29]},
+  spawn:[17,34],bunks:[[4,43],[7,43],[4,50],[7,50],[25,43],[28,43],[25,50],[28,50]],breaches:[[7,34],[28,34]],combatSpawns:[[7,34],[8,34],[27,34],[28,34]],crewSpawns:[[17,17],[20,25],[8,30],[27,30],[17,38],[20,42],[8,51],[29,51],[17,50],[19,54]],archive:[14,39],manifest:[20,34],
+  fixtures:[fixture('console',15,8,6,1,'#648d96'),fixture('window',15,7,6,1,null,false),fixture('armory',4,23,5,2,'#a9a6a0'),fixture('armory',26,23,5,2,'#a9a6a0'),fixture('commandtable',13,23,3,2,'#8f9d98'),fixture('equipment',21,25,1,2,'#9f8b75'),fixture('bed',14,40,1,3,'#91c5b7'),fixture('engine',13,50,2,4,'#628c99'),fixture('engine',21,50,1,4,'#628c99')]
+ },
+ cairn:{name:'Cairn',cols:50,rows:70,berths:10,plan:'Two huge ore holds flank a processing-control spine; separate aft habitat blocks carry five bunks each around the engine room.',
+  rooms:[room('bridge','BARGE BRIDGE',18,5,14,12,C.bridge),room('portore','PORT ORE HOLD',3,17,16,27,C.cargo),room('starboardore','STARBOARD ORE HOLD',31,17,16,27,C.cargo),room('control','CUTTER CONTROL',19,21,12,18,C.science),room('portquarters','PORT MINING CREW',5,48,15,17,C.quarters),room('starboardquarters','STARBOARD MINING CREW',30,48,15,17,C.quarters),room('medical','CREW INFIRMARY',19,44,12,11,C.medical),room('engineering','HEAVY DRIVE',20,55,10,12,C.engineering)],
+  corridors:[passage(23,13,3,52),passage(10,43,30,3),passage(10,54,30,3)],doors:[passage(11,46,2,5),passage(36,46,2,5),passage(17,30,4,2),passage(29,30,4,2)],
+  stations:{helm:[24,11],navigation:[27,15],engineering:[24,61],medical:[25,49],security:[29,43]},
+  spawn:[24,44],bunks:[[7,61],[9,61],[11,61],[13,61],[15,61],[32,61],[34,61],[36,61],[38,61],[40,61]],breaches:[[10,44],[39,44]],combatSpawns:[[10,44],[11,44],[38,44],[39,44]],crewSpawns:[[24,18],[25,26],[18,31],[31,31],[16,44],[34,44],[25,51],[18,62],[42,62],[24,64]],archive:[27,37],manifest:[21,44],
+  fixtures:[fixture('console',21,7,8,1,'#648d96'),fixture('window',21,6,8,1,null,false),fixture('cargo',6,20,4,7,'#a58c64'),fixture('cargo',12,20,4,7,'#869a91'),fixture('cargo',6,33,4,6,'#869a91'),fixture('cargo',12,33,4,6,'#a58c64'),fixture('cargo',34,20,4,7,'#869a91'),fixture('cargo',40,20,4,7,'#a58c64'),fixture('cargo',34,33,4,6,'#a58c64'),fixture('cargo',40,33,4,6,'#869a91'),fixture('workbench',21,23,2,1,'#b5a381'),fixture('bed',21,47,1,3,'#91c5b7'),fixture('bed',28,47,1,3,'#91c5b7'),fixture('engine',21,57,2,6,'#628c99'),fixture('engine',27,57,1,6,'#628c99')]
+ },
  capital:{name:'Horizon Capital',cols:58,rows:118,berths:10,plan:'A tapered command bow, broad habitation wings, and two hangar shoulders around the reactor spine.',
   rooms:[room('bridge','COMMAND BOW',22,16,14,24,C.bridge),room('medical','PORT MEDICAL WING',7,42,17,21,C.medical),room('security','STARBOARD SECURITY WING',34,42,17,21,C.security),room('portquarters','PORT HABITAT / 01–05',5,66,20,25,C.quarters),room('starboardquarters','STARBOARD / 06–10',33,66,20,25,C.quarters),room('hangar','PORT HANGAR & FREIGHT',5,95,20,16,C.cargo),room('engineering','REACTOR SPINE',23,94,12,22,C.engineering),room('galley','STARBOARD COMMON DECK',34,95,19,16,C.common)],
   corridors:[passage(27,31,4,80),passage(12,62,34,4),passage(18,78,22,3),passage(11,91,36,4)],doors:[passage(15,61,2,8),passage(42,61,2,8),passage(15,89,2,8),passage(42,89,2,8)],
@@ -107,6 +147,13 @@ function buildCabinLayout(value='sparrow'){
  layout.floor=Array.from(floor);layout.walkable=Array.from(floor);
  for(const bunk of layout.bunks){const x=bunk.tileX+1,y=bunk.tileY-4;if(floor[y*d.cols+x])layout.fixtures.push(fixture('cabinet',x,y,1,1,'#7e9499',true));}
  for(const f of layout.fixtures)if(f.solid)for(let y=f.y;y<f.y+f.h;y++)for(let x=f.x;x<f.x+f.w;x++)if(x>=0&&y>=0&&x<d.cols&&y<d.rows)layout.walkable[y*d.cols+x]=0;
+ // Standing places preserve older crowded rosters and visiting parties. They
+ // never create beds, expand the pressure hull, or increase hiring capacity.
+ const standing=[layout.spawn,layout.archive,layout.manifest,...layout.bunks,...Object.values(layout.stations),...layout.crewSpawns];
+ for(let i=0;i<layout.walkable.length&&layout.crewSpawns.length<12;i++)if(layout.walkable[i]){
+  const point=pt(i%d.cols,Math.floor(i/d.cols));
+  if(standing.every(other=>Math.hypot(point.x-other.x,point.y-other.y)>=24)){layout.crewSpawns.push(point);standing.push(point);}
+ }
  return layout;
 }
 const layoutCache=new Map();

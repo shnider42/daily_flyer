@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
+import {withHull} from './helpers/fleet-fixtures.mjs';
 import {Game} from '../dist/engine.mjs';
 import {enemyShipState} from '../dist/fleet.mjs';
 import {cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
@@ -169,7 +170,7 @@ test('shared destruction and boarding loss hooks prevent automatic ship healing 
 });
 
 test('losing a defensive boarding leaves the occupied hull in space and recovers aboard a different cutter',()=>{
-  const game=new Game('occupied-loss'),origin=game.state.ship,enemy=placeRaider(game),originId=origin.id;
+  const game=withHull(new Game('occupied-loss')),origin=game.state.ship,enemy=placeRaider(game),originId=origin.id;
   Object.assign(origin,{x:0,y:450,shield:0,hull:60});Object.assign(enemy,{x:90,y:450,disabled:false});game.system.enemies=[enemy];
   ok(game.startBoarding(enemy.id));game.state.person.health=0;game.state.person.down=true;game._finishBoarding('lost');
   assert.notEqual(game.state.ship.id,originId);

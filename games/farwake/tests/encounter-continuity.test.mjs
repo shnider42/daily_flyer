@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.mjs';
 import {materializeEncounterContacts} from '../dist/encounter-rules.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
+import {withHull} from './helpers/fleet-fixtures.mjs';
 import {generateSurface} from '../dist/surface.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason||result?.message);return result;};
@@ -87,7 +88,7 @@ for(const[encounterId,kind,choice]of [['cinder_toll','standoff','refuse'],['sign
 });
 
 test('evacuated freighters remain physical hulls but cannot duplicate their rescued occupants',()=>{
- const game=new Game('context-playtest-9');game.state.systemId='afterlight';game._loadSystem('afterlight');
+ const game=withHull(new Game('context-playtest-9'),'quill');game.state.systemId='afterlight';game._loadSystem('afterlight');
  const signal=game.system.signals.find(value=>value.encounterId==='ghost_freighter');assert.ok(signal);
  Object.assign(game.state.ship,{x:signal.x+75,y:signal.y,vx:0,vy:0});
  ok(game.boardDerelict(signal.id));
