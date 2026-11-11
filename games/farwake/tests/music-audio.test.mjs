@@ -103,6 +103,34 @@ test('music works with effects disabled and muting music leaves effect playback 
   } finally { b.restore(); }
 });
 
+test('the Bellwether scream is one bounded effects cue with gentle attack and normal cleanup', () => {
+  const b = boundary({ sound: true, music: false });
+  try {
+    b.audio.unlock(); b.audio.play('bellwetherScream');
+    const voices = [...b.audio.effects];
+    assert.equal(voices.length, 3, 'one scream uses three short voices, with no echo timers or loop');
+    assert.ok(voices.every(voice => voice.started === 0 && voice.stops.length === 1 && voice.stops[0] <= 1));
+    const envelopes = voices.map(voice => [...voice.connections][0].gain.events);
+    assert.ok(envelopes.every(events => events.some(([kind, value, at]) => kind === 'linear' && value <= .15 && at >= .06)), 'the entry has a bounded, gentle volume ramp');
+    b.audio.play('bellwetherScream'); assert.equal(b.audio.effects.size, 3, 'a duplicate callback cannot layer another scream');
+    for (const voice of voices) voice.onended();
+    assert.equal(b.audio.effects.size, 0); assert.ok(voices.every(voice => voice.disconnected));
+  } finally { b.restore(); }
+});
+
+test('the scream respects sound mute, hidden documents and effects interruption independently of music', () => {
+  const b = boundary({ sound: false, music: true });
+  try {
+    b.audio.unlock(); b.audio.play('bellwetherScream'); assert.equal(b.audio.effects.size, 0);
+    b.settings.sound = true; b.audio.mute(); b.audio.last.bellwetherScream = -Infinity;
+    b.document.hidden = true; b.audio.play('bellwetherScream'); assert.equal(b.audio.effects.size, 0);
+    b.document.hidden = false; b.audio.last.bellwetherScream = -Infinity;
+    b.audio.play('bellwetherScream'); assert.equal(b.audio.effects.size, 3);
+    b.audio.suspend(); assert.equal(b.audio.effects.size, 0);
+    b.audio.unlock(); assert.equal(b.audio.effects.size, 0, 'returning to the foreground cannot resume an abandoned scream');
+  } finally { b.restore(); }
+});
+
 test('backgrounding stops active notes and effects so a return cannot resume stale shots', () => {
   const b = boundary();
   try {

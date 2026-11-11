@@ -8,10 +8,11 @@
 import {beginPixelFrame} from './render-viewport.mjs';
 import {surfaceCamera,surfaceWorldToCanvas} from './camera-view.mjs';
 import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
-import {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
+import {cabinLayout,resolveCabinClass,isCabinWalkable} from './interior-layouts.mjs';
 import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
 import {sidearmAim,facingAngle} from './combat.mjs';
+import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
 import {appearancePalette} from './character.mjs';
 import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
@@ -891,7 +892,7 @@ function shortRole(e){if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.typ
 function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;
- if(hostile||health<maximum||actor.showHealth){const x=Math.round(actor.x)-12,y=Math.round(actor.y)-34;pixel(ctx,'#10232b',x-1,y-1,26,5);pixel(ctx,hostile?'#653c38':'#3b5956',x,y,24,3);pixel(ctx,hostile?'#e79a7b':'#9acbb0',x,y,Math.round(24*clamp(health/maximum,0,1)),3);}
+ if(hostile||health<maximum||actor.showHealth){const wide=actor.species==='bellwether',w=wide?44:24,x=Math.round(actor.x)-w/2,y=Math.round(actor.y)-(wide?54:34);pixel(ctx,'#10232b',x-1,y-1,w+2,5);pixel(ctx,hostile?'#653c38':'#3b5956',x,y,w,3);pixel(ctx,hostile?'#e79a7b':'#9acbb0',x,y,Math.round(w*clamp(health/maximum,0,1)),3);}
  if((actor.hurtUntil||actor.hitUntil||0)>time){pixel(ctx,'#eab49b',actor.x-10,actor.y-18,2,2);pixel(ctx,'#eab49b',actor.x+9,actor.y-7,2,2);}
 }
 function aimBracket(ctx,x,y,color){
@@ -926,6 +927,7 @@ function drawCombatEffects(ctx,effects,emit){
 }
 /** Wildlife has its own silhouette; it is never a recolored human boarder. */
 function drawWildlife(ctx,actor,time){
+ if(actor.species==='bellwether'){drawBellwether(ctx,actor,time);return;}
  const x=Math.round(actor.x),y=Math.round(actor.y),small=actor.species==='skitter',dead=actor.health<=0,step=actor.moving?Math.sin(time*15)>0?2:-2:0,c=(actor.hitUntil||0)>time?'#e2c3a6':actor.color||'#a5967e';
  pixel(ctx,'#101b20',x-(small?15:21),y-1,small?30:42,5);
  if(dead){pixel(ctx,'#4a4a43',x-16,y-8,30,9);pixel(ctx,'#777668',x-12,y-10,23,5);pixel(ctx,'#615246',x+9,y-7,10,4);return;}
@@ -936,16 +938,50 @@ function drawWildlife(ctx,actor,time){
  pixel(ctx,'#44564d',x+front*(small?10:15)-5,y-13,11,9);pixel(ctx,actor.windup>0?'#eec179':'#ced3aa',x+front*(small?13:18)-1,y-12,3,2);pixel(ctx,'#d8c7a4',x+front*(small?17:22)-2,y-7,4,2);
  if(actor.windup>0){pixelRing(ctx,x,y,small?19:26,9,'#e1a378',{dashed:true,phase:Math.floor(time*9)});pixel(ctx,'#f1cf91',x-2,y-36,4,6);}
 }
+/** A broad stone carapace and an empty resonating throat, not a humanoid sprite. */
+function drawBellwether(ctx,actor,time){
+ const x=Math.round(actor.x),y=Math.round(actor.y),dead=actor.health<=0,windup=actor.phase==='windup'||actor.windup>0,lunge=actor.phase==='lunge',recover=actor.phase==='recovery',motion=actor.reduceMotion!==true;
+ const angle=Number.isFinite(actor.aimAngle)?actor.aimAngle:facingAngle(actor.facing),dx=Math.cos(angle),dy=Math.sin(angle),step=motion&&actor.moving?Math.sin(time*12)>0?3:-3:0,crouch=windup?4:recover?2:0;
+ pixel(ctx,'#071013',x-37,y-6,74,12);pixel(ctx,'#0c191b',x-31,y+4,62,4);
+ if(dead){pixel(ctx,'#364043',x-30,y-20,61,22);pixel(ctx,'#768382',x-23,y-26,44,12);pixel(ctx,'#172329',x-7,y-22,18,16);pixel(ctx,'#b6b7a6',x-8,y-23,20,3);for(const s of[-1,1])pixelLine(ctx,x+s*19,y-6,x+s*36,y+4,'#6b7772',5);return;}
+ for(const side of[-1,1])for(const offset of[-17,0,17]){const foot=x+side*(32+(offset===0?4:0)),yy=y+offset*.35+step*side;pixelLine(ctx,x+side*17,y-17+offset*.45+crouch,foot,yy-4,'#37474a',7);pixelLine(ctx,foot,yy-4,foot+side*3,yy+4,'#99a99c',3);pixel(ctx,'#c2c4aa',foot+side*3-2,yy+3,5,2);}
+ const hit=(actor.hitUntil||actor.hurtUntil||0)>time;
+ for(const [yy,half,color]of[[-36,14,'#566967'],[-32,23,'#95a797'],[-26,29,'#738a82'],[-18,31,'#4a6463'],[-9,25,'#324e52'],[-3,17,'#243d43']])pixel(ctx,hit?'#c9c4a7':color,x-half,y+yy+crouch,half*2+1,9);
+ for(const side of[-1,1])for(const offset of[-18,-6,7]){pixel(ctx,'#b0bba3',x+side*(19-Math.abs(offset+6)/4)-4,y+offset-12+crouch,9,5);pixel(ctx,'#415c60',x+side*11-2,y+offset-9+crouch,4,7);}
+ pixel(ctx,'#c4c5a9',x-3,y-40+crouch,7,18);pixel(ctx,'#526d68',x-1,y-38+crouch,3,16);
+ for(const [ox,oy]of[[-22,-23],[19,-20],[-14,-6],[13,-31]])pixel(ctx,'#9e795b',x+ox,y+oy+crouch,4,3);
+ const throatX=Math.round(x+dx*(lunge?23:18)),throatY=Math.round(y-18+dy*13+crouch),openThroat=windup||lunge;
+ pixelRing(ctx,throatX,throatY,openThroat?14:11,openThroat?13:9,'#c0b89b');pixelRing(ctx,throatX,throatY,openThroat?11:8,openThroat?10:6,'#6e8c85');
+ pixel(ctx,'#02090e',throatX-(openThroat?8:6),throatY-(openThroat?8:4),openThroat?17:13,openThroat?17:9);
+ pixel(ctx,openThroat?'#e8b98a':'#95c0ad',throatX-5,throatY-3,2,2);pixel(ctx,openThroat?'#e8b98a':'#95c0ad',throatX+4,throatY-3,2,2);
+ if(windup){pixel(ctx,'#f2c88b',x-2,y-48,4,7);pixel(ctx,'#f2c88b',x-1,y-39,2,2);}
+}
+function drawBellwetherTell(ctx,actor,layout){
+ if(actor.species!=='bellwether'||actor.health<=0||!(actor.phase==='windup'||actor.windup>0))return;
+ const angle=actor.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx,width=(actor.hitRadius||16)+6;
+ let length=0;for(let d=3;d<=(actor.lungeRange||250);d+=3){if(layout&&!isCabinWalkable(layout,actor.x+dx*d,actor.y+dy*d,actor.radius||14))break;length=d;}
+ if(length<24)return;
+ for(let d=28;d<=length;d+=24){const x=actor.x+dx*d,y=actor.y+dy*d;pixelLine(ctx,x-dx*7+nx*7,y-dy*7+ny*7,x,y,'#d39c68',2);pixelLine(ctx,x-dx*7-nx*7,y-dy*7-ny*7,x,y,'#d39c68',2);}
+ for(const side of[-1,1])pixelLine(ctx,actor.x+nx*width*side+dx*22,actor.y+ny*width*side+dy*22,actor.x+nx*width*side+dx*length,actor.y+ny*width*side+dy*length,'#72554b',1);
+}
 function drawDomesticAnimal(ctx,animal,time){
  const x=Math.round(animal.x),y=Math.round(animal.y),left=animal.facing==='left',front=left?-1:1,step=animal.moving?(Math.sin(time*8)>0?1:-1):0,c=animal.color||'#bfb59c',grazer=animal.species==='grazer';
  pixel(ctx,'#19312b',x-13,y-2,26,5);for(const[dx,dy]of[[-9,step],[-4,-step],[5,step],[10,-step]]){pixel(ctx,'#7c806c',x+dx,y-5,2,7+dy);pixel(ctx,'#d7d3b6',x+dx-1,y+1+dy,4,2);}pixel(ctx,c,x-12,y-16,24,12);pixel(ctx,grazer?'#c4d5b0':'#d1c6ab',x-10,y-18,18,5);pixel(ctx,c,x+front*13-5,y-17,10,10);pixel(ctx,'#273f39',x+front*16,y-14,2,2);pixel(ctx,c,x-front*15,y-16,5,3);
  if(grazer){pixel(ctx,'#829c80',x-5,y-22,10,5);pixel(ctx,'#d1dbb6',x-1,y-25,4,5);}else{pixel(ctx,'#d8cdae',x+front*12,y-22,2,7);pixel(ctx,'#d8cdae',x+front*16,y-21,2,6);pixel(ctx,'#95866b',x+front*18,y-13,3,4);}
 }
-function drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time){
- if(surface.atmosphere==='cave'){
+function drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility=null){
+ if(surface.atmosphere==='cave'&&!visibility){
   const radius=210;ctx.globalAlpha=.24;pixel(ctx,'#030c13',cameraX,cameraY,Math.max(0,person.x-radius-cameraX),height);pixel(ctx,'#030c13',person.x+radius,cameraY,Math.max(0,cameraX+width-person.x-radius),height);pixel(ctx,'#030c13',Math.max(cameraX,person.x-radius),cameraY,Math.min(width,radius*2),Math.max(0,person.y-radius-cameraY));pixel(ctx,'#030c13',Math.max(cameraX,person.x-radius),person.y+radius,Math.min(width,radius*2),Math.max(0,cameraY+height-person.y-radius));ctx.globalAlpha=1;
  }
- for(let i=0;i<10;i++){const x=cameraX+noise(i,3,surface.seed)*width,y=cameraY+(noise(i,8,surface.seed)*height+time*(surface.atmosphere==='ice'?9:2))%height;pixel(ctx,surface.atmosphere==='ice'?'#a9c7cc':'#778887',x,y,1,1);}
+ for(let i=0;i<10;i++){const x=cameraX+noise(i,3,surface.seed)*width,y=cameraY+(noise(i,8,surface.seed)*height+time*(surface.atmosphere==='ice'?9:2))%height;if(!visibility||visibility.canSeePoint({x,y}))pixel(ctx,surface.atmosphere==='ice'?'#a9c7cc':'#778887',x,y,1,1);}
+}
+function drawSiteFog(ctx,visibility,minX,maxX,minY,maxY){
+ if(!visibility)return;
+ for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++){
+  const index=y*visibility.cols+x;if(visibility.visible[index])continue;
+  ctx.globalAlpha=visibility.explored[index] ? .86 : 1;pixel(ctx,'#030910',x*T,y*T,T,T);
+ }
+ ctx.globalAlpha=1;
 }
 function normalizedActors(options){
  const list=[];
@@ -996,7 +1032,7 @@ function zoomLayer(ctx,width,height){
 }
 
 /** A bounded survey diagram. Draws tile runs directly, never a world-sized raster. */
-export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null}={}){
+export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null,visibility=createSiteVisibility(surface,person)}={}){
  const bounded=(value,fallback)=>Math.max(32,Math.min(720,Number.isFinite(Number(value))?Math.round(Number(value)):fallback));
  width=bounded(width,360);height=bounded(height,280);
  const padding=Math.max(7,Math.min(18,Math.floor(Math.min(width,height)*.055))),available=Math.min((width-padding*2)/surface.cols,(height-padding*2)/surface.rows);
@@ -1006,26 +1042,27 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
   [TILE.VOID]:'#08141e',[TILE.WALL]:'#77908f',[TILE.FLOOR]:'#344e57',[TILE.PATH]:'#b6a981',[TILE.GROUND]:surface.barren?'#414d5a':surface.biome==='ice'?'#587883':surface.biome==='arid'?'#655444':surface.biome==='cave'?'#3d454c':'#2b4c42',[TILE.WATER]:surface.biome==='volcanic'?'#a96143':'#244e68',[TILE.PAD]:'#6a8585',[TILE.METAL]:'#6a8185',[TILE.RUBBLE]:'#625f58',[TILE.GRATE]:'#4d6870'
  };
  beginPixelFrame(ctx);ctx.save();box('#0a1924',0,0,width,height);box('#395660',offsetX-2,offsetY-2,mapWidth+4,mapHeight+4);
+ const tileColor=(x,y)=>visibility&&!visibility.visible[y*surface.cols+x]?(visibility.explored[y*surface.cols+x]?(surface.combatLayout.walkable[y*surface.cols+x]?'#1b2930':'#26353b'):'#030910'):(colors[surface.tiles[y][x]]||palette.floor);
  for(let y=0;y<surface.rows;y++){
-  const row=surface.tiles[y];let start=0;
-  for(let x=1;x<=surface.cols;x++)if(x===surface.cols||row[x]!==row[start]){box(colors[row[start]]||palette.floor,offsetX+start*cell,offsetY+y*cell,(x-start)*cell,cell);start=x;}
+  let start=0,color=tileColor(0,y);
+  for(let x=1;x<=surface.cols;x++)if(x===surface.cols||tileColor(x,y)!==color){box(color,offsetX+start*cell,offsetY+y*cell,(x-start)*cell,cell);start=x;if(x<surface.cols)color=tileColor(x,y);}
  }
  // Large entrances have recognizable footprints without drawing individual furniture.
- for(const decor of surface.decor)if(['frontier-hut','dome','igloo','cave-mouth','market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house'].includes(decor.kind)){
+ for(const decor of surface.decor)if((!visibility||visibility.knowsPoint(decor))&&['frontier-hut','dome','igloo','cave-mouth','market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house'].includes(decor.kind)){
   const p=project(decor.x,decor.y);box(decor.kind==='cave-mouth'?'#a6977f':'#8ca8aa',p.x,p.y,Math.max(3,decor.w*scale),Math.max(3,decor.h*scale));
  }
  const markers=[],ordinary=[],exits=[];
  const kinds={siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',questObject:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
  for(const entity of surface.entities){
-  if(entity.hidden||entity.disabled)continue;const selected=entity.id===targetEntityId,kind=entity.data?.professionDesk?'service':kinds[entity.type];if(!kind&&!selected)continue;
+  if(entity.hidden||entity.disabled||visibility&&!visibility.knowsEntity(entity))continue;const selected=entity.id===targetEntityId,kind=entity.data?.professionDesk?'service':kinds[entity.type];if(!kind&&!selected)continue;
   const done=!!entity.completed||exploration?.collected?.includes(entity.data?.cacheId)||!!exploration?.choices?.[entity.data?.choiceId],point=project(entity.x,entity.y),exit=kind==='exit';
   const marker={id:entity.id,name:entity.name,kind:kind||'person',siteKind:entity.data?.siteKind,...point,selected,done,color:exit?'#a8d4a0':done?'#708e82':entity.data?.siteKind==='clinic'?'#b9d6b8':entity.data?.siteKind==='market'?'#d2b088':entity.data?.siteKind==='sanctum'?'#bdb0d6':'#82ccc9'};
   markers.push(marker);(exit?exits:ordinary).push(marker);
  }
  const mark=(marker)=>{const radius=marker.kind==='exit'?5:marker.kind==='site'?4:3;box('#0b1c27',marker.x-radius-1,marker.y-radius-1,radius*2+3,radius*2+3);box(marker.color,marker.x-radius,marker.y-radius,radius*2+1,radius*2+1);if(marker.kind==='exit'){box('#294039',marker.x-1,marker.y-3,3,7);box('#294039',marker.x-3,marker.y-1,7,3);}else if(marker.done)box('#213d38',marker.x-1,marker.y-1,3,3);};
  for(const marker of [...ordinary,...exits])mark(marker);
- // Only wildlife already alerted to a captain appears on this survey, preserving discovery.
- for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert){const point=project(monster.x,monster.y);box('#17232a',point.x-4,point.y-4,9,9);box('#df8b77',point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:'hostile',...point,color:'#df8b77'});}
+ // A different captain's discovery never grants local sight through cavern walls.
+ for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert&&(!visibility||visibility.canSeeActor(monster))){const point=project(monster.x,monster.y);box('#17232a',point.x-4,point.y-4,9,9);box('#df8b77',point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:'hostile',...point,color:'#df8b77'});}
  const chosen=markers.find(marker=>marker.selected);if(chosen){const r=9,c='#f4c97f';box(c,chosen.x-r,chosen.y-r,7,2);box(c,chosen.x-r,chosen.y-r,2,7);box(c,chosen.x+r-6,chosen.y-r,7,2);box(c,chosen.x+r-1,chosen.y-r,2,7);box(c,chosen.x-r,chosen.y+r-1,7,2);box(c,chosen.x-r,chosen.y+r-6,2,7);box(c,chosen.x+r-6,chosen.y+r-1,7,2);box(c,chosen.x+r-1,chosen.y+r-6,2,7);}
  const player=project(person?.x??surface.spawn.x,person?.y??surface.spawn.y);box('#102936',player.x-6,player.y-6,13,13);box('#f2f5df',player.x-4,player.y-4,9,9);box('#4b9caa',player.x-1,player.y-1,3,3);
  const direction=facingAngle(person?.facing||'up');pixelLine(ctx,player.x+Math.cos(direction)*7,player.y+Math.sin(direction)*7,player.x+Math.cos(direction)*11,player.y+Math.sin(direction)*11,'#f2f5df',2);
@@ -1055,12 +1092,13 @@ function drawSurfacePixels(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height,time=options.time||0,combatTime=options.combatTime??options.gameTime??time;
  const center=(v,world,viewport)=>world<viewport?(world-viewport)/2:clamp(v-viewport/2,0,world-viewport);
  const cameraX=Math.round(options.cameraX??center(person.x,surface.width,width)),cameraY=Math.round(options.cameraY??center(person.y,surface.height,height));
- const p=surface.palette||PALETTES[surface.biome]||PALETTES.station,flags=new Set(options.flags||surface.flags||[]),emit=labelSink(ctx,options.labels,{cameraX,cameraY,width,height});
+ const p=surface.palette||PALETTES[surface.biome]||PALETTES.station,flags=new Set(options.flags||surface.flags||[]),emit=labelSink(ctx,options.labels,{cameraX,cameraY,width,height}),visibility=options.visibility??createSiteVisibility(surface,person,{observerId:options.localCaptainId});
+ const propEmit=(...args)=>{if(!visibility||visibility.canSeePoint({x:args[1],y:args[2]}))emit(...args);};
  for(const e of surface.entities)if(options.exploration?.collected?.includes(e.data?.cacheId)||options.exploration?.choices?.[e.data?.choiceId])flags.add('done:'+e.id);
- const actors=normalizedActors(options),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),actorGuests=new Set(actors.flatMap(a=>[a.id,a.rescueGuestId]).filter(Boolean)),homes=visibleHomes(surface,options);
+ const actors=normalizedActors(options).filter(actor=>!visibility||visibility.canSeeActor(actor)),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),actorGuests=new Set(actors.flatMap(a=>[a.id,a.rescueGuestId]).filter(Boolean)),homes=visibleHomes(surface,options);
  const represented=entity=>entity.type==='crew'&&actorCrew.has(entity.data?.crewId)||entity.data?.rescuePassenger&&actorGuests.has(entity.data.guestId);
- const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>!effect.boardingId||effect.boardingId===options.boarding?.id):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
- const aim=combatActive?(options.combat?.aim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass)):null;
+ const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>(!effect.boardingId||effect.boardingId===options.boarding?.id)&&(!effect.siteId||effect.siteId===options.exploration?.id)&&(!visibility||visibility.canSeePoint(effect.to)&&(!effect.from||visibility.canSeePoint(effect.from)))):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
+ const suppliedAim=options.combat?.aim,aim=combatActive?(visibility?sidearmAim(person,actors.filter(a=>a.team==='hostile'),suppliedAim?.manual?{aiming:true,aimX:Math.cos(suppliedAim.angle),aimY:Math.sin(suppliedAim.angle)}:{},surface.combatLayout):(suppliedAim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass))):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
  beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
@@ -1070,14 +1108,15 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(let y=minY;y<maxY-1;y++)for(let x=minX;x<maxX;x++)if(surface.tiles[y][x]===TILE.WALL&&[TILE.FLOOR,TILE.PATH].includes(surface.tiles[y+1]?.[x])){ctx.globalAlpha=.2;pixel(ctx,'#06131d',x*T,(y+1)*T,T,5);ctx.globalAlpha=1;}
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
  const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark','training-mat','tether-mark']);
- for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,emit);
+ for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,propEmit);
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
+ for(const actor of actors)drawBellwetherTell(ctx,actor,surface.combatLayout);
  if(aim)drawCombatAim(ctx,person,aim);
- const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
+ const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)&&(!visibility||visibility.canSeePoint(candidate))?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
  for(const e of surface.entities){
-  if(e.hidden||e.type==='damageControl'||represented(e))continue;
+  if(e.hidden||e.type==='damageControl'||represented(e)||visibility&&!visibility.canSeePoint(e))continue;
   if(e.x<cameraX-45||e.x>cameraX+width+45||e.y<cameraY-45||e.y>cameraY+height+45)continue;
   if(e.type==='delivery'||e.type==='bunk'||e.type==='exit'&&!e.data?.stationRole)drawEntity(ctx,e,surface,time,flags,near===e);else items.push({y:e.y,entity:e});
  }
@@ -1086,23 +1125,23 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const home of homes)if(home.kind==='outpost'&&home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)items.push({y:home.y,home});
  items.push({y:person.y,player:person});items.sort((a,b)=>a.y-b.y);
  for(const item of items){
-  if(item.prop)drawProp(ctx,item.prop,surface,time,emit);
+  if(item.prop)drawProp(ctx,item.prop,surface,time,propEmit);
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
- if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time);
+ if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){
-  const shot=actor.lastShot;if(shot&&shot.until>combatTime&&Number.isFinite(shot.targetX)&&Number.isFinite(shot.targetY)){ctx.globalAlpha=.7;pixelLine(ctx,shot.x??actor.x,shot.y??actor.y-10,shot.targetX,shot.targetY,actor.team==='hostile'?'#eaa983':'#d6e7b9');ctx.globalAlpha=1;pixel(ctx,'#ffe1ac',shot.targetX-1,shot.targetY-1,3,3);}
+  const shot=actor.lastShot;if(shot&&shot.until>combatTime&&Number.isFinite(shot.targetX)&&Number.isFinite(shot.targetY)&&(!visibility||visibility.canSeePoint({x:shot.targetX,y:shot.targetY}))){ctx.globalAlpha=.7;pixelLine(ctx,shot.x??actor.x,shot.y??actor.y-10,shot.targetX,shot.targetY,actor.team==='hostile'?'#eaa983':'#d6e7b9');ctx.globalAlpha=1;pixel(ctx,'#ffe1ac',shot.targetX-1,shot.targetY-1,3,3);}
  }
  drawCombatEffects(ctx,effects,emit);
  if(aim?.targetId){const target=actors.find(a=>(a.id||a.captainId)===aim.targetId);if(target)emit(aim.manual?'MANUAL AIM':'AIM ASSIST',target.x,target.y+13,'#e9d395',12,'center',91,'combat-target');}
  for(const e of surface.entities){
-  if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||represented(e))continue;
+  if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||represented(e)||visibility&&!visibility.canSeePoint(e))continue;
   if(e.x<cameraX||e.x>cameraX+width||e.y<cameraY||e.y>cameraY+height)continue;
   const selected=near===e,targeted=e.id===targetId,important=['jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
   if(!important&&!selected&&!targeted)continue;
@@ -1116,11 +1155,12 @@ function drawSurfacePixels(ctx,surface,options={}){
   const hostile=actor.team==='hostile'||actor.hostile===true,name=actor.name||actor.displayName||actor.crewRole|| (hostile?'Boarder':'Crewmate');
   const piloting=actor.station==='helm'&&actor.perspective==='ship'&&!actor.down;
   const label=piloting?`${name} · ${actor.sleeping?'Helm (away)':'Piloting'}`:name;
-  emit(label,actor.x,actor.y-47,hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
+  emit(label,actor.x,actor.y-(actor.species==='bellwether'?67:47),hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
  }
  for(const home of homes){const mine=!!options.localCaptainId&&home.ownerId===options.localCaptainId,nearby=Math.hypot(home.x-person.x,home.y-person.y)<70,owner=mine?'Your':home.ownerName?`${home.ownerName}’s`:'Captain’s';emit(`${owner} ${home.kind==='outpost'?'outpost':'room'}`,home.x,home.y-(home.kind==='outpost'?48:27),mine?'#e5be79':'#8ec8d2',13,'center',nearby?70:mine?45:30,'home');}
- if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}
+ if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e)&&(!visibility||visibility.canSeePoint(e)));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}
  if(near&&!near.hidden){pixel(ctx,'#e9d8ab',near.x-2,near.y-36,4,2);pixel(ctx,'#e9d8ab',near.x-1,near.y-34,2,2);}
+ drawSiteFog(ctx,visibility,minX,maxX,minY,maxY);
  if(options.boarding?.phase==='active'||actors.some(a=>a.team==='hostile'&&(a.health??1)>0)){
   const pulse=.05+(Math.sin(time*4)+1)*.025;ctx.globalAlpha=pulse;pixel(ctx,'#dc785b',cameraX,cameraY,width,4);pixel(ctx,'#dc785b',cameraX,cameraY+height-4,width,4);ctx.globalAlpha=1;
  }

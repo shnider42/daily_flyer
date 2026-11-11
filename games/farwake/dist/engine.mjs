@@ -26,7 +26,8 @@
  */
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
-import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from './combat.mjs';
+import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
+import { PersonalGearRules } from './personal-gear.mjs';
 import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
 import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
@@ -158,7 +159,7 @@ function initialState(seed, options = {}) {
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, ...(shipless?{unowned:true}:{}), humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
-    person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, weaponDrawn: false },
+    person: { x: 480, y: 570, health: 100, facing: 'up', weapon: SIDEARM.id, ownedWeapons: [SIDEARM.id], weaponDrawn: false },
     rng: hash(`${seed}:runtime`), encounterPolicyVersion: 2, nextEncounterAt: null, lastBodyId: shipless?'morrow':'kettle', jobSerial: 0, activityTokens: [], lastSaveAt: 0, interior: null, storyActions: []
   };
 }
@@ -1407,9 +1408,9 @@ export class Game {
     return aim;
   }
 
-  _personShot(actor, aim, {attackerId=actor.id,actorName=actor.name||'Captain',team=actor.team||'friendly',damage=SIDEARM.damage,weaponId=SIDEARM.id}={}) {
+  _personShot(actor, aim, {attackerId=actor.id,actorName=actor.name||'Captain',team=actor.team||'friendly',damage=SIDEARM.damage,weaponId=SIDEARM.id,shotDuration=SIDEARM.shotDuration}={}) {
     const boarding=this.state.boarding,at=this.state.stats.time,id=`${boarding.id}:shot:${boarding.shotSerial=(boarding.shotSerial||0)+1}`;
-    const target=aim.target||null,shot={id,boardingId:boarding.id,at,until:at+SIDEARM.shotDuration,team,attackerId,actorName,weaponId,angle:aim.angle,
+    const target=aim.target||null,shot={id,boardingId:boarding.id,at,until:at+shotDuration,team,attackerId,actorName,weaponId,angle:aim.angle,
       from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,
       hit:!!target,blocked:!!aim.blocked,damage:target?damage:0};
     actor.facing=facingOf(Math.cos(aim.angle),Math.sin(aim.angle));actor.aimAngle=aim.angle;actor.weapon=weaponId;actor.attackUntil=shot.until;actor.lastShot=shot;
@@ -1435,17 +1436,17 @@ export class Game {
     if(boarding?.phase!=='active')return this._fail('There are no active boarders to fight.','boarding');
     if(attacker.state.mode!=='person'||attacker.state.person.health<=0||attacker.state.person.down)return this._fail('You must be on the deck and able to fight.','mode');
     if(attacker._boardingShotTimer>0)return this._fail('Your sidearm is cycling.','cooldown');
-    const person=ensureSidearm(attacker.state.person),layout=combatLayout(boarding.shipClass);
+    const person=ensureSidearm(attacker.state.person),weapon=getPersonalWeapon(person),layout=combatLayout(boarding.shipClass);
     const candidates=boarding.enemies;let aimingInput=input;
     if(enemyId){const chosen=candidates.find(e=>e.id===enemyId&&e.health>0);if(!chosen)return this._fail('That hostile is no longer a target.','target');
-      if(distance(chosen,person)>SIDEARM.range)return this._fail('That boarder is outside sidearm range.','distance');
+      if(distance(chosen,person)>weapon.range)return this._fail('That boarder is outside your weapon’s range.','distance');
       if(!clearSidearmSight(layout,person,chosen))return this._fail('A bulkhead blocks the shot.','sight');
       if(!input.aiming)aimingInput={...input,aiming:true,aimX:chosen.x-person.x,aimY:chosen.y-person.y};
     }
     const aim=sidearmAim(person,candidates,aimingInput,layout),target=aim.target;
-    const effects=attacker.characterEffects, damage=SIDEARM.damage*effects.sidearmDamage, cooldown=SIDEARM.cooldown*effects.sidearmCooldown;
+    const effects=attacker.characterEffects, damage=personalWeaponDamage(person,target,effects.sidearmDamage), cooldown=weapon.cooldown*effects.sidearmCooldown;
     attacker._boardingShotTimer=cooldown;person.weaponDrawn=true;person.weaponReadyAt=this.state.stats.time+cooldown;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;
-    const shot=this._personShot(person,aim,{attackerId:attacker.playerId,actorName:attacker._playerName|| (attacker.playerId==='local'?'You':'Captain'),team:'player',damage});
+    const shot=this._personShot(person,aim,{attackerId:attacker.playerId,actorName:attacker._playerName|| (attacker.playerId==='local'?'You':'Captain'),team:'player',damage,weaponId:weapon.id,shotDuration:weapon.shotDuration});
     attacker.state.stats.personShots=(attacker.state.stats.personShots||0)+1;
     if(target){target.health=Math.max(0,target.health-damage);this._personHit(target,shot);attacker.state.stats.personHits=(attacker.state.stats.personHits||0)+1;
       if(target.health<=0){this._boarderDown(target,shot);attacker.state.stats.personKills=(attacker.state.stats.personKills||0)+1;}
@@ -1998,5 +1999,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 export default Game;

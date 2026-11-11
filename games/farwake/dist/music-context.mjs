@@ -3,6 +3,7 @@
  * incidents and atmosphere names are deliberately not danger signals. A music
  * cue must follow something the captain has actually encountered.
  */
+import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
 const list = value => Array.isArray(value) ? value : [];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const text = value => typeof value === 'string' ? value : '';
@@ -20,13 +21,18 @@ const UTILITY_DIALOGS = new Set([
 const SOCIAL_SITE_KINDS = new Set(['social', 'market', 'clinic']);
 const SOCIAL_PEOPLE = new Set(['npc', 'mechanic', 'merchant', 'bartender', 'settler', 'contact']);
 
-function revealedTerror(state, site, observedCue) {
+function revealedTerror(state, site, observedCue, surface) {
   // Future content supplies this only after presenting the actual reveal. A
   // location merely carrying a "terror" tag does not grant permission.
   if (observedCue?.tag === 'terror' && observedCue.revealed === true && text(observedCue.id)) {
     return `authored:${text(observedCue.id)}`;
   }
   const active = state.exploration;
+  if (isFoggedSite(surface)) {
+    const monster = list(active?.encounter?.monsters).find(actor => actor.species === 'bellwether' && actor.health > 0 &&
+      canSeeConcealedActor(surface.combatLayout, state.person, actor));
+    return monster ? `bellwether:${active.encounter.id}:${active.encounter.attemptSerial || 0}` : null;
+  }
   if (active?.bodyId !== 'lilt' || site?.id !== 'submerged-stage' || !text(active.key)) return null;
   // This one authored place earns a brief unsettling treatment only after the
   // captain reads a reveal. Entering it, or any other theatre, is insufficient.
@@ -113,7 +119,9 @@ export function musicContext({
     ['market', 'tavern', 'restaurant', 'farm'].includes(locationKind) ? 'whimsical' : null,
     ['clinic', 'sanctum', 'church', 'vault'].includes(locationKind) ? 'reflective' : null
   ].filter(Boolean))];
-  const terrorKey = visible ? revealedTerror(state, site, observedCue) : null;
+  const terrorKey = visible ? revealedTerror(state, site, observedCue, surface) : null;
+  const concealedActors = isFoggedSite(surface) ? list(state.exploration?.encounter?.monsters).filter(actor => actor.concealed) : [];
+  const concealedActorIds = concealedActors.map(actor => actor.id), visibleActorIds = concealedActors.filter(actor => canSeeConcealedActor(surface.combatLayout, state.person, actor)).map(actor => actor.id);
   const silence = !!hidden || visible && observedCue?.tag === 'silence' && observedCue.revealed === true;
   const scope = {
     captainId: String(captainId), vesselId: vesselId == null ? null : String(vesselId),
@@ -127,7 +135,7 @@ export function musicContext({
     terror: !!terrorKey, terrorKey, silence,
     safeNow: visible && !observedThreat && !tension && !emergency && !terrorKey,
     intensity: observedThreat ? .78 : emergency ? .62 : tension ? .32 : 0,
-    scope, ...scope
+    concealedActorIds, visibleActorIds, scope, ...scope
   };
 }
 
@@ -152,6 +160,10 @@ export function classifyMusicEvent(event, context = {}) {
   const localVessel = same(event.vesselId ?? event.targetVesselId, scope.vesselId);
   const currentBoarding = scope.boardingId != null && same(event.boardingId ?? event.boarding?.id, scope.boardingId);
   const positiveDamage = finite(event.damage) > 0;
+  // A shared reveal/hit belongs to the other observer until this captain sees
+  // it. Taking actual damage remains audible evidence, without enemy identity.
+  const unseen = id => list(context.concealedActorIds).includes(id) && !list(context.visibleActorIds).includes(id);
+  if (!localPerson && (unseen(event.targetId) || unseen(event.attackerId || event.actorId))) return null;
 
   switch (event.type) {
     case 'hit':

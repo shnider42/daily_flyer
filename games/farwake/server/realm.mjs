@@ -8,7 +8,7 @@ import { PersistenceConflict } from './persistence.mjs';
 import { BoardingAuthority } from './boarding.mjs';
 import { LivelihoodAuthority } from './livelihoods.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
-import { explorationLocation, createSiteState, stepSiteEncounter } from '../dist/exploration.mjs';
+import { explorationLocation, createSiteState, stepSiteEncounter, isBellwether, resetSiteBoss } from '../dist/exploration.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 import { rescueOccupants, rescuedBerthCount, normalizeRescueShip } from '../dist/rescue-rules.mjs';
 import { ensureDamageControl, safeCabinPoint, relocateHullOccupants, DAMAGE_CONTROL_RULES } from '../dist/interior-damage.mjs';
@@ -295,6 +295,7 @@ export class Realm extends BoardingAuthority {
     if (captain.session !== session) return;
     captain.session = null; captain.lastSeen = now(); captain.disconnectUntil = now() + DISCONNECT_GRACE_MS; captain.input = { ...EMPTY_INPUT };
     captain.combatAtDisconnect = this._inCombat(this.vessels.get(captain.aboard || captain.ownedVesselId));
+    this._resetAbandonedSite(captain.game.state.exploration?.key);
     this.markDirty(); this.flush().catch(() => {});
   }
   acceptInput(captain, seq, input) {
@@ -348,11 +349,29 @@ export class Realm extends BoardingAuthority {
       this.sites[key]=createSiteState(location.site,this.sites[key]||game.state.exploration?.encounter);
       this.normalizedSites.add(key);
     }
+    // An arriving explorer starts a fresh unfinished attempt when nobody is
+    // still fighting inside. Active reloads keep the saved creature wounds.
+    if(game.state.exploration?.key!==key)this._resetAbandonedSite(key);
     game.state.explorationRecords=this.sites;
     return this.sites[key];
   }
+  _resetAbandonedSite(key) {
+    const encounter=key&&this.sites[key];
+    if(!encounter?.monsters?.some(isBellwether))return false;
+    if([...this.captains.values()].some(c=>c.session&&c.game.state.exploration?.key===key&&c.game.state.person.health>0&&!c.game.state.person.down))return false;
+    const changed=resetSiteBoss(encounter);
+    // A disconnected client must not replay an earlier attempt's scream when
+    // it reconnects after the creature has already gone dormant again.
+    for(const captain of this.captains.values()){
+      captain.events=captain.events.filter(event=>event.type!=='monster-revealed'||event.siteId!==encounter.id);
+      captain.game.events=captain.game.events.filter(event=>event.type!=='monster-revealed'||event.siteId!==encounter.id);
+    }
+    return changed;
+  }
   _bindExploration(captain) {
     const active=captain.game.state.exploration;
+    const previous=captain._boundSiteKey;captain._boundSiteKey=active?.key||null;
+    if(previous&&previous!==captain._boundSiteKey)this._resetAbandonedSite(previous);
     captain.game.state.explorationRecords=this.sites;
     if(!active)return;
     const encounter=this._prepareExploration(captain,active.bodyId,active.siteId);
@@ -361,14 +380,16 @@ export class Realm extends BoardingAuthority {
   _stepExplorations(captains,dt) {
     const groups=new Map();
     for(const captain of captains){const active=captain.game.state.exploration;if(!active)continue;if(!groups.has(active.key))groups.set(active.key,[]);groups.get(active.key).push(captain);}
-    for(const crew of groups.values()){
+    for(const [key,crew] of groups){
       const leader=crew[0],encounter=leader.game.state.exploration.encounter,surface=this._surface(leader);
-      const events=stepSiteEncounter(encounter,crew.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
+      const boss=encounter.monsters.some(isBellwether),participants=boss?crew.filter(c=>c.session):crew;
+      const events=stepSiteEncounter(encounter,participants.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
       for(const captain of crew){
-        const game=captain.game;game.recordExplorationEvents(events);
+        const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>event.type!=='monster-revealed'));
         if(game.state.person.health<=0){game._siteDownTime=(game._siteDownTime||0)+dt;if(game._siteDownTime>=2.5){game._returnFromSite(true);captain.surfaceCache=null;}}
         else game._siteDownTime=0;
       }
+      if(boss)this._resetAbandonedSite(key);
     }
   }
   _actor(vessel) {
@@ -862,6 +883,10 @@ export class Realm extends BoardingAuthority {
     if (name === 'boardEnemy') return this._boardEnemy(c, { ...a, id });
     if (name === 'acceptJob' || name === 'turnInJob') { if (!this._nearTypes(c, ['jobboard'])) return fail('Visit the contract exchange in person.', 'distance'); return game[name](id); }
     if (name === 'abandonJob') return game.abandonJob(id);
+    if (name === 'buyPersonalWeapon' || name === 'equipPersonalWeapon') {
+      if (c.aboard || game.state.mode !== 'person' || game.state.interior || !game.atInhabitedPort || !this._nearTypes(c, ['mechanic'])) return fail('Visit the port outfitter on foot for personal equipment.', 'distance');
+      return game[name](id);
+    }
     if (name === 'buyUpgrade' || name === 'buyShip' || name === 'selectShip') {
       if(name==='buyShip'&&!owned)return this._buyFirstShip(c,id);
       const vessel = this.vessels.get(c.portVesselId || c.ownedVesselId);

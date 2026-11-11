@@ -1,7 +1,7 @@
 /** Persistent physical hulls and authoritative deck combat for a shared realm. */
 import { Game, distance } from '../dist/engine.mjs';
 import { getShipClass, enemyHullProfile, enemyShipState, cabinLayout, CREW_ROLES } from '../dist/fleet.mjs';
-import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from '../dist/combat.mjs';
+import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from '../dist/combat.mjs';
 import { clone, fail, ok, SURFACE_RANGE } from './protocol.mjs';
 import { normalizeSpecies } from '../dist/species.mjs';
 
@@ -259,19 +259,19 @@ export class BoardingAuthority {
     let shotInput = input;
     if (requested && !input.aiming) { const length = Math.hypot(requested.x - person.x, requested.y - person.y); shotInput = length > 0 ? { ...input, aiming: true, aimX: (requested.x - person.x) / length, aimY: (requested.y - person.y) / length } : input; }
     const aim = sidearmAim(person, candidates, shotInput, vessel.ship.classId);
-    const damage = SIDEARM.damage * captain.game.characterEffects.sidearmDamage;
-    captain.game._boardingShotTimer = SIDEARM.cooldown * captain.game.characterEffects.sidearmCooldown;
+    const weapon = getPersonalWeapon(person), damage = personalWeaponDamage(person, aim.target, captain.game.characterEffects.sidearmDamage);
+    captain.game._boardingShotTimer = weapon.cooldown * captain.game.characterEffects.sidearmCooldown;
     captain.game.state.person.weaponReadyAt = vessel.pvp.combatTime + captain.game._boardingShotTimer;
-    const result = this._deckShot(vessel, captain.game.state.person, aim, { id: captain.id, name: captain.name, teamId: team, damage });
+    const result = this._deckShot(vessel, captain.game.state.person, aim, { id: captain.id, name: captain.name, teamId: team, damage, weapon });
     captain.game.state.stats.personShots = (captain.game.state.stats.personShots || 0) + 1;
     if (aim.target) captain.game.state.stats.personHits = (captain.game.state.stats.personHits || 0) + 1;
     this._refreshOccupation(vessel); return ok({ shot: result, targetId: aim.targetId, hit: aim.hit, damage: aim.hit ? damage : 0 });
   }
   _deckShot(vessel, person, aim, attacker) {
-    const combat = vessel.pvp, at = combat.combatTime, target = aim.target;
-    ensureSidearm(person); person.weaponDrawn = true; person.aimAngle = aim.angle; person.aimTargetId = aim.targetId; person.aimManual = aim.manual; person.attackUntil = at + SIDEARM.shotDuration;
+    const combat = vessel.pvp, at = combat.combatTime, target = aim.target, weapon = attacker.weapon || SIDEARM;
+    ensureSidearm(person); person.weapon = weapon.id; person.weaponDrawn = true; person.aimAngle = aim.angle; person.aimTargetId = aim.targetId; person.aimManual = aim.manual; person.attackUntil = at + weapon.shotDuration;
     const shot = { type: 'person-shot', id: `${combat.id}:shot:${++combat.shotSerial}`, boardingId: combat.id, at, until: person.attackUntil,
-      attackerId: attacker.id, actorName: attacker.name, team: 'player', teamId: attacker.teamId, weaponId: SIDEARM.id, angle: aim.angle,
+      attackerId: attacker.id, actorName: attacker.name, team: 'player', teamId: attacker.teamId, weaponId: weapon.id, angle: aim.angle,
       from: clone(aim.from), to: clone(aim.to), x: aim.from.x, y: aim.from.y, targetX: aim.to.x, targetY: aim.to.y, targetId: aim.targetId, targetName: target?.name || null,
       hit: !!target, blocked: aim.blocked, damage: target ? attacker.damage : 0 };
     person.lastShot = shot; this._deckEvent(vessel, shot);

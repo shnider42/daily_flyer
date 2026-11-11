@@ -43,7 +43,7 @@ export const SPECIES = freeze({
 });
 export const SPECIES_IDS = Object.freeze(Object.keys(SPECIES));
 export const NONHUMAN_SPECIES_IDS = Object.freeze(SPECIES_IDS.filter(id => id !== 'human'));
-const WILDLIFE = new Set(['stoneback', 'skitter']);
+const WILDLIFE = new Set(['stoneback', 'skitter', 'bellwether']);
 export const isPeopleSpecies = value => typeof value === 'string' && Object.hasOwn(SPECIES, value);
 export const isWildlifeSpecies = value => typeof value === 'string' && WILDLIFE.has(value);
 export const normalizeSpecies = value => isPeopleSpecies(value) ? value : 'human';

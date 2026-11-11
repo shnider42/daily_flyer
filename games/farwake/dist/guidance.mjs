@@ -285,7 +285,7 @@ export class GuidanceController {
       c.blocked?`Move around the wall until you have a clear line to a hostile. Your pulses stop at walls.`:'Walk into a position where a hostile can be seen. Your sight marks an enemy within sidearm range.',
       c.blocked?'Move around the wall for a clear shot.':'Move into sight of a hostile.','move',{id:'combat:clear-shot',flow:'combat'});
     if(next==='person-aim')return descriptor(next,'Your sidearm is equipped',
-      touch?`Move ${control(ctx,'aim')} toward a hostile. Your standard Pulse sidearm is ready; pushing that stick also fires.`:'Move the mouse over a hostile or hold an arrow key to aim. Your standard Pulse sidearm is ready; WASD still walks.',
+      touch?`Move ${control(ctx,'aim')} toward a hostile. Your equipped weapon is ready; pushing that stick also fires.`:'Move the mouse over a hostile or hold an arrow key to aim. Your equipped weapon is ready; WASD still walks.',
       `${control(ctx,'aim')} · Aim your equipped sidearm.`,'aim');
     if(next==='person-fire')return descriptor(next,'Fire your sidearm',
       touch?'Press FIRE when the weapon panel says READY. Without manual aim, it shoots toward the marked aim-assist target.':'Press Space or left-click when the weapon panel says READY. Without manual aim, the bracket marks the assisted target.',

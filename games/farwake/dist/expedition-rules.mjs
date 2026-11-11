@@ -1,6 +1,7 @@
 /** Persistent planetary interiors. These same rules serve solo and shared captains. */
 import { generateSurface, isWalkable } from './surface.mjs';
-import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteReward, stepSiteEncounter } from './exploration.mjs';
+import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteReward, stepSiteEncounter, resetSiteBoss } from './exploration.mjs';
+import { canSeeConcealedActor } from './site-visibility.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -40,11 +41,13 @@ export const ExpeditionRules={
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),entrance=outdoor.entities.find(entity=>entity.type==='siteEntrance'&&entity.data?.siteId===siteId);
     if(!entrance||range(entrance,this.state.person)>46)return this._fail('Walk to the entrance before going inside.','distance');
     const key=`${this.state.systemId}:${body.id}:${siteId}`,encounter=this._sharedWorld&&this.state.explorationRecords[key]?this.state.explorationRecords[key]:createSiteState(location.site,this.state.explorationRecords[key]);
+    if(!this._sharedWorld)resetSiteBoss(encounter);
     encounter.visited++;
     this.state.explorationRecords[key]=encounter;
     this.state.exploration={key,bodyId:body.id,siteId,returnPosition:{x:this.state.person.x,y:this.state.person.y},encounter};
     this.state.interior={kind:'site',location};this.state.locationId=location.id;
-    const surface=this._expeditionSurface();Object.assign(this.state.person,surface.spawn,{weaponDrawn:encounter.monsters.some(monster=>monster.health>0),moving:false});
+    const surface=this._expeditionSurface();Object.assign(this.state.person,surface.spawn,{moving:false});
+    this.state.person.weaponDrawn=encounter.monsters.some(monster=>monster.health>0&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
     this.recordActivity('explore',{token:`entered:${key}`});
     if(encounter.visited===1)this._log(location.name,location.site.story,'exploration');
     this._event('site-entered',{text:`${location.name} · ${location.site.summary}`,siteId,atmosphere:location.site.atmosphere});
@@ -61,6 +64,7 @@ export const ExpeditionRules={
     const body=this.system.bodies.find(value=>value.id===active.bodyId);if(!body)return this._fail('The landing zone is unavailable.','location');
     this.state.explorationRecords[active.key]=active.encounter;
     this.state.interior=null;this.state.locationId=body.id;this.state.mode='person';this.state.exploration=null;
+    if(!this._sharedWorld)resetSiteBoss(active.encounter);
     const surface=generateSurface(body,this.state.seed,this.state.flags),back=recovered?surface.spawn:active.returnPosition;
     Object.assign(this.state.person,isWalkable(surface,back?.x,back?.y)?back:surface.spawn,{weaponDrawn:false,aimTargetId:null,moving:false,down:false});
     if(recovered){const cost=Math.floor(this.state.credits*.1);this.state.credits-=cost;this.state.person.health=Math.max(1,Math.round((this.state.person.maxHealth||100)*.35));this._event('rescue',{text:`A field team returned you to the landing zone. Recovery cost ${cost} cr. Your ship and discoveries remain where you left them.`});}

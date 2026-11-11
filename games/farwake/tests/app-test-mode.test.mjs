@@ -7,7 +7,8 @@ import {getShipClass, cabinLayout} from '../dist/fleet.mjs';
 import {generateSurface, isWalkable, nearestEntity} from '../dist/surface.mjs';
 import {TEST_SCENARIOS, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
-import {SIDEARM} from '../dist/combat.mjs';
+import {SIDEARM,getPersonalWeapon} from '../dist/combat.mjs';
+import {isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent} from '../dist/site-visibility.mjs';
 import {CameraProfile} from '../dist/camera-profile.mjs';
 import {normalizeCameraPreferences,normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
 import {syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus} from '../dist/interior-presentation.mjs';
@@ -27,7 +28,7 @@ const declaration=name=>{
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
 const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
-const appCode=[...names,'sampleScoreContext'].map(declaration).join('\n');
+const appCode=[...names,'sampleScoreContext','localSiteVisibility','personalAimAvailable'].map(declaration).join('\n');
 
 function classes() {
   const values=new Set();
@@ -44,7 +45,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({Game,distance,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,getPerspectiveAction,
+  const context=vm.createContext({Game,distance,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',

@@ -1,12 +1,34 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.11.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.12.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Something in Tinbell’s cave · 0.12.0
+
+Tinbell’s existing Basalt Hollow now contains one unique creature, **The Bellwether**. It waits beyond the first bend, concealed by the cave’s fog and rock walls. It cannot acquire a captain through a wall. First contact produces an authoritative scream with an on-screen caption; a newly joining client does not replay an old scream. The creature’s name, health, targeting and map marker remain subject to the observing captain’s line of sight.
+
+The Bellwether is an optional return-later challenge. Its heavy shell greatly reduces the starting Pulse sidearm’s damage, and its attacks can down an unprepared captain in two hits. A marked windup precedes its committed lunge; moving aside and using the recovery window matters. The entrance stays usable. If every living participant withdraws or is downed, an unbeaten Bellwether resets for another attempt. A surviving participant keeps the shared fight active; a defeated Bellwether stays dead.
+
+This is new content in the existing cave, including previously visited Tinbell saves. The unique creature replaces the generic cave wildlife; existing survey-cache claims and story progress remain recorded. Tinbell’s evacuation beacon and the main story do not require the fight.
+
+### Personal weapons
+
+Outfitters now sell two later personal weapons. Purchases use the requesting captain’s credits and require a healthy captain physically beside a mechanic. They do not require ship ownership or use a borrowed vessel’s cargo. Buying a weapon equips it; previously owned weapons can be equipped again without another charge. Personal ownership and the equipped weapon persist with the captain, including while serving aboard someone else’s ship.
+
+| Weapon | Price | Experience required | Systems explored | Damage | Cycle | Range | Armor penetration |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Pulse sidearm | Starting equipment | — | — | 24 | 0.32 s | 172 | 0 |
+| Field carbine | 1,400 cr | 6 completed jobs or service assignments | 3 | 38 | 0.36 s | 210 | 5 |
+| Breach rifle | 4,200 cr | 18 completed jobs or service assignments | 8 | 72 | 0.65 s | 230 | 20 |
+
+System progress counts distinct charted star systems, not additional landings in the same system. The shop shows the current progress toward each requirement. These are earned progression gates, not a real-time waiting period. The existing character damage and firing-cycle traits still apply. The same equipped-weapon rules govern the reticle and real player shots in caves, boarding combat and shared encounters; NPCs retain their authored equipment.
+
+Against the Bellwether’s 20-point shell, the unmodified weapons deal 4, 23 and 72 damage per hit respectively. The later rifle’s advantage comes largely from penetrating armor, so ordinary unarmored wildlife does not need inflated health. The server validates purchases and equipped ownership instead of accepting client-supplied damage or weapon statistics.
 
 ## Room between destinations · 0.11.0
 

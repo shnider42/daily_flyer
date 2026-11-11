@@ -155,7 +155,7 @@ test('accepted non-work contracts never send the player looking for relay work, 
 test('person combat teaches visible equipment, independent aim, explicit fire and actual hits twice',()=>{
   const guide=new GuidanceController(),ctx=person({locationId:'enemy-deck',combat:{active:true,ready:true,targetVisible:true}});walked(guide,ctx,2);
   for(let round=1;round<=2;round++){
-    const aim=guide.update(ctx);assert.equal(aim.successAction,'person-aim');assert.match(aim.body,/Pulse sidearm/);assert.match(aim.body,/mouse.*arrow key/);assert.equal(aim.attempt,round);success(guide,'person-aim',ctx);
+    const aim=guide.update(ctx);assert.equal(aim.successAction,'person-aim');assert.match(aim.body,/equipped weapon/);assert.match(aim.body,/mouse.*arrow key/);assert.equal(aim.attempt,round);success(guide,'person-aim',ctx);
     const fire=guide.update(ctx);assert.equal(fire.successAction,'person-fire');assert.match(fire.body,/Space or left-click/);assert.match(fire.body,/READY/);success(guide,'person-fire',ctx);
     const hit=guide.update(ctx);assert.equal(hit.successAction,'person-hit');assert.match(hit.body,/damage number.*DOWN/);assert.equal(guide.count('person-hit',ctx),round-1,'a fired shot is not a confirmed hit');success(guide,'person-hit',ctx);
   }
