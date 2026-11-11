@@ -3,6 +3,8 @@ import { DIALOGUE } from './content.mjs';
 import { QUEST_THREADS } from './quest-content.mjs';
 import { npcClock } from './npc-life.mjs';
 import { socialConversation } from './social-world.mjs';
+import { normalizeSpecies, speciesLabel, speciesBackground } from './species.mjs';
+import { localSiteResponse } from './local-site-dialogue.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -315,21 +317,23 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   }
   const memory = normalizeConversations(state.conversations), previous = memory.people.find(person => person.id === id);
   const known = !!previous || !!state.narrative?.met?.includes(contactId(entity)), role = roleOf(entity), clock = npcClock(at, localBody(game, entity) || 'port');
+  const species=normalizeSpecies(entity.species??entity.data?.species);
   const relation = relationship(game, entity, known), key = `${state.seed}:${id}:${clock.day}:${clock.period}`;
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
-  let response = urgent(game, entity, role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || social;
+  let response = urgent(game, entity, role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };
   if (!response && relation.trust >= 3) response = { context: 'relationship', greeting: relation.trust >= 8 ? 'You’ve earned my trust. Sit with me a moment.' : 'Good to see you. I haven’t forgotten what you did.' };
   if (!response && relation.standing <= -20) response = { context: 'relationship', greeting: role === 'medic' ? 'I know where you stand with the port. If you need care, say so.' : 'Your reputation gets here before you do. What do you need?' };
   if (!response && relation.standing >= 20) response = { context: 'relationship', greeting: 'Your work for our people is known here. You’re welcome to stop a moment.' };
   if (!response && previous && at >= previous.lastAt && at - previous.lastAt < REMEMBER_AFTER) response = { context: 'familiar', greeting: 'Still here. Was there something else?' };
   if (!response && previous && hash(`${key}:known`) % 3 === 0 && !['sleeping', 'eating', 'resting'].includes(entity.life?.activity)) response = { context: 'familiar', greeting: choose((VOICES[role] || VOICES.default).familiar, key) };
+  if (!response && !known && species!=='human' && !['sleeping','eating','resting'].includes(entity.life?.activity) && entity.text) response={context:'introduction',greeting:shortAuthored(entity.text,'Hello. What brings you here?')};
   if (!response) response = { context: 'routine', greeting: routine(entity, role, clock, key) };
   const rumors = (Array.isArray(entity.data?.rumors) ? entity.data.rumors : data.rumors || []).filter(value => typeof value === 'string' && value.trim());
   const rumor = response.context === 'urgent' ? response.rumor : news?.rumor || response.rumor || shortAuthored(choose(rumors.length ? rumors : ['People have their own lives between arrivals. Take your time finding your way.'], key), 'It’s been quiet here. I don’t mind that.');
-  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), newsContext: news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour };
+  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), newsContext: news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
   if (record && id && !entity.data?.automated && !['__proto__', 'prototype', 'constructor'].includes(id)) {
     if (!previous) memory.people.push({ id, count: 1, lastAt: at, context: result.context });
     else if (at >= previous.lastAt + REMEMBER_AFTER || at < previous.lastAt) { previous.count = Math.min(99, previous.count + 1); previous.lastAt = at; previous.context = result.context; }

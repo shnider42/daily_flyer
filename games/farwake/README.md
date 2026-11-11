@@ -1,12 +1,42 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.8.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.9.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## People and working lanes · 0.9.0
+
+Scheduled NPC traffic can use every player-obtainable hull, with weighted acquisition rarity and port-specific roles. Major terminals favor passenger transports and freighters, industrial yards favor working tugs and large mining/salvage ships, research outposts favor survey craft, and military bases favor patrols and escorts. Small docks only receive hulls that fit. Later hulls remain uncommon outside the places that need them; the starter menu and isolated test catalog are unchanged.
+
+Five separate faction bases extend existing systems without closing public hospitals or story ports. Military enlistment grants that faction’s base clearance while standing stays above −25. Passenger ferries and home leases enforce the same access rule. A serving helmsman can escort a crew into a base; guests cannot independently book military passage or claim a base home without their own clearance. Civilian work boards avoid inaccessible destinations.
+
+At the employer faction’s public-services desk, a shipless recruit can explicitly request a one-time small patrol cutter. Three verified military patrols, each returned and debriefed, earn an escort commission. Owners keep their other commissioned hulls. Issuing a ship grants no cash, ore, fold drive, or extra story flags; repeat claims cannot heal, refill, or duplicate it. Authority checks protect borrowed hulls and reserve berths for everyone returning aboard.
+
+Traffic follows obstacle-checked approaches, slows into compatible berths, waits, turns, and departs. Heavier ships take longer. Each contact has a persistent route phase; solo saves and authority restarts restore it, and inactive systems use bounded catch-up. Route curves remain off network snapshots. Existing population counts, encounter frequencies, asteroid fields, enemy generation, and story signals remain unchanged. Hailing an observed ship shows its work, hull and actual route without exposing the fleet catalog.
+
+### People of the lanes
+
+The Choral are joined by Vaeli, Keth, and Oru residents, visitors, hired specialists, employer crews, and rescued passengers. Most ordinary generated populations target 92% human; Hearth targets 98%. Exact homeworld profiles provide rare local exceptions. Two new bodies are appended to existing distant systems, so all 900 existing systems and every released body retain their chart data. Their communities include named residents, peaceful enterable places, environmental records, and small civic choices. Local speakers acknowledge the advice actually recorded there, including after save/load, without pretending an entire building project has been completed.
+
+World sprites and portraits share each person's persistent identity. Nonhuman people retain distinct silhouettes while walking, sleeping, carrying tools, being injured, fighting, or lying dead. Species stays with a crew member through recruitment, an employer vessel, rescue, boarding, saved games, and the memorial. Hiring cards show the advertised person's name and species before payment. Optional background questions keep the main conversation short. Peaceful interiors begin with the sidearm holstered.
+
+### Engine boundaries strengthened
+
+- `species.mjs` contains a closed, immutable catalog and versioned identity streams. Species, culture, faction, job, and hostile intent are separate facts. Species currently grants no combat or economic modifiers.
+- Existing named human characters and stored legacy crew are preserved. Missing or invalid saved species safely resolves to human; explicit valid identities never roll again on load. Surface generation uses a separate random stream and does not consume flight, asteroid, encounter, or loot randomness.
+- Canonical hiring is resolved by the server; client-supplied species, health, and identities cannot replace the advertised person. Four actual WebSocket clients, late arrivals, and restarted realms are covered by regression tests.
+- Sentient character rendering is separate from the explicit wildlife catalog. Boarding wrappers cannot change the underlying character's markings. No additional population simulation or species catalog is sent on each motion tick.
+- `local-site-dialogue.mjs` is a bounded content hook for actual recorded choices. It checks the current body, room, record, and option before producing a response; urgent situations and active missions retain priority.
+
+### Direction for subsequent work
+
+Add small content packs around these shared rules: residents, places, work, and local consequences. Prefer new combinations and authored specifics to more frequent interruptions. Keep culture local; a homeworld can contain disagreements, human neighborhoods, and people belonging to different factions. Player captains remain human in this release; this is a population and NPC identity foundation.
+
+The next engine priorities are a common entity identity contract across residents, employees, passengers, and combat; explicit versioned migrations; and durable world facts that can drive room changes and later dialogue without replaying rewards. Keep deterministic shared routines and server-owned decisions, profile the active 3–4-player scenarios before increasing simulation breadth, and expand toward ten players after those paths remain reliable. These are follow-on engineering priorities, not claims of work already completed.
 
 ## An original adaptive score · 0.8.1
 

@@ -18,6 +18,9 @@ import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
 import {DISTRICT_RESIDENTS,INTERIOR_RESIDENTS,districtNames} from './planet-content.mjs';
 import {QUEST_CONTACTS,QUEST_OBJECTS} from './quest-content.mjs';
 import {isPreflightBody} from './social-world.mjs';
+import {drawAlienCharacter} from './people-art.mjs';
+import {isWildlifeSpecies,chooseNpcSpecies,normalizeSpecies,speciesName} from './species.mjs';
+import {SPECIES_DISTRICT_NAMES,SPECIES_DISTRICT_RESIDENTS,SPECIES_INTERIOR_RESIDENTS} from './species-content.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -100,7 +103,13 @@ function resident(location,role,slot=role,override={}){
  return{name:override.name||localName(location,slot),role,text:greeting,data:{dialogueRole,roleLabel:override.roleLabel||ROLE_LABELS[role]||authored?.role||role,homeLocationId:location.id,home:home,systemId:location.systemId,systemName:location.systemName,faction:override.faction||location.faction,greeting,rumors,...override.data}};
 }
 function personEntity(m,location,id,type,role,x,y,color,override={}){
- const r=resident(location,role,id,override);return entity(m,id,type,r.name,r.role,x,y,color,r.data,r.text);
+ const r=resident(location,role,id,override),identityId=`${m.id}:${id}`;
+ // Identity uses a separate stable stream; it cannot move scenery or consume
+ // encounter/loot randomness. Authored people only change species explicitly.
+ const species=chooseNpcSpecies(String(m.seed),identityId,location,{explicitSpecies:override.species??override.data?.species,authored:typeof override.name==='string'});
+ const name=override.name|| (species==='human'?r.name:speciesName(species,String(m.seed),identityId));
+ const person=entity(m,id,type,name,r.role,x,y,color,{...r.data,species,culture:override.data?.culture||location.culture||null},r.text);
+ person.species=species;return person;
 }
 function storyResident(location){
  if(location.id==='kettle')return{role:'dockworker',name:DIALOGUE.dockworker.name,roleLabel:'Dock foreman',text:'Iona is in the shipwright’s bay. A local shift will pay for the parts she needs. Kettle remembers the people who keep its air running.',rumors:DIALOGUE.dockworker.rumors,data:{storyKey:'first_shift'}};
@@ -208,7 +217,7 @@ function planet(location,seed){
 }
 /** The original port remains in place, with distinct districts beyond its old boundary. */
 function expandFrontier(m,location,seed,rng){
- const names=districtNames(location);
+ const names=SPECIES_DISTRICT_NAMES[location.id]||districtNames(location);
  // A river, orchards and exposed uplands make routes readable before any map is opened.
  for(let y=37;y<73;y++)for(let x=59;x<66;x++)if(Math.abs(x-(62+Math.sin(y/7)*2))<2)m.tiles[y][x]=TILE.WATER;
  for(let y=45;y<67;y+=4)for(let x=14;x<37;x+=4){rect(m,x,y,2,1,TILE.PATH);prop(m,m.biome==='verdant'||m.biome==='ocean'?'planter':'cargo',x,y,2,1,m.biome==='ice'?'#a5c3be':'#7c9b6e',false);}
@@ -235,7 +244,15 @@ function developDistrict(m,location){
  const color=m.biome==='ice'?'#a4bcb9':m.biome==='volcanic'?'#b28e72':m.biome==='arid'?'#bd9d72':'#a6b88b';
  // Neighborhoods use existing routes. Fixtures are off the road and never seal a service.
  for(const[x,y]of[[51,42],[76,59],[91,40]]){prop(m,'bench',x,y,3,1,color,false);prop(m,'trail-light',x-1,y,1,1,color,false);}
- if(location.alienCulture==='choral'){
+ if(location.culture==='avel-tidewards'){
+  // Wet-room fittings and dry walkways describe this town without replacing
+  // its walkable street plan or making every Vaeli settlement look identical.
+  for(const[x,y]of[[52,44],[79,60]]){prop(m,'cistern',x,y,3,2,'#7eb9b7',false);prop(m,'awning',x-1,y-1,5,.7,'#8fafc4',false);prop(m,'pipe',x+3,y,1,3,'#99c8c1',false);}
+  for(const[x,y]of[[54,49],[81,57]])prop(m,'laundry',x,y,3,1,'#94c8d1',false);
+ }else if(location.culture==='hadrun-courtyards'){
+  for(const[x,y]of[[52,44],[79,60]]){prop(m,'awning',x-1,y-1,6,.7,'#c4a17c',false);prop(m,'workbench',x,y+1,4,1,'#a39279',false);prop(m,'books',x+3,y+2,1,1,'#c2ad81',false);}
+  prop(m,'cistern',56,47,2,2,'#9ba8aa',false);
+ }else if(location.alienCulture==='choral'){
   for(const[x,y]of[[52,41],[78,42],[89,58],[40,63]])prop(m,'resonator',x,y,2,2,'#b4c9b8',false);
   for(const[x,y]of[[54,48],[57,50],[80,61],[91,54]])prop(m,'alien-plant',x,y,2,2,'#abc3b4',false);
  }else if(m.biome==='ice'){
@@ -248,7 +265,7 @@ function developDistrict(m,location){
  }else{
   for(const[x,y]of[[52,44],[78,60]]){prop(m,'market-stall',x,y,4,2,'#9caf8d',false);prop(m,'plant',x+4,y+1,1,1,'#9bbd86',false);}
  }
- for(const resident of DISTRICT_RESIDENTS[location.id]||[]){
+ for(const resident of [...(DISTRICT_RESIDENTS[location.id]||[]),...(SPECIES_DISTRICT_RESIDENTS[location.id]||[])]){
   const x=resident.tileX,y=resident.tileY;line(m,x,y,x,52,TILE.PATH);line(m,x,52,48,52,TILE.PATH);
   const e=personEntity(m,location,'district:'+resident.id,'npc',resident.role,x,y,resident.color||color,resident);if(resident.species){e.species=resident.species;e.data.species=resident.species;}
  }
@@ -323,7 +340,7 @@ function expeditionSurface(location,seed){
  for(const cache of site.caches)entity(m,'cache:'+cache.id,'siteCache',cache.name,'Recover supplies',cache.x,cache.y,'#d7c292',{siteId:site.id,cacheId:cache.id},cache.text);
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
- for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=person.species;if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
+ for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(SPECIES_INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=normalizeSpecies(person.species);if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
  return m;
 }
 function socialInterior(m,site){
@@ -443,7 +460,8 @@ function ship(location,seed){
  for(let i=0;i<crew.length;i++){
   const c=crew[i],p=Number.isFinite(c.x)&&Number.isFinite(c.y)&&isWalkable(m,c.x,c.y)?c:layout.crewSpawns[i%layout.crewSpawns.length]||layout.spawn,dialogueRole=c.role==='navigator'?'pilot':c.role,base=DIALOGUE[dialogueRole];
   const role=String(c.role||'crewmate'),name=c.name||base?.name||'Crewmate';
-  entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,dialogueRole,roleLabel:base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
+  const person=entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,species:normalizeSpecies(c.species),dialogueRole,roleLabel:base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
+  person.species=person.data.species;
  }
  // These are the people admitted onto this particular hull. Their positions
  // and identities survive saves and become the same actors if trouble starts.
@@ -457,7 +475,7 @@ function ship(location,seed){
   if(!p)p=layout.crewSpawns[guestIds.size%layout.crewSpawns.length]||layout.spawn;
   const greeting=guest.greeting||'Thank you for stopping. A berth at the next inhabited port will be enough.';
   const person=entity(m,'guest:'+guest.id,'npc',guest.name||'Rescued passenger','rescued passenger',Math.floor(p.x/T),Math.floor(p.y/T),guest.color||'#adc8ba',{rescuePassenger:true,guestId:guest.id,groupId:guest.groupId,shipId:m.vesselId,roleLabel:'Rescued passenger',greeting,health:guest.health??100,maxHealth:guest.maxHealth??100,status:guest.status||'aboard',bunkIndex:guest.berthIndex},greeting);
-  Object.assign(person,p);occupied.push(person);guestIds.add(guest.id);
+  person.species=person.data.species=normalizeSpecies(guest.species);Object.assign(person,p);occupied.push(person);guestIds.add(guest.id);
  }
  entity(m,'lore','terminal','Captain’s archive','Journal & lore',Math.floor(layout.archive.x/T),Math.floor(layout.archive.y/T),'#8bc5c9',{journal:true},'Recovered signals, crew notes, and the history you carry with you.');
  entity(m,'crew-console','terminal','Crew manifest','Crew & alliances',Math.floor(layout.manifest.x/T),Math.floor(layout.manifest.y/T),'#aec6aa',{crew:true},`${layout.name} cabin · ${layout.berths} berths. Every berth is a promise to bring someone home.`);
@@ -623,23 +641,9 @@ function tileDraw(ctx,m,x,y,p,time){
  if(n>.55){pixel(ctx,'#607779',wx+3,wy+3,1,1);pixel(ctx,'#607779',wx+20,wy+20,1,1);}if(n>.93){pixel(ctx,'#334e55',wx+6,wy+8,13,1);pixel(ctx,'#334e55',wx+6,wy+11,8,1);}
  if(tile===TILE.METAL){pixel(ctx,'#b9a787',wx+3,wy+3,18,2);pixel(ctx,p.edge,wx+3,wy+19,18,2);}
 }
-function drawChoral(ctx,x,y,options={}){
- const scale=options.scale||1,time=options.time||0,moving=options.moving||options.walking,bob=moving?Math.round(Math.sin(time*8)):options.resting?3:0,color=options.color||'#a9cfc9',dead=options.dead||Number.isFinite(options.health)&&options.health<=0;
- ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);pixel(ctx,'#112931',-12,-2,24,4);
- if(dead){pixel(ctx,'#658c8b',-14,-8,28,6);pixel(ctx,color,-8,-11,18,5);pixel(ctx,'#d5e1c9',8,-9,7,4);ctx.restore();return;}
- if(options.asleep){pixel(ctx,'#2c4249',-11,-27,22,29);pixel(ctx,'#b1c5b4',-8,-25,16,7);pixel(ctx,color,-9,-21,18,14);pixel(ctx,'#c6d8ca',-6,-24,12,5);pixel(ctx,'#3d646c',-8,-14,16,14);pixel(ctx,color,-7,-13,14,11);for(const eye of[-5,0,5])pixel(ctx,'#668b8c',eye,-20,2,1);ctx.restore();return;}
- // Four feet, a narrow trunk and a three-lobed crest give a different silhouette
- // at game scale. Their luminous marks are opaque pixels, never a blur filter.
- for(const[leg,step]of[[-9,-bob],[-4,bob],[3,-bob],[8,bob]]){pixel(ctx,'#6c9395',leg,-9,2,8+step);pixel(ctx,'#bfccbc',leg-1,-2+step,4,2);}
- pixel(ctx,'#294d59',-6,-19+bob,12,12);pixel(ctx,color,-4,-20+bob,8,12);pixel(ctx,'#ceddc9',-1,-22+bob,2,15);
- pixel(ctx,'#83aaa6',-9,-18+bob,3,10);pixel(ctx,'#83aaa6',7,-18+bob,3,10);pixel(ctx,color,-12,-12+bob,4,3);pixel(ctx,color,9,-12+bob,4,3);
- pixel(ctx,'#759ca4',-7,-31+bob,14,11);pixel(ctx,color,-10,-29+bob,20,7);pixel(ctx,'#c5ddd1',-7,-31+bob,14,3);pixel(ctx,'#bfd4cb',-8,-35+bob,3,6);pixel(ctx,'#d3e2c7',-1,-37+bob,3,7);pixel(ctx,'#bfd4cb',5,-35+bob,3,6);
- if(options.facing!=='up'){for(const eye of[-5,0,5])pixel(ctx,'#eff1bd',eye,-26+bob,2,2);pixel(ctx,'#395969',-3,-21+bob,6,1);}else pixel(ctx,'#bad0c9',-5,-27+bob,10,5);
- pixel(ctx,'#c0c7a0',-7,-16+bob,3,2);pixel(ctx,'#c0c7a0',5,-16+bob,3,2);ctx.restore();
-}
 /** Pixel sprite anchored at feet. scale is an optional integer for portraits. */
 export function drawCharacter(ctx,x,y,options={}){
- if(options.species==='choral'){drawChoral(ctx,x,y,options);return;}
+ if(drawAlienCharacter(ctx,x,y,options))return;
  const look=options.appearance?appearancePalette(options.appearance):null;
  const equipped=!!options.weapon||options.team==='hostile'||options.firing,armed=equipped&&(options.armed??true),angle=Number.isFinite(options.aimAngle)?options.aimAngle:facingAngle(options.facing||'down');
  const aimedFacing=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?Math.cos(angle)<0?'left':'right':Math.sin(angle)<0?'up':'down';
@@ -685,7 +689,7 @@ export function drawCharacter(ctx,x,y,options={}){
 export function drawContactPortrait(ctx,entity={}){
  const width=ctx.canvas?.width||32,height=ctx.canvas?.height||40,scale=Math.max(1,Math.floor(Math.min(width/28,height/40)));
  pixel(ctx,'#173543',0,0,width,height);pixel(ctx,'#294b53',2,2,width-4,height-4);
- drawCharacter(ctx,Math.floor(width/2),height-3,{id:entity.id,name:entity.name,color:entity.color,species:entity.species||entity.data?.species,facing:'down',scale});
+ drawCharacter(ctx,Math.floor(width/2),height-3,{id:entity.id,identityId:entity.identityId||entity.data?.crewId||entity.data?.guestId||entity.id,name:entity.name,color:entity.color,species:entity.species||entity.data?.species,facing:'down',scale});
 }
 function drawProp(ctx,d,m,time,emit){
  const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
@@ -834,7 +838,7 @@ function drawResidentTask(ctx,e,time){
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
+ if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,identityId:e.identityId||e.data?.crewId||e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
  else if(e.data?.serviceDesk){
   pixel(ctx,'#162d36',x-14,y-24,28,27);pixel(ctx,'#55767c',x-13,y-26,26,22);pixel(ctx,'#152d37',x-10,y-23,20,14);pixel(ctx,c,x-9,y-22,18,2);pixel(ctx,'#a5b9ac',x-11,y-7,22,3);pixel(ctx,'#314d56',x-9,y-3,18,7);
   if(e.data.serviceDesk==='public'){pixel(ctx,'#c9ddc6',x-6,y-16,12,3);pixel(ctx,'#c9ddc6',x-2,y-20,4,11);}
@@ -1086,7 +1090,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.species&&a.species!=='human'&&a.species!=='choral')drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});

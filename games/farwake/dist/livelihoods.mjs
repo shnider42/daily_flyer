@@ -60,7 +60,7 @@ export const LivelihoodRules={
   const cost=shipClass.cost,credits=Math.floor(this.state.credits),affordable=credits>=cost;
   return {ok:affordable,shipClass,cost,ore:0,credits,used:true,affordable,...(!affordable?{code:'cost',reason:`This used ${shipClass.name} costs ${cost} cr; you have ${credits} cr.`}:{})};
  },
- /** Called only after a paid purchase has succeeded; this never grants a free hull. */
+ /** Materialize ownership after a validated purchase or one-time service issue. */
  claimFirstShip(){
   const ship=this.state.ship,body=landing(this);
   delete ship.unowned;
@@ -86,6 +86,7 @@ export const LivelihoodRules={
   if(this.state.person.health<=0||this.state.person.down)return {...this._fail('You are incapacitated and cannot board passenger transport.','incapacitated'),...base};
   if(this.state.pendingEncounter)return {...this._fail('Finish your conversation before boarding.','encounter'),...base};
   if(body.id==='earth'&&!quarantineOpen(this))return {...this._fail('Earth’s quarantine corridor is closed to you. Passenger ferries require the same landing permission as private ships.','quarantine'),...base};
+  const access=this.portAccess(body);if(!access.ok)return {...access,...base};
   if(credits<fare)return {...this._fail(`Passage costs ${fare} cr; you have ${credits} cr. The local contract exchange always has a paid maintenance shift. Make repairs before buying a ticket.`,'cost'),...base};
   return this._ok({...base,available:true});
  },
@@ -119,7 +120,8 @@ export const LivelihoodRules={
   return body;
  },
  recoverOnFoot(message){
-  const body=landing(this)||this.system.bodies.find(body=>body.id===this.state.lastBodyId&&isPassengerPort(body))||this.system.bodies.find(isPassengerPort);
+  const accessible=body=>isPassengerPort(body)&&this.portAccess(body).ok;
+  const body=[landing(this),...this.system.bodies.filter(body=>body.id===this.state.lastBodyId),...this.system.bodies].find(accessible);
   if(!body)return this._fail('No inhabited port is available for recovery.','location');
   this._arriveAsPassenger(body);
   const cost=Math.floor(this.state.credits*.12);this.state.credits-=cost;

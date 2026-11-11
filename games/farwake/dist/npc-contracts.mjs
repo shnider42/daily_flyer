@@ -4,6 +4,7 @@ import { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 import { ensureDamageControl } from './interior-damage.mjs';
 import { generateSurface, evaLayout } from './surface.mjs';
 import { CREW_WORK_ROLES, crewWorkOffers, createWorkAssignment, crewTaskDefinition, publicCrewTask } from './crew-work.mjs';
+import { normalizeSpecies, chooseNpcSpecies, speciesName } from './species.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -50,7 +51,7 @@ function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local'
  const serial=Math.max(0,Math.floor(finite(game.state.npcContractSerial)))+1;
  const contractId=String(id||`crew-watch:${employeeId}:${game.state.seed}:${serial}`);
  const origin={systemId:game.state.systemId,bodyId:check.body.id,name:check.body.name,x:check.body.x,y:check.body.y,radius:check.body.radius};
- const destination=game.system.bodies.filter(body=>port(body)&&body.id!==origin.bodyId&&body.id!=='earth').sort((a,b)=>distance(a,origin)-distance(b,origin))[0];
+ const destination=game.system.bodies.filter(body=>port(body)&&body.id!==origin.bodyId&&body.id!=='earth'&&game.portAccess(body).ok).sort((a,b)=>distance(a,origin)-distance(b,origin))[0];
  const heading=destination?Math.atan2(destination.y-origin.y,destination.x-origin.x):Math.atan2(origin.y||1,origin.x||1),lane=hash(contractId),berthAngle=heading+(lane/0xffffffff-.5)*.75;
  const dockPoint={x:origin.x+Math.cos(berthAngle)*(origin.radius+75),y:origin.y+Math.sin(berthAngle)*(origin.radius+75)};
  // A service waypoint outside the port approach gives the pilot a real route.
@@ -65,9 +66,9 @@ function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local'
  ensureDamageControl(ship);
  const layout=cabinLayout(shipClass.id),medical=layout.stations.medical;
  const bedside=[{x:medical.x+24,y:medical.y},{x:medical.x-24,y:medical.y},{x:medical.x,y:medical.y+24},medical].find(point=>isCabinWalkable(layout,point.x,point.y,6));
- const pilot={id:`${contractId}:pilot`,name:'Captain Vale',role:'pilot',x:layout.stations.helm.x,y:layout.stations.helm.y,health:100,maxHealth:100,status:'active',greeting:'I have the helm. Take your assigned station; I’ll bring us back to the hiring port.'};
+ const pilot={id:`${contractId}:pilot`,name:'Captain Vale',species:'human',role:'pilot',x:layout.stations.helm.x,y:layout.stations.helm.y,health:100,maxHealth:100,status:'active',greeting:'I have the helm. Take your assigned station; I’ll bring us back to the hiring port.'};
  const workerPoint=roleId==='medic'?bedside:layout.crewSpawns[1]||layout.crewSpawns[0];
- const worker={id:`${contractId}:worker`,name:'Ira Moss',role:'deckhand',x:workerPoint.x,y:workerPoint.y,health:roleId==='medic'?38:100,maxHealth:100,status:roleId==='medic'?'injured':'active',greeting:roleId==='medic'?'The accident left me in rough shape. Please use the medical station to stabilize me.':'A short local watch. The company supplies the tools; we supply the work.'};
+ const worker={id:`${contractId}:worker`,name:'Ira Moss',species:'human',role:'deckhand',x:workerPoint.x,y:workerPoint.y,health:roleId==='medic'?38:100,maxHealth:100,status:roleId==='medic'?'injured':'active',greeting:roleId==='medic'?'The accident left me in rough shape. Please use the medical station to stabilize me.':'A short local watch. The company supplies the tools; we supply the work.'};
  const inventory={cargo:{ore:8,crystal:0},upgrades:{},crew:[pilot,worker],formerCrew:[],memorial:[],boardingHistory:[],boarding:null};
  const contract={version:1,id:contractId,serial,employeeId:String(employeeId),active:true,shared:!!shared,roleId,roleName:definition.name,vesselId,shipName:ship.name,classId:shipClass.id,origin,dockPoint,workPoint,routeName:destination?`${origin.name} → ${destination.name} approach → ${origin.name}`:`${origin.name} local service circuit`,factionId:check.body.faction||game.currentSystem?.faction||'freewake',phase:'boarding',dockedAt:origin.bodyId,clock:0,phaseClock:0,startedAt:finite(game.state.stats?.time),reward:Math.round(definition.reward*(game.characterEffects?.jobRewards||1)),paid:false,aborted:false,incidentStarted:false,work:{done:false,progress:0,fireRemoved:0,damageRepaired:0,healed:0,damage:0,crewId:worker.id,sectionId:null,enemyId:null,lastFire:0,lastDamage:0,lastHealth:worker.health}};
  game.state.npcContractSerial=serial;
@@ -89,6 +90,12 @@ export function createNpcContract(game,roleId,options={}){
  const worker=inventory.crew.find(crew=>crew.id===contract.work.crewId);
  worker.name=['Ira Moss','Dev Renn','Mina Hart','Sol Anwar','Tess Orin','Pax Bell'][hash(`${offer.seed}:worker`)%6];
  inventory.crew[0].name='Captain '+['Vale','Hosk','Maren','Rill','Sable','Venn'][hash(`${offer.seed}:pilot`)%6];
+ // The posted watch creates these people once. Their identity is stored with
+ // the physical vessel, independent of its pilot, employer, or next room view.
+ for(const member of inventory.crew){
+  member.species=chooseNpcSpecies(game.state.seed,member.id,{...check.body,systemId:game.state.systemId});
+  if(member.species!=='human')member.name=(member.role==='pilot'?'Captain ':'')+speciesName(member.species,game.state.seed,member.id);
+ }
  contract.assignment.workerName=worker.name;contract.assignment.pilotName=inventory.crew[0].name;
  worker.health=100;worker.status='active';worker.role=offer.familyId==='passage'?'passenger':'deckhand';worker.greeting=offer.familyId==='passage'?'I’m your passenger for this run. A quiet berth and a safe arrival will do.':'I’ll keep the ordinary deck checks moving while you handle the posted work order.';
  if(offer.familyId==='hullwork'){const damage=ensureDamageControl(ship),section=damage.sections.find(value=>value.id==='engineering')||damage.sections.at(-1);if(section)section.damage=Math.max(section.damage,18);}
@@ -515,6 +522,10 @@ export const NpcContractRules={
   this.state.npcContractSerial=Math.max(0,Math.floor(finite(this.state.npcContractSerial)));
   this.state.npcContractHistory=Array.isArray(this.state.npcContractHistory)?this.state.npcContractHistory.slice(-32):[];
   const contract=active(this);
+  // Personal inventory is temporarily parked during a solo hired watch. It
+  // needs the same legacy fallback as the currently occupied employer hull.
+  for(const collection of [this.state.crew,this.state.formerCrew,this.state.memorial,this.state.npcContract?.personal?.crew,this.state.npcContract?.personal?.formerCrew,this.state.npcContract?.personal?.memorial])
+   if(Array.isArray(collection))for(const member of collection)if(member&&typeof member==='object')member.species=normalizeSpecies(member.species);
   if(contract&&roleFor(contract.roleId)&&contract.origin&&contract.work){
    contract.clock=Math.max(0,finite(contract.clock));contract.phaseClock=Math.max(0,finite(contract.phaseClock));
    if(contract.personal&&this.state.ship.id===contract.vesselId){this.state.ship.npcEmployer=true;updateCabin(this);}

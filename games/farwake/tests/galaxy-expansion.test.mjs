@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {buildGalaxy} from '../dist/engine.mjs';
+import {FACTION_PORTS} from '../dist/port-content.mjs';
 import {expandGalaxy,FRONTIER_SYSTEMS,GALAXY_SYSTEM_COUNT,COSMIC_RULES,systemCosmicBodies,cosmicInfluence,applyCosmicHazards} from '../dist/galaxy-expansion.mjs';
 import {advanceShip,getShipClass} from '../dist/fleet.mjs';
 import {SpaceRenderer} from '../dist/space-art.mjs';
@@ -14,9 +15,10 @@ const legacyHashes={
  'quiet-earth':'6a1a1920b93e72d5cbad82ee7ba2a8851fa00e9731060fae2bfaa38254498d33'
 };
 // These two intentional 0.5.1 descriptions clarify the existing core port. Only
-// prose is normalized; the released checksums still protect every other field.
+// prose and newly appended service berths are projected out; released fields stay protected.
 function releasedChartProjection(systems){
- const projected=structuredClone(systems),hearth=projected.find(system=>system.id==='hearth');
+ const additions=new Set(FACTION_PORTS.map(port=>port.id));
+ const projected=structuredClone(systems).map(system=>({...system,bodies:system.bodies.filter(body=>!additions.has(body.id))})),hearth=projected.find(system=>system.id==='hearth');
  hearth.description='A tired orange star and a station built from ships that never made it home.';
  hearth.bodies.find(body=>body.id==='kettle').lore='A salvage port where every welded corridor remembers a different ship. Cinder is the smallest vessel on the departure board.';
  return projected;

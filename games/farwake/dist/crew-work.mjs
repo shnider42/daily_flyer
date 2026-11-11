@@ -28,7 +28,7 @@ const families = Object.freeze([
 
 export function crewWorkOffers(game) {
   const state = game.state, origin = game.system?.bodies?.find(body => body.id === state.locationId), serial = Math.max(0, Math.floor(Number(state.npcContractSerial) || 0)) + 1;
-  const ports = (game.system?.bodies || []).filter(body => validPort(body) && body.id !== origin?.id && body.id !== 'earth');
+  const ports = (game.system?.bodies || []).filter(body => validPort(body) && body.id !== origin?.id && body.id !== 'earth' && game.portAccess(body).ok);
   const context = `${state.seed}:${state.systemId}:${origin?.id || 'port'}:${serial}`;
   // Every board keeps several ordinary delivery jobs. Rigging alternates its
   // second slot, giving eight offers without revealing unearned ship designs.

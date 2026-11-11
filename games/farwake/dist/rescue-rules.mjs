@@ -1,6 +1,7 @@
 /** Physical rescued passengers belong to a hull, never to a camera mode. */
 import { cabinLayout, isCabinWalkable, CREW_ROLES, getShipClass } from './fleet.mjs';
 import { ensureSidearm } from './combat.mjs';
+import { normalizeSpecies, chooseNpcSpecies, speciesName } from './species.mjs';
 
 const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
 const clamp=(value,low,high)=>Math.max(low,Math.min(high,value));
@@ -10,7 +11,7 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 const names=['Ari Vale','Sena Marr','Tomas Reed','Jori Venn','Iris Pell','Niko Ash','Meri Sol','Lea Farrow','Daro Fen','Celia Noon','Holl Rho','Eli Kest'];
 const colors=['#bea698','#9dbab1','#c3b27f','#9eacca','#b2a0b9','#90b5c1'];
 const statuses=new Set(['aboard','hostile','defeated','hijacked']);
-const hasPort=body=>body&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
+const hasPort=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const activeMember=member=>member.health>0&&member.status!=='dead';
 const allGroups=ship=>Array.isArray(ship?.rescueGroups)?ship.rescueGroups:[];
 
@@ -30,7 +31,7 @@ export function rescueDisposition(seed,systemId,sourceId,encounterId){
 /** Display views intentionally omit the concealed intent and reveal timer. */
 export function rescueOccupants(ship){
  return allGroups(ship).flatMap(group=>(group.members||[]).filter(activeMember).map(member=>({
-  id:member.id,groupId:group.id,shipId:ship.id,name:member.name,color:member.color,health:member.health,maxHealth:member.maxHealth,
+  id:member.id,groupId:group.id,shipId:ship.id,name:member.name,species:normalizeSpecies(member.species),color:member.color,health:member.health,maxHealth:member.maxHealth,
   x:member.x,y:member.y,berthIndex:member.berthIndex,status:group.status==='hostile'||group.status==='hijacked'?'hostile':'aboard',role:'rescued passenger',
   greeting:group.status==='hostile'||group.status==='hijacked'?'An armed hijacker is trying to seize this deck.':`“Thank you for opening the airlock. A berth and a safe port are all we need.”`,
   origin:group.label
@@ -38,13 +39,13 @@ export function rescueOccupants(ship){
 }
 export const rescuedBerthCount=ship=>allGroups(ship).reduce((count,group)=>count+(group.members||[]).filter(activeMember).length,0);
 
-function normalizeShip(ship){
+export function normalizeRescueShip(ship){
  if(!ship)return;
  const seen=new Set();
  ship.rescueGroups=allGroups(ship).filter(group=>group&&typeof group.id==='string'&&group.shipId===ship.id&&Array.isArray(group.members)).slice(0,RESCUE_RULES.maxGroups).map(group=>{
   const members=group.members.slice(0,RESCUE_RULES.maxPeople).filter(member=>member&&typeof member.id==='string'&&!seen.has(member.id)&&(seen.add(member.id),true)).map((member,index)=>{
    const maxHealth=clamp(finite(member.maxHealth,68),1,100),health=clamp(finite(member.health,maxHealth),0,maxHealth);
-   return{id:text(member.id),name:text(member.name||names[index%names.length],50),color:/^#[0-9a-f]{6}$/i.test(member.color)?member.color:colors[index%colors.length],
+   return{id:text(member.id),name:text(member.name||names[index%names.length],50),species:normalizeSpecies(member.species),color:/^#[0-9a-f]{6}$/i.test(member.color)?member.color:colors[index%colors.length],
     health,maxHealth,status:health<=0?'dead':member.status==='hostile'?'hostile':'aboard',berthIndex:clamp(Math.floor(finite(member.berthIndex,index+1)),0,9),x:finite(member.x),y:finite(member.y)};
   });
   return{id:text(group.id),shipId:ship.id,encounterId:text(group.encounterId),sourceId:text(group.sourceId),systemId:text(group.systemId),sourceX:finite(group.sourceX),sourceY:finite(group.sourceY),label:text(group.label||'Rescued passengers',60),
@@ -69,7 +70,7 @@ function positions(game,count){
 }
 
 export const RescueRules={
- initializeRescueOccupants(){normalizeShip(this.state.ship);return this.state.ship.rescueGroups;},
+ initializeRescueOccupants(){normalizeRescueShip(this.state.ship);return this.state.ship.rescueGroups;},
  rescuedBerths(ship=this.state.ship){return rescuedBerthCount(ship);},
  rescueManifest(ship=this.state.ship){return rescueOccupants(ship);},
  rescueAdmissionCheck(encounterId,choiceId){
@@ -95,7 +96,10 @@ export const RescueRules={
   const disposition=rescueDisposition(this.state.seed,systemId,sourceId,encounterId),n=hash(`${this.state.seed}:${sourceId}:people`),firstBerth=Math.max(1,Math.floor(finite(ship.humanOccupants,1)))+(this.livingCrew||[]).length+finite(this.narrativeBerths?.())+finite(this.professionBerths?.())+rescuedBerthCount(ship);
   const origin=this.system?.signals?.find(signal=>signal.id===sourceId)||this.system?.traffic?.find(traffic=>traffic.id===sourceId)||ship;
   const group={id,shipId:ship.id,encounterId,sourceId,systemId,sourceX:finite(source.x,origin.x),sourceY:finite(source.y,origin.y),label:spec.label,boardedAt:this.state.stats.time,elapsed:0,...disposition,status:'aboard',combatId:null,historyRecorded:false,
-   members:Array.from({length:spec.count},(_,index)=>({id:`${id}:person:${index}`,name:names[(n+index*5)%names.length],color:colors[(n+index)%colors.length],health:68,maxHealth:68,status:'aboard',berthIndex:firstBerth+index,...seats[index]}))};
+   members:Array.from({length:spec.count},(_,index)=>{
+    const personId=`${id}:person:${index}`,species=chooseNpcSpecies(this.state.seed,personId,{systemId}),name=species==='human'?names[(n+index*5)%names.length]:speciesName(species,this.state.seed,personId);
+    return{id:personId,name,species,color:colors[(n+index)%colors.length],health:68,maxHealth:68,status:'aboard',berthIndex:firstBerth+index,...seats[index]};
+   })};
   ship.rescueGroups.push(group);
   this._log('Passengers rescued',`${spec.count} people crossed the airlock onto ${ship.name||'your ship'}. They are waiting in the cabin for passage to a safe inhabited port.`,'rescue');
   this._event('rescue-passengers',{groupId:id,shipId:ship.id,text:`${spec.count} rescued people are aboard ${ship.name||'your ship'}. You can meet them in the cabin. Dock at an inhabited port to bring them ashore.`});
@@ -124,7 +128,7 @@ export const RescueRules={
   if(this.state.interior?.kind!=='ship')return this._fail('The hijackers are aboard their carrier, not this deck.','vessel');
   const layout=cabinLayout(ship.classId),id=`boarding:${group.id}:hijack`,vesselId=this.netVesselId||ship.id,leaderId=this._boardingLeaderId||this.playerId;
   const enemies=group.members.filter(activeMember).map(member=>({...copy(member),rescueGuestId:member.id,crewId:member.id,team:'hostile',role:'hijacker',facing:'left',damage:7,cooldown:2.5,speed:52,status:'active'}));
-  const allies=(this.livingCrew||[]).map((crew,index)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,role:crew.role,...layout.crewSpawns[index%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+index*.15,speed:crew.role==='security'?64:50,status:'active'}));
+  const allies=(this.livingCrew||[]).map((crew,index)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,species:normalizeSpecies(crew.species),role:crew.role,...layout.crewSpawns[index%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+index*.15,speed:crew.role==='security'?64:50,status:'active'}));
   group.status='hostile';group.combatId=id;for(const member of group.members)if(activeMember(member))member.status='hostile';
   this.state.boarding={id,kind:'defense',source:'rescued-pirates',rescueGroupId:group.id,phase:'active',shipClass:ship.classId,systemId:this.state.systemId,vesselId,originVesselId:vesselId,targetVesselId:null,locationId:this.state.locationId,targetId:group.id,enemies,allies,elapsed:0,combatTime:this.state.stats.time,unopposedTime:0,startedAt:this.state.stats.time,shotSerial:0,leaderId};
   ensureSidearm(this.state.person);this.state.person.down=false;this.state.person.weaponDrawn=true;this.state.person.lastShot=null;

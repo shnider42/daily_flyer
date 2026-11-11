@@ -1,4 +1,5 @@
 /** Additive frontier charts and bounded stellar hazards shared by every simulation. */
+import { SPECIES_HOMEWORLDS } from './species-content.mjs';
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
@@ -33,7 +34,12 @@ export const FRONTIER_SYSTEMS=freeze([
   {id:'greenwake-depot',name:'Greenwake Depot',kind:'station',biome:'station',lore:'The freight handlers lower their voices around the seed containers. Nothing in the shipping contract explains why.'},
   {id:'ochre-garden',name:'Ochre Garden',kind:'planet',biome:'forest',alienCulture:'choral',lore:'Paths follow quiet strips between resonant trunks. The local hosts permit visitors to harvest fallen fruit; cutting a branch requires a conversation.'},
   {id:'reedbank',name:'Reedbank',kind:'moon',biome:'temperate',culture:'reedbound',techLevel:'preflight',portServices:false,civilianSettlement:true,lore:'The river towns measure journeys by the turn of the water. Their skies have never been a road. Leave the engines beyond the fields; public promises here are woven into reed banners.'}]}
-]);
+].map(system=>{
+ const additions=SPECIES_HOMEWORLDS.filter(entry=>entry.systemId===system.id).map(entry=>entry.body);
+ // Append within the existing system. Every released body index, stellar
+ // coordinate and procedural sector survives; no generation draw is consumed.
+ return additions.length?{...system,bodies:[...system.bodies,...additions]}:system;
+}));
 
 const BIOMES=['forest','ice','ocean','desert','volcanic','industrial','barren','temperate'];
 const FACTIONS=['concord','freewake','meridian','lantern','cinder'];

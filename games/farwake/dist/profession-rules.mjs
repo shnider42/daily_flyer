@@ -2,7 +2,7 @@
 import { FACTIONS } from './content.mjs';
 import { generateSurface } from './surface.mjs';
 import { liveInteractionSurface } from './live-surface.mjs';
-import { enemyHullProfile } from './fleet.mjs';
+import { enemyHullProfile, getShipClass } from './fleet.mjs';
 import { directorBoard, directorEvent, recordDirectorAid } from './world-director.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
@@ -23,6 +23,18 @@ const phaseSets={paramedic:['pickup','admit'],doctor:['triage'],law:['investigat
 const rankNames={paramedic:['Probationary responder','Flight paramedic','Senior responder','Rescue lead'],doctor:['Clinic associate','Duty physician','Senior physician','Clinic lead'],law:['Community auxiliary','Patrol officer','Investigator','Watch commander'],military:['Volunteer','Fleet specialist','Veteran','Section leader']};
 const rankAt=xp=>xp>=16?3:xp>=8?2:xp>=3?1:0;
 const rankBonus=[1,1.10,1.20,1.35];
+
+export const MILITARY_ESCORT_PATROLS=3;
+export const MILITARY_HOSTILE_STANDING=-25;
+
+/** Clearance belongs to the serving captain, never to a painted hull or a guest's claim. */
+export function militaryPortAccess(game,factionId){
+ const employer=faction(factionId),career=game.state.professions?.careers?.military;
+ if(!employer)return{ok:false,code:'military-clearance',reason:'This base has not issued a recognized landing clearance.'};
+ if(!career?.enlisted||career.factionId!==factionId)return{ok:false,code:'military-clearance',reason:`${employer.name} service clearance required. Enlist for military duty at one of its public-services desks.`};
+ if(finite(game.state.rep?.[factionId])<=MILITARY_HOSTILE_STANDING)return{ok:false,code:'military-standing',reason:`${employer.name} has suspended your base clearance while your standing is hostile.`};
+ return{ok:true,factionId,reason:null};
+}
 
 export const PROFESSIONS=Object.freeze([
  Object.freeze({id:'paramedic',name:'Paramedic',description:'Fly to another port, collect one patient, and return them to the dispatching hospital. One real spare berth is required.',cost:18,reward:150}),
@@ -59,12 +71,26 @@ function rep(game,id,amount){if(faction(id))game.state.rep[id]=clamp(finite(game
 function activeEventFor(game,bodyIds,types=null){return game.worldDirector?.events?.find(event=>event.status==='active'&&event.systemId===game.state.systemId&&bodyIds.includes(event.bodyId)&&(!types||types.includes(event.type)))||null;}
 function qualifiedCombat(event,playerId){const evidence=event?.contributors?.[playerId];return !!(evidence&&!evidence.claimed&&evidence.damage>=12);}
 
+function serviceShipOffer(game,entityId){
+ const state=stateFor(game),career=state.careers.military,issued=career.serviceShips||[],completed=career.completed;
+ const classId=!game.ownsShip&&!issued.includes('sparrow')?'sparrow':completed>=MILITARY_ESCORT_PATROLS&&!issued.includes('marten')?'marten':null;
+ const progress=issued.includes('marten')?'Escort commission received.':`${Math.min(completed,MILITARY_ESCORT_PATROLS)} / ${MILITARY_ESCORT_PATROLS} patrols toward an escort commission.`;
+ if(!career.enlisted)return{progress:'Enlist to receive base clearance. Shipless recruits can request a patrol cutter.',action:null};
+ if(!classId)return{progress,action:null};
+ const check=access(game,entityId),clearance=militaryPortAccess(game,career.factionId);
+ let reason=!check.ok?check.reason:!clearance.ok?clearance.reason:employerAt(game,check.body)!==career.factionId?'Collect service equipment from your own faction’s public-services desk.':state.active?'Finish or return your current assignment before changing hulls.':game.state.npcContract?.active?'Finish your crew contract before collecting a service hull.':null;
+ if(!reason&&game.ownsShip){const location=game.ownShipAccess({atPort:true});if(!location.ok)reason=location.reason;}
+ if(!reason&&!game.state.fleet.owned.includes(classId)){const capacity=game._canActivateClass(getShipClass(classId));if(!capacity.ok)reason=capacity.reason;}
+ const label=classId==='sparrow'?'Collect patrol cutter · 0 cr':'Collect earned escort · 0 cr';
+ return{progress,classId,action:{action:'claimServiceShip',entityId,label,available:!reason,reason}};
+}
+
 function offer(game,definition,origin){
  const state=stateFor(game),career=state.careers[definition.id],serial=state.serial;
  if(!origin||!port(origin))return null;
  // A lawful Earth landing may use its clinic. Dispatch never creates a new
  // quarantine-gated destination for a captain who has not earned that landing.
- const other=game.system.bodies.filter(body=>body.id!==origin.id&&body.id!=='earth'&&port(body));
+ const other=game.system.bodies.filter(body=>body.id!==origin.id&&body.id!=='earth'&&port(body)&&game.portAccess?.(body)?.ok!==false);
  if(['paramedic','law'].includes(definition.id)&&!other.length)return null;
  const h=hash(`${game.state.seed}:${game.state.systemId}:${origin.id}:${definition.id}:${serial}`),destination=other[h%Math.max(1,other.length)]||origin;
  const rank=rankAt(career?.xp||0),cost=Math.round(definition.cost*(rank>=2?.8:1)),reward=Math.round(definition.reward*rankBonus[rank]*(game.characterEffects?.jobRewards||1));
@@ -142,7 +168,7 @@ function finish(game,job,outcome,{factor=1,xp=1}={}){
 export const ProfessionRules={
  initializeProfessions(){
   const raw=this.state.professions&&typeof this.state.professions==='object'?this.state.professions:{},careers={};
-  for(const definition of PROFESSIONS){const value=raw.careers?.[definition.id]||{};careers[definition.id]={enlisted:!!value.enlisted,factionId:faction(value.factionId)?value.factionId:'freewake',xp:integer(value.xp,1e4),completed:integer(value.completed,1e5),earned:integer(value.earned,1e9)};}
+  for(const definition of PROFESSIONS){const value=raw.careers?.[definition.id]||{};careers[definition.id]={enlisted:!!value.enlisted,factionId:faction(value.factionId)?value.factionId:'freewake',xp:integer(value.xp,1e4),completed:integer(value.completed,1e5),earned:integer(value.earned,1e9),...(definition.id==='military'?{serviceShips:[...new Set((Array.isArray(value.serviceShips)?value.serviceShips:[]).filter(id=>['sparrow','marten'].includes(id)))].slice(0,2)}:{})};}
   const state={version:1,careers,serial:integer(raw.serial),active:null,history:(Array.isArray(raw.history)?raw.history:[]).filter(value=>profession(value?.professionId)&&typeof value.title==='string').slice(0,16).map(value=>({id:String(value.id).slice(0,200),professionId:value.professionId,title:value.title.slice(0,160),outcome:String(value.outcome||'').slice(0,500),paid:integer(value.paid,1000),at:Math.max(0,finite(value.at))})),cooldownUntil:Object.fromEntries(PROFESSIONS.map(def=>[def.id,Math.max(0,finite(raw.cooldownUntil?.[def.id]))]))};
   const job=raw.active,validTarget=where=>this.galaxy.some(system=>system.id===where.system&&system.bodies.some(body=>body.id===where.body&&port(body)));
   if(job&&profession(job.professionId)&&phaseSets[job.professionId].includes(job.phase)&&typeof job.id==='string'&&job.id.startsWith('profession:')&&validTarget({system:job.originSystem,body:job.originBody})&&validTarget({system:job.targetSystem,body:job.targetBody})&&careers[job.professionId].enlisted){
@@ -154,10 +180,10 @@ export const ProfessionRules={
  professionBerths(){const job=this.state.professions?.active;return job?.professionId==='paramedic'&&job.phase==='admit'&&job.shipId===this.state.ship.id?1:0;},
  professionBoard(entityId){
   const state=stateFor(this),body=currentBody(this),id=entityId||body&&deskId(body.id)||null,check=access(this,id),world=directorBoard(this.worldDirector,{playerId:this.playerId});
-  const careers=PROFESSIONS.map(def=>{const c=state.careers[def.id],r=rankAt(c.xp),localFaction=body?.faction||this.currentSystem.faction||'freewake';return{...def,...c,rank:rankNames[def.id][r],rankIndex:r,nextRank:r<3?[3,8,16][r]:null,benefit:`${Math.round((rankBonus[r]-1)*100)}% shift-pay bonus${r>=2?' · 20% fewer supply costs':''}`,actions:c.enlisted?[]:[{action:'enlist',professionId:def.id,factionId:localFaction,entityId:id,label:`Join ${def.name}`,available:check.ok,reason:check.reason||null}]};});
+  const careers=PROFESSIONS.map(def=>{const c=state.careers[def.id],r=rankAt(c.xp),localFaction=body?.faction||this.currentSystem.faction||'freewake',service=def.id==='military'?serviceShipOffer(this,id):null;return{...def,...c,rank:rankNames[def.id][r],rankIndex:r,nextRank:r<3?[3,8,16][r]:null,benefit:`${Math.round((rankBonus[r]-1)*100)}% shift-pay bonus${r>=2?' · 20% fewer supply costs':''}`,...(service?{serviceProgress:service.progress,clearance:c.enlisted?militaryPortAccess(this,c.factionId):null}:{}),actions:c.enlisted?service?.action?[service.action]:[]:[{action:'enlist',professionId:def.id,factionId:localFaction,entityId:id,label:`Join ${def.name}`,available:check.ok,reason:check.reason||null}]};});
   const offers=PROFESSIONS.map(def=>offer(this,def,body)).filter(Boolean).map(value=>{
    const career=state.careers[value.professionId],wait=Math.max(0,Math.ceil(state.cooldownUntil[value.professionId]-time(this)));
-   const reason=!check.ok?check.reason:!career.enlisted?'Enroll at this desk first.':wrongEmployer(this,profession(value.professionId),body)|| (state.active?'Complete or return your current assignment.':wait?`Dispatch resets in ${wait}s.`:value.professionId==='military'&&this.canUseOwnShipHere?.()===false?'This patrol needs your own ship at this port. Crew contracts offer paid shipboard work before you own one.':this.state.credits<value.cost?`Supplies cost ${value.cost} cr; you have ${Math.floor(this.state.credits)} cr.`:value.professionId==='paramedic'&&spareBerths(this)<1?'A patient requires one free berth.':null);
+   const reason=!check.ok?check.reason:!career.enlisted?'Enroll at this desk first.':wrongEmployer(this,profession(value.professionId),body)|| (state.active?'Complete or return your current assignment.':wait?`Dispatch resets in ${wait}s.`:value.professionId==='military'&&this.canUseOwnShipHere?.()===false?'Bring your own ship to this port. Shipless recruits can request an issued patrol cutter under Military.':this.state.credits<value.cost?`Supplies cost ${value.cost} cr; you have ${Math.floor(this.state.credits)} cr.`:value.professionId==='paramedic'&&spareBerths(this)<1?'A patient requires one free berth.':null);
    return{id:value.id,professionId:value.professionId,title:value.title,text:value.text,objective:`Begin at ${body?.name}.`,target:{...target(value.originSystem,value.originBody),label:atName(this,target(value.originSystem,value.originBody))},reward:value.reward,cost:value.cost,eventId:value.eventId,actions:[{action:'accept',jobId:value.id,eventId:value.eventId,entityId:id,label:`Start shift · ${value.cost} cr supplies`,available:!reason,reason}]};
   });
   const events=world.events.map(event=>({...event,actions:[]}));
@@ -176,6 +202,19 @@ export const ProfessionRules={
  },
  professionAction({action,jobId,eventId,entityId,choiceId,solution}={}){
   const state=stateFor(this);
+  if(action==='claimServiceShip'){
+   const career=state.careers.military,offered=serviceShipOffer(this,entityId);
+   if(!offered.action)return this._fail(career.enlisted?offered.progress:'Enroll for military duty before requesting a service hull.','service-commission');
+   if(!offered.action.available)return this._fail(offered.action.reason,'service-commission');
+   const firstShip=!this.ownsShip,alreadyOwned=this.state.fleet.owned.includes(offered.classId),hull=getShipClass(offered.classId);
+   // Entitlement is consumed once; owning this hull already never mints money,
+   // spares, fuel, repairs, or another physical vessel.
+   career.serviceShips.push(offered.classId);
+   if(!alreadyOwned){this.state.fleet.owned.push(offered.classId);this._activateClass(offered.classId,true);if(firstShip)this.claimFirstShip();this._flag(`fleet_${offered.classId}`);}
+   const text=alreadyOwned?`${hull.name} service commission recorded. Your existing vessel stays as it is.`:`${faction(career.factionId).name} issued your ${hull.name}. It is waiting at this port.`;
+   this._log('Military service issue',text,'profession');this._event('profession-progress',{text});
+   this._refreshJobs();return this._ok({text,shipClass:hull,firstShip,alreadyOwned,board:this.professionBoard(entityId)});
+  }
   if(action==='accept'){
    const check=access(this,entityId);if(!check.ok)return this._fail(check.reason,check.code);
    if(state.active)return this._fail('Complete or return your current assignment first.','capacity');
@@ -186,7 +225,7 @@ export const ProfessionRules={
    if(state.cooldownUntil[offered.professionId]>time(this))return this._fail('Dispatch is preparing your next shift.','cooldown');
    if(this.state.credits<offered.cost)return this._fail(`Supplies cost ${offered.cost} cr; you have ${Math.floor(this.state.credits)} cr.`,'cost');
    if(offered.professionId==='paramedic'&&spareBerths(this)<1)return this._fail('A patient needs one spare berth alongside all crew and passengers.','capacity');
-   if(offered.professionId==='military'&&this.canUseOwnShipHere?.()===false)return this._fail('This patrol needs your own ship at this port. Take a paid crew contract if you want shipboard work before owning a hull.','no-ship');
+   if(offered.professionId==='military'&&this.canUseOwnShipHere?.()===false)return this._fail('Bring your own ship to this port. Shipless recruits can request an issued patrol cutter under Military.','no-ship');
    this.state.credits-=offered.cost;state.serial++;
    state.active={...offered,phase:{paramedic:'pickup',doctor:'triage',law:'investigate',military:'patrol'}[offered.professionId],startedAt:time(this),round:0,errors:0,decision:null,outcomeText:'',outcomeFactor:1,dockingsAtStart:integer(this.state.stats.dockings),dockingsAtPickup:0,targetId:['law','military'].includes(offered.professionId)?`${offered.id}:target`:null};
    this.syncProfessionWorld();this._event('profession-progress',{text:jobView(this,state.active).objective});

@@ -3,6 +3,7 @@ import { Game, distance } from '../dist/engine.mjs';
 import { getShipClass, enemyHullProfile, enemyShipState, cabinLayout, CREW_ROLES } from '../dist/fleet.mjs';
 import { SIDEARM, ensureSidearm, sidearmAim, clearSidearmSight } from '../dist/combat.mjs';
 import { clone, fail, ok, SURFACE_RANGE } from './protocol.mjs';
+import { normalizeSpecies } from '../dist/species.mjs';
 
 const alive = captain => captain.game.state.person.health > 0 && !captain.game.state.person.down;
 const present = (captain, vessel) => captain.aboard === vessel.id && alive(captain);
@@ -177,7 +178,7 @@ export class BoardingAuthority {
   _ensurePvP(vessel) {
     if (vessel.pvp) return vessel.pvp;
     const layout = cabinLayout(vessel.ship.classId), crew = this._crewFor(vessel);
-    vessel.pvp = { id: `pvp:${vessel.id}:${this.tick}`, phase: 'active', shipClass: vessel.ship.classId, startedAt: this.simulatedAt, combatTime: 0, shotSerial: 0, attackerIds: [], crewActors: crew.filter(liveCrew).map((member, i) => ({ id: `crew:${member.id}`, crewId: member.id, name: member.name, role: member.role,
+    vessel.pvp = { id: `pvp:${vessel.id}:${this.tick}`, phase: 'active', shipClass: vessel.ship.classId, startedAt: this.simulatedAt, combatTime: 0, shotSerial: 0, attackerIds: [], crewActors: crew.filter(liveCrew).map((member, i) => ({ id: `crew:${member.id}`, crewId: member.id, name: member.name, species: normalizeSpecies(member.species), role: member.role,
       ...layout.crewSpawns[i % layout.crewSpawns.length], health: member.health, maxHealth: member.maxHealth || 100, damage: CREW_ROLES[member.role]?.damage || 8, speed: 52, cooldown: 1.5 + i * .2, teamId: vessel.ownerId, color: member.color, facing: 'down' })) };
     return vessel.pvp;
   }
@@ -283,7 +284,7 @@ export class BoardingAuthority {
       const event = { ...shot, type: human ? 'person-down' : 'boarder-down', id: `${shot.id}:down`, x: target.x, y: target.y, actorId: target.id, until: at + 1.5, text: `${attacker.name} downed ${target.name}.` };
       this._deckEvent(vessel, event);
       if (human) this._recoverCaptain(human, `${attacker.name} forced you off ${vessel.name}. Your recovery berth is outside the occupied ship.`);
-      else { victim.status = 'dead'; victim.dead = true; const owner = this.captains.get(vessel.ownerId); if (owner && !owner.game.state.memorial.some(entry => entry.crewId === victim.id)) owner.game.state.memorial.push({ id: `memorial:${victim.id}`, crewId: victim.id, name: victim.name, role: victim.role, cause: `Boarded by ${attacker.name}`, systemId: vessel.systemId, time: at, shipClass: vessel.ship.classId }); }
+      else { victim.status = 'dead'; victim.dead = true; const owner = this.captains.get(vessel.ownerId); if (owner && !owner.game.state.memorial.some(entry => entry.crewId === victim.id)) owner.game.state.memorial.push({ id: `memorial:${victim.id}`, crewId: victim.id, name: victim.name, species: normalizeSpecies(victim.species), role: victim.role, cause: `Boarded by ${attacker.name}`, systemId: vessel.systemId, time: at, shipClass: vessel.ship.classId }); }
       const killer = this.captains.get(attacker.id); if (killer) killer.game.state.stats.personKills = (killer.game.state.stats.personKills || 0) + 1;
     }
     return shot;

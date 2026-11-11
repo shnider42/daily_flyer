@@ -22,7 +22,8 @@ export const LivelihoodAuthority={
   const vessel={id:ship.id,ownerId:c.id,name:ship.name,systemId:contract.origin.systemId,dockedAt:contract.dockedAt,ship,inventory,npcContractId:contract.id,allowCrew:false,
    grants:{[c.id]:{allowed:true,roles:[role.stationRole],allowBunk:false}},helmOwner:null,bunks:{},installedBunks:0,actor:null,flightAssist:true,boarding:null,hostileTo:[]};
   this.vessels.set(vessel.id,vessel);this._cabin(c,vessel);c.crewRole=role.stationRole;
-  c.events.push({type:'crew-duty',text:`Signed on as ${roleName.toLowerCase()}. Captain Vale has the helm. Follow your assigned duty; pay is collected after the ship returns.`});
+  const pilot=inventory.crew.find(member=>member.role==='pilot');
+  c.events.push({type:'crew-duty',text:`Signed on as ${roleName.toLowerCase()}. ${pilot?.name||'The service captain'} has the helm. Follow your assigned duty; pay is collected after the ship returns.`});
   return ok({vesselId:vessel.id,text:`You board the local service ship as ${roleName.toLowerCase()}.`,body:this._location(c)});
  },
  _npcContractCommand(c,name,args={}){
@@ -69,5 +70,25 @@ export const LivelihoodAuthority={
   if(c.game.state.livelihoods.parkedShip)c.game.state.livelihoods.parkedShip.vesselId=vessel.id;
   c.surfaceCache=null;
   return {...result,text:`Your first ship is paid for and waiting at this landing.`};
+ },
+ _claimMilitaryShip(c,args){
+  if(c.aboard||c.game.state.interior||c.game.state.npcContract?.active)return fail('Collect your service hull on foot at your faction’s public-services desk.','location');
+  const owned=this.vessels.get(c.ownedVesselId);
+  if(c.ownedVesselId&&!owned)return fail('Your registered vessel is unavailable.','vessel');
+  if(owned&&(owned.ownerId!==c.id||owned.npcContractId||owned.destroyed||this._hostileOccupied(owned)||owned.systemId!==c.game.state.systemId||owned.dockedAt!==c.game.state.locationId))return fail('Bring your own intact vessel to this port before collecting a service commission.','vessel');
+  const issue=()=>{
+   // The recruit is at the desk; reserve their return berth alongside any
+   // friends who stayed aboard before considering a smaller service hull.
+   if(owned)owned.ship.humanOccupants=1+[...this.captains.values()].filter(other=>other.id!==c.id&&other.aboard===owned.id).length;
+   return c.game.professionAction({...args,action:'claimServiceShip'});
+  };
+  const result=owned?this._withShip(c,owned,issue):issue();
+  if(!result.ok)return result;
+  if(owned){owned.actor=null;this._linkNpcVessel(owned);}
+  else{
+   const vessel=this._createVessel(c);c.portVesselId=vessel.id;
+   if(c.game.state.livelihoods.parkedShip)c.game.state.livelihoods.parkedShip.vesselId=vessel.id;
+  }
+  c.surfaceCache=null;return result;
  }
 };

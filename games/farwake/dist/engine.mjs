@@ -31,7 +31,7 @@ import { normalizeCharacter, normalizeAppearance, characterModifiers } from './c
 import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
 import { NarrativeRules } from './quest-rules.mjs';
-import { ProfessionRules } from './profession-rules.mjs';
+import { ProfessionRules, militaryPortAccess } from './profession-rules.mjs';
 import { LivelihoodRules, normalizeStartMode } from './livelihoods.mjs';
 import { NpcContractRules } from './npc-contracts.mjs';
 import { OpeningMissionRules } from './opening-mission.mjs';
@@ -44,6 +44,10 @@ import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInterior
 import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 import { conversation, normalizeConversations } from './npc-dialogue.mjs';
 import { normalizeSocialVisits } from './social-world.mjs';
+import { chooseNpcSpecies, normalizeSpecies, speciesName } from './species.mjs';
+import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic } from './traffic.mjs';
+import { appendFactionPorts } from './port-content.mjs';
+import { portProfile } from './port-traffic.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -138,7 +142,7 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return expandGalaxy(systems, seed);
+  return appendFactionPorts(expandGalaxy(systems, seed));
 }
 
 function initialState(seed, options = {}) {
@@ -258,8 +262,9 @@ export class Game {
     s.crew=s.crew.map((crew,index)=>{
       const maxHealth=Math.max(1,finite(crew.maxHealth,CREW_ROLES[crew.role]?.health||100));
       const health=clamp(finite(crew.health,crew.status==='dead'?0:maxHealth),0,maxHealth);
-      return {...crew,id:crew.id||`legacy-crew-${index}`,maxHealth,health,status:health<=0?'dead':crew.status==='injured'?'injured':'active'};
+      return {...crew,id:crew.id||`legacy-crew-${index}`,species:normalizeSpecies(crew.species),maxHealth,health,status:health<=0?'dead':crew.status==='injured'?'injured':'active'};
     });
+    for(const collection of ['formerCrew','memorial'])s[collection]=s[collection].filter(person=>person&&typeof person==='object'&&!Array.isArray(person)).map(person=>({...person,species:normalizeSpecies(person.species)}));
     s.upgrades = raw.upgrades && typeof raw.upgrades === 'object' ? clone(raw.upgrades) : {};
     s.abandonedJobs = raw.abandonedJobs && typeof raw.abandonedJobs === 'object' && !Array.isArray(raw.abandonedJobs) ? clone(raw.abandonedJobs) : {};
     s.conversations = normalizeConversations(raw.conversations);
@@ -333,6 +338,7 @@ export class Game {
   _persistRuntime() {
     if (!this._runtime) return;
     const record = this._record();
+    record.trafficStates = captureTraffic(this.system.traffic);
     record.pickups = this.system.pickups.map(x => clone(x));
     record.enemyHealth ||= {};
     record.enemyStates ||= {};
@@ -375,9 +381,9 @@ export class Game {
     }
     // Hull choice uses its own stable hash so adding designs cannot move the
     // existing rocks, signals or traffic. Saved/captured ships keep their class.
-    const hullFor=(entityId,civilian=false)=>{
+    const hullFor=entityId=>{
       const tier=data.danger||1;
-      const pool=civilian?(tier>=4?['hauler','petrel','atlas','mule']:tier>=2?['hauler','petrel','mule','kestrel']:['sparrow','kestrel','mule']):(tier>=5?['marten','hauler','frigate']:tier>=3?['hauler','marten','mule']:['sparrow','kestrel']);
+      const pool=tier>=5?['marten','hauler','frigate']:tier>=3?['hauler','marten','mule']:['sparrow','kestrel'];
       return pool[hash(`${this.state.seed}:${id}:${entityId}:hull`)%pool.length];
     };
     const enemies = [];
@@ -416,14 +422,11 @@ export class Game {
       const moon = bodies.find(b => b.id === 'tinbell');
       if (moon) signals.unshift({id:'hearth:story:tinbell',kind:'story',name:'Tinbell evacuation beacon',x:moon.x+moon.radius+165,y:moon.y+85,radius:24,story:true,resolved:record.resolved.includes('hearth:story:tinbell'),scanned:record.scanned.includes('hearth:story:tinbell')});
     }
-    const traffic = Array.from({ length: 4 }, (_, i) => ({ id: `${id}:traffic:${i}`, name: ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle'][i], faction: data.faction, x: 450 + r() * 900, y: (r() - 0.5) * 1000, angle: r() * TAU, speed: 30 + r() * 30, ...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true)) })).slice(0,context.trafficCount);
-    const commuter=seededRandom(`${this.state.seed}:${id}:civilian-lanes`),trafficNames=['Market shuttle','Port tug','Local ferry','Supply lighter','Watch patrol','Mail courier','Transit tender','Freight shuttle'];
-    for(let i=4;i<context.trafficCount;i++){
-      const origin=bodies[i%bodies.length],destination=bodies[(i+1)%bodies.length],leg=.15+commuter()*.7;
-      const x=origin.x+(destination.x-origin.x)*leg+(commuter()-.5)*250,y=origin.y+(destination.y-origin.y)*leg+(commuter()-.5)*250;
-      traffic.push({id:`${id}:traffic:${i}`,name:`${trafficNames[(i-4)%trafficNames.length]} ${i-3}`,faction:data.faction,x,y,angle:Math.atan2(destination.y-y,destination.x-x),speed:24+commuter()*28,...enemyHullProfile(hullFor(`${id}:traffic:${i}`,true))});
-    }
-    for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
+    // Preserve the four legacy commuter draws; lane identities and geometry now
+    // have independent streams so expanding a fleet never reshuffles the world.
+    for(let i=0;i<16;i++)r();
+    const traffic = restoreTraffic(createSystemTraffic({seed:this.state.seed,system:data,bodies,count:context.trafficCount}), record.trafficStates);
+    for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&['patrol','escort','carrier'].includes(contact.trafficRole)&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
     this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
@@ -543,7 +546,7 @@ export class Game {
     this._updatePickups(dt,targets.filter(g=>!g._parkedVessel));
     for(const game of games)game._syncBoardedVessel();
     this.system.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0);
-    for(const t of this.system.traffic){t.x+=Math.cos(t.angle)*t.speed*dt;t.y+=Math.sin(t.angle)*t.speed*dt;if(Math.abs(t.x)>2300||Math.abs(t.y)>2300)t.angle+=Math.PI;}
+    advanceTraffic(this.system.traffic,dt);
     for(const a of this.system.asteroids)a.angle+=a.spin*dt;
   }
 
@@ -788,6 +791,11 @@ export class Game {
     return null;
   }
 
+  portAccess(body, system = this.currentSystem) {
+    const profile=portProfile(system,body);
+    return profile?.restricted?{...militaryPortAccess(this,profile.faction),profile}:this._ok({profile});
+  }
+
   dock(bodyId) {
     if (this.state.mode !== 'ship') return this._fail('You are already on foot.', 'mode');
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
@@ -796,6 +804,7 @@ export class Game {
     if (!body) return this._fail('That destination is not in this system.', 'target');
     if (body.landable === false || body.kind === 'blackhole') return this._fail('This is a gravitational hazard. Keep clear of its tidal boundary; there is nowhere to land.', 'hazard');
     if (distance(this.state.ship, body) > body.radius + 150) return this._fail(`Fly closer to ${body.name} to ${body.kind === 'station' ? 'dock' : 'land'}.`, 'distance');
+    const portPermission=this.portAccess(body);if(!portPermission.ok)return portPermission;
     const rescueAccess=this.rescueDockCheck();if(!rescueAccess.ok)return rescueAccess;
     if (body.id === 'earth') {
       if (!this.hasFlag('vault_recovered') || !this.hasFlag('homeward_signal')) return this._fail('Earth’s quarantine corridor is closed. Recover the safe approach from Witness first.', 'quarantine');
@@ -1214,21 +1223,31 @@ export class Game {
     this._event('launch',{body:interior.location,text:'You take the helm.'});
     return this._ok({body:interior.location});
   }
+  /** The hiring board and authority resolve the same person before money changes hands. */
+  crewCandidate(role) {
+    if(!Object.hasOwn(CREW_ROLES,role))return null;
+    const definition=CREW_ROLES[role];
+    let id=`crew-${role}`,serial=1;
+    while([...this.state.crew,...this.state.formerCrew].some(person=>person.id===id))id=`crew-${role}-${++serial}`;
+    const names={engineer:'Anik Sol',navigator:'Jules Aster',medic:'Tavi Sen',gunner:'Rook Venn',security:'Mara Kest',scientist:'Sera Ilan',quartermaster:'Orrin Hale'};
+    const replacements=['Kellan Rho','Meri Ash','Ives Noon','Asha Pell','Kori Fen','Lin Voss','Beck Vale'];
+    const name=serial>1?replacements[(serial+Object.keys(CREW_ROLES).indexOf(role)-2)%replacements.length]:names[role];
+    const location=this.currentBody||{systemId:this.state.systemId},identityId=`${location.id||this.state.systemId}:candidate:${id}`;
+    const species=chooseNpcSpecies(this.state.seed,identityId,location);
+    return{id,role,species,name:species==='human'?name:speciesName(species,this.state.seed,identityId),cost:definition.cost,color:definition.color,description:definition.description};
+  }
   recruitCrew(role, identity = {}) {
     if(!this.atInhabitedPort)return this._fail('Meet potential crew at an inhabited port.','mode');
     const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return vesselAccess;
-    const definition=CREW_ROLES[role];if(!definition)return this._fail('Unknown crew role.','target');
+    const candidate=this.crewCandidate(role),definition=Object.hasOwn(CREW_ROLES,role)?CREW_ROLES[role]:null;if(!definition)return this._fail('Unknown crew role.','target');
     const details=typeof identity==='string'?{id:identity,name:identity}:identity||{};
     if(!details.id&&this.livingCrew.some(c=>c.role===role))return this._fail('This specialist role is already filled.','duplicate');
-    let id=details.id||`crew-${role}`,serial=1;
-    if(!details.id)while([...this.state.crew,...this.state.formerCrew].some(c=>c.id===id))id=`crew-${role}-${++serial}`;
+    const id=details.id||candidate.id;
     if(this.state.crew.some(c=>c.id===id))return this._fail('This person is already in your crew records.','duplicate');
     if(this.freeBerths<1)return this._fail(`All ${this.state.ship.berths} berths are occupied. Commission a larger hull or free a berth first.`,'capacity');
     if(this.state.credits<definition.cost)return this._fail(`Signing this crew member costs ${definition.cost} credits.`,'cost');
-    const names={engineer:'Anik Sol',navigator:'Jules Aster',medic:'Tavi Sen',gunner:'Rook Venn',security:'Mara Kest',scientist:'Sera Ilan',quartermaster:'Orrin Hale'};
-    const replacements=['Kellan Rho','Meri Ash','Ives Noon','Asha Pell','Kori Fen','Lin Voss','Beck Vale'];
-    const replacement=serial>1?replacements[(serial+Object.keys(CREW_ROLES).indexOf(role)-2)%replacements.length]:names[role];
-    const crew={id,name:details.name||replacement,role,color:details.color||definition.color,description:details.description||definition.description,health:definition.health,maxHealth:definition.health,status:'active'};
+    const species=details.species!==undefined?normalizeSpecies(details.species):details.id||details.name?'human':candidate.species;
+    const crew={id,name:details.name||candidate.name,species,role,color:details.color||definition.color,description:details.description||definition.description,health:definition.health,maxHealth:definition.health,status:'active'};
     this.state.credits-=definition.cost;this.state.crew.push(crew);this._updateStats(true);
     this._flag(`crew_${role}`);this._log(`Welcome aboard, ${crew.name}`,definition.description,'crew');
     this._event('crew',{crew,text:`${crew.name} joined your crew`});return this._ok({crew,cost:definition.cost});
@@ -1280,11 +1299,12 @@ export class Game {
     const id=`boarding:${enemy.id}:${kind}`;
     const freshEnemies=()=>Array.from({length:count},(_,i)=>{
       const point=layout.combatSpawns[i%layout.combatSpawns.length];
-      return {id:`${id}:hostile:${i}`,name:i?'Boarding raider':'Pirate breacher',...point,health:52,maxHealth:52,team:'hostile',role:'raider',color:'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
+      const actorId=`${id}:hostile:${i}`,species=chooseNpcSpecies(this.state.seed,actorId,{systemId:this.state.systemId});
+      return {id:actorId,name:i?'Boarding raider':'Pirate breacher',species,...point,health:52,maxHealth:52,team:'hostile',role:'raider',color:'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
     });
     if(kind==='assault')enemy.deck ||= {shipClass,enemies:freshEnemies(),cleared:false,rewardClaimed:false,occupation:null,shotSerial:0};
     const enemies=kind==='assault'?enemy.deck.enemies:freshEnemies();
-    const allies=this.livingCrew.map((crew,i)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,role:crew.role,...layout.crewSpawns[i%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+i*.15,speed:crew.role==='security'?64:50,status:'active'}));
+    const allies=this.livingCrew.map((crew,i)=>({id:`${id}:crew:${crew.id}`,crewId:crew.id,name:crew.name,species:normalizeSpecies(crew.species),role:crew.role,...layout.crewSpawns[i%layout.crewSpawns.length],health:crew.health,maxHealth:crew.maxHealth,team:'friendly',color:crew.color,facing:'left',damage:CREW_ROLES[crew.role]?.damage||8,cooldown:.8+i*.15,speed:crew.role==='security'?64:50,status:'active'}));
     const leaderId=this._boardingLeaderId||this.playerId,originVesselId=this.netVesselId||this.state.ship.id;
     enemy.boardingTargetId=leaderId;enemy.boardingOriginId=originVesselId;enemy.boardingCharge=0;
     if(kind==='assault')enemy.occupation=enemy.deck.occupation={boarderId:leaderId,controllerId:enemy.deck.occupation?.controllerId||enemy.capturedBy||null,contested:!enemy.deck.cleared};
@@ -1305,6 +1325,8 @@ export class Game {
 
   _restoreBoardingDeck() {
     const boarding=this.state.boarding;if(!boarding)return;
+    for(const actor of boarding.enemies||[])actor.species=normalizeSpecies(actor.species);
+    for(const actor of boarding.allies||[])actor.species=normalizeSpecies(this.state.crew.find(crew=>crew.id===actor.crewId)?.species??actor.species);
     boarding.originVesselId ||= this.state.ship.id;
     boarding.targetVesselId ||= boarding.targetId;
     if(boarding.kind!=='assault')return;
@@ -1553,7 +1575,7 @@ export class Game {
     crew.health=Math.max(0,crew.health-amount);crew.status=crew.health<=0?'dead':crew.health<crew.maxHealth?'injured':'active';
     const actor=this.state.boarding?.allies.find(a=>a.crewId===id);if(actor){actor.health=crew.health;actor.status=crew.status;}
     if(crew.health<=0){
-      if(!this.state.memorial.some(m=>m.crewId===id))this.state.memorial.push({id:`memorial:${id}`,crewId:id,name:crew.name,role:crew.role,cause,systemId:this.state.systemId,time:this.state.stats.time,shipClass:this.state.ship.classId});
+      if(!this.state.memorial.some(m=>m.crewId===id))this.state.memorial.push({id:`memorial:${id}`,crewId:id,name:crew.name,species:normalizeSpecies(crew.species),role:crew.role,cause,systemId:this.state.systemId,time:this.state.stats.time,shipClass:this.state.ship.classId});
       this._updateStats(false);this._log(`In memory of ${crew.name}`,`${crew.name}, ${crew.role}, died defending the crew. ${cause}.`,'memorial');
       this._event('crew-death',{...(shot?{id:shot.id+':down',boardingId:shot.boardingId,at:shot.at,until:shot.at+1.5,actorId:actor?.id,targetId:actor?.id,targetName:crew.name,x:actor?.x,y:actor?.y,attackerId:shot.attackerId,actorName:shot.actorName,team:shot.team}:{}),crewId:id,crew,text:`${crew.name} has died. Their name is in your crew memorial.`});
     }

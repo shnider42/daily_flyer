@@ -190,7 +190,7 @@ function finishStep(game,definition,record,text){
 }
 function passengerOffer(game,origin,serial){
  if(!origin||!hasPort(origin))return null;
- const choices=game.system.bodies.filter(body=>body.id!==origin.id&&hasPort(body)&&body.id!=='earth');
+ const choices=game.system.bodies.filter(body=>body.id!==origin.id&&hasPort(body)&&body.id!=='earth'&&game.portAccess(body).ok);
  if(!choices.length)return null;
  const h=hash(`${game.state.seed}:${game.state.systemId}:${origin.id}:passenger:${serial}`),destination=choices[h%choices.length],type=PASSENGER_TYPES[(h>>>4)%PASSENGER_TYPES.length],faction=origin.faction||game.currentSystem.faction||'freewake';
  const pledgeBonus=nstate(game).pledge===faction?1.12:1,standingBonus=(game.state.rep[faction]||0)>=30?1.05:1;

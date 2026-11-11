@@ -44,7 +44,7 @@ export const ExpeditionRules={
     this.state.explorationRecords[key]=encounter;
     this.state.exploration={key,bodyId:body.id,siteId,returnPosition:{x:this.state.person.x,y:this.state.person.y},encounter};
     this.state.interior={kind:'site',location};this.state.locationId=location.id;
-    const surface=this._expeditionSurface();Object.assign(this.state.person,surface.spawn,{weaponDrawn:true,moving:false});
+    const surface=this._expeditionSurface();Object.assign(this.state.person,surface.spawn,{weaponDrawn:encounter.monsters.some(monster=>monster.health>0),moving:false});
     this.recordActivity('explore',{token:`entered:${key}`});
     if(encounter.visited===1)this._log(location.name,location.site.story,'exploration');
     this._event('site-entered',{text:`${location.name} · ${location.site.summary}`,siteId,atmosphere:location.site.atmosphere});

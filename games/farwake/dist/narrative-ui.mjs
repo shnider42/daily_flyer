@@ -208,7 +208,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     const active=Array.isArray(data.active)?data.active:data.active?[data.active]:[];
     if(active.length){heading(root,'Your current duty');for(const view of active)renderStage(root,view,{entity,profession:true,refresh:()=>openProfessions(entity)});}
     const joined=new Set(array(data.careers).filter(c=>c.enlisted).map(c=>c.id));
-    const roster=document.createElement('details');roster.className='profession-roster';roster.open=!joined.size;
+    const roster=document.createElement('details');roster.className='profession-roster';roster.open=!joined.size||array(data.careers).some(c=>c.actions?.some(action=>action.action==='claimServiceShip'&&action.available));
     const summary=document.createElement('summary');summary.textContent=joined.size?'Your professions & ranks':'Choose a profession';roster.append(summary);root.append(roster);
     for(const career of array(data.careers)) {
       const card=document.createElement('article');card.className='career-card';
@@ -217,6 +217,11 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
       const enlist=career.actions?.find(action=>action.action==='enlist');
       if(enlist)button(card,enlist.label,()=>send('enlistProfession',{professionId:career.id,factionId:enlist.factionId,entityId:enlist.entityId},()=>openProfessions(entity)),{disabled:enlist.available===false,secondary:true});
       if(enlist?.reason)note(card,enlist.reason,'action-reason');
+      if(career.serviceProgress)note(card,career.serviceProgress,'service-progress');
+      if(career.clearance)note(card,career.clearance.ok?'Faction base clearance active.':career.clearance.reason,career.clearance.ok?'faction-pledged':'action-reason');
+      const commission=career.actions?.find(action=>action.action==='claimServiceShip');
+      if(commission)button(card,commission.label,()=>send('professionAction',{action:commission.action,entityId:commission.entityId},()=>openProfessions(entity)),{disabled:commission.available===false,secondary:true});
+      if(commission?.reason)note(card,commission.reason,'action-reason');
       if(career.enlisted)note(card,'On the roster'+(career.nextRank?` · ${career.xp} / ${career.nextRank} service marks to next rank`:''),'faction-pledged');roster.append(card);
     }
     const offers=array(data.offers).filter(offer=>joined.has(offer.professionId));
