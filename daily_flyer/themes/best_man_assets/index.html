@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3efe5">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src https://uwbhjgvpaetrhfvcpvsg.supabase.co; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="A best man's notebook. A place for the plans, the stories, and the speech.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="For my brother">
+  <title>For my brother — a best man's notebook</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <script src="store.js" defer></script>
+  <script src="cloud.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="bm-app">
+  <section id="lock-screen" class="lock-screen" aria-labelledby="lock-heading"><div class="lock-content"><div class="lock-brand"><span class="wordmark-title">For my brother<span class="title-dot">.</span></span><span class="wordmark-subtitle">a best man’s notebook</span></div><h1 id="lock-heading">Open your notebook.</h1><p id="lock-description" class="lock-description">The plans, the stories, and a few words for the day.</p><form id="unlock-form"><label class="field">Notebook password<input id="unlock-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label><label class="field" id="confirm-password-field" hidden>One more time<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" maxlength="128"></label><div class="lock-actions"><button type="submit" class="button primary" id="unlock-button" disabled>Opening…</button><button type="button" class="text-button" id="toggle-password">Show password</button></div></form><p id="lock-error" class="form-error" role="alert" hidden></p><p id="lock-status" class="small-note">Checking the notebook…</p><button type="button" class="text-button" id="retry-connection" hidden>Try again</button><p class="lock-footnote">One notebook. The same password on your phone or computer.</p></div></section>
+  <div id="notebook-app" hidden>
+  <a href="#main" class="skip-link">Skip to notebook</a>
+  <header class="masthead">
+    <a class="wordmark" href="#notes" aria-label="For my brother, notes"><span class="wordmark-title">For my brother<span class="title-dot">.</span></span><span class="wordmark-subtitle">a best man’s notebook</span></a>
+    <button type="button" class="date-marker" id="date-marker" data-page="details"><span class="date-marker-label">The wedding</span><span id="wedding-label">Date to come</span><span aria-hidden="true">↗</span></button>
+  </header>
+
+  <div id="save-warning" class="notice warning" role="alert" hidden></div>
+  <div id="external-warning" class="notice warning" role="alert" hidden>This notebook changed in another tab. Download a copy of this tab before reloading. <button type="button" data-action="backup">Download this copy</button> <button type="button" data-action="reload">Reload saved notebook</button></div>
+  <div class="notebook-shell">
+    <aside class="notebook-rail">
+      <p class="contents-label">In this notebook</p>
+      <nav class="main-nav" aria-label="Notebook sections">
+        <a href="#notes" data-page="notes" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5zM9 10h6M9 14h6M9 18h4M15 3v4h4"/></svg><span>Notes</span><span class="nav-number">01</span></a>
+        <a href="#plans" data-page="plans"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 2 2 4-5M13 7h7M4 16l2 2 4-5M13 16h7"/></svg><span>Plans</span><span class="nav-number">02</span></a>
+        <a href="#speech" data-page="speech"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12H9l-4 4zM9 8h6M9 12h4"/></svg><span>Speech</span><span class="nav-number">03</span></a>
+        <a href="#details" data-page="details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16M8 14h2M14 14h2"/></svg><span>Details</span><span class="nav-number">04</span></a>
+      </nav>
+      <div class="rail-footer"><span class="save-status" id="save-status" role="status">Opening notebook…</span><button type="button" class="text-button" data-action="backup">Download a copy ↓</button><button type="button" class="text-button" data-action="settings">About this notebook</button><button type="button" class="text-button" data-action="lock">Lock notebook</button></div>
+    </aside>
+
+    <main id="main" class="paper" tabindex="-1">
+      <section id="page-notes" class="page-section" aria-labelledby="notes-heading">
+        <div class="page-heading"><div><p class="page-kicker">Notes &amp; loose ends <span>01</span></p><h1 id="notes-heading">Jot it down.</h1><p class="page-intro">It doesn’t have to be in order yet.</p></div><svg class="toast-drawing" viewBox="0 0 130 110" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="m30 20 25-7 11 32c5 16-19 24-25 8L30 20Zm17 13 13-4M54 63l9 28M52 94l24-7M77 20l25 8-10 31c-5 17-30 8-24-8l9-31Zm-3 23 19 6M78 70l-8 26M57 92l25 8M64 14l-1-8M72 15l4-7M54 17l-6-5"/><path d="m21 79 4 1m74 8 8-2" opacity=".5"/></g></svg></div>
+        <form id="note-form" class="capture-form">
+          <label class="sr-only" for="note-text">A thought to remember</label>
+          <textarea id="note-text" rows="3" maxlength="20000" placeholder="A story, a question, something to sort out…"></textarea>
+          <div class="capture-footer"><label class="capture-category" for="note-tag"><span>Keep with</span><select id="note-tag"><option value="note">Loose notes</option><option value="speech">The speech</option><option value="ask">Ask him</option><option value="weekend">The weekend</option></select></label><button type="submit" class="button primary">Keep this note <span aria-hidden="true">↵</span></button></div>
+        </form>
+        <div class="notes-tools"><div class="filter-tabs" role="group" aria-label="Filter notes"><button type="button" data-filter="all" aria-pressed="true">Everything</button><button type="button" data-filter="speech" aria-pressed="false">Speech</button><button type="button" data-filter="ask" aria-pressed="false">Ask him</button><button type="button" data-filter="weekend" aria-pressed="false">Weekend</button></div><label class="search-field"><span class="sr-only">Find a note</span><input id="note-search" type="search" placeholder="Find a note" maxlength="200"></label></div>
+        <div id="notes-list" class="notes-list"></div>
+        <div id="notes-empty" class="empty-state first-page"><p class="empty-title">A blank page is a good start.</p><p>You can start with one thing you want to ask him,<br class="desktop-only"> or a story you don’t want to forget.</p><div class="starter-links"><button type="button" data-note-prompt="ask">Something to ask him <span aria-hidden="true">↗</span></button><button type="button" data-note-prompt="speech">A story for the speech <span aria-hidden="true">↗</span></button></div></div>
+        <p class="page-footnote">Your notebook, wherever you open it. <button type="button" data-action="backup" class="text-button">Keep a backup</button></p>
+      </section>
+
+      <section id="page-plans" class="page-section" aria-labelledby="plans-heading" hidden>
+        <div class="page-heading"><div><p class="page-kicker">A few things to sort out <span>02</span></p><h1 id="plans-heading">The plans.</h1><p class="page-intro">Small jobs. Good ideas. Dates when you have them.</p></div></div>
+        <div class="section-toolbar"><div class="section-tabs" role="group" aria-label="Plan view"><button type="button" data-plan-view="tasks" aria-pressed="true">To do</button><button type="button" data-plan-view="events" aria-pressed="false">The weekend</button></div><button type="button" class="button primary" id="add-plan">Add a to-do +</button></div>
+        <div id="tasks-panel"><div id="tasks-list"></div><div id="tasks-empty" class="empty-state"><p class="empty-title">Nothing to chase down yet.</p><p>Add something you’ve promised to handle, or pick a starting point below.</p></div><details class="gentle-details" id="starter-tasks"><summary>A few starting points</summary><p>Only add what’s useful. None of this is assigned to you.</p><div id="suggestions-list" class="suggestions-list"></div></details><details id="done-section" class="gentle-details" hidden><summary id="done-summary">Taken care of</summary><div id="done-list"></div></details></div>
+        <div id="events-panel" hidden><p class="small-note">Bachelor weekend, rehearsal, wedding day—keep the plan here as it comes together.</p><div id="events-list" class="events-list"></div><div id="events-empty" class="empty-state"><p class="empty-title">Leave room for the plans.</p><p>Add an idea now. You can fill in the time and place later.</p></div></div>
+      </section>
+
+      <section id="page-speech" class="page-section" aria-labelledby="speech-heading" hidden>
+        <div class="page-heading"><div><p class="page-kicker">A few words for them <span>03</span></p><h1 id="speech-heading">The speech.</h1><p class="page-intro">Start with the bit you know you want to say.</p></div></div>
+        <div class="speech-layout"><div class="draft-area"><div class="section-title-row"><h2>My draft</h2><span id="speech-stats" class="small-note">No rush.</span></div><label class="sr-only" for="speech-draft">Your speech draft</label><textarea id="speech-draft" class="speech-draft" rows="14" maxlength="100000" placeholder="You don’t need an opening line yet."></textarea><div class="draft-footer"><span class="small-note">Saves as you write.</span><button type="button" class="button secondary" id="read-speech">Read it aloud ↗</button></div></div>
+        <aside class="speech-scraps"><div class="section-title-row"><h2>Stories &amp; scraps</h2><button type="button" class="text-button" id="add-story">Add +</button></div><p class="small-note">Notes you’ve kept for the speech.</p><div id="speech-notes"></div><p id="speech-notes-empty" class="small-note">A memory, a good line, a thing you admire about him.</p><details class="gentle-details"><summary>Need a starting point?</summary><ul class="speech-prompts"><li>A story only his brother would know.</li><li>The moment you saw them work as a pair.</li><li>What you want to thank him for.</li><li>What you want to wish them.</li></ul><p class="small-note">Keep the stories kind. Leave room for both of them.</p></details></aside></div>
+      </section>
+
+      <section id="page-details" class="page-section" aria-labelledby="details-heading" hidden>
+        <div class="page-heading"><div><p class="page-kicker">Names, places &amp; the rest <span>04</span></p><h1 id="details-heading">The details.</h1><p class="page-intro">Fill these in as you find them out.</p></div></div>
+        <form id="details-form" class="details-form" autocomplete="off"><div class="form-grid"><label class="field">My brother<input name="brother" data-detail="brother" maxlength="120" placeholder="His name"></label><label class="field">His partner<input name="partner" data-detail="partner" maxlength="120" placeholder="Their name"></label><label class="field">Wedding date <span class="optional">when you know it</span><input type="date" name="weddingDate" data-detail="weddingDate" min="1900-01-01" max="2200-12-31"></label><label class="field">The venue<input name="venue" data-detail="venue" maxlength="500" placeholder="Name or address"></label><label class="field wide">Where I’m staying<textarea name="stay" data-detail="stay" rows="2" maxlength="5000" placeholder="Hotel, address, check-in, booking details…"></textarea></label><label class="field wide">Getting there<textarea name="travel" data-detail="travel" rows="2" maxlength="5000" placeholder="Travel, rides, parking, who’s going with whom…"></textarea></label><label class="field wide">Anything else<textarea name="anything" data-detail="anything" rows="3" maxlength="10000" placeholder="Suit plans, things to bring, a detail worth keeping…"></textarea></label></div><p class="small-note">Everything here saves as you type. All fields are optional.</p></form>
+        <div class="section-title-row people-heading"><h2>People to have handy</h2><button type="button" class="button secondary" id="add-person">Add someone +</button></div><div id="people-list" class="people-list"></div><p id="people-empty" class="small-note">The wedding party, the person organizing the day, whoever you’ll need to reach.</p>
+        <div class="notebook-bottom"><button type="button" class="text-button" data-action="backup">Download a copy ↓</button><button type="button" class="text-button" data-action="settings">Saving &amp; notebook settings</button></div>
+      </section>
+    </main>
+  </div>
+  <footer class="mobile-status"><span id="mobile-save-status">Opening notebook…</span><button type="button" class="text-button" data-action="settings">Notebook settings</button></footer>
+  </div>
+
+  <dialog id="editor-dialog" class="editor-dialog" aria-labelledby="editor-title"><form id="editor-form"><div class="dialog-heading"><h2 id="editor-title">Keep a note</h2><button type="button" class="icon-button" data-close="editor-dialog" aria-label="Close editor">×</button></div><div id="editor-fields"></div><p id="editor-error" class="form-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="text-button danger" id="editor-delete" hidden>Delete</button><span class="action-spacer"></span><button type="button" class="button secondary" data-close="editor-dialog">Cancel</button><button type="submit" class="button primary">Save</button></div></form></dialog>
+
+  <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+    <div class="dialog-heading"><h2 id="settings-title">Your notebook.</h2><button type="button" class="icon-button" data-close="settings-dialog" aria-label="Close notebook settings">×</button></div>
+    <p>Your notebook saves online as you write. Open this address and use the same password on your phone or computer.</p>
+    <p>A safety copy stays in this browser while you’re working. If the connection drops, keep the tab open until you see “Saved online.” You can always download a copy, too.</p>
+    <div class="backup-actions"><button type="button" class="button primary" data-action="backup">Download a backup ↓</button><button type="button" class="button secondary" data-action="export-text">Save a readable copy ↓</button></div>
+    <p class="small-note" id="backup-status">Backups contain your notebook. Keep them somewhere you trust.</p>
+    <hr><h3>Bring back a notebook</h3><p class="small-note">Choose a backup to preview before replacing this notebook. The replacement will also save online. A copy of the current notebook is kept in this browser for recovery.</p>
+    <label class="button secondary file-button">Choose a backup<input id="import-file" type="file" accept=".json,application/json"></label><button type="button" id="recover-button" class="text-button" hidden>Recover the previous notebook</button><p id="import-error" class="form-error" role="alert" hidden></p>
+    <hr><div class="appearance-row"><h3>Paper</h3><div class="section-tabs" role="group" aria-label="Notebook appearance"><button type="button" data-theme-choice="paper" aria-pressed="true">Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button></div></div>
+    <details class="gentle-details"><summary>About privacy &amp; access</summary><p>The online notebook is protected by your password. Only a salted password hash is stored, not the password itself. Notes are stored in a dedicated database table on Supabase. They are protected by access controls, but are not end-to-end encrypted.</p><p>A local safety copy and any recovery copy are stored unencrypted in this browser. Locking the notebook signs this tab out and removes its main local copy. Downloaded backups and recovery copies remain until you remove them or clear website data.</p><p>There are no analytics, ads, or third-party fonts. Hosting providers may keep ordinary request logs. Short-lived, hashed connection identifiers are used to limit password guessing.</p><p>The address is kept off the project directory and asks search engines not to index it. Anyone with the notebook password can read and edit the same notebook. There is no email recovery; keep the password and a backup somewhere safe.</p></details>
+    <details class="gentle-details"><summary>Keep it close on your iPhone</summary><p>Open this address in Safari, then use Share → Add to Home Screen. Open the new shortcut and enter the same notebook password.</p></details>
+    <div class="notebook-bottom"><button type="button" class="button secondary" data-action="lock">Lock notebook</button></div>
+  </dialog>
+
+  <dialog id="import-dialog" class="confirm-dialog" aria-labelledby="import-title"><div class="dialog-heading"><h2 id="import-title">Use this notebook?</h2><button type="button" class="icon-button" data-close="import-dialog" aria-label="Cancel import">×</button></div><p id="import-preview"></p><p>This replaces the notebook currently saved in this browser. Download a copy first if you want to keep both.</p><div class="dialog-actions"><button type="button" class="text-button" data-action="backup">Download current copy</button><span class="action-spacer"></span><button type="button" class="button secondary" data-close="import-dialog">Cancel</button><button type="button" class="button primary" id="confirm-import">Use this notebook</button></div></dialog>
+
+
+  <dialog id="conflict-dialog" class="confirm-dialog" aria-labelledby="conflict-title"><div class="dialog-heading"><h2 id="conflict-title">Two copies to keep an eye on.</h2><button type="button" class="icon-button" data-close="conflict-dialog" aria-label="Decide later">×</button></div><p>Another device saved while you were writing. Choose the copy to keep online. The other copy will be kept in this browser’s recovery slot.</p><h3>This device</h3><p id="conflict-local"></p><h3>Saved online</h3><p id="conflict-remote"></p><button type="button" class="text-button" data-action="backup">Download this device’s copy first ↓</button><div class="dialog-actions"><button type="button" class="button secondary" id="keep-online-copy">Use online copy</button><button type="button" class="button primary" id="keep-local-copy">Keep this device’s copy</button></div></dialog>
+
+  <dialog id="reading-dialog" class="reading-dialog" aria-labelledby="reading-title"><header class="reading-toolbar"><h2 id="reading-title">A few words.</h2><div class="reading-tools"><button type="button" class="icon-button" id="reading-smaller" aria-label="Smaller speech text">A−</button><button type="button" class="icon-button" id="reading-larger" aria-label="Larger speech text">A+</button><button type="button" class="button secondary" data-close="reading-dialog">Back to draft</button></div></header><div id="reading-content" class="reading-content"></div><footer class="reading-footer"><span id="rehearsal-time" class="rehearsal-time" role="timer" aria-label="Rehearsal time">0:00</span><button type="button" class="button secondary" id="rehearsal-toggle">Start timer</button><button type="button" class="text-button" id="rehearsal-reset">Reset</button><span class="small-note">A timer, if you want one.</span></footer></dialog>
+
+  <div id="toast" class="toast" role="status" hidden><span id="toast-message"></span><button type="button" id="undo-button" hidden>Undo</button><button type="button" id="toast-close" aria-label="Dismiss notification">×</button></div>
+  <noscript><div class="notice">Please enable JavaScript to write and save in this notebook. Nothing has been saved yet.</div></noscript>
+</div>
+</body>
+</html>
