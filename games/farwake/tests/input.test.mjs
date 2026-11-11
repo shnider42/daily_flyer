@@ -85,6 +85,18 @@ test('boarding keyboard aim is independent of walking and does not shoot until f
  assert.equal(ordinaryWalk.x,1);assert.equal(ordinaryWalk.aiming,false,'Outside combat the arrows still walk');
 });
 
+test('Space on a focused HUD button is consumed as gameplay fire during a live ground encounter',()=>{
+ const oldWindow=globalThis.window,oldDocument=globalThis.document;
+ try{
+  const f=fixture();f.controls.getMode=()=> 'person';f.controls.getCombat=()=>true;
+  const event=new Event('keydown',{cancelable:true});Object.defineProperties(event,{code:{value:'Space'},target:{value:{tagName:'BUTTON',id:'contextButton'}}});
+  window.dispatchEvent(event);
+  assert.equal(event.defaultPrevented,true,'the native button click must not run on Space release');
+  assert.equal(f.controls.vector().fire,true);assert.equal(f.controls.vector().aiming,false);assert.deepEqual(f.commands,[]);
+  window.emit('keyup',{code:'Space'});assert.equal(f.controls.vector().fire,false);
+ }finally{globalThis.window=oldWindow;globalThis.document=oldDocument;}
+});
+
 test('boarding touch aim fires in every direction while the left stick keeps walking',()=>{
  for(const aim of[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){
   const vector=inputVector({mode:'person',combat:true,move:{x:-.6,y:.8},aim});

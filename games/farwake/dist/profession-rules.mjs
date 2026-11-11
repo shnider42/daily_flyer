@@ -75,7 +75,7 @@ function qualifiedCombat(event,playerId){const evidence=event?.contributors?.[pl
 function serviceShipOffer(game,entityId){
  const state=stateFor(game),career=state.careers.military,issued=career.serviceShips||[],completed=career.completed;
  const classId=!game.ownsShip&&!issued.includes('sparrow')?'sparrow':completed>=MILITARY_ESCORT_PATROLS&&!issued.includes('marten')?'marten':null;
- const progress=issued.includes('marten')?'Escort commission received.':`${Math.min(completed,MILITARY_ESCORT_PATROLS)} / ${MILITARY_ESCORT_PATROLS} patrols toward an escort commission.`;
+ const progress=issued.includes('marten')?'Escort commission received.':`${Math.min(completed,MILITARY_ESCORT_PATROLS)} / ${MILITARY_ESCORT_PATROLS} service assignments toward an escort commission.`;
  if(!career.enlisted)return{progress:'Enlist to receive base clearance. Shipless recruits can request a patrol cutter.',action:null};
  if(!classId)return{progress,action:null};
  const check=access(game,entityId),clearance=militaryPortAccess(game,career.factionId);

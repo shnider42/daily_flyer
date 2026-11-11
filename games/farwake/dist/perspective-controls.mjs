@@ -162,7 +162,7 @@ export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],
   if(!state.npcContract?.active)result=blocked(result,'Your hull-walk assignment is no longer active. Call for recovery.');
   else if(!airlock||distance(state.person,airlock)>56)result=blocked(result,'Follow the hull markings back to the exterior airlock.');
  }else if(state.npcContract?.active){
-  result=action('Crew duty','openCrewDuty','View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
+  result=action('Crew duty','openCrewDuty',state.npcContract?.military?'Review your Navy assignment. Return to Morrow and report to the recruiter for service pay.':'View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
  }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBoarding&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
   result=action('Port services','openPortServices','Find work, buy passenger passage, or visit the shipwright.');
  }else if(state.mode==='ship'){

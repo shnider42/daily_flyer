@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {displayMode} from '../dist/gunnery-view.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -128,6 +129,7 @@ function viewFixture(boundary, { practice = false } = {}) {
     return elements.get(id);
   };
   const context = vm.createContext({
+    displayMode,
     $: getElement, settings, game, testSession: practice ? { game } : null, playing: false, stored: null, dialog: { opened: false }, viewPanelOpen: false, toolTrayOpen: true, coachExpanded: true, labelLayoutDirty: false, hudDirty: false,
     cameraScope: 'local', cameraKey: null, cameraSaveTimer: null, localCameraPreferences: normalizeCameraPreferences(settings), network: null,
     document: globalThis.document, localStorage: boundary.storage, normalizeCameraPreferences, normalizeModeZoom, zoomLimits, applySettings, setTimeout: schedule, clearTimeout: cancel, hudText: (target, text) => { target.textContent = text; }, toast: (...args) => effects.push(['toast', ...args]),

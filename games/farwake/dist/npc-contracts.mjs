@@ -1,11 +1,13 @@
 /** Paid watches aboard a physical, independently piloted working vessel. */
-import { SHIP_CLASSES, enemyHullProfile } from './fleet.mjs';
+import { SHIP_CLASSES, enemyHullProfile, getShipClass } from './fleet.mjs';
 import { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 import { ensureDamageControl } from './interior-damage.mjs';
 import { generateSurface, evaLayout } from './surface.mjs';
 import { CREW_WORK_ROLES, crewWorkOffers, createWorkAssignment, crewTaskDefinition, publicCrewTask } from './crew-work.mjs';
 import { normalizeSpecies, chooseNpcSpecies, speciesName } from './species.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
+import { applyGunneryAim, gunneryStatus, gunneryStation } from './gunnery.mjs';
+import { getHullSystems } from './hull-systems.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -46,7 +48,7 @@ export function npcContractOffers(game){
 }
 
 /** Creates the employer inventory without taking ownership of the employee's ship. */
-function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local',shared=false}={}){
+function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local',shared=false}={},assignedClass=null){
  const check=canHire(game),definition=roleFor(roleId);
  if(!check.ok)return check;if(!definition)return fail('Choose gunner, fire crew, or ship medic.','role');
  const serial=Math.max(0,Math.floor(finite(game.state.npcContractSerial)))+1;
@@ -63,7 +65,7 @@ function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local'
  workPoint.x-=Math.sin(heading)*lateral;workPoint.y+=Math.cos(heading)*lateral;
  const radius=Math.hypot(workPoint.x,workPoint.y),limit=Math.max(0,finite(game.system.radius,WORLD_RADIUS)-350);
  if(radius>limit){workPoint.x*=limit/radius;workPoint.y*=limit/radius;}
- const shipClass=employerClass(),vesselId=`vessel:${contractId}`;
+ const shipClass=assignedClass||employerClass(),vesselId=`vessel:${contractId}`;
  const ship={...shipClass.stats,id:vesselId,name:'Local service boat',classId:shipClass.id,berths:shipClass.berths,humanOccupants:1,x:dockPoint.x,y:dockPoint.y,vx:0,vy:0,angle:heading,angularVelocity:0,hull:shipClass.stats.maxHull,shield:shipClass.stats.maxShield,energy:shipClass.stats.maxEnergy,fuel:shipClass.stats.maxFuel,warpRange:0,npcEmployer:true};
  ensureDamageControl(ship);
  const layout=cabinLayout(shipClass.id),medical=layout.stations.medical;
@@ -106,6 +108,91 @@ export function createNpcContract(game,roleId,options={}){
  return result;
 }
 
+/** Trusted career definitions supply the carrier and targets; clients supply no hull or reward. */
+export function createNavySortie(game,mission,{id,employeeId=game.playerId||'local',shared=false}={}){
+ const spec=mission?.navy;
+ if(!spec||typeof mission.id!=='string'||typeof id!=='string'||!id)return fail('This Navy operation has no authored sortie.','mission');
+ if(game.state.systemId!=='hearth'||game.state.locationId!=='morrow')return fail('Report to the Navy recruiter on Morrow for embarkation.','location');
+ const result=createNpcContractBase(game,'gunner',{id,employeeId,shared},getShipClass('leviathan'));if(!result.ok)return result;
+ const {contract,ship,inventory}=result,origin=contract.origin;
+ const count=clamp(Math.floor(finite(spec.targetCount,2)),1,4),base=hash(`${id}:range`)/0xffffffff*Math.PI*2,limit=finite(game.system.radius,WORLD_RADIUS)-750;
+ let waypoint=null,heading=base;
+ for(let n=0;n<48;n++){
+  const a=base+n*Math.PI/24,candidate={x:origin.x+Math.cos(a)*(origin.radius+1200),y:origin.y+Math.sin(a)*(origin.radius+1200)};
+  const far={x:candidate.x+Math.cos(a)*850,y:candidate.y+Math.sin(a)*850};
+  if([candidate,far].every(point=>Math.hypot(point.x,point.y)<limit&&game.system.bodies.every(body=>distance(point,body)>body.radius+400))){waypoint=candidate;heading=a;break;}
+ }
+ if(!waypoint)return fail('The Navy cannot clear a safe local exercise range right now.','route');
+ const berth=origin.radius+Math.min(140,ship.radius+35);
+ contract.dockPoint={x:origin.x+Math.cos(heading)*berth,y:origin.y+Math.sin(heading)*berth};
+ Object.assign(ship,{x:contract.dockPoint.x,y:contract.dockPoint.y,angle:heading,name:spec.shipName||'FWS Steadfast'});
+ contract.version=3;contract.shipName=ship.name;contract.roleName='Navy gunner';contract.reward=0;
+ contract.routeName=`Morrow → ${mission.title} → Morrow`;contract.workPoint=waypoint;
+ contract.military={branchId:'navy',missionId:mission.id,operationId:id,attemptId:id};
+ contract.navy={title:mission.title,classId:'leviathan',training:!!spec.training,targetIds:Array.from({length:count},(_,i)=>`${id}:target:${i}`),
+  targetClassId:['hauler','marten','bulwark'].includes(spec.targetClassId)?spec.targetClassId:'hauler',targetHull:clamp(finite(spec.targetHull,112),60,500),targetDamage:clamp(finite(spec.targetDamage),0,15),targetSpeed:clamp(finite(spec.targetSpeed),0,90),requiredDamage:clamp(finite(spec.requiredDamage,28),1,120),heading,spawned:false};
+ contract.work={...contract.work,targets:[],shots:0,damage:0};
+ inventory.cargo={ore:8,crystal:0};inventory.crew[0].name='Commander Isen';inventory.crew[0].greeting='I have the helm. Your post is the gunnery console. Use its exterior display and aim the battery yourself; we will return to Morrow for your debrief.';
+ inventory.crew[1].name='Chief Nara';inventory.crew[1].greeting='The forward battery has a wide firing arc. Lead moving contacts, watch the reactor, and return to the deck whenever you need to.';
+ return result;
+}
+
+const navy=contract=>contract?.version===3&&contract.military?.branchId==='navy'&&contract.navy;
+function navyTarget(game,id){return game.system.enemies.find(enemy=>enemy.id===id)||game._record().spawned?.find(enemy=>enemy.id===id)||null;}
+function spawnNavyTargets(game,contract){
+ const spec=contract.navy,record=game._record();record.spawned||=[];
+ if(spec.spawned)return;
+ spec.spawned=true;
+ for(const [index,id] of spec.targetIds.entries()){
+  if(record.defeated.includes(id)||game.system.enemies.some(enemy=>enemy.id===id)||record.spawned.some(enemy=>enemy.id===id))continue;
+  const ahead=560+index*90,side=(index-(spec.targetIds.length-1)/2)*190,a=spec.heading;
+  const enemy={id,name:spec.training?`Practice hull ${index+1}`:`Marked raider ${index+1}`,faction:'cinder',...enemyHullProfile(spec.targetClassId),
+   x:contract.workPoint.x+Math.cos(a)*ahead-Math.sin(a)*side,y:contract.workPoint.y+Math.sin(a)*ahead+Math.cos(a)*side,vx:0,vy:0,angle:a+Math.PI,
+   hp:spec.targetHull,maxHp:spec.targetHull,speed:spec.targetSpeed,damage:spec.targetDamage,reward:0,noLoot:true,trainingTarget:spec.training,active:!spec.training,cooldown:4+index,
+   boardingCooldown:100000,professionJobId:contract.id,professionOwner:contract.employeeId,professionContributors:{},crewContractId:contract.id,militaryOperationId:contract.military.operationId};
+  game.system.enemies.push(enemy);record.spawned.push(enemy);
+ }
+ emit(game,spec.training?'Commander: practice hulls are live. At the gunnery console, open the exterior display, aim and fire. Only your confirmed hits count.':'Commander: the marked raiders are ahead. Take the gunnery display and disable each contact. I will hold the approach.');
+}
+function observeNavyWork(game,contract){
+ const spec=contract.navy,record=game._record();
+ contract.work.targets=spec.targetIds.map(id=>{
+  const enemy=navyTarget(game,id),prior=contract.work.targets?.find(target=>target.id===id),damage=Math.max(finite(prior?.damage),finite(enemy?.professionContributors?.[contract.employeeId]));
+  if(enemy){const stored=record.spawned.find(value=>value.id===id);if(stored&&stored!==enemy)Object.assign(stored,{hp:enemy.hp,disabled:!!enemy.disabled,professionContributors:clone(enemy.professionContributors||{})});}
+  return{id,damage,neutralized:!!(enemy?.disabled||enemy&&enemy.hp<=enemy.maxHp*.4||record.defeated.includes(id)||prior?.neutralized),maxHull:spec.targetHull};
+ });
+ contract.work.damage=contract.work.targets.reduce((total,target)=>total+target.damage,0);
+ contract.work.progress=contract.work.targets.reduce((total,target)=>total+(clamp(target.damage/spec.requiredDamage,0,1)+(target.neutralized?1:0))/2,0)/spec.targetIds.length;
+ contract.work.done=contract.work.targets.every(target=>target.neutralized&&target.damage>=spec.requiredDamage);
+ if(contract.work.done&&contract.phase==='working')transition(game,contract,'returning','Commander: your contribution is confirmed on every marked contact. Returning to Morrow. Step ashore and report to the recruiter for your debrief.');
+}
+function retireNavyTargets(game,contract){
+ if(!navy(contract))return;
+ const ids=new Set(contract.navy.targetIds.filter(id=>{const enemy=navyTarget(game,id);return!enemy||!enemy.capturedBy&&!enemy.promotedVesselId&&!enemy.canonicalVesselId&&!enemy.boardingTargetId;})),record=game._record();
+ game.system.enemies=game.system.enemies.filter(enemy=>!ids.has(enemy.id));record.spawned=(record.spawned||[]).filter(enemy=>!ids.has(enemy.id));
+ for(const id of ids){if(!record.defeated.includes(id))record.defeated.push(id);delete record.enemyHealth?.[id];delete record.enemyStates?.[id];}
+}
+function stepNavyContract(game,contract,dt,input){
+ contract.clock+=dt;contract.phaseClock+=dt;
+ if(game.state.ship.hull<=0){contract.phase='failed';contract.dockedAt=null;contract.failure='The service carrier was lost.';return;}
+ const pilot=game.state.crew.find(member=>member.id===`${contract.id}:pilot`);
+ if(pilot&&pilot.health<=0&&!contract.emergency){contract.emergency=true;contract.aborted=true;transition(game,contract,'returning','The bridge is down. Emergency navigation is returning the carrier to Morrow.');}
+ if(contract.phase==='boarding'&&contract.phaseClock>=5)transition(game,contract,'outbound','Commander: casting off. Walk to the marked gunnery console; I have the helm.');
+ if(contract.phase==='outbound'&&distance(game.state.ship,contract.workPoint)<65&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<28){transition(game,contract,'working');spawnNavyTargets(game,contract);}
+ if(contract.phase==='working'){
+  spawnNavyTargets(game,contract);observeNavyWork(game,contract);
+  if(contract.phase==='working'&&contract.phaseClock>=360){contract.aborted=true;transition(game,contract,'returning','Commander: the operation window is closed. We will return to Morrow; the recruiter can arrange another attempt.');}
+ }
+ if(contract.phase==='returning'&&distance(game.state.ship,contract.dockPoint)<24&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<18){
+  contract.dockedAt=contract.origin.bodyId;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});transition(game,contract,'docked','Commander: moored at Morrow. Use the entry airlock, then report to the recruiter.');
+ }
+ if(!game._sharedWorld&&game.state.stationView==='gunnery'){
+  applyGunneryAim(game,game,input);
+  if(input.fire)performNpcContractWork(game,'fire',{input});
+ }
+ updateCabin(game);
+}
+
 function transition(game,contract,phase,text){contract.phase=phase;contract.phaseClock=0;if(['outbound','returning','failed'].includes(phase))contract.dockedAt=null;if(text)emit(game,text);}
 function targetEnemy(game,contract){return game.system.enemies.find(enemy=>enemy.id===contract.work.enemyId)||game._record?.().spawned?.find(enemy=>enemy.id===contract.work.enemyId)||null;}
 
@@ -144,10 +231,11 @@ function updateCabin(game){
   }
  }
  const body=game.system.bodies.find(body=>body.id===contract.dockedAt);
+ if(body)for(const worker of workersFor(game))worker.state.stationView=null;
  if(game.state.ship.id===contract.vesselId)game.state.ship.dockedAt=body?.id||null;
  if(game.state.ship.id===contract.vesselId&&game.state.boarding?.phase!=='active')game._damageCrewPositions=game.state.crew.filter(crew=>Number.isFinite(crew.x)&&Number.isFinite(crew.y)).map(crew=>({crewId:crew.id,x:crew.x,y:crew.y}));
  if(game.state.interior?.kind!=='ship')return;
- Object.assign(game.state.interior.location,{id:`ship:${contract.vesselId}`,vesselId:contract.vesselId,name:`${contract.shipName} · hired crew`,vesselName:contract.shipName,ownership:'crew',ownerName:'Local service cooperative',shipClass:game.state.ship.classId,classId:game.state.ship.classId,crew:clone(game.state.crew),npcContractId:contract.id,dockedAt:body?.id||null,dockedName:body?.name||null,dockedKind:body?.kind||null});
+ Object.assign(game.state.interior.location,{id:`ship:${contract.vesselId}`,vesselId:contract.vesselId,name:`${contract.shipName} · ${navy(contract)?'Navy crew':'hired crew'}`,vesselName:contract.shipName,ownership:'crew',ownerName:navy(contract)?'Freewake Navy':'Local service cooperative',shipClass:game.state.ship.classId,classId:game.state.ship.classId,crew:clone(game.state.crew),npcContractId:contract.id,dockedAt:body?.id||null,dockedName:body?.name||null,dockedKind:body?.kind||null});
 }
 
 function observeWork(game,contract){
@@ -287,7 +375,7 @@ function stepModernContract(game,contract,dt,input){
  if(contract.phase==='returning'&&distance(game.state.ship,contract.dockPoint)<45&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<18){
   contract.dockedAt=contract.origin.bodyId;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});transition(game,contract,'docked');modernComms(game,contract,`Pilot: moored at ${contract.origin.name}. Collect your wages and step ashore.`);
  }
- if(input.fire&&!game._sharedWorld&&a.complication.started&&!a.complication.resolved&&a.complication.type==='attack')performNpcContractWork(game,'fire');
+ if(input.fire&&!game._sharedWorld&&a.complication.started&&!a.complication.resolved&&a.complication.type==='attack')performNpcContractWork(game,'fire',{input});
  updateCabin(game);
 }
 
@@ -295,6 +383,8 @@ function stepModernContract(game,contract,dt,input){
 export function stepNpcContract(game,delta,input={}){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return;
  const dt=clamp(finite(delta),0,.1);if(!dt)return;
+ if(navy(contract))return stepNavyContract(game,contract,dt,input);
+ if(!game._sharedWorld&&game.state.stationView==='gunnery')applyGunneryAim(game,game,input);
  if(modern(contract))return stepModernContract(game,contract,dt,input);
  contract.clock+=dt;contract.phaseClock+=dt;
  if(game.state.ship.hull<=0){contract.phase='failed';contract.dockedAt=null;contract.failure='The employer’s ship was lost.';return;}
@@ -312,7 +402,7 @@ export function stepNpcContract(game,delta,input={}){
  }
  // Solo input uses the same weapon command as the server crew action. The
  // shared authority supplies the actual employee, never an actor proxy input.
- if(input.fire&&!game._sharedWorld&&contract.roleId==='gunner'&&contract.phase==='working')performNpcContractWork(game,'fire');
+ if(input.fire&&!game._sharedWorld&&contract.roleId==='gunner'&&contract.phase==='working')performNpcContractWork(game,'fire',{input});
  updateCabin(game);
 }
 
@@ -321,10 +411,10 @@ export function npcContractPilot(game){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return null;
  const ship=game.state.ship,still={thrust:0,turn:0,strafe:0,brake:1,flightAssist:true,fire:false,mine:false};
  if(contract.phase==='working'&&contract.dockedAt||['boarding','docked','failed'].includes(contract.phase))return still;
- let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading,stopDistance=12;
+ let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading,stopDistance=navy(contract)&&contract.phase==='returning'?0:12;
  if(contract.phase==='working'){
   const complication=contract.assignment?.complication,attack=modern(contract)?complication.type==='attack'&&complication.started&&!complication.resolved:contract.roleId==='gunner'&&contract.incidentStarted;
-  const enemy=!contract.aborted&&!contract.work.done&&attack&&targetEnemy(game,contract);
+  const enemy=navy(contract)?contract.navy.targetIds.map(id=>navyTarget(game,id)).filter(enemy=>enemy&&enemy.hp>0&&!enemy.disabled&&!enemy.capturedBy&&!enemy.promotedVesselId).sort((a,b)=>distance(a,ship)-distance(b,ship))[0]:!contract.aborted&&!contract.work.done&&attack&&targetEnemy(game,contract);
   if(!enemy||enemy.crewContractId!==contract.id||enemy.professionJobId!==contract.id||enemy.disabled||enemy.hp<=0||enemy.capturedBy||enemy.promotedVesselId)return still;
   // Keep the employee's real target inside both the gun and auto-aim envelope.
   // Normal flight also recovers an older save whose target has drifted away;
@@ -348,7 +438,7 @@ function workerAccess(game,contract,worker,playerId,station){
  const authoritativeAboard=game._sharedWorld&&game.netVesselId===contract.vesselId&&game._damageHumans?.includes(worker);
  const location=worker.state.interior?.location,aboard=worker.state.interior?.kind==='ship'&&(authoritativeAboard||location?.vesselId===contract.vesselId||worker.state.ship.id===contract.vesselId);
  if(!aboard)return fail('You must be on the employer’s actual ship.','vessel');
- if(station){const point=cabinLayout(game.state.ship.classId).stations[station];if(!point||distance(worker.state.person,point)>56)return fail(`Move to the ${station==='security'?'security / gun':station} station on this deck.`,'distance');}
+ if(station){const point=station==='security'?gunneryStation(game.state.ship.classId):cabinLayout(game.state.ship.classId).stations[station];if(!point||distance(worker.state.person,point)>56)return fail(`Move to the ${station==='security'?'security / gun':station} station on this deck.`,'distance');}
  return ok({});
 }
 
@@ -361,7 +451,7 @@ function modernTaskReady(game,contract,task){
  return ok({});
 }
 
-function performModernWork(game,contract,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution}={}){
+function performModernWork(game,contract,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution,input={}}={}){
  const a=contract.assignment;
  if(action==='exitEva'){
   if(!onEva(game,contract,worker,playerId)||!a.eva.active)return fail('You are not on this ship’s tethered hull walk.','vessel');
@@ -406,7 +496,7 @@ function performModernWork(game,contract,action,{worker=game,playerId=worker.pla
  if(!['outbound','working'].includes(contract.phase))return fail('The working watch has ended.','phase');
  const access=workerAccess(game,contract,worker,playerId,action==='fire'?'security':action==='heal'?'medical':null);if(!access.ok)return access;
  let result;
- if(action==='fire'){result=game.fireWeapons(playerId);if(result.ok){contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;}}
+ if(action==='fire'){result=game.fireWeapons(playerId,worker.state.stationView==='gunnery'?applyGunneryAim(game,worker,input):null);if(result.ok){contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;worker.state.person.gunneryReadyAt=game.state.stats.time+getHullSystems(game.state.ship.classId).pulseCooldown;}}
  else if(action==='heal')result=game.medicalFromStation([worker]);
  else{
   if(sectionId&&sectionId!==contract.work.sectionId)return fail('Use the marked damaged compartment.','target');
@@ -417,18 +507,30 @@ function performModernWork(game,contract,action,{worker=game,playerId=worker.pla
 }
 
 /** Actor is the employer vessel; worker is the real player aboard it. */
-export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution}={}){
+export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution,input={}}={}){
  const contract=active(game),definition=contract&&roleFor(contract.roleId);
  if(!contract||game.state.ship.id!==contract.vesselId)return fail('You are not aboard an active paid crew watch.','contract');
- if(modern(contract))return performModernWork(game,contract,action,{worker,playerId,sectionId,taskId,solution});
+ if(navy(contract)){
+  if(action!=='fire')return fail('The Navy gunner operates the exterior battery from the gunnery console.','role');
+  if(contract.phase!=='working')return fail('The commander will clear the marked range before live fire.','phase');
+  const access=workerAccess(game,contract,worker,playerId,'security');if(!access.ok)return access;
+  const gun=gunneryStatus(game,{worker});
+  if(!gun.active)return fail('Open the gunnery display at the security console before firing.','gunnery');
+  if(gun.cooldownRemaining>0)return fail('The pulse emitter is cycling.','cooldown');
+  const control=applyGunneryAim(game,worker,input),result=game.fireWeapons(playerId,control);
+  if(result.ok){contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;worker.state.person.gunneryReadyAt=game.state.stats.time+getHullSystems(game.state.ship.classId).pulseCooldown;observeNavyWork(game,contract);}
+  return result;
+ }
+ if(modern(contract))return performModernWork(game,contract,action,{worker,playerId,sectionId,taskId,solution,input});
  const expected={fire:'gunner',heal:'medic',suppress:'firehand',repair:'firehand',patch:'firehand'}[action];
  if(!expected||expected!==contract.roleId)return fail('Use the tools for your assigned crew role.','role');
  if(contract.phase!=='working')return fail('The pilot will announce when the assigned work begins.','phase');
  const access=workerAccess(game,contract,worker,playerId,action==='fire'?definition.station:action==='heal'?'medical':null);if(!access.ok)return access;
  let result;
  if(action==='fire'){
-  result=game.fireWeapons(playerId);
+  result=game.fireWeapons(playerId,worker.state.stationView==='gunnery'?applyGunneryAim(game,worker,input):null);
   if(result.ok){
+   worker.state.person.gunneryReadyAt=game.state.stats.time+getHullSystems(game.state.ship.classId).pulseCooldown;
    contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;
    if(!contract.work.shotAnnounced){contract.work.shotAnnounced=true;emit(game,'Ship guns firing. These are the employer’s exterior pulse guns; hold FIRE while the NPC pilot keeps the marked target ahead. Confirmed hits appear in Crew duty.');}
   }
@@ -491,6 +593,11 @@ function modernStatus(game,contract){
 
 export function npcContractStatus(game){
  const contract=active(game);if(!contract)return null;
+ if(navy(contract)){
+  const point=gunneryStation(contract.classId),neutralized=(contract.work.targets||[]).filter(target=>target.neutralized&&target.damage>=contract.navy.requiredDamage).length,total=contract.navy.targetIds.length;
+  const task=contract.phase==='docked'?'Step ashore through the entry airlock, then report to the Morrow recruiter.':contract.phase==='returning'?contract.work.done?'Your confirmed hits are recorded. The commander is returning for your debrief.':'The operation ended early. Report to the recruiter for another attempt.':contract.phase==='working'?`Gunnery: aim and disable each marked contact. Confirmed contributions ${neutralized} / ${total}.`:'Walk to the security / gunnery console. Open the exterior display after the commander casts off.';
+  return{version:3,active:true,id:contract.id,roleId:'gunner',roleName:'Navy gunner',title:contract.navy.title,phase:contract.phase,task,done:contract.work.done,reward:0,earned:0,progress:contract.work.progress,shipName:contract.shipName,origin:clone(contract.origin),routeName:contract.routeName,dockedAt:contract.dockedAt,canFinish:contract.phase==='docked',target:contract.phase==='docked'?{type:'exit'}:{stationRole:'weapons',...point},work:clone(contract.work),military:clone(contract.military),targetIds:[...contract.navy.targetIds]};
+ }
  if(modern(contract))return modernStatus(game,contract);
  const definition=roleFor(contract.roleId),layout=cabinLayout(contract.classId),section=game.state.ship.id===contract.vesselId?ensureDamageControl(game.state.ship).sections.find(value=>value.id===contract.work.sectionId):null;
  const point=section||layout.stations[definition.station],stationRole=definition.stationRole;
@@ -517,16 +624,21 @@ export function settleNpcContract(game,{interrupted=false,ship=game.state.ship,d
  interrupted=interrupted||contract.emergency===true;
  const completed=contract.work.done&&returned&&!interrupted,progress=clamp(finite(contract.work.progress),0,1),wages=interrupted?0:completed?contract.reward:Math.floor(contract.reward*.35*progress);
  game.state.credits+=wages;
- if(game.state.rep&&contract.factionId in game.state.rep)game.state.rep[contract.factionId]=clamp(finite(game.state.rep[contract.factionId])+(completed?1:contract.aborted||interrupted?-1:0),-100,100);
- if(completed){game.state.stats.jobs++;game._flag?.('first_job');game._flag?.('crew_watch_completed');}
+ if(!contract.military){
+  if(game.state.rep&&contract.factionId in game.state.rep)game.state.rep[contract.factionId]=clamp(finite(game.state.rep[contract.factionId])+(completed?1:contract.aborted||interrupted?-1:0),-100,100);
+  if(completed){game.state.stats.jobs++;game._flag?.('first_job');game._flag?.('crew_watch_completed');}
+ }
  contract.paid=true;contract.active=false;contract.paidAmount=wages;contract.completedAt=finite(game.state.stats?.time);contract.outcome=interrupted?'interrupted':completed?'completed':'partial';
  if(destination)contract.dockedAt=destination.id;
  const arrival={systemId:game.state.systemId,bodyId:destination?.id||contract.origin.bodyId,name:destination?.name||contract.origin.name};
  const entry={id:contract.id,roleId:contract.roleId,origin:clone(contract.origin),destination:arrival,wages,outcome:contract.outcome,at:contract.completedAt};
  game.state.npcContractHistory=[...(game.state.npcContractHistory||[]),entry].slice(-32);
- const text=destination?`Watch ended at ${destination.name} · ${wages} cr earned. ${completed?'Your assigned work is complete.':interrupted?'No wages were due.':'Only recorded work was paid.'}`:interrupted?'The crew watch ended in emergency recovery. No wages were paid.':`${contract.roleName} watch settled: ${wages} credits. ${completed?'Your assigned work is complete.':'Only completed work was paid.'}`;
+ const text=contract.military?(completed?'Navy sortie complete. Report to the Morrow recruiter for your debrief and service pay.':'The Navy sortie ended without qualification. Report to the Morrow recruiter to arrange another attempt.'):destination?`Watch ended at ${destination.name} · ${wages} cr earned. ${completed?'Your assigned work is complete.':interrupted?'No wages were due.':'Only recorded work was paid.'}`:interrupted?'The crew watch ended in emergency recovery. No wages were paid.':`${contract.roleName} watch settled: ${wages} credits. ${completed?'Your assigned work is complete.':'Only completed work was paid.'}`;
  game._log?.('Crew watch',text,'job');emit(game,text);
- return ok({text,wages,contract,origin:clone(contract.origin),destination:arrival});
+ const result=ok({text,wages,contract,origin:clone(contract.origin),destination:arrival,completed,returned,outcome:contract.outcome,damage:finite(contract.work.damage),shots:finite(contract.work.shots),targets:clone(contract.work.targets||[])});
+ if(contract.military)employeeFor(game,contract)?.recordMilitarySortie?.(contract,result);
+ retireNavyTargets(game,contract);
+ return result;
 }
 
 function restorePersonal(game,contract,{body=null}={}){
@@ -534,6 +646,7 @@ function restorePersonal(game,contract,{body=null}={}){
  game.state.ship=personal.ship;
  for(const field of inventoryFields)game.state[field]=personal[field];
  game.state.mode='person';game.state.systemId=body?game.state.systemId:contract.origin.systemId;game.state.locationId=body?.id||contract.origin.bodyId;game.state.interior=null;game.state.exploration=null;game.state.person.weaponDrawn=false;
+ game.state.stationView=null;
  body ||= game.system.bodies.find(body=>body.id===contract.origin.bodyId);
  if(body){const surface=generateSurface(body,game.state.seed,game.state.flags);Object.assign(game.state.person,surface.spawn);}
  delete contract.personal;game.state.npcContract=null;
@@ -559,6 +672,17 @@ export const NpcContractRules={
   }
  },
  npcContractOffers(){return npcContractOffers(this);},
+ _startNavySortie(mission,operation){
+  if(this._sharedWorld)return fail('The shared authority must assign this service carrier.','authority');
+  const result=createNavySortie(this,mission,{id:operation.operationId});if(!result.ok)return result;
+  const {contract,ship,inventory}=result;
+  contract.personal={ship:this.state.ship,...Object.fromEntries(inventoryFields.map(field=>[field,this.state[field]??(field==='boarding'?null:field==='cargo'?{ore:0,crystal:0}:field==='upgrades'?{}:[])]))};
+  this.state.npcContract=contract;this.state.ship=ship;for(const field of inventoryFields)this.state[field]=inventory[field];
+  this.state.mode='ship';this.state.interior=null;this.state.locationId=null;this.state.exploration=null;this.state.pendingEncounter=null;this.state.stationView=null;
+  this._enterInterior({id:`ship:${ship.id}`,vesselId:ship.id,vesselName:ship.name,name:`${ship.name} · Navy crew`,kind:'ship',biome:'ship',shipClass:ship.classId,classId:ship.classId,crew:clone(inventory.crew),ownership:'crew',ownerName:'Freewake Navy',faction:'freewake',npcContractId:contract.id},'ship');
+  updateCabin(this);emit(this,'You board FWS Steadfast as the assigned gunner. The commander has the helm; your personal ship remains at its berth.');
+  return ok({vesselId:ship.id,body:this.currentBody,text:'Aboard FWS Steadfast. Walk to the marked gunnery console; the commander will fly the sortie.'});
+ },
  acceptNpcContract(roleId,options={}){
   if(this._sharedWorld)return fail('The shared galaxy authority must assign the employer’s vessel.','authority');
   const result=createNpcContract(this,roleId,options);if(!result.ok)return result;

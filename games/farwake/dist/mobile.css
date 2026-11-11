@@ -283,3 +283,7 @@
  .touch-layout:not(.welcome-active) .topbar{column-gap:6px}
  .touch-layout.large-text:not(.welcome-active) :is(.view-button,#pauseButton){padding-right:8px;padding-left:8px}
 }
+
+/* Gunnery is a real crew station: the NPC pilot owns the movement controls. */
+.gunnery-view #stick,.gunnery-view #boostButton,.gunnery-view #brakeButton,.gunnery-view #mineButton,.gunnery-view #toolsButton{visibility:hidden!important;pointer-events:none!important}
+.touch-layout.gunnery-view #mobileShield{display:inline}

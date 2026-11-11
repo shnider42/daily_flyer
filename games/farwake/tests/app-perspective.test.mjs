@@ -5,7 +5,9 @@ import vm from 'node:vm';
 import {Game,distance} from '../dist/engine.mjs';
 import {getShipClass} from '../dist/fleet.mjs';
 import {getPersonalWeapon} from '../dist/combat.mjs';
-import {generateSurface,isWalkable,nearestEntity} from '../dist/surface.mjs';
+import {getGunneryView,displayMode} from '../dist/gunnery-view.mjs';
+import {militaryCareerGuided,militaryCareerPrompt} from '../dist/military-career-ui.mjs';
+import {generateSurface,isWalkable,nearestEntity,movePerson} from '../dist/surface.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {syncDamageMarkers,nearestDeckInteraction} from '../dist/interior-presentation.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
@@ -23,7 +25,7 @@ function declaration(name){
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 }
-const appCode=['currentPerspectiveAction','currentDisembarkAction','currentHelmAction','routePrompt','nearby','leaveSurface','handleEntity','contextLabel','openStation','openCombatHelp','openVesselContact','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
+const appCode=['activeMilitaryCareer','markMilitaryTarget','markLivelihoodTarget','markNarrativeTarget','openGunneryStation','enterGunneryView','syncGunneryPresentation','advanceOnlinePerson','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','routePrompt','nearby','leaveSurface','handleEntity','contextLabel','openStation','openCombatHelp','openVesselContact','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const pose=ship=>Object.fromEntries(['id','x','y','vx','vy','angle','angularVelocity','hull','shield','fuel'].map(key=>[key,ship[key]]));
 function element(){return{hidden:false,disabled:false,textContent:'',value:'',dataset:{},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);}};}
@@ -33,9 +35,9 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
   let heldInput={thrust:1,strafe:1,x:1,fire:true,mine:true},clearCount=0,context;
   const network=shared?{connected:true,command(name,args){return new Promise((resolve,reject)=>packets.push({name,args,resolve,reject}));},setInput(input){inputs.push(copy(input));}}:null;
   if(shared)game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,aboardVesselId:game.state.ship.id};
-  context=vm.createContext({Game,distance,getShipClass,getPersonalWeapon,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
+  context=vm.createContext({Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
     game,playing:true,network,onlineSnapshot:shared?{fleet:[{...game.state.ship,ownerId:'captain',helmOwner:null}]}:null,
-    actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
+    hudDirty:false,narrativeWaypoint:null,actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,
     testSession:null,stored:null,touchLayout:false,settings:{...cameraPreferences,guidance:'simple',immersiveHud:true,translucentHud:true,compactTips:true},
     cameraProfile:{status:'local',preferences:cameraPreferences},tutorial,dismissedRoute:'',dismissedGuideEpisode:'',coachPrompt:null,
@@ -239,4 +241,62 @@ test('docked combat and vessel menus replace the obsolete tether choice with the
  assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);assert.match(f.context.dialog.htmlText,/Docked at Kettle Station/);
  f.call('openVesselContact',game.state.ship.id);
  assert.ok(f.context.dialog.items.some(item=>item.label==='Disembark at Kettle Station'));assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);
+});
+
+function navyGame(){
+ const game=new Game('app-gunnery'),port=generateSurface('morrow',game.state.seed),recruiter=port.entities.find(entity=>entity.data?.militaryRecruiter);
+ game.state.mode='person';game.state.locationId='morrow';Object.assign(game.state.person,{x:recruiter.x,y:recruiter.y});
+ assert.equal(game.militaryCareerAction({action:'join',branchId:'navy',entityId:recruiter.id}).ok,true);
+ assert.equal(game.militaryCareerAction({action:'start',entityId:recruiter.id}).ok,true);
+ const station=game.gunneryStatus().station;Object.assign(game.state.person,{x:station.x,y:station.y});
+ return game;
+}
+
+test('a gunner’s exterior display returns to the same station, keeps the NPC helm, and restores person zoom',async()=>{
+ const game=navyGame(),f=fixture({game});f.call('ensureSurface');
+ const station=f.context.surface.entities.find(entity=>entity.data?.stationRole==='security');
+ f.call('openStation',station);assert.equal(f.context.dialog.kind,'gunnery-station');
+ assert.equal(f.context.dialog.items.find(item=>item.label==='Take the gunner view').disabled,true,'the moored carrier has not cast off');
+ game.state.ship.dockedAt=null;game.state.npcContract.dockedAt=null;game.state.npcContract.phase='working';
+ const before={body:copy(game.state.person),interior:copy(game.state.interior),ship:pose(game.state.ship),credits:game.state.credits};
+ f.call('openStation',station);await f.context.dialog.items.find(item=>item.label==='Take the gunner view').action();
+ assert.equal(game.state.stationView,'gunnery');assert.equal(game.state.mode,'person');assert.equal(game.state.interior.kind,'ship');
+ assert.equal(f.elements.get('perspectiveLabel').textContent,'Back to deck');assert.match(f.elements.get('modePill').attributes['aria-label'],/Gunnery view/);
+ assert.equal(f.elements.get('shipZoomActive').hidden,false);assert.equal(f.elements.get('personZoomActive').hidden,true);
+ assert.equal(f.call('nearby'),null,'invisible deck objects cannot consume the exterior interaction');
+ assert.equal(game.state.person.x,before.body.x);assert.equal(game.state.person.y,before.body.y);assert.deepEqual(game.state.interior,before.interior);assert.deepEqual(pose(game.state.ship),before.ship);
+ await f.call('switchPerspective');
+ assert.equal(game.state.stationView,null);assert.equal(game.state.mode,'person');assert.equal(game.state.person.x,before.body.x);assert.equal(game.state.person.y,before.body.y);
+ assert.equal(f.elements.get('personZoomActive').hidden,false);assert.equal(f.elements.get('shipZoomActive').hidden,true);
+ assert.deepEqual(f.calls.map(call=>call.name),['enterGunnery','leaveGunnery']);assert.equal(game.state.credits,before.credits);assert.deepEqual(pose(game.state.ship),before.ship);
+});
+
+test('ordinary security consoles keep crew actions and are not mistaken for an assigned NPC gunner post',()=>{
+ const game=new Game('ordinary-security');assert.equal(game.enterCabin().ok,true);const f=fixture({game});f.call('ensureSurface');
+ const station=f.context.surface.entities.find(entity=>entity.data?.stationRole==='security');f.call('openStation',station);
+ assert.equal(game.gunneryStatus().assigned,false);assert.equal(f.context.dialog.kind,'station');assert.equal(f.context.dialog.items.some(item=>item.label==='Take the gunner view'),false);
+});
+
+test('losing an exterior station grant clears held trigger input and chooses the physical deck camera',()=>{
+ const game=navyGame();game.state.ship.dockedAt=null;game.state.npcContract.dockedAt=null;game.state.npcContract.phase='working';assert.equal(game.enterGunnery().ok,true);
+ const f=fixture({game});assert.equal(f.call('syncGunneryPresentation').active,true);const clears=f.clearCount;
+ game.state.stationView=null;assert.equal(f.call('syncGunneryPresentation').active,false);assert.equal(f.clearCount,clears+1);
+ assert.deepEqual(f.heldInput,{});assert.equal(f.context.pointerAim.fire,false);assert.equal(game.state.mode,'person');
+ f.call('syncViewControls');assert.equal(f.elements.get('personZoomActive').hidden,false);
+});
+
+test('unacknowledged walking frames cannot predict an active gunner off the physical console',()=>{
+ const game=new Game('gunner-prediction');assert.equal(game.enterCabin().ok,true);const f=fixture({game});f.call('ensureSurface');
+ const before={x:game.state.person.x,y:game.state.person.y};game.state.stationView='gunnery';
+ Object.assign(f.context,{personPredictedAt:0,personVisualAt:0,network:{clampPredictionTime:now=>now,inputFrames(){assert.fail('Gunnery must not replay walking frames.');}}});
+ f.call('advanceOnlinePerson',100);assert.deepEqual({x:game.state.person.x,y:game.state.person.y},before);assert.equal(game.state.person.moving,false);assert.equal(f.context.personPredictedAt,100);
+});
+
+test('quiet campaign markers preserve open menus and target the local terminal rather than the site exit',()=>{
+ const f=fixture();f.game.state.mode='person';f.game.state.locationId='morrow:site:service-range';f.game.state.exploration={siteId:'service-range',bodyId:'morrow'};
+ f.context.surface={entities:[{id:'morrow:site:service-range:instance:record:drill',type:'siteRecord'},{id:'range:exit',type:'siteExit'}]};
+ f.context.dialog.open('Inventory','inventory');f.call('markMilitaryTarget',{systemId:'hearth',bodyId:'morrow',siteId:'service-range',entityId:'record:drill'},{quiet:true});
+ assert.equal(f.context.surfaceTarget,'morrow:site:service-range:instance:record:drill');assert.equal(f.context.dialog.opened,true);
+ f.call('markMilitaryTarget',{systemId:'hearth',bodyId:'morrow',siteId:'service-range',x:200,y:100},{quiet:true});
+ assert.equal(f.context.surfaceTarget,null,'combat guidance cannot direct the player out of the operation');assert.equal(f.context.dialog.kind,'inventory');
 });

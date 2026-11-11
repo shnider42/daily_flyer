@@ -38,6 +38,16 @@ Station permission and proximity are checked by the authority. Changing a browse
 
 NPC grapples start a shared defensive boarding fight. The helmsman is brought onto the actual crew deck, where the humans and hired crew fight the same hostile actors. A disabled enemy ship can be assaulted by the helmsman's boarding party; other people remaining on the friendly deck do not appear on that enemy deck or shoot its enemies remotely. A boarding leader can retreat through the entry airlock. Incapacitated humans cannot move; they recover when the boarding outcome resolves. Hired crew deaths and the vessel's memorial remain recorded.
 
+### Military careers and the exterior gun station
+
+The optional Morrow recruiter offers the authored Freewake Navy and Army campaigns. `militaryCareerAction` accepts only the allowed service actions; recruitment, assignment, retry, and debrief validate a living captain at the actual recruiter. Client messages cannot submit field evidence or sortie receipts. The persisted `militaryCareer` contains the faction and branch, ordered completed chapters, attempt serial, and current operation with its evidence ledger. Compact snapshots carry current career state as well as the exterior-view flag. Personal privacy exports include the career record.
+
+Army assignments use an operation-specific interior identity. The surface entrances remain on shared Morrow, while each recruit enters that recruit’s current exercise or deployment. The canonical combat clock, NPC wounds, terminal state, and room visibility are scoped to that operation. Actual player-hit events, a cleared authored threat, and a physically reached objective produce progress; a client-supplied site, operation, damage, or completion value cannot award it. Save/reload preserves the same active instance. Ordinary exploration sites retain their existing shared encounter identities and behavior.
+
+Navy assignments create an employer-owned Leviathan with a distinct vessel identity and a gunner grant for the assigned employee. The NPC has the helm. The employee remains in person mode in the carrier cabin even when `stationView` is `gunnery`. The authority rechecks the live carrier, role, health, docking state, and physical console range before accepting fire or projecting the exterior world. Only that authorized view receives the actual system contacts and exterior ships in full and compact snapshots. Movement and helm inputs are masked while using the display; aim and fire use the canonical vessel and shared cooldown. Leaving the display, docking, disconnecting, or losing access removes the view without transferring ship ownership.
+
+Each Navy operation records the employee’s real damage and neutralization proof for every authored target. Settlement returns that record to the actual captain, restores their own inventory, and awards zero ordinary crew wages. A successful return to Morrow enables the recruiter’s one-time campaign payment; an interrupted or orphaned watch is retried through a new operation. Existing docked-airlock disembark rules apply throughout.
+
 ### Homes, logout, and asynchronous play
 
 | Home | Cost | Where it can be registered |

@@ -16,10 +16,10 @@ const declaration = name => {
 const walkingCode = declaration('advanceOnlinePerson') + '\n' + declaration('receiveSnapshot');
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-7, `${actual} should equal ${expected}`);
 
-function fixture({ health = 100, down = false } = {}) {
+function fixture({ health = 100, down = false, stationView = null } = {}) {
   let time = 0, context;
   const authority = new Game('app-walking-regression');
-  Object.assign(authority.state, { mode: 'person', locationId: 'kettle' });
+  Object.assign(authority.state, { mode: 'person', locationId: 'kettle', stationView });
   Object.assign(authority.state.person, { x: 100, y: 100, health, down, speed: 112 });
   const openHall = { width: 600, height: 600, tileSize: 24, tiles: Array.from({ length: 25 }, () => Array(25).fill(1)), solids: [], spawn: { x: 100, y: 100 } };
   const network = new FarwakeNetwork({ url: 'https://example.test', storage: null, autoReconnect: false, now: () => time, wallNow: () => 100000 + time, onSnapshot(packet) { context.packet = packet; vm.runInContext('receiveSnapshot(packet)', context); } });
@@ -61,6 +61,16 @@ test('both walking replay paths keep incapacitated captains stationary', () => {
     f.setTime(115); f.snapshot(100, 100);
     close(f.context.game.state.person.x, 100); assert.equal(f.context.game.state.person.moving, false);
   }
+});
+
+test('both walking replay paths hold the captain at an active exterior gun station', () => {
+  const f = fixture({ stationView: 'gunnery' });
+  f.setTime(100); f.network.setInput({ x: 1, y: 1, boost: true, fire: true }, .1); f.advance();
+  close(f.context.game.state.person.x, 100); close(f.context.game.state.person.y, 100);
+  f.setTime(115); f.snapshot(100, 100);
+  close(f.context.game.state.person.x, 100); close(f.context.game.state.person.y, 100);
+  assert.equal(f.context.game.state.mode, 'person'); assert.equal(f.context.game.state.stationView, 'gunnery');
+  assert.equal(f.context.game.state.person.moving, false);
 });
 
 test('walking cursors stay monotonic, visual correction decays once, and explicit resets clear both', () => {

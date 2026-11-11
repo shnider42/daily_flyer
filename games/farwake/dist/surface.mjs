@@ -22,6 +22,7 @@ import {isPreflightBody} from './social-world.mjs';
 import {drawAlienCharacter} from './people-art.mjs';
 import {isWildlifeSpecies,chooseNpcSpecies,normalizeSpecies,speciesName} from './species.mjs';
 import {SPECIES_DISTRICT_NAMES,SPECIES_DISTRICT_RESIDENTS,SPECIES_INTERIOR_RESIDENTS} from './species-content.mjs';
+import {militaryInterior} from './military-sites.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -316,7 +317,9 @@ function expeditionSurface(location,seed){
  const site=location.site,m=makeMap(site.cols,site.rows,site.kind==='cave'?'cave':site.kind==='igloo'?'ice':'shelter',site.name,location.id,seed,'site');
  m.siteId=site.id;m.parentId=location.parentId;m.atmosphere=site.atmosphere;m.site=site;
  rect(m,1,1,m.cols-2,m.rows-2,TILE.WALL);
- if(site.kind==='cave'){
+ if(site.kind==='military'){
+  militaryInterior(m,site,{rect,prop,label,point,TILE});
+ }else if(site.kind==='cave'){
   rect(m,3,12,35,7,TILE.FLOOR);rect(m,10,6,19,15,TILE.FLOOR);rect(m,22,5,15,8,TILE.FLOOR);rect(m,20,19,18,10,TILE.FLOOR);rect(m,5,20,12,8,TILE.FLOOR);rect(m,9,17,5,5,TILE.PATH);
   rect(m,16,9,3,4,TILE.WALL);rect(m,29,15,3,5,TILE.WALL);rect(m,13,22,2,2,TILE.WALL);rect(m,33,6,3,2,TILE.WATER);
   for(const[x,y]of[[9,10],[20,7],[34,21],[7,23],[24,26]])prop(m,'stalagmite',x,y,1,1,'#8c9187',true);
@@ -342,6 +345,7 @@ function expeditionSurface(location,seed){
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
  for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(SPECIES_INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=normalizeSpecies(person.species);if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
+ if(site.military&&location.evacuated)m.entities=m.entities.filter(entity=>!entity.data?.militaryCivilian);
  return m;
 }
 function socialInterior(m,site){
@@ -557,6 +561,12 @@ function addQuestEntities(m,location){
   const p=openSpot(entry.tileX??(m.kind==='station'?29+(index%2)*3:m.kind==='site'?12+(index%4)*5:30+(index%3)*3),entry.tileY??(m.kind==='station'?16+Math.floor(index/2)*3:m.kind==='site'?21:24+Math.floor(index/3)*3));if(!p)return;
   const e=entity(m,'quest:'+entry.id,'questObject',entry.name,entry.kind==='evidence'?'Examine':'Read',p.x,p.y,'#b8c9ad',{objectId:entry.id,objectKind:entry.kind,bodyId,homeLocationId:bodyId,systemId:location.systemId,siteId:entry.siteId||null},entry.text);e.id='quest:'+entry.id;
  });
+ if(outdoors&&bodyId==='morrow'){
+  const post=openSpot(12,24);
+  if(post)personEntity(m,location,'military-recruiter','npc','warden',post.x,post.y,'#9bb9cd',{name:'Sergeant Sera Venn',species:'human',roleLabel:'Freewake recruiter',
+   text:'If you want a clear next assignment, I can put you with a crew. Navy work aboard a carrier, or Army work on the ground. Your choice.',
+   data:{militaryRecruiter:true,factionId:'freewake',fixedPost:true}});
+ }
 }
 /** Build a walkable place from a body object or authored body ID. */
 export function generateSurface(location={},seed='farwake',flags=[]){
@@ -964,6 +974,19 @@ function drawBellwetherTell(ctx,actor,layout){
  for(let d=28;d<=length;d+=24){const x=actor.x+dx*d,y=actor.y+dy*d;pixelLine(ctx,x-dx*7+nx*7,y-dy*7+ny*7,x,y,'#d39c68',2);pixelLine(ctx,x-dx*7-nx*7,y-dy*7-ny*7,x,y,'#d39c68',2);}
  for(const side of[-1,1])pixelLine(ctx,actor.x+nx*width*side+dx*22,actor.y+ny*width*side+dy*22,actor.x+nx*width*side+dx*length,actor.y+ny*width*side+dy*length,'#72554b',1);
 }
+function drawInfantryTell(ctx,actor,layout){
+ if(actor.attackKind!=='ranged'||actor.health<=0||!(actor.windup>0)||!layout)return;
+ const angle=actor.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle);
+ const aim=sidearmAim(actor,[],{aiming:true,aimX:dx,aimY:dy},layout),length=Math.hypot(aim.to.x-actor.x,aim.to.y-actor.y);
+ for(let d=16;d<length;d+=14)pixelLine(ctx,actor.x+dx*d,actor.y+dy*d,actor.x+dx*Math.min(d+7,length),actor.y+dy*Math.min(d+7,length),'#bd7968',1);
+ pixel(ctx,'#f2c98b',actor.x-2,actor.y-36,4,6);pixel(ctx,'#f2c98b',actor.x-1,actor.y-28,2,2);
+}
+function drawRangeTarget(ctx,actor,time){
+ const x=Math.round(actor.x),y=Math.round(actor.y),done=actor.health<=0,color=(actor.hitUntil||0)>time?'#f0dcad':done?'#83b79d':'#b7c9bd';
+ pixel(ctx,'#102c34',x-15,y-2,30,5);pixel(ctx,'#758c89',x-11,y-30,3,32);pixel(ctx,'#758c89',x+8,y-30,3,32);
+ pixel(ctx,'#263e49',x-10,y-30,20,27);pixel(ctx,color,x-8,y-28,16,23);pixel(ctx,'#415b63',x-5,y-25,10,17);pixel(ctx,done?'#8fd3ab':'#c19e75',x-3,y-22,6,11);
+ if(done){pixelLine(ctx,x-5,y-17,x-1,y-13,'#e4edd1',2);pixelLine(ctx,x-1,y-13,x+6,y-22,'#e4edd1',2);}
+}
 function drawDomesticAnimal(ctx,animal,time){
  const x=Math.round(animal.x),y=Math.round(animal.y),left=animal.facing==='left',front=left?-1:1,step=animal.moving?(Math.sin(time*8)>0?1:-1):0,c=animal.color||'#bfb59c',grazer=animal.species==='grazer';
  pixel(ctx,'#19312b',x-13,y-2,26,5);for(const[dx,dy]of[[-9,step],[-4,-step],[5,step],[10,-step]]){pixel(ctx,'#7c806c',x+dx,y-5,2,7+dy);pixel(ctx,'#d7d3b6',x+dx-1,y+1+dy,4,2);}pixel(ctx,c,x-12,y-16,24,12);pixel(ctx,grazer?'#c4d5b0':'#d1c6ab',x-10,y-18,18,5);pixel(ctx,c,x+front*13-5,y-17,10,10);pixel(ctx,'#273f39',x+front*16,y-14,2,2);pixel(ctx,c,x-front*15,y-16,5,3);
@@ -1111,7 +1134,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,propEmit);
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
- for(const actor of actors)drawBellwetherTell(ctx,actor,surface.combatLayout);
+ for(const actor of actors){drawBellwetherTell(ctx,actor,surface.combatLayout);drawInfantryTell(ctx,actor,surface.combatLayout);}
  if(aim)drawCombatAim(ctx,person,aim);
  const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)&&(!visibility||visibility.canSeePoint(candidate))?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
@@ -1129,7 +1152,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});

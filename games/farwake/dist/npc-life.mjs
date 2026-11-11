@@ -34,7 +34,7 @@ function eligible(surface, entity) {
   // Ship crew, rescued passengers and hostile actors already have canonical
   // combat/damage positions. Ambient routes must never move those bodies.
   return ['station', 'planet', 'site'].includes(surface.kind) && !surface.barren &&
-    PEOPLE.has(entity.type) && !entity.data?.automated && !entity.data?.rescuePassenger &&
+    PEOPLE.has(entity.type) && !entity.data?.automated && !entity.data?.fixedPost && !entity.data?.rescuePassenger &&
     !entity.data?.encounter && !entity.hostile && (entity.data?.health ?? 100) > 0;
 }
 

@@ -1,8 +1,20 @@
 /** Shared authority for civilian passage and NPC employment. */
-import { createNpcContract, performNpcContractWork, requestNpcContractReturn, settleNpcContract, NPC_CREW_ROLES } from '../dist/npc-contracts.mjs';
+import { createNpcContract, createNavySortie, performNpcContractWork, requestNpcContractReturn, settleNpcContract, NPC_CREW_ROLES } from '../dist/npc-contracts.mjs';
 import { clone, fail, ok } from './protocol.mjs';
 
 export const LivelihoodAuthority={
+ _startNavySortie(c,mission,operation){
+  if(c.aboard||c.game.state.interior)return fail('Report to the Morrow recruiter on foot before embarkation.','location');
+  const result=createNavySortie(c.game,mission,{id:operation.operationId,employeeId:c.id,shared:true});if(!result.ok)return result;
+  const {contract,ship,inventory}=result,owned=this.vessels.get(c.ownedVesselId);
+  if(owned&&owned.systemId===c.game.state.systemId&&owned.dockedAt===c.game.state.locationId)c.game.state.livelihoods.parkedShip={...clone(owned.ship),systemId:owned.systemId,bodyId:owned.dockedAt,vesselId:owned.id};
+  c.game.state.npcContract=contract;
+  const vessel={id:ship.id,ownerId:c.id,name:ship.name,systemId:contract.origin.systemId,dockedAt:contract.dockedAt,ship,inventory,npcContractId:contract.id,allowCrew:false,
+   grants:{[c.id]:{allowed:true,roles:['weapons'],allowBunk:false}},helmOwner:null,bunks:{},installedBunks:0,actor:null,flightAssist:true,boarding:null,hostileTo:[]};
+  this.vessels.set(vessel.id,vessel);this._cabin(c,vessel);c.crewRole='weapons';
+  c.events.push({type:'crew-duty',text:'You board FWS Steadfast as the assigned gunner. The commander has the helm; your personal ship remains at its berth.'});
+  return ok({vesselId:vessel.id,body:this._location(c),text:'Aboard FWS Steadfast. Walk to the marked gunnery console; the commander will fly the sortie.'});
+ },
  _passengerTransit(c,args){
   if(c.aboard||c.game.state.interior)return fail('Disembark at an inhabited port before booking passenger passage.','location');
   const result=c.game.takePassengerTransit(args.bodyId||args.id);
@@ -31,7 +43,7 @@ export const LivelihoodAuthority={
   if(!contract?.active||!vessel||vessel.npcContractId!==contract.id||contract.employeeId!==c.id||c.aboard!==vessel.id)return fail('You must be aboard the vessel for your own active crew watch.','contract');
   const actor=this._actor(vessel);
   let result;
-  if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,solution:args.solution});
+  if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,solution:args.solution,input:c.appliedInput||c.input||{}});
   else if(name==='cancelNpcContract')result=requestNpcContractReturn(actor);
   else if(name==='completeNpcContract')result=settleNpcContract(actor);
   else return fail('Unknown crew-contract action.','command');

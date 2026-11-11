@@ -2,6 +2,7 @@
 import { generateSurface, isWalkable } from './surface.mjs';
 import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteReward, stepSiteEncounter, resetSiteBoss } from './exploration.mjs';
 import { canSeeConcealedActor } from './site-visibility.mjs';
+import { militarySiteLocation } from './military-sites.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -12,14 +13,15 @@ export const ExpeditionRules={
   _restoreExploration(){
     const active=this.state.exploration;
     if(!active){if(this.state.interior?.kind==='site'){this.state.locationId=this.state.interior.location?.parentId||this.state.lastBodyId;this.state.interior=null;}return;}
-    const body=this.system.bodies.find(value=>value.id===active.bodyId),location=body&&explorationLocation(body,active.siteId,this.state.seed);
+    const body=this.system.bodies.find(value=>value.id===active.bodyId),candidate=body&&explorationLocation(body,active.siteId,this.state.seed),context=candidate&&militarySiteLocation(this,body,candidate,{allowPaused:true}),location=context?.ok?context.location:null;
     if(!location||this.state.mode!=='person'){
       this.state.exploration=null;
       if(this.state.interior?.kind==='site'){this.state.interior=null;this.state.locationId=body?.id||this.state.lastBodyId;}
       return;
     }
-    const key=`${this.state.systemId}:${body.id}:${location.site.id}`;
+    const key=context.key;
     const encounter=createSiteState(location.site,this.state.explorationRecords[key]||active.encounter);
+    if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     this.state.explorationRecords[key]=encounter;
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),back=active.returnPosition;
     const returnPosition=back&&validNumber(back.x)&&validNumber(back.y)&&isWalkable(outdoor,back.x,back.y)?{x:back.x,y:back.y}:{...outdoor.spawn};
@@ -29,18 +31,21 @@ export const ExpeditionRules={
   },
   _expeditionSurface(){
     if(!this.state.exploration||this.state.interior?.kind!=='site')return null;
-    const location=this.state.interior.location,key=this.state.exploration.key;
+    const location=this.state.interior.location,key=`${this.state.exploration.key}:${!!location.evacuated}`;
     if(this._expeditionMap?.key!==key)this._expeditionMap={key,value:generateSurface(location,this.state.seed,this.state.flags)};
     return this._expeditionMap.value;
   },
   enterSite(siteId){
     if(this.state.mode!=='person'||this.state.interior||this.state.person.health<=0)return this._fail('Reach an entrance on foot first.','mode');
     if(this.state.pendingEncounter)return this._fail('Finish your current conversation first.','encounter');
-    const body=this.system.bodies.find(value=>value.id===this.state.locationId),location=body&&explorationLocation(body,siteId,this.state.seed);
-    if(!location)return this._fail('There is no entrance to that place here.','target');
+    const body=this.system.bodies.find(value=>value.id===this.state.locationId),candidate=body&&explorationLocation(body,siteId,this.state.seed);
+    if(!candidate)return this._fail('There is no entrance to that place here.','target');
+    const context=militarySiteLocation(this,body,candidate);if(!context?.ok)return this._fail(context?.reason||'This deployment is not assigned to you.',context?.code||'military-orders');
+    const location=context.location;
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),entrance=outdoor.entities.find(entity=>entity.type==='siteEntrance'&&entity.data?.siteId===siteId);
     if(!entrance||range(entrance,this.state.person)>46)return this._fail('Walk to the entrance before going inside.','distance');
-    const key=`${this.state.systemId}:${body.id}:${siteId}`,encounter=this._sharedWorld&&this.state.explorationRecords[key]?this.state.explorationRecords[key]:createSiteState(location.site,this.state.explorationRecords[key]);
+    const key=context.key,encounter=this._sharedWorld&&this.state.explorationRecords[key]?this.state.explorationRecords[key]:createSiteState(location.site,this.state.explorationRecords[key]);
+    if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     if(!this._sharedWorld)resetSiteBoss(encounter);
     encounter.visited++;
     this.state.explorationRecords[key]=encounter;
@@ -79,6 +84,12 @@ export const ExpeditionRules={
     if(!entity)return this._fail('Move closer to that object.','distance');
     const site=this.state.interior.location.site;
     if(entity.type==='siteRecord'&&action==='inspect'){
+      if(site.military&&entity.data.recordId===site.objectiveId){
+        if(active.encounter.monsters.some(enemy=>enemy.health>0))return this._fail(site.training?'Hit all three range targets before checking the qualification terminal.':'Clear the armed threat before completing this objective.','military-threat');
+        active.encounter.objectives||={};active.encounter.objectives[site.objectiveId]=true;
+        if(site.objectiveId==='rescue')this.state.interior.location.evacuated=true;
+        this.observeMilitaryEvent?.('ground-objective',{operationId:site.operationId,siteId:site.id,objectiveId:site.objectiveId,amount:1,token:`${site.operationId}:objective:${site.objectiveId}`});
+      }
       const result=inspectSiteRecord(site,entity.data.recordId);if(result.ok){const first=this.recordActivity('explore',{token:`record:${active.key}:${entity.data.recordId}`});if(first.first)this._log(result.title,result.text,'exploration');}return result;
     }
     if(entity.type==='siteChoice'&&action==='inspect'){
@@ -108,9 +119,12 @@ export const ExpeditionRules={
     if(this.state.person.health<=0){this._siteDownTime=(this._siteDownTime||0)+dt;if(this._siteDownTime>=2.5)this._returnFromSite(true);}else this._siteDownTime=0;
   },
   recordExplorationEvents(events){
+    const site=this.state.interior?.location?.site,active=this.state.exploration;
     for(const event of events){
       this.events.push(event);
-      if(event.attackerId===this.playerId){const field=event.type==='person-shot'?'personShots':event.type==='person-hit'?'personHits':event.type==='boarder-down'?'personKills':null;if(field)this.state.stats[field]=(this.state.stats[field]||0)+1;}
+      if(event.attackerId===this.playerId){const training=active?.encounter.monsters.find(enemy=>enemy.id===event.targetId)?.trainingTarget,field=event.type==='person-shot'?'personShots':event.type==='person-hit'?'personHits':event.type==='boarder-down'&&!training?'personKills':null;if(field)this.state.stats[field]=(this.state.stats[field]||0)+1;}
+      if(site?.military&&active&&event.type==='person-hit'&&event.attackerId===this.playerId&&event.siteId===active.encounter.id&&active.encounter.monsters.some(enemy=>enemy.id===event.targetId))this.observeMilitaryEvent?.('ground-hit',{operationId:site.operationId,siteId:site.id,objectiveId:site.training?'hits':'damage',amount:site.training?1:event.damage,token:site.training?event.targetId:event.id});
     }
+    if(site?.military&&active?.encounter.cleared)this.observeMilitaryEvent?.('ground-clear',{operationId:site.operationId,siteId:site.id,objectiveId:'clear',amount:1,token:`${site.operationId}:clear`});
   }
 };

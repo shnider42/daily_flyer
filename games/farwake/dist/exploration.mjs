@@ -5,6 +5,7 @@ import { canSeeConcealedActor, canSeeSitePoint } from './site-visibility.mjs';
 import { planetPlaces } from './planet-content.mjs';
 import { socialPlaces, isPreflightBody } from './social-world.mjs';
 import { SPECIES_PLANET_PLACES } from './species-content.mjs';
+import { militaryGroundSites } from './military-sites.mjs';
 const TILE=24, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
 const hash=value=>{let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -36,13 +37,13 @@ export function explorationSites(body={},seed='farwake'){
   {id:'shelter',name:ice?'Unmarked Ice Shelter':barren?'Survey Shelter 04':'Wayfarer’s Hut',kind:ice?'igloo':'shelter',tileX:30+(h%8),tileY:60,empty:true,summary:ice?'One small dome rises from the snow. No footprints approach it.':'A closed shelter stands far from the landing beacon.',story:'Nothing moves in the room. The sound that brought you here stops as soon as the door closes.',records:[{id:'shelter-note',name:'A folded note',x:18,y:9,text:['If you are the next person to sleep here, please tell me what you dreamed. There is no name.','I left a light in every window. From outside, only one was burning.','The heater is cold. You can still hear it cooling.'][h%3]}]},
   ...(!barren?[{id:'field-relay',name:ice?'Thawline Relay':'Outlying Field Relay',kind:'pump',tileX:87,tileY:55,summary:'A maintenance beacon repeats a low-priority fault.',story:`This small field station once kept the outer routes of ${world} supplied.`,choices:[{id:'relay',name:'Field relay controller',x:25,y:10,text:'Restore the relay for local travelers, or take its remaining power cells for salvage.',options:[{id:'restore',label:'Restore the route beacon',reward:reward(100+h%35),text:'The route beacon returns to service. The local cooperative credits your account.'},{id:'salvage',label:'Recover the spare cells',reward:reward(25,6),text:'The cells are reusable. The beacon stays dark.'}]}],records:[{id:'route',name:'Route register',x:11,y:18,text:'The last route record lists a convoy of seven. Eight engines are audible in the recording.'}]}]:[])
  ];
- return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
+ return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed),...militaryGroundSites(body)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
 }
 export function explorationLocation(body,siteId,seed='farwake'){
  const site=explorationSites(body,seed).find(value=>value.id===siteId);if(!site)return null;
  return{...body,id:site.key,kind:'site',name:site.name,parentId:body.id,siteId:site.id,site,localLore:site.story,biome:site.kind==='igloo'?'ice':site.kind==='cave'?'cave':'shelter'};
 }
-const monsterTemplate=(site,index)=>({id:`${site.key}:wildlife:${index}`,name:site.kind==='conservatory'?(index?'Glass skitter':'Root grazer'):site.kind==='laboratory'?(index?'Vent skitter':'Filter crawler'):index?'Cave skitter':'Stoneback',species:index?'skitter':'stoneback',team:'hostile',hostile:true,x:pt(index?30:25,index?22:14).x,y:pt(index?30:25,index?22:14).y,health:index?48:96,maxHealth:index?48:96,speed:index?64:42,damage:index?9:16,range:25,cooldown:0,windup:0,alert:false,facing:'left',color:site.kind==='conservatory'?(index?'#b6b7d1':'#86b6aa'):index?'#a7b391':'#a5967e'});
+const monsterTemplate=(site,index)=>site.military&&site.hostiles?.[index]?{...site.hostiles[index],id:`${site.key}:infantry:${site.hostiles[index].id}`,cooldown:.8+index*.25,windup:0,alert:false,facing:'left'}:({id:`${site.key}:wildlife:${index}`,name:site.kind==='conservatory'?(index?'Glass skitter':'Root grazer'):site.kind==='laboratory'?(index?'Vent skitter':'Filter crawler'):index?'Cave skitter':'Stoneback',species:index?'skitter':'stoneback',team:'hostile',hostile:true,x:pt(index?30:25,index?22:14).x,y:pt(index?30:25,index?22:14).y,health:index?48:96,maxHealth:index?48:96,speed:index?64:42,damage:index?9:16,range:25,cooldown:0,windup:0,alert:false,facing:'left',color:site.kind==='conservatory'?(index?'#b6b7d1':'#86b6aa'):index?'#a7b391':'#a5967e'});
 const bellwetherTemplate=()=>({id:BELLWETHER_ID,name:'The Bellwether',species:'bellwether',team:'hostile',hostile:true,...BELLWETHER_PROFILE,...pt(27,7),maxHealth:BELLWETHER_PROFILE.health,
  range:26,status:'alive',concealed:true,hidden:true,revealed:false,alert:false,phase:'dormant',facing:'left',color:'#929185',moving:false,windup:0,cooldown:0,recovery:0,lungeRemaining:0,lungeHitIds:[],aimAngle:Math.PI,attackUntil:0,hitUntil:0,lastHitBy:null,targetId:null});
 function restoreBellwether(raw,site,time,attemptSerial,revealSerial){
@@ -66,7 +67,7 @@ export function createSiteState(site,saved={}){
   return{...base,x:clamp(finite(raw?.x,base.x),TILE,width-TILE),y:clamp(finite(raw?.y,base.y),TILE,height-TILE),health:clamp(finite(raw?.health,base.health),0,base.maxHealth),cooldown:clamp(finite(raw?.cooldown),0,2),windup:0,alert:!!raw?.alert,lastHitBy:typeof raw?.lastHitBy==='string'?raw.lastHitBy.slice(0,80):null,status:raw?.health===0?'dead':'alive'};
  });
  const choices={};for(const choice of site.choices){const chosen=prior.choices?.[choice.id];if(choice.options.some(option=>option.id===chosen))choices[choice.id]=chosen;}
- return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:monsters.every(monster=>monster.health<=0)};
+ return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{}}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:monsters.every(monster=>monster.health<=0)};
 }
 export function inspectSiteRecord(site,recordId){const record=site.records.find(item=>item.id===recordId);return record?{ok:true,title:record.name,text:record.text}:{ok:false,reason:'That record is not part of this place.'};}
 export function claimSiteReward(state,site,id,optionId){
@@ -176,6 +177,35 @@ function stepBellwether(state,monster,actors,dt,layout,event){
  }
  monster.phase='chase';walkMonster(monster,person,dt,layout,at);
 }
+/** Infantry locks its shot during the tell. Cover and a sideways dodge both work. */
+function stepInfantry(state,monster,actors,dt,layout,event){
+ const living=actors.filter(actor=>actor.person.health>0&&!actor.person.down),target=nearestActor(monster,living),at=state.time;
+ monster.cooldown=Math.max(0,finite(monster.cooldown)-dt);
+ if(!target){monster.windup=0;monster.moving=false;return;}
+ const person=target.person,distance=Math.hypot(person.x-monster.x,person.y-monster.y),visible=clearSidearmSight(layout,monster,person);
+ if(!monster.alert){if(!visible||distance>300){monster.moving=false;return;}monster.alert=true;}
+ if(monster.windup>0){
+  monster.windup=Math.max(0,monster.windup-dt);monster.moving=false;if(monster.windup>0)return;
+  monster.cooldown=monster.fireDelay;
+  const aim=sidearmAim(monster,living.map(actor=>({...actor.person,id:actor.id})),{aiming:true,aimX:Math.cos(monster.aimAngle),aimY:Math.sin(monster.aimAngle)},layout);
+  const hit=aim.target&&living.find(actor=>actor.id===aim.target.id),damage=hit?monster.damage*clamp(finite(hit.damageTakenMultiplier,1),.4,2):0;
+  const id=`${state.id}:infantry-shot:${++state.shotSerial}`,shot={id,team:'hostile',attackerId:monster.id,actorName:monster.name,weaponId:'raider-rifle',angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:hit?.id||null,targetName:hit?.name||null,hit:!!hit,blocked:!!aim.blocked,damage,until:at+.22};
+  monster.lastShot=shot;monster.attackUntil=at+.22;event('person-shot',shot);
+  if(hit){
+   const wounded=hit.person;wounded.health=Math.max(0,wounded.health-damage);wounded.hitUntil=at+.24;
+   const impact={...shot,id:id+':hit',x:wounded.x,y:wounded.y,health:wounded.health,maxHealth:wounded.maxHealth||100};event('person-hit',impact);
+   if(wounded.health<=0){wounded.down=true;event('person-down',{...impact,id:id+':down',text:`${monster.name} downed ${hit.name||'the captain'}.`});}
+  }
+  return;
+ }
+ if(distance>monster.range||!visible){walkMonster(monster,person,dt,layout,at);return;}
+ monster.moving=false;
+ if(!monster.cooldown){
+  const dx=person.x-monster.x,dy=person.y-monster.y;
+  monster.windup=monster.windupDuration;monster.attackUntil=at+monster.windup;monster.aimAngle=Math.atan2(dy,dx);monster.weaponDrawn=true;
+  monster.facing=Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
+ }
+}
 /** Participants have {id,name,person,input,damageMultiplier,damageTakenMultiplier,sidearmCooldownMultiplier}. Call once per occupied site. */
 export function stepSiteEncounter(state,participants,delta,surface){
  const dt=clamp(finite(delta),0,.25),layout=surface.combatLayout;if(!dt||!layout)return[];
@@ -206,7 +236,9 @@ export function stepSiteEncounter(state,participants,delta,surface){
  for(const monster of state.monsters){
   if(monster.health<=0)continue;
   if(isBellwether(monster)){stepBellwether(state,monster,actors,dt,layout,event);continue;}
+  if(monster.stationary||monster.attackKind==='none'){monster.moving=false;monster.windup=0;continue;}
   if(!isCabinWalkable(layout,monster.x,monster.y,6)){let best=null,bestDistance=Infinity;for(let cell=0;cell<layout.walkable.length;cell++){if(!layout.walkable[cell])continue;const point=pt(cell%layout.cols,Math.floor(cell/layout.cols)),distance=Math.hypot(point.x-monster.x,point.y-monster.y);if(distance<bestDistance&&isCabinWalkable(layout,point.x,point.y,6)){best=point;bestDistance=distance;}}if(best)Object.assign(monster,best);}
+  if(monster.attackKind==='ranged'){stepInfantry(state,monster,actors,dt,layout,event);continue;}
   monster.cooldown=Math.max(0,finite(monster.cooldown)-dt);
   const target=actors.filter(actor=>actor.person.health>0).sort((a,b)=>Math.hypot(a.person.x-monster.x,a.person.y-monster.y)-Math.hypot(b.person.x-monster.x,b.person.y-monster.y))[0];if(!target){monster.windup=0;monster.moving=false;continue;}
   const person=target.person,distance=Math.hypot(person.x-monster.x,person.y-monster.y),visible=clearSidearmSight(layout,monster,person);

@@ -1,12 +1,35 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.12.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.13.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## A first military career · 0.13.0
+
+**Sergeant Sera Venn**, the Freewake recruiter, now waits beside Morrow’s landing. Joining is optional and works for both Regular and shipless Hardcore captains. Choose **Navy** or **Army**, then take one assignment at a time. The service objective and action guide follow the current task; the journal keeps the full service record. Taking leave hides the guidance and preserves the same assignment, while an underway ship or live fight continues under the normal simulation rules.
+
+The first authored campaign follows the effort to keep Morrow’s Rainline supply route open. Each branch has a qualification and three field deployments:
+
+| Deployment | Freewake Navy | Freewake Army |
+| --- | --- | --- |
+| Qualification | Work FWS Steadfast’s gun console and neutralize two harmless practice hulls. | Move through the service range, hit three harmless target frames, and register at its terminal. |
+| First field assignment | Escort the merchant lane and help disable two armed cutters. | Clear the Rainline relay annex and restore its emergency channel. |
+| Relief operation | Answer a relief ship’s distress call and help stop three raiders. | Secure Eastbank Aid Post and call a shuttle for two trapped clinic workers. |
+| Final deployment | Break the heavier raiding group pressing the relief corridor. | Clear the beacon station and transmit the convoy’s safe landing corridor. |
+
+**Navy service uses an actual Leviathan carrier, FWS Steadfast.** Commander Isen flies the ship out and back. At the physical gun console, open **Gunnery view** to see the battle outside, aim within the battery’s firing arc, and fire the carrier’s real weapons. The captain remains on the crew deck and never receives the employer’s helm or ship ownership. **Back to deck** restores the person view at the same console. The carrier returns to Morrow after each engagement; use its docked airlock and report to Venn. Shots use the ship’s real energy, range, cooldown, target hull damage, and per-captain contribution records. Training targets cannot shoot back.
+
+**Army service is played on foot with the captain’s own equipment.** The standard pulse sidearm is sufficient for these introductory assignments. The later sites introduce human infantry, real collision cover, a visible locked aim before each enemy shot, and a physical objective after the threat is cleared. A sideways dodge or a wall can stop an enemy shot. The workers leave the aid post after its evacuation signal. Retreat remains available through every entrance, and the normal field-recovery rules still apply.
+
+Completed deployments require a physical recruiter debrief and pay once. Army rewards are **100 / 200 / 300 / 450 cr**; Navy rewards are **100 / 225 / 325 / 450 cr**. Both branches award **1 / 1 / 2 / 4 service XP**, reaching Veteran from a fresh enlistment. Carrier watches award no separate wages for the same campaign work. Existing military rank, commissioned hulls, faction clearance, personal gear, and unrelated jobs are retained. The existing escort entitlement now counts these debriefed deployments as service assignments too; collecting an earned hull remains an explicit action at the faction’s public-services desk.
+
+Career progress persists in solo saves and shared galaxies. Each Army deployment has its own recruit-and-attempt record, so another recruit cannot consume the same targets or supply someone else’s combat proof. Navy receipts require that recruit’s recorded contribution to every assigned contact and the return to Morrow. Interrupted Navy watches can be retried through the recruiter with a fresh operation and no unearned pay.
+
+The campaign definitions are keyed by faction and branch. **This release authors the Freewake campaign in Hearth.** Other factions retain their existing enlistment, bases, ranks, and ordinary service assignments; their distinct career stories are not authored yet.
 
 ## Docked airlocks · 0.12.1
 
@@ -90,7 +113,7 @@ Scheduled NPC traffic can use every player-obtainable hull, with weighted acquis
 
 Five separate faction bases extend existing systems without closing public hospitals or story ports. Military enlistment grants that faction’s base clearance while standing stays above −25. Passenger ferries and home leases enforce the same access rule. A serving helmsman can escort a crew into a base; guests cannot independently book military passage or claim a base home without their own clearance. Civilian work boards avoid inaccessible destinations.
 
-At the employer faction’s public-services desk, a shipless recruit can explicitly request a one-time small patrol cutter. Three verified military patrols, each returned and debriefed, earn an escort commission. Owners keep their other commissioned hulls. Issuing a ship grants no cash, ore, fold drive, or extra story flags; repeat claims cannot heal, refill, or duplicate it. Authority checks protect borrowed hulls and reserve berths for everyone returning aboard.
+At the employer faction’s public-services desk, a shipless recruit can explicitly request a one-time small patrol cutter. Three verified military service assignments, each returned and debriefed, earn an escort commission. Owners keep their other commissioned hulls. Issuing a ship grants no cash, ore, fold drive, or extra story flags; repeat claims cannot heal, refill, or duplicate it. Authority checks protect borrowed hulls and reserve berths for everyone returning aboard.
 
 Traffic follows obstacle-checked approaches, slows into compatible berths, waits, turns, and departs. Heavier ships take longer. Each contact has a persistent route phase; solo saves and authority restarts restore it, and inactive systems use bounded catch-up. Route curves remain off network snapshots. Existing population counts, encounter frequencies, asteroid fields, enemy generation, and story signals remain unchanged. Hailing an observed ship shows its work, hull and actual route without exposing the fleet catalog.
 

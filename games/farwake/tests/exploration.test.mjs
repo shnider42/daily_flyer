@@ -24,7 +24,7 @@ test('Morrow expands to five times the old surface area while preserving landing
  assert.equal(surface.cols*surface.rows,48*36*5);assert.deepEqual(surface.spawn,point(10,26));assert.deepEqual(surface.exit,point(10,28));
  assert.equal(surface.entities.find(e=>e.id==='morrow:mechanic').x,point(10,9).x);
  assert.deepEqual(surface.sites.slice(0,6).map(site=>site.id),['chalkfold','orchard-pump','northwatch','tideglass','reed-house','relay-nine']);
- assert.equal(surface.sites.length,8);assert.equal(surface.entities.filter(e=>e.type==='siteEntrance').length,8);
+ assert.equal(surface.sites.filter(site=>!site.military).length,8);assert.equal(surface.sites.filter(site=>site.military).length,4);assert.equal(surface.entities.filter(e=>e.type==='siteEntrance').length,12);
  assert.ok(surface.sites.some(site=>site.entrance.x>90*24));assert.ok(surface.sites.some(site=>site.entrance.y>60*24));assert.ok(surface.districts.length>=4);
  for(const entry of surface.entities)assert.ok(reachable.has(Math.floor(entry.y/24)*surface.cols+Math.floor(entry.x/24)),entry.id);
 });

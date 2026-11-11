@@ -132,6 +132,8 @@ export class Soundscape{
   if(atmosphere==='ice'){this.tone(460,1.8,'sine',.035,710);this.tone(63,.5,'triangle',.07,35);return'Ice shifts beneath the shelter.';}
   if(atmosphere==='machinery'){this.tone(78,.8,'triangle',.075,42);setTimeout(()=>this.tone(96,.18,'triangle',.04,48),420);return'A pipe knocks twice inside the wall.';}
   if(atmosphere==='signal'){this.tone(310,.7,'sine',.045,180);setTimeout(()=>this.tone(740,.09,'sine',.03,690),870);return'A receiver catches half of a distant call.';}
+  if(atmosphere==='training'){this.tone(640,.08,'sine',.022,480);return index%2?'The range ventilation hums above the cover blocks.':'A target relay clicks as the range systems cycle.';}
+  if(atmosphere==='military'){this.tone(270,.13,'triangle',.025,190);return index%2?'Your section’s radio channel carries a brief status check.':'Service equipment hums behind the reinforced walls.';}
   if(atmosphere==='market'){this.tone(230,.18,'triangle',.025,170);return index%2?'A cup is set down behind a curtain.':'Low voices carry between the stalls.';}
   if(atmosphere==='clinic'){this.tone(540,.12,'sine',.022,520);return index%2?'A monitor chimes softly in the next bay.':'A trolley wheel clicks across a seam in the floor.';}
   if(atmosphere==='choral'){this.tone(196,2.1,'sine',.04);this.tone(293.66,1.4,'sine',.022);return index%2?'One clear note answers another, then leaves a long silence.':'The vessel beside you sounds a note too low for your translator.';}
