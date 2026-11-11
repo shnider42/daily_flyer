@@ -306,21 +306,22 @@ export function npcContractPilot(game){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return null;
  const ship=game.state.ship,still={thrust:0,turn:0,strafe:0,brake:1,flightAssist:true,fire:false,mine:false};
  if(['boarding','docked','failed'].includes(contract.phase))return still;
- let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading;
+ let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading,stopDistance=12;
  if(contract.phase==='working'){
-  const enemy=(contract.roleId==='gunner'||modern(contract)&&contract.assignment.complication.type==='attack')&&targetEnemy(game,contract);
-  if(!enemy||enemy.disabled||enemy.hp<=0)return still;
-  desiredHeading=Math.atan2(enemy.y-ship.y,enemy.x-ship.x);
-  // The NPC keeps the gunner's target in the bow arc without firing for them.
-  const error=angleDelta(desiredHeading,ship.angle);
-  return{...still,turn:clamp(error*2.5-finite(ship.angularVelocity)*1.1,-1,1)};
+  const complication=contract.assignment?.complication,attack=modern(contract)?complication.type==='attack'&&complication.started&&!complication.resolved:contract.roleId==='gunner'&&contract.incidentStarted;
+  const enemy=!contract.aborted&&!contract.work.done&&attack&&targetEnemy(game,contract);
+  if(!enemy||enemy.crewContractId!==contract.id||enemy.professionJobId!==contract.id||enemy.disabled||enemy.hp<=0||enemy.capturedBy||enemy.promotedVesselId)return still;
+  // Keep the employee's real target inside both the gun and auto-aim envelope.
+  // Normal flight also recovers an older save whose target has drifted away;
+  // the captain never teleports the contact or fires on the employee's behalf.
+  target=enemy;stopDistance=Math.min(430,Math.max(120,finite(ship.range,700)*.65));
  }
  const dx=target.x-ship.x,dy=target.y-ship.y,range=Math.hypot(dx,dy),speed=Math.hypot(ship.vx,ship.vy);
  desiredHeading=Math.atan2(dy,dx);
- const error=angleDelta(desiredHeading,ship.angle),desiredSpeed=Math.min(145,Math.max(0,(range-12)*.75));
+ const error=angleDelta(desiredHeading,ship.angle),desiredSpeed=Math.min(145,Math.max(0,(range-stopDistance)*.75));
  const direction=range?{x:dx/range,y:dy/range}:{x:0,y:0};
  const forwardSpeed=ship.vx*direction.x+ship.vy*direction.y;
- const brake=range<32||speed>desiredSpeed+10||Math.abs(error)>1.15?1:0;
+ const brake=range<stopDistance+20||speed>desiredSpeed+10||Math.abs(error)>1.15?1:0;
  return{thrust:!brake&&Math.abs(error)<.6&&forwardSpeed<desiredSpeed?clamp((desiredSpeed-forwardSpeed)/60,.12,1):0,turn:clamp(error*2.5-finite(ship.angularVelocity)*1.1,-1,1),strafe:0,brake,boost:false,flightAssist:true,fire:false,mine:false};
 }
 

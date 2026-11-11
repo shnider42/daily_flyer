@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Game, buildGalaxy } from '../dist/engine.mjs';
 import { migrateGameSpace, migrateWorldSpace } from '../dist/space-migration.mjs';
 import { systemBodyPosition } from '../dist/system-space.mjs';
@@ -7,6 +8,9 @@ import { systemCosmicBodies } from '../dist/galaxy-expansion.mjs';
 import { cabinLayout } from '../dist/fleet.mjs';
 import { findDerelict, placeRaider } from './helpers/combat-fixtures.mjs';
 import { createSystemTraffic, captureTraffic } from '../dist/traffic.mjs';
+import { npcContractPilot } from '../dist/npc-contracts.mjs';
+
+const watchFixture = JSON.parse(readFileSync(new URL('./fixtures/crew-watch-space-010.json', import.meta.url)));
 
 const copy = value => structuredClone(value);
 const pose = value => ({ x: value.x, y: value.y });
@@ -84,6 +88,68 @@ test('a legacy hired watch keeps its employer, local work waypoint, personal ber
   assert.deepEqual(actual.work, beforeWork); assert.deepEqual(actual.assignment, assignment); assert.equal(actual.clock, 53); assert.equal(actual.phaseClock, 12);
   assert.deepEqual(restored.state.crew.map(person => ({ id: person.id, ...pose(person) })), deck);
   const next = Game.fromSave(restored.save()); close(next.state.ship, pose(restored.state.ship)); close(next.state.npcContract.workPoint, pose(actual.workPoint));
+});
+
+for (const kind of ['escort', 'gunner']) test(`a real 0.10 ${kind} watch retains its live interceptor offset and completes through actual gunfire`, () => {
+  const raw = copy(watchFixture[kind]), original = copy(raw), saved = raw.npcContract, record = raw.worlds[raw.systemId], enemyId = saved.work.enemyId;
+  assert.equal(saved.phase, 'working');
+  if (kind === 'escort') { assert.equal(saved.assignment.interruptedLeg, true); assert.equal(saved.assignment.visitedDestination, false); }
+  const before = record.enemyStates[enemyId], offset = { x: before.x - raw.ship.x, y: before.y - raw.ship.y };
+  const game = Game.fromSave(raw), job = game.state.npcContract, enemy = game.system.enemies.find(value => value.id === enemyId);
+  close(enemy, { x: game.state.ship.x + offset.x, y: game.state.ship.y + offset.y });
+  assert.equal(enemy.hp, record.enemyHealth[enemyId]); assert.equal(enemy.vx, before.vx); assert.equal(enemy.vy, before.vy);
+  assert.equal(game.state.ship.hull, raw.ship.hull); assert.equal(game.state.ship.shield, raw.ship.shield); assert.equal(game.state.credits, raw.credits);
+  assert.deepEqual(job.work, saved.work); assert.deepEqual(job.assignment, saved.assignment); assert.equal(job.clock, saved.clock); assert.equal(job.phaseClock, saved.phaseClock);
+  close(game.state.person, pose(raw.person)); assert.deepEqual(raw, original);
+  const again = Game.fromSave(game.save()); close(again.state.ship, pose(game.state.ship)); close(again.system.enemies.find(value => value.id === enemyId), pose(enemy));
+  Object.assign(game.state.person, cabinLayout(job.classId).stations.security);
+  for (let tick = 0; tick < 600 && !(kind === 'escort' ? job.assignment.complication.resolved : job.work.done); tick++) game.step(.1, { fire: true });
+  assert.ok(kind === 'escort' ? job.assignment.complication.resolved : job.work.done);
+  assert.ok(job.work.damage >= 12, 'Only the employee’s real projectile damage completes the watch.');
+  assert.equal(job.paid, false); assert.equal(game.state.credits, raw.credits);
+});
+
+test('migration never tethers a stale, defeated, or foreign contact to an active watch', () => {
+  for (const invalid of ['inactive', 'resolved', 'foreign', 'disabled', 'defeated']) {
+    const raw = copy(watchFixture.escort), job = raw.npcContract, record = raw.worlds[raw.systemId], target = record.spawned.find(value => value.id === job.work.enemyId), before = pose(record.enemyStates[target.id]);
+    if (invalid === 'inactive') job.active = false;
+    if (invalid === 'resolved') job.assignment.complication.resolved = true;
+    if (invalid === 'foreign') target.crewContractId = 'another-contract';
+    if (invalid === 'disabled') record.enemyStates[target.id].disabled = true;
+    if (invalid === 'defeated') record.defeated.push(target.id);
+    migrateGameSpace(raw, { systems: buildGalaxy(raw.seed) });
+    close(record.enemyStates[target.id], { x: before.x * 3, y: before.y * 3 });
+  }
+});
+
+test('working pilots never pursue disabled, captured, foreign, or already resolved contract targets', () => {
+  for (const invalid of ['disabled', 'captured', 'foreign', 'resolved']) {
+    const game = Game.fromSave(copy(watchFixture.escort)), job = game.state.npcContract, target = game.system.enemies.find(value => value.id === job.work.enemyId);
+    target.x += 1400;
+    if (invalid === 'disabled') target.disabled = true;
+    if (invalid === 'captured') target.capturedBy = 'another-captain';
+    if (invalid === 'foreign') target.crewContractId = 'another-contract';
+    if (invalid === 'resolved') job.assignment.complication.resolved = true;
+    const input = npcContractPilot(game); assert.equal(input.thrust, 0); assert.equal(input.turn, 0); assert.equal(input.brake, 1); assert.equal(input.fire, false);
+  }
+});
+
+test('a genuinely stranded 0.11 escort save closes to its own target through ordinary flight and resumes work', () => {
+  const raw = copy(watchFixture.stranded011), saved = raw.npcContract, before = raw.worlds[raw.systemId].enemyStates[saved.work.enemyId];
+  assert.equal(raw.spaceVersion, 1); assert.ok(Math.hypot(before.x - raw.ship.x, before.y - raw.ship.y) > 1100);
+  const game = Game.fromSave(raw), job = game.state.npcContract, enemy = game.system.enemies.find(value => value.id === job.work.enemyId);
+  close(game.state.ship, pose(raw.ship)); close(enemy, pose(before)); assert.equal(job.clock, saved.clock); assert.equal(job.phaseClock, saved.phaseClock);
+  assert.deepEqual(job.work, saved.work); assert.equal(enemy.hp, raw.worlds[raw.systemId].enemyHealth[enemy.id]);
+  Object.assign(game.state.person, cabinLayout(job.classId).stations.security);
+  let travel = 0;
+  for (let tick = 0; tick < 600 && !job.assignment.complication.resolved; tick++) {
+    const position = pose(game.state.ship); game.step(.1, { fire: true });
+    const moved = Math.hypot(game.state.ship.x - position.x, game.state.ship.y - position.y);
+    assert.ok(moved < 30, 'The employer moves through ordinary bounded flight, never a coordinate repair.'); travel += moved;
+  }
+  assert.ok(travel > 200); assert.equal(job.assignment.complication.resolved, true); assert.ok(job.work.damage >= 12); assert.equal(job.phase, 'outbound');
+  assert.equal(job.assignment.visitedDestination, false); assert.equal(job.paid, false); assert.equal(game.state.credits, raw.credits);
+  const again = Game.fromSave(game.save()); close(again.state.ship, pose(game.state.ship)); close(again.system.enemies.find(value => value.id === enemy.id), pose(enemy));
 });
 
 test('a saved boarding tether keeps its local separation and permits an actual return after migration', () => {

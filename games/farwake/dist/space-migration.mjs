@@ -82,7 +82,7 @@ function migration({ systems = [], seed = 'farwake' } = {}) {
       if (value.signalId && point(value)) anchor(node, value, scaled(value), 90);
     }
   }
-  function contract(state, systemId) {
+  function contract(state, systemId, record) {
     const job = state.npcContract;
     if (!object(job)) return;
     const originSystem = job.origin?.systemId || systemId, destinationSystem = job.destination?.systemId || originSystem;
@@ -98,6 +98,14 @@ function migration({ systems = [], seed = 'farwake' } = {}) {
     const employer = get(systemId, job.vesselId);
     if (job.dockedAt) berth(employer, systemId, job.dockedAt);
     else if (job.phase === 'working' && employer && work && distance(employer.pose, work.pose) < 120) link(employer, work);
+    // An escort can stop for a real attack well before its destination. Its
+    // interceptor shares the employer's local combat space, not the waypoint.
+    const target = get(systemId, job.work?.enemyId), complication = job.assignment?.complication;
+    const attack = job.version === 2 ? complication?.type === 'attack' && complication.started && !complication.resolved : job.roleId === 'gunner' && job.incidentStarted;
+    if (job.active && !job.aborted && job.phase === 'working' && attack && !job.work?.done && !job.work?.targetDisabled && target
+      && !rows(record?.defeated).includes(job.work.enemyId) && !(Number.isFinite(record?.enemyHealth?.[job.work.enemyId]) && record.enemyHealth[job.work.enemyId] <= 0)
+      && target.references.some(({ value }) => value.crewContractId === job.id && value.professionJobId === job.id)
+      && !target.references.some(({ value }) => value.disabled || value.capturedBy || value.promotedVesselId || Number.isFinite(value.hp) && value.hp <= 0)) link(employer, target);
   }
   function state(value, { shipSystemId = value.systemId, shipVesselId = value.ship?.id, activeSystemId = value.systemId, activeVesselId = value.ship?.id, worlds = value.worlds } = {}) {
     if (!legacy(value) || states.has(value)) return;
@@ -125,7 +133,7 @@ function migration({ systems = [], seed = 'farwake' } = {}) {
     // Derelict interiors keep a saved return pose but their person coordinates
     // are an unrelated tile map. Move the hull beside its same physical signal.
     if (value.interior?.kind === 'derelict') link(active, get(activeSystemId, `contact:${value.interior.signalId}`));
-    contract(value, activeSystemId);
+    contract(value, activeSystemId, record);
   }
   function finish() {
     // Tether metadata may refer to a hull collected later (another captain or

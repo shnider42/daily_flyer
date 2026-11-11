@@ -1,0 +1,3500 @@
+{
+  "sourceCommit": "e8a86eb",
+  "release": "0.10.0",
+  "scenario": "Real accepted security work: depart Avel, run ordinary pilot ticks, save when a live interceptor interrupts the escort before its destination; legacy gunner saved after its real route reaches the work point.",
+  "escort": {
+    "version": 7,
+    "seed": "legacy-intercept-17",
+    "startMode": "regular",
+    "mode": "person",
+    "systemId": "kindred",
+    "locationId": "ship:vessel:crew-watch:local:legacy-intercept-17:1",
+    "credits": 180,
+    "character": {
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "traits": []
+    },
+    "characterLocked": true,
+    "captainName": "Captain",
+    "exploration": null,
+    "explorationRecords": {},
+    "cargo": {
+      "ore": 8,
+      "crystal": 0
+    },
+    "rep": {
+      "concord": 0,
+      "freewake": 0,
+      "meridian": 0,
+      "lantern": 0,
+      "cinder": 0
+    },
+    "flags": [
+      "started",
+      "visited_avel",
+      "landed_avel",
+      "first_landing",
+      "entered_cabin"
+    ],
+    "upgrades": {},
+    "visited": [
+      "hearth",
+      "kindred/avel"
+    ],
+    "discovered": [
+      "hearth",
+      "brindle",
+      "meridian",
+      "vesper",
+      "nacre",
+      "cinder",
+      "sector-119",
+      "sector-120",
+      "sector-134",
+      "sector-135",
+      "sector-136",
+      "sector-137",
+      "sector-150",
+      "sector-151",
+      "sector-152",
+      "sector-153",
+      "sector-167",
+      "sector-168"
+    ],
+    "missions": [],
+    "completedJobs": [],
+    "abandonedJobs": {},
+    "journal": [
+      {
+        "id": "log-0.00-1",
+        "title": "Landed on Avel",
+        "text": "Vaeli tideward towns rise between warm shoals. Most residents here are Vaeli; human neighborhoods and visiting crews share the dry quays. The local councils joined Kindred’s passage agreement without surrendering their own harbor laws.",
+        "type": "discovery",
+        "systemId": "kindred",
+        "time": 0
+      },
+      {
+        "id": "log-0.00-0",
+        "title": "A ship of your own",
+        "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+        "type": "story",
+        "systemId": "hearth",
+        "time": 0
+      }
+    ],
+    "encounterHistory": [],
+    "openingMission": null,
+    "conversations": {
+      "version": 1,
+      "people": []
+    },
+    "socialVisits": {
+      "version": 1,
+      "people": []
+    },
+    "socialEpoch": 0,
+    "crew": [
+      {
+        "id": "crew-watch:local:legacy-intercept-17:1:pilot",
+        "name": "Captain Eni Ivara",
+        "species": "vaeli",
+        "role": "pilot",
+        "x": 228,
+        "y": 180,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+      },
+      {
+        "id": "crew-watch:local:legacy-intercept-17:1:worker",
+        "name": "Oli Len",
+        "species": "vaeli",
+        "role": "deckhand",
+        "x": 252,
+        "y": 324,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+      }
+    ],
+    "formerCrew": [],
+    "memorial": [],
+    "fleet": {
+      "owned": [
+        "sparrow"
+      ],
+      "history": []
+    },
+    "boarding": null,
+    "boardingHistory": [],
+    "knownLore": [],
+    "completedChapters": [],
+    "pendingEncounter": null,
+    "worlds": {
+      "hearth": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {},
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [],
+        "visits": 1,
+        "enemyStates": {},
+        "encounterContacts": {}
+      },
+      "kindred": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {
+          "kindred:raider:0": 56,
+          "crew-watch:local:legacy-intercept-17:1:interdictor": 60
+        },
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:interdictor",
+            "name": "Marked interdiction skiff",
+            "faction": "cinder",
+            "classId": "kestrel",
+            "interiorClassId": "kestrel",
+            "berths": 1,
+            "radius": 17,
+            "renderLength": 56,
+            "renderWidth": 30,
+            "boardable": false,
+            "x": -244.27438076866605,
+            "y": 560.576992191793,
+            "vx": -8.356527232116468,
+            "vy": -26.72393033629028,
+            "angle": -1.6738618305757487,
+            "hp": 60,
+            "maxHp": 60,
+            "speed": 28,
+            "damage": 3,
+            "reward": 0,
+            "active": true,
+            "cooldown": 3.9,
+            "boardingCooldown": 99999.9,
+            "professionJobId": "crew-watch:local:legacy-intercept-17:1",
+            "professionContributors": {},
+            "crewContractId": "crew-watch:local:legacy-intercept-17:1",
+            "targetId": "local",
+            "boardingCharge": 0
+          }
+        ],
+        "visits": 1,
+        "enemyStates": {
+          "kindred:raider:0": {
+            "classId": "sparrow",
+            "damageControl": null,
+            "x": 1194.119195418232,
+            "y": -145.4933864500743,
+            "vx": 0,
+            "vy": 0,
+            "angle": 7.895662128897096,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 0,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          },
+          "crew-watch:local:legacy-intercept-17:1:interdictor": {
+            "classId": "kestrel",
+            "damageControl": null,
+            "x": -244.27438076866605,
+            "y": 560.576992191793,
+            "vx": -8.356527232116468,
+            "vy": -26.72393033629028,
+            "angle": -1.6738618305757487,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 99999.9,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          }
+        },
+        "encounterContacts": {
+          "contact:kindred:signal:1": {
+            "id": "contact:kindred:signal:1",
+            "signalId": "kindred:signal:1",
+            "encounterId": "ghost_freighter",
+            "name": "Silent freighter",
+            "faction": "freewake",
+            "classId": "hauler",
+            "interiorClassId": "hauler",
+            "berths": 6,
+            "radius": 33,
+            "renderLength": 104,
+            "renderWidth": 66,
+            "boardable": true,
+            "x": 987.8489417833546,
+            "y": -755.3575854691221,
+            "angle": 0.45,
+            "speed": 0,
+            "contact": true
+          }
+        },
+        "trafficStates": [
+          {
+            "id": "kindred:traffic:0",
+            "routeKey": "1hvu0wl",
+            "routeTime": 50.27012860738361
+          },
+          {
+            "id": "kindred:traffic:1",
+            "routeKey": "q055a3",
+            "routeTime": 47.222620098533106
+          },
+          {
+            "id": "kindred:traffic:2",
+            "routeKey": "2b0lse",
+            "routeTime": 3.023422082219314
+          },
+          {
+            "id": "kindred:traffic:3",
+            "routeKey": "16pxyuv",
+            "routeTime": 43.301548583191746
+          },
+          {
+            "id": "kindred:traffic:4",
+            "routeKey": "1hc0dd5",
+            "routeTime": 64.5782769243964
+          }
+        ],
+        "parkedShips": []
+      }
+    },
+    "stats": {
+      "time": 10.09999999999998,
+      "oreMined": 0,
+      "crystalsMined": 0,
+      "kills": 0,
+      "jobs": 0,
+      "scans": 0,
+      "salvaged": 0,
+      "jumps": 0,
+      "dockings": 1,
+      "work": 0,
+      "talks": 0,
+      "rescues": 0,
+      "distance": 1008.0662134049508,
+      "decisions": 0
+    },
+    "ship": {
+      "mass": 1.9,
+      "radius": 26,
+      "renderLength": 78,
+      "renderWidth": 50,
+      "maxHull": 140,
+      "maxShield": 40,
+      "maxEnergy": 130,
+      "maxFuel": 38,
+      "cargoCap": 32,
+      "speed": 225,
+      "thrustAcceleration": 175,
+      "strafeAcceleration": 125,
+      "angularAcceleration": 2.9,
+      "maxAngularVelocity": 2.1,
+      "angularDamping": 1.5,
+      "damage": 14,
+      "range": 820,
+      "scanRange": 250,
+      "mining": 1,
+      "id": "vessel:crew-watch:local:legacy-intercept-17:1",
+      "name": "Registered Courier",
+      "classId": "tern",
+      "berths": 3,
+      "humanOccupants": 1,
+      "x": -282.50252845659986,
+      "y": 185.57322249326054,
+      "vx": 13.08584293629078,
+      "vy": 79.90302817991811,
+      "angle": 1.467109043088596,
+      "angularVelocity": 0.005685295049238225,
+      "hull": 140,
+      "shield": 40,
+      "energy": 130,
+      "fuel": 38,
+      "warpRange": 0,
+      "npcEmployer": true,
+      "damageControl": {
+        "version": 1,
+        "layoutRevision": 3,
+        "clock": 10.09999999999998,
+        "serial": 0,
+        "sections": [
+          {
+            "id": "bridge",
+            "name": "SHUTTLE COCKPIT",
+            "x": 228,
+            "y": 180,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "saloon",
+            "name": "PASSENGER SALOON",
+            "x": 252,
+            "y": 372,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "quarters",
+            "name": "THREE BERTHS",
+            "x": 180,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "engineering",
+            "name": "SERVICE DRIVE",
+            "x": 324,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          }
+        ],
+        "impacts": []
+      }
+    },
+    "person": {
+      "x": 324,
+      "y": 420,
+      "health": 100,
+      "facing": "up",
+      "weapon": "pulse-sidearm",
+      "weaponDrawn": false,
+      "maxHealth": 100,
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "speed": 112,
+      "role": "security",
+      "tileX": 13,
+      "tileY": 17
+    },
+    "rng": 2289221110,
+    "encounterPolicyVersion": 2,
+    "nextEncounterAt": null,
+    "lastBodyId": "avel",
+    "jobSerial": 0,
+    "activityTokens": [],
+    "lastSaveAt": 10.09999999999998,
+    "interior": {
+      "kind": "ship",
+      "location": {
+        "id": "ship:vessel:crew-watch:local:legacy-intercept-17:1",
+        "vesselId": "vessel:crew-watch:local:legacy-intercept-17:1",
+        "vesselName": "Registered Courier",
+        "name": "Registered Courier · hired crew",
+        "kind": "ship",
+        "biome": "ship",
+        "shipClass": "tern",
+        "classId": "tern",
+        "crew": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:pilot",
+            "name": "Captain Eni Ivara",
+            "species": "vaeli",
+            "role": "pilot",
+            "x": 228,
+            "y": 180,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+          },
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:worker",
+            "name": "Oli Len",
+            "species": "vaeli",
+            "role": "deckhand",
+            "x": 252,
+            "y": 324,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+          }
+        ],
+        "ownership": "crew",
+        "ownerName": "Local service cooperative",
+        "faction": "freewake",
+        "npcContractId": "crew-watch:local:legacy-intercept-17:1"
+      },
+      "signalId": null,
+      "liveVessel": true,
+      "returnShip": {
+        "x": -577.7862669590588,
+        "y": -771.8006402612671,
+        "vx": 0,
+        "vy": 0,
+        "angle": 0.9084073464102067,
+        "angularVelocity": 0
+      },
+      "returnLocation": null
+    },
+    "storyActions": [],
+    "livelihoods": {
+      "version": 1,
+      "parkedShip": null,
+      "transitSerial": 0,
+      "journeys": []
+    },
+    "narrative": {
+      "version": 1,
+      "quests": {},
+      "relations": {},
+      "met": [],
+      "pledge": null,
+      "pledgeAt": 0,
+      "passenger": null,
+      "passengerSerial": 0,
+      "passengerCompleted": 0,
+      "passengerHistory": []
+    },
+    "professions": {
+      "version": 1,
+      "careers": {
+        "paramedic": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "doctor": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "law": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "military": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0,
+          "serviceShips": []
+        }
+      },
+      "serial": 0,
+      "active": null,
+      "history": [],
+      "cooldownUntil": {
+        "paramedic": 0,
+        "doctor": 0,
+        "law": 0,
+        "military": 0
+      }
+    },
+    "npcContractSerial": 1,
+    "npcContractHistory": [],
+    "worldDirector": {
+      "version": 2,
+      "startedAt": 0,
+      "scheduleEpoch": 0,
+      "time": 5.099999999999998,
+      "nextTickAt": 10.099999999999998,
+      "cycle": -1,
+      "revision": 2,
+      "skippedCycles": 0,
+      "events": [],
+      "history": [],
+      "conditions": {},
+      "systemCooldowns": {},
+      "factionPressure": {
+        "concord": 0,
+        "freewake": 0,
+        "meridian": 0,
+        "lantern": 0,
+        "cinder": 0
+      }
+    },
+    "npcContract": {
+      "version": 2,
+      "id": "crew-watch:local:legacy-intercept-17:1",
+      "serial": 1,
+      "employeeId": "local",
+      "active": true,
+      "shared": false,
+      "roleId": "gunner",
+      "roleName": "Security hand",
+      "vesselId": "vessel:crew-watch:local:legacy-intercept-17:1",
+      "shipName": "Registered Courier",
+      "classId": "tern",
+      "origin": {
+        "systemId": "kindred",
+        "bodyId": "avel",
+        "name": "Avel",
+        "x": -713.4027567696663,
+        "y": -914.6892951343863,
+        "radius": 122
+      },
+      "dockPoint": {
+        "x": -577.7862669590588,
+        "y": -771.8006402612671
+      },
+      "workPoint": {
+        "x": -227.62311691645874,
+        "y": 765.2198748534511
+      },
+      "routeName": "Avel → Kindred Landing → return",
+      "factionId": "freewake",
+      "phase": "working",
+      "dockedAt": null,
+      "clock": 10.09999999999998,
+      "phaseClock": 0,
+      "startedAt": 0,
+      "reward": 217,
+      "paid": false,
+      "aborted": false,
+      "incidentStarted": true,
+      "work": {
+        "done": false,
+        "progress": 0.4,
+        "fireRemoved": 0,
+        "damageRepaired": 0,
+        "healed": 0,
+        "damage": 0,
+        "crewId": "crew-watch:local:legacy-intercept-17:1:worker",
+        "sectionId": null,
+        "enemyId": "crew-watch:local:legacy-intercept-17:1:interdictor",
+        "lastFire": 0,
+        "lastDamage": 0,
+        "lastHealth": 100,
+        "stagesDone": 1,
+        "routeVisited": false,
+        "shots": 0,
+        "targetHull": 60,
+        "targetMaxHull": 60,
+        "targetDisabled": false
+      },
+      "assignment": {
+        "version": 2,
+        "offerId": "watch:aird8a:1:escort",
+        "seed": "legacy-intercept-17:kindred:avel:1:escort",
+        "familyId": "escort",
+        "title": "An insured shipment",
+        "cargo": "5 a precision reactor core",
+        "quantity": 5,
+        "destinationId": "kindred-landing",
+        "destinationName": "Kindred Landing",
+        "tasks": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:prep",
+            "kind": "identity",
+            "done": true,
+            "completedAt": 0
+          },
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:delivery",
+            "kind": "handover",
+            "done": false
+          }
+        ],
+        "visitedDestination": false,
+        "delivered": false,
+        "complication": {
+          "type": "attack",
+          "started": true,
+          "resolved": false,
+          "warned": false
+        },
+        "eva": {
+          "active": false,
+          "oxygen": 120,
+          "maxOxygen": 120,
+          "workerId": null,
+          "trips": 0,
+          "emergency": false
+        },
+        "comms": [
+          {
+            "at": 0,
+            "text": "Pilot: departure check signed. I have the helm."
+          },
+          {
+            "at": 0,
+            "text": "Pilot: 5 a precision reactor core for Kindred Landing. Complete the departure check at your marked station."
+          },
+          {
+            "at": 2,
+            "text": "Pilot: check received. Casting off for Kindred Landing."
+          },
+          {
+            "at": 9,
+            "text": "Pilot: holding the local route. You can watch the passage or check the work order."
+          },
+          {
+            "at": 10,
+            "text": "Pilot: an interdiction skiff is closing. Security station—bring its guns offline."
+          }
+        ],
+        "workerName": "Oli Len",
+        "pilotName": "Captain Eni Ivara",
+        "departureBrief": true,
+        "cruiseBrief": true,
+        "interruptedLeg": true
+      },
+      "destination": {
+        "systemId": "kindred",
+        "bodyId": "kindred-landing",
+        "name": "Kindred Landing",
+        "x": -172.89867398000712,
+        "y": 954.4663684677188,
+        "radius": 122
+      },
+      "personal": {
+        "ship": {
+          "id": "cinder-y2c880",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 1,
+          "x": -713.4027567696663,
+          "y": -717.6892951343863,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 100,
+          "maxHull": 100,
+          "shield": 35,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 2,
+          "rescueGroups": [],
+          "rescueHistory": [],
+          "damageControl": {
+            "version": 1,
+            "layoutRevision": 3,
+            "clock": 0,
+            "serial": 0,
+            "sections": [
+              {
+                "id": "bridge",
+                "name": "COCKPIT",
+                "x": 156,
+                "y": 204,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "work",
+                "name": "WORK CABIN",
+                "x": 156,
+                "y": 348,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              }
+            ],
+            "impacts": []
+          }
+        },
+        "cargo": {
+          "ore": 0,
+          "crystal": 0
+        },
+        "upgrades": {},
+        "crew": [],
+        "formerCrew": [],
+        "memorial": [],
+        "boardingHistory": [],
+        "boarding": null
+      }
+    },
+    "cosmicWarning": null
+  },
+  "gunner": {
+    "version": 7,
+    "seed": "legacy-gunner-space",
+    "startMode": "regular",
+    "mode": "person",
+    "systemId": "kindred",
+    "locationId": "ship:vessel:crew-watch:local:legacy-gunner-space:1",
+    "credits": 180,
+    "character": {
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "traits": []
+    },
+    "characterLocked": true,
+    "captainName": "Captain",
+    "exploration": null,
+    "explorationRecords": {},
+    "cargo": {
+      "ore": 8,
+      "crystal": 0
+    },
+    "rep": {
+      "concord": 0,
+      "freewake": 0,
+      "meridian": 0,
+      "lantern": 0,
+      "cinder": 0
+    },
+    "flags": [
+      "started",
+      "visited_avel",
+      "landed_avel",
+      "first_landing",
+      "entered_cabin"
+    ],
+    "upgrades": {},
+    "visited": [
+      "hearth",
+      "kindred/avel"
+    ],
+    "discovered": [
+      "hearth",
+      "brindle",
+      "meridian",
+      "vesper",
+      "nacre",
+      "cinder",
+      "sector-119",
+      "sector-120",
+      "sector-134",
+      "sector-135",
+      "sector-136",
+      "sector-137",
+      "sector-150",
+      "sector-151",
+      "sector-152",
+      "sector-153",
+      "sector-167",
+      "sector-168"
+    ],
+    "missions": [],
+    "completedJobs": [],
+    "abandonedJobs": {},
+    "journal": [
+      {
+        "id": "log-0.00-1",
+        "title": "Landed on Avel",
+        "text": "Vaeli tideward towns rise between warm shoals. Most residents here are Vaeli; human neighborhoods and visiting crews share the dry quays. The local councils joined Kindred’s passage agreement without surrendering their own harbor laws.",
+        "type": "discovery",
+        "systemId": "kindred",
+        "time": 0
+      },
+      {
+        "id": "log-0.00-0",
+        "title": "A ship of your own",
+        "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+        "type": "story",
+        "systemId": "hearth",
+        "time": 0
+      }
+    ],
+    "encounterHistory": [],
+    "openingMission": null,
+    "conversations": {
+      "version": 1,
+      "people": []
+    },
+    "socialVisits": {
+      "version": 1,
+      "people": []
+    },
+    "socialEpoch": 0,
+    "crew": [
+      {
+        "id": "crew-watch:local:legacy-gunner-space:1:pilot",
+        "name": "Captain Vale",
+        "species": "human",
+        "role": "pilot",
+        "x": 228,
+        "y": 180,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "I have the helm. Take your assigned station; I’ll bring us back to the hiring port."
+      },
+      {
+        "id": "crew-watch:local:legacy-gunner-space:1:worker",
+        "name": "Ira Moss",
+        "species": "human",
+        "role": "deckhand",
+        "x": 252,
+        "y": 324,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "A short local watch. The company supplies the tools; we supply the work."
+      }
+    ],
+    "formerCrew": [],
+    "memorial": [],
+    "fleet": {
+      "owned": [
+        "sparrow"
+      ],
+      "history": []
+    },
+    "boarding": null,
+    "boardingHistory": [],
+    "knownLore": [],
+    "completedChapters": [],
+    "pendingEncounter": null,
+    "worlds": {
+      "hearth": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {},
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [],
+        "visits": 1,
+        "enemyStates": {},
+        "encounterContacts": {}
+      },
+      "kindred": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {
+          "kindred:raider:0": 56,
+          "crew-watch:local:legacy-gunner-space:1:interdictor": 60
+        },
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [
+          {
+            "id": "crew-watch:local:legacy-gunner-space:1:interdictor",
+            "name": "Marked interdiction skiff",
+            "faction": "cinder",
+            "classId": "kestrel",
+            "interiorClassId": "kestrel",
+            "berths": 1,
+            "radius": 17,
+            "renderLength": 56,
+            "renderWidth": 30,
+            "boardable": false,
+            "x": -436.39638903752973,
+            "y": 142.9198448866831,
+            "vx": 7.077688500375486,
+            "vy": -27.090705518528907,
+            "angle": -1.1152494233242207,
+            "hp": 60,
+            "maxHp": 60,
+            "speed": 28,
+            "damage": 3,
+            "reward": 0,
+            "active": true,
+            "cooldown": 3.9,
+            "boardingCooldown": 99999.9,
+            "professionJobId": "crew-watch:local:legacy-gunner-space:1",
+            "professionContributors": {},
+            "crewContractId": "crew-watch:local:legacy-gunner-space:1",
+            "targetId": "local",
+            "boardingCharge": 0
+          }
+        ],
+        "visits": 1,
+        "enemyStates": {
+          "kindred:raider:0": {
+            "classId": "kestrel",
+            "damageControl": null,
+            "x": -1138.5244326114125,
+            "y": -1171.635019616834,
+            "vx": 0,
+            "vy": 0,
+            "angle": 6.0708626542587885,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 0,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          },
+          "crew-watch:local:legacy-gunner-space:1:interdictor": {
+            "classId": "kestrel",
+            "damageControl": null,
+            "x": -436.39638903752973,
+            "y": 142.9198448866831,
+            "vx": 7.077688500375486,
+            "vy": -27.090705518528907,
+            "angle": -1.1152494233242207,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 99999.9,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          }
+        },
+        "encounterContacts": {
+          "contact:kindred:signal:6": {
+            "id": "contact:kindred:signal:6",
+            "signalId": "kindred:signal:6",
+            "encounterId": "cinder_toll",
+            "name": "Cinder toll cutter",
+            "faction": "cinder",
+            "classId": "sparrow",
+            "interiorClassId": "sparrow",
+            "berths": 2,
+            "radius": 21,
+            "renderLength": 64,
+            "renderWidth": 42,
+            "boardable": false,
+            "x": -966.1436292272198,
+            "y": -39.424907209805404,
+            "angle": 0.45,
+            "speed": 0,
+            "contact": true
+          }
+        },
+        "trafficStates": [
+          {
+            "id": "kindred:traffic:0",
+            "routeKey": "145j1k8",
+            "routeTime": 71.89363010188043
+          },
+          {
+            "id": "kindred:traffic:1",
+            "routeKey": "1iqkxso",
+            "routeTime": 64.40536633699962
+          },
+          {
+            "id": "kindred:traffic:2",
+            "routeKey": "1nfsntk",
+            "routeTime": 36.11137423205079
+          },
+          {
+            "id": "kindred:traffic:3",
+            "routeKey": "13uusqe",
+            "routeTime": 26.509859770511145
+          },
+          {
+            "id": "kindred:traffic:4",
+            "routeKey": "1m134um",
+            "routeTime": 5.570396803597586
+          }
+        ],
+        "parkedShips": []
+      }
+    },
+    "stats": {
+      "time": 11.999999999999973,
+      "oreMined": 0,
+      "crystalsMined": 0,
+      "kills": 0,
+      "jobs": 0,
+      "scans": 0,
+      "salvaged": 0,
+      "jumps": 0,
+      "dockings": 1,
+      "work": 0,
+      "talks": 0,
+      "rescues": 0,
+      "distance": 669.8738750033083,
+      "decisions": 0
+    },
+    "ship": {
+      "mass": 1.9,
+      "radius": 26,
+      "renderLength": 78,
+      "renderWidth": 50,
+      "maxHull": 140,
+      "maxShield": 40,
+      "maxEnergy": 130,
+      "maxFuel": 38,
+      "cargoCap": 32,
+      "speed": 225,
+      "thrustAcceleration": 175,
+      "strafeAcceleration": 125,
+      "angularAcceleration": 2.9,
+      "maxAngularVelocity": 2.1,
+      "angularDamping": 1.5,
+      "damage": 14,
+      "range": 820,
+      "scanRange": 250,
+      "mining": 1,
+      "id": "vessel:crew-watch:local:legacy-gunner-space:1",
+      "name": "Local service boat",
+      "classId": "tern",
+      "berths": 3,
+      "humanOccupants": 1,
+      "x": -266.34240394242045,
+      "y": -202.9251038644533,
+      "vx": 1.7183405398681348,
+      "vy": 17.10233314584767,
+      "angle": 2.0534824103610934,
+      "angularVelocity": 0.18081662341193738,
+      "hull": 140,
+      "shield": 40,
+      "energy": 130,
+      "fuel": 38,
+      "warpRange": 0,
+      "npcEmployer": true,
+      "damageControl": {
+        "version": 1,
+        "layoutRevision": 3,
+        "clock": 11.999999999999973,
+        "serial": 0,
+        "sections": [
+          {
+            "id": "bridge",
+            "name": "SHUTTLE COCKPIT",
+            "x": 228,
+            "y": 180,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "saloon",
+            "name": "PASSENGER SALOON",
+            "x": 252,
+            "y": 372,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "quarters",
+            "name": "THREE BERTHS",
+            "x": 180,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "engineering",
+            "name": "SERVICE DRIVE",
+            "x": 324,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          }
+        ],
+        "impacts": []
+      }
+    },
+    "person": {
+      "x": 228,
+      "y": 468,
+      "health": 100,
+      "facing": "up",
+      "weapon": "pulse-sidearm",
+      "weaponDrawn": false,
+      "maxHealth": 100,
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "speed": 112
+    },
+    "rng": 3124498775,
+    "encounterPolicyVersion": 2,
+    "nextEncounterAt": null,
+    "lastBodyId": "avel",
+    "jobSerial": 0,
+    "activityTokens": [],
+    "lastSaveAt": 11.999999999999973,
+    "interior": {
+      "kind": "ship",
+      "location": {
+        "id": "ship:vessel:crew-watch:local:legacy-gunner-space:1",
+        "vesselId": "vessel:crew-watch:local:legacy-gunner-space:1",
+        "vesselName": "Local service boat",
+        "name": "Local service boat · hired crew",
+        "kind": "ship",
+        "biome": "ship",
+        "shipClass": "tern",
+        "classId": "tern",
+        "crew": [
+          {
+            "id": "crew-watch:local:legacy-gunner-space:1:pilot",
+            "name": "Captain Vale",
+            "species": "human",
+            "role": "pilot",
+            "x": 228,
+            "y": 180,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "I have the helm. Take your assigned station; I’ll bring us back to the hiring port."
+          },
+          {
+            "id": "crew-watch:local:legacy-gunner-space:1:worker",
+            "name": "Ira Moss",
+            "species": "human",
+            "role": "deckhand",
+            "x": 252,
+            "y": 324,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "A short local watch. The company supplies the tools; we supply the work."
+          }
+        ],
+        "ownership": "crew",
+        "ownerName": "Local service cooperative",
+        "faction": "freewake",
+        "npcContractId": "crew-watch:local:legacy-gunner-space:1"
+      },
+      "signalId": null,
+      "liveVessel": true,
+      "returnShip": {
+        "x": -548.3253969502953,
+        "y": -807.1789920231686,
+        "vx": 0,
+        "vy": 0,
+        "angle": 0.9084073464102067,
+        "angularVelocity": 0
+      },
+      "returnLocation": null
+    },
+    "storyActions": [],
+    "livelihoods": {
+      "version": 1,
+      "parkedShip": null,
+      "transitSerial": 0,
+      "journeys": []
+    },
+    "narrative": {
+      "version": 1,
+      "quests": {},
+      "relations": {},
+      "met": [],
+      "pledge": null,
+      "pledgeAt": 0,
+      "passenger": null,
+      "passengerSerial": 0,
+      "passengerCompleted": 0,
+      "passengerHistory": []
+    },
+    "professions": {
+      "version": 1,
+      "careers": {
+        "paramedic": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "doctor": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "law": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "military": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0,
+          "serviceShips": []
+        }
+      },
+      "serial": 0,
+      "active": null,
+      "history": [],
+      "cooldownUntil": {
+        "paramedic": 0,
+        "doctor": 0,
+        "law": 0,
+        "military": 0
+      }
+    },
+    "npcContractSerial": 1,
+    "npcContractHistory": [],
+    "worldDirector": {
+      "version": 2,
+      "startedAt": 0,
+      "scheduleEpoch": 0,
+      "time": 10.19999999999998,
+      "nextTickAt": 15.19999999999998,
+      "cycle": -1,
+      "revision": 3,
+      "skippedCycles": 0,
+      "events": [],
+      "history": [],
+      "conditions": {},
+      "systemCooldowns": {},
+      "factionPressure": {
+        "concord": 0,
+        "freewake": 0,
+        "meridian": 0,
+        "lantern": 0,
+        "cinder": 0
+      }
+    },
+    "npcContract": {
+      "version": 1,
+      "id": "crew-watch:local:legacy-gunner-space:1",
+      "serial": 1,
+      "employeeId": "local",
+      "active": true,
+      "shared": false,
+      "roleId": "gunner",
+      "roleName": "Gunner",
+      "vesselId": "vessel:crew-watch:local:legacy-gunner-space:1",
+      "shipName": "Local service boat",
+      "classId": "tern",
+      "origin": {
+        "systemId": "kindred",
+        "bodyId": "avel",
+        "name": "Avel",
+        "x": -713.4027567696663,
+        "y": -914.6892951343863,
+        "radius": 122
+      },
+      "dockPoint": {
+        "x": -548.3253969502953,
+        "y": -807.1789920231686
+      },
+      "workPoint": {
+        "x": -293.0978491827299,
+        "y": -177.22213133145328
+      },
+      "routeName": "Avel → Kindred Port approach → Avel",
+      "factionId": "freewake",
+      "phase": "working",
+      "dockedAt": null,
+      "clock": 11.999999999999973,
+      "phaseClock": 0,
+      "startedAt": 0,
+      "reward": 210,
+      "paid": false,
+      "aborted": false,
+      "incidentStarted": true,
+      "work": {
+        "done": false,
+        "progress": 0,
+        "fireRemoved": 0,
+        "damageRepaired": 0,
+        "healed": 0,
+        "damage": 0,
+        "crewId": "crew-watch:local:legacy-gunner-space:1:worker",
+        "sectionId": null,
+        "enemyId": "crew-watch:local:legacy-gunner-space:1:interdictor",
+        "lastFire": 0,
+        "lastDamage": 0,
+        "lastHealth": 100,
+        "targetHull": 60,
+        "targetMaxHull": 60,
+        "targetDisabled": false
+      },
+      "personal": {
+        "ship": {
+          "id": "cinder-187mx5d",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 1,
+          "x": -713.4027567696663,
+          "y": -717.6892951343863,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 100,
+          "maxHull": 100,
+          "shield": 35,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 2,
+          "rescueGroups": [],
+          "rescueHistory": [],
+          "damageControl": {
+            "version": 1,
+            "layoutRevision": 3,
+            "clock": 0,
+            "serial": 0,
+            "sections": [
+              {
+                "id": "bridge",
+                "name": "COCKPIT",
+                "x": 156,
+                "y": 204,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "work",
+                "name": "WORK CABIN",
+                "x": 156,
+                "y": 348,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              }
+            ],
+            "impacts": []
+          }
+        },
+        "cargo": {
+          "ore": 0,
+          "crystal": 0
+        },
+        "upgrades": {},
+        "crew": [],
+        "formerCrew": [],
+        "memorial": [],
+        "boardingHistory": [],
+        "boarding": null
+      }
+    },
+    "cosmicWarning": null
+  },
+  "shared": {
+    "format": 1,
+    "realmId": "SPACEWATCH",
+    "name": "Farwake friends",
+    "seed": "legacy-intercept-17",
+    "settings": {
+      "openingMission": false,
+      "startTogether": false
+    },
+    "groupStart": null,
+    "ownerId": "captain_ab59e229719e77d26c10edb9",
+    "createdAt": 1794432736829,
+    "socialEpochAt": 1794432736829,
+    "updatedAt": 1794432737070,
+    "director": {
+      "version": 2,
+      "startedAt": 1794432736.844,
+      "scheduleEpoch": 1794432736.844,
+      "time": 1794432736.844,
+      "nextTickAt": 1794432741.844,
+      "cycle": -1,
+      "revision": 1,
+      "skippedCycles": 0,
+      "events": [],
+      "history": [],
+      "conditions": {},
+      "systemCooldowns": {},
+      "factionPressure": {
+        "concord": 0,
+        "freewake": 0,
+        "meridian": 0,
+        "lantern": 0,
+        "cinder": 0
+      }
+    },
+    "npcHolds": {},
+    "captains": {
+      "captain_ab59e229719e77d26c10edb9": {
+        "id": "captain_ab59e229719e77d26c10edb9",
+        "name": "Fixture worker",
+        "launchStatus": null,
+        "launchReady": false,
+        "tokenHash": "fixture-only",
+        "createdAt": 1794432736856,
+        "lastSeen": 1794432737067,
+        "home": {
+          "kind": "port",
+          "systemId": "hearth",
+          "locationId": "kettle"
+        },
+        "cameraPreferences": {
+          "shipZoom": 0.25,
+          "personZoom": 0.8
+        },
+        "cameraRevision": 0,
+        "ownedVesselId": "vessel_captain_ab59e229719e77d26c10edb9",
+        "aboard": "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+        "crewRole": "weapons",
+        "returnVesselId": null,
+        "portVesselId": null,
+        "boardingTeam": null,
+        "combatAtDisconnect": false,
+        "recentCommands": [],
+        "game": {
+          "version": 7,
+          "seed": "legacy-intercept-17",
+          "startMode": "regular",
+          "mode": "person",
+          "systemId": "kindred",
+          "locationId": "ship:vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+          "credits": 180,
+          "character": {
+            "appearance": {
+              "skin": "warm",
+              "suit": "teal",
+              "hair": "dark",
+              "style": "crop"
+            },
+            "traits": []
+          },
+          "characterLocked": true,
+          "captainName": "Fixture worker",
+          "exploration": null,
+          "cargo": {
+            "ore": 0,
+            "crystal": 0
+          },
+          "rep": {
+            "concord": 0,
+            "freewake": 0,
+            "meridian": 0,
+            "lantern": 0,
+            "cinder": 0
+          },
+          "flags": [
+            "started",
+            "entered_cabin"
+          ],
+          "upgrades": {},
+          "visited": [
+            "hearth"
+          ],
+          "discovered": [
+            "hearth",
+            "brindle",
+            "meridian",
+            "vesper",
+            "nacre",
+            "cinder",
+            "sector-119",
+            "sector-120",
+            "sector-134",
+            "sector-135",
+            "sector-136",
+            "sector-137",
+            "sector-150",
+            "sector-151",
+            "sector-152",
+            "sector-153",
+            "sector-167",
+            "sector-168"
+          ],
+          "missions": [],
+          "completedJobs": [],
+          "abandonedJobs": {},
+          "journal": [
+            {
+              "id": "log-0.00-0",
+              "title": "A ship of your own",
+              "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+              "type": "story",
+              "systemId": "hearth",
+              "time": 0
+            }
+          ],
+          "encounterHistory": [],
+          "openingMission": null,
+          "conversations": {
+            "version": 1,
+            "people": []
+          },
+          "socialVisits": {
+            "version": 1,
+            "people": []
+          },
+          "socialEpoch": 0,
+          "crew": [],
+          "formerCrew": [],
+          "memorial": [],
+          "fleet": {
+            "owned": [
+              "sparrow"
+            ],
+            "history": []
+          },
+          "boarding": null,
+          "boardingHistory": [],
+          "knownLore": [],
+          "completedChapters": [],
+          "pendingEncounter": null,
+          "stats": {
+            "time": 10.09999999999998,
+            "oreMined": 0,
+            "crystalsMined": 0,
+            "kills": 0,
+            "jobs": 0,
+            "scans": 0,
+            "salvaged": 0,
+            "jumps": 0,
+            "dockings": 0,
+            "work": 0,
+            "talks": 0,
+            "rescues": 0,
+            "distance": 1007.8855636586824,
+            "decisions": 0
+          },
+          "ship": {
+            "id": "vessel_captain_ab59e229719e77d26c10edb9",
+            "name": "Cinder",
+            "classId": "sparrow",
+            "humanOccupants": 1,
+            "x": -713.4027567696663,
+            "y": -717.6892951343863,
+            "vx": 0,
+            "vy": 0,
+            "angle": -1.5707963267948966,
+            "angularVelocity": 0,
+            "hull": 100,
+            "maxHull": 100,
+            "shield": 35,
+            "maxShield": 35,
+            "energy": 100,
+            "maxEnergy": 100,
+            "fuel": 22,
+            "maxFuel": 30,
+            "cargoCap": 24,
+            "speed": 255,
+            "turn": 4.6,
+            "damage": 16,
+            "range": 850,
+            "warpRange": 0,
+            "scanRange": 235,
+            "mining": 1,
+            "mass": 1,
+            "radius": 21,
+            "renderLength": 64,
+            "renderWidth": 42,
+            "thrustAcceleration": 230,
+            "strafeAcceleration": 165,
+            "angularAcceleration": 4.6,
+            "maxAngularVelocity": 2.6,
+            "angularDamping": 1.65,
+            "berths": 2,
+            "rescueGroups": [],
+            "rescueHistory": [],
+            "damageControl": {
+              "version": 1,
+              "layoutRevision": 3,
+              "clock": 0,
+              "serial": 0,
+              "sections": [
+                {
+                  "id": "bridge",
+                  "name": "COCKPIT",
+                  "x": 156,
+                  "y": 204,
+                  "damage": 0,
+                  "fire": 0,
+                  "breach": 0
+                },
+                {
+                  "id": "work",
+                  "name": "WORK CABIN",
+                  "x": 156,
+                  "y": 348,
+                  "damage": 0,
+                  "fire": 0,
+                  "breach": 0
+                }
+              ],
+              "impacts": []
+            }
+          },
+          "person": {
+            "x": 324,
+            "y": 420,
+            "health": 100,
+            "facing": "up",
+            "weapon": "pulse-sidearm",
+            "weaponDrawn": false,
+            "maxHealth": 100,
+            "appearance": {
+              "skin": "warm",
+              "suit": "teal",
+              "hair": "dark",
+              "style": "crop"
+            },
+            "speed": 112,
+            "vx": 0,
+            "vy": 0,
+            "moving": false,
+            "aimManual": false,
+            "lastShot": null,
+            "attackUntil": 0,
+            "role": "security",
+            "tileX": 13,
+            "tileY": 17,
+            "walkTime": 0
+          },
+          "rng": 2289221110,
+          "encounterPolicyVersion": 2,
+          "nextEncounterAt": null,
+          "lastBodyId": "kettle",
+          "jobSerial": 0,
+          "activityTokens": [],
+          "lastSaveAt": 10.09999999999998,
+          "interior": {
+            "kind": "ship",
+            "location": {
+              "id": "ship:vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+              "vesselId": "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+              "vesselName": "Registered Courier",
+              "ownerName": "Captain Rae Luma",
+              "ownerId": "captain_ab59e229719e77d26c10edb9",
+              "ownership": "crew",
+              "hostile": false,
+              "name": "Registered Courier · Captain Rae Luma’s deck",
+              "kind": "ship",
+              "biome": "ship",
+              "classId": "tern",
+              "shipClass": "tern",
+              "shipClassId": "tern",
+              "crew": [
+                {
+                  "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:pilot",
+                  "name": "Captain Rae Luma",
+                  "species": "vaeli",
+                  "role": "pilot",
+                  "x": 228,
+                  "y": 180,
+                  "health": 100,
+                  "maxHealth": 100,
+                  "status": "active",
+                  "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+                },
+                {
+                  "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:worker",
+                  "name": "Nai Ivara",
+                  "species": "vaeli",
+                  "role": "deckhand",
+                  "x": 252,
+                  "y": 324,
+                  "health": 100,
+                  "maxHealth": 100,
+                  "status": "active",
+                  "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+                }
+              ],
+              "guests": [],
+              "bunkAssignments": {},
+              "systemId": "kindred",
+              "npcContractId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+              "faction": "freewake"
+            },
+            "returnLocation": null,
+            "returnShip": {
+              "x": -583.1651072331654,
+              "y": -766.8814650197148,
+              "vx": 0,
+              "vy": 0,
+              "angle": 0.9084073464102067
+            }
+          },
+          "storyActions": [],
+          "livelihoods": {
+            "version": 1,
+            "parkedShip": {
+              "id": "vessel_captain_ab59e229719e77d26c10edb9",
+              "name": "Cinder",
+              "classId": "sparrow",
+              "humanOccupants": 1,
+              "x": -713.4027567696663,
+              "y": -717.6892951343863,
+              "vx": 0,
+              "vy": 0,
+              "angle": -1.5707963267948966,
+              "angularVelocity": 0,
+              "hull": 100,
+              "maxHull": 100,
+              "shield": 35,
+              "maxShield": 35,
+              "energy": 100,
+              "maxEnergy": 100,
+              "fuel": 22,
+              "maxFuel": 30,
+              "cargoCap": 24,
+              "speed": 255,
+              "turn": 4.6,
+              "damage": 16,
+              "range": 850,
+              "warpRange": 0,
+              "scanRange": 235,
+              "mining": 1,
+              "mass": 1,
+              "radius": 21,
+              "renderLength": 64,
+              "renderWidth": 42,
+              "thrustAcceleration": 230,
+              "strafeAcceleration": 165,
+              "angularAcceleration": 4.6,
+              "maxAngularVelocity": 2.6,
+              "angularDamping": 1.65,
+              "berths": 2,
+              "rescueGroups": [],
+              "rescueHistory": [],
+              "damageControl": {
+                "version": 1,
+                "layoutRevision": 3,
+                "clock": 0,
+                "serial": 0,
+                "sections": [
+                  {
+                    "id": "bridge",
+                    "name": "COCKPIT",
+                    "x": 156,
+                    "y": 204,
+                    "damage": 0,
+                    "fire": 0,
+                    "breach": 0
+                  },
+                  {
+                    "id": "work",
+                    "name": "WORK CABIN",
+                    "x": 156,
+                    "y": 348,
+                    "damage": 0,
+                    "fire": 0,
+                    "breach": 0
+                  }
+                ],
+                "impacts": []
+              },
+              "systemId": "kindred",
+              "bodyId": "avel",
+              "vesselId": "vessel_captain_ab59e229719e77d26c10edb9"
+            },
+            "transitSerial": 0,
+            "journeys": []
+          },
+          "narrative": {
+            "version": 1,
+            "quests": {},
+            "relations": {},
+            "met": [],
+            "pledge": null,
+            "pledgeAt": 0,
+            "passenger": null,
+            "passengerSerial": 0,
+            "passengerCompleted": 0,
+            "passengerHistory": []
+          },
+          "professions": {
+            "version": 1,
+            "careers": {
+              "paramedic": {
+                "enlisted": false,
+                "factionId": "freewake",
+                "xp": 0,
+                "completed": 0,
+                "earned": 0
+              },
+              "doctor": {
+                "enlisted": false,
+                "factionId": "freewake",
+                "xp": 0,
+                "completed": 0,
+                "earned": 0
+              },
+              "law": {
+                "enlisted": false,
+                "factionId": "freewake",
+                "xp": 0,
+                "completed": 0,
+                "earned": 0
+              },
+              "military": {
+                "enlisted": false,
+                "factionId": "freewake",
+                "xp": 0,
+                "completed": 0,
+                "earned": 0,
+                "serviceShips": []
+              }
+            },
+            "serial": 0,
+            "active": null,
+            "history": [],
+            "cooldownUntil": {
+              "paramedic": 0,
+              "doctor": 0,
+              "law": 0,
+              "military": 0
+            }
+          },
+          "npcContractSerial": 1,
+          "npcContractHistory": [],
+          "npcContract": {
+            "version": 2,
+            "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+            "serial": 1,
+            "employeeId": "captain_ab59e229719e77d26c10edb9",
+            "active": true,
+            "shared": true,
+            "roleId": "gunner",
+            "roleName": "Security hand",
+            "vesselId": "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+            "shipName": "Registered Courier",
+            "classId": "tern",
+            "origin": {
+              "systemId": "kindred",
+              "bodyId": "avel",
+              "name": "Avel",
+              "x": -713.4027567696663,
+              "y": -914.6892951343863,
+              "radius": 122
+            },
+            "dockPoint": {
+              "x": -583.1651072331654,
+              "y": -766.8814650197148
+            },
+            "workPoint": {
+              "x": -227.62311691645874,
+              "y": 765.2198748534511
+            },
+            "routeName": "Avel → Kindred Landing → return",
+            "factionId": "freewake",
+            "phase": "working",
+            "dockedAt": null,
+            "clock": 10.09999999999998,
+            "phaseClock": 0,
+            "startedAt": 0,
+            "reward": 217,
+            "paid": false,
+            "aborted": false,
+            "incidentStarted": true,
+            "work": {
+              "done": false,
+              "progress": 0.4,
+              "fireRemoved": 0,
+              "damageRepaired": 0,
+              "healed": 0,
+              "damage": 0,
+              "crewId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:worker",
+              "sectionId": null,
+              "enemyId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:interdictor",
+              "lastFire": 0,
+              "lastDamage": 0,
+              "lastHealth": 100,
+              "stagesDone": 1,
+              "routeVisited": false,
+              "shots": 0,
+              "targetHull": 60,
+              "targetMaxHull": 60,
+              "targetDisabled": false
+            },
+            "assignment": {
+              "version": 2,
+              "offerId": "watch:aird8a:1:escort",
+              "seed": "legacy-intercept-17:kindred:avel:1:escort",
+              "familyId": "escort",
+              "title": "An insured shipment",
+              "cargo": "5 a precision reactor core",
+              "quantity": 5,
+              "destinationId": "kindred-landing",
+              "destinationName": "Kindred Landing",
+              "tasks": [
+                {
+                  "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:prep",
+                  "kind": "identity",
+                  "done": true,
+                  "completedAt": 0
+                },
+                {
+                  "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:delivery",
+                  "kind": "handover",
+                  "done": false
+                }
+              ],
+              "visitedDestination": false,
+              "delivered": false,
+              "complication": {
+                "type": "attack",
+                "started": true,
+                "resolved": false,
+                "warned": false
+              },
+              "eva": {
+                "active": false,
+                "oxygen": 120,
+                "maxOxygen": 120,
+                "workerId": null,
+                "trips": 0,
+                "emergency": false
+              },
+              "comms": [
+                {
+                  "at": 0,
+                  "text": "Pilot: departure check signed. I have the helm."
+                },
+                {
+                  "at": 0,
+                  "text": "Pilot: 5 a precision reactor core for Kindred Landing. Complete the departure check at your marked station."
+                },
+                {
+                  "at": 2,
+                  "text": "Pilot: check received. Casting off for Kindred Landing."
+                },
+                {
+                  "at": 9,
+                  "text": "Pilot: holding the local route. You can watch the passage or check the work order."
+                },
+                {
+                  "at": 10,
+                  "text": "Pilot: an interdiction skiff is closing. Security station—bring its guns offline."
+                }
+              ],
+              "workerName": "Nai Ivara",
+              "pilotName": "Captain Rae Luma",
+              "departureBrief": true,
+              "cruiseBrief": true,
+              "interruptedLeg": true
+            },
+            "destination": {
+              "systemId": "kindred",
+              "bodyId": "kindred-landing",
+              "name": "Kindred Landing",
+              "x": -172.89867398000712,
+              "y": 954.4663684677188,
+              "radius": 122
+            }
+          },
+          "cosmicWarning": null,
+          "worlds": {}
+        }
+      }
+    },
+    "vessels": {
+      "vessel_captain_ab59e229719e77d26c10edb9": {
+        "id": "vessel_captain_ab59e229719e77d26c10edb9",
+        "ownerId": "captain_ab59e229719e77d26c10edb9",
+        "name": "Cinder",
+        "systemId": "kindred",
+        "dockedAt": "avel",
+        "ship": {
+          "id": "vessel_captain_ab59e229719e77d26c10edb9",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 1,
+          "x": -713.4027567696663,
+          "y": -717.6892951343863,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 100,
+          "maxHull": 100,
+          "shield": 35,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 2,
+          "rescueGroups": [],
+          "rescueHistory": [],
+          "damageControl": {
+            "version": 1,
+            "layoutRevision": 3,
+            "clock": 0,
+            "serial": 0,
+            "sections": [
+              {
+                "id": "bridge",
+                "name": "COCKPIT",
+                "x": 156,
+                "y": 204,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "work",
+                "name": "WORK CABIN",
+                "x": 156,
+                "y": 348,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              }
+            ],
+            "impacts": []
+          }
+        },
+        "allowCrew": false,
+        "grants": {},
+        "helmOwner": null,
+        "bunks": {
+          "0": "captain_ab59e229719e77d26c10edb9"
+        },
+        "installedBunks": 1,
+        "flightAssist": true,
+        "boarding": null,
+        "hostileTo": []
+      },
+      "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1": {
+        "id": "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+        "ownerId": "captain_ab59e229719e77d26c10edb9",
+        "name": "Registered Courier",
+        "systemId": "kindred",
+        "dockedAt": null,
+        "ship": {
+          "mass": 1.9,
+          "radius": 26,
+          "renderLength": 78,
+          "renderWidth": 50,
+          "maxHull": 140,
+          "maxShield": 40,
+          "maxEnergy": 130,
+          "maxFuel": 38,
+          "cargoCap": 32,
+          "speed": 225,
+          "thrustAcceleration": 175,
+          "strafeAcceleration": 125,
+          "angularAcceleration": 2.9,
+          "maxAngularVelocity": 2.1,
+          "angularDamping": 1.5,
+          "damage": 14,
+          "range": 820,
+          "scanRange": 250,
+          "mining": 1,
+          "id": "vessel:crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+          "name": "Registered Courier",
+          "classId": "tern",
+          "berths": 3,
+          "humanOccupants": 1,
+          "x": -284.88778969460606,
+          "y": 189.49586282322272,
+          "vx": 13.433574963040845,
+          "vy": 79.84334615015892,
+          "angle": 1.4623700043440873,
+          "angularVelocity": 0.005678344229581855,
+          "hull": 140,
+          "shield": 40,
+          "energy": 130,
+          "fuel": 38,
+          "warpRange": 0,
+          "npcEmployer": true,
+          "damageControl": {
+            "version": 1,
+            "layoutRevision": 3,
+            "clock": 10.09999999999998,
+            "serial": 0,
+            "sections": [
+              {
+                "id": "bridge",
+                "name": "SHUTTLE COCKPIT",
+                "x": 228,
+                "y": 180,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "saloon",
+                "name": "PASSENGER SALOON",
+                "x": 252,
+                "y": 372,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "quarters",
+                "name": "THREE BERTHS",
+                "x": 180,
+                "y": 564,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "engineering",
+                "name": "SERVICE DRIVE",
+                "x": 324,
+                "y": 564,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              }
+            ],
+            "impacts": []
+          }
+        },
+        "inventory": {
+          "cargo": {
+            "ore": 8,
+            "crystal": 0
+          },
+          "upgrades": {},
+          "crew": [
+            {
+              "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:pilot",
+              "name": "Captain Rae Luma",
+              "species": "vaeli",
+              "role": "pilot",
+              "x": 228,
+              "y": 180,
+              "health": 100,
+              "maxHealth": 100,
+              "status": "active",
+              "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+            },
+            {
+              "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:worker",
+              "name": "Nai Ivara",
+              "species": "vaeli",
+              "role": "deckhand",
+              "x": 252,
+              "y": 324,
+              "health": 100,
+              "maxHealth": 100,
+              "status": "active",
+              "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+            }
+          ],
+          "formerCrew": [],
+          "memorial": [],
+          "boardingHistory": [],
+          "boarding": null
+        },
+        "npcContractId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+        "allowCrew": false,
+        "grants": {
+          "captain_ab59e229719e77d26c10edb9": {
+            "allowed": true,
+            "roles": [
+              "weapons"
+            ],
+            "allowBunk": false
+          }
+        },
+        "helmOwner": null,
+        "bunks": {},
+        "installedBunks": 0,
+        "flightAssist": true,
+        "boarding": null,
+        "hostileTo": []
+      }
+    },
+    "worlds": {
+      "hearth": {
+        "record": {
+          "depleted": [],
+          "defeated": [],
+          "resolved": [],
+          "scanned": [],
+          "pickups": [],
+          "spawned": [],
+          "asteroidHealth": {},
+          "enemyHealth": {},
+          "enemyStates": {},
+          "encounterContacts": {},
+          "visits": 1,
+          "trafficStates": [
+            {
+              "id": "hearth:peacekeeper:resolute",
+              "routeKey": "resolute-patrol-v1:48h0c0",
+              "routeTime": 79.84343520132825,
+              "defenseCooldown": 0
+            },
+            {
+              "id": "hearth:traffic:0",
+              "routeKey": "zxozo7",
+              "routeTime": 29.936838038330063
+            },
+            {
+              "id": "hearth:traffic:1",
+              "routeKey": "1731vj4",
+              "routeTime": 93.25780478543311
+            },
+            {
+              "id": "hearth:traffic:2",
+              "routeKey": "bdxrfp",
+              "routeTime": 1.0339055201625433
+            },
+            {
+              "id": "hearth:traffic:3",
+              "routeKey": "1expg28",
+              "routeTime": 29.293514383334756
+            },
+            {
+              "id": "hearth:traffic:4",
+              "routeKey": "1sedzml",
+              "routeTime": 48.15615997312724
+            },
+            {
+              "id": "hearth:traffic:5",
+              "routeKey": "1rhjegl",
+              "routeTime": 21.398293927886165
+            },
+            {
+              "id": "hearth:traffic:6",
+              "routeKey": "wowqdt",
+              "routeTime": 49.89829056541534
+            },
+            {
+              "id": "hearth:traffic:7",
+              "routeKey": "1glimwk",
+              "routeTime": 56.58358063299161
+            },
+            {
+              "id": "hearth:traffic:8",
+              "routeKey": "k35zu4",
+              "routeTime": 39.00857965237931
+            },
+            {
+              "id": "hearth:traffic:9",
+              "routeKey": "taeven",
+              "routeTime": 25.45724779573738
+            },
+            {
+              "id": "hearth:traffic:10",
+              "routeKey": "km0g94",
+              "routeTime": 2.9748623687555757
+            },
+            {
+              "id": "hearth:traffic:11",
+              "routeKey": "q3hyaj",
+              "routeTime": 58.77636063878611
+            },
+            {
+              "id": "hearth:traffic:12",
+              "routeKey": "1ujn25j",
+              "routeTime": 64.14144503720301
+            },
+            {
+              "id": "hearth:traffic:13",
+              "routeKey": "wr8t44",
+              "routeTime": 42.52726991662814
+            },
+            {
+              "id": "hearth:traffic:14",
+              "routeKey": "91w9lf",
+              "routeTime": 84.65188665825858
+            },
+            {
+              "id": "hearth:traffic:15",
+              "routeKey": "1k11p8y",
+              "routeTime": 5.831284345221411
+            },
+            {
+              "id": "hearth:traffic:16",
+              "routeKey": "qlovez",
+              "routeTime": 82.74449630020911
+            },
+            {
+              "id": "hearth:traffic:17",
+              "routeKey": "x05jij",
+              "routeTime": 33.85185918708888
+            },
+            {
+              "id": "hearth:traffic:18",
+              "routeKey": "f4lgfs",
+              "routeTime": 90.6516832539471
+            },
+            {
+              "id": "hearth:traffic:19",
+              "routeKey": "1iqf8cw",
+              "routeTime": 16.215617417154405
+            },
+            {
+              "id": "hearth:traffic:20",
+              "routeKey": "xqessx",
+              "routeTime": 49.055822675935325
+            }
+          ],
+          "parkedShips": []
+        },
+        "enemies": [],
+        "traffic": [
+          {
+            "id": "hearth:peacekeeper:resolute",
+            "routeKey": "resolute-patrol-v1:48h0c0",
+            "routeTime": 79.84343520132825,
+            "defenseCooldown": 0
+          },
+          {
+            "id": "hearth:traffic:0",
+            "routeKey": "zxozo7",
+            "routeTime": 29.936838038330063
+          },
+          {
+            "id": "hearth:traffic:1",
+            "routeKey": "1731vj4",
+            "routeTime": 93.25780478543311
+          },
+          {
+            "id": "hearth:traffic:2",
+            "routeKey": "bdxrfp",
+            "routeTime": 1.0339055201625433
+          },
+          {
+            "id": "hearth:traffic:3",
+            "routeKey": "1expg28",
+            "routeTime": 29.293514383334756
+          },
+          {
+            "id": "hearth:traffic:4",
+            "routeKey": "1sedzml",
+            "routeTime": 48.15615997312724
+          },
+          {
+            "id": "hearth:traffic:5",
+            "routeKey": "1rhjegl",
+            "routeTime": 21.398293927886165
+          },
+          {
+            "id": "hearth:traffic:6",
+            "routeKey": "wowqdt",
+            "routeTime": 49.89829056541534
+          },
+          {
+            "id": "hearth:traffic:7",
+            "routeKey": "1glimwk",
+            "routeTime": 56.58358063299161
+          },
+          {
+            "id": "hearth:traffic:8",
+            "routeKey": "k35zu4",
+            "routeTime": 39.00857965237931
+          },
+          {
+            "id": "hearth:traffic:9",
+            "routeKey": "taeven",
+            "routeTime": 25.45724779573738
+          },
+          {
+            "id": "hearth:traffic:10",
+            "routeKey": "km0g94",
+            "routeTime": 2.9748623687555757
+          },
+          {
+            "id": "hearth:traffic:11",
+            "routeKey": "q3hyaj",
+            "routeTime": 58.77636063878611
+          },
+          {
+            "id": "hearth:traffic:12",
+            "routeKey": "1ujn25j",
+            "routeTime": 64.14144503720301
+          },
+          {
+            "id": "hearth:traffic:13",
+            "routeKey": "wr8t44",
+            "routeTime": 42.52726991662814
+          },
+          {
+            "id": "hearth:traffic:14",
+            "routeKey": "91w9lf",
+            "routeTime": 84.65188665825858
+          },
+          {
+            "id": "hearth:traffic:15",
+            "routeKey": "1k11p8y",
+            "routeTime": 5.831284345221411
+          },
+          {
+            "id": "hearth:traffic:16",
+            "routeKey": "qlovez",
+            "routeTime": 82.74449630020911
+          },
+          {
+            "id": "hearth:traffic:17",
+            "routeKey": "x05jij",
+            "routeTime": 33.85185918708888
+          },
+          {
+            "id": "hearth:traffic:18",
+            "routeKey": "f4lgfs",
+            "routeTime": 90.6516832539471
+          },
+          {
+            "id": "hearth:traffic:19",
+            "routeKey": "1iqf8cw",
+            "routeTime": 16.215617417154405
+          },
+          {
+            "id": "hearth:traffic:20",
+            "routeKey": "xqessx",
+            "routeTime": 49.055822675935325
+          }
+        ],
+        "savedAt": 1794432737068
+      },
+      "kindred": {
+        "record": {
+          "depleted": [],
+          "defeated": [],
+          "resolved": [],
+          "scanned": [],
+          "pickups": [],
+          "spawned": [
+            {
+              "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:interdictor",
+              "name": "Marked interdiction skiff",
+              "faction": "cinder",
+              "classId": "kestrel",
+              "interiorClassId": "kestrel",
+              "berths": 1,
+              "radius": 17,
+              "renderLength": 56,
+              "renderWidth": 30,
+              "boardable": false,
+              "x": -243.77337914749742,
+              "y": 564.1941869749896,
+              "vx": 2.577560539152719,
+              "vy": -27.881107970577546,
+              "angle": -1.678610077587428,
+              "hp": 60,
+              "maxHp": 60,
+              "speed": 28,
+              "damage": 3,
+              "reward": 0,
+              "active": true,
+              "cooldown": 3.9,
+              "boardingCooldown": 99999.9,
+              "professionJobId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+              "professionContributors": {},
+              "crewContractId": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1",
+              "targetId": "captain_ab59e229719e77d26c10edb9",
+              "boardingCharge": 0
+            }
+          ],
+          "asteroidHealth": {},
+          "enemyHealth": {
+            "kindred:raider:0": 56,
+            "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:interdictor": 60
+          },
+          "enemyStates": {
+            "kindred:raider:0": {
+              "classId": "sparrow",
+              "damageControl": null,
+              "x": 1194.119195418232,
+              "y": -145.4933864500743,
+              "vx": 0,
+              "vy": 0,
+              "angle": 7.895662128897096,
+              "disabled": false,
+              "boardingTargetId": null,
+              "boardingOriginId": null,
+              "boardingCharge": 0,
+              "boardingCooldown": 0,
+              "deck": null,
+              "occupation": null,
+              "capturedBy": null,
+              "promotedVesselId": null,
+              "canonicalVesselId": null
+            },
+            "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:interdictor": {
+              "classId": "kestrel",
+              "damageControl": null,
+              "x": -243.77337914749742,
+              "y": 564.1941869749896,
+              "vx": 2.577560539152719,
+              "vy": -27.881107970577546,
+              "angle": -1.678610077587428,
+              "disabled": false,
+              "boardingTargetId": null,
+              "boardingOriginId": null,
+              "boardingCharge": 0,
+              "boardingCooldown": 99999.9,
+              "deck": null,
+              "occupation": null,
+              "capturedBy": null,
+              "promotedVesselId": null,
+              "canonicalVesselId": null
+            }
+          },
+          "encounterContacts": {
+            "contact:kindred:signal:1": {
+              "id": "contact:kindred:signal:1",
+              "signalId": "kindred:signal:1",
+              "encounterId": "ghost_freighter",
+              "name": "Silent freighter",
+              "faction": "freewake",
+              "classId": "hauler",
+              "interiorClassId": "hauler",
+              "berths": 6,
+              "radius": 33,
+              "renderLength": 104,
+              "renderWidth": 66,
+              "boardable": true,
+              "x": 987.8489417833546,
+              "y": -755.3575854691221,
+              "angle": 0.45,
+              "speed": 0,
+              "contact": true
+            }
+          },
+          "visits": 1,
+          "trafficStates": [
+            {
+              "id": "kindred:traffic:0",
+              "routeKey": "1hvu0wl",
+              "routeTime": 50.27012860738361
+            },
+            {
+              "id": "kindred:traffic:1",
+              "routeKey": "q055a3",
+              "routeTime": 47.222620098533106
+            },
+            {
+              "id": "kindred:traffic:2",
+              "routeKey": "2b0lse",
+              "routeTime": 3.023422082219314
+            },
+            {
+              "id": "kindred:traffic:3",
+              "routeKey": "16pxyuv",
+              "routeTime": 43.301548583191746
+            },
+            {
+              "id": "kindred:traffic:4",
+              "routeKey": "1hc0dd5",
+              "routeTime": 64.5782769243964
+            }
+          ],
+          "parkedShips": []
+        },
+        "enemies": [
+          {
+            "id": "kindred:raider:0",
+            "x": 1194.119195418232,
+            "y": -145.4933864500743,
+            "angle": 7.895662128897096,
+            "vx": 0,
+            "vy": 0,
+            "hp": 56,
+            "cooldown": -8.002752002794285
+          },
+          {
+            "id": "crew-watch:captain_ab59e229719e77d26c10edb9:legacy-intercept-17:1:interdictor",
+            "x": -243.77337914749742,
+            "y": 564.1941869749896,
+            "angle": -1.678610077587428,
+            "vx": 2.577560539152719,
+            "vy": -27.881107970577546,
+            "hp": 60,
+            "cooldown": 3.9
+          }
+        ],
+        "traffic": [
+          {
+            "id": "kindred:traffic:0",
+            "routeKey": "1hvu0wl",
+            "routeTime": 50.27012860738361
+          },
+          {
+            "id": "kindred:traffic:1",
+            "routeKey": "q055a3",
+            "routeTime": 47.222620098533106
+          },
+          {
+            "id": "kindred:traffic:2",
+            "routeKey": "2b0lse",
+            "routeTime": 3.023422082219314
+          },
+          {
+            "id": "kindred:traffic:3",
+            "routeKey": "16pxyuv",
+            "routeTime": 43.301548583191746
+          },
+          {
+            "id": "kindred:traffic:4",
+            "routeKey": "1hc0dd5",
+            "routeTime": 64.5782769243964
+          }
+        ],
+        "savedAt": 1794432737069
+      }
+    },
+    "sites": {},
+    "leases": {}
+  },
+  "strandedSourceCommit": "f660767",
+  "stranded011": {
+    "version": 7,
+    "spaceVersion": 1,
+    "seed": "legacy-intercept-17",
+    "startMode": "regular",
+    "mode": "person",
+    "systemId": "kindred",
+    "locationId": "ship:vessel:crew-watch:local:legacy-intercept-17:1",
+    "credits": 180,
+    "character": {
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "traits": []
+    },
+    "characterLocked": true,
+    "captainName": "Captain",
+    "exploration": null,
+    "explorationRecords": {},
+    "cargo": {
+      "ore": 8,
+      "crystal": 0
+    },
+    "rep": {
+      "concord": 0,
+      "freewake": 0,
+      "meridian": 0,
+      "lantern": 0,
+      "cinder": 0
+    },
+    "flags": [
+      "started",
+      "visited_avel",
+      "landed_avel",
+      "first_landing",
+      "entered_cabin"
+    ],
+    "upgrades": {},
+    "visited": [
+      "hearth",
+      "kindred/avel"
+    ],
+    "discovered": [
+      "hearth",
+      "brindle",
+      "meridian",
+      "vesper",
+      "nacre",
+      "cinder",
+      "sector-119",
+      "sector-120",
+      "sector-134",
+      "sector-135",
+      "sector-136",
+      "sector-137",
+      "sector-150",
+      "sector-151",
+      "sector-152",
+      "sector-153",
+      "sector-167",
+      "sector-168"
+    ],
+    "missions": [],
+    "completedJobs": [],
+    "abandonedJobs": {},
+    "journal": [
+      {
+        "id": "log-0.00-1",
+        "title": "Landed on Avel",
+        "text": "Vaeli tideward towns rise between warm shoals. Most residents here are Vaeli; human neighborhoods and visiting crews share the dry quays. The local councils joined Kindred’s passage agreement without surrendering their own harbor laws.",
+        "type": "discovery",
+        "systemId": "kindred",
+        "time": 0
+      },
+      {
+        "id": "log-0.00-0",
+        "title": "A ship of your own",
+        "text": "Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.",
+        "type": "story",
+        "systemId": "hearth",
+        "time": 0
+      }
+    ],
+    "encounterHistory": [],
+    "openingMission": null,
+    "conversations": {
+      "version": 1,
+      "people": []
+    },
+    "socialVisits": {
+      "version": 1,
+      "people": []
+    },
+    "socialEpoch": 0,
+    "crew": [
+      {
+        "id": "crew-watch:local:legacy-intercept-17:1:pilot",
+        "name": "Captain Eni Ivara",
+        "species": "vaeli",
+        "role": "pilot",
+        "x": 228,
+        "y": 180,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+      },
+      {
+        "id": "crew-watch:local:legacy-intercept-17:1:worker",
+        "name": "Oli Len",
+        "species": "vaeli",
+        "role": "deckhand",
+        "x": 252,
+        "y": 324,
+        "health": 100,
+        "maxHealth": 100,
+        "status": "active",
+        "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+      }
+    ],
+    "formerCrew": [],
+    "memorial": [],
+    "fleet": {
+      "owned": [
+        "sparrow"
+      ],
+      "history": []
+    },
+    "boarding": null,
+    "boardingHistory": [],
+    "knownLore": [],
+    "completedChapters": [],
+    "pendingEncounter": null,
+    "worlds": {
+      "hearth": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {},
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [],
+        "visits": 1,
+        "enemyStates": {},
+        "encounterContacts": {},
+        "spaceVersion": 1
+      },
+      "kindred": {
+        "depleted": [],
+        "asteroidHealth": {},
+        "defeated": [],
+        "enemyHealth": {
+          "kindred:raider:0": 56,
+          "crew-watch:local:legacy-intercept-17:1:interdictor": 60
+        },
+        "resolved": [],
+        "scanned": [],
+        "pickups": [],
+        "spawned": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:interdictor",
+            "name": "Marked interdiction skiff",
+            "faction": "cinder",
+            "classId": "kestrel",
+            "interiorClassId": "kestrel",
+            "berths": 1,
+            "radius": 17,
+            "renderLength": 56,
+            "renderWidth": 30,
+            "boardable": false,
+            "x": -732.8231423059981,
+            "y": 1681.730976575379,
+            "vx": -8.356527232116468,
+            "vy": -26.72393033629028,
+            "angle": -1.6738618305757487,
+            "hp": 60,
+            "maxHp": 60,
+            "speed": 28,
+            "damage": 3,
+            "reward": 0,
+            "active": true,
+            "cooldown": 3.9,
+            "boardingCooldown": 99999.9,
+            "professionJobId": "crew-watch:local:legacy-intercept-17:1",
+            "professionContributors": {},
+            "crewContractId": "crew-watch:local:legacy-intercept-17:1",
+            "targetId": "local",
+            "boardingCharge": 0,
+            "disabled": false
+          }
+        ],
+        "visits": 2,
+        "enemyStates": {
+          "kindred:raider:0": {
+            "classId": "sparrow",
+            "damageControl": null,
+            "x": 3479.2699141042667,
+            "y": -528.7136224503452,
+            "vx": 0,
+            "vy": 0,
+            "angle": 12.395662128897262,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 0,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          },
+          "crew-watch:local:legacy-intercept-17:1:interdictor": {
+            "classId": "kestrel",
+            "damageControl": null,
+            "x": -617.5096465485221,
+            "y": 1758.1304370514295,
+            "vx": -8.356527232116468,
+            "vy": -26.72393033629028,
+            "angle": 2.8261381694242447,
+            "disabled": false,
+            "boardingTargetId": null,
+            "boardingOriginId": null,
+            "boardingCharge": 0,
+            "boardingCooldown": 99999.9,
+            "deck": null,
+            "occupation": null,
+            "capturedBy": null,
+            "promotedVesselId": null,
+            "canonicalVesselId": null
+          }
+        },
+        "encounterContacts": {
+          "contact:kindred:signal:1": {
+            "id": "contact:kindred:signal:1",
+            "signalId": "kindred:signal:1",
+            "encounterId": "ghost_freighter",
+            "name": "Silent freighter",
+            "faction": "freewake",
+            "classId": "hauler",
+            "interiorClassId": "hauler",
+            "berths": 6,
+            "radius": 33,
+            "renderLength": 104,
+            "renderWidth": 66,
+            "boardable": true,
+            "x": 2963.546825350064,
+            "y": -2266.0727564073663,
+            "angle": 0.45,
+            "speed": 0,
+            "contact": true
+          }
+        },
+        "trafficStates": [
+          {
+            "id": "kindred:traffic:0",
+            "routeKey": "g2qqgz",
+            "routeTime": 16.469231470254318
+          },
+          {
+            "id": "kindred:traffic:1",
+            "routeKey": "n4jyfg",
+            "routeTime": 145.15685322036663
+          },
+          {
+            "id": "kindred:traffic:2",
+            "routeKey": "j6pgvk",
+            "routeTime": 35.679378119637974
+          },
+          {
+            "id": "kindred:traffic:3",
+            "routeKey": "1qro09x",
+            "routeTime": 119.5699033976037
+          },
+          {
+            "id": "kindred:traffic:4",
+            "routeKey": "k4yohk",
+            "routeTime": 192.10526175821505
+          }
+        ],
+        "parkedShips": [],
+        "spaceVersion": 1
+      }
+    },
+    "stats": {
+      "time": 35.10000000000023,
+      "oreMined": 0,
+      "crystalsMined": 0,
+      "kills": 0,
+      "jobs": 0,
+      "scans": 0,
+      "salvaged": 0,
+      "jumps": 0,
+      "dockings": 1,
+      "work": 0,
+      "talks": 0,
+      "rescues": 0,
+      "distance": 1025.359059353726,
+      "decisions": 0
+    },
+    "ship": {
+      "id": "vessel:crew-watch:local:legacy-intercept-17:1",
+      "name": "Registered Courier",
+      "classId": "tern",
+      "humanOccupants": 1,
+      "x": -844.7127415702075,
+      "y": 573.785169791285,
+      "vx": 1.9033882556717983e-50,
+      "vy": 1.1622215410249884e-49,
+      "angle": 1.3687718731674097,
+      "angularVelocity": 0.012676634951260889,
+      "hull": 140,
+      "maxHull": 140,
+      "shield": 40,
+      "maxShield": 40,
+      "energy": 128.7,
+      "maxEnergy": 130,
+      "fuel": 38,
+      "maxFuel": 38,
+      "cargoCap": 32,
+      "speed": 225,
+      "turn": 2.9,
+      "damage": 14,
+      "range": 820,
+      "warpRange": 0,
+      "scanRange": 250,
+      "mining": 1,
+      "mass": 1.9,
+      "radius": 26,
+      "renderLength": 78,
+      "renderWidth": 50,
+      "thrustAcceleration": 175,
+      "strafeAcceleration": 125,
+      "angularAcceleration": 2.9,
+      "maxAngularVelocity": 2.1,
+      "angularDamping": 1.5,
+      "berths": 3,
+      "npcEmployer": true,
+      "damageControl": {
+        "version": 1,
+        "layoutRevision": 3,
+        "clock": 35.10000000000023,
+        "serial": 0,
+        "sections": [
+          {
+            "id": "bridge",
+            "name": "SHUTTLE COCKPIT",
+            "x": 228,
+            "y": 180,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "saloon",
+            "name": "PASSENGER SALOON",
+            "x": 252,
+            "y": 372,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "quarters",
+            "name": "THREE BERTHS",
+            "x": 180,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          },
+          {
+            "id": "engineering",
+            "name": "SERVICE DRIVE",
+            "x": 324,
+            "y": 564,
+            "damage": 0,
+            "fire": 0,
+            "breach": 0
+          }
+        ],
+        "impacts": []
+      },
+      "rescueGroups": [],
+      "rescueHistory": []
+    },
+    "person": {
+      "x": 324,
+      "y": 420,
+      "health": 100,
+      "facing": "up",
+      "weapon": "pulse-sidearm",
+      "weaponDrawn": false,
+      "maxHealth": 100,
+      "appearance": {
+        "skin": "warm",
+        "suit": "teal",
+        "hair": "dark",
+        "style": "crop"
+      },
+      "speed": 112,
+      "role": "security",
+      "tileX": 13,
+      "tileY": 17,
+      "aimAngle": -1.5707963267948966
+    },
+    "rng": 2289221110,
+    "encounterPolicyVersion": 2,
+    "nextEncounterAt": null,
+    "lastBodyId": "avel",
+    "jobSerial": 0,
+    "activityTokens": [],
+    "lastSaveAt": 35.10000000000023,
+    "interior": {
+      "kind": "ship",
+      "location": {
+        "id": "ship:vessel:crew-watch:local:legacy-intercept-17:1",
+        "vesselId": "vessel:crew-watch:local:legacy-intercept-17:1",
+        "vesselName": "Registered Courier",
+        "name": "Registered Courier · hired crew",
+        "kind": "ship",
+        "biome": "ship",
+        "shipClass": "tern",
+        "classId": "tern",
+        "crew": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:pilot",
+            "name": "Captain Eni Ivara",
+            "species": "vaeli",
+            "role": "pilot",
+            "x": 228,
+            "y": 180,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "Finish the departure check and I’ll take us out. The work order is posted at your station."
+          },
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:worker",
+            "name": "Oli Len",
+            "species": "vaeli",
+            "role": "deckhand",
+            "x": 252,
+            "y": 324,
+            "health": 100,
+            "maxHealth": 100,
+            "status": "active",
+            "greeting": "I’ll keep the ordinary deck checks moving while you handle the posted work order."
+          }
+        ],
+        "ownership": "crew",
+        "ownerName": "Local service cooperative",
+        "faction": "freewake",
+        "npcContractId": "crew-watch:local:legacy-intercept-17:1",
+        "berths": 3,
+        "guests": [],
+        "lore": "3 berths aboard your Tern. A small home that crosses a very large sky."
+      },
+      "signalId": null,
+      "liveVessel": true,
+      "returnShip": {
+        "x": -1142.7913238722585,
+        "y": -400.654195274746,
+        "vx": 0,
+        "vy": 0,
+        "angle": 0.9084073464102067,
+        "angularVelocity": 0
+      },
+      "returnLocation": null
+    },
+    "storyActions": [],
+    "livelihoods": {
+      "version": 1,
+      "parkedShip": null,
+      "transitSerial": 0,
+      "journeys": []
+    },
+    "narrative": {
+      "version": 1,
+      "quests": {},
+      "relations": {},
+      "met": [],
+      "pledge": null,
+      "pledgeAt": 0,
+      "passenger": null,
+      "passengerSerial": 0,
+      "passengerCompleted": 0,
+      "passengerHistory": []
+    },
+    "professions": {
+      "version": 1,
+      "careers": {
+        "paramedic": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "doctor": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "law": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0
+        },
+        "military": {
+          "enlisted": false,
+          "factionId": "freewake",
+          "xp": 0,
+          "completed": 0,
+          "earned": 0,
+          "serviceShips": []
+        }
+      },
+      "serial": 0,
+      "active": null,
+      "history": [],
+      "cooldownUntil": {
+        "paramedic": 0,
+        "doctor": 0,
+        "law": 0,
+        "military": 0
+      }
+    },
+    "npcContractSerial": 1,
+    "npcContractHistory": [],
+    "worldDirector": {
+      "version": 2,
+      "startedAt": 0,
+      "scheduleEpoch": 0,
+      "time": 30.30000000000016,
+      "nextTickAt": 35.30000000000016,
+      "cycle": -1,
+      "revision": 7,
+      "skippedCycles": 0,
+      "events": [],
+      "history": [],
+      "conditions": {},
+      "systemCooldowns": {},
+      "factionPressure": {
+        "concord": 0,
+        "freewake": 0,
+        "meridian": 0,
+        "lantern": 0,
+        "cinder": 0
+      }
+    },
+    "npcContract": {
+      "version": 2,
+      "id": "crew-watch:local:legacy-intercept-17:1",
+      "serial": 1,
+      "employeeId": "local",
+      "active": true,
+      "shared": false,
+      "roleId": "gunner",
+      "roleName": "Security hand",
+      "vesselId": "vessel:crew-watch:local:legacy-intercept-17:1",
+      "shipName": "Registered Courier",
+      "classId": "tern",
+      "origin": {
+        "systemId": "kindred",
+        "bodyId": "avel",
+        "name": "Avel",
+        "x": -2140.208270308999,
+        "y": -2744.067885403159,
+        "radius": 122
+      },
+      "dockPoint": {
+        "x": -2004.5917804983917,
+        "y": -2601.1792305300396
+      },
+      "workPoint": {
+        "x": -573.420464876473,
+        "y": 2674.1526117888884
+      },
+      "routeName": "Avel → Kindred Landing → return",
+      "factionId": "freewake",
+      "phase": "working",
+      "dockedAt": null,
+      "clock": 35.10000000000023,
+      "phaseClock": 25.000000000000085,
+      "startedAt": 0,
+      "reward": 217,
+      "paid": false,
+      "aborted": false,
+      "incidentStarted": true,
+      "work": {
+        "done": false,
+        "progress": 0.4,
+        "fireRemoved": 0,
+        "damageRepaired": 0,
+        "healed": 0,
+        "damage": 0,
+        "crewId": "crew-watch:local:legacy-intercept-17:1:worker",
+        "sectionId": null,
+        "enemyId": "crew-watch:local:legacy-intercept-17:1:interdictor",
+        "lastFire": 0,
+        "lastDamage": 0,
+        "lastHealth": 100,
+        "stagesDone": 1,
+        "routeVisited": false,
+        "shots": 84,
+        "targetHull": 60,
+        "targetMaxHull": 60,
+        "targetDisabled": false,
+        "lastShotAt": 35.10000000000023
+      },
+      "assignment": {
+        "version": 2,
+        "offerId": "watch:aird8a:1:escort",
+        "seed": "legacy-intercept-17:kindred:avel:1:escort",
+        "familyId": "escort",
+        "title": "An insured shipment",
+        "cargo": "5 a precision reactor core",
+        "quantity": 5,
+        "destinationId": "kindred-landing",
+        "destinationName": "Kindred Landing",
+        "tasks": [
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:prep",
+            "kind": "identity",
+            "done": true,
+            "completedAt": 0
+          },
+          {
+            "id": "crew-watch:local:legacy-intercept-17:1:delivery",
+            "kind": "handover",
+            "done": false
+          }
+        ],
+        "visitedDestination": false,
+        "delivered": false,
+        "complication": {
+          "type": "attack",
+          "started": true,
+          "resolved": false,
+          "warned": false
+        },
+        "eva": {
+          "active": false,
+          "oxygen": 120,
+          "maxOxygen": 120,
+          "workerId": null,
+          "trips": 0,
+          "emergency": false
+        },
+        "comms": [
+          {
+            "at": 0,
+            "text": "Pilot: departure check signed. I have the helm."
+          },
+          {
+            "at": 0,
+            "text": "Pilot: 5 a precision reactor core for Kindred Landing. Complete the departure check at your marked station."
+          },
+          {
+            "at": 2,
+            "text": "Pilot: check received. Casting off for Kindred Landing."
+          },
+          {
+            "at": 9,
+            "text": "Pilot: holding the local route. You can watch the passage or check the work order."
+          },
+          {
+            "at": 10,
+            "text": "Pilot: an interdiction skiff is closing. Security station—bring its guns offline."
+          }
+        ],
+        "workerName": "Oli Len",
+        "pilotName": "Captain Eni Ivara",
+        "departureBrief": true,
+        "cruiseBrief": true,
+        "interruptedLeg": true
+      },
+      "destination": {
+        "systemId": "kindred",
+        "bodyId": "kindred-landing",
+        "name": "Kindred Landing",
+        "x": -518.6960219400214,
+        "y": 2863.399105403156,
+        "radius": 122
+      },
+      "personal": {
+        "ship": {
+          "id": "cinder-y2c880",
+          "name": "Cinder",
+          "classId": "sparrow",
+          "humanOccupants": 1,
+          "x": -2140.208270308999,
+          "y": -2547.067885403159,
+          "vx": 0,
+          "vy": 0,
+          "angle": -1.5707963267948966,
+          "angularVelocity": 0,
+          "hull": 100,
+          "maxHull": 100,
+          "shield": 35,
+          "maxShield": 35,
+          "energy": 100,
+          "maxEnergy": 100,
+          "fuel": 22,
+          "maxFuel": 30,
+          "cargoCap": 24,
+          "speed": 255,
+          "turn": 4.6,
+          "damage": 16,
+          "range": 850,
+          "warpRange": 0,
+          "scanRange": 235,
+          "mining": 1,
+          "mass": 1,
+          "radius": 21,
+          "renderLength": 64,
+          "renderWidth": 42,
+          "thrustAcceleration": 230,
+          "strafeAcceleration": 165,
+          "angularAcceleration": 4.6,
+          "maxAngularVelocity": 2.6,
+          "angularDamping": 1.65,
+          "berths": 2,
+          "rescueGroups": [],
+          "rescueHistory": [],
+          "damageControl": {
+            "version": 1,
+            "layoutRevision": 3,
+            "clock": 0,
+            "serial": 0,
+            "sections": [
+              {
+                "id": "bridge",
+                "name": "COCKPIT",
+                "x": 156,
+                "y": 204,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              },
+              {
+                "id": "work",
+                "name": "WORK CABIN",
+                "x": 156,
+                "y": 348,
+                "damage": 0,
+                "fire": 0,
+                "breach": 0
+              }
+            ],
+            "impacts": []
+          }
+        },
+        "cargo": {
+          "ore": 0,
+          "crystal": 0
+        },
+        "upgrades": {},
+        "crew": [],
+        "formerCrew": [],
+        "memorial": [],
+        "boardingHistory": [],
+        "boarding": null
+      }
+    },
+    "cosmicWarning": null
+  }
+}

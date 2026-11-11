@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Realm } from '../../server/realm.mjs';
 import { Game } from '../../dist/engine.mjs';
 import { cabinLayout, enemyHullProfile } from '../../dist/fleet.mjs';
 import { systemBodyPosition } from '../../dist/system-space.mjs';
 import { findDerelict } from '../helpers/combat-fixtures.mjs';
+
+const watchFixture = JSON.parse(readFileSync(new URL('../fixtures/crew-watch-space-010.json', import.meta.url)));
 
 const copy = value => structuredClone(value);
 const pose = value => ({ x: value.x, y: value.y });
@@ -98,4 +101,23 @@ test('unloaded shared world records migrate once and room eviction does not move
   room = restored._room('cinder'); enemy = room.runtime.enemies.find(value => value.id === 'cinder:raider:0'); close(enemy, { x: -3900, y: 4800 }); assert.equal(enemy.hp, 44);
   const saved = restored.document(); assert.equal(saved.worlds.cinder.spaceVersion, 1); assert.equal(saved.worlds.cinder.record.spaceVersion, 1);
   const again = new Realm({ id: realm.id, snapshot: saved, persistence: persistence() }); close(again._room('cinder').runtime.enemies.find(value => value.id === enemy.id), pose(enemy));
+});
+
+test('a real shared 0.10 escort interruption keeps its canonical combat contact and parked personal hull', () => {
+  const raw = copy(watchFixture.shared), saved = raw.captains[raw.ownerId], job = saved.game.npcContract, oldEmployer = raw.vessels[job.vesselId], oldEnemy = raw.worlds.kindred.enemies.find(value => value.id === job.work.enemyId);
+  assert.equal(job.assignment.interruptedLeg, true); assert.equal(job.assignment.visitedDestination, false);
+  const offset = { x: oldEnemy.x - oldEmployer.ship.x, y: oldEnemy.y - oldEmployer.ship.y }, original = copy(raw);
+  const realm = new Realm({ id: raw.realmId, snapshot: raw, persistence: persistence() }), captain = realm.captains.get(saved.id), employer = realm.vessels.get(job.vesselId), personal = realm.vessels.get(saved.ownedVesselId), enemy = realm._room('kindred').runtime.enemies.find(value => value.id === job.work.enemyId);
+  close(enemy, { x: employer.ship.x + offset.x, y: employer.ship.y + offset.y });
+  assert.equal(enemy.hp, oldEnemy.hp); assert.equal(employer.ship.hull, oldEmployer.ship.hull); assert.equal(captain.aboard, employer.id); assert.equal(captain.game.state.ship, personal.ship);
+  assert.notEqual(personal.id, employer.id); assert.equal(personal.dockedAt, 'avel'); assert.deepEqual(captain.game.state.npcContract.work, job.work); assert.deepEqual(captain.game.state.npcContract.assignment, job.assignment);
+  const persisted = realm.document(), again = new Realm({ id: realm.id, snapshot: persisted, persistence: persistence() });
+  close(again.vessels.get(employer.id).ship, pose(employer.ship)); close(again._room('kindred').runtime.enemies.find(value => value.id === enemy.id), pose(enemy));
+  close(persisted.worlds.kindred.record.enemyStates[enemy.id], pose(enemy)); close(persisted.worlds.kindred.enemies.find(value => value.id === enemy.id), pose(enemy)); assert.deepEqual(raw, original);
+  ok(realm.attach(captain, { close() {} })); Object.assign(captain.game.state.person, cabinLayout(employer.ship.classId).stations.security);
+  for (let tick = 0; tick < 600 && !captain.game.state.npcContract.assignment.complication.resolved; tick++) {
+    const at = Date.now(); captain.input = { fire: true }; captain.inputAt = at; realm.step(.1, realm.tick + 1, at, at);
+  }
+  assert.equal(captain.game.state.npcContract.assignment.complication.resolved, true); assert.ok(captain.game.state.npcContract.work.damage >= 12);
+  assert.equal(captain.game.state.npcContract.paid, false); assert.equal(captain.game.state.ship, personal.ship);
 });
