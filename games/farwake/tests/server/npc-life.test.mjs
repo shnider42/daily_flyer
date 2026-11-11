@@ -235,6 +235,57 @@ test('four captains see one traveling acquaintance in the same place and keep th
   }
 });
 
+test('an old realm starts new social projects together and preserves their epoch and recognition through offline restart', async t => {
+  const time = clock(t), initial = await fixture(1), captainId = initial.captains[0].id;
+  const old = initial.realm.document(), oldAge = 30 * 24 * 60 * 60;
+  old.createdAt = time.now() - oldAge * 1000; delete old.socialEpochAt;
+  old.captains[captainId].game.stats.time = 500000; delete old.captains[captainId].game.socialEpoch;
+  let realm = new Realm({ id: initial.realm.id, snapshot: old, persistence: initial.storage, version: initial.realm.version });
+  let captain = realm.captains.get(captainId);
+  const epoch = realm.socialEpochAt;
+  assert.equal(epoch, time.now()); assert.equal(realm._socialTime(), 0);
+  assert.equal(realm._npcTime(), oldAge, 'Introducing social projects does not restart existing schedules.');
+  async function enterHall(person) {
+    const system = realm.galaxy.find(value => value.bodies.some(body => body.id === 'kindred-landing'));
+    realm._landCharacter(person, system.id, 'kindred-landing');
+    const entrance = realm._surface(person).entities.find(entity => entity.data?.siteId === 'table-of-arrivals');
+    Object.assign(person.game.state.person, { x: entrance.x, y: entrance.y });
+    ok(await realm.command(person, 'enterSite', { siteId: 'table-of-arrivals' }));
+  }
+  const entityId = 'social:recurring:anja-pell';
+  async function talk(person) {
+    approach(realm, person, entityId);
+    return ok(await realm.command(person, 'surfaceAction', { action: 'talk', entityId, storyTime: 99999999 })).dialogue;
+  }
+  await enterHall(captain);
+  const first = await talk(captain);
+  assert.equal(first.storyStage, 0); assert.match(first.greeting, /window seat for my brother/);
+  for (const compact of [false, true]) {
+    const packet = realm.snapshotFor(captain, { compact, drainEvents: false });
+    assert.equal(packet.state.npcLife.socialTime, 0); assert.equal(packet.state.npcLife.time, oldAge);
+    assert.equal(packet.state.npcLife.sampledAt, time.now());
+  }
+  time.advance(2881);
+  const second = await talk(captain);
+  assert.equal(second.storyStage, 1); assert.match(second.greeting, /Since we last spoke/);
+  const { captain: late } = await realm.createCaptain('Arriving for supper');
+  await enterHall(late);
+  assert.equal(late.game.state.stats.time, 0);
+  assert.equal((await talk(late)).storyStage, 1, 'A late arrival shares the actual project stage rather than restarting it.');
+  const saved = realm.document(), version = realm.version;
+  assert.equal(saved.socialEpochAt, epoch);
+  time.advance(2881);
+  realm = new Realm({ id: realm.id, snapshot: copy(saved), persistence: initial.storage, version }); captain = realm.captains.get(captainId);
+  assert.equal(realm.socialEpochAt, epoch); assert.equal(realm._socialTime(), 5762);
+  assert.equal(realm._npcTime(), oldAge + 5762);
+  assert.equal(captain.game.state.socialVisits.people[0].storyStage, 1, 'Recognition survives before the next conversation.');
+  const third = await talk(captain);
+  assert.equal(third.storyStage, 2); assert.match(third.greeting, /Since we last spoke/);
+  assert.equal(captain.game.state.socialVisits.people[0].meetings, 3);
+  assert.equal(realm.snapshotFor(realm.captains.get(late.id), { compact: true }).state.npcLife.socialTime, 5762);
+  assert.equal(createPrivacyExport(realm, captain, { sourceKind: 'live-authority' }).captain.game.socialEpoch, captain.game.state.socialEpoch);
+});
+
 test('the opening mission follows its moving contact and still validates proximity', async t => {
   const time = clock(t), { realm, captains: [captain] } = await fixture(1);
   time.advance(580);

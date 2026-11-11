@@ -147,7 +147,7 @@ function initialState(seed, options = {}) {
   return {
     version: SAVE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
-    upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(),
+    upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, ...(shipless?{unowned:true}:{}), humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
@@ -264,6 +264,10 @@ export class Game {
     s.abandonedJobs = raw.abandonedJobs && typeof raw.abandonedJobs === 'object' && !Array.isArray(raw.abandonedJobs) ? clone(raw.abandonedJobs) : {};
     s.conversations = normalizeConversations(raw.conversations);
     s.socialVisits = normalizeSocialVisits(raw.socialVisits);
+    // Social projects begin when this feature joins an existing voyage. Its
+    // ordinary clock still drives schedules, recognition and local time.
+    const socialNow = Math.max(0, finite(s.stats.time));
+    s.socialEpoch = Number.isFinite(raw.socialEpoch) && raw.socialEpoch >= 0 ? Math.min(raw.socialEpoch, socialNow) : socialNow;
     s.worlds = raw.worlds && typeof raw.worlds === 'object' ? clone(raw.worlds) : {};
     s.rng = finite(s.rng, fresh.rng) >>> 0;
     for (const name of ['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'shield', 'energy', 'fuel']) s.ship[name] = finite(s.ship[name], fresh.ship[name]);
@@ -288,7 +292,11 @@ export class Game {
     person.appearance = { ...this.state.character.appearance };
     person.speed = 112 * effects.walkSpeed;
   }
-  conversation(entity, options) { return conversation(this, entity, options); }
+  conversation(entity, options = {}) {
+    const sharedTime = this._socialTime?.(), projectedTime = this.state.npcLife?.socialTime;
+    const storyTime = Number.isFinite(sharedTime) ? sharedTime : Number.isFinite(projectedTime) ? projectedTime : finite(this.state.stats?.time) - finite(this.state.socialEpoch);
+    return conversation(this, entity, { ...options, storyTime: clamp(storyTime, 0, 1e12) });
+  }
   customizeCharacter({appearance, traits, chooseTraits = false} = {}) {
     if(this.state.person.health <= 0 || this.state.boarding?.phase === 'active' || this.state.exploration) return this._fail('Find a safe place before changing your captain.', 'combat');
     if(chooseTraits && this.state.characterLocked) return this._fail('Your traits are already part of this captain. Appearance can still change.', 'locked');

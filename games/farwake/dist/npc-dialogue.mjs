@@ -307,7 +307,7 @@ function routine(entity, role, clock, key) {
 }
 
 /** Caller owns proximity validation. Reading dialogue never changes reputation. */
-export function conversation(game, entity = {}, { record = true, time } = {}) {
+export function conversation(game, entity = {}, { record = true, time, storyTime } = {}) {
   const state = game.state, id = idOf(entity), at = clamp(finite(time, finite(state.stats?.time)), 0, 1e12);
   if (entity.data?.automated) {
     const greetings = { passage: 'Passenger dispatch. Review destinations, fares, and care needs before accepting.', faction: 'Affiliation records. Review your standing and the terms of a pledge.', public: 'Public services. Clinic shifts, care flights, patrols, and enlistment.' };
@@ -317,7 +317,7 @@ export function conversation(game, entity = {}, { record = true, time } = {}) {
   const known = !!previous || !!state.narrative?.met?.includes(contactId(entity)), role = roleOf(entity), clock = npcClock(at, localBody(game, entity) || 'port');
   const relation = relationship(game, entity, known), key = `${state.seed}:${id}:${clock.day}:${clock.period}`;
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
-  const social = socialConversation(state, entity, at, { record });
+  const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
   let response = urgent(game, entity, role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };

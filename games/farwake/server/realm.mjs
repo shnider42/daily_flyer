@@ -39,6 +39,10 @@ export class Realm extends BoardingAuthority {
     this.settings = Object.freeze({ openingMission: (snapshot ? snapshot.settings?.openingMission : settings?.openingMission) === true });
     this.persistence = persistence; this.version = version; this.onConflict = onConflict;
     this.createdAt = snapshot?.createdAt || now(); this.ownerId = snapshot?.ownerId || null;
+    // New social projects begin when this feature reaches a realm, including
+    // older galaxies. Keep that shared epoch through empty periods and restarts.
+    const socialEpoch = snapshot?.socialEpochAt, loadedAt = now();
+    this.socialEpochAt = Number.isFinite(socialEpoch) && socialEpoch >= 0 && socialEpoch <= loadedAt ? socialEpoch : loadedAt;
     // A realm clock keeps one resident's day consistent for every captain,
     // including late arrivals and server restarts. Only short conversation
     // pauses need storage; unvisited ports do not run an NPC simulation.
@@ -83,6 +87,7 @@ export class Realm extends BoardingAuthority {
       captain.game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
       captain.game._surfaceForInteraction = () => this._surface(captain);
       captain.game._npcTime = () => this._npcTime();
+      captain.game._socialTime = () => this._socialTime();
       captain.game._npcHoldsForInteraction = () => this._npcHoldsFor(captain);
     }
     for(const captain of this.captains.values())if(captain.aboard){
@@ -133,6 +138,7 @@ export class Realm extends BoardingAuthority {
     game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
     game._surfaceForInteraction = () => this._surface(captain);
     game._npcTime = () => this._npcTime();
+    game._socialTime = () => this._socialTime();
     game._npcHoldsForInteraction = () => this._npcHoldsFor(captain);
     if (vessel && atPort && game.state.livelihoods?.parkedShip) Object.assign(game.state.livelihoods.parkedShip, { id: vessel.id, vesselId: vessel.id });
     const revision = this.markDirty(); await this.flush(revision);
@@ -417,6 +423,7 @@ export class Realm extends BoardingAuthority {
     return captain.game.currentBody;
   }
   _npcTime(timestamp = now()) { return Math.max(0, (timestamp - this.createdAt) / 1000); }
+  _socialTime(timestamp = now()) { return Math.max(0, (timestamp - this.socialEpochAt) / 1000); }
   _npcHoldsFor(captain, time = this._npcTime()) {
     const roomId = this.roomInfo(captain).id;
     for (const [key, entries] of this.npcHolds) {
@@ -443,7 +450,7 @@ export class Realm extends BoardingAuthority {
   }
   _npcView(captain, timestamp = now()) {
     const time = this._npcTime(timestamp), surface = captain.game.state.mode === 'person' ? this._surface(captain, time) : null;
-    return { time, sampledAt: timestamp, surfaceId: surface?.id || null, holds: surface ? clone(this._npcHoldsFor(captain, time)) : [] };
+    return { time, socialTime: this._socialTime(timestamp), sampledAt: timestamp, surfaceId: surface?.id || null, holds: surface ? clone(this._npcHoldsFor(captain, time)) : [] };
   }
   _surface(captain, time = this._npcTime()) {
     const location = this._location(captain); if (!location) return null;
@@ -1118,7 +1125,7 @@ export class Realm extends BoardingAuthority {
       captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
+    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');

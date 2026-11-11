@@ -60,12 +60,24 @@ test('an itinerant exists at only one stop and walks through actual doors when a
 
 test('recurring people remember real later visits without click farming or divergent world stories',()=>{
  const a=interior('tessera','small-mercy'),b=interior('kindred-landing','table-of-arrivals'),tamsin=surface=>surface.entities.find(entity=>entity.data?.recurringId==='tamsin-rue'),state={stats:{time:0},locationId:a.id};
- const first=socialConversation(state,tamsin(a),300);assert.equal(first.relationship,'First meeting');assert.equal(state.socialVisits.people[0].meetings,1);
- for(let n=0;n<20;n++)socialConversation(state,tamsin(a),301+n);assert.equal(state.socialVisits.people[0].meetings,1);
- socialConversation(state,tamsin(b),1740);assert.equal(state.socialVisits.people[0].meetings,2);
- const before=JSON.stringify(state),reading=socialConversation(state,tamsin(b),6000,{record:false});assert.equal(JSON.stringify(state),before);assert.equal(reading.storyStage,2);
- const stranger=socialConversation({stats:{}},tamsin(b),6000,{record:false});assert.equal(stranger.storyStage,reading.storyStage);assert.match(reading.greeting,/letters/);assert.match(stranger.greeting,/letters/);
- const restored=JSON.parse(JSON.stringify(state));assert.match(socialConversation(restored,tamsin(b),6000).greeting,/Since we last spoke/);assert.equal(normalizeSocialVisits({people:Array.from({length:500},(_,i)=>({id:`fake-${i}`,meetings:900}))}).people.length,0);
+ const first=socialConversation(state,tamsin(a),300,{storyTime:300});assert.equal(first.relationship,'First meeting');assert.equal(state.socialVisits.people[0].meetings,1);
+ for(let n=0;n<20;n++)socialConversation(state,tamsin(a),301+n,{storyTime:301+n});assert.equal(state.socialVisits.people[0].meetings,1);
+ socialConversation(state,tamsin(b),1740,{storyTime:1740});assert.equal(state.socialVisits.people[0].meetings,2);
+ const before=JSON.stringify(state),reading=socialConversation(state,tamsin(b),6000,{record:false,storyTime:6000});assert.equal(JSON.stringify(state),before);assert.equal(reading.storyStage,2);
+ const stranger=socialConversation({stats:{}},tamsin(b),6000,{record:false,storyTime:6000});assert.equal(stranger.storyStage,reading.storyStage);assert.match(reading.greeting,/letters/);assert.match(stranger.greeting,/letters/);
+ const restored=JSON.parse(JSON.stringify(state));assert.match(socialConversation(restored,tamsin(b),6000,{storyTime:6000}).greeting,/Since we last spoke/);assert.equal(normalizeSocialVisits({people:Array.from({length:500},(_,i)=>({id:`fake-${i}`,meetings:900}))}).people.length,0);
+});
+
+test('old routine clocks do not exhaust newly introduced projects, and prior witnessed stages never regress',()=>{
+ const surface=interior('tessera','small-mercy'),entity=surface.entities.find(value=>value.data?.recurringId==='tamsin-rue'),oldTime=1_000_000;
+ const state={stats:{time:oldTime},locationId:surface.id};
+ const first=conversation({state},entity,{time:oldTime,storyTime:0});assert.equal(first.storyStage,0);assert.match(first.greeting,/cracked music box/);assert.equal(state.socialVisits.people[0].lastAt,oldTime,'recognition keeps the ordinary visit clock');
+ state.stats.time=oldTime+3000;
+ const next=conversation({state},entity,{time:oldTime+3000,storyTime:3000});assert.equal(next.storyStage,1);assert.match(next.greeting,/Since we last spoke/);assert.match(next.greeting,/winding key/);
+ const saved=JSON.parse(JSON.stringify(state));
+ assert.equal(conversation({state:saved},entity,{time:oldTime+3001,storyTime:0}).storyStage,1,'a migrated epoch cannot un-tell a witnessed update');
+ assert.equal(socialConversation({stats:{time:oldTime}},entity,oldTime,{record:false}).storyStage,0,'missing epoch never falls back to absolute galaxy age');
+ assert.equal(socialConversation({stats:{time:oldTime+3000},socialEpoch:oldTime},entity,oldTime+3000,{record:false}).storyStage,1,'low-level solo reads use the saved introduction epoch');
 });
 
 test('ambient conversations require actual nearby awake people and leave long quiet intervals',()=>{

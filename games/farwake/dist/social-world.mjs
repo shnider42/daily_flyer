@@ -82,7 +82,7 @@ export function normalizeSocialVisits(raw){
  return{version:1,people};
 }
 
-export function socialConversation(state,entity,seconds,{record:remember=true}={}){
+export function socialConversation(state,entity,seconds,{record:remember=true,storyTime}={}){
  if(entity.data?.culture==='reedbound'||entity.data?.techLevel==='preflight'){
   const lines={farmer:'The lower field flooded. We will sow it later. The river has not broken an agreement; it was here first.',herder:'Hold out an empty hand. They trust a hand that has nothing to hide.',guard:'The path is open. Leave blades covered, and do not enter a house without an answer.',weaver:'Each household keeps half the pattern. A promise cannot belong to only one of us.'};
   const known=state.conversations?.people?.some(row=>row.id===entity.id);
@@ -90,9 +90,12 @@ export function socialConversation(state,entity,seconds,{record:remember=true}={
  }
  const id=entity.data?.recurringId,profile=recurring[id];if(!profile)return null;
  const time=Math.max(0,finite(seconds)),memory=normalizeSocialVisits(state.socialVisits),prior=memory.people.find(row=>row.id===id),bodyId=entity.data?.bodyId||entity.data?.homeLocationId||state.locationId||'';
- // The project advances by the galaxy's clock for everyone. A captain's memory
- // controls recognition, not contradictory private versions of the same life.
- const stage=Math.min(2,Math.floor(time/(SOCIAL_DAY_SECONDS*2))),newVisit=!prior||prior.bodyId!==bodyId||time-prior.lastAt>=SOCIAL_DAY_SECONDS;
+ // Projects have an introduction epoch separate from the routine/visit clock.
+ // A long-running galaxy must not exhaust newly introduced lives immediately.
+ // Authority supplies shared elapsed storyTime; solo saves keep socialEpoch.
+ // Unknown legacy state starts at zero rather than borrowing its absolute age.
+ const projectTime=Math.max(0,finite(storyTime,Number.isFinite(state.socialEpoch)?finite(state.stats?.time,time)-state.socialEpoch:0));
+ const stage=Math.max(prior?.storyStage||0,Math.min(2,Math.floor(projectTime/(SOCIAL_DAY_SECONDS*2)))),newVisit=!prior||prior.bodyId!==bodyId||time-prior.lastAt>=SOCIAL_DAY_SECONDS;
  let greeting=!prior?`${profile.intro} ${profile.updates[stage]}`:stage>prior.storyStage?`Since we last spoke: ${profile.updates[stage]}`:prior.bodyId!==bodyId?`You found me again. ${profile.updates[stage]}`:newVisit?`Good to see you back. ${profile.updates[stage]}`:'Still here. A familiar face makes a place easier to leave—and harder.';
  if(entity.life?.activity==='sleeping')greeting=`You caught me asleep. ${prior?'I remember you. ':''}${profile.updates[stage]}`;
  if(remember){if(!prior)memory.people.push({id,meetings:1,firstAt:time,lastAt:time,bodyId,storyStage:stage});else if(newVisit||stage!==prior.storyStage){prior.meetings=Math.min(99,prior.meetings+(newVisit?1:0));prior.lastAt=time;prior.bodyId=bodyId;prior.storyStage=stage;}state.socialVisits=memory;}
