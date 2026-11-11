@@ -40,7 +40,7 @@ test('Resolute has a slow continuous patrol which clears the full capital hull a
   const game=new Game('patrol-clearance'),keeper=keeperOf(game),hull=getShipClass('judicator');
   const footprint=Math.hypot(hull.stats.renderLength,hull.stats.renderWidth)/2;
   let previous=pose(keeper);
-  for(let tick=0;tick<850;tick++){
+  for(let tick=0;tick<Math.ceil(keeper._peacekeeperPatrol.period*4)+10;tick++){
     advanceTraffic(game.system.traffic,.5);
     for(const key of ['x','y','vx','vy','angle','angularVelocity','speed'])assert.ok(Number.isFinite(keeper[key]));
     assert.ok(Math.hypot(keeper.x-previous.x,keeper.y-previous.y)<6,'no teleport at the loop join');
@@ -51,8 +51,8 @@ test('Resolute has a slow continuous patrol which clears the full capital hull a
   }
   assert.equal(keeper.trafficStatus,'Keeping the harbor watch');
   assert.equal(JSON.stringify(keeper).includes('_peacekeeperPatrol'),false);
-  const scenery=[...game.system.bodies,{id:'new-scenery',x:-710,y:500,radius:450}];
-  const shifted=createPeacekeeper({seed:'patrol-clearance',system:game.currentSystem,bodies:scenery});
+  const scenery=[...game.system.bodies,{id:'new-scenery',x:keeper._peacekeeperPatrol.x,y:keeper._peacekeeperPatrol.y,radius:450}];
+  const shifted=createPeacekeeper({seed:'patrol-clearance',system:{...game.currentSystem,spatialScale:game.system.spatialScale,radius:game.system.radius},bodies:scenery});
   assert.ok(shifted,'new scenery closes one loop but does not remove the unique watch');
   assert.notDeepEqual(shifted._peacekeeperPatrol,keeper._peacekeeperPatrol);
 });

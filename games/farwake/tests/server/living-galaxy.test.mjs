@@ -170,11 +170,12 @@ test('bounty surrender needs a disabled unoccupied nearby hull and custody settl
 });
 
 test('a story sensor reading uses the actual helm vessel rather than the captain’s parked owned hull',async t=>{
- clock(t);const{realm,captains:[captain,friend]}=await fixture(2),owned=realm.vessels.get(captain.ownedVesselId),shared=realm.vessels.get(friend.ownedVesselId),definition=questThread('borrowed_time'),stageIndex=definition.stages.findIndex(stage=>stage.kind==='ship-scan'),reading=definition.stages[stageIndex].at;
- for(const vessel of[owned,shared]){vessel.systemId='umbra';Object.assign(vessel.ship,{x:reading.x+(vessel===shared?100:0),y:reading.y,vx:0,vy:0});}for(const player of[captain,friend])realm._bindCaptain(player);realm._room('umbra').runtime.enemies=[];
+ clock(t);const{realm,captains:[captain,friend]}=await fixture(2),owned=realm.vessels.get(captain.ownedVesselId),shared=realm.vessels.get(friend.ownedVesselId),definition=questThread('borrowed_time'),stageIndex=definition.stages.findIndex(stage=>stage.kind==='ship-scan');
  // A legitimate saved quest at its sensor step isolates authority geometry from
  // the unrelated preceding conversations and their moral choices.
  captain.game.state.narrative.quests.borrowed_time={status:'active',stage:stageIndex,choices:{},solved:[],rewardQuote:definition.reward,startedAt:0,finishedAt:null,targetId:null,huntOutcome:null,shipId:owned.id,outcome:null};
+ const reading=captain.game.narrativeBoard().active.find(thread=>thread.id==='borrowed_time').target;
+ for(const vessel of[owned,shared]){vessel.systemId='umbra';Object.assign(vessel.ship,{x:reading.x+(vessel===shared?100:0),y:reading.y,vx:0,vy:0});}for(const player of[captain,friend])realm._bindCaptain(player);realm._room('umbra').runtime.enemies=[];
  ok(await realm.command(friend,'setCrewAccess',{captainId:captain.id,allowed:true,roles:['helm']}));ok(await realm.command(friend,'enterCabin'));ok(await realm.command(captain,'boardShip',{vesselId:shared.id}));
  assert.equal((await realm.command(captain,'threadAction',{threadId:'borrowed_time',action:'advance'})).code,'helm','a passenger cannot take a helm-only reading');
  const helm=realm._surface(captain).entities.find(entity=>entity.data?.stationRole==='helm');walk(realm,captain,helm.id);ok(await realm.command(captain,'takeStation',{role:'helm',entityId:helm.id}));

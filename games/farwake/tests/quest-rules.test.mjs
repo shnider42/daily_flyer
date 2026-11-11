@@ -30,7 +30,7 @@ function fireAt(game,enemy,count){
 }
 function progress(game,id,choices={}){
  const def=questThread(id),record=game.state.narrative.quests[id],step=def.stages[record.stage];
- go(game,step.at);
+ go(game,step.kind==='ship-scan'?game.narrativeBoard().active.find(thread=>thread.id===id).target:step.at);
  if(step.kind==='hunt'){game.syncNarrativeWorld();const enemy=game.system.enemies.find(enemy=>enemy.id===record.targetId);assert.ok(enemy);fireAt(game,enemy,3);assert.equal(enemy.disabled,true);return ok(game.threadAction({threadId:id,action:'capture'}));}
  return ok(game.threadAction({threadId:id,action:step.kind==='choice'?'choose':step.kind==='puzzle'?'solve':'advance',entityId:step.at.entityId,choiceId:choices[step.id]||step.options?.[0].id,solution:step.puzzle?.solution}));
 }

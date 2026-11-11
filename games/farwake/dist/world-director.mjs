@@ -1,6 +1,7 @@
 /** A single, persisted clock for local crises. DOM-free; authority advances it once. */
 import { enemyHullProfile } from './fleet.mjs';
 import { systemContext, incidentTypeWeight } from './encounter-context.mjs';
+import { WORLD_RADIUS } from './system-space.mjs';
 
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -174,7 +175,7 @@ export function directorBoard(director,{systemId=null,playerId=null}={}){
 /** Append real raid/patrol hulls once per room. A boarded/captured/damaged hull persists. */
 export function syncDirectorWorld(game,director){
  if(!game?.system||!director)return false;
- const world=game._record(),runtime=game.system;
+ const world=game._record(),runtime=game.system,limit=Math.max(0,finite(runtime.radius,WORLD_RADIUS)-500);
  world.spawned||=[];world.enemyHealth||={};world.enemyStates||={};world.defeated||=[];
  const active=new Set(director.events.filter(event=>event.systemId===game.state.systemId&&event.status==='active').map(event=>event.id));
  const occupied=enemy=>enemy.promotedVesselId||enemy.canonicalVesselId||enemy.capturedBy||enemy.boardingTargetId||enemy.deck?.occupation||enemy.disabled||enemy.hp<enemy.maxHp||game.state.boarding?.targetId===enemy.id||game._worldGames?.some(captain=>captain.state.boarding?.targetId===enemy.id);
@@ -190,11 +191,11 @@ export function syncDirectorWorld(game,director){
    if(liveIds.has(descriptor.id)||world.defeated.includes(descriptor.id))continue;
    const prior=world.spawned.find(enemy=>enemy.id===descriptor.id),saved=world.enemyStates[descriptor.id];
    const angle=.7+descriptor.index*.8,offset=finite(body.radius,80)+450;
-   const enemy=prior?{...clone(prior),...clone(saved||{}),hp:world.enemyHealth[descriptor.id]??prior.hp}:{id:descriptor.id,directorEventId:event.id,name:descriptor.name,faction:descriptor.faction,...enemyHullProfile(descriptor.classId),x:clamp(body.x+Math.cos(angle)*offset,-2200,2200),y:clamp(body.y+Math.sin(angle)*offset,-2200,2200),vx:0,vy:0,angle:angle+Math.PI,hp:descriptor.index?84:65,maxHp:descriptor.index?84:65,speed:72,damage:5,cooldown:1.7,reward:0,active:false};
+   const enemy=prior?{...clone(prior),...clone(saved||{}),hp:world.enemyHealth[descriptor.id]??prior.hp}:{id:descriptor.id,directorEventId:event.id,name:descriptor.name,faction:descriptor.faction,...enemyHullProfile(descriptor.classId),x:clamp(body.x+Math.cos(angle)*offset,-limit,limit),y:clamp(body.y+Math.sin(angle)*offset,-limit,limit),vx:0,vy:0,angle:angle+Math.PI,hp:descriptor.index?84:65,maxHp:descriptor.index?84:65,speed:72,damage:5,cooldown:1.7,reward:0,active:false};
    runtime.enemies.push(enemy);if(!prior)world.spawned.push(clone(enemy));liveIds.add(enemy.id);changed=true;
   }
   if(event.spawnIds.length&&!runtime.traffic.some(ship=>ship.id===`${event.id}:watch`)){
-   runtime.traffic.push({id:`${event.id}:watch`,directorEventId:event.id,name:`${event.bodyName} watch`,faction:event.factionId,x:clamp(body.x+320,-2200,2200),y:clamp(body.y-240,-2200,2200),angle:.5,speed:26,...enemyHullProfile('sparrow')});changed=true;
+   runtime.traffic.push({id:`${event.id}:watch`,directorEventId:event.id,name:`${event.bodyName} watch`,faction:event.factionId,x:clamp(body.x+320,-limit,limit),y:clamp(body.y-240,-limit,limit),angle:.5,speed:26,...enemyHullProfile('sparrow')});changed=true;
   }
  }
  return changed;

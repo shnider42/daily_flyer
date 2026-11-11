@@ -49,10 +49,12 @@ import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic, TR
 import { appendFactionPorts } from './port-content.mjs';
 import { portProfile } from './port-traffic.mjs';
 import { PEACEKEEPER_ID, PEACEKEEPER_HAIL_DISTANCE, isPeacekeeper, trafficHailDistance, stepPeacekeeperDefense } from './peacekeeper.mjs';
+import { migrateGameSpace } from './space-migration.mjs';
+import { SYSTEM_SPACE_VERSION, SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition, scaleSpacePoint } from './system-space.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
-export const WORLD_RADIUS = 2700;
+export { WORLD_RADIUS };
 export const TAU = Math.PI * 2;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -150,7 +152,7 @@ function initialState(seed, options = {}) {
   const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
   const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
-    version: SAVE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
+    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
@@ -168,8 +170,8 @@ export class Game {
     if (supplied?.state) supplied = supplied.state;
     const isSave = supplied && typeof supplied === 'object';
     const fresh = initialState(isSave ? supplied.seed : supplied, isSave ? {} : options);
+    this.galaxy = buildGalaxy(fresh.seed);
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
-    this.galaxy = buildGalaxy(this.state.seed);
     if (!this.galaxy.some(s => s.id === this.state.systemId)) this.state.systemId = 'hearth';
     this.events = [];
     this._shotTimer = 0;
@@ -238,7 +240,7 @@ export class Game {
   get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
   _restore(fresh, raw) {
-    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION };
+    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION, spaceVersion: raw.spaceVersion ?? 0 };
     s.seed = String(raw.seed || fresh.seed);
     s.startMode=normalizeStartMode(raw.startMode);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
@@ -287,7 +289,7 @@ export class Game {
     }
     s.encounterPolicyVersion=2;s.nextEncounterAt=null;
     if(s.interior?.kind==='ship')s.interior.liveVessel=true;
-    return s;
+    return migrateGameSpace(s, { systems: this.galaxy });
   }
 
   _updateCharacter() {
@@ -334,7 +336,7 @@ export class Game {
   _flag(flag) { if (flag && !this.state.flags.includes(flag)) this.state.flags.push(flag); }
   hasFlag(flag) { return this.state.flags.includes(flag); }
   _record() {
-    return this.state.worlds[this.state.systemId] ||= { depleted: [], asteroidHealth: {}, defeated: [], enemyHealth: {}, resolved: [], scanned: [], pickups: [], spawned: [], visits: 0 };
+    return this.state.worlds[this.state.systemId] ||= { spaceVersion: SYSTEM_SPACE_VERSION, depleted: [], asteroidHealth: {}, defeated: [], enemyHealth: {}, resolved: [], scanned: [], pickups: [], spawned: [], visits: 0 };
   }
   _persistRuntime() {
     if (!this._runtime) return;
@@ -359,13 +361,9 @@ export class Game {
     for (const key of ['depleted', 'defeated', 'resolved', 'scanned', 'pickups', 'spawned']) record[key] ||= [];
     record.asteroidHealth ||= {}; record.enemyHealth ||= {}; record.enemyStates ||= {};
     const bodies = data.bodies.map((b, i) => {
-      const angle = -0.55 + i * 2.3;
-      let x = i === 0 ? 0 : Math.cos(angle) * (780 + i * 190);
-      let y = i === 0 ? 0 : Math.sin(angle) * (780 + i * 190);
-      if (id === 'hearth' && b.id === 'morrow') { x = 840; y = -420; }
-      return { ...clone(b), faction: b.faction || data.faction, x: finite(b.x, x), y: finite(b.y, y), radius: b.kind === 'planet' ? 122 : b.kind === 'moon' ? 76 : 70, color: FACTIONS.find(f => f.id === (b.faction || data.faction))?.color || '#5edac0' };
+      return { ...clone(b), faction: b.faction || data.faction, ...systemBodyPosition(b, i, id), radius: b.kind === 'planet' ? 122 : b.kind === 'moon' ? 76 : 70, color: FACTIONS.find(f => f.id === (b.faction || data.faction))?.color || '#5edac0' };
     });
-    bodies.push(...systemCosmicBodies(data, this.state.seed));
+    bodies.push(...systemCosmicBodies(data, this.state.seed).map(body => scaleSpacePoint(body)));
     const asteroids = [];
     for (let i = 0; i < 46; i++) {
       const cluster = i % 4;
@@ -376,6 +374,7 @@ export class Game {
       if (i === 0) { x = 240; y = 210; }
       const hp = 10 + Math.floor(r() * 13);
       const rock = { id: `${id}:rock:${i}`, x, y, radius: 13 + r() * 18, angle: r() * TAU, spin: (r() - 0.5) * 0.25, maxHp: hp, hp, ore: 1 + Math.floor(r() * 3), crystal: r() < 0.22 ? 1 : 0, seed: Math.floor(r() * 99999) };
+      scaleSpacePoint(rock);
       if (record.depleted.includes(rock.id)) rock.hp = 0;
       else if (record.asteroidHealth[rock.id] !== undefined) rock.hp = record.asteroidHealth[rock.id];
       asteroids.push(rock);
@@ -402,6 +401,7 @@ export class Game {
         radius: 16, cooldown: 1.6 + r(), speed: 80 + data.danger * 10, damage: 5 + data.danger,
         reward: 35 + data.danger * 12, active: false
       };
+      scaleSpacePoint(enemy);
       if (record.enemyHealth[enemy.id] !== undefined) enemy.hp = record.enemyHealth[enemy.id];
       Object.assign(enemy,record.enemyStates[enemy.id]||{});
       enemy.disabled=enemy.hp>0&&(enemy.disabled||enemy.hp<=enemy.maxHp*.4);
@@ -417,6 +417,7 @@ export class Game {
       const radius = i === 0 ? 560 : 900 + r() * 1250;
       const tag = tags[i % tags.length];
       const signal = { id: `${id}:signal:${i}`, kind: tag, name: ['Broken transmission', 'Silent freighter', 'A bend in the light', 'Old survey buoy', 'A voice in the static'][i % 5], x: Math.cos(a) * radius, y: Math.sin(a) * radius, radius: 20, resolved: record.resolved.includes(`${id}:signal:${i}`), scanned: record.scanned.includes(`${id}:signal:${i}`) };
+      scaleSpacePoint(signal);
       signals.push(signal);
     }
     if (id === 'hearth') {
@@ -426,9 +427,9 @@ export class Game {
     // Preserve the four legacy commuter draws; lane identities and geometry now
     // have independent streams so expanding a fleet never reshuffles the world.
     for(let i=0;i<16;i++)r();
-    const traffic = restoreTraffic(createSystemTraffic({seed:this.state.seed,system:data,bodies,count:context.trafficCount}), record.trafficStates);
+    const traffic = restoreTraffic(createSystemTraffic({seed:this.state.seed,system:{...data,spatialScale:SYSTEM_SPACE_SCALE,radius:WORLD_RADIUS},bodies,count:context.trafficCount}), record.trafficStates);
     for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&['patrol','escort','carrier'].includes(contact.trafficRole)&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
     record.visits = (record.visits || 0) + 1;
@@ -514,7 +515,7 @@ export class Game {
     const helmInput=this.npcContractPilot()||(pilotConscious&&(this.state.mode==='ship'||options.operateShip)?input:{});
     const flight=normaliseFlightInput(helmInput),boosting=flight.boost&&flight.thrust>0&&sh.energy>8;
     const oldX=sh.x,oldY=sh.y;
-    Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:WORLD_RADIUS}));
+    Object.assign(sh,advanceShip(sh,dt,flight,{worldRadius:this.system.radius}));
     const cosmic=applyCosmicHazards(sh,dt,this.system.bodies,{damage:true});
     Object.assign(sh,cosmic.ship);
     const warningKey=cosmic.hazard?`${cosmic.hazard.id}:${cosmic.hazard.level}`:null;
@@ -548,7 +549,7 @@ export class Game {
     this._updatePickups(dt,targets.filter(g=>!g._parkedVessel));
     for(const game of games)game._syncBoardedVessel();
     this.system.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0);
-    advanceTraffic(this.system.traffic,dt);
+    advanceTraffic(this.system.traffic,dt,{radius:this.system.radius});
     for(const a of this.system.asteroids)a.angle+=a.spin*dt;
   }
 

@@ -3,6 +3,7 @@ import { hullEnergyAfterStep } from './hull-systems.mjs';
 import { applyCosmicHazards } from './galaxy-expansion.mjs';
 import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayCorrection } from './prediction.mjs';
 import { normalizePassport } from './privacy-data.mjs';
+import { WORLD_RADIUS } from './system-space.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
 export const PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.v1';
@@ -190,7 +191,7 @@ export class FarwakeNetwork {
     return this.inputHistory.frames(start, Math.min(now, start + MAX_PREDICTION_MS));
   }
   _predictsShip() { return this.state?.mode === 'ship' && this.room?.kind === 'system'; }
-  _radius() { const radius = Number(this.world?.radius); return Number.isFinite(radius) && radius > 0 ? radius : 2700; }
+  _radius() { const radius = Number(this.world?.radius); return Number.isFinite(radius) && radius > 0 ? radius : WORLD_RADIUS; }
   _predictFlight(ship,frame) { const next=applyCosmicHazards(advanceShip(ship,frame.dt,frame.input,{worldRadius:this._radius()}),frame.dt,this.world?.bodies||[],{damage:false}).ship;next.energy=hullEnergyAfterStep(ship,frame.dt,frame.input);return next; }
   _advancePrediction(now) {
     if (!this.predictedShip) return;

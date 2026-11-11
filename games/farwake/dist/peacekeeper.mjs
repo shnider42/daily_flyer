@@ -1,5 +1,6 @@
 /** One physical watch ship. Patrol geometry never enters a network snapshot. */
 import { getShipClass, enemyHullProfile } from './fleet.mjs';
+import { LEGACY_WORLD_RADIUS } from './system-space.mjs';
 
 export const PEACEKEEPER_ID = 'hearth:peacekeeper:resolute';
 export const PEACEKEEPER_SYSTEM = 'hearth';
@@ -36,17 +37,18 @@ function patrolPose(contact, time) {
   contact.speed = Math.hypot(contact.vx, contact.vy);
 }
 
-function safePatrol(bodies, footprint) {
+function safePatrol(bodies, footprint, scale, radius) {
   // A wide, slow watch outside the civilian berths. Validate the whole turn,
   // including the capital's stern, instead of merely clearing its centre.
   const candidates = [
     {x:-710,y:500,rx:280,ry:210}, {x:-870,y:180,rx:240,ry:190},
     {x:550,y:1080,rx:300,ry:230}, {x:-1450,y:560,rx:300,ry:210},
     {x:1500,y:900,rx:260,ry:220}, {x:-1700,y:1400,rx:240,ry:180}
-  ];
+  ].map(patrol => ({x:patrol.x * scale, y:patrol.y * scale, rx:patrol.rx * scale, ry:patrol.ry * scale}));
+  const limit = radius * 2650 / LEGACY_WORLD_RADIUS;
   const clear = patrol => Array.from({length:96}, (_, i) => i * TAU / 96).every(angle => {
     const x = patrol.x + Math.cos(angle) * patrol.rx, y = patrol.y + Math.sin(angle) * patrol.ry;
-    return Math.abs(x) + footprint < 2650 && Math.abs(y) + footprint < 2650 && bodies.every(body =>
+    return Math.abs(x) + footprint < limit && Math.abs(y) + footprint < limit && bodies.every(body =>
       Math.hypot(x - finite(body.x), y - finite(body.y)) > finite(body.gravityRadius, finite(body.radius, 70)) + footprint + 35);
   });
   const preferred = candidates.find(clear);
@@ -54,9 +56,9 @@ function safePatrol(bodies, footprint) {
   // Appended scenery may close a preferred loop in an established galaxy.
   // Search a deterministic bounded set before giving up a physical watch:
   // narrow loops at the edge still leave the entire 500-metre hull clear.
-  for (const [rx,ry] of [[240,180],[80,60]]) for (const radius of [1100,1450,1800,2050]) {
+  for (const [rx,ry] of [[240,180],[80,60]]) for (const distance of [1100,1450,1800,2050]) {
     for (let i=0;i<24;i++) {
-      const angle=i*TAU/24,patrol={x:Math.cos(angle)*radius,y:Math.sin(angle)*radius,rx,ry};
+      const angle=i*TAU/24,patrol={x:Math.cos(angle)*distance*scale,y:Math.sin(angle)*distance*scale,rx:rx*scale,ry:ry*scale};
       if(clear(patrol))return patrol;
     }
   }
@@ -66,9 +68,16 @@ function safePatrol(bodies, footprint) {
 export function createPeacekeeper({seed = 'farwake', system, bodies = system?.bodies || []} = {}) {
   if (system?.id !== PEACEKEEPER_SYSTEM) return null;
   const hull = getShipClass('judicator');
-  const geometry = safePatrol(bodies, Math.hypot(hull.stats.renderLength, hull.stats.renderWidth) / 2);
+  const scale = Math.max(1, finite(system?.spatialScale, 1));
+  const radius = Math.max(1, finite(system?.radius, LEGACY_WORLD_RADIUS * scale));
+  const geometry = safePatrol(bodies, Math.hypot(hull.stats.renderLength, hull.stats.renderWidth) / 2, scale, radius);
   if (!geometry) return null;
-  const patrol = {...geometry, period:210, key:`resolute-patrol-v1:${hash(JSON.stringify(geometry)).toString(36)}`};
+  // Stretch the watch period with its distance so a larger system does not
+  // turn this slow capital ship into a fast-moving patrol boat. Keep the old
+  // key intact in the old frame so saved watches can be verified and migrated.
+  const period = 210 * scale;
+  const key = scale === 1 ? `resolute-patrol-v1:${hash(JSON.stringify(geometry)).toString(36)}` : `resolute-patrol-v2:${hash(JSON.stringify({...geometry,period})).toString(36)}`;
+  const patrol = {...geometry, period, key};
   const contact = {
     id:PEACEKEEPER_ID, name:'FWS Resolute', faction:PEACEKEEPER_FACTION,
     ...enemyHullProfile('judicator'), peacekeeper:true, boardable:false,
@@ -95,10 +104,16 @@ export function advancePeacekeeper(contact, seconds) {
   patrolPose(contact, contact._trafficTime);
 }
 
-export function restorePeacekeeper(contact, saved) {
+export function restorePeacekeeper(contact, saved, legacyContact) {
   const patrol = contact?._peacekeeperPatrol;
-  if (!isPeacekeeper(contact) || !patrol || saved?.routeKey !== patrol.key || !Number.isFinite(saved.routeTime)) return;
-  contact._trafficTime = wrap(saved.routeTime, patrol.period);
+  if (!isPeacekeeper(contact) || !patrol || !Number.isFinite(saved?.routeTime)) return;
+  let time = saved.routeTime;
+  if (saved.routeKey !== patrol.key) {
+    const legacy = legacyContact?._peacekeeperPatrol;
+    if (!isPeacekeeper(legacyContact) || !legacy || saved.routeKey !== legacy.key) return;
+    time = wrap(saved.routeTime, legacy.period) / legacy.period * patrol.period;
+  }
+  contact._trafficTime = wrap(time, patrol.period);
   contact._defenseCooldown = clamp(finite(saved.defenseCooldown), 0, .65);
   patrolPose(contact, contact._trafficTime);
 }

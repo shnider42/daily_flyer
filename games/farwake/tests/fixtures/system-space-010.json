@@ -1,0 +1,354 @@
+{
+  "sourceCommit": "e8a86eb",
+  "release": "0.10.0",
+  "seed": "system-space-release-010",
+  "systemCount": 900,
+  "chartHash": "3fad35594a1621a7771d1ec87533d936ea141b1b9cd7523cc5bf42cc6b3793f0",
+  "counts": {
+    "bodies": 2114,
+    "asteroids": 41400,
+    "enemies": 1966,
+    "signals": 6301,
+    "traffic": 3859
+  },
+  "contentHashes": {
+    "bodies": "200cc21d49d05f0838a1c9374b2b25432083f9bdd5e7699fc1f82828a94ef0e2",
+    "asteroids": "d93a082751ff78a9be2652fe34b8aaa25e797ce6e9a5f3f37a6f0cf369048fa2",
+    "enemies": "1f43f25b118198124c83f3aead03866729a1d7fc1a1879cfcd25c035aa330ca5",
+    "signals": "20f2efd59604a69d4d7a90ed5b6425e8dcfaf3ef49c75e27fea424f67dd5249d",
+    "traffic": "dc3b60650df982137f642464bcfce942785f71ffd13e4abf8d71e286e0be5ad9"
+  },
+  "placementHashes": {
+    "bodies": "470cc714d3640de525b54b0270cda3a0b2911635b07dc9074d33c0ed82007637",
+    "asteroids": "860e0f2cafcebec00d3b3155e4ca23b75637474e7c0c3462af22977dca4d8c38",
+    "enemies": "fc8ffb9d24605b380b53e61859b21f42e999bd221495e03eaf1ef0439566be74",
+    "signals": "48a42543db6ddcb07060aa134034f5500d4a33933f3dce2fe961a245498f79f4"
+  },
+  "starts": [
+    {
+      "seed": "farwake",
+      "openingMission": false,
+      "mode": "ship",
+      "locationId": null,
+      "ship": {
+        "x": 0,
+        "y": 142,
+        "radius": 21
+      },
+      "person": {
+        "x": 480,
+        "y": 570
+      }
+    },
+    {
+      "seed": "farwake",
+      "openingMission": true,
+      "mode": "person",
+      "locationId": "kettle",
+      "ship": {
+        "x": 0,
+        "y": 145,
+        "radius": 21
+      },
+      "person": {
+        "x": 156,
+        "y": 348
+      }
+    },
+    {
+      "seed": "quiet-earth",
+      "openingMission": false,
+      "mode": "ship",
+      "locationId": null,
+      "ship": {
+        "x": 0,
+        "y": 142,
+        "radius": 21
+      },
+      "person": {
+        "x": 480,
+        "y": 570
+      }
+    },
+    {
+      "seed": "quiet-earth",
+      "openingMission": true,
+      "mode": "person",
+      "locationId": "kettle",
+      "ship": {
+        "x": 0,
+        "y": 145,
+        "radius": 21
+      },
+      "person": {
+        "x": 156,
+        "y": 348
+      }
+    },
+    {
+      "seed": "old-harbor",
+      "openingMission": false,
+      "mode": "ship",
+      "locationId": null,
+      "ship": {
+        "x": 0,
+        "y": 142,
+        "radius": 21
+      },
+      "person": {
+        "x": 480,
+        "y": 570
+      }
+    },
+    {
+      "seed": "old-harbor",
+      "openingMission": true,
+      "mode": "person",
+      "locationId": "kettle",
+      "ship": {
+        "x": 0,
+        "y": 145,
+        "radius": 21
+      },
+      "person": {
+        "x": 156,
+        "y": 348
+      }
+    }
+  ],
+  "umbra": [
+    {
+      "seed": "farwake",
+      "id": "umbra:blackhole",
+      "x": 1470.6282567884773,
+      "y": -1349.732893006876,
+      "radius": 140,
+      "gravityRadius": 1100,
+      "tideRadius": 460,
+      "warningRadius": 1250
+    },
+    {
+      "seed": "quiet-earth",
+      "id": "umbra:blackhole",
+      "x": 1422.2994561679661,
+      "y": -1279.7676589991897,
+      "radius": 140,
+      "gravityRadius": 1100,
+      "tideRadius": 460,
+      "warningRadius": 1250
+    },
+    {
+      "seed": "old-harbor",
+      "id": "umbra:blackhole",
+      "x": 1447.6782541163266,
+      "y": -1289.1609867848456,
+      "radius": 140,
+      "gravityRadius": 1100,
+      "tideRadius": 460,
+      "warningRadius": 1250
+    }
+  ],
+  "passengers": [
+    {
+      "seed": "farwake",
+      "systemId": "hearth",
+      "bodyId": "kettle",
+      "ferries": [
+        {
+          "id": "morrow",
+          "fare": 26
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:hearth:kettle:0",
+          "targetBody": "morrow",
+          "name": "Kess Rowan",
+          "type": "patient",
+          "fare": 84,
+          "bonus": 15
+        }
+      ]
+    },
+    {
+      "seed": "farwake",
+      "systemId": "vesper",
+      "bodyId": "listening",
+      "ferries": [
+        {
+          "id": "lilt",
+          "fare": 27
+        },
+        {
+          "id": "lantern-guard",
+          "fare": 35
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:vesper:listening:0",
+          "targetBody": "lilt",
+          "name": "Nell Aster",
+          "type": "patient",
+          "fare": 84,
+          "bonus": 15
+        }
+      ]
+    },
+    {
+      "seed": "farwake",
+      "systemId": "umbra",
+      "bodyId": "umbra-watch",
+      "ferries": [
+        {
+          "id": "moth",
+          "fare": 27
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:umbra:umbra-watch:0",
+          "targetBody": "moth",
+          "name": "Eda Moss",
+          "type": "courier",
+          "fare": 78,
+          "bonus": 10
+        }
+      ]
+    },
+    {
+      "seed": "quiet-earth",
+      "systemId": "hearth",
+      "bodyId": "kettle",
+      "ferries": [
+        {
+          "id": "morrow",
+          "fare": 26
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:hearth:kettle:0",
+          "targetBody": "morrow",
+          "name": "Pax Imani",
+          "type": "commuter",
+          "fare": 68,
+          "bonus": 12
+        }
+      ]
+    },
+    {
+      "seed": "quiet-earth",
+      "systemId": "vesper",
+      "bodyId": "listening",
+      "ferries": [
+        {
+          "id": "lilt",
+          "fare": 27
+        },
+        {
+          "id": "lantern-guard",
+          "fare": 35
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:vesper:listening:0",
+          "targetBody": "lilt",
+          "name": "Pax Imani",
+          "type": "commuter",
+          "fare": 68,
+          "bonus": 12
+        }
+      ]
+    },
+    {
+      "seed": "quiet-earth",
+      "systemId": "umbra",
+      "bodyId": "umbra-watch",
+      "ferries": [
+        {
+          "id": "moth",
+          "fare": 27
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:umbra:umbra-watch:0",
+          "targetBody": "moth",
+          "name": "Mina Sol",
+          "type": "courier",
+          "fare": 78,
+          "bonus": 10
+        }
+      ]
+    },
+    {
+      "seed": "old-harbor",
+      "systemId": "hearth",
+      "bodyId": "kettle",
+      "ferries": [
+        {
+          "id": "morrow",
+          "fare": 26
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:hearth:kettle:0",
+          "targetBody": "morrow",
+          "name": "Arlen Soto",
+          "type": "patient",
+          "fare": 84,
+          "bonus": 15
+        }
+      ]
+    },
+    {
+      "seed": "old-harbor",
+      "systemId": "vesper",
+      "bodyId": "listening",
+      "ferries": [
+        {
+          "id": "lilt",
+          "fare": 27
+        },
+        {
+          "id": "lantern-guard",
+          "fare": 35
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:vesper:listening:0",
+          "targetBody": "lilt",
+          "name": "Pax Imani",
+          "type": "commuter",
+          "fare": 68,
+          "bonus": 12
+        }
+      ]
+    },
+    {
+      "seed": "old-harbor",
+      "systemId": "umbra",
+      "bodyId": "umbra-watch",
+      "ferries": [
+        {
+          "id": "moth",
+          "fare": 27
+        }
+      ],
+      "offers": [
+        {
+          "id": "passenger:umbra:umbra-watch:0",
+          "targetBody": "moth",
+          "name": "Kess Rowan",
+          "type": "commuter",
+          "fare": 68,
+          "bonus": 12
+        }
+      ]
+    }
+  ]
+}

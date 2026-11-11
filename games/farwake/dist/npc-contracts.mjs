@@ -5,6 +5,7 @@ import { ensureDamageControl } from './interior-damage.mjs';
 import { generateSurface, evaLayout } from './surface.mjs';
 import { CREW_WORK_ROLES, crewWorkOffers, createWorkAssignment, crewTaskDefinition, publicCrewTask } from './crew-work.mjs';
 import { normalizeSpecies, chooseNpcSpecies, speciesName } from './species.mjs';
+import { WORLD_RADIUS } from './system-space.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -60,7 +61,8 @@ function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local'
  if(distance(workPoint,dockPoint)<500)workPoint={x:dockPoint.x+Math.cos(heading)*650,y:dockPoint.y+Math.sin(heading)*650};
  const lateral=(hash(`${contractId}:service`)/0xffffffff-.5)*320;
  workPoint.x-=Math.sin(heading)*lateral;workPoint.y+=Math.cos(heading)*lateral;
- const radius=Math.hypot(workPoint.x,workPoint.y);if(radius>2350){workPoint.x*=2350/radius;workPoint.y*=2350/radius;}
+ const radius=Math.hypot(workPoint.x,workPoint.y),limit=Math.max(0,finite(game.system.radius,WORLD_RADIUS)-350);
+ if(radius>limit){workPoint.x*=limit/radius;workPoint.y*=limit/radius;}
  const shipClass=employerClass(),vesselId=`vessel:${contractId}`;
  const ship={...shipClass.stats,id:vesselId,name:'Local service boat',classId:shipClass.id,berths:shipClass.berths,humanOccupants:1,x:dockPoint.x,y:dockPoint.y,vx:0,vy:0,angle:heading,angularVelocity:0,hull:shipClass.stats.maxHull,shield:shipClass.stats.maxShield,energy:shipClass.stats.maxEnergy,fuel:shipClass.stats.maxFuel,warpRange:0,npcEmployer:true};
  ensureDamageControl(ship);

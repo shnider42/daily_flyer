@@ -1,6 +1,7 @@
 /** Civilian travel and a shipless origin. The same economy applies to every captain. */
 import {SHIP_CLASSES,STARTER_SHIP_IDS} from './fleet.mjs';
 import {generateSurface} from './surface.mjs';
+import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
 
 const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -81,7 +82,9 @@ export const LivelihoodRules={
   const origin=landing(this),body=this.system.bodies.find(body=>body.id===bodyId),credits=Math.floor(this.state.credits);
   if(!this.atInhabitedPort||!origin)return {...this._fail('Buy passenger passage at an inhabited port.','mode'),credits};
   if(!body||!isPassengerPort(body)||body.id===origin.id)return {...this._fail('Choose another inhabited planet or station in this system.','target'),credits};
-  const fare=18+Math.ceil(distance(origin,body)/120),base={body,bodyId:body.id,name:body.name,originId:origin.id,originName:origin.name,systemId:this.state.systemId,fare,cost:fare,credits,remaining:Math.max(0,credits-fare),service:'Local passenger ferry'};
+  // Spreading a system out changes the voyage, not the already posted tariff.
+  const spacing=Math.max(1,finite(this.system.radius,WORLD_RADIUS)/LEGACY_WORLD_RADIUS);
+  const fare=18+Math.ceil(distance(origin,body)/(120*spacing)),base={body,bodyId:body.id,name:body.name,originId:origin.id,originName:origin.name,systemId:this.state.systemId,fare,cost:fare,credits,remaining:Math.max(0,credits-fare),service:'Local passenger ferry'};
   if(this.state.npcContract?.active)return {...this._fail('Finish your signed crew contract before buying passenger passage.','contract'),...base};
   if(this.state.person.health<=0||this.state.person.down)return {...this._fail('You are incapacitated and cannot board passenger transport.','incapacitated'),...base};
   if(this.state.pendingEncounter)return {...this._fail('Finish your conversation before boarding.','encounter'),...base};

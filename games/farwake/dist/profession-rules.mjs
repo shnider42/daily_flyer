@@ -4,6 +4,7 @@ import { generateSurface } from './surface.mjs';
 import { liveInteractionSurface } from './live-surface.mjs';
 import { enemyHullProfile, getShipClass } from './fleet.mjs';
 import { directorBoard, directorEvent, recordDirectorAid } from './world-director.mjs';
+import { WORLD_RADIUS } from './system-space.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -300,8 +301,8 @@ export const ProfessionRules={
   const existing=this.system.enemies.find(enemy=>enemy.id===job.targetId);
   if(existing){const index=world.spawned.findIndex(enemy=>enemy.id===job.targetId);if(index>=0)world.spawned[index]=existing;return false;}
   const body=this.system.bodies.find(body=>body.id===job.targetBody);if(!body)return false;
-  const prior=world.spawned.find(enemy=>enemy.id===job.targetId),saved=world.enemyStates[job.targetId];
-  const enemy=prior?{...clone(prior),...clone(saved||{}),hp:world.enemyHealth[job.targetId]??prior.hp}:{id:job.targetId,professionJobId:job.id,professionOwner:this.playerId,professionContributors:{},name:job.professionId==='law'?'Warrant courier':'Interdiction cutter',faction:rival[job.factionId],...enemyHullProfile('sparrow'),x:clamp(body.x+body.radius+420,-2200,2200),y:clamp(body.y+310,-2200,2200),vx:0,vy:0,angle:2.8,hp:88,maxHp:88,speed:77,damage:5,cooldown:1.7,reward:0,active:false,questTarget:true};
+  const prior=world.spawned.find(enemy=>enemy.id===job.targetId),saved=world.enemyStates[job.targetId],limit=Math.max(0,finite(this.system.radius,WORLD_RADIUS)-500);
+  const enemy=prior?{...clone(prior),...clone(saved||{}),hp:world.enemyHealth[job.targetId]??prior.hp}:{id:job.targetId,professionJobId:job.id,professionOwner:this.playerId,professionContributors:{},name:job.professionId==='law'?'Warrant courier':'Interdiction cutter',faction:rival[job.factionId],...enemyHullProfile('sparrow'),x:clamp(body.x+body.radius+420,-limit,limit),y:clamp(body.y+310,-limit,limit),vx:0,vy:0,angle:2.8,hp:88,maxHp:88,speed:77,damage:5,cooldown:1.7,reward:0,active:false,questTarget:true};
   this.system.enemies.push(enemy);const index=world.spawned.findIndex(e=>e.id===enemy.id);if(index>=0)world.spawned[index]=enemy;else world.spawned.push(enemy);return true;
  },
  professionRescue(){

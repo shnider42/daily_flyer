@@ -6,12 +6,18 @@
 import { getShipClass, enemyHullProfile } from './fleet.mjs';
 import { portProfile, chooseTrafficHull, trafficHullWeights, canHullUsePort } from './port-traffic.mjs';
 import { createPeacekeeper, isPeacekeeper, advancePeacekeeper, restorePeacekeeper } from './peacekeeper.mjs';
+import { LEGACY_WORLD_RADIUS, systemBodyPosition } from './system-space.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
 const finite = (v, fallback = 0) => Number.isFinite(v) ? v : fallback;
 const angleDelta = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 const wrapTime = (time, period) => { const local = time % period; return local < 0 ? local + period : local; };
+const trafficGeometry = system => {
+  const scale = Math.max(1, finite(system?.spatialScale, 1));
+  const radius = Math.max(1, finite(system?.radius, LEGACY_WORLD_RADIUS * scale));
+  return {scale, radius, dockLimit:radius * 2500 / LEGACY_WORLD_RADIUS, laneLimit:radius * 2600 / LEGACY_WORLD_RADIUS, gateRadius:radius * 2350 / LEGACY_WORLD_RADIUS};
+};
 const hash = value => {
   let h = 2166136261;
   for (const c of String(value)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
@@ -30,7 +36,7 @@ const weighted = (items, value, weight) => {
   return items.find(item => (left -= weight(item)) < 0) || items.at(-1);
 };
 
-function dockPoint(body, other, hull, side, reservations) {
+function dockPoint(body, other, hull, side, reservations, geometry) {
   // A berth belongs to a route, even while its ship is away. Bounding the full
   // sprite diagonal also leaves room for the slow turn before departure.
   const footprint = Math.hypot(hull.stats.renderLength, hull.stats.renderWidth) * .5;
@@ -41,7 +47,7 @@ function dockPoint(body, other, hull, side, reservations) {
     for (const offset of [0, .3, -.3, .6, -.6, .9, -.9, 1.16, -1.16]) {
       const angle = heading + offset;
       const point = { x:body.x + Math.cos(angle) * clearance, y:body.y + Math.sin(angle) * clearance, footprint };
-      if (Math.abs(point.x) > 2500 || Math.abs(point.y) > 2500) continue;
+      if (Math.abs(point.x) > geometry.dockLimit || Math.abs(point.y) > geometry.dockLimit) continue;
       if (occupied.every(berth => Math.hypot(point.x - berth.x, point.y - berth.y) >= footprint + berth.footprint + 16)) return point;
     }
   }
@@ -60,12 +66,12 @@ function tangentAt(lane, u, reverse = false) {
   return { x: b.x - a.x + lane.bend.x * bow, y: b.y - a.y + lane.bend.y * bow };
 }
 
-function clearLane(lane, bodies, hull) {
+function clearLane(lane, bodies, hull, geometry) {
   for (const reverse of [false, true]) {
    let previous = pointAt(lane, 0, reverse);
    for (let i = 0; i <= 32; i++) {
     const point = pointAt(lane, i / 32, reverse);
-    if (Math.abs(point.x) > 2600 || Math.abs(point.y) > 2600) return false;
+    if (Math.abs(point.x) > geometry.laneLimit || Math.abs(point.y) > geometry.laneLimit) return false;
     for (const body of bodies) {
       const safe = body.kind === 'blackhole' ? finite(body.gravityRadius, finite(body.tideRadius, finite(body.radius, 160) * 1.8)) : finite(body.radius, 70);
       // Check the space BETWEEN samples too. A long freighter leg must not cut
@@ -80,10 +86,10 @@ function clearLane(lane, bodies, hull) {
   return true;
 }
 
-function laneFor(seed, home, destination, hull, bodies, reservations) {
+function laneFor(seed, home, destination, hull, bodies, reservations, geometry) {
   const slot = random(seed, 'berth') * 4 - 2;
-  const a = dockPoint(home.body, destination.body, hull, slot, reservations);
-  const b = destination.gate ? {x:destination.body.x, y:destination.body.y} : dockPoint(destination.body, home.body, hull, -slot, reservations);
+  const a = dockPoint(home.body, destination.body, hull, slot, reservations, geometry);
+  const b = destination.gate ? {x:destination.body.x, y:destination.body.y} : dockPoint(destination.body, home.body, hull, -slot, reservations, geometry);
   if (!a || !b) return null;
   const dx = b.x - a.x, dy = b.y - a.y, length = Math.max(1, Math.hypot(dx, dy));
   const side = random(seed, 'lane-side') < .5 ? -1 : 1;
@@ -92,8 +98,8 @@ function laneFor(seed, home, destination, hull, bodies, reservations) {
   // Both halves use separate sides of a lane. Only generation checks clearance;
   // active rooms evaluate a constant-size curve with no pathfinding every tick.
   for (const amount of [baseBow, baseBow + 150, baseBow + 300, baseBow + 460, 0]) {
-    lane.bend = { x:-dy / length * amount * side, y:dx / length * amount * side };
-    if (clearLane(lane, bodies, hull)) { lane.clear = true; break; }
+    lane.bend = { x:-dy / length * amount * side * geometry.scale, y:dx / length * amount * side * geometry.scale };
+    if (clearLane(lane, bodies, hull, geometry)) { lane.clear = true; break; }
   }
   const cruise = 67 + 37 / Math.sqrt(hull.stats.mass) + random(seed, 'cruise') * 12;
   let curveLength = 0, last = lane.a;
@@ -142,6 +148,7 @@ function setPose(contact, time) {
 /** The configured traffic count is a ceiling, including systems without a port. */
 export function createSystemTraffic({seed = 'farwake', system, bodies = system?.bodies || [], count = 0} = {}) {
   if (!system) return [];
+  const geometry = trafficGeometry(system);
   const ports = bodies.map(body => ({body, profile:portProfile(system, body)})).filter(port => port.profile && Number.isFinite(port.body.x) && Number.isFinite(port.body.y));
   if (!ports.length) return [];
   const budget = clamp(Math.floor(finite(count)), 0, 32);
@@ -156,13 +163,13 @@ export function createSystemTraffic({seed = 'farwake', system, bodies = system?.
     const role = trafficHullWeights(home.profile).find(row => row.classId === classId)?.role || 'utility';
     const candidates = ports.filter(port => port !== home && canHullUsePort(classId, port.profile) && (!port.profile.restricted || home.profile.restricted && home.profile.faction === port.profile.faction || militaryRoles.has(role) && home.profile.faction === port.profile.faction));
     let destination = candidates.length && random(key, 'local-run') < .68 ? weighted(candidates, random(key, 'destination'), port => port.profile.trafficWeight) : null;
-    let lane = destination ? laneFor(key, home, destination, hull, bodies, reservations) : null;
+    let lane = destination ? laneFor(key, home, destination, hull, bodies, reservations, geometry) : null;
     // Inter-system ships arrive at an outer lane. Try several bearings rather
     // than sending an enormous liner through a nearby planet or a black hole.
     if (!lane?.clear) for (let attempt = 0; attempt < 12; attempt++) {
       const angle = random(key, 'gate-bearing') * TAU + attempt * TAU / 12;
-      destination = {gate:true,body:{id:`lane:${system.id}:${i % 4}`,name:'Outer transit lane',x:Math.cos(angle) * 2350,y:Math.sin(angle) * 2350}};
-      lane = laneFor(key, home, destination, hull, bodies, reservations);
+      destination = {gate:true,body:{id:`lane:${system.id}:${i % 4}`,name:'Outer transit lane',x:Math.cos(angle) * geometry.gateRadius,y:Math.sin(angle) * geometry.gateRadius}};
+      lane = laneFor(key, home, destination, hull, bodies, reservations, geometry);
       if (lane?.clear) break;
     }
     // Unusual authored geometry may leave no safe path. Do not manufacture a
@@ -182,12 +189,33 @@ export function createSystemTraffic({seed = 'farwake', system, bodies = system?.
     Object.defineProperties(contact, {_trafficLane:{value:lane, writable:true}, _trafficTime:{value:random(key, 'phase') * lane.period, writable:true}});
     setPose(contact, contact._trafficTime); contacts.push(contact);
   }
+  Object.defineProperty(contacts, '_trafficRadius', {value:geometry.radius});
+  if (geometry.scale > 1) {
+    let legacyContacts;
+    const legacyContact = id => {
+      if (!legacyContacts) {
+        const legacyBodies = bodies.map(body => {
+          const index = system.bodies?.findIndex(candidate => candidate.id === body.id) ?? -1;
+          // Reconstruct catalog positions exactly. Multiplying then dividing
+          // floating-point coordinates can change the old hashed route key.
+          const position = index >= 0 ? systemBodyPosition(system.bodies[index], index, system.id, 1) : {x:body.x / geometry.scale, y:body.y / geometry.scale};
+          return {...body, ...position};
+        });
+        legacyContacts = new Map(createSystemTraffic({seed, system:{...system, spatialScale:1, radius:LEGACY_WORLD_RADIUS}, bodies:legacyBodies, count}).map(contact => [contact.id, contact]));
+      }
+      return legacyContacts.get(id);
+    };
+    // Rebuild the old frame only when an old saved key needs migration. Fresh
+    // voyages, current saves and every motion tick pay no extra generation cost.
+    for (const contact of contacts) Object.defineProperty(contact, '_legacyTrafficContact', {value:() => legacyContact(contact.id)});
+  }
   return contacts;
 }
 
-export function advanceTraffic(traffic, seconds) {
+export function advanceTraffic(traffic, seconds, {radius = traffic?._trafficRadius || LEGACY_WORLD_RADIUS} = {}) {
   const dt = Math.max(0, finite(seconds));
   if (!dt) return traffic;
+  const watchBoundary = Math.max(1, finite(radius, LEGACY_WORLD_RADIUS)) * 2300 / LEGACY_WORLD_RADIUS;
   for (const contact of traffic || []) {
     if (isPeacekeeper(contact)) { advancePeacekeeper(contact, dt); continue; }
     if (contact.contact) continue;
@@ -198,7 +226,12 @@ export function advanceTraffic(traffic, seconds) {
       contact.vx = Math.cos(finite(contact.angle)) * finite(contact.speed);
       contact.vy = Math.sin(finite(contact.angle)) * finite(contact.speed);
       contact.x += contact.vx * dt; contact.y += contact.vy * dt;
-      if (Math.abs(contact.x) > 2300 || Math.abs(contact.y) > 2300) contact.angle += Math.PI;
+      // A contact spawned beyond the watch line must keep heading inward;
+      // flipping every tick while still outside would trap it at that edge.
+      let reflected = false;
+      if (Math.abs(contact.x) > watchBoundary && contact.x * contact.vx > 0) { contact.vx *= -1; reflected = true; }
+      if (Math.abs(contact.y) > watchBoundary && contact.y * contact.vy > 0) { contact.vy *= -1; reflected = true; }
+      if (reflected) contact.angle = Math.atan2(contact.vy, contact.vx);
       continue;
     }
     if (!contact._trafficLane) continue;
@@ -216,15 +249,30 @@ export function restoreTraffic(traffic, saved) {
   const phases = new Map((Array.isArray(saved) ? saved : []).filter(row => row && typeof row.id === 'string').slice(0, 64).map(row => [row.id, row]));
   for (const contact of traffic || []) {
     const lane = contact._trafficLane, prior = phases.get(contact.id);
-    if (isPeacekeeper(contact)) { restorePeacekeeper(contact, prior); continue; }
+    if (isPeacekeeper(contact)) {
+      const legacy = prior?.routeKey && prior.routeKey !== contact._peacekeeperPatrol?.key ? contact._legacyTrafficContact?.() : null;
+      restorePeacekeeper(contact, prior, legacy); continue;
+    }
     // Old straight-line traffic saves have no route identity. Discard only
     // those obsolete poses rather than restoring them onto an unrelated lane.
-    if (!lane || !prior || prior.routeKey !== lane.key || !Number.isFinite(prior.routeTime)) continue;
-    contact._trafficTime = wrapTime(prior.routeTime, lane.period);
+    if (!lane || !prior || !Number.isFinite(prior.routeTime)) continue;
+    let routeTime = prior.routeTime;
+    if (prior.routeKey !== lane.key) {
+      const legacy = contact._legacyTrafficContact?.(), oldLane = legacy?._trafficLane;
+      if (!oldLane || prior.routeKey !== oldLane.key || legacy.classId !== contact.classId || oldLane.origin.id !== lane.origin.id || oldLane.destination.id !== lane.destination.id) continue;
+      let oldTime = wrapTime(prior.routeTime, oldLane.period);
+      // Keep the actual leg and progress through it, including stopped loading
+      // time. A single whole-period ratio would move a docked ship into flight.
+      if (oldTime < oldLane.travel) routeTime = oldTime / oldLane.travel * lane.travel;
+      else if ((oldTime -= oldLane.travel) < oldLane.dwellB) routeTime = lane.travel + oldTime / oldLane.dwellB * lane.dwellB;
+      else if ((oldTime -= oldLane.dwellB) < oldLane.travel) routeTime = lane.travel + lane.dwellB + oldTime / oldLane.travel * lane.travel;
+      else routeTime = lane.travel * 2 + lane.dwellB + (oldTime - oldLane.travel) / oldLane.dwellA * lane.dwellA;
+    }
+    contact._trafficTime = wrapTime(routeTime, lane.period);
     setPose(contact, contact._trafficTime);
   }
   return traffic;
 }
 
 /** Empty systems catch up harmless traffic only, bounded to fifteen seconds. */
-export const catchUpTraffic = (traffic, elapsed) => advanceTraffic(traffic, clamp(finite(elapsed), 0, 15));
+export const catchUpTraffic = (traffic, elapsed, options) => advanceTraffic(traffic, clamp(finite(elapsed), 0, 15), options);

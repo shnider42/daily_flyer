@@ -1,5 +1,6 @@
 /** Shared, DOM-free vessel definitions and deterministic flight integration. */
 import { getHullSystems } from './hull-systems.mjs';
+import { WORLD_RADIUS } from './system-space.mjs';
 export { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -122,7 +123,7 @@ export function advanceShip(ship, delta, input = {}, options = {}) {
   const baseDamping=number(ship.angularDamping,stats.angularDamping);
   const boost=controls.boost && controls.thrust>0 && number(ship.energy,100)>8;
   const cruiseSpeed=number(ship.speed,stats.speed),maxSpeed=cruiseSpeed*1.65;
-  const radius=number(options.worldRadius,2700);
+  const radius=number(options.worldRadius,WORLD_RADIUS);
   const count=Math.max(1,Math.ceil(dt/(1/240))),h=dt/count;
   const brake=Math.max(controls.brake,Math.max(0,-controls.thrust));
   const propulsion=Math.max(0,controls.thrust)*(boost?getHullSystems(ship.classId).boostMultiplier:1);

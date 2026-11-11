@@ -1,4 +1,5 @@
 /** DOM-free input history and pose correction shared by ship and walking clients. */
+import { WORLD_RADIUS } from './system-space.mjs';
 export const MAX_PREDICTION_MS = 250;
 export const INPUT_HISTORY_MS = 2000;
 export const CORRECTION_RATE = 14;
@@ -54,7 +55,7 @@ export class InputTimeline {
 export const shortestAngle = value => Math.atan2(Math.sin(finite(value)), Math.cos(finite(value)));
 
 /** Keeps correction outside the simulated ship; angular correction uses the short arc. */
-export function correctedPose(ship, correction = {}, radius = 2700) {
+export function correctedPose(ship, correction = {}, radius = WORLD_RADIUS) {
   return {
     ...ship,
     x: clamp(finite(ship.x) + finite(correction.x), -radius, radius),

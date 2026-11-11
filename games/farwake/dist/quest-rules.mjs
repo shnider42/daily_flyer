@@ -4,6 +4,8 @@ import { QUEST_CONTACTS, QUEST_OBJECTS, QUEST_THREADS, FACTION_RELATIONS, PASSEN
 import { generateSurface } from './surface.mjs';
 import { liveInteractionSurface, interactionInRange } from './live-surface.mjs';
 import { enemyHullProfile } from './fleet.mjs';
+import { SYSTEM_SPACE_SCALE } from './system-space.mjs';
+import { systemCosmicBodies } from './galaxy-expansion.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -11,6 +13,12 @@ const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)
 const integer=(value,min=0,max=1e9)=>clamp(Math.floor(finite(value)),min,max);
 const object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// Authored ship readings follow their landmark while keeping the same safe
+// local offset. Surface targets and the source story definitions stay intact.
+const shipReadingPoint=(game,at)=>{
+ const system=game.galaxy.find(value=>value.id===at.systemId),well=systemCosmicBodies(system,game.state.seed)[0];
+ return well?{...at,x:well.x*SYSTEM_SPACE_SCALE+(at.x-well.x),y:well.y*SYSTEM_SPACE_SCALE+(at.y-well.y)}:{...at,x:at.x*SYSTEM_SPACE_SCALE,y:at.y*SYSTEM_SPACE_SCALE};
+};
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
 const knownFaction=id=>FACTIONS.some(value=>value.id===id);
 const hasPort=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
@@ -139,15 +147,16 @@ function stageAccess(game,definition,record,step,action,entityId){
  if(step.kind==='ship-scan'){
   if(game.hasActiveVessel===false||game.state.npcContract?.active)return{ok:false,reason:'This reading requires command of an actual survey ship.',code:'no-ship'};
   if(game.state.mode!=='ship'||game.state.systemId!==step.at.systemId||game.state.ship.hull<=0||game.state.person.health<=0||game.state.person.down)return{ok:false,reason:'Take this reading from your ship in Umbra.',code:'location'};
-  if(distance(game.state.ship,step.at)>Math.max(140,Math.min(420,game.state.ship.scanRange||235)))return{ok:false,reason:'Fly to the marked outer-contour reading point. You do not need to approach the dark center.',code:'distance'};
+  if(distance(game.state.ship,shipReadingPoint(game,step.at))>Math.max(140,Math.min(420,game.state.ship.scanRange||235)))return{ok:false,reason:'Fly to the marked outer-contour reading point. You do not need to approach the dark center.',code:'distance'};
   return{ok:true};
  }
  return nearEntity(game,entityId||step.at.entityId,step.at);
 }
 function view(game,definition,record){
  const status=record?.status||'available',step=definition.stages[record?.stage||0],contact=questContact(definition.offeredBy),target=clone(step?.at||contactTarget(contact));
+ if(step?.kind==='ship-scan')Object.assign(target,shipReadingPoint(game,target));
  if(step?.kind==='hunt'){
-  const enemy=record&&aliveBounty(game,record);target.enemyId=record?.targetId||null;target.x=enemy?.x??1460;target.y=enemy?.y??760;
+  const enemy=record&&aliveBounty(game,record);target.enemyId=record?.targetId||null;target.x=enemy?.x??1460*SYSTEM_SPACE_SCALE;target.y=enemy?.y??760*SYSTEM_SPACE_SCALE;
  }
  target.label=locationName(game,target);
  const result={id:definition.id,title:definition.title,category:definition.category,summary:definition.summary,status,stageId:step?.id||null,stageTitle:step?.title||'Recorded',text:status==='completed'?(record.outcome||'This part of your voyage is recorded.'):step?.responses?.[record?.choices?.[step.respondTo]]||step?.text||definition.summary,objective:step?.objective||'Complete',target,actions:[],reward:record?.rewardQuote??Math.round(definition.reward*(game.characterEffects?.jobRewards||1)),contactId:definition.offeredBy};
@@ -194,7 +203,7 @@ function passengerOffer(game,origin,serial){
  if(!choices.length)return null;
  const h=hash(`${game.state.seed}:${game.state.systemId}:${origin.id}:passenger:${serial}`),destination=choices[h%choices.length],type=PASSENGER_TYPES[(h>>>4)%PASSENGER_TYPES.length],faction=origin.faction||game.currentSystem.faction||'freewake';
  const pledgeBonus=nstate(game).pledge===faction?1.12:1,standingBonus=(game.state.rep[faction]||0)>=30?1.05:1;
- const fare=Math.round((type.base+Math.ceil(distance(origin,destination)/100)*2)*pledgeBonus*standingBonus*(game.characterEffects?.jobRewards||1));
+ const fare=Math.round((type.base+Math.ceil(distance(origin,destination)/SYSTEM_SPACE_SCALE/100)*2)*pledgeBonus*standingBonus*(game.characterEffects?.jobRewards||1));
  return{id:`passenger:${game.state.systemId}:${origin.id}:${serial}`,serial,name:PASSENGER_NAMES[(h>>>8)%PASSENGER_NAMES.length],type:type.id,title:type.label,text:type.text,comfort:type.comfort,conditions:type.comfort,faction,
   originSystem:game.state.systemId,originBody:origin.id,targetSystem:game.state.systemId,targetBody:destination.id,targetName:destination.name,sourceEntityId:genericId('passage-desk',origin.id),targetEntityId:genericId('passage-desk',destination.id),fare,bonus:type.bonus,berths:1};
 }
@@ -292,7 +301,7 @@ export const NarrativeRules={
   const world=this._record();if(world.defeated.includes(record.targetId)||this.system.enemies.some(enemy=>enemy.id===record.targetId))return;
   // Restored records are loaded by Game._loadSystem. Never mint a second target.
   const prior=world.spawned.find(enemy=>enemy.id===record.targetId);
-  const enemy=prior?{...clone(prior),...(world.enemyStates?.[record.targetId]||{}),hp:world.enemyHealth?.[record.targetId]??prior.hp}:{id:record.targetId,name:'Rook · Borrowed Luck',faction:'cinder',...enemyHullProfile('kestrel'),x:1460,y:760,vx:0,vy:0,angle:-2.8,hp:72,maxHp:72,cooldown:1.7,speed:92,damage:6,reward:0,active:false,questTarget:true,questOwner:this.playerId};
+  const enemy=prior?{...clone(prior),...(world.enemyStates?.[record.targetId]||{}),hp:world.enemyHealth?.[record.targetId]??prior.hp}:{id:record.targetId,name:'Rook · Borrowed Luck',faction:'cinder',...enemyHullProfile('kestrel'),x:1460*SYSTEM_SPACE_SCALE,y:760*SYSTEM_SPACE_SCALE,vx:0,vy:0,angle:-2.8,hp:72,maxHp:72,cooldown:1.7,speed:92,damage:6,reward:0,active:false,questTarget:true,questOwner:this.playerId};
   if(!prior)world.spawned.push(clone(enemy));
   this.system.enemies.push(enemy);
  },

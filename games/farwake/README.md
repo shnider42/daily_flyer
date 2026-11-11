@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.10.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.11.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Room between destinations · 0.11.0
+
+Space inside every system is three times wider and taller: the flight boundary grows from ±2,700 to ±8,100 world metres, for nine times the navigable area. Existing planet, station, moon, asteroid, signal, and ordinary enemy placements spread across that larger space. The galaxy chart still has the same 900 systems and the same interstellar distances; all content identities, populations, ore, quests, and ship statistics remain intact.
+
+Ships, body silhouettes, hazard radii, docking clearances, weapons, scanners, mining reach, and on-foot areas keep their existing physical scale. The camera keeps its current zoom, so the world feels more spacious instead of fitting the whole expansion back into one view. Radar coverage grows with the system, while the local chart reports the actual new travel distances. Passage fares and seeded crew wages retain their previous balance; flying an existing route takes longer, and a paid crew's work window still begins on arrival.
+
+The save format records the system-space revision. Existing solo voyages and shared galaxies migrate once, including unloaded rooms, parked and occupied vessels, physical encounter contacts, and hired-crew routes. Docked vessels retain their local berth offset; attached ships, returning boarders, and open nearby transmissions stay together. People inside cabins, settlements, caves, and other interiors keep their exact local coordinates. Progress, damage, cargo, credits, social history, and elapsed time are preserved.
+
+NPC routes and the Resolute patrol use the expanded space at their existing physical speeds. Route restoration translates saved progress to the new route lengths, keeping traffic counts and behavior consistent. Spatial mission markers follow their actual landmarks, including Tinbell's evacuation beacon and Umbra's safe reading point.
 
 ## A shared departure and the harbor watch · 0.10.0
 

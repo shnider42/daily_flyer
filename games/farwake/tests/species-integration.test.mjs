@@ -7,6 +7,7 @@ import {SPECIES_HOMEWORLDS} from '../dist/species-content.mjs';
 import {FACTION_PORTS} from '../dist/port-content.mjs';
 import {withHull} from './helpers/fleet-fixtures.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
+import {SYSTEM_SPACE_SCALE} from '../dist/system-space.mjs';
 
 const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const addedBodies=new Set([...SPECIES_HOMEWORLDS.map(entry=>entry.body.id),...FACTION_PORTS.map(port=>port.id)]);
@@ -18,26 +19,29 @@ const charts={
  'species-compatibility':'41f71102e91aafa3c37ddd178bd1792c55cc0aff93f073dff75ed4aa2eb90d69',
  farwake:'9bd1c91c285e7efa3f214c8053014723306c4744092c98e11c2689eb4473ca47'
 };
+// Derived independently from committed0.10 after verifying its unrounded data
+// against all16 original0.7.1 signatures. Coordinates use released system units;
+// six decimals avoid binary rounding noise from multiplying then dividing by3.
 const physical={
   "species-compatibility": {
-    "kindred": "dc6441c05c1594305a9cdda73749ccd04551c424952130e37c9aa53d699806e0",
-    "brassfall": "570b110cc42e0c1275712dff948dd4b0f68655dffd676c0e30529f7ae34f1fd7",
-    "chorus": "fee7c2b15de308b046fb300dc98cba91e1db89a4e5ae3c4a651399342ed52318",
-    "brindle": "dffaedc49810cffdce6b775a315593bd671b8367fa2e06c08ed13ad673218805",
-    "nacre": "f0049997844776d28d8cd3751fbb0c39771a29f4bf38d9877b7afa552202e16c",
-    "sable": "a729842cd1d7b6c69d493ea74084306a786a4ca70d4f8834b1aa84acd293a717",
-    "vesper": "1ad0daa3de1b4b262a927ebb251a62da5836dfb2d00902c841e2e00726c1b528",
-    "cinder": "2fc4b6fab5f7b8053fb15780d632e75cd14e7a43644b2291e24171bb09871642"
+    "kindred": "81c32c2dea74907708cd1de4142e5b67fe9a8b6cc78a37c8d99b142445d9c60e",
+    "brassfall": "b4ef7faff4ab83f06b2f0ee0943d5a392ede8c4a989ee33feada52d82cc7cb6d",
+    "chorus": "6525cdf8b46ca0d1199bbed5fafc81b989375fa6d0fa7addfd389ef42ee49e23",
+    "brindle": "454c85a4a65f592efa014cb059dcc339410bb9cad583e2691738d924fb4a70ea",
+    "nacre": "caab4d8125b3e7b616d1690b8e573bb1aedd07f2d1b2e987939013cea5fd0b0e",
+    "sable": "ee390ef7411b1807c4db55a6588ed4edc1a2a5f2836220019ac96539b240d92f",
+    "vesper": "a68e870fb57e1345fe10b5619a6492236b8b13a1fd6ba7807480b05cd9f51908",
+    "cinder": "acca4e4830528d4e7b387f9b7d018758b180a7f55ddde75aa4b63301d05b0882"
   },
   "farwake": {
-    "kindred": "c83969693e3d45f34fda2e0ef87eb60eaed92794f5d13b1c82b126d2f0efb8c4",
-    "brassfall": "ef2329a74e8f62fa937f657774ff0d7850dd8e50e87b636c0c695a3265bac5ee",
-    "chorus": "c426e2f92a7c59312603e5016e10eeaa37b03d95820b796e41973e5bd9263b1c",
-    "brindle": "e46ad3dcc93d60790936b6ea61cf4b0bff42fc59bda02d02f5c63e0f7cab9128",
-    "nacre": "e0a2e2bedcd64098212ca2c1102e4114b38f921f35385ba4db4dad9471ed143a",
-    "sable": "1f2ff18e5acd0cdc1bbf348ddf2f06841d61910a62ed09660998d7d054b07b47",
-    "vesper": "de293a09c1bb3850c5a0bce0077cc81fefa415e25a37264b559a153acfe9c71d",
-    "cinder": "7a557c5567a3c27fa397ca972fdec0535ca99cd37b359542788fb06aa78fc21c"
+    "kindred": "c0e97b6f8533c041af00cdcf86b05471f3b9738102c8376e27be60713eb57791",
+    "brassfall": "0ffa62d433ed1e044fcc499fd86251d3bc66f85f5bcf3294dcd1373274d09336",
+    "chorus": "a3ae113a13f505c4c5ae69321d82f9dd3fe13c24fcf8440254efeea01cbc592e",
+    "brindle": "cc0fa73e15860f14b0117ace8eb6c3bae41c4891cb7b6db6ee6a881535488d40",
+    "nacre": "0919f08cf7c7260e3b2bf279c1d35a13853bc0168c943b98146f6fddbd4ce241",
+    "sable": "cebd63f6c2676eeb5dc4be66704ec28350ffd089c139e6a75aaa08b2f97f0cfb",
+    "vesper": "d6be9ef19329d7dab5fa8cb3ef85cc87d454be0e9e3624dbb7f99205dcb2329d",
+    "cinder": "60e2387da0db778cbbe6c279ea7f14add7510b0e590df607cbd33e402dbb813a"
   }
 };
 
@@ -53,13 +57,13 @@ test('adding people and homeworlds preserves all 900 released stars and every ol
 test('population and traffic changes cannot consume other physical world random draws',()=>{
  for(const[seed,systems]of Object.entries(physical))for(const[systemId,expected]of Object.entries(systems)){
   const game=new Game(seed);game.state.systemId=systemId;game._loadSystem(systemId);
-  const {bodies,asteroids,enemies,signals}=game.system;
-  // Traffic intentionally has new hull selection and lanes. Every older body,
-  // rock, hostile hull and story signal must still match released 0.7.1 bytes.
-  const projection={bodies:releasedBodies(bodies),asteroids,enemies,signals};
-  assert.equal(checksum(projection),expected);
-  for(const body of bodies)generateSurface(body,seed);
-  assert.equal(checksum(projection),expected,'creating person views never mutates the space simulation');
+  // Traffic intentionally has new hull selection and lanes. Normalize only
+  // physical spacing; every other released body, rock, hull and signal field stays exact.
+  const coordinates=items=>items.map(item=>({...item,x:Math.round(item.x/SYSTEM_SPACE_SCALE*1e6)/1e6,y:Math.round(item.y/SYSTEM_SPACE_SCALE*1e6)/1e6}));
+  const projection=()=>({bodies:coordinates(releasedBodies(game.system.bodies)),asteroids:coordinates(game.system.asteroids),enemies:coordinates(game.system.enemies),signals:coordinates(game.system.signals)});
+  assert.equal(checksum(projection()),expected);
+  for(const body of game.system.bodies)generateSurface(body,seed);
+  assert.equal(checksum(projection()),expected,'creating person views never mutates the space simulation');
  }
 });
 

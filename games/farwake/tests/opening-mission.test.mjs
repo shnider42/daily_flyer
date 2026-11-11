@@ -137,12 +137,15 @@ test('regular mining evidence excludes ship proxies, passengers, and NPC employe
   game.state.mode = 'ship'; game.state.npcContract = { active: true };
   assert.equal(game.recordOpeningMining(2, source), false); delete game.state.npcContract;
   assert.equal(game.recordOpeningMining(2), false, 'A missing source cannot claim belt ore.');
-  const inside = game.system.asteroids.find(value => !isOpeningMiningRock(game, value));
+  const inside = game.system.asteroids.find(value => value.id !== source.id);
+  // The expanded generated field is farther out. Put a real rock beside the
+  // berth to exercise the rule independently of this seed's field spacing.
+  Object.assign(inside, { x: 100, y: 100 });
   assert.equal(game.recordOpeningMining(2, { ...inside, x: 2000, y: 2000 }), false, 'Supplied coordinates cannot replace the actual rock.');
   assert.equal(game.recordOpeningMining(2, source), true); assert.equal(game.state.openingMission.oreMined, 2);
 });
 
-test('all three starters must leave the berth before qualifying, while dockside mining still gives ordinary ore', () => {
+test('all three starters must fly to the expanded field, while any berth-side ore remains ordinary cargo', () => {
   for (const starterShip of STARTER_SHIP_IDS) {
     const game = create({ starterShip }); accept(game); repair(game); ok(game.quickLaunch());
     const launch = { x: game.state.ship.x, y: game.state.ship.y }, target = game.openingMissionStatus().target;
@@ -151,6 +154,10 @@ test('all three starters must leave the berth before qualifying, while dockside 
     assert.ok(Math.hypot(target.x - kettle.x, target.y - kettle.y) - target.radius >= OPENING_BELT_DISTANCE);
     assert.equal(game.openingMissionStatus().miningInRange, false);
     for (let step = 0; step < 60; step++) game._mine(.1);
+    assert.equal(game.state.cargo.ore, 0, 'The mining beam cannot reach the expanded field from the launch berth.');
+    const dockside = game.system.asteroids.find(value => value.id !== target.entityId);
+    Object.assign(dockside, { x: launch.x + 50, y: launch.y, hp: dockside.maxHp });
+    for (let step = 0; step < 100 && dockside.hp > 0; step++) game._mine(.1);
     assert.ok(game.state.cargo.ore > 0, `${starterShip} still receives its actual dockside ore.`);
     assert.ok(game.state.stats.oreMined > 0); assert.equal(game.state.openingMission.oreMined, 0);
     assert.deepEqual({ x: game.state.ship.x, y: game.state.ship.y }, launch);
@@ -196,6 +203,8 @@ test('a depleted marker retargets another real rock and an exhausted field offer
   const first = game.openingMissionStatus().target;
   assert.equal(first.kind, 'asteroid'); game.system.asteroids.find(value => value.id === first.entityId).hp = 0;
   assert.notEqual(game.openingMissionStatus().target.entityId, first.entityId);
+  const dockside = game.system.asteroids.find(value => value.id !== first.entityId);
+  Object.assign(dockside, { x: 100, y: 100, hp: dockside.maxHp });
   for (const rock of game.system.asteroids) if (isOpeningMiningRock(game, rock)) rock.hp = 0;
   assert.ok(game.system.asteroids.some(rock => rock.hp > 0 && rock.ore > 0), 'Berth-side ore remains ordinary usable cargo.');
   assert.equal(game.openingMissionStatus().stageId, 'return'); assert.equal(game.openingMissionStatus().target.entityId, 'kettle:dockworker');

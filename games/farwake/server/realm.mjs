@@ -17,6 +17,9 @@ import { interactionInRange } from '../dist/live-surface.mjs';
 import { normalizeSpecies } from '../dist/species.mjs';
 import { captureTraffic, restoreTraffic, catchUpTraffic } from '../dist/traffic.mjs';
 import { groupLaunchChoices } from '../dist/group-start.mjs';
+import { migrateRealmSpace } from '../dist/space-migration.mjs';
+import { SYSTEM_SPACE_VERSION } from '../dist/system-space.mjs';
+import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -37,6 +40,8 @@ export class Realm extends BoardingAuthority {
   constructor({ id, name, seed, settings = {}, persistence, version = 0, snapshot = null, onConflict = () => {} }) {
     super();
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
+    this.galaxy = buildGalaxy(this.seed);
+    if (snapshot) snapshot = migrateRealmSpace(clone(snapshot), { systems: this.galaxy });
     // This creation preference applies only to new captains. Loading an old
     // galaxy or resuming an existing passport never starts a new opening.
     this.settings = Object.freeze({ openingMission: (snapshot ? snapshot.settings?.openingMission : settings?.openingMission) === true, startTogether: (snapshot ? snapshot.settings?.startTogether : settings?.startTogether) === true });
@@ -62,12 +67,12 @@ export class Realm extends BoardingAuthority {
     }
     this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {}; this.sites = snapshot?.sites || {}; this.normalizedSites = new Set();
     this.revision = 0; this.persistedRevision = 0; this.flushing = null; this.storageError = null; this.conflicted = false; this.tick = 0; this.simulatedAt = now();
-    this.galaxy=buildGalaxy(this.seed);
     this.director=advanceWorldDirector(snapshot?.director,now()/1000,{seed:this.seed,systems:this.galaxy}).state;
-    const savedPerspectives=new Map();
+    const savedPerspectives=new Map(), savedEncounters=new Map();
     for (const data of Object.values(snapshot?.captains || {})) {
       const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, ...savedGame } = data.game || {};
       savedPerspectives.set(data.id,savedGame.mode);
+      if (savedGame.pendingEncounter) savedEncounters.set(data.id, savedGame.pendingEncounter);
       const game = Game.fromSave({ ...savedGame, seed: this.seed, worlds: {} });
       // A guest's saved ship field is their owned hull. Revalidate their pose
       // against the actual occupied hull after all vessels have been restored.
@@ -112,6 +117,15 @@ export class Realm extends BoardingAuthority {
         }else Object.assign(state.person,safeCabinPoint(cabinLayout(vessel.ship.classId),state.person));
         if(['ship','enemy'].includes(state.interior?.kind)){state.interior.location={...state.interior.location,...this._locationForVessel(vessel,captain)};state.locationId=`ship:${vessel.id}`;state.systemId=vessel.systemId;}
       }
+    }
+    // A guest's persisted ship is their owned hull, possibly in another
+    // system. Validate saved radio contact against the occupied hull and the
+    // canonical room only after both have been restored.
+    for (const [id, pending] of savedEncounters) {
+      const captain = this.captains.get(id), vessel = this.vessels.get(captain.aboard);
+      this._bindCaptain(captain);
+      const available = vessel ? this._withShip(captain, vessel, () => pendingSourceAvailable(captain.game, pending)) : pendingSourceAvailable(captain.game, pending);
+      captain.game.state.pendingEncounter = available ? clone(pending) : null;
     }
     this.markDirty();
   }
@@ -294,6 +308,7 @@ export class Realm extends BoardingAuthority {
     coordinator._directorShared=this.director;
     coordinator.state.systemId = systemId; coordinator.state.worlds = { [systemId]: saved.record || {} }; coordinator._loadSystem(systemId);
     const record = coordinator.state.worlds[systemId], runtime = coordinator.system;
+    record.spaceVersion = SYSTEM_SPACE_VERSION;
     for (const key of ['enemies']) if (Array.isArray(saved[key])) {
       const positions = new Map(saved[key].map(e => [e.id, e]));
       for (const entity of runtime[key]) { const prior = positions.get(entity.id); if (prior) for (const field of ['x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown']) if (Number.isFinite(prior[field])) entity[field] = prior[field]; }
@@ -301,7 +316,7 @@ export class Realm extends BoardingAuthority {
     // Empty rooms do not run combat. Only a bounded amount of harmless traffic motion catches up.
     const elapsed = Math.min(15, Math.max(0, (now() - (saved.savedAt || now())) / 1000));
     restoreTraffic(runtime.traffic,saved.traffic);
-    catchUpTraffic(runtime.traffic,elapsed);
+    catchUpTraffic(runtime.traffic,elapsed,{radius:runtime.radius});
     coordinator.bindSharedWorld(runtime, record, `world:${systemId}`); coordinator.netTargetEligible = false;
     syncDirectorWorld(coordinator,this.director);
     room = { systemId, coordinator, runtime, record, lastActive: now(), ticks: 0 }; this.rooms.set(systemId, room);
@@ -311,7 +326,7 @@ export class Realm extends BoardingAuthority {
   _captureRoom(room) {
     room.coordinator._persistRuntime();
     const fields = entity => Object.fromEntries(['id', 'x', 'y', 'angle', 'vx', 'vy', 'hp', 'cooldown'].filter(key => entity[key] !== undefined).map(key => [key, entity[key]]));
-    this.worlds[room.systemId] = { record: clone(room.record), enemies: room.runtime.enemies.map(fields), traffic: captureTraffic(room.runtime.traffic), savedAt: now() };
+    this.worlds[room.systemId] = { spaceVersion: SYSTEM_SPACE_VERSION, record: clone(room.record), enemies: room.runtime.enemies.map(fields), traffic: captureTraffic(room.runtime.traffic), savedAt: now() };
   }
   _bindCaptain(captain) {
     captain.game._directorShared=this.director;
@@ -1241,7 +1256,7 @@ export class Realm extends BoardingAuthority {
       captains[c.id] = { id: c.id, name: c.name, launchStatus: c.launchStatus || null, launchReady: c.launchReady === true, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
+    return { format: 1, spaceVersion: SYSTEM_SPACE_VERSION, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');
