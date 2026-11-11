@@ -9,6 +9,45 @@ const canPilot=(vessel,captainId)=>!!vessel&&(vessel.ownerId===captainId||vessel
 const stationHeld=(vessel,captainId,releaseExpired=false)=>!!vessel?.helmOwner&&vessel.helmOwner!==captainId&&(!releaseExpired||vessel.helmOccupied!==false);
 const boardAccess=(vessel,captainId)=>!!vessel&&vessel.canBoard!==false&&(vessel.canBoard===true||vessel.ownerId===captainId||vessel.occupation?.controllerId===captainId&&!vessel.occupation?.contested||vessel.allowCrew||vessel.grantedRoles?.length>0);
 
+/** Dock metadata belongs to the occupied hull, never the captain's parked ship. */
+function occupiedDock(game,{shared,fleet}){
+ const state=game?.state||{},interior=state.interior,mp=state.multiplayer||{},location=interior?.location||{};
+ if(state.mode!=='person'||state.exploration||!['ship','enemy'].includes(interior?.kind))return null;
+ let source,systemId=state.systemId;
+ if(shared){
+  const vessel=fleet.find(ship=>ship.id===mp.aboardVesselId);
+  // Compact packets refresh the occupied hull here while retaining an older fleet.
+  // An explicit null clears a previous berth as soon as the pilot departs.
+  if(mp.aboardVesselId&&Object.hasOwn(mp,'dockedAt'))source=mp;
+  else if(vessel){source=vessel;systemId=vessel.systemId||systemId;}
+  else if(mp.aboardVesselId&&location.vesselId===mp.aboardVesselId)source=location;
+  else return null;
+ }else{
+  if(typeof game.dockedPortInfo==='function'){
+   const port=game.dockedPortInfo();return port?{bodyId:port.id,name:port.name,kind:port.kind,systemId:port.systemId}:null;
+  }
+  const job=state.npcContract,ship=interior.kind==='enemy'?game.system?.enemies?.find(vessel=>vessel.id===(state.boarding?.targetId||interior.signalId)):state.ship;
+  if(job?.active&&job.vesselId===(location.vesselId||ship?.id))source=job;
+  else if(ship&&Object.hasOwn(ship,'dockedAt'))source=ship;
+  else source=location;
+ }
+ const bodyId=source?.dockedAt;if(typeof bodyId!=='string'||!bodyId)return null;
+ const body=game.system?.bodies?.find(body=>body.id===bodyId)||game.galaxy?.find(system=>system.id===systemId)?.bodies?.find(body=>body.id===bodyId);
+ return{bodyId,name:body?.name||source.dockedName||bodyId,kind:body?.kind||source.dockedKind||'port',systemId};
+}
+
+/** Leaving a docked deck needs an airlock, not boarding or piloting permission. */
+export function getDisembarkAction(game,{shared=false,connected=true,fleet=[],surface=null}={}){
+ const port=occupiedDock(game,{shared,fleet});if(!port)return null;
+ const state=game.state,interior=state.interior,airlock=surface?.entities?.find(entity=>entity.data?.airlock&&!entity.hidden)||
+  {...cabinLayout(interior.location?.shipClass||state.boarding?.shipClass||state.ship?.classId).spawn,id:`${state.locationId}:entry-airlock`};
+ let result={...action(`Disembark at ${port.name}`,'disembark',`Use this ship’s entry airlock to step onto ${port.name}.`,airlock.id),port};
+ if(state.person?.health<=0||state.person?.down)return blocked(result,'You are incapacitated. Wait for recovery before using the airlock.');
+ if(shared&&!connected)return blocked(result,'Reconnecting to the galaxy. The airlock will be ready when your captain is connected.');
+ if(distance(state.person,airlock)>70)result=blocked(result,`Walk to the marked entry airlock to disembark at ${port.name}.`);
+ return result;
+}
+
 /** Boarding permission and a free berth are independent of who operates the helm. */
 export function getBoardingAction(game,vessel,{fleet=[],connected=true}={}){
  const state=game?.state||{},mp=state.multiplayer||{};
@@ -46,7 +85,8 @@ function helmAction(game,{shared,fleet}){
  const vessel=shared?fleet.find(ship=>ship.id===mp.aboardVesselId):null;
  const target=interior?.kind==='enemy'&&!shared?game.system?.enemies?.find(ship=>ship.id===(boarding?.targetId||interior.signalId)):null;
  const captured=interior?.kind==='enemy'||!shared&&boarding?.kind==='assault'||mp.hostileBoarding===true;
- const result=action(vessel?.dockedAt?'Launch ship':'Take helm','quickHelm',vessel?.dockedAt?'Take this ship’s helm and depart from its current port.':'Take the helm of the ship you are aboard.');
+ const docked=!!occupiedDock(game,{shared,fleet});
+ const result=action(docked?'Launch ship':'Take helm','quickHelm',docked?'Take this ship’s helm and depart from its current port.':'Take the helm of the ship you are aboard.');
  if(boarding?.phase==='active'||vessel?.occupation?.contested)return blocked(result,'Clear the hostile boarders before taking the helm.');
  if(shared){
   if(!vessel)return blocked(result,'Waiting for the current ship’s status.');
@@ -60,6 +100,17 @@ function helmAction(game,{shared,fleet}){
   if(!target||dead(target))return blocked(result,'The target hull is no longer intact.');
   if(boarding?.phase!=='won'||!target.deck?.cleared)return blocked(result,'Secure this ship’s deck before taking its helm.');
  }else if(dead(state.ship))return blocked(result,'This hull is no longer intact.');
+ return result;
+}
+
+/** The physical helm keeps its own permission/launch action when the top button points ashore. */
+export function getHelmAction(game,{shared=false,connected=true,fleet=[]}={}){
+ const state=game?.state||{};
+ let result=helmAction(game,{shared,fleet});
+ if(state.npcContract?.active)return blocked(result,'The NPC captain operates this helm. Use Crew duty for your assigned work.');
+ if(state.person?.health<=0||state.person?.down)return blocked(result,'You are incapacitated. Wait for recovery before taking the helm.');
+ if(shared&&!connected)return blocked(result,'Reconnecting to the galaxy. The helm will be ready when your captain is connected.');
+ if(state.pendingEncounter)return blocked(result,'Finish or close the current conversation before taking the helm.');
  return result;
 }
 
@@ -102,6 +153,7 @@ function launchAction(game,{shared,fleet}){
 /** A read-only description suitable for every frame, including compact shared snapshots. */
 export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],surface=null}={}){
  const state=game?.state||{},interior=state.interior,boarding=state.boarding,mp=state.multiplayer||{};
+ const disembark=getDisembarkAction(game,{shared,connected,fleet,surface});if(disembark)return disembark;
  const localBoarding=shared&&getLocalPortVessels(game,fleet).length>0;
  let result;
  if(interior?.kind==='eva'){

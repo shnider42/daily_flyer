@@ -205,6 +205,17 @@ test('nearby damage control prioritizes reachable fire, then breach, then distan
  assert.equal(nearestDamageMarker(surface,{x:1000,y:1000}),null);assert.equal(nearestDamageMarker({...surface,kind:'planet'},person),null);assert.equal(nearestDamageMarker(surface,null),null);
 });
 
+test('a usable docked entry airlock wins over colocated NPCs and consoles without hiding distant interactions',()=>{
+ const airlock={id:'entry',type:'exit',x:43,y:0,data:{airlock:true,dockedAt:'kettle'}};
+ const crew={id:'crew',type:'crew',x:0,y:0},console={id:'console',type:'station',x:2,y:0,data:{stationRole:'medical'}};
+ const surface={kind:'ship',entities:[airlock,console,crew]},person={x:0,y:0};
+ assert.equal(nearestDeckInteraction(surface,person),airlock,'The reachable exit remains usable even when an NPC stands on the captain.');
+ airlock.x=43.01;assert.equal(nearestDeckInteraction(surface,person),crew,'A distant door cannot take priority over a nearby person.');
+ airlock.x=43;airlock.data.dockedAt=null;assert.equal(nearestDeckInteraction(surface,person),crew,'An undocked airlock keeps normal interaction ordering.');
+ airlock.data.dockedAt='kettle';airlock.hidden=true;assert.equal(nearestDeckInteraction(surface,person),crew);
+ airlock.hidden=false;airlock.disabled=true;assert.equal(nearestDeckInteraction(surface,person),crew);
+});
+
 for(const [classId,role] of [['sparrow','navigation'],['kestrel','medical']])test(`${classId}: adjacent scars and active hazards cannot trap the ${role} console behind damage control`,()=>{
  const ship=hull(`console-${classId}`);ship.classId=classId;ensureDamageControl(ship);
  const surface=generateSurface({id:`ship:${ship.id}`,vesselId:ship.id,kind:'ship',shipClass:classId},'station-damage');

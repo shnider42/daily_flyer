@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.mjs';
 import {generateSurface} from '../dist/surface.mjs';
 import {cabinLayout} from '../dist/interior-layouts.mjs';
-import {getPerspectiveAction,getBoardingAction,getLocalPortVessels} from '../dist/perspective-controls.mjs';
+import {getPerspectiveAction,getBoardingAction,getLocalPortVessels,getDisembarkAction,getHelmAction} from '../dist/perspective-controls.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 
 const ok=result=>assert.equal(result.ok,true,result.reason);
@@ -34,9 +34,50 @@ test('friendly crew shortcut targets the occupied hull even with an original ret
  const{game,current,fleet}=sharedDeck();
  const action=choice(game,{shared:true,fleet});
  assert.equal(action.command,'quickHelm');assert.equal(action.enabled,true);assert.equal(action.label,'Take helm');
- current.dockedAt='kettle';assert.equal(choice(game,{shared:true,fleet}).label,'Launch ship');
- current.grantedRoles=[];assert.match(choice(game,{shared:true,fleet}).reason,/not granted.*helm/);
- current.occupation={controllerId:'captain',contested:false};assert.equal(choice(game,{shared:true,fleet}).enabled,true);
+ current.dockedAt='kettle';assert.equal(choice(game,{shared:true,fleet}).label,'Disembark at Kettle Station');
+ assert.equal(getHelmAction(game,{shared:true,fleet}).label,'Launch ship');
+ current.grantedRoles=[];assert.equal(choice(game,{shared:true,fleet}).enabled,true);assert.match(getHelmAction(game,{shared:true,fleet}).reason,/not granted.*helm/);
+ current.occupation={controllerId:'captain',contested:false};assert.equal(getHelmAction(game,{shared:true,fleet}).enabled,true);
+});
+
+test('a docked crew airlock ignores jobs, combat, permissions and a missing old tether',()=>{
+ const{game,current,fleet}=sharedDeck();
+ Object.assign(current,{dockedAt:'morrow',canBoard:false,grantedRoles:[],occupation:{contested:true},helmOwner:'owner',helmOccupied:true});
+ fleet[1].dockedAt='kettle';
+ Object.assign(game.state.multiplayer,{returnVesselId:'old-missing-hull',canReturn:false});
+ game.state.npcContract={active:true,vesselId:current.id};game.state.boarding={kind:'assault',phase:'active'};game.state.pendingEncounter={id:'old-conversation'};
+ const before=JSON.stringify(game.state),action=choice(game,{shared:true,fleet});
+ assert.equal(action.label,'Disembark at Morrow');assert.equal(action.command,'disembark');assert.equal(action.enabled,true);assert.deepEqual(action.args,{});
+ assert.equal(action.port.bodyId,'morrow','The occupied hull determines the port, never the parked personal hull.');
+ assert.equal(JSON.stringify(game.state),before,'The presentation cannot settle a job, clear a story, or move either hull.');
+ assert.equal(getHelmAction(game,{shared:true,fleet}).enabled,false,'The helm remains a separate restricted operation.');
+});
+
+test('compact dock metadata immediately supersedes stale fleet and cached interior metadata',()=>{
+ const{game,current,fleet}=sharedDeck();
+ Object.assign(game.state.interior.location,{vesselId:current.id,dockedAt:'morrow',dockedName:'Morrow'});
+ current.dockedAt=null;
+ Object.assign(game.state.multiplayer,{dockedAt:'kettle',dockedName:'Kettle Station',dockedKind:'station'});
+ assert.equal(choice(game,{shared:true,fleet}).label,'Disembark at Kettle Station');
+ assert.equal(getHelmAction(game,{shared:true,fleet}).label,'Launch ship');
+ current.dockedAt='kettle';game.state.multiplayer.dockedAt=null;
+ assert.equal(getDisembarkAction(game,{shared:true,fleet}),null,'An explicit current null defeats both stale full-snapshot sources.');
+ assert.equal(choice(game,{shared:true,fleet}).label,'Take helm');
+ delete game.state.multiplayer.dockedAt;
+ assert.equal(choice(game,{shared:true,fleet}).command,'disembark','Older snapshots can still use their fleet metadata.');
+ assert.equal(choice(game,{shared:true,fleet:[]}).port.bodyId,'morrow','Matching interior metadata is the final compatibility fallback.');
+ game.state.interior.location.vesselId='unrelated-hull';assert.equal(getDisembarkAction(game,{shared:true,fleet:[]}),null);
+});
+
+test('the docked top shortcut marks the physical entry and requires its actual 70-unit range',()=>{
+ const{game,current,fleet}=sharedDeck();current.dockedAt='kettle';
+ const surface=generateSurface(game.currentBody,game.state.seed),airlock=surface.entities.find(entity=>entity.data?.airlock),options={shared:true,fleet,surface};
+ Object.assign(game.state.person,{x:airlock.x+70.01,y:airlock.y});
+ let action=choice(game,options);assert.equal(action.command,'disembark');assert.equal(action.targetId,airlock.id);assert.equal(action.enabled,false);assert.match(action.reason,/marked entry airlock/);
+ game.state.person.x=airlock.x+70;assert.equal(choice(game,options).enabled,true);
+ assert.match(choice(game,{...options,connected:false}).reason,/Reconnecting/);
+ game.state.person.down=true;assert.match(choice(game,options).reason,/incapacitated/);
+ game.state.person.down=false;game.state.person.health=0;assert.match(choice(game,options).reason,/incapacitated/);
 });
 
 test('a friendly visitor on a previously captured ship still needs a helm grant',()=>{

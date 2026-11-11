@@ -106,7 +106,7 @@ export function createNpcContract(game,roleId,options={}){
  return result;
 }
 
-function transition(game,contract,phase,text){contract.phase=phase;contract.phaseClock=0;if(text)emit(game,text);}
+function transition(game,contract,phase,text){contract.phase=phase;contract.phaseClock=0;if(['outbound','returning','failed'].includes(phase))contract.dockedAt=null;if(text)emit(game,text);}
 function targetEnemy(game,contract){return game.system.enemies.find(enemy=>enemy.id===contract.work.enemyId)||game._record?.().spawned?.find(enemy=>enemy.id===contract.work.enemyId)||null;}
 
 function startIncident(game,contract){
@@ -134,9 +134,20 @@ function startIncident(game,contract){
 
 function updateCabin(game){
  const contract=active(game);if(!contract)return;
+ if(['outbound','returning','failed'].includes(contract.phase))contract.dockedAt=null;
+ // Older receiving-watch saves recorded a completed arrival but omitted the
+ // berth. Restore only that explicit route state on its real service hull.
+ if(game.state.ship.id===contract.vesselId&&modern(contract)&&contract.phase==='working'&&contract.assignment.visitedDestination&&contract.assignment.familyId!=='hullwork'&&!contract.dockedAt){
+  const destination=game.system.bodies.find(body=>body.id===contract.destination?.bodyId);
+  if(port(destination)&&contract.workPoint&&distance(game.state.ship,contract.workPoint)<=60&&distance(game.state.ship,destination)<=destination.radius+160&&Math.hypot(game.state.ship.vx||0,game.state.ship.vy||0)<28){
+   contract.dockedAt=destination.id;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});
+  }
+ }
+ const body=game.system.bodies.find(body=>body.id===contract.dockedAt);
+ if(game.state.ship.id===contract.vesselId)game.state.ship.dockedAt=body?.id||null;
  if(game.state.ship.id===contract.vesselId&&game.state.boarding?.phase!=='active')game._damageCrewPositions=game.state.crew.filter(crew=>Number.isFinite(crew.x)&&Number.isFinite(crew.y)).map(crew=>({crewId:crew.id,x:crew.x,y:crew.y}));
  if(game.state.interior?.kind!=='ship')return;
- Object.assign(game.state.interior.location,{id:`ship:${contract.vesselId}`,vesselId:contract.vesselId,name:`${contract.shipName} · hired crew`,vesselName:contract.shipName,ownership:'crew',ownerName:'Local service cooperative',shipClass:game.state.ship.classId,classId:game.state.ship.classId,crew:clone(game.state.crew),npcContractId:contract.id});
+ Object.assign(game.state.interior.location,{id:`ship:${contract.vesselId}`,vesselId:contract.vesselId,name:`${contract.shipName} · hired crew`,vesselName:contract.shipName,ownership:'crew',ownerName:'Local service cooperative',shipClass:game.state.ship.classId,classId:game.state.ship.classId,crew:clone(game.state.crew),npcContractId:contract.id,dockedAt:body?.id||null,dockedName:body?.name||null,dockedKind:body?.kind||null});
 }
 
 function observeWork(game,contract){
@@ -260,6 +271,10 @@ function stepModernContract(game,contract,dt,input){
   if(a.complication.started&&!a.complication.resolved&&a.complication.type==='attack'){a.interruptedLeg=true;transition(game,contract,'working');}
   if(distance(game.state.ship,contract.workPoint)<55&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<28){
    a.visitedDestination=true;contract.work.routeVisited=true;transition(game,contract,'working');
+   // Delivery and receiving watches actually moor here. Exterior fitting work
+   // holds off the port so its airlock still opens onto the hull walk.
+   const destination=game.system.bodies.find(body=>body.id===contract.destination?.bodyId);
+   if(a.familyId!=='hullwork'&&port(destination)){contract.dockedAt=destination.id;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});}
    if(a.complication.type&&!a.complication.started)startModernComplication(game,contract);
    modernComms(game,contract,a.familyId==='hullwork'?'Pilot: holding position. Suit is ready; use the entry airlock for the exterior fitting.':`Pilot: alongside ${a.destinationName}. Finish the receiving check at your station.`);
   }
@@ -305,7 +320,7 @@ export function stepNpcContract(game,delta,input={}){
 export function npcContractPilot(game){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return null;
  const ship=game.state.ship,still={thrust:0,turn:0,strafe:0,brake:1,flightAssist:true,fire:false,mine:false};
- if(['boarding','docked','failed'].includes(contract.phase))return still;
+ if(contract.phase==='working'&&contract.dockedAt||['boarding','docked','failed'].includes(contract.phase))return still;
  let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading,stopDistance=12;
  if(contract.phase==='working'){
   const complication=contract.assignment?.complication,attack=modern(contract)?complication.type==='attack'&&complication.started&&!complication.resolved:contract.roleId==='gunner'&&contract.incidentStarted;
@@ -491,30 +506,35 @@ export function npcContractStatus(game){
  return{active:true,id:contract.id,roleId:contract.roleId,roleName:definition.name,stationRole,phase:contract.phase,task,done:contract.work.done,reward:contract.reward,earned,progress,firing,shipName:contract.shipName,origin:clone(contract.origin),routeName:contract.routeName,dockedAt:contract.dockedAt,canFinish:contract.phase==='docked',target:{stationRole,crewId:contract.roleId==='medic'?contract.work.crewId:null,sectionId:contract.work.sectionId,enemyId:contract.work.enemyId,x:point?.x,y:point?.y},work:clone(contract.work)};
 }
 
-/** Pays once only after the same physical employer ship returns to port. */
-export function settleNpcContract(game,{interrupted=false,ship=game.state.ship}={}){
+/** Normal completion returns home; an airlock exit pays only work earned so far. */
+export function settleNpcContract(game,{interrupted=false,ship=game.state.ship,disembarkingAt=null}={}){
  const contract=active(game);if(!contract)return fail('There is no unpaid crew watch.','contract');
  if(contract.paid||(game.state.npcContractHistory||[]).some(entry=>entry.id===contract.id))return fail('This watch has already been settled.','paid');
- if(!interrupted&&(contract.phase!=='docked'||contract.dockedAt!==contract.origin.bodyId||ship.id!==contract.vesselId||ship.hull<=0||distance(ship,contract.dockPoint)>60||game.state.systemId!==contract.origin.systemId))return fail('The NPC ship must physically return and dock before the watch can be paid.','docking');
+ const returned=contract.phase==='docked'&&contract.dockedAt===contract.origin.bodyId&&(!disembarkingAt||disembarkingAt.id===contract.origin.bodyId)&&ship.id===contract.vesselId&&ship.hull>0&&distance(ship,contract.dockPoint)<=60&&game.state.systemId===contract.origin.systemId;
+ const destination=disembarkingAt&&game.system.bodies.find(body=>body.id===disembarkingAt.id&&body.landable!==false&&!['blackhole','ship','site','derelict','eva'].includes(body.kind));
+ if(disembarkingAt&&(!destination||ship.id!==contract.vesselId||!Number.isFinite(ship.x)||!Number.isFinite(ship.y)||distance(ship,destination)>destination.radius+160))return fail('The employer’s airlock must open at its actual current dock.','docking');
+ if(!interrupted&&!destination&&!returned)return fail('The NPC ship must physically return and dock before the watch can be paid.','docking');
  interrupted=interrupted||contract.emergency===true;
- const progress=clamp(finite(contract.work.progress),0,1),wages=interrupted?0:contract.work.done?contract.reward:Math.floor(contract.reward*.35*progress);
+ const completed=contract.work.done&&returned&&!interrupted,progress=clamp(finite(contract.work.progress),0,1),wages=interrupted?0:completed?contract.reward:Math.floor(contract.reward*.35*progress);
  game.state.credits+=wages;
- if(game.state.rep&&contract.factionId in game.state.rep)game.state.rep[contract.factionId]=clamp(finite(game.state.rep[contract.factionId])+(contract.work.done&&!interrupted?1:contract.aborted||interrupted?-1:0),-100,100);
- if(contract.work.done&&!interrupted){game.state.stats.jobs++;game._flag?.('first_job');game._flag?.('crew_watch_completed');}
- contract.paid=true;contract.active=false;contract.paidAmount=wages;contract.completedAt=finite(game.state.stats?.time);contract.outcome=interrupted?'interrupted':contract.work.done?'completed':'partial';
- const entry={id:contract.id,roleId:contract.roleId,origin:clone(contract.origin),wages,outcome:contract.outcome,at:contract.completedAt};
+ if(game.state.rep&&contract.factionId in game.state.rep)game.state.rep[contract.factionId]=clamp(finite(game.state.rep[contract.factionId])+(completed?1:contract.aborted||interrupted?-1:0),-100,100);
+ if(completed){game.state.stats.jobs++;game._flag?.('first_job');game._flag?.('crew_watch_completed');}
+ contract.paid=true;contract.active=false;contract.paidAmount=wages;contract.completedAt=finite(game.state.stats?.time);contract.outcome=interrupted?'interrupted':completed?'completed':'partial';
+ if(destination)contract.dockedAt=destination.id;
+ const arrival={systemId:game.state.systemId,bodyId:destination?.id||contract.origin.bodyId,name:destination?.name||contract.origin.name};
+ const entry={id:contract.id,roleId:contract.roleId,origin:clone(contract.origin),destination:arrival,wages,outcome:contract.outcome,at:contract.completedAt};
  game.state.npcContractHistory=[...(game.state.npcContractHistory||[]),entry].slice(-32);
- const text=interrupted?'The crew watch ended in emergency recovery. No wages were paid.':`${contract.roleName} watch settled: ${wages} credits. ${contract.work.done?'Your assigned work is complete.':'Only completed work was paid.'}`;
+ const text=destination?`Watch ended at ${destination.name} · ${wages} cr earned. ${completed?'Your assigned work is complete.':interrupted?'No wages were due.':'Only recorded work was paid.'}`:interrupted?'The crew watch ended in emergency recovery. No wages were paid.':`${contract.roleName} watch settled: ${wages} credits. ${completed?'Your assigned work is complete.':'Only completed work was paid.'}`;
  game._log?.('Crew watch',text,'job');emit(game,text);
- return ok({text,wages,contract,origin:clone(contract.origin)});
+ return ok({text,wages,contract,origin:clone(contract.origin),destination:arrival});
 }
 
-function restorePersonal(game,contract){
+function restorePersonal(game,contract,{body=null}={}){
  const personal=contract.personal;if(!personal)return;
  game.state.ship=personal.ship;
  for(const field of inventoryFields)game.state[field]=personal[field];
- game.state.mode='person';game.state.systemId=contract.origin.systemId;game.state.locationId=contract.origin.bodyId;game.state.interior=null;game.state.exploration=null;game.state.person.weaponDrawn=false;
- const body=game.system.bodies.find(body=>body.id===contract.origin.bodyId);
+ game.state.mode='person';game.state.systemId=body?game.state.systemId:contract.origin.systemId;game.state.locationId=body?.id||contract.origin.bodyId;game.state.interior=null;game.state.exploration=null;game.state.person.weaponDrawn=false;
+ body ||= game.system.bodies.find(body=>body.id===contract.origin.bodyId);
  if(body){const surface=generateSurface(body,game.state.seed,game.state.flags);Object.assign(game.state.person,surface.spawn);}
  delete contract.personal;game.state.npcContract=null;
  game._damageHullOverride=null;game._damageCrewPositions=null;game._refreshJobs?.();
@@ -560,6 +580,18 @@ export const NpcContractRules={
  completeNpcContract(){
   if(this._sharedWorld)return fail('Settle this shared watch through the galaxy authority.','authority');
   const contract=active(this),result=settleNpcContract(this);if(result.ok)restorePersonal(this,contract);return result;
+ },
+ _disembarkNpcContract(body){
+  const contract=active(this);if(!contract)return null;
+  let result=settleNpcContract(this,{disembarkingAt:body});
+  // Bad legacy bookkeeping must not lock a working physical airlock. Close
+  // the binding without another payout if that watch was already recorded.
+  if(!result.ok){
+   const recovered=settleNpcContract(this,{interrupted:true});
+   result=ok({wages:recovered.ok?recovered.wages:0,contract,text:`Watch ended at ${body.name} · 0 cr earned. No further wages were due.`});
+  }
+  restorePersonal(this,contract,{body});
+  return result;
  },
  recoverNpcContract(message){
   const contract=active(this);if(!contract||this._sharedWorld)return false;

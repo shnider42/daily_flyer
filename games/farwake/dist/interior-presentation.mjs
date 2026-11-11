@@ -59,6 +59,8 @@ export function nearestDamageMarker(surface,person,range=72){
 /** A crew console or person within use range must remain reachable beside damage. */
 export function nearestDeckInteraction(surface,person,range=43){
  if(!surface||surface.kind!=='ship'||!person)return null;
+ const airlock=surface.entities.find(entity=>entity.data?.airlock&&entity.data?.dockedAt&&!entity.hidden&&!entity.disabled&&Math.hypot(entity.x-person.x,entity.y-person.y)<=range);
+ if(airlock)return airlock;
  let nearest=null,best=range;
  for(const entity of surface.entities){
   if(entity.hidden||entity.disabled||entity.type==='damageControl')continue;

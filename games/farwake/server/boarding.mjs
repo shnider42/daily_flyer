@@ -194,6 +194,7 @@ export class BoardingAuthority {
   }
   _returnToOwnShip(captain) {
     const target = this.vessels.get(captain.aboard), origin = this.vessels.get(captain.returnVesselId);
+    if (target?.dockedAt) return this._disembark(captain);
     if (!this._canReturn(captain)) return fail('Your return vessel must be intact, free of boarders, and within tether range.', 'distance');
     if (captain.game.state.mode !== 'person') return fail('Step into the cabin before crossing the tether.', 'mode');
     const airlock = cabinLayout(target.ship.classId).spawn;

@@ -1,6 +1,6 @@
 /** Shared ships, invitations, and returning aboard share one small crew panel. */
 import { getShipClass } from './fleet.mjs';
-import { getBoardingAction, getPerspectiveAction } from './perspective-controls.mjs';
+import { getBoardingAction, getDisembarkAction, getHelmAction } from './perspective-controls.mjs';
 
 const SERVICE_ROLES = ['weapons', 'engineering', 'scanner', 'navigation', 'medical', 'security'];
 const GENERAL_SERVICE_ROLES = ['weapons', 'engineering', 'scanner', 'medical', 'security'];
@@ -33,7 +33,7 @@ export function crewAccessChange(vessel,captainId,control) {
  throw new RangeError('Unknown crew permission.');
 }
 
-export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke,acceptResult,runDeckAction,openHome,openPassport,openContact,openCrewDuty,walkDeck,disconnect,toast}) {
+export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke,acceptResult,runDeckAction,disembark,openHome,openPassport,openContact,openCrewDuty,walkDeck,disconnect,toast}) {
  let renderRevision=0,permissionPending=false;
  const game=()=>getGame(),snapshot=()=>getSnapshot()||{},network=()=>getNetwork();
  const connected=()=>network()?.connected===true;
@@ -52,7 +52,8 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
  }
  function locationText(vessel) {
   if(vessel.destroyed||vessel.hull<=0)return 'Hull lost';
-  if(vessel.dockedAt)return `Docked at ${bodyName(vessel.systemId,vessel.dockedAt)}`;
+  const mp=stateOf(game()).multiplayer||{},dockedAt=mp.aboardVesselId===vessel.id&&Object.hasOwn(mp,'dockedAt')?mp.dockedAt:vessel.dockedAt;
+  if(dockedAt)return `Docked at ${bodyName(vessel.systemId,dockedAt)}`;
   const system=game().galaxy?.find(system=>system.id===vessel.systemId);
   return `In flight · ${system?.name||vessel.systemId}`;
  }
@@ -102,7 +103,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
    append(card,'p','shared-crew-explanation','Use Crew duty to complete your watch or request an early return.');
   }else if(aboard&&stateOf(g).mode==='ship')button(actions,'Walk the deck',walkDeck,{primary:true,disabled:!connected()});
   else if(aboard) {
-   const helm=getPerspectiveAction(g,{shared:true,connected:connected(),fleet:snapshot().fleet||[]});
+   const helm=getHelmAction(g,{shared:true,connected:connected(),fleet:snapshot().fleet||[]});
    if(helm.command==='quickHelm') {
     button(actions,helm.label,()=>runDeckAction('quickHelm'),{primary:true,disabled:!helm.enabled,reason:helm.reason});
     if(!helm.enabled)append(card,'p','shared-crew-explanation',helm.reason);
@@ -112,7 +113,11 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
    button(actions,`Board ${vessel.name||'ship'}`,()=>runDeckAction('boardShip',{vesselId:vessel.id}),{primary:true,disabled:!board.enabled,reason:board.reason});
    append(card,'p','shared-crew-explanation',board.enabled?(vessel.dockedAt?'Step aboard the deck. The ship stays docked until someone launches.':'Cross to this ship’s crew deck. Your own ship stays where you leave it.'):board.reason);
   }
-  if(aboard&&vessel.dockedAt&&!hiredDuty)button(actions,`Disembark at ${bodyName(vessel.systemId,vessel.dockedAt)}`,()=>runDeckAction('leaveCrew'),{disabled:!connected()});
+  const exit=aboard?getDisembarkAction(g,{shared:true,connected:connected(),fleet:snapshot().fleet||[]}):null;
+  if(exit){
+   button(actions,exit.label,()=>disembark?disembark():exit.enabled?runDeckAction('disembark'):toast?.(exit.reason),{primary:true,disabled:!connected(),reason:exit.reason||exit.detail});
+   append(card,'p','shared-crew-explanation',exit.reason||exit.detail);
+  }
   if(!compact&&openContact&&!hiredDuty)button(actions,'Ship details',()=>openContact(vessel.id));
   return card;
  }
@@ -164,14 +169,15 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   }
  }
  function localPortShips() {
-  const g=game(),state=stateOf(g),mp=state.multiplayer||{},aboard=snapshot().fleet?.find(v=>v.id===mp.aboardVesselId),port=aboard?.dockedAt||portOf(g);
+  const g=game(),state=stateOf(g),mp=state.multiplayer||{},aboard=snapshot().fleet?.find(v=>v.id===mp.aboardVesselId),port=mp.aboardVesselId&&Object.hasOwn(mp,'dockedAt')?mp.dockedAt:aboard?.dockedAt||portOf(g);
   if(!port)return [];
   return (snapshot().fleet||[]).filter(vessel=>vessel.systemId===state.systemId&&vessel.dockedAt===port&&intact(vessel)&&!vessel.hostile&&!vessel.npcContractId);
  }
  function secondaryActions(parent,current) {
   const mp=stateOf(game()).multiplayer||{},actions=append(parent,'div','shared-crew-actions shared-crew-secondary');
   const local=localPortShips();if(local.length&&(!mp.aboardVesselId||local.some(v=>v.id!==mp.aboardVesselId)))button(actions,'Ships at this port',openLocalShips);
-  if(mp.returnVesselId)button(actions,'Return across the tether',()=>runDeckAction('returnToOwnShip'),{disabled:!connected()});
+  const docked=getDisembarkAction(game(),{shared:true,connected:connected(),fleet:snapshot().fleet||[]});
+  if(mp.returnVesselId&&!docked)button(actions,'Return across the tether',()=>runDeckAction('returnToOwnShip'),{disabled:!connected()});
   const own=snapshot().fleet?.find(vessel=>vessel.id===mp.ownedVesselId);
   if(own&&current?.id!==own.id)button(actions,`Your ship · ${own.name}`,()=>openShip(own.id));
   if(!mp.aboardVesselId&&stateOf(game()).mode==='person'&&!stateOf(game()).interior&&own?.systemId===stateOf(game()).systemId&&!own.dockedAt&&intact(own))button(actions,'Return to your drifting ship',()=>runDeckAction('returnToShip'),{disabled:!connected()});

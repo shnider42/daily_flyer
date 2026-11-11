@@ -1,12 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.12.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.12.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Docked airlocks · 0.12.1
+
+A docked ship’s entry airlock leads to the station or planet where that ship is actually parked. Disembarking does not require piloting permission, ownership, a nearby original ship, or clearing an old boarding tether. The dock takes priority over unrelated crew-duty and boarding state. The captain must reach the physical airlock; the perspective shortcut marks it when they are farther away. Taking the helm and launching remain separate actions at the helm.
+
+Passengers already aboard receive the current docking location as the ship arrives, including compact multiplayer updates. Stepping ashore remembers that crew ship for reboarding while preserving the captain’s own vessel. Boarding and piloting still use their existing permissions.
+
+Leaving an NPC employer through a docked airlock ends only the current watch and settles the work already earned under the existing full or partial wage rules. It lands the captain at the actual dock, preserves personal equipment and unrelated jobs, and leaves their own ship where it was parked.
 
 ## Something in Tinbell’s cave · 0.12.0
 

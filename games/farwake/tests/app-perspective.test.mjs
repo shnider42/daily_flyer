@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {Game} from '../dist/engine.mjs';
-import {generateSurface,isWalkable} from '../dist/surface.mjs';
+import {Game,distance} from '../dist/engine.mjs';
+import {getShipClass} from '../dist/fleet.mjs';
+import {getPersonalWeapon} from '../dist/combat.mjs';
+import {generateSurface,isWalkable,nearestEntity} from '../dist/surface.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
-import {syncDamageMarkers} from '../dist/interior-presentation.mjs';
+import {syncDamageMarkers,nearestDeckInteraction} from '../dist/interior-presentation.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
-import {getPerspectiveAction} from '../dist/perspective-controls.mjs';
+import {getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction} from '../dist/perspective-controls.mjs';
 import {normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
@@ -21,7 +23,7 @@ function declaration(name){
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 }
-const appCode=['currentPerspectiveAction','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
+const appCode=['currentPerspectiveAction','currentDisembarkAction','currentHelmAction','routePrompt','nearby','leaveSurface','handleEntity','contextLabel','openStation','openCombatHelp','openVesselContact','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const pose=ship=>Object.fromEntries(['id','x','y','vx','vy','angle','angularVelocity','hull','shield','fuel'].map(key=>[key,ship[key]]));
 function element(){return{hidden:false,disabled:false,textContent:'',value:'',dataset:{},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);}};}
@@ -31,13 +33,13 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
   let heldInput={thrust:1,strafe:1,x:1,fire:true,mine:true},clearCount=0,context;
   const network=shared?{connected:true,command(name,args){return new Promise((resolve,reject)=>packets.push({name,args,resolve,reject}));},setInput(input){inputs.push(copy(input));}}:null;
   if(shared)game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,aboardVesselId:game.state.ship.id};
-  context=vm.createContext({Game,generateSurface,isWalkable,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,normalizeModeZoom,zoomLimits,
+  context=vm.createContext({Game,distance,getShipClass,getPersonalWeapon,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
     game,playing:true,network,onlineSnapshot:shared?{fleet:[{...game.state.ship,ownerId:'captain',helmOwner:null}]}:null,
     actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,
-    testSession:null,stored:null,settings:{...cameraPreferences,guidance:'simple',immersiveHud:true,translucentHud:true,compactTips:true},
+    testSession:null,stored:null,touchLayout:false,settings:{...cameraPreferences,guidance:'simple',immersiveHud:true,translucentHud:true,compactTips:true},
     cameraProfile:{status:'local',preferences:cameraPreferences},tutorial,dismissedRoute:'',dismissedGuideEpisode:'',coachPrompt:null,
-    dialog:{opened:false,items:[],open(title,kind){this.opened=true;this.kind=kind;this.title=title;this.items=[];},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},close(){this.opened=false;}},esc:value=>String(value),openSharedShip(){},openOnline(){},document:{querySelector:()=>null},
+    dialog:{opened:false,items:[],open(title,kind){this.opened=true;this.kind=kind;this.title=title;this.items=[];},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},close(){this.opened=false;}},esc:value=>String(value),openSharedShip(){},openOnline(){},openCrew(){},personCombat:()=>false,localSiteVisibility:()=>null,livelihoodUI:{openDuty(){throw new Error('Docked airlock must not open Crew duty.');}},audio:{play(){}},document:{querySelector:()=>null},
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},
     controls:{clear(){clearCount++;heldInput={};}},
     hudText(target,text){const changed=target.textContent!==text;target.textContent=text;return changed;},
@@ -168,12 +170,73 @@ test('a departure refusal opens a named crew check and only explicit confirmatio
  const game=new Game('app-crew-departure');assert.equal(game.enterCabin().ok,true);
  const f=fixture({shared:true,game}),vessel=f.context.onlineSnapshot.fleet[0];vessel.dockedAt='kettle';
  const refusal={ok:false,result:{ok:false,code:'crew-ashore',vesselId:vessel.id,crewAshore:[{captainId:'friend',name:'Ari'}],reason:'Ari is still ashore.'}};
- const first=f.call('switchPerspective');assert.equal(f.packets[0].name,'quickHelm');f.packets[0].resolve(refusal);await first;
+ f.call('ensureSurface');const helm=f.context.surface.entities.find(entity=>entity.data?.stationRole==='helm');
+ const launch=()=>{f.call('openStation',helm);const action=f.context.dialog.items.find(item=>item.label==='Launch ship');assert.ok(action);assert.equal(action.disabled,false);return action.action();};
+ const first=launch();assert.equal(f.packets[0].name,'takeStation');assert.deepEqual(copy(f.packets[0].args),{role:'helm',entityId:helm.id});f.packets[0].resolve(refusal);await first;
  assert.equal(f.context.dialog.kind,'crew-departure');assert.match(f.context.dialog.htmlText,/Ari/);assert.equal(f.context.actionPending,false);assert.equal(f.toasts.length,0,'The named dialog replaces a generic failure toast.');
  const wait=f.context.dialog.items.find(item=>item.label==='Wait for my crew');wait.action();
  assert.equal(f.context.dialog.opened,false);assert.equal(f.packets.length,1);assert.equal(vessel.dockedAt,'kettle');
- const second=f.call('switchPerspective');f.packets[1].resolve(refusal);await second;
+ const second=launch();f.packets[1].resolve(refusal);await second;
  const depart=f.context.dialog.items.find(item=>item.label==='Depart without them').action();
- assert.equal(f.packets[2].name,'quickHelm');assert.equal(f.packets[2].args.leaveCrewBehind,true);assert.equal(f.packets[2].args.vesselId,vessel.id);
+ assert.equal(f.packets[2].name,'takeStation');assert.equal(f.packets[2].args.entityId,helm.id);assert.equal(f.packets[2].args.leaveCrewBehind,true);assert.equal(f.packets[2].args.vesselId,vessel.id);
  f.packets[2].resolve({ok:true,result:{ok:true}});await depart;assert.equal(f.context.dialog.opened,false);
+});
+
+test('compact arrival refreshes a cached door and its priority before the next physical interaction',async()=>{
+ const game=new Game('app-cached-arrival');assert.equal(game.enterCabin().ok,true);
+ const f=fixture({shared:true,game});f.call('ensureSurface');
+ const surface=f.context.surface,airlock=surface.entities.find(entity=>entity.data?.airlock),vessel=f.context.onlineSnapshot.fleet[0];
+ Object.assign(game.state.person,{x:airlock.x,y:airlock.y});
+ surface.entities.push({id:'chat-in-doorway',type:'crew',name:'Doorway crewmate',x:airlock.x,y:airlock.y,data:{}});
+ vessel.dockedAt=null;vessel.canBoard=false;vessel.grantedRoles=[];
+ Object.assign(game.state.multiplayer,{dockedAt:'kettle',dockedName:'Kettle Station',dockedKind:'station',returnVesselId:'obsolete-tether',canReturn:false});
+ game.state.npcContract={active:true,vesselId:game.state.ship.id};game.state.pendingEncounter={id:'stale-conversation'};
+ assert.equal(f.call('nearby'),airlock,'A fresh compact arrival must beat the colocated crew interaction.');
+ assert.equal(f.context.surface,surface,'Arrival does not need a different surface key or a re-entered cabin.');
+ assert.equal(airlock.name,'Disembark at Kettle Station');assert.equal(f.call('contextLabel',airlock),'Disembark at Kettle Station');
+ const pending=f.call('handleEntity',airlock);
+ assert.equal(f.packets.length,1);assert.equal(f.packets[0].name,'disembark');assert.deepEqual(copy(f.packets[0].args),{});
+ await f.call('handleEntity',airlock);assert.equal(f.packets.length,1,'The physical airlock shares the pending guard with the top shortcut.');
+ f.packets[0].resolve({ok:false,result:{ok:false,reason:'Test authority did not move the captain.'}});await pending;
+ assert.equal(f.context.actionPending,false);assert.equal(f.game.state.mode,'person');
+ vessel.dockedAt='kettle';game.state.multiplayer.dockedAt=null;f.call('updatePerspectiveControl');
+ assert.equal(airlock.name,'Entry airlock');assert.equal(airlock.data.dockedAt,null);
+ assert.equal(f.call('nearby').id,'chat-in-doorway','Undocking removes only the exit-specific priority.');
+});
+
+test('a distant docked shortcut guides to the entry without sending a launch or exit command',async()=>{
+ const game=new Game('app-dock-guide');assert.equal(game.enterCabin().ok,true);
+ const f=fixture({shared:true,game});f.context.onlineSnapshot.fleet[0].dockedAt='kettle';f.call('ensureSurface');
+ const door=f.context.surface.entities.find(entity=>entity.data?.airlock);
+ Object.assign(game.state.person,{x:door.x+140,y:door.y});f.call('updatePerspectiveControl');
+ assert.equal(f.elements.get('perspectiveLabel').textContent,'Disembark at Kettle Station');
+ await f.call('switchPerspective');assert.equal(f.context.surfaceTarget,door.id);assert.equal(f.context.guideIntent,'return');
+ assert.equal(f.packets.length,0);assert.match(f.toasts.at(-1)[0],/Walk to the marked entry airlock/);
+});
+
+test('solo NPC physical airlock ends a docked watch instead of opening its duty menu',async()=>{
+ const game=new Game('app-npc-disembark'),port=game.system.bodies.find(body=>body.id==='kettle');
+ Object.assign(game.state.ship,{x:port.x+port.radius+70,y:port.y,vx:0,vy:0});assert.equal(game.dock(port.id).ok,true);
+ const personalShip=game.state.ship,credits=game.state.credits;assert.equal(game.acceptNpcContract('medic').ok,true);
+ const job=game.state.npcContract;job.phase='docked';job.dockedAt=port.id;
+ Object.assign(game.state.ship,{x:port.x+port.radius+70,y:port.y,dockedAt:port.id,vx:0,vy:0});
+ const f=fixture({game});f.call('ensureSurface');const door=f.context.surface.entities.find(entity=>entity.data?.airlock);
+ Object.assign(game.state.person,{x:door.x,y:door.y});
+ assert.equal(f.call('contextLabel',door),'Disembark at Kettle Station');assert.equal(door.name,'Disembark at Kettle Station');
+ const guide=f.call('routePrompt');assert.equal(guide.title,'Disembark at Kettle Station');assert.match(guide.body,/Leaving ends this watch and pays recorded work/);assert.doesNotMatch(guide.body,/Crew duty/);
+ await f.call('handleEntity',door);
+ assert.deepEqual(f.calls.map(call=>call.name),['disembark']);assert.equal(game.state.npcContract,null);assert.equal(game.state.interior,null);
+ assert.equal(game.state.locationId,'kettle');assert.equal(game.state.mode,'person');assert.equal(game.state.ship,personalShip);assert.equal(game.state.credits,credits);
+ assert.equal(f.events.filter(event=>event.type==='crew-duty'&&/Watch ended at Kettle Station/.test(event.text)).length,1,'The one-step exit emits one actual watch-settlement caption.');
+ assert.equal(f.toasts.filter(([text])=>/Watch ended at Kettle Station/.test(text)).length,0,'The response must not duplicate the event caption.');
+});
+
+test('docked combat and vessel menus replace the obsolete tether choice with the actual port exit',()=>{
+ const game=new Game('app-docked-menus');assert.equal(game.enterCabin().ok,true);
+ const f=fixture({shared:true,game});f.context.onlineSnapshot.fleet[0].dockedAt='kettle';game.state.multiplayer.returnVesselId='missing-tether';
+ f.call('ensureSurface');f.call('openCombatHelp');
+ assert.ok(f.context.dialog.items.some(item=>item.label==='Disembark at Kettle Station'));
+ assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);assert.match(f.context.dialog.htmlText,/Docked at Kettle Station/);
+ f.call('openVesselContact',game.state.ship.id);
+ assert.ok(f.context.dialog.items.some(item=>item.label==='Disembark at Kettle Station'));assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);
 });

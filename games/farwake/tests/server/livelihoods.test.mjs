@@ -67,7 +67,7 @@ for(const startMode of ['regular','hardcore'])test(`${startMode}: NPC employment
  ok(realm._command(c,'acceptNpcContract',{roleId:'medic'}));const contract=c.game.state.npcContract,vessel=realm.vessels.get(contract.vesselId);
  assert.equal(realm.vessels.size,before+1);assert.notEqual(vessel.id,ownedId);assert.equal(c.ownedVesselId,ownedId);assert.equal(c.aboard,vessel.id);
  assert.deepEqual(c.game.state.ship,ownShip);assert.deepEqual(c.game.state.crew,ownCrew);assert.equal(vessel.inventory.crew.length,2);
- for(const name of ['quickHelm','launch','installBunk','setCrewAccess','buyShip','leaveCrew'])assert.equal(realm._command(c,name,{role:'helm',id:'sparrow'}).ok,false,name);
+ for(const name of ['quickHelm','launch','installBunk','setCrewAccess','buyShip'])assert.equal(realm._command(c,name,{role:'helm',id:'sparrow'}).ok,false,name);
  const snapshot=realm.snapshotFor(c,{drainEvents:false}),client=Game.fromSave(snapshot.state);
  assert.equal(client.ownsShip,startMode==='regular');assert.equal(client.hasActiveVessel,true);assert.equal(snapshot.state.ship.id,vessel.id);assert.equal(snapshot.state.interior.location.ownership,'crew');
  const departure={x:vessel.ship.x,y:vessel.ship.y};tick(realm,100);

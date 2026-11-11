@@ -224,6 +224,19 @@ export class Game {
     }
     return interior?.location || this.system.bodies.find(b => b.id === this.state.locationId) || null;
   }
+  /** Resolve the occupied hull's explicit berth, never the tether's old origin. */
+  dockedPortInfo() {
+    const s=this.state,interior=s.interior;
+    if(s.mode!=='person'||!['ship','enemy'].includes(interior?.kind))return null;
+    const vesselId=interior.location?.vesselId;
+    const hull=interior.kind==='enemy'?this.system.enemies.find(ship=>ship.id===(vesselId||s.boarding?.targetId||interior.signalId)):s.ship;
+    if(!hull||vesselId&&hull.id!==vesselId)return null;
+    const contract=s.npcContract?.active&&s.npcContract.vesselId===hull.id?s.npcContract:null;
+    const dockedAt=contract?contract.dockedAt:Object.hasOwn(hull,'dockedAt')?hull.dockedAt:interior.location?.dockedAt;
+    const body=this.system.bodies.find(body=>body.id===dockedAt&&body.landable!==false&&!['blackhole','ship','site','derelict','eva'].includes(body.kind));
+    if(!body||!Number.isFinite(hull.x)||!Number.isFinite(hull.y)||distance(hull,body)>body.radius+160)return null;
+    return {id:body.id,name:body.name,kind:body.kind,systemId:s.systemId};
+  }
   get atInhabitedPort() { return this.state.mode === 'person' && !this.state.interior && hasPortServices(this.currentBody); }
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
   get chapter() { return !this.ownsShip?{id:'earn_first_ship',title:'00 · A ship to earn',brief:'Your first hull is still ahead. Every local port has paid work and passage to other inhabited ports.',objective:'Earn credits from local jobs or crew contracts, then buy a used starter ship at an outfitter.',mode:'person',targetSystem:this.state.systemId,targetBody:this.state.locationId||this.state.lastBodyId}:STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
@@ -348,7 +361,7 @@ export class Game {
     record.enemyStates ||= {};
     for (const e of this.system.enemies) if (e.hp > 0) {
       record.enemyHealth[e.id] = e.hp;
-      record.enemyStates[e.id]={classId:e.classId,damageControl:e.damageControl?clone(e.damageControl):null,energy:e.energy,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
+      record.enemyStates[e.id]={classId:e.classId,damageControl:e.damageControl?clone(e.damageControl):null,energy:e.energy,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,dockedAt:e.dockedAt||null,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
     }
     record.parkedShips=(this.system.parkedShips||[]).filter(sh=>sh.hull>0).map(clone);
     record.asteroidHealth ||= {};
@@ -842,6 +855,7 @@ export class Game {
     }
     this.state.mode = 'person'; this.state.locationId = body.id; this.state.lastBodyId = body.id;
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angularVelocity=0;
+    this.state.ship.dockedAt=body.id;
     this.state.livelihoods.parkedShip=null;
     this.state.person = { ...this.state.person, x: 480, y: 570, facing: 'up' };
     this.state.stats.dockings++;
@@ -868,6 +882,7 @@ export class Game {
     this.state.mode = 'ship'; this.state.locationId = null;
     this.state.ship.x = body.x; this.state.ship.y = body.y + body.radius + 75;
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angle = Math.PI / 2; this.state.ship.angularVelocity=0;
+    this.state.ship.dockedAt=null;
     this.state.livelihoods.parkedShip=null;
     this._flag('first_launch');
     this._event('launch', { body, text: `Departing ${body.name}` });
@@ -1181,7 +1196,8 @@ export class Game {
   }
   _cabinLocation() {
     const c=this.shipClass;
-    return {id:'own-ship',vesselId:this.state.ship.id,name:`${this.state.ship.name||'Cinder'} · ${c.name}`,kind:'ship',biome:'ship',faction:'freewake',shipClass:c.id,berths:c.berths,crew:clone(this.state.crew),guests:rescueOccupants(this.state.ship),lore:`${c.berths} berths aboard your ${c.name}. A small home that crosses a very large sky.`};
+    const body=this.system.bodies.find(body=>body.id===this.state.ship.dockedAt);
+    return {id:'own-ship',vesselId:this.state.ship.id,name:`${this.state.ship.name||'Cinder'} · ${c.name}`,kind:'ship',biome:'ship',faction:'freewake',shipClass:c.id,berths:c.berths,crew:clone(this.state.crew),guests:rescueOccupants(this.state.ship),dockedAt:body?.id||null,dockedName:body?.name||null,dockedKind:body?.kind||null,lore:`${c.berths} berths aboard your ${c.name}. A small home that crosses a very large sky.`};
   }
 
   enterCabin() {
@@ -1191,7 +1207,25 @@ export class Game {
     if (this.system.enemies.some(e => e.active && distance(e, this.state.ship) < 600)) return this._fail('You need to clear immediate danger before leaving the helm.', 'combat');
     return this._enterInterior(this._cabinLocation(), 'ship');
   }
-  exitCabin() { return this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
+  exitCabin() { return this.dockedPortInfo()?this.disembark():this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
+  /** A physical docked airlock is an exit, independent of helm or crew access. */
+  disembark() {
+    const s=this.state,interior=s.interior,port=this.dockedPortInfo();
+    if(s.mode!=='person'||!['ship','enemy'].includes(interior?.kind))return this._fail('Walk to the ship’s entry airlock to go ashore.','mode');
+    if(s.person.health<=0||s.person.down)return this._fail('You are incapacitated and cannot use the airlock.','incapacitated');
+    if(!port)return this._fail('This vessel is not docked at a station or planet.','docking');
+    const layout=cabinLayout(interior.location?.shipClass||interior.location?.classId||s.ship.classId);
+    if(!Number.isFinite(s.person.x)||!Number.isFinite(s.person.y)||distance(s.person,layout.spawn)>70)return this._fail('Walk to the entry airlock to step ashore.','distance');
+    const body=this.system.bodies.find(body=>body.id===port.id),vesselId=interior.location?.vesselId||s.ship.id;
+    const settlement=s.npcContract?.active&&s.npcContract.vesselId===vesselId?this._disembarkNpcContract(body):null;
+    if(interior.kind==='enemy')this._releaseBoardingTether();
+    this._arriveAsPassenger(body);
+    s.returnVesselId=null;s.pendingEncounter=null;
+    Object.assign(s.person,{vx:0,vy:0,moving:false,weaponDrawn:false,aimTargetId:null});
+    const text=settlement?.text||`You step ashore at ${body.name}.`;
+    this._event('dock',{body,vesselId,...(!settlement?{text}:{})});
+    return this._ok({body,vesselId,text,...(settlement?{wages:settlement.wages,settlement:{wages:settlement.wages,outcome:settlement.contract?.outcome||'partial'}}:{})});
+  }
   /** Move to the helm within the occupied cabin, never to a different hull. */
   quickHelm() {
     if(this.state.npcContract?.active)return this._fail('This is your employer’s helm. Complete your assigned crew work while the NPC captain flies.','contract');
@@ -1207,7 +1241,7 @@ export class Game {
     if(captured&&(s.boarding?.kind!=='assault'||s.boarding.phase!=='won'||!target.deck?.cleared))return this._fail('Clear this vessel’s defenders before claiming its helm.','boarding');
     const pose={x:person.x,y:person.y},helm=cabinLayout(target.classId).stations.helm;
     Object.assign(person,{x:helm.x,y:helm.y});
-    const result=captured?this.takeCapturedHelm():this.exitCabin();
+    const result=captured?this.takeCapturedHelm():this._leaveInterior({takeHelm:true});
     if(!result.ok)Object.assign(person,pose);else Object.assign(person,{facing:'up',moving:false});
     return result;
   }
@@ -1233,8 +1267,9 @@ export class Game {
     this._event('dock',{body:location,text:kind==='ship'?'You leave the helm.':'Docking tether secured.'});
     return this._ok({body:location});
   }
-  _leaveInterior() {
+  _leaveInterior({takeHelm=false}={}) {
     if(this.state.interior?.kind === 'site') return this.exitSite();
+    if(!takeHelm&&this.dockedPortInfo())return this.disembark();
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (!this.state.interior) return this._fail('No interior to leave.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
@@ -1246,6 +1281,7 @@ export class Game {
     if(this.state.boarding)this.state.boarding=null;
     this.state.person.weaponDrawn=false;
     this.state.mode='ship';this.state.locationId=interior.returnLocation||null;this.state.interior=null;
+    if(takeHelm){this.state.ship.dockedAt=null;this.state.locationId=null;}
     this._event('launch',{body:interior.location,text:'You take the helm.'});
     return this._ok({body:interior.location});
   }
@@ -1344,9 +1380,9 @@ export class Game {
 
   _enemyLocation(enemy) {
     ensureDamageControl(enemy);
-    const ship=enemyShipState(enemy),hull=getShipClass(enemy.classId);
+    const ship=enemyShipState(enemy),hull=getShipClass(enemy.classId),body=this.system.bodies.find(body=>body.id===enemy.dockedAt);
     return {id:`boarded-${enemy.id}`,vesselId:enemy.id,name:`${enemy.name} · boarding deck`,vesselName:enemy.name,kind:'ship',biome:'ship',shipClass:hull.id,berths:hull.berths,crew:clone(this.livingCrew),guests:rescueOccupants(ship),faction:enemy.faction,
-      damageControl:enemy.damageControl||null,hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id};
+      damageControl:enemy.damageControl||null,hull:ship.hull,maxHull:ship.maxHull,hp:enemy.hp,maxHp:enemy.maxHp,disabled:!!enemy.disabled,occupation:enemy.occupation||null,originVesselId:this.netVesselId||this.state.ship.id,dockedAt:body?.id||null,dockedName:body?.name||null,dockedKind:body?.kind||null};
   }
 
   _restoreBoardingDeck() {
@@ -1457,6 +1493,7 @@ export class Game {
   repelBoarders(enemyId = null, attacker = this) {return this.attackBoarder(enemyId,attacker);}
 
   retreatBoarding() {
+    if(this.dockedPortInfo())return this.disembark();
     const boarding=this.state.boarding;
     if(boarding?.phase!=='active')return this._leaveInterior();
     if(boarding.kind!=='assault')return this._fail('The boarders are on your own ship. Clear them before taking the helm.','defense');
@@ -1478,6 +1515,7 @@ export class Game {
   }
 
   returnToOwnShip() {
+    if(this.dockedPortInfo())return this.disembark();
     if(this.state.interior?.kind!=='enemy'){
       if(this.state.mode==='ship'&&this.state.returnVesselId)return this.boardParkedShip(this.state.returnVesselId);
       return this._fail('You are not aboard a tethered vessel.','mode');

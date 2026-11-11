@@ -27,7 +27,7 @@ function fixture({guest=false,aboard=false}={}) {
  const network={connected:true,passport:{realmCode:'ROOM22'}},calls=[],deckCalls=[],callbacks=[];
  const ui=createSharedCrewUI({getGame:()=>game,getSnapshot:()=>snapshot,getNetwork:()=>network,dialog,
   invoke:async(name,args)=>{calls.push({name,args});if(name==='setCrewAccess'){const vessel=snapshot.fleet.find(v=>v.id===args.vesselId);if(args.captainId)vessel.grants[args.captainId]={allowed:args.allowed,roles:args.roles,allowBunk:args.allowBunk};else vessel.allowCrew=args.allowed;}return{ok:true};},acceptResult:result=>result.ok,
-  runDeckAction:async(name,args={})=>deckCalls.push({name,args}),openHome:()=>callbacks.push('home'),openPassport:()=>callbacks.push('passport'),openContact:id=>callbacks.push(['contact',id]),openCrewDuty:()=>callbacks.push('duty'),walkDeck:()=>callbacks.push('deck'),disconnect:()=>callbacks.push('disconnect'),toast:()=>{}});
+  runDeckAction:async(name,args={})=>deckCalls.push({name,args}),disembark:()=>callbacks.push('disembark'),openHome:()=>callbacks.push('home'),openPassport:()=>callbacks.push('passport'),openContact:id=>callbacks.push(['contact',id]),openCrewDuty:()=>callbacks.push('duty'),walkDeck:()=>callbacks.push('deck'),disconnect:()=>callbacks.push('disconnect'),toast:()=>{}});
  const buttons=()=>descendants(dialog.body).filter(node=>node.tagName==='button');
  const byLabel=label=>buttons().find(node=>node.attributes['aria-label']===label||node.textContent===label);
  return {game,port,ship,own,snapshot,dialog,network,calls,deckCalls,callbacks,ui,buttons,byLabel,text:()=>text(dialog.body)};
@@ -130,9 +130,22 @@ test('a disconnected crew panel keeps state visible while disabling permission a
  assert.equal(f.byLabel('Captain passport').disabled,false);assert.equal(f.calls.length,0);
 });
 
-test('an NPC employee reaches duty and account options without a false manual disembark action',()=>{
+test('an NPC employee can leave the docked watch without opening duty, while an underway watch has no port exit',()=>{
  const f=fixture({aboard:true});f.game.state.interior={kind:'ship',location:{id:'owner-hull'}};f.game.state.npcContract={id:'watch',active:true};f.ship.npcContractId='watch';
  f.ui.openHub();assert.ok(f.byLabel('Crew duty'));f.byLabel('Crew duty').onclick();assert.deepEqual(f.callbacks,['duty']);
- assert.equal(f.buttons().some(node=>node.textContent.startsWith('Disembark')),false);assert.equal(f.byLabel('Allow aboard · Jade'),undefined);
+ assert.ok(f.byLabel('Disembark at Kettle Station'));f.byLabel('Disembark at Kettle Station').onclick();assert.deepEqual(f.callbacks,['duty','disembark']);assert.equal(f.byLabel('Allow aboard · Jade'),undefined);
  assert.ok(f.byLabel('Captain passport'));assert.ok(f.byLabel('Sign off safely'));assert.equal(f.deckCalls.length,0);
+ f.game.state.multiplayer.dockedAt=null;f.ui.openHub();assert.equal(f.buttons().some(node=>node.textContent.startsWith('Disembark')),false);assert.ok(f.byLabel('Crew duty'));
+});
+
+
+test('the crew hub uses fresh dock metadata, marks a distant airlock, and keeps its helm and tether choices separate',()=>{
+ const f=fixture({aboard:true});f.game.state.interior={kind:'ship',location:{id:'owner-hull',vesselId:'owner-hull',shipClass:'sparrow'}};
+ f.ship.dockedAt='morrow';f.ship.grantedRoles=[];f.ship.canBoard=false;
+ Object.assign(f.game.state.multiplayer,{dockedAt:'kettle',dockedName:'Kettle Station',returnVesselId:'stale-tether'});
+ Object.assign(f.game.state.person,{x:-500,y:-500});f.ui.openHub();
+ const exit=f.byLabel('Disembark at Kettle Station');assert.ok(exit);assert.equal(exit.disabled,false);assert.match(exit.title,/marked entry airlock/);
+ assert.equal(f.byLabel('Return across the tether'),undefined);assert.match(f.text(),/Cinder YOUR SHIP Docked at Kettle Station/);
+ exit.onclick();assert.deepEqual(f.callbacks,['disembark']);assert.equal(f.deckCalls.length,0,'The app callback guides to the airlock; the crew panel does not issue an out-of-range exit.');
+ f.game.state.multiplayer.dockedAt=null;f.ui.openHub();assert.equal(f.byLabel('Disembark at Kettle Station'),undefined);assert.ok(f.byLabel('Return across the tether'));assert.match(f.text(),/In flight/);
 });

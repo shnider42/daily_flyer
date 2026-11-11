@@ -72,6 +72,7 @@ test('a paid fitted bunk can be a shipless guest’s persistent home without bec
  const saved=realm.document();saved.captains[guest.id].lastSeen=Date.now()-60000;
  const restored=new Realm({id:realm.id,snapshot:saved,persistence:persistence()}),returned=restored.captains.get(guest.id);ok(restored.attach(returned,{close(){}}));
  assert.equal(returned.aboard,vessel.id);assert.equal(returned.game.state.interior.kind,'ship');assert.equal(returned.home.kind,'bunk');assert.equal(restored.vessels.size,1);assertShipless(restored,returned);
+ approach(restored,returned,entity=>entity.type==='exit'&&entity.data?.airlock);
  ok(await restored.command(returned,'leaveCrew',{}));assert.equal(returned.aboard,null);assert.equal(returned.game.state.locationId,'morrow');assertShipless(restored,returned);
 });
 
