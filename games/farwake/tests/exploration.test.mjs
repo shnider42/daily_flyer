@@ -9,6 +9,16 @@ function flood(map){const start=Math.floor(map.spawn.y/24)*map.cols+Math.floor(m
 function cave(){const location=explorationLocation(body,'chalkfold','expedition-test'),site=location.site,surface=generateSurface(location,'expedition-test');return{location,site,surface,state:createSiteState(site)};}
 function actor(x=22,y=14,input={}){return{id:'captain-test',name:'Test captain',person:{...point(x,y),health:100,maxHealth:100,facing:'right'},input};}
 
+test('the USE key never fires a sidearm in a peaceful or cleared interior',()=>{
+ const{surface,state}=cave(),captain=actor(22,14,{fire:true});state.monsters.forEach(monster=>monster.health=0);
+ captain.person.weaponDrawn=true;
+ const before=state.shotSerial,events=stepSiteEncounter(state,[captain],.1,surface);
+ assert.equal(captain.person.weaponDrawn,false);assert.equal(captain.person.aimTargetId,null);
+ assert.equal(state.shotSerial,before);assert.ok(!events.some(event=>event.type==='person-shot'));
+ state.monsters=[];captain.person.weaponDrawn=true;
+ assert.deepEqual(stepSiteEncounter(state,[captain],.1,surface),[]);assert.equal(captain.person.weaponDrawn,false);
+});
+
 test('Morrow expands to five times the old surface area while preserving landing and service coordinates',()=>{
  const surface=generateSurface(body,'expedition-test'),reachable=flood(surface);
  assert.equal(surface.cols*surface.rows,48*36*5);assert.deepEqual(surface.spawn,point(10,26));assert.deepEqual(surface.exit,point(10,28));

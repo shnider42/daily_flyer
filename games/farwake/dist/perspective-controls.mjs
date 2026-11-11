@@ -104,7 +104,12 @@ export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],
  const state=game?.state||{},interior=state.interior,boarding=state.boarding,mp=state.multiplayer||{};
  const localBoarding=shared&&getLocalPortVessels(game,fleet).length>0;
  let result;
- if(state.npcContract?.active){
+ if(interior?.kind==='eva'){
+  const airlock=surface?.entities?.find(entity=>entity.type==='evaAirlock'&&!entity.hidden);
+  result={...action('Return inside','npcContractAction','Return through this ship’s tethered airlock.',airlock?.id||'eva:airlock'),args:{action:'exitEva'}};
+  if(!state.npcContract?.active)result=blocked(result,'Your hull-walk assignment is no longer active. Call for recovery.');
+  else if(!airlock||distance(state.person,airlock)>56)result=blocked(result,'Follow the hull markings back to the exterior airlock.');
+ }else if(state.npcContract?.active){
   result=action('Crew duty','openCrewDuty','View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
  }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBoarding&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
   result=action('Port services','openPortServices','Find work, buy passenger passage, or visit the shipwright.');

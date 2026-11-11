@@ -50,7 +50,7 @@ The token belongs in the JSON request body, never in a URL, diagnostics, exporte
 
 Success is `{ "ok": true, "export": { ... } }`. The report identifies `schemaVersion`, `generatedAt`, `scope.kind`, `scope.realmCode`, `scope.captainId`, and whether the source was the live authority or the latest durable snapshot. The client checks the returned scope against the requested captain before downloading.
 
-Coverage includes the selected captain's retained identity metadata and gameplay, their owned vessels and homes, and relevant self-only permissions, berths, relationships, and contributions in shared records. Projection is explicit. A report must never return the complete realm, other captains' private profiles, full shared contributor maps, private tokens, or credential hashes.
+Coverage includes the selected captain's retained identity metadata and gameplay, their owned vessels and homes, and relevant self-only permissions, berths, relationships, and contributions in shared records. Conversation familiarity and recurring-acquaintance memory are included only for the selected captain. The NPC clock and transient pose projection are shared world state and do not become another captain’s private report. Projection is explicit. A report must never return the complete realm, other captains' private profiles, full shared contributor maps, private tokens, or credential hashes.
 
 The server reads a loaded realm without invoking stateful serialization or gameplay. An unloaded realm is read directly through the persistence adapter without constructing a `Realm`, attaching a session, updating `lastSeen`, advancing simulation, or creating a saved record. An export does not replace a running session and does not consume one of the ten online places.
 

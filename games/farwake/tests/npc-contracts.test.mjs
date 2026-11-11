@@ -25,7 +25,7 @@ function finishReturn(game){until(game,()=>game.state.npcContract.phase==='docke
 test('regular and Hardcore captains can hire onto an actual employer hull without buying it',()=>{
  for(const startMode of ['regular','hardcore']){
   const game=atPort(`hire-${startMode}`,{startMode}),ship=game.state.ship,owned=[...game.state.fleet.owned],credits=game.state.credits;
-  const offers=game.npcContractOffers();assert.equal(offers.length,3);assert.ok(offers.every(offer=>offer.available&&offer.cost===0));
+  const offers=game.npcContractOffers();assert.equal(offers.length,8);assert.ok(offers.every(offer=>offer.available&&offer.cost===0&&offer.offerId));
   ok(game.acceptNpcContract('medic'));
   assert.notEqual(game.state.ship,ship);assert.equal(game.state.ship.id,game.state.npcContract.vesselId);
   assert.equal(game.state.npcContract.personal.ship,ship);assert.deepEqual(game.state.fleet.owned,owned);assert.equal(game.state.credits,credits);

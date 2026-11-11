@@ -158,3 +158,18 @@ test('derelict return uses its tether and never the multiplayer recovery-shuttle
  const game=new Game('perspective-derelict');game.state.mode='person';game.state.interior={kind:'derelict',location:{id:'derelict'}};
  const action=getPerspectiveAction(game);assert.equal(action.label,'Return to ship');assert.equal(action.command,'leaveDerelict');assert.equal(action.enabled,true);
 });
+
+test('the EVA shortcut follows the exterior airlock and does not offer the ship helm',()=>{
+ const game=new Game('perspective-eva');
+ game.state.mode='person';game.state.interior={kind:'eva'};game.state.npcContract={active:true};
+ const airlock={id:'eva:airlock',type:'evaAirlock',x:100,y:100},surface={entities:[airlock]};
+ Object.assign(game.state.person,{x:200,y:100});
+ let action=getPerspectiveAction(game,{surface});
+ assert.equal(action.command,'npcContractAction');assert.equal(action.label,'Return inside');assert.deepEqual(action.args,{action:'exitEva'});
+ assert.equal(action.enabled,false);assert.equal(action.targetId,airlock.id);assert.match(action.reason,/airlock/);
+ game.state.person.x=156;assert.equal(getPerspectiveAction(game,{surface}).enabled,true);
+ game.state.person.x=156.01;assert.equal(getPerspectiveAction(game,{surface}).enabled,false);
+ game.state.person.x=100;
+ assert.match(getPerspectiveAction(game,{surface,shared:true,connected:false}).reason,/Reconnecting/);
+ game.state.person.health=0;assert.match(getPerspectiveAction(game,{surface}).reason,/incapacitated/);
+});

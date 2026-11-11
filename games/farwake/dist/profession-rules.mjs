@@ -1,6 +1,7 @@
 /** Repeatable civilian and faction work, shared by solo and the multiplayer authority. */
 import { FACTIONS } from './content.mjs';
 import { generateSurface } from './surface.mjs';
+import { liveInteractionSurface } from './live-surface.mjs';
 import { enemyHullProfile } from './fleet.mjs';
 import { directorBoard, directorEvent, recordDirectorAid } from './world-director.mjs';
 
@@ -12,7 +13,7 @@ const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const time=game=>Math.max(0,finite(game.state.stats?.time));
 const stateFor=game=>game.state.professions||game.initializeProfessions();
-const port=body=>body&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
+const port=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const faction=id=>FACTIONS.find(value=>value.id===id);
 const rival={concord:'cinder',freewake:'meridian',meridian:'freewake',lantern:'cinder',cinder:'concord'};
 const deskId=bodyId=>`quest:profession-desk:${bodyId}`;
@@ -38,7 +39,7 @@ function access(game,entityId,where=null){
  const id=deskId(body.id);if(entityId!==id)return{ok:false,reason:'Use the clinic and public-services contact.',code:'entity'};
  const key=`${game.state.systemId}:${body.id}:${game.state.flags.length}`;
  if(game._professionSurfaceCache?.key!==key)game._professionSurfaceCache={key,surface:generateSurface(body,game.state.seed,game.state.flags)};
- const entity=game._professionSurfaceCache.surface.entities.find(entity=>entity.id===id&&entity.type==='npc'&&entity.data?.professionDesk&&!entity.hidden);
+ const entity=liveInteractionSurface(game,game._professionSurfaceCache.surface).entities.find(entity=>entity.id===id&&entity.type==='npc'&&entity.data?.professionDesk&&!entity.hidden);
  if(!entity||distance(entity,game.state.person)>46)return{ok:false,reason:'Move closer to the public-services contact.',code:'distance'};
  return{ok:true,body,entity};
 }

@@ -43,10 +43,13 @@ test('bounded catch-up exposes the physics timestamp and promptly schedules rema
   assert.equal(clock.nextDelay(2000), 1, 'Remaining catch-up is not delayed by a full simulation interval.');
 });
 
-test('direct motion snapshots match the established compact protocol in space and on a crew deck', async () => {
+test('direct motion snapshots match the established compact protocol in space and on a crew deck', async t => {
   const { realm, captain } = await captainFixture();
   const stamp = Date.now() - 12;
   realm.step(1 / 30, 17, Date.now(), stamp);
+  // Both encodings describe the same observation time. Resident routines carry
+  // a wall-clock sample alongside the existing packet timestamp.
+  const snapshotAt = Date.now(); t.mock.method(Date, 'now', () => snapshotAt);
   for (const cabin of [false, true]) {
     if (cabin) realm._cabin(captain, realm.vessels.get(captain.ownedVesselId));
     const full = realm.snapshotFor(captain, { drainEvents: false });

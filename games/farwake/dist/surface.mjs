@@ -17,6 +17,7 @@ import {appearancePalette} from './character.mjs';
 import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
 import {DISTRICT_RESIDENTS,INTERIOR_RESIDENTS,districtNames} from './planet-content.mjs';
 import {QUEST_CONTACTS,QUEST_OBJECTS} from './quest-content.mjs';
+import {isPreflightBody} from './social-world.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -116,7 +117,7 @@ function addArchive(m,location,x,y,name='Local archive'){
  return entity(m,'lore','terminal',name,'Read local history',x,y,'#83adb6',{loreId:location.loreId,localLore:local,loreTitle:lore?.title,homeLocationId:location.id},[local,lore?.text].filter(Boolean).join('\n\n'));
 }
 function normalizeBiome(value){const b=String(value||'verdant').toLowerCase();if(b==='cave'||b==='shelter')return b;if(/barren|rock|dust/.test(b))return'barren';if(/ice|froz|snow|glaci/.test(b))return'ice';if(/volcan|lava|ash|cinder/.test(b))return'volcanic';if(/arid|desert|dune|barren|rock|dust/.test(b))return'arid';if(/ocean|water|coast|trop/.test(b))return'ocean';return'verdant';}
-function kindOf(location){const kind=String(location.kind||location.type||'planet').toLowerCase();if(kind==='site')return'site';if(/derelict|wreck|abandon/.test(kind))return'derelict';if(/own_ship|ownship|interior|player_ship|boarding|vessel/.test(kind)||location.id==='own-ship'||kind==='ship')return'ship';if(/station|outpost|dock/.test(kind))return'station';return'planet';}
+function kindOf(location){const kind=String(location.kind||location.type||'planet').toLowerCase();if(kind==='eva')return'eva';if(kind==='site')return'site';if(/derelict|wreck|abandon/.test(kind))return'derelict';if(/own_ship|ownship|interior|player_ship|boarding|vessel/.test(kind)||location.id==='own-ship'||kind==='ship')return'ship';if(/station|outpost|dock/.test(kind))return'station';return'planet';}
 function makeMap(cols,rows,biome,name,id,seed,kind){return{width:cols*T,height:rows*T,pixelWidth:cols*T,pixelHeight:rows*T,cols,rows,tileSize:T,biome,name,id,kind,seed:hash(seed+':'+id),tiles:Array.from({length:rows},()=>Array(cols).fill(TILE.VOID)),solids:[],entities:[],decor:[],spawn:{x:0,y:0},exit:{x:0,y:0}};}
 function rect(m,x,y,w,h,tile){for(let j=Math.max(0,y);j<Math.min(m.rows,y+h);j++)for(let i=Math.max(0,x);i<Math.min(m.cols,x+w);i++)m.tiles[j][i]=tile;}
 function line(m,x1,y1,x2,y2,tile,width=1){let x=x1,y=y1;for(let guard=0;guard<512;guard++){rect(m,x,y,width,width,tile);if(x===x2&&y===y2)break;if(x!==x2)x+=Math.sign(x2-x);else y+=Math.sign(y2-y);}}
@@ -165,6 +166,7 @@ function station(location,seed){
  return m;
 }
 function planet(location,seed){
+ if(isPreflightBody(location))return preflightSurface(location,seed);
  if((location.kind==='moon'||location.kind==='asteroid')&&/barren|rock|dust/.test(String(location.biome)))return barrenSurface(location,seed);
  const biome=normalizeBiome(location.biome),m=makeMap(108,80,biome,location.name||'Uncharted settlement',location.id||'world',seed,'planet'),rng=random(seed+':'+m.id);
  rect(m,0,0,m.cols,m.rows,TILE.WALL);rect(m,1,1,m.cols-2,m.rows-2,TILE.GROUND);
@@ -256,8 +258,8 @@ function addFrontierSites(m,location,seed){
  for(const site of m.sites){
   const x=site.tileX,y=site.tileY,joinY=y<38?38:66;
   line(m,x,y,x,joinY,TILE.PATH,2);line(m,x,joinY,48,joinY,TILE.PATH,2);
-  entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary},site.summary);
-  const facade={cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house'}[site.kind]||'frontier-hut';
+  entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',socialStyle:site.style||null},site.summary);
+  const facade=site.style==='preflight'?'reed-house':{cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house',social:['park','farm'].includes(site.style)?'garden-gate':'frontier-hut'}[site.kind]||'frontier-hut';
   prop(m,facade,x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':site.kind==='sanctum'?'#b1c5c3':'#8b9b96',false);
   prop(m,'trail-light',x-2,y,1,1,site.hostile?'#d6ae82':'#a6c9bd',false);
  }
@@ -271,6 +273,27 @@ function barrenSurface(location,seed){
  for(let y=3;y<77;y+=3)for(let x=3;x<105;x+=3){if(m.tiles[y][x]!==TILE.GROUND||rng()>.23||m.entities.some(e=>Math.hypot(e.x-(x+.5)*T,e.y-(y+.5)*T)<70))continue;prop(m,rng()>.5?'rock':'debris',x,y,1,1,'#8b8a81',false);}
  label(m,'NO SERVICES / SURVEY ONLY',19,27,'#b9b39f');return m;
 }
+function addDomesticAnimals(m,kind,x,y){
+ m.ambientAnimals||=[];
+ for(let index=0;index<3;index++){const home=point(x+index*2,y+(index%2)*2),radius=12+index*3;m.ambientAnimals.push({id:`${m.id}:animal:${index}`,ambient:true,species:kind,name:kind==='grazer'?'Pod grazer':'Farm goat',x:home.x,y:home.y,home,path:[{x:home.x-radius,y:home.y-radius},{x:home.x+radius,y:home.y-radius},{x:home.x+radius,y:home.y+radius},{x:home.x-radius,y:home.y+radius}],color:kind==='grazer'?['#a9c0a2','#91b3aa','#bfc59d'][index]:['#c5baa1','#9d9787','#b4a389'][index]});}
+}
+function preflightSurface(location,seed){
+ const m=makeMap(108,80,'verdant',location.name||'Reedbank',location.id,seed,'planet');m.noPortServices=true;m.culture='reedbound';m.techLevel='preflight';
+ rect(m,0,0,m.cols,m.rows,TILE.WALL);rect(m,1,1,m.cols-2,m.rows-2,TILE.GROUND);
+ for(let y=2;y<78;y++)rect(m,65+Math.round(Math.sin(y/10)),y,3,1,TILE.WATER);
+ m.spawn=point(10,26);m.exit=point(10,28);entity(m,'exit','exit','Your landing craft','Return to ship',10,28,'#bdc8b0');prop(m,'shuttle',8,25,4,2,'#93b6b5');
+ line(m,10,27,25,27,TILE.PATH,2);line(m,25,27,25,40,TILE.PATH,2);line(m,25,40,82,40,TILE.PATH,3);line(m,48,28,48,61,TILE.PATH,2);line(m,48,52,76,52,TILE.PATH,2);
+ room(m,36,29,10,8,40);room(m,53,33,10,8,57);room(m,37,51,10,8,41);
+ prop(m,'table',39,31,3,1,'#9a8a65',true);prop(m,'bed',55,35,1,2,'#b4b58f',true);prop(m,'bed',39,53,1,2,'#b4b58f',true);prop(m,'bar',39,55,4,1,'#9a805e',true);
+ prop(m,'bench',48,44,4,1,'#9f9573',true);prop(m,'table',54,45,3,1,'#9f9573',true);prop(m,'banner',39,29,5,.4,'#b5ab72',false);prop(m,'banner',54,33,6,.4,'#a3b6a0',false);
+ for(let y=47;y<59;y+=3)for(let x=73;x<89;x+=4)prop(m,'planter',x,y,3,1,'#839c69',false);
+ prop(m,'fence',52,55,12,.3,'#a18d66',false);prop(m,'fence',52,65,12,.3,'#a18d66',false);addDomesticAnimals(m,'goat',54,59);
+ const residents=[['farmer','Ina Fen','River farmer',45,48,'The river rose. We will plant the lower field later.'],['herder','Sor Rell','Reed-goat keeper',54,53,'Empty hands first. They dislike being offered food by a stranger.'],['guard','Mar En','Path keeper',38,39,'Leave your blades covered. The path is open; the houses wait for an answer.'],['weaver','Tala Oru','Household weaver',51,33,'We mend the banners where everyone can see the old thread.']];
+ for(const[id,name,roleLabel,x,y,greeting]of residents)personEntity(m,location,id,'npc',id==='guard'?'warden':'settler',x,y,'#b8ad83',{name,roleLabel,text:greeting,rumors:[],data:{culture:'reedbound',techLevel:'preflight',cultureRole:id,socialOnly:true,faction:null}});
+ label(m,'REEDBANK',39,28,'#bccc9f');label(m,'RIVER HOUSEHOLDS',48,42,'#a9c298');
+ for(const[x,y]of[[31,26],[30,33],[32,48],[49,66],[72,32],[82,28],[86,63],[60,22]])prop(m,'tree',x,y,1,1,'#6b9668',true);
+ addFrontierSites(m,location,seed);return m;
+}
 function expeditionSurface(location,seed){
  const site=location.site,m=makeMap(site.cols,site.rows,site.kind==='cave'?'cave':site.kind==='igloo'?'ice':'shelter',site.name,location.id,seed,'site');
  m.siteId=site.id;m.parentId=location.parentId;m.atmosphere=site.atmosphere;m.site=site;
@@ -282,6 +305,8 @@ function expeditionSurface(location,seed){
   for(const[x,y]of[[6,13],[13,14],[21,14]])prop(m,'trail-light',x,y,1,1,'#c4bc8b',false);
   prop(m,'bones',27,13,2,1,'#a8a28a',false);prop(m,'clawmarks',21,20,2,1,'#a88c74',false);prop(m,'cargo',31,25,1,1,'#7e8e85',false);
   m.spawn=point(5,16);m.exit=point(3,16);label(m,'DAYLIGHT ←',4,17,'#bfcebd');
+ }else if(site.kind==='social'){
+  socialInterior(m,site);
  }else if(['market','clinic','laboratory','conservatory','theatre','sanctum'].includes(site.kind)){
   developedInterior(m,site);
  }else{
@@ -298,8 +323,34 @@ function expeditionSurface(location,seed){
  for(const cache of site.caches)entity(m,'cache:'+cache.id,'siteCache',cache.name,'Recover supplies',cache.x,cache.y,'#d7c292',{siteId:site.id,cacheId:cache.id},cache.text);
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
- for(const person of INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=person.species;}
+ for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=person.species;if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
  return m;
+}
+function socialInterior(m,site){
+ const style=site.style,outdoor=['park','farm'].includes(style);m.socialStyle=style;m.culture=site.culture||null;m.noPortServices=true;
+ if(style==='preflight')m.techLevel='preflight';
+ m.palette={...PALETTES.shelter,floor:outdoor?'#334b3b':'#4d4942',floor2:outdoor?'#314737':'#48453e',path:'#766951',accent:style==='preflight'?'#bdbe91':'#c8b48c'};
+ rect(m,3,3,m.cols-6,m.rows-6,outdoor?TILE.GROUND:TILE.FLOOR);rect(m,3,14,m.cols-6,4,TILE.PATH);m.spawn=point(5,16);m.exit=point(3,16);
+ label(m,'OUTSIDE ←',4,18,'#c7d2b9');prop(m,'window',7,2,9,1,'#9db7aa',false);prop(m,'window',28,2,8,1,'#9db7aa',false);
+ if(style==='tavern'||style==='supper'||style==='preflight'){
+  prop(m,'bar',6,5,17,1,style==='preflight'?'#9d9169':'#99775c',true);prop(m,'table',16,8,12,2,'#9b8768',true);prop(m,'bench',16,11,12,1,'#8c8068',true);prop(m,'bench',16,6,12,1,'#8c8068',true);
+  prop(m,'table',28,22,7,2,'#95816b',true);prop(m,'bench',27,25,9,1,'#8c8068',true);prop(m,'books',7,22,1,4,'#9ea48c',true);prop(m,'bed',37,21,1,3,'#a4b0a0',true);
+  prop(m,'bowls',18,8,6,1,'#c4bf9f',false);prop(m,'bowls',29,22,4,1,'#c4bf9f',false);
+  if(style==='preflight'){prop(m,'banner',30,4,1,6,'#bcad6f',false);prop(m,'banner',35,4,1,6,'#a3b991',false);label(m,'TWO HANDS / ONE PROMISE',7,3,'#d1c9a5');}
+  else if(style==='supper'){prop(m,'books',35,5,2,4,'#a7b3a0',true);prop(m,'bench',31,10,6,1,'#97a18e',true);label(m,'A PLACE AT THE TABLE',7,3,'#d1c9a5');}
+  else{prop(m,'cards',29,22,4,1,'#d5c8a6',false);label(m,'SMALL CUPS / LONG EVENINGS',7,3,'#d1c9a5');}
+ }else if(style==='gym'){
+  prop(m,'weights',7,6,10,2,'#9faba5',true);prop(m,'weights',26,7,9,2,'#9faba5',true);prop(m,'rope',20,4,1,8,'#b8b18a',false);prop(m,'bench',7,23,10,1,'#8c9b91',true);prop(m,'cabinet',34,21,2,5,'#8c9b91',true);prop(m,'training-mat',20,21,10,5,'#667e73',false);label(m,'TAKE YOUR TIME',7,3,'#d1c9a5');
+ }else if(style==='apartments'){
+  for(const x of[14,26]){rect(m,x,3,1,10,TILE.WALL);rect(m,x,10,1,3,TILE.FLOOR);}for(const x of[6,18,30]){prop(m,'bed',x,5,2,4,'#a7aaa0',true);prop(m,'table',x+4,8,3,1,'#9b8c74',true);prop(m,'coat',x+7,5,1,1,'#a5b399',false);}prop(m,'laundry',7,22,23,3,'#b0b99d',false);prop(m,'bench',31,24,6,1,'#8c9b91',true);label(m,'PLEASE CLOSE THE OUTER DOOR',7,3,'#d1c9a5');
+ }else if(style==='civic'){
+  prop(m,'table',7,5,10,2,'#9e8f76',true);prop(m,'books',19,5,1,6,'#98aaa0',true);prop(m,'bench',7,10,8,1,'#849b93',true);for(const x of[26,34]){prop(m,'bed',x,6,2,4,'#b0ad93',true);prop(m,'barred-screen',x-1,4,5,7,'#7f9d9b',false);}prop(m,'table',12,23,12,2,'#9b8768',true);prop(m,'bowls',15,23,5,1,'#b5c4ab',false);label(m,'WATCH / LOST PROPERTY / TEA',7,3,'#d1c9a5');
+ }else if(style==='park'||style==='farm'){
+  for(const[x,y]of[[6,6],[29,5],[7,22],[18,23]]){prop(m,style==='farm'?'planter':'tree',x,y,style==='farm'?4:1,style==='farm'?2:1,'#8dab78',style==='park');}prop(m,'bench',15,8,8,1,'#9ba384',true);prop(m,'bench',6,24,9,1,'#9ba384',true);prop(m,'table',26,8,6,1,'#a6a282',true);prop(m,'fence',24,20,14,.3,'#aa9873',false);prop(m,'fence',24,28,14,.3,'#aa9873',false);
+  if(site.animals)addDomesticAnimals(m,site.animals,27,23);else{rect(m,28,22,7,3,TILE.WATER);prop(m,'resonator',18,5,2,2,'#b9c8b0',false);}label(m,style==='farm'?'LEAVE THE GATE AS YOU FIND IT':'A QUIET PLACE',7,3,'#ced4ad');
+ }else{
+  rect(m,21,4,18,8,TILE.WALL);prop(m,'vault-door',24,5,12,6,'#7b9697',false);prop(m,'bench',7,6,10,1,'#899c91',true);prop(m,'table',27,23,7,2,'#9a927c',true);prop(m,'books',7,23,2,4,'#9ca891',true);label(m,'THE SEVENTH WITNESS',7,3,'#d1c9a5');
+ }
 }
 
 /** Six recognizable interiors share a safe retreat corridor, not a floor plan. */
@@ -417,6 +468,29 @@ function ship(location,seed){
  prop(m,'vesselmark',Math.max(3,layout.spawn.x/T-3),layout.spawn.y/T+.8,6,.6,m.palette.accent,false);
  return m;
 }
+const evaLayouts=new Map();
+/** Exterior footing follows the actual hull silhouette, shared by rules and art. */
+export function evaLayout(classId='hauler'){
+ const hull=cabinLayout(classId),key=hull.shipClass;if(evaLayouts.has(key))return evaLayouts.get(key);
+ const cols=hull.cols,rows=hull.rows,mask=Array.from(hull.hullMask,Boolean),start=Math.floor(hull.spawn.y/T)*cols+Math.floor(hull.spawn.x/T),queue=[start],previous=new Int32Array(mask.length).fill(-1),distance=new Int16Array(mask.length).fill(-1);
+ previous[start]=start;distance[start]=0;
+ for(let i=0;i<queue.length;i++){const cell=queue[i],x=cell%cols,y=Math.floor(cell/cols);for(const[xx,yy]of[[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){const next=yy*cols+xx;if(xx<0||yy<0||xx>=cols||yy>=rows||!mask[next]||previous[next]>=0)continue;previous[next]=cell;distance[next]=distance[cell]+1;queue.push(next);}}
+ const engineering=hull.stations.engineering||hull.stations.helm;
+ const candidates=queue.filter(cell=>distance[cell]>=7&&distance[cell]<=12);
+ candidates.sort((a,b)=>{const ap=point(a%cols,Math.floor(a/cols)),bp=point(b%cols,Math.floor(b/cols));return Math.hypot(ap.x-engineering.x,ap.y-engineering.y)-Math.hypot(bp.x-engineering.x,bp.y-engineering.y);});
+ const target=candidates[0]??queue.at(-1)??start,path=[];for(let cell=target;cell!==start;cell=previous[cell])path.push(point(cell%cols,Math.floor(cell/cols)));path.push({...hull.spawn});path.reverse();
+ const result={classId:key,shipClass:key,cols,rows,tile:T,tileSize:T,width:cols*T,height:rows*T,hullMask:mask,walkable:mask.map(Boolean),hullOutline:hull.hullOutline,spawn:{...hull.spawn},repair:point(target%cols,Math.floor(target/cols)),path};
+ evaLayouts.set(key,result);return result;
+}
+function evaSurface(location,seed){
+ const layout=evaLayout(location.classId||location.shipClass||location.shipClassId||'hauler'),m=makeMap(layout.cols,layout.rows,'ship',location.name||'Hull walk',location.id,seed,'eva');
+ m.palette={...PALETTES.ship,floor:'#425660',floor2:'#3b4e58',edge:'#74858b',path:'#706b57',accent:'#d4ba79'};m.shipClass=layout.classId;m.vesselId=location.vesselId;m.spawn={...layout.spawn};m.exit={...layout.spawn};m.evaLayout=layout;m.walkable=layout.walkable;
+ for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)if(layout.hullMask[y*m.cols+x])m.tiles[y][x]=TILE.METAL;
+ for(const p of layout.path){const x=Math.floor(p.x/T),y=Math.floor(p.y/T);m.tiles[y][x]=TILE.PATH;prop(m,'tether-mark',x,y,1,1,'#dbc58b',false);}
+ const airlock=entity(m,'airlock','evaAirlock','Return inside','Airlock',Math.floor(layout.spawn.x/T),Math.floor(layout.spawn.y/T),'#9fc5c2',{vesselId:location.vesselId},'The tether returns to the pressure lock.');airlock.id='eva:airlock';
+ const repair=entity(m,'repair','evaWork','Hull coupling','Patch the coupling',Math.floor(layout.repair.x/T),Math.floor(layout.repair.y/T),'#e3b47c',{vesselId:location.vesselId,npcContractId:location.npcContractId},'A service panel sits beside the secured tether line.');repair.id='eva:repair';
+ prop(m,'airlock',layout.spawn.x/T-1,layout.spawn.y/T-.7,2,1,'#9fbfc4',false);prop(m,'workbench',layout.repair.x/T-1.5,layout.repair.y/T-1.5,3,.7,'#9fa79a',false);return m;
+}
 function reachableTiles(m){
  const seen=new Uint8Array(m.cols*m.rows),walkable=new Int8Array(seen.length),start=Math.floor(m.spawn.y/T)*m.cols+Math.floor(m.spawn.x/T),queue=[start];
  seen[start]=1;
@@ -432,6 +506,7 @@ function reachableTiles(m){
 }
 /** New contacts choose open reachable floor without moving a legacy service or door. */
 function addQuestEntities(m,location){
+ if(m.noPortServices||isPreflightBody(location))return;
  const outdoors=(m.kind==='station'||m.kind==='planet')&&!m.barren;if(!outdoors&&m.kind!=='site')return;
  const bodyId=m.kind==='site'?location.parentId:location.id,siteId=m.kind==='site'?location.site?.id:null;
  const matches=entry=>entry.bodyId===bodyId&&(!entry.systemId||entry.systemId===location.systemId)&&((entry.siteId||null)===siteId);
@@ -453,9 +528,9 @@ function addQuestEntities(m,location){
  };
  if(outdoors){
   const station=m.kind==='station';
-  addContact({id:'passage-desk:'+bodyId,name:'Passage desk',role:'pilot',roleLabel:'Passenger dispatch',text:`Travelers at ${location.name} are waiting for a captain. The desk lists the destination, fare and any care needs before you accept.`,color:'#9cbccc'},station?10:13,station?13:26);
-  addContact({id:'liaison:'+bodyId,name:'Faction liaison',role:'broker',roleLabel:'Local affiliation office',text:`The liaison can explain who claims this port, who disputes that claim, and what taking their side would mean.`,color:'#b6ba91'},station?15:17,station?16:25);
-  const service=addContact({id:'profession-desk:'+bodyId,name:'Public services',role:'medic',roleLabel:'Clinic & service desk',text:`The clinic coordinates care flights, supervised hospital shifts, patrol reports and service enlistment. Ask what the job needs before taking responsibility.`,color:'#a4c8bb',data:{professionDesk:true,bodyId}},station?27:25,station?7:9);
+  addContact({id:'passage-desk:'+bodyId,name:'Passage desk',role:'pilot',roleLabel:'Passenger dispatch',text:`Travelers at ${location.name} are waiting for a captain. The desk lists the destination, fare and any care needs before you accept.`,color:'#9cbccc',data:{automated:true,serviceDesk:'passage'}},station?10:13,station?13:26);
+  addContact({id:'liaison:'+bodyId,name:'Faction liaison',role:'broker',roleLabel:'Local affiliation office',text:`The liaison can explain who claims this port, who disputes that claim, and what taking their side would mean.`,color:'#b6ba91',data:{automated:true,serviceDesk:'faction'}},station?15:17,station?16:25);
+  const service=addContact({id:'profession-desk:'+bodyId,name:'Public services',role:'medic',roleLabel:'Clinic & service desk',text:`The clinic coordinates care flights, supervised hospital shifts, patrol reports and service enlistment. Ask what the job needs before taking responsibility.`,color:'#a4c8bb',data:{professionDesk:true,bodyId,automated:true,serviceDesk:'public'}},station?27:25,station?7:9);
   if(service){delete service.data.contactId;prop(m,'clinic-sign',service.x/T-1.7,service.y/T-1.3,1,1,'#94ccbc',false);}
  }
  contacts.forEach((entry,index)=>addContact(entry,m.kind==='station'?20+(index%4)*3:m.kind==='site'?9+(index%4)*4:19+(index%4)*3,m.kind==='station'?14+Math.floor(index/4)*3:m.kind==='site'?20:24+Math.floor(index/4)*3));
@@ -467,7 +542,7 @@ function addQuestEntities(m,location){
 /** Build a walkable place from a body object or authored body ID. */
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
- const kind=kindOf(location);const m=kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
+ const kind=kindOf(location);const m=kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,
  // but items and characters never fence in an interaction or a landing spawn.
@@ -549,9 +624,10 @@ function tileDraw(ctx,m,x,y,p,time){
  if(tile===TILE.METAL){pixel(ctx,'#b9a787',wx+3,wy+3,18,2);pixel(ctx,p.edge,wx+3,wy+19,18,2);}
 }
 function drawChoral(ctx,x,y,options={}){
- const scale=options.scale||1,time=options.time||0,moving=options.moving||options.walking,bob=moving?Math.round(Math.sin(time*8)):0,color=options.color||'#a9cfc9',dead=options.dead||Number.isFinite(options.health)&&options.health<=0;
+ const scale=options.scale||1,time=options.time||0,moving=options.moving||options.walking,bob=moving?Math.round(Math.sin(time*8)):options.resting?3:0,color=options.color||'#a9cfc9',dead=options.dead||Number.isFinite(options.health)&&options.health<=0;
  ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);pixel(ctx,'#112931',-12,-2,24,4);
  if(dead){pixel(ctx,'#658c8b',-14,-8,28,6);pixel(ctx,color,-8,-11,18,5);pixel(ctx,'#d5e1c9',8,-9,7,4);ctx.restore();return;}
+ if(options.asleep){pixel(ctx,'#2c4249',-11,-27,22,29);pixel(ctx,'#b1c5b4',-8,-25,16,7);pixel(ctx,color,-9,-21,18,14);pixel(ctx,'#c6d8ca',-6,-24,12,5);pixel(ctx,'#3d646c',-8,-14,16,14);pixel(ctx,color,-7,-13,14,11);for(const eye of[-5,0,5])pixel(ctx,'#668b8c',eye,-20,2,1);ctx.restore();return;}
  // Four feet, a narrow trunk and a three-lobed crest give a different silhouette
  // at game scale. Their luminous marks are opaque pixels, never a blur filter.
  for(const[leg,step]of[[-9,-bob],[-4,bob],[3,-bob],[8,bob]]){pixel(ctx,'#6c9395',leg,-9,2,8+step);pixel(ctx,'#bfccbc',leg-1,-2+step,4,2);}
@@ -568,11 +644,17 @@ export function drawCharacter(ctx,x,y,options={}){
  const equipped=!!options.weapon||options.team==='hostile'||options.firing,armed=equipped&&(options.armed??true),angle=Number.isFinite(options.aimAngle)?options.aimAngle:facingAngle(options.facing||'down');
  const aimedFacing=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?Math.cos(angle)<0?'left':'right':Math.sin(angle)<0?'up':'down';
  const seed=hash(options.id||options.name||'captain'),facing=armed?aimedFacing:options.facing||'down',skin=look?.skin||options.skin||['#d4af88','#bb8d68','#e1bf9c','#a67558','#8f644e','#cba281'][seed%6],hair=(look?.style==='shaved'?look.skin:look?.hair)||options.hair||['#433a35','#706257','#a7a79a','#513b36','#303440'][Math.floor(seed/7)%5],scale=options.scale||1,time=options.time||0;
- const moving=options.walking||options.moving||Math.hypot(options.vx||0,options.vy||0)>2,bob=moving?Math.round(Math.sin(time*13)):0,step=moving?(Math.sin(time*13)>0?1:-1):0;
+ const moving=options.walking||options.moving||Math.hypot(options.vx||0,options.vy||0)>2,bob=moving?Math.round(Math.sin(time*13)):options.resting?3:0,step=moving?(Math.sin(time*13)>0?1:-1):0;
  const hurt=(options.hurtUntil||options.hitUntil||0)>time,dead=options.dead||Number.isFinite(options.health)&&options.health<=0,c=hurt&&Math.floor(time*12)%2?'#e7c4b2':look?.suit||options.color||'#c4a879';
  ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);
  pixel(ctx,'#081923',-8,-2,16,4);
  if(dead){pixel(ctx,'#2c3b42',-12,-6,24,5);pixel(ctx,c,-9,-9,15,6);pixel(ctx,skin,7,-8,6,5);pixel(ctx,hair,10,-8,4,3);ctx.restore();return;}
+ if(options.asleep){
+  // An upright bedroll silhouette differs from a sideways casualty. The roll
+  // is carried furniture, so the sleeper's actual feet remain reachable.
+  pixel(ctx,'#253d43',-10,-26,20,29);pixel(ctx,'#a9bcb2',-8,-25,16,7);pixel(ctx,skin,-4,-23,8,8);pixel(ctx,hair,-4,-24,8,3);pixel(ctx,'#536b68',-7,-15,14,16);pixel(ctx,c,-7,-14,14,12);pixel(ctx,'#b7c5ad',-7,-14,14,2);pixel(ctx,'#263d48',-3,-18,2,1);pixel(ctx,'#263d48',2,-18,2,1);ctx.restore();return;
+ }
+ if(options.resting){pixel(ctx,'#3b5458',-9,-10,18,8);pixel(ctx,'#81948a',-9,-10,18,2);pixel(ctx,'#263e45',-8,-3,3,6);pixel(ctx,'#263e45',5,-3,3,6);}
  pixel(ctx,'#101f2b',-5,-6+step,4,6);pixel(ctx,'#101f2b',1,-6-step,4,6);pixel(ctx,'#78918f',-6,-1+step,5,1);pixel(ctx,'#78918f',1,-1-step,5,1);
  pixel(ctx,'#102330',-7,-16+bob,14,11);pixel(ctx,c,-5,-15+bob,10,9);pixel(ctx,c,-7,-13+bob,2,7);pixel(ctx,c,5,-13+bob,2,7);
  pixel(ctx,'#e3d7b3',-4,-15+bob,8,1);pixel(ctx,'#647474',-5,-7+bob,10,2);pixel(ctx,'#263d48',-2,-14+bob,2,7);
@@ -607,6 +689,17 @@ export function drawContactPortrait(ctx,entity={}){
 }
 function drawProp(ctx,d,m,time,emit){
  const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
+ if(d.kind==='bowls'){for(let i=2;i<w-5;i+=21){pixel(ctx,'#605447',x+i,y+9,12,6);pixel(ctx,c,x+i-2,y+6,16,5);pixel(ctx,'#806b4e',x+i,y+6,12,2);}return;}
+ if(d.kind==='cards'){for(let i=0;i<4;i++){pixel(ctx,'#ded8bd',x+5+i*13,y+5+(i%2)*4,10,13);pixel(ctx,i%2?'#9b655f':'#45625d',x+7+i*13,y+7+(i%2)*4,3,4);}return;}
+ if(d.kind==='weights'){pixel(ctx,'#a8b7b2',x+8,y+h/2,w-16,4);for(const xx of[x+10,x+w-23]){pixel(ctx,'#253c47',xx,y+3,13,h-6);pixel(ctx,'#617984',xx+2,y+3,4,h-6);}return;}
+ if(d.kind==='rope'){pixel(ctx,c,x+10,y,4,h);for(let yy=10;yy<h;yy+=17)pixel(ctx,'#d0c39b',x+8,y+yy,8,4);return;}
+ if(d.kind==='training-mat'){pixel(ctx,'#253e43',x,y+2,w,h);pixel(ctx,c,x+2,y,w-4,h-3);pixel(ctx,'#a4b4a0',x+6,y+4,w-12,2);return;}
+ if(d.kind==='laundry'){pixel(ctx,'#a5ab91',x,y,w,2);for(let i=8;i<w-18;i+=35){pixel(ctx,['#a7bca9','#c3b59d','#8daab1'][Math.floor(i/35)%3],x+i,y+3,23,34+(i%3)*5);pixel(ctx,'#ded3ad',x+i+3,y,3,5);pixel(ctx,'#ded3ad',x+i+17,y,3,5);}return;}
+ if(d.kind==='barred-screen'){for(let i=0;i<w;i+=14)pixel(ctx,c,x+i,y,3,h);pixel(ctx,'#b6b6a0',x,y,w,3);pixel(ctx,'#b6b6a0',x,y+h-3,w,3);return;}
+ if(d.kind==='vault-door'){pixel(ctx,'#243941',x,y,w,h);pixel(ctx,c,x+6,y+5,w-12,h-10);pixel(ctx,'#3d5961',x+14,y+12,w-28,h-24);for(let i=20;i<w-15;i+=24)pixel(ctx,'#78918b',x+i,y+15,4,h-30);pixel(ctx,'#c7be91',x+w/2-9,y+h/2-9,18,18);pixel(ctx,'#465b60',x+w/2-3,y+10,6,h-20);return;}
+ if(d.kind==='garden-gate'){pixel(ctx,'#607750',x+8,y+12,7,h-10);pixel(ctx,'#607750',x+w-16,y+12,7,h-10);pixel(ctx,'#9cad78',x+6,y+10,w-12,7);for(let i=14;i<w-15;i+=13)pixel(ctx,'#bed095',x+i,y+5,8,10);return;}
+ if(d.kind==='reed-house'){pixel(ctx,'#74674b',x+8,y+20,w-16,h-18);pixel(ctx,'#b9a778',x+10,y+20,w-20,3);for(let i=12;i<w-12;i+=9)pixel(ctx,'#92845d',x+i,y+23,2,h-22);pixel(ctx,'#a7a36c',x,y+11,w,15);pixel(ctx,'#bdbc85',x+8,y+3,w-16,12);pixel(ctx,'#c7c38a',x+18,y-3,w-36,9);pixel(ctx,'#3d4738',x+w/2-9,y+h-24,18,24);return;}
+ if(d.kind==='tether-mark'){pixel(ctx,'#b8ad80',x+10,y+4,4,16);pixel(ctx,'#ddcc91',x+9,y+10,6,4);return;}
  if(d.kind==='clinic-sign'){
   pixel(ctx,'#233d43',x+8,y+7,3,h+4);pixel(ctx,'#d4dec7',x+1,y-7,21,20);pixel(ctx,'#4b8a80',x+9,y-4,5,14);pixel(ctx,'#4b8a80',x+5,y,13,5);return;
  }
@@ -727,10 +820,27 @@ function drawProp(ctx,d,m,time,emit){
  if(d.kind==='dockship'){pixel(ctx,'#294651',x+6,y+6,w-12,h-12);pixel(ctx,c,x+11,y+1,w-22,h-2);pixel(ctx,'#d3c18b',x+w-8,y+h/2-9,18,18);pixel(ctx,'#5d96a6',x+12,y+9,w-24,24);}
 }
 function isDone(entity,flags){return!!entity.completed||flags.has(entity.data?.flag)||flags.has('done:'+entity.id)||flags.has(entity.id);}
+function drawResidentTask(ctx,e,time){
+ const life=e.life||(e.type==='crew'?{activity:'working',item:({engineer:'tool',engineering:'tool',medic:'medical',doctor:'medical',navigator:'ledger',scientist:'scanner',gunner:'scanner',security:'scanner'}[e.role]||'ledger')}:null);
+ if(!life||life.carrying||!['working','eating'].includes(life.activity))return;
+ const x=e.x,y=e.y,item=life.item,beat=Math.floor(time*3)%3===0?1:0;
+ if(item==='tool'){pixel(ctx,'#8cafb2',x+5,y-14+beat,8,2);pixel(ctx,'#ced9c8',x+11,y-17+beat,3,6);pixel(ctx,'#1b3642',x+12,y-16+beat,2,2);}
+ else if(item==='cup'){pixel(ctx,'#d2c29b',x+5,y-13-beat,6,6);pixel(ctx,'#9a7e59',x+10,y-12-beat,3,3);pixel(ctx,'#efe0b4',x+5,y-14-beat,6,2);}
+ else if(item==='medical'){pixel(ctx,'#d8dfca',x+5,y-15,8,10);pixel(ctx,'#659d90',x+7,y-13,3,6);pixel(ctx,'#659d90',x+6,y-11,6,2);}
+ else if(item==='scanner'){pixel(ctx,'#243c49',x+5,y-16,9,10);pixel(ctx,'#a3c9bc',x+6,y-15,7,2);pixel(ctx,beat?'#b9d0a0':'#759c99',x+7,y-12,4,3);}
+ else if(item==='crate'||item==='basket'){pixel(ctx,'#8c7959',x+5,y-12,11,10);pixel(ctx,'#c7ac76',x+5,y-12,11,2);pixel(ctx,'#d9c592',x+10,y-11,2,9);if(item==='basket')for(let yy=7;yy<12;yy+=2)pixel(ctx,'#b6a073',x+5,y-yy,11,1);}
+ else{pixel(ctx,'#d6cfb2',x+5,y-16,9,11);pixel(ctx,'#526d70',x+7,y-13,5,1);pixel(ctx,'#526d70',x+7,y-10,5,1);pixel(ctx,'#9e8c63',x+5,y-16,9,2);}
+}
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){drawCharacter(ctx,x,y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role});if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'||e.data?.professionDesk){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}if(e.data?.professionDesk){pixel(ctx,'#35545b',x-25,y-17,13,19);pixel(ctx,'#8ec6bc',x-23,y-15,9,2);pixel(ctx,'#c2d5b5',x-23,y-11,6,1);}}
+ if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
+ else if(e.data?.serviceDesk){
+  pixel(ctx,'#162d36',x-14,y-24,28,27);pixel(ctx,'#55767c',x-13,y-26,26,22);pixel(ctx,'#152d37',x-10,y-23,20,14);pixel(ctx,c,x-9,y-22,18,2);pixel(ctx,'#a5b9ac',x-11,y-7,22,3);pixel(ctx,'#314d56',x-9,y-3,18,7);
+  if(e.data.serviceDesk==='public'){pixel(ctx,'#c9ddc6',x-6,y-16,12,3);pixel(ctx,'#c9ddc6',x-2,y-20,4,11);}
+  else if(e.data.serviceDesk==='passage'){pixel(ctx,'#cbd5b6',x-7,y-17,11,2);pixel(ctx,'#cbd5b6',x+2,y-20,3,8);pixel(ctx,'#cbd5b6',x+5,y-18,3,4);}
+  else{pixel(ctx,'#c6c397',x-6,y-19,12,2);pixel(ctx,'#c6c397',x-4,y-17,8,3);pixel(ctx,'#c6c397',x-2,y-14,4,3);}
+ }
  else if(e.type==='station'){
   pixel(ctx,'#0e2733',x-14,y-21,28,26);pixel(ctx,'#557985',x-13,y-23,26,22);pixel(ctx,'#173a48',x-10,y-20,20,12);pixel(ctx,c,x-8,y-18,16,2);pixel(ctx,c,x-2,y-17,4,7);pixel(ctx,'#a9c9bd',x-8,y-5,3,2);pixel(ctx,'#dcc59a',x+5,y-5,3,2);
   if(e.data?.stationRole==='medical'){pixel(ctx,'#bfe1c9',x-6,y-14,12,3);pixel(ctx,'#bfe1c9',x-2,y-18,4,11);}
@@ -741,7 +851,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   pixel(ctx,'#102b36',x-10,y-18,20,23);pixel(ctx,'#9baea6',x-9,y-21,18,12);pixel(ctx,'#537581',x-7,y-19,14,11);pixel(ctx,'#c5b991',x-10,y-8,20,5);pixel(ctx,'#617c85',x-13,y-13,4,15);pixel(ctx,'#617c85',x+9,y-13,4,15);
  }
  else if(e.type==='siteEntrance'){pixelRing(ctx,x,y,14,6,c,{dashed:true});pixel(ctx,'#dce4c9',x-1,y-9,3,5);return;}
- else if(e.type==='siteExit'||e.type==='exit'){
+ else if(e.type==='siteExit'||e.type==='exit'||e.type==='evaAirlock'){
   pixel(ctx,'#122e38',x-15,y-10,30,22);pixel(ctx,'#527981',x-14,y-9,28,2);pixel(ctx,'#a9b6a6',x-11,y+10,22,2);
   for(let i=0;i<3;i++){const yy=y-5+i*5;pixel(ctx,c,x-4,yy,8,2);pixel(ctx,c,x-2,yy+2,4,2);}return;
  }
@@ -821,6 +931,11 @@ function drawWildlife(ctx,actor,time){
  if(!small){for(const offset of[-10,0,10]){pixel(ctx,'#c1bba4',x+offset-3,y-27+Math.abs(offset)/5,7,8);pixel(ctx,'#6d7569',x+offset-3,y-18,7,7);}}
  pixel(ctx,'#44564d',x+front*(small?10:15)-5,y-13,11,9);pixel(ctx,actor.windup>0?'#eec179':'#ced3aa',x+front*(small?13:18)-1,y-12,3,2);pixel(ctx,'#d8c7a4',x+front*(small?17:22)-2,y-7,4,2);
  if(actor.windup>0){pixelRing(ctx,x,y,small?19:26,9,'#e1a378',{dashed:true,phase:Math.floor(time*9)});pixel(ctx,'#f1cf91',x-2,y-36,4,6);}
+}
+function drawDomesticAnimal(ctx,animal,time){
+ const x=Math.round(animal.x),y=Math.round(animal.y),left=animal.facing==='left',front=left?-1:1,step=animal.moving?(Math.sin(time*8)>0?1:-1):0,c=animal.color||'#bfb59c',grazer=animal.species==='grazer';
+ pixel(ctx,'#19312b',x-13,y-2,26,5);for(const[dx,dy]of[[-9,step],[-4,-step],[5,step],[10,-step]]){pixel(ctx,'#7c806c',x+dx,y-5,2,7+dy);pixel(ctx,'#d7d3b6',x+dx-1,y+1+dy,4,2);}pixel(ctx,c,x-12,y-16,24,12);pixel(ctx,grazer?'#c4d5b0':'#d1c6ab',x-10,y-18,18,5);pixel(ctx,c,x+front*13-5,y-17,10,10);pixel(ctx,'#273f39',x+front*16,y-14,2,2);pixel(ctx,c,x-front*15,y-16,5,3);
+ if(grazer){pixel(ctx,'#829c80',x-5,y-22,10,5);pixel(ctx,'#d1dbb6',x-1,y-25,4,5);}else{pixel(ctx,'#d8cdae',x+front*12,y-22,2,7);pixel(ctx,'#d8cdae',x+front*16,y-21,2,6);pixel(ctx,'#95866b',x+front*18,y-13,3,4);}
 }
 function drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time){
  if(surface.atmosphere==='cave'){
@@ -917,7 +1032,7 @@ export function drawSurface(ctx,surface,options={}){
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height;
  const cameraOptions={x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,rasterScale:options.rasterScale,cameraX:options.cameraX,cameraY:options.cameraY};
  let view=surfaceCamera(cameraOptions);
- if(options.cameraShake&&(options.cameraShake.x||options.cameraShake.y))view=surfaceCamera({...cameraOptions,cameraX:view.cameraX+Math.max(-3.5,Math.min(3.5,Number(options.cameraShake.x)||0)),cameraY:view.cameraY+Math.max(-3.5,Math.min(3.5,Number(options.cameraShake.y)||0))});
+ if(options.cameraShake&&(options.cameraShake.x||options.cameraShake.y)){const bound=Math.min(14,3.5/Math.max(.01,Number(options.zoom)||1));view=surfaceCamera({...cameraOptions,cameraX:view.cameraX+Math.max(-bound,Math.min(bound,Number(options.cameraShake.x)||0)),cameraY:view.cameraY+Math.max(-bound,Math.min(bound,Number(options.cameraShake.y)||0))});}
  if(view.zoom===1){drawSurfacePixels(ctx,surface,{...options,cameraX:view.cameraX,cameraY:view.cameraY});return view;}
  // Fractional transforms antialias fillRect edges even with image smoothing off.
  // Draw only the visible world at its original pixel scale, then sample it
@@ -950,7 +1065,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  // Walls cast a short hard-edged shadow; light strips remain emissive pixels.
  for(let y=minY;y<maxY-1;y++)for(let x=minX;x<maxX;x++)if(surface.tiles[y][x]===TILE.WALL&&[TILE.FLOOR,TILE.PATH].includes(surface.tiles[y+1]?.[x])){ctx.globalAlpha=.2;pixel(ctx,'#06131d',x*T,(y+1)*T,T,5);ctx.globalAlpha=1;}
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
- const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark']);
+ const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark','training-mat','tether-mark']);
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,emit);
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
@@ -963,10 +1078,12 @@ function drawSurfacePixels(ctx,surface,options={}){
   if(e.type==='delivery'||e.type==='bunk'||e.type==='exit'&&!e.data?.stationRole)drawEntity(ctx,e,surface,time,flags,near===e);else items.push({y:e.y,entity:e});
  }
  for(const actor of actors)if(actor.x>cameraX-35&&actor.x<cameraX+width+35&&actor.y>cameraY-35&&actor.y<cameraY+height+35)items.push({y:actor.y,actor});
+ for(const animal of surface.ambientAnimals||[])if(animal.x>cameraX-35&&animal.x<cameraX+width+35&&animal.y>cameraY-35&&animal.y<cameraY+height+35)items.push({y:animal.y,animal});
  for(const home of homes)if(home.kind==='outpost'&&home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)items.push({y:home.y,home});
  items.push({y:person.y,player:person});items.sort((a,b)=>a.y-b.y);
  for(const item of items){
   if(item.prop)drawProp(ctx,item.prop,surface,time,emit);
+  else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
   else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.species&&a.species!=='human'&&a.species!=='choral')drawWildlife(ctx,{...a,...cues},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
@@ -987,6 +1104,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   if(!important&&!selected&&!targeted)continue;
   const value=selected||targeted||e.type==='siteEntrance'?e.name:shortRole(e),labelY=e.type==='siteEntrance'?e.y-67:e.type==='siteExit'?e.y-26:e.type==='exit'&&!e.data?.stationRole?e.y-26:e.type==='bunk'?e.y-18:e.y-44;
   emit(value,e.x,labelY,selected?'#f1ddb0':targeted?'#e7ce93':'#b6cdc8',selected?14:13,'center',selected?100:targeted?85:40,selected?'interaction':targeted?'objective':'service');
+  if((selected||targeted)&&e.life?.label)emit(e.life.label,e.x,e.y+13,'#a7c3b4',12,'center',selected?68:58,'npc-activity');
  }
  for(const actor of actors){
   if(actor.x<cameraX+4||actor.x>cameraX+width-4||actor.y<cameraY+4||actor.y>cameraY+height+22)continue;

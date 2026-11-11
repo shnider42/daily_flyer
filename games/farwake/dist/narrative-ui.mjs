@@ -1,5 +1,6 @@
 /** The captain's notebook. Rules and prices always come from the game authority. */
 import { escapeHtml as esc, fmt } from './ui.mjs';
+import { navIcon } from './ui-icons.mjs';
 
 const array=value=>Array.isArray(value)?value:[];
 const text=value=>typeof value==='string'?value:'';
@@ -16,7 +17,8 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     const body=system?.bodies.find(b=>b.id===target.bodyId);
     return [body?.name||target.bodyId,system?.name].filter(Boolean).join(' · ');
   };
-  function frame(title,section='stories',eyebrow='CAPTAIN’S NOTEBOOK') {
+  function frame(title,section='stories',eyebrow='CAPTAIN’S NOTEBOOK',{conversation=false}={}) {
+    if(conversation){dialog.open(title,'npc',{eyebrow});dialog.html('<section class="narrative-view"><div class="notebook-content"></div></section>');return dialog.body.querySelector('.notebook-content');}
     dialog.open(title,'narrative',{eyebrow,wide:true});
     dialog.html('<section class="narrative-view"><nav class="notebook-nav" aria-label="Notebook sections"></nav><div class="notebook-content"></div></section>');
     const nav=dialog.body.querySelector('.notebook-nav');
@@ -37,7 +39,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
   }
   function destination(root,target,id,{here=false}={}) {
     if(!target)return;
-    if(here){note(root,'Here · '+(place(target)||target.label||'At your destination'),'thread-place');return;}
+    if(here)return;
     const row=document.createElement('div');row.className='thread-destination';
     row.innerHTML=`<span><small>NEXT STOP</small><strong>${esc(place(target)||'Nearby')}</strong></span>`;
     button(row,'Show the way',()=>track(target,id),{secondary:true});root.append(row);
@@ -52,9 +54,10 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
   }
   async function send(name,args,then) {
     if(busy)return;busy=true;
+    const captain=game(),identity=[captain.state.multiplayer?.captainId||captain.state.seed,captain.state.systemId,captain.state.locationId].join(':');
     const owner=dialog.body.querySelector('.narrative-view');
     const enabled=[...owner?.querySelectorAll('button:not(:disabled),select:not(:disabled)')||[]];for(const control of enabled)control.disabled=true;
-    try {const result=await invoke(name,args);busy=false;if(acceptResult(result))then?.(result);}
+    try {const result=await invoke(name,args);busy=false;const current=game();if(current!==captain||identity!==[current.state.multiplayer?.captainId||current.state.seed,current.state.systemId,current.state.locationId].join(':'))return;if(acceptResult(result))then?.(result);}
     finally {busy=false;for(const control of enabled)if(control.isConnected)control.disabled=false;}
   }
   function storyCard(root,view,{compact=false,onOpen}={}) {
@@ -113,14 +116,15 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
   }
   function contactHeader(root,contact,entity) {
     const head=document.createElement('div');head.className='notebook-contact';
-    const canvas=document.createElement('canvas');canvas.width=32;canvas.height=40;canvas.setAttribute('aria-label',contact.name+' portrait');
-    drawPortrait?.(canvas.getContext('2d'),{...entity,...contact});head.append(canvas);
-    const words=document.createElement('div');words.innerHTML=`<span class="thread-category">${esc(contact.roleLabel||contact.role||contact.attitude||'Local contact')}</span><h3>${esc(contact.name||entity.name)}</h3><p>${esc(contact.greeting||contact.text||entity.text||'They make room for you to stop and talk.')}</p>`;head.append(words);root.append(head);
-    if(contact.lastMemory)note(root,contact.lastMemory,'contact-memory');
+    if(entity.data?.automated){const terminal=document.createElement('span');terminal.className='service-symbol';terminal.innerHTML=navIcon(entity.data?.professionDesk?'Port services':'Contacts');head.append(terminal);}
+    else{const canvas=document.createElement('canvas');canvas.width=32;canvas.height=40;canvas.setAttribute('aria-label',contact.name+' portrait');drawPortrait?.(canvas.getContext('2d'),{...entity,...contact});head.append(canvas);}
+    const words=document.createElement('div');words.innerHTML=`<span class="thread-category">${esc(contact.roleLabel||contact.role||contact.attitude||'Local contact')}</span>${contact.activity?`<span class="speaker-activity">${esc(contact.activity)}</span>`:''}<p>${esc(contact.greeting||contact.text||entity.text||'They make room for you to stop and talk.')}</p>`;head.append(words);root.append(head);
+    if(contact.relationship&&contact.relationship!=='Unacquainted')note(root,contact.relationship,'speaker-relationship');
+    if(contact.lastMemory){const history=document.createElement('details');history.className='contact-history';history.innerHTML=`<summary>Last time we spoke</summary><p>${esc(contact.lastMemory)}</p>`;root.append(history);}
   }
   async function openContact(entity) {
     await send('inspectContact',{entityId:entity.id},answer=>{
-      const contact=answer.contact||entity,root=frame(contact.name||entity.name,'stories','A CONVERSATION');contactHeader(root,contact,entity);
+      const contact=answer.contact||entity,root=frame(contact.name||entity.name,'stories',game().currentBody?.name||'A CONVERSATION',{conversation:true});contactHeader(root,contact,entity);
       for(const view of array(answer.threads))renderStage(root,view,{entity});
       if(entity.data?.contactId?.startsWith('passage-desk:')) {
         if(answer.passenger)passengerCard(root,answer.passenger,entity);
@@ -137,7 +141,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
         }
       }
       if(entity.data?.contactId?.startsWith('liaison:'))renderFactions(root,array(answer.factions),entity);
-      if(!answer.threads?.length&&!answer.passengers?.length&&!answer.factions?.length&&!answer.passenger)note(root,answer.text||'There is nothing else they need from you right now. Your notebook keeps the things they remember.');
+      if(!answer.threads?.length&&!answer.passengers?.length&&!answer.factions?.length&&!answer.passenger)note(root,answer.text||'No work to discuss just now.');
       note(root,wallet(),'notebook-wallet');
     });
   }
@@ -156,7 +160,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
   }
   function renderStage(root,view,{entity,profession=false,refresh}={}) {
     const section=document.createElement('section');section.className='thread-stage';
-    section.innerHTML=`<span class="thread-category">${esc(view.category||view.stageTitle||'Your next step')}</span><h3>${esc(view.stageTitle||view.title)}</h3><p class="thread-prose">${esc(view.text||view.summary||view.description)}</p>${view.objective?`<div class="thread-objective"><span>WHAT TO DO</span><p>${esc(view.objective)}</p></div>`:''}`;
+    section.innerHTML=`<span class="thread-category">${esc(view.category||view.stageTitle||'Your next step')}</span><h3>${esc(view.stageTitle||view.title)}</h3><p class="thread-prose">${esc(view.text||view.summary||view.description)}</p>${view.objective&&!(entity&&entity.id===view.target?.entityId&&array(view.actions).some(action=>action.available!==false))?`<div class="thread-objective"><span>WHAT TO DO</span><p>${esc(view.objective)}</p></div>`:''}`;
     destination(section,view.target,profession?'@profession':view.id,{here:!!entity&&entity.id===view.target?.entityId&&!view.target?.enemyId});
     const actions=array(view.actions);let readSolution=null;
     if(view.puzzle)readSolution=renderPuzzle(section,view.puzzle);

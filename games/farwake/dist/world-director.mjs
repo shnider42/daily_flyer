@@ -10,7 +10,7 @@ const roll=value=>{let n=hash(value);n=Math.imul(n^(n>>>16),0x7feb352d);n=Math.i
 const object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const factions=['concord','freewake','meridian','lantern','cinder'];
 const rival={concord:'cinder',freewake:'meridian',meridian:'freewake',lantern:'cinder',cinder:'concord'};
-const hasPort=body=>body&&body.landable!==false&&!['blackhole','site','ship'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
+const hasPort=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const validPlayer=id=>typeof id==='string'&&id.length>0&&id.length<=160&&!['__proto__','constructor','prototype'].includes(id);
 const token=value=>String(value??'').slice(0,200);
 

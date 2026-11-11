@@ -1,5 +1,6 @@
 /** A short, optional first job. Progress belongs to the captain, never a room. */
 import { generateSurface } from './surface.mjs';
+import { liveInteractionSurface, interactionInRange } from './live-surface.mjs';
 import { getHullSystems } from './hull-systems.mjs';
 
 export const OPENING_MISSION_ID = 'small-favor';
@@ -31,8 +32,8 @@ function cacheFor(game) {
   return cache;
 }
 
-// Only the two existing public ports are cached. Flags do not move these
-// contacts or relays, so updating the HUD never regenerates a planet map.
+// Cache static port geometry. Contacts use the current physical room so the
+// opening follows a dockworker's routine without regenerating the map.
 function portInfo(game, bodyId) {
   const cache = cacheFor(game);
   if (!cache.ports.has(bodyId)) {
@@ -46,7 +47,9 @@ function portInfo(game, bodyId) {
       .sort((a, b) => distance(a, contact || surface.spawn) - distance(b, contact || surface.spawn));
     cache.ports.set(bodyId, { body, surface, contact, relays });
   }
-  return cache.ports.get(bodyId);
+  const info = cache.ports.get(bodyId);
+  const surface = liveInteractionSurface(game, info.surface);
+  return surface === info.surface ? info : { ...info, surface, contact: surface.entities.find(value => value.id === openingContactId(bodyId)) };
 }
 
 function contactTarget(game, bodyId) {
@@ -71,8 +74,9 @@ function nearEntity(game, bodyId, entityId, expectedId, type = 'npc') {
   if (state.mode !== 'person' || state.person.health <= 0 || state.person.down) return fail('Reach this contact on foot when you are able to work.', 'mode');
   if (state.systemId !== SYSTEM || state.locationId !== bodyId || state.interior || state.exploration) return fail('Reach the named port before continuing this job.', 'location');
   if (entityId !== expectedId) return fail('Use the person or relay named in this assignment.', 'entity');
-  const entity = portInfo(game, bodyId)?.surface.entities.find(value => value.id === entityId && value.type === type && !value.hidden);
-  if (!entity || distance(entity, state.person) > RANGE) return fail('Move closer to the marked contact.', 'distance');
+  const surface = portInfo(game, bodyId)?.surface;
+  const entity = surface?.entities.find(value => value.id === entityId && value.type === type && !value.hidden);
+  if (!entity || !interactionInRange(game, surface, entity, RANGE)) return fail('Move closer to the marked contact.', 'distance');
   return ok({ entity });
 }
 

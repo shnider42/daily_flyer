@@ -1,6 +1,6 @@
 /** Shared geography policy. A quiet shipping hub and an isolated border are different places. */
 const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
-const inhabited=system=>system?.bodies?.some(body=>body&&body.landable!==false&&!['blackhole','site','ship'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome))));
+const inhabited=system=>system?.bodies?.some(body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome))));
 
 export function systemContext(system={}){
  const radius=Math.hypot(finite(system.gx),finite(system.gy)),danger=Math.max(1,Math.min(5,finite(system.danger,1)));

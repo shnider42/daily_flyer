@@ -6,7 +6,7 @@ const finite=(value,fallback=0)=>typeof value==='number'&&Number.isFinite(value)
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clone=value=>JSON.parse(JSON.stringify(value));
 export const normalizeStartMode=value=>value==='hardcore'?'hardcore':'regular';
-export const isPassengerPort=body=>!!body&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
+export const isPassengerPort=body=>!!body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const validBerth=(game,value)=>value&&typeof value.vesselId==='string'&&game.galaxy.some(system=>system.id===value.systemId&&system.bodies.some(body=>body.id===value.bodyId&&isPassengerPort(body)));
 const landing=game=>!game.state.interior&&game.system.bodies.find(body=>body.id===game.state.locationId);
 const quarantineOpen=game=>game.hasFlag('vault_recovered')&&game.hasFlag('homeward_signal')&&game.hasFlag('threshold_answered');

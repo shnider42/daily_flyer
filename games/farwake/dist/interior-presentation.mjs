@@ -21,7 +21,10 @@ export class InteriorPresentation {
   const hits=this.effects.map(hit=>({...hit,age:Math.max(0,time-hit.born)}));
   let x=0,y=0,flash=0;
   if(motion)for(const hit of hits){
-   const strength=clamp(hit.strength,0,1)*(hit.shieldOnly?.38:1),fade=Math.max(0,1-hit.age/.42),amplitude=3.3*strength*fade*fade;
+   const strength=clamp(hit.strength,0,1)*(hit.shieldOnly?.38:1),fade=Math.max(0,1-hit.age/.42);
+   // Small, real hull hits must survive pixel rounding on a phone. Output is
+   // in display pixels; the caller removes person zoom before camera sampling.
+   const amplitude=strength>0?(hit.shieldOnly?.7+strength*1.6:1.6+strength*3.5)*fade*fade:0;
    x+=Math.sin(hit.serial*2.4+hit.age*61)*amplitude;y+=Math.cos(hit.serial*1.7+hit.age*53)*amplitude;
    flash=Math.max(flash,Math.max(0,1-hit.age/.17)*strength*.055);
   }

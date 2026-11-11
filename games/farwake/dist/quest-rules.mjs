@@ -2,6 +2,7 @@
 import { FACTIONS } from './content.mjs';
 import { QUEST_CONTACTS, QUEST_OBJECTS, QUEST_THREADS, FACTION_RELATIONS, PASSENGER_NAMES, PASSENGER_TYPES, questContact, questObject, questThread } from './quest-content.mjs';
 import { generateSurface } from './surface.mjs';
+import { liveInteractionSurface, interactionInRange } from './live-surface.mjs';
 import { enemyHullProfile } from './fleet.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
@@ -12,7 +13,7 @@ const object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
 const knownFaction=id=>FACTIONS.some(value=>value.id===id);
-const hasPort=body=>body&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
+const hasPort=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(String(body.biome)));
 const rank=value=>value>=40?'Trusted':value>=15?'Welcomed':value<=-35?'Unwelcome':value<=-15?'Distrusted':'Uncommitted';
 const attitude=value=>value>=8?'Trusts you':value>=3?'Warmer toward you':value<=-6?'Keeps their distance':value<=-2?'Wary of you':'Getting to know you';
 const time=game=>Math.max(0,finite(game.state.stats?.time));
@@ -82,8 +83,8 @@ function nearEntity(game,id,target){
  if(id!==target.entityId)return{ok:false,reason:'Use the person or object named in this step.',code:'entity'};
  const location=game.state.interior?.location||body,key=`${game.state.systemId}:${game.state.locationId}:${game.state.flags.length}`;
  if(game._narrativeSurfaceCache?.key!==key)game._narrativeSurfaceCache={key,surface:generateSurface(location,game.state.seed,game.state.flags)};
- const entity=game._narrativeSurfaceCache.surface.entities.find(entity=>entity.id===id&&!entity.hidden);
- if(!entity||distance(entity,game.state.person)>46)return{ok:false,reason:'Move closer to that person or object.',code:'distance'};
+ const surface=liveInteractionSurface(game,game._narrativeSurfaceCache.surface),entity=surface.entities.find(entity=>entity.id===id&&!entity.hidden);
+ if(!entity||!interactionInRange(game,surface,entity,46))return{ok:false,reason:'Move closer to that person or object.',code:'distance'};
  return{ok:true,entity};
 }
 function canPay(game,cost={}){
@@ -229,9 +230,10 @@ export const NarrativeRules={
  inspectContact(entityId){
   const id=contactIdFrom(entityId),contact=definitionContact(this,id);if(!contact)return this._fail('That contact is not here.','target');
   const access=nearEntity(this,entityId,contactTarget(contact));if(!access.ok)return this._fail(access.reason,access.code);
+  const dialogue=this.conversation?.(access.entity,{time:this._npcTime?.()??this.state.npcLife?.time??this.state.stats.time});
   const state=nstate(this);if(!contact.generic){if(!state.met.includes(id)){state.met.push(id);this.recordActivity?.('talk',{role:'contact',token:entityId});}remember(this,id,null,0);}
   const relation=state.relations[id],board=this.narrativeBoard();
-  return this._ok({contact:{...contact,trust:relation?.trust||0,attitude:attitude(relation?.trust||0),lastMemory:relation?.memories.at(-1)?.text||null},threads:this.contactThreads(id),passengers:contact.generic==='passage'?this.passengerOffers():[],passenger:contact.generic==='passage'&&state.passenger?clone(state.passenger):null,factions:contact.generic==='liaison'?board.factions.filter(faction=>faction.id===contact.factionId):[],pledge:state.pledge});
+  return this._ok({dialogue,contact:{...contact,greeting:dialogue?.greeting||contact.text,activity:dialogue?.activity,relationship:dialogue?.relationship,trust:relation?.trust||0,attitude:attitude(relation?.trust||0),lastMemory:relation?.memories.at(-1)?.text||null},threads:this.contactThreads(id),passengers:contact.generic==='passage'?this.passengerOffers():[],passenger:contact.generic==='passage'&&state.passenger?clone(state.passenger):null,factions:contact.generic==='liaison'?board.factions.filter(faction=>faction.id===contact.factionId):[],pledge:state.pledge});
  },
  inspectQuestObject(entityId){
   const id=contactIdFrom(entityId),definition=questObject(id);if(!definition)return this._fail('That object is not part of this place.','target');

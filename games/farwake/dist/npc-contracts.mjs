@@ -2,7 +2,8 @@
 import { SHIP_CLASSES, enemyHullProfile } from './fleet.mjs';
 import { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
 import { ensureDamageControl } from './interior-damage.mjs';
-import { generateSurface } from './surface.mjs';
+import { generateSurface, evaLayout } from './surface.mjs';
+import { CREW_WORK_ROLES, crewWorkOffers, createWorkAssignment, crewTaskDefinition, publicCrewTask } from './crew-work.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -14,14 +15,15 @@ const inventoryFields=['cargo','upgrades','crew','formerCrew','memorial','boardi
 const active=game=>game.state.npcContract?.active===true?game.state.npcContract:null;
 const ok=data=>({ok:true,...data});
 const fail=(reason,code='unavailable')=>({ok:false,reason,message:reason,code});
-const emit=(game,text)=>game._event?.('crew-duty',{text,contractId:game.state.npcContract?.id});
-const port=body=>body&&body.landable!==false&&!['blackhole','ship','site','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(body.biome||''));
+const emit=(game,text)=>{if(!game._quietCrewIncident)game._event?.('crew-duty',{text,contractId:game.state.npcContract?.id});};
+const port=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','ship','site','derelict'].includes(body.kind)&&!(['moon','asteroid'].includes(body.kind)&&/barren|rock|dust/.test(body.biome||''));
 const employerClass=()=>SHIP_CLASSES.find(ship=>ship.id==='tern'&&ship.berths>=3)||SHIP_CLASSES.find(ship=>ship.id==='hauler')||SHIP_CLASSES.find(ship=>ship.berths>=3);
 
 export const NPC_CREW_ROLES=Object.freeze([
  Object.freeze({id:'gunner',name:'Gunner',stationRole:'weapons',station:'security',reward:210,description:'Work the gun console on a contracted security run. The NPC pilot lines up a real raider; your shots must help disable it.',task:'At the security console, hold FIRE to fire the ship’s guns. Disable the marked raider.'}),
  Object.freeze({id:'firehand',name:'Fire crew',stationRole:'engineering',station:'engineering',reward:170,description:'Join a maintenance shakedown. A known overheating assembly needs hands-on fire suppression in its actual compartment.',task:'Find the marked hot compartment. Suppress its fire and repair the scorched equipment.'}),
- Object.freeze({id:'medic',name:'Ship medic',stationRole:'medical',station:'medical',reward:180,description:'Care for an injured worker during a local service run. Treat the person aboard this ship at its medical station.',task:'Reach the medical station and treat the injured worker until they are stable.'})
+ Object.freeze({id:'medic',name:'Ship medic',stationRole:'medical',station:'medical',reward:180,description:'Care for an injured worker during a local service run. Treat the person aboard this ship at its medical station.',task:'Reach the medical station and treat the injured worker until they are stable.'}),
+ ...CREW_WORK_ROLES.filter(role=>!['gunner','firehand','medic'].includes(role.id))
 ]);
 const roleFor=id=>NPC_CREW_ROLES.find(role=>role.id===id);
 
@@ -38,11 +40,11 @@ function canHire(game){
 
 export function npcContractOffers(game){
  const check=canHire(game);
- return NPC_CREW_ROLES.map(role=>({...role,reward:Math.round(role.reward*(game.characterEffects?.jobRewards||1)),available:check.ok,reason:check.reason||null,origin:check.body?.name||null,cost:0,description:role.description+' The employer provides the ship and supplies. The run returns to this port; your own ship stays where you parked it.'}));
+ return crewWorkOffers(game).map(({seed,complicationSeed,prepKind,finishKind,...offer})=>({...offer,available:check.ok,reason:check.reason||null,origin:check.body?.name||null,cost:0}));
 }
 
 /** Creates the employer inventory without taking ownership of the employee's ship. */
-export function createNpcContract(game,roleId,{id,employeeId=game.playerId||'local',shared=false}={}){
+function createNpcContractBase(game,roleId,{id,employeeId=game.playerId||'local',shared=false}={}){
  const check=canHire(game),definition=roleFor(roleId);
  if(!check.ok)return check;if(!definition)return fail('Choose gunner, fire crew, or ship medic.','role');
  const serial=Math.max(0,Math.floor(finite(game.state.npcContractSerial)))+1;
@@ -70,6 +72,29 @@ export function createNpcContract(game,roleId,{id,employeeId=game.playerId||'loc
  const contract={version:1,id:contractId,serial,employeeId:String(employeeId),active:true,shared:!!shared,roleId,roleName:definition.name,vesselId,shipName:ship.name,classId:shipClass.id,origin,dockPoint,workPoint,routeName:destination?`${origin.name} → ${destination.name} approach → ${origin.name}`:`${origin.name} local service circuit`,factionId:check.body.faction||game.currentSystem?.faction||'freewake',phase:'boarding',dockedAt:origin.bodyId,clock:0,phaseClock:0,startedAt:finite(game.state.stats?.time),reward:Math.round(definition.reward*(game.characterEffects?.jobRewards||1)),paid:false,aborted:false,incidentStarted:false,work:{done:false,progress:0,fireRemoved:0,damageRepaired:0,healed:0,damage:0,crewId:worker.id,sectionId:null,enemyId:null,lastFire:0,lastDamage:0,lastHealth:worker.health}};
  game.state.npcContractSerial=serial;
  return ok({contract,ship,inventory});
+}
+
+/** Omitted offer IDs retain the three original watches for older clients. */
+export function createNpcContract(game,roleId,options={}){
+ if(!options.offerId&&['gunner','firehand','medic'].includes(roleId))return createNpcContractBase(game,roleId,options);
+ const check=canHire(game);if(!check.ok)return check;
+ const offers=crewWorkOffers(game),offer=options.offerId?offers.find(value=>value.offerId===options.offerId&&value.roleId===roleId):offers.find(value=>value.roleId===roleId);
+ if(!offer)return fail('That work order is no longer posted. Check the crew board again.','offer');
+ const result=createNpcContractBase(game,roleId,options);if(!result.ok)return result;
+ const {contract,ship,inventory}=result,destination=game.system.bodies.find(body=>body.id===offer.destinationId);
+ contract.version=2;contract.assignment=createWorkAssignment(offer,contract.id);contract.roleName=offer.name;contract.reward=offer.reward;
+ contract.shipName=ship.name=({freight:'Common Carrier',fragile:'Gentle Arrival',passage:'Evening Shuttle',medical:'Clinic Runner',maintenance:'Worklight',survey:'Sounding Bell',construction:'Frame Tender',hullwork:'Patchwork Tender',escort:'Registered Courier'})[offer.familyId]||'Local service boat';
+ contract.routeName=offer.routeName;contract.destination=destination?{systemId:game.state.systemId,bodyId:destination.id,name:destination.name,x:destination.x,y:destination.y,radius:destination.radius}:null;
+ if(destination){const heading=Math.atan2(destination.y-contract.origin.y,destination.x-contract.origin.x);contract.workPoint={x:destination.x-Math.cos(heading)*(destination.radius+75),y:destination.y-Math.sin(heading)*(destination.radius+75)};}
+ const worker=inventory.crew.find(crew=>crew.id===contract.work.crewId);
+ worker.name=['Ira Moss','Dev Renn','Mina Hart','Sol Anwar','Tess Orin','Pax Bell'][hash(`${offer.seed}:worker`)%6];
+ inventory.crew[0].name='Captain '+['Vale','Hosk','Maren','Rill','Sable','Venn'][hash(`${offer.seed}:pilot`)%6];
+ contract.assignment.workerName=worker.name;contract.assignment.pilotName=inventory.crew[0].name;
+ worker.health=100;worker.status='active';worker.role=offer.familyId==='passage'?'passenger':'deckhand';worker.greeting=offer.familyId==='passage'?'I’m your passenger for this run. A quiet berth and a safe arrival will do.':'I’ll keep the ordinary deck checks moving while you handle the posted work order.';
+ if(offer.familyId==='hullwork'){const damage=ensureDamageControl(ship),section=damage.sections.find(value=>value.id==='engineering')||damage.sections.at(-1);if(section)section.damage=Math.max(section.damage,18);}
+ contract.work.lastHealth=100;contract.work.stagesDone=0;contract.work.routeVisited=false;contract.work.shots=0;
+ inventory.crew[0].greeting='Finish the departure check and I’ll take us out. The work order is posted at your station.';
+ return result;
 }
 
 function transition(game,contract,phase,text){contract.phase=phase;contract.phaseClock=0;if(text)emit(game,text);}
@@ -132,10 +157,121 @@ function observeWork(game,contract){
  if(work.done){work.progress=1;transition(game,contract,'returning',contract.roleId==='gunner'?'Pilot: the marked skiff is disabled. Your confirmed ship-gun hits completed the watch. Returning to port for wages.':'Pilot: your assigned work is complete. Returning to the hiring port; wages are ready once we dock.');}
 }
 
+const modern=contract=>contract?.version===2&&contract.assignment?.version===2;
+const taskFor=contract=>contract.assignment?.tasks?.find(task=>!task.done);
+const workersFor=game=>game._npcWorkers||game._damageHumans||[game];
+const employeeFor=(game,contract)=>workersFor(game).find(worker=>String(worker.playerId)===contract.employeeId)||(!game._sharedWorld?game:null);
+function modernComms(game,contract,text){
+ const comms=contract.assignment.comms;comms.push({at:Math.round(contract.clock),text});contract.assignment.comms=comms.slice(-5);emit(game,text);
+}
+
+export function npcEvaLocation(contract,ship){return{id:`eva:${contract.vesselId}`,vesselId:contract.vesselId,name:`${contract.shipName} · hull walk`,kind:'eva',biome:'eva',classId:ship.classId,shipClass:ship.classId,npcContractId:contract.id,ownership:'crew',ownerName:'Local service cooperative',crew:[]};}
+function onEva(game,contract,worker,playerId){
+ const location=worker.state.interior?.location;
+ return String(playerId)===contract.employeeId&&worker.state.mode==='person'&&worker.state.interior?.kind==='eva'&&location?.vesselId===contract.vesselId&&location?.npcContractId===contract.id&&(!game._sharedWorld||game.netVesselId===contract.vesselId&&workersFor(game).includes(worker));
+}
+function retractEva(game,contract,worker,{emergency=false}={}){
+ if(!worker)return;
+ const layout=cabinLayout(game.state.ship.classId),eva=contract.assignment.eva;
+ worker.state.mode='person';worker.state.locationId=`ship:${contract.vesselId}`;
+ worker.state.interior={kind:'ship',liveVessel:true,location:{id:`ship:${contract.vesselId}`,vesselId:contract.vesselId,vesselName:contract.shipName,name:`${contract.shipName} · hired crew`,kind:'ship',biome:'ship',classId:game.state.ship.classId,shipClass:game.state.ship.classId,npcContractId:contract.id,ownership:'crew',ownerName:'Local service cooperative',crew:clone(game.state.crew)}};
+ Object.assign(worker.state.person,layout.spawn,{vx:0,vy:0,moving:false,weaponDrawn:false});
+ eva.active=false;eva.workerId=null;if(emergency){eva.emergency=true;worker.state.person.health=Math.max(1,worker.state.person.health-18);modernComms(game,contract,'Pilot: tether retracted. The suit reserve ran low; recover inside before another attempt.');}
+}
+
+function startModernComplication(game,contract){
+ const complication=contract.assignment.complication;if(!complication.type||complication.started)return;
+ complication.started=true;const originalRole=contract.roleId;
+ // Reuse the physical incident actors and damage rules from the older watch,
+ // but only when this work order's rare complication actually comes due.
+ contract.roleId=({attack:'gunner',fire:'firehand',illness:'medic'})[complication.type];
+ const quiet=game._quietCrewIncident;game._quietCrewIncident=true;
+ try{contract.incidentStarted=false;startIncident(game,contract);}finally{contract.roleId=originalRole;game._quietCrewIncident=quiet;}
+ if(complication.type==='illness'){
+  const patient=game.state.crew.find(crew=>crew.id===contract.work.crewId);
+  if(patient){patient.health=Math.min(patient.health,38);patient.status='injured';contract.work.lastHealth=patient.health;contract.work.healed=0;}
+ }
+ const messages={attack:'Pilot: an interdiction skiff is closing. Security station—bring its guns offline.',fire:'Pilot: a coolant fault has started a compartment fire. Suppress it, then repair the assembly.',illness:`Pilot: ${contract.assignment.workerName||'The deckhand'} has collapsed. Reach the medical station and stabilize them.`};
+ modernComms(game,contract,messages[complication.type]);
+}
+
+function observeModernComplication(game,contract){
+ const c=contract.assignment.complication,work=contract.work;if(!c.started||c.resolved)return;
+ if(c.type==='attack'){
+  const enemy=targetEnemy(game,contract);work.damage=Math.max(finite(work.damage),finite(enemy?.professionContributors?.[contract.employeeId]));
+  work.targetHull=enemy?Math.max(0,finite(enemy.hp)):finite(work.targetHull,60);work.targetMaxHull=finite(enemy?.maxHp,60);work.targetDisabled=!!(enemy?.disabled||enemy?.hp<=0||game._record().defeated.includes(work.enemyId));
+  const stored=game._record().spawned.find(value=>value.id===work.enemyId);if(stored&&enemy&&stored!==enemy)Object.assign(stored,{hp:enemy.hp,disabled:!!enemy.disabled,professionContributors:clone(enemy.professionContributors||{})});
+  c.resolved=work.targetDisabled&&work.damage>=12;
+ }else if(c.type==='fire'){
+  const section=ensureDamageControl(game.state.ship).sections.find(value=>value.id===work.sectionId);if(!section)return;
+  const suppressed=work.lastFire-section.fire,repaired=work.lastDamage-section.damage;
+  if(suppressed>1)work.fireRemoved+=suppressed;if(repaired>1)work.damageRepaired+=repaired;
+  work.lastFire=section.fire;work.lastDamage=section.damage;c.resolved=section.fire<=.1&&section.damage<=2&&work.fireRemoved>=20&&work.damageRepaired>=25;
+ }else{
+  const patient=game.state.crew.find(crew=>crew.id===work.crewId);
+  if(!patient||patient.health<=0||patient.status==='dead'){if(!contract.emergency){contract.emergency=true;contract.aborted=true;contract.failure='The patient did not survive.';transition(game,contract,'returning','Pilot: we have lost the patient. Returning to port.');}return;}
+  work.healed+=Math.max(0,patient.health-work.lastHealth);work.lastHealth=patient.health;c.resolved=patient.health>=90&&work.healed>=40;
+ }
+ if(c.resolved)modernComms(game,contract,'Pilot: the immediate danger is clear. Continue the work order when you’re ready.');
+}
+
+function observeModernWork(game,contract){
+ observeModernComplication(game,contract);
+ const a=contract.assignment,done=a.tasks.filter(task=>task.done).length;
+ contract.work.stagesDone=done;contract.work.routeVisited=a.visitedDestination;
+ contract.work.progress=Math.min(.95,done/a.tasks.length*.8+(a.visitedDestination ? .2 : 0));
+ if(done===a.tasks.length&&a.visitedDestination&&a.complication.resolved&&!a.eva.active&&!contract.aborted&&contract.phase==='working'){
+  a.delivered=true;contract.work.done=true;contract.work.progress=1;
+  transition(game,contract,'returning');modernComms(game,contract,`Pilot: ${a.familyId==='hullwork'?'fitting secure':'handover signed'}. Heading home to ${contract.origin.name}; wages on arrival.`);
+ }
+}
+
+function stepModernContract(game,contract,dt,input){
+ const a=contract.assignment;contract.clock+=dt;contract.phaseClock+=dt;
+ if(game.state.ship.hull<=0){contract.phase='failed';contract.dockedAt=null;contract.failure='The employer’s ship was lost.';return;}
+ const pilot=game.state.crew.find(crew=>crew.id===`${contract.id}:pilot`);
+ if(pilot&&pilot.health<=0&&!contract.emergency){contract.emergency=true;contract.aborted=true;contract.failure='The captain was lost. Emergency navigation is returning the ship.';if(a.eva.active)retractEva(game,contract,employeeFor(game,contract));transition(game,contract,'returning',contract.failure);}
+ if(a.eva.active){
+  const worker=employeeFor(game,contract);
+  if(worker&&onEva(game,contract,worker,contract.employeeId)){
+   a.eva.oxygen=Math.max(0,a.eva.oxygen-dt);
+   if(a.eva.oxygen<=30&&!a.eva.warned){a.eva.warned=true;modernComms(game,contract,'Pilot: thirty seconds of suit reserve. Finish the fitting or return to the airlock.');}
+   if(a.eva.oxygen<=0)retractEva(game,contract,worker,{emergency:true});
+  }else if(worker){a.eva.active=false;a.eva.workerId=null;}
+ }else a.eva.oxygen=Math.min(a.eva.maxOxygen,a.eva.oxygen+dt*8);
+ if(contract.phase==='boarding'){
+  if(!a.departureBrief){a.departureBrief=true;modernComms(game,contract,`Pilot: ${a.cargo} for ${a.destinationName}. Complete the departure check at your marked station.`);}
+  if(a.tasks[0].done&&contract.phaseClock>=2){contract.dockedAt=null;transition(game,contract,'outbound');modernComms(game,contract,`Pilot: check received. Casting off for ${a.destinationName}.`);}
+ }
+ if(contract.phase==='outbound'){
+  if(!a.cruiseBrief&&contract.phaseClock>=7){a.cruiseBrief=true;modernComms(game,contract,'Pilot: holding the local route. You can watch the passage or check the work order.');}
+  if(a.complication.type&&!a.complication.started&&contract.phaseClock>=8&&distance(game.state.ship,contract.dockPoint)>250)startModernComplication(game,contract);
+  // An actual threat briefly stops the run at its real position. The ship
+  // keeps its inertia and faces the attacking contact through the pilot input.
+  if(a.complication.started&&!a.complication.resolved&&a.complication.type==='attack'){a.interruptedLeg=true;transition(game,contract,'working');}
+  if(distance(game.state.ship,contract.workPoint)<55&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<28){
+   a.visitedDestination=true;contract.work.routeVisited=true;transition(game,contract,'working');
+   if(a.complication.type&&!a.complication.started)startModernComplication(game,contract);
+   modernComms(game,contract,a.familyId==='hullwork'?'Pilot: holding position. Suit is ready; use the entry airlock for the exterior fitting.':`Pilot: alongside ${a.destinationName}. Finish the receiving check at your station.`);
+  }
+ }
+ if(contract.phase==='working'){
+  observeModernWork(game,contract);
+  if(a.interruptedLeg&&a.complication.resolved&&!a.visitedDestination){a.interruptedLeg=false;transition(game,contract,'outbound');modernComms(game,contract,'Pilot: resuming the delivery route.');}
+  if(contract.phase==='working'&&contract.phaseClock>=420){contract.aborted=true;if(a.eva.active)retractEva(game,contract,employeeFor(game,contract));transition(game,contract,'returning','Pilot: the receiving window has closed. Returning with the work recorded so far.');}
+ }else observeModernComplication(game,contract);
+ if(contract.phase==='returning'&&distance(game.state.ship,contract.dockPoint)<45&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<18){
+  contract.dockedAt=contract.origin.bodyId;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});transition(game,contract,'docked');modernComms(game,contract,`Pilot: moored at ${contract.origin.name}. Collect your wages and step ashore.`);
+ }
+ if(input.fire&&!game._sharedWorld&&a.complication.started&&!a.complication.resolved&&a.complication.type==='attack')performNpcContractWork(game,'fire');
+ updateCabin(game);
+}
+
 /** Called once per physical ship tick, before the ordinary inertia simulation. */
 export function stepNpcContract(game,delta,input={}){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return;
  const dt=clamp(finite(delta),0,.1);if(!dt)return;
+ if(modern(contract))return stepModernContract(game,contract,dt,input);
  contract.clock+=dt;contract.phaseClock+=dt;
  if(game.state.ship.hull<=0){contract.phase='failed';contract.dockedAt=null;contract.failure='The employer’s ship was lost.';return;}
  const pilot=game.state.crew.find(crew=>crew.id===`${contract.id}:pilot`);
@@ -163,7 +299,7 @@ export function npcContractPilot(game){
  if(['boarding','docked','failed'].includes(contract.phase))return still;
  let target=contract.phase==='returning'?contract.dockPoint:contract.workPoint,desiredHeading;
  if(contract.phase==='working'){
-  const enemy=contract.roleId==='gunner'&&targetEnemy(game,contract);
+  const enemy=(contract.roleId==='gunner'||modern(contract)&&contract.assignment.complication.type==='attack')&&targetEnemy(game,contract);
   if(!enemy||enemy.disabled||enemy.hp<=0)return still;
   desiredHeading=Math.atan2(enemy.y-ship.y,enemy.x-ship.x);
   // The NPC keeps the gunner's target in the bow arc without firing for them.
@@ -191,10 +327,75 @@ function workerAccess(game,contract,worker,playerId,station){
  return ok({});
 }
 
+function modernTaskReady(game,contract,task){
+ const a=contract.assignment,index=a.tasks.indexOf(task);
+ if(!task||task.done)return fail('That part of the work order is already recorded.','completed');
+ if(['returning','docked','failed'].includes(contract.phase))return fail('The work order has closed for this run.','phase');
+ if(index>0&&(!a.tasks[0].done||!a.visitedDestination||contract.phase!=='working'||distance(game.state.ship,contract.workPoint)>90||Math.hypot(game.state.ship.vx,game.state.ship.vy)>35))return fail('The pilot must reach the actual receiving point before this part of the job.','route');
+ if(a.complication.started&&!a.complication.resolved)return fail('Deal with the immediate danger before resuming routine work.','incident');
+ return ok({});
+}
+
+function performModernWork(game,contract,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution}={}){
+ const a=contract.assignment;
+ if(action==='exitEva'){
+  if(!onEva(game,contract,worker,playerId)||!a.eva.active)return fail('You are not on this ship’s tethered hull walk.','vessel');
+  const point=evaLayout(game.state.ship.classId).spawn;
+  if(distance(worker.state.person,point)>56)return fail('Return to the marked exterior airlock.','distance');
+  retractEva(game,contract,worker);observeModernWork(game,contract);updateCabin(game);return ok({text:'Back inside. Suit reserve is recharging.',perspective:'ship-deck'});
+ }
+ if(action==='enterEva'){
+  const task=taskFor(contract),access=workerAccess(game,contract,worker,playerId,null);if(!access.ok)return access;
+  if(task?.kind!=='eva')return fail('This work order does not need an exterior repair now.','task');
+  const ready=modernTaskReady(game,contract,task);if(!ready.ok)return ready;
+  if(distance(worker.state.person,cabinLayout(game.state.ship.classId).spawn)>56)return fail('Reach the ship’s entry airlock to put on the tethered suit.','distance');
+  if(a.eva.oxygen<45)return fail('Let the suit reserve recharge inside before another hull walk.','oxygen');
+  a.eva.active=true;a.eva.workerId=String(playerId);a.eva.trips++;a.eva.warned=false;
+  worker.state.mode='person';worker.state.locationId=`eva:${contract.vesselId}`;worker.state.interior={kind:'eva',location:npcEvaLocation(contract,game.state.ship)};
+  Object.assign(worker.state.person,evaLayout(game.state.ship.classId).spawn,{vx:0,vy:0,moving:false,weaponDrawn:false});
+  modernComms(game,contract,'Pilot: tether secure. Follow the hull markings to the fitting, then return through this airlock.');
+  return ok({text:'Tether secure. Follow the marked hull panel.',perspective:'eva'});
+ }
+ if(action==='task'){
+  const task=taskFor(contract);
+  if(!task||task.id!==taskId)return fail('Use the current task named in this work order.','task');
+  const ready=modernTaskReady(game,contract,task);if(!ready.ok)return ready;
+  const definition=crewTaskDefinition(contract,task);
+  if(definition.station==='eva'){
+   if(!onEva(game,contract,worker,playerId)||!a.eva.active||a.eva.oxygen<=0||worker.state.person.health<=0||worker.state.person.down)return fail('Use the assigned tethered suit to reach the exterior fitting.','eva');
+   if(distance(worker.state.person,evaLayout(game.state.ship.classId).repair)>56)return fail('Reach the marked exterior fitting before working.','distance');
+  }else{const access=workerAccess(game,contract,worker,playerId,definition.station);if(!access.ok)return access;}
+  if(!Array.isArray(solution)||solution.length!==definition.solution.length||!solution.every((value,index)=>typeof value==='string'&&value.length<=40&&value===definition.solution[index]))return fail('Those settings do not match the work-order clues. Check them and try again.','solution');
+  task.done=true;task.completedAt=contract.clock;
+  if(task.kind==='triage'||task.kind==='comfort'){const patient=game.state.crew.find(crew=>crew.id===contract.work.crewId);if(patient){patient.health=Math.min(100,patient.health+8);patient.greeting='Thanks for checking. The rest of the trip feels less daunting.';}}
+  if(task.kind==='eva'){
+   const section=ensureDamageControl(game.state.ship).sections.find(value=>value.id==='engineering')||ensureDamageControl(game.state.ship).sections.at(-1);
+   if(section)section.damage=Math.max(0,section.damage-18);
+   modernComms(game,contract,'Pilot: fitting checks green. Come back through the airlock before we get under way.');
+  }else modernComms(game,contract,task===a.tasks[0]?'Pilot: departure check signed. I have the helm.':'Pilot: receiving check signed. Good work.');
+  observeModernWork(game,contract);updateCabin(game);
+  return ok({text:task.kind==='eva'?'Fitting secured. Return to the airlock.':`${definition.title} recorded.`,taskId:task.id,done:contract.work.done});
+ }
+ const c=a.complication,expected={fire:'attack',heal:'illness',suppress:'fire',repair:'fire',patch:'fire'}[action];
+ if(!c.started||c.resolved||expected!==c.type)return fail('That tool is not needed for the current work order.','role');
+ if(!['outbound','working'].includes(contract.phase))return fail('The working watch has ended.','phase');
+ const access=workerAccess(game,contract,worker,playerId,action==='fire'?'security':action==='heal'?'medical':null);if(!access.ok)return access;
+ let result;
+ if(action==='fire'){result=game.fireWeapons(playerId);if(result.ok){contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;}}
+ else if(action==='heal')result=game.medicalFromStation([worker]);
+ else{
+  if(sectionId&&sectionId!==contract.work.sectionId)return fail('Use the marked damaged compartment.','target');
+  const original={person:game.state.person,mode:game.state.mode,interior:game.state.interior};game.state.person=worker.state.person;game.state.mode='person';game.state.interior=worker.state.interior;
+  try{result=game.damageControl(contract.work.sectionId,action);}finally{Object.assign(game.state,original);}
+ }
+ if(result.ok){observeModernWork(game,contract);updateCabin(game);}return result;
+}
+
 /** Actor is the employer vessel; worker is the real player aboard it. */
-export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId}={}){
+export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution}={}){
  const contract=active(game),definition=contract&&roleFor(contract.roleId);
  if(!contract||game.state.ship.id!==contract.vesselId)return fail('You are not aboard an active paid crew watch.','contract');
+ if(modern(contract))return performModernWork(game,contract,action,{worker,playerId,sectionId,taskId,solution});
  const expected={fire:'gunner',heal:'medic',suppress:'firehand',repair:'firehand',patch:'firehand'}[action];
  if(!expected||expected!==contract.roleId)return fail('Use the tools for your assigned crew role.','role');
  if(contract.phase!=='working')return fail('The pilot will announce when the assigned work begins.','phase');
@@ -224,14 +425,48 @@ export function requestNpcContractReturn(game){
  const contract=active(game);if(!contract)return fail('There is no active crew watch.','contract');
  if(contract.phase==='docked')return ok({text:'The ship is moored. Collect the recorded pay and go ashore.'});
  if(contract.phase==='failed')return fail('The employer’s ship needs emergency recovery.','destroyed');
+ if(modern(contract)&&contract.assignment.eva.active)retractEva(game,contract,employeeFor(game,contract));
  contract.aborted=!contract.work.done;
  if(contract.phase==='boarding'){contract.dockedAt=contract.origin.bodyId;transition(game,contract,'docked','The watch was cancelled before departure. No wages are due.');}
  else transition(game,contract,'returning','Pilot: understood. Returning to our hiring port. Pay is based on the work you completed.');
  return ok({text:'The NPC pilot is returning to port.',contract});
 }
 
+function modernStatus(game,contract){
+ const a=contract.assignment,layout=cabinLayout(contract.classId),task=taskFor(contract),definition=task&&publicCrewTask(contract,task),complication=a.complication;
+ const outside=game.state.interior?.kind==='eva'&&game.state.interior.location?.vesselId===contract.vesselId,exterior=evaLayout(contract.classId);
+ let ready=task?modernTaskReady(game,contract,task):fail('The assigned work is recorded.','completed'),point=definition?.station==='eva'?outside?exterior.repair:layout.spawn:layout.stations[definition?.station||'engineering'];
+ let target={stationRole:definition?.stationRole||roleFor(contract.roleId)?.stationRole,x:point?.x,y:point?.y};
+ if(definition?.station==='eva')target={entityId:outside?'eva:repair':`ship:${contract.vesselId}:entry-airlock`,x:point?.x,y:point?.y};
+ if(ready.ok&&definition){
+  if(definition.station==='eva')ready=outside&&a.eva.active&&a.eva.oxygen>0?distance(game.state.person,exterior.repair)<=56?ok({}):fail('Walk to the marked exterior fitting.','distance'):fail('Reach the entry airlock and suit up.','eva');
+  else if(distance(game.state.person,point)>56)ready=fail(`Reach the ${definition.station==='security'?'security':definition.station} station.`, 'distance');
+ }
+ let taskText=definition?.brief||'The pilot is bringing you back to port.',activeTask=definition?{...definition,ready:ready.ok,reason:ready.reason||null}:null;
+ const incident=complication.started&&!complication.resolved;
+ if(incident){
+  activeTask=null;
+  if(complication.type==='attack'){point=layout.stations.security;target={stationRole:'weapons',enemyId:contract.work.enemyId,...point};taskText='Security station: hold FIRE to disable the actual interdiction skiff.';}
+  if(complication.type==='illness'){point=layout.stations.medical;target={stationRole:'medical',...point};taskText=`Medical station: stabilize ${a.workerName||'the deckhand'} before resuming the delivery.`;}
+  if(complication.type==='fire'){
+   const section=game.state.ship.id===contract.vesselId?ensureDamageControl(game.state.ship).sections.find(value=>value.id===contract.work.sectionId):null;
+   target={sectionId:contract.work.sectionId,stationRole:'engineering',x:section?.x,y:section?.y};taskText='Reach the marked compartment: suppress the fire, then repair the assembly.';
+  }
+ }else if(contract.phase==='boarding')taskText='Reach your marked station and complete the departure check.';
+ else if(contract.phase==='outbound')taskText=`Pilot flying to ${a.destinationName}. Your next check begins on arrival.`;
+ else if(outside&&!task){target={entityId:'eva:airlock',...exterior.spawn};taskText='Fitting secure. Return to the marked airlock.';}
+ else if(contract.phase==='returning'){activeTask=null;taskText=contract.work.done?'Work signed off. The pilot is returning for your pay.':'Returning early. Pay covers recorded work only.';}
+ else if(contract.phase==='docked'){activeTask=null;taskText='Collect your pay and go ashore.';}
+ else if(contract.phase==='failed'){activeTask=null;taskText=contract.failure||'Call for recovery.';}
+ const canEnter=!outside&&task?.kind==='eva'&&ready.code==='eva'&&distance(game.state.person,layout.spawn)<=56&&a.eva.oxygen>=45;
+ const progress=clamp(finite(contract.work.progress),0,1),earned=contract.emergency?0:contract.work.done?contract.reward:Math.floor(contract.reward*.35*progress);
+ const firing=finite(contract.work.shots)>0&&contract.clock-finite(contract.work.lastShotAt)<.8;
+ return{version:2,active:true,id:contract.id,roleId:contract.roleId,roleName:contract.roleName,title:a.title,familyId:a.familyId,cargo:a.cargo,stationRole:target.stationRole||definition?.stationRole,phase:contract.phase,task:taskText,taskBrief:taskText,done:contract.work.done,reward:contract.reward,earned,progress,firing,shipName:contract.shipName,origin:clone(contract.origin),routeName:contract.routeName,dockedAt:contract.dockedAt,canFinish:contract.phase==='docked',target,work:clone(contract.work),activeTask,tasks:a.tasks.map(value=>({id:value.id,title:publicCrewTask(contract,value)?.title||'Work recorded',done:!!value.done})),comms:clone(a.comms||[]),complication:incident?{type:complication.type,active:true,title:({attack:'Interdiction alert',fire:'Compartment fire',illness:'Crew member ill'})[complication.type]}:null,eva:a.familyId==='hullwork'?{active:outside&&a.eva.active,oxygen:a.eva.oxygen,maxOxygen:a.eva.maxOxygen,canEnter,canExit:outside&&distance(game.state.person,exterior.spawn)<=56}:null};
+}
+
 export function npcContractStatus(game){
  const contract=active(game);if(!contract)return null;
+ if(modern(contract))return modernStatus(game,contract);
  const definition=roleFor(contract.roleId),layout=cabinLayout(contract.classId),section=game.state.ship.id===contract.vesselId?ensureDamageControl(game.state.ship).sections.find(value=>value.id===contract.work.sectionId):null;
  const point=section||layout.stations[definition.station],stationRole=definition.stationRole;
  let task=definition.task;
@@ -290,9 +525,9 @@ export const NpcContractRules={
   }
  },
  npcContractOffers(){return npcContractOffers(this);},
- acceptNpcContract(roleId){
+ acceptNpcContract(roleId,options={}){
   if(this._sharedWorld)return fail('The shared galaxy authority must assign the employer’s vessel.','authority');
-  const result=createNpcContract(this,roleId);if(!result.ok)return result;
+  const result=createNpcContract(this,roleId,options);if(!result.ok)return result;
   const {contract,ship,inventory}=result;
   contract.personal={ship:this.state.ship,...Object.fromEntries(inventoryFields.map(field=>[field,this.state[field]??(field==='boarding'?null:field==='cargo'?{ore:0,crystal:0}:field==='upgrades'?{}:[])]))};
   this.state.npcContract=contract;this.state.ship=ship;for(const field of inventoryFields)this.state[field]=inventory[field];

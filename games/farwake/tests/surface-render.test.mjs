@@ -88,8 +88,9 @@ test('interior camera shake keeps rendered labels and pointer picking on the sam
    const options={width:360,height:260,person,remotePeople,zoom,rasterScale},base=drawSurface(ctx,surface,{...options,labels:[]});
    const labels=[],view=drawSurface(ctx,surface,{...options,labels,cameraShake:{x:99,y:-99}});
    assert.notEqual(view.offsetX,base.offsetX);assert.notEqual(view.offsetY,base.offsetY);
-   assert.ok(Math.abs(view.cameraX-base.cameraX)<=3.5+.5/view.zoom);
-   assert.ok(Math.abs(view.cameraY-base.cameraY)<=3.5+.5/view.zoom);
+   const shakeLimit=Math.min(14,3.5/zoom);
+   assert.ok(Math.abs(view.cameraX-base.cameraX)<=shakeLimit+.5/view.zoom);
+   assert.ok(Math.abs(view.cameraY-base.cameraY)<=shakeLimit+.5/view.zoom);
    assert.ok(Number.isInteger(view.offsetX)&&Number.isInteger(view.offsetY),'shake stays on the raster grid');
    const remote=remotePeople[0],label=labels.find(label=>label.kind==='remote'),labelPoint=surfaceWorldToCanvas(remote.x,remote.y-47,view);
    assert.equal(label.x,Math.round(labelPoint.x));assert.equal(label.y,Math.round(labelPoint.y));assert.equal(label.size,13);

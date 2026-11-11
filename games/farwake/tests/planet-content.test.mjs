@@ -69,10 +69,10 @@ test('story contacts and evidence exist only at their exact body and site, witho
  const saved=generateSurface(explorationLocation({id:'morrow',kind:'planet'},'northwatch','quest-doors'),'quest-doors');assert.ok(saved.entities.some(entity=>entity.id==='quest:dome-recorder'));
 });
 
-test('inhabited ports provide one passage, faction and public-service desk; barren places and ship interiors do not',()=>{
+test('inhabited spaceports provide one passage, faction and public-service desk; preflight settlements and barren places do not',()=>{
  for(const body of bodies){
   const map=generateSurface(body,'civic-services'),reachable=flood(map);
-  if(map.barren){assert.ok(!map.entities.some(entity=>entity.data.professionDesk));continue;}
+  if(map.barren||body.portServices===false){assert.ok(!map.entities.some(entity=>entity.data.professionDesk||entity.data.serviceDesk));continue;}
   for(const id of[`quest:passage-desk:${body.id}`,`quest:liaison:${body.id}`,`quest:profession-desk:${body.id}`]){
    const matches=map.entities.filter(entity=>entity.id===id);assert.equal(matches.length,1,id);const entity=matches[0];assert.ok(reachable.has(cell(map,entity)),id);assert.equal(entity.data.homeLocationId,body.id);
   }

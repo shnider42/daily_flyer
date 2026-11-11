@@ -135,6 +135,21 @@ test('Reduce motion removes camera impulses and flashes while keeping actual dan
  assert.ok(Math.abs(absorbed.shake.y)<=Math.abs(normal.shake.y)*.381);assert.equal(absorbed.alarm,false);
 });
 
+test('small physical hull hits remain perceptible at the mobile person zoom without increasing maximum shake',()=>{
+ const ship=hull(),presentation=new InteriorPresentation();presentation.sample(ship,10);
+ addImpact(ship,{strength:.16,hullDamage:2});
+ let visibleFrames=0;
+ for(let frame=0;frame<12;frame++){
+  const effect=presentation.sample(ship,10.1+frame/60);
+  // App converts display pixels to world units before the zoomed camera.
+  const zoom=.8,displayX=Math.round((effect.shake.x/zoom)*zoom),displayY=Math.round((effect.shake.y/zoom)*zoom);
+  if(Math.abs(displayX)+Math.abs(displayY)>0)visibleFrames++;
+  assert.ok(Math.abs(effect.shake.x)<=3.5&&Math.abs(effect.shake.y)<=3.5);
+ }
+ assert.ok(visibleFrames>=4,'a small real impact must survive pixel rounding for more than a single frame');
+ assert.deepEqual(presentation.sample(ship,10.2,{motion:false}).shake,{x:0,y:0});
+});
+
 test('only actual damaged sections become reachable deck markers, and updates preserve real people and stations',()=>{
  const {ship,surface}=deck('physical-hull','tern'),originalEntities=[...surface.entities];
  assert.ok(originalEntities.some(entity=>entity.type==='crew'));assert.ok(originalEntities.some(entity=>entity.type==='npc'));assert.ok(originalEntities.some(entity=>entity.type==='station'));

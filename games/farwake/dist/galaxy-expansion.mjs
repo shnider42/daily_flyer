@@ -31,7 +31,8 @@ export const FRONTIER_SYSTEMS=freeze([
   {id:'noonless',name:'Noonless',kind:'planet',biome:'ice',lore:'A settlement follows the geothermal vents beneath a sunless ridge. Its people measure the year by which families can afford to move.'}]},
  {id:'greenwake',name:'Greenwake',gx:-26,gy:34,faction:'freewake',biome:'forest',danger:3,region:'The Listening Coast',description:'Human orchards grow beside a forest that responds to sound. Farmers, researchers and its first inhabitants disagree over what cultivation means.',bodies:[
   {id:'greenwake-depot',name:'Greenwake Depot',kind:'station',biome:'station',lore:'The freight handlers lower their voices around the seed containers. Nothing in the shipping contract explains why.'},
-  {id:'ochre-garden',name:'Ochre Garden',kind:'planet',biome:'forest',alienCulture:'choral',lore:'Paths follow quiet strips between resonant trunks. The local hosts permit visitors to harvest fallen fruit; cutting a branch requires a conversation.'}]}
+  {id:'ochre-garden',name:'Ochre Garden',kind:'planet',biome:'forest',alienCulture:'choral',lore:'Paths follow quiet strips between resonant trunks. The local hosts permit visitors to harvest fallen fruit; cutting a branch requires a conversation.'},
+  {id:'reedbank',name:'Reedbank',kind:'moon',biome:'temperate',culture:'reedbound',techLevel:'preflight',portServices:false,civilianSettlement:true,lore:'The river towns measure journeys by the turn of the water. Their skies have never been a road. Leave the engines beyond the fields; public promises here are woven into reed banners.'}]}
 ]);
 
 const BIOMES=['forest','ice','ocean','desert','volcanic','industrial','barren','temperate'];

@@ -1,12 +1,32 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.6.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.7.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Quiet lives and working passages · 0.7.0
+
+Residents now follow collision-safe daily routines: work, errands, meals, rest, and sleep. Nearby people carry work props, face their activity, and pause briefly when spoken to. Essential shipwright, medical, and mission interactions remain reachable. Generic passage and public-service counters are visibly automated consoles rather than people standing permanently behind a desk.
+
+Conversations respond to the local time, the resident’s current activity, actual mission progress, relationship history, and relevant local consequences. The interface uses a concise portrait conversation, short choices, and a compact activity cue. Longer notebook material stays separate. No runtime text-generation service is required. Shared galaxies use one persisted clock and the same physical NPC positions for every captain; a bounded recent-position allowance handles ordinary moving-contact latency without accepting distant interactions.
+
+Beyond the starter system, a few authored social places and sparse frontier venues add everyday life, cultural differences, readable objects, benign animals, and quiet rooms. Some contain only an optional detail or decision. The procedural social-venue chance is 1 in 25 eligible frontier planets, with at most one added venue per body. The new preflight settlement has its own village, fields, meeting place, and local language conventions; it does not have modern port services or public dispatch jobs. Existing Hearth content remains unchanged by this placement pass.
+
+Three recurring people have distinct ongoing projects. One remains at home; two travel between fixed destinations with real entry and departure paths and gaps between appearances. Their projects advance on the shared world clock, while each captain remembers previous meetings separately. Ambient exchanges require nearby, awake people and occur only in sparse time windows; lines fade after seven seconds. There is a minimum four-minute gap, a longer gap for direct addresses, and no new ambient chatter in Hearth. These are optional observations, not popup quests.
+
+**Port services → Join a paid crew** now offers eight work orders drawn from nine authored job families: freight, fragile loads, passenger care, clinic supply runs, maintenance, surveys, construction deliveries, exterior repairs, and insured valuable shipments. Seven roles and seeded cargo, quantities, routes, puzzle settings, and pay create variation. This is a reusable work-order system, not hundreds of individually authored stories. The security assignment guards cargo aboard the employer vessel; it does not escort a second independent NPC ship.
+
+Every new watch begins with a marked physical workstation and a departure check. The pilot waits for that check, flies the actual ship to the named receiving point, waits for the assigned work, and returns to the hiring port before paying. Mini-games include manifests, load balance, seal order, cabin preparation, medical observations, coolant allocation, instrument calibration, signal comparison, rigging, and assembly. Full wages require completed work and physical return; early return pays only the recorded fraction, and a payment cannot be replayed. Your own ship and ownership stay separate from the employer’s ship.
+
+About 8% of generated work orders contain a complication. A hostile incident creates a real attacker and real exterior shots. Fire and illness affect the actual compartment or crewmate. The work panel and markers switch to the emergency, and the assigned worker receives the temporary access needed to respond. Small real impacts now remain visible at the default person zoom, with bounded camera shake, existing damage cues, and the Reduce Motion preference preserved.
+
+Exterior repair work uses the actual employer hull’s shape and a separate walkable exterior surface. Suit up at its real entry airlock, reach the marked fitting, complete the locking check, and return through that airlock. The 120-second air reserve and automatic emergency tether return remain active; exhaustion injures the worker and does not complete the work or award full pay. The physical ship remains exposed to outside fire, and the pilot waits for the worker to return inside. EVA pose, employer association, work progress, and suit state survive shared-server restoration.
+
+Old saved watches and role-only older-client requests retain their original watch rules. New menu selections send a specific work-order identifier and use the new system. The current acceptance target remains three to four captains: checks include four independent working ships, four real WebSocket clients sharing NPC schedules, real exterior-hit propagation, forged-request rejection, and restart persistence. Ten-player capacity is not a claim of ten-player load validation.
 
 ## An optional first favor · 0.6.2
 
