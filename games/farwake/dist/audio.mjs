@@ -1,8 +1,86 @@
 import { playbackSession, bindAudioActivation } from './shared/device-audio.mjs';
+import { MusicDirector } from './music-director.mjs';
+import { MUSIC_CUES, THEME_ID, ScorePlayer } from './music-score.mjs';
+
+const busGain = (node, value, time, ramp=.08) => {
+ if(!node || node._farwakeGain===value)return;
+ node._farwakeGain=value;node.gain.cancelScheduledValues(time);node.gain.setTargetAtTime(value,time,ramp);
+};
 export class Soundscape{
- constructor(enabled=()=>true){this.enabled=enabled;this.ctx=null;this.master=null;this.last={};this.ambient=null;bindAudioActivation(()=>this.unlock(),{enabled});}
- unlock(){if(!this.enabled())return;try{playbackSession();if(!this.ctx){this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=.17;this.master.connect(this.ctx.destination);}if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
- tone(freq,duration=.1,type='sine',volume=.2,endFreq=null){if(!this.enabled()||!this.ctx||this.ctx.state!=='running')return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.03);}catch{}}
+ constructor(enabled=()=>true,{musicEnabled=()=>true,musicVolume=()=>.65,musicPresence=()=> 'balanced'}={}){
+  this.enabled=enabled;this.musicEnabled=musicEnabled;this.musicVolume=musicVolume;this.musicPresence=musicPresence;
+  this.ctx=null;this.master=null;this.musicBus=null;this.last={};this.effects=new Set();
+  this.director=new MusicDirector({cues:MUSIC_CUES,themeId:THEME_ID});
+  this.score=null;this.retiringScore=null;this.musicToken=null;this.musicDecision=null;this.musicNow=0;
+  if(globalThis.document){
+   bindAudioActivation(()=>this.unlock(),{enabled:()=>this.enabled()||this.musicEnabled()});
+   document.addEventListener('visibilitychange',()=>{if(document.hidden)this.suspend();});
+   globalThis.window?.addEventListener('pagehide',()=>this.suspend());
+  }
+ }
+ unlock(){
+  if(!(this.enabled()||this.musicEnabled())||globalThis.document?.hidden)return;
+  try{
+   playbackSession();
+   if(!this.ctx||this.ctx.state==='closed'){
+    const Audio=globalThis.AudioContext||globalThis.window?.AudioContext||globalThis.window?.webkitAudioContext;
+    if(!Audio)return;this.ctx=new Audio({latencyHint:'interactive'});
+    this.master=this.ctx.createGain();this.master.gain.value=this.enabled()?.17:0;this.master.connect(this.ctx.destination);
+    this.musicBus=this.ctx.createGain();this.musicBus.gain.value=0;this.musicBus.connect(this.ctx.destination);
+    this.ctx.addEventListener?.('statechange',()=>{if(this.ctx.state==='interrupted'){this.stopScores();this.stopEffects();this.director.suspend(this.musicNow);this.musicDecision=null;}});
+   }
+   if(['suspended','interrupted'].includes(this.ctx.state))Promise.resolve(this.ctx.resume()).catch(()=>{});
+   this.mute();
+  }catch{}
+ }
+ stopScores(){
+  this.score?.dispose();this.retiringScore?.dispose();this.score=null;this.retiringScore=null;this.musicToken=null;
+ }
+ stopEffects(){
+  for(const source of this.effects){try{source.stop();source.onended?.();}catch{try{source.disconnect();}catch{}}}
+  this.effects.clear();
+ }
+ suspend(){
+  this.stopScores();this.stopEffects();this.director.suspend(this.musicNow);this.musicDecision=null;
+  if(this.ctx&&this.ctx.state==='running')Promise.resolve(this.ctx.suspend()).catch(()=>{});
+ }
+ musicEvent(signal,now,key=null){if(signal)this.director.notify(signal,now,key);}
+ toggleTheme(start=null){
+  if(start===null)start=!(this.musicDecision?.theme||this.director.previewRequested);
+  if(!start){this.director.stopTheme(this.musicNow);return false;}
+  if(this.musicDecision?.theme)return true;
+  this.unlock();this.director.requestTheme();return true;
+ }
+ updateMusic(context={},now=0){
+  this.musicNow=now;
+  if(!this.ctx||this.ctx.state!=='running'){
+   if(this.score||this.retiringScore){this.stopScores();this.director.suspend(now);}
+   this.musicDecision=null;return null;
+  }
+  const decision=this.director.update(context,now,{enabled:this.musicEnabled(),presence:this.musicPresence()});
+  this.musicDecision=decision;
+  const volume=Number(this.musicVolume());
+  busGain(this.musicBus,(this.musicEnabled()?Math.max(0,Math.min(1,Number.isFinite(volume)?volume:.65))*.7:0)*decision.duck,this.ctx.currentTime,.12);
+  if(decision.token!==this.musicToken){
+   this.retiringScore?.dispose();this.retiringScore=null;
+   if(this.score){this.score.stop(decision.fadeOut);this.retiringScore=this.score;this.score=null;}
+   this.musicToken=decision.token;
+   if(decision.cueId){
+    this.score=new ScorePlayer(this.ctx,this.musicBus);
+    this.score.play(decision.cueId,{seed:decision.seed,fadeIn:decision.fadeIn});
+   }
+  }
+  for(const key of ['score','retiringScore']){
+   const player=this[key];if(!player)continue;player.update(this.ctx.currentTime);
+   if(player.ended){player.dispose();this[key]=null;}
+  }
+  return decision;
+ }
+ musicStatus(){
+  const cue=MUSIC_CUES.find(value=>value.id===this.musicDecision?.cueId);
+  return {state:this.ctx?.state||'locked',title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
+ }
+ tone(freq,duration=.1,type='sine',volume=.2,endFreq=null){if(!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){
   const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shipAlarm:3000,repair:180}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
@@ -28,7 +106,6 @@ export class Soundscape{
   }
  }
  interiorAlarm(time,{active=false}={}){if(!active){this.nextInteriorAlarm=null;return;}if(!this.enabled())return;if(this.nextInteriorAlarm===null||this.nextInteriorAlarm===undefined||time>=this.nextInteriorAlarm){this.play('shipAlarm');this.nextInteriorAlarm=time+3.5;}}
- atmosphere(time,mode,music){if(!music||!this.enabled())return;if(time-(this.musicTime??-10)<4.8)return;this.musicTime=time;const notes=mode==='person'?[130.81,164.81,196,146.83,174.61,196,164.81,146.83]:[65.41,98,130.81,82.41,110,146.83,98,73.42];const i=(this.noteIndex??0)%notes.length;this.noteIndex=i+1;this.tone(notes[i],4.5,'sine',.10);this.tone(notes[i]*1.5,3.8,'sine',.035);}
  /** Sparse location sounds are effects, so a quiet room still has a voice with music off. */
  siteAtmosphere(time,atmosphere){
   if(!atmosphere||!this.enabled())return null;
@@ -50,5 +127,5 @@ export class Soundscape{
   if(atmosphere==='drain'){this.tone(63,1.4,'triangle',.045,39);this.tone(610,.12,'sine',.02,260);return index%2?'A pipe answers a knock you did not make.':'A drop rings in a tank that should be dry.';}
   this.tone(index%2?95:140,.9,'triangle',.04,38);setTimeout(()=>this.tone(62,.25,'sine',.035,36),520);return'The empty room settles. Something taps behind the wall.';
  }
- mute(){if(this.master)this.master.gain.value=this.enabled()?.17:0;}
+ mute(){if(!this.ctx)return;busGain(this.master,this.enabled()?.17:0,this.ctx.currentTime,.02);if(!this.musicEnabled()){busGain(this.musicBus,0,this.ctx.currentTime,.02);this.stopScores();this.director.suspend(this.musicNow);this.musicDecision=null;}}
 }

@@ -62,3 +62,8 @@
 /* A captain without a ship has no fabricated hull or reactor readout. */
 .shipless .status-strip .meter-block,.shipless .resourcebar .fuel-resource,.shipless .resourcebar .resource:has(#cargo){display:none}
 .shipless .status-strip{justify-content:flex-end}
+
+/* The soundtrack control stays with the title utilities and Settings. */
+.theme-listen{min-height:44px;touch-action:manipulation;}
+#settingsThemeButton{margin:12px 0;padding:10px 14px;}
+.welcome-utility-links{flex-wrap:wrap;}

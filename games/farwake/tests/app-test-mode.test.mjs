@@ -15,6 +15,7 @@ import {DAMAGE_CONTROL_ACTIONS,interiorDamageSummary} from '../dist/interior-dam
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
 import {getPerspectiveAction} from '../dist/perspective-controls.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
+import {musicContext,classifyMusicEvent} from '../dist/music-context.mjs';
 
 // Exercise the real app handlers with a small DOM boundary, without opening a
 // browser, invoking the render loop, or replacing the actual Game rules.
@@ -26,7 +27,7 @@ const declaration=name=>{
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
 const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
-const appCode=names.map(declaration).join('\n');
+const appCode=[...names,'sampleScoreContext'].map(declaration).join('\n');
 
 function classes() {
   const values=new Set();
@@ -43,16 +44,16 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({Game,distance,updateNpcLife,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,getPerspectiveAction,
+  const context=vm.createContext({Game,distance,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,rescueOccupants,getPerspectiveAction,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
     network:null,onlineSnapshot:null,connectionState:'offline',surface:null,surfaceKey:'',surfaceTarget:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
     stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
-    tutorial,settings:{guidance:'simple',leftHanded:false,shipZoom:.65,personZoom:1.15,immersiveHud:true,translucentHud:true,compactTips:true},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,hideCoach(){},
+    tutorial,settings:{guidance:'simple',leftHanded:false,shipZoom:.65,personZoom:1.15,immersiveHud:true,translucentHud:true,compactTips:true},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,ambientCue:null,performance:{now:()=>0},hideCoach(){},
     localCameraPreferences:{shipZoom:.65,personZoom:1.15},cameraScope:'local',cameraKey:null,cameraSaveTimer:null,normalizeCameraPreferences,normalizeModeZoom,zoomLimits,labelLayoutDirty:false,hudDirty:false,
     setTimeout:schedule,clearTimeout:cancel,applySettings(settings,{cameraPreferences=settings}={}){preferenceWrites.push(normalizeCameraPreferences(cameraPreferences));},queueResize(){},updatePerformanceHUD(){},
-    audio:{unlock(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},setViewPanel(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
+    audio:{unlock(){},musicEvent(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},setViewPanel(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
     hudText:(target,text)=>{target.textContent=text;},esc:value=>String(value??''),fmt:value=>String(value),toast:(...args)=>toasts.push(args),
     saveGame:game=>{writes.push(game.serialize());return true;},readPassport:()=>null,readPassports:()=>({}),openEncounter:encounter=>effects.push(encounter),processCombatEvent:()=>false,
     openCombatHelp:()=>effects.push('combat-help'),openLocalMapContent:()=>effects.push('local-chart'),

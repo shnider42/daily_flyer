@@ -10,9 +10,10 @@ export const BROWSER_DATA_KEYS = Object.freeze({
 export const DEVICE_SETTING_FIELDS = Object.freeze([
   'guidance', 'controlScale', 'textScale', 'shipZoom', 'personZoom',
   'immersiveHud', 'translucentHud', 'compactTips', 'sound', 'music',
+  'musicVolume', 'musicPresence', 'musicSettingsVersion',
   'reduceMotion', 'leftHanded', 'flightAssist', 'showPerformance'
 ]);
-const numericSettings = new Set(['controlScale', 'textScale', 'shipZoom', 'personZoom', 'worldZoom']);
+const numericSettings = new Set(['controlScale', 'textScale', 'shipZoom', 'personZoom', 'worldZoom', 'musicVolume', 'musicSettingsVersion']);
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const credentialNames = new Set([
@@ -32,6 +33,8 @@ export function pickDeviceSettings(value, { includeLegacy = false } = {}) {
     if (!own(value, key)) continue;
     if (key === 'guidance') {
       if (['simple', 'moderate', 'expert'].includes(value[key])) result[key] = value[key];
+    } else if (key === 'musicPresence') {
+      if (['quiet', 'balanced', 'frequent'].includes(value[key])) result[key] = value[key];
     } else if (numericSettings.has(key)) {
       if (typeof value[key] === 'number' && Number.isFinite(value[key])) result[key] = value[key];
     } else if (typeof value[key] === 'boolean') result[key] = value[key];

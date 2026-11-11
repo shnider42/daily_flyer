@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.7.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.8.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## An original adaptive score · 0.8.0
+
+Farwake now has twelve authored pieces and a music director that follows the local captain's actual situation. **The Long Way Home** is the complete main theme: a recurring piano/guitar melody, moving bass, warm organ, restrained percussion, a brighter middle passage, and a full return. Use **Listen to the theme** on the title screen or in Settings to hear it.
+
+Exploration has distinct piano, electronic-travel, and guitar palettes. Inhabited places can feel companionable or gently whimsical. Perceived danger brings tension; incoming fire, real boarding, and occupied-ship emergencies bring urgency. A recovery passage and a quiet interval follow. A rare authored terror treatment needs a reveal the captain has actually reached. Enemy counts, darkness, low health, and unrelated ships do not select horror or combat music.
+
+Settings now separate **Sound effects** and **Music**, with music volume and **More quiet / Balanced / More music**. Existing mute preferences are preserved. The score leaves deliberate gaps, ducks for conversation, does not restart on every menu, and clears its scheduled voices when the app is hidden. Everything plays locally; no music account, runtime generation, or listening analytics are involved.
+
+See [the musical direction and expansion guide](docs/music-direction.md) for composition intent, priority rules, quiet intervals, cue extension, local data behavior, and verification limits.
 
 ## Established voyages · 0.7.1
 
@@ -401,13 +411,13 @@ The HUD reports **Save unavailable** if browser storage cannot be written. The e
 
 ## Settings and audio
 
-Settings provide guidance selection (**Simple**, **Moderate**, or **Expert**), touch-control size from 80–120%, **text size from 100–160%**, flight assist, swapped thumb controls, sound effects, ambient music, and reduced motion.
+Settings provide guidance selection (**Simple**, **Moderate**, or **Expert**), touch-control size from 80–120%, **text size from 100–160%**, flight assist, swapped thumb controls, sound effects, adaptive music, music volume and presence, and reduced motion.
 
 The world art retains its pixel presentation. Menus and HUD use normal browser text, and world labels are drawn on a separate display-resolution canvas so enlarging the text does not enlarge blurry art-layer letters. The text setting also applies to navigation labels.
 
 Flight assist damps linear and angular drift when input is released; disabling it allows more coasting. Larger hulls still need more time to change course. Expert guidance hides the detailed objective hint and route markers. Reduced motion starts from the browser's preference and can be changed in the game.
 
-Audio is synthesized locally with Web Audio. It starts after a browser-accepted user gesture. The ambient score has its own switch, but the current sound-enable setting also acts as the audio master: sound must be enabled for the score to play.
+Audio is synthesized locally with Web Audio after a browser-accepted user gesture. Sound effects and music now have independent buses and switches. The authored score has separate volume and presence controls; the theme can be heard from the title screen or Settings. Prior effective mute preferences are retained during migration. Hidden pages stop scheduled sources, and iOS interruption states are handled through the existing gesture activation path. See [music direction](docs/music-direction.md).
 
 ## Running locally
 
@@ -459,7 +469,10 @@ For solo-only static hosting, publish the **contents of `dist/`** with `index.ht
 | [dist/input.mjs](dist/input.mjs) | Separate walking and flight axes, independent dual-stick ownership, held fire, and input cancellation |
 | [dist/network.mjs](dist/network.mjs) | Passports, WebSocket transport, sequenced input, prediction/reconciliation, and remote interpolation |
 | [dist/ui.mjs](dist/ui.mjs) | Dialog focus handling, reusable UI utilities, settings, storage, toasts, and procedural portraits |
-| [dist/audio.mjs](dist/audio.mjs) | Synthesized effects and ambient score |
+| [dist/audio.mjs](dist/audio.mjs) | Independent effects/music buses and browser audio lifecycle |
+| [dist/music-score.mjs](dist/music-score.mjs) | Original authored pieces, instrument voices, and bounded note transport |
+| [dist/music-director.mjs](dist/music-director.mjs) | Musical priorities, transitions, repeat memory, and deliberate quiet |
+| [dist/music-context.mjs](dist/music-context.mjs) | Local, observed gameplay evidence for the score |
 | [dist/shared/pgi-controls.mjs](dist/shared/pgi-controls.mjs) | Shared DailyFlyer/DFE joystick and game-surface input helpers |
 | [dist/shared/device-audio.mjs](dist/shared/device-audio.mjs) | Shared DailyFlyer/DFE gesture activation and device-audio routing helpers |
 | [server/index.mjs](server/index.mjs) | Static HTTP service, realm entry, WebSocket sessions, simulation clock, and health endpoint |
@@ -493,6 +506,6 @@ For a release, also exercise the browser: start and restore a solo voyage; dock,
 
 ## Art and shared-code provenance
 
-Farwake's pixel-style planets, ships, stations, characters, terrain, rooms, and portraits are original drawings produced by the code in this project. The application does not load an external sprite pack or recorded music library. Its effects and ambient notes are generated with Web Audio.
+Farwake's pixel-style planets, ships, stations, characters, terrain, rooms, and portraits are original drawings produced by the code in this project. The application does not load an external sprite pack or recorded music library. Its effects and twelve authored musical pieces are synthesized with Web Audio. The score contains original melodies; it does not sample commercial recordings.
 
 The two files under `dist/shared/` are reused DailyFlyer/DFE helpers. Farwake-specific input and sound behavior lives in `input.mjs` and `audio.mjs`; the shared helpers retain the existing project's multi-touch and device-audio handling.
