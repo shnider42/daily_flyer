@@ -14,6 +14,13 @@ class AudioNode {
   constructor(ctx, kind) {
     this.ctx = ctx; this.kind = kind; this.connections = new Set(); this.disconnected = false;
     for (const name of ['gain', 'pan', 'frequency', 'detune', 'playbackRate', 'delayTime', 'threshold', 'knee', 'ratio', 'attack', 'release']) this[name] = new Parameter(name === 'playbackRate' ? 1 : 0);
+    if (kind === 'Convolver') Object.defineProperty(this, 'buffer', {
+      get() { return this._buffer; },
+      set(value) {
+        if (value && value.sampleRate !== ctx.sampleRate) throw new Error('NotSupportedError: convolver buffer sample rate must match AudioContext');
+        this._buffer = value;
+      },
+    });
   }
   connect(destination) { this.connections.add(destination); return destination; }
   disconnect() { this.connections.clear(); this.disconnected = true; }
@@ -25,9 +32,9 @@ class AudioNode {
   stop(time) { this.stoppedAt = time; }
 }
 
-function audioContext() {
+function audioContext({ sampleRate = 24000 } = {}) {
   const ctx = {
-    currentTime: 0, state: 'running', sampleRate: 24000, sources: new Set(), sourceStarts: [], nodes: [],
+    currentTime: 0, state: 'running', sampleRate, sources: new Set(), sourceStarts: [], nodes: [],
     createBuffer(channels, length, sampleRate) {
       const arrays = Array.from({ length: channels }, () => new Float32Array(length));
       return { duration: length / sampleRate, length, sampleRate, numberOfChannels: channels, getChannelData: index => arrays[index] };
@@ -151,4 +158,19 @@ test('user volume automation is independent of the natural cue envelope', () => 
   assert.deepEqual(player._fade.gain.automation, fadeAutomation, 'Ducking must not remove the authored ending fade.');
   assert.deepEqual(player.outputGain.gain.automation.at(-1), ['ramp', .2, 4.4]);
   player.dispose();
+});
+
+test('native 44.1 and 48 kHz contexts receive matching reverb impulses while instrument samples stay compact', () => {
+  for (const sampleRate of [44100, 48000]) {
+    const ctx = audioContext({ sampleRate }), player = new ScorePlayer(ctx, ctx.destination);
+    assert.equal(player.assets.impulse.sampleRate, sampleRate);
+    assert.equal(player.assets.impulse.numberOfChannels, 2);
+    assert.equal(player.assets.impulse.duration, 2.5);
+    assert.doesNotThrow(() => player.play(THEME_ID));
+    assert.ok(player.assets.samples.size > 0, 'The regression exercises actual source creation.');
+    for (const buffer of player.assets.samples.values()) assert.equal(buffer.sampleRate, 24000, 'Pitched source buffers remain capped at 24 kHz.');
+    const secondPlayer = new ScorePlayer(ctx, ctx.destination);
+    assert.equal(secondPlayer.assets, player.assets, 'Crossfading players share the native impulse and instrument buffers.');
+    secondPlayer.dispose(); player.dispose();
+  }
 });

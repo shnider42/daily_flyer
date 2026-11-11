@@ -160,3 +160,20 @@ test('rapid musical transitions retain at most a current and retiring score and 
     assert.equal(b.audio.retiringScore, null);
   } finally { b.restore(); }
 });
+
+test('an unavailable music graph fails quiet without throwing into the game loop or disabling effects', () => {
+  const b = boundary(), warn = console.warn, warnings = [];
+  try {
+    console.warn = (...args) => warnings.push(args);
+    b.audio.unlock();
+    b.audio.ctx.createConvolver = () => { throw new Error('Unsupported test reverb'); };
+    assert.doesNotThrow(() => b.audio.updateMusic({ scene: 'menu' }, 0));
+    assert.equal(b.audio.musicStatus().state, 'unavailable');
+    assert.equal(b.audio.musicBus.gain.value, 0);
+    assert.equal(b.audio.score, null);
+    assert.equal(b.audio.director.current, null);
+    for (let now = 1; now <= 60; now++) b.audio.updateMusic({ scene: 'menu' }, now);
+    assert.equal(warnings.length, 1, 'No failure/retry storm on every animation frame.');
+    b.audio.tone(440); assert.equal(b.audio.effects.size, 1);
+  } finally { console.warn = warn; b.restore(); }
+});

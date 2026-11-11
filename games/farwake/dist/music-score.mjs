@@ -367,8 +367,9 @@ export function scoreEvents(cueId, { seed = 1 } = {}) {
 }
 
 // Samples and periodic waves are shared between crossfading players in one
-// AudioContext. All twelve pieces together cache about 4.7 MiB at 24 kHz;
-// two players crossfading in that context reuse the same buffers.
+// AudioContext. All twelve pieces cache about 4.24 MiB of 24 kHz samples,
+// plus the native-rate stereo reverb (0.92 MiB at 48 kHz). Two players
+// crossfading in that context reuse the same buffers.
 const ASSETS = new WeakMap();
 const midiHz = midi => 440 * 2 ** ((midi - 69) / 12);
 const INSTRUMENT = Object.freeze({
@@ -388,8 +389,10 @@ const INSTRUMENT = Object.freeze({
   shimmer: { gain: .075, release: .4, reverb: .4, echo: .025 },
 });
 
-function makeBuffer(ctx, duration, fill, channels = 1) {
-  const sampleRate = Math.min(ctx.sampleRate || 24000, 24000);
+function makeBuffer(ctx, duration, fill, channels = 1, nativeRate = false) {
+  // AudioBufferSourceNode resamples its buffer, but ConvolverNode requires an
+  // impulse whose sample rate matches its AudioContext exactly.
+  const sampleRate = nativeRate ? (ctx.sampleRate || 24000) : Math.min(ctx.sampleRate || 24000, 24000);
   const buffer = ctx.createBuffer(channels, Math.ceil(duration * sampleRate), sampleRate);
   for (let channel = 0; channel < channels; channel++) fill(buffer.getChannelData(channel), sampleRate, channel);
   return buffer;
@@ -506,7 +509,7 @@ function makeAssets(ctx) {
       data[i] = low * Math.exp(-t * 3.1) * (1 - Math.exp(-t * 45));
     }
     for (const [time, gain] of [[.047, .35], [.083, .22], [.131, .13]]) data[Math.floor(sr * (time + channel * .009))] += gain;
-  }, 2);
+  }, 2, true);
   assets = { impulse, samples: new Map(), waves: new Map() };
   ASSETS.set(ctx, assets);
   return assets;

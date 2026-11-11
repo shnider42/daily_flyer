@@ -1,6 +1,6 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.8.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.8.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
@@ -8,7 +8,7 @@ Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice 
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
 
-## An original adaptive score · 0.8.0
+## An original adaptive score · 0.8.1
 
 Farwake now has twelve authored pieces and a music director that follows the local captain's actual situation. **The Long Way Home** is the complete main theme: a recurring piano/guitar melody, moving bass, warm organ, restrained percussion, a brighter middle passage, and a full return. Use **Listen to the theme** on the title screen or in Settings to hear it.
 

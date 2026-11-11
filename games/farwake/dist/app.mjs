@@ -631,6 +631,7 @@ function bindThemeButton(button){
  button.onpointercancel=button.onblur=()=>{delete button._themeListenIntent;};button.onclick=toggleMainTheme;
 }
 function toggleMainTheme(event){
+ if(audio.musicStatus().state==='unavailable'){toast('Music could not start in this browser. Reload to try again.','info',5000);return;}
  const button=event?.currentTarget,wantsStart=typeof button?._themeListenIntent==='boolean'?button._themeListenIntent:!(audio.musicStatus().theme||audio.director.previewRequested);if(button)delete button._themeListenIntent;
  if(wantsStart){settings.music=true;if(settings.musicVolume===0)settings.musicVolume=.65;applySettings(settings,{cameraPreferences:localCameraPreferences});const music=$('setting-music'),volume=$('setting-musicVolume');if(music)music.checked=true;if(volume)volume.value=settings.musicVolume;}
  const requested=audio.toggleTheme(wantsStart);scoreContextAt=-Infinity;syncThemeButtons();

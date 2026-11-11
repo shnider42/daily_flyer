@@ -11,7 +11,7 @@ export class Soundscape{
   this.enabled=enabled;this.musicEnabled=musicEnabled;this.musicVolume=musicVolume;this.musicPresence=musicPresence;
   this.ctx=null;this.master=null;this.musicBus=null;this.last={};this.effects=new Set();
   this.director=new MusicDirector({cues:MUSIC_CUES,themeId:THEME_ID});
-  this.score=null;this.retiringScore=null;this.musicToken=null;this.musicDecision=null;this.musicNow=0;
+  this.score=null;this.retiringScore=null;this.musicToken=null;this.musicDecision=null;this.musicNow=0;this.musicFault=false;
   if(globalThis.document){
    bindAudioActivation(()=>this.unlock(),{enabled:()=>this.enabled()||this.musicEnabled()});
    document.addEventListener('visibilitychange',()=>{if(document.hidden)this.suspend();});
@@ -24,7 +24,7 @@ export class Soundscape{
    playbackSession();
    if(!this.ctx||this.ctx.state==='closed'){
     const Audio=globalThis.AudioContext||globalThis.window?.AudioContext||globalThis.window?.webkitAudioContext;
-    if(!Audio)return;this.ctx=new Audio({latencyHint:'interactive'});
+    if(!Audio)return;this.ctx=new Audio({latencyHint:'interactive'});this.musicFault=false;
     this.master=this.ctx.createGain();this.master.gain.value=this.enabled()?.17:0;this.master.connect(this.ctx.destination);
     this.musicBus=this.ctx.createGain();this.musicBus.gain.value=0;this.musicBus.connect(this.ctx.destination);
     this.ctx.addEventListener?.('statechange',()=>{if(this.ctx.state==='interrupted'){this.stopScores();this.stopEffects();this.director.suspend(this.musicNow);this.musicDecision=null;}});
@@ -52,6 +52,16 @@ export class Soundscape{
   this.unlock();this.director.requestTheme();return true;
  }
  updateMusic(context={},now=0){
+  if(this.musicFault)return null;
+  try{return this.updateScore(context,now);}catch(error){
+   // Optional audio must never break rendering, input, or a shared session.
+   this.musicFault=true;this.stopScores();this.director.suspend(now);this.musicDecision=null;
+   if(this.musicBus&&this.ctx)busGain(this.musicBus,0,this.ctx.currentTime,.02);
+   console.warn('Farwake music could not start:',error?.message||'Audio unavailable');
+   return null;
+  }
+ }
+ updateScore(context={},now=0){
   this.musicNow=now;
   if(!this.ctx||this.ctx.state!=='running'){
    if(this.score||this.retiringScore){this.stopScores();this.director.suspend(now);}
@@ -78,7 +88,7 @@ export class Soundscape{
  }
  musicStatus(){
   const cue=MUSIC_CUES.find(value=>value.id===this.musicDecision?.cueId);
-  return {state:this.ctx?.state||'locked',title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
+  return {state:this.musicFault?'unavailable':this.ctx?.state||'locked',title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
  }
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null){if(!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){
