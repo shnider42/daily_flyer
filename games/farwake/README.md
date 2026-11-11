@@ -1,12 +1,46 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.9.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.10.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## A shared departure and the harbor watch · 0.10.0
+
+A new Regular shared galaxy offers **Start together**. Captains gather at Kettle Station before the first voyage, share the galaxy code, choose a vessel, and mark themselves ready. The host can choose a larger beginning from actual connected participants:
+
+| Connected departure crew | Additional choice | Total berths |
+| --- | --- | ---: |
+| 2 or more | **Lark**, cooperative launch | 4 |
+| 4 or more | **Puffin**, working transport | 7 |
+| 7 or more | **Osprey**, expedition launch | 10 |
+
+The chosen ship must fit everyone boarding. Guests confirm readiness again if the host changes the hull. **Board together** puts the crew inside the same docked vessel, with working stations, piloting permission, and a fitted bunk each. Take the helm and launch when ready. Guest captains keep their personal compact ships docked at Kettle. The host retains the original hull class in their fleet.
+
+The authority counts live sessions, validates the untouched departure state, and records the launch once. Disconnected captains do not unlock larger hulls or move with the departing crew; they return to Kettle with their own ship. A guest can leave the lobby to begin independently; when the host closes it, everyone keeps their compact vessel. Old galaxies, late arrivals after departure, solo voyages, and Hardcore origins keep their existing starts. Larger launch hulls grant no free fold drive, credits, ore, reputation, or campaign flags.
+
+### Five additional playable hulls
+
+| Hull | Berths | Exterior length | Working character |
+| --- | ---: | ---: | --- |
+| **Lark** | 4 | 92 | Economical engineering and medical service; light protection and a single pulse mount |
+| **Puffin** | 7 | 124 | Passenger space, faster reactor recovery, and modest medical support; light shields |
+| **Osprey** | 10 | 166 | Field repairs and damage control for a full crew; heavier turning and ordinary weapons |
+| **Leviathan** | 16 | 330 | Large salvage and support tender, long-reach cutters, stronger repairs, and slow industrial handling |
+| **Judicator** | 24 | 500 | Huge wedge-shaped line destroyer, four pulses from actual flank batteries, heavy shields, and very slow acceleration and turning |
+
+Lengths are the game's common world units. Every hull has its own exterior, matching walkable interior, physical bunks, and crew stations. All five can be commissioned through the shipyard; the two largest retain equipment, fleet, and story prerequisites. Larger hulls still share the existing **ten online human captains per galaxy** limit, with additional room for NPC crew and passengers. Traffic profiles include fitting new hulls at appropriate ports; small docks retain their size restrictions.
+
+### FWS Resolute
+
+Exactly one **FWS Resolute**, a Freewake Judicator, keeps a slow watch in the starting system. It has a stable identity and saved patrol phase, including in existing voyages. Ordinary starting-system traffic cannot generate more Judicators. Other systems can show rare capital traffic where port scale and military context fit.
+
+A civilian hail receives a firm instruction to clear the patrol lane. Actual Freewake military service in good standing earns a formal acknowledgment; another faction's uniform or a friendly ship owner's credentials do not confer clearance. The watch ship provides no civilian news encounter, shop, boarding invitation, or free rewards. Hailing distance follows the visible hull edge, so a captain can contact it without flying through its bow.
+
+Its local point defence can intercept an imminent hostile shot aimed at a nearby active player, with a bounded firing cycle. It does not destroy enemy ships, resolve encounters, pay bounties, or claim a captain's patrol credit. The authority advances the watch once per active system; adding players does not add watch ships or multiply its simulation.
 
 ## People and working lanes · 0.9.0
 
@@ -334,7 +368,7 @@ Commission hulls from an inhabited port's shipyard after earning their preceding
 | **Kestrel** scout courier | 1 | 420 credits | Narrow solo cabin, fast thrust, small hold |
 | **Mule** salvage tug | 2 | 480 credits | Cramped working cabin, greater mining reach and cargo room |
 
-Regular includes one of these three at creation; a captain without an owned hull pays the listed first-hull price with no ore requirement. Subsequent commissions use the shipyard's normal resource and progression requirements. The eleven earned designs range from modest working vessels to ten-berth ships and introduce their abilities as you progress.
+Regular includes one of these three as a personal hull at creation; a shared departure can additionally choose the Lark, Puffin, or Osprey once enough captains are connected. A captain without an owned hull pays the listed first-hull price with no ore requirement. Subsequent commissions use the shipyard's normal resource and progression requirements. Sixteen other designs range from modest working vessels to a twenty-four-berth destroyer and introduce their abilities as you progress.
 
 Berths count **everyone aboard, including the captain**. Sparrow and Mule each have room for one additional person; Kestrel is a solo craft. Large ten-berth vessels can carry ten human players if no NPCs occupy those places. Engineers, navigators, medics, gunners, security officers, scientists, and quartermasters offer different ship benefits and boarding support. The crew manifest shows health, vacancies, and the memorial. Dismiss living specialists at a port to free space for other crew. Older saves keep existing crew and passengers even if their reduced starter cabin is already over capacity; that does not create spare berths for new recruits.
 

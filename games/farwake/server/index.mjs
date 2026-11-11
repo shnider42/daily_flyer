@@ -103,7 +103,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       try {
         const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
-        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends'), { openingMission: body.openingMission === true }); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character})); }
+        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends'), { openingMission: body.openingMission === true, startTogether: body.startTogether === true && body.startMode !== 'hardcore' }); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character})); }
         else {
           const code = normaliseRealmCode(body.realmCode || body.passport?.realmCode);
           if (!validRealmCode(code)) return json(response, 400, { ok: false, reason: 'Enter a valid invitation realm code.' });

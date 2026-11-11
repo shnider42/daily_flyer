@@ -5,6 +5,7 @@
  */
 import { getShipClass, enemyHullProfile } from './fleet.mjs';
 import { portProfile, chooseTrafficHull, trafficHullWeights, canHullUsePort } from './port-traffic.mjs';
+import { createPeacekeeper, isPeacekeeper, advancePeacekeeper, restorePeacekeeper } from './peacekeeper.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
@@ -22,8 +23,8 @@ const smooth = t => t * t * (3 - 2 * t);
 const smoothRate = t => 6 * t * (1 - t);
 const names = ['Long Weekend', 'Little Promise', 'Fifth Wind', 'Ordinary Miracle', 'Good Company', 'Early Light', 'Home Before Rain', 'Common Ground', 'One More Turn', 'Open Hands', 'Kind Weather', 'Morning Bell', 'The Long Way', 'Another Tuesday', 'Safe Arrival', 'Last Lantern'];
 const factionColors = { concord:'#89a9d0', freewake:'#78bca8', meridian:'#c4a36d', lantern:'#aa9cc8', cinder:'#ba8f80' };
-export const TRAFFIC_ROLE_LABELS = Object.freeze({ utility:'Port service', courier:'Dispatch service', freight:'Freight service', passenger:'Passenger service', survey:'Survey vessel', salvage:'Salvage service', miner:'Ore carrier', medical:'Medical transport', escort:'Convoy escort', patrol:'Fleet patrol', carrier:'Fleet carrier' });
-const militaryRoles = new Set(['escort', 'patrol', 'carrier']);
+export const TRAFFIC_ROLE_LABELS = Object.freeze({ utility:'Port service', courier:'Dispatch service', freight:'Freight service', passenger:'Passenger service', survey:'Survey vessel', salvage:'Salvage service', miner:'Ore carrier', medical:'Medical transport', escort:'Convoy escort', patrol:'Fleet patrol', carrier:'Fleet carrier', tender:'Fleet support tender', destroyer:'Line destroyer', peacekeeper:'Naval peacekeeper' });
+const militaryRoles = new Set(['escort', 'patrol', 'carrier', 'destroyer']);
 const weighted = (items, value, weight) => {
   let left = value * items.reduce((sum, item) => sum + weight(item), 0);
   return items.find(item => (left -= weight(item)) < 0) || items.at(-1);
@@ -143,8 +144,12 @@ export function createSystemTraffic({seed = 'farwake', system, bodies = system?.
   if (!system) return [];
   const ports = bodies.map(body => ({body, profile:portProfile(system, body)})).filter(port => port.profile && Number.isFinite(port.body.x) && Number.isFinite(port.body.y));
   if (!ports.length) return [];
-  const contacts = [], reservations = new Map();
-  for (let i = 0; i < clamp(Math.floor(finite(count)), 0, 32); i++) {
+  const budget = clamp(Math.floor(finite(count)), 0, 32);
+  const keeper = budget ? createPeacekeeper({seed, system, bodies}) : null;
+  // One watch ship occupies one traffic slot; a second captain never creates a
+  // second ship, and new voyages do not increase the system's simulation budget.
+  const contacts = keeper ? [keeper] : [], reservations = new Map();
+  for (let i = 0; i < budget - (keeper ? 1 : 0); i++) {
     const id = `${system.id}:traffic:${i}`, key = `${seed}:${id}:lanes-v1`;
     const home = weighted(ports, random(key, 'home'), port => port.profile.trafficWeight);
     const classId = chooseTrafficHull(seed, id, home.profile), hull = getShipClass(classId);
@@ -184,6 +189,7 @@ export function advanceTraffic(traffic, seconds) {
   const dt = Math.max(0, finite(seconds));
   if (!dt) return traffic;
   for (const contact of traffic || []) {
+    if (isPeacekeeper(contact)) { advancePeacekeeper(contact, dt); continue; }
     if (contact.contact) continue;
     if (contact.directorEventId) {
       // A physical event owns its support craft. Preserve its existing patrol
@@ -203,13 +209,14 @@ export function advanceTraffic(traffic, seconds) {
 }
 
 export function captureTraffic(traffic) {
-  return (traffic || []).filter(contact => contact._trafficLane && !contact.contact && !contact.directorEventId).map(contact => ({id:contact.id, routeKey:contact._trafficLane.key, routeTime:contact._trafficTime}));
+  return (traffic || []).filter(contact => (contact._trafficLane || contact._peacekeeperPatrol) && !contact.contact && !contact.directorEventId).map(contact => ({id:contact.id, routeKey:(contact._trafficLane || contact._peacekeeperPatrol).key, routeTime:contact._trafficTime, ...(isPeacekeeper(contact) ? {defenseCooldown:contact._defenseCooldown} : {})}));
 }
 
 export function restoreTraffic(traffic, saved) {
   const phases = new Map((Array.isArray(saved) ? saved : []).filter(row => row && typeof row.id === 'string').slice(0, 64).map(row => [row.id, row]));
   for (const contact of traffic || []) {
     const lane = contact._trafficLane, prior = phases.get(contact.id);
+    if (isPeacekeeper(contact)) { restorePeacekeeper(contact, prior); continue; }
     // Old straight-line traffic saves have no route identity. Discard only
     // those obsolete poses rather than restoring them onto an unrelated lane.
     if (!lane || !prior || prior.routeKey !== lane.key || !Number.isFinite(prior.routeTime)) continue;

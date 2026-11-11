@@ -28,7 +28,12 @@ export const SHIP_VISUALS={
  quill:{length:110,width:58,thrusters:[[-53,-13],[-50,0],[-53,13]]},
  mender:{length:126,width:76,thrusters:[[-61,-8],[-61,8]]},
  bulwark:{length:166,width:100,thrusters:[[-80,-22],[-78,0],[-80,22]]},
- cairn:{length:188,width:136,thrusters:[[-91,-34],[-91,-11],[-91,11],[-91,34]]}
+ cairn:{length:188,width:136,thrusters:[[-91,-34],[-91,-11],[-91,11],[-91,34]]},
+ lark:{length:92,width:58,thrusters:[[-44,-18],[-44,18]]},
+ puffin:{length:124,width:78,thrusters:[[-60,-24],[-58,0],[-60,24]]},
+ osprey:{length:166,width:94,thrusters:[[-80,-24],[-77,-8],[-77,8],[-80,24]]},
+ leviathan:{length:330,width:176,thrusters:[[-162,-55],[-159,-28],[-157,0],[-159,28],[-162,55]]},
+ judicator:{length:500,width:280,thrusters:[[-247,-96],[-247,-64],[-247,-32],[-247,0],[-247,32],[-247,64],[-247,96]]}
 };
 const palettes={temperate:['#193d48','#2f6d70','#598f7d','#b5b982','#c4d1bd'],earth:['#183e56','#2b6d79','#5e956f','#a7b88b','#d5ddcb'],forest:['#173e42','#356b56','#6a8b58','#a7a16c','#c5caa6'],garden:['#183e46','#3c7772','#6b9f75','#a8b787','#d7dbc2'],arid:['#674a3b','#a07554','#c29e70','#dec59b','#f0dcbd'],desert:['#694a3c','#a37652','#c79e69','#d7b77e','#ebd2a7'],ice:['#244056','#4c788a','#83afbc','#c4d6d6','#edf2e4'],ocean:['#183d59','#2b6581','#5c96a1','#84aea2','#d6e0cc'],volcanic:['#342e39','#5e4042','#8c5545','#c47851','#e8ac6d'],industrial:['#34343b','#61545a','#8a7a71','#b59f7e','#d2c6a3'],ruin:['#343f42','#62766c','#8b9b82','#b4b59a','#d1d2b8'],barren:['#343b47','#58616b','#7d8990','#a3ada8','#d1d4c2'],station:['#233b4a','#385560','#718d8e','#a4b4a5','#d9d6b4']};
 const shipCache=new Map(),workCanvases=new Map(),stationCache=new Map();
@@ -155,6 +160,86 @@ function hullSprite(shipClass,color,damage=0){
   p('#37535c',-68,-18,130,36);p(color,-61,-15,120,30);p(light,-57,-15,109,3);p('#788f91',-20,-18,48,36);p('#b1c1af',-17,-18,42,3);p('#234552',22,-11,38,22);p('#8cc1c4',26,-8,28,16);p('#dae5ce',28,-8,22,2);
   for(let x=-56;x<-25;x+=12){p('#bea57b',x,-9,8,18);p('#7b6b53',x+2,-6,4,12);}p('#d0b780',64,-5,24,10);p('#695b43',69,-3,3,6);p('#695b43',77,-3,3,6);
   for(const y of[-38,-15,8,31]){p('#193341',-94,y,11,9);p('#8ca5a0',-80,y,8,8);}
+ }else if(shipClass==='lark'){
+  // A small communal cabin, visible chart skylight and paired service shoulders.
+  polygon(ctx,[[-46,-20],[-34,-29],[19,-26],[42,-12],[46,0],[42,12],[19,26],[-34,29],[-46,20]],dark);
+  polygon(ctx,[[-40,-17],[-31,-24],[16,-22],[37,-10],[41,0],[37,10],[16,22],[-31,24],[-40,17]],shade);
+  p(color,-32,-20,45,40);p(light,-29,-20,39,3);polygon(ctx,[[12,-19],[34,-9],[40,0],[34,9],[12,19]],color);
+  for(const side of[-1,1]){const y=side<0?-26:17;p(edge,-38,y,30,9);p('#9eb3a6',-34,y+1,22,6);p('#d7bf87',-30,y+2,4,4);p('#1b3443',-46,side<0?-21:14,9,7);}
+  p('#1d3b49',18,-10,17,20);p('#8ec9ca',21,-7,10,14);p('#d3e5d0',22,-7,7,2);
+  p('#617f86',-19,-11,30,22);p('#b7c7b7',-17,-11,26,3);p('#244551',-12,-6,18,12);p('#8cacaa',-9,-4,12,8);p('#cfbd91',-5,-3,4,6);
+  p('#667d80',-38,-9,11,18);p('#344c57',-35,-6,5,12);p('#c1ab7f',-23,12,15,3);
+ }else if(shipClass==='puffin'){
+  // A broad civilian transport with a wraparound saloon and working cargo hatches.
+  polygon(ctx,[[-62,-27],[-48,-39],[30,-39],[62,-20],[62,20],[30,39],[-48,39],[-62,27]],dark);
+  polygon(ctx,[[-56,-24],[-45,-34],[27,-34],[55,-17],[55,17],[27,34],[-45,34],[-56,24]],shade);
+  p(color,-44,-29,69,58);p(light,-41,-29,63,3);polygon(ctx,[[25,-29],[52,-15],[56,0],[52,15],[25,29]],color);
+  for(const side of[-1,1]){const y=side<0?-34:23;p('#c4b18c',-39,y,63,11);p('#405d66',-35,y+2,55,6);for(let x=-31;x<19;x+=10){p('#8cbfb9',x,y+3,6,4);p('#d5dfc2',x,y+3,4,1);}p('#1b3443',-61,side<0?-27:18,10,9);}
+  p('#294550',27,-20,22,40);polygon(ctx,[[29,-18],[48,-10],[48,10],[29,18]],'#8fc3c6');pixelLine(ctx,31,-16,46,-9,'#d4e4d1',2);p('#456b74',37,-14,2,28);
+  p('#6f8b8e',-45,-16,28,32);p('#a5b9aa',-42,-16,22,3);for(const y of[-11,3]){p('#273f48',-40,y,20,10);p('#b39b75',-37,y+2,14,6);p('#d0bc8b',-35,y+2,9,2);}
+  p('#496872',-9,-15,29,30);p('#a3b4aa',-6,-14,23,27);p('#d1ccb0',-4,-14,19,3);p('#6f8e8b',-2,-5,15,10);p('#173341',-62,-5,9,10);
+ }else if(shipClass==='osprey'){
+  // Swept expedition shoulders carry long habitable pods, with a shared workroom roof.
+  polygon(ctx,[[-83,-27],[-70,-44],[-18,-47],[28,-34],[77,-12],[83,0],[77,12],[28,34],[-18,47],[-70,44],[-83,27]],dark);
+  polygon(ctx,[[-77,-24],[-66,-38],[-19,-41],[26,-29],[72,-9],[77,0],[72,9],[26,29],[-19,41],[-66,38],[-77,24]],shade);
+  for(const side of[-1,1]){polygon(ctx,[[-67,side*32],[-21,side*39],[30,side*25],[43,side*17],[-62,side*21]],color);pixelLine(ctx,-63,side*32,-21,side*38,light,2);p('#314e57',-59,side<0?-32:22,31,10);p('#b6b799',-56,side<0?-31:23,25,3);p('#1a3442',-81,side<0?-29:21,11,8);}
+  polygon(ctx,[[-68,-18],[-26,-26],[31,-21],[75,-5],[79,0],[75,5],[31,21],[-26,26],[-68,18]],color);
+  pixelLine(ctx,-25,-26,30,-21,light,2);pixelLine(ctx,31,-21,71,-6,light,2);
+  p('#4e6a74',-43,-17,62,34);p('#94aca5',-39,-14,54,28);p('#c3cfb9',-36,-14,48,3);p('#385762',-27,-8,29,16);p('#83b5b4',-24,-6,23,12);p('#bdc9ad',-20,-4,15,8);
+  polygon(ctx,[[35,-13],[64,-7],[69,0],[64,7],[35,13]],'#23434f');polygon(ctx,[[39,-9],[60,-5],[64,0],[60,5],[39,9]],'#8dc4ca');pixelLine(ctx,40,-9,59,-5,'#d3e7d1',2);
+  p('#78918e',-70,-14,18,28);for(const y of[-10,4]){p('#273f4b',-67,y,12,7);p('#bdac82',-64,y+2,6,3);}p('#b7a279',20,-4,13,8);
+ }else if(shipClass==='leviathan'){
+  // A purpose-built mobile yard: long open booms, broad habitat and a full repair hall.
+  polygon(ctx,[[-165,-66],[-142,-88],[48,-88],[165,-66],[165,-41],[30,-35],[30,35],[165,41],[165,66],[48,88],[-142,88],[-165,66]],dark);
+  polygon(ctx,[[-157,-61],[-138,-79],[36,-79],[30,-44],[20,-39],[20,39],[30,44],[36,79],[-138,79],[-157,61]],shade);
+  p(edge,-146,-69,158,138);p(color,-138,-62,139,124);p(light,-133,-62,128,4);
+  for(const side of[-1,1]){
+   const y=side<0?-81:43;polygon(ctx,[[-12,y],[45,y],[157,side<0?-62:47],[157,side<0?-45:62],[38,y+31],[-12,y+31]],shade);
+   polygon(ctx,[[-7,y+5],[42,y+5],[151,side<0?-59:51],[151,side<0?-49:60],[37,y+26],[-7,y+26]],color);
+   pixelLine(ctx,2,side<0?-75:52,145,side<0?-58:57,light,3);
+   for(let x=8;x<135;x+=26){const yy=side*(66-(x-8)*.1);p('#26434c',x,yy-7,17,14);p('#79978f',x+2,yy-5,13,10);p('#baa77b',x+5,yy-4,6,8);}
+   p('#bd9d63',142,side<0?-65:45,18,18);p('#5e503b',148,side<0?-64:46,3,16);
+   pixelLine(ctx,31,side*35,145,side*40,'#a2b5a3',2);
+  }
+  // Separate repair and medical roofs are visible, as on the walkable deck.
+  p('#29434e',-117,-49,88,38);p('#879c91',-112,-45,78,30);p('#c4c4a4',-108,-45,70,3);for(let x=-105;x<-37;x+=19){p('#455f64',x,-38,13,18);p('#a99973',x+2,-35,9,11);}
+  p('#29434e',-117,11,88,38);p('#7d9c93',-112,15,78,30);p('#b8ccba',-108,15,70,3);for(let x=-103;x<-39;x+=18){p('#5e8e88',x,23,12,13);p('#b7d1bf',x+3,26,6,7);}
+  p('#294653',-76,-19,88,38);p('#698891',-71,-15,77,30);p('#b7c7b5',-67,-15,69,3);p('#203f4c',-38,-9,38,18);p('#8ec6c9',-34,-6,29,12);p('#d3e4cb',-31,-6,22,2);
+  p('#7e918a',-143,-52,19,104);for(const y of[-53,-27,-1,25,51]){p('#19313f',-163,y-8,21,16);p('#4c6873',-156,y-5,11,10);p('#8da9a7',-151,y-4,4,8);}
+  for(const y of[-64,57])for(let x=-117;x<-24;x+=15){p('#334f59',x,y,10,5);p('#bdd1b4',x+2,y+1,5,2);}p('#ad986d',3,-12,14,24);p('#554b38',6,-9,3,18);p('#554b38',12,-9,2,18);
+ }else if(shipClass==='judicator'){
+  // An armored line destroyer, drawn at its native 500-pixel length. Stepped
+  // superstructure and a recessed seven-engine stern give the wedge real scale.
+  polygon(ctx,[[-250,-122],[-230,-140],[-165,-132],[245,-9],[250,0],[245,9],[-165,132],[-230,140],[-250,122]],dark);
+  polygon(ctx,[[-242,-116],[-225,-132],[-166,-124],[236,-8],[242,0],[236,8],[-166,124],[-225,132],[-242,116]],shade);
+  polygon(ctx,[[-224,-116],[-165,-119],[218,-6],[131,-9],[-181,-41],[-224,-44]],color);
+  polygon(ctx,[[-224,116],[-165,119],[218,6],[131,9],[-181,41],[-224,44]],mix(color,.84));
+  pixelLine(ctx,-222,-117,-165,-120,light,3);pixelLine(ctx,-164,-119,224,-7,light,2);
+  pixelLine(ctx,-223,117,-164,120,edge,3);pixelLine(ctx,-163,120,225,7,edge,2);
+  // Recesses, armor seams and narrow lit galleries remain readable at overview zoom.
+  for(const side of[-1,1]){
+   polygon(ctx,[[-210,side*91],[-165,side*98],[104,side*21],[67,side*19],[-171,side*74],[-210,side*69]],'#35505b');
+   pixelLine(ctx,-207,side*89,-166,side*94,'#758e92',2);pixelLine(ctx,-165,side*94,93,side*23,'#758e92',2);
+   for(let index=0;index<10;index++){const x=-194+index*31,y=side*(100-index*8.6);pixelLine(ctx,x,y,x+12,y-side*13,shade,2);p('#cfdbc4',x+3,y-side*6,4,2);}
+   for(let index=0;index<8;index++){const x=-191+index*32,y=side*(61-index*6.2);p('#233d48',x,y-3,17,6);p('#8a9f98',x+2,y-2,12,2);}
+  }
+  polygon(ctx,[[-207,-26],[-102,-30],[211,-4],[235,0],[211,4],[-102,30],[-207,26]],'#425f6b');
+  polygon(ctx,[[-197,-19],[-101,-23],[204,-3],[222,0],[204,3],[-101,23],[-197,19]],mix(color,1.02));
+  pixelLine(ctx,-190,-19,-102,-23,light,2);pixelLine(ctx,-101,-23,196,-3,light,2);
+  for(let x=-55;x<170;x+=31){p('#5c7780',x,-8,18,16);p('#aabbb0',x+2,-8,14,2);p('#314b57',x+3,-3,12,5);}
+  // Raised bridge terraces are physically aft of the forward plot and galleries.
+  p('#132c3b',-172,-43,97,86);p('#4f6975',-167,-38,87,76);p('#93a9aa',-162,-34,77,68);p('#c5d0bd',-157,-34,67,4);
+  p('#2e4855',-154,-25,61,50);p('#6a8791',-149,-22,51,44);p('#abc0b9',-145,-22,43,3);
+  polygon(ctx,[[-146,-38],[-129,-47],[-112,-38],[-105,-13],[-105,13],[-112,38],[-129,47],[-146,38]],'#445f6d');
+  p('#a5bab5',-141,-29,27,58);p('#dae0c9',-138,-29,21,3);p('#244754',-137,-21,19,42);p('#83b9c4',-134,-18,13,36);
+  for(const y of[-12,-1,10])p('#416e7b',-134,y,13,3);
+  for(const side of[-1,1]){pixelRing(ctx,-127,side*48,9,8,'#708b95',{step:1});pixelRing(ctx,-127,side*48,6,5,'#c0cec0',{step:1});p('#a1bcb3',-129,side*48-2,4,4);}
+  // The paired banks match the optional local muzzle geometry used by the authority.
+  for(const [x,y] of [[-95,-96],[125,-32],[125,32],[-95,96]]){p('#1d3643',x-18,y-8,22,16);p('#829c9f',x-15,y-6,16,12);p('#c9d0b9',x-12,y-6,12,2);p('#d0c6a6',x-7,y-3,17,2);p('#d0c6a6',x-7,y+1,17,2);}
+  // Engines sit inside a dark stern recess instead of hanging off an enlarged scout.
+  p('#0d2636',-248,-112,26,224);p('#536f7b',-222,-110,6,220);p('#99aea7',-220,-108,2,216);
+  for(const [,y] of SHIP_VISUALS.judicator.thrusters){p('#344f60',-246,y-12,23,24);p('#77919b',-244,y-10,18,20);p('#203e51',-244,y-7,13,14);p('#547f91',-242,y-5,8,10);p('#8cabb2',-239,y-3,3,6);}
+  p('#b8c6b4',-206,-10,16,20);p('#557b86',-202,-6,8,12);
  }else{
   polygon(ctx,[[-128,-42],[-104,-59],[-65,-64],[47,-48],[105,-24],[132,-5],[134,0],[132,5],[105,24],[47,48],[-65,64],[-104,59],[-128,42]],dark);
   polygon(ctx,[[-122,-38],[-100,-53],[-64,-59],[46,-43],[104,-20],[128,-3],[128,3],[104,20],[46,43],[-64,59],[-100,53],[-122,38]],shade);
@@ -186,13 +271,13 @@ export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,ti
  const shipClass=resolveCabinClass(options.shipClassId||options.shipClass||options.classId||'sparrow'),profile=SHIP_VISUALS[shipClass],factor=scale*(options.size?options.size/profile.length:1),sprite=hullSprite(shipClass,color,options.damage||0),margin=82;
  let work=workCanvases.get(shipClass);if(!work){work=makeCanvas(profile.length+margin*2,profile.width+40);workCanvases.set(shipClass,work);}const wc=work.getContext('2d');wc.clearRect(0,0,work.width,work.height);wc.imageSmoothingEnabled=false;const ox=work.width/2,oy=work.height/2;
  if(thrust&&!options.disabled&&options.thrusters!==false){const outlets=Array.isArray(options.thrusters)?options.thrusters:profile.thrusters;
-  outlets.forEach((nozzle,i)=>{const nx=Array.isArray(nozzle)?nozzle[0]:nozzle.x,ny=Array.isArray(nozzle)?nozzle[1]:nozzle.y,phase=Math.floor(time*16+i*3)%5,length=(boost?29:13)+(shipClass==='capital'?15:shipClass==='frigate'?7:0)+phase*2;
+  outlets.forEach((nozzle,i)=>{const nx=Array.isArray(nozzle)?nozzle[0]:nozzle.x,ny=Array.isArray(nozzle)?nozzle[1]:nozzle.y,phase=Math.floor(time*16+i*3)%5,length=(boost?29:13)+(profile.length>=300?22:shipClass==='capital'?15:shipClass==='frigate'?7:0)+phase*2;
    pixelRect(wc,boost?'#365e73':'#644d3b',ox+nx-length-8,oy+ny-3,length+6,6);pixelRect(wc,boost?'#6abcc8':'#cc9460',ox+nx-length,oy+ny-2,length,4);pixelRect(wc,boost?'#c1e9db':'#f1d49b',ox+nx-length*.55,oy+ny-1,length*.55+2,2);
    pixelRect(wc,boost?'#77c4c4':'#a77852',ox+nx-length-13-phase,oy+ny+(i%2?1:-2),3,1);
   });
  }
  wc.drawImage(sprite.canvas,Math.round(ox-sprite.canvas.width/2),Math.round(oy-sprite.canvas.height/2));
- if(options.firing){const front=ox+profile.length*.5;pixelRect(wc,'#f3e2b1',front+3,oy-2,7,4);pixelRect(wc,'#c8a568',front+11,oy-1,4,2);}
+ if(options.firing){const mounts=getShipClass(shipClass).systems.pulseMuzzles||[[profile.length*.5,0]];for(const [mx,my] of mounts){const front=ox+mx;pixelRect(wc,'#f3e2b1',front+3,oy+my-2,7,4);pixelRect(wc,'#c8a568',front+11,oy+my-1,4,2);}}
  if(options.disabled){for(let i=0;i<3;i++){const xx=ox-profile.length*.2+i*9;pixelRect(wc,'#d7a575',xx,oy+Math.sin(time+i)*5,2,2);}}
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));ctx.rotate(angle);ctx.scale(factor,factor);ctx.drawImage(work,-work.width/2,-work.height/2);ctx.restore();
  return{length:profile.length*factor,width:profile.width*factor};
@@ -321,6 +406,7 @@ export class SpaceRenderer{
     if(disabled||data.occupation?.contested||data.capturedBy){const status=data.occupation?.contested?'CONTESTED':data.capturedBy?'SECURED':data.boardable===false?'DISABLED':'BOARD';emit(`${status} · ${data.berths} BERTHS · ${data.subtitle.toUpperCase()}`,p.x,labelY+13*r,data.capturedBy?'#a8d7c9':'#c9b995',12,'center',85,'boarding');}
    }
    if(remote)emit(data.name||data.displayName||'Independent captain',p.x,p.y+(data.renderWidth||pr.width)*z*.6+10*r,'#add9d7',14,'center',70,'remote');
+   if(traffic&&data.peacekeeper&&!welcome){const labelY=p.y+data.renderWidth*z*.6+11*r;emit(data.name||'Peacekeeping vessel',p.x,labelY,'#c1d5ce',14,'center',58,'peacekeeper');emit(`${data.faction==='freewake'?'FREEWAKE':String(data.faction||'LOCAL').toUpperCase()} · PEACEKEEPING`,p.x,labelY+14*r,'#8fafa9',12,'center',42,'peacekeeper-role');}
    if(parked){emit(data.name||'Parked vessel',p.x,p.y+data.renderWidth*z*.6+10*r,'#b7d2c6',14,'center',72,'parked');emit('PARKED · BOARD',p.x,p.y+data.renderWidth*z*.6+23*r,'#93b7b3',12,'center',65,'boarding');}
    const old=this.health.get(data.id|| (self?'player':null));if(old!==undefined&&hull<old&&motion)for(let i=0;i<7;i++)this.particles.push({x:data.x,y:data.y,vx:Math.cos(i*1.8+time)*35,vy:Math.sin(i*1.8+time)*35,ttl:.3+i*.035,color:i%2?'#d9b77f':'#97c0bd'});this.health.set(data.id||(self?'player':null),hull);
   };

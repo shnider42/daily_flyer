@@ -98,6 +98,29 @@ test('a new voyage starts freely unless its opening mission is explicitly select
   assert.equal(f.submitted.length, 1); assert.equal(f.submitted[0].openingMission, false); assert.equal(f.dialog.opened, false);
 });
 
+test('shared Regular creation offers a crew lobby and preserves the choice without changing solo or Hardcore starts', async t => {
+  const shared = fixture(t, { groupStartPolicy: 'choose' });
+  assert.equal(shared.find('[data-start-together]').checked, true);
+  assert.equal(shared.controller.getSelection().startTogether, true);
+  const checkbox = shared.find('[data-start-together]'); checkbox.checked = false; await checkbox.fire('change');
+  await shared.click('[data-captain-next]'); await shared.click('[data-captain-back]');
+  assert.equal(shared.find('[data-start-together]').checked, false);
+  await shared.click('[data-start-mode="hardcore"]');
+  assert.equal(shared.find('[data-start-together]'), null); assert.equal(shared.controller.getSelection().startTogether, false);
+  await shared.click('[data-start-mode="regular"]');
+  assert.equal(shared.find('[data-start-together]').checked, false);
+  await shared.click('[data-captain-next]'); await shared.click('[data-captain-submit]');
+  assert.equal(shared.submitted[0].startTogether, false);
+});
+
+test('solo setup and joining cannot submit a new group departure policy', async t => {
+  const solo = fixture(t); assert.equal(solo.find('[data-start-together]'), null); assert.equal(Object.hasOwn(solo.controller.getSelection(), 'startTogether'), false); solo.controller.cancel();
+  const join = fixture(t, { groupStartPolicy: 'realm', openingPolicy: 'realm' });
+  assert.equal(join.find('[data-start-together]'), null); assert.equal(Object.hasOwn(join.controller.getSelection(), 'startTogether'), false);
+  await join.click('[data-captain-next]'); await join.click('[data-captain-submit]');
+  assert.equal(Object.hasOwn(join.submitted[0], 'startTogether'), false);
+});
+
 test('opening selection survives starting-mode changes and back/next without losing the captain draft', async t => {
   const f = fixture(t);
   await f.chooseOpening(true); await f.click('[data-starter-ship="mule"]');

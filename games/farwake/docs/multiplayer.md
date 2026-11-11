@@ -4,13 +4,17 @@ Public game: https://dfe-farwake.onrender.com/
 
 Authority and direct game: https://dfe-farwake-universe.onrender.com/
 
-Farwake supports a shared invitation realm with up to **ten simultaneously connected captains**. A captain can explore a separate system, work on a planet, or join a permitted friend's ship. A capital ship has ten berths; living hired NPC crew and human crew share those berths. The server maintains one vessel and one world simulation, regardless of how many people are aboard.
+Farwake supports a shared invitation realm with up to **ten simultaneously connected captains**. A captain can explore a separate system, work on a planet, or join a permitted friend's ship. Hull capacity ranges from one to twenty-four berths; living hired NPC crew, rescued passengers, and human crew share those places. The realm still permits at most ten online human captains. The server maintains one vessel and one world simulation, regardless of how many people are aboard.
 
 This is a small-group authoritative multiplayer implementation. It is not a distributed MMO service. The current deployment model is one Node process, with durable realm records behind an authenticated storage gateway.
 
 ## Playing together
 
 Open **Crew / Online**, create a realm, and share its invitation code. A joining player receives a separate captain and starter ship. Joining does not import or overwrite a solo save.
+
+For a new Regular galaxy, **Start together** opens a departure lobby at Kettle. Connected waiting captains unlock Lark at two, Puffin at four, and Osprey at seven. The selected hull must have room for the entire connected departure crew. Each guest marks Ready; changing the selection clears guest readiness. The host's **Board together** action places everyone on one docked vessel, with personal piloting/station grants and installed bunks. A pilot then launches through the existing deck controls. Guest compact hulls remain docked at Kettle.
+
+The start is optional and one-time. Its status, hull choice, and participants are persisted, and the authority counts current authenticated sessions. Offline passports, client-provided party counts, late arrivals, and progressed captains cannot create another grant. Offline waiting captains remain ashore when the crew boards. Leaving the lobby keeps that captain's own ship; the host can close the group departure for everyone. Existing realms without a departure record retain their original behavior. A stored waiting captain returns to the lobby after a restart, without a gameplay recovery penalty.
 
 The browser stores a **captain passport** containing the realm code, captain identifier, and a random authentication token. Export that passport before changing browser, clearing site data, or moving to another device. Importing it resumes that captain. Treat its file as a credential: anyone with the token can operate that captain. The authority stores only its SHA-256 hash. There is no email account, password reset, or external identity provider in this release.
 

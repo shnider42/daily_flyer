@@ -17,20 +17,21 @@ function flood(layout){
 }
 
 for(const[classId,berths]of CABIN_CLASSES.map(c=>[c,getShipClass(c).berths]))test(`${classId}: cabins, crew and boarding use one reachable collision map`,()=>{
- const crew=Array.from({length:12},(_,i)=>({id:`crew-${i}`,name:`Crew ${i}`,role:i%2?'security':'engineer',health:100}));
+ const crewCount=Math.max(12,berths-1),crew=Array.from({length:crewCount},(_,i)=>({id:`crew-${i}`,name:`Crew ${i}`,role:i%2?'security':'engineer',health:100}));
  crew.unshift({id:'fallen',name:'Memorial',role:'engineer',health:0,status:'dead'});
  const location={id:'ship:shared',kind:'ship',shipClassId:classId,crew,bunkAssignments:{1:{captainId:'guest'}}},layout=cabinLayout(location),surface=generateSurface(location,'crew-check');
  const {parent,index}=flood(layout);
  assert.equal(surface.berths,berths);assert.equal(surface.entities.filter(e=>e.type==='bunk').length,berths);
- const visibleCrew=surface.entities.filter(e=>e.type==='crew');assert.equal(visibleCrew.length,12,'Over-capacity legacy rosters remain physically visible.');assert.ok(!surface.entities.some(e=>e.data?.crewId==='fallen'));
- assert.equal(new Set(visibleCrew.map(e=>`${e.x}:${e.y}`)).size,12,'Living crew never hide beneath one another.');
+ const visibleCrew=surface.entities.filter(e=>e.type==='crew');assert.equal(visibleCrew.length,crewCount,'Full working crews and over-capacity legacy rosters remain physically visible.');assert.ok(!surface.entities.some(e=>e.data?.crewId==='fallen'));
+ assert.equal(new Set(visibleCrew.map(e=>`${e.x}:${e.y}`)).size,crewCount,'Living crew never hide beneath one another.');
  if(berths>1)assert.equal(surface.entities.find(e=>e.id==='ship:shared:bunk:1').data.assignedTo,'guest');
  else assert.equal(surface.entities.some(e=>e.id==='ship:shared:bunk:1'),false,'The solo scout does not invent a guest bunk.');
  assert.equal(surface.entities.find(e=>e.id==='ship:shared:exit').data.stationRole,'helm');
  const airlock=surface.entities.find(e=>e.id==='ship:shared:entry-airlock');assert.equal(airlock.type,'exit');assert.equal(airlock.data.stationRole,undefined);assert.equal(airlock.data.airlock,true);assert.equal(airlock.x,layout.spawn.x);assert.equal(airlock.y,layout.spawn.y);
  assert.equal(nearestEntity(surface,layout.spawn,10)?.id,airlock.id,'the arrival collar is usable independently of the helm');
  assert.equal(new Set(layout.combatSpawns.map(p=>index(p))).size,4,'four raiders need distinct arrival positions');
- assert.equal(new Set(layout.crewSpawns.map(p=>index(p))).size,12,'Older over-capacity rosters retain distinct standing points.');
+ assert.equal(new Set(layout.crewSpawns.map(p=>index(p))).size,layout.crewSpawns.length,'Every authored standing point is distinct.');
+ assert.ok(layout.crewSpawns.length>=crewCount,'Standing space supports both a full working crew and older crowded rosters.');
  for(const p of [...surface.entities,...layout.breaches,...layout.combatSpawns,...layout.crewSpawns]){
   assert.ok(isCabinWalkable(layout,p.x,p.y),`${p.id||p.name||index(p)} is clear in the authority map`);
   assert.ok(parent.has(index(p)),`${p.id||p.name||index(p)} can be reached through doors`);

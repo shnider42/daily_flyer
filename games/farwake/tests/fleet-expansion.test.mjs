@@ -12,10 +12,10 @@ const ok=result=>assert.equal(result.ok,true,result.reason);
 function dock(game){const body=game.system.bodies.find(body=>body.id==='kettle');Object.assign(game.state.ship,{x:body.x,y:body.y+body.radius+60});ok(game.dock(body.id));}
 
 test('starter catalog exposes three modest, meaningfully different hulls without later discoveries',()=>{
- assert.equal(SHIP_CLASSES.length,14);assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.id)).size,14);
+ assert.equal(SHIP_CLASSES.length,19);assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.id)).size,19);
  assert.deepEqual(STARTER_SHIP_IDS,['sparrow','kestrel','mule']);assert.deepEqual(STARTER_SHIPS.map(hull=>hull.id),STARTER_SHIP_IDS);
  for(const [id,berths] of [['sparrow',2],['kestrel',1],['mule',2]]){assert.equal(normalizeStarterShip(id),id);assert.equal(getShipClass(id).berths,berths);assert.equal(enemyHullProfile(id).boardable,false);}
- for(const invalid of [undefined,null,'capital','atlas','petrel','tern','quill','mender','bulwark','cairn',{},['mule'],'MULE'])assert.equal(normalizeStarterShip(invalid),'sparrow');
+ for(const invalid of [undefined,null,'capital','atlas','petrel','tern','quill','mender','bulwark','cairn','lark','puffin','osprey','leviathan','judicator',{},['mule'],'MULE'])assert.equal(normalizeStarterShip(invalid),'sparrow');
  const [cutter,scout,tug]=STARTER_SHIPS;
  assert.ok(scout.stats.speed>cutter.stats.speed&&scout.stats.scanRange>cutter.stats.scanRange&&scout.stats.maxHull<cutter.stats.maxHull&&scout.stats.cargoCap<cutter.stats.cargoCap);
  assert.ok(tug.stats.mining>cutter.stats.mining&&tug.stats.cargoCap>cutter.stats.cargoCap&&tug.stats.speed<cutter.stats.speed&&tug.stats.angularAcceleration<cutter.stats.angularAcceleration);
@@ -75,7 +75,7 @@ test('every new silhouette renders at its real hull dimensions and reuses its ar
 });
 
 test('the expanded practice range still reveals only the smaller half and keeps its player cutter fixed',()=>{
- const choices=testEnemyChoices();assert.equal(choices.length,7);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','sparrow','mule','tern','petrel','quill','hauler']);
+ const choices=testEnemyChoices();assert.equal(choices.length,9);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','sparrow','mule','tern','petrel','lark','quill','hauler','mender']);
  for(const choice of choices){const practice=createTestSession({enemyClassId:choice.id});assert.equal(practice.game.state.ship.classId,'sparrow');assert.equal(practice.game.system.enemies[0].classId,choice.id);assert.ok(practice.game.currentSystem.danger<=5);}
- for(const id of ['marten','atlas','capital','frigate','mender','bulwark','cairn'])assert.throws(()=>createTestSession({enemyClassId:id}),/not available/);
+ for(const id of ['marten','atlas','capital','frigate','bulwark','cairn','puffin','osprey','leviathan','judicator'])assert.throws(()=>createTestSession({enemyClassId:id}),/not available/);
 });

@@ -38,7 +38,7 @@ function redactCredentialValues(value, values) {
   return visit(value);
 }
 
-const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect'];
+const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect', 'launchStatus', 'launchReady'];
 const GAME_FIELDS = ['version', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits'];
 const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife'];
 
@@ -117,6 +117,12 @@ export function createPrivacyExport(source, captain, { sourceKind = 'durable-sna
   if (captain.ownedVesselId) ownedIds.add(captain.ownedVesselId);
   const ownCaptain = pick(captain, CAPTAIN_FIELDS, id), personal = gameData(captain);
   ownCaptain.game = personal.game;
+  const departure = source.groupStart && (source.ownerId === id || !!captain.launchStatus || source.groupStart.participants?.includes(id)) ? {
+    ...pick(source.groupStart, ['version', 'status', 'selectedClassId', 'selectionRevision', 'launchedAt'], id),
+    isHost: source.ownerId === id,
+    participated: source.groupStart.participants?.includes(id) === true,
+    ...(source.ownerId === id || source.groupStart.participants?.includes(id) ? { vesselId: source.groupStart.vesselId || null } : {}),
+  } : null;
   // These are already bounded to 80 by the authority and prevent duplicate
   // actions after reconnect. Exporting them must not create a new retry record.
   ownCaptain.recentCommands = (captain.recentCommands || []).map(command => pick(command, ['id', 'result'], id));
@@ -148,7 +154,7 @@ export function createPrivacyExport(source, captain, { sourceKind = 'durable-sna
     scope: { kind: 'farwake-shared-captain', realmCode, captainId: id, source: sourceKind, durableVersion: version, isRealmOwner: source.ownerId === id },
     manifest: {
       description: 'Your selected shared captain’s records and their links in shared game state. This is a privacy export, not a passport or a restorable realm backup.',
-      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
+      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Your departure readiness and participation, with the shared ship choice when applicable', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
       source: sourceKind === 'live-authority' ? 'Current authority memory, which can include changes newer than the last durable save. Exporting does not save, attach, or advance the captain.' : 'The last accepted durable realm snapshot. No game session was opened to read it.',
       counts,
       unrecognizedGameFields: personal.unrecognizedFields,
@@ -163,7 +169,7 @@ export function createPrivacyExport(source, captain, { sourceKind = 'durable-sna
       requestRateCounters: 'Process-memory network-address counters expire after ten minutes without a request. Expired entries are pruned on access and once per minute; at most 5,000 entries are retained. They are not written to realm saves.',
       contact: 'chris@holtsnidertech.com',
     },
-    captain: ownCaptain, ownedVessels, ownedHomes, sharedRelationships, sharedContributions,
+    captain: ownCaptain, ...(departure ? { departure } : {}), ownedVessels, ownedHomes, sharedRelationships, sharedContributions,
   };
   return redactCredentialValues(report, [captain.tokenHash, ...credentialValues]);
 }

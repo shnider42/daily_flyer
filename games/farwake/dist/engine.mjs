@@ -45,9 +45,10 @@ import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 import { conversation, normalizeConversations } from './npc-dialogue.mjs';
 import { normalizeSocialVisits } from './social-world.mjs';
 import { chooseNpcSpecies, normalizeSpecies, speciesName } from './species.mjs';
-import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic } from './traffic.mjs';
+import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic, TRAFFIC_ROLE_LABELS } from './traffic.mjs';
 import { appendFactionPorts } from './port-content.mjs';
 import { portProfile } from './port-traffic.mjs';
+import { PEACEKEEPER_ID, PEACEKEEPER_HAIL_DISTANCE, isPeacekeeper, trafficHailDistance, stepPeacekeeperDefense } from './peacekeeper.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -536,6 +537,7 @@ export class Game {
     this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
     const targets=[...games.filter(g=>g.hasActiveVessel&&g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy','eva'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
     this._updateEnemies(dt,targets);
+    stepPeacekeeperDefense(this.system,dt,targets,(type,event)=>this._worldEvent(type,event));
     this._updateBullets(dt,targets);
     for(const ship of [...(this.system.parkedShips||[]),...this.system.enemies.filter(enemy=>!enemy.promotedVesselId&&!enemy.canonicalVesselId)]){
       if(!ship.damageControl)continue;
@@ -601,8 +603,9 @@ export class Game {
     const vesselId=this.netVesselId||sh.id,serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
     const volleyId=`${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`,nose=Math.max(24,(sh.renderLength||getShipClass(sh.classId).stats.renderLength)*.42),bullets=[];
     for(let mount=0;mount<system.pulseCount;mount++){
-      const side=(mount*2-(system.pulseCount-1))*system.pulseOffset;
-      const bullet={id:system.pulseCount===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(angle)*nose-Math.sin(angle)*side,y:sh.y+Math.sin(angle)*nose+Math.cos(angle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*system.pulseDamageScale,owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,radius:4};
+      const muzzle=system.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(system.pulseCount-1))*system.pulseOffset;
+      const forward=muzzle?.[0]??nose,mountAngle=muzzle?sh.angle:angle;
+      const bullet={id:system.pulseCount===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*system.pulseDamageScale,owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,radius:4};
       bullets.push(bullet);this.system.bullets.push(bullet);
     }
     sh.energy-=system.pulseEnergy;this._shotTimer=system.pulseCooldown;
@@ -671,8 +674,9 @@ export class Game {
         const angle=e.angle+(this._rand()-.5)*.16;
         const serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1,equipment=getHullSystems(e.classId);
         for(let mount=0;mount<equipment.pulseCount;mount++){
-          const side=(mount*2-(equipment.pulseCount-1))*equipment.pulseOffset;
-          this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x-Math.sin(angle)*side,y:e.y+Math.cos(angle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+          const muzzle=equipment.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(equipment.pulseCount-1))*equipment.pulseOffset;
+          const forward=muzzle?.[0]??0,mountAngle=muzzle?e.angle:angle;
+          this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:e.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
         }
         e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
       }
@@ -686,6 +690,7 @@ export class Game {
       const travelTime=Math.min(dt,Math.max(0,b.ttl));
       b.x+=b.vx*travelTime;b.y+=b.vy*travelTime;b.ttl-=dt;
       if(!travelTime)continue;
+      if(b.cosmetic===true&&b.owner===PEACEKEEPER_ID)continue;
       if(b.owner==='player'){
         const shooter=targets.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this._worldGames?.find(g=>g.playerId===b.ownerId);
         const hostileVessel=g=>{
@@ -786,9 +791,27 @@ export class Game {
     if (signal) return { type: 'signal', id: signal.id, signalId: signal.id, name: signal.name, signal, distance: distance(sh, signal), range: sh.scanRange };
     const salvageReach=getHullSystems(sh.classId).salvageReach,pickup=this.system.pickups.find(p=>distance(p,sh)<salvageReach);
     if (pickup) return { type: 'salvage', id: pickup.id, name: pickup.name || 'Loose salvage', pickup, distance: distance(pickup, sh), range: salvageReach };
-    const traffic = this.system.traffic.find(t => distance(t, sh) < 185);
-    if (traffic) return { type: 'hail', id: traffic.id, name: traffic.name, traffic, distance: distance(traffic, sh), range: 185 };
+    const traffic = this.system.traffic.filter(t => trafficHailDistance(t, sh) <= PEACEKEEPER_HAIL_DISTANCE).sort((a,b)=>trafficHailDistance(a,sh)-trafficHailDistance(b,sh))[0];
+    if (traffic) return { type: 'hail', id: traffic.id, name: traffic.name, traffic, distance: distance(traffic, sh), range:Math.hypot(traffic.renderLength||32,traffic.renderWidth||24)/2+sh.radius+PEACEKEEPER_HAIL_DISTANCE };
     return null;
+  }
+
+  /** A radio reply conveys permission; it never grants a berth, reward or hull. */
+  hailTraffic(id) {
+    if(!this.hasActiveVessel||!(this.state.mode==='ship'||this.state.mode==='person'&&this.state.interior?.kind==='ship'))return this._fail('Use the radio aboard your active ship.','mode');
+    if(this.state.npcContract?.active)return this._fail('The service captain is handling this vessel’s radio.','crew-duty');
+    const contact=this.system.traffic.find(ship=>ship.id===id);
+    if(!contact)return this._fail('That contact is no longer in this system.','target');
+    if(trafficHailDistance(contact,this.state.ship)>PEACEKEEPER_HAIL_DISTANCE)return this._fail('Move within local radio range of the vessel.','distance');
+    const hull=getShipClass(contact.classId),faction=FACTIONS.find(f=>f.id===contact.faction)?.name||'Independent';
+    const keeper=isPeacekeeper(contact),permission=keeper?militaryPortAccess(this,contact.faction):null;
+    const clearance=keeper&&permission.ok;
+    const message=keeper?(clearance?
+      '“Service identity confirmed. Resolute operations. You may use the duty channel for fleet traffic. Keep the civilian approach clear and maintain separation. Docking is not authorized.”':
+      permission.code==='military-standing'?'“Vessel calling Resolute: your service clearance is suspended. Withdraw from our patrol envelope. Do not approach this ship. Resolute out.”':
+      '“Unidentified civilian vessel, this is Freewake warship Resolute. This is a restricted fleet channel. Alter course, maintain separation, and clear our patrol envelope. No boarding or docking is authorized. Resolute out.”'):
+      '“Quiet on our route. Safe travels, captain.”';
+    return this._ok({id:contact.id,name:contact.name,role:TRAFFIC_ROLE_LABELS[contact.trafficRole]||'Local traffic',factionId:contact.faction,faction,classId:hull.id,hull:hull.name,message,clearance,restricted:keeper,status:contact.trafficStatus||'In transit',route:contact.originName&&contact.destinationName?`${contact.originName} → ${contact.destinationName}`:this.currentSystem.name});
   }
 
   portAccess(body, system = this.currentSystem) {
@@ -993,6 +1016,7 @@ export class Game {
     return ENCOUNTERS.filter(e => (e.mode === mode || e.mode === 'any') && (!e.once || !this.state.encounterHistory.includes(e.id)) && this.conditionsMet(e.conditions)&&encounterFitsPlace(this,e,source));
   }
   triggerEncounter(id, source = {}) {
+    if(isPeacekeeper(this.system.traffic.find(contact=>contact.id===source.sourceId||contact.id===source.vesselId)))return this._fail('Resolute accepts fleet radio traffic only. Hail the vessel on its own channel.','restricted-channel');
     if (this.state.pendingEncounter) {
       const open = ENCOUNTERS.find(e => e.id === this.state.pendingEncounter.id);
       return id && id !== open?.id ? this._fail('A conversation is already open.', 'encounter') : this._ok({ encounter: open, existing: true });

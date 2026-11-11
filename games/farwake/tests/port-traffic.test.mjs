@@ -35,7 +35,7 @@ test('every obtainable hull has a contextual traffic route, with closed immutabl
 
 test('major terminals favor working transports while capital ships remain exceptional',()=>{
  const observed=samples('hub',40000);
- assert.ok(observed.hauler>.47&&observed.hauler<.53,'Working passenger transports are the main arrival.');
+ assert.ok(observed.hauler+observed.puffin>.47&&observed.hauler+observed.puffin<.53,'Working transports remain the main arrival across both freight hulls.');
  assert.ok(observed.tern>.16&&observed.tern<.21);
  assert.ok(observed.sparrow+observed.kestrel+observed.mule>.08&&observed.sparrow+observed.kestrel+observed.mule<.14,'Personal craft still visit the major terminal.');
  const substantial=SHIP_CLASSES.filter(hull=>hull.stats.renderLength>=90).reduce((sum,hull)=>sum+observed[hull.id],0);
@@ -63,7 +63,7 @@ test('small fields have no over-sized arrivals and research/industrial ports hav
  assert.ok(small.sparrow+small.kestrel+small.mule>.78);
  const research=samples('research');assert.ok(research.petrel>.3);assert.ok(research.kestrel>.23);
  assert.equal(research.capital+research.cairn+research.atlas+research.bulwark,0);
- const industry=samples('industrial');assert.ok(industry.mule+industry.hauler+industry.atlas+industry.cairn>.82);
+ const industry=samples('industrial');assert.ok(industry.mule+industry.hauler+industry.atlas+industry.cairn+industry.puffin+industry.leviathan>.82);
  assert.ok(industry.capital<.003);assert.ok(industry.atlas>.13&&industry.cairn>.15);
 });
 
@@ -91,7 +91,7 @@ test('port purpose and capacity preserve existing public locations and expose de
  assert.equal(portProfile(nacre,nacre.bodies.find(body=>body.id==='bastion')).restricted,false);
  for(const [id,faction] of Object.entries(MILITARY_PORT_FACTIONS)){
   const port=portProfile({id:'test-system',faction:'freewake'},{id,kind:'station',faction:'unknown'});
-  assert.equal(port.kind,'military');assert.equal(port.restricted,true);assert.equal(port.faction,faction);assert.equal(port.maxShipLength,260);
+  assert.equal(port.kind,'military');assert.equal(port.restricted,true);assert.equal(port.faction,faction);assert.equal(port.maxShipLength,520);
  }
  assert.equal(new Set(Object.values(MILITARY_PORT_FACTIONS)).size,5);
 });
@@ -110,7 +110,7 @@ test('quarantine, ruins, preflight cultures and unserviced bodies do not gain ro
 
 test('selection is stable under replay, player progression, unrelated choices and call order',()=>{
  const hub=profile('hub'),ids=[0,1,2,3,4,40,42,164];
- const expected=['hauler','hauler','tern','sparrow','tern','sparrow','tern','hauler'];
+ const expected=['hauler','hauler','quill','sparrow','quill','sparrow','tern','hauler'];
  assert.deepEqual(ids.map(i=>chooseTrafficHull('port-tests',`npc:${i}`,hub)),expected);
  assert.deepEqual([...ids].reverse().map(i=>chooseTrafficHull('port-tests',`npc:${i}`,{...hub,playerRank:999,playerShip:'capital',time:100000})).reverse(),expected);
  for(let i=0;i<100;i++)chooseTrafficHull('other-seed',`unrelated:${i}`,profile('military'));
