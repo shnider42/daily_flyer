@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.6.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.6.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## An optional first favor · 0.6.2
+
+When creating a solo voyage or shared galaxy, select **Begin with a short opening mission** in the starting-life setup. It is unchecked by default. A shared galaxy keeps its creation preference, and each new captain gets independent saved progress, including late arrivals. Existing saves and galaxies keep their current starts.
+
+The opening is a modest paid job in the ordinary Hearth system. Regular captains begin on foot at Kettle with their chosen starter genuinely docked there: meet a local contact, calibrate a real maintenance relay, fly their own ship beyond the docking lights to mine two ore at the marked belt, and return for payment. Hardcore captains begin shipless on Morrow, repair a relay, and carry a service note to Kettle using the ordinary priced passenger service. The relay pays the usual 12 CR; the finished favor pays 35 CR once. The opening does not grant a larger ship, drive, equipment, or story progression unrelated to the completed work.
+
+The existing objective, world marker, compact action hint, and contact dialogue guide one immediate action at a time. **Menu → A small favor**, the objective details, or **Journal → Missions** can resume guidance or leave the opening job. Finishing or leaving it returns to the existing voyage without relocating the captain. There are no party checkpoints or mandatory opening battles. If the marked belt has already been exhausted, the dockworker accepts the verified relay report instead.
+
+Current multiplayer acceptance work focuses on three to four independent captains: separate progress, host-policy inheritance, joining later, physical starter berths, reward replay, and restoration. Ten online captains remains the capacity and longer-term performance target; these checks are not a ten-person load certification.
 
 ## Shared boarding and visible pilots · 0.6.1
 
@@ -411,6 +421,8 @@ For solo-only static hosting, publish the **contents of `dist/`** with `index.ht
 | [dist/index.html](dist/index.html) | Page structure, HUD, controls, title screen, and modal container |
 | [dist/style.css](dist/style.css) | Responsive layout, scalable text, dual touch controls, safe-area spacing, and reduced-motion styles |
 | [dist/app.mjs](dist/app.mjs) | Browser entry point, game loop, modes, menus, online action routing, crisp label overlay, and save orchestration |
+| [dist/opening-mission.mjs](dist/opening-mission.mjs) | Optional captain-local opening job, real-action evidence, targets, and one-time payment |
+| [dist/opening-ui.mjs](dist/opening-ui.mjs) | Opening contact dialogue, journal entry, and single-action guidance |
 | [dist/engine.mjs](dist/engine.mjs) | DOM-free rules: seeded galaxy, combat, mining, contracts, fleet, boarding, campaign gates, and save restoration |
 | [dist/fleet.mjs](dist/fleet.mjs) | Hull and crew definitions; pure body-relative flight integration used by server and browser prediction |
 | [dist/interior-layouts.mjs](dist/interior-layouts.mjs) | Shared walkable geometry, stations, bunks, and combat spawn points for all hull classes |

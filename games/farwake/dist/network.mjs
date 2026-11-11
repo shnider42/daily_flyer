@@ -103,12 +103,12 @@ export class FarwakeNetwork {
     this.now = now; this.wallNow = wallNow; this.inputHistory = new InputTimeline(now()); this.lastInputRecordAt = null;
     this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null;
   }
-  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, character } = {}) {
+  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, character, openingMission = false } = {}) {
     this.manualClose = false;
     const suppliedPassport = passport || (!create ? readPassport(realmCode, this.storage) : null);
     this.passport = suppliedPassport ? normalizePassport(suppliedPassport) : null;
     if (suppliedPassport && !this.passport) throw new Error('This captain passport is incomplete or invalid. Restore a valid backup to continue.');
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, passport: this.passport }) });
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, ...(create ? { openingMission: openingMission === true } : {}), passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
     this.passport = savePassport(registration.passport || this.passport, this.storage);

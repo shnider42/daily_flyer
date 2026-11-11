@@ -29,9 +29,12 @@ const helmPoint = vessel => {
 
 /** One authority for an invitation realm. Simulation never awaits a network client. */
 export class Realm extends BoardingAuthority {
-  constructor({ id, name, seed, persistence, version = 0, snapshot = null, onConflict = () => {} }) {
+  constructor({ id, name, seed, settings = {}, persistence, version = 0, snapshot = null, onConflict = () => {} }) {
     super();
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
+    // This creation preference applies only to new captains. Loading an old
+    // galaxy or resuming an existing passport never starts a new opening.
+    this.settings = Object.freeze({ openingMission: (snapshot ? snapshot.settings?.openingMission : settings?.openingMission) === true });
     this.persistence = persistence; this.version = version; this.onConflict = onConflict;
     this.createdAt = snapshot?.createdAt || now(); this.ownerId = snapshot?.ownerId || null;
     this.captains = new Map(); this.vessels = new Map(); this.rooms = new Map(); this.worlds = snapshot?.worlds || {}; this.leases = snapshot?.leases || {}; this.sites = snapshot?.sites || {}; this.normalizedSites = new Set();
@@ -40,7 +43,7 @@ export class Realm extends BoardingAuthority {
     this.director=advanceWorldDirector(snapshot?.director,now()/1000,{seed:this.seed,systems:this.galaxy}).state;
     const savedPerspectives=new Map();
     for (const data of Object.values(snapshot?.captains || {})) {
-      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...savedGame } = data.game || {};
+      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, ...savedGame } = data.game || {};
       savedPerspectives.set(data.id,savedGame.mode);
       const game = Game.fromSave({ ...savedGame, seed: this.seed, worlds: {} });
       // A guest's saved ship field is their owned hull. Revalidate their pose
@@ -64,6 +67,7 @@ export class Realm extends BoardingAuthority {
     }
     for (const captain of this.captains.values()) if (captain.game.ownsShip && !this.vessels.has(captain.ownedVesselId)) this._createVessel(captain);
     this._migrateLegacyBoarding();
+    for (const captain of this.captains.values()) captain.game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
     for(const captain of this.captains.values())if(captain.aboard){
       const vessel=this.vessels.get(captain.aboard),state=captain.game.state;
       if(vessel&&savedPerspectives.get(captain.id)==='ship'&&vessel.helmOwner===captain.id&&this._canRole(captain,vessel,'helm')){state.mode='ship';state.interior=null;state.locationId=null;state.systemId=vessel.systemId;}
@@ -99,14 +103,25 @@ export class Realm extends BoardingAuthority {
     if (this.conflicted || this.storageError) throw new Error('Realm persistence is temporarily unavailable.');
     if (this.onlineCount >= MAX_ONLINE) throw new Error('This realm already has ten online captains.');
     if (this.captains.size >= 256) throw new Error('This realm has reached its saved-passport limit.');
-    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, name:cleanName(name)});
+    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, name:cleanName(name), openingMission:this.settings.openingMission});
     game._directorShared=this.director;
-    const angle = this.captains.size * 2.399963;
-    game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155;
-    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: game.ownsShip ? starterHome() : { kind:'port', systemId:game.state.systemId, locationId:game.state.locationId }, game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId: game.ownsShip ? `vessel_${id}` : null, aboard: game.ownsShip ? `vessel_${id}` : null, crewRole: game.ownsShip ? 'helm' : 'passenger', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
-    this.captains.set(id, captain); this._createVessel(captain); if (!this.ownerId) this.ownerId = id;
+    const atPort = game.state.mode === 'person' && !game.state.interior && !!game.state.locationId;
+    if (!atPort) { const angle = this.captains.size * 2.399963; game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155; }
+    const ownedVesselId = game.ownsShip ? `vessel_${id}` : null;
+    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: atPort ? { kind:'port', systemId:game.state.systemId, locationId:game.state.locationId } : starterHome(), game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId, aboard: atPort ? null : ownedVesselId, portVesselId: atPort ? ownedVesselId : null, crewRole: ownedVesselId && !atPort ? 'helm' : 'passenger', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
+    this.captains.set(id, captain); const vessel = this._createVessel(captain); if (!this.ownerId) this.ownerId = id;
+    game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
+    if (vessel && atPort && game.state.livelihoods?.parkedShip) Object.assign(game.state.livelihoods.parkedShip, { id: vessel.id, vesselId: vessel.id });
     const revision = this.markDirty(); await this.flush(revision);
     return { captain, passport: { realmCode: this.id, captainId: id, token } };
+  }
+  _openingOwnShipHere(captain) {
+    const state = captain.game.state, vessel = this.vessels.get(captain.ownedVesselId);
+    return !!vessel && vessel.ownerId === captain.id && !vessel.destroyed && !vessel.ship.destroyed && vessel.ship.hull > 0 && !this._hostileOccupied(vessel) && !vessel.occupation?.contested && vessel.systemId === 'hearth' && vessel.dockedAt === 'kettle' && !captain.aboard && state.mode === 'person' && state.systemId === 'hearth' && state.locationId === 'kettle' && !state.interior && !state.exploration;
+  }
+  _canResumeOpeningAtPort(captain) {
+    const game = captain.game, state = game.state;
+    return state.openingMission?.status === 'active' && !captain.aboard && state.mode === 'person' && !state.interior && !state.exploration && !state.npcContract?.active && state.boarding?.phase !== 'active' && state.person.health > 0 && !state.person.down && game.atInhabitedPort && !captain.combatAtDisconnect && !this._inCombat(this.vessels.get(captain.ownedVesselId));
   }
   authenticate(passport) {
     const captain = this.captains.get(passport?.captainId);
@@ -120,7 +135,7 @@ export class Realm extends BoardingAuthority {
     captain.session = session; captain.disconnectUntil = 0; captain.input = { ...EMPTY_INPUT }; captain.inputAt = 0; captain.inputSeq = 0; captain.ack = 0;
     if (captain.needsRestoration) {
       captain.needsRestoration = false;
-      if (now() - (captain.lastSeen || this.createdAt) > DISCONNECT_GRACE_MS) this._restoreAtHome(captain);
+      if (now() - (captain.lastSeen || this.createdAt) > DISCONNECT_GRACE_MS && !this._canResumeOpeningAtPort(captain)) this._restoreAtHome(captain);
     }
     captain.lastSeen = now(); this._bindCaptain(captain);
     if (captain.game.state.mode === 'person') this._ensurePersonPosition(captain);
@@ -208,6 +223,11 @@ export class Realm extends BoardingAuthority {
     const owner = this.captains.get(vessel.ownerId), beneficiary = this.captains.get(vessel.occupation?.controllerId) || this.captains.get(vessel.boardingLeaderId) || owner, room = this._room(vessel.systemId), primary = vessel.id === owner.ownedVesselId;
     if (!vessel.actor) vessel.actor = Game.fromSave({ ...owner.game.save(), multiplayer:{serverAuthoritative:true,ownedVesselId:owner.ownedVesselId,aboardVesselId:vessel.id}, systemId: vessel.systemId, mode: 'ship', locationId: null, interior: null, boarding: null, ship: vessel.ship, worlds: {} });
     const actor = vessel.actor;
+    actor.state.openingMission = null;
+    actor.recordOpeningMining = (ore, rock) => {
+      const miner = this.captains.get(vessel.helmOwner);
+      if (miner?.session && this._helm(miner, vessel) && miner.ownedVesselId === vessel.id && !vessel.destroyed && vessel.ship.hull > 0 && miner.game.state.person.health > 0 && !miner.game.state.person.down) miner.game.recordOpeningMining(ore, rock);
+    };
     actor.state.multiplayer={serverAuthoritative:true,ownedVesselId:owner.ownedVesselId,aboardVesselId:vessel.id};
     actor.state.npcContract = vessel.npcContractId === owner.game.state.npcContract?.id ? owner.game.state.npcContract : null;
     actor.state.npcContractHistory = owner.game.state.npcContractHistory;
@@ -430,7 +450,7 @@ export class Realm extends BoardingAuthority {
     if (requestId) { const previous = captain.recentCommands.find(c => c.id === requestId); if (previous) { try { await this.flush(); return clone(previous.result); } catch { return fail('Storage has not confirmed this action yet.', 'storage-unconfirmed'); } } }
     if (!args || typeof args !== 'object' || Array.isArray(args)) return fail('Invalid action arguments.', 'protocol');
     let result;
-    try { result = this._command(captain, name, args); } catch (error) { this.failed = true; this.onConflict(this, error); return fail('This realm must reload its last durable revision before continuing.', 'invalid-action'); }
+    try { result = this._command(captain, name, args); if (result?.ok) captain.game.observeOpeningAction(name, args, result); } catch (error) { this.failed = true; this.onConflict(this, error); return fail('This realm must reload its last durable revision before continuing.', 'invalid-action'); }
     result ||= fail('Unknown action.', 'command');
     if (!result.ok) return result;
     captain.lastSeen = now();
@@ -512,7 +532,9 @@ export class Realm extends BoardingAuthority {
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
     if(owned)owned.ship.humanOccupants=Math.max(1,[...this.captains.values()].filter(other=>other.aboard===owned.id).length);
     const id = a.id ?? a.systemId ?? a.bodyId ?? a.signalId;
+    if (name === 'openingAction' && a.action === 'skip') return game.openingAction('skip', { entityId: a.entityId });
     if (game.state.person.health <= 0 && !['renameCaptain', 'setCrewAccess'].includes(name)) return fail('You are incapacitated. Your crew can still clear the deck.', 'incapacitated');
+    if (name === 'openingAction') return game.openingAction(a.action, { entityId: a.entityId });
     if(name==='takePassengerTransit')return this._passengerTransit(c,a);
     if(name==='acceptNpcContract')return this._startNpcContract(c,a);
     if(['npcContractAction','completeNpcContract','cancelNpcContract'].includes(name))return this._npcContractCommand(c,name,a);
@@ -923,7 +945,7 @@ export class Realm extends BoardingAuthority {
       const otherActive = vessel && [...this.captains.values()].some(other => other.id !== c.id && other.aboard === vessel.id && other.session);
       if (vessel?.helmOwner === c.id) vessel.helmOwner = null;
       if (otherActive) { if (c.game.state.mode === 'ship') this._cabin(c, vessel); c.crewRole = 'passenger'; }
-      else this._restoreAtHome(c, { combatPenalty: c.combatAtDisconnect || this._inCombat(vessel) });
+      else if (!this._canResumeOpeningAtPort(c)) this._restoreAtHome(c, { combatPenalty: c.combatAtDisconnect || this._inCombat(vessel) });
       c.disconnectUntil = 0; c.lastSeen = timestamp; this.markDirty();
     }
     for (const [systemId, room] of this.rooms) if (!occupiedSystems.has(systemId) && timestamp - room.lastActive > 10000) { this._captureRoom(room); this.rooms.delete(systemId); for (const vessel of this.vessels.values()) if (vessel.systemId === systemId) vessel.actor = null; }
@@ -982,6 +1004,10 @@ export class Realm extends BoardingAuthority {
     else if (state.interior?.kind === 'derelict') state.interior.location = clone(this._location(c));
     state.multiplayer = { captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true,
       returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };
+    const opening = c.game.openingMissionStatus();
+    // Person snapshots omit the asteroid field and may display a visited hull.
+    // These view-only facts retain the opening's own cargo/berth context.
+    state.openingMissionAvailability = opening.active ? { id: opening.id, systemId: 'hearth', oreFieldExhausted: opening.fallbackAvailable, oreAvailable: opening.oreAvailable, ownShipHere: c.game.openingOwnShipHere() } : null;
     const relevantWorld = this._room(state.systemId).runtime, inSpace = room.kind === 'system';
     let world;
     if (compact) {
@@ -1009,19 +1035,19 @@ export class Realm extends BoardingAuthority {
       fleet: [...this.vessels.values()].map(v => this._publicVessel(v, c)), presence: [...this.captains.values()].map(other => { const p = this._publicCaptain(other); return { captainId: p.captainId, name: p.name, online: p.online, systemId: p.systemId, roomId: p.roomId, vesselId: p.vesselId, crewRole: p.crewRole, mode: p.mode, sleeping: p.sleeping, home: p.home }; }),
       homes: Object.values(this.leases).filter(home => home.systemId === state.systemId && home.locationId === state.locationId && (!home.expiresAt || home.expiresAt > now())).map(clone),
       homeOffers: { room: { credits: 50, permanent: true }, outpost: { credits: 180, ore: 12 }, bunk: { credits: 60, ore: 4 } },
-      realm: { code: this.id, name: this.name, seed: this.seed, online: this.onlineCount, capacity: MAX_ONLINE, persistence: this.persistence.kind } };
+      realm: { code: this.id, name: this.name, seed: this.seed, online: this.onlineCount, capacity: MAX_ONLINE, persistence: this.persistence.kind, settings: this.settings } };
   }
   document() {
     for (const room of this.rooms.values()) this._captureRoom(room);
     const captains = {};
     for (const c of this.captains.values()) {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
-      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = c.game.state;
+      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
       captains[c.id] = { id: c.id, name: c.name, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), director:clone(this.director), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
+    return { format: 1, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), ownerId: this.ownerId, createdAt: this.createdAt, updatedAt: now(), director:clone(this.director), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');

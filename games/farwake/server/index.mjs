@@ -24,21 +24,21 @@ export function compactSnapshot(snapshot) {
 
 export class RealmManager {
   constructor(persistence) { this.persistence = persistence; this.realms = new Map(); this.loading = new Map(); }
-  async get(id, { create = false, name } = {}) {
+  async get(id, { create = false, name, settings } = {}) {
     if (this.realms.has(id)) return this.realms.get(id);
     if (this.loading.has(id)) return this.loading.get(id);
     const operation = (async () => {
       const saved = await this.persistence.load(id);
       if (!saved.snapshot && !create) return null;
       if (saved.snapshot && create) throw new Error('Realm code collision');
-      const realm = new Realm({ id, name, persistence: this.persistence, version: saved.version, snapshot: saved.snapshot,
+      const realm = new Realm({ id, name, settings, persistence: this.persistence, version: saved.version, snapshot: saved.snapshot,
         onConflict: failed => { for (const captain of failed.captains.values()) captain.session?.close(1012, 'Realm revision changed. Reconnect to load its durable state.'); this.realms.delete(failed.id); } });
       this.realms.set(id, realm); return realm;
     })();
     this.loading.set(id, operation);
     try { return await operation; } finally { this.loading.delete(id); }
   }
-  async create(name) { for (let i = 0; i < 5; i++) { const id = newRealmCode(); if ((await this.persistence.load(id)).snapshot) continue; return this.get(id, { create: true, name }); } throw new Error('Could not allocate a realm code.'); }
+  async create(name, settings = {}) { for (let i = 0; i < 5; i++) { const id = newRealmCode(); if ((await this.persistence.load(id)).snapshot) continue; return this.get(id, { create: true, name, settings }); } throw new Error('Could not allocate a realm code.'); }
   async flush() { return Promise.allSettled([...this.realms.values()].map(realm => realm.flush())); }
 }
 
@@ -103,7 +103,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       try {
         const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
-        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends')); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character})); }
+        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends'), { openingMission: body.openingMission === true }); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character})); }
         else {
           const code = normaliseRealmCode(body.realmCode || body.passport?.realmCode);
           if (!validRealmCode(code)) return json(response, 400, { ok: false, reason: 'Enter a valid invitation realm code.' });
@@ -113,7 +113,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           else return json(response, 400, { ok: false, reason: 'Choose create, join, or resume.' });
         }
         if (!captain.session && realm.onlineCount >= MAX_ONLINE) return json(response, 409, { ok: false, reason: 'This realm already has ten online captains.' });
-        return json(response, 200, { ok: true, passport, realm: { code: realm.id, name: realm.name, capacity: MAX_ONLINE, online: realm.onlineCount }, protocol: PROTOCOL_VERSION });
+        return json(response, 200, { ok: true, passport, realm: { code: realm.id, name: realm.name, capacity: MAX_ONLINE, online: realm.onlineCount, settings: realm.settings }, protocol: PROTOCOL_VERSION });
       } catch (error) { return json(response, /ten online|limit/.test(error.message) ? 409 : /JSON|large/.test(error.message) ? 400 : 503, { ok: false, reason: error.message.includes('Storage') || error.message.includes('storage') ? 'Durable storage is temporarily unavailable.' : error.message }); }
     }
     if (pathname.startsWith('/api/') || pathname === '/ws') return json(response, 404, { ok: false, reason: 'Endpoint not found.' });

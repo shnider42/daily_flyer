@@ -34,6 +34,7 @@ import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules } from './profession-rules.mjs';
 import { LivelihoodRules, normalizeStartMode } from './livelihoods.mjs';
 import { NpcContractRules } from './npc-contracts.mjs';
+import { OpeningMissionRules } from './opening-mission.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
 import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-expansion.mjs';
 import { systemContext } from './encounter-context.mjs';
@@ -144,7 +145,7 @@ function initialState(seed, options = {}) {
   return {
     version: SAVE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
-    upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [],
+    upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, ...(shipless?{unowned:true}:{}), humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
@@ -175,6 +176,7 @@ export class Game {
     this._loadSystem(this.state.systemId);
     this.initializeLivelihoods();
     if(!isSave&&!this.ownsShip)this._arriveAsPassenger(this.currentBody,{discovery:false});
+    this.initializeOpeningMission({ enabled: !isSave && options.openingMission === true, fresh: !isSave });
     this._restoreBoardingDeck();
     this._restoreExploration();
     if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
@@ -183,7 +185,7 @@ export class Game {
     }
     if (isSave) this._relocateLegacyJobs();
     if (!isSave) {
-      if(this.ownsShip)this._log('A ship of your own', 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
+      if(this.ownsShip)this._log('A ship of your own', this.state.openingMission?.status === 'active' ? 'Cinder waits at Kettle’s berth. A dockworker near the landing has a small paid favor to ask. Your ship and the wider galaxy will be there when you are ready.' : 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
       else this._log('Your first ship is still ahead', 'You arrive on Morrow with 180 credits and no ship. The contract exchange offers paid maintenance shifts, the clinic hires assistants, and crew contracts pay for work aboard someone else’s ship. Passenger ferries connect the inhabited ports. A used starter hull costs credits, with no ore or trade-in required.', 'story');
       this._flag('started');
       this._discoverNear('hearth');
@@ -612,6 +614,7 @@ export class Game {
       let crystal = Math.min(target.crystal, sh.cargoCap - this.cargoUsed);
       this.state.cargo.crystal += crystal;
       this.state.stats.oreMined += ore; this.state.stats.crystalsMined += crystal;
+      this.recordOpeningMining(ore, target);
       this._flag('mined_ore'); this._flag('first_mining');
       if (this.state.stats.oreMined >= 6) this._flag('mined_six_ore');
       if (crystal) this._flag('found_crystal');
@@ -1662,7 +1665,9 @@ export class Game {
       this.progressJob('bounty', 1, { token: details.token || `ground-${this.state.stats.time}` });
     }
     this._checkChapters();
-    return this._ok({ first });
+    const result = this._ok({ first });
+    if (type === 'work' && first) this.observeOpeningAction('recordActivity', { type, ...details }, result);
+    return result;
   }
 
   _relocateLegacyJobs() {
@@ -1933,5 +1938,5 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules);
 export default Game;

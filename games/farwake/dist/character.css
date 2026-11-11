@@ -19,6 +19,14 @@
 .captain-origin strong{font-size:1.12em;color:#efe1bb}
 .captain-origin.selected{border-color:#e1c284;box-shadow:inset 3px 0 0 #e1c284;background:#1b2e38}
 .captain-origin span{font-size:1em}
+.captain-opening{display:flex;align-items:flex-start;gap:12px;min-height:48px;padding:14px;margin:16px 0 20px;background:#192e35;border:1px solid #526873;cursor:pointer}
+.captain-opening input{flex:0 0 auto;width:24px;height:24px;margin:3px 0 0;accent-color:#a7cdbc}
+.captain-opening>span{min-width:0}
+.captain-opening strong,.captain-opening small{display:block;font-size:1em;line-height:1.5}
+.captain-opening strong{color:#efe1bb}
+.captain-opening small{margin-top:5px;color:#bdced1}
+.captain-opening:focus-within{outline:2px solid #e1c284;outline-offset:3px}
+.captain-opening-inherited{padding:12px 14px;margin:16px 0 20px;border-left:3px solid #789c95;background:#172c36;color:#bdced1;line-height:1.5}
 .captain-included p{flex-basis:100%;margin:3px 0}
 .captain-included strong{white-space:normal}
 .captain-ship{display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;padding:15px 13px 12px;background:#132332;border:1px solid #3b5261;border-bottom:3px solid #07101b;border-radius:3px}
