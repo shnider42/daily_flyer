@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { MUSIC_CUES, THEME_ID, scoreEvents, ScorePlayer, SCORE_LOOKAHEAD, SCORE_MAX_VOICES } from '../dist/music-score.mjs';
 
 class Parameter {
@@ -58,8 +59,12 @@ function audioContext({ sampleRate = 24000 } = {}) {
 }
 
 test('the score catalog has authored contrast and a full original theme', () => {
+  assert.equal(MUSIC_CUES.length, 37);
   assert.equal(new Set(MUSIC_CUES.map(cue => cue.id)).size, MUSIC_CUES.length);
-  assert.deepEqual(new Set(MUSIC_CUES.map(cue => cue.family)), new Set(['theme', 'exploration', 'social', 'discovery', 'tension', 'combat', 'recovery', 'terror']));
+  assert.deepEqual(new Set(MUSIC_CUES.map(cue => cue.family)), new Set(['theme', 'exploration', 'social', 'discovery', 'tension', 'combat', 'recovery', 'terror', 'cave', 'planet']));
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 11);
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'cave').length, 5);
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'planet').length, 10);
   assert.ok(MUSIC_CUES.filter(cue => cue.family === 'exploration').length >= 3);
   assert.ok(MUSIC_CUES.filter(cue => cue.family === 'social').length >= 2);
   assert.ok(MUSIC_CUES.some(cue => cue.family === 'social' && cue.tags.includes('whimsical')));
@@ -73,6 +78,13 @@ test('the score catalog has authored contrast and a full original theme', () => 
   assert.ok(theme.events.some(event => event.beat > 248 && event.instrument === 'piano' && event.part === 'melody'), 'The ending is an intimate reprise.');
   const terror = scoreEvents('a-room-without-an-answer');
   assert.ok(terror.events.length <= 12, 'Terror is a sparse authored exception, not a continuous horror pulse.');
+});
+
+test('the complete original main theme preserves every authored note and performance parameter', () => {
+  const score = scoreEvents(THEME_ID, { seed: 'farwake-theme-preservation' });
+  assert.equal(score.events.length, 888);
+  assert.equal(createHash('sha256').update(JSON.stringify(score)).digest('hex'),
+    '52892c51b20a51506eebe29bbca828e114b6367f4f74b782e92083c68199d3bd');
 });
 
 test('all scores are finite, ordered and reproducible; seeds change performance rather than composition', () => {
@@ -112,8 +124,8 @@ test('the renderer schedules a short window and skips missed notes after a stall
   assert.equal(player.playing, false); assert.equal(player.ended, true); assert.equal(player.status().activeVoices, 0);
 });
 
-test('music voices stay bounded through complete dense cues and natural endings release them', () => {
-  for (const id of [THEME_ID, 'keep-her-together', 'apples-in-low-gravity']) {
+test('all 37 complete pieces keep active notes and their releases within the voice budget', () => {
+  for (const { id, family } of MUSIC_CUES) {
     const ctx = audioContext(), player = new ScorePlayer(ctx, ctx.destination);
     player.play(id, { fadeIn: .3 });
     let maximum = 0;
@@ -121,7 +133,7 @@ test('music voices stay bounded through complete dense cues and natural endings 
       ctx.advance(time); player.update(); maximum = Math.max(maximum, player.status().activeVoices);
       assert.ok(player.status().activeVoices <= SCORE_MAX_VOICES, id);
     }
-    assert.ok(maximum > 5, `${id}: actual polyphonic playback occurred`);
+    assert.ok(maximum > (family === 'combat' ? 5 : 0), `${id}: actual playback occurred`);
     assert.equal(player.playing, false, id); assert.equal(player.ended, true, id);
     assert.equal(player.status().activeVoices, 0, id);
     assert.ok(ctx.sourceStarts.every(({ node }) => node.disconnected), `${id}: all completed source nodes disconnect`);

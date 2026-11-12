@@ -4,6 +4,7 @@
  * cue must follow something the captain has actually encountered.
  */
 import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
+import { clearSidearmSight } from './combat.mjs';
 const list = value => Array.isArray(value) ? value : [];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const text = value => typeof value === 'string' ? value : '';
@@ -20,6 +21,43 @@ const UTILITY_DIALOGS = new Set([
 ]);
 const SOCIAL_SITE_KINDS = new Set(['social', 'market', 'clinic']);
 const SOCIAL_PEOPLE = new Set(['npc', 'mechanic', 'merchant', 'bartender', 'settler', 'contact']);
+
+// An explicit hull target takes precedence over its owner's identity: that
+// captain may be ashore, or serving aboard a completely different vessel.
+function targetsOccupied(value, captainId, vesselId) {
+  return vesselId != null && (value?.targetVesselId != null
+    ? same(value.targetVesselId, vesselId) : same(value?.targetId, captainId));
+}
+
+/** Presentation facts also used for crew snapshots that omit exterior actors. */
+export function occupiedVesselThreats(world, hull, captainId) {
+  const vesselId = hull?.id ?? null, position = point(hull);
+  const pursuit = vesselId != null && list(world?.enemies).some(enemy =>
+    enemy?.active === true && finite(enemy.hp) > 0 && !enemy.disabled && !enemy.trainingTarget &&
+    !enemy.capturedBy && !enemy.promotedVesselId && !enemy.canonicalVesselId &&
+    targetsOccupied(enemy, captainId, vesselId) && distance(position, point(enemy)) <= 1100);
+  const incoming = vesselId != null && list(world?.bullets).some(bullet =>
+    finite(bullet?.ttl) > 0 && !same(bullet.ownerId ?? bullet.owner, captainId) &&
+    targetsOccupied(bullet, captainId, vesselId) &&
+    distance(position, point(bullet)) <= Math.max(180, finite(hull?.radius) + 120));
+  return { vesselId, pursuit, incoming };
+}
+
+function planetTags(body, site) {
+  const biome = text(body?.biome).toLowerCase(), tags = [biome];
+  if (/arid|desert|dune/.test(biome)) tags.push('desert');
+  if (/temperate|verdant|earth/.test(biome)) tags.push('temperate');
+  if (/forest|jungle/.test(biome)) tags.push('forest');
+  if (/ice|froz|snow|glaci/.test(biome)) tags.push('ice');
+  if (/ocean|water|coast/.test(biome)) tags.push('ocean', 'water');
+  if (/volcan|lava|ash/.test(biome)) tags.push('volcanic', 'stone');
+  if (/barren|rock|dust/.test(biome)) tags.push('barren', 'stone');
+  if (/industrial/.test(biome)) tags.push('industrial');
+  if (/ruin/.test(biome)) tags.push('ruin');
+  if (body?.homeworldOf) tags.push('alien', 'homeworld', text(body.homeworldOf));
+  if (site?.atmosphere === 'choral') tags.push('alien', 'choral');
+  return tags.filter(Boolean);
+}
 
 function revealedTerror(state, site, observedCue, surface) {
   // Future content supplies this only after presenting the actual reveal. A
@@ -55,6 +93,8 @@ export function musicContext({
 } = {}) {
   const state = game?.state || {}, mode = state.mode || 'ship', interior = state.interior;
   const body = game?.currentBody || interior?.location || null, site = body?.site || null;
+  const parentId = site ? state.exploration?.bodyId || body?.parentId || site.bodyId : body?.id;
+  const parentBody = site ? list(game?.system?.bodies).find(value => same(value.id, parentId)) || body : body;
   const captainId = network?.passport?.captainId || state.multiplayer?.captainId || game?.playerId || 'local';
   const onVessel = mode === 'ship' || ['ship', 'enemy', 'eva'].includes(interior?.kind);
   const occupiedHull = onVessel ? (deckHull ||
@@ -80,12 +120,19 @@ export function musicContext({
     (finite(impact.strength) > 0 || finite(impact.hullDamage) > 0));
   const alarm = list(damage?.sections).some(section => finite(section?.fire) > .1 || finite(section?.breach) > .1);
 
-  // A projectile already within the local ship's immediate view is observed
-  // evidence. The existence of an enemy, even an active one, is not.
-  const incoming = mode === 'ship' && list(game?.system?.bullets).some(bullet =>
-    finite(bullet?.ttl) > 0 && same(bullet.targetId, captainId) &&
-    !same(bullet.ownerId ?? bullet.owner, captainId) &&
-    distance(shipPosition, point(bullet)) <= 180);
+  // Active pursuit must name this occupied hull. Nearby unrelated enemies and
+  // future mission contacts do not qualify. Deck crew receive only these two
+  // observed facts when their snapshot deliberately omits exterior actors.
+  const localSpaceThreat = occupiedVesselThreats(game?.system, occupiedHull, captainId);
+  const crewSpaceThreat = same(state.musicThreat?.vesselId, vesselId) ? state.musicThreat : null;
+  const incoming = onVessel && (localSpaceThreat.incoming || crewSpaceThreat?.incoming === true);
+  const pursuit = onVessel && (localSpaceThreat.pursuit || crewSpaceThreat?.pursuit === true);
+  const layout = surface?.combatLayout;
+  const groundPursuit = mode === 'person' && !onVessel && !!layout?.walkable &&
+    list(state.exploration?.encounter?.monsters).some(actor =>
+      finite(actor?.health) > 0 && actor.alert === true && actor.attackKind !== 'none' && !actor.stationary &&
+      same(actor.targetId, captainId) && distance(personPosition, point(actor)) <= 360 &&
+      canSeeConcealedActor(layout, state.person, actor) && clearSidearmSight(layout, state.person, actor));
 
   const contract = state.npcContract?.active ? state.npcContract : null;
   const aboardContract = !!contract && onVessel && same(contract.vesselId, vesselId);
@@ -97,7 +144,7 @@ export function musicContext({
   const eva = contract?.assignment?.eva;
   const lowSuitAir = aboardContract && interior?.kind === 'eva' && eva?.active === true && eva.warned === true && finite(eva.oxygen, Infinity) <= 30;
   const boarding = mode === 'person' && ['ship', 'enemy'].includes(interior?.kind) && state.boarding?.phase === 'active';
-  const observedThreat = visible && !!(recentImpact || incoming || announcedAttack || boarding);
+  const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding);
   const emergency = visible && !!(alarm || medicalEmergency || lowSuitAir || aboardContract && contract.emergency === true);
   const tension = visible && !!(perceivedThreat || onVessel && state.cosmicWarning || observedCue?.revealed === true && observedCue.tag === 'tension');
 
@@ -110,10 +157,17 @@ export function musicContext({
   const scene = !playing ? 'menu' : observedCue?.tag === 'discovery' && observedCue.revealed === true ? 'discovery' : social ? 'social' : 'exploration';
   const culture = text(site?.culture) || text(body?.culture) || text(body?.faction) || text(game?.currentSystem?.faction) || 'frontier';
   const locationKind = text(site?.style) || text(site?.kind) || (onVessel ? 'ship' : text(body?.kind)) || 'space';
-  const paletteKey = `${culture}:${text(state.systemId) || 'hearth'}:${locationKind}`;
+  const environment = mode === 'person' && !onVessel
+    ? site?.kind === 'cave' || body?.biome === 'cave' ? 'cave'
+      : ['planet', 'moon', 'asteroid'].includes(parentBody?.kind) ? 'planet' : null : null;
+  const paletteKey = `${culture}:${text(state.systemId) || 'hearth'}:${text(parentId)}:${locationKind}`;
   const tags = [...new Set([
-    scene, mode === 'ship' ? 'flight' : 'surface', onVessel ? 'ship' : null,
-    locationKind, culture, text(body?.biome), text(site?.atmosphere),
+    scene, onVessel ? 'flight' : 'surface', onVessel ? 'ship' : 'ground',
+    locationKind, culture, text(parentBody?.culture), text(site?.atmosphere), environment,
+    ...planetTags(parentBody, site), pursuit || groundPursuit ? 'pursuit' : null,
+    occupiedHull?.maxHull >= 700 ? 'capital' : null, emergency ? 'emergency' : null,
+    aboardContract && contract.navy ? 'navy' : null, boarding ? 'boarding' : null,
+    site?.military ? 'infantry' : null,
     social ? 'settlement' : 'solitude',
     ['conservatory', 'farm', 'park'].includes(locationKind) ? 'garden' : null,
     ['market', 'tavern', 'restaurant', 'farm'].includes(locationKind) ? 'whimsical' : null,
@@ -129,9 +183,9 @@ export function musicContext({
     contextKey, shipPosition, personPosition
   };
   return {
-    scene, paletteKey, culture, locationKind, locationId, contextKey, tags,
+    scene, paletteKey, culture, environment, biome: text(parentBody?.biome), bodyId: parentId || null, locationKind, locationId, contextKey, tags,
     playing: !!playing, hidden: !!hidden, now: finite(now), menuOpen, dialogue, paused,
-    observedThreat, combat: observedThreat, tension, emergency,
+    observedThreat, combat: observedThreat, pursuit: visible && !!(pursuit || groundPursuit), tension, emergency,
     terror: !!terrorKey, terrorKey, silence,
     safeNow: visible && !observedThreat && !tension && !emergency && !terrorKey,
     intensity: observedThreat ? .78 : emergency ? .62 : tension ? .32 : 0,
@@ -158,6 +212,7 @@ export function classifyMusicEvent(event, context = {}) {
   const localPerson = same(event.targetId ?? event.playerId ?? event.captainId, scope.captainId);
   const localAttacker = same(event.attackerId ?? event.ownerId ?? event.shooterId, scope.captainId);
   const localVessel = same(event.vesselId ?? event.targetVesselId, scope.vesselId);
+  const firedFromHere = scope.vesselId != null && same(event.sourceVesselId, scope.vesselId);
   const currentBoarding = scope.boardingId != null && same(event.boardingId ?? event.boarding?.id, scope.boardingId);
   const positiveDamage = finite(event.damage) > 0;
   // A shared reveal/hit belongs to the other observer until this captain sees
@@ -170,19 +225,20 @@ export function classifyMusicEvent(event, context = {}) {
     case 'damage':
       // A world hit's playerId can identify the owner of a parked ship. Only
       // the occupied hull belongs to the listener's present scene.
-      return (localVessel || event.vesselId == null && event.targetVesselId == null &&
-        scope.vesselId != null && localPerson) && positiveDamage ? 'combat' : null;
+      return positiveDamage && (localVessel || firedFromHere ||
+        event.vesselId == null && event.targetVesselId == null && scope.vesselId != null && localPerson) ? 'combat' : null;
     case 'person-hit':
       return scope.mode === 'person' && positiveDamage && (localPerson || localAttacker || currentBoarding) ? 'combat' : null;
     case 'person-shot':
       if (scope.mode !== 'person') return null;
-      if (localPerson && event.team === 'hostile') return 'combat';
+      if ((localPerson || same(event.intendedTargetId, scope.captainId)) && event.team === 'hostile') return 'combat';
       if (localAttacker && event.hit === true && event.targetId != null && !event.blocked) return 'combat';
       return currentBoarding && event.team === 'hostile' ? 'combat' : null;
     case 'enemy-shot': {
       // Legacy space events have no recipient ID. They need a locally visible
       // projectile or an explicit matching target; proximity alone is not enough.
-      return localPerson || localVessel || context.observedThreat ? 'combat' : null;
+      return scope.vesselId != null && (targetsOccupied(event, scope.captainId, scope.vesselId) ||
+        event.targetId == null && event.targetVesselId == null && context.observedThreat) ? 'combat' : null;
     }
     case 'shot':
       return localAttacker && event.hit === true && event.targetId != null ? 'combat' : null;

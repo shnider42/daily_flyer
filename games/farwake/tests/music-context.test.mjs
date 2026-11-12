@@ -219,7 +219,7 @@ test('a real solo incoming pulse and shield-only collision both drive the score 
   assert.equal(read(game).emergency, false, 'shield absorption does not invent a compartment fire');
 });
 
-test('actual enemy fire is ignored until the captain can perceive the incoming projectile', () => {
+test('actual targeted enemy fire establishes danger before impact, with captain and hull identity', () => {
   const game = new Game('music-actual-enemy-shot');
   Object.assign(game.state.ship, { x: 0, y: 500, vx: 0, vy: 0 });
   game.system.enemies = []; game.system.bullets = []; game.drainEvents();
@@ -230,8 +230,12 @@ test('actual enemy fire is ignored until the captain can perceive the incoming p
   assert.ok(shot);
   assert.ok(game.system.bullets.length > 0);
   assert.equal(game.system.bullets[0].targetId, game.playerId);
-  assert.equal(read(game).observedThreat, false);
-  assert.equal(classifyMusicEvent(shot, read(game)), null, 'a system-wide shot event is not itself proof of local danger');
+  assert.equal(shot.targetId, game.playerId);
+  assert.equal(shot.targetVesselId, game.state.ship.id);
+  assert.equal(read(game).pursuit, true);
+  assert.equal(classifyMusicEvent(shot, read(game)), 'combat', 'the actual shot names this occupied hull');
+  const unrelated = { ...read(game), scope: { ...read(game).scope, captainId: 'civilian', vesselId: 'civilian-ship' } };
+  assert.equal(classifyMusicEvent(shot, unrelated), null, 'a battle in the same system does not target every listener');
   for (const bullet of game.system.bullets) { bullet.x = 120; bullet.y = 500; }
   assert.equal(read(game).observedThreat, true);
 });

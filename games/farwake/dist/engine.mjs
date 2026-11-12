@@ -704,7 +704,7 @@ export class Game {
       if(dist<650)e.active=true;if(dist>1100||!target)e.active=false;
       e.cooldown-=dt;
       if(!e.active){e.angle+=dt*.18;e.x+=Math.cos(e.angle)*16*dt;e.y+=Math.sin(e.angle)*16*dt;e.boardingCharge=0;continue;}
-      e.targetId=target.playerId;e.angle=Math.atan2(sh.y-e.y,sh.x-e.x);
+      e.targetId=target.playerId;e.targetVesselId=target.netVesselId||sh.id;e.angle=Math.atan2(sh.y-e.y,sh.x-e.x);
       e.boardingCooldown=Math.max(0,(e.boardingCooldown||0)-dt);
       const exposed=getShipClass(e.classId).berths>=3&&getShipClass(sh.classId).berths>=3&&!target._parkedVessel&&sh.shield<=Math.max(4,sh.maxShield*.2)&&target.state.boarding?.phase!=='active'&&!target.state.pendingEncounter&&!e.boardingCooldown;
       const side=e.id.length%2?1:-1;
@@ -722,9 +722,9 @@ export class Game {
         for(let mount=0;mount<equipment.pulseCount;mount++){
           const muzzle=equipment.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(equipment.pulseCount-1))*equipment.pulseOffset;
           const forward=muzzle?.[0]??0,mountAngle=muzzle?e.angle:angle;
-          this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:e.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,radius:4});
+          this.system.bullets.push({id:`${e.id}:pulse:${this.state.stats.time}:${serial}:${mount}`,x:e.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:e.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*280,vy:Math.sin(angle)*280,ttl:2.1,damage:e.damage*equipment.pulseDamageScale,owner:e.id,ownerId:e.id,vesselId:e.id,team:'hostile',targetId:target.playerId,targetVesselId:e.targetVesselId,radius:4});
         }
-        e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{x:e.x,y:e.y,angle});
+        e.cooldown=1.2+this._rand()*.8;this._worldEvent('enemy-shot',{id:`${e.id}:volley:${this.state.stats.time}:${serial}`,systemId:this.state.systemId,attackerId:e.id,sourceVesselId:e.id,targetId:target.playerId,targetVesselId:e.targetVesselId,x:e.x,y:e.y,angle});
       }
       if(dist<sh.radius+e.radius-2){target._damageShip(4*dt,{sourceX:e.x,sourceY:e.y,cause:'collision'});sh.vx+=Math.cos(e.angle)*30*dt;sh.vy+=Math.sin(e.angle)*30*dt;}
     }
@@ -750,7 +750,7 @@ export class Game {
           ...targets.filter(g=>g.state.ship.hull>0&&hostileVessel(g)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).map(g=>({point:g.state.ship,game:g}))
         ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
         const collision=hits[0];if(!collision)continue;b.ttl=0;
-        if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
+        if(collision.game){const hit=collision.game;hit._damageShip(b.damage,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:collision.point.x,y:collision.point.y,target:'player',playerId:hit.playerId,vesselId:hit.netVesselId||collision.point.id,damage:b.damage});continue;}
         const hit=collision.enemy,damage=Math.min(hit.hp,b.damage);ensureDamageControl(hit);hit.hp=Math.max(0,hit.hp-b.damage);hit.active=true;
         const interiorOwner=this._worldGames?.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===hit.id);
         (interiorOwner||this)._registerInteriorHit(hit,damage,0,{sourceId:b.ownerId,sourceVesselId:b.vesselId,bullet:b});
@@ -763,7 +763,7 @@ export class Game {
           if(stored&&stored!==hit)Object.assign(stored,{hp:hit.hp,disabled:hit.hp<=hit.maxHp*.4,professionContributors:{...hit.professionContributors}});
         }
         this._record().enemyHealth[hit.id]=hit.hp;
-        this._worldEvent('hit',{x:hit.x,y:hit.y,target:'enemy',vesselId:hit.id,damage:b.damage});
+        this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:hit.x,y:hit.y,target:'enemy',targetId:hit.id,vesselId:hit.id,damage:b.damage});
         if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
         else if(hit.hp<=hit.maxHp*.4&&!hit.disabled){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:hit.trainingTarget?`${hit.name} disabled. Continue the gunnery exercise.`:hit.militaryOperationId?`${hit.name} disabled. The marked contact is neutralized.`:`${hit.name} disabled. Close to board, or finish the hull.`});}
       }else{

@@ -25,6 +25,7 @@ import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 import { settleNpcContract } from '../dist/npc-contracts.mjs';
 import { applyGunneryAim } from '../dist/gunnery.mjs';
 import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
+import { occupiedVesselThreats } from '../dist/music-context.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -1410,6 +1411,10 @@ export class Realm extends BoardingAuthority {
     // that nothing will happen, and a client cannot inspect a future alarm.
     if(state.npcContract?.navy){delete state.npcContract.navy.attackPlanned;delete state.npcContract.navy.attackAt;}
     const relevantWorld = this._room(state.systemId).runtime, inSpace = room.kind === 'system'||exteriorGunnery;
+    // Crew inside a hull do not receive its full exterior scene. Retain only
+    // current, explicitly targeted danger so their score follows the same
+    // attack as the pilot's without exposing distant actors or planned events.
+    state.musicThreat = c.aboard ? occupiedVesselThreats(relevantWorld, ship, c.id) : null;
     let world;
     if (compact) {
       world = clone(Object.fromEntries(MOTION_WORLD_FIELDS.map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));

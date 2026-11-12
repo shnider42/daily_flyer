@@ -207,3 +207,10 @@ Authority commands include flight transitions (`dock`, `launch`, `travel`), inte
 Run the complete suite with `npm test`, just the server suite with `npm run test:network`, and syntax checks with `npm run check`. Top-level tests intentionally do not require the `ws` dependency, so the separate static-site build can run `node --test tests/*.test.mjs`.
 
 The integration suite exercises ten simultaneous clients in separate systems, ten occupants on one capital, a client with an injected 200 ms delay, one shared-world tick, permission/proximity/puzzle checks, nonduplicated rewards, restart persistence, boarding and retreat, downed human recovery, offline helm expiry, full bunk capacity, dead TCP detection, CAS conflict, and acknowledgment timing. It reports local serialized snapshot sizes. These are functional local tests, not a production concurrency, latency, or mobile-bandwidth benchmark. Internet routing, host cold starts, device rendering, and real-world jitter require deployment observation.
+
+
+## Adaptive music · 0.15.0
+
+Solo and shared captains use the same 37-piece score and local music director. Music follows the captain’s occupied hull or current ground encounter, while the authority still owns combat and mission progress. Targeted hostile volleys identify the target hull; confirmed hits identify both the struck hull and firing hull. This makes Navy gunnery, ordinary shared deck crew, and the helm respond to their actual battle without scoring another ship’s unrelated fight. Interior snapshots provide only current incoming/pursuit booleans for the occupied vessel and do not disclose a planned ambush. Ground rifle misses retain the intended captain for danger scoring.
+
+Cave and planetary selections use actual environment, body identity, terrain, and culture. Neither concealed enemies nor the number of enemies in a system can independently select danger music. Playback history, cue selection, and volume remain local to the listening device. No music traffic, microphone access, account, or listening analytics are added to the galaxy service.

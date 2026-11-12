@@ -185,7 +185,8 @@ function stepBellwether(state,monster,actors,dt,layout,event){
 function stepInfantry(state,monster,actors,dt,layout,event){
  const living=actors.filter(actor=>actor.person.health>0&&!actor.person.down),target=nearestActor(monster,living),at=state.time;
  monster.cooldown=Math.max(0,finite(monster.cooldown)-dt);
- if(!target){monster.windup=0;monster.moving=false;return;}
+ if(!target){monster.targetId=null;monster.windup=0;monster.moving=false;return;}
+ monster.targetId=target.id;
  const person=target.person,distance=Math.hypot(person.x-monster.x,person.y-monster.y),visible=clearSidearmSight(layout,monster,person);
  if(!monster.alert){if(!visible||distance>300){monster.moving=false;return;}monster.alert=true;}
  if(monster.windup>0){
@@ -193,7 +194,7 @@ function stepInfantry(state,monster,actors,dt,layout,event){
   monster.cooldown=monster.fireDelay;
   const aim=sidearmAim(monster,living.map(actor=>({...actor.person,id:actor.id})),{aiming:true,aimX:Math.cos(monster.aimAngle),aimY:Math.sin(monster.aimAngle)},layout);
   const hit=aim.target&&living.find(actor=>actor.id===aim.target.id),damage=hit?monster.damage*clamp(finite(hit.damageTakenMultiplier,1),.4,2):0;
-  const id=`${state.id}:infantry-shot:${++state.shotSerial}`,shot={id,team:'hostile',attackerId:monster.id,actorName:monster.name,weaponId:'raider-rifle',angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:hit?.id||null,targetName:hit?.name||null,hit:!!hit,blocked:!!aim.blocked,damage,until:at+.22};
+  const id=`${state.id}:infantry-shot:${++state.shotSerial}`,shot={id,team:'hostile',attackerId:monster.id,actorName:monster.name,weaponId:'raider-rifle',angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:hit?.id||null,intendedTargetId:monster.aimTargetId||target.id,targetName:hit?.name||null,hit:!!hit,blocked:!!aim.blocked,damage,until:at+.22};
   monster.lastShot=shot;monster.attackUntil=at+.22;event('person-shot',shot);
   if(hit){
    const wounded=hit.person;wounded.health=Math.max(0,wounded.health-damage);wounded.hitUntil=at+.24;
@@ -206,7 +207,7 @@ function stepInfantry(state,monster,actors,dt,layout,event){
  monster.moving=false;
  if(!monster.cooldown){
   const dx=person.x-monster.x,dy=person.y-monster.y;
-  monster.windup=monster.windupDuration;monster.attackUntil=at+monster.windup;monster.aimAngle=Math.atan2(dy,dx);monster.weaponDrawn=true;
+  monster.windup=monster.windupDuration;monster.attackUntil=at+monster.windup;monster.aimTargetId=target.id;monster.aimAngle=Math.atan2(dy,dx);monster.weaponDrawn=true;
   monster.facing=Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
  }
 }
@@ -255,7 +256,8 @@ export function stepSiteEncounter(state,participants,delta,surface){
   if(!isCabinWalkable(layout,monster.x,monster.y,6)){let best=null,bestDistance=Infinity;for(let cell=0;cell<layout.walkable.length;cell++){if(!layout.walkable[cell])continue;const point=pt(cell%layout.cols,Math.floor(cell/layout.cols)),distance=Math.hypot(point.x-monster.x,point.y-monster.y);if(distance<bestDistance&&isCabinWalkable(layout,point.x,point.y,6)){best=point;bestDistance=distance;}}if(best)Object.assign(monster,best);}
   if(monster.attackKind==='ranged'){stepInfantry(state,monster,actors,dt,layout,event);continue;}
   monster.cooldown=Math.max(0,finite(monster.cooldown)-dt);
-  const target=actors.filter(actor=>actor.person.health>0).sort((a,b)=>Math.hypot(a.person.x-monster.x,a.person.y-monster.y)-Math.hypot(b.person.x-monster.x,b.person.y-monster.y))[0];if(!target){monster.windup=0;monster.moving=false;continue;}
+  const target=actors.filter(actor=>actor.person.health>0).sort((a,b)=>Math.hypot(a.person.x-monster.x,a.person.y-monster.y)-Math.hypot(b.person.x-monster.x,b.person.y-monster.y))[0];if(!target){monster.targetId=null;monster.windup=0;monster.moving=false;continue;}
+  monster.targetId=target.id;
   const person=target.person,distance=Math.hypot(person.x-monster.x,person.y-monster.y),visible=clearSidearmSight(layout,monster,person);
   if(!monster.alert&&distance>300){monster.moving=false;continue;}if(visible&&distance<300)monster.alert=true;
   if(monster.windup>0){monster.windup=Math.max(0,monster.windup-dt);monster.moving=false;if(monster.windup>0)continue;

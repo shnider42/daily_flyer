@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.14.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.15.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Music for danger, caves, and worlds · 0.15.0
+
+The original score now contains **37 authored pieces**: the previous twelve plus **ten new danger compositions, five cave compositions, and ten planetary compositions**. The main theme, **The Long Way Home**, keeps its complete melody and arrangement. Settings shows the current piece beneath the theme control.
+
+Danger follows actual targeted hostile fire, confirmed outgoing ship hits, active pursuit, boarding, and occupied-hull emergencies. A Navy gunner, an ordinary crew member inside a shared ship, and its pilot hear the same immediate danger from their own perspective. Dodging an infantry shot still counts as being fired upon. The presence of disabled enemies or harmless target frames does not itself create danger. Planned ambushes, hidden cave creatures, distant unrelated battles, and a parked personal ship do not create false danger.
+
+The director promptly fades peaceful music when danger appears, sustains urgency through short gaps in gunfire, and lets the captain recover after the threat ends. Five cave pieces use sparse mallets, piano, and sustained textures. Planetary selections follow the actual world’s terrain and culture, including temperate, forest, desert, ocean, ice, volcanic, industrial, barren, ruin, and alien homeworld palettes. Entering a different environment allows a gentle transition within six seconds instead of waiting several minutes for the earlier piece to finish. Ordinary dialogue and small movements do not restart the score.
+
+All of this uses the same local audio path in solo and shared play, preserves independent music volume and mute preferences, and retains intentional quiet between peaceful pieces. See [the full composition catalog and musical direction](docs/music-direction.md).
 
 ## The same career in solo and shared play · 0.14.1
 
@@ -186,7 +196,7 @@ The next engine priorities are a common entity identity contract across resident
 
 ## An original adaptive score · 0.8.1
 
-Farwake now has twelve authored pieces and a music director that follows the local captain's actual situation. **The Long Way Home** is the complete main theme: a recurring piano/guitar melody, moving bass, warm organ, restrained percussion, a brighter middle passage, and a full return. Use **Listen to the theme** on the title screen or in Settings to hear it.
+Farwake now has 37 authored pieces and a music director that follows the local captain's actual situation. **The Long Way Home** is the complete main theme: a recurring piano/guitar melody, moving bass, warm organ, restrained percussion, a brighter middle passage, and a full return. Use **Listen to the theme** on the title screen or in Settings to hear it.
 
 Exploration has distinct piano, electronic-travel, and guitar palettes. Inhabited places can feel companionable or gently whimsical. Perceived danger brings tension; incoming fire, real boarding, and occupied-ship emergencies bring urgency. A recovery passage and a quiet interval follow. A rare authored terror treatment needs a reveal the captain has actually reached. Enemy counts, darkness, low health, and unrelated ships do not select horror or combat music.
 
@@ -647,6 +657,8 @@ For solo-only static hosting, publish the **contents of `dist/`** with `index.ht
 | [dist/ui.mjs](dist/ui.mjs) | Dialog focus handling, reusable UI utilities, settings, storage, toasts, and procedural portraits |
 | [dist/audio.mjs](dist/audio.mjs) | Independent effects/music buses and browser audio lifecycle |
 | [dist/music-score.mjs](dist/music-score.mjs) | Original authored pieces, instrument voices, and bounded note transport |
+| [dist/music-danger.mjs](dist/music-danger.mjs) | Ten additional authored combat and pursuit compositions |
+| [dist/music-environments.mjs](dist/music-environments.mjs) | Five cave and ten planetary compositions |
 | [dist/music-director.mjs](dist/music-director.mjs) | Musical priorities, transitions, repeat memory, and deliberate quiet |
 | [dist/music-context.mjs](dist/music-context.mjs) | Local, observed gameplay evidence for the score |
 | [dist/shared/pgi-controls.mjs](dist/shared/pgi-controls.mjs) | Shared DailyFlyer/DFE joystick and game-surface input helpers |
@@ -682,6 +694,6 @@ For a release, also exercise the browser: start and restore a solo voyage; dock,
 
 ## Art and shared-code provenance
 
-Farwake's pixel-style planets, ships, stations, characters, terrain, rooms, and portraits are original drawings produced by the code in this project. The application does not load an external sprite pack or recorded music library. Its effects and twelve authored musical pieces are synthesized with Web Audio. The score contains original melodies; it does not sample commercial recordings.
+Farwake's pixel-style planets, ships, stations, characters, terrain, rooms, and portraits are original drawings produced by the code in this project. The application does not load an external sprite pack or recorded music library. Its effects and 37 authored musical pieces are synthesized with Web Audio. The score contains original melodies; it does not sample commercial recordings.
 
 The two files under `dist/shared/` are reused DailyFlyer/DFE helpers. Farwake-specific input and sound behavior lives in `input.mjs` and `audio.mjs`; the shared helpers retain the existing project's multi-touch and device-audio handling.

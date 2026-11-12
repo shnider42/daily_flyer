@@ -13,6 +13,16 @@ export function musicSeed(value) {
 const duration = cue => Number(cue?.durationSeconds) || ((cue?.bars || 16) * 4 * 60 / (cue?.bpm || 72));
 const danger = family => ['combat', 'tension', 'terror'].includes(family);
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+const environmental = family => family === 'cave' || family === 'planet';
+const GENERIC_TAGS = new Set(['flight', 'surface', 'settlement', 'solitude', 'ship', 'ground',
+  'combat', 'tension', 'terror', 'exploration', 'planet', 'cave']);
+const BIOME_TAGS = new Set(['temperate', 'forest', 'desert', 'ocean', 'ice', 'volcanic',
+  'industrial', 'barren', 'ruin', 'earth']);
+const ambientFamily = context => context.scene === 'menu' ? 'theme'
+  : context.environment === 'cave' ? 'cave'
+  : context.scene === 'social' ? 'social'
+  : context.environment === 'planet' ? 'planet' : 'exploration';
+const LOCATION_TRANSITION_SECONDS = 6;
 
 export class MusicDirector {
   constructor({ cues = [], themeId = 'long-way-home', seed = 'farwake' } = {}) {
@@ -23,6 +33,8 @@ export class MusicDirector {
     this.lastDanger = false; this.themePlayed = false; this.previewRequested = false;
     this.history = []; this.lastPlayed = new Map(); this.eventKeys = []; this.terrorKeys = [];
     this.terrorTimes = []; this.suspended = false; this.suppressed = false;
+    this.placeKey = null; this.placeFamily = null;
+    this.transitionKey = null; this.transitionAt = Infinity;
   }
 
   random() {
@@ -67,17 +79,59 @@ export class MusicDirector {
     if (family === 'social' && !tags.includes('whimsical') && !tags.includes('garden')) {
       pool = pool.filter(cue => !cue.tags?.includes('whimsical'));
     }
-    if (!pool.length && family === 'discovery') pool = this.cues.filter(cue => cue.family === 'exploration');
+    if (!pool.length && ['discovery', 'cave', 'planet'].includes(family)) pool = this.cues.filter(cue => cue.family === 'exploration');
     if (!pool.length) return null;
+    const ground = tags.includes('ground') || !tags.includes('ship') && tags.includes('surface');
+    const space = !ground && tags.some(tag => ['ship', 'flight', 'capital', 'navy'].includes(tag));
+    if (family === 'combat') {
+      // A pursuit tag does not turn a ship-only escape piece into infantry
+      // music. Explicit dual-domain pieces and unclassified cues remain useful
+      // fallbacks, including when the usual choices are still on cooldown.
+      const compatible = pool.filter(cue => {
+        const own = cue.tags || [];
+        const forGround = own.some(tag => ['ground', 'surface', 'infantry', 'boarding'].includes(tag));
+        const forSpace = own.some(tag => ['ship', 'flight', 'navy', 'capital'].includes(tag));
+        if (ground && forSpace && !forGround || space && forGround && !forSpace) return false;
+        return !own.includes('capital') || tags.includes('capital') || tags.includes('navy');
+      });
+      if (compatible.length) pool = compatible;
+    }
     const available = pool.filter(cue => now - (this.lastPlayed.get(cue.id) ?? -Infinity) >= (cue.cooldownSeconds ?? 180));
     if (available.length) pool = available;
     else if (!danger(family)) return null;
     const fresh = pool.filter(cue => !this.history.slice(-2).includes(cue.id));
     if (fresh.length) pool = fresh;
-    const specific = tags.filter(tag => !['flight','surface','settlement','solitude','ship'].includes(tag));
-    const precise = pool.filter(cue => cue.tags?.some(tag => specific.includes(tag)));
-    const favored = precise.length ? precise : pool.filter(cue => cue.tags?.some(tag => tags.includes(tag)));
-    if (favored.length) pool = favored;
+    const specific = tags.filter(tag => !GENERIC_TAGS.has(tag));
+    const affinity = cue => {
+      const own = cue.tags || [], has = tag => own.includes(tag) && tags.includes(tag);
+      if (environmental(family)) {
+        // The actual biome wins over descriptive overlap such as "stone".
+        // Homeworld culture gets its own voice while the ordinary biome stays
+        // in rotation once that more specific piece needs a rest.
+        if (context.culture && !GENERIC_TAGS.has(context.culture) && own.includes(context.culture)) return 1000;
+        if (has('homeworld')) return 600;
+        if (has('alien')) return 400;
+        if (context.biome && own.includes(context.biome)) return 200;
+        if (specific.some(tag => BIOME_TAGS.has(tag) && own.includes(tag))) return 100;
+        return own.some(tag => specific.includes(tag)) ? 20 : own.some(tag => tags.includes(tag)) ? 1 : 0;
+      }
+      if (family === 'combat') {
+        let score = 0;
+        if (has('boarding')) score += 400;
+        if (has('capital') || has('navy')) score += 300;
+        if (has('infantry')) score += 250;
+        if (has('emergency')) score += 180;
+        if (has('pursuit')) score += 140;
+        if (has('escort') || has('defense')) score += 100;
+        if (ground && own.some(tag => ['ground', 'surface', 'infantry'].includes(tag)) ||
+          space && own.some(tag => ['ship', 'flight'].includes(tag))) score += 10;
+        if (own.includes('boarding') && !tags.includes('boarding')) score -= 30;
+        return score;
+      }
+      return own.some(tag => specific.includes(tag)) ? 20 : own.some(tag => tags.includes(tag)) ? 1 : 0;
+    };
+    const best = Math.max(...pool.map(affinity));
+    pool = pool.filter(cue => affinity(cue) === best);
     const regional = musicSeed(context.paletteKey || 'open-sky');
     return pool[(Math.floor(this.random() * pool.length) + regional) % pool.length];
   }
@@ -89,7 +143,9 @@ export class MusicDirector {
       until: now + duration(cue) + 2,
       seed: musicSeed(`${context.paletteKey}|${cue.id}|${this.sequence}`),
       fadeIn: fast ? .9 : cue.family === 'theme' ? 1.6 : 3.5,
-      fadeOut: fast ? .35 : 4, preview };
+      fadeOut: fast ? .35 : 4, preview,
+      placeKey: this.placeKey, placeFamily: this.placeFamily };
+    this.transitionKey = null; this.transitionAt = Infinity;
     if (cue.family === 'recovery') this.recoveryUntil = this.current.until;
     this.history.push(cue.id); if (this.history.length > 8) this.history.shift();
     this.lastPlayed.set(cue.id, now);
@@ -110,13 +166,29 @@ export class MusicDirector {
       this.suppressed = false; this.suspended = false;
       this.nextMusicAt = now + 3;
     }
-    if (context.observedThreat || context.combat) this.combatUntil = now + 14;
+    if (context.observedThreat || context.combat || context.pursuit) this.combatUntil = now + 14;
     if (context.tension) this.tensionUntil = now + 9;
     if (context.silence) {
       this.current = null; this.nextMusicAt = now + 12;
       return this.decision('silence', duck, .8);
     }
     const inGame = context.scene !== 'menu';
+    const placeFamily = ambientFamily(context), placeKey = `${placeFamily}:${context.paletteKey || context.contextKey || 'open-sky'}`;
+    const changedPlace = this.placeKey !== null && this.placeKey !== placeKey;
+    const previousPlaceFamily = this.placeFamily;
+    this.placeKey = placeKey; this.placeFamily = placeFamily;
+    // Let the current phrase breathe briefly when arriving somewhere with its
+    // own music, then crossfade. A menu theme cannot linger for minutes in a
+    // cave. Briefly crossing a threshold and returning cancels the transition.
+    const mismatchedPlace = this.current && !danger(this.current.cue.family) && this.current.cue.family !== 'recovery'
+      && this.current.placeKey !== placeKey && (environmental(placeFamily) || environmental(this.current.placeFamily));
+    if (mismatchedPlace) {
+      if (this.transitionKey !== placeKey) { this.transitionKey = placeKey; this.transitionAt = now + LOCATION_TRANSITION_SECONDS; }
+      if (now >= this.transitionAt && !context.paused) { this.current = null; this.nextMusicAt = now; this.transitionKey = null; this.transitionAt = Infinity; }
+    } else { this.transitionKey = null; this.transitionAt = Infinity; }
+    if (!this.current && changedPlace && (environmental(placeFamily) || environmental(previousPlaceFamily))) {
+      this.nextMusicAt = Math.min(this.nextMusicAt, now + LOCATION_TRANSITION_SECONDS);
+    }
     const combat = inGame && (now < this.combatUntil || context.emergency);
     const tense = inGame && now < this.tensionUntil;
     const terrorKey = String(context.terrorKey || context.paletteKey || 'authored-reveal');
@@ -138,11 +210,14 @@ export class MusicDirector {
       this.current = null;
       this.nextMusicAt = now + (danger(family) ? 1.5 : this.gap(presence));
       if (family === 'recovery') { this.recoveryUntil = -Infinity; this.nextMusicAt = now + Math.max(35, this.gap(presence)); }
+      // An ordinary ending inside an arrival's short grace period must not
+      // replace that pending location transition with a much longer rest.
+      if (this.transitionKey === placeKey) this.nextMusicAt = Math.min(this.nextMusicAt, this.transitionAt);
     }
     let mood = combat ? 'combat' : terror ? 'terror' : tense ? 'tension'
       : inGame && now < this.recoveryUntil ? 'recovery'
       : !inGame ? 'theme' : now < this.discoveryUntil || context.scene === 'discovery' ? 'discovery'
-      : context.scene === 'social' ? 'social' : 'exploration';
+      : placeFamily;
     if (this.current && danger(this.current.cue.family) && !danger(mood)) this.current = null;
     if (this.current && danger(mood) && this.current.cue.family !== mood) {
       // A hit can interrupt a peaceful phrase; further hits do not restart it.

@@ -6,6 +6,8 @@
  * The director owns when a piece belongs; this module owns how it is played.
  * No network requests, timers, audio worklets or third-party recordings.
  */
+import { DANGER_COMPOSITIONS } from './music-danger.mjs';
+import { ENVIRONMENT_COMPOSITIONS } from './music-environments.mjs';
 
 export const THEME_ID = 'long-way-home';
 export const SCORE_LOOKAHEAD = .18;
@@ -31,6 +33,8 @@ export const MUSIC_CUES = Object.freeze([
   cue('after-the-static', 'After the Static', 'recovery', 12, 68, 240, ['recovery', 'breathing-room'], .15),
   cue('home-in-a-pocket', 'Home in a Pocket', 'recovery', 16, 70, 720, ['home', 'theme-reprise', 'safe-return'], .17),
   cue('a-room-without-an-answer', 'A Room Without an Answer', 'terror', 12, 58, 1200, ['authored-terror', 'sparse'], .24),
+  ...[...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS].map(({ id, title, family, bars, bpm, cooldownSeconds, tags, intensity }) =>
+    cue(id, title, family, bars, bpm, cooldownSeconds, tags, intensity)),
 ]);
 
 const CUES = new Map(MUSIC_CUES.map(entry => [entry.id, entry]));
@@ -336,6 +340,7 @@ const BUILDERS = {
   'after-the-static': s => buildRecovery(s),
   'home-in-a-pocket': s => buildRecovery(s, true),
   'a-room-without-an-answer': buildTerror,
+  ...Object.fromEntries([...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS].map(entry => [entry.id, s => entry.build(s, H)])),
 };
 
 function seedValue(seed) {
@@ -367,9 +372,9 @@ export function scoreEvents(cueId, { seed = 1 } = {}) {
 }
 
 // Samples and periodic waves are shared between crossfading players in one
-// AudioContext. All twelve pieces cache about 4.24 MiB of 24 kHz samples,
-// plus the native-rate stereo reverb (0.92 MiB at 48 kHz). Two players
-// crossfading in that context reuse the same buffers.
+// AudioContext. New compositions reuse the existing instrument samples and
+// native-rate stereo reverb. Two players crossfading in that context share
+// those buffers; the catalog does not create a separate bank for each piece.
 const ASSETS = new WeakMap();
 const midiHz = midi => 440 * 2 ** ((midi - 69) / 12);
 const INSTRUMENT = Object.freeze({
