@@ -19,6 +19,24 @@ function fixture({view,pending=null}={}){
 }
 const joins=()=>({status:'unjoined',guidanceActive:false,actions:[{action:'join',branchId:'navy',entityId:MILITARY_RECRUITER_ID,label:'Join Navy',available:true,detail:'Serve on a carrier.'},{action:'join',branchId:'army',entityId:MILITARY_RECRUITER_ID,label:'Join Army',available:true,detail:'Deploy on foot.'}]});
 const active=()=>({status:'active',guidanceActive:true,branchId:'army',branchName:'Freewake Army',title:'Field qualification',objective:'Hit each target, then use the range terminal.',target:{systemId:'hearth',bodyId:'morrow',siteId:'service-range',entityId:'record:drill'},active:{operationId:'test-operation',phase:'active',objectives:[{id:'hits',label:'Hit three frames',value:1,required:3,done:false}]},actions:[{action:'pause',label:'Take leave',available:true}]});
+const descendants=root=>(root.children||[]).flatMap(child=>[child,...descendants(child)]);
+
+test('service panel shows personal rank beside a mixed-rank operation and dispatches the exact authority action',async()=>{
+ const join={action:'joinOperation',operationId:'operation-7',missionId:'frontier-duty',entityId:MILITARY_RECRUITER_ID,label:'Join this watch',available:true};
+ const launch={action:'launchOperation',operationId:'operation-7',label:'Launch deployment',available:false,reason:'The operation leader must authorize departure.'};
+ const view={...active(),serviceRank:{enlisted:true,rank:'Recruit',rankIndex:0,completed:1,nextRank:3,nextRankName:'Private',permissionLabels:['Serve in an assigned squad or ship watch']},dialogue:'Recruit, your own duty record follows you.',operations:[{id:'operation-7',title:'Border <watch>',phase:'muster',systemName:'Meridian',leaderName:'Veteran Ada',roster:[{captainId:'captain-one',name:'New recruit',rank:'Recruit',role:'Infantry',online:true},{captainId:'captain-two',name:'Veteran Ada',rank:'Corporal',role:'Operation leader',online:true}],actions:[join,launch]}]};
+ const f=fixture({view});f.ui.open(MILITARY_RECRUITER_ID);
+ assert.match(f.dialog.markup,/Recruit/);assert.match(f.dialog.markup,/1 \/ 3 assignments toward Private/);assert.doesNotMatch(f.dialog.markup,/Corporal/);
+ const nodes=descendants(f.dialog.body),card=nodes.find(node=>node.innerHTML?.includes('Border &lt;watch&gt;'));assert.ok(card);assert.match(card.innerHTML,/New recruit.*Recruit/);assert.match(card.innerHTML,/Veteran Ada.*Corporal/);
+ assert.equal(nodes.find(node=>node.textContent==='Launch deployment').disabled,true);
+ await nodes.find(node=>node.textContent==='Join this watch').onclick();assert.equal(f.calls.length,1);assert.equal(f.calls[0].args,join);
+});
+
+test('deployment board preserves locked orders and never calculates command permissions from a teammate',()=>{
+ const view={...active(),deployments:[{id:'quiet-watch',title:'Distant watch',summary:'Stand watch in the assigned system.',systemName:'Sable',actions:[{action:'createOperation',missionId:'quiet-watch',label:'Form this deployment',available:false,reason:'Petty officer rank is required.'}]}]};
+ const f=fixture({view});f.ui.open();const nodes=descendants(f.dialog.body),button=nodes.find(node=>node.textContent==='Form this deployment');assert.ok(button);assert.equal(button.disabled,true);
+ button.onclick();assert.equal(f.calls.length,0);assert.ok(nodes.some(node=>node.textContent==='Petty officer rank is required.'));
+});
 
 test('the recruiter offers exactly two branches and declining submits nothing',()=>{
  const f=fixture({view:joins()});f.ui.open(MILITARY_RECRUITER_ID);

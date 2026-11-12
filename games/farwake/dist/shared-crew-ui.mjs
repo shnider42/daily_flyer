@@ -1,5 +1,6 @@
 /** Shared ships, invitations, and returning aboard share one small crew panel. */
 import { getShipClass } from './fleet.mjs';
+import { FACTIONS } from './content.mjs';
 import { getBoardingAction, getDisembarkAction, getHelmAction } from './perspective-controls.mjs';
 
 const SERVICE_ROLES = ['weapons', 'engineering', 'scanner', 'navigation', 'medical', 'security'];
@@ -11,6 +12,7 @@ const portOf = game => {
 };
 const intact = vessel => !!vessel && !vessel.destroyed && !(vessel.hull<=0);
 const isOwner = (game,vessel) => vessel?.ownerId===stateOf(game).multiplayer?.captainId && !vessel?.npcContractId;
+const militaryText=person=>{const service=person.military;if(!service?.rank)return '';const faction=FACTIONS.find(faction=>faction.id===service.factionId)?.name||service.factionId||'',branch={army:'Army',navy:'Navy'}[service.branchId]||'service',role={leader:'Operation leader',commander:'Operation leader',gunner:'Gunner',infantry:'Infantry',crew:'Assigned crew'}[service.role]||service.role;return`${faction} ${branch} · ${service.rank}${role?' · '+role:''}`;};
 
 /** A remembered port carrier is useful only while it is actually at this port. */
 export function selectedCrewVessel(game,snapshot={}) {
@@ -133,6 +135,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
    const row=append(section,'article','shared-captain-card'),heading=append(row,'div','shared-captain-heading');
    append(heading,'strong','',person.name);append(heading,'span','shared-captain-presence',person.online?'Online':'Away');
    append(row,'p','shared-captain-location',captainLocation(person,vessel));
+   if(militaryText(person))append(row,'p','shared-captain-location',militaryText(person));
    const controls=append(row,'div','shared-permission-controls');
    for(const [control,label,on] of [['boarding','Allow aboard',allowed],['helm','Allow piloting',!!helm]]) {
     const key=`${vessel.id}:${person.captainId}:${control}`;
@@ -166,6 +169,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   const section=append(parent,'section','shared-crew-roster');append(section,'h3','','People aboard');
   for(const person of people) {
    const row=append(section,'div','shared-roster-row');append(row,'strong','',person.name);append(row,'span','',captainLocation(person,vessel));
+   if(militaryText(person))append(row,'span','shared-captain-location',militaryText(person));
   }
  }
  function localPortShips() {
@@ -189,6 +193,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   const roster=append(section,'div','shared-crew-roster');append(roster,'h3','','Captains in this galaxy');
   for(const person of snap.presence||[]) {
    const row=append(roster,'div','shared-roster-row');append(row,'strong','',person.name);append(row,'span','',`${person.online?'Online':'Away'} · ${captainLocation(person,null)}`);
+   if(militaryText(person))append(row,'span','shared-captain-location',militaryText(person));
   }
   const actions=append(section,'div','shared-crew-actions');
   if(openHome)button(actions,'Home berth & recovery',openHome);

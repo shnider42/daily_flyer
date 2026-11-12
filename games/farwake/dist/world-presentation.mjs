@@ -50,7 +50,7 @@ export class WorldPresentation {
     const exploration = snapshot.state?.exploration;
     const explorationKey = exploration?.key ? `${roomKey}:${exploration.key}` : '';
     const explorationActors = explorationKey ? exploration.encounter?.monsters || [] : [];
-    const frame = { time, enemies: poses(snapshot.world.enemies), traffic: poses(snapshot.world.traffic), boarders: poses(actors), explorers: poses(explorationActors), boardKey, explorationKey };
+    const frame = { time, enemies: poses(snapshot.world.enemies), traffic: poses(snapshot.world.traffic), parkedShips: poses(snapshot.world.parkedShips), boarders: poses(actors), explorers: poses(explorationActors), boardKey, explorationKey };
     if (this.frames.at(-1)?.time === time) this.frames[this.frames.length - 1] = frame;
     else this.frames.push(frame);
     if (this.frames.length > 8) this.frames.shift();
@@ -102,7 +102,7 @@ export class WorldPresentation {
       ...bullet, x: bullet.x + (finite(bullet.vx) ? bullet.vx : 0) * seconds, y: bullet.y + (finite(bullet.vy) ? bullet.vy : 0) * seconds
     }));
     return {
-      world: { ...this.latest.world, enemies: interpolate(this.latest.world.enemies, 'enemies'), traffic: interpolate(this.latest.world.traffic, 'traffic'), bullets },
+      world: { ...this.latest.world, enemies: interpolate(this.latest.world.enemies, 'enemies'), traffic: interpolate(this.latest.world.traffic, 'traffic'), parkedShips: interpolate(this.latest.world.parkedShips, 'parkedShips'), bullets },
       boardingActors: interpolate(this.latest.actors, 'boarders'),
       explorationActors: interpolate(this.latest.explorationActors, 'explorers')
     };

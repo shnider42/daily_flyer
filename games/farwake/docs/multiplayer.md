@@ -38,15 +38,45 @@ Station permission and proximity are checked by the authority. Changing a browse
 
 NPC grapples start a shared defensive boarding fight. The helmsman is brought onto the actual crew deck, where the humans and hired crew fight the same hostile actors. A disabled enemy ship can be assaulted by the helmsman's boarding party; other people remaining on the friendly deck do not appear on that enemy deck or shoot its enemies remotely. A boarding leader can retreat through the entry airlock. Incapacitated humans cannot move; they recover when the boarding outcome resolves. Hired crew deaths and the vessel's memorial remain recorded.
 
-### Military careers and the exterior gun station
+### Military careers, ranks, and shared operations
 
-The optional Morrow recruiter offers the authored Freewake Navy and Army campaigns. `militaryCareerAction` accepts only the allowed service actions; recruitment, assignment, retry, and debrief validate a living captain at the actual recruiter. Client messages cannot submit field evidence or sortie receipts. The persisted `militaryCareer` contains the faction and branch, ordered completed chapters, attempt serial, and current operation with its evidence ledger. Compact snapshots carry current career state as well as the exterior-view flag. Personal privacy exports include the career record.
+The Morrow recruiter offers the authored Freewake Navy and Army careers. Each branch has four introductory assignments plus six standing deployments. Navy deployments visit Brindle, Meridian, and Sable; Army deployments use actual sites on Serein and Tallow. Other factions retain ordinary enlistment and service work; this release does not author their separate career campaigns.
 
-Army assignments use an operation-specific interior identity. The surface entrances remain on shared Morrow, while each recruit enters that recruit’s current exercise or deployment. The canonical combat clock, NPC wounds, terminal state, and room visibility are scoped to that operation. Actual player-hit events, a cleared authored threat, and a physically reached objective produce progress; a client-supplied site, operation, damage, or completion value cannot award it. Save/reload preserves the same active instance. Ordinary exploration sites retain their existing shared encounter identities and behavior.
+`militaryCareerAction` accepts named service actions, including `createOperation`, `joinOperation`, `leaveOperation`, and `launchOperation`. Recruitment, muster, assignment, retry, and debrief validate the acting captain at the real recruiter. Departure rechecks the live roster, health, faction, branch, standing, rank, and physical presence. A player can join a muster before departure. Operation identifiers include the owning realm and cannot enroll a captain from another galaxy. Client messages cannot submit field evidence, arbitrary rank, elapsed watch time, or sortie receipts.
 
-Navy assignments create an employer-owned Leviathan with a distinct vessel identity and a gunner grant for the assigned employee. The NPC has the helm. The employee remains in person mode in the carrier cabin even when `stationView` is `gunnery`. The authority rechecks the live carrier, role, health, docking state, and physical console range before accepting fire or projecting the exterior world. Only that authorized view receives the actual system contacts and exterior ships in full and compact snapshots. Movement and helm inputs are masked while using the display; aim and fire use the canonical vessel and shared cooldown. Leaving the display, docking, disconnecting, or losing access removes the view without transferring ship ownership.
+Rank belongs to `professions.careers.military` and derives from completed military assignments, using cumulative milestones **0 / 3 / 8 / 16 / 28**. The branch titles are:
 
-Each Navy operation records the employee’s real damage and neutralization proof for every authored target. Settlement returns that record to the actual captain, restores their own inventory, and awards zero ordinary crew wages. A successful return to Morrow enables the recruiter’s one-time campaign payment; an interrupted or orphaned watch is retried through a new operation. Existing docked-airlock disembark rules apply throughout.
+| Completed assignments | Navy | Army |
+| ---: | --- | --- |
+| 0 | Recruit | Recruit |
+| 3 | Able crew | Private |
+| 8 | Petty officer | Corporal |
+| 16 | Chief petty officer | Sergeant |
+| 28 | Lieutenant | Lieutenant |
+
+Existing pre-0.14 records retain an earned legacy tier through a one-time migration; later XP alone cannot bypass the completed-assignment milestones. Same-faction military dialogue uses the acting captain’s own service record. A new captain joining a progressed realm receives their own rank and clearance. The highest-ranking enrolled member leads a shared deployment, and mission-specific lead requirements control which orders that captain may authorize. Lower ranks may join an eligible leader as crew. Navy grants are personal: weapons duty is available to enrolled recruits, scanner duty begins at rank index 1, and engineering at rank index 2. Neither rank nor operation leadership grants the NPC helm, the employer’s hull, or access to another player’s personal ship.
+
+The realm persists a canonical `militaryOperations` registry containing operation identity, mission, faction, branch, leader, members, lifecycle phase, and the Navy contract/vessel binding where applicable. The captain’s `militaryCareer` stores their branch, introductory chapter progress, attempt serial, active operation, participation evidence, and debrief ledger. A captain helping with a later chapter gains verified service credit without skipping that captain’s unfinished introductory chapters. Compact snapshots carry the current career, sanitized operation view, and exterior-view flag. Personal data exports include the captain’s own career; the operation registry and room records remain shared-world data rather than being misclassified as that captain’s personal history.
+
+#### One Army encounter for the section
+
+Enrolled teammates enter the same operation-specific interior, with one canonical combat clock, infantry state, watch clock, and objective state. Separate operations keep separate encounter identities. The Morrow training sites remain in the shared surface world; later operation entrances are on Serein and Tallow. Ordinary exploration sites keep their existing shared identities and behavior.
+
+The authority steps `stepSiteEncounter` once for the occupied operation, then records individual presence only for healthy, online, enrolled captains in that actual site. Verified team hits, the cleared threat, and a physically activated objective can satisfy the section’s objectives. A shared introductory or combat assignment also requires the captain’s own **15 seconds of field presence or a verified hit**. This avoids requiring every recruit to destroy the same finite set of training targets while preventing remote or absent members from claiming the work.
+
+Watch postings begin with no hostile actors. Their delayed contact decision belongs to the operation and is stable across restoration; it is not announced in the briefing. An actual attack spawns the authored infantry and uses normal cover, aim tells, damage, and recovery. A quiet watch still requires the full personal watch duration before the field log can be signed. The watch clock does not advance from an empty site, and offline time does not supply personal participation. Returning by service shuttle requires the captain to leave the site and reach the real surface landing. Early return fails that individual attempt without pay. Personal ships stay at their original berths.
+
+#### One Navy carrier in the shared star system
+
+A Navy operation creates one employer-owned Leviathan and one canonical contract with a separate duty record for each enrolled captain. Commander Isen has the helm. Shared members occupy that same carrier and operate permitted physical stations. The captain remains in person mode inside the cabin while `stationView` is `gunnery`; that flag projects the actual exterior system through the gun console.
+
+The authority rechecks membership, carrier identity, station grant, health, docking/boarding state, and console proximity before accepting fire or projecting the exterior view. Helm and movement inputs are masked while using the display. Aim and fire use the vessel’s real weapons, power, range, firing arc, and shared cooldown. Leaving the display, docking, disconnecting, or losing access removes the view without changing ownership. Reconnects require a fresh valid station-view grant.
+
+Standing orders let the NPC pilot transfer the canonical carrier and its occupants into the assigned system and return to Morrow. Escorts place a real freighter in that system. A delayed interception creates actual hostile ships and projectiles there. Other captains in the same system’s space view—including civilians outside the operation—see these objects through ordinary shared-world snapshots. The engagement is not duplicated for each participant or hidden in a private mission simulation. Bystander visibility does not confer service membership or rewards.
+
+Each participant keeps their own on-station time, shots, damage, and settlement receipt. Shared introductory sorties accept the completed team target objective plus **15 seconds of personal station duty or the required personal gun contribution**. Extended patrols and escorts require the full personal watch duration and the completed operation, whether the route stays quiet or becomes a battle. Legacy solo introductory sorties retain their individual per-target qualification rules.
+
+Settlement is individual. The physical docked airlock remains available, personal inventory is restored, and campaign carrier work awards zero ordinary crew wages. A qualifying return to Morrow enables one recruiter payment and one completed military assignment for that captain. Another member can remain aboard and settle separately; one debrief never grants everyone a promotion. Cancelled, interrupted, withdrawn, or unqualified service cannot award completion. Failed or orphaned assignments recover through the existing recruiter/return paths, while reconnect and process restoration preserve the canonical operation and each member’s actual record.
 
 ### Homes, logout, and asynchronous play
 
@@ -160,11 +190,14 @@ Authority commands include flight transitions (`dock`, `launch`, `travel`), inte
 | --- | --- |
 | `server/index.mjs` | HTTP/static serving, WS sessions, heartbeat, fixed tick scheduling, compact snapshots, lifecycle. |
 | `server/realm.mjs` | Captain/vessel authority, canonical rooms, permissions, surface validation, homes, command persistence. |
+| `server/military-operations.mjs` | Realm-owned musters, rank-aware leadership, shared deployments, canonical carrier contracts, per-captain settlement. |
 | `server/persistence.mjs` | Versioned development files and authenticated gateway adapter. |
 | `server/protocol.mjs` | Protocol constants, input sanitization, random credentials, token hashing, rate limits. |
 | `dist/network.mjs` | Browser transport, passport storage, reconciliation, interpolation, compact snapshot reconstruction. |
 | `dist/engine.mjs`, `dist/fleet.mjs` | Shared game rules, per-vessel simulation, once-per-system world simulation, pure flight physics. |
 | `dist/surface.mjs`, `dist/interior-layouts.mjs` | Shared collision and authoritative entity/console/bunk coordinates. |
+| `dist/military-career.mjs`, `dist/military-content.mjs`, `dist/military-sites.mjs` | Authored career/standing orders, personal evidence and debriefs, Army sites and transport. |
+| `dist/military-ranks.mjs`, `dist/navy-service.mjs` | Individual service ranks and permissions; per-member Navy duty and receipt rules. |
 | `tests/server/network.test.mjs` | Real headless WebSocket integration and durability tests. |
 
 Run the complete suite with `npm test`, just the server suite with `npm run test:network`, and syntax checks with `npm run check`. Top-level tests intentionally do not require the `ws` dependency, so the separate static-site build can run `node --test tests/*.test.mjs`.

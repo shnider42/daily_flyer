@@ -5,6 +5,8 @@ import { npcClock } from './npc-life.mjs';
 import { socialConversation } from './social-world.mjs';
 import { normalizeSpecies, speciesLabel, speciesBackground } from './species.mjs';
 import { localSiteResponse } from './local-site-dialogue.mjs';
+import { militaryDialogue, militaryServiceRank } from './military-ranks.mjs';
+import { militaryMission } from './military-content.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -192,6 +194,22 @@ function urgent(game, entity, role) {
   return null;
 }
 
+function militaryMember(game,entity,role){
+ const state=game.state,data=entity.data||{},contract=state.npcContract,crewId=data.crewId;
+ const deckCrew=Array.isArray(state.interior?.location?.crew)?state.interior.location.crew:state.crew||[];
+ const crew=entity.type==='crew'&&crewId&&deckCrew.find(member=>member?.id===crewId);
+ const servingCrew=!!(crew&&contract?.military&&state.interior?.location?.vesselId===contract.vesselId);
+ const body=game.system?.bodies?.find(body=>body.id===localBody(game,entity));
+ const baseMember=body?.portType==='military'&&['warden','pilot','engineer','medic','dockworker'].includes(role);
+ if(!data.militaryRecruiter&&!data.militaryFactionId&&!servingCrew&&!baseMember)return null;
+ const factionId=data.militaryFactionId||data.factionId||(servingCrew?contract.military.factionId||militaryMission(contract.military.missionId)?.factionId:body?.portFaction||body?.faction);
+ if(!factionId)return null;
+ const branchId=data.militaryBranchId||(servingCrew?'navy':null),rank=militaryServiceRank(game);
+ const greeting=militaryDialogue(game,{factionId,branchId,role:data.militaryRecruiter?'recruiter':'member',baseText:servingCrew?crew.greeting||data.greeting||'': ''});
+ const rumor=!rank.enlisted||rank.factionId!==factionId?'The recruiting desk handles enlistment. Duty clearances are issued to each person.':rank.suspended?'Your duty clearance is suspended until your faction standing recovers.':rank.nextRank===null?'Your service record is current. Every person in a squad keeps their own rank and assigned duties.':`${rank.remaining} more completed ${rank.remaining===1?'assignment':'assignments'} before the next promotion review. Every person in a squad keeps their own rank and assigned duties.`;
+ return{context:'military-service',greeting,rumor,militaryRank:rank.factionId===factionId&&rank.enlisted?rank.rank:null};
+}
+
 function opening(game, entity) {
   const mission = game.state.openingMission, id = idOf(entity);
   if (!mission || !['kettle:dockworker', 'morrow:courier'].includes(id)) return null;
@@ -322,7 +340,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
-  let response = urgent(game, entity, role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
+  let response = urgent(game, entity, role) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };
   if (!response && relation.trust >= 3) response = { context: 'relationship', greeting: relation.trust >= 8 ? 'You’ve earned my trust. Sit with me a moment.' : 'Good to see you. I haven’t forgotten what you did.' };
   if (!response && relation.standing <= -20) response = { context: 'relationship', greeting: role === 'medic' ? 'I know where you stand with the port. If you need care, say so.' : 'Your reputation gets here before you do. What do you need?' };

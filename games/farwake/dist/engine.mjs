@@ -225,7 +225,8 @@ export class Game {
     const site=militaryGroundSite(mission.siteId);
     if(mission.branchId!=='army'||!site||site.missionId!==mission.id)return this._fail('That deployment is unavailable.','military-orders');
     ensureSidearm(this.state.person);
-    this._log(mission.title,`${mission.summary} Your issued pulse sidearm is ready. Follow the marked entrance on Morrow, and return to Sergeant Venn after the field objective.`, 'profession');
+    if(mission.deployment){const transport=this._prepareMilitaryArmyDeployment(mission,active);if(!transport.ok)return transport;}
+    this._log(mission.title,`${mission.summary} Your issued pulse sidearm is ready. Follow the marked entrance at your deployment, and return to Sergeant Venn after the field objective.`, 'profession');
     return this._ok({text:`Orders received: ${mission.objective}`});
   }
   get system() { return this._runtime; }
@@ -684,7 +685,7 @@ export class Game {
       if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId)continue;
       if(e.trainingTarget){e.active=false;e.vx=0;e.vy=0;continue;}
       if(e.disabled||e.boardingTargetId||e.capturedBy){e.active=false;e.vx=0;e.vy=0;continue;}
-      const target=targets.filter(g=>(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
+      const target=targets.filter(g=>e.militaryOperationId&&g.state.npcContract?.military?.operationId===e.militaryOperationId||(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
       const sh=target?.state.ship,dist=sh?distance(e,sh):Infinity;
       if(dist<650)e.active=true;if(dist>1100||!target)e.active=false;
       e.cooldown-=dt;

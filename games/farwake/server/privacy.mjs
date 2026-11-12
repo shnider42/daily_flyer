@@ -15,6 +15,10 @@ function safeCopy(value, captainId) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(item => safeCopy(item, captainId));
+  if (value.sharedOperation === true && object(value.participants)) {
+    const scoped = { ...value, participants: own(value.participants, captainId) ? { [captainId]: value.participants[captainId] } : {} };
+    return Object.fromEntries(Object.entries(scoped).filter(([key]) => !credentialField(key) && !['__proto__', 'prototype', 'constructor'].includes(key)).map(([key, item]) => [key, safeCopy(item, captainId)]));
+  }
   if (value.human === true && (value.captainId || value.id) !== captainId) {
     return { human: true, captainId: value.captainId || value.id, detailsExcluded: 'Another captain’s actor details.' };
   }
@@ -40,7 +44,7 @@ function redactCredentialValues(value, values) {
 
 const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect', 'launchStatus', 'launchReady'];
 const GAME_FIELDS = ['version', 'spaceVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'militaryCareer', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits'];
-const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife'];
+const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView'];
 
 /** Network-address counters are not a visitor log. Expired entries are removed
  * on access and during server maintenance, with a hard bound on memory. */
@@ -87,7 +91,7 @@ function sharedSources(source) {
   // Do not call _captureRoom(), _persistRuntime(), document() or snapshotFor().
   const worlds = Object.fromEntries(entries(source.worlds));
   if (source.rooms instanceof Map) for (const [id, room] of source.rooms) worlds[id] = { record: room.record, enemies: room.runtime?.enemies || [] };
-  return { director: source.director || {}, worlds, sites: source.sites || {} };
+  return { director: source.director || {}, worlds, sites: source.sites || {}, militaryOperations: source.militaryOperations || {} };
 }
 
 /** Export only exact identity links and values keyed by this captain. Paths

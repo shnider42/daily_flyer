@@ -1,6 +1,6 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.13.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.14.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
@@ -8,11 +8,31 @@ Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice 
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
 
-## A first military career · 0.13.0
+## Military careers together · 0.14.0
 
-**Sergeant Sera Venn**, the Freewake recruiter, now waits beside Morrow’s landing. Joining is optional and works for both Regular and shipless Hardcore captains. Choose **Navy** or **Army**, then take one assignment at a time. The service objective and action guide follow the current task; the journal keeps the full service record. Taking leave hides the guidance and preserves the same assignment, while an underway ship or live fight continues under the normal simulation rules.
+**Sergeant Sera Venn**, the Freewake recruiter, waits beside Morrow’s landing. Joining is optional and works for Regular and shipless Hardcore captains. Choose **Navy** or **Army**, then follow one current assignment. The journal keeps the service record and a folded deployment board. Taking leave hides guidance and preserves the assignment; an underway vessel or live fight continues under the normal simulation rules.
 
-The first authored campaign follows the effort to keep Morrow’s Rainline supply route open. Each branch has a qualification and three field deployments:
+### Personal rank and shared deployments
+
+Promotions now depend on **verified, completed military assignments**, including debriefed campaign deployments and ordinary military service. They occur at cumulative milestones, with several assignments between promotions:
+
+| Completed assignments | Navy rank | Army rank |
+| ---: | --- | --- |
+| 0 | Recruit | Recruit |
+| 3 | Able crew | Private |
+| 8 | Petty officer | Corporal |
+| 16 | Chief petty officer | Sergeant |
+| 28 | Lieutenant | Lieutenant |
+
+Rank, faction membership, pay, and completion history belong to each captain. A new player joining an established galaxy starts with their own recruit record. Serving with a veteran does not copy that veteran’s rank or clearance. Military colleagues and the recruiter address the acting captain according to that captain’s rank and faction. Pre-0.14 saves retain their previously earned service tier when the record is migrated.
+
+At Morrow, **muster a squad**, let other players in the **same galaxy, faction, and branch** sign on, then depart with the roster. Players join before departure. The highest-ranking enrolled member leads the operation; a lower-ranking recruit can accompany that leader on orders the recruit could not authorize alone. Routine standing orders open at the first promotion; more demanding orders require later ranks. Navy recruits receive weapons-station duty, the first promotion adds scanner permission, and the second adds engineering permission. Military rank never grants the NPC helm, employer-ship ownership, or authority over another captain’s personal vessel.
+
+A shared Army operation uses one actual interior and encounter for its enrolled section. A shared Navy operation uses one actual carrier. Each member still has individual participation, return, and debrief requirements. A captain helping with a later assignment earns service credit without skipping their own unfinished qualification chapters. Separate operations keep distinct identities and progress. Every completed deployment pays each qualified captain once through their own recruiter debrief.
+
+### Qualification campaign
+
+The first authored story follows the effort to keep Morrow’s Rainline supply route open. Each branch retains its four introductory assignments:
 
 | Deployment | Freewake Navy | Freewake Army |
 | --- | --- | --- |
@@ -21,15 +41,32 @@ The first authored campaign follows the effort to keep Morrow’s Rainline suppl
 | Relief operation | Answer a relief ship’s distress call and help stop three raiders. | Secure Eastbank Aid Post and call a shuttle for two trapped clinic workers. |
 | Final deployment | Break the heavier raiding group pressing the relief corridor. | Clear the beacon station and transmit the convoy’s safe landing corridor. |
 
-**Navy service uses an actual Leviathan carrier, FWS Steadfast.** Commander Isen flies the ship out and back. At the physical gun console, open **Gunnery view** to see the battle outside, aim within the battery’s firing arc, and fire the carrier’s real weapons. The captain remains on the crew deck and never receives the employer’s helm or ship ownership. **Back to deck** restores the person view at the same console. The carrier returns to Morrow after each engagement; use its docked airlock and report to Venn. Shots use the ship’s real energy, range, cooldown, target hull damage, and per-captain contribution records. Training targets cannot shoot back.
+**Navy service uses the Leviathan carrier FWS Steadfast.** Commander Isen flies the ship out and back. At the physical gun console, open **Gunnery view** to see the system outside, aim within the battery’s firing arc, and fire the carrier’s real weapons. The player remains aboard the crew deck. **Back to deck** restores the person view at the same console. Shots use the ship’s energy, range, cooldown, actual target hull damage, and individual contribution records. Training targets cannot shoot back. On return to Morrow, leave through the docked airlock and report to Venn.
 
-**Army service is played on foot with the captain’s own equipment.** The standard pulse sidearm is sufficient for these introductory assignments. The later sites introduce human infantry, real collision cover, a visible locked aim before each enemy shot, and a physical objective after the threat is cleared. A sideways dodge or a wall can stop an enemy shot. The workers leave the aid post after its evacuation signal. Retreat remains available through every entrance, and the normal field-recovery rules still apply.
+**Army service uses the captain’s own equipment.** The standard pulse sidearm is sufficient for the introductory assignments. Human infantry use collision cover and lock their aim before firing, allowing a sideways dodge or a wall to stop a shot. Objectives require physically reaching the assigned console after securing the site. The workers leave the aid post after its evacuation signal. Every entrance remains available for retreat, and normal field recovery still applies.
 
-Completed deployments require a physical recruiter debrief and pay once. Army rewards are **100 / 200 / 300 / 450 cr**; Navy rewards are **100 / 225 / 325 / 450 cr**. Both branches award **1 / 1 / 2 / 4 service XP**, reaching Veteran from a fresh enlistment. Carrier watches award no separate wages for the same campaign work. Existing military rank, commissioned hulls, faction clearance, personal gear, and unrelated jobs are retained. The existing escort entitlement now counts these debriefed deployments as service assignments too; collecting an earned hull remains an explicit action at the faction’s public-services desk.
+Introductory Army rewards are **100 / 200 / 300 / 450 cr**; Navy rewards are **100 / 225 / 325 / 450 cr**. The existing **1 / 1 / 2 / 4 service XP** awards remain in the record, but a fresh recruit’s promotions follow the completed-assignment milestones above. Finishing four introductory assignments therefore earns the first promotion, not an immediate veteran tier. Carrier campaign watches award no separate ordinary crew wages for the same work. Existing commissioned hulls, faction clearance, personal gear, and unrelated jobs are retained. The escort entitlement counts debriefed military assignments; collecting an earned hull remains an explicit action at the faction’s public-services desk.
 
-Career progress persists in solo saves and shared galaxies. Each Army deployment has its own recruit-and-attempt record, so another recruit cannot consume the same targets or supply someone else’s combat proof. Navy receipts require that recruit’s recorded contribution to every assigned contact and the return to Morrow. Interrupted Navy watches can be retried through the recruiter with a fresh operation and no unearned pay.
+### Standing orders beyond Hearth
 
-The campaign definitions are keyed by faction and branch. **This release authors the Freewake campaign in Hearth.** Other factions retain their existing enlistment, bases, ranks, and ordinary service assignments; their distinct career stories are not authored yet.
+The deployment board adds **12 repeatable assignments: six Navy and six Army**. Most take place in Meridian or Sable, both claimed by the rival Meridian Combine. Each operation has a new identity, so revisiting the same posting begins a new watch or encounter.
+
+| Navy posting | System | Army posting | System / world |
+| --- | --- | --- | --- |
+| Meridian border watch | Meridian | Serein border watch | Meridian / Serein |
+| The Orchard grain convoy | Brindle | Restore the violet condenser | Meridian / Serein |
+| Cairn supply escort | Meridian | Supply depot night shift | Meridian / Serein |
+| Sable outer patrol | Sable | Bring the refinery shift home | Sable / Tallow |
+| The Tallow relief passage | Sable | A quiet fuel line | Sable / Tallow |
+| Ledger evacuation screen | Meridian | Open the Sable relief corridor | Sable / Tallow |
+
+Navy standing orders take the NPC-piloted carrier to the assigned system and back. Escorts include an actual freighter to protect. Patrols and escorts can remain uneventful, or hostile contacts can appear after a period on watch. A quiet operation still requires the full personal station watch and a successful return. The briefing does not announce the future encounter outcome. The carrier, freighter, interceptors, and projectiles are part of the shared system simulation: **a civilian captain in the same system’s space view can see the operation and its battle**, even without enlisting or joining the mission. Watching a battle does not grant military rewards or permissions.
+
+Army service shuttles take the section to Serein or Tallow while personal ships remain at their own berths. Field assignments include relay restoration, civilian evacuation, and securing a relief corridor. Watch assignments begin quietly and can stay quiet or produce a delayed infantry attack. Completion requires the captain’s own watch time, a secure position, and the actual field log. The return shuttle waits at the surface landing; leaving early ends that attempt without service pay or promotion.
+
+Operations, memberships, canonical encounters, and individual duty records persist across saves, reconnects, and server restoration. Offline time does not count as personal watch time. One participant leaving or debriefing does not settle everyone else’s service. The existing physical airlock rules remain in force.
+
+The definitions are keyed by faction and branch. **This release authors Freewake’s career, beginning in Hearth and extending into other systems.** Other factions retain their enlistment, bases, rank records, and ordinary service assignments; their distinct military career stories are not authored yet.
 
 ## Docked airlocks · 0.12.1
 
@@ -214,7 +251,7 @@ At an inhabited port, use **Port services** or **Menu → Port services**. Every
 
 Crew contracts use a real NPC captain, real flight, and physical stations. A gunner operates the ship's exterior guns against a marked raider; fire crew suppress and repair a compartment incident; a medic treats the injured worker aboard. **Crew duty → Mark my duty location** points to the appropriate station or compartment. Full base pay is **210 / 170 / 180 credits**, respectively, before applicable character-trait adjustments. The captain returns to the hiring port after completion or an early-return request. Pay requires recorded work and physical docking, pays only once, and grants no wages for idle or interrupted service. Partial completed work can earn a reduced payment on an early return.
 
-These are three bounded local service runs, not a simulation of every NPC captain's career. Passenger tickets currently connect ports within one system. The same services and ownership checks run in solo and shared play. Shared contracts retain their physical vessel, crew, progress, and ownership across reconnects and server restoration; a parked personal ship remains separate from the employer's hull.
+These are three bounded local service runs, not a simulation of every NPC captain's career. Ordinary civilian passenger tickets connect ports within one system; assigned military transport can cross systems. The same services and ownership checks run in solo and shared play. Shared contracts retain their physical vessel, crew, progress, and ownership across reconnects and server restoration; a parked personal ship remains separate from the employer's hull.
 
 ## Hull identity and damage aboard · 0.5.3
 

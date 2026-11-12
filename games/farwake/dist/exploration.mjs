@@ -60,14 +60,18 @@ function restoreBellwether(raw,site,time,attemptSerial,revealSerial){
 export function createSiteState(site,saved={}){
  const prior=saved&&typeof saved==='object'?saved:{},width=site.cols*TILE,height=site.rows*TILE;
  const time=clamp(finite(prior.time),0,1e12),attemptSerial=serial(prior.attemptSerial),revealSerial=serial(prior.revealSerial);
+ const watch=site.military&&site.watch?{elapsed:clamp(finite(prior.watch?.elapsed),0,site.watch.seconds),contactResolved:false,attackOccurred:false,completed:false}:null;
+ if(watch&&watch.elapsed+1e-6>=site.watch.attackDelay){watch.contactResolved=true;watch.attackOccurred=(hash(`${site.key}:watch-contact`)/4294967296)<site.watch.attackChance;}
+ const encounterSite=watch?{...site,hostile:watch.attackOccurred,monsterCount:watch.attackOccurred?site.hostiles.length:0}:site;
  // This is a new authored encounter, not an upgraded generic Stoneback. Old
  // wildlife cannot stand in for its death; old cache claims still remain paid.
- const monsters=isBellwetherSite(site)?[restoreBellwether((Array.isArray(prior.monsters)?prior.monsters:[]).find(monster=>monster?.id===BELLWETHER_ID),site,time,attemptSerial,revealSerial)]:Array.from({length:site.hostile?site.monsterCount||1:0},(_,index)=>{
-  const base=monsterTemplate(site,index),raw=Array.isArray(prior.monsters)?prior.monsters.find(m=>m?.id===base.id):null;
+ const monsters=isBellwetherSite(site)?[restoreBellwether((Array.isArray(prior.monsters)?prior.monsters:[]).find(monster=>monster?.id===BELLWETHER_ID),site,time,attemptSerial,revealSerial)]:Array.from({length:encounterSite.hostile?encounterSite.monsterCount||1:0},(_,index)=>{
+  const base=monsterTemplate(encounterSite,index),raw=Array.isArray(prior.monsters)?prior.monsters.find(m=>m?.id===base.id):null;
   return{...base,x:clamp(finite(raw?.x,base.x),TILE,width-TILE),y:clamp(finite(raw?.y,base.y),TILE,height-TILE),health:clamp(finite(raw?.health,base.health),0,base.maxHealth),cooldown:clamp(finite(raw?.cooldown),0,2),windup:0,alert:!!raw?.alert,lastHitBy:typeof raw?.lastHitBy==='string'?raw.lastHitBy.slice(0,80):null,status:raw?.health===0?'dead':'alive'};
  });
+ if(watch)watch.completed=watch.elapsed+1e-6>=site.watch.seconds&&monsters.every(monster=>monster.health<=0);
  const choices={};for(const choice of site.choices){const chosen=prior.choices?.[choice.id];if(choice.options.some(option=>option.id===chosen))choices[choice.id]=chosen;}
- return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{}}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:monsters.every(monster=>monster.health<=0)};
+ return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{},...(watch?{watch}:{})}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:(!watch||watch.completed)&&monsters.every(monster=>monster.health<=0)};
 }
 export function inspectSiteRecord(site,recordId){const record=site.records.find(item=>item.id===recordId);return record?{ok:true,title:record.name,text:record.text}:{ok:false,reason:'That record is not part of this place.'};}
 export function claimSiteReward(state,site,id,optionId){
@@ -211,6 +215,17 @@ export function stepSiteEncounter(state,participants,delta,surface){
  const dt=clamp(finite(delta),0,.25),layout=surface.combatLayout;if(!dt||!layout)return[];
  const actors=participants.filter(actor=>actor?.person&&actor.person.health>0&&!actor.person.down),events=[];state.time+=dt;
  const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});
+ const site=surface.site;
+ if(state.watch&&site?.military&&site.watch&&actors.length){
+  state.watch.elapsed=Math.min(site.watch.seconds,state.watch.elapsed+dt);
+  if(!state.watch.contactResolved&&state.watch.elapsed+1e-6>=site.watch.attackDelay){
+   state.watch.contactResolved=true;
+   if((hash(`${site.key}:watch-contact`)/4294967296)<site.watch.attackChance){
+    state.watch.attackOccurred=true;state.monsters=site.hostiles.map((_,index)=>monsterTemplate(site,index));
+    event('military-progress',{text:'Section radio: armed contacts at the post. Take cover and secure the position before the relief arrives.'});
+   }
+  }
+ }
  // Acquire before processing shots, so firing on the first visible frame
  // cannot bypass the scream. Walls and fog use the very same discovery rule.
  for(const monster of state.monsters)if(isBellwether(monster)&&monster.health>0){
@@ -253,5 +268,7 @@ export function stepSiteEncounter(state,participants,delta,surface){
   monster.moving=false;if(!monster.cooldown&&visible){monster.windup=.55;monster.attackUntil=at+.55;monster.aimAngle=Math.atan2(person.y-monster.y,person.x-monster.x);}
  }
  if(!actors.some(actor=>actor.person.health>0&&!actor.person.down))resetSiteBoss(state);
- state.cleared=state.monsters.every(monster=>monster.health<=0);return events;
+ state.cleared=state.monsters.every(monster=>monster.health<=0)&&(!state.watch||state.watch.elapsed+1e-6>=site.watch.seconds);
+ if(state.watch&&state.cleared&&!state.watch.completed){state.watch.completed=true;event('military-progress',{text:state.watch.attackOccurred?'Section radio: the position is secure and the watch is complete. Sign the field log.':'Section radio: relief is here. Nothing further to report; sign the completed watch log.'});}
+ return events;
 }

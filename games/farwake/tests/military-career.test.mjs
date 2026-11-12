@@ -41,11 +41,12 @@ function receipt(game,overrides={}){
 }
 function reload(game){const restored=Game.fromSave(game.save());restored.initializeMilitaryCareer();restored._startMilitaryMission=()=>({ok:true});return restored;}
 
-test('only the authored Freewake arc is offered, with four substantial chapters in each branch',()=>{
+test('Freewake has four qualification chapters and six standing deployments in each branch',()=>{
  assert.equal(militaryCampaign('meridian'),null);assert.equal(militaryCampaign('__proto__'),null);
- assert.equal(MILITARY_MISSIONS.length,8);assert.equal(new Set(MILITARY_MISSIONS.map(mission=>mission.id)).size,8);
+ assert.equal(MILITARY_MISSIONS.length,20);assert.equal(new Set(MILITARY_MISSIONS.map(mission=>mission.id)).size,20);
  for(const branchId of ['army','navy']){
   const branch=militaryBranch('freewake',branchId);assert.equal(branch.missions.length,4);assert.ok(branch.description.length>60);
+  assert.equal(branch.deployments.length,6);assert.ok(branch.deployments.every(mission=>mission.repeatable&&mission.deployment.systemId!=='hearth'));
   assert.equal(branch.missions.reduce((sum,mission)=>sum+mission.xp,0),8);
   for(const mission of branch.missions){assert.ok(Object.isFrozen(mission));assert.ok(mission.objectives.length>=2);assert.ok(mission.reward>0);}
  }
@@ -135,7 +136,7 @@ test('the Army arc advances in order to a real promotion without granting a ship
  assert.equal(game.militaryCareerStatus().status,'completed');assert.equal(game.militaryCareerStatus().guidanceActive,false);assert.equal(game.state.credits,credits+1050);
  assert.equal(game.state.professions.careers.military.completed,4);assert.equal(game.state.professions.careers.military.xp,8);assert.equal(game.state.professions.careers.military.earned,1050);
  assert.equal(game.state.stats.jobs,jobs);assert.deepEqual(game.state.fleet.owned,owned);assert.equal(game.ownsShip,false);
- assert.ok(game.militaryCareerStatus().summary.includes('Veteran'));assert.equal(game.militaryCareerAction({action:'start',entityId:recruiter(game)}).code,'completed');
+ assert.equal(game.militaryCareerStatus().serviceRank.rank,'Private');assert.equal(game.militaryCareerStatus().serviceRank.rankIndex,1);assert.equal(game.militaryCareerStatus().deployments.length,6);assert.equal(game.militaryCareerAction({action:'start',entityId:recruiter(game)}).code,'completed');
 });
 
 test('Navy credit requires each marked target, this employee, the matching attempt, and the real Morrow return',()=>{

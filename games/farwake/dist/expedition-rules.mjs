@@ -86,6 +86,8 @@ export const ExpeditionRules={
     if(entity.type==='siteRecord'&&action==='inspect'){
       if(site.military&&entity.data.recordId===site.objectiveId){
         if(active.encounter.monsters.some(enemy=>enemy.health>0))return this._fail(site.training?'Hit all three range targets before checking the qualification terminal.':'Clear the armed threat before completing this objective.','military-threat');
+        if(site.watch&&!active.encounter.cleared)return this._fail('The watch is still in progress. Keep the post until the relief section checks in.','military-watch');
+        if(site.watch&&(this.state.militaryCareer?.active?.evidence?.watch?.value||0)+1e-6<site.watch.seconds)return this._fail('Complete your own time on watch before signing this field log.','military-participation');
         active.encounter.objectives||={};active.encounter.objectives[site.objectiveId]=true;
         if(site.objectiveId==='rescue')this.state.interior.location.evacuated=true;
         this.observeMilitaryEvent?.('ground-objective',{operationId:site.operationId,siteId:site.id,objectiveId:site.objectiveId,amount:1,token:`${site.operationId}:objective:${site.objectiveId}`});
@@ -116,6 +118,7 @@ export const ExpeditionRules={
     const active=this.state.exploration,surface=this._expeditionSurface();if(!active||!surface)return;
     const events=stepSiteEncounter(active.encounter,[this.explorationParticipant(input)],dt,surface);
     this.recordExplorationEvents(events);
+    this.recordMilitaryFieldPresence?.(dt);
     if(this.state.person.health<=0){this._siteDownTime=(this._siteDownTime||0)+dt;if(this._siteDownTime>=2.5)this._returnFromSite(true);}else this._siteDownTime=0;
   },
   recordExplorationEvents(events){

@@ -2,6 +2,7 @@
 import {cabinLayout} from './interior-layouts.mjs';
 import {getHullSystems} from './hull-systems.mjs';
 import {getShipClass} from './fleet.mjs';
+import {isNavyParticipant} from './navy-service.mjs';
 
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -31,7 +32,7 @@ export function gunneryStatus(game,{worker=game,ship=game.state.ship}={}){
  const state=worker.state,contract=game.state.npcContract||state.npcContract,person=state.person||{},location=state.interior?.location;
  const point=securityStation(ship?.classId||contract?.classId),systems=getHullSystems(ship?.classId);
  const vesselId=ship?.id||contract?.vesselId||null,identity=state.multiplayer?.captainId||worker.playerId;
- const assigned=!!contract?.active&&contract.roleId==='gunner'&&contract.vesselId===vesselId&&String(contract.employeeId)===String(identity);
+ const assigned=!!contract?.active&&contract.roleId==='gunner'&&contract.vesselId===vesselId&&(contract.military?.branchId==='navy'?isNavyParticipant(contract,identity):String(contract.employeeId)===String(identity));
  let reason=null;
  if(!assigned)reason='This gunnery station is reserved for the assigned shipboard gunner.';
  else if(state.mode!=='person'||state.interior?.kind!=='ship'||location?.vesselId!==vesselId)reason='Enter the assigned vessel’s crew deck first.';

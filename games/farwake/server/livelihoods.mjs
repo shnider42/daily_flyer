@@ -1,11 +1,12 @@
 /** Shared authority for civilian passage and NPC employment. */
 import { createNpcContract, createNavySortie, performNpcContractWork, requestNpcContractReturn, settleNpcContract, NPC_CREW_ROLES } from '../dist/npc-contracts.mjs';
 import { clone, fail, ok } from './protocol.mjs';
+import { militaryPermission } from '../dist/military-ranks.mjs';
 
 export const LivelihoodAuthority={
  _startNavySortie(c,mission,operation){
   if(c.aboard||c.game.state.interior)return fail('Report to the Morrow recruiter on foot before embarkation.','location');
-  const result=createNavySortie(c.game,mission,{id:operation.operationId,employeeId:c.id,shared:true});if(!result.ok)return result;
+  const result=createNavySortie(c.game,mission,{id:operation.operationId,employeeId:c.id,shared:true,sharedOperation:operation.sharedOperation===true,participants:operation.participants,leaderId:operation.leaderId});if(!result.ok)return result;
   const {contract,ship,inventory}=result,owned=this.vessels.get(c.ownedVesselId);
   if(owned&&owned.systemId===c.game.state.systemId&&owned.dockedAt===c.game.state.locationId)c.game.state.livelihoods.parkedShip={...clone(owned.ship),systemId:owned.systemId,bodyId:owned.dockedAt,vesselId:owned.id};
   c.game.state.npcContract=contract;
@@ -40,6 +41,25 @@ export const LivelihoodAuthority={
  },
  _npcContractCommand(c,name,args={}){
   const contract=c.game.state.npcContract,vessel=this.vessels.get(contract?.vesselId);
+  if(vessel?.militaryOperationId){
+   const operation=this._militaryOperation(c),member=contract?.military?.participants?.[c.id];
+   if(!contract?.active||!operation||operation.vesselId!==vessel.id||c.aboard!==vessel.id||!member||member.settled||member.withdrawn)return fail('You must be aboard the carrier assigned to your own operation.','contract');
+   const actor=this._actor(vessel);
+   if(name==='completeNpcContract'){
+    const result=this._settleMilitaryParticipant(c,vessel);if(!result.ok)return result;
+    this._landCharacter(c,vessel.systemId,vessel.dockedAt);c.surfaceCache=null;
+    if(!contract.active&&![...this.captains.values()].some(member=>member.aboard===vessel.id)&&!vessel.destroyed)this.vessels.delete(vessel.id);
+    return result;
+   }
+   let result;
+   if(name==='cancelNpcContract'){
+    if(operation.leaderId!==c.id)return fail('Only the operation leader can request the carrier’s return. Your personal rank does not change.','military-command');
+    const clearance=militaryPermission(c.game,'join',{factionId:operation.factionId,branchId:'navy'});if(!clearance.ok)return clearance;
+    result=requestNpcContractReturn(actor);
+   }else if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,solution:args.solution,input:c.appliedInput||c.input||{}});
+   else return fail('Unknown crew-contract action.','command');
+   this._syncActor(vessel);return result;
+  }
   if(!contract?.active||!vessel||vessel.npcContractId!==contract.id||contract.employeeId!==c.id||c.aboard!==vessel.id)return fail('You must be aboard the vessel for your own active crew watch.','contract');
   const actor=this._actor(vessel);
   let result;
@@ -65,6 +85,7 @@ export const LivelihoodAuthority={
  _interruptNpcContract(c){
   const contract=c.game.state.npcContract;if(!contract?.active)return;
   const vessel=this.vessels.get(contract.vesselId);
+  if(vessel?.militaryOperationId){this._settleMilitaryParticipant(c,vessel,{interrupted:true});c.game.state.npcContract=null;return;}
   if(vessel){
    const actor=this._actor(vessel);settleNpcContract(actor,{interrupted:true});this._syncActor(vessel);
    c.game.state.npcContractHistory=clone(actor.state.npcContractHistory);

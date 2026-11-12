@@ -44,6 +44,15 @@ test('crew hub exposes named boarding controls before secondary galaxy options',
  assert.equal(f.calls.length,0,'Opening a roster never changes access.');
 });
 
+test('crew roster shows individual military rank and operation duty without changing ship permissions',()=>{
+ const f=fixture({aboard:true});f.snapshot.presence[0].military={factionId:'freewake',branchId:'navy',rank:'Petty officer',rankIndex:2,operationId:'watch-one',role:'leader'};
+ f.snapshot.presence[1].military={factionId:'freewake',branchId:'navy',rank:'Recruit',rankIndex:0,operationId:'watch-one',role:'gunner'};
+ f.snapshot.presence[1].vesselId=f.ship.id;const grants=structuredClone(f.ship.grants);f.ui.openShip(f.ship.id);
+ assert.match(f.text(),/Navy · Petty officer · Operation leader/);assert.match(f.text(),/Navy · Recruit · Gunner/);
+ assert.deepEqual(f.ship.grants,grants);assert.equal(f.calls.length,0);assert.equal(f.byLabel('Allow piloting · Jade').disabled,true);
+ f.ui.openHub();assert.match(f.text(),/Petty officer/);assert.match(f.text(),/Recruit/);assert.equal(f.calls.length,0);
+});
+
 test('captain locations distinguish identically named owned hulls from the current ship',()=>{
  const f=fixture();f.own.name='Cinder';f.snapshot.presence[1].vesselId=f.own.id;f.ui.openHub();
  assert.match(f.text(),/Aboard their ship · Cinder/);

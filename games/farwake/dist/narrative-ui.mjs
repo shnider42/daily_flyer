@@ -222,7 +222,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
       const commission=career.actions?.find(action=>action.action==='claimServiceShip');
       if(commission)button(card,commission.label,()=>send('professionAction',{action:commission.action,entityId:commission.entityId},()=>openProfessions(entity)),{disabled:commission.available===false,secondary:true});
       if(commission?.reason)note(card,commission.reason,'action-reason');
-      if(career.enlisted)note(card,'On the roster'+(career.nextRank?` · ${career.xp} / ${career.nextRank} service marks to next rank`:''),'faction-pledged');roster.append(card);
+      if(career.enlisted)note(card,'On the roster'+(career.nextRank?` · ${career.progressValue??career.xp} / ${career.nextRank} ${career.progressUnit||'service marks'} to next rank`:''),'faction-pledged');roster.append(card);
     }
     const offers=array(data.offers).filter(offer=>joined.has(offer.professionId));
     if(!active.length&&offers.length){heading(root,'Available shifts');for(const view of offers)renderStage(root,view,{entity,profession:true,refresh:()=>openProfessions(entity)});}
