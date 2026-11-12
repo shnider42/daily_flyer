@@ -9,6 +9,11 @@
   const originals = new WeakMap();
   const attributes = new WeakMap();
   const copy = {
+    'Language': 'Sprache',
+    'Language selection': 'Sprache auswählen',
+    'Language updated.': 'Sprache aktualisiert.',
+    'HUDDLE / The whole season, in focus.': 'HUDDLE / Die NFL-Saison im Überblick.',
+    'English original sources · Headlines and play descriptions retain the source wording.': 'Englische Originalquellen · Schlagzeilen und Spielzüge bleiben im Wortlaut der Quelle.',
     'Skip to content': 'Zum Inhalt',
     'Huddle home': 'Huddle Startseite',
     'Main navigation': 'Hauptnavigation',
@@ -417,13 +422,15 @@
   ];
 
   function setLocale(value) {
-    locale = value === 'de-AT' ? 'de-AT' : 'en-US';
+    locale = ['en-US','de-AT','hi-IN','gu-IN'].includes(value) ? value : 'en-US';
     return locale;
   }
   function getLocale() { return locale; }
+  function content() { return locale==='de-AT'?root.HuddleContentAT:root.HuddleLocales?.[locale]?.content; }
   function translate(value) {
-    if (Object.prototype.hasOwnProperty.call(copy, value)) return copy[value];
-    const sourceLabels = root.HuddleContentAT && root.HuddleContentAT.sourceLabels;
+    const pack=root.HuddleLocales?.[locale],dictionary=locale==='de-AT'?copy:(pack?.copy||{}),rules=locale==='de-AT'?patterns:(pack?.patterns||[]);
+    if (Object.prototype.hasOwnProperty.call(dictionary, value)) return dictionary[value];
+    const sourceLabels = content()?.sourceLabels;
     if (sourceLabels && Object.prototype.hasOwnProperty.call(sourceLabels, value)) return sourceLabels[value];
     // Decorative action marks are independent of the translatable label.
     const decorated = value.match(/^(.*?)\s*([↗✓])$/u);
@@ -431,7 +438,7 @@
       const translated = translate(decorated[1].trimEnd());
       if (translated !== decorated[1].trimEnd()) return translated + ' ' + decorated[2];
     }
-    for (const [pattern, replace] of patterns) {
+    for (const [pattern, replace] of rules) {
       const found = value.match(pattern);
       if (found) return replace(...found);
     }
@@ -439,7 +446,7 @@
   }
   function text(value) {
     const input = String(value == null ? '' : value);
-    if (locale !== 'de-AT' || !input.trim()) return input;
+    if (locale === 'en-US' || !input.trim()) return input;
     const content = input.trim();
     const start = input.indexOf(content);
     return input.slice(0, start) + translate(content).replace(/([\p{L}])\.\.(?=\s|$)/gu, '$1.') + input.slice(start + content.length);
@@ -481,5 +488,5 @@
       }
     }
   }
-  return { setLocale, getLocale, text, apply };
+  return { setLocale, getLocale, content, text, apply };
 });

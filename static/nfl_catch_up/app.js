@@ -1,11 +1,13 @@
 (() => {
   'use strict';
-  const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp, L=HuddleLocale, AT=HuddleContentAT;
+  const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp, L=HuddleLocale;
   const isAT=()=>state.locale==='de-AT';
+  const isIndic=()=>['hi-IN','gu-IN'].includes(state.locale);
+  const localizedContent=()=>L.content();
   const number=n=>Number(n).toLocaleString(state.locale,{minimumFractionDigits:1,maximumFractionDigits:1});
   const gameDay=iso=>C.formatKickoff(iso,state.locale,true);
-  const sourceNote=()=>isAT()?'<p class="original-source-note">Englische Originalquellen · Schlagzeilen und Spielzüge bleiben im Wortlaut der Quelle.</p>':'';
-  const editorial=()=>({...D,stories:isAT()?D.stories.map(s=>({...s,...AT.stories[s.id]})):D.stories});
+  const sourceNote=()=>state.locale!=='en-US'?'<p class="original-source-note">English original sources · Headlines and play descriptions retain the source wording.</p>':'';
+  const editorial=()=>({...D,stories:localizedContent()?D.stories.map(s=>({...s,...localizedContent().stories[s.id]})):D.stories});
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=d=>new Date(d+'T12:00:00Z').toLocaleDateString(state.locale,{month:'short',day:'numeric',timeZone:'UTC'});
@@ -17,7 +19,7 @@
   let linked={};try{if(location.hash.startsWith('#catchup=')){const parsed=JSON.parse(decodeURIComponent(location.hash.slice(9)));if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))linked={...parsed,spoilers:true};}}catch{}
   const urlLocale=new URLSearchParams(location.search).get('lang');
   let state=C.normalize({...C.switchLocale(C.normalize(saved,S),linked.locale||C.normalize(saved,S).locale,S),...linked},S), revealed=new Set(), storyLimit=6, gameLimit=48, toastTimer, openedGame=null;
-  if(['de-AT','en-US'].includes(urlLocale)&&!linked.locale)state=C.switchLocale(state,urlLocale,S);
+  if(C.supportedLocales.includes(urlLocale)&&!linked.locale)state=C.switchLocale(state,urlLocale,S);
   L.setLocale(state.locale);
   persist();
   const current=C.records(S), recordMap=Object.fromEntries(current.map(r=>[r.id,r]));
@@ -83,7 +85,7 @@
     const filtered=C.schedule(S,state),shown=filtered.slice(0,gameLimit),groups=[...new Set(shown.map(g=>g.week))];
     return `<div class="page-title"><div><span class="eyebrow">NO MISSING WEEKS</span><h1>ALL THE <em>GAMES.</em></h1><p>Every regular-season matchup, from the opening kickoff to Week 18.</p></div><div class="big-total"><b>272</b><span>GAMES / 18 WEEKS</span></div></div>${seasonTimeline()}
     <div class="game-toolbar"><div class="chip-row" role="group" aria-label="Game status">${[['all','All games'],['final','Completed'],['scheduled','Upcoming']].map(([id,n])=>`<button class="chip ${state.gameStatus===id?'active':''}" data-status="${id}" aria-pressed="${state.gameStatus===id}">${n}</button>`).join('')}</div><label class="search-box"><span>⌕</span><input id="game-search" type="search" placeholder="Team or stadium" aria-label="Search games" value="${esc(state.gameQuery)}"></label><label class="close-filter"><input id="close-games" type="checkbox" ${state.closeGames?'checked':''} ${state.spoilers?'disabled':''}> Within 7 points</label></div>
-    <div class="results-meta"><span><b>${filtered.length}</b> matching games ${state.team==='ALL'?'':`/ ${esc(full(state.team))}`}</span><span>${state.spoilers?'Outcomes protected · close-finish filter disabled':'Open any matchup for the details'} · ${isAT()?'Wiener Zeit · Datumsauswahl nach US-Ostküstenzeit':'Eastern Time'}</span></div>
+    <div class="results-meta"><span><b>${filtered.length}</b> matching games ${state.team==='ALL'?'':`/ ${esc(full(state.team))}`}</span><span>${state.spoilers?'Outcomes protected · close-finish filter disabled':'Open any matchup for the details'} · ${isAT()?'Wiener Zeit · Datumsauswahl nach US-Ostküstenzeit':isIndic()?'India Standard Time · Date filters use US Eastern Time':'Eastern Time'}</span></div>
     ${filtered.length?groups.map(w=>`<section class="week-group"><div class="week-group-title"><h2>WEEK <span>${String(w).padStart(2,'0')}</span></h2><span>${w<=S.through_week?'IN THE BOOKS':w===S.latest_week?'PARTLY COMPLETE':'STILL TO COME'}</span></div><div class="games-grid">${shown.filter(g=>g.week===w).map(g=>resultCard(g)).join('')}</div></section>`).join(''):`<div class="empty"><h3>No games match these filters.</h3><p>A team may be on its bye, or your selected week may not have completed or upcoming games.</p><button class="secondary-button" data-clear-game-filters>Show the full schedule</button></div>`}
     ${filtered.length>shown.length?`<button id="more-games" class="load-more">Load the next ${Math.min(48,filtered.length-shown.length)} games <span>${shown.length} / ${filtered.length}</span></button>`:''}<p class="microcopy">The week selector replaces your catch-up date filter here. This is the 272-game regular season; future postseason matchups are not yet determined. Schedule checked ${fmt(S.as_of)}, 2026.</p>`;
   }
@@ -140,7 +142,7 @@
     ['05','THE STATS','Yards aren’t points.','Total yards describe how far the offense moved the ball. Turnovers hand possession to the opponent. Possession time measures how long a team held the ball. None of these alone decides the winner.','A team can gain fewer yards and still win. The final score decides.'],
     ['06','THE CONTEXT','Know what a report says.','A trade changes the roster. A depth-chart move changes who starts. An injury report is a dated availability update. “Questionable” is not the same as definitely out.','A past game recap cannot confirm who will play next Sunday.']
   ];
-  function learn(){return `<div class="page-title"><div><span class="eyebrow">A WAY INTO THE CONVERSATION</span><h1>FOOTBALL.<br><em>DECODED.</em></h1><p>Start anywhere. Ask in your own words, then follow the answer further.</p></div><div class="learn-decoration" aria-hidden="true">X <span>→</span> O</div></div>${HuddleResearch.markup(state.depth,state.spoilers,state.locale)}<details class="quick-basics"><summary>Keep a few basics handy</summary><div class="learn-grid">${(isAT()?AT.lessons:lessons).map(([n,k,t,p,e])=>`<article class="lesson"><div><span class="lesson-number">${n}</span><span class="eyebrow">${k}</span></div><h2>${t}</h2><p>${p}</p><div class="lesson-example">${e}</div></article>`).join('')}</div></details><p class="microcopy">Reference: <a href="https://operations.nfl.com/rules-officiating/nfl-football-basics/football-terms" target="_blank" rel="noopener noreferrer">NFL Football Operations · Football terms ↗</a></p>`;}
+  function learn(){return `<div class="page-title"><div><span class="eyebrow">A WAY INTO THE CONVERSATION</span><h1>FOOTBALL.<br><em>DECODED.</em></h1><p>Start anywhere. Ask in your own words, then follow the answer further.</p></div><div class="learn-decoration" aria-hidden="true">X <span>→</span> O</div></div>${HuddleResearch.markup(state.depth,state.spoilers,state.locale)}<details class="quick-basics"><summary>Keep a few basics handy</summary><div class="learn-grid">${(localizedContent()?.lessons||lessons).map(([n,k,t,p,e])=>`<article class="lesson"><div><span class="lesson-number">${n}</span><span class="eyebrow">${k}</span></div><h2>${t}</h2><p>${p}</p><div class="lesson-example">${e}</div></article>`).join('')}</div></details><p class="microcopy">Reference: <a href="https://operations.nfl.com/rules-officiating/nfl-football-basics/football-terms" target="_blank" rel="noopener noreferrer">NFL Football Operations · Football terms ↗</a></p>`;}
   function lineScore(g){
     const n=Math.max(g.away.quarters?.length||0,g.home.quarters?.length||0);if(!n)return '<p class="subtle">Quarter scores are not available in the source for this game.</p>';
     return `<div class="line-score-wrap"><table class="line-score"><caption>Points scored in each quarter</caption><thead><tr><th scope="col">TEAM</th>${Array.from({length:n},(_,i)=>`<th scope="col">${i<4?'Q'+(i+1):'OT'+(i>4?i-3:'')}</th>`).join('')}<th scope="col">FINAL</th></tr></thead><tbody>${[g.away,g.home].map(r=>`<tr><th scope="row">${r.team}</th>${Array.from({length:n},(_,i)=>`<td>${r.quarters?.[i]??'—'}</td>`).join('')}<td><strong>${r.score}</strong></td></tr>`).join('')}</tbody></table></div>`;
@@ -153,7 +155,7 @@
   const statDefs=[['totalYards','Total yards','How far the offense moved the ball.'],['netPassingYards','Passing yards','Net yards through the air, including sack losses.'],['rushingYards','Rushing yards','Yards gained running the ball.'],['firstDowns','First downs','Times the offense earned a new set of downs.'],['thirdDownEff','Third downs','Conversions versus attempts on third down.'],['turnovers','Turnovers','Possessions lost to the opponent. Fewer is generally better.'],['possessionTime','Possession','Time with the ball.'],['yardsPerPlay','Yards per play','Average gain per offensive play.'],['fourthDownEff','Fourth downs','Conversions and attempts.'],['redZoneAttempts','Red zone','Source red-zone efficiency.'],['totalPenaltiesYards','Penalties / yards','Accepted penalties and yards.'],['sacksYardsLost','Sacks / yards lost','Times sacked and lost yardage.'],['totalOffensivePlays','Offensive plays','Total offensive snaps.'],['totalDrives','Drives','Offensive possessions.'],['fumblesLost','Fumbles lost','Fumbles recovered by the other team.'],['interceptions','Interceptions thrown','Passes caught by the defense.']];
   function statsPanel(g){
     if(!g.stats||Object.keys(g.stats).length!==2)return '<div class="empty"><p>Detailed team statistics were unavailable from the source. The verified result is shown above.</p></div>';
-    const localizedDefs=isAT()?AT.statDefs:statDefs;
+    const localizedDefs=localizedContent()?.statDefs||statDefs;
     const defs=state.depth==='little'?localizedDefs.filter(([k])=>['totalYards','turnovers','possessionTime'].includes(k)):state.depth==='basics'?localizedDefs.slice(0,6):localizedDefs;
     return `<section class="game-stat-panel"><h3>The numbers underneath.</h3><div class="stat-team-labels"><b>${g.away.team}</b><span>TEAM COMPARISON</span><b>${g.home.team}</b></div>${defs.map(([key,label,explain])=>{const a=g.stats[g.away.team]?.[key],h=g.stats[g.home.team]?.[key];if(a==null||h==null)return '';let av=parseFloat(a),hv=parseFloat(h),sum=av+hv,bar=!['thirdDownEff','possessionTime'].includes(key)&&Number.isFinite(sum)&&sum>0;return `<div class="comparison-row"><div><strong>${esc(a)}</strong><span>${label}${state.depth==='little'?`<small>${explain}</small>`:''}</span><strong>${esc(h)}</strong></div>${bar?`<div class="comparison-bar"><i style="width:${av/sum*100}%"></i><i style="width:${hv/sum*100}%"></i></div>`:''}</div>`;}).join('')}<p class="microcopy">These are box-score comparisons, not a rating of which team played better.</p></section>`;
   }
@@ -162,7 +164,7 @@
     return `<section class="leaders-panel"><h3>Names behind the numbers.</h3><div class="leader-grid">${g.leaders.map(l=>`<article>${badge(l.team,'small')}<div><span>${esc(l.kind)}</span><b>${esc(l.name)}</b><p>${esc(l.stat)}</p></div></article>`).join('')}</div></section>`;
   }
   function deepGame(g){
-    return `<section class="deep-game">${sourceNote()}<details><summary>Every scoring play <span>${g.scoring_plays?.length||0} plays</span></summary>${g.scoring_plays?.length?`<ol class="scoring-log">${g.scoring_plays.map(p=>`<li><span>Q${esc(p.quarter)} · ${esc(p.clock)}<b>${esc(p.team)}</b></span><p data-original-language="en" lang="en">${esc(p.text)}</p><strong>${p.away}–${p.home}</strong></li>`).join('')}</ol>`:'<p>Scoring-play data is unavailable for this game.</p>'}</details><details><summary>Full player box score <span>Passing to special teams</span></summary><p class="microcopy">Source categories and available player rows. Scroll tables horizontally on small screens. Hover column labels for definitions.</p>${(g.player_stats||[]).map(t=>`<section class="player-box"><h3>${esc(full(t.team))}</h3>${t.categories.filter(c=>c.players.length).map(c=>`<details><summary>${esc(isAT()?(AT.sourceLabels[c.name]||L.text(c.name.replace(/([A-Z])/g,' $1'))):c.name.replace(/([A-Z])/g,' $1'))} <span>${c.players.length} players</span></summary><div class="line-score-wrap"><table class="line-score"><caption>${esc(t.team+' '+(isAT()?(AT.sourceLabels[c.name]||c.name):c.name))}</caption><thead><tr><th scope="col">Player</th>${c.labels.map((l,i)=>`<th scope="col" title="${esc(c.descriptions[i]||l)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${c.players.map(p=>`<tr><th scope="row">${esc(p.name)}</th>${p.stats.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`).join('')}</section>`).join('')||'<p>Player box scores were not available from the source.</p>'}</details></section>`;
+    return `<section class="deep-game">${sourceNote()}<details><summary>Every scoring play <span>${g.scoring_plays?.length||0} plays</span></summary>${g.scoring_plays?.length?`<ol class="scoring-log">${g.scoring_plays.map(p=>`<li><span>Q${esc(p.quarter)} · ${esc(p.clock)}<b>${esc(p.team)}</b></span><p data-original-language="en" lang="en">${esc(p.text)}</p><strong>${p.away}–${p.home}</strong></li>`).join('')}</ol>`:'<p>Scoring-play data is unavailable for this game.</p>'}</details><details><summary>Full player box score <span>Passing to special teams</span></summary><p class="microcopy">Source categories and available player rows. Scroll tables horizontally on small screens. Hover column labels for definitions.</p>${(g.player_stats||[]).map(t=>`<section class="player-box"><h3>${esc(full(t.team))}</h3>${t.categories.filter(c=>c.players.length).map(c=>`<details><summary>${esc(localizedContent()?(localizedContent().sourceLabels[c.name]||L.text(c.name.replace(/([A-Z])/g,' $1'))):c.name.replace(/([A-Z])/g,' $1'))} <span>${c.players.length} players</span></summary><div class="line-score-wrap"><table class="line-score"><caption>${esc(t.team+' '+(localizedContent()?(localizedContent().sourceLabels[c.name]||c.name):c.name))}</caption><thead><tr><th scope="col">Player</th>${c.labels.map((l,i)=>`<th scope="col" title="${esc(c.descriptions[i]||l)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${c.players.map(p=>`<tr><th scope="row">${esc(p.name)}</th>${p.stats.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`).join('')}</section>`).join('')||'<p>Player box scores were not available from the source.</p>'}</details></section>`;
   }
   function gameDetail(g){
     const hide=g.completed&&locked(g.id),read=C.gameRead(g,state.locale),ctx=C.gameContext(S,g);
@@ -185,11 +187,11 @@
     L.setLocale(state.locale);
     document.documentElement.lang=state.locale;
     document.documentElement.dataset.theme=state.theme;
-    document.title=isAT()?'HUDDLE / Die NFL-Saison im Überblick.':'HUDDLE / The whole season, in focus.';
-    $('#locale-toggle').setAttribute('aria-checked',String(isAT()));
-    $('#locale-toggle').title=isAT()?'Zu Englisch wechseln und die vorherige Teamauswahl wiederherstellen':'Switch to Austrian German; starts with the Minnesota Vikings';
-    $('#locale-note').hidden=!isAT();
-    $('#coverage-note').textContent=isAT()?AT.coverage_note:D.coverage_note;
+    document.title=L.text('HUDDLE / The whole season, in focus.');
+    $('#language-select').value=state.locale;
+    $('#locale-note').hidden=state.locale==='en-US';
+    $('#locale-note').textContent=isAT()?'Deutsch für Österreich · Anstoßzeiten in Wien · Startteam: Vikings':'Kickoff times in India · India Standard Time (IST)';
+    $('#coverage-note').textContent=localizedContent()?.coverage_note||D.coverage_note;
     const age=Math.floor((Date.now()-Date.parse(S.as_of+'T23:59:59-05:00'))/86400000);
     $('#freshness').hidden=age<2;
     if(age>=2)$('#freshness').textContent=isAT()?`Das ist die Ausgabe vom ${fmt(S.as_of)}. Sie ist inzwischen ${age} Tage alt. Neuere Ergebnisse und Kaderänderungen können fehlen. Aktuelles findest du bei den verlinkten offiziellen Quellen.`:`This is the ${fmt(S.as_of)} edition, now ${age} days past its date. New results and roster changes may be missing; check the linked official sources for the latest.`;
@@ -214,7 +216,7 @@
     else if(b.dataset.game)openGame(b.dataset.game);
     else if(b.hasAttribute('data-close-game'))closeGame();
     else if(b.dataset.revealGame){revealed.add(b.dataset.revealGame);render();notice('This game is now visible.');}
-    else if(b.dataset.researchTeam){HuddleResearch.draft(isAT()?'Was hat sich bei den '+full(b.dataset.researchTeam)+' seit '+fmt(state.since)+' 2026 verändert? Erkläre die Spiele, die Quarterback-Situation, Trainer, Verletzungen und Kaderänderungen.':'What has changed for the '+full(b.dataset.researchTeam)+' since '+state.since+'? Explain the games, quarterback, coaching, injuries and roster moves.');setState({tab:'learn'},{focus:true});}
+    else if(b.dataset.researchTeam){HuddleResearch.draft(L.text(isAT()?'Was hat sich bei den '+full(b.dataset.researchTeam)+' seit '+fmt(state.since)+' 2026 verändert? Erkläre die Spiele, die Quarterback-Situation, Trainer, Verletzungen und Kaderänderungen.':'What has changed for the '+full(b.dataset.researchTeam)+' since '+state.since+'? Explain the games, quarterback, coaching, injuries and roster moves.'));setState({tab:'learn'},{focus:true});}
     else if(b.dataset.teamRoom){setState({tab:'teams',teamFocus:b.dataset.teamRoom},{focus:true});}
     else if(b.dataset.followTeam){setState({team:b.dataset.followTeam});notice(`${full(state.team)} selected for your catch up.`);}
     else if(b.dataset.topic)setState({topic:b.dataset.topic});
@@ -227,14 +229,14 @@
     else if(b.hasAttribute('data-reset-filters'))setState({team:'ALL',topic:'all',query:'',since:C.normalize({},S).since});
     else if(b.id==='more'){storyLimit+=6;render();}
     else if(b.id==='more-games'){gameLimit+=48;render();}
-    else if(b.id==='locale-toggle'){
-      state=C.switchLocale(state,isAT()?'en-US':'de-AT',S);
-      const u=new URL(location.href);u.searchParams.delete('lang');if(u.hash.startsWith('#catchup='))u.hash='';history.replaceState(null,'',u.pathname+u.search+u.hash);
-      storyLimit=state.depth==='little'?3:6;gameLimit=48;persist();render();
-      notice(isAT()?'Deutsch (Österreich) ist aktiv. Dein Startteam sind die Minnesota Vikings.':'English restored with your previous team selection.');
-    }
     else if(b.id==='theme-toggle')setState({theme:state.theme==='dark'?'light':'dark'},{keepLimit:true});
     else if(b.id==='reset'){revealed.clear();const u=new URL(location.href);u.searchParams.delete('lang');history.replaceState(null,'',u.pathname+u.search);state=C.normalize({},S);storyLimit=6;gameLimit=48;persist();render();notice('Reset. Night mode is the default.');}
+  });
+  $('#language-select').addEventListener('change',e=>{
+    state=C.switchLocale(state,e.target.value,S);
+    const u=new URL(location.href);u.searchParams.set('lang',state.locale);if(u.hash.startsWith('#catchup='))u.hash='';history.replaceState(null,'',u.pathname+u.search+u.hash);
+    storyLimit=state.depth==='little'?3:6;gameLimit=48;persist();render();
+    notice(isAT()?'Deutsch (Österreich) ist aktiv. Dein Startteam sind die Minnesota Vikings.':'Language updated.');
   });
   $('#period').addEventListener('change',e=>{if(e.target.value==='custom'){$('#custom-wrap').hidden=false;$('#since').focus();}else setState({since:e.target.value});});
   $('#since').addEventListener('change',e=>{if(e.target.validity.valid&&e.target.value)setState({since:e.target.value});});

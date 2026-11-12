@@ -101,20 +101,19 @@ other deployment branches are unchanged.
 
 ## Austrian German variation
 
-The header toggle enables **Deutsch (Österreich)** (`de-AT`), using Austrian
+The header language selector includes **Deutsch (Österreich)** (`de-AT`), using Austrian
 Standard German rather than dialect. English (`en-US`) remains the default.
-Switching the toggle on selects the Minnesota Vikings (`MIN`) for both the
+Selecting Austrian German selects the Minnesota Vikings (`MIN`) for both the
 catch-up team filter and the team room. Visitors can then select any other team;
-their Austrian-mode selection and language survive reloads. Switching back to
-English restores the team filter and team room that were selected before Austrian
-mode was enabled. Each new switch from English to Austrian mode starts with the
+their Austrian-mode selection and language survive reloads. Selecting another language restores the team filter and team room that were selected
+before Austrian mode was enabled. Each new switch into Austrian mode starts with the
 Vikings again.
 
 The existing optional browser preferences store the language. Shared briefing
 links include the locale and current team selection and still open with outcomes
 hidden. The direct entry link
 `https://dfe-nfl-catch-up.onrender.com/?lang=de-AT` also enables Austrian mode.
-Changing the toggle updates the current preference without leaving a conflicting
+Changing the language updates the current preference without leaving a conflicting
 language override in the URL.
 
 Navigation, controls, generated game reads, team briefings, statistics and
@@ -135,6 +134,43 @@ starters and status messages. When generated answers are unavailable, the live
 reference fallback searches German Wikipedia and labels its excerpts as reference
 results. This language support does not activate written answers: the existing
 server-side `OPENAI_API_KEY` requirement and the limitations below still apply.
+
+## Hindi and Gujarati
+
+The same header selector now offers **हिन्दी (Hindi)** (`hi-IN`) and
+**ગુજરાતી (Gujarati)** (`gu-IN`) alongside English and Austrian German.
+Direct links can set the language with `?lang=hi-IN` or `?lang=gu-IN`.
+Language preferences survive reloads and are included in shared briefings.
+Switching among English, Hindi and Gujarati preserves the followed team, team room,
+familiarity level, date filter, theme and spoiler preference. The Vikings default
+remains specific to entering Austrian German; leaving it restores the preceding
+non-Austrian team preferences. Existing Austrian preferences and older shared links
+remain compatible.
+
+`static/nfl_catch_up/locale-hi-in.js` and `locale-gu-in.js` contain native-script
+navigation, controls, status messages, generated game and team context, all ten
+editorial stories, six beginner lessons and sixteen statistic definitions. The
+renderer embeds Noto Sans Devanagari and Noto Sans Gujarati regular and bold WOFF
+fonts in the single-page export, with their SIL Open Font License. Font sources and
+license are in `static/nfl_catch_up/fonts/`. This avoids a separate font request;
+Indic typography uses zero letter spacing and more room between lines for vowel
+marks. Language names remain in their native scripts in every mode.
+
+Hindi and Gujarati kickoff displays use **Asia/Kolkata**, a 24-hour clock, and
+**IST (UTC+05:30)**. Localized dates may fall on the following day compared with the
+US game date. Date filters and before/after record calculations continue to use US
+Eastern Time, explicitly labeled in the game explorer. The source data snapshot,
+team/player names, scores, standings calculations and source links are unchanged.
+External reporting headlines, transactions and scoring descriptions keep their
+original wording and are labeled accordingly.
+
+The research service accepts both locales, requests native-script explanations at
+the chosen familiarity level, and offers Hindi/Gujarati question starters and
+messages. If generated answers are unavailable, reference search uses the
+corresponding Hindi or Gujarati Wikipedia and labels source excerpts. Unicode
+search tokenization preserves combining vowel marks and conjuncts. Adding languages
+does not enable generated answers or change the existing service credentials,
+limits or spoiler handling.
 
 ## November 8 data and team context
 

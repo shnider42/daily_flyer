@@ -12,6 +12,7 @@ import os
 import re
 import threading
 import time
+import unicodedata
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -27,6 +28,9 @@ daily = deque()
 visitors = OrderedDict()
 STOP = set('when did does do the a an to have has is are was were will would could should why how what who which where of in on only for and with about explain please me it they their that this football nfl american'.split())
 STOP_DE = set('wann warum wieso weshalb wie was wer welche welcher welches wo ist sind war waren wird werden wurde wurden hat haben hatte hatten der die das den dem des ein eine einer einem einen eines im in am an auf für von zum zur zu bei und oder mit über um als nur sich es sie er wir ihr ich mir mich man bitte erklär erkläre erklären kann können könnte könnten würde würden soll sollen denn doch eigentlich'.split())
+STOP_HI = set('कब क्यों कैसे क्या कौन कहाँ कहां किस किसने किसे किसका किसकी किसके कितना कितनी कितने है हैं था थी थे हो होता होती होते हुआ हुई हुए होना होने करता करती करते किया किए करें करना करने के की का को में पर से और या एक यह ये वह वे इस उस इसके उसके लिए भी ही तो तक आप मुझे हमें हम मैं कृपया बताओ बताइए समझाओ समझाइए'.split())
+STOP_GU = set('ક્યારે કેમ શા શા માટે કેવી રીતે કેવી રીતે શું કોણ ક્યાં કઈ કયો કયા કોને કોના કેટલું કેટલી કેટલા છે હતો હતી હતા હોય થાય થયું થઈ થયા થવું થવાનું કરે કરવું કરવા કર્યું કરેલી કરેલા ના ની નો ને માં પર થી અને અથવા એક આ એ તે તેનો તેની તેના આના આની આનો માટે પણ જ તો સુધી તમે મને અમને અમે હું કૃપા કરીને કહો જણાવો સમજાવો'.split())
+SUPPORTED_LOCALES = ('en-US','de-AT','hi-IN','gu-IN')
 MESSAGES_DE = {
  'Enter a football question.':'Gib eine Frage zu American Football ein.',
  'Use 3–500 characters for your question.':'Deine Frage muss 3–500 Zeichen lang sein.',
@@ -40,10 +44,37 @@ MESSAGES_DE = {
  'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.':'Die aktuelle Quellensuche ist verfügbar. Ausformulierte Antworten und die Prüfung der Annahmen in deiner Frage sind noch nicht aktiviert. Diese Auszüge können weiterhelfen, sind aber keine geprüfte Antwort auf deine Frage.',
  'Written from sources searched for this question. Check the linked evidence for important details.':'Diese Antwort beruht auf Quellen, die für deine Frage recherchiert wurden. Prüfe wichtige Details in den verlinkten Quellen.',
 }
+MESSAGES_HI = {
+ 'Enter a football question.':'अमेरिकी फ़ुटबॉल से जुड़ा सवाल लिखें।',
+ 'Use 3–500 characters for your question.':'अपने सवाल में 3–500 अक्षर लिखें।',
+ 'Choose a valid explanation level.':'समझाने के लिए सही स्तर चुनें।',
+ 'Start a new thread after six questions.':'और सवाल पूछने के लिए नई बातचीत शुरू करें।',
+ 'Invalid conversation context.':'बातचीत का पिछला हिस्सा पढ़ा नहीं जा सका।',
+ 'Research is busy. Please try again in ten minutes.':'खोज सेवा अभी व्यस्त है। दस मिनट बाद फिर कोशिश करें।',
+ 'Two questions are being researched. Please try again shortly.':'अभी दो सवालों के लिए खोज चल रही है। थोड़ी देर बाद फिर कोशिश करें।',
+ 'The research source did not return a usable result. No answer was generated. Please retry.':'स्रोत से उपयोगी जानकारी नहीं मिल सकी। कोई जवाब तैयार नहीं किया गया। कृपया फिर कोशिश करें।',
+ 'The question or conversation is too long. Start a new thread.':'सवाल या बातचीत बहुत लंबी है। नई बातचीत शुरू करें।',
+ 'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.':'ताज़ा स्रोतों में खोज उपलब्ध है। लिखित जवाब तैयार करने और सवाल की मान्यताएँ जाँचने की सुविधा अभी चालू नहीं है। ये अंश मदद कर सकते हैं, लेकिन इन्हें आपके सवाल का जाँचा हुआ जवाब न मानें।',
+ 'Written from sources searched for this question. Check the linked evidence for important details.':'यह जवाब आपके सवाल के लिए खोजे गए स्रोतों पर आधारित है। ज़रूरी जानकारी की पुष्टि के लिए दिए गए स्रोतों को खोलें।',
+}
+MESSAGES_GU = {
+ 'Enter a football question.':'અમેરિકન ફૂટબોલ વિશેનો પ્રશ્ન લખો.',
+ 'Use 3–500 characters for your question.':'તમારો પ્રશ્ન 3–500 અક્ષરોમાં લખો.',
+ 'Choose a valid explanation level.':'સમજાવટ માટે યોગ્ય સ્તર પસંદ કરો.',
+ 'Start a new thread after six questions.':'વધુ પ્રશ્નો પૂછવા માટે નવી વાતચીત શરૂ કરો.',
+ 'Invalid conversation context.':'પહેલાંની વાતચીત વાંચી શકાઈ નથી.',
+ 'Research is busy. Please try again in ten minutes.':'શોધ સેવા અત્યારે વ્યસ્ત છે. દસ મિનિટ પછી ફરી પ્રયાસ કરો.',
+ 'Two questions are being researched. Please try again shortly.':'અત્યારે બે પ્રશ્નો માટે શોધ ચાલી રહી છે. થોડી વાર પછી ફરી પ્રયાસ કરો.',
+ 'The research source did not return a usable result. No answer was generated. Please retry.':'સ્રોતમાંથી ઉપયોગી માહિતી મળી નથી. કોઈ જવાબ તૈયાર કરવામાં આવ્યો નથી. કૃપા કરીને ફરી પ્રયાસ કરો.',
+ 'The question or conversation is too long. Start a new thread.':'પ્રશ્ન અથવા વાતચીત ખૂબ લાંબી છે. નવી વાતચીત શરૂ કરો.',
+ 'Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.':'તાજા સ્રોતોમાં શોધ ઉપલબ્ધ છે. લખેલો જવાબ તૈયાર કરવાની અને પ્રશ્નની ધારણાઓ તપાસવાની સુવિધા હજી ચાલુ નથી. આ અંશો મદદ કરી શકે છે, પરંતુ તેમને તમારા પ્રશ્નનો ચકાસેલો જવાબ માનશો નહીં.',
+ 'Written from sources searched for this question. Check the linked evidence for important details.':'આ જવાબ તમારા પ્રશ્ન માટે શોધેલા સ્રોતો પર આધારિત છે. અગત્યની વિગતોની ખાતરી કરવા આપેલી કડીઓ ખોલો.',
+}
+MESSAGES = {'de-AT':MESSAGES_DE,'hi-IN':MESSAGES_HI,'gu-IN':MESSAGES_GU}
 
-def normalize_locale(value):return 'de-AT' if value=='de-AT' else 'en-US'
+def normalize_locale(value):return value if isinstance(value,str) and value in SUPPORTED_LOCALES else 'en-US'
 
-def message(text,locale='en-US'):return MESSAGES_DE.get(text,text) if normalize_locale(locale)=='de-AT' else text
+def message(text,locale='en-US'):return MESSAGES.get(normalize_locale(locale),{}).get(text,text)
 
 def stamp():return datetime.now(timezone.utc).isoformat()
 
@@ -99,16 +130,29 @@ def take_quota(identity):
   while len(visitors)>2000:visitors.popitem(last=False)
   return True
 
+def search_words(text):
+ # Python's \w omits combining marks. Keep letters/numbers together with their
+ # vowel signs, viramas and intra-word joiners, including decomposed Latin text.
+ # Starting marks/joiners are discarded; punctuation remains a word boundary.
+ word=[]
+ for char in unicodedata.normalize('NFC',text):
+  category=unicodedata.category(char)[0]
+  if category in ('L','N') or (word and (category=='M' or char in ('\u200c','\u200d'))):
+   word.append(char)
+  elif word:
+   yield ''.join(word)
+   word=[]
+ if word:yield ''.join(word)
+
 def live_references(question,history,locale='en-US'):
  # Query terms are derived from each request, not a fixed question-to-answer map.
  locale=normalize_locale(locale)
  context=' '.join(t['content'] for t in history if t['role']=='user')+' '+question
- stop=STOP|STOP_DE if locale=='de-AT' else STOP
- # Keep umlauts and ß intact; ASCII tokenization would damage German searches.
- terms=[w for w in re.findall(r"[^\W_]+",context,re.UNICODE) if w.lower() not in stop][-16:]
+ stop=(STOP-{'nfl','football','american'})|{'de-AT':STOP_DE,'hi-IN':STOP_HI,'gu-IN':STOP_GU}.get(locale,set())
+ terms=[w for w in search_words(context) if w.casefold() not in stop][-16:]
  query=' '.join(terms) or question
  if not re.search(r'\b(nfl|football|super bowl)\b',query,re.I):query+=' American football'
- wiki='https://de.wikipedia.org' if locale=='de-AT' else 'https://en.wikipedia.org'
+ wiki='https://'+{'en-US':'en','de-AT':'de','hi-IN':'hi','gu-IN':'gu'}[locale]+'.wikipedia.org'
  url=wiki+'/w/api.php?'+urlencode({'action':'query','list':'search','srsearch':query,'srlimit':5,'format':'json'})
  data=get_json(url)
  sources=[]
@@ -116,14 +160,18 @@ def live_references(question,history,locale='en-US'):
   # Attribution and short quotations; the result is explicitly not a synthesized answer.
   excerpt=html.unescape(re.sub('<[^>]*>','',item.get('snippet','')))
   sources.append({'title':item['title'],'url':wiki+'/?curid='+str(item['pageid']),
-                  'excerpt':' '.join(excerpt.split()[:22])+'…','publisher':'Wikipedia · Suchauszug' if locale=='de-AT' else 'Wikipedia · search excerpt'})
+                  'excerpt':' '.join(excerpt.split()[:22])+'…','publisher':{'en-US':'Wikipedia · search excerpt','de-AT':'Wikipedia · Suchauszug','hi-IN':'विकिपीडिया · खोज का अंश','gu-IN':'વિકિપીડિયા · શોધનો અંશ'}[locale]})
  return {'mode':'references','question':question,'checked_at':stamp(),'sources':sources,'locale':locale,
          'notice':message('Live reference search is available. Written answers and premise checking are not enabled yet. These excerpts may help, but do not establish an answer to your question.',locale),
          'query':query,'blocks':[]}
 
 def answer_payload(question,depth,history,hide,locale='en-US'):
- language=('Write the answer in Austrian Standard German (de-AT), with natural Austrian spelling and vocabulary, not exaggerated dialect. Use familiar NFL terms such as Down, Quarterback and Touchdown, explaining them in German when needed. Display any kickoff times in Europe/Vienna with a 24-hour clock and an explicit time zone. Keep source titles and names accurate; German and English primary sources are both welcome.'
-           if normalize_locale(locale)=='de-AT' else 'Write the answer in English (en-US).')
+ language={
+  'en-US':'Write the answer in English (en-US).',
+  'de-AT':'Write the answer in Austrian Standard German (de-AT), with natural Austrian spelling and vocabulary, not exaggerated dialect. Use familiar NFL terms such as Down, Quarterback and Touchdown, explaining them in German when needed. Display any kickoff times in Europe/Vienna with a 24-hour clock and an explicit time zone. Keep source titles and names accurate; German and English primary sources are both welcome.',
+  'hi-IN':'Write the answer in natural Hindi (hi-IN) using Devanagari script, not a Romanized Hindi answer. Explain American football clearly; it is a different sport from association football. Retain recognizable NFL and team/player names and familiar terms such as Down, Quarterback and Touchdown, with Hindi explanations appropriate to the requested familiarity level. Use clear everyday Hindi, not unnecessary jargon. When giving kickoff times, use Asia/Kolkata, a 24-hour clock, the local calendar date and explicit IST (UTC+05:30); account for games that fall on the following day in India. Keep source titles and names accurate; Hindi and English primary sources are both welcome. A source does not need to be in Hindi to support a Hindi explanation.',
+  'gu-IN':'Write the answer in natural Gujarati (gu-IN) using Gujarati script, not Hindi or a Romanized Gujarati answer. Explain American football clearly; it is a different sport from association football. Retain recognizable NFL and team/player names and familiar terms such as Down, Quarterback and Touchdown, with Gujarati explanations appropriate to the requested familiarity level. Use clear everyday Gujarati, not unnecessary jargon. When giving kickoff times, use Asia/Kolkata, a 24-hour clock, the local calendar date and explicit IST (UTC+05:30); account for games that fall on the following day in India. Keep source titles and names accurate; Gujarati and English primary sources are both welcome. A source does not need to be in Gujarati to support a Gujarati explanation.',
+ }[normalize_locale(locale)]
  instructions=f'''You are HUDDLE, a careful American-football research guide. Today is {datetime.now(timezone.utc).date()} UTC.
 {language}
 Answer the visitor's actual open-ended football question, including history, culture, rules, tactics, teams and current events. Do not use a canned FAQ.
@@ -174,7 +222,7 @@ def headers(response):
  return response
 
 @app.get('/healthz')
-def health():return jsonify(status='ok',answers_enabled=bool(os.environ.get('OPENAI_API_KEY')),reference_search=True,locales=['en-US','de-AT'])
+def health():return jsonify(status='ok',answers_enabled=bool(os.environ.get('OPENAI_API_KEY')),reference_search=True,locales=list(SUPPORTED_LOCALES))
 
 @app.route('/api/ask',methods=['POST','OPTIONS'])
 def ask():

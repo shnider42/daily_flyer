@@ -1,5 +1,7 @@
 (function(root) {
   'use strict';
+  const supportedLocales=Object.freeze(['en-US','de-AT','hi-IN','gu-IN']);
+  const normalizeLocale=value=>supportedLocales.includes(value)?value:'en-US';
   const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' });
   const dateCache = new Map();
   const localDate = iso => {if(!dateCache.has(iso))dateCache.set(iso,dateFormatter.format(new Date(iso)));return dateCache.get(iso);};
@@ -77,7 +79,7 @@
   }
   function normalize(raw,data) {
     if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
-    const locale=raw.locale==='de-AT'?'de-AT':'en-US';
+    const locale=normalizeLocale(raw.locale);
     const validTeam=id=>data.teams.some(t=>t.id===id);
     const defaultSince=new Date(Date.parse(data.as_of+'T12:00:00Z')-7*86400000).toISOString().slice(0,10);
     const isDate=s=>/^2026-\d{2}-\d{2}$/.test(s||'') && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0,10)===s;
@@ -100,17 +102,19 @@
       week:raw.week==='all'?'all':Number.isInteger(Number(raw.week))&&Number(raw.week)>=1&&Number(raw.week)<=18?Number(raw.week):(data.latest_week||data.through_week)};
   }
   function switchLocale(state,locale,data){
-    const next=locale==='de-AT'?'de-AT':'en-US';
+    const next=normalizeLocale(locale);
     if(next===state.locale)return normalize(state,data);
-    return normalize(next==='de-AT'?{...state,locale:next,englishTeam:state.team,englishTeamFocus:state.teamFocus,team:'MIN',teamFocus:'MIN'}:{...state,locale:next,team:state.englishTeam,teamFocus:state.englishTeamFocus},data);
+    if(next==='de-AT')return normalize({...state,locale:next,englishTeam:state.team,englishTeamFocus:state.teamFocus,team:'MIN',teamFocus:'MIN'},data);
+    if(state.locale==='de-AT')return normalize({...state,locale:next,team:state.englishTeam,teamFocus:state.englishTeamFocus},data);
+    return normalize({...state,locale:next},data);
   }
   function formatKickoff(iso,locale='en-US',compact=false){
-    const austrian=locale==='de-AT';
-    return new Date(iso).toLocaleString(austrian?'de-AT':'en-US',{
-      timeZone:austrian?'Europe/Vienna':'America/New_York',month:'short',day:'numeric',
-      ...(compact?{}:austrian?{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}:{hour:'numeric',minute:'2-digit'})
-    })+(compact?'':austrian?' Uhr · Wien':' ET');
+    const normalized=normalizeLocale(locale),austrian=normalized==='de-AT',indian=['hi-IN','gu-IN'].includes(normalized);
+    return new Date(iso).toLocaleString(normalized,{
+      timeZone:austrian?'Europe/Vienna':indian?'Asia/Kolkata':'America/New_York',month:'short',day:'numeric',
+      ...(compact?{}:austrian||indian?{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}:{hour:'numeric',minute:'2-digit'})
+    })+(compact?'':austrian?' Uhr · Wien':indian?' IST':' ET');
   }
-  const api={localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,switchLocale,formatKickoff,teamBrief};
+  const api={supportedLocales,normalizeLocale,localDate,records,sortRecords,record,matches,stories,games,schedule,gameContext,quarterFlow,gameRead,normalize,switchLocale,formatKickoff,teamBrief};
   if(typeof module!=='undefined')module.exports=api;else root.NFLCatchUp=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

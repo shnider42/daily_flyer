@@ -155,3 +155,115 @@ test('Austrian content preserves editorial identities and translates all learnin
   assert.equal(AT.lessons.length,6);assert.equal(AT.statDefs.length,16);
   for(const g of S.games){const read=C.gameRead(g,'de-AT');assert.ok(read.kind&&read.text);assert.notEqual(read.text,C.gameRead(g).text);}
 });
+
+test('all four language preferences normalize safely, including old and malformed settings',()=>{
+  for(const locale of ['en-US','de-AT','hi-IN','gu-IN'])assert.equal(C.normalize({locale},S).locale,locale);
+  for(const locale of [undefined,null,'hi','gu','fr-FR','hi-IN<script>',['hi-IN'],{locale:'gu-IN'}]){
+    const state=C.normalize({locale},S);
+    assert.equal(state.locale,'en-US');assert.equal(state.team,'ALL');
+  }
+  assert.equal(C.normalize({},S).locale,'en-US');
+  for(const locale of ['hi-IN','gu-IN'])assert.equal(C.normalize({locale},S).team,'ALL');
+});
+
+test('Hindi, Gujarati and English preserve team choices and viewing preferences across switches and reloads',()=>{
+  const original=C.normalize({team:'BUF',teamFocus:'DAL',depth:'well',since:'2026-10-25',spoilers:true,theme:'light',week:7,topic:'roster',query:'Allen',conference:'AFC',gameStatus:'scheduled',gameQuery:'Buffalo'},S);
+  let state=original;
+  const retained=['team','teamFocus','depth','since','spoilers','theme','week','topic','query','conference','gameStatus','gameQuery'];
+  for(const locale of ['hi-IN','gu-IN','hi-IN','en-US','gu-IN']){
+    state=C.switchLocale(state,locale,S);
+    assert.equal(state.locale,locale);
+    for(const key of retained)assert.equal(state[key],original[key],locale+' '+key);
+    state=C.normalize(JSON.parse(JSON.stringify(state)),S);
+    for(const key of retained)assert.equal(state[key],original[key],'reload '+locale+' '+key);
+  }
+  state=C.normalize({...state,team:'SEA',teamFocus:'GB'},S);
+  const sameLanguage=C.switchLocale(C.normalize(JSON.parse(JSON.stringify(state)),S),'gu-IN',S);
+  assert.equal(sameLanguage.team,'SEA');assert.equal(sameLanguage.teamFocus,'GB');
+  const hindi=C.switchLocale(sameLanguage,'hi-IN',S);
+  assert.equal(hindi.team,'SEA');assert.equal(hindi.teamFocus,'GB');
+});
+
+test('Austrian entry selects Minnesota and exit restores the previous non-Austrian teams, including legacy saves',()=>{
+  for(const origin of ['en-US','hi-IN','gu-IN']){
+    const original=C.normalize({locale:origin,team:'BUF',teamFocus:'DAL',depth:'little',spoilers:true,theme:'light'},S);
+    const austrian=C.switchLocale(original,'de-AT',S);
+    assert.equal(austrian.team,'MIN');assert.equal(austrian.teamFocus,'MIN');
+    const saved=C.normalize(JSON.parse(JSON.stringify({...austrian,team:'SEA',teamFocus:'GB'})),S);
+    assert.equal(saved.team,'SEA');assert.equal(saved.teamFocus,'GB');
+    for(const destination of ['en-US','hi-IN','gu-IN']){
+      const restored=C.switchLocale(saved,destination,S);
+      assert.equal(restored.locale,destination);assert.equal(restored.team,'BUF');assert.equal(restored.teamFocus,'DAL');
+      assert.equal(restored.depth,'little');assert.equal(restored.spoilers,true);assert.equal(restored.theme,'light');
+    }
+  }
+  const legacy=C.normalize({locale:'de-AT',team:'MIN',teamFocus:'MIN',englishTeam:'NE',englishTeamFocus:'NYJ'},S);
+  const restored=C.switchLocale(legacy,'gu-IN',S);
+  assert.equal(restored.team,'NE');assert.equal(restored.teamFocus,'NYJ');
+});
+
+test('Indian kickoff display rolls over at the game instant without changing Eastern date filters',()=>{
+  const instant='2026-11-08T22:20:00Z';
+  const original=C.normalize({since:'2026-11-01'},S);
+  const gameIds=C.games(S,original).map(g=>g.id);
+  for(const locale of ['hi-IN','gu-IN']){
+    assert.match(C.formatKickoff(instant,locale),/9.*03:50 IST$/);
+    assert.match(C.formatKickoff('2026-03-15T18:00:00Z',locale),/23:30 IST$/);
+    assert.match(C.formatKickoff('2026-09-11T00:20:00Z',locale),/05:50 IST$/);
+    assert.equal(C.localDate(instant),'2026-11-08');
+    assert.deepEqual(C.games(S,C.switchLocale(original,locale,S)).map(g=>g.id),gameIds);
+  }
+  assert.match(C.formatKickoff(instant,'en-US'),/Nov 8.*5:20 PM ET$/);
+});
+
+function loadDisplayLocale(locale){
+  const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+  const context=vm.createContext({});
+  const file={'de-AT':'content-de-at.js','hi-IN':'locale-hi-in.js','gu-IN':'locale-gu-in.js'}[locale];
+  for(const name of [file,'i18n.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../static/nfl_catch_up',name),'utf8'),context,{filename:name});
+  context.HuddleLocale.setLocale(locale);
+  return context.HuddleLocale;
+}
+
+test('native content packs cover every editorial display field, lesson and statistic without replacing evidence',()=>{
+  const fields=['title','safe_title','kicker','metric_label','summary','context','before','after','detail','meaning'];
+  const statKeys=['totalYards','netPassingYards','rushingYards','firstDowns','thirdDownEff','turnovers','possessionTime','yardsPerPlay','fourthDownEff','redZoneAttempts','totalPenaltiesYards','sacksYardsLost','totalOffensivePlays','totalDrives','fumblesLost','interceptions'];
+  for(const [locale,script] of [['hi-IN',/\p{Script=Devanagari}/u],['gu-IN',/\p{Script=Gujarati}/u]]){
+    const content=loadDisplayLocale(locale).content();
+    assert.deepEqual(Object.keys(content.stories).sort(),D.stories.map(s=>s.id).sort(),locale+' story IDs');
+    assert.equal(Object.keys(content.stories).length,10);
+    for(const story of D.stories){
+      const translated=content.stories[story.id];
+      for(const field of fields){
+        assert.equal(typeof translated[field],'string',locale+' '+story.id+' '+field);
+        assert.ok(translated[field].trim(),locale+' '+story.id+' '+field);
+        assert.match(translated[field],script,locale+' '+story.id+' '+field);
+      }
+      for(const field of Object.keys(translated))assert.ok(fields.includes(field),locale+' must not override source field '+field);
+    }
+    assert.match(content.coverage_note,script);
+    assert.equal(content.lessons.length,6);
+    assert.deepEqual(Array.from(content.lessons,lesson=>lesson[0]),['01','02','03','04','05','06']);
+    for(const lesson of content.lessons){assert.equal(lesson.length,5);for(const text of lesson.slice(1))assert.match(text,script);}
+    assert.equal(content.statDefs.length,16);
+    assert.deepEqual(Array.from(content.statDefs,stat=>stat[0]),statKeys);
+    for(const [,label,explanation] of content.statDefs){assert.match(label,script);assert.match(explanation,script);}
+  }
+});
+
+test('every native generated game summary and team research draft is translated while preserving identifiers',()=>{
+  for(const [locale,script] of [['hi-IN',/\p{Script=Devanagari}/u],['gu-IN',/\p{Script=Gujarati}/u]]){
+    const L=loadDisplayLocale(locale);
+    for(const game of S.games){
+      const read=C.gameRead(game,locale),english=C.gameRead(game,'en-US');
+      for(const field of ['kind','text']){
+        const translated=L.text(read[field]);
+        assert.notEqual(translated,english[field],locale+' '+game.id+' '+field);
+        assert.match(translated,script,locale+' '+game.id+' '+field);
+      }
+    }
+    const name='Minnesota Vikings',date='2026-11-01';
+    const draft=L.text(`What has changed for the ${name} since ${date}? Explain the games, quarterback, coaching, injuries and roster moves.`);
+    assert.match(draft,script);assert.ok(draft.includes(name));assert.ok(draft.includes(date));
+  }
+});
