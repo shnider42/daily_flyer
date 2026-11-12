@@ -16,7 +16,7 @@ class Element {
 const descendants=root=>root.children.flatMap(node=>[node,...descendants(node)]);
 const visibleDescendants=root=>(root.tagName==='details'&&!root.open?root.children.filter(node=>node.tagName==='summary'):root.children).flatMap(node=>[node,...visibleDescendants(node)]);
 const text=root=>[root.textContent,...root.children.map(text)].join(' ');
-function fixture({guest=false,aboard=false,invokeOverride=null,acceptOverride=null}={}) {
+function fixture({guest=false,aboard=false,invokeOverride=null,acceptOverride=null,guidance='simple'}={}) {
  const game=new Game('crew-panel-review'),port=game.system.bodies.find(body=>body.id==='kettle');
  game.state.mode='person';game.state.locationId='kettle';game.state.interior=null;
  Object.assign(game.state.ship,{x:port.x,y:port.y+port.radius+50,vx:0,vy:0});
@@ -28,13 +28,61 @@ function fixture({guest=false,aboard=false,invokeOverride=null,acceptOverride=nu
  const document={createElement:tag=>new Element(tag)};globalThis.document=document;
  const dialog={body:new Element(),opened:false,kind:null,open(title,kind,options){this.title=title;this.kind=kind;this.options=options;this.opened=true;this.body.replaceChildren();this.body.scrollTop=0;},close(){this.opened=false;}};
  const network={connected:true,passport:{realmCode:'ROOM22'}},calls=[],deckCalls=[],callbacks=[],toasts=[];
- const ui=createSharedCrewUI({getGame:()=>game,getSnapshot:()=>snapshot,getNetwork:()=>network,dialog,
+ const ui=createSharedCrewUI({getGame:()=>game,getSnapshot:()=>snapshot,getNetwork:()=>network,getGuidance:()=>guidance,dialog,
   invoke:async(name,args)=>{calls.push({name,args});if(invokeOverride)return invokeOverride(name,args);if(name==='setCrewAccess'){const vessel=snapshot.fleet.find(v=>v.id===args.vesselId);if(args.captainId)vessel.grants[args.captainId]={allowed:args.allowed,roles:args.roles,allowBunk:args.allowBunk};else vessel.allowCrew=args.allowed;}return{ok:true};},acceptResult:result=>acceptOverride?acceptOverride(result):result.ok,
   runDeckAction:async(name,args={})=>deckCalls.push({name,args}),disembark:()=>callbacks.push('disembark'),openHome:()=>callbacks.push('home'),openPassport:()=>callbacks.push('passport'),openContact:id=>callbacks.push(['contact',id]),openCrewDuty:()=>callbacks.push('duty'),openMilitary:context=>callbacks.push(['military',context]),walkDeck:()=>callbacks.push('deck'),disconnect:()=>callbacks.push('disconnect'),toast:message=>toasts.push(message)});
  const buttons=()=>descendants(dialog.body).filter(node=>node.tagName==='button');
  const byLabel=label=>buttons().find(node=>node.attributes['aria-label']===label||node.textContent===label);
- return {game,port,ship,own,snapshot,dialog,network,calls,deckCalls,callbacks,toasts,ui,buttons,byLabel,text:()=>text(dialog.body)};
+ return {game,port,ship,own,snapshot,dialog,network,calls,deckCalls,callbacks,toasts,ui,buttons,byLabel,text:()=>text(dialog.body),setGuidance:value=>{guidance=value;}};
 }
+
+test('crew guidance changes teaching density while preserving exact boarding controls and permissions',async()=>{
+ for(const guidance of ['simple','moderate','expert']){
+  const f=fixture({guidance});f.ui.openHub();
+  const guide=descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+  assert.equal(/data-guidance-flow="crew-boarding" open/.test(guide),guidance==='simple');
+  assert.equal(guide.includes('guidance-flow-next'),guidance==='moderate');
+  assert.match(guide,/entry airlock/);assert.match(guide,/Your rank remains your own/);
+  assert.equal(f.byLabel('Allow Jade aboard').disabled,false);
+  await f.byLabel('Allow Jade aboard').onclick();
+  assert.equal(f.calls.length,1);assert.equal(f.calls[0].name,'setCrewAccess');
+  assert.equal(f.calls[0].args.allowed,true);assert.ok(!f.calls[0].args.roles.includes('helm'));
+ }
+});
+
+test('expert guidance never hides a boarding blocker or a docked guest’s airlock exit',()=>{
+ const f=fixture({guest:true,guidance:'expert'});f.ship.canBoard=false;f.ui.openHub();
+ assert.equal(f.byLabel('Board Cinder').disabled,true);assert.match(f.text(),/Ask Morgan to choose/);
+ f.game.state.multiplayer.aboardVesselId=f.ship.id;f.game.state.multiplayer.dockedAt='kettle';f.ship.canBoard=true;f.game.state.interior={kind:'ship',location:{id:f.ship.id}};
+ f.ui.openHub();assert.ok(f.byLabel('Disembark at Kettle Station'));assert.equal(f.byLabel('Disembark at Kettle Station').disabled,false);
+ f.byLabel('Disembark at Kettle Station').onclick();assert.deepEqual(f.callbacks,['disembark']);assert.equal(f.calls.length,0);
+});
+
+test('crew help updates completed steps from presence and access without granting anything itself',()=>{
+ const f=fixture({guidance:'moderate'});f.ui.openHub();
+ const help=()=>descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+ assert.match(help(),/<strong>Next:<\/strong> Allow Jade aboard Cinder/);
+ f.ship.grants.guest={allowed:true,roles:['weapons'],allowBunk:false};assert.equal(f.ui.refresh(),true);
+ assert.match(help(),/<strong>Next:<\/strong> Each captain still ashore chooses Board Cinder/);
+ f.game.state.multiplayer.aboardVesselId=f.ship.id;f.snapshot.presence.forEach(person=>{person.vesselId=f.ship.id;person.roomKind='ship';});
+ assert.equal(f.ui.refresh(),true);assert.match(help(),/<strong>Next:<\/strong> You are aboard together/);
+ assert.equal(f.calls.length,0);assert.equal(f.deckCalls.length,0);
+ f.setGuidance('expert');assert.equal(f.ui.refresh(),true);assert.doesNotMatch(help(),/guidance-flow-next/);
+});
+
+test('Simple opens only the first friend’s instructions and escapes player names inside help',()=>{
+ const f=fixture();f.snapshot.presence[1].name='Jade <script>';
+ f.snapshot.presence.push({...f.snapshot.presence[1],captainId:'third',name:'Zoe'});f.ui.openHub();
+ const guides=descendants(f.dialog.body).filter(node=>node.className==='guidance-flow-container').map(node=>node.innerHTML);
+ assert.equal(guides.length,2);assert.equal(guides.filter(markup=>/data-guidance-flow="crew-boarding" open/.test(markup)).length,1);
+ assert.match(guides[0],/Jade &lt;script&gt;/);assert.doesNotMatch(guides[0],/<script>/);
+});
+
+test('crew next-step help repeats an actual full-berth blocker instead of promising boarding',()=>{
+ const f=fixture({guest:true,guidance:'moderate'});f.ship.availableBerths=0;f.ui.openHub();
+ const guide=descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+ assert.match(guide,/<strong>Next:<\/strong> No free berth/);assert.equal(f.byLabel('Board Cinder').disabled,true);assert.deepEqual(f.calls,[]);
+});
 
 test('Play together leads with one named friend action and collapses permission management',()=>{
  const f=fixture();f.ui.openHub();

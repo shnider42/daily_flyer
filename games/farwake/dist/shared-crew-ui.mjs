@@ -3,6 +3,7 @@ import { getShipClass } from './fleet.mjs';
 import { FACTIONS } from './content.mjs';
 import { getBoardingAction, getDisembarkAction, getHelmAction } from './perspective-controls.mjs';
 import { crewAwareness, publicCrewLocation } from './crew-awareness.mjs';
+import { flowGuidanceLevel, guidanceFlowMarkup } from './guidance-flows.mjs';
 
 const SERVICE_ROLES = ['weapons', 'engineering', 'scanner', 'navigation', 'medical', 'security'];
 const GENERAL_SERVICE_ROLES = ['weapons', 'engineering', 'scanner', 'medical', 'security'];
@@ -37,9 +38,10 @@ export function crewAccessChange(vessel,captainId,control) {
  throw new RangeError('Unknown crew permission.');
 }
 
-export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke,acceptResult,runDeckAction,disembark,openHome,openPassport,openContact,openCrewDuty,openMilitary,walkDeck,disconnect,toast}) {
+export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=()=> 'simple',dialog,invoke,acceptResult,runDeckAction,disembark,openHome,openPassport,openContact,openCrewDuty,openMilitary,walkDeck,disconnect,toast}) {
  let renderRevision=0,permissionPending=false,activeView=null;
  const game=()=>getGame(),snapshot=()=>getSnapshot()||{},network=()=>getNetwork();
+ const guidance=()=>flowGuidanceLevel(getGuidance());
  const connected=()=>network()?.connected===true;
  const context=()=>({game:game(),network:network(),captainId:stateOf(game()).multiplayer?.captainId,revision:renderRevision,root:dialog.body.children[0]});
  const currentContext=value=>game()===value.game&&network()===value.network&&stateOf(game()).multiplayer?.captainId===value.captainId&&renderRevision===value.revision&&dialog.opened&&dialog.body.children[0]===value.root;
@@ -81,7 +83,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
  }
  function presenceSignature() {
   const state=stateOf(game()),snap=snapshot(),mp=state.multiplayer||{},fleet=snap.fleet||[];
-  return JSON.stringify({connected:connected(),realm:snap.realm,place:[state.mode,state.systemId,state.locationId,state.interior?.kind,state.exploration?.bodyId,state.npcContract?.active,state.person?.down,state.person?.health<=0],mp:[mp.captainId,mp.ownedVesselId,mp.aboardVesselId,mp.portVesselId,mp.dockedAt,mp.dockedName,mp.returnVesselId,mp.canReturn],
+  return JSON.stringify({guidance:guidance(),connected:connected(),realm:snap.realm,place:[state.mode,state.systemId,state.locationId,state.interior?.kind,state.exploration?.bodyId,state.npcContract?.active,state.person?.down,state.person?.health<=0],mp:[mp.captainId,mp.ownedVesselId,mp.aboardVesselId,mp.portVesselId,mp.dockedAt,mp.dockedName,mp.returnVesselId,mp.canReturn],
    people:(snap.presence||[]).map(({captainId,name,online,systemId,locationId,roomKind,roomId,vesselId,crewRole,military})=>({captainId,name,online,systemId,locationId,roomKind,roomId,vesselId,crewRole,military})),
    fleet:fleet.map(vessel=>({id:vessel.id,name:vessel.name,ownerId:vessel.ownerId,ownerName:vessel.ownerName,systemId:vessel.systemId,dockedAt:vessel.dockedAt,allowCrew:vessel.allowCrew,grants:vessel.grants,grantedRoles:vessel.grantedRoles,canBoard:vessel.canBoard,canPilot:vessel.canPilot,helmOwner:vessel.helmOwner,helmName:vessel.helmName,helmOccupied:vessel.helmOccupied,berths:vessel.berths,occupants:vessel.occupants,availableBerths:vessel.availableBerths,occupiedBerths:vessel.occupiedBerths,crewAshore:vessel.crewAshore,destroyed:!intact(vessel),npcContractId:vessel.npcContractId,boarding:getBoardingAction(game(),vessel,{fleet,connected:connected()}).reason})),
    exit:getDisembarkAction(game(),{shared:true,connected:connected(),fleet})?.reason,helm:getHelmAction(game(),{shared:true,connected:connected(),fleet}).reason});
@@ -149,7 +151,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   } else {
    const board=getBoardingAction(g,vessel,{fleet:snapshot().fleet||[],connected:connected()});
    button(actions,`Board ${vessel.name||'ship'}`,()=>boardVessel(vessel.id),{primary:true,disabled:!board.enabled,reason:board.reason});
-   append(card,'p','shared-crew-explanation',board.enabled?(vessel.dockedAt?'Step aboard the deck. The ship stays docked until someone launches.':'Cross to this ship’s crew deck. Your own ship stays where you leave it.'):board.reason);
+   if(!board.enabled||guidance()!=='expert')append(card,'p','shared-crew-explanation',board.enabled?(guidance()==='moderate'?'Boarding does not launch the ship.':vessel.dockedAt?'Step aboard the deck. The ship stays docked until someone launches.':'Cross to this ship’s crew deck. Your own ship stays where you leave it.'):board.reason);
   }
   const exit=aboard?getDisembarkAction(g,{shared:true,connected:connected(),fleet:snapshot().fleet||[]}):null;
   if(exit){
@@ -163,7 +165,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   if(!isOwner(game(),vessel))return;
   const mp=stateOf(game()).multiplayer||{},people=(snapshot().presence||[]).filter(person=>person.captainId!==mp.captainId),working=!!stateOf(game()).npcContract?.active;
   const section=append(parent,'section','shared-crew-permissions');append(section,'h3','',`Who can board ${vessel.name||'your ship'}?`);
-  append(section,'p','shared-crew-explanation','Allow a friend aboard, then choose separately whether they may pilot.');
+  if(guidance()!=='expert')append(section,'p','shared-crew-explanation','Allow a friend aboard, then choose separately whether they may pilot.');
   if(working)append(section,'p','shared-crew-explanation','Complete your current paid watch before changing ship permissions.');
   if(!people.length)append(section,'p','shared-crew-explanation','When your friend joins this galaxy, their boarding controls appear here.');
   for(const person of people) {
@@ -234,7 +236,35 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
   if(!friend?.online||meetingVessel(friend)?.id!==vesselId){toast?.('Your friend’s location changed. Review the updated meeting ship.');openHub();return;}
   return boardVessel(vesselId);
  }
- function friendCard(parent,friend,awareness) {
+ function friendGuide(parent,friend,awareness,{expanded=false}={}) {
+  const g=game(),s=stateOf(g),mp=s.multiplayer||{},vessel=meetingVessel(friend),level=guidance();
+  if(vessel?.npcContractId){
+   const military=[friend.military?.operationId,awareness.localMilitary?.operationId].some(id=>id&&id===vessel.npcContractId);
+   const guide=append(parent,'div','guidance-flow-container');
+   guide.innerHTML=guidanceFlowMarkup({id:'crew-service',title:military?'How to share this deployment':'About paid crew assignments',level,expanded,
+    next:military?'Use Serve together to review the exact deployment roster.':'Meet your friend after this paid watch returns to port.',
+    notes:military?['Each captain enlists personally and joins the same muster before departure. Boarding a civilian ship together does not add anyone to a military unit.','Your own rank determines your station access. The operation leader authorizes departure; an NPC commander flies the Navy carrier.']:['An NPC paid watch is an individual job. It does not invite another captain or enlist them in the military.','Once the watch returns, meet at the same port and board one civilian ship.']});
+   return;
+  }
+  const localAboard=!!vessel&&mp.aboardVesselId===vessel.id,remoteAboard=!!vessel&&friend.vesselId===vessel.id;
+  const localAtPort=!!vessel?.dockedAt&&s.systemId===vessel.systemId&&(localAboard||s.mode==='person'&&!s.interior&&!s.exploration&&s.locationId===vessel.dockedAt);
+  const friendAtPort=!!vessel?.dockedAt&&friend.location.systemId===vessel.systemId&&(remoteAboard||friend.location.roomKind==='surface'&&friend.location.bodyId===vessel.dockedAt);
+  const grant=vessel?.grants?.[friend.captainId],allowed=vessel?isOwner(g,vessel)?grant?grant.allowed===true:vessel.allowCrew===true:vessel.canBoard===true:false;
+  const shipName=vessel?.name||'one ship',portName=vessel?.dockedAt?bodyName(vessel.systemId,vessel.dockedAt):null;
+  const together=friend.aboardTogether;
+  const board=vessel&&!localAboard?getBoardingAction(g,vessel,{fleet:snapshot().fleet||[],connected:connected()}):null;
+  const boardInstruction=board&&!board.enabled&&allowed&&localAtPort&&friendAtPort?`${board.reason} Board when that is resolved.`:`Each captain still ashore chooses Board ${shipName}. Check that both names say Same ship.`;
+  const steps=[
+   {text:portName?`Meet at ${portName}, where ${shipName} is docked.`:vessel?`Rendezvous with ${shipName}; check the boarding action for range and access.`:'Meet at the same port and choose one ship.',done:together||localAtPort&&friendAtPort},
+   {text:vessel&&isOwner(g,vessel)?`Allow ${friend.name} aboard ${shipName}. This grants boarding access, not piloting.`:`Ask ${vessel?.ownerName||'the owner'} for boarding access to ${shipName}.`,done:together||allowed},
+   {text:friend.sameVessel&&!together?'Return inside through the airlock so you are both on the deck.':boardInstruction,done:together}
+  ];
+  const next=together?'You are aboard together. Choose your stations; the pilot can launch when everyone is ready.':steps.find(step=>!step.done)?.text;
+  const guide=append(parent,'div','guidance-flow-container');
+  guide.innerHTML=guidanceFlowMarkup({id:'crew-boarding',title:'Board together, step by step',level,expanded,steps,next,
+   notes:['Boarding and launching are separate. Wait for your friend before departing; Allow piloting is a separate permission.','At a docked port, use Disembark and the entry airlock to go ashore. You do not need Helm permission.','For military service together, use Serve together and join the same deployment roster. Your rank remains your own.']});
+ }
+ function friendCard(parent,friend,awareness,{expanded=false}={}) {
   const card=append(parent,'article','shared-friend-card'),heading=append(card,'div','shared-captain-heading');
   append(heading,'strong','',friend.name);append(heading,'span','shared-friend-relation',friend.relation);
   append(card,'p','shared-friend-location',friend.location.text);
@@ -250,12 +280,12 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
     if(isOwner(game(),vessel)&&!allowed){
      const key=`${vessel.id}:${friend.captainId}:invite`;
      button(actions,`Allow ${friend.name} aboard`,()=>changeAccess(vessel.id,friend.captainId,'invite',openHub),{primary:true,disabled:!connected()||working,reason:working?'Complete your current paid watch before changing ship permissions.':'Boarding access only. Piloting remains a separate permission.',control:key});
-     append(card,'p','shared-crew-explanation',`Then ${friend.name} can choose “Board ${vessel.name}” here. You keep control of the helm.`);
+     if(guidance()!=='expert')append(card,'p','shared-crew-explanation',guidance()==='moderate'?`${friend.name} can board after you allow access.`:`Then ${friend.name} can choose “Board ${vessel.name}” here. You keep control of the helm.`);
     }else if(mp.aboardVesselId!==vessel.id){
      const board=getBoardingAction(game(),vessel,{fleet:snapshot().fleet||[],connected:connected()});
      const reason=vessel.canBoard===false&&vessel.ownerId!==mp.captainId?`Ask ${vessel.ownerName||friend.name} to choose “Allow ${mp.name||'you'} aboard” in Play together.`:board.reason;
      button(actions,`Board ${vessel.name||'ship'}`,()=>boardWithFriend(friend.captainId,vessel.id),{primary:true,disabled:!board.enabled,reason});
-     append(card,'p','shared-crew-explanation',board.enabled?(isOwner(game(),vessel)?`${friend.name} is cleared to board. Step onto the deck, then wait for them before launching.`:'Step aboard the same ship. It stays docked until the pilot launches.'):reason);
+     if(!board.enabled||guidance()!=='expert')append(card,'p','shared-crew-explanation',board.enabled?(guidance()==='moderate'?'Board, then wait for your friend before launch.':isOwner(game(),vessel)?`${friend.name} is cleared to board. Step onto the deck, then wait for them before launching.`:'Step aboard the same ship. It stays docked until the pilot launches.'):reason);
     }else append(card,'p','shared-crew-explanation',`${friend.name} can board ${vessel.name} from Play together. Wait for them before launching.`);
    }else if(vessel?.npcContractId){
     const militaryDeployment=[friend.military?.operationId,awareness.localMilitary?.operationId].some(id=>id&&id===vessel.npcContractId);
@@ -268,16 +298,17 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,dialog,invoke
     const current=snapshot().presence?.find(person=>person.captainId===friend.captainId);if(!current)return;
     return openMilitary({captainId:current.captainId,operationId:current.military?.operationId||null});
    },{primary:!actions.children.length,disabled:!connected()});
-   if(!friend.sameOperation)append(card,'p','shared-crew-explanation',friend.sameUnit?'Same branch · Choose the same deployment; each captain keeps their own rank.':!friend.military&&!awareness.localMilitary?'Sergeant Venn on Morrow recruits for Navy and Army. Choose the same branch, then the same deployment.':'Military service is a separate choice for each captain.');
+   if(!friend.sameOperation&&guidance()!=='expert')append(card,'p','shared-crew-explanation',friend.sameUnit?'Same branch · Choose the same deployment; each captain keeps their own rank.':!friend.military&&!awareness.localMilitary?guidance()==='moderate'?'Serve together starts at Sergeant Venn on Morrow.':'Sergeant Venn on Morrow recruits for Navy and Army. Choose the same branch, then the same deployment.':'Military service is a separate choice for each captain.');
   }
   if(actions.children.length)card.append(actions);
+  friendGuide(card,friend,awareness,{expanded});
   return card;
  }
  function friendsSection(parent,awareness) {
   const online=awareness.friends.filter(person=>person.online),section=append(parent,'section','shared-friends');
   if(online.length){
    append(section,'h3','',online.length===1?'Your friend':'Friends in this galaxy');
-   for(const friend of online)friendCard(section,friend,awareness);
+   for(const [index,friend] of online.entries())friendCard(section,friend,awareness,{expanded:index===0});
   }else{
    append(section,'h3','','Invite a friend');
    append(section,'p','shared-crew-explanation','Share your galaxy code. Once your friend joins, this panel shows where they are and how to board the same ship.');

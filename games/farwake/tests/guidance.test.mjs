@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GuidanceController,GUIDANCE_ACTIONS,GUIDANCE_LIMIT,GUIDANCE_VERSION,guidanceProfileKey} from '../dist/guidance.mjs';
+import {GuidanceController,GUIDANCE_ACTIONS,GUIDANCE_LIMIT,GUIDANCE_VERSION,GUIDANCE_LEVELS,guidancePolicy,guidanceProgress,guidanceProfileKey} from '../dist/guidance.mjs';
 
 const ship=(extra={})=>({playing:true,mode:'ship',device:'keyboard',systemId:'home',vesselId:'cinder',ship:{speed:25},...extra});
 const person=(extra={})=>({playing:true,mode:'person',device:'keyboard',systemId:'home',locationId:'port',vesselId:'cinder',person:{health:100},...extra});
@@ -132,13 +132,11 @@ test('mining teaches a held beam and salvage teaches collection without inventin
   assert.equal(guide.update({...ctx,mining:{...ctx.mining,inRange:true,holdFull:true}}),null);
 });
 
-test('a hostile contact prioritizes firing over incidental ore and salvage, after the first thrust and turn',()=>{
+test('a visible hostile prioritizes firing over first flight drills, incidental ore and salvage',()=>{
   const guide=new GuidanceController(),ctx=ship({device:'touch',ship:{speed:10,threat:true},mining:{id:'near-rock',inRange:true,holdFull:false},nearby:{type:'salvage',id:'near-scrap'}});
-  assert.equal(guide.update(ctx).successAction,'flight-thrust');success(guide,'flight-thrust',ctx);
-  assert.equal(guide.update(ctx).successAction,'flight-turn');success(guide,'flight-turn',ctx);
   const fire=guide.update(ctx);assert.equal(fire.successAction,'ship-fire');assert.equal(fire.controlTarget,'fireButton');assert.match(fire.body,/press FIRE/);
   assert.equal(guide.update({...ctx,docking:{id:'haven',name:'Haven',inRange:true,speed:3}}).successAction,'dock','the available escape interaction keeps its contextual priority');
-  assert.equal(guide.update({...ctx,ship:{...ctx.ship,threat:false}}).successAction,'salvage');
+  assert.equal(guide.update({...ctx,ship:{...ctx.ship,threat:false}}).successAction,'flight-thrust','quiet flight resumes learning after danger');
 });
 
 test('accepted non-work contracts never send the player looking for relay work, while ready contracts still get turn-in help',()=>{
@@ -217,18 +215,18 @@ test('crew boarding requires actual permission and owner management never silent
   const guide=new GuidanceController(),ctx=ship({intent:'crew',shared:{id:'friend',name:'Lantern',ownerName:'Sol',permissionNeeded:true,canBoard:false,inRange:true}});flew(guide,ctx,2);
   const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Ask Sol/);assert.equal(ask.controlTarget,'onlineButton');
   assert.deepEqual(ask.action,{type:'highlight',target:'onlineButton'});
-  const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});assert.match(manage.body,/turn on Allow aboard/);assert.match(manage.body,/Allow piloting is a separate choice/);
+  const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});assert.match(manage.body,/choose Allow aboard/);assert.match(manage.body,/Allow piloting is a separate choice/);
   const allowed={...ctx,shared:{...ctx.shared,permissionNeeded:false,canBoard:true,inRange:false}};
   assert.equal(guide.update(allowed).id,'board-friend:approach');
   assert.equal(guide.update({...allowed,shared:{...allowed.shared,inRange:true}}).id,'board-friend');
   assert.equal(guide.count('crew-permission'),0);assert.equal(guide.count('board-friend'),0);
 });
 
-test('touch crew guidance points visitors and owners to Menu → Crew',()=>{
+test('touch crew guidance points visitors and owners to the persistent Crew button',()=>{
   const guide=new GuidanceController(),ctx=ship({device:'touch',intent:'crew',shared:{id:'friend',name:'Lantern',ownerName:'Sol',permissionNeeded:true,canBoard:false,inRange:true}});flew(guide,ctx,2);
-  const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Menu → Crew shows the current access/);
+  const ask=guide.update(ctx);assert.equal(ask.successAction,'crew-permission');assert.match(ask.body,/Open Crew to see the current access/);
   const manage=guide.update({...ctx,shared:{...ctx.shared,canManageCrew:true}});
-  assert.match(manage.body,/Open Menu → Crew/);assert.match(manage.compactBody,/Menu → Crew/);
+  assert.match(manage.body,/Open Crew/);assert.match(manage.compactBody,/Crew → your friend/);
   assert.equal(guide.count('crew-permission'),0,'Reading the menu instructions never grants access.');
 });
 
@@ -259,10 +257,10 @@ test('dismissed keyboard guidance does not hide an unlearned touch layout after 
   assert.equal(guide.count('flight-thrust',{device:'touch'}),0);
 });
 
-test('Moderate answers a concise requested hint and does not carry that request into a new place or mode',()=>{
+test('Moderate skips routine drills but gives full requested help without carrying it into another place or mode',()=>{
   const guide=new GuidanceController({mode:'moderate'}),ctx=ship();
   assert.equal(guide.update(ctx),null);
-  const hint=guide.requestHelp(ctx);assert.equal(hint.requested,true);assert.match(hint.body,/W.*Add thrust/);assert.ok(hint.body.length<70);
+  const hint=guide.requestHelp(ctx);assert.equal(hint.requested,true);assert.match(hint.body,/Hold W.*momentum/);assert.equal(hint.body,hint.fullBody);assert.notEqual(hint.body,hint.compactBody);
   assert.equal(guide.update(person()),null);
   assert.equal(guide.requestHelp(person()).successAction,'person-move');
   guide.dismiss();assert.equal(guide.update(person()),null);
@@ -270,7 +268,7 @@ test('Moderate answers a concise requested hint and does not carry that request 
 
 test('guidance settings change presentation immediately while preserving learned actions',()=>{
   const guide=new GuidanceController(),ctx=ship();success(guide,'flight-thrust',ctx);guide.update(ctx);
-  assert.equal(guide.setMode('expert'),null);assert.equal(guide.requestHelp(),null);assert.equal(guide.repeat(),null);
+  assert.equal(guide.setMode('expert'),null);assert.equal(guide.requestHelp().successAction,'flight-turn');assert.equal(guide.repeat().requested,true);
   assert.equal(guide.setMode('moderate'),null);assert.equal(guide.requestHelp().successAction,'flight-turn');
   const simple=guide.setMode('simple');assert.equal(simple.successAction,'flight-turn');assert.equal(guide.count('flight-thrust',ctx),1);
   assert.equal(guide.update({...ctx,guidance:'expert'}),null);
@@ -339,4 +337,173 @@ test('all returned actions are inert highlights and context data is never change
     assert.equal(Object.values(prompt).some(value=>typeof value==='function'),false);
     prompt.action.target='mutated';assert.notEqual(guide.prompt.action.target,'mutated');
   }
+});
+
+test('the three guidance policies describe different assistance without any game-rule settings',()=>{
+  assert.deepEqual(GUIDANCE_LEVELS.map(level=>level.id),['simple','moderate','expert']);
+  assert.equal(guidancePolicy('simple').drills,true);assert.equal(guidancePolicy('moderate').drills,false);
+  assert.equal(guidancePolicy('expert').automatic,'off');assert.equal(guidancePolicy('moderate').highlights,false);
+  assert.equal(guidancePolicy('unknown').id,'simple');
+  assert.ok(GUIDANCE_LEVELS.every(level=>level.description&&level.behavior&&Object.isFrozen(level)));
+  for(const key of ['damage','health','permissions','difficulty','rank'])assert.ok(GUIDANCE_LEVELS.every(level=>!Object.hasOwn(level,key)));
+});
+
+test('Moderate offers one relevant brief hint, fades it, and preserves full requested help after reload',()=>{
+  const guide=new GuidanceController({profileId:'moderate-captain',mode:'moderate'}),ctx=ship({timeSeconds:10,docking:{id:'haven',name:'Haven',inRange:true,speed:4}});
+  const candidate=guide.update(ctx);assert.equal(candidate.successAction,'dock','contextual docking skips first flight drills');
+  assert.equal(guide.exportState().exposures.length,0,'an unselected candidate is not an exposure');
+  const shown=guide.present(candidate,ctx);assert.equal(shown.highlight,false);assert.equal(shown.body,shown.compactBody);assert.equal(shown.autoDismissAfter,9);
+  assert.equal(guide.count('dock'),0);assert.equal(guide.exportState().exposures.length,1);
+  assert.ok(guide.present(guide.update({...ctx,timeSeconds:18}),{...ctx,timeSeconds:18}));
+  assert.equal(guide.present(guide.update({...ctx,timeSeconds:19}),{...ctx,timeSeconds:19}),null);
+  const loaded=new GuidanceController({profileId:'moderate-captain',mode:'moderate',state:guide.exportState()});
+  assert.equal(loaded.present(loaded.update(ctx),ctx),null,'reading a topic is remembered separately from practice');
+  const manual=loaded.present(loaded.requestHelp(ctx),ctx,{requested:true});
+  assert.equal(manual.body,manual.fullBody);assert.match(manual.body,/leave ship mode/);assert.equal(manual.highlight,true);
+  assert.equal(manual.autoDismissAfter,undefined);assert.equal(loaded.count('dock'),0);
+});
+
+test('Moderate does not repeat a demonstrated interaction, while Simple still offers its second practice',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=ship({docking:{id:'first',name:'First port',inRange:true,speed:2}});
+  guide.update(ctx);success(guide,'dock',ctx);
+  const another={...ctx,docking:{id:'second',name:'Second port',inRange:true,speed:2}};
+  assert.equal(guide.update(another),null);
+  const simple=guide.setMode('simple');assert.equal(simple.successAction,'flight-thrust');
+  flew(guide,ctx,2);assert.equal(guide.update(another).successAction,'dock');assert.equal(guide.update(another).attempt,2);
+});
+
+test('only the selected external route is exposed and Expert can request the same full explanation',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=person({timeSeconds:0});
+  const mission={id:'mission:1',topicId:'military-muster',successAction:'military-muster',flow:'route',title:'Join your unit',body:'Find your friend’s muster, review your own branch and clearance, then choose Join muster.',compactBody:'Join the same muster as your friend.',controlTarget:'objectiveDetails'};
+  const unused={...mission,id:'other',topicId:'military-deploy'};
+  guide.update(ctx);assert.equal(guide.exportState().exposures.length,0);
+  assert.equal(guide.present(mission,ctx).body,mission.compactBody);
+  assert.deepEqual(guide.exportState().exposures.map(item=>item.topic),['military-muster']);
+  assert.equal(guide.count('military-muster'),0);assert.equal(guide.count('military-deploy'),0);
+  guide.setMode('expert');assert.equal(guide.present(unused,ctx),null);
+  const explicit=guide.present(mission,ctx,{requested:true});assert.equal(explicit.body,mission.body);assert.equal(explicit.requested,true);
+  assert.equal(guide.requestedPrompt({...ctx,timeSeconds:100}).id,mission.id,'a requested route is stable across normal HUD ticks');
+  assert.equal(guide.requestedPrompt({...ctx,locationId:'another-port'}),null);
+  guide.dismiss(mission.id);assert.equal(guide.requestedPrompt(ctx),null);
+});
+
+test('a requested military route expires when deployment or recovery state changes',()=>{
+  const guide=new GuidanceController({mode:'expert'}),ctx=person({military:{status:'ready',active:{operationId:'op-a',phase:'muster'}}});
+  const route={id:'muster',topicId:'military-muster',title:'Meet at the recruiter',body:'Join the same muster.',flow:'route',controlTarget:'objectiveDetails'};
+  guide.present(route,ctx,{requested:true});assert.ok(guide.requestedPrompt(ctx));
+  assert.equal(guide.requestedPrompt({...ctx,military:{status:'active',active:{operationId:'op-a',phase:'deployed'}}}),null);
+  const recovering={...ctx,recovery:{status:'detained',detained:true}};
+  guide.present(route,recovering,{requested:true});assert.equal(guide.requestedPrompt({...recovering,recovery:{status:'released',detained:false}}),null);
+});
+
+test('requested muster help expires when command, launch access, or public roster readiness changes in place',()=>{
+  const route={id:'gather',topicId:'military-ready',title:'Gather your unit',body:'Lin authorizes departure once everyone is ready.',flow:'route',controlTarget:'objectiveDetails'};
+  const operation={id:'op-a',phase:'muster',leaderId:'lin',leaderName:'Lin',actions:[{action:'launchOperation',available:false,reason:'The ranking leader authorizes departure.'}],roster:[{captainId:'lin',online:true,ready:true,status:'ready'},{captainId:'ada',online:true,ready:false,status:'waiting',statusReason:'Meet the recruiter.'}]};
+  const ctx=person({military:{status:'active',objective:'Gather at Morrow.',active:{operationId:'op-a',phase:'muster'},operation}});
+  for(const next of [
+    {...operation,leaderId:'ada',leaderName:'Ada'},
+    {...operation,phase:'active'},
+    {...operation,actions:[{action:'launchOperation',available:true,reason:null}]},
+    {...operation,actions:[{action:'launchOperation',available:false,reason:'Lin is offline.'}]},
+    {...operation,roster:[operation.roster[0],{...operation.roster[1],ready:true,status:'ready',statusReason:null}]},
+    {...operation,roster:[{...operation.roster[0],online:false,status:'offline'},operation.roster[1]]}
+  ]){
+    const guide=new GuidanceController({mode:'expert'});guide.present(route,ctx,{requested:true});assert.ok(guide.requestedPrompt(ctx));
+    assert.equal(guide.requestedPrompt({...ctx,military:{...ctx.military,operation:next}}),null);
+  }
+  const guide=new GuidanceController({mode:'expert'});guide.present(route,ctx,{requested:true});
+  assert.ok(guide.requestedPrompt({...ctx,timeSeconds:99,military:{...ctx.military,operation:{...operation,elapsed:99,countdown:12}}}),'clock changes alone do not churn requested help');
+});
+
+test('requested Navy order help expires on readiness and blocker changes without counting every watch second',()=>{
+  const route={id:'watch',topicId:'navy-order',title:'Read the contact',body:'Wait for the contact to enter scan range.',flow:'route',controlTarget:'objectiveDetails'};
+  const task={id:'contact-check',ready:false,running:false,reason:'Contact is outside scan range.',elapsed:0,duration:20};
+  const ctx=person({duty:{phase:'working',navyOperation:{activeTask:task}}});
+  for(const changed of [{...task,ready:true,reason:null},{...task,reason:'Return to the scanner console.'},{...task,running:true}]){
+    const guide=new GuidanceController({mode:'expert'});guide.present(route,ctx,{requested:true});
+    assert.equal(guide.requestedPrompt({...ctx,duty:{...ctx.duty,navyOperation:{activeTask:changed}}}),null);
+  }
+  const guide=new GuidanceController({mode:'expert'});guide.present(route,ctx,{requested:true});
+  assert.ok(guide.requestedPrompt({...ctx,timeSeconds:15,duty:{...ctx.duty,navyOperation:{activeTask:{...task,elapsed:15,duration:20}}}}));
+});
+
+test('exposure is bounded and per input layout, and replaying one flow leaves other practice alone',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=ship({timeSeconds:0});
+  const route={id:'scan-tip',topicId:'scan',successAction:'scan',title:'Investigate',body:'Approach the actual signal.',compactBody:'Investigate this signal.',controlTarget:'contextButton'};
+  guide.present(route,ctx);guide.present(null,ctx);
+  assert.equal(guide.present(route,ctx),null);
+  assert.ok(guide.present(route,{...ctx,device:'touch'}));
+  success(guide,'scan',ctx);success(guide,'dock',ctx);
+  guide.resetProgress('navigation');assert.equal(guide.count('scan'),0);assert.equal(guide.count('dock'),1);
+  assert.ok(guide.present(route,ctx));
+  for(let i=0;i<160;i++)guide.present({...route,id:'topic'+i,topicId:'topic'+i},ctx);
+  assert.equal(guide.exportState().exposures.length,128);
+  assert.equal(guide.count('scan'),0,'viewing many hints does not count practice');
+});
+
+test('version-one saves migrate successful practice without sharing progress across captains',()=>{
+  const guide=new GuidanceController({profileId:'old-captain'}),ctx=ship();flew(guide,ctx,2);success(guide,'dock',ctx);
+  const old={...guide.exportState(),version:1};delete old.exposures;
+  const migrated=new GuidanceController({profileId:'old-captain',state:old});
+  assert.equal(migrated.exportState().version,GUIDANCE_VERSION);assert.equal(migrated.count('dock'),1);assert.equal(migrated.count('flight-turn'),2);
+  assert.deepEqual(migrated.exportState().exposures,[]);
+  assert.equal(new GuidanceController({profileId:'new-captain',state:old}).count('dock'),0);
+});
+
+test('practice summaries cover every supported action, count evidence, and separate input layouts',()=>{
+  const guide=new GuidanceController(),ctx=ship();success(guide,'flight-thrust',ctx,2);success(guide,'dock',ctx);success(guide,'military-enlist',ctx);
+  const summary=guidanceProgress(guide,'keyboard');
+  assert.equal(summary.completed,2);assert.equal(summary.practiced,4);assert.equal(summary.total,GUIDANCE_ACTIONS.length);
+  assert.deepEqual(new Set(summary.flows.flatMap(flow=>flow.actions.map(action=>action.id))),new Set(GUIDANCE_ACTIONS));
+  assert.equal(summary.flows.find(flow=>flow.id==='service').actions.find(action=>action.id==='military-enlist').required,1);
+  assert.equal(guidanceProgress(guide.exportState(),{device:'touch'}).practiced,2);
+  const before=guide.exportState();summary.flows[0].actions[0].count=0;assert.deepEqual(guide.exportState(),before);
+});
+
+test('a real gun station teaches battery selection before walking and never describes unseen targets',()=>{
+  const guide=new GuidanceController(),ctx=person({device:'touch',gunnery:{active:true,batteryName:'Fore',selectedBatteryId:'fore',canFire:true,batteries:[{id:'fore'},{id:'port'},{id:'starboard'},{id:'aft'}]}});
+  const battery=guide.update(ctx);assert.equal(battery.successAction,'gunnery-battery');assert.equal(battery.controlTarget,'gunneryBatteries');
+  assert.match(battery.body,/4 batteries/);assert.match(battery.body,/Tap a named battery/);assert.doesNotMatch(battery.body,/raider|enemy location|hostile detected/i);
+  success(guide,'gunnery-battery',ctx,2);
+  const fire=guide.update(ctx);assert.equal(fire.successAction,'gunnery-fire');assert.match(fire.body,/pilot still flies/);
+  const standby=guide.update({...ctx,gunnery:{...ctx.gunnery,canFire:false}});assert.equal(standby.id,'gunnery-fire:standby');assert.match(standby.body,/CYCLING.*LOW POWER.*STANDBY/);
+});
+
+test('first on-foot combat outranks walking and fog never sends players toward an unseen enemy',()=>{
+  const guide=new GuidanceController(),visible=person({combat:{active:true,targetVisible:true}});
+  assert.equal(guide.update(visible).successAction,'person-aim');assert.equal(guide.count('person-move'),0);
+  const fog=guide.update({...visible,combat:{active:true,targetVisible:false}});
+  assert.match(fog.body,/No visible target.*Keep cover/);assert.doesNotMatch(fog.body,/Move toward|Walk into a position where a hostile/);
+});
+
+test('friend awareness on foot opens the actual Crew flow without inventing permission or a ship',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=person({device:'touch',shared:{id:'crew:lin',friendName:'Lin',friendCount:1,samePort:true}});
+  const prompt=guide.update(ctx);assert.equal(prompt.successAction,'crew-hub');assert.match(prompt.fullBody,/Lin.*current ship or port/);assert.doesNotMatch(prompt.fullBody,/Allow aboard|Board Cinder/);
+  success(guide,'crew-hub',ctx);
+  assert.equal(guide.update({...ctx,shared:{...ctx.shared,sameShip:true,aboardTogether:true}}),null,'already demonstrated Crew access is not repeatedly nagged');
+  const leave=guide.requestHelp({...ctx,intent:'disembark',shared:{...ctx.shared,sameShip:true,disembarkAvailable:true,portName:'Kettle'}});
+  assert.equal(leave.successAction,'disembark');assert.match(leave.body,/Kettle.*helm permission is not needed/);
+});
+
+test('sharing a vessel during a hull walk never claims the two players are aboard together',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=person({shared:{id:'crew:lin',friendName:'Lin',friendCount:1,sameShip:true,aboardTogether:false,samePort:false}});
+  const outside=guide.update(ctx);assert.equal(outside.successAction,'crew-hub');assert.equal(outside.title,'Check your crewmate’s location');
+  assert.match(outside.fullBody,/one of you is on a hull walk.*Open Crew to see who is outside/);
+  assert.doesNotMatch(outside.title,/aboard together/);
+  const inside=guide.update({...ctx,shared:{...ctx.shared,aboardTogether:true}});assert.equal(inside.title,'You are aboard together');
+  const legacy=guide.update({...ctx,shared:{...ctx.shared,aboardTogether:undefined}});assert.equal(legacy.title,'You are aboard together','older contexts may omit the more precise deck relationship');
+});
+
+test('scan and navigation advice uses real visible actions and respects a supplied blocker',()=>{
+  const guide=new GuidanceController({mode:'moderate'}),ctx=ship({device:'touch',intent:'scan',navigation:{canScan:true}});
+  const scan=guide.update(ctx);assert.equal(scan.successAction,'scan');assert.match(scan.fullBody,/Tap Investigate/);assert.equal(scan.controlTarget,'contextButton');assert.doesNotMatch(scan.fullBody,/Tap SCAN/);
+  const route=guide.update({...ctx,intent:'navigation',navigation:{hasCourse:false}});assert.equal(route.successAction,'set-course');assert.match(route.fullBody,/known place/);
+  const jump=guide.update({...ctx,intent:'jump',navigation:{canJump:false,reason:'Your fold drive is not fitted.'}});assert.equal(jump.successAction,'jump');assert.equal(jump.body,'Your fold drive is not fitted.');
+});
+
+test('blocked and foreign contexts cannot expose or retain a visible external prompt',()=>{
+  const guide=new GuidanceController({profileId:'a',mode:'moderate'}),ctx=ship({profileId:'a'}),route={id:'external',title:'Next step',body:'Open the actual panel.',controlTarget:'pauseButton'};
+  assert.equal(guide.present(route,{...ctx,blocked:true}),null);assert.equal(guide.exportState().exposures.length,0);
+  assert.equal(guide.present(route,{...ctx,profileId:'b'}),null);assert.equal(guide.exportState().exposures.length,0);
+  assert.ok(guide.present(route,ctx));assert.equal(guide.present(route,{...ctx,playing:false}),null);assert.equal(guide.prompt,null);
 });

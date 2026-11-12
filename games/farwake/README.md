@@ -1,12 +1,28 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.18.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.19.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Guidance that grows with the player · 0.19.0
+
+**Simple**, **Moderate**, and **Expert** now have distinct teaching behavior across flight, on-foot actions, work, navigation, shared crews, military musters, Navy orders, gunnery, and recovery. Choose a level from the title screen, **Menu → Guidance**, or Settings. This is a personal presentation setting: combat, rewards, ranks, permissions, and the galaxy simulation are identical at every level.
+
+| Level | Automatic help | Requested help |
+| --- | --- | --- |
+| Simple | One contextual explanation at a time, control highlights, and practice reminders through two confirmed successful uses. Personal enlistment is learned once. Crew and service panels show short current-state steps. | Full explanation, common blockers, and a marked next action. |
+| Moderate | A concise first-use tip for about nine seconds, then no repeat of that topic. Routine movement drills stay hidden. Crew and service panels show one next-action sentence with details folded. | Expanding a tip pins its full explanation while the context remains relevant. |
+| Expert | Automatic coaching and suggested routes stay off. Status, hazards, fire orders, permissions, and live roster facts remain. | The same contextual assistance and complete field guide, whenever requested. |
+
+The **Captain’s field guide** contains **23 searchable topics**, with practical steps, explanations, common blockers, and related topics. Search naturally for a problem such as “how do I get off the ship,” “same crew,” or “turret.” Instructions reflect keyboard or touch controls and swapped thumbs. The guide recommends topics relevant to the current activity. All explanations remain available in Expert.
+
+A folded **Your practice** section records confirmed actions for the current captain and input layout. Reading, dismissing, waiting, failed commands, NPC gunfire, or another player’s actions never complete a lesson. Relearn one skill group or all reminders without changing the voyage or its guidance level. Existing practice records migrate; solo captains, shared captains, and isolated test sessions retain separate records. These reminders are stored on this browser, separately from the game save and passport.
+
+Visible combat and gun stations take precedence over basic movement teaching. Guidance uses public crew locations and the player’s visible contacts; it does not disclose creatures behind fog. A hull walk remains outside the ship. Requested muster and Navy help refreshes when actual leadership, readiness, access, or order state changes, while ordinary countdown ticks do not interrupt reading. On phones, the existing compact tip strip remains the default; full instructions are available by tapping the tip or **+**.
 
 ## Playing together on phones · 0.18.0
 

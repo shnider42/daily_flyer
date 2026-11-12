@@ -133,3 +133,23 @@ test('reset persists only the selected profile and a malformed or unavailable st
     const recovered = new TutorialRuntime({ storage: broken }); recovered.select({ seed: 'usable' }); recovered.update({ mode: 'ship', device: 'keyboard' }); assert.equal(recovered.record('dock', 'safe-use'), true); assert.equal(recovered.controller.count('dock'), 1);
   }
 });
+
+test('a selected Moderate topic persists separately from practice, and a flow reset replays only that topic',()=>{
+  const {runtime,storage}=fixture({selection:{seed:'guidance-levels',mode:'moderate'}}),ctx={mode:'ship',device:'touch',timeSeconds:1,intent:'scan',navigation:{canScan:true}};
+  const candidate=runtime.update(ctx);assert.equal(runtime.controller.exportState().exposures.length,0);
+  assert.ok(runtime.present(candidate,ctx));assert.equal(runtime.controller.count('scan'),0);
+  const reload=new TutorialRuntime({storage,nonce:'reloaded'});reload.select({seed:'guidance-levels',mode:'moderate'});
+  assert.equal(reload.present(reload.update(ctx),ctx),null);reload.record('dock','another-skill');
+  assert.equal(reload.reset('navigation'),true);assert.equal(reload.controller.count('dock'),1);
+  assert.ok(reload.present(reload.update(ctx),ctx));
+});
+
+test('gunner shots teach the real ship battery without crediting foot or helm weapons',()=>{
+  const {runtime}=fixture(),state=foot();runtime.update({mode:'person',device:'touch',playing:true,gunnery:{active:true,selectedBatteryId:'fore'}});
+  runtime.shot({type:'shot',id:'unsolicited-gun'}, {local:true,mode:'person'});assert.equal(runtime.controller.count('gunnery-fire'),0);
+  press(runtime,state);runtime.shot({type:'shot',id:'remote-gun'},{local:false,mode:'person'});assert.equal(runtime.controller.count('gunnery-fire'),0);
+  release(runtime,state);waitFrames(runtime,state,.2);runtime.shot({type:'shot',id:'local-battery'},{local:true,mode:'person'});
+  assert.equal(runtime.controller.count('gunnery-fire'),1);assert.equal(runtime.controller.count('ship-fire'),0);assert.equal(runtime.controller.count('person-fire'),0);
+  runtime.shot({type:'shot',id:'same-held-trigger'},{local:true,mode:'person'});assert.equal(runtime.controller.count('gunnery-fire'),1);
+  press(runtime,state);runtime.shot({type:'shot',id:'next-battery-volley'},{local:true,mode:'person'});assert.equal(runtime.controller.count('gunnery-fire'),2);
+});

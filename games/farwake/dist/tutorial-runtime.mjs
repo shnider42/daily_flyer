@@ -20,6 +20,7 @@ export class TutorialRuntime {
     return this.controller;
   }
   update(context) {if(!this.controller)return null;this.context={...context,profileId:this.controller.profileId,testMode:this.controller.testMode};const prompt=this.controller.update(this.context);this.flush();return prompt;}
+  present(prompt,context=this.context,options={}) {if(!this.controller||!context)return null;const shown=this.controller.present(prompt,{...context,profileId:this.controller.profileId,testMode:this.controller.testMode},options);this.flush();return shown;}
   record(action,id=null,context=this.context) {
     if(!this.controller||!context)return false;
     const changed=this.controller.record({action,id:id??`${this.nonce}:${++this.serial}`,success:true,device:context.device,profileId:this.controller.profileId,testMode:this.controller.testMode},context);
@@ -34,7 +35,7 @@ export class TutorialRuntime {
     const keys=Object.keys(this.profiles);for(const key of keys.slice(0,Math.max(0,keys.length-16)))delete this.profiles[key];
     try{this.storage?.setItem(GUIDE_STORAGE_KEY,JSON.stringify(this.profiles));}catch{}
   }
-  reset(){if(this.controller?.resetProgress()){this.gestures.clear();this.fireHeld=false;this.fireEpisodes=[];this.shotEpisodes.clear();this.flush();return true;}return false;}
+  reset(flow='all'){if(this.controller?.resetProgress(flow)){this.gestures.clear();this.fireHeld=false;this.fireEpisodes=[];this.shotEpisodes.clear();this.flush();return true;}return false;}
   /** A sustained input only counts after observable motion, once per gesture. */
   observe(input={},before,after,dt,{active=true,combat=false}={}) {
     this.time+=Math.max(0,Number(dt)||0);
@@ -50,7 +51,7 @@ export class TutorialRuntime {
       'flight-strafe':{held:!onFoot&&Math.abs(input.strafe||0)>.12,moved:Math.abs((ship.vx-oldShip.vx)*-Math.sin(ship.angle||0)+(ship.vy-oldShip.vy)*Math.cos(ship.angle||0))>.002},
       'flight-brake':{held:!onFoot&&(input.brake||input.thrust<-.1),moved:oldSpeed>2&&speed<oldSpeed-.003},
       'person-move':{held:onFoot&&length(input.x,input.y)>.12,moved:!person.down&&person.health>0&&length(person.x-oldPerson.x,person.y-oldPerson.y)>.02},
-      'person-aim':{held:onFoot&&combat&&input.aiming,moved:!person.down&&person.health>0&&length(input.aimX,input.aimY)>.2}
+      'person-aim':{held:onFoot&&!this.context.gunnery?.active&&combat&&input.aiming,moved:!person.down&&person.health>0&&length(input.aimX,input.aimY)>.2}
     };
     for(const [action,value]of Object.entries(evidence)){
       if(!value.held){this.gestures.delete(action);continue;}
@@ -67,7 +68,8 @@ export class TutorialRuntime {
     const episode=known??(event.type==='person-hit'?null:[...this.fireEpisodes].reverse().find(e=>e.mode===mode&&this.time-e.at<=2));
     if(!episode)return;
     if(!known){this.shotEpisodes.set(shotId,episode);if(this.shotEpisodes.size>96)this.shotEpisodes.delete(this.shotEpisodes.keys().next().value);}
-    if(event.type==='shot'&&mode==='ship')this.record('ship-fire',episode.id,episode.context);
+    if(event.type==='shot'&&episode.context.gunnery?.active)this.record('gunnery-fire',episode.id,episode.context);
+    else if(event.type==='shot'&&mode==='ship')this.record('ship-fire',episode.id,episode.context);
     if(event.type==='person-shot')this.record('person-fire',episode.id,episode.context);
     if(event.type==='person-hit')this.record('person-hit',episode.id,episode.context);
   }

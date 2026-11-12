@@ -1,0 +1,10 @@
+.guidance-flow{margin:.7rem 0 0;padding:.35rem 0 0;border-top:1px solid #3c5363;font-size:.91em;line-height:1.5;color:#bdcfd4}
+.guidance-flow summary{min-height:44px;padding:.55rem 0;cursor:pointer;font-weight:600;color:#cbd9d5}
+.guidance-flow summary:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.guidance-flow p{margin:.55rem 0}.guidance-flow-steps{margin:.2rem 0 .65rem;padding-left:1.5rem;display:grid;gap:.5rem}
+.guidance-flow-steps li{padding-left:.15rem}.guidance-flow-steps li.current{color:#f0dfb9}.guidance-flow-steps li.done{color:#a4c8b6}
+.guidance-flow-state{display:block;font-size:.76em;font-weight:600;line-height:1.3;letter-spacing:.025em;text-transform:uppercase;color:#9db6bc}
+.guidance-flow-steps li.current .guidance-flow-state{color:#dfc48c}.guidance-flow-steps li.done .guidance-flow-state{color:#92b7a2}
+.guidance-flow-next{font-size:.91em;line-height:1.5;color:#ddcfad;margin:.65rem 0}.guidance-flow-next strong{font-weight:600}
+.guidance-flow-container{min-width:0}.shared-friend-card>.guidance-flow-container{font-size:.96em}
+@media(max-width:520px){.guidance-flow{font-size:.94em}.guidance-flow-steps{gap:.55rem}.guidance-flow summary{padding:.55rem 0}}

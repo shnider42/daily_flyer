@@ -7,36 +7,70 @@
  * never earn progress. Use an ID for a completed gesture/action, not each frame.
  *
  * update(context) returns at most one inert prompt. Its action is a highlight
- * descriptor, never a game command. Moderate only answers requestHelp(); Expert
- * never produces a tutorial. Isolated exercises may explicitly force Simple.
+ * descriptor, never a game command. Call present() on the one selected prompt
+ * to commit its exposure. Moderate offers a brief first-use contextual hint;
+ * Expert is silent until asked. Isolated exercises may explicitly force Simple.
  */
-export const GUIDANCE_VERSION=1;
+export const GUIDANCE_VERSION=2;
 export const GUIDANCE_LIMIT=2;
+export const GUIDANCE_LEVELS=Object.freeze([
+  Object.freeze({id:'simple',value:'simple',label:'Simple',name:'Simple',summary:'Show me the next step.',description:'Learn the controls, understand each step, and practise unfamiliar actions with a clear explanation.',behavior:'Detailed steps, control highlights, and reminders through your first two successful uses. Helpful routes stay available as your situation changes.',automatic:'guided',practiceLimit:2,highlights:true,routeHints:true,drills:true}),
+  Object.freeze({id:'moderate',value:'moderate',label:'Moderate',name:'Moderate',summary:'Help when something is new.',description:'Keep the objective clear and briefly explain an unfamiliar mechanic when it becomes relevant.',behavior:'A short first-use hint appears for about nine seconds, then leaves the screen. No routine movement drills. Expand or request help whenever you need the full explanation.',automatic:'contextual',practiceLimit:1,highlights:false,routeHints:true,drills:false}),
+  Object.freeze({id:'expert',value:'expert',label:'Expert',name:'Expert',summary:'Let me work it out.',description:'Follow orders and explore without automatic lessons or suggested routes.',behavior:'Automatic teaching and suggested routes stay hidden. Orders, permissions, hazards, and the full field guide remain available. Action help still answers at full depth.',automatic:'off',practiceLimit:0,highlights:false,routeHints:false,drills:false})
+]);
+export function guidancePolicy(value='simple'){return GUIDANCE_LEVELS.find(level=>level.id===value)||GUIDANCE_LEVELS[0];}
 export const GUIDANCE_ACTIONS=Object.freeze([
   'flight-thrust','flight-turn','flight-strafe','flight-brake','ship-fire','dock',
   'person-move','person-use','job-accept','work','job-turn-in','mine','salvage',
   'person-aim','person-fire','person-hit','board-enemy','return-airlock','take-helm',
-  'crew-permission','board-friend'
+  'crew-permission','board-friend','crew-hub','disembark',
+  'map-open','set-course','scan','jump','gunnery-enter','gunnery-battery','gunnery-fire',
+  'military-enlist','military-muster','military-deploy','military-debrief','navy-order','service-return','passage-book','passage-arrive'
 ]);
 export const GUIDANCE_CONTROL_TARGETS=Object.freeze({
   move:'stick',flight:'stick',strafe:'aimStick',aim:'aimStick',fire:'fireButton',
-  brake:'brakeButton',mine:'mineButton',use:'contextButton',crew:'onlineButton',weapon:'weaponState',perspective:'modePill'
+  brake:'brakeButton',mine:'mineButton',use:'contextButton',crew:'onlineButton',weapon:'weaponState',perspective:'modePill',
+  map:'pauseButton',scan:'contextButton',battery:'gunneryBatteries',service:'objectiveDetails',recovery:'recoveryAction'
 });
 const ACTIONS=new Set(GUIDANCE_ACTIONS);
-const CONTROL_ACTIONS=new Set(['flight-thrust','flight-turn','flight-strafe','flight-brake','ship-fire','person-move','person-aim','person-fire','person-hit']);
-const INTERACTIONS=new Set(['dock','person-use','job-accept','work','job-turn-in','mine','salvage','board-enemy','return-airlock','take-helm','crew-permission','board-friend']);
+const CONTROL_ACTIONS=new Set(['flight-thrust','flight-turn','flight-strafe','flight-brake','ship-fire','person-move','person-aim','person-fire','person-hit','gunnery-fire']);
+const INTERACTIONS=new Set(GUIDANCE_ACTIONS.filter(action=>!CONTROL_ACTIONS.has(action)));
 const FLOW_ACTIONS=Object.freeze({
   flight:['flight-thrust','flight-turn','flight-strafe','flight-brake'],
   person:['person-move','person-use'],combat:['person-aim','person-fire','person-hit'],
-  docking:['dock'],work:['job-accept','work','job-turn-in'],mining:['mine','salvage'],
-  boarding:['board-enemy','return-airlock','take-helm'],crew:['crew-permission','board-friend']
+  docking:['dock','disembark'],work:['job-accept','work','job-turn-in'],mining:['mine','salvage'],
+  boarding:['board-enemy','return-airlock','take-helm'],crew:['crew-hub','crew-permission','board-friend'],
+  navigation:['map-open','set-course','scan','jump'],gunnery:['gunnery-enter','gunnery-battery','gunnery-fire'],
+  service:['military-enlist','military-muster','military-deploy','military-debrief','navy-order'],travel:['service-return','passage-book','passage-arrive']
 });
+const FLOW_TITLES=Object.freeze({flight:'Flying your ship',person:'Moving and interacting',combat:'Personal combat',docking:'Docking and going ashore',work:'Taking and completing work',mining:'Mining and salvage',boarding:'Hostile boarding',crew:'Playing together',navigation:'Finding your way',gunnery:'Capital-ship gunnery',service:'Military service',travel:'Passenger travel and recovery'});
+const ACTION_TITLES=Object.freeze({'flight-thrust':'Thrust','flight-turn':'Turn','flight-strafe':'Strafe','flight-brake':'Brake','ship-fire':'Fire ship weapons','dock':'Dock or land','person-move':'Walk','person-use':'Talk or use','job-accept':'Accept a job','work':'Complete work','job-turn-in':'Collect payment','mine':'Extract ore','salvage':'Collect salvage','person-aim':'Aim on foot','person-fire':'Fire on foot','person-hit':'Land a hit','board-enemy':'Board a disabled ship','return-airlock':'Return through the airlock','take-helm':'Take the helm','crew-permission':'Grant boarding access','board-friend':'Board a friend’s ship','crew-hub':'Find your crew','disembark':'Go ashore','map-open':'Read the map','set-course':'Mark a destination','scan':'Use the scanner','jump':'Jump between systems','gunnery-enter':'Take a gun station','gunnery-battery':'Select another battery','gunnery-fire':'Fire a ship battery','military-enlist':'Enlist','military-muster':'Join a muster','military-deploy':'Begin a deployment','military-debrief':'Report for debrief','service-return':'Book military return passage','passage-book':'Book civilian passage','passage-arrive':'Arrive as a passenger'});
+const actionRequirement=action=>action==='military-enlist'?1:GUIDANCE_LIMIT;
+const flowFor=action=>Object.keys(FLOW_ACTIONS).find(key=>FLOW_ACTIONS[key].includes(action))||'flight';
+const EXPOSURE_LIMIT=128;
+const MODERATE_SECONDS=9;
 const mode=value=>['simple','moderate','expert'].includes(value)?value:'simple';
 const device=value=>['touch','mobile','phone','tablet'].includes(value)?'touch':'keyboard';
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const count=value=>Math.max(0,Math.min(GUIDANCE_LIMIT,Math.floor(finite(value))));
 const text=(value,fallback='')=>typeof value==='string'?value.replace(/\s+/g,' ').trim().slice(0,180):fallback;
 const copy=value=>JSON.parse(JSON.stringify(value));
+/** Practice measures confirmed actions, never time spent reading a tip. */
+export function guidanceProgress(source, input='keyboard') {
+  const state=typeof source?.exportState==='function'?source.exportState():source||{},layout=device(typeof input==='object'?input.device:input);
+  const totals={completed:0,total:0,practiced:0,required:0};
+  const flows=Object.entries(FLOW_ACTIONS).map(([id,list])=>{
+    const actions=(id==='flight'?[...list,'ship-fire']:list).map(action=>{
+      const required=actionRequirement(action),uses=count(CONTROL_ACTIONS.has(action)?state.controls?.[layout]?.[action]:state.counts?.[action]);
+      return {id:action,title:action==='navy-order'?'Acknowledge a Navy order':action==='service-return'?'Take service return passage':ACTION_TITLES[action]||action,count:uses,required,complete:uses>=required};
+    });
+    const result={id,title:FLOW_TITLES[id],completed:actions.filter(action=>action.complete).length,total:actions.length,
+      practiced:actions.reduce((sum,action)=>sum+Math.min(action.count,action.required),0),required:actions.reduce((sum,action)=>sum+action.required,0),actions};
+    for(const key of Object.keys(totals))totals[key]+=result[key];
+    return result;
+  });
+  return {device:layout,...totals,percent:totals.required?Math.round(100*totals.practiced/totals.required):0,flows};
+}
 const control=(ctx,kind)=>{
   const touch=device(ctx.device)==='touch',primary=ctx.leftHanded?'right':'left',secondary=ctx.leftHanded?'left':'right';
   const labels=touch?{
@@ -53,11 +87,11 @@ export function guidanceProfileKey({seed='local',captainId=null,realmId=null,tes
 }
 
 function emptyState(profileId,scope) {
-  return {version:GUIDANCE_VERSION,profileId,scope,counts:{},controls:{keyboard:{},touch:{}},flows:{lastAction:null,lastUses:{}},recent:[]};
+  return {version:GUIDANCE_VERSION,profileId,scope,counts:{},controls:{keyboard:{},touch:{}},flows:{lastAction:null,lastUses:{}},recent:[],exposures:[]};
 }
 function restoredState(raw,profileId,scope) {
   const state=emptyState(profileId,scope);
-  if(!raw||raw.version!==GUIDANCE_VERSION||raw.profileId!==profileId||raw.scope!==scope)return state;
+  if(!raw||![1,GUIDANCE_VERSION].includes(raw.version)||raw.profileId!==profileId||raw.scope!==scope)return state;
   for(const action of GUIDANCE_ACTIONS){
     if(count(raw.counts?.[action]))state.counts[action]=count(raw.counts[action]);
     for(const input of ['keyboard','touch'])if(CONTROL_ACTIONS.has(action)&&count(raw.controls?.[input]?.[action]))state.controls[input][action]=count(raw.controls[input][action]);
@@ -66,25 +100,46 @@ function restoredState(raw,profileId,scope) {
   }
   state.flows.lastAction=ACTIONS.has(raw.flows?.lastAction)?raw.flows.lastAction:null;
   state.recent=Array.isArray(raw.recent)?[...new Set(raw.recent.filter(id=>typeof id==='string'&&id.length<=400))].slice(-96):[];
+  const exposed=new Set();
+  for(const item of (Array.isArray(raw.exposures)?raw.exposures:[]).slice(-EXPOSURE_LIMIT)){
+    if(!item||typeof item.topic!=='string'||!['touch','keyboard'].includes(item.device))continue;
+    const topic=text(item.topic),key=`${item.device}:${topic}`;if(!topic||exposed.has(key))continue;exposed.add(key);
+    state.exposures.push({topic,device:item.device,flow:Object.hasOwn(FLOW_ACTIONS,item.flow)?item.flow:'route'});
+  }
   return state;
 }
 
 function targetKey(action,ctx) {
   if(action==='dock')return text(ctx.docking?.id||ctx.nearby?.id||ctx.docking?.name||ctx.nearby?.name);
   if(['board-friend','crew-permission'].includes(action))return text(ctx.shared?.id||ctx.nearby?.id||ctx.shared?.name);
+  if(['gunnery-enter','gunnery-battery','gunnery-fire'].includes(action))return text(ctx.gunnery?.batteryId||ctx.gunnery?.selectedBatteryId||ctx.vesselId);
   if(['return-airlock','take-helm'].includes(action))return text(ctx.boarding?.id||ctx.vesselId||ctx.locationId);
   if(action==='mine')return text(ctx.mining?.id||ctx.nearby?.id);
   return text(ctx.nearby?.id||ctx.job?.id||ctx.locationId);
+}
+function militaryEpisodeStatus(status) {
+  const operation=status?.operation;if(!operation)return null;
+  const launch=operation.actions?.find(action=>action.action==='launchOperation');
+  return [operation.id,operation.phase,operation.leaderId,operation.leaderName,launch?.available,launch?.reason,
+    (Array.isArray(operation.roster)?operation.roster:[]).slice(0,32).map(member=>[member.captainId,member.online,member.ready,member.status,member.statusReason])];
 }
 function episodeKey(ctx) {
   return JSON.stringify([ctx.mode,device(ctx.device),ctx.systemId,ctx.locationId,ctx.vesselId,ctx.boarding?.id,ctx.boarding?.phase,
     ctx.nearby?.id,ctx.nearby?.type,ctx.nearby?.completed||ctx.nearby?.done,ctx.intent,ctx.docking?.inRange,
     ctx.docking?.id,ctx.job?.id,ctx.job?.ready,ctx.shared?.id,ctx.shared?.canBoard,
     ctx.boarding?.atAirlock,ctx.boarding?.atHelm,ctx.boarding?.canReturn,ctx.boarding?.canTakeHelm,
-    ctx.helm?.available,ctx.combat?.active,ctx.combat?.blocked,ctx.combat?.targetVisible]);
+    ctx.helm?.available,ctx.combat?.active,ctx.combat?.blocked,ctx.combat?.targetVisible,
+    ctx.gunnery?.active,ctx.gunnery?.selectedBatteryId||ctx.gunnery?.batteryId,ctx.gunnery?.canFire,
+    ctx.shared?.sameShip,ctx.shared?.samePort,ctx.shared?.aboardTogether,ctx.shared?.permissionNeeded,
+    ctx.navigation?.hasCourse,ctx.navigation?.targetName,
+    ctx.military?.status,ctx.military?.active?.phase,ctx.military?.active?.missionId,ctx.military?.active?.operationId,ctx.military?.objective,
+    militaryEpisodeStatus(ctx.military),
+    ctx.recovery?.status,ctx.recovery?.arrived,ctx.recovery?.detained,ctx.recovery?.passage,ctx.recovery?.passagePhase,
+    ctx.duty?.phase,ctx.duty?.navyOperation?.activeTask?.id,ctx.duty?.navyOperation?.activeTask?.running,
+    ctx.duty?.navyOperation?.activeTask?.ready,ctx.duty?.navyOperation?.activeTask?.reason]);
 }
 function descriptor(action,title,body,short,kind,{id=action,flow=null,...extra}={}) {
-  return {id,title,body,short,successAction:action,controlTarget:GUIDANCE_CONTROL_TARGETS[kind]||kind,flow:flow||Object.keys(FLOW_ACTIONS).find(key=>FLOW_ACTIONS[key].includes(action))||'flight',...extra};
+  return {id,title,body,short,successAction:action,controlTarget:GUIDANCE_CONTROL_TARGETS[kind]||kind,flow:flow||flowFor(action),topicId:action,...extra};
 }
 
 export class GuidanceController {
@@ -92,7 +147,7 @@ export class GuidanceController {
     this.profileId=String(profileId);this.testMode=!!testMode;this.scope=this.testMode?'test':'voyage';
     this.mode=mode(guidance);this.force=!!force&&this.testMode;
     this.state=restoredState(state,this.profileId,this.scope);this.revision=0;
-    this._context=null;this._prompt=null;this._lastPrompt=null;this._lastPromptEpisode=null;this._episode=null;this._dismissed=new Set();this._help=false;this._helpEpisode=null;this._repeatAction=null;
+    this._context=null;this._prompt=null;this._lastPrompt=null;this._lastPromptEpisode=null;this._episode=null;this._dismissed=new Set();this._help=false;this._helpEpisode=null;this._repeatAction=null;this._presentation=null;this._requestedPrompt=null;
     this._syncFlows();
   }
   get prompt(){return this._prompt?copy(this._prompt):null;}
@@ -101,7 +156,7 @@ export class GuidanceController {
   }
   _effectiveMode(ctx=this._context||{}) {return this.force?'simple':mode(ctx.guidance??this.mode);}
   setMode(value) {
-    const next=mode(value);if(next!==this.mode){this.mode=next;this._help=false;this._repeatAction=null;this._prompt=null;this._dismissed.clear();}
+    const next=mode(value);if(next!==this.mode){this.mode=next;this._help=false;this._repeatAction=null;this._prompt=null;this._presentation=null;this._requestedPrompt=null;this._dismissed.clear();}
     return this._context?this.update({...this._context,guidance:next}):null;
   }
   _validScope(value) {
@@ -111,8 +166,9 @@ export class GuidanceController {
   _syncFlows() {
     for(const [name,actions]of Object.entries(FLOW_ACTIONS)){
       const summary=input=>{
-        const counts=actions.map(action=>this.count(action,{device:input})),round=Math.min(...counts),step=round>=2?actions.length:counts.findIndex(n=>n===round);
-        return {round,step,complete:round>=2};
+        const counts=actions.map(action=>this.count(action,{device:input})),pending=actions.map((action,index)=>({index,count:counts[index],required:actionRequirement(action)})).filter(item=>item.count<item.required);
+        const complete=pending.length===0,round=complete?GUIDANCE_LIMIT:Math.min(...pending.map(item=>item.count)),step=complete?actions.length:pending.find(item=>item.count===round).index;
+        return {round,step,complete};
       };
       this.state.flows[name]={keyboard:summary('keyboard'),touch:summary('touch')};
     }
@@ -130,29 +186,30 @@ export class GuidanceController {
     this.state.recent.push(dedupe);if(this.state.recent.length>96)this.state.recent.shift();
     this.state.flows.lastAction=action;
     if(INTERACTIONS.has(action))this.state.flows.lastUses[action]={target:targetKey(action,context),needsExit:true};
-    this.revision++;this._syncFlows();this._help=false;this._repeatAction=null;
+    this.revision++;this._syncFlows();this._help=false;this._repeatAction=null;this._requestedPrompt=null;
     if(this._prompt?.successAction===action){this._prompt=null;this._dismissed.clear();}
     return true;
   }
   dismiss(id=this._prompt?.id) {
     if(!id)return false;
-    this._dismissed.add(id);this._lastPrompt=this._prompt||this._lastPrompt;this._prompt=null;this._help=false;this._repeatAction=null;return true;
+    this._dismissed.add(id);this._lastPrompt=this._prompt||this._lastPrompt;this._prompt=null;this._presentation=null;this._requestedPrompt=null;this._help=false;this._repeatAction=null;return true;
   }
   requestHelp(context=this._context) {
-    if(!context||!this._validScope(context)||this._effectiveMode(context)==='expert')return null;
-    this._help=true;this._helpEpisode=episodeKey(context);this._repeatAction=null;this._dismissed.clear();return this.update(context);
+    if(!context||!this._validScope(context))return null;
+    this._help=true;this._helpEpisode=episodeKey(context);this._repeatAction=null;this._requestedPrompt=null;this._dismissed.clear();return this.update(context);
   }
   repeat(context=this._context) {
-    if(!context||!this._validScope(context)||this._effectiveMode(context)==='expert')return null;
+    if(!context||!this._validScope(context))return null;
     const episode=episodeKey(context);
-    this._help=true;this._helpEpisode=episode;this._repeatAction=this._lastPromptEpisode===episode?(this._prompt||this._lastPrompt)?.successAction:null;
+    this._help=true;this._helpEpisode=episode;this._repeatAction=this._lastPromptEpisode===episode?(this._prompt||this._lastPrompt)?.successAction:null;this._requestedPrompt=null;
     this._dismissed.clear();return this.update(context);
   }
   resetProgress(flow='all') {
-    const actions=flow==='all'?GUIDANCE_ACTIONS:FLOW_ACTIONS[flow];if(!actions)return false;
+    const actions=flow==='all'?GUIDANCE_ACTIONS:flow==='flight'?[...FLOW_ACTIONS.flight,'ship-fire']:FLOW_ACTIONS[flow];if(!actions)return false;
     for(const action of actions){delete this.state.counts[action];delete this.state.controls.keyboard[action];delete this.state.controls.touch[action];delete this.state.flows.lastUses[action];}
     this.state.recent=this.state.recent.filter(id=>!actions.some(action=>id.startsWith(action+':')));
-    this.state.flows.lastAction=null;this.revision++;this._syncFlows();this._help=false;this._repeatAction=null;this._dismissed.clear();this._prompt=null;this._lastPrompt=null;this._lastPromptEpisode=null;return true;
+    this.state.exposures=this.state.exposures.filter(item=>flow!=='all'&&item.flow!==flow&&!actions.includes(item.topic));
+    this.state.flows.lastAction=null;this.revision++;this._syncFlows();this._help=false;this._repeatAction=null;this._dismissed.clear();this._prompt=null;this._lastPrompt=null;this._lastPromptEpisode=null;this._presentation=null;this._requestedPrompt=null;return true;
   }
   exportState(){return copy(this.state);}
   _rearm(ctx) {
@@ -166,12 +223,12 @@ export class GuidanceController {
   }
   _eligible(action,ctx,forced=false) {
     if(forced)return true;
-    if(this.count(action,ctx)>=GUIDANCE_LIMIT)return false;
+    if(this.count(action,ctx)>=Math.min(actionRequirement(action),guidancePolicy(this._effectiveMode(ctx)).practiceLimit))return false;
     const last=this.state.flows.lastUses[action];return !(last?.needsExit&&last.target===targetKey(action,ctx));
   }
   _next(actions,ctx,forced=false) {
     const lowest=Math.min(...actions.map(action=>this.count(action,ctx)));
-    if(lowest>=GUIDANCE_LIMIT)return forced?actions[0]:null;
+    if(lowest>=(forced?GUIDANCE_LIMIT:guidancePolicy(this._effectiveMode(ctx)).practiceLimit))return forced?actions[0]:null;
     return actions.find(action=>this.count(action,ctx)===lowest);
   }
   update(context={}) {
@@ -179,34 +236,75 @@ export class GuidanceController {
     const ctx={...context,device:device(context.device)},nextEpisode=episodeKey(ctx);
     if(nextEpisode!==this._episode){
       this._dismissed.clear();
-      if(this._helpEpisode!==nextEpisode){this._help=false;this._repeatAction=null;}
+      if(this._helpEpisode!==nextEpisode){this._help=false;this._repeatAction=null;this._requestedPrompt=null;}
       this._episode=nextEpisode;
     }
     this._context=ctx;this._rearm(ctx);
     const selectedMode=this._effectiveMode(ctx);
-    if(ctx.playing===false||ctx.blocked||ctx.paused||ctx.person?.down||ctx.person?.health!==undefined&&finite(ctx.person.health)<=0||selectedMode==='expert'||selectedMode==='moderate'&&!this._help){this._prompt=null;return null;}
+    if(ctx.playing===false||ctx.blocked||ctx.paused||ctx.person?.down||ctx.person?.health!==undefined&&finite(ctx.person.health)<=0||selectedMode==='expert'&&!this._help){this._prompt=null;return null;}
     const candidate=this._choose(ctx,this._help,this._repeatAction);
     if(!candidate||this._dismissed.has(candidate.id)){this._prompt=null;return null;}
-    const completed=this.count(candidate.successAction,ctx),requested=this._help;
-    const prompt={...candidate,compactBody:candidate.short,body:selectedMode==='moderate'?candidate.short:candidate.body,attempt:Math.min(GUIDANCE_LIMIT,completed+1),completed,limit:GUIDANCE_LIMIT,
-      repeated:completed>0,requested,action:{type:'highlight',target:candidate.controlTarget},profileId:this.profileId,scope:this.scope};
-    delete prompt.short;this._prompt=prompt;this._lastPrompt=prompt;this._lastPromptEpisode=nextEpisode;return copy(prompt);
+    const prompt=this._format(candidate,ctx,{requested:this._help});
+    this._prompt=prompt;this._lastPrompt=prompt;this._lastPromptEpisode=nextEpisode;return copy(prompt);
+  }
+  _format(candidate,ctx,{requested=false}={}) {
+    const selected=this._effectiveMode(ctx),policy=guidancePolicy(selected),action=ACTIONS.has(candidate.successAction)?candidate.successAction:null;
+    const completed=action?this.count(action,ctx):0,limit=action?actionRequirement(action):0,fullBody=candidate.fullBody||candidate.body||'',compactBody=candidate.compactBody||candidate.short||fullBody;
+    const prompt={...candidate,topicId:text(candidate.topicId||action||candidate.id),compactBody,fullBody,body:requested||selected==='simple'?fullBody:compactBody,
+      attempt:limit?Math.min(limit,completed+1):null,completed,limit,repeated:completed>0,requested,level:selected,highlight:requested||policy.highlights,
+      action:{type:'highlight',target:candidate.controlTarget},profileId:this.profileId,scope:this.scope};
+    delete prompt.short;return prompt;
+  }
+  /** Requested route help survives HUD ticks, but never follows an obsolete context. */
+  requestedPrompt(context=this._context||{}) {
+    if(!this._validScope(context)||!this._help||!this._requestedPrompt)return null;
+    const ctx={...context,device:device(context.device)};
+    if(this._requestedPrompt.episode!==episodeKey(ctx))return null;
+    return copy(this._requestedPrompt.prompt);
+  }
+  /** Commit only the prompt that will actually be visible after route priority. */
+  present(candidate,context=this._context||{},{requested=false}={}) {
+    if(!this._validScope(context))return null;
+    const ctx={...context,device:device(context.device)},selected=this._effectiveMode(ctx);
+    if(!candidate||ctx.playing===false||ctx.blocked||ctx.paused||ctx.person?.down||ctx.person?.health!==undefined&&finite(ctx.person.health)<=0){this._presentation=null;this._prompt=null;return null;}
+    requested=!!(requested||candidate.requested);
+    if(selected==='expert'&&!requested&&!candidate.critical){this._prompt=null;return null;}
+    if(!requested&&this._dismissed.has(candidate.id)){this._prompt=null;return null;}
+    const prompt=this._format(candidate,ctx,{requested});
+    if(selected==='moderate'&&!requested&&!candidate.critical){
+      const key=`${ctx.device}:${prompt.topicId}`,time=Math.max(0,finite(ctx.timeSeconds));
+      if(this._presentation?.key!==key){
+        if(this.state.exposures.some(item=>item.device===ctx.device&&item.topic===prompt.topicId)){this._prompt=null;return null;}
+        this._presentation={key,at:time};
+        this.state.exposures.push({topic:prompt.topicId,device:ctx.device,flow:Object.hasOwn(FLOW_ACTIONS,candidate.learningFlow)?candidate.learningFlow:ACTIONS.has(candidate.successAction)?flowFor(candidate.successAction):Object.hasOwn(FLOW_ACTIONS,candidate.flow)?candidate.flow:'route'});
+        if(this.state.exposures.length>EXPOSURE_LIMIT)this.state.exposures.shift();this.revision++;
+      }
+      const remaining=MODERATE_SECONDS-Math.max(0,time-this._presentation.at);
+      if(remaining<=0){this._prompt=null;return null;}
+      prompt.autoDismissAfter=remaining;
+    }else this._presentation=null;
+    if(requested){this._help=true;this._helpEpisode=episodeKey(ctx);this._dismissed.delete(candidate.id);this._requestedPrompt={episode:this._helpEpisode,prompt:copy(prompt)};}
+    this._prompt=prompt;this._lastPrompt=prompt;this._lastPromptEpisode=episodeKey(ctx);return copy(prompt);
   }
   _choose(ctx,forced,preferred=null) {
-    const touch=ctx.device==='touch',near=ctx.nearby||{},name=text(near.name),intent=ctx.intent;
+    const touch=ctx.device==='touch',near=ctx.nearby||{},name=text(near.name),intent=ctx.intent,drills=forced||guidancePolicy(this._effectiveMode(ctx)).drills;
+    if(ctx.gunnery?.active)return this._gunnery(ctx,forced);
     if(ctx.mode==='person'){
-      // The first lesson on a new input layout is locomotion, before consoles
-      // and conversation prompts can take over the arrival screen.
-      if(!this.count('person-move',ctx))return this._walk(ctx);
+      // Visible combat takes priority even on the player's first arrival.
       if(ctx.combat?.active||ctx.boarding?.phase==='active'){
         if(intent==='return'&&ctx.boarding?.kind==='assault'&&ctx.boarding.canReturn!==false)return this._return(ctx,forced);
         return this._combat(ctx,forced,preferred);
       }
+      if(drills&&!forced&&!this.count('person-move',ctx))return this._walk(ctx);
       if(ctx.boarding?.kind==='assault'&&ctx.boarding.phase==='won'){
         if((intent==='helm'||ctx.boarding.atHelm)&&ctx.boarding.canTakeHelm!==false)return this._helm(ctx,forced);
         if(ctx.boarding.canReturn!==false&&this._eligible('return-airlock',ctx,forced))return this._return(ctx,forced);
         if(ctx.boarding.canTakeHelm!==false)return this._helm(ctx,forced);
       }
+      const crew=this._crew(ctx,forced);if(crew)return crew;
+      if(ctx.gunnery?.available&&(near.stationRole==='security'||near.stationRole==='weapons'||intent==='gunnery')&&this._eligible('gunnery-enter',ctx,forced))return descriptor('gunnery-enter','Take the gun station',
+        `${useInstruction(ctx,'USE GUNNERY')} at this console and choose Take gunner view. You stay aboard this vessel while the view looks outside; its pilot still controls the ship.`,
+        `${touch?'USE GUNNERY':'E'} · Open the gunner view at this console.`,'use');
       const job=ctx.job||{};
       if(job.ready&&this._eligible('job-turn-in',ctx,forced)){
         const at=job.nearBoard||near.type==='jobboard',inMenu=ctx.menu==='jobs'||ctx.dialogKind==='jobs';
@@ -227,36 +325,87 @@ export class GuidanceController {
         `${useInstruction(ctx,'USE',near.controlLabel)} while close to ${name||'this place'}. Entrances lead inside; records, supplies, and equipment have their own actions.`,`${touch?text(near.controlLabel,'USE'):control(ctx,'use')} · Use this place while standing close.`,'use');
       if(job.accepted&&!job.ready&&(!job.type||job.type==='work')&&(this._eligible('work',ctx,forced)||(near.completed||near.done)&&this.count('work',ctx)<GUIDANCE_LIMIT))return descriptor('work','Find an unfinished workstation',
         'Walk to a workstation marked for your active job. Use it to begin the task; finished relays do not need repeating.','Walk to an unfinished workstation for this job.','move',{id:'work:approach'});
-      return this._eligible('person-move',ctx,forced)?this._walk(ctx):null;
+      return drills&&this._eligible('person-move',ctx,forced)?this._walk(ctx):null;
     }
     if(ctx.mode!=='ship')return null;
-    // Docking can interrupt advanced flight drills, but the first departure
-    // still explains thrust and turning before introducing another interaction.
-    if(!this.count('flight-thrust',ctx))return this._flight('flight-thrust',ctx);
-    if(!this.count('flight-turn',ctx))return this._flight('flight-turn',ctx);
+    const underThreat=ctx.ship?.threat||intent==='combat'||near.hostile===true&&near.disabled!==true;
+    if(underThreat){
+      if((ctx.docking?.inRange||near.type==='dock')&&this._eligible('dock',ctx,forced))return this._dock(ctx);
+      return this._eligible('ship-fire',ctx,forced)?this._flight('ship-fire',ctx):null;
+    }
+    if(drills&&!forced&&!this.count('flight-thrust',ctx))return this._flight('flight-thrust',ctx);
+    if(drills&&!forced&&!this.count('flight-turn',ctx))return this._flight('flight-turn',ctx);
     if((near.type==='board'||intent==='boarding'&&near.id&&(near.canBoard===true||near.disabled===true))&&near.canBoard!==false&&near.disabled!==false&&near.hostile!==false&&this._eligible('board-enemy',ctx,forced))return descriptor('board-enemy',near.inRange===false?'Close to the disabled vessel':'Board the disabled vessel',
       near.inRange===false?'Fly closer to the disabled contact until Board is offered. Its crew deck belongs to that physical hull.':`${touch?'Tap BOARD':'Press E'} to review the target and cross its tether. Your ship stays outside; your sidearm is included.`,
       near.inRange===false?'Approach until Board is available.':`${touch?'BOARD':'E'} · Cross to this disabled vessel.` ,near.inRange===false?'flight':'use',{id:near.inRange===false?'board-enemy:approach':'board-enemy'});
-    const shared=ctx.shared;
-    if(shared&&(intent==='crew'||near.type==='shared-ship'||shared.permissionNeeded)){
-      if(shared.permissionNeeded&&!shared.canBoard&&this._eligible('crew-permission',ctx,forced))return descriptor('crew-permission',shared.canManageCrew?'Choose crew access':'Crew access is required',
-        shared.canManageCrew?`Open ${touch?'Menu → Crew':'CREW'}, find your friend by name, and turn on Allow aboard. Allow piloting is a separate choice.`:`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. ${touch?'Menu → Crew':'CREW'} shows the current access; boarding becomes available after approval.`,
-        shared.canManageCrew?`${touch?'Menu → Crew':'CREW'} · Review access for the intended captain.`:'Ask the owner for boarding permission.','crew');
-      if(shared.canBoard===true&&this._eligible('board-friend',ctx,forced))return descriptor('board-friend',shared.inRange===false?'Meet your crew’s ship':'Board your crew’s ship',
-        shared.inRange===false?`Approach ${text(shared.name,'the permitted ship')} slowly, or meet it at the same port.`:`${touch?'Tap the ship contact':'Press E at the ship contact'} and choose Board ship. Your own hull remains behind.`,
-        shared.inRange===false?'Approach the permitted ship at low speed.':'Open this contact and choose Board ship.',shared.inRange===false?'flight':'use',{id:shared.inRange===false?'board-friend:approach':'board-friend'});
-    }
+    const crew=this._crew(ctx,forced);if(crew)return crew;
+    const navigation=this._navigation(ctx,forced);if(navigation)return navigation;
     if((ctx.docking&&(ctx.docking.inRange||intent==='dock')||near.type==='dock')&&this._eligible('dock',ctx,forced))return this._dock(ctx);
-    if((ctx.ship?.threat||intent==='combat'||near.hostile===true&&near.disabled!==true)&&this._eligible('ship-fire',ctx,forced))return this._flight('ship-fire',ctx);
     if(near.type==='salvage'&&this._eligible('salvage',ctx,forced))return descriptor('salvage','Collect the loose salvage',
       `${touch?'Tap COLLECT':'Press E'} near the salvage, or fly close enough to draw it into your hold. The pickup confirms what you recovered.`,`${touch?'COLLECT':'E'} · Recover this salvage.`,'use');
     if(ctx.mining&&(intent==='mining'||ctx.mining.inRange)&&!ctx.mining.holdFull&&this._eligible('mine',ctx,forced))return descriptor('mine',ctx.mining.inRange?'Hold the mining beam':'Approach an asteroid',
       ctx.mining.inRange?`${touch?'Hold MINE':'Hold R'} near the asteroid until it breaks. The ore pickup confirms extraction; releasing early leaves the rock partly mined.`:'Fly close to a visible asteroid. The mining beam needs a nearby rock and room in your hold.',
       ctx.mining.inRange?`${control(ctx,'mine')} · Hold until the rock yields ore.`:'Approach a visible asteroid with room in the hold.',ctx.mining.inRange?'mine':'flight',{id:ctx.mining.inRange?'mine':'mine:approach'});
-    const next=forced&&FLOW_ACTIONS.flight.includes(preferred)?preferred:this._next(FLOW_ACTIONS.flight,ctx,forced);if(!next)return null;
+    const next=!drills?null:forced&&FLOW_ACTIONS.flight.includes(preferred)?preferred:this._next(FLOW_ACTIONS.flight,ctx,forced);if(!next)return null;
     if(next==='flight-brake'&&finite(ctx.ship?.speed)<=6)return descriptor('flight-brake','Build a little speed',
       `${touch?`Push ${control(ctx,'thrust')}`:'Hold W briefly'} to begin moving. Then you can feel the brake slow your ship.`,`${control(ctx,'thrust')} · Start moving before practising the brake.`,'flight',{id:'flight-brake:prepare'});
     return this._flight(next,ctx);
+  }
+  _crew(ctx,forced) {
+    const shared=ctx.shared;if(!shared)return null;
+    const touch=ctx.device==='touch',intent=ctx.intent,atPort=shared.samePort===true||shared.disembarkAvailable===true;
+    if(shared.disembarkAvailable&&['return','disembark'].includes(intent)&&this._eligible('disembark',ctx,forced))return descriptor('disembark','Step ashore through the airlock',
+      `Choose Disembark at the top of the screen to mark the entry airlock. Walk to it and use the door to step onto ${text(shared.portName,'the docked port')}. Every passenger may leave a docked ship; helm permission is not needed.`,
+      'Disembark marks the entry airlock. Use it to step ashore.','perspective');
+    const aboardTogether=shared.aboardTogether===true||shared.aboardTogether===undefined&&shared.sameShip;
+    if(aboardTogether){
+      if(!forced&&this.count('crew-hub',ctx)>0)return null;
+      if(this._eligible('crew-hub',ctx,forced))return descriptor('crew-hub','You are aboard together',
+        'Open Crew to check who is aboard and who is still ashore. Boarding access, piloting access, and military enlistment are separate. Serve together shows how to join the same military deployment while keeping your own rank.',
+        'Crew shows your shipmates. Serve together opens shared military service.','crew');
+      return null;
+    }
+    if(!(intent==='crew'||ctx.nearby?.type==='shared-ship'||shared.permissionNeeded||shared.friendCount>0||shared.sameShip))return null;
+    if(shared.sameShip&&shared.aboardTogether===false&&this._eligible('crew-hub',ctx,forced))return descriptor('crew-hub','Check your crewmate’s location',
+      'You share a vessel, but one of you is on a hull walk. Open Crew to see who is outside and who is on the deck before planning your next move together. Sharing a ship assignment does not mean you are standing in the same place.',
+      'One of you is outside. Crew shows each crewmate’s location.','crew');
+    if(shared.permissionNeeded&&!shared.canBoard&&this._eligible('crew-permission',ctx,forced))return descriptor('crew-permission',shared.canManageCrew?'Allow your friend aboard':'Ask for boarding access',
+      shared.canManageCrew?'Open Crew, find your friend by name, and choose Allow aboard. Allow piloting is a separate choice; boarding access alone does not give away your helm.':`Ask ${text(shared.ownerName,'the captain')} for permission to board ${text(shared.name,'that ship')}. Open Crew to see the current access; boarding becomes available after approval.`,
+      shared.canManageCrew?'Crew → your friend → Allow aboard.':'Crew shows who can grant your boarding access.','crew');
+    if(shared.canBoard===true&&this._eligible('board-friend',ctx,forced))return descriptor('board-friend',shared.inRange===false&&!atPort?'Meet your crew’s ship':'Board your crew’s ship',
+      shared.inRange===false&&!atPort?`Approach ${text(shared.name,'the permitted ship')} slowly, or meet it at the same port.`:`Open Crew and choose Board ${text(shared.name,'ship')}. You must be at the same docked port or within boarding range. Your own hull stays where you left it.`,
+      shared.inRange===false&&!atPort?'Approach the permitted ship at low speed.':'Crew → Board ship. Your own ship remains behind.',shared.inRange===false&&!atPort?'flight':'crew',{id:shared.inRange===false&&!atPort?'board-friend:approach':'board-friend'});
+    if(this._eligible('crew-hub',ctx,forced))return descriptor('crew-hub',atPort?'Meet your friend at this port':'Find your friend',
+      `Open Crew to find ${text(shared.friendName,'your friend')} by name and see their current ship or port. The Play together panel shows the next step for your actual position and permissions. Meet at the same port to board together; being in one galaxy alone does not put you on the same ship.`,
+      `Crew shows ${text(shared.friendName,'your friend')}, their location, and how to board together.`,'crew');
+    return null;
+  }
+  _gunnery(ctx,forced) {
+    const g=ctx.gunnery||{},touch=ctx.device==='touch',batteries=Array.isArray(g.batteries)?g.batteries:[],countBatteries=Number(g.batteryCount)||batteries.length;
+    if(countBatteries>1&&this._eligible('gunnery-battery',ctx,forced))return descriptor('gunnery-battery',g.aimInArc===false?'Choose a battery facing that direction':'Choose the right gun battery',
+      `${touch?'Tap a named battery button':'Use 1–4 or click a named battery button'} to change guns. This ship has ${countBatteries} batteries; each covers its own direction relative to the bow. ${text(g.batteryName,'The selected battery')} is selected. The pilot turns the ship while you aim within this gun’s firing arc.`,
+      `${touch?'Tap a battery':'1–4 or a battery button'} to cover another firing arc.`,'battery');
+    if(!this._eligible('gunnery-fire',ctx,forced))return null;
+    if(g.canFire===false)return descriptor('gunnery-fire','Check the gun’s status',
+      'Look at the selected battery’s status. CYCLING means its next volley is not ready; LOW POWER means the ship needs more energy. STANDBY means firing is not currently allowed. Read your orders and wait for READY before firing.',
+      'Wait for READY. Check battery charge, cooldown, and your current orders.','weapon',{id:'gunnery-fire:standby'});
+    return descriptor('gunnery-fire','Aim this ship’s battery',
+      `${touch?`Use ${control(ctx,'aim')} to aim, or hold FIRE`:'Aim with the mouse or arrow keys, then click or hold Space'}. The exterior view belongs to your gun station; the pilot still flies. Aiming stops at this battery’s arc limit. Follow your rules of engagement; switching guns does not grant permission to attack.`,
+      `${touch?'AIM / FIRE':'Mouse or arrows · click / Space'} · Fire within the selected battery’s arc.`,'fire');
+  }
+  _navigation(ctx,forced) {
+    const nav=ctx.navigation||{},intent=ctx.intent,touch=ctx.device==='touch';
+    if(!['navigation','scan','jump'].includes(intent))return null;
+    if(intent==='scan'&&this._eligible('scan',ctx,forced))return descriptor('scan',nav.canScan===false?'Approach the signal':'Investigate this signal',
+      nav.canScan===false?text(nav.reason,'Fly close enough to a known unresolved signal to investigate it.'):`${touch?'Tap Investigate at this signal':'Press E at this signal, or F for the nearest unresolved signal'}. A drifting freighter may offer Scan its transmission as an alternative to boarding. Read the actual scan result before choosing what to do next.`,
+      nav.canScan===false?text(nav.reason,'Approach a known unresolved signal.'):`${touch?'Investigate':'E / F'} · Read the signal before choosing your next step.`,'scan');
+    if(intent==='jump'&&this._eligible('jump',ctx,forced))return descriptor('jump',nav.canJump===false?'Prepare for the jump':'Check your jump destination',
+      nav.canJump===false?text(nav.reason,'Open the map and check the fold drive, destination, and fuel requirements.'):`Open Map, select ${text(nav.targetName,'the intended system')}, and review the jump requirements. Your ship needs the fitted drive and sufficient fuel; a map marker alone does not move the ship.`,
+      nav.canJump===false?text(nav.reason,'Check the drive, fuel, and route in Map.'):'Map → destination → review the jump requirements.','map');
+    if(!nav.hasCourse&&this._eligible('set-course',ctx,forced))return descriptor('set-course','Mark your next destination',
+      `Open Map${touch?'':' with M'} and choose a known place to track. Local places and other star systems have different travel requirements. Close the map to follow the marker; marking a destination does not fly or teleport your ship.`,
+      'Map → choose a known destination → follow its marker.','map');
+    return null;
   }
   _walk(ctx) {return descriptor('person-move','Walk on foot',
     ctx.device==='touch'?`Push ${control(ctx,'walk')} toward an open passage. You move the person now; walk close to people or consoles to use them.`:'Use WASD to walk into an open passage. You move the person now; approach people or consoles before pressing E.',
@@ -281,9 +430,9 @@ export class GuidanceController {
   _combat(ctx,forced,preferred=null) {
     const next=forced&&FLOW_ACTIONS.combat.includes(preferred)?preferred:this._next(FLOW_ACTIONS.combat,ctx,forced);if(!next)return null;
     const touch=ctx.device==='touch',c=ctx.combat||{};
-    if(c.blocked||c.targetVisible===false)return descriptor(next,c.blocked?'Find a clear shot':'Move toward a visible hostile',
-      c.blocked?`Move around the wall until you have a clear line to a hostile. Your pulses stop at walls.`:'Walk into a position where a hostile can be seen. Your sight marks an enemy within sidearm range.',
-      c.blocked?'Move around the wall for a clear shot.':'Move into sight of a hostile.','move',{id:'combat:clear-shot',flow:'combat'});
+    if(c.blocked||c.targetVisible===false)return descriptor(next,c.blocked?'Find a clear shot':'Keep cover while you look',
+      c.blocked?'Your pulses stop at walls. Reposition only if you can do so safely, or use cover and withdraw.':'No visible target is marked. Keep cover, watch the space you can actually see, and retreat if needed. The guide will not point through fog or walls.',
+      c.blocked?'Walls stop shots. Reposition safely or withdraw.':'No marked target. Keep cover or retreat.','move',{id:'combat:clear-shot',flow:'combat'});
     if(next==='person-aim')return descriptor(next,'Your sidearm is equipped',
       touch?`Move ${control(ctx,'aim')} toward a hostile. Your equipped weapon is ready; pushing that stick also fires.`:'Move the mouse over a hostile or hold an arrow key to aim. Your equipped weapon is ready; WASD still walks.',
       `${control(ctx,'aim')} · Aim your equipped sidearm.`,'aim');

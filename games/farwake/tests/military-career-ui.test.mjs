@@ -11,11 +11,11 @@ import {Soundscape} from '../dist/audio.mjs';
 import {createMilitaryCareerUI,militaryCareerGuided,militaryCareerPrompt,militaryTogetherState,MILITARY_RECRUITER_ID} from '../dist/military-career-ui.mjs';
 
 function node(tagName='div'){return{tagName,children:[],innerHTML:'',append(...children){this.children.push(...children);}};}
-function fixture({view,pending=null,snapshot={}}={}){
+function fixture({view,pending=null,snapshot={},guidance='simple'}={}){
  const calls=[],markers=[],refreshes=[],state={seed:'military-ui',multiplayer:{captainId:'captain-one'}},game={state,militaryCareerStatus:()=>view};
  const dialog={opened:false,revision:0,body:node(),items:[],open(title,kind){this.title=title;this.kind=kind;this.opened=true;this.revision++;this.items=[];this.body=node();},html(markup){this.markup=markup;},choices(items){this.items.push(...items);},close(){this.opened=false;this.revision++;}};
- const ui=createMilitaryCareerUI({getGame:()=>game,getSnapshot:()=>snapshot,dialog,invoke:async(name,args)=>{calls.push({name,args});return pending?await pending:{ok:true};},acceptResult:answer=>answer.ok,track:(...args)=>markers.push(args),refreshWorld:()=>refreshes.push(true),document:{createElement:node}});
- return{ui,dialog,state,game,calls,markers,refreshes,choose:label=>dialog.items.find(item=>item.label===label)};
+ const ui=createMilitaryCareerUI({getGame:()=>game,getSnapshot:()=>snapshot,getGuidance:()=>guidance,dialog,invoke:async(name,args)=>{calls.push({name,args});return pending?await pending:{ok:true};},acceptResult:answer=>answer.ok,track:(...args)=>markers.push(args),refreshWorld:()=>refreshes.push(true),document:{createElement:node}});
+ return{ui,dialog,state,game,calls,markers,refreshes,choose:label=>dialog.items.find(item=>item.label===label),setGuidance:value=>{guidance=value;}};
 }
 const joins=()=>({status:'unjoined',guidanceActive:false,actions:[{action:'join',branchId:'navy',entityId:MILITARY_RECRUITER_ID,label:'Join Navy',available:true,detail:'Serve on a carrier.'},{action:'join',branchId:'army',entityId:MILITARY_RECRUITER_ID,label:'Join Army',available:true,detail:'Deploy on foot.'}]});
 const active=()=>({status:'active',guidanceActive:true,branchId:'army',branchName:'Freewake Army',title:'Field qualification',objective:'Hit each target, then use the range terminal.',target:{systemId:'hearth',bodyId:'morrow',siteId:'service-range',entityId:'record:drill'},active:{operationId:'test-operation',phase:'active',objectives:[{id:'hits',label:'Hit three frames',value:1,required:3,done:false}]},actions:[{action:'pause',label:'Take leave',available:true}]});
@@ -43,6 +43,57 @@ const recruitRank={enlisted:true,factionId:'freewake',branchId:'navy',rank:'Recr
 const friendRecord=()=>({captainId:'friend',name:'Ada <friend>',online:true,military:{factionId:'freewake',branchId:'navy',rank:'Petty officer',operationId:'unit-a'}});
 const friendUnit=()=>({id:'unit-a',missionId:'frontier-duty',title:'Frontier watch',phase:'muster',factionId:'freewake',branchId:'navy',leaderId:'friend',leaderName:'Ada <friend>',systemName:'Sable',roster:[{captainId:'friend',name:'Ada <friend>',rank:'Petty officer',role:'Operation leader',online:true,status:'ready'}],actions:[{action:'joinOperation',operationId:'unit-a',label:'Join this unit',available:true}]});
 const readyView=()=>({status:'ready',factionId:'freewake',branchId:'navy',branchName:'Freewake Navy',serviceRank:{...recruitRank},actions:[{action:'createOperation',missionId:'intro',label:'Open or join a muster',available:true,joinExisting:true}]});
+
+test('all guidance levels retain the exact military roster, personal rank, and authority join action',async()=>{
+ for(const guidance of ['simple','moderate','expert']){
+  const operation=friendUnit(),f=fixture({guidance,view:{...readyView(),operations:[operation]},snapshot:{presence:[friendRecord()]}});f.ui.openTogether({captainId:'friend'});
+  const nodes=descendants(f.dialog.body),guide=nodes.find(node=>node.className==='guidance-flow-container').innerHTML;
+  assert.equal(/data-guidance-flow="military-service" open/.test(guide),guidance==='simple');
+  assert.equal(guide.includes('guidance-flow-next'),guidance==='moderate');assert.match(guide,/higher-ranking friend does not promote you/);
+  assert.match(f.dialog.markup,/You · Recruit/);assert.ok(nodes.some(node=>node.innerHTML?.includes('Petty officer')));
+  await nodes.find(node=>node.textContent==='Join this unit').onclick();assert.equal(f.calls.length,1);assert.equal(f.calls[0].args,operation.actions[0]);
+ }
+});
+
+test('expert service retains branch conflicts and refuses a friend’s departed unit',()=>{
+ const operation={...friendUnit(),phase:'active',actions:[{action:'joinOperation',operationId:'unit-a',label:'Join this unit',available:false,reason:'This deployment has already left.'}]};
+ const f=fixture({guidance:'expert',view:{...readyView(),operations:[operation]},snapshot:{presence:[friendRecord()]}});f.ui.openTogether({captainId:'friend'});
+ assert.match(f.dialog.markup,/Joining after departure is unavailable/);assert.equal(descendants(f.dialog.body).find(node=>node.textContent==='Join this unit').disabled,true);
+ const guide=descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;assert.match(guide,/Wait for this unit to return/);assert.doesNotMatch(guide,/Follow your own current orders/);
+ f.game.militaryCareerStatus=()=>({...readyView(),branchId:'army',serviceRank:{...recruitRank,branchId:'army'},operations:[operation]});f.ui.openTogether({captainId:'friend'});
+ assert.match(f.dialog.markup,/different branches/);assert.equal(descendants(f.dialog.body).some(node=>node.textContent==='Join this unit'),false);assert.deepEqual(f.calls,[]);
+});
+
+test('muster teaching follows live readiness and level changes without creating a ready or launch action',()=>{
+ const operation={...friendUnit(),leaderId:'captain-one',leaderName:'You',roster:[{captainId:'captain-one',name:'You',rank:'Recruit',status:'ready'},{captainId:'friend',name:'Ada',rank:'Petty officer',status:'waiting',statusReason:'Meet beside the recruiter.'}],actions:[]};
+ const view={...readyView(),operation},f=fixture({guidance:'moderate',view,snapshot:{presence:[friendRecord()]}});f.ui.openTogether({captainId:'friend'});
+ const help=()=>descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+ assert.match(help(),/<strong>Next:<\/strong> Stay beside Sergeant Venn/);assert.ok(descendants(f.dialog.body).some(node=>node.innerHTML?.includes('Meet beside the recruiter.')));
+ operation.roster[1].status='ready';assert.equal(f.ui.refresh(),true);assert.match(help(),/<strong>Next:<\/strong> You authorize departure/);
+ f.setGuidance('expert');assert.equal(f.ui.refresh(),true);assert.doesNotMatch(help(),/guidance-flow-next/);assert.deepEqual(f.calls,[]);
+});
+
+test('service next-step help tells an existing unit member to leave that muster before joining a friend',()=>{
+ const view={...readyView(),operation:{...friendUnit(),id:'own-unit',title:'Existing watch'},operations:[friendUnit()]};
+ const f=fixture({guidance:'moderate',view,snapshot:{presence:[friendRecord()]}});f.ui.openTogether({captainId:'friend'});
+ const guide=descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+ assert.match(guide,/<strong>Next:<\/strong> Leave your current muster, Existing watch/);assert.deepEqual(f.calls,[]);
+});
+
+test('solo Army teaching explains field work and debrief without revealing hidden encounter content',()=>{
+ const view={...active(),serviceRank:{...recruitRank,branchId:'army'}},f=fixture({view});f.state.multiplayer=null;f.ui.open();
+ const guide=descendants(f.dialog.body).find(node=>node.className==='guidance-flow-container').innerHTML;
+ assert.match(guide,/Move and aim separately/);assert.match(guide,/field console or watch log/);assert.match(guide,/does not reveal hidden creatures/);assert.doesNotMatch(guide,/Tinbell|attackChance|attackDelay/);assert.deepEqual(f.calls,[]);
+});
+
+test('shared muster coaching follows authority readiness instead of directing an unlaunched recruit to a carrier',()=>{
+ const operation={...friendUnit(),member:true,actions:[{action:'launchOperation',label:'Depart with this roster',available:false,reason:'Ada must authorize departure.'}]};
+ const view={...active(),branchId:'navy',operation};let prompt=militaryCareerPrompt(view,{touch:true});
+ assert.equal(prompt.topicId,'military-ready');assert.equal(prompt.successAction,undefined);assert.match(prompt.body,/Stay beside Sergeant Venn/);assert.match(prompt.compactBody,/Ada must authorize departure/);assert.doesNotMatch(prompt.body,/gun battery|Fire/);
+ operation.actions[0].available=true;prompt=militaryCareerPrompt(view);assert.equal(prompt.successAction,'military-deploy');assert.match(prompt.body,/Review the names/);
+ const ready={...readyView(),guidanceActive:true};prompt=militaryCareerPrompt(ready);assert.equal(prompt.successAction,'military-muster');assert.match(prompt.body,/same roster/);
+ ready.actions[0].available=false;ready.actions[0].reason='Meet the recruiter on Morrow.';assert.equal(militaryCareerPrompt(ready).body,'Meet the recruiter on Morrow.');
+});
 
 test('Serve together selects the friend’s exact unit rather than starting a parallel assignment',async()=>{
  const operation=friendUnit(),view={...readyView(),operations:[operation]},snapshot={presence:[friendRecord()]},f=fixture({view,snapshot});

@@ -20,6 +20,9 @@ export function readSettings(){
  try{const raw=pickDeviceSettings(JSON.parse(localStorage.getItem('dfe.farwake.settings.v1')||'{}'),{includeLegacy:true}),legacy={shipZoom:normalizeModeZoom(raw?.worldZoom,'ship'),personZoom:normalizeModeZoom(raw?.worldZoom,'person')};const settings={...defaults,...raw,...normalizeCameraPreferences(raw,legacy)};if(raw.sound===false&&raw.musicSettingsVersion!==1)settings.music=false;settings.musicSettingsVersion=1;settings.musicVolume=Math.max(0,Math.min(1,Number.isFinite(settings.musicVolume)?settings.musicVolume:.65));delete settings.worldZoom;return settings;}catch{return defaults;}
 }
 export function applySettings(settings,{cameraPreferences=settings}={}){
+ if(!['simple','moderate','expert'].includes(settings.guidance))settings.guidance='simple';
+ document.body.classList.toggle('guidance-moderate',settings.guidance==='moderate');
+ document.body.classList.toggle('guidance-expert',settings.guidance==='expert');
  settings.textScale=Math.max(1,Math.min(1.6,Number(settings.textScale)||1));settings.controlScale=Math.max(.8,Math.min(1.2,Number(settings.controlScale)||1));Object.assign(settings,normalizeCameraPreferences(settings));delete settings.worldZoom;
  settings.musicVolume=Math.max(0,Math.min(1,Number.isFinite(Number(settings.musicVolume))?Number(settings.musicVolume):.65));if(!['quiet','balanced','frequent'].includes(settings.musicPresence))settings.musicPresence='balanced';settings.musicSettingsVersion=1;
  for(const[key,className]of [['immersiveHud','immersive-hud'],['translucentHud','translucent-hud'],['compactTips','compact-tips']]){if(typeof settings[key]!=='boolean')settings[key]=true;document.body.classList.toggle(className,settings[key]);}

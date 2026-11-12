@@ -303,6 +303,11 @@
 .touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard>button{align-self:center;min-width:44px;min-height:44px;flex-basis:44px}
 .touch-layout:not(.welcome-active) #coachExpand{color:#c7decf}
 .touch-layout:not(.welcome-active) #coachDismiss{color:#9cb5bf}
+.guidance-moderate #coachExpand{display:block;min-width:44px;min-height:44px}
+.guidance-moderate #coachCopy[role="button"]{cursor:pointer}
+.guidance-moderate #coachCopy[role="button"]:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.setting-row:has(.guidance-setting-summary){flex-wrap:wrap}
+.guidance-setting-summary{flex-basis:100%;margin:0;color:var(--muted);font-size:.9rem;line-height:1.45}
 .touch-layout.immersive-hud.touch-landscape.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard{max-height:none;width:min(440px,calc(100% - 230px))}
 .touch-layout.view-open:not(.welcome-active) :is(#mobileReadout,#mobileWeapon,.interaction-wrap){visibility:hidden;pointer-events:none}
 .touch-layout #aimStick,.touch-layout #mobileWeaponHelp{min-width:44px;min-height:44px}

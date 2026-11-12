@@ -7,8 +7,10 @@ import {getShipClass, cabinLayout} from '../dist/fleet.mjs';
 import {generateSurface, isWalkable, nearestEntity} from '../dist/surface.mjs';
 import {TEST_SCENARIOS, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
+import {guidanceActionsForResult,localGuidanceEvent} from '../dist/guidance-evidence.mjs';
+import {crewAwareness} from '../dist/crew-awareness.mjs';
 import {SIDEARM,getPersonalWeapon} from '../dist/combat.mjs';
-import {getGunneryView,displayMode} from '../dist/gunnery-view.mjs';
+import {getGunneryView,displayMode,gunneryReticle} from '../dist/gunnery-view.mjs';
 import {militaryCareerGuided,militaryCareerPrompt} from '../dist/military-career-ui.mjs';
 import {syncNavyCrewSurface} from '../dist/navy-crew.mjs';
 import {navyOrderPrompt,navyOrderMatchesEntity} from '../dist/navy-duty-ui.mjs';
@@ -49,7 +51,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,
+  const context=vm.createContext({guidanceActionsForResult,localGuidanceEvent,crewAwareness,gunneryReticle,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',

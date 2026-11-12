@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
-<meta name="application-version" content="0.18.0">
+<meta name="application-version" content="0.19.0">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css"><link rel="stylesheet" href="./character.css"><link rel="stylesheet" href="./narrative.css"><link rel="stylesheet" href="./privacy.css"><link rel="stylesheet" href="./shared-crew.css"><link rel="stylesheet" href="./port-ui.css">
 <link rel="stylesheet" href="./gunnery.css">
+<link rel="stylesheet" href="./field-guide.css">
+<link rel="stylesheet" href="./guidance-flows.css">
 </head>
 <body>
 <div id="app" class="app">
@@ -29,7 +31,7 @@
  <div class="coordinate" id="coordinate">+0000 / +0000</div>
  <aside class="contacts-panel" id="contactsPanel" hidden><div class="panel-eyebrow"><span>LOCAL SCANNER</span><i class="live-dot"></i><button id="closeContacts" aria-label="Close contacts">×</button></div><canvas id="radarCanvas" width="200" height="154" aria-label="Local system radar"></canvas><div id="contactsList" class="contact-list"></div><div class="scanner-foot">CHOOSE A CONTACT TO TRACK</div></aside>
  <div class="objective-card" id="objectiveCard"><span class="objective-icon">◇</span><div><div class="eyebrow" id="objectiveKind">THE QUIET EARTH</div><strong id="objectiveTitle">A borrowed tomorrow</strong><p id="objectiveText">Dock at Kettle Station. Someone there knows your ship.</p></div><button id="objectiveDetails" aria-label="Open mission journal">→</button><button id="objectiveToggle" aria-label="Collapse objective">−</button></div>
- <aside id="coachCard" class="coach-card" aria-label="Action guide" hidden><div id="coachCopy" class="coach-copy" aria-live="polite" aria-controls="coachBody"><span id="coachStep" class="coach-step">GETTING STARTED</span><strong id="coachTitle"></strong><p id="coachBody"></p></div><button id="coachExpand" aria-label="Expand this action tip" aria-expanded="false" aria-controls="coachBody">+</button><button id="coachDismiss" aria-label="Hide this tip. Find action help in Menu.">×</button></aside>
+ <aside id="coachCard" class="coach-card" aria-label="Action guide" hidden><div id="coachCopy" class="coach-copy" aria-live="polite" aria-controls="coachBody"><span id="coachStep" class="coach-step">GETTING STARTED</span><strong id="coachTitle"></strong><p id="coachBody"></p></div><button id="coachExpand" aria-label="Expand this action tip" aria-expanded="false" aria-controls="coachBody">+</button><button id="coachDismiss" aria-label="Hide this tip. Find Guidance in Menu.">×</button></aside>
  <aside id="viewPanel" class="view-panel" aria-label="Camera and screen layout" hidden>
   <div class="view-heading"><strong>Camera &amp; view</strong><button id="closeView" aria-label="Close camera controls">×</button></div>
   <section id="shipZoomGroup" class="view-zoom-group" aria-label="Ship camera">
@@ -58,7 +60,7 @@
   <div class="resourcebar"><span class="shipname"><span class="tiny-dot"></span><b id="shipName">CINDER / SPARROW</b></span><span class="resource"><small>CR</small><b id="credits">180</b></span><span class="resource"><small>HOLD</small><b id="cargo">0 / 24</b></span><span class="resource fuel-resource"><small>FUEL</small><b id="fuel">73</b><em>%</em></span><span class="save-state" id="saveState">SOLO SAVE</span></div>
  </div>
  <div id="welcome" class="welcome-overlay">
-  <div class="welcome-content"><span class="edition">DAILYFLYER · A SHARED GALAXY</span><h2>FARWAKE<span>THE QUIET EARTH</span></h2><p class="welcome-hook">One ship.<br>A thousand reasons to keep going.</p><p class="welcome-lore">Earth has been silent for ninety years.<br>Out here, everyone has a different story why.</p><div class="welcome-actions"><button id="resumeGalaxy" class="button-primary" hidden>Return to your galaxy <span>→</span></button><button id="createGalaxy" class="button-primary">Create a shared galaxy <span>→</span></button><button id="joinGalaxy" class="button-secondary">Join with a galaxy code</button></div><div class="solo-actions"><button id="continueButton" hidden>Continue solo voyage</button><button id="startButton">Play solo</button></div><div class="welcome-meta"><span>1–10 CAPTAINS</span><span>900 SYSTEMS</span><span>YOUR CHOICES STAY</span></div><div class="welcome-utility-links"><button id="themeButton" class="test-mode-link theme-listen" type="button" aria-pressed="false">Listen to the theme</button><button id="testModeButton" class="test-mode-link">Test mode</button><button id="privacyDataButton" class="test-mode-link" type="button">Privacy &amp; data</button></div></div>
+  <div class="welcome-content"><span class="edition">DAILYFLYER · A SHARED GALAXY</span><h2>FARWAKE<span>THE QUIET EARTH</span></h2><p class="welcome-hook">One ship.<br>A thousand reasons to keep going.</p><p class="welcome-lore">Earth has been silent for ninety years.<br>Out here, everyone has a different story why.</p><div class="welcome-actions"><button id="resumeGalaxy" class="button-primary" hidden>Return to your galaxy <span>→</span></button><button id="createGalaxy" class="button-primary">Create a shared galaxy <span>→</span></button><button id="joinGalaxy" class="button-secondary">Join with a galaxy code</button></div><div class="solo-actions"><button id="continueButton" hidden>Continue solo voyage</button><button id="startButton">Play solo</button></div><div class="welcome-meta"><span>1–10 CAPTAINS</span><span>900 SYSTEMS</span><span>YOUR CHOICES STAY</span></div><div class="welcome-utility-links"><button id="welcomeGuidance" class="test-mode-link" type="button">Guidance · Simple</button><button id="themeButton" class="test-mode-link theme-listen" type="button" aria-pressed="false">Listen to the theme</button><button id="testModeButton" class="test-mode-link">Test mode</button><button id="privacyDataButton" class="test-mode-link" type="button">Privacy &amp; data</button></div></div>
   <div class="welcome-stamp"><span>TRANSMISSION 001</span><b>IS ANYONE<br>STILL HOME?</b><small>ORIGIN: SOL · SIGNAL: UNKNOWN</small></div>
  </div>
 </main>
