@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.19.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.19.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Equipment requirements that explain the next step · 0.19.1
+
+**Your first fold drive** now has a personal checklist, reachable from the outfitter, Ship, the first three story chapters in **Log → Missions**, and a blocked jump on the Galaxy chart. The searchable Captain’s field guide includes a new **Installing your first fold drive** topic; searches such as “rules to install the fold drive,” “Something in the belt,” and “calibration” lead to its instructions. The topic can open the live checklist during a voyage.
+
+Every uninstalled upgrade has a folded **Requirements & help** section showing access, named prerequisite equipment, story conditions, credits, and ore together. The fold-drive checklist separately explains meeting Iona, collecting a local job’s payment, personally mining six ore, investigating the **Tinbell evacuation beacon** from the ship, fitting Vector thrusters and an Echo scanner, and spending **320 credits plus 8 ore** on the drive. The whole equipment chain costs **500 credits plus 12 ore** before rewards; remaining totals exclude installed parts. Lifetime mining progress is distinct from spendable cargo. Beacon calibration is recorded automatically by completing the chapter.
+
+**Show me where to go** follows the next unfinished step. It marks the actual workshop, a reachable local contract, mining rock, or beacon. A captain on their docked deck is sent through the airlock for the local workshop; mining and beacon work direct them to the Helm. Shared captains ashore first return to their ship, and the real contact is marked only after the ship scanner is available. Remote jobs do not send an unprepared captain toward an unavailable jump. Deferred guidance cancels when the captain or selected route changes.
+
+The checklist reads current progress without buying equipment or changing story flags. Shared clicks recheck the current situation, and **Refresh my checklist** rereads progress. Shipless starts, employer duty, borrowed vessels, ships parked at another port, and full holds have specific explanations. Unknown personal inventory is not inferred from a borrowed vessel. All requested instructions and purchase rules remain available at every guidance level; this adds no permanent HUD panel and changes no save format, game prices, ownership, or server purchase checks.
 
 ## Guidance that grows with the player · 0.19.0
 

@@ -2,7 +2,7 @@ import {GUIDANCE_LEVELS,guidancePolicy} from './guidance.mjs';
 import {fieldGuideTopics,searchFieldGuide,recommendFieldGuideTopics} from './field-guide.mjs';
 
 /** An on-demand guide. Rendering never invokes a game command or records practice. */
-export function createFieldGuideUI({dialog,getContext=()=>({}),getGuidance=()=> 'simple',setGuidance=()=>{},getProgress=()=>null,requestHelp=()=>{},resetProgress=()=>{},document:doc=globalThis.document}) {
+export function createFieldGuideUI({dialog,getContext=()=>({}),getGuidance=()=> 'simple',setGuidance=()=>{},getProgress=()=>null,requestHelp=()=>{},resetProgress=()=>{},openFoldDrive=null,document:doc=globalThis.document}) {
  const el=(tag,className='',text='')=>{const node=doc.createElement(tag);node.className=className;if(text)node.textContent=text;return node;};
  const button=(label,action,className='')=>{const node=el('button',className,label);node.type='button';node.onclick=action;return node;};
  let root=null,search=null,currentTopic=null,results=null,resultStatus=null,progressRoot=null,epoch=0;
@@ -34,13 +34,14 @@ export function createFieldGuideUI({dialog,getContext=()=>({}),getGuidance=()=> 
   useful.append(links);root.append(useful);
 
   const searchLabel=el('label','field-guide-search-label','Find an answer');searchLabel.htmlFor='field-guide-search';
-  search=el('input','field-guide-search');search.id='field-guide-search';search.type='search';search.placeholder='Try “same crew”, “airlock”, or “turret”…';search.maxLength=180;search.value=String(query||'').slice(0,180);search.setAttribute('autocomplete','off');search.setAttribute('aria-controls','field-guide-results');
+  search=el('input','field-guide-search');search.id='field-guide-search';search.type='search';search.placeholder='Try “fold drive”, “same crew”, or “turret”…';search.maxLength=180;search.value=String(query||'').slice(0,180);search.setAttribute('autocomplete','off');search.setAttribute('aria-controls','field-guide-results');
   resultStatus=el('p','field-guide-result-status');resultStatus.setAttribute('role','status');resultStatus.setAttribute('aria-live','polite');
   results=el('div','field-guide-results');results.id='field-guide-results';
   root.append(searchLabel,search,resultStatus,results);search.oninput=()=>{if(current())renderTopics(context,byId);};
   progressRoot=el('div','field-guide-progress');root.append(progressRoot);renderProgress();
   root.append(el('p','field-guide-note',context.playing===false?'Your guidance choice is ready for your next voyage.':context.sharedGalaxy||context.online||context.multiplayer?'This shared galaxy keeps moving while you read. Choose a safe place before opening a long explanation.':context.recovery?.detained?'Your detention term continues while this guide is open. Release is automatic when the term is served.':'In a solo voyage, opening this guide pauses the game.'));
   renderTopics(context,byId);
+  if(currentTopic){const article=[...results.children].find(node=>node.dataset.topic===currentTopic);article?.firstElementChild?.focus();article?.scrollIntoView?.({block:'nearest',behavior:'auto'});}
   function showTopic(id){
    if(!current()||!byId.has(id))return;
    search.value='';currentTopic=id;renderTopics(context,byId);
@@ -58,6 +59,7 @@ export function createFieldGuideUI({dialog,getContext=()=>({}),getGuidance=()=> 
     const article=el('details','field-guide-topic');article.dataset.topic=item.id;article.open=currentTopic===item.id||matches.length===1;
     const summary=el('summary'),title=el('strong','',item.title),preview=el('span','',item.summary);summary.append(title,preview);article.append(summary);
     const body=el('div','field-guide-topic-body'),steps=el('ol','field-guide-steps');for(const step of item.steps)steps.append(el('li','',step));body.append(steps);
+    if(item.id==='fold-drive'&&context.playing!==false&&typeof openFoldDrive==='function')body.append(button('Check my fold-drive progress',()=>{if(current())openFoldDrive();},'button-primary'));
     body.append(el('p','field-guide-why',item.why));
     if(item.blockers.length){const heading=el('h4','','If you get stuck'),blockers=el('ul','field-guide-blockers');for(const detail of item.blockers)blockers.append(el('li','',detail));body.append(heading,blockers);}
     const related=el('div','field-guide-related');related.setAttribute('aria-label',`Related to ${item.title}`);

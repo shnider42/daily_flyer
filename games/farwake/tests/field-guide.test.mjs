@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fieldGuideTopics,searchFieldGuide,recommendFieldGuideTopics} from '../dist/field-guide.mjs';
 import {createFieldGuideUI} from '../dist/field-guide-ui.mjs';
+import {UPGRADES,STORY_CHAPTERS} from '../dist/content.mjs';
 
 test('the field guide connects complete practical topics without broken related links',()=>{
  const topics=fieldGuideTopics(),ids=new Set(topics.map(topic=>topic.id));
@@ -37,6 +38,39 @@ test('search finds multiplayer problems and synonyms, and safely treats regex ch
  assert.equal(searchFieldGuide('').length,fieldGuideTopics().length);
 });
 
+test('fold-drive questions lead to the actual installation instructions and named calibration chapter',()=>{
+ for(const query of ['fold drive','how do I install the fold drive','rules to install the fold drive','fold drive requirements','Something in the belt','calibration','Tinbell beacon','parts required']){
+  assert.equal(searchFieldGuide(query)[0]?.id,'fold-drive',query);
+ }
+ const topics=fieldGuideTopics(),guide=topics.find(topic=>topic.id==='fold-drive');
+ const text=[...guide.steps,guide.why,...guide.blockers].join(' ');
+ const prerequisiteIds=['thrusters_1','scanner_1','fold_1'];
+ const upgrades=prerequisiteIds.map(id=>UPGRADES.find(upgrade=>upgrade.id===id));
+ for(const upgrade of upgrades){
+  assert.ok(text.includes(`${upgrade.name} for ${upgrade.cost} credits and ${upgrade.ore} ore`),`${upgrade.name} price matches the equipment catalog`);
+ }
+ const credits=upgrades.reduce((sum,upgrade)=>sum+upgrade.cost,0),ore=upgrades.reduce((sum,upgrade)=>sum+upgrade.ore,0);
+ assert.ok(guide.why.includes(`${credits} credits and ${ore} ore from scratch`),'The combined budget includes both prerequisite upgrades.');
+ const calibration=STORY_CHAPTERS.find(chapter=>chapter.id==='belt_signal');
+ assert.ok(text.includes(calibration.title.split(' · ')[1]),'The guide names the chapter displayed by the purchase rule.');
+ assert.match(text,/Tinbell evacuation beacon/);
+ assert.match(text,/any inhabited port, with your own ship present/);
+ assert.match(text,/ore you have mined over this voyage/);
+ assert.match(text,/Spending or selling mined ore does not undo the milestone/);
+ assert.match(text,/ore in your current hold/);
+ for(const id of ['first-steps','navigation','mining','upgrades'])assert.ok(topics.find(topic=>topic.id===id).related.includes('fold-drive'),`${id} leads to installation help`);
+});
+
+test('fold-drive mining and beacon steps use the actual controls for each device',()=>{
+ const steps=device=>fieldGuideTopics({device}).find(topic=>topic.id==='fold-drive').steps.join(' ');
+ assert.match(steps('touch'),/Open Tools and hold MINE/);
+ assert.match(steps('touch'),/until Investigate is offered and tap it/);
+ assert.doesNotMatch(steps('touch'),/Hold R|Press F|Press M/);
+ assert.match(steps('keyboard'),/Hold R to use the mining beam/);
+ assert.match(steps('keyboard'),/Press F to scan/);
+ assert.match(steps('keyboard'),/Press M to open the map/);
+});
+
 test('reading guide data does not change another request or accept player-supplied secret content',()=>{
  const first=fieldGuideTopics();first[0].steps[0]='changed';first[0].related.push('injected');
  assert.notEqual(fieldGuideTopics()[0].steps[0],'changed');
@@ -56,6 +90,19 @@ test('context picks prioritize a casualty or gunner post using only public situa
  Object.defineProperty(context,'hiddenEnemies',{get(){throw new Error('A field guide must not inspect hidden actors');}});
  assert.ok(recommendFieldGuideTopics(context).includes('exploration'));
  assert.equal(new Set(recommendFieldGuideTopics({gunnery:true,military:{branchId:'navy'}},{limit:6})).size,6);
+});
+
+test('an uninstalled fold drive is useful here without displacing immediate danger or service orders',()=>{
+ assert.equal(recommendFieldGuideTopics({mode:'person',foldDriveNeeded:true,nearby:{type:'mechanic'}})[0],'fold-drive');
+ assert.equal(recommendFieldGuideTopics({mode:'ship',foldDriveNeeded:true})[0],'fold-drive');
+ assert.ok(!recommendFieldGuideTopics({mode:'ship',foldDriveNeeded:false}).includes('fold-drive'));
+ for(const [context,first] of [
+  [{recovery:{arrived:false}},'recovery'],
+  [{gunnery:{active:true}},'gunnery'],
+  [{combat:{active:true}},'personal-combat'],
+  [{mode:'ship',ship:{threat:true}},'ship-combat'],
+  [{military:{enlisted:true,branchId:'army'}},'army']
+ ])assert.equal(recommendFieldGuideTopics({...context,foldDriveNeeded:true})[0],first);
 });
 
 class Element {

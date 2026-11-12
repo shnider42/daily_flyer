@@ -1,0 +1,33 @@
+.upgrade-requirements{border-top:1px solid #3a5263;margin-top:.8rem;padding-top:.25rem;font-size:.92em}
+.upgrade-requirements>summary{cursor:pointer;min-height:44px;display:list-item;padding:.65rem 0;color:#e0c994}
+.upgrade-requirement-list{padding:0;margin:.25rem 0 .8rem;list-style:none;display:grid;gap:.7rem}
+.upgrade-requirement-heading{display:flex;justify-content:space-between;align-items:baseline;gap:.8rem}
+.upgrade-requirement-list p{font-size:.9em;line-height:1.5;margin:.2rem 0 0;color:#b6c9d2}
+.requirement-status{flex-shrink:0;font-size:.8em;font-weight:normal;color:#dfc58e}
+.requirement-met .requirement-status,.step-complete .requirement-status{color:#a8cbb7}
+.upgrade-help-button,.fold-guide-link{min-height:44px;text-align:left;white-space:normal;line-height:1.4}
+.fold-guide-link{display:block;margin:.6rem 0;max-width:100%}
+.fold-drive-guide{display:grid;gap:1.15rem;min-width:0;line-height:1.55}
+.fold-drive-guide p,.fold-drive-guide h3{margin:0}
+.fold-drive-guide h3{font-size:1.05em;color:#e4e3cd}
+.fold-drive-guide button{min-height:44px;white-space:normal;line-height:1.4;max-width:100%;font-size:.95em}
+.fold-drive-guide button:focus-visible,.fold-drive-guide summary:focus-visible,.upgrade-requirements summary:focus-visible,.upgrade-help-button:focus-visible{outline:3px solid #ddbf83;outline-offset:3px}
+.fold-drive-next{border-left:3px solid #c5ac79;background:#172a34;padding:.9rem 1rem;display:grid;gap:.65rem}
+.fold-drive-next button{justify-self:start;text-align:left}
+.fold-drive-label{font-size:.85em;color:#d9c396}
+.fold-drive-budget{display:grid;gap:.35rem;padding-bottom:.9rem;border-bottom:1px solid #3c5363}
+.fold-drive-note{font-size:.85em;color:#aabfca;line-height:1.5}
+.fold-drive-steps{list-style:none;margin:.6rem 0 0;padding:0;counter-reset:fold-step}
+.fold-drive-steps>li{counter-increment:fold-step;border-top:1px solid #3a5263}
+.fold-drive-steps summary{display:flex;align-items:baseline;gap:.65rem;cursor:pointer;padding:.75rem 0;min-height:44px;box-sizing:border-box}
+.fold-drive-steps summary::before{content:counter(fold-step) ".";color:#a9bec7;flex-shrink:0}
+.fold-drive-steps summary strong{flex:1;min-width:0;font-size:.95em;overflow-wrap:anywhere}
+.fold-drive-steps details[open] summary strong{color:#e6cc96}
+.fold-drive-steps details>p{padding:0 .4rem .85rem 1.55rem;color:#bfced3;font-size:.92em}
+.fold-drive-actions{display:flex;gap:.5rem;flex-wrap:wrap;border-top:1px solid #3c5363;padding-top:.9rem}
+.fold-drive-actions button{flex:1 1 180px}
+@media(max-width:520px){.fold-drive-next{padding:.75rem}.fold-drive-next button{width:100%}.fold-drive-steps summary{gap:.45rem}.fold-drive-steps details>p{padding-left:.8rem}.fold-drive-actions{display:grid;grid-template-columns:1fr}}
+.touch-layout #modalBody .fold-drive-steps summary{display:flex}
+.touch-layout #modalBody .fold-drive-steps summary::before{content:counter(fold-step) "."}
+.touch-layout #modalBody .upgrade-requirements>summary{display:list-item}
+.touch-layout #modalBody .upgrade-requirements>summary::before{content:none}
