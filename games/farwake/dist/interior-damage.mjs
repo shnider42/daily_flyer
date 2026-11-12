@@ -210,6 +210,7 @@ export const InteriorDamageRules={
    delete person.interiorDown;
    if(this.netOnInteriorCasualty){this.netOnInteriorCasualty(game);continue;}
    const hull=game.currentDamageHull();if(!hull||hull.id!==casualty.vesselId)continue;
+   if(game.recoverMilitaryCasualty?.({position:hull,sourceKind:'interior-casualty'}))continue;
    if(game.state.mode==='ship')game._enterInterior(game._cabinLocation(),'ship');
    const recovered=game.state.person,point=recoveryPoint(hull);
    Object.assign(recovered,point,{health:25,down:false,weaponDrawn:false,moving:false});

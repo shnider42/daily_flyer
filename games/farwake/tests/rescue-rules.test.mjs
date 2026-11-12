@@ -115,6 +115,8 @@ test('a successful hijack keeps wounded intruders on the lost hull and recapture
  assert.deepEqual(occupied.rescueGroups[0].members.map(member=>member.id),ids);assert.deepEqual(occupied.rescueGroups[0].members.map(member=>member.health),[0,20]);
  assert.equal(occupied.deck.enemies.length,1);assert.equal(occupied.deck.enemies[0].id,ids[1]);
  game=Game.fromSave(game.save());occupied=game.system.enemies.find(enemy=>enemy.id===originId);
+ assert.equal(game.ownsShip,false);assert.equal(game.state.mode,'person');assert.equal(game.boardEnemy(originId).ok,false);
+ game.state.credits=1000;assert.equal(game.buyShip('sparrow').ok,true);assert.equal(game.state.credits,580);assert.equal(game.launch().ok,true);
  Object.assign(game.state.ship,{x:occupied.x+45,y:occupied.y});assert.equal(game.boardEnemy(originId).ok,true);
  assert.equal(game.state.boarding.enemies.length,1);assert.equal(game.currentBody.guests.length,1);assert.equal(game.currentBody.guests[0].id,ids[1]);
  const hostile=game.state.boarding.enemies[0],layout=cabinLayout(game.state.boarding.shipClass),point=[{x:hostile.x-24,y:hostile.y},{x:hostile.x+24,y:hostile.y}].find(point=>isCabinWalkable(layout,point.x,point.y,6));assert.ok(point);
@@ -139,6 +141,9 @@ test('innocent survivors remain on a ship seized by other pirates and still occu
  const occupied=game.system.enemies.find(enemy=>enemy.id===originId);assert.equal(rescuedBerthCount(occupied),2);assert.equal(game.rescuedBerths(),0);
  assert.equal(occupied.rescueGroups[0].status,'aboard');assert.deepEqual(occupied.rescueGroups[0].members.map(member=>member.id),ids);
  for(const actor of occupied.deck.enemies)actor.health=0;occupied.deck.cleared=true;
+ assert.equal(game.ownsShip,false);assert.equal(game.state.mode,'person');assert.equal(game.boardEnemy(originId).ok,false);
+ game.state.credits=1000;assert.equal(game.buyShip('sparrow').ok,true);assert.equal(game.state.credits,580);
+ withHull(game,'tern');assert.equal(game.launch().ok,true);
  game.state.crew=[{id:'one',name:'First crew',role:'engineer',health:100,maxHealth:100},{id:'two',name:'Second crew',role:'gunner',health:100,maxHealth:100}];
  Object.assign(game.state.ship,{x:occupied.x+45,y:occupied.y});assert.equal(game.boardEnemy(originId).ok,true);
  Object.assign(game.state.person,cabinLayout(game.state.boarding.shipClass).stations.helm);assert.equal(game.takeCapturedHelm().code,'capacity');

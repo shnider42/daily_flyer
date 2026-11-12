@@ -18,6 +18,8 @@ function snapshot() {
   game.journal = [{ id: 'my-journal', text: 'My saved voyage history.' }];
   game.flags = ['my-choice']; game.stats.distance = 1234;
   game.returnVesselId = 'my-parked-vessel';
+  game.shipRecovery = { vesselId: 'my-lost-hull', destination: { systemId: 'hearth', bodyId: 'kettle' } };
+  game.militaryRecovery = { factionId: 'freewake', status: 'detained', detention: { remainingSeconds: 172 } };
   game.worlds = { excluded: { privateOther } };
   game.explorationRecords = { excluded: { privateOther } };
   game.worldDirector = { excluded: { privateOther } };
@@ -74,6 +76,8 @@ test('export covers own stored records and shared associations without credentia
   assert.deepEqual(output.captain.game.journal, captain.game.journal);
   assert.deepEqual(output.captain.game.flags, ['my-choice']); assert.equal(output.captain.game.stats.distance, 1234);
   assert.equal(output.captain.game.returnVesselId, 'my-parked-vessel');
+  assert.deepEqual(output.captain.game.shipRecovery, captain.game.shipRecovery);
+  assert.deepEqual(output.captain.game.militaryRecovery, captain.game.militaryRecovery);
   assert.equal(output.captain.game.spaceVersion, captain.game.spaceVersion, 'The geometry marker describes this captain’s saved space coordinates.');
   for (const key of Object.keys(captain).filter(key => !['tokenHash', 'game', 'recentCommands'].includes(key))) assert.deepEqual(output.captain[key], captain[key], `Own captain field ${key} is represented.`);
   assert.equal(output.captain.recentCommands[0].result.text, 'My recorded result');

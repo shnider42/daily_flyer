@@ -8,6 +8,7 @@ import { PersistenceConflict } from './persistence.mjs';
 import { BoardingAuthority } from './boarding.mjs';
 import { LivelihoodAuthority } from './livelihoods.mjs';
 import { MilitaryOperationsAuthority } from './military-operations.mjs';
+import { MilitaryRecoveryAuthority } from './military-recovery.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
 import { explorationLocation, createSiteState, stepSiteEncounter, isBellwether, resetSiteBoss } from '../dist/exploration.mjs';
 import { militarySiteLocation } from '../dist/military-sites.mjs';
@@ -92,6 +93,7 @@ export class Realm extends BoardingAuthority {
       const owner = this.captains.get(data.ownerId); if (!owner) continue;
       const vessel = { ...data, actor: null, grants: data.grants || {}, bunks: data.bunks || {}, installedBunks: data.installedBunks ?? 1 };
       vessel.ship = data.ship || (data.id === owner.ownedVesselId ? owner.game.state.ship : null); if (!vessel.ship) continue;
+      if(vessel.destroyed||vessel.ship.destroyed||vessel.ship.hull<=0){vessel.destroyed=true;vessel.ship.destroyed=true;vessel.ship.hull=0;vessel.ship.shield=0;vessel.helmOwner=null;}
       vessel.ship.id = vessel.id; vessel.boarding = data.boarding ?? (data.id === owner.ownedVesselId ? owner.game.state.boarding : null);
       if (vessel.ship.rescueGroups !== undefined || vessel.ship.rescueHistory !== undefined) normalizeRescueShip(vessel.ship);
       ensureDamageControl(vessel.ship);
@@ -136,6 +138,13 @@ export class Realm extends BoardingAuthority {
       this._bindCaptain(captain);
       const available = vessel ? this._withShip(captain, vessel, () => pendingSourceAvailable(captain.game, pending)) : pendingSourceAvailable(captain.game, pending);
       captain.game.state.pendingEncounter = available ? clone(pending) : null;
+    }
+    // Finish an interrupted destruction transaction from older saves before
+    // an immediate reconnect can resume a nonexistent cockpit or free hull.
+    for(const captain of this.captains.values()){
+      const occupied=this.vessels.get(captain.aboard),owned=this.vessels.get(captain.ownedVesselId);
+      if(occupied?.destroyed)this._recoverCaptain(captain,'Station rescue recovered the survivors of your destroyed vessel.');
+      else if(owned?.destroyed)this._detachLostVessel(captain,owned);
     }
     this.markDirty();
   }
@@ -250,7 +259,9 @@ export class Realm extends BoardingAuthority {
   }
   _createVessel(captain) {
     if (!captain.game.ownsShip) { captain.ownedVesselId = null; return null; }
-    const id = captain.ownedVesselId || `vessel_${captain.id}`; captain.ownedVesselId = id;
+    let id = captain.ownedVesselId || `vessel_${captain.id}`;
+    if(!captain.ownedVesselId){let serial=1;while(this.vessels.has(id))id=`vessel_${captain.id}:${++serial}`;}
+    captain.ownedVesselId = id;
     const vessel = { id, ownerId: captain.id, name: 'Cinder', systemId: captain.game.state.systemId, dockedAt: captain.game.state.mode === 'person' && !captain.game.state.interior ? captain.game.state.locationId : null, ship: captain.game.state.ship, allowCrew: false, grants: {}, helmOwner: captain.game.state.mode === 'ship' ? captain.id : null, bunks: { 0: captain.id }, installedBunks: 1, actor: null, flightAssist: true, boarding: null, hostileTo: [] };
     vessel.ship.id = id; this.vessels.set(id, vessel); return vessel;
   }
@@ -499,7 +510,7 @@ export class Realm extends BoardingAuthority {
           const member=this.captains.get(id);
           if(member&&!operation.members[id].settled&&!operation.contract.military?.participants?.[id]?.settled&&member.game.state.militaryCareer?.active?.operationId===operation.id)member.game.state.npcContract=operation.contract;
         }
-      }else{owner.game.state.npcContract=actor.state.npcContract;owner.game.state.npcContractHistory=actor.state.npcContractHistory;}
+      }else{owner.game.state.npcContract=actor.state.npcContract.active?actor.state.npcContract:null;owner.game.state.npcContractHistory=actor.state.npcContractHistory;}
     }
     const primary = vessel.id === owner.ownedVesselId, inventory = this._inventoryFor(vessel);
     if (primary) owner.game.state.ship = vessel.ship;
@@ -534,7 +545,7 @@ export class Realm extends BoardingAuthority {
     const primary = captain.id === vessel.ownerId && captain.ownedVesselId === vessel.id;
     vessel.ship.humanOccupants = Math.max(1, [...this.captains.values()].filter(other => other.aboard === vessel.id).length);
     state.ship = vessel.ship; for (const field of fields) state[field] = inventory[field];
-    state.multiplayer={serverAuthoritative:true,ownedVesselId:captain.ownedVesselId,aboardVesselId:vessel.id};game._permittedVessel=vessel.ship;
+    state.multiplayer={serverAuthoritative:true,ownedVesselId:captain.ownedVesselId,aboardVesselId:vessel.id,crewRole:captain.crewRole,weaponsAllowed:this._canRole(captain,vessel,'weapons'),dockedAt:vessel.dockedAt||null};game._permittedVessel=vessel.ship;
     // Reservations belong to their physical carrier; the underlying quests and
     // patients remain on the captain who accepted them, including a visiting pilot.
     game.narrativeBerths = () => this._passengerBerths(vessel).narrative;
@@ -858,8 +869,10 @@ export class Realm extends BoardingAuthority {
 
   _command(c, name, a) {
     if (name === 'setCameraPreferences') return this._setCameraPreferences(c, a);
+    const recoveryAccess=c.game.militaryRecoveryAccess(name);if(!recoveryAccess.ok)return recoveryAccess;
     if (['chooseGroupShip', 'groupStartReady', 'startGroupVoyage', 'leaveGroupStart'].includes(name)) return this._groupStartCommand(c, name, a);
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
+    if(name==='startMilitaryPassage')return this._startMilitaryPassage(c,a);
     // A real docked airlock wins over stale lobby, watch, combat and tether
     // state. The exit itself still verifies the actual captain and location.
     if (name === 'disembark' || active?.dockedAt && DOCK_EXIT_ALIASES.has(name)) return this._disembark(c);
@@ -873,9 +886,13 @@ export class Realm extends BoardingAuthority {
     if(name==='leaveGunnery'){
       c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};return game.leaveGunnery();
     }
+    if(name==='selectGunneryBattery'){
+      if(!active||!this._gunneryActive(c,active))return fail('Use the permitted gunnery display before selecting a battery.','station');
+      const result=this._withShip(c,active,()=>game.selectGunneryBattery(a));
+      if(result.ok){c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}return result;
+    }
     if(name==='enterGunnery'){
-      const assignedNavy=game.state.npcContract?.military?.branchId==='navy'&&game.state.npcContract?.vesselId===active?.id;
-      if(!active||c.crewRole!=='weapons'&&!assignedNavy||!this._canRole(c,active,'weapons')||!this._atStation(c,'weapons')||active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Use the permitted gunnery console aboard your assigned vessel.','station');
+      if(!active||!this._canRole(c,active,'weapons')||!this._atStation(c,'weapons')||active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Use the permitted gunnery console aboard your assigned vessel.','station');
       const result=this._withShip(c,active,()=>game.enterGunnery());
       if(result.ok){c.crewRole='weapons';c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}return result;
     }
@@ -982,7 +999,11 @@ export class Realm extends BoardingAuthority {
       if (!active && !this._hasBerth(c, vessel)) return fail('This vessel has no free berth. Human and hired crew share its capacity.', 'capacity');
       const departure = this._departureCheck(c, vessel, a); if (departure) return departure;
       const actor = this._actor(vessel); actor.state.mode = 'person'; actor.state.locationId = vessel.dockedAt; actor.state.interior = null;
-      const result = actor.launch(); this._syncActor(vessel);
+      // Helm clearance belongs to the controlled physical hull even when its
+      // former owner no longer owns any ship after defeat or destruction.
+      const priorPermit=actor._permittedVessel;actor._permittedVessel=vessel.ship;
+      let result;try{result=actor.launch();}finally{actor._permittedVessel=priorPermit;}
+      this._syncActor(vessel);
       if (result.ok) { vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.portVesselId = null; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
       return result;
     }
@@ -1235,6 +1256,18 @@ export class Realm extends BoardingAuthority {
   }
 
   _restoreAtHome(c, { combatPenalty = false, forceSafe = false, preserveShips = false } = {}) {
+    const occupied=this.vessels.get(c.aboard),lost=this.vessels.get(c.ownedVesselId);
+    if(occupied?.destroyed||occupied?.ship.destroyed||occupied?.ship.hull<=0){this._recoverCaptain(c,'The destroyed vessel’s survivors were recovered by station rescue.');return;}
+    if(lost&&(lost.destroyed||this._hostileOccupied(lost)))this._detachLostVessel(c,lost);
+    if(c.game.militaryRecoveryStatus?.()?.detained){
+      c.aboard=null;c.portVesselId=null;c.returnVesselId=null;c.crewRole='passenger';
+      c.game.initializeMilitaryRecovery();this._bindCaptain(c);this._ensurePersonPosition(c);return;
+    }
+    // A reconnect does not finish a survivor's journey home for them. Keep
+    // the actual ashore location until they book or board real transport.
+    if(c.game.state.shipRecovery&&!c.aboard&&c.game.state.mode==='person'&&!c.game.state.interior&&c.game.galaxy.find(system=>system.id===c.game.state.systemId)?.bodies.some(body=>body.id===c.game.state.locationId)){
+      this._bindCaptain(c);return;
+    }
     if(c.game.state.npcContract?.active){
       const employer=this.vessels.get(c.game.state.npcContract.vesselId);
       if(employer&&!employer.destroyed&&!forceSafe&&!combatPenalty&&!this._hostileOccupied(employer)){this._cabin(c,employer);c.crewRole=employer.grants[c.id]?.roles?.[0]||'passenger';return;}
@@ -1270,7 +1303,6 @@ export class Realm extends BoardingAuthority {
     const ownedHasOtherCrew = owned && [...this.captains.values()].some(other => other.id !== c.id && other.aboard === owned.id && other.session);
     if (owned && !forceSafe && !preserveShips && !combatPenalty && !c.game.state.livelihoods?.parkedShip && !c.returnVesselId && !owned.destroyed && !this._hostileOccupied(owned) && !ownedHasOtherCrew) { owned.systemId = home.systemId; owned.dockedAt = home.locationId; owned.helmOwner = null; owned.actor = null; const body = this._room(home.systemId).runtime.bodies.find(b => b.id === home.locationId); Object.assign(owned.ship, { x: body.x, y: body.y + body.radius + 80, vx: 0, vy: 0 }); }
     this._landCharacter(c, home.systemId, home.locationId, home); c.game.state.person.health = Math.max(25, c.game.state.person.health); c.game.state.person.down = false;
-    if (owned && (owned.destroyed || this._hostileOccupied(owned))) this._recoveryCutter(c, owned);
   }
   _park(vessel) {
     if (!vessel || vessel.destroyed || this._hostileOccupied(vessel)) return;
@@ -1286,7 +1318,9 @@ export class Realm extends BoardingAuthority {
     const activeVessels = new Map(), occupiedSystems = new Set(), timeBefore = new Map([...this.captains.values()].map(c => [c.id, c.game.state.stats.time]));
     for (const c of activeCaptains) {
       this._bindCaptain(c); occupiedSystems.add(c.game.state.systemId);
+      if(c.session&&c.game.stepMilitaryRecovery(dt)){c.surfaceCache=null;this.markDirty();}
       let input = timestamp - c.inputAt <= INPUT_TIMEOUT_MS && c.session ? c.input : { ...EMPTY_INPUT };
+      if(c.game.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};
       const vessel = this.vessels.get(c.aboard);
       if(this._gunneryActive(c,vessel)){
         input={...input,x:0,y:0,thrust:0,turn:0,strafe:0,boost:false,brake:false,mine:false};
@@ -1313,8 +1347,24 @@ export class Realm extends BoardingAuthority {
       actor.stepPilot(dt, { ...pilot, fire: false }, { operateShip: !vessel.dockedAt, boardingParticipants: participants.map(c => c.game) });
       occupiedSystems.add(vessel.systemId);
       if (!vessel.dockedAt && actor.state.boarding?.phase !== 'active' && (weapons || pilot.fire)) {
-        if(vessel.npcContractId&&weapons)actor.npcContractAction('fire',{worker:weapons.game,playerId:weapons.id,input:weapons.appliedInput});
-        else if(!vessel.npcContractId)actor.fireWeapons(weapons?.id || helm?.id || vessel.ownerId);
+        // Every battery has one physical cycle, shared by all its operators.
+        // Rotate priority within a frame, then allow different batteries to
+        // fire concurrently without allowing one crew to duplicate a mount.
+        const ordered=gunners.length?gunners.slice(this.tick%gunners.length).concat(gunners.slice(0,this.tick%gunners.length)):[];
+        let manual=false;
+        for(const gunner of ordered){
+          if(!this._gunneryActive(gunner,vessel))continue;
+          manual=true;
+          if(vessel.npcContractId)actor.npcContractAction('fire',{worker:gunner.game,playerId:gunner.id,input:gunner.appliedInput});
+          else{
+            const control=this._withShip(gunner,vessel,()=>applyGunneryAim(gunner.game,gunner.game,gunner.appliedInput));
+            if(control)actor.fireWeapons(gunner.id,control);
+          }
+        }
+        if(!manual){
+          if(vessel.npcContractId&&weapons)actor.npcContractAction('fire',{worker:weapons.game,playerId:weapons.id,input:weapons.appliedInput});
+          else if(!vessel.npcContractId)actor.fireWeapons(weapons?.id || helm?.id || vessel.ownerId);
+        }
       }
       for (const person of participants) if (!vessel.pvp && actor.state.boarding?.phase === 'active') { actor.updatePersonAim(person.game, person.appliedInput || {}); if (person.appliedInput?.fire) actor.attackBoarder(null, person.game, person.appliedInput); }
       if (vessel.pvp) this._stepPvP(vessel, dt, activeCaptains);
@@ -1398,7 +1448,7 @@ export class Realm extends BoardingAuthority {
     else if(state.interior?.kind==='eva'&&c.aboard)state.interior.location=clone(this._location(c));
     else if (state.interior?.kind === 'derelict') state.interior.location = clone(this._location(c));
     const currentDock = c.aboard ? this._dockedBody(vessel) : null;
-    state.multiplayer = { groupStartStatus: c.launchStatus || null, waitingForGroupStart: this._isGroupWaiting(c), captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, home: clone(c.home), serverAuthoritative: true,
+    state.multiplayer = { groupStartStatus: c.launchStatus || null, waitingForGroupStart: this._isGroupWaiting(c), captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, weaponsAllowed:!!c.aboard&&this._canRole(c,vessel,'weapons'), home: clone(c.home), serverAuthoritative: true,
       dockedAt: currentDock?.id || null, dockedName: currentDock?.name || null, dockedKind: currentDock?.kind || null,
       returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };
     const opening = c.game.openingMissionStatus();
@@ -1476,3 +1526,4 @@ export class Realm extends BoardingAuthority {
 }
 Object.assign(Realm.prototype,LivelihoodAuthority);
 Object.assign(Realm.prototype,MilitaryOperationsAuthority);
+Object.assign(Realm.prototype,MilitaryRecoveryAuthority);

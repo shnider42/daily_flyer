@@ -1,0 +1,36 @@
+/* Keep real battery controls visible in both the desktop and touch cockpits. */
+.gunnery-batteries{position:absolute;left:24px;bottom:138px;width:min(348px,34vw);padding:13px;background:#0b1929f2;border:1px solid #456577;border-top:3px solid var(--cyan);box-shadow:4px 4px 0 #030a14a0;z-index:8}
+.battery-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;letter-spacing:.06em;color:var(--cyan);margin-bottom:9px}
+.battery-heading>span{color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:0}
+.battery-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.battery-choice{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:3px 6px;text-align:left;padding:7px 8px;min-height:57px;background:#132635;border:1px solid #456071;border-bottom-width:2px}
+.battery-choice>kbd{grid-row:1/3;text-align:center;padding:1px;font-size:.8rem}
+.battery-choice>strong{font-size:.92rem;white-space:nowrap}
+.battery-choice>small{font-size:.74rem;line-height:1.3;color:#bdccd2}
+.battery-choice[aria-pressed=true]{border-color:var(--amber);background:#3c3a2c;box-shadow:inset 3px 0 var(--amber)}
+.battery-choice[aria-pressed=true]>strong{color:#ffe3a4}
+.gunnery-batteries>p{font-size:.8rem;line-height:1.45;margin:8px 0 0;color:#c5dadc;min-height:2.9em}
+.gunnery-batteries[data-limited=true]>p{color:var(--amber)}
+.welcome-active .gunnery-batteries,.welcome-active .recovery-status{display:none!important}
+.recovery-status{position:absolute;left:24px;bottom:138px;width:min(370px,calc(100% - 48px));display:grid;gap:7px;padding:13px 15px;background:#0b1929f5;border:1px solid #5f7784;border-left:3px solid var(--amber);z-index:8}
+.recovery-status>strong{font-size:1rem;color:#ffe0a0}
+.recovery-status>span{font-size:.85rem;color:#c4d4da;line-height:1.5}
+.recovery-status>button{min-height:44px;text-align:left}
+.recovery-status[data-detained=true]{border-left-color:var(--red)}
+.recovery-status[data-detained=true]>strong{color:#ffb6a7;font-variant-numeric:tabular-nums}
+@media(max-height:650px) and (min-width:801px){.gunnery-batteries{bottom:112px;width:310px;padding:9px}.gunnery-batteries>p{min-height:0}.battery-choice{min-height:49px}}
+.touch-layout .gunnery-batteries{left:12px;right:12px;top:12px;bottom:auto;width:auto;max-width:420px;padding:9px 10px}
+.touch-layout .gunnery-batteries .battery-heading{margin-bottom:7px}
+.touch-layout .battery-choice{min-height:52px;padding:6px 8px}
+.touch-layout .gunnery-batteries>p{min-height:0;margin-top:7px}
+.touch-layout.gunnery-view .coach-card,.touch-layout.recovery-active .coach-card{display:none!important}
+.touch-layout .recovery-status{top:12px;left:12px;right:12px;bottom:auto;width:auto;max-width:420px}
+.touch-layout.immersive-hud:not(.welcome-active) .gunnery-batteries,.touch-layout.immersive-hud:not(.welcome-active) .recovery-status{top:var(--coach-top);left:var(--hud-edge);right:var(--hud-right);background:var(--hud-surface);box-shadow:var(--hud-shadow)}
+.touch-layout.touch-landscape .gunnery-batteries{left:50%;right:auto;transform:translateX(-50%);width:min(490px,calc(100% - 160px));max-width:none;top:12px}
+.touch-layout.touch-landscape .battery-choices{grid-template-columns:repeat(4,minmax(0,1fr))}
+.touch-layout.touch-landscape .battery-choice{grid-template-columns:16px minmax(0,1fr);padding:6px 4px;gap:3px;font-size:.78rem}
+.touch-layout.touch-landscape .battery-choice>strong{font-size:.78rem}
+.touch-layout.touch-landscape .battery-choice>small{font-size:.67rem}
+.touch-layout.touch-landscape .gunnery-batteries>p{font-size:.75rem;margin-top:5px}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .gunnery-batteries{left:50%;right:auto;top:var(--coach-top)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .recovery-status{left:50%;right:auto;transform:translateX(-50%);width:min(440px,calc(100% - 210px))}

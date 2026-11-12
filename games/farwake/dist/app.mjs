@@ -14,7 +14,7 @@ import { createPersonalGearUI } from './personal-gear-ui.mjs';
 import { createOpeningUI, openingPrompt } from './opening-ui.mjs';
 import { createMilitaryCareerUI, militaryCareerGuided, militaryCareerPrompt } from './military-career-ui.mjs';
 import { militaryGroundSite } from './military-sites.mjs';
-import { getGunneryView, displayMode, projectGunneryInput, gunneryWeaponStatus, gunneryReticle, drawGunneryOverlay } from './gunnery-view.mjs';
+import { getGunneryView, displayMode, projectGunneryInput, gunneryWeaponStatus, gunneryReticle, gunneryAimHint, drawGunneryOverlay } from './gunnery-view.mjs';
 import { SpaceRenderer, drawShip } from './space-art.mjs';
 import { Controls } from './input.mjs';
 import { pixelViewport, clientToCanvas, beginPixelFrame } from './render-viewport.mjs';
@@ -64,7 +64,7 @@ const pointerAim={active:false,x:0,y:0,fire:false};
 let surfaceView={cameraX:0,cameraY:0},combatPreview=null,localShotAt=-Infinity;
 let hudDirty=true,labelLayoutDirty=true;
 let labelLayout={width:1,height:1,dpr:1,boxes:[]};
-const labelObstacles=[...document.querySelectorAll('.location-card,.objective-card,.coach-card,.cockpit,.interaction-wrap,.contacts-panel,.combat-panel,.mobile-weapon,.mobile-readout,#modePill,#onlineButton,#pauseButton,#viewButton,#stick,#aimStick,#fireButton,#brakeButton,#toolsButton,#boostButton,#toolTray,.test-bar,#viewPanel')];
+const labelObstacles=[...document.querySelectorAll('.location-card,.objective-card,.coach-card,.cockpit,.interaction-wrap,.contacts-panel,.combat-panel,.gunnery-batteries,.recovery-status,.mobile-weapon,.mobile-readout,#modePill,#onlineButton,#pauseButton,#viewButton,#stick,#aimStick,#fireButton,#brakeButton,#toolsButton,#boostButton,#toolTray,.test-bar,#viewPanel')];
 const labelWidths=new Map();
 const contactRows=new Map();
 let cameraScope='local',cameraKey=null,cameraSaveTimer=null;
@@ -96,8 +96,9 @@ $('continueButton').onclick=async()=>start(false);
 $('pauseButton').onclick=async()=>command('pause');
 $('contextButton').onclick=async()=>interact();
 $('modePill').onclick=switchPerspective;
+$('recoveryAction').onclick=openRecoveryStatus;
 $('helpButton').onclick=openHelp;
-$('objectiveDetails').onclick=async()=>activeMilitaryCareer()?militaryCareerUI.open():game.state.npcContract?.active?livelihoodUI.openDuty():game.openingMissionStatus?.().active?openingUI.openLog():trackedThreadId==='@profession'?narrativeUI.openProfessions():trackedThreadId==='@passenger'?narrativeUI.openBoard():trackedThreadId?narrativeUI.openThread(trackedThreadId):openJournal('missions');
+$('objectiveDetails').onclick=async()=>game.militaryRecoveryStatus?.()&&!game.militaryRecoveryStatus().arrived?openRecoveryStatus():activeMilitaryCareer()?militaryCareerUI.open():game.state.npcContract?.active?livelihoodUI.openDuty():game.openingMissionStatus?.().active?openingUI.openLog():trackedThreadId==='@profession'?narrativeUI.openProfessions():trackedThreadId==='@passenger'?narrativeUI.openBoard():trackedThreadId?narrativeUI.openThread(trackedThreadId):openJournal('missions');
 $('mobileReadout').onclick=()=>playing?openShip():openSettings();
 $('mobileWeaponHelp').onclick=openCombatHelp;
 $('toolsButton').onclick=()=>setToolTray(!toolTrayOpen);
@@ -164,7 +165,7 @@ function openTestControls(){
  dialog.choices([{label:'Resume exercise',action:()=>dialog.close()},{label:'Weapon & boarding controls',action:openCombatHelp},{label:'Retry this exercise',detail:'Restore the same target, ships, and crew deck.',action:retryTest},{label:'Choose another exercise',action:openTestMenu},{label:'Exit to main menu',action:exitTestMode}]);
 }
 function openCombatHelp(){
- if(getGunneryView(game).active){dialog.open('The ship’s gun battery','gunnery-help',{eyebrow:'EXTERIOR GUNNERY / NPC PILOT'});dialog.html('<p>Move the mouse or hold arrow keys to aim. Click or hold Space to fire. On touch, point the right stick to aim and fire, or hold FIRE.</p><p>The marked fan shows the battery’s firing arc and maximum range. The NPC captain keeps flying; you cannot steer from this station.</p><p>Back to deck closes the gun view and leaves your captain beside the console.</p>');dialog.choices([{label:'Return to the gun view',action:()=>dialog.close()},{label:'Back to deck',action:()=>{dialog.close();return switchPerspective();}}]);return;}
+ if(getGunneryView(game).active){const status=getGunneryView(game);dialog.open('The ship’s gun batteries','gunnery-help',{eyebrow:'EXTERIOR GUNNERY / '+(status.pilotLabel||'CREW HELM').toUpperCase()});dialog.html(`<p>Move the mouse or hold arrow keys to aim. Click or hold Space to fire. On touch, point the right stick to aim and fire, or hold FIRE.</p>${status.batteryCount>1?'<p><strong>1 Fore · 2 Port (left) · 3 Starboard (right) · 4 Aft (rear).</strong> Press the number or tap the named battery. Directions are relative to the ship’s bow. Each battery has its own recharge cycle; all draw from the same reactor.</p>':'<p>This hull has one forward battery.</p>'}<p>The marked fan shows the selected battery’s firing arc and maximum range. An amber hint tells you when another battery covers your aim. ${status.npcPilot?'The NPC captain keeps flying.':'Your helmsman controls flight; with no pilot, the ship coasts.'}</p><p>Back to deck closes the gun view and leaves your captain beside the console.</p>`);dialog.choices([{label:'Return to the gun view',action:()=>dialog.close()},{label:'Back to deck',action:()=>{dialog.close();return switchPerspective();}}]);return;}
  const boarding=game.state.boarding,mp=game.state.multiplayer??{},disembark=currentDisembarkAction();
  dialog.open('Your weapon & the deck','combat-help',{eyebrow:'PERSON COMBAT'});
  dialog.html(`<div class="weapon-brief"><span class="sidearm-glyph" aria-hidden="true"></span><div><h3>${esc(getPersonalWeapon(game.state.person).name)}</h3><p>Your equipped personal weapon recharges between shots. It is ready when the weapon panel says READY; Personal gear lists its damage, range, and recharge time.</p></div></div><h3>Aim, then fire</h3><p class="desktop-only-help"><strong>Desktop:</strong> WASD walks. Move the mouse over the deck or hold arrow keys to aim independently. Left-click or hold Space to fire. E uses nearby stations and airlocks.</p><p class="touch-only-help"><strong>Touch:</strong> the left stick walks; push the right stick toward a target to aim and fire. The FIRE button fires at the marked aim-assist target.</p><p>With no manual aim, the bracket marks a nearby visible hostile. Firing into a wall or empty space still produces a shot. A damage number confirms a hit; the DOWN label identifies the attacker. Your sidearm never fires by itself.</p>${disembark?`<h3>Docked at ${esc(disembark.port.name)}</h3><p>The entry airlock opens onto this port. Use Disembark to mark the door, then use it when you are close. You do not need helm or boarding permission to leave a docked ship.</p>`:`<h3>Two ships remain in space</h3><p>Crossing an airlock puts you on that target’s actual deck. Both hulls remain exposed to outside fire. Reach the entry airlock to return across the tether, or clear the defenders and use the target’s helm. A destroyed hull cannot be used as an escape ship.</p>`}<p>Friendly crew are protected. In a shared galaxy, declaring hostility makes ship and boarding combat deliberate. Hostile occupation blocks recovery into that ship’s bunks.</p>`);
@@ -179,7 +180,7 @@ function openBoardingBrief(target){
  dialog.choices([{label:'Board the target ship',action:async()=>{if(result(await invoke('boardEnemy',{id:target.id}))){dialog.close();surfaceKey='';ensureSurface();controls.clear();if(!touchLayout||settings.guidance!=='simple')toast('Target deck · '+getPersonalWeapon(game.state.person).name+' ready. Aim, then fire.','good',5500);}}},{label:'Keep flying',action:()=>dialog.close()}]);
 }
 async function runDeckAction(method,args={}){if(result(await invoke(method,args))){dialog.close();surface=null;surfaceKey='';surfaceTarget=null;ensureSurface();controls.clear();clearPointerAim();updateHUD();canvas.focus({preventScroll:true});}}
-function currentPerspectiveAction(){if(getGunneryView(game).active)return{label:'Back to deck',command:'leaveGunnery',args:{},enabled:!network||network.connected,reason:network&&!network.connected?'Reconnecting to the galaxy.':'',detail:'Leave the exterior gun view. Your captain stays at the real station.'};return getPerspectiveAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[],surface});}
+function currentPerspectiveAction(){const recovery=game.militaryRecoveryStatus?.();if(recovery?.detained)return{label:'Detained · '+custodyTime(recovery.remainingSeconds),command:'openRecoveryStatus',args:{},enabled:true,detail:'View your custody record and military return orders.'};if(getGunneryView(game).active)return{label:'Back to deck',command:'leaveGunnery',args:{},enabled:!network||network.connected,reason:network&&!network.connected?'Reconnecting to the galaxy.':'',detail:'Leave the exterior gun view. Your captain stays at the real station.'};return getPerspectiveAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[],surface});}
 function currentDisembarkAction(){return getDisembarkAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[],surface});}
 function currentHelmAction(){return getHelmAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[]});}
 function pointerAimAvailable(){return personalAimAvailable()||getGunneryView(game).active;}
@@ -198,8 +199,9 @@ function markMilitaryTarget(target,{quiet=false}={}){
 function openGunneryStation(){
  const status=getGunneryView(game);
  dialog.open('Gunnery station','gunnery-station',{eyebrow:status.shipName||'SHIP BATTERY'});
- dialog.html(`<p>Use the exterior view to aim the ship’s pulse battery. The NPC captain handles the flight; your captain stays at this console.</p><p class="mini">${Math.round(status.range||0)} m range · ${status.energyCost||0} charge per volley</p>${status.reason?`<p class="result-note">${esc(status.reason)}</p>`:''}`);
- dialog.choices([{label:'Take the gunner view',disabled:!status.available,action:enterGunneryView},{label:'Back to the deck',action:()=>dialog.close()}]);
+ const batteries=status.batteries||[];
+ dialog.html(`<p>Use the exterior view to aim the ship’s guns. Your captain stays at this console. ${status.npcPilot?'The NPC captain handles the flight.':'A crewmate at the helm can fly while you shoot. With no pilot, the ship coasts.'}</p>${batteries.length>1?`<div class="guide-card"><strong>${batteries.length} selectable batteries</strong><p>${batteries.map((battery,index)=>`${index+1} · ${esc(battery.name)} — ${esc(battery.direction)}`).join('<br>')}</p></div><p>Press <strong>1–4</strong> or tap a battery button in the gun view. Each battery has its own firing arc and recharge cycle. All share the ship’s power.</p>`:'<p>This hull has one forward battery. Its marked arc shows where it can fire.</p>'}<p class="mini">${Math.round(status.range||0)} m range · ${status.energyCost||0} charge per volley</p>${status.reason?`<p class="result-note">${esc(status.reason)}</p>`:''}`);
+ dialog.choices([{label:'Take the gunner view',disabled:!status.available,action:enterGunneryView},...(status.npcPilot?[]:[{label:'Crew manifest',action:()=>openCrew()}]),{label:'Back to the deck',action:()=>dialog.close()}]);
 }
 async function enterGunneryView(){
  if(!playing||actionPending)return;
@@ -208,9 +210,65 @@ async function enterGunneryView(){
  try{const answer=await invoke('enterGunnery');if(owner!==network||activeGame!==game||!playing)return;if(result(answer)){surfaceTarget=null;resize();syncViewControls();saveNow();canvas.focus({preventScroll:true});}}
  finally{actionPending=false;clearPerspectiveInput();updateHUD();}
 }
-let gunneryPresentationKey='',militaryMarkerKey='';
+let gunneryPresentationKey='',militaryMarkerKey='',batterySelectionPending=false;
+const batteryButtons=new Map();
+async function selectGunBattery(batteryId){
+ if(!playing||dialog.opened||actionPending||batterySelectionPending)return;
+ const status=getGunneryView(game);if(!status.active||!status.batteries?.some(battery=>battery.id===batteryId)||status.selectedBatteryId===batteryId)return;
+ const owner=game,connection=network;clearPerspectiveInput();batterySelectionPending=true;
+ try{const answer=await invoke('selectGunneryBattery',{batteryId});if(game!==owner||network!==connection||!playing)return;if(result(answer)){hudDirty=true;saveNow();canvas.focus({preventScroll:true});}}
+ finally{batterySelectionPending=false;updateHUD();}
+}
+window.addEventListener('keydown',event=>{
+ if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||['INPUT','TEXTAREA','SELECT'].includes(event.target?.tagName)||!playing||dialog.opened)return;
+ const index=['Digit1','Digit2','Digit3','Digit4'].indexOf(event.code),status=getGunneryView(game);
+ if(index<0||!status.active||!status.batteries?.[index])return;
+ event.preventDefault();selectGunBattery(status.batteries[index].id);
+});
+function updateBatteryControls(status,input={}){
+ const panel=$('gunneryBatteries'),visible=playing&&status.active;
+ if(panel.hidden===visible){panel.hidden=!visible;labelLayoutDirty=true;}if(!visible)return;
+ const list=$('batteryChoices'),batteries=status.batteries||[],live=new Set(batteries.map(battery=>battery.id));
+ for(const[id,button]of batteryButtons)if(!live.has(id)){button.remove();batteryButtons.delete(id);}
+ for(const[batteryIndex,battery]of batteries.entries()){
+  let button=batteryButtons.get(battery.id);
+  if(!button){button=document.createElement('button');button.type='button';button.className='battery-choice';button.innerHTML='<kbd></kbd><strong></strong><small></small>';button.addEventListener('click',()=>selectGunBattery(battery.id));list.append(button);batteryButtons.set(battery.id,button);labelLayoutDirty=true;}
+  if(list.children[batteryIndex]!==button)list.insertBefore(button,list.children[batteryIndex]||null);
+  const state=status.energy<battery.energyCost?'Low power':battery.cooldownRemaining>0?`Recharging ${battery.cooldownRemaining.toFixed(1)}s`:battery.canFire?'Ready':'Standby';
+  hudText(button.children[0],batteryIndex+1);hudText(button.children[1],battery.name.replace(/ battery$/i,''));hudText(button.children[2],`${battery.direction} · ${state}`);
+  button.setAttribute('aria-pressed',String(battery.selected));button.setAttribute('aria-label',`${batteryIndex+1}. ${battery.name}, ${battery.direction}. ${state}${battery.selected?'. Selected.':''}`);button.disabled=batterySelectionPending||!!network&&!network.connected;
+ }
+ hudText($('batteryCount'),`${(status.batteryIndex||0)+1} / ${batteries.length||1} selected`);
+ const hint=gunneryAimHint(status,game.state.ship,input);hudText($('batteryHint'),hint+(status.batteryCount>1?' · 1–4 or tap to switch.':''));panel.dataset.limited=String(!!gunneryReticle(status,game.state.ship,input)?.limited);
+}
+const custodyTime=seconds=>`${Math.floor(Math.max(0,seconds)/60)}:${String(Math.ceil(Math.max(0,seconds))%60).padStart(2,'0')}`;
+function openRecoveryStatus(){
+ const status=game.militaryRecoveryStatus?.();
+ if(status?.detained){
+  dialog.open('Military detention','military-detention',{eyebrow:status.captorFaction||'ENEMY CUSTODY'});
+  dialog.html(`<div class="guide-card"><strong id="custodyCountdown">${custodyTime(status.remainingSeconds)} remaining</strong><p>You were recovered in enemy territory while serving ${esc(status.factionName)}. Your five-minute term is recorded with your captain.</p></div><p>Release is automatic. Your rank and service record remain yours. After release, Port services can book a free passenger berth to <strong>${esc(status.home.name)}</strong> using your personal repatriation clearance.</p><p class="mini">Your transport has an NPC pilot. You arrive on foot; it does not become your ship.</p>`);
+  dialog.choices([{label:'Read your service record',action:()=>militaryCareerUI.open()},{label:'Back to the cell',action:()=>dialog.close()}]);return;
+ }
+ if(status?.passage){livelihoodUI.openDuty();return;}
+ if(status&&!status.arrived){livelihoodUI.openRecovery();return;}
+ livelihoodUI.openPort();
+}
+function updateRecoveryHUD(){
+ const status=game.militaryRecoveryStatus?.(),loss=game.state.shipRecovery,ashore=game.state.mode==='person'&&!game.state.interior&&!game.state.exploration;
+ const atLossPort=ashore&&loss?.destination?.systemId===game.state.systemId&&loss.destination.bodyId===game.state.locationId&&!game.canUseOwnShipHere();
+ const visible=playing&&!testSession&&!!(status&&!status.arrived||atLossPort),panel=$('recoveryStatus');
+ if(panel.hidden===visible){panel.hidden=!visible;labelLayoutDirty=true;}document.body.classList.toggle('recovery-active',visible);if(!visible)return;
+ panel.dataset.detained=String(!!status?.detained);
+ let title,detail,action;
+ if(status?.detained){title=`Military detention · ${custodyTime(status.remainingSeconds)}`;detail=`${status.captorFaction} custody. Release is automatic; your service clearance covers a passenger berth home afterward.`;action='Custody & return orders';}
+ else if(status?.passage){title=`Passage home · ${status.home.name}`;detail=game.npcContractStatus?.()?.task||'The NPC captain has the helm. Your military clearance covers the fare.';action=status.passagePhase==='docked'?'Disembark through the airlock':'Your passage orders';}
+ else if(status&&!status.arrived){title='Military return passage · 0 CR';detail=`Recovered on foot. Your ${status.factionName} clearance covers a berth to ${status.home.name}.${game.ownsShip?' Your own ship remains at its existing berth.':''}`;action='Arrange passage home';}
+ else{title=`${loss?.vesselName||'Your ship'} lost`;detail=`Recovered at ${loss.destination.name}.${game.ownsShip?' Your intact personal ship remains at its existing berth.':' You are on foot without a replacement ship.'} Port services offers passage and paid work.`;action='Port services';}
+ hudText($('recoveryTitle'),title);hudText($('recoveryDetail'),detail);hudText($('recoveryAction'),action);
+ const countdown=$('custodyCountdown');if(countdown)hudText(countdown,status?.detained?`${custodyTime(status.remainingSeconds)} remaining`:'Released · Your return orders are ready');
+}
 function syncGunneryPresentation(){
- const status=getGunneryView(game),key=status.active?status.vesselId+':gunnery':'';
+ const status=getGunneryView(game),key=status.active?status.vesselId+':gunnery:'+status.selectedBatteryId:'';
  if(key===gunneryPresentationKey)return status;
  gunneryPresentationKey=key;clearPerspectiveInput();hudDirty=true;resize();
  if(status.active&&status.targetIds?.length)tracked=status.targetIds[0];
@@ -232,6 +290,7 @@ async function switchPerspective(){
  const action=currentPerspectiveAction();
  setViewPanel(false,{restoreFocus:false});clearPerspectiveInput();
  if(!action.enabled){if(action.targetId){surfaceTarget=action.targetId;guideIntent='return';}toast(action.reason||'This perspective is unavailable here.','info',5500);updatePerspectiveControl();return;}
+ if(action.command==='openRecoveryStatus'){openRecoveryStatus();return;}
  if(action.command==='openCrewDuty'){livelihoodUI.openDuty();return;}
  if(action.command==='openPortServices'){livelihoodUI.openPort();return;}
  if(action.command==='openPortShips'){sharedCrewUI.openLocalShips();return;}
@@ -247,6 +306,7 @@ async function switchPerspective(){
 }
 function updateCombatHUD(){
  const gunnery=getGunneryView(game);if(gunnery.active){updateGunneryHUD(gunnery);return;}
+ updateBatteryControls(gunnery);
  const boarding=game.state.boarding,expedition=game.state.exploration,visible=playing&&game.state.mode==='person'&&!!(boarding||personalAimAvailable()),panel=$('combatPanel');
  panel.setAttribute('aria-label','Personal weapon and boarding status');
  const desktop=panel.querySelector('.desktop-combat-hint'),touch=panel.querySelector('.touch-combat-hint');if(desktop)hudHTML(desktop,'Mouse / arrows aim · Click / Space fire<br>WASD move · E use');if(touch)hudHTML(touch,'Left stick moves · Right stick aims &amp; fires<br>FIRE uses the marked target');
@@ -263,12 +323,13 @@ function updateCombatHUD(){
 function updateGunneryHUD(status){
  const ship=network?.renderedShip||game.state.ship,input=projectGunneryInput(controls?.vector?.()||{},status,ship,{pointer:pointerAim,toWorld:(x,y)=>renderer.toWorld(x,y)});
  const panel=$('combatPanel'),weapon=gunneryWeaponStatus(status),reticle=gunneryReticle(status,ship,input);
+ updateBatteryControls(status,input);
  panel.hidden=!playing;panel.classList.remove('deck-secure');panel.setAttribute('aria-label','Ship gun battery and target status');document.body.classList.toggle('combat-active',playing);
  hudText($('weaponName'),weapon.name);hudText($('weaponState'),weapon.state);
- const desktop=panel.querySelector('.desktop-combat-hint'),touch=panel.querySelector('.touch-combat-hint');if(desktop)hudHTML(desktop,'Mouse / arrows aim · Click / Space fire<br>NPC pilot flies · E returns to deck');if(touch)hudHTML(touch,'Right stick aims &amp; fires · FIRE shoots<br>NPC pilot flies · Back to deck leaves this view');
- hudText($('aimStatus'),reticle?.limited?'TRAVERSE LIMIT · Aim inside the marked arc':'SHIP BATTERY · '+weapon.detail);
+ const desktop=panel.querySelector('.desktop-combat-hint'),touch=panel.querySelector('.touch-combat-hint');if(desktop)hudHTML(desktop,`Mouse / arrows aim · Click / Space fire<br>${status.batteryCount>1?'1–4 selects battery · ':''}E returns to deck`);if(touch)hudHTML(touch,'Right stick aims &amp; fires · FIRE shoots<br>Tap a battery to change firing direction');
+ hudText($('aimStatus'),reticle?.limited?gunneryAimHint(status,ship,input):`${status.pilotLabel||'Crew helm'} · ${weapon.detail}`);
  const targets=game.system.enemies.filter(enemy=>status.targetIds?.includes(enemy.id)&&enemy.hp>0&&!enemy.disabled),duty=game.npcContractStatus?.();
- hudText($('combatCount'),targets.length?`${targets.length} assigned contact${targets.length===1?'':'s'}${duty?.work?.damage?` · ${Math.floor(duty.work.damage)} confirmed damage`:''}`:'No live assigned contacts · Check your duty orders');
+ hudText($('combatCount'),targets.length?`${targets.length} assigned contact${targets.length===1?'':'s'}${duty?.work?.damage?` · ${Math.floor(duty.work.damage)} confirmed damage`:''}`:status.npcPilot?'No live assigned contacts · Check your duty orders':'Select a battery and watch its firing arc');
  const recent=combatFeed.filter(event=>elapsed-event.at<7).slice(-3);hudHTML($('combatFeed'),recent.map(event=>`<div>${esc(event.text)}</div>`).join(''));
 }
 function recordCombatFeed(text){combatFeed.push({text,at:elapsed});if(combatFeed.length>5)combatFeed.shift();hudDirty=true;}
@@ -437,7 +498,7 @@ async function openTrafficContact(target){
  if(!answer.restricted)choices.push({label:'Ask for local news',action:async()=>{const r=await invoke('triggerEncounter',{sourceId:target.id,sourceType:'traffic'});if(r.ok)openEncounter(r.encounter);else{dialog.html('<p>“Quiet on our route. Safe travels, captain.”</p>');dialog.choices([{label:'Close channel',action:()=>dialog.close()}]);}}});
  choices.push({label:answer.restricted?'Acknowledge and close channel':'Safe travels',action:()=>dialog.close()});dialog.choices(choices);
 }
-async function interact(){if(!playing||dialog.opened||actionPending)return;if(getGunneryView(game).active){await switchPerspective();return;}const target=nearby();if(!target){toast(game.state.mode==='ship'?'Fly close to a station, planet, or signal. Hold MINE near asteroids.':'Move close to a person, terminal, or marked workstation.');return;}audio.play('click');if(game.state.mode==='ship'){if(target.type==='dock'){if(result(await invoke('dock',{id:target.id}))){ensureSurface(true);audio.play('dock');if(!touchLayout&&!game.openingMissionStatus?.().active)toast(`Person mode · ${target.name}. Find the contract exchange or explore.`,'good');saveNow();}}else if(target.type==='signal'){if(target.signal.kind==='derelict'&&!target.signal.resolved){dialog.open(target.name,'derelict',{eyebrow:'UNPOWERED VESSEL'});dialog.html('<p>A freighter drifts with its running lights dark. The docking collar still has pressure. You can investigate the signal from here, or go aboard.</p>');dialog.choices([{label:'Board the freighter',detail:'Explore its holds, find the recorder, and check for survivors.',action:async()=>{dialog.close();if(typeof game.boardDerelict==='function'){if(result(await invoke('boardDerelict',{id:target.id}))){ensureSurface(true);saveNow();}}else{result(await invoke('scan',{id:target.id}));if(game.state.pendingEncounter)openEncounter(game.getEncounter());}}},{label:'Scan its transmission',detail:'Resolve the signal from the safety of your cockpit.',action:async()=>{dialog.close();scanSignal(target.id);}}]);}else scanSignal(target.id);}else if(target.type==='shared-ship'){openVesselContact(target.id);}else if(target.type==='board'){openBoardingBrief(target);}else if(target.type==='parked-ship'){if(result(await invoke('boardParkedShip',{id:target.id}))){surfaceKey='';ensureSurface();}}else if(target.type==='salvage')result(await invoke('salvage',{id:target.id}));else if(target.type==='hail')openTrafficContact(target);}else{selectGuide();const uses=tutorial.controller.count('person-use');await handleEntity(target);if(dialog.opened&&tutorial.controller.count('person-use')===uses)recordGuide('person-use');}updateHUD();}
+async function interact(){if(!playing||dialog.opened||actionPending)return;if(game.militaryRecoveryStatus?.()?.detained){openRecoveryStatus();return;}if(getGunneryView(game).active){await switchPerspective();return;}const target=nearby();if(!target){toast(game.state.mode==='ship'?'Fly close to a station, planet, or signal. Hold MINE near asteroids.':'Move close to a person, terminal, or marked workstation.');return;}audio.play('click');if(game.state.mode==='ship'){if(target.type==='dock'){if(result(await invoke('dock',{id:target.id}))){ensureSurface(true);audio.play('dock');if(!touchLayout&&!game.openingMissionStatus?.().active)toast(`Person mode · ${target.name}. Find the contract exchange or explore.`,'good');saveNow();}}else if(target.type==='signal'){if(target.signal.kind==='derelict'&&!target.signal.resolved){dialog.open(target.name,'derelict',{eyebrow:'UNPOWERED VESSEL'});dialog.html('<p>A freighter drifts with its running lights dark. The docking collar still has pressure. You can investigate the signal from here, or go aboard.</p>');dialog.choices([{label:'Board the freighter',detail:'Explore its holds, find the recorder, and check for survivors.',action:async()=>{dialog.close();if(typeof game.boardDerelict==='function'){if(result(await invoke('boardDerelict',{id:target.id}))){ensureSurface(true);saveNow();}}else{result(await invoke('scan',{id:target.id}));if(game.state.pendingEncounter)openEncounter(game.getEncounter());}}},{label:'Scan its transmission',detail:'Resolve the signal from the safety of your cockpit.',action:async()=>{dialog.close();scanSignal(target.id);}}]);}else scanSignal(target.id);}else if(target.type==='shared-ship'){openVesselContact(target.id);}else if(target.type==='board'){openBoardingBrief(target);}else if(target.type==='parked-ship'){if(result(await invoke('boardParkedShip',{id:target.id}))){surfaceKey='';ensureSurface();}}else if(target.type==='salvage')result(await invoke('salvage',{id:target.id}));else if(target.type==='hail')openTrafficContact(target);}else{selectGuide();const uses=tutorial.controller.count('person-use');await handleEntity(target);if(dialog.opened&&tutorial.controller.count('person-use')===uses)recordGuide('person-use');}updateHUD();}
 async function scanSignal(id){const r=await invoke('scan',{id:id});if(!result(r))return;if(r.encounter)openEncounter(r.encounter);else if(r.text){dialog.open('Signal recovered','discovery',{eyebrow:'SCANNER RECORD'});dialog.html(`<p>${esc(r.text)}</p>`);dialog.choices([{label:'Add it to the log',action:async()=>dialog.close()}]);}}
 async function scanNearest(){if(network&&game.state.mode==='person'&&['scanner','navigation'].includes(game.state.multiplayer?.crewRole)){const r=await invoke('crewAction',{action:'scan'});if(result(r)){if(r.encounter)openEncounter(r.encounter);else if(r.text)toast(r.text,'good');}return;}if(game.state.mode!=='ship')return interact();const sig=game.system.signals.filter(s=>!s.resolved).sort((a,b)=>distance(a,game.state.ship)-distance(b,game.state.ship))[0];if(sig)scanSignal(sig.id);else toast('All local signals have been resolved.');}
 async function leaveSurface(){if(currentDisembarkAction()){if(dialog.opened)dialog.close();await switchPerspective();return;}if(network&&!game.state.interior&&!game.state.exploration){const action=currentPerspectiveAction();if(action.command==='openPortServices'){livelihoodUI.openPort();return;}if(action.command==='openPortShips'){sharedCrewUI.openLocalShips();return;}if(!action.enabled){toast(action.reason,'info');return;}await runDeckAction(action.command,action.args);return;}if(game.state.boarding?.kind==='assault'||game.state.multiplayer?.returnVesselId){await runDeckAction('returnToOwnShip');return;}let r;if(game.state.interior&&typeof game.leaveInterior==='function')r=await invoke('leaveInterior');else if(surface?.kind==='ship'&&typeof game.exitCabin==='function')r=await invoke('exitCabin');else if(surface?.kind==='derelict'&&typeof game.leaveDerelict==='function')r=await invoke('leaveDerelict');else r=await invoke('launch');if(result(r)){controls.clear();surface=null;surfaceKey='';surfaceTarget=null;audio.play('dock');saveNow();}}
@@ -682,6 +743,7 @@ function updateContacts(ship){
 }
 function updateHUD(){
  hudDirty=false;
+ updateRecoveryHUD();
  const visibility=localSiteVisibility();if(combatPreview?.target&&visibility&&!visibility.canSeeActor(combatPreview.target))combatPreview=null;
  const s=game.state,onFoot=s.mode==='person',gunnery=getGunneryView(game),military=activeMilitaryCareer(),body=game.currentBody,sh=onFoot&&s.interior?.kind==='enemy'&&body?.hull!==undefined?{...s.ship,hull:body.hull,maxHull:body.maxHull,shield:0,name:body.vesselName,classId:body.shipClass}:s.ship,sys=game.currentSystem,f=FACTIONS.find(f=>f.id===(body?.faction??sys.faction));
  if(document.body.classList.contains('person-mode')!==onFoot){document.body.classList.toggle('person-mode',onFoot);labelLayoutDirty=true;}document.body.classList.toggle('gunnery-view',gunnery.active);
@@ -727,14 +789,15 @@ function updateHUD(){
   const t=military.target||{},key=JSON.stringify([s.seed,s.multiplayer?.captainId,military.branchId,military.status,military.active?.operationId,military.active?.phase,military.objective,t.systemId,t.bodyId,t.siteId,t.entityId,t.stationRole,t.enemyId,s.locationId]);
   if(key!==militaryMarkerKey){markMilitaryTarget(t,{quiet:true});militaryMarkerKey=key;}
  }else militaryMarkerKey='';
- if(gunnery.active){hudText($('locationName'),gunnery.shipName||sh.name);hudText($('sectorLabel'),sys.name.toUpperCase()+' / EXTERIOR GUNNERY');hudText($('locationDetail'),'NPC PILOT · WEAPONS STATION');hudText($('coordinate'),`${Math.round(sh.x)} / ${Math.round(sh.y)}`);hint=military?.objective||'Aim the battery inside its firing arc. The NPC captain flies. Back to deck leaves this view.';}
+ if(gunnery.active){hudText($('locationName'),gunnery.shipName||sh.name);hudText($('sectorLabel'),sys.name.toUpperCase()+' / EXTERIOR GUNNERY');hudText($('locationDetail'),(gunnery.pilotLabel||'CREW HELM').toUpperCase()+' · '+(gunnery.batteryName||'WEAPONS STATION').toUpperCase());hudText($('coordinate'),`${Math.round(sh.x)} / ${Math.round(sh.y)}`);hint=(gunnery.batteryCount>1?'1–4 or tap selects Fore, Port, Starboard or Aft. ':'')+'Aim inside the marked arc. '+(gunnery.npcPilot?'The NPC captain flies. ':'')+'Back to deck leaves this view.';}
+ const recovery=s.militaryRecovery&&game.militaryRecoveryStatus();if(recovery&&!recovery.arrived){hudText($('objectiveKind'),recovery.detained?'MILITARY DETENTION':'RETURN TO YOUR POSTING');hudText($('objectiveTitle'),recovery.detained?'Release in '+custodyTime(recovery.remainingSeconds):recovery.passage?'Passage to '+recovery.home.name:'Arrange passage to '+recovery.home.name);hint=recovery.detained?'Your five-minute term is recorded. Release is automatic; your military clearance covers the journey home afterward.':recovery.passage?game.npcContractStatus()?.task:'Open Return passage or Port services. Your service pays for a passenger berth; the NPC captain flies.';}
  if(s.multiplayer?.waitingForGroupStart){hudText($('objectiveKind'),'SHARED DEPARTURE');hudText($('objectiveTitle'),'Gather your crew');hint='Open DEPARTURE to choose a ship, check the crew, and mark yourself ready.';}
  if(!onFoot&&s.cosmicWarning){hudText($('objectiveKind'),'GRAVITY WARNING');hudText($('objectiveTitle'),s.cosmicWarning.name||'Tidal forces');hint=s.cosmicWarning.warning||s.cosmicWarning.text||'Turn away from the dark center and apply thrust.';}
  if(hudText($('objectiveText'),settings.guidance==='expert'?'Your journal keeps the details.':hint))labelLayoutDirty=true;hudStyle($('objectiveText'),'display',settings.guidance==='expert'?'none':'');
  const n=nearby();let context=onFoot?'Walk close to a person or workstation':'Fly toward a port, signal, or asteroid belt';
  if(n){if(onFoot)context=n.type==='damageControl'?'Damage control':n.type==='exit'?(surface?.kind==='ship'?(n.data?.stationRole==='helm'?'Use the helm':(s.boarding?.kind==='assault'||s.multiplayer?.returnVesselId)?'Return across the tether':'Use the airlock'):'Return to your ship'):n.type==='npc'||n.type==='crew'?'Talk to '+n.name:n.type==='mechanic'?'Visit '+n.name:n.type==='jobboard'?'Open the contract exchange':n.type==='work'?'Calibrate '+n.name:n.type==='crate'?'Pick up freight crate':n.type==='delivery'?'Use loading pad':n.type==='sample'?'Collect '+n.name:'Use '+n.name;else context=n.type==='dock'?(!game.portAccess(n.body).ok?'Request clearance · ':n.body.kind==='station'?'Dock at ':'Land on ')+n.name:n.type==='signal'?'Investigate '+n.name:n.type==='salvage'?'Collect salvage':n.type==='shared-ship'?'Boarding & crew: '+n.name:n.type==='board'?'Board '+n.name:n.type==='parked-ship'?'Return to '+n.name:'Hail '+n.name;}
- if(touchLayout||n?.type.startsWith('site')||n?.data?.stationRole==='helm'||(network||currentDisembarkAction())&&onFoot&&n?.type==='exit')context=contextLabel(n);if(gunnery.active)context='Back to deck';if(hudText($('contextText'),context))labelLayoutDirty=true;$('contextButton').classList.toggle('idle',!n&&!gunnery.active);
- hudText($('fireButton').querySelector('small'),onFoot&&!armedOnFoot()?'USE':'FIRE');hudText($('stick').querySelector('.stick-caption'),gunnery.active?'NPC PILOT':onFoot?'WALK':'STEER');hudText($('aimStick').querySelector('.stick-caption'),onFoot?(pointerAimAvailable()?'AIM / FIRE':'AIM'):'STRAFE');hudText($('fireButton').querySelector('span'),onFoot?'◇':'✛');hudText($('mineButton').querySelector('small'),onFoot?'LOG':'MINE');hudText($('boostButton').querySelector('small'),onFoot?'RUN':'BOOST');
+ if(touchLayout||n?.type.startsWith('site')||n?.data?.stationRole==='helm'||(network||currentDisembarkAction())&&onFoot&&n?.type==='exit')context=contextLabel(n);if(gunnery.active)context='Back to deck';if(recovery?.detained)context='Military detention · '+custodyTime(recovery.remainingSeconds);if(hudText($('contextText'),context))labelLayoutDirty=true;$('contextButton').classList.toggle('idle',!n&&!gunnery.active);
+ hudText($('fireButton').querySelector('small'),onFoot&&!armedOnFoot()?'USE':'FIRE');hudText($('stick').querySelector('.stick-caption'),gunnery.active?(gunnery.npcPilot?'NPC PILOT':'CREW HELM'):onFoot?'WALK':'STEER');hudText($('aimStick').querySelector('.stick-caption'),onFoot?(pointerAimAvailable()?'AIM / FIRE':'AIM'):'STRAFE');hudText($('fireButton').querySelector('span'),onFoot?'◇':'✛');hudText($('mineButton').querySelector('small'),onFoot?'LOG':'MINE');hudText($('boostButton').querySelector('small'),onFoot?'RUN':'BOOST');
  hudText($('footerTime'),'YEAR 2481 · '+String(Math.floor(s.stats.time/60)).padStart(2,'0')+':'+String(Math.floor(s.stats.time)%60).padStart(2,'0'));
  if(!onFoot)updateContacts(sh);updateCombatHUD();updateMobileHUD(sh,n);updateGuidance(n);if(testSession){hudText($('saveState'),'TEST · UNSAVED');if(testStatus?.complete&&testOutcome!==testStatus.title){testOutcome=testStatus.title;toast(testStatus.title+' · Retry or choose another test when ready.','good',4500);}}
 }
@@ -809,6 +872,7 @@ function openCrewDeparture(method,args,answer){
  dialog.choices([{label:'Wait for my crew',detail:'Return to the deck. The ship stays docked.',action:()=>dialog.close()},{label:'Review crew & boarding access',action:openSharedShip},{label:'Depart without them',detail:'Leave these captains at the port. They can continue playing there.',warning:true,action:async()=>{const mp=game.state.multiplayer||{};if(network!==owner||mp.captainId!==captainId||(mp.aboardVesselId||mp.portVesselId||mp.ownedVesselId)!==vesselId){toast('Your ship or connection changed. Check the crew before departing.','info');openOnline();return;}await runDeckAction(method,{...args,vesselId,leaveCrewBehind:true});}}]);
 }
 async function performInvoke(name,args={}){
+ const recoveryAccess=game.militaryRecoveryAccess(name);if(!recoveryAccess.ok)return recoveryAccess;
  if(testSession){
   const exerciseActions=['damageControl','enterCabin','quickHelm','quickLaunch','exitCabin','leaveInterior','boardEnemy','boardParkedShip','attackBoarder','repelBoarders','retreatBoarding','returnToOwnShip','takeCapturedHelm','crewAction','fireWeapons','salvage'];
   if(network||!game?.isTestMode||!exerciseActions.includes(name)||name==='crewAction'&&!['repair','heal'].includes(args.action))return {ok:false,code:'test-mode',reason:'This action belongs to your voyage. The test range stays isolated.'};
@@ -820,6 +884,7 @@ async function performInvoke(name,args={}){
  if(name==='applyChoice')return game.applyChoice(args.encounterId,args.choice);
  if(name==='openingAction')return game.openingAction(args.action,args);
  if(name==='takePassengerTransit')return game.takePassengerTransit(args.bodyId);
+ if(name==='selectGunneryBattery')return game.selectGunneryBattery(args);
  if(name==='acceptNpcContract')return game.acceptNpcContract(args.roleId,args);
  if(name==='npcContractAction')return game.npcContractAction(args.action,args);
  if(name==='service')return game.service(args.action);
@@ -916,7 +981,7 @@ function openNavyDutyStation(e){
  items.push({label:'Service orders',action:()=>militaryCareerUI.open()},{label:'Back to the deck',action:()=>dialog.close()});
  dialog.choices(items);
 }
-function openStation(e){if(game.state.npcContract?.military?.branchId==='navy'&&['engineering','navigation','scanner'].includes(e.data?.stationRole)){openNavyDutyStation(e);return;}if(['security','weapons'].includes(e.data?.stationRole)&&getGunneryView(game).assigned){openGunneryStation();return;}if(game.state.npcContract?.active){livelihoodUI.openDuty();return;}const role=e.data?.stationRole??e.data?.role??'helm',hull=currentDamageHull(),systems=getShipClass(hull.classId).systems;if(testSession&&!['helm','engineering','medical','security','weapons'].includes(role)){openTestControls();return;}dialog.open(e.name??role+' station','station',{eyebrow:'CREW STATION / '+role.toUpperCase()});dialog.html(`<p>${esc({helm:'Take command of the vessel. The ship keeps its momentum when a captain leaves the helm.',engineering:`Keep the hull together. Each repair cycle restores ${systems.repairHull} hull and consumes ${systems.repairEnergy} reactor charge. Local fires and breaches need damage control.`,medical:'Treat the captain and injured crew using the medical systems.',navigation:'Plot the route to the next system. Fold travel is unlocked through ship upgrades.',scanner:'Work the sensors and investigate signals.',security:'Guard the airlocks. During a boarding attack, hold FIRE to engage hostile crew.',weapons:'Operate the ship weapons while another captain pilots.'}[role]??'Work alongside the rest of your crew.')}</p>`);
+function openStation(e){if(game.state.npcContract?.military?.branchId==='navy'&&['engineering','navigation','scanner'].includes(e.data?.stationRole)){openNavyDutyStation(e);return;}if(!testSession&&game.state.boarding?.phase!=='active'&&['security','weapons'].includes(e.data?.stationRole)&&getGunneryView(game).assigned){openGunneryStation();return;}if(game.state.npcContract?.active&&!(game.state.boarding?.phase==='active'&&['security','weapons'].includes(e.data?.stationRole))){livelihoodUI.openDuty();return;}const role=e.data?.stationRole??e.data?.role??'helm',hull=currentDamageHull(),systems=getShipClass(hull.classId).systems;if(testSession&&!['helm','engineering','medical','security','weapons'].includes(role)){openTestControls();return;}dialog.open(e.name??role+' station','station',{eyebrow:'CREW STATION / '+role.toUpperCase()});dialog.html(`<p>${esc({helm:'Take command of the vessel. The ship keeps its momentum when a captain leaves the helm.',engineering:`Keep the hull together. Each repair cycle restores ${systems.repairHull} hull and consumes ${systems.repairEnergy} reactor charge. Local fires and breaches need damage control.`,medical:'Treat the captain and injured crew using the medical systems.',navigation:'Plot the route to the next system. Fold travel is unlocked through ship upgrades.',scanner:'Work the sensors and investigate signals.',security:'Guard the airlocks. During a boarding attack, hold FIRE to engage hostile crew.',weapons:'Operate the ship weapons while another captain pilots.'}[role]??'Work alongside the rest of your crew.')}</p>`);
  const helmState=role==='helm'?currentHelmAction():null;
  const items=[];const captured=role==='helm'&&(game.state.boarding?.kind==='assault'||game.state.multiplayer?.hostileBoarding||game.state.multiplayer?.canTakeHelm);if(captured)items.push({label:'Take this ship’s helm',detail:'Clear its defenders first. You will pilot this hull with its existing damage.',disabled:game.state.boarding?.phase==='active',action:()=>runDeckAction('takeCapturedHelm')});else if(network)items.push({label:helmState?.label||`Work ${role}`,detail:helmState?(helmState.reason||helmState.detail):'Your assigned station is saved with your captain.',disabled:helmState?.enabled===false,action:async()=>{if(result(await invoke('takeStation',{role,entityId:e.id})))dialog.close();}});else if(role==='helm')items.push({label:helmState?.label||'Take the helm',detail:helmState?.reason||helmState?.detail,disabled:helmState?.enabled===false,action:()=>runDeckAction('quickHelm')});
  if(role==='engineering')items.push({label:'Repair the hull',disabled:!network&&game.state.interior?.kind==='enemy',detail:!network&&game.state.interior?.kind==='enemy'?'Take this hull’s helm before operating its systems.':`Cost ${systems.repairEnergy} reactor charge · You have ${Math.floor(hull.energy)} · Restores ${systems.repairHull} hull points.`,action:async()=>{if(result(await invoke('crewAction',{action:'repair'})))openStation(e);}});
@@ -1031,10 +1096,10 @@ function updateMobileHUD(ship,target){
  $('mobileReadout').classList.toggle('danger',!!alarm||(onFoot?game.state.person.health<30:ship.hull/ship.maxHull<.3));
  $('mobileReadout').setAttribute('aria-label',`${$('mobileLocation').textContent}. ${$('mobileHealth').textContent}. ${onFoot?'':$('mobileShield').textContent+'. '}${$('mobileSpeed').textContent}. Open ship status.`);
  $('stick').setAttribute('aria-label',onFoot?'Walking joystick. Move toward an open passage.':'Steering and thrust joystick. Point where you want to fly; release to coast.');
- $('aimStick').setAttribute('aria-label',gunnery.active?'Ship battery aim and fire joystick. The NPC captain flies.':onFoot?'Aim and fire joystick. Point toward a hostile.':'Strafe joystick. Move left or right relative to the bow. Vertical movement does nothing.');
+ $('aimStick').setAttribute('aria-label',gunnery.active?'Selected ship battery aim and fire joystick. Tap a battery to change firing direction.':onFoot?'Aim and fire joystick. Point toward a hostile.':'Strafe joystick. Move left or right relative to the bow. Vertical movement does nothing.');
  hudText($('aimKnob').querySelector('span'),onFoot||gunnery.active?'✛':'↔');
  const visible=playing&&pointerAimAvailable();if($('mobileWeapon').hidden===visible){$('mobileWeapon').hidden=!visible;labelLayoutDirty=true;}
- if(visible){hudText($('mobileWeaponState'),$('weaponState').textContent);const remaining=personHostiles().filter(e=>e.health>0).length;hudText($('mobileAim'),gunnery.active?'Ship battery · NPC pilot flies':combatPreview?.blocked?'Wall in the way':combatPreview?.target?'Target · '+(combatPreview.target.name??'Hostile'):remaining?remaining+' hostile'+(remaining===1?'':'s'):isFoggedSite(surface)?'Lamplight only':'No movement detected');}
+ if(visible){hudText($('mobileWeaponState'),$('weaponState').textContent);const remaining=personHostiles().filter(e=>e.health>0).length;hudText($('mobileAim'),gunnery.active?(gunnery.batteryName||'Ship battery')+' · '+(gunnery.direction||'Forward'):combatPreview?.blocked?'Wall in the way':combatPreview?.target?'Target · '+(combatPreview.target.name??'Hostile'):remaining?remaining+' hostile'+(remaining===1?'':'s'):isFoggedSite(surface)?'Lamplight only':'No movement detected');}
  $('contextButton').dataset.action=gunnery.active?'leave-gunnery':target?.type??'none';
  if(onFoot&&toolTrayOpen)setToolTray(false);
 }
@@ -1065,6 +1130,7 @@ let dismissedRoute='',dismissedGuideEpisode='';
 function guideEpisode(context){return JSON.stringify([tutorial.controller?.profileId,context.mode,context.systemId,context.locationId,context.vesselId,context.nearby?.id,context.boarding?.phase,context.device,tutorial.controller?.revision]);}
 function routePrompt(){
  if(settings.guidance!=='simple')return null;
+ const recovery=game.militaryRecoveryStatus?.();if(recovery&&!recovery.arrived){const title=recovery.detained?'Military detention':recovery.passage?'Your passage home':'A passenger berth home',body=recovery.detained?'Your five-minute term is recorded. Release is automatic. Your service will cover your journey home.':recovery.passage?(game.npcContractStatus?.()?.task||'Captain Vale has the helm. Use the airlock when docked.'):'Open Return passage to book a free military berth to '+recovery.home.name+'. Your clearance is personal; you travel on the NPC pilot’s ship.';return{id:'route:recovery:'+recovery.status,title,body,compactBody:body,flow:'route',controlTarget:'recoveryAction'};}
  const military=activeMilitaryCareer();if(military)return militaryCareerPrompt(military,{mode:game.state.mode,nearby:nearby(),gunnery:getGunneryView(game).active,touch:touchLayout});
  if(game.state.mode!=='person'||personCombat()||game.state.boarding||game.openingMissionStatus?.().active)return null;
  const s=game.state,job=s.missions.find(m=>m.status!=='completed'&&m.targetBody===s.locationId&&m.targetSystem===s.systemId),entities=surface?.entities??[],dockExit=currentDisembarkAction();
@@ -1102,7 +1168,7 @@ function showCoach(prompt){
 function updateGuidance(target){
  if(!playing||dialog.opened||viewPanelOpen){hideCoach();return;}selectGuide();
  const context=guidanceContext(target),prompt=tutorial.update(context),opening=game.openingMissionStatus?.(),military=activeMilitaryCareer();
- const service=settings.guidance==='simple'&&military?militaryCareerPrompt(military,{mode:game.state.mode,nearby:target,gunnery:getGunneryView(game).active,touch:touchLayout}):null;
+ const recovery=game.militaryRecoveryStatus?.(),service=settings.guidance==='simple'&&recovery&&!recovery.arrived?routePrompt():settings.guidance==='simple'&&military?militaryCareerPrompt(military,{mode:game.state.mode,nearby:target,gunnery:getGunneryView(game).active,touch:touchLayout}):null;
  const intro=!military&&settings.guidance==='simple'&&opening?.active&&!context.combat.active&&!context.ship.threat&&!game.state.boarding&&!game.state.cosmicWarning&&!game.state.npcContract?.active?openingPrompt(opening,{mode:game.state.mode,touch:touchLayout,nearby:target,perspective:currentPerspectiveAction(),mining:context.mining,interior:!!game.state.interior}):null;
  let next=damageGuide(target)??service??(military?null:intro??prompt)??(dismissedGuideEpisode===guideEpisode(context)?null:routePrompt());
  if(next?.id===dismissedRoute)next=null;showCoach(next);
@@ -1115,6 +1181,7 @@ function recordGuideEvent(event){
 }
 function guideMotionState(){const s=game.state,ship=network?.predictedShip??s.ship,p=s.person;return {mode:s.mode,ship:{x:ship.x,y:ship.y,vx:ship.vx,vy:ship.vy,angle:ship.angle},person:{x:p.x,y:p.y,health:p.health,down:p.down}};}
 function requestActionHelp({repeat=false}={}){
+ const recovery=game.militaryRecoveryStatus?.();if(recovery&&!recovery.arrived){openRecoveryStatus();return;}
  if(activeMilitaryCareer()){militaryCareerUI.open();return;}
  if(getGunneryView(game).active){openCombatHelp();return;}
  dialog.close();selectGuide();const context=guidanceContext();tutorial.update(context);
@@ -1137,7 +1204,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.5.3',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.16.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }
@@ -1173,7 +1240,7 @@ function frame(now){const gunnery=syncGunneryPresentation();frameMonitor.frame(n
     else{ensureSurface();advanceOnlinePerson();if(gunnery.active)network.predictShip(dt,{});}
   }
  }
- else if(active){stepAccumulator+=dt;let count=0;while(stepAccumulator>=1/60&&count<10){game.step(1/60,input);if(game.state.mode==='person'){ensureSurface();game.state.person.speed=(input.boost?155:112)*(game.characterEffects?.walkSpeed??1);if(surface&&game.state.person.health>0&&!game.state.person.down)movePerson(surface,game.state.person,input.x,input.y,1/60);else game.state.person.moving=false;}stepAccumulator-=1/60;count++;}}
+ else if(active||playing&&!document.hidden&&game.militaryRecoveryStatus()?.detained&&dialog.kind!=='settings'){hudDirty=true;stepAccumulator+=dt;let count=0;while(stepAccumulator>=1/60&&count<10){game.step(1/60,input);if(game.state.mode==='person'){ensureSurface();game.state.person.speed=(input.boost?155:112)*(game.characterEffects?.walkSpeed??1);if(surface&&game.state.person.health>0&&!game.state.person.down)movePerson(surface,game.state.person,input.x,input.y,1/60);else game.state.person.moving=false;}stepAccumulator-=1/60;count++;}}
  else stepAccumulator=0;
  if(active&&game.state.mode==='person'){if(!armedOnFoot()&&input.fire&&!wasFire)interact();if(input.mine&&!wasMine&&!dialog.opened)openJournal('missions');if(game.state.person.moving)audio.play('footstep');}wasFire=!!input.fire;wasMine=!!input.mine;tutorial.observe(input,guideBefore,guideMotionState(),dt,{active,combat:personCombat()});processEvents();if(active&&game.state.pendingEncounter)openEncounter(game.getEncounter());saveTimer+=dt;if(saveTimer>12){saveNow();saveTimer=0;}if(active){if(game.state.exploration){const sound=audio.siteAtmosphere(elapsed,surface?.atmosphere);if(sound)recordCombatFeed(sound);}else audio.siteSoundKind=null;}
  }else{stepAccumulator=0;wasFire=false;wasMine=false;}

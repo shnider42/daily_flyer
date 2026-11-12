@@ -27,18 +27,27 @@ export function projectGunneryInput(input,status,ship,{pointer=null,toWorld=null
 export function gunneryWeaponStatus(status){
  if(!status?.active)return null;
  const lowPower=finite(status.energy)<finite(status.energyCost),cycling=finite(status.cooldownRemaining)>0;
- return{name:'Ship pulse battery',state:lowPower?'LOW POWER':cycling?'CYCLING':status.canFire===false?'STANDBY':'READY',
+ return{name:status.batteryName||'Ship pulse battery',state:lowPower?'LOW POWER':cycling?'CYCLING':status.canFire===false?'STANDBY':'READY',
   detail:`${Math.round(finite(status.range))} m range · ${finite(status.energyCost)} charge per volley`,
-  instruction:'NPC pilot flies. Aim the battery and hold FIRE. Back to deck leaves the station view.'};
+  instruction:`${status.pilotLabel||'The helm controls flight'}. Aim and hold FIRE. ${status.batteryCount>1?'Select a battery with 1–4 or its button. ':''}Back to deck leaves this view.`};
+}
+
+/** Explain a traverse limit using the other real mounts, relative to the current bow. */
+export function gunneryAimHint(status,ship,input={}){
+ const reticle=gunneryReticle(status,ship,input);if(!reticle)return '';
+ if(!reticle.limited)return `${status.direction||'Forward'} arc · ${Math.round(reticle.half*360/Math.PI)}° traverse`;
+ const desired=reticle.desiredAngle;
+ const covering=(status.batteries||[]).find(battery=>!battery.selected&&Math.abs(Math.atan2(Math.sin(desired-clampGunneryAim(desired,battery.arcCenter,battery.arcHalfAngle)),Math.cos(desired-clampGunneryAim(desired,battery.arcCenter,battery.arcHalfAngle))))<.01);
+ return covering?`Outside this arc · Select ${covering.index+1} ${covering.name}`:'Traverse limit · Aim inside the marked arc';
 }
 
 /** The reticle uses the same physical traverse clamp as the authoritative guns. */
 export function gunneryReticle(status,ship,input={}){
  if(!status?.active||!ship)return null;
  const center=finite(status.arcCenter,finite(ship.angle)),half=Math.max(0,Math.min(Math.PI,finite(status.arcHalfAngle)));
- const desired=input.aiming&&Math.hypot(finite(input.aimX),finite(input.aimY))>.1?Math.atan2(input.aimY,input.aimX):finite(status.aimAngle,center);
+ const aimX=finite(input.aimX),aimY=finite(input.aimY),desired=input.aiming&&Math.hypot(aimX,aimY)>.1?Math.atan2(aimY,aimX):finite(status.aimAngle,center);
  const angle=clampGunneryAim(desired,center,half),range=Math.max(0,finite(status.range)),origin={x:finite(status.origin?.x,finite(ship.x)),y:finite(status.origin?.y,finite(ship.y))};
- return{angle,center,half,range,origin,x:origin.x+Math.cos(angle)*range,y:origin.y+Math.sin(angle)*range,
+ return{angle,desiredAngle:desired,center,half,range,origin,x:origin.x+Math.cos(angle)*range,y:origin.y+Math.sin(angle)*range,
   limited:Math.abs(Math.atan2(Math.sin(desired-angle),Math.cos(desired-angle)))>.01};
 }
 
@@ -48,6 +57,11 @@ export function drawGunneryOverlay(ctx,view,{status,ship,input={},rasterScale=1}
  const point=(x,y)=>({x:x*zoom+finite(view.offsetX),y:y*zoom+finite(view.offsetY)});
  const origin=reticle.origin,start=point(origin.x,origin.y),end=point(reticle.x,reticle.y),color=reticle.limited?'#e5ba78':'#9ddbd2';
  ctx.save();
+ for(const battery of status.batteries||[]){
+  const mount=point(battery.origin.x,battery.origin.y),tip=point(battery.origin.x+Math.cos(battery.arcCenter)*80,battery.origin.y+Math.sin(battery.arcCenter)*80);
+  pixelLine(ctx,mount.x,mount.y,tip.x,tip.y,battery.selected?'#f2d48c':'#77909e99',r);
+  pixelRect(ctx,battery.selected?'#ffe0a0':'#77909e',mount.x-2*r,mount.y-2*r,4*r,4*r);
+ }
  for(const angle of [reticle.center-reticle.half,reticle.center+reticle.half]){
   const boundary=point(origin.x+Math.cos(angle)*reticle.range,origin.y+Math.sin(angle)*reticle.range);
   pixelLine(ctx,start.x,start.y,boundary.x,boundary.y,'#477b8066',r);

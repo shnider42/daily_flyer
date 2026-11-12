@@ -271,10 +271,24 @@ test('a gunner’s exterior display returns to the same station, keeps the NPC h
  assert.deepEqual(f.calls.map(call=>call.name),['enterGunnery','leaveGunnery']);assert.equal(game.state.credits,before.credits);assert.deepEqual(pose(game.state.ship),before.ship);
 });
 
-test('ordinary security consoles keep crew actions and are not mistaken for an assigned NPC gunner post',()=>{
+test('an owned security console offers exterior guns without claiming an NPC pilot or losing the crew manifest',()=>{
  const game=new Game('ordinary-security');assert.equal(game.enterCabin().ok,true);const f=fixture({game});f.call('ensureSurface');
- const station=f.context.surface.entities.find(entity=>entity.data?.stationRole==='security');f.call('openStation',station);
- assert.equal(game.gunneryStatus().assigned,false);assert.equal(f.context.dialog.kind,'station');assert.equal(f.context.dialog.items.some(item=>item.label==='Take the gunner view'),false);
+ const station=f.context.surface.entities.find(entity=>entity.data?.stationRole==='security');Object.assign(game.state.person,{x:station.x,y:station.y});f.call('openStation',station);
+ const status=game.gunneryStatus();assert.equal(status.assigned,true);assert.equal(status.available,true);assert.equal(status.npcPilot,false);assert.equal(f.context.dialog.kind,'gunnery-station');
+ assert.equal(f.context.dialog.items.find(item=>item.label==='Take the gunner view').disabled,false);assert.ok(f.context.dialog.items.some(item=>item.label==='Crew manifest'));
+ assert.match(f.context.dialog.htmlText,/With no pilot, the ship coasts/);assert.equal(game.state.mode,'person');assert.equal(game.state.stationView,null);
+ f.context.testSession={};f.call('openStation',station);assert.equal(f.context.dialog.kind,'station');assert.equal(f.context.dialog.items.some(item=>item.label==='Take the gunner view'),false,'test exercises keep their isolated station commands');
+});
+
+test('a security console keeps the deck-defense controls during boarding instead of offering a blocked gun display',()=>{
+ const owned=new Game('security-under-attack');assert.equal(owned.enterCabin().ok,true);
+ for(const game of [owned,navyGame()]){
+  const f=fixture({game});f.call('ensureSurface');
+  const station=f.context.surface.entities.find(entity=>entity.data?.stationRole==='security');Object.assign(game.state.person,{x:station.x,y:station.y});
+  game.state.boarding={phase:'active',kind:'defense'};f.call('openStation',station);
+  assert.equal(f.context.dialog.kind,'station');assert.ok(f.context.dialog.items.some(item=>item.label==='Return to the defense'));
+  assert.ok(f.context.dialog.items.some(item=>item.label==='Crew manifest'));assert.equal(f.context.dialog.items.some(item=>item.label==='Take the gunner view'),false);
+ }
 });
 
 test('losing an exterior station grant clears held trigger input and chooses the physical deck camera',()=>{

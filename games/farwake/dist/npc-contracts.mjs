@@ -10,6 +10,8 @@ import { applyGunneryAim, gunneryStatus, gunneryStation } from './gunnery.mjs';
 import { getHullSystems } from './hull-systems.mjs';
 import { navyMember, isNavyParticipant, navyServiceProof } from './navy-service.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
+import { stepMilitaryPassage, militaryPassageStatus, settleMilitaryPassage } from './military-recovery.mjs';
+import { shipRecoveryContext } from './ship-recovery.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -150,7 +152,7 @@ export function createNavySortie(game,mission,{id,employeeId=game.playerId||'loc
   contract.military.participants=Object.fromEntries(entries.slice(0,10).map(([captainId,member])=>[captainId,{...member,role:member?.role||'gunner',active:true,watchSeconds:0,shots:0,damage:0,targets:[],settled:false}]));
  }
  inventory.cargo={ore:8,crystal:0};inventory.crew[0].name='Commander Isen';inventory.crew[0].greeting=spec.kind?'I have the helm. Keep your watch at the gunnery console. A clear scope is still a watch; report any contact and wait for my return-to-port call.':'I have the helm. Your post is the gunnery console. Use its exterior display and aim the battery yourself; we will return to Morrow for your debrief.';
- inventory.crew[1].name='Chief Nara';inventory.crew[1].greeting='The forward battery has a wide firing arc. Lead moving contacts, watch the reactor, and return to the deck whenever you need to.';
+ inventory.crew[1].name='Chief Nara';inventory.crew[1].greeting='You control four batteries: fore, port, starboard, and aft. Use their buttons or keys 1–4 in the gun view to cover each direction. The marked fan shows your selected battery’s firing arc. Each gun cycles separately, but they share the reactor.';
  return result;
 }
 
@@ -170,7 +172,7 @@ function spawnNavyTargets(game,contract){
    boardingCooldown:100000,professionJobId:contract.id,professionOwner:contract.employeeId,professionContributors:{},crewContractId:contract.id,militaryOperationId:contract.military.operationId};
   game.system.enemies.push(enemy);record.spawned.push(enemy);
  }
- emit(game,spec.training?'Commander: practice hulls are live. At the gunnery console, open the exterior display, aim and fire. Only your confirmed work counts.':spec.kind?'Commander: new contacts, closing fast. Weapons free on the marked interceptors. Keep the lane clear.':'Commander: the marked raiders are ahead. Take the gunnery display and disable each contact. I will hold the approach.');
+ emit(game,spec.training?'Commander: practice hulls are live. Open the gunnery display; choose fore, port, starboard, or aft with the battery buttons or 1–4. Aim within its marked fan and fire. Only your confirmed work counts.':spec.kind?'Commander: new contacts, closing fast. Weapons free on the marked interceptors. Switch batteries to cover your side or stern.':'Commander: the marked raiders are ahead. Take the gunnery display and disable each contact. Switch batteries if they pass our beam or stern. I will hold the approach.');
 }
 function observeNavyWork(game,contract){
  const spec=contract.navy,record=game._record(),members=contract.military.participants;
@@ -513,6 +515,7 @@ function stepModernContract(game,contract,dt,input){
 export function stepNpcContract(game,delta,input={}){
  const contract=active(game);if(!contract||game.state.ship.id!==contract.vesselId)return;
  const dt=clamp(finite(delta),0,.1);if(!dt)return;
+ if(contract.repatriation){stepMilitaryPassage(game,contract,dt);updateCabin(game);return;}
  if(navy(contract))return stepNavyContract(game,contract,dt,input);
  if(!game._sharedWorld&&game.state.stationView==='gunnery')applyGunneryAim(game,game,input);
  if(modern(contract))return stepModernContract(game,contract,dt,input);
@@ -643,17 +646,18 @@ function performModernWork(game,contract,action,{worker=game,playerId=worker.pla
 
 /** Actor is the employer vessel; worker is the real player aboard it. */
 export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution,input={}}={}){
+ if(game.state.npcContract?.repatriation)return fail('You are a repatriation passenger. The transport crew operates this vessel.','military-passage');
  const contract=active(game),definition=contract&&roleFor(contract.roleId);
  if(!contract||game.state.ship.id!==contract.vesselId)return fail('You are not aboard an active paid crew watch.','contract');
  if(navy(contract)){
   if(action!=='fire')return fail('The Navy gunner operates the exterior battery from the gunnery console.','role');
-  if(contract.phase!=='working')return fail('The commander will clear the marked range before live fire.','phase');
+  if(!['outbound','working','returning'].includes(contract.phase))return fail('The ship must be under way before the gun batteries can fire.','phase');
   const access=workerAccess(game,contract,worker,playerId,'security');if(!access.ok)return access;
   const gun=gunneryStatus(game,{worker});
   if(!gun.active)return fail('Open the gunnery display at the security console before firing.','gunnery');
   if(gun.cooldownRemaining>0)return fail('The pulse emitter is cycling.','cooldown');
   const control=applyGunneryAim(game,worker,input),result=game.fireWeapons(playerId,control);
-  if(result.ok){const member=navyMember(contract,playerId);if(member)member.shots=finite(member.shots)+1;contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;worker.state.person.gunneryReadyAt=game.state.stats.time+getHullSystems(game.state.ship.classId).pulseCooldown;observeNavyWork(game,contract);}
+  if(result.ok){const member=navyMember(contract,playerId);if(member)member.shots=finite(member.shots)+1;contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;worker.state.person.gunneryReadyAt=worker.state.stats.time+gun.cooldown;observeNavyWork(game,contract);}
   return result;
  }
  if(modern(contract))return performModernWork(game,contract,action,{worker,playerId,sectionId,taskId,solution,input});
@@ -685,6 +689,7 @@ export function performNpcContractWork(game,action,{worker=game,playerId=worker.
 
 export function requestNpcContractReturn(game){
  const contract=active(game);if(!contract)return fail('There is no active crew watch.','contract');
+ if(contract.repatriation)return fail('The repatriation pilot is taking you home. Use the airlock when the ship docks.','military-passage');
  if(contract.phase==='docked')return ok({text:'The ship is moored. Collect the recorded pay and go ashore.'});
  if(contract.phase==='failed')return fail('The employer’s ship needs emergency recovery.','destroyed');
  if(modern(contract)&&contract.assignment.eva.active)retractEva(game,contract,employeeFor(game,contract));
@@ -728,6 +733,7 @@ function modernStatus(game,contract){
 
 export function npcContractStatus(game){
  const contract=active(game);if(!contract)return null;
+ if(contract.repatriation)return militaryPassageStatus(game,contract);
  if(navy(contract)){
   const point=gunneryStation(contract.classId),identity=game.state.multiplayer?.captainId||game.playerId,proof=navyServiceProof(contract,identity);
   const neutralized=(contract.work.targets||[]).filter(target=>target.neutralized).length,total=contract.navy.targetIds.length;
@@ -783,6 +789,7 @@ export function settleNavyParticipant(game,contract,worker,{interrupted=false,di
 /** Normal completion returns home; an airlock exit pays only work earned so far. */
 export function settleNpcContract(game,{interrupted=false,ship=game.state.ship,disembarkingAt=null}={}){
  const contract=active(game);if(!contract)return fail('There is no unpaid crew watch.','contract');
+ if(contract.repatriation)return settleMilitaryPassage(game,contract,{interrupted,ship,disembarkingAt});
  if(contract.military?.sharedOperation)return settleNavyParticipant(game,contract,employeeFor(game,contract)||game,{interrupted,disembarkingAt});
  if(contract.paid||(game.state.npcContractHistory||[]).some(entry=>entry.id===contract.id))return fail('This watch has already been settled.','paid');
  const returned=contract.phase==='docked'&&contract.dockedAt===contract.origin.bodyId&&(!disembarkingAt||disembarkingAt.id===contract.origin.bodyId)&&ship.id===contract.vesselId&&ship.hull>0&&distance(ship,contract.dockPoint)<=60&&game.state.systemId===contract.origin.systemId;
@@ -812,6 +819,8 @@ export function settleNpcContract(game,{interrupted=false,ship=game.state.ship,d
 
 function restorePersonal(game,contract,{body=null}={}){
  const personal=contract.personal;if(!personal)return;
+ const systemId=body?game.state.systemId:contract.origin.systemId;
+ if(systemId!==game.state.systemId){game._persistRuntime();game.state.systemId=systemId;game._loadSystem(systemId);}
  game.state.ship=personal.ship;
  for(const field of inventoryFields)game.state[field]=personal[field];
  game.state.mode='person';game.state.systemId=body?game.state.systemId:contract.origin.systemId;game.state.locationId=body?.id||contract.origin.bodyId;game.state.interior=null;game.state.exploration=null;game.state.person.weaponDrawn=false;
@@ -831,7 +840,7 @@ export const NpcContractRules={
   // needs the same legacy fallback as the currently occupied employer hull.
   for(const collection of [this.state.crew,this.state.formerCrew,this.state.memorial,this.state.npcContract?.personal?.crew,this.state.npcContract?.personal?.formerCrew,this.state.npcContract?.personal?.memorial])
    if(Array.isArray(collection))for(const member of collection)if(member&&typeof member==='object')member.species=normalizeSpecies(member.species);
-  if(contract&&roleFor(contract.roleId)&&contract.origin&&contract.work){
+  if(contract&&(roleFor(contract.roleId)||contract.repatriation===true&&contract.roleId==='passenger'&&contract.route&&contract.destination)&&contract.origin&&contract.work){
    contract.clock=Math.max(0,finite(contract.clock));contract.phaseClock=Math.max(0,finite(contract.phaseClock));
    // Older personal sorties stored contribution on the work record. Restore
    // that earned work and start a personal watch clock without inventing time.
@@ -877,7 +886,7 @@ export const NpcContractRules={
  cancelNpcContract(){return requestNpcContractReturn(this);},
  completeNpcContract(){
   if(this._sharedWorld)return fail('Settle this shared watch through the galaxy authority.','authority');
-  const contract=active(this),result=settleNpcContract(this);if(result.ok)restorePersonal(this,contract);return result;
+  const contract=active(this),result=settleNpcContract(this);if(result.ok)restorePersonal(this,contract,contract.repatriation?{body:this.system.bodies.find(body=>body.id===result.destination?.bodyId)}:{});return result;
  },
  _disembarkNpcContract(body){
   const contract=active(this);if(!contract)return null;
@@ -893,8 +902,14 @@ export const NpcContractRules={
  },
  recoverNpcContract(message){
   const contract=active(this);if(!contract||this._sharedWorld)return false;
-  settleNpcContract(this,{interrupted:true});restorePersonal(this,contract);
-  this.state.person.health=Math.max(35,this.state.person.health||0);this.state.person.down=false;this.state.stats.rescues++;this._recoveryTimer=8;
-  this._event?.('rescue',{text:message||'An emergency shuttle brought you back to the hiring port. Your own ship remains where you parked it.'});return true;
+  const ship=this.state.ship,context=shipRecoveryContext(this,ship,{sourceKind:ship.destroyed||ship.hull<=0?'ship-destroyed':'deck-defeat'});
+  const body=this.system.bodies.find(body=>body.id===context.destination?.bodyId);if(!body)return false;
+  // The personal hull belongs to its original berth, even after a remote Navy
+  // deployment. Restoring inventory is not a transfer or a replacement vessel.
+  const personal=contract.personal?.ship;
+  if(personal&&!personal.unowned&&!this.state.livelihoods.parkedShip)this.state.livelihoods.parkedShip={...clone(personal),systemId:contract.origin.systemId,bodyId:contract.origin.bodyId,vesselId:personal.id};
+  settleNpcContract(this,{interrupted:true});restorePersonal(this,contract,{body});
+  this._arriveAsPassenger(body);
+  this.completeShipRecovery({...context,...(message?{message}:{})});return true;
  }
 };

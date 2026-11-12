@@ -47,7 +47,7 @@ export const LivelihoodRules={
   // The shared authority sets this only inside a role-checked command against
   // the actual borrowed hull. Permission never changes personal ownership.
   if(this._permittedVessel===this.state.ship&&this.hasActiveVessel)return this._ok();
-  if(!this.ownsShip)return this._fail('You do not own a ship yet. Local work, paid passage and crew contracts can help you earn one.','no-ship');
+  if(!this.ownsShip)return this._fail(this.state.fleet.history?.some(entry=>entry.type==='loss')?'Your ship was lost. Book passenger passage, board a permitted crew ship, or purchase another hull.':'You do not own a ship yet. Local work, paid passage and crew contracts can help you earn one.','no-ship');
   if(atPort&&this.atInhabitedPort&&!this.canUseOwnShipHere()){
    const berth=this.state.livelihoods?.parkedShip,body=this.galaxy.find(system=>system.id===berth?.systemId)?.bodies.find(body=>body.id===berth?.bodyId);
    return this._fail(body?`Your ship is still at ${body.name}. Buy passage back before launching or fitting it.`:'Your ship is not at this landing. Return to its port before launching or fitting it.','ship-location');
@@ -79,6 +79,7 @@ export const LivelihoodRules={
   return this.system.bodies.filter(body=>body.id!==this.state.locationId&&isPassengerPort(body)).map(body=>this.passengerQuote(body.id));
  },
  passengerQuote(bodyId){
+  const custody=this.militaryRecoveryAccess?.('takePassengerTransit');if(custody&&!custody.ok)return custody;
   const origin=landing(this),body=this.system.bodies.find(body=>body.id===bodyId),credits=Math.floor(this.state.credits);
   if(!this.atInhabitedPort||!origin)return {...this._fail('Buy passenger passage at an inhabited port.','mode'),credits};
   if(!body||!isPassengerPort(body)||body.id===origin.id)return {...this._fail('Choose another inhabited planet or station in this system.','target'),credits};

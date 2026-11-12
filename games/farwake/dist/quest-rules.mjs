@@ -328,7 +328,7 @@ export const NarrativeRules={
   for(const id of ['last_fare','paper_bounty']){const record=state.quests[id];if(!record||record.status!=='active')continue;
    if(id==='last_fare'&&record.stage>=1&&record.stage<=2||id==='paper_bounty'&&record.huntOutcome==='captured'){
     record.shipId=this.state.ship.id;record.evacuated=true;
-    this._log('A berth on the recovery ship',id==='last_fare'?'Nessa survived in the rescue capsule. Her passage continues aboard your recovery ship.':'Rook survived the evacuation in custody. The warrant still needs a hearing.','passage');
+    this._log('Survivors accounted for',id==='last_fare'?'Nessa survived in the rescue capsule. Her onward passage will continue when you have a ship again.':'Rook survived the evacuation in custody. The warrant still needs a hearing.','passage');
    }
   }
  },

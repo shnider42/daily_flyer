@@ -23,6 +23,7 @@ import {drawAlienCharacter} from './people-art.mjs';
 import {isWildlifeSpecies,chooseNpcSpecies,normalizeSpecies,speciesName} from './species.mjs';
 import {SPECIES_DISTRICT_NAMES,SPECIES_DISTRICT_RESIDENTS,SPECIES_INTERIOR_RESIDENTS} from './species-content.mjs';
 import {militaryInterior} from './military-sites.mjs';
+import {detentionSurface} from './military-recovery.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -571,6 +572,7 @@ function addQuestEntities(m,location){
 /** Build a walkable place from a body object or authored body ID. */
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
+ if(location.kind==='detention')return detentionSurface(location,seed);
  const kind=kindOf(location);const m=kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,

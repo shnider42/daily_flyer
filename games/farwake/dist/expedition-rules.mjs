@@ -75,6 +75,7 @@ export const ExpeditionRules={
     if(recovered){const cost=Math.floor(this.state.credits*.1);this.state.credits-=cost;this.state.person.health=Math.max(1,Math.round((this.state.person.maxHealth||100)*.35));this._event('rescue',{text:`A field team returned you to the landing zone. Recovery cost ${cost} cr. Your ship and discoveries remain where you left them.`});}
     else this._event('site-exited',{text:`Back outside · ${body.name}`});
     this._siteDownTime=0;this._refreshJobs();
+    if(recovered){const captured=this.recoverMilitaryCasualty?.({originFactionId:body.faction||this.currentSystem.faction,position:body,sourceKind:'ground-casualty'});if(captured)return captured;}
     return this._ok({body,text:recovered?'Recovered at the landing zone.':`You step back onto ${body.name}.`});
   },
   siteAction(entityId,action='inspect',optionId){

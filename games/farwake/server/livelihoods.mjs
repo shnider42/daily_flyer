@@ -76,7 +76,7 @@ export const LivelihoodAuthority={
   }
   if(result.ok&&name==='completeNpcContract'){
    c.game.state.npcContractHistory=clone(actor.state.npcContractHistory);c.game.state.npcContract=null;
-   this._landCharacter(c,contract.origin.systemId,contract.origin.bodyId);c.surfaceCache=null;
+   this._landCharacter(c,contract.repatriation?result.destination.systemId:contract.origin.systemId,contract.repatriation?result.destination.bodyId:contract.origin.bodyId);c.surfaceCache=null;
    // Completed employers leave the port after their employee disembarks. A
    // destroyed or occupied hull stays in the realm under the ordinary rules.
    if(vessel.dockedAt&&!vessel.destroyed&&!this._hostileOccupied(vessel))this.vessels.delete(vessel.id);

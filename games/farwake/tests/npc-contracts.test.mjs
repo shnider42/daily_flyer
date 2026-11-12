@@ -138,9 +138,9 @@ test('save and restore keep employer, damaged compartment, actual patient, and p
 test('emergency recovery never grants the employer hull or destroys the parked personal ship',()=>{
  for(const startMode of ['regular','hardcore']){
   const game=atPort(`rescue-${startMode}`,{startMode}),ship=game.state.ship,owned=[...game.state.fleet.owned],credits=game.state.credits;
-  ok(game.acceptNpcContract('firehand'));const employerId=game.state.ship.id,origin=game.state.npcContract.origin.bodyId;game._rescue('Watch evacuation');
+  ok(game.acceptNpcContract('firehand'));const employerId=game.state.ship.id;game._rescue('Watch evacuation');
   assert.equal(game.state.ship,ship);assert.notEqual(game.state.ship.id,employerId);assert.deepEqual(game.state.fleet.owned,owned);assert.equal(game.state.credits,credits);
-  assert.equal(game.state.mode,'person');assert.equal(game.state.locationId,origin);assert.equal(game.state.npcContract,null);
+  assert.equal(game.state.mode,'person');assert.equal(game.state.locationId,'kettle');assert.equal(game.state.npcContract,null);
   assert.equal(game.state.npcContractHistory.at(-1).wages,0);assert.equal(game.state.npcContractHistory.at(-1).outcome,'interrupted');
  }
 });

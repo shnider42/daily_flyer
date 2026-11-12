@@ -137,7 +137,8 @@ test('a killed owner recovers outside the occupied hull; capture and restart ret
   const restored = new Realm({ id: realm.id, snapshot: realm.document(), persistence: realm.persistence }), recovered = restored.captains.get(defender.id), captured = restored.vessels.get(target.id);
   assert.equal(captured.ship.hull, pose.hull); assert.equal(captured.ship.x, pose.x); assert.equal(captured.ship.y, pose.y); assert.equal(captured.occupation.controllerId, attacker.id);
   restored._restoreAtHome(recovered); assert.equal(recovered.aboard, null); assert.equal(captured.dockedAt, null); assert.equal(captured.ship.hull, pose.hull);
-  assert.notEqual(captured.ship, recovered.game.state.ship, 'A new recovery cutter never aliases the stolen hull.');
+  assert.notEqual(captured.ship, recovered.game.state.ship, 'The unowned compatibility record never aliases the stolen hull.');
+  assert.equal(recovered.ownedVesselId,null);assert.equal(recovered.game.ownsShip,false);
 });
 
 test('hired defenders take real damage and a living guard prevents commandeering the bridge', async () => {
@@ -155,7 +156,7 @@ test('destroying an abandoned source does not teleport the boarder, and destroyi
   realm._command(captain, 'boardEnemy', { id: enemy.id }); const target = realm.vessels.get(captain.aboard), pose = { x: target.ship.x, y: target.ship.y };
   realm._actor(source)._damageShip(9999); realm._syncActor(source); assert.equal(source.ship.hull, 0); assert.equal(source.destroyed, true); assert.equal(captain.aboard, target.id);
   realm._actor(target)._damageShip(9999); realm._syncActor(target); assert.equal(target.ship.hull, 0); assert.equal(target.destroyed, true); assert.equal(captain.aboard, null); assert.equal(captain.game.state.locationId, 'kettle');
-  assert.deepEqual({ x: target.ship.x, y: target.ship.y }, pose); assert.equal(source.ship.hull, 0); assert.notEqual(captain.ownedVesselId, source.id); assert.equal(realm.vessels.get(captain.ownedVesselId).name, 'Recovery cutter');
+  assert.deepEqual({ x: target.ship.x, y: target.ship.y }, pose); assert.equal(source.ship.hull, 0); assert.equal(captain.ownedVesselId,null);assert.equal(captain.game.ownsShip,false);
 });
 
 test('friendly transfers leave physical ships in space and return requires a live nearby tether', async () => {

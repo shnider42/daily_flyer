@@ -60,7 +60,7 @@ test('a captor can dock, retain the selected physical ship, reboard it, and laun
   assert.equal(target.occupation.controllerId,captor.id);
 });
 
-test('mining and fitted upgrades remain with the captured physical hull instead of the defeated owner’s recovery cutter',async()=>{
+test('mining and fitted upgrades remain with the captured physical hull after its defeated owner recovers shipless',async()=>{
   const f=await fixture(),defender=f.captains[1];defender.game.state.cargo.ore=2;defender.game.state.upgrades.fold_1=1;defender.game._updateStats(false);
   const {target,captor}=capturedPlayer(f),{realm,room}=f;
   room.runtime.asteroids=[{id:'audit-rock',x:target.ship.x+100,y:target.ship.y,radius:20,hp:1,maxHp:1,ore:3,crystal:0,angle:0,spin:0}];
@@ -72,14 +72,14 @@ test('mining and fitted upgrades remain with the captured physical hull instead 
   const restored=new Realm({id:realm.id,snapshot:realm.document(),persistence:realm.persistence});assert.equal(restored._inventoryFor(restored.vessels.get(target.id)).cargo.ore,5);
 });
 
-test('ordinary home restoration provisions one recovery cutter when the original was destroyed during a successful capture',async()=>{
+test('ordinary home restoration cannot provision a recovery cutter after the original was destroyed during capture',async()=>{
   const f=await fixture(1),{source,target,captain}=capturedNpc(f),{realm}=f;
   realm._actor(source)._damageShip(9999);realm._syncActor(source);const prizePose={x:target.ship.x,y:target.ship.y,hull:target.ship.hull};
   realm._restoreAtHome(captain);const recoveryId=captain.ownedVesselId;
-  assert.notEqual(recoveryId,source.id);assert.equal(realm.vessels.get(recoveryId).name,'Recovery cutter');assert.equal(captain.game.state.locationId,'kettle');
+  assert.equal(recoveryId,null);assert.equal(captain.game.ownsShip,false);assert.equal(captain.game.state.locationId,'kettle');
   assert.equal(source.destroyed,true);assert.equal(source.ship.hull,0);assert.equal(target.dockedAt,null);assert.deepEqual({x:target.ship.x,y:target.ship.y,hull:target.ship.hull},prizePose);
   const count=realm.vessels.size;realm._restoreAtHome(captain);assert.equal(realm.vessels.size,count);assert.equal(captain.ownedVesselId,recoveryId);
-  const exit=realm._surface(captain).entities.find(entity=>entity.type==='exit');Object.assign(captain.game.state.person,exit);ok(realm._command(captain,'launch',{}));assert.equal(captain.aboard,recoveryId);
+  const exit=realm._surface(captain).entities.find(entity=>entity.type==='exit');Object.assign(captain.game.state.person,exit);assert.equal(realm._command(captain,'launch',{}).ok,false);assert.equal(captain.aboard,null);
 });
 
 test('losing a later pirate raid on an already-captured prize blocks its bunk and never tows the occupied prize home',async()=>{

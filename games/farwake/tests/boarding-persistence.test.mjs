@@ -169,12 +169,13 @@ test('shared destruction and boarding loss hooks prevent automatic ship healing 
   assert.equal(lost,1);assert.equal(origin.hull,0);assert.equal(game.state.person.health,0);assert.equal(game.state.mode,'person');
 });
 
-test('losing a defensive boarding leaves the occupied hull in space and recovers aboard a different cutter',()=>{
+test('losing a defensive boarding leaves the occupied hull in space and recovers ashore without a replacement',()=>{
   const game=withHull(new Game('occupied-loss')),origin=game.state.ship,enemy=placeRaider(game),originId=origin.id;
   Object.assign(origin,{x:0,y:450,shield:0,hull:60});Object.assign(enemy,{x:90,y:450,disabled:false});game.system.enemies=[enemy];
   ok(game.startBoarding(enemy.id));game.state.person.health=0;game.state.person.down=true;game._finishBoarding('lost');
   assert.notEqual(game.state.ship.id,originId);
   const occupied=game.system.enemies.find(e=>e.id===originId);assert.ok(occupied);assert.equal(occupied.hp,60);assert.equal(occupied.x,0);
   assert.equal(occupied.occupation.contested,true);assert.ok(occupied.deck.enemies.some(e=>e.health>0));
-  assert.equal(game.state.mode,'ship');assert.equal(game.state.person.health,55);
+  assert.equal(game.state.mode,'person');assert.equal(game.state.locationId,'kettle');assert.equal(game.state.person.health,55);
+  assert.equal(game.ownsShip,false);assert.equal(game.hasActiveVessel,false);assert.deepEqual(game.state.fleet.owned,[]);
 });

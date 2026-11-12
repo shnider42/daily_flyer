@@ -28,7 +28,8 @@ import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } f
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
-import { GunneryRules, clampGunneryAim } from './gunnery.mjs';
+import { GunneryRules, clampGunneryAim, applyGunneryAim } from './gunnery.mjs';
+import { getGunneryBattery, batteryCooldown, advanceGunneryCooldowns } from './gunnery-batteries.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
 import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
 import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
@@ -36,6 +37,7 @@ import { ExpeditionRules } from './expedition-rules.mjs';
 import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules, militaryPortAccess } from './profession-rules.mjs';
 import { MilitaryCareerRules } from './military-career.mjs';
+import { MilitaryRecoveryRules } from './military-recovery.mjs';
 import { militaryGroundSite } from './military-sites.mjs';
 import { LivelihoodRules, normalizeStartMode } from './livelihoods.mjs';
 import { NpcContractRules } from './npc-contracts.mjs';
@@ -45,6 +47,7 @@ import { expandGalaxy, systemCosmicBodies, applyCosmicHazards } from './galaxy-e
 import { systemContext } from './encounter-context.mjs';
 import { contextualSignals, materializeEncounterContacts, encounterSource, encounterFitsPlace, pendingSourceAvailable, resolvePhysicalEncounter } from './encounter-rules.mjs';
 import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
+import { ShipRecoveryRules } from './ship-recovery.mjs';
 import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInteriorDamage, relocateHullOccupants } from './interior-damage.mjs';
 import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 import { conversation, normalizeConversations } from './npc-dialogue.mjs';
@@ -207,6 +210,7 @@ export class Game {
     this.initializeNarrative();
     this.initializeProfessions();
     this.initializeMilitaryCareer();
+    this.initializeMilitaryRecovery();
     if(this.state.interior?.location?.site?.military)this._restoreExploration();
     this.initializeRescueOccupants();
     this.initializeInteriorDamage();
@@ -255,7 +259,15 @@ export class Game {
   }
   get atInhabitedPort() { return this.state.mode === 'person' && !this.state.interior && hasPortServices(this.currentBody); }
   get cargoUsed() { return Math.max(0, this.state.cargo.ore) + Math.max(0, this.state.cargo.crystal); }
-  get chapter() { return !this.ownsShip?{id:'earn_first_ship',title:'00 · A ship to earn',brief:'Your first hull is still ahead. Every local port has paid work and passage to other inhabited ports.',objective:'Earn credits from local jobs or crew contracts, then buy a used starter ship at an outfitter.',mode:'person',targetSystem:this.state.systemId,targetBody:this.state.locationId||this.state.lastBodyId}:STORY_CHAPTERS.find(c => !this.state.completedChapters.includes(c.id)) || null; }
+  get chapter() {
+    if(!this.ownsShip){
+      const lost=this.state.fleet.history.some(entry=>entry.type==='loss');
+      return {id:lost?'replace_lost_ship':'earn_first_ship',title:lost?'A ship to replace':'00 · A ship to earn',
+        brief:lost?'Your previous hull was lost. You are alive, but recovery does not issue a replacement ship. Paid passage and permitted crew berths can get you moving.':'Your first hull is still ahead. Every local port has paid work and passage to other inhabited ports.',
+        objective:lost?'Arrange onward passage, take paid work, or buy a replacement hull at a shipwright.':'Earn credits from local jobs or crew contracts, then buy a used starter ship at an outfitter.',mode:'person',targetSystem:this.state.systemId,targetBody:this.state.locationId||this.state.lastBodyId};
+    }
+    return STORY_CHAPTERS.find(c=>!this.state.completedChapters.includes(c.id))||null;
+  }
   get activeChapter() { return this.chapter; }
   get playerId() { return this._playerId || 'local'; }
   get worldDirector() { return this._directorShared || this.state.worldDirector; }
@@ -276,6 +288,7 @@ export class Game {
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
     s.ship = { ...fresh.ship, ...(raw.ship || {}) };
     if(raw.ship?.unowned!==true)delete s.ship.unowned;
+    if(raw.ship?.hull===0&&raw.ship?.unowned!==true)s.ship.destroyed=true;
     s.character = normalizeCharacter(raw.character);
     s.characterLocked = raw.characterLocked === true;
     s.explorationRecords = raw.explorationRecords && typeof raw.explorationRecords === 'object' && !Array.isArray(raw.explorationRecords) ? clone(raw.explorationRecords) : {};
@@ -515,6 +528,10 @@ export class Game {
   step(delta, input = {}) {
     const dt=clamp(finite(delta),0,.1);
     if(!dt)return;
+    if(!this._sharedWorld&&!this.state.multiplayer?.serverAuthoritative&&(this.state.ship.destroyed||this.state.ship.hull<=0)&&this.state.interior?.kind!=='enemy'){
+      if(this.state.mode==='person'&&!this.state.interior&&!this.state.npcContract?.active)this.losePersonalVessel();
+      else this._rescue();
+    }
     this.stepPilot(dt,input);
     if(!this._sharedWorld){
       const result=advanceWorldDirector(this.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy});
@@ -530,9 +547,14 @@ export class Game {
   stepPilot(delta, input = {}, options = {}) {
     const dt=clamp(finite(delta),0,.1);
     if(!dt)return;
-    if(!this._sharedWorld&&this.validateGunnery())input={...input,x:0,y:0,thrust:0,turn:0,strafe:0,boost:false,brake:false,mine:false};
+    if(!this._sharedWorld&&this.validateGunnery()){
+      applyGunneryAim(this,this,input);
+      input={...input,x:0,y:0,thrust:0,turn:0,strafe:0,boost:false,brake:false,mine:false};
+    }
     this.state.stats.time+=dt;
+    if(!this._sharedWorld){this.stepMilitaryRecovery(dt);if(this.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};}
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
+    advanceGunneryCooldowns(this.state.ship,dt);
     this.stepNpcContract(dt,input);
     const sh=this.state.ship;
     if(this.hasActiveVessel){this.stepInteriorDamage(dt);this.stepRescueOccupants(dt);}
@@ -557,6 +579,7 @@ export class Game {
     sh.energy=hullEnergyAfterStep(sh,dt,helmInput);
     if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+getHullSystems(sh.classId).shieldRecharge*dt);
     if(helmInput.fire)this.fireWeapons();
+    else if(!this._sharedWorld&&this.state.stationView==='gunnery'&&!this.state.npcContract?.active&&input.fire)this.fireWeapons(this.playerId,applyGunneryAim(this,this,input));
     if(helmInput.mine)this._mine(dt);
     this._checkChapters();
   }
@@ -587,8 +610,10 @@ export class Game {
   fireWeapons(shooterId = this.playerId, fireControl = null) {
     if(!this.hasActiveVessel)return this._fail('You do not have an active ship or its weapons.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Ship weapons require a vessel in space.', 'mode');
-    if(this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
-    if(this.state.ship.energy<getHullSystems(this.state.ship.classId).pulseEnergy)return this._fail('The pulse emitter needs reactor charge.', 'energy');
+    const battery=fireControl?.manual?getGunneryBattery(this.state.ship,fireControl.batteryId||'fore'):null;
+    if(fireControl?.manual&&!battery)return this._fail('This vessel does not have that gun battery.','battery');
+    if(battery?batteryCooldown(this.state.ship,battery.id)>0:this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
+    if(this.state.ship.energy<(battery?.energyCost??getHullSystems(this.state.ship.classId).pulseEnergy))return this._fail('The pulse emitter needs reactor charge.', 'energy');
     this._fire(shooterId,fireControl);return this._ok();
   }
 
@@ -638,8 +663,9 @@ export class Game {
 
   _fire(shooterId = this.playerId, fireControl = null) {
     if(!this.hasActiveVessel)return;
-    const sh = this.state.ship,system=getHullSystems(sh.classId);
-    let angle = fireControl?.manual?clampGunneryAim(fireControl.angle,sh.angle,fireControl.arcHalfAngle):sh.angle;
+    const sh = this.state.ship,system=getHullSystems(sh.classId),battery=fireControl?.manual?getGunneryBattery(sh,fireControl.batteryId||'fore'):null;
+    if(fireControl?.manual&&!battery)return;
+    let angle = battery?clampGunneryAim(fireControl.angle,sh.angle+battery.bearing,battery.arcHalfAngle):sh.angle;
     const candidates = this.system.enemies.filter(e => e.hp > 0 && !e.promotedVesselId && !e.canonicalVesselId && !e.capturedBy && distance(e, sh) < 550).sort((a, b) => distance(a, sh) - distance(b, sh));
     for (const e of fireControl?.manual?[]:candidates) {
       const target = Math.atan2(e.y - sh.y, e.x - sh.x);
@@ -647,14 +673,16 @@ export class Game {
     }
     const vesselId=this.netVesselId||sh.id,serial=this._spaceShotSerial=(this._spaceShotSerial||0)+1;
     const volleyId=`${vesselId}:${shooterId}:pulse:${this.state.stats.time}:${serial}`,nose=Math.max(24,(sh.renderLength||getShipClass(sh.classId).stats.renderLength)*.42),bullets=[];
-    for(let mount=0;mount<system.pulseCount;mount++){
-      const muzzle=system.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(system.pulseCount-1))*system.pulseOffset;
+    const count=battery?.mountCount??system.pulseCount;
+    for(let mount=0;mount<count;mount++){
+      const muzzle=battery?.muzzles[mount]||system.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(count-1))*system.pulseOffset;
       const forward=muzzle?.[0]??nose,mountAngle=muzzle||fireControl?.manual?sh.angle:angle;
-      const bullet={id:system.pulseCount===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*system.pulseDamageScale,owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,radius:4};
+      const bullet={id:count===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*(battery?.damageScale??system.pulseDamageScale),owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,...(battery?{batteryId:battery.id}:{}),radius:4};
       bullets.push(bullet);this.system.bullets.push(bullet);
     }
-    sh.energy-=system.pulseEnergy;this._shotTimer=system.pulseCooldown;
-    const first=bullets[0];this._event('shot',{id:volleyId,ownerId:first.ownerId,shooterId:first.shooterId,vesselId,x:first.x,y:first.y,angle,projectileIds:bullets.map(bullet=>bullet.id)});
+    sh.energy-=battery?.energyCost??system.pulseEnergy;this._shotTimer=Math.max(this._shotTimer||0,battery?.cooldown??system.pulseCooldown);
+    if(battery){sh.gunneryCooldowns||={};sh.gunneryCooldowns[battery.id]=battery.cooldown;}
+    const first=bullets[0];this._event('shot',{id:volleyId,ownerId:first.ownerId,shooterId:first.shooterId,vesselId,...(battery?{batteryId:battery.id}:{}),x:first.x,y:first.y,angle,projectileIds:bullets.map(bullet=>bullet.id)});
   }
 
   _mine(dt) {
@@ -797,7 +825,10 @@ export class Game {
       if(this.state.interior?.kind==='enemy'){
         sh.destroyed=true;sh.vx=0;sh.vy=0;this.state.interior.originDestroyed=true;
         this._event('origin-destroyed',{vesselId:sh.id,text:`${sh.name||'Your ship'} was destroyed outside. Secure this vessel to escape, or call for recovery.`});
-      }else this._rescue('A passing tug caught your emergency beacon. Your ship survived; some cargo did not.');
+      }else{
+        sh.destroyed=true;sh.vx=0;sh.vy=0;
+        this._rescue();
+      }
     }
   }
 
@@ -1724,10 +1755,12 @@ export class Game {
       if(enemy?.deck&&boarding.kind==='assault'){enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy||null,contested:false};}
       if(this.netOnBoardingLost?.(boarding)===true)return;
       if(boarding.kind==='defense')this._abandonOccupiedShip(boarding,enemy);
-      this.state.mode='ship';this.state.locationId=null;this.state.interior=null;
-      this.state.person.health=55;this.state.person.down=false;
-      this._rescue(boarding.kind==='defense'?'Your escape capsule reached the station. The occupied ship remains in space; a recovery cutter carries the survivors.':'The surviving boarding party escaped to a station. The target remains in space with its surviving defenders.');
-      this._event('boarding-complete',{phase,text:boarding.kind==='defense'?'Your ship is occupied. Survivors recovered at port aboard a basic cutter; crew casualties remain in the memorial.':'The boarding party withdrew after defeat. Surviving guards still hold the target.'});
+      else{
+        this.state.mode='ship';this.state.locationId=null;this.state.interior=null;
+        this.state.person.health=55;this.state.person.down=false;
+        this._rescue('The surviving boarding party escaped to a station. The target remains in space with its surviving defenders.');
+      }
+      this._event('boarding-complete',{phase,text:boarding.kind==='defense'?'Your ship is occupied. Survivors reached the nearest station without a replacement hull; crew casualties remain in the memorial.':'The boarding party withdrew after defeat. Surviving guards still hold the target.'});
     }else if(phase==='retreated'){
       this._releaseBoardingTether();
       this._event('boarding-complete',{phase,text:'Boarding party withdrawn. The damaged vessel and its surviving crew remain in the system.'});
@@ -1749,8 +1782,7 @@ export class Game {
     const old=this.system.enemies.findIndex(enemy=>enemy.id===id),record=this._record(),saved=record.spawned.findIndex(enemy=>enemy.id===id);
     if(old>=0)this.system.enemies.splice(old,1,occupied);else this.system.enemies.push(occupied);
     if(saved>=0)record.spawned.splice(saved,1,clone(occupied));else record.spawned.push(clone(occupied));
-    const replacement=initialState(this.state.seed).ship;
-    this.state.ship={...replacement,id:`recovery-${hash(`${id}:${this.state.stats.time}`).toString(36)}`,name:'Recovery cutter'};this.state.upgrades={};this._updateStats(false);
+    this.recoverFromShipLoss(undefined,{ship,sourceKind:'deck-defeat'});
   }
 
   healCrew(id) {
@@ -2057,6 +2089,7 @@ export class Game {
   _rescue(message) {
     this.state.stationView=null;
     if(this.state.npcContract?.active&&this.recoverNpcContract?.(message))return;
+    if(this.state.ship.destroyed||this.state.ship.hull<=0)return this.recoverFromShipLoss(message);
     if(!this.ownsShip)return this.recoverOnFoot(message);
     const sh = this.state.ship;
     delete sh.destroyed;
@@ -2087,6 +2120,7 @@ export class Game {
   serialize() { return JSON.stringify(this.save()); }
 }
 
-Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
+Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 Object.assign(Game.prototype,GunneryRules);
+Object.assign(Game.prototype,MilitaryRecoveryRules);
 export default Game;

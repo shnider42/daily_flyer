@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
-<meta name="application-version" content="0.15.0">
+<meta name="application-version" content="0.16.0">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css"><link rel="stylesheet" href="./character.css"><link rel="stylesheet" href="./narrative.css"><link rel="stylesheet" href="./privacy.css"><link rel="stylesheet" href="./shared-crew.css"><link rel="stylesheet" href="./port-ui.css">
+<link rel="stylesheet" href="./gunnery.css">
 </head>
 <body>
 <div id="app" class="app">
@@ -48,6 +49,8 @@
  </aside>
  <div id="mobileWeapon" class="mobile-weapon" hidden><span class="sidearm-glyph" aria-hidden="true"></span><strong id="mobileWeaponState">READY</strong><span id="mobileAim">Pulse sidearm</span><button id="mobileWeaponHelp" aria-label="Sidearm help">?</button></div>
  <aside id="combatPanel" class="combat-panel" aria-label="Sidearm and boarding status" hidden><div class="combat-heading"><span class="sidearm-glyph" aria-hidden="true"></span><strong id="weaponName">Pulse sidearm</strong><span id="weaponState">READY</span></div><p class="combat-controls"><span class="desktop-combat-hint">Mouse / arrows aim · Click / Space fire<br>WASD move · E use</span><span class="touch-combat-hint">Left stick moves · Right stick aims &amp; fires<br>FIRE uses the marked target</span></p><div id="aimStatus" class="aim-status">Aim assist ready</div><div id="combatCount" class="combat-count"></div><div id="combatFeed" class="combat-feed" aria-live="polite"></div><button id="combatHelp">Weapon &amp; boarding help</button></aside>
+ <section id="gunneryBatteries" class="gunnery-batteries" aria-label="Select a ship gun battery" hidden><div class="battery-heading"><strong>SHIP BATTERIES</strong><span id="batteryCount"></span></div><div id="batteryChoices" class="battery-choices" role="group" aria-label="Gun batteries"></div><p id="batteryHint"></p></section>
+ <section id="recoveryStatus" class="recovery-status" aria-label="Recovery and return passage" hidden><strong id="recoveryTitle"></strong><span id="recoveryDetail"></span><button id="recoveryAction" type="button">Return passage</button></section>
  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
  <div class="interaction-wrap"><button id="contextButton" class="context-button"><span class="key-label">E</span><span id="contextText">Approach a station to dock</span><span>→</span></button></div>
  <div class="cockpit">

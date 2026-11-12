@@ -1,12 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.15.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.16.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Capital batteries and the journey after ship loss · 0.16.0
+
+The **Leviathan carrier, capital hull, and Judicator line destroyer** now have four selectable gun batteries: **1 Fore**, **2 Port (left)**, **3 Starboard (right)**, and **4 Aft (rear)**. Select a battery with its number key or a visible button in the exterior gunner view. Each has its own physical mounts, 120-degree firing arc, and recharge cycle; all draw from the same reactor. The selected mount and firing arc are shown outside the ship. Aiming beyond an arc identifies the battery covering that direction. Smaller hulls clearly list their single forward battery.
+
+The Navy commander keeps flying while the gunner aims. Authorized crew aboard ordinary ships can also use the physical gun console; an unpiloted personal ship coasts instead of gaining an automatic pilot. Separate human gunners may operate different batteries concurrently, while a battery's shared cooldown prevents multiple operators from multiplying its firing rate. Navy shots remain available throughout an underway sortie, and mission credit still requires verified contributions to the actual operation. Existing personal ranks and station permissions remain authoritative.
+
+**Ship destruction now leaves survivors on foot at the nearest space station in that system.** A destroyed personal hull loses its registration, with no replacement cutter or restored hull. Shared wrecks remain in the galaxy. An intact personal ship parked elsewhere stays at its original berth when its owner loses an employer vessel or Navy carrier. Recovery, saving, reconnecting, and purchasing a later replacement preserve these ownership distinctions. Players ashore are not transported merely because an unattended ship was lost elsewhere.
+
+Military survivors receive personal **repatriation orders**. Port services can verify their own faction clearance and book **Homeward Passage** for **0 credits**. Captain Vale flies a real NPC transport out of port, folds to the home system when needed, and docks at the faction posting. The passenger leaves through the airlock. The transport does not become a personal ship, grant a helm or gun role, copy another player's rank, or award mission-completion pay.
+
+Military personnel incapacitated in rival territory are held in a station cell for **five minutes of active play**. The remaining term belongs to that captain and persists across saves, reconnects, and server restarts. Logging out pauses the term. The cell has no exit, and the server rejects departure, boarding, work, and other bypass actions until automatic release. Solo players can read their log and custody orders while the term advances; the pause menu still pauses solo play. Release returns the survivor to the station landing with their personal repatriation clearance. Civilians do not acquire military detention or travel entitlements simply by sharing the casualty.
 
 ## Music for danger, caves, and worlds · 0.15.0
 

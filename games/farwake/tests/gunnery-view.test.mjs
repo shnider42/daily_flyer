@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clampGunneryAim} from '../dist/gunnery.mjs';
-import {getGunneryView,displayMode,projectGunneryInput,gunneryWeaponStatus,gunneryReticle,drawGunneryOverlay} from '../dist/gunnery-view.mjs';
+import {getGunneryView,displayMode,projectGunneryInput,gunneryWeaponStatus,gunneryReticle,gunneryAimHint,drawGunneryOverlay} from '../dist/gunnery-view.mjs';
+import {getGunneryBatteries,batteryOrigin} from '../dist/gunnery-batteries.mjs';
 
 const ship={x:800,y:-220,angle:.5};
 const status={active:true,available:true,origin:{x:920,y:-180},arcCenter:.5,arcHalfAngle:Math.PI/3,aimAngle:.5,range:530,cooldownRemaining:0,energy:80,energyCost:12,canFire:true};
@@ -52,4 +53,38 @@ test('battery feedback distinguishes cooldown, low power, and the NPC captain’
  assert.equal(gunneryWeaponStatus({...status,energy:0}).state,'LOW POWER');
  assert.equal(gunneryWeaponStatus({...status,canFire:false}).state,'STANDBY');
  assert.equal(gunneryWeaponStatus({active:false}),null);
+});
+
+function capitalView(heading){
+ const hull={classId:'leviathan',x:0,y:0,angle:heading},batteries=getGunneryBatteries(hull).map(battery=>({...battery,selected:battery.id==='fore',arcCenter:heading+battery.bearing,origin:batteryOrigin(hull,battery)}));
+ return{hull,profile:{...status,arcCenter:heading,aimAngle:heading,origin:batteries[0].origin,batteries}};
+}
+
+test('off-arc guidance follows a turned ship’s left, right and stern rather than fixed screen directions',()=>{
+ const cases=[
+  {heading:0,aimX:0,aimY:1,wanted:'3 Starboard battery'},
+  {heading:Math.PI/2,aimX:-1,aimY:0,wanted:'3 Starboard battery'},
+  {heading:Math.PI,aimX:0,aimY:1,wanted:'2 Port battery'},
+  {heading:-Math.PI+.05,aimX:1,aimY:0,wanted:'4 Aft battery'}
+ ];
+ for(const {heading,aimX,aimY,wanted}of cases){
+  const {hull,profile}=capitalView(heading),input={aiming:true,aimX,aimY};
+  assert.equal(gunneryReticle(profile,hull,input).limited,true);
+  assert.equal(gunneryAimHint(profile,hull,input),`Outside this arc · Select ${wanted}`);
+ }
+ const {hull,profile}=capitalView(0),reticle=gunneryReticle(profile,hull,{aiming:true,aimX:0,aimY:1});
+ assert.ok(Math.abs(reticle.x-profile.origin.x-profile.range*.5)<1e-8);
+ assert.ok(Math.abs(reticle.y-profile.origin.y-profile.range*Math.sqrt(3)/2)<1e-8);
+});
+
+test('missing or invalid manual aim never sends the battery hint in a different direction from its reticle',()=>{
+ const {hull,profile}=capitalView(0);profile.aimAngle=Math.PI;
+ for(const input of [{},{aiming:false,aimX:0,aimY:1},{aiming:true,aimX:0,aimY:0},{aiming:true,aimX:NaN,aimY:Infinity}]){
+  const reticle=gunneryReticle(profile,hull,input);
+  assert.equal(reticle.desiredAngle,Math.PI);assert.equal(reticle.limited,true);assert.ok([reticle.angle,reticle.x,reticle.y].every(Number.isFinite));
+  assert.equal(gunneryAimHint(profile,hull,input),'Outside this arc · Select 4 Aft battery');
+ }
+ const input={aiming:true,aimX:NaN,aimY:1};
+ assert.equal(gunneryReticle(profile,hull,input).desiredAngle,Math.PI/2);
+ assert.equal(gunneryAimHint(profile,hull,input),'Outside this arc · Select 3 Starboard battery');
 });
