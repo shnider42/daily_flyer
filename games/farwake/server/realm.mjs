@@ -24,6 +24,7 @@ import { SYSTEM_SPACE_VERSION } from '../dist/system-space.mjs';
 import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 import { settleNpcContract } from '../dist/npc-contracts.mjs';
 import { applyGunneryAim } from '../dist/gunnery.mjs';
+import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -438,7 +439,8 @@ export class Realm extends BoardingAuthority {
     ensureDamageControl(vessel.ship);
     actor._damageHullOverride=vessel.ship;
     actor._npcWorkers=[...this.captains.values()].filter(c=>c.aboard===vessel.id).map(c=>c.game);
-    actor._navyOnlineWorkers=[...this.captains.values()].filter(c=>c.session&&c.aboard===vessel.id&&c.game.state.person.health>0&&!c.game.state.person.down&&this._canRole(c,vessel,'weapons')).map(c=>c.game);
+    actor._navyOnlineWorkers=[...this.captains.values()].filter(c=>c.session&&c.aboard===vessel.id&&c.game.state.person.health>0&&!c.game.state.person.down&&['weapons','scanner','engineering'].some(role=>this._canRole(c,vessel,role))).map(c=>c.game);
+    actor._navyCanDuty=(worker,role)=>{const captain=this.captains.get(worker.playerId);return !!captain?.session&&captain.aboard===vessel.id&&this._canRole(captain,vessel,role);};
     actor._navyTransfer=(systemId,point)=>this._transferNavyVessel(vessel,actor,systemId,point);
     // Exterior suit coordinates are not compartment coordinates. Interior
     // fire and impact exposure must never damage a worker through that map.
@@ -590,7 +592,18 @@ export class Realm extends BoardingAuthority {
     guest.crewRole = 'passenger'; guest.input = { ...EMPTY_INPUT }; guest.appliedInput = { ...EMPTY_INPUT };
     guest.events.push({ type: 'crew', text: allowed ? 'The owner changed your station access. You are still aboard as crew.' : 'The owner withdrew station access. You may disembark at the next port.' });
   }
-  _canRole(captain, vessel, role) { if (!vessel || vessel.destroyed) return false; if(vessel.npcContractId)return this._canBoard(captain,vessel)&&(role==='passenger'||vessel.grants[captain.id]?.roles?.includes(role)); if (vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; if (this._hostileOccupied(vessel)) return false; return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role))); }
+  _canRole(captain, vessel, role) {
+    if (!vessel || vessel.destroyed) return false;
+    if (vessel.npcContractId) {
+      const contract = captain.game.state.npcContract;
+      const roles = contract?.military?.branchId === 'navy' && contract.id === vessel.npcContractId
+        ? navyDutyRoles(captain.game, contract).filter(role => vessel.grants[captain.id]?.roles?.includes(role)) : vessel.grants[captain.id]?.roles || [];
+      return this._canBoard(captain, vessel) && (role === 'passenger' || roles.includes(role));
+    }
+    if (vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true;
+    if (this._hostileOccupied(vessel)) return false;
+    return vessel.ownerId === captain.id || this._canBoard(captain, vessel) && (role === 'passenger' || (vessel.grants[captain.id] ? vessel.grants[captain.id].roles?.includes(role) : vessel.allowCrew && ['weapons', 'engineering', 'scanner', 'medical', 'security'].includes(role)));
+  }
   _helm(captain, vessel) { return !!vessel && vessel.helmOwner === captain.id && captain.aboard === vessel.id && captain.game.state.mode === 'ship'; }
   _location(captain) {
     if(captain.game.state.interior?.kind==='eva'&&captain.aboard){
@@ -860,8 +873,8 @@ export class Realm extends BoardingAuthority {
       c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};return game.leaveGunnery();
     }
     if(name==='enterGunnery'){
-      const assignedShared=!!active?.militaryOperationId&&this._militaryOperation(c)?.id===active.militaryOperationId;
-      if(!active||c.crewRole!=='weapons'&&!assignedShared||!this._canRole(c,active,'weapons')||!this._atStation(c,'weapons')||active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Use the permitted gunnery console aboard your assigned vessel.','station');
+      const assignedNavy=game.state.npcContract?.military?.branchId==='navy'&&game.state.npcContract?.vesselId===active?.id;
+      if(!active||c.crewRole!=='weapons'&&!assignedNavy||!this._canRole(c,active,'weapons')||!this._atStation(c,'weapons')||active.boarding?.phase==='active'||active.pvp?.phase==='active')return fail('Use the permitted gunnery console aboard your assigned vessel.','station');
       const result=this._withShip(c,active,()=>game.enterGunnery());
       if(result.ok){c.crewRole='weapons';c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};}return result;
     }
@@ -988,6 +1001,7 @@ export class Realm extends BoardingAuthority {
       return this._withShip(c, active, () => game.hailTraffic(id));
     }
     if (name === 'scan' || name === 'salvage') {
+      if (name === 'scan' && game.state.npcContract?.military?.branchId === 'navy') return this._crewCommand(c, 'crewAction', { action: 'scan', signalId: id });
       if (!active || !(this._helm(c, active) || ['scanner', 'navigation'].includes(c.crewRole))) return fail('Operate the helm or scanner station first.', 'station');
       if (!this._helm(c, active) && (!this._canRole(c, active, c.crewRole) || !this._atStation(c, c.crewRole))) return fail('Remain at the permitted navigation console to operate the scanner.', 'distance');
       if (name === 'scan' && id === 'hearth:story:tinbell' && !game.hasFlag('belt_signal_scanned')) { const signal = game.system.signals.find(s => s.id === id); if (signal) { signal.resolved = false; signal.scanned = false; } }
@@ -1160,6 +1174,16 @@ export class Realm extends BoardingAuthority {
     }
     if (name === 'crewAction') {
       if (!active || game.state.interior?.kind !== 'ship') return fail('Operate a station aboard the vessel first.', 'location');
+      if (game.state.npcContract?.military?.branchId === 'navy') {
+        const role = a.action === 'repair' ? 'engineering' : a.action === 'scan' ? 'scanner' : null;
+        if (!role || !this._canRole(c, active, role)) return fail('Your Navy rank does not authorize this duty station.', 'military-rank');
+        const actor = this._actor(active), access = navyDutyAccess(actor, role, { worker: game });
+        if (!access.ok) return access;
+        const result = a.action === 'repair' ? actor.repairFromStation()
+          : this._withShip(c, active, () => game.navyCrewAction('scan', { signalId: a.signalId }));
+        if (result.ok) { c.crewRole = role; game.state.stationView = null; }
+        this._syncActor(active); return result;
+      }
       if (!this._canRole(c, active, c.crewRole) || !this._atStation(c, c.crewRole)) return fail('Operate this control from its assigned console.', 'distance');
       const actor = this._actor(active);
       if (a.action === 'repair' && c.crewRole === 'engineering') { const result = actor.repairFromStation(); this._syncActor(active); return result; }

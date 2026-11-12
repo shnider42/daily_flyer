@@ -2,6 +2,7 @@
 import { createNpcContract, createNavySortie, performNpcContractWork, requestNpcContractReturn, settleNpcContract, NPC_CREW_ROLES } from '../dist/npc-contracts.mjs';
 import { clone, fail, ok } from './protocol.mjs';
 import { militaryPermission } from '../dist/military-ranks.mjs';
+import { navyDutyRoles } from '../dist/navy-duty.mjs';
 
 export const LivelihoodAuthority={
  _startNavySortie(c,mission,operation){
@@ -11,7 +12,7 @@ export const LivelihoodAuthority={
   if(owned&&owned.systemId===c.game.state.systemId&&owned.dockedAt===c.game.state.locationId)c.game.state.livelihoods.parkedShip={...clone(owned.ship),systemId:owned.systemId,bodyId:owned.dockedAt,vesselId:owned.id};
   c.game.state.npcContract=contract;
   const vessel={id:ship.id,ownerId:c.id,name:ship.name,systemId:contract.origin.systemId,dockedAt:contract.dockedAt,ship,inventory,npcContractId:contract.id,allowCrew:false,
-   grants:{[c.id]:{allowed:true,roles:['weapons'],allowBunk:false}},helmOwner:null,bunks:{},installedBunks:0,actor:null,flightAssist:true,boarding:null,hostileTo:[]};
+   grants:{[c.id]:{allowed:true,roles:navyDutyRoles(c.game,contract),allowBunk:false}},helmOwner:null,bunks:{},installedBunks:0,actor:null,flightAssist:true,boarding:null,hostileTo:[]};
   this.vessels.set(vessel.id,vessel);this._cabin(c,vessel);c.crewRole='weapons';
   c.events.push({type:'crew-duty',text:'You board FWS Steadfast as the assigned gunner. The commander has the helm; your personal ship remains at its berth.'});
   return ok({vesselId:vessel.id,body:this._location(c),text:'Aboard FWS Steadfast. Walk to the marked gunnery console; the commander will fly the sortie.'});

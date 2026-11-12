@@ -21,7 +21,7 @@ const navy=(id,title,summary,profile,reward,xp)=>({
  objective:`Work the gun battery aboard FWS Steadfast. ${profile.training?'Qualify on both marked range targets.':'Help neutralize every marked hostile.'} Return to Morrow with the carrier, then report to Sergeant Venn.`,
  navy:{classId:'leviathan',shipName:'FWS Steadfast',...profile,objectiveText:summary},
  objectives:[
-  {id:'targets',label:`Neutralize ${profile.targetCount} marked targets with at least ${profile.requiredDamage} of your own hull damage to each`,event:'sortie-targets',required:profile.targetCount},
+  {id:'targets',label:`Crew: neutralize ${profile.targetCount} marked contacts`,event:'sortie-targets',required:profile.targetCount},
   {id:'return',label:'Return to Morrow aboard the carrier and go ashore',event:'sortie-return',required:1}
  ]
 });

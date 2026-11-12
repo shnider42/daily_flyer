@@ -1,6 +1,7 @@
 /** Galaxy-owned deployments with a separate service record for every recruit. */
 import { militaryBranch, militaryMission, MILITARY_RECRUITER } from '../dist/military-content.mjs';
 import { militaryServiceRank, militaryPermission } from '../dist/military-ranks.mjs';
+import { navyDutyRoles } from '../dist/navy-duty.mjs';
 import { settleNavyParticipant } from '../dist/npc-contracts.mjs';
 import { clone, fail, ok, MAX_ONLINE } from './protocol.mjs';
 
@@ -209,8 +210,7 @@ export const MilitaryOperationsAuthority = {
         const owned = this.vessels.get(member.ownedVesselId);
         if (owned && owned.systemId === 'hearth' && owned.dockedAt === 'morrow') member.game.state.livelihoods.parkedShip = { ...clone(owned.ship), systemId: owned.systemId, bodyId: owned.dockedAt, vesselId: owned.id };
         member.game.state.npcContract = operation.contract;
-        const rank = militaryServiceRank(member.game);
-        vessel.grants[member.id] = { allowed: true, roles: ['weapons', ...(rank.rankIndex >= 1 ? ['scanner'] : []), ...(rank.rankIndex >= 2 ? ['engineering'] : [])], allowBunk: false };
+        vessel.grants[member.id] = { allowed: true, roles: navyDutyRoles(member.game,operation.contract), allowBunk: false };
         if (member.aboard !== vessel.id) this._cabin(member, vessel);
         member.crewRole = 'weapons';
       }

@@ -19,8 +19,8 @@ export function navyServiceProof(contract,playerId){
  const teamTargets=contract?.work?.targets||[];
  const watchSeconds=Math.max(0,finite(member?.watchSeconds));
  const damage=member?Math.max(0,finite(member.damage)):Math.max(0,finite(contract?.work?.damage));
- const requiredWatchSeconds=extended?Math.max(1,finite(contract.navy.watchSeconds,45)):shared?15:0;
- const duty=extended?watchSeconds+1e-6>=requiredWatchSeconds:shared?watchSeconds+1e-6>=requiredWatchSeconds||damage>=finite(contract.navy.requiredDamage,28):targets.length===contract?.navy?.targetIds?.length&&targets.every(target=>target.neutralized&&target.damage>=contract.navy.requiredDamage);
+ const requiredWatchSeconds=extended?Math.max(1,finite(contract.navy.watchSeconds,45)):15;
+ const duty=extended?watchSeconds+1e-6>=requiredWatchSeconds:watchSeconds+1e-6>=requiredWatchSeconds||damage>=finite(contract?.navy?.requiredDamage,28);
  const teamTargetCount=contract?.navy?.spawned?contract.navy.targetIds.length:0;
  const teamNeutralized=teamTargets.filter(target=>target.neutralized).length;
  return{employeeId:String(playerId),operationId:contract?.military?.operationId,sharedOperation:shared,watchSeconds,requiredWatchSeconds,teamTargetCount,teamNeutralized,damage,shots:Math.max(0,finite(member?.shots,contract?.work?.shots)),targets,duty:!!duty};

@@ -29,6 +29,7 @@ import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, nor
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
 import { GunneryRules, clampGunneryAim } from './gunnery.mjs';
+import { navyDutyAccess } from './navy-duty.mjs';
 import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
 import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
@@ -603,6 +604,19 @@ export class Game {
     this._event('service',{text:`Engineering restored ${restored} hull integrity.`});return this._ok({hull:restored,energy:system.repairEnergy});
   }
 
+  navyCrewAction(action, { signalId } = {}) {
+    const role = action === 'repair' ? 'engineering' : action === 'scan' ? 'scanner' : null;
+    if (!role) return this._fail('Choose a duty at your assigned Navy console.', 'station');
+    const access = navyDutyAccess(this, role);
+    if (!access.ok) return access;
+    if (action === 'repair') return this.repairFromStation();
+    const signal = signalId ? this.system.signals.find(signal => signal.id === signalId) : this.system.signals
+      .filter(signal => !signal.resolved && distance(signal, this.state.ship) <= this.state.ship.scanRange)
+      .sort((one, two) => distance(one, this.state.ship) - distance(two, this.state.ship))[0];
+    if (!signal) return this._fail('No unresolved signal is within scanner range.', 'target');
+    return this._scanActiveShip(signal.id);
+  }
+
   medicalFromStation(patients = [this]) {
     if(!this.hasActiveVessel)return this._fail('Visit a port clinic for treatment until you have access to a ship’s medical station.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
@@ -979,6 +993,11 @@ export class Game {
   scan(signalId) {
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship') return this._fail('Scanners are operated from the ship.', 'mode');
+    return this._scanActiveShip(signalId);
+  }
+
+  // Entry points validate the helm or a permitted physical Navy console first.
+  _scanActiveShip(signalId) {
     if (this.state.pendingEncounter) return this._fail('Resolve your open transmission first.', 'encounter');
     const signal = this.system.signals.find(s => s.id === signalId);
     if (!signal || signal.resolved) return this._fail('That signal has already gone quiet.', 'target');

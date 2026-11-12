@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.14.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.14.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## The same career in solo and shared play · 0.14.1
+
+**Both modes offer the full Freewake Navy and Army campaign, all 12 standing deployments, the same promotions, rank dialogue, rewards, and service equipment.** A solo captain takes the briefing at Morrow and serves aboard the NPC-piloted carrier or travels by Army shuttle. A shared captain can assemble a human roster for those same orders. Each mode uses the same mission definitions and personal service record rules.
+
+Navy introductory sorties now use one completion rule in both modes: finish the carrier’s marked target objective, personally serve **15 seconds at an authorized station or contribute the required verified gun damage**, return aboard the carrier, and debrief. A target destroyed by another participant does not invalidate the captain’s recorded service. Standing patrols and escorts still require the full authored watch. Valid receipts earned under the earlier solo rules remain loadable.
+
+Promoted Navy captains can actually operate the support consoles in either mode: **Able crew** unlocks the navigation console’s scanner, and **Petty officer** unlocks engineering repairs. The same personal faction, standing, rank, health, carrier identity, and console-distance checks apply. Support actions use the actual carrier’s systems and cooldowns, and qualified time at the selected scanner or engineering station contributes to the personal watch. Gunnery remains available from Recruit; the NPC commander retains the helm.
+
+The modes share the larger systems, obtainable hulls, port traffic, Resolute patrol, Tinbell creature, and docked-airlock behavior. The earlier party departure grant still offers Lark at two connected players, Puffin at four, and Osprey at seven; all three hulls can also be bought during a solo voyage. Solo play saves locally and pauses in menus. Shared galaxies save on the server and keep running while menus are open.
 
 ## Military careers together · 0.14.0
 

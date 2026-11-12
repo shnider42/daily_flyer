@@ -4,12 +4,17 @@ import {Game,distance} from '../dist/engine.mjs';
 import {cabinLayout} from '../dist/fleet.mjs';
 import {gunneryOrigin} from '../dist/gunnery.mjs';
 import {stepNpcContract,navyParticipantReceipt,settleNavyParticipant} from '../dist/npc-contracts.mjs';
+import {generateSurface} from '../dist/surface.mjs';
+import {MILITARY_RECRUITER} from '../dist/military-content.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason||JSON.stringify(result));return result;};
 const mission=(extra={})=>({id:'navy-runtime-watch',factionId:'freewake',branchId:'navy',title:'Border watch',systemId:'hearth',bodyId:'morrow',deployment:{systemId:'meridian',bodyId:'serein'},
  navy:{kind:'patrol',watchSeconds:35,attackChance:0,attackDelay:20,targetCount:2,targetClassId:'marten',targetHull:130,targetDamage:3,targetSpeed:32,requiredDamage:28,enemyFactionId:'meridian',...extra}});
 function embark(spec=mission(),seed='navy-extended'){
  const game=new Game(seed,{startMode:'hardcore'});game.state.pendingEncounter=null;
+ const recruiter=generateSurface(game.currentBody,game.state.seed).entities.find(entity=>entity.id===MILITARY_RECRUITER.id);
+ Object.assign(game.state.person,{x:recruiter.x,y:recruiter.y});
+ ok(game.militaryCareerAction({action:'join',branchId:'navy',entityId:recruiter.id}));
  ok(game._startNavySortie(spec,{operationId:`military:freewake:navy:local:1`}));
  Object.assign(game.state.person,cabinLayout(game.state.ship.classId).stations.security);
  return game;
@@ -64,7 +69,7 @@ test('a delayed surprise attack survives reload with the same outcome and is fou
 test('shared station duty counts only the present online member and each member settles their own record once',()=>{
  const game=embark({...mission({watchSeconds:15,attackDelay:0}),deployment:{systemId:'hearth',bodyId:'morrow'}},'navy-members'),contract=game.state.npcContract;
  contract.military.sharedOperation=true;contract.military.participants={local:{role:'gunner',active:true,watchSeconds:0,shots:0,damage:0,targets:[]},friend:{role:'gunner',active:true,watchSeconds:0,shots:0,damage:0,targets:[]}};
- const friend=new Game('navy-members',{startMode:'hardcore'});friend._playerId='friend';friend.state.systemId='hearth';friend.state.npcContract=contract;friend.state.mode='person';friend.state.interior=structuredClone(game.state.interior);Object.assign(friend.state.person,cabinLayout(game.state.ship.classId).stations.security);
+ const friend=new Game('navy-members',{startMode:'hardcore'});friend._playerId='friend';friend.state.systemId='hearth';friend.state.professions=structuredClone(game.state.professions);friend.state.militaryCareer=structuredClone(game.state.militaryCareer);friend.state.npcContract=contract;friend.state.mode='person';friend.state.interior=structuredClone(game.state.interior);Object.assign(friend.state.person,cabinLayout(game.state.ship.classId).stations.security);
  game._sharedWorld=true;game.netVesselId=contract.vesselId;game._damageHumans=[game,friend];game._navyOnlineWorkers=[game];
  contract.phase='working';contract.dockedAt=null;Object.assign(game.state.ship,{dockedAt:null,x:contract.workPoint.x,y:contract.workPoint.y});
  game.state.stationView='gunnery';friend.state.stationView='gunnery';

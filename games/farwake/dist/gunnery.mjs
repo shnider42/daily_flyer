@@ -3,6 +3,7 @@ import {cabinLayout} from './interior-layouts.mjs';
 import {getHullSystems} from './hull-systems.mjs';
 import {getShipClass} from './fleet.mjs';
 import {isNavyParticipant} from './navy-service.mjs';
+import {navyDutyRoles} from './navy-duty.mjs';
 
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -35,6 +36,7 @@ export function gunneryStatus(game,{worker=game,ship=game.state.ship}={}){
  const assigned=!!contract?.active&&contract.roleId==='gunner'&&contract.vesselId===vesselId&&(contract.military?.branchId==='navy'?isNavyParticipant(contract,identity):String(contract.employeeId)===String(identity));
  let reason=null;
  if(!assigned)reason='This gunnery station is reserved for the assigned shipboard gunner.';
+ else if(contract.military?.branchId==='navy'&&!navyDutyRoles(worker,contract).includes('weapons'))reason='Your own Navy enlistment and current service standing must permit weapons duty.';
  else if(state.mode!=='person'||state.interior?.kind!=='ship'||location?.vesselId!==vesselId)reason='Enter the assigned vessel’s crew deck first.';
  else if(person.health<=0||person.down)reason='Recover before operating the guns.';
  else if(ship.destroyed||ship.hull<=0)reason='This vessel’s weapons are no longer operational.';

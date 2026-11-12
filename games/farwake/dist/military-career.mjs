@@ -64,7 +64,7 @@ function normalizeEvidence(mission,raw){
 function allEvidence(mission,active){return mission.objectives.every(objective=>finite(active.evidence?.[objective.id]?.value)>=objective.required);}
 function validNavyReceipt(mission,operationId,receipt,{shared=false,playerId=null}={}){
  if(!mission?.navy||!receipt||receipt.completed!==true||receipt.returned!==true||receipt.destination?.systemId!==mission.systemId||receipt.destination?.bodyId!==mission.bodyId)return null;
- const extended=!!mission.navy.kind,team=extended||shared;
+ const extended=!!mission.navy.kind,team=extended||shared||receipt.teamTargetCount!==undefined;
  if(team){
   if(receipt.operationId!==operationId||typeof receipt.employeeId!=='string'||!receipt.employeeId||receipt.employeeId.length>100||playerId&&receipt.employeeId!==playerId||shared&&receipt.sharedOperation!==true)return null;
   const count=integer(receipt.teamTargetCount,mission.navy.targetCount),neutralized=integer(receipt.teamNeutralized,mission.navy.targetCount);
@@ -118,13 +118,13 @@ function actionView(action,label,check,extra={}){return{action,label,available:!
 function objectiveView(game,state,mission){
  const active=state.active,contract=game.state.npcContract,matched=mission.navy&&contract?.military?.missionId===mission.id&&contract.military.operationId===active.operationId;
  const proof=matched?navyServiceProof(contract,game.state.multiplayer?.captainId||game.playerId):active.receipt;
- const qualified=matched?(contract.work?.targets||[]).filter((target,index,all)=>target.neutralized&&(active.shared||finite(target.damage)>=mission.navy.requiredDamage)&&all.findIndex(other=>other.id===target.id)===index&&Array.from({length:mission.navy.targetCount},(_,i)=>`${active.operationId}:target:${i}`).includes(target.id)).length:0;
+ const qualified=matched?(contract.work?.targets||[]).filter((target,index,all)=>target.neutralized&&all.findIndex(other=>other.id===target.id)===index&&Array.from({length:mission.navy.targetCount},(_,i)=>`${active.operationId}:target:${i}`).includes(target.id)).length:0;
  const objectives=mission.objectives.map(objective=>{
   const value=Math.min(objective.required,Math.max(finite(active.evidence?.[objective.id]?.value),objective.id==='targets'?qualified:objective.id==='watch'&&mission.navy?Math.floor(finite(proof?.watchSeconds)):0));
-  const label=active.shared&&objective.id==='targets'?`Crew: neutralize ${mission.navy.targetCount} marked contacts`:active.shared&&['hits','damage'].includes(objective.id)?objective.id==='hits'?'Section: hit the three range targets':'Section: contribute fire while securing the position':objective.label;
+  const label=mission.navy&&objective.id==='targets'?`Crew: neutralize ${mission.navy.targetCount} marked contacts`:active.shared&&['hits','damage'].includes(objective.id)?objective.id==='hits'?'Section: hit the three range targets':'Section: contribute fire while securing the position':objective.label;
   return{id:objective.id,label,value:objective.id==='watch'?Math.floor(value):value,required:objective.required,done:value+1e-6>=objective.required};
  });
- if(active.shared&&!mission.watch&&!mission.navy?.kind){
+ if((active.shared||mission.navy)&&!mission.watch&&!mission.navy?.kind){
   const seconds=mission.navy?finite(proof?.watchSeconds):finite(active.participation?.seconds),damage=mission.navy?finite(proof?.damage)>=mission.navy.requiredDamage:finite(active.participation?.damage)>0;
   objectives.splice(objectives.length-1,0,{id:'personal-duty',label:mission.navy?'Your duty: stand 15 seconds on station or contribute confirmed gunfire':'Your duty: serve 15 seconds at the post or contribute a confirmed hit',value:damage?15:Math.min(15,Math.floor(seconds)),required:15,done:damage||seconds+1e-6>=15});
  }
@@ -340,7 +340,7 @@ export const MilitaryCareerRules={
   const state=stateFor(this),active=state.active,mission=active&&militaryMission(active.missionId),binding=contract?.military;
   if(!active||effectivePhase(active)!=='active'||mission?.branchId!=='navy'||binding?.branchId!=='navy'||binding.missionId!==mission.id||binding.operationId!==active.operationId||(active.shared?binding.sharedOperation!==true||!isNavyParticipant(contract,this.playerId):contract.employeeId!==this.playerId))return failure('This sortie receipt belongs to another captain or operation.','operation');
   const receipt=validNavyReceipt(mission,active.operationId,result,{shared:!!active.shared,playerId:this.playerId});
-  if(!receipt){active.receipt=null;active.failure='The carrier watch ended before every marked target and the return to Morrow were complete. Return to Sergeant Venn for a fresh deployment.';setPhase(state,'failed');this._event('military-progress',{missionId:mission.id,text:active.failure});return{ok:true,completed:false,retry:true};}
+  if(!receipt){active.receipt=null;active.failure='The carrier watch ended before the crew objectives, your personal duty, and the return to Morrow were complete. Return to Sergeant Venn for a fresh deployment.';setPhase(state,'failed');this._event('military-progress',{missionId:mission.id,text:active.failure});return{ok:true,completed:false,retry:true};}
   active.receipt=receipt;copyReceiptEvidence(mission,active);
   return{ok:true,completed:true,ready:ready(this,state,mission)};
  }
