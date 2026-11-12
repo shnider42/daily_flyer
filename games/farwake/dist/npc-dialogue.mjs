@@ -190,7 +190,7 @@ function urgent(game, entity, role) {
   if (aboard && state.ship?.damageControl?.sections?.some(section => section.fire > 0)) return { context: 'urgent', greeting: 'There’s fire on this deck. Conversation can wait.', rumor: 'Reach the marked compartment before the fire spreads.' };
   if (aboard && state.ship?.damageControl?.sections?.some(section => section.breach > 0)) return { context: 'urgent', greeting: 'We’re losing air. Find the breach.', rumor: 'Keep clear of the damaged compartment until it’s patched.' };
   if (role === 'medic' && state.person?.health < (state.person.maxHealth || 100) * .45) return { context: 'urgent', greeting: 'Sit down. You’re hurt. Tell me where the pain is worst.', rumor: 'Let’s deal with the injury before the small talk.' };
-  if (entity.type === 'crew' && finite(entity.data?.health, 100) < finite(entity.data?.maxHealth, 100) * .4) return { context: 'urgent', greeting: 'I’m hurt, captain. I need the medical station.', rumor: 'I can’t take another watch like this.' };
+  if (entity.type === 'crew' && finite(entity.data?.health, 100) < finite(entity.data?.maxHealth, 100) * .4) return { context: 'urgent', greeting: entity.data?.serviceCrew?'I’m hurt. I need help getting to the medical station.':'I’m hurt, captain. I need the medical station.', rumor: 'I can’t take another watch like this.' };
   return null;
 }
 

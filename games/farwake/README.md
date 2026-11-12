@@ -1,12 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.16.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.17.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## A working Navy ship and broader fleet duties · 0.17.0
+
+**FWS Steadfast now carries a permanent company of 20 named Navy personnel.** Bridge, weapons, deck, engineering, medical, and mess staff have individual duties, activities, and rank-aware dialogue. Nineteen make short rounds along real compartment routes; Commander Isen remains at the **Helm**. Sailors near the quarterdeck and battery compartment make the ship feel staffed as soon as you arrive. Nearby comments refer to current conditions without revealing future attacks. Crew conversations, the company roster, and current orders are accessible from the deck.
+
+The company belongs to the actual carrier in both modes. Its identities, positions, injuries, and deaths persist, and every shared participant sees the same people. The permanent establishment does not consume the ten players’ shared berths or provide hired-specialist bonuses. Existing Navy saves receive the company once; recorded casualties are never replaced or revived, and the sailors do not transfer into a player's personal crew on disembarking.
+
+The opening campaign now includes real protected freighters during the escort and final patrol. Its distress sortie has a damaged civilian tender and ordered rescue work: resolve the distress bearing, prepare casualty reception at medical, and account for the people received at the airlock. The marked attackers must be cleared before casualties can be transferred. Existing in-progress sorties retain the objectives with which they started; the expanded procedures apply to new attempts.
+
+**Eight additional standing Navy missions** extend the existing six patrols and escorts to **14 Navy deployments**. Army retains its six deployments. The new duties are search and rescue, traffic identification, navigation survey, engineering assistance, fleet replenishment, civilian evacuation, fleet exercise, and a border stand-off. Each has a physical objective vessel and an authored sequence of orders, with station attendance and recorded outcomes. Repairs restore the disabled tender's hull; rescues and evacuations record the completed transfer; a lost protected vessel fails its operation. Quiet watches still count, and some deployments develop into attacks.
+
+The duty panel shows the current order, its workstation, the bridge report, fire orders, personal watch progress, the operation sequence, and a bridge log. Identification and stand-off decisions depend on the observed reply: an incomplete transponder is not itself permission to shoot. The authority enforces weapons hold before identification, with defensive fire available against a confirmed incoming attack. Only reported information is exposed; encounter rolls remain private.
+
+Recruits carry out supervised assistance at the manifest, medical, airlock, and gun stations. This does not grant the scanner or engineering permissions reserved for higher ranks. Work advances while an eligible player actually remains at its station, pauses when that station is unattended, and survives saving or reconnecting. Mission credit still requires the individual's recorded duty and a return for debrief. Solo and multiplayer use the same procedures, physical vessels, and personal rank rules.
 
 ## Capital batteries and the journey after ship loss · 0.16.0
 

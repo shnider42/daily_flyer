@@ -17,7 +17,7 @@ export function militaryCareerPrompt(status,{mode='person',nearby=null,gunnery=f
  return{id:`service:${status.branchId}:${status.active?.operationId||'briefing'}:${status.active?.phase||status.status}:${near?'near':gunnery?'gunnery':mode}`,title:status.title||status.branchName||'Your service assignment',body,compactBody:body,flow:'route',controlTarget:gunnery?'fireButton':near?'contextButton':'stick'};
 }
 
-export function createMilitaryCareerUI({getGame,dialog,invoke,acceptResult,track,refreshWorld=()=>{},openOrdinaryWork=null,document:doc=globalThis.document}){
+export function createMilitaryCareerUI({getGame,dialog,invoke,acceptResult,track,refreshWorld=()=>{},openOrdinaryWork=null,openNavyDuty=null,document:doc=globalThis.document}){
  let busy=false;
  const status=entityId=>getGame().militaryCareerStatus?.(entityId)||{status:'unavailable',actions:[],objective:'The recruiter is preparing the next service briefing.'};
  const identity=()=>{const g=getGame(),s=g.state;return{game:g,key:`${s.seed}:${s.multiplayer?.captainId||'solo'}`};};
@@ -91,6 +91,7 @@ export function createMilitaryCareerUI({getGame,dialog,invoke,acceptResult,track
   const actions=(view.actions||[]).filter(action=>action.action!=='join');
   const primary=actions.filter(action=>!['pause'].includes(action.action)),secondary=actions.filter(action=>action.action==='pause');
   const choices=primary.map(action=>({label:action.label,detail:action.reason||action.detail,disabled:action.available===false,action:()=>act(action,entityId)}));
+  if(openNavyDuty&&getGame().state.npcContract?.military?.branchId==='navy')choices.unshift({label:'Current ship orders',detail:'Read the bridge instructions and carry out your assigned duties.',action:openNavyDuty});
   if(view.target)choices.push({label:'Show my next task',detail:view.objective,action:()=>mark(view.target)});
   else if(view.status!=='completed')choices.push({label:'Find the recruiter on Morrow',action:()=>mark(MILITARY_RECRUITER_TARGET)});
   for(const action of secondary)choices.push({label:action.label,detail:action.reason||action.detail||'Keep your progress and return to your own voyage.',disabled:action.available===false,action:()=>act(action,entityId)});

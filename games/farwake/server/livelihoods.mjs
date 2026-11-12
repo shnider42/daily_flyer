@@ -57,14 +57,14 @@ export const LivelihoodAuthority={
     if(operation.leaderId!==c.id)return fail('Only the operation leader can request the carrier’s return. Your personal rank does not change.','military-command');
     const clearance=militaryPermission(c.game,'join',{factionId:operation.factionId,branchId:'navy'});if(!clearance.ok)return clearance;
     result=requestNpcContractReturn(actor);
-   }else if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,solution:args.solution,input:c.appliedInput||c.input||{}});
+   }else if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,choiceId:typeof args.choiceId==='string'?args.choiceId:null,solution:args.solution,input:c.appliedInput||c.input||{}});
    else return fail('Unknown crew-contract action.','command');
    this._syncActor(vessel);return result;
   }
   if(!contract?.active||!vessel||vessel.npcContractId!==contract.id||contract.employeeId!==c.id||c.aboard!==vessel.id)return fail('You must be aboard the vessel for your own active crew watch.','contract');
   const actor=this._actor(vessel);
   let result;
-  if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,solution:args.solution,input:c.appliedInput||c.input||{}});
+  if(name==='npcContractAction')result=performNpcContractWork(actor,args.action,{worker:c.game,playerId:c.id,sectionId:args.sectionId,taskId:args.taskId,choiceId:typeof args.choiceId==='string'?args.choiceId:null,solution:args.solution,input:c.appliedInput||c.input||{}});
   else if(name==='cancelNpcContract')result=requestNpcContractReturn(actor);
   else if(name==='completeNpcContract')result=settleNpcContract(actor);
   else return fail('Unknown crew-contract action.','command');

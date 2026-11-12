@@ -26,6 +26,7 @@ import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 import { settleNpcContract } from '../dist/npc-contracts.mjs';
 import { applyGunneryAim } from '../dist/gunnery.mjs';
 import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
+import { syncNavyCrewSurface } from '../dist/navy-crew.mjs';
 import { occupiedVesselThreats } from '../dist/music-context.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
@@ -458,6 +459,7 @@ export class Realm extends BoardingAuthority {
     // fire and impact exposure must never damage a worker through that map.
     actor._damageHumans=actor._npcWorkers.filter(game=>game.state.interior?.kind!=='eva');
     actor._damageCrewPositions=vessel.pvp?.crewActors||(vessel.npcContractId?inventory.crew.map(member=>({crewId:member.id,x:member.x,y:member.y})):null);
+    actor._navyCrewInCombat=vessel.pvp?.phase==='active';
     actor.netOnInteriorCasualty=game=>{
       const captain=[...this.captains.values()].find(c=>c.game===game&&c.aboard===vessel.id);
       if(captain)this._recoverCaptain(captain,`Your emergency medical beacon brought you to a safe berth. ${vessel.name} remains damaged where you left it.`);
@@ -578,7 +580,7 @@ export class Realm extends BoardingAuthority {
   }
   _berthsUsed(vessel) {
     const humans = [...this.captains.values()].filter(other => other.aboard === vessel.id).length;
-    const hired = this._crewFor(vessel).filter(member => !member.dead && (member.health ?? 100) > 0).length;
+    const hired = this._crewFor(vessel).filter(member => !member.serviceCrew && !member.dead && (member.health ?? 100) > 0).length;
     const passengers = this._passengerBerths(vessel), reserved = rescuedBerthCount(vessel.ship) + passengers.narrative + passengers.professions;
     return humans + hired + reserved;
   }
@@ -660,9 +662,15 @@ export class Realm extends BoardingAuthority {
   }
   _surface(captain, time = this._npcTime()) {
     const location = this._location(captain); if (!location) return null;
-    const key = `${location.id}:${location.classId || ''}:${location.dockedAt || ''}:${!!location.evacuated}:${JSON.stringify(location.crew || [])}:${JSON.stringify(location.guests || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
+    // A service ship's company moves on its authoritative watch clock. Their
+    // positions are projected below; walking sailors must not rebuild a large
+    // capital-ship floor plan on every simulation tick.
+    const crewKey = (location.crew || []).map(member => member.serviceCrew ? { id: member.id, species: member.species, alive: !member.dead && member.status !== 'dead' && member.health > 0 } : member);
+    const key = `${location.id}:${location.classId || ''}:${location.dockedAt || ''}:${!!location.evacuated}:${JSON.stringify(crewKey)}:${JSON.stringify(location.guests || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
     if (captain.surfaceCache?.key !== key) captain.surfaceCache = { key, value: generateSurface(location, this.seed, captain.game.state.flags) };
-    return updateNpcLife(captain.surfaceCache.value, time, { holds: this._npcHoldsFor(captain, time) });
+    const surface = updateNpcLife(captain.surfaceCache.value, time, { holds: this._npcHoldsFor(captain, time) });
+    syncNavyCrewSurface(surface, location.crew || []);
+    return surface;
   }
   _ensurePersonPosition(captain, reset = false) {
     const surface = this._surface(captain); if (!surface) return;

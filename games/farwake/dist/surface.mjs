@@ -452,7 +452,7 @@ function ship(location,seed){
  for(const f of layout.fixtures)prop(m,f.kind,f.x,f.y,f.w,f.h,f.color,false);
  m.solids=layout.fixtures.filter(f=>f.solid).map(f=>({x:f.x*T,y:f.y*T,w:f.w*T,h:f.h*T}));
  const descriptions={helm:'Take the helm and pilot the ship. Shared crew members can request command from the captain.',engineering:'Monitor the reactor, restore damaged systems, and coordinate repairs during a boarding action.',medical:'This station tracks the crew’s health. A medic can stabilize casualties and prepare the recovery berth.',security:'Coordinate the ship’s defense, check the boarding alarm, and protect the passage to the bridge.',navigation:'Read the local chart, coordinate jumps, and take the navigation station as a member of the crew.'};
- const names={helm:'Captain’s helm',engineering:'Engineering station',medical:'Medical station',security:'Security station',navigation:'Navigation station'};
+ const names={helm:'Captain’s Helm',engineering:'Engineering station',medical:'Medical station',security:'Security station',navigation:'Navigation station'};
  const colors={helm:'#e6c58a',engineering:'#d9b777',medical:'#91c8b4',security:'#d89a86',navigation:'#8dbed0'};
  for(const[role,p]of Object.entries(layout.stations)){
   const id=role==='helm'?'exit':'station:'+role,type=role==='helm'?'exit':'station';
@@ -466,8 +466,9 @@ function ship(location,seed){
  for(let i=0;i<crew.length;i++){
   const c=crew[i],p=Number.isFinite(c.x)&&Number.isFinite(c.y)&&isWalkable(m,c.x,c.y)?c:layout.crewSpawns[i%layout.crewSpawns.length]||layout.spawn,dialogueRole=c.role==='navigator'?'pilot':c.role,base=DIALOGUE[dialogueRole];
   const role=String(c.role||'crewmate'),name=c.name||base?.name||'Crewmate';
-  const person=entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,species:normalizeSpecies(c.species),dialogueRole,roleLabel:base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
+  const person=entity(m,'crew:'+c.id,'crew',name,role,Math.floor(p.x/T),Math.floor(p.y/T),c.color||['#d1b67d','#8ebcc4','#a0c5ae','#bda6c9'][i%4],{crewId:c.id,crewRole:role,species:normalizeSpecies(c.species),dialogueRole,roleLabel:c.dutyLabel||base?.role||role,greeting:c.greeting||base?.greeting,rumors:c.rumors||base?.rumors||[],bunkIndex:c.serviceCrew?null:c.bunkIndex??c.berthIndex??i+1,health:c.health,maxHealth:c.maxHealth,...(c.serviceCrew?{serviceCrew:true,dutyLabel:c.dutyLabel,department:c.department,status:c.status}:{})},c.text||c.greeting||base?.greeting||'Another watch together. Where are we headed next?');
   person.species=person.data.species;
+  if(c.serviceCrew){person.x=p.x;person.y=p.y;person.facing=c.facing||'down';person.moving=!!c.moving;if(c.life)person.life=JSON.parse(JSON.stringify(c.life));}
  }
  // These are the people admitted onto this particular hull. Their positions
  // and identities survive saves and become the same actors if trouble starts.
@@ -900,7 +901,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   const yy=y-36+Math.round(Math.sin(time*3));pixel(ctx,'#e5d7ac',x-2,yy,4,2);pixel(ctx,'#e5d7ac',x-1,yy+2,2,2);
  }
 }
-function shortRole(e){if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
+function shortRole(e){if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.data?.stationRole==='helm'?'Helm':e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
 function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;

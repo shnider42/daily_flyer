@@ -38,6 +38,14 @@ function aim(game){
 function finish(game){
  const contract=game.state.npcContract;
  for(let i=0;i<1800&&contract.phase!=='docked'&&contract.active;i++){
+  const order=game.npcContractStatus().navyOperation?.activeTask;
+  if(contract.phase==='working'&&order&&(contract.work.targets||[]).every(target=>target.neutralized)){
+   if(game.state.stationView==='gunnery')ok(game.leaveGunnery());
+   Object.assign(game.state.person,{x:order.target.x,y:order.target.y});
+   if(!order.running)ok(game.npcContractAction('navyOrder',{taskId:order.id,choiceId:order.choices[0].id}));
+   game.step(.1,{});continue;
+  }
+  Object.assign(game.state.person,cabinLayout(game.state.ship.classId).stations.security);
   const status=game.gunneryStatus();if(status.available&&!status.active)ok(game.enterGunnery());
   game.step(.1,aim(game));
  }
@@ -87,6 +95,8 @@ test('four real Navy sorties fly home, require each target contribution, and pay
   assert.ok(contract.work.targets.every(target=>target.neutralized&&target.damage>=mission.navy.requiredDamage));
   assert.equal(new Set(contract.work.targets.map(target=>target.id)).size,mission.navy.targetCount);
   assert.ok(contract.work.shots>0);assert.equal(game.state.credits,before);assert.ok(distance(game.state.ship,contract.dockPoint)<60);
+  if(index===1||index===3)assert.ok(contract.navy.escort?.hull>0,'the real protected transport returned intact');
+  if(index===2){assert.equal(contract.navy.operation.completed,true);assert.equal(contract.navy.operation.rescued,3);assert.equal(contract.navy.operation.tasks.every(task=>task.done),true);}
   if(index===0){assert.equal(game.state.stats.kills,kills);assert.equal(game.system.pickups.some(item=>contract.navy.targetIds.some(id=>item.id.startsWith(id))),false);}
   Object.assign(game.state.person,cabinLayout(game.state.ship.classId).spawn);const exit=ok(game.disembark());assert.equal(exit.wages,0);
   assert.equal(game.state.ship,own);assert.equal(game.state.cargo,cargo);assert.equal(game.state.locationId,'morrow');assert.equal(game.state.militaryCareer.active.phase,'debrief');

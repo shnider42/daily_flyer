@@ -7,6 +7,8 @@ import {getShipClass} from '../dist/fleet.mjs';
 import {getPersonalWeapon} from '../dist/combat.mjs';
 import {getGunneryView,displayMode} from '../dist/gunnery-view.mjs';
 import {militaryCareerGuided,militaryCareerPrompt} from '../dist/military-career-ui.mjs';
+import {syncNavyCrewSurface} from '../dist/navy-crew.mjs';
+import {navyOrderPrompt,navyOrderMatchesEntity} from '../dist/navy-duty-ui.mjs';
 import {generateSurface,isWalkable,nearestEntity,movePerson} from '../dist/surface.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {syncDamageMarkers,nearestDeckInteraction} from '../dist/interior-presentation.mjs';
@@ -35,7 +37,7 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
   let heldInput={thrust:1,strafe:1,x:1,fire:true,mine:true},clearCount=0,context;
   const network=shared?{connected:true,command(name,args){return new Promise((resolve,reject)=>packets.push({name,args,resolve,reject}));},setInput(input){inputs.push(copy(input));}}:null;
   if(shared)game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,aboardVesselId:game.state.ship.id};
-  context=vm.createContext({Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
+  context=vm.createContext({syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
     game,playing:true,network,onlineSnapshot:shared?{fleet:[{...game.state.ship,ownerId:'captain',helmOwner:null}]}:null,
     hudDirty:false,narrativeWaypoint:null,actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,

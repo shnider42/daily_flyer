@@ -277,7 +277,7 @@ export class Game {
   get shipClass() { return getShipClass(this.state.ship.classId); }
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
   get crewCapacity() { return this.hasActiveVessel?Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()-this.rescuedBerths()):0; }
-  get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.length); }
+  get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.filter(crew=>!crew.serviceCrew).length); }
   get characterEffects() { return characterModifiers(this.state.character); }
   get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
@@ -498,7 +498,7 @@ export class Game {
     if (Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) && values.warpRange < 6) values.warpRange = 6;
     // Crew bonuses are small, predictable and describe their effect in the crew panel.
     for (const crew of this.state.crew || []) {
-      if (crew.health <= 0 || crew.status === 'dead') continue;
+      if (crew.health <= 0 || crew.status === 'dead' || crew.serviceCrew) continue;
       if (crew.role === 'engineer') values.maxHull += 10;
       if (crew.role === 'navigator') values.scanRange += 45;
       if (crew.role === 'medic') values.maxEnergy += 10;

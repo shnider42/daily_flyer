@@ -1,7 +1,7 @@
 /** Port travel and paid crew work share one compact, context-aware menu. */
 import { escapeHtml as esc, fmt } from './ui.mjs';
 
-export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWorld,markEntity,openJobs,openShipyard,openProfile,openDamage}){
+export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWorld,markEntity,openJobs,openShipyard,openProfile,openDamage,openNavyDuty=null}){
  const game=()=>getGame();
  const purse=()=>`${fmt(game().state.credits)} CR AVAILABLE`;
  const finish=async(name,args={})=>{const owner=game(),captain=owner.state.multiplayer?.captainId||owner.state.seed,revision=dialog.revision;const answer=await invoke(name,args);if(game()!==owner||(game().state.multiplayer?.captainId||game().state.seed)!==captain)return false;if(dialog.revision!==revision){refreshWorld();return false;}if(!acceptResult(answer))return false;if(dialog.revision===revision)dialog.close();refreshWorld();return true;};
@@ -93,6 +93,7 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
   }},{label:'Back to the deck',action:()=>dialog.close()}]);
  }
  function openDuty(){
+  if(openNavyDuty?.())return;
   const passage=game().npcContractStatus?.();if(passage?.repatriation){
    dialog.open('Your passage home','crew-duty',{eyebrow:'MILITARY PASSENGER / FARE COVERED'});
    dialog.html(`<h3>${esc(passage.shipName)}</h3><p class="duty-route">${esc(passage.routeName)}</p><div class="guide-card"><p>${esc(passage.task)}</p></div><p>Fare: <strong>0 CR</strong>. Captain Vale has the helm. The shuttle belongs to the transport service.</p>`);

@@ -12,6 +12,8 @@ import { navyMember, isNavyParticipant, navyServiceProof } from './navy-service.
 import { navyDutyAccess } from './navy-duty.mjs';
 import { stepMilitaryPassage, militaryPassageStatus, settleMilitaryPassage } from './military-recovery.mjs';
 import { shipRecoveryContext } from './ship-recovery.mjs';
+import { initializeNavyOperation, stepNavyOperation, performNavyOrder, navyOperationAssist, navyOperationAllowsContacts, navyOperationFireAccess, navyOperationStatus, retireNavyOperation } from './navy-operations.mjs';
+import { initializeNavyCrew, stepNavyCrew } from './navy-crew.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -135,12 +137,12 @@ export function createNavySortie(game,mission,{id,employeeId=game.playerId||'loc
  contract.military={factionId:mission.factionId||contract.factionId,branchId:'navy',missionId:mission.id,operationId:id,attemptId:id,
   participants:{[String(employeeId)]:{role:'gunner',active:true,watchSeconds:0,shots:0,damage:0,targets:[],settled:false}}};
  contract.navy={title:mission.title,classId:'leviathan',training:!!spec.training,targetIds:Array.from({length:count},(_,i)=>`${id}:target:${i}`),
-  targetClassId:['hauler','marten','bulwark'].includes(spec.targetClassId)?spec.targetClassId:'hauler',targetHull:clamp(finite(spec.targetHull,112),60,500),targetDamage:clamp(finite(spec.targetDamage),0,15),targetSpeed:clamp(finite(spec.targetSpeed),0,90),requiredDamage:clamp(finite(spec.requiredDamage,28),1,120),heading,spawned:false};
+  procedureKind:spec.procedureKind||null,escortRequested:!!spec.escort,watchSeconds:clamp(finite(spec.watchSeconds,60),15,300),targetClassId:['hauler','marten','bulwark'].includes(spec.targetClassId)?spec.targetClassId:'hauler',targetHull:clamp(finite(spec.targetHull,112),60,500),targetDamage:clamp(finite(spec.targetDamage),0,15),targetSpeed:clamp(finite(spec.targetSpeed),0,90),requiredDamage:clamp(finite(spec.requiredDamage,28),1,120),heading,spawned:false};
  contract.work={...contract.work,targets:[],shots:0,damage:0};
  if(spec.kind){
   const destinationId=mission.deployment?.systemId||spec.targetSystemId||origin.systemId,destination=game.galaxy.find(system=>system.id===destinationId);
   if(!destination)return fail('Fleet dispatch cannot identify this operation’s destination.','route');
-  const kind=['patrol','escort','combat'].includes(spec.kind)?spec.kind:'patrol',chance=clamp(finite(spec.attackChance,kind==='combat'?1:.4),0,1);
+  const kind=['patrol','escort','combat','rescue','inspection','survey','repair','replenishment','evacuation','exercise','standoff'].includes(spec.kind)?spec.kind:'patrol',chance=clamp(finite(spec.attackChance,kind==='combat'?1:.4),0,1);
   Object.assign(contract.navy,{kind,watchSeconds:clamp(finite(spec.watchSeconds,60),15,300),enemyFactionId:spec.enemyFactionId||mission.rivalId||'meridian',
    attackPlanned:hash(`${game.state.seed}:${id}:navy-contact`)/0x100000000<chance,attackAt:clamp(finite(spec.attackDelay,25),0,240)+(hash(`${id}:contact-time`)%9),escortRequested:!!spec.escort||kind==='escort',escort:null,
    route:{destinationSystemId:destinationId,destinationBodyId:mission.deployment?.bodyId||spec.targetBodyId||null,destinationName:destination.name,remote:destinationId!==origin.systemId,reached:false,returned:false,jumpClock:0,homeGate:{...waypoint,angle:heading+Math.PI}}});
@@ -153,6 +155,7 @@ export function createNavySortie(game,mission,{id,employeeId=game.playerId||'loc
  }
  inventory.cargo={ore:8,crystal:0};inventory.crew[0].name='Commander Isen';inventory.crew[0].greeting=spec.kind?'I have the helm. Keep your watch at the gunnery console. A clear scope is still a watch; report any contact and wait for my return-to-port call.':'I have the helm. Your post is the gunnery console. Use its exterior display and aim the battery yourself; we will return to Morrow for your debrief.';
  inventory.crew[1].name='Chief Nara';inventory.crew[1].greeting='You control four batteries: fore, port, starboard, and aft. Use their buttons or keys 1–4 in the gun view to cover each direction. The marked fan shows your selected battery’s firing arc. Each gun cycles separately, but they share the reactor.';
+ initializeNavyOperation(game,contract);initializeNavyCrew(game,contract,inventory);
  return result;
 }
 
@@ -202,13 +205,15 @@ function observeNavyWork(game,contract){
   // An idle present member has a bounded grace period, then receives only the
   // personal service proof they actually earned when the carrier returns.
   const crewReady=!contract.military.sharedOperation||attending.every(id=>navyServiceProof(contract,id).duty)||contract.phaseClock>=watchRequired+75;
-  contract.work.progress=clamp((Math.min(1,watch/watchRequired)+(combat?1:0))/2,0,1);
-  contract.work.done=!!(combat&&timeReady&&someoneQualified&&crewReady&&(!spec.escortRequested||spec.escort?.hull>0));
+  const procedureProgress=spec.operation?Math.min(1,finite(spec.operation.stageIndex)/Math.max(1,spec.operation.tasks.length)):0;
+  contract.work.progress=clamp((Math.min(1,watch/watchRequired)+(combat?1:0)+procedureProgress)/(spec.operation?3:2),0,1);
+  contract.work.done=!!(combat&&timeReady&&someoneQualified&&crewReady&&(!spec.escortRequested||spec.escort?.hull>0)&&(!spec.operation||spec.operation.completed)&&!contract.aborted);
  }
  if(contract.work.done&&contract.phase==='working')transition(game,contract,'returning',spec.kind?'Commander: watch complete. The lane is clear and your station record is logged. Returning to Morrow for debrief.':'Commander: the assigned contacts are neutralized and your duty is recorded. Returning to Morrow. Step ashore and report to the recruiter for your debrief.');
 }
 function retireNavyTargets(game,contract){
  if(!navy(contract))return;
+ retireNavyOperation(game,contract);
  const ids=new Set(contract.navy.targetIds.filter(id=>{const enemy=navyTarget(game,id);return!enemy||!enemy.capturedBy&&!enemy.promotedVesselId&&!enemy.canonicalVesselId&&!enemy.boardingTargetId;})),record=game._record();
  game.system.enemies=game.system.enemies.filter(enemy=>!ids.has(enemy.id));record.spawned=(record.spawned||[]).filter(enemy=>!ids.has(enemy.id));
  for(const id of ids){if(!record.defeated.includes(id))record.defeated.push(id);delete record.enemyHealth?.[id];delete record.enemyStates?.[id];}
@@ -225,7 +230,8 @@ function recordNavyWatch(game,contract,dt){
   const permitted=role=>(typeof game._navyCanDuty!=='function'||game._navyCanDuty(worker,role))&&navyDutyAccess(game,role,{worker}).ok;
   const gunnery=worker.state.stationView==='gunnery'&&distance(person,point)<=46&&permitted('weapons');
   const support=['scanner','engineering'].some(permitted);
-  if(!gunnery&&!support)continue;
+  const assistance=navyOperationAssist(game,contract,worker);
+  if(!gunnery&&!support&&!assistance)continue;
   member.watchSeconds=Math.min(21600,Math.round((Math.max(0,finite(member.watchSeconds))+dt)*1e6)/1e6);
  }
 }
@@ -309,11 +315,11 @@ function stepNavyContract(game,contract,dt,input){
   else emit(game,'Commander: on station. Keep the exterior display open and maintain your watch. We have no identified threat at this time.');
  }
  if(contract.phase==='working'){
-  recordNavyWatch(game,contract,dt);stepNavyEscort(game,contract,dt);
-  if(!contract.navy.kind||contract.navy.attackPlanned&&contract.phaseClock>=contract.navy.attackAt)spawnNavyTargets(game,contract);
+  recordNavyWatch(game,contract,dt);stepNavyEscort(game,contract,dt);stepNavyOperation(game,contract,dt);
+  if(contract.phase==='working'&&(!contract.navy.kind||contract.navy.attackPlanned&&contract.phaseClock>=contract.navy.attackAt&&navyOperationAllowsContacts(contract)))spawnNavyTargets(game,contract);
   observeNavyWork(game,contract);
   if(contract.navy.kind&&!contract.navy.watchUpdate&&contract.phaseClock>contract.navy.watchSeconds*.45){contract.navy.watchUpdate=true;emit(game,contract.navy.spawned?'Chief Nara: stay on your station. The watch is not complete while those contacts threaten the lane.':'Chief Nara: traffic is holding its course. Log the clear sweep and keep watching.');}
-  if(contract.phase==='working'&&contract.phaseClock>=Math.max(360,finite(contract.navy.watchSeconds)*2)){contract.aborted=true;transition(game,contract,'returning','Commander: the operation window is closed. We will return to Morrow; the recruiter can arrange another attempt.');}
+  if(contract.phase==='working'&&contract.phaseClock>=Math.max(contract.navy.operation?720:360,finite(contract.navy.watchSeconds)*2)){contract.aborted=true;transition(game,contract,'returning','Commander: the operation window is closed. We will return to Morrow; the recruiter can arrange another attempt.');}
  }
  if(contract.phase==='returning'&&game.state.systemId===contract.origin.systemId&&distance(game.state.ship,contract.dockPoint)<24&&Math.hypot(game.state.ship.vx,game.state.ship.vy)<18){
   contract.dockedAt=contract.origin.bodyId;Object.assign(game.state.ship,{vx:0,vy:0,angularVelocity:0});transition(game,contract,'docked','Commander: moored at Morrow. Use the entry airlock, then report to the recruiter.');
@@ -322,7 +328,7 @@ function stepNavyContract(game,contract,dt,input){
   applyGunneryAim(game,game,input);
   if(input.fire)performNpcContractWork(game,'fire',{input});
  }
- updateCabin(game);
+ stepNavyCrew(game,contract,dt);updateCabin(game);
 }
 
 function transition(game,contract,phase,text){contract.phase=phase;contract.phaseClock=0;if(['outbound','returning','failed'].includes(phase))contract.dockedAt=null;if(text)emit(game,text);}
@@ -645,12 +651,14 @@ function performModernWork(game,contract,action,{worker=game,playerId=worker.pla
 }
 
 /** Actor is the employer vessel; worker is the real player aboard it. */
-export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,solution,input={}}={}){
+export function performNpcContractWork(game,action,{worker=game,playerId=worker.playerId||game.playerId||'local',sectionId,taskId,choiceId,solution,input={}}={}){
  if(game.state.npcContract?.repatriation)return fail('You are a repatriation passenger. The transport crew operates this vessel.','military-passage');
  const contract=active(game),definition=contract&&roleFor(contract.roleId);
  if(!contract||game.state.ship.id!==contract.vesselId)return fail('You are not aboard an active paid crew watch.','contract');
  if(navy(contract)){
-  if(action!=='fire')return fail('The Navy gunner operates the exterior battery from the gunnery console.','role');
+  if(action==='navyOrder')return performNavyOrder(game,contract,{worker,playerId,taskId,choiceId});
+  if(action!=='fire')return fail('Use the posted Navy order or the exterior gun battery.','role');
+  const engagement=navyOperationFireAccess(game,contract);if(!engagement.ok)return engagement;
   if(!['outbound','working','returning'].includes(contract.phase))return fail('The ship must be under way before the gun batteries can fire.','phase');
   const access=workerAccess(game,contract,worker,playerId,'security');if(!access.ok)return access;
   const gun=gunneryStatus(game,{worker});
@@ -736,11 +744,12 @@ export function npcContractStatus(game){
  if(contract.repatriation)return militaryPassageStatus(game,contract);
  if(navy(contract)){
   const point=gunneryStation(contract.classId),identity=game.state.multiplayer?.captainId||game.playerId,proof=navyServiceProof(contract,identity);
+  const operation=navyOperationStatus(game,contract),order=operation?.activeTask;
   const neutralized=(contract.work.targets||[]).filter(target=>target.neutralized).length,total=contract.navy.targetIds.length;
   const dutyText=!contract.navy.kind&&proof.damage>=contract.navy.requiredDamage?'Your confirmed gun contribution is logged':`${Math.min(proof.requiredWatchSeconds,Math.floor(proof.watchSeconds))} / ${proof.requiredWatchSeconds}s at your watch station`;
-  const task=contract.phase==='docked'?'Step ashore through the entry airlock, then report to the Morrow recruiter.':contract.phase==='returning'?contract.work.done?'Your duty record is logged. The commander is returning for your debrief.':'The operation ended early. Report to the recruiter for another attempt.':contract.phase==='working'?contract.navy.spawned?`Marked contacts: ${neutralized} / ${total} neutralized. ${dutyText}.`:`Maintain your watch. ${dutyText}. Scan the lane and stay ready.`:contract.military.awaitDeparture?'The operation is assembling at Morrow. The appointed leader can give the departure order.':'Walk to the security / gunnery console. Open the exterior display after the commander casts off.';
+  const task=contract.phase==='docked'?'Step ashore through the entry airlock, then report to the Morrow recruiter.':contract.phase==='returning'?contract.work.done?'Your duty record is logged. The commander is returning for your debrief.':'The operation ended early. Report to the recruiter for another attempt.':contract.phase==='working'?order?.combatFirst?`Clear the ${total-neutralized} marked attackers before the casualty transfer. Take the gunnery watch; the medical team is holding safely aboard.`:order?`${order.title} · ${order.stationName}. ${order.running?`${Math.floor(order.elapsed)} / ${order.duration}s attended.`:'Open Navy duty for the current order.'} ${contract.navy.spawned&&neutralized<total?`${total-neutralized} marked contacts still require attention.`:''}`:contract.navy.spawned?`Marked contacts: ${neutralized} / ${total} neutralized. ${dutyText}.`:`Maintain your watch. ${dutyText}. Scan the lane and stay ready.`:contract.military.awaitDeparture?'The operation is assembling at Morrow. The appointed leader can give the departure order.':operation?'Review the Navy orders while the commander takes the ship to its assignment.':'Walk to the security / gunnery console. Open the exterior display after the commander casts off.';
   const work=clone(contract.work);Object.assign(work,{damage:proof.damage,shots:proof.shots,watchSeconds:proof.watchSeconds,requiredWatchSeconds:proof.requiredWatchSeconds,targets:proof.targets});
-  return{version:3,active:true,id:contract.id,roleId:'gunner',roleName:'Navy gunner',title:contract.navy.title,phase:contract.phase,task,done:contract.work.done&&proof.duty,reward:0,earned:0,progress:proof.duty?1:Math.min(1,proof.watchSeconds/proof.requiredWatchSeconds),shipName:contract.shipName,origin:clone(contract.origin),routeName:contract.routeName,dockedAt:contract.dockedAt,canFinish:contract.phase==='docked',target:contract.phase==='docked'?{type:'exit'}:{stationRole:'weapons',...point},work,military:clone(contract.military),targetIds:contract.navy.spawned?[...contract.navy.targetIds]:[]};
+  return{version:3,active:true,id:contract.id,roleId:'gunner',roleName:'Navy gunner',title:contract.navy.title,phase:contract.phase,task,done:contract.work.done&&proof.duty,reward:0,earned:0,progress:operation?Math.min(1,(operation.stageIndex+(order?.elapsed||0)/(order?.duration||1))/operation.totalStages):proof.duty?1:Math.min(1,proof.watchSeconds/proof.requiredWatchSeconds),shipName:contract.shipName,origin:clone(contract.origin),routeName:contract.routeName,dockedAt:contract.dockedAt,canFinish:contract.phase==='docked',target:contract.phase==='docked'?{type:'exit'}:contract.phase==='working'&&order&&!order.combatFirst?clone(order.target):{stationRole:'weapons',...point},work,military:clone(contract.military),navyOperation:operation,targetIds:contract.navy.spawned?[...contract.navy.targetIds]:[]};
  }
  if(modern(contract))return modernStatus(game,contract);
  const definition=roleFor(contract.roleId),layout=cabinLayout(contract.classId),section=game.state.ship.id===contract.vesselId?ensureDamageControl(game.state.ship).sections.find(value=>value.id===contract.work.sectionId):null;
@@ -847,6 +856,7 @@ export const NpcContractRules={
    if(navy(contract)&&!contract.military.sharedOperation&&!contract.military.participants){
     contract.military.participants={[String(contract.employeeId)]:{role:'gunner',active:true,watchSeconds:0,shots:finite(contract.work.shots),damage:finite(contract.work.damage),targets:clone(contract.work.targets||[]),settled:false}};
    }
+   if(navy(contract)&&this.state.ship.id===contract.vesselId){initializeNavyOperation(this,contract);initializeNavyCrew(this,contract);}
    if(contract.personal&&this.state.ship.id===contract.vesselId){this.state.ship.npcEmployer=true;updateCabin(this);}
   }else if(this.state.npcContract){
    const personal=this.state.npcContract.personal;

@@ -128,6 +128,7 @@ function objectiveView(game,state,mission){
   const seconds=mission.navy?finite(proof?.watchSeconds):finite(active.participation?.seconds),damage=mission.navy?finite(proof?.damage)>=mission.navy.requiredDamage:finite(active.participation?.damage)>0;
   objectives.splice(objectives.length-1,0,{id:'personal-duty',label:mission.navy?'Your duty: stand 15 seconds on station or contribute confirmed gunfire':'Your duty: serve 15 seconds at the post or contribute a confirmed hit',value:damage?15:Math.min(15,Math.floor(seconds)),required:15,done:damage||seconds+1e-6>=15});
  }
+ if(matched&&contract.navy.operation){const operation=game.npcContractStatus?.()?.navyOperation;if(operation)objectives.splice(objectives.length-1,0,{id:'procedure',label:`Crew: complete ${operation.title.toLowerCase()} orders`,value:operation.stageIndex,required:operation.totalStages,done:operation.completed});}
  return objectives;
 }
 function activeTarget(game,state,mission){

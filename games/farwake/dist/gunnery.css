@@ -34,3 +34,9 @@
 .touch-layout.touch-landscape .gunnery-batteries>p{font-size:.75rem;margin-top:5px}
 .touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .gunnery-batteries{left:50%;right:auto;top:var(--coach-top)}
 .touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .recovery-status{left:50%;right:auto;transform:translateX(-50%);width:min(440px,calc(100% - 210px))}
+.navy-fire-order{border-left:3px solid #e0bc7a;padding:.3rem .9rem;margin:1rem 0;background:#e0bc7a0b}
+.navy-fire-order p{margin:.3rem 0;color:#e4dac4}
+.navy-task-station{line-height:1.65}
+.navy-department{padding:.1rem 0 .7rem;border-bottom:1px solid #8eabb126}
+.navy-department h3{color:#9fc8c4}
+.navy-department p{margin:.65rem 0}

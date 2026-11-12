@@ -41,12 +41,12 @@ function receipt(game,overrides={}){
 }
 function reload(game){const restored=Game.fromSave(game.save());restored.initializeMilitaryCareer();restored._startMilitaryMission=()=>({ok:true});return restored;}
 
-test('Freewake has four qualification chapters and six standing deployments in each branch',()=>{
+test('Freewake keeps four qualification chapters per branch, with fourteen Navy and six Army deployments',()=>{
  assert.equal(militaryCampaign('meridian'),null);assert.equal(militaryCampaign('__proto__'),null);
- assert.equal(MILITARY_MISSIONS.length,20);assert.equal(new Set(MILITARY_MISSIONS.map(mission=>mission.id)).size,20);
+ assert.equal(MILITARY_MISSIONS.length,28);assert.equal(new Set(MILITARY_MISSIONS.map(mission=>mission.id)).size,28);
  for(const branchId of ['army','navy']){
   const branch=militaryBranch('freewake',branchId);assert.equal(branch.missions.length,4);assert.ok(branch.description.length>60);
-  assert.equal(branch.deployments.length,6);assert.ok(branch.deployments.every(mission=>mission.repeatable&&mission.deployment.systemId!=='hearth'));
+  assert.equal(branch.deployments.length,branchId==='navy'?14:6);assert.ok(branch.deployments.every(mission=>mission.repeatable&&mission.deployment.systemId));assert.ok(branch.deployments.some(mission=>mission.deployment.systemId==='meridian'));
   assert.equal(branch.missions.reduce((sum,mission)=>sum+mission.xp,0),8);
   for(const mission of branch.missions){assert.ok(Object.isFrozen(mission));assert.ok(mission.objectives.length>=2);assert.ok(mission.reward>0);}
  }
