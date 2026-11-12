@@ -14,7 +14,7 @@ const nextIntro = game => {
   const state = game.state.militaryCareer;
   return militaryBranch(state?.factionId, state?.branchId)?.missions.find(mission => !state.completed.includes(mission.id)) || null;
 };
-const action = (name, label, check, extra = {}) => ({ action: name, label, available: !!check.ok, reason: check.reason || null, ...extra });
+const action = (name, label, check, extra = {}) => ({ action: name, label, available: !!check.ok, reason: check.reason || null, reasonCode: check.code || null, ...extra });
 
 export const MilitaryOperationsAuthority = {
   _initializeMilitaryOperations(saved) {
@@ -74,9 +74,9 @@ export const MilitaryOperationsAuthority = {
     if (operation.phase !== 'muster') return fail('This deployment has already left. Join the next muster at Morrow.', 'military-departed');
     if (operation.members[captain.id]) return fail('You are already on this roster.', 'duplicate');
     if (Object.keys(operation.members).length >= MAX_ONLINE) return fail('This deployment already has ten recruits.', 'military-capacity');
-    const access = this._militaryAccess(captain, { empty: true });
-    if (!access.ok) return access;
-    return militaryPermission(captain.game, 'join', { factionId: operation.factionId, branchId: operation.branchId });
+    const permission = militaryPermission(captain.game, 'join', { factionId: operation.factionId, branchId: operation.branchId });
+    if (!permission.ok) return permission;
+    return this._militaryAccess(captain, { empty: true });
   },
 
   _militaryCanLaunch(captain, operation) {
@@ -100,15 +100,20 @@ export const MilitaryOperationsAuthority = {
     if (!rank.enlisted) return null;
     const operation = this._militaryOperation(captain);
     return { factionId: rank.factionId, branchId: rank.branchId, rank: rank.rank, rankIndex: rank.rankIndex, operationId: operation?.id || null,
+      operationPhase: operation?.phase || null, operationTitle: operation ? militaryMission(operation.missionId)?.title || null : null,
       role: operation ? operation.leaderId === captain.id ? 'Operation leader' : operation.branchId === 'navy' ? 'Gunner / watch' : 'Infantry' : 'Independent service' };
   },
 
   _militaryOperationView(captain, operation) {
-    const mission = militaryMission(operation.missionId), member = !!operation.members[captain.id];
+    const mission = militaryMission(operation.missionId), member = !!operation.members[captain.id] && ownActive(captain, operation);
     const destination = mission.deployment || mission;
     const roster = Object.keys(operation.members).map(id => {
       const person = this.captains.get(id), record = this._militaryPublicRecord(person);
-      return { captainId: id, name: person.name, rank: record.rank, rankIndex: record.rankIndex, role: operation.leaderId === id ? 'Operation leader' : operation.branchId === 'navy' ? 'Gunner / watch' : 'Infantry', online: !!person.session, settled: operation.members[id].settled === true };
+      const readiness = operation.phase === 'muster' ? this._militaryAccess(person) : null;
+      const aboard = !!operation.vesselId && person.aboard === operation.vesselId, settled = operation.members[id].settled === true;
+      const status = settled ? 'debriefed' : !person.session ? 'offline' : operation.phase === 'muster' ? readiness.ok ? 'ready' : 'waiting' : aboard ? 'aboard' : operation.phase === 'returned' ? 'returned' : operation.branchId === 'army' ? 'field' : 'ashore';
+      return { captainId: id, name: person.name, rank: record?.rank || 'Recruit', rankIndex: record?.rankIndex || 0, role: operation.leaderId === id ? 'Operation leader' : operation.branchId === 'navy' ? 'Gunner / watch' : 'Infantry', online: !!person.session, settled,
+        status, statusReason: readiness?.reason || null, aboard, ready: readiness?.ok === true };
     });
     const actions = [];
     if (member && operation.phase === 'muster') {
@@ -117,7 +122,7 @@ export const MilitaryOperationsAuthority = {
     } else if (member && phaseOf(captain.game.state.militaryCareer?.active)==='failed') {
       const check=captain.game.state.npcContract?.active||captain.aboard?fail('Go ashore before closing your duty record.','crew-duty'):captain.game.militaryRecruiterAccess(MILITARY_RECRUITER.id);
       actions.push(action('leaveOperation','Close this failed deployment',check,{operationId:operation.id}));
-    } else if (!member && operation.phase === 'muster') actions.push(action('joinOperation', 'Sign on with this operation', this._militaryCanJoin(captain, operation), { operationId: operation.id }));
+    } else if (!member) actions.push(action('joinOperation', 'Join this unit', this._militaryCanJoin(captain, operation), { operationId: operation.id }));
     return { id: operation.id, missionId: mission.id, title: mission.title, phase: operation.phase, branchId: operation.branchId, factionId: operation.factionId,
       leaderId: operation.leaderId, leaderName: this.captains.get(operation.leaderId)?.name || 'Duty officer', systemId: destination.systemId,
       systemName: this.galaxy.find(system => system.id === destination.systemId)?.name || destination.systemId, roster, actions,
@@ -126,13 +131,21 @@ export const MilitaryOperationsAuthority = {
 
   _militaryOperationsView(captain) {
     const career = captain.game.state.militaryCareer, current = this._militaryOperation(captain), operations = [];
-    if (career?.branchId) for (const operation of Object.values(this.militaryOperations?.operations || {})) {
-      if (operation.id === current?.id || operation.phase !== 'muster' || operation.factionId !== career.factionId || operation.branchId !== career.branchId) continue;
+    // Public service rosters let friends understand a different branch or an
+    // already-departed unit. Join permissions are still checked for this viewer.
+    for (const operation of Object.values(this.militaryOperations?.operations || {})) {
+      if (operation.id === current?.id || ['closed', 'cancelled'].includes(operation.phase)) continue;
       operations.push(this._militaryOperationView(captain, operation));
-      if (operations.length === 10) break;
+      if (operations.length === 32) break;
     }
     const actions = [], mission = nextIntro(captain.game);
-    if (mission && !career.active) actions.push(action('createOperation', 'Muster a squad for this assignment', this._militaryAccess(captain, { empty: true }), { missionId: mission.id }));
+    if (mission && !career.active) {
+      const access = this._militaryAccess(captain, { empty: true });
+      actions.push(action('createOperation', 'Open or join a muster', access, { missionId: mission.id, joinExisting: true,
+        detail: 'Join the existing roster for this assignment, or open one at Morrow. The operation leader departs when everyone is ready.' }));
+      actions.push(action('createOperation', 'Open a separate muster', access, { missionId: mission.id, joinExisting: false, separate: true,
+        detail: 'Make a different unit for this assignment. Friends must join this new roster before you depart.' }));
+    }
     return { sharedGalaxy: true, operation: current ? this._militaryOperationView(captain, current) : null, operations, actions };
   },
 
@@ -142,6 +155,13 @@ export const MilitaryOperationsAuthority = {
       const access = this._militaryAccess(captain, { empty: true }); if (!access.ok) return access;
       const mission = args.missionId ? militaryMission(args.missionId) : nextIntro(game);
       if (!mission) return fail('Choose an available deployment from the recruiter.', 'military-mission');
+      // This explicit action makes a simultaneous first-assignment choice safe:
+      // the second captain joins the roster the first one just opened. A plain
+      // createOperation remains available for deliberately separate deployments.
+      if (args.joinExisting === true) {
+        const existing = Object.values(this.militaryOperations.operations).find(operation => operation.phase === 'muster' && operation.missionId === mission.id && this._militaryCanJoin(captain, operation).ok);
+        if (existing) return this._militaryCommand(captain, { action: 'joinOperation', operationId: existing.id });
+      }
       const lead = this._militaryLeadCheck(captain, mission); if (!lead.ok) return lead;
       const branch = militaryBranch(career.factionId, career.branchId);
       if (branch?.missions.some(value => value.id === mission.id) && nextIntro(game)?.id !== mission.id && !career.completed.includes(mission.id)) return fail('Finish your current qualification before issuing those training orders.', 'military-orders');

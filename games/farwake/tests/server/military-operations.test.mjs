@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Realm } from '../../server/realm.mjs';
-import { MILITARY_RECRUITER } from '../../dist/military-content.mjs';
+import { MILITARY_RECRUITER, militaryBranch } from '../../dist/military-content.mjs';
 import { militaryServiceRank } from '../../dist/military-ranks.mjs';
 import { cabinLayout } from '../../dist/fleet.mjs';
 
@@ -114,4 +114,58 @@ test('a failed personal watch can be closed at the recruiter without changing an
  assert.equal(recruit.game.state.militaryCareer.active,null);assert.equal(recruit.game.state.credits,credits);assert.equal(militaryServiceRank(recruit.game).completed,0);
  assert.equal(leader.game.state.militaryCareer.active.operationId,id);assert.equal(leader.game.state.npcContract.id,id);
  const retry=await create(realm,recruit,'freewake-navy-battery');assert.notEqual(retry,id);assert.equal(leader.aboard,carrier.id);
+});
+
+test('simultaneous default musters share one Navy or Army roster while an explicit separate muster remains possible',async()=>{
+ for(const branch of ['navy','army']){
+  const realm=field(),senior=await member(realm,'Veteran',{branch,completed:8}),recruit=await member(realm,'Recruit',{branch});
+  const first=senior.game.militaryCareerStatus().actions.find(action=>action.action==='createOperation'&&!action.separate),second=recruit.game.militaryCareerStatus().actions.find(action=>action.action==='createOperation'&&!action.separate);
+  assert.equal(first.joinExisting,true);assert.equal(second.joinExisting,true);
+  const answers=await Promise.all([realm.command(senior,'militaryCareerAction',first),realm.command(recruit,'militaryCareerAction',second)]);answers.forEach(ok);
+  assert.equal(answers[0].operationId,answers[1].operationId);assert.equal(Object.keys(realm.militaryOperations.operations).length,1);
+  const operation=realm.militaryOperations.operations[answers[0].operationId];assert.equal(operation.leaderId,senior.id);assert.deepEqual(Object.keys(operation.members),[senior.id,recruit.id]);assert.equal(militaryServiceRank(recruit.game).rankIndex,0);assert.equal(militaryServiceRank(senior.game).rankIndex,2);
+  const third=await member(realm,'Separate unit',{branch}),separate=third.game.militaryCareerStatus().actions.find(action=>action.separate);
+  assert.equal(separate.joinExisting,false);const independent=ok(await realm.command(third,'militaryCareerAction',separate));assert.notEqual(independent.operationId,operation.id);assert.equal(Object.keys(realm.militaryOperations.operations).length,2);
+  assert.equal(realm._militaryOperationView(recruit,operation).roster.every(person=>person.status==='ready'),true);
+  recruit.game.state.person.x+=120;
+  const waiting=realm.snapshotFor(senior,{drainEvents:false}).state.militaryOperationsView.operation;
+  assert.equal(waiting.roster.find(person=>person.captainId===recruit.id).status,'waiting');assert.equal(waiting.actions.find(action=>action.action==='launchOperation').available,false);
+  atRecruiter(realm,recruit);ok(await orders(realm,senior,'launchOperation',{operationId:operation.id}));
+  const deployed=realm.snapshotFor(recruit,{drainEvents:false}).state.militaryOperationsView.operation;assert.equal(deployed.phase,'active');assert.equal(deployed.roster.every(person=>person.status===(branch==='navy'?'aboard':'field')),true);
+  if(branch==='navy'){assert.equal(senior.aboard,recruit.aboard);assert.deepEqual(realm.vessels.get(recruit.aboard).grants[recruit.id].roles,['weapons']);}
+  assert.ok(!realm.failed);
+ }
+});
+
+test('friends with different qualification progress can join one existing mission without inheriting progress, rank, or departure permission',async()=>{
+ for(const branch of ['navy','army']){
+  const realm=field(),senior=await member(realm,'Experienced',{branch,completed:8}),recruit=await member(realm,'New arrival',{branch}),missions=militaryBranch('freewake',branch).missions;
+  senior.game.state.militaryCareer.completed=[missions[0].id];
+  const opened=ok(await realm.command(senior,'militaryCareerAction',senior.game.militaryCareerStatus().actions.find(action=>action.action==='createOperation'&&!action.separate)));
+  const before=structuredClone(recruit.game.state.professions.careers.military),view=recruit.game.militaryCareerStatus();
+  assert.equal(view.actions.find(action=>action.action==='createOperation').missionId,missions[0].id);
+  const friendOperation=view.operations.find(operation=>operation.id===opened.operationId);assert.equal(friendOperation.missionId,missions[1].id);const join=friendOperation.actions.find(action=>action.action==='joinOperation');assert.equal(join.available,true);
+  ok(await realm.command(recruit,'militaryCareerAction',join));assert.equal(Object.keys(realm.militaryOperations.operations).length,1);assert.equal(recruit.game.state.militaryCareer.active.missionId,missions[1].id);
+  assert.deepEqual(recruit.game.state.professions.careers.military,before);assert.deepEqual(recruit.game.state.militaryCareer.completed,[]);assert.deepEqual(senior.game.state.militaryCareer.completed,[missions[0].id]);
+  assert.equal((await orders(realm,recruit,'launchOperation',{operationId:opened.operationId})).code,'military-command');
+  assert.ok(!realm.failed);
+ }
+});
+
+test('public friend rosters explain enlistment, branch, faction, and departure limits without granting a joining bypass',async()=>{
+ const realm=field(),leader=await member(realm,'Navy leader',{branch:'navy'}),army=await member(realm,'Army friend',{branch:'army'}),rival=await member(realm,'Rival friend',{branch:'navy'});
+ const {captain:civilian}=await realm.createCaptain('Civilian',{startMode:'hardcore'});ok(realm.attach(civilian,session()));atRecruiter(realm,civilian);
+ rival.game.state.professions.careers.military.factionId='meridian';rival.game.state.militaryCareer.factionId='meridian';
+ const id=await create(realm,leader,'freewake-navy-battery');
+ for(const [viewer,code]of[[civilian,'military-enlistment'],[army,'military-branch'],[rival,'military-faction']]){
+  const stateBefore=structuredClone(viewer.game.state.militaryCareer),snapshot=realm.snapshotFor(viewer,{drainEvents:false}),operation=snapshot.state.militaryOperationsView.operations.find(operation=>operation.id===id);
+  assert.ok(operation);assert.equal(operation.leaderId,leader.id);assert.equal(operation.roster[0].rank,'Recruit');
+  const join=operation.actions.find(action=>action.action==='joinOperation');assert.equal(join.available,false);assert.equal(join.reasonCode,code);
+  assert.equal((await realm.command(viewer,'militaryCareerAction',{...join,available:true,branchId:'navy',factionId:'freewake',rankIndex:4})).code,code);assert.deepEqual(viewer.game.state.militaryCareer,stateBefore);
+ }
+ ok(await orders(realm,leader,'launchOperation',{operationId:id}));
+ const late=await member(realm,'Late Navy friend',{branch:'navy'}),snapshot=realm.snapshotFor(late,{drainEvents:false}),operation=snapshot.state.militaryOperationsView.operations.find(operation=>operation.id===id);
+ assert.equal(operation.phase,'active');assert.equal(operation.roster[0].status,'aboard');assert.equal(snapshot.presence.find(person=>person.captainId===leader.id).military.operationPhase,'active');
+ const join=operation.actions.find(action=>action.action==='joinOperation');assert.equal(join.available,false);assert.equal(join.reasonCode,'military-departed');assert.match(join.reason,/next muster at Morrow/);
+ assert.equal((await realm.command(late,'militaryCareerAction',join)).code,'military-departed');assert.equal(late.aboard,null);assert.equal(late.game.state.militaryCareer.active,null);assert.equal(Object.keys(realm.militaryOperations.operations).length,1);assert.ok(!realm.failed);
 });

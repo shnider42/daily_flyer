@@ -11,6 +11,7 @@ import { createAmbientMemory, sampleAmbientConversation } from './ambient-social
 import { createNarrativeUI } from './narrative-ui.mjs';
 import { createLivelihoodUI } from './livelihood-ui.mjs';
 import { createSharedCrewUI } from './shared-crew-ui.mjs';
+import { crewAwareness } from './crew-awareness.mjs';
 import { createGroupStartUI } from './group-start-ui.mjs';
 import { createPersonalGearUI } from './personal-gear-ui.mjs';
 import { createOpeningUI, openingPrompt } from './opening-ui.mjs';
@@ -76,10 +77,10 @@ const narrativeUI=createNarrativeUI({getGame:()=>game,dialog,invoke,acceptResult
 const navyDutyUI=createNavyDutyUI({getGame:()=>game,dialog,invoke,acceptResult:result,refreshWorld:()=>{surface=null;surfaceKey='';surfaceTarget=null;ensureSurface(false);resize();updateHUD();},markEntity:markLivelihoodTarget,openGunnery:openGunneryStation,openService:()=>militaryCareerUI.open()});
 const livelihoodUI=createLivelihoodUI({getGame:()=>game,dialog,invoke,acceptResult:result,refreshWorld:()=>{surface=null;surfaceKey='';surfaceTarget=null;ensureSurface(false);resize();updateHUD();},markEntity:markLivelihoodTarget,openJobs,openShipyard:openOutfitter,openProfile:openCaptainProfile,openDamage:openDamageOverview,openNavyDuty:()=>navyDutyUI.open()});
 const personalGearUI=createPersonalGearUI({getGame:()=>game,dialog,invoke,acceptResult:result,onChange:()=>{clearPointerAim();hudDirty=true;updateHUD();saveNow();},markMechanic:()=>{ensureSurface();const mechanic=surface?.entities.find(entity=>entity.type==='mechanic');if(mechanic){surfaceTarget=mechanic.id;toast('Outfitter marked. Visit the workshop on foot.');}else toast('Find a workshop at an inhabited port.');}});
-const sharedCrewUI=createSharedCrewUI({getGame:()=>game,getSnapshot:()=>onlineSnapshot,getNetwork:()=>network,dialog,invoke,acceptResult:result,runDeckAction,disembark:()=>{dialog.close();return switchPerspective();},openHome,openPassport,openContact:openVesselContact,walkDeck:enterCabin,disconnect:disconnectGalaxy,openCrewDuty:()=>livelihoodUI.openDuty(),toast});
+const sharedCrewUI=createSharedCrewUI({getGame:()=>game,getSnapshot:()=>onlineSnapshot,getNetwork:()=>network,dialog,invoke,acceptResult:result,runDeckAction,disembark:()=>{dialog.close();return switchPerspective();},openHome,openPassport,openContact:openVesselContact,walkDeck:enterCabin,disconnect:disconnectGalaxy,openCrewDuty:()=>livelihoodUI.openDuty(),openMilitary:context=>militaryCareerUI.openTogether(context),toast});
 const groupStartUI=createGroupStartUI({dialog,getSnapshot:()=>onlineSnapshot,invoke,acceptResult:result,onDepart:()=>{surface=null;surfaceKey='';ensureSurface(false);updateHUD();toast('Your crew is aboard. Take the helm when you are ready to leave Kettle.','good',6500);},onLeave:()=>{surface=null;surfaceKey='';ensureSurface(false);updateHUD();},toast});
 const openingUI=createOpeningUI({getGame:()=>game,dialog,invoke,acceptResult:result,track:target=>{openingMarkerKey='';markOpeningTarget(target);updateHUD();},openPassage:()=>livelihoodUI.openPassage(),openConversation:entity=>openNPC(entity,{ordinary:true}),dialogueHeader,toast});
-const militaryCareerUI=createMilitaryCareerUI({getGame:()=>game,dialog,invoke,acceptResult:result,track:markMilitaryTarget,refreshWorld:()=>{militaryMarkerKey='';surface=null;surfaceKey='';ensureSurface(false);resize();updateHUD();},openOrdinaryWork:()=>narrativeUI.openProfessions(),openNavyDuty:()=>navyDutyUI.open()});
+const militaryCareerUI=createMilitaryCareerUI({getGame:()=>game,getSnapshot:()=>onlineSnapshot,dialog,invoke,acceptResult:result,track:markMilitaryTarget,refreshWorld:()=>{militaryMarkerKey='';surface=null;surfaceKey='';ensureSurface(false);resize();updateHUD();},openOrdinaryWork:()=>narrativeUI.openProfessions(),openNavyDuty:()=>navyDutyUI.open()});
 controls=new Controls({stick:$('stick'),knob:$('knob'),aimStick:$('aimStick'),aimKnob:$('aimKnob'),getMode:()=>game.state.mode,getCombat:pointerAimAvailable,getFlightState:()=>({ship:network?.predictedShip??game.state.ship,flightAssist:settings.flightAssist}),brake:$('brakeButton'),fire:$('fireButton'),mine:$('mineButton'),boost:$('boostButton'),active:()=>playing&&!dialog.opened&&!viewPanelOpen&&!actionPending&&!game.state.multiplayer?.waitingForGroupStart,onCommand:command});
 $('continueButton').hidden=!stored;
 $('startButton').textContent=stored?'Start another solo voyage':'Play solo';
@@ -117,6 +118,8 @@ $('resetView').onclick=resetView;
 $('viewPanel').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();setViewPanel(false);}});
 $('viewButton').addEventListener('keydown',e=>e.stopPropagation());
 $('coachExpand').onclick=()=>{coachExpanded=!coachExpanded;showCoach(coachPrompt);};
+$('coachCopy').onclick=()=>{if(touchLayout&&settings.compactTips)$('coachExpand').onclick();};
+$('coachCopy').onkeydown=e=>{if(touchLayout&&settings.compactTips&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();$('coachExpand').onclick();}};
 $('coachDismiss').onclick=()=>{if(coachPrompt?.flow==='route')dismissedRoute=coachPrompt.id;else{tutorial.controller?.dismiss();dismissedGuideEpisode=guideEpisode(guidanceContext());}hideCoach();};
 document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>command(b.dataset.open)));
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
@@ -242,7 +245,7 @@ function updateBatteryControls(status,input={}){
   button.setAttribute('aria-pressed',String(battery.selected));button.setAttribute('aria-label',`${batteryIndex+1}. ${battery.name}, ${battery.direction}. ${state}${battery.selected?'. Selected.':''}`);button.disabled=batterySelectionPending||!!network&&!network.connected;
  }
  hudText($('batteryCount'),`${(status.batteryIndex||0)+1} / ${batteries.length||1} selected`);
- const hint=gunneryAimHint(status,game.state.ship,input);hudText($('batteryHint'),hint+(status.batteryCount>1?' · 1–4 or tap to switch.':''));panel.dataset.limited=String(!!gunneryReticle(status,game.state.ship,input)?.limited);
+ const hint=gunneryAimHint(status,game.state.ship,input);hudText($('batteryHint'),hint+(status.batteryCount>1?(touchLayout?' · Tap a battery to switch.':' · 1–4 or tap to switch.'):''));panel.dataset.limited=String(!!gunneryReticle(status,game.state.ship,input)?.limited);
 }
 const custodyTime=seconds=>`${Math.floor(Math.max(0,seconds)/60)}:${String(Math.ceil(Math.max(0,seconds))%60).padStart(2,'0')}`;
 function openRecoveryStatus(){
@@ -944,9 +947,17 @@ function receiveSnapshot(packet){
   const until=network.clampPredictionTime(now);personPredictedAt=Math.max(personPredictedAt??until,until);personVisualAt=Math.max(personVisualAt??now,now);
   if(previous&&!changedRoom&&!network.predictionReset){const dx=previous.x-game.state.person.x,dy=previous.y-game.state.person.y;personVisualOffset=Math.hypot(dx,dy)<70?{x:dx,y:dy}:{x:0,y:0};}
  }
- updateSurfaceFlags();frameMonitor.snapshot(packet);hudDirty=true;if(playing){processEvents();groupStartUI.update();}
+ updateSurfaceFlags();frameMonitor.snapshot(packet);hudDirty=true;if(playing){processEvents();groupStartUI.update();sharedCrewUI.refresh?.();militaryCareerUI.refresh?.();}
 }
-function updateConnectionHUD(){const b=$('onlineButton');b.classList.toggle('connected',!!network?.connected);b.classList.toggle('reconnecting',!!network&&!network.connected);hudText($('networkLabel'),network?(network.connected?`${game.state.multiplayer?.waitingForGroupStart?'DEPARTURE':'CREW'} · ${onlineSnapshot?.realm?.online??1}/10`:'RECONNECTING'):'CREW');const title=network?`Board ships & manage crew · ${onlineSnapshot?.realm?.name??'Shared galaxy'} · ${Math.round(network.latency.rtt||0)} ms`:'Shared galaxies and crew';if(b.title!==title)b.title=title;}
+function updateConnectionHUD(){
+ const button=$('onlineButton'),connected=!!network?.connected,awareness=connected?crewAwareness(game,onlineSnapshot||{}):null;
+ button.classList.toggle('connected',connected);button.classList.toggle('reconnecting',!!network&&!connected);
+ const label=network?(connected?(game.state.multiplayer?.waitingForGroupStart?'Departure':awareness.label):'Reconnecting'):'Play together';
+ const detail=connected?`${awareness.detail} · ${awareness.onlineCount} online in ${onlineSnapshot?.realm?.name||'your galaxy'}`:network?'Your connection is being restored':'Create or join a shared galaxy';
+ hudText($('networkLabel'),touchLayout?(label==='Play together'?'Crew':label==='Reconnecting'?'Crew …':label):label);
+ if(button.title!==detail)button.title=detail;
+ button.setAttribute('aria-label',`${label}. ${detail}. Open friends, boarding and military service.`);
+}
 function openConnect(mode='create'){if(testSession){openTestControls();return;}
  dialog.open(mode==='create'?'A galaxy to call your own':'Find your crew','connect',{eyebrow:mode==='create'?'PERSISTENT GALAXY / 1–10 CAPTAINS':'JOIN A SHARED GALAXY'});
  dialog.html(`<p>${mode==='create'?'Invite friends now or later. Everyone can return and make progress on their own schedule.':'Enter a galaxy code from a friend. Your captain passport will be saved on this device.'}</p><form id="connectForm"><label class="form-field"><span>Your captain’s name</span><input id="captainName" maxlength="24" value="Captain" autocomplete="nickname" required></label>${mode==='create'?'<label class="form-field"><span>Galaxy name</span><input id="realmName" maxlength="40" value="The Cinder Reach" required></label>':'<label class="form-field"><span>Galaxy code</span><input id="realmCode" maxlength="32" placeholder="Enter invite code" autocapitalize="characters" autocomplete="off" required></label>'}<button class="button-primary" type="submit">Choose ship &amp; captain →</button></form><p class="mini muted" style="margin-top:18px">Choose your captain and a small personal ship next. A shared departure lets your crew gather and choose a larger vessel together. Your solo voyage stays on this device.</p>`);
@@ -959,7 +970,7 @@ async function connectGalaxy(options){if(testSession){openTestControls();return;
  const wasPlaying=playing,wasGame=game,wasNetwork=network;if(playing&&!network)saveNow();if(wasNetwork?.connected){wasNetwork.setInput({});const cameraSaved=await cameraProfile.flush();if(network!==wasNetwork)return;if(!cameraSaved)reportCameraSaveFailure();}network?.disconnect();clearTimeout(cameraSaveTimer);cameraScope='connecting';cameraKey=null;cameraProfile.activateLocal(localCameraPreferences);audio.unlock();
  dialog.open('Opening the airlock…','connecting',{eyebrow:'CONTACTING YOUR GALAXY'});dialog.html('<p>The galaxy server may take a moment to wake. Your captain and progress will be restored before you take control.</p><div class="network-status">Connecting securely…</div>');
  const candidate=new FarwakeNetwork({url:SERVER_URL,onSnapshot:packet=>{if(network===candidate)receiveSnapshot(packet);},onStatus:status=>{if(network!==candidate)return;connectionState=status.state;updateConnectionHUD();syncViewControls();if(status.state==='connected')void cameraProfile.flush();if(status.state==='reconnecting'&&playing)toast('Connection interrupted. Reconnecting your captain…','info',4000);if(status.state==='error')toast(status.reason??'The server could not confirm that action.','bad');}});network=candidate;worldPresentation.reset();personPredictedAt=null;personVisualAt=null;personVisualOffset={x:0,y:0};
- try{const welcome=await candidate.connect(options);if(network!==candidate){candidate.disconnect();return;}playing=true;surface=null;surfaceKey='';ensureSurface(false);$('welcome').hidden=true;document.body.classList.remove('welcome-active');$('resumeGalaxy').hidden=false;dialog.close();saveNow();updateHUD();canvas.focus({preventScroll:true});toast(`Welcome aboard. Galaxy code: ${candidate.passport.realmCode}. Share the code from CREW.`,'good',7000);if(game.state.multiplayer?.waitingForGroupStart)groupStartUI.open();else if(welcome.state.pendingEncounter)openEncounter(game.getEncounter());}
+ try{const welcome=await candidate.connect(options);if(network!==candidate){candidate.disconnect();return;}playing=true;surface=null;surfaceKey='';ensureSurface(false);$('welcome').hidden=true;document.body.classList.remove('welcome-active');$('resumeGalaxy').hidden=false;dialog.close();saveNow();updateHUD();canvas.focus({preventScroll:true});toast(`Welcome aboard. Galaxy code: ${candidate.passport.realmCode}. Share the code from Play together.`,'good',7000);if(game.state.multiplayer?.waitingForGroupStart)groupStartUI.open();else if(welcome.state.pendingEncounter)openEncounter(game.getEncounter());}
  catch(error){candidate.disconnect();if(network!==candidate)return;network=null;game=wasNetwork?(stored?Game.fromSave(stored):new Game('farwake-'+Date.now())):wasGame;playing=wasNetwork?false:wasPlaying;activateLocalCamera(game.state.cameraPreferences??localCameraPreferences);if(!playing){$('welcome').hidden=false;document.body.classList.add('welcome-active');}onlineSnapshot=null;connectionState='offline';dialog.open('Could not reach the galaxy','connection-error',{eyebrow:'YOUR SAVED CAPTAIN IS SAFE'});dialog.html(`<p>${esc(error.message)}</p><p class="mini muted">If the server is waking from idle, wait a moment and try again.</p>`);dialog.choices([{label:'Try again',action:()=>connectGalaxy(options)},{label:'Back',action:()=>dialog.close()}]);}
 }
 function downloadJSON(value,name){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.hidden=true;document.body.append(a);try{a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}}
@@ -1098,16 +1109,16 @@ function setViewPanel(open,{restoreFocus=true}={}){
  const wasOpen=viewPanelOpen;viewPanelOpen=!!open;
  $('viewPanel').hidden=!viewPanelOpen;$('viewButton').setAttribute('aria-expanded',String(viewPanelOpen));document.body.classList.toggle('view-open',viewPanelOpen);labelLayoutDirty=true;hudDirty=true;
  if(viewPanelOpen){controls?.clear();clearPointerAim();closeContacts();setToolTray(false);hideCoach();syncViewControls();$(displayMode(game)+'Zoom').focus({preventScroll:true});}
- else if(wasOpen&&restoreFocus)$('viewButton').focus({preventScroll:true});
+ else if(wasOpen&&restoreFocus)$(touchLayout?'pauseButton':'viewButton').focus({preventScroll:true});
 }
 function setToolTray(open){toolTrayOpen=!!open;document.body.classList.toggle('tools-open',toolTrayOpen);$('toolTray').hidden=!toolTrayOpen;$('toolsButton').setAttribute('aria-expanded',String(toolTrayOpen));labelLayoutDirty=true;}
 function updateMobileHUD(ship,target){
  const gunnery=getGunneryView(game),onFoot=game.state.mode==='person'&&!gunnery.active,combat=personCombat()||gunnery.active,body=game.currentBody,speed=Math.round(Math.hypot(ship.vx,ship.vy)),alarm=!onFoot||aboardDamageHull()?damageStatus(currentDamageHull()):'';
  document.body.classList.toggle('crew-gunner',onFoot&&armedOnFoot()&&!combat);document.body.classList.toggle('performance-visible',!!settings.showPerformance);
  hudText($('mobileLocation'),gunnery.active?gunnery.shipName:onFoot?body?.name??surface?.name??'Crew deck':game.currentSystem.name);
- hudText($('mobileHealth'),onFoot?'Vitality '+Math.ceil(game.state.person.health)+' / '+(game.state.person.maxHealth||100):'Hull '+Math.ceil(ship.hull));hudText($('mobileShield'),'Shield '+Math.ceil(ship.shield));hudText($('mobileSpeed'),alarm||(gunnery.active?'GUNNERY · '+$('weaponState').textContent:onFoot?(combat?$('weaponState').textContent:surface?.kind==='ship'?'Crew deck':surface?npcClock(npcTime(),surface).text+' local':'On foot'):speed+' m/s'));
+ hudText($('mobileHealth'),onFoot?'Health '+Math.ceil(game.state.person.health):'Hull '+Math.ceil(ship.hull));hudText($('mobileShield'),'Shield '+Math.ceil(ship.shield));hudText($('mobileSpeed'),alarm||(gunnery.active?'GUNNERY · '+$('weaponState').textContent:onFoot?(combat?$('weaponState').textContent:surface?.kind==='ship'?'Crew deck':surface?npcClock(npcTime(),surface).text+' local':'On foot'):speed+' m/s'));
  $('mobileReadout').classList.toggle('danger',!!alarm||(onFoot?game.state.person.health<30:ship.hull/ship.maxHull<.3));
- $('mobileReadout').setAttribute('aria-label',`${$('mobileLocation').textContent}. ${$('mobileHealth').textContent}. ${onFoot?'':$('mobileShield').textContent+'. '}${$('mobileSpeed').textContent}. Open ship status.`);
+ $('mobileReadout').setAttribute('aria-label',`${$('mobileLocation').textContent}. ${$('mobileHealth').textContent} of ${onFoot?game.state.person.maxHealth||100:ship.maxHull}. ${onFoot?'':$('mobileShield').textContent+' of '+ship.maxShield+'. '}${$('mobileSpeed').textContent}. Open ship status.`);
  $('stick').setAttribute('aria-label',onFoot?'Walking joystick. Move toward an open passage.':'Steering and thrust joystick. Point where you want to fly; release to coast.');
  $('aimStick').setAttribute('aria-label',gunnery.active?'Selected ship battery aim and fire joystick. Tap a battery to change firing direction.':onFoot?'Aim and fire joystick. Point toward a hostile.':'Strafe joystick. Move left or right relative to the bow. Vertical movement does nothing.');
  hudText($('aimKnob').querySelector('span'),onFoot||gunnery.active?'✛':'↔');
@@ -1167,15 +1178,19 @@ function hideCoach(){
 }
 function showCoach(prompt){
  if(!prompt){hideCoach();coachPrompt=null;return;}
- const changed=coachPrompt?.id!==prompt.id;coachPrompt=prompt;
- if(changed)coachExpanded=false;document.body.classList.toggle('coach-expanded',coachExpanded);
+ const changed=coachPrompt?.id!==prompt.id,requested=!!prompt.requested&&!coachPrompt?.requested;coachPrompt=prompt;
+ if(changed||requested)coachExpanded=!!prompt.requested;document.body.classList.toggle('coach-expanded',coachExpanded);
  if(changed&&prompt.controlTarget==='mineButton'&&touchLayout)setToolTray(true);
  if($('coachCard').hidden){$('coachCard').hidden=false;labelLayoutDirty=true;}document.body.classList.add('coach-visible');
  hudText($('coachStep'),prompt.requested?'ACTION HELP':prompt.flow==='route'?'YOUR NEXT STEP':prompt.completed?'A QUICK REMINDER':'LEARN AS YOU GO');
  if(hudText($('coachTitle'),prompt.title))labelLayoutDirty=true;
  const compact=touchLayout&&!coachExpanded&&(settings.compactTips||settings.textScale>=1.25||window.innerHeight<500),body=compact?prompt.compactBody??prompt.body:prompt.body;if(hudText($('coachBody'),body))labelLayoutDirty=true;
+ const canCollapse=touchLayout&&settings.compactTips;
+ const hidden=canCollapse&&!coachExpanded;if($('coachBody').hidden!==hidden)labelLayoutDirty=true;$('coachBody').hidden=hidden;
+ $('coachCopy').setAttribute('role',canCollapse?'button':'group');$('coachCopy').setAttribute('tabindex',canCollapse?'0':'-1');$('coachCopy').setAttribute('aria-expanded',String(!canCollapse||coachExpanded));$('coachCopy').setAttribute('aria-label',`${prompt.title}${canCollapse?coachExpanded?'. Collapse action tip':'. Expand action tip':''}`);
+ $('coachCopy').setAttribute('aria-describedby',hidden?'':'coachBody');
  $('coachExpand').setAttribute('aria-expanded',String(coachExpanded));$('coachExpand').setAttribute('aria-label',coachExpanded?'Collapse this action tip':'Expand this action tip');hudText($('coachExpand'),coachExpanded?'−':'+');
- let target=$(prompt.controlTarget);if(prompt.controlTarget==='onlineButton'&&touchLayout)target=$('pauseButton');if(prompt.controlTarget==='weaponState'&&touchLayout)target=$('mobileWeaponState');if(prompt.controlTarget==='mineButton'&&!toolTrayOpen)target=$('toolsButton');
+ let target=$(prompt.controlTarget);if(prompt.controlTarget==='weaponState'&&touchLayout)target=$('mobileWeaponState');if(prompt.controlTarget==='mineButton'&&!toolTrayOpen)target=$('toolsButton');
  if(!touchLayout&&['stick','aimStick','fireButton','brakeButton','mineButton'].includes(prompt.controlTarget))target=null;
  if(highlightedControl!==target){highlightedControl?.classList.remove('coach-highlight');highlightedControl=target;if(target?.getBoundingClientRect().width)target.classList.add('coach-highlight');}
 }
@@ -1200,25 +1215,25 @@ function requestActionHelp({repeat=false}={}){
  if(getGunneryView(game).active){openCombatHelp();return;}
  dialog.close();selectGuide();const context=guidanceContext();tutorial.update(context);
  if(settings.guidance==='expert'){openHelp();return;}
- const prompt=repeat?tutorial.controller.repeat(context):tutorial.controller.requestHelp(context);dismissedRoute='';dismissedGuideEpisode='';showCoach(prompt??routePrompt());hudDirty=true;
+ const prompt=repeat?tutorial.controller.repeat(context):tutorial.controller.requestHelp(context),help=prompt??routePrompt();dismissedRoute='';dismissedGuideEpisode='';coachExpanded=true;showCoach(help?{...help,requested:true}:null);hudDirty=true;
 }
 function openFlightMenu(){
  if(!playing){openSettings();return;}
  dialog.open('Captain’s menu','flight-menu',{eyebrow:testSession?'ISOLATED PRACTICE':network?'SHARED GALAXY · STILL RUNNING':'SOLO VOYAGE · PAUSED'});
  dialog.html(`<div class="flight-menu-goal"><small>${esc($('objectiveKind').textContent)}</small><strong>${esc($('objectiveTitle').textContent)}</strong><p>${esc($('objectiveText').textContent)}</p></div><div id="flightMenuGrid" class="flight-menu-grid"></div>`);
- const entries=[['Map',game.state.mode==='person'?'Find a person or place':'Set your next course',()=>openMap(game.state.systemId,game.state.mode==='person'?'local':'galaxy')],['Log','Story & current jobs',()=>openJournal()],[game.ownsShip?'Ship':'Captain',game.ownsShip?'Cargo, systems & crew':'Work, travel & your first ship',()=>openShip()],['Port services','Paid passage & crew work',()=>livelihoodUI.openPort()],['Crew','Friends & boarding',()=>openOnline()],['Action help','Show the next useful step',()=>requestActionHelp()],['Settings','Text, controls & guidance',()=>openSettings()],['View','Camera zoom & screen layout',()=>{dialog.close();setViewPanel(true);}]];
+ const entries=[['Map',game.state.mode==='person'?'Find a person or place':'Set your next course',()=>openMap(game.state.systemId,game.state.mode==='person'?'local':'galaxy')],['Log','Story & current jobs',()=>openJournal()],[game.ownsShip?'Ship':'Captain',game.ownsShip?'Cargo, systems & crew':'Work, travel & your first ship',()=>openShip()],['Port services','Paid passage & crew work',()=>livelihoodUI.openPort()],['Play together','Friends, boarding & shared service',()=>openOnline()],['Action help','Show the next useful step',()=>requestActionHelp()],['Settings','Text, controls & guidance',()=>openSettings()],['View','Camera zoom & screen layout',()=>{dialog.close();setViewPanel(true);}]];
  if(game.openingMissionStatus?.().active)entries.unshift(['A small favor','Your current opening job',()=>openingUI.openLog()]);
  if(aboardDamageHull())entries.push(['Damage control',damageStatus(currentDamageHull())||'Inspect this hull’s compartments',openDamageOverview]);
  if(testSession){entries[1]=['Exercise','Retry or change scenario',openTestControls];entries[3]=['Sidearm','Aim, fire & board',openCombatHelp];}
  entries.unshift([activeMilitaryCareer()?'Service assignment':'Guided military service',activeMilitaryCareer()?'Your one current task':'Optional Navy or Army path · Recruiter on Morrow',()=>militaryCareerUI.open()]);
  if(game.state.mode==='ship')entries.push(['Contacts','Track a nearby port or signal',()=>{dialog.close();$('contactsPanel').hidden=false;$('scannerButton').setAttribute('aria-expanded','true');labelLayoutDirty=true;hudDirty=true;}]);
- const grid=$('flightMenuGrid');for(const[label,detail,action]of entries){const button=document.createElement('button');button.innerHTML=`<span class="menu-symbol">${navIcon(label)}</span><span><strong>${esc(label)}</strong><small>${esc(detail)}</small></span>`;button.onclick=action;grid.append(button);}
+ const grid=$('flightMenuGrid');for(const[label,detail,action]of entries){const button=document.createElement('button');button.innerHTML=`<span class="menu-symbol">${navIcon(label==='Play together'?'Crew':label)}</span><span><strong>${esc(label)}</strong><small>${esc(detail)}</small></span>`;button.onclick=action;grid.append(button);}
  dialog.choices([{label:'Resume',action:()=>dialog.close()}]);
 }
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.17.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.18.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }

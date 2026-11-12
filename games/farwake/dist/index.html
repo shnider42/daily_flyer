@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070c19">
-<meta name="application-version" content="0.17.0">
+<meta name="application-version" content="0.18.0">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Command a ship. Live among the stars. A persistent pixel-art galaxy for up to ten captains, with shared ships, planetary work, and a mystery at the heart of old Earth.">
 <title>Farwake — The Quiet Earth</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css"><link rel="stylesheet" href="./character.css"><link rel="stylesheet" href="./narrative.css"><link rel="stylesheet" href="./privacy.css"><link rel="stylesheet" href="./shared-crew.css"><link rel="stylesheet" href="./port-ui.css">
@@ -29,7 +29,7 @@
  <div class="coordinate" id="coordinate">+0000 / +0000</div>
  <aside class="contacts-panel" id="contactsPanel" hidden><div class="panel-eyebrow"><span>LOCAL SCANNER</span><i class="live-dot"></i><button id="closeContacts" aria-label="Close contacts">×</button></div><canvas id="radarCanvas" width="200" height="154" aria-label="Local system radar"></canvas><div id="contactsList" class="contact-list"></div><div class="scanner-foot">CHOOSE A CONTACT TO TRACK</div></aside>
  <div class="objective-card" id="objectiveCard"><span class="objective-icon">◇</span><div><div class="eyebrow" id="objectiveKind">THE QUIET EARTH</div><strong id="objectiveTitle">A borrowed tomorrow</strong><p id="objectiveText">Dock at Kettle Station. Someone there knows your ship.</p></div><button id="objectiveDetails" aria-label="Open mission journal">→</button><button id="objectiveToggle" aria-label="Collapse objective">−</button></div>
- <aside id="coachCard" class="coach-card" aria-label="Action guide" hidden><div class="coach-copy" aria-live="polite"><span id="coachStep" class="coach-step">GETTING STARTED</span><strong id="coachTitle"></strong><p id="coachBody"></p></div><button id="coachExpand" aria-label="Expand this action tip" aria-expanded="false" aria-controls="coachBody">+</button><button id="coachDismiss" aria-label="Hide this tip. Find action help in Menu.">×</button></aside>
+ <aside id="coachCard" class="coach-card" aria-label="Action guide" hidden><div id="coachCopy" class="coach-copy" aria-live="polite" aria-controls="coachBody"><span id="coachStep" class="coach-step">GETTING STARTED</span><strong id="coachTitle"></strong><p id="coachBody"></p></div><button id="coachExpand" aria-label="Expand this action tip" aria-expanded="false" aria-controls="coachBody">+</button><button id="coachDismiss" aria-label="Hide this tip. Find action help in Menu.">×</button></aside>
  <aside id="viewPanel" class="view-panel" aria-label="Camera and screen layout" hidden>
   <div class="view-heading"><strong>Camera &amp; view</strong><button id="closeView" aria-label="Close camera controls">×</button></div>
   <section id="shipZoomGroup" class="view-zoom-group" aria-label="Ship camera">

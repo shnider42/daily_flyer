@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.17.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.18.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Playing together on phones · 0.18.0
+
+The phone header now keeps **Crew** beside the perspective switch and **Menu**. It shows **Crew 2** when two connected human captains share a vessel; NPC sailors do not inflate the count. The **Play together** panel starts with your friends, their exact public place or ship, and whether you share a port, ship, or military deployment. A hull walk is identified as outside the ship. Joining the same galaxy, boarding the same ship, and joining a military unit are shown as distinct steps.
+
+Both players receive the same suggested meeting ship. Its owner can choose **Allow [friend] aboard**, and the friend sees **Board [ship]** with the specific reason when boarding is unavailable. The narrow invitation preserves existing permissions without granting Helm, a bunk, ownership, or military clearance. Boarding keeps a docked ship docked. Its airlock remains available to disembark regardless of Helm permission; permanent permission explanations and detailed ship management are folded away. An open panel refreshes when a friend grants access, boards, disembarks, or changes deployment, while retaining expanded sections and scroll position.
+
+**Serve together** opens the selected friend's current military roster. It shows each person's own rank, their readiness or location, who authorizes departure, and the next legitimate action. New recruits are directed to Sergeant Venn on Morrow to choose the same branch. The default **Open or join a muster** action reuses a matching gathering, including when two captains request it at once. Deliberately separate musters remain available, and moving between them requires explicitly leaving the first. Faction, branch, location, personal rank, and already-departed restrictions remain authoritative. Solo players retain the same Navy and Army assignments and may depart alone.
+
+Mobile Compact tips now show a short current-action strip. Tap its title or **+** for the explanation; requesting Action help opens it immediately. Health and shields remain in a compact status line, camera controls are under **Menu → View**, and the menu uses simpler rows. Four capital batteries and their directional limits remain visible in gunnery. Large text, swapped thumb controls, saved cameras, and the option for full tips remain supported.
 
 ## A working Navy ship and broader fleet duties · 0.17.0
 

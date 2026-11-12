@@ -1412,7 +1412,7 @@ export class Realm extends BoardingAuthority {
   _publicCaptain(c, viewer = null) {
     const room = this.roomInfo(c), person = c.game.state.person, vessel = this.vessels.get(c.aboard);
     const hostile = viewer && vessel && viewer.aboard === vessel.id && this._captainTeam(c, vessel) !== this._captainTeam(viewer, vessel);
-    return { captainId: c.id, name: c.name, military:this._militaryPublicRecord(c), online: !!c.session, systemId: c.game.state.systemId, roomId: room.id, vesselId: c.aboard || null, crewRole: c.crewRole, mode: c.game.state.mode,
+    return { captainId: c.id, name: c.name, military:this._militaryPublicRecord(c), online: !!c.session, systemId: c.game.state.systemId, roomId: room.id, locationId: room.locationId, roomKind: room.kind, vesselId: c.aboard || null, crewRole: c.crewRole, mode: c.game.state.mode,
       appearance: clone(person.appearance), maxHealth:person.maxHealth||100, x: person.x, y: person.y, vx: person.vx || 0, vy: person.vy || 0, facing: person.facing, health: person.health, down: !!person.down,
       weapon: person.weapon, weaponDrawn: person.weaponDrawn, aimAngle: person.aimAngle, aimManual: person.aimManual, lastShot: clone(person.lastShot || null), aimTargetId: person.aimTargetId, attackUntil: person.attackUntil, hitUntil: person.hitUntil, team: hostile ? 'hostile' : 'friendly',
       sleeping: !c.session, home: c.home ? { kind: c.home.kind, systemId: c.home.systemId, locationId: c.home.locationId, vesselId: c.home.vesselId } : null };
@@ -1496,7 +1496,7 @@ export class Realm extends BoardingAuthority {
     if (compact) return { ...motion, partial: true };
     return { ...motion, groupStart: this._groupStartView(c), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision,
       crew: vessel ? [...this.captains.values()].filter(other => other.aboard === vessel.id).map(other => ({ captainId: other.id, name: other.name, military:this._militaryPublicRecord(other), role: other.crewRole, online: !!other.session })) : [],
-      fleet: [...this.vessels.values()].map(v => this._publicVessel(v, c)), presence: [...this.captains.values()].map(other => { const p = this._publicCaptain(other); return { captainId: p.captainId, name: p.name, military:p.military, online: p.online, systemId: p.systemId, roomId: p.roomId, vesselId: p.vesselId, crewRole: p.crewRole, mode: p.mode, sleeping: p.sleeping, home: p.home }; }),
+      fleet: [...this.vessels.values()].map(v => this._publicVessel(v, c)), presence: [...this.captains.values()].map(other => { const p = this._publicCaptain(other); return { captainId: p.captainId, name: p.name, military:p.military, online: p.online, systemId: p.systemId, roomId: p.roomId, locationId:p.locationId, roomKind:p.roomKind, vesselId: p.vesselId, crewRole: p.crewRole, mode: p.mode, sleeping: p.sleeping, home: p.home }; }),
       homes: Object.values(this.leases).filter(home => home.systemId === state.systemId && home.locationId === state.locationId && (!home.expiresAt || home.expiresAt > now())).map(clone),
       homeOffers: { room: { credits: 50, permanent: true }, outpost: { credits: 180, ore: 12 }, bunk: { credits: 60, ore: 4 } },
       realm: { code: this.id, name: this.name, seed: this.seed, online: this.onlineCount, capacity: MAX_ONLINE, persistence: this.persistence.kind, settings: this.settings } };

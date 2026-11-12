@@ -119,7 +119,7 @@ const appDeclaration = name => {
 const viewCode = ['activateLocalCamera', 'readCameraDraft', 'persistCameraDraft', 'reportCameraSaveFailure', 'receiveCameraPreferences', 'applyCameraState', 'syncViewControls', 'setModeZoom', 'setViewPreference', 'resetView', 'setViewPanel', 'closeContacts', 'setToolTray', 'saveNow'].map(appDeclaration).join('\n');
 const gameplayState = game => JSON.stringify(Object.fromEntries(Object.entries(game.state).filter(([key]) => key !== 'cameraPreferences')));
 
-function viewFixture(boundary, { practice = false } = {}) {
+function viewFixture(boundary, { practice = false, touch = false } = {}) {
   const elements = new Map(), effects = [], voyageWrites = [], timers = new Map(), settings = readSettings(); let timerSerial = 0;
   Object.assign(settings, { textScale: 1.4, controlScale: 1.2, leftHanded: true, guidance: 'moderate' });
   const game = { state: { mode: 'ship', credits: 623, ship: Object.freeze({ x: 120, y: 350, vx: 40, vy: 16, angle: 1.2 }), seed: practice ? 'isolated-practice' : 'normal-voyage', flags: Object.freeze(['earned-story-progress']) } };
@@ -129,7 +129,7 @@ function viewFixture(boundary, { practice = false } = {}) {
     return elements.get(id);
   };
   const context = vm.createContext({
-    displayMode,
+    displayMode,touchLayout:touch,
     $: getElement, settings, game, testSession: practice ? { game } : null, playing: false, stored: null, dialog: { opened: false }, viewPanelOpen: false, toolTrayOpen: true, coachExpanded: true, labelLayoutDirty: false, hudDirty: false,
     cameraScope: 'local', cameraKey: null, cameraSaveTimer: null, localCameraPreferences: normalizeCameraPreferences(settings), network: null,
     document: globalThis.document, localStorage: boundary.storage, normalizeCameraPreferences, normalizeModeZoom, zoomLimits, applySettings, setTimeout: schedule, clearTimeout: cancel, hudText: (target, text) => { target.textContent = text; }, toast: (...args) => effects.push(['toast', ...args]),
@@ -204,10 +204,10 @@ test('actual shared camera controls send only camera preferences and preserve lo
 });
 
 test('the actual View popup clears held actions and returns focus without pausing gameplay', () => {
-  for (const mode of ['ship', 'person']) {
+  for (const mode of ['ship', 'person']) for (const touch of [false,true]) {
     const boundary = settingsBoundary();
     try {
-      const f = viewFixture(boundary); f.game.state.mode = mode; const before = gameplayState(f.game);
+      const f = viewFixture(boundary,{touch}); f.game.state.mode = mode; const before = gameplayState(f.game);
       f.call('setViewPanel', true);
       assert.equal(f.context.viewPanelOpen, true); assert.equal(f.getElement('viewPanel').hidden, false); assert.equal(f.getElement('viewButton').attributes['aria-expanded'], 'true');
       assert.equal(f.getElement('contactsPanel').hidden, true); assert.equal(f.getElement('toolTray').hidden, true); assert.equal(f.context.toolTrayOpen, false);
@@ -216,7 +216,7 @@ test('the actual View popup clears held actions and returns focus without pausin
       assert.equal(f.getElement(mode + 'ZoomActive').hidden, false); assert.equal(f.getElement((mode === 'ship' ? 'person' : 'ship') + 'ZoomActive').hidden, true);
       assert.equal(f.context.playing, true); assert.equal(f.context.dialog.opened, false);
       f.call('setViewPanel', false); assert.equal(f.getElement('viewPanel').hidden, true); assert.equal(f.getElement('viewButton').attributes['aria-expanded'], 'false');
-      assert.deepEqual(f.effects.filter(([effect]) => effect === 'focus').map(([, id]) => id), [mode + 'Zoom', 'viewButton']);
+      assert.deepEqual(f.effects.filter(([effect]) => effect === 'focus').map(([, id]) => id), [mode + 'Zoom', touch?'pauseButton':'viewButton']);
       assert.equal(gameplayState(f.game), before); assert.equal(boundary.writes.length, 0);
     } finally { boundary.restore(); }
   }

@@ -19,18 +19,20 @@
 .recovery-status[data-detained=true]{border-left-color:var(--red)}
 .recovery-status[data-detained=true]>strong{color:#ffb6a7;font-variant-numeric:tabular-nums}
 @media(max-height:650px) and (min-width:801px){.gunnery-batteries{bottom:112px;width:310px;padding:9px}.gunnery-batteries>p{min-height:0}.battery-choice{min-height:49px}}
-.touch-layout .gunnery-batteries{left:12px;right:12px;top:12px;bottom:auto;width:auto;max-width:420px;padding:9px 10px}
+.touch-layout .gunnery-batteries{left:12px;right:12px;top:12px;bottom:auto;width:auto;max-width:420px;padding:8px 9px;border-top-width:2px;border-radius:4px}
 .touch-layout .gunnery-batteries .battery-heading{margin-bottom:7px}
-.touch-layout .battery-choice{min-height:52px;padding:6px 8px}
+.touch-layout .battery-choice{grid-template-columns:minmax(0,1fr);min-height:52px;padding:6px 8px;gap:3px;text-align:center}
+.touch-layout .battery-choice>kbd{display:none}
+.touch-layout .battery-choice>strong{white-space:normal;line-height:1.2}
 .touch-layout .gunnery-batteries>p{min-height:0;margin-top:7px}
 .touch-layout.gunnery-view .coach-card,.touch-layout.recovery-active .coach-card{display:none!important}
 .touch-layout .recovery-status{top:12px;left:12px;right:12px;bottom:auto;width:auto;max-width:420px}
 .touch-layout.immersive-hud:not(.welcome-active) .gunnery-batteries,.touch-layout.immersive-hud:not(.welcome-active) .recovery-status{top:var(--coach-top);left:var(--hud-edge);right:var(--hud-right);background:var(--hud-surface);box-shadow:var(--hud-shadow)}
 .touch-layout.touch-landscape .gunnery-batteries{left:50%;right:auto;transform:translateX(-50%);width:min(490px,calc(100% - 160px));max-width:none;top:12px}
 .touch-layout.touch-landscape .battery-choices{grid-template-columns:repeat(4,minmax(0,1fr))}
-.touch-layout.touch-landscape .battery-choice{grid-template-columns:16px minmax(0,1fr);padding:6px 4px;gap:3px;font-size:.78rem}
-.touch-layout.touch-landscape .battery-choice>strong{font-size:.78rem}
-.touch-layout.touch-landscape .battery-choice>small{font-size:.67rem}
+.touch-layout.touch-landscape .battery-choice{padding:6px 4px;font-size:.86rem}
+.touch-layout.touch-landscape .battery-choice>strong{font-size:.86rem}
+.touch-layout.touch-landscape .battery-choice>small{font-size:.75rem}
 .touch-layout.touch-landscape .gunnery-batteries>p{font-size:.75rem;margin-top:5px}
 .touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .gunnery-batteries{left:50%;right:auto;top:var(--coach-top)}
 .touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .recovery-status{left:50%;right:auto;transform:translateX(-50%);width:min(440px,calc(100% - 210px))}

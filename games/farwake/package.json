@@ -1,11 +1,11 @@
 {
   "name": "farwake",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs tests/server/*.test.mjs",
-    "check": "node --check dist/navy-operations.mjs && node --check dist/navy-crew.mjs && node --check dist/navy-duty-ui.mjs && node --check dist/gunnery-batteries.mjs && node --check dist/gunnery.mjs && node --check dist/gunnery-view.mjs && node --check dist/ship-recovery.mjs && node --check dist/military-recovery.mjs && node --check server/military-recovery.mjs && node --check dist/music-context.mjs && node --check dist/music-director.mjs && node --check dist/music-danger.mjs && node --check dist/music-environments.mjs && node --check dist/music-score.mjs && node --check dist/audio.mjs && node --check dist/app.mjs && node --check dist/engine.mjs && node --check dist/surface.mjs && node --check dist/network.mjs && node --check server/index.mjs && node --check server/realm.mjs",
+    "check": "node --check dist/crew-awareness.mjs && node --check dist/shared-crew-ui.mjs && node --check dist/military-career-ui.mjs && node --check server/military-operations.mjs && node --check dist/navy-operations.mjs && node --check dist/navy-crew.mjs && node --check dist/navy-duty-ui.mjs && node --check dist/gunnery-batteries.mjs && node --check dist/gunnery.mjs && node --check dist/gunnery-view.mjs && node --check dist/ship-recovery.mjs && node --check dist/military-recovery.mjs && node --check server/military-recovery.mjs && node --check dist/music-context.mjs && node --check dist/music-director.mjs && node --check dist/music-danger.mjs && node --check dist/music-environments.mjs && node --check dist/music-score.mjs && node --check dist/audio.mjs && node --check dist/app.mjs && node --check dist/engine.mjs && node --check dist/surface.mjs && node --check dist/network.mjs && node --check server/index.mjs && node --check server/realm.mjs",
     "start": "node server/index.mjs",
     "dev": "node server/index.mjs",
     "test:network": "node --test tests/server/network*.test.mjs"

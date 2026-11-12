@@ -249,40 +249,81 @@
  .touch-layout.immersive-hud.large-text:not(.welcome-active) .mobile-vitals{gap:9px;font-size:.77rem}
 }
 
-/* One permanent route between the helm and the deck, in the former Crew slot.
-   Crew remains in Menu; nearby Dock, Land and Use actions keep their own place. */
-.touch-layout:not(.welcome-active){--perspective-width:136px;--perspective-bar-height:44px;--perspective-side-controls:148px}
-.touch-layout.large-text:not(.welcome-active){--perspective-width:180px;--perspective-bar-height:56px;--perspective-side-controls:180px}
+/* Keep the three routes players need in reach: deck/helm, Crew, and Menu.
+   Camera settings remain in Menu so joining friends never requires a hunt. */
+.touch-layout:not(.welcome-active){--perspective-width:144px;--perspective-bar-height:44px;--perspective-side-controls:180px}
+.touch-layout.large-text:not(.welcome-active){--perspective-width:180px;--perspective-bar-height:56px;--perspective-side-controls:220px}
 .touch-layout.test-mode:not(.welcome-active){--perspective-width:176px}
 .touch-layout.test-mode.large-text:not(.welcome-active){--perspective-width:208px}
 .touch-layout:not(.welcome-active) .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;column-gap:8px;height:calc(var(--perspective-bar-height) + env(safe-area-inset-top,0px) + 8px);min-height:calc(var(--perspective-bar-height) + env(safe-area-inset-top,0px) + 8px)}
-.touch-layout:not(.welcome-active) #onlineButton{display:none!important}
-.touch-layout:not(.welcome-active) .mode-pill{display:inline-flex!important;width:var(--perspective-width);max-width:100%;min-width:0;min-height:44px;height:var(--perspective-bar-height);margin:0;padding:6px 10px;gap:7px;font-size:1rem;line-height:1.1;justify-content:flex-start;border-radius:24px;white-space:normal}
+.touch-layout:not(.welcome-active) #onlineButton{display:inline-flex!important;justify-content:center;min-width:76px;max-width:none!important;height:var(--perspective-bar-height);min-height:44px;margin:0;padding:6px 10px;gap:6px;border:1px solid #71939b99;border-radius:6px;background:#102534;line-height:1.15;white-space:nowrap}
+.touch-layout:not(.welcome-active) #networkLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.touch-layout:not(.welcome-active) #onlineButton>i{flex:0 0 6px}
+.touch-layout:not(.welcome-active) #viewButton{display:none!important}
+.touch-layout:not(.welcome-active) .mode-pill{display:inline-flex!important;width:var(--perspective-width);max-width:100%;min-width:0;min-height:44px;height:var(--perspective-bar-height);margin:0;padding:6px 10px;gap:7px;font-size:1rem;line-height:1.15;justify-content:flex-start;border-radius:6px;white-space:normal}
 .touch-layout:not(.welcome-active) .perspective-button>i{display:none}
 .touch-layout:not(.welcome-active) .perspective-arrow{margin-left:auto}
-.touch-layout:not(.welcome-active) :is(.view-button,#pauseButton){margin:0}
-.touch-layout.large-text:not(.welcome-active) .perspective-button{font-size:.95rem;padding:4px 9px;gap:6px;border-radius:18px}
+.touch-layout:not(.welcome-active) #pauseButton{margin:0;height:var(--perspective-bar-height);min-height:44px;min-width:60px;border-radius:6px}
+.touch-layout.large-text:not(.welcome-active) .perspective-button{font-size:.95rem;padding:4px 9px;gap:6px}
 .touch-layout.large-text:not(.welcome-active) .perspective-arrow,.touch-layout.large-text:not(.welcome-active) .view-button>span{display:none}
 .touch-layout.test-mode:not(.welcome-active) .test-bar{display:none!important}
 .touch-layout.test-mode:not(.welcome-active) .perspective-test-tag{display:block;order:-1;flex:0 0 auto;padding:3px 4px;border:1px solid #b89760;border-radius:4px;background:#3b3023;color:#ecd19f;font-size:max(12px,.68rem);font-weight:bold;line-height:1.1;letter-spacing:.02em}
 .touch-layout.test-mode:not(.welcome-active) .perspective-arrow{display:none}
-.touch-layout.immersive-hud:not(.welcome-active){--coach-top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px + var(--readout-height) + 8px)}
+.touch-layout.immersive-hud:not(.welcome-active){--readout-height:44px;--coach-top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px + var(--readout-height) + 6px)}
 .touch-layout.immersive-hud:not(.welcome-active) .topbar{height:var(--perspective-bar-height);min-height:var(--perspective-bar-height);padding:0}
+.touch-layout.immersive-hud:not(.welcome-active) #onlineButton{background:var(--hud-surface);border-color:var(--hud-border);box-shadow:var(--hud-shadow)}
 .touch-layout.immersive-hud:not(.welcome-active) .perspective-button{background:var(--hud-surface);border:1px solid #a8cdb5a6;box-shadow:var(--hud-shadow);color:#e0efdc}
 .touch-layout.immersive-hud:not(.welcome-active) .perspective-button:hover{background:#29473fe6}
 .touch-layout.immersive-hud:not(.welcome-active) .perspective-button[aria-disabled="true"],.touch-layout.immersive-hud:not(.welcome-active) .perspective-button[data-state="blocked"]{background:var(--hud-surface);border-color:var(--hud-border);color:#adbec3}
-.touch-layout.immersive-hud:not(.welcome-active) .mobile-readout{top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px)}
+.touch-layout:not(.welcome-active) #mobileReadout{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;min-height:44px;height:44px;gap:8px;padding-top:6px;padding-bottom:6px;line-height:1.25;font-size:.86rem;overflow:hidden}
+.touch-layout:not(.welcome-active) #mobileReadout #mobileLocation{display:block;flex:0 1 auto;max-width:25%;min-width:0;font-size:inherit}
+.touch-layout:not(.welcome-active) #mobileReadout .mobile-vitals{flex:1 1 auto;min-width:0;width:auto;max-width:100%;flex-wrap:nowrap;justify-content:flex-start;gap:8px;font-size:inherit;line-height:inherit}
+.touch-layout:not(.welcome-active) #mobileReadout :is(#mobileHealth,#mobileShield){flex:0 0 auto}
+.touch-layout:not(.welcome-active) #mobileReadout #mobileSpeed{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.touch-layout:not(.welcome-active) #mobileReadout.danger{border-left:3px solid var(--red);background:#38232bef}
+.touch-layout.immersive-hud:not(.welcome-active) #mobileReadout{top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px);left:var(--hud-edge);right:auto;width:max-content;max-width:calc(100% - var(--hud-edge) - var(--hud-right));padding:6px 10px;border-radius:4px}
 .touch-layout.immersive-hud:not(.welcome-active) .view-panel{top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px);max-height:calc(100% - var(--hud-top) - var(--perspective-bar-height) - 24px)}
-.touch-layout.immersive-hud.touch-landscape:not(.welcome-active){--coach-top:calc(var(--hud-top) + var(--perspective-bar-height) + 14px)}
-.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .mobile-readout,
-.touch-layout.immersive-hud.touch-landscape.test-mode:not(.welcome-active) .mobile-readout,
-.touch-layout.immersive-hud.touch-landscape.large-text:not(.welcome-active) .mobile-readout,
-.touch-layout.immersive-hud.touch-landscape.test-mode.large-text:not(.welcome-active) .mobile-readout{top:var(--hud-top);left:calc(var(--hud-edge) + var(--perspective-width) + 8px);max-width:calc(100% - var(--hud-edge) - var(--hud-right) - var(--perspective-width) - var(--perspective-side-controls) - 8px);height:var(--perspective-bar-height);min-height:var(--perspective-bar-height)}
-.touch-layout.immersive-hud.touch-landscape.test-mode:not(.welcome-active) #mobileLocation{display:none}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active){--coach-top:calc(var(--hud-top) + var(--perspective-bar-height) + 8px)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) #mobileReadout{top:var(--hud-top);left:calc(var(--hud-edge) + var(--perspective-width) + 8px);max-width:calc(100% - var(--hud-edge) - var(--hud-right) - var(--perspective-width) - var(--perspective-side-controls) - 8px);height:var(--perspective-bar-height);min-height:var(--perspective-bar-height)}
 @media(max-width:375px){
  .touch-layout:not(.welcome-active) .topbar{column-gap:6px}
- .touch-layout.large-text:not(.welcome-active) :is(.view-button,#pauseButton){padding-right:8px;padding-left:8px}
+ .touch-layout:not(.welcome-active) #onlineButton{min-width:70px;padding-right:8px;padding-left:8px}
+ .touch-layout.large-text:not(.welcome-active) #pauseButton{padding-right:8px;padding-left:8px}
 }
+
+/* The next action is one strip. Its explanation stays a tap away, preserving
+   Simple/Moderate/Expert and the player's Compact tips preference. */
+.touch-layout:not(.welcome-active) #coachCard .coach-copy strong{display:block}
+.touch-layout:not(.welcome-active) #coachCard .coach-copy[role="button"]{cursor:pointer;min-height:44px;outline-offset:2px}
+.touch-layout:not(.welcome-active) #coachCard .coach-copy[role="button"]:focus-visible{outline:2px solid var(--amber)}
+.touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard{align-items:center;gap:0;min-height:48px;padding:0 1px 0 11px;border-radius:4px;overflow:hidden}
+.touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy{display:flex;flex-direction:column;justify-content:center;min-height:44px;max-height:none;overflow:hidden;padding:4px 0}
+.touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.93rem;line-height:1.35}
+.touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard :is(.coach-step,.coach-copy p){display:none}
+.touch-layout.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard>button{align-self:center;min-width:44px;min-height:44px;flex-basis:44px}
+.touch-layout:not(.welcome-active) #coachExpand{color:#c7decf}
+.touch-layout:not(.welcome-active) #coachDismiss{color:#9cb5bf}
+.touch-layout.immersive-hud.touch-landscape.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard{max-height:none;width:min(440px,calc(100% - 230px))}
+.touch-layout.view-open:not(.welcome-active) :is(#mobileReadout,#mobileWeapon,.interaction-wrap){visibility:hidden;pointer-events:none}
+.touch-layout #aimStick,.touch-layout #mobileWeaponHelp{min-width:44px;min-height:44px}
+
+/* Quiet menu rows instead of a screen of competing cards. */
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-grid{grid-template-columns:1fr;gap:0;margin:12px 0}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-grid button{min-height:56px;padding:11px 4px;gap:12px;background:transparent;border:0;border-bottom:1px solid #314953;border-radius:0}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-grid button:hover{background:#172f3b}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-grid strong{font-size:1rem}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-grid small{margin-top:3px;font-size:.86rem}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-goal{padding:3px 0 3px 12px;background:none}
+.touch-layout #modal[data-kind="flight-menu"] .flight-menu-goal p{margin:.4rem 0 0!important}
+.touch-layout .modal-header>div{min-width:0}
+.touch-layout .modal-header h2{overflow-wrap:anywhere}
+.touch-layout .modal-body :is(button,summary,select){min-height:44px}
+.touch-layout .modal-body button{min-width:44px}
+.touch-layout .modal-body summary{display:flex;align-items:center;cursor:pointer;padding:8px 0}
+.touch-layout .modal-body summary:before{content:'▸';flex:0 0 18px;color:#a9c7c4}
+.touch-layout .modal-body details[open]>summary:before{content:'▾'}
+.touch-layout.touch-landscape #modal[data-kind="flight-menu"] .flight-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}
+.touch-layout.touch-landscape.large-text #modal[data-kind="flight-menu"] .flight-menu-grid{grid-template-columns:1fr}
 
 /* Gunnery is a real crew station: the NPC pilot owns the movement controls. */
 .gunnery-view #stick,.gunnery-view #boostButton,.gunnery-view #brakeButton,.gunnery-view #mineButton,.gunnery-view #toolsButton{visibility:hidden!important;pointer-events:none!important}
