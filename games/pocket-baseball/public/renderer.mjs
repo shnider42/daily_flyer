@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, fieldRadius, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.3.0';
+import { BASES, fieldRadius, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.3.1';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.

@@ -230,6 +230,18 @@ async function waitUntil(predicate, message, maximum = 3000) {
   while (!predicate()) { if (Date.now() - started > maximum) assert.fail(message); await new Promise(resolve => setTimeout(resolve, 10)); }
 }
 
+test('the transport invokes fetch with the browser global receiver', async () => {
+  let called = false;
+  function browserFetch(url, options) {
+    assert.equal(this, globalThis, 'native Window.fetch must not receive OnlineSession as this');
+    assert.equal(url, 'https://example.invalid/api/rooms'); assert.equal(options.method, 'POST');
+    called = true; return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+  }
+  const session = new OnlineSession({ baseUrl: 'https://example.invalid', fetchImpl: browserFetch, storageEnabled: false });
+  assert.equal((await session._request('/api/rooms', {}, { auth: false })).ok, true);
+  assert.equal(called, true);
+});
+
 test('two real HTTP/SSE clients receive matching authority, correct local roles, and a shared pause', async t => {
   const server = createServer(); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;

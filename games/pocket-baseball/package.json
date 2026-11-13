@@ -1,6 +1,6 @@
 {
   "name": "dfe-pocket-baseball",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "DFE 3D baseball: solo and authoritative private-room 1v1",

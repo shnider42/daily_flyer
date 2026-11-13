@@ -1,9 +1,9 @@
-import { BaseballGame, PITCHES, PITCHERS, STEP } from './engine.mjs?v=0.3.0';
-import { BallparkRenderer } from './renderer.mjs?v=0.3.0';
-import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.3.0';
-import { BallparkAudio } from './audio.mjs?v=0.3.0';
-import { OnlineSession } from './online.mjs?v=0.3.0';
-import { ONLINE_API_BASE } from './online-config.mjs?v=0.3.0';
+import { BaseballGame, PITCHES, PITCHERS, STEP } from './engine.mjs?v=0.3.1';
+import { BallparkRenderer } from './renderer.mjs?v=0.3.1';
+import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.3.1';
+import { BallparkAudio } from './audio.mjs?v=0.3.1';
+import { OnlineSession } from './online.mjs?v=0.3.1';
+import { ONLINE_API_BASE } from './online-config.mjs?v=0.3.1';
 
 const $ = id => document.getElementById(id);
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));

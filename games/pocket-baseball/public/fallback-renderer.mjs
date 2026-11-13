@@ -1,5 +1,5 @@
-import { BASES, STRIKE_ZONE, AIM_AREA, fieldRadius, FENCE_HEIGHT, inStrikeZone } from './engine.mjs?v=0.3.0';
-import { samplePlayerMotion } from './renderer.mjs?v=0.3.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, fieldRadius, FENCE_HEIGHT, inStrikeZone } from './engine.mjs?v=0.3.1';
+import { samplePlayerMotion } from './renderer.mjs?v=0.3.1';
 
 // Perspective software renderer. Geometry uses the same metres and boundaries
 // as the simulation; only presentation is simplified when WebGL is unavailable.

@@ -1,5 +1,5 @@
 /** Private-room transport. UI, drawing and sound stay in app.mjs. */
-import { BaseballGame } from './engine.mjs?v=0.3.0';
+import { BaseballGame } from './engine.mjs?v=0.3.1';
 
 const STORAGE_KEY = 'dfe.baseball.online.v1';
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -18,7 +18,9 @@ function savedSession(baseUrl) {
 export class OnlineSession {
   constructor({ baseUrl = '', onChange = () => {}, onError = () => {}, onEvent = () => {}, fetchImpl = globalThis.fetch, storageEnabled = true } = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); this.onChange = onChange; this.onError = onError; this.onEvent = onEvent;
-    this.fetch = fetchImpl; this.storageEnabled = storageEnabled;
+    // Native browser fetch requires Window as its receiver. Keeping an unbound
+    // method on this session makes Chromium/Safari throw "Illegal invocation".
+    this.fetch = (...args) => fetchImpl.call(globalThis, ...args); this.storageEnabled = storageEnabled;
     this.game = new BaseballGame({ humanSides: [0, 1], inputWindow: .2 });
     this.code = null; this.side = null; this.generation = null; this.token = null; this.room = null;
     this.connected = false; this.connecting = false; this.latencyMs = null; this.error = null;
