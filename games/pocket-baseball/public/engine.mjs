@@ -3,9 +3,10 @@
  * World units are metres. Home is (0, 0, 0), +z is centre field, +x is first.
  * Input and snapshots are deliberately independent from the browser renderer.
  */
+import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.4.0';
+export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.4.0';
 export const STEP = 1 / 120;
 export const BALL_RADIUS = 0.037;
-export const FENCE_HEIGHT = 3.2;
 export const BASE_DISTANCE = Math.hypot(19.4, 19.4);
 export const BASES = Object.freeze([
   { x: 0, y: 0, z: 0 }, { x: 19.4, y: 0, z: 19.4 },
@@ -55,7 +56,6 @@ const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const aimWorld = aim => ({ x: clamp(finite(aim?.x), -1, 1) * AIM_AREA.x, y: AIM_AREA.centerY + clamp(finite(aim?.y), -1, 1) * AIM_AREA.y, z: 0 });
 const worldAim = target => ({ x: target.x / AIM_AREA.x, y: (target.y - AIM_AREA.centerY) / AIM_AREA.y });
 
-export function fieldRadius(angle) { return 105 + 10 * Math.cos(2 * angle); }
 export const wallRadius = fieldRadius;
 export function isFair(x, z) { return z >= 0 && Math.abs(x) <= z + 1e-8; }
 export function inStrikeZone(point) {
@@ -105,6 +105,7 @@ export class BaseballGame {
       localSide: options.localSide === 1 ? 1 : 0,
       inputWindow: clamp(finite(options.inputWindow, 0.1), 0.1, 0.25),
       scenario: options.mode === 'practice' && options.scenario === 'runners' ? 'runners' : null,
+      park: resolveParkId(options.park),
     };
     this._accumulator = 0;
     this._events = [];
@@ -114,7 +115,7 @@ export class BaseballGame {
       phase: 'ready', phaseTime: 0, phaseStartedAt: 0, inning: 1, half: 'top',
       outs: 0, balls: 0, strikes: 0, bases: [null, null, null], score: [0, 0], hits: [0, 0],
       lineScore: [[0], [0]], battingSide: 0, batterIndex: [0, 0], nextRunnerId: 1, nextPitchId: 1,
-      ball: { x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, vx: 0, vy: 0, vz: 0, visible: false, bounced: false },
+      ball: { x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, vx: 0, vy: 0, vz: 0, visible: false, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null },
       pitch: null, swing: null, play: null, result: null, lastContact: null,
       fielders: this._newFielders(), runners: [], pending: null,
       pickoffAttempts: 0, readyActionChecked: false,
@@ -349,6 +350,7 @@ export class BaseballGame {
     this.state = clone(snapshot.state);
     this.state.nextPitchId = finite(this.state.nextPitchId, finite(this.state.pitch?.id, 0) + 1);
     this.options = { humanSides: [0], localSide: 0, inputWindow: 0.1, scenario: null, ...this.state.options };
+    this.options.park = resolveParkId(this.options.park);
     this.state.options = { ...this.options };
     this._accumulator = clamp(finite(snapshot.accumulator), 0, STEP);
     this._events = [];
@@ -487,7 +489,7 @@ export class BaseballGame {
       duration, elapsed: 0, releaseAt, contactAt: releaseAt + duration, resolved: false, aiSwing: null,
     };
     s.swing = null; s.result = null; s.pending = null; s.play = null;
-    Object.assign(s.ball, { x: -0.32, y: 1.88, z: 18.44, prevX: -0.32, prevY: 1.88, prevZ: 18.44, visible: false, bounced: false, vx: 0, vy: 0, vz: 0 });
+    Object.assign(s.ball, { x: -0.32, y: 1.88, z: 18.44, prevX: -0.32, prevY: 1.88, prevZ: 18.44, visible: false, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null, vx: 0, vy: 0, vz: 0 });
     if (!this.isHumanBatting) {
       const strike = inStrikeZone(target), willSwing = this._random() < (strike ? 0.86 : 1 - this.difficulty.aiTake);
       const reading = knuckle ? (hanging ? 0.78 : 1.28) : 1;
@@ -548,7 +550,7 @@ export class BaseballGame {
     Object.assign(s.ball, {
       ...p.target, z: 0.18, prevX: p.target.x, prevY: p.target.y, prevZ: 0.18,
       vx: Math.sin(angle) * horizontal, vy: Math.sin(launchAngle) * speed, vz: Math.cos(angle) * horizontal,
-      bounced: false, visible: true,
+      bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null, visible: true,
     });
     const label = Math.abs(timing) < 0.035 ? 'On time' : timing < 0 ? 'Early' : 'Late';
     s.lastContact = { timing, timingLabel: label, quality, exitVelocity: Math.round(speed * 2.236936), launchAngle: Math.round(launchAngle * 180 / Math.PI), distance: 0, foul: Math.abs(angle) > Math.PI / 4 };
@@ -586,12 +588,12 @@ export class BaseballGame {
   }
 
   _moveFielder(f, target, speed = f.speed) {
-    const targetDistance = Math.hypot(target.x, target.z), radius = fieldRadius(Math.atan2(target.x, target.z)) - 0.55;
+    const targetDistance = Math.hypot(target.x, target.z), radius = fieldRadius(Math.atan2(target.x, target.z), this.options.park) - 0.55;
     if (targetDistance > radius) target = { x: target.x / targetDistance * radius, z: target.z / targetDistance * radius };
     f.target = { x: target.x, z: target.z };
     const dx = target.x - f.x, dz = target.z - f.z, d = Math.hypot(dx, dz), amount = Math.min(d, speed * STEP);
     if (d > 1e-6) { f.x += dx / d * amount; f.z += dz / d * amount; }
-    const playerDistance = Math.hypot(f.x, f.z), playerLimit = fieldRadius(Math.atan2(f.x, f.z)) - 0.55;
+    const playerDistance = Math.hypot(f.x, f.z), playerLimit = fieldRadius(Math.atan2(f.x, f.z), this.options.park) - 0.55;
     if (playerDistance > playerLimit) { f.x *= playerLimit / playerDistance; f.z *= playerLimit / playerDistance; }
   }
 
@@ -616,7 +618,7 @@ export class BaseballGame {
     for (let i = 0; i < Math.min(2, candidates.length); i++) this._moveFielder(candidates[i].f, target);
     this._coverBases(candidates.slice(0, 2).map(candidate => candidate.f.id));
     const groundT = next.y < BALL_RADIUS && old.y > BALL_RADIUS ? (old.y - BALL_RADIUS) / (old.y - next.y) : 1;
-    const wallT = this._wallCrossing(old, next);
+    const wall = this._wallContact(old, next), wallT = wall?.t ?? null;
     const limitT = Math.min(groundT, wallT ?? 1);
     let catchResult = null;
     if (play.ballKind === 'batted' && !b.bounced && play.age > 0.16) {
@@ -630,25 +632,36 @@ export class BaseballGame {
     }
     Object.assign(b, next);
     if (!play.fair) {
-      if (next.y <= BALL_RADIUS || play.age > 12 || Math.hypot(next.x, next.z) > fieldRadius(Math.atan2(next.x, next.z))) this._foul();
+      if (next.y <= BALL_RADIUS || play.age > 12 || Math.hypot(next.x, next.z) > fieldRadius(Math.atan2(next.x, next.z), this.options.park)) this._foul();
       return;
     }
     if (wallT !== null) {
       const hit = { x: lerp(old.x, next.x, wallT), y: lerp(old.y, next.y, wallT), z: lerp(old.z, next.z, wallT) };
-      if (!b.bounced && wallT <= groundT && hit.y - BALL_RADIUS > FENCE_HEIGHT) {
+      const clearsWall = wallT <= groundT && hit.y - BALL_RADIUS > wall.height;
+      const touchedGround = b.groundBounced || (b.bounced && !b.wallBounced);
+      // An airborne carom from ABOVE a lower wall may clear it for a home
+      // run. A low-wall strike followed by escape over a higher wall is a
+      // two-base ground-rule award, even without a ground bounce.
+      const airborneCaromHomeRun = this.options.park === 'fenway' && !touchedGround && b.wallBounced && b.wallImpactY > wall.height;
+      if (clearsWall && (!b.bounced || airborneCaromHomeRun)) {
         Object.assign(b, hit); this._hit(4, true); return;
       }
-      const length = Math.hypot(hit.x, hit.z), nx = hit.x / length, nz = hit.z / length;
+      if (clearsWall && this.options.park === 'fenway' && b.bounced && play.ballKind === 'batted') {
+        // Dead-ball award from the bases occupied at the pitch, not from a
+        // runner's speculative destination while the ball was rolling.
+        Object.assign(b, hit); this._hit(2, false, touchedGround ? 'bounce' : 'carom'); return;
+      }
+      const { x: nx, z: nz } = wall.normal;
       const outward = b.vx * nx + b.vz * nz;
       b.vx -= outward * nx * 1.38; b.vz -= outward * nz * 1.38;
       b.x = hit.x - nx * 0.15; b.z = hit.z - nz * 0.15;
-      b.bounced = true;
+      b.bounced = true; b.wallBounced = true; b.wallImpactY = hit.y - BALL_RADIUS;
       this._event('wall', { x: b.x, y: b.y, z: b.z });
     }
     if (b.y < BALL_RADIUS) {
       b.y = BALL_RADIUS;
       b.vy = Math.abs(b.vy) > 1.4 ? Math.abs(b.vy) * 0.33 : 0;
-      b.vx *= 0.83; b.vz *= 0.83; b.bounced = true;
+      b.vx *= 0.83; b.vz *= 0.83; b.bounced = true; b.groundBounced = true;
       this._event('bounce');
     }
     if (b.bounced && b.y < 1.0) {
@@ -659,7 +672,8 @@ export class BaseballGame {
     }
   }
 
-  _wallCrossing(a, b) {
+  _wallContact(a, b) {
+    if (this.options.park === 'fenway') return sweptParkWall(a, b, this.options.park);
     const signed = p => Math.hypot(p.x, p.z) - fieldRadius(Math.atan2(p.x, p.z));
     if (signed(a) > 0 || signed(b) <= 0) return null;
     let lo = 0, hi = 1;
@@ -667,8 +681,10 @@ export class BaseballGame {
       const t = (lo + hi) / 2, point = { x: lerp(a.x, b.x, t), z: lerp(a.z, b.z, t) };
       if (signed(point) > 0) hi = t; else lo = t;
     }
-    return hi;
+    const hit = { x: lerp(a.x, b.x, hi), z: lerp(a.z, b.z, hi) }, length = Math.hypot(hit.x, hit.z);
+    return { t: hi, height: fenceHeight(Math.atan2(hit.x, hit.z), this.options.park), normal: { x: hit.x / length, z: hit.z / length }, zone: 'harbor' };
   }
+  _wallCrossing(a, b) { return this._wallContact(a, b)?.t ?? null; }
 
   _liveRunner(runner, base) {
     return { ...runner, fromBase: base, base, highestBase: base, targetBase: Math.max(1, base),
@@ -1099,27 +1115,28 @@ export class BaseballGame {
     this._advanceBatter();
     this._complete('Walk', 'Ball four. Take first base.', 'walk', this._isWalkoff() ? 'final' : 'batter');
   }
-  _hit(bases, homeRun = false) {
+  _hit(bases, homeRun = false, groundRule = false) {
     const s = this.state, batter = s.play?.batter || this._runner(), scoredBefore = s.score[s.battingSide];
     s.hits[s.battingSide]++;
     if (this.options.mode === 'practice') {
       s.practice.hits++; if (homeRun) s.practice.homeRuns++;
     } else {
       const next = [null, null, null];
+      const startingBases = groundRule ? (s.play?.initialBases || s.bases) : s.bases;
       for (let i = 2; i >= 0; i--) {
-        if (!s.bases[i]) continue;
+        if (!startingBases[i]) continue;
         const destination = i + 1 + bases;
-        if (destination >= 4) this._scoreRun(s.bases[i], homeRun); else next[destination - 1] = s.bases[i];
+        if (destination >= 4) this._scoreRun(startingBases[i], homeRun); else next[destination - 1] = startingBases[i];
       }
       if (bases === 4) this._scoreRun(batter, true); else next[bases - 1] = batter;
       s.bases = next;
     }
-    const title = homeRun ? 'Home run!' : bases === 3 ? 'Triple' : bases === 2 ? 'Double' : 'Single';
+    const title = groundRule ? 'Ground-rule double' : homeRun ? 'Home run!' : bases === 3 ? 'Triple' : bases === 2 ? 'Double' : 'Single';
     const runs = s.score[s.battingSide] - scoredBefore;
     const feet = Math.round((s.play?.maxDistance || 0) * 3.28084);
-    const detail = `${s.lastContact?.exitVelocity || 0} mph off the bat${homeRun ? ` · ${feet} ft to the wall` : ''}${runs ? ` · ${runs} run${runs === 1 ? '' : 's'} score` : ''}`;
+    const detail = `${groundRule ? `${groundRule === 'carom' ? 'Caromed out of play' : 'Bounced over the fence'} · Two bases from the time of the pitch` : `${s.lastContact?.exitVelocity || 0} mph off the bat`}${homeRun ? ` · ${feet} ft to the wall` : ''}${runs ? ` · ${runs} run${runs === 1 ? '' : 's'} score` : ''}`;
     this._advanceBatter(); this._event('hit', { bases, homeRun, runs });
-    this._complete(title, detail, homeRun ? 'homeRun' : 'hit', this._isWalkoff() ? 'final' : 'batter', { bases, runs, distance: feet });
+    this._complete(title, detail, groundRule ? 'groundRuleDouble' : homeRun ? 'homeRun' : 'hit', this._isWalkoff() ? 'final' : 'batter', { bases, runs, distance: feet });
   }
 
   _halfEndDecision() {
@@ -1135,7 +1152,7 @@ export class BaseballGame {
     if (newBatter) { s.balls = 0; s.strikes = 0; s.pickoffAttempts = 0; }
     s.pending = null; s.pitch = null; s.swing = null; s.play = null; s.result = null; s.readyActionChecked = false; s.cpuRunnerChecked = false;
     s.fielders = this._newFielders();
-    Object.assign(s.ball, { visible: false, x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, bounced: false });
+    Object.assign(s.ball, { visible: false, x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null });
     s.runners = s.bases.flatMap((runner, i) => runner ? [this._liveRunner(runner, i + 1)] : []);
     if (this.options.scenario === 'runners') this._setupRunningPractice();
     this._phase('ready');

@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
   <title>Pocket Baseball · DFE Sports</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=0.3.1">
+  <link rel="stylesheet" href="./style.css?v=0.4.0">
 </head>
 <body>
   <main id="app" class="is-menu" tabindex="-1">
@@ -15,12 +15,13 @@
     <div class="vignette" aria-hidden="true"></div>
 
     <section id="home-screen" class="home-screen" aria-labelledby="game-title">
-      <header class="home-masthead"><span class="dfe-mark">DFE <b>SPORTS</b></span><span class="venue-label">HARBOR FIELD</span></header>
+      <header class="home-masthead"><span class="dfe-mark">DFE <b>SPORTS</b></span><span id="venue-name" class="venue-label">FENWAY PARK</span></header>
       <div class="home-content">
-        <p class="edition-line">HARBOR FIELD <span>•</span> UNDER THE LIGHTS</p>
+        <p class="edition-line"><b id="edition-venue">FENWAY PARK</b> <span>•</span> UNDER THE LIGHTS</p>
         <h1 id="game-title" tabindex="-1">POCKET<br><span>BASEBALL</span></h1>
         <div class="matchup"><span class="club-mark harbor">H</span><span><b>BOSTON HARBOR</b><small>YOU · VISITORS</small></span><em>at</em><span class="club-mark foundry">F</span><span><b>BROOKLYN FOUNDRY</b><small>CPU · HOME</small></span></div>
         <p class="home-description">Read the pitch. Find your timing. Put one in the gap.</p>
+        <div class="park-field"><label for="park">BALLPARK<select id="park" aria-describedby="park-note"></select></label><small id="park-note"></small></div>
         <form id="setup" class="setup" autocomplete="off">
           <div class="setup-fields">
             <label>INNINGS<select id="innings"><option value="3">3 innings</option><option value="6">6 innings</option><option value="9">9 innings</option></select></label>
@@ -38,7 +39,7 @@
         </form>
         <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo or 1v1 · Assisted field movement</span></div>
       </div>
-      <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small>90 FT BETWEEN BASES.</small></div>
+      <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small id="park-caption-note">LF 310 · CF 390 · RF 302 FT.</small></div>
     </section>
 
     <section id="game-ui" class="game-ui" hidden aria-label="Game controls">
@@ -103,7 +104,7 @@
     <noscript><div class="error-panel"><h2>JAVASCRIPT IS NEEDED TO PLAY</h2><p>Enable JavaScript in your browser, then refresh the page.</p></div></noscript>
   </main>
 
-  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label></div><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><p id="pause-venue" class="guide-footnote"></p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label></div><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
 
   <dialog id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-content field-guide">
@@ -115,7 +116,8 @@
       <div class="guide-section"><span>05</span><div><h3>TAKE A LEAD. PICK YOUR MOMENT.</h3><p>With a runner on base, select their base in the small <b>ON BASE</b> card. <b>LEAD + / X</b> moves farther off the bag; <b>BACK / Z</b> shortens the lead. A longer lead helps a steal but gives the pitcher a pickoff chance. <b>STEAL / C</b> queues a jump on the delivery; tap again before the windup to cancel. You can also send the runner during the delivery. Slow pitches give the runner more time.</p></div></div>
       <div class="guide-section"><span>06</span><div><h3>KEEP THEM HONEST</h3><p>Before pitching, use the <b>HOLD THE RUNNERS</b> card to pick off first, second, or third. You get <b>two pickoff attempts per batter</b>. After a steal, choose a base for the catcher’s throw. The runner can use <b>RETURN</b> to dive back during a pickoff. The ball and runner must actually reach the play.</p></div></div>
       <div class="guide-section"><span>07</span><div><h3>TAG UP ON A CATCH</h3><p>A caught fly puts the batter out, but runners can still advance. They must touch their original bag after the catch. <b>TAG &amp; GO</b> queues the return and the next base; <b>TAG UP</b> sends a runner who has already retouched. A throw back to the original bag can double off a runner who has not returned. A deep fly can score a run with fewer than two outs.</p></div></div>
-      <div class="guide-section"><span>08</span><div><h3>PLAY A FRIEND</h3><p>Choose your pitcher, then open <b>PLAY A FRIEND</b>. One player creates a room and shares its six-character code; the other joins. Both tap <b>READY TO PLAY</b>. The creator plays Boston and the guest plays Brooklyn. Each player confirms between plays. A disconnect pauses the match while the player reconnects. Use <b>REJOIN YOUR MATCH</b> in the same tab after a refresh.</p></div></div>
+      <div class="guide-section"><span>08</span><div><h3>THE BALLPARK</h3><p>Choose <b>Fenway-inspired</b> for the tall left-field wall, deep center-field triangle and short right-field corner. A drive below the wall stays in play; an airborne ball must clear its local wall height for a home run. A ball that bounces over a low fence receives a ground-rule double. The original <b>Harbor Field</b> remains available. Your selection applies to exhibition and both practice modes.</p></div></div>
+      <div class="guide-section"><span>09</span><div><h3>PLAY A FRIEND</h3><p>Choose your pitcher, then open <b>PLAY A FRIEND</b>. One player creates a room and shares its six-character code; the other joins. Both tap <b>READY TO PLAY</b>. The creator chooses the ballpark and plays Boston; the guest plays Brooklyn. Each player confirms between plays. A disconnect pauses the match while the player reconnects. Use <b>REJOIN YOUR MATCH</b> in the same tab after a refresh.</p></div></div>
       <div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds timing, aim, explanations and a suggested throw. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness. Field movement is assisted; your throw and running decisions affect the play.</p></div>
       <p class="guide-footnote">Solo exhibition starts with you batting as Boston Harbor. Batting practice keeps you at the plate; baserunning practice starts with runners on first and third. Touch and keyboard both work; landscape gives you more field. Online rooms are temporary and close when a player leaves or the match server restarts.</p>
       <button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button>
@@ -125,7 +127,7 @@
   <dialog id="online-dialog" aria-labelledby="online-title">
     <div class="dialog-content online-content">
       <p class="dialog-eyebrow">HEAD TO HEAD</p><h2 id="online-title" tabindex="-1">PLAY A FRIEND.</h2>
-      <p id="online-intro">Create a private room, then give your friend the code. Each player brings their selected pitcher.</p>
+      <p id="online-intro">Create a private room in your selected ballpark, then give your friend the code. Each player brings their selected pitcher.</p>
       <div id="online-entry">
         <button id="create-room" class="dialog-primary" type="button">CREATE A ROOM</button>
         <div class="room-divider"><span>or join a friend</span></div>
@@ -144,6 +146,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="./app.mjs?v=0.3.1"></script>
+  <script type="module" src="./app.mjs?v=0.4.0"></script>
 </body>
 </html>

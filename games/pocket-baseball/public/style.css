@@ -177,3 +177,23 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
   .runner-picker button{min-height:24px;padding:5px}
   .is-live .status-tip{top:auto;left:max(20px,env(safe-area-inset-left));bottom:max(20px,env(safe-area-inset-bottom));transform:none;text-align:left;width:260px;max-width:260px}
 }
+
+/* Park choice previews the same field used by the game. */
+.park-field{display:grid;grid-template-columns:minmax(150px,1fr) 1fr;align-items:end;gap:12px;max-width:430px;margin:0 0 14px}
+.park-field label{font-size:9px;letter-spacing:1.5px;color:var(--muted);font-weight:bold}
+.park-field small{font-size:9px;line-height:1.7;color:#c3cabb;white-space:pre-line;letter-spacing:0;padding-bottom:2px}
+.edition-line b{font-weight:inherit}
+@media(max-width:700px){
+  .park-field{gap:10px;margin-bottom:12px}
+  .park-field label{font-size:8px;letter-spacing:1.3px}
+  .park-field small{font-size:8px;line-height:1.7}
+}
+@media(max-height:530px) and (orientation:landscape){
+  .home-content{grid-template-rows:auto auto auto auto}
+  .park-field{grid-column:1;grid-row:3;grid-template-columns:1fr;gap:5px;margin:0 0 16px;max-width:254px}
+  .park-field small{font-size:8px;white-space:normal;line-height:1.45}
+  .park-field select{min-height:33px}
+  .matchup{grid-row:4}
+  .setup{grid-row:1 / span 4}
+  .home-footer{grid-row:5}
+}

@@ -1,5 +1,5 @@
 /** Private-room transport. UI, drawing and sound stay in app.mjs. */
-import { BaseballGame } from './engine.mjs?v=0.3.1';
+import { BaseballGame } from './engine.mjs?v=0.4.0';
 
 const STORAGE_KEY = 'dfe.baseball.online.v1';
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));

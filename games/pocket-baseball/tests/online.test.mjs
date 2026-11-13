@@ -46,6 +46,22 @@ test('private online rooms require two connected ready players and never start C
   p.hub.close();
 });
 
+test('the creator selects one authoritative park for both seats and rejoin', t => {
+  const hub = new RoomHub(); t.after(() => hub.close());
+  const first = hub.create({ park: 'fenway' });
+  const second = hub.join(first.code, { park: 'harbor' });
+  const room = hub.room(first.code);
+  assert.equal(hub.metadata(room).options.park, 'fenway');
+  for (const seat of [first, second]) {
+    const packet = hub.rejoin(seat.code, seat.token).packet;
+    assert.equal(packet.room.options.park, 'fenway');
+    assert.equal(packet.snapshot.state.options.park, 'fenway');
+  }
+  const invalid = hub.create({ park: 'constructor' });
+  assert.equal(invalid.packet.room.options.park, 'harbor');
+  assert.equal(invalid.packet.snapshot.state.options.park, 'harbor');
+});
+
 test('an online seat cannot control the opposing side, select an unavailable pitch, or send nonfinite aim', () => {
   const p = pair(); p.start();
   assert.equal(p.input(0, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } }).code, 'wrong_side');
@@ -249,12 +265,17 @@ test('two real HTTP/SSE clients receive matching authority, correct local roles,
   const observedFetch = async (url, options) => { const response = await fetch(url, options); if (url.endsWith('/stream')) compression.push(response.headers.get('content-encoding')); return response; };
   const first = new OnlineSession({ baseUrl, storageEnabled: false, fetchImpl: observedFetch, onError: e => errors.push(e.message) }), second = new OnlineSession({ baseUrl, storageEnabled: false, fetchImpl: observedFetch, onError: e => errors.push(e.message) });
   t.after(async () => { await first.leave(); await second.leave(); await new Promise(resolve => server.shutdown(resolve)); });
-  await first.create({ difficulty: 'rookie', pitcher: 'knuckle' }); await second.join(first.code, { pitcher: 'power' });
+  await first.create({ difficulty: 'rookie', pitcher: 'knuckle', park: 'fenway' }); await second.join(first.code, { pitcher: 'power', park: 'harbor' });
   await waitUntil(() => first.room.players[1].connected && second.room.players[0].connected, 'Both streams should connect');
   await first.ready(); await second.ready();
   await waitUntil(() => first.room.status === 'playing' && second.room.status === 'playing', 'Both clients should enter play');
   assert.equal(first.game.isBatting, true); assert.equal(second.game.isBatting, false);
   assert.equal(second.game.activePitcher.id, 'power');
+  for (const client of [first, second]) {
+    assert.equal(client.room.options.park, 'fenway');
+    assert.equal(client.game.options.park, 'fenway');
+    assert.equal(client.game.state.options.park, 'fenway');
+  }
   assert.equal((await second.send({ type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } })).ok, true);
   await waitUntil(() => first.game.state.pitch?.id === 1 && second.game.state.pitch?.id === 1, 'Both clients should see the same pitch');
   assert.deepEqual(first.game.state.pitch.target, second.game.state.pitch.target);

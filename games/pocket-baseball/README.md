@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.3
+# Pocket Baseball — version 0.4
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -41,6 +41,48 @@ Rookie, Club and Pro change timing forgiveness and CPU skill. Simple, Moderate
 and Expert change guidance only. These settings are intentionally independent.
 Simple shows a timing cue and strike zone; Moderate removes the timing cue;
 Expert minimizes explanatory overlays.
+
+## Ballparks
+
+The **Ballpark** selector changes the menu preview and the actual field in
+exhibitions, both practice modes, and private 1v1. **Fenway-inspired** is the new
+default; **Harbor Field** retains the original park. The room creator chooses
+the park for both online players, and reconnecting restores that same field.
+
+The Fenway-inspired field uses the Red Sox's published distance markers:
+
+| Landmark | Distance from home |
+| --- | --- |
+| Left-field line | 310 ft |
+| Left-center | 379 ft |
+| Center | 390 ft |
+| Deep-center triangle | 420 ft |
+| Deep right | 380 ft |
+| Right-field line | 302 ft |
+
+The straight left-field wall is 37 ft 2 in high, with a manual-scoreboard style
+face and seats above it. Center-field walls reach 17 ft; the bullpen fence is
+5 ft and the short right-field section is 3 ft. The outfield is asymmetric and
+has actual corners, including the deep-center triangle. The outline between
+the published markers is a playable approximation, not a surveyed reproduction
+of Fenway Park. The fictional clubs and original game branding remain.
+
+`public/parks.mjs` is the common source for field dimensions, wall segments,
+and heights. Both renderers and the authoritative simulation use it. A drive
+below the Monster's top rebounds into play; a ball must clear the local wall
+height to become a home run. Wall rebounds use the struck wall's direction,
+including at the angled center-field boundary. Fielders stay inside the chosen
+park's boundary. Park selection does not change batting timing or contact power.
+Fair balls that bounce over a low fence receive a ground-rule double, with
+runners awarded two bases from their original positions. An airborne carom
+from above a lower wall can clear that lower wall for a home run; an escape
+after striking a lower wall and clearing a higher one receives two bases.
+
+Dimension references: [Red Sox facts and figures](https://www.mlb.com/redsox/ballpark/facts-figures),
+[Fenway information guide](https://www.mlb.com/redsox/ballpark/information/guide),
+and [Fenway tours](https://www.mlb.com/redsox/ballpark/tours) for the more precise
+37 ft 2 in Monster height. Boundary awards follow the relevant
+[MLB ground rules](https://www.mlb.com/official-information/umpires/ground-rules).
 
 ## Pitchers and pitch balance
 

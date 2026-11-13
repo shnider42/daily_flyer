@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, fieldRadius, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.3.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.4.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.4.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -119,9 +120,9 @@ function canvasTexture(width, height, draw) {
   return { canvas, ctx, texture };
 }
 
-function fieldTexture() {
+function fieldTexture(parkId = 'harbor') {
   return canvasTexture(2048, 2048, (c, w) => {
-    const scale = w / 360, px = x => (x + 180) * scale, pz = z => (z + 135) * scale;
+    const scale = w / 360, px = x => (180 - x) * scale, pz = z => (z + 135) * scale;
     c.fillStyle = '#294c36'; c.fillRect(0, 0, w, w);
     for (let z = -130; z < 225; z += 12) {
       c.fillStyle = (Math.round(z / 12) & 1) ? '#376640' : '#417449';
@@ -132,12 +133,9 @@ function fieldTexture() {
       c.closePath(); c.fillStyle = fill; c.fill();
     };
     // Warning track and fence share the same radius function as ball physics.
-    const outer = [], inner = [];
-    for (let i = 0; i <= 90; i++) {
-      const a = -Math.PI / 4 + i / 90 * Math.PI / 2;
-      outer.push([Math.sin(a) * fieldRadius(a), Math.cos(a) * fieldRadius(a)]);
-      inner.unshift([Math.sin(a) * (fieldRadius(a) - 4.2), Math.cos(a) * (fieldRadius(a) - 4.2)]);
-    }
+    const walls = getWallSegments(parkId), boundary = [walls[0].a, ...walls.map(s => s.b)];
+    const outer = boundary.map(p => [p.x, p.z]);
+    const inner = boundary.map(p => { const r = Math.hypot(p.x, p.z), k = (r - 4.2) / r; return [p.x * k, p.z * k]; }).reverse();
     path([...outer, ...inner], '#b2926a');
     // Skin infield with a grass diamond, individual dirt circles and paths.
     c.beginPath(); c.arc(px(0), pz(0), 32 * scale, Math.PI / 4, Math.PI * .75);
@@ -155,7 +153,8 @@ function fieldTexture() {
     c.strokeStyle = '#efe7cb'; c.lineWidth = .10 * scale;
     for (const sign of [-1, 1]) {
       c.beginPath(); c.moveTo(px(sign * .25), pz(-.25));
-      c.lineTo(px(sign * 82), pz(82)); c.stroke();
+      const r = fieldRadius(sign * Math.PI / 4, parkId) / Math.SQRT2;
+      c.lineTo(px(sign * (r + 4)), pz(r + 4)); c.stroke();
     }
     c.lineWidth = .06 * scale;
     for (const sign of [-1, 1]) c.strokeRect(px(sign < 0 ? -1.43 : .57), pz(-.65), .86 * scale, 1.8 * scale);
@@ -196,12 +195,52 @@ export class BallparkRenderer {
     this.scene.add(new THREE.HemisphereLight(0xd4e3f0, 0x283b2c, 1.9));
     const sun = new THREE.DirectionalLight(0xffe6bd, 2.2); sun.position.set(-60, 75, -20); this.scene.add(sun);
     const fill = new THREE.DirectionalLight(0xc7dcfa, 1.15); fill.position.set(30, 45, 70); this.scene.add(fill);
-    this.buildSky(); this.buildField(); this.buildStadium(); this.buildParkDetails(); this.buildActors(); this.buildGuides(); this.buildEffects();
+    this.parkId = 'harbor'; this.buildSky(); this.buildParkScene(); this.buildActors(); this.buildGuides(); this.buildEffects();
     this.onLost = event => { event.preventDefault(); this.contextLost = true; onContextLost(); };
     this.onRestored = () => { this.contextLost = false; this.resize(true); };
     canvas.addEventListener('webglcontextlost', this.onLost);
     canvas.addEventListener('webglcontextrestored', this.onRestored);
     this.resize();
+  }
+
+  // Static park resources have their own lifetime. Actors and the simulation
+  // remain intact when the menu changes venues or an online snapshot arrives.
+  buildParkScene() {
+    const previous = new Set(this.scene.children);
+    this.wallMeshes = []; this.lastBoard = '';
+    this.buildField(); this.buildStadium(); this.buildParkDetails();
+    const group = new THREE.Group(); group.name = `park:${this.parkId}`;
+    for (const child of [...this.scene.children]) if (!previous.has(child)) group.add(child);
+    this.scene.add(group); this.parkGroup = group;
+  }
+  releasePark() {
+    if (!this.parkGroup) return;
+    const sharedGeometry = new Set(Object.values(this.geometries));
+    const sharedMaterials = new Set(this.materials.values());
+    const geometries = new Set(), materials = new Set(), textures = new Set();
+    this.parkGroup.traverse(o => {
+      if (o.geometry && !sharedGeometry.has(o.geometry)) geometries.add(o.geometry);
+      for (const material of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) {
+        if (!sharedMaterials.has(material)) { materials.add(material); if (material.map) textures.add(material.map); }
+      }
+    });
+    this.scene.remove(this.parkGroup);
+    for (const texture of textures) texture.dispose();
+    for (const material of materials) material.dispose();
+    for (const geometry of geometries) geometry.dispose();
+    this.parkGroup = null;
+  }
+  setPark(id) {
+    const parkId = resolveParkId(id);
+    if (parkId === this.parkId) return false;
+    this.releasePark(); this.parkId = parkId; this.buildParkScene(); return true;
+  }
+  parkRadius(angle) { return fieldRadius(angle, this.parkId); }
+  standBase(angle) {
+    return this.parkId === 'fenway' && Math.abs(angle) <= Math.PI / 4 ? fenceHeight(-angle, this.parkId) + .25 : 1.6;
+  }
+  standRows(angle) {
+    return this.parkId === 'fenway' && angle >= 8 * Math.PI / 180 && angle <= Math.PI / 4 ? 3 : 12;
   }
 
   material(color, options = {}) {
@@ -240,7 +279,7 @@ export class BallparkRenderer {
   }
 
   buildField() {
-    const field = new THREE.Mesh(new THREE.PlaneGeometry(360, 360), new THREE.MeshLambertMaterial({ map: fieldTexture() }));
+    const field = new THREE.Mesh(new THREE.PlaneGeometry(360, 360), new THREE.MeshLambertMaterial({ map: fieldTexture(this.parkId) }));
     field.rotation.x = -Math.PI / 2; field.position.set(0, -.025, 45); this.scene.add(field);
     const mound = this.mesh('cylinder', 0xb8865d, 0, .10, 18.44, 2.7, .22, 2.7);
     this.box(COLORS.chalk, 0, .235, 18.44, .61, .035, .15);
@@ -251,19 +290,24 @@ export class BallparkRenderer {
     homeShape.lineTo(.215, 0); homeShape.lineTo(0, -.215); homeShape.lineTo(-.215, 0); homeShape.closePath();
     const plate = new THREE.Mesh(new THREE.ShapeGeometry(homeShape), this.material(COLORS.chalk));
     plate.rotation.x = -Math.PI / 2; plate.position.y = .012; this.scene.add(plate);
-    // Outfield padding is actual geometry at the simulation boundary, 3.2m high.
-    for (let i = 0; i < 48; i++) {
-      const a = -Math.PI / 4 + i / 48 * Math.PI / 2, b = -Math.PI / 4 + (i + 1) / 48 * Math.PI / 2;
-      const p = V(Math.sin(a) * fieldRadius(a), 0, Math.cos(a) * fieldRadius(a));
-      const q = V(Math.sin(b) * fieldRadius(b), 0, Math.cos(b) * fieldRadius(b));
-      const wall = this.box(i % 2 ? 0x204b3d : 0x244f40, (p.x + q.x) / 2, 1.6, (p.z + q.z) / 2, p.distanceTo(q) + .08, 3.2, .6);
+    // Vertices and heights come directly from physics. Only scene x is
+    // mirrored, matching the players and ball in this renderer.
+    this.wallMeshes ||= [];
+    for (const [i, data] of getWallSegments(this.parkId).entries()) {
+      const p = V(-data.a.x, 0, data.a.z), q = V(-data.b.x, 0, data.b.z);
+      const outward = V(-data.normal.x, 0, data.normal.z), thickness = .6;
+      const middle = p.clone().add(q).multiplyScalar(.5).addScaledVector(outward, thickness / 2);
+      const wall = this.box(data.zone === 'monster' ? 0x235647 : i % 2 ? 0x204b3d : 0x244f40,
+        middle.x, data.height / 2, middle.z, p.distanceTo(q), data.height, thickness);
       wall.rotation.y = -Math.atan2(q.z - p.z, q.x - p.x);
-      this.segment(p.clone().setY(3.24), q.clone().setY(3.24), .065, 0xd3ab62);
+      wall.userData.wallSegment = data; this.wallMeshes.push(wall);
+      this.segment(p.clone().setY(data.height + .035), q.clone().setY(data.height + .035), .065, 0xd3ab62);
     }
     for (const sign of [-1, 1]) {
-      const a = sign * Math.PI / 4, r = fieldRadius(a), x = Math.sin(a) * r, z = Math.cos(a) * r;
-      this.mesh('cylinder', 0xd9b453, x, 8.2, z, .16, 16.4, .16);
-      for (let i = 0; i < 9; i++) this.box(0xcdaa52, x - sign * .65, 8.3 + i * .9, z, 1.2, .04, .06);
+      const a = sign * Math.PI / 4, r = this.parkRadius(a), x = -Math.sin(a) * r, z = Math.cos(a) * r;
+      const poleHeight = this.parkId === 'fenway' ? (sign < 0 ? 23 : 18) : 16.4;
+      this.mesh('cylinder', 0xe0bd43, x, poleHeight / 2, z, .16, poleHeight, .16);
+      for (let i = 0; i < 9; i++) this.box(0xd2b14a, x + sign * .65, poleHeight - 8.1 + i * .9, z, 1.2, .04, .06);
       // Dugout walls and benches sit beyond the chalk, clear of live plays.
       const d = new THREE.Group(); d.position.set(sign * 28, 0, 13); d.rotation.y = sign * .66; this.scene.add(d);
       this.box(0x294b40, 0, 1.0, 0, 16, 2, .4, d);
@@ -274,8 +318,9 @@ export class BallparkRenderer {
 
   standRadius(a) {
     const t = Math.abs(a);
-    if (t <= Math.PI / 4) return fieldRadius(a) + 5;
-    return mix(110, 36, clamp((t - Math.PI / 4) / (Math.PI * .53), 0, 1));
+    if (t <= Math.PI / 4) return this.parkRadius(-a) + 5;
+    const corner = this.parkId === 'fenway' ? this.parkRadius(-Math.sign(a) * Math.PI / 4) + 5 : 110;
+    return mix(corner, this.parkId === 'fenway' ? 31 : 36, clamp((t - Math.PI / 4) / (Math.PI * .53), 0, 1));
   }
 
   buildStadium() {
@@ -284,9 +329,9 @@ export class BallparkRenderer {
     const quad = (p, q, r, s, color) => { [p, q, r, p, r, s].forEach(v => vertex(...v, color)); };
     for (let seg = 0; seg < 100; seg++) {
       const a = -Math.PI + seg / 100 * TAU, b = -Math.PI + (seg + 1) / 100 * TAU;
-      for (let row = 0; row < 12; row++) {
+      for (let row = 0; row < this.standRows((a + b) / 2); row++) {
         const r0 = this.standRadius(a) + row * 1.15, r1 = this.standRadius(b) + row * 1.15;
-        const y = 1.6 + row * .58;
+        const y = this.standBase((a + b) / 2) + row * .58;
         const color = new THREE.Color(row % 3 ? 0x3b514b : 0x536258);
         quad([Math.sin(a) * r0, y, Math.cos(a) * r0], [Math.sin(b) * r1, y, Math.cos(b) * r1],
           [Math.sin(b) * (r1 + 1.15), y, Math.cos(b) * (r1 + 1.15)], [Math.sin(a) * (r0 + 1.15), y, Math.cos(a) * (r0 + 1.15)], color);
@@ -301,9 +346,9 @@ export class BallparkRenderer {
     const count = 2300, crowd = new THREE.InstancedMesh(this.geometries.box, new THREE.MeshLambertMaterial(), count);
     const dummy = new THREE.Object3D(), palette = [0xb8ab93, 0x233c4b, 0x9c4944, 0xd1bd96, 0x55717a, 0x57705a];
     for (let i = 0; i < count; i++) {
-      const a = -Math.PI + (i * .61803398875 % 1) * TAU, row = (i * 7) % 12;
+      const a = -Math.PI + (i * .61803398875 % 1) * TAU, row = (i * 7) % this.standRows(a);
       const r = this.standRadius(a) + row * 1.15 + .52;
-      dummy.position.set(Math.sin(a) * r, 2.05 + row * .58, Math.cos(a) * r);
+      dummy.position.set(Math.sin(a) * r, this.standBase(a) + .45 + row * .58, Math.cos(a) * r);
       dummy.scale.set(.44, .64 + (i % 3) * .07, .38); dummy.rotation.set(0, a, 0); dummy.updateMatrix();
       crowd.setMatrixAt(i, dummy.matrix); crowd.setColorAt(i, new THREE.Color(palette[i % palette.length]));
     }
@@ -323,20 +368,70 @@ export class BallparkRenderer {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
       sprite.position.set(x, 35.8, z - .5); sprite.scale.set(19, 13, 1); this.scene.add(sprite);
     }
-    this.box(0x263c39, 0, 11.5, 122, 31, 14, 1.8);
-    this.box(0xdecda6, 0, 18.7, 122, 32, .6, 2);
     this.board = canvasTexture(1024, 400, () => {});
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(28.7, 11.2), new THREE.MeshBasicMaterial({ map: this.board.texture }));
-    screen.position.set(0, 12, 120.95); screen.rotation.y = Math.PI; this.scene.add(screen);
+    if (this.parkId === 'fenway') {
+      const monster = getWallSegments(this.parkId)[0], t = .46;
+      const x = mix(monster.a.x, monster.b.x, t) - monster.normal.x * .10;
+      const z = mix(monster.a.z, monster.b.z, t) - monster.normal.z * .10;
+      const angle = Math.atan2(monster.normal.x, -monster.normal.z);
+      const frame = this.box(0x173e32, -x, 3.15, z, 26.5, 5.1, .14); frame.rotation.y = angle;
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(26, 4.7), new THREE.MeshBasicMaterial({ map: this.board.texture }));
+      screen.position.set(-x + monster.normal.x * .10, 3.15, z - monster.normal.z * .10); screen.rotation.y = angle; this.scene.add(screen);
+      this.boardScreen = screen;
+      this.buildFenwayDetails();
+    } else {
+      this.box(0x263c39, 0, 11.5, 122, 31, 14, 1.8);
+      this.box(0xdecda6, 0, 18.7, 122, 32, .6, 2);
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(28.7, 11.2), new THREE.MeshBasicMaterial({ map: this.board.texture }));
+      screen.position.set(0, 12, 120.95); screen.rotation.y = Math.PI; this.scene.add(screen); this.boardScreen = screen;
+      this.sign('HARBOR FIELD', 0, 21.1, 122, 32, 3.2, '#e5d6af', '#223e35');
+      this.sign('EST. 2003', 43, 4.6, 105, 13, 2.8, '#e8d8ae', '#264b3c', .45);
+      this.sign('DFE SPORTS', -43, 4.6, 105, 17, 2.8, '#d8cfb3', '#264b3c', -.45);
+    }
     this.updateBoard(null);
-    this.sign('HARBOR FIELD', 0, 21.1, 122, 32, 3.2, '#e5d6af', '#223e35');
-    this.sign('EST. 2003', 43, 4.6, 105, 13, 2.8, '#e8d8ae', '#264b3c', .45);
-    this.sign('DFE SPORTS', -43, 4.6, 105, 17, 2.8, '#d8cfb3', '#264b3c', -.45);
     for (let i = 0; i < 3; i++) {
       const x = -23 + i * 23;
       this.mesh('cylinder', 0xc4c8bc, x, 20, 139, .09, 15, .09);
       this.box([0xac4940, 0xe9dfc2, 0x254b69][i], x + 1.8, 26, 139, 3.5, 1.9, .04);
     }
+  }
+
+  buildFenwayDetails() {
+    const rigid = new THREE.Group(); this.scene.add(rigid);
+    const walls = getWallSegments(this.parkId), monster = walls[0];
+    const world = (wall, t, y, offset = 0) => V(-(mix(wall.a.x, wall.b.x, t) + wall.normal.x * offset), y,
+      mix(wall.a.z, wall.b.z, t) + wall.normal.z * offset);
+    // Vertical steel panel seams, the narrow ledge, and seats above the Monster.
+    for (let i = 0; i <= 25; i++) this.segment(world(monster, i / 25, .1, -.035), world(monster, i / 25, monster.height - .06, -.035), .018, 0x173e34, rigid);
+    for (const y of [6.1, 9.65]) this.segment(world(monster, 0, y, -.04), world(monster, 1, y, -.04), .028, 0x326a55, rigid);
+    this.segment(world(monster, 0, monster.height + .5, 1.6), world(monster, 1, monster.height + .5, 1.6), .055, 0x9ca991, rigid);
+    for (let i = 0; i <= 22; i++) this.segment(world(monster, i / 22, monster.height, 1.6), world(monster, i / 22, monster.height + .6, 1.6), .035, 0x7d927e, rigid);
+    // Low brick rooftops sit beyond left field, outside the playable boundary.
+    for (let i = 0; i < 5; i++) {
+      const p = world(monster, .10 + i * .18, 0, 17), h = 8.4 + (i % 2) * 2.1;
+      this.box(i % 2 ? 0x79503f : 0x8b5c45, p.x, h / 2, p.z, 12, h, 11, rigid);
+      this.box(0x314d41, p.x, h + .17, p.z, 12.6, .35, 11.6, rigid);
+      for (let j = 0; j < 3; j++) this.box(0x263a32, p.x - 4 + j * 4, h - 2.5, p.z - 5.6, 1.2, 1.8, .12, rigid);
+    }
+    // Separate bullpen lanes are behind the right-center field fence.
+    for (const [i, wall] of walls.filter(w => w.zone === 'bullpen').entries()) {
+      const a = world(wall, .10, .04, 1.3), b = world(wall, .90, .04, 1.3), c = world(wall, .90, .04, 5.4), d = world(wall, .10, .04, 5.4);
+      const geo = new THREE.BufferGeometry().setFromPoints([a,b,c,a,c,d]); geo.computeVertexNormals();
+      this.scene.add(new THREE.Mesh(geo, this.material(0xa58a65, { side: THREE.DoubleSide })));
+      for (const [p,q] of [[a,b],[b,c],[c,d],[d,a]]) this.segment(p.clone().setY(1.55),q.clone().setY(1.55),.04,0x7a9a7f,rigid);
+      for (const t of [.14,.86]) { const p = world(wall,t,.14,3.3); this.mesh('cylinder',0xb79266,p.x,p.y,p.z,.80,.15,.80,rigid); }
+      const bench = world(wall,.5,.55,5.0); this.box(0x244a3a,bench.x,bench.y,bench.z,5,.17,.55,rigid);
+    }
+    this.batchWorld(rigid);
+    for (const marker of getPark(this.parkId).dimensions) {
+      const wall = walls.find(w => marker.angle <= Math.atan2(w.b.x,w.b.z) + 1e-7) || walls.at(-1);
+      const r = this.parkRadius(marker.angle), x = Math.sin(marker.angle)*r - wall.normal.x*.12, z = Math.cos(marker.angle)*r - wall.normal.z*.12;
+      const angle = Math.atan2(wall.normal.x,-wall.normal.z) - Math.PI;
+      // Keep signs fully on the wall at the short right-field corner.
+      this.sign(String(marker.feet),-x,Math.min(wall.height*.55,2.0),z,marker.feet===310?4.4:3.6,Math.min(1.2,wall.height*.66),'#ede8ce','#235345',angle);
+    }
+    const p = world(monster,.73,8.2,-.10), angle = Math.atan2(monster.normal.x,-monster.normal.z)-Math.PI;
+    this.sign('FENWAY PARK',p.x,p.y,p.z,19,2.0,'#e1dfbc','#235647',angle);
   }
 
   batchWorld(group) {
@@ -376,7 +471,7 @@ export class BallparkRenderer {
         const entry = this.box(0x142e2c, Math.sin(middle)*(r+6), 4.4, Math.cos(middle)*(r+6), 2.1, 3.2, .9, rigid); entry.rotation.y = middle;
         this.box(0xb6ac8e, Math.sin(middle)*(r+6), 6.1, Math.cos(middle)*(r+6), 2.5, .2, 1, rigid).rotation.y = middle;
       }
-      if (Math.abs(middle) > 1.8) {
+      if (Math.abs(middle) > (this.parkId === 'fenway' ? 1.25 : 1.8)) {
         const canopyR = r + 8;
         this.box(0x29423f, Math.sin(middle)*canopyR, 11.6, Math.cos(middle)*canopyR, width+1.8, .30, 12, rigid).rotation.y = middle;
         this.box(0xeee0ba, Math.sin(middle)*(canopyR-6), 11.3, Math.cos(middle)*(canopyR-6), width+1.8, .23, .18, rigid).rotation.y = middle;
@@ -384,8 +479,9 @@ export class BallparkRenderer {
       }
     }
     // A dark batter's eye keeps the ball readable against the center-field park.
-    this.box(0x112c2a, 0, 5.0, 116.9, 25, 8.2, .8, rigid);
-    for (const x of [-12.6,12.6]) this.box(0x53635b, x, 5.0, 116.8, .18, 8.5, .9, rigid);
+    const eyeZ = this.parkId === 'fenway' ? Math.max(...getWallSegments(this.parkId).flatMap(s=>[s.a.z,s.b.z])) + 2 : 116.9;
+    this.box(0x112c2a, 0, 5.0, eyeZ, 25, 8.2, .8, rigid);
+    for (const x of [-12.6,12.6]) this.box(0x53635b, x, 5.0, eyeZ-.1, .18, 8.5, .9, rigid);
     for (const side of [-1,1]) {
       const dugout = new THREE.Group(); dugout.position.set(side*28,0,13); dugout.rotation.y=side*.66; rigid.add(dugout);
       for (const x of [-7.7,7.7]) this.box(0x65776a,x,1.02,-2.8,.17,2.1,.17,dugout);
@@ -411,9 +507,9 @@ export class BallparkRenderer {
     const seats=new THREE.InstancedMesh(this.geometries.box,this.material(0x355e57),crowdCount);
     const skins=[0xba8b63,0xd6b28e,0x8f674d,0xb99c7a];
     for(let i=0;i<crowdCount;i++) {
-      const a=-Math.PI+(i*.61803398875%1)*TAU,row=(i*7)%12,r=this.standRadius(a)+row*1.15+.52;
-      dummy.position.set(Math.sin(a)*r,2.48+row*.58,Math.cos(a)*r);dummy.scale.set(.14,.16,.14);dummy.rotation.set(0,a,0);dummy.updateMatrix();heads.setMatrixAt(i,dummy.matrix);heads.setColorAt(i,new THREE.Color(skins[i%4]));
-      dummy.position.set(Math.sin(a)*(r+.30),1.94+row*.58,Math.cos(a)*(r+.30));dummy.scale.set(.53,.40,.07);dummy.updateMatrix();seats.setMatrixAt(i,dummy.matrix);
+      const a=-Math.PI+(i*.61803398875%1)*TAU,row=(i*7)%this.standRows(a),r=this.standRadius(a)+row*1.15+.52;
+      dummy.position.set(Math.sin(a)*r,this.standBase(a)+.88+row*.58,Math.cos(a)*r);dummy.scale.set(.14,.16,.14);dummy.rotation.set(0,a,0);dummy.updateMatrix();heads.setMatrixAt(i,dummy.matrix);heads.setColorAt(i,new THREE.Color(skins[i%4]));
+      dummy.position.set(Math.sin(a)*(r+.30),this.standBase(a)+.34+row*.58,Math.cos(a)*(r+.30));dummy.scale.set(.53,.40,.07);dummy.updateMatrix();seats.setMatrixAt(i,dummy.matrix);
     }
     this.scene.add(heads,seats);
     // Window lights and distant stars are deterministic, inexpensive instancing.
@@ -427,9 +523,11 @@ export class BallparkRenderer {
     const stars=[];for(let i=0;i<70;i++){const a=i*2.399963,r=380,y=70+((i*47)%180);stars.push(Math.sin(a)*r,y,Math.cos(a)*r);}
     const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
     this.scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xe3e9ee,size:.75,sizeAttenuation:true,transparent:true,opacity:.38,depthWrite:false})));
-    this.sign('115 M',0,1.2,114.35,4.6,.8,'#d8d1b7','#173a30');
-    this.sign('HARBOR LINE  •  EST. 2003',-42,1.8,105,20,1.1,'#d4c6a4','#294b3b',-.45);
-    this.sign('FOUNDRY ATHLETIC CLUB',42,1.8,105,20,1.1,'#d4c6a4','#294b3b',.45);
+    if (this.parkId !== 'fenway') {
+      this.sign('115 M',0,1.2,114.35,4.6,.8,'#d8d1b7','#173a30');
+      this.sign('HARBOR LINE  •  EST. 2003',-42,1.8,105,20,1.1,'#d4c6a4','#294b3b',-.45);
+      this.sign('FOUNDRY ATHLETIC CLUB',42,1.8,105,20,1.1,'#d4c6a4','#294b3b',.45);
+    }
   }
 
   buildEffects() {
@@ -470,13 +568,16 @@ export class BallparkRenderer {
     if (key === this.lastBoard) return; this.lastBoard = key;
     const { ctx: c } = this.board; c.fillStyle = '#112c28'; c.fillRect(0, 0, 1024, 400);
     c.strokeStyle = '#bda975'; c.lineWidth = 4; c.strokeRect(16, 16, 992, 368);
-    c.fillStyle = '#e4d3a1'; c.font = 'bold 40px Georgia'; c.textAlign = 'center'; c.fillText('HARBOR FIELD', 512, 73);
+    c.fillStyle = '#e4d3a1'; c.font = 'bold 40px Georgia'; c.textAlign = 'center'; c.fillText(this.parkId === 'fenway' ? 'FENWAY PARK  •  BOSTON' : 'HARBOR FIELD', 512, 73);
     c.font = '26px monospace'; c.fillStyle = '#94a78b'; c.fillText('1  2  3  4  5  6  7  8  9    R  H', 623, 126);
     c.textAlign = 'left'; c.fillStyle = '#f0dfae'; c.font = 'bold 35px monospace';
     for (let side = 0; side < 2; side++) {
       const y = 193 + side * 64; c.fillText(side ? 'FOUNDRY' : 'HARBOR', 46, y);
       c.font = '32px monospace';
-      for (let i = 0; i < 9; i++) c.fillText(String(state?.lineScore?.[side]?.[i] ?? '·'), 332 + i * 52, y);
+      for (let i = 0; i < 9; i++) {
+        if (this.parkId === 'fenway') { c.fillStyle = '#0d271f'; c.fillRect(323 + i * 52, y - 36, 44, 48); c.fillStyle = '#f0dfae'; }
+        c.fillText(String(state?.lineScore?.[side]?.[i] ?? '·'), 332 + i * 52, y);
+      }
       c.fillText(String(state?.score?.[side] ?? 0), 848, y); c.fillText(String(state?.hits?.[side] ?? 0), 926, y);
       c.font = 'bold 35px monospace';
     }
@@ -736,6 +837,8 @@ export class BallparkRenderer {
 
   render(state, dt = 1 / 60, options = {}) {
     if (this.contextLost) return;
+    const parkId = resolveParkId(state?.options?.park ?? options.park ?? this.parkId);
+    if (parkId !== (this.parkId || 'harbor')) this.setPark(parkId);
     dt = clamp(Number.isFinite(dt) ? dt : 1 / 60, 0, .08); this.resize();
     this.frameAverage = mix(this.frameAverage, dt || 1 / 60, .02);
     if (this.quality === 'auto' && ++this.frameCount % 240 === 0) {

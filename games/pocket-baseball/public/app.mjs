@@ -1,18 +1,19 @@
-import { BaseballGame, PITCHES, PITCHERS, STEP } from './engine.mjs?v=0.3.1';
-import { BallparkRenderer } from './renderer.mjs?v=0.3.1';
-import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.3.1';
-import { BallparkAudio } from './audio.mjs?v=0.3.1';
-import { OnlineSession } from './online.mjs?v=0.3.1';
-import { ONLINE_API_BASE } from './online-config.mjs?v=0.3.1';
+import { BaseballGame, PITCHES, PITCHERS, STEP, PARKS, getPark, resolveParkId, fieldRadius } from './engine.mjs?v=0.4.0';
+import { BallparkRenderer } from './renderer.mjs?v=0.4.0';
+import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.4.0';
+import { BallparkAudio } from './audio.mjs?v=0.4.0';
+import { OnlineSession } from './online.mjs?v=0.4.0';
+import { ONLINE_API_BASE } from './online-config.mjs?v=0.4.0';
 
 const $ = id => document.getElementById(id);
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
 const text = (element, value) => { const next = String(value); if (element.textContent !== next) element.textContent = next; };
 const visible = (element, show) => { if (element.hidden === show) element.hidden = !show; };
-const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, quality: 'auto', pitcher: 'balanced', opponentPitcher: 'balanced' };
+const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, quality: 'auto', pitcher: 'balanced', opponentPitcher: 'balanced', park: 'fenway' };
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem('dfe.baseball.preferences.v1') || '{}') || {}; } catch { /* Private browsing can decline persistence. */ }
 const prefs = {
+  park: Object.hasOwn(PARKS, saved.park) ? saved.park : defaults.park,
   innings: [3, 6, 9].includes(+saved.innings) ? +saved.innings : defaults.innings,
   difficulty: ['rookie', 'club', 'pro'].includes(saved.difficulty) ? saved.difficulty : defaults.difficulty,
   guidance: ['simple', 'moderate', 'expert'].includes(saved.guidance) ? saved.guidance : defaults.guidance,
@@ -33,7 +34,7 @@ const refs = Object.fromEntries([
   'runner-controls','runner-name','runner-target','runner-picker','run-advance','run-advance-label','run-hold','run-hold-label','run-return','run-return-label','runner-control-hint',
   'preplay-controls','preplay-title','preplay-state','preplay-runners','lead-actions','lead-back','lead-more','steal-button','steal-label','pickoff-actions','preplay-hint',
   'online-dialog','online-entry','online-lobby','online-status','online-title','create-room','join-room','room-code','room-share-code','room-players','room-ready','room-settings','rejoin-room',
-  'connection-strip','connection-label','connection-detail',
+  'connection-strip','connection-label','connection-detail','park','park-note','venue-name','edition-venue','park-caption-note','pause-venue',
 ].map(id => [id, $(id)]));
 const audio = new BallparkAudio(prefs.sound);
 let renderer, rendererKind = 'webgl', game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
@@ -60,6 +61,33 @@ for (const id of ['pitcher','opponent-pitcher']) {
   }
 }
 refs.pitcher.value=prefs.pitcher;refs['opponent-pitcher'].value=prefs.opponentPitcher;
+for (const park of Object.values(PARKS)) {
+  const option=document.createElement('option');option.value=park.id;option.textContent=park.label;
+  refs.park.append(option);
+}
+refs.park.value=prefs.park;
+function shortDimensions(parkId) {
+  return `LF ${Math.round(fieldRadius(-Math.PI/4,parkId)/.3048)} · CF ${Math.round(fieldRadius(0,parkId)/.3048)} · RF ${Math.round(fieldRadius(Math.PI/4,parkId)/.3048)} ft`;
+}
+function updateParkDisplay(parkId=prefs.park) {
+  const park=getPark(parkId),dimensions=shortDimensions(park.id);
+  text(refs['venue-name'],park.shortName);text(refs['edition-venue'],park.shortName);
+  text(refs['park-caption-note'],dimensions.toUpperCase());
+  text(refs['pause-venue'],`${park.label} · ${dimensions}`);
+}
+function selectPark() {
+  prefs.park=resolveParkId(refs.park.value);refs.park.value=prefs.park;
+  const park=getPark(prefs.park);
+  text(refs['park-note'],`${shortDimensions(park.id)}\n${park.id==='fenway'?'Monster 37′ 2″ · triangle 420′':'Balanced outfield · 10½′ walls'}`);
+  refs.park.title=park.description;
+  if(screen==='menu'){
+    game.options.park=prefs.park;game.state.options.park=prefs.park;
+    renderer?.setPark?.(prefs.park);updateParkDisplay();
+  }
+  savePrefs();
+}
+selectPark();
+
 const pitcherNotes={
   balanced:'Four pitches. Reliable location, even mix.',
   power:'97 mph fastball; less forgiving command.',
@@ -132,7 +160,7 @@ function onlineChanged() {
   if(hasRoom){
     text(refs['room-share-code'],online.code);
     const options=online.game?.options||{};
-    text(refs['room-settings'],`${options.innings||3} innings · ${options.difficulty||'rookie'} difficulty · You play ${online.side===0?'Boston Harbor (visitors)':'Brooklyn Foundry (home)'}.`);
+    text(refs['room-settings'],`${getPark(options.park).label} · ${options.innings||3} innings · ${options.difficulty||'rookie'} difficulty · You play ${online.side===0?'Boston Harbor (visitors)':'Brooklyn Foundry (home)'}.`);
     for(const side of [0,1]){
       let row=refs['room-players'].querySelector(`[data-side="${side}"]`);
       if(!row){row=document.createElement('div');row.className='room-player';row.dataset.side=String(side);const label=document.createElement('span');label.append(document.createElement('b'),document.createElement('small'));row.append(label,document.createElement('span'));refs['room-players'].append(row);}
@@ -169,6 +197,7 @@ function onlineChanged() {
 }
 function startOnlineGame() {
   game=online.game;screen='game';paused=false;helpOrigin=null;lastPhase=null;lastBattingSide=null;
+  updateParkDisplay(game.options.park);renderer?.setPark?.(game.options.park);
   onlinePauseRequested=!!online.room?.pauseSides?.includes(online.side);
   aim={x:0,y:0};meter.active=false;selectedRunnerId=null;selectedThrowBase=null;lastRepertoire='';runnerPickerSignature='';preplayPickerSignature='';
   refs.app.classList.remove('is-menu');refs.app.classList.add('is-online');
@@ -207,7 +236,7 @@ async function enterOnline(kind) {
   text(refs['online-status'],'Opening the ballpark. The first connection can take a moment…');
   const session=newOnlineSession();
   try{
-    if(kind==='create')await session.create({innings:+refs.innings.value,difficulty:refs.difficulty.value,guidance:refs.guidance.value,pitcher:refs.pitcher.value});
+    if(kind==='create')await session.create({innings:+refs.innings.value,difficulty:refs.difficulty.value,guidance:refs.guidance.value,pitcher:refs.pitcher.value,park:refs.park.value});
     else if(kind==='join')await session.join(refs['room-code'].value.trim().toUpperCase(),{pitcher:refs.pitcher.value});
     else await session.rejoin();
   }catch(error){if(attempt===onlineAttempt){if(online===session){online=null;session.dispose().catch(()=>{});}visible(refs['online-entry'],true);visible(refs['online-lobby'],false);visible(refs['rejoin-room'],Boolean(OnlineSession.hasSavedSession?.(onlineBase())));onlineError(error);}}
@@ -232,9 +261,9 @@ function startGame(mode = 'exhibition', scenario = null) {
   disconnectOnline();
   const seed = (Date.now() ^ Math.floor(performance.now()*1000)) >>> 0;
   prefs.innings = +refs.innings.value; prefs.difficulty = refs.difficulty.value; prefs.guidance = refs.guidance.value;
-  prefs.pitcher=refs.pitcher.value;prefs.opponentPitcher=refs['opponent-pitcher'].value;
+  prefs.pitcher=refs.pitcher.value;prefs.opponentPitcher=refs['opponent-pitcher'].value;prefs.park=resolveParkId(refs.park.value);
   savePrefs();
-  game = new BaseballGame({ seed, innings: prefs.innings, difficulty: prefs.difficulty, guidance: prefs.guidance, pitcher:prefs.pitcher, opponentPitcher:prefs.opponentPitcher, mode, scenario });
+  game = new BaseballGame({ seed, innings: prefs.innings, difficulty: prefs.difficulty, guidance: prefs.guidance, pitcher:prefs.pitcher, opponentPitcher:prefs.opponentPitcher, park:prefs.park, mode, scenario });
   aim = { x: 0, y: 0 }; meter.active = false; pitchType = 'fastball';
   screen = 'game'; paused = false; lastPhase = null; lastBattingSide = null; toastUntil = 0;
   selectedRunnerId=null;selectedThrowBase=null;lastRepertoire='';runnerPickerSignature='';preplayPickerSignature='';
@@ -243,7 +272,7 @@ function startGame(mode = 'exhibition', scenario = null) {
   visible(refs['home-screen'], false); visible(refs['game-ui'], true); visible(refs['event-toast'], false);
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
   if (refs['help-dialog'].open) refs['help-dialog'].close();
-  applyGuidance(prefs.guidance); updatePitchButtons(); updateHUD();
+  applyGuidance(prefs.guidance);updateParkDisplay(prefs.park);renderer?.setPark?.(prefs.park);updatePitchButtons();updateHUD();
   audio.unlock().then(() => audio.organ());
   refs.app.focus({ preventScroll: true });
 }
@@ -256,6 +285,7 @@ function returnHome() {
   visible(refs['home-screen'], true); visible(refs['game-ui'], false);
   refs.app.classList.add('is-menu'); refs.app.classList.remove('is-pitching','is-live','has-preplay','is-online');
   game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
+  updateParkDisplay(prefs.park);renderer?.setPark?.(prefs.park);
   $('game-title').focus({ preventScroll: true });
   refs['home-screen'].scrollTop=0;
 }
@@ -299,6 +329,7 @@ refs['pause-dialog'].addEventListener('cancel', event => { event.preventDefault(
 $('setup').addEventListener('submit', event => { event.preventDefault(); startGame('exhibition'); });
 $('start-practice').addEventListener('click', () => startGame('practice'));
 $('start-runners').addEventListener('click', () => startGame('practice','runners'));
+refs.park.addEventListener('change',selectPark);
 refs.innings.addEventListener('change', () => { prefs.innings=+refs.innings.value;savePrefs(); });
 refs.difficulty.addEventListener('change', () => { prefs.difficulty=refs.difficulty.value;savePrefs(); });
 refs.pitcher.addEventListener('change',updatePitcherNotes);

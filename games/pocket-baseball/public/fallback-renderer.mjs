@@ -1,5 +1,6 @@
-import { BASES, STRIKE_ZONE, AIM_AREA, fieldRadius, FENCE_HEIGHT, inStrikeZone } from './engine.mjs?v=0.3.1';
-import { samplePlayerMotion } from './renderer.mjs?v=0.3.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.4.0';
+import { samplePlayerMotion } from './renderer.mjs?v=0.4.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.4.0';
 
 // Perspective software renderer. Geometry uses the same metres and boundaries
 // as the simulation; only presentation is simplified when WebGL is unavailable.
@@ -21,8 +22,19 @@ export class CompatibilityRenderer {
     this.eye=vec(46,42,-42);this.look=vec(-4,2,40);this.fov=52;
     this.static=[];this.trail=[];this.lastTick=-1;this.crowd=[];this.frameAverage=1/60;
     this.stats={renderer:'software',drawCalls:0,triangles:0,pixelRatio:1};
-    this.buildPark();this.resize();this.cameraBasis();
+    this.parkId='harbor';this.buildPark();this.resize();this.cameraBasis();
   }
+  setPark(id){
+    const parkId=resolveParkId(id);if(parkId===this.parkId)return false;
+    this.parkId=parkId;this.static=[];this.crowd=[];this.wallLabels=[];this.wallSurfaces=[];this.lastBoard='';this.buildPark();return true;
+  }
+  standRadius(a){
+    if(Math.abs(a)<=Math.PI/4)return fieldRadius(a,this.parkId)+5;
+    const corner=this.parkId==='fenway'?fieldRadius(Math.sign(a)*Math.PI/4,this.parkId)+5:110;
+    return mix(corner,this.parkId==='fenway'?31:36,clamp((Math.abs(a)-Math.PI/4)/(Math.PI*.53),0,1));
+  }
+  standBase(a){return this.parkId==='fenway'&&Math.abs(a)<=Math.PI/4?fenceHeight(a,this.parkId)+.25:1.7;}
+  standRows(a){return this.parkId==='fenway'&&a<=-8*Math.PI/180&&a>=-Math.PI/4?3:8;}
   setQuality(quality){this.quality=quality;this.resize();}
   resize(){
     const w=Math.max(1,this.canvas.clientWidth||globalThis.innerWidth||800),h=Math.max(1,this.canvas.clientHeight||globalThis.innerHeight||600);
@@ -50,8 +62,8 @@ export class CompatibilityRenderer {
   }
   buildPark(){
     for(let z=-130;z<220;z+=12)this.ground([[-180,z],[180,z],[180,z+12],[-180,z+12]],Math.round(z/12)%2?'#376d45':'#407a4c',-.03);
-    const outside=[],inside=[];
-    for(let i=0;i<=60;i++){const a=-Math.PI/4+i/60*Math.PI/2,r=fieldRadius(a);outside.push([Math.sin(a)*r,Math.cos(a)*r]);inside.unshift([Math.sin(a)*(r-4.2),Math.cos(a)*(r-4.2)]);}
+    const walls=getWallSegments(this.parkId),boundary=[walls[0].a,...walls.map(w=>w.b)];
+    const outside=boundary.map(p=>[p.x,p.z]),inside=boundary.map(p=>{const r=Math.hypot(p.x,p.z),k=(r-4.2)/r;return[p.x*k,p.z*k];}).reverse();
     this.ground([...outside,...inside],'#a5825f');
     const skin=[[0,-3]];for(let i=0;i<=48;i++){const a=-Math.PI/4+i/48*Math.PI/2;skin.push([Math.sin(a)*42.5,Math.cos(a)*42.5]);}
     this.ground(skin,'#b88861');
@@ -63,7 +75,8 @@ export class CompatibilityRenderer {
     this.parkLines=[];
     const line=(a,b,color,width=1)=>this.parkLines.push({a,b,color,width});
     for(const sign of[-1,1]){
-      this.ground([[sign*.17,-.17],[sign*81,81],[sign*81.10,80.90],[sign*.27,-.27]],'#f2e5c7',.045);
+      const chalkEnd=fieldRadius(sign*Math.PI/4,this.parkId)/Math.SQRT2+4;
+      this.ground([[sign*.17,-.17],[sign*chalkEnd,chalkEnd],[sign*(chalkEnd+.1),chalkEnd-.1],[sign*.27,-.27]],'#f2e5c7',.045);
       const x=sign*1.0;for(const[[a,b],[d,e]]of[[[x-.48,-.7],[x+.48,-.7]],[[x+.48,-.7],[x+.48,1.1]],[[x+.48,1.1],[x-.48,1.1]],[[x-.48,1.1],[x-.48,-.7]]])line(vec(a,.03,b),vec(d,.03,e),'#e2caa5',.9);
       this.disc(sign*8,-7,1.5,'#8b7053');this.disc(sign*8,-7,1.4,'#a88662',.025);
       this.box(sign*29,0,12,14,2,1,'#294c3f','#1a382e');this.box(sign*29,2.0,11,15,.22,3,'#1c3d34','#152e2b');
@@ -72,16 +85,22 @@ export class CompatibilityRenderer {
       this.box(sign*29,.85,9.6,14,.08,.08,'#89947d');
       this.box(sign*29+5,.5,10.2,.6,.6,.6,'#c16b3e','#945438');this.box(sign*29+5,1.1,10.2,.66,.05,.65,'#e5d8b8');
     }
-    for(let i=0;i<48;i++){
-      const a=-Math.PI/4+i/48*Math.PI/2,b=a+Math.PI/96,r=fieldRadius(a),s=fieldRadius(b);
-      this.polygon([vec(Math.sin(a)*r,0,Math.cos(a)*r),vec(Math.sin(b)*s,0,Math.cos(b)*s),vec(Math.sin(b)*s,FENCE_HEIGHT,Math.cos(b)*s),vec(Math.sin(a)*r,FENCE_HEIGHT,Math.cos(a)*r)],i%2?'#1f4b39':'#24553e');
-      line(vec(Math.sin(a)*r,3.24,Math.cos(a)*r),vec(Math.sin(b)*s,3.24,Math.cos(b)*s),'#c5a664',1.5);
+    this.wallSurfaces=[];
+    for(const [i,wall] of walls.entries()){
+      this.wallSurfaces.push({segment:wall,points:[vec(wall.a.x,0,wall.a.z),vec(wall.b.x,0,wall.b.z),vec(wall.b.x,wall.height,wall.b.z),vec(wall.a.x,wall.height,wall.a.z)]});
+      const pieces=Math.max(1,Math.ceil(wall.length/5));
+      for(let j=0;j<pieces;j++){
+        const a=vec(mix(wall.a.x,wall.b.x,j/pieces),0,mix(wall.a.z,wall.b.z,j/pieces));
+        const b=vec(mix(wall.a.x,wall.b.x,(j+1)/pieces),0,mix(wall.a.z,wall.b.z,(j+1)/pieces));
+        this.polygon([a,b,vec(b.x,wall.height,b.z),vec(a.x,wall.height,a.z)],wall.zone==='monster'?'#285b49':i%2?'#1f4b39':'#24553e');
+      }
+      line(vec(wall.a.x,wall.height+.035,wall.a.z),vec(wall.b.x,wall.height+.035,wall.b.z),'#c5a664',1.5);
     }
-    const standRadius=a=>Math.abs(a)<=Math.PI/4?fieldRadius(a)+5:mix(110,36,clamp((Math.abs(a)-Math.PI/4)/(Math.PI*.53),0,1));
+    const standRadius=a=>this.standRadius(a);
     for(let j=0;j<64;j++){
       const a=-Math.PI+j/64*TAU,b=a+TAU/64,mid=(a+b)/2;
-      for(let row=0;row<8;row++){
-        const r=standRadius(a)+row*1.7,s=standRadius(b)+row*1.7,y=1.7+row*.8;
+      for(let row=0;row<this.standRows(mid);row++){
+        const r=standRadius(a)+row*1.7,s=standRadius(b)+row*1.7,y=this.standBase(mid)+row*.8;
         this.polygon([vec(Math.sin(a)*r,y,Math.cos(a)*r),vec(Math.sin(b)*s,y,Math.cos(b)*s),vec(Math.sin(b)*(s+1.7),y,Math.cos(b)*(s+1.7)),vec(Math.sin(a)*(r+1.7),y,Math.cos(a)*(r+1.7))],row%2?'#42584f':'#354d43');
         this.polygon([vec(Math.sin(a)*r,y-.7,Math.cos(a)*r),vec(Math.sin(b)*s,y-.7,Math.cos(b)*s),vec(Math.sin(b)*s,y,Math.cos(b)*s),vec(Math.sin(a)*r,y,Math.cos(a)*r)],'#2b443b');
         for(let k=0;k<3;k++){const angle=mix(a,b,(k+.5)/3),radius=standRadius(angle)+row*1.7+.6;this.crowd.push({x:Math.sin(angle)*radius,y:y+.45,z:Math.cos(angle)*radius,color:['#c5b697','#657f8b','#a14c41','#bdb398','#31485c'][(j+row+k)%5],skin:['#cfa57e','#ad815e','#987051'][(j+k)%3]});}
@@ -91,7 +110,7 @@ export class CompatibilityRenderer {
         this.polygon([vec(Math.sin(a)*r,0,Math.cos(a)*r),vec(Math.sin(b)*r,0,Math.cos(b)*r),vec(Math.sin(b)*r,1.55,Math.cos(b)*r),vec(Math.sin(a)*r,1.55,Math.cos(a)*r)],j%3?'#795340':'#855b45');
         line(vec(Math.sin(a)*r,1.56,Math.cos(a)*r),vec(Math.sin(b)*r,1.56,Math.cos(b)*r),'#b4ab90',2);
         if(j%4===0)this.box(Math.sin(mid)*(r+5),3,Math.cos(mid)*(r+5),2.3,3,1,'#122e28','#102821');
-        if(Math.abs(mid)>1.8){const q=standRadius(mid)+8;this.polygon([vec(Math.sin(a)*(q-6),11.7,Math.cos(a)*(q-6)),vec(Math.sin(b)*(q-6),11.7,Math.cos(b)*(q-6)),vec(Math.sin(b)*(q+6),11.7,Math.cos(b)*(q+6)),vec(Math.sin(a)*(q+6),11.7,Math.cos(a)*(q+6))],'#294640');if(j%3===0)this.box(Math.sin(mid)*(q-6),1.7,Math.cos(mid)*(q-6),.2,10,.2,'#7b8b79');}
+        if(Math.abs(mid)>(this.parkId==='fenway'?1.25:1.8)){const q=standRadius(mid)+8;this.polygon([vec(Math.sin(a)*(q-6),11.7,Math.cos(a)*(q-6)),vec(Math.sin(b)*(q-6),11.7,Math.cos(b)*(q-6)),vec(Math.sin(b)*(q+6),11.7,Math.cos(b)*(q+6)),vec(Math.sin(a)*(q+6),11.7,Math.cos(a)*(q+6))],'#294640');if(j%3===0)this.box(Math.sin(mid)*(q-6),1.7,Math.cos(mid)*(q-6),.2,10,.2,'#7b8b79');}
       }
     }
     this.skyWindows=[];
@@ -110,13 +129,80 @@ export class CompatibilityRenderer {
       for(let row=0;row<2;row++)for(let k=0;k<5;k++){const a=x-3.3+k*1.5,y=33.3+row*1.2;this.polygon([vec(a,y,z-.28),vec(a+.9,y,z-.28),vec(a+.9,y+.8,z-.28),vec(a,y+.8,z-.28)],'#fff1c7');}
       this.floodlights.push(vec(x,34.2,z-.6));
     }
-    for(const sign of[-1,1]){const a=sign*Math.PI/4,r=fieldRadius(a);this.box(Math.sin(a)*r,0,Math.cos(a)*r,.20,16,.20,'#dfbb60');}
-    this.box(0,.6,117,25,8.2,.8,'#142d29','#112821');
-    this.box(0,4,123,30,14,1.3,'#193a32','#122d28');this.box(0,18.1,123,31,.4,1.8,'#d1b979');
-    for(const x of[-16,16])this.box(x,0,123,.7,18,.7,'#465b4b');
+    for(const sign of[-1,1]){const a=sign*Math.PI/4,r=fieldRadius(a,this.parkId),height=this.parkId==='fenway'?(sign<0?23:18):16;this.box(Math.sin(a)*r,0,Math.cos(a)*r,.20,height,.20,'#e1c14f');}
+    const eyeZ=this.parkId==='fenway'?Math.max(...walls.flatMap(s=>[s.a.z,s.b.z]))+2:117;
+    this.box(0,.6,eyeZ,25,8.2,.8,'#142d29','#112821');
+    if(this.parkId==='fenway')this.buildFenwayDetails();else{
+      this.box(0,4,123,30,14,1.3,'#193a32','#122d28');this.box(0,18.1,123,31,.4,1.8,'#d1b979');
+      for(const x of[-16,16])this.box(x,0,123,.7,18,.7,'#465b4b');
+    }
     for(const x of[-23,0,23]){this.box(x,13,139,.13,15,.13,'#9eaa9b');this.polygon([vec(x,25,139),vec(x+3.5,24.9,139),vec(x+3.5,26.6,139),vec(x,26.7,139)],x<0?'#a94a42':x>0?'#375a76':'#e0d2ab');}
     for(let x=-17;x<=17;x+=2)line(vec(x,1.5,-16.5),vec(x,7.8,-16.5),'rgba(171,187,168,.23)',.7);
     for(let y=1.5;y<=7.8;y+=.9)line(vec(-17,y,-16.5),vec(17,y,-16.5),'rgba(171,187,168,.23)',.7);
+  }
+  buildFenwayDetails(){
+    const walls=getWallSegments(this.parkId),monster=walls[0];
+    const at=(wall,t,y,offset=0)=>vec(mix(wall.a.x,wall.b.x,t)+wall.normal.x*offset,y,mix(wall.a.z,wall.b.z,t)+wall.normal.z*offset);
+    const line=(a,b,color,width=1)=>this.parkLines.push({a,b,color,width});
+    for(let i=0;i<=25;i++)line(at(monster,i/25,.10,-.03),at(monster,i/25,monster.height-.05,-.03),'#1c4638',.7);
+    for(const y of[6.1,9.65])line(at(monster,0,y,-.04),at(monster,1,y,-.04),'#3d715a',.8);
+    line(at(monster,0,monster.height+.5,1.6),at(monster,1,monster.height+.5,1.6),'#b2b89a',1);
+    for(let i=0;i<=22;i++)line(at(monster,i/22,monster.height,1.6),at(monster,i/22,monster.height+.6,1.6),'#81997d',.8);
+    const urban=[at(monster,0,.005,10),at(monster,1,.005,10),at(monster,1,.005,37),at(monster,0,.005,37)];this.polygon(urban,'#4e5548');
+    for(let i=0;i<5;i++){
+      const p=at(monster,.10+i*.18,0,17),h=8.4+(i%2)*2.1;
+      this.box(p.x,0,p.z,12,h,11,i%2?'#79503f':'#8b5c45','#654638');this.box(p.x,h,p.z,12.6,.35,11.6,'#314d41');
+      for(let j=0;j<3;j++)this.box(p.x-4+j*4,h-3.4,p.z-5.6,1.2,1.8,.12,'#263a32');
+    }
+    for(const wall of walls.filter(w=>w.zone==='bullpen')){
+      const a=at(wall,.10,.04,1.3),b=at(wall,.90,.04,1.3),c=at(wall,.90,.04,5.4),d=at(wall,.10,.04,5.4);this.polygon([a,b,c,d],'#a58d68');
+      for(const[p,q]of[[a,b],[b,c],[c,d],[d,a]])line(vec(p.x,1.55,p.z),vec(q.x,1.55,q.z),'#85a186',1);
+      for(const t of[.14,.86]){const p=at(wall,t,.1,3.3);this.disc(p.x,p.z,.8,'#b49369',.15);}
+      const p=at(wall,.5,.55,5);this.box(p.x,.55,p.z,5,.17,.55,'#2a503f');
+    }
+    this.wallLabels=getPark(this.parkId).dimensions.map(marker=>{
+      const wall=walls.find(w=>marker.angle<=Math.atan2(w.b.x,w.b.z)+1e-7)||walls.at(-1),r=fieldRadius(marker.angle,this.parkId);
+      return {text:String(marker.feet),position:vec(Math.sin(marker.angle)*r-wall.normal.x*.15,Math.min(wall.height*.55,2),Math.cos(marker.angle)*r-wall.normal.z*.15),height:Math.min(1.2,wall.height*.65),wall};
+    });
+    this.wallLabels.push({text:'FENWAY PARK',position:at(monster,.73,8.2,-.15),height:1.8,wall:monster});
+    const center=.46,half=13/monster.length,top=5.5,bottom=.8;
+    this.boardSurface=[at(monster,center-half,top,-.2),at(monster,center+half,top,-.2),at(monster,center+half,bottom,-.2),at(monster,center-half,bottom,-.2)];
+    this.boardCanvas ||= document.createElement('canvas');this.boardCanvas.width=1024;this.boardCanvas.height=400;this.lastBoard='';
+  }
+  updateManualBoard(state){
+    const key=state?`${state.score}/${state.lineScore}/${state.hits}/${state.balls}/${state.strikes}/${state.outs}`:'menu';
+    if(this.lastBoard===key)return;this.lastBoard=key;
+    const c=this.boardCanvas.getContext('2d');c.fillStyle='#183e30';c.fillRect(0,0,1024,400);c.strokeStyle='#d0cfa6';c.lineWidth=3;c.strokeRect(9,9,1006,382);
+    c.fillStyle='#e7e3bc';c.font='bold 35px Georgia';c.textAlign='center';c.fillText('FENWAY PARK  ·  BOSTON',512,61);
+    c.fillStyle='#c4cfab';c.font='25px monospace';c.fillText('1  2  3  4  5  6  7  8  9    R  H',623,121);c.textAlign='left';
+    for(let side=0;side<2;side++){
+      const y=189+side*64;c.font='bold 35px monospace';c.fillStyle='#eee9ce';c.fillText(side?'FOUNDRY':'HARBOR',36,y);c.font='32px monospace';
+      for(let inning=0;inning<9;inning++){c.fillStyle='#102b22';c.fillRect(323+inning*52,y-36,44,48);c.fillStyle='#eee9ce';c.fillText(String(state?.lineScore?.[side]?.[inning]??'·'),332+inning*52,y);}
+      c.fillText(String(state?.score?.[side]??0),848,y);c.fillText(String(state?.hits?.[side]??0),926,y);
+    }
+    c.textAlign='center';c.fillStyle='#d5c889';c.font='29px monospace';c.fillText(state?`BALL ${state.balls}    STRIKE ${state.strikes}    OUT ${state.outs}`:'GOOD EVENING, BASEBALL.',512,340);
+  }
+  drawSurface(image,points){
+    const p=points.map(v=>this.project(v.x,v.y,v.z));if(p.some(v=>v.depth<=.15))return;
+    const c=this.ctx,w=image.width,h=image.height,uv=[[0,0],[w,0],[w,h],[0,h]];
+    for(const indices of[[0,1,2],[0,2,3]]){
+      const a=p[indices[0]],b=p[indices[1]],d=p[indices[2]],[u0,v0]=uv[indices[0]],[u1,v1]=uv[indices[1]],[u2,v2]=uv[indices[2]];
+      const denominator=(u1-u0)*(v2-v0)-(u2-u0)*(v1-v0);
+      const m11=((b.x-a.x)*(v2-v0)-(d.x-a.x)*(v1-v0))/denominator,m12=((b.y-a.y)*(v2-v0)-(d.y-a.y)*(v1-v0))/denominator;
+      const m21=((d.x-a.x)*(u1-u0)-(b.x-a.x)*(u2-u0))/denominator,m22=((d.y-a.y)*(u1-u0)-(b.y-a.y)*(u2-u0))/denominator;
+      c.save();c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.lineTo(d.x,d.y);c.closePath();c.clip();
+      c.transform(m11,m12,m21,m22,a.x-m11*u0-m21*v0,a.y-m12*u0-m22*v0);c.drawImage(image,0,0);c.restore();
+    }
+  }
+  drawParkSigns(state){
+    if(this.parkId!=='fenway')return;
+    this.updateManualBoard(state);this.drawSurface(this.boardCanvas,this.boardSurface);
+    const c=this.ctx;
+    for(const label of this.wallLabels){
+      const p=label.position,q=this.project(p.x,p.y,p.z);if(!q.visible)continue;
+      const edge=this.project(p.x+label.wall.b.x-label.wall.a.x,p.y,p.z+label.wall.b.z-label.wall.a.z),size=clamp(this.focal/q.depth*label.height,3,26);
+      c.save();c.translate(q.x,q.y);c.rotate(Math.atan2(edge.y-q.y,edge.x-q.x));c.font=`bold ${size}px ${label.text.length>4?'Georgia':'Arial'}`;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#e5e4bd';c.fillText(label.text,0,0);c.restore();
+    }
   }
   clip(points){
     const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],insideA=a.z>=.15,insideB=b.z>=.15;if(insideA)out.push(a);if(insideA!==insideB){const t=(.15-a.z)/(b.z-a.z);out.push(vec(mix(a.x,b.x,t),mix(a.y,b.y,t),.15));}}
@@ -211,6 +297,7 @@ export class CompatibilityRenderer {
   }
 
   render(state,dt=1/60,options={}){
+    this.setPark(state?.options?.park??options.park??this.parkId);
     this.resize();dt=clamp(dt||0,0,.1);this.time+=dt;
     const menu=!!options.menu||!state,phase=state?.phase||'ready',fielding=!menu&&(phase==='live'||(phase==='result'&&state?.play));
     const ball=state?.ball,portrait=this.width<this.height;
@@ -231,8 +318,9 @@ export class CompatibilityRenderer {
     for(const p of this.parkLines)this.line(p.a,p.b,p.color,p.width);
     for(const p of this.crowd){const q=this.project(p.x,p.y,p.z);if(!q.visible)continue;const r=clamp(this.focal/q.depth*.28,.45,3.5);c.fillStyle='#23473f';c.fillRect(q.x-r*1.3,q.y-r*1.1,r*2.6,r*2.2);c.fillStyle=p.color;c.fillRect(q.x-r,q.y-r*1.4,r*2,r*2.5);c.fillStyle=p.skin;c.beginPath();c.arc(q.x,q.y-r*1.8,Math.max(.45,r*.60),0,TAU);c.fill();}
     for(const light of this.floodlights){const q=this.project(light.x,light.y,light.z);if(!q.visible)continue;const r=clamp(this.focal/q.depth*5,6,75),glow=c.createRadialGradient(q.x,q.y,0,q.x,q.y,r);glow.addColorStop(0,'rgba(255,239,194,.25)');glow.addColorStop(1,'rgba(255,239,194,0)');c.fillStyle=glow;c.fillRect(q.x-r,q.y-r,r*2,r*2);}
+    this.drawParkSigns(state);
     const board=this.project(0,12,122),boardWidth=this.focal*27/board.depth;
-    if(board.visible&&boardWidth>14){c.fillStyle='#0f3027';c.fillRect(board.x-boardWidth/2,board.y-boardWidth*.19,boardWidth,boardWidth*.38);c.textAlign='center';c.fillStyle='#f1dfae';c.font=`bold ${Math.max(4,boardWidth*.085)}px Georgia`;c.fillText('HARBOR FIELD',board.x,board.y-boardWidth*.065);c.font=`${Math.max(4,boardWidth*.07)}px monospace`;c.fillText(state?`HBR ${state.score[0]}   FDR ${state.score[1]}`:'GOOD EVENING, BASEBALL',board.x,board.y+boardWidth*.065);}
+    if(this.parkId!=='fenway'&&board.visible&&boardWidth>14){c.fillStyle='#0f3027';c.fillRect(board.x-boardWidth/2,board.y-boardWidth*.19,boardWidth,boardWidth*.38);c.textAlign='center';c.fillStyle='#f1dfae';c.font=`bold ${Math.max(4,boardWidth*.085)}px Georgia`;c.fillText('HARBOR FIELD',board.x,board.y-boardWidth*.065);c.font=`${Math.max(4,boardWidth*.07)}px monospace`;c.fillText(state?`HBR ${state.score[0]}   FDR ${state.score[1]}`:'GOOD EVENING, BASEBALL',board.x,board.y+boardWidth*.065);}
     const fallback=[{id:'P',x:0,z:18.44},{id:'1B',x:19,z:22},{id:'2B',x:12,z:34},{id:'SS',x:-12,z:34},{id:'3B',x:-22,z:19},{id:'LF',x:-43,z:66},{id:'CF',x:0,z:79},{id:'RF',x:43,z:66}];
     const homeDefense=!state||state.battingSide===0,people=(state?.fielders||fallback).filter(p=>p.id!=='C'||fielding).map(p=>({...p,home:homeDefense,role:p.id==='P'?'pitcher':p.id==='C'?'catcher':'fielder'}));
     for(const r of state?.runners||[])if(!r.out&&!r.scored)people.push({...r,home:!homeDefense,role:'runner'});
@@ -278,5 +366,5 @@ export class CompatibilityRenderer {
 
     this.stats.drawCalls=all.length;this.stats.triangles=all.length*2;
   }
-  dispose(){this.static=[];this.crowd=[];this.trail=[];}
+  dispose(){this.static=[];this.crowd=[];this.trail=[];this.parkLines=[];this.wallSurfaces=[];this.wallLabels=[];this.boardCanvas=null;}
 }
