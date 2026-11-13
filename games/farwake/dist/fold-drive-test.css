@@ -1,0 +1,54 @@
+.fold-drive-test{display:grid;gap:1rem;min-width:0;line-height:1.5}
+.fold-drive-test p,.fold-drive-test h3,.fold-drive-test dl,.fold-drive-test dd{margin:0}
+.fold-drive-test h3{font-size:1.06em;color:#e3e2ce}
+.fold-drive-test button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.4;text-align:left;font-size:.94em;padding:.65rem .8rem}
+.fold-drive-test button:focus-visible,.fold-drive-test summary:focus-visible,.fold-drive-test textarea:focus-visible{outline:3px solid var(--amber,#ddbf83);outline-offset:3px}
+.fold-test-heading,.fold-test-status,.fold-test-jump,.fold-test-workshop,.fold-test-receipt{display:grid;gap:.5rem;min-width:0}
+.fold-test-heading>p{color:#c1d1d4;font-size:.94em}
+.fold-test-goal{border-left:2px solid #bda773;padding-left:.75rem;color:#e0ddc6!important}
+.fold-test-status{padding:.75rem;border:1px solid #415b66;background:#142733}
+.fold-test-status>strong{color:#e6d5aa}
+.fold-test-status.is-complete{border-color:#6a9c88}
+.fold-test-status.is-complete>strong{color:#c3dec8}
+.fold-test-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem .9rem}
+.fold-test-metrics>div{min-width:0;border-bottom:1px solid #334b5a;padding-bottom:.5rem}
+.fold-test-metrics dt{color:#9fb6c2;font-size:.8em;margin-bottom:.15rem}
+.fold-test-metrics dd{color:#dfdfcf;font-size:1em;overflow-wrap:anywhere}
+.fold-test-note{font-size:.85em;color:#a9bfc8;line-height:1.5}
+.fold-test-workshop{border-top:1px solid #3c5363;padding-top:.9rem}
+.fold-test-upgrade{display:grid;gap:.4rem;padding:.65rem 0;border-bottom:1px solid #334b5a}
+.fold-test-upgrade-title{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.2rem .7rem}
+.fold-test-upgrade-title>strong{color:#d7ddce;font-size:.96em}
+.fold-test-jump{padding:.8rem;border:1px solid #637566;background:#192b30}
+.fold-test-receipt{border-left:3px solid #8ab59b;padding:.65rem .75rem;background:#142732}
+.fold-test-receipt.is-failed{border-color:#d18e83}
+.fold-drive-test .is-pass>strong,.fold-drive-test .is-pass>span:first-child{color:#bddac3}
+.fold-drive-test .is-failed>strong,.fold-drive-test .is-failed>span:first-child{color:#f0b7a9}
+.fold-test-receipt>p{font-size:.9em}
+.fold-test-observations,.fold-test-requirements,.fold-test-checklist,.fold-test-history{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.fold-test-observations>li,.fold-test-requirements>li,.fold-test-history>li{display:grid;gap:.1rem;font-size:.83em}
+.fold-test-observations>li>span:last-child,.fold-test-requirements>li>span,.fold-test-history>li>span{color:#a9bfc8;overflow-wrap:anywhere}
+.fold-test-checklist{font-size:.87em;border-top:1px solid #334b5a;padding-top:.65rem}
+.fold-test-checklist>li{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:.5rem}
+.fold-test-checklist>li>span:first-child{color:#a7bac2}
+.fold-test-navigation,.fold-test-management{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+.fold-test-management{grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #3c5363;padding-top:.8rem}
+.fold-test-management button{font-size:.86em}
+.fold-test-details{min-width:0;border-top:1px solid #334b5a;padding-top:.2rem}
+.fold-test-details>summary,.touch-layout #modalBody .fold-test-details>summary{display:list-item;cursor:pointer;min-height:44px;padding:.65rem 0;font-size:.92em;color:#c9d5d0;overflow-wrap:anywhere}
+.fold-test-details>summary::before,.touch-layout #modalBody .fold-test-details>summary::before{content:none}
+.fold-test-extra-actions,.fold-test-alternate{display:grid;gap:.55rem}
+.fold-test-extra-actions{padding-bottom:.5rem}
+.fold-test-log[open]{display:grid;gap:.6rem}
+.fold-test-report{display:block;box-sizing:border-box;min-width:0;width:100%;font:12px/1.45 ui-monospace,monospace;background:#0d1b24;color:#becfd4;border:1px solid #4c6472;padding:.65rem;resize:vertical}
+.fold-test-notice:empty{display:none}
+.fold-test-notice{font-size:.9em;color:#dcc69c}
+.test-fold-setup{display:grid;gap:.55rem;padding:.8rem;border:1px solid #4b626e;background:#142632;margin-top:.8rem;min-width:0}
+.test-fold-setup[hidden]{display:none}
+.test-fold-setup label{font-weight:bold;color:#e0dfcb}
+.test-fold-setup select{box-sizing:border-box;width:100%;min-width:0;min-height:46px;padding:.65rem;background:#0d1b27;color:#dbe3dc;border:1px solid #627988;font:inherit}
+.test-fold-setup p{margin:0;line-height:1.5}
+@media(max-width:520px){.fold-drive-test{gap:.8rem}.fold-test-management{grid-template-columns:1fr}.fold-test-navigation button{text-align:center}.fold-test-jump,.fold-test-status,.fold-test-receipt{padding:.65rem}.fold-test-report{font-size:16px}.large-text .fold-test-navigation,.large-text .fold-test-metrics{grid-template-columns:1fr}}
+.test-other-exercises{margin-top:1rem;border-top:1px solid #334b5a;padding-top:.2rem}
+.test-other-exercises>summary,.touch-layout #modalBody .test-other-exercises>summary{display:list-item;min-height:44px;padding:.65rem 0;cursor:pointer;color:#c9d5d0}
+.test-other-exercises>summary::before,.touch-layout #modalBody .test-other-exercises>summary::before{content:none}

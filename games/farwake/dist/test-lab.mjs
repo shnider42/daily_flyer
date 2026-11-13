@@ -2,6 +2,8 @@
 import { Game, WORLD_RADIUS } from './engine.mjs';
 import { SHIP_CLASSES, enemyHullProfile } from './fleet.mjs';
 import { interiorDamageSummary } from './interior-damage.mjs';
+import { FOLD_TEST_SCENARIO, createFoldDriveTestSession, foldDriveTestState } from './fold-drive-test.mjs';
+export { FOLD_TEST_CASES, foldDriveTestState, foldTestActionAllowed } from './fold-drive-test.mjs';
 
 const clone = value => structuredClone(value);
 const RANGE_ID = 'test-range';
@@ -9,6 +11,7 @@ const TARGET_ID = 'test-range:raider';
 const ENTRY_CODE = '123';
 
 export const TEST_SCENARIOS = Object.freeze([
+  FOLD_TEST_SCENARIO,
   { id: 'ship-combat', title: 'Ship combat', description: 'Fight one pirate with your starting cutter. Practice thrust, turning, braking, and controlled fire.', goal: 'Disable the marked pirate ship. Stop firing when its engines fail, or finish the hull.' },
   { id: 'boarding', title: 'Board a disabled ship', description: 'Start beside a disabled pirate. Cross the tether and clear its crew with your sidearm.', goal: 'Board the marked ship and secure its bridge. Then return to your ship or take its helm.' },
   { id: 'person-combat', title: 'Person combat', description: 'Begin inside the target ship. Practice aiming, firing, cover, and identifying who hit whom.', goal: 'Clear the hostile crew and secure the target bridge. Your sidearm is ready; you have no allied gunners.' },
@@ -88,9 +91,10 @@ function rangeWorld(seed, danger) {
  * The session owns a fresh, unsavable Game. It accepts neither an existing Game
  * nor a save/passport, so preparing or resetting it cannot mutate a voyage.
  */
-export function createTestSession({ scenario = 'ship-combat', enemyClassId = null, seed = 'practice' } = {}) {
+export function createTestSession({ scenario = 'ship-combat', enemyClassId = null, foldCase = 'round-trip', seed = 'practice' } = {}) {
   const exercise = TEST_SCENARIOS.find(item => item.id === scenario);
   if (!exercise) throw new RangeError('Choose one of the available test exercises.');
+  if (scenario === 'fold-drive') return createFoldDriveTestSession({ foldCase, seed });
   enemyClassId ||= testEnemyChoices(scenario)[0].id;
   const permitted = allowedClasses(), selectedHull = permitted.find(item => item.id === enemyClassId);
   if (!selectedHull) throw new RangeError('That hull is not available in test mode.');
@@ -168,6 +172,10 @@ export function resetTestSession(session) {
 export function testSessionStatus(session) {
   const game = session?.game;
   if (!game?.isTestMode) return null;
+  if (session.scenarioId === 'fold-drive') {
+    const status = foldDriveTestState(session);
+    return { phase: status.phase, complete: status.complete, title: status.title, detail: status.detail, objective: session.goal, targetId: null, enemiesRemaining: 0 };
+  }
   const target = game.system.enemies.find(enemy => enemy.id === session.targetId);
   const boarding = game.state.boarding;
   const remaining = boarding?.enemies?.filter(actor => actor.health > 0).length || 0;

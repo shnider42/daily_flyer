@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {Game, distance} from '../dist/engine.mjs';
 import {getShipClass, cabinLayout} from '../dist/fleet.mjs';
 import {generateSurface, isWalkable, nearestEntity} from '../dist/surface.mjs';
-import {TEST_SCENARIOS, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
+import {TEST_SCENARIOS, FOLD_TEST_CASES, foldDriveTestState, foldTestActionAllowed, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus} from '../dist/test-lab.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {guidanceActionsForResult,localGuidanceEvent} from '../dist/guidance-evidence.mjs';
 import {crewAwareness} from '../dist/crew-awareness.mjs';
@@ -33,7 +33,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','runFoldTestCommand','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
 const appCode=[...names,'sampleScoreContext','localSiteVisibility','personalAimAvailable'].map(declaration).join('\n');
 
 function classes() {
@@ -51,7 +51,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({guidanceActionsForResult,localGuidanceEvent,crewAwareness,gunneryReticle,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,
+  const context=vm.createContext({guidanceActionsForResult,localGuidanceEvent,crewAwareness,gunneryReticle,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,FOLD_TEST_CASES,foldDriveTestState,foldTestActionAllowed,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
@@ -63,7 +63,7 @@ function fixture() {
     audio:{unlock(){},musicEvent(){},play(name){effects.push(name);}},canvas:{focus(){}},clearPointerAim(){},setViewPanel(){},resize(){},updateHUD(){},updateConnectionHUD(){},shipPreview(){},
     hudText:(target,text)=>{target.textContent=text;},esc:value=>String(value??''),fmt:value=>String(value),toast:(...args)=>toasts.push(args),
     saveGame:game=>{writes.push(game.serialize());return true;},readPassport:()=>null,readPassports:()=>({}),openEncounter:encounter=>effects.push(encounter),processCombatEvent:()=>false,
-    openCombatHelp:()=>effects.push('combat-help'),openLocalMapContent:()=>effects.push('local-chart'),
+    openCombatHelp:()=>effects.push('combat-help'),openLocalMapContent:()=>effects.push('local-chart'),foldDriveTestUI:{open:()=>effects.push('fold-tests')},
     FarwakeNetwork:class {constructor(){throw new Error('Test mode must not construct a network transport.');}},
   });
   vm.runInContext(appCode,context);
@@ -208,4 +208,54 @@ test('damage panels show the boarded physical hull instead of the source ship',(
   f.call('openDamageOverview');assert.match(f.dialog.htmlText,/17 reactor charge/);assert.doesNotMatch(f.dialog.htmlText,/99 reactor charge/);
   assert.ok(f.opened.at(-1).title.includes(target.name));assert.equal(f.dialog.items.filter(i=>i.label===target.damageControl.sections[0].name).length,1);
   assert.equal(source.damageControl.sections[0].fire,30);assert.equal(f.writes.length,0);
+});
+
+
+test('the fold-drive menu exposes repeatable setups without a combat opponent',()=>{
+  const f=fixture();f.context.testUnlocked=true;f.context.testConfig.scenario='fold-drive';
+  f.call('openTestMenu');
+  assert.equal(f.elements.get('testTarget').hidden,true);
+  assert.equal(f.elements.get('testFoldSetup').hidden,false);
+  assert.equal(f.elements.get('testEnemy').disabled,true);
+  assert.deepEqual(f.elements.get('testFoldCase').children.map(option=>option.value),FOLD_TEST_CASES.map(item=>item.id));
+  const select=f.elements.get('testFoldCase');select.value='installation';select.onchange();
+  assert.match(f.elements.get('testGoal').textContent,/Install Vector thrusters/);
+  f.elements.get('launchTest').onclick();
+  assert.equal(f.context.testSession.config.foldCase,'installation');
+  assert.equal(f.context.game.atInhabitedPort,true);
+  assert.ok(f.effects.includes('fold-tests'));
+  assert.equal(f.writes.length,0);
+});
+
+test('fold installation, launch, and a real round trip use the app boundary and preserve the normal voyage',async()=>{
+  const f=fixture(),original=JSON.stringify(f.normal.state),session=createTestSession({scenario:'fold-drive',foldCase:'installation',seed:'app-fold'});
+  f.call('enterTestSession',session);
+  assert.equal((await f.call('runFoldTestCommand','buyUpgrade',{id:'fold_1'})).code,'prerequisite');
+  for(const id of ['thrusters_1','scanner_1','fold_1'])assert.equal((await f.call('runFoldTestCommand','buyUpgrade',{id})).ok,true,id);
+  assert.equal(session.game.state.credits,0);assert.equal(session.game.state.cargo.ore,0);assert.equal(session.game.state.ship.warpRange,5);
+  const origin=session.game.state.systemId,near=foldDriveTestState(session).targetId;
+  assert.equal((await f.call('runFoldTestCommand','travel',{id:near})).code,'mode');
+  assert.equal((await f.call('runFoldTestCommand','launch')).ok,true);
+  const fuel=session.game.state.ship.fuel;
+  assert.equal((await f.call('runFoldTestCommand','travel',{id:near})).ok,true);
+  assert.equal(session.game.state.systemId,near);assert.equal(session.game.state.ship.fuel,fuel-5);
+  assert.equal((await f.call('runFoldTestCommand','travel',{id:origin})).ok,true);
+  assert.equal(session.game.state.systemId,origin);assert.equal(session.game.state.ship.fuel,fuel-10);
+  assert.equal(testSessionStatus(session).complete,true);
+  f.call('openHelp');assert.equal(f.effects.at(-1),'fold-tests');
+  f.call('retryTest');assert.notEqual(f.context.game,session.game);assert.equal(f.context.game.state.credits,500);assert.deepEqual(foldDriveTestState(f.context.testSession).attempts,[]);
+  f.call('exitTestMode');assert.equal(f.context.game,f.normal);assert.equal(JSON.stringify(f.normal.state),original);assert.equal(f.writes.length,0);
+});
+
+test('fold exceptions never allow outside destinations, equipment, shared commands, or another test scenario',async()=>{
+  const f=fixture(),session=createTestSession({scenario:'fold-drive',seed:'fold-boundary'});f.call('enterTestSession',session);
+  for(const [name,args]of [['travel',{id:'hearth'}],['dock',{id:'kettle'}],['buyUpgrade',{id:'fold_2'}],['buyShip',{id:'mule'}],['service',{action:'refuel'}],['militaryCareerAction',{action:'enlist',branchId:'navy'}]]){
+    const response=await f.call('invoke',name,args);assert.equal(response.ok,false,name);assert.equal(response.code,'test-mode',name);
+  }
+  let calls=0;f.context.network={command(){calls++;}};
+  assert.equal((await f.call('runFoldTestCommand','travel',{id:foldDriveTestState(session).targetId})).code,'test-mode');
+  assert.equal((await f.call('invoke','travel',{id:foldDriveTestState(session).targetId})).code,'test-mode');
+  assert.equal(calls,0);assert.equal(session.game.state.stats.jumps,0);assert.equal(f.writes.length,0);
+  f.context.network=null;f.call('enterTestSession',createTestSession({scenario:'ship-combat'}));
+  assert.equal((await f.call('invoke','travel',{id:'fold-test-nearby'})).code,'test-mode');
 });

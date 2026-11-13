@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.19.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.19.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Test the fold drive yourself · 0.19.2
+
+On the title screen, open **Test mode**, enter **123**, choose **Fold-drive proving ground**, and begin. The default **Jump out and return** setup has Fold Drive I fitted and enough fuel. Try the four-light-year crossing to Nearpoint and return to the Proving Ground, either from the test controls or the ordinary Galaxy chart.
+
+Seven resettable setups cover the round trip, fitting a first drive, no installed drive, missing story calibration, insufficient fuel, an out-of-range destination, and trying to jump while still docked. The installation setup provides **500 test credits, 12 ore, and explicit test calibration**; fit Vector thrusters, an Echo scanner, and Fold Drive I through the real purchase rules. This does not complete the campaign chapter on a regular captain.
+
+Each actual command produces an expected-versus-observed result and checks its effect on fuel, credits, ore, equipment, or arrival. A deliberately blocked jump can pass its test when the correct rule refuses it without spending resources. Merely reading the panel does not complete any checks. Expand **Test report** to inspect attempts or copy the report. **Reset this setup** restores the fixture; **Choose another setup** returns to the selector. After closing the panel, **Menu → Exercise** reopens the controls.
+
+The exercise has three private, peaceful training systems and an unsavable game instance. It cannot visit the normal galaxy, grant voyage equipment or rewards, or issue commands to a shared server. Sign off from a shared galaxy before starting the local exercise. Exiting restores the previous voyage and its cameras. Existing combat, boarding, and damage-control exercises retain their restrictions.
 
 ## Equipment requirements that explain the next step · 0.19.1
 

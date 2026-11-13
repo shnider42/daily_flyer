@@ -211,7 +211,7 @@ test('all advertised exercise choices produce a fresh playable setup and reject 
     assert.ok(session.goal.length > 20);
     assert.ok(testSessionStatus(session));
     assert.equal(session.game.state.person.health, 100);
-    assert.equal(session.game.system.enemies.length, scenario.id === 'damage-control' ? 0 : 1);
+    assert.equal(session.game.system.enemies.length, ['damage-control', 'fold-drive'].includes(scenario.id) ? 0 : 1);
   }
   assert.equal(testSessionStatus({ game: new Game('normal') }), null);
   assert.throws(() => resetTestSession({ game: new Game('normal') }), /test exercise first/);
