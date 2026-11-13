@@ -1,0 +1,47 @@
+import {getAircraft} from './campaign.mjs';
+import {operationRecord} from './logbook.mjs';
+
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const cap=value=>String(value||'').replace(/^./,letter=>letter.toUpperCase());
+export function flightTime(seconds=0){const n=Math.max(0,Math.round(Number(seconds)||0));return n>=3600?`${Math.floor(n/3600)}h ${Math.floor(n%3600/60)}m`:`${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`;}
+const km=value=>`${((Number(value)||0)/1000).toFixed(1)} km`;
+const medalText=report=>report?.medal?`${cap(report.medal)} · ${flightTime(report.duration)}`:'No completed flight';
+
+export function operationListMarkup(operations,selectedId,book,settings){
+  return operations.map((mission,index)=>{
+    const record=operationRecord(book,mission,settings),aircraft=getAircraft(mission.aircraft);
+    return `<button class="operation-row ${mission.id===selectedId?'selected':''}" data-operation="${esc(mission.id)}" aria-pressed="${mission.id===selectedId}"><span class="operation-number">${String(index+1).padStart(2,'0')}</span><span class="operation-row-copy"><strong>${esc(mission.title)}</strong><span>${esc(aircraft.shortName||aircraft.name)} · ${esc(mission.operation.category)}</span><small class="record-line" data-medal="${esc(record?.medal||'none')}">${esc(medalText(record))}</small></span><span class="operation-arrow" aria-hidden="true">→</span></button>`;
+  }).join('');
+}
+
+export function operationRouteMarkup(mission){
+  const runways=mission.runways||[],gates=mission.waypoints||[],contacts=[...(mission.enemies||[]),...(mission.targets||[])].filter(point=>!point.hazard);
+  const route=[mission.start,...gates,...(mission.goal?.stops||[mission.goal?.destinationRunway]).map(index=>runways[index])].filter(Boolean);
+  const points=[...route,...runways,...contacts].filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z));
+  if(!points.length)return '';
+  const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x)),minZ=Math.min(...points.map(p=>p.z)),maxZ=Math.max(...points.map(p=>p.z));
+  const scale=Math.min(380/Math.max(1800,maxX-minX),200/Math.max(1800,maxZ-minZ));
+  const project=p=>({x:230+(p.x-(minX+maxX)/2)*scale,y:128-(p.z-(minZ+maxZ)/2)*scale});
+  const point=p=>{const q=project(p);return `${q.x.toFixed(1)},${q.y.toFixed(1)}`;};
+  const routePoints=(gates.length||mission.goal?.stops?.length?route:[]).map(point).join(' '),start=project(mission.start);
+  return `<figure class="operation-map"><svg viewBox="0 0 460 260" role="img" aria-label="${esc(mission.title)} flight plan: ${gates.length} route gates, ${runways.length} landing ${runways.length===1?'field':'fields'} and ${contacts.length} marked contacts"><path class="map-grid" d="M0 65H460M0 130H460M0 195H460M115 0V260M230 0V260M345 0V260"/><polyline class="map-route" points="${routePoints}"/>${gates.map((p,i)=>{const q=project(p);return `<circle class="map-gate" cx="${q.x}" cy="${q.y}" r="4"/><text class="map-label" x="${q.x+8}" y="${q.y+4}">${i+1}</text>`;}).join('')}${runways.map((p,i)=>{const q=project(p);return `<g transform="translate(${q.x} ${q.y})"><rect class="map-field" x="-4" y="-10" width="8" height="20" transform="rotate(${p.heading*180/Math.PI})"/><text class="map-label" x="${q.x>310?-10:10}" y="-7" text-anchor="${q.x>310?'end':'start'}">${esc(p.label)}</text></g>`;}).join('')}${contacts.map(p=>{const q=project(p);return `<path class="${p.friendly?'map-friendly':'map-contact'}" d="M${q.x-4} ${q.y-4}L${q.x+4} ${q.y+4}M${q.x+4} ${q.y-4}L${q.x-4} ${q.y+4}"/>`;}).join('')}<circle class="map-start" cx="${start.x}" cy="${start.y}" r="5"/><text class="map-label" x="${start.x+9}" y="${start.y+15}">START</text><path class="map-north" d="M433 38V18m-4 5 4-5 4 5"/><text class="map-label" x="429" y="12">N</text></svg><figcaption><span>Flight plan · route and landing fields</span><span>${contacts.length?'× Marked contacts':'○ Route gates'}</span></figcaption></figure>`;
+}
+
+export function operationBriefMarkup(mission,settings,record){
+  const a=getAircraft(mission.aircraft),medals=mission.operation.medals;
+  return `<div class="operation-brief-head"><span>${esc(mission.operation.category)}</span><span>${esc(mission.duration)}</span></div><h2>${esc(mission.title)}</h2><p class="operation-description">${esc(mission.description)}</p><div class="operation-facts"><span><small>AIRCRAFT</small>${esc(a.name)}</span><span><small>CONDITIONS</small>${esc(cap(mission.weather.timeOfDay))} · ${esc(mission.location)}</span></div>${operationRouteMarkup(mission)}<h3>Flight orders</h3><ol class="operation-orders">${mission.briefing.map(text=>`<li>${esc(text)}</li>`).join('')}</ol><div class="operation-standards"><h3>Flight standards</h3><p>Bronze: finish the operation. A higher grade needs a timely return with the aircraft intact.</p><dl><div><dt>Silver</dt><dd>${flightTime(medals.silver.time)} or less · ${medals.silver.health}% airframe</dd></div><div><dt>Gold</dt><dd>${flightTime(medals.gold.time)} or less · ${medals.gold.health}% airframe</dd></div></dl><p class="small-note">The clock runs through landing. No time limit ends the sortie. Records use the same aircraft, handling and conditions.</p></div><p class="operation-best" data-medal="${esc(record?.medal||'none')}"><span>YOUR BEST · ${esc(settings.assist.toUpperCase())}${settings.autoLevel?' · AUTO-LEVEL':''}</span><strong>${esc(medalText(record))}</strong></p>`;
+}
+
+export function sortieDetailsMarkup(report,{newBest=false}={}){
+  if(!report)return '';
+  const stats=report.stats||{},landing=stats.lastLanding,target=report.medalTarget;
+  return `<div class="sortie-summary"><div class="sortie-grade" data-medal="${esc(report.medal||'none')}"><strong>${report.medal?esc(cap(report.medal))+' standard':report.outcome==='success'?'Flight complete':report.outcome==='failed'?(report.health<=0?'Aircraft lost':'Sortie incomplete'):'Flight ended'}</strong>${newBest?'<span>PERSONAL BEST</span>':''}</div><p class="sortie-condition">${esc(report.conditionLabel)}</p><dl class="sortie-measures"><div><dt>Airborne</dt><dd>${flightTime(stats.airTime)}</dd></div><div><dt>Distance</dt><dd>${km(stats.distance)}</dd></div><div><dt>Landings</dt><dd>${stats.landings||0}</dd></div><div><dt>Air / ground targets</dt><dd>${stats.airKills||0} / ${stats.groundKills||0}</dd></div>${landing?`<div class="touchdown-result"><dt>Last touchdown</dt><dd>${esc(cap(landing.quality))} · ${Number(landing.sinkRate).toFixed(1)} m/s descent</dd></div>`:''}</dl>${target?`<p class="next-standard">For ${esc(target.medal)}: finish within <strong>${flightTime(target.time)}</strong> with at least <strong>${target.health}% airframe</strong>.</p>`:''}${report.recordReason?`<p class="small-note">${esc(report.recordReason)}. This flight is in your history but does not set a record.</p>`:''}</div>`;
+}
+
+export function flightLogMarkup(book){
+  const totals=book.totals||{},flights=book.flights||[];
+  if(!flights.length)return '<div class="flight-log-empty"><h2>Your next flight starts the log.</h2><p>Completed and interrupted solo sorties appear here, along with free flights you end from the pause menu. Fly an operation to set your first personal best.</p><button class="secondary" data-log-operations>Choose an operation →</button></div>';
+  const date=ms=>new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  const airframes=Object.entries(book.aircraft||{}).sort((a,b)=>b[1].airTime-a[1].airTime);
+  return `<div class="flight-log-totals"><span><strong>${totals.sorties||0}</strong> flights</span><span><strong>${flightTime(totals.airTime)}</strong> airborne</span><span><strong>${km(totals.distance)}</strong> flown</span><span><strong>${totals.landings||0}</strong> landings</span></div><div class="flight-log-layout"><section><h2>Recent flights</h2><p class="small-note">The latest 24 solo flights. Times and distances are from the game.</p><div class="flight-history">${flights.map(report=>`<details class="flight-history-row"><summary><time datetime="${new Date(report.endedAt).toISOString()}">${esc(date(report.endedAt))}</time><span><strong>${esc(report.title)}</strong><small>${esc(report.aircraftName)}</small></span><span class="history-result" data-medal="${esc(report.medal||'none')}">${report.medal?esc(cap(report.medal)):report.outcome==='success'?'Complete':report.outcome==='failed'?(report.health<=0?'Lost':'Incomplete'):'Ended'}<small>${flightTime(report.duration)}</small></span></summary>${sortieDetailsMarkup(report)}</details>`).join('')}</div></section><aside class="airframe-log"><h2>Time in type</h2><p class="small-note">Your total time airborne in each aircraft.</p>${airframes.map(([id,stats])=>`<div class="airframe-log-row"><span>${esc(getAircraft(id).name)}</span><strong>${flightTime(stats.airTime)}</strong><small>${stats.sorties} flights · ${stats.landings} landings</small></div>`).join('')}</aside></div>`;
+}

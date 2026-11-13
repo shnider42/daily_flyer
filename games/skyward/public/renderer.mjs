@@ -14,6 +14,7 @@ import {applyCombatCameraKick} from './combat-camera.mjs';
 import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
+import {describeAirfield,AIRFIELD_COLORS,AIRFIELD_BUDGET,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -159,7 +160,7 @@ export class FlightRenderer {
     for(const target of this._targets.values())this._disposeUnique(target);
     this.actorsRoot.clear();this._actors.clear();this._targets.clear();this._remote.clear();this._plane=null;this._rings=[];this._sceneryAnimations=[];this._clouds=null;
     this._world=new THREE.Group();this.scene.add(this._world);this._terrainSceneMesh=null;this._terrainData=null;this._localRocks=null;this._localTrees=null;this._groundShadow=null;this._detailAnchor=null;this._focusId=null;
-    this._cameraInitialized=false;
+    this._cameraInitialized=false;this._approachCue=null;
   }
 
   loadMission(mission,aircraft){
@@ -370,7 +371,7 @@ export class FlightRenderer {
   _buildRunway(runway,mission){
     const carrier=!!runway.carrier;const group=new THREE.Group();group.position.set(runway.x||0,number(runway.y,12),runway.z||0);group.rotation.y=runway.heading||0;this._world.add(group);
     const length=number(runway.length,carrier?310:1100),width=number(runway.width,carrier?40:48),lane=carrier?carrierLaunchLane(runway):0;
-    const asphalt=worldMaterial(carrier?'#566b70':this._night?'#394449':'#626c65');const paint=basic('#ebe6cf');const amber=basic('#d28c50');
+    const asphalt=worldMaterial(carrier?'#566b70':this._night?'#394449':['avro504','camel'].includes(mission.aircraft)?'#687c62':'#626c65');const paint=basic('#ebe6cf');const amber=basic('#d28c50');
     if(carrier){
       box(group,0,-7.5,0,width*.95,15,length*.91,worldMaterial('#43565d'));
       const bow=new THREE.Mesh(new THREE.ConeGeometry(width*.48,length*.19,4),worldMaterial('#4d6269'));bow.rotation.x=Math.PI/2;bow.rotation.z=Math.PI/4;bow.scale.z=.45;bow.position.set(0,-4,length*.43);group.add(bow);
@@ -382,14 +383,13 @@ export class FlightRenderer {
         for(const s of[-1,1]){const edge=box(group,lane+s*width*.295,1.7,length*.43,.45,.3,length*.13,paint);edge.rotation.x=-.17;}
       }
       for(let i=0;i<4;i++)box(group,0,.12,-length*.28+i*7,width*.72,.14,.4,paint);
-      const track=worldMaterial('#263b41'),yellow=basic('#e5b654'),green=basic('#a4e2b1'),red=basic('#f47a64');
+      const track=worldMaterial('#263b41'),yellow=basic('#e5b654'),red=basic('#f47a64');
       for(const x of[lane-width*.03,lane+width*.03])box(group,x,.19,length*.03,.23,.08,length*.77,track);
       for(const z of[-length*.18,length*.08,length*.3]){
         box(group,lane,.22,z,.65,.08,7,yellow);
         for(const side of[-1,1]){const arrow=box(group,lane+side*1.12,.22,z+2,2.9,.08,.55,yellow);arrow.rotation.y=-side*.6;}
       }
       // Scale cues remain visible on the deck at night and from a low cockpit.
-      for(let z=-length*.47;z<length*.5;z+=18)for(const side of[-1,1])box(group,side*width*.475,.43,z,.7,.55,1.1,z>length*.39?green:z<-length*.4?red:paint);
       for(let i=0;i<9;i++)box(group,-width*.44+i*width*.11,.27,length*.493,width*.055,.12,.95,i%2?paint:red);
       for(const side of[-1,1]){
         const wake=box(group,side*width*.52,-number(runway.y,12)+.18,-length*.73,width*.2,.1,length*.64,basic('#c6d7cc',{transparent:true,opacity:.25,depthWrite:false}));
@@ -401,25 +401,18 @@ export class FlightRenderer {
       // Join the apron at the runway edge. The previous .82 offset overlapped
       // two identical top planes, so no depth-buffer precision could fix it.
       box(group,width*.86,-.1,-length*.2,width*.72,.2,length*.32,asphalt);
-      for(let i=0;i<3;i++){
-        const hx=width*1.65,hz=-length*.28+i*67;box(group,hx,8,hz,47,16,44,worldMaterial('#89958a'));
-        const roof=new THREE.Mesh(new THREE.CylinderGeometry(24,24,44,10,1,false,0,Math.PI),worldMaterial('#697c74'));roof.rotation.x=Math.PI/2;roof.rotation.z=Math.PI/2;roof.position.set(hx,14,hz);group.add(roof);
-        box(group,hx-23.7,7,hz,.25,13,34,worldMaterial('#405a54'));
-      }
-      box(group,-width*1.6,12,-length*.28,11,24,11,worldMaterial('#b4b69c'));box(group,-width*1.6,25,-length*.28,16,5,16,worldMaterial('#668385'));
-      this._buildWindsock(group,-width*1.55,length*.24);
+
     }
     const inset=carrier?width*.15:width*.07;
     for(const s of[-1,1])box(group,s*(width*.5-inset),.13,0,.55,.12,length*.95,paint);
     for(let z=-length*.4;z<=length*.4;z+=carrier?23:52)box(group,lane,.15,z,carrier?.7:1.2,.12,carrier?9:22,paint);
     for(const end of[-1,1])for(let i=-3;i<=3;i++)box(group,i*width*.087,.16,end*(length*.46),width*.045,.12,carrier?7:25,paint);
     if(!carrier){
-      const strip=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,1.3,1.1),basic(this._night?'#ffcd75':'#dfce99'),Math.ceil(length/70)*2);let idx=0;
-      for(let z=-length/2;z<length/2;z+=70)for(const s of[-1,1]){tempObject.position.set(s*(width/2+4),.75,z);tempObject.scale.set(1,1,1);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();strip.setMatrixAt(idx++,tempObject.matrix);}strip.count=idx;group.add(strip);
       this._runwayNumber(group,runway.heading||0,length,width);
     }
     const label=this._label(runway.label|| (carrier?'CARRIER':'AIRFIELD'),carrier?'#d5d9c9':'#f0e7cb');label.position.set(width*.7,carrier?45:35,-length*.4);label.scale.set(150,24,1);group.add(label);
     if(carrier){group.name='carrier-deck';batchAircraft(group);}
+    this._buildAirfieldScenery(group,runway,mission);
   }
 
   _runwayNumber(group,heading,length,width){
@@ -429,13 +422,50 @@ export class FlightRenderer {
     const marking=new THREE.Mesh(new THREE.PlaneGeometry(width*.55,width*.55),basic('#ffffff',{map:texture,alphaTest:.25,alphaToCoverage:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));marking.rotation.x=-Math.PI/2;marking.position.set(0,.29,-length*.39);group.add(marking);
   }
 
-  _buildWindsock(parent,x,z){
-    const pole=worldMaterial('#c6c5a9');cylinder(parent,x,9,z,.25,18,pole,6);const pivot=new THREE.Group();pivot.position.set(x,18,z);parent.add(pivot);
-    for(let i=0;i<5;i++){
-      const part=new THREE.Mesh(new THREE.CylinderGeometry(1.15-i*.16,1.31-i*.16,1.5,8,1,true),worldMaterial(i%2?'#efe4c7':'#cd7144',{side:THREE.DoubleSide}));
-      part.rotation.z=Math.PI/2;part.position.set(1.0+i*1.47,-i*.17,0);pivot.add(part);
+  _buildAirfieldScenery(parent,runway,mission){
+    const scene=describeAirfield(runway,mission),staticRoot=new THREE.Group(),materials=new Map();
+    staticRoot.name='airfield-'+scene.profile;parent.add(staticRoot);
+    const materialFor=name=>{if(!materials.has(name))materials.set(name,worldMaterial(AIRFIELD_COLORS[name]));return materials.get(name);};
+    for(const part of scene.parts){
+      if(part.kind==='roof'){
+        const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(roofTriangles(part).flat(2),3));geometry.computeVertexNormals();
+        staticRoot.add(new THREE.Mesh(geometry,materialFor(part.color)));
+      }else box(staticRoot,...part.position,...part.size,materialFor(part.color));
     }
-    this._sceneryAnimations.push({type:'windsock',object:pivot,offset:x*.1});
+    // All static fittings merge by material; dozens of parts stay a handful of draws.
+    batchAircraft(staticRoot);
+    const lights=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),basic('#ffffff'),scene.lights.length);
+    lights.name='airfield-lights';
+    scene.lights.forEach((lamp,i)=>{
+      tempObject.position.set(...lamp.position);tempObject.scale.set(lamp.radius*1.4,lamp.radius,lamp.radius*1.4);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();
+      lights.setMatrixAt(i,tempObject.matrix);lights.setColorAt(i,tempColor.set(AIRFIELD_COLORS[lamp.color]));
+    });lights.computeBoundingSphere();parent.add(lights);
+    if(scene.windsock){
+      const root=new THREE.Group();parent.add(root);
+      const segments=windsockSegments(runway,scene.windsock,mission.weather,this.time,this.settings.reducedMotion);
+      const meshes=segments.map(segment=>{const mesh=new THREE.Mesh(new THREE.CylinderGeometry(segment.radiusTo,segment.radiusFrom,1,6,1,true),materialFor(segment.color));root.add(mesh);return mesh;});
+      const item={type:'airfield-windsock',runway,sock:scene.windsock,meshes};this._sceneryAnimations.push(item);this._updateWindsock(item);
+    }
+  }
+
+  _updateWindsock(item){
+    const segments=windsockSegments(item.runway,item.sock,this.mission?.weather,this.time,this.settings.reducedMotion);
+    segments.forEach((segment,i)=>{
+      const mesh=item.meshes[i],a=scratchV.set(...segment.from),b=scratchD.set(...segment.to);
+      mesh.position.copy(a).add(b).multiplyScalar(.5);b.sub(a);mesh.scale.set(1,b.length(),1);mesh.quaternion.setFromUnitVectors(axisY,b.normalize());
+    });
+  }
+
+  _updateApproach(sim){
+    const cue=landingApproach(sim,this.mission,this.settings);
+    if(!cue){if(this._approachCue)this._approachCue.visible=false;return;}
+    if(!this._approachCue){
+      this._approachCue=new THREE.InstancedMesh(new THREE.BoxGeometry(1,.12,1),basic('#c6dfb8'),AIRFIELD_BUDGET.approachBars);
+      this._approachCue.instanceMatrix.setUsage(THREE.DynamicDrawUsage);this._world.add(this._approachCue);
+    }
+    const mesh=this._approachCue;mesh.visible=true;mesh.count=cue.bars.length;
+    cue.bars.forEach((bar,i)=>{tempObject.position.set(bar.x,bar.y,bar.z);tempObject.scale.set(bar.width,1,bar.length);tempObject.rotation.set(0,bar.heading,0);tempObject.updateMatrix();mesh.setMatrixAt(i,tempObject.matrix);});
+    mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();
   }
 
   _label(text,fill='#f1e7cf'){
@@ -705,7 +735,7 @@ export class FlightRenderer {
     if(this.waterMaterial){this.waterMaterial.uniforms.time.value=this.time;this.waterMaterial.uniforms.fogColor.value.copy(this.scene.fog.color);this.waterMaterial.uniforms.fogNear.value=this.scene.fog.near;this.waterMaterial.uniforms.fogFar.value=this.scene.fog.far;}
     if(this._clouds){const wind=this.mission.weather?.wind;const wx=typeof wind==='number'?wind:number(wind?.x,4),wz=typeof wind==='number'?0:number(wind?.z,0);this._clouds.position.set(Math.sin(this.time*.0003)*wx*1800,0,Math.sin(this.time*.0003)*wz*1800);}
     for(const item of this._sceneryAnimations){
-      if(item.type==='windsock'){item.object.rotation.y=.6+Math.sin(this.time*.5+item.offset)*.12;item.object.rotation.z=Math.sin(this.time*2+item.offset)*.035;}
+      if(item.type==='airfield-windsock')this._updateWindsock(item);
       else if(item.type==='wake'){item.object.material.opacity=.19+Math.sin(this.time*1.3+item.offset)*.035;item.object.scale.z=1+Math.sin(this.time*.6+item.offset)*.045;}
     }
   }
@@ -714,7 +744,7 @@ export class FlightRenderer {
     if(this.contextLost||!sim?.player||!this._plane)return;
     dt=clamp(number(dt,1/60),0,.1);this.time+=dt;
     const p=options.player||sim.player;this._focusPlayer(p,options);setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
-    this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim,options);this._updateWeather(p,dt);
+    this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim,options);this._updateWeather(p,dt);this._updateApproach(sim);
     if(options.camera==='gunner')updateGunshipStation(this._gunshipStation,sim.crew,this.time);
     const active=number(sim.waypointIndex);const guidance=this.settings.guidance||this.settings.assist;
     for(const wp of this._rings){

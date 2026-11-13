@@ -15,6 +15,7 @@ import {applyCombatCameraKick} from './combat-camera.mjs';
 import {SoftwareAircraftRasterizer} from './software-aircraft.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
+import {describeAirfield,AIRFIELD_COLORS,airfieldPoint,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -97,7 +98,7 @@ export class SoftwareFlightRenderer{
     this._terrainStream?.dispose();this._terrainStream=new TerrainStream();
     this.mission=mission;this.aircraft=typeof aircraft==='string'?{id:aircraft}:aircraft||{id:mission.aircraft};this._mode='flight';this._plane=makeAircraft(this.aircraft);this._planeMeta=this._plane.userData;
     this._cameraReady=false;this._terrainCache.clear();this._terrainMesh=null;this._groundOffset=mission.start?.airborne===false?n(this._planeMeta.groundOffset,1.3):0;this.camera.fov=this.width<this.height?67:59;this.camera.updateProjectionMatrix();
-    this._damageSmoke=new DamageSmokeTrails();this._damagePuffs=[];
+    this._damageSmoke=new DamageSmokeTrails();this._damagePuffs=[];this._airfields=new Map((mission.runways||[]).map(r=>[r,describeAirfield(r,mission)]));
     this._focusId=null;this._focusAircraftKey=JSON.stringify([aircraftKind(this.aircraft),this.aircraft.color]);this._detailAnchor=null;this._localDetails=[];this._effectLayers=[];
     this._cockpitPanel=makeSoftwareCockpit(this.aircraft,this.width,this.height);
     this._configureAtmosphere(mission);const rand=random(hash(mission.id));this._clouds=[];
@@ -224,8 +225,8 @@ export class SoftwareFlightRenderer{
     for(let i=0;i<=steps;i++){const t=i/steps,h=mix(d.low,d.high,t),factor=1+(Math.sin(h*.052)*.13+Math.sin(h*.1404)*.045)*d.strength;gradient.addColorStop(t,`rgb(${Math.round(clamp(item.red*factor,0,255))},${Math.round(clamp(item.green*factor,0,255))},${Math.round(clamp(item.blue*factor,0,255))})`);}
     return gradient;
   }
-  _runways(){
-    const asphalt=rgb('#69736b'),paint=rgb('#ebe5ce'),shoulder=rgb(this.mission.biome==='desert'?'#c4a97f':'#8b9c79'),navy=rgb('#586d75');
+  _runways(sim){
+    const asphalt=rgb(['avro504','camel'].includes(this.mission.aircraft)?'#687c62':'#69736b'),paint=rgb('#ebe5ce'),shoulder=rgb(this.mission.biome==='desert'?'#c4a97f':'#8b9c79'),navy=rgb('#586d75');
     for(const r of this.mission.runways||[]){
       const distance=Math.hypot(this.camera.position.x-r.x,this.camera.position.z-r.z);if(distance>14000||this._terrainHides(r.x,n(r.y,12)+12,r.z))continue;const h=n(r.heading),w=n(r.width,r.carrier?40:60),l=n(r.length,r.carrier?310:1000),y=n(r.y,12),c=Math.cos(h),s=Math.sin(h),lane=r.carrier?carrierLaunchLane(r):0;
       const place=(x,z)=>[r.x+x*c+z*s,r.z+z*c-x*s];
@@ -234,28 +235,52 @@ export class SoftwareFlightRenderer{
         this._box(r.x,y-7.5,r.z,w*.94,15,l*.95,navy,h);const islandColors={body:'#74878a',bridge:'#809193',glass:'#233e48',mast:'#8c9b98',paint:'#ebe6cf'};
         for(const part of carrierIslandParts(r)){const [x,z]=place(part.x,part.z);this._box(x,y+part.y,z,part.width,part.height,part.length,rgb(islandColors[part.material]),h);}
       }
-      else this._surface(r.x,y-.15,r.z,w+105,l+100,shoulder,h);
+      else {this._surface(r.x,y-.15,r.z,w+105,l+100,shoulder,h);const [ax,az]=place(w*.86,-l*.2);this._surface(ax,y+.08,az,w*.72,l*.32,asphalt,h);}
       this._layer=2;this._surface(r.x,y+.08,r.z,w,l,asphalt,h);this._layer=3;
       for(const side of[-1,1]){const [x,z]=place(side*w*.45,0);this._surface(x,y+.15,z,.7,l*.94,paint,h);}
       if(distance<6500){
         for(let zz=-l*.4;zz<l*.42;zz+=r.carrier?23:55){const [x,z]=place(lane,zz);this._surface(x,y+.22,z,1.3,r.carrier?10:24,paint,h);}
         for(const end of[-1,1])for(let i=-3;i<=3;i++){const [x,z]=place(i*w*.087,end*l*.46);this._surface(x,y+.23,z,w*.045,r.carrier?7:24,paint,h);}
         this._layer=4;
-        if(!r.carrier){for(let i=0;i<3;i++){const [x,z]=place(w*1.65,-l*.28+i*68);this._box(x,y+9,z,47,18,44,rgb('#9ca28a'),h);this._box(x,y+19,z,49,3,46,rgb('#6b7d70'),h);}}
-        else if(this.mission.aircraft==='harrier'&&!this.mission.arena){const a=place(lane-w*.26,l*.36),b=place(lane-w*.26,l*.5),cc=place(lane+w*.35,l*.5),d=place(lane+w*.35,l*.36);this._worldQuad([a[0],y+.1,a[1]],[b[0],y+4.5,b[1]],[cc[0],y+4.5,cc[1]],[d[0],y+.1,d[1]],asphalt,1,true);}
+        if(r.carrier&&this.mission.aircraft==='harrier'&&!this.mission.arena){const a=place(lane-w*.26,l*.36),b=place(lane-w*.26,l*.5),cc=place(lane+w*.35,l*.5),d=place(lane+w*.35,l*.36);this._worldQuad([a[0],y+.1,a[1]],[b[0],y+4.5,b[1]],[cc[0],y+4.5,cc[1]],[d[0],y+.1,d[1]],asphalt,1,true);}
         if(r.carrier){
           const yellow=rgb('#e5b654');for(const xx of[lane-w*.03,lane+w*.03]){const [x,z]=place(xx,l*.03);this._surface(x,y+.3,z,.25,l*.77,rgb('#263b41'),h);}
           for(const zz of[-l*.18,l*.08,l*.3]){
             const [x,z]=place(lane,zz);this._surface(x,y+.34,z,.7,7,yellow,h);
             for(const side of[-1,1]){const [xx,zz2]=place(lane+side*1.12,zz+2);this._surface(xx,y+.34,zz2,2.9,.55,yellow,h-side*.6);}
           }
-          for(let zz=-l*.47;zz<l*.5;zz+=18)for(const side of[-1,1]){const [x,z]=place(side*w*.475,zz);this._disc(x,y+.5,z,.65,zz>l*.39?'#a4e2b1':zz<-l*.4?'#f47a64':'#f1e6c7');}
           for(let i=0;i<9;i++){const [x,z]=place(-w*.44+i*w*.11,l*.493);this._surface(x,y+.35,z,w*.055,.95,rgb(i%2?'#ebe5ce':'#f47a64'),h);}
           this._layer=0;for(const side of[-1,1]){const [x,z]=place(side*w*.52,-l*.73);this._surface(x,.18,z,w*.2,l*.64,rgb('#c6d7cc'),h-side*.14,.19+Math.sin(this.time*1.3+side)*.035);}
         }
       }
+      this._drawAirfield(r,distance);
     }
+    const approach=landingApproach(sim,this.mission,this.settings);
+    if(approach){this._layer=3;for(const bar of approach.bars)this._surface(bar.x,bar.y,bar.z,bar.width,bar.length,rgb(bar.color),bar.heading);}
     this._layer=0;
+  }
+  _drawAirfield(runway,distance){
+    this._airfields||=new Map();let scene=this._airfields.get(runway);
+    if(!scene){scene=describeAirfield(runway,this.mission);this._airfields.set(runway,scene);}
+    const point=position=>{const p=airfieldPoint(runway,...position);return [p.x,p.y,p.z];};
+    if(distance<6500){
+      this._layer=4;
+      for(const part of scene.parts){
+        if(part.kind==='roof')for(const triangle of roofTriangles(part))this._worldTri(...triangle.map(point),rgb(AIRFIELD_COLORS[part.color]),1,true);
+        else this._box(...point(part.position),...part.size,rgb(AIRFIELD_COLORS[part.color]),n(runway.heading));
+      }
+    }
+    this._layer=4;
+    for(const lamp of scene.lights){const before=this._queue?.length||0;this._disc(...point(lamp.position),lamp.radius,AIRFIELD_COLORS[lamp.color],this._night?1:.72);if(this._queue?.length>before)this._queue.at(-1).layer=4;}
+    if(scene.windsock&&distance<2400){
+      for(const segment of windsockSegments(runway,scene.windsock,this.mission.weather,this.time,this.settings?.reducedMotion)){
+        const a=segment.from,b=segment.to,axis=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]).normalize();
+        const side=new THREE.Vector3().crossVectors(axis,new THREE.Vector3(0,1,0));if(side.lengthSq()<.01)side.set(1,0,0);else side.normalize();
+        const up=new THREE.Vector3().crossVectors(axis,side).normalize();
+        const ring=(origin,radius,k)=>{const angle=k/6*TAU;return point(origin.map((v,i)=>v+(side.getComponent(i)*Math.cos(angle)+up.getComponent(i)*Math.sin(angle))*radius));};
+        for(let k=0;k<6;k++)this._worldQuad(ring(a,segment.radiusFrom,k),ring(b,segment.radiusTo,k),ring(b,segment.radiusTo,k+1),ring(a,segment.radiusFrom,k+1),rgb(AIRFIELD_COLORS[segment.color]),1,true);
+      }
+    }
   }
   _terrainHides(x,y,z,radius=0){
     const eye=this.camera.position,dx=x-eye.x,dz=z-eye.z,distance=Math.hypot(dx,dz);
@@ -457,7 +482,7 @@ export class SoftwareFlightRenderer{
   render(sim,dt=1/60,options={}){
     if(!sim?.player||!this._plane)return;dt=clamp(n(dt,1/60),0,.1);this.time+=dt;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;
     const p=options.player||sim.player;this._focusPlayer(p,options);this._camera(p,dt,options);this._weather(p);this._background();this._cloudLayer();this._paint();
-    this._terrain(p);this._paint();this._runways();this._gunshipSite();this._paint();
+    this._terrain(p);this._paint();this._runways(sim);this._gunshipSite();this._paint();
     this._groundReadability(p);this._environment();this._entities(sim,dt,options.remotePlayers||[]);this._waypoints(sim);this._effects(sim,options);
     if(options.camera!=='cockpit'&&options.camera!=='gunner'&&n(p.health,100)>0&&p.alive!==false&&!p.crashed)this._aircraft(this._plane,p,dt,true);
     this._paint();if(options.camera==='cockpit')this._cockpit(p);

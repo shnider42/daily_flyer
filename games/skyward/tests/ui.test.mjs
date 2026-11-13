@@ -32,7 +32,7 @@ test('existing preferences adopt dual-thumb defaults; explicit pitch choices and
   ]);
   const storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value)};
   const s=loadSettings(storage);
-  assert.equal(VERSION,'0.7.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.touchPitch,'pull');assert.equal(DEFAULTS.stickSize,120);
+  assert.equal(VERSION,'0.8.0');assert.equal(s.assist,'expert');assert.equal(s.sound,false);assert.equal(s.stickSize,130);assert.equal(s.touchPitch,'pull');assert.equal(DEFAULTS.stickSize,120);
   for(const legacy of ['invertPitch','lookSensitivity','lookPad'])assert.equal(legacy in s,false,legacy+' must not keep the removed look-stick scheme');
   for(const invertPitch of [false,true])assert.equal(normalizeSettings({invertPitch}).touchPitch,'pull');assert.equal(s.theme,'night');
   assert.deepEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);assert.notEqual(s.keyBindings,DEFAULT_KEY_BINDINGS);

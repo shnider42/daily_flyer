@@ -192,9 +192,11 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
     const dry = terrainHeight(p.x, p.z, mission) >= 0 || runway?.carrier && runwayAt(p.x, p.z, mission, 3) >= 0;
     const upright = frame.up.y > Math.cos(assisted(settings) ? 0.65 : 0.4);
     if (speedSafe && sinkSafe && gearSafe && upright && Math.abs(p.roll) < (assisted(settings) ? 0.5 : 0.25) && alignment && dry) {
+      const sinkRate = Math.max(0, -p.verticalSpeed);
+      const quality = sinkRate <= 1.5 ? 'gentle' : sinkRate <= 3.5 ? 'smooth' : sinkRate <= 7 ? 'firm' : 'hard';
+      p.lastLanding = { runwayIndex, safe: true, speed: p.speed, sinkRate, quality, hover: !!p.hover, time: p.flightTime };
       p.onGround = true; p.y = ground + 3; p.verticalSpeed = 0; p.settlingSpeed = 0;
       frame = setAttitude(p, orientationFromEuler(p.heading, 0, 0));
-      p.lastLanding = { runwayIndex, safe: true, speed: p.speed, time: p.flightTime };
       p.landings = finite(p.landings) + 1;
       if (p.hover) { p.speed = 0; p.brake = true; }
     } else {
@@ -234,6 +236,11 @@ export class FlightSimulation {
     this.aircraft = getAircraft(this.mission.aircraft);
     const m = this.mission, a = this.aircraft, s = m.start || {};
     this.player = createPilot(a.id, s, settings.playerId || 'local', 1, m.kind === 'nuclear' && !getNuclearPayload(m.payload) ? 'atomic' : m.payload);
+    // The courier's cargo is delivered on the ground; it is not the campaign's
+    // airborne troop load. Ordinary C-47 flights retain their existing stores.
+    if (m.operation && m.goal?.type === 'operation' && m.goal.task === 'courier') {
+      this.player.troopers = 0; this.player.dropsRemaining = 0;
+    }
     this.enemies = copy(m.enemies || []).map((e, i) => ({ ...e, alive: true, active: true, pitch: 0, roll: 0, initialHealth: e.health, fireTimer: 1.5 + i * 0.7, missileTimer: 8 + i * 3, age: 0 }));
     this.targets = copy(m.targets || []).map(t => ({ ...t, y: ['balloon', 'city'].includes(t.type) ? t.y : Math.max(0, terrainHeight(t.x, t.z, m)) + 5, alive: true, active: true, initialHealth: t.health, fireTimer: 7 }));
     this.projectiles = []; this.effects = []; this.paratroopers = []; this.remotePlayers = [];
@@ -247,6 +254,9 @@ export class FlightSimulation {
     this.crew = m.kind === 'gunship' ? createGunshipCrewState() : null;
     this._crewInputTime = -Infinity; this._pendingCrewPress = null;
     this.multiplayer = null; this.participants = new Map(); this.round = null; this._seenActions = new Set();
+    this.sortieStats = { airTime: 0, distance: 0, damageTaken: 0, landings: 0, lastLanding: null, airKills: 0, groundKills: 0, gatesReached: 0 };
+    this.operationState = m.operation ? { stage: m.goal?.task === 'courier' ? 'delivery' : 'task', leg: 0, unloadTime: 0, lastDeliveryLanding: 0, returnLandingCount: null, taskCompletedAt: null, reinforcementsSent: false } : null;
+    this.groundService = { active: false, progress: 0, duration: 8, runwayIndex: -1, completed: false };
     this._eventId = 0; this._entityId = 0; this._lastLandingCount = 0; this._warnedStall = false; this._rng = (m.number || 1) * 19937;
     this._chooseTarget(); this._updateBombAim(); this._updateObjective(0);
   }
@@ -402,6 +412,7 @@ export class FlightSimulation {
 
   _recordAircraftDamage(pose, damage, weapon, source, participant = null) {
     if (!(damage > 0)) return null;
+    if (pose.id === this.player.id) this.sortieStats.damageTaken += damage;
     const event = this._event('damage', 'Aircraft hit', {
       targetId: pose.id, targetLifeId: pose.lifeId || 1, damageId: finite(pose.damageId),
       damage, health: pose.health, maxHealth: getAircraft(pose.aircraft || this.mission.aircraft).health,
@@ -602,8 +613,16 @@ export class FlightSimulation {
     this.player.gunHeat = Math.max(0, this.player.gunHeat - dt * 0.22);
     this.threat = Math.max(0, this.threat - dt * 0.12);
     const active = !this.participants.size || this.localParticipant?.alive;
+    const before = { x: this.player.x, y: this.player.y, z: this.player.z, onGround: this.player.onGround, health: this.player.health };
+    this._stepStart = before;
     if (active) advancePlayer(this.player, input, dt, this.aircraft, this.mission, this.settings);
+    if (active && !before.onGround) {
+      this.sortieStats.airTime += dt;
+      this.sortieStats.distance += dist(before, this.player);
+    }
     if (this.player.crashed || this.player.health <= 0) {
+      // Terrain collisions go directly through flight physics, not a damage receipt.
+      if (before.health > this.player.health) this.sortieStats.damageTaken += before.health - this.player.health;
       this.player.alive = false;
       if (!this.participants.size) {
         this._effect('explosion', this.player.x, this.player.y, this.player.z, 90, 4);
@@ -612,7 +631,12 @@ export class FlightSimulation {
     }
     this._advanceMultiplayer(dt);
     if (this.status !== 'flying') return;
-    if (this.player.landings > this._lastLandingCount) { this._lastLandingCount = this.player.landings; this._event('landing', 'Safe touchdown'); }
+    if (this.player.landings > this._lastLandingCount) {
+      this.sortieStats.landings += this.player.landings - this._lastLandingCount;
+      this.sortieStats.lastLanding = this.player.lastLanding ? copy(this.player.lastLanding) : null;
+      this._lastLandingCount = this.player.landings;
+      this._event('landing', `${this.player.lastLanding?.quality || 'Safe'} touchdown`);
+    }
     if (this.player.stalled && !this._warnedStall) { this._warnedStall = true; this._event('warning', 'Low airspeed · lower the nose and increase throttle'); }
     if (!this.player.stalled) this._warnedStall = false;
     if (input.fire && active && this.player.health > 0) this._shoot(this.player, false);
@@ -623,6 +647,7 @@ export class FlightSimulation {
     if (this.worldAuthority) {
       this._advanceCrewWeapons(dt);
       this._advanceEnemies(dt); this._advanceHazards(dt); this._advanceProjectiles(dt); this._advanceNuclearBlasts(dt); this._advanceParatroopers(dt); this._advanceWaypoints();
+      this._advanceGroundService(dt);
       if (!this.participants.size && this.player.health <= 0) {
         this.player.alive = false; this.player.crashed = true;
         this._effect('explosion', this.player.x, this.player.y, this.player.z, 90, 4);
@@ -644,8 +669,10 @@ export class FlightSimulation {
   _advanceWaypoints() {
     const waypoint = this.mission.waypoints?.[this.waypointIndex];
     const pilots = this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose) : [this.player];
-    if (waypoint && pilots.some(pilot => dist(pilot, waypoint) < waypoint.radius)) {
-      this.waypointIndex++; this.score += 75; this._event('waypoint', waypoint.label || 'Waypoint reached');
+    if (waypoint && pilots.some(pilot => dist(pilot, waypoint) < waypoint.radius
+      || this.mission.operation && pilot === this.player && this._stepStart && !pilot.onGround
+        && segmentSphereTime(this._stepStart, pilot, waypoint, waypoint.radius) !== null)) {
+      this.waypointIndex++; this.sortieStats.gatesReached++; this.score += 75; this._event('waypoint', waypoint.label || 'Waypoint reached');
     }
   }
 
@@ -856,6 +883,10 @@ export class FlightSimulation {
     // no longer living, so repeated damage or an old projectile cannot score it.
     const attacker = this.participants.get(attackerId === 'player' ? this.player.id : attackerId);
     if (attacker && this.enemies.includes(target) && !target.friendly && !target.escaped) attacker.kills++;
+    if (!target.friendly && !target.escaped && (attackerId === this.player.id || attackerId === 'player')) {
+      if (this.enemies.includes(target)) this.sortieStats.airKills++;
+      else if (this.targets.includes(target)) this.sortieStats.groundKills++;
+    }
     this.score += target.friendly ? -150 : target.type === 'bomber' ? 200 : 125;
     this._effect('explosion', target.x, target.y, target.z, target.type === 'balloon' ? 130 : 80, 2.1);
     this._event('destroyed', `${target.label || 'Target'} ${target.friendly ? 'lost' : 'neutralized'}`);
@@ -1133,6 +1164,119 @@ export class FlightSimulation {
   _missionPilots() { return this.participants.size ? [...this.participants.values()].filter(record => record.alive && record.connected).map(record => record.pose) : [this.player].filter(living); }
   _missionPilot() { return this._missionPilots().find(pilot => this.mission.goal?.type === 'drop' && pilot.aircraft === 'c47') || this._missionPilots()[0] || this.player; }
 
+  _advanceGroundService(dt) {
+    const p = this.player, a = this.aircraft, service = this.groundService;
+    const runwayIndex = runwayAt(p.x, p.z, this.mission, 0);
+    const eligible = this.worldAuthority && !this.multiplayer && !this.participants.size && !this.remotePlayers.length
+      && this.mission.kind === 'free' && living(p) && !p.crashed && p.onGround && runwayIndex >= 0
+      && Math.abs(p.y - surfaceHeight(p.x, p.z, this.mission) - 3) < 4
+      && p.speed < 1.5 && p.brake && p.throttle <= .15 && !this._hasPendingNuclearHazard()
+      && this.gunCooldown <= 0 && this.payloadCooldown <= 0 && finite(this.missileCooldown) <= 0;
+    if (!eligible) { Object.assign(service, { active: false, progress: 0, runwayIndex: -1, completed: false }); return; }
+    if (service.runwayIndex !== runwayIndex) Object.assign(service, { active: false, progress: 0, runwayIndex, completed: false });
+    const needsService = p.health < a.health || p.fuel < 99 || p.ammo < (a.gun?.ammo || 0)
+      || p.missiles < a.missiles || p.bombs < a.bombs || a.id === 'c47' && (p.troopers < 24 || p.dropsRemaining < 2);
+    if (service.completed || !needsService) { service.active = false; return; }
+    if (!service.active) this._event('info', 'Ground crew working · keep idle thrust and brake set');
+    service.active = true; service.progress = Math.min(1, service.progress + dt / service.duration);
+    if (service.progress < 1) return;
+    Object.assign(p, { health: a.health, fuel: 100, ammo: a.gun?.ammo || 0, missiles: a.missiles, bombs: a.bombs,
+      troopers: a.id === 'c47' ? 24 : 0, dropsRemaining: a.id === 'c47' ? 2 : 0, gunHeat: 0 });
+    service.active = false; service.completed = true;
+    this._event('info', 'Ground service complete · fuel, airframe and stores restored');
+  }
+
+  _operationRunway(index, label = 'LAND') {
+    const runway = this.mission.runways?.[index];
+    if (!runway) return null;
+    this.navigationTarget = { x: runway.x, y: runway.y + 35, z: runway.z, label: `${label} · ${runway.label}`, runwayIndex: index };
+    return runway;
+  }
+
+  _stoppedAtRunway(index, minimumLanding, requireHover = false) {
+    const p = this.player, landing = p.lastLanding;
+    return living(p) && p.onGround && landing?.safe && landing.runwayIndex === index
+      && p.landings > minimumLanding && runwayAt(p.x, p.z, this.mission, 2) === index
+      && Math.abs(p.y - surfaceHeight(p.x, p.z, this.mission) - 3) < 4
+      && p.speed < (this.mission.goal.stopSpeed || 3) && p.throttle <= .15 && p.brake
+      && (!requireHover || landing.hover);
+  }
+
+  _updateOperation(dt) {
+    const m = this.mission, g = m.goal, p = this.player, state = this.operationState;
+    if (!state) return;
+    if (g.task === 'courier') {
+      const stops = g.stops || [], index = stops[state.leg], runway = this._operationRunway(index, 'DELIVERY');
+      if (!runway) return;
+      this.phase = p.onGround ? 'delivery' : 'arrival';
+      this.objective = `Mail run · ${state.leg}/${stops.length} deliveries · ${runway.label}`;
+      const stopped = this._stoppedAtRunway(index, state.lastDeliveryLanding);
+      state.unloadTime = stopped ? state.unloadTime + dt : 0;
+      this.progress = (state.leg + Math.min(.8, state.unloadTime / (g.holdSeconds || 4) * .8)) / stops.length;
+      if (stopped) {
+        this.navigationTarget = null;
+        this.hint = `Unloading · ${Math.max(0, (g.holdSeconds || 4) - state.unloadTime).toFixed(1)} s · keep the brake set and throttle idle.`;
+      } else if (p.onGround) {
+        this.hint = p.lastLanding?.runwayIndex === index ? 'Set throttle to idle and brake to a complete stop to unload.' : `Next delivery: ${runway.label}. Release the brake, take off and follow the blue field marker.`;
+      } else this.hint = this._landingHint(runway);
+      if (state.unloadTime >= (g.holdSeconds || 4)) {
+        state.leg++; state.unloadTime = 0; state.lastDeliveryLanding = p.landings; this.score += 300;
+        this._event('delivery', `Mail delivered at ${runway.label}`);
+        if (state.leg >= stops.length) { state.stage = 'complete'; this._finish(true, 'The Mail Run · both deliveries safely unloaded'); }
+        else this._updateOperation(0);
+      }
+      return;
+    }
+
+    if (state.stage === 'task') {
+      let completed = false;
+      if (g.task === 'route') {
+        this.phase = 'route';
+        this.objective = `${m.title} · ${this.waypointIndex}/${m.waypoints.length} gates`;
+        const waypoint = m.waypoints[this.waypointIndex];
+        if (waypoint) { this.navigationTarget = { ...waypoint }; this.hint = this._navigationHint(waypoint); }
+        this.progress = this.waypointIndex / Math.max(1, m.waypoints.length) * .7;
+        completed = this.waypointIndex >= m.waypoints.length;
+      } else if (g.task === 'air') {
+        if (!state.reinforcementsSent && m.reinforcements?.length && this.enemies.every(enemy => !living(enemy))) {
+          state.reinforcementsSent = true;
+          this.enemies.push(...copy(m.reinforcements).slice(0, 4).map((enemy, i) => ({ ...enemy, alive: true, active: true, pitch: 0, roll: 0, initialHealth: enemy.health, fireTimer: 3 + i, missileTimer: 12 + i * 3, age: 0 })));
+          this._chooseTarget(); this._event('warning', 'Second patrol entering from the north · two new contacts');
+        }
+        const cleared = this.enemies.filter(enemy => !enemy.friendly && enemy.health <= 0 && !enemy.escaped).length;
+        this.phase = 'combat'; this.progress = Math.min(1, cleared / g.count) * .7;
+        this.objective = `Coastwatch · ${cleared}/${g.count} hostile contacts cleared`;
+        this.hint = this.lockProgress >= .98 ? 'Lock complete. Fire or hold the shot for a closer approach.' : 'Select a contact, hold it ahead to build a lock, and keep enough missiles for the second patrol.';
+        completed = cleared >= g.count;
+      } else if (g.task === 'ground') {
+        const targets = this.targets.filter(target => g.targetIds?.includes(target.id));
+        const cleared = targets.filter(target => target.health <= 0).length;
+        this.phase = 'combat'; this.progress = Math.min(1, cleared / g.count) * .7;
+        this.objective = `${m.title} · ${cleared}/${g.count} ground objectives`;
+        this.hint = p.bombs > 0 ? 'Line up the impact marker with a red objective before releasing. Leave room for the return.' : this.aircraft.gun ? 'Bombs expended. Use the cannon on remaining red objectives.' : 'No bombs remain. Return to the briefing to try another run.';
+        completed = cleared >= g.count;
+        if (!completed && !this.aircraft.gun && p.bombs <= 0 && !this.projectiles.some(projectile => projectile.type === 'bomb' && projectile.life > 0)) {
+          this._finish(false, 'Bombs expended before both rail yards were cleared.'); return;
+        }
+      }
+      if (!completed) return;
+      state.stage = 'return'; state.taskCompletedAt = this.time; state.returnLandingCount = p.landings;
+      this._event('info', `Task complete · recover at ${m.runways[g.destinationRunway].label}`);
+    }
+
+    const index = g.destinationRunway, runway = this._operationRunway(index, 'RETURN');
+    if (!runway) return;
+    this.phase = 'landing'; this.progress = .78;
+    this.objective = `Return to ${runway.label} · land and stop`;
+    this.hint = p.onGround && p.lastLanding?.runwayIndex === index
+      ? g.requireHover && !p.lastLanding.hover ? 'This circuit needs a hover recovery. Lift off in HOVER and settle back onto the clear deck.'
+        : 'Set thrust to idle and brake to a complete stop.' : m.biome === 'canyon' && p.y < runway.y + 200
+          ? 'Climb above the canyon walls before turning back toward the plateau airfield.' : this._landingHint(runway);
+    if (this._stoppedAtRunway(index, state.returnLandingCount, !!g.requireHover)) {
+      state.stage = 'complete'; this._finish(true, `${m.title} · aircraft home and sortie complete`);
+    }
+  }
+
   _navigationHint(point) {
     const p = this._missionPilot(), distance = flatDist(p, point), delta = angle(Math.atan2(point.x - p.x, point.z - p.z) - p.heading);
     const turn = Math.abs(delta) > 0.2 ? `Bank ${delta > 0 ? 'left' : 'right'} toward the marker.` : 'Keep the marker ahead.';
@@ -1160,12 +1304,32 @@ export class FlightSimulation {
       this.hint = this.localParticipant?.alive ? 'Select a contact, build a lock or close to gun range. Mountains block radar and intercept missiles.' : this.canRespawn ? 'A new aircraft is ready. Respawn or keep spectating.' : 'Spectating while your next aircraft is prepared.';
       this.progress = this.round.duration ? this.round.elapsed / this.round.duration : 0; return;
     }
-    if (m.kind === 'free') { this.objective = 'Free flight · explore at your own pace'; this.hint = p.onGround ? p.brake ? 'Release the brake and raise throttle to take off.' : 'Build airspeed, then raise the nose gently.' : p.stalled ? 'Lower the nose and add throttle to recover airspeed.' : 'Explore the terrain. Pause to change aircraft or return to the hangar.'; this.progress = 0; return; }
+    if (m.kind === 'free') {
+      this.objective = 'Free flight · explore at your own pace'; this.progress = 0;
+      const service = this.groundService, nearest = (m.runways || []).map((runway, index) => ({ runway, index, distance: flatDist(p, runway) })).sort((a, b) => a.distance - b.distance)[0];
+      if (service.active) {
+        this.objective = `Ground service · ${Math.floor(service.progress * 100)}%`;
+        this.hint = 'Keep idle thrust and the brake set. Moving or firing cancels the ground crew.';
+        this.progress = service.progress;
+      } else if (service.completed) this.hint = 'Fuel, airframe and stores restored. Release the brake and take off when ready.';
+      else if (p.onGround) this.hint = runwayAt(p.x, p.z, m, 0) >= 0 && !this.multiplayer
+        ? p.brake && p.throttle <= .15 ? 'Airfield ready. Ground crew service a worn aircraft after eight seconds at idle with the brake set.'
+          : 'For ground service, stop on the runway, set idle thrust and apply the brake.'
+        : p.brake ? 'Release the brake and raise throttle to take off.' : 'Build airspeed, then raise the nose gently.';
+      else {
+        this.hint = p.stalled ? 'Lower the nose and add throttle to recover airspeed.' : nearest && nearest.distance < 8000
+          ? `${nearest.runway.label} · ${(nearest.distance / 1000).toFixed(1)} km. ${this.multiplayer ? 'Practice a landing or keep exploring together.' : 'Land and stop for ground service, or keep exploring.'}`
+          : this.multiplayer ? 'Explore the terrain together. Pause to regroup in the squadron room.' : 'Explore the terrain. Airfields offer ground service after you land and stop.';
+        if (nearest && nearest.distance < 8000) this._operationRunway(nearest.index, 'AIRFIELD');
+      }
+      return;
+    }
     if (!p.engine) { this.phase = 'startup'; this.objective = `Start the engine · ${p.startupStep}/4`; this.hint = ['Open the fuel valve. Tap START to begin the simplified checklist.', 'Switch on the magnetos. Tap START again.', 'Prime the engine. Tap START again.', 'Turn the propeller. Tap START once more.'][Math.min(3, p.startupStep)]; this.progress = p.startupStep * 0.025; return; }
     if (!p.everAirborne) {
       this.phase = 'takeoff'; this.objective = 'Take off from the runway'; this.progress = Math.max(this.progress, 0.1);
       this.hint = p.brake ? 'Release the wheel brake, then increase throttle.' : p.throttle < 0.65 ? 'Raise throttle above 65%. Keep the nose along the runway.' : p.speed < this.aircraft.stallSpeed * 1.2 ? 'Building airspeed. Keep straight; the assisted plane will lift when ready.' : 'Raise the nose gently. Retract the gear once safely airborne.'; return;
     }
+    if (g.type === 'operation') { this._updateOperation(dt); return; }
     if (p.stalled) this.hint = 'STALL · lower the nose and increase throttle. LEVEL can help restore the attitude.';
     const deadAir = this.enemies.filter(e => !e.friendly && e.health <= 0 && !e.escaped).length;
     const resolvedAir = this.enemies.filter(e => !e.friendly && (e.health <= 0 || e.escaped)).length;
@@ -1313,7 +1477,7 @@ export class FlightSimulation {
     }
     this._pendingNuclearSuccess = null;
     this.status = success ? 'success' : 'failed'; this.phase = 'complete'; this.objective = message;
-    this.hint = success ? this.crew ? 'Crew sortie complete. Return to the hangar to fly again.' : 'Review the logbook, then continue to the next chapter.' : 'Retry the sortie, or adjust flight assistance in settings.';
+    this.hint = success ? this.crew ? 'Crew sortie complete. Return to the hangar to fly again.' : this.mission.operation ? 'Operation complete. Review the flight record or choose another assignment.' : 'Review the logbook, then continue to the next chapter.' : 'Retry the sortie, or adjust flight assistance in settings.';
     if (this.crew) { this.crew.fire = false; this._pendingCrewPress = null; }
     if (success) { this.progress = 1; this.score += Math.max(100, Math.round(this.player.health / this.aircraft.health * 250)); }
     this._event(success ? 'success' : 'failed', message);
@@ -1370,7 +1534,7 @@ export class FlightSimulation {
     const weaponStores = {};
     for (const [id, stores] of this.remoteWeapons) weaponStores[id] = { ammo: stores.ammo, missiles: stores.missiles, bombs: stores.bombs, troopers: stores.troopers, dropsRemaining: stores.dropsRemaining };
     return copy({ version: this.participants.size ? 2 : 1, runId: this.multiplayer?.runId, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores,
-      nuclearRelease: this.nuclearRelease,
+      nuclearRelease: this.nuclearRelease, operationState: this.operationState, sortieStats: this.sortieStats,
       ...(this.participants.size ? { participants: [...this.participants.values()].map(record => ({ ...record, pose: { ...record.pose }, stores: { ammo: record.pose.ammo, missiles: record.pose.missiles, bombs: record.pose.bombs, troopers: record.pose.troopers, dropsRemaining: record.pose.dropsRemaining } })), round: this.round } : {}),
       ...(this.crew ? { player: this.player, crew: this.crew } : {}) });
   }
@@ -1384,8 +1548,9 @@ export class FlightSimulation {
     if (this.participants.size && finite(snapshot.time) < finite(this._lastSnapshotTime, -Infinity)) return false;
     this.worldAuthority = false;
     for (const key of ['enemies', 'targets', 'projectiles', 'effects', 'paratroopers', 'events']) if (Array.isArray(snapshot[key])) this[key] = copy(snapshot[key]);
-    for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText', 'nuclearRelease']) if (snapshot[key] !== undefined) this[key] = copy(snapshot[key]);
+    for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText', 'nuclearRelease', 'operationState']) if (snapshot[key] !== undefined) this[key] = copy(snapshot[key]);
     if (this.crew) {
+      if (snapshot.sortieStats) this.sortieStats = copy(snapshot.sortieStats);
       Object.assign(this.player, copy(snapshot.player), { aircraft: this.mission.aircraft });
       setAttitude(this.player, orientationOf(this.player));
       this.crew = copy(snapshot.crew); this.time = finite(snapshot.time, this.time);

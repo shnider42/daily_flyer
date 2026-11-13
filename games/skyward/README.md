@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.7.0 clears the mobile cockpit, gives larger airframes slower pitch/roll response, and adds three B-2 nuclear game payloads with a real escape phase.** The flight-selection homepage and browsable hangar show all 14 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.8.0 adds six repeatable Operations, a local flight log and personal bests, richer airfields, arrival guidance, and solo free-flight ground service.** The compact mobile cockpit, heavy-aircraft response, and B-2 blast escape introduced in v0.7.0 remain in place. The flight-selection homepage and browsable hangar show all 14 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
 
 The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
@@ -14,6 +14,31 @@ node --test games/skyward/tests/*.test.mjs
 ```
 
 The same server serves the browser app and squadron WebSocket endpoint. It listens on `0.0.0.0`, uses `PORT` when present, and otherwise uses port 3000. `/health` reports server readiness. The dedicated Render service uses this branch and directory; other Daily Flyer games are unchanged.
+
+## Operations and the flight log
+
+**Operations** is a separate solo flight board with six authored challenges. All are available immediately, with fixed aircraft and weather. The existing eighteen-sortie campaign and multiplayer room choices are unchanged.
+
+| Operation | Aircraft | Flight problem |
+| --- | --- | --- |
+| Ridge Runner | F-16 | Fly eight canyon gates in order, then climb out and recover at the plateau airfield |
+| The Mail Run | C-47 | Depart West Field, land and unload at Mill Field, then take off for the delivery at Orchard Field |
+| Coastwatch | F-15 | Clear two successive fighter patrols, preserve weapons for the second pair, then return and land |
+| Broken Supply | A-10 | Destroy three supply objectives without destroying the protected relief camp, then recover |
+| Deck Circuit | Sea Harrier | Fly four open-water gates, then make an actual hover recovery on the carrier |
+| Heavy Metal | B-17 | Bomb two separated rail yards, manage heavy inertia and low cloud, then bring the bomber home |
+
+Every operation ends with a real new landing, idle thrust, and a braked stop at the named destination. The courier needs four stationary seconds to unload at each delivery field; moving interrupts unloading. A flyby, touchdown at the wrong field, or merely starting on the ground does not count. Combat objectives lead into a return phase instead of immediately opening the result screen. Route gates use swept movement checks so a fast aircraft cannot skip through a gate between frames. The second Coastwatch patrol spawns only once.
+
+**Bronze** requires completion. **Silver** and **Gold** add the time and remaining-airframe requirements shown in the briefing. The clock covers the whole sortie through landing; there is no time-out. Personal bests rank medal first, then elapsed time, then remaining health. Comparisons use the same aircraft, handling, auto-level, loadout, weather and authored medal rules. Changing handling during a flight keeps the attempt in history but makes it ineligible for a medal or record.
+
+**Flight log** is available from the main menu and solo debrief. It keeps the most recent 24 solo flights, operation bests, and lifetime/per-aircraft totals for time airborne, distance, landings and objectives. Touchdown reports include descent rate and a game quality label. End a free flight from the pause menu to record it; unfinished restarts are marked as ended, and flights ended before ten seconds are omitted. Multiplayer and AC-130 crew scores retain their existing room log rather than entering this solo history. History saves only in this browser under a separate storage key; campaign progress is not overwritten. When browser storage fails, the current tab retains the result and tells the pilot it could not persist it.
+
+## Airfields and ground service
+
+Grass fields, regional fields, modern air stations, and carrier decks share a bounded scenery description across WebGL and software graphics. Hangars, towers, aprons, stores and a service vehicle give the field scale. Runway threshold, edge and approach lamps are visible at night; windsocks follow the actual world wind and hang in calm conditions. Destination approach marks sit on the terrain or the real carrier deck and disappear with Minimal guidance. New scenery stays outside landing surfaces; existing carrier island collision remains in effect.
+
+In **solo Free flight**, land on an airfield or carrier, reduce thrust to idle, set the brake, and remain stopped for eight seconds. Ground crew restore fuel, airframe and the selected aircraft's original stores. Moving, firing, leaving the runway or an outstanding nuclear hazard cancels servicing. It cannot refill an aircraft in midair, add weapons that aircraft did not have, or replenish campaign/operation/multiplayer loadouts. Nearby fields are marked for navigation. Ground-service progress and instructions use the existing NAV panel; the default mobile flight view gains no new panel.
 
 ## Mobile cockpit and B-2 payloads
 

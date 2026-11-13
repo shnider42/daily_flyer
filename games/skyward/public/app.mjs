@@ -15,6 +15,9 @@ import {BINDING_ACTIONS,DEFAULT_KEY_BINDINGS,GUNNER_BINDING_ACTIONS,DEFAULT_GUNN
 import {FlightAudio} from './audio.mjs';
 import {CombatFeedback} from './combat-feedback.mjs';
 import {DEFAULTS,VERSION,loadSettings,saveSettings,loadProgress,saveProgress,applySettings,normalizeSettings} from './settings.mjs';
+import {OPERATIONS,getOperation} from './operations.mjs';
+import {loadLogbook,saveLogbook,buildSortieReport,recordSortie,operationRecord} from './logbook.mjs';
+import {operationListMarkup,operationBriefMarkup,flightLogMarkup,sortieDetailsMarkup} from './operations-ui.mjs';
 
 const $=id=>document.getElementById(id),$$=q=>Array.from(document.querySelectorAll(q));
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -28,6 +31,7 @@ const dist=(p,q)=>Math.hypot((p.x||0)-(q.x||0),(p.y||0)-(q.y||0),(p.z||0)-(q.z||
 const impactMarker=document.createElement('div');impactMarker.id='impact-marker';impactMarker.className='impact-marker';impactMarker.hidden=true;impactMarker.setAttribute('aria-hidden','true');impactMarker.innerHTML='<i></i><span>IMPACT</span><small></small>';$('flight-screen').appendChild(impactMarker);
 const hasImpactMarker=()=>!!(sim&&sim.player.bombs>0&&!sim.player.onGround&&sim.mission.kind!=='nuclear'&&sim.bombAim&&[sim.bombAim.x,sim.bombAim.y,sim.bombAim.z].every(Number.isFinite));
 let settings=loadSettings(),progress=loadProgress();applySettings(settings);
+let flightLog=loadLogbook(),selectedOperation=OPERATIONS[0],flightRunId=null,flightRecordResult=null,flightLogSaved=true,initialFlightSettings=null,flightRecordEligible=true;
 let screen='home',sim=null,renderer=null,paused=false,remotePaused=false,coop=false,settingsTab=isTouchLayout()?'controls':'keyboard',resumeAfterSettings=false,ready=false;
 let bindingCapture=null,settingsSaved=true,crewRole=null,lastCrewSnapshot=0;
 let scoreboardOpen=false,spectatedId=null,spectatorView=null,lastLifeId=0,lastCrashNotice=0,activeStart=null;
@@ -93,7 +97,7 @@ function measureHangarFrame(){
   const {x,y,width,height}=stage.getBoundingClientRect();
   if([x,y,width,height].every(Number.isFinite)&&width>1&&height>1)hangarPreviewOptions={frame:{x,y,width,height}};
 }
-function goHome(){stopGunnerFire();coop=false;team.leave();closeDialogs();paused=remotePaused=false;crewRole=null;sim=null;activeStart=null;spectatedId=spectatorView=null;endHandled=false;syncCrewUI();refreshHome();showScreen('home');}
+function goHome(){recordFlightResult();stopGunnerFire();coop=false;team.leave();closeDialogs();paused=remotePaused=false;crewRole=null;sim=null;activeStart=null;spectatedId=spectatorView=null;endHandled=false;syncCrewUI();refreshHome();showScreen('home');}
 function closeDialogs(){cancelBindingCapture();setAircraftTray(false);settingsFromPause=resumeAfterSettings=false;for(const d of [$('pause-dialog'),$('settings-dialog')])if(d.open)d.close();}
 function setAircraftTray(open){
   const expanded=Boolean(open&&screen==='flight'&&!paused&&!remotePaused);
@@ -271,6 +275,26 @@ function renderCampaign(){
 }
 function renderBrief(){const m=selectedMission,a=aircraftOf(m),completed=progress.completed[m.id];$('mission-detail').innerHTML=`<span class="mission-date">SORTIE ${String(m.number).padStart(2,'0')} / ${escapeHTML(m.year)} · ${escapeHTML(m.location)}</span><h2>${escapeHTML(m.title)}</h2><p class="mission-deck">${escapeHTML(m.description)}</p><div class="mission-specs"><span><small>YOUR AIRCRAFT</small>${escapeHTML(a.name)}</span><span><small>FLIGHT TIME</small>${escapeHTML(m.duration||'3–6 minutes')}</span></div><p class="eyebrow">FLIGHT ORDERS</p><ol class="brief-objectives">${(Array.isArray(m.briefing)?m.briefing:[m.briefing||m.description]).map(t=>`<li>${escapeHTML(t)}</li>`).join('')}</ol><p class="mission-lesson">${escapeHTML(m.lesson||a.summary)}</p>${m.kind==='nuclear'?`<div class="payload-config"><label>B-2 payload<select id="campaign-payload">${payloadOptions(true)}</select></label><p id="campaign-payload-note" class="small-note payload-note">${escapeHTML(payloadNote(campaignPayload,m.goal?.minimumAltitude||0))}</p></div>`:''}<button id="launch-mission" class="primary wide">${completed?'Fly this sortie again':'Take the controls'} <span>→</span></button><p class="small-note">${completed?'✓ Logged in your campaign.':'Progress saves on this device.'} ${escapeHTML(settings.assist==='assisted'?'Assisted flight is on. You can change it in Setup.':settings.assist==='expert'?'Expert handling is on.':'Standard handling is on.')}</p><details class="historical-note"><summary>From the historical logbook</summary><p>${escapeHTML(m.historicalNote||'Historical aircraft and settings, with compressed distances and simplified game systems.')}</p>${(m.sources||[]).map((u,i)=>`<a href="${escapeHTML(u)}" target="_blank" rel="noopener noreferrer">Source ${i+1} →</a>`).join('')}<p>Flight performance, weapons and radar are simplified game systems.</p></details>`;if(m.kind==='nuclear'){const select=$('campaign-payload');select.value=campaignPayload;select.onchange=()=>{campaignPayload=select.value;setText('campaign-payload-note',payloadNote(campaignPayload,m.goal?.minimumAltitude||0));};}$('launch-mission').onclick=()=>startMission(m.kind==='nuclear'?{...structuredClone(m),payload:campaignPayload}:m);}
 function openCampaign(mission){if(mission)selectedMission=mission;eraFilter='all';renderCampaign();showScreen('campaign');}
+function recordFlightResult(outcome){
+  if(flightRecordResult||!sim||coop||!flightRunId||sim.status==='flying'&&sim.time<10)return flightRecordResult;
+  const result=outcome||(['success','failed'].includes(sim.status)?sim.status:'ended');
+  const report=buildSortieReport(sim,{runId:flightRunId,outcome:result,settings:initialFlightSettings||settings,recordEligible:flightRecordEligible});
+  if(!report)return null;
+  flightRecordResult=recordSortie(flightLog,report);flightLog=flightRecordResult.logbook;
+  if(flightRecordResult.added){flightLogSaved=saveLogbook(flightLog);if(!flightLogSaved)toast('Flight recorded for this tab. Browser storage is unavailable.',6500);}
+  return flightRecordResult;
+}
+function renderOperations(){
+  setMarkup('operation-list',operationListMarkup(OPERATIONS,selectedOperation.id,flightLog,settings));
+  setMarkup('operation-brief',operationBriefMarkup(selectedOperation,settings,operationRecord(flightLog,selectedOperation,settings)));
+  setText('launch-operation','Fly '+selectedOperation.title+' →');
+}
+function openOperations(){closeDialogs();renderOperations();showScreen('operations');}
+function openFlightLog(){
+  closeDialogs();setMarkup('flight-log-content',flightLogMarkup(flightLog));
+  setText('flight-log-storage',flightLogSaved?'Saved in this browser. Campaign progress is kept separately.':'Browser storage is unavailable. This history is available for the current tab.');
+  showScreen('logbook');
+}
 function renderFree(){const list=Object.values(AIRCRAFT);$('aircraft-list').innerHTML=list.map(a=>`<button class="aircraft-card ${a.id===selectedAircraft.id?'selected':''}" data-aircraft="${escapeHTML(a.id)}" aria-pressed="${a.id===selectedAircraft.id}"><small>${escapeHTML(a.era||a.role||'FLIGHT COLLECTION')}</small><strong>${escapeHTML(a.name)}</strong><span>${escapeHTML(a.role||a.summary?.split('.')[0]||'Aircraft')}</span></button>`).join('');$('free-aircraft-name').textContent=selectedAircraft.name;$('free-aircraft-summary').textContent=selectedAircraft.summary||'Get familiar with the aircraft, and bring it home.';refreshPayloadChoice('free',selectedAircraft.id,$('free-payload').value);updateCarrierWarning('free-carrier-warning',selectedAircraft,$('free-start').value==='carrier',$('free-start').value==='carrier'?buildFreeMission():null);}
 function buildFreeMission(){
   const a=selectedAircraft,base=MISSIONS.find(m=>m.aircraft===a.id)||MISSIONS[0],startMode=$('free-start').value,biome=$('free-biome').value,w=$('free-weather').value;
@@ -280,11 +304,13 @@ function buildFreeMission(){
 }
 
 function startMission(m,{cooperative=false,role=null,startData=null}={}){
+  recordFlightResult();
   if(!cooperative){coop=false;team.leave();}
   const players=startData?.players||team.roster||[],self=players.find(p=>p.id===team.id);
   if(cooperative&&m.kind!=='gunship'){m=prepareMissionStarts(m,players);m.aircraft=self?.aircraft||m.aircraft;m.payload=self?.payload||m.payload;}
   audio.unlock();closeDialogs();coop=cooperative;activeStart=cooperative?startData:null;crewRole=cooperative&&m.kind==='gunship'?(role||team.role):null;paused=remotePaused=false;endHandled=false;hintDismissed=false;crewShotsSeen={};seenEvents.clear();lastStatus='flying';flightClock.reset();lastWorld=0;scoreboardOpen=false;spectatedId=spectatorView=null;lastCrashNotice=0;
   sim=new FlightSimulation(m,{...settings,playerId:cooperative?team.id:'local'});
+  flightRunId=globalThis.crypto?.randomUUID?.()||'flight-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);flightRecordResult=null;initialFlightSettings={...settings};flightRecordEligible=true;
   sim.player.id=cooperative?team.id:'local';sim.worldAuthority=!cooperative||team.isHost;
   if(coop&&!isCrewFlight()&&startData)sim.configureMultiplayer({...startData,players,playerId:team.id,hostId:startData.hostId||team.hostId});
   else if(coop&&!isCrewFlight()){const slot=Math.max(0,players.findIndex(p=>p.id===team.id));if(sim.player.onGround){sim.player.x+=(slot%2?1:-1)*Math.ceil(slot/2)*8;sim.player.z+=slot*14;}else{sim.player.x+=(slot%2?1:-1)*slot*23;sim.player.z-=slot*36;}}
@@ -292,7 +318,7 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
   presentation.reset(sim);renderView=presentation.sample(1);markerBoundsDirty=true;lastCrewSnapshot=performance.now();gunnerControls.reset();syncCrewUI();
   if(isCrewFlight())sim.targetId=sim.targets.find(t=>t.health>0&&!t.friendly)?.id||null;
   renderer.loadMission(m,currentAircraft());controls.settings=settings;controls.setThrottle(sim.player.throttle||0);controls.lookX=controls.lookY=0;
-  $('flight-mission-number').textContent=m.kind==='gunship'?'CREW':team.mode==='dogfight'&&coop?'VS':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE';$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
+  $('flight-mission-number').textContent=m.operation?'OPS':m.kind==='gunship'?'CREW':team.mode==='dogfight'&&coop?'VS':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE';$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
   if(m.number){progress.lastMission=m.id;saveProgress(progress);}
   showScreen('flight');updateHUD();
   if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});
@@ -331,9 +357,9 @@ function updateHUD(){
   setText('hud-speed',number(p.speed*(aviation?1.94384:3.6)));setText('speed-unit',aviation?'KNOTS':'KM/H');setText('hud-altitude',number(alt*(aviation?3.28084:1)));setText('altitude-unit',aviation?'FEET AGL':'METRES AGL');
   const deg=((-p.heading*180/Math.PI)%360+360)%360;setMarkup('hud-heading',String(Math.round(deg)%360).padStart(3,'0')+'<span>°</span>');setText('hud-compass',['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8]);
   const wind=typeof m.weather?.wind==='number'?m.weather.wind:Math.hypot(m.weather?.wind?.x||0,m.weather?.wind?.z||0);setText('hud-wind','WIND '+number(wind*1.944)+' KT →');
-  setText('objective-text',sim.objective||'Follow your flight orders');const percent=number((sim.progress||0)*100);setText('mission-progress',m.kind==='free'?'FREE':percent+'%');$('objective-progress').style.width=clamp(percent,0,100)+'%';setText('objective-label',sim.phase?String(sim.phase).replace(/_/g,' ').toUpperCase():'FLIGHT ORDERS');
+  setText('objective-text',sim.objective||'Follow your flight orders');const percent=number((sim.progress||0)*100);setText('mission-progress',m.operation?formatRoundTime(sim.time):m.kind==='free'?sim.groundService?.active?percent+'%':'FREE':percent+'%');$('objective-progress').style.width=clamp(percent,0,100)+'%';setText('objective-label',(sim.phase?String(sim.phase).replace(/_/g,' ').toUpperCase():'FLIGHT ORDERS')+(m.operation?' · ELAPSED':''));
   setMarkup('hud-health','AIRFRAME <b>'+number(p.health/(a.health||100)*100)+'%</b>');setMarkup('hud-fuel','FUEL <b>'+number(p.fuel)+'%</b>');
-  setText('hud-stores',a.gun?'GUN '+number(p.ammo)+(p.missiles?' · MSL '+p.missiles:'')+(p.bombs?' · BMB '+p.bombs:''):p.troopers?'TROOPS '+p.troopers:p.bombs?'PAYLOAD '+p.bombs:'UNARMED');
+  setText('hud-stores',m.goal?.task==='courier'?'MAIL '+Math.max(0,(m.goal.stops?.length||0)-(sim.operationState?.leg||0))+' LOADS':a.gun?'GUN '+number(p.ammo)+(p.missiles?' · MSL '+p.missiles:'')+(p.bombs?' · BMB '+p.bombs:''):p.troopers?'TROOPS '+p.troopers:p.bombs?'PAYLOAD '+p.bombs:'UNARMED');
   setText('throttle-output',number(controls.throttleValue*100)+'%');setText('touch-throttle-output',number(controls.throttleValue*100)+'%');$('touch-throttle-fill').style.width=number(controls.throttleValue*100)+'%';setText('gear-state',a.fixedGear?'FIXED':p.gear?'DOWN':'UP');document.querySelector('[data-action=gear]').disabled=!!a.fixedGear;setText('flaps-state',p.flaps?'DOWN':'UP');document.querySelector('[data-action=flaps]').hidden=a.hasFlaps===false;setText('brake-state',p.brake?'ON':'OFF');setText('hover-state',p.hover?'ON':'OFF');
   for(const [act,state] of [['gear',p.gear],['flaps',p.flaps],['brake',p.brake],['hover',p.hover]])$$(`[data-action="${act}"]`).forEach(b=>b.classList.toggle('active',!!state));
   $('hover-action').hidden=!a.vtol;$('fire-button').hidden=!a.gun;$('missile-action').hidden=!a.missiles;$('payload-action').hidden=!(a.bombs||p.troopers||m.kind==='drop'||m.kind==='nuclear');$('countermeasure-action').hidden=!(a.missiles||a.radar);$('radar-action').hidden=!a.radar;
@@ -419,8 +445,13 @@ function updateMarkers(view=sim){
 function finishFlight(){
   if(endHandled||!sim)return;closeDialogs();if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;setFlightInputs(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=currentAircraft(),dogfight=coop&&team.mode==='dogfight';const health=number(sim.player.health/(a.health||100)*100),minutes=formatRoundTime(dogfight?sim.round?.elapsed:sim.time);
   if(won&&m.number){const previous=progress.completed[m.id];progress.completed[m.id]={score:Math.max(sim.score||0,previous?.score||0),time:sim.time,ending:sim.ending||null};progress.totalTime+=sim.time;if(!saveProgress(progress))toast('This browser could not save your logbook. Keep this tab open.',7500);}
+  const recorded=recordFlightResult(won?'success':'failed');
+  $('debrief-flight-report').hidden=!recorded;setMarkup('debrief-flight-report',recorded?sortieDetailsMarkup(recorded.report,{newBest:recorded.newBest}):'');
+  $('debrief-operations').hidden=coop||!m.operation;$('debrief-logbook').hidden=coop;
   $('debrief-kicker').textContent=dogfight?'FINAL STANDINGS':won?(m.kind==='gunship'?'OPERATION COMPLETE':'SORTIE LOGGED'):'FLIGHT INTERRUPTED';$('debrief-insignia').textContent=won?'✦':'↺';$('debrief-title').textContent=dogfight?'Round complete.':sim.ending==='abort'?'A different way home.':sim.ending==='strike'?'The sky falls silent.':won?(m.kind==='gunship'?'Crew mission complete.':'One for the logbook.'):'Every pilot learns.';
   $('debrief-description').textContent=dogfight?`${m.title} · ${Math.round((sim.round?.duration||600)/60)} minutes complete. Every aircraft, every kill and every loss is recorded below. Regroup with the same squadron for another flight.`:sim.endingText||(won?`${m.title} complete. ${sim.score?Math.round(sim.score)+' points earned. ':''}${m.kind==='gunship'?'All eight ground objectives cleared. Your crew can launch again.':'Your next aircraft is waiting.'}`:sim.objective||sim.hint||'The flight ended before you completed your orders. Try assisted flight, or restart and take it one step at a time.');
+  if(m.operation){setText('debrief-kicker',won?'OPERATION COMPLETE':'OPERATION ENDED');setText('debrief-title',m.title);setText('debrief-description',sim.objective);}
+  else if(!dogfight&&!sim.ending){setText('debrief-title',won?'Sortie complete.':sim.player.health<=0?'Aircraft lost.':'Sortie incomplete.');if(won)setText('debrief-description',m.title+' complete. '+(m.kind==='gunship'?'All eight ground objectives cleared.':number(sim.score)+' points.'));}
   $('debrief-stats').innerHTML=dogfight?`<span>${minutes}<small>ROUND TIME</small></span><span>${number(sim.localParticipant?.kills)}<small>YOUR KILLS</small></span><span>${number(sim.localParticipant?.deaths)}<small>YOUR DEATHS</small></span>`:`<span>${minutes}<small>FLIGHT TIME</small></span><span>${health}%<small>AIRFRAME</small></span><span>${won?'✓':number((sim.progress||0)*100)+'%'}<small>OBJECTIVE</small></span>`;
   $('debrief-scoreboard').hidden=$('debrief-score-note').hidden=!coop||isCrewFlight();setText('debrief-score-note',team.mode==='squadron'?'Kills count hostile aircraft. Ground objectives add team mission points. K/D is kills ÷ deaths; — means no deaths yet.':'K/D is kills ÷ deaths; — means no deaths yet.');if(coop&&!isCrewFlight())setMarkup('debrief-scoreboard',scoreboardMarkup(participantList(),team.id));
   $('next-mission').hidden=!won||!m.number||m.number>=MISSIONS.length||coop;$('retry-mission').textContent=coop?(team.isHost?'Fly again with squadron':'Return to squadron room'):'Fly again';$('debrief-room').hidden=!coop||!team.isHost;showScreen('debrief');
@@ -431,7 +462,7 @@ function openSettings(){
   if(resumeAfterSettings){paused=true;setFlightInputs(false);audio.setActive(false);if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:sharedWorldPaused()});}
   if(settingsFromPause)$('pause-dialog').close();renderSettings();$('settings-dialog').showModal();
 }
-function closeSettings(){cancelBindingCapture();controls.clear();if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}}
+function closeSettings(){cancelBindingCapture();controls.clear();if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}if(screen==='operations')renderOperations();}
 function bindingInfo(id){const gunner=id.startsWith('gunner:');return {id:gunner?id.slice(7):id,scope:gunner?'gunnerBindings':'keyBindings',actions:gunner?GUNNER_BINDING_ACTIONS:BINDING_ACTIONS};}
 function bindingLabel(id){const info=bindingInfo(id);return formatKeyCode(settings[info.scope][info.id]);}
 function bindingFeedback(message){const el=$('keybinding-feedback');if(el)el.textContent=message;}
@@ -474,6 +505,7 @@ function refreshTouchHints(){
   $('gunner-aim-pad').setAttribute('aria-label',`${settings.leftHanded?'Right':'Left'} thumb: drag to aim the gun; release to hold the sight.`);$('gunner-fire').setAttribute('aria-label',`Hold to fire selected gun with your ${settings.leftHanded?'left':'right'} thumb.`);
 }
 function flightHint(hint){
+  if(sim?.player.onGround&&hint&&(sim.mission.operation||sim.mission.kind==='free'&&sim.player.everAirborne))return hint;
   if(sim?.player.onGround&&sim.player.engine&&!isTouchLayout()){const a=currentAircraft();if(sim.player.brake)return `Release BRAKE (${bindingLabel('brake')}), then add thrust (${bindingLabel('throttleUp')}). ${sim.player.carrierLaunch?'Carrier launch assistance is ready.':''}`;if(sim.mission.runways?.some(r=>r.carrier&&Math.hypot(r.x-sim.player.x,r.z-sim.player.z)<r.length))return a.vtol?`Use HOVER (${bindingLabel('hover')}) and add thrust for a vertical departure.`:`Short deck: watch airspeed and wing clearance. Pull ${bindingLabel('pitchUp')} to raise the nose when you have flying speed.`;}
   if(isCrewFlight()&&!isGunner())return 'Keep the ground targets on your left. Bank gently left around the marked basin while your gunner works the stations.';
   if(isTouchLayout()){
@@ -520,6 +552,7 @@ function renderSettings(){
 }
 function updateSettings(){
   markerBoundsDirty=true;
+  if(sim?.status==='flying'&&initialFlightSettings&&(settings.assist!==initialFlightSettings.assist||settings.autoLevel!==initialFlightSettings.autoLevel))flightRecordEligible=false;
   settings=normalizeSettings(settings);applySettings(settings);settingsSaved=saveSettings(settings);controls.settings=settings;gunnerControls.settings=settings;audio.setSettings(settings);renderer?.setSettings(settings);if(sim)sim.settings=settings;
   $('sound-button').querySelector('.sound-label').textContent=settings.sound?'Sound on':'Sound off';$('sound-glyph').textContent=settings.sound?'◖':'⊘';$('sound-button').setAttribute('aria-label',settings.sound?'Mute sound':'Enable sound');
   const night=settings.theme==='night';$('theme-label').textContent=night?'Night':'Day';$('theme-button').setAttribute('aria-pressed',String(night));$('theme-button').setAttribute('aria-label',night?'Switch to day mode':'Switch to night mode');$('theme-button').title=night?'Switch to day mode':'Switch to night mode';
@@ -529,6 +562,11 @@ function updateSettings(){
 $('continue-button').onclick=()=>openCampaign(MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0]);$('campaign-button').onclick=()=>openCampaign();$('home-button').onclick=goHome;$$('[data-home]').forEach(b=>b.onclick=goHome);
 $('free-button').onclick=()=>{renderFree();showScreen('free');};$('launch-free').onclick=()=>startMission(buildFreeMission());
 $('squadron-button').onclick=()=>{updateRoom();showScreen('squadron');};
+$('operations-button').onclick=openOperations;$('flight-log-button').onclick=openFlightLog;
+$('operation-list').onclick=e=>{const button=e.target.closest('[data-operation]');if(!button)return;const mission=getOperation(button.dataset.operation);if(!mission)return;selectedOperation=mission;renderOperations();if(innerWidth<=760)$('operation-detail').scrollIntoView?.({block:'start'});};
+$('launch-operation').onclick=()=>startMission(structuredClone(selectedOperation));
+$('flight-log-content').onclick=e=>{if(e.target.closest('[data-log-operations]'))openOperations();};
+$('debrief-operations').onclick=openOperations;$('debrief-logbook').onclick=openFlightLog;
 for(const [id,direction] of [['hangar-prev',-1],['hangar-next',1]]){const button=$(id);if(button)button.onclick=()=>browseHangar(direction);}
 const hangarFly=$('hangar-fly');if(hangarFly)hangarFly.onclick=()=>{selectedAircraft=hangarAircraft[hangarIndex];renderFree();showScreen('free');};
 $('era-filters').onclick=e=>{const b=e.target.closest('[data-era]');if(b){eraFilter=b.dataset.era;renderCampaign();}};

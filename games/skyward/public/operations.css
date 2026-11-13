@@ -1,0 +1,87 @@
+/* Flight planning and the pilot's record. Keep these out of the flight overlay. */
+.flight-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:6px}
+.flight-menu-heading button{min-height:44px;padding:7px 0;background:none;color:var(--hangar-accent);font-size:12px;border-bottom:1px solid transparent}
+.flight-menu-heading button:hover{border-bottom-color:currentColor}
+.operations-layout{max-width:1200px;margin:auto;display:grid;grid-template-columns:minmax(300px,.85fr) minmax(0,1.15fr);gap:48px;align-items:start}
+.operations-index{position:sticky;top:28px}
+.operations-index-heading{display:flex;justify-content:space-between;gap:16px;font:11px/1.4 Consolas,monospace;padding:0 12px 14px 0;color:var(--muted);border-bottom:1px solid var(--line)}
+.operation-row{display:grid;grid-template-columns:30px minmax(0,1fr) 20px;align-items:center;gap:12px;width:100%;text-align:left;border-bottom:1px solid var(--line);background:transparent;padding:18px 12px 18px 0;min-height:106px}
+.operation-row:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.operation-row.selected{box-shadow:inset 3px 0 var(--orange);padding-left:12px;background:color-mix(in srgb,var(--orange) 8%,transparent)}
+.operation-number,.operation-arrow{font:12px/1.4 Consolas,monospace;color:var(--muted)}
+.operation-row-copy{display:flex;flex-direction:column;gap:5px}
+.operation-row-copy strong{font:700 25px/1.15 "Skyward Condensed","Arial Narrow",Arial,sans-serif}
+.operation-row-copy>span,.record-line{font-size:11px;line-height:1.45;color:var(--muted)}
+.operation-row.selected .operation-arrow{color:var(--orange)}
+.operation-brief-head{display:flex;justify-content:space-between;gap:12px;font:11px/1.4 Consolas,monospace;color:var(--muted);border-top:3px solid var(--ink);padding-top:16px;margin-bottom:9px}
+.operation-detail h2{font:700 clamp(36px,4vw,50px)/1.1 "Skyward Condensed","Arial Narrow",Arial,sans-serif;margin:0 0 14px}
+.operation-description{font-size:15px;line-height:1.65;margin-bottom:23px;max-width:52ch}
+.operation-facts{display:grid;grid-template-columns:1fr 1fr;gap:20px;font-size:13px;line-height:1.5;margin-bottom:22px}
+.operation-facts small{display:block;font:10px/1.5 Consolas,monospace;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
+.operation-map{margin:0 0 26px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 3%,transparent)}
+.operation-map svg{display:block;width:100%;max-height:290px;overflow:hidden}
+.map-grid{stroke:var(--line);stroke-width:.5;fill:none;opacity:.45}
+.map-route{stroke:var(--orange);stroke-width:1.5;stroke-dasharray:5 4;fill:none}
+.map-gate{fill:var(--paper);stroke:var(--orange);stroke-width:1.5}
+.map-field{fill:#6da18e;stroke:var(--ink);stroke-width:.5}
+.map-contact{stroke:#d46c55;stroke-width:2;fill:none}
+.map-friendly{stroke:#60a5b4;stroke-width:2;fill:none}
+.map-start{fill:var(--orange);stroke:var(--paper);stroke-width:1}
+.map-north{stroke:var(--muted);stroke-width:1;fill:none}
+.map-label{fill:var(--muted);font:9px Consolas,monospace}
+.operation-map figcaption{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid var(--line);font-size:10px;line-height:1.5;color:var(--muted)}
+.operation-detail h3,.flight-log-layout h2,.flight-log-empty h2{font:700 23px/1.2 "Skyward Condensed","Arial Narrow",Arial,sans-serif;margin:0 0 12px}
+.operation-orders{padding-left:22px;margin:0 0 28px;font-size:13px;line-height:1.65}
+.operation-orders li{padding-left:5px;margin-bottom:12px}
+.operation-orders li::marker{color:var(--muted);font-family:Consolas,monospace}
+.operation-standards{border-top:1px solid var(--line);padding-top:20px;margin-bottom:22px}
+.operation-standards p{font-size:12px;color:var(--muted);margin-bottom:12px}
+.operation-standards dl{margin:0 0 14px;font-size:13px}
+.operation-standards dl>div{display:flex;justify-content:space-between;gap:14px;margin-bottom:8px}
+.operation-standards dt{font-weight:700}.operation-standards dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.operation-best{border-left:3px solid var(--line);padding-left:14px;margin-bottom:20px}
+.operation-best>span{display:block;font:10px/1.5 Consolas,monospace;color:var(--muted);margin-bottom:5px}
+.operation-best strong{font-size:15px;font-weight:600}
+[data-medal="gold"]{color:#b68b30}[data-medal="silver"]{color:#6b8a9a}[data-medal="bronze"]{color:#ab6b43}
+:root:not([data-theme="day"]) [data-medal="gold"]{color:#e1bc70}:root:not([data-theme="day"]) [data-medal="silver"]{color:#b6c4ce}:root:not([data-theme="day"]) [data-medal="bronze"]{color:#d89d77}
+.operation-best[data-medal="gold"],.operation-best[data-medal="silver"],.operation-best[data-medal="bronze"]{border-left-color:currentColor}
+.operations-footnote{color:var(--muted);font-size:11px;line-height:1.6;margin-top:22px}
+#flight-log-content{max-width:1200px;margin:auto}
+.flight-log-totals{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:22px 0;margin-bottom:40px;color:var(--muted);font-size:12px}
+.flight-log-totals strong{display:block;color:var(--ink);font:700 32px/1.2 "Skyward Condensed","Arial Narrow",Arial,sans-serif;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.flight-log-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(220px,1fr);gap:52px}
+.flight-history-row{border-top:1px solid var(--line)}
+.flight-history-row:last-child{border-bottom:1px solid var(--line)}
+.flight-history-row summary{display:grid;grid-template-columns:60px minmax(0,1fr) 75px;gap:14px;align-items:center;padding:18px 0;cursor:pointer;list-style:none;min-height:80px}
+.flight-history-row summary::-webkit-details-marker{display:none}
+.flight-history-row summary:hover strong{color:var(--orange)}
+.flight-history-row summary:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+.flight-history-row summary time{font:11px/1.4 Consolas,monospace;color:var(--muted)}
+.flight-history-row summary strong{font-weight:600;font-size:14px}
+.flight-history-row summary small{display:block;color:var(--muted);font-size:11px;margin-top:6px;line-height:1.5}
+.history-result{text-align:right;font-size:12px}.history-result small{font-variant-numeric:tabular-nums}
+.flight-history-row .sortie-summary{padding:0 0 20px 74px}
+.sortie-summary{text-align:left}
+.sortie-grade{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:17px;margin-bottom:8px}
+.sortie-grade>span{font:10px/1.4 Consolas,monospace}
+.sortie-condition{font-size:11px;line-height:1.5;color:var(--muted);margin-bottom:16px}
+.sortie-measures{display:grid;grid-template-columns:1fr 1fr;gap:13px 20px;margin:0 0 18px}
+.sortie-measures dt{color:var(--muted);font-size:11px;margin-bottom:4px}.sortie-measures dd{font-size:14px;margin:0;font-variant-numeric:tabular-nums}
+.touchdown-result{grid-column:1/-1}.next-standard{font-size:12px;line-height:1.6;margin-bottom:0}
+.airframe-log-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:15px 0;border-top:1px solid var(--line);font-size:12px}
+.airframe-log-row strong{font:12px/1.5 Consolas,monospace}.airframe-log-row small{grid-column:1/-1;font-size:11px;color:var(--muted)}
+.flight-log-empty{border-top:2px solid var(--ink);padding-top:30px;max-width:650px}.flight-log-empty p{font-size:14px;color:var(--muted);max-width:55ch;margin-bottom:24px}
+#debrief-flight-report{border-top:1px solid var(--line);padding-top:22px;margin:8px 0 26px}
+.debrief-card h1{font:700 44px/1.1 "Skyward Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:0}
+#debrief-insignia{display:none}.debrief-card{max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain}
+.debrief-actions>.debrief-links{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}
+@media(min-width:761px){#home-screen{min-height:780px}.flight-menu-item,.campaign-entry-button{min-height:88px;padding-top:13px;padding-bottom:13px}}
+@media(max-width:900px){.operations-layout{grid-template-columns:minmax(245px,.85fr) minmax(0,1.15fr);gap:26px}.flight-log-layout{gap:28px}}
+@media(max-width:760px){
+  #home-screen{min-height:880px}.flight-menu-heading{margin-bottom:0}.flight-menu-heading .hangar-label{font-size:9px}.flight-menu-heading button{font-size:11px}
+  .operations-layout{display:block}.operations-index{position:static;margin-bottom:32px}.operations-index-heading{font-size:10px;padding-bottom:10px}
+  .operation-list{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.operation-row{grid-template-columns:19px minmax(0,1fr);gap:6px;min-height:112px;padding:14px 5px 14px 0}.operation-row.selected{padding-left:8px}.operation-arrow{display:none}.operation-row-copy strong{font-size:22px}.operation-row-copy>span,.record-line{font-size:10px}.operation-number{font-size:10px}
+  .operations-footnote{margin-top:14px}.operation-detail{scroll-margin-top:20px}.operation-detail h2{font-size:40px}.operation-map svg{max-height:230px}.operation-facts{gap:18px;font-size:12px}
+  .flight-log-layout{display:block}.airframe-log{margin-top:35px}.flight-log-totals{gap:14px;grid-template-columns:1fr 1fr;margin-bottom:28px}.flight-log-totals strong{font-size:28px}.flight-history-row summary{grid-template-columns:48px minmax(0,1fr) 62px;gap:8px}.flight-history-row .sortie-summary{padding-left:0}.debrief-card{max-height:calc(100dvh - 30px)}
+}
+@media(orientation:landscape) and (min-width:561px) and (max-height:500px){#home-screen{height:auto;min-height:520px}.flight-menu-heading{display:flex}.flight-menu-item,.campaign-entry-button{min-height:64px;padding-top:8px;padding-bottom:8px}.mode-title{font-size:23px}.mode-description{font-size:10px}.hangar-viewer{min-height:250px}}

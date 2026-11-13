@@ -2,9 +2,9 @@
 <html lang="en" data-theme="night">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 14 aircraft across 18 campaign missions, explore in free flight, or join friends for dogfights and co-op. A Daily Flyer aviation game for keyboard and touch.">
+  <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 14 aircraft across 18 campaign missions and six independent operations, explore in free flight, or join friends for dogfights and co-op. A Daily Flyer aviation game for keyboard and touch.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css"><link rel="stylesheet" href="./mobile-flight.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css"><link rel="stylesheet" href="./mobile-flight.css"><link rel="stylesheet" href="./operations.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
@@ -22,7 +22,7 @@
     </div>
 
     <nav class="flight-menu" aria-label="Choose a game mode">
-      <p class="hangar-label">SELECT FLIGHT</p>
+      <div class="flight-menu-heading"><p class="hangar-label">SELECT FLIGHT</p><button id="flight-log-button">Flight log →</button></div>
       <div class="campaign-entry">
         <button id="continue-button" class="flight-menu-item campaign-entry-button">
           <span class="mode-number" aria-hidden="true">01</span>
@@ -31,13 +31,18 @@
         </button>
         <button id="campaign-button" class="mission-select">Mission select <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></button>
       </div>
-      <button id="free-button" class="flight-menu-item">
+      <button id="operations-button" class="flight-menu-item">
         <span class="mode-number" aria-hidden="true">02</span>
+        <span class="mode-copy"><span class="mode-title">Operations</span><span class="mode-description">Six flying challenges · Personal bests</span></span>
+        <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+      </button>
+      <button id="free-button" class="flight-menu-item">
+        <span class="mode-number" aria-hidden="true">03</span>
         <span class="mode-copy"><span class="mode-title">Free flight</span><span class="mode-description">Choose aircraft and terrain</span></span>
         <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
       </button>
       <button id="squadron-button" class="flight-menu-item">
-        <span class="mode-number" aria-hidden="true">03</span>
+        <span class="mode-number" aria-hidden="true">04</span>
         <span class="mode-copy"><span class="mode-title">Multiplayer</span><span class="mode-description">Dogfights · Co-op · AC-130 crew</span></span>
         <svg class="mode-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
       </button>
@@ -53,7 +58,7 @@
       </div>
     </section>
 
-    <footer class="hangar-footer"><span><b id="home-aircraft-count">14</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.7.0</span></footer>
+    <footer class="hangar-footer"><span><b id="home-aircraft-count">14</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.8.0</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -61,9 +66,22 @@
     <div class="campaign-layout"><div class="mission-index"><div id="era-filters" class="era-filters" role="group" aria-label="Filter missions by era"></div><div id="mission-list" class="mission-list" aria-label="Campaign missions"></div></div><article id="mission-detail" class="mission-detail"></article></div>
   </section>
 
+  <section id="operations-screen" class="screen panel-screen" data-screen="operations" hidden>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SINGLE PLAYER / OPEN TO ALL</p><h1>Operations</h1><p>Pick a flying challenge. Complete the orders, bring the aircraft home, then improve your best.</p></div>
+    <div class="operations-layout">
+      <aside class="operations-index"><div class="operations-index-heading"><span>FLIGHT BOARD</span><span>6 AVAILABLE</span></div><div id="operation-list" class="operation-list" aria-label="Choose an operation"></div><p class="operations-footnote">Every flight is available now. Aircraft, routes and conditions are fixed; your handling settings still apply. Campaign progress stays separate.</p></aside>
+      <article id="operation-detail" class="operation-detail"><div id="operation-brief"></div><button id="launch-operation" class="primary wide">Fly operation →</button></article>
+    </div>
+  </section>
+
+  <section id="logbook-screen" class="screen panel-screen" data-screen="logbook" hidden>
+    <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">PILOT RECORD</p><h1>Flight log</h1><p id="flight-log-storage">Saved in this browser. Campaign progress is kept separately.</p></div>
+    <div id="flight-log-content"></div>
+  </section>
+
   <section id="free-screen" class="screen panel-screen" data-screen="free" hidden>
     <div class="panel-heading"><button class="back-button" data-home>← <span>Hangar</span></button><p class="eyebrow">SINGLE PLAYER</p><h1>Free flight</h1><p>Choose an aircraft, landscape, and starting point.</p></div>
-    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="high">High altitude · 6,500 m AGL</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><div id="free-payload-field" class="payload-config" hidden><label>B-2 payload<select id="free-payload"><option value="conventional">Conventional bomb</option><option value="atomic">Atomic · Hiroshima class</option><option value="hydrogen">Hydrogen bomb</option><option value="tsar">Tsar Bomba class</option></select></label><p id="free-payload-note" class="small-note payload-note"></p></div><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Free flight keeps your campaign progress separate.</p></div></div>
+    <div class="free-layout"><div id="aircraft-list" class="aircraft-list" aria-label="Choose aircraft"></div><div class="free-config paper-panel"><p class="eyebrow">YOUR FLIGHT</p><h2 id="free-aircraft-name">Avro 504</h2><p id="free-aircraft-summary"></p><label>Landscape<select id="free-biome"><option value="countryside">English countryside</option><option value="pacific">Pacific islands</option><option value="desert">Desert mountains</option><option value="mountains">Alpine valleys</option><option value="canyon">Razorback Canyons · deep terrain cover</option></select></label><label>Start<select id="free-start"><option value="airborne">Already in the air</option><option value="high">High altitude · 6,500 m AGL</option><option value="runway">Engine off, on the runway</option><option value="carrier">Aircraft carrier · attempt any aircraft</option></select></label><p id="free-carrier-warning" class="carrier-warning" hidden></p><div id="free-payload-field" class="payload-config" hidden><label>B-2 payload<select id="free-payload"><option value="conventional">Conventional bomb</option><option value="atomic">Atomic · Hiroshima class</option><option value="hydrogen">Hydrogen bomb</option><option value="tsar">Tsar Bomba class</option></select></label><p id="free-payload-note" class="small-note payload-note"></p></div><label>Conditions<select id="free-weather"><option value="clear">Clear skies · light breeze</option><option value="cloudy">Broken cloud · crosswind</option><option value="sunset">Golden hour · calm</option><option value="night">Night sky · light breeze</option></select></label><button id="launch-free" class="primary wide">Take flight <span>→</span></button><p class="small-note">Land at an airfield, idle the thrust and set the brake to refuel, repair and rearm. End the flight from the pause menu to add it to your flight log.</p></div></div>
   </section>
 
   <section id="squadron-screen" class="screen panel-screen" data-screen="squadron" hidden>
@@ -177,11 +195,11 @@
     <button id="abort-finale" class="abort-finale" hidden>Abort mission · Return home</button>
   </section>
 
-  <section id="debrief-screen" class="screen debrief-screen" data-screen="debrief" hidden><article class="debrief-card"><p class="eyebrow" id="debrief-kicker">FLIGHT LOG</p><span class="debrief-insignia" id="debrief-insignia">✦</span><h1 id="debrief-title">Back on the ground.</h1><p id="debrief-description"></p><div id="debrief-stats" class="debrief-stats"></div><div id="debrief-scoreboard" class="scoreboard-table" hidden></div><p id="debrief-score-note" class="small-note" hidden></p><div id="debrief-actions" class="debrief-actions"><button id="next-mission" class="primary wide">Next sortie →</button><button id="retry-mission" class="secondary wide">Fly again</button><button id="debrief-room" class="secondary wide" hidden>Return to squadron</button><button class="text-button" data-home>Return to the hangar</button></div></article></section>
+  <section id="debrief-screen" class="screen debrief-screen" data-screen="debrief" hidden><article class="debrief-card"><p class="eyebrow" id="debrief-kicker">FLIGHT LOG</p><span class="debrief-insignia" id="debrief-insignia">✦</span><h1 id="debrief-title">Back on the ground.</h1><p id="debrief-description"></p><div id="debrief-stats" class="debrief-stats"></div><div id="debrief-flight-report" hidden></div><div id="debrief-scoreboard" class="scoreboard-table" hidden></div><p id="debrief-score-note" class="small-note" hidden></p><div id="debrief-actions" class="debrief-actions"><button id="next-mission" class="primary wide">Next sortie →</button><button id="retry-mission" class="secondary wide">Fly again</button><button id="debrief-room" class="secondary wide" hidden>Return to squadron</button><button id="debrief-operations" class="secondary wide" hidden>Choose another operation</button><button id="debrief-logbook" class="text-button" hidden>View flight log →</button><button class="text-button" data-home>Return to the hangar</button></div></article></section>
 
-  <dialog id="pause-dialog" class="pause-dialog"><p class="eyebrow">TAKE A BREATH</p><h2>Holding position.</h2><p id="pause-note">Your flight is paused.</p><button id="resume-button" class="primary wide">Back to the sky →</button><button class="secondary wide" data-open-settings>Controls & settings</button><button id="pause-restart" class="secondary wide">Restart sortie</button><button id="pause-room" class="secondary wide" hidden>Regroup in squadron room</button><button id="pause-home" class="text-button">Return to hangar</button></dialog>
+  <dialog id="pause-dialog" class="pause-dialog"><p class="eyebrow">FLIGHT MENU</p><h2>Paused</h2><p id="pause-note">Your flight is paused.</p><button id="resume-button" class="primary wide">Back to the sky →</button><button class="secondary wide" data-open-settings>Controls & settings</button><button id="pause-restart" class="secondary wide">Restart sortie</button><button id="pause-room" class="secondary wide" hidden>Regroup in squadron room</button><button id="pause-home" class="text-button">Return to hangar</button></dialog>
 
-  <dialog id="settings-dialog" class="settings-dialog"><div class="settings-heading"><div><p class="eyebrow">MAKE YOURSELF AT HOME</p><h2>Your cockpit. Your way.</h2></div><button id="close-settings" class="close-button" aria-label="Close settings">×</button></div><nav class="settings-tabs" aria-label="Settings sections"><button data-settings-tab="keyboard">Keyboard</button><button data-settings-tab="controls" class="active">Touch</button><button data-settings-tab="flight">Flying</button><button data-settings-tab="display">Sound & view</button></nav><div id="settings-content" class="settings-content"></div><footer class="settings-footer"><button id="reset-settings" class="text-button">Reset preferences</button><button id="done-settings" class="primary">Done <span>✓</span></button></footer></dialog>
+  <dialog id="settings-dialog" class="settings-dialog"><div class="settings-heading"><div><p class="eyebrow">FLIGHT PREFERENCES</p><h2>Setup</h2></div><button id="close-settings" class="close-button" aria-label="Close settings">×</button></div><nav class="settings-tabs" aria-label="Settings sections"><button data-settings-tab="keyboard">Keyboard</button><button data-settings-tab="controls" class="active">Touch</button><button data-settings-tab="flight">Flying</button><button data-settings-tab="display">Sound & view</button></nav><div id="settings-content" class="settings-content"></div><footer class="settings-footer"><button id="reset-settings" class="text-button">Reset preferences</button><button id="done-settings" class="primary">Done <span>✓</span></button></footer></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script type="module" src="./app.mjs"></script>
 </body>

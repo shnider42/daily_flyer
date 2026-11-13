@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.7.0
+# SKYWARD module contract · v0.8.0
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 
@@ -11,6 +11,22 @@ Aircraft models use **+Z forward, +Y up, pilot-right −X and port/left +X**. He
 `gunship-nightwatch` is Nightwatch Basin: `kind:'gunship'`, `aircraft:'ac130'`, one pilot and one gunner, eight ground objectives, night weather. Its `orbit:{x,z,radius,altitude,direction}` supplies the basin marker. Special missions have no campaign number and do not alter campaign progress. The AC-130 also supports ordinary free-flight handling; its shared weapon stations belong to the crew operation.
 
 Aircraft shape: {id,name,shortName,era,model,color,accent,maxSpeed,cruise,stallSpeed,acceleration,turnRate,climbRate,rollRate,health,gun,missiles,bombs,radar,stealth,vtol,role,summary}. Numeric speeds are simulation m/s. There are fourteen flyable profiles; the additional enemy model types do not become selectable aircraft. Independent multiplayer accepts every flyable profile without changing its performance or adding equipment. An unarmed profile stays unarmed; the AC-130's three gun stations require crew mode.
+
+## Independent operations and local flight records
+
+`operations.mjs` exports `OPERATIONS` and `getOperation(id)`, returning `null` for an unknown ID. These are six standalone solo mission objects, passed directly to the simulation. They have no campaign `number` and are not accepted room mission IDs. Each carries `operation:{id,category,medals:{gold:{time,health},silver:{time,health}}}`, fixed `weatherPreset:'authored'`, and `goal:{type:'operation',task:'route'|'courier'|'air'|'ground',...}`. Medal time is total simulation seconds and health is percent. Changing authored rules changes the record condition key.
+
+`sim.operationState` holds task/return/delivery/complete stage, delivery leg/unload timer, completed-task time, landing counts, and the one-time reinforcement flag. `navigationTarget.runwayIndex` identifies the actual destination for renderer approach cues. Recovery requires a new safe landing after the task, on the correct runway, at idle thrust and a braked stop. Courier stops reset their unloading dwell when movement resumes. `requireHover` verifies the actual landing's hover flag. Operation state travels in snapshots; existing campaign goal rules remain separate.
+
+`sim.sortieStats` exposes `{airTime,distance,damageTaken,landings,lastLanding,airKills,groundKills,gatesReached}`. Time is seconds, distance is metres; airborne path distance excludes taxiing. `lastLanding` contains `{runwayIndex,safe,speed,sinkRate,quality,hover,time}`. Damage is accumulated from accepted receipts and terrain impacts; repair is not negative damage. Presentation inherits these read-only fields. Configured guest aircraft do not inherit the host's flight totals.
+
+`sim.groundService` is `{active,progress,duration:8,runwayIndex,completed}` and is local solo freeflight only. Safe stationary runway contact, brake, idle thrust, and no active weapon/blast hazard are required. Completion restores the current aircraft's existing loadout, with no ability to change its payload type. Movement or firing clears the service timer. Its status appears through the existing objective/hint path.
+
+`logbook.mjs` exports `loadLogbook`, `saveLogbook`, `buildSortieReport`, `recordSortie`, `operationRecord`, and normalization/scoring helpers. The new `dfe.skyward.flights.v1` key is independent of the existing campaign key. The app generates a run ID once at launch and reuses it when recording; repeat debrief/exit events cannot double-count it. Recent history is bounded to 24 flights, records to 96, and seen IDs to 128. Records require successful operations and unchanged handling; condition identity includes aircraft, assist, auto-level, payload, weather and medal rules. Empty/blocked/malformed storage recovers to a safe in-memory record. No network API receives local flight-log data.
+
+`operations-ui.mjs` supplies escaped board, briefing, route-map, debrief and logbook markup. `operations.css` styles only planning/results screens and home menu integration. Flight HUD layout continues to belong to `mobile-flight.css`.
+
+`airfield-scenery.mjs` supplies shared local-coordinate scenery, roof triangles, wind-driven windsocks and terrain/deck arrival cues. Fixed geometry and lamp budgets bound each field. WebGL batches static surfaces by material and instances emissive lamps; software uses the same placements and draws lamps above runway paint. These decorations do not add hidden collision obstacles.
 
 ## Arena and launch construction
 

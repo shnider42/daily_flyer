@@ -8,6 +8,9 @@ import * as arena from '../../public/arena.mjs';
 import * as terrain from '../../public/terrain.mjs';
 import * as multiplayerUI from '../../public/multiplayer-ui.mjs';
 import * as payloads from '../../public/payloads.mjs';
+import * as operations from '../../public/operations.mjs';
+import * as logbook from '../../public/logbook.mjs';
+import * as operationsUI from '../../public/operations-ui.mjs';
 import { FlightSimulation } from '../../public/sim.mjs';
 import { terrainHeight } from '../../public/sim.mjs';
 import { FlightControls } from '../../public/controls.mjs';
@@ -152,7 +155,7 @@ export async function appFixture(t) {
   }
   t.after(() => { for (const key of Object.keys(replacements)) if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key]; });
   let clock = 1000, timer = 0;
-  const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, ...payloads, FlightSimulation, terrainHeight,
+  const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, ...payloads, ...operations, ...logbook, ...operationsUI, FlightSimulation, terrainHeight,
     FlightControls, GunnerControls, FixedStepClock, FlightPresentation, CombatFeedback,
     SquadronClient: RelayAdapter, FlightRenderer: RendererAdapter, SoftwareFlightRenderer: RendererAdapter, FlightAudio: AudioAdapter,
     ...replacements, performance: { now: () => clock }, console, URL, structuredClone,
@@ -160,8 +163,8 @@ export async function appFixture(t) {
     innerWidth: 1200, innerHeight: 800, requestAnimationFrame() {}, setTimeout() { return ++timer; }, clearTimeout() {} });
   // Imports are provided above; the rest of app.mjs runs verbatim. Inspectable
   // bindings are appended only in this test VM, never to the shipped application.
-  vm.runInContext(source.replace(/^import .*;\r?\n/gm, '') + '\nglobalThis.__app = { get team(){return team}, get sim(){return sim}, get screen(){return screen}, get renderer(){return renderer}, get audio(){return audio}, get paused(){return paused}, get spectatorView(){return spectatorView}, controls, gunnerControls, frame, startMission };', context);
+  vm.runInContext(source.replace(/^import .*;\r?\n/gm, '') + '\nglobalThis.__app = { get team(){return team}, get sim(){return sim}, get screen(){return screen}, get renderer(){return renderer}, get audio(){return audio}, get paused(){return paused}, get flightLog(){return flightLog}, get flightRecordResult(){return flightRecordResult}, get spectatorView(){return spectatorView}, controls, gunnerControls, frame, startMission, renderOperations, openOperations, openFlightLog };', context);
   const app = context.__app;
   t.after(() => { app.controls.destroy(); app.gunnerControls.destroy(); });
-  return { app, document, window, frame: (delta = 17) => { clock += delta; app.frame(clock); } };
+  return { app, document, window, stored, frame: (delta = 17) => { clock += delta; app.frame(clock); } };
 }
