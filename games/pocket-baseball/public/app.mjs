@@ -112,6 +112,9 @@ function openHelp(origin = 'game') {
   if (screen === 'game') pauseGame(undefined, false);
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
   refs['help-dialog'].showModal();
+  // Start long guides at their heading, rather than the bottom close button.
+  $('help-title').focus({ preventScroll: true });
+  refs['help-dialog'].scrollTop = 0;
 }
 function closeHelp() { if (refs['help-dialog'].open) refs['help-dialog'].close(); }
 refs['help-dialog'].addEventListener('close', () => {
