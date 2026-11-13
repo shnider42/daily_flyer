@@ -79,6 +79,7 @@ test('export covers own stored records and shared associations without credentia
   assert.deepEqual(output.captain.game.shipRecovery, captain.game.shipRecovery);
   assert.deepEqual(output.captain.game.militaryRecovery, captain.game.militaryRecovery);
   assert.equal(output.captain.game.spaceVersion, captain.game.spaceVersion, 'The geometry marker describes this captain’s saved space coordinates.');
+  assert.equal(output.captain.game.worldTypesVersion, captain.game.worldTypesVersion, 'The place-size marker preserves the saved migration state.');
   for (const key of Object.keys(captain).filter(key => !['tokenHash', 'game', 'recentCommands'].includes(key))) assert.deepEqual(output.captain[key], captain[key], `Own captain field ${key} is represented.`);
   assert.equal(output.captain.recentCommands[0].result.text, 'My recorded result');
   assert.deepEqual(output.manifest.unrecognizedGameFields, []);

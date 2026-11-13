@@ -6,6 +6,8 @@ import {normalizeShipZoom} from './camera-view.mjs';
 import {cosmicInfluence,COSMIC_RULES} from './galaxy-expansion.mjs';
 import {portProfile} from './port-traffic.mjs';
 import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
+import {stationTypeFor,planetTypeFor,systemTypeFor} from './world-types.mjs';
+import {stationPlan,planetTerrainSample} from './place-geometry.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Chart coverage follows the system extent; ship and world sprites keep their
 // physical size, so more space never silently zooms out the flight camera.
@@ -286,22 +288,34 @@ export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,ti
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));ctx.rotate(angle);ctx.scale(factor,factor);ctx.drawImage(work,-work.width/2,-work.height/2);ctx.restore();
  return{length:profile.length*factor,width:profile.width*factor};
 }
-function stationSprite(ctx,x,y,r,time,id,minScale=.62){
- const cacheKey=id+':'+(Math.sin(time*3)>0?1:0),cached=stationCache.get(cacheKey),cachedScale=Math.max(minScale,r/66);if(cached){ctx.drawImage(cached,Math.round(x-96*cachedScale),Math.round(y-96*cachedScale),Math.round(192*cachedScale),Math.round(192*cachedScale));return;}
- const variant=id==='listening'?2:id==='ledger'?1:hash(id)%3,scale=Math.max(minScale,r/66),c=makeCanvas(192,192),p=c.getContext('2d'),q=(col,a,b,w,h)=>pixelRect(p,col,a+96,b+96,w,h);
- if(variant===1){
-  pixelRing(p,96,96,66,66,'#5e7881',{step:1});pixelRing(p,96,96,57,57,'#2e4b59',{step:1});pixelRing(p,96,96,62,62,'#7b8c86',{step:1});
-  for(let i=0;i<8;i++){const a=i/8*TAU,xx=Math.round(Math.cos(a)*63),yy=Math.round(Math.sin(a)*63);pixelLine(p,96,96,xx+96,yy+96,'#304f5d',7);q('#193644',xx-12,yy-9,24,18);q('#6b858b',xx-11,yy-9,22,4);q('#adbca7',xx-7,yy-2,3,2);q('#83b7b0',xx+4,yy-2,3,2);}
- }else{
-  q('#1b3443',-67,-15,134,30);q('#1b3443',-15,-67,30,134);q('#5b7580',-67,-15,134,3);q('#435f6e',-15,-65,3,130);
-  for(const[a,b,w,h]of[[-79,-29,37,58],[42,-29,37,58],[-29,-79,58,37],[-29,42,58,37]]){q('#1a3443',a,b,w,h);q('#5f7c84',a+2,b+2,w-4,5);q('#355362',a+3,b+8,w-6,h-12);for(let i=7;i<w-8;i+=11){q('#a4b9a2',a+i,b+12,4,2);q('#7eaba5',a+i,b+h-9,4,2);}}
-  if(variant===2){for(const side of[-1,1]){pixelLine(p,96+side*35,45,96+side*74,17,'#92a8a9',2);pixelLine(p,96+side*45,42,96+side*65,12,'#5e7d8a',2);q('#a9c5bd',side*69-4,-84,9,5);}}
+export function drawStation(ctx,x,y,r,time,body={},minScale=.62){
+ const plan=stationPlan(body),type=stationTypeFor(body),blink=Math.sin(time*3)>0?1:0,cacheKey=plan.layoutVersion+':'+blink,scale=Math.max(minScale,r/80);
+ let c=stationCache.get(cacheKey);
+ if(!c){
+  c=makeCanvas(192,192);const p=c.getContext('2d'),unit=160/Math.max(plan.cols,plan.rows),ox=96-plan.cols*unit/2,oy=96-plan.rows*unit/2;
+  // Exactly the pressure-hull mask used below decks, including all central wells
+  // and gaps. No generic hub is painted over a ring or crescent's empty space.
+  for(let yy=0;yy<plan.rows;yy++)for(let xx=0;xx<plan.cols;xx++){
+   const n=yy*plan.cols+xx;if(!plan.hull[n])continue;
+   const px=Math.round(ox+xx*unit),py=Math.round(oy+yy*unit),pw=Math.round(ox+(xx+1)*unit)-px,ph=Math.round(oy+(yy+1)*unit)-py;
+   const gx=xx%8,gy=yy%8,module=(Math.floor(xx/8)+Math.floor(yy/8)*3)%4,angle=Math.atan2(yy-plan.rows/2,xx-plan.cols/2),round=['ring','wheel','circle','crescent','horseshoe','arc'].includes(plan.shape);
+   const rim=plan.walkable[n]&&[[-1,0],[1,0],[0,-1],[0,1]].some(([dx,dy])=>!plan.walkable[(yy+dy)*plan.cols+xx+dx]);
+   const seam=round?Math.abs(Math.sin(angle*8))<.075:gx===0||gy===0;
+   pixelRect(p,plan.walkable[n]?mix(type.palette.hull,seam?.48:[.72,1,.84,1.14][module]):mix(type.palette.edge,.85),px,py,pw,ph);
+   if(plan.walkable[n]){
+    if(gy===1&&!seam)pixelRect(p,type.palette.edge,px,py,pw,1);
+    if(gx===7&&!seam)pixelRect(p,mix(type.palette.hull,.40),px+pw-1,py,1,ph);
+    if(gx>=2&&gx<=5&&gy>=3&&gy<=5){pixelRect(p,mix(type.palette.hull,module%2?.4:.64),px,py,pw,ph);if(gy===3)pixelRect(p,mix(type.palette.edge,.9),px,py,pw,1);if(gx===2)pixelRect(p,type.palette.edge,px,py,1,ph);if(gy===5&&gx%2===0)pixelRect(p,type.palette.window,px+1,py+ph-1,Math.max(1,pw-2),1);}
+    if(rim){pixelRect(p,type.palette.edge,px,py,pw,1);if((xx+yy)%3!==0)pixelRect(p,type.palette.window,px+1,py+1,Math.max(1,pw-2),1);}
+    if((gx===1||gx===6)&&gy===6)pixelRect(p,type.palette.accent,px+1,py+1,Math.max(1,pw-2),Math.max(1,ph-2));
+   }else if((xx+yy)%4===0)pixelRect(p,type.palette.window,px+1,py+1,Math.max(1,pw-2),1);
+  }
+  const dx=ox+(plan.collar.x+.5)*unit,dy=oy+(plan.collar.y+.5)*unit;
+  pixelRect(p,mix(type.palette.hull,.6),dx-unit*2,dy-unit*1.3,unit*2.5,unit*2.6);
+  pixelRect(p,blink?type.palette.accent:type.palette.edge,dx-unit*1.8,dy-unit*.8,unit*2,unit*.3);
+  pixelRect(p,type.palette.window,dx-unit*.2,dy-unit*.7,unit*.4,unit*1.4);
+  stationCache.set(cacheKey,c);if(stationCache.size>60)stationCache.delete(stationCache.keys().next().value);
  }
- q('#6b8a8e',-25,-25,50,50);q('#234755',-21,-21,42,42);q('#8ebeb5',-14,-14,28,28);q('#2c5a66',-10,-10,20,20);q('#c4d5b4',-6,-6,12,3);q('#123746',-4,-1,8,8);
- for(const side of[-1,1]){q('#dabd83',side*72-2,-20,4,3);q('#dabd83',side*72-2,17,4,3);}
- q(Math.sin(time*3)>0?'#ecc88b':'#647d73',-2,-89,4,4);pixelLine(p,96,6,96,18,'#79979c');
- q('#51696d',49,44,35,27);q('#102f3e',52,47,29,20);for(let i=54;i<78;i+=7)q('#bca46f',i,45,4,2);q('#a7c6ad',62,54,9,3);q('#a7c6ad',64,57,5,3);
- stationCache.set(cacheKey,c);if(stationCache.size>40)stationCache.delete(stationCache.keys().next().value);
  ctx.imageSmoothingEnabled=false;ctx.drawImage(c,Math.round(x-96*scale),Math.round(y-96*scale),Math.round(192*scale),Math.round(192*scale));
 }
 function asteroid(ctx,x,y,r,seed,type,damage=0,detailScale=1){
@@ -309,6 +323,20 @@ function asteroid(ctx,x,y,r,seed,type,damage=0,detailScale=1){
  polygon(ctx,points,type==='crystal'?'#385c66':'#4b5961');polygon(ctx,points.map(([a,b])=>[a,b-2*detailScale]).slice(0,5),type==='crystal'?'#66999b':'#7d8a85');pixelRect(ctx,'#273c48',x+r*.12,y+r*.13,Math.max(3*detailScale,r*.35),Math.max(2*detailScale,r*.21));pixelLine(ctx,x-r*.45,y-r*.13,x+r*.14,y+r*.35,'#334851',detailScale);
  if(type==='crystal'){for(let i=0;i<3;i++){const px=x-r*.3+i*r*.25,py=y-r*.18+(i%2)*r*.25;pixelRect(ctx,'#a8d7c6',px,py,2*detailScale,Math.max(3*detailScale,r*.3));pixelRect(ctx,'#70b6ba',px+2*detailScale,py+2*detailScale,2*detailScale,Math.max(2*detailScale,r*.2));}}else if(seed%3===0)pixelRect(ctx,'#b6a781',x-r*.3,y-r*.3,Math.max(2*detailScale,r*.23),2*detailScale);
  if(damage>.2){pixelLine(ctx,x-r*.2,y-r*.3,x+r*.3,y+r*.3,'#192d38',detailScale);pixelLine(ctx,x+r*.3,y+r*.3,x+r*.5,y,'#192d38',detailScale);}
+}
+/** Relief contacts use distinct marker art; their integrity comes from authority. */
+function earthContact(ctx,x,y,signal,r){
+ const q=(color,dx,dy,w,h)=>pixelRect(ctx,color,x+dx*r,y+dy*r,w*r,h*r),failed=signal.failed===true,accent=failed?'#d58b7f':'#bbd8bd';
+ if(signal.missionRole==='rescue'){
+  q('#172d3e',-9,-9,18,18);q('#73959b',-8,-7,16,14);q('#a8c2b9',-5,-9,10,18);q('#263f51',-4,-5,8,8);q('#85bfc3',-3,-4,6,4);q('#ddbb84',-8,5,16,2);q('#c2e3ae',-1,10,2,3);
+ }else if(signal.missionRole==='defense'&&signal.escort){
+  q('#243c4c',-17,-8,26,16);q('#728e97',-16,-7,22,14);q('#a2b9b8',-14,-7,17,2);q('#3a5667',-12,-3,16,6);q('#d8c18e',-9,-2,7,3);q('#8fafb5',7,-5,8,10);q('#c1dad0',12,-3,5,6);q('#426b81',-19,-5,3,3);q('#426b81',-19,2,3,3);q('#c8c09d',-5,-10,7,2);
+ }else{
+  q('#294755',-5,-11,10,22);q('#8daeb1',-4,-10,8,5);q('#526f83',-16,-6,11,12);q('#526f83',5,-6,11,12);q('#b1c6b6',-15,-5,9,2);q('#b1c6b6',6,-5,9,2);q('#c5b786',-1,-16,2,8);q(accent,-2,-2,4,6);q('#b9cdd2',-8,9,16,2);
+ }
+ // Corner brackets distinguish a mission contact from a selectable player hull.
+ for(const side of[-1,1]){q(accent,side<0?-23:19,-15,4,1);q(accent,side<0?-23:22,-15,1,5);}
+ if(Number.isFinite(signal.integrity)&&Number.isFinite(signal.maxIntegrity)&&signal.maxIntegrity>0){const fraction=clamp(signal.integrity/signal.maxIntegrity,0,1);q('#0c2230',-23,16,46,5);q('#3a505c',-22,17,44,3);q(failed||fraction<.28?'#d78f79':fraction<.55?'#dbbb7c':'#9fcbb1',-22,17,Math.round(44*fraction),3);}
 }
 /** Exterior dimensions follow the deck class, including older enemy snapshots. */
 export function vesselVisualProfile(value={}){
@@ -320,22 +348,24 @@ function normalizeShip(value){const ship=value.ship||value;return{...value,...sh
 export class SpaceRenderer{
  constructor(){const rng=random(832);this.stars=Array.from({length:500},()=>({x:rng(),y:rng(),size:rng()>.94?2:1,a:.25+rng()*.7,depth:.035+rng()*.16,color:rng()>.8?'#d5b98e':rng()>.75?'#83b8c5':'#a0bcc4'}));this.planetCache=new Map();this.nebulaCache=new Map();this.camera={x:0,y:0};this.particles=[];this.health=new Map();this.lastSystem=null;this.lastTime=0;}
  planet(body){
-  const key=`${body.id}:${body.biome}`;if(this.planetCache.has(key))return this.planetCache.get(key);const c=makeCanvas(160,160),ctx=c.getContext('2d'),p=palettes[body.biome]||palettes.temperate,seed=hash(body.id),rng=random(seed),offset=rng()*100;
-  for(let y=0;y<160;y++)for(let x=0;x<160;x++){const dx=(x-79.5)/79,dy=(y-79.5)/79,dist=dx*dx+dy*dy;if(dist>1)continue;const z=Math.sqrt(1-dist),terrain=Math.sin(dx*9+offset+Math.sin(dy*8)*1.5)+Math.cos(dy*11+offset*2+dx*7)*.5+Math.sin(dx*27+dy*17+offset)*.28,grain=rng()*.22;let index=clamp(Math.floor((terrain+1.8+grain)*1.25),0,3);
-   if(body.biome==='ice'&&Math.abs(dy)>.62)index=4;
-   const clouds=['temperate','earth','garden','ocean','forest'].includes(body.biome)&&Math.sin(dx*12+dy*9+offset)+Math.sin(dy*20+offset)*.7>1.23;if(clouds)index=4;
-   const light=clamp(.18+(-dx*.61-dy*.36+z*.58)*.9,.13,1.05);ctx.fillStyle=mix(p[index],light);ctx.fillRect(x,y,1,1);
-   if(body.biome==='volcanic'&&terrain>1.14&&light<.7&&rng()>.7)pixelRect(ctx,'#cf8a51',x,y,1,1);
-   if(['earth','industrial'].includes(body.biome)&&light<.4&&index>1&&rng()>.985)pixelRect(ctx,'#d5b57b',x,y,1,1);
-   if(dist>.96&&dx<.15)pixelRect(ctx,['barren','ruin'].includes(body.biome)?'#7d9296':'#6a9fba',x,y,1,1);
+  const type=planetTypeFor(body),key=`${body.id}:${type.id}:${type.sizeClass}`;if(this.planetCache.has(key))return this.planetCache.get(key);const c=makeCanvas(160,160),ctx=c.getContext('2d'),p=[type.palette.water,type.palette.land,type.palette.land,type.palette.ice,type.palette.ice],seed=hash(body.id),rng=random(seed),offset=rng()*100;
+  const waterline={wetlands:.40,islands:.48,reefs:.37,stormcoast:.42,lavafields:.34,grassland:.27,rainforest:.30,continental:.26}[type.terrain]||0;
+  for(let y=0;y<160;y++)for(let x=0;x<160;x++){const dx=(x-79.5)/79,dy=(y-79.5)/79,dist=dx*dx+dy*dy;if(dist>1)continue;const z=Math.sqrt(1-dist),terrain=planetTerrainSample(type.terrain,dx,dy,seed),grain=rng()*.05;let index=terrain<waterline?0:terrain+grain>.85?3:terrain>.5?2:1;
+   if(['icefields','frozen-ocean'].includes(type.terrain)&&Math.abs(dy)>.62)index=4;
+   const clouds=['grassland','rainforest','continental','wetlands','islands','stormcoast'].includes(type.terrain)&&Math.sin(dx*12+dy*9+offset)+Math.sin(dy*20+offset)*.7>1.23;if(clouds)index=4;
+   const light=clamp(.18+(-dx*.61-dy*.36+z*.58)*.9,.13,1.05);ctx.fillStyle=mix(p[index],light*(.85+terrain*.30));ctx.fillRect(x,y,1,1);
+   if(type.terrain==='lavafields'&&terrain<.3&&light<.7&&rng()>.6)pixelRect(ctx,type.palette.accent,x,y,1,1);
+   if(['factory','city','ruins'].includes(type.terrain)&&light<.4&&index>1&&rng()>.97)pixelRect(ctx,type.palette.accent,x,y,1,1);
+   if(dist>.96&&dx<.15)pixelRect(ctx,type.palette.atmosphere,x,y,1,1);
   }
-  if(body.biome==='barren'){const r=random(seed+19);for(let i=0;i<9;i++){const xx=35+r()*83,yy=30+r()*95,rr=3+r()*8;if(Math.hypot(xx-80,yy-80)<63)pixelRing(ctx,xx,yy,rr,rr*.76,'#35434e');}}
+  if(type.terrain==='craters'){const r=random(seed+19);for(let i=0;i<9;i++){const xx=35+r()*83,yy=30+r()*95,rr=3+r()*8;if(Math.hypot(xx-80,yy-80)<63)pixelRing(ctx,xx,yy,rr,rr*.76,'#35434e');}}
   this.planetCache.set(key,c);if(this.planetCache.size>50)this.planetCache.delete(this.planetCache.keys().next().value);return c;
  }
- nebula(id){
-  if(this.nebulaCache.has(id))return this.nebulaCache.get(id);const c=makeCanvas(512,512),p=c.getContext('2d'),seed=hash(id),r=random(seed),off=r()*20;
-  for(let y=0;y<512;y+=4)for(let x=0;x<512;x+=4){const n=Math.sin(x*.008+off)*.5+Math.cos(y*.011+off)*.4+Math.sin((x+y)*.019)*.2,grain=r();if(n>.15&&grain>(n<.5?.55:.18)){p.globalAlpha=clamp((n-.1)*.17,0,.2);pixelRect(p,(seed%3===0)?'#60628d':seed%3===1?'#346f79':'#59694f',x,y,4,4);}}
-  p.globalAlpha=1;this.nebulaCache.set(id,c);if(this.nebulaCache.size>5)this.nebulaCache.delete(this.nebulaCache.keys().next().value);return c;
+ nebula(value){
+  const system=typeof value==='string'?{id:value}:value||{},type=systemTypeFor(system),id=`${system.id||'hearth'}:${type.id}`;
+  if(this.nebulaCache.has(id))return this.nebulaCache.get(id);const c=makeCanvas(512,512),p=c.getContext('2d'),seed=hash(id),r=random(seed),off=r()*20,colors=type.stellar.colors,frequency=.006+(hash(type.id)%7)*.0013,rich=['nebula','young-cluster','stellar-remnant'].includes(type.id);
+  for(let y=0;y<512;y+=4)for(let x=0;x<512;x+=4){const n=Math.sin(x*frequency+off)*.5+Math.cos(y*frequency*1.4+off)*.4+Math.sin((x+y)*.019)*.2,grain=r();if(n>.15&&grain>(n<.5?.55:.18)){p.globalAlpha=clamp((n-.1)*(rich?.22:.11),0,rich?.25:.13);pixelRect(p,colors[(Math.floor(x/120)+Math.floor(y/160))%colors.length],x,y,4,4);}}
+  p.globalAlpha=1;this.nebulaCache.set(id,c);if(this.nebulaCache.size>8)this.nebulaCache.delete(this.nebulaCache.keys().next().value);return c;
  }
  draw(ctx,game,options={}){
   const{width:w=ctx.canvas.width,height:h=ctx.canvas.height,time=0,welcome=false,tracked=null,guidance='simple',motion=true,labels}=options,s=game.state,ship=normalizeShip(options.ship||s.ship),sys=options.world||game.system||{},profile=SHIP_VISUALS[resolveCabinClass(ship.shipClass)],combatTime=options.combatTime??s.stats?.time??time;
@@ -353,7 +383,15 @@ export class SpaceRenderer{
   const view=pixelCamera({cameraX:cx,cameraY:cy,width:w,height:h,zoom:z,centered:true});this.view=view;
   const to=(x,y)=>worldToCanvas(x,y,view),visible=(p,margin=35*r)=>p.x>-margin&&p.x<w+margin&&p.y>-margin&&p.y<h+margin,ring={width:r,step:2*r},bodyMinScale=r*Math.min(1,zoomMultiplier);
   beginPixelFrame(ctx);ctx.save();pixelRect(ctx,'#06121f',0,0,w,h);
-  const nebula=this.nebula(s.systemId||'hearth'),tile=512*r,nx=((Math.round(-cx*.024*r)%tile)+tile)%tile,ny=((Math.round(-cy*.024*r)%tile)+tile)%tile;for(let yy=ny-tile;yy<h;yy+=tile)for(let xx=nx-tile;xx<w;xx+=tile)ctx.drawImage(nebula,xx,yy,tile,tile);
+  const sky=systemTypeFor({...sys,id:sys.id||s.systemId||'hearth'}),nebula=this.nebula({...sys,id:sys.id||s.systemId||'hearth'}),tile=512*r,nx=((Math.round(-cx*.024*r)%tile)+tile)%tile,ny=((Math.round(-cy*.024*r)%tile)+tile)%tile;for(let yy=ny-tile;yy<h;yy+=tile)for(let xx=nx-tile;xx<w;xx+=tile)ctx.drawImage(nebula,xx,yy,tile,tile);
+  // Distant stellar light is a sky feature. It does not manufacture a physical
+  // star, a gravity source, or an unmarked flight hazard in an existing system.
+  const stellar=sky.stellar,sunX=w*.78+Math.sin(cx*.00003)*w*.035,sunY=h*.19+Math.sin(cy*.00003)*h*.025;
+  for(let i=0;i<=stellar.companions;i++){
+   const color=stellar.colors[i%stellar.colors.length],rr=Math.max(3,Math.round((i?5:9)*stellar.scale))*r,xx=sunX+i*23*r,yy=sunY+(i%2?15:0)*r;
+   ctx.globalAlpha=.12;pixelRing(ctx,xx,yy,rr*2.1,rr*2.1,color,{width:3*r,step:2*r});ctx.globalAlpha=.28;pixelRing(ctx,xx,yy,rr*1.4,rr*1.4,color,{width:2*r,step:r});ctx.globalAlpha=.8;
+   for(let dy=-rr;dy<=rr;dy+=r){const half=Math.sqrt(Math.max(0,rr*rr-dy*dy));pixelRect(ctx,color,xx-half,yy+dy,half*2+r,r);}ctx.globalAlpha=1;pixelRect(ctx,'#f4e7ce',xx-rr*.35,yy-rr*.4,Math.max(r,rr*.8),r);
+  }
   for(const st of this.stars){const x=((st.x*w*2-cx*st.depth*r)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth*r)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size*r,st.size*r);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2*r,y,6*r,r);pixelRect(ctx,st.color,x,y-2*r,r,6*r);}}ctx.globalAlpha=1;
   const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId);
   const stellarHazard=cosmicInfluence(ship,bodies).hazard;
@@ -363,18 +401,19 @@ export class SpaceRenderer{
     hazardBoundary(ctx,p.x,p.y,(b.tideRadius||COSMIC_RULES.tideRadius)*z,'#d9857177',{width:w,height:h,rasterScale:r});
     if(visible(p,radius*3)){const core=Math.max(9*r,radius),sprite=blackHoleSprite(motion?Math.floor(time*.6)%4:0);ctx.drawImage(sprite,Math.round(p.x-core*128/43),Math.round(p.y-core*92/43),Math.round(core*256/43),Math.round(core*184/43));}
    }
-   else if(b.kind==='station')stationSprite(ctx,p.x,p.y,Math.max(24*bodyMinScale,radius),motion?time:0,b.id,.62*bodyMinScale);
+   else if(b.kind==='station')drawStation(ctx,p.x,p.y,Math.max(24*bodyMinScale,radius),motion?time:0,b,.62*bodyMinScale);
    else{const radiusPx=Math.max(18*bodyMinScale,radius);if(b.rings||b.biome==='arid'||b.biome==='desert'){pixelRing(ctx,p.x,p.y,radiusPx*1.56,radiusPx*.42,'#6f777180',ring);pixelRing(ctx,p.x,p.y,radiusPx*1.72,radiusPx*.47,'#aaa88b70',ring);}ctx.drawImage(this.planet(b),Math.round(p.x-radiusPx),Math.round(p.y-radiusPx),Math.round(radiusPx*2),Math.round(radiusPx*2));}
-   const labelRadius=well?Math.max(9*r,radius)*1.5:b.kind==='station'?Math.max(.62*bodyMinScale,Math.max(24*bodyMinScale,radius)/66)*86:Math.max(18*bodyMinScale,radius);
+   const labelRadius=well?Math.max(9*r,radius)*1.5:b.kind==='station'?Math.max(.62*bodyMinScale,Math.max(24*bodyMinScale,radius)/80)*86:Math.max(18*bodyMinScale,radius);
    if(!welcome){emit(b.name,p.x,p.y+labelRadius+13*r,well?'#e7bd87':b.id===tracked?'#efd6a0':'#bbcfcf',b.id===tracked?15:14,'center',b.id===tracked?75:35,'place');if(well||b.id===tracked){const port=portProfile(sys,b);emit(`${well?'BLACK HOLE · NO LANDING':port?.restricted?'MILITARY · CLEARANCE':port?.label?.toUpperCase()||(b.kind||'world').toUpperCase()} · ${Math.round(Math.hypot(b.x-ship.x,b.y-ship.y))} m`,p.x,p.y+labelRadius+26*r,well?'#c5a58b':port?.restricted?'#d6b997':'#91b4bb',12,'center',50,'distance');}}
   }
   if(!welcome&&stellarHazard){const danger=stellarHazard.level==='danger';emit(stellarHazard.warning,w/2,32*r,danger?'#f2b3a0':'#edd3a2',14,'center',120,'hazard');}
   for(const a of sys.asteroids||[]){if(a.depleted||a.hp===0||a.health===0)continue;const p=to(a.x,a.y),radius=(a.radius??a.r??16)*z;if(visible(p,radius))asteroid(ctx,p.x,p.y,radius,a.seed??hash(a.id),a.type??a.resource,1-(a.hp??a.health??100)/(a.maxHp??a.maxHealth??100),r*Math.min(1,zoomMultiplier));}
   for(const item of sys.pickups||[]){const p=to(item.x,item.y);if(!visible(p,8*r))continue;const col=item.type==='ore'?'#ddc78f':'#8fcfc7';pixelRect(ctx,'#213c49',p.x-5*r,p.y-3*r,10*r,7*r);pixelRect(ctx,col,p.x-3*r,p.y-2*r,6*r,5*r);pixelRect(ctx,'#e2e5be',p.x-2*r,p.y-2*r,3*r,r);}
   for(const sig of sys.signals||[]){if(sig.resolved)continue;const p=to(sig.x,sig.y);if(!visible(p,45*r))continue;
-   if(sig.kind==='derelict')drawShip(ctx,p.x,p.y,-.25,'#73817f',z*.75,false,time,false,{shipClass:'hauler',damage:.8,disabled:true});
+   if(sig.earthCampaign)earthContact(ctx,p.x,p.y,sig,r);
+   else if(sig.kind==='derelict')drawShip(ctx,p.x,p.y,-.25,'#73817f',z*.75,false,time,false,{shipClass:'hauler',damage:.8,disabled:true});
    else{pixelRect(ctx,'#1a3647',p.x-5*r,p.y-7*r,10*r,14*r);pixelRect(ctx,'#a1c7c4',p.x-4*r,p.y-6*r,8*r,3*r);pixelRect(ctx,'#5a8e9b',p.x-9*r,p.y-2*r,18*r,4*r);pixelRect(ctx,'#cfc499',p.x-r,p.y-11*r,2*r,5*r);}
-   const signalRadius=(17+Math.floor((motion?time:0)%2*6))*r;pixelRing(ctx,p.x,p.y,signalRadius,signalRadius,'#7dbab477',{...ring,dashed:true,phase:time*4});emit(sig.name||'Unidentified signal',p.x,p.y+(sig.kind==='derelict'?34:28)*r,'#9acbc7',13,'center',sig.id===tracked?75:25,'signal');
+   const signalRadius=(17+Math.floor((motion?time:0)%2*6))*r;pixelRing(ctx,p.x,p.y,signalRadius,signalRadius,sig.failed?'#d58b7f88':'#7dbab477',{...ring,dashed:true,phase:time*4});emit(sig.name||'Unidentified signal',p.x,p.y+(sig.kind==='derelict'||sig.earthCampaign?34:28)*r,sig.earthCampaign?'#bad8cb':'#9acbc7',13,'center',sig.id===tracked?75:25,'signal');
   }
   // A boarding party leaves two physical hulls in the system. Draw their tether
   // from stable vessel IDs, including when the target is a shared vessel actor.

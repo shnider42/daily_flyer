@@ -59,6 +59,7 @@ import { portProfile } from './port-traffic.mjs';
 import { PEACEKEEPER_ID, PEACEKEEPER_HAIL_DISTANCE, isPeacekeeper, trafficHailDistance, stepPeacekeeperDefense } from './peacekeeper.mjs';
 import { migrateGameSpace } from './space-migration.mjs';
 import { SYSTEM_SPACE_VERSION, SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition, scaleSpacePoint } from './system-space.mjs';
+import { WORLD_TYPES_VERSION, decorateGalaxyTypes, bodyVisualRadius, applySystemActivity, flavorSystemSignals, migrateExpandedBodyPose } from './world-types.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -153,14 +154,14 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return appendFactionPorts(expandGalaxy(systems, seed));
+  return decorateGalaxyTypes(appendFactionPorts(expandGalaxy(systems, seed)), seed);
 }
 
 function initialState(seed, options = {}) {
   const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
   const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
-    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
+    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: startMode==='casual'?{...CASUAL_START_UPGRADES}:{}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
@@ -301,7 +302,7 @@ export class Game {
   get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
   _restore(fresh, raw) {
-    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION, spaceVersion: raw.spaceVersion ?? 0 };
+    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION, spaceVersion: raw.spaceVersion ?? 0, worldTypesVersion: raw.worldTypesVersion ?? 0 };
     s.seed = String(raw.seed || fresh.seed);
     s.startMode=normalizeStartMode(raw.startMode);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
@@ -351,7 +352,38 @@ export class Game {
     }
     s.encounterPolicyVersion=2;s.nextEncounterAt=null;
     if(s.interior?.kind==='ship')s.interior.liveVessel=true;
-    return migrateGameSpace(s, { systems: this.galaxy });
+    migrateGameSpace(s, { systems: this.galaxy });
+    if(!(Number(s.worldTypesVersion)>=WORLD_TYPES_VERSION)){
+      const bodyCache=new Map();
+      const migrate=(pose,systemId=s.systemId)=>{
+        if(!bodyCache.has(systemId))bodyCache.set(systemId,(this.galaxy.find(system=>system.id===systemId)?.bodies||[]).map((body,index)=>({...body,...systemBodyPosition(body,index,systemId)})));
+        return migrateExpandedBodyPose(pose,bodyCache.get(systemId));
+      };
+      // Only enlarged physical hulls need a correction. Surface/person poses,
+      // cargo, progress, valid flight positions and all authored radii stay put.
+      s.ship=migrate(s.ship);
+      if(s.interior?.returnShip)s.interior.returnShip=migrate(s.interior.returnShip);
+      const parked=s.livelihoods?.parkedShip;
+      if(parked)s.livelihoods.parkedShip=migrate(parked,parked.systemId||s.systemId);
+      if(s.npcContract?.personal?.ship)s.npcContract.personal.ship=migrate(s.npcContract.personal.ship,parked?.systemId||s.npcContract.origin?.systemId||s.systemId);
+      if(s.npcContract){
+        const contract=s.npcContract;
+        if(contract.dockPoint)contract.dockPoint=migrate(contract.dockPoint,contract.origin?.systemId||s.systemId);
+        if(contract.workPoint)contract.workPoint=migrate(contract.workPoint,contract.destination?.systemId||contract.origin?.systemId||s.systemId);
+        for(const endpoint of [contract.origin,contract.destination]){
+          const body=this.galaxy.find(system=>system.id===(endpoint?.systemId||s.systemId))?.bodies.find(body=>body.id===endpoint?.bodyId);
+          if(body&&endpoint)endpoint.radius=bodyVisualRadius(body);
+        }
+      }
+      for(const[systemId,record]of Object.entries(s.worlds)){
+        if(!record||typeof record!=='object'||Array.isArray(record))continue;
+        if(Array.isArray(record.parkedShips))record.parkedShips=record.parkedShips.map(ship=>migrate(ship,systemId));
+        for(const[key,enemy]of Object.entries(record.enemyStates||{}))record.enemyStates[key]=migrate(enemy,systemId);
+        if(Array.isArray(record.spawned))record.spawned=record.spawned.map(ship=>migrate(ship,systemId));
+      }
+      s.worldTypesVersion=WORLD_TYPES_VERSION;
+    }
+    return s;
   }
 
   _updateCharacter() {
@@ -423,7 +455,7 @@ export class Game {
     for (const key of ['depleted', 'defeated', 'resolved', 'scanned', 'pickups', 'spawned']) record[key] ||= [];
     record.asteroidHealth ||= {}; record.enemyHealth ||= {}; record.enemyStates ||= {};
     const bodies = data.bodies.map((b, i) => {
-      return { ...clone(b), faction: b.faction || data.faction, ...systemBodyPosition(b, i, id), radius: b.kind === 'planet' ? 122 : b.kind === 'moon' ? 76 : 70, color: FACTIONS.find(f => f.id === (b.faction || data.faction))?.color || '#5edac0' };
+      return { ...clone(b), faction: b.faction || data.faction, ...systemBodyPosition(b, i, id), radius: bodyVisualRadius(b), color: FACTIONS.find(f => f.id === (b.faction || data.faction))?.color || '#5edac0' };
     });
     bodies.push(...systemCosmicBodies(data, this.state.seed).map(body => scaleSpacePoint(body)));
     const asteroids = [];
@@ -441,6 +473,26 @@ export class Game {
       else if (record.asteroidHealth[rock.id] !== undefined) rock.hp = record.asteroidHealth[rock.id];
       asteroids.push(rock);
     }
+    // Keep every released rock and its random draw unchanged. Additional fields
+    // have their own stream, persistent IDs and resource yields for this type.
+    const fieldRandom=seededRandom(`${this.state.seed}:${id}:resource-field-v1`);
+    const fieldCount=Math.max(0,Math.round(46*((data.activity?.asteroids||1)-1))),pattern=hash(data.systemTypeId)%4;
+    for(let index=0;index<fieldCount;index++){
+      let x,y;
+      for(let attempt=0;attempt<16;attempt++){
+        const angle=fieldRandom()*TAU,orbit=(950+fieldRandom()*1250)*SYSTEM_SPACE_SCALE;
+        if(pattern===0){x=Math.cos(angle)*orbit;y=Math.sin(angle)*orbit*.52;}
+        else if(pattern===1){const cluster=index%3,center=cluster*TAU/3+.35,spread=(80+fieldRandom()*440)*SYSTEM_SPACE_SCALE;x=Math.cos(center)*orbit+Math.cos(angle)*spread;y=Math.sin(center)*orbit+Math.sin(angle)*spread;}
+        else if(pattern===2){const arc=-2.7+fieldRandom()*3.8;x=Math.cos(arc)*orbit;y=Math.sin(arc)*orbit*.8;}
+        else{x=Math.cos(angle)*orbit*.6;y=Math.sin(angle)*orbit;}
+        if(Math.hypot(x,y)<WORLD_RADIUS-160&&!bodies.some(body=>Math.hypot(x-body.x,y-body.y)<(body.kind==='blackhole'?body.warningRadius:body.radius)+180))break;
+      }
+      if(Math.hypot(x,y)>=WORLD_RADIUS-160||bodies.some(body=>Math.hypot(x-body.x,y-body.y)<(body.kind==='blackhole'?body.warningRadius:body.radius)+180))continue;
+      const hp=12+Math.floor(fieldRandom()*16),rock={id:`${id}:rock:${46+index}`,x,y,radius:14+fieldRandom()*20,angle:fieldRandom()*TAU,spin:(fieldRandom()-.5)*.22,maxHp:hp,hp,ore:1+Math.floor(fieldRandom()*(data.activity.asteroids>=1.8?5:3)),crystal:fieldRandom()<Math.min(.65,.22*data.activity.crystal)?1:0,seed:Math.floor(fieldRandom()*99999)};
+      if(record.depleted.includes(rock.id))rock.hp=0;
+      else if(record.asteroidHealth[rock.id]!==undefined)rock.hp=record.asteroidHealth[rock.id];
+      asteroids.push(rock);
+    }
     // Hull choice uses its own stable hash so adding designs cannot move the
     // existing rocks, signals or traffic. Saved/captured ships keep their class.
     const hullFor=entityId=>{
@@ -449,7 +501,7 @@ export class Game {
       return pool[hash(`${this.state.seed}:${id}:${entityId}:hull`)%pool.length];
     };
     const enemies = [];
-    const context=systemContext(data);
+    const context=applySystemActivity(data,systemContext(data));
     // Consume the old seeded draws to keep rocks, routes and story beacons fixed.
     // Only persistent/involved old hulls survive a newly protected region.
     const count = id === 'hearth' ? 2 : 1 + data.danger;
@@ -491,7 +543,7 @@ export class Game {
     for(let i=0;i<16;i++)r();
     const traffic = restoreTraffic(createSystemTraffic({seed:this.state.seed,system:{...data,spatialScale:SYSTEM_SPACE_SCALE,radius:WORLD_RADIUS},bodies,count:context.trafficCount}), record.trafficStates);
     for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&['patrol','escort','carrier'].includes(contact.trafficRole)&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:contextualSignals(data,signals,this.state.seed), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, systemTypeId:data.systemTypeId, typeLabel:data.typeLabel, typeDescription:data.typeDescription, stellar:data.stellar, activity:data.activity, worldTypesVersion:WORLD_TYPES_VERSION, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:flavorSystemSignals(data,contextualSignals(data,signals,this.state.seed)), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
     materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
     record.visits = (record.visits || 0) + 1;
@@ -609,6 +661,7 @@ export class Game {
     const games=[...new Set(participants)].filter(g=>g?.state?.systemId===this.state.systemId);
     this._worldGames=games;
     this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
+    this.stepNarrativeWorld(dt,[...recipients,...games]);
     const targets=[...games.filter(g=>g.hasActiveVessel&&g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy','eva'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
     this._updateEnemies(dt,targets);
     stepPeacekeeperDefense(this.system,dt,targets,(type,event)=>this._worldEvent(type,event));
@@ -1050,6 +1103,7 @@ export class Game {
   _scanActiveShip(signalId) {
     if (this.state.pendingEncounter) return this._fail('Resolve your open transmission first.', 'encounter');
     const signal = this.system.signals.find(s => s.id === signalId);
+    if(signal?.earthCampaign)return this.earthSignalAction(signalId);
     if (!signal || signal.resolved) return this._fail('That signal has already gone quiet.', 'target');
     if (distance(signal, this.state.ship) > this.state.ship.scanRange) return this._fail('Move closer to scan the signal.', 'distance');
     if (this.state.ship.energy < 8) return this._fail('Wait for the scanner capacitor to recharge.', 'energy');

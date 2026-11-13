@@ -130,7 +130,7 @@ export function openCaptainSetup(dialog,{
   }
   function matchingSystems(){
     const query=systemSearch.trim().toLocaleLowerCase();
-    return systems.filter(system=>!query||[system.name,system.factionName,system.portName,system.id].some(value=>String(value||'').toLocaleLowerCase().includes(query)));
+    return systems.filter(system=>!query||[system.name,system.factionName,system.portName,system.id,system.typeName,system.placeTypes].some(value=>String(value||'').toLocaleLowerCase().includes(query)));
   }
   function systemOptions(){
     const matches=matchingSystems(),visible=matches.some(system=>system.id===selectedSystemId)?matches:[selectedSystem(),...matches];
@@ -146,7 +146,7 @@ export function openCaptainSetup(dialog,{
     const system=selectedSystem();
     return `<section class="captain-start-system" aria-label="Casual starting system">
       <div class="captain-start-heading"><strong>Choose your starting system</strong><span>CASUAL</span></div>
-      <div class="captain-system-fields">${systems.length>12?`<label>Find a system<input type="search" data-start-system-search value="${esc(systemSearch)}" placeholder="Name, faction, or station" autocomplete="off" aria-describedby="captain-system-count"></label>`:''}
+      <div class="captain-system-fields">${systems.length>12?`<label>Find a system<input type="search" data-start-system-search value="${esc(systemSearch)}" placeholder="Name, faction, station, or type" autocomplete="off" aria-describedby="captain-system-count"></label>`:''}
         <label>Starting system<select data-start-system aria-describedby="captain-system-detail captain-system-risk">${systemOptions()}</select></label>
       </div>
       ${systems.length>12?`<p class="captain-system-count" id="captain-system-count" data-start-system-count aria-live="polite">${esc(systemSearchStatus())}</p>`:''}

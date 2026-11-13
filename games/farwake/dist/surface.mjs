@@ -24,6 +24,8 @@ import {isWildlifeSpecies,chooseNpcSpecies,normalizeSpecies,speciesName} from '.
 import {SPECIES_DISTRICT_NAMES,SPECIES_DISTRICT_RESIDENTS,SPECIES_INTERIOR_RESIDENTS} from './species-content.mjs';
 import {militaryInterior} from './military-sites.mjs';
 import {detentionSurface} from './military-recovery.mjs';
+import {stationTypeFor,planetTypeFor} from './world-types.mjs';
+import {stationPlan,planetSurfaceDimensions,planetTerrainSample} from './place-geometry.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -144,10 +146,10 @@ function addLocalWork(m,positions){
  positions.repairs.forEach(([x,y],i)=>entity(m,'repair-'+(i+1),'work','Relay '+(i+1),'Maintenance · repair',x,y,'#e9a66d',{workType:'repair',kind:'repair',index:i,taskId:'repair-'+(i+1),flag:'repair:'+m.id+':'+i},'The relay is stuttering. An on-site repair will restore this part of the local grid.'));
  positions.samples?.forEach(([x,y],i)=>entity(m,'sample-'+(i+1),'sample',m.biome==='ice'?'Ice-core sample':m.biome==='volcanic'?'Glass-spore sample':m.biome==='arid'?'Amber lichen sample':'Biological sample','Fieldwork · collect',x,y,'#a6d6ad',{workType:'sample',kind:'sample',index:i,taskId:'sample-'+(i+1),flag:'sample:'+m.id+':'+i},'The sample is tagged for the local survey cooperative.'));
 }
-function station(location,seed){
- const m=makeMap(38,30,'station',location.name||'Uncharted station',location.id||'station',seed,'station');
+function kettleStation(location,seed){
+ const m=makeMap(38,38,'station',location.name||'Uncharted station',location.id||'station',seed,'station');
  const doorShift=location.id==='kettle'?0:hash(location.id||location.name)%3-1,doorXs=[7+doorShift,18-doorShift,28+doorShift];
- rect(m,2,2,34,26,TILE.WALL);rect(m,3,3,32,24,TILE.FLOOR);
+ rect(m,2,2,34,34,TILE.WALL);rect(m,3,3,32,32,TILE.FLOOR);
  rect(m,3,9,32,1,TILE.WALL);rect(m,3,19,32,1,TILE.WALL);
  rect(m,13,3,1,6,TILE.WALL);rect(m,24,3,1,6,TILE.WALL);rect(m,13,20,1,7,TILE.WALL);rect(m,24,20,1,7,TILE.WALL);
  for(const x of doorXs){rect(m,x,9,2,1,TILE.FLOOR);rect(m,x,19,2,1,TILE.FLOOR);}
@@ -165,7 +167,7 @@ function station(location,seed){
  addArchive(m,location,21,24,`${location.name||'Port'} archive`);
  addLocalWork(m,{crate:[5,5],delivery:[8,23],repairs:[[21,5],[32,16],[15,24]]});
  label(m,'FREIGHT / 01',4,3);label(m,'SHIPWRIGHT',15,3);label(m,'CLINIC',26,3);label(m,'DOCKING BAY',4,20);label(m,location.id==='ledger'?'CHARTER COUNCIL':location.id==='kettle'?'PORT OFFICE':'ARCHIVE',15,20);label(m,(COMMON_ROOMS[location.id]||'COMMON ROOM').toUpperCase(),26,20);
- prop(m,'window',5,2,7,1);prop(m,'window',16,2,6,1);prop(m,'window',27,2,6,1);prop(m,'window',15,27,8,1);
+ prop(m,'window',5,2,7,1);prop(m,'window',16,2,6,1);prop(m,'window',27,2,6,1);prop(m,'window',15,35,8,1);
  prop(m,'cargo',9,4,2,2,'#7f7362',true);prop(m,'cargo',4,7,2,1,'#617c7b',true);prop(m,'cargo',10,7,2,1,'#856f58',true);
  prop(m,'workbench',16,4,4,1,'#46656c',true);prop(m,'equipment',22,7,1,1,'#91a29c',true);
  prop(m,'bed',26,4,1,2,'#9aaba1',true);prop(m,'bed',32,4,1,2,'#9aaba1',true);prop(m,'cabinet',33,7,1,1,'#7c9691',true);
@@ -175,6 +177,67 @@ function station(location,seed){
  for(const x of doorXs)for(const y of[10,18])prop(m,'light',x,y,1,.3,'#e6c381');
  prop(m,'dockship',0,12,2,5,'#7b9da4');
  prop(m,'vending',31,18,1.2,1,'#84b6aa',true);prop(m,'planter',29,17,2,1,'#78a486',true);prop(m,'floorarrows',6,13,4,3,'#8da99c',false);prop(m,'floorarrows',28,13,4,3,'#8da99c',false);prop(m,'banner',17,10,4,.3,'#adbc91');prop(m,'banner',4,11,1,1.5,'#8ebeb2');prop(m,'banner',33,20,1,1.5,'#d5b485');
+ label(m,'OBSERVATION GARDEN',5,29);for(const x of[6,14,22,30]){prop(m,'planter',x,32,2,1,'#78a486',false);prop(m,'bench',x,30,2,1,'#5d7778',false);}
+ return m;
+}
+function shadeColor(hex,factor){if(!/^#[0-9a-f]{6}$/i.test(hex||''))return hex;const n=parseInt(hex.slice(1),16);return'#'+[n>>16&255,n>>8&255,n&255].map(v=>Math.round(clamp(v*factor,0,255)).toString(16).padStart(2,'0')).join('');}
+function station(location,seed){
+ const plan=stationPlan(location),type=stationTypeFor(location),m=location.id==='kettle'?kettleStation(location,seed):makeMap(plan.cols,plan.rows,'station',location.name||'Uncharted station',location.id||'station',seed,'station');
+ m.placeTypeId=type.id;m.placeTypeName=type.name;m.sizeClass=type.sizeClass;m.stationShape=plan.shape;m.layoutVersion=plan.layoutVersion;
+ m.palette={...PALETTES.station,floor:type.palette.floor,floor2:shadeColor(type.palette.floor,.88),wall:shadeColor(type.palette.hull,.62),wallTop:type.palette.hull,edge:type.palette.edge,accent:type.palette.accent,light:type.palette.window,path:shadeColor(type.palette.floor,1.22)};
+ m.outline={cols:plan.cols,rows:plan.rows,hull:[...plan.hull],collar:{...plan.collar}};
+ if(location.id==='kettle')return m;
+ m.tiles=Array.from({length:plan.rows},(_,y)=>Array.from({length:plan.cols},(_,x)=>plan.walkable[y*plan.cols+x]?TILE.FLOOR:plan.hull[y*plan.cols+x]?TILE.WALL:TILE.VOID));
+ m.spawn=point(plan.spawn.x,plan.spawn.y);m.exit=point(plan.exit.x,plan.exit.y);
+ const occupied=[plan.spawn,plan.exit],places={};
+ const slot=(id,ux,uy)=>{
+  const tx=ux*(m.cols-1),ty=uy*(m.rows-1);let best=null,score=Infinity;
+  for(const p of plan.floorTiles){if(occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<2.1))continue;
+   const edge=[[-1,0],[1,0],[0,-1],[0,1]].filter(([dx,dy])=>!plan.walkable[(p.y+dy)*m.cols+p.x+dx]).length,d=(p.x-tx)**2+(p.y-ty)**2+edge*8;
+   if(d<score){score=d;best=p;}
+  }
+  best||=plan.floorTiles.find(p=>!occupied.some(q=>q.x===p.x&&q.y===p.y))||plan.spawn;occupied.push(best);places[id]=best;return[best.x,best.y];
+ };
+ const local=(id,typeId,name,role,ux,uy,color,data={})=>entity(m,id,typeId,name,role,...slot(id,ux,uy),color,data);
+ const resident=(id,typeId,role,ux,uy,color)=>personEntity(m,location,id,typeId,role,...slot(id,ux,uy),color);
+ entity(m,'exit','exit','Your ship','Return to ship',plan.exit.x,plan.exit.y,type.palette.accent,{airlock:true},'The illuminated docking collar leads back to your ship.');
+ local('jobs','jobboard',`${location.name||'Port'} exchange`,'Jobs & local work',.35,.42,type.palette.accent);
+ resident('mechanic','mechanic','mechanic',.30,.22,'#d7a86b');resident('medic','medic','medic',.74,.23,'#8fc8bf');resident('bartender','npc','bartender',.72,.76,'#c7a49b');
+ addStoryResident(m,location,...slot('story',.46,.78),'#c5ba89');resident('trader','npc','merchant',.73,.47,'#7aa9b0');resident('dockworker','npc','dockworker',.23,.55,'#b49472');
+ resident('visitor-pilot','npc','pilot',.39,.54,'#8cabc7');resident('visitor-refugee','npc','refugee',.54,.64,'#b6ab8a');resident('visitor-engineer','npc','engineer',.82,.41,'#93b5a6');resident('visitor-salvager','npc','salvager',.23,.77,'#c88c73');
+ addArchive(m,location,...slot('archive',.56,.82),`${location.name||'Port'} archive`);
+ addLocalWork(m,{crate:slot('cargo',.18,.24),delivery:slot('delivery',.22,.66),repairs:[slot('relay1',.53,.20),slot('relay2',.86,.62),slot('relay3',.40,.87)]});
+ // A shortest route follows the actual hull. A ring's concourse never crosses its void.
+ const start=plan.exit.y*m.cols+plan.exit.x,queue=[start],parents=new Map([[start,null]]);
+ for(let i=0;i<queue.length;i++){const n=queue[i],x=n%m.cols,y=Math.floor(n/m.cols);for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy,k=yy*m.cols+xx;if(xx<0||yy<0||xx>=m.cols||yy>=m.rows||!plan.walkable[k]||parents.has(k))continue;parents.set(k,n);queue.push(k);}}
+ for(const e of m.entities){let n=Math.floor(e.y/T)*m.cols+Math.floor(e.x/T);for(let guard=0;guard<plan.walkable.length&&n!==null&&parents.has(n);guard++,n=parents.get(n))m.tiles[Math.floor(n/m.cols)][n%m.cols]=TILE.PATH;}
+ const fittings=[['mechanic','SHIPWRIGHT','workbench'],['medic','CLINIC','bed'],['bartender',(COMMON_ROOMS[location.id]||'COMMON ROOM').toUpperCase(),'bar'],['archive','ARCHIVE','books'],['cargo','FREIGHT','cargo'],['story','PORT OFFICE','console']];
+ for(const[id,title,kind]of fittings){const p=places[id];label(m,title,p.x-1,p.y-1.4,type.palette.window);if(plan.walkable[(p.y-1)*m.cols+p.x])prop(m,kind,p.x-.5,p.y-1,1,.6,type.palette.edge,false);}
+ const facility=/greenhouse|agricultural/.test(type.id)?{name:'GROWING GALLERY',kinds:['planter','plant','cistern'],role:'settler'}:
+  /hospital|rescue/.test(type.id)?{name:'TREATMENT WARD',kinds:['bed','cabinet','equipment'],role:'medic'}:
+  /archive/.test(type.id)?{name:'RECORD STACKS',kinds:['books','console','table'],role:'archivist'}:
+  type.portType==='research'?{name:'RESEARCH LAB',kinds:['console','equipment','books'],role:'scientist'}:
+  type.portType==='military'?{name:'DUTY STORES',kinds:['equipment','cargo','training-mat'],role:'warden'}:
+  type.portType==='industrial'?{name:'WORKING DECK',kinds:['cargo','workbench','equipment'],role:'engineer'}:
+  /embassy/.test(type.id)?{name:'DELEGATE LOUNGE',kinds:['table','plant','books'],role:'broker'}:
+  /habitat/.test(type.id)?{name:'RESIDENTIAL DECK',kinds:['bed','table','planter'],role:'settler'}:
+  {name:'PASSENGER LOUNGE',kinds:['bench','vending','planter'],role:'pilot'};
+ const clusters=[],budget=Math.min(18,Math.max(4,Math.floor(plan.floorTiles.length/85))),phase=hash(type.id)%3;
+ for(let y=3+phase;y<m.rows-4;y+=4)for(let x=3;x<m.cols-4;x+=4){
+  if(clusters.length>=budget||occupied.some(p=>Math.hypot(p.x-(x+1),p.y-(y+.7))<3.2))continue;
+  if(![0,1,2].every(dx=>[0,1].every(dy=>plan.walkable[(y+dy)*m.cols+x+dx]&&m.tiles[y+dy][x+dx]!==TILE.PATH)))continue;
+  const index=clusters.length,kind=facility.kinds[index%facility.kinds.length],wide=['workbench','bar','bench','table','planter'].includes(kind),color=/greenhouse|agricultural/.test(type.id)?'#86b47c':type.palette.edge;
+  if(type.portType==='industrial'||type.portType==='military')rect(m,x,y,3,2,TILE.GRATE);
+  prop(m,kind,x+.2,y+.3,wide?2.5:1.25,kind==='bed'?1.5:1,color,false);if(wide&&kind!=='planter')prop(m,'light',x,y+1.6,2.8,.2,type.palette.window,false);
+  clusters.push({x,y});occupied.push({x:x+1,y:y+1});
+ }
+ if(clusters.length){const p=clusters[Math.floor(clusters.length/2)];label(m,facility.name,p.x,p.y-.65,type.palette.window);}
+ // Population follows the usable deck area. Busy hubs have more staff, while a
+ // compact relay remains readable; all new standing points use the same mask.
+ for(let i=0;i<Math.min(7,Math.floor(plan.floorTiles.length/240));i++)resident('facility-staff-'+i,'npc',facility.role,.23+(i%3)*.24,.33+Math.floor(i/3)*.2,type.palette.accent);
+ for(const p of plan.floorTiles){if((p.x*7+p.y*13)%37===0&&occupied.every(q=>Math.hypot(q.x-p.x,q.y-p.y)>2))prop(m,'light',p.x,p.y,.4,.25,type.palette.window,false);}
+ prop(m,'airlock',plan.exit.x-.5,plan.exit.y-.5,1,1,type.palette.accent,false);prop(m,'dockship',plan.collar.x-2,plan.collar.y-2,2,5,type.palette.hull,false);
+ m.districts=fittings.map(([id,name])=>({name,x:(places[id].x+.5)*T,y:(places[id].y+.5)*T}));
  return m;
 }
 function planet(location,seed){
@@ -292,6 +355,75 @@ function barrenSurface(location,seed){
  line(m,10,27,48,27,TILE.PATH);line(m,48,27,48,66,TILE.PATH);addFrontierSites(m,location,seed);
  for(let y=3;y<77;y+=3)for(let x=3;x<105;x+=3){if(m.tiles[y][x]!==TILE.GROUND||rng()>.23||m.entities.some(e=>Math.hypot(e.x-(x+.5)*T,e.y-(y+.5)*T)<70))continue;prop(m,rng()>.5?'rock':'debris',x,y,1,1,'#8b8a81',false);}
  label(m,'NO SERVICES / SURVEY ONLY',19,27,'#b9b39f');return m;
+}
+function scalePlanetRegion(m,location){
+ const dimensions=planetSurfaceDimensions(location),type=planetTypeFor(location),oldCols=m.cols,oldRows=m.rows,sx=dimensions.cols/oldCols,sy=dimensions.rows/oldRows;
+ m.layoutVersion=dimensions.layoutVersion;m.placeTypeId=type.id;m.placeTypeName=type.name;m.sizeClass=dimensions.sizeClass;m.terrain=type.terrain;m.regionScale=dimensions.scale;
+ m.palette={...PALETTES[m.biome],ground:shadeColor(type.palette.land,.60),ground2:shadeColor(type.palette.land,.67),water:shadeColor(type.palette.water,.72),accent:type.palette.accent};
+ if(sx!==1||sy!==1){
+  const original=m.tiles;
+  m.cols=dimensions.cols;m.rows=dimensions.rows;m.width=m.pixelWidth=m.cols*T;m.height=m.pixelHeight=m.rows*T;
+  m.tiles=Array.from({length:m.rows},(_,y)=>Array.from({length:m.cols},(_,x)=>original[Math.min(oldRows-1,Math.floor((y+.5)/sy))][Math.min(oldCols-1,Math.floor((x+.5)/sx))]));
+  // Preserve narrow doors and marked paths when a moon contracts the base region.
+  for(let y=1;y<oldRows-1;y++)for(let x=1;x<oldCols-1;x++){
+   const tile=original[y][x],door=tile===TILE.FLOOR&&((original[y][x-1]===TILE.WALL&&original[y][x+1]===TILE.WALL)||(original[y-1][x]===TILE.WALL&&original[y+1][x]===TILE.WALL));
+   if(!door&&![TILE.PATH,TILE.PAD,TILE.METAL].includes(tile))continue;
+   const x0=Math.max(1,Math.floor(x*sx)),y0=Math.max(1,Math.floor(y*sy));
+   rect(m,x0,y0,Math.max(1,Math.ceil((x+1)*sx)-x0),Math.max(1,Math.ceil((y+1)*sy)-y0),tile);
+  }
+  const scalePoint=p=>{p.x*=sx;p.y*=sy;return p;},snap=p=>{p.x=(clamp(Math.floor(p.x*sx/T),1,m.cols-2)+.5)*T;p.y=(clamp(Math.floor(p.y*sy/T),1,m.rows-2)+.5)*T;return p;};
+  snap(m.spawn);snap(m.exit);m.entities.forEach(snap);
+  for(const d of m.decor){scalePoint(d);d.w*=sx;d.h*=sy;}
+  for(const s of m.solids){scalePoint(s);s.w*=sx;s.h*=sy;}
+  m.districts?.forEach(scalePoint);
+  if(m.sites)m.sites=m.sites.map(site=>({...site,tileX:clamp(Math.floor((site.tileX+.5)*sx),1,m.cols-2),tileY:clamp(Math.floor((site.tileY+.5)*sy),1,m.rows-2)}));
+  for(const a of m.ambientAnimals||[]){scalePoint(a);if(a.home)scalePoint(a.home);a.path?.forEach(scalePoint);}
+  rect(m,0,0,m.cols,1,TILE.WALL);rect(m,0,m.rows-1,m.cols,1,TILE.WALL);rect(m,0,0,1,m.rows,TILE.WALL);rect(m,m.cols-1,0,1,m.rows,TILE.WALL);
+ }
+ if(!m.noPortServices)shapePlanetWilderness(m,type);
+ return m;
+}
+function shapePlanetWilderness(m,type){
+ const terrain=type.terrain,protectedTiles=new Uint8Array(m.cols*m.rows),wet=['wetlands','islands','reefs','stormcoast','lavafields'].includes(terrain),urban=['factory','city','ruins'].includes(terrain);
+ // Settlements, roads and authored entrances keep their access corridors. Terrain
+ // changes the country between them rather than cutting off a story contact.
+ for(let y=1;y<m.rows-1;y++)for(let x=1;x<m.cols-1;x++)if(![TILE.GROUND,TILE.WATER,TILE.WALL].includes(m.tiles[y][x]))for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<m.cols&&yy<m.rows)protectedTiles[yy*m.cols+xx]=1;}
+ for(const e of [...m.entities,m.spawn,m.exit]){const x=Math.floor(e.x/T),y=Math.floor(e.y/T);for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(x+dx>=0&&y+dy>=0&&x+dx<m.cols&&y+dy<m.rows)protectedTiles[(y+dy)*m.cols+x+dx]=1;}
+ const featureKind={grassland:'grass',steppe:'grass',terminator:'rock',continental:'rock',rainforest:'tree',spores:'alien-plant',wetlands:'tree',dunes:'cactus',saltflats:'rock',mesas:'rock',obsidian:'rock',lavafields:'rock',ashlands:'debris',icefields:'ice',tundra:'grass','frozen-ocean':'ice',islands:'tree',reefs:'alien-plant',stormcoast:'rock',factory:'equipment',city:'console',ruins:'debris',craters:'rock','red-rock':'rock',crystals:'crystal'}[terrain]||'grass';
+ let waterTiles=0,terrainTiles=0,features=0;
+ for(let y=2;y<m.rows-2;y++)for(let x=2;x<m.cols-2;x++){
+  if(m.tiles[y][x]!==TILE.GROUND||protectedTiles[y*m.cols+x])continue;
+  const value=planetTerrainSample(terrain,x/m.cols,y/m.rows,m.seed),grain=noise(x,y,m.seed),threshold={wetlands:.40,islands:.48,reefs:.37,stormcoast:.42,lavafields:.34}[terrain]||0;
+  if(wet&&value<threshold){m.tiles[y][x]=TILE.WATER;waterTiles++;continue;}
+  if(urban&&value>.57){m.tiles[y][x]=terrain==='ruins'?TILE.RUBBLE:(x%6===0||y%6===0?TILE.PATH:TILE.METAL);terrainTiles++;}
+  else if((terrain==='mesas'&&value>.67)||(terrain==='obsidian'&&value>.66)||(terrain==='craters'&&value<.28)||(terrain==='crystals'&&value>.72)){m.tiles[y][x]=TILE.RUBBLE;terrainTiles++;}
+  if(x%3===0&&y%3===0&&grain<(terrain==='rainforest'?.7:terrain==='spores'?.55:.3)){
+   prop(m,featureKind,x,y,1,1,type.palette.accent,false,{terrainFeature:true,variant:Math.floor(grain*10)});features++;
+  }
+ }
+ // Remove obsolete dry scenery under new lakes; the new geography is visible in
+ // collision, the local chart and the orbital terrain, not just in its name.
+ m.decor=m.decor.filter(d=>d.kind==='label'||m.tiles[Math.floor((d.y+d.h*.6)/T)]?.[Math.floor((d.x+d.w*.5)/T)]!==TILE.WATER);
+ m.solids=m.solids.filter(s=>m.tiles[Math.floor((s.y+s.h/2)/T)]?.[Math.floor((s.x+s.w/2)/T)]!==TILE.WATER);
+ m.terrainStats={terrain,waterTiles,terrainTiles,features,regionTiles:m.cols*m.rows};
+}
+function restorePlanetAccess(m){
+ if(m.regionScale===1)return;
+ let reachable=new Set(reachableTiles(m));
+ for(const e of m.entities){
+  const start=Math.floor(e.y/T)*m.cols+Math.floor(e.x/T);if(reachable.has(start))continue;
+  // A contracted one-tile doorway can fall between samples. Find the shortest
+  // connection to the existing walking network, then reopen only that passage.
+  const queue=[start],parent=new Map([[start,null]]);let end=null;
+  for(let i=0;i<queue.length&&end===null;i++){
+   const n=queue[i],x=n%m.cols,y=Math.floor(n/m.cols);
+   for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy,k=yy*m.cols+xx;if(xx<1||yy<1||xx>=m.cols-1||yy>=m.rows-1||parent.has(k))continue;parent.set(k,n);if(reachable.has(k)){end=k;break;}queue.push(k);}
+  }
+  if(end===null)continue;const passage=[];
+  for(let n=end;n!==null;n=parent.get(n)){const x=n%m.cols,y=Math.floor(n/m.cols);if(BLOCKED.has(m.tiles[y][x]))m.tiles[y][x]=TILE.PATH;passage.push(point(x,y));}
+  m.solids=m.solids.filter(s=>!passage.some(p=>p.x>s.x-8&&p.x<s.x+s.w+8&&p.y>s.y-8&&p.y<s.y+s.h+8));
+  reachable=new Set(reachableTiles(m));
+ }
 }
 function addDomesticAnimals(m,kind,x,y){
  m.ambientAnimals||=[];
@@ -575,11 +707,13 @@ export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
  if(location.kind==='detention')return detentionSurface(location,seed);
  const kind=kindOf(location);const m=kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
+ if(m.kind==='planet')scalePlanetRegion(m,location);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,
  // but items and characters never fence in an interaction or a landing spawn.
  if(m.kind!=='ship')m.solids=m.solids.filter(s=>![m.spawn,m.exit,...m.entities].some(e=>e.x>s.x-15&&e.x<s.x+s.w+15&&e.y>s.y-15&&e.y<s.y+s.h+15));
  for(const e of m.entities){const tx=Math.floor(e.x/T),ty=Math.floor(e.y/T);if(BLOCKED.has(m.tiles[ty]?.[tx]))m.tiles[ty][tx]=m.kind==='planet'?TILE.GROUND:TILE.FLOOR;}
+ if(m.kind==='planet')restorePlanetAccess(m);
  addQuestEntities(m,location);
  if(m.kind==='site'){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
  return m;
@@ -641,7 +775,15 @@ function tileDraw(ctx,m,x,y,p,time){
  if(tile===TILE.GROUND){
   pixel(ctx,n>.55?p.ground2||p.ground:p.ground,wx,wy,T,T);
   for(let i=0;i<3;i++){const nn=noise(x*3+i,y,m.seed),xx=wx+Math.floor(nn*21),yy=wy+3+Math.floor(noise(y*4+i,x,m.seed)*18);if(m.biome==='verdant'||m.biome==='ocean'){pixel(ctx,nn>.4?'#42684a':'#315b41',xx,yy,1,3);if(nn>.96)pixel(ctx,i%2?'#d6bd83':'#a9c7a3',xx,yy,2,2);}else if(m.biome==='arid'){pixel(ctx,nn>.6?'#a3835d':'#665341',xx,yy,3,1);}else if(m.biome==='volcanic'){pixel(ctx,nn>.92?'#be7851':'#57484d',xx,yy,3,1);}else{pixel(ctx,'#7d9da5',xx,yy,4,1);}}
-  if(n<.22&&m.biome==='ice'){pixel(ctx,'#9ab8bb',wx+3,wy+16,10,1);pixel(ctx,'#6d8a94',wx+12,wy+15,3,1);}return;
+  if(n<.22&&m.biome==='ice'){pixel(ctx,'#9ab8bb',wx+3,wy+16,10,1);pixel(ctx,'#6d8a94',wx+12,wy+15,3,1);}
+  const accent=p.accent||'#9bb4a4',shade=p.ground;
+  if(['dunes','steppe','red-rock','ashlands'].includes(m.terrain)){const yy=wy+5+Math.floor(Math.sin(x*.8+y)*4);pixelLine(ctx,wx,yy,wx+23,yy+5,shadeColor(accent,.65));if(n>.6)pixelLine(ctx,wx+4,yy+8,wx+23,yy+11,shadeColor(accent,.55));}
+  else if(['saltflats','icefields','frozen-ocean','obsidian'].includes(m.terrain)&&n>.55){pixelLine(ctx,wx,wy+9,wx+11,wy+13,shadeColor(accent,.75));pixelLine(ctx,wx+11,wy+13,wx+17,wy+24,shadeColor(accent,.75));}
+  else if(['mesas','continental','craters'].includes(m.terrain)&&n>.6){pixelLine(ctx,wx+3,wy+16,wx+18,wy+16,shadeColor(accent,.65));pixelLine(ctx,wx+6,wy+12,wx+18,wy+12,shadeColor(accent,.8));}
+  else if(['spores','crystals','reefs'].includes(m.terrain)&&n>.6){pixel(ctx,accent,wx+6,wy+7,2,2);pixel(ctx,shadeColor(accent,.65),wx+14,wy+17,3,2);}
+  else if(['factory','city','ruins'].includes(m.terrain)){pixel(ctx,shadeColor(accent,.35),wx,wy,T,1);pixel(ctx,shadeColor(accent,.35),wx,wy,1,T);if(n>.7)pixel(ctx,accent,wx+17,wy+4,3,1);}
+  else if(m.terrain==='terminator'&&x>m.cols*.6)pixel(ctx,shadeColor(shade,.78),wx,wy,T,3);
+  return;
  }
  if(tile===TILE.PATH){
   pixel(ctx,p.path,wx,wy,T,T);
@@ -824,8 +966,9 @@ function drawProp(ctx,d,m,time,emit){
   pixel(ctx,'#172b2b',x+1,y+17,25,8);pixel(ctx,'#806b4d',x+9,y+2,6,19);pixel(ctx,'#254e3d',x-7,y-21,34,29);pixel(ctx,'#315c44',x-10,y-15,40,16);pixel(ctx,'#497f50',x-5,y-23,28,19);pixel(ctx,'#669555',x,y-21,17,5);pixel(ctx,'#80a660',x+4,y-19,3,3);return;
  }
  if(d.kind==='cactus'){pixel(ctx,'#2d594a',x+9,y-5,7,27);pixel(ctx,'#6c9870',x+10,y-4,2,23);pixel(ctx,'#2d594a',x+3,y+5,7,5);pixel(ctx,'#2d594a',x+3,y-1,4,10);pixel(ctx,'#51765a',x+15,y+1,6,5);pixel(ctx,'#51765a',x+19,y-6,4,10);return;}
+ if(d.kind==='crystal'){pixel(ctx,shadeColor(c,.35),x+2,y+17,24,7);for(const[dx,dy,hh]of[[4,1,20],[12,-10,32],[20,8,16]]){pixel(ctx,shadeColor(c,.7),x+dx,y+dy+4,7,hh-4);pixel(ctx,c,x+dx+2,y+dy,3,hh);pixel(ctx,'#dfdced',x+dx+3,y+dy+2,1,Math.max(3,hh-10));}return;}
  if(d.kind==='rock'||d.kind==='ice'){
-  const icy=d.kind==='ice';pixel(ctx,icy?'#3b5d6a':'#343e40',x+2,y+17,21,7);pixel(ctx,icy?'#91b9bd':m.biome==='arid'?'#a18b6c':'#77716d',x+2,y+8,20,13);pixel(ctx,icy?'#b9d3cf':m.biome==='arid'?'#b09a76':'#89827b',x+6,y+3,13,9);pixel(ctx,icy?'#668e9c':'#59544f',x+17,y+12,5,10);return;
+  const icy=d.kind==='ice';pixel(ctx,icy?'#3b5d6a':'#343e40',x+2,y+17,21,7);pixel(ctx,d.terrainFeature?shadeColor(c,.65):icy?'#91b9bd':m.biome==='arid'?'#a18b6c':'#77716d',x+2,y+8,20,13);pixel(ctx,d.terrainFeature?shadeColor(c,.9):icy?'#b9d3cf':m.biome==='arid'?'#b09a76':'#89827b',x+6,y+3,13,9);pixel(ctx,icy?'#668e9c':'#59544f',x+17,y+12,5,10);return;
  }
  if(d.kind==='fountain'){pixel(ctx,'#283e3e',x,y+8,w,h-8);pixel(ctx,'#b0afa0',x+2,y+3,w-4,h-9);pixel(ctx,'#2e6873',x+6,y+7,w-12,h-17);pixel(ctx,'#a4b4a7',x+w/2-4,y+2,8,h-12);pixel(ctx,'#9ec3bc',x+w/2-5,y,10,5);return;}
  if(d.kind==='fence'){for(let i=1;i<w;i+=14)pixel(ctx,c,x+i,y-4,3,14);pixel(ctx,c,x,y,w,2);pixel(ctx,c,x,y+5,w,2);return;}

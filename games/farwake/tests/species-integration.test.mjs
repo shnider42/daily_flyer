@@ -8,13 +8,15 @@ import {FACTION_PORTS} from '../dist/port-content.mjs';
 import {withHull} from './helpers/fleet-fixtures.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 import {SYSTEM_SPACE_SCALE} from '../dist/system-space.mjs';
+import {releasedChart,releasedBody,releasedAsteroids,releasedSignals} from './helpers/world-type-projection.mjs';
 
 const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const addedBodies=new Set([...SPECIES_HOMEWORLDS.map(entry=>entry.body.id),...FACTION_PORTS.map(port=>port.id)]);
 const releasedBodies=bodies=>bodies.filter(body=>!addedBodies.has(body.id));
 const ok=result=>{assert.equal(result.ok,true,result.reason);return result;};
 // Recorded from the live 0.7.1 source, before the species additions. Only the
-// appended homeworlds and service bases are projected out. Existing chart bytes remain intact.
+// appended homeworlds/service bases and new type descriptors are projected out.
+// All older identities, geography, permissions and biome fields remain intact.
 const charts={
  'species-compatibility':'41f71102e91aafa3c37ddd178bd1792c55cc0aff93f073dff75ed4aa2eb90d69',
  farwake:'9bd1c91c285e7efa3f214c8053014723306c4744092c98e11c2689eb4473ca47'
@@ -49,7 +51,7 @@ test('adding people and homeworlds preserves all 900 released stars and every ol
  for(const[seed,expected]of Object.entries(charts)){
   const galaxy=buildGalaxy(seed);
   assert.equal(galaxy.length,900);
-  assert.equal(checksum(galaxy.map(system=>({...system,bodies:releasedBodies(system.bodies)}))),expected);
+  assert.equal(checksum(releasedChart(galaxy).map(system=>({...system,bodies:releasedBodies(system.bodies)}))),expected);
   for(const entry of SPECIES_HOMEWORLDS)assert.equal(galaxy.find(system=>system.id===entry.systemId).bodies.at(-1).id,entry.body.id);
  }
 });
@@ -57,10 +59,10 @@ test('adding people and homeworlds preserves all 900 released stars and every ol
 test('population and traffic changes cannot consume other physical world random draws',()=>{
  for(const[seed,systems]of Object.entries(physical))for(const[systemId,expected]of Object.entries(systems)){
   const game=new Game(seed);game.state.systemId=systemId;game._loadSystem(systemId);
-  // Traffic intentionally has new hull selection and lanes. Normalize only
-  // physical spacing; every other released body, rock, hull and signal field stays exact.
+  // Traffic and place appearance intentionally vary. Exclude only the explicit
+  // type additions; older physical objects retain their seeded fields exactly.
   const coordinates=items=>items.map(item=>({...item,x:Math.round(item.x/SYSTEM_SPACE_SCALE*1e6)/1e6,y:Math.round(item.y/SYSTEM_SPACE_SCALE*1e6)/1e6}));
-  const projection=()=>({bodies:coordinates(releasedBodies(game.system.bodies)),asteroids:coordinates(game.system.asteroids),enemies:coordinates(game.system.enemies),signals:coordinates(game.system.signals)});
+  const projection=()=>({bodies:coordinates(releasedBodies(game.system.bodies).map(body=>releasedBody(body,{authored:game.currentSystem.authored,runtime:true}))),asteroids:coordinates(releasedAsteroids(game.system.asteroids)),enemies:coordinates(game.system.enemies),signals:coordinates(releasedSignals(game.system.signals))});
   assert.equal(checksum(projection()),expected);
   for(const body of game.system.bodies)generateSurface(body,seed);
   assert.equal(checksum(projection()),expected,'creating person views never mutates the space simulation');

@@ -3,6 +3,7 @@ import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from '.
 import { questThread } from '../dist/quest-content.mjs';
 import { getShipClass, SHIP_CLASSES, STATION_ROLES, cabinLayout } from '../dist/fleet.mjs';
 import { generateSurface, movePerson, nearestEntity, repairSolution, isWalkable } from '../dist/surface.mjs';
+import { reconcileSurfacePosition } from '../dist/surface-position.mjs';
 import { ENCOUNTERS, DIALOGUE, UPGRADES, LORE } from '../dist/content.mjs';
 import { PersistenceConflict } from './persistence.mjs';
 import { BoardingAuthority } from './boarding.mjs';
@@ -21,6 +22,8 @@ import { normalizeSpecies } from '../dist/species.mjs';
 import { captureTraffic, restoreTraffic, catchUpTraffic } from '../dist/traffic.mjs';
 import { groupLaunchChoices } from '../dist/group-start.mjs';
 import { migrateRealmSpace } from '../dist/space-migration.mjs';
+import { migrateRealmPlaceSizes } from './place-migration.mjs';
+import { WORLD_TYPES_VERSION } from '../dist/world-types.mjs';
 import { SYSTEM_SPACE_VERSION } from '../dist/system-space.mjs';
 import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 import { settleNpcContract } from '../dist/npc-contracts.mjs';
@@ -55,7 +58,7 @@ export class Realm extends BoardingAuthority {
     super();
     this.id = id; this.name = snapshot?.name || cleanName(name, 'Farwake friends'); this.seed = snapshot?.seed || seed || `realm-${id}`;
     this.galaxy = buildGalaxy(this.seed);
-    if (snapshot) snapshot = migrateRealmSpace(clone(snapshot), { systems: this.galaxy });
+    if (snapshot) snapshot = migrateRealmPlaceSizes(migrateRealmSpace(clone(snapshot), { systems: this.galaxy }), { systems: this.galaxy });
     // This creation preference applies only to new captains. Loading an old
     // galaxy or resuming an existing passport never starts a new opening.
     this.settings = Object.freeze({ openingMission: (snapshot ? snapshot.settings?.openingMission : settings?.openingMission) === true, startTogether: (snapshot ? snapshot.settings?.startTogether : settings?.startTogether) === true });
@@ -84,7 +87,7 @@ export class Realm extends BoardingAuthority {
     this.director=advanceWorldDirector(snapshot?.director,now()/1000,{seed:this.seed,systems:this.galaxy}).state;
     const savedPerspectives=new Map(), savedEncounters=new Map();
     for (const data of Object.values(snapshot?.captains || {})) {
-      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, ...savedGame } = data.game || {};
+      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, ...savedGame } = data.game || {};
       savedPerspectives.set(data.id,savedGame.mode);
       if (savedGame.pendingEncounter) savedEncounters.set(data.id, savedGame.pendingEncounter);
       const game = Game.fromSave({ ...savedGame, seed: this.seed, worlds: {} });
@@ -368,6 +371,10 @@ export class Realm extends BoardingAuthority {
   }
   _bindCaptain(captain) {
     captain.game._directorShared=this.director;
+    captain.game._earthFlightContext = shipId => {
+      const physical = this.vessels.get(shipId || captain.aboard);
+      return { ship: physical?.ship || null, operating: !!physical && captain.aboard === physical.id && this._helm(captain, physical) && physical.systemId === captain.game.state.systemId };
+    };
     const vessel = captain.aboard && this.vessels.get(captain.aboard);
     if (vessel) {
       captain.game.state.systemId = vessel.systemId;
@@ -685,11 +692,12 @@ export class Realm extends BoardingAuthority {
   }
   _ensurePersonPosition(captain, reset = false) {
     const surface = this._surface(captain); if (!surface) return;
-    if(reset)Object.assign(captain.game.state.person,surface.spawn);
-    else if(!isWalkable(surface,captain.game.state.person.x,captain.game.state.person.y)){
-      const vessel=this.vessels.get(captain.aboard);
-      Object.assign(captain.game.state.person,vessel&&['ship','enemy'].includes(captain.game.state.interior?.kind)?safeCabinPoint(cabinLayout(vessel.ship.classId),captain.game.state.person):surface.spawn);
-    }
+    const vessel = this.vessels.get(captain.aboard);
+    reconcileSurfacePosition(captain.game.state.person, surface, {
+      reset,
+      fallback: point => vessel && ['ship', 'enemy'].includes(captain.game.state.interior?.kind)
+        ? safeCabinPoint(cabinLayout(vessel.ship.classId), point) : surface.spawn
+    });
   }
   _entity(captain, entityId, types) {
     if (captain.game.state.mode !== 'person') return null;
@@ -954,6 +962,16 @@ export class Realm extends BoardingAuthority {
         return this._withShip(c, active, () => game.threadAction(a));
       }
       const quest=game.state.narrative?.quests?.[a.threadId],step=quest&&questThread(a.threadId)?.stages[quest.stage];
+      if (a.threadId === 'earth_long_silence' && ['earth-scan', 'earth-rescue', 'earth-defense'].includes(step?.kind)) {
+        if (!this._helm(c, active)) return fail('Take the helm of a vessel you are permitted to fly for this mission.', 'helm');
+        return this._withShip(c, active, () => game.threadAction(a));
+      }
+      if (a.threadId === 'earth_long_silence' && step?.kind === 'earth-deliver') {
+        const carrier = this.vessels.get(quest.earth?.passenger?.shipId);
+        if (!carrier || carrier.destroyed || carrier.systemId !== game.state.systemId || carrier.dockedAt !== game.state.locationId || game.state.interior || !this._canBoard(c, carrier))
+          return fail('Dock the ship carrying your survivors at this port, then meet the receiving contact on foot.', 'vessel');
+        return this._withShip(c, carrier, () => game.threadAction(a));
+      }
       if(step?.kind==='ship-scan'){
         if(!this._helm(c,active))return fail('Take the helm of this vessel to collect the flight reading.','helm');
         return this._withShip(c,active,()=>game.threadAction(a));
@@ -1045,6 +1063,8 @@ export class Realm extends BoardingAuthority {
       if (name === 'scan' && game.state.npcContract?.military?.branchId === 'navy') return this._crewCommand(c, 'crewAction', { action: 'scan', signalId: id });
       if (!active || !(this._helm(c, active) || ['scanner', 'navigation'].includes(c.crewRole))) return fail('Operate the helm or scanner station first.', 'station');
       if (!this._helm(c, active) && (!this._canRole(c, active, c.crewRole) || !this._atStation(c, c.crewRole))) return fail('Remain at the permitted navigation console to operate the scanner.', 'distance');
+      const campaignSignal = name === 'scan' && game.system.signals.find(signal => signal.id === id && signal.earthCampaign);
+      if (campaignSignal && ['scan', 'rescue'].includes(campaignSignal.missionRole) && !this._helm(c, active)) return fail('Take the helm to complete this Earth mission flight action.', 'helm');
       if (name === 'scan' && id === 'hearth:story:tinbell' && !game.hasFlag('belt_signal_scanned')) { const signal = game.system.signals.find(s => s.id === id); if (signal) { signal.resolved = false; signal.scanned = false; } }
       return this._withShip(c, active, () => game[name](id), { forceShip: true });
     }
@@ -1476,6 +1496,7 @@ export class Realm extends BoardingAuthority {
     state.openingMissionAvailability = opening.active ? { id: opening.id, systemId: 'hearth', oreFieldExhausted: opening.fallbackAvailable, oreAvailable: opening.oreAvailable, ownShipHere: c.game.openingOwnShipHere() } : null;
     state.npcLife = this._npcView(c, timestamp);
     state.militaryOperationsView = this._militaryOperationsView(c);
+    state.earthCampaignView = c.game.earthCampaignStatus?.() || null;
     // Encounter rolls stay with the authority. A clear watch is not a promise
     // that nothing will happen, and a client cannot inspect a future alarm.
     if(state.npcContract?.navy){delete state.npcContract.navy.attackPlanned;delete state.npcContract.navy.attackAt;}
@@ -1517,12 +1538,12 @@ export class Realm extends BoardingAuthority {
     const captains = {};
     for (const c of this.captains.values()) {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
-      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, ...personalState } = c.game.state;
+      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
       captains[c.id] = { id: c.id, name: c.name, launchStatus: c.launchStatus || null, launchReady: c.launchReady === true, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }
     const vessels = Object.fromEntries([...this.vessels].map(([id, vessel]) => { const { actor, ...data } = vessel; return [id, clone(data)]; }));
-    return { format: 1, spaceVersion: SYSTEM_SPACE_VERSION, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), militaryOperations:clone(this.militaryOperations), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
+    return { format: 1, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, realmId: this.id, name: this.name, seed: this.seed, settings: clone(this.settings), groupStart: clone(this.groupStart), militaryOperations:clone(this.militaryOperations), ownerId: this.ownerId, createdAt: this.createdAt, socialEpochAt: this.socialEpochAt, updatedAt: now(), director:clone(this.director), npcHolds: Object.fromEntries([...this.npcHolds].map(([id, holds]) => [id, clone(holds)])), captains, vessels, worlds: clone(this.worlds), sites: clone(this.sites), leases: clone(this.leases) };
   }
   async flush(targetRevision = this.revision) {
     if (this.failed) throw new Error('This realm must be reloaded from its last durable state.');

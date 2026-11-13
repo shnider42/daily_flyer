@@ -71,3 +71,12 @@
 }
 
 .profession-roster{margin:22px 0}.profession-roster>summary{min-height:44px;padding:12px 0;cursor:pointer;color:#e0d1ae;font-size:1.1em;border-block:1px solid #3d565b}
+
+.earth-campaign-card{border-left-color:#a7cbd4;background:linear-gradient(125deg,#142c39,#162630)}
+.earth-progress{margin:14px 0;padding:12px 14px;background:#0e222d;border:1px solid #45626b;border-radius:3px}
+.earth-progress>strong{color:#cfe1df;font-size:.9em}
+.narrative-view .earth-operation{margin:6px 0;color:#c4d4cf;font-size:.88em}
+.earth-integrity{display:grid;gap:6px;color:#a5c6b7;font-size:.82em}
+.earth-integrity[hidden]{display:none}
+.earth-integrity progress{width:100%;height:8px;accent-color:#97bca8}
+.place-type{color:#bfd3c9;font-size:.94em}

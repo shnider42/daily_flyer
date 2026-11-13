@@ -14,17 +14,24 @@ const legacyHashes={
  farwake:'9c4b45b8cfd3de1173e06978fdf73f91bedbd0fe5f1f241b009019c85cb3e572',
  'quiet-earth':'6a1a1920b93e72d5cbad82ee7ba2a8851fa00e9731060fae2bfaa38254498d33'
 };
-// These two intentional 0.5.1 descriptions clarify the existing core port. Only
-// prose and newly appended service berths are projected out; released fields stay protected.
+// These two intentional 0.5.1 descriptions clarify the existing core port. New
+// type metadata and service berths are projected out; released fields stay protected.
 function releasedChartProjection(systems){
  const additions=new Set(FACTION_PORTS.map(port=>port.id));
  const projected=structuredClone(systems).map(system=>({...system,bodies:system.bodies.filter(body=>!additions.has(body.id))})),hearth=projected.find(system=>system.id==='hearth');
+ for(const system of projected){
+  for(const key of ['systemTypeId','typeLabel','typeDescription','stellar','activity'])delete system[key];
+  for(const body of system.bodies){
+   if(!system.authored&&body.stationTypeId)delete body.portType;
+   for(const key of ['stationTypeId','planetTypeId','sizeClass','typeLabel','typeDescription','visualRadius'])delete body[key];
+  }
+ }
  hearth.description='A tired orange star and a station built from ships that never made it home.';
  hearth.bodies.find(body=>body.id==='kettle').lore='A salvage port where every welded corridor remembers a different ship. Cinder is the smallest vessel on the departure board.';
  return projected;
 }
 
-test('expanded charts preserve released system bytes except the two intentional core descriptions and append unique deterministic places',()=>{
+test('expanded charts preserve released fields while adding type metadata and unique deterministic places',()=>{
  for(const[seed,expected]of Object.entries(legacyHashes)){
   const current=buildGalaxy(seed),base=current.slice(0,300),before=JSON.stringify(base),expanded=expandGalaxy(base,seed);
   assert.equal(checksum(releasedChartProjection(base)),expected,'existing stars, body IDs and all data except the two named prose fields retain their released values');

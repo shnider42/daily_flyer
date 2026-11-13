@@ -1,6 +1,7 @@
 /** The captain's notebook. Rules and prices always come from the game authority. */
 import { escapeHtml as esc, fmt } from './ui.mjs';
 import { navIcon } from './ui-icons.mjs';
+import { earthCampaignPresentation } from './earth-campaign-ui.mjs';
 
 const array=value=>Array.isArray(value)?value:[];
 const text=value=>typeof value==='string'?value:'';
@@ -62,8 +63,10 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
   }
   function storyCard(root,view,{compact=false,onOpen}={}) {
     const card=document.createElement('article');card.className='thread-card';
+    if(view.campaign)card.classList.add('earth-campaign-card');
     card.innerHTML=`<div class="thread-card-top"><span class="thread-category">${esc(view.category||'A local story')}</span><span class="thread-status">${esc(view.status==='active'?'In progress':view.status==='completed'?'Recorded':'A lead')}</span></div><h3>${esc(view.title)}</h3><p>${esc(compact?(view.objective||view.summary):(view.summary||view.objective))}</p>`;
     if(view.target)note(card,place(view.target),'thread-place');
+    if(view.campaign)campaignProgress(card,view);
     button(card,view.status==='active'?'Continue this story':'Read the lead',onOpen||(()=>openThread(view.id)),{secondary:true});root.append(card);
   }
   function openBoard(section='stories') {
@@ -83,7 +86,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     heading(root,'In your hands');
     if(!data.active?.length)note(root,'No unfinished favors yet. The leads below begin with someone you can meet.');
     for(const view of array(data.active))storyCard(root,view,{compact:true});
-    if(data.available?.length){heading(root,'Around here');for(const view of data.available)storyCard(root,view);}
+    if(data.available?.length){heading(root,'Available leads');for(const view of data.available)storyCard(root,view);}
     if(!data.available?.length&&!data.active?.length) {
       button(root,'Find someone at this port',()=>track({systemId:game().state.systemId,bodyId:currentBody()||'kettle',entityId:'quest:passage-desk:'+(currentBody()||'kettle')}),{secondary:true});
       note(root,'Try the concourse at Kettle, Morrow’s clinic, or a public-services desk.');
@@ -158,10 +161,36 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     if(!view){openBoard();return;}
     const root=frame(view.title,'stories',view.category||'A STORY IN PROGRESS');renderStage(root,view);
   }
+  function campaignProgress(root,view) {
+    const info=earthCampaignPresentation(view,game().state.earthCampaignView);if(!info)return;
+    const panel=document.createElement('section');panel.className='earth-progress';panel.dataset.thread=view.id;panel.dataset.stage=info.stageId||'';
+    panel.innerHTML='<strong class="earth-mission"></strong><p class="earth-operation"></p><label class="earth-integrity"><span></span><progress max="100"></progress></label>';
+    root.append(panel);paintCampaign(panel,info);
+  }
+  function paintCampaign(panel,info) {
+    panel.querySelector('.earth-mission').textContent=info.mission;
+    panel.querySelector('.earth-operation').textContent=info.detail;
+    const meter=panel.querySelector('.earth-integrity');meter.hidden=info.integrity===null;
+    if(info.integrity!==null){meter.querySelector('span').textContent=`Protected contact · ${info.integrity}% integrity`;meter.querySelector('progress').value=info.integrity;}
+  }
+  function refreshCampaign() {
+    const panels=[...dialog.body.querySelectorAll('.earth-progress')];if(!panels.length)return;
+    const data=board(),views=[...array(data.active),...array(data.available)];
+    for(const panel of panels){
+      const view=views.find(value=>value.id===panel.dataset.thread),info=earthCampaignPresentation(view,game().state.earthCampaignView);
+      if(!info||info.stageId!==panel.dataset.stage)continue;
+      paintCampaign(panel,info);
+      if(!busy)for(const control of panel.parentElement.querySelectorAll('button[data-earth-action]')){
+        const action=view.actions?.find(value=>value.action===control.dataset.earthAction);
+        control.disabled=!action||action.available===false;
+      }
+    }
+  }
   function renderStage(root,view,{entity,profession=false,refresh}={}) {
     const section=document.createElement('section');section.className='thread-stage';
     section.innerHTML=`<span class="thread-category">${esc(view.category||view.stageTitle||'Your next step')}</span><h3>${esc(view.stageTitle||view.title)}</h3><p class="thread-prose">${esc(view.text||view.summary||view.description)}</p>${view.objective&&!(entity&&entity.id===view.target?.entityId&&array(view.actions).some(action=>action.available!==false))?`<div class="thread-objective"><span>WHAT TO DO</span><p>${esc(view.objective)}</p></div>`:''}`;
     destination(section,view.target,profession?'@profession':view.id,{here:!!entity&&entity.id===view.target?.entityId&&!view.target?.enemyId});
+    if(view.campaign)campaignProgress(section,view);
     const actions=array(view.actions);let readSolution=null;
     if(view.puzzle)readSolution=renderPuzzle(section,view.puzzle);
     if(view.reward)note(section,`${fmt(view.reward)} cr on completion${profession&&view.status!=='active'?` · ${fmt(view.cost||0)} cr supplies to begin`:''}`,'thread-place');
@@ -169,7 +198,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
       const wrap=document.createElement('div');wrap.className='thread-action';
       if(action.detail||action.description)note(wrap,action.detail||action.description);
       money(wrap,action.cost??(profession&&action.action==='accept'?view.cost:null));
-      button(wrap,action.label||'Continue',()=>{
+      const actionButton=button(wrap,action.label||'Continue',()=>{
         const name=profession?'professionAction':'threadAction';
         const args=profession?{jobId:action.jobId||view.jobId||view.id,eventId:action.eventId||view.eventId,action:action.action,choiceId:action.choiceId,entityId:action.entityId||entity?.id||view.target?.entityId}:{threadId:view.id,action:action.action,choiceId:action.choiceId,entityId:entity?.id||view.target?.entityId};
         if(action.action==='solve'||action.action==='triage')args.solution=readSolution?.()||[];
@@ -182,6 +211,7 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
           button(done,profession?'Back to work':'Back to the story',()=>refresh?refresh():profession?openProfessions(entity):entity?.data?.objectId?openObject(entity):entity?openContact(entity):openThread(view.id),{secondary:true});
         });
       },{disabled:action.available===false});
+      if(view.campaign)actionButton.dataset.earthAction=action.action;
       if(action.reason)note(wrap,action.reason,'action-reason');section.append(wrap);
     }
     if(!actions.length)note(section,view.reason||'Follow the destination above to continue.');
@@ -248,5 +278,5 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     }
     root.append(card);
   }
-  return {openBoard,openThread,openContact,openObject,openProfessions,renderStage};
+  return {openBoard,openThread,openContact,openObject,openProfessions,renderStage,refreshCampaign};
 }

@@ -1,12 +1,68 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.19.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.20.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose **Casual** to begin with a fold-equipped Sparrow, Kestrel, or Mule and your choice of starting system; **Regular** to begin beside Kettle Station with a small ship and earn its fold drive; or **Hardcore** to begin on foot at Morrow without a ship. All three start with **180 credits**. Jobs, passenger services, crew work, prices, character options, combat, and recovery follow the same rules. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Places with identity and Earth: The Long Silence · 0.20.0
+
+The existing **900-system chart stays intact**. Its names, IDs, coordinates, factions, authored story gates, and established routes remain stable. It now contains **25 station types, 25 planet types, and 25 system types**. That is **15,625 theoretical combinations** of the three categories, not 15,625 new or hand-authored destinations. All 25 of each category occur in generated galaxies. System purpose influences the mix of places and also changes stellar appearance, working traffic, resource density, field shape, crystal yields, and instrument signals. Normal geographic security and encounter protections still apply.
+
+Station geometry is shared between the orbital drawing and the walkable interior: a ring has a central well, a circular station has a circular floor, and branching docks retain their arms. The 25 forms also differ in capacity, service zoning, palette, furnishing, and staff density. Greenhouses, wards, archives, laboratories, cargo decks, and passenger lounges reinforce their purpose. Their type appears on the local chart. Kettle retains its familiar service positions inside a square outline.
+
+Planet types share their terrain and color vocabulary between orbital art and the landing region. Moons use **76 × 56** regions; dwarf worlds **92 × 68**; terrestrial worlds **108 × 80**; super-Earths **140 × 104**; and supermassive worlds **178 × 132**. The largest local region has over **5.5 times** a moon's playable area. These are explorable landing regions, not simulations of an entire planetary surface. Orbital radius grows with the same size class. Morrow keeps its original region size and authored routes.
+
+The Galaxy chart and Casual starting-system search now accept type names as well as system names, making it possible to look for a habitat ring, city world, binary system, or other environment.
+
+### The three type catalogs
+
+| Station type | Planet type | System type |
+| --- | --- | --- |
+| Civic concourse | Garden world | Settled crossroads |
+| Habitat ring | Prairie world | Agricultural circuit |
+| Survey sphere | Twilight world | Industrial foundry system |
+| Refinery cross | Supercontinent world | Research enclave |
+| Relay spindle | Canopy world | Naval staging system |
+| Twin harbor | Fungal world | Salvage convergence |
+| Frontier triangle | Mangrove world | Nebular veil |
+| Trade hexagon | Dune world | Contested crossing |
+| Hospital octagon | Salt-flat world | Pilgrim route |
+| Orbital wheel | Canyon world | Ship graveyard |
+| Telescope crescent | Obsidian world | Quarantine watch |
+| Repair horseshoe | Lava world | Beacon chain |
+| Freight trident | Ashfall world | Close binary |
+| Naval star fort | Glacier world | Red-dwarf enclave |
+| Agricultural ladder | Tundra world | Blue-giant frontier |
+| Forge hammer | Frozen ocean | White-dwarf remnant |
+| Customs diamond | Archipelago world | Young stellar cluster |
+| Greenhouse clover | Reef world | Mineral belt system |
+| Transfer hub | Storm ocean | Ocean-world confluence |
+| Archive arc | Forge world | Cryogenic frontier |
+| Rescue fork | City world | Refuge settlement chain |
+| Tether spine | Reclaimed world | Archive constellation |
+| Hive habitat | Cratered world | Frontier transfer route |
+| Embassy pentagon | Rust world | Stellar-remnant observatory |
+| Salvage stack | Crystal world | Garden-world chain |
+
+### Earth: The Long Silence
+
+Open **Menu → Log → Stories → Earth: The Long Silence**, or meet **Ines Calder on Morrow** or **Oren Vale at Kettle**. A remote comms lead makes the campaign discoverable from a Casual origin elsewhere in the galaxy. Accepting it grants no story evidence or landing clearance: the existing evacuation beacon, archive, faction, Witness, and Threshold mechanics remain part of the route.
+
+The original campaign has **16 numbered missions across 29 actionable steps**, with **three named survivor rescue and delivery chains**, **four defense or escort operations**, **six evidence puzzles**, and **three consequential choices**. Nine contacts and seven investigation objects carry the story across nine named systems. It expands the existing Earth mystery and preserves established decisions and canon. PS2 *Defender* inspired the rescue-and-defense structure: endangered people must reach real receiving places, and survivors' support helps later defenses. The characters, factions, conflict, and resolution belong to Farwake.
+
+A survivor occupies a real berth on the physical carrying ship. An authorized guest can use a friend's hull, including a captain who owns no ship; delivery requires that same hull docked at the receiving port. Defenses require time on watch, proximity, contact integrity, and actual disabled or destroyed attackers. The moving escort covers roughly 1,954 m, so remaining at its starting point cannot complete the watch. There are ten attacking waves with fourteen physical hostile hulls across the campaign. The notebook and tracked objective show mission progress and live contact integrity.
+
+Solo and shared galaxies use the same mission rules. Other captains can see and fight the same attackers without automatically receiving someone else's personal investigation progress. Individual choices and progress survive reconnects. Interrupted rescue passages arrange a fresh pickup, and failed operations use new encounter identities so retries cannot reuse destroyed-wave credit or duplicate stipends. Loss of a parked personal ship does not invalidate passengers aboard a different carrier.
+
+### Existing saves and next design question
+
+Old saves receive one-time repairs for ships that overlap newly enlarged bodies and for normal-port walking positions whose floor plans changed. Current poses then remain stable. Canonical shared hulls, passengers, NPC watches, military route points, and unloaded systems receive the same geometry migration without changing damage, resources, pay, or earned progression.
+
+**Design note:** the player's concern about empty space and repeated activities remains a density/content issue to revisit. This release improves environmental variety and adds an authored campaign; the system count remains 900, and generated ports still share some underlying services and contract mechanics. Reducing or restructuring the galaxy is intentionally deferred.
 
 ## Casual beginnings and a choice of home system · 0.19.3
 

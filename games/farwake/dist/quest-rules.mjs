@@ -6,6 +6,8 @@ import { liveInteractionSurface, interactionInRange } from './live-surface.mjs';
 import { enemyHullProfile } from './fleet.mjs';
 import { SYSTEM_SPACE_SCALE } from './system-space.mjs';
 import { systemCosmicBodies } from './galaxy-expansion.mjs';
+import { EARTH_CAMPAIGN_ID } from './earth-campaign-content.mjs';
+import { normalizeEarthCampaignRecord, earthCampaignBerths, earthStageTarget, earthStageAccess, earthThreadAction, finishEarthCampaignStage, syncEarthCampaignWorld, stepEarthCampaignWorld, earthCampaignStatus, earthStageActions, earthCampaignRescue, earthCarrierLost, earthSignalAction } from './earth-campaign-rules.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -44,7 +46,7 @@ function normalizeQuest(definition,raw){
   targetId:typeof value.targetId==='string'&&value.targetId.startsWith('quest-bounty:')?value.targetId.slice(0,180):null,
   huntOutcome:['captured','destroyed'].includes(value.huntOutcome)?value.huntOutcome:null,
   shipId:typeof value.shipId==='string'?value.shipId.slice(0,160):null,
-  evacuated:!!value.evacuated,outcome:typeof value.outcome==='string'?safeText(value.outcome):null};
+  evacuated:!!value.evacuated,outcome:typeof value.outcome==='string'?(definition.id===EARTH_CAMPAIGN_ID?String(value.outcome).replace(/[\u0000-\u001f<>]/g,'').slice(0,1200):safeText(value.outcome)):null,...(definition.id===EARTH_CAMPAIGN_ID?{earth:normalizeEarthCampaignRecord(value.earth,stage,completed?'completed':'active')}:{})};
 }
 
 export function occupiedNarrativeBerths(game){
@@ -55,14 +57,14 @@ export function occupiedNarrativeBerths(game){
  if(fare?.status==='active'&&fare.stage>=1&&fare.stage<=2&&fare.shipId===shipId)count++;
  const bounty=state.quests?.paper_bounty;
  if(bounty?.status==='active'&&bounty.huntOutcome==='captured'&&bounty.shipId===shipId)count++;
- return count;
+ return count+earthCampaignBerths(game);
 }
 
-function capacity(game){
- if(game.ownsShip===false||game.state.npcContract?.active||game.atInhabitedPort&&game.canUseOwnShipHere?.()===false)return 0;
+function capacity(game,allowBorrowed=false){
+ if(!allowBorrowed&&game.ownsShip===false||game.state.npcContract?.active||!allowBorrowed&&game.atInhabitedPort&&game.canUseOwnShipHere?.()===false)return 0;
  // Do not use Game.freeBerths: the application subtracts this module's occupants there.
  const crew=(game.livingCrew||[]).length,humans=Math.max(1,finite(game.state.ship.humanOccupants,1));
- return Math.max(0,finite(game.state.ship.berths,game.shipClass?.berths||1)-crew-humans-occupiedNarrativeBerths(game)-finite(game.professionBerths?.())-finite(game.rescuedBerths?.()));
+ return Math.max(0,finite(game.state.ship.berths,game.shipClass?.berths||1)-crew-humans-finite(game.narrativeBerths?.(),occupiedNarrativeBerths(game))-finite(game.professionBerths?.())-finite(game.rescuedBerths?.()));
 }
 function requirements(game,definition){
  const state=nstate(game),need=definition.requires||{},complete=id=>state.quests[id]?.status==='completed';
@@ -124,6 +126,7 @@ function choiceForRecord(definition,record,choice){
  return{...choice,...dead};
 }
 function stageAccess(game,definition,record,step,action,entityId){
+ if(definition.id===EARTH_CAMPAIGN_ID){const access=earthStageAccess(game,record,step,action,{nearEntity,capacity:game=>capacity(game,true)},entityId);if(access)return access;}
  if((definition.id==='last_fare'&&step.id==='arrival'||definition.id==='paper_bounty'&&step.id==='judgment'&&record.huntOutcome==='captured')&&game.canUseOwnShipHere?.()===false)return{ok:false,reason:'Bring the actual ship carrying this person to this port. A passenger-ferry ticket does not move your ship or its occupants.',code:'vessel'};
  if(definition.id==='last_fare'&&step.id==='arrival'&&record.shipId!==game.state.ship.id)return{ok:false,reason:'Nessa is aboard the ship that accepted this passage. Bring that ship to Morrow.',code:'vessel'};
  if(definition.id==='paper_bounty'&&step.id==='judgment'&&record.huntOutcome==='captured'&&record.shipId!==game.state.ship.id)return{ok:false,reason:'Bring the ship carrying Rook to Kettle before settling the warrant.',code:'vessel'};
@@ -154,12 +157,14 @@ function stageAccess(game,definition,record,step,action,entityId){
 }
 function view(game,definition,record){
  const status=record?.status||'available',step=definition.stages[record?.stage||0],contact=questContact(definition.offeredBy),target=clone(step?.at||contactTarget(contact));
+ if(definition.id===EARTH_CAMPAIGN_ID&&step)Object.assign(target,earthStageTarget(game,step,record));
  if(step?.kind==='ship-scan')Object.assign(target,shipReadingPoint(game,target));
  if(step?.kind==='hunt'){
   const enemy=record&&aliveBounty(game,record);target.enemyId=record?.targetId||null;target.x=enemy?.x??1460*SYSTEM_SPACE_SCALE;target.y=enemy?.y??760*SYSTEM_SPACE_SCALE;
  }
- target.label=locationName(game,target);
+ target.label=target.label||locationName(game,target);
  const result={id:definition.id,title:definition.title,category:definition.category,summary:definition.summary,status,stageId:step?.id||null,stageTitle:step?.title||'Recorded',text:status==='completed'?(record.outcome||'This part of your voyage is recorded.'):step?.responses?.[record?.choices?.[step.respondTo]]||step?.text||definition.summary,objective:step?.objective||'Complete',target,actions:[],reward:record?.rewardQuote??Math.round(definition.reward*(game.characterEffects?.jobRewards||1)),contactId:definition.offeredBy};
+ if(definition.id===EARTH_CAMPAIGN_ID)result.campaign=earthCampaignStatus(game);
  if(definition.id==='paper_bounty'&&step?.id==='judgment'&&record?.huntOutcome==='destroyed')result.text='Rook is dead. Orin puts the forged warrant beside the wreck record. You cannot undo the encounter, but you can still decide whether the employer gets to write its only public account.';
  if(definition.id==='borrowed_voice'&&step?.id==='intercom'){
   const answer=nstate(game).quests.nine_knocks?.choices.disposition;
@@ -171,9 +176,10 @@ function view(game,definition,record){
  }
  if(status==='completed'){result.choices=clone(record.choices);result.outcome=record.outcome||definition.summary;return result;}
  if(status==='available'){
-  const access=nearEntity(game,target.entityId,target),full=definition.id==='last_fare'&&capacity(game)<1;
-  result.actions=[{action:'accept',label:definition.category==='Passing moment'?'Hear them out':'Take this on',available:access.ok&&!full,reason:full?'You need one spare berth for Nessa.':access.reason||null}];return result;
+  const access=definition.remoteAccept?(game.state.person.health>0&&!game.state.person.down?{ok:true}:{ok:false,reason:'Recover consciousness before answering a new campaign lead.'}):nearEntity(game,target.entityId,target),full=definition.id==='last_fare'&&capacity(game)<1;
+  result.actions=[{action:'accept',label:definition.remoteAccept?'Answer the campaign lead':definition.category==='Passing moment'?'Hear them out':'Take this on',available:access.ok&&!full,reason:full?'You need one spare berth for Nessa.':access.reason||null}];return result;
  }
+ if(definition.id===EARTH_CAMPAIGN_ID){const actions=earthStageActions(game,record,step,{nearEntity,capacity:game=>capacity(game,true)});if(actions){result.actions=actions;return result;}}
  const access=stageAccess(game,definition,record,step,step.kind==='hunt'?'capture':'advance',target.entityId);
  if(step.kind==='choice')result.actions=step.options.map(raw=>{const option=choiceForRecord(definition,record,raw);return{action:'choose',choiceId:option.id,label:option.label,detail:option.detail,cost:clone(option.cost||{}),available:access.ok&&!canPay(game,option.cost),reason:access.reason||canPay(game,option.cost)};});
  else if(step.kind==='hunt'){
@@ -184,6 +190,7 @@ function view(game,definition,record){
  return result;
 }
 function finishStep(game,definition,record,text){
+ if(definition.id===EARTH_CAMPAIGN_ID)finishEarthCampaignStage(game,record,definition.stages[record.stage]);
  record.stage++;
  if(record.stage>=definition.stages.length){
   record.status='completed';record.finishedAt=time(game);record.outcome=record.outcome||text||definition.summary;
@@ -221,9 +228,13 @@ export const NarrativeRules={
   this.state.narrative=state;return state;
  },
  narrativeBerths(){return occupiedNarrativeBerths(this);},
+ stepNarrativeWorld(delta,participants=[this]){return stepEarthCampaignWorld(this,delta,participants);},
+ earthCampaignStatus(){return earthCampaignStatus(this);},
+ earthCarrierLost(shipId){return earthCarrierLost(this,shipId);},
+ earthSignalAction(signalId){return earthSignalAction(this,signalId);},
  narrativeBoard(){
   const state=nstate(this),active=[],available=[],completed=[];
-  for(const definition of QUEST_THREADS){const record=state.quests[definition.id];if(record?.status==='completed'){completed.push(view(this,definition,record));continue;}if(record){active.push(view(this,definition,record));continue;}const contact=questContact(definition.offeredBy);if(requirements(this,definition)&&(state.met.includes(contact.id)||(this.state.systemId===contact.systemId&&bodyFor(this)?.id===contact.bodyId&&!this.state.interior)))available.push(view(this,definition,null));}
+  for(const definition of QUEST_THREADS){const record=state.quests[definition.id];if(record?.status==='completed'){completed.push(view(this,definition,record));continue;}if(record){active.push(view(this,definition,record));continue;}const contact=questContact(definition.offeredBy);if(requirements(this,definition)&&(definition.remoteAccept||state.met.includes(contact.id)||(this.state.systemId===contact.systemId&&bodyFor(this)?.id===contact.bodyId&&!this.state.interior)))available.push(view(this,definition,null));}
   const contacts=state.met.map(id=>{const contact=questContact(id),relation=state.relations[id];return{...contact,trust:relation?.trust||0,attitude:attitude(relation?.trust||0),lastMemory:relation?.memories.at(-1)?.text||'You have met, but have not shared much history yet.'};});
   const factions=FACTIONS.map(faction=>{
    const standing=this.state.rep[faction.id]||0,pledged=state.pledge===faction.id,pledgeCost=state.pledge&&!pledged?75:0,cooldownRemaining=state.pledge&&!pledged?Math.max(0,Math.ceil(180-(time(this)-state.pledgeAt))):0;
@@ -234,7 +245,7 @@ export const NarrativeRules={
  },
  contactThreads(contactId){
   const state=nstate(this),contact=definitionContact(this,contactId);if(!contact)return[];
-  return QUEST_THREADS.flatMap(definition=>{const record=state.quests[definition.id];if(record?.status==='completed')return[];if(record){const step=definition.stages[record.stage];return step?.at?.contactId===contactId||(step?.kind==='hunt'&&definition.offeredBy===contactId)?[view(this,definition,record)]:[];}return definition.offeredBy===contactId&&requirements(this,definition)?[view(this,definition,null)]:[];});
+  return QUEST_THREADS.flatMap(definition=>{const record=state.quests[definition.id];if(record?.status==='completed')return[];if(record){const step=definition.stages[record.stage];return step?.at?.contactId===contactId||(step?.kind==='hunt'&&definition.offeredBy===contactId)?[view(this,definition,record)]:[];}return (definition.offeredBy===contactId||definition.alsoOfferedBy?.includes(contactId))&&requirements(this,definition)?[view(this,definition,null)]:[];});
  },
  inspectContact(entityId){
   const id=contactIdFrom(entityId),contact=definitionContact(this,id);if(!contact)return this._fail('That contact is not here.','target');
@@ -256,7 +267,7 @@ export const NarrativeRules={
   if(action==='accept'){
    if(record)return this._fail('You have already taken this on.','duplicate');
    if(!requirements(this,definition))return this._fail('This person is not ready to bring you into that matter.','requirements');
-   const target=contactTarget(questContact(definition.offeredBy)),access=nearEntity(this,entityId||target.entityId,target);if(!access.ok)return this._fail(access.reason,access.code);
+   const offeredId=definition.alsoOfferedBy?.find(id=>entityId===`quest:${id}`)||definition.offeredBy,target=contactTarget(questContact(offeredId)),access=definition.remoteAccept?(this.state.person.health>0&&!this.state.person.down?{ok:true}:{ok:false,reason:'Recover consciousness before answering a new campaign lead.',code:'mode'}):nearEntity(this,entityId||target.entityId,target);if(!access.ok)return this._fail(access.reason,access.code);
    if(Object.values(state.quests).filter(q=>q.status==='active').length>=8)return this._fail('Finish some of your current commitments before taking on another.','capacity');
    if(threadId==='last_fare'&&capacity(this)<1)return this._fail('Nessa needs one spare berth on your own ship.','capacity');
    record={status:'active',stage:0,choices:{},solved:[],rewardQuote:Math.round(definition.reward*(this.characterEffects?.jobRewards||1)),startedAt:time(this),finishedAt:null,targetId:null,huntOutcome:null,shipId:this.state.ship.id,evacuated:false,outcome:null};state.quests[threadId]=record;
@@ -267,6 +278,7 @@ export const NarrativeRules={
   }
   if(!record||record.status!=='active')return this._fail('There is no unfinished step in that story.','duplicate');
   const step=definition.stages[record.stage];
+  if(threadId===EARTH_CAMPAIGN_ID){const result=earthThreadAction(this,record,step,{action,entityId},{nearEntity,capacity:game=>capacity(game,true),finish:text=>finishStep(this,definition,record,text)});if(result)return result;}
   const expected=step.kind==='choice'?'choose':step.kind==='puzzle'?'solve':step.kind==='hunt'?null:'advance';
   if(expected&&action!==expected||step.kind==='hunt'&&!['capture','confirmKill'].includes(action))return this._fail('That action does not belong to the current step.','action');
   const access=stageAccess(this,definition,record,step,action,entityId);if(!access.ok)return this._fail(access.reason,access.code);
@@ -296,6 +308,7 @@ export const NarrativeRules={
   return finishStep(this,definition,record,step.kind==='hunt'?(action==='capture'?'Rook is aboard. Return to Orin at Kettle.':'The wreck’s transponder and unaltered camera evidence are ready for Orin.'):response||step.text);
  },
  syncNarrativeWorld(){
+  syncEarthCampaignWorld(this);
   const state=this.state.narrative,record=state?.quests?.paper_bounty;if(!record||record.status!=='active'||record.stage!==2||this.state.systemId!=='hearth')return;
   record.targetId||=`quest-bounty:${this.playerId}:${this.state.ship.id}`.slice(0,180);
   const world=this._record();if(world.defeated.includes(record.targetId)||this.system.enemies.some(enemy=>enemy.id===record.targetId))return;
@@ -323,6 +336,7 @@ export const NarrativeRules={
  },
  recordPassengerDamage(amount){const passenger=this.state.narrative?.passenger;if(passenger&&passenger.shipId===this.state.ship.id)passenger.damageTaken+=Math.max(0,finite(amount));},
  narrativeRescue(){
+  earthCampaignRescue(this);
   const state=this.state.narrative;if(!state)return;
   if(state.passenger){this._log('Passenger evacuated',`${state.passenger.name} reached rescue transport. The interrupted passage pays no fare.`,'passage');state.passenger=null;}
   for(const id of ['last_fare','paper_bounty']){const record=state.quests[id];if(!record||record.status!=='active')continue;

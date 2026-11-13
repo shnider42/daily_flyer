@@ -5,6 +5,7 @@ import {NAMED_SYSTEMS} from '../dist/content.mjs';
 import {FRONTIER_SYSTEMS} from '../dist/galaxy-expansion.mjs';
 import {FACTION_PORTS,appendFactionPorts} from '../dist/port-content.mjs';
 import {generateSurface} from '../dist/surface.mjs';
+import {releasedBody} from './helpers/world-type-projection.mjs';
 
 const ok=result=>{assert.equal(result?.ok,true,result?.reason||JSON.stringify(result));return result;};
 function arrive(game,systemId,bodyId,{person=false}={}){
@@ -26,7 +27,7 @@ test('five service bases append without changing the identities or order of any 
  const chart=buildGalaxy('port-regression');assert.equal(chart.length,900);
  for(const original of [...NAMED_SYSTEMS,...FRONTIER_SYSTEMS]){
   const system=chart.find(value=>value.id===original.id);assert.ok(system);
-  assert.deepEqual(system.bodies.slice(0,original.bodies.length),original.bodies,original.id);
+  assert.deepEqual(system.bodies.slice(0,original.bodies.length).map(body=>releasedBody(body,{authored:true})),original.bodies,original.id);
  }
  const allIds=chart.flatMap(system=>system.bodies.map(body=>body.id));
  for(const port of FACTION_PORTS){

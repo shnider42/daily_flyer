@@ -6,6 +6,8 @@ import {Game} from '../dist/engine.mjs';
 import {FACTIONS} from '../dist/content.mjs';
 import {getShipClass} from '../dist/fleet.mjs';
 import {publicStartingPort} from '../dist/livelihoods.mjs';
+import {systemIdentity} from '../dist/world-identity.mjs';
+import {earthCampaignPresentation} from '../dist/earth-campaign-ui.mjs';
 
 // Run the real HUD and connection handlers with Game state; only browser and
 // transport boundaries are replaced. The assertions observe displayed advice
@@ -35,7 +37,7 @@ function fixture(game){
   async connect(){this.connected=true;const packet={state:arrival.state};this.options.onSnapshot(packet);return packet;}
   disconnect(){this.connected=false;}setInput(){}
  }
- context=vm.createContext({Game,FACTIONS,getShipClass,publicStartingPort,game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
+ context=vm.createContext({Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,narrativeUI:{refreshCampaign:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
   tracked:'kettle',trackedThreadId:'previous-story',narrativeWaypoint:{id:'old-waypoint'},narrativeMarkerKey:'old-story',openingMarkerKey:'old-opening',dutyMarkerKey:'old-duty',militaryMarkerKey:'old-military',guideIntent:'scan',foldDriveTarget:{kind:'beacon'},
   surface:null,surfaceKey:'',surfaceTarget:null,combatPreview:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
   touchLayout:false,settings:{guidance:'simple',showPerformance:false},hudDirty:true,labelLayoutDirty:false,cameraSaveTimer:null,cameraScope:'local',cameraKey:null,localCameraPreferences:{},militaryValue:null,narrativeValue:null,

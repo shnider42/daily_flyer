@@ -1,4 +1,5 @@
 /** People and unfinished business. Original authored content; no generated live dialogue. */
+import { EARTH_CAMPAIGN_CONTACTS, EARTH_CAMPAIGN_OBJECTS, EARTH_CAMPAIGN } from './earth-campaign-content.mjs';
 const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};
 const person=(id,name,systemId,bodyId,roleLabel,text,color='#8fc7bd',species='human')=>({id,name,systemId,bodyId,role:'contact',roleLabel,text,color,species});
 
@@ -15,7 +16,8 @@ export const QUEST_CONTACTS=freeze([
  person('ferryman','The Ferryman','cinder','patchwork','Unlicensed passage broker','The Ferryman has no boat, no badge, and a wall of names crossed out in different inks. “People owe me because they are still alive.”','#d8937e'),
  person('vey','Vey-of-the-Interval','chorus','chora','Choral translator','Vey raises three luminous fingers, waits, then lowers one. Your translator offers six incompatible greetings.','#91cfe0','choral'),
  person('elet','Elet Sable','umbra','umbra-watch','Tidal observatory keeper','Elet’s wall clocks disagree by hours. A photograph taped between them shows two people wearing the same coat.','#bdabd3'),
- person('mother-rusk','Mother Rusk','ravel','ravel-market','Market patron','Rusk’s couriers call her Mother. She remembers every birthday and every missed payment.','#d0a4a0')
+ person('mother-rusk','Mother Rusk','ravel','ravel-market','Market patron','Rusk’s couriers call her Mother. She remembers every birthday and every missed payment.','#d0a4a0'),
+ ...EARTH_CAMPAIGN_CONTACTS
 ]);
 
 export const QUEST_OBJECTS=freeze([
@@ -29,7 +31,8 @@ export const QUEST_OBJECTS=freeze([
  {id:'blindpost-speaker',name:'Sealed observation intercom',systemId:'hush',bodyId:'blindpost',kind:'terminal',text:'The speaker says your ship’s name before you touch its switch. The microphone has been disconnected.'},
  {id:'chora-translation',name:'Choral interval stone',systemId:'chorus',bodyId:'chora',kind:'terminal',text:'Light runs through the stone at walking pace. The gaps change when someone stands nearby.'},
  {id:'umbra-register',name:'Delayed rescue register',systemId:'umbra',bodyId:'umbra-watch',kind:'terminal',text:'One distress call has arrived three times. Each copy is older than the last.'},
- {id:'rusk-book',name:'Rusk’s household ledger',systemId:'ravel',bodyId:'ravel-market',kind:'evidence',text:'Air, food, a bunk, and interest. Half the names belong to people who have never left this market.'}
+ {id:'rusk-book',name:'Rusk’s household ledger',systemId:'ravel',bodyId:'ravel-market',kind:'evidence',text:'Air, food, a bunk, and interest. Half the names belong to people who have never left this market.'},
+ ...EARTH_CAMPAIGN_OBJECTS
 ]);
 
 const contacts=Object.fromEntries(QUEST_CONTACTS.map(value=>[value.id,value]));
@@ -48,6 +51,7 @@ const evidence={type:'evidence',prompt:'Match each image to its source before ac
 const intervals={type:'sequence',prompt:'Build a greeting from Vey’s three demonstrated intervals. A pause belongs to the sentence.',clues:['An open hand means “I am listening”.','The long pause gives the other speaker room to refuse.','The paired light asks “may I approach?” It must come last.'],inputs:[0,1,2].map(i=>({id:`interval-${i}`,label:`Interval ${i+1}`,options:values(['hand','pause','light'],['Open hand','Long pause','Paired light'])})),solution:['hand','pause','light']};
 
 export const QUEST_THREADS=freeze([
+ EARTH_CAMPAIGN,
  {id:'last_fare',title:'The last fare of the night',category:'Passage',offeredBy:'len-vale',summary:'A passenger needs to reach Morrow before the clinic closes. Her documents say she should never have left.',reward:95,stages:[
   talk('booking','One seat, no questions','Len lowers his voice. “Her name is Nessa. She can pay for the seat. She cannot pay for someone to decide whether she deserves it.”','len-vale','Speak to Len at Kettle Station.'),
   inspect('papers','A name under the erasure','Nessa’s exemption was valid until her employer bought the clinic. Its new stamp calls her medicine a company asset.','passenger-slip','Read the passage slip on Kettle’s concourse.'),

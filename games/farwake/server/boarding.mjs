@@ -337,6 +337,23 @@ export class BoardingAuthority {
     if (vessel.destroyed) return true;
     vessel.destroyed = true; vessel.ship.destroyed = true; vessel.ship.hull = 0; vessel.ship.shield = 0; vessel.helmOwner = null; vessel.ship.vx = 0; vessel.ship.vy = 0;
     const occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
+    // A relief survivor belongs to the actual carrier, even if the captain
+    // who accepted the rescue has gone ashore or owns a different ship.
+    for (const captain of this.captains.values()) {
+      const loss = captain.game.earthCarrierLost?.(vessel.id);
+      if (!loss?.affected) continue;
+      const rooms = [...new Set([vessel.systemId, loss.operationSystemId].filter(Boolean))].map(systemId => this._room(systemId));
+      for (const room of rooms) room.runtime.signals = room.runtime.signals.filter(signal => signal.campaignKey !== loss.campaignKey);
+      if (loss.operationStep) {
+        const room = this._room(loss.operationSystemId || vessel.systemId);
+        const prefix = `earth:${loss.campaignKey}:${loss.operationStep}:`;
+        const retain = enemy => !enemy.id.startsWith(prefix) || enemy.promotedVesselId || enemy.canonicalVesselId;
+        room.runtime.enemies = room.runtime.enemies.filter(retain);
+        room.record.spawned = room.record.spawned.filter(retain);
+        for (const field of ['enemyHealth', 'enemyStates']) for (const id of Object.keys(room.record[field] || {})) if (id.startsWith(prefix)) delete room.record[field][id];
+        room.runtime.bullets = room.runtime.bullets.filter(bullet => !String(bullet.ownerId || bullet.owner || '').startsWith(prefix));
+      }
+    }
     for(const captain of this.captains.values())if(captain.game.state.ship.id===vessel.id){
       captain.game.professionRescue?.();
       if(!occupants.includes(captain))captain.game.narrativeRescue();

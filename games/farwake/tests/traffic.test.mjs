@@ -172,8 +172,13 @@ test('physical distress contacts keep their source position and ordinary traffic
 });
 
 test('civilian ferries and dispatch runners cannot inherit a military patrol transmission', () => {
-  const game=new Game('patrol-source-audit');let civilians=0,patrols=0;
-  for(const system of game.galaxy){
+  let civilians=0,patrols=0;
+  // The original seed remains a full civilian audit. The released Farwake
+  // seed supplies an actual eligible escort after public port mixes diversify;
+  // assistance is still a rare hash choice, never guaranteed in every galaxy.
+  for(const seed of ['patrol-source-audit','farwake']){
+   const game=new Game(seed);
+   for(const system of game.galaxy){
     game.state.systemId=system.id;game._loadSystem(system.id);
     for(const contact of game.system.traffic){
       if(contact.encounterId==='patrol'){
@@ -184,6 +189,7 @@ test('civilian ferries and dispatch runners cannot inherit a military patrol tra
       }
       if(['passenger','courier'].includes(contact.trafficRole)){civilians++;assert.notEqual(contact.encounterId,'patrol');}
     }
+   }
   }
   assert.ok(civilians>100);
   assert.ok(patrols>0,'a rare actual patrol still offers assistance');

@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {Game} from '../dist/engine.mjs';
 import {questThread} from '../dist/quest-content.mjs';
 import {LEGACY_WORLD_RADIUS,SYSTEM_SPACE_SCALE,WORLD_RADIUS} from '../dist/system-space.mjs';
+import {releasedChart,releasedBody,releasedRadius,releasedAsteroids,releasedSignals} from './helpers/world-type-projection.mjs';
 
 // Captured by running the committed e8a86eb dist files in an independent
 // directory. No current placement helper or generator supplied these hashes.
@@ -27,13 +28,23 @@ function content(items,key){
 let surveyed;
 function surveyGalaxy(){
  if(surveyed)return surveyed;
- const game=new Game(baseline.seed),hashes=Object.fromEntries(keys.map(key=>[key,createHash('sha256')])),poses=Object.fromEntries(keys.filter(key=>key!=='traffic').map(key=>[key,createHash('sha256')]));
- const counts=Object.fromEntries(keys.map(key=>[key,0])),bounds=[],duplicates=[],dimensions=new Set();
+ const game=new Game(baseline.seed),trafficControl=new Game(baseline.seed),hashes=Object.fromEntries(keys.map(key=>[key,createHash('sha256')])),poses=Object.fromEntries(keys.filter(key=>key!=='traffic').map(key=>[key,createHash('sha256')]));
+ // The new catalog intentionally changes port purpose, traffic budget and body
+ // outlines. A control loaded with the released chart inputs still protects
+ // every old hull/route field against the independent0.10 fixture. Bounds and
+ // duplicate checks below always use the actual new runtime, including traffic.
+ trafficControl.galaxy=releasedChart(game.galaxy).map(system=>({...system,bodies:system.bodies.map(body=>({...body,visualRadius:releasedRadius(body)}))}));
+ const counts=Object.fromEntries(keys.map(key=>[key,0])),actualCounts=Object.fromEntries(keys.map(key=>[key,0])),bounds=[],duplicates=[],dimensions=new Set();
  for(const system of game.galaxy){
   game.state.systemId=system.id;game._loadSystem(system.id);const world=game.system;
+  trafficControl.state.systemId=system.id;trafficControl._loadSystem(system.id);
+  const released={
+   bodies:world.bodies.map(body=>releasedBody(body,{authored:system.authored,runtime:true})),
+   asteroids:releasedAsteroids(world.asteroids),enemies:world.enemies,signals:releasedSignals(world.signals),traffic:trafficControl.system.traffic
+  };
   dimensions.add(`${world.radius}:${world.width}:${world.height}`);
   for(const key of keys){
-   const items=world[key];counts[key]+=items.length;hashes[key].update(JSON.stringify([system.id,content(items,key)]));
+   const items=world[key];actualCounts[key]+=items.length;counts[key]+=released[key].length;hashes[key].update(JSON.stringify([system.id,content(released[key],key)]));
    if(new Set(items.map(item=>item.id)).size!==items.length)duplicates.push(`${system.id}/${key}`);
    for(const item of items){
     const extent=Math.max(item.radius||0,(item.renderLength||0)/2,(item.renderWidth||0)/2);
@@ -41,7 +52,7 @@ function surveyGalaxy(){
    }
   }
   for(const key of Object.keys(poses)){
-   const points=world[key].map(item=>{
+   const points=released[key].map(item=>{
     let x=item.x/SYSTEM_SPACE_SCALE,y=item.y/SYSTEM_SPACE_SCALE;
     if(item.id==='hearth:story:tinbell'){
      const moon=world.bodies.find(body=>body.id==='tinbell');
@@ -52,15 +63,16 @@ function surveyGalaxy(){
    poses[key].update(JSON.stringify([system.id,points]));
   }
  }
- return surveyed={systemCount:game.galaxy.length,chartHash:checksum(game.galaxy),counts,contentHashes:Object.fromEntries(keys.map(key=>[key,hashes[key].digest('hex')])),placementHashes:Object.fromEntries(Object.keys(poses).map(key=>[key,poses[key].digest('hex')])),bounds,duplicates,dimensions:[...dimensions]};
+ return surveyed={systemCount:game.galaxy.length,chartHash:checksum(releasedChart(game.galaxy)),counts,actualCounts,contentHashes:Object.fromEntries(keys.map(key=>[key,hashes[key].digest('hex')])),placementHashes:Object.fromEntries(Object.keys(poses).map(key=>[key,poses[key].digest('hex')])),bounds,duplicates,dimensions:[...dimensions]};
 }
 
-test('all900 released systems retain their chart and exact content, hull sizes, resources and route endpoints',()=>{
+test('all900 released systems retain original geography and physics while type additions remain explicit',()=>{
  const current=surveyGalaxy();
  assert.equal(current.systemCount,900);assert.equal(current.systemCount,baseline.systemCount);
- assert.equal(current.chartHash,baseline.chartHash,'Galaxy coordinates, destinations and all chart metadata remain the released0.10 data.');
+ assert.equal(current.chartHash,baseline.chartHash,'Coordinates, destinations and every original chart field remain the released0.10 data.');
  assert.deepEqual(current.counts,baseline.counts);
- for(const key of keys)assert.equal(current.contentHashes[key],baseline.contentHashes[key],`${key}: every non-position content field matches the committed0.10 generator`);
+ for(const key of keys)assert.equal(current.contentHashes[key],baseline.contentHashes[key],`${key}: the released projection/control retains its committed0.10 fields`);
+ assert.ok(current.actualCounts.asteroids>current.counts.asteroids,'type-specific resource fields are appended to the protected original rocks');
  assert.deepEqual(current.duplicates,[]);
 });
 
