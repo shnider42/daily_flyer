@@ -48,7 +48,7 @@ export function createServer({ hub = new RoomHub(), allowedOrigins, automaticTic
     try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
     catch { res.writeHead(400); res.end('Invalid request.'); return; }
     if (pathname === '/api/health' || pathname === '/health' && req.method === 'GET') {
-      try { authorizeOrigin(req, res); json(res, 200, { ok: !hub.closed, service: 'pocket-baseball-online', version: '0.4.0', rooms: hub.rooms.size }); }
+      try { authorizeOrigin(req, res); json(res, 200, { ok: !hub.closed, service: 'pocket-baseball-online', version: '0.5.0', rooms: hub.rooms.size }); }
       catch (error) { json(res, error.status || 500, { ok: false, error: error.message }); }
       return;
     }

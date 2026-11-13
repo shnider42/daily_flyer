@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.4
+# Pocket Baseball — version 0.5
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -87,9 +87,9 @@ and [Fenway tours](https://www.mlb.com/redsox/ballpark/tours) for the more preci
 ## Pitchers and pitch balance
 
 Choose **Your pitcher** and **Opponent** before an exhibition. Batting practice
-uses the chosen opponent, so selecting the knuckleball specialist is the quickest
-way to face the new pitch. These are fictional gameplay profiles, not player
-ratings or measured professional pitching data.
+uses the chosen opponent. Both clubs now have named nine-player batting orders
+and eight-pitcher staffs. These are original fictional players with deliberately
+balanced ratings, not current MLB rosters or measured professional pitching data.
 
 | Profile | Repertoire | Tradeoff |
 | --- | --- | --- |
@@ -97,6 +97,10 @@ ratings or measured professional pitching data.
 | Power | Four-seam, slider, cutter, splitter | Higher velocity with less forgiving command |
 | Movement | Sinker, changeup, curveball, cutter | More movement and changes of shape |
 | Knuckleball | Knuckleball, four-seam, changeup | Three pitches, an approximately 82 mph fastball, and imperfect knuckleball command |
+| 104 mph | Four-seam, slider, splitter | A fresh, well-released fastball can reach 104 mph; weaker command and short relief stamina |
+| Southpaw | Four-seam, two-seam, sweeper, changeup | Left-handed release with a high leg kick |
+| Sidearm | Two-seam, slider, slurve, changeup | Lower arm slot and a different approach angle |
+| Finesse | Eephus, screwball, curveball, four-seam | Left-handed submarine delivery; changing speeds instead of overpowering hitters |
 
 Knuckleball flutter is generated once from the seeded pitch state. Rendering
 does not invent movement or consume random values. Even a well-executed knuckler
@@ -105,8 +109,50 @@ likely. The hanging state is not announced before the batter must decide.
 Sinkers, cutters and splitters have different speeds, break directions and late
 movement, rather than being renamed copies of the original pitches.
 
-The original batting timing windows, aiming reach and contact/power calculations
-are retained. Recorded first-version contact fixtures protect that behavior.
+The familiar batting timing and aiming controls remain. Individual batting
+ratings apply modest contact and power differences, and runner speed follows the
+player. Early/late pull direction mirrors for left-handed batters. Switch hitters
+take the opposite side against the current pitcher's throwing hand.
+
+## Rosters and pitching changes
+
+Open **Rosters** from the home screen or the team control during a game to inspect
+either club's batting order and bullpen. Each player has a name, jersey number,
+position and batting/throwing hand. The bullpen shows pitch selection, delivery,
+pitch count and remaining energy. Starting pitcher choices are saved; each fresh
+game begins with a rested staff.
+
+Pitching changes are available at a dead ball: before a delivery, on the result
+card, or between halves. The replacement keeps the current count, outs, runners
+and score. A removed pitcher cannot return. You can also prepare your own next
+inning's pitcher while your team is batting. There is no warm-up delay or
+three-batter minimum in this arcade implementation. Opening the roster calls time;
+closing it only resumes a pause that the roster itself requested.
+
+Pitch counts reduce energy, then velocity and command. The CPU also uses its
+bullpen as a pitcher tires. Batting practice keeps the opponent fresh so it
+remains useful for learning a specific repertoire. The two 104 mph specialists
+are **Jace Navarro** for Boston and **Troy Vance** for Brooklyn. The top velocity
+is a ceiling, not a promise for every release.
+
+Five deliveries have different poses, release heights and windup lengths:
+classic windup, high leg kick, compact stretch, sidearm and submarine. A lefty
+mirrors the throwing arm, glove, release position and lateral pitch movement.
+The ball leaves the rendered throwing hand at the simulated release time.
+
+## Hit by pitch
+
+Pitch location now reaches the batter's box, so an inside miss can hit the batter.
+The engine checks the ball's swept path against the batter's body on either side
+of the plate, including at 104 mph. The batter recoils and the ball becomes dead.
+An awarded hit-by-pitch sends the batter to first, advances only forced runners,
+and can force in a run or end a walkoff. It does not add a hit.
+
+A swing or a strike takes precedence over an award. Even in that case the body
+contact stops a concurrent steal, rather than letting a dead ball become a live
+catcher's throw. The bounded input allowance remains open for valid delayed swing
+messages before the final call. Injuries and ejections are not simulated.
+Rule reference: [MLB hit-by-pitch glossary](https://www.mlb.com/glossary/standard-stats/hit-by-pitch).
 
 ## Decisions while the ball is in play
 
@@ -167,6 +213,11 @@ it; a disconnected player gets 120 seconds to reconnect to the same seat.
 Leaving explicitly ends the room. Rooms are temporary and do not survive server
 restarts. There are no accounts, public room directory or matchmaking.
 
+Pitching staffs, pitch counts and substitutions also belong to the server.
+Managers can change only their own pitchers, including during their own time-out;
+the change does not clear either player's pause. Pitch and play identifiers reject
+stale changes, and reconnecting restores the current pitcher and used bullpen.
+
 The browser previews the swing immediately and extrapolates movement briefly.
 Official contact and scoring wait for the server. The transport validates room
 generation, side, pitch identity and monotonically increasing action sequence;
@@ -179,11 +230,13 @@ and submit their release-meter quality.
 
 ## Implemented baseball
 
-- Balls, strikes, swings and misses, takes, two-strike fouls, strikeouts and walks.
+- Balls, strikes, swings and misses, takes, two-strike fouls, strikeouts, walks and hit-by-pitches.
 - Forced walk advancement, hits, base occupancy, runs, outs, lineup rotation,
   half innings, skipped final home halves, walkoffs and extra innings.
-- Eight pitch types across four distinct repertoires. Pitch-meter execution
+- Thirteen pitch types across eight distinct repertoires. Pitch-meter execution
   affects location and effectiveness, including knuckleball control and hang risk.
+- Named lineups and bullpens, left/right/switch batting, left/right pitching,
+  five deliveries, pitcher fatigue, CPU pitching changes and a 104 mph specialist.
 - Contact and power swings, timing-dependent spray, spatial bat aim, grounders,
   line drives, fly balls, physical catches, ground pickups, throws to every base,
   wall rebounds, and fair home runs.
@@ -199,14 +252,13 @@ and submit their release-meter quality.
 
 Field movement remains assisted; baserunning destinations and throw choices are
 player decisions. It does not yet implement bunts,
-substitutions, pitcher fatigue, balks,
-hit-by-pitch, dropped-third-strike advances, infield fly, or a complete appeal
+pinch hitters, defensive substitutions, balks,
+dropped-third-strike advances, infield fly, or a complete appeal
 system. Ball four awards mandatory walk advancement and ends a concurrent steal;
 optional further advances on a live walk are not simulated. Tag-up controls
 automatically enforce retouching instead of allowing intentional missed-base
 appeals. This remains an arcade game rather than a full professional rules
-simulator. The clubs use
-balanced fictional players, without real-world roster or rating claims.
+simulator. The clubs use fictional players, without real-world roster or rating claims.
 
 Pitch speed labels describe the pitch profiles; visible pitch flight is slowed
 for readable arcade timing. Ball size is modestly exaggerated for phone screens.
@@ -291,7 +343,11 @@ third-out scoring, and bounded swing input. Added tests cover leads, steals,
 pickoff races, tag-up retouching, sacrifice flies, third-out combinations, both
 human sides, room lifecycle, sequence/role/pitch validation, delayed swings,
 prediction boundaries, compressed HTTP/SSE convergence and cancellation races.
-Rendering contracts check release alignment, hidden endpoint markers, visible
+Roster checks cover substitution ownership and reentry, fatigue and practice
+stamina, both pitching hands, switch hitters, the 104 mph ceiling, body sweeps,
+forced HBP awards, dead-ball swinging strikes, delayed inputs and contact behind
+the plate. Online tests also change pitchers across two real HTTP/SSE clients.
+Rendering contracts check every delivery's release alignment in both hands, hidden endpoint markers, visible
 lead runners and finite, non-mutating pose samples. The first-pass batting
 contract is also checked against recorded contact results. A browser check is needed for rendering, input,
 sound unlock and responsive layout; headless simulation tests do not measure

@@ -4,7 +4,7 @@ import { BaseballGame, PITCHERS, resolveParkId } from './public/engine.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff']);
+const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'changePitcher']);
 const BAT_INPUTS = new Set(['swing', 'run', 'lead', 'steal']);
 const MAX_REWIND = .2;
 export const phaseKey = state => `${state.phase}:${state.phaseStartedAt}:${state.inning}:${state.half}:${state.nextPitchId}`;
@@ -27,7 +27,7 @@ function optionsFor(input = {}) {
     innings: [3, 6, 9].includes(+input.innings) ? +input.innings : 3,
     difficulty: ['rookie', 'club', 'pro'].includes(input.difficulty) ? input.difficulty : 'rookie',
     guidance: ['simple', 'moderate', 'expert'].includes(input.guidance) ? input.guidance : 'simple',
-    pitcher: PITCHERS[input.pitcher] ? input.pitcher : 'balanced', opponentPitcher: 'balanced',
+    pitcher: Object.hasOwn(PITCHERS, input.pitcher) ? input.pitcher : 'balanced', opponentPitcher: 'balanced',
   };
 }
 function newPlayer(side, pitcher, now) {
@@ -67,9 +67,9 @@ export class RoomHub {
   join(code, input = {}) {
     const room = this.room(code), now = this.now();
     if (room.started || room.players[1]) fail(409, 'That field already has two players.', 'room_full');
-    const pitcher = PITCHERS[input.pitcher] ? input.pitcher : 'balanced';
+    const pitcher = Object.hasOwn(PITCHERS, input.pitcher) ? input.pitcher : 'balanced';
     room.players[1] = newPlayer(1, pitcher, now);
-    room.game.options.opponentPitcher = pitcher; room.game.state.options.opponentPitcher = pitcher;
+    room.game.setStartingPitcher(1, pitcher);
     room.touchedAt = now; this.broadcast(room);
     return this.credentials(room, room.players[1]);
   }
@@ -198,6 +198,16 @@ export class RoomHub {
         room.started = true; room.players.forEach(p => { p.ready = false; });
       }
       return { ok: true };
+    }
+    // A manager can use the bullpen during a time-out, but only for their own
+    // roster and at a dead ball. It never resumes play or changes the clock.
+    if (input.type === 'changePitcher') {
+      if (!room.started || !['playing', 'paused'].includes(this.status(room))) fail(409, 'Start the game before making a pitching change.', 'wrong_phase');
+      if (envelope.phaseKey !== phaseKey(s)) fail(409, 'The play changed while you were choosing a pitcher. Reopen the bullpen.', 'stale_phase');
+      if (!Number.isInteger(input.pitchId) || input.pitchId !== commandPitchId(s)) fail(409, 'That change belongs to a different pitch.', 'stale_pitch');
+      if (typeof input.pitcherId !== 'string' || input.pitcherId.length > 80) fail(400, 'Choose a pitcher from your bullpen.', 'bad_pitcher');
+      const accepted = game.command({ type: 'changePitcher', side: player.side, pitchId: input.pitchId, pitcherId: input.pitcherId });
+      return accepted ? { ok: true } : { ok: false, error: game.lastRejection || 'That pitcher is unavailable now.', code: 'baseball_rejected' };
     }
     if (this.status(room) !== 'playing') fail(409, 'Wait until both players are on the field and the game is resumed.', 'game_paused');
     if (input.type === 'next') {

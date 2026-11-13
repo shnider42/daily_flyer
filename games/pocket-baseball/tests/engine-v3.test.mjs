@@ -140,7 +140,9 @@ test('a runner without a lead can be thrown out stealing by a physical tag', () 
 });
 
 test('the slower knuckleball gives a normal lead more time than a fastball', () => {
-  const hard = thrownSteal({ amount: 1, pitchType: 'fastball', opponentPitcher: 'power' });
+  // Compare the same classic windup: the power pitcher's new high leg kick
+  // deliberately gives a stealing runner more time before release.
+  const hard = thrownSteal({ amount: 1, pitchType: 'fastball', opponentPitcher: 'balanced' });
   const slow = thrownSteal({ amount: 1, pitchType: 'knuckleball', opponentPitcher: 'knuckle' });
   assert.equal(hard.runner.out, true); assert.equal(slow.runner.out, false);
 });

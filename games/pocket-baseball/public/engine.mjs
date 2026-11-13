@@ -3,8 +3,10 @@
  * World units are metres. Home is (0, 0, 0), +z is centre field, +x is first.
  * Input and snapshots are deliberately independent from the browser renderer.
  */
-import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.4.0';
-export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.4.0';
+import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.5.0';
+import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.5.0';
+export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.5.0';
+export { TEAM_ROSTERS, DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.5.0';
 export const STEP = 1 / 120;
 export const BALL_RADIUS = 0.037;
 export const BASE_DISTANCE = Math.hypot(19.4, 19.4);
@@ -15,6 +17,7 @@ export const BASES = Object.freeze([
 ]);
 export const STRIKE_ZONE = Object.freeze({ left: -0.235, right: 0.235, bottom: 0.50, top: 1.45 });
 export const AIM_AREA = Object.freeze({ x: 0.65, y: 0.70, centerY: 1.0 });
+export const PITCH_AIM_AREA = Object.freeze({ x: 1.15, y: 0.70, centerY: 1.0 });
 export const PITCHES = Object.freeze({
   fastball: { label: 'Four-seam', mph: 94, breakX: 0.04, breakY: 0.06 },
   changeup: { label: 'Changeup', mph: 81, breakX: 0.16, breakY: 0.16 },
@@ -24,13 +27,22 @@ export const PITCHES = Object.freeze({
   cutter: { label: 'Cutter', mph: 90, breakX: -0.17, breakY: 0.07, shape: 'late' },
   splitter: { label: 'Splitter', mph: 84, breakX: 0.05, breakY: 0.57, shape: 'late' },
   knuckleball: { label: 'Knuckleball', mph: 68, breakX: 0.02, breakY: 0.12, shape: 'flutter' },
+  twoSeam: { label: 'Two-seam', mph: 93, breakX: 0.31, breakY: 0.17, shape: 'late' },
+  sweeper: { label: 'Sweeper', mph: 81, breakX: -0.66, breakY: 0.15, shape: 'late' },
+  slurve: { label: 'Slurve', mph: 78, breakX: -0.44, breakY: 0.35 },
+  screwball: { label: 'Screwball', mph: 74, breakX: 0.47, breakY: 0.38 },
+  eephus: { label: 'Eephus', mph: 52, breakX: 0.03, breakY: 1.85, shape: 'lob' },
 });
 /** Fictional gameplay profiles; repertoire and ratings are intentionally game balance. */
 export const PITCHERS = Object.freeze({
-  balanced: { id: 'balanced', name: 'All-round starter', label: 'Balanced', description: 'Four familiar pitches and dependable command.', pitches: ['fastball', 'changeup', 'curveball', 'slider'], velocity: {}, weights: { fastball: 0.46, changeup: 0.21, curveball: 0.17, slider: 0.16 }, control: 1 },
-  power: { id: 'power', name: 'Power pitcher', label: 'Power', description: 'A harder fastball, cutter and slider, with a splitter below the zone.', pitches: ['fastball', 'slider', 'cutter', 'splitter'], velocity: { fastball: 97, slider: 88, cutter: 93, splitter: 86 }, weights: { fastball: 0.48, slider: 0.24, cutter: 0.14, splitter: 0.14 }, control: 0.88 },
-  movement: { id: 'movement', name: 'Movement specialist', label: 'Movement', description: 'Sinker, changeup, curve and cutter. Change the shape and eye level.', pitches: ['sinker', 'changeup', 'curveball', 'cutter'], velocity: {}, weights: { sinker: 0.42, changeup: 0.22, curveball: 0.20, cutter: 0.16 }, control: 0.96 },
-  knuckle: { id: 'knuckle', name: 'Knuckleball specialist', label: 'Knuckleball', description: 'A dancing knuckler, an 82 mph fastball and a changeup. Limited repertoire; imperfect command and hanging pitches are the tradeoff.', pitches: ['knuckleball', 'fastball', 'changeup'], velocity: { knuckleball: 68, fastball: 82, changeup: 74 }, weights: { knuckleball: 0.73, fastball: 0.17, changeup: 0.10 }, control: 0.83 },
+  balanced: { id: 'balanced', name: 'All-round starter', label: 'Balanced', description: 'Four familiar pitches and dependable command.', pitches: ['fastball', 'changeup', 'curveball', 'slider'], velocity: {}, weights: { fastball: 0.46, changeup: 0.21, curveball: 0.17, slider: 0.16 }, control: 1, stamina: 60, maxMph: 97 },
+  power: { id: 'power', name: 'Power pitcher', label: 'Power', description: 'A harder fastball, cutter and slider, with a splitter below the zone.', pitches: ['fastball', 'slider', 'cutter', 'splitter'], velocity: { fastball: 97, slider: 88, cutter: 93, splitter: 86 }, weights: { fastball: 0.48, slider: 0.24, cutter: 0.14, splitter: 0.14 }, control: 0.88, stamina: 50, maxMph: 100 },
+  movement: { id: 'movement', name: 'Movement specialist', label: 'Movement', description: 'Sinker, changeup, curve and cutter. Change the shape and eye level.', pitches: ['sinker', 'changeup', 'curveball', 'cutter'], velocity: {}, weights: { sinker: 0.42, changeup: 0.22, curveball: 0.20, cutter: 0.16 }, control: 0.96, stamina: 55, maxMph: 94 },
+  knuckle: { id: 'knuckle', name: 'Knuckleball specialist', label: 'Knuckleball', description: 'A dancing knuckler, an 82 mph fastball and a changeup. Limited repertoire; imperfect command and hanging pitches are the tradeoff.', pitches: ['knuckleball', 'fastball', 'changeup'], velocity: { knuckleball: 68, fastball: 82, changeup: 74 }, weights: { knuckleball: 0.73, fastball: 0.17, changeup: 0.10 }, control: 0.83, stamina: 70, maxMph: 85 },
+  heat104: { id: 'heat104', name: 'Flamethrower', label: '104 mph heat', description: 'Can reach 104 mph with a clean release. Short stamina and loose command demand careful use.', pitches: ['fastball', 'slider', 'splitter'], velocity: { fastball: 103, slider: 91, splitter: 89 }, weights: { fastball: .60, slider: .25, splitter: .15 }, control: .74, stamina: 24, maxMph: 104 },
+  southpaw: { id: 'southpaw', name: 'Left-handed starter', label: 'Southpaw', description: 'A lefty with a running two-seam, wide sweeper and changeup.', pitches: ['fastball', 'twoSeam', 'sweeper', 'changeup'], velocity: { fastball: 94, twoSeam: 92, sweeper: 81, changeup: 82 }, weights: { fastball: .32, twoSeam: .28, sweeper: .25, changeup: .15 }, control: .98, stamina: 55, maxMph: 97 },
+  sidearm: { id: 'sidearm', name: 'Sidearm reliever', label: 'Sidearm', description: 'A low arm slot, running two-seam and sweeping slurve. A short relief option.', pitches: ['twoSeam', 'slider', 'changeup', 'slurve'], velocity: { twoSeam: 91, slider: 83, changeup: 77, slurve: 75 }, weights: { twoSeam: .42, slider: .24, changeup: .18, slurve: .16 }, control: .94, stamina: 28, maxMph: 94 },
+  finesse: { id: 'finesse', name: 'Left-handed trickster', label: 'Finesse', description: 'Left-handed submarine delivery, screwball and a towering eephus. Slow pitches need precise location.', pitches: ['fastball', 'screwball', 'curveball', 'eephus'], velocity: { fastball: 85, screwball: 74, curveball: 71, eephus: 52 }, weights: { fastball: .34, screwball: .34, curveball: .22, eephus: .10 }, control: 1.04, stamina: 35, maxMph: 88 },
 });
 export const FIELDING_POSITIONS = Object.freeze([
   { id: 'P', role: 'P', x: 0, z: 18.44, speed: 6.7 },
@@ -54,6 +66,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const aimWorld = aim => ({ x: clamp(finite(aim?.x), -1, 1) * AIM_AREA.x, y: AIM_AREA.centerY + clamp(finite(aim?.y), -1, 1) * AIM_AREA.y, z: 0 });
+const pitchAimWorld = aim => ({ x: clamp(finite(aim?.x), -1, 1) * PITCH_AIM_AREA.x, y: PITCH_AIM_AREA.centerY + clamp(finite(aim?.y), -1, 1) * PITCH_AIM_AREA.y, z: 0 });
 const worldAim = target => ({ x: target.x / AIM_AREA.x, y: (target.y - AIM_AREA.centerY) / AIM_AREA.y });
 
 export const wallRadius = fieldRadius;
@@ -75,6 +88,26 @@ export function sweptSphereTime(a, b, c, d, radius) {
   if (discriminant < 0) return null;
   const t = (-bb - Math.sqrt(discriminant)) / (2 * aa);
   return t >= 0 && t <= 1 ? t : null;
+}
+
+/** Continuous intersection against the batter's vertical body capsule. */
+export function sweptBatterTime(a, b, body) {
+  const radius = body.radius + BALL_RADIUS, dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  const rx = a.x - body.x, rz = a.z - body.z;
+  const candidates = [0, 1], aa = dx * dx + dz * dz, bb = 2 * (rx * dx + rz * dz), cc = rx * rx + rz * rz - radius * radius;
+  const discriminant = bb * bb - 4 * aa * cc;
+  if (aa > 1e-12 && discriminant >= 0) candidates.push((-bb - Math.sqrt(discriminant)) / (2 * aa), (-bb + Math.sqrt(discriminant)) / (2 * aa));
+  if (Math.abs(dy) > 1e-12) candidates.push((body.bottom - a.y) / dy, (body.top - a.y) / dy);
+  let first = null;
+  for (const t of candidates) {
+    const y = a.y + dy * t;
+    if (t >= 0 && t <= 1 && y >= body.bottom - 1e-9 && y <= body.top + 1e-9 && (rx + dx * t) ** 2 + (rz + dz * t) ** 2 <= radius * radius + 1e-9) first = first === null ? t : Math.min(first, t);
+  }
+  for (const y of [body.bottom, body.top]) {
+    const center = { x: body.x, y, z: body.z }, t = sweptSphereTime(a, b, center, center, radius);
+    if (t !== null) first = first === null ? t : Math.min(first, t);
+  }
+  return first;
 }
 
 export function pitchPosition(pitch, absoluteTime) {
@@ -99,8 +132,8 @@ export class BaseballGame {
       innings: [3, 6, 9].includes(options.innings) ? options.innings : 3,
       mode: options.mode === 'practice' ? 'practice' : 'exhibition', difficulty,
       guidance: ['simple', 'moderate', 'expert'].includes(options.guidance) ? options.guidance : 'simple',
-      pitcher: PITCHERS[options.pitcher] ? options.pitcher : 'balanced',
-      opponentPitcher: PITCHERS[options.opponentPitcher] ? options.opponentPitcher : 'balanced',
+      pitcher: Object.hasOwn(PITCHERS, options.pitcher) ? options.pitcher : 'balanced',
+      opponentPitcher: Object.hasOwn(PITCHERS, options.opponentPitcher) ? options.opponentPitcher : 'balanced',
       humanSides: Array.isArray(options.humanSides) ? [...new Set(options.humanSides.filter(side => side === 0 || side === 1))] : [0],
       localSide: options.localSide === 1 ? 1 : 0,
       inputWindow: clamp(finite(options.inputWindow, 0.1), 0.1, 0.25),
@@ -113,14 +146,16 @@ export class BaseballGame {
     this.state = {
       version: 1, options: { ...this.options }, rng: this.options.seed, time: 0, tick: 0,
       phase: 'ready', phaseTime: 0, phaseStartedAt: 0, inning: 1, half: 'top',
-      outs: 0, balls: 0, strikes: 0, bases: [null, null, null], score: [0, 0], hits: [0, 0],
+      outs: 0, balls: 0, strikes: 0, bases: [null, null, null], score: [0, 0], hits: [0, 0], hitByPitches: [0, 0],
       lineScore: [[0], [0]], battingSide: 0, batterIndex: [0, 0], nextRunnerId: 1, nextPitchId: 1,
       ball: { x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, vx: 0, vy: 0, vz: 0, visible: false, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null },
       pitch: null, swing: null, play: null, result: null, lastContact: null,
-      fielders: this._newFielders(), runners: [], pending: null,
+      fielders: [], runners: [], pending: null,
+      pitching: this._initialPitching(),
       pickoffAttempts: 0, readyActionChecked: false,
-      practice: { pitches: 0, swings: 0, contacts: 0, hits: 0, homeRuns: 0, bestDistance: 0 },
+      practice: { pitches: 0, swings: 0, contacts: 0, hits: 0, homeRuns: 0, bestDistance: 0, hitByPitches: 0 },
     };
+    this.state.fielders = this._newFielders();
     if (this.options.scenario === 'runners') this._setupRunningPractice();
   }
 
@@ -130,13 +165,75 @@ export class BaseballGame {
   _commandIsBatting(input) { return (input.side ?? this.options.localSide) === this.state.battingSide; }
   get interpolationAlpha() { return this._accumulator / STEP; }
   get difficulty() { return DIFFICULTIES[this.options.difficulty]; }
-  get activePitcher() { return PITCHERS[this.state.battingSide === 0 ? this.options.opponentPitcher : this.options.pitcher] || PITCHERS.balanced; }
+  get currentBatter() { return { ...getBatter(this.state), hand: getBatterHand(this.state) }; }
+  get activePitcher() {
+    const person = getPitcher(this.state), profile = PITCHERS[person.profileId] || PITCHERS.balanced;
+    return { ...profile, ...person, id: profile.id, playerId: person.id, hand: person.throws };
+  }
   get availablePitches() { return [...this.activePitcher.pitches]; }
   resetClock() { this._accumulator = 0; }
 
+  _initialPitching() {
+    return [0, 1].map(side => {
+      const profileId = side === 0 ? this.options.pitcher : this.options.opponentPitcher;
+      const person = getRoster(side).pitchers.find(p => p.profileId === profileId) || getRoster(side).pitchers[0];
+      return { activeId: person.id, usedIds: [], pitchCounts: {} };
+    });
+  }
+
+  getBullpen(side = this.options.localSide) {
+    side = side === 1 ? 1 : 0;
+    const usage = this.state.pitching[side];
+    return getRoster(side).pitchers.map(person => {
+      const profile = PITCHERS[person.profileId], pitchCount = usage.pitchCounts[person.id] || 0;
+      const active = person.id === usage.activeId, removed = usage.usedIds.includes(person.id);
+      return { ...profile, ...person, pitchCount, energy: this.options.mode === 'practice' ? 1 : Math.max(0, 1 - pitchCount / profile.stamina), active, removed, available: !active && !removed };
+    });
+  }
+
+  /** Lobby/menu selection before anybody has thrown a pitch. */
+  setStartingPitcher(side, profileId) {
+    if (side !== 0 && side !== 1 || !Object.hasOwn(PITCHERS, profileId) || this.state.nextPitchId !== 1 || this.state.phase !== 'ready') return false;
+    const person = getRoster(side).pitchers.find(p => p.profileId === profileId);
+    if (!person) return false;
+    this.state.pitching[side] = { activeId: person.id, usedIds: [], pitchCounts: {} };
+    const key = side === 0 ? 'pitcher' : 'opponentPitcher';
+    this.options[key] = this.state.options[key] = profileId;
+    this._syncFielderRoster();
+    return true;
+  }
+
+  _changePitcher(input, cpu = false) {
+    const s = this.state, side = input.side ?? this.options.localSide;
+    if (!['ready', 'result', 'half'].includes(s.phase) || s.pending === 'final') return this._reject('Make a pitching change between plays.');
+    const person = getRoster(side).pitchers.find(p => p.id === input.pitcherId), usage = s.pitching[side];
+    if (!person) return this._reject('Choose a pitcher from your own roster.');
+    if (usage.activeId === person.id) return this._reject('That pitcher is already in the game.');
+    if (usage.usedIds.includes(person.id)) return this._reject('A removed pitcher cannot return to this game.');
+    usage.usedIds.push(usage.activeId); usage.activeId = person.id;
+    const key = side === 0 ? 'pitcher' : 'opponentPitcher';
+    this.options[key] = s.options[key] = person.profileId;
+    this._syncFielderRoster();
+    this._event('pitching-change', { side, pitcherId: person.id, name: person.name, throws: person.throws, delivery: person.delivery, cpu });
+    return true;
+  }
+
+  _cpuBullpen() {
+    const s = this.state, side = 1 - s.battingSide;
+    if (this.options.mode === 'practice' || this.options.humanSides.includes(side) || s.phase !== 'ready') return;
+    const bullpen = this.getBullpen(side), current = bullpen.find(p => p.active);
+    if (current.energy > .18) return;
+    const available = bullpen.filter(p => p.available);
+    // Save the short flamethrower for a close late inning; otherwise use endurance.
+    const closeLate = s.inning >= this.options.innings && Math.abs(s.score[0] - s.score[1]) <= 2;
+    available.sort((a, b) => (closeLate && b.profileId === 'heat104' ? 100 : b.stamina) - (closeLate && a.profileId === 'heat104' ? 100 : a.stamina));
+    if (available[0]) this._changePitcher({ side, pitcherId: available[0].id }, true);
+  }
+
   _setupRunningPractice() {
     const s = this.state;
-    const first = { ...this._runner(), number: 7, speed: 7.2 }, third = { ...this._runner(), number: 9, speed: 7.0 };
+    const roster = getRoster(s.battingSide);
+    const first = this._runner(roster.lineup[1]), third = this._runner(roster.lineup[7]);
     s.bases = [first, null, third];
     s.runners = [this._liveRunner(first, 1), this._liveRunner(third, 3)];
   }
@@ -333,7 +430,19 @@ export class BaseballGame {
   }
 
   _newFielders() {
-    return FIELDING_POSITIONS.map(p => ({ ...p, y: 0, prevX: p.x, prevZ: p.z, target: { x: p.x, z: p.z }, hasBall: false }));
+    const side = 1 - (this.state?.battingSide || 0), roster = getRoster(side);
+    return FIELDING_POSITIONS.map(p => {
+      const person = p.id === 'P' ? getPitcher(this.state || { options: this.options }, side) : roster.lineup.find(player => player.position === p.id);
+      return { ...p, playerId: person?.id, name: person?.name, number: person?.number, throws: person?.throws || 'R', delivery: person?.delivery,
+        y: 0, prevX: p.x, prevZ: p.z, target: { x: p.x, z: p.z }, hasBall: false };
+    });
+  }
+  _syncFielderRoster() {
+    const side = 1 - this.state.battingSide, roster = getRoster(side);
+    for (const fielder of this.state.fielders || []) {
+      const person = fielder.id === 'P' ? getPitcher(this.state, side) : roster.lineup.find(player => player.position === fielder.id);
+      if (person) Object.assign(fielder, { playerId: person.id, name: person.name, number: person.number, throws: person.throws, delivery: person.delivery });
+    }
   }
   _random() {
     let n = this.state.rng >>> 0;
@@ -352,6 +461,14 @@ export class BaseballGame {
     this.options = { humanSides: [0], localSide: 0, inputWindow: 0.1, scenario: null, ...this.state.options };
     this.options.park = resolveParkId(this.options.park);
     this.state.options = { ...this.options };
+    const defaults = this._initialPitching();
+    this.state.pitching = defaults.map((fallback, side) => {
+      const previous = this.state.pitching?.[side], ids = new Set(getRoster(side).pitchers.map(p => p.id));
+      return { activeId: ids.has(previous?.activeId) ? previous.activeId : fallback.activeId,
+        usedIds: [...new Set((previous?.usedIds || []).filter(id => ids.has(id) && id !== previous?.activeId))],
+        pitchCounts: Object.fromEntries(Object.entries(previous?.pitchCounts || {}).filter(([id]) => ids.has(id)).map(([id, n]) => [id, Math.max(0, Math.floor(finite(n)))])) };
+    });
+    if (this.state.fielders.some(f => !f.playerId)) this._syncFielderRoster();
     this._accumulator = clamp(finite(snapshot.accumulator), 0, STEP);
     this._events = [];
     this.lastRejection = null;
@@ -374,6 +491,7 @@ export class BaseballGame {
       const expected = s.phase === 'ready' ? s.nextPitchId : s.pitch?.id ?? s.nextPitchId;
       if (!Number.isInteger(input.pitchId) || input.pitchId !== expected) return this._reject('This command belongs to a different pitch.');
     }
+    if (input.type === 'changePitcher') return this._changePitcher(input);
     if (input.type === 'next') {
       if (s.phase === 'result') {
         if (s.pending === 'half') { this._phase('half'); this._event('half', { inning: s.inning, half: s.half }); }
@@ -386,16 +504,16 @@ export class BaseballGame {
     }
     if (input.type === 'pitch') {
       if (s.phase !== 'ready' || this._commandIsBatting(input)) return this._reject('Wait until your pitcher is ready.');
-      if (!PITCHES[input.pitchType]) return this._reject('Unknown pitch.');
+      if (!Object.hasOwn(PITCHES, input.pitchType)) return this._reject('Unknown pitch.');
       if (!this.availablePitches.includes(input.pitchType)) return this._reject('That pitch is not in this pitcher’s repertoire.');
-      this._startPitch(input.pitchType, aimWorld(input.aim), clamp(finite(input.quality, 0.5), 0, 1));
+      this._startPitch(input.pitchType, pitchAimWorld(input.aim), clamp(finite(input.quality, 0.5), 0, 1));
       return true;
     }
     if (input.type === 'swing') {
       if (!this._commandIsBatting(input) || !['windup', 'pitch'].includes(s.phase) || s.swing) return this._reject('A swing is not available.');
       const time = finite(input.time, s.time);
       // The transport may provide a smaller measured budget; the engine enforces its configured hard limit.
-      if (time < s.time - this.options.inputWindow - 0.000001 || time > s.time + 0.025 || time < s.pitch.releaseAt - 0.65) return this._reject('Swing timestamp is outside the local input window.');
+      if (time < s.time - this.options.inputWindow - 0.000001 || time > s.time + 0.025 || time < s.pitch.releaseAt - (s.pitch.windupDuration || .65)) return this._reject('Swing timestamp is outside the local input window.');
       s.swing = { time, power: Boolean(input.power), aim: { x: clamp(finite(input.aim?.x), -1, 1), y: clamp(finite(input.aim?.y), -1, 1) } };
       if (this.options.mode === 'practice') s.practice.swings++;
       this._event('swing', { power: s.swing.power });
@@ -435,6 +553,7 @@ export class BaseballGame {
     for (const f of s.fielders) { f.prevX = f.x; f.prevZ = f.z; }
     if (['ready', 'windup', 'pitch'].includes(s.phase)) this._updatePreRunners();
     if (s.phase === 'ready') {
+      this._cpuBullpen();
       this._cpuRunningDecisions();
       if (s.phase === 'ready' && !this.isHumanFielding && s.phaseTime >= (s.bases.some(Boolean) ? 4 : 1.6)) this._cpuPitch();
     }
@@ -465,15 +584,18 @@ export class BaseballGame {
 
   _startPitch(type, intendedTarget, quality, cpu = false) {
     const s = this.state, profile = PITCHES[type], pitcher = this.activePitcher;
+    const usage = s.pitching[1 - s.battingSide], count = usage.pitchCounts[pitcher.playerId] || 0;
+    const fatigue = this.options.mode === 'practice' ? 0 : clamp((count / pitcher.stamina - .55) / .45, 0, 1);
+    const delivery = DELIVERIES[pitcher.delivery] || DELIVERIES.classic, hand = pitcher.throws, handedness = hand === 'L' ? -1 : 1;
     const knuckle = type === 'knuckleball';
-    const miss = (1 - quality) * (type === 'fastball' ? 0.51 : 0.65) / pitcher.control + (knuckle ? 0.14 : 0);
+    const miss = (1 - quality) * (type === 'fastball' ? 0.51 : 0.65) / (pitcher.control * (1 - fatigue * .42)) + (knuckle ? 0.14 : 0) + fatigue * .15;
     const target = { ...intendedTarget };
     target.x += this._centered() * miss;
     target.y += this._centered() * miss;
     // A poorly released breaking pitch can hang; a bad fastball loses velocity.
     if (!cpu && type !== 'fastball' && quality < 0.45) target.y = lerp(target.y, 1.16, (0.45 - quality) * 1.5);
     target.y = clamp(target.y, 0.15, 2.0);
-    const mph = Math.round((pitcher.velocity[type] || profile.mph) + this._centered() * 2 - (type === 'fastball' ? (1 - quality) * 7 : (1 - quality) * 3));
+    const mph = Math.min(pitcher.maxMph, Math.round((pitcher.velocity[type] || profile.mph) + this._centered() * 2 - (type === 'fastball' ? (1 - quality) * 7 : (1 - quality) * 3) - fatigue * 7));
     let flutter = null, hanging = false;
     if (knuckle) {
       hanging = this._random() < 0.07 + Math.pow(1 - quality, 1.65) * 0.68;
@@ -481,15 +603,18 @@ export class BaseballGame {
       if (hanging) { target.x = lerp(target.x, 0, 0.78); target.y = lerp(target.y, 1.17, 0.84); }
     }
     const duration = 0.86 * (94 / mph) * this.difficulty.pitchScale;
-    const releaseAt = s.time + 0.65;
+    const releaseAt = s.time + delivery.duration;
+    const start = { ...delivery.start, x: delivery.start.x * handedness };
     s.pitch = {
-      id: s.nextPitchId++, type, mph, quality, target, intendedTarget: { ...intendedTarget }, start: { x: -0.32, y: 1.88, z: 18.44 },
-      pitcherId: pitcher.id, shape: profile.shape || 'standard', flutter, execution: { hanging },
-      breakX: profile.breakX * (0.55 + quality * 0.45), breakY: profile.breakY * (0.55 + quality * 0.45),
+      id: s.nextPitchId++, type, mph, quality, target, intendedTarget: { ...intendedTarget }, start,
+      pitcherId: pitcher.id, pitcherPlayerId: pitcher.playerId, pitcherName: pitcher.name, hand, delivery: delivery.id, windupDuration: delivery.duration,
+      batter: this.currentBatter, shape: profile.shape || 'standard', flutter, execution: { hanging, fatigue }, hitByPitch: null,
+      breakX: profile.breakX * (0.55 + quality * 0.45) * handedness, breakY: profile.breakY * (0.55 + quality * 0.45),
       duration, elapsed: 0, releaseAt, contactAt: releaseAt + duration, resolved: false, aiSwing: null,
     };
     s.swing = null; s.result = null; s.pending = null; s.play = null;
-    Object.assign(s.ball, { x: -0.32, y: 1.88, z: 18.44, prevX: -0.32, prevY: 1.88, prevZ: 18.44, visible: false, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null, vx: 0, vy: 0, vz: 0 });
+    usage.pitchCounts[pitcher.playerId] = count + 1;
+    Object.assign(s.ball, { ...start, prevX: start.x, prevY: start.y, prevZ: start.z, visible: false, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null, vx: 0, vy: 0, vz: 0 });
     if (!this.isHumanBatting) {
       const strike = inStrikeZone(target), willSwing = this._random() < (strike ? 0.86 : 1 - this.difficulty.aiTake);
       const reading = knuckle ? (hanging ? 0.78 : 1.28) : 1;
@@ -502,7 +627,7 @@ export class BaseballGame {
     if (this.options.mode === 'practice') s.practice.pitches++;
     this._phase('windup');
     for (const runner of s.runners) if (runner.stealQueued) this._beginSteal(runner, s.time + 0.10);
-    this._event('windup', { pitchId: s.pitch.id, pitchType: type });
+    this._event('windup', { pitchId: s.pitch.id, pitchType: type, pitcherId: pitcher.playerId, hand, delivery: delivery.id });
   }
 
   _tickPitch() {
@@ -510,8 +635,17 @@ export class BaseballGame {
     p.elapsed = Math.max(0, s.time - p.releaseAt);
     // The catcher receives the rendered ball while the bounded input deadline
     // remains open; it must not fly through the camera during that grace period.
-    Object.assign(s.ball, pitchPosition(p, Math.min(s.time, p.contactAt + 0.10)));
-    s.ball.visible = s.time <= p.contactAt + 0.12;
+    const sampleAt = Math.min(s.time, p.contactAt + .10);
+    if (!p.hitByPitch && !p.resolved) {
+      const previousAt = Math.max(p.releaseAt, sampleAt - STEP), previous = pitchPosition(p, previousAt), current = pitchPosition(p, sampleAt);
+      const hit = sweptBatterTime(previous, current, getBatterBody(s));
+      if (hit !== null) {
+        const batter = p.batter || this.currentBatter;
+        p.hitByPitch = { at: lerp(previousAt, sampleAt, hit), point: { x: lerp(previous.x, current.x, hit), y: lerp(previous.y, current.y, hit), z: lerp(previous.z, current.z, hit) }, hand: batter.hand, playerId: batter.id };
+      }
+    }
+    Object.assign(s.ball, p.hitByPitch?.point || pitchPosition(p, sampleAt));
+    s.ball.visible = !p.hitByPitch && s.time <= p.contactAt + 0.12;
     if (p.aiSwing && !s.swing && s.time >= p.aiSwing.time) {
       s.swing = { ...p.aiSwing }; this._event('swing', { power: s.swing.power, cpu: true });
     }
@@ -519,10 +653,11 @@ export class BaseballGame {
     if (s.phase !== 'pitch') return;
     // Preserve the complete late timing window plus the local delivery budget.
     // Resolving sooner would silently make an advertised symmetric window early-biased.
-    const deadline = p.contactAt + (this.isHumanBatting ? this.difficulty.timing + this.options.inputWindow + 0.001 : 0.26);
+    const deadline = p.contactAt + (this.isHumanBatting ? this.difficulty.timing * (p.batter?.contact || this.currentBatter.contact) + this.options.inputWindow + 0.001 : 0.26);
     if (!p.resolved && s.time >= deadline) {
       p.resolved = true;
-      this._calledPitch(inStrikeZone(p.target), false);
+      if (p.hitByPitch) this._resolveBatterContact(false);
+      else this._calledPitch(inStrikeZone(p.target), false);
     }
   }
 
@@ -530,22 +665,34 @@ export class BaseballGame {
     const s = this.state, p = s.pitch, swing = s.swing;
     if (!p || p.resolved || !swing || s.phase !== 'pitch') return;
     p.resolved = true;
+    if (p.hitByPitch) { this._resolveBatterContact(true); return; }
     const aim = aimWorld(swing.aim), timing = swing.time - p.contactAt;
     const isHuman = this.isHumanBatting;
     const profile = isHuman ? this.difficulty : DIFFICULTIES.club;
-    const window = profile.timing * (swing.power ? 0.76 : 1);
+    const batter = p.batter || this.currentBatter;
+    const window = profile.timing * (swing.power ? 0.76 : 1) * batter.contact;
     const spatial = Math.hypot((p.target.x - aim.x) / profile.reachX, (p.target.y - aim.y) / profile.reachY);
     if (Math.abs(timing) > window || spatial > 1.16) {
+      // The bat can miss at the plate before a glancing pitch reaches the body
+      // just behind it. Keep the ball live only long enough to sample that
+      // contact; do not start a catcher throw before a dead-ball ruling.
+      if (s.time < p.contactAt + .10) {
+        const body = getBatterBody(s);
+        for (let from = s.time; from < p.contactAt + .10 - 1e-9; from += STEP) {
+          const to = Math.min(from + STEP, p.contactAt + .10);
+          if (sweptBatterTime(pitchPosition(p, from), pitchPosition(p, to), body) !== null) { p.resolved = false; return; }
+        }
+      }
       s.lastContact = { timing, timingLabel: Math.abs(timing) > window ? (timing < 0 ? 'Too early' : 'Too late') : 'Missed location', quality: 0, exitVelocity: 0 };
       this._calledPitch(true, true);
       return;
     }
     const timingQuality = Math.max(0, 1 - Math.abs(timing) / window);
     const quality = clamp(timingQuality * 0.66 + Math.max(0, 1 - spatial / 1.16) * 0.34, 0, 1);
-    const angle = clamp((timing / window) * 1.23 + this._centered() * 0.13 + (aim.x - p.target.x) * 0.28, -1.45, 1.45);
+    const angle = clamp((timing / window) * 1.23 + this._centered() * 0.13 + (aim.x - p.target.x) * 0.28, -1.45, 1.45) * (batter.hand === 'L' ? -1 : 1);
     const verticalDifference = p.target.y - aim.y;
     const launchAngle = clamp(0.17 + verticalDifference * 1.40 + this._centered() * 0.22 + (swing.power ? 0.18 : 0), -0.20, 1.08);
-    const speed = 19 + quality * 27 + (swing.power ? 5.5 : 0) + this._centered() * 2;
+    const speed = (19 + quality * 27 + (swing.power ? 5.5 : 0) + this._centered() * 2) * batter.power;
     const horizontal = speed * Math.cos(launchAngle);
     Object.assign(s.ball, {
       ...p.target, z: 0.18, prevX: p.target.x, prevY: p.target.y, prevZ: 0.18,
@@ -554,11 +701,11 @@ export class BaseballGame {
     });
     const label = Math.abs(timing) < 0.035 ? 'On time' : timing < 0 ? 'Early' : 'Late';
     s.lastContact = { timing, timingLabel: label, quality, exitVelocity: Math.round(speed * 2.236936), launchAngle: Math.round(launchAngle * 180 / Math.PI), distance: 0, foul: Math.abs(angle) > Math.PI / 4 };
-    const batter = this._runner(), existingRunners = s.runners;
+    const batterRunner = this._runner(), existingRunners = s.runners;
     s.play = {
-      stage: 'flight', hitAt: s.time, contactAt: p.contactAt, age: 0, initialBases: clone(s.bases), batter,
+      stage: 'flight', hitAt: s.time, contactAt: p.contactAt, age: 0, initialBases: clone(s.bases), batter: batterRunner,
       fair: Math.abs(angle) <= Math.PI / 4, maxDistance: 0, fielder: null, heldAt: null,
-      throw: null, award: 1, landing: this._predictLanding(), firstArrival: s.time + BASE_DISTANCE / batter.speed,
+      throw: null, award: 1, landing: this._predictLanding(), firstArrival: s.time + BASE_DISTANCE / batterRunner.speed,
       initialOuts: s.outs, outs: [], runCrossings: [], ballKind: 'batted', queuedBase: null,
       throwBase: null, recommendedBase: 1, transferUntil: null, throwReadyAt: 0,
       decisionUntil: s.time + 4, lastActionAt: s.time, lastCall: null, coverBase: null,
@@ -568,7 +715,7 @@ export class BaseballGame {
       const running = existingRunners.find(r => r.id === runner.id);
       return [running ? { ...running, fromBase: i + 1, stealing: false, stealQueued: false } : this._liveRunner(runner, i + 1)];
     });
-    s.runners.push(this._liveRunner(batter, 0));
+    s.runners.push(this._liveRunner(batterRunner, 0));
     for (const runner of s.runners) { runner.forcedBase = this._forceBase(runner) || null; runner.targetBase = Math.max(runner.manual ? runner.targetBase : runner.fromBase, runner.forcedBase || 0); }
     if (this.options.mode === 'practice') s.practice.contacts++;
     this._phase('live');
@@ -1053,10 +1200,13 @@ export class BaseballGame {
     if (s.play) s.play.runCrossings = [];
   }
 
-  _runner() { return { id: this.state.nextRunnerId++, number: this.state.batterIndex[this.state.battingSide] + 1, side: this.state.battingSide, speed: 6.8 + (this.state.batterIndex[this.state.battingSide] % 3) * 0.2 }; }
+  _runner(batter = this.currentBatter) {
+    const hand = batter.hand || (batter.bats === 'S' ? (this.activePitcher.hand === 'L' ? 'R' : 'L') : batter.bats);
+    return { id: this.state.nextRunnerId++, playerId: batter.id, name: batter.name, number: batter.number, hand, side: this.state.battingSide, speed: batter.speed };
+  }
   _complete(title, detail, kind, next = 'pitch', extra = {}) {
     const s = this.state;
-    if (s.phase === 'pitch' && ['strike', 'ball', 'strikeout'].includes(kind) && s.outs < 3 && s.runners.some(r => r.stealing && !r.out)) {
+    if (s.phase === 'pitch' && !s.pitch?.deadBall && ['strike', 'ball', 'strikeout'].includes(kind) && s.outs < 3 && s.runners.some(r => r.stealing && !r.out)) {
       this._beginRunningPlay('steal', { title, detail, kind, next, ...extra }); return;
     }
     if (s.play) s.play.stage = 'settled';
@@ -1104,6 +1254,27 @@ export class BaseballGame {
   }
   _isWalkoff() { const s = this.state; return this.options.mode !== 'practice' && s.half === 'bottom' && s.inning >= this.options.innings && s.score[1] > s.score[0]; }
   _walk() {
+    this._awardFirstBase('Walk', 'Ball four. Take first base.', 'walk');
+  }
+  _resolveBatterContact(swinging) {
+    const s = this.state, p = s.pitch, batter = p.batter || this.currentBatter;
+    p.deadBall = true; s.ball.visible = false;
+    // Every pitch touching the batter is dead, including a swinging third strike.
+    // A runner's apparent steal progress cannot survive the dead-ball ruling.
+    this._restoreHeldRunners();
+    const award = !swinging && !inStrikeZone(p.target);
+    this._event('hit-by-pitch', { batterId: batter.id, name: batter.name, point: p.hitByPitch?.point, award });
+    if (!award) {
+      if (swinging) s.lastContact = { timing: s.swing.time - p.contactAt, timingLabel: 'Hit while swinging', quality: 0, exitVelocity: 0 };
+      this._calledPitch(true, swinging);
+      if (s.result) s.result.detail = `${swinging ? 'Swung at the pitch' : 'Pitch was in the strike zone'} · Dead ball; runners return${s.result.kind === 'strikeout' ? ' · Strike three' : ` · ${s.balls}–${s.strikes} count`}.`;
+      return;
+    }
+    s.hitByPitches ??= [0, 0]; s.hitByPitches[s.battingSide]++;
+    if (this.options.mode === 'practice') s.practice.hitByPitches = (s.practice.hitByPitches || 0) + 1;
+    this._awardFirstBase('Hit by pitch', `${batter.name} is hit. Dead ball; take first base.`, 'hitByPitch');
+  }
+  _awardFirstBase(title, detail, kind) {
     const s = this.state, batter = this._runner();
     if (this.options.mode !== 'practice') {
       if (s.bases[0]) {
@@ -1113,7 +1284,7 @@ export class BaseballGame {
       s.bases[0] = batter;
     }
     this._advanceBatter();
-    this._complete('Walk', 'Ball four. Take first base.', 'walk', this._isWalkoff() ? 'final' : 'batter');
+    this._complete(title, detail, kind, this._isWalkoff() ? 'final' : 'batter');
   }
   _hit(bases, homeRun = false, groundRule = false) {
     const s = this.state, batter = s.play?.batter || this._runner(), scoredBefore = s.score[s.battingSide];

@@ -74,6 +74,62 @@ test('an online seat cannot control the opposing side, select an unavailable pit
   p.hub.close();
 });
 
+test('guest starter selection initializes its named left-handed pitcher and survives rejoin', t => {
+  const hub = new RoomHub(); t.after(() => hub.close());
+  const host = hub.create({ pitcher: 'heat104' });
+  const guest = hub.join(host.code, { pitcher: 'southpaw' });
+  const game = hub.room(host.code).game;
+  assert.equal(game.state.pitching[0].activeId, 'harbor-heat104');
+  assert.equal(game.activePitcher.playerId, 'foundry-southpaw');
+  assert.equal(game.activePitcher.throws, 'L');
+  assert.equal(game.activePitcher.id, 'southpaw');
+  assert.deepEqual(hub.rejoin(guest.code, guest.token).packet.snapshot.state.pitching, game.state.pitching);
+  const invalid = hub.create({ pitcher: 'constructor' });
+  const invalidGuest = hub.join(invalid.code, { pitcher: '__proto__' });
+  assert.equal(invalid.packet.snapshot.state.pitching[0].activeId, 'harbor-balanced');
+  assert.equal(invalidGuest.packet.snapshot.state.pitching[1].activeId, 'foundry-balanced');
+});
+
+test('online pitching changes are owned by the authenticated manager and preserve time-outs and count', () => {
+  const p = pair(); p.start();
+  p.room.game.state.balls = 2; p.room.game.state.strikes = 1;
+  p.room.game.state.bases[1] = { id: 71, number: 4, side: 0, speed: 7 };
+  const before = p.room.game.snapshot();
+  p.input(0, { type: 'pause' });
+  assert.equal(p.input(1, { type: 'changePitcher', pitcherId: 'foundry-heat104' }).ok, true);
+  assert.equal(p.room.game.activePitcher.playerId, 'foundry-heat104');
+  assert.equal(p.hub.status(p.room), 'paused');
+  assert.equal(p.room.game.state.time, before.state.time);
+  assert.equal(p.room.game.state.balls, 2); assert.equal(p.room.game.state.strikes, 1);
+  assert.deepEqual(p.room.game.state.bases, before.state.bases);
+  assert.equal(p.input(0, { type: 'changePitcher', side: 1, pitcherId: 'foundry-southpaw' }).ok, false, 'a forged side cannot change the opponent staff');
+  assert.equal(p.input(0, { type: 'changePitcher', pitcherId: 'harbor-southpaw' }).ok, true, 'a batting manager may prepare their own next-inning pitcher');
+  assert.equal(p.room.game.state.pitching[0].activeId, 'harbor-southpaw');
+  assert.equal(p.room.game.state.pitching[1].activeId, 'foundry-heat104');
+  assert.equal(p.input(1, { type: 'changePitcher', pitcherId: 'foundry-balanced' }).ok, false, 'removed pitchers cannot re-enter');
+  assert.equal(p.input(1, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } }).code, 'game_paused');
+  p.input(0, { type: 'resume' });
+  assert.equal(p.input(1, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } }).ok, true);
+  assert.equal(p.input(1, { type: 'changePitcher', pitcherId: 'foundry-sidearm' }).ok, false, 'a delivery cannot change mid-pitch');
+  const restored = p.hub.rejoin(p.room.code, p.credentials[0].token).packet.snapshot;
+  assert.deepEqual(restored.state.pitching, p.room.game.state.pitching);
+  p.hub.close();
+});
+
+test('pitching-change messages reject stale phases and duplicate commands cannot remove a second pitcher', () => {
+  const p = pair(); p.start();
+  assert.equal(p.input(1, { type: 'changePitcher', pitcherId: 'foundry-sidearm' }, { phaseKey: 'earlier-play' }).code, 'stale_phase');
+  assert.equal(p.input(1, { type: 'changePitcher', pitcherId: 'foundry-sidearm', pitchId: 999 }).code, 'stale_pitch');
+  const player = p.room.players[1];
+  const envelope = { generation: p.room.generation, seq: player.lastSeq + 1, phaseKey: phaseKey(p.room.game.state), command: { type: 'changePitcher', pitcherId: 'foundry-sidearm', pitchId: commandPitchId(p.room.game.state) } };
+  assert.equal(p.hub.input(p.room.code, player.token, envelope).ok, true);
+  const state = p.room.game.snapshot();
+  assert.equal(p.hub.input(p.room.code, player.token, envelope).duplicate, true);
+  assert.deepEqual(p.room.game.snapshot(), state);
+  assert.equal(p.room.game.activePitcher.playerId, 'foundry-sidearm');
+  p.hub.close();
+});
+
 test('online commands are generation scoped, ordered and idempotent', () => {
   const p = pair(); p.start();
   const player = p.room.players[1], seq = player.lastSeq + 1;
@@ -276,6 +332,11 @@ test('two real HTTP/SSE clients receive matching authority, correct local roles,
     assert.equal(client.game.options.park, 'fenway');
     assert.equal(client.game.state.options.park, 'fenway');
   }
+  await first.pause(); await waitUntil(() => first.room.status === 'paused' && second.room.status === 'paused', 'Both clients should see the bullpen time-out');
+  assert.equal((await second.send({ type: 'changePitcher', pitcherId: 'foundry-heat104' })).ok, true);
+  await waitUntil(() => first.game.activePitcher.playerId === 'foundry-heat104' && second.game.activePitcher.playerId === 'foundry-heat104', 'Both clients should receive the relief pitcher');
+  assert.deepEqual(first.game.state.pitching, second.game.state.pitching);
+  await first.resume(); await waitUntil(() => first.room.status === 'playing' && second.room.status === 'playing', 'The manager should resume the time-out');
   assert.equal((await second.send({ type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } })).ok, true);
   await waitUntil(() => first.game.state.pitch?.id === 1 && second.game.state.pitch?.id === 1, 'Both clients should see the same pitch');
   assert.deepEqual(first.game.state.pitch.target, second.game.state.pitch.target);

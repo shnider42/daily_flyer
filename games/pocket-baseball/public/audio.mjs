@@ -45,6 +45,8 @@ export class BallparkAudio {
     if (!event) return;
     const type=event.type;
     if(type==='contact') this.bat(event.quality??.6);
+    else if(type==='hit-by-pitch') { this.noise(.10,.18,{frequency:420,type:'lowpass'});this.tone(85,.10,.075,'sine',0,45);this.noise(.65,.04,{frequency:700,attack:.12}); }
+    else if(type==='pitching-change') { this.tone(261.63,.18,.045,'triangle');this.tone(392,.22,.045,'triangle',.16); }
     else if(type==='catch') this.glove();
     else if(type==='run') this.crowd(true);
     else if(type==='out') { this.tone(370,.11,.035,'triangle');this.crowd(false); }

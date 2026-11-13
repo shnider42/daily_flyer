@@ -197,3 +197,106 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
   .setup{grid-row:1 / span 4}
   .home-footer{grid-row:5}
 }
+
+/* The dugout is opened on demand, keeping the field clear during a play. */
+.home-links{display:flex;align-items:center;gap:17px}
+.role-banner{overflow:hidden}
+.role-banner b,.role-banner span{overflow:hidden;text-overflow:ellipsis}
+.role-banner b{letter-spacing:.9px}
+.roster-dialog{width:750px;max-width:min(750px,calc(100% - 28px));max-height:calc(100dvh - 28px);border-top-width:3px;overflow:auto;scrollbar-color:#658170 #10251e}
+.roster-shell{padding:23px 25px 15px}
+.roster-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px;position:sticky;top:-23px;padding:7px 0 12px;background:var(--ink-deep);z-index:2}
+.roster-header .dialog-eyebrow{margin-bottom:6px;font-size:8px}
+.roster-header h2{font:400 30px/1.1 var(--display);letter-spacing:.5px;margin:0}
+.roster-close{flex:0 0 auto;min-height:38px;padding:10px 16px;border:1px solid #8b9c8880;background:#20382e;color:var(--cream);font-size:10px;letter-spacing:.7px;font-weight:bold}
+.roster-navigation{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:15px;border-bottom:1px solid var(--line)}
+.roster-navigation>label{flex:1;max-width:260px;font-size:8px;letter-spacing:1.3px;font-weight:bold;color:var(--muted)}
+.roster-navigation select{display:block;width:100%;margin-top:6px;min-height:39px;font-size:12px;letter-spacing:0}
+.roster-tabs{display:flex;border:1px solid #80958180;align-self:flex-end}
+.roster-tabs button{border:0;background:transparent;color:var(--muted);padding:12px 18px;min-height:39px;font-size:10px;letter-spacing:1px;font-weight:bold}
+.roster-tabs button[aria-selected=true]{background:var(--cream);color:var(--ink)}
+.roster-context{font-size:11px;line-height:1.5;color:var(--muted);margin:13px 0 14px;min-height:17px}
+.roster-table{width:100%;border-collapse:collapse;text-align:left;font-variant-numeric:tabular-nums}
+.roster-table thead{background:#20372c}
+.roster-table thead th{font-size:9px;letter-spacing:.5px;font-weight:bold;color:#c3cdbb;padding:10px 9px}
+.roster-table thead th:first-child{width:26px}
+.roster-table thead th:nth-child(n+3){text-align:center}
+.roster-table abbr{text-decoration:none}
+.roster-table tbody td,.roster-table tbody th{padding:10px 9px;border-bottom:1px solid var(--line);font-size:11px}
+.roster-table tbody td:not(:first-child){text-align:center}
+.roster-table .batting-order{color:var(--gold);width:28px;font-size:12px;font-weight:bold}
+.roster-player b{display:block;font-size:12px;font-weight:normal}
+.roster-player small{display:block;font-size:8px;color:var(--muted);font-weight:normal;margin-top:4px;letter-spacing:.4px}
+.roster-table .rating{color:#b6c5b3;font-variant-numeric:tabular-nums}
+.roster-table tr.at-bat{background:#d3aa5e13}
+.roster-table tr.at-bat .roster-player small{color:var(--gold)}
+.roster-footnote{font-size:10px;line-height:1.6;color:#99ab97;margin:14px 0 4px}
+.roster-status{min-height:17px;font-size:11px;line-height:1.5;color:var(--gold);margin:12px 0 0}
+.roster-pitchers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pitcher-card{min-width:0;padding:14px;border:1px solid var(--line);background:#122820}
+.pitcher-card.active{border-color:var(--gold);background:#1c3227}
+.pitcher-card.removed{background:#14221d;color:#a5b09f}
+.pitcher-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.pitcher-card-heading h3{font-size:14px;line-height:1.3;margin:0 0 4px;font-weight:normal;color:var(--cream)}
+.pitcher-card-heading small{font-size:9px;line-height:1.4;color:var(--muted)}
+.pitcher-state{font-size:7px;letter-spacing:.7px;padding-top:3px;color:#90aa8d;font-weight:bold;white-space:nowrap}
+.pitcher-card.active .pitcher-state{color:var(--gold)}
+.pitcher-card.removed .pitcher-state{color:#bd9284}
+.pitcher-delivery{font-size:10px;color:var(--gold);margin:10px 0 6px}
+.pitcher-repertoire{font-size:10px;line-height:1.6;color:#c1ccbb;min-height:32px;margin:0 0 11px}
+.pitcher-stats{display:grid;grid-template-columns:1.2fr 1fr .7fr;gap:8px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pitcher-stats b{display:block;font-size:14px;font-weight:normal;font-variant-numeric:tabular-nums}
+.pitcher-stats small{display:block;font-size:7px;letter-spacing:.6px;color:var(--muted);margin-top:4px}
+.pitcher-stamina{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:11px 0;font-size:8px;letter-spacing:.6px;color:#d3ddc9}
+.pitcher-stamina span{white-space:nowrap}
+.pitcher-stamina meter{display:block;appearance:none;-webkit-appearance:none;width:48%;height:7px;border:0;background:#344337;border-radius:0}
+.pitcher-stamina meter::-webkit-meter-bar{background:#344337;border:0;border-radius:0;height:7px}
+.pitcher-stamina meter::-webkit-meter-optimum-value{background:#96b38c}
+.pitcher-stamina meter::-webkit-meter-suboptimum-value{background:#d3aa5e}
+.pitcher-stamina meter::-webkit-meter-even-less-good-value{background:#bd7255}
+.pitcher-stamina meter::-moz-meter-bar{background:#96b38c}
+.pitcher-change{display:block;width:100%;min-height:39px;padding:10px;border:1px solid #e8ddbcbb;background:var(--cream);color:var(--ink);font-size:9px;letter-spacing:.9px;font-weight:bold}
+.pitcher-change:disabled{background:transparent;color:#a5b29d;border-color:#80958155;opacity:1;cursor:default}
+.pitcher-card.active .pitcher-change{color:var(--gold);border-color:#d3aa5e66}
+.roster-dialog button:focus-visible,.roster-dialog select:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+@media(max-width:700px){
+  .home-links{gap:15px}
+  .home-links .text-button{font-size:10px}
+  .roster-shell{padding:19px 16px 16px}
+  .roster-header{gap:10px;margin-bottom:18px;top:-19px}
+  .roster-header h2{font-size:27px}
+  .roster-close{padding:10px 12px;min-height:40px;font-size:9px}
+  .roster-navigation{gap:10px;flex-wrap:wrap;align-items:center}
+  .roster-navigation>label{max-width:none;flex:1 1 100%}
+  .roster-navigation select{min-height:40px;font-size:12px}
+  .roster-tabs{width:100%}
+  .roster-tabs button{flex:1;min-height:42px}
+  .roster-context{font-size:10px}
+  .roster-table thead th{font-size:7px;padding:9px 4px;letter-spacing:0}
+  .roster-table tbody td,.roster-table tbody th{padding:10px 4px;font-size:9px}
+  .roster-table thead th:first-child,.roster-table .batting-order{width:19px}
+  .roster-player b{font-size:11px}
+  .roster-player small{font-size:7px}
+  .roster-pitchers{grid-template-columns:1fr;gap:10px}
+  .pitcher-card{padding:13px 14px}
+  .pitcher-card-heading h3{font-size:15px}
+  .pitcher-repertoire{min-height:0}
+  .pitcher-change{min-height:43px}
+  .roster-footnote{font-size:9px}
+  .role-banner b{letter-spacing:.6px}
+}
+@media(max-height:530px) and (orientation:landscape){
+  .home-links{gap:13px}
+  .home-footer .home-links .text-button{font-size:9px}
+  .roster-dialog{width:720px;max-height:calc(100dvh - 20px)}
+  .roster-shell{padding:17px 22px 14px}
+  .roster-header{margin-bottom:13px;top:-17px}
+  .roster-header h2{font-size:26px}
+  .roster-navigation{padding-bottom:10px}
+  .roster-context{margin:9px 0 12px}
+  .roster-table tbody td,.roster-table tbody th{padding:8px 9px}
+  .pitcher-card{padding:12px}
+  .role-banner{max-width:35%}
+  .role-banner b{font-size:8px;letter-spacing:.35px}
+  .role-banner span{font-size:8px}
+}

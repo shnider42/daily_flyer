@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
-import { BallparkRenderer, samplePlayerMotion } from '../public/renderer.mjs';
-import { BaseballGame, pitchPosition } from '../public/engine.mjs';
+import { BallparkRenderer, samplePlayerMotion, presentationBatter } from '../public/renderer.mjs';
+import { BaseballGame, pitchPosition, AIM_AREA, PITCH_AIM_AREA } from '../public/engine.mjs';
 import { CompatibilityRenderer } from '../public/fallback-renderer.mjs';
 import { getWallSegments } from '../public/parks.mjs';
+import { DELIVERIES, getRoster } from '../public/rosters.mjs';
 
 // Scene/rig assertions do not pretend to test a GPU or a browser rasterizer.
 // Canvas textures are inert here; actual image QA is a separate render check.
@@ -68,6 +69,80 @@ test('shared animation poses remain finite and do not mutate simulation state', 
     assert(pose.bat.every(Number.isFinite));
   }
   assert.equal(JSON.stringify(state),before);
+});
+
+test('all deliveries release from the correct anatomical hand for either throwing side', () => {
+  const renderer=scene(),state=pitchState();
+  for(const delivery of Object.values(DELIVERIES))for(const hand of ['R','L']){
+    state.pitch={...state.pitch,hand,delivery:delivery.id,windupDuration:delivery.duration,
+      start:{...delivery.start,x:delivery.start.x*(hand==='L'?-1:1)}};
+    state.time=state.pitch.releaseAt;Object.assign(state.ball,state.pitch.start);
+    renderer.render(state,1/60,{});
+    const model=renderer.models.get('P'),throwing=hand==='L'?'left':'right',glove=hand==='L'?'right':'left';
+    const point=model[`${throwing}Hand`].getWorldPosition(new THREE.Vector3()),wanted=new THREE.Vector3(-state.pitch.start.x,state.pitch.start.y,state.pitch.start.z);
+    assert(point.distanceTo(wanted)<.006,`${delivery.id} ${hand} release misses by ${point.distanceTo(wanted).toFixed(4)}m`);
+    assert.equal(model.heldBall.parent,model[`${throwing}Hand`]);assert.equal(model.gloveSide,glove);
+  }
+});
+
+test('delivery silhouettes differ, use their own timing, and mirror limbs without mutating the pitch', () => {
+  const state=pitchState(),poses=[];
+  for(const delivery of Object.values(DELIVERIES)){
+    state.phase='windup';state.pitch.delivery=delivery.id;state.pitch.windupDuration=delivery.duration;
+    state.time=state.pitch.releaseAt-delivery.duration*.25;state.pitch.hand='R';
+    const right=samplePlayerMotion(state,'pitcher');state.pitch.hand='L';
+    const left=samplePlayerMotion(state,'pitcher');
+    assert.equal(left.rightHip,right.leftHip);assert.equal(left.leftArm,right.rightArm);assert.equal(left.twist,-right.twist);
+    assert.equal(left.rightSpread,-right.leftSpread);
+    poses.push([right.leftHip,right.rightArm,right.rightSpread,right.lean].map(v=>v.toFixed(3)).join('/'));
+  }
+  assert.equal(new Set(poses).size,Object.keys(DELIVERIES).length);
+});
+
+test('left-handed batter mirrors the box, bat and grip without mirroring jersey text', () => {
+  const renderer=scene(),state=pitchState(),actor=getRoster(0).lineup[0];state.swing={time:state.time};
+  state.pitch.batter={...actor,hand:'R'};renderer.render(state,1/60,{});
+  const rightTip=renderer.batter.batPivot.localToWorld(new THREE.Vector3(0,.94,0));
+  assert.equal(renderer.batter.group.position.x,1.02);
+  state.pitch.batter={...actor,hand:'L'};renderer.render(state,1/60,{});
+  const leftTip=renderer.batter.batPivot.localToWorld(new THREE.Vector3(0,.94,0));
+  assert.equal(renderer.batter.group.position.x,-1.02);assert.equal(renderer.batter.group.rotation.y,Math.PI/2);
+  assert(Math.abs(leftTip.x+rightTip.x)<1e-8);assert(Math.abs(leftTip.y-rightTip.y)<1e-8);assert(Math.abs(leftTip.z-rightTip.z)<1e-8);
+  assert.deepEqual(renderer.batter.group.scale.toArray(),[1,1,1]);
+  const grip=renderer.batter.batPivot.localToWorld(new THREE.Vector3(0,.055,0)),hand=renderer.batter.leftHand.getWorldPosition(new THREE.Vector3());
+  assert(grip.distanceTo(hand)<.006);
+});
+
+test('hit-by-pitch presentation keeps the struck batter through the result and starts at impact', () => {
+  const renderer=scene(),state=pitchState(),struck={...getRoster(0).lineup[0],hand:'R'};
+  state.pitch.batter=struck;state.pitch.hitByPitch={at:1.4,point:{x:-.82,y:1.1,z:-.04},hand:'R',playerId:struck.id};
+  state.batterIndex[0]=1;state.phase='result';state.pitch.resolved=true;state.time=1.39;
+  renderer.render(state,1/60,{});assert.equal(renderer.bodyImpact.visible,false);assert.equal(presentationBatter(state).id,struck.id);
+  state.time=1.55;renderer.render(state,1/60,{});assert.equal(renderer.bodyImpact.visible,true);
+  assert.equal(renderer.batter.number,struck.number);assert.equal(renderer.batter.hand,'R');
+  assert(samplePlayerMotion(state,'batter',{actor:struck}).hipZ<-.10);
+  state.phase='ready';state.pitch=null;renderer.render(state,1/60,{});
+  assert.equal(renderer.batter.number,getRoster(0).lineup[1].number);assert.equal(renderer.batter.hand,'L');
+  assert.equal(renderer.bodyImpact.visible,false);
+});
+
+test('compatibility renderer shares left-handed body placement and release contact', () => {
+  const renderer=new CompatibilityRenderer(canvas()),state=pitchState(),lefty=getRoster(0).lineup[1];
+  state.pitch.hand='L';state.pitch.delivery='sidearm';state.pitch.windupDuration=DELIVERIES.sidearm.duration;
+  state.pitch.start={...DELIVERIES.sidearm.start,x:-DELIVERIES.sidearm.start.x};state.pitch.batter={...lefty,hand:'L'};
+  const captured=[],person=renderer.person.bind(renderer);
+  renderer.person=(actor,s,home,role,facing)=>{const hands=person(actor,s,home,role,facing);captured.push({actor,role,facing,hands});return hands;};
+  renderer.render(state,1/60,{batting:true});
+  const batter=captured.find(p=>p.role==='batter'),pitcher=captured.find(p=>p.role==='pitcher');
+  assert.equal(batter.actor.x,1.02);assert.equal(batter.facing,Math.PI/2);assert.equal(batter.actor.number,lefty.number);
+  assert.equal(pitcher.hands.throwingHand,'left');assert.equal(pitcher.hands.gloveHand,'right');assert.deepEqual(pitcher.hands.left,state.pitch.start);
+});
+
+test('pitching reticle can reach the batter while batting aim keeps its original range', () => {
+  const renderer=scene(),state=pitchState();
+  renderer.render(state,1/60,{batting:false,aim:{x:1,y:0}});assert.equal(renderer.aimRing.position.x,-PITCH_AIM_AREA.x);
+  renderer.render(state,1/60,{batting:true,aim:{x:1,y:0}});assert.equal(renderer.aimRing.position.x,-AIM_AREA.x);
+  assert(PITCH_AIM_AREA.x>1.02);assert.equal(AIM_AREA.x,.65);
 });
 
 

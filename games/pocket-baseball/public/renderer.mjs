@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.4.0';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.4.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.5.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.5.0';
+import { DELIVERIES, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.5.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -11,6 +12,28 @@ const TAU = Math.PI * 2;
 const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const COLORS = { dirt: 0xb88258, chalk: 0xf1ebd6, wall: 0x173d35,
   home: 0xf0e7cf, homeCap: 0x173d35, away: 0xb5403e, awayCap: 0x1b2f45 };
+
+// A resolved pitch still belongs to the batter who saw it. The rules may have
+// advanced the lineup already; retain this player for the follow-through/recoil.
+export function presentationBatter(state) {
+  if (state?.pitch?.batter && ['windup', 'pitch', 'result'].includes(state.phase)) return state.pitch.batter;
+  const batter = getBatter(state);
+  return { ...batter, hand: getBatterHand(state) };
+}
+
+export function presentationHand(state, role, actor = {}) {
+  if (role === 'batter') return actor.hand || presentationBatter(state).hand || 'R';
+  if (role === 'pitcher' && state?.pitch && ['windup', 'pitch'].includes(state.phase)) return state.pitch.hand || actor.throws || 'R';
+  return actor.throws || (role === 'pitcher' ? getPitcher(state)?.throws : null) || 'R';
+}
+
+function mirrorMotion(p) {
+  for (const joint of ['Hip', 'Knee', 'Arm', 'Elbow']) [p[`left${joint}`], p[`right${joint}`]] = [p[`right${joint}`], p[`left${joint}`]];
+  [p.leftSpread, p.rightSpread] = [-p.rightSpread, -p.leftSpread];
+  for (const key of ['hipX', 'roll', 'twist', 'head']) p[key] = -p[key];
+  p.bat = [p.bat[0], -p.bat[1], -p.bat[2]];
+  return p;
+}
 
 // Both renderers sample the same joint poses. These are presentation values;
 // they never move a runner, change a throw, or influence a collision result.
@@ -33,21 +56,42 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     p.leftKnee = p.rightKnee = .30; p.leftElbow = -.55; p.rightElbow = -.35;
   }
   if (role === 'pitcher' && pitch && ['windup', 'pitch'].includes(phase)) {
-    const release = time - pitch.releaseAt;
+    const release = time - pitch.releaseAt, delivery = pitch.delivery || 'classic';
+    const duration = pitch.windupDuration || DELIVERIES[delivery]?.duration || .65;
+    const highKick = delivery === 'highKick', compact = delivery === 'compact', sidearm = delivery === 'sidearm', submarine = delivery === 'submarine';
+    const liftHeight = highKick ? 1.9 : compact ? .55 : sidearm ? .95 : submarine ? .72 : 1.35;
     if (release < 0) {
-      const u = clamp(1 + release / .65, 0, 1), lift = Math.sin(clamp(u / .62, 0, 1) * Math.PI / 2), drive = clamp((u - .55) / .45, 0, 1);
-      p.leftHip = -1.35 * lift + drive * .65; p.leftKnee = 1.55 * lift * (1 - drive) + .22;
+      const u = clamp(1 + release / duration, 0, 1), lift = Math.sin(clamp(u / (highKick ? .43 : .62), 0, 1) * Math.PI / 2), drive = smooth((u - (compact ? .38 : highKick ? .66 : .55)) / (compact ? .62 : highKick ? .34 : .45));
+      p.leftHip = -liftHeight * lift + drive * liftHeight * .48; p.leftKnee = liftHeight * 1.12 * lift * (1 - drive) + .22;
       p.rightHip = .10; p.rightKnee = .16; p.hipY = .055 * lift - drive * .09;
-      p.lean = drive * .23; p.twist = -.58 * Math.sin(u * Math.PI);
+      p.lean = drive * .23; p.twist = -(highKick ? .88 : compact ? .24 : .58) * Math.sin(u * Math.PI);
       p.leftArm = -1.3 + drive * .6; p.leftElbow = -.9;
       p.rightArm = -.7 - u * 1.9; p.rightElbow = -1.35 + drive * .85; p.rightSpread = -.35 - drive * .25;
+      if (highKick) { const overhead = Math.sin(clamp(u / .56, 0, 1) * Math.PI); p.leftArm -= overhead * .8; p.rightArm -= overhead * .45; }
+      if (highKick) { p.hipY += .17 * drive; p.hipZ = .12 * drive; }
+      if (compact) { p.hipY -= .035; p.leftArm = -.9 + drive * .2; p.rightArm = -1.05 - drive * 1.55; }
+      if (sidearm || submarine) {
+        p.twist = -Math.sin(u * Math.PI) * (submarine ? 1.03 : .91);
+        p.rightArm = mix(-.55, submarine ? .18 : -1.10, drive); p.rightSpread = mix(-.24, submarine ? -1.20 : -1.48, drive);
+        p.rightElbow = mix(-1.15, -.22, drive); p.lean = drive * (submarine ? .95 : .21);
+        p.hipY -= drive * (submarine ? .18 : .035); p.rightKnee += drive * (submarine ? .34 : .10);
+        if (submarine) p.hipZ = -.05 * drive;
+      }
     } else if (release < .78) {
-      const u = smooth(release / .37), recover = smooth((release - .37) / .41);
+      const u = smooth(release / (compact ? .27 : .37)), recover = smooth((release - (compact ? .27 : .37)) / .41);
       p.rightArm = mix(-2.60 + u * 3.25, -.12, recover); p.rightElbow = mix(-.50 + u * .30, -.16, recover);
       p.leftArm = mix(-.65, -.12, recover); p.leftElbow = -.75 * (1 - recover);
       p.lean = Math.sin(u * Math.PI / 2) * .48 * (1 - recover); p.twist = .38 * (1 - recover);
       p.rightHip = .65 * Math.sin(u * Math.PI) * (1 - recover); p.rightKnee = .65 * (1 - recover) + .12;
       p.leftHip = -.18; p.leftKnee = .30; p.hipY = -.045 * (1 - recover);
+      if (highKick) { p.hipY += .17 * (1 - recover); p.hipZ = .12 * (1 - recover); }
+      if (sidearm || submarine) {
+        p.rightArm = mix((submarine ? .18 : -1.10) + u * 1.25, -.12, recover);
+        p.rightSpread = mix((submarine ? -1.20 : -1.48) + u * 1.35, -.08, recover);
+        p.twist = (.12 + u * .72) * (1 - recover); p.lean = (submarine ? .95 - u * .28 : .21 + u * .17) * (1 - recover);
+        p.hipY = -(submarine ? .225 : .075) * (1 - recover);
+        if (submarine) p.hipZ = -.05 * (1 - recover);
+      }
     }
   }
   if (role === 'batter') {
@@ -66,6 +110,16 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     } else if (pitch && ['windup', 'pitch'].includes(phase)) {
       const load = clamp((time - (pitch.releaseAt - .4)) / .6, 0, 1);
       p.twist = -.17 - Math.sin(load * Math.PI) * .16; p.leftHip -= Math.sin(load * Math.PI) * .10;
+    }
+    const hit = pitch?.hitByPitch, hitAge = hit ? time - hit.at : -1;
+    if (hitAge >= 0 && !state?.swing) {
+      const flinch = Math.sin(clamp(hitAge / .5, 0, 1) * Math.PI), settle = smooth(Math.min(hitAge, 1.1) / 1.1);
+      p.hipY = -.045 + flinch * .045; p.hipZ = -.15 * flinch;
+      p.twist = -.17 + .72 * flinch + .18 * settle; p.lean = -.16 * flinch;
+      p.leftHip = -.16 - .52 * flinch; p.leftKnee = .28 + .58 * flinch;
+      p.leftArm = -1.05 - .20 * flinch; p.rightArm = -1.42 + .58 * flinch;
+      p.rightElbow = -1.38 - .30 * flinch; p.head = -.22 + .34 * flinch;
+      p.bat = [-.25 + .65 * flinch, .26 * flinch, -.32 - .20 * flinch];
     }
   }
   if (role === 'catcher' && !moving && phase !== 'live' && !(phase === 'result' && play)) {
@@ -109,7 +163,7 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     p.slide = 1; p.hipY = -.56; p.lean = -.95; p.leftHip = -.16; p.rightHip = -.55;
     p.leftKnee = .06; p.rightKnee = 1.25; p.leftArm = .55; p.rightArm = .65; p.leftElbow = p.rightElbow = -.6;
   }
-  return p;
+  return presentationHand(state, role, actor) === 'L' && role !== 'runner' ? mirrorMotion(p) : p;
 }
 
 function canvasTexture(width, height, draw) {
@@ -641,7 +695,7 @@ export class BallparkRenderer {
     if (model.backLabel) model.backLabel.material = this.uniformMaterial(model.home, number, true);
   }
 
-  player(home, number = 1, bat = false, role = 'fielder') {
+  player(home, number = 1, bat = false, role = 'fielder', handedness = 'R') {
     this.geometries.jersey ||= new THREE.LatheGeometry([new THREE.Vector2(.200,-.25),new THREE.Vector2(.225,-.15),new THREE.Vector2(.245,.07),new THREE.Vector2(.26,.19),new THREE.Vector2(.20,.25)],12);
     this.geometries.label ||= new THREE.PlaneGeometry(.35, .30);
     this.shadowMaterial ||= new THREE.MeshBasicMaterial({ color: 0x10271b, transparent: true, opacity: .23, depthWrite: false });
@@ -680,7 +734,7 @@ export class BallparkRenderer {
     this.box(home ? 0xe6d9b7 : 0xe6d8be, 0, .16, .134, .04, .043, .008, head);
     const helmet = bat || role === 'runner' || role === 'catcher';
     if (helmet) {
-      this.mesh('sphere', cap, -.135, .004, -.014, .035, .113, .115, head);
+      this.mesh('sphere', cap, handedness === 'L' && bat ? .135 : -.135, .004, -.014, .035, .113, .115, head);
       if (role === 'catcher') this.mesh('sphere', cap, .135, .004, -.014, .035, .113, .115, head);
     }
     const limbs = {};
@@ -688,7 +742,7 @@ export class BallparkRenderer {
       // Anatomical right is local -x. Facing home places the throwing hand at
       // scene +x, matching the mirrored engine release at x=-0.32.
       const name = side < 0 ? 'right' : 'left';
-      const leg = new THREE.Group(), shin = new THREE.Group(); leg.position.set(side * .125, 0, bat ? side * .06 : 0); body.add(leg);
+      const leg = new THREE.Group(), shin = new THREE.Group(); leg.position.set(side * .125, 0, bat ? side * .06 * (handedness === 'L' ? -1 : 1) : 0); body.add(leg);
       this.mesh('cylinder', pants, 0, -.205, 0, .113, .41, .115, leg);
       this.mesh('sphere', pants, 0, -.415, .008, .105, .10, .105, leg);
       shin.position.set(0, -.43, 0); leg.add(shin);
@@ -710,7 +764,7 @@ export class BallparkRenderer {
       if (bat || role === 'runner') this.mesh('cylinder', cap, 0, -.235, 0, .069, .055, .068, forearm);
       hand.position.set(0, -.285, 0); forearm.add(hand);
       this.mesh('sphere', bat ? 0xe8e5d7 : skin, 0, 0, .004, .067, .082, .060, hand);
-      if (name === 'left' && !bat && role !== 'runner') {
+      if (name === (handedness === 'L' ? 'right' : 'left') && !bat && role !== 'runner') {
         this.mesh('sphere', 0x8e5a30, 0, -.025, .045, .135, .165, .08, hand);
         this.mesh('sphere', 0xbc8853, 0, -.018, .092, .10, .125, .024, hand);
         for (let i = 0; i < 3; i++) this.box(0x6c4829, -.06 + i * .06, .015, .114, .013, .13, .014, hand);
@@ -731,20 +785,20 @@ export class BallparkRenderer {
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = .018; shadow.scale.set(.43, .34, 1); group.add(shadow);
     let batPivot;
     if (bat) {
-      batPivot = new THREE.Group(); batPivot.position.set(-.015, .42, .27); torso.add(batPivot);
+      batPivot = new THREE.Group(); batPivot.position.set(handedness === 'L' ? .015 : -.015, .42, .27); torso.add(batPivot);
       this.mesh('cylinder', 0xc7a474, 0, .60, 0, .047, .66, .047, batPivot);
       this.mesh('cylinder', 0xb89461, 0, .23, 0, .031, .20, .031, batPivot);
       this.mesh('cylinder', 0x423a2c, 0, .105, 0, .024, .20, .024, batPivot);
       this.mesh('sphere', 0xc5a374, 0, -.005, 0, .035, .018, .035, batPivot);
     }
-    const model = { group, body, torso, head, ...limbs, batPivot, home, number, role, lastX: null, lastZ: null, facing: 0, shadow };
+    const model = { group, body, torso, head, ...limbs, batPivot, home, number, role, hand: handedness, gloveSide: handedness === 'L' ? 'right' : 'left', lastX: null, lastZ: null, facing: 0, shadow };
     this.batchRig(model);
     if (role !== 'catcher' && role !== 'umpire') {
       model.frontLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, false)); model.frontLabel.position.set(0, .30, .178); torso.add(model.frontLabel);
       model.backLabel = new THREE.Mesh(this.geometries.label, this.uniformMaterial(home, number, true)); model.backLabel.position.set(0, .30, -.174); model.backLabel.rotation.y = Math.PI; torso.add(model.backLabel);
     }
     model.heldBall = new THREE.Mesh(this.geometries.sphere, this.material(0xf6f0df));
-    model.heldBall.scale.setScalar(.041); model.heldBall.position.set(0, -.025, .045); model.heldBall.visible = false; model.rightHand.add(model.heldBall);
+    model.heldBall.scale.setScalar(.041); model.heldBall.position.set(0, -.025, .045); model.heldBall.visible = false; model[handedness === 'L' ? 'leftHand' : 'rightHand'].add(model.heldBall);
     this.scene.add(group); return model;
   }
 
@@ -778,6 +832,8 @@ export class BallparkRenderer {
     this.zone.add(brackets, grid); brackets.renderOrder = grid.renderOrder = 5; this.scene.add(this.zone);
     this.pitchMark = new THREE.Mesh(new THREE.RingGeometry(.043, .059, 24), new THREE.MeshBasicMaterial({ color: 0xf0bd75, transparent: true, opacity: .9, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
     this.pitchMark.renderOrder = 7; this.pitchMark.visible = false; this.scene.add(this.pitchMark);
+    this.bodyImpact = new THREE.Mesh(new THREE.RingGeometry(.055, .071, 20), new THREE.MeshBasicMaterial({ color: 0xf0cd8b, transparent: true, opacity: .75, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
+    this.bodyImpact.renderOrder = 7; this.bodyImpact.visible = false; this.scene.add(this.bodyImpact);
     this.aimRing = new THREE.Mesh(new THREE.RingGeometry(.077, .087, 24), new THREE.MeshBasicMaterial({ color: 0xf4ce7b, transparent: true, opacity: .88, side: THREE.DoubleSide, depthTest: false }));
     this.aimRing.renderOrder = 6; this.scene.add(this.aimRing);
     this.aimCross = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([V(-.12, 0, 0), V(-.096, 0, 0), V(.096, 0, 0), V(.12, 0, 0), V(0, -.12, 0), V(0, -.096, 0), V(0, .096, 0), V(0, .12, 0)]), new THREE.LineBasicMaterial({ color: 0xf7d994, transparent: true, opacity: .85, depthTest: false }));
@@ -814,8 +870,8 @@ export class BallparkRenderer {
     model.leftForearm.rotation.x = p.leftElbow; model.rightForearm.rotation.x = p.rightElbow;
     if (model.batPivot) {
       model.batPivot.rotation.set(...p.bat); model.group.updateMatrixWorld(true);
-      this.reachHand(model, 'right', model.batPivot.localToWorld(V(0, .055, 0)));
-      this.reachHand(model, 'left', model.batPivot.localToWorld(V(0, .145, 0)));
+      this.reachHand(model, model.hand === 'L' ? 'left' : 'right', model.batPivot.localToWorld(V(0, .055, 0)));
+      this.reachHand(model, model.hand === 'L' ? 'right' : 'left', model.batPivot.localToWorld(V(0, .145, 0)));
     }
     model.shadow.scale.set(p.slide ? .8 : .43, p.slide ? .25 : .34, 1);
     model.lastX = x; model.lastZ = z; return p;
@@ -874,10 +930,11 @@ export class BallparkRenderer {
     const fallback = [ ['P',0,18.44],['1B',19,21],['2B',12,35],['SS',-12,35],['3B',-21,21],['LF',-48,73],['CF',0,88],['RF',48,73] ];
     const fielders = state?.fielders?.length ? state.fielders : fallback.map(([role,x,z], id) => ({ id, role, x, z }));
     const homeDefense = !state || state.battingSide === 0;
+    const batterActor = presentationBatter(state), batterHand = batterActor.hand || 'R';
     if (this.homeDefense !== homeDefense) {
       this.homeDefense = homeDefense;
       for (const model of this.models.values()) this.releaseModel(model); this.models.clear();
-      this.releaseModel(this.batter); this.batter = this.player(!homeDefense, 1, true, 'batter');
+      this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand);
       this.releaseModel(this.catcher); this.catcher = this.player(homeDefense, 2, false, 'catcher');
       for (const model of this.runnerModels) this.releaseModel(model); this.runnerModels = [];
     }
@@ -887,8 +944,12 @@ export class BallparkRenderer {
       if (catching && !fielding) continue;
       const id = String(p.id); active.add(id);
       const pitcher = p.role === 'P' || p.role === 'pitcher' || p.id === 'P';
-      if (!catching && !this.models.has(id)) this.models.set(id, this.player(homeDefense, p.number || this.models.size + 3, false, pitcher ? 'pitcher' : 'fielder'));
+      const actor = pitcher ? { ...p, ...getPitcher(state), id: p.id, x: p.x, z: p.z } : p;
+      const actorRole = catching ? 'catcher' : pitcher ? 'pitcher' : 'fielder', hand = presentationHand(state, actorRole, actor);
+      if (!catching && this.models.get(id)?.hand !== hand) { this.releaseModel(this.models.get(id)); this.models.delete(id); }
+      if (!catching && !this.models.has(id)) this.models.set(id, this.player(homeDefense, actor.number || this.models.size + 3, false, actorRole, hand));
       const model = catching ? this.catcher : this.models.get(id), x = -mix(p.prevX ?? p.x, p.x, alpha), z = mix(p.prevZ ?? p.z, p.z, alpha);
+      this.numberPlayer(model, actor.number || model.number);
       const dx = -(p.x - (p.prevX ?? p.x)), dz = p.z - (p.prevZ ?? p.z), moving = Math.hypot(dx, dz) > .001;
       let direction = moving ? Math.atan2(dx, dz) : model.facing || Math.atan2(-x, -z);
       if (pitcher && ['ready', 'windup', 'pitch'].includes(phase)) direction = Math.PI;
@@ -897,25 +958,25 @@ export class BallparkRenderer {
         const base = throwData?.base ?? state.play.throwBase ?? state.play.queuedBase ?? 1, target = throwData?.to || BASES[base] || BASES[1];
         direction = Math.atan2(-target.x - x, target.z - z);
       }
-      this.pose(model, x, z, state, { moving, facing: direction, role: catching ? 'catcher' : pitcher ? 'pitcher' : 'fielder', actor: p, index: this.models.size });
+      this.pose(model, x, z, state, { moving, facing: direction, role: actorRole, actor, index: this.models.size });
       model.group.visible = true;
       model.heldBall.visible = pitcher && !fielding && ['ready', 'windup'].includes(phase);
       const release = state?.pitch ? t - state.pitch.releaseAt : -100;
       if (pitcher && !fielding && release > -.065 && release < .035) {
         const start = state.pitch.start;
-        this.reachHand(model, 'right', V(-start.x, start.y, start.z));
+        this.reachHand(model, hand === 'L' ? 'left' : 'right', V(-start.x, start.y, start.z));
       }
       if (source && throwData?.kind !== 'carry' && state?.play?.stage === 'throw' && t - (throwData?.startedAt ?? t) < .05) {
         const from = throwData?.from;
-        if (from) this.reachHand(model, 'right', V(-from.x, from.y, from.z));
+        if (from) this.reachHand(model, hand === 'L' ? 'left' : 'right', V(-from.x, from.y, from.z));
       }
       if (model.frontLabel) { const near = this.camera.position.distanceTo(model.group.position) < 52; model.frontLabel.visible = model.backLabel.visible = near; }
     }
     for (const [id, model] of this.models) model.group.visible = active.has(id);
 
-    const batterNumber = (state?.batterIndex?.[state?.battingSide || 0] || 0) + 1;
-    this.numberPlayer(this.batter, state?.play?.batter?.number || batterNumber);
-    this.pose(this.batter, 1.02, -.04, state, { facing: -Math.PI / 2, role: 'batter' });
+    if (this.batter.hand !== batterHand) { this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand); }
+    this.numberPlayer(this.batter, state?.play?.batter?.number || batterActor.number || 1);
+    this.pose(this.batter, batterHand === 'L' ? -1.02 : 1.02, -.04, state, { facing: (batterHand === 'L' ? 1 : -1) * Math.PI / 2, role: 'batter', actor: batterActor });
     this.batter.group.visible = !fielding || (state?.phaseTime || 0) < .08;
     if (!fielding) this.pose(this.catcher, 0, -2.1, state, { facing: 0, role: 'catcher' });
     this.catcher.group.visible = true;
@@ -957,7 +1018,7 @@ export class BallparkRenderer {
         if (holder) {
           holder.group.updateMatrixWorld(true);
           const transferAge = t - (state.play.heldAt ?? t);
-          (transferAge < .14 ? holder.leftHand : holder.rightHand).getWorldPosition(this.ball.position);
+          (transferAge < .14 ? holder[`${holder.gloveSide}Hand`] : holder[holder.hand === 'L' ? 'leftHand' : 'rightHand']).getWorldPosition(this.ball.position);
         }
       }
       // A modest visual ball scale keeps it legible on a phone; physics radius is unchanged.
@@ -976,14 +1037,22 @@ export class BallparkRenderer {
     this.zone.visible = !menu && !fielding && guidance !== 'expert' && !['half', 'final'].includes(phase);
     // A completed pitch may be reviewed; an active pitch never exposes its
     // destination or a live ball/strike classification.
-    this.pitchMark.visible = !menu && phase === 'result' && !!state?.pitch?.resolved && guidance !== 'expert';
+    this.pitchMark.visible = !menu && phase === 'result' && !!state?.pitch?.resolved && !state.pitch.hitByPitch && guidance !== 'expert';
     if (this.pitchMark.visible) {
       const crossing = state.pitch.target;
       this.pitchMark.position.set(-crossing.x, crossing.y, -.04);
       this.pitchMark.material.color.set(inStrikeZone(crossing) ? 0xefbf77 : 0x88d0d7);
     }
+    const impact = state?.pitch?.hitByPitch, impactAge = impact ? t - impact.at : -1;
+    this.bodyImpact.visible = !menu && !state?.swing && impactAge >= 0 && impactAge < .22;
+    if (this.bodyImpact.visible) {
+      this.bodyImpact.position.set(-impact.point.x, impact.point.y, impact.point.z);
+      this.bodyImpact.quaternion.copy(this.camera.quaternion); this.bodyImpact.scale.setScalar(1 + impactAge * 7);
+      this.bodyImpact.material.opacity = .75 * (1 - impactAge / .22);
+    }
     this.aimRing.visible = !menu && !fielding && !['half', 'final', 'result'].includes(phase);
-    this.aimRing.position.set(-(aim.x || 0) * AIM_AREA.x, AIM_AREA.centerY + (aim.y || 0) * AIM_AREA.y, -.045);
+    const aimArea = options.batting === false ? PITCH_AIM_AREA : AIM_AREA;
+    this.aimRing.position.set(-(aim.x || 0) * aimArea.x, aimArea.centerY + (aim.y || 0) * aimArea.y, -.045);
     const fielder = fielders.find(p => p.hasBall) || fielders.find(p => p.id === state?.play?.fielder);
     this.selection.visible = !menu && fielding && !!fielder;
     if (fielder) this.selection.position.set(-fielder.x, .035, fielder.z);
