@@ -10,3 +10,85 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
 @media(max-height:700px) and (orientation:portrait){.home-content{margin:auto 0 20px;padding:16px 0 8px}h1{font-size:65px;margin-bottom:17px}.home-description{margin-bottom:13px;font-size:14px}.matchup{margin-bottom:13px}.setup-note{margin-bottom:11px}.home-footer{margin-top:10px}.edition-line{margin-bottom:10px}.park-caption{font-size:6px}.role-banner{top:135px}.status-tip{bottom:160px}.timing-cue{bottom:137px}.is-pitching .status-tip{top:190px;bottom:auto}.result-card{top:30%}.controls{bottom:max(16px,env(safe-area-inset-bottom))}}
 @media(max-height:530px) and (orientation:landscape){.home-screen{padding:16px max(26px,env(safe-area-inset-right)) 15px max(26px,env(safe-area-inset-left))}.home-content{display:grid;grid-template-columns:280px minmax(260px,350px);grid-template-rows:auto auto auto;gap:0 32px;max-width:none;width:100%;margin:auto 0;padding:15px 0 0;align-content:center}.edition-line{grid-column:1;grid-row:1;margin:0 0 12px;font-size:8px}h1{grid-column:1;grid-row:2;font-size:64px;line-height:.9;margin:0 0 16px}.matchup{grid-column:1;grid-row:3;gap:6px;margin-bottom:0;max-width:280px}.matchup b{font-size:8px}.matchup small{font-size:6px}.club-mark{flex-basis:25px;width:25px;height:28px;font-size:21px}.matchup em{font-size:10px;padding:0 2px}.home-description{display:none}.setup{grid-column:2;grid-row:1 / span 3;align-self:center}.setup label{font-size:8px}.setup-fields{gap:7px}select{font-size:12px;min-height:35px;padding:8px;margin-top:5px}.setup-note{font-size:9px;margin:9px 0 12px;line-height:1.35;min-height:24px}.play-button{min-height:46px;font-size:11px;padding:12px 14px}.practice-button{font-size:9px;padding:10px 14px;min-height:39px}.practice-button small{font-size:10px}.home-footer{grid-column:2;margin-top:12px;gap:6px}.home-footer>span{font-size:7px}.home-footer .text-button{font-size:10px}.park-caption{font-size:7px;bottom:14px;right:max(26px,env(safe-area-inset-right));letter-spacing:1px}.park-caption small{display:none}.scorebug{top:10px;left:max(14px,env(safe-area-inset-left));width:207px}.score-heading{font-size:7px;padding:6px 8px}.score-team{min-height:25px;padding:0 8px}.score-team b{font-size:11px}.score-team strong{font-size:17px}.team-name{font-size:8px}.count-row{height:26px}.count-row b{font-size:12px}.count-row small{font-size:6px}.base-diamond{transform:scale(.9)}.game-tools{top:10px;right:max(14px,env(safe-area-inset-right))}.tool-button{width:33px;height:33px;min-height:33px;padding:6px}.role-banner{top:13px;left:51%;max-width:35%;width:auto}.role-banner b{font-size:9px}.role-banner span{font-size:8px;margin-top:4px}.pitch-readout{top:118px;left:max(16px,env(safe-area-inset-left));font-size:8px}.pitch-readout b{font-size:8px}.pitch-readout span{font-size:9px}.practicebug{top:10px;left:max(14px,env(safe-area-inset-left));width:220px}.practice-totals{padding:8px}.practice-totals strong{font-size:22px}.practice-totals small{font-size:7px}.controls{bottom:max(15px,env(safe-area-inset-bottom));left:max(20px,env(safe-area-inset-left));right:max(20px,env(safe-area-inset-right));height:110px}.aim-pad{width:82px;height:82px}.control-label{font-size:7px;margin-bottom:5px}.keyboard-hint{font-size:6px;margin-top:4px}.action-button{width:81px;height:81px;min-height:81px}.action-button b{font-size:11px}.action-button small{font-size:7px}.power-button{width:55px;height:55px}.power-button b{font-size:8px}.action-area{gap:9px;padding-bottom:10px}.touch-mode .action-area{padding-bottom:0}.pitch-selection{right:102px;bottom:0;width:185px}.pitch-selection button{min-height:28px;font-size:8px;padding:5px 7px}.pitch-meter{right:102px;bottom:75px;width:185px}.pitch-meter>span{font-size:7px;margin-top:5px}.status-tip{bottom:max(21px,env(safe-area-inset-bottom));max-width:calc(100% - 395px);width:300px;padding:7px 12px}.status-tip b{font-size:8px;letter-spacing:.7px}.status-tip span{font-size:9px;line-height:1.3;margin-top:3px}.timing-cue{bottom:85px;width:140px}.timing-cue>span{font-size:7px;margin-top:5px}.is-pitching .status-tip{top:auto;bottom:max(22px,env(safe-area-inset-bottom));left:35%;max-width:200px;width:200px}.result-card{top:19%;width:310px;padding:16px 20px 12px}.result-card h2{font-size:29px;margin-bottom:6px}.result-card>p:first-child{font-size:7px;margin-bottom:6px}.result-card #result-detail{font-size:10px;margin-bottom:10px;min-height:15px}.result-card #next-button{min-height:34px;font-size:9px;padding:8px 11px}.contact-feedback{padding:7px 0;font-size:8px}.event-toast{top:20%;font-size:9px}.dialog-content{padding:20px 24px}.dialog-content h2{font-size:29px}.dialog-content>p{font-size:11px}.pause-settings{margin:15px 0}.dialog-primary,.dialog-secondary,.dialog-quiet{min-height:38px;padding:10px}.field-guide .dialog-primary{margin-top:15px}.line-score th,.line-score td{padding:5px 4px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Pitcher choices and live baseball decisions. */
+#app.is-menu{touch-action:pan-y}
+.home-screen{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.home-content{flex-shrink:0}
+.pitcher-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.pitcher-fields label{font-size:9px;letter-spacing:1.4px;color:var(--muted);font-weight:bold}
+.pitcher-fields small{display:block;font-size:9px;line-height:1.4;letter-spacing:0;font-weight:normal;color:#c3cabb;margin-top:6px;min-height:25px}
+.live-panel{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));pointer-events:auto;background:rgba(12,31,27,.9);border-top:2px solid var(--gold);box-shadow:0 3px 18px #0003;padding:12px 13px 9px}
+.live-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:9px;letter-spacing:.8px;line-height:1.3}
+.live-panel-heading>b{color:var(--cream);font-size:9px}
+.live-panel-heading>span{color:var(--gold);font-size:8px;font-weight:bold;letter-spacing:.45px}
+.field-controls{width:218px}
+.throw-diamond{position:relative;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:41px 41px 41px;gap:3px;isolation:isolate}
+.throw-diamond:before{content:"";position:absolute;inset:22px 48px;border:1px solid #ece6d527;transform:rotate(45deg);z-index:-1}
+.throw-diamond button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:41px;padding:6px 4px;background:#1b352c;border:1px solid #81918080;color:var(--cream);font-size:10px;letter-spacing:.3px}
+.throw-diamond button b{font-size:10px}
+.throw-diamond button small{font-size:7px;color:#b8c0ad;opacity:.8}
+.throw-diamond [data-throw="2"]{grid-column:2;grid-row:1}
+.throw-diamond [data-throw="3"]{grid-column:1;grid-row:2}
+.throw-diamond [data-throw="1"]{grid-column:3;grid-row:2}
+.throw-diamond [data-throw="4"]{grid-column:2;grid-row:3}
+.throw-diamond button.recommended{border:2px solid var(--gold);padding:5px 3px}
+.throw-diamond button.selected{background:var(--cream);border-color:var(--cream);color:var(--ink)}
+.throw-diamond button.selected small{color:var(--ink)}
+.throw-diamond button.in-flight{box-shadow:0 0 0 2px #d3aa5e55}
+.live-control-hint{font-size:9px;line-height:1.45;color:#c2cbb8;margin:9px 0 0;min-height:13px;letter-spacing:0}
+.runner-controls{width:250px}
+.runner-picker{display:flex;gap:4px;margin:1px 0 9px;flex-wrap:wrap}
+.runner-picker button{font-size:7px;font-weight:bold;letter-spacing:.3px;min-height:27px;padding:6px;background:#1b352c;color:#d4d9c8;border:1px solid #81918070;flex:1 1 auto}
+.runner-picker button.selected{color:var(--ink);background:var(--gold);border-color:var(--gold)}
+.run-advance{width:100%;min-height:51px;display:flex;align-items:center;justify-content:space-between;padding:12px 13px;background:var(--cream);color:var(--ink);border:0}
+.run-advance b{font-size:14px;letter-spacing:.8px}
+.run-advance small{font-size:7px;letter-spacing:.6px;opacity:.7}
+.runner-secondary{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+.runner-secondary button{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;min-height:43px;padding:8px 5px;border:1px solid #81918090;background:#1b352c;color:var(--cream)}
+.runner-secondary b{font-size:8px;letter-spacing:.4px}
+.runner-secondary small{font-size:7px;color:#b8c0ad}
+.is-live .status-tip{top:auto;left:max(22px,env(safe-area-inset-left));bottom:max(27px,env(safe-area-inset-bottom));transform:none;text-align:left;max-width:265px;width:265px}
+.touch-mode .throw-diamond button small,.touch-mode .run-advance small,.touch-mode .runner-secondary small{display:none}
+.guidance-expert .live-control-hint{display:none}
+@media(max-width:700px){
+  .pitcher-fields{gap:7px;margin-top:10px}
+  .pitcher-fields label{font-size:8px;letter-spacing:1.1px}
+  .pitcher-fields small{font-size:8px;min-height:24px;margin-top:5px;line-height:1.4}
+  .live-panel{right:max(18px,env(safe-area-inset-right));bottom:max(24px,calc(env(safe-area-inset-bottom) + 10px));padding:11px 12px 9px}
+  .runner-controls{width:241px}
+  .field-controls{width:214px}
+  .is-live .status-tip{top:calc(max(12px,env(safe-area-inset-top)) + 190px);bottom:auto;left:50%;transform:translateX(-50%);text-align:center;width:calc(100% - 48px);max-width:360px}
+}
+@media(max-height:760px) and (orientation:portrait){
+  .home-content{margin:auto 0 12px;padding-top:17px;padding-bottom:13px}
+  .home-content h1{font-size:62px;margin-bottom:18px}
+  .home-description{margin-bottom:15px}
+  .pitcher-fields{margin-top:9px}
+  .pitcher-fields small{min-height:22px}
+  .home-footer{margin-top:10px}
+  .park-caption{display:none}
+}
+@media(max-height:530px) and (orientation:landscape){
+  .pitcher-fields{margin-top:9px;gap:7px}
+  .pitcher-fields label{font-size:7px;letter-spacing:1px}
+  .pitcher-fields small{font-size:8px;min-height:22px;margin-top:4px;line-height:1.35}
+  .pitcher-fields select{min-height:31px;font-size:11px;padding-top:6px;padding-bottom:6px}
+  .setup-note{margin-top:7px;margin-bottom:9px;min-height:13px}
+  .home-content{padding-top:9px}
+  .live-panel{bottom:max(15px,env(safe-area-inset-bottom));right:max(20px,env(safe-area-inset-right));padding:10px 12px 8px}
+  .field-controls{width:204px}
+  .throw-diamond{grid-template-rows:36px 36px 36px;gap:2px}
+  .throw-diamond button{min-height:36px;font-size:9px;padding:4px}
+  .throw-diamond button.recommended{padding:3px}
+  .throw-diamond button b{font-size:9px}
+  .live-panel-heading{margin-bottom:7px}
+  .live-control-hint{font-size:8px;margin-top:7px}
+  .runner-controls{width:234px}
+  .run-advance{min-height:44px;padding:10px 12px}
+  .run-advance b{font-size:12px}
+  .runner-secondary button{min-height:37px;padding:6px 4px}
+  .runner-picker{margin-bottom:7px}
+  .runner-picker button{min-height:24px;padding:5px}
+  .is-live .status-tip{top:auto;left:max(20px,env(safe-area-inset-left));bottom:max(20px,env(safe-area-inset-bottom));transform:none;text-align:left;width:260px;max-width:260px}
+}

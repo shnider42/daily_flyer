@@ -1,6 +1,6 @@
-# Pocket Baseball — first pitch edition
+# Pocket Baseball — version 0.2
 
-A complete single-player 3D baseball game in the Daily Flyer repository, inspired
+A single-player 3D baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
 baseball games. Original fictional clubs: Boston Harbor and Brooklyn Foundry.
 
@@ -21,9 +21,13 @@ are also available. Tied games continue into extra innings.
 | Aim bat / locate pitch | Left pad | Arrows or WASD |
 | Contact swing | SWING | Space |
 | Power swing | POWER | Shift |
-| Choose pitch | Four pitch buttons | 1–4 |
+| Choose pitch | Current pitcher's repertoire buttons | 1–4 |
 | Pitch meter | Tap PITCH, then RELEASE in gold | Space twice |
-| Early throw to first | THROW TO 1ST when available | Space |
+| Throw / queue a throw | 1ST, 2ND, 3RD, HOME diamond | 1–4 (4 is home) |
+| Try an extra base | GO 2ND / GO 3RD / GO HOME | E / Space |
+| Hold at next reachable bag | HOLD | Q |
+| Return to last touched bag | RETURN | B |
+| Select another runner | Runner chips | R |
 | Next pitch / change sides | Result card button | Enter / Space |
 | Pause | Pause button | Escape |
 
@@ -32,24 +36,67 @@ and Expert change guidance only. These settings are intentionally independent.
 Simple shows a timing cue and strike zone; Moderate removes the timing cue;
 Expert minimizes explanatory overlays.
 
+## Pitchers and pitch balance
+
+Choose **Your pitcher** and **Opponent** before an exhibition. Batting practice
+uses the chosen opponent, so selecting the knuckleball specialist is the quickest
+way to face the new pitch. These are fictional gameplay profiles, not player
+ratings or measured professional pitching data.
+
+| Profile | Repertoire | Tradeoff |
+| --- | --- | --- |
+| Balanced | Four-seam, changeup, curveball, slider | Original familiar mix and dependable command |
+| Power | Four-seam, slider, cutter, splitter | Higher velocity with less forgiving command |
+| Movement | Sinker, changeup, curveball, cutter | More movement and changes of shape |
+| Knuckleball | Knuckleball, four-seam, changeup | Three pitches, an approximately 82 mph fastball, and imperfect knuckleball command |
+
+Knuckleball flutter is generated once from the seeded pitch state. Rendering
+does not invent movement or consume random values. Even a well-executed knuckler
+has some control uncertainty; poor releases make a flat, hanging pitch more
+likely. The hanging state is not announced before the batter must decide.
+Sinkers, cutters and splitters have different speeds, break directions and late
+movement, rather than being renamed copies of the original pitches.
+
+The original batting timing windows, aiming reach and contact/power calculations
+are retained. Recorded first-version contact fixtures protect that behavior.
+
+## Decisions while the ball is in play
+
+**Running:** the batter initially heads for first. Tap **GO 2ND** immediately
+after fair contact to try for a double; it can be queued before reaching first.
+The selected runner and destination are shown above the buttons. Another press
+adds the next base. **HOLD** stops at the next reachable bag, and **RETURN** goes
+back to the last touched bag when legal. Select a runner chip when several
+runners are aboard. Running past first is a risk: throws, tags and runner travel
+are resolved in the same simulation.
+
+**Defense:** fielders move to the ball automatically. Choose any of the four
+bases while they are gathering it. The choice queues a physical throw; selecting
+another base while the ball is already traveling queues the following throw.
+It never changes a ball's destination in midair. Simple guidance suggests a play
+without overriding the player's choice. Forces require the appropriate runner
+to be forced; other outs require a tag. A relay can produce another out when the
+timing allows it.
+
 ## Implemented baseball
 
 - Balls, strikes, swings and misses, takes, two-strike fouls, strikeouts and walks.
 - Forced walk advancement, hits, base occupancy, runs, outs, lineup rotation,
   half innings, skipped final home halves, walkoffs and extra innings.
-- Four-seam fastball, changeup, curveball and slider with different flight times
-  and breaking paths. Pitch-meter execution affects location and effectiveness.
+- Eight pitch types across four distinct repertoires. Pitch-meter execution
+  affects location and effectiveness, including knuckleball control and hang risk.
 - Contact and power swings, timing-dependent spray, spatial bat aim, grounders,
-  line drives, fly balls, physical catches, ground pickups, first-base throws,
+  line drives, fly balls, physical catches, ground pickups, throws to every base,
   wall rebounds, and fair home runs.
-- Animated fielders and runners, broadcast camera transitions, a physical park
+- Articulated player rigs, coordinated deliveries and throwing motions, runner
+  movement and slides, broadcast camera transitions, a physical park
   scoreboard, pitch/contact feedback, bat/glove/crowd sounds and organ accents.
 
-### Deliberate first-version limits
+### Current limits
 
-Field movement and baserunning are assisted. Defense resolves catches and forces
-at first; it does not yet implement choosing other throw bases, tag plays,
-double plays, steals, pickoffs, bunts, substitutions, pitcher fatigue, balks,
+Field movement remains assisted; baserunning destinations and throw choices are
+player decisions. It does not yet implement steals, pickoffs, bunts,
+substitutions, pitcher fatigue, balks,
 hit-by-pitch, dropped-third-strike advances, infield fly, or a complete appeal
 system. Runners hold on caught fly balls (no sacrifice/tag-up system). This is
 an arcade first pass, not a full professional rules simulator. The clubs use
@@ -74,6 +121,11 @@ analytic pitch timing avoid fast-ball tunneling. Fixed field textures, shared
 geometry, an instanced crowd, cached scoreboard textures, capped device pixel
 ratio and adaptive resolution keep GPU work bounded. The drawing buffer is only
 resized when dimensions or pixel ratio actually change.
+
+Player detail is grouped into joint meshes to keep draw calls bounded. The
+strike zone uses quieter thirds and clearer corner markers. A pitch-location
+mark appears only after the pitch resolves; it does not reveal the target or
+announce ball/strike while the ball is in flight.
 
 When hardware graphics are unavailable, the client replaces the drawing canvas
 and uses `fallback-renderer.mjs`: a perspective Canvas renderer of the same world
@@ -112,8 +164,10 @@ node --test games/pocket-baseball/tests/*.test.mjs
 
 The tests cover deterministic 30/60/120 Hz frame partitioning, snapshot replay,
 count rules, forced walks, two-strike fouls, inning endings, walkoffs, home runs,
-fence rebounds, swept collision, rolling friction, physical first-base arrival,
-and bounded swing input. A browser check is also needed for rendering, input,
+fence rebounds, swept collision, rolling friction, physical base arrival,
+repertoires, knuckleball replay, force/tag plays, runner decisions, throw relays,
+third-out scoring, and bounded swing input. The first-pass batting contract is
+also checked against recorded contact results. A browser check is needed for rendering, input,
 sound unlock and responsive layout; headless simulation tests do not measure
 real iPhone GPU performance or real network multiplayer behavior.
 

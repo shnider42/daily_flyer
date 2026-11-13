@@ -7,10 +7,10 @@
   <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
   <title>Pocket Baseball · DFE Sports</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=0.2.0">
 </head>
 <body>
-  <main id="app" class="is-menu">
+  <main id="app" class="is-menu" tabindex="-1">
     <canvas id="ballpark" aria-label="Three-dimensional baseball field"></canvas>
     <div class="vignette" aria-hidden="true"></div>
 
@@ -18,7 +18,7 @@
       <header class="home-masthead"><span class="dfe-mark">DFE <b>SPORTS</b></span><span class="venue-label">HARBOR FIELD</span></header>
       <div class="home-content">
         <p class="edition-line">NIGHT GAME <span>•</span> FIRST PITCH EDITION</p>
-        <h1 id="game-title">POCKET<br><span>BASEBALL</span></h1>
+        <h1 id="game-title" tabindex="-1">POCKET<br><span>BASEBALL</span></h1>
         <div class="matchup"><span class="club-mark harbor">H</span><span><b>BOSTON HARBOR</b><small>YOU · VISITORS</small></span><em>at</em><span class="club-mark foundry">F</span><span><b>BROOKLYN FOUNDRY</b><small>CPU · HOME</small></span></div>
         <p class="home-description">Read the pitch. Find your timing. Put one in the gap.</p>
         <form id="setup" class="setup" autocomplete="off">
@@ -27,11 +27,15 @@
             <label>DIFFICULTY<select id="difficulty"><option value="rookie">Rookie</option><option value="club">Club</option><option value="pro">Pro</option></select></label>
             <label>GUIDANCE<select id="guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label>
           </div>
+          <div class="pitcher-fields">
+            <label>YOUR PITCHER<select id="pitcher" aria-describedby="pitcher-note"></select><small id="pitcher-note"></small></label>
+            <label>OPPONENT PITCHER<select id="opponent-pitcher" aria-describedby="opponent-note"></select><small id="opponent-note"></small></label>
+          </div>
           <p id="setup-note" class="setup-note">Timing cue, strike zone, and a little help between pitches.</p>
           <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></span></button>
           <button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span><small>Find your swing</small></button>
         </form>
-        <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo vs CPU · Fielding &amp; running assisted</span></div>
+        <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo vs CPU · Assisted movement</span></div>
       </div>
       <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small>90 FT BETWEEN BASES.</small></div>
     </section>
@@ -58,11 +62,27 @@
 
       <div id="controls" class="controls">
         <div id="aim-control" class="aim-control"><span class="control-label" id="aim-label">BAT AIM</span><div id="aim-pad" class="aim-pad" role="application" aria-label="Aim control. Drag to aim, or use arrow keys."><span class="aim-cross horizontal"></span><span class="aim-cross vertical"></span><span class="aim-center"></span><span id="aim-stick" class="aim-stick"></span></div><small class="keyboard-hint">ARROWS / WASD</small></div>
-        <div id="pitch-selection" class="pitch-selection" hidden aria-label="Pitch selection"><button data-pitch="fastball" class="selected" aria-pressed="true">4-SEAM <small>1</small></button><button data-pitch="changeup" aria-pressed="false">CHANGE <small>2</small></button><button data-pitch="curveball" aria-pressed="false">CURVE <small>3</small></button><button data-pitch="slider" aria-pressed="false">SLIDER <small>4</small></button></div>
+        <div id="pitch-selection" class="pitch-selection" hidden aria-label="Available pitches"></div>
         <div id="pitch-meter" class="pitch-meter" hidden><div class="meter-track"><i class="meter-sweet"></i><i id="meter-marker"></i></div><span id="meter-label">TAP PITCH TO START</span></div>
         <div class="action-area"><button id="power-button" class="power-button"><b>POWER</b><small>SHIFT</small></button><button id="action-button" class="action-button"><b id="action-label">SWING</b><small id="action-hint">SPACE</small></button></div>
       </div>
-      <button id="throw-button" class="throw-button" hidden>THROW TO 1ST <small>SPACE</small></button>
+      <section id="field-controls" class="field-controls live-panel" hidden aria-label="Choose a throw">
+        <div class="live-panel-heading"><b>THROW TO</b><span id="throw-status">CHOOSE A BASE</span></div>
+        <div class="throw-diamond" aria-label="Throw destinations">
+          <button data-throw="2" aria-pressed="false"><b>2ND</b><small>2</small></button>
+          <button data-throw="3" aria-pressed="false"><b>3RD</b><small>3</small></button>
+          <button data-throw="1" aria-pressed="false"><b>1ST</b><small>1</small></button>
+          <button data-throw="4" aria-pressed="false"><b>HOME</b><small>4</small></button>
+        </div>
+        <p id="field-control-hint" class="live-control-hint">Tap a base to queue the throw.</p>
+      </section>
+      <section id="runner-controls" class="runner-controls live-panel" hidden aria-label="Base running decisions">
+        <div class="live-panel-heading"><b id="runner-name">BATTER</b><span id="runner-target">HEADING TO 1ST</span></div>
+        <div id="runner-picker" class="runner-picker" hidden aria-label="Select a runner"></div>
+        <button id="run-advance" class="run-advance"><b id="run-advance-label">GO 2ND</b><small>E / SPACE</small></button>
+        <div class="runner-secondary"><button id="run-hold"><b id="run-hold-label">HOLD AT 1ST</b><small>Q</small></button><button id="run-return"><b id="run-return-label">RETURN</b><small>B</small></button></div>
+        <p id="runner-control-hint" class="live-control-hint">Tap GO 2ND now to try for a double.</p>
+      </section>
 
       <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><button id="next-button">NEXT PITCH <span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
       <div id="event-toast" class="event-toast" role="status" hidden></div>
@@ -75,8 +95,19 @@
 
   <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label></div><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
 
-  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-content field-guide"><p class="dialog-eyebrow">THE FIELD GUIDE</p><h2 id="help-title" tabindex="-1" autofocus>ONE PITCH AT A TIME.</h2><div class="guide-section"><span>01</span><div><h3>AT THE PLATE</h3><p>Aim with the left pad or arrow keys. Tap <b>SWING</b> or press <b>Space</b> as the ball reaches the plate. <b>POWER</b> / <b>Shift</b> trades a smaller contact window for a harder hit. Let pitches outside the zone go.</p></div></div><div class="guide-section"><span>02</span><div><h3>ON THE MOUND</h3><p>Pick a pitch, aim, then tap <b>PITCH</b>. Tap again when the marker reaches the gold target. Better release timing means better location. Mix fastballs and breaking pitches.</p></div></div><div class="guide-section"><span>03</span><div><h3>IN PLAY</h3><p>Your fielders chase the ball and your runners advance automatically. On a ground ball, tap <b>THROW TO 1ST</b> to make an early throw, or let your fielder finish the play. Three outs changes sides.</p></div></div><div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds a pitch timing guide, strike zone, and contextual tips. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness.</p></div><p class="guide-footnote">You play Boston Harbor, the visiting team. Exhibition starts with you batting. Practice keeps you at the plate. Touch and keyboard both work; landscape gives you more field.</p><button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button></div></dialog>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-content field-guide">
+      <p class="dialog-eyebrow">THE FIELD GUIDE</p><h2 id="help-title" tabindex="-1" autofocus>ONE PITCH AT A TIME.</h2>
+      <div class="guide-section"><span>01</span><div><h3>AT THE PLATE</h3><p>Aim with the left pad or arrow keys. Tap <b>SWING</b> or press <b>Space</b> as the ball reaches the plate. <b>POWER</b> / <b>Shift</b> trades a smaller contact window for a harder hit. Let pitches outside the zone go.</p></div></div>
+      <div class="guide-section"><span>02</span><div><h3>ON THE MOUND</h3><p>Each pitcher has a different repertoire. Pick a pitch with its button or <b>1–4</b>, aim, then tap <b>PITCH</b>. Tap again in the gold target for a better release. The <b>knuckleballer</b> trades speed and command for flutter, and can leave a hittable pitch hanging. Choose the opponent pitcher on the home screen to face that repertoire in practice.</p></div></div>
+      <div class="guide-section"><span>03</span><div><h3>MAKE THE THROW</h3><p>Fielders chase the ball. You choose the play: tap <b>1ST, 2ND, 3RD, or HOME</b> to queue a throw before pickup, or throw from the fielder’s hand. Keyboard <b>1–4</b> matches the bases, with <b>4 = home</b>. Change your choice before release, or queue the next throw while the ball travels. A wrong base can let a runner escape.</p></div></div>
+      <div class="guide-section"><span>04</span><div><h3>STRETCH THE HIT</h3><p>The runner’s destination stays above the buttons. As soon as the batter heads to first, <b>GO 2ND</b> queues the attempt at a double—even before first is reached. Each press of <b>E / Space</b> sends the selected runner one base beyond the current destination. <b>HOLD / Q</b> stops at the next reachable bag; <b>RETURN / B</b> goes back to the last touched bag when legal. Forced runners must advance. Tap a runner’s name, or press <b>R</b>, to choose among runners.</p></div></div>
+      <div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds timing, aim, explanations and a suggested throw. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness. Field movement is assisted; your throw and running decisions affect the play. Steals and tag-ups are outside this version.</p></div>
+      <p class="guide-footnote">You play Boston Harbor, the visiting team. Exhibition starts with you batting. Practice keeps you at the plate and lets you work on stretching hits. Touch and keyboard both work; landscape gives you more field.</p>
+      <button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button>
+    </div>
+  </dialog>
 
-  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./app.mjs?v=0.2.0"></script>
 </body>
 </html>

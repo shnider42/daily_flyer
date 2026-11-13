@@ -1,6 +1,6 @@
 {
   "name": "dfe-pocket-baseball",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "DFE 3D baseball: a headless simulation and self-contained browser client",

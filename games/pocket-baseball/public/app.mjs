@@ -1,13 +1,13 @@
-import { BaseballGame, PITCHES, STEP } from './engine.mjs';
-import { BallparkRenderer } from './renderer.mjs';
-import { CompatibilityRenderer } from './fallback-renderer.mjs';
-import { BallparkAudio } from './audio.mjs';
+import { BaseballGame, PITCHES, PITCHERS, STEP } from './engine.mjs?v=0.2.0';
+import { BallparkRenderer } from './renderer.mjs?v=0.2.0';
+import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.2.0';
+import { BallparkAudio } from './audio.mjs?v=0.2.0';
 
 const $ = id => document.getElementById(id);
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
 const text = (element, value) => { const next = String(value); if (element.textContent !== next) element.textContent = next; };
 const visible = (element, show) => { if (element.hidden === show) element.hidden = !show; };
-const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, quality: 'auto' };
+const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, quality: 'auto', pitcher: 'balanced', opponentPitcher: 'balanced' };
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem('dfe.baseball.preferences.v1') || '{}') || {}; } catch { /* Private browsing can decline persistence. */ }
 const prefs = {
@@ -16,21 +16,26 @@ const prefs = {
   guidance: ['simple', 'moderate', 'expert'].includes(saved.guidance) ? saved.guidance : defaults.guidance,
   sound: typeof saved.sound === 'boolean' ? saved.sound : defaults.sound,
   quality: ['auto', 'low', 'high'].includes(saved.quality) ? saved.quality : defaults.quality,
+  pitcher: PITCHERS[saved.pitcher] ? saved.pitcher : defaults.pitcher,
+  opponentPitcher: PITCHERS[saved.opponentPitcher] ? saved.opponentPitcher : defaults.opponentPitcher,
 };
 function savePrefs() { try { localStorage.setItem('dfe.baseball.preferences.v1', JSON.stringify(prefs)); } catch {} }
 
 const refs = Object.fromEntries([
   'app','home-screen','game-ui','loading','error-panel','error-message','scorebug','practicebug','inning-label','away-score','home-score','away-bat','home-bat','count','outs',
   'practice-pitches','practice-hits','practice-hr','practice-best','role-banner','role-title','role-detail','pitch-readout','pitch-name','pitch-speed','timing-cue','timing-marker','timing-label',
-  'status-tip','status-label','status-detail','controls','aim-label','aim-pad','aim-stick','pitch-selection','pitch-meter','meter-marker','meter-label','power-button','action-button','action-label','action-hint','throw-button',
+  'status-tip','status-label','status-detail','controls','aim-label','aim-pad','aim-stick','pitch-selection','pitch-meter','meter-marker','meter-label','power-button','action-button','action-label','action-hint',
   'result-card','result-kicker','result-title','result-detail','contact-feedback','next-button','final-menu','line-score','event-toast','pause-dialog','pause-reason','help-dialog',
   'sound-button','pause-button','help-button','innings','difficulty','guidance','pause-guidance','quality','setup-note',
+  'pitcher','opponent-pitcher','pitcher-note','opponent-note','field-controls','throw-status','field-control-hint',
+  'runner-controls','runner-name','runner-target','runner-picker','run-advance','run-advance-label','run-hold','run-hold-label','run-return','run-return-label','runner-control-hint',
 ].map(id => [id, $(id)]));
 const audio = new BallparkAudio(prefs.sound);
 let renderer, rendererKind = 'webgl', game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
 let screen = 'menu', paused = false, helpOrigin = null, lastFrame = performance.now();
 let aim = { x: 0, y: 0 }, aimPointer = null, pitchType = 'fastball', meter = { active: false, startedAt: 0, value: 0 };
 let lastPhase = null, lastBattingSide = null, toastUntil = 0, frameError = false;
+let selectedRunnerId = null, selectedThrowBase = null, lastRepertoire = '', runnerPickerSignature = '';
 const pressed = new Set();
 let touchMode = matchMedia('(pointer: coarse)').matches;
 refs.app.classList.toggle('touch-mode', touchMode);
@@ -42,6 +47,28 @@ const guidanceDescriptions = {
 
 for (const id of ['innings','difficulty','guidance','quality']) refs[id].value = String(prefs[id]);
 refs['pause-guidance'].value = prefs.guidance;
+for (const id of ['pitcher','opponent-pitcher']) {
+  for (const pitcher of Object.values(PITCHERS)) {
+    const option=document.createElement('option'); option.value=pitcher.id; option.textContent=pitcher.label||pitcher.name;
+    refs[id].append(option);
+  }
+}
+refs.pitcher.value=prefs.pitcher;refs['opponent-pitcher'].value=prefs.opponentPitcher;
+const pitcherNotes={
+  balanced:'Four pitches. Reliable location, even mix.',
+  power:'97 mph fastball; less forgiving command.',
+  movement:'Sinker, curve and change. Vary shape and speed.',
+  knuckle:'3 pitches. Slow flutter; shakier command and hang risk.',
+};
+function updatePitcherNotes() {
+  for(const [id,key,note] of [['pitcher','pitcher','pitcher-note'],['opponent-pitcher','opponentPitcher','opponent-note']]) {
+    const profile=PITCHERS[refs[id].value]||PITCHERS.balanced;
+    prefs[key]=profile.id;text(refs[note],pitcherNotes[profile.id]||profile.description||'');
+    refs[id].title=profile.description||profile.name;
+  }
+  savePrefs();
+}
+updatePitcherNotes();
 function applyGuidance(value) {
   prefs.guidance = ['simple','moderate','expert'].includes(value) ? value : 'simple';
   refs.guidance.value = prefs.guidance; refs['pause-guidance'].value = prefs.guidance;
@@ -70,10 +97,12 @@ function showToast(message, seconds = 2) { text(refs['event-toast'], message); t
 function startGame(mode = 'exhibition') {
   const seed = (Date.now() ^ Math.floor(performance.now()*1000)) >>> 0;
   prefs.innings = +refs.innings.value; prefs.difficulty = refs.difficulty.value; prefs.guidance = refs.guidance.value;
+  prefs.pitcher=refs.pitcher.value;prefs.opponentPitcher=refs['opponent-pitcher'].value;
   savePrefs();
-  game = new BaseballGame({ seed, innings: prefs.innings, difficulty: prefs.difficulty, guidance: prefs.guidance, mode });
+  game = new BaseballGame({ seed, innings: prefs.innings, difficulty: prefs.difficulty, guidance: prefs.guidance, pitcher:prefs.pitcher, opponentPitcher:prefs.opponentPitcher, mode });
   aim = { x: 0, y: 0 }; meter.active = false; pitchType = 'fastball';
   screen = 'game'; paused = false; lastPhase = null; lastBattingSide = null; toastUntil = 0;
+  selectedRunnerId=null;selectedThrowBase=null;lastRepertoire='';runnerPickerSignature='';
   resetInput(); resetFrameClock();
   refs.app.classList.remove('is-menu');
   visible(refs['home-screen'], false); visible(refs['game-ui'], true); visible(refs['event-toast'], false);
@@ -81,8 +110,7 @@ function startGame(mode = 'exhibition') {
   if (refs['help-dialog'].open) refs['help-dialog'].close();
   applyGuidance(prefs.guidance); updatePitchButtons(); updateHUD();
   audio.unlock().then(() => audio.organ());
-  refs['pause-button'].focus({ preventScroll: true });
-  refs['pause-button'].blur();
+  refs.app.focus({ preventScroll: true });
 }
 function returnHome() {
   screen = 'menu'; paused = false; helpOrigin = null; meter.active = false;
@@ -90,9 +118,10 @@ function returnHome() {
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
   if (refs['help-dialog'].open) refs['help-dialog'].close();
   visible(refs['home-screen'], true); visible(refs['game-ui'], false);
-  refs.app.classList.add('is-menu'); refs.app.classList.remove('is-pitching');
+  refs.app.classList.add('is-menu'); refs.app.classList.remove('is-pitching','is-live');
   game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
-  $('start-exhibition').focus({ preventScroll: true });
+  $('game-title').focus({ preventScroll: true });
+  refs['home-screen'].scrollTop=0;
 }
 function pauseGame(reason = 'Take your time. The next pitch can wait.', showDialog = true) {
   if (screen !== 'game') return;
@@ -104,6 +133,7 @@ function resumeGame() {
   if (screen !== 'game') return;
   paused = false; resetInput(); resetFrameClock();
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
+  refs.app.focus({ preventScroll: true });
   audio.unlock();
 }
 function openHelp(origin = 'game') {
@@ -128,6 +158,8 @@ $('setup').addEventListener('submit', event => { event.preventDefault(); startGa
 $('start-practice').addEventListener('click', () => startGame('practice'));
 refs.innings.addEventListener('change', () => { prefs.innings=+refs.innings.value;savePrefs(); });
 refs.difficulty.addEventListener('change', () => { prefs.difficulty=refs.difficulty.value;savePrefs(); });
+refs.pitcher.addEventListener('change',updatePitcherNotes);
+refs['opponent-pitcher'].addEventListener('change',updatePitcherNotes);
 refs.guidance.addEventListener('change', () => applyGuidance(refs.guidance.value));
 refs['pause-guidance'].addEventListener('change', () => applyGuidance(refs['pause-guidance'].value));
 refs.quality.addEventListener('change', () => { prefs.quality=refs.quality.value;renderer?.setQuality(prefs.quality);savePrefs(); });
@@ -151,18 +183,124 @@ $('fullscreen-button').addEventListener('click', async () => {
 document.addEventListener('fullscreenchange', () => {text($('fullscreen-button'),document.fullscreenElement?'Leave full screen':'Full screen');renderer?.resize();});
 
 function updatePitchButtons() {
+  const keys=game.availablePitches||game.activePitcher?.pitches||PITCHERS.balanced.pitches;
+  const signature=keys.join('|');
+  if(signature!==lastRepertoire){
+    lastRepertoire=signature;
+    pitchType=keys[0];
+    refs['pitch-selection'].replaceChildren();
+    for(const [index,key] of keys.entries()){
+      const button=document.createElement('button');button.type='button';button.dataset.pitch=key;
+      const label=document.createElement('span');label.textContent=({fastball:'4-SEAM',changeup:'CHANGE',curveball:'CURVE',slider:'SLIDER',sinker:'SINKER',cutter:'CUTTER',splitter:'SPLITTER',knuckleball:'KNUCKLE'})[key]||PITCHES[key].label.toUpperCase();
+      const hotkey=document.createElement('small');hotkey.textContent=String(index+1);button.append(label,hotkey);
+      button.setAttribute('aria-label',`${PITCHES[key].label}, key ${index+1}`);
+      refs['pitch-selection'].append(button);
+    }
+  }
+  if(!keys.includes(pitchType))pitchType=keys[0];
   for (const button of refs['pitch-selection'].querySelectorAll('button')) {
     const selected = button.dataset.pitch === pitchType;
     button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected));
   }
 }
-for (const button of refs['pitch-selection'].querySelectorAll('button')) {
-  const choose = event => {
-    if (screen !== 'game' || paused || game.state.phase !== 'ready' || game.isBatting) return;
-    event.preventDefault(); pitchType = button.dataset.pitch; updatePitchButtons(); audio.unlock();
-  };
-  button.addEventListener('pointerdown', choose);
-  button.addEventListener('click', event => { if (event.detail === 0) choose(event); });
+function choosePitch(event) {
+  const button=event.target.closest('button[data-pitch]');
+  if(!button||screen!=='game'||paused||game.state.phase!=='ready'||game.isBatting)return;
+  event.preventDefault();pitchType=button.dataset.pitch;updatePitchButtons();audio.unlock();
+}
+refs['pitch-selection'].addEventListener('pointerdown',choosePitch);
+refs['pitch-selection'].addEventListener('click',event=>{if(event.detail===0)choosePitch(event);});
+
+const baseName=base=>({0:'HOME',1:'1ST',2:'2ND',3:'3RD',4:'HOME'})[base]||'BASE';
+function liveRunners(){return(game.state.runners||[]).filter(r=>!r.out&&!r.scored&&(r.pathPosition??r.base??0)<4);}
+function selectedRunner(){
+  const runners=liveRunners();
+  let runner=runners.find(r=>String(r.id)===String(selectedRunnerId));
+  if(!runner){runner=runners.find(r=>r.id===game.state.play?.batter?.id)||runners.find(r=>(r.fromBase??r.base)===0)||runners[0];selectedRunnerId=runner?.id??null;}
+  return runner;
+}
+function runnerName(r){return r.id===game.state.play?.batter?.id||(r.fromBase??r.base)===0?'BATTER':`RUNNER ${r.number||r.id}`;}
+function runnerHoldBase(r){
+  const position=r.pathPosition??r.base??0;
+  const bag=(r.targetBase??position)<position?Math.floor(position+1e-8):Math.ceil(position-1e-8);
+  return clamp(Math.max(Number(r.forcedBase)||0,bag),1,4);
+}
+function controlRunner(action){
+  if(screen!=='game'||paused||game.state.phase!=='live'||game.state.play?.fair===false||!game.isBatting)return;
+  const runner=selectedRunner();if(!runner)return;
+  audio.unlock();
+  if(!game.command({type:'run',runnerId:runner.id,action}))showToast(game.lastRejection||'That runner cannot make this move.',1.6);
+  updateLiveControls();
+}
+function cycleRunner(){
+  if(screen!=='game'||paused||game.state.phase!=='live'||game.state.play?.fair===false||!game.isBatting)return;
+  const runners=liveRunners();if(!runners.length)return;
+  const index=runners.findIndex(r=>String(r.id)===String(selectedRunnerId));
+  selectedRunnerId=runners[(index+1)%runners.length].id;updateLiveControls();
+}
+function throwToBase(base){
+  if(screen!=='game'||paused||game.state.phase!=='live'||game.state.play?.fair===false||game.isBatting)return;
+  audio.unlock();
+  if(game.command({type:'throw',base})){selectedThrowBase=base;updateLiveControls();}
+  else showToast(game.lastRejection||'Wait for the fielder to get the ball.',1.6);
+}
+function bindPress(element,handler){
+  element.addEventListener('pointerdown',event=>{event.preventDefault();handler(event);});
+  element.addEventListener('click',event=>{if(event.detail===0)handler(event);});
+}
+for(const button of refs['field-controls'].querySelectorAll('[data-throw]'))bindPress(button,()=>throwToBase(+button.dataset.throw));
+bindPress(refs['run-advance'],()=>controlRunner('advance'));
+bindPress(refs['run-hold'],()=>controlRunner('hold'));
+bindPress(refs['run-return'],()=>controlRunner('retreat'));
+function pickRunner(event){
+  const button=event.target.closest('button[data-runner-id]');if(!button||paused)return;
+  event.preventDefault();selectedRunnerId=liveRunners().find(r=>String(r.id)===button.dataset.runnerId)?.id??null;updateLiveControls();
+}
+refs['runner-picker'].addEventListener('pointerdown',pickRunner);
+refs['runner-picker'].addEventListener('click',event=>{if(event.detail===0)pickRunner(event);});
+
+function updateLiveControls(){
+  const s=game.state,live=screen==='game'&&s.phase==='live'&&s.play?.fair!==false,batting=game.isBatting;
+  visible(refs['field-controls'],live&&!batting);
+  const runners=live?liveRunners():[],runner=live?selectedRunner():null;
+  visible(refs['runner-controls'],live&&batting&&!!runner);
+  if(!live)return;
+  if(!batting){
+    const p=s.play||{},queued=p.queuedBase??null,thrown=p.stage==='throw'?p.throwBase:null,preparing=p.stage==='held'&&p.transferUntil?p.throwBase:null;
+    text(refs['throw-status'],preparing?`PREPARING: ${baseName(preparing)}`:thrown?`TO ${baseName(thrown)}${queued?` · NEXT: ${baseName(queued)}`:''}`:queued?`QUEUED: ${baseName(queued)}`:p.stage==='held'?'BALL IN HAND':'CHOOSE A BASE');
+    for(const button of refs['field-controls'].querySelectorAll('[data-throw]')){
+      const base=+button.dataset.throw,selected=base===(queued??preparing??thrown??selectedThrowBase);
+      button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+      button.classList.toggle('recommended',prefs.guidance==='simple'&&base===p.recommendedBase&&!selected);
+      button.classList.toggle('in-flight',base===thrown);
+    }
+    text(refs['field-control-hint'],preparing?`Preparing ${baseName(preparing)}. Tap another base to change it.`:p.stage==='throw'?(queued?`Next throw queued to ${baseName(queued)}.`:'Choose the next throw while the ball travels.'):queued?'Your choice is queued. Tap another base to change it.':prefs.guidance==='simple'?'Tap a base now. Gold outline suggests a play.':'Tap a base to queue the throw.');
+    return;
+  }
+  if(!runner)return;
+  const target=clamp(Number(runner.targetBase)||Math.max(1,Number(runner.base)||0),1,4);
+  const next=clamp(target+1,1,4),hold=runnerHoldBase(runner);
+  text(refs['runner-name'],runnerName(runner));
+  const atDestination=runner.safe&&Math.abs((runner.pathPosition??runner.base??0)-target)<.001;
+  const returning=target<(runner.pathPosition??runner.base??0)-.001;
+  text(refs['runner-target'],`${atDestination?'AT':returning?'RETURNING TO':'HEADING TO'} ${baseName(atDestination?runner.base:target)}`);
+  text(refs['run-advance-label'],target<4?`GO ${baseName(next)}`:'HEADING HOME');
+  refs['run-advance'].disabled=target>=4;
+  text(refs['run-hold-label'],`HOLD AT ${baseName(hold)}`);
+  refs['run-return'].disabled=(runner.base??0)<1||atDestination;
+  text(refs['run-return-label'],(runner.base??0)>=1?`RETURN ${baseName(runner.base)}`:'RETURN');
+  const ids=runners.map(r=>r.id).join('|');
+  if(ids!==runnerPickerSignature){
+    runnerPickerSignature=ids;refs['runner-picker'].replaceChildren();
+    for(const r of runners){const button=document.createElement('button');button.type='button';button.dataset.runnerId=String(r.id);refs['runner-picker'].append(button);}
+  }
+  visible(refs['runner-picker'],runners.length>1);
+  for(const button of refs['runner-picker'].querySelectorAll('button')){
+    const r=runners.find(r=>String(r.id)===button.dataset.runnerId);if(!r)continue;
+    text(button,`${runnerName(r)} · ${baseName(r.targetBase||r.base||1)}`);
+    const selected=String(r.id)===String(selectedRunnerId);button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  }
+  text(refs['runner-control-hint'],prefs.guidance==='simple'?(target===1?'Tap GO 2ND now to try for a double.':target<4?`Destination: ${baseName(target)}. HOLD stops at the next bag.`:'Running home. HOLD can stop at the next bag.'):(runners.length>1?'Tap a runner to select. R cycles runners.':'Your next base is shown above.'));
 }
 
 function eventSimulationTime(event) {
@@ -179,7 +317,13 @@ function triggerAction(event, power = false) {
   const s=game.state;
   if(s.phase==='result'||s.phase==='half'){nextPlay();return;}
   if(s.phase==='final'){startGame(game.options.mode);return;}
-  if(s.phase==='live'&&!game.isBatting&&s.play?.stage==='held'){game.command({type:'throw',base:1});return;}
+  if(s.phase==='live'){
+    if(s.play?.fair===false)return;
+    if(game.isBatting)controlRunner('advance');
+    else if(selectedThrowBase!==null)throwToBase(selectedThrowBase);
+    else showToast('Choose 1ST, 2ND, 3RD, or HOME. Keys 1–4.',1.8);
+    return;
+  }
   if(game.isBatting){
     if(['windup','pitch'].includes(s.phase)&&!s.swing){
       const accepted=game.command({type:'swing',power,aim:{...aim},time:eventSimulationTime(event)});
@@ -207,11 +351,9 @@ function nextPlay() {
 refs['next-button'].addEventListener('click', nextPlay);
 refs['action-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,false);});
 refs['power-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,true);});
-refs['throw-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,false);});
 // Native keyboard/assistive clicks have no pointerdown. Pointer clicks are already handled.
 refs['action-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,false);});
 refs['power-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,true);});
-refs['throw-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,false);});
 
 function setAimFromPointer(event) {
   const rect=refs['aim-pad'].getBoundingClientRect();
@@ -242,16 +384,23 @@ window.addEventListener('keydown', event => {
   if(screen!=='game'||paused||refs['help-dialog'].open)return;
   // Let a focused button retain its normal Enter/Space activation semantics.
   if(['Space','Enter'].includes(event.code)&&event.target instanceof Element&&event.target.closest('button'))return;
-  const codes=['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Enter','Digit1','Digit2','Digit3','Digit4'];
+  const codes=['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Enter','Digit1','Digit2','Digit3','Digit4','KeyE','KeyQ','KeyR','KeyB'];
   if(!codes.includes(event.code))return;
   event.preventDefault();
   if(event.repeat)return;
   pressed.add(event.code);
   if(event.code==='Space')triggerAction(event,pressed.has('ShiftLeft')||pressed.has('ShiftRight'));
-  else if(event.code==='ShiftLeft'||event.code==='ShiftRight'){if(game.isBatting)triggerAction(event,true);}
+  else if(event.code==='ShiftLeft'||event.code==='ShiftRight'){if(game.isBatting&&['windup','pitch'].includes(game.state.phase))triggerAction(event,true);}
   else if(event.code==='Enter'&&['result','half','final'].includes(game.state.phase))nextPlay();
+  else if(game.state.phase==='live'&&game.isBatting){
+    if(event.code==='KeyE')controlRunner('advance');
+    else if(event.code==='KeyQ')controlRunner('hold');
+    else if(event.code==='KeyB')controlRunner('retreat');
+    else if(event.code==='KeyR')cycleRunner();
+  }
+  else if(event.code.startsWith('Digit')&&!game.isBatting&&game.state.phase==='live')throwToBase(+event.code.slice(-1));
   else if(event.code.startsWith('Digit')&&!game.isBatting&&game.state.phase==='ready'){
-    pitchType=['fastball','changeup','curveball','slider'][+event.code.slice(-1)-1];updatePitchButtons();
+    const key=(game.availablePitches||[])[+event.code.slice(-1)-1];if(key){pitchType=key;updatePitchButtons();}
   }
 });
 window.addEventListener('keyup',event=>pressed.delete(event.code));
@@ -275,11 +424,13 @@ function updateHUD() {
   const phaseChanged=lastPhase!==phase,sideChanged=lastBattingSide!==s.battingSide;
   if(phaseChanged){
     lastPhase=phase;refs['action-button'].classList.remove('pressed');
-    if(phase==='ready'){meter.active=false;visible(refs['event-toast'],false);toastUntil=0;}
-    if(phase==='live')meter.active=false;
+    if(phase==='ready'){meter.active=false;selectedRunnerId=null;selectedThrowBase=null;visible(refs['event-toast'],false);toastUntil=0;}
+    if(phase==='live'){meter.active=false;selectedRunnerId=null;selectedThrowBase=null;runnerPickerSignature='';}
   }
   if(sideChanged){lastBattingSide=s.battingSide;aim={x:0,y:0};meter.active=false;drawAimStick();}
+  if(sideChanged||phaseChanged&&phase==='ready')updatePitchButtons();
   refs.app.classList.toggle('is-pitching',!batting);
+  refs.app.classList.toggle('is-live',phase==='live');
   visible(refs.scorebug,!practice);visible(refs.practicebug,practice);
   text(refs['inning-label'],`${s.half==='top'?'TOP':'BOT'} ${s.inning}`);
   text(refs['away-score'],s.score[0]);text(refs['home-score'],s.score[1]);text(refs.count,`${s.balls}–${s.strikes}`);
@@ -290,8 +441,9 @@ function updateHUD() {
   for(const base of document.querySelectorAll('.base-diamond i')){const i=+base.dataset.base-1;const on=!!s.bases[i];base.classList.toggle('occupied',on);if(on)occupied.push(i+1);}
   document.querySelector('.base-diamond').setAttribute('aria-label',occupied.length?`Runners on base ${occupied.join(' and ')}`:'Bases empty');
   text(refs['practice-pitches'],`${s.practice.swings} SWING${s.practice.swings===1?'':'S'}`);text(refs['practice-hits'],s.practice.hits);text(refs['practice-hr'],s.practice.homeRuns);text(refs['practice-best'],Math.round(s.practice.bestDistance*3.28084));
-  text(refs['role-title'],practice?'BATTING PRACTICE':batting?'YOU’RE AT BAT':'YOU’RE PITCHING');
-  text(refs['role-detail'],batting?`Boston Harbor · Batter ${(s.batterIndex[0]%9)+1}`:`Facing Brooklyn · Batter ${(s.batterIndex[1]%9)+1}`);
+  text(refs['role-title'],phase==='live'?(s.play?.fair===false?'FOUL BALL':batting?'RUN THE BASES':'YOU’RE FIELDING'):practice?'BATTING PRACTICE':batting?'YOU’RE AT BAT':'YOU’RE PITCHING');
+  const pitcher=game.activePitcher||PITCHERS.balanced;
+  text(refs['role-detail'],batting?`Batter ${(s.batterIndex[0]%9)+1} · Facing ${pitcher.label||pitcher.name}`:`${pitcher.label||pitcher.name} · Brooklyn batter ${(s.batterIndex[1]%9)+1}`);
   visible(refs['role-banner'],!['result','half','final'].includes(phase));
   const pitchRead=!!s.pitch&&['live','result'].includes(phase);
   visible(refs['pitch-readout'],pitchRead);
@@ -316,7 +468,7 @@ function updateHUD() {
   const showTiming=batting&&prefs.guidance==='simple'&&phase==='pitch'&&!s.swing;
   visible(refs['timing-cue'],showTiming);
   if(showTiming){const progress=clamp(s.pitch.elapsed/s.pitch.duration,0,1);refs['timing-marker'].style.left=`${progress*100}%`;text(refs['timing-label'],progress>.96?'SWING':'WATCH IT IN');}
-  visible(refs['throw-button'],!batting&&phase==='live'&&s.play?.stage==='held');
+  updateLiveControls();
   visible(refs['status-tip'],!['result','half','final'].includes(phase));
   if(phase==='ready'){
     if(batting)setTips('WATCH THE PITCHER','Aim with your left thumb. Swing as the ball reaches the plate.');
@@ -325,7 +477,13 @@ function updateHUD() {
   else if(phase==='pitch'){
     if(batting)setTips(s.swing?'SWING COMMITTED':'READ IT IN',s.swing?'Watch the contact.':'Timing and location both matter. You can let a ball go.');
     else setTips('PITCH ON THE WAY','Your fielders handle the ball once it is in play.');
-  }else if(phase==='live')setTips(s.play?.stage==='throw'?'THROW TO FIRST':s.play?.stage==='held'?'BALL FIELDED':'BALL IN PLAY',batting?'Running is assisted. Follow the play.':s.play?.stage==='held'?'Tap THROW TO 1ST for an early release.':'Fielders pursue the ball. Get ready for the throw.');
+  }else if(phase==='live'){
+    if(s.play?.fair===false)setTips('FOUL BALL','Runners return. Watch the call.');
+    else if(batting){
+      const runner=selectedRunner(),target=runner?.targetBase||1;
+      setTips(target===1?'STRETCH THE HIT':`DESTINATION: ${baseName(target)}`,target===1?'Tap GO 2ND while heading to first to risk a double.':'HOLD stops at the next reachable bag. RETURN goes back when legal.');
+    }else setTips(s.play?.stage==='throw'?'THROW IN FLIGHT':s.play?.stage==='held'?'BALL IN HAND':'CHOOSE YOUR PLAY',s.play?.stage==='throw'?'You can queue another base for the next throw.':'Tap a base now to queue the throw. Your fielder will collect the ball.');
+  }
 
   const showResult=['result','half','final'].includes(phase);
   visible(refs['result-card'],showResult);
@@ -359,6 +517,11 @@ function processEvents() {
     audio.event(event);
     if(event.type==='run')showToast(event.side===0?'HARBOR SCORES':'FOUNDRY SCORES',1.8);
     if(event.type==='contact'&&event.quality>.9)showToast('ON THE BARREL',1.1);
+    if(event.type==='out'&&event.base)showToast(`OUT AT ${baseName(event.base)}`,1.5);
+    if(event.type==='safe'&&game.isBatting&&event.runnerId===selectedRunnerId){
+      const runner=game.state.runners.find(r=>r.id===event.runnerId);
+      showToast(`${runner?.targetBase>event.base?'ROUNDING':'SAFE AT'} ${baseName(event.base)}`,1.1);
+    }
   }
 }
 function fail(error) {
@@ -402,13 +565,13 @@ function frame(now){
       }
       game.update(dt);processEvents();updateHUD();
     }
-    renderer.render(game.state,dt,{menu:screen==='menu',paused,guidance:prefs.guidance,aim:{...aim},quality:prefs.quality,interpolationAlpha:game.interpolationAlpha,batting:game.isBatting});
+    renderer.render(game.state,dt,{menu:screen==='menu',paused,guidance:prefs.guidance,aim:{...aim},quality:prefs.quality,interpolationAlpha:game.interpolationAlpha,batting:game.isBatting,selectedRunnerId});
   }catch(error){fail(error);}
 }
 requestAnimationFrame(frame);
 
 // Explicit local inspection hook; it is absent in an ordinary player session.
 if(new URLSearchParams(location.search).has('debug'))window.__baseball={
-  get game(){return game;},get renderer(){return renderer;},get rendererKind(){return rendererKind;},get paused(){return paused;},get screen(){return screen;},get aim(){return {...aim};},
-  startGame,pauseGame,resumeGame,returnHome,updateHUD,triggerAction,
+  get game(){return game;},get renderer(){return renderer;},get rendererKind(){return rendererKind;},get paused(){return paused;},get screen(){return screen;},get aim(){return {...aim};},get selectedRunnerId(){return selectedRunnerId;},
+  startGame,pauseGame,resumeGame,returnHome,updateHUD,triggerAction,controlRunner,throwToBase,
 };
