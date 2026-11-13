@@ -28,7 +28,7 @@
             <label>GUIDANCE<select id="guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label>
           </div>
           <p id="setup-note" class="setup-note">Timing cue, strike zone, and a little help between pitches.</p>
-          <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true">↗</span></button>
+          <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></span></button>
           <button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span><small>Find your swing</small></button>
         </form>
         <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo vs CPU · Fielding &amp; running assisted</span></div>
@@ -64,7 +64,7 @@
       </div>
       <button id="throw-button" class="throw-button" hidden>THROW TO 1ST <small>SPACE</small></button>
 
-      <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><button id="next-button">NEXT PITCH <span aria-hidden="true">→</span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
+      <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><button id="next-button">NEXT PITCH <span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
       <div id="event-toast" class="event-toast" role="status" hidden></div>
     </section>
 
