@@ -1,5 +1,6 @@
 import { BaseballGame, PITCHES, STEP } from './engine.mjs';
 import { BallparkRenderer } from './renderer.mjs';
+import { CompatibilityRenderer } from './fallback-renderer.mjs';
 import { BallparkAudio } from './audio.mjs';
 
 const $ = id => document.getElementById(id);
@@ -26,7 +27,7 @@ const refs = Object.fromEntries([
   'sound-button','pause-button','help-button','innings','difficulty','guidance','pause-guidance','quality','setup-note',
 ].map(id => [id, $(id)]));
 const audio = new BallparkAudio(prefs.sound);
-let renderer, game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
+let renderer, rendererKind = 'webgl', game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
 let screen = 'menu', paused = false, helpOrigin = null, lastFrame = performance.now();
 let aim = { x: 0, y: 0 }, aimPointer = null, pitchType = 'fastball', meter = { active: false, startedAt: 0, value: 0 };
 let lastPhase = null, lastBattingSide = null, toastUntil = 0, frameError = false;
@@ -363,8 +364,24 @@ function fail(error) {
   console.error('Pocket Baseball:',error);
 }
 
+function createCompatibilityRenderer() {
+  // A canvas that attempted WebGL cannot reliably be reused for a 2D context.
+  const oldCanvas=$('ballpark'),canvas=oldCanvas.cloneNode(false);
+  oldCanvas.replaceWith(canvas);
+  rendererKind='compatibility';
+  visible($('renderer-note'),true);
+  return new CompatibilityRenderer(canvas);
+}
 try {
-  renderer=new BallparkRenderer($('ballpark'),{onContextLost:()=>pauseGame('Graphics paused. Wait a moment, then resume the game.')});
+  if(new URLSearchParams(location.search).get('software')==='1')renderer=createCompatibilityRenderer();
+  else {
+    try {
+      renderer=new BallparkRenderer($('ballpark'),{onContextLost:()=>pauseGame('Graphics paused. Wait a moment, then resume the game.')});
+    } catch {
+      console.info('Pocket Baseball: WebGL unavailable; using the compatibility renderer.');
+      renderer=createCompatibilityRenderer();
+    }
+  }
   renderer.setQuality(prefs.quality);renderer.resize();
   visible(refs.loading,false);
 }catch(error){fail(error);}
@@ -389,6 +406,6 @@ requestAnimationFrame(frame);
 
 // Explicit local inspection hook; it is absent in an ordinary player session.
 if(new URLSearchParams(location.search).has('debug'))window.__baseball={
-  get game(){return game;},get renderer(){return renderer;},get paused(){return paused;},get screen(){return screen;},get aim(){return {...aim};},
+  get game(){return game;},get renderer(){return renderer;},get rendererKind(){return rendererKind;},get paused(){return paused;},get screen(){return screen;},get aim(){return {...aim};},
   startGame,pauseGame,resumeGame,returnHome,updateHUD,triggerAction,
 };

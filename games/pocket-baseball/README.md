@@ -75,6 +75,12 @@ geometry, an instanced crowd, cached scoreboard textures, capped device pixel
 ratio and adaptive resolution keep GPU work bounded. The drawing buffer is only
 resized when dimensions or pixel ratio actually change.
 
+When hardware graphics are unavailable, the client replaces the drawing canvas
+and uses `fallback-renderer.mjs`: a perspective Canvas renderer of the same world
+coordinates. It keeps the game playable with simpler geometry and shading.
+`?software=1` selects this path explicitly. The condensed display font is a local
+Latin subset of Open Sans Condensed Bold; its Apache 2.0 license is included.
+
 Phone input follows the corrected DFE touch behavior: distinct pointer ownership
 for aiming/actions, swing registration on pointerdown, independent cancellation,
 safe-area layout, and no pause from ordinary foreground Safari focus churn.

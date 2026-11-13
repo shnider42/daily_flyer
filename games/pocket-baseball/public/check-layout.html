@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pocket Baseball · Developer Layout Preview</title>
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#ece8dc;background:#0d1d19;color-scheme:dark}
+    body{margin:0;padding:20px;min-width:460px}
+    header{max-width:960px;margin:0 auto 20px}
+    h1{font-size:20px;margin:0 0 9px}
+    p{font-size:12px;line-height:1.5;color:#b6c1b0;margin:0 0 13px}
+    nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    button,a,label{font-size:12px}
+    button{padding:10px 13px;min-height:40px;border:1px solid #728675;color:#eee8d8;background:#173d30;cursor:pointer}
+    button[aria-pressed="true"]{background:#eee8d8;color:#162b21;border-color:#eee8d8}
+    a{color:#d8b66f;margin-left:auto}
+    label{display:flex;gap:6px;align-items:center;margin-left:8px}
+    .device{width:430px;margin:auto;border:2px solid #526d5a;box-shadow:0 8px 35px #0006;background:#142c24}
+    iframe{display:block;width:430px;height:932px;border:0}
+    .dimensions{text-align:center;font:11px monospace;color:#b6c1b0;padding:8px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Developer layout preview</h1>
+    <p>Real iframe viewports for checking the game’s responsive layout. This does not emulate touch hardware, device performance, or Safari.</p>
+    <nav aria-label="Viewport sizes">
+      <button id="portrait" aria-pressed="true">Portrait · 430 × 932</button>
+      <button id="landscape" aria-pressed="false">Landscape · 932 × 430</button>
+      <label><input id="software" type="checkbox" checked>Compatibility picture</label>
+      <a href="./" target="_blank" rel="noopener">Open full game</a>
+    </nav>
+  </header>
+  <div class="device" id="device"><iframe id="preview" title="Pocket Baseball responsive layout preview" src="./?software=1&amp;debug=1" allow="autoplay; fullscreen"></iframe></div>
+  <p id="dimensions" class="dimensions">430 × 932 CSS pixels</p>
+  <script>
+    const frame=document.getElementById('preview'),device=document.getElementById('device');
+    for(const mode of ['portrait','landscape'])document.getElementById(mode).addEventListener('click',()=>{
+      const portrait=mode==='portrait',width=portrait?430:932,height=portrait?932:430;
+      device.style.width=width+'px';frame.style.width=width+'px';frame.style.height=height+'px';
+      document.getElementById('dimensions').textContent=width+' × '+height+' CSS pixels';
+      document.getElementById('portrait').setAttribute('aria-pressed',String(portrait));
+      document.getElementById('landscape').setAttribute('aria-pressed',String(!portrait));
+    });
+    document.getElementById('software').addEventListener('change',event=>{frame.src='./?debug=1'+(event.target.checked?'&software=1':'');});
+  </script>
+</body>
+</html>
