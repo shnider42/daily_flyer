@@ -1,0 +1,50 @@
+ function account(){
+  const reviewButton=document.querySelector('[data-sg-view="review"]');reviewButton.hidden=!profile||!['moderator','reviewer'].includes(profile.role);
+  if(!client){el('sgAccount').replaceChildren();return;}
+  if(validReadOnlyConfig(configuration)){el('sgAccount').innerHTML='<p class="sg-muted">Read-only setup connection. Invitation sign-in is not enabled yet.</p>';return;}
+  if(profile){el('sgAccount').innerHTML=`<p>Signed in as an invited ${escape(profile.role)}${accountEmail?' · '+escape(accountEmail):''}. <button class="sg-button secondary" id="sgSignOut">Sign out</button></p>`;el('sgSignOut').onclick=signOut;return;}
+  el('sgAccount').innerHTML=`<details id="sgSignIn"><summary>${validOperatorConfig(configuration)?'Staff sign-in':'Invited participant or reviewer? Sign in'}</summary><p class="sg-muted">Use your invited application email, not necessarily your Supabase dashboard login. Your email is used for authentication, not published as a contact address. No account registration is offered here.</p><form class="sg-form" id="sgEmailForm"><label for="sgEmail">Invited email address</label><input id="sgEmail" type="email" name="email" maxlength="254" autocomplete="email" required><div class="sg-actions"><button class="sg-button">Email me a sign-in link or code</button></div></form><form class="sg-form" id="sgCodeForm" hidden><label for="sgCode">Verification code (when your email includes one)</label><input id="sgCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required><div class="sg-actions"><button class="sg-button">Verify code</button></div></form><p class="sg-muted">Open the link in the email, or enter its numeric code above. Use the newest email. Never paste a sign-in link, code, or token into chat. Your session stays in this browser tab.</p></details>`;
+  el('sgEmailForm').onsubmit=async e=>{
+   e.preventDefault();const b=e.submitter;b.disabled=true;requestEmail=el('sgEmail').value.trim();
+   try{
+    const {error}=await client.auth.signInWithOtp({email:requestEmail,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+    message('If this invited address is eligible, check your inbox for a sign-in link or code. Delivery can be delayed; no new account was registered by this form.');el('sgCodeForm').hidden=false;
+   }catch(err){
+    const limited=err?.status===429||['over_email_send_rate_limit','over_request_rate_limit'].includes(err?.code);
+    message(limited?'Too many sign-in requests. Use the newest email or wait before requesting another.':'Sign-in email could not be requested. Check the invited address and the project email-delivery settings; no new account was created.',true);
+   }finally{if(b.isConnected)b.disabled=false;}
+  };
+  el('sgCodeForm').onsubmit=async e=>{
+   e.preventDefault();const b=e.submitter;b.disabled=true;
+   try{const {error}=await client.auth.verifyOtp({email:requestEmail,token:el('sgCode').value.trim(),type:'email'});if(error)throw error;await loadIdentity();}
+   catch(_){message('The code is invalid or expired, or the account has no active pilot access. Request a new sign-in email.',true);}
+   finally{if(b.isConnected)b.disabled=false;}
+  };
+ }
+ async function forgetSession(){
+  try{await client.auth.signOut({scope:'local'});}catch(_){}
+  try{sessionStorage.removeItem('hllv-pilot-session');}catch(_){}
+ }
+ async function signOut(){
+  epoch++;profile=null;accountEmail='';myRows=[];queue=[];board=[];view='board';content('<p>Signing out…</p>');el('sgAccount').replaceChildren();
+  await forgetSession();account();await render();message('Signed out of this tab. Staff-only content has been cleared.');
+ }
+ async function loadIdentity(){
+  const generation=++epoch;profile=null;accountEmail='';myRows=[];queue=[];content('<p>Checking pilot access…</p>');let notice='';
+  try{
+   const {data,error}=await client.auth.getSession();if(error)throw error;
+   if(data.session){
+    // The local session is not authority. Verify the user at Auth and get roles from PostgreSQL.
+    const checked=await client.auth.getUser();if(checked.error||!checked.data?.user)throw new Error('User verification failed');
+    const p=await rpc('hllv_profile');if(generation!==epoch)return;
+    if(!p||!['participant','moderator','reviewer'].includes(p.role)||(validOperatorConfig(configuration)&&!['moderator','reviewer'].includes(p.role)))throw new Error('Staff membership required');
+    profile=p;accountEmail=checked.data.user.email||'';if(validOperatorConfig(configuration))view='review';
+   }
+  }catch(_){
+   if(generation!==epoch)return;
+   profile=null;accountEmail='';await forgetSession();view='board';notice='Sign-in could not be verified or this account has no active staff invitation. Private access remains closed.';
+  }
+  if(generation!==epoch)return;
+  account();await render();if(notice)message(notice,true);
+ }

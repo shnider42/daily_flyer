@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-20",
+  "review_release": "2026-10-20-official-response-review",
+  "base_commit": "b58d19d537fb3d2c7a6073982459f9ade3e63347",
+  "page_updated_at": "2026-10-20T12:55:20Z",
+  "updated_issues": [
+    "HLLV-033",
+    "HLLV-057"
+  ],
+  "new_issues": [
+    "HLLV-084"
+  ],
+  "new_features": [
+    "HLLV-F015",
+    "HLLV-F016"
+  ],
+  "issue_count": 84,
+  "feature_count": 16,
+  "latest_verified_release": {
+    "title": "Patch 1.6",
+    "date": "2026-10-07"
+  },
+  "latest_official_announcement": {
+    "title": "Community Feedback #8",
+    "date": "2026-10-15"
+  },
+  "latest_selected_staff_reply": "2026-10-19",
+  "independent_gameplay_testing": false,
+  "source_review": "Re-read current Steam announcement feed and Community Feedback #8; inspected six existing forum leads with exact staff IDs and current developer badges.",
+  "limitations": [
+    "No newer release announcement was returned by the publisher feed at review time.",
+    "Two October 11 replies are historical evidence recovered from previously unavailable threads.",
+    "The October 19 mixed-thread reply does not individually confirm its complaints or commit to its suggested features.",
+    "Three recent unacknowledged threads were excluded from new bug claims.",
+    "The existing unrelated-text editorial hold remains in place.",
+    "Daily tracked-thread coverage is complete at 33/33, but broader discovery remains partial; this review is not an all-forum audit."
+  ],
+  "excluded_without_official_reply": [
+    "570426339809731198",
+    "570426339809736161",
+    "570426339809651925"
+  ],
+  "source_refs": [
+    {
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Support response to a mixed quality-of-life report",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
+      "date": "2026-10-19",
+      "source_published_at": "2026-10-19T13:32:53Z",
+      "source_reviewed_at": "2026-10-20",
+      "source_locator": "Opening post and reply 570426530135644652",
+      "content_sha256": "db3a4a66c8f2ea4bf537185b70d85369e770b94163c08c297e721cdcc8ff8d89",
+      "source_author_id": "76561199006108050",
+      "authority_checked_at": "2026-10-20T12:52:37Z",
+      "source_category": "Team17 Support",
+      "claim": "Support acknowledges and escalates a mixed report containing settings persistence and interface requests; it gives no itemized confirmation or release commitment."
+    },
+    {
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Tutorial Bug — Support follow-up",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
+      "date": "2026-10-11",
+      "source_published_at": "2026-10-11T13:45:43Z",
+      "source_reviewed_at": "2026-10-20",
+      "source_locator": "Reply 590691913364082220",
+      "content_sha256": "26b8c46aa20055ce27fae78fbb4015eaf48decf7eeb418e44767d0fe1ec64c80",
+      "source_author_id": "76561198363837070",
+      "authority_checked_at": "2026-10-20T12:52:37Z",
+      "source_category": "Team17 Support",
+      "claim": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated."
+    },
+    {
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Foliage quality — PC diagnostic follow-up",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
+      "date": "2026-10-11",
+      "source_published_at": "2026-10-11T17:53:18Z",
+      "source_reviewed_at": "2026-10-20",
+      "source_locator": "Replies 590691913364082427 and 590691913364102698",
+      "content_sha256": "fd4299a28afa06134207e54591e4661fb07a7262a0305cd7a0373a0b4b51ea1a",
+      "source_author_id": "76561198363837070",
+      "authority_checked_at": "2026-10-20T12:52:37Z",
+      "source_category": "Team17 Support",
+      "claim": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix."
+    }
+  ]
+}

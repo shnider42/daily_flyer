@@ -1,0 +1,62 @@
+name: HLLV public release diagnostics
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/workflows/hllv-public-release-diagnostic.yml]
+permissions:
+  contents: read
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify ordinary production URLs and every referenced file
+        run: |
+          python3 -u - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker')
+          manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=list(dict.fromkeys(['','index.html','deployment-manifest.json','official-feed.json']+manifest['files']))
+          last='Not checked'
+          for attempt in range(96):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=20) as response:
+                          actual=response.read(8000001)
+                      expected=(root/(path.split('?')[0] or 'index.html')).read_bytes()
+                      assert actual==expected,'Mismatch at '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH: normal homepage, manifest, source collection and all referenced assets')
+                  print('PAGE_SHA256='+hashlib.sha256((root/'index.html').read_bytes()).hexdigest())
+                  break
+              except Exception as error:
+                  last=str(error)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+      - name: Install isolated browser verification tools
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-live-browsers.log 2>&1 || { tail -30 /tmp/hllv-live-browsers.log; exit 1; }
+      - name: Exercise real deployed page with synthetic account responses
+        run: |
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-community/test_public.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: verified-live-dark-form-previews
+          path: artifacts/
+          retention-days: 3
+      - name: Record verification boundary
+        run: |
+          echo 'Normal live homepage and exact referenced assets verified after shared-cache expiry. Chromium and WebKit: type-guided reports, title/type/related ordering, draft preservation, dark default, saved light preference, date ordering, public board and synthetic moderator journeys passed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This is verification only: no app publication, real credentials, emails, user suggestions, votes or moderation writes. Public anonymous-only boundary checks use the real database; signed-in browser fixtures are synthetic.' >> "$GITHUB_STEP_SUMMARY"

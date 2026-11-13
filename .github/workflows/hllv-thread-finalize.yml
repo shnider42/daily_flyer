@@ -1,0 +1,77 @@
+name: HLLV conversation release review
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/hllv-thread-finalize/**, .github/workflows/hllv-thread-finalize.yml]
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  verify-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+      - name: Guard unseen wording revisions and test actual theme controls
+        run: |
+          python3 .github/hllv-thread-finalize/finalize.py
+          node --check .github/hllv-submission-threads/thread.js
+          node --check .github/hllv-community/app.js
+          python3 -m py_compile .github/hllv-submission-threads/test_browser.py
+          git diff --check
+      - name: Install isolated browser dependencies
+        run: |
+          python3 -m pip install --quiet playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/thread-final-browsers.log 2>&1 || { tail -30 /tmp/thread-final-browsers.log; exit 1; }
+      - name: Verify conversations privacy registration and stale wording controls
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/thread-final-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-submission-threads/test_browser.py
+          python3 .github/hllv-submission-threads/test_browser.py --engine webkit
+          python3 .github/hllv-member-registration/test_browser.py
+          python3 .github/hllv-member-registration/test_browser.py --engine webkit
+          node .github/hllv-evidence/test_evidence.cjs
+      - name: Publish only verified presentation changes
+        run: |
+          git add -- .github/hllv-submission-threads/thread.js .github/hllv-submission-threads/thread.css .github/hllv-submission-threads/test_browser.py .github/hllv-community/app.js hllv_tracker/index.html hllv_tracker/assets hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json hllv_tracker/reviews/submission-threads.json
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Require rereading revised submission wording before a moderation decision'
+          git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          echo "Published $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify ordinary public URLs and final deployed behavior
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');paths=['','index.html']+json.loads((root/'deployment-manifest.json').read_text())['files'];last='Not checked'
+          for attempt in range(120):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read()
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%12==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-submission-threads/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-submission-threads/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: final-conversation-previews
+          path: artifacts/
+          retention-days: 3
+      - name: Record verification boundary
+        run: echo 'Real deployed UI; synthetic browser identity and mutation responses. No hosted schema, Auth, emails, real submissions, or votes changed by this follow-up verification.' >> "$GITHUB_STEP_SUMMARY"

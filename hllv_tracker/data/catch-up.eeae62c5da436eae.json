@@ -1,0 +1,1001 @@
+{
+  "schema_version": 2,
+  "reviewed_at": "2026-11-10",
+  "coverage_from": "2026-10-07",
+  "coverage_through": "2026-10-21",
+  "release": "Patch 1.7",
+  "reviewed_source_ids": [
+    "cf9"
+  ],
+  "topics": [
+    {
+      "id": "boat-spawning",
+      "title": "Boat engines & spawning",
+      "area": "Boats & spawning",
+      "roles": [
+        "boats",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F008"
+      ],
+      "takeaway": "Manual driver exit now stops the engine automatically. Driver death keeps it running and still prevents transport-boat spawning.",
+      "caution": "This engine rule is separate from missing-spawn and asset-replication reports; the linked bug record retains the latest investigation and fix status.",
+      "issue_ids": [
+        "HLLV-046"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Manual driver exit now stops the engine automatically. Driver death keeps the engine running and can still deny spawning.",
+          "before": "Leaving the driver seat did not automatically stop the engine.",
+          "after": "Manual exit switches the engine off. Driver death in the seat leaves it running.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 6,
+      "overview": "Leaving a transport boat’s driver seat now switches its engine off. Being killed in the seat leaves it running.",
+      "context": "Transport-boat spawning requires the engine to be off. The update distinguishes a driver leaving the seat from a driver being killed there.",
+      "baselines": [
+        {
+          "id": "HLLV-F008",
+          "title": "Transport boat engine shutdown",
+          "summary": "Manual driver exit switches the engine off. Driver death in the seat leaves it running, which prevents transport-boat spawning until it is switched off."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-046",
+          "title": "Spawn choices and Commander abilities can disappear",
+          "status_key": "partial",
+          "status_label": "Improvements live; remaining cases investigated",
+          "bottom_line": "Developers have another spawn/asset replication fix prepared for the next update. Earlier changes reduced reports, but the additional fix is not confirmed released and remaining cases stay open.",
+          "last_updated": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "id": "engineer-defenses",
+      "title": "Fortification costs & limits",
+      "area": "Engineer",
+      "roles": [
+        "engineer"
+      ],
+      "feature_ids": [
+        "HLLV-F001"
+      ],
+      "takeaway": "Level 1 defenses cost no Supplies; upgrades still do. Barbed Wire increased from two to three per Engineer, capped at 50 per side.",
+      "caution": "Free Level 1 construction does not remove upgrade costs or placement limits. Announced future defensive additions are outside these released rules.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Level 1 construction stopped consuming Supplies; higher-level upgrades still require them.",
+          "before": "Basic Level 1 construction consumed Supplies.",
+          "after": "Level 1 construction costs no Supplies. Higher-level upgrades still require Supplies.",
+          "date": "2026-10-07"
+        },
+        {
+          "source_id": "patch17",
+          "summary": "Barbed Wire increased from two to three placements per Engineer, with a limit of 50 per side.",
+          "before": "Two Barbed Wire placements per Engineer.",
+          "after": "Three per Engineer, capped at 50 per side.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 4,
+      "overview": "Basic defenses no longer require Supplies to build. Engineers can also place more Barbed Wire.",
+      "context": "These changes affect the Supplies needed for Engineer-built defenses and the number of Barbed Wire placements allowed.",
+      "baselines": [
+        {
+          "id": "HLLV-F001",
+          "title": "Engineer buildables & Barbed Wire",
+          "summary": "Level 1 construction remains free of Supplies; upgrades still cost Supplies. Barbed Wire is now three per Engineer, capped at 50 per side."
+        }
+      ],
+      "source_ids": [
+        "patch16",
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "redeploy",
+      "title": "Redeploy timer change",
+      "area": "Every role",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F022"
+      ],
+      "takeaway": "The additional ten-second Redeploy punishment was removed; the normal deployment wait remains.",
+      "caution": "This change does not mean instant spawning or guarantee that a spawn point is available.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Removed the additional ten-second punishment for choosing Redeploy.",
+          "before": "Choosing Redeploy added a ten-second punishment.",
+          "after": "That extra punishment is removed. The normal deployment timer still applies.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 5,
+      "overview": "Choosing Redeploy no longer adds an extra ten-second wait. The normal deployment timer still applies.",
+      "context": "The removed punishment was additional to the normal deployment timer.",
+      "baselines": [
+        {
+          "id": "HLLV-F022",
+          "title": "Redeploy punishment timer",
+          "summary": "Choosing Redeploy no longer adds a ten-second punishment; the normal deployment timer still applies."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "tank-ammunition",
+      "title": "Tank ammunition changes",
+      "area": "Tank crew",
+      "roles": [
+        "armour"
+      ],
+      "feature_ids": [
+        "HLLV-F019"
+      ],
+      "takeaway": "Selecting another shell type unloads the chambered round and automatically loads the chosen ammunition.",
+      "caution": "The notes establish unloading and reloading, not an instant ammunition swap.",
+      "issue_ids": [
+        "HLLV-093"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Added shell unloading when changing ammunition types.",
+          "before": "The loaded round had to be fired before changing shell types.",
+          "after": "Changing type unloads the chambered round and automatically loads the selected type.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 7,
+      "overview": "Tanks can now change their loaded ammunition type without firing the round already in the gun.",
+      "context": "The change concerns a round already loaded in the tank’s gun when a different ammunition type is selected.",
+      "baselines": [
+        {
+          "id": "HLLV-F019",
+          "title": "Tank shell unloading",
+          "summary": "Selecting another shell type unloads the chambered round and automatically loads the chosen type."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-093",
+          "title": "Tank gunner seat changes silently switch ammunition to AP",
+          "status_key": "shipped",
+          "status_label": "Fix released in 1.7",
+          "bottom_line": "Patch 1.7 fixes leaving or changing the Gunner seat switching ammunition to AP while the display still shows the previous shell.",
+          "last_updated": "2026-10-21"
+        }
+      ]
+    },
+    {
+      "id": "squad-roles",
+      "title": "Medic & Rifleman slots",
+      "area": "Infantry",
+      "roles": [
+        "infantry",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F002"
+      ],
+      "takeaway": "Medic slots increased from one to two per unit; Rifleman slots decreased from three to two.",
+      "caution": "Further Medic proposals are excluded from this released slot change.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Added a second Medic slot and reduced Rifleman slots from three to two.",
+          "before": "One Medic slot and three Rifleman slots per unit.",
+          "after": "Two Medic slots and two Rifleman slots per unit.",
+          "date": "2026-10-07"
+        }
+      ],
+      "overview_order": 2,
+      "overview": "Each unit now has room for two Medics and two Riflemen, instead of one Medic and three Riflemen.",
+      "context": "The change reallocates the number of players who can hold each of these roles in a unit.",
+      "baselines": [
+        {
+          "id": "HLLV-F002",
+          "title": "Unit composition & Medics",
+          "summary": "Units have two Medic slots and two Rifleman slots, replacing one and three respectively."
+        }
+      ],
+      "source_ids": [
+        "patch16"
+      ],
+      "issues": []
+    },
+    {
+      "id": "weapon-loadouts",
+      "title": "New US weapons & magazines",
+      "area": "Weapons & equipment",
+      "roles": [
+        "infantry",
+        "engineer",
+        "armour",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F017",
+        "HLLV-F018"
+      ],
+      "takeaway": "Selected US roles gained the M1A1 Thompson. The M16A1 now offers 30-round magazines alongside the 20-round option, with increased Weight costs.",
+      "caution": "Thompson access is role-specific. Exact role access and magazine Weight values are included in the current rules below.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Added the M1A1 Thompson to selected US roles and an optional 30-round M16A1 configuration.",
+          "before": "The listed US roles did not have the Thompson option. The existing M16A1 magazine option held 20 rounds.",
+          "after": "The Thompson is available to the listed US roles. M16A1 users can select 30-round magazines; the 20-round option remains.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 1,
+      "overview": "Some US roles gained the Thompson submachine gun. The M16A1 gained an optional larger magazine.",
+      "context": "These are US loadout additions. The 20-round M16A1 configuration remains available.",
+      "baselines": [
+        {
+          "id": "HLLV-F017",
+          "title": "M1A1 Thompson",
+          "summary": "US access: Commander, Tank Commander, Crewman, Mortar Observer, Sniper, Squad Leader, Medic, Specialist, Grenadier and Engineer."
+        },
+        {
+          "id": "HLLV-F018",
+          "title": "M16A1 30-round magazines",
+          "summary": "Optional 30-round configuration: six magazines by default, up to ten via Barracks. The weapon gains one Weight; each magazine costs two Weight versus one for a 20-round magazine."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "boat-balance",
+      "title": "Boat handling & Fuel costs",
+      "area": "Boats & resources",
+      "roles": [
+        "boats",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F020"
+      ],
+      "takeaway": "Both boats gained handling and top-speed improvements. The US PBR’s speed advantage increased; the NVA boat rose from 200 to 250 Fuel.",
+      "caution": "The notes describe relative handling and speed changes; exact speed and acceleration values are not supplied.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Improved both boats’ handling and top speed, increased the US PBR’s relative speed and acceleration advantage, and raised the NVA boat’s Fuel cost by 50.",
+          "before": "The NVA boat cost 200 Fuel. Earlier speed and handling values are not quantified in these notes.",
+          "after": "The NVA boat costs 250 Fuel. Both boats have improved handling and top speed, with a larger US PBR speed and acceleration advantage.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 8,
+      "overview": "Both factions’ boats received handling and speed changes. The NVA boat also costs more Fuel.",
+      "context": "The release changes boat movement and the Fuel cost of the supply-carrying NVA boat.",
+      "baselines": [
+        {
+          "id": "HLLV-F020",
+          "title": "Boat handling, speed & Fuel balance",
+          "summary": "Both factions gain handling and top-speed improvements. The US PBR has a larger speed/acceleration advantage; the supply-carrying NVA boat now costs 250 Fuel, up from 200."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "vehicle-resupply",
+      "title": "Vehicle machine-gun resupply",
+      "area": "Vehicle crews",
+      "roles": [
+        "armour",
+        "boats"
+      ],
+      "feature_ids": [
+        "HLLV-F030"
+      ],
+      "takeaway": "Tank coaxial MGs and boat Machine Gunner positions can now be resupplied before their ammunition runs out.",
+      "caution": "Equal resupply of the two boat bow guns is a separate reported issue and is not explicitly confirmed fixed by this change.",
+      "issue_ids": [
+        "HLLV-031"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Allowed ammunition top-ups before empty for tank coaxial MGs and boat Machine Gunner positions.",
+          "before": "These guns had to be completely empty before receiving more ammunition.",
+          "after": "They can receive ammunition while some rounds remain.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 9,
+      "overview": "Some tank and boat machine guns can now receive more ammunition before they are completely empty.",
+      "context": "The update applies to tank coaxial machine guns and boat Machine Gunner positions.",
+      "baselines": [
+        {
+          "id": "HLLV-F030",
+          "title": "Tank coaxial & boat MG ammunition top-ups",
+          "summary": "Tank coaxial MGs and boat Machine Gunner positions can be resupplied before their ammunition is completely empty."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-031",
+          "title": "Dual bow boat guns may reload only one weapon",
+          "status_key": "reported",
+          "status_label": "Reports escalated",
+          "bottom_line": "Patch 1.7 permits boat-gun top-ups before empty. The separate report that only one dual bow gun reloads is not explicitly confirmed fixed.",
+          "last_updated": "2026-10-21"
+        }
+      ]
+    },
+    {
+      "id": "controller-options",
+      "title": "Controller Crouch / Melee swap",
+      "area": "Using a controller",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F003"
+      ],
+      "takeaway": "All controller layouts now offer a Crouch / Melee input swap.",
+      "caution": "This released option only swaps Crouch and Melee. Other controller options and Tactical Map changes retain their own development status in the content tracker.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Released the Crouch / Melee input swap for controller layouts.",
+          "before": "The Crouch / Melee swap was a planned addition.",
+          "after": "The swap is available across all controller layouts.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 3,
+      "overview": "Controller users gained an option to swap the Crouch and Melee inputs.",
+      "context": "This adds a specific two-input swap to the existing controller layouts.",
+      "baselines": [
+        {
+          "id": "HLLV-F003",
+          "title": "Controller Crouch / Melee swap",
+          "summary": "All controller layouts offer a Crouch / Melee input swap."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "commander-punishment",
+      "title": "Commander ability penalties",
+      "area": "Commander",
+      "roles": [
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F023"
+      ],
+      "takeaway": "Team-kill punishment was removed for Commander abilities; personal weapons and other direct actions retain their usual punishment behavior.",
+      "caution": "This changes punishment for Commander abilities. It does not remove friendly fire or all penalties.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Removed Commander team-kill punishment for friendly deaths caused by abilities such as Napalm, Artillery Strikes and Bombing Runs.",
+          "before": "Friendly deaths from Commander abilities could add a team-kill punishment to the Commander.",
+          "after": "Those ability-related deaths no longer add that punishment. Personal weapons and other direct actions retain their usual punishment behavior.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 10,
+      "overview": "Friendly deaths caused by Commander abilities no longer add the associated punishment to the Commander.",
+      "context": "The affected abilities include Napalm, Artillery Strikes and Bombing Runs.",
+      "baselines": [
+        {
+          "id": "HLLV-F023",
+          "title": "Commander ability team-kill punishment",
+          "summary": "Friendly deaths from Commander abilities such as Napalm, Artillery Strikes and Bombing Runs no longer add a team-kill punishment to the Commander."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "graphics-options",
+      "title": "Graphics & display options",
+      "area": "PC & PlayStation",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F010",
+        "HLLV-F021"
+      ],
+      "overview": "PS5 Pro, compatible PS5 displays and supported AMD PC graphics cards gained different graphics options.",
+      "takeaway": "PS5 Pro gained PSSR; PS5 and PS5 Pro gained VRR on compatible displays. Supported AMD GPUs gained FSR Frame Generation.",
+      "context": "PSSR reconstructs the image on PS5 Pro. VRR matches display refresh to changing frame delivery. Frame Generation inserts extra frames on supported AMD hardware; these are separate technologies.",
+      "caution": "PSSR is specific to PS5 Pro, and VRR requires a compatible display. The AMD addition does not establish a fix for NVIDIA DLSS settings reports.",
+      "issue_ids": [
+        "HLLV-006",
+        "HLLV-057",
+        "HLLV-060"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Released PSSR for PS5 Pro, VRR for compatible PS5 displays, and AMD FSR Frame Generation on supported 5000-series-and-newer GPUs.",
+          "before": "These PS5 and AMD options had not been released in the reviewed patch history. Xbox Series X|S already supported VRR.",
+          "after": "The new options are available on their supported hardware. They do not apply equally to every console or PC.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 11,
+      "baselines": [
+        {
+          "id": "HLLV-F010",
+          "title": "PS5 display options",
+          "summary": "PSSR is available on PS5 Pro. VRR is available on PS5 and PS5 Pro with compatible displays."
+        },
+        {
+          "id": "HLLV-F021",
+          "title": "AMD FSR Frame Generation",
+          "summary": "Available in Video Settings on supported AMD GPUs, specified as 5000 series and newer. The publisher recommends a base rate around 60 FPS or higher to limit added latency."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-006",
+          "title": "Console image quality",
+          "status_key": "partial",
+          "status_label": "Improvements ongoing",
+          "bottom_line": "PS5 Pro PSSR and compatible-display PS5 VRR are live from 1.7. Further visual work targets 2.0; base-PS5 QSSR still depends on Sony availability and is not confirmed released.",
+          "last_updated": "2026-11-06"
+        },
+        {
+          "id": "HLLV-057",
+          "title": "Blurry foliage and disappearing cover",
+          "status_key": "partial",
+          "status_label": "Visual improvements released",
+          "bottom_line": "Specific foliage and LOD corrections shipped in 1.7. The November 6 update confirms further visual-quality, performance and environmental-readability work for 2.0; broad resolution remains unverified.",
+          "last_updated": "2026-11-06"
+        },
+        {
+          "id": "HLLV-060",
+          "title": "DLSS Frame Generation needs reapplying",
+          "status_key": "investigating",
+          "status_label": "Fix in development · no release date",
+          "bottom_line": "Developers explicitly acknowledge NVIDIA Frame Generation needing reactivation after launch. A fix is in progress for an update in 2026, with no committed date or verified release.",
+          "last_updated": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "id": "server-browser",
+      "title": "Finding & saving servers",
+      "area": "Joining a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F006"
+      ],
+      "overview": "The server list prioritises fuller matches. Filters and saved favourites received persistence fixes.",
+      "takeaway": "Higher-population servers move up the list. Filters survive a game restart, and Favourites saving and server targeting have release-documented fixes.",
+      "context": "These changes affect the order of the server list and whether choices survive between sessions. They are separate from the number of servers a player may save.",
+      "caution": "The released corrections do not establish that every missing-server report is resolved or that Favourites capacity has increased.",
+      "issue_ids": [
+        "HLLV-058",
+        "HLLV-059",
+        "HLLV-069"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Prioritised fuller servers and corrected filter persistence and Favourites saving/targeting.",
+          "before": "Filters could reset after restarting, and Favourites could fail to save or select the intended server. Fuller-server ordering was not prioritised as it is now.",
+          "after": "Fuller servers are prioritised, selected filters persist, and the notes document corrections to Favourites saving and targeting.",
+          "date": "2026-10-07"
+        }
+      ],
+      "overview_order": 12,
+      "baselines": [
+        {
+          "id": "HLLV-F006",
+          "title": "Server Browser sorting & filters",
+          "summary": "Fuller servers are prioritised; filters persist between sessions and Favourites target the correct server."
+        }
+      ],
+      "source_ids": [
+        "patch16"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-058",
+          "title": "Server Browser filters fail to persist",
+          "status_key": "shipped",
+          "status_label": "Fix released in 1.6",
+          "bottom_line": "The publisher reaffirmed on October 15 that filters persist. Independent outcome testing remains unrecorded.",
+          "last_updated": "2026-10-15"
+        },
+        {
+          "id": "HLLV-059",
+          "title": "Servers missing from browser results",
+          "status_key": "partial",
+          "status_label": "Browser improvements released",
+          "bottom_line": "Fuller-server ordering is reaffirmed; complete server discovery and removal of the earlier search limit remain unconfirmed.",
+          "last_updated": "2026-10-15"
+        },
+        {
+          "id": "HLLV-069",
+          "title": "Favourite servers failed to save or targeted the wrong server",
+          "status_key": "shipped",
+          "status_label": "Fix released in 1.6",
+          "bottom_line": "Patch 1.6: Corrects favourite persistence and server targeting. Independent outcome testing is not recorded.",
+          "last_updated": "2026-10-07"
+        }
+      ]
+    },
+    {
+      "id": "vote-kick",
+      "title": "Vote Kick visibility & timing",
+      "area": "Server moderation",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F012"
+      ],
+      "overview": "Votes to remove a player are visible by default, with more time to respond.",
+      "takeaway": "Vote Kick notifications default to visible. The released changelog increases the response window from 15 to 30 seconds.",
+      "context": "Vote Kick lets players respond to a removal vote within their server. This update changes the notification default and the time available for a response.",
+      "caution": "Players can still choose to hide notifications. A longer, more visible vote does not establish that disruptive behavior has been eliminated.",
+      "issue_ids": [
+        "HLLV-063"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Made Vote Kick notifications visible by default and doubled the voting window.",
+          "before": "The released changelog identifies a 15-second voting window and a default setting that hid Vote Kick notices.",
+          "after": "Votes allow 30 seconds, with notifications visible unless the player chooses to hide them.",
+          "date": "2026-10-07"
+        }
+      ],
+      "overview_order": 13,
+      "baselines": [
+        {
+          "id": "HLLV-F012",
+          "title": "Vote Kick visibility & voting time",
+          "summary": "Vote Kick notifications default to visible; the response window increased from 15 to 30 seconds."
+        }
+      ],
+      "source_ids": [
+        "patch16"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-063",
+          "title": "Vote Kick visibility and response time",
+          "status_key": "shipped",
+          "status_label": "Changes released in 1.6",
+          "bottom_line": "The 1.6 visibility and 30-second response changes remain release-documented. The October 9 follow-up discusses positive feedback, not a new patch or proof trolling is solved.",
+          "last_updated": "2026-10-09"
+        }
+      ]
+    },
+    {
+      "id": "official-afk-timer",
+      "title": "Official Server inactivity timer",
+      "area": "Joining & staying in a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F024"
+      ],
+      "overview": "Official Servers now remove inactive players after ten minutes instead of thirty.",
+      "takeaway": "The Official Server AFK timeout fell from 30 minutes to 10 minutes.",
+      "context": "AFK means inactive or away from the controls. This timer governs removal for inactivity while occupying a server slot.",
+      "caution": "The announcement specifies Official Servers. It does not establish a universal setting for community-run servers.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Reduced the Official Server inactivity timeout by twenty minutes.",
+          "before": "Official Servers used a 30-minute AFK timeout.",
+          "after": "Official Servers use a 10-minute AFK timeout.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 14,
+      "baselines": [
+        {
+          "id": "HLLV-F024",
+          "title": "Official Server AFK timer",
+          "summary": "Official Servers now remove inactive players after ten minutes instead of thirty."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "menus-tutorial-labels",
+      "title": "Menus, settings & tutorial labels",
+      "area": "Before joining a match",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F025",
+        "HLLV-F031"
+      ],
+      "overview": "Barracks menus have shorter transitions, unsaved settings trigger a warning, and tutorial completion labels are clearer.",
+      "takeaway": "Long Barracks camera transitions are removed. Leaving front-end Options with unsaved edits produces a prompt, and tutorial status labels distinguish completed from incomplete entries more clearly.",
+      "context": "These are menu and information-display changes. A clearer label and an unsaved-edit warning describe what the interface shows.",
+      "caution": "Neither change confirms that tutorial completion or every video setting will remain saved after restarting. Those reports retain separate bug records.",
+      "issue_ids": [
+        "HLLV-033",
+        "HLLV-084"
+      ],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Shortened Barracks navigation and improved feedback about unsaved settings and tutorial completion.",
+          "before": "Barracks entry and exit used lengthy camera transitions. The new unsaved-edit prompt was absent, and tutorial completion labels were less clear.",
+          "after": "Barracks transitions are shorter, front-end Options warn about unsaved edits, and tutorial status is more clearly labelled.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 15,
+      "baselines": [
+        {
+          "id": "HLLV-F025",
+          "title": "Faster Barracks navigation & unsaved-options warning",
+          "summary": "Lengthy Barracks entry/exit camera transitions are removed. Leaving front-end Options with unsaved edits now prompts the player."
+        },
+        {
+          "id": "HLLV-F031",
+          "title": "Tutorial completion labels",
+          "summary": "Tutorial status more clearly identifies completed and incomplete tutorials."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-033",
+          "title": "Tutorial completion may not stay saved",
+          "status_key": "investigating",
+          "status_label": "Completion-loss fix unconfirmed",
+          "bottom_line": "Patch 1.7 clarifies tutorial completion labels. Saving lost completion progress is still not confirmed fixed.",
+          "last_updated": "2026-10-21"
+        },
+        {
+          "id": "HLLV-084",
+          "title": "Video settings reported not saving after restart",
+          "status_key": "reported",
+          "status_label": "Mixed-thread Support acknowledgement",
+          "bottom_line": "Patch 1.7 adds an unsaved-options warning. That does not establish a fix for video settings failing to persist after restart.",
+          "last_updated": "2026-10-21"
+        }
+      ]
+    },
+    {
+      "id": "unit-names",
+      "title": "Unit naming",
+      "area": "Recognising your unit",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F026"
+      ],
+      "overview": "Units now use names such as Alfa, Bravo and Charlie from the NATO phonetic alphabet.",
+      "takeaway": "The Unit naming scheme changed to the NATO phonetic alphabet, including Alfa, Bravo and Charlie.",
+      "context": "These words identify lettered Units. Returning players may encounter a different spoken or displayed Unit name.",
+      "caution": "This change concerns Unit naming. It does not release Clan Tags or change the number of players in a Unit.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Changed the Unit naming scheme to NATO phonetic names.",
+          "before": "The previous naming scheme was replaced; this announcement does not enumerate every former name.",
+          "after": "Units use NATO phonetic names, including Alfa, Bravo, Charlie and Delta.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 16,
+      "baselines": [
+        {
+          "id": "HLLV-F026",
+          "title": "NATO phonetic Unit names",
+          "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "vehicle-impact",
+      "title": "Slow-vehicle collision deaths",
+      "area": "Infantry & vehicles",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F027"
+      ],
+      "overview": "Vehicles must be moving faster than before for an impact to kill infantry.",
+      "takeaway": "The vehicle speed required for a collision to kill infantry was raised again. The patch does not give the old or new speed threshold.",
+      "context": "This changes when a vehicle impact is lethal. It is separate from weapon damage to vehicles or vehicle movement speed.",
+      "caution": "No exact safe speed or immunity to vehicle impacts is established by the notes.",
+      "issue_ids": [],
+      "changes": [
+        {
+          "source_id": "patch17",
+          "summary": "Raised the vehicle impact speed threshold again to reduce deaths from slowly moving vehicles.",
+          "before": "A lower vehicle speed could trigger a lethal infantry impact; no numerical threshold is provided.",
+          "after": "A higher speed is required for a lethal impact. The new threshold is not quantified.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 17,
+      "baselines": [
+        {
+          "id": "HLLV-F027",
+          "title": "Vehicle impact kill threshold",
+          "summary": "Vehicles must reach a higher speed before an impact kills infantry; the notes give no numerical threshold."
+        }
+      ],
+      "source_ids": [
+        "patch17"
+      ],
+      "issues": []
+    },
+    {
+      "id": "commander-indicators",
+      "title": "Commander limits & ability indicators",
+      "area": "Commander",
+      "roles": [
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F032"
+      ],
+      "overview": "The Commander interface shows vehicle limits and whether the Encourage ability is active.",
+      "takeaway": "Vehicle Orders display the active vehicle limit. Patch 1.7 also documents an active-state indicator for Encourage.",
+      "context": "The display helps explain a vehicle-order limit and an ability’s current state. The notes describe interface feedback, not an increase to vehicle capacity.",
+      "caution": "Patch 1.6 already documented the vehicle-limit display and separately named a Reinforce indicator. The 1.7 notes name Encourage; they do not establish that the two ability names are interchangeable.",
+      "issue_ids": [
+        "HLLV-096"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Documented vehicle-order active-limit information in the Commander interface.",
+          "before": "The vehicle-order limit was not shown through the added UI information.",
+          "after": "Vehicle Orders display how many vehicles of each type can be active.",
+          "date": "2026-10-07"
+        },
+        {
+          "source_id": "patch17",
+          "summary": "Reiterated vehicle-limit information and documented an indicator for active Encourage.",
+          "before": "Vehicle-limit information was already documented in 1.6. That earlier changelog named a Reinforce indicator, not Encourage.",
+          "after": "The 1.7 notes explicitly describe active Encourage feedback alongside the vehicle-limit display.",
+          "date": "2026-10-21"
+        }
+      ],
+      "overview_order": 18,
+      "baselines": [
+        {
+          "id": "HLLV-F032",
+          "title": "Commander vehicle-limit & Encourage indicators",
+          "summary": "Commander vehicle Orders show the active vehicle limit; Encourage has an active-state indicator."
+        }
+      ],
+      "source_ids": [
+        "patch16",
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-096",
+          "title": "Simultaneous inputs prevent Commander vehicle orders",
+          "status_key": "shipped",
+          "status_label": "Fix released in 1.7",
+          "bottom_line": "Patch 1.7 fixes vehicle orders failing when multiple inputs are pressed together; this is not general spawn replication closure.",
+          "last_updated": "2026-10-21"
+        }
+      ]
+    },
+    {
+      "id": "tunnel-collapse",
+      "title": "Tunnel collapse during travel",
+      "area": "Infantry & tunnel travel",
+      "roles": [
+        "infantry",
+        "engineer",
+        "commander"
+      ],
+      "feature_ids": [
+        "HLLV-F033"
+      ],
+      "overview": "A player travelling through a Tunnel dies immediately if that network collapses.",
+      "takeaway": "Tunnel-network collapse kills players in transit immediately, rather than waiting until their travel finishes. This was documented in 1.6 and restated in 1.7.",
+      "context": "This is the outcome when a network collapses while a player is travelling through it. It does not describe an ordinary completed Tunnel journey.",
+      "caution": "The rule does not establish a fix for every Tunnel connection, visibility or spawn-replication issue.",
+      "issue_ids": [
+        "HLLV-046"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Moved the in-transit death to the moment the Tunnel network collapses.",
+          "before": "Death following a network collapse occurred when the Tunnel journey completed.",
+          "after": "A player in transit dies immediately when the network collapses; 1.7 later repeats this rule.",
+          "date": "2026-10-07"
+        }
+      ],
+      "overview_order": 19,
+      "baselines": [
+        {
+          "id": "HLLV-F033",
+          "title": "Tunnel-collapse travel outcome",
+          "summary": "Players in transit are killed immediately if their Tunnel network collapses."
+        }
+      ],
+      "source_ids": [
+        "patch16",
+        "patch17"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-046",
+          "title": "Spawn choices and Commander abilities can disappear",
+          "status_key": "partial",
+          "status_label": "Improvements live; remaining cases investigated",
+          "bottom_line": "Developers have another spawn/asset replication fix prepared for the next update. Earlier changes reduced reports, but the additional fix is not confirmed released and remaining cases stay open.",
+          "last_updated": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "id": "combat-audio",
+      "title": "Combat audio & spawn sounds",
+      "area": "Recognising battlefield sounds",
+      "roles": [
+        "all"
+      ],
+      "feature_ids": [
+        "HLLV-F049"
+      ],
+      "overview": "Weapons, explosions and spawn points sound different after Patch 1.6.",
+      "takeaway": "Spawn sounds account for intervening objects. Tunnel sounds carry less far, including to helicopters. Distant gunfire and explosions received new mixes.",
+      "context": "Background battle sounds are ambience; they do not necessarily indicate player actions.",
+      "caution": "This audio pass does not close VOIP, missing-sound or crash reports.",
+      "issue_ids": [
+        "HLLV-028",
+        "HLLV-099"
+      ],
+      "changes": [
+        {
+          "source_id": "patch16",
+          "summary": "Refreshed combat, spawn and background audio.",
+          "before": "Earlier weapon mixes and spawn-sound behavior were replaced.",
+          "after": "New mixes, ambient battle sounds, spawn occlusion and reduced tunnel audibility are released.",
+          "date": "2026-10-07"
+        }
+      ],
+      "overview_order": 20,
+      "baselines": [
+        {
+          "id": "HLLV-F049",
+          "title": "Combat audio & spawn sounds",
+          "summary": "Patch 1.6 remixed weapons and explosions, added ambient battle sounds, and changed how spawn sounds travel through cover."
+        }
+      ],
+      "source_ids": [
+        "patch16"
+      ],
+      "issues": [
+        {
+          "id": "HLLV-028",
+          "title": "Gunfire and explosions sound echoed or muffled",
+          "status_key": "shipped",
+          "status_label": "Fix released",
+          "bottom_line": "Hotfix 1.4.2 fixed excessive reverb affecting certain third-party spatial-audio configurations on PC.",
+          "last_updated": "2026-09-10"
+        },
+        {
+          "id": "HLLV-099",
+          "title": "Weapon firing effects play incorrectly around deployment",
+          "status_key": "shipped",
+          "status_label": "Fix released in 1.7",
+          "bottom_line": "Patch 1.7 fixes incorrect firing sounds and visuals when deploying near players using semi-automatic fire.",
+          "last_updated": "2026-10-21"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "cf9",
+      "announcement_id": "1848664643345363",
+      "title": "Community Feedback #9 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1848664643345363",
+      "published_at": "2026-11-06T12:26:02Z",
+      "content_sha256": "b59bbce41a03e7d1da32b151a3ae1b7ead4f266a4698860535a7aa69ff8f7c02",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Feature plans, targets and current-behavior clarifications. Statements were reviewed in full; no new release or independent gameplay validation is established. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "patch16",
+      "announcement_id": "1846018067925606",
+      "title": "Patch 1.6 | Hell Let Loose: Vietnam",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067925606",
+      "published_at": "2026-10-07T10:01:03Z",
+      "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement. Re-read November 10; publisher text is unchanged and no later release is established."
+    },
+    {
+      "id": "patch17",
+      "announcement_id": "1847286114028257",
+      "title": "Patch 1.7 | Full Changelog | Now Live!",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+      "published_at": "2026-10-21T10:00:57Z",
+      "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+      "reviewed_at": "2026-11-10",
+      "review_scope": "Released functionality, hardware limits and separately stated future plans in the full Patch 1.7 announcement; no independent gameplay test. Re-read November 10; publisher text is unchanged and no later release is established."
+    }
+  ]
+}
