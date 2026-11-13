@@ -101,6 +101,10 @@ export class BaseballGame {
       guidance: ['simple', 'moderate', 'expert'].includes(options.guidance) ? options.guidance : 'simple',
       pitcher: PITCHERS[options.pitcher] ? options.pitcher : 'balanced',
       opponentPitcher: PITCHERS[options.opponentPitcher] ? options.opponentPitcher : 'balanced',
+      humanSides: Array.isArray(options.humanSides) ? [...new Set(options.humanSides.filter(side => side === 0 || side === 1))] : [0],
+      localSide: options.localSide === 1 ? 1 : 0,
+      inputWindow: clamp(finite(options.inputWindow, 0.1), 0.1, 0.25),
+      scenario: options.mode === 'practice' && options.scenario === 'runners' ? 'runners' : null,
     };
     this._accumulator = 0;
     this._events = [];
@@ -113,16 +117,219 @@ export class BaseballGame {
       ball: { x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, vx: 0, vy: 0, vz: 0, visible: false, bounced: false },
       pitch: null, swing: null, play: null, result: null, lastContact: null,
       fielders: this._newFielders(), runners: [], pending: null,
+      pickoffAttempts: 0, readyActionChecked: false,
       practice: { pitches: 0, swings: 0, contacts: 0, hits: 0, homeRuns: 0, bestDistance: 0 },
     };
+    if (this.options.scenario === 'runners') this._setupRunningPractice();
   }
 
-  get isBatting() { return this.options.mode === 'practice' || this.state.battingSide === 0; }
+  get isBatting() { return this.options.mode === 'practice' || this.state.battingSide === this.options.localSide; }
+  get isHumanBatting() { return this.options.mode === 'practice' || this.options.humanSides.includes(this.state.battingSide); }
+  get isHumanFielding() { return this.options.mode !== 'practice' && this.options.humanSides.includes(1 - this.state.battingSide); }
+  _commandIsBatting(input) { return (input.side ?? this.options.localSide) === this.state.battingSide; }
   get interpolationAlpha() { return this._accumulator / STEP; }
   get difficulty() { return DIFFICULTIES[this.options.difficulty]; }
-  get activePitcher() { return PITCHERS[this.isBatting ? this.options.opponentPitcher : this.options.pitcher] || PITCHERS.balanced; }
+  get activePitcher() { return PITCHERS[this.state.battingSide === 0 ? this.options.opponentPitcher : this.options.pitcher] || PITCHERS.balanced; }
   get availablePitches() { return [...this.activePitcher.pitches]; }
   resetClock() { this._accumulator = 0; }
+
+  _setupRunningPractice() {
+    const s = this.state;
+    const first = { ...this._runner(), number: 7, speed: 7.2 }, third = { ...this._runner(), number: 9, speed: 7.0 };
+    s.bases = [first, null, third];
+    s.runners = [this._liveRunner(first, 1), this._liveRunner(third, 3)];
+  }
+
+  _syncPreRunners() {
+    const s = this.state;
+    s.runners = s.bases.flatMap((baseRunner, i) => {
+      if (!baseRunner) return [];
+      const runner = s.runners.find(r => r.id === baseRunner.id && !r.out);
+      return [runner || this._liveRunner(baseRunner, i + 1)];
+    });
+  }
+
+  _leadCommand(input) {
+    const s = this.state;
+    if (s.phase !== 'ready') return this._reject('Set your lead before the pitcher starts the delivery.');
+    this._syncPreRunners();
+    const runner = s.runners.find(r => r.id === input.runnerId);
+    if (!runner || runner.stealing) return this._reject('Choose a runner holding a base.');
+    let amount = input.amount;
+    if (input.action === 'extend') amount = Math.min(2, (runner.leadLevel || 0) + 1);
+    if (input.action === 'shorten') amount = Math.max(0, (runner.leadLevel || 0) - 1);
+    if (!Number.isInteger(amount) || amount < 0 || amount > 2) return this._reject('Choose an on-base, normal or aggressive lead.');
+    runner.leadLevel = amount; runner.leadDistance = [0, 2.4, 4.8][amount];
+    this._event('lead', { runnerId: runner.id, level: amount });
+    return true;
+  }
+
+  _stealCommand(input) {
+    const s = this.state;
+    if (!['ready', 'windup', 'pitch'].includes(s.phase)) return this._reject('Call the steal before or during the pitch.');
+    this._syncPreRunners();
+    const runner = s.runners.find(r => r.id === input.runnerId && !r.out && !r.scored);
+    if (!runner || runner.fromBase < 1 || runner.fromBase > 3) return this._reject('Choose a runner on first, second or third.');
+    if (runner.stealing) return this._reject('The runner is already going. Use RETURN when the throw is live.');
+    if (s.phase === 'ready' && (input.action === 'cancel' || runner.stealQueued)) {
+      runner.stealQueued = false; this._event('steal-cancel', { runnerId: runner.id }); return true;
+    }
+    const occupied = s.runners.find(r => r.id !== runner.id && !r.out && r.fromBase === runner.fromBase + 1);
+    if (occupied && !occupied.stealQueued && !occupied.stealing) return this._reject('Advance the lead runner before stealing into an occupied base.');
+    if (s.phase === 'ready') {
+      runner.stealQueued = true;
+      this._event('steal-queued', { runnerId: runner.id, base: runner.fromBase + 1 });
+    } else this._beginSteal(runner, s.time + 0.12);
+    return true;
+  }
+
+  _beginSteal(runner, reactionAt) {
+    const s = this.state;
+    runner.stealQueued = false; runner.stealing = true; runner.manual = true;
+    runner.targetBase = Math.min(4, runner.fromBase + 1); runner.reactionAt = reactionAt; runner.safe = false;
+    runner.stealStartedAt = reactionAt;
+    this._event('steal', { runnerId: runner.id, base: runner.targetBase });
+  }
+
+  _updatePreRunners() {
+    const s = this.state;
+    this._syncPreRunners();
+    const ordered = [...s.runners].sort((a, b) => b.fromBase - a.fromBase);
+    for (const runner of ordered) {
+      runner.prevX = runner.x; runner.prevZ = runner.z; runner.prevPathPosition = runner.pathPosition;
+      let destination = runner.stealing ? runner.targetBase : runner.fromBase + (runner.leadDistance || 0) / BASE_DISTANCE;
+      if (runner.reactionAt > s.time) destination = runner.pathPosition;
+      const direction = Math.sign(destination - runner.pathPosition), amount = runner.speed * STEP / BASE_DISTANCE;
+      let next = runner.pathPosition + direction * Math.min(amount, Math.abs(destination - runner.pathPosition));
+      const lead = ordered.find(r => r.fromBase > runner.fromBase && !r.scored);
+      if (direction > 0 && lead) next = Math.min(next, Math.max(runner.pathPosition, lead.pathPosition - 0.045));
+      runner.pathPosition = clamp(next, runner.fromBase, 4);
+      if (runner.stealing && Math.abs(runner.pathPosition - runner.targetBase) < 1e-8) {
+        runner.base = runner.targetBase; runner.highestBase = Math.max(runner.highestBase, runner.base);
+        runner.touchedAt[runner.base] ??= s.time;
+        if (runner.base === 4) { runner.scored = true; runner.scoredAt ??= s.time; }
+      }
+      const index = Math.min(3, Math.floor(runner.pathPosition)), fraction = runner.pathPosition - index;
+      runner.x = lerp(BASES[index].x, BASES[index + 1].x, fraction); runner.z = lerp(BASES[index].z, BASES[index + 1].z, fraction);
+      runner.progress = runner.pathPosition - runner.fromBase;
+      runner.safe = Math.abs(runner.pathPosition - Math.round(runner.pathPosition)) < 1e-8;
+      runner.sliding = runner.stealing && !runner.safe && Math.abs(runner.targetBase - runner.pathPosition) < 0.075;
+    }
+  }
+
+  _cpuRunningDecisions() {
+    const s = this.state;
+    if (!s.runners.length) return;
+    if (!this.isHumanBatting && !s.cpuRunnerChecked && s.phaseTime >= 0.45) {
+      s.cpuRunnerChecked = true;
+      for (const runner of [...s.runners].sort((a, b) => b.fromBase - a.fromBase)) {
+        runner.leadLevel = this._random() < 0.24 ? 2 : 1;
+        runner.leadDistance = [0, 2.4, 4.8][runner.leadLevel];
+        const occupied = s.bases[runner.fromBase];
+        // Stealing home is exceptional; the CPU usually saves the risk for second.
+        const chance = runner.fromBase === 1 ? 0.24 : runner.fromBase === 2 ? 0.10 : 0.012;
+        if (!occupied && this._random() < chance) runner.stealQueued = true;
+      }
+    }
+    if (!this.isHumanFielding && !s.readyActionChecked && s.phaseTime >= 2.55) {
+      s.readyActionChecked = true;
+      const candidate = [...s.runners].sort((a, b) => b.leadLevel - a.leadLevel || a.fromBase - b.fromBase)[0];
+      if ((s.pickoffAttempts || 0) < 2 && candidate?.leadLevel > 0 && this._random() < (candidate.leadLevel === 2 ? 0.48 : 0.08)) this._startPickoff(candidate.fromBase);
+    }
+  }
+
+  _pickoffCommand(input) {
+    const s = this.state, base = input.base;
+    if (s.phase !== 'ready') return this._reject('A pickoff must start before the delivery.');
+    if (!Number.isInteger(base) || base < 1 || base > 3 || !s.bases[base - 1]) return this._reject('Choose an occupied base for the pickoff.');
+    if ((s.pickoffAttempts || 0) >= 2) return this._reject('Two pickoff attempts used for this batter. Deliver a pitch.');
+    this._syncPreRunners(); this._startPickoff(base); return true;
+  }
+
+  _startPickoff(base) {
+    const s = this.state;
+    s.pickoffAttempts = (s.pickoffAttempts || 0) + 1;
+    this._beginRunningPlay('pickoff', null, base);
+    this._event('pickoff', { base, attempts: s.pickoffAttempts });
+  }
+
+  _beginRunningPlay(kind, pitchCall = null, pickoffBase = null) {
+    const s = this.state;
+    s.play = {
+      kind, stage: 'held', fair: true, hitAt: s.time, age: 0, initialBases: clone(s.bases), initialOuts: s.outs,
+      batter: null, outs: [], runCrossings: s.runners.filter(r => r.scored).map(r => ({ runnerId: r.id, time: r.scoredAt })),
+      maxDistance: 0, ballKind: 'running', fielder: kind === 'pickoff' ? 'P' : 'C', heldAt: s.time,
+      possessionAt: s.time, throw: null, throwBase: null, queuedBase: null, receiver: null,
+      throwReadyAt: s.time + 0.18, transferUntil: null, decisionUntil: s.time + 1.8,
+      lastActionAt: s.time, coverBase: kind === 'steal' ? 4 : null, recommendedBase: null, pitchCall,
+    };
+    for (const runner of s.runners) {
+      runner.forcedBase = null;
+      if (!runner.stealing || kind === 'pickoff') {
+        runner.targetBase = runner.fromBase; runner.manual = false; runner.stealQueued = false;
+        // A larger lead costs real return distance and a slower first reaction.
+        runner.reactionAt = kind === 'pickoff' ? s.time + (runner.leadLevel === 2 ? 0.48 : 0.20) : s.time;
+      }
+    }
+    this._phase('live');
+    const holder = s.fielders.find(f => f.id === s.play.fielder);
+    this._fieldBall(holder);
+    s.play.coverBase = kind === 'steal' ? 4 : null;
+    if (kind === 'pickoff') this._prepareThrow(pickoffBase);
+    else if (!this.isHumanFielding) {
+      const target = this._recommendBase(); if (target) this._prepareThrow(target);
+    }
+    this._event('running-play', { kind });
+  }
+
+  _finishRunningPlay() {
+    const s = this.state, p = s.play, before = s.score[s.battingSide];
+    const third = s.outs >= 3 ? p.outs.at(-1) : null;
+    for (const crossing of p.runCrossings) {
+      if (third && crossing.time >= third.time - 1e-9) continue;
+      const runner = s.runners.find(r => r.id === crossing.runnerId && !r.out);
+      if (runner) this._scoreRun(runner);
+    }
+    const bases = [null, null, null];
+    for (const runner of s.runners) {
+      if (runner.out || runner.scored) continue;
+      const base = Math.round(runner.pathPosition);
+      if (base >= 1 && base <= 3 && !bases[base - 1]) bases[base - 1] = { id: runner.id, number: runner.number, side: runner.side, speed: runner.speed };
+    }
+    s.bases = this.options.mode === 'practice' ? [null, null, null] : bases;
+    const advanced = s.runners.filter(r => !r.out && r.highestBase > r.fromBase);
+    const outs = p.outs.length, runs = s.score[s.battingSide] - before;
+    const title = p.kind === 'pickoff' ? (outs ? 'Picked off!' : 'Back safely') : outs ? 'Caught stealing' : advanced.length ? 'Stolen base' : 'Runner holds';
+    const detail = [p.pitchCall?.detail, ...p.outs.map(out => `Out at ${this._baseName(out.base)} (${out.type})`),
+      ...advanced.map(r => `Runner ${r.number} reaches ${this._baseName(r.highestBase)}`), runs ? `${runs} run${runs === 1 ? '' : 's'} score` : ''].filter(Boolean).join(' · ');
+    const next = s.outs >= 3 ? this._halfEndDecision() : this._isWalkoff() ? 'final' : p.pitchCall?.next || 'pitch';
+    this._complete(title, detail || 'Runner returns to the bag. The count is unchanged.', p.kind === 'pickoff' ? (outs ? 'pickoff' : 'pickoffSafe') : outs ? 'caughtStealing' : advanced.length ? 'stolenBase' : p.pitchCall?.kind || 'runnerHold', next, { runs, outsOnPlay: outs });
+  }
+
+  _catchFly(fielder, time) {
+    const s = this.state, p = s.play, batter = s.runners.find(r => r.id === p.batter.id);
+    p.foulCatch = !p.fair; p.fair = true;
+    p.caught = true; p.catchAt = time; p.catchFielder = fielder.id;
+    this._fieldBall(fielder);
+    for (const runner of s.runners) {
+      if (runner === batter || runner.out) continue;
+      runner.tagRequired = Math.abs(runner.pathPosition - runner.fromBase) > 1e-8;
+      runner.tagReady = !runner.tagRequired; runner.taggedAt = runner.tagReady ? time : null;
+      const cpuAdvance = !this.isHumanBatting && (runner.fromBase === 3 && p.maxDistance > 96 || runner.fromBase === 2 && p.maxDistance > 105);
+      runner.tagQueued = (runner.manual && runner.targetBase > runner.fromBase) || cpuAdvance;
+      runner.tagDestination = runner.tagQueued ? Math.min(4, Math.max(runner.fromBase + 1, runner.targetBase)) : null;
+      runner.targetBase = runner.tagRequired ? runner.fromBase : runner.tagQueued ? runner.tagDestination : runner.fromBase;
+      runner.manual = true; runner.forcedBase = null;
+      if (runner.tagReady) runner.tagQueued = false;
+    }
+    this._event('catch', { fielder: fielder.id, tagUp: s.runners.some(r => r !== batter && !r.out) });
+    this._retireRunner(batter, 1, 'catch', time);
+    if (s.phase === 'live') {
+      p.decisionUntil = Math.max(p.decisionUntil, s.time + (this.isHumanBatting ? 2.4 : 1.0));
+      p.lastCall = { title: 'Caught', detail: 'Tag the starting base before advancing.', time };
+      if (s.runners.every(r => r.out || r.scored)) this._finishLive();
+    }
+  }
 
   _newFielders() {
     return FIELDING_POSITIONS.map(p => ({ ...p, y: 0, prevX: p.x, prevZ: p.z, target: { x: p.x, z: p.z }, hasBall: false }));
@@ -141,7 +348,8 @@ export class BaseballGame {
     if (snapshot?.version !== 1 || snapshot?.state?.version !== 1 || !snapshot.state.options || !Number.isFinite(snapshot.state.time)) throw new Error('Unsupported baseball snapshot');
     this.state = clone(snapshot.state);
     this.state.nextPitchId = finite(this.state.nextPitchId, finite(this.state.pitch?.id, 0) + 1);
-    this.options = { ...this.state.options };
+    this.options = { humanSides: [0], localSide: 0, inputWindow: 0.1, scenario: null, ...this.state.options };
+    this.state.options = { ...this.options };
     this._accumulator = clamp(finite(snapshot.accumulator), 0, STEP);
     this._events = [];
     this.lastRejection = null;
@@ -154,10 +362,14 @@ export class BaseballGame {
   command(input = {}) {
     const s = this.state;
     this.lastRejection = null;
+    if (input.side !== undefined && (input.side !== 0 && input.side !== 1 || !this.options.humanSides.includes(input.side))) return this._reject('That player does not control a side in this game.');
+    const battingCommand = ['swing', 'run', 'lead', 'steal'].includes(input.type);
+    const fieldingCommand = ['pitch', 'throw', 'pickoff'].includes(input.type);
+    if (battingCommand && !this._commandIsBatting(input) || fieldingCommand && this._commandIsBatting(input)) return this._reject('That action belongs to the other side.');
     // A transport can bind a command to the pitch the player actually saw.
     // Unscoped commands remain convenient for local play; IDs survive snapshots.
     if (input.pitchId !== undefined) {
-      const expected = input.type === 'pitch' ? s.nextPitchId : s.pitch?.id;
+      const expected = s.phase === 'ready' ? s.nextPitchId : s.pitch?.id ?? s.nextPitchId;
       if (!Number.isInteger(input.pitchId) || input.pitchId !== expected) return this._reject('This command belongs to a different pitch.');
     }
     if (input.type === 'next') {
@@ -171,17 +383,17 @@ export class BaseballGame {
       return this._reject('There is no completed play to advance.');
     }
     if (input.type === 'pitch') {
-      if (s.phase !== 'ready' || this.isBatting) return this._reject('Wait until your pitcher is ready.');
+      if (s.phase !== 'ready' || this._commandIsBatting(input)) return this._reject('Wait until your pitcher is ready.');
       if (!PITCHES[input.pitchType]) return this._reject('Unknown pitch.');
       if (!this.availablePitches.includes(input.pitchType)) return this._reject('That pitch is not in this pitcher’s repertoire.');
       this._startPitch(input.pitchType, aimWorld(input.aim), clamp(finite(input.quality, 0.5), 0, 1));
       return true;
     }
     if (input.type === 'swing') {
-      if (!this.isBatting || !['windup', 'pitch'].includes(s.phase) || s.swing) return this._reject('A swing is not available.');
+      if (!this._commandIsBatting(input) || !['windup', 'pitch'].includes(s.phase) || s.swing) return this._reject('A swing is not available.');
       const time = finite(input.time, s.time);
-      // This is bounded local event scheduling, not an online anti-cheat or network protocol.
-      if (time < s.time - 0.100001 || time > s.time + 0.025 || time < s.pitch.releaseAt - 0.65) return this._reject('Swing timestamp is outside the local input window.');
+      // The transport may provide a smaller measured budget; the engine enforces its configured hard limit.
+      if (time < s.time - this.options.inputWindow - 0.000001 || time > s.time + 0.025 || time < s.pitch.releaseAt - 0.65) return this._reject('Swing timestamp is outside the local input window.');
       s.swing = { time, power: Boolean(input.power), aim: { x: clamp(finite(input.aim?.x), -1, 1), y: clamp(finite(input.aim?.y), -1, 1) } };
       if (this.options.mode === 'practice') s.practice.swings++;
       this._event('swing', { power: s.swing.power });
@@ -189,7 +401,7 @@ export class BaseballGame {
       return true;
     }
     if (input.type === 'throw') {
-      if (this.isBatting || s.phase !== 'live' || !['flight', 'held', 'throw'].includes(s.play?.stage)) return this._reject('There is no live defensive play.');
+      if (this._commandIsBatting(input) || s.phase !== 'live' || !['flight', 'held', 'throw'].includes(s.play?.stage)) return this._reject('There is no live defensive play.');
       const base = input.base ?? 1;
       if (!Number.isInteger(base) || base < 1 || base > 4) return this._reject('Choose first, second, third or home.');
       if (s.play.stage === 'held' && s.play.transferUntil && s.play.throwBase === base) return true;
@@ -198,6 +410,9 @@ export class BaseballGame {
       return true;
     }
     if (input.type === 'run') return this._runCommand(input);
+    if (input.type === 'lead') return this._leadCommand(input);
+    if (input.type === 'steal') return this._stealCommand(input);
+    if (input.type === 'pickoff') return this._pickoffCommand(input);
     return this._reject('Unknown command.');
   }
 
@@ -216,7 +431,11 @@ export class BaseballGame {
     s.tick++; s.time = s.tick * STEP; s.phaseTime = s.time - s.phaseStartedAt;
     b.prevX = b.x; b.prevY = b.y; b.prevZ = b.z;
     for (const f of s.fielders) { f.prevX = f.x; f.prevZ = f.z; }
-    if (s.phase === 'ready' && this.isBatting && s.phaseTime >= 1.6) this._cpuPitch();
+    if (['ready', 'windup', 'pitch'].includes(s.phase)) this._updatePreRunners();
+    if (s.phase === 'ready') {
+      this._cpuRunningDecisions();
+      if (s.phase === 'ready' && !this.isHumanFielding && s.phaseTime >= (s.bases.some(Boolean) ? 4 : 1.6)) this._cpuPitch();
+    }
     else if (s.phase === 'windup') {
       if (s.time + 1e-9 >= s.pitch.releaseAt) {
         this._phase('pitch'); b.visible = true;
@@ -269,7 +488,7 @@ export class BaseballGame {
     };
     s.swing = null; s.result = null; s.pending = null; s.play = null;
     Object.assign(s.ball, { x: -0.32, y: 1.88, z: 18.44, prevX: -0.32, prevY: 1.88, prevZ: 18.44, visible: false, bounced: false, vx: 0, vy: 0, vz: 0 });
-    if (!this.isBatting) {
+    if (!this.isHumanBatting) {
       const strike = inStrikeZone(target), willSwing = this._random() < (strike ? 0.86 : 1 - this.difficulty.aiTake);
       const reading = knuckle ? (hanging ? 0.78 : 1.28) : 1;
       if (willSwing) s.pitch.aiSwing = {
@@ -280,6 +499,7 @@ export class BaseballGame {
     }
     if (this.options.mode === 'practice') s.practice.pitches++;
     this._phase('windup');
+    for (const runner of s.runners) if (runner.stealQueued) this._beginSteal(runner, s.time + 0.10);
     this._event('windup', { pitchId: s.pitch.id, pitchType: type });
   }
 
@@ -297,7 +517,7 @@ export class BaseballGame {
     if (s.phase !== 'pitch') return;
     // Preserve the complete late timing window plus the local delivery budget.
     // Resolving sooner would silently make an advertised symmetric window early-biased.
-    const deadline = p.contactAt + (this.isBatting ? this.difficulty.timing + 0.101 : 0.26);
+    const deadline = p.contactAt + (this.isHumanBatting ? this.difficulty.timing + this.options.inputWindow + 0.001 : 0.26);
     if (!p.resolved && s.time >= deadline) {
       p.resolved = true;
       this._calledPitch(inStrikeZone(p.target), false);
@@ -309,7 +529,7 @@ export class BaseballGame {
     if (!p || p.resolved || !swing || s.phase !== 'pitch') return;
     p.resolved = true;
     const aim = aimWorld(swing.aim), timing = swing.time - p.contactAt;
-    const isHuman = this.isBatting;
+    const isHuman = this.isHumanBatting;
     const profile = isHuman ? this.difficulty : DIFFICULTIES.club;
     const window = profile.timing * (swing.power ? 0.76 : 1);
     const spatial = Math.hypot((p.target.x - aim.x) / profile.reachX, (p.target.y - aim.y) / profile.reachY);
@@ -332,7 +552,7 @@ export class BaseballGame {
     });
     const label = Math.abs(timing) < 0.035 ? 'On time' : timing < 0 ? 'Early' : 'Late';
     s.lastContact = { timing, timingLabel: label, quality, exitVelocity: Math.round(speed * 2.236936), launchAngle: Math.round(launchAngle * 180 / Math.PI), distance: 0, foul: Math.abs(angle) > Math.PI / 4 };
-    const batter = this._runner();
+    const batter = this._runner(), existingRunners = s.runners;
     s.play = {
       stage: 'flight', hitAt: s.time, contactAt: p.contactAt, age: 0, initialBases: clone(s.bases), batter,
       fair: Math.abs(angle) <= Math.PI / 4, maxDistance: 0, fielder: null, heldAt: null,
@@ -341,9 +561,13 @@ export class BaseballGame {
       throwBase: null, recommendedBase: 1, transferUntil: null, throwReadyAt: 0,
       decisionUntil: s.time + 4, lastActionAt: s.time, lastCall: null, coverBase: null,
     };
-    s.runners = s.bases.flatMap((runner, i) => runner ? [this._liveRunner(runner, i + 1)] : []);
+    s.runners = s.bases.flatMap((runner, i) => {
+      if (!runner) return [];
+      const running = existingRunners.find(r => r.id === runner.id);
+      return [running ? { ...running, fromBase: i + 1, stealing: false, stealQueued: false } : this._liveRunner(runner, i + 1)];
+    });
     s.runners.push(this._liveRunner(batter, 0));
-    for (const runner of s.runners) { runner.forcedBase = this._forceBase(runner) || null; runner.targetBase = runner.forcedBase || runner.fromBase; }
+    for (const runner of s.runners) { runner.forcedBase = this._forceBase(runner) || null; runner.targetBase = Math.max(runner.manual ? runner.targetBase : runner.fromBase, runner.forcedBase || 0); }
     if (this.options.mode === 'practice') s.practice.contacts++;
     this._phase('live');
     this._event('contact', { ...s.lastContact });
@@ -387,14 +611,8 @@ export class BaseballGame {
     play.maxDistance = Math.max(play.maxDistance, Math.hypot(next.x, next.z));
     if (s.lastContact && play.ballKind === 'batted') s.lastContact.distance = play.maxDistance;
     if (this.options.mode === 'practice') s.practice.bestDistance = Math.max(s.practice.bestDistance, play.maxDistance);
-    if (!play.fair) {
-      Object.assign(b, next);
-      if (b.y < BALL_RADIUS) { b.y = BALL_RADIUS; b.vy = Math.abs(b.vy) * 0.35; }
-      if (play.age > 1.25) this._foul();
-      return;
-    }
     const target = !b.bounced && b.y > 2.7 ? play.landing : { x: b.x + b.vx * 0.25, z: b.z + b.vz * 0.25 };
-    const candidates = s.fielders.filter(f => f.id !== 'C').map(f => ({ f, time: distance(f, target) / f.speed })).sort((a, c) => a.time - c.time);
+    const candidates = s.fielders.filter(f => f.id !== 'C' || !play.fair).map(f => ({ f, time: distance(f, target) / f.speed })).sort((a, c) => a.time - c.time);
     for (let i = 0; i < Math.min(2, candidates.length); i++) this._moveFielder(candidates[i].f, target);
     this._coverBases(candidates.slice(0, 2).map(candidate => candidate.f.id));
     const groundT = next.y < BALL_RADIUS && old.y > BALL_RADIUS ? (old.y - BALL_RADIUS) / (old.y - next.y) : 1;
@@ -408,13 +626,13 @@ export class BaseballGame {
       }
     }
     if (catchResult) {
-      const f = catchResult.f; f.hasBall = true;
-      Object.assign(b, { x: f.x, y: 1.35, z: f.z }); play.fielder = f.id;
-      this._event('catch', { fielder: f.id });
-      this._restoreHeldRunners();
-      this._out('Caught', `${f.id} makes the catch. Runners hold.`, 'catch'); return;
+      this._catchFly(catchResult.f, s.time - STEP + catchResult.t * STEP); return;
     }
     Object.assign(b, next);
+    if (!play.fair) {
+      if (next.y <= BALL_RADIUS || play.age > 12 || Math.hypot(next.x, next.z) > fieldRadius(Math.atan2(next.x, next.z))) this._foul();
+      return;
+    }
     if (wallT !== null) {
       const hit = { x: lerp(old.x, next.x, wallT), y: lerp(old.y, next.y, wallT), z: lerp(old.z, next.z, wallT) };
       if (!b.bounced && wallT <= groundT && hit.y - BALL_RADIUS > FENCE_HEIGHT) {
@@ -456,7 +674,9 @@ export class BaseballGame {
     return { ...runner, fromBase: base, base, highestBase: base, targetBase: Math.max(1, base),
       pathPosition: base, prevPathPosition: base, progress: 0, x: BASES[base].x, y: 0, z: BASES[base].z,
       prevX: BASES[base].x, prevZ: BASES[base].z, safe: base > 0, out: false, scored: false,
-      manual: false, sliding: false, forcedBase: null, touchedAt: base ? { [base]: this.state.time } : {}, outAt: null };
+      manual: false, sliding: false, forcedBase: null, touchedAt: base ? { [base]: this.state.time } : {}, outAt: null,
+      leadLevel: 0, leadDistance: 0, stealQueued: false, stealing: false,
+      tagRequired: false, tagReady: false, tagQueued: false };
   }
 
   _normaliseLive() {
@@ -481,6 +701,7 @@ export class BaseballGame {
   }
 
   _forceBase(runner, time = this.state.time) {
+    if (this.state.play?.kind === 'steal' || this.state.play?.kind === 'pickoff' || this.state.play?.caught) return 0;
     if (runner.out && (runner.outAt ?? -Infinity) <= time || runner.scored && runner.scoredAt <= time) return 0;
     const destination = runner.fromBase + 1;
     if (destination > 4) return 0;
@@ -500,10 +721,20 @@ export class BaseballGame {
 
   _runCommand(input) {
     const s = this.state, p = s.play;
-    if (!this.isBatting || s.phase !== 'live' || !p?.fair) return this._reject('There is no live runner to direct.');
+    if (!this._commandIsBatting(input) || s.phase !== 'live' || !p?.fair) return this._reject('There is no live runner to direct.');
     const runner = s.runners.find(r => r.id === input.runnerId);
     if (!runner || runner.out || runner.scored) return this._reject('Choose an active runner.');
     let target = input.base;
+    if (runner.tagRequired) {
+      if (input.action === 'advance' || Number.isInteger(target) && target > runner.fromBase) {
+        const destination = clamp(target || runner.fromBase + 1, runner.fromBase + 1, 4);
+        if (this._baseBlocked(runner, destination)) return this._reject(`${this._baseName(destination)} is occupied. Advance the lead runner first.`);
+        runner.tagQueued = true; runner.tagDestination = destination;
+      } else { runner.tagQueued = false; runner.tagDestination = null; }
+      runner.targetBase = runner.fromBase; runner.manual = true; p.lastActionAt = s.time; p.decisionUntil = Math.max(p.decisionUntil, s.time + 1.5);
+      this._event('runner-command', { runnerId: runner.id, base: runner.fromBase, tagQueued: runner.tagQueued });
+      return true;
+    }
     if (input.action === 'advance') target = Math.min(4, Math.max(runner.targetBase + 1, Math.floor(runner.pathPosition) + 1));
     if (input.action === 'hold') target = runner.targetBase < runner.pathPosition
       ? Math.floor(runner.pathPosition + 1e-8) : Math.ceil(runner.pathPosition - 1e-8);
@@ -518,6 +749,7 @@ export class BaseballGame {
     }
     if (this._baseBlocked(runner, target)) return this._reject(`${this._baseName(target)} is occupied. Advance the lead runner first.`);
     runner.targetBase = target; runner.manual = true;
+    if (p.kind === 'pickoff' || p.kind === 'steal') runner.reactionAt = Math.min(runner.reactionAt || s.time, s.time);
     runner.safe = Math.abs(runner.pathPosition - target) < 1e-8 && !forced;
     p.lastActionAt = s.time; p.decisionUntil = Math.max(p.decisionUntil, s.time + 1.25);
     this._event('runner-command', { runnerId: runner.id, base: target });
@@ -536,12 +768,14 @@ export class BaseballGame {
       if (force) runner.targetBase = Math.max(runner.targetBase, force);
       if (!runner.manual && s.ball.bounced && p.ballKind === 'batted') {
         const automatic = runner.fromBase > 0 && p.maxDistance > 33 ? Math.min(4, runner.fromBase + 1)
-          : !this.isBatting && runner.fromBase === 0 && p.maxDistance > 76 ? 2 : runner.targetBase;
+          : !this.isHumanBatting && runner.fromBase === 0 && p.maxDistance > 76 ? 2 : runner.targetBase;
         if (automatic > runner.targetBase && !this._baseBlocked(runner, automatic)) runner.targetBase = automatic;
       }
       let destination = runner.targetBase;
-      // Existing runners read a fly until it drops; tag-ups and appeals are outside this edition.
-      if (runner.fromBase > 0 && !s.ball.bounced && p.ballKind === 'batted') destination = Math.min(destination, runner.fromBase + 0.18);
+      // Read airborne contact; a caught ball requires a physical return to the original bag.
+      if (runner.fromBase > 0 && !s.ball.bounced && p.ballKind === 'batted' && !p.caught) destination = Math.min(destination, runner.fromBase + (runner.manual ? 0.18 : 0));
+      if (runner.tagRequired) destination = runner.fromBase;
+      if (runner.reactionAt > s.time) destination = runner.pathPosition;
       const direction = Math.sign(destination - runner.pathPosition), amount = runner.speed * STEP / BASE_DISTANCE;
       let next = runner.pathPosition + direction * Math.min(amount, Math.abs(destination - runner.pathPosition));
       // Runners cannot pass the lead runner or occupy the same bag.
@@ -562,11 +796,17 @@ export class BaseballGame {
             this._event('runner-home', { runnerId: runner.id });
           } else {
             this._event('safe', { runnerId: runner.id, base });
-            if (this.isBatting) p.decisionUntil = Math.max(p.decisionUntil, s.time + 1.15);
+            if (this.isHumanBatting) p.decisionUntil = Math.max(p.decisionUntil, s.time + 1.15);
           }
         }
       } else if (direction < 0 && Math.abs(runner.pathPosition - Math.round(runner.pathPosition)) < 1e-8) {
         runner.base = Math.round(runner.pathPosition); runner.touchedAt[runner.base] = s.time;
+      }
+      if (runner.tagRequired && Math.abs(runner.pathPosition - runner.fromBase) < 1e-8) {
+        runner.tagRequired = false; runner.tagReady = true; runner.taggedAt = s.time;
+        runner.touchedAt[runner.fromBase] = s.time;
+        if (runner.tagQueued) { runner.targetBase = runner.tagDestination || Math.min(4, runner.fromBase + 1); runner.tagQueued = false; }
+        this._event('tag-ready', { runnerId: runner.id, base: runner.fromBase });
       }
       const index = Math.min(3, Math.floor(runner.pathPosition)), fraction = runner.pathPosition - index;
       const a = BASES[index], b = BASES[index + 1];
@@ -603,12 +843,12 @@ export class BaseballGame {
     let best = null, bestScore = -Infinity;
     for (const runner of s.runners) {
       if (runner.out || runner.scored || runner.safe && runner.targetBase === runner.base) continue;
-      const forced = this._forceBase(runner), base = forced || runner.targetBase;
+      const forced = this._forceBase(runner), base = runner.tagRequired ? runner.fromBase : forced || runner.targetBase;
       if (!base || base < 1 || base > 4) continue;
       const receiver = this._receiverForBase(base, p.fielder);
       const runnerTime = Math.abs(base - runner.pathPosition) * BASE_DISTANCE / runner.speed;
       const ballTime = Math.max(distance(ball, BASES[base]) / 29 + 0.28, distance(receiver, BASES[base]) / Math.max(0.1, receiver.speed));
-      const score = (ballTime < runnerTime + 0.15 ? 10 : 0) + (forced ? 4 : 0) + base * 0.8 - Math.max(0, ballTime - runnerTime) * 2;
+      const score = (runner.tagRequired ? 6 : 0) + (ballTime < runnerTime + 0.15 ? 10 : 0) + (forced ? 4 : 0) + base * 0.8 - Math.max(0, ballTime - runnerTime) * 2;
       if (score > bestScore) { bestScore = score; best = base; }
     }
     return best;
@@ -621,7 +861,7 @@ export class BaseballGame {
     p.possessionAt = s.time;
     p.throwReadyAt = s.time + 0.18; p.transferUntil = null; p.coverBase = null;
     p.recommendedBase = this._recommendBase();
-    p.decisionUntil = Math.max(p.decisionUntil, s.time + (this.isBatting ? 1.8 : 1.2));
+    p.decisionUntil = Math.max(p.decisionUntil, s.time + (this.isHumanBatting ? 1.8 : 1.2));
     Object.assign(s.ball, { x: f.x, y: 1.4, z: f.z, vx: 0, vy: 0, vz: 0, visible: true });
     this._event('fielded', { fielder: f.id });
   }
@@ -691,7 +931,7 @@ export class BaseballGame {
       return;
     }
     if (p.queuedBase && s.time >= p.throwReadyAt) { this._prepareThrow(p.queuedBase); return; }
-    const autoDelay = this.isBatting ? 0.30 : 1.0;
+    const autoDelay = this.isHumanFielding ? 1.0 : p.kind === 'steal' ? 0.08 : 0.30;
     if (p.recommendedBase && s.time - p.heldAt >= autoDelay) {
       const atRecommended = distance(f, BASES[p.recommendedBase]) < 0.6;
       if (!atRecommended) { this._prepareThrow(p.recommendedBase); return; }
@@ -714,6 +954,7 @@ export class BaseballGame {
       const candidates = [];
       for (const r of s.runners) {
         if (r.out || r.scored && r.scoredAt <= time) continue;
+        if (s.play.caught && r.tagRequired && distance(fielder, BASES[r.fromBase]) <= 0.65) candidates.push({ runner: r, base: r.fromBase, type: 'retouch', time });
         const forced = this._forceBase(r, time);
         if (forced && distance(fielder, BASES[forced]) <= 0.65) candidates.push({ runner: r, base: forced, type: 'force', time });
         const start = clamp(((s.play.possessionAt ?? s.time) - (s.time - STEP)) / STEP, 0, 1);
@@ -737,24 +978,25 @@ export class BaseballGame {
     const s = this.state, p = s.play;
     if (runner.out || runner.scored && runner.scoredAt <= time) return;
     if (runner.scored) { runner.scored = false; p.runCrossings = p.runCrossings.filter(crossing => crossing.runnerId !== runner.id); }
-    const batterBeforeFirst = runner.fromBase === 0 && (runner.touchedAt[1] === undefined || runner.touchedAt[1] > time);
+    const batterBeforeFirst = !p.kind && runner.fromBase === 0 && (runner.touchedAt[1] === undefined || runner.touchedAt[1] > time);
     runner.out = true; runner.outAt = time; runner.safe = false; runner.sliding = false;
     for (const other of s.runners) other.forcedBase = this._forceBase(other) || null;
     p.outs.push({ runnerId: runner.id, base, type, time, batterBeforeFirst });
     if (this.options.mode !== 'practice') s.outs++;
-    p.lastCall = { title: `Out at ${this._baseName(base)}`, detail: type === 'force' ? 'Force play' : 'Tagged off the bag', time };
+    p.lastCall = { title: `Out at ${this._baseName(base)}`, detail: type === 'force' ? 'Force play' : type === 'retouch' ? 'Doubled off before tagging up' : 'Tagged off the bag', time };
     p.lastActionAt = s.time;
     if (p.transferUntil) p.queuedBase ??= p.throwBase;
     p.transferUntil = null;
-    this._event('out', { outs: s.outs, runnerId: runner.id, base, kind: type });
-    if (s.outs >= 3 || this.options.mode === 'practice' && runner.fromBase === 0) this._finishLive();
+    this._event('out', { outs: s.outs, runnerId: runner.id, base: type === 'catch' ? null : base, kind: type });
+    if (s.outs >= 3 || this.options.mode === 'practice' && runner.fromBase === 0 && !p.caught) this._finishLive();
   }
 
   _finishLive() {
     const s = this.state, p = s.play;
     if (s.phase !== 'live') return;
+    if (p.kind === 'steal' || p.kind === 'pickoff') { this._finishRunningPlay(); return; }
     const third = s.outs >= 3 ? p.outs.at(-1) : null;
-    const invalidateRuns = third && (third.type === 'force' || third.batterBeforeFirst);
+    const invalidateRuns = third && (third.type === 'force' || third.type === 'catch' || third.batterBeforeFirst);
     const before = s.score[s.battingSide];
     if (!invalidateRuns) for (const crossing of p.runCrossings) {
       if (third && crossing.time >= third.time - 1e-9) continue;
@@ -770,21 +1012,22 @@ export class BaseballGame {
     s.bases = this.options.mode === 'practice' ? [null, null, null] : bases;
     const batter = s.runners.find(r => r.id === p.batter.id), reaches = batter?.highestBase || 0;
     const choice = p.outs.some(out => out.runnerId !== p.batter.id && out.type === 'force');
-    const isHit = reaches >= 1 && !choice;
+    const isHit = reaches >= 1 && !choice && !p.caught;
     const award = Math.min(3, reaches);
     if (isHit) { s.hits[s.battingSide]++; if (this.options.mode === 'practice') s.practice.hits++; this._event('hit', { bases: award, homeRun: false }); }
     const multiple = p.outs.length >= 2;
     let title = multiple ? (p.outs.length > 2 ? 'Triple play!' : 'Double play!')
       : isHit ? (award === 3 ? 'Triple' : award === 2 ? 'Double' : 'Single')
-        : choice ? 'Fielder’s choice' : batter?.out ? 'Groundout' : 'Play complete';
+        : p.caught ? 'Caught' : choice ? 'Fielder’s choice' : batter?.out ? 'Groundout' : 'Play complete';
     const runs = s.score[s.battingSide] - before;
-    const detail = [isHit ? `${s.lastContact?.exitVelocity || 0} mph off the bat` : '',
-      ...p.outs.map(out => `Out at ${this._baseName(out.base)} (${out.type})`),
+    if (p.caught && runs > 0) title = multiple ? 'Sacrifice fly · double play' : 'Sacrifice fly';
+    const detail = [p.caught ? `${p.catchFielder} makes the catch` : isHit ? `${s.lastContact?.exitVelocity || 0} mph off the bat` : '',
+      ...p.outs.filter(out => out.type !== 'catch').map(out => `Out at ${this._baseName(out.base)} (${out.type})`),
       runs ? `${runs} run${runs === 1 ? '' : 's'} score` : '',
-      invalidateRuns && p.runCrossings.length ? 'No run: third out was a force' : ''].filter(Boolean).join(' · ');
+      invalidateRuns && p.runCrossings.length ? (third.type === 'catch' ? 'No run: third out was the caught batter' : 'No run: third out was a force') : ''].filter(Boolean).join(' · ');
     this._advanceBatter();
     const next = s.outs >= 3 ? this._halfEndDecision() : this._isWalkoff() ? 'final' : 'batter';
-    this._complete(title, detail || 'Runners hold their bases.', multiple ? 'doublePlay' : isHit ? 'hit' : choice ? 'fieldersChoice' : 'groundout', next,
+    this._complete(title, detail || 'Runners hold their bases.', multiple ? 'doublePlay' : p.caught ? (runs > 0 ? 'sacrificeFly' : 'catch') : isHit ? 'hit' : choice ? 'fieldersChoice' : 'groundout', next,
       { bases: award, runs, outsOnPlay: p.outs.length, distance: Math.round(p.maxDistance * 3.28084) });
   }
 
@@ -797,6 +1040,9 @@ export class BaseballGame {
   _runner() { return { id: this.state.nextRunnerId++, number: this.state.batterIndex[this.state.battingSide] + 1, side: this.state.battingSide, speed: 6.8 + (this.state.batterIndex[this.state.battingSide] % 3) * 0.2 }; }
   _complete(title, detail, kind, next = 'pitch', extra = {}) {
     const s = this.state;
+    if (s.phase === 'pitch' && ['strike', 'ball', 'strikeout'].includes(kind) && s.outs < 3 && s.runners.some(r => r.stealing && !r.out)) {
+      this._beginRunningPlay('steal', { title, detail, kind, next, ...extra }); return;
+    }
     if (s.play) s.play.stage = 'settled';
     s.result = { title, detail, kind, ...extra };
     s.pending = next;
@@ -886,11 +1132,12 @@ export class BaseballGame {
   }
   _ready() {
     const s = this.state, newBatter = s.pending === 'batter';
-    if (newBatter) { s.balls = 0; s.strikes = 0; }
-    s.pending = null; s.pitch = null; s.swing = null; s.play = null; s.result = null;
+    if (newBatter) { s.balls = 0; s.strikes = 0; s.pickoffAttempts = 0; }
+    s.pending = null; s.pitch = null; s.swing = null; s.play = null; s.result = null; s.readyActionChecked = false; s.cpuRunnerChecked = false;
     s.fielders = this._newFielders();
     Object.assign(s.ball, { visible: false, x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, bounced: false });
     s.runners = s.bases.flatMap((runner, i) => runner ? [this._liveRunner(runner, i + 1)] : []);
+    if (this.options.scenario === 'runners') this._setupRunningPractice();
     this._phase('ready');
   }
   _nextHalf() {
@@ -898,7 +1145,7 @@ export class BaseballGame {
     if (s.half === 'top') { s.half = 'bottom'; s.battingSide = 1; }
     else { s.half = 'top'; s.battingSide = 0; s.inning++; }
     for (const line of s.lineScore) while (line.length < s.inning) line.push(0);
-    s.outs = 0; s.balls = 0; s.strikes = 0; s.bases = [null, null, null]; s.pending = null;
+    s.outs = 0; s.balls = 0; s.strikes = 0; s.bases = [null, null, null]; s.pending = null; s.pickoffAttempts = 0;
     this._ready();
   }
   _final() {

@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, fieldRadius, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.2.0';
+import { BASES, fieldRadius, STRIKE_ZONE, AIM_AREA, inStrikeZone } from './engine.mjs?v=0.3.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -7,6 +7,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const mix = (a, b, t) => a + (b - a) * t;
 const TAU = Math.PI * 2;
+const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const COLORS = { dirt: 0xb88258, chalk: 0xf1ebd6, wall: 0x173d35,
   home: 0xf0e7cf, homeCap: 0x173d35, away: 0xb5403e, awayCap: 0x1b2f45 };
 
@@ -14,13 +15,14 @@ const COLORS = { dirt: 0xb88258, chalk: 0xf1ebd6, wall: 0x173d35,
 // they never move a runner, change a throw, or influence a collision result.
 export function samplePlayerMotion(state, role, { moving = false, actor = {}, index = 0 } = {}) {
   const time = state?.time || 0, phase = state?.phase || 'ready', pitch = state?.pitch, play = state?.play;
-  const p = { hipY: 0, lean: 0, twist: 0, head: 0, stride: 0,
+  const breath = Math.sin(time * 2.4 + index * .63);
+  const p = { hipY: breath * .008, hipX: 0, hipZ: 0, roll: 0, lean: 0, twist: 0, head: 0, stride: 0,
     leftHip: .08, rightHip: .08, leftKnee: .12, rightKnee: .12,
     leftArm: -.12, rightArm: -.12, leftElbow: -.16, rightElbow: -.16,
     leftSpread: .08, rightSpread: -.08, bat: [-.25, 0, -.32], batVisible: role === 'batter', slide: 0 };
   if (moving) {
     const cycle = Math.sin(time * 15 + index * .73), opposite = Math.sin(time * 15 + index * .73 + Math.PI);
-    p.hipY = Math.abs(cycle) * .045; p.lean = .13; p.stride = cycle;
+    p.hipY = Math.abs(cycle) * .046; p.hipX = cycle * .014; p.roll = cycle * .032; p.lean = .16; p.stride = cycle;
     p.leftHip = cycle * .72; p.rightHip = -cycle * .72;
     p.leftKnee = .17 + Math.max(0, -cycle) * 1.05; p.rightKnee = .17 + Math.max(0, -opposite) * 1.05;
     p.leftArm = -.20 - cycle * .74; p.rightArm = -.20 + cycle * .74;
@@ -39,7 +41,7 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       p.leftArm = -1.3 + drive * .6; p.leftElbow = -.9;
       p.rightArm = -.7 - u * 1.9; p.rightElbow = -1.35 + drive * .85; p.rightSpread = -.35 - drive * .25;
     } else if (release < .78) {
-      const u = clamp(release / .37, 0, 1), recover = clamp((release - .37) / .41, 0, 1);
+      const u = smooth(release / .37), recover = smooth((release - .37) / .41);
       p.rightArm = mix(-2.60 + u * 3.25, -.12, recover); p.rightElbow = mix(-.50 + u * .30, -.16, recover);
       p.leftArm = mix(-.65, -.12, recover); p.leftElbow = -.75 * (1 - recover);
       p.lean = Math.sin(u * Math.PI / 2) * .48 * (1 - recover); p.twist = .38 * (1 - recover);
@@ -54,12 +56,12 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     const age = state?.swing ? time - state.swing.time : -1;
     if (age >= 0 && age < .72) {
       // Swing intent is impact, so the bat reaches the plate on that frame.
-      const u = clamp(age / .42, 0, 1), recover = clamp((age - .42) / .30, 0, 1);
+      const u = smooth(age / .42), recover = smooth((age - .42) / .30);
       p.twist = mix(u * 1.45, -.17, recover); p.lean = mix(.12, 0, recover);
       p.leftArm = mix(-1.5 + u * .65, -1.05, recover); p.rightArm = mix(-1.5 - u * .4, -1.42, recover);
       p.leftElbow = mix(-.12 - u * .9, -1.28, recover); p.rightElbow = mix(-.30 - u * 1.3, -1.38, recover);
       p.bat = [mix(1.48 - u * 1.35, -.25, recover), mix(-u * 1.3, 0, recover), mix(.08 - u * .75, -.32, recover)];
-      p.rightHip = .24 + u * .16; p.rightKnee = .25; p.head = -.1;
+      p.rightHip = .24 + u * .16; p.rightKnee = .25; p.head = -.1; p.hipX = -.075 * Math.sin(u * Math.PI) * (1 - recover); p.roll = -.045 * (1 - recover);
     } else if (pitch && ['windup', 'pitch'].includes(phase)) {
       const load = clamp((time - (pitch.releaseAt - .4)) / .6, 0, 1);
       p.twist = -.17 - Math.sin(load * Math.PI) * .16; p.leftHip -= Math.sin(load * Math.PI) * .10;
@@ -87,8 +89,23 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       p.rightElbow = thrown ? -.45 + u * .25 : -1.25 + u * .8;
     }
   }
+  if (role === 'runner' && !moving && (actor.leadDistance > .1 || actor.stealQueued || actor.tagQueued)) {
+    p.hipY = -.16; p.lean = .20; p.leftHip = p.rightHip = -.35; p.leftKnee = p.rightKnee = .65;
+    p.leftArm = -.43; p.rightArm = -.40; p.leftElbow = p.rightElbow = -.8; p.head = -.18;
+  }
+  if (!['batter','runner','umpire'].includes(role) && phase === 'live' && play?.stage === 'flight' && state?.ball?.visible) {
+    const ball = state.ball, reach = clamp(1 - Math.hypot((actor.x||0)-ball.x,(actor.z||0)-ball.z)/2.1,0,1);
+    if (reach > 0) {
+      if (ball.y < .8) { p.hipY -= reach*.19; p.lean += reach*.27; p.leftArm = mix(p.leftArm,-.72,reach); p.leftElbow = mix(p.leftElbow,-.25,reach); p.leftKnee += reach*.22; p.rightKnee += reach*.22; }
+      else { p.leftArm = mix(p.leftArm,-1.85,reach); p.leftElbow = mix(p.leftElbow,-.50,reach); p.head = -.08; }
+    }
+  }
+  if (!moving && !['batter','runner','umpire'].includes(role) && play?.stage === 'throw' && actor.id === play.receiver) {
+    const receive = smooth((play.throw?.elapsed || 0) / Math.max(.001, play.throw?.duration || 1));
+    p.leftArm = -.5 - receive * 1.1; p.leftElbow = -.7; p.lean = .12;
+  }
   if (role === 'runner' && (actor.sliding || (moving && actor.targetBase > 1 && actor.pathPosition < actor.targetBase && actor.pathPosition > actor.targetBase - .065))) {
-    p.slide = 1; p.hipY = -.56; p.lean = -.95; p.leftHip = -1.2; p.rightHip = -.55;
+    p.slide = 1; p.hipY = -.56; p.lean = -.95; p.leftHip = -.16; p.rightHip = -.55;
     p.leftKnee = .06; p.rightKnee = 1.25; p.leftArm = .55; p.rightArm = .65; p.leftElbow = p.rightElbow = -.6;
   }
   return p;
@@ -105,9 +122,9 @@ function canvasTexture(width, height, draw) {
 function fieldTexture() {
   return canvasTexture(2048, 2048, (c, w) => {
     const scale = w / 360, px = x => (x + 180) * scale, pz = z => (z + 135) * scale;
-    c.fillStyle = '#355f3e'; c.fillRect(0, 0, w, w);
+    c.fillStyle = '#294c36'; c.fillRect(0, 0, w, w);
     for (let z = -130; z < 225; z += 12) {
-      c.fillStyle = (Math.round(z / 12) & 1) ? '#416f47' : '#4a7950';
+      c.fillStyle = (Math.round(z / 12) & 1) ? '#376640' : '#417449';
       c.fillRect(0, pz(z), w, 12 * scale);
     }
     const path = (points, fill) => {
@@ -125,7 +142,9 @@ function fieldTexture() {
     // Skin infield with a grass diamond, individual dirt circles and paths.
     c.beginPath(); c.arc(px(0), pz(0), 32 * scale, Math.PI / 4, Math.PI * .75);
     c.lineTo(px(0), pz(-2)); c.closePath(); c.fillStyle = '#b98459'; c.fill();
-    path([[-22, 22], [0, 44], [22, 22], [0, -3]], '#b98459');
+    const infield = [[0, -3]];
+    for (let i = 0; i <= 64; i++) { const a = -Math.PI / 4 + i / 64 * Math.PI / 2; infield.push([Math.sin(a) * 42.5, Math.cos(a) * 42.5]); }
+    path(infield, '#b7835d');
     path([[-14.9, 21.2], [0, 35.8], [14.9, 21.2], [0, 6.4]], '#477548');
     const disc = (x, z, r, color) => {
       c.beginPath(); c.arc(px(x), pz(z), r * scale, 0, TAU); c.fillStyle = color; c.fill();
@@ -140,6 +159,12 @@ function fieldTexture() {
     }
     c.lineWidth = .06 * scale;
     for (const sign of [-1, 1]) c.strokeRect(px(sign < 0 ? -1.43 : .57), pz(-.65), .86 * scale, 1.8 * scale);
+    // Coaches' boxes and on-deck circles remain out of the live basepaths.
+    c.strokeStyle = 'rgba(242,231,204,.72)'; c.lineWidth = .08 * scale;
+    for (const side of [-1, 1]) {
+      c.strokeRect(px(side < 0 ? -27.5 : 23), pz(15), 4.5 * scale, 7 * scale);
+      c.beginPath(); c.arc(px(side * 8), pz(-7), 1.5 * scale, 0, TAU); c.stroke();
+    }
     // Deterministic subtle grain, generated once. It never swims with the camera.
     let seed = 38721;
     for (let i = 0; i < 28000; i++) {
@@ -158,9 +183,9 @@ export class BallparkRenderer {
     this.models = new Map(); this.runnerModels = []; this.lastBoard = ''; this.wasMenu = true;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12;
-    this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x354852);
-    this.scene.fog = new THREE.Fog(0x43535a, 190, 430);
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
+    this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x172c43);
+    this.scene.fog = new THREE.Fog(0x354251, 215, 480);
     this.camera = new THREE.PerspectiveCamera(51, 1, .075, 700);
     this.camera.position.set(82, 53, -31); this.look = V(0, 3, 38);
     this.targetCamera = V(); this.targetLook = V(); this.scratch = V();
@@ -168,10 +193,10 @@ export class BallparkRenderer {
       sphere: new THREE.SphereGeometry(1, 10, 8), cylinder: new THREE.CylinderGeometry(1, 1, 1, 8),
       plane: new THREE.PlaneGeometry(1, 1), disc: new THREE.CircleGeometry(1, 24) };
     this.materials = new Map();
-    this.scene.add(new THREE.HemisphereLight(0xf4e3c4, 0x42503c, 2.5));
-    const sun = new THREE.DirectionalLight(0xffd2a1, 2.6); sun.position.set(-60, 75, -20); this.scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xc8dfe8, .8); fill.position.set(30, 45, 70); this.scene.add(fill);
-    this.buildSky(); this.buildField(); this.buildStadium(); this.buildActors(); this.buildGuides();
+    this.scene.add(new THREE.HemisphereLight(0xd4e3f0, 0x283b2c, 1.9));
+    const sun = new THREE.DirectionalLight(0xffe6bd, 2.2); sun.position.set(-60, 75, -20); this.scene.add(sun);
+    const fill = new THREE.DirectionalLight(0xc7dcfa, 1.15); fill.position.set(30, 45, 70); this.scene.add(fill);
+    this.buildSky(); this.buildField(); this.buildStadium(); this.buildParkDetails(); this.buildActors(); this.buildGuides(); this.buildEffects();
     this.onLost = event => { event.preventDefault(); this.contextLost = true; onContextLost(); };
     this.onRestored = () => { this.contextLost = false; this.resize(true); };
     canvas.addEventListener('webglcontextlost', this.onLost);
@@ -199,17 +224,17 @@ export class BallparkRenderer {
   buildSky() {
     const sky = new THREE.Mesh(new THREE.SphereGeometry(540, 20, 14), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
-      uniforms: { top: { value: new THREE.Color('#16364d') }, horizon: { value: new THREE.Color('#d6ae8f') } },
+      uniforms: { top: { value: new THREE.Color('#101e36') }, horizon: { value: new THREE.Color('#b89086') } },
       vertexShader: 'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: 'varying vec3 p;uniform vec3 top;uniform vec3 horizon;void main(){float t=smoothstep(-.05,.65,normalize(p).y);gl_FragColor=vec4(mix(horizon,top,t),1.);}'
     }));
     this.scene.add(sky);
     const sun = new THREE.Mesh(this.geometries.sphere, new THREE.MeshBasicMaterial({ color: 0xffd2a0 }));
-    sun.position.set(-205, 48, 255); sun.scale.setScalar(12); this.scene.add(sun);
+    sun.position.set(-205, 12, 255); sun.scale.setScalar(9); this.scene.add(sun);
     // A quiet industrial skyline gives this original ballpark a local identity.
     for (let i = 0; i < 33; i++) {
       const x = -235 + i * 14, h = 9 + ((i * 29) % 33), z = 180 + (i % 5) * 10;
-      this.box(i % 3 ? 0x3e5558 : 0x495b5c, x, h / 2, z, 11 + (i % 4) * 2, h, 15);
+      this.box(i % 3 ? 0x2f414e : 0x3b4a54, x, h / 2, z, 11 + (i % 4) * 2, h, 15);
       if (i % 4 === 0) this.box(0x2d464b, x + 2, h + 4, z, 2, 8, 2);
     }
   }
@@ -314,6 +339,123 @@ export class BallparkRenderer {
     }
   }
 
+  batchWorld(group) {
+    group.updateMatrixWorld(true);
+    const positions = [], normals = [], colors = [];
+    group.traverse(part => {
+      if (!part.isMesh) return;
+      const geo = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry.clone();
+      geo.applyMatrix4(part.matrixWorld);
+      if (!geo.attributes.normal) geo.computeVertexNormals();
+      positions.push(...geo.attributes.position.array); normals.push(...geo.attributes.normal.array);
+      for (let i = 0; i < geo.attributes.position.count; i++) colors.push(part.material.color.r, part.material.color.g, part.material.color.b);
+      geo.dispose();
+    });
+    this.scene.remove(group);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    this.scene.add(mesh); return mesh;
+  }
+
+  buildParkDetails() {
+    const rigid = new THREE.Group(); this.scene.add(rigid);
+    // Brick front walls, aisle portals, railings, and a covered home grandstand.
+    // This permanent architecture is folded into a single rigid draw.
+    for (let i = 0; i < 72; i++) {
+      const a = -Math.PI + i / 72 * TAU, b = a + TAU / 72, middle = (a + b) / 2;
+      if (Math.abs(middle) < Math.PI / 4) continue;
+      const r = this.standRadius(middle) - 1, width = 2 * r * Math.sin(TAU / 144);
+      const wall = this.box(i % 3 ? 0x795341 : 0x865a47, Math.sin(middle)*r, .73, Math.cos(middle)*r, width+.15, 1.46, .58, rigid);
+      wall.rotation.y = middle;
+      const cap = this.box(0xb0a790, Math.sin(middle)*r, 1.52, Math.cos(middle)*r, width+.18, .12, .80, rigid); cap.rotation.y = middle;
+      if (i % 4 === 0) {
+        const entry = this.box(0x142e2c, Math.sin(middle)*(r+6), 4.4, Math.cos(middle)*(r+6), 2.1, 3.2, .9, rigid); entry.rotation.y = middle;
+        this.box(0xb6ac8e, Math.sin(middle)*(r+6), 6.1, Math.cos(middle)*(r+6), 2.5, .2, 1, rigid).rotation.y = middle;
+      }
+      if (Math.abs(middle) > 1.8) {
+        const canopyR = r + 8;
+        this.box(0x29423f, Math.sin(middle)*canopyR, 11.6, Math.cos(middle)*canopyR, width+1.8, .30, 12, rigid).rotation.y = middle;
+        this.box(0xeee0ba, Math.sin(middle)*(canopyR-6), 11.3, Math.cos(middle)*(canopyR-6), width+1.8, .23, .18, rigid).rotation.y = middle;
+        if (i % 3 === 0) this.mesh('cylinder', 0x5b6c61, Math.sin(middle)*(r+1.2), 6.4, Math.cos(middle)*(r+1.2), .13, 10.4, .13, rigid);
+      }
+    }
+    // A dark batter's eye keeps the ball readable against the center-field park.
+    this.box(0x112c2a, 0, 5.0, 116.9, 25, 8.2, .8, rigid);
+    for (const x of [-12.6,12.6]) this.box(0x53635b, x, 5.0, 116.8, .18, 8.5, .9, rigid);
+    for (const side of [-1,1]) {
+      const dugout = new THREE.Group(); dugout.position.set(side*28,0,13); dugout.rotation.y=side*.66; rigid.add(dugout);
+      for (const x of [-7.7,7.7]) this.box(0x65776a,x,1.02,-2.8,.17,2.1,.17,dugout);
+      this.box(0x7d8c75,0,.88,-2.8,15.7,.10,.10,dugout);
+      this.box(0x35574c,0,.22,-1.5,15.8,.20,3.3,dugout);
+      this.mesh('cylinder',0xc86d3f,6,.72,-.65,.38,.56,.38,dugout);
+      this.mesh('cylinder',0xe5dcc7,6,1.02,-.65,.40,.06,.40,dugout);
+      for(let i=0;i<5;i++) {
+        const x=-5+i*2;
+        this.box(side<0?COLORS.away:COLORS.home,x,1.15,-.57,.36,.55,.25,dugout);
+        this.mesh('sphere',0xb78a64,x,1.58,-.54,.12,.15,.12,dugout);
+        this.box(side<0?COLORS.awayCap:COLORS.homeCap,x,1.70,-.51,.28,.06,.29,dugout);
+      }
+    }
+    this.batchWorld(rigid);
+    // A separate one-draw mesh adds coarse brick courses without a noisy texture.
+    const netPoints=[];
+    for (let x=-17;x<=17;x+=1.7) netPoints.push(V(x,1.5,-16.5),V(x,7.8,-16.5));
+    for (let y=1.5;y<=7.8;y+=.7) netPoints.push(V(-17,y,-16.5),V(17,y,-16.5));
+    const net=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(netPoints),new THREE.LineBasicMaterial({color:0x94a69b,transparent:true,opacity:.24,depthWrite:false}));this.scene.add(net);
+    const crowdCount=2300,dummy=new THREE.Object3D();
+    const heads=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1,0),new THREE.MeshLambertMaterial(),crowdCount);
+    const seats=new THREE.InstancedMesh(this.geometries.box,this.material(0x355e57),crowdCount);
+    const skins=[0xba8b63,0xd6b28e,0x8f674d,0xb99c7a];
+    for(let i=0;i<crowdCount;i++) {
+      const a=-Math.PI+(i*.61803398875%1)*TAU,row=(i*7)%12,r=this.standRadius(a)+row*1.15+.52;
+      dummy.position.set(Math.sin(a)*r,2.48+row*.58,Math.cos(a)*r);dummy.scale.set(.14,.16,.14);dummy.rotation.set(0,a,0);dummy.updateMatrix();heads.setMatrixAt(i,dummy.matrix);heads.setColorAt(i,new THREE.Color(skins[i%4]));
+      dummy.position.set(Math.sin(a)*(r+.30),1.94+row*.58,Math.cos(a)*(r+.30));dummy.scale.set(.53,.40,.07);dummy.updateMatrix();seats.setMatrixAt(i,dummy.matrix);
+    }
+    this.scene.add(heads,seats);
+    // Window lights and distant stars are deterministic, inexpensive instancing.
+    const windows=new THREE.InstancedMesh(this.geometries.plane,new THREE.MeshBasicMaterial({color:0xe3bd7c}),480);
+    for(let i=0;i<480;i++) {
+      const building=i%33,x=-235+building*14,h=9+((building*29)%33),row=Math.floor(i/33),z=180+(building%5)*10;
+      dummy.position.set(x+((i*7)%4-1.5)*2.1,2.5+(row%Math.max(1,Math.floor(h/2.6)))*2.6,z-7.56);
+      dummy.rotation.set(0,Math.PI,0);dummy.scale.set(.58,.85,1);dummy.updateMatrix();windows.setMatrixAt(i,dummy.matrix);
+    }
+    this.scene.add(windows);
+    const stars=[];for(let i=0;i<70;i++){const a=i*2.399963,r=380,y=70+((i*47)%180);stars.push(Math.sin(a)*r,y,Math.cos(a)*r);}
+    const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
+    this.scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xe3e9ee,size:.75,sizeAttenuation:true,transparent:true,opacity:.38,depthWrite:false})));
+    this.sign('115 M',0,1.2,114.35,4.6,.8,'#d8d1b7','#173a30');
+    this.sign('HARBOR LINE  •  EST. 2003',-42,1.8,105,20,1.1,'#d4c6a4','#294b3b',-.45);
+    this.sign('FOUNDRY ATHLETIC CLUB',42,1.8,105,20,1.1,'#d4c6a4','#294b3b',.45);
+  }
+
+  buildEffects() {
+    const glow=canvasTexture(48,48,(c,w)=>{const g=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2);g.addColorStop(0,'rgba(255,255,255,.60)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(0,0,w,w);}).texture;
+    this.dustPositions=new Float32Array(48*3);const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(this.dustPositions,3));geo.setDrawRange(0,0);
+    this.dust=new THREE.Points(geo,new THREE.PointsMaterial({color:0xcaa27a,size:.65,map:glow,transparent:true,opacity:.38,depthWrite:false,sizeAttenuation:true}));this.dust.frustumCulled=false;this.scene.add(this.dust);
+  }
+
+  updateEffects(state,menu,time) {
+    let count=0;
+    if(!menu)for(const runner of state?.runners||[]) {
+      if(runner.out||runner.scored)continue;
+      const sliding=runner.sliding||(runner.targetBase>1&&runner.pathPosition<runner.targetBase&&runner.pathPosition>runner.targetBase-.065);
+      const moving=Math.hypot(runner.x-(runner.prevX??runner.x),runner.z-(runner.prevZ??runner.z))>.002;
+      if(!sliding&&!moving)continue;
+      const total=sliding?10:3,phase=time*2.5+(runner.number||runner.id||1)*.37;
+      for(let j=0;j<total&&count<48;j++) {
+        const age=(phase+j*.29)%1,a=j*2.39996+(runner.id||0);
+        this.dustPositions[count*3]=-runner.x+Math.sin(a)*age*(sliding?.8:.22);
+        this.dustPositions[count*3+1]=.045+Math.sin(age*Math.PI)*(sliding?.35:.12);
+        this.dustPositions[count*3+2]=runner.z+Math.cos(a)*age*(sliding?.8:.22);count++;
+      }
+    }
+    this.dust.visible=count>0;this.dust.geometry.setDrawRange(0,count);this.dust.geometry.attributes.position.needsUpdate=true;
+  }
+
   sign(label, x, y, z, w, h, ink, bg, angle = 0) {
     const { texture } = canvasTexture(768, 128, c => {
       c.fillStyle = bg; c.fillRect(0, 0, 768, 128); c.fillStyle = ink;
@@ -399,7 +541,7 @@ export class BallparkRenderer {
   }
 
   player(home, number = 1, bat = false, role = 'fielder') {
-    this.geometries.jersey ||= new THREE.CylinderGeometry(.255, .205, .50, 10);
+    this.geometries.jersey ||= new THREE.LatheGeometry([new THREE.Vector2(.200,-.25),new THREE.Vector2(.225,-.15),new THREE.Vector2(.245,.07),new THREE.Vector2(.26,.19),new THREE.Vector2(.20,.25)],12);
     this.geometries.label ||= new THREE.PlaneGeometry(.35, .30);
     this.shadowMaterial ||= new THREE.MeshBasicMaterial({ color: 0x10271b, transparent: true, opacity: .23, depthWrite: false });
     const group = new THREE.Group(), body = new THREE.Group(), torso = new THREE.Group(), head = new THREE.Group();
@@ -409,6 +551,7 @@ export class BallparkRenderer {
     const skin = [0xc68e62, 0x986444, 0xd6aa80, 0xb57a51][number % 4], pants = home ? 0xe6dfcc : 0xd4d6d0;
     this.mesh('jersey', jersey, 0, .29, 0, 1, 1, .67, torso);
     this.mesh('sphere', pants, 0, .035, 0, .225, .135, .145, body);
+    for (const side of [-1,1]) this.mesh('sphere', jersey, side*.225, .44, 0, .105, .105, .115, torso);
     this.mesh('cylinder', cap, 0, .075, 0, .218, .055, .145, body);
     this.box(0xd4b578, 0, .08, .151, .06, .045, .018, body);
     // Collar, placket, sleeve bands and restrained pinstripes.
@@ -420,7 +563,9 @@ export class BallparkRenderer {
       this.box(0xc9c4af, x, .29, .158, .007, .40, .006, torso);
       this.box(0xc9c4af, x, .29, -.158, .007, .40, .006, torso);
     }
-    this.mesh('sphere', skin, 0, 0, 0, .134, .167, .126, head);
+    this.mesh('sphere', skin, 0, 0, 0, .125, .159, .124, head);
+    this.mesh('sphere', skin, 0, -.079, .034, .101, .088, .101, head);
+    this.mesh('sphere', 0x463729, 0, .055, -.084, .116, .107, .056, head);
     this.mesh('sphere', skin, -.135, -.007, -.005, .031, .052, .032, head);
     this.mesh('sphere', skin, .135, -.007, -.005, .031, .052, .032, head);
     this.mesh('sphere', skin, 0, -.018, .129, .031, .043, .043, head);
@@ -451,6 +596,8 @@ export class BallparkRenderer {
       this.box(0x26302e, 0, -.42, .078, .17, .11, .30, shin);
       this.box(0x848c81, 0, -.405, .12, .11, .018, .07, shin);
       this.box(0x151e1b, 0, -.476, .08, .17, .018, .29, shin);
+      this.box(home ? 0xbfbba9 : 0xabb5b2, side*.082, -.15, .006, .012, .29, .014, shin);
+      this.box(cap, side*.10, -.20, .005, .014, .36, .017, leg);
       const arm = new THREE.Group(), forearm = new THREE.Group(), hand = new THREE.Group();
       arm.position.set(side * .255, .46, 0); torso.add(arm);
       this.mesh('cylinder', jersey, 0, -.10, 0, .10, .20, .10, arm);
@@ -458,6 +605,7 @@ export class BallparkRenderer {
       this.mesh('cylinder', skin, 0, -.245, 0, .071, .085, .071, arm);
       forearm.position.set(0, -.29, 0); arm.add(forearm);
       this.mesh('cylinder', skin, 0, -.12, 0, .066, .24, .065, forearm);
+      this.mesh('sphere', skin, 0, -.07, -.005, .070, .105, .066, forearm);
       if (bat || role === 'runner') this.mesh('cylinder', cap, 0, -.235, 0, .069, .055, .068, forearm);
       hand.position.set(0, -.285, 0); forearm.add(hand);
       this.mesh('sphere', bat ? 0xe8e5d7 : skin, 0, 0, .004, .067, .082, .060, hand);
@@ -557,7 +705,7 @@ export class BallparkRenderer {
   pose(model, x, z, state, { moving = false, facing = model.facing || 0, role = model.role, actor = {}, index = 0 } = {}) {
     model.group.position.set(x, 0, z); model.group.rotation.y = facing; model.facing = facing;
     const p = samplePlayerMotion(state, role, { moving, actor, index });
-    model.body.position.y = .93 + p.hipY; model.body.rotation.set(p.lean, 0, 0);
+    model.body.position.set(p.hipX || 0, .93 + p.hipY, p.hipZ || 0); model.body.rotation.set(p.lean, 0, p.roll || 0);
     model.torso.rotation.set(0, p.twist, 0); model.head.rotation.y = p.head;
     model.leftLeg.rotation.set(p.leftHip, 0, .035); model.rightLeg.rotation.set(p.rightHip, 0, -.035);
     model.leftShin.rotation.x = p.leftKnee; model.rightShin.rotation.x = p.rightKnee;
@@ -691,7 +839,7 @@ export class BallparkRenderer {
       }
     }
     const selectedRunner = runners.find(r => r.id === options.selectedRunnerId && !r.out && !r.scored);
-    this.runnerSelection.visible = !!selectedRunner && fielding;
+    this.runnerSelection.visible = !!selectedRunner && !menu;
     if (selectedRunner) this.runnerSelection.position.set(-selectedRunner.x, .035, selectedRunner.z);
 
     const ball = state?.ball;
@@ -737,6 +885,7 @@ export class BallparkRenderer {
     this.selection.visible = !menu && fielding && !!fielder;
     if (fielder) this.selection.position.set(-fielder.x, .035, fielder.z);
     if (!menu) this.updateBoard(state);
+    this.updateEffects(state, menu, t);
     this.renderer.render(this.scene, this.camera);
   }
 

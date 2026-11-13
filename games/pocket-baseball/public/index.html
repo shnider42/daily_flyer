@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
   <title>Pocket Baseball · DFE Sports</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=0.2.0">
+  <link rel="stylesheet" href="./style.css?v=0.3.0">
 </head>
 <body>
   <main id="app" class="is-menu" tabindex="-1">
@@ -17,7 +17,7 @@
     <section id="home-screen" class="home-screen" aria-labelledby="game-title">
       <header class="home-masthead"><span class="dfe-mark">DFE <b>SPORTS</b></span><span class="venue-label">HARBOR FIELD</span></header>
       <div class="home-content">
-        <p class="edition-line">NIGHT GAME <span>•</span> FIRST PITCH EDITION</p>
+        <p class="edition-line">HARBOR FIELD <span>•</span> UNDER THE LIGHTS</p>
         <h1 id="game-title" tabindex="-1">POCKET<br><span>BASEBALL</span></h1>
         <div class="matchup"><span class="club-mark harbor">H</span><span><b>BOSTON HARBOR</b><small>YOU · VISITORS</small></span><em>at</em><span class="club-mark foundry">F</span><span><b>BROOKLYN FOUNDRY</b><small>CPU · HOME</small></span></div>
         <p class="home-description">Read the pitch. Find your timing. Put one in the gap.</p>
@@ -33,9 +33,10 @@
           </div>
           <p id="setup-note" class="setup-note">Timing cue, strike zone, and a little help between pitches.</p>
           <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></span></button>
-          <button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span><small>Find your swing</small></button>
+          <div class="practice-options"><button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span></button><button class="practice-button" id="start-runners" type="button"><span>BASERUNNING PRACTICE</span></button></div>
+          <button class="friend-button" id="open-online" type="button"><span>PLAY A FRIEND</span><small>Private 1v1 room</small></button>
         </form>
-        <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo vs CPU · Assisted movement</span></div>
+        <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo or 1v1 · Assisted field movement</span></div>
       </div>
       <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small>90 FT BETWEEN BASES.</small></div>
     </section>
@@ -55,10 +56,19 @@
       </nav>
 
       <div id="role-banner" class="role-banner"><b id="role-title">YOU’RE AT BAT</b><span id="role-detail">Boston Harbor · Batter 1</span></div>
+      <div id="connection-strip" class="connection-strip" hidden role="status"><b id="connection-label">1v1</b><span id="connection-detail"></span></div>
       <div id="pitch-readout" class="pitch-readout" hidden><b id="pitch-name">FASTBALL</b><span id="pitch-speed">92 MPH</span></div>
 
       <div id="timing-cue" class="timing-cue" hidden aria-label="Pitch timing guide"><div class="timing-track"><i class="timing-sweet"></i><i id="timing-marker"></i></div><span id="timing-label">WATCH IT IN</span></div>
       <div id="status-tip" class="status-tip"><b id="status-label">WATCH THE PITCHER</b><span id="status-detail">Swing as the ball reaches the plate.</span></div>
+
+      <section id="preplay-controls" class="preplay-controls" hidden aria-label="Runner and pickoff decisions">
+        <div class="preplay-heading"><b id="preplay-title">ON BASE</b><span id="preplay-state"></span></div>
+        <div id="preplay-runners" class="runner-picker" aria-label="Choose a runner"></div>
+        <div id="lead-actions" class="lead-actions"><button id="lead-back" aria-label="Shorten runner lead"><b>BACK</b><small>Z</small></button><button id="lead-more" aria-label="Extend runner lead"><b>LEAD +</b><small>X</small></button><button id="steal-button"><b id="steal-label">STEAL 2ND</b><small>C</small></button></div>
+        <div id="pickoff-actions" class="pickoff-actions" hidden><button data-pickoff="1">1ST</button><button data-pickoff="2">2ND</button><button data-pickoff="3">3RD</button></div>
+        <p id="preplay-hint" class="live-control-hint">A longer lead helps the jump and risks a pickoff.</p>
+      </section>
 
       <div id="controls" class="controls">
         <div id="aim-control" class="aim-control"><span class="control-label" id="aim-label">BAT AIM</span><div id="aim-pad" class="aim-pad" role="application" aria-label="Aim control. Drag to aim, or use arrow keys."><span class="aim-cross horizontal"></span><span class="aim-cross vertical"></span><span class="aim-center"></span><span id="aim-stick" class="aim-stick"></span></div><small class="keyboard-hint">ARROWS / WASD</small></div>
@@ -102,12 +112,38 @@
       <div class="guide-section"><span>02</span><div><h3>ON THE MOUND</h3><p>Each pitcher has a different repertoire. Pick a pitch with its button or <b>1–4</b>, aim, then tap <b>PITCH</b>. Tap again in the gold target for a better release. The <b>knuckleballer</b> trades speed and command for flutter, and can leave a hittable pitch hanging. Choose the opponent pitcher on the home screen to face that repertoire in practice.</p></div></div>
       <div class="guide-section"><span>03</span><div><h3>MAKE THE THROW</h3><p>Fielders chase the ball. You choose the play: tap <b>1ST, 2ND, 3RD, or HOME</b> to queue a throw before pickup, or throw from the fielder’s hand. Keyboard <b>1–4</b> matches the bases, with <b>4 = home</b>. Change your choice before release, or queue the next throw while the ball travels. A wrong base can let a runner escape.</p></div></div>
       <div class="guide-section"><span>04</span><div><h3>STRETCH THE HIT</h3><p>The runner’s destination stays above the buttons. As soon as the batter heads to first, <b>GO 2ND</b> queues the attempt at a double—even before first is reached. Each press of <b>E / Space</b> sends the selected runner one base beyond the current destination. <b>HOLD / Q</b> stops at the next reachable bag; <b>RETURN / B</b> goes back to the last touched bag when legal. Forced runners must advance. Tap a runner’s name, or press <b>R</b>, to choose among runners.</p></div></div>
-      <div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds timing, aim, explanations and a suggested throw. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness. Field movement is assisted; your throw and running decisions affect the play. Steals and tag-ups are outside this version.</p></div>
-      <p class="guide-footnote">You play Boston Harbor, the visiting team. Exhibition starts with you batting. Practice keeps you at the plate and lets you work on stretching hits. Touch and keyboard both work; landscape gives you more field.</p>
+      <div class="guide-section"><span>05</span><div><h3>TAKE A LEAD. PICK YOUR MOMENT.</h3><p>With a runner on base, select their base in the small <b>ON BASE</b> card. <b>LEAD + / X</b> moves farther off the bag; <b>BACK / Z</b> shortens the lead. A longer lead helps a steal but gives the pitcher a pickoff chance. <b>STEAL / C</b> queues a jump on the delivery; tap again before the windup to cancel. You can also send the runner during the delivery. Slow pitches give the runner more time.</p></div></div>
+      <div class="guide-section"><span>06</span><div><h3>KEEP THEM HONEST</h3><p>Before pitching, use the <b>HOLD THE RUNNERS</b> card to pick off first, second, or third. You get <b>two pickoff attempts per batter</b>. After a steal, choose a base for the catcher’s throw. The runner can use <b>RETURN</b> to dive back during a pickoff. The ball and runner must actually reach the play.</p></div></div>
+      <div class="guide-section"><span>07</span><div><h3>TAG UP ON A CATCH</h3><p>A caught fly puts the batter out, but runners can still advance. They must touch their original bag after the catch. <b>TAG &amp; GO</b> queues the return and the next base; <b>TAG UP</b> sends a runner who has already retouched. A throw back to the original bag can double off a runner who has not returned. A deep fly can score a run with fewer than two outs.</p></div></div>
+      <div class="guide-section"><span>08</span><div><h3>PLAY A FRIEND</h3><p>Choose your pitcher, then open <b>PLAY A FRIEND</b>. One player creates a room and shares its six-character code; the other joins. Both tap <b>READY TO PLAY</b>. The creator plays Boston and the guest plays Brooklyn. Each player confirms between plays. A disconnect pauses the match while the player reconnects. Use <b>REJOIN YOUR MATCH</b> in the same tab after a refresh.</p></div></div>
+      <div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds timing, aim, explanations and a suggested throw. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness. Field movement is assisted; your throw and running decisions affect the play.</p></div>
+      <p class="guide-footnote">Solo exhibition starts with you batting as Boston Harbor. Batting practice keeps you at the plate; baserunning practice starts with runners on first and third. Touch and keyboard both work; landscape gives you more field. Online rooms are temporary and close when a player leaves or the match server restarts.</p>
       <button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button>
     </div>
   </dialog>
 
-  <script type="module" src="./app.mjs?v=0.2.0"></script>
+  <dialog id="online-dialog" aria-labelledby="online-title">
+    <div class="dialog-content online-content">
+      <p class="dialog-eyebrow">HEAD TO HEAD</p><h2 id="online-title" tabindex="-1">PLAY A FRIEND.</h2>
+      <p id="online-intro">Create a private room, then give your friend the code. Each player brings their selected pitcher.</p>
+      <div id="online-entry">
+        <button id="create-room" class="dialog-primary" type="button">CREATE A ROOM</button>
+        <div class="room-divider"><span>or join a friend</span></div>
+        <form id="join-room-form"><label for="room-code">ROOM CODE</label><div class="room-code-entry"><input id="room-code" maxlength="6" minlength="6" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDEF" aria-describedby="online-status" required><button id="join-room" type="submit">JOIN</button></div></form>
+        <button id="rejoin-room" class="dialog-secondary" type="button" hidden>REJOIN YOUR MATCH</button>
+      </div>
+      <div id="online-lobby" hidden>
+        <p class="room-share-label">YOUR ROOM CODE</p><div class="room-share"><strong id="room-share-code"></strong><button id="copy-room-code" type="button">COPY</button></div>
+        <p id="room-settings" class="room-settings"></p>
+        <div id="room-players" class="room-players"></div>
+        <button id="room-ready" class="dialog-primary" type="button">READY TO PLAY</button>
+      </div>
+      <p id="online-status" class="online-status" role="status"></p>
+      <p class="guide-footnote">Both players confirm before the next play. A lost connection pauses the match. Rooms are temporary; there is no account to create.</p>
+      <button id="close-online" class="dialog-quiet" type="button">BACK TO BALLPARK</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./app.mjs?v=0.3.0"></script>
 </body>
 </html>

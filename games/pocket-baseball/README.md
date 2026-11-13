@@ -1,6 +1,6 @@
-# Pocket Baseball — version 0.2
+# Pocket Baseball — version 0.3
 
-A single-player 3D baseball game in the Daily Flyer repository, inspired
+A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
 baseball games. Original fictional clubs: Boston Harbor and Brooklyn Foundry.
 
@@ -14,7 +14,9 @@ node games/pocket-baseball/server.mjs
 
 Open `http://localhost:4173`. The default is a three-inning exhibition, with the
 human playing the visiting team. Six- and nine-inning games and batting practice
-are also available. Tied games continue into extra innings.
+are also available. Tied games continue into extra innings. Baserunning practice
+starts with runners on first and third so leads, steals and tag-ups are available
+immediately. Choose **Play a friend** for an online match.
 
 | Action | Touch | Keyboard |
 | --- | --- | --- |
@@ -28,6 +30,10 @@ are also available. Tied games continue into extra innings.
 | Hold at next reachable bag | HOLD | Q |
 | Return to last touched bag | RETURN | B |
 | Select another runner | Runner chips | R |
+| Extend / shorten a lead | LEAD + / BACK before the delivery | X / Z |
+| Queue or cancel a steal | STEAL before the windup; send during delivery | C |
+| Pick off a runner | Base buttons in HOLD THE RUNNERS | Touch or mouse |
+| Tag up after a fly catch | TAG UP / TAG & GO | E / Space |
 | Next pitch / change sides | Result card button | Enter / Space |
 | Pause | Pause button | Escape |
 
@@ -78,6 +84,57 @@ without overriding the player's choice. Forces require the appropriate runner
 to be forced; other outs require a tag. A relay can produce another out when the
 timing allows it.
 
+**Leads and steals:** the ON BASE card selects a runner and shows their lead.
+LEAD + and BACK move between on-base, normal and aggressive leads. These are
+physical offsets of zero, 2.4 or 4.8 metres. A longer lead helps the runner's jump
+but increases both the distance and automatic reaction time needed to return.
+STEAL queues a jump on the delivery; a second press before the windup cancels it.
+The runner can also be sent during the delivery. Slow pitches provide more
+running time. A lead runner must be going before a trailing runner can steal
+into their occupied bag. The catcher then uses the same physical throw and tag
+system as other fielding plays. A steal does not create a hit or consume the
+batter. With runners aboard, the CPU leaves four seconds to make a choice before
+pitching; the original empty-base pace is preserved.
+
+**Pickoffs:** choose an occupied base before delivering a pitch. The pitcher
+throws over, the receiver covers the bag, and the runner returns physically.
+RETURN can react faster than the automatic return from an aggressive lead. An
+explicit arcade rule allows **two pickoff attempts per batter**. This is not an
+implementation of professional disengagement/balk rules.
+
+**Tag-ups:** catching a fly or foul fly records the batter's out and keeps the
+play live for the remaining runners. A runner who left the bag returns to touch
+it after the catch. TAG & GO queues an advance after that retouch; TAG UP sends
+a runner who has already retouched. The defense can double off an early runner
+at the original base. Legal scoring fly outs produce sacrifice-fly results.
+Third-out catches cancel the run; third-out retouch/tag plays use the appropriate
+time of the home crossing.
+
+## Private 1v1
+
+Choose your pitcher, then **Play a friend**. The creator shares a six-character
+room code and plays Boston Harbor; the guest brings their own pitcher and plays
+Brooklyn Foundry. The creator's innings and difficulty apply to both teams.
+Each player can retain their preferred presentation guidance. Both press READY
+to start and acknowledge the result/half-inning card before the next play.
+
+The server owns the simulation, score, bases, counts, catches and calls. Either
+player can call time. A manual pause must be cleared by the player who called
+it; a disconnected player gets 120 seconds to reconnect to the same seat.
+**Rejoin your match** recovers the saved seat after a refresh in the same tab.
+Leaving explicitly ends the room. Rooms are temporary and do not survive server
+restarts. There are no accounts, public room directory or matchmaking.
+
+The browser previews the swing immediately and extrapolates movement briefly.
+Official contact and scoring wait for the server. The transport validates room
+generation, side, pitch identity and monotonically increasing action sequence;
+identical retries do not repeat an action. Connection timing is measured by a
+server challenge, with accepted swing rewind bounded to at most 200 ms.
+Inputs outside the connection window are rejected rather than moving a past
+pitch into a later play. This is a casual private-room implementation, not an
+anti-cheat competitive service: clients receive reproducible pitch trajectories
+and submit their release-meter quality.
+
 ## Implemented baseball
 
 - Balls, strikes, swings and misses, takes, two-strike fouls, strikeouts and walks.
@@ -91,15 +148,22 @@ timing allows it.
 - Articulated player rigs, coordinated deliveries and throwing motions, runner
   movement and slides, broadcast camera transitions, a physical park
   scoreboard, pitch/contact feedback, bat/glove/crowd sounds and organ accents.
+- Physical lead-offs, queued steals, catcher throws, bounded pickoff attempts,
+  tag-up retouching, doubling off, sacrifice flies and a baserunning practice mode.
+- Private authoritative two-player rooms, shared readiness and pauses, bounded
+  swing compensation, and temporary same-tab rejoin.
 
 ### Current limits
 
 Field movement remains assisted; baserunning destinations and throw choices are
-player decisions. It does not yet implement steals, pickoffs, bunts,
+player decisions. It does not yet implement bunts,
 substitutions, pitcher fatigue, balks,
 hit-by-pitch, dropped-third-strike advances, infield fly, or a complete appeal
-system. Runners hold on caught fly balls (no sacrifice/tag-up system). This is
-an arcade first pass, not a full professional rules simulator. The clubs use
+system. Ball four awards mandatory walk advancement and ends a concurrent steal;
+optional further advances on a live walk are not simulated. Tag-up controls
+automatically enforce retouching instead of allowing intentional missed-base
+appeals. This remains an arcade game rather than a full professional rules
+simulator. The clubs use
 balanced fictional players, without real-world roster or rating claims.
 
 Pitch speed labels describe the pitch profiles; visible pitch flight is slowed
@@ -127,6 +191,14 @@ strike zone uses quieter thirds and clearer corner markers. A pitch-location
 mark appears only after the pitch resolves; it does not reveal the target or
 announce ball/strike while the ball is in flight.
 
+The version 0.3 park adds dugout benches, rails and coolers, brickwork, a backstop,
+grandstand entrances, a batter's eye, lit skyline windows, flags and stadium-light
+glow. Architecture is batched and repeated seats, crowd heads and windows are
+instanced. Player silhouettes and shading are more rounded, with uniform detail,
+glove lacing, lead-off stances, receiving poses and eased animation recovery.
+Small slide/run dust effects use fixed presentation-only pools. Both renderers
+share the same motion sampler and preserve the pitch sightline.
+
 When hardware graphics are unavailable, the client replaces the drawing canvas
 and uses `fallback-renderer.mjs`: a perspective Canvas renderer of the same world
 coordinates. It keeps the game playable with simpler geometry and shading.
@@ -138,23 +210,30 @@ for aiming/actions, swing registration on pointerdown, independent cancellation,
 safe-area layout, and no pause from ordinary foreground Safari focus churn.
 Actual visibility loss pauses play. Audio starts only after user interaction.
 
-The engine accepts at most 100 ms of local input delay and rejects out-of-window
-timestamps. Input timestamps account for the rendered interpolation delay. This
-is local input scheduling, **not a claim of tested online latency compensation**.
+Local solo play accepts at most 100 ms of input delay and rejects out-of-window
+timestamps. Input timestamps account for the rendered interpolation delay.
+Online uses the separately bounded server-measured connection budget described
+above. High latency still matters; compensation does not make a slow connection
+equivalent to a local game.
 
-## Future 1v1 boundary
+## Online architecture
 
 The headless engine, command entry point, stable pitch identity, seeded pitch
 parameters, event stream and serializable snapshots form the reusable boundary.
-An eventual authoritative host/server should schedule pitch release on a shared
-clock, validate player/side, match generation, pitch ID and monotonically
-increasing action sequence, bound the accepted input rewind, and publish contact
-and scoring outcomes. Clients can render the same trajectory immediately and
-reconcile against those outcomes. A presentation frame must never directly
-change score, bases or random state.
+`multiplayer.mjs` provides the in-memory room authority. `server.mjs` serves the
+API and static files using Node's built-in HTTP server. `public/online.mjs`
+provides a browser session with authenticated fetch/SSE and one stable game view.
+There are no package dependencies. Seat credentials use Authorization headers
+and never appear in room URLs. Active state packets are sent at most 20 times a
+second; inactive rooms receive one per second plus immediate changes. SSE is
+gzip-compressed with synchronous flushing; recent events are sent incrementally.
+There is an eight-room capacity limit, bounded requests and stream buffering,
+and automatic expiry of abandoned seats.
 
-There are no rooms, accounts, matchmaking or remote opponents in this release.
-Online synchronization, reconnect and fairness testing remain future work.
+Cancellation generation checks prevent a late create/join response reopening a
+hidden game after the user leaves. `leave()` ends the room and clears the saved
+seat; `disconnect()` / `dispose()` preserve the seat for recovery after temporary
+connection failure. Prediction cannot publish a speculative score or called pitch.
 
 ## Verification
 
@@ -166,13 +245,19 @@ The tests cover deterministic 30/60/120 Hz frame partitioning, snapshot replay,
 count rules, forced walks, two-strike fouls, inning endings, walkoffs, home runs,
 fence rebounds, swept collision, rolling friction, physical base arrival,
 repertoires, knuckleball replay, force/tag plays, runner decisions, throw relays,
-third-out scoring, and bounded swing input. The first-pass batting contract is
-also checked against recorded contact results. A browser check is needed for rendering, input,
+third-out scoring, and bounded swing input. Added tests cover leads, steals,
+pickoff races, tag-up retouching, sacrifice flies, third-out combinations, both
+human sides, room lifecycle, sequence/role/pitch validation, delayed swings,
+prediction boundaries, compressed HTTP/SSE convergence and cancellation races.
+Rendering contracts check release alignment, hidden endpoint markers, visible
+lead runners and finite, non-mutating pose samples. The first-pass batting
+contract is also checked against recorded contact results. A browser check is needed for rendering, input,
 sound unlock and responsive layout; headless simulation tests do not measure
 real iPhone GPU performance or real network multiplayer behavior.
 
 `?debug=1` enables the explicit developer inspection hook. It is absent from
-ordinary sessions and is not a security boundary for this local-only game.
+ordinary sessions and is not an authorization boundary. Online commands are
+validated at the match server regardless of the local view.
 
 ## Hosting and data
 
@@ -183,15 +268,27 @@ Site, publishing `games/pocket-baseball/public`. Build command:
 node --test games/pocket-baseball/tests/*.test.mjs
 ```
 
-Set `SKIP_INSTALL_DEPS=true`: the first version has no install or external asset
-step. Serving the client statically avoids a server round trip on gameplay input.
-All runtime assets are included. The optional `server.mjs` is for local preview
-or a later web-service host; production v1 needs no runtime server or database.
+Set `SKIP_INSTALL_DEPS=true`: there is no install or external asset step. Solo
+gameplay remains local and works without the match server. All runtime assets
+are included. The optional web service uses the same branch and build command,
+with start command `node games/pocket-baseball/server.mjs`. It listens on `PORT`
+at `0.0.0.0`. `BASEBALL_ALLOWED_ORIGINS` lists trusted frontend origins. Health
+endpoints are `/api/health` and `/health`.
 
-Only preferences are saved in browser localStorage. Matches are kept in memory;
-refreshing leaves the current game. There is no game analytics, account data,
-telemetry API, cookie identifier or third-party font/asset request. Hosting
-infrastructure can still process normal request metadata.
+The existing static game remains at `https://dfe-pocket-baseball.onrender.com/`.
+Its public match endpoint is configured in `public/online-config.mjs` as
+`https://dfe-baseball-matches.onrender.com`. Local previews use their own origin.
+The match server uses Render's Free compute plan in Virginia; an initial online
+connection may take about a minute after it has spun down. The solo game does
+not have that startup dependency. A match server restart ends in-memory rooms.
+
+Preferences are saved in browser localStorage. Online stores a random room/seat
+credential in sessionStorage for same-tab recovery. Solo matches stay in the
+browser; online matches stay in server memory and expire. There is no game
+analytics, account data, persistent match database, telemetry API, cookie
+identifier or third-party font/asset request. Online play sends game inputs,
+state and connection checks to the dedicated match server. Hosting infrastructure
+can still process normal request metadata.
 
 ## DFE provenance
 
