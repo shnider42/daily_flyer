@@ -83,7 +83,8 @@ function fixture(t, options = {}) {
   const find = selector => body.querySelector(selector);
   const click = async selector => { const control = find(selector); assert.ok(control, `Setup contains ${selector}`); await control.fire('click'); };
   const chooseOpening = async checked => { const checkbox = find('[data-opening-mission]'); assert.ok(checkbox); checkbox.checked = checked; await checkbox.fire('change'); };
-  return { dialog, controller, find, click, chooseOpening, submitted, cancelled, closed, close };
+  const chooseSystem = async id => { const select = find('[data-start-system]'); assert.ok(select); select.value = id; await select.fire('change'); };
+  return { dialog, controller, find, click, chooseOpening, chooseSystem, submitted, cancelled, closed, close };
 }
 
 test('a new voyage starts freely unless its opening mission is explicitly selected', async t => {
@@ -186,4 +187,114 @@ test('a failed opening submission retains the selected draft and restores its co
   await f.click('[data-captain-back]'); assert.equal(f.find('[data-opening-mission]').checked, true);
   await f.click('[data-captain-next]'); await f.click('[data-captain-submit]');
   assert.equal(selections.length, 2); assert.ok(selections.every(selection => selection.openingMission === true)); assert.equal(f.dialog.opened, false);
+});
+
+const START_SYSTEMS = [
+  { id: 'hearth', name: 'Hearth', factionName: 'Freewake Union', danger: 1, portName: 'Kettle Station', description: 'The settled starting lanes.' },
+  { id: 'brindle', name: 'Brindle', factionName: 'Meridian Combine', danger: 4, portName: 'The Weighhouse', description: 'A contested trading route.' },
+  { id: 'sol', name: 'Sol', factionName: 'Concord', danger: 5, portName: 'Threshold Station', description: 'Restricted space.' }
+];
+
+test('Regular stays the default alongside Casual and Hardcore; Casual includes a fold drive at Hearth', async t => {
+  const f = fixture(t, { startSystems: START_SYSTEMS });
+  assert.equal(f.find('.captain-origins').querySelectorAll('[data-start-mode]').length, 3);
+  assert.equal(f.controller.getSelection().startMode, 'regular');
+  assert.equal(f.find('[data-start-system]'), null);
+  assert.equal(Object.hasOwn(f.controller.getSelection(), 'startSystemId'), false);
+  await f.click('[data-start-mode="casual"]');
+  assert.equal(f.controller.getSelection().startSystemId, 'hearth');
+  assert.match(f.find('.captain-included').textContent, /Fold Drive I, Vector thrusters, and an Echo scanner/);
+  assert.match(f.find('.captain-included').textContent, /5 ly fold range/);
+  assert.match(f.find('.captain-system-detail').textContent, /Hearth · Freewake Union/);
+  await f.click('[data-captain-next]'); await f.click('[data-captain-submit]');
+  assert.equal(f.submitted[0].startMode, 'casual'); assert.equal(f.submitted[0].startSystemId, 'hearth');
+});
+
+test('a remote Casual origin submits the selected system and omits the Hearth opening and crew gathering', async t => {
+  const f = fixture(t, { startMode: 'casual', startSystems: START_SYSTEMS, openingMission: true, groupStartPolicy: 'choose' });
+  assert.equal(f.find('[data-start-together]').checked, true);
+  await f.click('[data-starter-ship="kestrel"]');
+  await f.chooseSystem('brindle');
+  assert.match(f.find('.captain-system-detail').textContent, /Brindle · Meridian Combine/);
+  assert.match(f.find('.captain-system-detail').textContent, /High danger · 4\/5/);
+  assert.match(f.find('.captain-system-detail').textContent, /The Weighhouse/);
+  assert.match(f.find('.captain-system-risk').textContent, /Choose at your own risk/);
+  assert.equal(f.find('[data-opening-mission]'), null); assert.equal(f.find('[data-start-together]'), null);
+  assert.match(f.find('[data-start-group-note]').textContent, /begin independently/);
+  await f.click('[data-captain-next]');
+  assert.match(f.find('.captain-summary').textContent, /Casual · Brindle · Kestrel · 180 CR · Fold Drive I fitted/);
+  assert.match(f.find('[data-opening-summary]').textContent, /opening mission is in Hearth/);
+  await f.click('[data-captain-submit]');
+  assert.equal(f.submitted[0].startSystemId, 'brindle'); assert.equal(f.submitted[0].starterShip, 'kestrel');
+  assert.equal(f.submitted[0].openingMission, false); assert.equal(f.submitted[0].startTogether, false);
+});
+
+test('switching beginnings preserves the Casual destination and opening/crew drafts without applying them to other modes', async t => {
+  const f = fixture(t, { startMode: 'casual', startSystemId: 'sol', startSystems: START_SYSTEMS, openingMission: true, groupStartPolicy: 'choose' });
+  await f.click('[data-start-mode="regular"]');
+  assert.equal(Object.hasOwn(f.controller.getSelection(), 'startSystemId'), false);
+  assert.equal(f.find('[data-opening-mission]').checked, true); assert.equal(f.find('[data-start-together]').checked, true);
+  assert.equal(f.controller.getSelection().startTogether, true);
+  await f.click('[data-start-mode="hardcore"]');
+  assert.equal(f.controller.getSelection().startTogether, false);
+  assert.equal(Object.hasOwn(f.controller.getSelection(), 'startSystemId'), false);
+  await f.click('[data-start-mode="casual"]');
+  assert.equal(f.controller.getSelection().startSystemId, 'sol'); assert.equal(f.controller.getSelection().openingMission, false);
+  await f.chooseSystem('hearth');
+  assert.equal(f.find('[data-opening-mission]').checked, true); assert.equal(f.find('[data-start-together]').checked, true);
+  assert.equal(f.controller.getSelection().openingMission, true); assert.equal(f.controller.getSelection().startTogether, true);
+});
+
+test('the system search narrows a full galaxy without silently changing the chosen origin', async t => {
+  const startSystems = [START_SYSTEMS[0], ...Array.from({ length: 899 }, (_, i) => ({ id: `sector-${i + 1}`, name: `Sector ${i + 1}`, factionName: i % 2 ? 'Meridian Combine' : 'Freewake Union', danger: i % 5 + 1, portName: `Exchange ${i + 1}` }))];
+  const f = fixture(t, { startMode: 'casual', startSystems });
+  const input = f.find('[data-start-system-search]');
+  assert.equal(f.find('[data-start-system]').querySelectorAll('option').length, 900);
+  input.value = 'Sector 899'; await input.fire('input');
+  assert.equal(f.find('[data-start-system]').querySelectorAll('option').length, 2);
+  assert.equal(f.controller.getSelection().startSystemId, 'hearth');
+  assert.match(f.find('[data-start-system-count]').textContent, /1 match · your current choice stays selected/);
+  await f.chooseSystem('sector-899');
+  assert.equal(f.controller.getSelection().startSystemId, 'sector-899');
+  assert.equal(f.find('[data-start-system-search]').value, 'Sector 899');
+  const search = f.find('[data-start-system-search]'); search.value = 'no such system'; await search.fire('input');
+  assert.equal(f.find('[data-start-system]').querySelectorAll('option').length, 1);
+  assert.equal(f.controller.getSelection().startSystemId, 'sector-899');
+  search.value = ''; await search.fire('input');
+  assert.equal(f.find('[data-start-system]').querySelectorAll('option').length, 900);
+  await f.click('[data-captain-next]'); await f.click('[data-captain-back]');
+  assert.equal(f.controller.getSelection().startSystemId, 'sector-899');
+});
+
+test('invalid Casual destinations fall back to Hearth and an absent catalog remains usable', async t => {
+  const f = fixture(t, { startMode: 'casual', startSystemId: 'unknown', startSystems: START_SYSTEMS });
+  assert.equal(f.controller.getSelection().startSystemId, 'hearth');
+  await f.chooseSystem('brindle'); await f.chooseSystem('not-a-real-system');
+  assert.equal(f.controller.getSelection().startSystemId, 'hearth');
+  f.controller.cancel();
+  const fallback = fixture(t, { startMode: 'casual', startSystemId: 'brindle' });
+  assert.equal(fallback.controller.getSelection().startSystemId, 'hearth');
+  assert.equal(fallback.find('[data-start-system]').querySelectorAll('option').length, 1);
+});
+
+test('joining as a remote Casual captain preserves realm policies and clearly begins outside its Kettle lobby', async t => {
+  const f = fixture(t, { startMode: 'casual', startSystemId: 'brindle', startSystems: START_SYSTEMS, openingPolicy: 'realm', groupStartPolicy: 'realm' });
+  assert.match(f.find('[data-start-group-note]').textContent, /To gather in the departure lobby with friends, choose Hearth/);
+  assert.match(f.find('.captain-opening-inherited').textContent, /starts freely in your chosen system/);
+  await f.click('[data-captain-next]'); await f.click('[data-captain-submit]');
+  assert.equal(f.submitted[0].startSystemId, 'brindle');
+  assert.equal(Object.hasOwn(f.submitted[0], 'openingMission'), false); assert.equal(Object.hasOwn(f.submitted[0], 'startTogether'), false);
+});
+
+test('a failed Casual submission retains destination, hull, appearance, and traits for retry', async t => {
+  const submitted = [], f = fixture(t, { startMode: 'casual', startSystems: START_SYSTEMS, onComplete: selection => { submitted.push(selection); return submitted.length === 1 ? { ok: false, reason: 'The port is busy. Try again.' } : { ok: true }; } });
+  await f.chooseSystem('sol'); await f.click('[data-starter-ship="mule"]'); await f.click('[data-captain-next]');
+  const suit = f.find('[data-appearance="suit"]'); suit.value = 'rust'; await suit.fire('change');
+  await f.click('[data-trait="long_stride"]'); await f.click('[data-captain-submit]');
+  assert.equal(f.dialog.opened, true); assert.match(f.find('[data-captain-error]').textContent, /The port is busy/);
+  await f.click('[data-captain-back]'); assert.equal(f.controller.getSelection().startSystemId, 'sol');
+  await f.click('[data-captain-next]'); await f.click('[data-captain-submit]');
+  assert.equal(submitted.length, 2); assert.deepEqual(submitted[1], submitted[0]);
+  assert.equal(submitted[1].starterShip, 'mule'); assert.equal(submitted[1].character.appearance.suit, 'rust');
+  assert.deepEqual(submitted[1].character.traits, ['long_stride']);
 });

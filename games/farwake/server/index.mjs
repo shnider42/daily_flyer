@@ -5,6 +5,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { Realm } from './realm.mjs';
+import { normalizeStartMode } from '../dist/livelihoods.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
 import { FixedStepClock } from './timing.mjs';
 import { PRIVACY_EXPORT_VERSION, RequestRateLimits, validExportPassport, authenticateExport, createPrivacyExport } from './privacy.mjs';
@@ -24,21 +25,21 @@ export function compactSnapshot(snapshot) {
 
 export class RealmManager {
   constructor(persistence) { this.persistence = persistence; this.realms = new Map(); this.loading = new Map(); }
-  async get(id, { create = false, name, settings } = {}) {
+  async get(id, { create = false, name, settings, seed } = {}) {
     if (this.realms.has(id)) return this.realms.get(id);
     if (this.loading.has(id)) return this.loading.get(id);
     const operation = (async () => {
       const saved = await this.persistence.load(id);
       if (!saved.snapshot && !create) return null;
       if (saved.snapshot && create) throw new Error('Realm code collision');
-      const realm = new Realm({ id, name, settings, persistence: this.persistence, version: saved.version, snapshot: saved.snapshot,
+      const realm = new Realm({ id, name, settings, seed, persistence: this.persistence, version: saved.version, snapshot: saved.snapshot,
         onConflict: failed => { for (const captain of failed.captains.values()) captain.session?.close(1012, 'Realm revision changed. Reconnect to load its durable state.'); this.realms.delete(failed.id); } });
       this.realms.set(id, realm); return realm;
     })();
     this.loading.set(id, operation);
     try { return await operation; } finally { this.loading.delete(id); }
   }
-  async create(name, settings = {}) { for (let i = 0; i < 5; i++) { const id = newRealmCode(); if ((await this.persistence.load(id)).snapshot) continue; return this.get(id, { create: true, name, settings }); } throw new Error('Could not allocate a realm code.'); }
+  async create(name, settings = {}, seed) { for (let i = 0; i < 5; i++) { const id = newRealmCode(); if ((await this.persistence.load(id)).snapshot) continue; return this.get(id, { create: true, name, settings, seed }); } throw new Error('Could not allocate a realm code.'); }
   async flush() { return Promise.allSettled([...this.realms.values()].map(realm => realm.flush())); }
 }
 
@@ -74,6 +75,20 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0) });
     }
     if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz, privacyExportVersion: PRIVACY_EXPORT_VERSION });
+    const startOptionsMatch = pathname.match(/^\/api\/realms\/([^/]+)\/start-options$/);
+    if (startOptionsMatch && request.method === 'GET') {
+      if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
+      if (!withinRate(request)) return json(response, 429, { ok: false, reason: 'Please wait before looking up another galaxy.' });
+      const code = normaliseRealmCode(startOptionsMatch[1]);
+      if (!validRealmCode(code)) return json(response, 400, { ok: false, reason: 'Enter a valid invitation realm code.' });
+      try {
+        const realm = await manager.get(code);
+        if (!realm) return json(response, 404, { ok: false, reason: 'That realm code was not found.' });
+        // The seed is already part of every captain snapshot. Previewing it
+        // creates no captain, passport, ship, or departure grant.
+        return json(response, 200, { ok: true, seed: realm.seed, settings: realm.settings });
+      } catch { return json(response, 503, { ok: false, reason: 'This galaxy is temporarily unavailable. Try again shortly.' }); }
+    }
     if (pathname === '/api/privacy/export') {
       if (request.method !== 'POST') return json(response, 405, { ok: false, reason: 'Use POST to request your captain data.' });
       if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
@@ -103,13 +118,18 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       try {
         const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
-        if (action === 'create') { realm = await manager.create(cleanName(body.realmName, 'Farwake friends'), { openingMission: body.openingMission === true, startTogether: body.startTogether === true && body.startMode !== 'hardcore' }); ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character})); }
+        if (action === 'create') {
+          if (body.galaxySeed !== undefined && (typeof body.galaxySeed !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(body.galaxySeed))) return json(response, 400, { ok: false, reason: 'This new galaxy preview has expired. Choose your starting life again.' });
+          const startMode = normalizeStartMode(body.startMode), remoteStart = startMode === 'casual' && body.startSystemId && body.startSystemId !== 'hearth';
+          realm = await manager.create(cleanName(body.realmName, 'Farwake friends'), { openingMission: body.openingMission === true, startTogether: body.startTogether === true && startMode !== 'hardcore' && !remoteStart }, body.galaxySeed);
+          ({ captain, passport } = await realm.createCaptain(body.name, { starterShip: body.starterShip, startMode, startSystemId: body.startSystemId, character: body.character }));
+        }
         else {
           const code = normaliseRealmCode(body.realmCode || body.passport?.realmCode);
           if (!validRealmCode(code)) return json(response, 400, { ok: false, reason: 'Enter a valid invitation realm code.' });
           realm = await manager.get(code); if (!realm) return json(response, 404, { ok: false, reason: 'That realm code was not found.' });
           if (action === 'resume') { captain = realm.authenticate(body.passport); if (!captain) return json(response, 401, { ok: false, reason: 'This captain passport is not valid for the realm.' }); passport = { realmCode: code, captainId: captain.id, token: body.passport.token }; }
-          else if (action === 'join') ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,character:body.character}));
+          else if (action === 'join') ({ captain, passport } = await realm.createCaptain(body.name, {starterShip:body.starterShip,startMode:body.startMode,startSystemId:body.startSystemId,character:body.character}));
           else return json(response, 400, { ok: false, reason: 'Choose create, join, or resume.' });
         }
         if (!captain.session && realm.onlineCount >= MAX_ONLINE) return json(response, 409, { ok: false, reason: 'This realm already has ten online captains.' });

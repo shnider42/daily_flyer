@@ -1,4 +1,4 @@
-import { Game, distance, seededRandom } from './engine.mjs';
+import { Game, buildGalaxy, distance, seededRandom } from './engine.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
 import { createNavyDutyUI, navyOrderPrompt, navyOrderMatchesEntity } from './navy-duty-ui.mjs';
 import { syncNavyCrewSurface, sampleNavyCrewConversation } from './navy-crew.mjs';
@@ -32,7 +32,9 @@ import { foldDrivePlan } from './upgrade-guidance.mjs';
 import { guidanceActionsForResult, localGuidanceEvent } from './guidance-evidence.mjs';
 import { SHIP_CLASSES, STARTER_SHIP_IDS, CREW_ROLES, getShipClass } from './fleet.mjs';
 import { openCaptainSetup } from './captain-setup.mjs';
-import { FarwakeNetwork, readPassport, readPassports, savePassport } from './network.mjs';
+import { startSystemChoices } from './start-options.mjs';
+import { publicStartingPort } from './livelihoods.mjs';
+import { FarwakeNetwork, readRealmStartOptions, readPassport, readPassports, savePassport } from './network.mjs';
 import { SERVER_URL } from './network-config.mjs';
 import { openPrivacyData } from './privacy-ui.mjs';
 import { Soundscape } from './audio.mjs';
@@ -401,10 +403,12 @@ function openVesselContact(vesselId){
  actions.push({label:'Back to nearby ships',action:openOnline},{label:'Return to the world',action:()=>dialog.close()});dialog.choices(actions);
 }
 
-function start(fresh,options={}){if(testSession){openTestControls();return;}if(network){network.disconnect();network=null;onlineSnapshot=null;connectionState='offline';game=stored?Game.fromSave(stored):new Game('farwake-'+Date.now());}audio.unlock();if(!fresh&&stored){game=Game.fromSave(stored);surface=null;surfaceKey='';}if(fresh){game=new Game('farwake-'+Math.floor(Date.now()/1000),options);surface=null;surfaceKey='';tracked='kettle';openingMarkerKey='';trackedThreadId=null;narrativeWaypoint=null;}activateLocalCamera(game.state.cameraPreferences??localCameraPreferences);playing=true;$('welcome').hidden=true;document.body.classList.remove('welcome-active');resize();ensureSurface(false);game.drainEvents();saveNow();updateHUD();canvas.focus({preventScroll:true});if(!fresh&&game.state.pendingEncounter)openEncounter(game.getEncounter());else if(!game.openingMissionStatus?.().active&&(!touchLayout||settings.guidance!=='simple'))toast(fresh?(game.ownsShip?'Your ship, Cinder, is beside Kettle Station. Dock to meet Iona and find work.':'You begin on Morrow with 180 credits and no ship. Port services opens work and paid passage.'):'Welcome back, captain. Your voyage is right where you left it.','good',6500);}
+const newVoyageSeed=()=>`farwake-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+function start(fresh,options={}){if(testSession){openTestControls();return;}if(network){network.disconnect();network=null;onlineSnapshot=null;connectionState='offline';game=stored?Game.fromSave(stored):new Game('farwake-'+Date.now());}audio.unlock();if(!fresh&&stored){game=Game.fromSave(stored);surface=null;surfaceKey='';}if(fresh){game=new Game(options.galaxySeed||newVoyageSeed(),options);surface=null;surfaceKey='';tracked=game.state.lastBodyId||'kettle';openingMarkerKey='';trackedThreadId=null;narrativeWaypoint=null;}activateLocalCamera(game.state.cameraPreferences??localCameraPreferences);playing=true;$('welcome').hidden=true;document.body.classList.remove('welcome-active');resize();ensureSurface(false);game.drainEvents();saveNow();updateHUD();canvas.focus({preventScroll:true});if(!fresh&&game.state.pendingEncounter)openEncounter(game.getEncounter());else if(!game.openingMissionStatus?.().active&&(!touchLayout||settings.guidance!=='simple'))toast(fresh?(game.state.startMode==='casual'?`Cinder is beside ${game.system.bodies.find(body=>body.id===game.state.lastBodyId)?.name||'the local port'} in ${game.system.name}. Fold Drive I is ready: open the Galaxy chart to plot a jump.`:game.ownsShip?'Your ship, Cinder, is beside Kettle Station. Dock to meet Iona and find work.':'You begin on Morrow with 180 credits and no ship. Port services opens work and paid passage.'):'Welcome back, captain. Your voyage is right where you left it.','good',6500);}
 function openNewCaptain(){
  if(testSession){openTestControls();return;}
- openCaptainSetup(dialog,{mode:'create',onComplete:selection=>{dialog.close();start(true,selection);return {ok:true};}});
+ const galaxySeed=newVoyageSeed();
+ openCaptainSetup(dialog,{mode:'create',startSystems:startSystemChoices(buildGalaxy(galaxySeed)),onComplete:selection=>{dialog.close();start(true,{...selection,galaxySeed});return {ok:true};}});
 }
 function openCaptainProfile(){
  if(testSession){openTestControls();return;}
@@ -888,7 +892,10 @@ function updateHUD(){
  hudText($('objectiveKind'),testStatus?'TEST MODE':expedition?'FIELD EXPLORATION':boarding&&onFoot?'BOARDING / '+(boarding.kind==='defense'?'DEFEND':'TARGET DECK'):job?'LOCAL CONTRACT':chapter?'THE QUIET EARTH':'YOUR OWN WAY');
  if(hudText($('objectiveTitle'),testStatus?testStatus.title:expedition?body?.name??surface?.name:boarding&&onFoot?(boarding.phase==='active'?'Secure the deck':'Deck secure'):job?job.title+` · ${job.progress}/${job.goal}`:chapter?.title??'The galaxy is still open'))labelLayoutDirty=true;
  let hint=job?(job.status==='ready'?'Return to the contract exchange for payment.':'Calibrate the amber maintenance relays around this place.'):chapter?.objective??'Explore, trade, and choose where you go next.';
- if(!onFoot&&!s.completedChapters.length)hint='Dock at Kettle Station. Meet Iona, then find the contract exchange.';
+ if(!onFoot&&!s.completedChapters.length){
+  if(s.systemId==='hearth')hint='Dock at Kettle Station. Meet Iona, then find the contract exchange.';
+  else if(s.startMode==='casual')hint=`Dock at ${publicStartingPort(game.system)?.name||'a local station'} to find work.${game.hasHyperdrive?' Your fold drive is ready: open the Galaxy chart to plot a jump.':''}`;
+ }
  if(onFoot&&s.locationId==='kettle'&&!s.flags.includes('accepted_job')&&!s.completedChapters.length)hint='Find the contract exchange in the central concourse. Iona’s workshop is to the north.';
  if(onFoot&&s.locationId==='kettle'&&s.openingMission?.status==='completed'&&!s.flags.includes('talked_mechanic'))hint='Your first job is paid. Meet Iona in the workshop north of the concourse.';
  if(onFoot&&surface?.kind==='ship')hint=currentDisembarkAction()?'Use the entry airlock to disembark. The top button marks the way; the helm console is for launching.':'Explore your crew deck. Take helm at the top returns you to flying this ship.';
@@ -1063,17 +1070,32 @@ function updateConnectionHUD(){
 }
 function openConnect(mode='create'){if(testSession){openTestControls();return;}
  dialog.open(mode==='create'?'A galaxy to call your own':'Find your crew','connect',{eyebrow:mode==='create'?'PERSISTENT GALAXY / 1–10 CAPTAINS':'JOIN A SHARED GALAXY'});
- dialog.html(`<p>${mode==='create'?'Invite friends now or later. Everyone can return and make progress on their own schedule.':'Enter a galaxy code from a friend. Your captain passport will be saved on this device.'}</p><form id="connectForm"><label class="form-field"><span>Your captain’s name</span><input id="captainName" maxlength="24" value="Captain" autocomplete="nickname" required></label>${mode==='create'?'<label class="form-field"><span>Galaxy name</span><input id="realmName" maxlength="40" value="The Cinder Reach" required></label>':'<label class="form-field"><span>Galaxy code</span><input id="realmCode" maxlength="32" placeholder="Enter invite code" autocapitalize="characters" autocomplete="off" required></label>'}<button class="button-primary" type="submit">Choose ship &amp; captain →</button></form><p class="mini muted" style="margin-top:18px">Choose your captain and a small personal ship next. A shared departure lets your crew gather and choose a larger vessel together. Your solo voyage stays on this device.</p>`);
- $('connectForm').onsubmit=e=>{e.preventDefault();const options={create:mode==='create',name:$('captainName').value.trim(),realmName:$('realmName')?.value.trim(),realmCode:$('realmCode')?.value.trim().toUpperCase()};openCaptainSetup(dialog,{mode:'create',openingPolicy:mode==='create'?'choose':'realm',groupStartPolicy:mode==='create'?'choose':'realm',onComplete:selection=>connectGalaxy({...options,...selection}),onCancel:()=>openConnect(mode)});};
+ dialog.html(`<p>${mode==='create'?'Invite friends now or later. Everyone can return and make progress on their own schedule.':'Enter a galaxy code from a friend. Your captain passport will be saved on this device.'}</p><form id="connectForm"><label class="form-field"><span>Your captain’s name</span><input id="captainName" maxlength="24" value="Captain" autocomplete="nickname" required></label>${mode==='create'?'<label class="form-field"><span>Galaxy name</span><input id="realmName" maxlength="40" value="The Cinder Reach" required></label>':'<label class="form-field"><span>Galaxy code</span><input id="realmCode" maxlength="32" placeholder="Enter invite code" autocapitalize="characters" autocomplete="off" required></label>'}<button class="button-primary" type="submit">Choose starting life &amp; captain →</button><p class="captain-error" role="alert" data-connect-error></p></form><p class="mini muted" style="margin-top:18px">Choose your captain and a small personal ship next. A shared departure lets your crew gather and choose a larger vessel together. Your solo voyage stays on this device.</p>`);
+ const form=$('connectForm');
+ form.onsubmit=async e=>{
+  e.preventDefault();if(form.dataset.loading==='true')return;
+  const options={create:mode==='create',name:$('captainName').value.trim(),realmName:$('realmName')?.value.trim(),realmCode:$('realmCode')?.value.trim().toUpperCase()},button=form.querySelector('[type=submit]'),feedback=form.querySelector('[data-connect-error]');
+  form.dataset.loading='true';button.disabled=true;button.textContent=options.create?'Preparing your starting chart…':'Loading your galaxy’s starting chart…';feedback.textContent='';
+  try{
+   const galaxySeed=options.create?newVoyageSeed():(await readRealmStartOptions({url:SERVER_URL,realmCode:options.realmCode,signal:AbortSignal.timeout(45000)})).seed;
+   if(!form.isConnected||dialog.kind!=='connect')return;
+   const startSystems=startSystemChoices(buildGalaxy(galaxySeed));
+   openCaptainSetup(dialog,{mode:'create',startSystems,openingPolicy:mode==='create'?'choose':'realm',groupStartPolicy:mode==='create'?'choose':'realm',onComplete:selection=>connectGalaxy({...options,...selection,...(options.create?{galaxySeed}:{})}),onCancel:()=>openConnect(mode)});
+  }catch(error){
+   if(!form.isConnected||dialog.kind!=='connect')return;
+   feedback.textContent=error.name==='TimeoutError'?'The galaxy server is still waking. Try again in a moment.':error.message;
+   form.dataset.loading='false';button.disabled=false;button.textContent='Choose starting life & captain →';
+  }
+ };
  const passes=Object.entries(readPassports()).filter(([key,value])=>key!=='lastRealm'&&value?.token);
  if(passes.length){dialog.body.insertAdjacentHTML('beforeend','<h3>Your captains</h3>');dialog.choices(passes.map(([code,passport])=>({label:`Return to ${code}`,detail:'Resume this device’s saved captain.',action:()=>connectGalaxy({passport})})));}
  dialog.choices([{label:'Restore a captain passport',detail:'Use your private backup to continue from another device.',action:()=>openPassport(true)}]);
 }
 async function connectGalaxy(options){if(testSession){openTestControls();return;}
- const wasPlaying=playing,wasGame=game,wasNetwork=network;if(playing&&!network)saveNow();if(wasNetwork?.connected){wasNetwork.setInput({});const cameraSaved=await cameraProfile.flush();if(network!==wasNetwork)return;if(!cameraSaved)reportCameraSaveFailure();}network?.disconnect();clearTimeout(cameraSaveTimer);cameraScope='connecting';cameraKey=null;cameraProfile.activateLocal(localCameraPreferences);audio.unlock();
+ const wasPlaying=playing,wasGame=game,wasNetwork=network,previousCaptainId=game.state.multiplayer?.captainId;if(playing&&!network)saveNow();if(wasNetwork?.connected){wasNetwork.setInput({});const cameraSaved=await cameraProfile.flush();if(network!==wasNetwork)return;if(!cameraSaved)reportCameraSaveFailure();}network?.disconnect();clearTimeout(cameraSaveTimer);cameraScope='connecting';cameraKey=null;cameraProfile.activateLocal(localCameraPreferences);audio.unlock();
  dialog.open('Opening the airlock…','connecting',{eyebrow:'CONTACTING YOUR GALAXY'});dialog.html('<p>The galaxy server may take a moment to wake. Your captain and progress will be restored before you take control.</p><div class="network-status">Connecting securely…</div>');
  const candidate=new FarwakeNetwork({url:SERVER_URL,onSnapshot:packet=>{if(network===candidate)receiveSnapshot(packet);},onStatus:status=>{if(network!==candidate)return;connectionState=status.state;updateConnectionHUD();syncViewControls();if(status.state==='connected')void cameraProfile.flush();if(status.state==='reconnecting'&&playing)toast('Connection interrupted. Reconnecting your captain…','info',4000);if(status.state==='error')toast(status.reason??'The server could not confirm that action.','bad');}});network=candidate;worldPresentation.reset();personPredictedAt=null;personVisualAt=null;personVisualOffset={x:0,y:0};
- try{const welcome=await candidate.connect(options);if(network!==candidate){candidate.disconnect();return;}playing=true;surface=null;surfaceKey='';ensureSurface(false);$('welcome').hidden=true;document.body.classList.remove('welcome-active');$('resumeGalaxy').hidden=false;dialog.close();saveNow();updateHUD();canvas.focus({preventScroll:true});toast(`Welcome aboard. Galaxy code: ${candidate.passport.realmCode}. Share the code from Play together.`,'good',7000);if(game.state.multiplayer?.waitingForGroupStart)groupStartUI.open();else if(welcome.state.pendingEncounter)openEncounter(game.getEncounter());}
+ try{const welcome=await candidate.connect(options);if(network!==candidate){candidate.disconnect();return;}playing=true;surface=null;surfaceKey='';if(previousCaptainId!==game.state.multiplayer?.captainId){tracked=game.system.bodies.find(body=>body.id===game.state.lastBodyId)?.id||publicStartingPort(game.system)?.id||null;trackedThreadId=null;narrativeWaypoint=null;narrativeMarkerKey='';openingMarkerKey='';dutyMarkerKey='';militaryMarkerKey='';guideIntent=null;foldDriveTarget=null;}ensureSurface(false);$('welcome').hidden=true;document.body.classList.remove('welcome-active');$('resumeGalaxy').hidden=false;dialog.close();saveNow();updateHUD();canvas.focus({preventScroll:true});toast(`Welcome aboard. Galaxy code: ${candidate.passport.realmCode}. Share the code from Play together.`,'good',7000);if(game.state.multiplayer?.waitingForGroupStart)groupStartUI.open();else if(welcome.state.pendingEncounter)openEncounter(game.getEncounter());}
  catch(error){candidate.disconnect();if(network!==candidate)return;network=null;game=wasNetwork?(stored?Game.fromSave(stored):new Game('farwake-'+Date.now())):wasGame;playing=wasNetwork?false:wasPlaying;activateLocalCamera(game.state.cameraPreferences??localCameraPreferences);if(!playing){$('welcome').hidden=false;document.body.classList.add('welcome-active');}onlineSnapshot=null;connectionState='offline';dialog.open('Could not reach the galaxy','connection-error',{eyebrow:'YOUR SAVED CAPTAIN IS SAFE'});dialog.html(`<p>${esc(error.message)}</p><p class="mini muted">If the server is waking from idle, wait a moment and try again.</p>`);dialog.choices([{label:'Try again',action:()=>connectGalaxy(options)},{label:'Back',action:()=>dialog.close()}]);}
 }
 function downloadJSON(value,name){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.hidden=true;document.body.append(a);try{a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}}
@@ -1374,7 +1396,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.19.2',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.19.3',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }

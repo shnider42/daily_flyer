@@ -28,12 +28,17 @@ import { applyGunneryAim } from '../dist/gunnery.mjs';
 import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
 import { syncNavyCrewSurface } from '../dist/navy-crew.mjs';
 import { occupiedVesselThreats } from '../dist/music-context.mjs';
+import { CASUAL_START_UPGRADES, publicStartingPort } from '../dist/livelihoods.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
 const roleName = value => ROLE_ALIASES[value] || value;
 const now = () => Date.now();
 const starterHome = () => ({ kind: 'port', systemId: 'hearth', locationId: 'kettle' });
+const untouchedStarterUpgrades = state => {
+  const expected = state.startMode === 'casual' ? CASUAL_START_UPGRADES : {};
+  return Object.keys(state.upgrades).length === Object.keys(expected).length && Object.entries(expected).every(([id, level]) => state.upgrades[id] === level);
+};
 const usable = result => result && result.ok !== false;
 const smallId = value => typeof value === 'string' && value.length > 0 && value.length < 160;
 const DOCK_EXIT_ALIASES = new Set(['leaveCrew', 'leaveInterior', 'exitCabin', 'leaveDerelict', 'returnToOwnShip', 'retreatBoarding']);
@@ -217,7 +222,7 @@ export class Realm extends BoardingAuthority {
     // they explicitly leave. No other saved or progressed captain can be moved.
     for (const member of members) {
       const s = member.game.state, own = this.vessels.get(member.ownedVesselId);
-      if (!own || own.destroyed || own.ship.hull <= 0 || own.ownerId !== member.id || own.dockedAt !== 'kettle' || own.systemId !== 'hearth' || member.aboard || s.mode !== 'person' || s.systemId !== 'hearth' || s.locationId !== 'kettle' || s.interior || s.pendingEncounter || s.person.health <= 0 || s.stats.time > 0 || Object.keys(s.upgrades).length) return fail('A captain has already left the departure state. Begin independently instead.', 'group-start-progressed');
+      if (!own || own.destroyed || own.ship.hull <= 0 || own.ownerId !== member.id || own.dockedAt !== 'kettle' || own.systemId !== 'hearth' || member.aboard || s.mode !== 'person' || s.systemId !== 'hearth' || s.locationId !== 'kettle' || s.interior || s.pendingEncounter || s.person.health <= 0 || s.stats.time > 0 || !untouchedStarterUpgrades(s)) return fail('A captain has already left the departure state. Begin independently instead.', 'group-start-progressed');
     }
     const vessel = this.vessels.get(captain.ownedVesselId), shipClass = this.groupStart.selectedClassId;
     // Exactly one physical ship is commissioned. Guests keep their compact
@@ -273,10 +278,16 @@ export class Realm extends BoardingAuthority {
     const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, name:cleanName(name), openingMission:this.settings.openingMission});
     game._directorShared=this.director;
     const atPort = game.state.mode === 'person' && !game.state.interior && !!game.state.locationId;
-    if (!atPort) { const angle = this.captains.size * 2.399963; game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155; }
+    if (!atPort && game.state.startMode !== 'casual') { const angle = this.captains.size * 2.399963; game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155; }
+    const startingPort = game.state.startMode === 'casual' ? publicStartingPort(game.system) : null;
+    if (!atPort && startingPort) {
+      const angle = this.captains.size * 2.399963, radius = startingPort.radius + 95;
+      Object.assign(game.state.ship, { x: startingPort.x + Math.sin(angle) * radius, y: startingPort.y + Math.cos(angle) * radius, angle: Math.PI / 2 - angle });
+    }
+    const home = atPort ? { kind:'port', systemId:game.state.systemId, locationId:game.state.locationId } : startingPort ? { kind:'port', systemId:game.state.systemId, locationId:startingPort.id } : starterHome();
     const ownedVesselId = game.ownsShip ? `vessel_${id}` : null;
-    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home: atPort ? { kind:'port', systemId:game.state.systemId, locationId:game.state.locationId } : starterHome(), game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId, aboard: atPort ? null : ownedVesselId, portVesselId: atPort ? ownedVesselId : null, crewRole: ownedVesselId && !atPort ? 'helm' : 'passenger', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
-    this.captains.set(id, captain); const vessel = this._createVessel(captain); if (!this.ownerId) { this.ownerId = id; if (!vessel && this.groupStart?.status === 'assembling') this.groupStart.status = 'closed'; }
+    const captain = { id, name: cleanName(name), tokenHash: secretHash(token), createdAt: now(), lastSeen: now(), home, game, cameraPreferences: normalizeCameraPreferences(), cameraRevision: 0, ownedVesselId, aboard: atPort ? null : ownedVesselId, portVesselId: atPort ? ownedVesselId : null, crewRole: ownedVesselId && !atPort ? 'helm' : 'passenger', session: null, input: { ...EMPTY_INPUT }, inputSeq: 0, ack: 0, inputAt: 0, disconnectUntil: 0, events: [], recentCommands: [], surfaceCache: null };
+    this.captains.set(id, captain); const vessel = this._createVessel(captain); if (!this.ownerId) { this.ownerId = id; if ((!vessel || game.state.systemId !== 'hearth') && this.groupStart?.status === 'assembling') this.groupStart.status = 'closed'; }
     game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
     game._surfaceForInteraction = () => this._surface(captain);
     game._npcTime = () => this._npcTime();
@@ -285,7 +296,7 @@ export class Realm extends BoardingAuthority {
     game._militaryOperationsView = () => this._militaryOperationsView(captain);
     game._militaryReturnTransport = () => this._returnMilitaryTransport(captain);
     if (vessel && atPort && game.state.livelihoods?.parkedShip) Object.assign(game.state.livelihoods.parkedShip, { id: vessel.id, vesselId: vessel.id });
-    if (vessel && game.state.startMode !== 'hardcore' && this.groupStart?.status === 'assembling') this._stageGroupCaptain(captain, vessel);
+    if (vessel && game.state.startMode !== 'hardcore' && game.state.systemId === 'hearth' && this.groupStart?.status === 'assembling') this._stageGroupCaptain(captain, vessel);
     const revision = this.markDirty(); await this.flush(revision);
     return { captain, passport: { realmCode: this.id, captainId: id, token } };
   }

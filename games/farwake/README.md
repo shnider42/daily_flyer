@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.19.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.19.3 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
-Choose a **Regular** beginning beside Kettle Station in **Cinder**, your choice of a small Sparrow, Kestrel, or Mule, or a **Hardcore** beginning on foot at Morrow without a ship. Both start with **180 credits**. The only rules difference is initial ship ownership: jobs, passenger services, crew work, prices, character options, combat, and recovery rules are shared. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
+Choose **Casual** to begin with a fold-equipped Sparrow, Kestrel, or Mule and your choice of starting system; **Regular** to begin beside Kettle Station with a small ship and earn its fold drive; or **Hardcore** to begin on foot at Morrow without a ship. All three start with **180 credits**. Jobs, passenger services, crew work, prices, character options, combat, and recovery follow the same rules. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Casual beginnings and a choice of home system · 0.19.3
+
+Choose **Casual** on the first new-captain screen in a solo voyage or shared galaxy. Your selected compact ship includes **Fold Drive I, Vector thrusters, and an Echo scanner**, giving **5 ly fold range** immediately. Open the Galaxy chart to choose an in-range destination. Fuel and normal travel conditions still apply; this is a saved voyage and needs no test password.
+
+Casual also offers a searchable picker for all **900 systems** in the actual galaxy, showing the selected system’s faction, danger rating, and civilian departure station. Hearth remains the default. Other origins place you in flight beside that system’s public station, with its real hazards and access restrictions intact. Starting far from Hearth skips the local opening favor and starts independently of Kettle’s crew departure lobby. The main campaign, military service, and faction permissions still require their normal progress.
+
+For a shared departure in Hearth, a Casual host’s drive stays fitted when the group chooses a larger ship. The host’s equipment determines the shared ship’s equipment; a Casual guest joining a Regular host keeps their own fitted compact ship at Kettle. A remote Casual captain joins the same galaxy and can meet other players there, but is never pulled back to the lobby. New shared galaxies retain the exact seed previewed during setup, and invited captains load that galaxy’s chart before choosing their origin.
+
+These grants and origin choices apply once, at captain creation. Loading a save or resuming a passport preserves the current system, ship losses, equipment, fuel, and progress. Regular remains the default and keeps its existing progression. Simple, Moderate, and Expert guidance remain independent settings available to every mode.
 
 ## Test the fold drive yourself · 0.19.2
 
@@ -102,7 +112,7 @@ The modes share the larger systems, obtainable hulls, port traffic, Resolute pat
 
 ## Military careers together · 0.14.0
 
-**Sergeant Sera Venn**, the Freewake recruiter, waits beside Morrow’s landing. Joining is optional and works for Regular and shipless Hardcore captains. Choose **Navy** or **Army**, then follow one current assignment. The journal keeps the service record and a folded deployment board. Taking leave hides guidance and preserves the assignment; an underway vessel or live fight continues under the normal simulation rules.
+**Sergeant Sera Venn**, the Freewake recruiter, waits beside Morrow’s landing. Joining is optional and works for Casual, Regular, and shipless Hardcore captains. Choose **Navy** or **Army**, then follow one current assignment. The journal keeps the service record and a folded deployment board. Taking leave hides guidance and preserves the assignment; an underway vessel or live fight continues under the normal simulation rules.
 
 ### Personal rank and shared deployments
 
@@ -204,7 +214,7 @@ NPC routes and the Resolute patrol use the expanded space at their existing phys
 
 ## A shared departure and the harbor watch · 0.10.0
 
-A new Regular shared galaxy offers **Start together**. Captains gather at Kettle Station before the first voyage, share the galaxy code, choose a vessel, and mark themselves ready. The host can choose a larger beginning from actual connected participants:
+A new Regular or Hearth-based Casual shared galaxy offers **Start together**. Captains gather at Kettle Station before the first voyage, share the galaxy code, choose a vessel, and mark themselves ready. The host can choose a larger beginning from actual connected participants:
 
 | Connected departure crew | Additional choice | Total berths |
 | --- | --- | ---: |
@@ -214,7 +224,7 @@ A new Regular shared galaxy offers **Start together**. Captains gather at Kettle
 
 The chosen ship must fit everyone boarding. Guests confirm readiness again if the host changes the hull. **Board together** puts the crew inside the same docked vessel, with working stations, piloting permission, and a fitted bunk each. Take the helm and launch when ready. Guest captains keep their personal compact ships docked at Kettle. The host retains the original hull class in their fleet.
 
-The authority counts live sessions, validates the untouched departure state, and records the launch once. Disconnected captains do not unlock larger hulls or move with the departing crew; they return to Kettle with their own ship. A guest can leave the lobby to begin independently; when the host closes it, everyone keeps their compact vessel. Old galaxies, late arrivals after departure, solo voyages, and Hardcore origins keep their existing starts. Larger launch hulls grant no free fold drive, credits, ore, reputation, or campaign flags.
+The authority counts live sessions, validates the untouched departure state, and records the launch once. Disconnected captains do not unlock larger hulls or move with the departing crew; they return to Kettle with their own ship. A guest can leave the lobby to begin independently; when the host closes it, everyone keeps their compact vessel. Old galaxies, late arrivals after departure, solo voyages, and Hardcore origins keep their existing starts. Larger launch hulls preserve the host’s starting equipment, including a Casual host’s fold drive, and grant no extra credits, ore, reputation, or campaign flags.
 
 ### Five additional playable hulls
 
@@ -499,7 +509,7 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Civilian travel and crew work | Paid local passenger tickets, repeatable work without a ship, and gunner/fire crew/medic contracts aboard NPC-piloted vessels |
 | Living frontier | Shared rescue calls, raids, outbreaks, and border clashes that resolve with or without player participation |
 | Captain | Appearance choices and six optional traits; choose up to two with explicit benefits and drawbacks |
-| Starting origins | Regular with a small ship, or Hardcore without one; same 180 credits and gameplay rules |
+| Starting origins | Casual with a fold-equipped ship and selectable system; Regular with a small ship; Hardcore on foot; all begin with 180 credits |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
 The procedural systems supply seeded places, encounters, resources, traffic, and threats around reusable surface layouts. They are not 880 separate handcrafted campaigns. The original campaign and encounters are authored in [dist/content.mjs](dist/content.mjs); the additional threads and recurring contacts are in [dist/quest-content.mjs](dist/quest-content.mjs).
@@ -562,7 +572,7 @@ Commission hulls from an inhabited port's shipyard after earning their preceding
 | **Kestrel** scout courier | 1 | 420 credits | Narrow solo cabin, fast thrust, small hold |
 | **Mule** salvage tug | 2 | 480 credits | Cramped working cabin, greater mining reach and cargo room |
 
-Regular includes one of these three as a personal hull at creation; a shared departure can additionally choose the Lark, Puffin, or Osprey once enough captains are connected. A captain without an owned hull pays the listed first-hull price with no ore requirement. Subsequent commissions use the shipyard's normal resource and progression requirements. Sixteen other designs range from modest working vessels to a twenty-four-berth destroyer and introduce their abilities as you progress.
+Regular and Casual include one of these three as a personal hull at creation; a shared departure can additionally choose the Lark, Puffin, or Osprey once enough captains are connected. A captain without an owned hull pays the listed first-hull price with no ore requirement. Subsequent commissions use the shipyard's normal resource and progression requirements. Sixteen other designs range from modest working vessels to a twenty-four-berth destroyer and introduce their abilities as you progress.
 
 Berths count **everyone aboard, including the captain**. Sparrow and Mule each have room for one additional person; Kestrel is a solo craft. Large ten-berth vessels can carry ten human players if no NPCs occupy those places. Engineers, navigators, medics, gunners, security officers, scientists, and quartermasters offer different ship benefits and boarding support. The crew manifest shows health, vacancies, and the memorial. Dismiss living specialists at a port to free space for other crew. Older saves keep existing crew and passengers even if their reduced starter cabin is already over capacity; that does not create spare berths for new recruits.
 
@@ -613,7 +623,7 @@ The header's **Menu** opens the map, log, ship, contacts, action help, and setti
 ### Joining and returning
 
 1. From the title, choose **Create a shared galaxy** and enter a captain and galaxy name. Use **Join with a galaxy code** to enter an existing one. The **CREW** panel offers the same paths during a solo voyage.
-2. Share the **galaxy code** from CREW with friends. Each new join creates a distinct captain with their own progression and selected Regular or Hardcore origin. The galaxy allows up to ten captains online at once.
+2. Share the **galaxy code** from CREW with friends. Each new join creates a distinct captain with their own progression and selected Casual, Regular, or Hardcore origin. The galaxy allows up to ten captains online at once.
 3. Use **Return to your galaxy** or your saved captain entry to resume that identity. Players can return at different times; everyone does not need to be online together.
 4. Open **CREW → Captain passport → Download captain passport** to back up your identity. On another device, choose **Restore a captain passport** and paste that JSON.
 
@@ -633,7 +643,7 @@ Captains can travel independently in their own ships, or stay aboard a crewed ve
 
 | Home | Cost and requirements |
 | --- | --- |
-| Port recovery berth | Starting fallback at Kettle for Regular or Morrow for a shipless origin |
+| Port recovery berth | Starting fallback at the chosen civilian station for Casual, Kettle for Regular, or Morrow for a shipless origin |
 | Port room | 50 credits at an inhabited port; the lodging registration does not expire |
 | Surface outpost | 180 credits + 12 ore on a planet or moon |
 | Ship bunk | Owner fits each additional bunk for 60 credits + 4 ore; an allowed captain visits an unclaimed fitted bunk to register it |

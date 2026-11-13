@@ -15,6 +15,8 @@ const SHIP_NOTES={
 const options=(items,current)=>items.map(item=>`<option value="${esc(item.id)}"${item.id===current?' selected':''}>${esc(item.name)}</option>`).join('');
 const traitName=id=>CHARACTER_TRAITS.find(trait=>trait.id===id)?.name||'';
 const percent=value=>`${value>=1?'+':'−'}${Math.round(Math.abs(value-1)*100)}%`;
+const DEFAULT_START_SYSTEM={id:'hearth',name:'Hearth',factionName:'Freewake Union',danger:1,description:'The settled starting system, with work and guidance close at hand.',portName:'Kettle Station'};
+const dangerLabel=value=>['Low','Guarded','Hazardous','High','Extreme'][Math.max(0,Math.min(4,Number(value)-1))]||'Unknown';
 
 /**
  * onComplete may return false / {ok:false, reason} or throw to retain the draft.
@@ -22,13 +24,21 @@ const percent=value=>`${value>=1?'+':'−'}${Math.round(Math.abs(value-1)*100)}%
  */
 export function openCaptainSetup(dialog,{
   mode='create',character={},locked=false,starterShip='sparrow',startMode='regular',
+  startSystemId='hearth',startSystems=[],
   openingMission=false,openingPolicy='choose',groupStartPolicy='none',startTogether=true,
   onComplete=()=>{},onCancel=()=>{}
 }={}) {
   const creating=mode!=='edit',original=normalizeCharacter(character),draft=normalizeCharacter(character);
   const chooseOpening=creating&&openingPolicy!=='realm',chooseGroupStart=creating&&groupStartPolicy==='choose';
+  const systems=Array.isArray(startSystems)?startSystems.filter(system=>system&&typeof system.id==='string'&&typeof system.name==='string').map(system=>({...system})):[];
+  if(!systems.some(system=>system.id==='hearth'))systems.unshift({...DEFAULT_START_SYSTEM});
+  const validSystem=id=>systems.some(system=>system.id===id)?id:'hearth';
   let selectedTogether=startTogether!==false;
-  let selectedShip=normalizeStarterShip(starterShip),selectedStart=startMode==='hardcore'?'hardcore':'regular',selectedOpening=openingMission===true,step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
+  let selectedShip=normalizeStarterShip(starterShip),selectedStart=['casual','hardcore'].includes(startMode)?startMode:'regular',selectedOpening=openingMission===true,step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
+  let selectedSystemId=validSystem(startSystemId),systemSearch='';
+  const selectedSystem=()=>systems.find(system=>system.id===selectedSystemId)||DEFAULT_START_SYSTEM;
+  const remoteStart=()=>selectedStart==='casual'&&selectedSystemId!=='hearth';
+  const canGather=()=>selectedStart!=='hardcore'&&!remoteStart();
   const previousClose=dialog.onClose,closeButton=dialog.el?.querySelector('#closeModal');
   const previousCloseDisabled=closeButton?.disabled||false;
   const stopDismiss=e=>{
@@ -58,7 +68,7 @@ export function openCaptainSetup(dialog,{
   function selection(){
     const profile=normalizeCharacter(draft);
     if(!creating&&(!chooseTraits||locked))profile.traits=[...original.traits];
-    return {starterShip:selectedShip,startMode:selectedStart,character:profile,chooseTraits:creating||(!locked&&chooseTraits),...(chooseOpening?{openingMission:selectedOpening}:{}),...(chooseGroupStart?{startTogether:selectedStart==='regular'&&selectedTogether}:{})};
+    return {starterShip:selectedShip,startMode:selectedStart,character:profile,chooseTraits:creating||(!locked&&chooseTraits),...(creating&&selectedStart==='casual'?{startSystemId:selectedSystemId}:{}),...(chooseOpening?{openingMission:selectedOpening&&!remoteStart()}:{}),...(chooseGroupStart?{startTogether:canGather()&&selectedTogether}:{})};
   }
   async function submit(){
     if(busy||finished)return;
@@ -106,20 +116,49 @@ export function openCaptainSetup(dialog,{
     root.querySelector('[data-captain-submit]')?.addEventListener('click',submit);
   }
   function openingMarkup(){
+    if(remoteStart())return '<p class="captain-opening-inherited">The short opening mission takes place in Hearth. This beginning starts freely in your chosen system.</p>';
     if(!chooseOpening)return '<p class="captain-opening-inherited">New captains follow this galaxy’s opening-mission setting.</p>';
     return `<label class="captain-opening"><input type="checkbox" data-opening-mission${selectedOpening?' checked':''}><span><strong>Begin with a short opening mission</strong><small>A small paid job introduces life on foot and in space before you set your own course.</small></span></label>`;
   }
   function groupMarkup(){
     if(!creating||groupStartPolicy==='none')return '';
-    if(groupStartPolicy==='realm')return '<p class="captain-note">If the host is gathering a crew, Regular captains meet in the departure lobby at Kettle. Larger ships become available with 2, 4, or 7 connected captains. You can leave the lobby to begin independently.</p>';
-    if(selectedStart==='hardcore')return '<p class="captain-note">A shipless beginning starts independently on Morrow. Crew departures are available with a Regular beginning.</p>';
-    return `<label class="captain-opening"><input type="checkbox" data-start-together${selectedTogether?' checked':''}><span><strong>Gather a crew before departure</strong><small>Share your galaxy code, then choose a ship together at Kettle. Larger choices unlock with 2, 4, or 7 connected captains. You can still depart alone.</small></span></label>`;
+    if(remoteStart())return '<p class="captain-note" data-start-group-note>You will begin independently in this system. To gather in the departure lobby with friends, choose Hearth.</p>';
+    if(selectedStart==='hardcore')return '<p class="captain-note">A shipless beginning starts independently on Morrow. Crew departures are available with Regular or Casual in Hearth.</p>';
+    const equipment=selectedStart==='casual'?'<p class="captain-note">The shared ship uses the host’s starting equipment. If your host is Regular, your own fold-equipped ship waits at Kettle.</p>':'';
+    if(groupStartPolicy==='realm')return `<p class="captain-note">If the host is gathering a crew, Regular and Casual captains starting in Hearth meet at Kettle. Larger ships become available with 2, 4, or 7 connected captains. You can leave the lobby to begin independently.</p>${equipment}`;
+    return `<label class="captain-opening"><input type="checkbox" data-start-together${selectedTogether?' checked':''}><span><strong>Gather a crew before departure</strong><small>Share your galaxy code, then choose a ship together at Kettle. Larger choices unlock with 2, 4, or 7 connected captains. You can still depart alone.${selectedStart==='casual'?' Your fold drive stays fitted on the shared ship.':''}</small></span></label>`;
+  }
+  function matchingSystems(){
+    const query=systemSearch.trim().toLocaleLowerCase();
+    return systems.filter(system=>!query||[system.name,system.factionName,system.portName,system.id].some(value=>String(value||'').toLocaleLowerCase().includes(query)));
+  }
+  function systemOptions(){
+    const matches=matchingSystems(),visible=matches.some(system=>system.id===selectedSystemId)?matches:[selectedSystem(),...matches];
+    return visible.map(system=>`<option value="${esc(system.id)}"${system.id===selectedSystemId?' selected':''}>${esc(system.name)} · danger ${esc(system.danger??'?')}/5</option>`).join('');
+  }
+  function systemSearchStatus(){
+    if(!systemSearch.trim())return `${systems.length} ${systems.length===1?'system':'systems'} available`;
+    const matches=matchingSystems();
+    return `${matches.length} ${matches.length===1?'match':'matches'}${matches.some(system=>system.id===selectedSystemId)?'':' · your current choice stays selected'}`;
+  }
+  function systemMarkup(){
+    if(selectedStart!=='casual')return '';
+    const system=selectedSystem();
+    return `<section class="captain-start-system" aria-label="Casual starting system">
+      <div class="captain-start-heading"><strong>Choose your starting system</strong><span>CASUAL</span></div>
+      <div class="captain-system-fields">${systems.length>12?`<label>Find a system<input type="search" data-start-system-search value="${esc(systemSearch)}" placeholder="Name, faction, or station" autocomplete="off" aria-describedby="captain-system-count"></label>`:''}
+        <label>Starting system<select data-start-system aria-describedby="captain-system-detail captain-system-risk">${systemOptions()}</select></label>
+      </div>
+      ${systems.length>12?`<p class="captain-system-count" id="captain-system-count" data-start-system-count aria-live="polite">${esc(systemSearchStatus())}</p>`:''}
+      <div class="captain-system-detail" id="captain-system-detail" aria-live="polite"><strong>${esc(system.name)} · ${esc(system.factionName||'Unclaimed space')}</strong><span class="captain-system-danger${Number(system.danger)>=4?' high':''}">${esc(dangerLabel(system.danger))} danger · ${esc(system.danger??'?')}/5</span><span>Starting port: ${esc(system.portName||'a civilian station')}.</span>${system.description?`<p>${esc(system.description)}</p>`:''}</div>
+      <p class="captain-system-risk" id="captain-system-risk">Choose at your own risk. Local enemies, faction restrictions, and recovery rules still apply.</p>
+    </section>`;
   }
   function shipMarkup(){
-    const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR. Pick your first hull below.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">The starting ship is the only difference. Jobs, paid passage, crew contracts, combat, and recovery rules are the same in both modes.</p>${openingMarkup()}${groupMarkup()}`;
+    const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='casual'?' selected':''}" data-start-mode="casual" aria-pressed="${selectedStart==='casual'}"><strong>Casual</strong><span>A ship, 180 CR, and a fitted fold drive. Choose your starting system and explore sooner.</span></button><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR in Hearth. Earn your fold drive as you go.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">Choose your beginning. Combat, jobs, faction permissions, and recovery follow the same rules in every mode.</p>${systemMarkup()}${openingMarkup()}${groupMarkup()}`;
     if(selectedStart==='hardcore')return `${origin}<div class="captain-included"><span>YOUR FIRST MORNING / MORROW</span><strong>Find work. Book a passage. Earn your own ship.</strong><p>Work on the docks or join a paid crew for freight, repairs, survey, care, or security. Passenger tickets and your first ship cost credits.</p></div>`;
     return `${origin}<p class="captain-intro">Three compact working ships. A cockpit, a berth, and room to begin.</p>
-      <p class="captain-included"><span>DEPARTURE GRANT</span> Your first ship is included. <strong>Cost: 0 CR</strong></p>
+      <p class="captain-included"><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?'Your first ship includes Fold Drive I, Vector thrusters, and an Echo scanner. <strong>5 ly fold range · Cost: 0 CR</strong>':'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
       <div class="captain-ships" role="group" aria-label="Choose your starter ship">${STARTER_SHIPS.map(hull=>{
         const note=SHIP_NOTES[hull.id];
         return `<button type="button" class="captain-ship${hull.id===selectedShip?' selected':''}" data-starter-ship="${esc(hull.id)}" aria-pressed="${hull.id===selectedShip}">
@@ -136,6 +175,17 @@ export function openCaptainSetup(dialog,{
   }
   function bindShips(root){
     for(const button of root.querySelectorAll('[data-start-mode]'))button.onclick=()=>{selectedStart=button.dataset.startMode;render();};
+    root.querySelector('[data-start-system]')?.addEventListener('change',event=>{
+      const scrollTop=dialog.body.scrollTop;
+      selectedSystemId=validSystem(event.target.value);render();
+      dialog.body.scrollTop=scrollTop;
+      dialog.body.querySelector('[data-start-system]')?.focus?.({preventScroll:true});
+    });
+    root.querySelector('[data-start-system-search]')?.addEventListener('input',event=>{
+      systemSearch=event.target.value;
+      const select=root.querySelector('[data-start-system]');select.innerHTML=systemOptions();select.value=selectedSystemId;
+      root.querySelector('[data-start-system-count]').textContent=systemSearchStatus();
+    });
     root.querySelector('[data-opening-mission]')?.addEventListener('change',event=>{selectedOpening=event.target.checked;});
     root.querySelector('[data-start-together]')?.addEventListener('change',event=>{selectedTogether=event.target.checked;});
     for(const canvas of root.querySelectorAll('[data-ship-preview]')){
@@ -156,6 +206,7 @@ export function openCaptainSetup(dialog,{
   }
   function captainMarkup(){
     const appearance=draft.appearance,canChoose=creating||!locked;
+    const startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR · Fold Drive I fitted`:`Regular · Hearth · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR`;
     return `<div class="captain-identity">
       <div class="captain-portrait"><canvas width="128" height="128" data-captain-portrait aria-label="Your captain’s appearance"></canvas><span data-captain-look></span></div>
       <div class="captain-identity-copy"><p class="captain-intro">A face for the places you’ll go.</p><p class="captain-note">Your appearance is yours to change. It has no effect on your abilities.</p>
@@ -179,8 +230,8 @@ export function openCaptainSetup(dialog,{
         <p class="captain-trait-hint" data-trait-hint aria-live="polite"></p>`:
         `<p class="captain-note">Your traits were chosen at departure. Appearance can still be changed.</p><div class="captain-locked-traits">${original.traits.length?original.traits.map(id=>{const trait=CHARACTER_TRAITS.find(value=>value.id===id);return `<div><strong>${esc(trait.name)}</strong><span>${esc(trait.benefit)}</span><span class="captain-trait-cost">${esc(trait.cost)}</span></div>`;}).join(''):'<p>No traits · balanced abilities.</p>'}</div>`}
     </section>
-    <div class="captain-summary" aria-live="polite"><strong>${creating?(selectedStart==='hardcore'?'Morrow · 180 CR · no ship':`${esc(STARTER_SHIPS.find(hull=>hull.id===selectedShip).name)} · 180 CR · ready when you are`):'Your captain’s abilities'}</strong><span data-captain-summary></span>${creating?`<span data-opening-summary>${chooseOpening?(selectedOpening?'Opening mission included':'Start freely'):'Opening mission follows this galaxy’s setting.'}</span>`:''}</div>
-    ${creating&&chooseGroupStart&&selectedStart==='regular'&&selectedTogether?'<p class="captain-note">Next: share the galaxy code and gather your crew at Kettle before choosing a larger departure ship.</p>':''}
+    <div class="captain-summary" aria-live="polite"><strong>${creating?esc(startSummary):'Your captain’s abilities'}</strong><span data-captain-summary></span>${creating?`<span data-opening-summary>${remoteStart()?'Start freely · the opening mission is in Hearth':chooseOpening?(selectedOpening?'Opening mission included':'Start freely'):'Opening mission follows this galaxy’s setting.'}</span>`:''}</div>
+    ${creating&&chooseGroupStart&&canGather()&&selectedTogether?'<p class="captain-note">Next: share the galaxy code and gather your crew at Kettle before choosing a larger departure ship.</p>':''}
     ${creating?'<p class="captain-note">Traits are fixed after departure. Your ship choice and appearance do not lock you out of the story.</p>':''}`;
   }
   function bindCaptain(root){

@@ -14,11 +14,25 @@
 .captain-included>span{font-size:1em;color:#a7cdbc;letter-spacing:.035em;font-weight:bold}
 .captain-included strong{margin-left:auto;white-space:nowrap;color:#f0dfae}
 .captain-ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.captain-origins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.captain-origins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
 .captain-origin{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;text-align:left;background:#142735;border:1px solid #526873;color:#c8d3d4;line-height:1.5}
 .captain-origin strong{font-size:1.12em;color:#efe1bb}
 .captain-origin.selected{border-color:#e1c284;box-shadow:inset 3px 0 0 #e1c284;background:#1b2e38}
 .captain-origin span{font-size:1em}
+.captain-start-system{margin:16px 0;padding:16px;border:1px solid #5f817c;background:#142c35;min-width:0}
+.captain-start-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;color:#efe1bb}
+.captain-start-heading>span{font-size:.85em;letter-spacing:.08em;color:#a7cdbc}
+.captain-system-fields{display:flex;gap:12px;flex-wrap:wrap}
+.captain-system-fields label{display:flex;flex:1 1 220px;min-width:0;flex-direction:column;gap:6px;color:#c8d3d4}
+.captain-system-fields input,.captain-system-fields select{width:100%;max-width:100%;min-width:0;min-height:46px;padding:9px 10px;background:#0b1b28;border:1px solid #66817e;font-size:max(16px,1.08rem);color:#e4e9df}
+.captain-system-fields input:focus,.captain-system-fields select:focus{outline:2px solid #e1c284;outline-offset:2px}
+.captain-system-count{margin:8px 0;color:#aebfc8}
+.captain-system-detail{display:flex;flex-direction:column;gap:5px;margin-top:14px;line-height:1.5;overflow-wrap:anywhere;color:#c5d3d3}
+.captain-system-detail>strong{color:#e9e7ce}
+.captain-system-detail>p{margin:3px 0;color:#b5c7cd}
+.captain-system-danger{color:#bbd5bd}
+.captain-system-danger.high{color:#f1b296}
+.captain-system-risk{padding-top:12px;margin:12px 0 0;border-top:1px solid #47605f;color:#dfc39b;line-height:1.5}
 .captain-opening{display:flex;align-items:flex-start;gap:12px;min-height:48px;padding:14px;margin:16px 0 20px;background:#192e35;border:1px solid #526873;cursor:pointer}
 .captain-opening input{flex:0 0 auto;width:24px;height:24px;margin:3px 0 0;accent-color:#a7cdbc}
 .captain-opening>span{min-width:0}

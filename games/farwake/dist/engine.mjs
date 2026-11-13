@@ -39,7 +39,7 @@ import { ProfessionRules, militaryPortAccess } from './profession-rules.mjs';
 import { MilitaryCareerRules } from './military-career.mjs';
 import { MilitaryRecoveryRules } from './military-recovery.mjs';
 import { militaryGroundSite } from './military-sites.mjs';
-import { LivelihoodRules, normalizeStartMode } from './livelihoods.mjs';
+import { LivelihoodRules, normalizeStartMode, CASUAL_START_UPGRADES, publicStartingPort } from './livelihoods.mjs';
 import { NpcContractRules } from './npc-contracts.mjs';
 import { OpeningMissionRules } from './opening-mission.mjs';
 import { advanceWorldDirector, syncDirectorWorld, recordDirectorDamage } from './world-director.mjs';
@@ -162,7 +162,7 @@ function initialState(seed, options = {}) {
   return {
     version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
-    upgrades: {}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
+    upgrades: startMode==='casual'?{...CASUAL_START_UPGRADES}:{}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
     stats: { time: 0, oreMined: 0, crystalsMined: 0, kills: 0, jobs: 0, scans: 0, salvaged: 0, jumps: 0, dockings: 0, work: 0, talks: 0, rescues: 0, distance: 0, decisions: 0 },
     ship: { id:`cinder-${hash(seed).toString(36)}`, name:'Cinder', classId:starter.id, ...(shipless?{unowned:true}:{}), humanOccupants:1, x: 0, y: 142, vx: 0, vy: 0, angle: -Math.PI / 2, angularVelocity:0, hull: 100, maxHull: 100, shield: 35, maxShield: 35, energy: 100, maxEnergy: 100, fuel: 22, maxFuel: 30, cargoCap: 24, speed: 255, turn: 4.6, damage: 16, range: 850, warpRange: 0, scanRange: 235, mining: 1, ...starter.stats, hull:starter.stats.maxHull, shield:starter.stats.maxShield, energy:starter.stats.maxEnergy, fuel:Math.min(22,starter.stats.maxFuel) },
@@ -180,6 +180,14 @@ export class Game {
     const fresh = initialState(isSave ? supplied.seed : supplied, isSave ? {} : options);
     this.galaxy = buildGalaxy(fresh.seed);
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
+    const casualStart=!isSave&&this.state.startMode==='casual';
+    if(casualStart){
+      // Origin choices belong only to creation. Restoring a voyage must never
+      // move its captain or replace equipment lost during play.
+      const origin=this.galaxy.find(system=>system.id===options.startSystemId&&publicStartingPort(system))||this.galaxy.find(system=>system.id==='hearth');
+      this.state.systemId=origin.id;
+      this.state.visited=[origin.id];this.state.discovered=[origin.id];
+    }
     if (!this.galaxy.some(s => s.id === this.state.systemId)) this.state.systemId = 'hearth';
     this.events = [];
     this._shotTimer = 0;
@@ -191,9 +199,16 @@ export class Game {
     if(!isSave)this.state.person.health=this.state.person.maxHealth;
     this._updateStats(false);
     this._loadSystem(this.state.systemId);
+    if(casualStart){
+      const port=publicStartingPort(this.system);
+      if(port){
+        Object.assign(this.state.ship,{x:port.x,y:port.y+port.radius+95,vx:0,vy:0,angle:Math.PI/2,angularVelocity:0});
+        this.state.lastBodyId=port.id;
+      }
+    }
     this.initializeLivelihoods();
     if(!isSave&&!this.ownsShip)this._arriveAsPassenger(this.currentBody,{discovery:false});
-    this.initializeOpeningMission({ enabled: !isSave && options.openingMission === true, fresh: !isSave });
+    this.initializeOpeningMission({ enabled: !isSave && options.openingMission === true && this.state.systemId === 'hearth', fresh: !isSave });
     this._restoreBoardingDeck();
     this._restoreExploration();
     if(this.state.interior?.kind==='ship')this.state.interior.location={...this.state.interior.location,...this._cabinLocation()};
@@ -202,10 +217,14 @@ export class Game {
     }
     if (isSave) this._relocateLegacyJobs();
     if (!isSave) {
-      if(this.ownsShip)this._log('A ship of your own', this.state.openingMission?.status === 'active' ? 'Cinder waits at Kettle’s berth. A dockworker near the landing has a small paid favor to ask. Your ship and the wider galaxy will be there when you are ready.' : 'Kettle Station is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping Hearth alive.', 'story');
+      if(this.ownsShip){
+        const port=this.system.bodies.find(body=>body.id===this.state.lastBodyId),origin=`${port?.name||'Your departure station'} is behind you. The ship is held together by secondhand parts, but its next destination is yours. Dock to meet the people keeping ${this.currentSystem.name} alive.`;
+        const opening=this.state.openingMission?.status==='active'?'Cinder waits at Kettle’s berth. A dockworker near the landing has a small paid favor to ask. Your ship and the wider galaxy will be there when you are ready.':origin;
+        this._log('A ship of your own',opening+(casualStart?' Your Fold Drive I, Vector thrusters and Echo scanner are already fitted. Nearby stars are within reach; local dangers and port clearances still apply.':''),'story');
+      }
       else this._log('Your first ship is still ahead', 'You arrive on Morrow with 180 credits and no ship. The contract exchange offers paid maintenance shifts, the clinic hires assistants, and crew contracts pay for work aboard someone else’s ship. Passenger ferries connect the inhabited ports. A used starter hull costs credits, with no ore or trade-in required.', 'story');
       this._flag('started');
-      this._discoverNear('hearth');
+      this._discoverNear(this.state.systemId);
     }
     this.initializeNarrative();
     this.initializeProfessions();

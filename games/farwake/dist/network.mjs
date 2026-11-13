@@ -15,6 +15,18 @@ const zeroCorrection = () => ({ x: 0, y: 0, angle: 0 });
 const resetEvents = new Set(['jump', 'dock', 'launch', 'ship-class', 'rescue']);
 const aboardIdentity = state => state?.multiplayer?.aboardVesselId || state?.interior?.vesselId || state?.interior?.location?.vesselId || state?.ship?.id || null;
 const hullClass = value => value?.classId || value?.shipClassId || value?.shipClass || null;
+
+/** Preview an invited galaxy without creating a captain or changing a passport. */
+export async function readRealmStartOptions({ url, realmCode, fetchImpl = globalThis.fetch, signal } = {}) {
+  const code = String(realmCode || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{6,12}$/.test(code)) throw new Error('Enter a valid invitation realm code.');
+  const origin = String(url || globalThis.FARWAKE_SERVER_URL || globalThis.location?.origin || '').replace(/\/$/, '');
+  const response = await fetchImpl(`${origin}/api/realms/${encodeURIComponent(code)}/start-options`, { method: 'GET', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal });
+  const data = await response.json();
+  if (!response.ok || data.ok !== true) throw new Error(data.reason || 'Could not load this galaxy’s starting systems.');
+  if (typeof data.seed !== 'string' || !data.seed.length || data.seed.length > 1000) throw new Error('This galaxy did not provide a valid starting chart.');
+  return data;
+}
 const sameRemoteContext = (a, b) => (a?.roomId ?? null) === (b?.roomId ?? null) && (a?.systemId ?? null) === (b?.systemId ?? null) &&
   (a?.vesselId ?? null) === (b?.vesselId ?? null) && (a?.mode ?? null) === (b?.mode ?? null) &&
   (a?.perspective ?? null) === (b?.perspective ?? null) && (a?.station ?? null) === (b?.station ?? null) &&
@@ -104,12 +116,12 @@ export class FarwakeNetwork {
     this.now = now; this.wallNow = wallNow; this.inputHistory = new InputTimeline(now()); this.lastInputRecordAt = null;
     this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null;
   }
-  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, character, openingMission = false, startTogether = false } = {}) {
+  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, startSystemId, galaxySeed, character, openingMission = false, startTogether = false } = {}) {
     this.manualClose = false;
     const suppliedPassport = passport || (!create ? readPassport(realmCode, this.storage) : null);
     this.passport = suppliedPassport ? normalizePassport(suppliedPassport) : null;
     if (suppliedPassport && !this.passport) throw new Error('This captain passport is incomplete or invalid. Restore a valid backup to continue.');
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, character, ...(create ? { openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
     this.passport = savePassport(registration.passport || this.passport, this.storage);
