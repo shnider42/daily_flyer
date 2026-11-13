@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172d29">
+  <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
+  <title>Pocket Baseball · DFE Sports</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app" class="is-menu">
+    <canvas id="ballpark" aria-label="Three-dimensional baseball field"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <section id="home-screen" class="home-screen" aria-labelledby="game-title">
+      <header class="home-masthead"><span class="dfe-mark">DFE <b>SPORTS</b></span><span class="venue-label">HARBOR FIELD</span></header>
+      <div class="home-content">
+        <p class="edition-line">NIGHT GAME <span>•</span> FIRST PITCH EDITION</p>
+        <h1 id="game-title">POCKET<br><span>BASEBALL</span></h1>
+        <div class="matchup"><span class="club-mark harbor">H</span><span><b>BOSTON HARBOR</b><small>YOU · VISITORS</small></span><em>at</em><span class="club-mark foundry">F</span><span><b>BROOKLYN FOUNDRY</b><small>CPU · HOME</small></span></div>
+        <p class="home-description">Read the pitch. Find your timing. Put one in the gap.</p>
+        <form id="setup" class="setup" autocomplete="off">
+          <div class="setup-fields">
+            <label>INNINGS<select id="innings"><option value="3">3 innings</option><option value="6">6 innings</option><option value="9">9 innings</option></select></label>
+            <label>DIFFICULTY<select id="difficulty"><option value="rookie">Rookie</option><option value="club">Club</option><option value="pro">Pro</option></select></label>
+            <label>GUIDANCE<select id="guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label>
+          </div>
+          <p id="setup-note" class="setup-note">Timing cue, strike zone, and a little help between pitches.</p>
+          <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true">↗</span></button>
+          <button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span><small>Find your swing</small></button>
+        </form>
+        <div class="home-footer"><button id="home-help" class="text-button">How to play</button><span>Solo vs CPU · Fielding &amp; running assisted</span></div>
+      </div>
+      <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small>90 FT BETWEEN BASES.</small></div>
+    </section>
+
+    <section id="game-ui" class="game-ui" hidden aria-label="Game controls">
+      <div id="scorebug" class="scorebug" aria-label="Scoreboard">
+        <div class="score-heading"><span>DFE BASEBALL</span><span id="inning-label">TOP 1</span></div>
+        <div class="score-team away"><span class="bat-indicator" id="away-bat">●</span><b>BOS</b><span class="team-name">HARBOR</span><strong id="away-score">0</strong></div>
+        <div class="score-team home"><span class="bat-indicator" id="home-bat">●</span><b>BKN</b><span class="team-name">FOUNDRY</span><strong id="home-score">0</strong></div>
+        <div class="count-row"><span><b id="count">0–0</b> <small>COUNT</small></span><span id="outs" class="outs"><i></i><i></i><small>OUT</small></span><div class="base-diamond" role="img" aria-label="Bases empty"><i data-base="1"></i><i data-base="2"></i><i data-base="3"></i></div></div>
+      </div>
+      <div id="practicebug" class="practicebug" hidden><div class="score-heading"><span>BATTING PRACTICE</span><span id="practice-pitches">0 SWINGS</span></div><div class="practice-totals"><span><strong id="practice-hits">0</strong><small>HITS</small></span><span><strong id="practice-hr">0</strong><small>HR</small></span><span><strong id="practice-best">0</strong><small>BEST · FT</small></span></div></div>
+      <nav class="game-tools" aria-label="Game options">
+        <button id="sound-button" class="tool-button" title="Sound" aria-label="Turn sound off" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm12-1c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button>
+        <button id="help-button" class="tool-button help-button" title="How to play" aria-label="How to play">?</button>
+        <button id="pause-button" class="tool-button" title="Pause" aria-label="Pause game"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+      </nav>
+
+      <div id="role-banner" class="role-banner"><b id="role-title">YOU’RE AT BAT</b><span id="role-detail">Boston Harbor · Batter 1</span></div>
+      <div id="pitch-readout" class="pitch-readout" hidden><b id="pitch-name">FASTBALL</b><span id="pitch-speed">92 MPH</span></div>
+
+      <div id="timing-cue" class="timing-cue" hidden aria-label="Pitch timing guide"><div class="timing-track"><i class="timing-sweet"></i><i id="timing-marker"></i></div><span id="timing-label">WATCH IT IN</span></div>
+      <div id="status-tip" class="status-tip"><b id="status-label">WATCH THE PITCHER</b><span id="status-detail">Swing as the ball reaches the plate.</span></div>
+
+      <div id="controls" class="controls">
+        <div id="aim-control" class="aim-control"><span class="control-label" id="aim-label">BAT AIM</span><div id="aim-pad" class="aim-pad" role="application" aria-label="Aim control. Drag to aim, or use arrow keys."><span class="aim-cross horizontal"></span><span class="aim-cross vertical"></span><span class="aim-center"></span><span id="aim-stick" class="aim-stick"></span></div><small class="keyboard-hint">ARROWS / WASD</small></div>
+        <div id="pitch-selection" class="pitch-selection" hidden aria-label="Pitch selection"><button data-pitch="fastball" class="selected" aria-pressed="true">4-SEAM <small>1</small></button><button data-pitch="changeup" aria-pressed="false">CHANGE <small>2</small></button><button data-pitch="curveball" aria-pressed="false">CURVE <small>3</small></button><button data-pitch="slider" aria-pressed="false">SLIDER <small>4</small></button></div>
+        <div id="pitch-meter" class="pitch-meter" hidden><div class="meter-track"><i class="meter-sweet"></i><i id="meter-marker"></i></div><span id="meter-label">TAP PITCH TO START</span></div>
+        <div class="action-area"><button id="power-button" class="power-button"><b>POWER</b><small>SHIFT</small></button><button id="action-button" class="action-button"><b id="action-label">SWING</b><small id="action-hint">SPACE</small></button></div>
+      </div>
+      <button id="throw-button" class="throw-button" hidden>THROW TO 1ST <small>SPACE</small></button>
+
+      <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><button id="next-button">NEXT PITCH <span aria-hidden="true">→</span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
+      <div id="event-toast" class="event-toast" role="status" hidden></div>
+    </section>
+
+    <div id="loading" class="loading"><span class="loading-ball" aria-hidden="true"></span><b>LIGHTING THE FIELD</b></div>
+    <section id="error-panel" class="error-panel" hidden role="alert"><h2>THE FIELD COULDN’T OPEN</h2><p id="error-message">Please refresh the page to try again.</p><button id="reload-button">TRY AGAIN</button></section>
+    <noscript><div class="error-panel"><h2>JAVASCRIPT IS NEEDED TO PLAY</h2><p>Enable JavaScript in your browser, then refresh the page.</p></div></noscript>
+  </main>
+
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label></div><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
+
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-content field-guide"><p class="dialog-eyebrow">THE FIELD GUIDE</p><h2 id="help-title">ONE PITCH AT A TIME.</h2><div class="guide-section"><span>01</span><div><h3>AT THE PLATE</h3><p>Aim with the left pad or arrow keys. Tap <b>SWING</b> or press <b>Space</b> as the ball reaches the plate. <b>POWER</b> / <b>Shift</b> trades a smaller contact window for a harder hit. Let pitches outside the zone go.</p></div></div><div class="guide-section"><span>02</span><div><h3>ON THE MOUND</h3><p>Pick a pitch, aim, then tap <b>PITCH</b>. Tap again when the marker reaches the gold target. Better release timing means better location. Mix fastballs and breaking pitches.</p></div></div><div class="guide-section"><span>03</span><div><h3>IN PLAY</h3><p>Your fielders chase the ball and your runners advance automatically. On a ground ball, tap <b>THROW TO 1ST</b> to make an early throw, or let your fielder finish the play. Three outs changes sides.</p></div></div><div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds a pitch timing guide, strike zone, and contextual tips. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness.</p></div><p class="guide-footnote">You play Boston Harbor, the visiting team. Exhibition starts with you batting. Practice keeps you at the plate. Touch and keyboard both work; landscape gives you more field.</p><button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button></div></dialog>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
