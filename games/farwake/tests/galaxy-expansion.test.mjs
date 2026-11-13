@@ -6,6 +6,7 @@ import {FACTION_PORTS} from '../dist/port-content.mjs';
 import {expandGalaxy,FRONTIER_SYSTEMS,GALAXY_SYSTEM_COUNT,COSMIC_RULES,systemCosmicBodies,cosmicInfluence,applyCosmicHazards} from '../dist/galaxy-expansion.mjs';
 import {advanceShip,getShipClass} from '../dist/fleet.mjs';
 import {SpaceRenderer} from '../dist/space-art.mjs';
+import {releasedBody} from './helpers/world-type-projection.mjs';
 
 const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 // Recorded from the released0.4.0 generator. Expansion must not move saved worlds.
@@ -15,16 +16,15 @@ const legacyHashes={
  'quiet-earth':'6a1a1920b93e72d5cbad82ee7ba2a8851fa00e9731060fae2bfaa38254498d33'
 };
 // These two intentional 0.5.1 descriptions clarify the existing core port. New
-// type metadata and service berths are projected out; released fields stay protected.
+// type metadata and service berths are projected out. Procedural station moves
+// are also projected back to their old implicit positions; planets and authored
+// routes, IDs and every other released field stay protected by these hashes.
 function releasedChartProjection(systems){
  const additions=new Set(FACTION_PORTS.map(port=>port.id));
  const projected=structuredClone(systems).map(system=>({...system,bodies:system.bodies.filter(body=>!additions.has(body.id))})),hearth=projected.find(system=>system.id==='hearth');
  for(const system of projected){
   for(const key of ['systemTypeId','typeLabel','typeDescription','stellar','activity'])delete system[key];
-  for(const body of system.bodies){
-   if(!system.authored&&body.stationTypeId)delete body.portType;
-   for(const key of ['stationTypeId','planetTypeId','sizeClass','typeLabel','typeDescription','visualRadius'])delete body[key];
-  }
+  system.bodies=system.bodies.map(body=>releasedBody(body,{authored:system.authored}));
  }
  hearth.description='A tired orange star and a station built from ships that never made it home.';
  hearth.bodies.find(body=>body.id==='kettle').lore='A salvage port where every welded corridor remembers a different ship. Cinder is the smallest vessel on the departure board.';

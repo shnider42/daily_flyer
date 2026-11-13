@@ -4,6 +4,7 @@ import { applyCosmicHazards } from './galaxy-expansion.mjs';
 import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayCorrection } from './prediction.mjs';
 import { normalizePassport } from './privacy-data.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
+import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from './world-content.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
 export const PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.v1';
@@ -121,9 +122,17 @@ export class FarwakeNetwork {
     const suppliedPassport = passport || (!create ? readPassport(realmCode, this.storage) : null);
     this.passport = suppliedPassport ? normalizePassport(suppliedPassport) : null;
     if (suppliedPassport && !this.passport) throw new Error('This captain passport is incomplete or invalid. Restore a valid backup to continue.');
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
+    // A fresh frontend can reach an older authority during a rolling deploy.
+    // Check its generator before POST so that mismatch cannot create an orphan
+    // captain whose passport the incompatible client cannot safely use.
+    const configResponse = await this.fetch(`${this.url}/api/config`, { method: 'GET', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
+    const config = await configResponse.json();
+    if (!configResponse.ok || !config.ok) throw new Error(config.reason || 'The multiplayer service is unavailable.');
+    if (config.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', worldContentVersion: WORLD_CONTENT_VERSION, realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
+    if (registration.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);
     this.passport = savePassport(registration.passport || this.passport, this.storage);
     return this._open();
   }
@@ -134,16 +143,21 @@ export class FarwakeNetwork {
       const socket = this.socket = new this.WebSocket(endpoint.href);
       let welcomed = false, helloAt = this.now(), helloWall = this.wallNow();
       const timeout = setTimeout(() => { socket.close(); reject(new Error('Timed out while connecting to the realm.')); }, 15000);
-      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, passport: normalizePassport(this.passport) })); });
+      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, worldContentVersion: WORLD_CONTENT_VERSION, passport: normalizePassport(this.passport) })); });
       socket.addEventListener('message', event => {
         let packet; try { packet = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)); } catch { return; }
         if (packet.type === 'welcome') {
+          if (packet.worldContentVersion !== WORLD_CONTENT_VERSION) {
+            clearTimeout(timeout); this.manualClose = true; this.connected = false; this._clearTimers();
+            this.onStatus({ state: 'error', code: 'world-content-version', reason: WORLD_CONTENT_REFRESH_MESSAGE });
+            reject(new Error(WORLD_CONTENT_REFRESH_MESSAGE)); socket.close(4001, WORLD_CONTENT_REFRESH_MESSAGE); return;
+          }
           welcomed = true; clearTimeout(timeout); this.connected = true; this.reconnectAttempt = 0; this.seq = packet.ack || 0; this.unacknowledged = [];
           this.rtt = Math.max(0, this.now() - helloAt);
           this.clockOffset = packet.serverTime - (helloWall + this.rtt / 2);
           this.lastInputSentAt = null; this.interpolator.reset(); this._snapshot(packet, true); this._startTimers(); this.onStatus({ state: 'connected', realm: packet.realm }); resolve(packet);
-        } else if (packet.type === 'snapshot') this._snapshot(packet);
-        else if (packet.type === 'result') {
+        } else if (packet.type === 'snapshot' && welcomed) this._snapshot(packet);
+        else if (packet.type === 'result' && welcomed) {
           if (packet.state) this._snapshot(packet);
           const request = this.pending.get(packet.id); if (request) { clearTimeout(request.timer); this.pending.delete(packet.id); request.resolve(packet); }
         } else if (packet.type === 'pong') {
@@ -158,7 +172,7 @@ export class FarwakeNetwork {
         if (socket !== this.socket) return;
         clearTimeout(timeout); this.connected = false; this._clearTimers();
         for (const request of this.pending.values()) { clearTimeout(request.timer); request.reject(new Error('Connection lost before the server confirmed this action.')); } this.pending.clear();
-        this.onStatus({ state: this.manualClose ? 'disconnected' : 'reconnecting', code: event.code, reason: event.reason });
+        this.onStatus({ state: this.manualClose || [4001, 4003, 4009].includes(event.code) ? 'disconnected' : 'reconnecting', code: event.code, reason: event.reason });
         if (!welcomed) reject(new Error(event.reason || 'Connection closed.'));
         if (!this.manualClose && this.autoReconnect && ![4001, 4003, 4009].includes(event.code)) this._scheduleReconnect();
       });

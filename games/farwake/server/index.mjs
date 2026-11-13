@@ -6,6 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { Realm } from './realm.mjs';
 import { normalizeStartMode } from '../dist/livelihoods.mjs';
+import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from '../dist/world-content.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
 import { FixedStepClock } from './timing.mjs';
 import { PRIVACY_EXPORT_VERSION, RequestRateLimits, validExportPassport, authenticateExport, createPrivacyExport } from './privacy.mjs';
@@ -72,9 +73,9 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     let pathname; try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); } catch { return json(response, 400, { ok: false, reason: 'Invalid URL.' }); }
     if (pathname === '/healthz') {
       const storageHealthy = [...manager.realms.values()].every(realm => !realm.storageError);
-      return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0) });
+      return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0) });
     }
-    if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz, privacyExportVersion: PRIVACY_EXPORT_VERSION });
+    if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz, privacyExportVersion: PRIVACY_EXPORT_VERSION });
     const startOptionsMatch = pathname.match(/^\/api\/realms\/([^/]+)\/start-options$/);
     if (startOptionsMatch && request.method === 'GET') {
       if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
@@ -116,7 +117,11 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       if (closing) return json(response, 503, { ok: false, reason: 'The authority is restarting. Try again shortly.' });
       if (!withinRate(request)) return json(response, 429, { ok: false, reason: 'Please wait before creating or resuming another passport.' });
       try {
-        const body = await readJson(request); const action = body.action || (body.passport ? 'resume' : 'join');
+        const body = await readJson(request);
+        // Reject old tabs before creating a realm/captain, loading a saved
+        // galaxy or attaching a session with a different surface generator.
+        if (body?.worldContentVersion !== WORLD_CONTENT_VERSION) return json(response, 409, { ok: false, code: 'world-content-version', reason: WORLD_CONTENT_REFRESH_MESSAGE, worldContentVersion: WORLD_CONTENT_VERSION });
+        const action = body.action || (body.passport ? 'resume' : 'join');
         let realm, captain, passport;
         if (action === 'create') {
           if (body.galaxySeed !== undefined && (typeof body.galaxySeed !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(body.galaxySeed))) return json(response, 400, { ok: false, reason: 'This new galaxy preview has expired. Choose your starting life again.' });
@@ -133,7 +138,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           else return json(response, 400, { ok: false, reason: 'Choose create, join, or resume.' });
         }
         if (!captain.session && realm.onlineCount >= MAX_ONLINE) return json(response, 409, { ok: false, reason: 'This realm already has ten online captains.' });
-        return json(response, 200, { ok: true, passport, realm: { code: realm.id, name: realm.name, capacity: MAX_ONLINE, online: realm.onlineCount, settings: realm.settings }, protocol: PROTOCOL_VERSION });
+        return json(response, 200, { ok: true, passport, realm: { code: realm.id, name: realm.name, capacity: MAX_ONLINE, online: realm.onlineCount, settings: realm.settings }, protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION });
       } catch (error) { return json(response, /ten online|limit/.test(error.message) ? 409 : /JSON|large/.test(error.message) ? 400 : 503, { ok: false, reason: error.message.includes('Storage') || error.message.includes('storage') ? 'Durable storage is temporarily unavailable.' : error.message }); }
     }
     if (pathname.startsWith('/api/') || pathname === '/ws') return json(response, 404, { ok: false, reason: 'Endpoint not found.' });
@@ -165,6 +170,11 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
       if (!packet || typeof packet !== 'object') return;
       if (!captain) {
         if (packet.type !== 'hello' || authenticating) return;
+        if (packet.worldContentVersion !== WORLD_CONTENT_VERSION) {
+          authenticating = true;
+          clearTimeout(helloTimer); send({ type: 'error', code: 'world-content-version', reason: WORLD_CONTENT_REFRESH_MESSAGE, worldContentVersion: WORLD_CONTENT_VERSION });
+          ws.close(4001, WORLD_CONTENT_REFRESH_MESSAGE); return;
+        }
         authenticating = true;
         try {
           if (packet.protocol !== PROTOCOL_VERSION) throw new Error('This client protocol needs an update.');
@@ -173,7 +183,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           if (!captain) throw new Error('Invalid captain passport.');
           const result = realm.attach(captain, session);
           if (!result.ok) { send({ type: 'error', ...result }); captain = null; ws.close(result.code === 'realm-full' ? 4003 : 1013, result.reason); return; }
-          clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot });
+          clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot, worldContentVersion: WORLD_CONTENT_VERSION });
         } catch (error) { send({ type: 'error', code: 'authentication', reason: error.message }); ws.close(4001, 'Authentication failed.'); }
         return;
       }

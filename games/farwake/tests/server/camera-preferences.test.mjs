@@ -1,3 +1,4 @@
+import { WORLD_CONTENT_VERSION } from '../../dist/world-content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -24,7 +25,7 @@ class Client {
     this.ws = new WebSocket(this.server.url.replace(/^http/, 'ws') + '/ws');
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Welcome timed out.')), 6000);
-      this.ws.on('open', () => this.ws.send(JSON.stringify({ type: 'hello', protocol: 1, passport: this.passport })));
+      this.ws.on('open', () => this.ws.send(JSON.stringify({ type: 'hello', protocol: 1, worldContentVersion: WORLD_CONTENT_VERSION, passport: this.passport })));
       this.ws.on('message', buffer => {
         const packet = JSON.parse(buffer.toString());
         if (packet.type === 'welcome') { clearTimeout(timer); this.welcome = packet; resolve(); }
@@ -58,7 +59,7 @@ async function fixture(t, { wrapPersistence = disk => disk } = {}) {
   const f = {
     disk, get server() { return server; },
     async register(action, realmCode, name = 'Camera captain') {
-      const response = await fetch(server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, realmCode, name }) });
+      const response = await fetch(server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ worldContentVersion: WORLD_CONTENT_VERSION, action, realmCode, name }) });
       const data = await response.json(); assert.equal(response.status, 200, data.reason); return data;
     },
     async connect(passport) { const client = new Client(server, passport); clients.push(client); return client.connect(); },
@@ -99,7 +100,7 @@ test('authenticated camera settings remain private, survive restart, and reject 
   const owner = await f.connect(created.passport), guest = await f.connect(second.passport);
   assert.deepEqual(owner.welcome.cameraPreferences, { shipZoom: .25, personZoom: .8 }); assert.equal(owner.welcome.cameraRevision, 0);
   await assert.rejects(f.connect({ ...created.passport, token: 'invalid-camera-passport' }), /passport/i);
-  const response = await fetch(f.server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'resume', passport: { ...created.passport, token: 'invalid-camera-passport' } }) });
+  const response = await fetch(f.server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ worldContentVersion: WORLD_CONTENT_VERSION, action: 'resume', passport: { ...created.passport, token: 'invalid-camera-passport' } }) });
   assert.equal(response.status, 401);
 
   const first = await owner.command('setCameraPreferences', { shipZoom: .35, personZoom: .8, expectedRevision: 0 }, 'initial-camera');

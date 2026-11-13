@@ -1,12 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.20.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.21.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose **Casual** to begin with a fold-equipped Sparrow, Kestrel, or Mule and your choice of starting system; **Regular** to begin beside Kettle Station with a small ship and earn its fold drive; or **Hardcore** to begin on foot at Morrow without a ship. All three start with **180 credits**. Jobs, passenger services, crew work, prices, character options, combat, and recovery follow the same rules. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Planet layouts and station neighborhoods · 0.21.0
+
+Inhabited worlds beyond Morrow now use nine regional settlement plans: **river towns, island causeways, coastal harbors, canyon terraces, oasis courtyards, thermal compounds, works districts, woodland villages, and crater rims**. A planet's terrain type selects appropriate plans; its seed controls orientation, reflection, and individual building positions. Landing pads, service buildings, roads, crossings, and surrounding landforms change together. Visiting another world of the same type can produce a different settlement. Barren survey landings have their own sparse arrangement and do not gain civilian services.
+
+Morrow's established landing and opening route remain familiar, and Reedbank retains its preflight settlement. Other authored worlds retain their exact story contacts, exploration entrances, quest IDs and rewards within the new geography. Region sizes still follow the world's size class. The local walking map names the settlement plan, and the ship's local chart previews what to expect on the ground.
+
+Most stations now sit near a planet or moon. Across five independent galaxy seeds, **85.7–87.5% of stations** are in a planetary neighborhood; the `farwake` seed has **792 of 905**. Procedural station placements leave **420–750 metres between physical surfaces** for docking and traffic. Neighborhood metadata names up to three worlds when they are actually close enough; it does not invent additional planets or claim distant worlds are nearby.
+
+Detached stations have a reason and matching placement. Ore processors and salvage yards use the margins of real resource fields. Relays, quiet observatories, rescue watches and other specialist facilities use outer approaches. Existing authored station coordinates stay fixed for campaign and tutorial continuity, with individual explanations of their transfer, scientific, quarantine, or military purpose. The local chart and first-docking journal entry explain each station's location.
+
+Existing voyages adapt once. Docked and nearby vessels follow relocated stations with their berth offsets; distant flight positions remain intact. Shared canonical ships, remote owners, boarding links, parked ships, NPC work routes, and traffic records receive the same migration. Captains saved on a changed planet return to its safe landing point. Paid homes and outposts keep their ownership and contents, with inaccessible markers moved to reachable ground. Current saves then retain their positions normally. Shared play checks that the browser and server use the same world layout before registration or connection; an outdated tab receives a clear refresh message.
+
+The existing **900-system chart, planetary positions, progression, and Earth campaign** remain in place. This release changes geography and settlement layouts; local service and contract systems still provide the underlying activities.
 
 ## Places with identity and Earth: The Long Silence · 0.20.0
 

@@ -1,3 +1,4 @@
+import { WORLD_CONTENT_VERSION } from '../../dist/world-content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as pause } from 'node:timers/promises';
@@ -90,7 +91,7 @@ async function serverFixture(t) {
   const server = await startServer({ port: 0, host: '127.0.0.1', persistence: persistence() }), clients = [];
   t.after(async () => { for (const client of clients) client.disconnect(); await server.close(); });
   return { server,
-    async request(body) { const response = await fetch(`${server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const data = await response.json(); assert.equal(response.status, 200, data.reason); return ok(data); },
+    async request(body) { const response = await fetch(`${server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, worldContentVersion: WORLD_CONTENT_VERSION }) }); const data = await response.json(); assert.equal(response.status, 200, data.reason); return ok(data); },
     async connect(options) { const client = new FarwakeNetwork({ url: server.url, WebSocketImpl: WebSocket, storage: storage(), autoReconnect: false }); clients.push(client); await client.connect(options); return client; },
   };
 }

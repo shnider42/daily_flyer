@@ -1,3 +1,4 @@
+import { WORLD_CONTENT_VERSION } from '../../dist/world-content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
@@ -21,7 +22,7 @@ class CaptainClient {
     this.ws = new WebSocket(this.server.url.replace(/^http/, 'ws') + '/ws', { autoPong: this.autoPong });
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Welcome timed out.')), 6000);
-      this.ws.on('open', () => this.ws.send(JSON.stringify({ type: 'hello', protocol: 1, passport: this.passport })));
+      this.ws.on('open', () => this.ws.send(JSON.stringify({ type: 'hello', protocol: 1, worldContentVersion: WORLD_CONTENT_VERSION, passport: this.passport })));
       this.ws.on('message', buffer => {
         this.bytes += buffer.length;
         const packet = JSON.parse(buffer.toString());
@@ -55,7 +56,7 @@ async function fixture(t, options = {}) {
   let server = await startServer({ port: 0, host: '127.0.0.1', persistence, ...options });
   const clients = [];
   const result = { directory, persistence, get server() { return server; }, clients,
-    async register(action, realmCode, name = 'Test captain') { const response = await fetch(server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, realmCode, name, realmName: 'Network regression realm' }) }); const data = await response.json(); return { ...data, status: response.status }; },
+    async register(action, realmCode, name = 'Test captain') { const response = await fetch(server.url + '/api/realms', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ worldContentVersion: WORLD_CONTENT_VERSION, action, realmCode, name, realmName: 'Network regression realm' }) }); const data = await response.json(); return { ...data, status: response.status }; },
     async connect(passport, options) { const client = new CaptainClient(server, passport, options); clients.push(client); await client.connect(); return client; },
     async restart() { for (const c of clients) c.close(); await server.close(); server = await startServer({ port: 0, host: '127.0.0.1', persistence, ...options }); return server; },
   };

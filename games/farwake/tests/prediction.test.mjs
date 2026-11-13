@@ -1,3 +1,4 @@
+import { WORLD_CONTENT_VERSION } from '../dist/world-content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FarwakeNetwork } from '../dist/network.mjs';
@@ -100,7 +101,7 @@ test('welcome estimates server clock at the handshake midpoint instead of subtra
   }
   const net = new FarwakeNetwork({ url: 'http://test', WebSocketImpl: Socket, storage: null, autoReconnect: false, now: () => time, wallNow: () => epoch + time }); net._startTimers = () => {};
   const opened = net._open(); time = 10; socket.handlers.open(); time = 90;
-  socket.handlers.message({ data: JSON.stringify({ type: 'welcome', tick: 1, ack: 0, serverTime: epoch + 550, simulatedAt: epoch + 550, state: { mode: 'ship', systemId: 'hearth', ship: { ...getShipClass('sparrow').stats, classId: 'sparrow', x: 0, y: 0 } }, room: { id: 'system:hearth', kind: 'system' }, world: {} }) });
+  socket.handlers.message({ data: JSON.stringify({ type: 'welcome', worldContentVersion: WORLD_CONTENT_VERSION, tick: 1, ack: 0, serverTime: epoch + 550, simulatedAt: epoch + 550, state: { mode: 'ship', systemId: 'hearth', ship: { ...getShipClass('sparrow').stats, classId: 'sparrow', x: 0, y: 0 } }, room: { id: 'system:hearth', kind: 'system' }, world: {} }) });
   await opened; assert.equal(net.rtt, 80); assert.equal(net.clockOffset, 500); net.disconnect();
 });
 

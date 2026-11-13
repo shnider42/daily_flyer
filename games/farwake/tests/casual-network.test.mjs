@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FarwakeNetwork, readRealmStartOptions } from '../dist/network.mjs';
+import { WORLD_CONTENT_VERSION } from '../dist/world-content.mjs';
 
 test('the transport sends a Casual origin on fresh create/join and scopes the chosen galaxy seed to creation', async () => {
   const requests = [], network = () => new FarwakeNetwork({ url: 'https://galaxy.example.test', storage: null, autoReconnect: false,
-    fetchImpl: async (url, options) => { requests.push({ url, options, body: JSON.parse(options.body) }); return new Response(JSON.stringify({ ok: false, reason: 'Stop before opening a session' }), { status: 503 }); }
+    fetchImpl: async (url, options) => { if(url.endsWith('/api/config'))return new Response(JSON.stringify({ok:true,worldContentVersion:WORLD_CONTENT_VERSION}));requests.push({ url, options, body: JSON.parse(options.body) }); return new Response(JSON.stringify({ ok: false, reason: 'Stop before opening a session' }), { status: 503 }); }
   });
   await assert.rejects(network().connect({ create: true, name: 'Host', galaxySeed: 'preview-seed', startMode: 'casual', startSystemId: 'brindle' }), /Stop before/);
   await assert.rejects(network().connect({ realmCode: 'ABCD1234', name: 'Guest', galaxySeed: 'must-not-reseed', startMode: 'casual', startSystemId: 'vesper' }), /Stop before/);

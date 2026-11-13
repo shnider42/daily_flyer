@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { WORLD_CONTENT_VERSION } from '../dist/world-content.mjs';
 import assert from 'node:assert/strict';
 import { BROWSER_DATA_KEYS as KEYS, availableCaptains, collectBrowserData, normalizePassport, pickDeviceSettings, requestCaptainData } from '../dist/privacy-data.mjs';
 import { FarwakeNetwork, readPassport, savePassport } from '../dist/network.mjs';
@@ -126,7 +127,8 @@ test('normal save/resume transport and recovery backups retain credentials but d
   savePassport(privateBackup, storage);
   assert.deepEqual(readPassport(first.realmCode, storage), first);
   const network = new FarwakeNetwork({ url: 'https://galaxy.example.test', storage, fetchImpl: async (url, options) => {
-    sent.push({ url, options }); return { ok: true, json: async () => ({ ok: true, passport: { ...first, unnecessary: 'response-field' } }) };
+    if(url.endsWith('/api/config'))return {ok:true,json:async()=>({ok:true,worldContentVersion:WORLD_CONTENT_VERSION})};
+    sent.push({ url, options }); return { ok: true, json: async () => ({ ok: true, worldContentVersion: WORLD_CONTENT_VERSION, passport: { ...first, unnecessary: 'response-field' } }) };
   } });
   network._open = async () => ({ ok: true });
   await network.connect({ passport: privateBackup });

@@ -3,6 +3,11 @@
  */
 import { WORLD_TYPES_VERSION, bodyVisualRadius, migrateExpandedBodyPose } from '../dist/world-types.mjs';
 import { systemBodyPosition } from '../dist/system-space.mjs';
+import { generateSurface, isWalkable } from '../dist/surface.mjs';
+import { isPreflightBody } from '../dist/social-world.mjs';
+import { PLANET_LAYOUT_VERSION } from '../dist/planet-layout.mjs';
+
+export const PLANET_LAYOUT_MIGRATION_VERSION = PLANET_LAYOUT_VERSION;
 
 const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
 const values=value=>object(value)?Object.values(value):[];
@@ -82,5 +87,52 @@ export function migrateRealmPlaceSizes(snapshot,{systems=[]}={}){
   repairContract(operation.contract,vessel?.systemId||owner?.game?.systemId||operation.contract?.origin?.systemId);
  }
  next.worldTypesVersion=WORLD_TYPES_VERSION;
+ return next;
+}
+
+/** Keep paid homes usable when a settlement is rebuilt; personal progress stays intact. */
+export function migrateRealmPlanetLayouts(snapshot, { systems = [] } = {}) {
+ if (!object(snapshot) || Number(snapshot.planetLayoutVersion) >= PLANET_LAYOUT_MIGRATION_VERSION) return snapshot;
+ const next = structuredClone(snapshot), changed = new Map(), surfaces = new Map();
+ for (const system of systems) for (const body of system.bodies || []) {
+  if (['planet', 'moon', 'asteroid'].includes(body.kind) && body.id !== 'morrow' && !isPreflightBody(body)) changed.set(`${system.id}:${body.id}`, body);
+ }
+ // A conversation pause stores an NPC's old absolute position. Resume that
+ // resident's regenerated daily route instead of holding them inside new walls.
+ for (const roomId of Object.keys(object(next.npcHolds) ? next.npcHolds : {})) {
+  const separator = roomId.lastIndexOf(':surface:');
+  if (separator >= 0 && changed.has(roomId.slice(separator + 9))) delete next.npcHolds[roomId];
+ }
+ function accessible(key) {
+  if (surfaces.has(key)) return surfaces.get(key);
+  const surface = generateSurface(changed.get(key), next.seed), tile = surface.tileSize || 24;
+  const start = Math.floor(surface.spawn.y / tile) * surface.cols + Math.floor(surface.spawn.x / tile);
+  const seen = new Set([start]), cells = [start];
+  for (let index = 0; index < cells.length; index++) {
+   const cell = cells[index], x = cell % surface.cols, y = Math.floor(cell / surface.cols);
+   for (const [xx, yy] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+    const id = yy * surface.cols + xx;
+    if (xx < 0 || yy < 0 || xx >= surface.cols || yy >= surface.rows || seen.has(id) || !isWalkable(surface, (xx + .5) * tile, (yy + .5) * tile)) continue;
+    seen.add(id); cells.push(id);
+   }
+  }
+  const result = { surface, tile, seen, cells }; surfaces.set(key, result); return result;
+ }
+ function repair(home) {
+  if (!object(home) || !['room', 'outpost'].includes(home.kind)) return;
+  const key = `${home.systemId}:${home.locationId}`; if (!changed.has(key)) return;
+  const { surface, tile, seen, cells } = accessible(key), cell = Math.floor(home.y / tile) * surface.cols + Math.floor(home.x / tile);
+  if (Number.isFinite(home.x) && Number.isFinite(home.y) && seen.has(cell) && isWalkable(surface, home.x, home.y)) return;
+  let best = surface.spawn, score = Infinity;
+  for (const index of cells) {
+   const point = { x: (index % surface.cols + .5) * tile, y: (Math.floor(index / surface.cols) + .5) * tile };
+   const distance = Number.isFinite(home.x) && Number.isFinite(home.y) ? (point.x - home.x) ** 2 + (point.y - home.y) ** 2 : 0;
+   if (distance < score) { score = distance; best = point; }
+  }
+  home.x = best.x; home.y = best.y;
+ }
+ for (const lease of values(next.leases)) repair(lease);
+ for (const captain of values(next.captains)) repair(captain.home);
+ next.planetLayoutVersion = PLANET_LAYOUT_MIGRATION_VERSION;
  return next;
 }

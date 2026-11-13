@@ -1,3 +1,4 @@
+import { WORLD_CONTENT_VERSION } from '../../dist/world-content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import WebSocket from 'ws';
@@ -29,7 +30,7 @@ async function serverFixture(t) {
   return {
     store, get server() { return server; },
     async request(body) {
-      const response = await fetch(`${server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const response = await fetch(`${server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, worldContentVersion: WORLD_CONTENT_VERSION }) });
       const result = await response.json(); assert.equal(response.status, 200, result.reason); return ok(result);
     },
     async connect(options) {
@@ -101,7 +102,7 @@ test('remote start input cannot move Regular or Hardcore captains and an invalid
 test('invalid preview seeds are rejected before allocating a galaxy or captain', async t => {
   const f = await serverFixture(t);
   for (const galaxySeed of [{ seed: 'unexpected-object' }, '', 'x'.repeat(101), 'not a seed']) {
-    const response = await fetch(`${f.server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'create', name: 'Invalid preview', galaxySeed, startMode: 'casual', startSystemId: 'brindle' }) });
+    const response = await fetch(`${f.server.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ worldContentVersion: WORLD_CONTENT_VERSION, action: 'create', name: 'Invalid preview', galaxySeed, startMode: 'casual', startSystemId: 'brindle' }) });
     assert.equal(response.status, 400); assert.equal((await response.json()).ok, false);
     assert.equal(f.server.manager.realms.size, 0); assert.equal(f.store.records.size, 0); assert.equal(f.store.writes, 0);
   }

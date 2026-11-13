@@ -58,8 +58,10 @@ import { appendFactionPorts } from './port-content.mjs';
 import { portProfile } from './port-traffic.mjs';
 import { PEACEKEEPER_ID, PEACEKEEPER_HAIL_DISTANCE, isPeacekeeper, trafficHailDistance, stepPeacekeeperDefense } from './peacekeeper.mjs';
 import { migrateGameSpace } from './space-migration.mjs';
+import { legacyStationGeography, migrateGameStationGeography } from './station-geography-migration.mjs';
 import { SYSTEM_SPACE_VERSION, SYSTEM_SPACE_SCALE, WORLD_RADIUS, systemBodyPosition, scaleSpacePoint } from './system-space.mjs';
 import { WORLD_TYPES_VERSION, decorateGalaxyTypes, bodyVisualRadius, applySystemActivity, flavorSystemSignals, migrateExpandedBodyPose } from './world-types.mjs';
+import { STATION_GEOGRAPHY_VERSION, decorateStationGeography } from './station-geography.mjs';
 export { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, advanceShip, normaliseFlightInput } from './fleet.mjs';
 
 export const SAVE_VERSION = 7;
@@ -154,14 +156,14 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return decorateGalaxyTypes(appendFactionPorts(expandGalaxy(systems, seed)), seed);
+  return decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(expandGalaxy(systems, seed)), seed), seed);
 }
 
 function initialState(seed, options = {}) {
   const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
   const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
-    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
+    version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
     credits: 180, character, characterLocked: true, captainName: String(options.name || 'Captain').replace(/[<>\x00-\x1f]/g, '').trim().slice(0,32) || 'Captain', exploration: null, explorationRecords: {}, cargo: { ore: 0, crystal: 0 }, rep: Object.fromEntries(factionIds().map(id => [id, 0])), flags: [],
     upgrades: startMode==='casual'?{...CASUAL_START_UPGRADES}:{}, visited: ['hearth'], discovered: ['hearth'], missions: [], completedJobs: [], abandonedJobs: {}, journal: [], encounterHistory: [], openingMission: null, conversations: { version: 1, people: [] }, socialVisits: normalizeSocialVisits(), socialEpoch: 0,
     crew: [], formerCrew: [], memorial: [], fleet:{owned:shipless?[]:[starter.id],history:[]}, boarding:null, boardingHistory:[], knownLore: [], completedChapters: [], pendingEncounter: null, worlds: {},
@@ -302,7 +304,7 @@ export class Game {
   get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
   _restore(fresh, raw) {
-    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION, spaceVersion: raw.spaceVersion ?? 0, worldTypesVersion: raw.worldTypesVersion ?? 0 };
+    const s = { ...fresh, ...clone(raw), version: SAVE_VERSION, spaceVersion: raw.spaceVersion ?? 0, worldTypesVersion: raw.worldTypesVersion ?? 0, stationGeographyVersion: raw.stationGeographyVersion ?? 0 };
     s.seed = String(raw.seed || fresh.seed);
     s.startMode=normalizeStartMode(raw.startMode);
     s.mode = raw.mode === 'person' ? 'person' : 'ship';
@@ -352,11 +354,12 @@ export class Game {
     }
     s.encounterPolicyVersion=2;s.nextEncounterAt=null;
     if(s.interior?.kind==='ship')s.interior.liveVessel=true;
-    migrateGameSpace(s, { systems: this.galaxy });
+    const migrationSystems = Number(s.stationGeographyVersion) >= STATION_GEOGRAPHY_VERSION ? this.galaxy : legacyStationGeography(this.galaxy);
+    migrateGameSpace(s, { systems: migrationSystems });
     if(!(Number(s.worldTypesVersion)>=WORLD_TYPES_VERSION)){
       const bodyCache=new Map();
       const migrate=(pose,systemId=s.systemId)=>{
-        if(!bodyCache.has(systemId))bodyCache.set(systemId,(this.galaxy.find(system=>system.id===systemId)?.bodies||[]).map((body,index)=>({...body,...systemBodyPosition(body,index,systemId)})));
+        if(!bodyCache.has(systemId))bodyCache.set(systemId,(migrationSystems.find(system=>system.id===systemId)?.bodies||[]).map((body,index)=>({...body,...systemBodyPosition(body,index,systemId)})));
         return migrateExpandedBodyPose(pose,bodyCache.get(systemId));
       };
       // Only enlarged physical hulls need a correction. Surface/person poses,
@@ -383,6 +386,7 @@ export class Game {
       }
       s.worldTypesVersion=WORLD_TYPES_VERSION;
     }
+    migrateGameStationGeography(s, { systems: this.galaxy });
     return s;
   }
 
@@ -1010,7 +1014,7 @@ export class Game {
     const visitId = `${this.state.systemId}/${body.id}`;
     if (!this.state.visited.includes(visitId)) {
       this.state.visited.push(visitId);
-      this._log(body.kind === 'station' ? `Docked at ${body.name}` : `Landed on ${body.name}`, body.lore || this.currentSystem.description, 'discovery');
+      this._log(body.kind === 'station' ? `Docked at ${body.name}` : `Landed on ${body.name}`, [body.lore || this.currentSystem.description, body.stationGeography?.reason].filter(Boolean).join(' '), 'discovery');
     }
     this._refreshJobs(); this._checkChapters();
     this._event('dock', { body, text: `${body.kind === 'station' ? 'Docked at' : 'Landed on'} ${body.name}` });
