@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
 import {AIRCRAFT,MISSIONS} from '../public/campaign.mjs';
-import {describeAirfield,airfieldPoint,windsockSegments,landingApproach,roofTriangles,AIRFIELD_BUDGET} from '../public/airfield-scenery.mjs';
+import {describeAirfield,airfieldPoint,windsockSegments,landingApproach,roofTriangles,airfieldSurfaceColor,AIRFIELD_BUDGET,AIRPORT_BUDGET} from '../public/airfield-scenery.mjs';
+import {airportGroundBounds} from '../public/airfield-layout.mjs';
 import {runwayCoordinates,terrainHeight} from '../public/terrain.mjs';
+import {sceneryClearance,terrainColor} from '../public/terrain-visuals.mjs';
 import {orientationFromEuler} from '../public/orientation.mjs';
 import {FlightRenderer} from '../public/renderer.mjs';
 import {SoftwareFlightRenderer} from '../public/software.mjs';
@@ -99,4 +101,56 @@ test('software airfield lamps render above runway paint and scenery uses the sam
     const p=airfieldPoint(runway,...part.position);assert.ok(boxes.some(box=>Math.abs(box[0]-p.x)<1e-7&&Math.abs(box[1]-p.y)<1e-7&&Math.abs(box[2]-p.z)<1e-7&&box[3]===part.size[0]),part.id);
   }
   const lamps=r._queue.filter(item=>item.type==='disc');assert.ok(lamps.length>10);assert.ok(lamps.every(item=>item.layer===4),'lamps cannot be overpainted by the runway surface');r.dispose();
+});
+
+test('passenger airports have a connected terminal layout and bounded scenery clear of the strip',()=>{
+  const r={...runway,width:150,length:3200,airport:true},m={...mission,aircraft:'b767',runways:[r]},scene=describeAirfield(r,m);
+  assert.equal(scene.profile,'airport');assert.ok(scene.parts.length<AIRPORT_BUDGET.parts);assert.ok(scene.lights.length<AIRPORT_BUDGET.lights);
+  for(const id of ['parallel-taxiway','passenger-apron','terminal-main','concourse','terminal-connector','terminal-road','carpark','town-spine','maintenance-hangar'])assert.ok(scene.parts.some(part=>part.id===id),id);
+  assert.equal(new Set(scene.parts.filter(part=>part.kind==='airliner').map(part=>part.id.match(/airliner-(\d)/)[1])).size,AIRPORT_BUDGET.parkedAircraft);
+  for(const part of scene.parts){
+    assert.ok([...part.position,...part.size].every(Number.isFinite));
+    assert.ok((part.triangles||[]).flat(2).every(Number.isFinite));
+    if(part.size[1]>1)assert.ok(Math.abs(part.position[0])-part.size[0]/2>r.width/2+10,`${part.id} stays outside the flight corridor`);
+  }
+  const total=scene.parts.reduce((count,part)=>count+(part.triangles?.length||(part.kind==='roof'?6:12)),0);assert.ok(total<5000,'airport buildings, grounds and parked jets stay within the shared geometry budget');
+  assert.notEqual(describeAirfield({...r,airport:false},m).profile,'airport','a large aircraft alone does not turn a small field into a passenger terminal');
+  assert.deepEqual(scene,describeAirfield({...r,airport:false,airfieldType:'airport'},m));
+});
+
+test('the airport platform is shared with terrain physics and has a bounded smooth shoulder',()=>{
+  const r={...runway,width:150,length:3200,airport:true,y:55},m={...mission,runways:[r]},bounds=airportGroundBounds(r);
+  for(const across of[0,200,600,1000])for(const along of[-600,0,600]){
+    const p=airfieldPoint(r,across,0,along);near(terrainHeight(p.x,p.z,m),r.y);
+    assert.equal(sceneryClearance(p.x,p.z,m),false,'procedural trees do not grow through aprons and terminal lots');
+  }
+  const unmodified={...m,runways:[{...r,airport:false}]},far=airfieldPoint(r,bounds.acrossMax+bounds.maxBlend+20,0,0);
+  near(terrainHeight(far.x,far.z,m),terrainHeight(far.x,far.z,unmodified));
+  for(const biome of['countryside','mountains']){
+    const site={...m,biome};let previous=null;
+    for(let x=bounds.acrossMax-2;x<bounds.acrossMax+bounds.maxBlend+2;x+=2){const p=airfieldPoint(r,x,0,0),height=terrainHeight(p.x,p.z,site);if(previous!==null)assert.ok(Math.abs(height-previous)<8,'airport shoulder has no abrupt cliff step');previous=height;}
+  }
+  const ordinary={...mission,runways:[{...r,airport:false}]},point=airfieldPoint(r,600,0,0);assert.equal(sceneryClearance(point.x,point.z,ordinary),true,'ordinary fields retain their smaller clearing');
+});
+
+test('airport WebGL scenery batches and software caches shared ground meshes',()=>{
+  const strip={...runway,width:150,length:3200,airport:true},m={...mission,aircraft:'b767',runways:[strip]};
+  const web=Object.create(FlightRenderer.prototype);Object.assign(web,{mission:m,_world:new THREE.Group(),settings:{},_sceneryAnimations:[],_label:()=>new THREE.Object3D(),_runwayNumber(){},time:0});web._buildRunway(strip,m);
+  let calls=0,triangles=0;web._world.traverse(node=>{if(node.isMesh){calls++;triangles+=(node.geometry.index?.count||node.geometry.attributes.position.count)/3*(node.isInstancedMesh?node.count:1);}});
+  assert.ok(calls<=36,`airport uses ${calls} geometry batches`);assert.ok(triangles<7500,`airport uses ${triangles} triangles including runway and lamps`);
+  const noop=()=>{},ctx=new Proxy({createLinearGradient:()=>({addColorStop:noop})},{get:(o,key)=>o[key]??noop});
+  const canvas={width:800,height:600,getContext:()=>ctx,getBoundingClientRect:()=>({width:800,height:600})};
+  const software=new SoftwareFlightRenderer(canvas,{quality:'low'});software.loadMission(m,AIRCRAFT.b767||AIRCRAFT.f16);
+  const eye=airfieldPoint(strip,-300,300,-1400);software.camera.position.set(eye.x,eye.y,eye.z);software.camera.lookAt(strip.x,strip.y,strip.z);software._view();software._drawAirfield(strip,1400);
+  const first=software._airfields.get(strip).drawParts;assert.ok(first.some(part=>part.kind==='ground'&&part.worldTriangles.length));software._queue.length=0;software._drawAirfield(strip,1400);assert.equal(software._airfields.get(strip).drawParts,first,'static airport triangles do not get rebuilt every frame');software.dispose();
+});
+
+test('surrounding land color is continuous across the former checkerboard boundaries and farmland darkens at night',()=>{
+  const palette=['#71856b','#829476','#a1a784','#647e65'];
+  for(const boundary of[-2560,-1280,0,1280,2560]){
+    const a=terrainColor(boundary-.001,30,718,0,'countryside',palette),b=terrainColor(boundary+.001,30,718,0,'countryside',palette);
+    assert.ok(a.every((value,i)=>Math.abs(value-b[i])<.01),'world tint stays continuous across a former tile edge');
+  }
+  const brightness=hex=>[1,3,5].reduce((sum,offset)=>sum+parseInt(hex.slice(offset,offset+2),16),0);
+  assert.ok(brightness(airfieldSurfaceColor('stubble',true))<brightness(airfieldSurfaceColor('stubble'))*.4,'unlit fields cannot glow like concrete at night');
 });

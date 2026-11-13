@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.8.0 adds six repeatable Operations, a local flight log and personal bests, richer airfields, arrival guidance, and solo free-flight ground service.** The compact mobile cockpit, heavy-aircraft response, and B-2 blast escape introduced in v0.7.0 remain in place. The flight-selection homepage and browsable hangar show all 14 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.9.0 adds a passenger Boeing 767, three airport-to-airport services, a civilian flight deck, and larger airports with terminals, taxiways and surrounding ground detail.** Six flying challenges, a local flight log and personal bests, arrival guidance, and solo free-flight ground service remain available. The compact mobile cockpit, heavy-aircraft response, and B-2 blast escape introduced in v0.7.0 remain in place. The flight-selection homepage and browsable hangar show all 15 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
 
 The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
@@ -17,7 +17,7 @@ The same server serves the browser app and squadron WebSocket endpoint. It liste
 
 ## Operations and the flight log
 
-**Operations** is a separate solo flight board with six authored challenges. All are available immediately, with fixed aircraft and weather. The existing eighteen-sortie campaign and multiplayer room choices are unchanged.
+**Operations** is a separate solo flight board with six authored challenges and three passenger routes. The board separates Flying challenges and Passenger flights without adding another in-flight panel. All are available immediately, with fixed aircraft and weather. The existing eighteen-sortie campaign and multiplayer room choices are unchanged.
 
 | Operation | Aircraft | Flight problem |
 | --- | --- | --- |
@@ -27,6 +27,9 @@ The same server serves the browser app and squadron WebSocket endpoint. It liste
 | Broken Supply | A-10 | Destroy three supply objectives without destroying the protected relief camp, then recover |
 | Deck Circuit | Sea Harrier | Fly four open-water gates, then make an actual hover recovery on the carrier |
 | Heavy Metal | B-17 | Bomb two separated rail yards, manage heavy inertia and low cloud, then bring the bomber home |
+| Coastal Connection · SK101 | Boeing 767 | Take 198 passengers from Grayhaven to Seabury in clear daytime conditions |
+| Evening Arrival · SK204 | Boeing 767 | Fly 204 passengers from Hillford to Westhaven with an evening crosswind |
+| Night Service · SK311 | Boeing 767 | Carry a full cabin of 216 passengers from Eastmere to Kingsbridge after dark |
 
 Every operation ends with a real new landing, idle thrust, and a braked stop at the named destination. The courier needs four stationary seconds to unload at each delivery field; moving interrupts unloading. A flyby, touchdown at the wrong field, or merely starting on the ground does not count. Combat objectives lead into a return phase instead of immediately opening the result screen. Route gates use swept movement checks so a fast aircraft cannot skip through a gate between frames. The second Coastwatch patrol spawns only once.
 
@@ -34,9 +37,19 @@ Every operation ends with a real new landing, idle thrust, and a braked stop at 
 
 **Flight log** is available from the main menu and solo debrief. It keeps the most recent 24 solo flights, operation bests, and lifetime/per-aircraft totals for time airborne, distance, landings and objectives. Touchdown reports include descent rate and a game quality label. End a free flight from the pause menu to record it; unfinished restarts are marked as ended, and flights ended before ten seconds are omitted. Multiplayer and AC-130 crew scores retain their existing room log rather than entering this solo history. History saves only in this browser under a separate storage key; campaign progress is not overwritten. When browser storage fails, the current tab retains the result and tells the pilot it could not persist it.
 
+## Passenger flying
+
+Choose **Operations → Passenger flights** for the three airport services, or select **Boeing 767** in Free flight. This is a large twin-engine passenger jet with a long fuselage, swept wings, cabin-window rows, retractable undercarriage and a separate civilian cockpit. It carries no gun, missiles, bombs, troops or radar weapons. Passenger count occupies the existing NAV stores line, while weapon buttons and the gunsight stay hidden.
+
+The 767 takes longer to pitch, roll, reverse a turn, accelerate and climb than the fighters. Its cruising speed still suits a jet; the challenge is planning ahead, especially when slowing for arrival. Steep climbs consume airspeed instead of granting fighter-like climbing power. All performance and distances are compressed game values.
+
+Passenger flights begin at the departure runway with passengers aboard and engines running. A real departure is required before a safe landing at the named destination can count. The broad route fix guides navigation without imposing a racing gate. Arrival guidance appears with room to slow down; a go-around is allowed and there is no deadline. Land, idle the thrust, set the brake, and hold still for four seconds to disembark. Taxiing away interrupts that stop. The result and saved flight history record the route, passengers delivered and measured touchdown quality. Free-flight runway starts provide a long passenger-airport runway and a jet-specific startup sequence.
+
 ## Airfields and ground service
 
-Grass fields, regional fields, modern air stations, and carrier decks share a bounded scenery description across WebGL and software graphics. Hangars, towers, aprons, stores and a service vehicle give the field scale. Runway threshold, edge and approach lamps are visible at night; windsocks follow the actual world wind and hang in calm conditions. Destination approach marks sit on the terrain or the real carrier deck and disappear with Minimal guidance. New scenery stays outside landing surfaces; existing carrier island collision remains in effect.
+Grass fields, regional fields, modern air stations, passenger airports, and carrier decks share a bounded scenery description across WebGL and software graphics. Hangars, towers, aprons, stores and a service vehicle give the field scale. Runway threshold, edge and approach lamps are visible at night; windsocks follow the actual world wind and hang in calm conditions. Destination approach marks sit on the terrain or the real carrier deck and disappear with Minimal guidance. New scenery stays outside landing surfaces; existing carrier island collision remains in effect.
+
+Passenger airports add a terminal and concourse, gates and jetbridges, a parallel taxiway with exits, apron markings, access roads, parking and nearby settlement and field patterns. Airport ground shaping and exclusion zones keep procedural trees and buildings out of the pavement. Shared placements keep software and WebGL layouts consistent.
 
 In **solo Free flight**, land on an airfield or carrier, reduce thrust to idle, set the brake, and remain stopped for eight seconds. Ground crew restore fuel, airframe and the selected aircraft's original stores. Moving, firing, leaving the runway or an outstanding nuclear hazard cancels servicing. It cannot refill an aircraft in midair, add weapons that aircraft did not have, or replenish campaign/operation/multiplayer loadouts. Nearby fields are marked for navigation. Ground-service progress and instructions use the existing NAV panel; the default mobile flight view gains no new panel.
 
@@ -69,7 +82,7 @@ Last Light stays playable after release through detonation and escape. Other cam
 4. In flight, **SCORES** shows the standings. After a loss, watch another surviving pilot with the spectator controls and select **Return to the sky →** once a replacement is available. Arena replacements have a four-second delay; mission replacements have a five-second delay. Each aircraft loss consumes one mission life, with the initial aircraft included in the selected allowance.
 5. During any shared flight, the host can open the pause menu and choose **Regroup in squadron room** to change the setup without closing the room; this also gives untimed free flight a way back to its lobby. After a round, the host can **Fly again with squadron** using the same setup, or **Return to squadron** to change the map, mode, duration, aircraft or launch choices. Guests remain attached to the same room. Returning the room to its lobby also permits new pilots to join.
 
-All **14 flyable aircraft** are available for independent flight: Avro 504, Sopwith Camel, Spitfire, B-17, C-47, AC-130, Hellcat, F-4, Sea Harrier, A-10, F-15, F-16, F-22 and B-2. Each retains its own speed, handling, health and equipment. Selecting an unarmed trainer or transport does not add a gun or missiles, and selecting the AC-130 here does not add a gunner seat. Mission equipment still matters: a paratrooper mission needs a C-47, and a bombing objective needs an aircraft carrying bombs. The lobby explains these limitations without locking the aircraft choice.
+All **15 flyable aircraft** are available for independent flight: Avro 504, Sopwith Camel, Spitfire, B-17, C-47, AC-130, Hellcat, F-4, Sea Harrier, A-10, F-15, F-16, F-22, B-2 and Boeing 767. Each retains its own speed, handling, health and equipment. Selecting an unarmed trainer or transport does not add a gun or missiles, and selecting the AC-130 here does not add a gunner seat. Mission equipment still matters: a paratrooper mission needs a C-47, and a bombing objective needs an aircraft carrying bombs. The lobby explains these limitations without locking the aircraft choice.
 
 The scoreboard ranks kills first, then fewer deaths, then callsign. K/D displays a dash while deaths are zero. A terrain crash counts as a death without giving another pilot a weapon kill. Scores survive respawns and authenticated reconnects during the same round; a replay starts fresh.
 

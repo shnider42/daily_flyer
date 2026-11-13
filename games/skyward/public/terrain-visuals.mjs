@@ -1,10 +1,15 @@
 /* Shared terrain presentation: world-aligned cells, closed LOD seams, stable
  * surface colors and small scale references. Heights always come from physics. */
+import {isPassengerAirport,airportGroundDistance} from './airfield-layout.mjs';
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const mix=(a,b,t)=>a+(b-a)*t;
 const finite=(v,f=0)=>Number.isFinite(v)?v:f;
 const TAU=Math.PI*2;
 function hash(x,z){let a=Math.imul(x,73856093)^Math.imul(z,19349663);a=Math.imul(a^(a>>>13),1274126177);return((a^(a>>>16))>>>0)/4294967296;}
+function groundNoise(x,z,scale){
+  const gx=Math.floor(x/scale),gz=Math.floor(z/scale),fx=x/scale-gx,fz=z/scale-gz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);
+  return mix(mix(hash(gx,gz),hash(gx+1,gz),sx),mix(hash(gx,gz+1),hash(gx+1,gz+1),sx),sz);
+}
 function rgb(value){if(Array.isArray(value))return value;const n=parseInt(String(value).replace('#',''),16);return[(n>>16)&255,(n>>8)&255,n&255];}
 
 export function terrainMeshSettings(mission={},quality='medium',software=false){
@@ -73,8 +78,11 @@ export function terrainColor(x,y,z,slope,biome,palette){
     const night=rgb(palette[0])[0]<80;
     return top.map((v,i)=>{const c=mix(mix(v,rock[i]*band,wall),floor[i],low*(1-wall*.65));return night?mix(c*.45,[36,52,65][i],.3):c;});
   }
-  const colors=palette.map(rgb),field=Math.abs(Math.imul(Math.floor(x/1280),73856093)^Math.imul(Math.floor(z/1280),19349663))%colors.length;
-  const base=colors[field],variation=.94+.045*Math.sin(x*.0018+z*.0012)+.025*Math.sin(z*.005);
+  const colors=palette.map(rgb),a=colors[0],b=colors[1]||a,c=colors[2]||b,d=colors[3]||a;
+  // Continuous land tint removes the former kilometre-wide checkerboard.
+  // Authored farm plots near airports supply crisp field boundaries instead.
+  const broad=groundNoise(x,z,2300),patch=groundNoise(x+7100,z-3300,950),shade=groundNoise(x-4500,z+2600,4200)*.28;
+  const base=a.map((value,i)=>mix(mix(mix(value,b[i],broad),c[i],patch*.35),d[i],shade)),variation=.94+.045*Math.sin(x*.0018+z*.0012)+.025*Math.sin(z*.005);
   const cliff=clamp((slope-.25)*.75,0,.72),snow=biome==='desert'?0:clamp((y-2100)/1100,0,.9);
   return base.map((v,i)=>mix(mix(v*variation,[137,143,130][i],cliff),[225,228,216][i],snow));
 }
@@ -107,7 +115,7 @@ export function colorSoftwareTerrain(mesh,mission,palette){
 }
 
 export function sceneryClearance(x,z,mission,padding=65){
-  for(const r of mission.runways||[]){const dx=x-r.x,dz=z-r.z,c=Math.cos(r.heading||0),s=Math.sin(r.heading||0);if(Math.abs(dx*c-dz*s)<(r.width||45)*.5+padding&&Math.abs(dx*s+dz*c)<(r.length||1000)*.5+padding)return false;}
+  for(const r of mission.runways||[]){const dx=x-r.x,dz=z-r.z,c=Math.cos(r.heading||0),s=Math.sin(r.heading||0);const across=dx*c-dz*s,along=dx*s+dz*c;if(Math.abs(across)<(r.width||45)*.5+padding&&Math.abs(along)<(r.length||1000)*.5+padding)return false;if(isPassengerAirport(r)&&airportGroundDistance(across,along,r)<padding+400)return false;}
   if(mission.kind==='gunship')for(const t of mission.targets||[])if(Math.hypot(x-t.x,z-t.z)<100)return false;
   return true;
 }

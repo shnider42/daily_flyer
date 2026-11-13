@@ -112,6 +112,13 @@ function normalizeReport(value) {
   const medals = normalizeMedals(source.medalRules || condition.medals);
   condition.medals = medals;
   const assessment = operationId ? medalAssessment({ outcome: source.outcome, duration, health, medals, recordEligible }) : { medal: null, target: null };
+  const passengerSource = object(source.passenger), capacity = AIRCRAFT[source.aircraft].passengerCapacity || 0;
+  const passengerTotal = Math.min(capacity, count(passengerSource.total));
+  const passenger = AIRCRAFT[source.aircraft].passenger && passengerTotal ? {
+    total: passengerTotal, delivered: Math.min(passengerTotal, count(passengerSource.delivered)),
+    flightNumber: text(passengerSource.flightNumber, 20),
+    departure: text(passengerSource.departure, 100), arrival: text(passengerSource.arrival, 100),
+  } : null;
   return {
     id, missionId, operationId, title: text(source.title, 120) || missionId,
     aircraft: source.aircraft, aircraftName: AIRCRAFT[source.aircraft].name,
@@ -121,6 +128,7 @@ function normalizeReport(value) {
     conditionLabel: conditionLabel(condition), recordEligible,
     recordReason: recordEligible ? '' : 'Handling changed during flight',
     medal: assessment.medal, medalTarget: assessment.target, medalRules: medals,
+    ...(passenger ? { passenger } : {}),
   };
 }
 
@@ -137,6 +145,12 @@ export function buildSortieReport(sim, { runId, endedAt = Date.now(), outcome, s
     score: sim.score, stats: sim.sortieStats,
     condition: flightCondition(mission, settings, aircraft, player.payload),
     medalRules: mission.operation?.medals, recordEligible,
+    ...(mission.goal?.task === 'passenger' ? { passenger: {
+      total: mission.passengers, delivered: sim.passengerState?.delivered || 0,
+      flightNumber: mission.passengerRoute?.flightNumber,
+      departure: mission.runways?.[mission.goal.departureRunway]?.label,
+      arrival: mission.runways?.[mission.goal.destinationRunway]?.label,
+    } } : {}),
   });
 }
 

@@ -6,7 +6,7 @@ const gun = (ammo, damage, rate, range, cone = 0.105) => ({ ammo, damage, rate, 
 // Dimensionless game airframe size: wider/heavier aircraft carry more rotational
 // inertia. It controls pitch, roll and recovery rather than flight speed.
 const handlingSize = { avro504: .95, camel: .85, spitfire: 1.05, hellcat: 1.2, f16: 1.15,
-  harrier: 1.15, f15: 1.4, f22: 1.5, f4: 1.6, a10: 2, c47: 3.2, b17: 3.6, ac130: 4.8, b2: 5.2 };
+  harrier: 1.15, f15: 1.4, f22: 1.5, f4: 1.6, a10: 2, c47: 3.2, b17: 3.6, ac130: 4.8, b2: 5.2, b767: 6.6 };
 const plane = (id, name, era, stats) => ({
   id, name, shortName: name, era, model: id, color: '#c9b28c', accent: '#b94139',
   health: 120, gun: null, missiles: 0, bombs: 0, radar: false, stealth: false,
@@ -104,6 +104,13 @@ export const AIRCRAFT = {
     climbRate: 56, rollRate: 0.85, health: 200, bombs: 1, radar: true,
     stealth: true, role: 'Strategic bomber', color: '#414d5b', accent: '#75808c',
     summary: 'A broad, heavy flying wing. Choose a conventional or nuclear payload and leave room to turn away.',
+  }),
+  b767: plane('b767', 'Boeing 767', 'Passenger aviation', {
+    maxSpeed: 265, cruise: 216, stallSpeed: 66, acceleration: 14, turnRate: .115,
+    climbRate: 26, rollRate: .38, health: 280, passenger: true, passengerCapacity: 216,
+    color: '#e3e4df', accent: '#214c67', role: 'Widebody passenger jet',
+    cockpitEye: { forward: 22, up: 3.1 },
+    summary: 'A large, unarmed passenger jet. Build speed on a long runway, climb patiently, and plan broad turns before the approach.',
   }),
 };
 

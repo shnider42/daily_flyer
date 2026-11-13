@@ -24,9 +24,9 @@ function touchdown(sim, index, hover = false) {
   fly(sim, 4, { throttle: 0 });
 }
 
-test('six operations have their own goals, legal aircraft, safe starts and useful landing fields', () => {
-  assert.equal(OPERATIONS.length, 6);
-  assert.equal(new Set(OPERATIONS.map(m => m.id)).size, 6);
+test('operations have their own goals, legal aircraft, safe starts and useful landing fields', () => {
+  assert.equal(OPERATIONS.length, 9);
+  assert.equal(new Set(OPERATIONS.map(m => m.id)).size, 9);
   assert.equal(getOperation('unknown'), null);
   const tasks = new Set();
   for (const m of OPERATIONS) {
@@ -41,7 +41,7 @@ test('six operations have their own goals, legal aircraft, safe starts and usefu
     for (const index of m.goal.stops || [m.goal.destinationRunway]) assert.ok(m.runways[index]);
     if (m.goal.task === 'ground') assert.ok(AIRCRAFT[m.aircraft].bombs > m.goal.count);
   }
-  assert.deepEqual([...tasks].sort(), ['air', 'courier', 'ground', 'route']);
+  assert.deepEqual([...tasks].sort(), ['air', 'courier', 'ground', 'passenger', 'route']);
 });
 
 test('route gates count in order, swept passage is detected, and the route never times out', () => {

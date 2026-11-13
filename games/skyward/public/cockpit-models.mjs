@@ -10,11 +10,12 @@ const themes={
   heavy:{body:'#2d3832',face:'#4c5849',edge:'#202a25',trim:'#96a08a',dial:'#17201d',ink:'#e3e4c8',needle:'#edbb79',glass:'#bad9cb'},
   jet:{body:'#171f25',face:'#303a40',edge:'#10171a',trim:'#76868b',dial:'#10191c',ink:'#d4e1d9',needle:'#f0c486',glass:'#8dd7ba'},
   glass:{body:'#101a21',face:'#253038',edge:'#0b141a',trim:'#697d85',dial:'#09181a',ink:'#a6e1cc',needle:'#e3edb8',glass:'#8be2b9'},
+  airliner:{body:'#343331',face:'#54514b',edge:'#242827',trim:'#96948b',dial:'#122025',ink:'#d5dfd8',needle:'#f1d49c',glass:'#c7d8d6'},
 };
 
 export function cockpitFamily(profile){
   const kind=aircraftKind(profile);
-  return /^(avro504|camel)$/.test(kind)?'open':/^(spitfire|hellcat|bf109)$/.test(kind)?'fighter':/^(b17|c47|he111|ac130)$/.test(kind)?'heavy':/^(f4|harrier|a10|mig21)$/.test(kind)?'jet':'glass';
+  return kind==='b767'?'airliner':/^(avro504|camel)$/.test(kind)?'open':/^(spitfire|hellcat|bf109)$/.test(kind)?'fighter':/^(b17|c47|he111|ac130)$/.test(kind)?'heavy':/^(f4|harrier|a10|mig21)$/.test(kind)?'jet':'glass';
 }
 
 // One layout supplies both renderers. All opaque panel surfaces stay below
@@ -29,7 +30,7 @@ export function cockpitLayout(profile,width=1280,height=720){
   const panel=family==='open'?[[0,h],[w*.035,h*.90],[w*.19,h*.815],[w*.34,h*.785],[w*.66,h*.785],[w*.81,h*.815],[w*.965,h*.90],[w,h]]:
     [[0,h],[0,h*.91],[w*.16,h*.84],[w*.31,h*.775],[w*.42,h*.76],[w*.58,h*.76],[w*.69,h*.775],[w*.84,h*.84],[w,h*.91],[w,h]];
   const coaming=panel.slice(1,-1);
-  if(family==='glass'){
+  if(family==='glass'||family==='airliner'){
     const screenW=Math.min(w*.20,h*.28),screenH=Math.min(h*.15,w*.16),gap=Math.max(12,scale*18);
     screens.push({id:'flight',x:w*.5-gap-screenW,y:h*.825,w:screenW,h:screenH},{id:'systems',x:w*.5+gap,y:h*.825,w:screenW,h:screenH});
     if(!compact)addGauge('fuel',w*.5,h*.89,Math.min(radius*.67,gap*.72),'FUEL');
@@ -48,6 +49,9 @@ export function cockpitLayout(profile,width=1280,height=720){
     // The biplanes have a small windscreen, not a closed fighter canopy.
     const half=Math.min(w*.20,h*.26),top=h*.635;
     frames.push({points:[[w*.5-half,h*.795],[w*.5-half*.77,top],[w*.5+half*.77,top],[w*.5+half,h*.795]],width:2.3*scale});
+  }else if(family==='airliner'){
+    frames.push({points:[[w*.025,h*.86],[w*.09,h*.27],[w*.23,h*.12],[w*.77,h*.12],[w*.91,h*.27],[w*.975,h*.86]],width:7*scale});
+    for(const s of[-1,1])frames.push({points:[[w*(.5+s*.27),h*.12],[w*(.5+s*.34),h*.80]],width:6*scale});
   }else if(family==='heavy'){
     frames.push({points:[[w*.04,h*.86],[w*.12,h*.24],[w*.26,h*.10],[w*.74,h*.10],[w*.88,h*.24],[w*.96,h*.86]],width:7*scale});
     frames.push({points:[[w*.5,0],[w*.5,h*.10]],width:9*scale});
@@ -136,7 +140,7 @@ export function paintCockpitStatic(ctx,l,{frames=true}={}){
   for(const g of l.gauges)drawDialFace(ctx,g,l);
   for(const screen of l.screens){ctx.fillStyle=t.edge;ctx.fillRect(screen.x-5*l.scale,screen.y-5*l.scale,screen.w+10*l.scale,screen.h+10*l.scale);ctx.strokeStyle=t.trim;ctx.lineWidth=l.scale;ctx.strokeRect(screen.x-3*l.scale,screen.y-3*l.scale,screen.w+6*l.scale,screen.h+6*l.scale);ctx.fillStyle='#071919';ctx.fillRect(screen.x,screen.y,screen.w,screen.h);for(let i=1;i<5;i++){ctx.fillStyle='#65796e';ctx.fillRect(screen.x+screen.w*i/5-1.5*l.scale,screen.y+screen.h+2.4*l.scale,3*l.scale,1.3*l.scale);}}
   if(!l.compact){
-    const y=l.h*.966;if(l.family!=='glass')label(ctx,l.family==='open'?'AIR SPEED  ·  ALTITUDE  ·  FUEL':'FLIGHT INSTRUMENTS',l.w*.5,y,7.5*l.scale,t.trim);
+    const y=l.h*.966;if(l.family!=='glass'&&l.family!=='airliner')label(ctx,l.family==='open'?'AIR SPEED  ·  ALTITUDE  ·  FUEL':'FLIGHT INSTRUMENTS',l.w*.5,y,7.5*l.scale,t.trim);
     for(const side of[-1,1])for(let i=0;i<3;i++){const x=l.w*(.5+side*.34)+i*9*l.scale;circle(ctx,x,y,2.8*l.scale,t.edge,t.trim,.65*l.scale);ctx.fillStyle=i===0?'#9c623d':'#8b9c8b';ctx.fillRect(x-l.scale*.6,y-3.6*l.scale,l.scale*1.2,3*l.scale);}
   }
   drawHud(ctx,l);ctx.restore();

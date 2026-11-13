@@ -16,6 +16,7 @@ export const AIRFRAME_BOUNDS = Object.freeze({
   f16: { min: [-5.206, -1.79, -9.27], max: [5.206, 3.17, 7.53] },
   f22: { min: [-6.8, -1.83, -10.95], max: [6.8, 3.095, 9.45] },
   b2: { min: [-26.064, -1.92, -10.45], max: [26.064, 1.683, 10.45] },
+  b767: { min: [-24.12, -3, -27], max: [24.12, 12.185, 27] },
 });
 
 export function modeledAirframeBounds(aircraft) {

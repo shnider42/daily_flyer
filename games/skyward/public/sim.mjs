@@ -121,7 +121,14 @@ export function advancePlayer(player, input = {}, dt = 1 / 60, aircraft = getAir
   } else {
     const gearDrag = p.gear && !a.fixedGear ? 0.86 : 1, flapDrag = p.flaps ? 0.76 : 1;
     const targetSpeed = p.engine ? a.maxSpeed * Math.pow(p.throttle, 0.68) * gearDrag * flapDrag * damageFactor : 0;
-    const thrust = clamp((targetSpeed - p.speed) * 0.23, -a.acceleration * 0.65, a.acceleration * damageFactor);
+    let thrust = clamp((targetSpeed - p.speed) * 0.23, -a.acceleration * 0.65, a.acceleration * damageFactor);
+    if (a.passenger && !p.onGround && frame.forward.y > 0 && thrust > 0) {
+      // Arcade excess-power budget for a heavy airliner. A steep nose-up
+      // attitude spends airspeed on height; it cannot retain fighter-like
+      // acceleration up a vertical line. Body axes and gravity stay untouched.
+      const climbPower = 9.81 * finite(a.climbRate, 26) * p.throttle * damageFactor / Math.max(a.stallSpeed, p.speed);
+      thrust = mix(thrust, Math.min(thrust, climbPower), frame.forward.y / .08);
+    }
     const launchAssist = p.onGround && previousRunway?.carrier && p.carrierLaunch && !p.brake && p.throttle > 0.8 ? a.acceleration * 0.55 : 0;
     p.speed = Math.max(0, p.speed + (thrust + launchAssist - frame.forward.y * 9.81) * dt);
     if (p.onGround) {
@@ -255,7 +262,10 @@ export class FlightSimulation {
     this._crewInputTime = -Infinity; this._pendingCrewPress = null;
     this.multiplayer = null; this.participants = new Map(); this.round = null; this._seenActions = new Set();
     this.sortieStats = { airTime: 0, distance: 0, damageTaken: 0, landings: 0, lastLanding: null, airKills: 0, groundKills: 0, gatesReached: 0 };
-    this.operationState = m.operation ? { stage: m.goal?.task === 'courier' ? 'delivery' : 'task', leg: 0, unloadTime: 0, lastDeliveryLanding: 0, returnLandingCount: null, taskCompletedAt: null, reinforcementsSent: false } : null;
+    this.operationState = m.operation ? { stage: m.goal?.task === 'courier' ? 'delivery' : m.goal?.task === 'passenger' ? 'departure' : 'task', leg: 0, unloadTime: 0, lastDeliveryLanding: 0, returnLandingCount: null, taskCompletedAt: null, reinforcementsSent: false } : null;
+    this.passengerState = m.operation && m.goal?.task === 'passenger' && a.passenger
+      ? { aboard: clamp(Math.trunc(finite(m.passengers, a.passengerCapacity)), 0, a.passengerCapacity), capacity: a.passengerCapacity, delivered: 0, departed: false, fixPassed: false, departureAt: null }
+      : null;
     this.groundService = { active: false, progress: 0, duration: 8, runwayIndex: -1, completed: false };
     this._eventId = 0; this._entityId = 0; this._lastLandingCount = 0; this._warnedStall = false; this._rng = (m.number || 1) * 19937;
     this._chooseTarget(); this._updateBombAim(); this._updateObjective(0);
@@ -547,7 +557,8 @@ export class FlightSimulation {
     switch (name) {
       case 'startup': {
         if (p.engine) { this.hint = 'Engine running. Release the brake and increase throttle.'; return false; }
-        const labels = ['Fuel valve open', 'Magnetos on', 'Engine primed', 'Propeller turning · engine running'];
+        const labels = a.passenger ? ['Fuel pumps on', 'Aircraft systems ready', 'Engines prepared', 'Both engines running']
+          : ['Fuel valve open', 'Magnetos on', 'Engine primed', 'Propeller turning · engine running'];
         this._event('startup', labels[Math.min(p.startupStep, 3)]);
         p.startupStep = Math.min(4, p.startupStep + 1);
         if (p.startupStep === 4) { p.engine = true; this.phase = 'takeoff'; }
@@ -616,6 +627,14 @@ export class FlightSimulation {
     const before = { x: this.player.x, y: this.player.y, z: this.player.z, onGround: this.player.onGround, health: this.player.health };
     this._stepStart = before;
     if (active) advancePlayer(this.player, input, dt, this.aircraft, this.mission, this.settings);
+    if (this.worldAuthority && this.passengerState && !this.passengerState.departed && before.onGround && !this.player.onGround
+      && this.player.everAirborne && this.player.verticalSpeed > 1 && this.player.y > before.y
+      && this.player.health > 0 && !this.player.crashed && runwayAt(before.x, before.z, this.mission, 0) === this.mission.goal.departureRunway
+      && Math.abs(before.y - surfaceHeight(before.x, before.z, this.mission) - 3) < 4) {
+      this.passengerState.departed = true; this.passengerState.departureAt = this.time;
+      this.operationState.stage = 'cruise'; this.operationState.returnLandingCount = this.player.landings;
+      this._event('info', `${this.mission.passengerRoute?.flightNumber || 'Passenger flight'} airborne · ${this.passengerState.aboard} passengers aboard`);
+    }
     if (active && !before.onGround) {
       this.sortieStats.airTime += dt;
       this.sortieStats.distance += dist(before, this.player);
@@ -779,6 +798,7 @@ export class FlightSimulation {
 
   _launchMissile(p, target, remote = false) {
     const a = getAircraft(p.aircraft);
+    if (a.passenger) { if (!remote) this._event('info', 'This passenger aircraft is unarmed.'); return false; }
     if (!living(p) || !a.radar || p.missiles <= 0 || !living(target)) { if (!remote) this._event('info', p.missiles <= 0 ? 'No missiles remaining. Guns are still available.' : 'Select a target first.'); return false; }
     const state = remote ? this._remoteState(p) : this;
     if ((state.missileCooldown || 0) > 0) return false;
@@ -819,6 +839,7 @@ export class FlightSimulation {
 
   _payload(p, remote = false) {
     if (!living(p)) return false;
+    if (getAircraft(p.aircraft).passenger) { if (!remote) this._event('info', 'This passenger aircraft has no releasable payload.'); return false; }
     const payloadState = remote ? this._remoteState(p) : this;
     if (payloadState.payloadCooldown > 0) return false;
     const goal = this.mission.goal || {};
@@ -1202,9 +1223,71 @@ export class FlightSimulation {
       && (!requireHover || landing.hover);
   }
 
+  _updatePassengerOperation(dt) {
+    const m = this.mission, g = m.goal, p = this.player, state = this.operationState, cabin = this.passengerState;
+    if (!cabin) { this._finish(false, 'This route needs a passenger aircraft.'); return; }
+    const departure = m.runways[g.departureRunway], destination = m.runways[g.destinationRunway], route = m.passengerRoute || {};
+    if (!departure || !destination) { this._finish(false, 'The passenger route is missing an airport.'); return; }
+    const flightNumber = route.flightNumber || 'Passenger flight';
+    if (!cabin.departed) {
+      state.stage = 'departure'; this.phase = 'departure'; this.progress = 0;
+      this.objective = `${flightNumber} · ${cabin.aboard} passengers · depart ${departure.label}`;
+      if (p.onGround && runwayAt(p.x, p.z, m, 0) === g.departureRunway) {
+        this.hint = p.brake ? 'Passengers aboard. Release the wheel brake, then increase thrust along the runway.'
+          : p.speed < this.aircraft.stallSpeed * 1.15 ? 'Let the heavy aircraft build airspeed. Keep it straight and lift the nose gently.'
+          : 'Raise the nose gradually. Let the aircraft gain height before making a turn.';
+      } else {
+        this._operationRunway(g.departureRunway, 'DEPARTURE');
+        this.hint = 'This service must depart from its assigned airport. Land there, then take off from the runway.';
+      }
+      return;
+    }
+
+    const distance = flatDist(p, destination), fullDistance = Math.max(1, flatDist(departure, destination));
+    const onDestination = p.onGround && p.lastLanding?.runwayIndex === g.destinationRunway;
+    const approaching = distance < finite(route.arrivalDistance, 9000) || ['arrival', 'disembarking'].includes(state.stage);
+    if (!cabin.fixPassed && route.fix && (flatDist(p, route.fix) < finite(route.fix.radius, 2200) || approaching)) {
+      cabin.fixPassed = true;
+      if (!approaching) this._event('info', `${flightNumber} · en-route position passed · destination ahead`);
+    }
+    this.progress = .1 + clamp(1 - distance / fullDistance, 0, 1) * .65;
+    if (approaching || p.onGround) {
+      if (state.stage === 'cruise') this._event('info', `${destination.label} ahead · reduce speed early for the arrival`);
+      state.stage = 'arrival'; this.phase = 'arrival';
+      this._operationRunway(g.destinationRunway, 'ARRIVAL');
+      this.objective = `${flightNumber} · land at ${destination.label} · ${cabin.aboard} aboard`;
+      this.hint = onDestination ? 'Idle thrust and brake to a complete stop for disembarkation.'
+        : p.onGround ? `This is not ${destination.label}. The passengers remain aboard; take off and continue to the marked airport.`
+          : this._landingHint(destination);
+      const stopped = this._stoppedAtRunway(g.destinationRunway, state.returnLandingCount ?? 0);
+      state.unloadTime = stopped ? state.unloadTime + dt : 0;
+      if (stopped) {
+        state.stage = 'disembarking'; this.phase = 'disembarking'; this.navigationTarget = null;
+        this.progress = .9 + Math.min(1, state.unloadTime / (g.holdSeconds || 4)) * .1;
+        this.objective = `${flightNumber} · passengers disembarking`;
+        this.hint = `Keep idle thrust and the brake set · ${Math.max(0, (g.holdSeconds || 4) - state.unloadTime).toFixed(1)} s remaining.`;
+      }
+      if (state.unloadTime >= (g.holdSeconds || 4)) {
+        cabin.delivered = cabin.aboard; cabin.aboard = 0; state.stage = 'complete'; this.score += cabin.delivered * 2;
+        this._event('arrival', `${cabin.delivered} passengers arrived at ${destination.label}`);
+        this._finish(true, `${flightNumber} · ${cabin.delivered} passengers delivered to ${destination.label}`);
+      }
+      return;
+    }
+
+    state.stage = 'cruise'; this.phase = 'cruise';
+    this.objective = `${flightNumber} · ${destination.label} · ${(distance / 1000).toFixed(1)} km`;
+    if (!cabin.fixPassed && route.fix) this.navigationTarget = { ...route.fix };
+    else this._operationRunway(g.destinationRunway, 'DESTINATION');
+    this.hint = p.stalled ? 'Lower the nose and add thrust. A steep climb spends this aircraft’s airspeed.'
+      : p.y < finite(route.cruiseAltitude, 1000) - 250 ? 'Build height gradually with small pitch inputs. Keep a steady airspeed and leave room for the turn.'
+        : 'Maintain a gentle course toward the destination. The route marker is optional; begin a broad, early approach.';
+  }
+
   _updateOperation(dt) {
     const m = this.mission, g = m.goal, p = this.player, state = this.operationState;
     if (!state) return;
+    if (g.task === 'passenger') { this._updatePassengerOperation(dt); return; }
     if (g.task === 'courier') {
       const stops = g.stops || [], index = stops[state.leg], runway = this._operationRunway(index, 'DELIVERY');
       if (!runway) return;
@@ -1324,7 +1407,10 @@ export class FlightSimulation {
       }
       return;
     }
-    if (!p.engine) { this.phase = 'startup'; this.objective = `Start the engine · ${p.startupStep}/4`; this.hint = ['Open the fuel valve. Tap START to begin the simplified checklist.', 'Switch on the magnetos. Tap START again.', 'Prime the engine. Tap START again.', 'Turn the propeller. Tap START once more.'][Math.min(3, p.startupStep)]; this.progress = p.startupStep * 0.025; return; }
+    if (!p.engine) { this.phase = 'startup'; this.objective = `Start the engine${this.aircraft.passenger ? 's' : ''} · ${p.startupStep}/4`; this.hint = (this.aircraft.passenger
+      ? ['Switch on the fuel pumps. Tap START to begin the simplified checklist.', 'Check the aircraft systems. Tap START again.', 'Prepare both engines. Tap START again.', 'Start the engines. Tap START once more.']
+      : ['Open the fuel valve. Tap START to begin the simplified checklist.', 'Switch on the magnetos. Tap START again.', 'Prime the engine. Tap START again.', 'Turn the propeller. Tap START once more.'])[Math.min(3, p.startupStep)]; this.progress = p.startupStep * 0.025; return; }
+    if (g.type === 'operation' && g.task === 'passenger') { this._updateOperation(dt); return; }
     if (!p.everAirborne) {
       this.phase = 'takeoff'; this.objective = 'Take off from the runway'; this.progress = Math.max(this.progress, 0.1);
       this.hint = p.brake ? 'Release the wheel brake, then increase throttle.' : p.throttle < 0.65 ? 'Raise throttle above 65%. Keep the nose along the runway.' : p.speed < this.aircraft.stallSpeed * 1.2 ? 'Building airspeed. Keep straight; the assisted plane will lift when ready.' : 'Raise the nose gently. Retract the gear once safely airborne.'; return;
@@ -1534,7 +1620,7 @@ export class FlightSimulation {
     const weaponStores = {};
     for (const [id, stores] of this.remoteWeapons) weaponStores[id] = { ammo: stores.ammo, missiles: stores.missiles, bombs: stores.bombs, troopers: stores.troopers, dropsRemaining: stores.dropsRemaining };
     return copy({ version: this.participants.size ? 2 : 1, runId: this.multiplayer?.runId, missionId: this.mission.id, time: this.time, enemies: this.enemies, targets: this.targets, projectiles: this.projectiles.slice(-180), effects: this.effects.slice(-60), paratroopers: this.paratroopers, waypointIndex: this.waypointIndex, navigationTarget: this.navigationTarget, status: this.status, phase: this.phase, objective: this.objective, hint: this.hint, progress: this.progress, score: this.score, defense: this.defense, escortTime: this.escortTime, dropsLanded: this.dropsLanded, ending: this.ending, endingText: this.endingText, events: this.events.slice(-12), remoteDamage: this.remoteDamage, weaponStores,
-      nuclearRelease: this.nuclearRelease, operationState: this.operationState, sortieStats: this.sortieStats,
+      nuclearRelease: this.nuclearRelease, operationState: this.operationState, passengerState: this.passengerState, sortieStats: this.sortieStats,
       ...(this.participants.size ? { participants: [...this.participants.values()].map(record => ({ ...record, pose: { ...record.pose }, stores: { ammo: record.pose.ammo, missiles: record.pose.missiles, bombs: record.pose.bombs, troopers: record.pose.troopers, dropsRemaining: record.pose.dropsRemaining } })), round: this.round } : {}),
       ...(this.crew ? { player: this.player, crew: this.crew } : {}) });
   }
@@ -1548,7 +1634,7 @@ export class FlightSimulation {
     if (this.participants.size && finite(snapshot.time) < finite(this._lastSnapshotTime, -Infinity)) return false;
     this.worldAuthority = false;
     for (const key of ['enemies', 'targets', 'projectiles', 'effects', 'paratroopers', 'events']) if (Array.isArray(snapshot[key])) this[key] = copy(snapshot[key]);
-    for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText', 'nuclearRelease', 'operationState']) if (snapshot[key] !== undefined) this[key] = copy(snapshot[key]);
+    for (const key of ['waypointIndex', 'navigationTarget', 'phase', 'objective', 'hint', 'progress', 'score', 'defense', 'escortTime', 'dropsLanded', 'ending', 'endingText', 'nuclearRelease', 'operationState', 'passengerState']) if (snapshot[key] !== undefined) this[key] = copy(snapshot[key]);
     if (this.crew) {
       if (snapshot.sortieStats) this.sortieStats = copy(snapshot.sortieStats);
       Object.assign(this.player, copy(snapshot.player), { aircraft: this.mission.aircraft });

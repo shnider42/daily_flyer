@@ -3,19 +3,20 @@
 import * as THREE from './vendor/three.module.js';
 import {terrainHeight,surfaceHeight,lineOfSight,carrierIslandParts,carrierLaunchLane} from './terrain.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
-import {cockpitView} from './camera-pose.mjs';
+import {cockpitView,chaseAirframeFraming} from './camera-pose.mjs';
 import {makeSoftwareCockpit,drawSoftwareCockpit} from './cockpit-models.mjs';
 import {gunshipStationPose} from './gunship.mjs';
 import {makeSoftwareGunshipStation,drawSoftwareGunshipStation} from './gunship-views.mjs';
 import {GUNSHIP_SITE_COLORS,GUNSHIP_ROAD_TILES,gunshipTargetParts} from './gunship-scenery.mjs';
-import {buildSceneTerrain,terrainMeshSettings,colorSoftwareTerrain,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
+import {buildSceneTerrain,terrainMeshSettings,colorSoftwareTerrain,groundDetails,aircraftGroundShadow,sceneryClearance} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
 import {sampleCombatEffects,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
 import {applyCombatCameraKick} from './combat-camera.mjs';
 import {SoftwareAircraftRasterizer} from './software-aircraft.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind } from './models.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
-import {describeAirfield,AIRFIELD_COLORS,airfieldPoint,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
+import {isPassengerAirport} from './airfield-layout.mjs';
+import {describeAirfield,AIRFIELD_COLORS,airfieldSurfaceColor,airfieldPoint,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -104,7 +105,7 @@ export class SoftwareFlightRenderer{
     this._configureAtmosphere(mission);const rand=random(hash(mission.id));this._clouds=[];
     for(let i=0;i<28;i++){const x=(rand()-.5)*27000,z=(rand()-.15)*27000,y=this._cloudBase+rand()*(this._cloudTop-this._cloudBase);for(let k=0;k<3;k++)this._clouds.push({x:x+k*200,y:y+Math.sin(k)*30,z:z+(rand()-.5)*180,r:170+rand()*180});}
     this._scenery=[];
-    for(let i=0;i<75;i++){const x=(rand()-.5)*18000,z=(rand()-.15)*21000,y=this._height(x,z);if(y>5)this._scenery.push({x,y,z,size:10+rand()*12,kind:i%7===0?'house':'tree'});}
+    for(let i=0;i<75;i++){const x=(rand()-.5)*18000,z=(rand()-.15)*21000,y=this._height(x,z);if(y>5&&sceneryClearance(x,z,mission,100))this._scenery.push({x,y,z,size:10+rand()*12,kind:i%7===0?'house':'tree'});}
     this._city=[];if(!mission.arena&&mission.aircraft==='b2'){const site=mission.targets?.find(t=>t.type==='city')||{x:0,z:15000};for(let i=0;i<65;i++){const x=site.x+(rand()-.5)*1700,z=site.z+(rand()-.5)*1700;this._city.push({x,y:Math.max(0,this._height(x,z)),z,w:25+rand()*75,h:30+rand()*230,d:25+rand()*65});}}
   }
   _configureAtmosphere(mission){
@@ -226,7 +227,7 @@ export class SoftwareFlightRenderer{
     return gradient;
   }
   _runways(sim){
-    const asphalt=rgb(['avro504','camel'].includes(this.mission.aircraft)?'#687c62':'#69736b'),paint=rgb('#ebe5ce'),shoulder=rgb(this.mission.biome==='desert'?'#c4a97f':'#8b9c79'),navy=rgb('#586d75');
+    const asphalt=rgb(this._night?'#424f50':['avro504','camel'].includes(this.mission.aircraft)?'#687c62':'#69736b'),paint=rgb('#ebe5ce'),shoulder=rgb(this._night?'#344b42':this.mission.biome==='desert'?'#c4a97f':'#8b9c79'),navy=rgb('#586d75');
     for(const r of this.mission.runways||[]){
       const distance=Math.hypot(this.camera.position.x-r.x,this.camera.position.z-r.z);if(distance>14000||this._terrainHides(r.x,n(r.y,12)+12,r.z))continue;const h=n(r.heading),w=n(r.width,r.carrier?40:60),l=n(r.length,r.carrier?310:1000),y=n(r.y,12),c=Math.cos(h),s=Math.sin(h),lane=r.carrier?carrierLaunchLane(r):0;
       const place=(x,z)=>[r.x+x*c+z*s,r.z+z*c-x*s];
@@ -235,7 +236,7 @@ export class SoftwareFlightRenderer{
         this._box(r.x,y-7.5,r.z,w*.94,15,l*.95,navy,h);const islandColors={body:'#74878a',bridge:'#809193',glass:'#233e48',mast:'#8c9b98',paint:'#ebe6cf'};
         for(const part of carrierIslandParts(r)){const [x,z]=place(part.x,part.z);this._box(x,y+part.y,z,part.width,part.height,part.length,rgb(islandColors[part.material]),h);}
       }
-      else {this._surface(r.x,y-.15,r.z,w+105,l+100,shoulder,h);const [ax,az]=place(w*.86,-l*.2);this._surface(ax,y+.08,az,w*.72,l*.32,asphalt,h);}
+      else {this._surface(r.x,y-.15,r.z,w+105,l+100,shoulder,h);if(!isPassengerAirport(r)){const [ax,az]=place(w*.86,-l*.2);this._surface(ax,y+.08,az,w*.72,l*.32,asphalt,h);}}
       this._layer=2;this._surface(r.x,y+.08,r.z,w,l,asphalt,h);this._layer=3;
       for(const side of[-1,1]){const [x,z]=place(side*w*.45,0);this._surface(x,y+.15,z,.7,l*.94,paint,h);}
       if(distance<6500){
@@ -263,15 +264,21 @@ export class SoftwareFlightRenderer{
     this._airfields||=new Map();let scene=this._airfields.get(runway);
     if(!scene){scene=describeAirfield(runway,this.mission);this._airfields.set(runway,scene);}
     const point=position=>{const p=airfieldPoint(runway,...position);return [p.x,p.y,p.z];};
+    if(!scene.drawParts){
+      scene.drawParts=scene.parts.map(part=>({...part,worldPosition:point(part.position),tint:rgb(airfieldSurfaceColor(part.color,this._night)),worldTriangles:(part.triangles||(part.kind==='roof'?roofTriangles(part):null))?.map(triangle=>triangle.map(point)),detail:/parking-space|parked-car|car-roof|stand-|apron-joint|apron-row|crop-row|jetbridge-glass/.test(part.id)}));
+      scene.drawLights=scene.lights.map(lamp=>({...lamp,worldPosition:point(lamp.position)}));
+    }
     if(distance<6500){
       this._layer=4;
-      for(const part of scene.parts){
-        if(part.kind==='roof')for(const triangle of roofTriangles(part))this._worldTri(...triangle.map(point),rgb(AIRFIELD_COLORS[part.color]),1,true);
-        else this._box(...point(part.position),...part.size,rgb(AIRFIELD_COLORS[part.color]),n(runway.heading));
+      for(const part of scene.drawParts){
+        if(part.detail&&distance>3000)continue;
+        this._layer=part.kind==='ground'?2:4;
+        if(part.worldTriangles)for(const triangle of part.worldTriangles)this._worldTri(...triangle,part.tint,1,true);
+        else this._box(...part.worldPosition,...part.size,part.tint,n(runway.heading));
       }
     }
     this._layer=4;
-    for(const lamp of scene.lights){const before=this._queue?.length||0;this._disc(...point(lamp.position),lamp.radius,AIRFIELD_COLORS[lamp.color],this._night?1:.72);if(this._queue?.length>before)this._queue.at(-1).layer=4;}
+    for(const lamp of scene.drawLights){const before=this._queue?.length||0;this._disc(...lamp.worldPosition,lamp.radius,AIRFIELD_COLORS[lamp.color],this._night?1:.72);if(this._queue?.length>before)this._queue.at(-1).layer=4;}
     if(scene.windsock&&distance<2400){
       for(const segment of windsockSegments(runway,scene.windsock,this.mission.weather,this.time,this.settings?.reducedMotion)){
         const a=segment.from,b=segment.to,axis=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]).normalize();
@@ -465,7 +472,7 @@ export class SoftwareFlightRenderer{
       if(this._gunshipPanel?.layout.seat!==view.station.id)this._gunshipPanel=makeSoftwareGunshipStation(view.station.id,this.width,this.height);
     }
     else if(mode==='cockpit'){const view=cockpitView(p,options,groundOffset);pos=[view.position.x,view.position.y,view.position.z];target=[view.target.x,view.target.y,view.target.z];up=view.up;}
-    else{const distance=clamp(length*2.35+n(p.speed)*.055,23,84),angle=heading+lookX+(mode==='cinematic'?.68:0),elev=clamp(length*.4+n(p.speed)*.012,5.4,20)+Math.sin(lookY)*distance;pos=[p.x-Math.sin(angle)*distance*Math.cos(lookY),originY+elev-pitch*distance*.24,p.z-Math.cos(angle)*distance*Math.cos(lookY)];const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;target=[p.x+f[0]*ahead,originY+f[1]*ahead+length*.18,p.z+f[2]*ahead];}
+    else{const framing=chaseAirframeFraming({length,span:this._planeMeta?.span,speed:p.speed,width:this.width,height:this.height,fov,passenger:!!this.aircraft?.passenger||aircraftKind(this.aircraft)==='b767'}),distance=framing.distance,angle=heading+lookX+(mode==='cinematic'?.68:0),elev=framing.elevation+Math.sin(lookY)*distance;pos=[p.x-Math.sin(angle)*distance*Math.cos(lookY),originY+elev-pitch*distance*.24,p.z-Math.cos(angle)*distance*Math.cos(lookY)];const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;target=[p.x+f[0]*ahead,originY+f[1]*ahead+length*.18,p.z+f[2]*ahead];}
     if(this.camera.fov!==fov){this.camera.fov=fov;this.camera.updateProjectionMatrix();}
     const reset=!this._cameraReady||this._cameraMode!==mode,firstPerson=mode==='cockpit'||mode==='gunner';
     const t=reset||firstPerson?1:1-Math.exp(-dt*(this.settings.reducedMotion?12:mode==='cinematic'?3.2:10));

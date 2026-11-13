@@ -285,7 +285,10 @@ function recordFlightResult(outcome){
   return flightRecordResult;
 }
 function renderOperations(){
-  setMarkup('operation-list',operationListMarkup(OPERATIONS,selectedOperation.id,flightLog,settings));
+  const passenger=selectedOperation.goal?.task==='passenger',flights=OPERATIONS.filter(m=>(m.goal?.task==='passenger')===passenger);
+  setMarkup('operation-list',operationListMarkup(flights,selectedOperation.id,flightLog,settings));
+  setText('operation-count',flights.length+' AVAILABLE');
+  $$('[data-operation-group]').forEach(button=>button.setAttribute('aria-pressed',String((button.dataset.operationGroup==='passenger')===passenger)));
   setMarkup('operation-brief',operationBriefMarkup(selectedOperation,settings,operationRecord(flightLog,selectedOperation,settings)));
   setText('launch-operation','Fly '+selectedOperation.title+' →');
 }
@@ -299,6 +302,7 @@ function renderFree(){const list=Object.values(AIRCRAFT);$('aircraft-list').inne
 function buildFreeMission(){
   const a=selectedAircraft,base=MISSIONS.find(m=>m.aircraft===a.id)||MISSIONS[0],startMode=$('free-start').value,biome=$('free-biome').value,w=$('free-weather').value;
   let m=biome==='canyon'?createArenaMission({mode:'freeflight',mapId:'canyon'},a.id):{...structuredClone(base),id:'freeflight',number:0,title:'Open Sky',year:'FREE FLIGHT',location:'Your own horizon',aircraft:a.id,kind:'free',biome,description:'Get to know your aircraft. Fly anywhere, then return to the runway when you feel ready.',briefing:['Explore the landscape.','Practise takeoff, turns and landings.'],lesson:'No timer. No enemies. Just your aircraft.',enemies:[],targets:[],waypoints:[],goal:{},runways:[{x:0,z:0,y:4,length:1600,width:90,heading:0,label:'HOME',carrier:false}],start:{x:0,y:450,z:-1700,heading:0,speed:a.cruise,airborne:true}};
+  if(a.passenger)m.runways=m.runways.map(runway=>runway.carrier?runway:{...runway,airport:true,airfieldType:'airport',y:biome==='mountains'?Math.max(runway.y,terrainHeight(runway.x,runway.z,{...m,runways:[]})):runway.y,length:Math.max(3200,runway.length),width:Math.max(140,runway.width),label:biome==='canyon'?'Razorback Airport':'Home Airport'});
   m.weather={wind:{x:w==='cloudy'?9:2,z:0},cloudBase:w==='cloudy'?480:biome==='canyon'?2800:1400,cloudTop:w==='cloudy'?1100:biome==='canyon'?3800:1900,fog:w==='cloudy'?.00022:.000045,timeOfDay:w==='night'?'night':w==='sunset'?'dusk':'day'};
   m=prepareMissionStarts(m,[{startMode}]);m.start=spawnForPlayer(m,a.id,0,startMode);m.start.cold=startMode==='runway';m.payload=normalizePayload(a.id,$('free-payload').value);return m;
 }
@@ -318,7 +322,7 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
   presentation.reset(sim);renderView=presentation.sample(1);markerBoundsDirty=true;lastCrewSnapshot=performance.now();gunnerControls.reset();syncCrewUI();
   if(isCrewFlight())sim.targetId=sim.targets.find(t=>t.health>0&&!t.friendly)?.id||null;
   renderer.loadMission(m,currentAircraft());controls.settings=settings;controls.setThrottle(sim.player.throttle||0);controls.lookX=controls.lookY=0;
-  $('flight-mission-number').textContent=m.operation?'OPS':m.kind==='gunship'?'CREW':team.mode==='dogfight'&&coop?'VS':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE';$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
+  $('flight-mission-number').textContent=m.passengerRoute?.flightNumber|| (m.operation?'OPS':m.kind==='gunship'?'CREW':team.mode==='dogfight'&&coop?'VS':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE');$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
   if(m.number){progress.lastMission=m.id;saveProgress(progress);}
   showScreen('flight');updateHUD();
   if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});
@@ -349,6 +353,7 @@ function resumeFlight(){if($('pause-dialog').open)$('pause-dialog').close();paus
 
 
 const startupCopy=[['Fuel on.','Open the fuel valve so the engine has something to run on.','Open fuel valve'],['Ignition ready.','Switch on the magnetos. They provide the spark.','Switch on magnetos'],['A little encouragement.','Prime the engine before turning the propeller.','Prime the engine'],['Bring it to life.','Turn the propeller. Listen as the engine catches.','Start the engine']];
+const passengerStartupCopy=[['Fuel supply.','Switch on the fuel pumps for both engines.','Fuel pumps on'],['Flight deck power.','Bring the aircraft systems online.','Systems on'],['Engine start ready.','Prepare both engines for start.','Prepare engines'],['Start the engines.','Start both turbofans. Keep the brake set until you are ready to depart.','Start engines']];
 function updateHUD(){
   if(!sim||screen!=='flight')return;const p=instrumentPlayer(),m=sim.mission,a=isSpectating()&&spectatorView?getAircraft(spectatorView.aircraft):currentAircraft(),aviation=settings.units==='aviation';
   const clearance=terrainClearance(p,m),alt=Math.max(0,clearance.agl);
@@ -359,7 +364,7 @@ function updateHUD(){
   const wind=typeof m.weather?.wind==='number'?m.weather.wind:Math.hypot(m.weather?.wind?.x||0,m.weather?.wind?.z||0);setText('hud-wind','WIND '+number(wind*1.944)+' KT →');
   setText('objective-text',sim.objective||'Follow your flight orders');const percent=number((sim.progress||0)*100);setText('mission-progress',m.operation?formatRoundTime(sim.time):m.kind==='free'?sim.groundService?.active?percent+'%':'FREE':percent+'%');$('objective-progress').style.width=clamp(percent,0,100)+'%';setText('objective-label',(sim.phase?String(sim.phase).replace(/_/g,' ').toUpperCase():'FLIGHT ORDERS')+(m.operation?' · ELAPSED':''));
   setMarkup('hud-health','AIRFRAME <b>'+number(p.health/(a.health||100)*100)+'%</b>');setMarkup('hud-fuel','FUEL <b>'+number(p.fuel)+'%</b>');
-  setText('hud-stores',m.goal?.task==='courier'?'MAIL '+Math.max(0,(m.goal.stops?.length||0)-(sim.operationState?.leg||0))+' LOADS':a.gun?'GUN '+number(p.ammo)+(p.missiles?' · MSL '+p.missiles:'')+(p.bombs?' · BMB '+p.bombs:''):p.troopers?'TROOPS '+p.troopers:p.bombs?'PAYLOAD '+p.bombs:'UNARMED');
+  setText('hud-stores',a.passenger?sim.passengerState?number(sim.passengerState.aboard)+' ABOARD'+(sim.passengerState.delivered?' · '+number(sim.passengerState.delivered)+' ARRIVED':''):'PASSENGER JET · EMPTY':m.goal?.task==='courier'?'MAIL '+Math.max(0,(m.goal.stops?.length||0)-(sim.operationState?.leg||0))+' LOADS':a.gun?'GUN '+number(p.ammo)+(p.missiles?' · MSL '+p.missiles:'')+(p.bombs?' · BMB '+p.bombs:''):p.troopers?'TROOPS '+p.troopers:p.bombs?'PAYLOAD '+p.bombs:'UNARMED');
   setText('throttle-output',number(controls.throttleValue*100)+'%');setText('touch-throttle-output',number(controls.throttleValue*100)+'%');$('touch-throttle-fill').style.width=number(controls.throttleValue*100)+'%';setText('gear-state',a.fixedGear?'FIXED':p.gear?'DOWN':'UP');document.querySelector('[data-action=gear]').disabled=!!a.fixedGear;setText('flaps-state',p.flaps?'DOWN':'UP');document.querySelector('[data-action=flaps]').hidden=a.hasFlaps===false;setText('brake-state',p.brake?'ON':'OFF');setText('hover-state',p.hover?'ON':'OFF');
   for(const [act,state] of [['gear',p.gear],['flaps',p.flaps],['brake',p.brake],['hover',p.hover]])$$(`[data-action="${act}"]`).forEach(b=>b.classList.toggle('active',!!state));
   $('hover-action').hidden=!a.vtol;$('fire-button').hidden=!a.gun;$('missile-action').hidden=!a.missiles;$('payload-action').hidden=!(a.bombs||p.troopers||m.kind==='drop'||m.kind==='nuclear');$('countermeasure-action').hidden=!(a.missiles||a.radar);$('radar-action').hidden=!a.radar;
@@ -374,7 +379,7 @@ function updateHUD(){
   $('payload-action').classList.toggle('ready',!!nuclear&&!releaseLocked&&p.bombs>0);
   $('payload-quick').classList.toggle('ready',!!nuclear&&!releaseLocked&&p.bombs>0);
   $('abort-finale').hidden=m.kind!=='nuclear'||sim.status!=='flying'||p.bombs<=0||(coop&&!team.isHost);
-  $('startup-panel').hidden=!!p.engine||!p.onGround||m.start?.airborne;const step=clamp(p.startupStep||0,0,3),copy=startupCopy[step];setText('startup-title',copy[0]);setText('startup-hint',copy[1]);setMarkup('startup-button',copy[2]+' <span>→</span>');Array.from($('startup-steps').children).forEach((e,i)=>{e.classList.toggle('done',i<step);e.classList.toggle('current',i===step);});
+  $('startup-panel').hidden=!!p.engine||!p.onGround||m.start?.airborne;const step=clamp(p.startupStep||0,0,3),copy=(a.passenger?passengerStartupCopy:startupCopy)[step];setText('startup-title',copy[0]);setText('startup-hint',copy[1]);setMarkup('startup-button',copy[2]+' <span>→</span>');Array.from($('startup-steps').children).forEach((e,i)=>{const label=(a.passenger?['FUEL','SYSTEMS','START','ENGINES']:['FUEL','IGNITION','PRIME','PROP'])[i];if(e.textContent!==label)e.textContent=label;e.classList.toggle('done',i<step);e.classList.toggle('current',i===step);});
   const hint=flightHint(sim.hint);setText('hint-text',hint);$('flight-hint').hidden=hintDismissed||settings.guidance==='minimal'||(!p.engine&&p.onGround);$('objective-box').hidden=settings.guidance==='minimal'&&m.kind==='free';
   let warning='';if(coop&&(team.paused||team.hostStale||!team.connected))warning='SQUADRON CONNECTION · HOLDING';else if(remotePaused)warning='FLIGHT LEAD PAUSED';else if(danger)warning='PULL UP · TERRAIN AHEAD'+(Number.isFinite(clearance.timeToImpact)?' · '+clearance.timeToImpact.toFixed(1)+'s':'');else if(p.stalled)warning='STALL · LOWER THE NOSE';else if(p.health<(a.health||100)*.25)warning='AIRFRAME CRITICAL';else if(sim.nuclearThreat)warning=nuclearFlightWarning(sim.nuclearThreat);else if(sim.threatWarning)warning=sim.threatWarning;else if(sim.threat)warning=typeof sim.threat==='string'?sim.threat:'THREAT · CHECK RADAR';else if(alt<35&&!p.onGround&&p.speed>a.stallSpeed*1.2)warning='LOW ALTITUDE';else if(releaseLocked&&p.bombs>0)warning='PAYLOAD LOCKED · '+releaseAltitude+' REQUIRED';
   $('flight-warning').hidden=!warning;setText('flight-warning',warning);
@@ -563,6 +568,7 @@ $('continue-button').onclick=()=>openCampaign(MISSIONS.find(m=>!progress.complet
 $('free-button').onclick=()=>{renderFree();showScreen('free');};$('launch-free').onclick=()=>startMission(buildFreeMission());
 $('squadron-button').onclick=()=>{updateRoom();showScreen('squadron');};
 $('operations-button').onclick=openOperations;$('flight-log-button').onclick=openFlightLog;
+$$('[data-operation-group]').forEach(button=>button.onclick=()=>{const passenger=button.dataset.operationGroup==='passenger';if((selectedOperation.goal?.task==='passenger')===passenger)return;selectedOperation=OPERATIONS.find(m=>(m.goal?.task==='passenger')===passenger)||selectedOperation;renderOperations();});
 $('operation-list').onclick=e=>{const button=e.target.closest('[data-operation]');if(!button)return;const mission=getOperation(button.dataset.operation);if(!mission)return;selectedOperation=mission;renderOperations();if(innerWidth<=760)$('operation-detail').scrollIntoView?.({block:'start'});};
 $('launch-operation').onclick=()=>startMission(structuredClone(selectedOperation));
 $('flight-log-content').onclick=e=>{if(e.target.closest('[data-log-operations]'))openOperations();};

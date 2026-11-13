@@ -3,6 +3,7 @@
 // that hides a contact on screen therefore also intercepts its missile.
 import { basis, orientationOf } from './orientation.mjs';
 import { modeledAirframeBounds } from './airframes.mjs';
+import { isPassengerAirport, airportGroundBounds, airportGroundDistance } from './airfield-layout.mjs';
 export const TERRAIN_CELL_SIZE = 64;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const mix = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
@@ -126,6 +127,16 @@ export function terrainGridHeight(x, z, mission = {}) {
   if (typeof mission === 'object') for (const runway of mission.runways || []) {
     if (runway.carrier) continue;
     const q = runwayCoordinates(x, z, runway);
+    if (isPassengerAirport(runway)) {
+      const bounds = airportGroundBounds(runway), outside = airportGroundDistance(q.across, q.along, runway);
+      // Large height differences receive a wider, bounded shoulder instead of
+      // turning a mountain-side airport into a hard-edged rectangular cliff.
+      const blend = Math.min(bounds.maxBlend, bounds.blend + Math.abs(height - runway.y) * 1.2);
+      if (outside < blend) {
+        const t = outside / blend;
+        height = mix(runway.y, height, t * t * (3 - 2 * t));
+      }
+    }
     const outside = Math.max(Math.abs(q.across) - runway.width * 1.1, Math.abs(q.along) - runway.length * 0.56, 0);
     if (outside < 250) height = mix(runway.y, height, outside / 250);
   }

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {terrainHeight,surfaceHeight,carrierIslandParts,carrierLaunchLane} from './terrain.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
-import {cockpitView} from './camera-pose.mjs';
+import {cockpitView,chaseAirframeFraming} from './camera-pose.mjs';
 import {makeCockpit,fitCockpit,updateCockpit} from './cockpit-models.mjs';
 import {gunshipStationPose} from './gunship.mjs';
 import {makeGunshipStation,fitGunshipStation,updateGunshipStation} from './gunship-views.mjs';
@@ -11,10 +11,11 @@ import {makeSkyReflection} from './aircraft-lighting.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
 import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
 import {applyCombatCameraKick} from './combat-camera.mjs';
-import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow} from './terrain-visuals.mjs';
+import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow,sceneryClearance} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
-import {describeAirfield,AIRFIELD_COLORS,AIRFIELD_BUDGET,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
+import {isPassengerAirport} from './airfield-layout.mjs';
+import {describeAirfield,AIRFIELD_COLORS,airfieldSurfaceColor,AIRFIELD_BUDGET,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -316,10 +317,7 @@ export class FlightRenderer {
     clouds.instanceMatrix.needsUpdate=true;clouds.computeBoundingSphere();this._world.add(clouds);this._clouds=clouds;this._cloudCapacity=count;
   }
 
-  _clearOfRunways(x,z,padding=150){
-    for(const r of this.mission?.runways||[]){const dx=x-r.x,dz=z-r.z,c=Math.cos(r.heading||0),s=Math.sin(r.heading||0);const side=dx*c-dz*s,along=dx*s+dz*c;if(Math.abs(side)<number(r.width,45)/2+padding&&Math.abs(along)<number(r.length,1000)/2+padding)return false;}
-    return true;
-  }
+  _clearOfRunways(x,z,padding=150){return sceneryClearance(x,z,this.mission||{},padding);}
 
   _buildScenery(mission){
     const random=rng(seedOf(mission.id||'menu')+338);const desert=mission.biome==='desert'||mission.biome==='canyon';const count=this.settings.quality==='low'?180:480;
@@ -396,11 +394,11 @@ export class FlightRenderer {
         wake.rotation.y=side*-.14;wake.userData.animated=true;this._sceneryAnimations.push({type:'wake',object:wake,offset:side});
       }
     }else{
-      box(group,0,-.65,0,width+110,1.1,length+110,worldMaterial(mission.biome==='desert'?'#c0a37b':'#7b8b6d'));
+      box(group,0,-.65,0,width+110,1.1,length+110,worldMaterial(this._night?'#344b42':mission.biome==='desert'?'#c0a37b':'#7b8b6d'));
       box(group,0,-.12,0,width,.24,length,asphalt);
       // Join the apron at the runway edge. The previous .82 offset overlapped
       // two identical top planes, so no depth-buffer precision could fix it.
-      box(group,width*.86,-.1,-length*.2,width*.72,.2,length*.32,asphalt);
+      if(!isPassengerAirport(runway))box(group,width*.86,-.1,-length*.2,width*.72,.2,length*.32,asphalt);
 
     }
     const inset=carrier?width*.15:width*.07;
@@ -411,7 +409,7 @@ export class FlightRenderer {
       this._runwayNumber(group,runway.heading||0,length,width);
     }
     const label=this._label(runway.label|| (carrier?'CARRIER':'AIRFIELD'),carrier?'#d5d9c9':'#f0e7cb');label.position.set(width*.7,carrier?45:35,-length*.4);label.scale.set(150,24,1);group.add(label);
-    if(carrier){group.name='carrier-deck';batchAircraft(group);}
+    if(carrier||isPassengerAirport(runway)){group.name=carrier?'carrier-deck':'airport-runway';batchAircraft(group);}
     this._buildAirfieldScenery(group,runway,mission);
   }
 
@@ -425,11 +423,11 @@ export class FlightRenderer {
   _buildAirfieldScenery(parent,runway,mission){
     const scene=describeAirfield(runway,mission),staticRoot=new THREE.Group(),materials=new Map();
     staticRoot.name='airfield-'+scene.profile;parent.add(staticRoot);
-    const materialFor=name=>{if(!materials.has(name))materials.set(name,worldMaterial(AIRFIELD_COLORS[name]));return materials.get(name);};
+    const materialFor=(name,double=false)=>{const key=name+(double?'-double':'');if(!materials.has(key))materials.set(key,worldMaterial(airfieldSurfaceColor(name,this._night),double?{side:THREE.DoubleSide}:{}));return materials.get(key);};
     for(const part of scene.parts){
-      if(part.kind==='roof'){
-        const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(roofTriangles(part).flat(2),3));geometry.computeVertexNormals();
-        staticRoot.add(new THREE.Mesh(geometry,materialFor(part.color)));
+      if(part.kind==='roof'||part.triangles){
+        const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute((part.triangles||roofTriangles(part)).flat(2),3));geometry.computeVertexNormals();
+        staticRoot.add(new THREE.Mesh(geometry,materialFor(part.color,part.kind==='airliner')));
       }else box(staticRoot,...part.position,...part.size,materialFor(part.color));
     }
     // All static fittings merge by material; dozens of parts stay a handful of draws.
@@ -702,9 +700,9 @@ export class FlightRenderer {
       // cockpit horizon from the airframe or flip an inverted pilot upright.
       scratchUp.set(view.up.x,view.up.y,view.up.z);
     }else{
-      const length=this._plane.userData.length||9;const distance=clamp(length*2.35+number(p.speed)*.055,23,84);
+      const length=this._plane.userData.length||9,framing=chaseAirframeFraming({length,span:this._plane.userData.span,speed:p.speed,width:this.width,height:this.height,fov:clamp(number(this.settings.fov,this.width<this.height?67:59),45,90),passenger:!!this.aircraft?.passenger||aircraftKind(this.aircraft)==='b767'}),distance=framing.distance;
       const side=mode==='cinematic'?.68:0;const a=heading+lookX+side;
-      const elev=clamp(length*.4+number(p.speed)*.012,5.4,20)+Math.sin(lookY)*distance;
+      const elev=framing.elevation+Math.sin(lookY)*distance;
       px=p.x-Math.sin(a)*distance*Math.cos(lookY);py=originY+elev-pitch*distance*.24;pz=p.z-Math.cos(a)*distance*Math.cos(lookY);
       const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;
       tx=p.x+forward.x*ahead;ty=originY+forward.y*ahead+length*.18;tz=p.z+forward.z*ahead;
