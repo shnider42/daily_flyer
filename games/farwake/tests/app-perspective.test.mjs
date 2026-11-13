@@ -15,7 +15,8 @@ import {generateSurface,isWalkable,nearestEntity,movePerson} from '../dist/surfa
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {syncDamageMarkers,nearestDeckInteraction} from '../dist/interior-presentation.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
-import {getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction} from '../dist/perspective-controls.mjs';
+import {getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus} from '../dist/perspective-controls.mjs';
+import {createAirlockUI} from '../dist/airlock-ui.mjs';
 import {normalizeModeZoom,zoomLimits} from '../dist/camera-preferences.mjs';
 import {TutorialRuntime} from '../dist/tutorial-runtime.mjs';
 import {guidanceActionsForResult} from '../dist/guidance-evidence.mjs';
@@ -30,7 +31,7 @@ function declaration(name){
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 }
-const appCode=['activeMilitaryCareer','markMilitaryTarget','markLivelihoodTarget','markNarrativeTarget','openGunneryStation','enterGunneryView','syncGunneryPresentation','advanceOnlinePerson','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','routePrompt','nearby','leaveSurface','handleEntity','contextLabel','openStation','openCombatHelp','openVesselContact','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide'].map(declaration).join('\n');
+const appCode=['activeMilitaryCareer','markMilitaryTarget','markLivelihoodTarget','markNarrativeTarget','openGunneryStation','enterGunneryView','syncGunneryPresentation','advanceOnlinePerson','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','routePrompt','nearby','interact','leaveSurface','handleEntity','contextLabel','openStation','openCombatHelp','sharedContactPrompt','vesselContactSignature','refreshVesselContact','boardVesselContact','openVesselContact','markBoardingAirlock','updatePerspectiveControl','clearPerspectiveInput','switchPerspective','clearPointerAim','command','invoke','performInvoke','openCrewDeparture','runDeckAction','result','saveNow','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','syncViewControls','selectGuide','recordGuide'].map(declaration).join('\n');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const pose=ship=>Object.fromEntries(['id','x','y','vx','vy','angle','angularVelocity','hull','shield','fuel'].map(key=>[key,ship[key]]));
 function element(){return{hidden:false,disabled:false,textContent:'',value:'',dataset:{},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);}};}
@@ -40,13 +41,13 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
   let heldInput={thrust:1,strafe:1,x:1,fire:true,mine:true},clearCount=0,context;
   const network=shared?{connected:true,command(name,args){return new Promise((resolve,reject)=>packets.push({name,args,resolve,reject}));},setInput(input){inputs.push(copy(input));}}:null;
   if(shared)game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,aboardVesselId:game.state.ship.id};
-  context=vm.createContext({reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,normalizeModeZoom,zoomLimits,
+  context=vm.createContext({reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus,normalizeModeZoom,zoomLimits,
     game,playing:true,network,onlineSnapshot:shared?{fleet:[{...game.state.ship,ownerId:'captain',helmOwner:null}]}:null,
-    hudDirty:false,narrativeWaypoint:null,actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
+    vesselContactView:null,hudDirty:false,narrativeWaypoint:null,actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,
     testSession:null,stored:null,touchLayout:false,settings:{...cameraPreferences,guidance:'simple',immersiveHud:true,translucentHud:true,compactTips:true},
     cameraProfile:{status:'local',preferences:cameraPreferences},tutorial,dismissedRoute:'',dismissedGuideEpisode:'',coachPrompt:null,
-    dialog:{opened:false,items:[],open(title,kind){this.opened=true;this.kind=kind;this.title=title;this.items=[];},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},close(){this.opened=false;}},esc:value=>String(value),openSharedShip(){},openOnline(){},openCrew(){},personCombat:()=>false,localSiteVisibility:()=>null,livelihoodUI:{openDuty(){throw new Error('Docked airlock must not open Crew duty.');}},audio:{play(){}},document:{querySelector:()=>null},
+    dialog:{opened:false,items:[],body:{scrollTop:0},open(title,kind){this.opened=true;this.kind=kind;this.title=title;this.items=[];},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},close(){this.opened=false;}},esc:value=>String(value),openSharedShip(){},openOnline(){},openCrew(){},personCombat:()=>false,localSiteVisibility:()=>null,livelihoodUI:{openDuty(){throw new Error('Docked airlock must not open Crew duty.');}},audio:{play(){}},document:{querySelector:()=>null},
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},
     controls:{clear(){clearCount++;heldInput={};}},
     hudText(target,text){const changed=target.textContent!==text;target.textContent=text;return changed;},
@@ -56,10 +57,10 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
     processEvents(){events.push(...context.game.drainEvents());},
     guidanceContext(){return{playing:context.playing,mode:context.game.state.mode,device:'touch',systemId:context.game.state.systemId,locationId:context.game.state.locationId,vesselId:context.game.state.ship.id};},
     updateHUD(){context.updatePerspectiveControl();tutorial.update(context.guidanceContext());},
-    interact(){throw new Error('A pending perspective switch must not allow an interaction.');},
     enterCabin(){throw new Error('A pending perspective switch must not allow another cabin command.');}
   });
   vm.runInContext(appCode,context);
+  context.airlockUI=createAirlockUI({getGame:()=>context.game,getSnapshot:()=>context.onlineSnapshot,getNetwork:()=>context.network,getSurface:()=>context.surface,dialog:context.dialog,runDeckAction:(...args)=>context.runDeckAction(...args),markAirlock:id=>context.markBoardingAirlock(id),toast:(...args)=>context.toast(...args)});
   const invoke=context.performInvoke;
   context.performInvoke=(name,args)=>{calls.push({name,args:copy(args)});return invoke(name,args);};
   context.selectGuide();context.updateHUD();context.syncViewControls();
@@ -246,6 +247,26 @@ test('docked combat and vessel menus replace the obsolete tether choice with the
  assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);assert.match(f.context.dialog.htmlText,/Docked at Kettle Station/);
  f.call('openVesselContact',game.state.ship.id);
  assert.ok(f.context.dialog.items.some(item=>item.label==='Disembark at Kettle Station'));assert.equal(f.context.dialog.items.some(item=>/tether/.test(item.label)),false);
+});
+
+test('using E at the actual entry airlock opens a target choice and crosses without taking the helm',async()=>{
+ const game=new Game('app-airlock-boarding'),origin=game.state.ship;
+ Object.assign(origin,{x:0,y:450,vx:0,vy:0,hull:61});
+ const enemy=placeRaider(game,{x:100,y:450,hp:14,maxHp:46,disabled:true,active:false});
+ assert.equal(game.enterCabin().ok,true);
+ const f=fixture({game});f.call('ensureSurface');
+ const airlock=f.context.surface.entities.find(entity=>entity.data?.airlock);
+ assert.ok(airlock);Object.assign(game.state.person,{x:airlock.x,y:airlock.y});
+ assert.equal(f.call('nearby').id,airlock.id);
+ await f.call('interact');
+ assert.equal(f.context.dialog.kind,'airlock');assert.equal(game.state.mode,'person');assert.equal(game.state.interior.kind,'ship');
+ assert.deepEqual(f.calls,[],'Opening the airlock menu cannot teleport the captain or take the helm.');
+ const board=f.context.dialog.items.find(item=>item.label===`Board ${enemy.name}`);
+ assert.ok(board);assert.equal(board.disabled,false);await board.action();
+ assert.deepEqual(f.calls.map(call=>call.name),['boardEnemy']);assert.equal(f.calls[0].args.id,enemy.id);
+ assert.equal(game.state.mode,'person');assert.equal(game.state.interior.kind,'enemy');assert.equal(game.state.interior.location.vesselId,enemy.id);
+ assert.equal(game.state.ship,origin);assert.equal(origin.hull,61);assert.equal(enemy.hp,14);assert.equal(f.context.dialog.opened,false);
+ assert.equal(f.context.surface.kind,'ship');assert.ok(isWalkable(f.context.surface,game.state.person.x,game.state.person.y));
 });
 
 function navyGame(){

@@ -13,6 +13,7 @@ import { createNarrativeUI } from './narrative-ui.mjs';
 import { earthCampaignPresentation } from './earth-campaign-ui.mjs';
 import { createLivelihoodUI } from './livelihood-ui.mjs';
 import { createSharedCrewUI } from './shared-crew-ui.mjs';
+import { createAirlockUI } from './airlock-ui.mjs';
 import { crewAwareness } from './crew-awareness.mjs';
 import { createGroupStartUI } from './group-start-ui.mjs';
 import { createPersonalGearUI } from './personal-gear-ui.mjs';
@@ -48,7 +49,7 @@ import { getPersonalWeapon, sidearmAim } from './combat.mjs';
 import { CombatPresentation } from './combat-presentation.mjs';
 import { isFoggedSite, createSiteVisibility, visibleSiteHostiles, visibleSitePresentation, visibleSiteCombatEvent } from './site-visibility.mjs';
 import { rescueOccupants } from './rescue-rules.mjs';
-import { getPerspectiveAction, getBoardingAction, getDisembarkAction, getHelmAction } from './perspective-controls.mjs';
+import { getPerspectiveAction, getBoardingAction, getDisembarkAction, getHelmAction, getAirlockStatus } from './perspective-controls.mjs';
 import { DAMAGE_CONTROL_ACTIONS, interiorDamageSummary } from './interior-damage.mjs';
 import { InteriorPresentation, syncDamageMarkers, nearestDeckInteraction, damageStatus } from './interior-presentation.mjs';
 import { TEST_SCENARIOS, FOLD_TEST_CASES, testEnemyChoices, unlockTestMode, createTestSession, resetTestSession, testSessionStatus, foldDriveTestState, foldTestActionAllowed } from './test-lab.mjs';
@@ -89,7 +90,9 @@ const narrativeUI=createNarrativeUI({getGame:()=>game,dialog,invoke,acceptResult
 const navyDutyUI=createNavyDutyUI({getGame:()=>game,getGuidance:()=>settings.guidance,dialog,invoke,acceptResult:result,refreshWorld:()=>{surface=null;surfaceKey='';surfaceTarget=null;ensureSurface(false);resize();updateHUD();},markEntity:markLivelihoodTarget,openGunnery:openGunneryStation,openService:()=>militaryCareerUI.open()});
 const livelihoodUI=createLivelihoodUI({getGame:()=>game,dialog,invoke,acceptResult:result,refreshWorld:()=>{surface=null;surfaceKey='';surfaceTarget=null;ensureSurface(false);resize();updateHUD();},markEntity:markLivelihoodTarget,openJobs,openShipyard:openOutfitter,openProfile:openCaptainProfile,openDamage:openDamageOverview,openNavyDuty:()=>navyDutyUI.open()});
 const personalGearUI=createPersonalGearUI({getGame:()=>game,dialog,invoke,acceptResult:result,onChange:()=>{clearPointerAim();hudDirty=true;updateHUD();saveNow();},markMechanic:()=>{ensureSurface();const mechanic=surface?.entities.find(entity=>entity.type==='mechanic');if(mechanic){surfaceTarget=mechanic.id;toast('Outfitter marked. Visit the workshop on foot.');}else toast('Find a workshop at an inhabited port.');}});
-const sharedCrewUI=createSharedCrewUI({getGame:()=>game,getGuidance:()=>settings.guidance,getSnapshot:()=>onlineSnapshot,getNetwork:()=>network,dialog,invoke,acceptResult:result,runDeckAction,disembark:()=>{dialog.close();return switchPerspective();},openHome,openPassport,openContact:openVesselContact,walkDeck:enterCabin,disconnect:disconnectGalaxy,openCrewDuty:()=>livelihoodUI.openDuty(),openMilitary:context=>militaryCareerUI.openTogether(context),toast});
+const sharedCrewUI=createSharedCrewUI({getGame:()=>game,getGuidance:()=>settings.guidance,getSnapshot:()=>onlineSnapshot,getNetwork:()=>network,dialog,invoke,acceptResult:result,runDeckAction,disembark:()=>{dialog.close();return switchPerspective();},openHome,openPassport,openContact:openVesselContact,openAirlock:()=>airlockUI.open(),walkDeck:enterCabin,disconnect:disconnectGalaxy,openCrewDuty:()=>livelihoodUI.openDuty(),openMilitary:context=>militaryCareerUI.openTogether(context),toast});
+const airlockUI=createAirlockUI({getGame:()=>game,getSnapshot:()=>onlineSnapshot,getNetwork:()=>network,getSurface:()=>surface,dialog,runDeckAction,markAirlock:markBoardingAirlock,toast});
+let vesselContactView=null;
 const groupStartUI=createGroupStartUI({dialog,getSnapshot:()=>onlineSnapshot,invoke,acceptResult:result,onDepart:()=>{surface=null;surfaceKey='';ensureSurface(false);updateHUD();toast('Your crew is aboard. Take the helm when you are ready to leave Kettle.','good',6500);},onLeave:()=>{surface=null;surfaceKey='';ensureSurface(false);updateHUD();},toast});
 const openingUI=createOpeningUI({getGame:()=>game,dialog,invoke,acceptResult:result,track:target=>{openingMarkerKey='';markOpeningTarget(target);updateHUD();},openPassage:()=>livelihoodUI.openPassage(),openConversation:entity=>openNPC(entity,{ordinary:true}),dialogueHeader,toast});
 const militaryCareerUI=createMilitaryCareerUI({getGame:()=>game,getGuidance:()=>settings.guidance,getSnapshot:()=>onlineSnapshot,dialog,invoke,acceptResult:result,track:markMilitaryTarget,refreshWorld:()=>{militaryMarkerKey='';surface=null;surfaceKey='';ensureSurface(false);resize();updateHUD();},openOrdinaryWork:()=>narrativeUI.openProfessions(),openNavyDuty:()=>navyDutyUI.open()});
@@ -223,7 +226,8 @@ function openBoardingBrief(target){
  const duty=game.professionBoard().active;if(duty?.target?.enemyId===target.id)dialog.choices([{label:'Resolve your assignment',detail:duty.objective,action:()=>narrativeUI.openProfessions()}]);
  dialog.choices([{label:'Board the target ship',action:async()=>{if(result(await invoke('boardEnemy',{id:target.id}))){dialog.close();surfaceKey='';ensureSurface();controls.clear();if(!touchLayout||settings.guidance!=='simple')toast('Target deck · '+getPersonalWeapon(game.state.person).name+' ready. Aim, then fire.','good',5500);}}},{label:'Keep flying',action:()=>dialog.close()}]);
 }
-async function runDeckAction(method,args={}){if(result(await invoke(method,args))){dialog.close();surface=null;surfaceKey='';surfaceTarget=null;ensureSurface();controls.clear();clearPointerAim();updateHUD();canvas.focus({preventScroll:true});}}
+async function runDeckAction(method,args={}){const answer=await invoke(method,args);if(result(answer)){dialog.close();surface=null;surfaceKey='';surfaceTarget=null;ensureSurface();controls.clear();clearPointerAim();updateHUD();canvas.focus({preventScroll:true});}return answer;}
+function markBoardingAirlock(targetId){surfaceTarget=targetId;guideIntent='return';dialog.close();toast('Entry airlock marked. Walk to it and use the airlock to choose a nearby ship.','info',5500);canvas.focus({preventScroll:true});}
 function currentPerspectiveAction(){const recovery=game.militaryRecoveryStatus?.();if(recovery?.detained)return{label:'Detained · '+custodyTime(recovery.remainingSeconds),command:'openRecoveryStatus',args:{},enabled:true,detail:'View your custody record and military return orders.'};if(getGunneryView(game).active)return{label:'Back to deck',command:'leaveGunnery',args:{},enabled:!network||network.connected,reason:network&&!network.connected?'Reconnecting to the galaxy.':'',detail:'Leave the exterior gun view. Your captain stays at the real station.'};return getPerspectiveAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[],surface});}
 function currentDisembarkAction(){return getDisembarkAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[],surface});}
 function currentHelmAction(){return getHelmAction(game,{shared:!!network,connected:!network||network.connected,fleet:onlineSnapshot?.fleet??[]});}
@@ -390,20 +394,40 @@ function processCombatEvent(event){
  if(['boarder-down','person-down','crew-death'].includes(event.type)){audio.play('personDown');recordCombatFeed(`${event.targetName??event.name??'Crew member'} down · ${local?'Your shot':event.actorName??event.attackerName??'Boarding combat'}`);}
  hudDirty=true;return true;
 }
+function sharedContactPrompt(vessel,withName=true){
+ const boarding=getBoardingAction(game,vessel,{fleet:onlineSnapshot?.fleet||[],connected:network?.connected!==false});
+ if(boarding.command!=='boardShip')return withName?(boarding.enabled?boarding.label:`Boarding: ${vessel?.name||'nearby ship'}`):boarding.label?.startsWith('Join ')?'Join boarding':'Board target';
+ return withName?`Boarding & crew: ${vessel?.name||'nearby ship'}`:'Boarding & crew';
+}
+function vesselContactSignature(vesselId){
+ const vessel=onlineSnapshot?.fleet?.find(item=>item.id===vesselId),mp=game.state.multiplayer||{};
+ return JSON.stringify([vesselId,getBoardingAction(game,vessel,{fleet:onlineSnapshot?.fleet||[],connected:network?.connected!==false}),mp.aboardVesselId,mp.canReturn,mp.canTakeHelm,vessel?.disabled,vessel?.destroyed,vessel?.occupation?.contested]);
+}
+function refreshVesselContact(){
+ if(!dialog.opened||dialog.kind!=='vessel-contact'||!vesselContactView)return;
+ const signature=vesselContactSignature(vesselContactView.id);if(signature===vesselContactView.signature)return;
+ const top=dialog.body.scrollTop;openVesselContact(vesselContactView.id);dialog.body.scrollTop=top;
+}
+function boardVesselContact(vesselId){
+ const current=getBoardingAction(game,onlineSnapshot?.fleet?.find(ship=>ship.id===vesselId),{fleet:onlineSnapshot?.fleet||[],connected:network?.connected!==false});
+ if(!current.enabled){toast(current.reason,'info');openVesselContact(vesselId);return;}
+ return runDeckAction(current.command,current.args);
+}
 function openVesselContact(vesselId){
- const listed=onlineSnapshot?.fleet?.find(item=>item.id===vesselId);if(!listed){openOnline();return;}const mp=game.state.multiplayer??{},aboard=mp.aboardVesselId===listed.id,v=aboard&&Object.hasOwn(mp,'dockedAt')?{...listed,dockedAt:mp.dockedAt}:listed,owner=onlineSnapshot?.presence?.find(c=>c.captainId===v.ownerId);
- dialog.open(v.name??'Vessel contact','vessel-contact',{eyebrow:`${getShipClass(v.classId).name.toUpperCase()} / ${v.hostile?'HOSTILE CONTACT':'SHIP CONTACT'}`});
+ const listed=onlineSnapshot?.fleet?.find(item=>item.id===vesselId);if(!listed){openOnline();return;}const mp=game.state.multiplayer??{},aboard=mp.aboardVesselId===listed.id,v=aboard&&Object.hasOwn(mp,'dockedAt')?{...listed,dockedAt:mp.dockedAt}:listed,owner=v.npcHostile&&!v.captured?null:onlineSnapshot?.presence?.find(c=>c.captainId===v.ownerId);
+ dialog.open(v.name??'Vessel contact','vessel-contact',{eyebrow:`${getShipClass(v.classId).name.toUpperCase()} / ${v.hostile||v.npcHostile&&!v.captured?'HOSTILE CONTACT':'SHIP CONTACT'}`});
  const range=game.state.mode==='ship'&&Number.isFinite(v.x)?Math.round(Math.hypot(v.x-game.state.ship.x,v.y-game.state.ship.y)):null,port=game.galaxy.find(system=>system.id===v.systemId)?.bodies.find(body=>body.id===v.dockedAt),boarding=getBoardingAction(game,v,{fleet:onlineSnapshot?.fleet||[],connected:network?.connected!==false});
- dialog.html(`<p>${owner?`${esc(owner.name)}’s vessel · `:''}${v.occupants??0} captains aboard · ${v.berths} total berths${range!==null&&!aboard?` · ${range} m away`:''}</p><div class="stat-grid"><div class="stat-cell"><small>HULL</small><strong>${Math.ceil(v.hull??0)} / ${Math.ceil(v.maxHull??0)}</strong></div><div class="stat-cell"><small>STATUS</small><strong class="contact-state">${v.destroyed?'DESTROYED':v.occupation?.contested?'CONTESTED':v.dockedAt?'DOCKED':v.disabled?'DISABLED':v.hostile?'HOSTILE':'UNDER WAY'}</strong></div></div>${v.dockedAt?`<p>Docked at <strong>${esc(port?.name||v.dockedAt)}</strong>. Board the deck before anyone launches.</p>`:''}${v.helmName&&v.helmOccupied!==false?`<p><strong>${esc(v.helmName)}</strong> is at the helm.</p>`:''}<p>${v.occupation?.contested?'Hostile boarders are aboard. This ship cannot be a recovery destination.':'Boarding changes which deck you occupy. Your own ship stays where you leave it.'}</p>`);
- const actions=[];if(!aboard&&!v.hostile)actions.push({label:boarding.label,disabled:!boarding.enabled,detail:boarding.reason||boarding.detail,action:()=>runDeckAction('boardShip',{vesselId:v.id})});
- if(v.ownerId===mp.captainId)actions.push({label:'Crew & boarding permissions',detail:'Choose who may board and who may pilot.',action:()=>sharedCrewUI.openShip(v.id)});
+ dialog.html(`<p>${owner?`${esc(owner.name)}’s vessel · `:''}${v.occupants??0} captains aboard · ${v.berths} total berths${range!==null&&!aboard?` · ${range} m away`:''}</p><div class="stat-grid"><div class="stat-cell"><small>HULL</small><strong>${Math.ceil(v.hull??0)} / ${Math.ceil(v.maxHull??0)}</strong></div><div class="stat-cell"><small>STATUS</small><strong class="contact-state">${v.destroyed?'DESTROYED':v.occupation?.contested?'CONTESTED':v.dockedAt?'DOCKED':v.disabled?'DISABLED':v.hostile?'HOSTILE':'UNDER WAY'}</strong></div></div>${v.dockedAt?`<p>Docked at <strong>${esc(port?.name||v.dockedAt)}</strong>. Board the deck before anyone launches.</p>`:''}${v.helmName&&v.helmOccupied!==false?`<p><strong>${esc(v.helmName)}</strong> is at the helm.</p>`:''}<p>${v.occupation?.contested?'A boarding action is underway. Eligible crew can join through their carrier’s airlock.':'Boarding changes which deck you occupy. Your own ship stays where you leave it.'}</p>`);
+ const actions=[],authority=v.boardingAction||mp.boardingTargets?.find(target=>target.vesselId===v.id||target.id===v.id)?.boardingAction;
+ if(!aboard&&(authority||!v.hostile))actions.push({label:boarding.label,disabled:!boarding.enabled,detail:boarding.reason||boarding.detail,action:()=>boardVesselContact(v.id)});
+ if(v.ownerId===mp.captainId&&(!v.npcHostile||v.captured))actions.push({label:'Crew & boarding permissions',detail:'Choose who may board and who may pilot.',action:()=>sharedCrewUI.openShip(v.id)});
  if(!aboard&&v.canDeclareHostility)actions.push({label:'Declare this ship hostile',warning:true,detail:'Both sides can damage each other. Disable its hull before attempting forced boarding.',action:async()=>{if(result(await invoke('declareHostility',{vesselId:v.id})))openVesselContact(v.id);}});
- if(!aboard&&v.hostile)actions.push({label:'Board the hostile ship',disabled:!v.canHostileBoard,detail:v.canHostileBoard?'Cross onto the actual target deck. Both hulls remain in space.':'Disable the hull and approach close enough to board.',action:()=>runDeckAction('boardHostileShip',{vesselId:v.id})});
+ if(!aboard&&v.hostile&&!authority)actions.push({label:'Board the hostile ship',disabled:!v.canHostileBoard,detail:v.canHostileBoard?'Cross onto the actual target deck. Both hulls remain in space.':'Disable the hull and approach close enough to board.',action:()=>runDeckAction('boardHostileShip',{vesselId:v.id})});
  if(aboard&&(mp.canTakeHelm||v.canTakeHelm))actions.push({label:'Use this ship’s helm',detail:'Reach its helm. The vessel keeps its existing damage.',action:()=>runDeckAction('takeCapturedHelm')});
  const disembark=aboard?currentDisembarkAction():null;
  if(disembark)actions.push({label:disembark.label,detail:disembark.reason||disembark.detail,action:()=>{dialog.close();return switchPerspective();}});
- else if(aboard&&mp.returnVesselId)actions.push({label:'Return across the tether',detail:'Reach the airlock; your origin ship must remain close enough.',action:()=>runDeckAction('returnToOwnShip')});
- actions.push({label:'Back to nearby ships',action:openOnline},{label:'Return to the world',action:()=>dialog.close()});dialog.choices(actions);
+ else {const airlock=getAirlockStatus(game,{shared:true,fleet:onlineSnapshot?.fleet||[],surface});if(airlock&&!airlock.docked)actions.push({label:!airlock.atAirlock?'Mark entry airlock':'Use airlock',detail:!airlock.atAirlock?'Walk to the door on your current ship. No helm permission needed.':'Choose a nearby ship or return across your tether.',action:()=>!airlock.atAirlock?markBoardingAirlock(airlock.targetId):airlockUI.open()});}
+ actions.push({label:'Back to nearby ships',action:openOnline},{label:'Return to the world',action:()=>dialog.close()});dialog.choices(actions);vesselContactView={id:vesselId,signature:vesselContactSignature(vesselId)};
 }
 
 const newVoyageSeed=()=>`farwake-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
@@ -567,7 +591,7 @@ async function handleEntity(e){const type=e.type;if(type==='damageControl'){open
  if(type==='evaAirlock'){if(result(await invoke('npcContractAction',{action:'exitEva'}))){surface=null;surfaceKey='';ensureSurface();}return;}
  if(type==='evaWork'){livelihoodUI.openTask();return;}
  if(type.startsWith('site'))return openSiteEntity(e);
- if(type==='exit'){if(!e.data?.stationRole&&currentDisembarkAction()){await leaveSurface();return;}if(game.state.npcContract?.active){livelihoodUI.openDuty();return;}if(!game.state.interior&&currentPerspectiveAction().command==='openPortServices'){livelihoodUI.openPort();return;}if(e.data?.stationRole==='helm')openStation(e);else leaveSurface();return;}
+ if(type==='exit'){if(!e.data?.stationRole&&currentDisembarkAction()){await leaveSurface();return;}if(game.state.npcContract?.active){livelihoodUI.openDuty();return;}if(!game.state.interior&&currentPerspectiveAction().command==='openPortServices'){livelihoodUI.openPort();return;}if(e.data?.stationRole==='helm')openStation(e);else if(surface?.kind==='ship'&&getAirlockStatus(game,{shared:!!network,fleet:onlineSnapshot?.fleet||[],surface}))airlockUI.open();else leaveSurface();return;}
  if(navyOrderMatchesEntity(game.npcContractStatus?.(),e)){navyDutyUI.open();return;}
  if(type==='jobboard'){openJobs();return;}
  if(type==='mechanic'){if(!await speakTo(e,'mechanic'))return;if(game.state.interior){dialog.open(e.name,'console',{eyebrow:'RESERVE POWER'});dialog.html('<p>The fabricator is on reserve power. You can calibrate this vessel’s relays, but fitting Cinder with new equipment requires an inhabited port.</p>');dialog.choices([{label:'Find a maintenance relay',action:async()=>{surfaceTarget=surface.entities.find(x=>x.type==='work')?.id;dialog.close();}},{label:'Return to the hold',action:async()=>dialog.close()}]);}else openOutfitter(e);return;}
@@ -932,7 +956,7 @@ function updateHUD(){
  const showObjectiveDetail=settings.guidance!=='expert'||!!s.cosmicWarning||!!recovery&&!recovery.arrived||!!gunnery.active&&!!duty?.navyOperation;
  if(hudText($('objectiveText'),hint))labelLayoutDirty=true;hudStyle($('objectiveText'),'display',showObjectiveDetail?'':'none');
  const n=nearby();let context=onFoot?'Walk close to a person or workstation':'Fly toward a port, signal, or asteroid belt';
- if(n){if(onFoot)context=n.type==='damageControl'?'Damage control':n.type==='exit'?(surface?.kind==='ship'?(n.data?.stationRole==='helm'?'Use the helm':(s.boarding?.kind==='assault'||s.multiplayer?.returnVesselId)?'Return across the tether':'Use the airlock'):'Return to your ship'):n.type==='npc'||n.type==='crew'?'Talk to '+n.name:n.type==='mechanic'?'Visit '+n.name:n.type==='jobboard'?'Open the contract exchange':n.type==='work'?'Calibrate '+n.name:n.type==='crate'?'Pick up freight crate':n.type==='delivery'?'Use loading pad':n.type==='sample'?'Collect '+n.name:'Use '+n.name;else context=n.type==='dock'?(!game.portAccess(n.body).ok?'Request clearance · ':n.body.kind==='station'?'Dock at ':'Land on ')+n.name:n.type==='signal'?'Investigate '+n.name:n.type==='salvage'?'Collect salvage':n.type==='shared-ship'?'Boarding & crew: '+n.name:n.type==='board'?'Board '+n.name:n.type==='parked-ship'?'Return to '+n.name:'Hail '+n.name;}
+ if(n){if(onFoot)context=n.type==='damageControl'?'Damage control':n.type==='exit'?(surface?.kind==='ship'?(n.data?.stationRole==='helm'?'Use the helm':(s.boarding?.kind==='assault'||s.multiplayer?.returnVesselId)?'Return across the tether':'Use the airlock'):'Return to your ship'):n.type==='npc'||n.type==='crew'?'Talk to '+n.name:n.type==='mechanic'?'Visit '+n.name:n.type==='jobboard'?'Open the contract exchange':n.type==='work'?'Calibrate '+n.name:n.type==='crate'?'Pick up freight crate':n.type==='delivery'?'Use loading pad':n.type==='sample'?'Collect '+n.name:'Use '+n.name;else context=n.type==='dock'?(!game.portAccess(n.body).ok?'Request clearance · ':n.body.kind==='station'?'Dock at ':'Land on ')+n.name:n.type==='signal'?'Investigate '+n.name:n.type==='salvage'?'Collect salvage':n.type==='shared-ship'?sharedContactPrompt(n.vessel):n.type==='board'?'Board '+n.name:n.type==='parked-ship'?'Return to '+n.name:'Hail '+n.name;}
  if(touchLayout||n?.type.startsWith('site')||n?.data?.stationRole==='helm'||(network||currentDisembarkAction())&&onFoot&&n?.type==='exit')context=contextLabel(n);if(gunnery.active)context='Back to deck';if(recovery?.detained)context='Military detention · '+custodyTime(recovery.remainingSeconds);if(hudText($('contextText'),context))labelLayoutDirty=true;$('contextButton').classList.toggle('idle',!n&&!gunnery.active);
  hudText($('fireButton').querySelector('small'),onFoot&&!armedOnFoot()?'USE':'FIRE');hudText($('stick').querySelector('.stick-caption'),gunnery.active?(gunnery.npcPilot?'NPC PILOT':'CREW HELM'):onFoot?'WALK':'STEER');hudText($('aimStick').querySelector('.stick-caption'),onFoot?(pointerAimAvailable()?'AIM / FIRE':'AIM'):'STRAFE');hudText($('fireButton').querySelector('span'),onFoot?'◇':'✛');hudText($('mineButton').querySelector('small'),onFoot?'LOG':'MINE');hudText($('boostButton').querySelector('small'),onFoot?'RUN':'BOOST');
  hudText($('footerTime'),'YEAR 2481 · '+String(Math.floor(s.stats.time/60)).padStart(2,'0')+':'+String(Math.floor(s.stats.time)%60).padStart(2,'0'));
@@ -1063,7 +1087,7 @@ function receiveSnapshot(packet){
   const until=network.clampPredictionTime(now);personPredictedAt=Math.max(personPredictedAt??until,until);personVisualAt=Math.max(personVisualAt??now,now);
   if(previous&&!changedRoom&&!network.predictionReset){const dx=previous.x-game.state.person.x,dy=previous.y-game.state.person.y;personVisualOffset=Math.hypot(dx,dy)<70?{x:dx,y:dy}:{x:0,y:0};}
  }
- updateSurfaceFlags();frameMonitor.snapshot(packet);hudDirty=true;if(playing){processEvents();groupStartUI.update();sharedCrewUI.refresh?.();militaryCareerUI.refresh?.();}
+ updateSurfaceFlags();frameMonitor.snapshot(packet);hudDirty=true;if(playing){processEvents();groupStartUI.update();sharedCrewUI.refresh?.();airlockUI.refresh();refreshVesselContact();militaryCareerUI.refresh?.();}
 }
 function updateConnectionHUD(){
  const button=$('onlineButton'),connected=!!network?.connected,awareness=connected?crewAwareness(game,onlineSnapshot||{}):null;
@@ -1156,7 +1180,8 @@ function contextLabel(target){
  if(target.data?.militaryRecruiter)return 'Talk to the recruiter';
  if(['security','weapons'].includes(target.data?.stationRole)&&getGunneryView(game).assigned)return 'Use gunnery station';
  if(target.type==='damageControl')return 'Damage control';
- if(game.state.mode==='ship')return {dock:!game.portAccess(target.body).ok?'Request clearance':target.body?.kind==='station'?'Dock':'Land',signal:'Investigate',salvage:'Collect salvage','shared-ship':'Boarding & crew',board:'Board target','parked-ship':'Return to ship',hail:'Hail ship'}[target.type]??'Use';
+ if(game.state.mode==='ship'&&target.type==='shared-ship')return sharedContactPrompt(target.vessel,false);
+ if(game.state.mode==='ship')return {dock:!game.portAccess(target.body).ok?'Request clearance':target.body?.kind==='station'?'Dock':'Land',signal:'Investigate',salvage:'Collect salvage',board:'Board target','parked-ship':'Return to ship',hail:'Hail ship'}[target.type]??'Use';
  if(target.data?.stationRole==='helm')return target.data.helmPilotName?`${target.data.helmPilotName} at helm`:network?currentHelmAction().label:'Use helm';
  if(target.type==='exit'&&!target.data?.stationRole&&currentDisembarkAction())return currentDisembarkAction().label;
  if(target.type==='exit'&&game.state.npcContract?.active)return 'Crew duty';
@@ -1270,7 +1295,7 @@ function setGuidanceLevel(value){
  dismissedRoute='';dismissedGuideEpisode='';coachPrompt=null;coachExpanded=false;hideCoach();
  const selector=$('setting-guidance');if(selector)selector.value=level;
  const welcome=$('welcomeGuidance');if(welcome)welcome.textContent='Guidance · '+guidancePolicy(level).label;
- sharedCrewUI.refresh?.();militaryCareerUI.refresh?.();hudDirty=true;updateHUD();
+ sharedCrewUI.refresh?.();airlockUI.refresh();refreshVesselContact();militaryCareerUI.refresh?.();hudDirty=true;updateHUD();
 }
 function workFinished(entity){return entity?.type==='work'&&game.state.activityTokens.some(token=>token.endsWith(':work:'+currentWorkToken(entity))||token.endsWith(':work:'+entity.id+':local')||token.endsWith(':work:'+entity.id+':local:'));}
 function guidanceContext(target=nearby()){
@@ -1288,7 +1313,7 @@ function guidanceContext(target=nearby()){
   combat:{active:personCombat()&&(!s.exploration||personHostiles().some(enemy=>enemy.health>0)),ready:elapsed-localShotAt>=sidearmDelay(),aiming:!!combatPreview?.manual,targetVisible:combatPreview?.target?true:undefined,blocked:!!combatPreview?.blocked},
   boarding:boarding?{id:boarding.id,kind:boarding.kind,phase:boarding.phase,canReturn:mp.canReturn??(boarding.kind==='assault'&&s.ship.hull>0),atAirlock:target?.type==='exit'&&target.data?.stationRole!=='helm',atHelm:target?.data?.stationRole==='helm',canTakeHelm:perspective.command==='quickHelm'?perspective.enabled:mp.canTakeHelm??boarding.phase==='won'}:null,
   job:job?{id:job.id,type:job.type,accepted:true,ready:job.status==='ready',nearBoard:target?.type==='jobboard',nearWork:job.type==='work'&&target?.type==='work',workCompleted:workFinished(target)}:{nearBoard:target?.type==='jobboard',nearWork:target?.type==='work',workCompleted:workFinished(target)},
-  shared:target?.type==='shared-ship'?{id:vessel.id,name:vessel.name,canBoard:vessel.canBoard,inRange:true,permissionNeeded:!vessel.canBoard,canManageCrew:vessel.ownerId===mp.captainId,ownerName:onlineSnapshot?.presence?.find(c=>c.captainId===vessel.ownerId)?.name}:friend?{id:'crew:'+friend.captainId,friendName:friend.name,friendCount:awareness.friends.filter(person=>person.online).length,sameShip:friend.sameVessel,aboardTogether:friend.aboardTogether,samePort:friend.samePort,disembarkAvailable:!!disembark,portName:disembark?.port?.name}:null,
+  shared:target?.type==='shared-ship'?{id:vessel.id,name:vessel.name,canBoard:vessel.boardingAction?.enabled??vessel.canBoard,inRange:true,permissionNeeded:!vessel.boardingAction&&!vessel.canBoard,canManageCrew:vessel.ownerId===mp.captainId,ownerName:onlineSnapshot?.presence?.find(c=>c.captainId===vessel.ownerId)?.name}:friend?{id:'crew:'+friend.captainId,friendName:friend.name,friendCount:awareness.friends.filter(person=>person.online).length,sameShip:friend.sameVessel,aboardTogether:friend.aboardTogether,samePort:friend.samePort,disembarkAvailable:!!disembark,portName:disembark?.port?.name}:null,
   gunnery:{active:gun.active,available:gun.available,batteryId:gun.selectedBatteryId,batteryName:gun.batteryName,batteries:gun.batteries??[],ready:gun.canFire!==false&&!(gun.cooldownRemaining>0)&&gun.energy>=gun.energyCost,canFire:gun.canFire,fireOrders:duty?.navyOperation?.rulesOfEngagement,aimInArc:!gun.active||!gunneryReticle(gun,ship,controls?.vector?.()??{})?.limited},
   recovery,military,duty,ownedVesselId:mp.ownedVesselId??(game.ownsShip?s.ship.id:null),disembark:disembark?{available:disembark.enabled,label:disembark.label,portName:disembark.port?.name,reason:disembark.reason}:null,
   navigation:{hasCourse:!!tracked,targetName:port?.name??target?.name,canScan:target?.type==='signal'&&!target.signal?.resolved},
@@ -1402,7 +1427,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.21.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.21.1',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }

@@ -57,6 +57,13 @@ export function getBoardingAction(game,vessel,{fleet=[],connected=true}={}){
  if(!vessel)return blocked(result,'Waiting for this ship’s status.');
  if(mp.aboardVesselId===vessel.id)return blocked(result,'You are already aboard this ship.');
  if(dead(vessel))return blocked(result,'This hull is no longer intact.');
+ const currentTarget=mp.boardingTargets?.find(target=>target.vesselId===vessel.id||target.id===vessel.id);
+ const authority=currentTarget?.boardingAction||vessel.boardingAction;
+ if(authority&&['boardEnemy','boardHostileShip','boardShip'].includes(authority.command)){
+  result={...result,...authority,args:{...authority.args},enabled:authority.enabled===true,detail:authority.detail||(vessel.dockedAt?'Walk aboard the docked ship. Boarding does not launch it.':'Cross onto this ship’s actual deck. Both hulls remain in space.')};
+  if(mp.aboardVesselId&&Array.isArray(mp.boardingTargets)&&!currentTarget)return blocked(result,'Boarding is no longer available from your current ship. Check the target’s range, docking and crew access.');
+  return result;
+ }
  if(vessel.occupation?.contested||vessel.npcHostile&&!vessel.captured||vessel.hostile)return blocked(result,'This ship is hostile or occupied. Use its boarding contact to resolve the encounter.');
  if(!boardAccess(vessel,mp.captainId))return blocked(result,'The owner must allow you aboard. Open CREW to review ship access.');
  if(vessel.systemId!==state.systemId)return blocked(result,'Travel to the same star system before boarding.');
@@ -71,6 +78,47 @@ export function getBoardingAction(game,vessel,{fleet=[],connected=true}={}){
  }
  const available=Number.isFinite(vessel.availableBerths)?vessel.availableBerths:Number.isFinite(vessel.berths)&&Number.isFinite(vessel.occupants)?vessel.berths-vessel.occupants:Infinity;
  if(available<1)return blocked(result,'No free berth. Captains, hired crew, and passengers share this ship’s capacity.');
+ return result;
+}
+
+/** The entry door belongs to the occupied deck, including a friend's carrier. */
+export function getAirlockStatus(game,{shared=false,fleet=[],surface=null}={}){
+ const state=game?.state||{},mp=state.multiplayer||{},interior=state.interior;
+ if(shared&&!mp.aboardVesselId)return null;
+ if(state.mode!=='ship'&&(state.mode!=='person'||!['ship','enemy'].includes(interior?.kind)))return null;
+ const vessel=shared?fleet.find(ship=>ship.id===mp.aboardVesselId):interior?.kind==='enemy'?game.system?.enemies?.find(enemy=>enemy.id===state.boarding?.targetId):state.ship;
+ const dock=occupiedDock(game,{shared,fleet});
+ const airlock=surface?.entities?.find(entity=>entity.data?.airlock&&!entity.hidden)||
+  {...cabinLayout(interior?.location?.shipClass||state.boarding?.shipClass||vessel?.classId||state.ship?.classId).spawn,id:`${state.locationId}:entry-airlock`};
+ return {name:vessel?.name||'Ship',vesselId:shared?mp.aboardVesselId:vessel?.id,docked:!!dock,atAirlock:state.mode==='ship'||distance(state.person,airlock)<=70,targetId:state.mode==='person'?airlock.id:null};
+}
+
+/** Compact snapshots carry the latest range, permission and source-airlock checks. */
+export function getAirlockBoardingTargets(game,{shared=false,connected=true,fleet=[],surface=null}={}){
+ const state=game?.state||{},status=getAirlockStatus(game,{shared,fleet,surface});
+ if(!status||status.docked)return [];
+ let targets;
+ if(shared)targets=(state.multiplayer?.boardingTargets||[]).filter(target=>target.boardingAction&&['boardShip','boardEnemy','boardHostileShip'].includes(target.boardingAction.command));
+ else targets=(game.system?.enemies||[]).filter(enemy=>enemy.id!==status.vesselId&&enemy.hp>0&&enemy.disabled&&!enemy.trainingTarget&&!enemy.promotedVesselId&&!enemy.canonicalVesselId&&distance(enemy,state.ship)<=900).map(enemy=>{
+  const access=game.enemyBoardingAccess?.(enemy.id)||{ok:false,reason:'Boarding status is unavailable.'};
+  return {id:enemy.id,enemyId:enemy.id,name:enemy.name||'Disabled ship',classId:enemy.classId,distance:distance(enemy,state.ship),boardingAction:{command:'boardEnemy',args:{id:enemy.id},label:`Board ${enemy.name||'disabled ship'}`,enabled:access.ok===true,reason:access.ok?'':access.reason||access.message}};
+ });
+ return targets.map(target=>{
+  let boardingAction={...target.boardingAction,args:{...target.boardingAction.args}};
+  if(!connected)boardingAction=blocked(boardingAction,'Reconnecting to the galaxy. Boarding will be ready when your captain is connected.');
+  else if(state.person?.health<=0||state.person?.down)boardingAction=blocked(boardingAction,'You are incapacitated. Wait for recovery before boarding.');
+  return {...target,boardingAction};
+ });
+}
+
+export function getReturnToShipAction(game,{shared=false,connected=true,fleet=[],surface=null}={}){
+ const state=game?.state||{};
+ if(occupiedDock(game,{shared,fleet}))return null;
+ if(!(shared?state.multiplayer?.returnVesselId:state.boarding?.kind==='assault'))return null;
+ let result=returnAction(game,{shared,fleet,surface});
+ if(state.mode!=='person'||!['ship','enemy'].includes(state.interior?.kind))result=blocked(result,'Walk the deck and reach the entry airlock to cross back.');
+ if(!connected)result=blocked(result,'Reconnecting to the galaxy. The airlock will be ready when your captain is connected.');
+ if(state.person?.health<=0||state.person?.down)result=blocked(result,'You are incapacitated. Wait for recovery before using the airlock.');
  return result;
 }
 

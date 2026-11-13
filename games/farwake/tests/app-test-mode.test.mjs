@@ -22,7 +22,8 @@ import {normalizeCameraPreferences,normalizeModeZoom,zoomLimits} from '../dist/c
 import {syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus} from '../dist/interior-presentation.mjs';
 import {DAMAGE_CONTROL_ACTIONS,interiorDamageSummary} from '../dist/interior-damage.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
-import {getPerspectiveAction,getDisembarkAction,getHelmAction} from '../dist/perspective-controls.mjs';
+import {getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus} from '../dist/perspective-controls.mjs';
+import {createAirlockUI} from '../dist/airlock-ui.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {musicContext,classifyMusicEvent} from '../dist/music-context.mjs';
 
@@ -35,7 +36,7 @@ const declaration=name=>{
   assert.ok(index>=0,`The application declares ${name}.`);
   return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','runFoldTestCommand','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','recordGuide','recordGuideEvent','contextLabel','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
+const names=['openTestGate','openTestMenu','enterTestSession','retryTest','exitTestMode','openTestControls','runFoldTestCommand','start','saveNow','invoke','performInvoke','runDeckAction','result','processEvents','ensureSurface','npcTime','syncNpcLife','updateSurfaceFlags','currentDamageHull','aboardDamageHull','syncDeckDamage','openDamageOverview','openDamageSection','damageSectionText','hullSystemMarkup','nearby','interact','leaveSurface','handleEntity','openStation','openMap','openOutfitter','openShip','openCrew','openJournal','openSavePanel','openOnline','openConnect','connectGalaxy','openHome','openHelp','selectGuide','guidanceContext','currentPerspectiveAction','currentDisembarkAction','currentHelmAction','recordGuide','recordGuideEvent','contextLabel','sharedContactPrompt','markBoardingAirlock','workFinished','currentWorkToken','personCombat','personHostiles','sidearmDelay','activateLocalCamera','readCameraDraft','persistCameraDraft','reportCameraSaveFailure','applyCameraState','syncViewControls','setModeZoom'];
 const appCode=[...names,'sampleScoreContext','localSiteVisibility','personalAimAvailable'].map(declaration).join('\n');
 
 function classes() {
@@ -53,7 +54,7 @@ function fixture() {
   const stored=normal.save(),body={classList:classes()},dialog={opened:false,kind:null,items:[],htmlText:'',body:element(),
     open(title,kind){this.opened=true;this.kind=kind;this.items=[];opened.push({title,kind});},html(value){this.htmlText=value;},choices(items){this.items.push(...items);},
     close(){if(!this.opened)return;this.opened=false;context.saveNow();}};
-  const context=vm.createContext({reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,localGuidanceEvent,crewAwareness,gunneryReticle,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,FOLD_TEST_CASES,foldDriveTestState,foldTestActionAllowed,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,
+  const context=vm.createContext({reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,localGuidanceEvent,crewAwareness,gunneryReticle,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,updateNpcLife,musicContext,classifyMusicEvent,syncDamageMarkers,nearestDamageMarker,nearestDeckInteraction,damageStatus,DAMAGE_CONTROL_ACTIONS,interiorDamageSummary,getShipClass,generateSurface,isWalkable,nearestEntity,TEST_SCENARIOS,FOLD_TEST_CASES,foldDriveTestState,foldTestActionAllowed,testEnemyChoices,unlockTestMode,createTestSession,resetTestSession,testSessionStatus,SIDEARM,getPersonalWeapon,isFoggedSite,createSiteVisibility,visibleSiteHostiles,visibleSiteCombatEvent,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus,
     $:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);},document:{body,createElement:()=>element(),querySelector:()=>null},dialog,
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
@@ -69,6 +70,7 @@ function fixture() {
     FarwakeNetwork:class {constructor(){throw new Error('Test mode must not construct a network transport.');}},
   });
   vm.runInContext(appCode,context);
+  context.airlockUI=createAirlockUI({getGame:()=>context.game,getSnapshot:()=>context.onlineSnapshot,getNetwork:()=>context.network,getSurface:()=>context.surface,dialog,runDeckAction:(...args)=>context.runDeckAction(...args),markAirlock:id=>context.markBoardingAirlock(id),toast:(...args)=>context.toast(...args)});
   const cameraProfile=new CameraProfile({onChange:(...args)=>context.applyCameraState(...args),schedule,cancel});context.cameraProfile=cameraProfile;
   context.activateLocalCamera(context.localCameraPreferences);preferenceWrites.length=0;
   return {context,normal,stored,elements,writes,guidanceWrites,preferenceWrites,cameraProfile,timers,tutorial,toasts,opened,effects,dialog,call:(name,...args)=>context[name](...args),runTimers(){const ready=[...timers];for(const[id,task]of ready)if(timers.delete(id))task.callback();}};
@@ -170,6 +172,9 @@ test('the entry airlock routes an active assault back to the actual source hull'
   const airlock=f.context.surface.entities.find(entity=>entity.type==='exit'&&!entity.data?.stationRole);assert.ok(airlock,'A separate entry-airlock action must exist on the target deck.');
   Object.assign(game.state.person,cabinLayout(game.state.boarding.shipClass).spawn);
   await f.call('handleEntity',airlock);
+  assert.equal(f.dialog.kind,'airlock');assert.equal(game.state.mode,'person');assert.equal(game.state.boarding.phase,'active');
+  const returnChoice=f.dialog.items.find(item=>item.label==='Return across the tether');assert.ok(returnChoice);assert.equal(returnChoice.disabled,false);
+  await returnChoice.action();
   assert.equal(game.state.ship,origin);assert.equal(game.state.mode,'ship');assert.equal(game.state.boarding,null);
   assert.equal(game.system.enemies.find(enemy=>enemy.id===session.targetId).hp,targetHull);assert.equal(f.writes.length,0);
 });

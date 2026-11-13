@@ -1481,17 +1481,35 @@ export class Game {
     this._event('crew',{crew,text:`${crew.name} disembarked. A berth is now free.`});return this._ok({crew});
   }
 
-  boardEnemy(enemyId) {
+  /** A boarding tether serves the current hull's helm and its physical airlock. */
+  enemyBoardingAccess(enemyId) {
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
-    if(this.state.mode!=='ship')return this._fail('Approach the disabled ship from the helm.','mode');
-    if(this.state.pendingEncounter)return this._fail('Resolve the open transmission first.','encounter');
+    const s=this.state,ship=s.ship,person=s.person,interior=s.interior;
+    if(!this.hasActiveVessel||ship.destroyed||ship.hull<=0)return this._fail('Your boarding origin must be an intact ship.','destroyed');
+    if(person.health<=0||person.down)return this._fail('You must be conscious to cross the boarding tether.','incapacitated');
+    if(s.exploration||!(s.mode==='ship'&&!interior||s.mode==='person'&&interior?.kind==='ship'))return this._fail('Use the helm or the entry airlock of the ship you are aboard.','mode');
+    if(s.mode==='person'){
+      if(interior.location?.vesselId&&interior.location.vesselId!==ship.id)return this._fail('Use the entry airlock on your current ship.','vessel');
+      if(!Number.isFinite(person.x)||!Number.isFinite(person.y)||distance(person,cabinLayout(ship.classId).spawn)>70)return this._fail('Walk to the entry airlock before crossing to the disabled ship.','distance');
+    }
+    if(ship.dockedAt||this.dockedPortInfo())return this._fail('Launch this ship before attaching a boarding tether.','docking');
+    if(s.boarding?.phase==='active')return this._fail('Resolve the boarders on this deck before crossing to another ship.','boarding');
+    if(s.pendingEncounter)return this._fail('Resolve the open transmission first.','encounter');
     const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId);
     if(!enemy||!enemy.disabled)return this._fail('Disable the target’s engines before boarding.','disabled');
     if(enemy.trainingTarget)return this._fail('This is an unmanned Navy practice hull, with no boardable interior.','training-target');
     if(enemy.boardingTargetId)return this._fail('Another boarding party already has the tether.','occupied');
-    if(distance(enemy,this.state.ship)>this.state.ship.radius+enemy.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');
+    const profile=enemyHullProfile(enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow')),gap=distance(enemy,ship);
+    if(!Number.isFinite(gap)||gap>ship.radius+profile.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');
+    if(Math.hypot(enemy.vx||0,enemy.vy||0)>=90)return this._fail('Wait for the target to slow before crossing the boarding tether.','speed');
+    if(!profile.boardable)return this._fail('This craft is too small for a boarding party.','capacity');
+    return this._ok({enemyId:enemy.id});
+  }
+
+  boardEnemy(enemyId) {
+    const access=this.enemyBoardingAccess(enemyId);if(!access.ok)return access;
+    const enemy=this.system.enemies.find(e=>e.id===enemyId);
     Object.assign(enemy,enemyHullProfile(enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow')));
-    if(!enemy.boardable)return this._fail('This craft is too small for a boarding party.','capacity');
     const shipClass=enemy.classId;
     const result=this._enterInterior(this._enemyLocation(enemy),'enemy',enemy.id);
     if(!result.ok)return result;

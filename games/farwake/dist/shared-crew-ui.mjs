@@ -38,7 +38,7 @@ export function crewAccessChange(vessel,captainId,control) {
  throw new RangeError('Unknown crew permission.');
 }
 
-export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=()=> 'simple',dialog,invoke,acceptResult,runDeckAction,disembark,openHome,openPassport,openContact,openCrewDuty,openMilitary,walkDeck,disconnect,toast}) {
+export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=()=> 'simple',dialog,invoke,acceptResult,runDeckAction,disembark,openHome,openPassport,openContact,openAirlock,openCrewDuty,openMilitary,walkDeck,disconnect,toast}) {
  let renderRevision=0,permissionPending=false,activeView=null;
  const game=()=>getGame(),snapshot=()=>getSnapshot()||{},network=()=>getNetwork();
  const guidance=()=>flowGuidanceLevel(getGuidance());
@@ -118,7 +118,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=(
  function boardVessel(vesselId) {
   const vessel=snapshot().fleet?.find(ship=>ship.id===vesselId),board=getBoardingAction(game(),vessel,{fleet:snapshot().fleet||[],connected:connected()});
   if(!board.enabled){toast?.(board.reason);return;}
-  return runDeckAction('boardShip',{vesselId});
+  return runDeckAction(board.command,board.args);
  }
  function shipCard(parent,vessel,{compact=false}={}) {
   const g=game(),mp=stateOf(g).multiplayer||{},aboard=mp.aboardVesselId===vessel.id,hiredDuty=!!(vessel.npcContractId&&stateOf(g).npcContract?.active);
@@ -150,10 +150,11 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=(
    }
   } else {
    const board=getBoardingAction(g,vessel,{fleet:snapshot().fleet||[],connected:connected()});
-   button(actions,`Board ${vessel.name||'ship'}`,()=>boardVessel(vessel.id),{primary:true,disabled:!board.enabled,reason:board.reason});
+   button(actions,board.label,()=>boardVessel(vessel.id),{primary:true,disabled:!board.enabled,reason:board.reason});
    if(!board.enabled||guidance()!=='expert')append(card,'p','shared-crew-explanation',board.enabled?(guidance()==='moderate'?'Boarding does not launch the ship.':vessel.dockedAt?'Step aboard the deck. The ship stays docked until someone launches.':'Cross to this ship’s crew deck. Your own ship stays where you leave it.'):board.reason);
   }
   const exit=aboard?getDisembarkAction(g,{shared:true,connected:connected(),fleet:snapshot().fleet||[]}):null;
+  if(aboard&&!exit&&!hiredDuty&&openAirlock)button(actions,'Use airlock',openAirlock,{primary:true,disabled:!connected()});
   if(exit){
    button(actions,exit.label,()=>disembark?disembark():exit.enabled?runDeckAction('disembark'):toast?.(exit.reason),{primary:true,disabled:!connected(),reason:exit.reason||exit.detail});
    append(card,'p','shared-crew-explanation',exit.reason||exit.detail);

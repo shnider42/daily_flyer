@@ -1,12 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.21.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.21.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
 Choose **Casual** to begin with a fold-equipped Sparrow, Kestrel, or Mule and your choice of starting system; **Regular** to begin beside Kettle Station with a small ship and earn its fold drive; or **Hardcore** to begin on foot at Morrow without a ship. All three start with **180 credits**. Jobs, passenger services, crew work, prices, character options, combat, and recovery follow the same rules. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 
 Farwake combines real-time ship flight with exploration and combat on foot. The browser uses Canvas 2D and native ES modules. Solo play runs locally; shared galaxies use a Node WebSocket authority and persistent storage. Players can explore separately, meet on a planet, or work stations aboard the same vessel. There is no runtime AI service: the story, characters, and branching encounters are authored.
+
+## Cooperative boarding and airlocks · 0.21.1
+
+Every conscious occupant of a normal player carrier can board from its actual entry airlock without helm permission. Press **E** at the airlock, or open **Crew → Use airlock**, then choose **Board [ship]**. A pilot can still initiate boarding directly from the nearby contact. If a teammate is already fighting aboard a disabled raider, the action becomes **Join boarding of [ship]**. Each person crosses separately; a pilot who stays aboard keeps control of the carrier.
+
+The contact panel and airlock use the server's current target, distance, speed, permission and door checks. A person away from the door can mark the entry airlock. Buttons update as conditions change, including compact multiplayer updates, docking and lost targets. Friendly invitations remain separate from hostile boarding, and paid NPC crew watches retain their existing return-to-port rules.
+
+A previously boarded NPC hull remains engine-disabled while its hull is damaged, even after its shields recharge. Returning to it preserves the same guards, wounds, loot state and physical ship. One person retreating does not end the assault for teammates still aboard. Cooperative victory retains the actual boarding party as permitted security crew on the captured NPC ship; it does not grant unrelated captains helm or bunk access. Player-controlled hostile ships retain explicit hostility and their hull/shield requirements.
+
+Solo voyages can also board a disabled enemy from their own entry airlock. Existing voyages and passports continue without a reset.
 
 ## Planet layouts and station neighborhoods · 0.21.0
 
