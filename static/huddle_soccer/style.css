@@ -157,3 +157,200 @@ html[data-sport="soccer"][data-theme="light"]{--accent:#24627f;--lime:#b7d9ec;--
 @media(max-width:900px){.soccer-layout{grid-template-columns:1fr}.soccer-side{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.soccer-next{border-top:0;padding-top:4px}.soccer-match-groups{grid-template-columns:1fr}.soccer-app .control-deck{display:grid;grid-template-columns:1fr 1fr}.soccer-app .deck-filter{max-width:none;min-width:0}.soccer-app .awareness{margin-left:0;grid-column:1/-1;display:flex;align-items:center;gap:20px}.soccer-app .awareness>label{margin:0}.soccer-app .spoiler-control{grid-column:1/-1;justify-content:flex-end}.soccer-app .club-filter{order:0}.soccer-app .context-line{margin-top:6px}.soccer-app .top-actions{gap:8px}}
 @media(max-width:760px){.soccer-app .topbar{display:grid;grid-template-columns:1fr auto auto;padding:11px 18px 13px;gap:10px 8px;min-height:0}.soccer-app .top-actions{display:contents}.soccer-app .mobile-brand{grid-column:1;grid-row:1;min-height:40px;width:max-content}.soccer-app .mobile-brand>span{display:inline}.soccer-app #theme-toggle{grid-column:2;grid-row:1;min-height:44px}.soccer-app #share{grid-column:3;grid-row:1;min-height:44px;padding:8px 12px;font-size:11px}.soccer-app #share span{display:inline;padding-left:8px}.soccer-app .sport-picker{grid-column:1;grid-row:2;display:flex}.soccer-app .sport-picker>span{font-size:10px}.soccer-app .sport-picker select{width:100%;min-width:0;padding:9px 26px 9px 10px}.soccer-app .language-picker{grid-column:2/4;grid-row:2}.soccer-app .language-picker select{width:100%;max-width:none;min-height:44px;font-size:11px;padding:9px 24px 9px 10px}.soccer-app .topbar .icon-button{width:38px}.soccer-app main{padding:22px 18px 0}.soccer-app .locale-note{font-size:10px;margin-bottom:19px}.soccer-app .control-deck{gap:13px 12px}.soccer-app .deck-filter select,.soccer-app .deck-filter input{font-size:11px}.soccer-app .awareness{justify-content:space-between;gap:12px;order:3}.soccer-app .awareness>label{font-size:8px;max-width:none;white-space:nowrap}.soccer-app .depths{max-width:none}.soccer-app .depths button{font-size:10px;padding:6px;min-height:38px}.soccer-app .spoiler-control{order:4;font-size:11px;min-height:32px}.soccer-app .context-line{font-size:10px;line-height:1.6;margin-bottom:24px}.soccer-heading{gap:14px;padding-bottom:20px;margin-bottom:24px}.soccer-heading h1{font-size:31px;letter-spacing:-1px}.soccer-heading p{font-size:13px}.soccer-heading .team-badge{width:53px;height:53px;flex-shrink:0}.soccer-heading .edition-badge{display:none}.soccer-feature{padding:18px;margin-bottom:25px}.soccer-scoreboard{gap:9px;margin:23px 0}.soccer-scoreboard .team-badge{width:52px;height:52px}.soccer-scoreboard .club-side strong{font-size:12px}.soccer-scoreboard .club-side small{font-size:9px}.soccer-score{font-size:38px}.soccer-score>span{font-size:20px;margin:0 7px}.soccer-feature-foot{gap:10px;align-items:flex-start}.soccer-feature-foot p{font-size:11px}.soccer-feature-foot .text-button{font-size:11px;white-space:normal;text-align:right;max-width:78px}.soccer-match-top{font-size:10px;gap:10px}.soccer-section h2{font-size:22px}.soccer-story h3{font-size:21px}.soccer-story p{font-size:13px}.soccer-side{grid-template-columns:1fr;gap:24px}.soccer-stat-panel{padding:20px}.soccer-next{border-top:1px solid var(--line);padding-top:22px}.soccer-match-row{grid-template-columns:65px minmax(0,1fr) 69px;gap:10px}.soccer-match-row .match-date{font-size:11px}.soccer-match-row .row-club{font-size:12px;gap:8px}.soccer-match-row .row-club .team-badge{height:24px;width:24px}.soccer-clubs{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.soccer-clubs button{font-size:11px;padding:9px;gap:7px;min-height:52px}.soccer-clubs .team-badge{width:25px;height:25px}.soccer-club-header{gap:14px;flex-wrap:wrap;padding:20px 0}.soccer-club-header h2{font-size:25px;letter-spacing:-.6px}.soccer-club-header .team-badge{width:51px;height:51px}.soccer-club-header .secondary-button{margin-left:65px}.soccer-lessons{grid-template-columns:1fr}.soccer-table th,.soccer-table td{padding:11px 10px}.soccer-table th:nth-child(2),.soccer-table td:nth-child(2){min-width:170px}.soccer-table .table-team{font-size:12px}.soccer-app .main-nav button{font-size:10px;line-height:1.3}.soccer-app .edition-notes{margin-top:35px}.soccer-app #game-detail{padding:28px 20px}.soccer-app #game-detail .soccer-scoreboard{gap:8px}.soccer-app .game-detail-head h2{font-size:25px}.soccer-toolbar{align-items:stretch;gap:12px}.soccer-toolbar .search-box{flex-basis:100%;width:100%}.soccer-toolbar .chip{font-size:11px;padding:8px 12px}.soccer-app footer{padding-bottom:calc(95px + env(safe-area-inset-bottom));font-size:9px}.soccer-app .research-intro h2{font-size:28px;letter-spacing:-.8px}.soccer-app .research-symbol{font-size:64px}}
 @media(max-width:370px){.soccer-app .topbar{padding-left:14px;padding-right:14px;gap:8px 6px}.soccer-app .mobile-brand{font-size:25px;gap:6px}.soccer-app .mobile-brand span{font-size:15px}.soccer-app #share{padding-left:9px;padding-right:9px;font-size:10px}.soccer-app #share span{display:none}.soccer-app .sport-picker{gap:6px}.soccer-app .sport-picker>span{font-size:9px}.soccer-app .sport-picker select{font-size:11px;padding-left:8px}.soccer-app .language-picker select{font-size:10px;padding-left:8px}.soccer-app main{padding-left:14px;padding-right:14px}.soccer-app .awareness{gap:8px}.soccer-app .awareness>label{font-size:7px}.soccer-app .depths button{font-size:9px;padding:5px}.soccer-heading h1{font-size:28px}.soccer-feature{padding:16px}.soccer-score{font-size:32px}.soccer-score>span{margin:0 5px;font-size:18px}.soccer-scoreboard .team-badge{width:43px;height:43px}.soccer-scoreboard .club-side strong{font-size:11px}.soccer-match-row{grid-template-columns:56px minmax(0,1fr) 59px;gap:8px}.soccer-match-row .row-club{font-size:11px;gap:6px}.soccer-match-row .row-result{font-size:20px}.soccer-match-row .row-result.scheduled{font-size:12px}.soccer-match-row .match-date{font-size:10px}.soccer-match-row .row-club .team-badge{height:21px;width:21px}.soccer-clubs button{font-size:10px}.soccer-app .context-line{font-size:9px}}
+
+/* Matchday edition: sky blue, ink, and clean editorial rules. */
+html[data-sport="soccer"]{--bg:#0b141c;--sidebar:#0e1923;--panel:#13222e;--panel2:#1b2e3b;--hover:#223e50;--line:#2a3c49;--text:#f1f5f6;--muted:#adbdc7;--dim:#8b9eab;--accent:#9ed4f3;--lime:#b6def3;--accent-ink:#122c3d;--font:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+html[data-sport="soccer"][data-theme="light"]{--bg:#f3f5f4;--sidebar:#eaf0f2;--panel:#fff;--panel2:#e3edf2;--hover:#d6e6ef;--line:#cbd8df;--text:#142b3a;--muted:#496171;--dim:#596f7e;--accent:#225e80;--lime:#b6def3}
+.soccer-app .brand-icon{transform:none;border-radius:4px;font-family:var(--font);font-size:28px;font-weight:900;letter-spacing:-2px}
+.soccer-app .brand-sub{letter-spacing:1px;font-size:8px}
+.soccer-app .season-mark{padding-bottom:25px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.soccer-app .nav-icon svg{height:21px;width:21px}
+.soccer-app .main-nav button{border-radius:5px;min-height:48px}
+.soccer-app .topbar{min-height:72px}
+.soccer-app .topbar select{border-radius:5px;background:transparent}
+.soccer-app main{max-width:1500px;padding-top:22px}
+.soccer-app .locale-note{margin-bottom:16px;color:var(--dim)}
+.soccer-app .score-strip{height:100px;background:var(--bg)}
+.soccer-app .strip-label{width:110px;padding:16px 22px;background:var(--sidebar)}
+.soccer-app .strip-label>span{color:var(--accent);letter-spacing:1.3px}
+.soccer-app .strip-game{flex-basis:137px;padding:12px 16px}
+.soccer-app .strip-game b{font-size:10px}
+.soccer-app .strip-status{font-size:8px}
+.soccer-app .strip-all{background:var(--sidebar)}
+.soccer-preferences{border:1px solid var(--line);border-radius:6px;background:var(--sidebar)}
+.soccer-preferences>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;min-height:48px}
+.soccer-preferences>summary::-webkit-details-marker{display:none}
+.preferences-title{font-size:12px;font-weight:650}
+.preferences-hint{font-size:11px;color:var(--dim)}
+.preferences-toggle{margin-left:auto;color:var(--accent);font-size:22px;line-height:1;transition:transform .15s}
+.soccer-preferences[open] .preferences-toggle{transform:rotate(45deg)}
+.soccer-preferences[open]>summary{border-bottom:1px solid var(--line)}
+.soccer-app .control-deck{padding:18px;gap:16px}
+.soccer-app .control-deck select,.soccer-app .control-deck input{background:var(--bg);border-radius:4px}
+.soccer-app .awareness{margin-left:auto}
+.soccer-app .spoiler-control{margin-left:0}
+.soccer-app .context-line{margin:12px 0 22px}
+.soccer-heading{position:relative;isolation:isolate;overflow:hidden;padding:27px 30px;background:var(--panel);border:1px solid var(--line);border-radius:6px;min-height:155px;align-items:center;gap:22px;margin-bottom:26px}
+.soccer-heading .heading-copy{min-width:0;position:relative;z-index:2}
+.soccer-heading h1{font-size:clamp(32px,3.8vw,55px);font-weight:760;letter-spacing:-1.9px;line-height:1.08;margin:14px 0}
+.soccer-heading p{max-width:600px;font-size:14px;line-height:1.65}
+.soccer-heading .eyebrow{font-size:10px;letter-spacing:1.9px}
+.club-heading{background:#b6d9ed;color:#122f43;border:0;min-height:230px;padding:32px 38px}
+.club-heading .heading-copy{flex:1;max-width:72%}
+.club-heading h1{max-width:570px}
+.club-heading p{color:#294c62;max-width:520px}
+.club-heading .eyebrow{color:#294c62}
+.club-emblem{display:grid;justify-items:center;gap:15px;flex-shrink:0;position:relative;z-index:1;margin:0 14px}
+.club-emblem>span:not(.team-badge){font-size:9px;letter-spacing:1.5px;color:#294c62;font-weight:700}
+.soccer-app .team-badge{border-radius:50%;background:color-mix(in srgb,var(--club-color,#9ed4f3) 13%,var(--panel));border:1px solid color-mix(in srgb,var(--club-color,#9ed4f3) 50%,var(--line))}
+.soccer-app .team-badge>span{color:var(--text);font-size:10px;letter-spacing:.3px}
+.soccer-app .team-badge.loaded{background:transparent;border-color:transparent}
+.soccer-heading .team-badge{height:112px;width:112px;margin:0;background:#d7e9f3;border:1px solid #7facC6;outline:1px solid #7facc6;outline-offset:6px;box-shadow:0 8px 22px #19486312}
+.soccer-heading .team-badge>span{font-size:29px;color:#193d55;font-weight:800;letter-spacing:1px}
+.pitch-art{position:absolute;z-index:0;width:500px;height:320px;max-width:none;right:-80px;top:-45px;color:#6f9eb9;opacity:.3;transform:rotate(-18deg);pointer-events:none}
+.soccer-app .team-badge.mini{height:20px;width:20px}
+.soccer-app .team-badge.mini>span{font-size:6px;letter-spacing:0}
+.soccer-layout{grid-template-columns:minmax(0,1.65fr) minmax(275px,1fr);gap:26px}
+.soccer-feature{padding:24px;border-radius:6px;background:var(--panel);border-top:3px solid var(--accent);box-shadow:0 7px 24px #0000000c}
+.soccer-feature:before{display:none}
+.soccer-match-top{font-size:10px;letter-spacing:.2px}
+.soccer-match-top strong{font-size:9px;letter-spacing:1.3px}
+.soccer-scoreboard{margin:29px 0 27px;gap:16px}
+.soccer-scoreboard .team-badge{height:68px;width:68px}
+.soccer-scoreboard .team-badge>span{font-size:16px}
+.soccer-score{font-size:60px;font-weight:760;letter-spacing:-2px}
+.soccer-score>span{font-size:25px;vertical-align:middle}
+.soccer-feature-foot{padding-top:16px}
+.soccer-feature-foot p{font-size:12px}
+.soccer-feature-foot .text-button{min-height:44px;border:1px solid var(--line);border-radius:4px;padding:10px 13px;font-size:11px}
+.soccer-stat-panel{border-radius:6px;padding:24px;background:var(--sidebar)}
+.soccer-stat-panel h2{font-size:21px;margin-bottom:23px}
+.soccer-stats{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0}
+.soccer-stats>div+div{border-left:1px solid var(--line);padding-left:16px}
+.soccer-stats strong{font-size:34px;font-weight:700;line-height:1.2}
+.soccer-stats>div:first-child strong{color:var(--accent)}
+.soccer-stats span{font-size:11px;margin-top:5px}
+.soccer-stat-panel .form-dots{gap:5px}
+.soccer-stat-panel .form-dots span{height:27px;min-width:27px;border-radius:3px}
+.soccer-app .form-dots .w{background:#214e42;color:#bef1da}
+.soccer-app .form-dots .l{background:#54363b;color:#f5c5c9}
+.soccer-app .form-dots .d{background:#354353;color:#d2e0ee}
+.soccer-next{padding:22px 24px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.soccer-next h2{font-size:22px;line-height:1.25;margin-top:9px}
+.soccer-next .eyebrow{color:var(--accent);font-size:9px;letter-spacing:1.4px}
+.soccer-next p{font-size:12px}
+.soccer-section .section-heading{border-bottom:2px solid var(--line);padding-bottom:15px;margin-bottom:20px}
+.soccer-section h2{font-size:24px;font-weight:700}
+.soccer-story{padding:24px 0}
+.soccer-story h3{font-family:Georgia,'Times New Roman',serif;font-size:27px;letter-spacing:-.55px;font-weight:500;line-height:1.25}
+.soccer-story .story-meta{font-size:10px;letter-spacing:.35px;margin-bottom:12px}
+.soccer-story p{font-size:14px;line-height:1.85}
+.soccer-story .source-link{font-size:11px;text-decoration:none;border-bottom:1px solid var(--line);margin-top:7px;min-height:32px}
+.soccer-results-list{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.soccer-match-row{padding:17px 16px;grid-template-columns:78px minmax(0,1fr) 80px}
+.soccer-match-row:last-child{border-bottom:0}
+.soccer-match-row:hover{background:var(--hover)}
+.soccer-match-row .row-result{font-size:24px;font-variant-numeric:tabular-nums}
+.soccer-match-row .row-club .team-badge>span{font-size:7px;letter-spacing:0}
+.soccer-match-row .row-result.scheduled{font-size:13px}
+.soccer-table-wrap{border-radius:6px}
+.soccer-table th,.soccer-table td{padding-top:15px;padding-bottom:15px}
+.soccer-table .team-badge>span{font-size:7px}
+.soccer-clubs{gap:10px}
+.soccer-clubs button{padding:15px 13px;border-radius:5px;min-height:68px}
+.soccer-clubs button:hover{border-color:var(--accent)}
+.soccer-clubs .team-badge{height:34px;width:34px}
+.soccer-clubs .team-badge>span{font-size:8px}
+.soccer-lesson{padding:26px 24px;border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+.soccer-lessons{gap:16px}
+.soccer-lesson .eyebrow{color:var(--accent)}
+.soccer-lesson h2{font-size:24px}
+.soccer-coverage{border-left:2px solid var(--accent);background:var(--sidebar);color:var(--dim);font-size:11px;padding:18px 22px}
+.soccer-app .edition-notes{border-top:1px solid var(--line);padding-top:32px}
+.soccer-app .edition-notes h2{font-family:Georgia,serif;font-weight:500;font-size:29px}
+@media(min-width:1600px){.soccer-app main{padding-left:48px;padding-right:48px}.club-heading h1{font-size:58px}}
+@media(max-width:1100px){.soccer-layout{grid-template-columns:minmax(0,1.4fr) minmax(250px,1fr);gap:20px}.club-heading{padding:28px}.club-heading h1{font-size:42px}.club-emblem{margin:0}.soccer-heading .team-badge{height:86px;width:86px}.soccer-score{font-size:48px}.soccer-feature{padding:20px}.soccer-stat-panel{padding:20px}.soccer-match-row{grid-template-columns:62px minmax(0,1fr) 68px;padding:15px 12px;gap:9px}}
+@media(max-width:900px){.soccer-layout{grid-template-columns:1fr}.soccer-app .awareness{margin-left:0}.soccer-side{grid-template-columns:1fr 1fr;gap:18px}.soccer-side>.soccer-next:last-child{grid-column:1/-1}.soccer-heading{min-height:170px}.club-heading h1{font-size:40px}}
+@media(max-width:760px){
+ .soccer-app .topbar{padding:10px 18px;min-height:0;gap:7px 8px;background:var(--sidebar)}
+ .soccer-app .mobile-brand{display:flex;align-items:center;font-family:var(--font);color:var(--accent);font-size:26px;font-weight:900;letter-spacing:-1px;gap:8px}
+ .soccer-app .mobile-brand span{font-size:18px;color:var(--text);font-weight:800;letter-spacing:-.5px}
+ .soccer-app #share{background:transparent;border:0;padding:8px 0 8px 10px}
+ .soccer-app .sport-picker>span{display:none}
+ .soccer-app .topbar select{font-size:12px;min-height:40px;background:var(--bg)}
+ .soccer-app .score-strip{height:90px}
+ .soccer-app .strip-label{width:76px;padding:12px}
+ .soccer-app .strip-label>span{font-size:9px}
+ .soccer-app .strip-label small{font-size:7px;letter-spacing:.5px}
+ .soccer-app .strip-game{flex-basis:119px;padding:9px 12px}
+ .soccer-app .strip-all{flex-basis:54px;font-size:9px}
+ .soccer-app .strip-all span{font-size:20px}
+ .soccer-app main{padding:16px 16px 0}
+ .soccer-app .locale-note{font-size:10px;margin-bottom:12px}
+ .soccer-preferences>summary{padding:12px 14px;gap:8px}
+ .preferences-title{font-size:12px}
+ .preferences-hint{font-size:10px}
+ .soccer-app .control-deck{padding:14px;gap:16px 10px}
+ .soccer-app .awareness{display:block}
+ .soccer-app .awareness>label{margin-bottom:8px;font-size:9px}
+ .soccer-app .depths{width:100%;max-width:none}
+ .soccer-app .depths button{flex:1;min-height:42px;font-size:11px;padding:6px}
+ .soccer-app .deck-filter label{font-size:9px;letter-spacing:.8px}
+ .soccer-app .deck-filter select,.soccer-app .deck-filter input{font-size:12px;min-height:44px}
+ .soccer-app .context-line{font-size:9px;gap:3px 12px;margin:10px 0 17px}
+ .soccer-app #coverage-line{color:var(--muted)}
+ .soccer-heading{padding:22px;gap:14px;margin-bottom:20px;min-height:150px}
+ .soccer-heading h1{font-size:32px;letter-spacing:-1.1px;margin:11px 0}
+ .soccer-heading p{font-size:12px;line-height:1.7}
+ .club-heading{padding:24px 22px;min-height:215px;align-items:flex-start}
+ .club-heading .heading-copy{max-width:none;flex:1}
+ .club-heading h1{max-width:240px}
+ .club-heading p{width:calc(100% + 77px);max-width:none;margin-top:16px}
+ .club-emblem{width:58px;margin:20px 3px 0 0}
+ .soccer-heading .team-badge{height:54px;width:54px;outline-offset:4px}
+ .soccer-heading .team-badge>span{font-size:16px;letter-spacing:.5px}
+ .club-emblem>span:not(.team-badge){display:none}
+ .pitch-art{width:320px;height:220px;right:-155px;top:-10px;opacity:.18}
+ .soccer-heading .eyebrow{font-size:8px;letter-spacing:1.25px}
+ .soccer-feature{padding:18px;border-top-width:3px;margin-bottom:28px}
+ .soccer-match-top{font-size:9px;gap:8px}
+ .soccer-match-top strong{font-size:8px;letter-spacing:.7px}
+ .soccer-scoreboard{gap:8px;margin:25px 0}
+ .soccer-scoreboard .team-badge{height:50px;width:50px}
+ .soccer-scoreboard .team-badge>span{font-size:12px}
+ .soccer-scoreboard .club-side strong{font-size:12px}
+ .soccer-score{font-size:43px;letter-spacing:-1.8px}
+ .soccer-score>span{font-size:20px;margin:0 7px}
+ .soccer-feature-foot{align-items:center;gap:12px}
+ .soccer-feature-foot p{font-size:11px;line-height:1.7}
+ .soccer-feature-foot .text-button{padding:8px 10px;max-width:84px;min-width:74px;text-align:center;font-size:10px;line-height:1.5}
+ .soccer-side{grid-template-columns:1fr;gap:16px}
+ .soccer-next{padding:22px}
+ .soccer-stats strong{font-size:35px}
+ .soccer-section h2{font-size:22px}
+ .soccer-section .section-heading{gap:10px;align-items:flex-start}
+ .soccer-story h3{font-size:25px;line-height:1.3}
+ .soccer-story p{font-size:14px;line-height:1.8}
+ .soccer-match-row{grid-template-columns:58px minmax(0,1fr) 64px;padding:16px 11px;gap:8px}
+ .soccer-match-row .row-result{font-size:22px}
+ .soccer-match-row .row-club{font-size:12px;gap:6px}
+ .soccer-match-row .match-date{font-size:10px}
+ .soccer-match-row .match-date small{font-size:9px}
+ .soccer-match-row .row-club .team-badge{width:22px;height:22px}
+ .soccer-match-row .row-club .team-badge>span{font-size:6px}
+ .soccer-clubs button{font-size:12px;padding:12px;min-height:64px}
+ .soccer-clubs .team-badge{height:28px;width:28px}
+ .soccer-table th,.soccer-table td{padding-top:14px;padding-bottom:14px}
+ .soccer-app .main-nav{padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--sidebar);border-top:1px solid var(--line)}
+ .soccer-app .main-nav button{min-height:52px;gap:5px;font-size:10px;padding:6px 2px}
+ .soccer-app .main-nav button.active{box-shadow:none;background:var(--panel2);color:var(--accent)}
+ .soccer-app .nav-icon{height:20px;width:20px;font-size:20px}
+ .soccer-app .nav-icon svg{height:20px;width:20px}
+ .soccer-lesson{padding:22px}
+ .soccer-app .edition-notes{margin-top:28px}
+ .soccer-app .edition-notes h2{font-size:27px}
+}
+@media(max-width:370px){.preferences-hint{display:none}.soccer-app main{padding-left:12px;padding-right:12px}.club-heading{padding:22px 18px}.club-heading h1{font-size:29px}.soccer-score{font-size:35px}.soccer-score>span{margin:0 4px}.soccer-feature{padding:15px}.soccer-match-row{grid-template-columns:49px minmax(0,1fr) 60px;gap:6px}.soccer-match-row .row-club{font-size:11px}.soccer-match-top{flex-direction:column;align-items:flex-start}.soccer-app .language-picker select{font-size:10px}}
+@media(prefers-reduced-motion:no-preference){#view{animation:soccer-appear .24s ease-out}@keyframes soccer-appear{from{opacity:0}to{opacity:1}}}
+
+.soccer-app .arrow-icon{display:inline-block;width:11px;height:11px;vertical-align:-1px;flex-shrink:0}.soccer-app .strip-all .arrow-icon{display:block;width:17px;height:17px;margin:7px auto 0}

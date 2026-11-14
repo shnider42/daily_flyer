@@ -11,7 +11,8 @@
       "short": "Man City",
       "color": "#6CABDD",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png"
     },
     {
       "id": "ARS",
@@ -19,7 +20,8 @@
       "short": "Arsenal",
       "color": "#EF4135",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
     },
     {
       "id": "BHA",
@@ -27,7 +29,8 @@
       "short": "Brighton",
       "color": "#2C84D8",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png"
     },
     {
       "id": "LIV",
@@ -35,7 +38,8 @@
       "short": "Liverpool",
       "color": "#E63B48",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png"
     },
     {
       "id": "CHE",
@@ -43,7 +47,8 @@
       "short": "Chelsea",
       "color": "#4B6FD8",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png"
     },
     {
       "id": "EVE",
@@ -51,7 +56,8 @@
       "short": "Everton",
       "color": "#4169E1",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png"
     },
     {
       "id": "BOU",
@@ -59,7 +65,8 @@
       "short": "Bournemouth",
       "color": "#DA3444",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png"
     },
     {
       "id": "BRE",
@@ -67,7 +74,8 @@
       "short": "Brentford",
       "color": "#E94C59",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/337.png"
     },
     {
       "id": "LEE",
@@ -75,7 +83,8 @@
       "short": "Leeds",
       "color": "#F5D45C",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/357.png"
     },
     {
       "id": "AVL",
@@ -83,7 +92,8 @@
       "short": "Aston Villa",
       "color": "#AD6283",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png"
     },
     {
       "id": "TOT",
@@ -91,7 +101,8 @@
       "short": "Tottenham",
       "color": "#CBD5E1",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png"
     },
     {
       "id": "NEW",
@@ -99,7 +110,8 @@
       "short": "Newcastle",
       "color": "#BAC4CE",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png"
     },
     {
       "id": "HUL",
@@ -107,7 +119,8 @@
       "short": "Hull City",
       "color": "#F6A623",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/306.png"
     },
     {
       "id": "IPS",
@@ -115,7 +128,8 @@
       "short": "Ipswich",
       "color": "#5591E4",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/373.png"
     },
     {
       "id": "FUL",
@@ -123,7 +137,8 @@
       "short": "Fulham",
       "color": "#E5E7EB",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png"
     },
     {
       "id": "NFO",
@@ -131,7 +146,8 @@
       "short": "Nott. Forest",
       "color": "#F14C50",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png"
     },
     {
       "id": "COV",
@@ -139,7 +155,8 @@
       "short": "Coventry",
       "color": "#8FCBE8",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/388.png"
     },
     {
       "id": "MUN",
@@ -147,7 +164,8 @@
       "short": "Man United",
       "color": "#F05454",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png"
     },
     {
       "id": "SUN",
@@ -155,7 +173,8 @@
       "short": "Sunderland",
       "color": "#E85B66",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/366.png"
     },
     {
       "id": "CRY",
@@ -163,7 +182,8 @@
       "short": "Crystal Palace",
       "color": "#6899E8",
       "source": "https://www.mancity.com/tables",
-      "league": true
+      "league": true,
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/384.png"
     },
     {
       "id": "RBL",

@@ -17,13 +17,13 @@
   <a class="brand" href="#" data-home aria-label="Início do HUDDLE"><span class="brand-icon">H</span><span>HUDDLE<span class="brand-sub">DAILY FLYER / FUTEBOL</span></span></a>
   <div class="season-mark"><span class="tiny">TEMPORADA</span><strong>26<span>/27</span></strong><div><i></i> PREMIER LEAGUE</div></div>
   <nav class="main-nav" aria-label="Navegação principal">
-    <button data-tab="brief" aria-label="Resumo"><span class="nav-icon" aria-hidden="true">◈</span><span>Resumo</span></button>
-    <button data-tab="games" aria-label="Jogos"><span class="nav-icon" aria-hidden="true">▦</span><span>Jogos</span></button>
-    <button data-tab="teams" aria-label="Clubes"><span class="nav-icon" aria-hidden="true">⚑</span><span>Clubes</span></button>
-    <button data-tab="league" aria-label="Tabela"><span class="nav-icon" aria-hidden="true">▥</span><span>Tabela</span></button>
-    <button data-tab="learn" aria-label="Entenda o futebol"><span class="nav-icon" aria-hidden="true">◎</span><span>Entenda</span></button>
+    <button data-tab="brief" aria-label="Resumo"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resumo</span></button>
+    <button data-tab="games" aria-label="Jogos"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2"/></svg></span><span>Jogos</span></button>
+    <button data-tab="teams" aria-label="Clubes"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v6c0 4-4 7-8 9-4-2-8-5-8-9V6z"/><path d="m8 12 3 3 5-6"/></svg></span><span>Clubes</span></button>
+    <button data-tab="league" aria-label="Tabela"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V11h5v10M9 21V4h6v17M15 21V8h5v13"/></svg></span><span>Tabela</span></button>
+    <button data-tab="learn" aria-label="Entenda o futebol"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 3M12 17h.01"/></svg></span><span>Entenda</span></button>
   </nav>
-  <div class="sidebar-bottom"><div class="edition-dot"></div><p>O JOGO CONTINUA.<br><strong>VOCÊ FICA POR DENTRO.</strong></p><a href="#edition-notes">Fontes e cobertura ↗</a></div>
+  <div class="sidebar-bottom"><div class="edition-dot"></div><p>O JOGO CONTINUA.<br><strong>VOCÊ FICA POR DENTRO.</strong></p><a href="#edition-notes">Fontes e cobertura <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 13 13 3M3 3h10v10"/></svg></a></div>
 </aside>
 <div class="app-shell">
   <header class="topbar">
@@ -33,25 +33,26 @@
       <label class="sport-picker"><span data-sport-label>Esporte</span><select id="sport-select" aria-label="Esporte"><option value="nfl">NFL</option><option value="soccer" selected>Futebol</option></select></label>
       <label class="language-picker"><span class="sr-only">Idioma</span><select id="language-select" aria-label="Idioma"><option value="pt-BR" lang="pt-BR">Português (Brasil)</option></select></label>
       <button id="theme-toggle" class="icon-button" aria-label="Ativar modo claro" title="Ativar modo claro">☾</button>
-      <button id="share" class="share-button">Compartilhar <span aria-hidden="true">↗</span></button>
+      <button id="share" class="share-button">Compartilhar <span aria-hidden="true"><svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 13 13 3M3 3h10v10"/></svg></span></button>
     </div>
   </header>
   <div id="score-strip" class="score-strip" aria-label="Jogos recentes cobertos"></div>
   <main id="main">
     <p id="locale-note" class="locale-note">Português do Brasil <span>·</span> Horários de Brasília (UTC−3)</p>
-    <section class="control-deck" aria-label="Personalize seu resumo">
+    <details class="soccer-preferences" id="soccer-preferences"><summary><span class="preferences-title">Ajustar meu resumo</span><span class="preferences-hint">Clube, período e contexto</span><span class="preferences-toggle" aria-hidden="true">+</span></summary><section class="control-deck" aria-label="Personalize seu resumo">
       <div class="deck-filter club-filter"><label for="team">SEU CLUBE</label><select id="team"><option value="ALL">Toda a liga</option></select></div>
       <div class="deck-filter"><label for="period">DESDE QUANDO?</label><select id="period"><option value="7">Última semana</option><option value="14">Últimas 2 semanas</option><option value="30">Último mês</option><option value="season">Início da temporada</option><option value="custom">Escolher data</option></select></div>
       <div class="deck-filter" id="custom-wrap" hidden><label for="since">DATA INICIAL</label><input id="since" type="date" min="2026-01-01"></div>
       <div class="awareness"><label>SEU CONTEXTO</label><div class="depths" role="group" aria-label="Quanto você conhece de futebol?"><button data-depth="little" title="Explicar os termos e as regras">Começando</button><button data-depth="basics" title="Ligar os resultados ao contexto">O básico</button><button data-depth="well" title="Mostrar os números e mais contexto">Acompanho</button></div></div>
       <label class="spoiler-control"><input type="checkbox" id="spoilers"><span class="switch"></span><span>Ocultar resultados</span></label>
     </section>
+    </details>
     <div id="freshness" class="freshness" hidden></div>
     <div class="context-line"><span id="level-note"></span><span id="coverage-line"></span></div>
     <section id="view" tabindex="-1"><p class="loading-note">Preparando seu resumo de futebol…</p></section>
     <section id="edition-notes" class="edition-notes">
       <div><span class="eyebrow">FONTES E COBERTURA</span><h2>O contexto tem origem.</h2><span id="edition-tag" class="edition-tag"></span></div>
-      <div><p id="coverage-note"></p><p>A tabela da liga e o recorte de partidas têm datas de verificação próprias. Um jogo ausente deste recorte não significa que o clube não jogou. Datas e horários futuros podem mudar; confirme na fonte oficial.</p><p>Suas preferências ficam neste navegador. Este é um projeto independente do Daily Flyer, sem vínculo com clubes ou ligas. Os sites das fontes podem revelar resultados. Escudos, quando disponíveis, são carregados da fonte de imagens indicada.</p><div id="source-links" class="source-links"></div><button id="reset" class="text-button">Redefinir preferências do futebol</button></div>
+      <div><p id="coverage-note"></p><p>A tabela da liga e o recorte de partidas têm datas de verificação próprias. Um jogo ausente deste recorte não significa que o clube não jogou. Datas e horários futuros podem mudar; confirme na fonte oficial.</p><p>Suas preferências ficam neste navegador. Este é um projeto independente do Daily Flyer, sem vínculo com clubes ou ligas. Os sites das fontes podem revelar resultados. Escudos, quando disponíveis, são carregados do serviço de imagens da ESPN.</p><div id="source-links" class="source-links"></div><button id="reset" class="text-button">Redefinir preferências do futebol</button></div>
     </section>
   </main>
   <footer><span>HUDDLE <i>/</i> DAILY FLYER</span><span>Futebol, com contexto.</span></footer>
@@ -59,7 +60,7 @@
 <dialog id="game-dialog" aria-labelledby="game-dialog-title"><button class="dialog-close" data-close-game aria-label="Fechar detalhes do jogo">×</button><div id="game-detail"></div></dialog>
 <dialog id="share-dialog" aria-labelledby="share-title"><h2 id="share-title">Compartilhe o resumo.</h2><p>O link abre em português e com os resultados ocultos.</p><input id="share-url" readonly aria-label="Link para compartilhar"><div class="soccer-share-actions"><button id="copy-share" class="primary-button">Copiar link</button><button id="close-share" class="secondary-button">Fechar</button></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
-<noscript><div class="nojs">Ative o JavaScript para usar este resumo. <a href="https://www.mancity.com/pt" target="_blank" rel="noopener noreferrer">Site oficial do Manchester City em português ↗</a></div></noscript>
+<noscript><div class="nojs">Ative o JavaScript para usar este resumo. <a href="https://www.mancity.com/pt" target="_blank" rel="noopener noreferrer">Site oficial do Manchester City em português <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 13 13 3M3 3h10v10"/></svg></a></div></noscript>
 <script type="application/json" id="soccer-data">@@DATA@@</script><script>@@CORE@@</script><script>@@JS@@</script>
 </body>
 </html>
