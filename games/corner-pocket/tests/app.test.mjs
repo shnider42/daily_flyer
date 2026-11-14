@@ -169,9 +169,14 @@ async function harness({ url = 'https://pool.example/', savedSession = null } = 
     setEnabled(value) { this.enabled = value; }
     process() {}
   }
+  class HarnessDate extends Date {
+    // The app uses wall time as its rack seed; fixed wall time gives separate
+    // frame-rate runs the identical physical rack without replacing the engine.
+    static now() { return 1700000000711; }
+  }
   const context = vm.createContext({ ...engine, document, window, location,
     createRenderer: () => renderer, OnlineRoom: OnlineStub, PoolAudio: AudioStub,
-    performance: { now: () => now }, URL, Date, console, structuredClone,
+    performance: { now: () => now }, URL, Date: HarnessDate, console, structuredClone,
     localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
     history: { replaceState(_state, _title, next) { location.href = String(next); } },
     navigator: { clipboard: { async writeText() {} } }, matchMedia: () => ({ matches: false }),
@@ -199,6 +204,7 @@ globalThis.__inspect = () => ({ mode, screen, game, pending, menuBusy, placing, 
       for (const callback of callbacks) callback(now);
       await drain();
     },
+    elapseWithoutFrame(milliseconds) { now += milliseconds; },
     async settle() {
       for (let i = 0; i < 1000 && this.state().game.phase === 'rolling'; i++) await this.frame(60);
       assert.notEqual(this.state().game.phase, 'rolling', 'the rendered local game should settle');
@@ -313,4 +319,58 @@ test('finishing an older online leave cannot overwrite a newly started practice 
   assert.equal(h.state().screen, 'menu'); await h.fire('practiceButton');
   const newRack = h.state().game.id; gate.resolve(); await leaving;
   assert.equal(h.state().mode, 'practice'); assert.equal(h.state().game.id, newRack);
+});
+
+test('a local break settles in real time at one frame per second with the same result as sixty FPS', async () => {
+  const runs = [];
+  for (const frameMs of [1000 / 60, 1000]) {
+    const h = await harness(); await h.fire('practiceButton');
+    await h.fire('shootButton');
+    let elapsed = 0;
+    while (h.state().game.phase === 'rolling' && elapsed < 8000) {
+      await h.frame(frameMs); elapsed += frameMs;
+    }
+    assert.notEqual(h.state().game.phase, 'rolling', `${Math.round(1000 / frameMs)} FPS should settle within eight wall-clock seconds`);
+    assert.ok(elapsed <= 8000 + 1e-6);
+    runs.push(structuredClone(h.state().game));
+  }
+  const [fast, slow] = runs;
+  assert.equal(slow.turn, fast.turn); assert.equal(slow.phase, fast.phase);
+  assert.equal(slow.ballInHand, fast.ballInHand);
+  assert.equal(slow.winner, fast.winner);
+  assert.deepEqual(slow.players.map(player => player.group), fast.players.map(player => player.group));
+  assert.ok(Math.abs(slow.time - fast.time) <= engine.FIXED_DT + 1e-8, 'simulation time agrees within one fixed step');
+  for (const ball of slow.balls) {
+    const reference = fast.balls.find(candidate => candidate.id === ball.id);
+    assert.equal(ball.pocketed, reference.pocketed, `ball ${ball.id} pocket result`);
+    assert.equal(ball.pocket, reference.pocket, `ball ${ball.id} pocket identity`);
+    assert.ok(Math.abs(ball.x - reference.x) < 1e-7, `ball ${ball.id} final x`);
+    assert.ok(Math.abs(ball.z - reference.z) < 1e-7, `ball ${ball.id} final z`);
+  }
+});
+
+test('time spent in a local menu or hidden tab never advances the shot when animation resumes', async () => {
+  const h = await harness(); await h.fire('practiceButton'); await h.fire('shootButton');
+  await h.frame(100);
+  let before = h.state().game.time;
+  const pausedBalls = structuredClone(h.state().game.balls);
+  await h.fire('helpButton'); h.elapseWithoutFrame(30000);
+  assert.deepEqual(h.state().game.balls, pausedBalls);
+  await h.fire(h.document.querySelector('[data-close]'));
+  await h.frame(1000 / 60);
+  assert.ok(h.state().game.time > before, 'the shot resumes after closing help');
+  assert.ok(h.state().game.time - before <= 1 / 60 + engine.FIXED_DT + 1e-8,
+    'thirty paused seconds must not be fed into the physics accumulator');
+
+  before = h.state().game.time;
+  const hiddenBalls = structuredClone(h.state().game.balls);
+  h.document.hidden = true; await h.fire(h.document, 'visibilitychange');
+  h.elapseWithoutFrame(120000);
+  assert.deepEqual(h.state().game.balls, hiddenBalls);
+  h.document.hidden = false; await h.fire(h.document, 'visibilitychange');
+  await h.frame(1000 / 60);
+  assert.ok(h.state().game.time > before, 'the shot resumes when the tab is visible');
+  assert.ok(h.state().game.time - before <= 1 / 60 + engine.FIXED_DT + 1e-8,
+    'hidden-tab wall time must not be caught up on return');
+  assert.equal(h.state().game.phase, 'rolling', 'the background gap did not finish the shot');
 });

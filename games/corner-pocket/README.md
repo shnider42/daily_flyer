@@ -4,6 +4,8 @@ A two-player 3D eight-ball game in the DailyFlyer collection. A warm pool hall,
 clear ball markings, a full-table camera, and controls that work with a mouse,
 keyboard, or touch screen.
 
+[Play Corner Pocket](https://dfe-corner-pocket.onrender.com/)
+
 ## Run
 
 Node 22 or later. No package installation or external asset request is needed.
@@ -84,6 +86,9 @@ striped ball textures, rolling rotation, contact shadows, lamp reflections, cue
 movement and pocket drops. It uses the engine's geometry and aim prediction.
 The renderer caps resolution, uses a bounded shadow map and fits the entire
 table in both camera modes. A playable Canvas view covers devices without WebGL.
+Local physics keeps elapsed time separately from visual animation, so a slow
+renderer does not slow down a shot. Hidden tabs and local dialogs reset that
+clock, preserving a pause instead of catching up when the player returns.
 This is planar pool: jump shots, elevated-cue masse shots, and side english are
 not implemented. The draw/follow model is intentionally modest.
 
@@ -135,6 +140,14 @@ behavior, frame-rate independence, draw/follow, first-contact and after-contact
 rules, group assignment, ball-in-hand validation, 8-ball outcomes, room capacity,
 authority, retry/sequence handling, reconnects, rematch voting, and actual
 two-client HTTP/SSE play using the shipped online client.
+
+The release passed 61 automated tests, including the same shot at 60 FPS and
+1 FPS, pause/resume timing, and graphics-context loss. Live browser checks covered
+two separate tabs joining a room, breaking, reconnecting, passing the turn and
+leaving, plus same-screen play. The automated browser had WebGL disabled, so
+those visual checks used the Canvas view; the 3D scene received structural,
+camera-fit, inverse-aiming and resource checks rather than a hardware-rendered
+visual inspection.
 
 ## Deployment
 

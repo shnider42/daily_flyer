@@ -73,6 +73,7 @@ function toast(message, duration = 3600) {
 }
 function showDialog(id) {
   keys.clear(); stopFineAim();
+  previous = performance.now(); accumulator = 0;
   if (!$(id).open) $(id).showModal();
 }
 function closeDialogs() { for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close(); }
@@ -320,6 +321,7 @@ async function takeShot() {
   else {
     const result=shoot(game,shot);
     if(!result.ok)toast(result.error);
+    else { previous=performance.now(); accumulator=0; }
     observeState();
   }
 }
@@ -371,6 +373,8 @@ async function leaveGame() {
   placing=false;placement=null;pending=false;keys.clear();stopFineAim();setMenuBusy(false);
   snapshot=null;frames=[];connection='offline';
   game=createGame({names:['Player 1','Player 2'],seed:71});lastStateKey='';renderUI();
+  $('roomCode').value='';
+  $('menu').querySelector('.intro').textContent='A good table. A familiar game. A little friendly competition.';
   $('connectionBanner').hidden=true;
   const url=new URL(location.href);url.searchParams.delete('room');history.replaceState(null,'',url);
   if(wasOnline){try{await online.leave();}catch(error){if(flow===uiFlow)toast('Left the table. The other player will see the disconnect.');}}
@@ -429,7 +433,7 @@ $('gameMenuButton').addEventListener('click',()=>{
   showDialog('gameMenuDialog');
 });
 for(const button of document.querySelectorAll('[data-close]'))button.addEventListener('click',()=>{$(button.dataset.close).close();renderUI();});
-for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('close',()=>{keys.clear();renderUI();});
+for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('close',()=>{keys.clear();previous=performance.now();accumulator=0;renderUI();});
 $('fullscreenButton').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Use your browser’s full screen or add this game to your home screen.');}catch{toast('Full screen is unavailable in this browser.');}});
 document.querySelector('.brand').addEventListener('click',event=>{if(screen!=='menu'){event.preventDefault();if(screen==='lobby')toast('Use Leave table to close this room.');else $('gameMenuButton').click();}});
 for(const [id,direction] of [['aimLeft',-1],['aimRight',1]]){
@@ -470,7 +474,7 @@ window.addEventListener('keydown',event=>{
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
 window.addEventListener('blur',()=>{keys.clear();stopFineAim();pointerId=null;pointerMode=null;});
-document.addEventListener('visibilitychange',()=>{keys.clear();stopFineAim();});
+document.addEventListener('visibilitychange',()=>{keys.clear();stopFineAim();previous=performance.now();accumulator=0;});
 window.addEventListener('resize',()=>renderer.resize());
 if(globalThis.ResizeObserver)new ResizeObserver(()=>renderer.resize()).observe($('tableArea'));
 
@@ -490,10 +494,13 @@ function displayState(now) {
 let previous=performance.now(),accumulator=0;
 function animate(now) {
   requestAnimationFrame(animate);
-  const dt=Math.min(.06,Math.max(0,(now-previous)/1000));previous=now;
+  const elapsed=Math.min(1,Math.max(0,(now-previous)/1000));previous=now;
+  const dt=Math.min(.06,elapsed);
   if(document.hidden)return;
   if(screen==='game'&&mode!=='online'&&!dialogOpen()&&game.phase==='rolling'){
-    accumulator+=dt;
+    // Keep the physical clock independent of slow graphics. Every update still
+    // uses the shared fixed step; only visual easing and input cap frame time.
+    accumulator+=elapsed;
     while(accumulator>=FIXED_DT){step(game,FIXED_DT);accumulator-=FIXED_DT;}
   } else accumulator=0;
   if(canAct()&&!placing){
