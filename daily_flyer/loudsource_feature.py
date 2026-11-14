@@ -5,6 +5,7 @@ import re
 import sqlite3
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +72,8 @@ if SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET:
     )
 
 
-def _connect() -> sqlite3.Connection:
+@contextmanager
+def _connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(
         DB_PATH,
@@ -79,11 +81,15 @@ def _connect() -> sqlite3.Connection:
         isolation_level=None,
         check_same_thread=False,
     )
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA synchronous=NORMAL;")
-    conn.execute("PRAGMA busy_timeout=5000;")
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_storage() -> None:

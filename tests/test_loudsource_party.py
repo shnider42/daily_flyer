@@ -3,6 +3,9 @@ import tempfile
 os.environ['LOUDSOURCE_DISABLE_MONITOR']='1'
 os.environ['LOUDSOURCE_DATABASE_PATH']=os.path.join(tempfile.mkdtemp(), 'startup.db')
 import unittest
+import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch, Mock
@@ -131,5 +134,16 @@ class PartyTests(unittest.TestCase):
         ls.save_token('main',{'access_token':'fresh-test','refresh_token':'fresh-refresh','expires_at':9999999999})
         self.assertEqual(ls.get_token('main')['access_token'],'fresh-test')
         self.assertNotIn('main',ls._TOKEN_RETRY_AFTER)
+
+    def test_database_connection_is_closed_on_exit(self):
+        with ls._connect() as db:
+            self.assertEqual(db.execute('SELECT 1').fetchone()[0],1)
+        with self.assertRaises(sqlite3.ProgrammingError):db.execute('SELECT 1')
+
+    def test_preload_import_does_not_start_background_thread(self):
+        env=dict(os.environ,LOUDSOURCE_DATABASE_PATH=str(Path(self.temp.name)/'preload.db'))
+        env.pop('LOUDSOURCE_DISABLE_MONITOR',None)
+        result=subprocess.check_output([sys.executable,'-c','import web; from daily_flyer import loudsource_feature as ls; print(ls._BG_STARTED)'],env=env,text=True)
+        self.assertEqual(result.strip(),'False')
 
 if __name__=='__main__':unittest.main()

@@ -48,7 +48,13 @@ else:
         except FileExistsError:
             pass
     app.secret_key = secret_file.read_text()
-ensure_monitor_started()
+
+
+@app.before_request
+def start_worker_monitor():
+    # Gunicorn can preload this module in its master. Starting a thread there
+    # can leave SQLite/Python locks held across fork and stall worker requests.
+    ensure_monitor_started()
 
 
 @app.errorhandler(HTTPException)
