@@ -83,7 +83,7 @@ export class TrailMap {
   }
   setPosition(fix,options={}){this.fix=fix;this.positionOptions=options;this.drawPosition();}
   setTrack(track){this.track=track||[];this.drawTrack();}
-  selectCheckpoint(id){this.selectedCheckpoint=id;this.drawPlaces();}
+  selectCheckpoint(id){if(this.selectedCheckpoint===id)return;this.selectedCheckpoint=id;this.drawPlaces();}
   draw() {
     const v=this.view;this.svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
     this.unit=v.w/Math.max(1,this.container.clientWidth);

@@ -1,5 +1,5 @@
 /* Trailmark only saves an offline pack after an explicit request in the app. */
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const CACHE_NAME = `trailmark-v${VERSION}`;
 const STAGING_NAME = `${CACHE_NAME}-staging`;
 const SCOPE_URL = new URL(self.registration.scope);

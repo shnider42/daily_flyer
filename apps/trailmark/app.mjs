@@ -115,7 +115,7 @@ function renderStatus(){
   previousState=state;
   $('start-button').textContent=mode==='live'?'Stop hike':'Start GPS hike →';
   $('demo-button').textContent=mode==='demo'?'End demo':'Try demo';
-  $('action-caption').textContent=mode==='demo'?'Simulated location · no real GPS or hike recording':mode==='live'?'GPS active while this app stays visible':'No account. Location only when you start.';
+  $('action-caption').textContent=mode==='demo'?'Simulated location · no real GPS or hike recording':mode==='live'?'GPS active while this app stays visible':'Your location stays on this device.';
   $('demo-label').hidden=mode!=='demo';$('demo-controls').hidden=mode!=='demo';
   $('hike-stats').hidden=mode==='demo'||(!track.length&&mode!=='live');
   $('note-location').textContent=freshNoteFix()?'A recent GPS position will be attached to this note.':'No fresh GPS fix. This note will be saved without a location.';
@@ -128,7 +128,7 @@ function recordFix(fix){
   if(prev&&fix.timestamp-prev.timestamp<4000&&distanceMeters([prev.longitude,prev.latitude],[fix.longitude,fix.latitude])<5)return;
   if(track.length>=MAX_TRACK){settings.record=false;$('record-toggle').checked=false;toast('Track recording reached its limit. Export your GPX before starting a new recording.');persist();return;}
   const gap=prev&&(fix.timestamp-prev.timestamp>30000||distanceMeters([prev.longitude,prev.latitude],[fix.longitude,fix.latitude])>200);
-  track.push({...fix,breakBefore:breadcrumbBreak||!!gap});breadcrumbBreak=false;persist();map.setTrack(track);renderStats();
+  track.push({...fix,breakBefore:breadcrumbBreak||!!gap});breadcrumbBreak=false;persist();map.setTrack(track.slice(sessionStartIndex));renderStats();
 }
 function consumeFix(fix,now){
   snapshot=monitor.update(fix,now);transientError=null;
@@ -153,13 +153,13 @@ async function startLive(){
   if(mode==='live'){stopHike();return;}
   stopHike(false);
   if(!window.isSecureContext||!navigator.geolocation){transientError='GPS needs a secure HTTPS page in a browser that supports location. Open this site directly in Safari or Chrome.';renderStatus();return;}
-  mode='live';transientError=null;sessionStarted=Date.now();sessionStartIndex=track.length;lastAcceptedTime=0;breadcrumbBreak=true;monitor.reset();progress.reset();snapshot=monitor.resume();map.setPosition(null);map.setTrack(track);persist();
+  mode='live';transientError=null;sessionStarted=Date.now();sessionStartIndex=track.length;lastAcceptedTime=0;breadcrumbBreak=true;monitor.reset();progress.reset();snapshot=monitor.resume();map.setPosition(null);map.setTrack([]);persist();
   if(settings.sound)unlockAudio();renderStatus();renderStats();switchTab('hike');requestWatch();if(settings.wake)await acquireWake();
 }
 function stopHike(showToast=true){
   const was=mode;clearWatch();clearInterval(demoTimer);demoTimer=null;mode='idle';releaseWake();
   if(monitor)snapshot=monitor.reset();transientError=null;previousState='idle';breadcrumbBreak=true;
-  if(map){map.setPosition(null);map.setTrack(was==='live'?track:[]);}
+  if(map){map.setPosition(null);map.setTrack(was==='live'?track.slice(sessionStartIndex):[]);}
   if(was==='live'){persist();if(showToast)toast('GPS stopped. Your recorded walk is available to export on this device.');}
   if(currentRoute){progress.reset();renderStatus();renderNext();}
 }
@@ -212,7 +212,8 @@ function demoAction(scenario){
 function renderStats(){
   const points=mode==='live'?track.slice(sessionStartIndex):track;
   let distance=0;for(let i=1;i<points.length;i++)if(!points[i].breakBefore)distance+=distanceMeters([points[i-1].longitude,points[i-1].latitude],[points[i].longitude,points[i].latitude]);
-  $('walked-distance').textContent=meters(distance);const elapsed=mode==='live'?Date.now()-sessionStarted:track.length>1?track.at(-1).timestamp-track[0].timestamp:0;const sec=Math.max(0,Math.floor(elapsed/1000));$('walked-time').textContent=`${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+  let recordedTime=0;for(let i=1;i<track.length;i++)if(!track[i].breakBefore)recordedTime+=Math.max(0,track[i].timestamp-track[i-1].timestamp);
+  $('walked-distance').textContent=meters(distance);const elapsed=mode==='live'?Date.now()-sessionStarted:recordedTime;const sec=Math.max(0,Math.floor(elapsed/1000));$('walked-time').textContent=`${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
 }
 
 function unlockAudio(){
