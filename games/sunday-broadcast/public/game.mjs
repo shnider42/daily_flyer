@@ -1,10 +1,10 @@
-import {Football,PLAYS,DEFENSE,TEAMS,clamp} from './football.mjs?v=3';
-import {Stadium} from './stadium.mjs?v=3';
-import {FallbackStadium} from './fallback-stadium.mjs?v=3';
-import {OnlineMatch} from './online.mjs?v=3';
+import {Football,PLAYS,DEFENSE,TEAMS,clamp} from './football.mjs?v=4';
+import {Stadium} from './stadium.mjs?v=4';
+import {FallbackStadium} from './fallback-stadium.mjs?v=4';
+import {OnlineMatch} from './online.mjs?v=4';
 const $=id=>document.getElementById(id);
 const screen=$('screen'),keys=new Set();
-const touchMode=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;
+const touchMode=matchMedia('(pointer:coarse)').matches;
 let game=new Football(),stadium,started=false,paused=false,mode=0,replay=null,last=performance.now(),uiState='',muted=true,audio,crowd;
 const thumb={x:0,y:0,sprint:false};
 const bulletHold=175;
@@ -189,7 +189,7 @@ try{
 }catch{
   try{
     stadium=new FallbackStadium($('field'));
-    $('menu-status').textContent='Field view is active on this device.';
+    $('camera').title='Change overhead view (V)';
   }catch{
     call('This browser could not open the field.');
     setMenuBusy(false);
@@ -389,6 +389,7 @@ function playbook(plays){
 function refresh(){
   if(!started)return;
   uiState=game.state;
+  $('match-layout').dataset.phase=replay?'replay':game.state;
   const caption=$('caption'),title=$('desk-title'),plays=$('plays');
   $('replay').hidden=game.state==='live'||!game.lastReplay.length;
   $('replay').textContent=replay?'Exit replay':'↶ Last play';
@@ -538,7 +539,10 @@ function input(){
   const x=thumb.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
   const y=thumb.y+(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
   const magnitude=Math.max(1,Math.hypot(x,y));
-  return {x:x/magnitude,y:y/magnitude,sprint:thumb.sprint||keys.has('ShiftLeft')||keys.has('ShiftRight')};
+  const sprint=thumb.sprint||keys.has('ShiftLeft')||keys.has('ShiftRight');
+  return stadium?.horizontal
+    ?{x:-y/magnitude,y:x/magnitude,sprint}
+    :{x:x/magnitude,y:y/magnitude,sprint};
 }
 const map=$('minimap'),mapCtx=map.getContext('2d');
 function mapPin(event){

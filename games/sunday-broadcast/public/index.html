@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Sunday Broadcast | DailyFlyer</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <main>
 <header>
-  <div class="network"><span></span> DFE SPORTS</div>
+  <div class="network"><span></span> DFE SPORTS <strong>Sunday Broadcast</strong></div>
   <div class="header-right"><button id="camera" title="Change camera (V)">Broadcast</button><button id="sound" aria-pressed="false">Sound off</button><button id="pause" hidden>Pause</button></div>
 </header>
 <div id="room-bar" class="room-bar" hidden>
@@ -16,19 +16,15 @@
   <button id="copy-invite">Copy invite</button><button id="leave">Leave</button>
 </div>
 <div class="match-layout" id="match-layout">
-<section class="screen" id="screen" aria-label="3D football field">
-<div id="field"></div><div class="grade"></div>
-<div id="bug" class="bug" hidden></div>
-<div id="tags" aria-label="Receivers"></div>
-<div id="receiver-bar" aria-label="Pass to receiver" hidden></div>
-<div id="kick-meter" hidden><span>Kick timing · Space</span><div class="kick-track"><i id="kick-window"></i><b id="kick-needle"></b></div></div>
-<div id="call" class="call" aria-live="polite"></div>
 <section id="menu" class="menu">
-  <div class="match-label"><i></i> LIVE FROM HARBOR STADIUM</div>
-  <h1>SUNDAY<br><em>BROADCAST</em></h1>
-  <div class="matchup"><strong>BOS</strong><span>vs</span><strong>CHI</strong><small>Boston Harbors<br>Chicago Foundry</small></div>
+  <div class="match-label"><i></i> Harbor Stadium</div>
+  <h1>Sunday Broadcast</h1>
+  <div class="matchup" aria-label="Boston Harbors versus Chicago Foundry">
+    <div class="matchup-team"><strong class="bos">BOS</strong><span>Boston Harbors</span></div>
+    <div class="matchup-team"><strong class="chi">CHI</strong><span>Chicago Foundry</span></div>
+  </div>
   <div class="settings"><label>You play <select id="team"><option value="0">Boston</option><option value="1">Chicago</option></select></label><label>Difficulty <select id="difficulty"><option>Rookie</option><option selected>Pro</option><option>All-Pro</option></select></label><label>Quarter <select id="duration"><option value="60">1 min</option><option value="120" selected>2 min</option><option value="180">3 min</option></select></label></div>
-  <div class="menu-actions"><button id="start" class="primary">Play solo <span>▶</span></button><button id="create-room">Host 1v1</button></div>
+  <div class="menu-actions"><button id="start" class="primary">Play solo</button><button id="create-room">Host 1v1</button></div>
   <form id="join-form" class="join-form">
     <label for="room-code" class="sr-only">Room code</label>
     <input id="room-code" maxlength="8" placeholder="Room code" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
@@ -36,17 +32,27 @@
   </form>
   <p id="menu-status" role="status"></p>
 </section>
+<section class="screen" id="screen" aria-label="Football field">
+<div id="field"></div><div class="grade"></div>
+<div id="bug" class="bug" hidden></div>
+<div id="tags" aria-label="Receivers"></div>
+<div id="receiver-bar" aria-label="Pass to receiver" hidden></div>
+<div id="kick-meter" hidden><span>Kick timing · Space</span><div class="kick-track"><i id="kick-window"></i><b id="kick-needle"></b></div></div>
+<div id="call" class="call" aria-live="polite"></div>
+
 <div id="touch" hidden><div id="stick"><b></b></div><div id="actions"><div id="touch-pass"></div><div id="touch-live"></div></div></div>
 </section>
 <section id="desk" class="desk" hidden>
+  <div class="desk-content">
   <div class="desk-head"><div><div id="caption" class="eyebrow"></div><h2 id="desk-title"></h2></div><button id="replay" hidden>↶ Replay</button></div>
   <div id="plays"></div>
+  </div>
   <div class="camera-desk" id="camera-desk" hidden>
     <div><button id="follow-camera" aria-pressed="true">Follow play</button><label class="zoom-label">Zoom <input id="zoom" aria-label="Camera zoom" type="range" min="70" max="145" value="100"></label></div>
-    <canvas id="minimap" width="144" height="68" aria-label="Drag field map to move camera" role="img"></canvas>
+    <canvas id="minimap" width="224" height="100" aria-label="Drag field map to move camera" role="img"></canvas>
   </div>
 </section>
 </div>
-<footer><span><b>WASD / arrows</b> Move <b>Shift</b> Sprint <b>Space</b> Snap / tackle <b>1–4 / click</b> Pass <b>E</b> Cut / switch <b>V</b> Camera</span><details><summary>Controls</summary><p>Choose a play and press Space. Tap 1–4 or click a receiver to lob. Hold the key or button briefly for a bullet. On runs, follow your blocks and press E to cut. On defense, E switches defenders and Space plays the ball or dives for a tackle. Use the stick and action buttons on touchscreens. Drag the field map to move the camera, then choose Follow play to resume tracking.</p></details></footer>
-</main><script type="module" src="game.mjs?v=3"></script>
+<footer><span class="key-strip"><span><kbd>WASD</kbd> Move</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>Space</kbd> Snap / tackle</span><span><kbd>1–4</kbd> Call / pass</span><span><kbd>E</kbd> Cut / switch</span><span><kbd>V</kbd> Camera</span></span><details><summary>Controls</summary><p>Choose a play and press Space. Tap 1–4 or click a receiver to lob. Hold the key or button briefly for a bullet. On runs, follow your blocks and press E to cut. On defense, E switches defenders and Space plays the ball or dives for a tackle. Use the stick and action buttons on touchscreens. Drag the field map to move the camera, then choose Follow play to resume tracking.</p></details></footer>
+</main><script type="module" src="game.mjs?v=4"></script>
 </body></html>
