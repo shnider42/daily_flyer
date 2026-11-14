@@ -2,6 +2,8 @@
 
 An original ten-player third-person island battle royale in DailyFlyer. Drop onto Breakwater Island, scavenge four weapon families, build cover, and outlast the closing storm. Empty seats are computer players. Original procedural scenery, characters, effects, and audio; no Fortnite assets or branding.
 
+**Play:** https://dfe-skybreak.onrender.com/
+
 ## Run
 
 Requires Node 22 or newer. All dependencies and browser assets are vendored with licenses. No package installation or external CDN is needed.
@@ -70,4 +72,6 @@ Rooms live in the memory of a single server instance. A deploy or server restart
 - Health endpoint: `/health`
 - One instance; frontend and WebSocket share the same origin.
 
-The 27-test suite exercises complete bot rounds, movement/door/roof/ramp geometry, weapon and inventory rules, camera/muzzle aiming, storm, ten real WebSocket clients, an eleventh-player rejection, reconnect/host migration, stale input, protocol bounds, and static-file boundaries. A separate runtime audit exercised actual Three.js scene construction, camera math, effects, geometry and eight restarts with GPU drawing stubbed; it found no runtime errors, invalid transforms or accumulating scene objects. Actual browser shader compilation, visual appearance, controller feel and device frame rates remain to be verified on the deployed build.
+The automated suite exercises complete bot rounds, movement/door/roof/ramp geometry, weapon and inventory rules, camera/muzzle aiming, storm, ten real WebSocket clients, an eleventh-player rejection, reconnect/host migration, snapshot cadence, stale input, protocol bounds, and static-file boundaries. Live deployment checks verified HTTP assets, ten simultaneous WebSocket clients, one shared match, an eleventh-player rejection, ammunition consumption, and reconnection preserving the same player, match, health, shields and ammunition.
+
+A separate runtime audit exercised actual Three.js scene construction, camera math, effects, geometry and eight restarts with GPU drawing stubbed; it found no runtime errors, invalid transforms or accumulating scene objects. The available cloud browser has WebGL disabled and correctly displays the compatibility notice. Actual browser shader compilation, visual appearance, controller feel and device frame rates remain to be verified on a WebGL-capable device.

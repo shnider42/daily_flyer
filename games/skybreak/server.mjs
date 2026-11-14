@@ -13,6 +13,7 @@ const compress = promisify(gzip);
 const PUBLIC_ROOT = fileURLToPath(new URL('./public/', import.meta.url));
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const FIXED_STEP = 1 / 30;
+const SNAPSHOT_INTERVAL_MS = 1000 / 15;
 const ACTIONS = new Set(['interact', 'reload', 'heal', 'shield', 'wall', 'ramp', 'harvest', 'slot0', 'slot1', 'slot2', 'slot3']);
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -151,11 +152,20 @@ export function createGameServer({ now = Date.now, publicRoot = PUBLIC_ROOT,
         bot: !seat.human, connected: Boolean(seat.connection), color: players[id]?.color ?? seat.color })) };
   }
   function publishLobby(room) { broadcast(room, { type: 'lobby', lobby: lobby(room) }); }
-  function publishSnapshot(room, includeLobby = false) {
+  function publishSnapshot(room, includeLobby = false, scheduled = false) {
     const value = { type: 'snapshot', snapshot: room.match.snapshot() };
     if (includeLobby) value.lobby = lobby(room);
     broadcast(room, value);
-    room.lastPublishAt = now();
+    const time = now();
+    room.lastPublishAt = time;
+    if (scheduled) {
+      // Preserve the 15Hz deadline grid across the 33ms simulation timer's
+      // rounding/jitter. Re-basing on each actual send would drift to 10Hz.
+      // Skip missed periods after a stall; never queue stale catch-up frames.
+      const periods = Math.max(1, Math.floor((time - room.nextPublishAt) / SNAPSHOT_INTERVAL_MS) + 1);
+      room.nextPublishAt += periods * SNAPSHOT_INTERVAL_MS;
+      if (room.nextPublishAt <= time) room.nextPublishAt = time + SNAPSHOT_INTERVAL_MS;
+    } else room.nextPublishAt = time + SNAPSHOT_INTERVAL_MS;
   }
   function chooseHost(room) {
     const current = room.seats[room.hostId];
@@ -204,7 +214,7 @@ export function createGameServer({ now = Date.now, publicRoot = PUBLIC_ROOT,
       match: matchFactory({ ...options, seed: randomInt(0x7fffffff) }),
       seats: Array.from({ length: MAX_PLAYERS }, (_, id) => ({ id, human: false, name: '', color: id,
         token: null, connection: null, disconnectedAt: null, input: null, inputAt: -Infinity })),
-      createdAt: now(), lastActiveAt: now(), lastPublishAt: 0,
+      createdAt: now(), lastActiveAt: now(), lastPublishAt: 0, nextPublishAt: now() + SNAPSHOT_INTERVAL_MS,
       startsAt: isPublic ? now() + quickStartMs : null, lastLobbyAt: 0, closed: false };
     rooms.set(code, room);
     claim(connection, room, data);
@@ -415,7 +425,7 @@ export function createGameServer({ now = Date.now, publicRoot = PUBLIC_ROOT,
         for (const seat of room.seats) if (seat.human && seat.connection && seat.input && time - seat.inputAt <= inputExpiryMs) inputs.set(seat.id, seat.input);
         for (let i = 0; i < steps && room.match.phase !== 'finished'; i++) room.match.step(FIXED_STEP, inputs);
         if (room.match.phase !== previousPhase) publishSnapshot(room, true);
-        else if (time - room.lastPublishAt >= 1000 / 15) publishSnapshot(room);
+        else if (time >= room.nextPublishAt) publishSnapshot(room, false, true);
       } else if (time - room.lastLobbyAt >= 1000) {
         publishSnapshot(room, true); room.lastLobbyAt = time;
       }

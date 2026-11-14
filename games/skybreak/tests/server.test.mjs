@@ -205,6 +205,24 @@ test('quick play fills open lobby slots with bots, counts down12s, then routes n
   assert.match((await direct.request({ type: 'join', code: initial.code, name: 'Late' }, error)).message, /already underway/i);
 });
 
+test('snapshot publication holds 15Hz across 33ms timer drift and skips missed deadlines without a burst', async t => {
+  const game = await fixture(t);
+  const host = await game.connect();
+  await host.request({ type: 'create', name: 'Cadence' }, welcome);
+  await host.request({ type: 'start' }, phase('drop'));
+  let snapshots = 0;
+  host.socket.on('message', bytes => { if (JSON.parse(bytes.toString()).type === 'snapshot') snapshots++; });
+  // Node's 30Hz interval commonly fires at 33ms. Waiting 66.667ms from each
+  // actual send would require three such ticks and incorrectly produce 10Hz.
+  for (let i = 0; i < 30; i++) { game.advance(33); await host.sync(); }
+  assert.equal(snapshots, 14, '990ms should contain 14 scheduled 15Hz snapshots, not ten 100ms snapshots');
+  const beforeLag = snapshots;
+  game.advance(5000, 0); await host.sync();
+  assert.equal(snapshots, beforeLag + 1, 'After a long stall only the newest authoritative state should be sent');
+  for (let i = 0; i < 5; i++) { game.advance(0, 0); await host.sync(); }
+  assert.equal(snapshots, beforeLag + 1, 'Expired deadlines must not remain queued for a catch-up burst');
+});
+
 test('leaving frees a seat and migrates host without stopping the remaining match', async t => {
   const game = await fixture(t);
   const host = await game.connect();
