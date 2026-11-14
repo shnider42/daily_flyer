@@ -1,0 +1,14 @@
+{
+  "name": "shenanigans-golf",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Eighteen increasingly unreasonable holes for four golfers, with computer players in every open seat.",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": { "node": ">=22" },
+  "license": "UNLICENSED"
+}

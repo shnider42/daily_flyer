@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#173b32">
+  <meta name="description" content="Eighteen holes of increasingly unreasonable minigolf. Play a full round against computer golfers, or bring up to four friends into a private room.">
+  <title>Shenanigans Golf · DFE</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css?v=1.0.0">
+</head>
+<body>
+  <canvas id="course" aria-label="Three-dimensional minigolf course. Click or touch the turf to aim, set power, then press Putt."></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <header id="masthead">
+    <a class="brand" href="./" aria-label="Shenanigans Golf home"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 31V3l19 6-19 7" fill="none" stroke="currentColor" stroke-width="3"/><ellipse cx="12" cy="34" rx="10" ry="3" fill="currentColor"/></svg><span>SHENANIGANS<span class="brand-small">MINIATURE GOLF</span></span></a>
+    <div class="mast-tools"><span id="render-mode" hidden>Simple view</span><button id="sound" class="small-button" aria-pressed="false" title="Toggle sound">Sound off</button><button id="help" class="small-button">How to play</button></div>
+  </header>
+
+  <main id="welcome" class="welcome">
+    <div class="eyebrow">A perfectly normal day out.</div>
+    <h1>Well,<br>that escalated<span>.</span></h1>
+    <p class="intro">18 holes. Four golfers.<br>Diminishing common sense.</p>
+    <div class="ticket">
+      <label class="name-label" for="player-name">Your name <input id="player-name" maxlength="20" value="Golfer" autocomplete="nickname" spellcheck="false"></label>
+      <button id="play" class="button primary">Play a full round <span aria-hidden="true">↗</span></button>
+      <p class="quiet play-note">Jump straight in with three computer golfers.</p>
+      <div class="paired"><button id="host" class="button secondary">Host friends</button><button id="show-join" class="button secondary">Join a room</button></div>
+      <form id="join-form" hidden>
+        <label for="room-code">Room code</label><div class="join-line"><input id="room-code" maxlength="6" placeholder="ABC234" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="join" class="button primary" type="submit">Join</button></div>
+      </form>
+      <button id="resume" class="resume" hidden>Rejoin your last room</button>
+      <details id="round-options"><summary>Round options <span>rules &amp; computer players</span></summary><div class="option-grid"><label for="mode">Competition<select id="mode"><option value="stroke">Lowest total strokes</option><option value="points">Points for each hole</option></select></label><label for="difficulty">Computer golfers<select id="difficulty"><option value="casual">Casual</option><option value="club" selected>Club players</option><option value="expert">Experts</option></select></label></div><p class="quiet" id="rules-note">Everyone plays at once. Balls pass through each other. A shared 2½-minute limit keeps each hole moving.</p></details>
+      <p id="menu-message" class="form-message" role="status" hidden></p>
+    </div>
+    <div class="welcome-bottom"><button id="practice" class="text-button">Practice a hole</button><span>1–4 players · mouse, keyboard &amp; touch</span></div>
+  </main>
+  <div id="course-caption" class="course-caption" aria-hidden="true"><span>01 / 18</span><b>It starts innocently enough.</b><span>THE GARDEN</span></div>
+
+  <section id="lobby" class="lobby panel" hidden aria-labelledby="lobby-title">
+    <div class="eyebrow">The foursome</div><h2 id="lobby-title">There’s room for everyone.</h2>
+    <p>Share this room. Empty places are filled by computer golfers, and friends can join during the round.</p>
+    <div class="room-ticket"><div><span>ROOM CODE</span><strong id="lobby-code">———</strong></div><button id="copy-invite" class="button secondary">Copy invite</button></div>
+    <input id="invite-url" class="invite-url" readonly aria-label="Room invitation link" hidden>
+    <div id="lobby-players" class="lobby-players"></div>
+    <p id="lobby-rules" class="quiet"></p><p id="lobby-message" role="status" class="quiet"></p>
+    <button id="start-room" class="button primary">Tee off with this group</button>
+    <button id="leave-lobby" class="text-button">Leave room</button>
+  </section>
+
+  <section id="game-ui" hidden aria-label="Golf round">
+    <header class="game-top"><div class="hole-title"><div class="hole-number"><span>HOLE</span><b id="hole-number">01</b><span id="hole-par">PAR 2</span></div><div><div class="eyebrow" id="chapter">THE GARDEN</div><h2 id="hole-name">A nice little putt</h2><p id="hole-tip"></p></div></div><div class="game-tools"><button id="scorecard" class="small-button">Scorecard</button><button id="camera" class="small-button" aria-pressed="false">View course</button><button id="game-menu" class="small-button">Menu</button></div></header>
+    <div id="leaders" class="leaders" aria-label="Live standings"></div>
+    <div class="round-info"><span id="connection">Solo round</span><button id="game-invite" class="text-button" hidden>Invite friends</button><span id="hole-clock">2:30</span></div>
+    <div id="shot-toast" class="shot-toast" aria-live="polite" hidden></div>
+    <aside id="hole-result" class="hole-result" hidden><span class="eyebrow" id="result-eyebrow">HOLE COMPLETE</span><h3 id="result-title"></h3><div id="hole-scores"></div><div class="next-line"><span id="next-countdown"></span><button id="next-hole" class="text-button">Next hole →</button></div></aside>
+    <footer id="shot-dock" class="shot-dock">
+      <div class="shot-status"><span id="ball-label"><i></i>Your ball</span><strong id="shot-status">Choose your line.</strong><span id="stroke-count">Shot 1</span></div>
+      <div class="shot-controls"><div class="aim-controls"><button id="aim-left" class="aim-button" aria-label="Aim left">↶</button><button id="aim-cup" class="aim-cup" title="Aim toward the cup (G)">Aim at cup</button><button id="aim-right" class="aim-button" aria-label="Aim right">↷</button></div><label class="power-control" for="power"><span>POWER <strong id="power-value">45%</strong></span><input id="power" type="range" min="5" max="100" value="45" step="1"></label><button id="putt" class="button putt">PUTT <span>Space</span></button></div>
+      <div class="control-hint"><span id="aim-hint">Click the turf to aim · arrows to fine tune</span><span id="watch-hint">C: course view</span></div>
+    </footer>
+  </section>
+
+  <dialog id="help-dialog" class="modal help-modal"><div class="dialog-head"><span class="eyebrow">A quick introduction</span><button data-close class="close-button" aria-label="Close instructions">×</button></div><h2>Read the green.<br>Question everything else.</h2><ol class="instructions"><li><b>Choose your line.</b> Click or touch the turf where you want to aim. The dotted line shows the direction of your shot.</li><li><b>Set the power.</b> Move the power slider. A little goes a long way near the cup.</li><li><b>Putt.</b> Press the big button or Space. Wait for the ball to stop before shooting again.</li></ol><div class="key-row"><span>← → aim</span><span>↑ ↓ power</span><span>G aim at cup</span><span>C course view</span></div><h3>A fair contest, in an unfair place.</h3><p>Everyone plays at the same time. Balls pass through other golfers’ balls. Computers take real shots through the same obstacles.</p><p>Water, lava and falling off cost a penalty stroke and return you to your last safe lie. Each hole has a 12-stroke cap and a shared 2½-minute clock; an unfinished hole scores 12. Then everyone moves on together.</p><p><b>Stroke play:</b> fewest strokes over 18 holes wins. <b>Points:</b> each hole awards 4, 3, 2 and 1 points; tied players split the points for their places. Highest total wins. Tied rounds are shared wins.</p><p class="quiet">A disconnected online player is covered by a computer. Rejoin in the same browser tab to reclaim your place. Live rooms last for this session; a server restart ends them.</p><button data-close class="button primary">Got it. Let’s putt.</button></dialog>
+
+  <dialog id="practice-dialog" class="modal practice-modal"><div class="dialog-head"><span class="eyebrow">The course</span><button data-close class="close-button" aria-label="Close practice selection">×</button></div><h2>Pick your trouble.</h2><p>One hole, a fresh scorecard, three computer golfers.</p><div id="practice-grid" class="practice-grid"></div></dialog>
+
+  <dialog id="score-dialog" class="modal score-modal"><div class="dialog-head"><span class="eyebrow" id="score-eyebrow">OFFICIAL SCORECARD</span><button data-close class="close-button" aria-label="Close scorecard">×</button></div><h2 id="score-title">Every stroke counts.</h2><p id="score-subtitle"></p><div id="final-podium" class="final-podium" hidden></div><div id="score-table" class="table-scroll"></div><div id="finish-actions" class="finish-actions" hidden><button id="rematch" class="button primary">Another round</button><button id="finish-menu" class="button secondary">Back to clubhouse</button></div></dialog>
+
+  <dialog id="pause-dialog" class="modal pause-modal"><div class="dialog-head"><span class="eyebrow">A moment at the clubhouse</span><button data-close class="close-button" aria-label="Close menu">×</button></div><h2 id="pause-title">Taking a breather?</h2><p id="pause-note">Your solo round is paused.</p><button data-close class="button primary">Back to the green</button><button id="quit" class="button secondary">Leave this round</button><p class="quiet">Leaving a solo round discards its score. Online, a computer takes your place.</p></dialog>
+
+  <div id="connection-banner" class="connection-banner" role="status" hidden></div>
+  <div id="fatal" class="fatal" hidden><h2>The course couldn’t open.</h2><p id="fatal-message">Reload the page to try again.</p><button onclick="location.reload()" class="button primary">Reload</button></div>
+  <noscript><div class="fatal"><h2>JavaScript is needed to play.</h2><p>Enable JavaScript and reload the course.</p></div></noscript>
+  <script type="module" src="./app.mjs?v=1.0.0"></script>
+</body>
+</html>
