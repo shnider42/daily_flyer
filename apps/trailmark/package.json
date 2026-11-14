@@ -1,0 +1,1 @@
+{"name":"trailmark-hiking","version":"0.1.0","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node --test *.test.mjs","check":"node --check app.mjs && node --check map.mjs && node --check service-worker.js"},"engines":{"node":">=22"}}

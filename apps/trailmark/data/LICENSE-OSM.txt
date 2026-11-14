@@ -1,0 +1,11 @@
+Trailmark Four Ponds geographic data
+
+© OpenStreetMap contributors.
+This data is derived from OpenStreetMap and is available under the Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+The area.json file is the derived database; individual feature source URLs, dates and retrieval date are included. No geometry has been traced from the town map.
+
+The separate four-ponds-network.geojson is derived from MassGIS NextGen 911 trails, November 14 2023 snapshot, with local linework attributed in MassGIS to OpenStreetMap.
+MassGIS metadata: https://www.mass.gov/info-details/massgis-data-hiking-trails-for-nextgen-911

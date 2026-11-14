@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#213f35">
+  <meta name="description" content="A quieter trail companion. Follow your selected route, check the next junction, and notice when you may have wandered. Four Ponds, Bourne is our first pilot.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Trailmark · Four Ponds</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="Trailmark home"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M10 3h12v30H10z" fill="currentColor"/><path d="m7 20 9-10 9 10M16 11v15" fill="none" stroke="#f8f6ee" stroke-width="2.7"/></svg><span>Trailmark</span></a>
+    <span class="header-place">Four Ponds <span> / </span> Bourne, MA</span>
+    <button id="about-button" class="quiet-button">About the pilot <span aria-hidden="true">↗</span></button>
+  </header>
+
+  <main class="workspace">
+    <section class="map-panel" aria-label="Interactive trail map">
+      <div class="map-title"><span class="eyebrow">STARTER AREA / 01</span><h1 id="area-title">Four Ponds</h1><p id="area-subtitle">Pocasset · Bourne, Massachusetts</p></div>
+      <div id="map" class="map" tabindex="0" role="application" aria-label="Trail map. Drag to pan, pinch or use plus and minus to zoom. Arrow keys pan, zero fits the route."></div>
+      <div class="map-top-tools"><button id="fit-map" class="map-button" title="Fit selected route" aria-label="Fit selected route"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button><button id="zoom-in" class="map-button" aria-label="Zoom in">+</button><button id="zoom-out" class="map-button" aria-label="Zoom out">−</button></div>
+      <span class="north-mark" aria-label="North is up"><svg viewBox="0 0 18 28" aria-hidden="true"><path d="m9 3 6 15-6-4-6 4z"/></svg>N</span>
+      <div id="demo-label" class="demo-map-label" hidden>DEMO WALK · simulated location</div>
+      <button id="locate-button" class="locate-button" title="Center map on your latest location"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1"/></svg><span>My location</span></button>
+      <div class="map-bottom"><div class="map-legend"><span><i class="selected-line"></i>Selected route</span><span><i class="other-line"></i>Mapped paths</span></div><span id="map-scale" class="map-scale">200 m</span></div>
+      <div class="map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> · <a href="./data/LICENSE-OSM.txt" target="_blank" rel="noopener">ODbL</a><span> · Field verification pending</span></div>
+      <div id="map-note" class="map-note" hidden></div>
+    </section>
+
+    <aside class="trail-panel">
+      <nav class="panel-tabs" aria-label="Trail tools"><button class="active" data-tab="hike" aria-selected="true">Hike</button><button data-tab="route" aria-selected="false">Route</button><button data-tab="notes" aria-selected="false">Field notes</button><button data-tab="settings" aria-selected="false">Settings</button></nav>
+      <div class="panel-content">
+        <section id="tab-hike" class="tab-page">
+          <div class="section-heading"><span class="eyebrow">YOUR WALK</span><button id="change-route" class="text-button">Change route</button></div>
+          <h2 id="route-name">Loading trail pack…</h2>
+          <p class="route-description" id="route-description">Reading the local map and routes.</p>
+          <div class="route-facts"><div><strong id="route-length">—</strong><span>mapped distance</span></div><div><strong id="route-shape">—</strong><span>route type</span></div><div><strong id="route-junctions">—</strong><span>checkpoints</span></div></div>
+          <p class="source-state" id="source-state"><span class="source-dot"></span>Mapped pilot · not field checked</p>
+
+          <div id="status-card" class="status-card" data-state="idle" role="status" aria-live="polite" aria-atomic="true"><div class="status-heading"><span id="status-icon" class="status-icon">◎</span><h3 id="status-title">A little more sure of the way.</h3></div><p id="status-message">Start GPS at the trailhead, or try a simulated walk from here.</p><div id="fix-metrics" class="fix-metrics" hidden><span id="distance-label">— from route</span><span id="accuracy-label">GPS ±—</span></div></div>
+
+          <div id="next-card" class="next-card"><div class="section-heading"><span class="eyebrow">NEXT CHECKPOINT</span><span id="next-distance" class="distance-chip">—</span></div><div class="next-heading"><span id="junction-number" class="junction-number">↗</span><h3 id="next-name">Start at the trailhead</h3></div><p id="next-note">Match the route to the trail signs before setting off.</p><button id="show-next" class="text-button">Show on map <span aria-hidden="true">↗</span></button></div>
+
+          <div id="demo-controls" class="demo-controls" hidden><div class="section-heading"><span class="eyebrow">TRY A SCENARIO</span><span>Demo only</span></div><div class="scenario-grid"><button data-scenario="junction">Next checkpoint</button><button data-scenario="wrong">Take a wrong turn</button><button data-scenario="weak">Weak GPS signal</button><button data-scenario="return">Back to route</button></div><p id="demo-explainer">The demo uses the same GPS checks as a real hike.</p></div>
+
+          <div class="hike-stats" id="hike-stats" hidden><div><span>Recorded</span><strong id="walked-distance">0 m</strong></div><div><span>Elapsed</span><strong id="walked-time">0:00</strong></div><button id="export-track" class="text-button">Export GPX</button></div>
+          <div class="small-note"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg><p><strong>Keep Trailmark visible.</strong> This web pilot pauses monitoring when you lock your phone or switch apps.</p></div>
+        </section>
+
+        <section id="tab-route" class="tab-page" hidden>
+          <span class="eyebrow">CHOOSE YOUR ROUTE</span><h2>One area to start.</h2><p class="route-description">Four Ponds is the first trail pack. Imported routes stay on this device.</p>
+          <div id="route-list" class="route-list"></div>
+          <div class="section-divider"></div><div class="section-heading"><h3>Along this route</h3><button id="reverse-route" class="text-button">Reverse</button></div><ol id="checkpoint-list" class="checkpoint-list"></ol>
+          <a id="official-map-link" class="external-link" href="https://ma-bourne.civicplus.com/DocumentCenter/View/1492/Town-Forest-and-Four-Ponds-Conservation-Area" target="_blank" rel="noopener">Open the town’s official trail map <span>↗</span></a>
+          <div class="section-divider"></div><h3>Bring another trail</h3><p class="muted">Import a GPX track or route GeoJSON. Use a continuous, trusted route; an imported line has not been checked by Trailmark.</p><label class="file-button" for="route-file">Import GPX or GeoJSON<input id="route-file" type="file" accept=".gpx,.json,.geojson,application/gpx+xml,application/geo+json,application/json"></label><p id="import-status" class="inline-status" role="status"></p>
+        </section>
+
+        <section id="tab-notes" class="tab-page" hidden>
+          <span class="eyebrow">MAKE THE MAP BETTER</span><h2>Remember the confusing bits.</h2><p class="route-description">Mark a poorly signed fork or a useful landmark. Notes are private on this device until you export them.</p>
+          <form id="note-form"><label for="note-kind">What did you notice?</label><select id="note-kind"><option value="junction">Confusing junction</option><option value="sign">Missing or unclear sign</option><option value="landmark">Useful landmark</option><option value="condition">Trail condition</option></select><label for="note-text">Field note</label><textarea id="note-text" maxlength="1200" rows="4" placeholder="What would help the next person find their way?" required></textarea><p class="muted" id="note-location">A fresh GPS fix can attach a location. Demo positions are never used.</p><button class="primary-button" type="submit">Save field note</button></form>
+          <div class="section-heading notes-heading"><h3>Your notes</h3><button id="export-notes" class="text-button">Export JSON</button></div><div id="notes-list"></div><p id="notes-status" class="inline-status" role="status"></p>
+        </section>
+
+        <section id="tab-settings" class="tab-page" hidden>
+          <span class="eyebrow">ON YOUR PHONE</span><h2>Simple, quiet, local.</h2>
+          <label class="setting"><span><strong>Alert sound</strong><small>A brief chime when a departure is confirmed.</small></span><input id="sound-toggle" type="checkbox" role="switch"></label><button id="test-sound" class="text-button">Test the chime</button>
+          <label class="setting"><span><strong>Keep screen awake</strong><small>While a GPS hike is active and the browser allows it.</small></span><input id="wake-toggle" type="checkbox" role="switch"></label><p id="wake-status" class="inline-status">Screen wake lock is off.</p>
+          <label class="setting"><span><strong>Save my breadcrumb trail</strong><small>Save accepted GPS points on this device for GPX export.</small></span><input id="record-toggle" type="checkbox" role="switch" checked></label>
+          <div class="section-divider"></div><h3>Ready without reception</h3><p class="muted">Save the app and Four Ponds vector map before leaving. External maps and links need a connection.</p><button id="offline-button" class="secondary-button">Save for offline use</button><p id="offline-status" class="inline-status" role="status">Offline pack has not been checked.</p>
+          <div class="section-divider"></div><h3>Add to your Home Screen</h3><p class="muted">On iPhone: open in Safari, tap Share, then Add to Home Screen. On Android: use your browser’s Install app option.</p><p class="muted">Installing does not enable background GPS. Phone-in-pocket alerts are a native-app next step.</p>
+          <div class="section-divider"></div><h3>Your location stays here.</h3><p class="muted">Trailmark sends no GPS coordinates, notes, or imported routes to a server. The host receives ordinary page requests. Browser storage can be cleared or evicted; export anything you want to keep.</p><button id="clear-data" class="danger-button">Clear my saved data</button>
+        </section>
+      </div>
+      <footer class="hike-actions"><button id="start-button" class="primary-button" disabled>Start GPS hike <span aria-hidden="true">→</span></button><button id="demo-button" class="secondary-button" disabled>Try demo</button><div class="action-caption" id="action-caption">No account. Location only when you start.</div></footer>
+    </aside>
+  </main>
+
+  <dialog id="about-dialog"><div class="dialog-top"><span class="eyebrow">TRAILMARK / FIELD PILOT 0.1</span><button class="close-dialog" aria-label="Close dialog">×</button></div><h2>Know when to look up.</h2><p>Trailmark is a companion for the moment a path splits and the signs stop helping. Four Ponds in Bourne is the first area.</p><h3>What this pilot does</h3><p>Shows your location and reported accuracy, compares it with a selected mapped route, calls attention to checkpoints, and warns after repeated good GPS readings suggest you have left that route.</p><h3>What still needs a walk</h3><p>These routes are based on published mapping, not a field survey. Junction positions, signs, access and GPS behavior need to be checked on the ground. Use the official map and posted signs; this pilot does not establish whether terrain is passable.</p><h3>Why the screen stays on</h3><p>A browser cannot reliably monitor location with your phone locked. This version pauses when hidden and waits for a fresh fix when you return. Reliable background alerts require native location support.</p><h3>Sources & map notes</h3><ul id="source-list"></ul><p class="muted">Map labels and route distances are approximate. A line on the map is not proof of current public access. No location tracking starts until you choose Start GPS hike.</p><button class="primary-button close-dialog">Back to the map</button></dialog>
+  <dialog id="confirm-dialog"><div class="dialog-top"><span class="eyebrow">YOUR DEVICE</span><button class="close-dialog" aria-label="Close dialog">×</button></div><h2 id="confirm-title">Clear saved data?</h2><p id="confirm-message">This removes your notes, imported routes, saved track and settings from this browser.</p><div class="dialog-actions"><button class="secondary-button close-dialog">Cancel</button><button id="confirm-action" class="danger-button">Clear data</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">Trailmark needs JavaScript for its map and GPS tools. <a href="https://ma-bourne.civicplus.com/DocumentCenter/View/1492/Town-Forest-and-Four-Ponds-Conservation-Area">Open the town’s trail map.</a></p></noscript>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
