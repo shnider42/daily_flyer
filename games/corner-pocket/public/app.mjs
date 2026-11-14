@@ -26,6 +26,7 @@ try {
 const canvas = renderer.canvas || $('table');
 canvas.addEventListener('pool-renderer-fallback', () => {
   $('rendererLabel').textContent = 'CLASSIC TABLE VIEW';
+  syncControls();
   toast('Switched to the classic table view. Your game is still running.',5000);
 });
 let mode = 'menu', screen = 'menu', game = createGame({names:['Player 1','Player 2'],seed:71});
@@ -137,7 +138,8 @@ function syncControls() {
   $('powerValue').value = `${Math.round(power*100)}%`;
   $('spin').value = Math.round(spin*100);
   $('spinValue').value = Math.abs(spin)<.025 ? 'Center' : `${Math.round(Math.abs(spin)*100)}% ${spin<0?'draw':'follow'}`;
-  $('cameraButton').textContent = view === 'table' ? 'Overhead view' : 'Angled view';
+  $('cameraButton').textContent = renderer.kind === 'canvas' || view === 'table' ? 'Overhead view' : 'Angled view';
+  $('cameraButton').disabled = renderer.kind === 'canvas';
   $('guideButton').textContent = guide ? 'Guide on' : 'Guide off';
   $('guideButton').setAttribute('aria-pressed',String(guide));
   $('soundButton').textContent = audio.enabled ? 'Sound on' : 'Sound off';
@@ -147,7 +149,7 @@ function syncControls() {
 function updateTray(index) {
   const player = game.players[index], tray = $(`player${index}`).querySelector('.ball-tray');
   const ids = player.group === 'solids' ? [1,2,3,4,5,6,7] : player.group === 'stripes' ? [9,10,11,12,13,14,15] : [];
-  const key = player.group + '/' + game.balls.filter(b=>b.pocketed).map(b=>b.id).join(',');
+  const key = game.breakShot + '/' + player.group + '/' + game.balls.filter(b=>b.pocketed).map(b=>b.id).join(',');
   if (tray.dataset.key === key) return;
   tray.dataset.key = key; tray.replaceChildren();
   if (!ids.length) {
@@ -347,7 +349,10 @@ function nudge(direction,tiny=false) {
   if(!canAct()||placing)return;
   aim+=direction*(tiny?.0007:.0035);aim=Math.atan2(Math.sin(aim),Math.cos(aim));aimDirty=true;
 }
-function toggleCamera() {view=view==='table'?'overhead':'table';preferences.view=view;savePreferences();syncControls();}
+function toggleCamera() {
+  if(renderer.kind==='canvas'){toast('The classic table uses an overhead view.');return;}
+  view=view==='table'?'overhead':'table';preferences.view=view;savePreferences();syncControls();
+}
 function toggleGuide() {guide=!guide;preferences.guide=guide;savePreferences();syncControls();}
 async function copyInvite() {
   if(!online.session)return;
