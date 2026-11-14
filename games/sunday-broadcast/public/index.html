@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sunday Broadcast | DailyFlyer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<header><div class="network"><span></span> DFE SPORTS</div><div class="header-right"><button id="camera">Camera</button><button id="sound" aria-pressed="false">Sound off</button><button id="pause">Pause</button></div></header>
+<section class="screen" id="screen" aria-label="3D football field">
+<div id="field"></div><div class="grade"></div>
+<div id="bug" class="bug" hidden></div>
+<div id="tags" aria-label="Receivers"></div>
+<div id="receiver-bar" aria-label="Pass to receiver" hidden></div>
+<div id="call" class="call" aria-live="polite"></div>
+<section id="menu" class="menu">
+<div class="match-label"><i></i> LIVE FROM HARBOR STADIUM</div>
+<h1>SUNDAY<br><em>BROADCAST</em></h1>
+<div class="matchup"><strong>BOS</strong><span>vs</span><strong>CHI</strong><small>Boston Harbors<br>Chicago Foundry</small></div>
+<div class="settings"><label>You play <select id="team"><option value="0">Boston</option><option value="1">Chicago</option></select></label><label>Difficulty <select id="difficulty"><option>Rookie</option><option selected>Pro</option><option>All-Pro</option></select></label><label>Quarter <select id="duration"><option value="60">1 min</option><option value="120" selected>2 min</option><option value="180">3 min</option></select></label></div>
+<button id="start" class="primary">Play exhibition <span>▶</span></button>
+</section>
+<div id="touch" hidden><div id="stick"><b></b></div><div id="actions"></div></div>
+</section>
+<section id="desk" class="desk" hidden><div class="desk-head"><div><div id="caption" class="eyebrow"></div><h2 id="desk-title"></h2></div><button id="replay" hidden>↶ Last play</button></div><div id="plays"></div></section>
+<footer><span><b>WASD / arrows</b> Move <b>Shift</b> Sprint <b>Space</b> Snap / dive <b>1–4 / click</b> Pass <b>E</b> Cut / switch <b>V</b> Camera</span><details><summary>Controls</summary><p>Choose a play. Press Space to snap. Tap 1–4 or click a receiver to lob. Hold the key or mouse button briefly to fire a bullet. Receiver buttons at the bottom stay in place as the camera moves. On runs, follow your blocks and press E to cut. On defense, press E to switch and Space to dive. On touchscreens, use the stick and on-field buttons.</p></details></footer>
+</main><script type="module" src="game.mjs"></script>
+</body></html>
