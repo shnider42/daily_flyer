@@ -56,7 +56,7 @@
         <div class="results-bar"><p id="results-description" role="status" aria-live="polite">Loading projects…</p><button type="button" id="clear-filters" hidden disabled>Clear filters</button></div>
         <div class="sort-controls">
           <div id="game-kind-slot"></div>
-          <div class="sort-control"><label class="sr-only" for="sort">Sort by</label><select id="sort" disabled><option value="newest">Newest added</option><option value="oldest">Oldest added</option><option value="name">Title A–Z</option><option value="type">Type A–Z</option></select></div>
+          <div class="sort-control"><label class="sr-only" for="sort">Sort by</label><select id="sort" disabled><option value="newest">Newest added</option><option value="updated">Recently updated</option><option value="oldest">Oldest added</option><option value="name">Title A–Z</option><option value="type">Type A–Z</option></select></div>
           <button type="button" id="copy-visible" title="Copy names and URLs for the projects currently shown" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M15 5V3H3v12h2"/></svg><span>Copy links</span></button>
         </div>
       </section>
@@ -66,7 +66,7 @@
         <h2>No matches.</h2><p id="empty-message">Try another title or show all projects.</p><button type="button" id="empty-reset" disabled>Show all projects</button>
       </section>
       <noscript><div class="empty-state"><h2>JavaScript is needed to browse the library.</h2><p>The names and links are also available in <a href="./projects.json">the complete catalog</a>.</p></div></noscript>
-      <footer class="library-footer"><details><summary>About this library</summary><div><p>Each project opens in a new tab. Favorites are saved in this browser.</p><p>Dates use the earliest recorded build or deployment for each theme. Approximate dates are marked; missing dates sort last.</p><p>This is a link directory. Some apps may take a moment to wake up.</p></div></details><a href="#top">Back to top <span aria-hidden="true">↑</span></a></footer>
+      <footer class="library-footer"><details><summary>About this library</summary><div><p>Each project opens in a new tab. Favorites are saved in this browser.</p><p>Dates use the earliest recorded build or deployment for each theme. Approximate dates are marked; missing dates sort last. Update notes describe verified published changes. Recently updated sorts by that date, falling back to the first recorded release.</p><p>This is a link directory. Some apps may take a moment to wake up.</p></div></details><a href="#top">Back to top <span aria-hidden="true">↑</span></a></footer>
     </main>
   </div>
   <div id="toast" role="status" aria-live="polite" class="toast"></div>

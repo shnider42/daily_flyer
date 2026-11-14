@@ -34,6 +34,11 @@ export const ART_PALETTES = Object.freeze({
   'relay-fieldguide':{background:'#d9decb',foreground:'#2c493c',accent:'#d86e34'},
   farwake:{background:'#142329',foreground:'#e5e4cd',accent:'#d8874b'},
   dayboard:{background:'#e9e5d9',foreground:'#252c29',accent:'#db7040'},
+  baseball:{background:'#e9e2c9',foreground:'#234b3e',accent:'#b84135'},
+  'sunday-broadcast':{background:'#172a3d',foreground:'#eee8d5',accent:'#e7b348'},
+  'shenanigans-golf':{background:'#e8dfc1',foreground:'#285647',accent:'#d7673e'},
+  'corner-pocket':{background:'#183f35',foreground:'#f0dfb7',accent:'#ca8a4d'},
+  'low-water':{background:'#172c32',foreground:'#d5d9c9',accent:'#bd694d'},
 });
 const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -277,6 +282,43 @@ const covers={
       <g transform="translate(320 191) scale(.77)"><path d="${ship}" fill="#e5e4cd" stroke="#263d43" stroke-width="2"/><path d="M0-85 10-46 6-16H-6L-10-46Z" fill="#385d66"/><path d="M-18 20-30 49-25 66M18 20 30 49 25 66M0 6V89" fill="none" stroke="#789185" stroke-width="3"/><path d="M-9 89 0 149 9 89" fill="#d8874b"/></g>
       ${rect(18,301,604,102,'#142329')}${type('FARWAKE',26,374,105,'#e5e4cd',{width:589,spacing:2})}${note('SPACE EXPLORATION',28,45,'#bdc7af',{size:13,spacing:3})}${line('M507 38H594M572 29 594 38 572 47','#d8874b',2)}
       <g fill="#d1d6be"><path d="M81 115H91M86 110V120M541 243H551M546 238V248M165 211H173M169 207V215" stroke="#d1d6be" stroke-width="1"/><circle cx="505" cy="107" r="1.8"/><circle cx="192" cy="70" r="1.4"/><circle cx="66" cy="275" r="1.5"/></g>${paper(u,.18)}`,
+  }),
+  baseball:u=>({
+    body:`${rect(0,0,640,420,'#e9e2c9')}${rect(0,0,640,22,'#b84135')}${note('POCKET',30,67,'#234b3e',{size:26,spacing:5})}
+      ${type('BASEBALL',24,174,110,'#234b3e',{width:589})}${rect(0,200,640,220,'#234b3e')}
+      <path d="M92 420 314 221 538 420Z" fill="#56704b"/><path d="m314 260 115 103-115 104-115-104Z" fill="#bf8a5c"/><path d="m314 290 81 73-81 73-81-73Z" fill="#56704b"/>
+      ${line('M314 420 124 247M314 420 504 247','#e9e2c9',2)}<g fill="#f0e7cc"><path d="m309 286 6-6 6 6-6 6ZM389 357l6 6-6 6-6-6ZM233 357l6 6-6 6-6-6Z"/></g>
+      <g transform="translate(535 269)"><circle r="44" fill="#eee7d4"/>${line('M-26-35Q4 0-26 35M26-35Q-4 0 26 35','#b84135',3)}${line('M-27-25-17-29M-20-12-10-14M-18 2-8 3M-21 16-11 19M-28 28-18 33M27-25 17-29M20-12 10-14M18 2 8 3M21 16 11 19M28 28 18 33','#b84135',2)}</g>
+      ${note('SOLO / PRIVATE 1v1',27,392,'#e9e2c9',{size:12,spacing:1.5})}${paper(u,.28)}`,
+  }),
+  'sunday-broadcast':u=>({
+    body:`${rect(0,0,640,420,'#172a3d')}${rect(24,24,592,372,'none','stroke="#637583" stroke-width="1"')}${rect(24,24,592,37,'#e7b348')}
+      ${note('3D FOOTBALL',40,49,'#172a3d',{size:15,spacing:3})}${type('SUNDAY',33,194,126,'#eee8d5',{width:570})}${type('BROADCAST',37,257,67,'#e7b348',{width:563})}
+      <path d="M123 284H519L640 420H0Z" fill="#355243"/>${line('M96 313H546M55 350H585M5 394H635','#c4cbb3',2)}${line('M202 284 146 420M320 284V420M439 284 495 420','#c4cbb3',2,'stroke-dasharray="5 8"')}
+      <g fill="#e7b348" stroke="#172a3d" stroke-width="3"><circle cx="284" cy="348" r="10"/><circle cx="320" cy="348" r="10"/><circle cx="356" cy="348" r="10"/></g><g fill="#eee8d5" stroke="#172a3d" stroke-width="3"><circle cx="284" cy="319" r="9"/><circle cx="320" cy="319" r="9"/><circle cx="356" cy="319" r="9"/></g>
+      ${line('M320 371 381 387 440 361','#e7b348',3)}${line('M424 361H440V377','#e7b348',3)}${note('SOLO + ONLINE 1v1',40,388,'#eee8d5',{size:11,spacing:1})}${paper(u,.18)}`,
+  }),
+  'shenanigans-golf':u=>({
+    body:`${rect(0,0,640,420,'#e8dfc1')}${note('18 HOLES. IT ESCALATES.',30,42,'#285647',{size:14,spacing:2})}
+      ${type('SHENANIGANS',25,130,76,'#285647',{width:589})}${type('GOLF',29,257,139,'#285647',{width:323})}
+      <path d="M0 383Q77 256 184 326T371 330Q442 309 407 250T438 172Q526 153 530 256T640 296V420H0Z" fill="#71936a" stroke="#285647" stroke-width="4"/>
+      <path d="M36 397Q106 297 182 359T361 362Q483 337 444 258T449 205Q491 188 495 261T638 334" fill="none" stroke="#e8dfc1" stroke-width="3" stroke-dasharray="9 9"/>
+      <path d="M573 307V218" stroke="#285647" stroke-width="4"/><path d="M573 218 622 232 573 247Z" fill="#d7673e"/><ellipse cx="573" cy="309" rx="18" ry="6" fill="#285647"/><circle cx="99" cy="350" r="12" fill="#faf1d9" stroke="#285647" stroke-width="2"/>
+      ${rect(28,278,240,30,'#d7673e')}${note('1–4 PLAYERS + CPU',40,299,'#fff0ce',{size:13,spacing:1})}${paper(u,.28)}`,
+  }),
+  'corner-pocket':u=>({
+    body:`${rect(0,0,640,420,'#183f35')}${rect(18,18,604,384,'none','stroke="#ca8a4d" stroke-width="3"')}
+      ${type('CORNER',29,130,108,'#f0dfb7',{width:578})}${type('POCKET',29,237,108,'#f0dfb7',{width:578})}
+      ${line('M38 257H602','#ca8a4d',2)}<path d="M51 420 352 278" stroke="#ca8a4d" stroke-width="10"/><path d="m334 287 18-9" stroke="#e1e9d8" stroke-width="10"/>
+      <circle cx="400" cy="304" r="24" fill="#f0dfb7"/><circle cx="493" cy="337" r="37" fill="#101c1b" stroke="#8eaa8c" stroke-width="2"/><circle cx="493" cy="333" r="17" fill="#f0dfb7"/>${type('8',493,344,29,'#172723',{family:'sans',weight:700,anchor:'middle'})}
+      <circle cx="567" cy="280" r="24" fill="#c3573f"/><circle cx="567" cy="280" r="11" fill="#f0dfb7"/>${note('EIGHT-BALL / TWO PLAYERS',37,386,'#f0dfb7',{size:11,spacing:1.5})}${paper(u,.23)}`,
+  }),
+  'low-water':u=>({
+    body:`${rect(0,0,640,420,'#172c32')}${rect(20,20,600,380,'none','stroke="#657a7a" stroke-width="1"')}
+      ${line('M85 0V99H555V420M108 0V77H578V420','#627977',6)}<circle cx="555" cy="112" r="26" fill="#172c32" stroke="#bd694d" stroke-width="6"/>${line('M538 95 572 129M538 129 572 95','#bd694d',4)}
+      ${type('LOW',30,218,150,'#d5d9c9',{width:374})}${type('WATER',30,330,119,'#d5d9c9',{width:570})}
+      <path d="M0 308Q67 296 135 309T270 308T405 310T540 308T675 309V420H0Z" fill="#42716f" opacity=".65"/>${line('M0 309Q67 297 135 310T270 309T405 311T540 309T675 310','#829e8e',2)}
+      ${rect(30,348,295,34,'#bd694d')}${note('FIVE CHAPTERS / SOLO',43,371,'#152c32',{size:13,spacing:1.2})}${note('KEEP THE POWER ON',31,50,'#a8bcb1',{size:12,spacing:2})}${paper(u,.3)}`,
   }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}

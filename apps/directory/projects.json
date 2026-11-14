@@ -49,13 +49,16 @@
       "PGI",
       "Pocket Gridiron",
       "NFL"
-    ]
+    ],
+    "updatedAt": "2026-11-08",
+    "updateSummary": "Adjustable follow cameras, saved zoom and a draggable minimap for choosing the view.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b21c63ba9c9eb2ed8eb61cfc5c7f5748a6240227"
   },
   {
     "id": "infierno",
     "title": "Infierno Liberado",
     "subtitle": "Hell Let Loose: Vietnam field notes",
-    "description": "Track Vietnam game reports, bugs, evidence and suggestions in one place.",
+    "description": "Follow Hell Let Loose: Vietnam bugs, content changes, suggestions and returning-player briefings.",
     "type": "catch-up",
     "subtype": "Game intelligence",
     "tags": [
@@ -75,13 +78,16 @@
       "HLLV",
       "Bug Tracker",
       "Hell Let Loose Vietnam"
-    ]
+    ],
+    "updatedAt": "2026-11-13",
+    "updateSummary": "Expanded Catch Up and a privacy policy; official announcement links refreshed Nov 13.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cb6a5d4e7d70d8717b999e6f1e94ebbffbc49ea"
   },
   {
     "id": "further-in",
     "title": "Further In",
     "subtitle": "The rooms keep going",
-    "description": "Explore a three-floor liminal horror experience and piece together the way forward.",
+    "description": "Descend through six floors of first-person psychological horror, with puzzles, exploration and saved progress.",
     "type": "games",
     "subtype": "Horror",
     "tags": [
@@ -98,7 +104,10 @@
     "dateSource": "First documented build in the Further In project thread; first Render service followed 5 Nov.",
     "aliases": [
       "Backrooms"
-    ]
+    ],
+    "updatedAt": "2026-11-09",
+    "updateSummary": "Three additional floors, checkpoints within each floor and a revised title screen.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8ee3abd6b6882bbbf49b805cbd65414f136d6939"
   },
   {
     "id": "breach",
@@ -273,13 +282,17 @@
     "id": "huddle",
     "title": "Huddle",
     "subtitle": "Get back into the NFL",
-    "description": "Catch up on NFL games, teams and stories with adjustable reading depth and spoiler controls.",
+    "description": "Catch up on NFL teams, games and stories in English, Austrian German, Hindi or Gujarati.",
     "type": "catch-up",
     "subtype": "NFL",
     "tags": [
+      "NFL",
       "Football",
-      "Spoiler controls",
-      "Teams"
+      "Catch up",
+      "English",
+      "Austrian German",
+      "Hindi",
+      "Gujarati"
     ],
     "art": "huddle",
     "url": "https://dfe-nfl-catch-up.onrender.com/",
@@ -292,7 +305,10 @@
       "Back in the Huddle",
       "NFL Catch Up",
       "NFL Catch-up"
-    ]
+    ],
+    "updatedAt": "2026-11-12",
+    "updateSummary": "Hindi and Gujarati added; Austrian mode starts with the Vikings. Football data snapshot: Nov 8.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/ecf08e5dcd5fe11a719afe52e6d684ffe8664117"
   },
   {
     "id": "vineyard",
@@ -322,7 +338,7 @@
     "id": "roster-radar",
     "title": "Roster Radar",
     "subtitle": "Find the fantasy signal",
-    "description": "Review fantasy football news, league profiles and watchlists, with Sleeper imports.",
+    "description": "Follow fantasy football reports, player watchlists and waiver activity, with read-only Sleeper league imports.",
     "type": "catch-up",
     "subtype": "Fantasy football",
     "tags": [
@@ -340,7 +356,10 @@
     "aliases": [
       "Fantasy Catch Up",
       "Fantasy Football Catch-up"
-    ]
+    ],
+    "updatedAt": "2026-11-09",
+    "updateSummary": "A compact fantasy desk with chronological reports, player tables and clearer source dates.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bab3b5b43af495749bfdcd15bfcf7fc0a2ed92d6"
   },
   {
     "id": "lockstep",
@@ -469,13 +488,16 @@
     "id": "skyward",
     "title": "SKYWARD",
     "subtitle": "A century of flight",
-    "description": "Fly historical aircraft through missions, free flight and shared skies.",
+    "description": "Fly 20 aircraft through solo missions and passenger routes, plus multiplayer dogfights and co-op.",
     "type": "games",
     "subtype": "Flight",
     "tags": [
-      "Aircraft",
-      "Missions",
-      "Multiplayer"
+      "Flight",
+      "Solo",
+      "Multiplayer",
+      "Co-op",
+      "2v2",
+      "4 players"
     ],
     "art": "skyward",
     "url": "https://dfe-skyward.onrender.com/",
@@ -486,19 +508,24 @@
     "dateSource": "First documented build in the SKYWARD project thread, America/New_York; Render service followed 6 Nov.",
     "aliases": [
       "Skyward Flight"
-    ]
+    ],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Four-player 2v2 and co-op, five new planes, parachute bailouts and larger desktop controls.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bf1c0366e4319ccabc7776185a5974a6dc7a75bd"
   },
   {
     "id": "hockey",
     "title": "Pocket Hockey",
     "subtitle": "Own the ice",
-    "description": "Play 6-on-6 hockey with board rebounds, checks, goalie saves and cup play.",
+    "description": "Play 6-on-6 hockey solo or in private rooms for up to four people, with checks, goalie saves and cup play.",
     "type": "games",
     "subtype": "Sports",
     "tags": [
       "Hockey",
       "Solo",
-      "Arcade"
+      "Co-op",
+      "Multiplayer",
+      "4 players"
     ],
     "art": "hockey",
     "url": "https://dfe-pocket-soccer.onrender.com/sports/?sport=hockey",
@@ -510,13 +537,16 @@
     "aliases": [
       "Pocket Sports",
       "NHL"
-    ]
+    ],
+    "updatedAt": "2026-11-09",
+    "updateSummary": "Co-op and versus rooms, a larger rink, revised controls and more varied passes and shots.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc"
   },
   {
     "id": "soccer",
     "title": "Pocket Soccer",
     "subtitle": "Under the floodlights",
-    "description": "Play 11-a-side soccer with European clubs, historic Dortmund sides and cup play.",
+    "description": "Play 11-a-side soccer with European clubs, historic Dortmund teams, cup play and directional passes and crosses.",
     "type": "games",
     "subtype": "Sports",
     "tags": [
@@ -535,7 +565,10 @@
       "Pocket Sports",
       "European Football",
       "Dortmund"
-    ]
+    ],
+    "updatedAt": "2026-11-09",
+    "updateSummary": "Pressure affects passes and shots; A switches defenders, with a separate contain control.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc"
   },
   {
     "id": "sleeve-notes",
@@ -735,13 +768,15 @@
     "id": "farwake",
     "title": "FARWAKE",
     "subtitle": "The Quiet Earth",
-    "description": "Pilot your ship, explore on foot and follow old transmissions through a shared galaxy.",
+    "description": "Pilot ships, explore varied planets and stations, and investigate Earth's silence in a shared galaxy.",
     "type": "games",
     "subtype": "Space exploration",
     "tags": [
-      "Space",
+      "Space RPG",
       "Solo",
-      "Multiplayer"
+      "Multiplayer",
+      "Exploration",
+      "Campaign"
     ],
     "art": "farwake",
     "url": "https://dfe-farwake.onrender.com/",
@@ -753,7 +788,10 @@
     "aliases": [
       "The Quiet Earth",
       "Farwake Galaxy"
-    ]
+    ],
+    "updatedAt": "2026-11-13",
+    "updateSummary": "Casual fold-drive starts, the Earth campaign and restored crew airlock boarding.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c9b817a6fb7e0a47956ddc6cec561defb545a390"
   },
   {
     "id": "dayboard",
@@ -778,5 +816,158 @@
       "Personal Kanban",
       "Life Board"
     ]
+  },
+  {
+    "id": "pocket-baseball",
+    "title": "Pocket Baseball",
+    "subtitle": "Read the pitch. Play the whole field.",
+    "description": "Play solo or private 1v1 baseball with a Fenway-inspired park, varied pitchers, rosters and baserunning choices.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Baseball",
+      "3D",
+      "Solo",
+      "Multiplayer",
+      "1v1"
+    ],
+    "art": "baseball",
+    "url": "https://dfe-pocket-baseball.onrender.com/",
+    "createdAt": "2026-11-12",
+    "aliases": [
+      "3D baseball",
+      "Fenway",
+      "Pocket Baseball"
+    ],
+    "updatedAt": "2026-11-13",
+    "updateSummary": "Thirteen pitches, bullpen changes, handed players and a 104-mph specialist.",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-baseball",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/3a9745ad20ab53df5831c241581e73204e1ab2d2"
+  },
+  {
+    "id": "sunday-broadcast",
+    "title": "Sunday Broadcast",
+    "subtitle": "Football from the broadcast booth",
+    "description": "Call plays, find receivers and defend in 3D football, solo or in private 1v1 matches.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Football",
+      "3D",
+      "Solo",
+      "Multiplayer",
+      "1v1"
+    ],
+    "art": "sunday-broadcast",
+    "url": "https://dfe-sunday-broadcast.onrender.com/",
+    "createdAt": "2026-11-14",
+    "aliases": [
+      "3D football",
+      "NFL 2K5",
+      "Sunday Football"
+    ],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Private 1v1, replays and a rebuilt desktop layout that gives the field more room.",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/sunday-broadcast",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/5351d4aeb32c65e10d9404ef06e2d267db93811a"
+  },
+  {
+    "id": "shenanigans-golf",
+    "title": "Shenanigans Golf",
+    "subtitle": "Eighteen holes that get out of hand",
+    "description": "Play 18 increasingly unruly minigolf holes with up to four people and computers filling the empty seats.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Minigolf",
+      "3D",
+      "Solo",
+      "Multiplayer",
+      "4 players",
+      "CPU fill"
+    ],
+    "art": "shenanigans-golf",
+    "url": "https://dfe-shenanigans-golf.onrender.com/",
+    "createdAt": "2026-11-14",
+    "aliases": [
+      "Minigolf",
+      "Mini golf",
+      "Crazy golf",
+      "18 holes"
+    ],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Stroke or points scoring, practice holes and mid-round joining with the seat score intact.",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/shenanigans-golf",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/19b6c8cf0288e9d9722f5d0463e910d64bfe3b59"
+  },
+  {
+    "id": "corner-pocket",
+    "title": "Corner Pocket",
+    "subtitle": "A table for two",
+    "description": "Play 3D eight-ball online or on one shared screen, with aim guides, cue spin and a practice table.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Pool",
+      "Billiards",
+      "3D",
+      "2 players",
+      "Multiplayer",
+      "Practice"
+    ],
+    "art": "corner-pocket",
+    "url": "https://dfe-corner-pocket.onrender.com/",
+    "createdAt": "2026-11-14",
+    "aliases": [
+      "Pool",
+      "Billiards",
+      "Eight-ball",
+      "8 ball"
+    ],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Private two-player rooms, shared-device turns, called 8-ball pockets and rematches.",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/corner-pocket",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4dd386863af0a12afc9bcfb95769ab635b0b4809"
+  },
+  {
+    "id": "low-water",
+    "title": "LOW WATER",
+    "subtitle": "The tide is coming back",
+    "description": "Explore five chapters of a coastal research station, solving machinery puzzles as the tide returns.",
+    "type": "games",
+    "subtype": "Horror",
+    "tags": [
+      "Solo",
+      "First person",
+      "Puzzles",
+      "Exploration"
+    ],
+    "art": "low-water",
+    "url": "https://dfe-low-water.onrender.com/",
+    "createdAt": "2026-11-08",
+    "aliases": [
+      "Low Water",
+      "Bellwether Station",
+      "Industrial horror"
+    ],
+    "updatedAt": "2026-11-08",
+    "updateSummary": "Five chapters, local checkpoints, three guidance levels and a mobile pause fix.",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/low-water",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8a95ae449ecbd397d21ac2c453931ae534862b25"
   }
 ]

@@ -28,5 +28,5 @@ await emitVersioned('app.js',app);
 let html=await readFile(path.join(root,'index.html'),'utf8');
 for(const filename of ['app.js','styles.css','favicon.svg'])html=html.replaceAll('./'+filename,'./'+versions[filename]);
 await writeFile(path.join(target,'index.html'),html);
-await writeFile(path.join(target,'release.json'),JSON.stringify({version:'2.0.0',projects:catalog.length,commit:process.env.RENDER_GIT_COMMIT||'local'},null,2)+'\n');
+await writeFile(path.join(target,'release.json'),JSON.stringify({version:'2.1.0',projects:catalog.length,commit:process.env.RENDER_GIT_COMMIT||'local'},null,2)+'\n');
 console.log(`Daily Flyer library: ${catalog.length} projects built with versioned assets into ${target}`);

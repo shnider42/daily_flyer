@@ -100,6 +100,8 @@ h1{margin:0;font-size:34px;line-height:1.1;letter-spacing:-.04em;font-weight:700
 .card-kind{color:#c2c7cf}
 .card-meta time{white-space:nowrap;font-variant-numeric:tabular-nums}
 .card-description{margin:10px 0 0;flex:1;color:#afb3bc;font-size:13px;line-height:1.5}
+.card-update{margin:12px 0 0;padding-top:9px;border-top:1px solid #34373c;color:#adb3bc;font-size:11px;line-height:1.55}
+.update-date{display:block;margin-bottom:3px;color:var(--card-accent);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
 .card-note,.access-label{font-size:11px;line-height:1.5;color:#dfb38b;margin:8px 0 0}
 .card-footer{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-top:8px;margin-top:4px;min-width:0}
 .url-label{display:block;flex:1;min-width:0;font:11px/1.5 Consolas,"Liberation Mono",monospace;color:#abb1bc;user-select:all;overflow-wrap:anywhere;padding-top:5px}
@@ -116,7 +118,9 @@ h1{margin:0;font-size:34px;line-height:1.1;letter-spacing:-.04em;font-weight:700
 .is-list .card-heading h2{font-size:17px}
 .is-list .card-meta{grid-column:2;grid-row:1;margin-top:7px;font-size:10px}
 .is-list .card-description{grid-column:1;grid-row:2;margin:0;font-size:12px;line-height:1.5}
-.is-list .card-note,.is-list .access-label{grid-column:1;grid-row:3;margin:3px 0 0}
+.is-list .card-update{grid-column:1;grid-row:3;margin:4px 0 0;padding:0;border:0}
+.is-list .update-date{display:inline;margin-right:7px}
+.is-list .card-note,.is-list .access-label{grid-column:1;grid-row:4;margin:3px 0 0}
 .is-list .card-footer{grid-column:2;grid-row:2 / span 2;padding:0;margin:0}
 .is-list .url-label{font-size:10px}
 .empty-state{margin:65px auto 100px;text-align:center;max-width:430px;padding:25px}
