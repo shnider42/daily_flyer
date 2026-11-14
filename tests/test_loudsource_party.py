@@ -140,6 +140,23 @@ class PartyTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT 1').fetchone()[0],1)
         with self.assertRaises(sqlite3.ProgrammingError):db.execute('SELECT 1')
 
+    def test_index_recovery_preserves_party_and_spotify_records(self):
+        from daily_flyer.storage_check import check_storage
+        ls.save_token('main',{'access_token':'test-secret','refresh_token':'test-refresh','expires_at':9999999999})
+        self.post('/vote',{'track_id':'0'*22,'active':True})
+        self.post('/poll',{'poll':0,'choice':1})
+        with ls._connect() as db:
+            db.execute('INSERT INTO loudsource_history(session_slug,track_id,played_at) VALUES(?,?,?)',('main','0'*22,123))
+            root=db.execute("SELECT rootpage FROM sqlite_master WHERE type='index' AND tbl_name='loudsource_votes'").fetchone()[0]
+            size=db.execute('PRAGMA page_size').fetchone()[0]
+        before=self.state()
+        with ls.DB_PATH.open('r+b') as f:
+            f.seek((root-1)*size);f.write(b'\x00')
+        check_storage(ls.DB_PATH)
+        self.assertEqual(self.state(),before)
+        self.assertEqual(ls.get_token('main')['refresh_token'],'test-refresh')
+        self.assertEqual(self.post('/vote',{'track_id':'1'*22,'active':True}).status_code,200)
+
     def test_preload_import_does_not_start_background_thread(self):
         env=dict(os.environ,LOUDSOURCE_DATABASE_PATH=str(Path(self.temp.name)/'preload.db'))
         env.pop('LOUDSOURCE_DISABLE_MONITOR',None)

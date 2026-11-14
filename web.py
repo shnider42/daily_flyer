@@ -24,6 +24,7 @@ from daily_flyer.renderer import build_html
 from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationError
 from daily_flyer import loudsource_feature as ls
 from daily_flyer import party_api as party
+from daily_flyer.storage_check import check_storage
 
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
@@ -31,6 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 
 # LoudSource feature-service startup.
+check_storage(ls.DB_PATH)
 init_storage()
 party.init_party()
 app.register_blueprint(party.bp)
