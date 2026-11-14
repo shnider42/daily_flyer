@@ -33,3 +33,55 @@
 @media (pointer: coarse) {
   #tags .tag { pointer-events: none; }
 }
+
+[hidden] { display: none !important; }
+input { color: inherit; font: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.menu-actions, .join-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.menu-actions { margin-bottom: 7px; }
+.join-form input { width: 105px; min-width: 0; padding: 6px 8px; border: 1px solid #596973; background: #111b24; border-radius: 3px; text-transform: uppercase; }
+#menu-status { margin: 7px 0 0; color: #e7c48a; font-size: 12px; min-height: 1em; }
+.room-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: #19232d; border: 1px solid #414b52; border-bottom: 0; font-size: 12px; }
+#room-label { font-weight: 850; color: var(--amber); letter-spacing: .04em; }
+#room-status { flex: 1 1 140px; color: #c4ced5; }
+.room-bar button { padding: 4px 8px; }
+.playbook-tabs, .playbook-footer { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
+.playbook-tabs button { padding: 5px 7px; font-size: 11px; }
+.playbook-tabs button[aria-pressed=true] { border-color: var(--amber); color: var(--amber); }
+.playbook-footer { margin: 8px 0 0; align-items: center; }
+.playbook-footer .primary { margin-left: auto; }
+.playbook-footer small { color: #c3ced4; }
+.play .hotkey { color: var(--amber); font-size: 10px; margin-right: 4px; }
+.camera-desk { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.camera-desk button { padding: 4px 7px; font-size: 11px; }
+.camera-desk button[aria-pressed=true] { color: var(--amber); }
+.zoom-label { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: #c3ced4; font-size: 11px; }
+.zoom-label input { width: 67px; accent-color: var(--amber); }
+#minimap { display: block; width: 144px; height: 68px; touch-action: none; cursor: crosshair; }
+.desk-note { margin: 6px 0 8px; font-size: 12px; }
+#plays .summary + p { margin-top: 9px; }
+#plays > button { margin: 3px 5px 0 0; }
+button:disabled { cursor: default; opacity: .58; }
+@media (min-width: 1080px) {
+  .match-layout.in-game { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 22%); align-items: start; }
+  .match-layout.in-game .desk { min-height: clamp(355px,65vh,785px); border: 1px solid var(--line); border-left: 0; }
+  .match-layout.in-game .play-grid { grid-template-columns: 1fr; }
+  .match-layout.in-game .desk-head { align-items: flex-start; }
+}
+@media (max-width: 630px) {
+  .menu { justify-content: center; }
+  .menu h1 { margin: 10px 0 12px; }
+  .matchup { margin-bottom: 10px; }
+  .settings { margin-bottom: 7px; }
+  .screen { height: clamp(365px,57svh,545px); }
+  #stick { width: 78px; height: 78px; }
+  #actions button { min-width: 46px; min-height: 44px; }
+}
+@media (max-height: 515px) and (pointer: coarse) {
+  .match-layout.in-game .screen { height: clamp(230px,68svh,370px); }
+}
+#kick-meter { position: absolute; z-index: 3; bottom: 15px; left: 50%; transform: translateX(-50%); width: min(210px, 54%); color: white; background: #101820ed; padding: 8px; text-align: center; font-size: 11px; font-weight: 800; }
+.kick-track { height: 10px; position: relative; margin-top: 5px; background: #9b4937; }
+.kick-track i, .kick-track b { position: absolute; inset: 0 auto; }
+.kick-track i { background: #eec062; }
+.kick-track b { width: 3px; background: white; box-shadow: 0 0 3px #000; }
