@@ -21,8 +21,8 @@ SCOPES = (
     "user-read-currently-playing"
 )
 QUEUE_AHEAD_SECONDS = int(os.getenv("LOUDSOURCE_QUEUE_AHEAD_SECONDS", "10"))
-POLL_SECONDS = float(os.getenv("LOUDSOURCE_POLL_SECONDS", "1"))
-AUTO_RESUME = os.getenv("LOUDSOURCE_AUTO_RESUME", "true").lower() == "true"
+POLL_SECONDS = max(2.5, float(os.getenv("LOUDSOURCE_POLL_SECONDS", "3")))
+AUTO_RESUME = os.getenv("LOUDSOURCE_AUTO_RESUME", "false").lower() == "true"
 PAUSE_GRACE_SECONDS = int(os.getenv("LOUDSOURCE_PAUSE_GRACE_SECONDS", "6"))
 START_COOLDOWN_SECONDS = float(os.getenv("LOUDSOURCE_START_COOLDOWN_SECONDS", "2"))
 DEBUG_VERBOSE = os.getenv("LOUDSOURCE_DEBUG_VERBOSE", "false").lower() == "true"
@@ -47,6 +47,10 @@ _STATE_COLUMNS = {
 _SIGNER = URLSafeSerializer(FLASK_SECRET_KEY, salt="daily-flyer-loudsource")
 _BG_STARTED = False
 _BG_LOCK = threading.Lock()
+_PLAY_LOCK = threading.Lock()
+_CONNECTION_ERRORS: dict[str, str] = {}
+_SEARCH_CACHE: dict[str, tuple[float, dict]] = {}
+_SEARCH_LOCK = threading.Lock()
 
 
 def log(msg: str) -> None:
@@ -57,6 +61,7 @@ def log(msg: str) -> None:
 sp_search = None
 if SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET:
     sp_search = spotipy.Spotify(
+        requests_timeout=8, retries=0, status_retries=0,
         auth_manager=SpotifyClientCredentials(
             client_id=SPOTIPY_CLIENT_ID,
             client_secret=SPOTIPY_CLIENT_SECRET,
@@ -117,6 +122,18 @@ def init_storage() -> None:
                 vote_count INTEGER NOT NULL DEFAULT 0,
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (session_slug, track_id)
+            );
+            CREATE TABLE IF NOT EXISTS loudsource_ballots (
+                session_slug TEXT NOT NULL,
+                person_id TEXT NOT NULL,
+                track_id TEXT NOT NULL,
+                PRIMARY KEY (session_slug, person_id, track_id)
+            );
+            CREATE TABLE IF NOT EXISTS loudsource_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_slug TEXT NOT NULL,
+                track_id TEXT NOT NULL,
+                played_at INTEGER NOT NULL
             );
             """
         )
@@ -277,7 +294,7 @@ def get_token(session_slug: str) -> dict[str, Any] | None:
         save_token(session_slug, refreshed)
         return refreshed
     except Exception as exc:
-        log(f"Token refresh failed for {session_slug}: {exc}")
+        log(f"Token refresh failed for {session_slug} ({type(exc).__name__})")
         return None
 
 
@@ -333,7 +350,7 @@ def _user_sp(session_slug: str):
     token_info = get_token(session_slug)
     if not token_info:
         return None
-    return spotipy.Spotify(auth=token_info["access_token"])
+    return spotipy.Spotify(auth=token_info["access_token"], requests_timeout=8, retries=0, status_retries=0)
 
 
 def _list_devices(sp_user) -> list[dict[str, Any]]:
@@ -475,16 +492,22 @@ def vote_delta(session_slug: str, track_id: str, delta: int) -> None:
 def clear_votes(session_slug: str) -> None:
     session_slug = ensure_session(session_slug)
     with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         conn.execute("DELETE FROM loudsource_votes WHERE session_slug = ?", (session_slug,))
+        conn.execute("DELETE FROM loudsource_ballots WHERE session_slug = ?", (session_slug,))
+        conn.commit()
 
 
 def remove_vote(session_slug: str, track_id: str) -> None:
     session_slug = ensure_session(session_slug)
     with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         conn.execute(
             "DELETE FROM loudsource_votes WHERE session_slug = ? AND track_id = ?",
             (session_slug, track_id),
         )
+        conn.execute("DELETE FROM loudsource_ballots WHERE session_slug = ? AND track_id = ?", (session_slug, track_id))
+        conn.commit()
 
 
 def get_ordered_votes(session_slug: str, exclude_tid: str | None = None) -> list[tuple[str, int]]:
@@ -505,7 +528,7 @@ def get_ordered_votes(session_slug: str, exclude_tid: str | None = None) -> list
 def list_auto_enabled_sessions() -> list[str]:
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT session_slug FROM loudsource_sessions WHERE auto_enabled = 1"
+            "SELECT session_slug FROM loudsource_sessions WHERE spotify_access_token IS NOT NULL"
         ).fetchall()
     return [row["session_slug"] for row in rows]
 
@@ -614,6 +637,9 @@ def _update_now_playing_from_snapshot(session_slug: str, sp_user, snapshot: dict
         if uri and uri.startswith("spotify:track:"):
             popped_tid = uri.split(":")[-1]
             remove_vote(session_slug, popped_tid)
+            with _connect() as conn:
+                conn.execute("INSERT INTO loudsource_history (session_slug, track_id, played_at) VALUES (?, ?, ?)", (session_slug, popped_tid, int(now)))
+                conn.execute("DELETE FROM loudsource_history WHERE session_slug = ? AND id NOT IN (SELECT id FROM loudsource_history WHERE session_slug = ? ORDER BY id DESC LIMIT 30)", (session_slug, session_slug))
     else:
         update_state(
             session_slug,
@@ -682,7 +708,9 @@ def _background_loop() -> None:
                 try:
                     sp_user = _user_sp(session_slug)
                     if not sp_user:
+                        _CONNECTION_ERRORS[session_slug] = "Spotify needs to be reconnected from the host desk."
                         continue
+                    _CONNECTION_ERRORS.pop(session_slug, None)
                     snapshot = _playback_snapshot(session_slug, sp_user)
                     if snapshot:
                         _update_now_playing_from_snapshot(session_slug, sp_user, snapshot)
@@ -703,14 +731,14 @@ def _background_loop() -> None:
                             last_paused_ts = None
                     if in_cooldown:
                         continue
-                    if AUTO_RESUME and not snapshot["is_playing"] and last_paused_ts and (now - last_paused_ts) >= PAUSE_GRACE_SECONDS:
+                    if state["auto_enabled"] and AUTO_RESUME and not snapshot["is_playing"] and last_paused_ts and (now - last_paused_ts) >= PAUSE_GRACE_SECONDS:
                         try:
                             sp_user.start_playback()
                             update_state(session_slug, cooldown_until=time.time() + 1.0)
                         except Exception:
                             pass
                         continue
-                    if _should_attempt_queue(snapshot):
+                    if state["auto_enabled"] and _should_attempt_queue(snapshot):
                         _queue_next_for_snapshot(session_slug, snapshot)
                 except Exception as exc:
                     log(f"Monitor error for {session_slug}: {exc}")
@@ -721,6 +749,8 @@ def _background_loop() -> None:
 
 def ensure_monitor_started() -> None:
     global _BG_STARTED
+    if os.getenv("LOUDSOURCE_DISABLE_MONITOR") == "1":
+        return
     with _BG_LOCK:
         if _BG_STARTED:
             return
@@ -729,22 +759,43 @@ def ensure_monitor_started() -> None:
 
 
 def search_tracks(query: str) -> dict[str, dict[str, Any]]:
-    query = (query or "").strip()
+    query = (query or "").strip()[:150]
     if not query:
         return {}
     if sp_search is None:
         raise RuntimeError("Spotify client credentials are not configured")
-    results: dict[str, dict[str, Any]] = {}
-    items = sp_search.search(q=query, type="track", limit=10)["tracks"]["items"]
-    for item in items:
-        track_id = item["id"]
-        meta = _track_dict_from_sp_item(item)
-        upsert_track(track_id, meta)
-        results[track_id] = meta
-    return results
+    with _SEARCH_LOCK:
+        cached = _SEARCH_CACHE.get(query.casefold())
+        if cached and cached[0] > time.time() - 60:
+            return cached[1]
+        track_match = re.fullmatch(r"(?:spotify:track:|https://open\.spotify\.com/(?:intl-[a-z]+/)?track/)([A-Za-z0-9]{22})(?:\?[^\s]*)?", query)
+        if track_match:
+            items = [sp_search.track(track_match.group(1))]
+        else:
+            items = sp_search.search(q=query, type="track", limit=10)["tracks"]["items"]
+        results: dict[str, dict[str, Any]] = {}
+        for item in items:
+            if not item or not _is_valid_track_id(item.get('id')):
+                continue
+            meta = _track_dict_from_sp_item(item)
+            upsert_track(item["id"], meta)
+            results[item["id"]] = meta
+        if len(_SEARCH_CACHE) > 250:
+            _SEARCH_CACHE.clear()
+        _SEARCH_CACHE[query.casefold()] = (time.time(), results)
+        return results
 
 
 def play_first(session_slug: str) -> tuple[bool, str]:
+    if not _PLAY_LOCK.acquire(blocking=False):
+        return False, "Playback is already being changed. Give it a moment."
+    try:
+        return _play_first_locked(session_slug)
+    finally:
+        _PLAY_LOCK.release()
+
+
+def _play_first_locked(session_slug: str) -> tuple[bool, str]:
     session_slug = ensure_session(session_slug)
     ordered_ids = _ordered_ids(session_slug)
     if not ordered_ids:
@@ -760,7 +811,7 @@ def play_first(session_slug: str) -> tuple[bool, str]:
     try:
         sp_user.start_playback(uris=[top_uri])
     except Exception as exc:
-        return False, f"Failed to start playback: {exc}"
+        return False, "Spotify could not start playback. Check that the host has Premium and an active Spotify device, then try reconnecting."
     remove_vote(session_slug, top_id)
     time.sleep(0.7)
     snapshot = _playback_snapshot(session_slug, sp_user)
@@ -777,12 +828,6 @@ def play_first(session_slug: str) -> tuple[bool, str]:
 
 def status_payload(session_slug: str) -> dict[str, Any]:
     session_slug = ensure_session(session_slug)
-    sp_user = _user_sp(session_slug)
-    if sp_user:
-        try:
-            _active_device(session_slug, sp_user)
-        except Exception:
-            pass
     state = get_state(session_slug)
     uri = state["current_uri"]
     duration_sec = state["current_duration_sec"]
@@ -791,7 +836,6 @@ def status_payload(session_slug: str) -> dict[str, Any]:
     now_playing = None
     if uri and uri.startswith("spotify:track:"):
         track_id = uri.split(":")[-1]
-        _ensure_track_cached_by_tid(track_id, sp_user=sp_user)
         meta = get_track(track_id)
         if meta:
             extra_bits: list[str] = []
@@ -807,11 +851,12 @@ def status_payload(session_slug: str) -> dict[str, Any]:
                 "artist": meta["artist"],
                 "image": meta["image"],
                 "extra": " • ".join(extra_bits) if extra_bits else None,
+                "duration_sec": duration_sec,
+                "progress_sec": progress_sec,
+                "is_playing": is_playing,
             }
     exclude_tid = uri.split(":")[-1] if uri and uri.startswith("spotify:track:") else None
     ids = _ordered_ids(session_slug, exclude_tid=exclude_tid)
-    for track_id in ids:
-        _ensure_track_cached_by_tid(track_id, sp_user=sp_user)
     tracks_snapshot = get_tracks(ids)
     vote_map = dict(get_ordered_votes(session_slug, exclude_tid=exclude_tid))
     queue_payload = [
@@ -828,7 +873,8 @@ def status_payload(session_slug: str) -> dict[str, Any]:
     ]
     return {
         "session_slug": session_slug,
-        "authed": bool(get_token(session_slug)),
+        "authed": _has_stored_token(session_slug),
+        "connection_error": _CONNECTION_ERRORS.get(session_slug),
         "ahead_seconds": QUEUE_AHEAD_SECONDS,
         "poll_seconds": POLL_SECONDS,
         "auto_enabled": state["auto_enabled"],
@@ -839,6 +885,12 @@ def status_payload(session_slug: str) -> dict[str, Any]:
         "next_candidate_tid": _candidate_next_tid(session_slug, uri),
         "ts": int(time.time()),
     }
+
+
+def _has_stored_token(session_slug: str) -> bool:
+    with _connect() as conn:
+        row = conn.execute("SELECT spotify_access_token FROM loudsource_sessions WHERE session_slug = ?", (session_slug,)).fetchone()
+    return bool(row and row[0])
 
 
 def devices_payload(session_slug: str) -> dict[str, Any]:

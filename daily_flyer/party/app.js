@@ -1,0 +1,150 @@
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const params = new URLSearchParams(location.search);
+let room = (params.get('room') || 'main').trim().toLowerCase();
+if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(room)) room = 'main';
+const store = {get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{toast('This browser cannot remember your seat. Keep this tab open.');}},remove(k){try{localStorage.removeItem(k);}catch{}}};
+let token = store.get('loudsource-seat:'+room) || '', state = null, tab = 'music', playView = 'trivia', busy = false, polling = false, timer, searchResults = null, searchQuery = '', searchSeq = 0, pack = null, questionIndex = 0, selected = null, hostMode = params.get('host') === '1';
+const topicMarks = {music:'01',screen:'02',games:'03',sports:'04',food:'05',wild:'06'};
+function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(timer);timer=setTimeout(()=>$('#toast').classList.remove('show'),4800);}
+function prettyTime(seconds){seconds=Math.max(0,Math.floor(seconds||0));return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
+function inviteURL(){return location.origin+'/?room='+encodeURIComponent(room);}
+async function api(path, data, music=false){
+  const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),20000);
+  try {
+    const res=await fetch((music?'/api/loudsource/':'/api/party/')+encodeURIComponent(room)+path,{method:data===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Party-Token':token},body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',signal:controller.signal});
+    const out=await res.json().catch(()=>({}));
+    if(!res.ok){const error=new Error(out.error||out.message||'That did not go through. Try again.');error.status=res.status;throw error;}
+    return out;
+  } catch(e){if(e.name==='AbortError')throw new Error('The connection is taking a while. Your previous picks are safe. Try again.');throw e;}
+  finally {clearTimeout(timeout);}
+}
+function brand(){return '<a class="brand" href="/" aria-label="Loudsource home"><span class="logo" aria-hidden="true"></span>LOUDSOURCE</a>';}
+function landing(message=''){
+  state=null;
+  $('#app').innerHTML=`<div class="wrap"><header>${brand()}<span class="kicker muted">The room has the aux.</span></header><main id="main" class="landing"><div><span class="kicker orange">A little music. A little friendly competition.</span><h1>PASS THE<br><em>AUX CORD.</em></h1><p class="intro muted">Pick a song. Settle a debate. Go back to the party.</p><p class="note">No accounts. No countdowns.<br>Drop in whenever you feel like it.</p></div><section class="join-panel"><div class="record-stamp" aria-hidden="true">SIDE A</div><span class="kicker">${hostMode?'HOST DESK':'COME ON IN'}</span><h2>${hostMode?'Get the room going.':'You’re on the list.'}</h2><form id="join-form"><label>Your name<input id="name" name="nickname" autocomplete="nickname" maxlength="24" required placeholder="What do your friends call you?" value="${esc(store.get('loudsource-name')||'')}"></label><label>Room code<input id="room" name="room" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" required value="${esc(room.toUpperCase())}" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}"></label><div id="join-error" class="form-error" role="alert">${esc(message)}</div><button class="primary" type="submit">${hostMode?'Open host desk':'Join the party'} <span aria-hidden="true">→</span></button></form><div class="rule"><button class="quiet" data-action="host-mode">${hostMode?'Just here to hang out? Join as a guest.':'Hosting? Set up the room →'}</button><p class="note">${hostMode?'Use MAIN for the existing Loudsource Spotify connection. A different code starts a separate room.':'Music plays through the host’s Spotify. Your phone is the request line.'}</p></div></section></main><footer class="landing-footer"><span>LOUDSOURCE / A DAILY FLYER EXPERIMENT</span><button class="quiet" data-action="privacy">What gets saved?</button></footer></div>`;
+}
+function shell(){
+ $('#app').innerHTML=`<div class="wrap"><header>${brand()}<button class="quiet" data-action="invite">ROOM <b class="mono">${esc(room.toUpperCase())}</b> · Invite →</button></header><div class="topline"><div><span class="kicker muted" id="hello"></span><h1 id="party-title"></h1></div><span class="connection" id="connection">● Connected</span></div><nav class="tabs" aria-label="Party sections"><button data-tab="music" class="active">Music</button><button data-tab="play">Play</button><button data-tab="room">The room</button><button data-tab="host" id="host-tab">Host desk</button></nav><div class="workspace"><main id="main"></main><aside id="sidebar"></aside></div></div>`;
+ updateShell();renderTab();
+}
+function updateShell(){if(!state)return;$('#hello').textContent=`${state.people.length} IN THE ROOM / HEY, ${state.me.name.toUpperCase()}`;$('#party-title').textContent=state.title;$('#host-tab').classList.toggle('hide',!state.me.host);renderSidebar();}
+function renderSidebar(){
+ const me=state.people.find(p=>p.id===state.me.id);
+ $('#sidebar').innerHTML=`<section class="side-rule"><h3>The room</h3><div class="room-code">${esc(room.toUpperCase())}</div><p class="note">Send the link. Scan the code.<br>Everybody gets a say.</p><button data-action="invite">Invite friends →</button></section><section class="side-rule"><h3>Need a song idea?</h3><p class="side-note">${esc(state.prompt)}</p></section><section class="side-rule"><h3>How this works</h3><ol><li>Pick up to three songs.</li><li>Vote for someone else’s pick.</li><li>Go enjoy the party.</li></ol><p class="note">Every pick counts as a vote. As a song plays, that pick comes back to you.</p></section><section class="side-rule"><h3>Your little side quest</h3><p class="mini-stat">${me?.correct||0} correct / ${me?.attempted||0} answered</p><button class="quiet" data-action="privacy">What gets saved?</button></section>`;
+}
+function setTab(next){tab=next;pack=null;selected=null;renderTab();window.scrollTo({top:0,behavior:'instant'});}
+function renderTab(){
+ if(!state)return;
+ if(tab==='host'&&!state.me.host)tab='room';
+ document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-current',b.dataset.tab===tab?'page':'false');});
+ if(tab==='music')renderMusic();else if(tab==='play')renderPlay();else if(tab==='room')renderRoom();else renderHost();
+}
+function nowPlaying(){
+ const np=state.music.now_playing;
+ return `<div class="now">${np?.image?`<img class="cover" src="${esc(np.image)}" alt="${esc(np.name)} album artwork">`:'<div class="sleeve" aria-hidden="true"><div class="disc"></div></div>'}<div class="now-copy"><span class="kicker ${np?.is_playing?'orange':'muted'}">${np?(np.is_playing?'ON THE SPEAKERS':'ON PAUSE'):'THE NIGHT STARTS HERE'}</span><h2>${esc(np?.name||'What’s the first song?')}</h2><p>${esc(np?.artist||(state.music.authed?'Find something good below.':'The host handles Spotify. You bring the requests.'))}</p>${np?`<div class="progress" aria-hidden="true"><span style="width:${Math.min(100,100*(np.progress_sec||0)/(np.duration_sec||1))}%"></span></div><div class="progress-labels"><span>${prettyTime(np.progress_sec)}</span><span>${prettyTime(np.duration_sec)}</span></div><a class="spotify-link" target="_blank" rel="noopener" href="https://open.spotify.com/track/${esc(np.track_id)}">Open in Spotify →</a>`:''}</div></div>`;
+}
+function trackRow(item, index, search=false){
+ const id=item.track_id, track=item.track||item, picked=state.mine.includes(id), queued=state.music.queue.find(t=>t.track_id===id), current=state.music.now_playing?.track_id===id;
+ return `<div class="track">${!search?`<span class="rank">${String(index+1).padStart(2,'0')}</span>`:''}${track.image?`<img src="${esc(track.image)}" alt="" loading="lazy">`:''}<div class="track-copy"><a class="track-title" href="https://open.spotify.com/track/${esc(id)}" target="_blank" rel="noopener">${esc(track.name||'Unknown track')}</a><p>${esc(track.artist)}</p></div><button class="vote ${picked?'picked':''}" data-action="vote" data-track="${esc(id)}" aria-label="${picked?'Remove your pick for':'Pick'} ${esc(track.name)}" aria-pressed="${picked}" ${current?'disabled':''}>${current?'▶':picked?'✓':search?'+':'↑'}<small>${current?'PLAYING':search?(picked?'PICKED':queued?'IN QUEUE':'PICK'):String(item.votes)+' VOTE'+(item.votes===1?'':'S')}</small></button>${!search&&state.me.host?`<button class="track-remove" data-action="remove" data-track="${esc(id)}" aria-label="Remove ${esc(track.name)} from queue">×</button>`:''}</div>`;
+}
+function queueHTML(){return state.music.queue.length?state.music.queue.map((t,i)=>trackRow(t,i)).join(''):'<div class="empty"><strong>The aux is wide open.</strong>Find a song above. It only takes one good pick to get things going.</div>';}
+function renderMusic(){
+ $('#main').innerHTML=`<div id="now-playing">${nowPlaying()}</div><section class="search-block"><label for="song-search">What do you want to hear?</label><form id="search-form" class="search-line"><input type="search" id="song-search" autocomplete="off" maxlength="150" placeholder="Song, artist, or Spotify track link" value="${esc(searchQuery)}" required><button class="light" type="submit">Find it</button></form><div id="search-results" class="search-results"></div></section><section><div class="section-title"><h2>Up next</h2><span class="budget" id="budget">${3-state.mine.length} OF 3 PICKS LEFT</span></div><p class="note">The room votes. The top pick goes next.${state.music.auto_enabled?' Auto queue is on.':' The host starts the music.'}</p><div class="queue-list" id="queue">${queueHTML()}</div></section><section id="recent">${historyHTML()}</section>`;
+ if(searchResults)renderSearch();
+}
+function historyHTML(){return state.history.length?`<div class="section-title"><h2>Heard tonight</h2><button class="quiet" data-action="copy-history">Copy songs</button></div>${state.history.slice(0,5).map(t=>`<div class="track">${t.image?`<img src="${esc(t.image)}" alt="" loading="lazy">`:''}<div class="track-copy"><a class="track-title" href="https://open.spotify.com/track/${esc(t.track_id)}" target="_blank" rel="noopener">${esc(t.name)}</a><p>${esc(t.artist)}</p></div></div>`).join('')}`:'';}
+function renderSearch(){if(!$('#search-results'))return;$('#search-results').innerHTML=`<div class="section-title"><span class="kicker muted">SEARCH RESULTS · SPOTIFY</span><button class="quiet" data-action="clear-search">Close ×</button></div>${searchResults.length?searchResults.map((t,i)=>trackRow(t,i,true)).join(''):'<p class="note">No matches. Try the song title and artist together.</p>'}`;}
+function renderPlay(){
+ $('#main').innerHTML=`<div class="page-intro"><span class="kicker orange">A LITTLE SIDE QUEST</span><h2 style="margin-top:10px">Got a minute?</h2><p class="muted">Pick what you’re into. There’s no clock, and nobody’s waiting on you.</p></div><div class="view-tabs"><button data-action="play-view" data-view="trivia" class="${playView==='trivia'?'active':''}">Quick trivia</button><button data-action="play-view" data-view="polls" class="${playView==='polls'?'active':''}">Settle this</button></div><div id="play-content"></div>`;
+ if(playView==='polls')renderPolls();else renderTopics();
+}
+function renderTopics(){
+ pack=null;
+ $('#play-content').innerHTML=`<p class="note">Five questions per pack. One point for a right answer. All six packs stay open.</p><div class="topic-grid">${Object.entries(state.topics).map(([key,name])=>{const a=state.answers.filter(x=>x.question.startsWith(key+'-'));return `<button class="topic" data-action="topic" data-topic="${key}"><strong>${esc(name)}</strong><div class="meta"><small>${a.length===5?'Finished · '+a.filter(x=>x.correct).length+'/5 correct':a.length? a.length+'/5 answered':'5 questions'}</small><span>${a.length===5?'✓':topicMarks[key]+' →'}</span></div></button>`;}).join('')}</div><p class="note">Answers lock after you confirm. No speed bonuses; take your time.</p>`;
+}
+function renderQuestion(){
+ const q=pack.questions[questionIndex], done=typeof q.choice==='number';
+ $('#play-content').innerHTML=`<div class="trivia-head"><button class="quiet" data-action="topics">← All packs</button><span class="kicker muted">${esc(pack.topic)} · ${questionIndex+1}/5</span></div><article class="question"><h2>${esc(q.question)}</h2><div class="choices">${q.options.map((text,i)=>`<button class="choice ${done?(i===q.answer?'correct':i===q.choice?'wrong':''):selected===i?'selected':''}" data-action="choose" data-choice="${i}" ${done?'disabled':''} aria-pressed="${done?q.choice===i:selected===i}"><span class="letter">${'ABCD'[i]}</span>${esc(text)}${done&&q.answer===i?' ✓':''}</button>`).join('')}</div>${done?`<div class="answer-result"><strong>${q.correct?'That’s a point.':'One for next time.'}</strong><p>${esc(q.explanation)}</p></div><button class="primary" data-action="next-question">${questionIndex===4?'Finish pack':'Next question →'}</button>`:`<p class="note" style="margin-top:18px">Pick an answer, then lock it in.</p><button class="primary" data-action="answer" ${selected===null?'disabled':''}>Lock in answer</button>`}</article>`;
+}
+function renderPolls(){
+ $('#play-content').innerHTML=`<p class="note">One vote each. Change your mind whenever you want. Results appear after you vote.</p><div id="polls">${state.polls.map(p=>{const total=p.counts.reduce((a,b)=>a+b,0),voted=p.mine!==null;return `<article class="poll"><h3>${esc(p.question)}</h3><div class="poll-options">${p.options.map((text,i)=>{const pct=total?Math.round(100*p.counts[i]/total):0;return `<button class="poll-option ${p.mine===i?'chosen':''}" data-action="poll" data-poll="${p.id}" data-choice="${i}" aria-pressed="${p.mine===i}">${voted?`<span class="fill" style="width:${pct}%"></span>`:''}<span>${p.mine===i?'✓ ':''}${esc(text)}</span><span>${voted?pct+'%':''}</span></button>`;}).join('')}</div><p class="note" style="margin-top:10px">${total} vote${total===1?'':'s'}${voted?' · Your vote is in.':''}</p></article>`;}).join('')}</div>`;
+}
+function boardHTML(){return `<table class="board"><thead><tr><th scope="col">FRIEND</th><th scope="col">ANSWERED</th><th scope="col">POINTS</th></tr></thead><tbody>${state.people.map(p=>`<tr class="${p.id===state.me.id?'self':''}"><td>${esc(p.name)}${p.id===state.me.id?' (you)':''}</td><td>${p.attempted}/30</td><td><b>${p.correct}</b></td></tr>`).join('')}</tbody></table>`;}
+function renderRoom(){
+ $('#main').innerHTML=`<div class="room-hero"><img class="qr" src="/api/party/${encodeURIComponent(room)}/qr.svg" alt="Scan to join this room"><div><span class="kicker">YOU’RE ALL INVITED</span><div class="room-code">${esc(room.toUpperCase())}</div><p class="muted">Scan, enter a name, you're in.</p><button data-action="copy-link">Copy invite link →</button></div></div><div class="section-title"><h2>A little friendly competition</h2></div><p class="note">Thirty questions across six interests. One point per correct answer. Same questions, same chances, no rush.</p><div id="leaderboard">${boardHTML()}</div><div class="controls"><button class="quiet" data-action="change-name">Change my name</button><button class="quiet" data-action="switch-room">Switch room</button><button class="quiet" data-action="privacy">What gets saved?</button></div>${!state.host_claimed?'<div class="banner">Nobody has opened the host desk yet. <button class="quiet" data-action="claim-host">I’m hosting →</button></div>':''}`;
+}
+function renderHost(){
+ $('#main').innerHTML=`<section class="settings-block"><span class="kicker orange">YOU’RE HOSTING</span><h2 style="margin-top:10px">Keep the night moving.</h2><p class="note">Music plays on your Spotify device. Guests just search and vote.</p><div class="host-status">${state.music.connection_error?esc(state.music.connection_error):state.music.authed?'Spotify connection saved. '+(state.music.active_device_name?'Device: '+esc(state.music.active_device_name)+'.':'Open Spotify on your speaker or laptop, play a song, then check devices below.'):'Connect your Spotify Premium account, then open Spotify on the device connected to your speakers.'}</div><div class="controls"><button data-action="connect">${state.music.authed?'Reconnect Spotify':'Connect Spotify'}</button><button data-action="devices">Check devices</button></div><div id="devices"></div></section><section class="settings-block"><h3>Playback</h3><div class="controls"><button class="primary" data-action="start">Play top pick</button><button data-action="pause">Pause</button><button data-action="resume">Resume</button></div><div class="switchline"><div><b>Auto queue</b><p class="note">Add the winning pick near the end of each song.</p></div><button data-action="auto">${state.music.auto_enabled?'On ✓':'Off'}</button></div><p class="note">Use an empty Spotify queue for the cleanest handoff. Existing Spotify queue entries may play before the next pick. Pausing here also turns auto queue off.</p></section><section class="settings-block"><h3>Make it your party</h3><form id="title-form" class="search-line"><input aria-label="Party name" id="party-name" maxlength="48" value="${esc(state.title)}" required><button type="submit">Save name</button></form><p class="note" style="margin-top:22px">Song prompt: ${esc(state.prompt)}</p><button data-action="prompt">Next song prompt →</button></section><section class="settings-block"><h3>Pass the host desk</h3><p class="note">Your host seat is remembered on this browser. Hand it to someone else before leaving.</p><div class="search-line"><select id="next-host" aria-label="Next host">${state.people.filter(p=>p.id!==state.me.id).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')||'<option value="">Waiting for guests</option>'}</select><button data-action="transfer">Hand over</button></div></section><section class="settings-block"><h3>Queue housekeeping</h3><p class="note">Removing requests doesn’t stop the current song.</p><button class="danger" data-action="clear-queue">Clear all music picks</button></section>`;
+}
+async function refresh(manual=false){
+ if(!token||polling)return;polling=true;
+ try {const next=await api('/state');state=next;if(!$('#party-title'))shell();else{updateShell();$('#connection').textContent='● Connected';$('#connection').classList.remove('offline');if(tab==='music'){
+ $('#now-playing').innerHTML=nowPlaying();$('#budget').textContent=(3-state.mine.length)+' OF 3 PICKS LEFT';
+ if(manual||!$('#queue').contains(document.activeElement))$('#queue').innerHTML=queueHTML();
+ $('#recent').innerHTML=historyHTML();if(searchResults&&(manual||!$('#search-results').contains(document.activeElement)))renderSearch();
+ }else if(tab==='room'&&$('#leaderboard'))$('#leaderboard').innerHTML=boardHTML();else if(tab==='play'&&playView==='polls'&&(manual||!$('#polls')?.contains(document.activeElement)))renderPolls();}}
+ catch(e){if(e.status===401){token='';store.remove('loudsource-seat:'+room);landing(e.message);}else if($('#connection')){$('#connection').textContent='Reconnecting…';$('#connection').classList.add('offline');if(manual)toast(e.message);}else landing(e.message);}
+ finally{polling=false;}
+}
+function showModal(html){$('#modal-body').innerHTML=html;$('#modal').showModal();}
+async function copy(text){try{await navigator.clipboard.writeText(text);toast('Copied. Send it to the group.');}catch{showModal(`<h2>Copy this</h2><label>Press and hold to copy<input id="copy-fallback" readonly value="${esc(text)}"></label>`);$('#copy-fallback').select();}}
+function confirmAction(title,detail,action){showModal(`<h2>${esc(title)}</h2><p class="muted">${esc(detail)}</p><div class="controls"><button class="primary" data-action="confirm" data-confirm="${action}">Yes, do it</button><button data-action="close">Cancel</button></div>`);}
+async function hostAction(action,extra={}){await api('/host',{action,...extra});await refresh(true);if(tab==='host')renderHost();}
+async function executeConfirmed(action){$('#modal').close();if(action==='clear'){await api('/clear',{},true);await refresh(true);toast('Music picks cleared.');}else if(action==='start'){const r=await api('/play-first',{},true);await refresh(true);toast(r.message);}else if(action.startsWith('transfer:')){await hostAction('transfer',{person_id:action.slice(9)});setTab('room');toast('The host desk has been passed on.');}}
+document.addEventListener('submit',async e=>{
+ const form=e.target;if(!['join-form','search-form','title-form'].includes(form.id))return;e.preventDefault();if(busy)return;busy=true;const button=form.querySelector('button[type="submit"]');button.disabled=true;
+ try {
+ if(form.id==='join-form'){
+   const name=$('#name').value.trim();room=$('#room').value.trim().toLowerCase();token=store.get('loudsource-seat:'+room)||'';
+   const data=await api('/join',{name,host:hostMode});token=data.token;store.set('loudsource-seat:'+room,token);store.set('loudsource-name',name);history.replaceState(null,'','/?room='+encodeURIComponent(room));tab=hostMode?'host':'music';await refresh(true);
+ }else if(form.id==='search-form'){
+   searchQuery=$('#song-search').value.trim();const seq=++searchSeq;$('#search-results').innerHTML='<p class="note" role="status">Looking through Spotify…</p>';
+   const r=await api('/search?q='+encodeURIComponent(searchQuery),undefined,true);if(seq===searchSeq){searchResults=Object.entries(r.results).map(([track_id,t])=>({track_id,...t}));renderSearch();}
+ }else{await hostAction('title',{title:$('#party-name').value.trim()});toast('Party name saved.');}
+ }catch(err){if(form.id==='join-form')$('#join-error').textContent=err.message;else {toast(err.message);if(form.id==='search-form'&&$('#search-results'))$('#search-results').innerHTML=`<p class="note" role="alert">${esc(err.message)}</p>`;}}
+ finally{busy=false;button.disabled=false;}
+});
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('button');if(!b||b.disabled)return;
+ if(b.dataset.tab){setTab(b.dataset.tab);return;}
+ if(b.classList.contains('dialog-close')){$('#modal').close();return;}
+ const a=b.dataset.action;if(!a)return;
+ if(a==='close'){$('#modal').close();return;}
+ if(a==='privacy'){showModal('<h2>Just the party stuff.</h2><div class="privacy"><p>Your nickname, music picks, trivia answers, and room votes are saved on this app’s Render server so they survive refreshes. A random seat key stays in this browser.</p><p>Room members can see nicknames and trivia scores. Poll totals are shared. The host’s Spotify authorization is kept on the server; guests never receive it.</p><p>There are no ads or analytics scripts. Spotify receives song searches and playback requests. This first version keeps party records until the operator removes them. Use a nickname and share the room link only with your group.</p></div>');return;}
+ if(a==='host-mode'){hostMode=!hostMode;landing();return;}
+ if(a==='invite'){showModal(`<div class="dialog-center"><span class="kicker orange">COME ON IN</span><h2 style="margin-top:12px">Join the room.</h2><img class="qr" src="/api/party/${encodeURIComponent(room)}/qr.svg" alt="Scan to join room ${esc(room)}"><div class="room-code">${esc(room.toUpperCase())}</div><p class="link-copy">${esc(inviteURL())}</p><button class="primary" data-action="copy-link">Copy invite link</button></div>`);return;}
+ if(a==='copy-link'){await copy(inviteURL());return;}
+ if(a==='copy-history'){await copy(state.history.map(t=>`${t.name} — ${t.artist}\nhttps://open.spotify.com/track/${t.track_id}`).join('\n\n'));return;}
+ if(a==='clear-search'){searchSeq++;searchResults=null;searchQuery='';$('#song-search').value='';$('#search-results').innerHTML='';return;}
+ if(a==='play-view'){playView=b.dataset.view;renderPlay();return;}
+ if(a==='choose'){selected=Number(b.dataset.choice);renderQuestion();return;}
+ if(a==='topics'){renderTopics();return;}
+ if(a==='next-question'){selected=null;if(questionIndex===4){const score=pack.questions.filter(q=>q.correct).length;toast(`${score}/5 in ${pack.topic}. Try another pack whenever you feel like it.`);renderTopics();}else{questionIndex++;renderQuestion();}return;}
+ if(a==='start'){confirmAction('Play the top pick now?',state.music.now_playing?'This replaces the current song on the host’s Spotify device.':'This starts the highest-voted track and turns auto queue on.','start');return;}
+ if(a==='clear-queue'){confirmAction('Clear every music pick?','Everyone gets their three picks back. The current song keeps playing.','clear');return;}
+ if(a==='transfer'){const id=$('#next-host').value;if(!id){toast('A guest needs to join first.');return;}confirmAction('Pass the host desk?','You’ll become a guest. The other person can control the connected Spotify playback.','transfer:'+id);return;}
+ if(a==='switch-room'){token='';hostMode=false;history.replaceState(null,'','/');landing();return;}
+ if(a==='change-name'){hostMode=false;landing();return;}
+ if(busy)return;busy=true;b.disabled=true;
+ try {
+ if(a==='vote'){const id=b.dataset.track;await api('/vote',{track_id:id,active:!state.mine.includes(id)});await refresh(true);toast(state.mine.includes(id)?'Your pick is in.':'Pick removed.');}
+ else if(a==='remove'){await hostAction('remove',{track_id:b.dataset.track});toast('Removed from the queue.');}
+ else if(a==='topic'){pack=await api('/trivia/'+b.dataset.topic);questionIndex=pack.questions.findIndex(q=>q.choice===undefined);if(questionIndex<0)questionIndex=0;selected=null;if(tab==='play'&&playView==='trivia')renderQuestion();}
+ else if(a==='answer'){const q=pack.questions[questionIndex];const r=await api('/answer',{question:q.id,choice:selected});Object.assign(q,r);if(tab==='play'&&pack&&pack.questions.includes(q))renderQuestion();await refresh(true);}
+ else if(a==='poll'){await api('/poll',{poll:Number(b.dataset.poll),choice:Number(b.dataset.choice)});await refresh(true);}
+ else if(a==='connect'){const r=await api('/connect',{},true);location.assign(r.url);}
+ else if(a==='devices'){const r=await api('/devices',undefined,true);$('#devices').innerHTML=r.devices.length?`<p class="note">Choose where the music plays:</p><div class="devices">${r.devices.filter(d=>!d.is_restricted).map(d=>`<button class="device" data-action="device" data-device="${esc(d.id)}">${d.is_active?'● ':''}${esc(d.name)}<small>${esc(d.type)}${d.is_active?' · Active':''}</small></button>`).join('')}</div>`:`<p class="note" role="status">${r.authed?'No devices visible. Open Spotify on your speaker device and start a song, then check again.':'Spotify needs to be reconnected. Use the connect button above.'}</p>`;}
+ else if(a==='device'){await hostAction('device',{device_id:b.dataset.device});toast('Spotify device selected.');}
+ else if(['pause','resume','prompt'].includes(a)){await hostAction(a);toast(a==='prompt'?'New song prompt.':a==='pause'?'Paused. Auto queue is off.':'Playback resumed.');}
+ else if(a==='auto'){await hostAction('auto',{enabled:!state.music.auto_enabled});}
+ else if(a==='confirm'){await executeConfirmed(b.dataset.confirm);}
+ else if(a==='claim-host'){await api('/join',{name:state.me.name,host:true});await refresh(true);setTab('host');}
+ }catch(err){toast(err.message);}finally{busy=false;b.disabled=false;}
+});
+$('#modal').addEventListener('click',e=>{if(e.target===$('#modal'))$('#modal').close();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token)refresh();});
+window.addEventListener('online',()=>refresh());
+setInterval(()=>{if(!document.hidden&&!busy&&token)refresh();},5000);
+if(token){tab=hostMode?'host':'music';$('#app').innerHTML='<div class="wrap"><header>'+brand()+'</header><main id="main" class="loader">Finding your seat…</main></div>';refresh();}else landing();
