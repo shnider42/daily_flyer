@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102d38"><meta name="description" content="A ten-player island battle royale. Drop into Skybreak with friends, scavenge, build cover, and outrun the storm.">
+  <title>SKYBREAK — DailyFlyer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23efbb53'/%3E%3Cpath d='M13 41 32 10 51 41 32 33Z' fill='%23152f3a'/%3E%3Cpath d='M24 45h16l-8 10Z' fill='%23152f3a'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css?v=1.0.0">
+</head>
+<body>
+  <canvas id="world" aria-label="Skybreak 3D island game"></canvas>
+  <div id="loading"><div class="loading-mark">S<span>↗</span></div><strong>ARRIVING AT BREAKWATER</strong><small id="load-note">Preparing the island…</small></div>
+  <div id="vignette"></div><div id="damage-flash"></div><div id="storm-tint"></div>
+
+  <section id="home" class="screen hidden" aria-label="Main menu">
+    <header class="masthead"><a href="https://dfe-directory.onrender.com/" class="dfe-link" aria-label="DailyFlyer games">DFE <span>GAMES</span></a><div class="edition">BREAKWATER ISLAND <span>/</span> SEASON 01</div><button class="icon-button settings-open" aria-label="Settings">⚙</button></header>
+    <div class="hero-copy"><div class="eyebrow"><span class="tiny-line"></span> TEN DROP IN. ONE WALKS OUT.</div><h1>SKY<span>BREAK</span></h1><p class="hero-description">Find your gear. Build your cover.<br>Stay ahead of the storm.</p></div>
+    <div class="play-panel">
+      <label class="name-label" for="pilot-name">CALLSIGN</label><div class="identity"><input id="pilot-name" maxlength="18" autocomplete="nickname" spellcheck="false" value="Pilot" aria-label="Your callsign"><div id="colors" aria-label="Outfit color"></div></div>
+      <button id="quick-play" class="primary large">QUICK MATCH <span>↗</span></button>
+      <div class="play-row"><button id="solo-play" class="secondary">SOLO + BOTS</button><button id="create-room" class="secondary">HOST FRIENDS</button></div>
+      <form id="join-form"><input id="room-code" placeholder="ROOM CODE" maxlength="6" autocomplete="off" aria-label="Room code"><button class="join-button" type="submit">JOIN <span>→</span></button></form>
+      <div class="mode-note">Up to 10 friends. Bots fill the open spots.</div>
+    </div>
+    <footer class="home-footer"><span><i class="status-dot"></i> 3D BATTLE ROYALE</span><button id="how-open">HOW TO PLAY <span>?</span></button><span class="version">v1.0 · AN ORIGINAL DFE GAME</span></footer>
+    <div class="scene-caption"><span>01 / 05</span><strong>MARIGOLD</strong><small>A good place to land.<br>A hard place to leave.</small></div>
+  </section>
+
+  <section id="lobby" class="screen hidden" aria-label="Match lobby">
+    <div class="lobby-panel"><div class="panel-heading"><span class="eyebrow">YOUR DROP CREW</span><button id="leave-lobby" class="text-button">LEAVE ×</button></div><h2>THE ISLAND<br>IS WAITING.</h2>
+      <div class="room-share"><div><small>ROOM CODE</small><strong id="lobby-code">------</strong></div><button id="copy-invite" class="secondary">COPY INVITE ↗</button></div>
+      <div class="roster-heading"><span>CONTENDERS</span><span id="human-count">1 HUMAN / 9 BOTS</span></div><div id="roster"></div>
+      <div id="lobby-status" class="lobby-status">Share the invite, then start when you're ready.</div><button id="start-match" class="primary large">DROP IN <span>↗</span></button>
+      <p class="small-note">Open seats are computer players. Everyone in the room joins the same match.</p>
+    </div>
+  </section>
+
+  <section id="hud" class="hidden" aria-label="Match interface">
+    <div class="hud-top-left"><div class="game-brand">SKYBREAK</div><div class="remaining"><span id="alive-count">10</span><small>LEFT</small><i></i><span id="kill-count">0</span><small>ELIMS</small></div><div id="location-name">MARIGOLD</div></div>
+    <div id="compass"><span id="compass-text">W　　NW　　N　　NE　　E</span><i>▾</i><small id="bearing">000</small></div>
+    <div class="hud-top-right"><button id="map-toggle" aria-label="Open island map"><canvas id="minimap" width="224" height="224"></canvas><span>M</span></button><div class="storm-info"><b id="storm-symbol">◉</b><span id="storm-label">STORM FORMING</span><strong id="storm-clock">0:40</strong></div><div class="match-meta"><span id="network-label">SOLO</span><button id="pause-open" aria-label="Pause menu">Ⅱ</button></div></div>
+    <div id="feed" aria-label="Elimination feed"></div>
+    <div id="phase-banner" class="phase-banner hidden"><small id="phase-label">BREAKWATER ISLAND</small><strong id="phase-title">PICK YOUR LANDING</strong><span id="phase-description">Steer with WASD. Find cover and loot.</span></div>
+    <div id="crosshair"><i></i><b></b><span></span><em></em></div><div id="hitmarker">╳</div><div id="damage-numbers"></div>
+    <div id="interaction" class="hidden"><kbd>E</kbd><div><strong id="interact-name">OPEN SUPPLY CACHE</strong><small id="interact-detail">Equipment and supplies</small></div></div>
+    <div id="use-progress" class="hidden"><span id="use-label">RELOADING</span><div><i></i></div></div>
+    <div id="storm-warning" class="hidden">YOU'RE IN THE STORM <span>MOVE TO THE CIRCLE →</span></div>
+    <div class="hud-bottom-left"><div class="pilot-tag"><span id="player-callsign">PILOT</span><small id="build-count">▱ 60</small></div><div class="vital shield"><span>◈</span><div><i id="shield-bar"></i></div><b id="shield-value">50</b></div><div class="vital health"><span>✚</span><div><i id="health-bar"></i></div><b id="health-value">100</b></div></div>
+    <div class="hud-bottom-right"><div id="ammo-display"><strong id="ammo-current">30</strong><span>/ <b id="ammo-reserve">90</b></span><small id="weapon-name">RANGER AR</small></div><div id="inventory"></div><div class="supplies"><button data-action="heal"><kbd>H</kbd> MED <b id="med-count">1</b></button><button data-action="shield"><kbd>J</kbd> SHIELD <b id="cell-count">1</b></button><button data-action="wall"><kbd>Q</kbd> WALL</button><button data-action="ramp"><kbd>C</kbd> RAMP</button></div></div>
+    <div id="desktop-hints"><span><kbd>WASD</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span><span><kbd>SPACE</kbd> JUMP</span><span><kbd>RMB</kbd> AIM</span><span><kbd>R</kbd> RELOAD</span><span><kbd>F</kbd> SALVAGE</span><span><kbd>ESC</kbd> MENU</span></div>
+    <div id="spectate" class="hidden"><span>YOU PLACED <b id="placement">#10</b></span><strong id="spectate-name">SPECTATING</strong><button id="next-spectate">NEXT PLAYER →</button><button id="spectate-exit">LEAVE MATCH</button></div>
+    <button id="capture-mouse" class="hidden"><strong>CLICK TO PLAY</strong><span>WASD to move · Mouse to look · Click to fire</span></button>
+  </section>
+
+  <div id="touch-controls" class="hidden" aria-label="Touch controls"><div id="look-zone" aria-label="Drag to look"></div><div id="move-stick" aria-label="Move"><div></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-fire" aria-label="Fire">◎<small>FIRE</small></button><button id="touch-aim" aria-label="Aim">⊕</button><button id="touch-jump" aria-label="Jump">↟</button><button id="touch-reload" aria-label="Reload">↻</button><button id="touch-interact" aria-label="Pick up">✋</button><button id="touch-sprint" aria-label="Toggle sprint">»</button></div></div>
+
+  <section id="map-screen" class="modal hidden" aria-label="Island map"><div class="map-panel"><div class="panel-heading"><h2>BREAKWATER ISLAND</h2><button id="map-close" class="icon-button" aria-label="Close map">×</button></div><canvas id="bigmap" width="760" height="760"></canvas><div class="map-legend"><span><i class="legend-you"></i> YOU</span><span><i class="legend-safe"></i> NEXT CIRCLE</span><span><i class="legend-storm"></i> STORM</span><span>Click to place a waypoint</span></div></div></section>
+
+  <section id="pause" class="modal hidden" aria-label="Pause menu"><div class="dialog compact"><span class="eyebrow" id="pause-eyebrow">TAKE A BREATH</span><h2>BACK IN<br>A MOMENT.</h2><p id="pause-note">Your solo match is paused.</p><button id="resume-play" class="primary large">RESUME →</button><button class="secondary settings-open">SETTINGS & CONTROLS</button><button id="leave-match" class="text-button">LEAVE MATCH</button></div></section>
+
+  <section id="results" class="modal hidden" aria-label="Match results"><div class="dialog result-dialog"><div class="result-medal">✦</div><span class="eyebrow" id="result-eyebrow">LAST ONE STANDING</span><h2 id="result-title">ISLAND<br>CHAMPION.</h2><p id="result-subtitle">The storm ran out of people to chase.</p><div class="result-stats"><div><b id="result-place">#1</b><span>PLACEMENT</span></div><div><b id="result-kills">0</b><span>ELIMINATIONS</span></div><div><b id="result-damage">0</b><span>DAMAGE</span></div></div><button id="play-again" class="primary large">ONE MORE DROP ↗</button><button id="results-home" class="text-button">BACK TO MENU</button></div></section>
+
+  <section id="settings" class="modal hidden" aria-label="Settings"><div class="dialog settings-dialog"><div class="panel-heading"><h2>MAKE IT YOURS.</h2><button class="icon-button settings-close" aria-label="Close settings">×</button></div><div class="settings-grid"><label>Graphics<select id="quality"><option value="auto">Auto</option><option value="high">High detail</option><option value="low">Performance</option></select></label><label>Bot difficulty<select id="difficulty"><option value="casual">Casual</option><option value="regular" selected>Regular</option><option value="expert">Expert</option></select></label><label>Look sensitivity <output id="sensitivity-value">1.0</output><input id="sensitivity" type="range" min="0.3" max="2" step="0.1" value="1"></label><label>Sound volume <output id="volume-value">65%</output><input id="volume" type="range" min="0" max="1" step="0.05" value="0.65"></label><label class="toggle-row">Build walls & ramps<input id="build-enabled" type="checkbox" checked></label><label class="toggle-row">Aim assist<input id="aim-assist" type="checkbox" checked></label><label class="toggle-row">Invert vertical look<input id="invert-look" type="checkbox"></label><label class="toggle-row">Always sprint<input id="always-sprint" type="checkbox"></label></div><div class="controls-reference"><h3>DESKTOP</h3><p><b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> fire · <b>Right click</b> aim<br><b>Shift</b> sprint · <b>Space</b> jump · <b>E</b> pick up · <b>R</b> reload<br><b>1–4 / Wheel</b> weapons · <b>Q</b> wall · <b>C</b> ramp · <b>F</b> salvage<br><b>H</b> medkit · <b>J</b> shield · <b>M</b> map · <b>Esc</b> menu</p><h3>CONTROLLER</h3><p>Left stick move · Right stick look · RT fire · LT aim<br>A jump · X reload · Y pick up · B wall · LB / RB switch weapons</p><h3>PHONE / TABLET</h3><p>Landscape works best. Left stick moves; drag the right side to look. Use the large fire button and tap equipment to switch.</p></div><div class="settings-footer"><button id="fullscreen" class="secondary">⛶ FULLSCREEN</button><button class="primary settings-close">DONE</button></div><p class="privacy-note">No account, tracking, or chat. Callsigns and match state are temporary. Your device remembers your settings.</p></div></section>
+
+  <section id="how" class="modal hidden" aria-label="How to play"><div class="dialog how-dialog"><div class="panel-heading"><span class="eyebrow">YOUR FIRST DROP</span><button id="how-close" class="icon-button" aria-label="Close guide">×</button></div><h2>A SMALL ISLAND.<br>A BIG PROBLEM.</h2><ol><li><b>01</b><div><h3>LAND SOMEWHERE GOOD.</h3><p>Steer your glider toward a landmark. Everyone has a starter rifle, so find cover before looking for better gear.</p></div></li><li><b>02</b><div><h3>GEAR UP. GET MOVING.</h3><p>Open gold caches. Collect weapons, shields, and supplies. Rarer gear hits harder. Use launch pads to clear the hills.</p></div></li><li><b>03</b><div><h3>MAKE YOUR OWN COVER.</h3><p>Build a wall with Q or a ramp with C. Each costs 10 materials. Salvage nearby trees, rocks, or crates with F.</p></div></li><li><b>04</b><div><h3>WATCH THE CIRCLE.</h3><p>The purple storm keeps closing. The white circle on your map shows where to go. Outlast the other nine to win.</p></div></li></ol><button id="how-done" class="primary large">GOT IT. LET'S DROP. →</button></div></section>
+  <div id="toast" class="hidden" role="status" aria-live="polite"></div><div id="connection-banner" class="hidden" role="status"></div>
+  <div id="rotate-hint" class="hidden"><span>↻</span><strong>A little more room to play.</strong><small>Rotate your phone to landscape.</small><button id="rotate-dismiss">PLAY THIS WAY</button></div>
+  <script type="module" src="client.mjs?v=1.0.0"></script>
+</body>
+</html>

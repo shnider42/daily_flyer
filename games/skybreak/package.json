@@ -1,0 +1,10 @@
+{
+  "name": "skybreak-royale",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ten-player island battle royale with gliders, construction and a closing storm.",
+  "scripts": {"start":"node server.mjs","dev":"node server.mjs","test":"node --test tests/*.test.mjs"},
+  "engines": {"node": ">=22"},
+  "license": "UNLICENSED"
+}
