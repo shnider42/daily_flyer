@@ -27,6 +27,7 @@ from daily_flyer import party_api as party
 from daily_flyer.storage_check import check_storage
 
 app = Flask(__name__)
+app.json.sort_keys = False  # Preserve Spotify relevance and the numbered pack order.
 REPO_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
