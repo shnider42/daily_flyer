@@ -47,6 +47,8 @@ _STATE_COLUMNS = {
 _SIGNER = URLSafeSerializer(FLASK_SECRET_KEY, salt="daily-flyer-loudsource")
 _BG_STARTED = False
 _BG_LOCK = threading.Lock()
+_TOKEN_LOCK = threading.RLock()
+_TOKEN_RETRY_AFTER: dict[str, float] = {}
 _PLAY_LOCK = threading.Lock()
 _CONNECTION_ERRORS: dict[str, str] = {}
 _SEARCH_CACHE: dict[str, tuple[float, dict]] = {}
@@ -261,9 +263,16 @@ def save_token(session_slug: str, token_info: dict[str, Any]) -> None:
                 session_slug,
             ),
         )
+    _TOKEN_RETRY_AFTER.pop(session_slug, None)
+    _CONNECTION_ERRORS.pop(session_slug, None)
 
 
 def get_token(session_slug: str) -> dict[str, Any] | None:
+    with _TOKEN_LOCK:
+        return _get_token_locked(session_slug)
+
+
+def _get_token_locked(session_slug: str) -> dict[str, Any] | None:
     session_slug = ensure_session(session_slug)
     with _connect() as conn:
         row = conn.execute(
@@ -287,6 +296,8 @@ def get_token(session_slug: str) -> dict[str, Any] | None:
         return token_info
     if not token_info.get("refresh_token"):
         return None
+    if _TOKEN_RETRY_AFTER.get(session_slug, 0) > time.time():
+        return None
     try:
         refreshed = _oauth().refresh_access_token(token_info["refresh_token"])
         if not refreshed.get("refresh_token"):
@@ -294,6 +305,7 @@ def get_token(session_slug: str) -> dict[str, Any] | None:
         save_token(session_slug, refreshed)
         return refreshed
     except Exception as exc:
+        _TOKEN_RETRY_AFTER[session_slug] = time.time() + 300
         log(f"Token refresh failed for {session_slug} ({type(exc).__name__})")
         return None
 

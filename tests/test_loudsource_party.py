@@ -122,4 +122,14 @@ class PartyTests(unittest.TestCase):
             for _ in range(2):self.assertIn('a'*22,ls.search_tracks('https://open.spotify.com/track/'+'a'*22+'?si=abc'))
         fake.track.assert_called_once_with('a'*22)
 
+    def test_invalid_refresh_backs_off_and_reconnection_recovers(self):
+        ls.save_token('main',{'access_token':'expired-test','refresh_token':'invalid-test','expires_at':1})
+        fake=Mock();fake.refresh_access_token.side_effect=RuntimeError('invalid_grant')
+        with patch.object(ls,'_oauth',return_value=fake):
+            for _ in range(5):self.assertIsNone(ls.get_token('main'))
+            fake.refresh_access_token.assert_called_once()
+        ls.save_token('main',{'access_token':'fresh-test','refresh_token':'fresh-refresh','expires_at':9999999999})
+        self.assertEqual(ls.get_token('main')['access_token'],'fresh-test')
+        self.assertNotIn('main',ls._TOKEN_RETRY_AFTER)
+
 if __name__=='__main__':unittest.main()
