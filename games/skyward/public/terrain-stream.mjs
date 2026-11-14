@@ -14,7 +14,8 @@ export class TerrainStream{
   _send(job){this.activeKey=job.key;this.worker.postMessage(job);}
   request(job){
     if(!this.worker)return false;
-    if(job.key===this.activeKey||job.key===this.pending?.key||job.key===this.ready?.key)return true;
+    if(job.key===this.activeKey||job.key===this.ready?.key){this.pending=null;return true;}
+    if(job.key===this.pending?.key)return true;
     if(this.activeKey)this.pending=job;else this._send(job);return true;
   }
   take(){const result=this.ready;this.ready=null;return result;}

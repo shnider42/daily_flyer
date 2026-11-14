@@ -6,9 +6,11 @@ const gun = (ammo, damage, rate, range, cone = 0.105) => ({ ammo, damage, rate, 
 // Dimensionless game airframe size: wider/heavier aircraft carry more rotational
 // inertia. It controls pitch, roll and recovery rather than flight speed.
 const handlingSize = { avro504: .95, camel: .85, spitfire: 1.05, hellcat: 1.2, f16: 1.15,
-  harrier: 1.15, f15: 1.4, f22: 1.5, f4: 1.6, a10: 2, c47: 3.2, b17: 3.6, ac130: 4.8, b2: 5.2, b767: 6.6 };
+  harrier: 1.15, f15: 1.4, f22: 1.5, f4: 1.6, a10: 2, c47: 3.2, b17: 3.6, ac130: 4.8, b2: 5.2, b767: 6.6,
+  p38: 1.38, mig21: 1.05, f14: 1.82, f18: 1.37, sr71: 3.35 };
+const propellerAircraft = new Set(['avro504', 'camel', 'spitfire', 'hellcat', 'c47', 'b17', 'ac130', 'p38']);
 const plane = (id, name, era, stats) => ({
-  id, name, shortName: name, era, model: id, color: '#c9b28c', accent: '#b94139',
+  id, name, shortName: name, era, model: id, color: '#c9b28c', accent: '#b94139', jet: !propellerAircraft.has(id),
   health: 120, gun: null, missiles: 0, bombs: 0, radar: false, stealth: false,
   vtol: false, fixedGear: false, hasFlaps: true, missileRange: 5500, missileDamage: 130, lockTime: 1.25,
   bombRadius: 330, bombDamage: 180, role: '', summary: '', ...stats,
@@ -56,7 +58,7 @@ export const AIRCRAFT = {
   hellcat: plane('hellcat', 'F6F Hellcat', '1944', {
     maxSpeed: 151, cruise: 117, stallSpeed: 38, acceleration: 20, turnRate: 0.34,
     climbRate: 55, rollRate: 1.8, gun: gun(3000, 12, 12, 1600), bombs: 3,
-    role: 'Carrier fighter', color: '#395369', accent: '#e5e7df',
+    role: 'Carrier fighter', carrierLaunch: true, color: '#395369', accent: '#e5e7df',
     summary: 'A strong naval fighter. The ocean offers few navigation landmarks.',
   }),
   f4: plane('f4', 'F-4E Phantom II', '1972', {
@@ -111,6 +113,41 @@ export const AIRCRAFT = {
     color: '#e3e4df', accent: '#214c67', role: 'Widebody passenger jet',
     cockpitEye: { forward: 22, up: 3.1 },
     summary: 'A large, unarmed passenger jet. Build speed on a long runway, climb patiently, and plan broad turns before the approach.',
+  }),
+  p38: plane('p38', 'P-38J Lightning', '1944', {
+    maxSpeed: 168, cruise: 122, stallSpeed: 43, acceleration: 22, turnRate: .30,
+    climbRate: 61, rollRate: 1.62, health: 145, gun: gun(2500, 16, 10, 1750, .087),
+    bombs: 2, bombRadius: 250, color: '#afb5b2', accent: '#a34737', role: 'Twin-engine interceptor',
+    cockpitEye: { forward: 1.7, up: 1.2 },
+    summary: 'Twin booms, concentrated nose guns and two bombs. Keep speed through the climb and avoid a slow turning fight.',
+  }),
+  mig21: plane('mig21', 'MiG-21bis', '1970s', {
+    maxSpeed: 353, cruise: 217, stallSpeed: 73, acceleration: 55, turnRate: .36,
+    climbRate: 116, rollRate: 2.1, health: 105, gun: gun(1000, 19, 13, 1850), missiles: 4,
+    radar: true, missileRange: 4800, lockTime: 1.1, color: '#9ca8a8', accent: '#9b4c42',
+    cockpitEye: { forward: 2.35, up: 1.1 }, role: 'Light delta-wing interceptor',
+    summary: 'Quick into a roll and quick out of ammunition. Get close, take the shot and enter the approach with speed in hand.',
+  }),
+  f14: plane('f14', 'F-14A Tomcat', '1970s', {
+    maxSpeed: 392, cruise: 244, stallSpeed: 64, acceleration: 51, turnRate: .265,
+    climbRate: 114, rollRate: 1.3, health: 145, gun: gun(1900, 17, 12, 2200), missiles: 8,
+    radar: true, missileRange: 9400, lockTime: 1.55, carrierLaunch: true,
+    color: '#aeb2b0', accent: '#d2a956', role: 'Fleet-defense interceptor',
+    cockpitEye: { forward: 5, up: 1.46 },
+    summary: 'Long-range radar and twin engines. The wings sweep back as speed builds, and the carrier offers an assisted departure.',
+  }),
+  f18: plane('f18', 'F/A-18C Hornet', '1990s', {
+    maxSpeed: 339, cruise: 223, stallSpeed: 54, acceleration: 49, turnRate: .385,
+    climbRate: 112, rollRate: 1.86, gun: gun(2000, 16, 13, 2160), missiles: 6, bombs: 4,
+    radar: true, missileRange: 6850, carrierLaunch: true, color: '#909da7', accent: '#c4c7c3',
+    cockpitEye: { forward: 4.8, up: 1.34 }, role: 'Carrier multirole fighter',
+    summary: 'An agile carrier fighter with a forgiving approach speed. Carry a mix of air-to-air missiles and conventional bombs.',
+  }),
+  sr71: plane('sr71', 'SR-71A Blackbird', '1960s', {
+    maxSpeed: 535, cruise: 395, stallSpeed: 88, acceleration: 37, turnRate: .135,
+    climbRate: 104, rollRate: .8, health: 155, color: '#343b42', accent: '#ab5146',
+    cockpitEye: { forward: 9.1, up: 1.36 }, role: 'High-altitude reconnaissance',
+    summary: 'Unarmed, exceptionally fast and happiest high up. Allow plenty of time to turn, slow down and line up a long runway.',
   }),
 };
 
@@ -384,3 +421,6 @@ export function getMission(id) {
     ?? MISSIONS.find(mission => mission.id === id || mission.number === Number(id)) ?? MISSIONS[0];
 }
 export function getAircraft(id) { return AIRCRAFT[id] ?? AIRCRAFT.avro504; }
+export function isJetAircraft(profile) {
+  return getAircraft(typeof profile === 'string' ? profile : profile?.id).jet === true;
+}

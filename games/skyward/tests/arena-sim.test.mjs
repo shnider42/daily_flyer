@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AIRCRAFT, getMission } from '../public/campaign.mjs';
 import { FlightSimulation, advancePlayer } from '../public/sim.mjs';
-import { ARENA_MAPS, ROUND_DURATIONS, createArenaMission, prepareMissionStarts, spawnForPlayer, carrierCompatibility } from '../public/arena.mjs';
+import { ARENA_MAPS, ROUND_DURATIONS, createArenaMission, prepareMissionStarts, spawnForPlayer, carrierCompatibility, teamDogfightStandings } from '../public/arena.mjs';
 import { terrainHeight, terrainGridHeight, TERRAIN_CELL_SIZE, lineOfSight, segmentTerrainTime, terrainClearance, surfaceHeight } from '../public/terrain.mjs';
 import { orientationFromEuler } from '../public/orientation.mjs';
 
@@ -107,6 +107,8 @@ test('host resolves remote gun damage, credits each death once and rejects claim
   assert.equal(remote(sim, 'kill', { targetId: 'host', damage: 99999 }), false);
   sim.localParticipant.health = AIRCRAFT.camel.gun.damage; sim.player.health = AIRCRAFT.camel.gun.damage;
   fly(sim, 0.15); assert.equal(remote(sim, 'fire', {}, 'final-shot'), true);
+  assert.equal(sim.bailoutStatus?.phase, 'disabled');
+  fly(sim, 5.6);
   assert.equal(sim.localParticipant.deaths, 1); assert.equal(sim.participants.get('guest').kills, 1); assert.equal(sim.status, 'flying');
   assert.equal(remote(sim, 'fire', {}, 'final-shot'), false); assert.equal(sim.localParticipant.deaths, 1);
   assert.equal(sim.scoreboard[0].id, 'guest');
@@ -133,12 +135,80 @@ test('free flight is untimed and peaceful while practice guns remain available',
 });
 
 test('each dogfight duration ends on host time even while the host is dead', () => {
-  assert.deepEqual(ROUND_DURATIONS, [300, 600, 1200]);
+  assert.deepEqual(ROUND_DURATIONS, [180, 300, 600, 1200]);
   for (const seconds of ROUND_DURATIONS) {
     const sim = arena({ seconds }); sim.player.health = 0; sim.step(0.05);
     sim.time = seconds - 0.02; sim.step(0.05);
     assert.equal(sim.status, 'success'); assert.equal(sim.round.remaining, 0); assert.equal(sim.round.ended, true);
     const time = sim.time; sim.step(0.05); assert.equal(sim.time, time); assert.equal(sim.action('fire'), false);
+  }
+});
+
+const fourPilots = [
+  { id: 'host', name: 'Blue lead', team: 'blue', aircraft: 'f16' },
+  { id: 'guest', name: 'Red lead', team: 'red', aircraft: 'f16' },
+  { id: 'red-wing', name: 'Red wing', team: 'red', aircraft: 'f16' },
+  { id: 'blue-wing', name: 'Blue wing', team: 'blue', aircraft: 'f16' },
+].map(p => ({ ...p, startMode: 'airborne', connected: true }));
+
+function fourPilotFlight(config, playerId = 'host') {
+  return new FlightSimulation(createArenaMission(config, 'f16'), { playerId, autoLevel: false })
+    .configureMultiplayer({ config, players: fourPilots, playerId, hostId: 'host', runId: 'four' });
+}
+
+test('team dogfight covers enemy-only contacts, teammate gunfire, spawns and final score replication', () => {
+  const config = { mode: 'team-dogfight', mapId: 'islands', durationSeconds: 180 };
+  const sim = fourPilotFlight(config), guest = fourPilotFlight(config, 'guest');
+  const blueWing = sim.participants.get('blue-wing'), redWing = sim.participants.get('red-wing');
+  assert.notEqual(sim.player.x, blueWing.pose.x, 'custom wingmate does not share a spawn point with the host');
+  assert.ok(sim.player.z < 0 && blueWing.pose.z < 0 && sim.participants.get('guest').pose.z > 0);
+  for (const startMode of ['runway', 'carrier']) {
+    const blue = spawnForPlayer(sim.mission, 'hellcat', 0, startMode, 1, 'blue');
+    const red = spawnForPlayer(sim.mission, 'hellcat', 1, startMode, 1, 'red');
+    assert.ok(Math.hypot(red.x - blue.x, red.z - blue.z) > 3000);
+    if (startMode === 'carrier') assert.ok(terrainHeight(red.x, red.z, sim.mission) < 0);
+  }
+  sim.setRemotePlayers([]);
+  assert.equal(blueWing.pose.friendly, true);
+  assert.equal(redWing.pose.friendly, false);
+  assert.deepEqual(sim._hostiles('guest').map(p => p.id), ['host', 'blue-wing'], 'guest guns can target both Blue pilots');
+  assert.deepEqual(sim._hostiles('host').map(p => p.id), ['guest', 'red-wing']);
+  assert.equal(sim._damageParticipant(blueWing, 1000, 'host', 'bomb'), false);
+  assert.equal(sim._damageParticipant(blueWing, 1000, 'host', 'nuclear'), false);
+  assert.equal(sim._damageParticipant(redWing, 1000, 'host', 'missile'), true);
+  assert.equal(sim._damageParticipant(redWing, 1000, 'host', 'missile'), false);
+  assert.equal(sim.localParticipant.kills, 1);
+  assert.equal(redWing.deaths, 1);
+  assert.equal(teamDogfightStandings(sim.scoreboard).winner.team, 'blue');
+  sim.updateRoster(fourPilots.filter(p => p.id !== 'host'));
+  assert.equal(sim.advanceRoundTime(180), true);
+  assert.equal(sim.round.winner, 'blue');
+  assert.equal(guest.applySnapshot(sim.getSnapshot()), true);
+  assert.equal(guest.round.winner, 'blue');
+  assert.equal(guest.localParticipant.team, 'red');
+});
+
+test('four-player PvE uses shared objectives and one life pool per pilot in both encounters', () => {
+  for (const mapId of ['canyon', 'islands']) {
+    const sim = fourPilotFlight({ mode: 'coop', mapId, lives: 1 });
+    assert.equal(sim.mission.id, `coop-${mapId}`);
+    assert.equal(sim.round.duration, null);
+    const wing = sim.participants.get('blue-wing');
+    assert.equal(sim._damageParticipant(wing, 1000, 'host', 'gun'), false);
+    assert.equal(wing.livesRemaining, 1);
+    const captains = ['host', 'guest', 'red-wing', 'blue-wing'];
+    if (mapId === 'islands') {
+      const escorts = sim.enemies.filter(p => p.type !== 'bomber');
+      for (const [index, escort] of escorts.entries()) sim._damage(escort, 1000, 'gun', captains[index]);
+      sim._updateObjective(1);
+      assert.match(sim.objective, /0\/3 bombers/);
+      assert.equal(sim.status, 'flying');
+    }
+    const objectives = [...sim.enemies, ...sim.targets].filter(target => target.alive);
+    for (const [index, target] of objectives.entries()) sim._damage(target, 1000, 'gun', captains[(index + 3) % 4]);
+    sim._updateObjective(7);
+    assert.equal(sim.status, 'success');
+    assert.ok(sim.scoreboard.some(p => p.id === 'blue-wing' && p.kills > 0));
   }
 });
 
@@ -149,7 +219,8 @@ test('life generations reconcile authoritative deaths once and reset a respawn w
   host._damageParticipant(host.participants.get('guest'), 9999, 'host', 'missile');
   const death = host.getSnapshot(); guest.applySnapshot(death); guest.applySnapshot(death);
   assert.equal(guest.player.health, 0); assert.equal(guest.localParticipant.deaths, 1); assert.equal(guest.status, 'flying');
-  assert.equal(host.requestRespawn('guest'), false); fly(host, 4.2); assert.equal(host.requestRespawn('guest'), true);
+  assert.equal(host.requestRespawn('guest'), false); fly(host, 4.2);
+  assert.equal(host.applyRemoteAction('respawn', { id: 'guest' }, { lifeId: 1, runId: 'run-1', actionId: 'no-pose-respawn' }), true);
   const life = host.getSnapshot(); guest.applySnapshot(life);
   assert.equal(guest.player.lifeId, 2); assert.equal(guest.player.crashed, undefined); assert.equal(guest.player.health, AIRCRAFT.f22.health);
   assert.equal(guest.localParticipant.deaths, 1); assert.equal(guest.player.ammo, AIRCRAFT.f22.gun.ammo);

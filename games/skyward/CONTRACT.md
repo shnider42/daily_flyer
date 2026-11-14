@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.9.0
+# SKYWARD module contract · v0.10.0
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 
@@ -10,7 +10,7 @@ Aircraft models use **+Z forward, +Y up, pilot-right −X and port/left +X**. He
 
 `gunship-nightwatch` is Nightwatch Basin: `kind:'gunship'`, `aircraft:'ac130'`, one pilot and one gunner, eight ground objectives, night weather. Its `orbit:{x,z,radius,altitude,direction}` supplies the basin marker. Special missions have no campaign number and do not alter campaign progress. The AC-130 also supports ordinary free-flight handling; its shared weapon stations belong to the crew operation.
 
-Aircraft shape: {id,name,shortName,era,model,color,accent,maxSpeed,cruise,stallSpeed,acceleration,turnRate,climbRate,rollRate,health,gun,missiles,bombs,radar,stealth,vtol,role,summary}. Numeric speeds are simulation m/s. There are fifteen flyable profiles; the additional enemy model types do not become selectable aircraft. Independent multiplayer accepts every flyable profile without changing its performance or adding equipment. An unarmed profile stays unarmed; the AC-130's three gun stations require crew mode.
+Aircraft shape: {id,name,shortName,era,model,color,accent,maxSpeed,cruise,stallSpeed,acceleration,turnRate,climbRate,rollRate,health,gun,missiles,bombs,radar,stealth,vtol,role,summary}. Numeric speeds are simulation m/s. All twenty flyable profiles keep their own equipment and performance in independent multiplayer. The AC-130's three gun stations require crew mode.
 
 The `b767` profile has `passenger:true` and a bounded `passengerCapacity`; every weapon store remains empty. Its game airframe envelope, cockpit eye and chase framing account for its large mesh. Passenger-only excess-power handling makes steep climbs spend airspeed while retaining body-axis flight.
 
@@ -41,25 +41,27 @@ Runways may set `airport:true` or `airfieldType:'airport'` for passenger-airport
 | Export | Contract |
 | --- | --- |
 | `ARENA_MAPS` | `canyon` / Razorback Canyons and `islands` / Open Ocean Islands |
-| `ROUND_DURATIONS` | `[300,600,1200]` seconds |
+| `ROUND_DURATIONS` | `[180,300,600,1200]` seconds |
 | `ARENA_RESPAWN_DELAY`, `MISSION_RESPAWN_DELAY` | Four and five simulation seconds respectively |
 | `normalizeArenaConfig(config)` | Bounded local defaults for `{mode,mapId,durationSeconds,lives}` |
-| `createArenaMission(config,aircraft='f16')` | A deterministic mission with ID `arena-canyon` or `arena-islands`; both maps include a runway and carrier |
+| `createArenaMission(config,aircraft='f16')` | Creates an arena or co-op mission from its mode and map. Both maps include a runway and carrier |
 | `prepareMissionStarts(mission,players)` | Returns a cloned mission with carrier infrastructure where selected starts require it |
 | `ensureCarrier(mission)` | Convenience wrapper adding carrier infrastructure |
 | `spawnForPlayer(mission,aircraft,index=0,startMode='airborne',lifeId=1)` | Deterministic initial/respawn position and startup state for the selected aircraft |
 | `carrierCompatibility(aircraft,runway={width:40,length:310})` | Warning metadata, including `{level,label,warning,supported,allowed:true,assisted,takeoffSpeed,deckLength,halfSpan,laneClearance,wingClearance,oversized}`; never an aircraft-selection gate |
 | `aircraftChoice(id)` | A known flyable aircraft ID, with the arena fallback for an unknown value |
 
-Room modes are `squadron`, `crew`, `freeflight`, and `dogfight`. Independent modes accept 2–4 players; crew accepts exactly two. `mapId` is `canyon` or `islands`; dogfight duration is 300, 600 or 1200 seconds; ordinary mission `lives` is 1, 3 or 5, default 3. The server rejects invalid settings rather than relying on the local normalizer. Accepted server config uses `durationSeconds:0` outside dogfight; simulation rounds use `duration:null` / `remaining:null` when untimed.
+Room modes are `squadron`, `crew`, `freeflight`, `dogfight`, `team-dogfight` and `coop`. Team dogfight and co-op require exactly four connected, ready pilots. Crew requires two. Other modes support two to four. `mapId` is `canyon` or `islands`. Both dogfight modes use durations of 180, 300, 600 or 1200 seconds, while co-op and mission squadron allow 1, 3 or 5 lives. A team dogfight assigns two pilots each to `blue` and `red`, allows the host to pick a wingmate in the lobby, and publishes the winning side at round end. Co-op maps use `coop-canyon` and `coop-islands` and share PvE objectives across the group.
 
-Each independent roster entry carries `aircraft` and `startMode:'airborne'|'high'|'runway'|'carrier'`, and `payload:'conventional'|'atomic'|'hydrogen'|'tsar'`. The accepted choices apply to ordinary missions as well as arena modes and remain fixed until another sortie. High starts are 6,500 game metres AGL at the normal airborne horizontal spawn. Multiplayer runway starts are hot; solo free-flight setup can request a cold runway start. `lifeId` changes deterministic respawn placement and separates a replacement from its predecessor. Carrier compatibility describes modeled assistance and risk; all fifteen aircraft remain allowed to attempt a departure.
+Each independent roster entry carries `aircraft` and `startMode:'airborne'|'high'|'runway'|'carrier'`, and `payload:'conventional'|'atomic'|'hydrogen'|'tsar'`. The accepted choices apply to ordinary missions as well as arena modes and remain fixed until another sortie. High starts are 6,500 game metres AGL at the normal airborne horizontal spawn. Multiplayer runway starts are hot; solo free-flight setup can request a cold runway start. `lifeId` changes deterministic respawn placement and separates a replacement from its predecessor. All twenty aircraft can attempt a carrier departure under the modeled assistance and risk.
 
 ## Simulation
 
 `sim.mjs` exports `FlightSimulation`, `advancePlayer(player,input,dt,aircraft,mission,settings)` and re-exports `terrainHeight`, `surfaceHeight`, `runwayAt`, `runwayCoordinates`, `segmentTerrainTime`, `lineOfSight`, `terrainClearance` and `carrierObstacleTime` from the shared terrain module. `new FlightSimulation(mission,settings)` accepts an object or ID. `.player` carries quaternion `orientation`, position, Euler pose, speed, throttle, health, fuel, gear/flaps/brake, engine/startup state, aircraft ID, vertical speed, stall state and stores. Multiplayer adds `lifeId`, `alive`, `targetId` and `radarOn`. `.step(dt,{roll,pitch,yaw,throttle,fire})` advances flight. `.action(name)` supports startup, gear, flaps, brake, level, target, missile, payload, fire, countermeasure, radar, hover, abort and respawn.
 
 World properties: `.enemies`, `.targets`, `.projectiles`, `.effects`, `.paratroopers`, `.waypointIndex`, `.status` (`flying`/`success`/`failed`), `.objective`, `.hint`, `.progress`, `.time`, `.score`, `.events`, `.targetId`, `.lockProgress`, `.radarOn`, `.threat` and `.threatWarning`. `.getSnapshot()` serializes the host world. Legacy unconfigured squadron `.applySnapshot(snapshot)` preserves the guest's own plane and applies shared damage/stores. Configured multiplayer uses the participant contract below.
+
+`.bailoutStatus` reports `critical`, `disabled`, `descending`, `landed` or `lost` when applicable. `.action('bailout')` requests a parachute from an eligible airframe. Configured guests send a `bailout` action for the current `lifeId`. The host starts the descent, records the aircraft loss once, publishes the pilot's parachute through `.paratroopers`, and resolves recovery before a replacement can be requested.
 
 ### Handling and nuclear payloads
 

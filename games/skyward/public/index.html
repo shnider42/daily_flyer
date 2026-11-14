@@ -2,9 +2,9 @@
 <html lang="en" data-theme="night">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 15 aircraft, including a passenger Boeing 767, across 18 campaign missions and nine independent flights. Explore in free flight or join friends for dogfights and co-op. A Daily Flyer aviation game for keyboard and touch.">
+  <meta name="theme-color" content="#111b20"><meta name="description" content="SKYWARD. Fly 20 aircraft across 18 campaign missions and nine independent flights. Explore in free flight or join friends for 2v2 dogfights and four-pilot co-op. A Daily Flyer aviation game for keyboard and touch.">
   <title>SKYWARD · A Century of Flight</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css"><link rel="stylesheet" href="./mobile-flight.css"><link rel="stylesheet" href="./operations.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preload" href="./fonts/open-sans-condensed-bold.woff" as="font" type="font/woff" crossorigin><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./crew.css"><link rel="stylesheet" href="./arena.css"><link rel="stylesheet" href="./combat-feedback.css"><link rel="stylesheet" href="./hangar.css"><link rel="stylesheet" href="./mobile-flight.css"><link rel="stylesheet" href="./operations.css"><link rel="stylesheet" href="./flight-controls.css">
 </head>
 <body data-screen="home">
   <canvas id="view" aria-label="3D flight scene"></canvas><div id="scene-vignette"></div>
@@ -49,7 +49,7 @@
     </nav>
 
     <section class="hangar-viewer" aria-label="Browse aircraft">
-      <div class="hangar-viewer-heading"><span class="hangar-label">AIRCRAFT HANGAR</span><span class="hangar-position"><span id="hangar-index">01</span> / <span id="hangar-total">14</span></span></div>
+      <div class="hangar-viewer-heading"><span class="hangar-label">AIRCRAFT HANGAR</span><span class="hangar-position"><span id="hangar-index">01</span> / <span id="hangar-total">20</span></span></div>
       <div id="hangar-stage" class="hangar-stage" aria-hidden="true"><i class="stage-tick stage-tick-left"></i><i class="stage-tick stage-tick-right"></i></div>
       <div class="aircraft-manifest">
         <div class="aircraft-identity" aria-live="polite" aria-atomic="true"><span id="hangar-era" class="aircraft-year">1917</span><h2 id="hangar-name">Avro 504</h2><p id="hangar-role">Flight trainer</p></div>
@@ -58,7 +58,7 @@
       </div>
     </section>
 
-    <footer class="hangar-footer"><span><b id="home-aircraft-count">15</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.9.0</span></footer>
+    <footer class="hangar-footer"><span><b id="home-aircraft-count">20</b> AIRCRAFT <i>/</i> <b id="home-mission-count">18</b> MISSIONS</span><span class="hangar-inputs">KEYBOARD + TOUCH</span><span>v0.10.0</span></footer>
   </main>
 
   <section id="campaign-screen" class="screen panel-screen" data-screen="campaign" hidden>
@@ -108,9 +108,9 @@
         <p class="eyebrow">FLIGHT PLAN</p><h2>Room setup</h2>
         <p id="room-config-note" class="small-note">The flight lead sets the mission. Everyone chooses their own aircraft.</p>
         <div id="room-flight-config">
-          <label>Mode<select id="room-mode"><option value="dogfight">Dogfight · every pilot for themselves</option><option value="freeflight">Free flight · explore together</option><option value="squadron">Mission squadron · fly the campaign</option><option value="crew">AC-130 crew · pilot + gunner</option></select></label>
+          <label>Mode<select id="room-mode"><option value="dogfight">Dogfight · every pilot for themselves</option><option value="team-dogfight">Team dogfight · 2v2</option><option value="coop">Co-op operations · four pilots</option><option value="freeflight">Free flight · explore together</option><option value="squadron">Mission squadron · fly the campaign</option><option value="crew">AC-130 crew · pilot + gunner</option></select></label>
           <label id="room-map-field">Map<select id="room-map"><option value="canyon">Razorback Canyons</option><option value="islands">Open Ocean Islands</option></select></label>
-          <label id="room-duration-field">Round length<select id="room-duration"><option value="300">5 minutes</option><option value="600" selected>10 minutes</option><option value="1200">20 minutes</option></select></label>
+          <label id="room-duration-field">Round length<select id="room-duration"><option value="180">3 minutes</option><option value="300">5 minutes</option><option value="600" selected>10 minutes</option><option value="1200">20 minutes</option></select></label>
           <label id="room-lives-field" hidden>Lives per pilot<select id="room-lives"><option value="1">1 life · then spectate</option><option value="3" selected>3 lives · then spectate</option><option value="5">5 lives · then spectate</option></select></label>
           <label id="room-mission-field" hidden>Campaign sortie<select id="room-mission"></select></label>
         </div>
@@ -139,13 +139,17 @@
     <div class="flight-instruments"><div class="instrument speed"><small id="speed-unit">KM/H</small><strong id="hud-speed">0</strong><span>AIRSPEED</span></div><div class="heading-strip"><span id="hud-wind">WIND 4 KT →</span><strong id="hud-heading">000<span>°</span></strong><small id="hud-compass">N</small></div><div class="instrument altitude"><small id="altitude-unit">METRES AGL</small><strong id="hud-altitude">0</strong><span id="terrain-clearance-label">GROUND CLEARANCE</span><div class="clearance-track" aria-hidden="true"><i id="clearance-fill"></i></div></div></div>
     <div id="crosshair" class="crosshair" aria-hidden="true"><i></i><b></b></div><div id="target-marker" class="target-marker" hidden><span id="target-name">CONTACT</span><small id="target-distance"></small></div><div id="waypoint-pointer" class="waypoint-pointer" hidden></div>
     <div id="flight-warning" class="flight-warning" role="status" aria-live="polite" hidden></div>
+    <aside id="bailout-panel" class="bailout-panel" aria-label="Emergency bailout" hidden>
+      <div><strong id="bailout-title"></strong><span id="bailout-detail"></span></div>
+      <button id="bailout-button" class="hud-button" data-action="bailout" type="button">BAIL OUT</button>
+    </aside>
     <div id="radio-caption" class="radio-caption" aria-live="polite" hidden><span>RADIO</span><p></p></div>
     <div id="startup-panel" class="startup-panel"><span class="eyebrow">BEFORE YOU FLY</span><h2 id="startup-title">Fuel on.</h2><p id="startup-hint">Every flight begins with a little ritual.</p><div class="startup-steps" id="startup-steps"><span>FUEL</span><span>IGNITION</span><span>PRIME</span><span>PROP</span></div><button id="startup-button" class="primary">Open fuel valve <span>→</span></button></div>
     <div id="radar-panel" class="radar-panel"><canvas id="radar" width="240" height="240" aria-label="Radar and navigation display"></canvas><span id="radar-label">NAVIGATION</span></div>
     <div id="flight-hint" class="flight-hint"><span class="hint-key">→</span><p id="hint-text">Left thumb: yaw and thrust. Right thumb: pitch and roll. Pull down for nose up.</p><button id="dismiss-hint" aria-label="Hide flight hint">×</button></div>
     <div class="aircraft-status"><span id="hud-health">AIRFRAME <b>100%</b></span><span id="hud-fuel">FUEL <b>100%</b></span><span id="hud-stores"></span></div>
     <div class="flight-actions" id="flight-actions" role="group" aria-label="Aircraft controls"><button data-action="gear" title="G">GEAR <b id="gear-state">DOWN</b></button><button data-action="flaps" title="F">FLAPS <b id="flaps-state">UP</b></button><button data-action="brake" title="B">BRAKE <b id="brake-state">ON</b></button><button data-action="level" class="recovery" title="L">LEVEL <b>ASSIST</b></button><button data-action="hover" id="hover-action" hidden title="H">HOVER <b id="hover-state">OFF</b></button></div>
-    <div class="weapon-actions" id="weapon-actions"><button data-action="target" title="T">TARGET</button><button data-action="missile" id="missile-action" title="M">MISSILE <small id="lock-state">NO LOCK</small></button><button data-action="payload" id="payload-action" title="V">RELEASE <small id="payload-state">BOMB</small></button><button data-action="countermeasure" id="countermeasure-action" title="X">FLARE</button><button data-action="radar" id="radar-action" title="R">RADAR <small id="radar-state">ON</small></button></div>
+    <div class="weapon-actions" id="weapon-actions" role="group" aria-label="Weapons and targeting"><button data-action="target" title="T">TARGET</button><button data-action="missile" id="missile-action" title="M">MISSILE <small id="lock-state">NO LOCK</small></button><button data-action="payload" id="payload-action" title="V">RELEASE <small id="payload-state">BOMB</small></button><button data-action="countermeasure" id="countermeasure-action" title="X">FLARE</button><button data-action="radar" id="radar-action" title="R">RADAR <small id="radar-state">ON</small></button></div>
     <div class="touch-controls" id="touch-controls">
       <div id="yaw-thrust-stick" class="yaw-thrust-stick touch-pad" role="group" aria-label="Yaw and thrust: drag left or right to yaw, up for more thrust, down for less thrust. Release to hold thrust.">
         <div class="stick-axis x"></div><div class="stick-axis y"></div>

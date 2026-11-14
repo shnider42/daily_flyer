@@ -74,3 +74,26 @@ test('fatal solo damage shows and animates destruction before debrief without ad
   const endedTime=sim.time;frame(600);assert.equal(app.screen,'flight');assert.equal(sim.time,endedTime);
   frame(700);assert.equal(app.screen,'debrief');assert.equal(sim.time,endedTime);
 });
+
+test('guest bailout uses the desktop emergency button and waits for the host canopy',async t=>{
+  const {app,document,frame}=await appFixture(t),start=begin(app,{guest:true});
+  const host=new FlightSimulation(createArenaMission(start.config,'f16'),{playerId:'lead'});
+  host.configureMultiplayer({...start,playerId:'lead'});
+  const guest=host.participants.get('wing');
+  host._damageParticipant(guest,guest.health,'lead','missile',host.player);
+  app.team.callbacks.onWorld(host.getSnapshot());frame(120);
+  const button=document.getElementById('bailout-button');
+  assert.equal(button.hidden,false);
+  assert.equal(button.title,'Bail out · Y');
+  assert.equal(document.getElementById('bailout-title').textContent,'Aircraft disabled');
+  button.onclick();
+  assert.equal(app.team.actions.at(-1).name,'bailout');
+  assert.equal(app.sim.bailoutStatus.phase,'disabled');
+  host.applyRemoteAction({name:'bailout',lifeId:guest.lifeId},{...guest.pose,id:'wing'});
+  app.team.callbacks.onWorld(host.getSnapshot());frame(120);
+  assert.equal(app.sim.bailoutStatus.phase,'descending');
+  assert.equal(document.getElementById('bailout-title').textContent,'Parachute deployed');
+  assert.equal(button.hidden,true);
+  assert.equal(document.getElementById('spectator-panel').hidden,true);
+  assert.equal(app.controls.active,false);
+});

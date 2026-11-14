@@ -1,9 +1,9 @@
 {
   "name": "skyward-flight",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
-  "description": "SKYWARD — a century of flight, with private dogfights, shared free flight, campaign squadrons and an AC-130 crew",
+  "description": "SKYWARD — a century of flight, with 2v2 dogfights, four-pilot co-op, campaign squadrons and an AC-130 crew",
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",

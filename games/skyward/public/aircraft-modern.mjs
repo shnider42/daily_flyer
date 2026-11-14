@@ -624,9 +624,138 @@ function mig21(group,palette,data) {
   data.span=7.15;data.length=14.7;
 }
 
+function tomcat(group, palette, data) {
+  const m = materials(palette);
+  fuselage(group, [[-8.45,1.74,.85,.1],[-6.8,2.75,.83,.09],[-3.3,3.14,1,.12],
+    [.1,2.87,1.2,.14],[2.18,2.21,1.53,.12],[4,1.57,1.69,.07],[6.48,1.35,1.32,.02],
+    [7.83,1.08,1.14,-.03]], m.body, data);
+  fuselage(group, [[7.67,1.15,1.23,-.03],[8.39,.92,.98,-.04],[9.21,.57,.64,-.07],[10.08,.022,.035,-.13]], m.radome, data);
+  canopy(group, [[2.24,.34,.11,.85],[2.84,.93,.66,.93],[3.62,1.21,1.02,.94],[4.64,1.22,.98,1],
+    [5.39,1.1,.87,.96],[6.04,.62,.38,.86],[6.4,.19,.07,.74]], m, data, [1, 3, 5], true);
+  const shoulders = [[1.08,3.05,-5.74,-.07,.34],[2.37,1.79,-5,-.06,.28],[3.18,.45,-3.54,-.03,.24]];
+  const main = [[0,.18,-3.95,0,.31],[1.55,-.62,-3.74,.01,.26],[3.98,-1.93,-4.23,.1,.14],
+    [6.6,-3.25,-4.93,.21,.09],[7.04,-3.59,-4.66,.23,.056]];
+  const tails = [[2.19,-5.42,-8.49,-.1,.24],[3.54,-6.26,-8.83,-.12,.19],[5.09,-7.91,-9,-.17,.064]];
+  const intake = [[-.69,-.72],[.68,-.72],[.68,.52],[-.56,.84],[-.71,.7]];
+  for (const side of [-1, 1]) {
+    const pod = side * 1.91;
+    fuselage(group, [[-8.45,1.29,1.3,-.23],[-6.32,1.73,1.54,-.22],[-2,1.85,1.57,-.28],
+      [.63,1.74,1.52,-.38],[2.46,1.47,1.43,-.4]], m.body, data, pod);
+    duct(group, intake, 1.7, m, [pod,-.42,3.9], [.085,0,side*.075]);
+    roundNozzle(group, [pod,-.24,-9.04], .66, m, data);
+    foil(group, shoulders, side, m.belly, data);
+    foil(group, tails, side, m.wing, data);
+    foilSeam(group, tails, side, .84, m.panel, data);
+    fin(group, [[0,-4.75],[.42,-5.17],[3.09,-6.97],[3.02,-8.02],[.72,-8.47],[0,-8.25]], .22, m.body, pod, .54);
+    if (detailOf(data)) {
+      const flashX = pod + side * .115;
+      box(group,[.022,.14,.75],m.marking,[flashX,2.87,-7.53],[.18,0,0]);
+      box(group,[.022,.12,.59],m.marking,[flashX,2.63,-7.51],[.18,0,0]);
+    }
+    const pivot = localGroup(group, [side * 2.76,-.07,.38]);
+    pivot.name = side < 0 ? 'sweep-wing-left' : 'sweep-wing-right';
+    pivot.userData.animated = true;
+    foil(pivot, main, side, m.wing, data);
+    foilSeam(pivot, main, side, .75, m.panel, data);
+    if (detailOf(data)) {
+      const color = side < 0 ? '#58a58a' : '#bd5047';
+      ellipsoid(pivot,[.06,.045,.088],mat(color,.27,.06,{emissive:color,emissiveIntensity:.6}),
+        [side*6.94,.231,-3.69]);
+    }
+    // The fuselage stations keep the stores under the nacelles as the wings sweep.
+    pylon(group,side*1.2,-.56,.4,m,.98,.27);
+    missile(group,side*1.2,-.98,.42,3.74,.16,m,data);
+  }
+  beam(group,[0,-.64,-7.19],[0,-.83,-8.83],.11,m.nozzle);
+  landingGear(group,[{x:-2.26,z:-1.55,radius:.41,y:-1.65},{x:2.26,z:-1.55,radius:.41,y:-1.65},
+    {x:0,z:5.12,radius:.29,y:-1.77,dual:true}],m,data);
+  data.span = 19.6;
+  data.length = 20.9;
+}
+
+function hornet(group, palette, data) {
+  const m = materials(palette);
+  fuselage(group, [[-7.7,1.99,.93,-.11],[-6.29,2.53,1.18,-.04],[-3.6,2.92,1.66,.04],
+    [.02,2.71,1.8,.07],[1.76,2.39,1.81,.1],[3.65,1.52,1.72,.1], [5.8,1.21,1.44,.02],
+    [6.6,1.02,1.19,-.03]], m.body, data);
+  fuselage(group, [[6.42,1.08,1.26,-.03],[7.3,.87,.88,-.05],[8.28,.54,.56,-.075],[8.87,.02,.03,-.13]],m.radome,data);
+  canopy(group, [[2.51,.61,.1,.85],[3.26,1.02,.63,.9],[4.32,1.15,.94,.91],
+    [5.27,.9,.76,.85],[5.99,.54,.32,.81],[6.28,.12,.05,.74]],m,data,[1,4]);
+  const strakes = [[.65,5.1,-2.05,.16,.25],[1.32,2.76,-2.65,.2,.24],
+    [2.24,1.23,-2.75,.27,.18],[2.86,.61,-2.45,.33,.088]];
+  const main = [[2.34,1.27,-3.67,.16,.29],[3.26,.75,-3.55,.15,.24],
+    [4.15,.04,-3.71,.18,.19],[5.75,-1.04,-2.85,.24,.085]];
+  const tail = [[1.17,-4.35,-7.78,-.13,.24],[2.74,-5.28,-7.83,-.14,.17],[3.9,-6.41,-7.58,-.17,.064]];
+  for (const side of [-1,1]) {
+    const pod = side * .99;
+    fuselage(group,[[-7.69,1.21,1.14,-.25],[-6.42,1.39,1.28,-.28],[-2.06,1.76,1.42,-.31],
+      [1.89,1.43,1.15,-.39]],m.belly,data,pod);
+    const outline = [[-.51,-.3],[.4,-.3],[.64,.04],[.47,.42],[-.44,.47],[-.62,.16]];
+    const mouth = side > 0 ? outline : outline.map(([x,y])=>[-x,y]).reverse();
+    duct(group,mouth,1.28,m,[side*1.42,-.38,3.03],[0,side*.05,side*.08]);
+    roundNozzle(group,[pod,-.27,-8.01],.55,m,data);
+    foil(group,strakes,side,m.body,data);
+    foil(group,main,side,m.wing,data);
+    foil(group,tail,side,m.wing,data);
+    foilSeam(group,main,side,.73,m.panel,data,1);
+    foilSeam(group,tail,side,.72,m.panel,data);
+    fin(group,[[0,-3.73],[.72,-4.29],[2.66,-5.87],[2.67,-6.62],[.64,-7.3],[0,-6.54]],
+      .23,m.body,side*1.24,.61,side*.31);
+    box(group,[.14,.11,2.02],m.edge,[side*5.69,.215,-1.92]);
+    missile(group,side*5.72,.235,-1.54,2.58,.092,m,data);
+    pylon(group,side*3.74,.14,-1.72,m,.88,.31);
+    if (detailOf(data)) fuelTank(group,side*3.74,-.51,-1.54,3.46,.23,m,data);
+  }
+  navLights(group,5.7,.264,-2.13,data);
+  beam(group,[0,-.57,-5.19],[0,-.83,-7.7],.09,m.nozzle);
+  landingGear(group,[{x:-1.75,z:-1.2,radius:.39,y:-1.66},{x:1.75,z:-1.2,radius:.39,y:-1.66},
+    {x:0,z:4.93,radius:.26,y:-1.73,dual:true}],m,data);
+  data.span = 11.9;
+  data.length = 18.62;
+}
+
+function blackbird(group,palette,data) {
+  const m = materials(palette);
+  fuselage(group,[[-15.1,.07,.04,.11],[-12.62,1.92,.77,.1],[-9.28,2.72,1.6,0],
+    [-3.65,2.68,1.96,.06],[1.21,2.44,2.01,.06],[6.93,2.18,1.76,.04],[9.24,1.84,1.32,.04],
+    [11.85,1.43,.91,.015],[14.55,.79,.51,-.02],[16.44,.045,.032,-.08]],m.body,data);
+  canopy(group,[[4.9,.19,.04,.86],[5.71,.84,.46,.9],[6.72,.99,.6,.91],[7.23,.76,.33,.86],
+    [7.53,.3,.08,.84],[8.03,.85,.5,.78],[8.81,.98,.65,.75],[9.61,.73,.35,.69],[10.14,.13,.048,.58]],
+    m,data,[2,4,6,7],true);
+  const chine = [[0,16.14,-14.86,-.08,.21],[.54,14.72,-14.12,-.075,.39],[1.18,11.77,-13.65,-.072,.42],
+    [1.75,8.54,-13.08,-.07,.35],[2.6,5.56,-12.92,-.06,.3],[4.25,2.34,-12.13,-.08,.24],
+    [5.54,.45,-12.06,-.08,.19]];
+  const tip = [[6.25,.26,-11.84,-.01,.34],[7.12,-1.46,-10.57,.08,.26],[8.48,-3.21,-9.31,.13,.18],
+    [9.38,-4.69,-8.93,.2,.09],[9.55,-4.98,-8.68,.22,.048]];
+  for (const side of [-1,1]) {
+    const pod = side*5.7;
+    foil(group,chine,side,m.wing,data);
+    foil(group,tip,side,m.wing,data);
+    foilSeam(group,tip,side,.77,m.panel,data);
+    openEnds(fuselage(group,[[-12.9,1.42,1.39,-.04],[-10.74,1.77,1.7,-.01],[-7.93,2.03,1.92,0],
+      [-2.36,2.19,2.14,.04],[.99,2.16,2.12,.05],[3.48,1.94,1.95,.058]],m.body,data,pod),true,true);
+    roundDuct(group,[pod,.058,3.78],[.985,.985],1.54,m,data,{lip:m.nozzle,rearScale:1.04});
+    cylinder(group,.028,.63,2.87,m.frame,[pod,.058,3.92],[Math.PI/2,0,0],sidesOf(data));
+    roundNozzle(group,[pod,-.04,-13.39],.72,m,data);
+    fin(group,[[0,-7.34],[.59,-7.81],[3.13,-9.13],[3.06,-10.61],[.25,-12.23],[0,-11.62]],
+      .26,m.body,pod,.73,-side*.25);
+    if (detailOf(data)) {
+      const red = mat(palette.accent,.76,.09);
+      panelPath(group,[[side*3.37,.093,-2.9],[side*4.36,.093,-5.59],[side*4.9,.077,-8.28]],{panel:red},data,.039);
+      box(group,[.64,.041,.21],red,[side*7.91,.189,-7.31],[0,side*.35,0]);
+    }
+  }
+  navLights(group,9.46,.283,-5.31,data);
+  landingGear(group,[{x:-1.97,z:-2.16,radius:.48,width:.32,y:-1.94,dual:true},
+    {x:1.97,z:-2.16,radius:.48,width:.32,y:-1.94,dual:true},
+    {x:0,z:9.45,radius:.32,y:-2.1,dual:true}],m,data);
+  data.span = 19.1;
+  data.length = 31.63;
+}
+
 /** Build a modern aircraft in-place. Returns false only for an unknown kind. */
 export function buildModernAircraft(group,kind,palette,data) {
-  const builders={f4,f15,f16,f22,harrier,a10,b2,mig21};
+  const builders={f4,f15,f16,f22,harrier,a10,b2,mig21,f14:tomcat,f18:hornet,sr71:blackbird};
   const build=builders[kind];
   if(!build)return false;
   data.propellers ||= [];data.exhausts ||= [];

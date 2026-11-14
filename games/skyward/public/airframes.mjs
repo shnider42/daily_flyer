@@ -17,6 +17,12 @@ export const AIRFRAME_BOUNDS = Object.freeze({
   f22: { min: [-6.8, -1.83, -10.95], max: [6.8, 3.095, 9.45] },
   b2: { min: [-26.064, -1.92, -10.45], max: [26.064, 1.683, 10.45] },
   b767: { min: [-24.12, -3, -27], max: [24.12, 12.185, 27] },
+  p38: { min: [-7.91, -2.13, -5.74], max: [7.91, 1.912, 5.065] },
+  mig21: { min: [-3.579, -1.79, -9.09], max: [3.579, 3.41, 7.36] },
+  // The Tomcat model's unswept wings are its widest configuration.
+  f14: { min: [-9.803, -2.06, -10.78], max: [9.803, 3.63, 10.08] },
+  f18: { min: [-6.014, -2.05, -9.75], max: [6.014, 3.165, 8.87] },
+  sr71: { min: [-9.557, -2.42, -15.13], max: [9.557, 3.773, 16.44] },
 });
 
 export function modeledAirframeBounds(aircraft) {

@@ -15,7 +15,7 @@ const themes={
 
 export function cockpitFamily(profile){
   const kind=aircraftKind(profile);
-  return kind==='b767'?'airliner':/^(avro504|camel)$/.test(kind)?'open':/^(spitfire|hellcat|bf109)$/.test(kind)?'fighter':/^(b17|c47|he111|ac130)$/.test(kind)?'heavy':/^(f4|harrier|a10|mig21)$/.test(kind)?'jet':'glass';
+  return kind==='b767'?'airliner':/^(avro504|camel)$/.test(kind)?'open':/^(spitfire|p38|hellcat|bf109)$/.test(kind)?'fighter':/^(b17|c47|he111|ac130)$/.test(kind)?'heavy':/^(f4|f14|harrier|a10|mig21|sr71)$/.test(kind)?'jet':'glass';
 }
 
 // One layout supplies both renderers. All opaque panel surfaces stay below

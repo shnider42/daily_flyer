@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {terrainHeight,surfaceHeight,carrierIslandParts,carrierLaunchLane} from './terrain.mjs';
 import {orientationOf,basis,deriveEuler} from './orientation.mjs';
-import {cockpitView,chaseAirframeFraming} from './camera-pose.mjs';
+import {cockpitView,chaseAirframeFraming,isOutsideAircraft,parachuteView} from './camera-pose.mjs';
 import {makeCockpit,fitCockpit,updateCockpit} from './cockpit-models.mjs';
 import {gunshipStationPose} from './gunship.mjs';
 import {makeGunshipStation,fitGunshipStation,updateGunshipStation} from './gunship-views.mjs';
@@ -11,8 +11,9 @@ import {makeSkyReflection} from './aircraft-lighting.mjs';
 import { makeAircraft, animateAircraft, setAircraftPose, aircraftKind, disposeModelCache } from './models.mjs';
 import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
 import {applyCombatCameraKick} from './combat-camera.mjs';
-import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow,sceneryClearance} from './terrain-visuals.mjs';
+import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow,sceneryClearance,terrainDetailTexture,TERRAIN_DETAIL_SPAN} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
+import { arePilotsHostile } from './arena.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
 import {isPassengerAirport} from './airfield-layout.mjs';
 import {describeAirfield,AIRFIELD_COLORS,airfieldSurfaceColor,AIRFIELD_BUDGET,roofTriangles,windsockSegments,landingApproach} from './airfield-scenery.mjs';
@@ -63,6 +64,7 @@ export class FlightRenderer {
     this.canvas=canvas;this.settings={...settings};this.time=0;this._cameraInitialized=false;this._mode=null;this._world=null;
     this._plane=null;this._actors=new Map();this._targets=new Map();this._remote=new Map();this._rings=[];this._sceneryAnimations=[];
     this.width=1;this.height=1;this.contextLost=false;this.stats={fps:60,drawCalls:0,triangles:0,pixelRatio:1};
+    this._autoResolution=1;this._resolutionWindow={seconds:0,frames:0,fast:0};
     // The world spans tens of kilometres, while runway paint and cockpit details
     // are centimetres apart. Linear depth loses that separation during approach.
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance',logarithmicDepthBuffer:true});
@@ -86,12 +88,30 @@ export class FlightRenderer {
     const quality=this.settings.quality||this.settings.graphics||'auto';
     const mobile=typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches;
     const cap=quality==='low'?1:quality==='high'?1.8:quality==='medium'?1.3:(mobile?1.25:1.5);
-    this.pixelRatio=Math.min(number(globalThis.devicePixelRatio,1),cap);
-    if(Number.isFinite(this.settings.resolution))this.pixelRatio=clamp(this.settings.resolution,.65,2);
+    this._resolutionCap=Math.min(number(globalThis.devicePixelRatio,1),cap);
+    this.pixelRatio=Number.isFinite(this.settings.resolution)?clamp(this.settings.resolution,.65,2):
+      quality==='auto'?Math.max(.65,this._resolutionCap*this._autoResolution):this._resolutionCap;
     this.resize();
     this.renderer.toneMappingExposure=number(this.settings.brightness,1)>2?1.12:number(this.settings.brightness,1)*1.12;
     if(this._clouds)this._clouds.count=Math.min(this._cloudCapacity||225,quality==='low'?140:this._cloudCapacity||225);
     this.stats.pixelRatio=this.pixelRatio;
+  }
+
+  _adjustAutoResolution(dt){
+    if((this.settings.quality||this.settings.graphics||'auto')!=='auto'||Number.isFinite(this.settings.resolution)||!this._resolutionWindow||dt<=0)return;
+    const sample=this._resolutionWindow;
+    sample.seconds+=dt;sample.frames++;
+    if(sample.seconds<1.2)return;
+    const fps=sample.frames/sample.seconds;
+    sample.seconds=sample.frames=0;
+    sample.fast=fps>55?sample.fast+1:0;
+    const current=this._autoResolution;
+    if(fps<44)this._autoResolution=Math.max(.7,current-.1);
+    else if(sample.fast>=4){this._autoResolution=Math.min(1,current+.1);sample.fast=0;}
+    if(this._autoResolution===current)return;
+    const ratio=Math.max(.65,this._resolutionCap*this._autoResolution);
+    if(ratio===this.pixelRatio)return;
+    this.pixelRatio=ratio;this.stats.pixelRatio=ratio;this.resize();
   }
 
   resize(){
@@ -153,6 +173,7 @@ export class FlightRenderer {
   _clearWorld(){
     this._damageSmoke?.reset();
     this._terrainStream?.dispose();this._terrainStream=null;
+    this._terrainTexture?.dispose();this._terrainTexture=null;
     if(this._world){
       this.scene.remove(this._world);const geometries=new Set(),materials=new Set(),textures=new Set();
       this._world.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material])){materials.add(m);if(m.map)textures.add(m.map);}});
@@ -191,23 +212,41 @@ export class FlightRenderer {
 
   _buildTerrain(mission){
     this._terrainStream=new TerrainStream();
-    const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true});material.extensions={derivatives:true};
-    // Small world-space grain fades before a feature becomes subpixel. It adds
-    // ground motion cues without a repeated image or a second coplanar surface.
+    const rugged=['canyon','mountains','desert'].includes(mission.biome),dry=mission.biome==='desert'||mission.biome==='canyon';
+    const {data,size}=terrainDetailTexture();
+    this._terrainTexture=new THREE.DataTexture(data,size,size);
+    this._terrainTexture.wrapS=this._terrainTexture.wrapT=THREE.RepeatWrapping;
+    this._terrainTexture.magFilter=THREE.LinearFilter;this._terrainTexture.minFilter=THREE.LinearMipmapLinearFilter;
+    this._terrainTexture.generateMipmaps=true;this._terrainTexture.needsUpdate=true;
+    const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1});material.extensions={derivatives:true};
+    const shore=['pacific','south_atlantic','channel','coast'].includes(mission.biome)||mission.carrierWater;
+    // Smooth geometry lighting reveals landforms. Two mipmapped world-space
+    // scales add ground cover and wider shadows with no extra terrain faces.
     material.onBeforeCompile=shader=>{
+      shader.uniforms.skywardTerrainCover={value:this._terrainTexture};
       shader.vertexShader='varying vec3 vTerrainWorld;\nvarying float vTerrainSlope;\n'+shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvTerrainWorld=(modelMatrix*vec4(transformed,1.0)).xyz;vTerrainSlope=1.0-clamp(normal.y,0.0,1.0);');
-      shader.fragmentShader='varying vec3 vTerrainWorld;\nvarying float vTerrainSlope;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      shader.fragmentShader='uniform sampler2D skywardTerrainCover;\nvarying vec3 vTerrainWorld;\nvarying float vTerrainSlope;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+        vec2 groundUV=vTerrainWorld.xz/${TERRAIN_DETAIL_SPAN.toFixed(1)};
+        vec3 groundCover=texture2D(skywardTerrainCover,groundUV).rgb;
+        vec2 grainUV=vec2(groundUV.x*.67+groundUV.y*.74,groundUV.y*.67-groundUV.x*.74)*2.2;
+        vec3 groundFine=texture2D(skywardTerrainCover,grainUV).rgb;
+        float cover=mix(groundCover.${rugged?'g':'r'},groundFine.${rugged?'g':'r'},.3);
+        float grain=(groundFine.b-.5)*.18;
+        diffuseColor.rgb*=1.0+(cover-.47)*${rugged?'.57':'.46'}+grain;
+        diffuseColor.rgb*=mix(vec3(${dry?'.93,.87,.8':'.87,.93,.89'}),vec3(1.12,1.08,${dry?'1.04':'.94'}),smoothstep(.26,.71,cover));
         vec2 terrainPhase=vTerrainWorld.xz*vec2(.075,.092);
         float terrainFilter=1.0-smoothstep(.25,1.1,max(fwidth(terrainPhase.x),fwidth(terrainPhase.y)));
         float terrainGrain=sin(terrainPhase.x+sin(terrainPhase.y*.41))*sin(terrainPhase.y);
         diffuseColor.rgb*=1.0+terrainGrain*.065*terrainFilter;
+        ${shore?`float shoreTint=(1.0-smoothstep(3.0,23.0,vTerrainWorld.y))*smoothstep(0.0,.5,1.0-vTerrainSlope);
+        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.34,1.21,1.02),shoreTint*.73);`:''}
         ${mission.biome==='canyon'?`float rockPhase=vTerrainWorld.y*.052+sin(vTerrainWorld.x*.003+vTerrainWorld.z*.001)*.4;
         float rockFilter=1.0-smoothstep(.25,1.1,fwidth(rockPhase)*2.7);
         float rockBand=sin(rockPhase)*.13+sin(rockPhase*2.7)*.045;
         diffuseColor.rgb*=1.0+rockBand*rockFilter*smoothstep(.15,.55,vTerrainSlope);`:''}
       `);
     };
-    material.customProgramCacheKey=()=> 'skyward-ground-grain-v2-'+mission.biome;
+    material.customProgramCacheKey=()=> 'skyward-terrain-v3-'+mission.biome+'-'+!!shore;
     this._terrainSceneMesh=new THREE.Mesh(new THREE.BufferGeometry(),material);this._terrainSceneMesh.frustumCulled=false;this._world.add(this._terrainSceneMesh);
     this._updateTerrain(mission.start||{x:0,z:0});
   }
@@ -215,9 +254,10 @@ export class FlightRenderer {
   _updateTerrain(p){
     if(!this._terrainSceneMesh)return;
     const mission=this.mission,quality=this.settings.quality||this.settings.graphics||'medium',config=terrainMeshSettings(mission,quality),ax=Math.round(p.x/config.focusStep)*config.focusStep,az=Math.round(p.z/config.focusStep)*config.focusStep;
-    const ready=this._terrainStream?.take();if(ready&&Math.max(Math.abs(ready.mesh.anchorX-ax),Math.abs(ready.mesh.anchorZ-az))<Math.max(1024,config.near*.75))this._applyTerrain(ready.mesh,ready.geometry,ready.quality);
+    const key=ax+','+az+','+quality,ready=this._terrainStream?.take();
+    if(ready?.key===key)this._applyTerrain(ready.mesh,ready.geometry,ready.quality);
     if(this._terrainData?.anchorX===ax&&this._terrainData?.anchorZ===az&&this._terrainQuality===quality)return;
-    const job={key:ax+','+az+','+quality,x:p.x,z:p.z,mission,quality,radius:Math.min(26000,this._fogFar*1.12),palette:this.palette.ground};
+    const job={key,x:ax,z:az,mission,quality,radius:Math.min(26000,this._fogFar*1.12),palette:this.palette.ground};
     const near=this._terrainData&&Math.max(Math.abs(this._terrainData.anchorX-ax),Math.abs(this._terrainData.anchorZ-az))<Math.max(1024,config.near*.75);
     if(near&&this._terrainStream?.request(job))return;
     const mesh=buildSceneTerrain({...job,sampleHeight:(x,z)=>height(x,z,mission)});this._applyTerrain(mesh,packTerrainGeometry(mesh,mission,this.palette.ground),quality);
@@ -247,7 +287,7 @@ export class FlightRenderer {
       this._localRocks.count=rocks;this._localTrees.count=trees;for(const pool of[this._localRocks,this._localTrees])pool.instanceMatrix.needsUpdate=true;this._detailAnchor=key;
     }
     const sample=(x,z)=>surfaceHeight(x,z,this.mission);
-    const shadow=aircraftGroundShadow(p,this._plane.userData,sample);this._groundShadow.visible=!!shadow;
+    const shadow=!isOutsideAircraft(p)&&aircraftGroundShadow(p,this._plane.userData,sample);this._groundShadow.visible=!!shadow;
     if(shadow){const positions=this._groundShadow.geometry.attributes.position;let index=0;for(let i=0;i<shadow.ring.length;i++)for(const v of[shadow.center,shadow.ring[i],shadow.ring[(i+1)%shadow.ring.length]])positions.setXYZ(index++,...v);positions.needsUpdate=true;this._groundShadow.geometry.setDrawRange(0,index);this._groundShadow.material.opacity=shadow.alpha;}
   }
 
@@ -583,10 +623,13 @@ export class FlightRenderer {
     const remoteSeen=new Set();
     for(const remote of remotePlayers||[]){
       const pose=remote.pose||remote.player||remote,id=String(remote.id||pose.id);if(!Number.isFinite(pose.x))continue;remoteSeen.add(id);
-      const profile=pose.aircraft||remote.aircraft||this.aircraft,kind=aircraftKind(profile),hostile=sim.multiplayer?.mode==='dogfight'||this.mission.kind==='dogfight';let model=this._remote.get(id);
+      const profile=pose.aircraft||remote.aircraft||this.aircraft,kind=aircraftKind(profile);
+      const state=sim.participants?.get(id),hostile=arePilotsHostile(sim.multiplayer?.mode||this.mission.arenaConfig?.mode||this.mission.kind,sim.localParticipant?.team||sim.player?.team,remote.team||pose.team||state?.team);
+      let model=this._remote.get(id);
       if(model&&(model.userData.kind!==kind||model.userData.remoteHostile!==hostile)){model.removeFromParent();this._remote.delete(id);model=null;}
       if(!model){model=makeAircraft(profile,hostile?'enemy':'ally');model.userData.remoteHostile=hostile;this._remote.set(id,model);this.actorsRoot.add(model);}
-      model.visible=number(pose.health,100)>0&&pose.alive!==false&&id!==this._focusId;setAircraftPose(model,pose);animateAircraft(model,pose,dt,this.time);
+      model.visible=number(pose.health,100)>0&&pose.alive!==false&&id!==this._focusId&&!isOutsideAircraft(pose)&&!isOutsideAircraft(state?.pose);
+      if(model.visible){setAircraftPose(model,pose);animateAircraft(model,pose,dt,this.time);}
     }
     for(const[id,model]of this._remote)if(!remoteSeen.has(id)){model.removeFromParent();this._remote.delete(id);}
   }
@@ -600,7 +643,7 @@ export class FlightRenderer {
     this._explosions=new THREE.InstancedMesh(burstGeometry,fadingEffectMaterial(),EFFECT_BUDGET.layers);this._explosions.frustumCulled=false;this.effectsRoot.add(this._explosions);
     const ringGeometry=new THREE.RingGeometry(.988,1,48);ringGeometry.setAttribute('effectOpacity',new THREE.InstancedBufferAttribute(new Float32Array(EFFECT_BUDGET.layers),1).setUsage(THREE.DynamicDrawUsage));
     this._shockwaves=new THREE.InstancedMesh(ringGeometry,fadingEffectMaterial(false),EFFECT_BUDGET.layers);this._shockwaves.frustumCulled=false;this.effectsRoot.add(this._shockwaves);
-    this._canopies=new THREE.InstancedMesh(new THREE.SphereGeometry(4.1,10,5,0,TAU,0,Math.PI*.56),worldMaterial('#e3dec3',{side:THREE.DoubleSide}),80);this._canopies.frustumCulled=false;this.effectsRoot.add(this._canopies);
+    this._canopies=new THREE.InstancedMesh(new THREE.SphereGeometry(4.1,10,5,0,TAU,0,Math.PI*.56),worldMaterial('#ffffff',{side:THREE.DoubleSide}),80);this._canopies.frustumCulled=false;this.effectsRoot.add(this._canopies);
     this._troopers=new THREE.InstancedMesh(new THREE.CapsuleGeometry(.45,1.5,2,5),worldMaterial('#606c50'),80);this._troopers.frustumCulled=false;this.effectsRoot.add(this._troopers);
     for(const pool of[this._tips,this._explosions,this._shockwaves,this._canopies,this._troopers])pool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     for(const pool of[this._tips,this._explosions,this._shockwaves]){pool.setColorAt(0,tempColor.set('#ffffff'));pool.instanceColor.setUsage(THREE.DynamicDrawUsage);}
@@ -646,6 +689,7 @@ export class FlightRenderer {
     for(const p of sim.paratroopers||[]){
       if(troopCount>=80||p.life<=0||p.landed)continue;
       tempObject.position.set(p.x,p.y+4.1,p.z);tempObject.scale.set(1,1,1);tempObject.rotation.set(.03*Math.sin(this.time+p.x),.1*Math.sin(this.time*.4+p.z),.03*Math.cos(this.time+p.z));tempObject.updateMatrix();this._canopies.setMatrixAt(troopCount,tempObject.matrix);
+      this._canopies.setColorAt(troopCount,tempColor.set(p.pilotId!=null?'#f1aa64':'#e3dec3'));
       tempObject.position.set(p.x,p.y,p.z);tempObject.rotation.set(0,0,0);tempObject.updateMatrix();this._troopers.setMatrixAt(troopCount,tempObject.matrix);
       for(const s of[-1,1])writeLine(p.x+s*.4,p.y+.5,p.z,p.x+s*3.6,p.y+4,p.z,.65,.67,.55,.65,.67,.55);troopCount++;
     }
@@ -682,8 +726,9 @@ export class FlightRenderer {
   }
 
   _updateCamera(p,dt,options){
-    const mode=options.camera||'chase',cockpit=mode==='cockpit',gunner=mode==='gunner',firstPerson=cockpit||gunner;
-    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&number(p.health,100)>0&&p.alive!==false&&!p.crashed;
+    const outside=isOutsideAircraft(p),mode=outside?'parachute':options.camera||'chase';
+    const cockpit=mode==='cockpit',gunner=mode==='gunner',firstPerson=cockpit||gunner;
+    this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&!outside&&number(p.health,100)>0&&p.alive!==false&&!p.crashed;
     if(this._gunshipStation)this._gunshipStation.visible=gunner;
     const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),originY=p.y-number(this._visualGearOffset);
     const lookX=number(options.lookX),lookY=clamp(number(options.lookY),-1.15,1.15);
@@ -699,6 +744,9 @@ export class FlightRenderer {
       // Reduced motion may steady the chase orbit; it must not detach the
       // cockpit horizon from the airframe or flip an inverted pilot upright.
       scratchUp.set(view.up.x,view.up.y,view.up.z);
+    }else if(outside){
+      const view=parachuteView(p,options,this.width<this.height);
+      ({x:px,y:py,z:pz}=view.position);({x:tx,y:ty,z:tz}=view.target);scratchUp.set(0,1,0);
     }else{
       const length=this._plane.userData.length||9,framing=chaseAirframeFraming({length,span:this._plane.userData.span,speed:p.speed,width:this.width,height:this.height,fov:clamp(number(this.settings.fov,this.width<this.height?67:59),45,90),passenger:!!this.aircraft?.passenger||aircraftKind(this.aircraft)==='b767'}),distance=framing.distance;
       const side=mode==='cinematic'?.68:0;const a=heading+lookX+side;
@@ -741,9 +789,10 @@ export class FlightRenderer {
   render(sim,dt=1/60,options={}){
     if(this.contextLost||!sim?.player||!this._plane)return;
     dt=clamp(number(dt,1/60),0,.1);this.time+=dt;
-    const p=options.player||sim.player;this._focusPlayer(p,options);setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);
+    const p=options.player||sim.player;this._focusPlayer(p,options);
+    if(!isOutsideAircraft(p)){setAircraftPose(this._plane,p);this._visualGearOffset=lerp(number(this._visualGearOffset),p.onGround?number(this._plane.userData.groundOffset,1.3):0,1-Math.exp(-dt*8));this._plane.position.y-=this._visualGearOffset;animateAircraft(this._plane,p,dt,this.time);}
     this._updateTerrain(p);this._updateGroundReadability(p);this._updateEntities(sim,dt,options.remotePlayers||[]);this._updateCamera(p,dt,options);this._updatePools(sim,options);this._updateWeather(p,dt);this._updateApproach(sim);
-    if(options.camera==='gunner')updateGunshipStation(this._gunshipStation,sim.crew,this.time);
+    if(this._gunshipStation?.visible)updateGunshipStation(this._gunshipStation,sim.crew,this.time);
     const active=number(sim.waypointIndex);const guidance=this.settings.guidance||this.settings.assist;
     for(const wp of this._rings){
       const delta=wp.index-active;wp.group.visible=guidance!=='expert'&&guidance!=='minimal'&&this.settings.gates!==false&&delta>=0&&delta<(guidance==='standard'?1:3);
@@ -751,6 +800,7 @@ export class FlightRenderer {
       wp.label.visible=delta===0;const distance=this.camera.position.distanceTo(wp.group.position);const scale=clamp(distance*.13,170,520);wp.label.scale.set(scale,scale*.156,1);
     }
     this.renderer.render(this.scene,this.camera);
+    this._adjustAutoResolution(dt);
     this.stats.fps=lerp(this.stats.fps,dt>0?1/dt:60,.025);this.stats.drawCalls=this.renderer.info.render.calls;this.stats.triangles=this.renderer.info.render.triangles;
   }
 

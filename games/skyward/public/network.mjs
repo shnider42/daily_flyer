@@ -6,12 +6,12 @@
  */
 import {orientationOf,deriveEuler,slerp,multiplyOrientations,isOrientation} from './orientation.mjs';
 import { GUNSHIP_SEATS, GUNSHIP_AIM_LIMITS } from './gunship.mjs';
+import { ROOM_MODES } from './arena.mjs';
 
 const VERSION = 1;
 const INTERPOLATION_MS = 100;
 const EXTRAPOLATION_MS = 150;
-const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort', 'crash', 'respawn']);
-const ROOM_MODES = new Set(['squadron', 'crew', 'freeflight', 'dogfight']);
+const ACTIONS = new Set(['fire', 'missile', 'payload', 'countermeasure', 'radar', 'target', 'abort', 'bailout', 'crash', 'respawn']);
 const lerp = (a, b, t) => a + (b - a) * t;
 const now = () => performance.now();
 
@@ -76,7 +76,7 @@ export class SquadronClient {
     this._lastCrewInput = null; this._lastCrew = -Infinity;
   }
   _roomInfo(msg) {
-    this.mode = ROOM_MODES.has(msg.mode) ? msg.mode : this.mode;
+    this.mode = ROOM_MODES.includes(msg.mode) ? msg.mode : this.mode;
     this.role = this.mode === 'crew' && !this.isHost ? 'gunner' : 'pilot';
     this.maxPlayers = this.mode === 'crew' ? 2 : 4;
     if (msg.missionId) this.missionId = msg.missionId;
@@ -307,6 +307,11 @@ export class SquadronClient {
   configure(config) {
     return this.connected && this.isHost && this.roomState === 'lobby' && this._send({ type: 'configure', config, missionId: config?.missionId });
   }
+  assignWingmate(playerId) {
+    return this.connected && this.isHost && this.roomState === 'lobby' && this.mode === 'team-dogfight'
+      && this.roster.some(p => p.id === playerId && p.connected && p.id !== this.id)
+      && this._send({ type: 'team-partner', playerId });
+  }
   setLoadout(aircraft, startMode, payload) {
     const chosen = typeof aircraft === 'object' ? aircraft : { aircraft, startMode, payload };
     return this.connected && this.roomState === 'lobby' && this.mode !== 'crew' && this._send({ type: 'loadout', aircraft: chosen?.aircraft, startMode: chosen?.startMode, payload: chosen?.payload });
@@ -458,7 +463,7 @@ export class SquadronClient {
         extrapolated = true;
       }
       player.orientation=orientation;Object.assign(player,deriveEuler(orientation));
-      result.push({ ...player, ...(participant ? { lifeId: participant.lifeId, alive: participant.alive, health: participant.health } : {}), aircraft: member.aircraft || player.aircraft, startMode: member.startMode || player.startMode, id, playerId: id, name: member.name, isHost: member.isHost, connected: member.connected, stale: serverNow - latest.at > 400, ageMs: Math.max(0, serverNow - latest.at), extrapolated });
+      result.push({ ...player, ...(participant ? { lifeId: participant.lifeId, alive: participant.alive, health: participant.health } : {}), ...(member.team ? { team: member.team } : {}), aircraft: member.aircraft || player.aircraft, startMode: member.startMode || player.startMode, id, playerId: id, name: member.name, isHost: member.isHost, connected: member.connected, stale: serverNow - latest.at > 400, ageMs: Math.max(0, serverNow - latest.at), extrapolated });
     }
     return result;
   }

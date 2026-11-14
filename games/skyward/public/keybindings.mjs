@@ -14,6 +14,7 @@ export const BINDING_ACTIONS = Object.freeze([
   {id:'brake',label:'Brakes',group:'Aircraft systems',defaultCode:'KeyB'},
   {id:'level',label:'Level recovery',group:'Aircraft systems',defaultCode:'KeyL'},
   {id:'hover',label:'Hover mode',group:'Aircraft systems',defaultCode:'KeyH'},
+  {id:'bailout',label:'Bail out',group:'Aircraft systems',defaultCode:'KeyY'},
   {id:'fire',label:'Fire guns',group:'Weapons & targeting',defaultCode:'Space'},
   {id:'target',label:'Select target',group:'Weapons & targeting',defaultCode:'KeyT'},
   {id:'missile',label:'Launch missile',group:'Weapons & targeting',defaultCode:'KeyM'},

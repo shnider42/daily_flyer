@@ -37,3 +37,17 @@ export function chaseAirframeFraming({length=9,span=11,speed=0,width=1280,height
   const distance=Math.max(length*1.9+speed*.04,projectedWidth/(2*tangent*aspect*.56)+length*.22);
   return {distance,elevation:Math.max(8,length*.42+speed*.008)};
 }
+
+export function isOutsideAircraft(pose){
+  return ['descending','landed','lost'].includes(pose?.bailout?.phase);
+}
+
+export function parachuteView(pose,options={},portrait=false){
+  const angle=finite(pose.heading)+.48+finite(options.lookX);
+  const tilt=clamp(finite(options.lookY),-.62,.9),distance=portrait?26:21;
+  const x=finite(pose.x),y=finite(pose.y),z=finite(pose.z);
+  return {
+    position:{x:x-Math.sin(angle)*distance*Math.cos(tilt),y:y+7+Math.sin(tilt)*distance,z:z-Math.cos(angle)*distance*Math.cos(tilt)},
+    target:{x,y:y+2.5,z}
+  };
+}

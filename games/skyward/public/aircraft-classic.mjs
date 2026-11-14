@@ -403,6 +403,58 @@ function fighter(group, kind, palette, data) {
   data.span=hellcat?13.06:spit?11.22:9.92;data.length=hellcat?10.24:spit?9.12:8.95;
 }
 
+function lightning(group, palette, data) {
+  const m = materials(palette, 'p38');
+  const nacelle = [
+    [-3.67,.05,.08,.05], [-2.9,.61,.76,.07], [-1.7,1.14,1.18,.14],
+    [.2,1.35,1.48,.15], [2.2,1.27,1.24,.1], [3.75,.76,.72,.07], [4.8,.07,.1,.08],
+  ];
+  skin(group, nacelle, m.body, data);
+  framedCanopy(group, [[-.3,.44,.78,.98],[.35,.54,.88,1.6],[1.35,.52,.84,1.62],
+    [1.86,.51,.77,1.46],[2.42,.37,.66,.89]], m, data);
+
+  const main = airfoil(group, [[0,1.45,-1.76,-.19,.43],[2.72,1.27,-1.36,-.14,.46],
+    [4.1,1,-1.13,.08,.33],[6.2,.48,-.94,.3,.22],[7.35,.16,-.8,.44,.15],
+    [7.83,-.21,-.63,.53,.06],[7.91,-.4,-.49,.55,.025]], m.wing, m.belly, data, .028, nacelle);
+  // The shared horizontal tail ends at the two vertical fins.
+  airfoil(group, [[0,-4.03,-5.45,.29,.22],[2.73,-4.15,-5.48,.29,.18]],
+    m.wing, m.belly, data);
+  const booms = [[-5.74,.09,.16,.14],[-5.12,.44,.62,.11],[-3.8,.63,.72,.07],
+    [-2.24,.93,1.02,.04],[-.05,1.12,1.39,.08],[1.1,1.36,1.58,.11],
+    [2.63,1.2,1.31,.12],[3.8,.76,.84,.11],[4.15,.56,.6,.11]];
+  for (const side of [-1, 1]) {
+    const x = side * 2.73;
+    const boom = new THREE.Group();
+    boom.position.x = x;
+    group.add(boom);
+    skin(boom, booms, m.body, data, 24);
+    fin(boom, [[.03,-5.7],[.93,-5.67],[1.84,-5.39],[1.93,-4.84],[1.59,-4.38],[.6,-4.08],[.14,-3.82]],
+      m.wing, .17);
+    skin(boom, [[4.01,.59,.61,.11],[4.23,.57,.58,.11],[4.5,.33,.33,.11],[4.65,.04,.04,.11]], m.red, data, 20);
+    propeller(group, x, .11, 4.23, 1.69, m.dark, data, 3);
+    const radiator = new THREE.Group();
+    radiator.position.set(x,-.21,-2.39);
+    group.add(radiator);
+    skin(radiator,[[-.74,.5,.39,0],[-.46,1.06,.62,0],[.27,1.16,.73,0],[.53,.88,.4,.04]],m.belly,data,20);
+    box(radiator,[.72,.29,.045],m.dark,[0,.015,.548]);
+    exhaustRow(boom,side*.57,.29,2.97,6,.2,m,data,side);
+    const aileron = main.at(side * 6.08);
+    panelLine(group,main.surface,side*6.08,aileron[1]-.11,aileron[2]+.08,m.dark,data);
+    if (detail(data)) {
+      beam(group,main.surface(side*5.03,-.59,1,.014),main.surface(side*7.44,-.55,1,.014),.018,m.dark);
+      wingMark(group,main,m,'us',side*5.46,-.27,.54,side);
+    }
+  }
+  for (const [x, y, z, radius, length] of [[0,.06,4.82,.057,.49],[-.21,.19,4.56,.035,.31],
+    [.21,.19,4.56,.035,.31],[-.27,-.15,4.39,.034,.31],[.27,-.15,4.39,.034,.31]]) {
+    cylinder(group,radius,radius,length,m.dark,[x,y,z],[Math.PI/2,0,0],10);
+  }
+  undercarriage(group,[[-2.73,.05,.48,1.65],[2.73,.05,.48,1.65],[0,2.88,.34,1.79]],m,data);
+  navLights(group,main,m,data);
+  data.span = 15.82;
+  data.length = 10.82;
+}
+
 function framedNose(group, stations, m, data) {
   skin(group,stations,m.glass,data,24);
   const circumference=detail(data)?20:12;
@@ -531,6 +583,7 @@ function heinkel(group,palette,data){
 export function buildClassicAircraft(group, kind, palette, data) {
   if(kind==='avro504'||kind==='camel')biplane(group,kind,palette,data);
   else if(kind==='spitfire'||kind==='hellcat'||kind==='bf109')fighter(group,kind,palette,data);
+  else if(kind==='p38')lightning(group,palette,data);
   else if(kind==='b17')bomber(group,palette,data);
   else if(kind==='c47')transport(group,palette,data);
   else if(kind==='he111')heinkel(group,palette,data);

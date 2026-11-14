@@ -8,7 +8,7 @@ import { batchAircraft, aircraftGeometryStats } from './model-batching.mjs';
 import { disposeModelMaterials } from './model-parts.mjs';
 
 const prototypes = new Map();
-const classicKinds = new Set(['avro504', 'camel', 'spitfire', 'hellcat', 'bf109', 'b17', 'c47', 'he111']);
+const classicKinds = new Set(['avro504', 'camel', 'spitfire', 'p38', 'hellcat', 'bf109', 'b17', 'c47', 'he111']);
 const defaults = {
   avro504: ['#b4763e', '#ddc898', '#b25739'], camel: ['#69745a', '#9a9b73', '#bf6b42'],
   spitfire: ['#607769', '#798673', '#b5b697'], hellcat: ['#365b70', '#486e80', '#b3c5bf'],
@@ -19,7 +19,9 @@ const defaults = {
   f16: ['#879a9f', '#aebbbd', '#617b86'], f22: ['#87959c', '#b7bfc1', '#637982'],
   b2: ['#485961', '#60707a', '#40515b'], mig21: ['#99a6a7', '#b3bfbc', '#687e76'],
   ac130: ['#556773', '#647581', '#87968f'],
-  b767: ['#e3e4df', '#b7c2c7', '#214c67'],
+  b767: ['#e3e4df', '#b7c2c7', '#214c67'], p38: ['#afb5b2', '#a8afad', '#a34737'],
+  f14: ['#aeb2b0', '#a5adac', '#d2a956'], f18: ['#909da7', '#8b9aa2', '#c4c7c3'],
+  sr71: ['#343b42', '#3d464d', '#ab5146'],
 };
 
 export function aircraftKind(profile) {
@@ -27,10 +29,14 @@ export function aircraftKind(profile) {
   if (/b767|boeing767|airliner|passenger/.test(value)) return 'b767';
   if (/ac130|gunship|spooky/.test(value)) return 'ac130';
   if (/b2|spirit/.test(value)) return 'b2';
+  if (/p38|lightning/.test(value)) return 'p38';
+  if (/sr71|blackbird/.test(value)) return 'sr71';
   if (/a10|thunderbolt|warthog/.test(value)) return 'a10';
   if (/f22|raptor/.test(value)) return 'f22';
+  if (/f18|fa18|hornet/.test(value)) return 'f18';
   if (/f16|falcon/.test(value)) return 'f16';
   if (/f15|eagle/.test(value)) return 'f15';
+  if (/f14|tomcat/.test(value)) return 'f14';
   if (/harrier/.test(value)) return 'harrier';
   if (/mig/.test(value)) return 'mig21';
   if (/f4|phantom|jet/.test(value)) return 'f4';
@@ -77,6 +83,9 @@ export function makeAircraft(profile = 'avro504', faction = 'player') {
     if (part.name.startsWith('exhaust-')) result.userData.exhausts.push(part);
     if (part.name === 'gear') result.userData.gear = part;
   });
+  if (kind === 'f14') result.userData.sweepWings = [
+    result.getObjectByName('sweep-wing-left'), result.getObjectByName('sweep-wing-right'),
+  ];
   return result;
 }
 
@@ -91,6 +100,12 @@ export function animateAircraft(plane, pose, dt, time = 0) {
   for (const exhaust of data.exhausts || []) {
     exhaust.visible = engine && throttle > (exhaust.userData.minThrottle ?? .16);
     exhaust.scale.set(1, Math.max(.2, throttle * (.85 + Math.sin(time * 37) * .06)), 1);
+  }
+  if (data.sweepWings) {
+    const speed = Number.isFinite(pose?.speed) ? pose.speed : 0;
+    const sweep = pose?.gear === false ? THREE.MathUtils.smoothstep(speed, 125, 345) * .73 : 0;
+    data.sweepWings[0].rotation.y = -sweep;
+    data.sweepWings[1].rotation.y = sweep;
   }
 }
 

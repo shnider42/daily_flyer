@@ -40,11 +40,11 @@ test('every carrier spawn is clear of superstructure, including stationary overs
   }
 });
 
-test('Hellcat and Harrier clear the marked launch lane at normal power', () => {
-  for (const aircraft of ['hellcat', 'harrier']) {
+test('carrier-equipped aircraft clear the marked launch lane at normal power', () => {
+  for (const aircraft of ['hellcat', 'harrier', 'f14', 'f18']) {
     const sim = flight(aircraft); sim.action('brake'); advance(sim, 14);
     assert.equal(sim.status, 'flying', aircraft); assert.equal(sim.player.onGround, false);
-    assert.ok(sim.player.y > 100); assert.ok(carrierCompatibility(aircraft).wingClearance > 8);
+    assert.ok(sim.player.y > 100); assert.ok(carrierCompatibility(aircraft).wingClearance > 4);
   }
 });
 

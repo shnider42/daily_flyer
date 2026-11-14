@@ -78,7 +78,8 @@ export class FlightControls {
         e.preventDefault();if(e.repeat)return;this.clear();this.onAnyGesture?.();this.onPause?.();return;
       }
       if(isFormTarget(e.target)){this.keys.clear();return;}
-      if(e.code==='Enter'&&e.target.closest?.('button'))return; // Keep focused buttons keyboard-operable.
+      const button=e.target.closest?.('button');
+      if(button&&(e.code==='Enter'||e.code==='Space'&&button!==fire))return;
       this.refreshBindings();const action=this.codeToAction.get(e.code);
       if(!action)return;
       e.preventDefault();
@@ -107,7 +108,7 @@ export class FlightControls {
     this.axes[pad.xAxis]=curve(x);this.axes[pad.yAxis]=curve(y*pad.yDirection);
     pad.knob.style.transform=`translate(calc(-50% + ${x*radius}px),calc(-50% + ${y*radius}px))`;
   }
-  setActive(active){this.active=active;if(!active)this.clear();}
+  setActive(active){if(this.active===active)return;this.active=active;if(!active)this.clear();}
   setThrottle(v){this.throttleValue=clamp(v,0,1);this.throttle.value=Math.round(this.throttleValue*100);}
   refreshBindings(){
     const source=this.settings.keyBindings;
@@ -125,7 +126,7 @@ export class FlightControls {
     if(!this.active)return {roll:0,pitch:0,yaw:0,throttle:this.throttleValue,fire:false};
     this.refreshBindings();const down=action=>this.keys.has(this.keyBindings[action])?1:0,elapsed=Number.isFinite(dt)?Math.max(0,dt):0;
     const thrust=clamp(this.axes.thrust+down('throttleUp')-down('throttleDown'),-1,1);
-    this.throttleValue=clamp(this.throttleValue+thrust*elapsed*.35,0,1);this.throttle.value=Math.round(this.throttleValue*100);
+    if(thrust&&elapsed)this.setThrottle(this.throttleValue+thrust*elapsed*.35);
     const roll=this.axes.roll+down('rollRight')-down('rollLeft');
     const pitch=this.axes.pitch*(this.settings.touchPitch==='push'?-1:1)+down('pitchUp')-down('pitchDown');
     const sensitivity=Number.isFinite(this.settings.sensitivity)?this.settings.sensitivity:1;

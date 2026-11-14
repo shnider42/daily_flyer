@@ -1,4 +1,5 @@
 import {COMBAT_AUDIO_LIMITS,COMBAT_SOUND_SECONDS,synthesizeCombatSound,combatCueProfile} from './combat-audio.mjs';
+import {isJetAircraft} from './campaign.mjs';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const finite=(x,fallback=0)=>Number.isFinite(x)?x:fallback;
@@ -46,7 +47,7 @@ export class FlightAudio {
   setActive(v){if(this.active===v)return;this.active=v;if(!v)this._stopEffects();this.sync();}
   update(sim,dt){
     if(!this.ctx||!this.active)return;const p=sim.player,c=this.ctx,t=c.currentTime;
-    const jet=['f4','harrier','a10','f15','f16','f22','b2'].some(k=>(p.aircraft||sim.mission.aircraft||'').includes(k));
+    const jet=isJetAircraft(p.aircraft||sim.mission.aircraft);
     const living=finite(p.health,100)>0&&!p.crashed&&p.alive!==false,engine=!!p.engine&&living;
     const throttle=engine?p.throttle||0:0,eng=engine?this.settings.engineVolume/100*(.07+throttle*.12)*AMBIENCE_HEADROOM:0;
     this.engine.gain.setTargetAtTime(eng,t,living?.12:.035);this.osc.frequency.setTargetAtTime(jet?70+throttle*150:42+throttle*65,t,.12);this.sub.frequency.setTargetAtTime(jet?40+throttle*65:21+throttle*32,t,.12);this.filter.frequency.setTargetAtTime(jet?450+throttle*1250:180+throttle*580,t,.12);this.pulse.frequency.setTargetAtTime(jet?80:8+throttle*18,t,.12);this.pulseGain.gain.setTargetAtTime(engine&&!jet?.015:0,t,.1);this.wind.gain.setTargetAtTime(living?clamp(p.speed/450,0,.42)*this.settings.engineVolume/100*AMBIENCE_HEADROOM:0,t,living?.2:.035);

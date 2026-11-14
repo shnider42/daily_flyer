@@ -1,6 +1,6 @@
 # SKYWARD · A Century of Flight
 
-A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.9.0 adds a passenger Boeing 767, three airport-to-airport services, a civilian flight deck, and larger airports with terminals, taxiways and surrounding ground detail.** Six flying challenges, a local flight log and personal bests, arrival guidance, and solo free-flight ground service remain available. The compact mobile cockpit, heavy-aircraft response, and B-2 blast escape introduced in v0.7.0 remain in place. The flight-selection homepage and browsable hangar show all 15 actual aircraft, with a locally served condensed typeface, direct menu labels, and desktop/phone framing.
+A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-flight` branch. SKYWARD follows pilots' logbooks across eighteen sorties, from an unarmed Avro 504 to a fictional future B-2 finale. **v0.10.0 adds team dogfights, four-pilot co-op, five aircraft, emergency bailouts, larger desktop flight controls and smoother terrain rendering.** The hangar has 20 aircraft, including the passenger Boeing 767. The solo board offers six flying challenges and three airport-to-airport passenger services.
 
 The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
@@ -17,7 +17,7 @@ The same server serves the browser app and squadron WebSocket endpoint. It liste
 
 ## Operations and the flight log
 
-**Operations** is a separate solo flight board with six authored challenges and three passenger routes. The board separates Flying challenges and Passenger flights without adding another in-flight panel. All are available immediately, with fixed aircraft and weather. The existing eighteen-sortie campaign and multiplayer room choices are unchanged.
+**Operations** is a solo flight board with six authored challenges and three passenger routes. All are available immediately, with fixed aircraft and weather.
 
 | Operation | Aircraft | Flight problem |
 | --- | --- | --- |
@@ -67,22 +67,24 @@ Last Light stays playable after release through detonation and escape. Other cam
 
 ## Fly together
 
-**Fly together** offers four private room modes:
+**Multiplayer** offers six private room modes.
 
 | Mode | Players | Flight plan and aircraft losses |
 | --- | --- | --- |
-| Dogfight | 2–4 independent pilots | Every pilot for themselves; 5, 10, or 20 minutes, unlimited replacement aircraft, live and final kills/deaths/K/D |
+| Dogfight | 2–4 independent pilots | Every pilot for themselves, with 3-, 5-, 10- or 20-minute rounds and unlimited replacements |
+| Team dogfight | Exactly 4 pilots | Blue and Red flights of two. Friendly fire is off. The team with more kills wins |
+| Co-op operations | Exactly 4 pilots | Razorback Strike or Island Intercept, with shared objectives and 1, 3 or 5 lives per pilot |
 | Free flight | 2–4 independent pilots | Untimed, no player-versus-player damage, unlimited replacement aircraft |
 | Mission squadron | 2–4 independent pilots | Shared campaign objectives; 1, 3, or 5 lives per pilot, default 3; spectate when lives run out |
 | AC-130 crew | Exactly 2 | One pilot and one gunner share Nightwatch's aircraft, weapons and mission result |
 
-1. Choose the mode. For dogfight/free flight, choose **Razorback Canyons** or **Open Ocean Islands**. Set the dogfight round length or the mission squadron's lives as appropriate.
+1. Choose the mode and pick a map for a dogfight, free flight or co-op operation. Set the round length or lives for the selected mode.
 2. Each independent pilot chooses an aircraft and **Already in the air**, **High altitude**, **Runway · engine running**, or **Aircraft carrier · attempt any aircraft**. Create a squadron, then share its six-character code or invite link.
-3. Guests join and mark themselves ready. A changed aircraft, payload or launch choice clears that guest's readiness; changing the shared flight plan clears guest readiness. The host launches when everyone is connected and ready.
+3. Guests join and mark themselves ready. In 2v2 the game assigns two flights, and the host can use **Make wingmate** to choose their Blue Flight partner. Flight plan and team changes clear guest readiness. The host launches when all required pilots are connected and ready.
 4. In flight, **SCORES** shows the standings. After a loss, watch another surviving pilot with the spectator controls and select **Return to the sky →** once a replacement is available. Arena replacements have a four-second delay; mission replacements have a five-second delay. Each aircraft loss consumes one mission life, with the initial aircraft included in the selected allowance.
 5. During any shared flight, the host can open the pause menu and choose **Regroup in squadron room** to change the setup without closing the room; this also gives untimed free flight a way back to its lobby. After a round, the host can **Fly again with squadron** using the same setup, or **Return to squadron** to change the map, mode, duration, aircraft or launch choices. Guests remain attached to the same room. Returning the room to its lobby also permits new pilots to join.
 
-All **15 flyable aircraft** are available for independent flight: Avro 504, Sopwith Camel, Spitfire, B-17, C-47, AC-130, Hellcat, F-4, Sea Harrier, A-10, F-15, F-16, F-22, B-2 and Boeing 767. Each retains its own speed, handling, health and equipment. Selecting an unarmed trainer or transport does not add a gun or missiles, and selecting the AC-130 here does not add a gunner seat. Mission equipment still matters: a paratrooper mission needs a C-47, and a bombing objective needs an aircraft carrying bombs. The lobby explains these limitations without locking the aircraft choice.
+All **20 flyable aircraft** are available for independent flight. The new aircraft are the P-38J Lightning, MiG-21bis, F-14A Tomcat, F/A-18C Hornet and unarmed SR-71A Blackbird. The F-14 and F/A-18 support assisted carrier launches. Each aircraft retains its own speed, handling, health and equipment, so loadout choices matter on a shared mission.
 
 The scoreboard ranks kills first, then fewer deaths, then callsign. K/D displays a dash while deaths are zero. A terrain crash counts as a death without giving another pilot a weapon kill. Scores survive respawns and authenticated reconnects during the same round; a replay starts fresh.
 
@@ -90,9 +92,15 @@ In mission squadron mode, AIR kills/deaths/K/D credits each hostile AI aircraft 
 
 Dogfight time follows actual elapsed host time, separately from the bounded physics catch-up budget. Opening the arena pause menu, viewing scores or spectating does not stop the countdown. A connected host tab that stalls reconciles elapsed time when it runs again; clients can only receive the result when the host resumes publishing. Connection recovery is a separate shared hold. These private rooms use the host's simulation rather than a dedicated competitive game server.
 
+### Bailout and desktop controls
+
+After critical combat damage, use **Bail out** or **Y** once the aircraft has enough clearance and has slowed below the escape limit. A disabling hit can leave a short window to escape. Wind carries the parachute and landing terrain determines whether the pilot survives. A successful bailout still costs the aircraft and counts as a multiplayer loss. The shared AC-130 crew operation and passenger services handle their own flight outcomes.
+
+Desktop flight buttons are larger and show their assigned keys. Hold the **Fire** button or your gun key to fire. Use **Setup → Keyboard** to change the flight shortcuts, including bailout.
+
 ### Carrier departures
 
-Carrier starts are available in solo free flight and independent multiplayer modes. The game labels the Hellcat's assisted deck launch and the Sea Harrier's VTOL departure as supported; other aircraft display experimental or high-risk warnings. **Every aircraft may still select the carrier and attempt departure.** The warning never disables the launch button or substitutes better performance. A short deck, the aircraft's takeoff speed and its normal acceleration affect the takeoff attempt.
+Carrier starts are available in solo free flight and independent multiplayer modes. The Hellcat, F-14 and F/A-18 have assisted deck launches. The Sea Harrier has a VTOL departure. **Every aircraft may attempt departure.** A short deck, the aircraft's takeoff speed and its normal acceleration affect the takeoff attempt.
 
 The newly added carrier has a 310-by-40-metre deck with a visible launch lane and island superstructure. Aircraft collision uses the modeled airframe's envelope against the same island blocks drawn by both renderers. A large wingspan can hit the island during a straight takeoff roll; moving toward the clear side of the deck can change that outcome. The warning reports an overlap when the selected wingspan exceeds clearance on the launch lane. The risk comes from the attempted path, aircraft size and flight behavior. Selecting an aircraft does not trigger an automatic failure or secretly reduce its acceleration. Existing campaign carriers retain their authored deck sizes.
 

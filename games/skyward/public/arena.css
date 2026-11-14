@@ -7,6 +7,15 @@
 .room-brief>strong{font:normal 27px/1.2 Georgia,serif}.room-brief>p{font-size:12px;color:var(--muted);line-height:1.65}
 .roster-person{align-items:center}.roster-person>strong{font-weight:500;min-width:0;overflow-wrap:anywhere}.roster-person>small{flex-shrink:0;text-align:right}
 .roster-person .crew-seat-label{font-size:9px;line-height:1.5;margin-top:6px}.squadron-connection-note{padding:0 6px}
+.roster-state{display:grid;gap:2px;justify-items:end;flex-shrink:0;text-align:right}
+.roster-state .wingmate-button{min-height:30px;padding:4px 0;color:var(--muted);white-space:nowrap}
+.roster-state .wingmate-button:hover,.roster-state .wingmate-button:focus-visible{color:var(--ink)}
+.roster-person [data-team="blue"],.scoreboard-teams [data-team="blue"],.scoreboard-flight[data-team="blue"]{color:#92c7f4}
+.roster-person [data-team="red"],.scoreboard-teams [data-team="red"],.scoreboard-flight[data-team="red"]{color:#f0a69a}
+.scoreboard-teams{display:flex;gap:12px;margin:0 0 8px}.scoreboard-teams>span{display:flex;justify-content:space-between;align-items:center;gap:10px;flex:1;padding:8px 11px;border:1px solid currentColor;font:12px/1.25 system-ui,sans-serif}.scoreboard-teams strong{font-size:20px;font-variant-numeric:tabular-nums}
+#debrief-scoreboard .scoreboard-teams [data-team="blue"],#debrief-scoreboard .scoreboard-flight[data-team="blue"]{color:var(--ink)}
+#debrief-scoreboard .scoreboard-teams [data-team="red"],#debrief-scoreboard .scoreboard-flight[data-team="red"]{color:var(--ink)}
+#debrief-scoreboard .scoreboard-teams [data-team="blue"]{border-color:#5489b4}#debrief-scoreboard .scoreboard-teams [data-team="red"]{border-color:#b2675b}
 .carrier-warning{border-left:3px solid #d59657;background:#ad673b12;padding:13px 15px;font-size:12px!important;line-height:1.65!important;color:var(--ink);text-align:left!important;margin:0 0 20px!important}
 .carrier-warning[data-risk="compatible"]{border-color:#75a991}.carrier-warning[data-risk="high-risk"]{border-color:#df805f;background:#ba493015}
 .room-setup :disabled{opacity:.7;cursor:default}.room-setup label:has(select:disabled){color:var(--muted)}

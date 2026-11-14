@@ -1,8 +1,8 @@
-import {AIRCRAFT,MISSIONS,SPECIAL_MISSIONS,getMission,getAircraft} from './campaign.mjs';
+import {AIRCRAFT,MISSIONS,SPECIAL_MISSIONS,getMission,getAircraft,isJetAircraft} from './campaign.mjs';
 import {FlightSimulation,terrainHeight,terrainClearance} from './sim.mjs';
 import {NUCLEAR_PAYLOADS,getNuclearPayload,normalizePayload} from './payloads.mjs';
 import {lineOfSight} from './terrain.mjs';
-import {createArenaMission,normalizeArenaConfig,prepareMissionStarts,spawnForPlayer,carrierCompatibility} from './arena.mjs';
+import {createArenaMission,normalizeArenaConfig,prepareMissionStarts,spawnForPlayer,carrierCompatibility,isDogfightMode,isArenaMode,usesRoomMap,requiresFourPilots,roomMapMissionId,teamName,arePilotsHostile,teamDogfightStandings} from './arena.mjs';
 import {formatRoundTime,scoreboardMarkup,chooseSpectator,spectatorCandidates,aircraftLoadoutNote} from './multiplayer-ui.mjs';
 import {FlightRenderer} from './renderer.mjs';
 import {SoftwareFlightRenderer} from './software.mjs';
@@ -38,7 +38,8 @@ let scoreboardOpen=false,spectatedId=null,spectatorView=null,lastLifeId=0,lastCr
 let lobbyAircraft='f16',lobbyStart='airborne',lobbyPayload='conventional',campaignPayload='atomic';
 const isCrewFlight=()=>coop&&sim?.mission.kind==='gunship';
 const isGunner=()=>isCrewFlight()&&crewRole==='gunner';
-const isArenaFlight=()=>coop&&['freeflight','dogfight'].includes(activeStart?.mode||team.mode);
+const isArenaFlight=()=>coop&&isArenaMode(activeStart?.mode||team.mode);
+const isDescending=()=>sim?.player.bailout?.phase==='descending';
 const isSpectating=()=>!!(coop&&!isCrewFlight()&&sim&&(sim.localParticipant?.alive===false||sim.player.crashed||sim.player.health<=0));
 const participantList=()=>typeof sim?.participants?.values==='function'?[...sim.participants.values()]:Array.isArray(sim?.participants)?sim.participants:[];
 const sharedWorldPaused=()=>!!(coop&&team.isHost&&paused&&!isArenaFlight()&&!isSpectating());
@@ -143,7 +144,7 @@ const gunnerControls=new GunnerControls({surface:$('gunner-aim-surface'),pad:$('
   if(name==='target')selectCrewTarget();
   if(sim)updateCrewHUD();
 }});
-function setFlightInputs(active){active=!!active&&screen==='flight'&&sim?.status==='flying'&&!isSpectating()&&!scoreboardOpen;controls.setActive(active&&!isGunner());gunnerControls.setActive(active&&isGunner());}
+function setFlightInputs(active){active=!!active&&screen==='flight'&&sim?.status==='flying'&&!isSpectating()&&!scoreboardOpen;controls.setActive(active&&!isGunner()&&!isDescending());gunnerControls.setActive(active&&isGunner());}
 function releaseGunnerFire(){if(isGunner()&&team.connected)team.sendCrewInput({...gunnerControls.read(0),fire:false});}
 function stopGunnerFire(){if(!isCrewFlight())return;if(team.isHost&&sim?.crew)sim.applyCrewInput({...sim.crew,fire:false},sim.crew.gunnerId,{reset:true});else if(team.connected)team.sendCrewInput({...gunnerControls.read(0),fire:false},{reset:true});}
 function selectCrewTarget(){
@@ -158,7 +159,7 @@ function syncCrewUI(){
 const team=new SquadronClient({
   onStatus(status,message){$('network-status').textContent=message||status;const offline=['error','disconnected','closed','failed'].includes(status);if(offline&&coop&&screen==='flight')toast(message||'Squadron connection interrupted.');if(status==='error'){setConnectBusy(false);toast(message||'Could not connect.');}updateRoom();},
   onRoster(roster){const self=roster.find(p=>p.id===team.id);if(self){ready=!!self.ready;if(self.aircraft)lobbyAircraft=self.aircraft;if(self.startMode)lobbyStart=self.startMode;if(self.payload)lobbyPayload=self.payload;}sim?.updateRoster?.(roster);updateRoom(roster);setConnectBusy(false);},
-  onStart(data){closeDialogs();coop=true;const self=(data.players||team.roster||[]).find(p=>p.id===team.id);const mission=['freeflight','dogfight'].includes(data.mode)?createArenaMission(data.config||{mode:data.mode,mapId:data.missionId==='arena-islands'?'islands':'canyon'},self?.aircraft||'f16'):missionOf(data.missionId);startMission(mission,{cooperative:true,role:data.mode==='crew'?data.role:null,startData:data});},
+  onStart(data){closeDialogs();coop=true;const self=(data.players||team.roster||[]).find(p=>p.id===team.id);const mission=usesRoomMap(data.mode)?createArenaMission(data.config||{mode:data.mode,mapId:data.missionId.endsWith('-islands')?'islands':'canyon'},self?.aircraft||'f16'):missionOf(data.missionId);startMission(mission,{cooperative:true,role:data.mode==='crew'?data.role:null,startData:data});},
   onLobby(){stopGunnerFire();closeDialogs();sim=null;activeStart=null;paused=remotePaused=false;crewRole=null;spectatorView=null;syncCrewUI();updateRoom();showScreen('squadron');},
   onWorld(snapshot){
     if(!coop||team.isHost||!sim)return;
@@ -168,7 +169,7 @@ const team=new SquadronClient({
     if(remotePaused!==was){setFlightInputs(!paused&&!remotePaused);audio.setActive(screen==='flight'&&!paused&&!remotePaused);toast(remotePaused?'Pilot paused the sortie.':'Pilot resumed.',remotePaused?5000:3400);}
   },
   onCrewInput(data){if(isCrewFlight()&&team.isHost&&sim&&(data.reset||(!paused&&!remotePaused)))sim.applyCrewInput(data.input,data.playerId,{reset:!!data.reset});},
-  onAction(data){if(!coop||!team.isHost||!sim)return;sim.applyRemoteAction?.(data.action,{...data.player,id:data.playerId,playerId:data.playerId},data);if(['respawn','crash'].includes(typeof data.action==='string'?data.action:data.action?.name))team.sendWorld({...sim.getSnapshot(),teamPaused:sharedWorldPaused()});},
+  onAction(data){if(!coop||!team.isHost||!sim)return;sim.applyRemoteAction?.(data.action,{...data.player,id:data.playerId,playerId:data.playerId},data);if(['respawn','crash','bailout'].includes(typeof data.action==='string'?data.action:data.action?.name))team.sendWorld({...sim.getSnapshot(),teamPaused:sharedWorldPaused()});},
   onEnd(message){
     if(!coop)return;const crew=isCrewFlight(),arena=isArenaFlight();stopGunnerFire();coop=false;remotePaused=false;crewRole=null;
     if(crew||arena||sim?.participants?.size){closeDialogs();sim=null;activeStart=null;paused=false;syncCrewUI();updateRoom();showScreen('squadron');}
@@ -179,8 +180,8 @@ const team=new SquadronClient({
 
 function setConnectBusy(busy){$('create-room').disabled=busy;$('join-room').disabled=busy;}
 function roomConfig(){return normalizeArenaConfig({mode:$('room-mode').value||'dogfight',mapId:$('room-map').value||'canyon',durationSeconds:Number($('room-duration').value)||600,lives:Number($('room-lives').value)||3});}
-function roomMissionId(config=roomConfig()){return config.mode==='crew'?'gunship-nightwatch':['dogfight','freeflight'].includes(config.mode)?'arena-'+config.mapId:$('room-mission').value;}
-function roomMission(config=roomConfig()){return ['dogfight','freeflight'].includes(config.mode)?createArenaMission(config,lobbyAircraft):missionOf(roomMissionId(config));}
+function roomMissionId(config=roomConfig()){return config.mode==='crew'?'gunship-nightwatch':usesRoomMap(config.mode)?roomMapMissionId(config):$('room-mission').value;}
+function roomMission(config=roomConfig()){return usesRoomMap(config.mode)?createArenaMission(config,lobbyAircraft):missionOf(roomMissionId(config));}
 function syncRoomConfiguration(){
   if(team.code&&team.config){const c=team.config;$('room-mode').value=team.mode||c.mode;$('room-map').value=c.mapId;$('room-duration').value=String(c.durationSeconds);$('room-lives').value=String(c.lives);if(team.mode==='squadron')$('room-mission').value=team.missionId;}
   else if(team.code&&team.mode==='crew')$('room-mode').value='crew';
@@ -194,20 +195,32 @@ function syncRoomConfiguration(){
 }
 function updateRoom(roster=team.roster||[]){
   const joined=!!team.code;$('squadron-connect').hidden=joined;$('squadron-room').hidden=!joined;syncRoomConfiguration();if(!joined)return;
-  const crew=team.mode==='crew',arena=['dogfight','freeflight'].includes(team.mode),mission=roomMission(team.config||roomConfig());
+  const crew=team.mode==='crew',dogfight=isDogfightMode(team.mode),paired=team.mode==='team-dogfight',mission=roomMission(team.config||roomConfig());
+  const minimum=requiresFourPilots(team.mode)?4:2;
   $('room-code-display').textContent=team.code;
   $('room-role').textContent=crew?(team.isHost?'You are the pilot. Invite one gunner, then launch when they are ready.':'You are the gunner. Mark yourself ready to board the shared AC-130.'):(team.isHost?'You are flight lead. Each pilot chooses an aircraft and starting point. Launch when everyone is ready.':'Choose your aircraft and starting point, then mark yourself ready.');
-  $('room-brief').innerHTML='<strong>'+escapeHTML(mission.title)+'</strong><p>'+escapeHTML(crew?'Two crew · one AC-130. Pilot: keep targets on the left. Gunner: switch first-person stations, aim and fire.':team.mode==='dogfight'?`${(team.config?.durationSeconds||600)/60} minute dogfight · unlimited respawns · kills / deaths / K/D. Terrain blocks radar tracks and missiles.`:team.mode==='freeflight'?'No timer. No damage from other pilots. Your own blast and the terrain remain dangerous. Unlimited replacement aircraft.':`${team.config?.lives||3} lives per pilot. When your lives run out, watch a wingmate continue the mission.`)+'</p>';
-  $('roster').innerHTML=roster.map((p,i)=>`<div class="roster-person"><strong>${String(i+1).padStart(2,'0')} &nbsp; ${escapeHTML(p.name||'Pilot')}${p.id===team.id?' · YOU':''}<span class="crew-seat-label">${crew?(p.role==='gunner'?'GUNNER · 25 / 40 / 105 MM':'PILOT · FLIGHT CONTROLS'):escapeHTML(getAircraft(p.aircraft||mission.aircraft).name)+' · '+escapeHTML(p.startMode==='carrier'?'CARRIER':p.startMode==='runway'?'RUNWAY':p.startMode==='high'?'HIGH ALTITUDE':'AIRBORNE')}</span></strong><small>${p.connected===false?'Reconnecting':p.ready?'✓ Ready':'Preparing'}</small></div>`).join('');
-  $('start-room').hidden=!team.isHost;$('start-room').textContent=crew?'Launch AC-130 crew →':team.mode==='dogfight'?'Start dogfight →':team.mode==='freeflight'?'Open the sky →':'Launch squadron →';
-  $('start-room').disabled=roster.length<2||roster.some(p=>!p.ready||p.connected===false);
+  const rules=crew?'Two crew · one AC-130. Pilot keeps targets on the left. Gunner switches stations, aims and fires.':dogfight?`${(team.config?.durationSeconds||600)/60}-minute round · unlimited respawns. ${paired?'Blue vs. Red, two pilots per team. Friendly fire is off.':'Every pilot for themselves.'}`:team.mode==='freeflight'?'Untimed flight together. Terrain and your own blast can still damage your aircraft. Unlimited replacements.':`${team.config?.lives||3} lives per pilot. When your lives run out, watch a wingmate continue the mission.`;
+  const waiting=minimum===4?` ${roster.filter(p=>p.connected!==false).length}/4 pilots connected.`:'';
+  setMarkup('room-brief',`<strong>${escapeHTML(mission.title)}</strong><p>${escapeHTML(rules+waiting)}</p>`);
+  setMarkup('roster',roster.map((p,i)=>{
+    const self=p.id===team.id;
+    const choose=paired&&team.isHost&&team.roomState==='lobby'&&!self&&p.team==='red'&&p.connected!==false;
+    const wingmate=choose?`<button type="button" class="text-button wingmate-button" data-wingmate="${escapeHTML(p.id)}" aria-label="Choose ${escapeHTML(p.name||'Pilot')} as wingmate">Make wingmate</button>`:'';
+    const seat=crew?(p.role==='gunner'?'GUNNER · 25 / 40 / 105 MM':'PILOT · FLIGHT CONTROLS'):escapeHTML(getAircraft(p.aircraft||mission.aircraft).name)+' · '+(p.startMode==='carrier'?'CARRIER':p.startMode==='runway'?'RUNWAY':p.startMode==='high'?'HIGH ALTITUDE':'AIRBORNE');
+    const side=paired&&p.team?` · <span class="team-name" data-team="${escapeHTML(p.team)}">${escapeHTML(teamName(p.team))}</span>`:'';
+    return `<div class="roster-person"><strong>${String(i+1).padStart(2,'0')} &nbsp; ${escapeHTML(p.name||'Pilot')}${self?' · YOU':''}<span class="crew-seat-label">${seat}${side}</span></strong><div class="roster-state"><small>${p.connected===false?'Reconnecting':p.ready?'✓ Ready':'Preparing'}</small>${wingmate}</div></div>`;
+  }).join(''));
+  $('start-room').hidden=!team.isHost;
+  $('start-room').textContent=crew?'Launch AC-130 crew →':paired?'Start 2v2 dogfight →':dogfight?'Start dogfight →':team.mode==='coop'?'Launch co-op operation →':team.mode==='freeflight'?'Open the sky →':'Launch squadron →';
+  $('start-room').disabled=roster.length<minimum||roster.some(p=>!p.ready||p.connected===false);
   $('ready-room').hidden=team.isHost;$('ready-room').disabled=team.roomState!=='lobby';$('ready-room').textContent=ready?'✓ Ready · tap to stand down':crew?'Ready for the gunner seat':'Ready to fly';
   if(isCrewFlight())updateCrewHUD();
 }
 function previewRoomMission(){
-  const c=roomConfig(),crew=c.mode==='crew',arena=['dogfight','freeflight'].includes(c.mode),mission=roomMission(c),a=getAircraft($('room-aircraft').value||lobbyAircraft);
-  $('room-map-field').hidden=!arena;$('room-duration-field').hidden=c.mode!=='dogfight';$('room-lives-field').hidden=c.mode!=='squadron';$('room-mission-field').hidden=c.mode!=='squadron';$('room-loadout').hidden=crew;$('room-crew-note').hidden=!crew;
-  $('room-mission-preview').textContent=crew?'Nightwatch Basin · one shared AC-130, eight ground objectives.':c.mode==='dogfight'?(c.mapId==='canyon'?'Deep ravines, steep ridges and branching valleys. Duck behind solid terrain to break a radar track; incoming missiles can strike the rock.':'Open water, mountainous islands and a carrier. Room for fast turns and long pursuits.')+' Every aircraft keeps its own flight performance and weapons.':c.mode==='freeflight'?'No timer or damage from other pilots. Fly together, but watch the terrain and your own blast.':mission.description+' Lives are per pilot; the sortie continues after the flight lead loses an aircraft.';
+  const c=roomConfig(),crew=c.mode==='crew',dogfight=isDogfightMode(c.mode),mission=roomMission(c),a=getAircraft($('room-aircraft').value||lobbyAircraft);
+  $('room-map-field').hidden=!usesRoomMap(c.mode);$('room-duration-field').hidden=!dogfight;$('room-lives-field').hidden=!['squadron','coop'].includes(c.mode);$('room-mission-field').hidden=c.mode!=='squadron';$('room-loadout').hidden=crew;$('room-crew-note').hidden=!crew;
+  const preview=crew?'Nightwatch Basin · one shared AC-130, eight ground objectives.':dogfight?(c.mapId==='canyon'?'Deep ravines and steep ridges break radar tracks and block incoming missiles.':'Open water, mountainous islands and a carrier. Room for fast turns and long pursuits.'):c.mode==='freeflight'?'Untimed flight without damage from other pilots.':mission.description;
+  $('room-mission-preview').textContent=preview+(c.mode==='team-dogfight'?' Invite three other pilots for two teams of two.':c.mode==='coop'?' Invite three other pilots to take on the operation together.':'');
   $('room-aircraft-note').textContent=aircraftLoadoutNote(a,c.mode,mission);
   lobbyPayload=refreshPayloadChoice('room',a.id,lobbyPayload,{nuclearOnly:mission.kind==='nuclear',minimumAltitude:mission.goal?.type==='decision'?mission.goal.minimumAltitude||0:0});
   updateCarrierWarning('room-carrier-warning',a,$('room-start').value==='carrier',mission);
@@ -240,16 +253,17 @@ function updateMultiplayerHUD(){
   if(sim)setText('flight-aircraft',(dead&&spectatorView?getAircraft(spectatorView.aircraft).name+' · SPECTATING':currentAircraft().name).toUpperCase());
   $('scoreboard-button').hidden=!active;$('round-readout').hidden=!active;$('spectator-panel').hidden=!dead;
   if(!active){$('scoreboard-panel').hidden=true;return;}
-  const pilots=participantList(),dogfight=team.mode==='dogfight';
-  setText('round-mode',dogfight?'DOGFIGHT':team.mode==='freeflight'?'FREE FLIGHT':'LIVES');
+  const pilots=participantList(),dogfight=isDogfightMode(team.mode),paired=team.mode==='team-dogfight';
+  const standings=paired?teamDogfightStandings(pilots):null;
+  setText('round-mode',paired?`${teamName(self?.team).toUpperCase()} · 2V2`:dogfight?'DOGFIGHT':team.mode==='freeflight'?'FREE FLIGHT':'LIVES');
   setText('round-clock',dogfight?formatRoundTime(sim.round?.remaining??team.config?.durationSeconds??600):team.mode==='freeflight'?'OPEN SKY':String(self?.livesRemaining??team.config?.lives??3));
-  setText('round-personal-score',number(self?.kills)+' K / '+number(self?.deaths)+' D');
+  setText('round-personal-score',paired?teamScoreLine(standings):number(self?.kills)+' K / '+number(self?.deaths)+' D');
   $('round-readout').dataset.ending=String(dogfight&&(sim.round?.remaining??Infinity)<=60);
-  if(scoreboardOpen){setText('scoreboard-title',dogfight?'Live standings':'Squadron log');setMarkup('scoreboard-table',scoreboardMarkup(pilots,team.id));setText('scoreboard-note',team.mode==='squadron'?'Mission kills count hostile aircraft. Ground objectives add team mission points. K/D is kills ÷ deaths; — means no deaths yet.':'Ranked by kills, then fewer deaths. K/D is kills ÷ deaths; — means no deaths yet.');}
+  if(scoreboardOpen){setText('scoreboard-title',dogfight?'Live standings':'Squadron log');setMarkup('scoreboard-table',scoreboardMarkup(pilots,team.id));setText('scoreboard-note',scoreboardNote());}
   if(dead){
     const available=self?.livesRemaining===null||(self?.livesRemaining||0)>0,wait=Math.max(0,(self?.respawnAt||0)-sim.time),confirmed=self?.alive===false;
     const person=pilots.find(p=>p.id===spectatedId),watchable=spectatorCandidates(pilots,team.id);
-    setText('spectator-status',available?'AIRCRAFT LOST':'NO LIVES REMAINING');setText('spectator-title',available?'Take another flight.':'Stay with your squadron.');
+    setText('spectator-status',sim.bailoutStatus?.phase==='landed'?'PILOT RECOVERED':available?'AIRCRAFT LOST':'NO LIVES REMAINING');setText('spectator-title',available?'Take another flight.':'Stay with your squadron.');
     setText('spectator-note',!confirmed?'Confirming your aircraft loss with the flight lead…':available?self?.livesRemaining===null?'Your score stays with you. Choose when to return in a fresh aircraft.':`${self.livesRemaining} ${self.livesRemaining===1?'life':'lives'} remaining. Your squadron keeps flying while you regroup.`:'Your wingmates can finish the mission. Watch any surviving pilot; the shared world keeps running.');
     setText('spectator-name',person?.name||'Waiting for a pilot');setText('spectator-aircraft',person?getAircraft(person.aircraft).name:'No surviving aircraft in view');
     $('spectate-previous').disabled=$('spectate-next').disabled=watchable.length<2;
@@ -257,6 +271,12 @@ function updateMultiplayerHUD(){
     setText('respawn-button',!confirmed?'Awaiting flight lead':wait>0?'Fresh aircraft in '+Math.ceil(wait)+'s':'Return to the sky →');
   }
 }
+function scoreboardNote(){
+  if(team.mode==='team-dogfight')return 'Team score counts enemy aircraft downed. A tie on kills ends in a draw.';
+  if(['squadron','coop'].includes(team.mode))return 'Hostile aircraft count toward individual kills. Destroying ground objectives advances the shared mission.';
+  return 'Ranked by kills, then fewer deaths. K/D is kills ÷ deaths. A dash means no deaths yet.';
+}
+function teamScoreLine(standings){return standings.teams.map(side=>`${side.name} ${side.kills}`).join(' · ');}
 function respawnLocal(){
   if(!isSpectating()||!sim||sim.status!=='flying')return;
   if(team.isHost){sim.requestRespawn(team.id);syncLifeState();team.sendWorld({...sim.getSnapshot(),teamPaused:sharedWorldPaused()});}
@@ -322,7 +342,7 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
   presentation.reset(sim);renderView=presentation.sample(1);markerBoundsDirty=true;lastCrewSnapshot=performance.now();gunnerControls.reset();syncCrewUI();
   if(isCrewFlight())sim.targetId=sim.targets.find(t=>t.health>0&&!t.friendly)?.id||null;
   renderer.loadMission(m,currentAircraft());controls.settings=settings;controls.setThrottle(sim.player.throttle||0);controls.lookX=controls.lookY=0;
-  $('flight-mission-number').textContent=m.passengerRoute?.flightNumber|| (m.operation?'OPS':m.kind==='gunship'?'CREW':team.mode==='dogfight'&&coop?'VS':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE');$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
+  $('flight-mission-number').textContent=m.passengerRoute?.flightNumber|| (m.operation?'OPS':m.kind==='gunship'?'CREW':coop&&isDogfightMode(team.mode)?'VS':coop&&team.mode==='coop'?'CO-OP':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE');$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
   if(m.number){progress.lastMission=m.id;saveProgress(progress);}
   showScreen('flight');updateHUD();
   if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});
@@ -332,10 +352,16 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
 
 function handleAction(name){
   if(isGunner()){if(name==='target')selectCrewTarget();return;}
-  if(name==='camera'){settings.camera=settings.camera==='chase'?'cockpit':settings.camera==='cockpit'?'cinematic':'chase';saveSettings(settings);toast(settings.camera==='chase'?'Chase camera':settings.camera==='cockpit'?'Cockpit view':'Cinematic view');return;}
+  if(name==='camera'){if(isDescending())return;settings.camera=settings.camera==='chase'?'cockpit':settings.camera==='cockpit'?'cinematic':'chase';saveSettings(settings);toast(settings.camera==='chase'?'Chase camera':settings.camera==='cockpit'?'Cockpit view':'Cinematic view');return;}
   if(!sim||isSpectating()||scoreboardOpen||paused||remotePaused||(coop&&(!team.connected||team.paused||(!team.isHost&&team.hostStale))))return;
   if(coop&&!team.isHost&&sim.mission.kind==='nuclear'&&['payload','abort'].includes(name)){toast('The flight lead makes the final decision for the squadron.');return;}
   audio.unlock();setAircraftTray(false);const weapon=['missile','payload','countermeasure'].includes(name);
+  if(name==='bailout'&&coop&&!team.isHost){
+    const state=sim.bailoutStatus;
+    if(state?.canBail)team.sendAction({name:'bailout',lifeId:sim.player.lifeId});
+    else toast(state?.reason||'Bailout is available after critical damage.');
+    return;
+  }
   if(coop&&!team.isHost&&weapon){const targetId=sim.targetId;const result=sim.action(name);if(result)team.sendAction({name,targetId});if(result?.message)toast(result.message);}
   else {const result=sim.action(name);if(result?.message)toast(result.message);}
   if(name==='startup'){audio.cue('click');if(sim.player.engine){controls.setThrottle(Math.max(controls.throttleValue,.12));if(isTouchLayout()){setAircraftTray(true);toast('Engine running. Tap BRAKE to release the wheels, then add thrust.',5500);}else toast('Engine running. Release the brake, then add throttle.');}}
@@ -353,7 +379,22 @@ function resumeFlight(){if($('pause-dialog').open)$('pause-dialog').close();paus
 
 
 const startupCopy=[['Fuel on.','Open the fuel valve so the engine has something to run on.','Open fuel valve'],['Ignition ready.','Switch on the magnetos. They provide the spark.','Switch on magnetos'],['A little encouragement.','Prime the engine before turning the propeller.','Prime the engine'],['Bring it to life.','Turn the propeller. Listen as the engine catches.','Start the engine']];
+const jetStartupCopy=[['Fuel supply.','Open the fuel supply.','Open fuel supply'],['Electrical power.','Power the aircraft systems.','Power on'],['Ignition ready.','Enable the engine starter.','Enable starter'],['Ready for start.','Start the jet engines. Keep the brake set until departure.','Start engines']];
 const passengerStartupCopy=[['Fuel supply.','Switch on the fuel pumps for both engines.','Fuel pumps on'],['Flight deck power.','Bring the aircraft systems online.','Systems on'],['Engine start ready.','Prepare both engines for start.','Prepare engines'],['Start the engines.','Start both turbofans. Keep the brake set until you are ready to depart.','Start engines']];
+function updateBailoutHUD(aviation){
+  const state=sim.bailoutStatus,phase=state?.phase;
+  const show=state&&['critical','disabled','descending'].includes(phase)&&!isSpectating();
+  $('bailout-panel').hidden=!show;
+  if(!show){delete $('flight-screen').dataset.bailout;return;}
+  $('flight-screen').dataset.bailout=$('bailout-panel').dataset.phase=phase;
+  const descending=phase==='descending',disabled=phase==='disabled';
+  const altitude=number(state.altitude*(aviation?3.28084:1))+(aviation?' ft':' m')+' AGL';
+  const timer=disabled?`${Math.max(0,state.seconds).toFixed(1)} s to get clear` : '';
+  const detail=descending?altitude:!state.canBail?[timer,state.reason||'Bailout unavailable'].filter(Boolean).join(' · '):timer||'You can still fly or bail out.';
+  setText('bailout-title',descending?'Parachute deployed':disabled?'Aircraft disabled':'Airframe critical');
+  setText('bailout-detail',detail);
+  $('bailout-button').hidden=descending||!state.canBail;
+}
 function updateHUD(){
   if(!sim||screen!=='flight')return;const p=instrumentPlayer(),m=sim.mission,a=isSpectating()&&spectatorView?getAircraft(spectatorView.aircraft):currentAircraft(),aviation=settings.units==='aviation';
   const clearance=terrainClearance(p,m),alt=Math.max(0,clearance.agl);
@@ -368,7 +409,8 @@ function updateHUD(){
   setText('throttle-output',number(controls.throttleValue*100)+'%');setText('touch-throttle-output',number(controls.throttleValue*100)+'%');$('touch-throttle-fill').style.width=number(controls.throttleValue*100)+'%';setText('gear-state',a.fixedGear?'FIXED':p.gear?'DOWN':'UP');document.querySelector('[data-action=gear]').disabled=!!a.fixedGear;setText('flaps-state',p.flaps?'DOWN':'UP');document.querySelector('[data-action=flaps]').hidden=a.hasFlaps===false;setText('brake-state',p.brake?'ON':'OFF');setText('hover-state',p.hover?'ON':'OFF');
   for(const [act,state] of [['gear',p.gear],['flaps',p.flaps],['brake',p.brake],['hover',p.hover]])$$(`[data-action="${act}"]`).forEach(b=>b.classList.toggle('active',!!state));
   $('hover-action').hidden=!a.vtol;$('fire-button').hidden=!a.gun;$('missile-action').hidden=!a.missiles;$('payload-action').hidden=!(a.bombs||p.troopers||m.kind==='drop'||m.kind==='nuclear');$('countermeasure-action').hidden=!(a.missiles||a.radar);$('radar-action').hidden=!a.radar;
-  $('weapon-actions').hidden=!(a.gun||a.bombs||a.missiles||p.troopers);$('crosshair').hidden=!(a.gun||a.missiles);
+  $('flight-screen').dataset.guns=String(!!a.gun);
+  $('weapon-actions').hidden=!(a.gun||a.bombs||a.missiles||a.radar||p.troopers);$('crosshair').hidden=isDescending()||!(a.gun||a.missiles);
   const lock=sim.lockProgress||0;setText('lock-state',lock>=1?'LOCKED':lock>0?'LOCKING '+number(lock*100)+'%':sim.lockReason==='Terrain masks the contact'?'TERRAIN MASKED':'NO LOCK');$('missile-action').classList.toggle('ready',lock>=1);setText('radar-state',sim.radarOn?'ON':'OFF');setText('radar-label',a.radar?(sim.radarOn?'RADAR · CONTACTS':'RADAR SILENT'):'NAVIGATION');
   const nuclear=getNuclearPayload(p.payload),minimumRelease=nuclear?Math.max(nuclear.minimumAltitude,m.goal?.type==='decision'?m.goal.minimumAltitude||0:0):0,releaseLocked=!!(nuclear&&(p.onGround||alt<minimumRelease));
   const releaseAltitude=nuclear?number(minimumRelease*(aviation?3.28084:1)).toLocaleString()+' '+(aviation?'FT':'M')+' AGL':'';
@@ -379,12 +421,24 @@ function updateHUD(){
   $('payload-action').classList.toggle('ready',!!nuclear&&!releaseLocked&&p.bombs>0);
   $('payload-quick').classList.toggle('ready',!!nuclear&&!releaseLocked&&p.bombs>0);
   $('abort-finale').hidden=m.kind!=='nuclear'||sim.status!=='flying'||p.bombs<=0||(coop&&!team.isHost);
-  $('startup-panel').hidden=!!p.engine||!p.onGround||m.start?.airborne;const step=clamp(p.startupStep||0,0,3),copy=(a.passenger?passengerStartupCopy:startupCopy)[step];setText('startup-title',copy[0]);setText('startup-hint',copy[1]);setMarkup('startup-button',copy[2]+' <span>→</span>');Array.from($('startup-steps').children).forEach((e,i)=>{const label=(a.passenger?['FUEL','SYSTEMS','START','ENGINES']:['FUEL','IGNITION','PRIME','PROP'])[i];if(e.textContent!==label)e.textContent=label;e.classList.toggle('done',i<step);e.classList.toggle('current',i===step);});
+  $('startup-panel').hidden=!!p.engine||!p.onGround||m.start?.airborne;
+  if(!$('startup-panel').hidden)updateStartupHUD(p,a);
   const hint=flightHint(sim.hint);setText('hint-text',hint);$('flight-hint').hidden=hintDismissed||settings.guidance==='minimal'||(!p.engine&&p.onGround);$('objective-box').hidden=settings.guidance==='minimal'&&m.kind==='free';
   let warning='';if(coop&&(team.paused||team.hostStale||!team.connected))warning='SQUADRON CONNECTION · HOLDING';else if(remotePaused)warning='FLIGHT LEAD PAUSED';else if(danger)warning='PULL UP · TERRAIN AHEAD'+(Number.isFinite(clearance.timeToImpact)?' · '+clearance.timeToImpact.toFixed(1)+'s':'');else if(p.stalled)warning='STALL · LOWER THE NOSE';else if(p.health<(a.health||100)*.25)warning='AIRFRAME CRITICAL';else if(sim.nuclearThreat)warning=nuclearFlightWarning(sim.nuclearThreat);else if(sim.threatWarning)warning=sim.threatWarning;else if(sim.threat)warning=typeof sim.threat==='string'?sim.threat:'THREAT · CHECK RADAR';else if(alt<35&&!p.onGround&&p.speed>a.stallSpeed*1.2)warning='LOW ALTITUDE';else if(releaseLocked&&p.bombs>0)warning='PAYLOAD LOCKED · '+releaseAltitude+' REQUIRED';
-  $('flight-warning').hidden=!warning;setText('flight-warning',warning);
+  $('flight-warning').hidden=!warning||isDescending();setText('flight-warning',warning);
   if(coop)setText('flight-network',(team.connected?'● ':'○ ')+Math.round(team.latency||0)+' MS'+(team.isHost?' · LEAD':''));
+  updateBailoutHUD(aviation);
   if(isCrewFlight())updateCrewHUD();updateMultiplayerHUD();drawRadar();processEvents();
+}
+function updateStartupHUD(player,aircraft){
+  const jet=isJetAircraft(aircraft),step=clamp(player.startupStep||0,0,3);
+  const copy=(aircraft.passenger?passengerStartupCopy:jet?jetStartupCopy:startupCopy)[step];
+  const labels=jet?['FUEL','SYSTEMS','START','ENGINES']:['FUEL','IGNITION','PRIME','PROP'];
+  setText('startup-title',copy[0]);setText('startup-hint',copy[1]);setMarkup('startup-button',copy[2]+' <span>→</span>');
+  Array.from($('startup-steps').children).forEach((element,index)=>{
+    if(element.textContent!==labels[index])element.textContent=labels[index];
+    element.classList.toggle('done',index<step);element.classList.toggle('current',index===step);
+  });
 }
 function updateCrewHUD(){
   if(!isCrewFlight()||!sim.crew)return;
@@ -419,11 +473,12 @@ function drawRadar(){
   for(const r of sim.mission.runways||[])point(r,'ground');const wp=sim.navigationTarget||sim.mission.waypoints?.[sim.waypointIndex];if(wp)point(wp,'waypoint');
   if(!a.radar||sim.radarOn){for(const e of sim.enemies||[])if(e.health>0&&e.detected!==false)point(e,e.friendly?'friend':'enemy');for(const t of sim.targets||[])if(t.health>0)point(t,'ground');}
   if(hasImpactMarker()){const q=pos(sim.bombAim);if(Math.hypot(q.x,q.y)<102){ctx.strokeStyle='#d8ffe5';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(q.x,q.y,6,0,Math.PI*2);ctx.moveTo(q.x-9,q.y);ctx.lineTo(q.x+9,q.y);ctx.moveTo(q.x,q.y-9);ctx.lineTo(q.x,q.y+9);ctx.stroke();}}
-  for(const r of sim.remotePlayers||[]){if(r.alive===false||r.health<=0||r.connected===false||r.id===p.id)continue;const enemy=coop&&team.mode==='dogfight';if(!enemy||(!a.radar||sim.radarOn)&&lineOfSight(p,r,sim.mission))point(r,enemy?'enemy':'friend');}
+  const ownTeam=sim.participants?.get?.(p.id)?.team;
+  for(const r of sim.remotePlayers||[]){if(r.alive===false||r.health<=0||r.connected===false||r.id===p.id||r.bailout?.phase==='descending')continue;const enemy=coop&&arePilotsHostile(team.mode,ownTeam,sim.participants?.get?.(r.id)?.team||r.team);if(!enemy||(!a.radar||sim.radarOn)&&lineOfSight(p,r,sim.mission))point(r,enemy?'enemy':'friend');}
   ctx.fillStyle='#bccfb8';ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText((range/1000).toFixed(1)+' KM',0,101);ctx.restore();
 }
 function updateMarkers(view=sim){
-  if(!sim||screen!=='flight'){impactMarker.hidden=true;return;}if(isSpectating()){$('target-marker').hidden=$('waypoint-pointer').hidden=impactMarker.hidden=true;return;}const target=(view.enemies||[]).find(e=>e.id===sim.targetId&&e.health>0)||(view.targets||[]).find(t=>t.id===sim.targetId&&t.health>0)||(sim.remotePlayers||[]).find(p=>p.id===sim.targetId&&p.alive!==false&&p.health>0);const marker=$('target-marker');
+  if(!sim||screen!=='flight'){impactMarker.hidden=true;return;}if(isSpectating()||isDescending()){$('target-marker').hidden=$('waypoint-pointer').hidden=impactMarker.hidden=true;return;}const target=(view.enemies||[]).find(e=>e.id===sim.targetId&&e.health>0)||(view.targets||[]).find(t=>t.id===sim.targetId&&t.health>0)||(sim.remotePlayers||[]).find(p=>p.id===sim.targetId&&p.alive!==false&&p.health>0&&p.bailout?.phase!=='descending');const marker=$('target-marker');
   if(target&&target.detected!==false&&lineOfSight(sim.player,target,sim.mission)){const q=renderer.project(target.x,target.y,target.z);marker.hidden=!q?.visible;if(q?.visible){marker.style.left=q.x+'px';marker.style.top=q.y+'px';$('target-name').textContent=target.label||target.type||'CONTACT';$('target-distance').textContent=(dist(sim.player,target)/1000).toFixed(1)+' KM';marker.classList.toggle('locked',(sim.lockProgress||0)>=1);}}else marker.hidden=true;
   const wp=sim.navigationTarget||sim.mission.waypoints?.[sim.waypointIndex],ptr=$('waypoint-pointer');if(wp&&settings.guidance!=='minimal'){
     const q=renderer.project(wp.x,wp.y,wp.z),distance=dist(sim.player,wp);ptr.hidden=false;const label=(wp.label||'WAYPOINT')+' · '+(distance/1000).toFixed(1)+' KM';
@@ -448,7 +503,7 @@ function updateMarkers(view=sim){
   }
 }
 function finishFlight(){
-  if(endHandled||!sim)return;closeDialogs();if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;setFlightInputs(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=currentAircraft(),dogfight=coop&&team.mode==='dogfight';const health=number(sim.player.health/(a.health||100)*100),minutes=formatRoundTime(dogfight?sim.round?.elapsed:sim.time);
+  if(endHandled||!sim)return;closeDialogs();if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;setFlightInputs(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=currentAircraft(),dogfight=coop&&isDogfightMode(team.mode),paired=coop&&team.mode==='team-dogfight';const health=number(sim.player.health/(a.health||100)*100),minutes=formatRoundTime(dogfight?sim.round?.elapsed:sim.time);
   if(won&&m.number){const previous=progress.completed[m.id];progress.completed[m.id]={score:Math.max(sim.score||0,previous?.score||0),time:sim.time,ending:sim.ending||null};progress.totalTime+=sim.time;if(!saveProgress(progress))toast('This browser could not save your logbook. Keep this tab open.',7500);}
   const recorded=recordFlightResult(won?'success':'failed');
   $('debrief-flight-report').hidden=!recorded;setMarkup('debrief-flight-report',recorded?sortieDetailsMarkup(recorded.report,{newBest:recorded.newBest}):'');
@@ -457,8 +512,10 @@ function finishFlight(){
   $('debrief-description').textContent=dogfight?`${m.title} · ${Math.round((sim.round?.duration||600)/60)} minutes complete. Every aircraft, every kill and every loss is recorded below. Regroup with the same squadron for another flight.`:sim.endingText||(won?`${m.title} complete. ${sim.score?Math.round(sim.score)+' points earned. ':''}${m.kind==='gunship'?'All eight ground objectives cleared. Your crew can launch again.':'Your next aircraft is waiting.'}`:sim.objective||sim.hint||'The flight ended before you completed your orders. Try assisted flight, or restart and take it one step at a time.');
   if(m.operation){setText('debrief-kicker',won?'OPERATION COMPLETE':'OPERATION ENDED');setText('debrief-title',m.title);setText('debrief-description',sim.objective);}
   else if(!dogfight&&!sim.ending){setText('debrief-title',won?'Sortie complete.':sim.player.health<=0?'Aircraft lost.':'Sortie incomplete.');if(won)setText('debrief-description',m.title+' complete. '+(m.kind==='gunship'?'All eight ground objectives cleared.':number(sim.score)+' points.'));}
+  if(sim.bailoutStatus?.phase==='landed'&&!coop){setText('debrief-title','Pilot recovered.');setText('debrief-description','You landed safely under the parachute. The aircraft was lost.');}
+  if(paired){const sides=teamDogfightStandings(participantList()),winner=sim.round?.winner??sides.winner?.team;setText('debrief-title',winner?`${teamName(winner)} wins.`:'Round drawn.');setText('debrief-description',`${teamScoreLine(sides)}. Regroup with the same squadron to fly again.`);}
   $('debrief-stats').innerHTML=dogfight?`<span>${minutes}<small>ROUND TIME</small></span><span>${number(sim.localParticipant?.kills)}<small>YOUR KILLS</small></span><span>${number(sim.localParticipant?.deaths)}<small>YOUR DEATHS</small></span>`:`<span>${minutes}<small>FLIGHT TIME</small></span><span>${health}%<small>AIRFRAME</small></span><span>${won?'✓':number((sim.progress||0)*100)+'%'}<small>OBJECTIVE</small></span>`;
-  $('debrief-scoreboard').hidden=$('debrief-score-note').hidden=!coop||isCrewFlight();setText('debrief-score-note',team.mode==='squadron'?'Kills count hostile aircraft. Ground objectives add team mission points. K/D is kills ÷ deaths; — means no deaths yet.':'K/D is kills ÷ deaths; — means no deaths yet.');if(coop&&!isCrewFlight())setMarkup('debrief-scoreboard',scoreboardMarkup(participantList(),team.id));
+  $('debrief-scoreboard').hidden=$('debrief-score-note').hidden=!coop||isCrewFlight();setText('debrief-score-note',scoreboardNote());if(coop&&!isCrewFlight())setMarkup('debrief-scoreboard',scoreboardMarkup(participantList(),team.id));
   $('next-mission').hidden=!won||!m.number||m.number>=MISSIONS.length||coop;$('retry-mission').textContent=coop?(team.isHost?'Fly again with squadron':'Return to squadron room'):'Fly again';$('debrief-room').hidden=!coop||!team.isHost;showScreen('debrief');
 }
 
@@ -490,15 +547,26 @@ function keyboardSettings(){
 function refreshKeyboardHints(){
   const pair=(a,b)=>`${escapeHTML(bindingLabel(a))} / ${escapeHTML(bindingLabel(b))}`;
   $('desktop-controls').innerHTML=`${pair('pitchUp','pitchDown')} <span>pitch up / down</span> · ${pair('rollLeft','rollRight')} <span>roll</span> · ${pair('yawLeft','yawRight')} <span>yaw</span> · ${pair('throttleUp','throttleDown')} <span>thrust + / −</span> · ESC <span>pause & setup</span>`;
-  for(const button of $$('[data-action]')){const action=BINDING_ACTIONS.find(a=>a.id===button.dataset.action);if(action)button.title=`${action.label} · ${bindingLabel(action.id)}`;}
-  $('camera-button').title=`Change camera · ${bindingLabel('camera')}`;$('pause-button').title=`Pause · Esc / ${bindingLabel('pause')}`;
-  $('startup-button').title=`Next engine-start step · ${bindingLabel('startup')}`;$('fire-button').title=`Hold guns · ${bindingLabel('fire')}`;
+  for(const button of $$('[data-action]')){const action=BINDING_ACTIONS.find(a=>a.id===button.dataset.action);if(action)labelFlightButton(button,action.id,action.label);}
+  labelFlightButton($('camera-button'),'camera','Change camera');
+  labelFlightButton($('fire-button'),'fire','Hold guns');
+  labelFlightButton($('pause-button'),'pause','Pause');
+  $('pause-button').title=`Pause · Esc / ${bindingLabel('pause')}`;
+  $('startup-button').title=`Next engine-start step · ${bindingLabel('startup')}`;
   $('gunner-fire').title='Hold guns · '+bindingLabel('gunner:fire');
   $('gunner-zoom').title='Toggle sight zoom · '+bindingLabel('gunner:zoom');
   $('gunner-centre').title='Centre gun sight · '+bindingLabel('gunner:recenter');
   $('gunner-target').title='Mark next target · '+bindingLabel('gunner:target');
   for(const [index,button] of $$('[data-gun-seat]').entries())button.title=GUNSHIP_STATIONS[index].label+' · '+bindingLabel('gunner:'+['seat25','seat40','seat105'][index]);
   setText('gunner-controls-hint',isTouchLayout()?(settings.leftHanded?'RIGHT AIM · LEFT FIRE':'LEFT AIM · RIGHT FIRE'):'Mouse to aim · hold click / '+bindingLabel('gunner:fire')+' to fire · '+['seat25','seat40','seat105'].map(id=>bindingLabel('gunner:'+id)).join(' / ')+' stations · '+bindingLabel('gunner:zoom')+' zoom');
+}
+function labelFlightButton(button,action,label){
+  const key=settings.keyBindings[action],name=bindingLabel(action);
+  button.title=key?`${label} · ${name}`:label;
+  let hint=button.querySelector('kbd');
+  if(!hint){hint=document.createElement('kbd');hint.setAttribute('aria-hidden','true');button.appendChild(hint);}
+  hint.hidden=!key;
+  hint.textContent=key?name:'';
 }
 function touchSides(){return {power:settings.leftHanded?'Right':'Left',flight:settings.leftHanded?'Left':'Right'};}
 function refreshTouchHints(){
@@ -590,7 +658,8 @@ $('free-start').onchange=()=>updateCarrierWarning('free-carrier-warning',selecte
 $('create-room').onclick=async()=>{setConnectBusy(true);ready=false;try{const config=roomConfig();await team.create($('callsign').value.trim()||'Pilot',roomMissionId(config),{...config,aircraft:lobbyAircraft,startMode:lobbyStart,payload:lobbyPayload});updateRoom();}catch(e){toast(e.message||'Could not create squadron.');}finally{setConnectBusy(false);}};
 $('join-room').onclick=async()=>{const code=$('room-code').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){toast('Enter the six-character squadron code.');return;}setConnectBusy(true);ready=false;try{await team.join(code,$('callsign').value.trim()||'Pilot',{aircraft:lobbyAircraft,startMode:lobbyStart,payload:lobbyPayload});updateRoom();}catch(e){toast(e.message||'Could not join squadron.');}finally{setConnectBusy(false);}};
 $('ready-room').onclick=()=>{ready=!ready;team.ready(ready);updateRoom();};$('start-room').onclick=()=>team.start(team.missionId||roomMissionId());$('leave-room').onclick=()=>{coop=false;team.leave();ready=false;sim=null;activeStart=null;updateRoom();};
-$('scoreboard-button').onclick=()=>setScoreboard(!scoreboardOpen);$('close-scoreboard').onclick=()=>setScoreboard(false);$('spectate-previous').onclick=()=>cycleSpectator(-1);$('spectate-next').onclick=()=>cycleSpectator(1);$('respawn-button').onclick=respawnLocal;
+$('roster').onclick=e=>{const button=e.target.closest('[data-wingmate]');if(button&&team.isHost)team.assignWingmate(button.dataset.wingmate);};
+$('scoreboard-button').onclick=e=>{if(e?.detail)$('scoreboard-button').blur();setScoreboard(!scoreboardOpen);};$('close-scoreboard').onclick=()=>setScoreboard(false);$('spectate-previous').onclick=()=>cycleSpectator(-1);$('spectate-next').onclick=()=>cycleSpectator(1);$('respawn-button').onclick=e=>{if(e?.detail)$('respawn-button').blur();respawnLocal();};
 $('debrief-room').onclick=()=>{if(team.isHost){team.returnToLobby();return;}closeDialogs();paused=false;updateRoom();showScreen('squadron');};
 $('copy-room').onclick=async()=>{const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squadron',team.code);try{if(navigator.share&&matchMedia('(pointer:coarse)').matches)await navigator.share({title:'Fly with me · SKYWARD',url:String(url)});else{await navigator.clipboard.writeText(String(url));toast('Invite link copied.');}}catch{toast('Squadron code: '+team.code,7000);}};
 $$('[data-open-settings]').forEach(b=>b.onclick=openSettings);$('close-settings').onclick=closeSettings;$('done-settings').onclick=closeSettings;
@@ -627,7 +696,10 @@ $('flight-nav-toggle').onclick=()=>{audio.unlock();const open=!$('flight-screen'
 $('pause-room').onclick=()=>{if(coop&&team.isHost)team.returnToLobby();};
 $('pause-button').onclick=pauseFlight;$('resume-button').onclick=resumeFlight;$('pause-home').onclick=goHome;$('pause-restart').onclick=retryFlight;
 $('theme-button').onclick=()=>{settings.theme=settings.theme==='night'?'day':'night';updateSettings();};
-$('sound-button').onclick=()=>{settings.sound=!settings.sound;updateSettings();audio.unlock();};$('camera-button').onclick=()=>handleAction('camera');$('startup-button').onclick=()=>handleAction('startup');$$('[data-action]').forEach(b=>b.onclick=()=>handleAction(b.dataset.action));
+$('sound-button').onclick=()=>{settings.sound=!settings.sound;updateSettings();audio.unlock();};
+function bindFlightButton(button,action){button.onclick=event=>{if(event?.detail)button.blur();handleAction(action);};}
+bindFlightButton($('camera-button'),'camera');bindFlightButton($('startup-button'),'startup');
+for(const button of $$('[data-action]'))bindFlightButton(button,button.dataset.action);
 $('dismiss-hint').onclick=()=>{hintDismissed=true;$('flight-hint').hidden=true;};$('abort-finale').onclick=()=>handleAction('abort');
 $('retry-mission').onclick=retryFlight;$('next-mission').onclick=()=>{const next=MISSIONS[(sim?.mission.number||1)];if(next)openCampaign(next);else goHome();};
 for(const button of $$('[data-gun-seat]'))button.onclick=()=>{if(isGunner()&&!paused&&!remotePaused)gunnerControls.selectSeat(button.dataset.gunSeat);};
@@ -679,7 +751,7 @@ function frame(now){
       }else{
         let input={roll:0,pitch:0,yaw:0,throttle:sim.player.throttle,fire:false};
         flightClock.advance(elapsed,step=>{input=!paused&&!scoreboardOpen&&!isSpectating()?controls.read(step):{roll:0,pitch:0,yaw:0,throttle:sim.player.throttle,fire:false};presentation.capture(sim);sim.step(step,input);});
-        if(input.fire&&sim.aircraft.gun&&sim.player.ammo>0&&sim.player.gunHeat<1){audio.cue('gun');if(coop&&!team.isHost&&now-lastRemoteFire>110){team.sendAction({name:'fire',targetId:sim.targetId,lifeId:sim.player.lifeId});lastRemoteFire=now;}}
+        if(input.fire&&!sim.player.bailout&&sim.aircraft.gun&&sim.player.ammo>0&&sim.player.gunHeat<1){audio.cue('gun');if(coop&&!team.isHost&&now-lastRemoteFire>110){team.sendAction({name:'fire',targetId:sim.targetId,lifeId:sim.player.lifeId});lastRemoteFire=now;}}
       }
       syncLifeState();
       if(isCrewFlight())for(const station of GUNSHIP_STATIONS){const count=sim.crew.stations[station.id].shots;if(count>(crewShotsSeen[station.id]||0))audio.cue(station.id==='105mm'?'heavycannon':station.id==='40mm'?'cannon':'gun');crewShotsSeen[station.id]=count;}
@@ -692,14 +764,17 @@ function frame(now){
     }
     renderView=presentation.sample(isGunner()?clamp((now-lastCrewSnapshot)/100,0,1):running&&sim.status==='flying'?flightClock.alpha:1);
     if(isGunner()&&!connectionHold){const pilot=team.samplePilot();if(pilot)Object.assign(renderView.player,pilot);}
-    const watch=spectatorPose(remote),visibleRemote=remote.filter(p=>sim.participants?.get?.(p.id)?.alive!==false&&p.health!==0);
+    const watch=spectatorPose(remote),visibleRemote=remote.filter(p=>sim.participants?.get?.(p.id)?.alive!==false&&p.health!==0).map(p=>{
+      const participant=sim.participants?.get?.(p.id);
+      return participant?{...p,team:participant.team,bailout:participant.pose?.bailout}:p;
+    });
     const feedback=combatFeedback.update(sim,dt,{listener:watch||sim.player,camera:renderer.camera,reducedMotion:settings.reducedMotion,suspended:paused||remotePaused||connectionHold,spectating:isSpectating()});
     paintCombatFeedback(feedback);for(const cue of feedback.cues)audio.cue(cue.kind,cue.details);
     audio.update(watch?{player:watch,mission:sim.mission,aircraft:getAircraft(watch.aircraft)}:sim,dt);
     const destroyed=sim.status==='failed'&&(sim.player.health<=0||sim.player.crashed);
     if(destroyed&&destructionAt===null)destructionAt=now;
     if(destructionAt!==null)for(const effect of renderView.effects||[])effect.age+=Math.max(0,(now-destructionAt)/1000);
-    renderer.render(renderView,dt,{camera:isGunner()?'gunner':settings.camera,gunner:isGunner()?gunnerControls.read(0):null,lookX:controls.lookX,lookY:controls.lookY,combatKick:feedback.kick,remotePlayers:visibleRemote,...(watch?{player:watch,playerId:watch.id}:{})});
+    renderer.render(renderView,dt,{camera:isGunner()?'gunner':isDescending()?'chase':settings.camera,gunner:isGunner()?gunnerControls.read(0):null,lookX:controls.lookX,lookY:controls.lookY,combatKick:feedback.kick,remotePlayers:visibleRemote,...(watch?{player:watch,playerId:watch.id}:{})});
     if(now-lastHud>90){updateHUD();lastHud=now;markerBoundsDirty=true;}
     updateMarkers(renderView);
     if(sim.status!=='flying'&&!endHandled&&(!destroyed||now-destructionAt>=1250))finishFlight();

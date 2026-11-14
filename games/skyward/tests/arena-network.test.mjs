@@ -75,7 +75,7 @@ async function arena(t) {
 test('every flyable aircraft may choose a carrier and all supported round lengths are accepted', async t => {
   const { app, connect } = await setup(t);
   for (const [index, aircraft] of Object.keys(AIRCRAFT).entries()) {
-    const peer = await connect(), durationSeconds = [300, 600, 1200][index % 3];
+    const peer = await connect(), durationSeconds = [180, 300, 600, 1200][index % 4];
     peer.send({ type: 'create', name: aircraft, missionId: 'arena-islands', config: { mode: 'dogfight', mapId: 'islands', durationSeconds, lives: 3 }, aircraft, startMode: 'carrier' });
     const session = await peer.next('session');
     assert.equal(session.mode, 'dogfight'); assert.equal(session.maxPlayers, 4);
@@ -91,6 +91,77 @@ test('every flyable aircraft may choose a carrier and all supported round length
   invalid.send({ type: 'create', missionId: 'arena-canyon', config: { mode: 'freeflight', durationSeconds: 0, lives: 5 }, aircraft: 'c47', startMode: 'runway' });
   const free = await invalid.next('session');
   assert.equal(free.mode, 'freeflight'); assert.equal(free.config.durationSeconds, 0); assert.equal(free.config.lives, 5);
+});
+
+test('four connected browsers launch 2v2 with a host-selected wingmate and immutable teams', async t => {
+  const { connect } = await setup(t), host = await connect();
+  host.send({ type: 'create', name: 'Lead', missionId: 'arena-canyon', config: { mode: 'team-dogfight', durationSeconds: 180 } });
+  const { code, id: hostId } = await host.next('session');
+  host.send({ type: 'start' });
+  assert.equal((await host.next('error')).code, 'need_four_pilots');
+  const guests = [];
+  for (const name of ['One', 'Two', 'Three']) {
+    const peer = await connect();
+    peer.send({ type: 'join', code, name });
+    const { id, token } = await peer.next('session');
+    guests.push({ peer, id, token });
+  }
+  const full = await host.next('roster', m => m.players.length === 4);
+  assert.deepEqual(full.players.map(p => p.team), ['blue', 'red', 'blue', 'red']);
+  const [one, two, three] = guests;
+  one.peer.send({ type: 'team-partner', playerId: two.id });
+  assert.equal((await one.peer.next('error')).code, 'host_only');
+  for (const { peer } of guests) peer.send({ type: 'ready', ready: true });
+  await host.next('roster', m => m.players.length === 4 && m.players.every(p => p.ready));
+  host.send({ type: 'team-partner', playerId: three.id });
+  const chosen = await host.next('roster', m => m.players.find(p => p.id === three.id)?.team === 'blue');
+  assert.ok(chosen.players.filter(p => p.id !== hostId).every(p => !p.ready));
+  for (const { peer } of guests) peer.send({ type: 'ready', ready: true });
+  await host.next('roster', m => m.players.length === 4 && m.players.every(p => p.ready));
+  host.send({ type: 'start' });
+  const start = await host.next('start');
+  for (const { peer } of guests) assert.deepEqual(await peer.next('start'), start);
+  assert.equal(start.config.durationSeconds, 180);
+  assert.deepEqual(start.players.map(p => p.team), ['blue', 'red', 'red', 'blue']);
+  host.send({ type: 'team-partner', playerId: one.id });
+  assert.equal((await host.next('error')).code, 'lobby_only');
+  host.send({ type: 'world', runId: start.runId, seq: 0,
+    snapshot: snapshot(start.players.map(p => participant(p, { team: p.team === 'red' ? 'blue' : 'red' }))) });
+  const world = await three.peer.next('world');
+  assert.deepEqual(world.snapshot.participants.map(p => p.team), ['blue', 'red', 'red', 'blue']);
+  three.peer.send({ type: 'pose', runId: start.runId, seq: 0, player: { ...pose(), team: 'red' } });
+  assert.equal((await host.next('pose', m => m.playerId === three.id)).player.team, 'blue');
+  three.peer.socket.terminate();
+  await host.next('roster', m => m.players.some(p => p.id === three.id && !p.connected));
+  const revived = await connect();
+  revived.send({ type: 'resume', code, playerId: three.id, token: three.token });
+  assert.equal((await revived.next('start')).players.find(p => p.id === three.id).team, 'blue');
+});
+
+test('four-player co-op requires four ready pilots and starts the selected scenario', async t => {
+  const { connect } = await setup(t), host = await connect();
+  host.send({ type: 'create', missionId: 'coop-canyon', config: { mode: 'coop', mapId: 'canyon', lives: 5 } });
+  const { code } = await host.next('session');
+  const guests = [];
+  for (const name of ['One', 'Two', 'Three', 'Five']) {
+    const peer = await connect();
+    peer.send({ type: 'join', code, name });
+    if (name === 'Five') assert.equal((await peer.next('error')).code, 'room_full');
+    else { await peer.next('session'); guests.push(peer); }
+  }
+  await host.next('roster', m => m.players.length === 4);
+  host.send({ type: 'start' });
+  assert.equal((await host.next('error')).code, 'not_ready');
+  host.send({ type: 'configure', missionId: 'coop-islands', config: { mode: 'coop', mapId: 'islands', lives: 1 } });
+  await host.next('roster', m => m.missionId === 'coop-islands');
+  for (const peer of guests) peer.send({ type: 'ready', ready: true });
+  await host.next('roster', m => m.players.every(p => p.ready));
+  host.send({ type: 'start' });
+  const start = await host.next('start');
+  assert.equal(start.mode, 'coop'); assert.equal(start.missionId, 'coop-islands');
+  assert.deepEqual(start.config, { mode: 'coop', mapId: 'islands', durationSeconds: 0, lives: 1 });
+  assert.equal(start.players.length, 4);
+  assert.ok(start.players.every(p => !p.team));
 });
 
 test('arena identities, loadouts, run sequences and player lives survive death and authenticated recovery', async t => {

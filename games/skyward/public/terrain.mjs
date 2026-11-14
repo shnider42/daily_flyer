@@ -149,6 +149,7 @@ export function terrainHeight(x, z, mission = {}) {
   if (biomeOf(mission) !== 'canyon') return terrainGridHeight(x, z, mission);
   const size = TERRAIN_CELL_SIZE, x0 = Math.floor(x / size) * size, z0 = Math.floor(z / size) * size;
   const fx = (x - x0) / size, fz = (z - z0) / size;
+  if (fx === 0 && fz === 0) return terrainGridHeight(x0, z0, mission);
   const h10 = terrainGridHeight(x0 + size, z0, mission), h01 = terrainGridHeight(x0, z0 + size, mission);
   if (fx + fz <= 1) {
     const h00 = terrainGridHeight(x0, z0, mission);

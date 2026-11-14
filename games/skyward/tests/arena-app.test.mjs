@@ -5,9 +5,14 @@ import {FlightSimulation} from '../public/sim.mjs';
 import {createArenaMission} from '../public/arena.mjs';
 import {scoreboardMarkup,chooseSpectator,formatKD,formatRoundTime} from '../public/multiplayer-ui.mjs';
 
-function begin(app,{mode='dogfight',lives=3,host=true,missionId='arena-canyon'}={}){
+function begin(app,{mode='dogfight',lives=3,host=true,missionId='arena-canyon',mapId='canyon',durationSeconds=300,four=false}={}){
   const team=app.team,players=[{id:'lead',name:'Flight lead',aircraft:'f16',startMode:'airborne',connected:true,ready:true},{id:'wing',name:'Canvas pilot',aircraft:'camel',startMode:'airborne',connected:true,ready:true}];
-  const config={mode,mapId:'canyon',durationSeconds:300,lives};
+  if(four) players.push(...[
+    {id:'three',name:'Third pilot',aircraft:'f15'},
+    {id:'four',name:'Fourth pilot',aircraft:'a10'},
+  ].map(p=>({...p,startMode:'airborne',connected:true,ready:true})));
+  if(mode==='team-dogfight')for(const [index,p]of players.entries())p.team=index%2?'red':'blue';
+  const config={mode,mapId,durationSeconds,lives};
   Object.assign(team,{code:'ABC234',id:host?'lead':'wing',hostId:'lead',isHost:host,connected:true,mode,config,role:'pilot',roomState:'flying',missionId,roster:players});
   const start={missionId,mode,config,players,hostId:'lead',runId:'run-one',seed:1,role:'pilot'};
   team.callbacks.onStart(start);
@@ -68,6 +73,45 @@ test('round expiry shows final K/D and returns the same squadron to its configur
   app.team.roomState='lobby';app.team.callbacks.onLobby({});
   assert.equal(app.screen,'squadron');assert.equal(app.sim,null);assert.equal(app.team.code,'ABC234');
   assert.equal(document.getElementById('room-aircraft').disabled,false);
+});
+
+test('2v2 app launches the selected map and renders the team score and winning flight',async t=>{
+  const {app,document,frame}=await appFixture(t);
+  begin(app,{mode:'team-dogfight',durationSeconds:180,missionId:'arena-islands',mapId:'islands',four:true});
+  assert.equal(app.sim.mission.id,'arena-islands');
+  assert.equal(app.sim.participants.size,4);
+  assert.equal(app.sim.localParticipant.team,'blue');
+  assert.equal(app.sim.round.remaining,180);
+  app.sim.participants.get('three').kills=2;
+  app.sim.participants.get('wing').kills=1;
+  frame(120);
+  assert.match(document.getElementById('round-personal-score').textContent,/Blue Flight 2 · Red Flight 1/);
+  document.getElementById('scoreboard-button').onclick();
+  frame(120);
+  assert.match(document.getElementById('scoreboard-table').innerHTML,/class="scoreboard-teams"/);
+  frame(180000);
+  assert.equal(app.screen,'debrief');
+  assert.equal(app.sim.round.winner,'blue');
+  assert.equal(document.getElementById('debrief-title').textContent,'Blue Flight wins.');
+  assert.match(document.getElementById('debrief-scoreboard').innerHTML,/Blue Flight <strong>2<\/strong>/);
+});
+
+test('the four-player co-op start callback constructs the same mission and progress for each seat',async t=>{
+  const {app,document,frame}=await appFixture(t);
+  const start=begin(app,{mode:'coop',missionId:'coop-islands',mapId:'islands',lives:5,host:false,four:true});
+  const leader=new FlightSimulation(createArenaMission(start.config,'f16'),{playerId:'lead'}).configureMultiplayer({...start,playerId:'lead'});
+  assert.equal(app.sim.mission.id,'coop-islands');
+  assert.equal(app.sim.mission.title,'Island Intercept');
+  assert.equal(app.sim.participants.size,4);
+  assert.equal(app.sim.player.aircraft,'camel');
+  assert.equal(app.sim.localParticipant.livesRemaining,5);
+  assert.equal(app.sim.round.duration,null);
+  leader._damage(leader.enemies.find(e=>e.type==='bomber'),1000,'gun','three');
+  leader._updateObjective(1);
+  app.team.callbacks.onWorld(leader.getSnapshot());frame(120);
+  assert.match(app.sim.objective,/1\/3 bombers/);
+  assert.equal(app.sim.participants.get('three').kills,1);
+  assert.equal(document.getElementById('round-clock').textContent,'5');
 });
 
 test('scoreboard and spectator selection handle zero deaths, disconnected aircraft and escaped callsigns',()=>{
