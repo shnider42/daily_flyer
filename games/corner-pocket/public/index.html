@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#171b18">
+  <meta name="description" content="A good table and a little friendly competition. Play 3D eight-ball with a friend online or on the same screen.">
+  <title>Corner Pocket · Two-player pool</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="at-menu">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Corner Pocket home"><span class="eight-logo" aria-hidden="true">8</span><span>CORNER POCKET<small>BILLIARDS CLUB</small></span></a>
+    <nav class="top-actions" aria-label="Game options">
+      <button id="inviteButton" class="quiet" hidden>Invite friend</button>
+      <button id="helpButton" class="quiet">How to play</button>
+      <button id="soundButton" class="quiet" aria-pressed="false">Sound off</button>
+      <button id="fullscreenButton" class="icon-button" title="Full screen" aria-label="Full screen">⛶</button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="scoreboard" class="scoreboard" aria-label="Players" hidden>
+      <div class="player-card" id="player0"><div class="player-line"><span class="turn-dot"></span><strong class="player-name">Player 1</strong><span class="player-group">Open table</span></div><div class="ball-tray" aria-label="Balls remaining"></div></div>
+      <div class="match-label"><span id="modeLabel">8-BALL</span><strong id="rackScore">0 : 0</strong><small>RACKS</small></div>
+      <div class="player-card" id="player1"><div class="player-line"><span class="turn-dot"></span><strong class="player-name">Player 2</strong><span class="player-group">Open table</span></div><div class="ball-tray" aria-label="Balls remaining"></div></div>
+    </section>
+    <section id="statusBar" class="status-bar" aria-live="polite" hidden><strong id="turnLabel">Your break.</strong><span id="statusMessage">Aim at the rack and let it rip.</span></section>
+
+    <div id="tableArea" class="table-area">
+      <canvas id="table" aria-label="Pool table. Click or touch the cloth to aim. Use left and right arrow keys for fine aim, up and down for power, and Space to shoot." tabindex="0"></canvas>
+      <div id="loading" class="loading"><span class="eight-logo">8</span><p>Setting the table…</p></div>
+      <div class="table-corner" id="tableCaption"><span>TABLE № 01</span><span id="rendererLabel">3D EIGHT-BALL</span></div>
+      <div id="connectionBanner" class="connection-banner" role="status" hidden><span id="connectionText"></span><button id="claimButton" class="quiet" hidden>Claim the rack</button></div>
+      <div id="tableHint" class="table-hint" hidden>Click the cloth to aim</div>
+
+      <section id="menu" class="menu-panel" aria-label="Start a game">
+        <p class="eyebrow">A TABLE FOR TWO</p>
+        <h1>One more<br>rack?</h1>
+        <p class="intro">A good table. A familiar game.<br>A little friendly competition.</p>
+        <label class="field-label" for="playerName">Your name</label>
+        <input id="playerName" maxlength="24" placeholder="Player 1" autocomplete="nickname" value="Player 1">
+        <button id="hostButton" class="primary menu-primary"><span>Play a friend online</span><span aria-hidden="true">↗</span></button>
+        <div class="join-row"><label class="sr-only" for="roomCode">Six-character room code</label><input id="roomCode" maxlength="6" placeholder="ROOM CODE" autocapitalize="characters" autocomplete="off" spellcheck="false"><button id="joinButton" class="secondary">Join</button></div>
+        <div class="menu-divider"><span>AT THE SAME TABLE</span></div>
+        <button id="localButton" class="secondary wide">Two players · one screen</button>
+        <button id="practiceButton" class="text-button wide">Have a practice rack</button>
+        <button id="resumeButton" class="secondary wide" hidden>Return to your online table</button>
+        <p class="menu-note">8-ball · No account needed</p>
+        <p id="menuError" class="form-error" role="alert" hidden></p>
+      </section>
+
+      <section id="lobby" class="lobby-panel" aria-label="Online table" hidden>
+        <p class="eyebrow">YOUR TABLE IS OPEN</p>
+        <h2>Pull up a chair.</h2>
+        <p>Send your friend this room code or copy the invite link.</p>
+        <div id="lobbyCode" class="room-code">—</div>
+        <button id="copyInviteButton" class="primary wide">Copy invite link</button>
+        <input id="inviteLink" class="invite-link" readonly aria-label="Room invite link" hidden>
+        <div id="lobbySeats" class="lobby-seats"></div>
+        <button id="startButton" class="primary wide" disabled>Waiting for your friend…</button>
+        <button id="leaveLobbyButton" class="text-button wide">Leave table</button>
+        <p class="menu-note">Your friend needs the code, not an account.</p>
+      </section>
+
+      <section id="result" class="result-panel" role="status" aria-label="Rack result" hidden>
+        <span class="eight-logo result-eight" aria-hidden="true">8</span>
+        <p class="eyebrow">RACK OVER</p><h2 id="winnerTitle">Nice shooting.</h2>
+        <p id="resultReason"></p><div id="resultScore" class="result-score"></div>
+        <button id="rematchButton" class="primary wide">Rack ’em again</button>
+        <button id="resultMenuButton" class="text-button wide">Back to the club</button>
+      </section>
+    </div>
+
+    <section id="controls" class="controls" aria-label="Shot controls" hidden>
+      <div id="pocketCall" class="pocket-call" hidden><strong>Call the 8-ball pocket</strong><span>Tap a pocket on the table or choose:</span><div id="pocketButtons" class="pocket-buttons"></div></div>
+      <div class="shot-row">
+        <div class="fine-aim"><span class="control-label">FINE AIM</span><div><button id="aimLeft" class="secondary aim-button" aria-label="Fine aim counterclockwise" title="Left arrow · hold Shift for finer aim">↶</button><button id="aimRight" class="secondary aim-button" aria-label="Fine aim clockwise" title="Right arrow · hold Shift for finer aim">↷</button></div></div>
+        <label class="power-control" for="power"><span class="control-label">SHOT POWER <output id="powerValue" for="power">75%</output></span><input id="power" type="range" min="5" max="100" value="75" step="1"><span class="power-scale"><span>SOFT</span><span>FIRM</span></span></label>
+        <button id="shootButton" class="shoot-button"><span id="shootLabel">Shoot</span><kbd>SPACE</kbd></button>
+      </div>
+      <div class="tools-row"><div><button id="cameraButton" class="quiet">Overhead view</button><button id="guideButton" class="quiet" aria-pressed="true">Guide on</button><button id="spinButton" class="quiet" aria-expanded="false">Cue spin</button><button id="placeButton" class="quiet" hidden>Move cue ball</button></div><button id="gameMenuButton" class="quiet">Menu</button></div>
+      <div id="spinPanel" class="spin-panel" hidden><label for="spin">Cue-ball spin <output id="spinValue" for="spin">Center</output></label><div><span>Draw</span><input id="spin" type="range" min="-100" max="100" step="5" value="0"><span>Follow</span><button id="resetSpinButton" class="quiet">Center</button></div><p>Draw brings the cue ball back after contact. Follow carries it forward.</p></div>
+    </section>
+  </main>
+
+  <dialog id="helpDialog" class="dialog">
+    <div class="dialog-heading"><p class="eyebrow">WELCOME TO THE TABLE</p><button class="icon-button" data-close="helpDialog" aria-label="Close help">×</button></div>
+    <h2>Aim. Set power. Shoot.</h2>
+    <p>Click or touch the cloth to point your cue. The guide shows the first contact and a short projected path. Set your power, then press <strong>Shoot</strong>.</p>
+    <div class="help-steps"><div><strong>1</strong><span>Pot your group:<br><b>solids 1–7</b> or <b>stripes 9–15</b>.</span></div><div><strong>2</strong><span>Clear your balls.<br>Good pots keep your turn.</span></div><div><strong>3</strong><span>Call a pocket, then<br>sink the <b>8-ball</b> to win.</span></div></div>
+    <h3>The house rules</h3>
+    <ul><li>The table stays open after the break. Your first legal pot after that assigns your group.</li><li>Hit your group first, then pocket a ball or reach a cushion. On an open table, hit a solid or stripe first.</li><li>A scratch, wrong first ball, or shot without a cushion or pocket gives your opponent <b>ball in hand</b>. Tap an empty spot to place the cue ball, then aim.</li><li>On the break, pocket a ball or send four object balls to cushions. An 8-ball on the break is re-spotted.</li><li>Pocketing the 8-ball early, in the wrong called pocket, or with a foul loses the rack. Clear your group before taking your 8-ball shot.</li></ul>
+    <h3>Make yourself comfortable</h3>
+    <p><kbd>←</kbd> <kbd>→</kbd> fine aim · <kbd>Shift</kbd> for tiny adjustments · <kbd>↑</kbd> <kbd>↓</kbd> power · <kbd>Space</kbd> shoot · <kbd>C</kbd> camera · <kbd>G</kbd> guide.</p>
+    <p>Switch to <b>Overhead view</b> for a straight look at the angles. Cue spin adds draw or follow. The guide is an aid, not a guarantee; speed, cut angle, and spin affect the result.</p>
+    <p class="small-note">Online racks continue while a menu is open. If a connection drops, the balls finish moving and the next shot waits for both players. Rooms are temporary and end if the server restarts.</p>
+    <button class="primary wide" data-close="helpDialog">Got it. Let’s play.</button>
+  </dialog>
+
+  <dialog id="gameMenuDialog" class="dialog small-dialog">
+    <div class="dialog-heading"><p class="eyebrow">CORNER POCKET</p><button class="icon-button" data-close="gameMenuDialog" aria-label="Close menu">×</button></div><h2>Take your time.</h2>
+    <button class="primary wide" data-close="gameMenuDialog">Return to the table</button><button id="menuHelpButton" class="secondary wide">How to play</button><button id="rerackButton" class="secondary wide" hidden>Start a fresh practice rack</button><button id="leaveGameButton" class="text-button wide">Leave this game</button><p id="leaveNote" class="small-note"></p>
+  </dialog>
+  <dialog id="localDialog" class="dialog small-dialog"><div class="dialog-heading"><p class="eyebrow">SAME SCREEN · TWO PLAYERS</p><button class="icon-button" data-close="localDialog" aria-label="Close player names">×</button></div><h2>Who’s at the table?</h2><form id="localForm"><label class="field-label" for="localName0">Player 1</label><input id="localName0" maxlength="24" value="Player 1" autocomplete="off"><label class="field-label" for="localName1">Player 2</label><input id="localName1" maxlength="24" value="Player 2" autocomplete="off"><button class="primary wide" type="submit">Rack ’em up</button></form></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><div class="no-script">Corner Pocket needs JavaScript to render the table and play a rack.</div></noscript>
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>
