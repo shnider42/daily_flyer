@@ -27,7 +27,11 @@ function releasePass(id){
 }
 function updatePass(time){
   if(!game.canPass){clearPass();return}
-  if(passHold&&time-passHold.time>=bulletHold)releasePass(passHold.id);
+  if(passHold&&time-passHold.time>=bulletHold){
+    const {index}=passHold;
+    passHold=null;
+    queuePass(index,true);
+  }
   if(queuedPass&&game.pass(queuedPass.index,queuedPass.bullet))queuedPass=null;
 }
 function bindPass(button,index){
