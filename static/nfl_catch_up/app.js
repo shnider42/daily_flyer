@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  if(window.HuddleSports?.redirecting)return;
   const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp, L=HuddleLocale;
   const isAT=()=>state.locale==='de-AT';
   const isIndic=()=>['hi-IN','gu-IN'].includes(state.locale);

@@ -191,3 +191,53 @@ Deploy the companion as one free Python web service, branch `feat/nfl-catch-up`,
 Limits: two concurrent requests, six requests per anonymous tab identifier per ten minutes, and an 80-request process-wide rolling-day allowance (override with `HUDDLE_DAILY_LIMIT`). Tab identifiers are not authentication and can be reset by a visitor; the separate global allowance remains in force. Limits are in memory and reset on restart; use a provider project spending limit before wider public promotion. One worker is intentional. CORS permits only the two HUDDLE deployment origins; CORS is not authentication. POST bodies are bounded; follow-up roles are validated; credentials are server-only; no question content is logged or durably stored by this application. Provider retention policies remain separate. The browser thread clears on reload. Reference results can contain spoilers and the interface says so.
 
 Validation: Node season/data tests; Python API tests for input limits, CORS, provider failure, missing credentials, citations, follow-ups, spoiler instructions and quotas; export consistency/escaping tests. Live provider generation remains a separate activation check.
+
+
+## Soccer / Brazilian Portuguese (November 14, 2026)
+
+HUDDLE now has a shared **Sport / Esporte** selector. Selecting **Soccer / Futebol**
+opens `/soccer/?lang=pt-BR&team=MCI`, in native Brazilian Portuguese with Manchester
+City selected. An explicit new switch to soccer starts with City; manual choices
+persist through reloads. Soccer preferences use `dfe-huddle-soccer-v1`, independent
+of `dfe-nfl-huddle-v1`; the last sport uses `dfe-huddle-sport-v1`. Returning to NFL
+restores its language/team state. Existing NFL `?lang=de-AT`, Hindi, Gujarati and
+`#catchup=` shared links override the remembered sport. `?lang=pt-BR` also opens soccer.
+
+The soccer edition includes all ten completed Manchester City Premier League
+matches, four selected cup/Champions League results, the next three verified
+fixtures and the full 20-club league table. Editorial content was reviewed November
+14; the official table source was updated November 10. Other clubs have table rows
+and only their matches against City present in this snapshot. The UI explicitly
+labels this partial coverage and does not derive other clubs' league records from
+it. Future fixtures can change. This is a dated edition, not an automatic live feed.
+
+All UI, five editorial stories and six learning guides are in Brazilian Portuguese.
+Confirmed kickoffs use `America/Sao_Paulo` and explicitly say Brasília. Past games
+with unverified kickoff times retain date-only values. League points and form never
+include cup games; penalty shootout scores remain separate from the match score.
+
+The five tabs are Resumo, Jogos, Clubes, Tabela and Entenda. Familiarity and date
+controls are independent. The games explorer shows every covered date, as its label
+states. Outcome protection hides scores, standings, form and result-dependent story
+copy; individual reveals are session-only. Share fragments use `#soccer=` and always
+open with outcomes hidden. Sources can still contain spoilers.
+
+Source data: `daily_flyer_v2/data/huddle_soccer.json`. UI and core:
+`static/huddle_soccer/`. Shared navigation: `static/nfl_catch_up/sports.js` and
+`sports.css`. The DFE product `huddle_soccer` also works at
+`/v2?product=huddle_soccer`. `python scripts/build_nfl_catch_up.py` now builds both
+`nfl_catchup/index.html` and `nfl_catchup/soccer/index.html` with embedded assets.
+The existing Render static publish directory and branch remain valid.
+
+The existing research service accepts `sport: soccer` and `locale: pt-BR`, with
+IFAB/club/competition sourcing and Portuguese Wikipedia reference fallback. Omitting
+sport preserves NFL behavior. `/healthz` advertises supported sports and locales;
+the soccer frontend checks this before using the service. The existing credentials,
+quotas, CORS and generated-answer activation requirements still apply.
+
+Validate with `node --test tests/nfl_catch_up.test.cjs` (now includes soccer data,
+preferences, routing and scoring tests), plus
+`python -m pytest tests/test_huddle_soccer.py tests/test_nfl_catch_up.py tests/test_nfl_research.py`.
+Refresh the JSON from the listed primary sources, check arithmetic and dates, then
+rebuild both pages before committing. There is no new recurring task or external
+service required for this addition.

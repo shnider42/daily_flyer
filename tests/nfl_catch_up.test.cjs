@@ -267,3 +267,6 @@ test('every native generated game summary and team research draft is translated 
     assert.match(draft,script);assert.ok(draft.includes(name));assert.ok(draft.includes(date));
   }
 });
+
+// Render's existing build entry point also validates the shared soccer addition.
+require('./huddle_soccer.test.cjs');

@@ -7,3 +7,7 @@ path=ROOT/'nfl_catchup/index.html'
 path.parent.mkdir(exist_ok=True)
 path.write_text(build_flyer_html('nfl_catch_up'),encoding='utf-8')
 print(f'Built {path.relative_to(ROOT)} ({path.stat().st_size:,} bytes)')
+soccer=ROOT/'nfl_catchup/soccer/index.html'
+soccer.parent.mkdir(exist_ok=True)
+soccer.write_text(build_flyer_html('huddle_soccer'),encoding='utf-8')
+print(f'Built {soccer.relative_to(ROOT)} ({soccer.stat().st_size:,} bytes)')

@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-sport="nfl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090d16"><meta name="color-scheme" content="dark light"><meta name="description" content="The entire 2026 NFL regular season. Every game, every team, and the context you missed. Your football catch up, at your depth.">
 <title>HUDDLE / The whole season, in focus.</title>
+<script>@@SPORT@@</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d16'/%3E%3Cpath d='M16 14h9v14h14V14h9v36h-9V36H25v14h-9z' fill='%23cbfa73'/%3E%3C/svg%3E">
 <style>@@CSS@@</style>
 </head>
@@ -21,7 +22,7 @@
 <div class="sidebar-bottom"><div class="edition-dot"></div><p>AN ENTIRE SEASON.<br><strong>YOUR WAY INTO IT.</strong></p><a href="#edition-notes">Sources & coverage ↗</a></div>
 </aside>
 <div class="app-shell">
-<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><label class="language-picker"><span class="sr-only">Language</span><select id="language-select" aria-label="Language selection"><option value="en-US" lang="en" data-original-language="language-name">English</option><option value="de-AT" lang="de-AT" data-original-language="language-name">Deutsch (Österreich)</option><option value="hi-IN" lang="hi" data-original-language="language-name">हिन्दी (Hindi)</option><option value="gu-IN" lang="gu" data-original-language="language-name">ગુજરાતી (Gujarati)</option></select></label><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
+<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><label class="sport-picker" data-original-language="sport-navigation"><span data-sport-label>Sport</span><select id="sport-select" aria-label="Sport"><option value="nfl">NFL</option><option value="soccer">Soccer</option></select></label><label class="language-picker"><span class="sr-only">Language</span><select id="language-select" aria-label="Language selection"><option value="en-US" lang="en" data-original-language="language-name">English</option><option value="de-AT" lang="de-AT" data-original-language="language-name">Deutsch (Österreich)</option><option value="hi-IN" lang="hi" data-original-language="language-name">हिन्दी (Hindi)</option><option value="gu-IN" lang="gu" data-original-language="language-name">ગુજરાતી (Gujarati)</option></select></label><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
 <div id="score-strip" class="score-strip" aria-label="Week 8 score strip"></div>
 <main id="main">
 <p id="locale-note" class="locale-note" hidden></p>

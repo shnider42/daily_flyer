@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark" data-sport="soccer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d16">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Fique por dentro do futebol com o HUDDLE. Manchester City, Premier League, resultados, próximos jogos e contexto em português do Brasil.">
+<script>@@SPORT@@</script>
+<title>HUDDLE / Futebol em português</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d16'/%3E%3Cpath d='M16 14h9v14h14V14h9v36h-9V36H25v14h-9z' fill='%239ac8e5'/%3E%3C/svg%3E">
+<style>@@CSS@@</style>
+</head>
+<body class="soccer-app">
+<a class="skip" href="#view">Pular para o conteúdo</a>
+<aside class="sidebar">
+  <a class="brand" href="#" data-home aria-label="Início do HUDDLE"><span class="brand-icon">H</span><span>HUDDLE<span class="brand-sub">DAILY FLYER / FUTEBOL</span></span></a>
+  <div class="season-mark"><span class="tiny">TEMPORADA</span><strong>26<span>/27</span></strong><div><i></i> PREMIER LEAGUE</div></div>
+  <nav class="main-nav" aria-label="Navegação principal">
+    <button data-tab="brief" aria-label="Resumo"><span class="nav-icon" aria-hidden="true">◈</span><span>Resumo</span></button>
+    <button data-tab="games" aria-label="Jogos"><span class="nav-icon" aria-hidden="true">▦</span><span>Jogos</span></button>
+    <button data-tab="teams" aria-label="Clubes"><span class="nav-icon" aria-hidden="true">⚑</span><span>Clubes</span></button>
+    <button data-tab="league" aria-label="Tabela"><span class="nav-icon" aria-hidden="true">▥</span><span>Tabela</span></button>
+    <button data-tab="learn" aria-label="Entenda o futebol"><span class="nav-icon" aria-hidden="true">◎</span><span>Entenda</span></button>
+  </nav>
+  <div class="sidebar-bottom"><div class="edition-dot"></div><p>O JOGO CONTINUA.<br><strong>VOCÊ FICA POR DENTRO.</strong></p><a href="#edition-notes">Fontes e cobertura ↗</a></div>
+</aside>
+<div class="app-shell">
+  <header class="topbar">
+    <a class="mobile-brand" href="#" data-home aria-label="Início do HUDDLE">H<span>HUDDLE</span></a>
+    <div class="breadcrumb">FUTEBOL <span>/</span> <strong id="breadcrumb-view">RESUMO</strong></div>
+    <div class="top-actions">
+      <label class="sport-picker"><span data-sport-label>Esporte</span><select id="sport-select" aria-label="Esporte"><option value="nfl">NFL</option><option value="soccer" selected>Futebol</option></select></label>
+      <label class="language-picker"><span class="sr-only">Idioma</span><select id="language-select" aria-label="Idioma"><option value="pt-BR" lang="pt-BR">Português (Brasil)</option></select></label>
+      <button id="theme-toggle" class="icon-button" aria-label="Ativar modo claro" title="Ativar modo claro">☾</button>
+      <button id="share" class="share-button">Compartilhar <span aria-hidden="true">↗</span></button>
+    </div>
+  </header>
+  <div id="score-strip" class="score-strip" aria-label="Jogos recentes cobertos"></div>
+  <main id="main">
+    <p id="locale-note" class="locale-note">Português do Brasil <span>·</span> Horários de Brasília (UTC−3)</p>
+    <section class="control-deck" aria-label="Personalize seu resumo">
+      <div class="deck-filter club-filter"><label for="team">SEU CLUBE</label><select id="team"><option value="ALL">Toda a liga</option></select></div>
+      <div class="deck-filter"><label for="period">DESDE QUANDO?</label><select id="period"><option value="7">Última semana</option><option value="14">Últimas 2 semanas</option><option value="30">Último mês</option><option value="season">Início da temporada</option><option value="custom">Escolher data</option></select></div>
+      <div class="deck-filter" id="custom-wrap" hidden><label for="since">DATA INICIAL</label><input id="since" type="date" min="2026-01-01"></div>
+      <div class="awareness"><label>SEU CONTEXTO</label><div class="depths" role="group" aria-label="Quanto você conhece de futebol?"><button data-depth="little" title="Explicar os termos e as regras">Começando</button><button data-depth="basics" title="Ligar os resultados ao contexto">O básico</button><button data-depth="well" title="Mostrar os números e mais contexto">Acompanho</button></div></div>
+      <label class="spoiler-control"><input type="checkbox" id="spoilers"><span class="switch"></span><span>Ocultar resultados</span></label>
+    </section>
+    <div id="freshness" class="freshness" hidden></div>
+    <div class="context-line"><span id="level-note"></span><span id="coverage-line"></span></div>
+    <section id="view" tabindex="-1"><p class="loading-note">Preparando seu resumo de futebol…</p></section>
+    <section id="edition-notes" class="edition-notes">
+      <div><span class="eyebrow">FONTES E COBERTURA</span><h2>O contexto tem origem.</h2><span id="edition-tag" class="edition-tag"></span></div>
+      <div><p id="coverage-note"></p><p>A tabela da liga e o recorte de partidas têm datas de verificação próprias. Um jogo ausente deste recorte não significa que o clube não jogou. Datas e horários futuros podem mudar; confirme na fonte oficial.</p><p>Suas preferências ficam neste navegador. Este é um projeto independente do Daily Flyer, sem vínculo com clubes ou ligas. Os sites das fontes podem revelar resultados. Escudos, quando disponíveis, são carregados da fonte de imagens indicada.</p><div id="source-links" class="source-links"></div><button id="reset" class="text-button">Redefinir preferências do futebol</button></div>
+    </section>
+  </main>
+  <footer><span>HUDDLE <i>/</i> DAILY FLYER</span><span>Futebol, com contexto.</span></footer>
+</div>
+<dialog id="game-dialog" aria-labelledby="game-dialog-title"><button class="dialog-close" data-close-game aria-label="Fechar detalhes do jogo">×</button><div id="game-detail"></div></dialog>
+<dialog id="share-dialog" aria-labelledby="share-title"><h2 id="share-title">Compartilhe o resumo.</h2><p>O link abre em português e com os resultados ocultos.</p><input id="share-url" readonly aria-label="Link para compartilhar"><div class="soccer-share-actions"><button id="copy-share" class="primary-button">Copiar link</button><button id="close-share" class="secondary-button">Fechar</button></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript><div class="nojs">Ative o JavaScript para usar este resumo. <a href="https://www.mancity.com/pt" target="_blank" rel="noopener noreferrer">Site oficial do Manchester City em português ↗</a></div></noscript>
+<script type="application/json" id="soccer-data">@@DATA@@</script><script>@@CORE@@</script><script>@@JS@@</script>
+</body>
+</html>

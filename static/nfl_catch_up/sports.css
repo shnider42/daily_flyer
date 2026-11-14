@@ -1,0 +1,10 @@
+/* Sport and language stay visible and usable on compact screens. */
+.sport-picker{display:flex;align-items:center;gap:7px;min-width:0}
+.sport-picker>span{color:var(--muted);font-size:10px}
+.sport-picker select{font-size:12px;min-height:44px;background:var(--panel2);max-width:130px}
+.topbar{min-height:76px;height:auto;padding-top:12px;padding-bottom:12px;gap:12px}
+.top-actions{flex-wrap:wrap;justify-content:flex-end;gap:10px}
+@media(max-width:1250px){.topbar .breadcrumb{display:none}.topbar .top-actions{margin-left:auto}.sport-picker>span{font-size:9px}}
+@media(max-width:760px){.topbar{align-items:center;flex-wrap:wrap;gap:8px}.top-actions{gap:7px}.sport-picker select{font-size:11px;padding:8px 22px 8px 8px}.sport-picker>span{display:none}.language-picker select{max-width:160px}}
+@media(max-width:480px){.topbar{padding:10px 16px}.topbar .top-actions{display:grid;grid-template-columns:minmax(75px,1fr) minmax(125px,1.6fr) 34px auto;gap:6px;width:100%;margin-left:0}.topbar .mobile-brand{display:none}.sport-picker select,.language-picker select{width:100%;max-width:100%;font-size:11px}.topbar .share-button{font-size:10px;padding-left:7px;padding-right:7px}.topbar .icon-button{min-width:34px;width:34px}.topbar .date-stamp{display:none}}
+@media(max-width:350px){.topbar{padding:8px 10px}.topbar .top-actions{grid-template-columns:minmax(67px,1fr) minmax(105px,1.4fr) 30px auto;gap:4px}.topbar .icon-button{min-width:30px;width:30px}.language-picker select,.sport-picker select{font-size:10px;padding-left:6px}.topbar .share-button{font-size:9px}}

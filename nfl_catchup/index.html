@@ -1,8 +1,70 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-sport="nfl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090d16"><meta name="color-scheme" content="dark light"><meta name="description" content="The entire 2026 NFL regular season. Every game, every team, and the context you missed. Your football catch up, at your depth.">
 <title>HUDDLE / The whole season, in focus.</title>
+<script>/* Shared HUDDLE sport navigation; sport-specific preferences remain independent. */
+(function (root) {
+  'use strict';
+  const KEY = 'dfe-huddle-sport-v1';
+  function destination(href, current, selected, fresh = true) {
+    const url = new URL(href);
+    const dynamic = /\/v2\/?$/.test(url.pathname);
+    const target = dynamic ? new URL(url.pathname, url.origin)
+      : new URL(selected === 'soccer' ? (current === 'soccer' ? './' : './soccer/') : (current === 'soccer' ? '../' : './'), url);
+    if (dynamic) target.searchParams.set('product', selected === 'soccer' ? 'huddle_soccer' : 'nfl_catch_up');
+    target.searchParams.set('sport', selected);
+    if (selected === 'soccer') {
+      target.searchParams.set('lang', 'pt-BR');
+      if (fresh) target.searchParams.set('team', 'MCI');
+    }
+    return target;
+  }
+  function route(href, current, saved) {
+    const url = new URL(href), requested = url.searchParams.get('sport');
+    const explicitNFL = url.hash.startsWith('#catchup=') || (url.searchParams.has('lang') && url.searchParams.get('lang') !== 'pt-BR');
+    if (current !== 'soccer' && (requested === 'soccer' || url.hash.startsWith('#soccer=') || requested !== 'nfl' && url.searchParams.get('lang') === 'pt-BR')) {
+      const target = destination(href, current, 'soccer');
+      if (url.searchParams.has('team')) target.searchParams.set('team', url.searchParams.get('team'));
+      if (url.hash.startsWith('#soccer=')) target.hash = url.hash;
+      return target.href;
+    }
+    if (requested === 'nfl' && current !== 'nfl') return destination(href, current, 'nfl').href;
+    if (current === 'nfl' && !requested && !explicitNFL && saved === 'soccer') return destination(href, current, 'soccer', false).href;
+    return null;
+  }
+  if (typeof module !== 'undefined') {module.exports = {destination, route}; return;}
+  const current = document.documentElement.dataset.sport || 'nfl';
+  let saved; try {saved = localStorage.getItem(KEY);} catch {}
+  const target = route(location.href, current, saved);
+  root.HuddleSports = {redirecting: Boolean(target)};
+  if (target) {location.replace(target); return;}
+  try {localStorage.setItem(KEY, current);} catch {}
+  function bind() {
+    const select = document.getElementById('sport-select');
+    if (!select) return;
+    select.value = current;
+    select.addEventListener('change', () => {
+      const next = select.value === 'soccer' ? 'soccer' : 'nfl';
+      try {localStorage.setItem(KEY, next);} catch {}
+      location.assign(destination(location.href, current, next).href);
+    });
+    function labels() {
+      const language = document.documentElement.lang;
+      const copy = {'en-US': ['Sport', 'Soccer'], en: ['Sport', 'Soccer'], 'de-AT': ['Sport', 'Fußball'],
+        'hi-IN': ['खेल', 'फ़ुटबॉल'], 'gu-IN': ['રમત', 'ફૂટબૉલ'], 'pt-BR': ['Esporte', 'Futebol']}[language] || ['Sport', 'Soccer'];
+      const label = document.querySelector('[data-sport-label]');
+      if (label) label.textContent = copy[0];
+      select.setAttribute('aria-label', copy[0]);
+      const option = select.querySelector('option[value="soccer"]');
+      if (option) option.textContent = copy[1];
+    }
+    labels();
+    new MutationObserver(labels).observe(document.documentElement, {attributes: true, attributeFilter: ['lang']});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d16'/%3E%3Cpath d='M16 14h9v14h14V14h9v36h-9V36H25v14h-9z' fill='%23cbfa73'/%3E%3C/svg%3E">
 <style>/* Noto Sans Devanagari and Noto Sans Gujarati
 Copyright 2010, 2012–2020 Google Inc.; 2015–2020 Google LLC.
@@ -194,6 +256,17 @@ html:is([lang="hi-IN"],[lang="gu-IN"]) :is(.status-pill,.count-label){white-spac
 html:is([lang="hi-IN"],[lang="gu-IN"]) .research-intro h2{line-height:1.5}
 @media(max-width:760px){html:is([lang="hi-IN"],[lang="gu-IN"]) .main-nav button{font-size:9px;line-height:1.5;padding-left:3px;padding-right:3px}html:is([lang="hi-IN"],[lang="gu-IN"]) .hero-copy h1{font-size:40px}html:is([lang="hi-IN"],[lang="gu-IN"]) .page-title h1{font-size:34px}html:is([lang="hi-IN"],[lang="gu-IN"]) .depths button{padding-left:7px;padding-right:7px}}
 @media(max-width:370px){html:is([lang="hi-IN"],[lang="gu-IN"]) .hero-copy h1{font-size:36px}}
+
+/* Sport and language stay visible and usable on compact screens. */
+.sport-picker{display:flex;align-items:center;gap:7px;min-width:0}
+.sport-picker>span{color:var(--muted);font-size:10px}
+.sport-picker select{font-size:12px;min-height:44px;background:var(--panel2);max-width:130px}
+.topbar{min-height:76px;height:auto;padding-top:12px;padding-bottom:12px;gap:12px}
+.top-actions{flex-wrap:wrap;justify-content:flex-end;gap:10px}
+@media(max-width:1250px){.topbar .breadcrumb{display:none}.topbar .top-actions{margin-left:auto}.sport-picker>span{font-size:9px}}
+@media(max-width:760px){.topbar{align-items:center;flex-wrap:wrap;gap:8px}.top-actions{gap:7px}.sport-picker select{font-size:11px;padding:8px 22px 8px 8px}.sport-picker>span{display:none}.language-picker select{max-width:160px}}
+@media(max-width:480px){.topbar{padding:10px 16px}.topbar .top-actions{display:grid;grid-template-columns:minmax(75px,1fr) minmax(125px,1.6fr) 34px auto;gap:6px;width:100%;margin-left:0}.topbar .mobile-brand{display:none}.sport-picker select,.language-picker select{width:100%;max-width:100%;font-size:11px}.topbar .share-button{font-size:10px;padding-left:7px;padding-right:7px}.topbar .icon-button{min-width:34px;width:34px}.topbar .date-stamp{display:none}}
+@media(max-width:350px){.topbar{padding:8px 10px}.topbar .top-actions{grid-template-columns:minmax(67px,1fr) minmax(105px,1.4fr) 30px auto;gap:4px}.topbar .icon-button{min-width:30px;width:30px}.language-picker select,.sport-picker select{font-size:10px;padding-left:6px}.topbar .share-button{font-size:9px}}
 </style>
 </head>
 <body>
@@ -211,7 +284,7 @@ html:is([lang="hi-IN"],[lang="gu-IN"]) .research-intro h2{line-height:1.5}
 <div class="sidebar-bottom"><div class="edition-dot"></div><p>AN ENTIRE SEASON.<br><strong>YOUR WAY INTO IT.</strong></p><a href="#edition-notes">Sources & coverage ↗</a></div>
 </aside>
 <div class="app-shell">
-<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><label class="language-picker"><span class="sr-only">Language</span><select id="language-select" aria-label="Language selection"><option value="en-US" lang="en" data-original-language="language-name">English</option><option value="de-AT" lang="de-AT" data-original-language="language-name">Deutsch (Österreich)</option><option value="hi-IN" lang="hi" data-original-language="language-name">हिन्दी (Hindi)</option><option value="gu-IN" lang="gu" data-original-language="language-name">ગુજરાતી (Gujarati)</option></select></label><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
+<header class="topbar"><a class="mobile-brand" href="#" data-home aria-label="Huddle home">H<span>HUDDLE</span></a><div class="breadcrumb">NFL <span>/</span> 2026 <span>/</span> <strong id="breadcrumb-view">CATCH UP</strong></div><div class="top-actions"><span class="date-stamp">DATA NOV 08</span><label class="sport-picker" data-original-language="sport-navigation"><span data-sport-label>Sport</span><select id="sport-select" aria-label="Sport"><option value="nfl">NFL</option><option value="soccer">Soccer</option></select></label><label class="language-picker"><span class="sr-only">Language</span><select id="language-select" aria-label="Language selection"><option value="en-US" lang="en" data-original-language="language-name">English</option><option value="de-AT" lang="de-AT" data-original-language="language-name">Deutsch (Österreich)</option><option value="hi-IN" lang="hi" data-original-language="language-name">हिन्दी (Hindi)</option><option value="gu-IN" lang="gu" data-original-language="language-name">ગુજરાતી (Gujarati)</option></select></label><button id="theme-toggle" class="icon-button" aria-label="Switch to day mode" title="Switch to day mode">☾</button><button id="share" class="share-button">Share <span aria-hidden="true">↗</span></button></div></header>
 <div id="score-strip" class="score-strip" aria-label="Week 8 score strip"></div>
 <main id="main">
 <p id="locale-note" class="locale-note" hidden></p>
@@ -2502,6 +2575,7 @@ html:is([lang="hi-IN"],[lang="gu-IN"]) .research-intro h2{line-height:1.5}
 
 (() => {
   'use strict';
+  if(window.HuddleSports?.redirecting)return;
   const D=JSON.parse(document.getElementById('nfl-data').textContent), S=D.scores, C=NFLCatchUp, L=HuddleLocale;
   const isAT=()=>state.locale==='de-AT';
   const isIndic=()=>['hi-IN','gu-IN'].includes(state.locale);
