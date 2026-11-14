@@ -85,3 +85,5 @@ button:disabled { cursor: default; opacity: .58; }
 .kick-track i, .kick-track b { position: absolute; inset: 0 auto; }
 .kick-track i { background: #eec062; }
 .kick-track b { width: 3px; background: white; box-shadow: 0 0 3px #000; }
+#actions { grid-template-columns: auto; }
+#touch-pass, #touch-live { display: grid; grid-template-columns: repeat(2, minmax(46px, auto)); gap: 5px; }

@@ -1,6 +1,7 @@
-import {Football,PLAYS,DEFENSE,TEAMS,clamp} from './football.mjs?v=2';
-import {Stadium} from './stadium.mjs?v=2';
-import {OnlineMatch} from './online.mjs?v=2';
+import {Football,PLAYS,DEFENSE,TEAMS,clamp} from './football.mjs?v=3';
+import {Stadium} from './stadium.mjs?v=3';
+import {FallbackStadium} from './fallback-stadium.mjs?v=3';
+import {OnlineMatch} from './online.mjs?v=3';
 const $=id=>document.getElementById(id);
 const screen=$('screen'),keys=new Set();
 const touchMode=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;
@@ -183,10 +184,16 @@ function passButtons(parent,className){
 const tags=passButtons($('tags'),'tag');
 const receiverBar=$('receiver-bar');
 const receiverButtons=passButtons(receiverBar,'receiver-button');
-try{stadium=new Stadium($('field'))}catch(error){
-  console.error(error);
-  $('call').textContent='This game needs WebGL. Enable hardware acceleration or try another browser.';
-  setMenuBusy(false);
+try{
+  stadium=new Stadium($('field'));
+}catch{
+  try{
+    stadium=new FallbackStadium($('field'));
+    $('menu-status').textContent='Field view is active on this device.';
+  }catch{
+    call('This browser could not open the field.');
+    setMenuBusy(false);
+  }
 }
 function fmt(seconds){
   const s=Math.ceil(seconds);
@@ -297,23 +304,28 @@ function touchButtons(){
   const active=started&&!paused&&roomPlayable()&&touchMode&&!replay&&['pre','live'].includes(game.state);
   $('touch').hidden=!active;
   if(!active)return;
-  const actions=$('actions');
+  const passActions=$('touch-pass'), liveActions=$('touch-live');
+  if(!passActions.children.length){
+    for(let i=0;i<4;i++){
+      const button=document.createElement('button');button.textContent=i+1;
+      bindPass(button,i);passActions.append(button);
+    }
+  }
+  passActions.hidden=!game.offenseHuman||!game.canPass;
   const config=game.state==='pre'?[[roomMode?'Ready':'Snap','snap']]:game.offenseHuman
-    ?[...(game.canPass?[['1','pass0'],['2','pass1'],['3','pass2'],['4','pass3']]:[]),...(game.kickMeter?[['Kick','snap']]:[['Cut','skill'],['Sprint','sprint']])]
+    ?game.kickMeter?[['Kick','snap']]:[['Cut','skill'],['Sprint','sprint']]
     :[['Switch','skill'],['Tackle / ball','snap'],['Sprint','sprint']];
-  const signature=config.map(x=>x[1]).join();
-  if(actions.dataset.signature===signature)return;
-  actions.dataset.signature=signature;actions.replaceChildren();
+  const signature=config.map(x=>x.join(':')).join(',');
+  if(liveActions.dataset.signature===signature)return;
+  liveActions.dataset.signature=signature;liveActions.replaceChildren();
   thumb.sprint=false;
   for(const [label,what] of config){
-    const b=document.createElement('button');b.textContent=label;b.type='button';
-    actions.append(b);
-    if(what.startsWith('pass')){
-      bindPass(b,Number(what.at(-1)));
-    }else if(what==='sprint'){
-      b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);thumb.sprint=true};
-      b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>{thumb.sprint=false};
-    }else b.onclick=()=>what==='skill'?skill():action();
+    const button=document.createElement('button');button.textContent=label;button.type='button';
+    liveActions.append(button);
+    if(what==='sprint'){
+      button.onpointerdown=event=>{event.preventDefault();button.setPointerCapture(event.pointerId);thumb.sprint=true};
+      button.onpointerup=button.onpointercancel=button.onlostpointercapture=()=>{thumb.sprint=false};
+    }else button.onclick=()=>what==='skill'?skill():action();
   }
 }
 function skill(){
@@ -490,8 +502,10 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyV'){camera();return}
   if(paused||replay&&e.code!=='Space')return;
   if(i>=0){
-    if(game.state==='pre'&&$('plays').querySelector('[data-play="'+i+'"]'))choose(i);
-    else beginPass(e.code,i);
+    if(game.state==='pre'){
+      const play=$('plays').querySelector('[data-hotkey="'+(i+1)+'"]');
+      if(play)choose(Number(play.dataset.play));
+    }else beginPass(e.code,i);
   }
   if(e.code==='Space')action();
   if(e.code==='KeyE')skill();
@@ -544,8 +558,9 @@ function drawMap(frame){
   const w=map.width,h=map.height,g=mapCtx;
   const mapX=y=>(y+10)*w/120,mapY=x=>(x+26.665)*h/53.33;
   g.fillStyle='#274c36';g.fillRect(0,0,w,h);
-  g.fillStyle='#234f79';g.fillRect(0,0,mapX(0),h);
-  g.fillStyle='#a4472c';g.fillRect(mapX(100),0,w-mapX(100),h);
+  const colors=['#234f79','#a4472c'];
+  g.fillStyle=colors[frame.possession];g.fillRect(0,0,mapX(0),h);
+  g.fillStyle=colors[1-frame.possession];g.fillRect(mapX(100),0,w-mapX(100),h);
   g.strokeStyle='#b1c0a875';g.strokeRect(.5,.5,w-1,h-1);
   for(let yard=0;yard<=100;yard+=10){
     g.beginPath();g.moveTo(mapX(yard),1);g.lineTo(mapX(yard),h-1);g.stroke();

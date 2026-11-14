@@ -1,5 +1,5 @@
 import * as T from './vendor/three.module.js';
-import {TEAMS,WIDTH,clamp} from './football.mjs';
+import {TEAMS,WIDTH,clamp} from './football.mjs?v=3';
 const materials=new Map();
 function material(color,roughness=.82){
   const key=color+':'+roughness;

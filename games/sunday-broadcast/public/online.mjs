@@ -47,7 +47,7 @@ export class OnlineMatch {
     try { sessionStorage.removeItem(storageKey); } catch {}
   }
 
-  async request(route, { payload, token = this.token, signal, timeout = 8000 } = {}) {
+  async request(route, { payload, token = this.token, signal, timeout = 8000, retry = 0 } = {}) {
     const headers = {};
     if (token) headers.Authorization = 'Bearer ' + token;
     const controller = new AbortController();
@@ -66,9 +66,15 @@ export class OnlineMatch {
         cache: 'no-store',
       });
       if (!response.ok) {
+        const edgeMissing = response.status === 404 && !response.headers.get('content-type')?.includes('application/json');
+        if (edgeMissing && retry > 0) {
+          await response.body?.cancel().catch(() => {});
+          await wait(200 * (3 - retry));
+          return this.request(route, { payload, token, signal, timeout, retry: retry - 1 });
+        }
         const value = await response.json().catch(() => ({}));
         const error = new Error(value.error || 'The online field could not be reached.');
-        error.status = response.status;
+        error.status = edgeMissing ? 503 : response.status;
         throw error;
       }
       return await response.json();
@@ -85,7 +91,7 @@ export class OnlineMatch {
     this.connecting = true;
     this.onStatus('Connecting to the online field…');
     try {
-      const seat = await this.request(route, { payload, token, signal: abort.signal, timeout: 90000 });
+      const seat = await this.request(route, { payload, token, signal: abort.signal, timeout: 90000, retry: 2 });
       if (epoch !== this.epoch) return this;
       Object.assign(this, { code: seat.code, token: seat.token, side: seat.side, seq: seat.lastSeq ?? 0 });
       this.saveSeat();
@@ -137,7 +143,7 @@ export class OnlineMatch {
     if (epoch !== this.epoch) return;
     if (!response.ok || !response.body) {
       const error = new Error('The room connection could not open.');
-      error.status = response.status;
+      error.status = response.status === 404 && !response.headers.get('content-type')?.includes('application/json') ? 503 : response.status;
       throw error;
     }
     const reader = response.body.getReader(), decoder = new TextDecoder();
@@ -219,6 +225,7 @@ export class OnlineMatch {
         return await this.request('/api/rooms/' + code + '/command', {
           payload: { ...data, type, phase },
           signal: this.lifecycle.signal,
+          retry: type === 'ready' || type === 'rematch' || type === 'select' ? 2 : 0,
         });
       } catch (error) {
         if (epoch === this.epoch) this.onError(error);
