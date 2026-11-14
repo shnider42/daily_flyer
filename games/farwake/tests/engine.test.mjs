@@ -73,15 +73,15 @@ function earnFirstDrive(g) {
   assert.ok(g.hasHyperdrive);assert.equal(g.state.ship.warpRange,5);
 }
 
-test('900 deterministic systems are connected with first and final drive ranges',()=>{
+test('901 deterministic systems are connected with first and final drive ranges',()=>{
   for(const seed of ['farwake','captain-2','phoenix','solstice','a','quiet-7']) {
     const a=buildGalaxy(seed),b=buildGalaxy(seed);
-    assert.equal(a.length,900);assert.deepEqual(a,b);assert.equal(new Set(a.map(s=>s.id)).size,900);
+    assert.equal(a.length,901);assert.deepEqual(a,b);assert.equal(new Set(a.map(s=>s.id )).size,901);
     const g=new Game(seed);
     for(const range of [5,15]) for(const destination of ['sol','witness','sector-0','sector-287']) assert.ok(route(g,destination,range).length>0);
     const reachable=new Set(['hearth']);const queue=['hearth'];
     for(let i=0;i<queue.length;i++){const from=a.find(s=>s.id===queue[i]);for(const to of a)if(!reachable.has(to.id)&&Math.hypot(from.gx-to.gx,from.gy-to.gy)<=5){reachable.add(to.id);queue.push(to.id);}}
-    assert.equal(reachable.size,900,`No isolated stars for ${seed}`);
+    assert.equal(reachable.size,901,`No isolated stars for ${seed}`);
   }
   assert.notDeepEqual(buildGalaxy('a'),buildGalaxy('b'));
 });

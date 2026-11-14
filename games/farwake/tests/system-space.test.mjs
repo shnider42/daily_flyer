@@ -34,8 +34,9 @@ function surveyGalaxy(){
  // every old hull/route field against the independent0.10 fixture. Bounds and
  // duplicate checks below always use the actual new runtime, including traffic.
  trafficControl.galaxy=releasedChart(game.galaxy).map(system=>({...system,bodies:system.bodies.map(body=>({...body,visualRadius:releasedRadius(body)}))}));
+ const releasedSystems=game.galaxy.filter(system=>system.id!=='voltage');
  const counts=Object.fromEntries(keys.map(key=>[key,0])),actualCounts=Object.fromEntries(keys.map(key=>[key,0])),bounds=[],duplicates=[],dimensions=new Set();
- for(const system of game.galaxy){
+ for(const system of releasedSystems){
   game.state.systemId=system.id;game._loadSystem(system.id);const world=game.system;
   trafficControl.state.systemId=system.id;trafficControl._loadSystem(system.id);
   const released={
@@ -63,7 +64,7 @@ function surveyGalaxy(){
    poses[key].update(JSON.stringify([system.id,points]));
   }
  }
- return surveyed={systemCount:game.galaxy.length,chartHash:checksum(releasedChart(game.galaxy)),counts,actualCounts,contentHashes:Object.fromEntries(keys.map(key=>[key,hashes[key].digest('hex')])),placementHashes:Object.fromEntries(Object.keys(poses).map(key=>[key,poses[key].digest('hex')])),bounds,duplicates,dimensions:[...dimensions]};
+ return surveyed={systemCount:releasedSystems.length,chartHash:checksum(releasedChart(releasedSystems)),counts,actualCounts,contentHashes:Object.fromEntries(keys.map(key=>[key,hashes[key].digest('hex')])),placementHashes:Object.fromEntries(Object.keys(poses).map(key=>[key,poses[key].digest('hex')])),bounds,duplicates,dimensions:[...dimensions]};
 }
 
 test('all900 released systems retain original geography and physics while type additions remain explicit',()=>{

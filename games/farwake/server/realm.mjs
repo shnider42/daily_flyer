@@ -34,6 +34,7 @@ import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
 import { syncNavyCrewSurface } from '../dist/navy-crew.mjs';
 import { occupiedVesselThreats } from '../dist/music-context.mjs';
 import { CASUAL_START_UPGRADES, publicStartingPort } from '../dist/livelihoods.mjs';
+import { discardGamblingReplay } from '../dist/gambling.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -129,6 +130,8 @@ export class Realm extends BoardingAuthority {
     for (const captain of this.captains.values()) {
       captain.game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
       captain.game._surfaceForInteraction = () => this._surface(captain);
+      captain.game._gamblingAuthority = true;
+      captain.game._gamblingSeed = newSecret;
       captain.game._npcTime = () => this._npcTime();
       captain.game._socialTime = () => this._socialTime();
       captain.game._npcHoldsForInteraction = () => this._npcHoldsFor(captain);
@@ -300,6 +303,8 @@ export class Realm extends BoardingAuthority {
     this.captains.set(id, captain); const vessel = this._createVessel(captain); if (!this.ownerId) { this.ownerId = id; if ((!vessel || game.state.systemId !== 'hearth') && this.groupStart?.status === 'assembling') this.groupStart.status = 'closed'; }
     game.openingOwnShipHere = () => this._openingOwnShipHere(captain);
     game._surfaceForInteraction = () => this._surface(captain);
+    game._gamblingAuthority = true;
+    game._gamblingSeed = newSecret;
     game._npcTime = () => this._npcTime();
     game._socialTime = () => this._socialTime();
     game._npcHoldsForInteraction = () => this._npcHoldsFor(captain);
@@ -857,7 +862,12 @@ export class Realm extends BoardingAuthority {
       this._bindCaptain(captain);
       captain.events.push(...captain.game.drainEvents()); if (captain.events.length > 80) captain.events.splice(0, captain.events.length - 80);
     }
-    if (requestId) { captain.recentCommands.push({ id: requestId, result: clone(result) }); if (captain.recentCommands.length > 80) captain.recentCommands.shift(); }
+    if (requestId) {
+      const remembered = clone(result);
+      if (name === 'gamblingAction') discardGamblingReplay(remembered.session);
+      captain.recentCommands.push({ id: requestId, result: remembered });
+      if (captain.recentCommands.length > 80) captain.recentCommands.shift();
+    }
     const revision = this.markDirty();
     try { await this.flush(revision); } catch { return fail('The storage service has not confirmed this action. Reconnect before retrying.', 'storage-unconfirmed'); }
     return result;
@@ -1120,6 +1130,11 @@ export class Realm extends BoardingAuthority {
     if (name === 'boardEnemy') return this._boardEnemy(c, { ...a, id });
     if (name === 'acceptJob' || name === 'turnInJob') { if (!this._nearTypes(c, ['jobboard'])) return fail('Visit the contract exchange in person.', 'distance'); return game[name](id); }
     if (name === 'abandonJob') return game.abandonJob(id);
+    if (name === 'startGambling' || name === 'gamblingAction' || name === 'leaveGambling') {
+      const result = name === 'startGambling' ? game.startGambling(a.entityId, a.gameId, a.stake) : game[name](a);
+      if (result.ok) { c.input = { ...EMPTY_INPUT }; c.appliedInput = { ...EMPTY_INPUT }; }
+      return result;
+    }
     if (name === 'buyPersonalWeapon' || name === 'equipPersonalWeapon') {
       if (c.aboard || game.state.mode !== 'person' || game.state.interior || !game.atInhabitedPort || !this._nearTypes(c, ['mechanic'])) return fail('Visit the port outfitter on foot for personal equipment.', 'distance');
       return game[name](id);
@@ -1496,7 +1511,7 @@ export class Realm extends BoardingAuthority {
     if (compact) state = clone({ ...Object.fromEntries(MOTION_STATE_FIELDS.map(key => [key, ownState[key]])), ship, boarding });
     else {
       // Off-system world records live in realm persistence; do not clone them just to discard them.
-      const { worlds, explorationRecords, worldDirector, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
+      const { worlds, explorationRecords, worldDirector, gamblingSession, gamblingView, ship: ownedShip, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, ...personalState } = ownState;
       state = clone(personalState); state.ship = clone(ship); state.boarding = clone(boarding);
       state.worldDirector=clone(this.director);
       state.worlds = { [state.systemId]: clone(this._room(state.systemId).record) };
@@ -1521,6 +1536,7 @@ export class Realm extends BoardingAuthority {
     // These view-only facts retain the opening's own cargo/berth context.
     state.openingMissionAvailability = opening.active ? { id: opening.id, systemId: 'hearth', oreFieldExhausted: opening.fallbackAvailable, oreAvailable: opening.oreAvailable, ownShipHere: c.game.openingOwnShipHere() } : null;
     state.npcLife = this._npcView(c, timestamp);
+    state.gamblingView = c.game.gamblingStatus({ includeReplay: false });
     state.militaryOperationsView = this._militaryOperationsView(c);
     state.earthCampaignView = c.game.earthCampaignStatus?.() || null;
     // Encounter rolls stay with the authority. A clear watch is not a promise

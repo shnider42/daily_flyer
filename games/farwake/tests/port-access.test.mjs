@@ -24,7 +24,7 @@ function enlist(game){
 const publicOrigin={brindle:'orchard',nacre:'ward',sable:'tallow',vesper:'lilt',cinder:'kiln'};
 
 test('five service bases append without changing the identities or order of any established body',()=>{
- const chart=buildGalaxy('port-regression');assert.equal(chart.length,900);
+ const chart=buildGalaxy('port-regression');assert.equal(chart.length,901);
  for(const original of [...NAMED_SYSTEMS,...FRONTIER_SYSTEMS]){
   const system=chart.find(value=>value.id===original.id);assert.ok(system);
   assert.deepEqual(system.bodies.slice(0,original.bodies.length).map(body=>releasedBody(body,{authored:true})),original.bodies,original.id);

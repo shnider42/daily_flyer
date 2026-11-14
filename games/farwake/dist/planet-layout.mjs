@@ -49,6 +49,7 @@ const choices = {
 
 /** Cheap descriptive/planning API: no map generation, global RNG or input mutation. */
 export function planetSettlementPlan(body = {}, seed = 'farwake') {
+  if (body.id === 'glimmer') return { id: 'glimmer-six-districts', name: 'Glimmer · six districts', description: 'Dock Nine, Lantern Row, Chrome Ward, the Glass Mile, the Undergrid and Rustline share one connected city region.', version: 1, landform: 'city' };
   if (body.id === 'morrow') return { id: 'morrow-landing', name: 'Morrow landing district', description: 'The established landing district opens onto orchards, a river crossing and the outer ridge paths.', version: 0 };
   if (isPreflightBody(body)) return { id: 'reedbound-village', name: 'River households', description: 'Reed houses, shared gardens and river paths belong to a culture that has not adopted spaceport services.', version: 0 };
   const type = planetTypeFor(body), key = `${seed}:${body.id || body.name || 'world'}:settlement-v${PLANET_LAYOUT_VERSION}`, h = hash(key);

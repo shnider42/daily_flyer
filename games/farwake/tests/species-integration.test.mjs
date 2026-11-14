@@ -49,7 +49,9 @@ const physical={
 
 test('adding people and homeworlds preserves all 900 released stars and every older body',()=>{
  for(const[seed,expected]of Object.entries(charts)){
-  const galaxy=buildGalaxy(seed);
+  const full=buildGalaxy(seed);
+  assert.equal(full.length,901);
+  const galaxy=full.filter(system=>system.id!=='voltage');
   assert.equal(galaxy.length,900);
   assert.equal(checksum(releasedChart(galaxy).map(system=>({...system,bodies:releasedBodies(system.bodies)}))),expected);
   for(const entry of SPECIES_HOMEWORLDS)assert.equal(galaxy.find(system=>system.id===entry.systemId).bodies.at(-1).id,entry.body.id);

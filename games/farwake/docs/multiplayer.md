@@ -214,3 +214,10 @@ The integration suite exercises ten simultaneous clients in separate systems, te
 Solo and shared captains use the same 37-piece score and local music director. Music follows the captain’s occupied hull or current ground encounter, while the authority still owns combat and mission progress. Targeted hostile volleys identify the target hull; confirmed hits identify both the struck hull and firing hull. This makes Navy gunnery, ordinary shared deck crew, and the helm respond to their actual battle without scoring another ship’s unrelated fight. Interior snapshots provide only current incoming/pursuit booleans for the occupied vessel and do not disclose a planned ambush. Ground rifle misses retain the intended captain for danger scoring.
 
 Cave and planetary selections use actual environment, body identity, terrain, and culture. Neither concealed enemies nor the number of enemies in a system can independently select danger music. Playback history, cue selection, and volume remain local to the listening device. No music traffic, microphone access, account, or listening analytics are added to the galaxy service.
+
+
+## Gaming tables (0.22.0)
+
+`startGambling` accepts only a canonical nearby entity, its posted `gameId` and one of its listed stakes. `gamblingAction` and `leaveGambling` carry the current `sessionId` and `revision`. The personal captain purse reserves the quoted escrow once; completing a round credits its rules-produced payout once and retains a bounded receipt. Shared house games are independent per captain, including when two captains use the same venue. Multiplayer matchmaking between human table seats is not exposed.
+
+Full and compact packets contain only `gamblingView`. Raw `gamblingSession` state, remaining decks and private random state are persisted but never projected. Independent server randomness seeds new rounds. Pool replay frames travel in the accepted action result; durable state, cached retry receipts and recurring snapshots omit those frames. Restarting restores the current round and reserved stake, rather than starting another hand or paying a previous outcome again.

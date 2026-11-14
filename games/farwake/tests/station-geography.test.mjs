@@ -40,7 +40,7 @@ test('large majorities of actual stations have short, clear crossings to real wo
         for (const hazard of hazards) assert.ok(dist(station,hazard)>=hazard.warningRadius+bodyVisualRadius(station)+350);
       }
     }
-    assert.equal(total,905);
+    assert.equal(total,906);
     assert.ok(orbital/total>=.85 && orbital/total<=.94,`${seed}: ${orbital}/${total} near-world stations`);
   }
 });

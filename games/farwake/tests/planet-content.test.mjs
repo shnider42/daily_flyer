@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {NAMED_SYSTEMS} from '../dist/content.mjs';
 import {FRONTIER_SYSTEMS} from '../dist/galaxy-expansion.mjs';
+import {NEON_SYSTEM} from '../dist/neon-content.mjs';
 import {PLANET_PLACES} from '../dist/planet-content.mjs';
 import {QUEST_CONTACTS,QUEST_OBJECTS} from '../dist/quest-content.mjs';
 import {explorationSites,explorationLocation,createSiteState,claimSiteReward,inspectSiteRecord} from '../dist/exploration.mjs';
 import {generateSurface,isWalkable,nearestEntity,drawCharacter,drawContactPortrait,drawSurface,drawSurfaceMap} from '../dist/surface.mjs';
 
-const bodies=[...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].flatMap(system=>system.bodies.map(body=>({...body,systemId:system.id,systemName:system.name,faction:system.faction})));
+const bodies=[...NAMED_SYSTEMS,...FRONTIER_SYSTEMS,NEON_SYSTEM].flatMap(system=>system.bodies.map(body=>({...body,systemId:system.id,systemName:system.name,faction:system.faction})));
 const findBody=id=>bodies.find(body=>body.id===id);
 const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 function flood(map){

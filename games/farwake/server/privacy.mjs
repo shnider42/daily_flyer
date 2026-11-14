@@ -1,3 +1,4 @@
+import { publicGamblingAccount } from '../dist/gambling.mjs';
 import { RateLimit, normaliseRealmCode, validRealmCode, verifySecret } from './protocol.mjs';
 
 export const PRIVACY_EXPORT_VERSION = 1;
@@ -43,8 +44,8 @@ function redactCredentialValues(value, values) {
 }
 
 const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect', 'launchStatus', 'launchReady'];
-const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits'];
-const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView'];
+const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits', 'gamblingSerial', 'gamblingHistory'];
+const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView', 'gamblingSession', 'gamblingView'];
 
 /** Network-address counters are not a visitor log. Expired entries are removed
  * on access and during server maintenance, with a hard bound on memory. */
@@ -80,6 +81,7 @@ export function authenticateExport(source, passport) {
 function gameData(captain) {
   const state = captain.game?.state || captain.game || {}, id = captain.id;
   const game = pick(state, GAME_FIELDS, id);
+  if (state.gamblingSession || state.gamblingView || state.gamblingHistory?.length) Object.assign(game, publicGamblingAccount(state));
   if (own(state, 'boarding')) game.boarding = state.boarding ? pick(state.boarding, ['id', 'kind', 'phase', 'vesselId', 'originVesselId', 'targetId', 'leaderId', 'systemId', 'time', 'combatTime', 'outcome'], id) : null;
   if (own(state, 'exploration')) game.exploration = state.exploration ? pick(state.exploration, ['key', 'bodyId', 'siteId', 'returnPosition'], id) : null;
   const unrecognizedFields = Object.keys(state).filter(key => !GAME_FIELDS.includes(key) && !SHARED_GAME_FIELDS.includes(key));

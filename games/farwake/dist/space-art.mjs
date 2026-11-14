@@ -348,12 +348,13 @@ function normalizeShip(value){const ship=value.ship||value;return{...value,...sh
 export class SpaceRenderer{
  constructor(){const rng=random(832);this.stars=Array.from({length:500},()=>({x:rng(),y:rng(),size:rng()>.94?2:1,a:.25+rng()*.7,depth:.035+rng()*.16,color:rng()>.8?'#d5b98e':rng()>.75?'#83b8c5':'#a0bcc4'}));this.planetCache=new Map();this.nebulaCache=new Map();this.camera={x:0,y:0};this.particles=[];this.health=new Map();this.lastSystem=null;this.lastTime=0;}
  planet(body){
-  const type=planetTypeFor(body),key=`${body.id}:${type.id}:${type.sizeClass}`;if(this.planetCache.has(key))return this.planetCache.get(key);const c=makeCanvas(160,160),ctx=c.getContext('2d'),p=[type.palette.water,type.palette.land,type.palette.land,type.palette.ice,type.palette.ice],seed=hash(body.id),rng=random(seed),offset=rng()*100;
+  const type=planetTypeFor(body),neon=body.id==='glimmer',key=`${body.id}:${type.id}:${type.sizeClass}`;if(this.planetCache.has(key))return this.planetCache.get(key);const c=makeCanvas(160,160),ctx=c.getContext('2d'),p=neon?['#20354a','#333247','#4a4659','#a0a2b8','#abbacc']:[type.palette.water,type.palette.land,type.palette.land,type.palette.ice,type.palette.ice],seed=hash(body.id),rng=random(seed),offset=rng()*100;
   const waterline={wetlands:.40,islands:.48,reefs:.37,stormcoast:.42,lavafields:.34,grassland:.27,rainforest:.30,continental:.26}[type.terrain]||0;
   for(let y=0;y<160;y++)for(let x=0;x<160;x++){const dx=(x-79.5)/79,dy=(y-79.5)/79,dist=dx*dx+dy*dy;if(dist>1)continue;const z=Math.sqrt(1-dist),terrain=planetTerrainSample(type.terrain,dx,dy,seed),grain=rng()*.05;let index=terrain<waterline?0:terrain+grain>.85?3:terrain>.5?2:1;
    if(['icefields','frozen-ocean'].includes(type.terrain)&&Math.abs(dy)>.62)index=4;
    const clouds=['grassland','rainforest','continental','wetlands','islands','stormcoast'].includes(type.terrain)&&Math.sin(dx*12+dy*9+offset)+Math.sin(dy*20+offset)*.7>1.23;if(clouds)index=4;
    const light=clamp(.18+(-dx*.61-dy*.36+z*.58)*.9,.13,1.05);ctx.fillStyle=mix(p[index],light*(.85+terrain*.30));ctx.fillRect(x,y,1,1);
+   if(neon&&dist<.94&&((Math.floor(x/7)+Math.floor(y/7))%3===0)&&(x%7===2||y%7===3)&&rng()>.22)pixelRect(ctx,(x+y)%4?'#bf82ad':'#83c7d2',x,y,1,1);
    if(type.terrain==='lavafields'&&terrain<.3&&light<.7&&rng()>.6)pixelRect(ctx,type.palette.accent,x,y,1,1);
    if(['factory','city','ruins'].includes(type.terrain)&&light<.4&&index>1&&rng()>.97)pixelRect(ctx,type.palette.accent,x,y,1,1);
    if(dist>.96&&dx<.15)pixelRect(ctx,type.palette.atmosphere,x,y,1,1);

@@ -27,6 +27,8 @@ import {detentionSurface} from './military-recovery.mjs';
 import {stationTypeFor,planetTypeFor} from './world-types.mjs';
 import {stationPlan,planetSurfaceDimensions,planetTerrainSample} from './place-geometry.mjs';
 import {PLANET_LAYOUT_VERSION,planetSettlementPlan,settlementLandformAt} from './planet-layout.mjs';
+import {NEON_SYSTEM} from './neon-content.mjs';
+import {isNeonCity,createNeonCity,addPublicGambling,drawNeonProp,drawNeonRain,drawGamblingTable,drawNeonTile} from './neon-world.mjs';
 export {cabinLayout,resolveCabinClass} from './interior-layouts.mjs';
 
 export const TILE = Object.freeze({VOID:0,FLOOR:1,WALL:2,PATH:3,GROUND:4,WATER:5,PAD:6,METAL:7,RUBBLE:8,GRATE:9});
@@ -60,7 +62,7 @@ function vesselPalette(location){
  return{...PALETTES.ship,...(hostile?{floor:'#3a3438',floor2:'#312f36',edge:'#65544e',wall:'#29272f',wallTop:'#81695d',path:'#4a4040'}:{}),accent,light:accent};
 }
 export function repairSolution(entityId){const rng=random(String(entityId));return Array.from({length:3},()=>Math.floor(rng()*4));}
-const AUTHORED_BODIES=new Map([...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].flatMap(system=>system.bodies.map(body=>[body.id,{body,system}])));
+const AUTHORED_BODIES=new Map([...NAMED_SYSTEMS,...FRONTIER_SYSTEMS,NEON_SYSTEM].flatMap(system=>system.bodies.map(body=>[body.id,{body,system}])));
 const LORE_BY_ID=new Map(LORE.map(entry=>[entry.id,entry]));
 const BODY_LORE={kettle:'kettle_history',morrow:'union_charter',tinbell:'open_frequency',orchard:'union_charter',weighhouse:'union_charter',serein:'meridian_patent',ledger:'meridian_patent',cairn:'lanes',lilt:'severance',listening:'living_registry',ward:'quiet_earth',bastion:'quiet_earth',kiln:'cinder_debt',patchwork:'cinder_debt',palimpsest:'silent_engine',blindpost:'silent_engine',tallow:'meridian_patent',checkpoint:'open_frequency',newshore:'union_charter',porch:'lanes',stillwater:'seedvault',census:'living_registry',earth:'air_pact',luna:'return_ethic',threshold:'return_ethic',wide:'open_frequency',door:'open_frequency'};
 const FACTION_LORE={freewake:'union_charter',meridian:'meridian_patent',lantern:'open_frequency',concord:'quiet_earth',cinder:'cinder_debt'};
@@ -73,14 +75,14 @@ const ROLE_LABELS={bartender:'Common-room keeper',scientist:'Field researcher',c
 // of requiring every docking / save-load caller to rebuild its own lore data.
 function resolveLocation(value={}){
  const source=typeof value==='string'?{id:value}:value||{},authored=AUTHORED_BODIES.get(source.id);
- const system=authored?.system||AUTHORED_BODIES.get(source.parentId)?.system||[...NAMED_SYSTEMS,...FRONTIER_SYSTEMS].find(s=>s.id===source.systemId),location={...authored?.body,...source};
+ const system=authored?.system||AUTHORED_BODIES.get(source.parentId)?.system||[...NAMED_SYSTEMS,...FRONTIER_SYSTEMS,NEON_SYSTEM].find(s=>s.id===source.systemId),location={...authored?.body,...source};
  location.kind=source.kind||source.type||authored?.body.kind||'planet';
  const kind=kindOf(location);
  location.id=source.id||(source.name?`place-${hash(source.name).toString(36)}`:({station:'station',ship:'own-ship',derelict:'derelict',planet:'world'}[kind]));
  location.name=source.name||authored?.body.name||({station:'Uncharted station',ship:'Your ship · interior',derelict:'Silent freighter',planet:'Uncharted settlement'}[kind]);
  location.systemId=source.systemId||system?.id||null;
  location.systemName=source.systemName||system?.name||source.systemId||'Uncharted Reach';
- location.faction=source.faction||system?.faction||null;
+ location.faction=source.faction||authored?.body.faction||system?.faction||null;
  location.loreId=LORE_BY_ID.has(source.loreId)?source.loreId:LORE_BY_ID.has(location.lore)?location.lore:BODY_LORE[location.id]||FACTION_LORE[location.faction]||'open_frequency';
  location.localLore=source.localLore||(LORE_BY_ID.has(location.lore)?'':location.lore)||`${location.name||'This landing'} keeps a local record of the ships, workers, and families who pass through.`;
  return location;
@@ -787,7 +789,7 @@ function addQuestEntities(m,location){
   return best;
  };
  const addContact=(entry,x,y)=>{
-  const p=openSpot(m.settlementId?x:entry.tileX??x,m.settlementId?y:entry.tileY??y);if(!p)return null;
+  const p=openSpot(m.settlementId&&!m.authoredCity?x:entry.tileX??x,m.settlementId&&!m.authoredCity?y:entry.tileY??y);if(!p)return null;
   const e=personEntity(m,location,'quest:'+entry.id,'npc',entry.role||'contact',p.x,p.y,entry.color||'#9dbfb2',{name:entry.name,roleLabel:entry.roleLabel,text:entry.text,rumors:entry.rumors||[],data:{contactId:entry.id,bodyId,homeLocationId:bodyId,species:entry.species||'human',...entry.data}});
   e.id='quest:'+entry.id;e.species=entry.species||'human';return e;
  };
@@ -801,7 +803,7 @@ function addQuestEntities(m,location){
  }
  contacts.forEach((entry,index)=>addContact(entry,m.serviceAnchors?.contacts?m.serviceAnchors.contacts.x/T-.5+(index%4)*3:m.kind==='station'?20+(index%4)*3:m.kind==='site'?9+(index%4)*4:19+(index%4)*3,m.serviceAnchors?.contacts?m.serviceAnchors.contacts.y/T-.5+Math.floor(index/4)*3:m.kind==='station'?14+Math.floor(index/4)*3:m.kind==='site'?20:24+Math.floor(index/4)*3));
  objects.forEach((entry,index)=>{
-  const p=openSpot(m.serviceAnchors?.contacts?m.serviceAnchors.contacts.x/T-.5+5+(index%3)*3:entry.tileX??(m.kind==='station'?29+(index%2)*3:m.kind==='site'?12+(index%4)*5:30+(index%3)*3),m.serviceAnchors?.contacts?m.serviceAnchors.contacts.y/T-.5+Math.floor(index/3)*3:entry.tileY??(m.kind==='station'?16+Math.floor(index/2)*3:m.kind==='site'?21:24+Math.floor(index/3)*3));if(!p)return;
+  const p=openSpot(m.authoredCity&&Number.isFinite(entry.tileX)?entry.tileX:m.serviceAnchors?.contacts?m.serviceAnchors.contacts.x/T-.5+5+(index%3)*3:entry.tileX??(m.kind==='station'?29+(index%2)*3:m.kind==='site'?12+(index%4)*5:30+(index%3)*3),m.authoredCity&&Number.isFinite(entry.tileY)?entry.tileY:m.serviceAnchors?.contacts?m.serviceAnchors.contacts.y/T-.5+Math.floor(index/3)*3:entry.tileY??(m.kind==='station'?16+Math.floor(index/2)*3:m.kind==='site'?21:24+Math.floor(index/3)*3));if(!p)return;
   const e=entity(m,'quest:'+entry.id,'questObject',entry.name,entry.kind==='evidence'?'Examine':'Read',p.x,p.y,'#b8c9ad',{objectId:entry.id,objectKind:entry.kind,bodyId,homeLocationId:bodyId,systemId:location.systemId,siteId:entry.siteId||null},entry.text);e.id='quest:'+entry.id;
  });
  if(outdoors&&bodyId==='morrow'){
@@ -815,8 +817,8 @@ function addQuestEntities(m,location){
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
  if(location.kind==='detention')return detentionSurface(location,seed);
- const kind=kindOf(location);const m=kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
- if(m.kind==='planet')scalePlanetRegion(m,location);
+ const kind=kindOf(location);const m=isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
+ if(m.kind==='planet'&&!m.authoredCity)scalePlanetRegion(m,location);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,
  // but items and characters never fence in an interaction or a landing spawn.
@@ -824,6 +826,7 @@ export function generateSurface(location={},seed='farwake',flags=[]){
  for(const e of m.entities){const tx=Math.floor(e.x/T),ty=Math.floor(e.y/T);if(BLOCKED.has(m.tiles[ty]?.[tx]))m.tiles[ty][tx]=m.kind==='planet'?TILE.GROUND:TILE.FLOOR;}
  if(m.kind==='planet')restorePlanetAccess(m);
  addQuestEntities(m,location);
+ addPublicGambling(m,location,{reachableTiles,entity,label});
  if(m.kind==='site'){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
  return m;
 }
@@ -852,6 +855,7 @@ export function nearestEntity(surface,person,range=38){
 function pixel(ctx,c,x,y,w,h){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));}
 function text(ctx,value,x,y,color='#d8e2d7',size=9,align='left'){ctx.font=`${size}px monospace`;ctx.textBaseline='top';ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(value,Math.round(x),Math.round(y));}
 function tileDraw(ctx,m,x,y,p,time){
+ if(drawNeonTile(ctx,m,x,y,time))return;
  const tile=m.tiles[y][x],wx=x*T,wy=y*T,n=noise(x,y,m.seed);
  if(tile===TILE.VOID){if(m.kind==='site'){pixel(ctx,'#080f17',wx,wy,T,T);return;}if(n>.89){pixel(ctx,n>.98?'#b4d3d0':'#416677',wx+Math.floor(n*17),wy+Math.floor(noise(y,x,m.seed)*20),1,1);if(n>.99)pixel(ctx,'#253f51',wx+Math.floor(n*17)-2,wy+Math.floor(noise(y,x,m.seed)*20),5,1);}return;}
  if(m.biome==='cave'&&[TILE.WALL,TILE.FLOOR,TILE.PATH,TILE.GROUND,TILE.RUBBLE].includes(tile)){
@@ -962,6 +966,7 @@ export function drawContactPortrait(ctx,entity={}){
  drawCharacter(ctx,Math.floor(width/2),height-3,{id:entity.id,identityId:entity.identityId||entity.data?.crewId||entity.data?.guestId||entity.id,name:entity.name,color:entity.color,species:entity.species||entity.data?.species,facing:'down',scale});
 }
 function drawProp(ctx,d,m,time,emit){
+ if(drawNeonProp(ctx,d,m,time,emit))return;
  const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
  if(d.kind==='bowls'){for(let i=2;i<w-5;i+=21){pixel(ctx,'#605447',x+i,y+9,12,6);pixel(ctx,c,x+i-2,y+6,16,5);pixel(ctx,'#806b4e',x+i,y+6,12,2);}return;}
  if(d.kind==='cards'){for(let i=0;i<4;i++){pixel(ctx,'#ded8bd',x+5+i*13,y+5+(i%2)*4,10,13);pixel(ctx,i%2?'#9b655f':'#45625d',x+7+i*13,y+7+(i%2)*4,3,4);}return;}
@@ -1109,7 +1114,8 @@ function drawResidentTask(ctx,e,time){
 function drawEntity(ctx,e,m,time,flags,near){
  if(e.hidden)return;
  const{x,y,color:c}=e,done=isDone(e,flags);
- if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,identityId:e.identityId||e.data?.crewId||e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
+ if(e.type==='gambling'){drawGamblingTable(ctx,e,near);}
+ else if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,identityId:e.identityId||e.data?.crewId||e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
  else if(e.data?.serviceDesk){
   pixel(ctx,'#162d36',x-14,y-24,28,27);pixel(ctx,'#55767c',x-13,y-26,26,22);pixel(ctx,'#152d37',x-10,y-23,20,14);pixel(ctx,c,x-9,y-22,18,2);pixel(ctx,'#a5b9ac',x-11,y-7,22,3);pixel(ctx,'#314d56',x-9,y-3,18,7);
   if(e.data.serviceDesk==='public'){pixel(ctx,'#c9ddc6',x-6,y-16,12,3);pixel(ctx,'#c9ddc6',x-2,y-20,4,11);}
@@ -1158,7 +1164,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   const yy=y-36+Math.round(Math.sin(time*3));pixel(ctx,'#e5d7ac',x-2,yy,4,2);pixel(ctx,'#e5d7ac',x-1,yy+2,2,2);
  }
 }
-function shortRole(e){if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.data?.stationRole==='helm'?'Helm':e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
+function shortRole(e){if(e.type==='gambling')return e.data?.gameId?.toUpperCase()||'GAMES';if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.data?.stationRole==='helm'?'Helm':e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
 function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;
@@ -1335,7 +1341,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
   const p=project(decor.x,decor.y);box(decor.kind==='cave-mouth'?'#a6977f':'#8ca8aa',p.x,p.y,Math.max(3,decor.w*scale),Math.max(3,decor.h*scale));
  }
  const markers=[],ordinary=[],exits=[];
- const kinds={siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',questObject:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
+ const kinds={gambling:'games',siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',questObject:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
  for(const entity of surface.entities){
   if(entity.hidden||entity.disabled||visibility&&!visibility.knowsEntity(entity))continue;const selected=entity.id===targetEntityId,kind=entity.data?.professionDesk?'service':kinds[entity.type];if(!kind&&!selected)continue;
   const done=!!entity.completed||exploration?.collected?.includes(entity.data?.cacheId)||!!exploration?.choices?.[entity.data?.choiceId],point=project(entity.x,entity.y),exit=kind==='exit';
@@ -1390,7 +1396,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  // Walls cast a short hard-edged shadow; light strips remain emissive pixels.
  for(let y=minY;y<maxY-1;y++)for(let x=minX;x<maxX;x++)if(surface.tiles[y][x]===TILE.WALL&&[TILE.FLOOR,TILE.PATH].includes(surface.tiles[y+1]?.[x])){ctx.globalAlpha=.2;pixel(ctx,'#06131d',x*T,(y+1)*T,T,5);ctx.globalAlpha=1;}
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
- const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark','training-mat','tether-mark']);
+ const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark','training-mat','tether-mark','neon-sign','neon-puddle','city-lane','city-rug','city-walllight']);
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,propEmit);
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
@@ -1416,6 +1422,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
+ drawNeonRain(ctx,surface,{cameraX,cameraY,width,height,time,reduceMotion:options.reduceMotion});
  if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){
@@ -1426,7 +1433,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const e of surface.entities){
   if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||represented(e)||visibility&&!visibility.canSeePoint(e))continue;
   if(e.x<cameraX||e.x>cameraX+width||e.y<cameraY||e.y>cameraY+height)continue;
-  const selected=near===e,targeted=e.id===targetId,important=['jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
+  const selected=near===e,targeted=e.id===targetId,important=['gambling','jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
   if(!important&&!selected&&!targeted)continue;
   const value=selected||targeted||e.type==='siteEntrance'?e.name:shortRole(e),labelY=e.type==='siteEntrance'?e.y-67:e.type==='siteExit'?e.y-26:e.type==='exit'&&!e.data?.stationRole?e.y-26:e.type==='bunk'?e.y-18:e.y-44;
   emit(value,e.x,labelY,selected?'#f1ddb0':targeted?'#e7ce93':'#b6cdc8',selected?14:13,'center',selected?100:targeted?85:40,selected?'interaction':targeted?'objective':'service');

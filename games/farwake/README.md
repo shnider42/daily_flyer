@@ -1,8 +1,28 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.21.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.22.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.22.0 — Voltage after hours
+
+**Voltage is one additional authored system.** Existing 900-system charts retain their IDs, coordinates, geography and saved visits. Existing captains can find **Voltage** or **Glimmer** with the starmap search; **Nightlife & tables** in the menu also links directly to its chart. Casual captains may choose Voltage when starting a new voyage. The shared client/server world-content revision is now 2; refresh both clients after the update.
+
+**Glimmer** is a large city planet with a custom, walkable 140-by-104-tile landing region. Dock Nine, Lantern Row, Chrome Ward, the Glass Mile, the Undergrid and Rustline have distinct streets, buildings, signs, services and residents. Wet pavement, rain, traffic props, corporate towers and the Low Orbit gaming room use Farwake’s existing pixel-art renderer. Rain stays outside interiors and respects reduced motion. Crown Exchange handles the city’s orbital arrivals; Kilowatt supplies its power cells and Reservoir its clean water and clinic coolant.
+
+### Three playable games
+
+- **Texas Hold’em:** one heads-up hand with a local NPC, check/call/raise/fold, four betting streets, proper best-five hands, all-ins and split pots. The selected stake is the maximum hand budget; unspent chips return when folding.
+- **Eight-ball pool:** aim with a pointer or touch, fine-adjust with arrows, set power and shoot. Balls collide, rebound and fall into six pockets. Includes open-table group assignment, scratches, wrong first contact, ball in hand, turn continuation and legal/early-eight outcomes. Both the captain and the NPC use the same simulation; accepted shots have a skippable replay.
+- **Blackjack:** hit, stand and double; dealer stands on all 17s, naturals pay 3:2 and ties push. Twice the wager is reserved to cover a possible double; unused reserve returns. Splitting and insurance are not part of these house rules.
+
+Tables use **10, 20, 50 or 100 Farwake credits**. The buy-in screen states the wager, reserved amount and current purse. The Low Orbit room on Glimmer, Crown Exchange and Kettle have all three games; other civilian station common rooms each offer one of the three games. Walk to a table and interact. Games against NPCs work in solo and shared galaxies. Human-versus-human table matchmaking is not exposed in this release.
+
+Closing the table window keeps an unfinished round. Explicitly leaving folds a poker hand, concedes a pool match, or stands and resolves blackjack. Wagers, positions/cards and payout receipts persist. Shared games validate the captain’s actual table and available personal funds on the authority; request IDs and session revisions reject duplicated wagers and stale actions. Hidden cards and deck/random state stay on the authority, while replay frames are sent once and omitted from repeated motion packets and durable command history. The last 16 personal receipts and public current-round state are included in the existing account-data export.
+
+### Two district stories
+
+**After the lights go out** follows a scheduled blackout from Lantern Row to Kilowatt and the corporate ledger. Investigate the load record, balance the clinic’s emergency power, and choose a public report, a worker-run reserve or a negotiated correction. **Borrowed skin** follows a leased implant’s monitoring channel through Chrome Ward and Reservoir. Choose a documented privacy patch, independent clinic stock or a charter challenge. Each has five physical stages, three endings, faction/trust consequences, persistent choice flags and a one-time credit reward. Neither requires gambling.
 
 Choose **Casual** to begin with a fold-equipped Sparrow, Kestrel, or Mule and your choice of starting system; **Regular** to begin beside Kettle Station with a small ship and earn its fold drive; or **Hardcore** to begin on foot at Morrow without a ship. All three start with **180 credits**. Jobs, passenger services, crew work, prices, character options, combat, and recovery follow the same rules. Earth has been silent for generations. Local jobs, old transmissions, and competing accounts of the evacuation gradually lead beyond your home system.
 

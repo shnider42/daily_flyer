@@ -11,13 +11,13 @@ const checksum=value=>createHash('sha256').update(JSON.stringify(value)).digest(
 const ids=values=>[...new Set(values.map(value=>value.id))].sort();
 const visit=(game,id)=>{game.state.systemId=id;game._loadSystem(id);return game.system;};
 
-test('all25 identities in each category occur in real900-system charts across independent seeds',()=>{
+test('all25 identities in each category occur in real901-system charts across independent seeds',()=>{
  for(const catalog of [STATION_TYPES,PLANET_TYPES,SYSTEM_TYPES])assert.equal(ids(catalog).length,25);
  assert.equal(new Set(STATION_TYPES.map(type=>type.shape)).size,25,'station types have distinct silhouette geometry');
  assert.equal(new Set(PLANET_TYPES.map(type=>type.terrain)).size,25,'planet types select distinct terrain samplers');
  for(const seed of ['farwake','quiet-earth','world-types-regression','a','b']){
   const galaxy=buildGalaxy(seed),bodies=galaxy.flatMap(system=>system.bodies);
-  assert.equal(galaxy.length,900);
+  assert.equal(galaxy.length,901);
   assert.deepEqual([...new Set(galaxy.map(system=>system.systemTypeId))].sort(),ids(SYSTEM_TYPES));
   assert.deepEqual([...new Set(bodies.filter(body=>body.kind==='station').map(body=>body.stationTypeId))].sort(),ids(STATION_TYPES));
   assert.deepEqual([...new Set(bodies.filter(body=>body.planetTypeId).map(body=>body.planetTypeId))].sort(),ids(PLANET_TYPES));

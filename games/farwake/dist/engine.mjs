@@ -28,6 +28,8 @@ import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } f
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
+import { GamblingRules } from './gambling.mjs';
+import { appendNeonSystem } from './neon-content.mjs';
 import { GunneryRules, clampGunneryAim, applyGunneryAim } from './gunnery.mjs';
 import { getGunneryBattery, batteryCooldown, advanceGunneryCooldowns } from './gunnery-batteries.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
@@ -156,7 +158,7 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(expandGalaxy(systems, seed)), seed), seed);
+  return decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(appendNeonSystem(expandGalaxy(systems, seed))), seed), seed);
 }
 
 function initialState(seed, options = {}) {
@@ -210,6 +212,7 @@ export class Game {
       }
     }
     this.initializeLivelihoods();
+    this.initializeGambling();
     if(!isSave&&!this.ownsShip)this._arriveAsPassenger(this.currentBody,{discovery:false});
     this.initializeOpeningMission({ enabled: !isSave && options.openingMission === true && this.state.systemId === 'hearth', fresh: !isSave });
     this._restoreBoardingDeck();
@@ -2216,6 +2219,6 @@ export class Game {
 }
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
-Object.assign(Game.prototype,GunneryRules);
+Object.assign(Game.prototype,GunneryRules,GamblingRules);
 Object.assign(Game.prototype,MilitaryRecoveryRules);
 export default Game;
