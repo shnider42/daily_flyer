@@ -137,6 +137,12 @@ def init_storage() -> None:
                 track_id TEXT NOT NULL,
                 PRIMARY KEY (session_slug, person_id, track_id)
             );
+            CREATE TABLE IF NOT EXISTS loudsource_requests (
+                session_slug TEXT NOT NULL,
+                track_id TEXT NOT NULL,
+                person_id TEXT NOT NULL,
+                PRIMARY KEY (session_slug, track_id)
+            );
             CREATE TABLE IF NOT EXISTS loudsource_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_slug TEXT NOT NULL,
@@ -513,6 +519,7 @@ def clear_votes(session_slug: str) -> None:
         conn.execute("BEGIN IMMEDIATE")
         conn.execute("DELETE FROM loudsource_votes WHERE session_slug = ?", (session_slug,))
         conn.execute("DELETE FROM loudsource_ballots WHERE session_slug = ?", (session_slug,))
+        conn.execute("DELETE FROM loudsource_requests WHERE session_slug = ?", (session_slug,))
         conn.commit()
 
 
@@ -525,6 +532,7 @@ def remove_vote(session_slug: str, track_id: str) -> None:
             (session_slug, track_id),
         )
         conn.execute("DELETE FROM loudsource_ballots WHERE session_slug = ? AND track_id = ?", (session_slug, track_id))
+        conn.execute("DELETE FROM loudsource_requests WHERE session_slug = ? AND track_id = ?", (session_slug, track_id))
         conn.commit()
 
 

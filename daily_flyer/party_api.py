@@ -137,15 +137,22 @@ def music_vote(room, p, track, active):
         if active and current and current[0] == 'spotify:track:' + track:
             abort(409, description='That song is already playing.')
         exists = db.execute('SELECT 1 FROM loudsource_ballots WHERE session_slug=? AND person_id=? AND track_id=?', (room, p['id'], track)).fetchone()
-        count = db.execute('SELECT COUNT(*) FROM loudsource_ballots WHERE session_slug=? AND person_id=?', (room, p['id'])).fetchone()[0]
         if active and not exists:
-            if count >= 3:
-                abort(409, description='Your three picks are in. Unpick a song, or wait for one to play.')
+            queued = db.execute('SELECT 1 FROM loudsource_votes WHERE session_slug=? AND track_id=? AND vote_count>0', (room,track)).fetchone()
+            if not queued:
+                count = db.execute('SELECT COUNT(*) FROM loudsource_requests WHERE session_slug=? AND person_id=?', (room,p['id'])).fetchone()[0]
+                if count >= 3:
+                    abort(409, description='You have three songs waiting. You can still vote for any song already on the list. A request slot opens when one of yours plays or is removed.')
+                db.execute('INSERT INTO loudsource_requests VALUES(?,?,?)', (room,track,p['id']))
             db.execute('INSERT INTO loudsource_ballots VALUES(?,?,?)', (room, p['id'], track))
             db.execute('INSERT INTO loudsource_votes VALUES(?,?,1,?) ON CONFLICT(session_slug,track_id) DO UPDATE SET vote_count=vote_count+1', (room, track, int(time.time())))
         elif not active and exists:
             db.execute('DELETE FROM loudsource_ballots WHERE session_slug=? AND person_id=? AND track_id=?', (room, p['id'], track))
             db.execute('UPDATE loudsource_votes SET vote_count=MAX(0,vote_count-1) WHERE session_slug=? AND track_id=?', (room, track))
+            remaining = db.execute('SELECT vote_count FROM loudsource_votes WHERE session_slug=? AND track_id=?', (room,track)).fetchone()
+            if remaining and remaining[0] == 0:
+                db.execute('DELETE FROM loudsource_votes WHERE session_slug=? AND track_id=?', (room,track))
+                db.execute('DELETE FROM loudsource_requests WHERE session_slug=? AND track_id=?', (room,track))
         db.commit()
 
 
@@ -166,6 +173,7 @@ def state(room):
     with ls._connect() as db:
         info = dict(db.execute('SELECT * FROM party_rooms WHERE slug=?', (room,)).fetchone())
         mine = [r[0] for r in db.execute('SELECT track_id FROM loudsource_ballots WHERE session_slug=? AND person_id=?', (room, p['id']))]
+        requests = [r[0] for r in db.execute('SELECT track_id FROM loudsource_requests WHERE session_slug=? AND person_id=?', (room,p['id']))]
         people = [dict(r) for r in db.execute('SELECT p.id,p.name,COUNT(a.question) attempted,COALESCE(SUM(a.correct),0) correct FROM party_people p LEFT JOIN party_answers a ON a.person=p.id AND a.room=p.room WHERE p.room=? GROUP BY p.id ORDER BY correct DESC, attempted ASC, p.joined ASC', (room,))]
         answers = [dict(r) for r in db.execute('SELECT question,choice,correct FROM party_answers WHERE room=? AND person=?', (room, p['id']))]
         poll_rows = [dict(r) for r in db.execute('SELECT poll,choice,COUNT(*) votes FROM party_polls WHERE room=? GROUP BY poll,choice', (room,))]
@@ -175,7 +183,7 @@ def state(room):
     for i, (q, options) in enumerate(POLLS):
         counts = [next((r['votes'] for r in poll_rows if r['poll']==i and r['choice']==j), 0) for j in range(len(options))]
         polls.append(dict(id=i, question=q, options=options, counts=counts, mine=my_polls.get(str(i))))
-    return jsonify(room=room,title=info['title'],prompt=PROMPTS[info['prompt'] % len(PROMPTS)],me={'id':p['id'],'name':p['name'],'host':p['id']==info['host_id']},host_claimed=bool(info['host_id']),people=people,answers=answers,polls=polls,mine=mine,history=history,music=ls.status_payload(room),topics=TOPICS)
+    return jsonify(room=room,title=info['title'],prompt=PROMPTS[info['prompt'] % len(PROMPTS)],me={'id':p['id'],'name':p['name'],'host':p['id']==info['host_id']},host_claimed=bool(info['host_id']),people=people,answers=answers,polls=polls,mine=mine,requests=requests,history=history,music=ls.status_payload(room),topics=TOPICS)
 
 
 @bp.get('/api/party/<room>/trivia/<topic>')

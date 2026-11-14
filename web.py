@@ -171,7 +171,7 @@ def loudsource_search(session_slug: str):
     try:
         results = search_tracks(query)
     except Exception:
-        abort(503, description='Spotify search is unavailable right now. Try again shortly; the host can check the Spotify connection.')
+        abort(503, description='Song search is temporarily unavailable. You can still vote for songs on the list. You do not need to sign into Spotify.')
     return jsonify({"results": results})
 
 

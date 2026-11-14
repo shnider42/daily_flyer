@@ -33,7 +33,7 @@ class PartyTests(unittest.TestCase):
         return self.client.post(f'/api/party/{room}'+path,json=data,headers={'X-Party-Token':token or self.guest})
     def state(self,token=None,room='main'):
         return self.client.get(f'/api/party/{room}/state',headers={'X-Party-Token':token or self.guest}).json
-    def test_duplicate_music_votes_are_idempotent_and_cap_is_three(self):
+    def test_duplicate_music_votes_are_idempotent_and_request_cap_is_three(self):
         for i in range(3):
             for _ in range(2):
                 self.assertEqual(self.post('/vote',{'track_id':str(i)*22,'active':True}).status_code,200)
@@ -41,6 +41,35 @@ class PartyTests(unittest.TestCase):
         s=self.state();self.assertEqual(len(s['mine']),3);self.assertEqual(sum(t['votes'] for t in s['music']['queue']),3)
         self.post('/vote',{'track_id':'0'*22,'active':False})
         self.assertEqual(self.post('/vote',{'track_id':'3'*22,'active':True}).status_code,200)
+    def test_full_request_budget_does_not_block_votes_for_other_songs(self):
+        for i in range(3):self.post('/vote',{'track_id':str(i)*22,'active':True})
+        for i in range(3,6):self.post('/vote',{'track_id':str(i)*22,'active':True},self.host)
+        for i in range(3,6):
+            for _ in range(2):
+                self.assertEqual(self.post('/vote',{'track_id':str(i)*22,'active':True}).status_code,200)
+        state=self.state()
+        self.assertEqual(len(state['mine']),6)
+        self.assertEqual(len(state['requests']),3)
+        self.assertEqual([t['votes'] for t in state['music']['queue'][:3]],[2,2,2])
+        self.assertEqual(self.post('/vote',{'track_id':'6'*22,'active':True}).status_code,409)
+    def test_unvoting_shared_request_keeps_ownership_until_played(self):
+        self.post('/vote',{'track_id':'0'*22,'active':True})
+        self.post('/vote',{'track_id':'0'*22,'active':True},self.host)
+        self.post('/vote',{'track_id':'0'*22,'active':False})
+        self.assertEqual(self.state()['requests'],['0'*22])
+        ls.remove_vote('main','0'*22)
+        self.assertEqual(self.state()['requests'],[])
+    def test_votes_work_without_spotify_and_never_access_accounts(self):
+        with patch.object(ls,'_user_sp',side_effect=AssertionError('Spotify playback called')),patch.object(ls,'_oauth',side_effect=AssertionError('Spotify sign-in called')):
+            self.assertEqual(self.post('/vote',{'track_id':'0'*22,'active':True}).status_code,200)
+            self.assertEqual(self.state()['music']['queue'][0]['votes'],1)
+    def test_concurrent_adds_create_only_one_request_owner(self):
+        def vote(token):
+            with app.test_client() as client:
+                return client.post('/api/party/main/vote',json={'track_id':'0'*22,'active':True},headers={'X-Party-Token':token}).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            self.assertEqual(list(pool.map(vote,[self.host,self.guest])),[200,200])
+        self.assertEqual(len(self.state()['requests'])+len(self.state(self.host)['requests']),1)
     def test_guest_cannot_remove_someone_elses_vote(self):
         self.post('/vote',{'track_id':'0'*22,'active':True},self.host)
         self.post('/vote',{'track_id':'0'*22,'active':False})
