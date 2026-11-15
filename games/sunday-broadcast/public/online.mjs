@@ -47,7 +47,7 @@ export class OnlineMatch {
     try { sessionStorage.removeItem(storageKey); } catch {}
   }
 
-  async request(route, { payload, token = this.token, signal, timeout = 8000, retry = 0 } = {}) {
+  async request(route, { payload, token = this.token, signal, timeout = 8000, retry = 0, retryDelay = 200 } = {}) {
     const headers = {};
     if (token) headers.Authorization = 'Bearer ' + token;
     const controller = new AbortController();
@@ -69,8 +69,8 @@ export class OnlineMatch {
         const edgeMissing = response.status === 404 && !response.headers.get('content-type')?.includes('application/json');
         if (edgeMissing && retry > 0) {
           await response.body?.cancel().catch(() => {});
-          await wait(200 * (3 - retry));
-          return this.request(route, { payload, token, signal, timeout, retry: retry - 1 });
+          await wait(retryDelay);
+          return this.request(route, { payload, token, signal, timeout, retry: retry - 1, retryDelay });
         }
         const value = await response.json().catch(() => ({}));
         const error = new Error(value.error || 'The online field could not be reached.');
@@ -219,13 +219,15 @@ export class OnlineMatch {
   command(type, data = {}) {
     if (!this.connected || !this.code) return Promise.resolve(false);
     const epoch = this.epoch, phase = this.phase, code = this.code;
+    const isPass = type === 'pass';
     const send = async () => {
       if (epoch !== this.epoch || phase !== this.phase) return false;
       try {
         return await this.request('/api/rooms/' + code + '/command', {
           payload: { ...data, type, phase },
           signal: this.lifecycle.signal,
-          retry: type === 'ready' || type === 'rematch' || type === 'select' ? 2 : 0,
+          retry: type === 'ready' || type === 'rematch' || type === 'select' ? 2 : Number(isPass),
+          retryDelay: isPass ? 65 : 200,
         });
       } catch (error) {
         if (epoch === this.epoch) this.onError(error);
@@ -242,16 +244,16 @@ export class OnlineMatch {
     const timestamp = performance.now(), previous = this.lastMove;
     const changed = !previous || Math.abs(x - previous.x) > .04 || Math.abs(y - previous.y) > .04 || sprint !== previous.sprint;
     const moving = Boolean(x || y || sprint);
-    if (timestamp - this.lastMoveAt < 33 || (!changed && (!moving || timestamp - this.lastMoveAt < 100))) return;
-    const epoch = this.epoch;
+    if (changed ? timestamp - this.lastMoveAt < 18 : !moving || timestamp - this.lastMoveAt < 100) return;
+    const epoch = this.epoch, seq = ++this.seq;
     this.lastMoveAt = timestamp;
     this.lastMove = { x, y, sprint };
     this.movesInFlight++;
     this.request('/api/rooms/' + this.code + '/command', {
-      payload: { type: 'move', phase: this.phase, seq: ++this.seq, x, y, sprint },
+      payload: { type: 'move', phase: this.phase, seq, x, y, sprint },
       signal: this.lifecycle.signal,
       timeout: 600,
-    }).catch(() => { if (epoch === this.epoch) this.lastMove = null; })
+    }).catch(() => { if (epoch === this.epoch && seq === this.seq) this.lastMove = null; })
       .finally(() => { if (epoch === this.epoch) this.movesInFlight--; });
   }
 

@@ -1,5 +1,5 @@
 import * as T from './vendor/three.module.js';
-import {TEAMS,WIDTH,clamp} from './football.mjs?v=4';
+import {TEAMS,WIDTH,clamp} from './football.mjs?v=5';
 const materials=new Map();
 function material(color,roughness=.82){
   const key=color+':'+roughness;
@@ -11,6 +11,7 @@ const ovalGeo=new T.SphereGeometry(1,12,9);
 const numberGeo=new T.PlaneGeometry(.43,.34);
 const shadowGeo=new T.CircleGeometry(.76,18);
 const playerShadow=new T.MeshBasicMaterial({color:0x092118,opacity:.38,transparent:true,depthWrite:false});
+const resolutionSteps=[1,.88,.76,.65];
 const numbers=new Map();
 function jerseyNumber(num){
   if(!numbers.has(num)){
@@ -150,6 +151,7 @@ function batchStadiumBoxes(scene){
       batch.setMatrixAt(i,meshes[i].matrix);
     }
     batch.computeBoundingSphere();
+    batch.matrixAutoUpdate=false;
     scene.remove(...meshes);
     scene.add(batch);
   }
@@ -197,8 +199,14 @@ export class Stadium {
     this.scene.background=new T.Color(0x506b83);
     this.scene.fog=new T.FogExp2(0x668096,.0048);
     this.camera=new T.PerspectiveCamera(48,1,.1,460);
+    this.camera.matrixWorldAutoUpdate=false;
     this.renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
     this.maxPixelRatio=matchMedia('(pointer: coarse)').matches?1.35:1.6;
+    this.resolutionStep=0;
+    this.framePeriod=1/60;
+    this.slowFor=0;
+    this.fastFor=0;
+    this.qualityCooldown=0;
     this.renderer.outputColorSpace=T.SRGBColorSpace;
     this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.42;
     container.append(this.renderer.domElement);
@@ -207,6 +215,9 @@ export class Stadium {
     const fill=new T.DirectionalLight(0xb7dbff,.8);fill.position.set(45,20,50);this.scene.add(fill);
     this.stadium();
     batchStadiumBoxes(this.scene);
+    this.scene.updateMatrixWorld(true);
+    this.scene.matrixAutoUpdate=false;
+    for(const child of this.scene.children)child.matrixAutoUpdate=false;
     this.players=new Map();
     this.playerBatches=new Map();
     this.ball=oval(this.scene,material(0x884625),0,0,0,.14,.13,.27);
@@ -233,15 +244,48 @@ export class Stadium {
     for(const marker of this.chains)box(marker,new T.MeshBasicMaterial({color:0xffca69}),0,.44,0,2.6,.14,3.4);
     this.target=new T.Vector3();this.goal=new T.Vector3();this.goalTarget=new T.Vector3();
     this.projected=new T.Vector3();
+    this.fieldRay=new T.Raycaster();
+    this.fieldPlane=new T.Plane(new T.Vector3(0,1,0));
+    this.fieldHit=new T.Vector3();
+    this.viewportPoint=new T.Vector2();
     this.menuTime=0;
     new ResizeObserver(()=>this.resize()).observe(container);this.resize();
   }
   resize(){
     const w=this.container.clientWidth||1,h=this.container.clientHeight||1;
+    const dpr=window.devicePixelRatio||1;
+    if(w===this.width&&h===this.height&&this.dpr===dpr)return;
+    this.width=w;
+    this.height=h;
+    this.dpr=dpr;
     this.camera.aspect=w/h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio,this.maxPixelRatio,Math.sqrt(2300000/(w*h))));
-    this.renderer.setSize(w,h,false);
+    this.baseRatio=Math.min(this.dpr,this.maxPixelRatio,Math.sqrt(2300000/(w*h)));
+    this.resizeBuffer();
+  }
+  resizeBuffer(){
+    this.renderer.setDrawingBufferSize(this.width,this.height,this.baseRatio*resolutionSteps[this.resolutionStep]);
+    this.lastIdleKey=null;
+  }
+  tuneResolution(dt,live){
+    if(!live||dt<=0||dt>.075||document.hidden){
+      this.framePeriod=1/60;
+      this.slowFor=this.fastFor=0;
+      return;
+    }
+    this.qualityCooldown=Math.max(0,this.qualityCooldown-dt);
+    if(this.qualityCooldown>0)return;
+    this.framePeriod+=(dt-this.framePeriod)*(1-Math.exp(-dt*6));
+    this.slowFor=this.framePeriod>.021?this.slowFor+dt:0;
+    this.fastFor=this.framePeriod<.0177?this.fastFor+dt:0;
+    const oldStep=this.resolutionStep;
+    if(this.slowFor>.6&&oldStep<resolutionSteps.length-1)this.resolutionStep++;
+    else if(this.fastFor>3&&oldStep>0)this.resolutionStep--;
+    if(oldStep!==this.resolutionStep){
+      this.qualityCooldown=1.25;
+      this.slowFor=this.fastFor=0;
+      this.resizeBuffer();
+    }
   }
   stadium(){
     const scene=this.scene;
@@ -334,7 +378,12 @@ export class Stadium {
       visible.add(key);
       let model=this.players.get(key);
       if(menu&&!model)continue;
-      if(!model){model=playerModel(p);this.players.set(key,model);this.scene.add(model.root)}
+      if(!model){
+        model=playerModel(p);
+        model.root.matrixWorldAutoUpdate=false;
+        this.players.set(key,model);
+        this.scene.add(model.root);
+      }
       model.root.visible=!menu;
       if(menu)continue;
       model.root.position.set(p.x,0,-p.y);
@@ -345,7 +394,10 @@ export class Stadium {
       const dive=!offense&&p.i===frame.control&&frame.dive>0;
       const handsUp=!offense&&p.i===frame.control&&frame.playBall>0;
       const release=p.role==='QB'&&frame.flight&&!frame.flight.kick&&frame.flight.elapsed<.23;
-      const receiving=offense&&frame.flight&&p.i===7+frame.flight.index&&frame.flight.duration-frame.flight.elapsed<.23;
+      const pass=frame.flight;
+      const nearTarget=pass&&Math.hypot(p.x-pass.to.x,p.y-pass.to.y)<2.5;
+      const receiver=pass?.index===null?p.i>=6&&nearTarget:p.i===7+pass?.index;
+      const receiving=offense&&pass&&!pass.kick&&receiver&&pass.duration-pass.elapsed<.23;
       const carrying=offense&&p.i===frame.carrierIndex&&!frame.flight&&frame.t>0;
       model.body.position.y=p.down?.09:dive?.31:crouch?-.20:Math.abs(swing)*stride*.07;
       model.body.rotation.x=p.down?-1.51:dive?-1.08:crouch?-.48:-stride*.16;
@@ -379,12 +431,25 @@ export class Stadium {
     for(const [key,m] of this.players)if(!visible.has(key))m.root.visible=false;
     for(const shapes of this.playerBatches.values())for(const batch of shapes.values()){
       batch.visible=batch.count>0;
-      if(batch.visible)batch.instanceMatrix.needsUpdate=true;
+      if(batch.visible){
+        batch.instanceMatrix.clearUpdateRanges();
+        batch.instanceMatrix.addUpdateRange(0,batch.count*16);
+        batch.instanceMatrix.needsUpdate=true;
+      }
     }
   }
   render(frame,mode,dt,menu=false,replay=false,presentation={}){
     const active=(frame.offenseHuman?frame.off:frame.def)[frame.active];
-    this.updatePlayers(frame,menu);
+    const pre=!menu&&!replay&&(frame.phase??frame.state)==='pre';
+    this.tuneResolution(dt,!menu&&(replay||(frame.phase??frame.state)==='live'));
+    const flight=frame.flight;
+    const pin=menu||replay?null:presentation.pin;
+    const zoom=menu||replay?1:clamp(presentation.zoom??1,.7,1.45);
+    const idleKey=pre?[frame.possession,frame.spot,frame.marker,frame.active,mode,presentation.play?.name,zoom,pin?.x,pin?.y].join(':'):null;
+    if(idleKey!==null&&idleKey===this.lastIdleKey)return;
+    this.lastIdleKey=null;
+    if(!replay||frame!==this.lastReplayFrame)this.updatePlayers(frame,menu);
+    this.lastReplayFrame=replay?frame:null;
     this.updateRoutes(frame,menu||replay?null:presentation.play);
     const orientation=!menu&&frame.possession===1?Math.PI:0;
     if(orientation!==this.turf.rotation)this.turf.rotation=orientation;
@@ -399,7 +464,6 @@ export class Stadium {
       for(const ring of [this.ring,this.ringBorder]){ring.position.x=active.x;ring.position.z=-active.y}
     }
     this.ball.position.set(frame.ball.x,frame.ball.h,-frame.ball.y);
-    const flight=frame.flight;
     this.ball.scale.set(flight?.kick?.22:.18,flight?.kick?.19:.16,flight?.kick?.34:.29);
     this.ball.rotation.set(.3,flight?Math.atan2(flight.from.x-flight.to.x,flight.to.y-flight.from.y):0,flight?frame.t*20:0);
     this.ballShadow.visible=!menu&&Boolean(flight);
@@ -418,12 +482,21 @@ export class Stadium {
         -frame.ball.y+(flight.to.y-flight.from.y)*step);
     });
     const aspect=this.camera.aspect,portrait=aspect<1.1;
-    const pin=menu||replay?null:presentation.pin;
     const fieldY=clamp(frame.ball.y,2,99);
-    const zoom=menu||replay?1:clamp(presentation.zoom??1,.7,1.45);
-    const canSeeRoutes=Boolean(presentation.play||presentation.showReceivers);
-    const x=pin?.x??(active&&!frame.offenseHuman?active.x*.38+frame.ball.x*.62:frame.ball.x*.63);
-    const y=pin?.y??(active&&!frame.offenseHuman?clamp(active.y*.35+fieldY*.65,2,99):fieldY);
+    const canSeeRoutes=Boolean(pre&&frame.offenseHuman||presentation.play||presentation.showReceivers||flight&&!flight.kick&&frame.offenseHuman);
+    let x=active&&!frame.offenseHuman?active.x*.38+frame.ball.x*.62:frame.ball.x*.63;
+    let y=active&&!frame.offenseHuman?active.y*.35+fieldY*.65:fieldY;
+    if(presentation.showReceivers&&frame.offenseHuman){
+      const depth=frame.off.slice(7).reduce((sum,p)=>sum+p.y-frame.spot,0)/4;
+      x=.38*frame.ball.x;
+      y=frame.spot+clamp(depth*.48,0,10);
+    }else if(!replay&&flight&&!flight.kick){
+      const lookAhead=.16+.23*clamp(flight.elapsed/flight.duration,0,1);
+      x+=(flight.to.x-x)*lookAhead;
+      y+=(flight.to.y-y)*lookAhead;
+    }
+    x=pin?.x??x;
+    y=pin?.y??clamp(y,2,99);
     const fit=canSeeRoutes||mode===1?Math.max(1,1.27/aspect):Math.max(1,.78/aspect);
     if(menu){
       this.menuTime+=dt;
@@ -442,13 +515,33 @@ export class Stadium {
     const snap=!this.initialized||this.wasMenu!==menu||(!pin&&!replay&&changedPossession&&Math.abs(this.target.z-this.goalTarget.z)>39);
     this.lastPossession=frame.possession;
     this.initialized=true;this.wasMenu=menu;
-    const blend=snap?1:1-Math.exp(-dt*5.4);
+    const blend=snap?1:1-Math.exp(-dt*(pin?9:5.4));
     this.camera.position.lerp(this.goal,blend);this.target.lerp(this.goalTarget,blend);
+    if(idleKey!==null&&this.camera.position.distanceToSquared(this.goal)<.0001&&this.target.distanceToSquared(this.goalTarget)<.0001){
+      this.camera.position.copy(this.goal);
+      this.target.copy(this.goalTarget);
+      this.lastIdleKey=idleKey;
+    }
     this.camera.lookAt(this.target);
+    this.camera.updateMatrixWorld();
     this.renderer.render(this.scene,this.camera);
   }
+  groundAt(localX,localY){
+    if(!this.initialized||!Number.isFinite(localX)||!Number.isFinite(localY)||localX<0||localX>this.width||localY<0||localY>this.height)return null;
+    this.viewportPoint.set(localX/this.width*2-1,1-localY/this.height*2);
+    this.fieldRay.setFromCamera(this.viewportPoint,this.camera);
+    if(!this.fieldRay.ray.intersectPlane(this.fieldPlane,this.fieldHit))return null;
+    const {x,z}=this.fieldHit,y=-z;
+    return Math.abs(x)<=WIDTH/2&&y>=-10&&y<=110?{x,y}:null;
+  }
+  groundScreen(p){
+    return this.project(p,0,1,1);
+  }
   screen(p){
-    const v=this.projected.set(p.x,2.5,-p.y).project(this.camera);
-    return {x:(v.x+1)*50,y:(1-v.y)*50,visible:Math.abs(v.x)<.95&&Math.abs(v.y)<.96&&v.z<1};
+    return this.project(p,2.5,.95,.96);
+  }
+  project(p,height,xLimit,yLimit){
+    const v=this.projected.set(p.x,height,-p.y).project(this.camera);
+    return {x:(v.x+1)*50,y:(1-v.y)*50,visible:Math.abs(v.x)<=xLimit&&Math.abs(v.y)<=yLimit&&v.z>=-1&&v.z<=1};
   }
 }

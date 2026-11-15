@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Sunday Broadcast | DailyFlyer</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <main>
 <header>
   <div class="network"><span></span> DFE SPORTS <strong>Sunday Broadcast</strong></div>
-  <div class="header-right"><button id="camera" title="Change camera (V)">Broadcast</button><button id="sound" aria-pressed="false">Sound off</button><button id="pause" hidden>Pause</button></div>
+  <div class="header-right"><label class="pass-setting" id="pass-setting">Passing <select id="passing"><option value="lead">Regular · Lead</option><option value="receiver">Regular · Receiver</option><option value="point">Hardcore · Free aim</option></select></label><button id="camera" title="Change camera (V)">Broadcast</button><button id="sound" aria-pressed="false">Sound off</button><button id="pause" hidden>Pause</button></div>
 </header>
 <div id="room-bar" class="room-bar" hidden>
   <span id="room-label"></span><span id="room-status" role="status"></span>
@@ -32,10 +32,14 @@
   </form>
   <p id="menu-status" role="status"></p>
 </section>
-<section class="screen" id="screen" aria-label="Football field">
+<section class="screen" id="screen" aria-label="Football field" tabindex="-1">
 <div id="field"></div><div class="grade"></div>
 <div id="bug" class="bug" hidden></div>
 <div id="tags" aria-label="Receivers"></div>
+<div id="aim-guide" class="aim-guide" aria-hidden="true" hidden>
+  <svg viewBox="0 0 100 100" preserveAspectRatio="none"><line id="aim-line"></line></svg>
+  <div id="aim-ring"><span id="aim-label"></span></div>
+</div>
 <div id="receiver-bar" aria-label="Pass to receiver" hidden></div>
 <div id="kick-meter" hidden><span>Kick timing · Space</span><div class="kick-track"><i id="kick-window"></i><b id="kick-needle"></b></div></div>
 <div id="call" class="call" aria-live="polite"></div>
@@ -53,6 +57,6 @@
   </div>
 </section>
 </div>
-<footer><span class="key-strip"><span><kbd>WASD</kbd> Move</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>Space</kbd> Snap / tackle</span><span><kbd>1–4</kbd> Call / pass</span><span><kbd>E</kbd> Cut / switch</span><span><kbd>V</kbd> Camera</span></span><details><summary>Controls</summary><p>Choose a play and press Space. Tap 1–4 or click a receiver to lob. Hold the key or button briefly for a bullet. On runs, follow your blocks and press E to cut. On defense, E switches defenders and Space plays the ball or dives for a tackle. Use the stick and action buttons on touchscreens. Drag the field map to move the camera, then choose Follow play to resume tracking.</p></details></footer>
-</main><script type="module" src="game.mjs?v=4"></script>
+<footer><span class="key-strip"><span><kbd>WASD</kbd> Move</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>Space</kbd> Snap / tackle</span><span><kbd>1–4</kbd> Call / pass</span><span class="mouse-key"><kbd>Mouse</kbd> Aim / throw</span><span><kbd>E</kbd> Cut / switch</span><span><kbd>V</kbd> Camera</span></span><details><summary>Controls</summary><p>Choose a play and press Space. Hover near a receiver or their route, then click the field to lob. Regular Receiver uses the selected route without cursor lead. Hardcore Free aim throws to the marked spot. Tap 1–4 to throw to a receiver, or hold the key or mouse button briefly for a bullet. On runs, follow your blocks and press E to cut. On defense, E switches defenders and Space plays the ball or dives for a tackle. Use the stick and action buttons on touchscreens. Drag the field map to move the camera, then choose Follow play to resume tracking.</p></details></footer>
+</main><script type="module" src="game.mjs?v=5"></script>
 </body></html>

@@ -4,12 +4,13 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGzip, constants as zlib } from 'node:zlib';
-import { Football, PLAYS, DEFENSE } from './public/football.mjs';
+import { Football, PLAYS, DEFENSE, WIDTH } from './public/football.mjs';
 
 const publicRoot = fileURLToPath(new URL('./public/', import.meta.url));
 const roomAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const neutral = { x: 0, y: 0, sprint: false };
 const step = 1 / 120;
+const snapshotIntervalMs = 30;
 const reconnectMs = 120000;
 const roomIdleMs = 45 * 60 * 1000;
 const MIME = {
@@ -73,6 +74,26 @@ function normalizeInput({ x, y, sprint }) {
   return { x: x / magnitude, y: y / magnitude, sprint: sprint === true };
 }
 
+function passRequest({ index, bullet, aim = {} }, side) {
+  if (!aim || typeof aim !== 'object' || Array.isArray(aim)) {
+    throw new RequestError(400, 'Choose a valid pass target.');
+  }
+  const { target, x, y } = aim;
+  const receiverIndex = Number.isInteger(index) && index >= 0 && index <= 3;
+  if (target === 'point' || target === 'receiver') {
+    if ((target === 'point' ? index !== null && !receiverIndex : !receiverIndex) ||
+      !Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > WIDTH / 2 || y < -10 || y > 110) {
+      throw new RequestError(400, 'Choose a receiver or a spot within the field.');
+    }
+    return { index: target === 'point' ? null : index, bullet: bullet === true, side, aim: { target, x, y } };
+  }
+  if (target !== undefined || !receiverIndex ||
+    (x !== undefined && !Number.isFinite(x)) || (y !== undefined && !Number.isFinite(y))) {
+    throw new RequestError(400, 'Choose a valid receiver.');
+  }
+  return { index, bullet: bullet === true, side, aim: normalizeInput(aim) };
+}
+
 function openingGame(length, openingTeam) {
   return new Football({ quarter: length, online: true, openingTeam });
 }
@@ -111,9 +132,8 @@ function packet(room, side, includeReplay) {
 export function createServer({ now = Date.now, allowedOrigins = ['https://dfe-sunday-broadcast.onrender.com'] } = {}) {
   const rooms = new Map(), rates = new Map();
   const origins = new Set([...allowedOrigins, ...(process.env.FOOTBALL_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)]);
-  function rate(req, kind, max, windowMs) {
-    const address = req.socket.remoteAddress || 'unknown';
-    const key = kind + ':' + address, timestamp = now();
+  function rate(req, kind, max, windowMs, identity = req.socket.remoteAddress || 'unknown') {
+    const key = kind + ':' + identity, timestamp = now();
     let bucket = rates.get(key);
     if (!bucket || timestamp >= bucket.expires) {
       if (rates.size >= 4096 && !bucket) throw new RequestError(429, 'Online is busy. Try again shortly.');
@@ -298,12 +318,10 @@ export function createServer({ now = Date.now, allowedOrigins = ['https://dfe-su
       seat.seq = data.seq;
       seat.input = normalizeInput(data);
       seat.inputAt = now();
-    } else if (data.type === 'pass' && side === game.possession && game.canPass) {
-      if (!Number.isInteger(data.index) || data.index < 0 || data.index > 3) return;
-      const aim = normalizeInput(data.aim && typeof data.aim === 'object' ? data.aim : {});
-      if (!game.pass(data.index, data.bullet === true, side, aim) && game.t < .15) {
-        room.pendingPass = { index: data.index, bullet: data.bullet === true, side, aim };
-      }
+    } else if (data.type === 'pass' && side === game.possession && game.canPass && !room.pendingPass) {
+      const pass = passRequest(data, side);
+      if (game.pass(pass.index, pass.bullet, side, pass.aim)) publish(room);
+      else if (game.t < .12) room.pendingPass = pass;
     } else if (data.type === 'dive' && (side !== game.possession || game.kickMeter)) {
       game.action(side);
     }
@@ -349,7 +367,7 @@ export function createServer({ now = Date.now, allowedOrigins = ['https://dfe-su
         if (rooms.get(code) !== room) throw new RequestError(404, 'This room expired.');
         if (operation === 'rejoin') json(res, 200, session(room, side));
         else if (operation === 'command') {
-          rate(req, 'command', 240, 1000);
+          rate(req, 'command', 120, 1000, room.code + ':' + side);
           command(room, side, data);
           json(res, 200, { ok: true });
         } else throw new RequestError(405, 'That request method is unavailable.');
@@ -391,16 +409,17 @@ export function createServer({ now = Date.now, allowedOrigins = ['https://dfe-su
       const game = room.game;
       if (roomStatus(room) === 'playing' && game.state === 'live') {
         const teams = room.seats.map(seat => time - seat.inputAt <= 450 ? seat.input : neutral);
+        let releasedPass = false;
         for (let i = 0; i < steps && game.state === 'live'; i++) {
           if (room.pendingPass && game.t >= .12) {
             const pass = room.pendingPass;
-            game.pass(pass.index, pass.bullet, pass.side, pass.aim);
+            releasedPass = game.pass(pass.index, pass.bullet, pass.side, pass.aim);
             room.pendingPass = null;
           }
           game.tick(step, { teams });
         }
         if (game.state !== 'live') transition(room);
-        else if (time - room.lastPublish >= 42) publish(room);
+        else if (releasedPass || time - room.lastPublish >= snapshotIntervalMs) publish(room);
       } else if (time - room.lastPublish > 8000) publish(room);
     }
     if (time - lastCleanup >= 30000) {

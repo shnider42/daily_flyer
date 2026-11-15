@@ -1,4 +1,4 @@
-import { TEAMS, WIDTH, clamp } from './football.mjs?v=4';
+import { TEAMS, WIDTH, clamp } from './football.mjs?v=5';
 
 const css = color => '#' + color.toString(16).padStart(6, '0');
 const jerseys = TEAMS.map(team => ({ uniform: css(team.color), trim: css(team.trim), helmet: css(team.helmet) }));
@@ -35,6 +35,21 @@ export class FallbackStadium {
       this.width / 2 + (x - this.focus.x) * this.scale,
       this.height / 2 - (y - this.focus.y) * this.scale
     ];
+  }
+
+  groundAt(localX, localY) {
+    if (!this.focus || !this.scale || localX < 0 || localX > this.width || localY < 0 || localY > this.height) return null;
+    const right = (localX - this.width / 2) / this.scale;
+    const down = (localY - this.height / 2) / this.scale;
+    const x = this.focus.x + (this.horizontal ? down : right);
+    const y = this.focus.y + (this.horizontal ? right : -down);
+    return Math.abs(x) <= WIDTH / 2 && y >= -10 && y <= 110 ? { x, y } : null;
+  }
+
+  groundScreen(point) {
+    const [x, y] = this.point(point.x, point.y);
+    return { x: x / this.width * 100, y: y / this.height * 100,
+      visible: x >= 0 && x <= this.width && y >= 0 && y <= this.height };
   }
 
   screen(player) {
@@ -204,13 +219,17 @@ export class FallbackStadium {
     const viewHeight = this.horizontal
       ? menu ? 67 : replay ? 42 : wide ? 59 : mode === 2 ? 45 : 54
       : menu ? 131 : replay ? 49 : wide ? 59 : mode === 2 ? 40 : 53;
-    this.scale = Math.min(this.width / viewWidth, this.height / viewHeight) * zoom;
+    const desiredScale = Math.min(this.width / viewWidth, this.height / viewHeight) * zoom;
+    const blend = 1 - Math.exp(-dt * 6.4);
+    if (!this.focus || this.menu !== menu || this.lastHorizontal !== this.horizontal) this.scale = desiredScale;
+    else this.scale += (desiredScale - this.scale) * blend;
+    this.lastHorizontal = this.horizontal;
     if (this.horizontal && !menu && !pin) {
       const halfLength = Math.min(66, this.width / (this.scale * 2));
       target.y = clamp(target.y, -16 + halfLength, 116 - halfLength);
     }
     if (!this.focus || this.menu !== menu) this.focus = { ...target };
-    const blend = 1 - Math.exp(-dt * 7);
+
     this.focus.x += (target.x - this.focus.x) * blend;
     this.focus.y += (target.y - this.focus.y) * blend;
     this.menu = menu;

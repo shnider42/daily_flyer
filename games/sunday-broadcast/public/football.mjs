@@ -31,6 +31,7 @@ const QB = 5;
 const RB = 6;
 const LOB_SPEED = 23;
 const BULLET_SPEED = 39;
+const SIDELINE = WIDTH / 2;
 const positions = [
   [-4.4,-.2,'LT',72],[-2.2,-.2,'LG',67],[0,-.2,'C',54],[2.2,-.2,'RG',75],[4.4,-.2,'RT',78],
   [0,-4.5,'QB',12],[-1,-7,'RB',28],...receivers.map((x,i)=>[x,-.6,'WR',[81,16,87,84][i]])
@@ -71,6 +72,21 @@ function direction(input={}){
 }
 function steer(p,dir,speed,dt,response){
   move(p,p.x+dir.x*12,p.y+dir.y*12,speed*dir.amount,dt,response);
+}
+function pointOnField(aim){
+  return Number.isFinite(aim.x)&&Math.abs(aim.x)<=SIDELINE&&
+    Number.isFinite(aim.y)&&aim.y>=-10&&aim.y<=110;
+}
+function passTime(from,to,bullet){
+  return Math.max(.27,dist(from,to)/(bullet?BULLET_SPEED:LOB_SPEED));
+}
+function nearest(players,point){
+  let closest=null,best=Infinity;
+  for(const player of players){
+    const distance=dist(player,point);
+    if(!player.down&&distance<best){closest=player;best=distance}
+  }
+  return closest;
 }
 function arrival(qb,receiver,index,play,spot,time,bullet){
   const speed=bullet?BULLET_SPEED:LOB_SPEED;
@@ -172,18 +188,48 @@ export class Football {
     return this.state==='live'&&!this.flight&&this.carrierIndex===QB&&!this.scrambled&&
       this.playcall.type==='PASS'&&this.carrier.y<=this.spot;
   }
+  previewPass(index,bullet=false,aim={}){
+    if(!this.canPass)return null;
+    const mode=aim?.target;
+    const qb=this.carrier;
+    if(mode==='point'){
+      if(!pointOnField(aim))return null;
+      const to={x:aim.x,y:aim.y};
+      return {to,duration:passTime(qb,to,bullet)};
+    }
+    if(!Number.isInteger(index)||index<0||index>=receivers.length)return null;
+    if(mode!==undefined&&(mode!=='receiver'||!pointOnField(aim)))return null;
+    const receiver=this.off[7+index];
+    const {to}=arrival(qb,receiver,index,this.playcall,this.spot,this.t,bullet);
+    if(mode==='receiver'){
+      to.x+=clamp((aim.x-to.x)*.40,-2.65,2.65);
+      to.y+=clamp((aim.y-to.y)*.40,-2.85,2.85);
+    }else{
+      const placement=direction(aim);
+      to.x+=placement.x*1.05;
+      to.y+=placement.y*1.2;
+    }
+    to.x=clamp(to.x,-SIDELINE,SIDELINE);
+    to.y=clamp(to.y,-10,110);
+    return {to,duration:passTime(qb,to,bullet)};
+  }
   pass(index,bullet=false,team=this.human,aim={}){
-    if(!this.canPass||team!==this.possession||this.t<.12||!Number.isInteger(index)||index<0||index>=4)return false;
-    const qb=this.carrier,target=this.off[7+index];
-    const {to,duration}=arrival(qb,target,index,this.playcall,this.spot,this.t,bullet);
-    const pressure=this.def.some(p=>!p.down&&dist(p,qb)<2.7);
-    const placement=direction(aim);
-    const motion=Math.hypot(qb.vx,qb.vy);
-    const scatter=(pressure?1.7:.25)+motion*.09;
-    const error=(this.random()-.5)*scatter;
+    if(team!==this.possession||this.t<.12)return false;
+    const preview=this.previewPass(index,bullet,aim);
+    if(!preview)return false;
+    const qb=this.carrier;
+    const direct=aim?.target==='point';
+    const {to,duration}=preview;
+    if(!direct){
+      const pressure=this.def.some(p=>!p.down&&dist(p,qb)<2.7);
+      const motion=Math.hypot(qb.vx,qb.vy);
+      const scatter=(pressure?1.7:.25)+motion*.09;
+      const error=(this.random()-.5)*scatter;
+      to.x=clamp(to.x+error,-SIDELINE,SIDELINE);
+      to.y=clamp(to.y+error*.3,-10,110);
+    }
     this.flight={
-      index,bullet,duration,elapsed:0,from:{x:qb.x,y:qb.y,h:1.65},
-      to:{x:clamp(to.x+placement.x*1.05+error,-27.1,27.1),y:clamp(to.y+placement.y*1.2+error*.3,-8,109)}
+      index:direct?null:index,bullet,duration,elapsed:0,from:{x:qb.x,y:qb.y,h:1.65},to
     };
     this.stats[this.possession].att++;
     return true;
@@ -460,12 +506,12 @@ export class Football {
       this.finish(good?'fg':'miss',this.spot,yards+'-yard field goal · '+label);
       return;
     }
-    const target=this.off[7+f.index];
-    const defender=this.def.filter(p=>!p.down).reduce((best,p)=>!best||dist(p,f.to)<dist(best,f.to)?p:best,null);
-    const reach=dist(target,f.to);
+    const target=f.index===null?nearest(this.off.slice(RB),f.to):this.off[7+f.index];
+    const defender=nearest(this.def,f.to);
+    const reach=target?dist(target,f.to):Infinity;
     const coverage=defender?dist(defender,f.to):Infinity;
     const userPlay=defender?.i===this.control&&this.defenseControlled&&this.playBall>0;
-    const inBounds=Math.abs(f.to.x)<WIDTH/2;
+    const inBounds=Math.abs(f.to.x)<SIDELINE&&f.to.y>-10&&f.to.y<110;
     const pickRange=userPlay?2.1:1.35;
     const pickChance=userPlay?(reach>1.8?.83:.48):(reach>2.2?.43:.09);
     if(inBounds&&coverage<pickRange&&this.random()<pickChance){
