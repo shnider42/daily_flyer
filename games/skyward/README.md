@@ -15,6 +15,8 @@ node --test games/skyward/tests/*.test.mjs
 
 The same server serves the browser app and squadron WebSocket endpoint. It listens on `0.0.0.0`, uses `PORT` when present, and otherwise uses port 3000. `/health` reports server readiness. The dedicated Render service uses this branch and directory; other Daily Flyer games are unchanged.
 
+For large-screen testing and graphics changes, use the [DFE 3D performance guide](https://github.com/shnider42/daily_flyer/blob/master/docs/3d-game-performance.md).
+
 ## Operations and the flight log
 
 **Operations** is a solo flight board with six authored challenges and three passenger routes. All are available immediately, with fixed aircraft and weather.
@@ -269,7 +271,9 @@ If a browser cannot create a WebGL context, the app automatically uses `Software
 
 The compatibility renderer uses explicit terrain, airfield, and aircraft drawing passes, polygon clipping, backface removal and view-distance culling. Its cached terrain tiles are disjoint and share boundary vertices across detail levels. A small coverage stroke on opaque ground faces prevents Canvas antialiasing from exposing the sky between adjoining triangles. The detailed player/menu aircraft uses a cropped, reusable depth/color buffer with bounded supersampling, smooth skin lighting, opaque depth tests and a depth-tested transparency pass. This prevents wings, fuselages, ducts and conformal markings from cutting through one another as they rotate. Terrain, distant actors and effects retain the lighter painter; mountains hide distant actors through sampled terrain line-of-sight checks, so world-to-actor occlusion remains approximate. Projected draw records are reused and complete visible faces are drawn. The compatibility renderer provides playable fallback graphics, not identical visual quality or a promise of the same frame rate as WebGL. Both renderers sample the simulation terrain; small visual depth offsets keep terrain below airfield paint, and the compatibility renderer draws the airfield after its terrain pass.
 
-**Setup → Sound & view** reports the graphics backend and the most recent flight frame rate. Read-only diagnostics are also exposed as `SKYWARD.status` and the canvas's `data-renderer`, `data-fps`, `data-frame-work-ms` and `data-version` attributes. Frame rate uses actual elapsed display time; it does not infer FPS from the capped physics interval.
+Skyward 0.10.1 sets independent drawing-buffer budgets for Automatic and Low in both renderers. Automatic uses actual foreground frame intervals to reduce resolution during slow flight and restores it gradually. High uses a sharper fixed buffer. The HUD, touch targets and world projection still use the CSS viewport. Sky and water rendering also avoid shading pixels that nearer opaque terrain already covers.
+
+**Setup → Sound & view → Copy graphics report** includes the graphics backend, active graphics setting, CSS viewport, device pixel ratio, internal buffer size, recent average FPS, p95 frame time and average JavaScript frame work. Read-only diagnostics are also exposed as `SKYWARD.status`. Frame cadence and app work represent different measurements. Paused and hidden frames are left out of flight metrics.
 
 ## Multiplayer authority and continuity
 

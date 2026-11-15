@@ -42,6 +42,23 @@ function beginSquadron(app) {
     hostId: 'lead', runId: 'shared-one', seed: 1, role: 'pilot' });
 }
 
+test('flight graphics measure raw frame intervals and ignore frames in settings or pause', async t => {
+  const { app, document, frame, diagnostics } = await appFixture(t);
+  launchOperation(document);
+  for (let i = 0; i < 9; i++) frame(125);
+  const render = app.renderer.lastRender;
+  assert.equal(render.dt, .1, 'animation still receives a bounded delta');
+  assert.equal(render.options.frameSeconds, .125, 'graphics adaptation receives actual frame time');
+  const flight = diagnostics();
+  assert.equal(flight.fps, 8);
+  assert.equal(flight.frameP95Ms, 125);
+  assert.equal(flight.graphics.viewportWidth, 1200);
+  document.getElementById('pause-button').onclick();
+  for (let i = 0; i < 4; i++) frame(400);
+  assert.equal(app.renderer.lastRender.options.frameSeconds, undefined);
+  assert.deepEqual(diagnostics().lastFlightGraphics, flight.lastFlightGraphics);
+});
+
 test('operation selection launches the selected aircraft and never rewrites campaign progress', async t => {
   const { app, document, stored, frame } = await appFixture(t);
   const campaign = JSON.stringify({ completed: { 'first-light': { score: 400, time: 200 } }, lastMission: 'new-teeth', totalTime: 200 });

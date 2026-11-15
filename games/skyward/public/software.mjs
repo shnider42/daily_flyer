@@ -10,6 +10,7 @@ import {makeSoftwareGunshipStation,drawSoftwareGunshipStation} from './gunship-v
 import {GUNSHIP_SITE_COLORS,GUNSHIP_ROAD_TILES,gunshipTargetParts} from './gunship-scenery.mjs';
 import {buildSceneTerrain,terrainMeshSettings,colorSoftwareTerrain,groundDetails,aircraftGroundShadow,sceneryClearance} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
+import {PixelBudget,renderPixelRatio} from './pixel-budget.mjs';
 import { arePilotsHostile } from './arena.mjs';
 import {sampleCombatEffects,DamageSmokeTrails,effectViewAlpha} from './combat-visuals.mjs';
 import {applyCombatCameraKick} from './combat-camera.mjs';
@@ -26,6 +27,8 @@ const n=(v,f=0)=>Number.isFinite(v)?v:f;
 const mix=(a,b,t)=>a+(b-a)*t;
 const V=new THREE.Vector3(),D=new THREE.Vector3(),Q=new THREE.Quaternion(),M=new THREE.Matrix4(),MV=new THREE.Matrix4(),S=new THREE.Vector3(1,1,1);
 const materials=new WeakMap(),vertexBuffers=new WeakMap(),simpleCache=new Map(),colorCache=new Map();
+const SOFTWARE_PIXELS={low:450000,medium:800000,high:1450000};
+const AUTO_PIXELS=[230000,340000,490000,650000,800000];
 const colors={
   countryside:{sky:'#85aeb6',haze:'#d6d8bd',water:'#63909a',land:['#7b9272','#95a17a','#a6ac87','#718969']},
   channel:{sky:'#81a5b3',haze:'#c9d3cc',water:'#527f8e',land:['#708c70','#899c7d','#aaa98b','#64816d']},
@@ -82,24 +85,43 @@ export class SoftwareFlightRenderer{
     this.backend='software';this.settings={...settings};this.camera=new THREE.PerspectiveCamera(60,1,.6,70000);
     this.width=1;this.height=1;this.time=0;this._mode=null;this._plane=null;this._queue=[];this._drawPool=[];this._poolIndex=0;this._clipBuffer=[];this._pointBuffer=[];this._terrainCache=new Map();this._terrainMesh=null;
     this._cameraReady=false;this._cameraTarget=new THREE.Vector3();this._cameraOffset=new THREE.Vector3();this._cameraLookOffset=new THREE.Vector3();this._sunView=new THREE.Vector3();this._upView=new THREE.Vector3();
-    this.stats={fps:60,triangles:0,drawCalls:0,pixelRatio:1};this.contextLost=false;this.setSettings(settings);
+    this.stats={fps:60,triangles:0,drawCalls:0,pixelRatio:1,adaptive:false};
+    this._pixelBudget=new PixelBudget(AUTO_PIXELS);this.contextLost=false;this.setSettings(settings);
     this._aircraftRaster=new SoftwareAircraftRasterizer();
   }
-  setSettings(settings={}){this.settings={...this.settings,...settings};this.pixelRatio=Math.min(n(globalThis.devicePixelRatio,1),this.settings.quality==='high'?1.4:1);this.resize();}
+  setSettings(settings={}){
+    const previous=this._quality;
+    this.settings={...this.settings,...settings};this._quality=this.settings.quality||'auto';
+    if(previous!==this._quality){this._pixelBudget.reset();this._detailAnchor=null;}
+    this.resize();
+  }
   resize(){
     const r=this.canvas.getBoundingClientRect(),width=Math.max(1,Math.round(r.width||globalThis.innerWidth||1)),height=Math.max(1,Math.round(r.height||globalThis.innerHeight||1));
-    const backingWidth=Math.round(width*this.pixelRatio),backingHeight=Math.round(height*this.pixelRatio),changed=width!==this.width||height!==this.height;
+    const changed=width!==this.width||height!==this.height;
+    if(changed)this._pixelBudget.clearSamples();
+    const cap=this._quality==='high'?1.4:1,limit=Math.min(n(globalThis.devicePixelRatio,1),cap);
+    this._nativePixels=width*height*limit*limit;
+    const desired=renderPixelRatio(width,height,limit,SOFTWARE_PIXELS[this._quality]??this._pixelBudget.maxPixels);
+    const backingWidth=Math.max(1,Math.floor(width*desired+1e-7)),backingHeight=Math.max(1,Math.floor(height*desired+1e-7));
     // Assigning either dimension clears the canvas and resets the entire 2D
     // context, even when its value is unchanged (for example a key remap).
     if(this.canvas.width!==backingWidth)this.canvas.width=backingWidth;
     if(this.canvas.height!==backingHeight)this.canvas.height=backingHeight;
-    this.width=width;this.height=height;this.ctx.setTransform(this.pixelRatio,0,0,this.pixelRatio,0,0);
+    this.width=width;this.height=height;this.pixelRatio=desired;this._scaleX=backingWidth/width;this._scaleY=backingHeight/height;
+    this.ctx.setTransform(this._scaleX,0,0,this._scaleY,0,0);
     if(changed&&this.aircraft)this._cockpitPanel=makeSoftwareCockpit(this.aircraft,width,height);
     if(changed&&this._gunshipPanel)this._gunshipPanel=makeSoftwareGunshipStation(this._gunshipPanel.layout.seat,width,height);
     if(changed){this.camera.aspect=width/height;this.camera.fov=width<height?67:59;this.camera.updateProjectionMatrix();}
     this.stats.pixelRatio=this.pixelRatio;
+    this.stats.adaptive=this._quality==='auto'&&this.pixelRatio<renderPixelRatio(width,height,limit,AUTO_PIXELS.at(-1));
+  }
+  _adjustResolution(frameSeconds){
+    if(this._quality!=='auto')return;
+    if(!Number.isFinite(frameSeconds)){this._pixelBudget.clearSamples();return;}
+    if(this._pixelBudget.observe(frameSeconds,this._nativePixels))this.resize();
   }
   loadMission(mission,aircraft){
+    this._pixelBudget.clearSamples();
     this._terrainStream?.dispose();this._terrainStream=new TerrainStream();
     this.mission=mission;this.aircraft=typeof aircraft==='string'?{id:aircraft}:aircraft||{id:mission.aircraft};this._mode='flight';this._plane=makeAircraft(this.aircraft);this._planeMeta=this._plane.userData;
     this._cameraReady=false;this._terrainCache.clear();this._terrainMesh=null;this._groundOffset=mission.start?.airborne===false?n(this._planeMeta.groundOffset,1.3):0;this.camera.fov=this.width<this.height?67:59;this.camera.updateProjectionMatrix();
@@ -147,9 +169,12 @@ export class SoftwareFlightRenderer{
     for(let i=0;i<polygon.length;i+=3){const d=-polygon[i+2],x=this.width*.5+polygon[i]*this._focal/d,y=this.height*.5-polygon[i+1]*this._focal/d;points.push(x,y);clippedDepth+=d;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
     if(maxX<0||minX>this.width||maxY<0||minY>this.height)return;
     const area=(points[2]-points[0])*(points[5]-points[1])-(points[3]-points[1])*(points[4]-points[0]);if(Math.abs(area)<.035)return;
-    const len=Math.hypot(nx,ny,nz);if(len<1e-8)return;nx/=len;ny/=len;nz/=len;
     // Shading and color strings are only needed for a visible triangle.
-    const light=unlit?1:(this._night?.7:.65)+Math.max(0,nx*this._sunView.x+ny*this._sunView.y+nz*this._sunView.z)*.38+Math.max(0,nx*this._upView.x+ny*this._upView.y+nz*this._upView.z)*.12;
+    let light=1;
+    if(!unlit){
+      const len=Math.hypot(nx,ny,nz);if(len<1e-8)return;nx/=len;ny/=len;nz/=len;
+      light=(this._night?.7:.65)+Math.max(0,nx*this._sunView.x+ny*this._sunView.y+nz*this._sunView.z)*.38+Math.max(0,nx*this._upView.x+ny*this._upView.y+nz*this._upView.z)*.12;
+    }
     const fog=clamp((depth-1200)/Math.max(100,this._visibilityFar-1200),0,.97),f=fog*fog;
     const rr=Math.round(clamp(mix(base[0]*light,this._fogColor[0],f),0,255)),gg=Math.round(clamp(mix(base[1]*light,this._fogColor[1],f),0,255)),bb=Math.round(clamp(mix(base[2]*light,this._fogColor[2],f),0,255));
     const item=this._primitive('triangle');item.points.length=points.length;for(let i=0;i<points.length;i++)item.points[i]=points[i];
@@ -172,7 +197,7 @@ export class SoftwareFlightRenderer{
     return {x:this.width*.5+(e[0]*x+e[4]*y+e[8]*z)*this._focal/depth,y:this.height*.5-(e[1]*x+e[5]*y+e[9]*z)*this._focal/depth};
   }
   _background(){
-    const ctx=this.ctx;ctx.globalAlpha=1;ctx.setTransform(this.pixelRatio,0,0,this.pixelRatio,0,0);
+    const ctx=this.ctx;ctx.globalAlpha=1;ctx.setTransform(this._scaleX,0,0,this._scaleY,0,0);
     // A screen ray's world elevation is linear in its screen coordinates.
     // Project world-up into the camera, so the horizon and sea rotate with a
     // banked cockpit and correctly exchange screen halves when inverted.
@@ -197,15 +222,16 @@ export class SoftwareFlightRenderer{
   }
   _terrain(player){
     this._strataCount=this._groundGradientCount=0;
-    const {cell,focusStep}=terrainMeshSettings(this.mission,this.settings.quality,true),anchorX=Math.round(player.x/focusStep)*focusStep,anchorZ=Math.round(player.z/focusStep)*focusStep;
-    const key=anchorX+','+anchorZ+','+this.settings.quality,ready=this._terrainStream?.take();
+    const quality=this._sceneQuality();
+    const {cell,focusStep}=terrainMeshSettings(this.mission,quality,true),anchorX=Math.round(player.x/focusStep)*focusStep,anchorZ=Math.round(player.z/focusStep)*focusStep;
+    const key=anchorX+','+anchorZ+','+quality,ready=this._terrainStream?.take();
     if(ready?.key===key)this._useTerrain(ready.mesh,ready.quality);
-    if(!this._terrainMesh||this._terrainMesh.anchorX!==anchorX||this._terrainMesh.anchorZ!==anchorZ||this._terrainMesh.cell!==cell||this._terrainQuality!==this.settings.quality){
-      const job={key,x:anchorX,z:anchorZ,mission:this.mission,quality:this.settings.quality,software:true,radius:this._fogFar*1.1,palette:this.palette.land};
+    if(!this._terrainMesh||this._terrainMesh.anchorX!==anchorX||this._terrainMesh.anchorZ!==anchorZ||this._terrainMesh.cell!==cell||this._terrainQuality!==quality){
+      const job={key,x:anchorX,z:anchorZ,mission:this.mission,quality,software:true,radius:this._fogFar*1.1,palette:this.palette.land};
       const near=this._terrainMesh&&Math.max(Math.abs(this._terrainMesh.anchorX-anchorX),Math.abs(this._terrainMesh.anchorZ-anchorZ))<1024;
       if(!near||!this._terrainStream?.request(job)){
         const mesh=buildSceneTerrain({...job,sampleHeight:(x,z)=>this._height(x,z)});colorSoftwareTerrain(mesh,this.mission,this.palette.land);
-        this._useTerrain(mesh,this.settings.quality);
+        this._useTerrain(mesh,quality);
       }
     }
     const mesh=this._terrainMesh,e=this._viewElements,{view,stamps,colors}=mesh,frame=++mesh.frame;
@@ -238,11 +264,15 @@ export class SoftwareFlightRenderer{
     mesh.stamps=new Uint32Array(mesh.vertices.length);mesh.frame=0;
     this._terrainMesh=mesh;this._terrainQuality=quality;
   }
+  _sceneQuality(){
+    return this._quality==='auto'&&this._pixelBudget.maxPixels<=340000?'low':this._quality;
+  }
   _gradientGround(item,colors,a,b,c,base){
-    const limit=this.settings.quality==='low'?0:this.settings.quality==='high'?320:200,p=item.points;
+    const quality=this._sceneQuality();
+    const limit=quality==='low'?0:quality==='high'?320:96,p=item.points;
     if(this._groundGradientCount>=limit||p.length!==6)return;
     const area=Math.abs((p[2]-p[0])*(p[5]-p[1])-(p[3]-p[1])*(p[4]-p[0]));
-    if(area<420)return;
+    if(area*this.pixelRatio*this.pixelRatio<360)return;
     // Major tone changes interpolate across the face, so a large aerial
     // triangle cannot read as a single colored cardboard patch.
     const va=colors[a]*.25+colors[a+1]*.6+colors[a+2]*.15;
@@ -264,9 +294,10 @@ export class SoftwareFlightRenderer{
     item.groundGradient=true;this._groundGradientCount++;
   }
   _cliffStrata(item,a,b,c){
-    const limit=this.settings.quality==='low'?0:this.settings.quality==='high'?280:160;
+    const quality=this._sceneQuality();
+    const limit=quality==='low'?0:quality==='high'?280:72;
     if(item.points.length!==6||this._strataCount>=limit||item.depth>2200)return;const p=item.points,low=Math.min(a,b,c),high=Math.max(a,b,c);if(high-low<20||high<260)return;
-    const ux=p[2]-p[0],uy=p[3]-p[1],vx=p[4]-p[0],vy=p[5]-p[1],det=ux*vy-vx*uy;if(Math.abs(det)<500)return;
+    const ux=p[2]-p[0],uy=p[3]-p[1],vx=p[4]-p[0],vy=p[5]-p[1],det=ux*vy-vx*uy;if(Math.abs(det)*this.pixelRatio*this.pixelRatio<430)return;
     const gx=((b-a)*vy-(c-a)*uy)/det,gy=(ux*(c-a)-vx*(b-a))/det,g2=gx*gx+gy*gy;if(g2<1e-6)return;
     const span=(high-low)/Math.sqrt(g2);if(span<7)return;
     const data=item.strataData||(item.strataData={});Object.assign(data,{x0:p[0]+(low-a)*gx/g2,y0:p[1]+(low-a)*gy/g2,x1:p[0]+(high-a)*gx/g2,y1:p[1]+(high-a)*gy/g2,low,high,strength:clamp((span-7)/18,0,1)*clamp((2200-item.depth)/800,0,1)});item.strata=true;this._strataCount++;
@@ -357,7 +388,7 @@ export class SoftwareFlightRenderer{
   _aircraft(model,pose,dt,full=true,enemy=false){
     if(full){
       setAircraftPose(model,pose);if(pose.onGround)model.position.y-=n(model.userData.groundOffset,1.3);animateAircraft(model,pose,dt,this.time);model.updateMatrixWorld(true);
-      const raster=this._aircraftRaster?.render(model,{viewMatrix:this.camera.matrixWorldInverse,width:this.width,height:this.height,focal:this._focal,pixelRatio:this.pixelRatio,quality:this.settings.quality,sun:this._sunView,up:this._upView,night:this._night,fogFar:this._visibilityFar,fogColor:this._fogColor});
+      const raster=this._aircraftRaster?.render(model,{viewMatrix:this.camera.matrixWorldInverse,width:this.width,height:this.height,focal:this._focal,pixelRatio:this.pixelRatio,quality:this._sceneQuality(),sun:this._sunView,up:this._upView,night:this._night,fogFar:this._visibilityFar,fogColor:this._fogColor});
       if(raster!==false&&raster!==undefined){if(raster){const item=this._primitive('aircraft');Object.assign(item,raster);}return;}
       model.traverse(mesh=>{
         if(!mesh.isMesh||!mesh.visible)return;let ancestor=mesh.parent;while(ancestor&&ancestor!==model){if(!ancestor.visible)return;ancestor=ancestor.parent;}
@@ -434,15 +465,15 @@ export class SoftwareFlightRenderer{
     const wind=this.mission.weather?.wind||{};for(const cloud of this._clouds){const dx=Math.sin(this.time*.0003)*n(wind.x,3)*1800,dz=Math.sin(this.time*.0003)*n(wind.z)*1800,before=this._queue.length;this._disc(cloud.x+dx,cloud.y,cloud.z+dz,cloud.r,this._night?'#8596a6':this._sunset?'#eee5d0':'#e7ecdf',.72,.4);if(this._queue.length>before)Object.assign(this._queue.at(-1),{type:'effect',kind:'cloud',angle:0});}
   }
   _environment(){
-    for(const s of this._scenery){if(Math.hypot(this.camera.position.x-s.x,this.camera.position.z-s.z)>6500||this._terrainHides(s.x,s.y+s.size,s.z))continue;if(s.kind==='house'){this._box(s.x,s.y+9,s.z,22,18,30,rgb('#a6a68d'));}else{const base=rgb(this.mission.biome==='desert'?'#ab9272':'#4b7057');const r=s.size*.3;this._worldTri([s.x-r,s.y,s.z],[s.x,s.y+s.size,s.z],[s.x+r,s.y,s.z],base,1,true);this._worldTri([s.x,s.y,s.z-r],[s.x,s.y+s.size,s.z],[s.x,s.y,s.z+r],base,1,true);}}
+    for(const s of this._scenery){if(!this._visibleSphere(s.x,s.y,s.z,s.size+20,6500)||this._terrainHides(s.x,s.y+s.size,s.z))continue;if(s.kind==='house'){this._box(s.x,s.y+9,s.z,22,18,30,rgb('#a6a68d'));}else{const base=rgb(this.mission.biome==='desert'?'#ab9272':'#4b7057');const r=s.size*.3;this._worldTri([s.x-r,s.y,s.z],[s.x,s.y+s.size,s.z],[s.x+r,s.y,s.z],base,1,true);this._worldTri([s.x,s.y,s.z-r],[s.x,s.y+s.size,s.z],[s.x,s.y,s.z+r],base,1,true);}}
   }
   _groundReadability(p){
-    const key=Math.round(p.x/288)+','+Math.round(p.z/288);
-    if(this._detailAnchor!==key){this._localDetails=groundDetails(p.x,p.z,this.mission,(x,z)=>this._height(x,z),this.settings.quality==='low'?100:160);this._detailAnchor=key;}
+    const low=this._sceneQuality()==='low',key=Math.round(p.x/288)+','+Math.round(p.z/288)+','+low;
+    if(this._detailAnchor!==key){this._localDetails=groundDetails(p.x,p.z,this.mission,(x,z)=>this._height(x,z),low?80:160);this._detailAnchor=key;}
     const shadow=!isOutsideAircraft(p)&&aircraftGroundShadow(p,this._planeMeta,(x,z)=>surfaceHeight(x,z,this.mission));
     if(shadow)for(let i=0;i<shadow.ring.length;i++)this._worldTri(shadow.center,shadow.ring[i],shadow.ring[(i+1)%shadow.ring.length],rgb('#24302c'),shadow.alpha,true,true);
     for(const d of this._localDetails){
-      if(this._terrainHides(d.x,d.y+d.size,d.z))continue;const color=rgb(d.color),r=d.size*(d.kind==='rock'?.6:.32);
+      if(!this._visibleSphere(d.x,d.y,d.z,d.size*1.3)||this._terrainHides(d.x,d.y+d.size,d.z))continue;const color=rgb(d.color),r=d.size*(d.kind==='rock'?.6:.32);
       if(d.kind==='rock'){
         const top=[d.x,d.y+d.size*.65,d.z],points=[[d.x-r,d.y,d.z-r],[d.x-r,d.y,d.z+r],[d.x+r,d.y,d.z+r],[d.x+r,d.y,d.z-r]];
         for(let i=0;i<4;i++)this._worldTri(points[i],points[(i+1)%4],top,color);
@@ -450,6 +481,12 @@ export class SoftwareFlightRenderer{
         this._worldTri([d.x-r,d.y,d.z],[d.x,d.y+d.size,d.z],[d.x+r,d.y,d.z],color,1,true);this._worldTri([d.x,d.y,d.z-r],[d.x,d.y+d.size,d.z],[d.x,d.y,d.z+r],color,1,true);
       }
     }
+  }
+  _visibleSphere(x,y,z,radius,distance=this._visibilityFar){
+    const e=this._viewElements,depth=-(e[2]*x+e[6]*y+e[10]*z+e[14]),far=depth+radius;
+    if(far<.6||depth-radius>distance)return false;
+    return Math.abs(e[0]*x+e[4]*y+e[8]*z+e[12])<=far*this.width/(2*this._focal)+radius
+      && Math.abs(e[1]*x+e[5]*y+e[9]*z+e[13])<=far*this.height/(2*this._focal)+radius;
   }
   _waypoints(sim){
     if(this.settings.guidance==='minimal'||this.settings.gates===false)return;const index=n(sim.waypointIndex),wps=this.mission.waypoints||[],limit=this.settings.guidance==='standard'?1:2;
@@ -463,10 +500,11 @@ export class SoftwareFlightRenderer{
     this._damageSmoke??=new DamageSmokeTrails();
     const puffs=this._damageSmoke.sample(sim,{time:this.time,remotePlayers:options.remotePlayers,reducedMotion:this.settings.reducedMotion},this._damagePuffs||=[]);
     const effects=[...(sim.effects||[]),...puffs].filter(e=>!this._terrainHides(e.x,e.y,e.z,n(e.radius,12)*.5));
-    const layers=sampleCombatEffects(effects,{capacity:this.settings.quality==='low'?192:320,reducedMotion:this.settings.reducedMotion,wind:this.mission.weather?.wind},this._effectLayers||=[]);
+    const low=this._sceneQuality()==='low';
+    const layers=sampleCombatEffects(effects,{capacity:low?168:320,reducedMotion:this.settings.reducedMotion,wind:this.mission.weather?.wind},this._effectLayers||=[]);
     for(const layer of layers){
       if(layer.kind==='ground-ring'){
-        const segments=this.settings.quality==='low'?32:48;let last=null;
+        const segments=low?32:48;let last=null;
         for(let i=0;i<=segments;i++){const a=i/segments*TAU,point=[layer.x+Math.cos(a)*layer.radius,layer.y,layer.z+Math.sin(a)*layer.radius];if(last)this._line(last,point,layer.color,1.6,layer.alpha);last=point;}
         continue;
       }
@@ -482,14 +520,32 @@ export class SoftwareFlightRenderer{
       this._line([p.x-3,p.y+4,p.z],[p.x,p.y,p.z],'#c8cbb2',1);this._line([p.x+3,p.y+4,p.z],[p.x,p.y,p.z],'#c8cbb2',1);this._disc(p.x,p.y,p.z,.9,'#5b6b51',1,1.4);
     }
   }
+  _groundPath(points){
+    const ctx=this.ctx,size=points.length;
+    const winding=Math.sign((points[2]-points[0])*(points[5]-points[1])-(points[3]-points[1])*(points[4]-points[0]));
+    const bleed=.625/this.pixelRatio;
+    // Fill a narrow overlapping band around the shared edges instead of
+    // stroking every terrain face after filling it. Limit acute corner miters.
+    const normal=(edgeX,edgeY)=>winding/(Math.hypot(edgeX,edgeY)||1);
+    let px=points[0]-points[size-2],py=points[1]-points[size-1],previous=normal(px,py);
+    for(let i=0;i<size;i+=2){
+      const next=(i+2)%size,x=points[i],y=points[i+1],dx=points[next]-x,dy=points[next+1]-y,current=normal(dx,dy);
+      const nx=py*previous+dy*current,ny=-(px*previous+dx*current);
+      const offset=Math.min(bleed/Math.max(.01,1+(px*dx+py*dy)*previous*current),bleed*2);
+      if(i===0)ctx.moveTo(x+nx*offset,y+ny*offset);
+      else ctx.lineTo(x+nx*offset,y+ny*offset);
+      px=dx;py=dy;previous=current;
+    }
+  }
   _paint(){
     const ctx=this.ctx;this._queue.sort((a,b)=>(a.layer||0)-(b.layer||0)||b.depth-a.depth);
-    let triangles=0;for(const item of this._queue){ctx.globalAlpha=item.alpha??1;
-      if(item.type==='triangle'){const fill=this._terrainFill(item);ctx.fillStyle=fill;ctx.beginPath();ctx.moveTo(item.points[0],item.points[1]);for(let i=2;i<item.points.length;i+=2)ctx.lineTo(item.points[i],item.points[i+1]);ctx.closePath();ctx.fill();
-        // Canvas antialiases each adjacent fill separately. Cover the shared
-        // ground edges with the same color, in physical pixels, so sky cannot
-        // leak through them. Aircraft and translucent surfaces keep exact edges.
-        if(item.coverEdges&&item.alpha===1){ctx.strokeStyle=fill;ctx.lineWidth=(item.coverEdges===true?1.25:item.coverEdges)/this.pixelRatio;ctx.lineJoin='round';ctx.stroke();}
+    let triangles=0,alpha=1;for(const item of this._queue){
+      const opacity=item.alpha??1;if(alpha!==opacity)ctx.globalAlpha=alpha=opacity;
+      if(item.type==='triangle'){const fill=this._terrainFill(item);ctx.fillStyle=fill;ctx.beginPath();
+        if(item.coverEdges===true&&opacity===1)this._groundPath(item.points);
+        else{ctx.moveTo(item.points[0],item.points[1]);for(let i=2;i<item.points.length;i+=2)ctx.lineTo(item.points[i],item.points[i+1]);}
+        ctx.closePath();ctx.fill();
+        if(typeof item.coverEdges==='number'&&opacity===1){ctx.strokeStyle=fill;ctx.lineWidth=item.coverEdges/this.pixelRatio;ctx.lineJoin='round';ctx.stroke();}
         triangles++;}
       else if(item.type==='aircraft'){ctx.drawImage(item.canvas,0,0,item.sourceWidth,item.sourceHeight,item.x,item.y,item.width,item.height);triangles+=item.triangles;}
       else if(item.type==='line'){ctx.strokeStyle=item.stroke;ctx.lineWidth=item.width;ctx.beginPath();ctx.moveTo(item.points[0],item.points[1]);ctx.lineTo(item.points[2],item.points[3]);ctx.stroke();}
@@ -555,7 +611,9 @@ export class SoftwareFlightRenderer{
   }
   _weather(p){let factor=1;if(p.y>this._cloudBase-55&&p.y<this._cloudTop+55){const inside=Math.min(clamp((p.y-this._cloudBase+55)/130,0,1),clamp((this._cloudTop+55-p.y)/130,0,1));factor=1-inside*.92;}this._visibilityFar=mix(850,this._fogFar,factor);}
   render(sim,dt=1/60,options={}){
-    if(!sim?.player||!this._plane)return;dt=clamp(n(dt,1/60),0,.1);this.time+=dt;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;
+    if(!sim?.player||!this._plane)return;
+    this._adjustResolution(options.frameSeconds);
+    dt=clamp(n(dt,1/60),0,.1);this.time+=dt;this._queue.length=0;this._poolIndex=0;this.stats.triangles=this.stats.drawCalls=0;
     const p=options.player||sim.player;this._focusPlayer(p,options);this._camera(p,dt,options);this._weather(p);this._background();this._cloudLayer();this._paint();
     this._terrain(p);this._paint();this._runways(sim);this._gunshipSite();this._paint();
     this._groundReadability(p);this._environment();this._entities(sim,dt,options.remotePlayers||[]);this._waypoints(sim);this._effects(sim,options);

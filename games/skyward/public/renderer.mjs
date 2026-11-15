@@ -13,6 +13,7 @@ import {sampleCombatEffects,sortEffectLayers,EFFECT_BUDGET,DamageSmokeTrails,eff
 import {applyCombatCameraKick} from './combat-camera.mjs';
 import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow,sceneryClearance,terrainDetailTexture,TERRAIN_DETAIL_SPAN} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
+import {PixelBudget,renderPixelRatio} from './pixel-budget.mjs';
 import { arePilotsHostile } from './arena.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
 import {isPassengerAirport} from './airfield-layout.mjs';
@@ -24,6 +25,10 @@ const number=(v,f=0)=>Number.isFinite(v)?v:f;
 const scratchV=new THREE.Vector3(), scratchD=new THREE.Vector3(), scratchUp=new THREE.Vector3(0,1,0);
 const tempObject=new THREE.Object3D(), tempColor=new THREE.Color();
 const axisY=new THREE.Vector3(0,1,0),axisZ=new THREE.Vector3(0,0,1);
+const AUTO_DESKTOP_PIXELS=[230000,360000,540000,800000,1050000,1500000];
+const AUTO_TOUCH_PIXELS=[230000,360000,540000,800000,1050000];
+const LOW_PIXELS=650000;
+const WATER_BIOMES=new Set(['canyon','pacific','south_atlantic','channel','coast']);
 
 function seedOf(text){let a=2166136261;for(const c of String(text))a=Math.imul(a^c.charCodeAt(0),16777619);return a>>>0;}
 function rng(seed){let a=seed>>>0;return()=>{a+=0x6D2B79F5;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
@@ -63,8 +68,9 @@ export class FlightRenderer {
   constructor(canvas,settings={}){
     this.canvas=canvas;this.settings={...settings};this.time=0;this._cameraInitialized=false;this._mode=null;this._world=null;
     this._plane=null;this._actors=new Map();this._targets=new Map();this._remote=new Map();this._rings=[];this._sceneryAnimations=[];
-    this.width=1;this.height=1;this.contextLost=false;this.stats={fps:60,drawCalls:0,triangles:0,pixelRatio:1};
-    this._autoResolution=1;this._resolutionWindow={seconds:0,frames:0,fast:0};
+    this.width=1;this.height=1;this.contextLost=false;this.stats={fps:60,drawCalls:0,triangles:0,pixelRatio:1,bufferWidth:1,bufferHeight:1};
+    this._touchDevice=globalThis.matchMedia?.('(pointer: coarse)').matches??false;
+    this._pixelBudget=new PixelBudget(this._touchDevice?AUTO_TOUCH_PIXELS:AUTO_DESKTOP_PIXELS);
     // The world spans tens of kilometres, while runway paint and cockpit details
     // are centimetres apart. Linear depth loses that separation during approach.
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance',logarithmicDepthBuffer:true});
@@ -84,43 +90,55 @@ export class FlightRenderer {
   }
 
   setSettings(settings={}){
+    const oldQuality=this._quality();
     this.settings={...this.settings,...settings};
-    const quality=this.settings.quality||this.settings.graphics||'auto';
-    const mobile=typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches;
-    const cap=quality==='low'?1:quality==='high'?1.8:quality==='medium'?1.3:(mobile?1.25:1.5);
-    this._resolutionCap=Math.min(number(globalThis.devicePixelRatio,1),cap);
-    this.pixelRatio=Number.isFinite(this.settings.resolution)?clamp(this.settings.resolution,.65,2):
-      quality==='auto'?Math.max(.65,this._resolutionCap*this._autoResolution):this._resolutionCap;
+    const quality=this._quality();
+    if(quality!==oldQuality)this._pixelBudget?.reset();
     this.resize();
     this.renderer.toneMappingExposure=number(this.settings.brightness,1)>2?1.12:number(this.settings.brightness,1)*1.12;
     if(this._clouds)this._clouds.count=Math.min(this._cloudCapacity||225,quality==='low'?140:this._cloudCapacity||225);
-    this.stats.pixelRatio=this.pixelRatio;
   }
 
-  _adjustAutoResolution(dt){
-    if((this.settings.quality||this.settings.graphics||'auto')!=='auto'||Number.isFinite(this.settings.resolution)||!this._resolutionWindow||dt<=0)return;
-    const sample=this._resolutionWindow;
-    sample.seconds+=dt;sample.frames++;
-    if(sample.seconds<1.2)return;
-    const fps=sample.frames/sample.seconds;
-    sample.seconds=sample.frames=0;
-    sample.fast=fps>55?sample.fast+1:0;
-    const current=this._autoResolution;
-    if(fps<44)this._autoResolution=Math.max(.7,current-.1);
-    else if(sample.fast>=4){this._autoResolution=Math.min(1,current+.1);sample.fast=0;}
-    if(this._autoResolution===current)return;
-    const ratio=Math.max(.65,this._resolutionCap*this._autoResolution);
-    if(ratio===this.pixelRatio)return;
-    this.pixelRatio=ratio;this.stats.pixelRatio=ratio;this.resize();
+  _quality(){return this.settings.quality||this.settings.graphics||'auto';}
+
+  getGraphicsAdapter(){
+    const gl=this.renderer.getContext();
+    const info=gl.getExtension('WEBGL_debug_renderer_info');
+    return info?gl.getParameter(info.UNMASKED_RENDERER_WEBGL)||'':'';
+  }
+
+  _ratioLimit(){
+    const quality=this._quality(),cap=quality==='low'?1:quality==='high'?1.8:quality==='medium'?1.3:this._touchDevice?1.25:1.5;
+    return Math.min(number(globalThis.devicePixelRatio,1),cap);
+  }
+
+  _adjustAutoResolution(frameSeconds){
+    if(this._quality()!=='auto'||Number.isFinite(this.settings.resolution)||!this._pixelBudget)return;
+    const nativePixels=this.width*this.height*this._ratioLimit()**2;
+    if(this._pixelBudget.observe(frameSeconds,nativePixels))this._resizeDrawingBuffer(this.width,this.height);
+  }
+
+  _resizeDrawingBuffer(width,height){
+    const quality=this._quality();
+    const cap=quality==='low'?LOW_PIXELS:quality==='auto'?(this._pixelBudget?.maxPixels??AUTO_DESKTOP_PIXELS.at(-1)):Infinity;
+    const ratio=Number.isFinite(this.settings.resolution)?clamp(this.settings.resolution,.65,2):renderPixelRatio(width,height,this._ratioLimit(),cap);
+    // The world and the HUD have independent resolution. Keep CSS coordinates
+    // for the flight camera and targets while capping the 3D framebuffer.
+    const bufferWidth=Math.max(1,Math.floor(width*ratio)),bufferHeight=Math.max(1,Math.floor(height*ratio));
+    this.pixelRatio=ratio;
+    if(this._bufferWidth!==bufferWidth||this._bufferHeight!==bufferHeight){
+      this.renderer.setDrawingBufferSize(width,height,ratio);
+      this._bufferWidth=bufferWidth;this._bufferHeight=bufferHeight;
+    }
+    Object.assign(this.stats,{pixelRatio:ratio,bufferWidth,bufferHeight});
   }
 
   resize(){
     const rect=this.canvas.getBoundingClientRect(),width=Math.max(1,Math.round(rect.width||globalThis.innerWidth||1)),height=Math.max(1,Math.round(rect.height||globalThis.innerHeight||1));
     // Three r160 resets the canvas even when setSize/setPixelRatio receive the
     // current values. A key binding or theme change must not reallocate it.
-    if(width!==this.width||height!==this.height||this._bufferPixelRatio!==this.pixelRatio){
-      this.renderer.setDrawingBufferSize(width,height,this.pixelRatio);this._bufferPixelRatio=this.pixelRatio;
-    }
+    if(this.width!==width||this.height!==height)this._pixelBudget?.clearSamples();
+    this._resizeDrawingBuffer(width,height);
     this.width=width;this.height=height;
     if(this._cockpit&&(!this._cockpit.userData.layout||this._cockpit.userData.layout.w!==width||this._cockpit.userData.layout.h!==height))this._buildCockpit(this.aircraft);
     if(this._gunshipStation&&(this._gunshipStation.userData.layout.w!==width||this._gunshipStation.userData.layout.h!==height))this._buildGunshipStation(this._gunshipStation.userData.layout.seat);
@@ -135,14 +153,42 @@ export class FlightRenderer {
   }
 
   _buildSky(){
-    this.skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:false,toneMapped:false,
-      uniforms:{top:{value:color('#84aeb8')},horizon:{value:color('#e0d8be')},sunColor:{value:color('#ffe6b6')},sunDirection:{value:new THREE.Vector3(-.7,.36,-.4).normalize()},night:{value:0}},
-      vertexShader:'varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader:'uniform vec3 top;uniform vec3 horizon;uniform vec3 sunColor;uniform vec3 sunDirection;uniform float night;varying vec3 vDirection;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){vec3 d=normalize(vDirection);float h=smoothstep(-.12,.78,d.y);vec3 c=mix(horizon,top,h);float s=max(0.0,dot(d,sunDirection));c+=sunColor*(pow(s,58.0)*.16+pow(s,1500.0)*.63)*(1.0-night*.85);float star=step(.9971,hash(floor(vec2(atan(d.z,d.x)*220.0,asin(d.y)*280.0))));c+=star*night*smoothstep(.05,.4,d.y)*.9;gl_FragColor=vec4(c,1.0);\n#include <colorspace_fragment>\n}',
+    this.skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:true,toneMapped:false,
+      uniforms:{top:{value:color('#84aeb8')},horizon:{value:color('#e0d8be')},haze:{value:color('#c8d2c5')},sunColor:{value:color('#ffe6b6')},sunDirection:{value:new THREE.Vector3(-.7,.36,-.4).normalize()},night:{value:0}},
+      vertexShader:`
+        varying vec3 vDirection;
+        void main(){
+          vDirection=position;
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+          gl_Position.z=gl_Position.w;
+        }
+      `,
+      fragmentShader:`
+        uniform vec3 top;
+        uniform vec3 horizon;
+        uniform vec3 haze;
+        uniform vec3 sunColor;
+        uniform vec3 sunDirection;
+        uniform float night;
+        varying vec3 vDirection;
+        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        void main(){
+          vec3 d=normalize(vDirection);
+          vec3 c=mix(haze,mix(horizon,top,smoothstep(-.12,.78,d.y)),smoothstep(-.10,.04,d.y));
+          float s=max(0.0,dot(d,sunDirection));
+          c+=sunColor*(pow(s,58.0)*.16+pow(s,1500.0)*.63)*(1.0-night*.85);
+          if(night>.5 && d.y>.05){
+            vec2 starCell=floor(vec2(atan(d.z,d.x)*220.0,asin(d.y)*280.0));
+            c+=step(.9971,hash(starCell))*smoothstep(.05,.4,d.y)*.9;
+          }
+          gl_FragColor=vec4(c,1.0);
+          #include <colorspace_fragment>
+        }
+      `,
     });
-    // Preprocessor chunks must begin on a new line on strict mobile GLSL compilers.
-    this.skyMaterial.fragmentShader=this.skyMaterial.fragmentShader.replace('#include','\n#include');
-    this.sky=new THREE.Mesh(new THREE.SphereGeometry(82000,24,16),this.skyMaterial);this.sky.renderOrder=-100;this.sky.frustumCulled=false;this.scene.add(this.sky);
+    // Opaque scenery fills depth first. The sky shades only uncovered pixels,
+    // and remains behind translucent clouds, effects and cockpit glass.
+    this.sky=new THREE.Mesh(new THREE.SphereGeometry(82000,24,16),this.skyMaterial);this.sky.renderOrder=100;this.sky.frustumCulled=false;this.scene.add(this.sky);
   }
 
   _setAtmosphere(mission,menu=false){
@@ -157,6 +203,7 @@ export class FlightRenderer {
     this.skyMaterial.uniforms.sunColor.value.set(sunset?'#ffd6a0':palette.light);
     this.skyMaterial.uniforms.sunDirection.value.set(-.75,sunset?.19:.52,-.5).normalize();
     this.scene.fog.color.set(sunset?'#d1cbb5':palette.fog);
+    this.skyMaterial.uniforms.haze.value.copy(this.scene.fog.color);
     this.sun.color.set(palette.light);this.sun.intensity=night?.75:sunset?2.5:2.8;
     this.sun.position.copy(this.skyMaterial.uniforms.sunDirection.value).multiplyScalar(12000);
     this.hemi.color.set(night?'#7089a7':palette.horizon);this.hemi.groundColor.set(night?'#17242a':'#526254');this.hemi.intensity=night?1.3:2.0;
@@ -181,7 +228,7 @@ export class FlightRenderer {
     }
     for(const target of this._targets.values())this._disposeUnique(target);
     this.actorsRoot.clear();this._actors.clear();this._targets.clear();this._remote.clear();this._plane=null;this._rings=[];this._sceneryAnimations=[];this._clouds=null;
-    this._world=new THREE.Group();this.scene.add(this._world);this._terrainSceneMesh=null;this._terrainData=null;this._localRocks=null;this._localTrees=null;this._groundShadow=null;this._detailAnchor=null;this._focusId=null;
+    this._world=new THREE.Group();this.scene.add(this._world);this.waterMaterial=null;this._terrainSceneMesh=null;this._terrainData=null;this._localRocks=null;this._localTrees=null;this._groundShadow=null;this._detailAnchor=null;this._focusId=null;
     this._cameraInitialized=false;this._approachCue=null;
   }
 
@@ -218,7 +265,9 @@ export class FlightRenderer {
     this._terrainTexture.wrapS=this._terrainTexture.wrapT=THREE.RepeatWrapping;
     this._terrainTexture.magFilter=THREE.LinearFilter;this._terrainTexture.minFilter=THREE.LinearMipmapLinearFilter;
     this._terrainTexture.generateMipmaps=true;this._terrainTexture.needsUpdate=true;
-    const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1});material.extensions={derivatives:true};
+    // Ground is matte. Lambert keeps the normal-based light and blast flashes
+    // while omitting environment reflections and specular BRDF work per pixel.
+    const material=new THREE.MeshLambertMaterial({vertexColors:true});material.extensions={derivatives:true};
     const shore=['pacific','south_atlantic','channel','coast'].includes(mission.biome)||mission.carrierWater;
     // Smooth geometry lighting reveals landforms. Two mipmapped world-space
     // scales add ground cover and wider shadows with no extra terrain faces.
@@ -291,7 +340,8 @@ export class FlightRenderer {
     if(shadow){const positions=this._groundShadow.geometry.attributes.position;let index=0;for(let i=0;i<shadow.ring.length;i++)for(const v of[shadow.center,shadow.ring[i],shadow.ring[(i+1)%shadow.ring.length]])positions.setXYZ(index++,...v);positions.needsUpdate=true;this._groundShadow.geometry.setDrawRange(0,index);this._groundShadow.material.opacity=shadow.alpha;}
   }
 
-  _buildWater(){
+  _buildWater(mission){
+    if(mission&&!WATER_BIOMES.has(mission.biome)&&!mission.carrierWater&&!mission.runways?.some(runway=>runway.carrier))return;
     this.waterMaterial=new THREE.ShaderMaterial({
       extensions:{derivatives:true},
       uniforms:{time:{value:0},waterColor:{value:color(this.palette.water)},fogColor:{value:this.scene.fog.color.clone()},fogNear:{value:this._fogNear},fogFar:{value:this._fogFar},night:{value:this._night?1:0}},
@@ -318,24 +368,27 @@ export class FlightRenderer {
         varying vec3 vWorld;
         void main(){
           #include <logdepthbuf_fragment>
+          float distanceToWater=length(cameraPosition-vWorld);
           vec2 phase=vec2(vWorld.x*.018+vWorld.z*.011+time*.85,vWorld.z*.031-time*.55);
           float detailPhase=vWorld.z*.16+vWorld.x*.07+time*1.7;
-          // Fade frequencies before they become smaller than a screen pixel.
-          // Unfiltered sine waves and narrow glints shimmer at grazing angles.
+          // Evaluate derivatives outside divergent flow so a quad that
+          // straddles the fog boundary still returns valid wave filtering.
           float waveFilter=1.0-smoothstep(.3,1.5,max(fwidth(phase.x),fwidth(phase.y)));
           float detailFilter=1.0-smoothstep(.25,1.0,fwidth(detailPhase));
-          float wave=sin(phase.x)*sin(phase.y)*waveFilter;
-          float small=sin(detailPhase)*detailFilter;
-          float glint=pow(max(0.0,wave*.7+small*.3),9.0)*waveFilter;
-          vec3 c=waterColor*(.96+wave*.045)+vec3(.26,.31,.28)*glint*(1.0-night*.7);
-          float fog=smoothstep(fogNear,fogFar,length(cameraPosition-vWorld));
-          c=mix(c,fogColor,fog);
+          vec3 c=fogColor;
+          if(distanceToWater<fogFar){
+            float wave=sin(phase.x)*sin(phase.y)*waveFilter;
+            float small=sin(detailPhase)*detailFilter;
+            float glint=pow(max(0.0,wave*.7+small*.3),9.0)*waveFilter;
+            vec3 surface=waterColor*(.96+wave*.045)+vec3(.26,.31,.28)*glint*(1.0-night*.7);
+            c=mix(surface,fogColor,smoothstep(fogNear,fogFar,distanceToWater));
+          }
           gl_FragColor=vec4(c,1.0);
           #include <colorspace_fragment>
         }
       `,
     });
-    const ocean=new THREE.Mesh(new THREE.PlaneGeometry(160000,160000),this.waterMaterial);ocean.rotation.x=-Math.PI/2;ocean.position.y=-.65;this._world.add(ocean);
+    const ocean=new THREE.Mesh(new THREE.PlaneGeometry(160000,160000),this.waterMaterial);ocean.rotation.x=-Math.PI/2;ocean.position.y=-.65;ocean.renderOrder=25;this._world.add(ocean);
   }
 
   _buildClouds(mission){
@@ -799,8 +852,8 @@ export class FlightRenderer {
       wp.ring.material.opacity=delta===0?.8:.2;wp.ring.material.color.set(delta===0?'#e2ad60':'#d0dbbe');
       wp.label.visible=delta===0;const distance=this.camera.position.distanceTo(wp.group.position);const scale=clamp(distance*.13,170,520);wp.label.scale.set(scale,scale*.156,1);
     }
+    this._adjustAutoResolution(options.frameSeconds);
     this.renderer.render(this.scene,this.camera);
-    this._adjustAutoResolution(dt);
     this.stats.fps=lerp(this.stats.fps,dt>0?1/dt:60,.025);this.stats.drawCalls=this.renderer.info.render.calls;this.stats.triangles=this.renderer.info.render.triangles;
   }
 

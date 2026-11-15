@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
 import {FlightRenderer} from '../public/renderer.mjs';
+import {PixelBudget} from '../public/pixel-budget.mjs';
 import {setAircraftPose} from '../public/models.mjs';
 import {orientationFromEuler,basis,integrateBodyRotation} from '../public/orientation.mjs';
 
@@ -93,6 +94,40 @@ test('unchanged settings and size do not reset the drawing buffer or projection'
   r.setSettings({resolution:1.5});assert.equal(bufferChanges,3);assert.equal(projectionChanges,3);
   r._mode='menu';r._setProjection(46);const before=projectionChanges;
   r.setSettings({theme:'night'});assert.equal(r.camera.fov,46);assert.equal(projectionChanges,before);
+});
+
+test('large desktop Auto and Low cap the drawing buffer while High keeps native size and projections stay in CSS pixels',()=>{
+  const r=rendererFixture(),size={width:2560,height:1440},changes=[];
+  r.canvas={getBoundingClientRect:()=>size};
+  r.renderer={setDrawingBufferSize:(...args)=>changes.push(args)};
+  r._pixelBudget=new PixelBudget([230000,540000,1500000]);r._ratioLimit=()=>1;
+  r.setSettings({quality:'auto'});
+  const {bufferWidth,bufferHeight}=r.stats;
+  assert.ok(bufferWidth*bufferHeight<=1500000);
+  assert.equal(r.width,2560);assert.equal(r.height,1440);assert.equal(r.camera.aspect,2560/1440);
+  for(let i=0;i<13;i++)r._adjustAutoResolution(.1);
+  assert.ok(r.stats.bufferWidth*r.stats.bufferHeight<=540000);
+  assert.equal(r.camera.aspect,2560/1440);
+  assert.equal(changes.length,2);
+  r.setSettings({quality:'high'});
+  for(let i=0;i<30;i++)r._adjustAutoResolution(.1);
+  assert.equal(r.stats.bufferWidth,2560);assert.equal(r.stats.bufferHeight,1440);
+  r.setSettings({quality:'low'});
+  assert.ok(r.stats.bufferWidth*r.stats.bufferHeight<=650000);
+  size.width=800;size.height=600;r.resize();
+  assert.equal(r.stats.bufferWidth,800);assert.equal(r.stats.bufferHeight,600);
+});
+
+test('the far-depth sky renders after opaque terrain, and inland terrain skips the ocean surface',()=>{
+  const r=rendererFixture();r._buildSky();
+  assert.equal(r.sky.material.depthTest,true);assert.equal(r.sky.material.depthWrite,false);
+  assert.equal(r.sky.material.transparent,false);assert.match(r.sky.material.vertexShader,/gl_Position\.z=gl_Position\.w/);
+  assert.match(r.sky.material.fragmentShader,/if\(night>\.5/);
+  r._buildWater({biome:'countryside',runways:[]});
+  assert.equal(r.waterMaterial,undefined);
+  r._buildWater({biome:'countryside',carrierWater:{x:0,z:0,radius:3400}});
+  assert.ok(r.waterMaterial);
+  assert.ok(r.sky.renderOrder>r._world.children[0].renderOrder);
 });
 
 test('runway and apron meet without overlapping coplanar top surfaces',()=>{

@@ -851,22 +851,29 @@ export class FlightSimulation {
   }
 
   _updateLock(dt) {
-    const previousTarget = this.selectedTarget;
-    const terrainMasked = previousTarget && !lineOfSight(this.player, previousTarget, this.mission);
-    for (const e of [...this.enemies, ...this._participantTargets(this.player.id)]) {
-      const visible = lineOfSight(this.player, e, this.mission), distance = dist(this.player, e);
-      e.radarVisible = this.radarOn && distance < this.aircraft.missileRange * 1.8 && visible;
-      e.detected = !this.aircraft.radar || e.friendly || (distance < 2800 && visible) || e.radarVisible;
+    const p = this.player, previousTarget = this.selectedTarget;
+    // The selected contact still needs terrain masking beyond radar range. Reuse
+    // that exact result while updating all contacts and advancing its lock.
+    const previousVisible = !!previousTarget && lineOfSight(p, previousTarget, this.mission);
+    const terrainMasked = previousTarget && !previousVisible;
+    for (const e of [...this.enemies, ...this._participantTargets(p.id)]) {
+      const distance = dist(p, e);
+      const radarInRange = this.radarOn && distance < this.aircraft.missileRange * 1.8;
+      const near = distance < 2800, alwaysDetected = !this.aircraft.radar || e.friendly;
+      const visible = e === previousTarget ? previousVisible
+        : (radarInRange || near && !alwaysDetected) && lineOfSight(p, e, this.mission);
+      e.radarVisible = radarInRange && visible;
+      e.detected = alwaysDetected || near && visible || e.radarVisible;
     }
-    if (!living(this.selectedTarget) || this.selectedTarget?.detected === false) this._chooseTarget();
-    const target = this.selectedTarget;
+    let target = previousTarget;
+    if (!target || target.detected === false) { this._chooseTarget(); target = this.selectedTarget; }
     if (!this.aircraft.radar || !this.radarOn || !target) {
       this.lockReason = terrainMasked ? 'Terrain masks the contact' : !this.radarOn && this.aircraft.radar ? 'Radar is off' : 'Select a visible contact';
       this.lockProgress = terrainMasked ? 0 : Math.max(0, this.lockProgress - dt * 2); return;
     }
-    const p = this.player, d = dist(p, target), dir = direction(p);
+    const d = dist(p, target), dir = direction(p);
     const dot = ((target.x - p.x) * dir.x + (target.y - p.y) * dir.y + (target.z - p.z) * dir.z) / Math.max(1, d);
-    const visible = lineOfSight(p, target, this.mission);
+    const visible = target === previousTarget ? previousVisible : lineOfSight(p, target, this.mission);
     this.lockReason = !visible ? 'Terrain masks the contact' : d > this.aircraft.missileRange ? 'Outside game missile range' : dot < 0.8 ? 'Point the nose toward the contact' : 'Acquiring track';
     if (d <= this.aircraft.missileRange && dot > 0.8 && visible) this.lockProgress = Math.min(1, this.lockProgress + dt / this.aircraft.lockTime);
     else this.lockProgress = visible ? Math.max(0, this.lockProgress - dt * 1.1) : 0;

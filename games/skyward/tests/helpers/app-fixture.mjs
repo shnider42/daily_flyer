@@ -126,7 +126,7 @@ class RendererAdapter {
   loadMission(mission) { this.mission = mission; }
   resize() {}
   setSettings() {}
-  render(view, dt, options) { this.lastRender = { player: structuredClone(view.player), options }; }
+  render(view, dt, options) { this.lastRender = { player: structuredClone(view.player), dt, options }; }
   renderMenu() {}
   project() { return { x: 0, y: 0, visible: false }; }
 }
@@ -166,5 +166,5 @@ export async function appFixture(t) {
   vm.runInContext(source.replace(/^import .*;\r?\n/gm, '') + '\nglobalThis.__app = { get team(){return team}, get sim(){return sim}, get screen(){return screen}, get renderer(){return renderer}, get audio(){return audio}, get paused(){return paused}, get flightLog(){return flightLog}, get flightRecordResult(){return flightRecordResult}, get spectatorView(){return spectatorView}, controls, gunnerControls, frame, startMission, renderOperations, openOperations, openFlightLog };', context);
   const app = context.__app;
   t.after(() => { app.controls.destroy(); app.gunnerControls.destroy(); });
-  return { app, document, window, stored, frame: (delta = 17) => { clock += delta; app.frame(clock); } };
+  return { app, document, window, stored, diagnostics: () => context.SKYWARD.status, frame: (delta = 17) => { clock += delta; app.frame(clock); } };
 }

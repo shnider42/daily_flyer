@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.10.0
+# SKYWARD module contract · v0.10.1
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 

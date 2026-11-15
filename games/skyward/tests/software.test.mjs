@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
 import {SoftwareFlightRenderer} from '../public/software.mjs';
+import {PixelBudget,renderPixelRatio} from '../public/pixel-budget.mjs';
 import {buildSoftwareTerrain} from '../public/software-terrain.mjs';
 import {AIRCRAFT,MISSIONS,getMission} from '../public/campaign.mjs';
 import {FlightSimulation,terrainHeight} from '../public/sim.mjs';
 import {orientationFromEuler,basis,deriveEuler} from '../public/orientation.mjs';
 
 function mockCanvas(){
-  const noop=()=>{},calls={width:0,height:0,fill:0,strokes:[],gradients:[],rectangles:[]};let width=0,height=0;
-  const ctx=new Proxy({createLinearGradient:(...points)=>{const gradient={points,stops:[],addColorStop(offset,color){this.stops.push([offset,color]);}};calls.gradients.push(gradient);return gradient;},fillRect(...rectangle){calls.rectangles.push({rectangle,fill:this.fillStyle});},fill:()=>calls.fill++,stroke(){calls.strokes.push({width:this.lineWidth,color:this.strokeStyle,alpha:this.globalAlpha});}},{get:(target,key)=>target[key]??noop});
+  const noop=()=>{},calls={width:0,height:0,fill:0,strokes:[],gradients:[],rectangles:[],paths:[]};let width=0,height=0,points=[];
+  const ctx=new Proxy({createLinearGradient:(...points)=>{const gradient={points,stops:[],addColorStop(offset,color){this.stops.push([offset,color]);}};calls.gradients.push(gradient);return gradient;},fillRect(...rectangle){calls.rectangles.push({rectangle,fill:this.fillStyle});},beginPath(){points=[];},moveTo(x,y){points.push(x,y);},lineTo(x,y){points.push(x,y);},fill(){calls.fill++;calls.paths.push(points);},stroke(){calls.strokes.push({width:this.lineWidth,color:this.strokeStyle,alpha:this.globalAlpha});}},{get:(target,key)=>target[key]??noop});
   return {calls,getContext:()=>ctx,getBoundingClientRect:()=>({width:1280,height:800}),get width(){return width;},set width(v){width=v;calls.width++;},get height(){return height;},set height(v){height=v;calls.height++;}};
 }
 function renderer(){const r=new SoftwareFlightRenderer(mockCanvas(),{quality:'medium'});r.loadMission(getMission('first-light'),AIRCRAFT.avro504);return r;}
@@ -73,7 +74,43 @@ test('settings changes keep the existing canvas backing store at the same dimens
   const r=renderer(),canvas=r.canvas,before={...canvas.calls};
   r.setSettings({theme:'day',sensitivity:1.3});r.setSettings({keyBindings:{pitchUp:'KeyI'}});r.resize();
   assert.equal(canvas.calls.width,before.width);assert.equal(canvas.calls.height,before.height);
-  canvas.getBoundingClientRect=()=>({width:800,height:1200});r.resize();assert.equal(canvas.width,800);assert.equal(canvas.height,1200);near(r.camera.aspect,2/3,'portrait aspect');
+  canvas.getBoundingClientRect=()=>({width:700,height:1050});r.resize();assert.equal(canvas.width,700);assert.equal(canvas.height,1050);near(r.camera.aspect,2/3,'portrait aspect');
+});
+
+test('compatibility graphics budget large displays without changing CSS projection or cockpit layout',()=>{
+  const canvas=mockCanvas();canvas.getBoundingClientRect=()=>({width:2560,height:1440});
+  const r=new SoftwareFlightRenderer(canvas,{quality:'auto'});r.loadMission(getMission('first-light'),AIRCRAFT.avro504);
+  r._camera({x:0,y:1000,z:0,heading:0,pitch:0,roll:0},1/60,{camera:'cockpit'});
+  const point=r.project(0,1050,300);
+  assert.ok(canvas.width*canvas.height<=800000);assert.equal(r.width,2560);assert.equal(r.height,1440);
+  assert.equal(r._cockpitPanel.layout.w,2560);
+  for(let i=0;i<26;i++)r._adjustResolution(1/10);
+  assert.ok(canvas.width*canvas.height<=230000);assert.equal(r._sceneQuality(),'low');
+  assert.equal(r.stats.adaptive,true);assert.ok(r.stats.pixelRatio<.3);
+  assert.deepEqual(r.project(0,1050,300),point,'scaled graphics retain CSS-aligned target markers');
+  const floor=canvas.width;
+  for(let i=0;i<150;i++)r._adjustResolution(1/60);
+  assert.equal(canvas.width,floor,'a short fast interval does not trigger a quality ping-pong');
+  for(let i=0;i<150;i++)r._adjustResolution(1/60);
+  assert.ok(canvas.width>floor);
+  r.setSettings({quality:'high'});assert.ok(canvas.width*canvas.height<=1450000);assert.equal(r.stats.adaptive,false);
+  const high=canvas.width;
+  for(let i=0;i<25;i++)r._adjustResolution(1/10);
+  assert.equal(canvas.width,high,'explicit High remains stable');
+  r.setSettings({quality:'low'});assert.ok(canvas.width*canvas.height<=450000);
+});
+
+test('adaptive budget skips ineffective tiers on small windows and ignores a long suspended frame',()=>{
+  assert.equal(renderPixelRatio(800,450,1.5,1000000),1.5);
+  near(renderPixelRatio(2560,1440,2,921600),.5,'physical pixel budgeting includes DPI cap');
+  const budget=new PixelBudget([230000,340000,490000,650000,800000]);
+  assert.equal(budget.observe(3,400000),false);
+  assert.equal(budget.maxPixels,800000);
+  for(let i=0;i<21;i++)budget.observe(.05,400000);
+  assert.equal(budget.maxPixels,230000);
+  budget.reset();
+  for(let i=0;i<25;i++)assert.equal(budget.observe(.1,170000),false);
+  assert.equal(budget.maxPixels,800000,'reducing a tier should change actual pixel count');
 });
 
 test('terrain geometry stays cached between world grid crossings',()=>{
@@ -118,15 +155,19 @@ test('CPU renderer projects near-plane clipping and campaign aircraft with finit
 
 test('terrain coverage does not leak into ordinary world primitives or pooled transparent faces',()=>{
   const r=renderer(),p={x:0,y:200,z:-800,heading:0,pitch:-.02,roll:0,speed:44};r.pixelRatio=1.4;r._camera(p,1/60,{camera:'chase'});r._terrain(p);
-  const ground=r._queue.length;assert.ok(ground>0);assert.ok(r._queue.every(item=>item.coverEdges===true));r._paint();
-  assert.equal(r.canvas.calls.strokes.length,ground);for(const stroke of r.canvas.calls.strokes){near(stroke.width*r.pixelRatio,1.25,'physical-pixel edge coverage');assert.equal(stroke.alpha,1);}
+  assert.ok(r._queue.length>0);assert.ok(r._queue.every(item=>item.coverEdges===true));
+  r._queue=[{type:'triangle',points:[0,0,10,0,0,10],depth:1,fill:'#fff',alpha:1,coverEdges:true}];
+  r._paint();
+  const [firstX,firstY]=r.canvas.calls.paths.at(-1);
+  near(firstX*r.pixelRatio,-.625,'physical-pixel edge coverage');near(firstY*r.pixelRatio,-.625,'physical-pixel edge coverage');
+  assert.equal(r.canvas.calls.strokes.length,0,'terrain seals seams within its original fill instead of adding stroke work');
   // A pooled ground record becomes an ordinary world face next frame. Its
   // coverage flag must reset; coverage is explicitly chosen for aircraft below.
   const reused=r._drawPool[0];r._poolIndex=0;
   r._triangle([-1,-1,-3],[1,-1,-3],[0,1,-3],[120,140,110],1,true);assert.equal(r._queue[0],reused);assert.equal(r._queue[0].coverEdges,false);r._paint();
-  assert.equal(r.canvas.calls.strokes.length,ground);
+  assert.equal(r.canvas.calls.strokes.length,0);
   r._triangleXYZ(-1,-1,-3,1,-1,-3,0,1,-3,[120,140,110],.4,true,false,true);r._paint();
-  assert.equal(r.canvas.calls.strokes.length,ground,'transparent surfaces must not accumulate darker edge coverage');
+  assert.equal(r.canvas.calls.strokes.length,0,'transparent surfaces must not accumulate darker edge coverage');
 });
 
 test('opaque aircraft seams receive subpixel coverage while glass and prop transparency stay unchanged',()=>{
