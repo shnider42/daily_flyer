@@ -5,12 +5,52 @@ export const $=id=>document.getElementById(id);
 export const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const fmt=n=>Math.round(Number(n)||0).toLocaleString();
 export function actionButton(label,fn,{secondary=false,disabled=false,title=''}={}){const b=document.createElement('button');b.className=secondary?'button-secondary':'button-primary';b.textContent=label;b.disabled=disabled;b.title=title;b.addEventListener('click',fn);return b;}
+const dialogFocusSelector='button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary,[tabindex="0"]';
+const compactLabel=value=>String(value||'').replace(/\s+/g,' ').trim();
+function controlIdentity(element){
+ if(!element)return null;
+ return{tag:element.tagName,key:element.dataset?.dialogKey||element.id||element.getAttribute?.('name')||'',
+  label:compactLabel(element.getAttribute?.('aria-label')||element.textContent),scope:element.closest?.('[data-dialog-scope]')?.dataset.dialogScope||'',
+  start:element.selectionStart,end:element.selectionEnd};
+}
+function captureDialogView(body){
+ const active=document.activeElement;
+ return{scrollTop:body.scrollTop,focus:body.contains(active)?controlIdentity(active):null,
+  details:[...body.querySelectorAll('details')].map(node=>({key:node.dataset.dialogKey||node.id||compactLabel(node.querySelector('summary')?.textContent),open:node.open}))};
+}
+function restoreDialogView(dialog,view,revision){
+ if(!dialog.opened||dialog.revision!==revision)return;
+ for(const node of dialog.body.querySelectorAll('details')){
+  const key=node.dataset.dialogKey||node.id||compactLabel(node.querySelector('summary')?.textContent),prior=view.details.find(entry=>entry.key===key);
+  if(prior)node.open=prior.open;
+ }
+ // A synchronous rebuild is allowed to put focus somewhere deliberately. Do
+ // not override it, or a user who has already moved focus to another control.
+ const active=document.activeElement,canRestore=active===dialog.el||active===document.body||!active?.isConnected;
+ if(view.focus&&canRestore){
+  const wanted=view.focus,match=[...dialog.body.querySelectorAll(dialogFocusSelector)].find(node=>{
+   const current=controlIdentity(node);return current.tag===wanted.tag&&current.scope===wanted.scope&&(wanted.key?current.key===wanted.key:current.label===wanted.label);
+  });
+  (match||dialog.el).focus({preventScroll:true});
+  if(match&&Number.isInteger(wanted.start)&&typeof match.setSelectionRange==='function')try{match.setSelectionRange(wanted.start,wanted.end);}catch{}
+ }
+ dialog.body.scrollTop=view.scrollTop;
+}
 export class Dialog{
- constructor({onOpen=()=>{},onClose=()=>{}}={}){this.backdrop=$('modalBackdrop');this.el=$('modal');this.body=$('modalBody');this.onOpen=onOpen;this.onClose=onClose;this.opened=false;this.kind=null;this.revision=0;$('closeModal').onclick=()=>this.close();this.backdrop.addEventListener('click',e=>{if(e.target===this.backdrop)this.close();});this.el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close();}if(e.key==='Tab'){const list=[...this.el.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary,[tabindex="0"]')].filter(x=>x.offsetParent!==null),first=list[0],last=list.at(-1);if(!first){e.preventDefault();return;}if(e.shiftKey&&(document.activeElement===first||document.activeElement===this.el)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});}
- open(title,kind='dialogue',{eyebrow='SHIP COMPUTER',wide=false}={}){if(!this.opened)this.previousFocus=document.activeElement;this.opened=true;this.revision++;this.kind=kind;this.el.dataset.kind=kind;this.backdrop.hidden=false;this.el.classList.toggle('wide',wide);$('modalTitle').textContent=title;$('modalEyebrow').textContent=eyebrow;this.body.replaceChildren();this.body.scrollTop=0;this.onOpen();this.el.focus({preventScroll:true});return this.body;}
- close(){if(!this.opened)return;const kind=this.kind;this.revision++;this.opened=false;this.kind=null;this.backdrop.hidden=true;this.onClose(kind);this.previousFocus?.focus?.({preventScroll:true});}
+ constructor({onOpen=()=>{},onClose=()=>{}}={}){this.backdrop=$('modalBackdrop');this.el=$('modal');this.body=$('modalBody');this.onOpen=onOpen;this.onClose=onClose;this.opened=false;this.kind=null;this.contextKey=null;this.revision=0;$('closeModal').onclick=()=>this.close();this.backdrop.addEventListener('click',e=>{if(e.target===this.backdrop)this.close();});this.el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close();}if(e.key==='Tab'){const list=[...this.el.querySelectorAll(dialogFocusSelector)].filter(x=>x.offsetParent!==null),first=list[0],last=list.at(-1);if(!first){e.preventDefault();return;}if(e.shiftKey&&(document.activeElement===first||document.activeElement===this.el)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});}
+ open(title,kind='dialogue',{eyebrow='SHIP COMPUTER',wide=false,contextKey=title,reset=false}={}){
+  const sameView=this.opened&&this.kind===kind&&this.contextKey===contextKey&&!reset,view=sameView?captureDialogView(this.body):null;
+  if(!this.opened)this.previousFocus=document.activeElement;
+  this.opened=true;this.revision++;this.kind=kind;this.contextKey=contextKey;this.el.dataset.kind=kind;this.backdrop.hidden=false;
+  if(!sameView)this.el.classList.toggle('wide',wide);
+  $('modalTitle').textContent=title;$('modalEyebrow').textContent=eyebrow;this.body.replaceChildren();
+  if(sameView){const revision=this.revision;queueMicrotask(()=>restoreDialogView(this,view,revision));}
+  else{this.body.scrollTop=0;this.onOpen();this.el.focus({preventScroll:true});}
+  return this.body;
+ }
+ close(){if(!this.opened)return;const kind=this.kind;this.revision++;this.opened=false;this.kind=null;this.contextKey=null;this.backdrop.hidden=true;this.onClose(kind);this.previousFocus?.focus?.({preventScroll:true});}
  html(markup){this.body.innerHTML=markup;return this.body;}
- choices(items){const list=document.createElement('div');list.className='choice-list';items.forEach((item,i)=>{const b=document.createElement('button');b.className=`choice ${item.warning?'warning':''}`;b.disabled=!!item.disabled;b.innerHTML=`<span class="choice-index" aria-hidden="true">${this.kind==='npc'?'›':'→'}</span><span><strong>${escapeHtml(item.label)}</strong>${item.detail?`<small>${escapeHtml(item.detail)}</small>`:''}</span>`;b.onclick=item.action;list.append(b);});this.body.append(list);return list;}
+ choices(items){const revision=this.revision,list=document.createElement('div');list.className='choice-list';items.forEach(item=>{const b=document.createElement('button');b.type='button';b.className=`choice ${item.warning?'warning':''}`;b.disabled=!!item.disabled;b.dataset.dialogKey=String(item.id||item.key||item.label);b.innerHTML=`<span class="choice-index" aria-hidden="true">${this.kind==='npc'?'›':'→'}</span><span><strong>${escapeHtml(item.label)}</strong>${item.detail?`<small>${escapeHtml(item.detail)}</small>`:''}</span>`;b.onclick=(event)=>{if(this.opened&&this.revision===revision&&b.isConnected&&!b.disabled)return item.action?.(event);};list.append(b);});this.body.append(list);return list;}
 }
 export const STORAGE_KEY='dfe.farwake.save.v1';
 export function readSave(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return null;const parsed=JSON.parse(raw);return parsed?.state??parsed;}catch{return null;}}

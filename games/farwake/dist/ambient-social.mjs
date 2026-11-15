@@ -12,18 +12,28 @@ const exchanges={
  apartments:[['You can borrow our kettle.','I’ll leave it beside the warm pipe.']],
  preflight:[['The lower field is ready.','Then the first basket goes to the households upstream.'],['That knot is wrong.','Then we undo it together.']]
 };
-export const createAmbientMemory=(surface,seconds)=>({surfaceId:surface?.id||'',enteredAt:seconds,lastAt:seconds,lastWindow:-1,lastAddressAt:seconds});
+const RECENT_SECONDS=1800, SPEAKER_SECONDS=720, HISTORY_LIMIT=12;
+const recentRows=(rows,seconds)=>Array.isArray(rows)?rows.filter(row=>row&&typeof row.key==='string'&&row.key.length<=180&&Number.isFinite(row.at)&&row.at<=seconds&&seconds-row.at<RECENT_SECONDS).slice(-HISTORY_LIMIT):[];
+const addressedLines={
+ preflight:['There is shade beside the path if you need to rest.','Please keep the path clear while the baskets pass.'],
+ farm:['Mind the little one. It follows unfamiliar boots.','The gate swings out. Leave enough room for it.'],
+ tavern:['There’s a place here if you need a minute.','That chair has a loose foot. The next one is steadier.'],
+ supper:['There’s a place here if you need a minute.','Pass the empty bowls this way, please.'],
+ default:['Watch that step. It catches everybody once.','You can get through on this side. There’s more room.']
+};
+export const createAmbientMemory=(surface,seconds)=>({surfaceId:surface?.id||'',enteredAt:seconds,lastAt:seconds,lastWindow:-1,lastAddressAt:seconds,heard:[],speakers:[]});
 export function sampleAmbientConversation(surface,seconds,person,{memory,allow=true}={}){
  if(!allow||!surface||!person||!Number.isFinite(seconds)||surface.systemId==='hearth'||['kettle','morrow','tinbell'].includes(surface.parentId||surface.id)||!['planet','station','site'].includes(surface.kind)||!memory||memory.surfaceId!==surface.id||seconds-memory.enteredAt<45||seconds-memory.lastAt<240)return null;
  const window=Math.floor(seconds/240),social=!!surface.socialStyle,key=`${surface.seed}:${surface.id}:chatter:${window}`,roll=hash(key);
  if(memory.lastWindow===window||roll%(social?2:7)!==0)return null;
  const phase=seconds-window*240,opens=45+Math.floor(roll/7)%130;if(phase<opens||phase>opens+28)return null;
- const people=surface.entities.filter(entity=>['npc','mechanic','medic'].includes(entity.type)&&!entity.hidden&&!entity.data?.automated&&!entity.data?.encounter&&!['sleeping','talking'].includes(entity.life?.activity)&&distance(entity,person)<=180).sort((a,b)=>distance(a,person)-distance(b,person));
+ const heard=recentRows(memory.heard,seconds),speakers=recentRows(memory.speakers,seconds);
+ const people=surface.entities.filter(entity=>['npc','mechanic','medic'].includes(entity.type)&&!entity.hidden&&!entity.data?.automated&&!entity.data?.encounter&&!['sleeping','talking'].includes(entity.life?.activity)&&distance(entity,person)<=180&&!speakers.some(row=>row.key===entity.id&&seconds-row.at<SPEAKER_SECONDS)).sort((a,b)=>distance(a,person)-distance(b,person));
  if(!people.length)return null;
  const style=surface.socialStyle|| (surface.culture==='reedbound'?'preflight':'default');
  const speaker=people[0],addressed=roll%5===0&&distance(speaker,person)<65&&seconds-memory.lastAddressAt>=720;
- let lines,kind;
- if(addressed){kind='addressed';const text=style==='preflight'?'The shade reaches the path. You may rest here.':style==='farm'?'Mind the little one. It follows unfamiliar boots.':style==='tavern'||style==='supper'?'There’s a place here if you need a minute.':'Watch that step. It catches everybody once.';lines=[{speakerId:speaker.id,speaker:speaker.name,text}];}
- else{const other=people.slice(1).find(entity=>distance(entity,speaker)<=96);if(!other)return null;const options=exchanges[style]||exchanges.default,pair=options[Math.floor(roll/11)%options.length];kind='overheard';lines=[{speakerId:speaker.id,speaker:speaker.name,text:pair[0]},{speakerId:other.id,speaker:other.name,text:pair[1]}];}
- return{id:`${surface.id}:${window}`,kind,lines,duration:7,until:seconds+7,nextMemory:{...memory,lastAt:seconds,lastWindow:window,lastAddressAt:addressed?seconds:memory.lastAddressAt}};
+ let lines,kind,heardKey;
+ if(addressed){kind='addressed';const options=addressedLines[style]||addressedLines.default,available=options.filter(line=>!heard.some(row=>row.key===`addressed:${hash(line)}`));if(!available.length)return null;const text=available[Math.floor(roll/11)%available.length];heardKey=`addressed:${hash(text)}`;lines=[{speakerId:speaker.id,speaker:speaker.name,text}];}
+ else{const other=people.slice(1).find(entity=>distance(entity,speaker)<=96);if(!other)return null;const options=exchanges[style]||exchanges.default,available=options.filter(pair=>!heard.some(row=>row.key===`exchange:${hash(pair.join('|'))}`));if(!available.length)return null;const pair=available[Math.floor(roll/11)%available.length];heardKey=`exchange:${hash(pair.join('|'))}`;kind='overheard';lines=[{speakerId:speaker.id,speaker:speaker.name,text:pair[0]},{speakerId:other.id,speaker:other.name,text:pair[1]}];}
+ return{id:`${surface.id}:${window}`,kind,lines,duration:7,until:seconds+7,nextMemory:{...memory,lastAt:seconds,lastWindow:window,lastAddressAt:addressed?seconds:memory.lastAddressAt,heard:[...heard,{key:heardKey,at:seconds}].slice(-HISTORY_LIMIT),speakers:[...speakers,...lines.map(line=>({key:line.speakerId,at:seconds}))].slice(-HISTORY_LIMIT)}};
 }

@@ -1115,10 +1115,11 @@ export class Game {
     if(signal?.earthCampaign)return this.earthSignalAction(signalId);
     if (!signal || signal.resolved) return this._fail('That signal has already gone quiet.', 'target');
     if (distance(signal, this.state.ship) > this.state.ship.scanRange) return this._fail('Move closer to scan the signal.', 'distance');
-    if (this.state.ship.energy < 8) return this._fail('Wait for the scanner capacitor to recharge.', 'energy');
+    const scanCost = this.narrativeScanCost?.(signal) ?? 8;
+    if (this.state.ship.energy < scanCost) return this._fail(`This scan needs ${scanCost} reactor charge. Wait for the scanner capacitor to recharge.`, 'energy');
     if (signal.story && signal.id === 'hearth:story:tinbell' && !this.hasFlag('first_shift_done')) return this._fail('Iona at Kettle can help identify this old frequency. Meet her and complete a local job first.', 'story');
     if (signal.story && !this.hasFlag('mined_six_ore')) return this._fail('Mine six units of ore first; the metal dust lets your scanner match the damaged beacon.', 'story');
-    this.state.ship.energy -= 8;
+    this.state.ship.energy -= scanCost;
     if (!signal.scanned) {
       signal.scanned = true;
       this._record().scanned.push(signal.id);
@@ -2138,10 +2139,10 @@ export class Game {
     }
     const sh = this.state.ship,condition=this.worldDirector?.conditions?.[`${this.state.systemId}:${this.state.locationId}`];
     const localRate=condition&&condition.until>this.worldDirector.time?condition.serviceMultiplier:1;
-    const rate=this.characterEffects.serviceCost*clamp(finite(localRate,1),.8,1.2);
-    if (action === 'repair') return { action, cost: Math.ceil(Math.max(0, sh.maxHull - sh.hull) * 0.65 * rate), label: 'Repair hull' };
+    const support=this.narrativeServiceBenefit?.(action),rate=this.characterEffects.serviceCost*clamp(finite(localRate,1),.8,1.2)*(support?.multiplier??1);
+    if (action === 'repair') return { action, cost: Math.ceil(Math.max(0, sh.maxHull - sh.hull) * 0.65 * rate), label: 'Repair hull', ...(support?{support:support.label}:{}) };
     if (action === 'refuel') return { action, cost: Math.ceil(Math.max(0, sh.maxFuel - sh.fuel) * 2 * rate), label: 'Fill fuel tanks' };
-    if (action === 'rest') return { action, cost: Math.ceil(Math.max(0,(this.state.person.maxHealth||100) - this.state.person.health) * 0.25 * rate), label: 'Visit the infirmary' };
+    if (action === 'rest') return { action, cost: Math.ceil(Math.max(0,(this.state.person.maxHealth||100) - this.state.person.health) * 0.25 * rate), label: 'Visit the infirmary', ...(support?{support:support.label}:{}) };
     if (action === 'sell' || action === 'sellOre' || action === 'sellCrystal') {
       const ore = action === 'sellCrystal' ? 0 : this.state.cargo.ore;
       const crystal = action === 'sellOre' ? 0 : this.state.cargo.crystal;

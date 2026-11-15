@@ -1006,7 +1006,9 @@ export class Realm extends BoardingAuthority {
         if (!this._helm(c, active)||active.id!==owned?.id) return fail('Take the helm of your own ship to negotiate a surrender and carry the prisoner.', 'helm');
         return this._withShip(c, active, () => game.threadAction(a));
       }
-      const quest=game.state.narrative?.quests?.[a.threadId],step=quest&&questThread(a.threadId)?.stages[quest.stage];
+      const definition=questThread(a.threadId),quest=game.state.narrative?.quests?.[a.threadId],step=quest&&definition?.stages[quest.stage];
+      const supplyCost=definition?.localCampaign&&a.action==='choose'&&step?.kind==='choice'?step.options?.find(option=>option.id===a.choiceId)?.cost:null;
+      if((supplyCost?.ore>0||supplyCost?.fuel>0)&&(!owned||owned.destroyed||owned.systemId!==game.state.systemId||owned.dockedAt!==game.state.locationId||game.state.interior))return fail('Dock your own supply ship at this port before committing its ore or fuel to the repair. A nearby or borrowed vessel cannot supply your personal cargo.','vessel');
       if (a.threadId === 'earth_long_silence' && ['earth-scan', 'earth-rescue', 'earth-defense'].includes(step?.kind)) {
         if (!this._helm(c, active)) return fail('Take the helm of a vessel you are permitted to fly for this mission.', 'helm');
         return this._withShip(c, active, () => game.threadAction(a));

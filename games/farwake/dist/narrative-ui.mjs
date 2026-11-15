@@ -2,12 +2,13 @@
 import { escapeHtml as esc, fmt } from './ui.mjs';
 import { navIcon } from './ui-icons.mjs';
 import { earthCampaignPresentation } from './earth-campaign-ui.mjs';
+import { createNotebookNavigation } from './notebook-navigation.mjs';
 
 const array=value=>Array.isArray(value)?value:[];
 const text=value=>typeof value==='string'?value:'';
 
 export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,legacyJournal,legacyJobs,drawPortrait}) {
-  let busy=false;
+  let busy=false,pending=null;
   const game=()=>getGame();
   const board=()=>game().narrativeBoard();
   const wallet=()=>`You have ${fmt(game().state.credits)} cr · ${game().state.cargo.ore} ore`;
@@ -18,32 +19,29 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     const body=system?.bodies.find(b=>b.id===target.bodyId);
     return [body?.name||target.bodyId,system?.name].filter(Boolean).join(' · ');
   };
-  function frame(title,section='stories',eyebrow='CAPTAIN’S NOTEBOOK',{conversation=false}={}) {
-    if(conversation){dialog.open(title,'npc',{eyebrow});dialog.html('<section class="narrative-view"><div class="notebook-content"></div></section>');return dialog.body.querySelector('.notebook-content');}
-    dialog.open(title,'narrative',{eyebrow,wide:true});
-    dialog.html('<section class="narrative-view"><nav class="notebook-nav" aria-label="Notebook sections"></nav><div class="notebook-content"></div></section>');
-    const nav=dialog.body.querySelector('.notebook-nav');
-    for(const [key,label,action] of [
-      ['stories','Stories',()=>openBoard('stories')],['people','People',()=>openBoard('people')],
-      ['factions','Factions',()=>openBoard('factions')],['professions','Work & service',()=>openProfessions()],
-      ['contracts','Contracts',()=>legacyJournal('missions')],['log','Voyage log',()=>legacyJournal('log')]
-    ]) {
-      const b=document.createElement('button');b.type='button';b.textContent=label;b.className=section===key?'active':'';
-      if(section===key)b.setAttribute('aria-current','page');b.onclick=action;nav.append(b);
-    }
-    return dialog.body.querySelector('.notebook-content');
+  function frame(title,section='stories',eyebrow='CAPTAIN’S NOTEBOOK',{conversation=false,contextKey=title}={}) {
+    dialog.open(conversation?title:'Captain’s notebook',conversation?'npc':'narrative',{eyebrow:conversation?eyebrow:'STORIES, PEOPLE & WORK',wide:!conversation,contextKey});
+    const shell=document.createElement('section');shell.className='narrative-view';
+    if(!conversation)shell.append(createNotebookNavigation(section,key=>{
+      if(['stories','people','factions'].includes(key))openBoard(key);
+      else if(key==='professions')openProfessions();
+      else legacyJournal(key);
+    }));
+    const content=document.createElement('div');content.className='notebook-content';shell.append(content);dialog.body.append(shell);
+    if(!conversation){const titleNode=document.createElement('h3');titleNode.className='notebook-page-title';titleNode.textContent=title;content.append(titleNode);}
+    return content;
   }
   function note(root,value,className='notebook-note') {const p=document.createElement('p');p.className=className;p.textContent=value;root.append(p);return p;}
   function heading(root,value) {const h=document.createElement('h3');h.className='notebook-heading';h.textContent=value;root.append(h);}
   function button(root,label,action,{secondary=false,disabled=false}={}) {
-    const b=document.createElement('button');b.type='button';b.className=secondary?'notebook-button secondary':'notebook-button';b.textContent=label;b.disabled=disabled;b.onclick=action;root.append(b);return b;
+    const revision=dialog.revision,captain=game(),b=document.createElement('button');b.type='button';b.className=secondary?'notebook-button secondary':'notebook-button';b.textContent=label;b.dataset.dialogKey=label;b.disabled=disabled;b.onclick=event=>{if(dialog.opened&&dialog.revision===revision&&game()===captain&&b.isConnected&&!b.disabled)return action?.(event);};root.append(b);return b;
   }
   function destination(root,target,id,{here=false}={}) {
     if(!target)return;
     if(here)return;
     const row=document.createElement('div');row.className='thread-destination';
     row.innerHTML=`<span><small>NEXT STOP</small><strong>${esc(place(target)||'Nearby')}</strong></span>`;
-    button(row,'Show the way',()=>track(target,id),{secondary:true});root.append(row);
+    button(row,'Mark destination',()=>track(target,id),{secondary:true});root.append(row);
   }
   function money(root,cost) {
     if(!cost)return;
@@ -53,24 +51,38 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     const out=document.createElement('div');out.className='thread-price';
     out.innerHTML=`<strong>Cost ${needed.map(x=>`${fmt(x[1])} ${x[3]}`).join(' + ')}</strong><span>You have ${needed.map(x=>`${fmt(x[2])} ${x[3]}`).join(' · ')}</span><small>${needed.some(x=>x[1]>x[2])?'Still need '+needed.filter(x=>x[1]>x[2]).map(x=>`${fmt(x[1]-x[2])} ${x[3]}`).join(' + '):'After: '+needed.map(x=>`${fmt(x[2]-x[1])} ${x[3]}`).join(' · ')}</small>`;root.append(out);
   }
+  const captainPlace=captain=>[captain.state.multiplayer?.captainId||captain.state.seed,captain.state.systemId,captain.state.locationId,captain.state.mode,captain.state.interior?.kind,captain.state.exploration?.siteId].join(':');
   async function send(name,args,then) {
-    if(busy)return;busy=true;
-    const captain=game(),identity=[captain.state.multiplayer?.captainId||captain.state.seed,captain.state.systemId,captain.state.locationId].join(':');
-    const owner=dialog.body.querySelector('.narrative-view');
-    const enabled=[...owner?.querySelectorAll('button:not(:disabled),select:not(:disabled)')||[]];for(const control of enabled)control.disabled=true;
-    try {const result=await invoke(name,args);busy=false;const current=game();if(current!==captain||identity!==[current.state.multiplayer?.captainId||current.state.seed,current.state.systemId,current.state.locationId].join(':'))return;if(acceptResult(result))then?.(result);}
-    finally {busy=false;for(const control of enabled)if(control.isConnected)control.disabled=false;}
+    if(pending&&pending.revision===dialog.revision&&pending.captain===game())return;
+    const captain=game(),identity=captainPlace(captain),request={captain,revision:dialog.revision,opened:dialog.opened,kind:dialog.kind};
+    pending=request;busy=true;
+    const owner=dialog.body.querySelector('.narrative-view'),enabled=[...owner?.querySelectorAll('button:not(:disabled),select:not(:disabled)')||[]];
+    for(const control of enabled)control.disabled=true;
+    const sameView=()=>game()===captain&&identity===captainPlace(captain)&&dialog.revision===request.revision&&dialog.opened===request.opened&&dialog.kind===request.kind;
+    const current=()=>pending===request&&sameView();
+    try {
+      const result=await invoke(name,args);if(!current())return;
+      pending=null;busy=false;
+      if(acceptResult(result)&&sameView())await then?.(result);
+    } catch(error) {
+      if(sameView())acceptResult({ok:false,reason:'The request could not finish. Try again.'});
+    } finally {
+      if(pending===request){pending=null;busy=false;}
+      for(const control of enabled)if(control.isConnected&&dialog.revision===request.revision)control.disabled=false;
+    }
   }
   function storyCard(root,view,{compact=false,onOpen}={}) {
-    const card=document.createElement('article');card.className='thread-card';
+    const card=document.createElement('article');card.className='thread-card';card.dataset.dialogScope='thread:'+view.id;
     if(view.campaign)card.classList.add('earth-campaign-card');
+    if(view.localCampaign)card.classList.add('local-campaign-card');
     card.innerHTML=`<div class="thread-card-top"><span class="thread-category">${esc(view.category||'A local story')}</span><span class="thread-status">${esc(view.status==='active'?'In progress':view.status==='completed'?'Recorded':'A lead')}</span></div><h3>${esc(view.title)}</h3><p>${esc(compact?(view.objective||view.summary):(view.summary||view.objective))}</p>`;
     if(view.target)note(card,place(view.target),'thread-place');
     if(view.campaign)campaignProgress(card,view);
-    button(card,view.status==='active'?'Continue this story':'Read the lead',onOpen||(()=>openThread(view.id)),{secondary:true});root.append(card);
+    if(view.localCampaign)localCampaignProgress(card,view);
+    button(card,view.status==='active'?'View next step':view.localCampaign||view.campaign?'View campaign':'View story',onOpen||(()=>openThread(view.id)),{secondary:true});root.append(card);
   }
   function openBoard(section='stories') {
-    const data=board(),root=frame(section==='people'?'People you know':section==='factions'?'Where you stand':'Your unfinished stories',section);
+    const data=board(),root=frame(section==='people'?'People you know':section==='factions'?'Faction standing':'Stories & campaigns',section,'CAPTAIN’S NOTEBOOK',{contextKey:'notebook:'+section});
     if(section==='people') {
       if(!data.contacts?.length)note(root,'You have not met these people yet. Talk to people at Kettle and Morrow; your notebook will remember their names and what passed between you.');
       for(const contact of array(data.contacts)) {
@@ -81,12 +93,15 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
       return;
     }
     if(section==='factions') {renderFactions(root,array(data.factions));return;}
-    note(root,'Follow a lead, meet the person behind it, and decide what you are willing to do. Only stories you can discover now appear here.');
+    note(root,'Choose a story, read its next step, and mark the destination. You can return here whenever you need a reminder.');
     if(data.passenger)passengerCard(root,data.passenger);
-    heading(root,'In your hands');
-    if(!data.active?.length)note(root,'No unfinished favors yet. The leads below begin with someone you can meet.');
+    heading(root,'In progress');
+    if(!data.active?.length)note(root,'You have no active stories. Choose a campaign or local story below.');
     for(const view of array(data.active))storyCard(root,view,{compact:true});
-    if(data.available?.length){heading(root,'Available leads');for(const view of data.available)storyCard(root,view);}
+    const campaigns=array(data.available).filter(view=>view.localCampaign),longVoyages=array(data.available).filter(view=>view.campaign),leads=array(data.available).filter(view=>!view.localCampaign&&!view.campaign);
+    if(campaigns.length){heading(root,'Start a campaign in Hearth');note(root,'Connected local stories with different work, choices, and outcomes. No fold drive is needed.');for(const view of campaigns)storyCard(root,view);}
+    if(longVoyages.length){heading(root,'A longer voyage');for(const view of longVoyages)storyCard(root,view);}
+    if(leads.length){const more=document.createElement('details');more.className='thread-history';more.dataset.dialogKey='local-leads';more.open=!campaigns.length&&!longVoyages.length;const summary=document.createElement('summary');summary.textContent=`More local stories · ${leads.length}`;more.append(summary);for(const view of leads)storyCard(more,view);root.append(more);}
     if(!data.available?.length&&!data.active?.length) {
       button(root,'Find someone at this port',()=>track({systemId:game().state.systemId,bodyId:currentBody()||'kettle',entityId:'quest:passage-desk:'+(currentBody()||'kettle')}),{secondary:true});
       note(root,'Try the concourse at Kettle, Morrow’s clinic, or a public-services desk.');
@@ -117,18 +132,20 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     }
     if(!entity&&game().atInhabitedPort)button(root,'Find the local faction liaison',()=>track({systemId:game().state.systemId,bodyId:currentBody(),entityId:'quest:liaison:'+currentBody()}),{secondary:true});
   }
-  function contactHeader(root,contact,entity) {
+  function contactHeader(root,contact,entity,dialogue={}) {
     const head=document.createElement('div');head.className='notebook-contact';
     if(entity.data?.automated){const terminal=document.createElement('span');terminal.className='service-symbol';terminal.innerHTML=navIcon(entity.data?.professionDesk?'Port services':'Contacts');head.append(terminal);}
     else{const canvas=document.createElement('canvas');canvas.width=32;canvas.height=40;canvas.setAttribute('aria-label',contact.name+' portrait');drawPortrait?.(canvas.getContext('2d'),{...entity,...contact});head.append(canvas);}
     const words=document.createElement('div');words.innerHTML=`<span class="thread-category">${esc(contact.roleLabel||contact.role||contact.attitude||'Local contact')}</span>${contact.activity?`<span class="speaker-activity">${esc(contact.activity)}</span>`:''}<p>${esc(contact.greeting||contact.text||entity.text||'They make room for you to stop and talk.')}</p>`;head.append(words);root.append(head);
     if(contact.relationship&&contact.relationship!=='Unacquainted')note(root,contact.relationship,'speaker-relationship');
-    if(contact.lastMemory){const history=document.createElement('details');history.className='contact-history';history.innerHTML=`<summary>Last time we spoke</summary><p>${esc(contact.lastMemory)}</p>`;root.append(history);}
+    if(dialogue.updateText){const update=document.createElement('details');update.className='contact-history';update.dataset.dialogKey='contact-update';update.innerHTML=`<summary>${esc(dialogue.updateLabel||'Review the latest update')}</summary><p>${esc(dialogue.updateText)}</p>`;root.append(update);}
+    if(contact.lastMemory&&contact.lastMemory!==dialogue.updateText){const history=document.createElement('details');history.className='contact-history';history.dataset.dialogKey='contact-memory';history.innerHTML=`<summary>Last time we spoke</summary><p>${esc(contact.lastMemory)}</p>`;root.append(history);}
+    if(dialogue.topics?.length){const topics=document.createElement('section');topics.className='contact-topics';topics.setAttribute('aria-label','More to ask');for(const topic of dialogue.topics){const detail=document.createElement('details');detail.dataset.dialogKey='topic:'+topic.id;detail.innerHTML=`<summary>${esc(topic.label)}</summary><p>${esc(topic.text)}</p>`;topics.append(detail);}root.append(topics);}
   }
   async function openContact(entity) {
     await send('inspectContact',{entityId:entity.id},answer=>{
-      const contact=answer.contact||entity,root=frame(contact.name||entity.name,'stories',game().currentBody?.name||'A CONVERSATION',{conversation:true});contactHeader(root,contact,entity);
-      for(const view of array(answer.threads))renderStage(root,view,{entity});
+      const contact=answer.contact||entity,root=frame(contact.name||entity.name,'stories',game().currentBody?.name||'A CONVERSATION',{conversation:true,contextKey:'contact:'+entity.id});contactHeader(root,contact,entity,answer.dialogue);
+      for(const view of array(answer.threads)){if(view.status==='active')renderStage(root,view,{entity});else{const offer=document.createElement('details');offer.className='contact-offer';offer.dataset.dialogKey='offer:'+view.id;const summary=document.createElement('summary');summary.textContent='Discuss '+view.title;offer.append(summary);renderStage(offer,view,{entity});root.append(offer);}}
       if(entity.data?.contactId?.startsWith('passage-desk:')) {
         if(answer.passenger)passengerCard(root,answer.passenger,entity);
         else {heading(root,'Passengers looking for a ride');note(root,'Fares travel in your own ship. Meet the passenger here, then use the passage desk at their destination.');
@@ -155,11 +172,18 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     if(entity){button(card,'Complete the passage',()=>send('deliverPassenger',{entityId:entity.id},()=>openContact(entity)));button(card,'Cancel at this port · no fare',()=>send('abandonPassenger',{entityId:entity.id},()=>openContact(entity)),{secondary:true});}
     root.append(card);
   }
-  async function openObject(entity) {await send('inspectQuestObject',{entityId:entity.id},answer=>{const root=frame(answer.object?.name||entity.name,'stories','IN THE FIELD');note(root,answer.object?.text||entity.text||'Examine what is in front of you.');for(const view of array(answer.threads))renderStage(root,view,{entity});if(!answer.threads?.length)note(root,answer.text||'You have no unfinished business with this object yet.');});}
+  async function openObject(entity) {await send('inspectQuestObject',{entityId:entity.id},answer=>{const root=frame(answer.object?.name||entity.name,'stories','IN THE FIELD',{contextKey:'object:'+entity.id});note(root,answer.object?.text||entity.text||'Examine what is in front of you.');for(const view of array(answer.threads))renderStage(root,view,{entity});if(!answer.threads?.length)note(root,answer.text||'You have no unfinished business with this object yet.');});}
   function openThread(id) {
     const data=board(),view=[...array(data.active),...array(data.available)].find(v=>v.id===id);
     if(!view){openBoard();return;}
-    const root=frame(view.title,'stories',view.category||'A STORY IN PROGRESS');renderStage(root,view);
+    const root=frame(view.title,'stories',view.category||'A STORY IN PROGRESS',{contextKey:'thread:'+id});renderStage(root,view);button(root,'Back to stories & campaigns',()=>openBoard(),{secondary:true});
+  }
+  function localCampaignProgress(root,view){
+    const campaign=view.localCampaign;if(!campaign)return;
+    const panel=document.createElement('section');panel.className='local-campaign-progress';panel.setAttribute('aria-label','Campaign progress');
+    const label=document.createElement('strong');label.textContent=`Step ${campaign.step} of ${campaign.total} · ${campaign.focus}`;panel.append(label);
+    if(campaign.scope)note(panel,campaign.scope,'campaign-scope');
+    if(campaign.consequence)note(panel,campaign.consequence,'campaign-consequence');root.append(panel);
   }
   function campaignProgress(root,view) {
     const info=earthCampaignPresentation(view,game().state.earthCampaignView);if(!info)return;
@@ -187,10 +211,11 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     }
   }
   function renderStage(root,view,{entity,profession=false,refresh}={}) {
-    const section=document.createElement('section');section.className='thread-stage';
-    section.innerHTML=`<span class="thread-category">${esc(view.category||view.stageTitle||'Your next step')}</span><h3>${esc(view.stageTitle||view.title)}</h3><p class="thread-prose">${esc(view.text||view.summary||view.description)}</p>${view.objective&&!(entity&&entity.id===view.target?.entityId&&array(view.actions).some(action=>action.available!==false))?`<div class="thread-objective"><span>WHAT TO DO</span><p>${esc(view.objective)}</p></div>`:''}`;
+    const section=document.createElement('section');section.className='thread-stage';section.dataset.dialogScope='stage:'+view.id;
+    section.innerHTML=`<span class="thread-category">${esc(view.category||view.stageTitle||'Your next step')}</span><h3>${esc(view.stageTitle||view.title)}</h3><p class="thread-prose">${esc(view.text||view.summary||view.description)}</p>${view.objective?`<div class="thread-objective"><span>WHAT TO DO</span><p>${esc(view.objective)}</p></div>`:''}`;
     destination(section,view.target,profession?'@profession':view.id,{here:!!entity&&entity.id===view.target?.entityId&&!view.target?.enemyId});
     if(view.campaign)campaignProgress(section,view);
+    if(view.localCampaign)localCampaignProgress(section,view);
     const actions=array(view.actions);let readSolution=null;
     if(view.puzzle)readSolution=renderPuzzle(section,view.puzzle);
     if(view.reward)note(section,`${fmt(view.reward)} cr on completion${profession&&view.status!=='active'?` · ${fmt(view.cost||0)} cr supplies to begin`:''}`,'thread-place');
@@ -202,13 +227,18 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
         const name=profession?'professionAction':'threadAction';
         const args=profession?{jobId:action.jobId||view.jobId||view.id,eventId:action.eventId||view.eventId,action:action.action,choiceId:action.choiceId,entityId:action.entityId||entity?.id||view.target?.entityId}:{threadId:view.id,action:action.action,choiceId:action.choiceId,entityId:entity?.id||view.target?.entityId};
         if(action.action==='solve'||action.action==='triage')args.solution=readSolution?.()||[];
-        send(name,args,answer=>{
-          const next=profession?null:[...array(board().active),...array(board().available)].find(v=>v.id===view.id);
-          const done=frame(answer.title||view.title,profession?'professions':'stories','RECORDED IN YOUR LOG');
-          note(done,answer.text||answer.message||'Your decision has been recorded.','thread-prose');
-          if(next?.objective) {heading(done,'Next');note(done,next.objective);destination(done,next.target,next.id);}
-          note(done,wallet(),'notebook-wallet');
-          button(done,profession?'Back to work':'Back to the story',()=>refresh?refresh():profession?openProfessions(entity):entity?.data?.objectId?openObject(entity):entity?openContact(entity):openThread(view.id),{secondary:true});
+        const focusWasInSection=section.contains(document.activeElement);
+        return send(name,args,answer=>{
+          if(profession){openProfessions(entity,{message:answer.text||answer.message||'Your work record has been updated.',jobId:view.jobId||view.id,restoreFocus:focusWasInSection&&(document.activeElement===document.body||section.contains(document.activeElement))});return;}
+          const data=board(),active=array(data.active);
+          const next=[...active,...array(data.available)].find(value=>value.id===view.id);
+          const holder=document.createElement('div');
+          if(next)renderStage(holder,next,{entity,profession,refresh});
+          else{const completed=document.createElement('section');completed.className='thread-stage';completed.dataset.dialogScope='stage:'+view.id;heading(completed,view.title);note(completed,'Completed','thread-completed');button(completed,'View stories & campaigns',()=>openBoard(),{secondary:true});holder.append(completed);}
+          const replacement=holder.firstElementChild,feedback=document.createElement('p');feedback.className='thread-feedback';feedback.setAttribute('role','status');feedback.setAttribute('tabindex','-1');feedback.textContent=answer.text||answer.message||'Your decision has been recorded.';replacement.prepend(feedback);
+          const scrollTop=dialog.body.scrollTop,hadFocus=focusWasInSection&&(document.activeElement===document.body||section.contains(document.activeElement));section.replaceWith(replacement);
+          for(const value of dialog.body.querySelectorAll('.notebook-wallet'))value.textContent=wallet();
+          if(hadFocus)feedback.focus({preventScroll:true});dialog.body.scrollTop=scrollTop;
         });
       },{disabled:action.available===false});
       if(view.campaign)actionButton.dataset.earthAction=action.action;
@@ -231,12 +261,13 @@ export function createNarrativeUI({getGame,dialog,invoke,acceptResult,track,lega
     panel.append(fields);note(panel,'Take your time. Read the clues and set each control before submitting.','puzzle-note');root.append(panel);
     return()=>[...fields.querySelectorAll('select')].map(select=>select.value);
   }
-  function openProfessions(entity) {
-    const data=game().professionBoard?.(entity?.id)||{},root=frame('Work worth doing','professions',entity?.name||'PROFESSIONS & LOCAL EVENTS');
+  function openProfessions(entity,feedback=null) {
+    const data=game().professionBoard?.(entity?.id)||{},root=frame('Work & service','professions',entity?.name||'PROFESSIONS & LOCAL EVENTS',{contextKey:'notebook:professions:'+(entity?.id||'board')});
     note(root,'Medical work, civil service, and faction duty have different responsibilities. Your work can change how a situation ends; local crews keep acting while you are away.');
     if(!entity&&game().atInhabitedPort)button(root,'Find the public-services desk',()=>track({systemId:game().state.systemId,bodyId:currentBody(),entityId:'quest:profession-desk:'+currentBody()}),{secondary:true});
     const active=Array.isArray(data.active)?data.active:data.active?[data.active]:[];
     if(active.length){heading(root,'Your current duty');for(const view of active)renderStage(root,view,{entity,profession:true,refresh:()=>openProfessions(entity)});}
+    if(feedback){const target=[...root.querySelectorAll('.thread-stage')].find(stage=>stage.dataset.dialogScope==='stage:'+feedback.jobId)||root,notice=document.createElement('p');notice.className='thread-feedback';notice.setAttribute('role','status');notice.setAttribute('tabindex','-1');notice.textContent=feedback.message;if(target===root)root.append(notice);else target.prepend(notice);if(feedback.restoreFocus)notice.focus({preventScroll:true});}
     const joined=new Set(array(data.careers).filter(c=>c.enlisted).map(c=>c.id));
     const roster=document.createElement('details');roster.className='profession-roster';roster.open=!joined.size||array(data.careers).some(c=>c.actions?.some(action=>action.action==='claimServiceShip'&&action.available));
     const summary=document.createElement('summary');summary.textContent=joined.size?'Your professions & ranks':'Choose a profession';roster.append(summary);root.append(roster);

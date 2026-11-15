@@ -7,6 +7,7 @@ import { normalizeSpecies, speciesLabel, speciesBackground } from './species.mjs
 import { localSiteResponse } from './local-site-dialogue.mjs';
 import { militaryDialogue, militaryServiceRank } from './military-ranks.mjs';
 import { militaryMission } from './military-content.mjs';
+import { conversationTopics } from './conversation-topics.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -28,7 +29,9 @@ export function normalizeConversations(raw) {
     const count = Math.floor(clamp(finite(saved.count), 0, 99));
     if (!count) continue;
     seen.add(id);
-    people.push({ id, count, lastAt: clamp(finite(saved.lastAt), 0, 1e12), context: text(saved.context, 80) });
+    people.push({ id, count, lastAt: clamp(finite(saved.lastAt), 0, 1e12), context: text(saved.context, 80),
+      ...(typeof saved.updateKey === 'string' && /^[a-z0-9:-]{1,80}$/.test(saved.updateKey) ? { updateKey: saved.updateKey } : {}),
+      ...(typeof saved.rumorKey === 'string' && /^[a-z0-9:-]{1,80}$/.test(saved.rumorKey) ? { rumorKey: saved.rumorKey } : {}) });
   }
   return { version: 1, people: people.sort((a, b) => a.lastAt - b.lastAt).slice(-CONVERSATION_LIMIT) };
 }
@@ -243,10 +246,10 @@ function narrative(game, entity) {
     return record?.status === 'active' && (definition.offeredBy === id || definition.stages[record.stage]?.at?.contactId === id);
   }).sort((a, b) => finite(records[b.id].startedAt) - finite(records[a.id].startedAt));
   const definition = relevant[0], record = definition && records[definition.id], step = definition?.stages[record?.stage];
-  if (step?.at?.contactId === id) return { context: 'mission', greeting: ACTIVE_LINES[`${definition.id}:${step.id}`] || shortAuthored(step.responses?.[record.choices?.[step.respondTo]] || step.text, 'You’re here. Tell me where things stand.'), rumor: 'We can talk through it when you’re ready.', missionId: definition.id };
+  if (step?.at?.contactId === id) return { context: 'mission', greeting: ACTIVE_LINES[`${definition.id}:${step.id}`] || shortAuthored(step.responses?.[record.choices?.[step.respondTo]] || step.text, 'You’re here. Tell me where things stand.'), rumor: step.objective || 'Open this story in your notebook to review the current task.', missionId: definition.id };
   if (definition) {
     const lines = { 'len-vale': 'Still working on the fare? I’m here when you’re ready.', 'ada-finch': 'Take your time. Bring back what you actually find.', 'silas-voss': 'Our arrangement still stands. Anything about it troubling you?', 'orin-dax': 'Don’t let the fee do your thinking. Check the evidence.', 'mara-reed': 'The job’s still on my mind. Let me know what you find.', 'tiva': 'Listen carefully. Bring back what was said, including the silences.' };
-    return { context: 'mission', greeting: lines[id] || 'We still have that matter between us. What have you learned?', rumor: 'No need to rush an answer you’ll have to live with.', missionId: definition.id };
+    return { context: 'mission', greeting: lines[id] || `You’re working on “${definition.title}”. What do you need to check?`, rumor: step?.objective || 'Open this story in your notebook to review the current task.', missionId: definition.id };
   }
   const memory = state.relations?.[id]?.memories?.at(-1);
   if (memory?.text) {
@@ -281,6 +284,8 @@ function mainStory(game, entity) {
 
 function localNews(game, entity, role) {
   const director = game.worldDirector, bodyId = localBody(game, entity), systemId = entity.data?.systemId || game.state.systemId;
+  const actualBody = game.state.exploration?.bodyId || game.state.interior?.location?.parentId || game.state.locationId;
+  if (bodyId !== actualBody || systemId !== game.state.systemId) return null;
   const incident = director?.events?.find(event => event.systemId === systemId && event.bodyId === bodyId && ['active', 'warning'].includes(event.status));
   if (incident) {
     const lines = {
@@ -326,6 +331,31 @@ function routine(entity, role, clock, key) {
   return choose(voice[clock.period] || voice.morning, key);
 }
 
+const updateContexts = new Set(['mission', 'consequence', 'local-choice', 'relationship']);
+function rememberedUpdate(response, previous, entity, role, clock, key) {
+  if (!updateContexts.has(response.context)) return { response, updateKey: null };
+  const updateKey = `${response.context}:${hash(response.greeting + '|' + (response.missionId || '') + '|' + (response.context === 'mission' ? response.rumor || '' : ''))}`;
+  if (previous?.updateKey !== updateKey) return { response, updateKey };
+  const updateLabel = response.context === 'mission' ? 'Review the current job' : response.context === 'local-choice' ? 'About the decision here' : response.context === 'relationship' ? 'About where we stand' : 'About what happened';
+  const updateText = [response.greeting, response.context === 'mission' ? response.rumor : ''].filter(Boolean).join(' ');
+  // Preserve the useful explanation on request, without opening every return
+  // visit by reciting the same completed job or decision in full.
+  const greeting = response.context === 'mission' ? choose(['The job is still open. What do you need to check?', 'We can review the next step, or talk about something else.'], key)
+    : response.context === 'relationship' && previous.context === 'relationship' ? choose(['You know where we stand. What do you need today?', 'We can talk. What did you want to ask?'], key)
+    : routine(entity, role, clock, key);
+  return { response: { ...response, greeting, updateLabel, updateText, repeatedUpdate: true }, updateKey };
+}
+
+function variedRumor(values, key, previousKey) {
+  if (!values.length) return '';
+  const offset = hash(key) % values.length;
+  for (let i = 0; i < values.length; i++) {
+    const line = values[(offset + i) % values.length];
+    if (`rumor:${hash(line)}` !== previousKey || values.length === 1) return line;
+  }
+  return values[offset];
+}
+
 /** Caller owns proximity validation. Reading dialogue never changes reputation. */
 export function conversation(game, entity = {}, { record = true, time, storyTime } = {}) {
   const state = game.state, id = idOf(entity), at = clamp(finite(time, finite(state.stats?.time)), 0, 1e12);
@@ -336,7 +366,9 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const memory = normalizeConversations(state.conversations), previous = memory.people.find(person => person.id === id);
   const known = !!previous || !!state.narrative?.met?.includes(contactId(entity)), role = roleOf(entity), clock = npcClock(at, localBody(game, entity) || 'port');
   const species=normalizeSpecies(entity.species??entity.data?.species);
-  const relation = relationship(game, entity, known), key = `${state.seed}:${id}:${clock.day}:${clock.period}`;
+  const newVisit = !previous || at < previous.lastAt || at - previous.lastAt >= REMEMBER_AFTER;
+  const visit = (previous?.count || 0) + (newVisit ? 1 : 0);
+  const relation = relationship(game, entity, known), key = `${state.seed}:${id}:${clock.day}:${clock.period}:${visit}`;
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
@@ -349,12 +381,23 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   if (!response && previous && hash(`${key}:known`) % 3 === 0 && !['sleeping', 'eating', 'resting'].includes(entity.life?.activity)) response = { context: 'familiar', greeting: choose((VOICES[role] || VOICES.default).familiar, key) };
   if (!response && !known && species!=='human' && !['sleeping','eating','resting'].includes(entity.life?.activity) && entity.text) response={context:'introduction',greeting:shortAuthored(entity.text,'Hello. What brings you here?')};
   if (!response) response = { context: 'routine', greeting: routine(entity, role, clock, key) };
-  const rumors = (Array.isArray(entity.data?.rumors) ? entity.data.rumors : data.rumors || []).filter(value => typeof value === 'string' && value.trim());
-  const rumor = response.context === 'urgent' ? response.rumor : news?.rumor || response.rumor || shortAuthored(choose(rumors.length ? rumors : ['People have their own lives between arrivals. Take your time finding your way.'], key), 'It’s been quiet here. I don’t mind that.');
-  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), newsContext: news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
+  const topics = conversationTopics(game, entity, role, response);
+  const suppliedRumors = Array.isArray(entity.data?.rumors) ? entity.data.rumors : [];
+  const rumors = (suppliedRumors.length ? suppliedRumors : topics.length ? topics.map(value => value.text) : data.rumors || []).filter(value => typeof value === 'string' && value.trim());
+  const rumorPool = (rumors.length ? rumors : ['No new local report. Your notebook keeps the people, jobs and destinations you have already found.']).map(value => shortAuthored(value, 'No new local report.'));
+  const rumor = response.context === 'urgent' ? response.rumor : news?.rumor || response.rumor || variedRumor(rumorPool, key, newVisit ? previous?.rumorKey : null);
+  const remembered = rememberedUpdate(response, previous, entity, role, clock, key);
+  response = remembered.response;
+  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), topics, ...(response.updateText ? { updateText: text(response.updateText, 900) } : {}), newsContext: news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
   if (record && id && !entity.data?.automated && !['__proto__', 'prototype', 'constructor'].includes(id)) {
-    if (!previous) memory.people.push({ id, count: 1, lastAt: at, context: result.context });
-    else if (at >= previous.lastAt + REMEMBER_AFTER || at < previous.lastAt) { previous.count = Math.min(99, previous.count + 1); previous.lastAt = at; previous.context = result.context; }
+    const details = { ...(remembered.updateKey ? { updateKey: remembered.updateKey } : {}), rumorKey: `rumor:${hash(rumor)}` };
+    if (!previous) memory.people.push({ id, count: 1, lastAt: at, context: result.context, ...details });
+    else {
+      if (newVisit) { previous.count = Math.min(99, previous.count + 1); previous.lastAt = at; previous.context = result.context; }
+      // A real change can arrive during the same visit. Remember that update
+      // immediately without counting more meetings or awarding anything.
+      Object.assign(previous, details);
+    }
     state.conversations = { version: 1, people: memory.people.sort((a, b) => a.lastAt - b.lastAt).slice(-CONVERSATION_LIMIT) };
   }
   return result;

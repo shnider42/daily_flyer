@@ -1,8 +1,26 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.24.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.25.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.25.0 — Steadier menus, stories closer to home
+
+**Stories & campaigns, Missions & contracts, People, Factions, Work & service, Voyage log, and Archive** now share one notebook navigation. Refreshing the same menu keeps its width, scroll position, expanded details, and keyboard focus. Purchases keep the outfitter tabs visible; treatment keeps you with the doctor; story decisions show their result and next step inside the current conversation. A late reply cannot replace a newer menu.
+
+Conversations offer named topics you can choose. An unchanged mission update can become a shorter greeting, with the full reminder still available on request. Local chatter remembers recently heard lines and can leave a quiet interval instead of immediately repeating them. Existing authored dialogue remains part of the game; this pass reduces specific repetition rather than claiming every conversation is unique.
+
+Open **Log → Stories & campaigns** to find three connected campaigns available from the beginning. They use the people and places already in **Hearth**, with no fold drive required.
+
+| Campaign | What you do | What remains afterward |
+| --- | --- | --- |
+| **Night Shift, No Backup** · 8 steps | Diagnose Morrow’s clinic supply, pay for or supply parts, test the regulator, and verify the medicine case with Mara Reed. | Choose a personal agreement: **25% off infirmary treatment at Morrow** or **15% off hull repairs at Morrow**. |
+| **A Fair Departure** · 7 steps | Investigate conflicting departure times, negotiate a timetable, then complete an actual Hearth passenger fare before Len Vale approves the charter. | New eligible Hearth fares include the chosen supplement: **10 cr for patients**, **6 cr for commuters**, or **8 cr for couriers**. |
+| **The Signal We Can Trust** · 8 steps | Compare dispatch records, fly to the marked reference point, verify a receiver correction, and decide who receives the report. | Ordinary ship scans use **6 reactor charge instead of 8**. Publication choices also affect trust, faction standing, and the recorded outcome. |
+
+Agreements activate after the campaign is completed and belong to your captain. They do not change another player’s prices or rewrite a fare already accepted. Passenger and flight stages require the appropriate real ship, position, and completed journey; reading the notebook does not satisfy those tasks. Hearth’s custom layout and existing places are retained.
+
+The direction is **deeper use of familiar places, clearer choices, and room for quiet travel**. These are bounded local campaigns, alongside the longer Earth investigation. See [UI and campaign notes](docs/ui-and-campaigns.md) for the interaction contract, implementation, and verification scope.
 
 ## 0.24.0 — Music for the voyage
 

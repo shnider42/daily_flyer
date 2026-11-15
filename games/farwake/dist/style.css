@@ -87,3 +87,8 @@
 .music-library .audio-note{margin:1.2rem 0}
 .music-settings-back{min-height:44px}
 @media(max-width:520px){.music-selectors{grid-template-columns:minmax(0,1fr);gap:12px}.music-listening-actions>button{flex:1 1 auto}.music-piece-description{min-height:0}.music-listening-controls .setting-row{gap:12px}.music-listening-controls .setting-row select{max-width:43%;padding:.6rem .4rem}.music-listening-controls .setting-row label{max-width:58%}}
+
+/* Menus keep a steady top edge as a purchase or conversation changes their height. */
+.modal-backdrop{align-items:flex-start}
+.modal-body{scrollbar-gutter:stable}
+@media(min-width:801px) and (pointer:fine){.modal-backdrop{padding-top:clamp(24px,5dvh,48px)}}

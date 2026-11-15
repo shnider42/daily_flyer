@@ -8,6 +8,7 @@ import { SYSTEM_SPACE_SCALE } from './system-space.mjs';
 import { systemCosmicBodies } from './galaxy-expansion.mjs';
 import { EARTH_CAMPAIGN_ID } from './earth-campaign-content.mjs';
 import { normalizeEarthCampaignRecord, earthCampaignBerths, earthStageTarget, earthStageAccess, earthThreadAction, finishEarthCampaignStage, syncEarthCampaignWorld, stepEarthCampaignWorld, earthCampaignStatus, earthStageActions, earthCampaignRescue, earthCarrierLost, earthSignalAction } from './earth-campaign-rules.mjs';
+import { localCampaignPresentation, localCampaignConsequence, localServiceBenefit, localScanCost, localCharterSupport, recordCampaignPassage } from './local-campaigns.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -103,6 +104,13 @@ function canPay(game,cost={}){
  if(game.state.ship.fuel<(cost.fuel||0))return`You need ${cost.fuel} fuel; you have ${Math.floor(game.state.ship.fuel)}.`;
  return null;
 }
+function paymentReason(game,definition,cost={}){
+ if(definition.localCampaign&&(cost.ore>0||cost.fuel>0)){
+  const access=game.ownShipAccess?.({atPort:true});
+  if(access&&!access.ok)return access.reason||'Bring your own supply ship to this port before committing its cargo.';
+ }
+ return canPay(game,cost);
+}
 function remember(game,id,text,trust=0){
  const state=nstate(game);if(!questContact(id))return;
  if(!state.met.includes(id))state.met.push(id);
@@ -149,8 +157,14 @@ function stageAccess(game,definition,record,step,action,entityId){
  }
  if(step.kind==='ship-scan'){
   if(game.hasActiveVessel===false||game.state.npcContract?.active)return{ok:false,reason:'This reading requires command of an actual survey ship.',code:'no-ship'};
-  if(game.state.mode!=='ship'||game.state.systemId!==step.at.systemId||game.state.ship.hull<=0||game.state.person.health<=0||game.state.person.down)return{ok:false,reason:'Take this reading from your ship in Umbra.',code:'location'};
-  if(distance(game.state.ship,shipReadingPoint(game,step.at))>Math.max(140,Math.min(420,game.state.ship.scanRange||235)))return{ok:false,reason:'Fly to the marked outer-contour reading point. You do not need to approach the dark center.',code:'distance'};
+  if(game.state.mode!=='ship'||game.state.systemId!==step.at.systemId||game.state.ship.hull<=0||game.state.person.health<=0||game.state.person.down)return{ok:false,reason:step.locationReason||`Take this reading from your ship in ${game.galaxy.find(system=>system.id===step.at.systemId)?.name||'the named system'}.`,code:'location'};
+  if(distance(game.state.ship,shipReadingPoint(game,step.at))>Math.max(140,Math.min(420,game.state.ship.scanRange||235)))return{ok:false,reason:step.distanceReason||'Fly to the marked outer-contour reading point. You do not need to approach the dark center.',code:'distance'};
+  if(step.scanEnergy>0&&game.state.ship.energy<step.scanEnergy)return{ok:false,reason:`The reference reading needs ${step.scanEnergy} reactor charge. Wait for the capacitor to recharge.`,code:'energy'};
+  return{ok:true};
+ }
+ if(step.kind==='passage-proof'){
+  const access=nearEntity(game,entityId||step.at.entityId,step.at);if(!access.ok)return access;
+  if(!game.hasFlag(`thread:${step.proofFlag}`))return{ok:false,reason:'Complete a passenger fare between Hearth’s inhabited ports, then bring its receipt to Len. Use a Passage desk to book and finish the journey.',code:'requirements'};
   return{ok:true};
  }
  return nearEntity(game,entityId||step.at.entityId,step.at);
@@ -165,6 +179,7 @@ function view(game,definition,record){
  target.label=target.label||locationName(game,target);
  const result={id:definition.id,title:definition.title,category:definition.category,summary:definition.summary,status,stageId:step?.id||null,stageTitle:step?.title||'Recorded',text:status==='completed'?(record.outcome||'This part of your voyage is recorded.'):step?.responses?.[record?.choices?.[step.respondTo]]||step?.text||definition.summary,objective:step?.objective||'Complete',target,actions:[],reward:record?.rewardQuote??Math.round(definition.reward*(game.characterEffects?.jobRewards||1)),contactId:definition.offeredBy};
  if(definition.id===EARTH_CAMPAIGN_ID)result.campaign=earthCampaignStatus(game);
+ if(definition.localCampaign)result.localCampaign=localCampaignPresentation(definition,record);
  if(definition.id==='paper_bounty'&&step?.id==='judgment'&&record?.huntOutcome==='destroyed')result.text='Rook is dead. Orin puts the forged warrant beside the wreck record. You cannot undo the encounter, but you can still decide whether the employer gets to write its only public account.';
  if(definition.id==='borrowed_voice'&&step?.id==='intercom'){
   const answer=nstate(game).quests.nine_knocks?.choices.disposition;
@@ -181,7 +196,7 @@ function view(game,definition,record){
  }
  if(definition.id===EARTH_CAMPAIGN_ID){const actions=earthStageActions(game,record,step,{nearEntity,capacity:game=>capacity(game,true)});if(actions){result.actions=actions;return result;}}
  const access=stageAccess(game,definition,record,step,step.kind==='hunt'?'capture':'advance',target.entityId);
- if(step.kind==='choice')result.actions=step.options.map(raw=>{const option=choiceForRecord(definition,record,raw);return{action:'choose',choiceId:option.id,label:option.label,detail:option.detail,cost:clone(option.cost||{}),available:access.ok&&!canPay(game,option.cost),reason:access.reason||canPay(game,option.cost)};});
+ if(step.kind==='choice')result.actions=step.options.map(raw=>{const option=choiceForRecord(definition,record,raw);return{action:'choose',choiceId:option.id,label:option.label,detail:option.detail,cost:clone(option.cost||{}),available:access.ok&&!paymentReason(game,definition,option.cost),reason:access.reason||paymentReason(game,definition,option.cost)};});
  else if(step.kind==='hunt'){
   const dead=stageAccess(game,definition,record,step,'confirmKill');
   result.actions=[{action:'capture',label:'Accept Rook’s surrender',available:access.ok,reason:access.reason},{action:'confirmKill',label:'Recover the wreck’s transponder record',available:dead.ok,reason:dead.reason}];
@@ -191,9 +206,12 @@ function view(game,definition,record){
 }
 function finishStep(game,definition,record,text){
  if(definition.id===EARTH_CAMPAIGN_ID)finishEarthCampaignStage(game,record,definition.stages[record.stage]);
+ const completedStep=definition.stages[record.stage];
+ if(definition.localCampaign&&completedStep.completionFlag)game._flag(`thread:${completedStep.completionFlag}`);
  record.stage++;
  if(record.stage>=definition.stages.length){
   record.status='completed';record.finishedAt=time(game);record.outcome=record.outcome||text||definition.summary;
+  if(definition.localCampaign){record.outcome=localCampaignConsequence(definition.id,record.choices)||record.outcome;remember(game,definition.offeredBy,record.outcome,0);if(completedStep.at.contactId&&completedStep.at.contactId!==definition.offeredBy)remember(game,completedStep.at.contactId,record.outcome,0);}
   game.state.credits+=record.rewardQuote;game.state.stats.storyThreads=(game.state.stats.storyThreads||0)+1;
   game._flag(`thread:complete:${definition.id}`);
   game._log(definition.title,`${record.outcome}${record.rewardQuote?` · ${record.rewardQuote} cr paid.`:''}`,'thread');
@@ -210,9 +228,10 @@ function passengerOffer(game,origin,serial){
  if(!choices.length)return null;
  const h=hash(`${game.state.seed}:${game.state.systemId}:${origin.id}:passenger:${serial}`),destination=choices[h%choices.length],type=PASSENGER_TYPES[(h>>>4)%PASSENGER_TYPES.length],faction=origin.faction||game.currentSystem.faction||'freewake';
  const pledgeBonus=nstate(game).pledge===faction?1.12:1,standingBonus=(game.state.rep[faction]||0)>=30?1.05:1;
- const fare=Math.round((type.base+Math.ceil(distance(origin,destination)/SYSTEM_SPACE_SCALE/100)*2)*pledgeBonus*standingBonus*(game.characterEffects?.jobRewards||1));
+ const charter=localCharterSupport(game,game.state.systemId,type.id);
+ const fare=Math.round((type.base+Math.ceil(distance(origin,destination)/SYSTEM_SPACE_SCALE/100)*2)*pledgeBonus*standingBonus*(game.characterEffects?.jobRewards||1))+(charter?.bonus||0);
  return{id:`passenger:${game.state.systemId}:${origin.id}:${serial}`,serial,name:PASSENGER_NAMES[(h>>>8)%PASSENGER_NAMES.length],type:type.id,title:type.label,text:type.text,comfort:type.comfort,conditions:type.comfort,faction,
-  originSystem:game.state.systemId,originBody:origin.id,targetSystem:game.state.systemId,targetBody:destination.id,targetName:destination.name,sourceEntityId:genericId('passage-desk',origin.id),targetEntityId:genericId('passage-desk',destination.id),fare,bonus:type.bonus,berths:1};
+  originSystem:game.state.systemId,originBody:origin.id,targetSystem:game.state.systemId,targetBody:destination.id,targetName:destination.name,sourceEntityId:genericId('passage-desk',origin.id),targetEntityId:genericId('passage-desk',destination.id),fare,bonus:type.bonus,berths:1,...(charter?{support:charter.label,charterBonus:charter.bonus}:{})};
 }
 
 export const NarrativeRules={
@@ -225,9 +244,13 @@ export const NarrativeRules={
    passengerSerial:integer(raw.passengerSerial,0,100000),passengerCompleted:integer(raw.passengerCompleted,0,100000),passengerHistory:(Array.isArray(raw.passengerHistory)?raw.passengerHistory:[]).slice(-12).map(item=>({name:safeText(item.name),destination:safeText(item.destination),paid:integer(item.paid,0,500),at:Math.max(0,finite(item.at))}))};
   const prior=object(raw.passenger),originSystem=this.galaxy.find(system=>system.id===prior.originSystem),targetSystem=this.galaxy.find(system=>system.id===prior.targetSystem),origin=originSystem?.bodies.find(body=>body.id===prior.originBody),target=targetSystem?.bodies.find(body=>body.id===prior.targetBody),type=PASSENGER_TYPES.find(type=>type.id===prior.type);
   if(hasPort(origin)&&hasPort(target)&&origin.id!==target.id&&originSystem.id===targetSystem.id&&typeof prior.shipId==='string'&&type)state.passenger={...Object.fromEntries(['id','type','originSystem','originBody','targetSystem','targetBody','shipId'].map(key=>[key,safeText(prior[key])])),faction:knownFaction(prior.faction)?prior.faction:originSystem.faction,name:safeText(prior.name),title:type.label,text:type.text,comfort:type.comfort,conditions:type.comfort,targetName:target.name,sourceEntityId:genericId('passage-desk',origin.id),targetEntityId:genericId('passage-desk',target.id),fare:integer(prior.fare,0,500),bonus:integer(prior.bonus,0,30),hullAtPickup:clamp(finite(prior.hullAtPickup,1),1,10000),damageTaken:clamp(finite(prior.damageTaken),0,10000),pickedAt:Math.max(0,finite(prior.pickedAt)),serial:integer(prior.serial,0,100000),berths:1};
-  this.state.narrative=state;return state;
+  this.state.narrative=state;
+  if(state.passenger){const charter=localCharterSupport(this,state.passenger.originSystem,state.passenger.type);if(charter&&prior.charterBonus===charter.bonus){state.passenger.charterBonus=charter.bonus;state.passenger.support=charter.label;}}
+  return state;
  },
  narrativeBerths(){return occupiedNarrativeBerths(this);},
+ narrativeServiceBenefit(action){return localServiceBenefit(this,action);},
+ narrativeScanCost(signal){return localScanCost(this,signal);},
  stepNarrativeWorld(delta,participants=[this]){return stepEarthCampaignWorld(this,delta,participants);},
  earthCampaignStatus(){return earthCampaignStatus(this);},
  earthCarrierLost(shipId){return earthCarrierLost(this,shipId);},
@@ -285,7 +308,7 @@ export const NarrativeRules={
   if(step.kind==='choice'){
    const rawChoice=step.options.find(option=>option.id===choiceId);if(!rawChoice)return this._fail('Choose one of this person’s actual offers.','choice');
    const choice=choiceForRecord(definition,record,rawChoice);
-   const missing=canPay(this,choice.cost);if(missing)return this._fail(missing,'cost');
+   const missing=paymentReason(this,definition,choice.cost);if(missing)return this._fail(missing,'cost');
    record.choices[step.id]=choice.id;record.outcome=choice.effects.memory||choice.detail;
    applyEffects(this,choice.effects,choice.cost,step.at.contactId);this._log(step.title,`${choice.label}. ${choice.detail}`,'decision');
    return finishStep(this,definition,record,`${choice.label}. ${choice.detail}`);
@@ -294,6 +317,7 @@ export const NarrativeRules={
    if(!Array.isArray(solution)||solution.length!==step.puzzle.solution.length||solution.some((value,index)=>String(value)!==step.puzzle.solution[index]))return this._fail('The evidence does not fit that arrangement. Review the clues and try again.','puzzle');
    record.solved.push(step.id);this._event('thread-puzzle',{threadId,text:'The pattern holds. The result is recorded.'});
   }
+  if(step.kind==='ship-scan'&&step.scanEnergy>0){this.state.ship.energy-=step.scanEnergy;this._event('scan',{x:this.state.ship.x,y:this.state.ship.y,threadId,text:`Morrow reference reading recorded · ${step.scanEnergy} charge`});}
   if(step.kind==='hunt'){
    record.huntOutcome=action==='capture'?'captured':'destroyed';record.shipId=this.state.ship.id;
    if(action==='capture'){
@@ -354,7 +378,7 @@ export const NarrativeRules={
   const safe=passenger.damageTaken===0&&this.state.ship.hull>=passenger.hullAtPickup,tip=safe?passenger.bonus:0,paid=passenger.fare+tip;
   this.state.credits+=paid;state.passengerCompleted++;this.state.stats.passengers=(this.state.stats.passengers||0)+1;
   if(knownFaction(passenger.faction)){this.state.rep[passenger.faction]=clamp((this.state.rep[passenger.faction]||0)+2,-100,100);if(state.pledge===passenger.faction){const rival=FACTION_RELATIONS[passenger.faction].rivalId;this.state.rep[rival]=clamp((this.state.rep[rival]||0)-1,-100,100);}}
-  state.passengerHistory.push({name:passenger.name,destination:passenger.targetName,paid,at:Math.round(time(this))});state.passengerHistory=state.passengerHistory.slice(-12);state.passenger=null;
+  state.passengerHistory.push({name:passenger.name,destination:passenger.targetName,paid,at:Math.round(time(this))});state.passengerHistory=state.passengerHistory.slice(-12);recordCampaignPassage(this,passenger,questThread('fair_departure'));state.passenger=null;
   this._log('Passage complete',`${passenger.name} reached ${passenger.targetName}. ${passenger.fare} cr fare${tip?` + ${tip} cr smooth-passage tip`:'. Hull damage cost the optional tip'}.`,'passage');
   this._event('passenger-delivered',{text:`Passage complete · +${paid} cr`});return this._ok({paid,tip,text:`${passenger.name} is safely ashore. ${paid} cr paid${tip?' including the smooth-passage tip':''}.`});
  },

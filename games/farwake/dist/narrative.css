@@ -80,3 +80,21 @@
 .earth-integrity[hidden]{display:none}
 .earth-integrity progress{width:100%;height:8px;accent-color:#97bca8}
 .place-type{color:#bfd3c9;font-size:.94em}
+
+/* A decision updates its story in place, keeping the contact and notebook visible. */
+.narrative-view .notebook-page-title{margin:0 0 14px;font-size:1.3em;color:#f0e4c7}
+.narrative-view .thread-feedback{border-left:3px solid #98c6ad;background:#18382f;padding:12px 14px;margin:0 0 18px;color:#d7e6d8;white-space:pre-line;outline:none}
+.narrative-view .thread-feedback:focus-visible{outline:2px solid #b8d9c6;outline-offset:3px}
+.narrative-view .thread-completed{color:#b6d5b9;font-size:.9em}
+.local-campaign-card{border-left-color:#d7bd7e}
+.local-campaign-progress{border-block:1px solid #35515a;margin:13px 0;padding:10px 0;color:#d9d7bd;font-size:.86em}
+.narrative-view .campaign-scope{font-size:.95em;color:#a8c1c4;margin:5px 0}
+.narrative-view .campaign-consequence{color:#c9d6bd}
+.contact-history,.contact-topics details{margin:10px 0;border-bottom:1px solid #2f4650;padding-bottom:8px}
+.contact-history summary,.contact-topics summary{min-height:42px;padding:8px 0;cursor:pointer;color:#b6ccc7;line-height:1.5}
+.contact-topics{margin:14px 0 20px}
+.contact-topics p{padding:0 10px 10px}
+
+.contact-offer{border-top:1px solid #3b535c;margin:14px 0;padding:8px 0}
+.contact-offer>summary{min-height:44px;padding:10px 0;cursor:pointer;color:#dfcd9f;line-height:1.5}
+.contact-offer .thread-stage{margin-top:8px}

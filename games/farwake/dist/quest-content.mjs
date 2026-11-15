@@ -1,6 +1,7 @@
 /** People and unfinished business. Original authored content; no generated live dialogue. */
 import { EARTH_CAMPAIGN_CONTACTS, EARTH_CAMPAIGN_OBJECTS, EARTH_CAMPAIGN } from './earth-campaign-content.mjs';
 import { NEON_QUEST_CONTACTS, NEON_QUEST_OBJECTS, NEON_QUEST_THREADS } from './neon-content.mjs';
+import { buildLocalCampaigns } from './local-campaigns.mjs';
 const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};
 const person=(id,name,systemId,bodyId,roleLabel,text,color='#8fc7bd',species='human')=>({id,name,systemId,bodyId,role:'contact',roleLabel,text,color,species});
 
@@ -55,6 +56,7 @@ const intervals={type:'sequence',prompt:'Build a greeting from Vey’s three dem
 
 export const QUEST_THREADS=freeze([
  EARTH_CAMPAIGN,
+ ...buildLocalCampaigns(at),
  ...NEON_QUEST_THREADS,
  {id:'last_fare',title:'The last fare of the night',category:'Passage',offeredBy:'len-vale',summary:'A passenger needs to reach Morrow before the clinic closes. Her documents say she should never have left.',reward:95,stages:[
   talk('booking','One seat, no questions','Len lowers his voice. “Her name is Nessa. She can pay for the seat. She cannot pay for someone to decide whether she deserves it.”','len-vale','Speak to Len at Kettle Station.'),
