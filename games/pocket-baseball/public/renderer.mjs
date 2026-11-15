@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.5.0';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.5.0';
-import { DELIVERIES, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.5.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.6.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.0';
+import { DELIVERIES, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -16,15 +16,106 @@ const COLORS = { dirt: 0xb88258, chalk: 0xf1ebd6, wall: 0x173d35,
 // A resolved pitch still belongs to the batter who saw it. The rules may have
 // advanced the lineup already; retain this player for the follow-through/recoil.
 export function presentationBatter(state) {
+  if (state?.brawl && ['brawl', 'result'].includes(state.phase)) return state.brawl.batter;
   if (state?.pitch?.batter && ['windup', 'pitch', 'result'].includes(state.phase)) return state.pitch.batter;
   const batter = getBatter(state);
   return { ...batter, hand: getBatterHand(state) };
 }
 
 export function presentationHand(state, role, actor = {}) {
+  if (actor.brawlSide !== undefined) return actor.hand || actor.throws || 'R';
   if (role === 'batter') return actor.hand || presentationBatter(state).hand || 'R';
   if (role === 'pitcher' && state?.pitch && ['windup', 'pitch'].includes(state.phase)) return state.pitch.hand || actor.throws || 'R';
   return actor.throws || (role === 'pitcher' ? getPitcher(state)?.throws : null) || 'R';
+}
+
+// The fight is an authoritative timed interlude. These world positions are
+// only staging: no actor here can change a base award, score, or combat result.
+export function presentationBrawl(state) {
+  const b = state?.brawl;
+  if (!b || !['brawl', 'result'].includes(state.phase)) return null;
+  const time = state.time || 0, age = Math.max(0, time - (b.stageStartedAt ?? b.startedAt ?? time));
+  const charge = b.stage === 'charge' ? smooth(age / MOUND_RULES.chargeDuration) : 1;
+  const separate = b.stage === 'done' ? 1 : b.stage === 'separate' ? smooth(age / MOUND_RULES.separateDuration) : 0;
+  const startX = b.batter?.hand === 'L' ? 1.02 : -1.02;
+  const contactZ = 18.1;
+  const fighters = [b.batter, b.pitcher].map((person, i) => {
+    const side = i ? b.pitchingSide : b.battingSide, direction = i ? 1 : -1;
+    const x = i ? mix(0, .60, charge) + separate * .9 : mix(startX, -.60, charge) - separate * .9;
+    const z = i ? mix(18.44, contactZ, charge) + separate * .35 : mix(-.04, contactZ, charge) - separate * .35;
+    return { ...person, x, z, role: i ? 'pitcher' : 'batter', brawlSide: side,
+      facing: direction * Math.PI / 2, moving: b.stage === 'charge' && !i && charge < .99,
+      // Charge faces upfield, then turns toward the pitcher before stopping.
+      displayFacing: !i && b.stage === 'charge' ? mix(0, -Math.PI / 2, smooth((charge - .76) / .24)) : direction * Math.PI / 2 };
+  });
+  const focusZ = mix(9, contactZ, charge);
+  return { fighters, stage: b.stage, charge, separate, focusZ, age };
+}
+
+export function brawlCamera(state, portrait = false) {
+  const staged = presentationBrawl(state);
+  if (!staged) return null;
+  const approach = staged.charge;
+  return {
+    eye: { x: mix(8, portrait ? 3.2 : 3.0, approach), y: mix(7.5, 2.65, approach), z: mix(-5, portrait ? 11.0 : 12.3, approach) },
+    look: { x: 0, y: mix(1.0, 1.13, approach), z: staged.focusZ },
+    fov: portrait ? 47 : 45,
+  };
+}
+
+function sampleBrawlMotion(state, actor, base) {
+  const b = state?.brawl, fighter = b?.fighters?.[actor.brawlSide];
+  if (!b || !fighter) return null;
+  const p = base, t = state.time || 0, stageAge = Math.max(0, t - (b.stageStartedAt ?? t));
+  p.batVisible = false;
+  if (b.stage === 'charge' && actor.role === 'batter') {
+    const u = clamp(stageAge / MOUND_RULES.chargeDuration, 0, 1), run = 1 - smooth((u - .82) / .18), cycle = Math.sin(t * 18);
+    p.hipY = Math.abs(cycle) * .07 * run; p.lean = .24 * run;
+    p.leftHip = cycle * .90 * run; p.rightHip = -cycle * .90 * run;
+    p.leftKnee = .20 + Math.max(0, -cycle) * 1.10 * run; p.rightKnee = .20 + Math.max(0, cycle) * 1.10 * run;
+    p.leftArm = -.75 - cycle * .72 * run; p.rightArm = -.75 + cycle * .72 * run;
+    p.leftElbow = p.rightElbow = -1.35; p.twist = cycle * .13 * run;
+    return p;
+  }
+  const bob = Math.sin(t * 8.5 + actor.brawlSide * Math.PI), actionAge = t - (fighter.actionStartedAt ?? t);
+  const action = t < (fighter.actionUntil ?? 0) ? fighter.action : 'idle';
+  p.hipY = -.08 + Math.abs(bob) * .014; p.hipZ = 0; p.lean = .04;
+  p.leftHip = -.23; p.rightHip = .07; p.leftKnee = .37; p.rightKnee = .26;
+  p.leftArm = -.72; p.rightArm = -.88; p.leftElbow = -1.8; p.rightElbow = -1.75;
+  p.leftSpread = .14; p.rightSpread = -.14; p.twist = -.13; p.head = .06;
+  if (action === 'jab') {
+    const windup = Math.max(.05, (fighter.impactAt ?? ((fighter.actionStartedAt ?? t) + FIGHT_ACTIONS.jab.impact)) - (fighter.actionStartedAt ?? t));
+    const duration = Math.max(windup + .05, (fighter.actionUntil ?? t + FIGHT_ACTIONS.jab.duration) - (fighter.actionStartedAt ?? t));
+    const out = smooth(actionAge / windup) * (1 - smooth((actionAge - windup) / (duration - windup)));
+    p.rightArm = mix(-.88, -1.53, out); p.rightElbow = mix(-1.75, -.08, out);
+    p.rightSpread = mix(-.14, .03, out); p.twist = -.13 + out * .39;
+    p.hipZ = out * .15; p.lean = out * .13; p.leftKnee += out * .08;
+  } else if (action === 'guard') {
+    const lift = smooth(actionAge / .10);
+    p.leftArm = p.rightArm = mix(-.8, -1.02, lift);
+    p.leftElbow = p.rightElbow = -2.02; p.leftSpread = -.05; p.rightSpread = .05;
+    p.lean = -.04; p.hipY -= .025;
+  } else if (action === 'dodge') {
+    const duration = Math.max(.05, (fighter.actionUntil ?? t + FIGHT_ACTIONS.dodge.duration) - (fighter.actionStartedAt ?? t));
+    const slip = Math.sin(clamp(actionAge / duration, 0, 1) * Math.PI);
+    p.hipY -= slip * .24; p.hipX = slip * .25; p.roll = -slip * .27;
+    p.leftKnee += slip * .35; p.rightKnee += slip * .35; p.twist -= slip * .35;
+  }
+  const hitAge = fighter.hitAt == null ? -1 : t - fighter.hitAt;
+  if (hitAge >= 0 && hitAge < .40) {
+    const recoil = Math.sin(hitAge / .40 * Math.PI);
+    p.lean -= recoil * .23; p.hipZ -= recoil * .19; p.twist -= recoil * .32;
+    p.head -= recoil * .20; p.rightArm += recoil * .30;
+  }
+  const blockAge = fighter.blockedAt == null ? -1 : t - fighter.blockedAt;
+  if (blockAge >= 0 && blockAge < .24) { p.hipZ -= Math.sin(blockAge / .24 * Math.PI) * .08; p.lean -= .06; }
+  if (b.stage === 'separate' || b.stage === 'done') {
+    const settle = b.stage === 'done' ? 1 : smooth(stageAge / MOUND_RULES.separateDuration);
+    p.leftArm = mix(-.72, -.20, settle); p.rightArm = mix(-.88, -.20, settle);
+    p.leftElbow = mix(-1.8, -.65, settle); p.rightElbow = mix(-1.75, -.65, settle);
+    p.lean = -.05; p.hipZ = 0; p.twist = -.08; p.head = b.winner === actor.brawlSide ? .05 : -.12;
+  }
+  return fighter.hand === 'L' ? mirrorMotion(p) : p;
 }
 
 function mirrorMotion(p) {
@@ -44,13 +135,15 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     leftHip: .08, rightHip: .08, leftKnee: .12, rightKnee: .12,
     leftArm: -.12, rightArm: -.12, leftElbow: -.16, rightElbow: -.16,
     leftSpread: .08, rightSpread: -.08, bat: [-.25, 0, -.32], batVisible: role === 'batter', slide: 0 };
+  if (state?.brawl && ['brawl', 'result'].includes(phase) && actor.brawlSide !== undefined) return sampleBrawlMotion(state, actor, p) || p;
   if (moving) {
     const cycle = Math.sin(time * 15 + index * .73), opposite = Math.sin(time * 15 + index * .73 + Math.PI);
     p.hipY = Math.abs(cycle) * .046; p.hipX = cycle * .014; p.roll = cycle * .032; p.lean = .16; p.stride = cycle;
     p.leftHip = cycle * .72; p.rightHip = -cycle * .72;
     p.leftKnee = .17 + Math.max(0, -cycle) * 1.05; p.rightKnee = .17 + Math.max(0, -opposite) * 1.05;
     p.leftArm = -.20 - cycle * .74; p.rightArm = -.20 + cycle * .74;
-    p.leftElbow = p.rightElbow = -1.16;
+    p.leftElbow = -1.10 - Math.max(0, cycle) * .16; p.rightElbow = -1.10 - Math.max(0, -cycle) * .16;
+    p.twist = -cycle * .11; p.head = cycle * .035; p.hipZ = Math.cos(time * 30 + index * 1.46) * .014;
   } else if (role === 'fielder') {
     p.hipY = -.065; p.lean = .10; p.leftHip = p.rightHip = -.12;
     p.leftKnee = p.rightKnee = .30; p.leftElbow = -.55; p.rightElbow = -.35;
@@ -83,7 +176,9 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       p.leftArm = mix(-.65, -.12, recover); p.leftElbow = -.75 * (1 - recover);
       p.lean = Math.sin(u * Math.PI / 2) * .48 * (1 - recover); p.twist = .38 * (1 - recover);
       p.rightHip = .65 * Math.sin(u * Math.PI) * (1 - recover); p.rightKnee = .65 * (1 - recover) + .12;
-      p.leftHip = -.18; p.leftKnee = .30; p.hipY = -.045 * (1 - recover);
+      p.leftHip = -.18 - .12 * Math.sin(u * Math.PI); p.leftKnee = .30 + .12 * Math.sin(u * Math.PI); p.hipY = -.045 * (1 - recover);
+      p.roll = -.075 * Math.sin(u * Math.PI) * (1 - recover); p.head = -.13 * (1 - recover);
+      p.leftSpread = .08 + .18 * Math.sin(u * Math.PI) * (1 - recover);
       if (highKick) { p.hipY += .17 * (1 - recover); p.hipZ = .12 * (1 - recover); }
       if (sidearm || submarine) {
         p.rightArm = mix((submarine ? .18 : -1.10) + u * 1.25, -.12, recover);
@@ -94,10 +189,16 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       }
     }
   }
+  if (role === 'pitcher' && phase === 'result' && state?.result?.kind === 'strikeout') {
+    const age = state.phaseTime || 0, pump = smooth(age / .18) * (1 - smooth((age - .60) / .45));
+    p.rightArm = -.12 - pump * 1.25; p.rightElbow = -.16 - pump * 1.25;
+    p.twist = pump * .15; p.hipY += pump * .025; p.head = -.08 * pump;
+  }
   if (role === 'batter') {
     p.hipY = -.045; p.leftHip = -.16; p.rightHip = .12; p.leftKnee = .28; p.rightKnee = .22;
     p.leftArm = -1.05; p.rightArm = -1.42; p.leftElbow = -1.28; p.rightElbow = -1.38;
     p.leftSpread = -.10; p.rightSpread = .12; p.twist = -.17; p.head = -.22;
+    p.bat = [-.25 + breath * .035, Math.sin(time * 3.6) * .025, -.32];
     const age = state?.swing ? time - state.swing.time : -1;
     if (age >= 0 && age < .72) {
       // Swing intent is impact, so the bat reaches the plate on that frame.
@@ -107,9 +208,13 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       p.leftElbow = mix(-.12 - u * .9, -1.28, recover); p.rightElbow = mix(-.30 - u * 1.3, -1.38, recover);
       p.bat = [mix(1.48 - u * 1.35, -.25, recover), mix(-u * 1.3, 0, recover), mix(.08 - u * .75, -.32, recover)];
       p.rightHip = .24 + u * .16; p.rightKnee = .25; p.head = -.1; p.hipX = -.075 * Math.sin(u * Math.PI) * (1 - recover); p.roll = -.045 * (1 - recover);
+      p.hipZ = .065 * Math.sin(u * Math.PI) * (1 - recover); p.leftKnee = .19 + recover * .09;
+      p.hipY += .025 * Math.sin(u * Math.PI); p.leftHip -= .07 * Math.sin(u * Math.PI);
     } else if (pitch && ['windup', 'pitch'].includes(phase)) {
       const load = clamp((time - (pitch.releaseAt - .4)) / .6, 0, 1);
-      p.twist = -.17 - Math.sin(load * Math.PI) * .16; p.leftHip -= Math.sin(load * Math.PI) * .10;
+      const coil = Math.sin(load * Math.PI);
+      p.twist = -.17 - coil * .24; p.leftHip -= coil * .22; p.leftKnee += coil * .27;
+      p.hipX = coil * .035; p.hipY += coil * .018; p.bat[0] -= coil * .10;
     }
     const hit = pitch?.hitByPitch, hitAge = hit ? time - hit.at : -1;
     if (hitAge >= 0 && !state?.swing) {
@@ -131,7 +236,10 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
       p.leftSpread = clamp(-state.ball.x * .42, -.38, .38);
       p.leftArm -= clamp((state.ball.y - .9) * .3, -.22, .3);
     }
-    if (phase === 'result' && !play) { p.leftArm = -.9; p.leftElbow = -1.5; }
+    if (phase === 'result' && !play) {
+      const rise = smooth((state.phaseTime || 0) / .48); p.hipY += rise * .12;
+      p.leftArm = -.9; p.leftElbow = -1.5; p.twist = Math.sin((state.phaseTime || 0) * 3) * .06 * (1 - rise);
+    }
   }
   if (play && actor.id === play.fielder && ['held', 'throw'].includes(play.stage)) {
     const thrown = play.stage === 'throw', age = thrown ? time - (play.throw?.startedAt ?? time - (play.throw?.elapsed || 0)) : time - (play.heldAt ?? time);
@@ -162,6 +270,12 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
   if (role === 'runner' && (actor.sliding || (moving && actor.targetBase > 1 && actor.pathPosition < actor.targetBase && actor.pathPosition > actor.targetBase - .065))) {
     p.slide = 1; p.hipY = -.56; p.lean = -.95; p.leftHip = -.16; p.rightHip = -.55;
     p.leftKnee = .06; p.rightKnee = 1.25; p.leftArm = .55; p.rightArm = .65; p.leftElbow = p.rightElbow = -.6;
+  }
+  if (state?.brawl && ['brawl', 'result'].includes(phase) && ['catcher', 'umpire'].includes(role)) {
+    p.hipY = -.025; p.lean = .04; p.leftHip = -.10; p.rightHip = .10; p.leftKnee = p.rightKnee = .18;
+    const stop = ['separate', 'done'].includes(state.brawl.stage);
+    p.leftArm = p.rightArm = stop ? -1.35 : -.35; p.leftSpread = stop ? -.65 : .15; p.rightSpread = stop ? .65 : -.15;
+    p.leftElbow = p.rightElbow = stop ? -.35 : -.7;
   }
   return presentationHand(state, role, actor) === 'L' && role !== 'runner' ? mirrorMotion(p) : p;
 }
@@ -593,7 +707,7 @@ export class BallparkRenderer {
   updateEffects(state,menu,time) {
     let count=0;
     if(!menu)for(const runner of state?.runners||[]) {
-      if(runner.out||runner.scored)continue;
+      if(runner.out||runner.scored||(state?.brawl && ['brawl','result'].includes(state.phase) && runner.playerId===state.brawl.batter.id))continue;
       const sliding=runner.sliding||(runner.targetBase>1&&runner.pathPosition<runner.targetBase&&runner.pathPosition>runner.targetBase-.065);
       const moving=Math.hypot(runner.x-(runner.prevX??runner.x),runner.z-(runner.prevZ??runner.z))>.002;
       if(!sliding&&!moving)continue;
@@ -603,6 +717,16 @@ export class BallparkRenderer {
         this.dustPositions[count*3]=-runner.x+Math.sin(a)*age*(sliding?.8:.22);
         this.dustPositions[count*3+1]=.045+Math.sin(age*Math.PI)*(sliding?.35:.12);
         this.dustPositions[count*3+2]=runner.z+Math.cos(a)*age*(sliding?.8:.22);count++;
+      }
+    }
+    const brawl = presentationBrawl(state);
+    if (!menu && brawl?.stage === 'charge' && brawl.charge < .99) {
+      const actor = brawl.fighters[0];
+      for (let j=0; j<8 && count<48; j++) {
+        const age=(time*3+j*.17)%1, a=j*2.39996;
+        this.dustPositions[count*3]=-actor.x+Math.sin(a)*age*.35;
+        this.dustPositions[count*3+1]=.04+Math.sin(age*Math.PI)*.15;
+        this.dustPositions[count*3+2]=actor.z-age*.65; count++;
       }
     }
     this.dust.visible=count>0;this.dust.geometry.setDrawRange(0,count);this.dust.geometry.attributes.position.needsUpdate=true;
@@ -764,7 +888,7 @@ export class BallparkRenderer {
       if (bat || role === 'runner') this.mesh('cylinder', cap, 0, -.235, 0, .069, .055, .068, forearm);
       hand.position.set(0, -.285, 0); forearm.add(hand);
       this.mesh('sphere', bat ? 0xe8e5d7 : skin, 0, 0, .004, .067, .082, .060, hand);
-      if (name === (handedness === 'L' ? 'right' : 'left') && !bat && role !== 'runner') {
+      if (name === (handedness === 'L' ? 'right' : 'left') && !bat && role !== 'runner' && role !== 'umpire') {
         this.mesh('sphere', 0x8e5a30, 0, -.025, .045, .135, .165, .08, hand);
         this.mesh('sphere', 0xbc8853, 0, -.018, .092, .10, .125, .024, hand);
         for (let i = 0; i < 3; i++) this.box(0x6c4829, -.06 + i * .06, .015, .114, .013, .13, .014, hand);
@@ -869,9 +993,12 @@ export class BallparkRenderer {
     model.leftArm.rotation.set(p.leftArm, 0, p.leftSpread); model.rightArm.rotation.set(p.rightArm, 0, p.rightSpread);
     model.leftForearm.rotation.x = p.leftElbow; model.rightForearm.rotation.x = p.rightElbow;
     if (model.batPivot) {
-      model.batPivot.rotation.set(...p.bat); model.group.updateMatrixWorld(true);
-      this.reachHand(model, model.hand === 'L' ? 'left' : 'right', model.batPivot.localToWorld(V(0, .055, 0)));
-      this.reachHand(model, model.hand === 'L' ? 'right' : 'left', model.batPivot.localToWorld(V(0, .145, 0)));
+      model.batPivot.visible = p.batVisible; model.batPivot.rotation.set(...p.bat);
+      if (p.batVisible) {
+        model.group.updateMatrixWorld(true);
+        this.reachHand(model, model.hand === 'L' ? 'left' : 'right', model.batPivot.localToWorld(V(0, .055, 0)));
+        this.reachHand(model, model.hand === 'L' ? 'right' : 'left', model.batPivot.localToWorld(V(0, .145, 0)));
+      }
     }
     model.shadow.scale.set(p.slide ? .8 : .43, p.slide ? .25 : .34, 1);
     model.lastX = x; model.lastZ = z; return p;
@@ -905,13 +1032,16 @@ export class BallparkRenderer {
     }
     const menu = Boolean(options.menu || !state), t = state?.time || 0;
     this.menuTime += dt;
-    const phase = state?.phase || 'ready';
+    const phase = state?.phase || 'ready', brawl = !menu && presentationBrawl(state);
     const fielding = !menu && (phase === 'live' || (phase === 'result' && !!state?.play));
     const aim = options.aim || { x: 0, y: 0 }, guidance = options.guidance || state?.guidance || 'simple';
     if (menu) {
       const a = .5 + Math.sin(this.menuTime * .035) * .12;
       this.targetCamera.set(Math.sin(a) * 94, 42, -Math.cos(a) * 44);
       this.targetLook.set(-4, 2, 40);
+    } else if (brawl) {
+      const shot = brawlCamera(state, this.width < this.height);
+      this.targetCamera.set(shot.eye.x, shot.eye.y, shot.eye.z); this.targetLook.set(shot.look.x, shot.look.y, shot.look.z);
     } else if (fielding) {
       const b = state.ball || { x: 0, y: 0, z: 40 };
       this.targetCamera.set(-b.x * .24, 25 + clamp(b.y * .25, 0, 13), -18 + clamp(b.z * .18, 0, 20));
@@ -924,7 +1054,7 @@ export class BallparkRenderer {
     // Starting a game settles immediately; subsequent baseball camera cuts ease.
     if (this.wasMenu && !menu) { this.camera.position.copy(this.targetCamera); this.look.copy(this.targetLook); }
     else { this.camera.position.lerp(this.targetCamera, ease); this.look.lerp(this.targetLook, ease); }
-    const fov = menu ? 52 : fielding ? (this.width / this.height < 1 ? 71 : 58) : (this.width / this.height < .8 ? 61 : 51);
+    const fov = menu ? 52 : brawl ? brawlCamera(state, this.width < this.height).fov : fielding ? (this.width / this.height < 1 ? 71 : 58) : (this.width / this.height < .8 ? 61 : 51);
     this.camera.fov = mix(this.camera.fov, fov, ease); this.camera.updateProjectionMatrix(); this.camera.lookAt(this.look); this.wasMenu = menu;
 
     const fallback = [ ['P',0,18.44],['1B',19,21],['2B',12,35],['SS',-12,35],['3B',-21,21],['LF',-48,73],['CF',0,88],['RF',48,73] ];
@@ -944,15 +1074,16 @@ export class BallparkRenderer {
       if (catching && !fielding) continue;
       const id = String(p.id); active.add(id);
       const pitcher = p.role === 'P' || p.role === 'pitcher' || p.id === 'P';
-      const actor = pitcher ? { ...p, ...getPitcher(state), id: p.id, x: p.x, z: p.z } : p;
+      const actor = pitcher ? brawl ? { ...brawl.fighters[1], id: p.id } : { ...p, ...getPitcher(state), id: p.id, x: p.x, z: p.z } : p;
       const actorRole = catching ? 'catcher' : pitcher ? 'pitcher' : 'fielder', hand = presentationHand(state, actorRole, actor);
       if (!catching && this.models.get(id)?.hand !== hand) { this.releaseModel(this.models.get(id)); this.models.delete(id); }
       if (!catching && !this.models.has(id)) this.models.set(id, this.player(homeDefense, actor.number || this.models.size + 3, false, actorRole, hand));
-      const model = catching ? this.catcher : this.models.get(id), x = -mix(p.prevX ?? p.x, p.x, alpha), z = mix(p.prevZ ?? p.z, p.z, alpha);
+      const model = catching ? this.catcher : this.models.get(id), x = brawl && pitcher ? -actor.x : -mix(p.prevX ?? p.x, p.x, alpha), z = brawl && pitcher ? actor.z : mix(p.prevZ ?? p.z, p.z, alpha);
       this.numberPlayer(model, actor.number || model.number);
       const dx = -(p.x - (p.prevX ?? p.x)), dz = p.z - (p.prevZ ?? p.z), moving = Math.hypot(dx, dz) > .001;
       let direction = moving ? Math.atan2(dx, dz) : model.facing || Math.atan2(-x, -z);
       if (pitcher && ['ready', 'windup', 'pitch'].includes(phase)) direction = Math.PI;
+      if (brawl) direction = pitcher ? actor.displayFacing : Math.atan2(-x, 18.1 - z);
       const source = state?.play?.fielder === p.id, throwData = state?.play?.throw;
       if (source && ['held', 'throw'].includes(state?.play?.stage)) {
         const base = throwData?.base ?? state.play.throwBase ?? state.play.queuedBase ?? 1, target = throwData?.to || BASES[base] || BASES[1];
@@ -962,7 +1093,7 @@ export class BallparkRenderer {
       model.group.visible = true;
       model.heldBall.visible = pitcher && !fielding && ['ready', 'windup'].includes(phase);
       const release = state?.pitch ? t - state.pitch.releaseAt : -100;
-      if (pitcher && !fielding && release > -.065 && release < .035) {
+      if (pitcher && !fielding && !brawl && release > -.065 && release < .035) {
         const start = state.pitch.start;
         this.reachHand(model, hand === 'L' ? 'left' : 'right', V(-start.x, start.y, start.z));
       }
@@ -976,21 +1107,26 @@ export class BallparkRenderer {
 
     if (this.batter.hand !== batterHand) { this.releaseModel(this.batter); this.batter = this.player(!homeDefense, batterActor.number || 1, true, 'batter', batterHand); }
     this.numberPlayer(this.batter, state?.play?.batter?.number || batterActor.number || 1);
-    this.pose(this.batter, batterHand === 'L' ? -1.02 : 1.02, -.04, state, { facing: (batterHand === 'L' ? 1 : -1) * Math.PI / 2, role: 'batter', actor: batterActor });
+    const battingActor = brawl ? brawl.fighters[0] : batterActor;
+    this.pose(this.batter, brawl ? -battingActor.x : batterHand === 'L' ? -1.02 : 1.02, brawl ? battingActor.z : -.04, state, { moving: !!brawl && battingActor.moving, facing: brawl ? battingActor.displayFacing : (batterHand === 'L' ? 1 : -1) * Math.PI / 2, role: 'batter', actor: battingActor });
     this.batter.group.visible = !fielding || (state?.phaseTime || 0) < .08;
-    if (!fielding) this.pose(this.catcher, 0, -2.1, state, { facing: 0, role: 'catcher' });
+    if (brawl) {
+      const enter = brawl.charge, separate = brawl.separate;
+      this.pose(this.catcher, mix(0, -1.65 + separate * .55, enter), mix(-2.1, 17.1, enter), state, { moving: brawl.stage === 'charge', facing: .35, role: 'catcher' });
+    } else if (!fielding) this.pose(this.catcher, 0, -2.1, state, { facing: 0, role: 'catcher' });
     this.catcher.group.visible = true;
     // The broadcast camera occupies the umpire's view; his model is shown in the
     // establishing shot, without placing his head across the live strike zone.
-    this.umpire.group.visible = menu;
-    if (menu) this.pose(this.umpire, .55, -2.75, state, { facing: 0, role: 'catcher' });
+    this.umpire.group.visible = menu || !!brawl;
+    if (brawl) this.pose(this.umpire, .35, mix(-2.75, 19.4 - brawl.separate * 1.3, brawl.charge), state, { facing: Math.PI, moving: brawl.stage === 'charge', role: 'umpire' });
+    else if (menu) this.pose(this.umpire, .55, -2.75, state, { facing: 0, role: 'catcher' });
 
     const runners = state?.runners || [];
     for (let i = 0; i < Math.max(runners.length, this.runnerModels.length); i++) {
       const runner = runners[i];
       if (runner && !this.runnerModels[i]) this.runnerModels[i] = this.player(!homeDefense, runner.number || 1, false, 'runner');
       const model = this.runnerModels[i]; if (!model) continue;
-      model.group.visible = !!runner && !runner.out && !runner.scored && !menu;
+      model.group.visible = !!runner && !runner.out && !runner.scored && !menu && (!brawl || runner.playerId !== state.brawl.batter.id);
       if (runner) {
         this.numberPlayer(model, runner.number || 1);
         const x = -mix(runner.prevX ?? runner.x, runner.x || 0, alpha), z = mix(runner.prevZ ?? runner.z, runner.z || 0, alpha);
@@ -1003,11 +1139,11 @@ export class BallparkRenderer {
       }
     }
     const selectedRunner = runners.find(r => r.id === options.selectedRunnerId && !r.out && !r.scored);
-    this.runnerSelection.visible = !!selectedRunner && !menu;
+    this.runnerSelection.visible = !!selectedRunner && !menu && !brawl;
     if (selectedRunner) this.runnerSelection.position.set(-selectedRunner.x, .035, selectedRunner.z);
 
     const ball = state?.ball;
-    this.ball.visible = !menu && !!ball?.visible;
+    this.ball.visible = !menu && !brawl && !!ball?.visible;
     this.ballShadow.visible = this.ball.visible; this.ballMark.visible = this.ball.visible && fielding && guidance !== 'expert';
     if (ball) {
       const alpha = clamp(options.interpolationAlpha ?? 1, 0, 1);
@@ -1034,7 +1170,7 @@ export class BallparkRenderer {
     if (!['pitch', 'live'].includes(phase)) this.trailLength = 0;
     this.trail.visible = !menu && this.ball.visible && this.trailLength > 1;
     this.lastTick = state?.tick;
-    this.zone.visible = !menu && !fielding && guidance !== 'expert' && !['half', 'final'].includes(phase);
+    this.zone.visible = !menu && !brawl && !fielding && guidance !== 'expert' && !['half', 'final'].includes(phase);
     // A completed pitch may be reviewed; an active pitch never exposes its
     // destination or a live ball/strike classification.
     this.pitchMark.visible = !menu && phase === 'result' && !!state?.pitch?.resolved && !state.pitch.hitByPitch && guidance !== 'expert';
@@ -1044,13 +1180,21 @@ export class BallparkRenderer {
       this.pitchMark.material.color.set(inStrikeZone(crossing) ? 0xefbf77 : 0x88d0d7);
     }
     const impact = state?.pitch?.hitByPitch, impactAge = impact ? t - impact.at : -1;
-    this.bodyImpact.visible = !menu && !state?.swing && impactAge >= 0 && impactAge < .22;
+    this.bodyImpact.visible = !menu && !brawl && !state?.swing && impactAge >= 0 && impactAge < .22;
     if (this.bodyImpact.visible) {
       this.bodyImpact.position.set(-impact.point.x, impact.point.y, impact.point.z);
       this.bodyImpact.quaternion.copy(this.camera.quaternion); this.bodyImpact.scale.setScalar(1 + impactAge * 7);
       this.bodyImpact.material.opacity = .75 * (1 - impactAge / .22);
     }
-    this.aimRing.visible = !menu && !fielding && !['half', 'final', 'result'].includes(phase);
+    if (brawl) {
+      const struck = brawl.fighters.find(actor => { const hit = state.brawl.fighters[actor.brawlSide]?.hitAt; return hit != null && t - hit >= 0 && t - hit < .18; });
+      if (struck) {
+        const age = t - state.brawl.fighters[struck.brawlSide].hitAt;
+        this.bodyImpact.visible = true; this.bodyImpact.position.set(-struck.x, 1.25, struck.z);
+        this.bodyImpact.quaternion.copy(this.camera.quaternion); this.bodyImpact.scale.setScalar(1 + age * 9); this.bodyImpact.material.opacity = .65 * (1 - age / .18);
+      }
+    }
+    this.aimRing.visible = !menu && !brawl && !fielding && !['half', 'final', 'result'].includes(phase);
     const aimArea = options.batting === false ? PITCH_AIM_AREA : AIM_AREA;
     this.aimRing.position.set(-(aim.x || 0) * aimArea.x, aimArea.centerY + (aim.y || 0) * aimArea.y, -.045);
     const fielder = fielders.find(p => p.hasBall) || fielders.find(p => p.id === state?.play?.fielder);

@@ -35,6 +35,11 @@ export const TEAM_ROSTERS = deepFreeze([
       ['Luis Vega', 9, 'LF', 'L', 7.5, .98, .97],
       ['Theo Park', 4, '2B', 'R', 7.3, 1.08, .90],
     ]),
+    bench: lineup('harbor', [
+      ['Jamie Holt', 22, 'UTIL', 'R', 7.0, .96, .94],
+      ['Marco Silva', 29, 'UTIL', 'L', 6.8, .98, .96],
+      ['Alex Kim', 14, 'UTIL', 'S', 7.2, .95, .92],
+    ]),
     pitchers: staff('harbor', ['Jack Sullivan', 'Marcus Hale', 'Rafael Torres', 'Wes Finnegan', 'Jace Navarro', 'Eli Brennan', 'Dean Okafor', 'Silas Reed']),
   },
   {
@@ -50,15 +55,28 @@ export const TEAM_ROSTERS = deepFreeze([
       ['Gabriel Soto', 5, '2B', 'L', 7.4, 1.08, .90],
       ['Finn Abbott', 19, 'LF', 'L', 7.3, .99, .98],
     ]),
+    bench: lineup('foundry', [
+      ['Casey Dunn', 23, 'UTIL', 'L', 7.0, .97, .93],
+      ['Ramon Felix', 30, 'UTIL', 'R', 6.8, .96, .97],
+      ['Avery Chen', 13, 'UTIL', 'S', 7.2, .95, .92],
+    ]),
     pitchers: staff('foundry', ['Isaac Porter', 'Dante Briggs', 'Hugo Castillo', 'Benji Walsh', 'Troy Vance', 'Adrian Ellis', 'Roman Bell', 'Milo Quinn']),
   },
 ]);
 
 export function getRoster(side = 0) { return TEAM_ROSTERS[side === 1 ? 1 : 0]; }
+/** The nine batting slots survive an ejection; a reserve takes the removed player's slot. */
+export function getLineup(state, side = state?.battingSide === 1 ? 1 : 0) {
+  const roster = getRoster(side), changes = state?.lineupChanges?.[side] || {};
+  return roster.lineup.map(original => {
+    const replacement = roster.bench.find(player => player.id === changes[original.id]);
+    return replacement ? { ...replacement, position: original.position, replaces: original.id } : original;
+  });
+}
 export function getBatter(state) {
   const side = state?.battingSide === 1 ? 1 : 0;
   const index = Number.isInteger(state?.batterIndex?.[side]) ? state.batterIndex[side] : 0;
-  return getRoster(side).lineup[((index % 9) + 9) % 9];
+  return getLineup(state, side)[((index % 9) + 9) % 9];
 }
 export function getPitcher(state, side = 1 - (state?.battingSide === 1 ? 1 : 0)) {
   const roster = getRoster(side), activeId = state?.pitching?.[side]?.activeId;

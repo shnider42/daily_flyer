@@ -3,10 +3,16 @@
  * World units are metres. Home is (0, 0, 0), +z is centre field, +x is first.
  * Input and snapshots are deliberately independent from the browser renderer.
  */
-import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.5.0';
-import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.5.0';
-export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.5.0';
-export { TEAM_ROSTERS, DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.5.0';
+import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.6.0';
+import { DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.6.0';
+export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.0';
+export { TEAM_ROSTERS, DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.6.0';
+export const MOUND_RULES = Object.freeze({ hitsToOffer: 2, chargeDuration: 1.5, fightDuration: 10, separateDuration: 1.5 });
+export const FIGHT_ACTIONS = Object.freeze({
+  jab: Object.freeze({ label: 'Jab', cost: 23, duration: .66, cooldown: .90, impact: .42 }),
+  guard: Object.freeze({ label: 'Guard', cost: 16, duration: .60, cooldown: .90 }),
+  dodge: Object.freeze({ label: 'Dodge', cost: 24, duration: .50, cooldown: .90 }),
+});
 export const STEP = 1 / 120;
 export const BALL_RADIUS = 0.037;
 export const BASE_DISTANCE = Math.hypot(19.4, 19.4);
@@ -137,7 +143,7 @@ export class BaseballGame {
       humanSides: Array.isArray(options.humanSides) ? [...new Set(options.humanSides.filter(side => side === 0 || side === 1))] : [0],
       localSide: options.localSide === 1 ? 1 : 0,
       inputWindow: clamp(finite(options.inputWindow, 0.1), 0.1, 0.25),
-      scenario: options.mode === 'practice' && options.scenario === 'runners' ? 'runners' : null,
+      scenario: options.mode === 'practice' && ['runners', 'mound'].includes(options.scenario) ? options.scenario : null,
       park: resolveParkId(options.park),
     };
     this._accumulator = 0;
@@ -152,11 +158,13 @@ export class BaseballGame {
       pitch: null, swing: null, play: null, result: null, lastContact: null,
       fielders: [], runners: [], pending: null,
       pitching: this._initialPitching(),
+      lineupChanges: [{}, {}], ejections: [[], []], temper: [0, 0], confrontation: null, brawl: null,
       pickoffAttempts: 0, readyActionChecked: false,
       practice: { pitches: 0, swings: 0, contacts: 0, hits: 0, homeRuns: 0, bestDistance: 0, hitByPitches: 0 },
     };
     this.state.fielders = this._newFielders();
     if (this.options.scenario === 'runners') this._setupRunningPractice();
+    if (this.options.scenario === 'mound') this._setupMoundPractice();
   }
 
   get isBatting() { return this.options.mode === 'practice' || this.state.battingSide === this.options.localSide; }
@@ -187,8 +195,169 @@ export class BaseballGame {
     return getRoster(side).pitchers.map(person => {
       const profile = PITCHERS[person.profileId], pitchCount = usage.pitchCounts[person.id] || 0;
       const active = person.id === usage.activeId, removed = usage.usedIds.includes(person.id);
-      return { ...profile, ...person, pitchCount, energy: this.options.mode === 'practice' ? 1 : Math.max(0, 1 - pitchCount / profile.stamina), active, removed, available: !active && !removed };
+      return { ...profile, ...person, pitchCount, ejected: this.state.ejections?.[side]?.includes(person.id) || false, energy: this.options.mode === 'practice' ? 1 : Math.max(0, 1 - pitchCount / profile.stamina), active, removed, available: !active && !removed };
     });
+  }
+
+  getBench(side = this.options.localSide) {
+    side = side === 1 ? 1 : 0;
+    const active = new Set(getLineup(this.state, side).map(p => p.id));
+    return getRoster(side).bench.map(person => {
+      const ejected = this.state.ejections[side].includes(person.id);
+      return { ...person, active: active.has(person.id), ejected, available: !active.has(person.id) && !ejected };
+    });
+  }
+
+  _setupMoundPractice() {
+    const s = this.state;
+    // A self-contained drill. Reset both benches between attempts; no match statistics carry out.
+    const starters = s.practice.moundStarters ||= { pitcher: this.options.pitcher, opponentPitcher: this.options.opponentPitcher };
+    Object.assign(this.options, starters); Object.assign(s.options, starters);
+    s.pitching = this._initialPitching(); s.lineupChanges = [{}, {}]; s.ejections = [[], []];
+    s.temper = [MOUND_RULES.hitsToOffer, 0]; s.hitByPitches = [MOUND_RULES.hitsToOffer, 0];
+    s.battingSide = 0; s.batterIndex = [0, 0]; s.outs = 0; s.balls = 0; s.strikes = 0;
+    s.score = [0, 0]; s.lineScore = [[0], [0]]; s.pitch = null; s.swing = null; s.play = null; s.brawl = null; s.confrontation = null;
+    const batter = this.currentBatter, runner = this._runner(batter);
+    s.bases = [runner, null, null]; s.runners = [this._liveRunner(runner, 1)]; s.fielders = this._newFielders();
+    this._advanceBatter();
+    this._complete('Hit by pitch', 'Mound showdown drill: a second hit batter. Take first or charge the mound.', 'hitByPitch', 'batter');
+    this._offerConfrontation(batter);
+  }
+
+  _offerConfrontation(batter) {
+    const s = this.state, side = s.battingSide, pitchingSide = 1 - side;
+    s.confrontation = null;
+    if (s.phase !== 'result' || s.pending === 'final' || s.temper[side] < MOUND_RULES.hitsToOffer ||
+        (this.options.mode === 'practice' && this.options.scenario !== 'mound') ||
+        !this.getBench(side).some(p => p.available) || !this.getBullpen(pitchingSide).some(p => p.available)) return;
+    const pitcher = { ...getPitcher(s), hand: getPitcher(s).throws };
+    s.confrontation = { battingSide: side, pitchingSide, batter: { ...batter }, pitcher,
+      hitCount: s.temper[side], pitchId: s.pitch?.id ?? s.nextPitchId, offeredAt: s.time };
+    this._event('mound-offer', { side, hitCount: s.temper[side], name: batter.name, pitcherName: pitcher.name });
+  }
+
+  _chargeMound(input, cpu = false) {
+    const s = this.state, offer = s.confrontation, side = input.side ?? this.options.localSide;
+    if (s.phase !== 'result' || !offer || s.pending === 'final') return this._reject('There is no mound confrontation to choose.');
+    if (side !== offer.battingSide) return this._reject('Only the hit batter can choose to charge.');
+    if (!cpu && !this.options.humanSides.includes(side)) return this._reject('That player is controlled by the computer.');
+    const replacement = this.getBench(side).find(p => p.available), pitcherReplacement = this.getBullpen(offer.pitchingSide).find(p => p.available);
+    if (!replacement || !pitcherReplacement || getPitcher(s).id !== offer.pitcher.id) return this._reject('The teams cannot make the required replacements.');
+    const fighters = [0, 1].map(team => {
+      const role = team === side ? 'batter' : 'pitcher', person = role === 'batter' ? offer.batter : offer.pitcher;
+      return { side: team, playerId: person.id, name: person.name, number: person.number, hand: person.hand || person.throws,
+        role, health: 100, stamina: 100, action: 'idle', actionStartedAt: s.time, actionUntil: s.time,
+        cooldownUntil: s.time, impactAt: null, impactDone: true, hitAt: null, blockedAt: null, dodgedAt: null,
+        hits: 0, blocks: 0, dodges: 0, counterUntil: 0, nextAiAt: s.time + MOUND_RULES.chargeDuration + .45 + team * .12 };
+    });
+    s.brawl = { startedAt: s.time, stage: 'charge', stageStartedAt: s.time, fightEndsAt: s.time + MOUND_RULES.chargeDuration + MOUND_RULES.fightDuration,
+      battingSide: side, pitchingSide: offer.pitchingSide, batter: { ...offer.batter }, pitcher: { ...offer.pitcher }, fighters,
+      winner: null, reason: null, batterReplacement: { ...replacement }, pitcherReplacement: { ...pitcherReplacement },
+      savedResult: clone(s.result), savedPending: s.pending, cpuCharge: cpu };
+    s.temper[side] = 0; s.confrontation = null; s.ball.visible = false;
+    this._phase('brawl');
+    this._event('mound-charge', { side, battingSide: side, pitchingSide: offer.pitchingSide, batterName: offer.batter.name, pitcherName: offer.pitcher.name });
+    return true;
+  }
+
+  _fightCommand(input, cpu = false) {
+    const s = this.state, fight = s.brawl, side = input.side ?? this.options.localSide;
+    if (s.phase !== 'brawl' || fight?.stage !== 'fight') return this._reject('Wait until the players reach the mound.');
+    if (side !== 0 && side !== 1 || !Object.hasOwn(FIGHT_ACTIONS, input.action)) return this._reject('Choose jab, guard or dodge.');
+    if (!cpu && !this.options.humanSides.includes(side)) return this._reject('That player is controlled by the computer.');
+    const fighter = fight.fighters[side], action = FIGHT_ACTIONS[input.action];
+    if (s.time + 1e-9 < fighter.cooldownUntil) return this._reject('Recover before your next move.');
+    if (fighter.stamina + 1e-9 < action.cost) return this._reject('Let your stamina recover.');
+    fighter.stamina = Math.max(0, fighter.stamina - action.cost);
+    fighter.action = input.action; fighter.actionStartedAt = s.time; fighter.actionUntil = s.time + action.duration;
+    fighter.cooldownUntil = s.time + action.cooldown; fighter.impactAt = input.action === 'jab' ? s.time + action.impact : null;
+    fighter.impactDone = input.action !== 'jab';
+    fighter.counter = input.action === 'jab' && s.time <= fighter.counterUntil;
+    if (input.action === 'jab') fighter.counterUntil = 0;
+    this._event('fight-action', { side, action: input.action, name: fighter.name });
+    return true;
+  }
+
+  _cpuFight() {
+    const s = this.state, brawl = s.brawl;
+    for (const fighter of brawl.fighters) {
+      if (this.options.humanSides.includes(fighter.side) || s.time < fighter.nextAiAt || s.time < fighter.cooldownUntil) continue;
+      const opponent = brawl.fighters[1 - fighter.side];
+      const incoming = opponent.action === 'jab' && !opponent.impactDone && opponent.impactAt - s.time > .05;
+      // React to the opponent's visible windup, without knowing a future input.
+      const chance = this._random();
+      const action = incoming ? (chance < .48 && fighter.stamina >= FIGHT_ACTIONS.dodge.cost ? 'dodge' : 'guard') :
+        (fighter.stamina >= 40 && chance < .80 ? 'jab' : chance < .72 ? 'guard' : 'jab');
+      this._fightCommand({ side: fighter.side, action }, true);
+      fighter.nextAiAt = s.time + .28 + this._random() * .36;
+    }
+  }
+
+  _tickBrawl() {
+    const s = this.state, fight = s.brawl;
+    if (!fight) return;
+    if (fight.stage === 'charge') {
+      if (s.time - fight.stageStartedAt + 1e-9 >= MOUND_RULES.chargeDuration) {
+        fight.stage = 'fight'; fight.stageStartedAt = s.time; fight.fightEndsAt = s.time + MOUND_RULES.fightDuration;
+        this._event('fight-start', { battingSide: fight.battingSide, pitchingSide: fight.pitchingSide });
+      }
+      return;
+    }
+    if (fight.stage === 'separate') {
+      if (s.time - fight.stageStartedAt + 1e-9 >= MOUND_RULES.separateDuration) this._finishBrawl();
+      return;
+    }
+    for (const fighter of fight.fighters) {
+      fighter.stamina = Math.min(100, fighter.stamina + 14 * STEP);
+      if (s.time >= fighter.actionUntil && fighter.impactDone) fighter.action = 'idle';
+    }
+    this._cpuFight();
+    // Resolve impacts in the same tick before deciding a winner, so simultaneous jabs are fair.
+    for (const attacker of fight.fighters) {
+      if (attacker.action !== 'jab' || attacker.impactDone || s.time + 1e-9 < attacker.impactAt) continue;
+      attacker.impactDone = true;
+      const defender = fight.fighters[1 - attacker.side];
+      const dodged = defender.action === 'dodge' && s.time <= defender.actionUntil;
+      const blocked = !dodged && defender.action === 'guard' && s.time <= defender.actionUntil;
+      const damage = dodged ? 0 : blocked ? 3 : attacker.counter ? 24 : 17;
+      defender.health = Math.max(0, defender.health - damage);
+      if (dodged) { defender.dodges++; defender.dodgedAt = s.time; defender.counterUntil = s.time + 1.2; }
+      else if (blocked) { defender.blocks++; defender.blockedAt = s.time; defender.counterUntil = s.time + 1.2; attacker.cooldownUntil += .15; }
+      else { attacker.hits++; defender.hitAt = s.time; }
+      this._event('fight-hit', { side: attacker.side, targetSide: defender.side, name: attacker.name, targetName: defender.name, damage, blocked, dodged });
+    }
+    if (fight.fighters.some(f => f.health <= 0) || s.time + 1e-9 >= fight.fightEndsAt) {
+      const [a, b] = fight.fighters;
+      fight.winner = a.health === b.health ? null : a.health > b.health ? 0 : 1;
+      fight.reason = fight.fighters.some(f => f.health <= 0) ? 'stoppage' : 'time';
+      fight.stage = 'separate'; fight.stageStartedAt = s.time;
+      this._event('fight-end', { winner: fight.winner, reason: fight.reason, batterName: fight.batter.name, pitcherName: fight.pitcher.name });
+    }
+  }
+
+  _finishBrawl() {
+    const s = this.state, fight = s.brawl, battingSide = fight.battingSide, pitchingSide = fight.pitchingSide;
+    const batter = fight.batter, pitcher = fight.pitcher, replacement = fight.batterReplacement, relief = fight.pitcherReplacement;
+    const slot = getLineup(s, battingSide).findIndex(p => p.id === batter.id);
+    if (slot >= 0) s.lineupChanges[battingSide][getRoster(battingSide).lineup[slot].id] = replacement.id;
+    s.ejections[battingSide].push(batter.id); s.ejections[pitchingSide].push(pitcher.id);
+    const usage = s.pitching[pitchingSide];
+    if (!usage.usedIds.includes(pitcher.id)) usage.usedIds.push(pitcher.id);
+    usage.activeId = relief.id;
+    const option = pitchingSide === 0 ? 'pitcher' : 'opponentPitcher';
+    this.options[option] = s.options[option] = relief.profileId;
+    const hand = replacement.bats === 'S' ? (relief.throws === 'L' ? 'R' : 'L') : replacement.bats;
+    for (const runner of [...s.bases.filter(Boolean), ...s.runners]) {
+      if (runner.playerId === batter.id) Object.assign(runner, { playerId: replacement.id, name: replacement.name, number: replacement.number, hand, speed: replacement.speed });
+    }
+    this._syncFielderRoster();
+    this._event('ejection', { side: battingSide, playerId: batter.id, name: batter.name, role: 'batter', replacementId: replacement.id, replacementName: replacement.name });
+    this._event('ejection', { side: pitchingSide, playerId: pitcher.id, name: pitcher.name, role: 'pitcher', replacementId: relief.id, replacementName: relief.name });
+    this._event('pitching-change', { side: pitchingSide, pitcherId: relief.id, name: relief.name, throws: relief.throws, delivery: relief.delivery, forced: true });
+    fight.stage = 'done'; fight.finishedAt = s.time;
+    const winnerName = fight.winner === null ? null : fight.fighters[fight.winner].name;
+    const detail = `${winnerName ? `${winnerName} gets the better of it. ` : 'The umpire breaks it up. '}${batter.name} and ${pitcher.name} are ejected. ${replacement.name} takes first; ${relief.name} takes the mound. The hit-by-pitch award stands.`;
+    this._complete('Both players ejected', detail, 'brawl', fight.savedPending, { winner: fight.winner, ejections: [batter.id, pitcher.id] });
   }
 
   /** Lobby/menu selection before anybody has thrown a pitch. */
@@ -206,6 +375,7 @@ export class BaseballGame {
   _changePitcher(input, cpu = false) {
     const s = this.state, side = input.side ?? this.options.localSide;
     if (!['ready', 'result', 'half'].includes(s.phase) || s.pending === 'final') return this._reject('Make a pitching change between plays.');
+    if (s.confrontation && side === s.confrontation.pitchingSide) return this._reject('Wait for the hitter to take first or charge the mound.');
     const person = getRoster(side).pitchers.find(p => p.id === input.pitcherId), usage = s.pitching[side];
     if (!person) return this._reject('Choose a pitcher from your own roster.');
     if (usage.activeId === person.id) return this._reject('That pitcher is already in the game.');
@@ -430,17 +600,17 @@ export class BaseballGame {
   }
 
   _newFielders() {
-    const side = 1 - (this.state?.battingSide || 0), roster = getRoster(side);
+    const side = 1 - (this.state?.battingSide || 0), lineup = getLineup(this.state, side);
     return FIELDING_POSITIONS.map(p => {
-      const person = p.id === 'P' ? getPitcher(this.state || { options: this.options }, side) : roster.lineup.find(player => player.position === p.id);
+      const person = p.id === 'P' ? getPitcher(this.state || { options: this.options }, side) : lineup.find(player => player.position === p.id);
       return { ...p, playerId: person?.id, name: person?.name, number: person?.number, throws: person?.throws || 'R', delivery: person?.delivery,
         y: 0, prevX: p.x, prevZ: p.z, target: { x: p.x, z: p.z }, hasBall: false };
     });
   }
   _syncFielderRoster() {
-    const side = 1 - this.state.battingSide, roster = getRoster(side);
+    const side = 1 - this.state.battingSide, lineup = getLineup(this.state, side);
     for (const fielder of this.state.fielders || []) {
-      const person = fielder.id === 'P' ? getPitcher(this.state, side) : roster.lineup.find(player => player.position === fielder.id);
+      const person = fielder.id === 'P' ? getPitcher(this.state, side) : lineup.find(player => player.position === fielder.id);
       if (person) Object.assign(fielder, { playerId: person.id, name: person.name, number: person.number, throws: person.throws, delivery: person.delivery });
     }
   }
@@ -468,6 +638,20 @@ export class BaseballGame {
         usedIds: [...new Set((previous?.usedIds || []).filter(id => ids.has(id) && id !== previous?.activeId))],
         pitchCounts: Object.fromEntries(Object.entries(previous?.pitchCounts || {}).filter(([id]) => ids.has(id)).map(([id, n]) => [id, Math.max(0, Math.floor(finite(n)))])) };
     });
+    this.state.lineupChanges = [0, 1].map(side => {
+      const roster = getRoster(side), changes = this.state.lineupChanges?.[side] || {}, seen = new Set();
+      return Object.fromEntries(roster.lineup.flatMap(player => {
+        const id = changes[player.id];
+        if (!roster.bench.some(p => p.id === id) || seen.has(id)) return [];
+        seen.add(id); return [[player.id, id]];
+      }));
+    });
+    this.state.ejections = [0, 1].map(side => {
+      const roster = getRoster(side), ids = new Set([...roster.lineup, ...roster.bench, ...roster.pitchers].map(p => p.id));
+      return [...new Set((this.state.ejections?.[side] || []).filter(id => ids.has(id)))];
+    });
+    this.state.temper = [0, 1].map(side => Math.max(0, Math.floor(finite(this.state.temper?.[side]))));
+    this.state.confrontation ??= null; this.state.brawl ??= null;
     if (this.state.fielders.some(f => !f.playerId)) this._syncFielderRoster();
     this._accumulator = clamp(finite(snapshot.accumulator), 0, STEP);
     this._events = [];
@@ -491,9 +675,14 @@ export class BaseballGame {
       const expected = s.phase === 'ready' ? s.nextPitchId : s.pitch?.id ?? s.nextPitchId;
       if (!Number.isInteger(input.pitchId) || input.pitchId !== expected) return this._reject('This command belongs to a different pitch.');
     }
+    if (input.type === 'chargeMound') return this._chargeMound(input);
+    if (input.type === 'fight') return this._fightCommand(input);
+    if (s.phase === 'brawl') return this._reject('Wait until the umpire separates the players.');
     if (input.type === 'changePitcher') return this._changePitcher(input);
     if (input.type === 'next') {
       if (s.phase === 'result') {
+        if (s.confrontation && !this.isHumanBatting) return this._reject('The hit batter is deciding whether to charge.');
+        s.confrontation = null;
         if (s.pending === 'half') { this._phase('half'); this._event('half', { inning: s.inning, half: s.half }); }
         else if (s.pending === 'final') this._final();
         else this._ready();
@@ -564,6 +753,8 @@ export class BaseballGame {
       }
     } else if (s.phase === 'pitch') this._tickPitch();
     else if (s.phase === 'live') this._tickLive();
+    else if (s.phase === 'brawl') this._tickBrawl();
+    else if (s.phase === 'result' && s.confrontation && !this.isHumanBatting && s.phaseTime >= 1.0) this._chargeMound({ side: s.battingSide }, true);
   }
 
   _cpuPitch() {
@@ -1273,6 +1464,11 @@ export class BaseballGame {
     s.hitByPitches ??= [0, 0]; s.hitByPitches[s.battingSide]++;
     if (this.options.mode === 'practice') s.practice.hitByPitches = (s.practice.hitByPitches || 0) + 1;
     this._awardFirstBase('Hit by pitch', `${batter.name} is hit. Dead ball; take first base.`, 'hitByPitch');
+    if (this.options.mode !== 'practice') {
+      s.temper[s.battingSide]++;
+      if (s.temper[s.battingSide] === 1) this._event('mound-warning', { side: s.battingSide, hitCount: 1, name: batter.name });
+      this._offerConfrontation(batter);
+    }
   }
   _awardFirstBase(title, detail, kind) {
     const s = this.state, batter = this._runner();
@@ -1321,12 +1517,13 @@ export class BaseballGame {
   _ready() {
     const s = this.state, newBatter = s.pending === 'batter';
     if (newBatter) { s.balls = 0; s.strikes = 0; s.pickoffAttempts = 0; }
-    s.pending = null; s.pitch = null; s.swing = null; s.play = null; s.result = null; s.readyActionChecked = false; s.cpuRunnerChecked = false;
+    s.pending = null; s.pitch = null; s.swing = null; s.play = null; s.result = null; s.confrontation = null; s.brawl = null; s.readyActionChecked = false; s.cpuRunnerChecked = false;
     s.fielders = this._newFielders();
     Object.assign(s.ball, { visible: false, x: 0, y: 1.85, z: 18.44, prevX: 0, prevY: 1.85, prevZ: 18.44, bounced: false, groundBounced: false, wallBounced: false, wallImpactY: null });
     s.runners = s.bases.flatMap((runner, i) => runner ? [this._liveRunner(runner, i + 1)] : []);
     if (this.options.scenario === 'runners') this._setupRunningPractice();
     this._phase('ready');
+    if (this.options.scenario === 'mound') this._setupMoundPractice();
   }
   _nextHalf() {
     const s = this.state;

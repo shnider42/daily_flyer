@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.5
+# Pocket Baseball — version 0.6
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -35,6 +35,8 @@ immediately. Choose **Play a friend** for an online match.
 | Pick off a runner | Base buttons in HOLD THE RUNNERS | Touch or mouse |
 | Tag up after a fly catch | TAG UP / TAG & GO | E / Space |
 | Next pitch / change sides | Result card button | Enter / Space |
+| Jab in a mound showdown | JAB | A / Space |
+| Guard / dodge in a showdown | GUARD / DODGE | S / D |
 | Pause | Pause button | Escape |
 
 Rookie, Club and Pro change timing forgiveness and CPU skill. Simple, Moderate
@@ -87,7 +89,7 @@ and [Fenway tours](https://www.mlb.com/redsox/ballpark/tours) for the more preci
 ## Pitchers and pitch balance
 
 Choose **Your pitcher** and **Opponent** before an exhibition. Batting practice
-uses the chosen opponent. Both clubs now have named nine-player batting orders
+uses the chosen opponent. Both clubs now have named nine-player batting orders, three reserves,
 and eight-pitcher staffs. These are original fictional players with deliberately
 balanced ratings, not current MLB rosters or measured professional pitching data.
 
@@ -151,8 +153,65 @@ and can force in a run or end a walkoff. It does not add a hit.
 A swing or a strike takes precedence over an award. Even in that case the body
 contact stops a concurrent steal, rather than letting a dead ball become a live
 catcher's throw. The bounded input allowance remains open for valid delayed swing
-messages before the final call. Injuries and ejections are not simulated.
+messages before the final call. Injuries are not simulated; ejections now follow
+a mound showdown as described below.
 Rule reference: [MLB hit-by-pitch glossary](https://www.mlb.com/glossary/standard-stats/hit-by-pitch).
+
+## Mound showdowns
+
+After two awarded hit-by-pitches against the same club, the hit batter can choose
+**TAKE FIRST** or **CHARGE THE MOUND** on the result card. A first HBP raises a
+warning. The count is per club, across pitchers, and resets when that club charges;
+accepting the base keeps the next incident eligible. CPU hitters can also charge.
+There are no offers during ordinary batting practice, after a game-winning award,
+or when either club cannot supply the necessary replacement.
+
+Charging drops the bat and moves the batter to the mound. The short minigame uses
+**JAB (A/Space), GUARD (S), and DODGE (D)**. A jab has a visible 0.42-second windup;
+all moves have recovery periods and spend energy. Guard absorbs most of a jab,
+dodge avoids it, and a successful defense opens a stronger counter. Energy
+recovers while the game runs. The fight ends after ten seconds or an earlier
+stoppage, then the umpire separates the players.
+
+Both participants are ejected, regardless of the fight winner. An available
+reserve takes the hitter's batting slot, fielding position, and place on base;
+an available reliever takes the mound. The HBP award, count, outs, runners, and
+score stand. Winning the fight grants no baseball score bonus. This is an arcade
+rule, not a recreation of professional disciplinary procedures.
+
+**Mound showdown** on the home screen opens a repeatable practice drill at the
+charge/take-first choice. Each attempt restores the selected starters and reserves.
+In 1v1, the server owns actions, impact timing, energy, and ejections. Only the
+hit batting side can choose to charge. Pauses and disconnects freeze the fight;
+a reconnect restores the same participants and pending actions. Prediction may
+advance the presentation clock but cannot invent damage or roster changes.
+
+## Animation, sound, and commentary
+
+Both the WebGL and compatibility pictures share the same animation poses and
+release points. Batters now load their legs, transfer weight, and follow through;
+pitchers plant and recover; runners counter-rotate their shoulders; catchers rise
+for the play. The mound sequence uses its own tracking camera, guard/dodge/jab
+poses, recoil, dust, and approaching officials. The bat, live ball, and batting
+reticles are hidden during a fight.
+
+Ballpark audio uses layered bat cracks, glove pops, pitch and throw air, dirt
+footsteps and slides, bounces, wall impacts, a quiet crowd bed, cheers, organ
+phrases, and separate fight/umpire sounds. Cached noise buffers and short-lived
+audio nodes keep the effects inexpensive. A limiter controls peaks; crowd and
+organ levels duck while commentary speaks. Sound starts only after a gesture,
+and mute/pause/menu transitions clear pending sounds.
+
+**Pause → Commentary** offers **Voice + captions**, **Captions only**, and **Off**.
+The short calls react to actual events and roster names, with varied wording,
+priority, and repeat suppression. Only one call is current; old calls are cleared
+for the next delivery. Commentary never reveals the selected pitch, velocity,
+location, or knuckleball hang before the pitch is resolved.
+
+Spoken calls use an available local English browser/device voice, not recorded
+human announcers. If no suitable voice is available, captions remain. The sound
+button silences effects and speech while keeping captions unless commentary is
+off. Device voice quality and availability vary.
 
 ## Decisions while the ball is in play
 

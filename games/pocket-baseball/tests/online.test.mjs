@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { RoomHub, RoomError, phaseKey, commandPitchId } from '../multiplayer.mjs';
 import { createServer } from '../server.mjs';
 import { OnlineSession } from '../public/online.mjs';
+import { getBatterBody, PITCH_AIM_AREA } from '../public/engine.mjs';
 
 function pair(options = {}) {
   let milliseconds = 100000;
@@ -29,6 +30,95 @@ function pair(options = {}) {
   return { hub, room, credentials, packets, streams, disconnect, input, tick, until, start,
     elapse: ms => { milliseconds += ms; }, now: () => milliseconds };
 }
+
+function offerOnlineCharge(p) {
+  for(let n=0;n<2;n++){
+    const body=getBatterBody(p.room.game.state);
+    assert.equal(p.input(1,{type:'pitch',pitchType:'fastball',quality:1,aim:{x:body.x/PITCH_AIM_AREA.x,y:0}}).ok,true);
+    p.until(s=>s.phase==='result');
+    assert.equal(p.room.game.state.result.kind,'hitByPitch');
+    if(n===0){p.input(0,{type:'next'});p.input(1,{type:'next'});}
+  }
+  assert.ok(p.room.game.state.confrontation);
+}
+
+test('online mound choices belong to the hit batter and clear the other player’s ready signal', t=>{
+  const p=pair();t.after(()=>p.hub.close());p.start();offerOnlineCharge(p);
+  const before=p.room.game.snapshot(),key=phaseKey(p.room.game.state);
+  assert.equal(p.input(1,{type:'chargeMound',side:0}).code,'wrong_side');
+  assert.equal(p.input(0,{type:'chargeMound'},{phaseKey:'earlier-result'}).code,'stale_phase');
+  assert.equal(p.input(0,{type:'chargeMound',pitchId:99}).code,'stale_pitch');
+  assert.equal(p.input(1,{type:'next'}).ok,true);
+  assert.deepEqual(p.hub.metadata(p.room).readySides,[1]);
+  assert.equal(p.input(1,{type:'changePitcher',pitcherId:'foundry-heat104'}).ok,false);
+  assert.equal(p.input(0,{type:'chargeMound'}).ok,true);
+  assert.equal(p.room.game.state.phase,'brawl');
+  assert.deepEqual(p.hub.metadata(p.room).readySides,[]);
+  assert.equal(p.input(1,{type:'next'},{phaseKey:key}).ok,false);
+  assert.deepEqual(p.room.game.state.bases,before.state.bases);
+  assert.deepEqual(p.room.game.state.score,before.state.score);
+});
+
+test('taking the base is final for that online choice, even while the opponent is still deciding', t=>{
+  const p=pair();t.after(()=>p.hub.close());p.start();offerOnlineCharge(p);
+  assert.equal(p.input(0,{type:'next'}).ok,true);
+  assert.equal(p.input(0,{type:'chargeMound'}).code,'choice_made');
+  assert.equal(p.input(1,{type:'next'}).ok,true);
+  assert.equal(p.room.game.state.phase,'ready');
+  assert.equal(p.room.game.state.confrontation,null);
+  assert.equal(p.room.game.state.bases.filter(Boolean).length,2);
+});
+
+test('online fights authenticate both fighters, pause and reconnect, and cannot duplicate damage', t=>{
+  const p=pair();t.after(()=>p.hub.close());p.start();offerOnlineCharge(p);
+  p.input(0,{type:'chargeMound'});p.until(s=>s.brawl.stage==='fight');
+  assert.equal(p.input(1,{type:'fight',action:'invented'}).code,'bad_fight_action');
+  assert.equal(p.input(1,{type:'fight',action:'jab'},{phaseKey:'old-fight'}).code,'stale_phase');
+  const seat=p.room.players[0],envelope={generation:p.room.generation,seq:seat.lastSeq+1,phaseKey:phaseKey(p.room.game.state),command:{type:'fight',action:'jab',side:1,health:0,damage:1000,time:-1,pitchId:commandPitchId(p.room.game.state)}};
+  assert.equal(p.hub.input(p.room.code,seat.token,envelope).ok,true);
+  assert.equal(p.room.game.state.brawl.fighters[0].action,'jab');
+  assert.equal(p.room.game.state.brawl.fighters[1].action,'idle');
+  const started=p.room.game.snapshot();
+  assert.equal(p.hub.input(p.room.code,seat.token,envelope).duplicate,true);
+  assert.deepEqual(p.room.game.snapshot(),started);
+  assert.equal(p.input(0,{type:'fight',action:'jab'}).ok,false);
+  assert.equal(p.input(1,{type:'fight',action:'guard'}).ok,true);
+  p.input(1,{type:'pause'});const at=p.room.game.state.time;
+  p.tick(.25);assert.equal(p.room.game.state.time,at);
+  assert.equal(p.input(0,{type:'fight',action:'dodge'}).code,'game_paused');
+  p.input(1,{type:'resume'});p.until(s=>s.brawl.fighters[0].impactDone);
+  assert.equal(p.room.game.state.brawl.fighters[1].health,97);
+  p.disconnect[0]();const disconnected=p.room.game.state.time;p.tick(.25);
+  assert.equal(p.room.game.state.time,disconnected);
+  const rejoined=p.hub.rejoin(p.room.code,p.credentials[0].token);
+  assert.deepEqual(rejoined.packet.snapshot.state.brawl,p.room.game.state.brawl);
+  p.hub.connect(p.room.code,p.credentials[0].token,p.streams[0]);
+  const bases=p.room.game.state.bases.map(r=>r?.id??null),score=[...p.room.game.state.score];
+  p.until(s=>s.phase==='result');
+  assert.equal(p.room.game.state.result.kind,'brawl');
+  assert.deepEqual(p.room.game.state.bases.map(r=>r?.id??null),bases);
+  assert.deepEqual(p.room.game.state.score,score);
+  assert.equal(p.room.game.state.ejections[0].length,1);
+  assert.equal(p.room.game.state.ejections[1].length,1);
+  p.input(0,{type:'next'});p.input(1,{type:'next'});
+  assert.equal(p.room.game.state.phase,'ready');
+});
+
+test('client extrapolation cannot invent fight damage, ejections, or a replacement', t=>{
+  const p=pair();t.after(()=>p.hub.close());p.start();offerOnlineCharge(p);
+  p.input(0,{type:'chargeMound'});p.until(s=>s.brawl.stage==='fight');
+  p.input(0,{type:'fight',action:'jab'});
+  const session=new OnlineSession({storageEnabled:false});
+  session.generation=p.room.generation;session.side=0;
+  session._packet(p.hub.packet(p.room,p.room.players[0]));
+  const state=structuredClone(session.game.state);
+  for(let n=0;n<6;n++)session._predict(.1);
+  assert.deepEqual(session.game.state.brawl,state.brawl);
+  assert.deepEqual(session.game.state.ejections,state.ejections);
+  assert.deepEqual(session.game.state.lineupChanges,state.lineupChanges);
+  assert.deepEqual(session.game.state.pitching,state.pitching);
+  assert.deepEqual(session.game.state.score,state.score);
+});
 
 test('private online rooms require two connected ready players and never start CPU pitches', () => {
   const p = pair();

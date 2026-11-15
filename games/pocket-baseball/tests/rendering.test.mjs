@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
-import { BallparkRenderer, samplePlayerMotion, presentationBatter } from '../public/renderer.mjs';
+import { BallparkRenderer, samplePlayerMotion, presentationBatter, presentationBrawl, brawlCamera } from '../public/renderer.mjs';
 import { BaseballGame, pitchPosition, AIM_AREA, PITCH_AIM_AREA } from '../public/engine.mjs';
 import { CompatibilityRenderer } from '../public/fallback-renderer.mjs';
 import { getWallSegments } from '../public/parks.mjs';
@@ -183,4 +183,77 @@ test('compatibility park walls use simulation coordinates and keep the selected 
   assert.equal(renderer.setPark('fenway'),false);assert.equal(renderer.wallSurfaces,surfaces);
   renderer.render(null,1/60,{menu:true});assert.equal(renderer.parkId,'fenway');
   const fenwayFaceCount=renderer.static.length;renderer.setPark('harbor');renderer.setPark('fenway');assert.equal(renderer.static.length,fenwayFaceCount);
+});
+
+
+function moundState() {
+  const game = new BaseballGame({ mode: 'practice', scenario: 'mound', humanSides: [0, 1], seed: 2003 });
+  assert.equal(game.command({ type: 'chargeMound', side: 0 }), true);
+  return game.state;
+}
+
+test('mound staging moves the struck player to the mound, keeps original identities and never changes the simulation', () => {
+  const state=moundState(),before=JSON.stringify(state),start=presentationBrawl(state);
+  assert.equal(start.fighters[0].z,-.04); assert.equal(start.fighters[0].id,state.brawl.batter.id);
+  assert.equal(start.fighters[1].id,state.brawl.pitcher.id); assert.equal(JSON.stringify(state),before);
+  state.time=.75;const middle=presentationBrawl(state);assert(middle.fighters[0].z>5&&middle.fighters[0].z<15);
+  state.time=1.5;state.brawl.stage='fight';state.brawl.stageStartedAt=1.5;
+  const fight=presentationBrawl(state);assert.equal(fight.fighters[0].z,18.1);assert.equal(fight.fighters[1].z,18.1);
+  assert.equal(fight.fighters[0].displayFacing,-Math.PI/2);assert.equal(fight.fighters[1].displayFacing,Math.PI/2);
+  state.phase='result';state.brawl.stage='done';state.time=14;
+  const done=presentationBrawl(state);assert.equal(done.separate,1);assert(done.fighters[0].x<-1.4);assert(done.fighters[1].x>1.4);
+  assert.equal(presentationBatter(state).id,state.brawl.batter.id);
+});
+
+test('fight poses distinguish jabs, guards, dodges and impacts while removing the bat', () => {
+  const state=moundState();state.time=2;state.brawl.stage='fight';state.brawl.stageStartedAt=1.5;
+  const actor=presentationBrawl(state).fighters[0],fighter=state.brawl.fighters[0],poses=[];
+  for(const action of ['idle','jab','guard','dodge']){
+    Object.assign(fighter,{action,actionStartedAt:1.72,actionUntil:2.22,impactAt:2});
+    const pose=samplePlayerMotion(state,'batter',{actor});assert.equal(pose.batVisible,false);
+    poses.push([pose.rightArm,pose.rightElbow,pose.hipY,pose.roll].map(n=>n.toFixed(3)).join('/'));
+    for(const value of Object.values(pose))if(typeof value==='number')assert(Number.isFinite(value));
+  }
+  assert.equal(new Set(poses).size,4);
+  // A balance update can lengthen telegraph/dodge time without desynchronizing the pose.
+  Object.assign(fighter,{action:'jab',actionStartedAt:1.72,impactAt:2.14,actionUntil:2.38});state.time=2.14;
+  assert.equal(samplePlayerMotion(state,'batter',{actor}).rightArm,-1.53);
+  Object.assign(fighter,{action:'dodge',actionStartedAt:1.72,actionUntil:2.22});state.time=1.97;
+  assert.equal(samplePlayerMotion(state,'batter',{actor}).hipX,.25);
+  state.time=2;fighter.action='idle';fighter.hitAt=1.8;const recoil=samplePlayerMotion(state,'batter',{actor});
+  assert(recoil.lean<-.10);assert(recoil.hipZ<-.10);
+});
+
+test('both renderers stage the same fight without a live ball, duplicate hitter or batting guides', () => {
+  const renderer=scene(),software=new CompatibilityRenderer(canvas()),state=moundState();
+  state.time=2;state.brawl.stage='fight';state.brawl.stageStartedAt=1.5;
+  const staged=presentationBrawl(state),captured=[],person=software.person.bind(software);
+  software.person=(actor,s,home,role,facing)=>{captured.push({actor,role,facing});return person(actor,s,home,role,facing);};
+  renderer.render(state,1/60,{});software.render(state,1/60,{});
+  assert.equal(renderer.batter.batPivot.visible,false);assert.equal(renderer.ball.visible,false);
+  assert.equal(renderer.zone.visible,false);assert.equal(renderer.aimRing.visible,false);assert.equal(renderer.runnerSelection.visible,false);
+  assert.equal(renderer.batter.group.position.x,-staged.fighters[0].x);assert.equal(renderer.models.get('P').group.position.x,-staged.fighters[1].x);
+  assert.equal(renderer.runnerModels[0].group.visible,false);
+  const hitters=captured.filter(p=>p.role==='batter');assert.equal(hitters.length,1);assert.equal(hitters[0].actor.x,staged.fighters[0].x);
+  assert(!captured.some(p=>p.role==='runner'&&p.actor.playerId===state.brawl.batter.id));
+  assert(captured.some(p=>p.role==='umpire'));assert.equal(renderer.umpire.group.visible,true);
+  renderer.scene.traverse(o=>assert(o.matrixWorld.elements.every(Number.isFinite)));
+});
+
+test('fight camera frames both players at portrait and landscape sizes and clears when baseball resumes', () => {
+  const state=moundState();state.time=2;state.brawl.stage='fight';state.brawl.stageStartedAt=1.5;
+  for(const [width,height] of [[430,932],[932,430]]){
+    const renderer=scene();renderer.canvas.clientWidth=width;renderer.canvas.clientHeight=height;
+    renderer.width=width;renderer.height=height;renderer.camera.aspect=width/height;renderer.camera.updateProjectionMatrix();
+    renderer.render(state,1/60,{});
+    for(const actor of presentationBrawl(state).fighters)for(const y of [.1,1.8]){
+      const point=renderer.project(actor.x,y,actor.z);
+      assert(point.visible);assert(point.x>width*.1&&point.x<width*.9);assert(point.y>height*.15&&point.y<height*.83);
+    }
+    assert(Object.values(brawlCamera(state,width<height).eye).every(Number.isFinite));
+    const old=state.brawl;state.brawl=null;state.phase='ready';renderer.render(state,1/60,{});
+    assert.equal(renderer.batter.batPivot.visible,true);assert.equal(renderer.umpire.group.visible,false);
+    assert.equal(renderer.zone.visible,true);assert.equal(presentationBrawl(state),null);
+    state.brawl=old;state.phase='brawl';
+  }
 });

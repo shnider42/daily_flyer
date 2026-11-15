@@ -4,7 +4,7 @@ import { BaseballGame, PITCHERS, resolveParkId } from './public/engine.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'changePitcher']);
+const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'changePitcher', 'chargeMound', 'fight']);
 const BAT_INPUTS = new Set(['swing', 'run', 'lead', 'steal']);
 const MAX_REWIND = .2;
 export const phaseKey = state => `${state.phase}:${state.phaseStartedAt}:${state.inning}:${state.half}:${state.nextPitchId}`;
@@ -219,6 +219,18 @@ export class RoomHub {
         room.players.forEach(p => { p.ready = false; });
       }
       return { ok: true };
+    }
+    if (input.type === 'chargeMound' || input.type === 'fight') {
+      if (envelope.phaseKey !== phaseKey(s)) fail(409, 'That action belongs to an earlier play.', 'stale_phase');
+      if (!Number.isInteger(input.pitchId) || input.pitchId !== commandPitchId(s)) fail(409, 'That action belongs to a different pitch.', 'stale_pitch');
+      if (input.type === 'chargeMound') {
+        if (player.side !== s.battingSide) fail(403, 'The hit batter decides whether to charge.', 'wrong_side');
+        if (player.ready) fail(409, 'You already chose to take the base.', 'choice_made');
+      } else if (!['jab', 'guard', 'dodge'].includes(input.action)) fail(400, 'Choose jab, guard, or dodge.', 'bad_fight_action');
+      // Neither player can invent damage, rewind a punch, or control the other fighter.
+      const accepted = game.command({ type: input.type, side: player.side, pitchId: input.pitchId, action: input.action });
+      if (accepted && input.type === 'chargeMound') room.players.forEach(p => { p.ready = false; });
+      return accepted ? { ok: true } : { ok: false, error: game.lastRejection || 'That action is unavailable now.', code: 'baseball_rejected' };
     }
     if (!GAME_INPUTS.has(input.type)) fail(400, 'Unknown baseball input.', 'bad_input');
     if (BAT_INPUTS.has(input.type) ? player.side !== s.battingSide : player.side === s.battingSide) fail(403, 'That action belongs to your opponent.', 'wrong_side');

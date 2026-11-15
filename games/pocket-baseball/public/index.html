@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
   <title>Pocket Baseball · DFE Sports</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=0.5.0">
+  <link rel="stylesheet" href="./style.css?v=0.6.0">
 </head>
 <body>
   <main id="app" class="is-menu" tabindex="-1">
@@ -35,6 +35,7 @@
           <p id="setup-note" class="setup-note">Timing cue, strike zone, and a little help between pitches.</p>
           <button class="play-button" id="start-exhibition" type="submit"><span>PLAY EXHIBITION</span><span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M6 18 18 6M6 6h12v12"/></svg></span></button>
           <div class="practice-options"><button class="practice-button" id="start-practice" type="button"><span>BATTING PRACTICE</span></button><button class="practice-button" id="start-runners" type="button"><span>BASERUNNING PRACTICE</span></button></div>
+          <button class="showdown-practice" id="start-mound" type="button">Mound showdown <small>Try the new minigame</small></button>
           <button class="friend-button" id="open-online" type="button"><span>PLAY A FRIEND</span><small>Private 1v1 room</small></button>
         </form>
         <div class="home-footer"><div class="home-links"><button id="home-help" class="text-button">How to play</button><button id="home-roster" class="text-button">Rosters &amp; bullpen</button></div><span>Solo or 1v1</span></div>
@@ -63,6 +64,18 @@
 
       <div id="timing-cue" class="timing-cue" hidden aria-label="Pitch timing guide"><div class="timing-track"><i class="timing-sweet"></i><i id="timing-marker"></i></div><span id="timing-label">WATCH IT IN</span></div>
       <div id="status-tip" class="status-tip"><b id="status-label">WATCH THE PITCHER</b><span id="status-detail">Swing as the ball reaches the plate.</span></div>
+      <div id="broadcast-caption" class="broadcast-caption" hidden role="status" aria-live="polite"><span>DFE RADIO</span><p id="broadcast-text"></p></div>
+
+      <section id="fight-score" class="fight-score" hidden aria-label="Mound showdown">
+        <div class="fighter-status"><b id="fight-your-name"></b><small>YOUR COMPOSURE</small><progress id="fight-your-health" max="100" value="100" aria-label="Your composure"></progress></div>
+        <div class="fight-clock"><b id="fight-clock">10</b><span id="fight-stage">MOUND SHOWDOWN</span></div>
+        <div class="fighter-status opponent"><b id="fight-other-name"></b><small>OPPONENT COMPOSURE</small><progress id="fight-other-health" max="100" value="100" aria-label="Opponent composure"></progress></div>
+      </section>
+      <section id="fight-controls" class="fight-controls" hidden aria-label="Fight controls">
+        <p id="fight-hint" role="status">Read the windup. Guard or dodge, then jab.</p>
+        <div class="fight-energy"><span id="fight-energy-label">ENERGY 100%</span><progress id="fight-energy" max="100" value="100" aria-label="Your energy"></progress><span id="fight-ready">READY</span></div>
+        <div class="fight-actions"><button id="fight-jab" type="button" data-fight="jab"><b>JAB</b><small>A / SPACE</small></button><button id="fight-guard" type="button" data-fight="guard"><b>GUARD</b><small>S</small></button><button id="fight-dodge" type="button" data-fight="dodge"><b>DODGE</b><small>D</small></button></div>
+      </section>
 
       <section id="preplay-controls" class="preplay-controls" hidden aria-label="Runner and pickoff decisions">
         <div class="preplay-heading"><b id="preplay-title">ON BASE</b><span id="preplay-state"></span></div>
@@ -96,7 +109,7 @@
         <p id="runner-control-hint" class="live-control-hint">Tap GO 2ND now to try for a double.</p>
       </section>
 
-      <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><button id="next-button">NEXT PITCH <span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
+      <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><div id="mound-choice" class="mound-choice" hidden><p id="mound-choice-detail">Two hit batters. Charge and both players are ejected; the base award stands.</p><button id="charge-mound" type="button">CHARGE THE MOUND</button></div><button id="next-button">NEXT PITCH <span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
       <div id="event-toast" class="event-toast" role="status" hidden></div>
     </section>
 
@@ -105,14 +118,14 @@
     <noscript><div class="error-panel"><h2>JAVASCRIPT IS NEEDED TO PLAY</h2><p>Enable JavaScript in your browser, then refresh the page.</p></div></noscript>
   </main>
 
-  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><p id="pause-venue" class="guide-footnote"></p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label></div><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="pause-roster" type="button" class="dialog-secondary">Roster &amp; pitching change</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><p id="pause-venue" class="guide-footnote"></p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label><label class="commentary-setting">COMMENTARY<select id="commentary-mode" aria-describedby="commentary-note"><option value="voice">Voice + captions</option><option value="captions">Captions only</option><option value="off">Off</option></select></label></div><p id="commentary-note" class="guide-footnote">Short play-by-play calls. Voice uses your device’s available voices.</p><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="pause-roster" type="button" class="dialog-secondary">Roster &amp; pitching change</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
 
   <dialog id="roster-dialog" class="roster-dialog" aria-labelledby="roster-title">
     <div class="roster-shell">
       <header class="roster-header"><div><p class="dialog-eyebrow">THE DUGOUT</p><h2 id="roster-title" tabindex="-1">ROSTER &amp; BULLPEN</h2></div><button id="close-roster" class="roster-close" type="button" aria-label="Close roster">DONE</button></header>
       <div class="roster-navigation"><label for="roster-side">CLUB<select id="roster-side"><option value="0">Boston Harbor</option><option value="1">Brooklyn Foundry</option></select></label><div class="roster-tabs" role="tablist" aria-label="Roster sections"><button id="roster-lineup-tab" type="button" role="tab" aria-selected="true" aria-controls="roster-lineup">LINEUP</button><button id="roster-bullpen-tab" type="button" role="tab" aria-selected="false" aria-controls="roster-bullpen" tabindex="-1">BULLPEN</button></div></div>
       <p id="roster-context" class="roster-context"></p>
-      <div id="roster-lineup" role="tabpanel" aria-labelledby="roster-lineup-tab"><table class="roster-table" aria-label="Batting order"><thead><tr><th scope="col">#</th><th scope="col">PLAYER</th><th scope="col">POS</th><th scope="col">BATS</th><th scope="col"><abbr title="Contact">CON</abbr></th><th scope="col"><abbr title="Power">POW</abbr></th><th scope="col"><abbr title="Speed">SPD</abbr></th></tr></thead><tbody id="roster-lineup-rows"></tbody></table><p class="roster-footnote">S = switch hitter, batting opposite the pitcher. Ratings are relative playing strengths. Both clubs use a designated hitter.</p></div>
+      <div id="roster-lineup" role="tabpanel" aria-labelledby="roster-lineup-tab"><table class="roster-table" aria-label="Batting order"><thead><tr><th scope="col">#</th><th scope="col">PLAYER</th><th scope="col">POS</th><th scope="col">BATS</th><th scope="col"><abbr title="Contact">CON</abbr></th><th scope="col"><abbr title="Power">POW</abbr></th><th scope="col"><abbr title="Speed">SPD</abbr></th></tr></thead><tbody id="roster-lineup-rows"></tbody></table><div id="roster-bench" class="roster-bench"></div><p class="roster-footnote">S = switch hitter, batting opposite the pitcher. Ratings are relative playing strengths. Both clubs use a designated hitter. Reserves replace ejected hitters automatically.</p></div>
       <div id="roster-bullpen" role="tabpanel" aria-labelledby="roster-bullpen-tab" hidden><div id="roster-pitchers" class="roster-pitchers"></div><p class="roster-footnote">A removed pitcher cannot return. A tired arm loses velocity and command. The 104 mph specialist is built for short outings.</p></div>
       <p id="roster-status" class="roster-status" role="status" aria-live="polite"></p>
     </div>
@@ -132,6 +145,8 @@
       <div class="guide-section"><span>09</span><div><h3>PLAY A FRIEND</h3><p>Choose your pitcher, then open <b>PLAY A FRIEND</b>. One player creates a room and shares its six-character code; the other joins. Both tap <b>READY TO PLAY</b>. The creator chooses the ballpark and plays Boston; the guest plays Brooklyn. Each player confirms between plays. A disconnect pauses the match while the player reconnects. Use <b>REJOIN YOUR MATCH</b> in the same tab after a refresh.</p></div></div>
       <div class="guide-section"><span>10</span><div><h3>MANAGE YOUR STAFF</h3><p>Open the <b>roster icon</b> at the top of the field, or <b>Roster &amp; pitching change</b> in the pause menu. The lineup lists each batter’s handedness and strengths. The <b>BULLPEN</b> tab shows pitches, delivery, command, pitch count and remaining stamina. Tap <b>BRING IN</b> during a break in play to change your pitcher. You can prepare your next defensive inning while batting. Removed pitchers cannot return.</p></div></div>
       <div class="guide-section"><span>11</span><div><h3>WORK INSIDE CAREFULLY</h3><p>A pitch that hits a batter outside the strike zone is dead, and the batter takes first. Only forced runners advance. Swinging at the pitch removes the free-base award. The body collision follows the batter’s box, so the inside edge changes against a left-handed hitter.</p></div></div>
+      <div class="guide-section"><span>12</span><div><h3>WHEN TEMPERS RISE</h3><p>After two hit batters against your club, you can <b>take first</b> or <b>charge the mound</b>. Charging starts a short showdown: <b>JAB / A / Space</b>, <b>GUARD / S</b>, and <b>DODGE / D</b>. Read the opponent’s jab windup, defend, then counter. Actions cost energy; wait briefly to recover. The umpire breaks it up after ten seconds. Both players are ejected and replaced, whatever the fight result; the score and base award stay intact. Try <b>Mound showdown</b> from the home screen to learn the controls.</p></div></div>
+      <div class="guide-section"><span>13</span><div><h3>THE BROADCAST</h3><p>Short commentary calls react to the play without naming the incoming pitch. In <b>Pause → Commentary</b>, choose voice with captions, captions only, or off. Voice availability depends on your device; captions work either way. The sound button mutes voice and ballpark audio together.</p></div></div>
       <div class="guide-levels"><h3>HOW MUCH HELP?</h3><p><b>Simple</b> adds timing, aim, explanations and a suggested throw. <b>Moderate</b> keeps the aim guide and shorter tips. <b>Expert</b> leaves the essentials. Difficulty separately controls CPU skill and timing forgiveness. Field movement is assisted; your throw and running decisions affect the play.</p></div>
       <p class="guide-footnote">Solo exhibition starts with you batting as Boston Harbor. Batting practice keeps you at the plate; baserunning practice starts with runners on first and third. Touch and keyboard both work; landscape gives you more field. Online rooms are temporary and close when a player leaves or the match server restarts.</p>
       <button id="close-help" class="dialog-primary">GOT IT. PLAY BALL.</button>
@@ -160,6 +175,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="./app.mjs?v=0.5.0"></script>
+  <script type="module" src="./app.mjs?v=0.6.0"></script>
 </body>
 </html>
