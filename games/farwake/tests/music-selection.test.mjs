@@ -119,3 +119,26 @@ test('affinity preserves rotation and every added composition is reachable throu
   assert.equal(first, 'small-sky-on-a-moon');
   assert.ok(second && second.id !== first, 'The exact biome rests while another available planet piece plays.');
 });
+
+test('new named place pieces are selected by their real musical profile and never leak into unrelated places', () => {
+  const scenarios = [
+    ['lamps-in-the-cabin', { scene: 'exploration', musicPlace: 'cabin', paletteKey: 'occupied:cabin', tags: ['ship', 'cabin', 'quiet'] }],
+    ['under-the-service-lights', { scene: 'exploration', environment: 'planet', musicPlace: 'fieldwork', paletteKey: 'floodworks', tags: ['ground', 'fieldwork', 'floodworks', 'machinery'] }],
+    ['the-foreman-cycle', { scene: 'exploration', musicPlace: 'fieldwork', paletteKey: 'machine-bay', observedThreat: true, tags: ['ground', 'fieldwork', 'foreman', 'machinery'] }],
+    ['after-hours-on-glimmer', { scene: 'social', environment: 'planet', musicPlace: 'nightlife', paletteKey: 'low-orbit', tags: ['ground', 'nightlife', 'voltage', 'city'] }],
+    ['rain-on-the-transit-line', { scene: 'exploration', environment: 'planet', musicPlace: 'city', paletteKey: 'glimmer-street', tags: ['ground', 'voltage', 'city', 'rain'] }],
+  ];
+  for (const [cueId, context] of scenarios) {
+    assert.ok(metadata(cueId), cueId);
+    for (let seed = 0; seed < 12; seed++) assert.equal(director(`place-profile-${seed}`).update(context, 0).cueId, cueId);
+  }
+  const rescue = director('handover-profile'); rescue.notify('recovery', 0, 'physical-handover');
+  assert.equal(rescue.update({ scene: 'exploration', musicPlace: 'fieldwork', paletteKey: 'aid-point', tags: ['ground', 'fieldwork', 'rescue', 'safe-return'] }, 0).cueId, 'carry-the-light');
+  const special = new Set([...scenarios.map(([id]) => id), 'carry-the-light']);
+  for (let seed = 0; seed < 24; seed++) {
+    const ordinary = director(`ordinary-flight-${seed}`).update({ scene: 'exploration', paletteKey: 'open-space', tags: ['ship', 'flight'] }, 0);
+    assert.ok(!special.has(ordinary.cueId), ordinary.cueId);
+    const fight = director(`ordinary-fight-${seed}`).update({ scene: 'exploration', observedThreat: true, tags: ['ground'] }, 0);
+    assert.notEqual(fight.cueId, 'the-foreman-cycle');
+  }
+});

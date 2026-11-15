@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Soundscape } from '../dist/audio.mjs';
+import { MUSIC_CUES, THEME_ID } from '../dist/music-score.mjs';
 
 class Events {
   constructor() { this.listeners = new Map(); }
@@ -204,4 +205,88 @@ test('an unavailable music graph fails quiet without throwing into the game loop
     assert.equal(warnings.length, 1, 'No failure/retry storm on every animation frame.');
     b.audio.tone(440); assert.equal(b.audio.effects.size, 1);
   } finally { console.warn = warn; b.restore(); }
+});
+
+test('Soundscape auditions a non-theme cue through its real director and reports pending then playing status', () => {
+  const b = boundary({ sound: false, music: true });
+  try {
+    const id = 'lamps-in-the-cabin';
+    assert.equal(b.audio.requestCue(id, 0), true);
+    assert.equal(b.audio.musicStatus().requestedCueId, id);
+    assert.equal(b.audio.musicStatus().previewCueId, null);
+    assert.equal(b.settings.sound, false); assert.equal(b.settings.music, true);
+    const decision = b.audio.updateMusic({ scene: 'exploration', menuOpen: true, paused: true }, 0);
+    assert.equal(decision.cueId, id); assert.equal(decision.preview, true);
+    const status = b.audio.musicStatus();
+    assert.equal(status.state, 'running'); assert.equal(status.title, MUSIC_CUES.find(cue => cue.id === id).title);
+    assert.equal(status.theme, false); assert.equal(status.preview, true);
+    assert.equal(status.previewCueId, id); assert.equal(status.requestedCueId, null);
+    assert.equal(b.audio.score.status().currentCue, id); assert.ok(b.audio.score.playing);
+    assert.equal(b.audio.master.gain.value, 0, 'Auditioning music does not enable effects.');
+    assert.equal(b.audio.requestCue('missing-piece', .1), false);
+    assert.equal(b.audio.musicStatus().previewCueId, id, 'An invalid request cannot interrupt the current performance.');
+    b.audio.ctx.currentTime = 1; b.audio.stopPreview(1);
+    assert.equal(b.audio.updateMusic({ scene: 'exploration', menuOpen: true, paused: true }, 1).cueId, null);
+    assert.equal(b.audio.musicStatus().preview, false);
+  } finally { b.restore(); }
+});
+
+test('Soundscape interrupts a real audition for observed danger, requeues it safely, and cancels only the audition', () => {
+  const b = boundary(), flight = { scene: 'exploration', paletteKey: 'outside', tags: ['ship', 'flight'] };
+  const at = now => { b.audio.ctx.currentTime = now; return b.audio.updateMusic(flight, now); };
+  try {
+    const id = 'rain-on-the-transit-line';
+    assert.equal(b.audio.requestCue(id, 0), true); at(0);
+    const preview = b.audio.score;
+    b.audio.musicEvent('combat', 1, 'actual-targeted-volley');
+    const battle = at(1), battlePlayer = b.audio.score;
+    assert.equal(battle.mood, 'combat'); assert.equal(battle.preview, false);
+    assert.equal(b.audio.musicStatus().requestedCueId, id);
+    assert.equal(b.audio.musicStatus().previewCueId, null);
+    assert.equal(b.audio.retiringScore, preview);
+    assert.equal(at(5).token, battle.token, 'A pending audition cannot repeatedly restart battle music.');
+    const resumed = at(16);
+    assert.equal(resumed.previewCueId, id); assert.equal(b.audio.musicStatus().requestedCueId, null);
+    assert.ok(preview.status().disposed); assert.notEqual(b.audio.score, preview);
+    assert.equal(b.audio.retiringScore, battlePlayer);
+    b.audio.musicEvent('combat', 17, 'renewed-local-fire'); const renewed = at(17), renewedPlayer = b.audio.score;
+    assert.equal(b.audio.musicStatus().requestedCueId, id);
+    b.audio.stopPreview(18);
+    assert.equal(at(18).token, renewed.token); assert.equal(b.audio.score, renewedPlayer);
+    assert.equal(b.audio.musicStatus().requestedCueId, null); assert.equal(b.audio.musicStatus().preview, false);
+    assert.equal(at(32).mood, 'recovery');
+    assert.notEqual(b.audio.musicStatus().previewCueId, id, 'A cancelled audition does not return after the battle.');
+  } finally { b.restore(); }
+});
+
+test('Soundscape refuses auditions while music is disabled without unmuting or creating a pending request', () => {
+  const b = boundary({ sound: true, music: false });
+  try {
+    assert.equal(b.audio.requestCue('after-hours-on-glimmer', 0), false);
+    assert.equal(b.settings.music, false); assert.equal(b.audio.ctx, null);
+    assert.equal(b.audio.musicStatus().requestedCueId, null); assert.equal(b.audio.director.previewRequested, false);
+    b.audio.unlock(); b.audio.tone(440);
+    assert.equal(b.audio.effects.size, 1, 'Enabled effects retain their independent audio path.');
+    assert.equal(b.audio.requestCue('under-the-service-lights', 1), false);
+    assert.equal(b.audio.updateMusic({ scene: 'exploration' }, 1).cueId, null);
+    assert.equal(b.audio.musicBus.gain.value, 0); assert.equal(b.audio.musicStatus().requestedCueId, null);
+  } finally { b.restore(); }
+});
+
+test('Soundscape default theme toggle distinguishes another queued audition from the queued theme', () => {
+  const b = boundary(), flight = { scene: 'exploration', tags: ['ship', 'flight'] };
+  try {
+    b.audio.unlock(); b.audio.musicEvent('combat', 0, 'incoming');
+    const battle = b.audio.updateMusic(flight, 0), player = b.audio.score;
+    assert.equal(b.audio.requestCue('after-hours-on-glimmer', 1), true);
+    assert.equal(b.audio.musicStatus().requestedCueId, 'after-hours-on-glimmer');
+    assert.equal(b.audio.toggleTheme(), true, 'A different pending piece is replaced by the requested theme.');
+    assert.equal(b.audio.musicStatus().requestedCueId, THEME_ID);
+    b.audio.ctx.currentTime = 1;
+    assert.equal(b.audio.updateMusic(flight, 1).token, battle.token);
+    assert.equal(b.audio.toggleTheme(), false, 'Toggling a second time cancels the queued theme.');
+    b.audio.ctx.currentTime = 2;
+    assert.equal(b.audio.updateMusic(flight, 2).token, battle.token);
+    assert.equal(b.audio.score, player); assert.equal(b.audio.musicStatus().requestedCueId, null);
+  } finally { b.restore(); }
 });

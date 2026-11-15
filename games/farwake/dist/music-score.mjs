@@ -8,6 +8,8 @@
  */
 import { DANGER_COMPOSITIONS } from './music-danger.mjs';
 import { ENVIRONMENT_COMPOSITIONS } from './music-environments.mjs';
+import { PLACE_COMPOSITIONS } from './music-places.mjs';
+import { INSTRUMENT, makeAssets, sampleFor, waveFor, midiHz, mixForCue } from './music-instruments.mjs';
 
 export const THEME_ID = 'long-way-home';
 export const SCORE_LOOKAHEAD = .18;
@@ -33,7 +35,7 @@ export const MUSIC_CUES = Object.freeze([
   cue('after-the-static', 'After the Static', 'recovery', 12, 68, 240, ['recovery', 'breathing-room'], .15),
   cue('home-in-a-pocket', 'Home in a Pocket', 'recovery', 16, 70, 720, ['home', 'theme-reprise', 'safe-return'], .17),
   cue('a-room-without-an-answer', 'A Room Without an Answer', 'terror', 12, 58, 1200, ['authored-terror', 'sparse'], .24),
-  ...[...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS].map(({ id, title, family, bars, bpm, cooldownSeconds, tags, intensity }) =>
+  ...[...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS].map(({ id, title, family, bars, bpm, cooldownSeconds, tags, intensity }) =>
     cue(id, title, family, bars, bpm, cooldownSeconds, tags, intensity)),
 ]);
 
@@ -340,7 +342,7 @@ const BUILDERS = {
   'after-the-static': s => buildRecovery(s),
   'home-in-a-pocket': s => buildRecovery(s, true),
   'a-room-without-an-answer': buildTerror,
-  ...Object.fromEntries([...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS].map(entry => [entry.id, s => entry.build(s, H)])),
+  ...Object.fromEntries([...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS].map(entry => [entry.id, s => entry.build(s, H)])),
 };
 
 function seedValue(seed) {
@@ -371,185 +373,6 @@ export function scoreEvents(cueId, { seed = 1 } = {}) {
   return { bpm: metadata.bpm, beats, events };
 }
 
-// Samples and periodic waves are shared between crossfading players in one
-// AudioContext. New compositions reuse the existing instrument samples and
-// native-rate stereo reverb. Two players crossfading in that context share
-// those buffers; the catalog does not create a separate bank for each piece.
-const ASSETS = new WeakMap();
-const midiHz = midi => 440 * 2 ** ((midi - 69) / 12);
-const INSTRUMENT = Object.freeze({
-  piano: { gain: .13, release: .7, reverb: .19, echo: .07 },
-  guitar: { gain: .19, release: .7, reverb: .18, echo: .13 },
-  pluck: { gain: .12, release: .28, reverb: .12, echo: .035 },
-  bell: { gain: .095, release: .8, reverb: .22, echo: .07 },
-  bass: { gain: .18, release: .14, reverb: .015, echo: 0 },
-  pad: { gain: .042, release: 1.2, reverb: .25, echo: .02 },
-  organ: { gain: .06, release: .4, reverb: .17, echo: .03 },
-  bowed: { gain: .055, release: 1.3, reverb: .3, echo: .06 },
-  kick: { gain: .18, release: .05, reverb: .015, echo: 0 },
-  snare: { gain: .095, release: .06, reverb: .08, echo: 0 },
-  hat: { gain: .056, release: .035, reverb: .06, echo: 0 },
-  brush: { gain: .1, release: .08, reverb: .09, echo: 0 },
-  rim: { gain: .085, release: .035, reverb: .075, echo: 0 },
-  shimmer: { gain: .075, release: .4, reverb: .4, echo: .025 },
-});
-
-function makeBuffer(ctx, duration, fill, channels = 1, nativeRate = false) {
-  // AudioBufferSourceNode resamples its buffer, but ConvolverNode requires an
-  // impulse whose sample rate matches its AudioContext exactly.
-  const sampleRate = nativeRate ? (ctx.sampleRate || 24000) : Math.min(ctx.sampleRate || 24000, 24000);
-  const buffer = ctx.createBuffer(channels, Math.ceil(duration * sampleRate), sampleRate);
-  for (let channel = 0; channel < channels; channel++) fill(buffer.getChannelData(channel), sampleRate, channel);
-  return buffer;
-}
-
-function normalize(data, peak = .86) {
-  let highest = .0001;
-  for (let i = 0; i < data.length; i++) highest = Math.max(highest, Math.abs(data[i]));
-  const scale = peak / highest;
-  for (let i = 0; i < data.length; i++) data[i] *= scale;
-}
-
-function electricPiano(ctx, midi) {
-  const frequency = midiHz(midi);
-  return makeBuffer(ctx, 4.8, (data, sr) => {
-    const turn = 2 * Math.PI * frequency / sr;
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sr, phase = i * turn, attack = 1 - Math.exp(-t / .0035);
-      const body = Math.sin(phase + .58 * Math.exp(-t / .21) * Math.sin(phase * 2.002));
-      const tine = .14 * Math.sin(phase * 3.006) * Math.exp(-t / .53) + .05 * Math.sin(phase * 6.011) * Math.exp(-t / .16);
-      const warmth = .09 * Math.sin(phase * 2) * Math.exp(-t / 1.1);
-      const tremolo = .97 + .03 * Math.sin(2 * Math.PI * 4.4 * t);
-      data[i] = attack * tremolo * (body * Math.exp(-t / 1.65) + tine + warmth);
-    }
-    normalize(data, .87);
-  });
-}
-
-function pluckedString(ctx, midi, soft = false) {
-  const frequency = midiHz(midi), random = randomFor(midi * 31 + (soft ? 5 : 1));
-  return makeBuffer(ctx, soft ? 2.8 : 4.3, (data, sr) => {
-    // Karplus–Strong string with a fractional-delay all-pass correction. The
-    // filter's half-sample delay is included to avoid sharp high-register notes.
-    const exact = sr / frequency - .5, length = Math.floor(exact), fraction = exact - length;
-    const ring = new Float32Array(length), coefficient = (1 - fraction) / (1 + fraction);
-    let smooth = 0;
-    for (let i = 0; i < length; i++) { smooth = smooth * .28 + (random() * 2 - 1) * .72; ring[i] = smooth * .66 + .22 * Math.sin(2 * Math.PI * i / length); }
-    let cursor = 0, priorInput = 0, priorOutput = 0, lastRead = ring[length - 1];
-    for (let i = 0; i < data.length; i++) {
-      const current = ring[cursor], filtered = (current + lastRead) * .4993;
-      lastRead = current;
-      const delayed = coefficient * filtered + priorInput - coefficient * priorOutput;
-      priorInput = filtered; priorOutput = delayed; ring[cursor] = delayed; cursor = (cursor + 1) % length;
-      const t = i / sr, attack = Math.min(1, t / .003);
-      // A little sustaining fundamental is characteristic of an amplified clean
-      // string, and prevents the upper melody turning into a tiny percussion hit.
-      const sustain = soft ? 0 : .13 * Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t / 1.9);
-      data[i] = attack * (current * Math.exp(-t / (soft ? 1.1 : 3.4)) + sustain);
-    }
-    normalize(data, .85);
-  });
-}
-
-function bellBuffer(ctx) {
-  const frequency = midiHz(72);
-  return makeBuffer(ctx, 3.2, (data, sr) => {
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sr, p = 2 * Math.PI * frequency * t;
-      data[i] = (1 - Math.exp(-t / .002)) * (Math.sin(p) * Math.exp(-t / .95)
-        + .2 * Math.sin(p * 2.754) * Math.exp(-t / .32) + .08 * Math.sin(p * 5.02) * Math.exp(-t / .14));
-    }
-    normalize(data, .82);
-  });
-}
-
-function bassBuffer(ctx) {
-  const frequency = midiHz(40);
-  return makeBuffer(ctx, 3.8, (data, sr) => {
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sr, p = 2 * Math.PI * frequency * t, attack = 1 - Math.exp(-t / .008);
-      data[i] = attack * Math.exp(-t / 1.7) * (Math.sin(p) + .19 * Math.sin(2 * p) * Math.exp(-t / .5) + .075 * Math.sin(3 * p) * Math.exp(-t / .2));
-    }
-    normalize(data, .9);
-  });
-}
-
-function percussion(ctx, kind) {
-  const duration = { kick: .48, snare: .29, hat: .14, brush: .4, rim: .1, shimmer: 2.2 }[kind];
-  const random = randomFor(kind), buffer = makeBuffer(ctx, duration, (data, sr) => {
-    let phase = 0, low = 0, previous = 0;
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sr, noise = random() * 2 - 1;
-      low = .82 * low + .18 * noise;
-      const high = noise - low, difference = noise - previous; previous = noise;
-      if (kind === 'kick') {
-        phase += 2 * Math.PI * (43 + 116 * Math.exp(-t / .023)) / sr;
-        data[i] = Math.sin(phase) * Math.exp(-t / .105) + .028 * high * Math.exp(-t / .007);
-      } else if (kind === 'snare') {
-        data[i] = .66 * high * Math.exp(-t / .062) + .28 * Math.sin(2 * Math.PI * 182 * t) * Math.exp(-t / .044);
-      } else if (kind === 'hat') {
-        data[i] = (.5 * difference + .08 * Math.sin(2 * Math.PI * 7142 * t)) * Math.exp(-t / .026);
-      } else if (kind === 'brush') {
-        data[i] = (.6 * high + .3 * low) * (1 - Math.exp(-t / .012)) * Math.exp(-t / .095);
-      } else if (kind === 'rim') {
-        data[i] = (.6 * Math.sin(2 * Math.PI * 1080 * t) + .3 * Math.sin(2 * Math.PI * 1810 * t) + .1 * high) * Math.exp(-t / .014);
-      } else {
-        data[i] = (high * .6 + .08 * Math.sin(2 * Math.PI * 3412 * t)) * (1 - Math.exp(-t / .09)) * Math.exp(-t / .45);
-      }
-      data[i] *= Math.min(1, (duration - t) / .012);
-    }
-    normalize(data, kind === 'hat' || kind === 'shimmer' ? .65 : .84);
-  });
-  return buffer;
-}
-
-function makeAssets(ctx) {
-  let assets = ASSETS.get(ctx);
-  if (assets) return assets;
-  const impulse = makeBuffer(ctx, 2.5, (data, sr, channel) => {
-    const random = randomFor(1917 + channel * 173), delay = Math.floor(sr * (.024 + .006 * channel));
-    let low = 0;
-    for (let i = delay; i < data.length; i++) {
-      const t = (i - delay) / sr; low = .62 * low + .38 * (random() * 2 - 1);
-      data[i] = low * Math.exp(-t * 3.1) * (1 - Math.exp(-t * 45));
-    }
-    for (const [time, gain] of [[.047, .35], [.083, .22], [.131, .13]]) data[Math.floor(sr * (time + channel * .009))] += gain;
-  }, 2, true);
-  assets = { impulse, samples: new Map(), waves: new Map() };
-  ASSETS.set(ctx, assets);
-  return assets;
-}
-
-function sampleFor(ctx, assets, instrument, midi) {
-  let key, base, make;
-  if (instrument === 'piano') {
-    base = midi < 58 ? 48 : midi < 70 ? 60 : 72; key = `piano:${base}`; make = () => electricPiano(ctx, base);
-  } else if (instrument === 'guitar' || instrument === 'pluck') {
-    // Three zones preserve both string attack and body without a unique large
-    // sample for every note. Pitch shifting stays within roughly half an octave.
-    base = midi < 55 ? 50 : midi < 64 ? 59 : midi < 73 ? 68 : 77;
-    key = `${instrument}:${base}`; make = () => pluckedString(ctx, base, instrument === 'pluck');
-  } else if (instrument === 'bell') {
-    key = 'bell'; base = 72; make = () => bellBuffer(ctx);
-  } else if (instrument === 'bass') {
-    key = 'bass'; base = 40; make = () => bassBuffer(ctx);
-  } else {
-    key = instrument; base = midi; make = () => percussion(ctx, instrument);
-  }
-  if (!assets.samples.has(key)) assets.samples.set(key, make());
-  return { buffer: assets.samples.get(key), rate: 2 ** ((midi - base) / 12) };
-}
-
-function waveFor(ctx, assets, instrument) {
-  if (assets.waves.has(instrument)) return assets.waves.get(instrument);
-  const amplitudes = instrument === 'organ' ? [0, 1, .42, .19, .12, .06, .025]
-    : instrument === 'bowed' ? [0, 1, .25, .22, .07, .08, .025] : [0, 1, .22, .11, .055, .025];
-  const real = new Float32Array(amplitudes.length), imaginary = Float32Array.from(amplitudes);
-  const wave = ctx.createPeriodicWave(real, imaginary, { disableNormalization: false });
-  assets.waves.set(instrument, wave);
-  return wave;
-}
-
 function ramp(param, value, now, seconds = .2) {
   if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now);
   else { const prior = param.value; param.cancelScheduledValues(now); param.setValueAtTime(prior, now); }
@@ -567,27 +390,31 @@ export class ScorePlayer {
     this.ctx = ctx; this.assets = makeAssets(ctx); this.playing = false; this.ended = true;
     this.currentCue = null; this.duration = 0; this.startedAt = 0; this.volume = 1;
     this._voices = new Set(); this._nodes = []; this._buses = new Map(); this._disposed = false;
+    this._toneFilters = []; this._sceneMix = mixForCue();
     this._events = []; this._index = 0; this._stoppingAt = null; this._stopRequested = false;
     const node = value => { this._nodes.push(value); return value; };
     this.outputGain = node(ctx.createGain()); this.outputGain.gain.value = 1; this.outputGain.connect(destination);
     this._fade = node(ctx.createGain()); this._fade.gain.value = 0; this._fade.connect(this.outputGain);
+    this._cueTrim = node(ctx.createGain()); this._cueTrim.gain.value = 1; this._cueTrim.connect(this._fade);
     this._mix = node(ctx.createGain()); this._mix.gain.value = .86;
     const highpass = node(ctx.createBiquadFilter()); highpass.type = 'highpass'; highpass.frequency.value = 32;
     this._mix.connect(highpass);
     if (ctx.createDynamicsCompressor) {
       const compressor = node(ctx.createDynamicsCompressor()); compressor.threshold.value = -13; compressor.knee.value = 12;
       compressor.ratio.value = 2.5; compressor.attack.value = .012; compressor.release.value = .19;
-      highpass.connect(compressor); compressor.connect(this._fade);
-    } else highpass.connect(this._fade);
+      highpass.connect(compressor); compressor.connect(this._cueTrim);
+    } else highpass.connect(this._cueTrim);
     const reverb = node(ctx.createConvolver()); reverb.buffer = this.assets.impulse; reverb.normalize = true;
     const reverbReturn = node(ctx.createGain()); reverbReturn.gain.value = .8; reverb.connect(reverbReturn); reverbReturn.connect(this._mix);
-    this._reverb = reverb;
+    this._reverb = reverb; this._reverbReturn = reverbReturn;
     const echoFilter = node(ctx.createBiquadFilter()); echoFilter.type = 'lowpass'; echoFilter.frequency.value = 2800;
     const left = node(ctx.createDelay(2)), right = node(ctx.createDelay(2));
     const feedbackL = node(ctx.createGain()), feedbackR = node(ctx.createGain()); feedbackL.gain.value = .24; feedbackR.gain.value = .24;
     echoFilter.connect(left); left.connect(feedbackL); feedbackL.connect(right); right.connect(feedbackR); feedbackR.connect(echoFilter);
     const leftPan = node(this._panner(-.55)), rightPan = node(this._panner(.55)); left.connect(leftPan); right.connect(rightPan);
-    leftPan.connect(this._mix); rightPan.connect(this._mix);
+    const echoReturn = node(ctx.createGain()); echoReturn.gain.value = 1;
+    leftPan.connect(echoReturn); rightPan.connect(echoReturn); echoReturn.connect(this._mix);
+    this._echoReturn = echoReturn;
     this._echo = echoFilter; this._delays = [left, right];
   }
 
@@ -599,10 +426,14 @@ export class ScorePlayer {
   _bus(instrument) {
     if (this._buses.has(instrument)) return this._buses.get(instrument);
     const profile = INSTRUMENT[instrument], bus = this.ctx.createGain(); bus.gain.value = 1;
-    bus.connect(this._mix); this._nodes.push(bus);
+    const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass';
+    filter.frequency.value = Math.min(this.ctx.sampleRate * .44, (profile.cutoff || 8200) * this._sceneMix.brightness);
+    if (filter.Q) filter.Q.value = .5;
+    bus.connect(filter); filter.connect(this._mix); this._nodes.push(bus, filter);
+    this._toneFilters.push({ filter, cutoff: profile.cutoff || 8200 });
     for (const [amount, destination] of [[profile.reverb, this._reverb], [profile.echo, this._echo]]) {
       if (!amount) continue;
-      const send = this.ctx.createGain(); send.gain.value = amount; bus.connect(send); send.connect(destination); this._nodes.push(send);
+      const send = this.ctx.createGain(); send.gain.value = amount; filter.connect(send); send.connect(destination); this._nodes.push(send);
     }
     this._buses.set(instrument, bus); return bus;
   }
@@ -612,13 +443,20 @@ export class ScorePlayer {
     const score = scoreEvents(cueId, { seed });
     this._clearVoices();
     const now = this.ctx.currentTime;
+    this._sceneMix = mixForCue(CUES.get(cueId));
+    this._cueTrim.gain.setValueAtTime(this._sceneMix.trim, now);
+    this._reverb.buffer = this._sceneMix.room === 'short' ? this.assets.roomImpulse : this.assets.impulse;
+    this._reverbReturn.gain.setValueAtTime(.8 * this._sceneMix.reverb, now);
+    this._echoReturn.gain.setValueAtTime(this._sceneMix.echo, now);
+    this._mix.gain.setValueAtTime(.86 * this._sceneMix.gain, now);
+    for (const { filter, cutoff } of this._toneFilters) filter.frequency.setValueAtTime(Math.min(this.ctx.sampleRate * .44, cutoff * this._sceneMix.brightness), now);
     this.currentCue = cueId; this._events = score.events; this._index = 0;
     this._beatSeconds = 60 / score.bpm; this.duration = score.beats * this._beatSeconds + TAIL_SECONDS;
     this.startedAt = now + .035; this._endsAt = this.startedAt + this.duration;
     this.playing = true; this.ended = false; this._stoppingAt = null; this._stopRequested = false;
     this.volume = clamp(Number.isFinite(volume) ? volume : 1, 0, 1.5);
     this.outputGain.gain.cancelScheduledValues(now); this.outputGain.gain.setValueAtTime(this.volume, now);
-    this._delays.forEach(delay => delay.delayTime.setValueAtTime(this._beatSeconds * .75, now));
+    this._delays.forEach((delay, index) => delay.delayTime.setValueAtTime(this._beatSeconds * (index ? .5 : .75), now));
     const fade = this._fade.gain;
     fade.cancelScheduledValues(now); fade.setValueAtTime(0, now);
     fade.linearRampToValueAtTime(1, this.startedAt + clamp(fadeIn, .025, 8));
@@ -651,26 +489,35 @@ export class ScorePlayer {
   _voice(event, start, duration) {
     const ctx = this.ctx, profile = INSTRUMENT[event.instrument];
     if (!profile) return;
-    const gain = ctx.createGain(), pan = this._panner(event.pan), sources = [], nodes = [gain, pan];
-    const sustained = ['pad', 'organ', 'bowed'].includes(event.instrument);
+    const gain = ctx.createGain(), pan = this._panner(event.pan * this._sceneMix.width), sources = [], nodes = [gain, pan];
+    const sustained = ['pad', 'organ', 'bowed', 'reed', 'analog'].includes(event.instrument);
     const percussionVoice = ['kick', 'snare', 'hat', 'brush', 'rim', 'shimmer'].includes(event.instrument);
     const end = Math.min(start + duration + profile.release, this._endsAt + .1);
     const peak = profile.gain * event.velocity;
     gain.gain.setValueAtTime(0, start);
     if (sustained) {
-      const attack = Math.min(duration * .3, event.instrument === 'organ' ? .06 : .62);
+      const attack = Math.min(duration * .3, { organ: .06, reed: .085, analog: .04 }[event.instrument] || .62);
       gain.gain.linearRampToValueAtTime(peak, start + attack);
       gain.gain.setValueAtTime(peak * .92, Math.max(start + attack, end - profile.release));
       gain.gain.linearRampToValueAtTime(0, end);
       const wave = waveFor(ctx, this.assets, event.instrument), frequency = midiHz(event.midi);
-      const count = event.instrument === 'organ' ? 1 : 2;
+      const count = ['organ', 'reed', 'analog'].includes(event.instrument) ? 1 : 2;
       for (let i = 0; i < count; i++) {
         const oscillator = ctx.createOscillator(); oscillator.setPeriodicWave(wave);
-        oscillator.frequency.setValueAtTime(frequency, start); oscillator.detune.value = count === 2 ? (i ? 3 : -3) : -.7;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        const detune = count === 2 ? (i ? 2.5 : -2.5) : -.7;
+        oscillator.detune.setValueAtTime(detune, start);
+        if (['reed', 'bowed', 'pad'].includes(event.instrument) && duration > .6) {
+          const period = event.instrument === 'reed' ? .13 : .9;
+          const depth = event.instrument === 'reed' ? 5 : 1.2;
+          for (let offset = .35, step = 0; offset < duration; offset += period, step++) {
+            oscillator.detune.linearRampToValueAtTime(detune + (step % 2 ? -depth : depth), start + offset);
+          }
+        }
         oscillator.connect(gain); sources.push(oscillator); nodes.push(oscillator);
       }
     } else {
-      const { buffer, rate } = sampleFor(ctx, this.assets, event.instrument, event.midi);
+      const { buffer, rate } = sampleFor(ctx, this.assets, event.instrument, event.midi, event.velocity);
       const source = ctx.createBufferSource(); source.buffer = buffer; source.playbackRate.setValueAtTime(rate, start);
       if (event.instrument === 'guitar' && source.detune) {
         source.detune.setValueAtTime(-5, start); source.detune.linearRampToValueAtTime(0, start + .07);
@@ -738,7 +585,7 @@ export class ScorePlayer {
     if (this._disposed) return;
     this._clearVoices(); this._events = [];
     for (const node of this._nodes) { try { node.disconnect(); } catch {} }
-    this._nodes = []; this._buses.clear(); this.playing = false; this.ended = true; this._disposed = true;
+    this._nodes = []; this._buses.clear(); this._toneFilters = []; this.playing = false; this.ended = true; this._disposed = true;
   }
 
   status() {

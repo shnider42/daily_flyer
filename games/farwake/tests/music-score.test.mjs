@@ -59,10 +59,10 @@ function audioContext({ sampleRate = 24000 } = {}) {
 }
 
 test('the score catalog has authored contrast and a full original theme', () => {
-  assert.equal(MUSIC_CUES.length, 37);
+  assert.equal(MUSIC_CUES.length, 43);
   assert.equal(new Set(MUSIC_CUES.map(cue => cue.id)).size, MUSIC_CUES.length);
   assert.deepEqual(new Set(MUSIC_CUES.map(cue => cue.family)), new Set(['theme', 'exploration', 'social', 'discovery', 'tension', 'combat', 'recovery', 'terror', 'cave', 'planet']));
-  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 11);
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 12);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'cave').length, 5);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'planet').length, 10);
   assert.ok(MUSIC_CUES.filter(cue => cue.family === 'exploration').length >= 3);
@@ -124,7 +124,7 @@ test('the renderer schedules a short window and skips missed notes after a stall
   assert.equal(player.playing, false); assert.equal(player.ended, true); assert.equal(player.status().activeVoices, 0);
 });
 
-test('all 37 complete pieces keep active notes and their releases within the voice budget', () => {
+test('all complete pieces keep active notes and their releases within the voice budget', () => {
   for (const { id, family } of MUSIC_CUES) {
     const ctx = audioContext(), player = new ScorePlayer(ctx, ctx.destination);
     player.play(id, { fadeIn: .3 });

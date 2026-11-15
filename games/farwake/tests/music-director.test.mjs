@@ -208,3 +208,75 @@ test('empty catalogs and invalid clocks fail quiet, without throwing', () => {
   assert.equal(d.update({}, NaN).cueId, null);
   d.requestTheme(); assert.equal(d.update({ scene: 'menu' }, 1).cueId, null);
 });
+
+test('any known cue can be auditioned in a paused menu, including danger pieces, without false gameplay danger', () => {
+  const d = make(), settings = { ...flight, paused: true, menuOpen: true };
+  assert.equal(d.requestPreview('does-not-exist'), false); assert.equal(d.previewRequested, false);
+  assert.equal(d.requestPreview('combat-2'), true);
+  const preview = d.update(settings, 0);
+  assert.equal(preview.cueId, 'combat-2'); assert.equal(preview.preview, true);
+  assert.equal(preview.previewCueId, 'combat-2'); assert.equal(preview.requestedCueId, null);
+  assert.equal(d.lastDanger, false);
+  assert.equal(d.update(settings, 20).token, preview.token, 'A combat audition is not mistaken for an expired battle cue.');
+  assert.equal(d.update({ ...planet, paused: false }, 21).token, preview.token);
+  assert.equal(d.update(planet, 28).token, preview.token, 'A location crossfade cannot interrupt an explicit listen.');
+  d.stopPreview(29);
+  assert.equal(d.update(settings, 29).previewCueId, null);
+  assert.equal(d.previewCueId, null);
+});
+
+test('actual danger interrupts an audition, queues it once, and a cancellation does not silence real combat', () => {
+  const d = make(); d.requestPreview('social-2'); const preview = d.update(flight, 0);
+  d.notify('combat', 1, 'real-shot'); const battle = d.update(flight, 1);
+  assert.equal(battle.preview, false); assert.equal(battle.mood, 'combat');
+  assert.equal(battle.requestedCueId, 'social-2'); assert.equal(d.previewRequested, true);
+  assert.equal(d.update(flight, 5).token, battle.token);
+  const resumed = d.update(flight, 16);
+  assert.equal(resumed.previewCueId, 'social-2'); assert.notEqual(resumed.token, preview.token);
+  d.notify('combat', 17, 'next-shot'); const renewed = d.update(flight, 17);
+  d.stopPreview(18);
+  assert.equal(d.update(flight, 18).token, renewed.token);
+  assert.equal(d.update(flight, 18).requestedCueId, null);
+  assert.equal(d.update(flight, 32).mood, 'recovery');
+});
+
+test('the latest audition replaces a pending choice and muted or hidden playback cannot start it', () => {
+  const d = make(); d.notify('combat', 0); d.requestPreview('planet-1'); d.update(flight, 0);
+  d.requestPreview('cave-2'); assert.equal(d.update(flight, 1).requestedCueId, 'cave-2');
+  assert.equal(d.update(flight, 20, { enabled: false }).cueId, null);
+  assert.equal(d.update({ ...flight, hidden: true }, 21).cueId, null);
+  const resumed = d.update(flight, 22);
+  assert.equal(resumed.previewCueId, 'cave-2'); assert.equal(d.previewRequested, false);
+});
+
+test('recovery auditions finish normally and real handover notices do not repeatedly restart recovery', () => {
+  const d = make(); d.requestPreview('recovery-1');
+  const preview = d.update(flight, 0);
+  assert.equal(d.update(flight, 10).token, preview.token);
+  assert.equal(d.update(flight, 23).cueId, null);
+  d.notify('recovery', 24, 'arrival');
+  const recovery = d.update(flight, 24); assert.equal(recovery.mood, 'recovery');
+  d.notify('recovery', 25, 'handover');
+  assert.equal(d.update(flight, 25).token, recovery.token, 'Arrival and the subsequent physical handover share one recovery phrase.');
+  d.notify('combat', 26, 'incoming'); assert.equal(d.update(flight, 26).mood, 'combat');
+});
+
+test('named place cues require the actual place and gain a six-second arrival transition', () => {
+  const contextual = [
+    { id: 'flight', family: 'exploration', durationSeconds: 90, tags: ['flight'] },
+    { id: 'cabin', family: 'exploration', durationSeconds: 90, tags: ['ship', 'cabin'] },
+    { id: 'field', family: 'exploration', durationSeconds: 90, tags: ['fieldwork'] },
+    { id: 'foreman', family: 'combat', durationSeconds: 90, tags: ['ground', 'fieldwork', 'foreman'] },
+    { id: 'ground', family: 'combat', durationSeconds: 90, tags: ['ground'] },
+  ];
+  const d = new MusicDirector({ cues: contextual });
+  assert.equal(d.update(flight, 0).cueId, 'flight');
+  const cabin = { scene: 'exploration', paletteKey: 'ship:cabin', musicPlace: 'cabin', tags: ['ship', 'cabin'] };
+  assert.equal(d.update(cabin, 1).cueId, 'flight');
+  assert.equal(d.update(cabin, 7).cueId, 'cabin');
+  const field = { scene: 'exploration', environment: 'planet', musicPlace: 'fieldwork', paletteKey: 'field', tags: ['ground', 'fieldwork'] };
+  const atSite = new MusicDirector({ cues: contextual }); assert.equal(atSite.update(field, 0).cueId, 'field');
+  assert.equal(atSite.update({ ...field, combat: true, tags: [...field.tags, 'foreman'] }, 1).cueId, 'foreman');
+  const outside = new MusicDirector({ cues: contextual });
+  assert.equal(outside.update({ ...planet, combat: true, tags: ['ground'] }, 0).cueId, 'ground');
+});

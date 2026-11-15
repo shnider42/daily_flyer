@@ -1,8 +1,29 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.23.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.24.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.24.0 — Music for the voyage
+
+Farwake now has **43 original, locally synthesized pieces**. The written notes, harmony, tempo and form of **The Long Way Home** remain intact, with a richer performance from the updated instrument bank.
+
+Open **Settings → Music & listening** to browse by situation, see each piece's length, and choose something to hear once. **Return to voyage music** resumes the adaptive score. A requested listen waits during real danger; an audition interrupted by danger is queued again. Browsing alone does not start playback.
+
+| New piece | Where it belongs |
+| --- | --- |
+| Lamps in the Cabin | Quiet time on a ship's crew deck, away from the helm. |
+| Under the Service Lights | Floodworks and the field expeditions. |
+| The Foreman Cycle | An active Foreman encounter inside its machine bay. |
+| Carry the Light | Relief after field rescue and the Foreman's shutdown. |
+| After Hours on Glimmer | Nearby nightlife and table venues in Voltage. |
+| Rain on the Transit Line | Glimmer's streets. |
+
+Keyboard and string sounds respond more clearly to note strength. Soft felt piano, warm mallets, a breathy reed and a rounded analog lead join the score. Cabins, machinery and close danger use a shorter room sound; travel, caves and the theme keep more space and echo. The new pieces are balanced against the existing calm, social and combat music.
+
+The score follows **your actual location and experience**. A teammate starting the Foreman elsewhere in Floodworks does not turn the workshop into a battle scene. Local repairs, a stopped machine and nearby rescue arrivals can change the music; repeated inspections do not repeatedly announce a discovery. Music remains personal in a shared galaxy.
+
+Music has its own **enable switch, volume and More quiet / Balanced / More music** setting. Quiet intervals leave effects and local ambience audible. Playback uses the game's local synthesizer, with no runtime music service or streamed soundtrack. **Hearth, world layouts, save formats and shared passports are unchanged.** See [music direction and implementation](docs/music-direction.md) for the full score catalog and technical notes.
 
 ## 0.23.0 — Floodworks and field careers
 

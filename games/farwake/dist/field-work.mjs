@@ -202,13 +202,24 @@ export const FieldWorkRules = {
       if (!tool || context.site.id !== 'floodworks-6' || args.objectId !== tool.objectId || action !== 'claim') return fail('This workshop cannot issue that tool.', 'tool');
       state.tools[tool.key] = true; evidence.push({ kind: 'tool', objectId: args.objectId, siteId: context.site.id });
     }
+    const newEvidenceKinds = [];
     for (const entry of evidence) {
       const receipt = validReceipt({ ...entry, siteId: context.site.id, objectId: entry.objectId || args.objectId, action, at: time(this) });
-      if (receipt && !state.contributions[receipt.id]) state.contributions[receipt.id] = receipt;
+      if (receipt && !state.contributions[receipt.id]) { state.contributions[receipt.id] = receipt; newEvidenceKinds.push(receipt.kind); }
     }
+    const firstArchiveRead = action === 'read' && !context.encounter.field?.archiveRead && draft.field?.archiveRead === true;
+    const firstHandover = action === 'handover' && newEvidenceKinds.some(kind => kind === 'rescue' || kind === 'aftercare');
     Object.assign(context.encounter, draft); this.state.fieldWork = state;
     this.state.explorationRecords[context.active.key] = context.encounter;
     if (result.geometryChanged) this._expeditionMap = null;
+    // These are facts from a completed physical action, not client-supplied
+    // musical commands. Verification taps and replayed receipts stay quiet.
+    if (result.geometryChanged || firstArchiveRead || firstHandover) this._event?.('field-work-action', {
+      siteId: context.site.id, siteKey: context.active.key, systemId: this.state.systemId,
+      captainId: actor(this), objectId: args.objectId, action, fieldKind: context.site.fieldKind,
+      geometryChanged: !!result.geometryChanged, foremanStopped: !!draft.field?.foreman?.disabled,
+      firstArchiveRead, firstHandover, evidenceKinds: newEvidenceKinds
+    });
     return { ...result, fieldWork: this.fieldWorkStatus(args.objectId) };
   }
 };

@@ -45,8 +45,13 @@ export class Soundscape{
   if(this.ctx&&this.ctx.state==='running')Promise.resolve(this.ctx.suspend()).catch(()=>{});
  }
  musicEvent(signal,now,key=null){if(signal)this.director.notify(signal,now,key);}
+ requestCue(cueId,now=this.musicNow){
+  if(!MUSIC_CUES.some(cue=>cue.id===cueId)||!this.musicEnabled()||this.musicFault)return false;
+  this.unlock();return this.director.requestPreview(cueId,now);
+ }
+ stopPreview(now=this.musicNow){this.director.stopPreview(now);}
  toggleTheme(start=null){
-  if(start===null)start=!(this.musicDecision?.theme||this.director.previewRequested);
+  if(start===null)start=!(this.musicDecision?.theme||this.director.previewCueId===THEME_ID);
   if(!start){this.director.stopTheme(this.musicNow);return false;}
   if(this.musicDecision?.theme)return true;
   this.unlock();this.director.requestTheme();return true;
@@ -88,7 +93,9 @@ export class Soundscape{
  }
  musicStatus(){
   const cue=MUSIC_CUES.find(value=>value.id===this.musicDecision?.cueId);
-  return {state:this.musicFault?'unavailable':this.ctx?.state||'locked',title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
+  return {state:this.musicFault?'unavailable':this.ctx?.state||'locked',cueId:cue?.id||null,title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,
+   preview:!!this.musicDecision?.previewCueId,previewCueId:this.musicDecision?.previewCueId||null,requestedCueId:this.director.previewCueId||null,
+   voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
  }
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){

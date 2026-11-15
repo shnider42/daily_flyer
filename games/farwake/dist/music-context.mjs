@@ -5,6 +5,7 @@
  */
 import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
 import { clearSidearmSight } from './combat.mjs';
+import { FOREMAN_BAY, isFieldSite } from './floodworks.mjs';
 const list = value => Array.isArray(value) ? value : [];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const text = value => typeof value === 'string' ? value : '';
@@ -17,7 +18,7 @@ const UTILITY_DIALOGS = new Set([
   'ship', 'save', 'passport', 'privacy', 'privacy-data', 'online', 'connect',
   'connecting', 'connection-error', 'new', 'captain', 'captain-setup',
   'test-gate', 'test-menu', 'test-controls', 'home', 'bunk', 'damage-overview',
-  'damage-section', 'crew-departure'
+  'damage-section', 'crew-departure', 'music', 'music-library'
 ]);
 const SOCIAL_SITE_KINDS = new Set(['social', 'market', 'clinic']);
 const SOCIAL_PEOPLE = new Set(['npc', 'mechanic', 'merchant', 'bartender', 'settler', 'contact']);
@@ -104,12 +105,33 @@ export function musicContext({
   const boardingId = mode === 'person' ? state.boarding?.id || null : null;
   const siteId = mode === 'person' ? state.exploration?.siteId || site?.id || null : null;
   const siteKey = mode === 'person' ? state.exploration?.encounter?.id || site?.key || null : null;
+  const siteRecordKey = mode === 'person' ? state.exploration?.key || null : null;
   const locationId = text(state.locationId) || text(body?.id);
   const contextKey = `${text(state.systemId)}|${siteId || locationId || ''}|${vesselId || ''}`;
   const visible = !!playing && !hidden;
   const paused = !!hidden || !!playing && !!dialogOpen && !network;
   const menuOpen = !!dialogOpen;
   const dialogue = !!dialogueActive || !!dialogOpen && !UTILITY_DIALOGS.has(dialogKind);
+  const cabin = mode === 'person' && ['ship', 'enemy'].includes(interior?.kind) && !state.stationView;
+  const fieldSite = mode === 'person' && !onVessel && isFieldSite(site) && same(site.id, siteId);
+  const field = fieldSite ? state.exploration?.encounter?.field : null;
+  const withinBay = personPosition && personPosition.x >= FOREMAN_BAY.x && personPosition.x < FOREMAN_BAY.x + FOREMAN_BAY.w
+    && personPosition.y >= FOREMAN_BAY.y && personPosition.y < FOREMAN_BAY.y + FOREMAN_BAY.h;
+  // The other crew may already have started the machine. Its shared phase is
+  // not a warning for a listener still in the workshop or archive.
+  const foremanActive = visible && fieldSite && site.fieldKind === 'floodworks' && withinBay
+    && finite(state.person?.health) > 0 && !state.person?.down && field?.drained === true
+    && field.foreman?.disabled === false && ['telegraph', 'sweep', 'recovery'].includes(field.foreman?.phase);
+  const nearbySafeSurvivorIds = field ? Object.values(field.survivors || {}).filter(survivor =>
+    survivor.status === 'safe' && distance(personPosition, point(survivor)) <= 180).map(survivor => survivor.id) : [];
+  const voltage = state.systemId === 'voltage';
+  const city = mode === 'person' && !onVessel && !site && voltage && body?.id === 'glimmer';
+  const nightlife = mode === 'person' && !onVessel && !site && voltage && list(surface?.entities).some(entity =>
+    !entity?.hidden && entity.type === 'gambling' &&
+    ['glimmer-night-market', 'voltage-after-shift'].includes(entity.data?.venueId) &&
+    same(entity.data?.homeLocationId, body?.id) &&
+    distance(personPosition, point(entity)) <= 180);
+  const musicPlace = cabin ? 'cabin' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
 
   // Ship damage uses the occupied vessel's own clock. Off-duty damage to a
   // parked personal ship must not change the music while the captain is ashore.
@@ -144,7 +166,7 @@ export function musicContext({
   const eva = contract?.assignment?.eva;
   const lowSuitAir = aboardContract && interior?.kind === 'eva' && eva?.active === true && eva.warned === true && finite(eva.oxygen, Infinity) <= 30;
   const boarding = mode === 'person' && ['ship', 'enemy'].includes(interior?.kind) && state.boarding?.phase === 'active';
-  const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding);
+  const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding || foremanActive);
   const emergency = visible && !!(alarm || medicalEmergency || lowSuitAir || aboardContract && contract.emergency === true);
   const tension = visible && !!(perceivedThreat || onVessel && state.cosmicWarning || observedCue?.revealed === true && observedCue.tag === 'tension');
 
@@ -152,22 +174,26 @@ export function musicContext({
     !entity?.hidden && entity?.life?.activity !== 'sleeping' &&
     (SOCIAL_PEOPLE.has(entity?.type) || entity?.data?.socialOnly === true) &&
     distance(personPosition, point(entity)) < 170);
-  const social = mode === 'person' && (SOCIAL_SITE_KINDS.has(site?.kind) ||
+  const social = nightlife || mode === 'person' && !city && (SOCIAL_SITE_KINDS.has(site?.kind) ||
     !interior && body?.kind === 'station' || !interior && peopleNearby);
   const scene = !playing ? 'menu' : observedCue?.tag === 'discovery' && observedCue.revealed === true ? 'discovery' : social ? 'social' : 'exploration';
   const culture = text(site?.culture) || text(body?.culture) || text(body?.faction) || text(game?.currentSystem?.faction) || 'frontier';
-  const locationKind = text(site?.style) || text(site?.kind) || (onVessel ? 'ship' : text(body?.kind)) || 'space';
+  const locationKind = cabin ? 'cabin' : text(site?.style) || text(site?.kind) || (onVessel ? 'ship' : text(body?.kind)) || 'space';
   const environment = mode === 'person' && !onVessel
     ? site?.kind === 'cave' || body?.biome === 'cave' ? 'cave'
       : ['planet', 'moon', 'asteroid'].includes(parentBody?.kind) ? 'planet' : null : null;
-  const paletteKey = `${culture}:${text(state.systemId) || 'hearth'}:${text(parentId)}:${locationKind}`;
+  const paletteKey = `${culture}:${text(state.systemId) || 'hearth'}:${text(parentId)}:${locationKind}${musicPlace ? ':' + musicPlace : ''}`;
   const tags = [...new Set([
-    scene, onVessel ? 'flight' : 'surface', onVessel ? 'ship' : 'ground',
+    scene, onVessel ? (cabin ? 'cabin' : 'flight') : 'surface', onVessel ? 'ship' : 'ground',
     locationKind, culture, text(parentBody?.culture), text(site?.atmosphere), environment,
     ...planetTags(parentBody, site), pursuit || groundPursuit ? 'pursuit' : null,
     occupiedHull?.maxHull >= 700 ? 'capital' : null, emergency ? 'emergency' : null,
     aboardContract && contract.navy ? 'navy' : null, boarding ? 'boarding' : null,
     site?.military ? 'infantry' : null,
+    fieldSite ? 'fieldwork' : null, fieldSite && site.fieldKind === 'floodworks' ? 'floodworks' : null,
+    fieldSite && site.atmosphere === 'machinery' ? 'machinery' : null, foremanActive ? 'foreman' : null,
+    fieldSite && Object.values(field?.survivors || {}).some(survivor => survivor.escortId === String(captainId) && survivor.status === 'following') ? 'rescue' : null,
+    city ? 'city' : null, city ? 'rain' : null, city || nightlife ? 'voltage' : null, nightlife ? 'nightlife' : null,
     social ? 'settlement' : 'solitude',
     ['conservatory', 'farm', 'park'].includes(locationKind) ? 'garden' : null,
     ['market', 'tavern', 'restaurant', 'farm'].includes(locationKind) ? 'whimsical' : null,
@@ -179,17 +205,17 @@ export function musicContext({
   const silence = !!hidden || visible && observedCue?.tag === 'silence' && observedCue.revealed === true;
   const scope = {
     captainId: String(captainId), vesselId: vesselId == null ? null : String(vesselId),
-    mode, boardingId, siteId, siteKey, systemId: state.systemId || null,
+    mode, boardingId, siteId, siteKey, siteRecordKey, systemId: state.systemId || null,
     contextKey, shipPosition, personPosition
   };
   return {
-    scene, paletteKey, culture, environment, biome: text(parentBody?.biome), bodyId: parentId || null, locationKind, locationId, contextKey, tags,
+    scene, paletteKey, culture, environment, biome: text(parentBody?.biome), bodyId: parentId || null, locationKind, locationId, contextKey, musicPlace, tags,
     playing: !!playing, hidden: !!hidden, now: finite(now), menuOpen, dialogue, paused,
     observedThreat, combat: observedThreat, pursuit: visible && !!(pursuit || groundPursuit), tension, emergency,
     terror: !!terrorKey, terrorKey, silence,
     safeNow: visible && !observedThreat && !tension && !emergency && !terrorKey,
     intensity: observedThreat ? .78 : emergency ? .62 : tension ? .32 : 0,
-    concealedActorIds, visibleActorIds, scope, ...scope
+    foremanActive: !!foremanActive, nearbySafeSurvivorIds, concealedActorIds, visibleActorIds, scope, ...scope
   };
 }
 
@@ -197,6 +223,7 @@ function eventInScene(event, scope) {
   if (event.systemId != null && scope.systemId != null && !same(event.systemId, scope.systemId)) return false;
   if (event.boardingId != null && !same(event.boardingId, scope.boardingId)) return false;
   if (event.siteId != null && !same(event.siteId, scope.siteId) && !same(event.siteId, scope.siteKey)) return false;
+  if (event.siteKey != null && !same(event.siteKey, scope.siteKey) && !same(event.siteKey, scope.siteRecordKey)) return false;
   return true;
 }
 
@@ -221,6 +248,20 @@ export function classifyMusicEvent(event, context = {}) {
   if (!localPerson && (unseen(event.targetId) || unseen(event.attackerId || event.actorId))) return null;
 
   switch (event.type) {
+    case 'field-work-action': {
+      if (scope.mode !== 'person' || context.musicPlace !== 'fieldwork' || !localPerson || event.siteId == null) return null;
+      if (event.action === 'handover' && event.firstHandover === true &&
+        list(event.evidenceKinds).some(kind => kind === 'rescue' || kind === 'aftercare')) return 'recovery';
+      if (event.action === 'release' && event.geometryChanged === true && event.foremanStopped === true) return 'recovery';
+      if (event.geometryChanged === true && ['bridge', 'cut', 'open'].includes(event.action) ||
+        event.action === 'read' && event.firstArchiveRead === true) return 'discovery';
+      return null;
+    }
+    case 'field-progress':
+      if (scope.mode !== 'person' || context.musicPlace !== 'fieldwork' || event.siteId == null) return null;
+      if (event.fieldKind === 'foreman') return context.foremanActive ? 'combat' : null;
+      if (event.fieldKind === 'rescue' && list(context.nearbySafeSurvivorIds).includes(event.survivorId)) return 'recovery';
+      return null;
     case 'hit':
     case 'damage':
       // A world hit's playerId can identify the owner of a parked ship. Only

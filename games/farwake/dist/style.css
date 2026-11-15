@@ -67,3 +67,23 @@
 .theme-listen{min-height:44px;touch-action:manipulation;}
 #settingsThemeButton{margin:12px 0;padding:10px 14px;}
 .welcome-utility-links{flex-wrap:wrap;}
+
+/* The score browser fits the existing ship-computer panels. */
+.music-settings-entry{padding:0 0 18px;border-bottom:1px solid #31485c}
+.music-settings-entry>p{font-size:.88rem;margin:.7rem 0 0}
+.music-settings-entry .audio-note{margin-top:.4rem}
+.music-library .section-note{margin-bottom:1rem}
+.music-listening-status{border-left:3px solid var(--cyan);background:#142b38;padding:12px 14px;font-size:.95rem;min-height:48px}
+.music-selectors{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);gap:14px}
+.music-select-label{display:grid;gap:.55rem;min-width:0;font-size:.93rem;color:#cbdbe0}
+.music-select-label select{width:100%;min-width:0;min-height:44px}
+.music-piece-count{display:block;margin:.65rem 0 0;font-size:.86rem;color:var(--muted)}
+.music-piece-detail{margin:1.2rem 0 .45rem;color:var(--amber);font-size:.88rem;font-variant-numeric:tabular-nums}
+.music-piece-description{margin:0 0 1rem;font-size:.95rem;min-height:3.2em}
+.music-listening-actions{display:flex;flex-wrap:wrap;gap:10px;padding-bottom:1.2rem;border-bottom:1px solid #31485c}
+.music-listening-actions>button{min-height:44px}
+.music-listening-controls output{display:block;margin-top:.35rem;color:var(--amber);font-size:.9rem;font-variant-numeric:tabular-nums}
+.music-listening-controls .setting-row select{min-width:0;max-width:43%}
+.music-library .audio-note{margin:1.2rem 0}
+.music-settings-back{min-height:44px}
+@media(max-width:520px){.music-selectors{grid-template-columns:minmax(0,1fr);gap:12px}.music-listening-actions>button{flex:1 1 auto}.music-piece-description{min-height:0}.music-listening-controls .setting-row{gap:12px}.music-listening-controls .setting-row select{max-width:43%;padding:.6rem .4rem}.music-listening-controls .setting-row label{max-width:58%}}
