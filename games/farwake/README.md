@@ -1,8 +1,39 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.22.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.23.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.23.0 — Floodworks and field careers
+
+**Floodworks 6** is an authored expedition on **Orchard Nine, Brindle**. Its intake workshop, service gallery, pump room, Foreman machine bay, recovery ward and maintenance archive have distinct layouts and connected routes. Find it from **Menu → Field expeditions & work**, **Log → Missions**, or the Floodworks entry on the galaxy chart. The notebook marks the next physical task on the chart or local walking map.
+
+Each captain can collect a reusable **field cutter** and **portable power bridge** from the intake workshop. Cut marked service seams, bridge an isolated pump supply, drain a crossing, open the archive, and unlock a permanent return shortcut. Changes persist in the shared site; personal tool ownership remains with the captain who collected the equipment. Other crews can inspect and verify completed repairs for their own assignments.
+
+The **Foreman** is a machinery boss with a visible amber warning lane, a moving sweep, and a blue recovery window. Its two interlocks must be physically released during recovery. Each interlock stays latched through a retreat, so one captain can solve the encounter across multiple cycles; a crew can cover both controls. The machine stops after both interlocks are latched and the recovery ward opens. An abandoned unfinished attempt resets its live attack cycle while preserving tools, routes, interlocks and rescue progress. In solo play, close an unsafe console panel to let the paused simulation advance to the next recovery window.
+
+**Mara and Ivo** need assessment, stabilization and a walking escort to the intake aid point. Survivors use the actual open corridors, stop if their escort disconnects or becomes incapacitated, and do not teleport to a ship. The receiving team records handover after arrival. A later responder can perform and record follow-up care at the aid point, without receiving credit for another captain's evacuation.
+
+Two smaller sites reuse the field tools in other settings: **West Condenser Annex on Serein, Meridian**, and **Tide Library Annex on Lilt, Vesper**. The condenser has a blocked service route and an isolated supply; the library has a flooded reading room and a third survivor, Lin.
+
+### Engineering and rescue qualifications
+
+The field notebook offers three staged assignments for each career. Accept and debrief at a physical field desk or aid point. Verified work performed before accepting an assignment still counts; another captain's actions do not automatically complete your checklist. Payment is issued once per captain and remains settled after save, reconnect and server restart.
+
+| Career | Assignment | Payment | Qualification |
+| --- | --- | ---: | --- |
+| Engineering | Make the service passage safe | 145 CR | Field technician |
+| Engineering | Restore the Serein condenser annex | 225 CR | Systems technician |
+| Engineering | Sign off the Floodworks machinery | 290 CR | Commissioning specialist |
+| Rescue | Bring Mara to the aid point | 150 CR | Field responder |
+| Rescue | Clear Ivo's way out | 220 CR | Rescue technician |
+| Rescue | Relief at the Lilt archive annex | 275 CR | Relief specialist |
+
+### Dipper lander
+
+The **Dipper** is a six-berth field-support hull with its own broad landing frame, aft decontamination entry and separate equipment bay. It costs **2,240 CR and 30 ore**, and becomes available with **Fold Drive I** and the **first-fold story milestone**. Its native equipment repairs 12 hull integrity for 20 charge; medical treatment restores 18 vitality to conscious captains and 12 to living crew or rescued passengers for 15 charge, with a five-second treatment cooldown. Damage-control work is 25% faster. Modest weapons and deliberate handling make it a support choice; its equipment does not provide remote immunity to expedition hazards.
+
+**Hearth is preserved.** Regression snapshots compare the existing system, outdoor tiles and entities, exploration content and interiors against 0.22.0. Starter choices and Hearth traffic selection remain unchanged. Existing voyages and shared passports continue without a reset. This release also retains Voltage and its table games. The shared world-content revision is **3**; refresh all players' clients before reconnecting.
 
 ## 0.22.0 — Voltage after hours
 

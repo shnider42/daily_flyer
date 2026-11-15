@@ -38,6 +38,7 @@ import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
 import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules, militaryPortAccess } from './profession-rules.mjs';
+import { FieldWorkRules } from './field-work.mjs';
 import { MilitaryCareerRules } from './military-career.mjs';
 import { MilitaryRecoveryRules } from './military-recovery.mjs';
 import { militaryGroundSite } from './military-sites.mjs';
@@ -234,6 +235,7 @@ export class Game {
     }
     this.initializeNarrative();
     this.initializeProfessions();
+    this.initializeFieldWork();
     this.initializeMilitaryCareer();
     this.initializeMilitaryRecovery();
     if(this.state.interior?.location?.site?.military)this._restoreExploration();
@@ -2219,6 +2221,6 @@ export class Game {
 }
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
-Object.assign(Game.prototype,GunneryRules,GamblingRules);
+Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules);
 Object.assign(Game.prototype,MilitaryRecoveryRules);
 export default Game;

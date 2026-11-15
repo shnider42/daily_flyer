@@ -33,6 +33,7 @@ export const SHIP_VISUALS={
  tern:{length:78,width:50,thrusters:[[-37,-15],[-37,15]]},
  quill:{length:110,width:58,thrusters:[[-53,-13],[-50,0],[-53,13]]},
  mender:{length:126,width:76,thrusters:[[-61,-8],[-61,8]]},
+ dipper:{length:112,width:92,thrusters:[[-53,-24],[-53,24]]},
  bulwark:{length:166,width:100,thrusters:[[-80,-22],[-78,0],[-80,22]]},
  cairn:{length:188,width:136,thrusters:[[-91,-34],[-91,-11],[-91,11],[-91,34]]},
  lark:{length:92,width:58,thrusters:[[-44,-18],[-44,18]]},
@@ -148,6 +149,23 @@ function hullSprite(shipClass,color,damage=0){
   for(const side of[-1,1]){const y=side<0?-31:19;p('#afc6b4',-20,y,35,12);p('#598d88',-17,y+2,29,8);for(let x=-14;x<12;x+=9)p('#b8d8cb',x,y+3,5,5);p('#7fb1a1',-29,side<0?-27:18,5,9);}
   p('#1c3b4b',31,-8,19,16);p('#94ced0',34,-6,12,12);p('#d6e9d6',35,-6,9,2);p('#94b9ad',-13,-11,23,22);p('#dae1c7',-6,-8,8,16);p('#dae1c7',-10,-4,16,8);p('#6c9b8b',-6,-4,8,8);
   p('#657f88',-50,-9,16,18);p('#273f4b',-63,-11,8,7);p('#273f4b',-63,4,8,7);for(const y of[-35,31])p('#d3c695',-8,y,15,3);
+ }else if(shipClass==='dipper'){
+  // The broad landing frame, aft pressure lock and starboard field bay follow
+  // the same outline and room arrangement as the walkable deck.
+  polygon(ctx,[[-56,-28],[-44,-43],[-17,-46],[24,-46],[45,-31],[56,-16],[56,16],[45,31],[24,46],[-17,46],[-44,43],[-56,28]],dark);
+  polygon(ctx,[[-50,-25],[-40,-37],[-15,-40],[21,-40],[40,-27],[50,-13],[50,13],[40,27],[21,40],[-15,40],[-40,37],[-50,25]],shade);
+  polygon(ctx,[[-44,-24],[-34,-33],[19,-34],[37,-22],[43,-10],[43,10],[37,22],[19,34],[-34,33],[-44,24]],color);
+  pixelLine(ctx,-32,-33,19,-34,light,2);pixelLine(ctx,20,-34,37,-22,light,2);
+  // Wide four-point landing shoes remain visible around the service cabin.
+  for(const [x,y] of [[-37,-39],[23,-39],[-37,30],[23,30]]){p('#263d47',x-3,y-2,16,10);p('#b9ae87',x,y,10,6);p('#dfcea0',x+1,y,8,2);p('#6e6959',x+2,y+4,6,2);}
+  p('#56777e',18,-19,25,38);p('#1c3b4b',25,-14,19,28);p('#8ec6c8',28,-11,12,22);p('#d4e5d0',29,-11,9,2);p('#4f828b',29,3,11,2);
+  // Port berth windows and sealed equipment hatches distinguish the two wings.
+  p('#3c5962',-28,-30,43,15);for(let x=-24;x<12;x+=12){p('#8db9b7',x,-28,7,6);p('#cbd8c0',x,-28,6,1);p('#263e48',x,-20,7,2);}
+  p('#87998b',-27,15,42,16);p('#c0c7a6',-24,15,36,2);for(let x=-23;x<12;x+=12){p('#596e69',x,21,8,7);p('#d6b778',x+3,21,2,6);}
+  p('#6f8d91',-28,-12,40,24);p('#aebfb1',-25,-12,34,3);p('#42616b',-20,-6,24,12);p('#91b8a5',-18,-4,8,8);p('#c7d4af',-7,-4,9,8);
+  // The central aft hatch is protected between the paired drives.
+  p('#223d48',-52,-13,19,26);p('#91b6aa',-49,-10,14,20);p('#cbdcc2',-48,-10,12,2);p('#486d6c',-46,-6,8,12);p('#dcc28c',-54,-8,4,16);p('#536f72',-55,-6,2,12);
+  for(const y of [-28,20]){p('#183440',-56,y,9,8);p('#96aaa0',-47,y+1,7,6);}
  }else if(shipClass==='bulwark'){
   // Armored shoulders protect a central magazine and three exposed pulse barrels.
   polygon(ctx,[[-83,-24],[-64,-50],[22,-50],[70,-30],[83,-14],[83,14],[70,30],[22,50],[-64,50],[-83,24]],dark);

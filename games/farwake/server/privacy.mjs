@@ -11,7 +11,9 @@ const credentialKeys = new Set(['token', 'tokenhash', 'accesstoken', 'refreshtok
 const credentialField = key => credentialKeys.has(String(key).replace(/[^a-z0-9]/gi, '').toLowerCase());
 
 /** Preserve a person's own game records without copying credential material or
- * another human's actor details embedded in a shared boarding encounter. */
+ * another human's actor details embedded in a shared boarding encounter. Site
+ * locations can also carry shared rescue state, including in command results;
+ * export the captain's links to that state through identityLinks instead. */
 function safeCopy(value, captainId) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object') return value;
@@ -23,7 +25,7 @@ function safeCopy(value, captainId) {
   if (value.human === true && (value.captainId || value.id) !== captainId) {
     return { human: true, captainId: value.captainId || value.id, detailsExcluded: 'Another captain’s actor details.' };
   }
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !credentialField(key) && !['__proto__', 'prototype', 'constructor'].includes(key)).map(([key, item]) => [key, safeCopy(item, captainId)]));
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !credentialField(key) && !['__proto__', 'prototype', 'constructor'].includes(key) && !(key === 'field' && value.kind === 'site')).map(([key, item]) => [key, safeCopy(item, captainId)]));
 }
 function pick(value, fields, captainId) {
   return Object.fromEntries(fields.filter(key => own(value, key)).map(key => [key, safeCopy(value[key], captainId)]));
@@ -44,7 +46,7 @@ function redactCredentialValues(value, values) {
 }
 
 const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect', 'launchStatus', 'launchReady'];
-const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits', 'gamblingSerial', 'gamblingHistory'];
+const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'fieldWork', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits', 'gamblingSerial', 'gamblingHistory'];
 const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView', 'gamblingSession', 'gamblingView'];
 
 /** Network-address counters are not a visitor log. Expired entries are removed
@@ -78,9 +80,24 @@ export function authenticateExport(source, passport) {
   return captain?.id === passport.captainId && verifySecret(passport.token, captain.tokenHash) ? captain : null;
 }
 
+/** Field tools, earned qualifications and receipts belong to one captain. Copy
+ * their stored values without recalculating progress or carrying shared actors. */
+function fieldWorkData(value, captainId) {
+  if (!object(value)) return safeCopy(value, captainId);
+  const data = pick(value, ['version'], captainId);
+  if (own(value, 'tools')) data.tools = pick(value.tools, ['cutter', 'powerBridge'], captainId);
+  if (own(value, 'active')) data.active = value.active ? pick(value.active, ['assignmentId', 'startedAt'], captainId) : null;
+  for (const [key, fields] of [
+    ['completed', ['assignmentId', 'careerId', 'paid', 'at']],
+    ['contributions', ['id', 'siteId', 'objectId', 'action', 'kind', 'at']],
+  ]) if (own(value, key)) data[key] = safeCopy(Object.fromEntries(entries(value[key]).map(([id, record]) => [id, pick(record, fields, captainId)])), captainId);
+  return data;
+}
+
 function gameData(captain) {
   const state = captain.game?.state || captain.game || {}, id = captain.id;
   const game = pick(state, GAME_FIELDS, id);
+  if (own(state, 'fieldWork')) game.fieldWork = fieldWorkData(state.fieldWork, id);
   if (state.gamblingSession || state.gamblingView || state.gamblingHistory?.length) Object.assign(game, publicGamblingAccount(state));
   if (own(state, 'boarding')) game.boarding = state.boarding ? pick(state.boarding, ['id', 'kind', 'phase', 'vesselId', 'originVesselId', 'targetId', 'leaderId', 'systemId', 'time', 'combatTime', 'outcome'], id) : null;
   if (own(state, 'exploration')) game.exploration = state.exploration ? pick(state.exploration, ['key', 'bodyId', 'siteId', 'returnPosition'], id) : null;
@@ -160,7 +177,7 @@ export function createPrivacyExport(source, captain, { sourceKind = 'durable-sna
     scope: { kind: 'farwake-shared-captain', realmCode, captainId: id, source: sourceKind, durableVersion: version, isRealmOwner: source.ownerId === id },
     manifest: {
       description: 'Your selected shared captain’s records and their links in shared game state. This is a privacy export, not a passport or a restorable realm backup.',
-      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Your departure readiness and participation, with the shared ship choice when applicable', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
+      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Your field tools, current assignment, completed qualifications and personal contribution receipts', 'Your departure readiness and participation, with the shared ship choice when applicable', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
       source: sourceKind === 'live-authority' ? 'Current authority memory, which can include changes newer than the last durable save. Exporting does not save, attach, or advance the captain.' : 'The last accepted durable realm snapshot. No game session was opened to read it.',
       counts,
       unrecognizedGameFields: personal.unrecognizedFields,

@@ -3,6 +3,7 @@ import { generateSurface, isWalkable } from './surface.mjs';
 import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteReward, stepSiteEncounter, resetSiteBoss } from './exploration.mjs';
 import { canSeeConcealedActor } from './site-visibility.mjs';
 import { militarySiteLocation } from './military-sites.mjs';
+import { fieldSurfaceView } from './floodworks.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -21,6 +22,7 @@ export const ExpeditionRules={
     }
     const key=context.key;
     const encounter=createSiteState(location.site,this.state.explorationRecords[key]||active.encounter);
+    if(encounter.field)location.field=encounter.field;
     if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     this.state.explorationRecords[key]=encounter;
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),back=active.returnPosition;
@@ -31,9 +33,11 @@ export const ExpeditionRules={
   },
   _expeditionSurface(){
     if(!this.state.exploration||this.state.interior?.kind!=='site')return null;
-    const location=this.state.interior.location,key=`${this.state.exploration.key}:${!!location.evacuated}`;
+    const location=this.state.interior.location,encounter=this.state.exploration.encounter;
+    if(encounter.field)location.field=encounter.field;
+    const key=`${this.state.exploration.key}:${!!location.evacuated}:${encounter.field?.revision||0}`;
     if(this._expeditionMap?.key!==key)this._expeditionMap={key,value:generateSurface(location,this.state.seed,this.state.flags)};
-    return this._expeditionMap.value;
+    return fieldSurfaceView(this._expeditionMap.value,encounter);
   },
   enterSite(siteId){
     if(this.state.mode!=='person'||this.state.interior||this.state.person.health<=0)return this._fail('Reach an entrance on foot first.','mode');
@@ -45,6 +49,7 @@ export const ExpeditionRules={
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),entrance=outdoor.entities.find(entity=>entity.type==='siteEntrance'&&entity.data?.siteId===siteId);
     if(!entrance||range(entrance,this.state.person)>46)return this._fail('Walk to the entrance before going inside.','distance');
     const key=context.key,encounter=this._sharedWorld&&this.state.explorationRecords[key]?this.state.explorationRecords[key]:createSiteState(location.site,this.state.explorationRecords[key]);
+    if(encounter.field)location.field=encounter.field;
     if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     if(!this._sharedWorld)resetSiteBoss(encounter);
     encounter.visited++;

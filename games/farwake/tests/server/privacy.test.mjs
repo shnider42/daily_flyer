@@ -100,6 +100,58 @@ test('export covers own stored records and shared associations without credentia
   assert.deepEqual(source, before, 'Projection must not mutate any source record.');
 });
 
+test('field-work export preserves personal qualifications and receipts without copying shared rescue participants', () => {
+  const source = snapshot(), captain = source.captains[A], otherRescuer = 'captain_' + 'c'.repeat(24);
+  const siteKey = 'orchard:site:floodworks-6', receiptId = 'floodworks-6:service-panel:cut:cut', aftercareId = 'floodworks-6:casualty-mara:handover:aftercare';
+  const personal = {
+    version: 1, tools: { cutter: true, powerBridge: false },
+    active: { assignmentId: 'engineering-condenser', startedAt: 130 },
+    completed: { 'engineering-safe-access': { assignmentId: 'engineering-safe-access', careerId: 'engineering', paid: 145, at: 125 } },
+    contributions: {
+      [receiptId]: { id: receiptId, siteId: 'floodworks-6', objectId: 'service-panel', action: 'cut', kind: 'cut', at: 110 },
+      [aftercareId]: { id: aftercareId, siteId: 'floodworks-6', objectId: 'casualty-mara', action: 'handover', kind: 'aftercare', at: 120 },
+    },
+  };
+  const sharedField = {
+    version: 1, revision: 5, serviceCut: true,
+    foreman: { phase: 'shutdown', participants: [A, otherRescuer], hitIds: [otherRescuer] },
+    survivors: { mara: { id: 'mara', status: 'safe', escortId: otherRescuer, stabilizers: [A, otherRescuer], escorts: [otherRescuer], aftercare: [A, otherRescuer], travel: { [A]: 42, [otherRescuer]: 900 }, privateDetail: privateOther } },
+  };
+  captain.game.fieldWork = copy(personal);
+  // Keep the private projection explicit even if a historical record retained
+  // extra shared fields; ordinary stored achievements must stay unchanged.
+  captain.game.fieldWork.shared = sharedField;
+  captain.game.fieldWork.tools.borrowedFrom = otherRescuer;
+  captain.game.fieldWork.active.escortId = otherRescuer;
+  captain.game.fieldWork.completed['engineering-safe-access'].participants = [A, otherRescuer];
+  captain.game.fieldWork.contributions[receiptId].participants = [A, otherRescuer];
+  const location = { id: siteKey, kind: 'site', parentId: 'orchard', siteId: 'floodworks-6', site: { id: 'floodworks-6', name: 'Floodworks 6' }, field: sharedField };
+  captain.game.interior = { kind: 'site', location };
+  captain.game.exploration = { key: siteKey, bodyId: 'orchard', siteId: 'floodworks-6', returnPosition: { x: 10, y: 20 }, encounter: { field: sharedField } };
+  captain.game.explorationRecords = { [siteKey]: { field: sharedField } };
+  source.sites[siteKey] = { field: sharedField };
+  captain.recentCommands.push({ id: 'enter-floodworks', result: { ok: true, body: location } });
+  captain.game.futureUnclassifiedField = { privateDetail: privateOther };
+  const before = copy(source);
+
+  for (const live of [false, true]) {
+    const selected = live ? { ...captain, game: { state: captain.game } } : captain;
+    const authority = live ? { ...source, id: realmCode, captains: new Map([[A, selected], [B, source.captains[B]]]) } : source;
+    const output = createPrivacyExport(authority, selected, { sourceKind: live ? 'live-authority' : 'durable-snapshot' });
+    assert.deepEqual(output.captain.game.fieldWork, personal, 'Own earned pay, tools, active work and exact evidence kinds remain present.');
+    assert.deepEqual(output.manifest.unrecognizedGameFields, ['futureUnclassifiedField'], 'New fields still require an explicit export classification.');
+    assert.equal(output.captain.game.interior.location.id, siteKey);
+    assert.equal(output.captain.game.interior.location.field, undefined);
+    assert.equal(output.captain.game.exploration.encounter, undefined);
+    assert.equal(output.captain.recentCommands.at(-1).result.body.field, undefined, 'Retained site-entry results cannot bypass the shared-state exclusion.');
+    assert.ok(output.sharedContributions.keyedRecords.some(record => record.path.includes(siteKey) && record.path.includes('travel') && record.path.at(-1) === A && record.value === 42));
+    assert.ok(output.sharedContributions.references.some(record => record.path.includes(siteKey) && record.path.includes('aftercare') && record.value === A));
+    const serialized = JSON.stringify(output);
+    for (const excluded of [otherRescuer, privateOther, tokenA, secretHash(tokenA)]) assert.ok(!serialized.includes(excluded));
+  }
+  assert.deepEqual(source, before, 'Neither a live nor a durable projection changes personal or shared records.');
+});
+
 test('unloaded captain export is read-only and does not start, advance, or save a realm', async t => {
   const f = await serverFixture(t), before = copy(f.persistence.snapshot);
   const result = await f.request({ passport: passportA, captainId: B, userId: B });

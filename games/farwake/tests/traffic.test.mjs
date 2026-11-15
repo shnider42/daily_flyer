@@ -9,11 +9,13 @@ import { WorldPresentation } from '../dist/world-presentation.mjs';
 const clone = value => JSON.parse(JSON.stringify(value));
 const close = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} differs from ${b}`);
 const system = {id:'working-lanes', faction:'freewake', danger:1, gx:0, gy:0};
+// Current ports carry their authored type; untyped released charts are covered
+// separately below and by the independent 900-system compatibility fixture.
 const bodies = [
-  {id:'hub',name:'City Port',kind:'station',portType:'hub',x:0,y:0,radius:90},
-  {id:'small',name:'Small Dock',kind:'station',portType:'outpost',x:1100,y:650,radius:70},
-  {id:'yard',name:'Fleet Yard',kind:'station',portType:'military',x:-800,y:750,radius:85},
-  {id:'works',name:'Ore Exchange',kind:'station',portType:'industrial',x:600,y:-1100,radius:80}
+  {id:'hub',name:'City Port',kind:'station',stationTypeId:'transit-hub',portType:'hub',x:0,y:0,radius:90},
+  {id:'small',name:'Small Dock',kind:'station',stationTypeId:'frontier-triangle',portType:'outpost',x:1100,y:650,radius:70},
+  {id:'yard',name:'Fleet Yard',kind:'station',stationTypeId:'defense-star',portType:'military',x:-800,y:750,radius:85},
+  {id:'works',name:'Ore Exchange',kind:'station',stationTypeId:'refinery-cross',portType:'industrial',x:600,y:-1100,radius:80}
 ];
 const make = (seed='working-lanes') => createSystemTraffic({seed,system,bodies,count:22});
 const poses = traffic => traffic.map(({id,x,y,vx,vy,angle,angularVelocity,trafficStatus,destinationId}) => ({id,x,y,vx,vy,angle,angularVelocity,trafficStatus,destinationId}));
@@ -27,6 +29,18 @@ test('every obtainable hull can be seen in scheduled traffic without unlocking i
   }
   assert.deepEqual([...seen].sort(),SHIP_CLASSES.map(ship=>ship.id).sort());
   assert.equal(new Game('working-lanes').state.fleet.owned.length,1,'sightings do not add hulls to the player fleet');
+});
+
+test('untyped released port inputs retain the complete pre-expansion scheduled hull roster', () => {
+  const legacyBodies = bodies.map(body => { const legacy = {...body}; delete legacy.stationTypeId; return legacy; });
+  const seen = new Set();
+  for (let seed = 0; seed < 60; seed++) {
+    const traffic = createSystemTraffic({seed:`all-hulls-${seed}`,system,bodies:legacyBodies,count:22});
+    assert.equal(traffic.length,22);
+    for (const ship of traffic) seen.add(ship.classId);
+  }
+  assert.equal(seen.has('dipper'),false,'Legacy chart replay does not insert the new field lander into its weighted stream.');
+  assert.deepEqual([...seen].sort(),SHIP_CLASSES.filter(ship=>ship.id!=='dipper').map(ship=>ship.id).sort());
 });
 
 test('large scheduled ships never receive a small docking field as either endpoint', () => {

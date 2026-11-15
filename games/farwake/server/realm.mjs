@@ -13,6 +13,7 @@ import { MilitaryRecoveryAuthority } from './military-recovery.mjs';
 import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
 import { explorationLocation, createSiteState, stepSiteEncounter, isBellwether, resetSiteBoss } from '../dist/exploration.mjs';
 import { militarySiteLocation } from '../dist/military-sites.mjs';
+import { fieldSurfaceView } from '../dist/floodworks.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 import { rescueOccupants, rescuedBerthCount, normalizeRescueShip } from '../dist/rescue-rules.mjs';
 import { ensureDamageControl, safeCabinPoint, relocateHullOccupants, DAMAGE_CONTROL_RULES } from '../dist/interior-damage.mjs';
@@ -413,7 +414,7 @@ export class Realm extends BoardingAuthority {
   }
   _resetAbandonedSite(key) {
     const encounter=key&&this.sites[key];
-    if(!encounter?.monsters?.some(isBellwether))return false;
+    if(!encounter?.monsters?.some(isBellwether)&&!encounter?.field?.foreman)return false;
     if([...this.captains.values()].some(c=>c.session&&c.game.state.exploration?.key===key&&c.game.state.person.health>0&&!c.game.state.person.down))return false;
     const changed=resetSiteBoss(encounter);
     // A disconnected client must not replay an earlier attempt's scream when
@@ -431,14 +432,14 @@ export class Realm extends BoardingAuthority {
     captain.game.state.explorationRecords=this.sites;
     if(!active)return;
     const encounter=this._prepareExploration(captain,active.bodyId,active.siteId);
-    if(encounter)active.encounter=encounter;
+    if(encounter){active.encounter=encounter;if(encounter.field&&captain.game.state.interior?.kind==='site')captain.game.state.interior.location.field=encounter.field;}
   }
   _stepExplorations(captains,dt) {
     const groups=new Map();
     for(const captain of captains){const active=captain.game.state.exploration;if(!active)continue;if(!groups.has(active.key))groups.set(active.key,[]);groups.get(active.key).push(captain);}
     for(const [key,crew] of groups){
       const leader=crew[0],encounter=leader.game.state.exploration.encounter,surface=this._surface(leader);
-      const boss=encounter.monsters.some(isBellwether),military=leader.game.state.interior?.location?.site?.military,participants=boss||military?crew.filter(c=>c.session):crew;
+      const boss=encounter.monsters.some(isBellwether)||!!encounter.field?.foreman,military=leader.game.state.interior?.location?.site?.military,participants=boss||military||encounter.field?crew.filter(c=>c.session):crew;
       const events=stepSiteEncounter(encounter,participants.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
       for(const captain of crew){
         const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>event.type!=='monster-revealed'));
@@ -717,15 +718,17 @@ export class Realm extends BoardingAuthority {
   }
   _surface(captain, time = this._npcTime()) {
     const location = this._location(captain); if (!location) return null;
+    const encounter=captain.game.state.exploration?.encounter;
+    if(encounter?.field&&captain.game.state.interior?.kind==='site')location.field=encounter.field;
     // A service ship's company moves on its authoritative watch clock. Their
     // positions are projected below; walking sailors must not rebuild a large
     // capital-ship floor plan on every simulation tick.
     const crewKey = (location.crew || []).map(member => member.serviceCrew ? { id: member.id, species: member.species, alive: !member.dead && member.status !== 'dead' && member.health > 0 } : member);
-    const key = `${location.id}:${location.classId || ''}:${location.dockedAt || ''}:${!!location.evacuated}:${JSON.stringify(crewKey)}:${JSON.stringify(location.guests || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
+    const key = `${location.id}:${location.classId || ''}:${location.dockedAt || ''}:${!!location.evacuated}:${location.field?.revision||0}:${JSON.stringify(crewKey)}:${JSON.stringify(location.guests || [])}:${JSON.stringify(location.bunkAssignments || {})}`;
     if (captain.surfaceCache?.key !== key) captain.surfaceCache = { key, value: generateSurface(location, this.seed, captain.game.state.flags) };
     const surface = updateNpcLife(captain.surfaceCache.value, time, { holds: this._npcHoldsFor(captain, time) });
     syncNavyCrewSurface(surface, location.crew || []);
-    return surface;
+    return fieldSurfaceView(surface,encounter);
   }
   _ensurePersonPosition(captain, reset = false) {
     const surface = this._surface(captain); if (!surface) return;
@@ -1055,6 +1058,12 @@ export class Realm extends BoardingAuthority {
     }
     if (name === 'exitSite') {const result=game.exitSite();if(result.ok)c.surfaceCache=null;return result;}
     if (name === 'siteAction') return game.siteAction(a.entityId,a.action,a.optionId);
+    if (name === 'fieldWorkAction') {
+      this._bindExploration(c);
+      const result=game.fieldWorkAction(a);
+      if(result.ok)c.surfaceCache=null;
+      return result;
+    }
     if (name === 'medicalFromStation') return this._crewCommand(c, 'crewAction', { action: 'heal' });
     if (name === 'repairFromStation') return this._crewCommand(c, 'crewAction', { action: 'repair' });
     if (name === 'setCrewAccess' || name === 'boardShip' || name === 'takeStation' || name === 'leaveCrew' || name === 'returnToShip' || name === 'crewAction') return this._crewCommand(c, name, a);

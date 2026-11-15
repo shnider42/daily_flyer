@@ -6,6 +6,7 @@ import { planetPlaces } from './planet-content.mjs';
 import { socialPlaces, isPreflightBody } from './social-world.mjs';
 import { SPECIES_PLANET_PLACES } from './species-content.mjs';
 import { militaryGroundSites } from './military-sites.mjs';
+import { fieldSites, isFieldSite, normalizeFieldState, stepFieldEncounter, resetFieldAttempt } from './floodworks.mjs';
 const TILE=24, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
 const hash=value=>{let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -37,7 +38,7 @@ export function explorationSites(body={},seed='farwake'){
   {id:'shelter',name:ice?'Unmarked Ice Shelter':barren?'Survey Shelter 04':'Wayfarer’s Hut',kind:ice?'igloo':'shelter',tileX:30+(h%8),tileY:60,empty:true,summary:ice?'One small dome rises from the snow. No footprints approach it.':'A closed shelter stands far from the landing beacon.',story:'Nothing moves in the room. The sound that brought you here stops as soon as the door closes.',records:[{id:'shelter-note',name:'A folded note',x:18,y:9,text:['If you are the next person to sleep here, please tell me what you dreamed. There is no name.','I left a light in every window. From outside, only one was burning.','The heater is cold. You can still hear it cooling.'][h%3]}]},
   ...(!barren?[{id:'field-relay',name:ice?'Thawline Relay':'Outlying Field Relay',kind:'pump',tileX:87,tileY:55,summary:'A maintenance beacon repeats a low-priority fault.',story:`This small field station once kept the outer routes of ${world} supplied.`,choices:[{id:'relay',name:'Field relay controller',x:25,y:10,text:'Restore the relay for local travelers, or take its remaining power cells for salvage.',options:[{id:'restore',label:'Restore the route beacon',reward:reward(100+h%35),text:'The route beacon returns to service. The local cooperative credits your account.'},{id:'salvage',label:'Recover the spare cells',reward:reward(25,6),text:'The cells are reusable. The beacon stays dark.'}]}],records:[{id:'route',name:'Route register',x:11,y:18,text:'The last route record lists a convoy of seven. Eight engines are audible in the recording.'}]}]:[])
  ];
- return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed),...militaryGroundSites(body)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
+ return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed),...militaryGroundSites(body),...fieldSites(body)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
 }
 export function explorationLocation(body,siteId,seed='farwake'){
  const site=explorationSites(body,seed).find(value=>value.id===siteId);if(!site)return null;
@@ -71,7 +72,8 @@ export function createSiteState(site,saved={}){
  });
  if(watch)watch.completed=watch.elapsed+1e-6>=site.watch.seconds&&monsters.every(monster=>monster.health<=0);
  const choices={};for(const choice of site.choices){const chosen=prior.choices?.[choice.id];if(choice.options.some(option=>option.id===chosen))choices[choice.id]=chosen;}
- return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{},...(watch?{watch}:{})}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:(!watch||watch.completed)&&monsters.every(monster=>monster.health<=0)};
+ const field=isFieldSite(site)?normalizeFieldState(site,prior.field):null;
+ return{id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(field?{field}:{}),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{},...(watch?{watch}:{})}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:(!watch||watch.completed)&&monsters.every(monster=>monster.health<=0)&&(!field?.foreman||field.foreman.disabled)};
 }
 export function inspectSiteRecord(site,recordId){const record=site.records.find(item=>item.id===recordId);return record?{ok:true,title:record.name,text:record.text}:{ok:false,reason:'That record is not part of this place.'};}
 export function claimSiteReward(state,site,id,optionId){
@@ -90,6 +92,7 @@ export function claimSiteReward(state,site,id,optionId){
 const routeCache=new WeakMap();
 /** Reset only an unfinished Bellwether attempt; death and claimed supplies persist. */
 export function resetSiteBoss(state){
+ if(state?.field?.foreman)return resetFieldAttempt(state);
  const monster=state?.monsters?.find(isBellwether);if(!monster||monster.health<=0)return false;
  const base=bellwetherTemplate();
  if(monster.health===base.health&&!monster.revealed&&!monster.alert&&monster.phase==='dormant'&&monster.x===base.x&&monster.y===base.y)return false;
@@ -217,6 +220,7 @@ export function stepSiteEncounter(state,participants,delta,surface){
  const actors=participants.filter(actor=>actor?.person&&actor.person.health>0&&!actor.person.down),events=[];state.time+=dt;
  const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});
  const site=surface.site;
+ if(state.field)stepFieldEncounter(state,actors,dt,surface,event);
  if(state.watch&&site?.military&&site.watch&&actors.length){
   state.watch.elapsed=Math.min(site.watch.seconds,state.watch.elapsed+dt);
   if(!state.watch.contactResolved&&state.watch.elapsed+1e-6>=site.watch.attackDelay){
@@ -270,7 +274,7 @@ export function stepSiteEncounter(state,participants,delta,surface){
   monster.moving=false;if(!monster.cooldown&&visible){monster.windup=.55;monster.attackUntil=at+.55;monster.aimAngle=Math.atan2(person.y-monster.y,person.x-monster.x);}
  }
  if(!actors.some(actor=>actor.person.health>0&&!actor.person.down))resetSiteBoss(state);
- state.cleared=state.monsters.every(monster=>monster.health<=0)&&(!state.watch||state.watch.elapsed+1e-6>=site.watch.seconds);
+ state.cleared=state.monsters.every(monster=>monster.health<=0)&&(!state.watch||state.watch.elapsed+1e-6>=site.watch.seconds)&&(!state.field?.foreman||state.field.foreman.disabled);
  if(state.watch&&state.cleared&&!state.watch.completed){state.watch.completed=true;event('military-progress',{text:state.watch.attackOccurred?'Section radio: the position is secure and the watch is complete. Sign the field log.':'Section radio: relief is here. Nothing further to report; sign the completed watch log.'});}
  return events;
 }

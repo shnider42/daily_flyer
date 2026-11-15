@@ -1,7 +1,7 @@
 /** Shared, DOM-free deck geometry. Fore is up; each plan follows its physical hull. */
 export const CABIN_TILE=24;
 export const CABIN_REVISION=3;
-export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','bulwark','cairn','lark','puffin','osprey','leviathan','judicator'];
+export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','dipper','bulwark','cairn','lark','puffin','osprey','leviathan','judicator'];
 const pt=(x,y)=>({x:(x+.5)*CABIN_TILE,y:(y+.5)*CABIN_TILE});
 const room=(id,name,x,y,w,h,color)=>({id,name,x,y,w,h,color});
 const fixture=(kind,x,y,w=1,h=1,color=null,solid=true)=>({kind,x,y,w,h,color,solid});
@@ -22,6 +22,7 @@ const silhouettes={
  tern:[[-39,-18],[-30,-25],[23,-25],[39,-12],[39,12],[23,25],[-30,25],[-39,18]],
  quill:[[-55,-16],[-42,-29],[-16,-23],[17,-11],[55,-3],[55,3],[17,11],[-16,23],[-42,29],[-55,16]],
  mender:[[-63,-13],[-30,-13],[-30,-38],[25,-38],[25,-15],[63,-10],[63,10],[25,15],[25,38],[-30,38],[-30,13],[-63,13]],
+ dipper:[[-56,-28],[-44,-43],[-17,-46],[24,-46],[45,-31],[56,-16],[56,16],[45,31],[24,46],[-17,46],[-44,43],[-56,28]],
  bulwark:[[-83,-24],[-64,-50],[22,-50],[70,-30],[83,-14],[83,14],[70,30],[22,50],[-64,50],[-83,24]],
  cairn:[[-94,-43],[-74,-68],[52,-68],[94,-34],[94,34],[52,68],[-74,68],[-94,43]],
  lark:[[-46,-20],[-34,-29],[19,-26],[42,-12],[46,0],[42,12],[19,26],[-34,29],[-46,20]],
@@ -107,6 +108,13 @@ const definitions={
   stations:{helm:[13,9],navigation:[15,12],engineering:[14,40],medical:[7,25],security:[18,32]},
   spawn:[13,30],bunks:[[16,23],[19,23],[22,23],[16,30],[19,30]],breaches:[[5,24],[23,24]],combatSpawns:[[5,24],[6,24],[22,24],[23,24]],crewSpawns:[[13,14],[14,18],[9,23],[8,26],[10,30],[15,31],[21,31],[14,37],[13,42],[20,24]],archive:[10,32],manifest:[15,30],
   fixtures:[fixture('console',12,6,4,1,'#84b3b3'),fixture('window',12,5,4,1,null,false),fixture('bed',4,18,1,3,'#91c5b7'),fixture('bed',7,18,1,3,'#91c5b7'),fixture('bed',4,28,1,3,'#91c5b7'),fixture('cabinet',10,18,1,2,'#779b9f'),fixture('workbench',5,32,3,1,'#9caa9e'),fixture('engine',11,38,1,4,'#628c99'),fixture('engine',16,38,1,4,'#628c99')]
+ },
+ dipper:{name:'Dipper',cols:44,rows:54,berths:6,plan:'A broad landing frame surrounds a forward cockpit, six port bunks, a starboard aid room and equipment bay. The protected aft entry passes through a decontamination lock beside the service pack.',
+  rooms:[room('bridge','FIELD COCKPIT',13,4,18,14,C.bridge),room('quarters','SIX FIELD BERTHS',4,15,13,28,C.quarters),room('medical','AID ROOM',27,17,13,15,C.medical),room('equipment','FIELD EQUIPMENT',27,32,13,13,C.cargo),room('engineering','SERVICE PACK',16,31,12,14,C.engineering),room('decon','AFT DECONTAMINATION',16,43,12,8,C.medical)],
+  corridors:[passage(20,13,4,35),passage(10,30,24,3),passage(10,41,24,3)],doors:[passage(15,24,6,2),passage(23,24,6,2),passage(20,43,4,2)],
+  stations:{helm:[21,10],navigation:[24,14],engineering:[21,37],medical:[33,25],security:[24,46]},
+  spawn:[21,47],bunks:[[7,23],[11,23],[7,31],[11,31],[7,39],[11,39]],breaches:[[5,30],[38,40]],combatSpawns:[[19,46],[21,45],[24,45],[24,48]],crewSpawns:[[8,25],[12,33],[14,38],[29,25],[35,28],[31,36],[35,39],[20,32],[22,39],[21,17],[22,46],[24,47]],archive:[30,39],manifest:[23,43],
+  fixtures:[fixture('console',18,7,8,1,'#64939b'),fixture('window',18,5,8,1,null,false),fixture('engine',17,34,2,5,'#628c99'),fixture('engine',24,34,2,5,'#628c99'),fixture('bed',29,20,1,3,'#91c5b7'),fixture('bed',36,20,1,3,'#91c5b7'),fixture('cabinet',36,27,2,1,'#779b9f'),fixture('equipment',29,34,4,1,'#b8ab7b'),fixture('cargo',35,34,2,3,'#9a9e7e'),fixture('workbench',29,41,4,1,'#a18c68'),fixture('equipment',17,45,1,3,'#8bbba8'),fixture('equipment',26,45,1,3,'#8bbba8')]
  },
  bulwark:{name:'Bulwark',cols:36,rows:60,berths:8,plan:'A blunt armored bow shields the central magazine; paired weapons shoulders sit ahead of two four-person berth bays.',
   rooms:[room('bridge','PATROL BRIDGE',12,6,12,13,C.bridge),room('magazine','CENTRAL MAGAZINE',12,20,12,15,C.security),room('portbattery','PORT BATTERY',3,19,10,15,C.security),room('starboardbattery','STARBOARD BATTERY',23,19,10,15,C.security),room('portquarters','PORT BERTHS',3,36,10,17,C.quarters),room('starboardquarters','STARBOARD BERTHS',23,36,10,17,C.quarters),room('medical','PATROL MEDICAL',13,37,10,9,C.medical),room('engineering','REACTOR & DRIVES',12,47,12,10,C.engineering)],
