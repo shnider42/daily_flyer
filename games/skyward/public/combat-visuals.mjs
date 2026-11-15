@@ -10,6 +10,57 @@ export const EFFECT_BUDGET={effects:72,layers:576,smoke:96};
 function hash(text){let a=2166136261;for(const c of String(text))a=Math.imul(a^c.charCodeAt(0),16777619);return a>>>0;}
 function noise(seed,index){let a=Math.imul(seed^(index*374761393),668265263);a=Math.imul(a^(a>>>13),1274126177);return((a^(a>>>16))>>>0)/4294967296;}
 const priority=e=>(e.type==='nuclear'?6:e.type==='explosion'&&finite(e.age)<.45?4:e.type==='impact'?3:e.type==='explosion'?2:e.type==='trail'?0:1)-finite(e.age)*.01;
+const flameColors=['#962d18','#c24420','#ee671f','#ff9c37','#ffd370','#ffe9a2'];
+const sootColors=['#292a2b','#393632','#494542','#585551','#4e4e4c','#676561'];
+
+function explosionLayers(x,y,z,r,age,life,seed,wind,motion,write){
+  const progress=age/life,expansion=1-Math.exp(-age*8),flashEnd=Math.min(.21,life*.17);
+  const fireEnd=Math.min(1.4,life*.6),fireFade=clamp(1-age/fireEnd,0,1),coreEnd=fireEnd*.64;
+  const driftX=finite(wind.x)*age,driftZ=finite(wind.z)*age;
+  const originAngle=noise(seed,73)*TAU,lift=r*(.035+age*.15);
+  // A tight white flash stays at the detonation point while the hotter gas
+  // swells and climbs. Each lobe cools at its own rate from gold to rust.
+  if(age<flashEnd)write('glow',x,y,z,r*(.19+expansion*.46),'#fff6e3',Math.pow(1-age/flashEnd,.58)*motion);
+  if(age<coreEnd)write('core',x+driftX*.12,y+lift,z+driftZ*.12,r*(.25+expansion*.36),'#ffed99',Math.pow(1-age/coreEnd,.92)*.99*motion,1+expansion*.24,originAngle);
+  if(age<.46)write('ring',x,y,z,r*(.32+age*3.8),'#ffe0ad',Math.pow(1-age/.46,1.7)*.32*motion);
+  if(fireFade>0)for(let i=0;i<8;i++){
+    const v=noise(seed,i+17),pulse=noise(seed,i+43),tongue=i<3;
+    const a=originAngle+i*TAU/8+(v-.5)*.55+age*(v-.38),spread=r*expansion*(tongue?.17+v*.22:.37+v*.44);
+    const rise=lift+expansion*r*(tongue?.26+pulse*.68:(v-.22)*.36);
+    const size=r*(tongue?.16+v*.15:.23+pulse*.17)*(.63+expansion*.77);
+    const heat=clamp(Math.floor(tongue ? 1.45+fireFade*(4.2+v*.8) : fireFade*(3.5+v*1.65)),0,flameColors.length-1);
+    write('fire',x+Math.cos(a)*spread+driftX*.18,y+rise,z+Math.sin(a)*spread+driftZ*.18,size,
+      flameColors[heat],Math.pow(fireFade,.61)*.97,tongue?1.3+pulse*.73:.67+v*.57,(tongue?.57:.96)*Math.sin(a)+age*.28);
+  }
+
+  // Seven thin incandescent streaks burn out before the three tumbling
+  // chunks. Both decelerate away from the core and arc down under gravity.
+  if(progress<.63)for(let i=0;i<10;i++){
+    const v=noise(seed,i+133),debris=i%4===0,fade=clamp(1-progress/(debris?.63:.47),0,1);
+    if(fade===0)continue;
+    const angle=originAngle+i*TAU/10+noise(seed,i+109)*.45;
+    const flow=(1-Math.exp(-age*(debris?1.18:3.2)))*r,travel=flow*(debris?.24+v*1.55:1.1+v*2.15);
+    const rise=travel*(debris?.12+v*.75:(noise(seed,i+153)-.21)*1.14)-age*age*(debris?27:18);
+    const color=debris?(v>.45?'#594034':'#292725'):(fade>.73?'#fff1b2':fade>.38?'#ffb64e':'#ee761e');
+    write(debris?'debris':'ember',x+Math.cos(angle)*travel,y+rise,z+Math.sin(angle)*travel,
+      r*(debris?.018+v*.015:.009+v*.01),color,Math.pow(fade,.72),debris?.82+v*.9:2.9+v*3.05,
+      debris?angle+age*(v-.47)*8:.73*Math.cos(angle)+.2);
+  }
+
+  // Two broad puffs retain the low skirt while four shaded lobes roll upward
+  // in an uneven column. The whole plume drifts and dissipates without jitter.
+  const smokeFade=clamp((age-.13)*2.8,0,1)*Math.pow(1-progress,.26)*clamp((1-progress)/.2,0,1);
+  if(smokeFade>0)for(let i=0;i<6;i++){
+    const v=noise(seed,i+91),height=Math.max(0,(i-1)/4),upper=i>=2;
+    const a=originAngle+i*2.399963+age*(v-.35)*.34;
+    const spread=r*(upper?.09+v*.19+height*progress*.23:(.2+v*.14+progress*.4));
+    const rise=r*(.08+height*.1+age*(.13+height*.47))+v*r*.065;
+    const size=r*(.21+v*.21+height*.16)*(1+progress*(upper?1.05:1.65));
+    write(upper?'cloud':'smoke',x+Math.cos(a)*spread+driftX*(.32+height*.41),y+rise,
+      z+Math.sin(a)*spread+driftZ*(.32+height*.41),size,sootColors[i],smokeFade*.95,
+      upper?.88+height*.42+v*.27:.57+v*.3,Math.sin(a)*.4);
+  }
+}
 
 // These are deliberately theatrical game effects, driven by the same expanding
 // wave as the simulation. The long-lived cloud is presentation, not extra damage.
@@ -85,37 +136,14 @@ export function sampleCombatEffects(effects=[],options={},out=[]){
   };
   const ordered=effects.length>1?effects.slice().sort((a,b)=>priority(b)-priority(a)):effects;
   for(const e of ordered){
+    if(count>=capacity)break;
     const age=Math.max(0,finite(e.age)),life=Math.max(.05,finite(e.life,2)),f=clamp(age/life,0,1);
     if(f>=1||bursts++>=(options.effects??EFFECT_BUDGET.effects))continue;
     const x=finite(e.x),y=finite(e.y),z=finite(e.z),kind=e.type||e.kind||'explosion';
     const r=clamp(finite(e.radius,kind==='flash'?100:12),.1,3200),seed=hash(e.seed??e.id??`${x},${y},${z}`);
     if(kind==='nuclear'){nuclearLayers(e,options,write);
     }else if(kind==='explosion'){
-      const expansion=1-Math.exp(-age*8),fireEnd=Math.min(1.45,life*.58),fireFade=clamp(1-age/fireEnd,0,1),flashEnd=Math.min(.24,life*.17);
-      // A crisp white-hot flash and incandescent center lead the burst. Its
-      // flame and soot silhouettes separate as they expand; no temporal jitter.
-      if(age<flashEnd)write('glow',x,y,z,r*(.22+expansion*.42),'#fff4da',Math.pow(1-age/flashEnd,.65)*motion);
-      if(age<fireEnd*.65)write('core',x,y+age*r*.12,z,r*(.25+expansion*.34),'#fff0aa',clamp(1-age/(fireEnd*.65),0,1)*.98*motion);
-      for(let i=0;i<8;i++){
-        const a=noise(seed,i)*TAU,v=noise(seed,i+17),offset=i===0?0:r*expansion*(.28+v*.65);
-        const px=x+Math.cos(a)*offset,py=y+(v-.18)*offset+age*r*.12,pz=z+Math.sin(a)*offset;
-        const size=r*(.19+noise(seed,i+43)*.27)*(.6+expansion*.9);
-        write('fire',px,py,pz,size,i%3===0?'#ffcb56':age<.38?'#ff791c':'#c73710',Math.pow(fireFade,.65)*.98,.72+v*.72,a+age*.28);
-      }
-      // Smoke becomes opaque enough to read as smoke, instead of a soft halo.
-      // Small moving dark lobes break up the fire while the main column rises.
-      for(let i=0;i<6;i++){
-        const a=noise(seed,i+67)*TAU,v=noise(seed,i+91),rise=r*(.12+v*.25)*age+r*age*age*.012;
-        const spread=r*(.2+f*.52),px=x+Math.cos(a)*spread+finite(wind.x)*age*.3,pz=z+Math.sin(a)*spread+finite(wind.z)*age*.3;
-        const smokeFade=clamp((age-.13)*2.5,0,1)*Math.pow(1-f,.28)*clamp((1-f)/.19,0,1);
-        write('smoke',px,y+rise+r*.05,pz,r*(.3+v*.22)*(1+f*1.9),i%2?'#252a2d':'#414344',smokeFade*.94,1.08+f*.48,a);
-      }
-      if(f<.66)for(let i=0;i<10;i++){
-        const a=noise(seed,i+109)*TAU,v=noise(seed,i+133),speed=r*(.8+v*1.15),travel=age*speed,fade=clamp(1-f/.66,0,1);
-        const px=x+Math.cos(a)*travel,py=y+travel*(.18+v*.75)-age*age*20,pz=z+Math.sin(a)*travel;
-        write(i%3===0?'debris':'ember',px,py,pz,r*(.016+v*.016),i%3===0?'#292b2a':i%2?'#fff0a2':'#ff9b28',fade,.6+v*2.1,a+age*(v-.5)*7);
-      }
-      if(age<.45)write('ring',x,y,z,r*(.35+age*3.2),'#f8dbb2',clamp(1-age/.45,0,1)*.27*motion,1,0);
+      explosionLayers(x,y,z,r,age,life,seed,wind,motion,write);
     }else if(kind==='impact'){
       const flash=clamp(1-age/.12,0,1);
       write('core',x,y,z,r*(.18+f*.2),'#fff2c0',flash*.96*motion);

@@ -4,6 +4,8 @@ A standalone game in the Daily Flyer collection, on the isolated `feat/skyward-f
 
 The v0.6.1 combat feedback (directional hit warnings, impact/explosion audio, camera reactions and damage smoke) and v0.6 multiplayer modes remain available: dogfights, shared free flight, campaign squadrons, the two-person AC-130 operation, carrier starts and Razorback Canyons terrain cover. Historical aircraft and settings provide context; flight performance, routes, weapons, radar, and procedures are simplified game systems.
 
+Skyward 0.11.0 adds distinct sounds for every engine, adjustable outside views that fit the airframe in steep climbs, mouse look, a flight-controls reference, and revised lighting and explosions.
+
 ## Run
 
 Node 22 or later. Dependencies are vendored with their licenses; no package installation or external asset service is required.
@@ -57,7 +59,7 @@ In **solo Free flight**, land on an airfield or carrier, reduce thrust to idle, 
 
 ## Mobile cockpit and B-2 payloads
 
-The default phone view keeps airspeed, heading, terrain clearance and airframe health above the flight scene. Two translucent corner pads retain their full touch areas. **NAV** reveals mission orders, radar, fuel/stores and scores; **SYSTEMS** reveals weapons, gear, flaps, brake and hover. Both trays close after use or when pausing, changing screens or resizing. FIRE remains available on armed fighters; bombers have a direct **DROP** button. LEVEL remains beside the pads. Critical warnings always remain visible. These rules also cover left-handed controls and the shared AC-130 cockpit.
+The default phone view keeps airspeed, heading, terrain clearance and airframe health above the flight scene. Two translucent corner pads retain their full touch areas. **NAV** reveals orders, radar, fuel, stores and scores. **SYSTEMS** reveals weapons, gear, flaps, brake and hover. The tray stays open for related actions, such as selecting a target and launching a missile. **FIRE**, **DROP** and **LEVEL** are available beside the pads when relevant. Critical warnings remain visible.
 
 Larger game airframes have slower pitch and roll, slower buildup/reversal of rotation, and gentler leveling recovery. Existing local aircraft axes and independent pitch/roll/yaw controls are retained. The B-2, B-17, C-47 and AC-130 require deliberate turns; light aircraft respond sooner.
 
@@ -186,7 +188,7 @@ On a phone, each thumb controls the same pair of flight axes as one hand on the 
 
 Touching either pad starts neutral; move relative to where your thumb landed. Releasing the left pad centers yaw and **holds the selected thrust**, so it is safe to move that thumb to **FIRE** while the right thumb keeps flying. Thrust adjustment uses the same rate as W/S. There is no look stick; the camera follows the aircraft, and the camera button cycles the available views.
 
-**SYSTEMS** opens a compact tray for weapons, gear, flaps, brake, and hover. **NAV** shows mission orders and navigation details. It opens automatically when a cold start finishes so the brake-release step is visible. **LEVEL** remains available beside the flight controls. Engine startup appears only while needed; secondary weapon controls stay in SYSTEMS on phones. **Setup → Touch** can swap the two thumbs and FIRE, change the pitch direction, and adjust pad/button sizes, spacing, height, sensitivity, dead zone, and opacity. Restore touch defaults leaves keyboard bindings and other preferences unchanged. Old look-stick preferences migrate to the desktop-style pull-down-to-pitch-up default.
+**SYSTEMS** opens a compact tray for weapons, gear, flaps, brake, and hover. **NAV** shows mission orders and navigation details. **SYSTEMS** opens after a cold start to put the brake within reach. **LEVEL** remains available beside the flight controls. Engine startup appears only while needed; secondary weapon controls stay in SYSTEMS on phones. **Setup → Touch** can swap the two thumbs and FIRE, change the pitch direction, and adjust pad/button sizes, spacing, height, sensitivity, dead zone, and opacity. Restore touch defaults leaves keyboard bindings and other preferences unchanged. Old look-stick preferences migrate to the desktop-style pull-down-to-pitch-up default.
 
 | Pilot keyboard | Action |
 | --- | --- |
@@ -205,6 +207,7 @@ Touching either pad starts neutral; move relative to where your thumb landed. Re
 | R | Radar toggle |
 | H | Hover mode where supported |
 | C | Cycle chase, cockpit, and cinematic cameras |
+| O | Center the current camera |
 | Escape / P | Pause |
 
 **Setup → Keyboard** lets you remap every keyboard action. Select an action’s key button and press a replacement; if that key is already assigned within the same role, the two actions swap keys. Escape cancels a key change and always remains available to pause in flight. **Restore pilot keys** resets only the pilot keyboard layout. Key labels in the cockpit and action tooltips update with your assignments. Pitch-up/pitch-down keys always perform their named action; the touch pitch-direction setting only changes the touch pad. Browser shortcuts and typing in form fields do not fly the plane.
@@ -231,7 +234,7 @@ Nearby explosions add a brief warm flash and concussion; their sound and camera 
 
 ## Audio and accessibility
 
-Audio is generated locally with Web Audio: propeller/jet engines, wind, gunfire, explosions, missile release, and warning tones. Combat sounds use cached, layered waveforms: sharp metallic bullet strikes, heavier concussion hits, and explosions with a crack, low body, rolling tail and debris. Midrange transients convey the impact without depending entirely on deep bass. Stereo direction and distance filtering place the sound, while brief engine/wind ducking makes an impact stand out. Compression, voice limits and short repeat guards bound busy firefights. Master, engine/wind and effects volume controls remain independent, and muting stops active effects.
+Audio is generated locally with Web Audio. Each of the 20 aircraft has its own engine sound. Throttle changes its pitch and load, and cockpit and gunner views muffle the exterior mix. **Setup → Sound & view → Engine preview** lets you listen to any aircraft from inside or outside. Combat sounds use cached, layered waveforms: sharp metallic bullet strikes, heavier concussion hits, and explosions with a crack, low body, rolling tail and debris. Midrange transients convey the impact without depending entirely on deep bass. Stereo direction and distance filtering place the sound, while brief engine/wind ducking makes an impact stand out. Compression, voice limits and short repeat guards bound busy firefights. Master, engine/wind and effects volume controls remain independent, and muting stops active effects.
 
 The browser starts sound after a user gesture. **Setup → Sound & view → Test hit & explosion sounds** previews a bullet hit followed by an explosion at the current sound settings. All necessary warnings and orders have visual equivalents. Browser visibility changes pause a solo sortie and clear held inputs. Each mobile pad and FIRE independently owns its pointer, so a second thumb or unrelated release cannot steal a held control. Pause, blur, interrupted touches, resize, and orientation changes release held input. Mobile layouts account for safe-area insets in both portrait and landscape.
 
@@ -255,7 +258,11 @@ Five cockpit families replace the shared generic dashboard: open wood/leather WW
 
 Static fittings are batched by material inside each moving assembly as well as across the airframe. Identical transformed vertices share an index; clones reuse geometry and materials while retaining independent propeller/gear/effect state. Detailed aircraft stay under 23,000 triangles and 30 model draw calls; opposing aircraft omit small details while retaining the same proportions. Wheel contact uses each model's undercarriage dimensions. Flight physics and aircraft-relative controls are unchanged by the model rebuild.
 
-### Rendering behavior
+### Camera and rendering
+
+Select **Camera** in flight to choose Chase, Cockpit or Cinematic and adjust outside distance. On desktop, hold the primary mouse button on the scene and drag to look. Scroll to change outside distance. **O** centers your view. **Setup → Camera** has mouse sensitivity, field of view and a switch to keep your angle when you release the mouse. The hangar and pause menu both include a quick **Flight controls** guide.
+
+Chase and cinematic views fit the rotated airframe to the viewport, including during steep climbs and dives. The gunsight follows the nose in those views. Dawn, dusk, daylight and night use shared lighting and cloud colors in both backends.
 
 The simulation and input advance together at 60 fixed steps per second. Rendered aircraft, targets and effects interpolate between those steps; aircraft attitude uses quaternion interpolation through rolls, loops and vertical flight. Camera translation follows that rendered pose, with matching damping for the chase position and look direction. Cockpit position, forward and up directions follow the airframe directly, including when inverted; reduced motion does not lock the cockpit to the horizon. Both the detailed and compatibility renderers use the same body-frame camera helper. A physics pause discards pending simulation time. A long frame has a bounded catch-up budget, so returning from a stalled tab cannot trigger an unlimited batch of physics work. The multiplayer dogfight countdown uses elapsed real time on a separate clock and is not slowed by that budget.
 

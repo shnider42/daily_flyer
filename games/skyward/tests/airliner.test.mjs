@@ -6,7 +6,7 @@ import { FlightSimulation } from '../public/sim.mjs';
 import { aircraftKind, makeAircraft, animateAircraft } from '../public/models.mjs';
 import { modeledAirframeBounds } from '../public/airframes.mjs';
 import { cockpitFamily, cockpitLayout } from '../public/cockpit-models.mjs';
-import { cockpitView, chaseAirframeFraming } from '../public/camera-pose.mjs';
+import { cockpitView, chaseView } from '../public/camera-pose.mjs';
 import { orientationFromEuler, basis } from '../public/orientation.mjs';
 
 const near = (a, b, tolerance = 1e-6) => assert.ok(Math.abs(a - b) <= tolerance, `${a} != ${b}`);
@@ -129,12 +129,11 @@ test('portrait and landscape passenger chase framing show the whole plane with o
   const model = makeAircraft('b767'); animateAircraft(model, { gear: false }, 0);
   model.updateMatrixWorld(true);
   for (const [width, height] of [[320, 568], [390, 844], [844, 390], [1280, 800]]) for (const cinematic of [false, true]) {
-    const fov = width < height ? 67 : 59, length = model.userData.length;
-    const fit = chaseAirframeFraming({ length, span: model.userData.span, speed: 216, width, height, fov, passenger: true });
-    const angle = cinematic ? .68 : 0, ahead = cinematic ? length * .2 : 95;
+    const fov = width < height ? 67 : 59;
+    const view = chaseView({ aircraft: 'b767', x: 0, y: 0, z: 0, speed: 216 }, { width, height, fov, cinematic });
     const camera = new THREE.PerspectiveCamera(fov, width / height, .35, 95000);
-    camera.position.set(-Math.sin(angle) * fit.distance, fit.elevation, -Math.cos(angle) * fit.distance);
-    camera.lookAt(0, length * .18, ahead); camera.updateMatrixWorld(true);
+    camera.position.set(view.position.x, view.position.y, view.position.z);
+    camera.lookAt(view.target.x, view.target.y, view.target.z); camera.updateMatrixWorld(true);
     let minX = Infinity, maxX = -Infinity;
     model.traverseVisible(node => {
       if (!node.isMesh) return;
@@ -145,12 +144,7 @@ test('portrait and landscape passenger chase framing show the whole plane with o
         assert.ok(Math.abs(projected.x) < .97 && Math.abs(projected.y) < .97, `${width}×${height}: whole aircraft inside viewport`);
       }
     });
-    assert.ok((maxX - minX) / 2 < (cinematic ? .76 : .62), 'airliner leaves the sides of the view usable');
-    assert.ok(fit.distance > 84, 'passenger aircraft is not clipped by the old fighter camera distance cap');
-  }
-  for (const length of [9, 20, 30]) for (const speed of [0, 200]) {
-    const fit = chaseAirframeFraming({ length, speed });
-    near(fit.distance, Math.min(84, Math.max(23, length * 2.35 + speed * .055)));
-    near(fit.elevation, Math.min(20, Math.max(5.4, length * .4 + speed * .012)));
+    assert.ok((maxX - minX) / 2 < .83, 'airliner leaves the sides of the view usable');
+    assert.ok(camera.position.distanceTo(new THREE.Vector3(view.target.x, view.target.y, view.target.z)) > 84);
   }
 });

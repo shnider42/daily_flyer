@@ -1,7 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {terrainHeight,surfaceHeight,carrierIslandParts,carrierLaunchLane} from './terrain.mjs';
-import {orientationOf,basis,deriveEuler} from './orientation.mjs';
-import {cockpitView,chaseAirframeFraming,isOutsideAircraft,parachuteView} from './camera-pose.mjs';
+import {cockpitView,chaseView,isOutsideAircraft,parachuteView} from './camera-pose.mjs';
 import {makeCockpit,fitCockpit,updateCockpit} from './cockpit-models.mjs';
 import {gunshipStationPose} from './gunship.mjs';
 import {makeGunshipStation,fitGunshipStation,updateGunshipStation} from './gunship-views.mjs';
@@ -14,6 +13,7 @@ import {applyCombatCameraKick} from './combat-camera.mjs';
 import {buildSceneTerrain,terrainMeshSettings,packTerrainGeometry,groundDetails,aircraftGroundShadow,sceneryClearance,terrainDetailTexture,TERRAIN_DETAIL_SPAN} from './terrain-visuals.mjs';
 import {TerrainStream} from './terrain-stream.mjs';
 import {PixelBudget,renderPixelRatio} from './pixel-budget.mjs';
+import {atmosphereFor} from './atmosphere.mjs';
 import { arePilotsHostile } from './arena.mjs';
 import {frameMenuAircraft} from './menu-framing.mjs';
 import {isPassengerAirport} from './airfield-layout.mjs';
@@ -22,7 +22,7 @@ import {describeAirfield,AIRFIELD_COLORS,airfieldSurfaceColor,AIRFIELD_BUDGET,ro
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const number=(v,f=0)=>Number.isFinite(v)?v:f;
-const scratchV=new THREE.Vector3(), scratchD=new THREE.Vector3(), scratchUp=new THREE.Vector3(0,1,0);
+const scratchV=new THREE.Vector3(), scratchD=new THREE.Vector3();
 const tempObject=new THREE.Object3D(), tempColor=new THREE.Color();
 const axisY=new THREE.Vector3(0,1,0),axisZ=new THREE.Vector3(0,0,1);
 const AUTO_DESKTOP_PIXELS=[230000,360000,540000,800000,1050000,1500000];
@@ -50,19 +50,6 @@ function fadingEffectMaterial(soft=true){
   };
   material.customProgramCacheKey=()=> 'skyward-effect-opacity-v3-'+soft;return material;
 }
-
-const palettes={
-  countryside:{top:'#7dabad',horizon:'#d6d7bc',fog:'#c9d2bd',ground:['#71856b','#829476','#a1a784','#647e65'],water:'#477f8c',light:'#fff0cf'},
-  channel:{top:'#779fae',horizon:'#cdd5c7',fog:'#bccbd0',ground:['#6a7f6a','#859477','#aaa88b','#587b67'],water:'#427585',light:'#f8e6c6'},
-  coast:{top:'#739da9',horizon:'#ddd1ba',fog:'#c9d0c1',ground:['#647f66','#87997b','#b1ac87','#769178'],water:'#3d8490',light:'#ffe7c6'},
-  pacific:{top:'#6ba6b9',horizon:'#d0e4d5',fog:'#b5d8d6',ground:['#4c856d','#659572','#b8b38b','#4b7560'],water:'#2e8b9a',light:'#ffedc8'},
-  jungle:{top:'#6d9698',horizon:'#bfccb3',fog:'#a5bcb2',ground:['#3b7057','#5c8260','#75825a','#4b6c50'],water:'#4d8b8a',light:'#e9e0b3'},
-  south_atlantic:{top:'#7b969f',horizon:'#c3c8c4',fog:'#a8b8ba',ground:['#708075','#87907a','#a0a491','#566b63'],water:'#3c697e',light:'#ebdfc4'},
-  desert:{top:'#88abb2',horizon:'#e1caaa',fog:'#d9c3a4',ground:['#bb9b72','#cbae84','#ddc59a','#ac8e68'],water:'#548391',light:'#fff0ce'},
-  mountains:{top:'#8fabb4',horizon:'#d3d1c3',fog:'#bbc8ca',ground:['#687d70','#7c8a7a','#aaad9b','#506b60'],water:'#4d7d8d',light:'#f2e7ce'},
-  canyon:{top:'#668fa9',horizon:'#d8c6a8',fog:'#b9bdba',ground:['#998b69','#a97e5c','#5e7565','#b2a17b'],water:'#3f7d88',light:'#ffe7be'},
-  night:{top:'#071426',horizon:'#34475c',fog:'#273d52',ground:['#263f40','#364c45','#4a584b','#22373a'],water:'#172e43',light:'#a4bbd0'},
-};
 
 export class FlightRenderer {
   constructor(canvas,settings={}){
@@ -154,7 +141,7 @@ export class FlightRenderer {
 
   _buildSky(){
     this.skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:true,toneMapped:false,
-      uniforms:{top:{value:color('#84aeb8')},horizon:{value:color('#e0d8be')},haze:{value:color('#c8d2c5')},sunColor:{value:color('#ffe6b6')},sunDirection:{value:new THREE.Vector3(-.7,.36,-.4).normalize()},night:{value:0}},
+      uniforms:{top:{value:color('#84aeb8')},horizon:{value:color('#e0d8be')},haze:{value:color('#c8d2c5')},sunColor:{value:color('#ffe6b6')},sunDirection:{value:new THREE.Vector3(-.7,.36,-.4).normalize()},sunStrength:{value:1},night:{value:0}},
       vertexShader:`
         varying vec3 vDirection;
         void main(){
@@ -169,14 +156,15 @@ export class FlightRenderer {
         uniform vec3 haze;
         uniform vec3 sunColor;
         uniform vec3 sunDirection;
+        uniform float sunStrength;
         uniform float night;
         varying vec3 vDirection;
         float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         void main(){
           vec3 d=normalize(vDirection);
-          vec3 c=mix(haze,mix(horizon,top,smoothstep(-.12,.78,d.y)),smoothstep(-.10,.04,d.y));
+          vec3 c=mix(haze,mix(horizon,top,smoothstep(-.01,.66,d.y)),smoothstep(-.17,.015,d.y));
           float s=max(0.0,dot(d,sunDirection));
-          c+=sunColor*(pow(s,58.0)*.16+pow(s,1500.0)*.63)*(1.0-night*.85);
+          c+=sunColor*(pow(s,40.0)*.15+pow(s,1800.0)*.76)*sunStrength;
           if(night>.5 && d.y>.05){
             vec2 starCell=floor(vec2(atan(d.z,d.x)*220.0,asin(d.y)*280.0));
             c+=step(.9971,hash(starCell))*smoothstep(.05,.4,d.y)*.9;
@@ -192,23 +180,16 @@ export class FlightRenderer {
   }
 
   _setAtmosphere(mission,menu=false){
-    const biome=mission.biome||'countryside';let palette=palettes[biome]||palettes.countryside;
-    const tod=String(mission.weather?.timeOfDay||'day').toLowerCase();const night=biome==='night'||/night|midnight/.test(tod);const sunset=menu||/dawn|dusk|sunset|evening/.test(tod);
-    if(night)palette=palettes.night;
-    if(mission.kind==='gunship')palette={...palette,ground:['#2b4140','#304644','#354a46','#2d4241']};
-    this.palette=palette;this._night=night;this._sunset=sunset;
-    this.skyMaterial.uniforms.top.value.set(night?palette.top:sunset?'#91a9af':palette.top);
-    this.skyMaterial.uniforms.horizon.value.set(night?palette.horizon:sunset?'#e5cfaa':palette.horizon);
-    this.skyMaterial.uniforms.night.value=night?1:0;
-    this.skyMaterial.uniforms.sunColor.value.set(sunset?'#ffd6a0':palette.light);
-    this.skyMaterial.uniforms.sunDirection.value.set(-.75,sunset?.19:.52,-.5).normalize();
-    this.scene.fog.color.set(sunset?'#d1cbb5':palette.fog);
-    this.skyMaterial.uniforms.haze.value.copy(this.scene.fog.color);
-    this.sun.color.set(palette.light);this.sun.intensity=night?.75:sunset?2.5:2.8;
-    this.sun.position.copy(this.skyMaterial.uniforms.sunDirection.value).multiplyScalar(12000);
-    this.hemi.color.set(night?'#7089a7':palette.horizon);this.hemi.groundColor.set(night?'#17242a':'#526254');this.hemi.intensity=night?1.3:2.0;
+    const palette=atmosphereFor(mission,menu),night=palette.name==='night',sky=this.skyMaterial.uniforms;
+    this.palette=palette;this._night=night;
+    sky.top.value.set(palette.top);sky.horizon.value.set(palette.horizon);sky.night.value=night?1:0;
+    sky.sunColor.value.set(palette.glow);sky.sunDirection.value.set(...palette.direction).normalize();sky.sunStrength.value=palette.sunStrength;
+    this.scene.fog.color.set(palette.fog);sky.haze.value.copy(this.scene.fog.color);
+    this.sun.color.set(palette.light);this.sun.intensity=palette.sunIntensity;
+    this.sun.position.copy(sky.sunDirection.value).multiplyScalar(12000);
+    this.hemi.color.set(palette.ambientColor);this.hemi.groundColor.set(palette.ambientGround);this.hemi.intensity=palette.ambientIntensity;
     this._reflection?.dispose();
-    this._reflection=makeSkyReflection({top:this.skyMaterial.uniforms.top.value,horizon:this.skyMaterial.uniforms.horizon.value,ground:palette.ground[0],sun:this.skyMaterial.uniforms.sunColor.value,sunDirection:this.skyMaterial.uniforms.sunDirection.value,night});
+    this._reflection=makeSkyReflection({top:sky.top.value,horizon:sky.horizon.value,ground:palette.ground[0],sun:sky.sunColor.value,sunDirection:sky.sunDirection.value,night});
     this.scene.environment=this._reflection;
     let fog=number(mission.weather?.fog,0);
     this._fogFar=fog>100?clamp(fog,1700,35000):fog>0&&fog<.01?clamp(.55/fog,5000,35000):lerp(21000,6000,clamp(fog,0,1));
@@ -396,7 +377,7 @@ export class FlightRenderer {
     const base=number(mission.weather?.cloudBase,1050),top=Math.max(base+120,number(mission.weather?.cloudTop,base+450));
     // An InstancedMesh is sorted as one object, not as individual cloud lobes.
     // Opaque, fog-softened clouds keep stable self-occlusion without alpha overdraw.
-    const material=worldMaterial(this._night?'#8598a5':this._sunset?'#e7deca':'#e2e6d6',{roughness:1});
+    const material=worldMaterial(this.palette.cloud||'#e9ede2',{roughness:1});
     const clouds=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,2),material,count);
     this._cloudBase=base;this._cloudTop=top;
     for(let i=0;i<count;i+=5){
@@ -783,45 +764,28 @@ export class FlightRenderer {
     const cockpit=mode==='cockpit',gunner=mode==='gunner',firstPerson=cockpit||gunner;
     this._cockpit.visible=cockpit;this._plane.visible=!firstPerson&&!outside&&number(p.health,100)>0&&p.alive!==false&&!p.crashed;
     if(this._gunshipStation)this._gunshipStation.visible=gunner;
-    const orientation=orientationOf(p),{heading,pitch}=deriveEuler(orientation),{forward}=basis(orientation),originY=p.y-number(this._visualGearOffset);
-    const lookX=number(options.lookX),lookY=clamp(number(options.lookY),-1.15,1.15);
-    let px,py,pz,tx,ty,tz;
+    const groundOffset=number(this._visualGearOffset),reset=!this._cameraInitialized||this._cameraMode!==mode;
+    let fov=clamp(number(this.settings.fov,this.width<this.height?67:59),45,90),view;
     if(gunner){
-      const aim=options.gunner||{},view=gunshipStationPose(p,aim.seat,aim,number(this._visualGearOffset));
+      const aim=options.gunner||{};
+      view=gunshipStationPose(p,aim.seat,aim,groundOffset);
       if(this._gunshipStation?.userData.layout.seat!==view.station.id)this._buildGunshipStation(view.station.id);
-      this._gunshipStation.visible=true;this._setProjection(view.fov);
-      ({x:px,y:py,z:pz}=view.position);({x:tx,y:ty,z:tz}=view.target);scratchUp.set(view.up.x,view.up.y,view.up.z);
+      this._gunshipStation.visible=true;fov=view.fov;
     }else if(cockpit){
-      const view=cockpitView(p,options,number(this._visualGearOffset));
-      ({x:px,y:py,z:pz}=view.position);({x:tx,y:ty,z:tz}=view.target);
-      // Reduced motion may steady the chase orbit; it must not detach the
-      // cockpit horizon from the airframe or flip an inverted pilot upright.
-      scratchUp.set(view.up.x,view.up.y,view.up.z);
+      view=cockpitView(p,options,groundOffset);
     }else if(outside){
-      const view=parachuteView(p,options,this.width<this.height);
-      ({x:px,y:py,z:pz}=view.position);({x:tx,y:ty,z:tz}=view.target);scratchUp.set(0,1,0);
+      view=parachuteView(p,{...options,reducedMotion:this.settings.reducedMotion},this.width<this.height,this._parachuteOrbit??={},dt,reset);
     }else{
-      const length=this._plane.userData.length||9,framing=chaseAirframeFraming({length,span:this._plane.userData.span,speed:p.speed,width:this.width,height:this.height,fov:clamp(number(this.settings.fov,this.width<this.height?67:59),45,90),passenger:!!this.aircraft?.passenger||aircraftKind(this.aircraft)==='b767'}),distance=framing.distance;
-      const side=mode==='cinematic'?.68:0;const a=heading+lookX+side;
-      const elev=framing.elevation+Math.sin(lookY)*distance;
-      px=p.x-Math.sin(a)*distance*Math.cos(lookY);py=originY+elev-pitch*distance*.24;pz=p.z-Math.cos(a)*distance*Math.cos(lookY);
-      const ahead=Math.abs(lookX)>.05||Math.abs(lookY)>.05||mode==='cinematic'?length*.2:95;
-      tx=p.x+forward.x*ahead;ty=originY+forward.y*ahead+length*.18;tz=p.z+forward.z*ahead;
-      scratchUp.set(0,1,0);
+      view=chaseView(p,{lookX:options.lookX,lookY:options.lookY,chaseZoom:options.chaseZoom,
+        aircraft:this._plane.userData.kind||p.aircraft,width:this.width,height:this.height,mission:this.mission,
+        fov,groundOffset,dt,reset,reducedMotion:this.settings.reducedMotion,cinematic:mode==='cinematic'},this._chaseOrbit??={});
     }
-    if(!gunner)this._setProjection(clamp(number(this.settings.fov,this.width<this.height?67:59),45,90));
-    const initialized=this._cameraInitialized&&this._cameraMode===mode;
-    const alpha=firstPerson||!initialized?1:1-Math.exp(-dt*(this.settings.reducedMotion?12:mode==='cinematic'?3.2:10));
-    if(!this._cameraOffset){this._cameraOffset=new THREE.Vector3();this._cameraLookOffset=new THREE.Vector3();this._cameraTarget=new THREE.Vector3();}
-    // Follow the interpolated aircraft translation exactly; only damp the orbit
-    // around it. Independent world-position/target lag made the plane judder and
-    // changed the apparent chase distance with frame rate and airspeed.
-    this._cameraOffset.lerp(scratchD.set(px-p.x,py-p.y,pz-p.z),alpha);
-    this._cameraLookOffset.lerp(scratchD.set(tx-p.x,ty-p.y,tz-p.z),alpha);
-    scratchV.set(p.x,p.y,p.z);
-    this.camera.position.copy(this._cameraOffset).add(scratchV);
-    if(!firstPerson)this.camera.position.y=Math.max(height(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
-    this._cameraTarget.copy(this._cameraLookOffset).add(scratchV);this.camera.up.copy(scratchUp);
+    this._setProjection(fov);
+    this._cameraTarget??=new THREE.Vector3();
+    this.camera.position.set(view.position.x,view.position.y,view.position.z);
+    this._cameraTarget.set(view.target.x,view.target.y,view.target.z);
+    if(outside)this.camera.position.y=Math.max(surfaceHeight(this.camera.position.x,this.camera.position.z,this.mission)+3.4,this.camera.position.y);
+    if(view.up)this.camera.up.set(view.up.x,view.up.y,view.up.z);else this.camera.up.set(0,1,0);
     this.camera.lookAt(this._cameraTarget);applyCombatCameraKick(this.camera,options.combatKick,this.settings.reducedMotion);this._cameraInitialized=true;this._cameraMode=mode;
     if(cockpit)updateCockpit(this._cockpit,p,this.time);
   }

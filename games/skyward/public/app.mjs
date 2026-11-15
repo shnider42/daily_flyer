@@ -8,6 +8,8 @@ import {FlightRenderer} from './renderer.mjs';
 import {SoftwareFlightRenderer} from './software.mjs';
 import {SquadronClient} from './network.mjs';
 import {FlightControls} from './controls.mjs';
+import {CameraInput} from './camera-input.mjs';
+import {basis,orientationOf} from './orientation.mjs';
 import {GunnerControls} from './gunner-controls.mjs';
 import {GUNSHIP_STATIONS,GUNSHIP_AIM_LIMITS,getGunshipStation} from './gunship.mjs';
 import {FixedStepClock,FlightPresentation} from './presentation.mjs';
@@ -33,7 +35,7 @@ const hasImpactMarker=()=>!!(sim&&sim.player.bombs>0&&!sim.player.onGround&&sim.
 let settings=loadSettings(),progress=loadProgress();applySettings(settings);
 let flightLog=loadLogbook(),selectedOperation=OPERATIONS[0],flightRunId=null,flightRecordResult=null,flightLogSaved=true,initialFlightSettings=null,flightRecordEligible=true;
 let screen='home',sim=null,renderer=null,paused=false,remotePaused=false,coop=false,settingsTab=isTouchLayout()?'controls':'keyboard',resumeAfterSettings=false,ready=false;
-let bindingCapture=null,settingsSaved=true,crewRole=null,lastCrewSnapshot=0;
+let bindingCapture=null,settingsSaved=true,crewRole=null,lastCrewSnapshot=0,guideReturnToPause=false,zoomSaveTimer=null;
 let scoreboardOpen=false,spectatedId=null,spectatorView=null,lastLifeId=0,lastCrashNotice=0,activeStart=null;
 let lobbyAircraft='f16',lobbyStart='airborne',lobbyPayload='conventional',campaignPayload='atomic';
 const isCrewFlight=()=>coop&&sim?.mission.kind==='gunship';
@@ -56,6 +58,8 @@ let frameSampleSeconds=0,frameSampleWork=0,lastFlightGraphics=null;
 let crewShotsSeen={},seenEvents=new Set(),lastStatus='flying',endHandled=false,settingsFromPause=false;
 const audio=new FlightAudio(settings);
 const combatFeedback=new CombatFeedback();
+const cameraInput=new CameraInput({getSettings:()=>settings,onZoom:step=>setChaseZoom(settings.chaseZoom+step*5)});
+const CAMERA_MODES={chase:'Chase',cockpit:'Cockpit',cinematic:'Cinematic'};
 let destructionAt=null,audioPreviewUntil=0;
 
 function paintCombatFeedback(state){
@@ -72,7 +76,7 @@ function paintCombatFeedback(state){
 }
 
 function toast(text,ms=3400){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').hidden=true,ms);}
-function showScreen(name){screen=name;document.body.dataset.screen=name;$$('.screen[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight'){impactMarker.hidden=true;paintCombatFeedback(null);setAircraftTray(false);setScoreboard(false);}setFlightInputs(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);measureHangarFrame();}
+function showScreen(name){screen=name;document.body.dataset.screen=name;$$('.screen[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight'){impactMarker.hidden=true;paintCombatFeedback(null);setAircraftTray(false);setScoreboard(false);setCameraPanel(false);}setFlightInputs(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);measureHangarFrame();}
 function refreshHome(){
   const complete=MISSIONS.filter(m=>progress.completed[m.id]).length,next=MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0];
   const label=$('continue-label');if(label)label.textContent=complete?'Continue campaign':'Start campaign';
@@ -100,7 +104,7 @@ function measureHangarFrame(){
   if([x,y,width,height].every(Number.isFinite)&&width>1&&height>1)hangarPreviewOptions={frame:{x,y,width,height}};
 }
 function goHome(){recordFlightResult();stopGunnerFire();coop=false;team.leave();closeDialogs();paused=remotePaused=false;crewRole=null;sim=null;activeStart=null;spectatedId=spectatorView=null;endHandled=false;syncCrewUI();refreshHome();showScreen('home');}
-function closeDialogs(){cancelBindingCapture();setAircraftTray(false);settingsFromPause=resumeAfterSettings=false;for(const d of [$('pause-dialog'),$('settings-dialog')])if(d.open)d.close();}
+function closeDialogs(){cancelBindingCapture();setAircraftTray(false);setCameraPanel(false);audio.stopEnginePreview?.();settingsFromPause=resumeAfterSettings=guideReturnToPause=false;for(const d of [$('pause-dialog'),$('settings-dialog'),$('controls-dialog')])if(d.open)d.close();}
 function setAircraftTray(open){
   const expanded=Boolean(open&&screen==='flight'&&!paused&&!remotePaused);
   setNavigationTray(false);
@@ -114,6 +118,38 @@ function setNavigationTray(open){
   $('flight-nav-toggle').setAttribute('aria-expanded',String(expanded));
   $('flight-nav-toggle').setAttribute('aria-label',expanded?'Hide navigation and mission details':'Show navigation and mission details');
   markerBoundsDirty=true;
+}
+function setCameraPanel(open,restoreFocus=false){
+  const button=$('camera-button'),panel=$('camera-panel');
+  const active=!!open&&screen==='flight'&&!paused&&!remotePaused&&!scoreboardOpen&&!isGunner()&&!isDescending();
+  if(active){setAircraftTray(false);refreshCameraPanel();}
+  panel.hidden=!active;
+  button.setAttribute('aria-expanded',String(active));
+  if(restoreFocus)button.focus?.();
+}
+function refreshCameraPanel(){
+  for(const button of $$('[data-camera-mode]'))button.setAttribute('aria-pressed',String(button.dataset.cameraMode===settings.camera));
+  const cockpit=settings.camera==='cockpit';
+  $('camera-distance').value=String(settings.chaseZoom);
+  $('camera-distance').disabled=cockpit;
+  setText('camera-distance-value',`${settings.chaseZoom}%`);
+  setText('camera-mouse-hint',cockpit?'Drag the scene to look around.':'Drag the scene to look around. Scroll for distance.');
+  $('camera-mouse-hint').hidden=isTouchLayout();
+}
+function setChaseZoom(value){
+  const zoom=clamp(value,80,180);
+  if(zoom===settings.chaseZoom)return;
+  settings.chaseZoom=zoom;
+  if(!$('camera-panel').hidden)refreshCameraPanel();
+  clearTimeout(zoomSaveTimer);
+  zoomSaveTimer=setTimeout(()=>saveSettings(settings),240);
+}
+function chooseCamera(mode){
+  if(!Object.hasOwn(CAMERA_MODES,mode))return;
+  settings.camera=mode;
+  cameraInput.cancel();
+  saveSettings(settings);
+  refreshCameraPanel();
 }
 function payloadOptions(nuclearOnly=false){
   return (nuclearOnly?'':'<option value="conventional">Conventional bomb</option>')+Object.values(NUCLEAR_PAYLOADS).map(p=>`<option value="${p.id}">${escapeHTML(p.label)}</option>`).join('');
@@ -145,7 +181,13 @@ const gunnerControls=new GunnerControls({surface:$('gunner-aim-surface'),pad:$('
   if(name==='target')selectCrewTarget();
   if(sim)updateCrewHUD();
 }});
-function setFlightInputs(active){active=!!active&&screen==='flight'&&sim?.status==='flying'&&!isSpectating()&&!scoreboardOpen;controls.setActive(active&&!isGunner()&&!isDescending());gunnerControls.setActive(active&&isGunner());}
+function setFlightInputs(active){
+  const flight=!!active&&screen==='flight'&&sim?.status==='flying'&&!scoreboardOpen;
+  const pilot=flight&&!isSpectating();
+  cameraInput.setEnabled(flight&&!isGunner()&&!isDescending());
+  controls.setActive(pilot&&!isGunner()&&!isDescending());
+  gunnerControls.setActive(pilot&&isGunner());
+}
 function releaseGunnerFire(){if(isGunner()&&team.connected)team.sendCrewInput({...gunnerControls.read(0),fire:false});}
 function stopGunnerFire(){if(!isCrewFlight())return;if(team.isHost&&sim?.crew)sim.applyCrewInput({...sim.crew,fire:false},sim.crew.gunnerId,{reset:true});else if(team.connected)team.sendCrewInput({...gunnerControls.read(0),fire:false},{reset:true});}
 function selectCrewTarget(){
@@ -234,7 +276,7 @@ function submitRoomConfiguration(){
 }
 function setScoreboard(open){
   scoreboardOpen=!!open&&screen==='flight'&&coop&&!isCrewFlight();$('scoreboard-panel').hidden=!scoreboardOpen;$('scoreboard-button').setAttribute('aria-expanded',String(scoreboardOpen));
-  if(scoreboardOpen){controls.clear();updateMultiplayerHUD();}setFlightInputs(screen==='flight'&&!paused&&!remotePaused);
+  if(scoreboardOpen){setCameraPanel(false);controls.clear();updateMultiplayerHUD();}setFlightInputs(screen==='flight'&&!paused&&!remotePaused);
 }
 function syncLifeState(){
   if(!sim||!coop||isCrewFlight())return;
@@ -342,7 +384,7 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
   m=sim.mission;lastLifeId=sim.player.lifeId||1;destructionAt=null;combatFeedback.reset(sim);paintCombatFeedback(null);
   presentation.reset(sim);renderView=presentation.sample(1);markerBoundsDirty=true;lastCrewSnapshot=performance.now();gunnerControls.reset();syncCrewUI();
   if(isCrewFlight())sim.targetId=sim.targets.find(t=>t.health>0&&!t.friendly)?.id||null;
-  renderer.loadMission(m,currentAircraft());controls.settings=settings;controls.setThrottle(sim.player.throttle||0);controls.lookX=controls.lookY=0;
+  renderer.loadMission(m,currentAircraft());controls.settings=settings;controls.setThrottle(sim.player.throttle||0);cameraInput.cancel();
   $('flight-mission-number').textContent=m.passengerRoute?.flightNumber|| (m.operation?'OPS':m.kind==='gunship'?'CREW':coop&&isDogfightMode(team.mode)?'VS':coop&&team.mode==='coop'?'CO-OP':m.number?String(m.number).padStart(2,'0')+' / '+MISSIONS.length:'FREE');$('flight-title').textContent=m.title.toUpperCase();$('flight-aircraft').textContent=currentAircraft().name.toUpperCase();$('radio-caption').hidden=true;$('flight-warning').hidden=true;$('flight-network').hidden=!coop;
   if(m.number){progress.lastMission=m.id;saveProgress(progress);}
   showScreen('flight');updateHUD();
@@ -353,10 +395,11 @@ function startMission(m,{cooperative=false,role=null,startData=null}={}){
 
 function handleAction(name){
   if(isGunner()){if(name==='target')selectCrewTarget();return;}
-  if(name==='camera'){if(isDescending())return;settings.camera=settings.camera==='chase'?'cockpit':settings.camera==='cockpit'?'cinematic':'chase';saveSettings(settings);toast(settings.camera==='chase'?'Chase camera':settings.camera==='cockpit'?'Cockpit view':'Cinematic view');return;}
+  if(name==='centerView'){cameraInput.cancel();return;}
+  if(name==='camera'){if(isDescending())return;chooseCamera(settings.camera==='chase'?'cockpit':settings.camera==='cockpit'?'cinematic':'chase');toast(`${CAMERA_MODES[settings.camera]} view`);return;}
   if(!sim||isSpectating()||scoreboardOpen||paused||remotePaused||(coop&&(!team.connected||team.paused||(!team.isHost&&team.hostStale))))return;
   if(coop&&!team.isHost&&sim.mission.kind==='nuclear'&&['payload','abort'].includes(name)){toast('The flight lead makes the final decision for the squadron.');return;}
-  audio.unlock();setAircraftTray(false);const weapon=['missile','payload','countermeasure'].includes(name);
+  audio.unlock();const weapon=['missile','payload','countermeasure'].includes(name);
   if(name==='bailout'&&coop&&!team.isHost){
     const state=sim.bailoutStatus;
     if(state?.canBail)team.sendAction({name:'bailout',lifeId:sim.player.lifeId});
@@ -370,7 +413,7 @@ function handleAction(name){
   if(name==='level')toast('Level recovery engaged.');if(name==='countermeasure')audio.cue('missile');updateHUD();
 }
 function pauseFlight(){
-  if(screen!=='flight'||!sim)return;setScoreboard(false);stopGunnerFire();paused=true;setAircraftTray(false);setFlightInputs(false);audio.setActive(false);
+  if(screen!=='flight'||!sim)return;setScoreboard(false);stopGunnerFire();paused=true;setAircraftTray(false);setCameraPanel(false);setFlightInputs(false);audio.setActive(false);
   $('pause-note').textContent=isArenaFlight()?'The round keeps running while this menu is open. Your aircraft continues on its current course.':isSpectating()?'Your squadron keeps flying while you spectate or change settings.':isCrewFlight()?(team.isHost?'The shared aircraft and mission are paused for both crew members.':'Your guns are safe. Your pilot continues flying the shared aircraft.'):coop?(team.isHost?'The squadron mission is paused while you are here.':'Your aircraft is holding. The squadron mission continues.'):'Your flight is paused.';
   $('pause-restart').textContent=coop?(team.isHost?'Restart with squadron':'Return to squadron room'):'Restart sortie';
   $('pause-restart').hidden=coop&&!team.isHost&&!isCrewFlight()&&sim.status==='flying';$('pause-room').hidden=!coop||!team.isHost;
@@ -384,6 +427,7 @@ const jetStartupCopy=[['Fuel supply.','Open the fuel supply.','Open fuel supply'
 const passengerStartupCopy=[['Fuel supply.','Switch on the fuel pumps for both engines.','Fuel pumps on'],['Flight deck power.','Bring the aircraft systems online.','Systems on'],['Engine start ready.','Prepare both engines for start.','Prepare engines'],['Start the engines.','Start both turbofans. Keep the brake set until you are ready to depart.','Start engines']];
 function updateBailoutHUD(aviation){
   const state=sim.bailoutStatus,phase=state?.phase;
+  if((phase==='disabled'||phase==='descending')&&!$('camera-panel').hidden)setCameraPanel(false);
   const show=state&&['critical','disabled','descending'].includes(phase)&&!isSpectating();
   $('bailout-panel').hidden=!show;
   if(!show){delete $('flight-screen').dataset.bailout;return;}
@@ -410,8 +454,10 @@ function updateHUD(){
   setText('throttle-output',number(controls.throttleValue*100)+'%');setText('touch-throttle-output',number(controls.throttleValue*100)+'%');$('touch-throttle-fill').style.width=number(controls.throttleValue*100)+'%';setText('gear-state',a.fixedGear?'FIXED':p.gear?'DOWN':'UP');document.querySelector('[data-action=gear]').disabled=!!a.fixedGear;setText('flaps-state',p.flaps?'DOWN':'UP');document.querySelector('[data-action=flaps]').hidden=a.hasFlaps===false;setText('brake-state',p.brake?'ON':'OFF');setText('hover-state',p.hover?'ON':'OFF');
   for(const [act,state] of [['gear',p.gear],['flaps',p.flaps],['brake',p.brake],['hover',p.hover]])$$(`[data-action="${act}"]`).forEach(b=>b.classList.toggle('active',!!state));
   $('hover-action').hidden=!a.vtol;$('fire-button').hidden=!a.gun;$('missile-action').hidden=!a.missiles;$('payload-action').hidden=!(a.bombs||p.troopers||m.kind==='drop'||m.kind==='nuclear');$('countermeasure-action').hidden=!(a.missiles||a.radar);$('radar-action').hidden=!a.radar;
+  if(!(a.gun||a.missiles))$('crosshair').hidden=true;
   $('flight-screen').dataset.guns=String(!!a.gun);
-  $('weapon-actions').hidden=!(a.gun||a.bombs||a.missiles||a.radar||p.troopers);$('crosshair').hidden=isDescending()||!(a.gun||a.missiles);
+  $('takeoff-brake').hidden=!isTouchLayout()||settings.guidance!=='guided'||!p.engine||!p.onGround||!p.brake||p.everAirborne||isGunner()||isSpectating();
+  $('weapon-actions').hidden=!(a.gun||a.bombs||a.missiles||a.radar||p.troopers);
   const lock=sim.lockProgress||0;setText('lock-state',lock>=1?'LOCKED':lock>0?'LOCKING '+number(lock*100)+'%':sim.lockReason==='Terrain masks the contact'?'TERRAIN MASKED':'NO LOCK');$('missile-action').classList.toggle('ready',lock>=1);setText('radar-state',sim.radarOn?'ON':'OFF');setText('radar-label',a.radar?(sim.radarOn?'RADAR · CONTACTS':'RADAR SILENT'):'NAVIGATION');
   const nuclear=getNuclearPayload(p.payload),minimumRelease=nuclear?Math.max(nuclear.minimumAltitude,m.goal?.type==='decision'?m.goal.minimumAltitude||0:0):0,releaseLocked=!!(nuclear&&(p.onGround||alt<minimumRelease));
   const releaseAltitude=nuclear?number(minimumRelease*(aviation?3.28084:1)).toLocaleString()+' '+(aviation?'FT':'M')+' AGL':'';
@@ -480,6 +526,7 @@ function drawRadar(){
   ctx.fillStyle='#bccfb8';ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText((range/1000).toFixed(1)+' KM',0,101);ctx.restore();
 }
 function updateMarkers(view=sim){
+  updateGunsight(view);
   if(!sim||screen!=='flight'){impactMarker.hidden=true;return;}if(isSpectating()||isDescending()){$('target-marker').hidden=$('waypoint-pointer').hidden=impactMarker.hidden=true;return;}const target=(view.enemies||[]).find(e=>e.id===sim.targetId&&e.health>0)||(view.targets||[]).find(t=>t.id===sim.targetId&&t.health>0)||(sim.remotePlayers||[]).find(p=>p.id===sim.targetId&&p.alive!==false&&p.health>0&&p.bailout?.phase!=='descending');const marker=$('target-marker');
   if(target&&target.detected!==false&&lineOfSight(sim.player,target,sim.mission)){const q=renderer.project(target.x,target.y,target.z);marker.hidden=!q?.visible;if(q?.visible){marker.style.left=q.x+'px';marker.style.top=q.y+'px';$('target-name').textContent=target.label||target.type||'CONTACT';$('target-distance').textContent=(dist(sim.player,target)/1000).toFixed(1)+' KM';marker.classList.toggle('locked',(sim.lockProgress||0)>=1);}}else marker.hidden=true;
   const wp=sim.navigationTarget||sim.mission.waypoints?.[sim.waypointIndex],ptr=$('waypoint-pointer');if(wp&&settings.guidance!=='minimal'){
@@ -504,6 +551,14 @@ function updateMarkers(view=sim){
     }
   }
 }
+function updateGunsight(view){
+  const sight=$('crosshair');
+  if(!sim||screen!=='flight'||isGunner()||isSpectating()||isDescending()||!(currentAircraft().gun||currentAircraft().missiles)){sight.hidden=true;return;}
+  const p=view.player,{forward}=basis(orientationOf(p));
+  const aim=renderer.project(p.x+forward.x*350,p.y+forward.y*350,p.z+forward.z*350);
+  sight.hidden=!aim?.visible||aim.x<20||aim.x>innerWidth-20||aim.y<20||aim.y>innerHeight-20;
+  if(!sight.hidden){sight.style.left=`${aim.x}px`;sight.style.top=`${aim.y}px`;}
+}
 function finishFlight(){
   if(endHandled||!sim)return;closeDialogs();if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;setFlightInputs(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=currentAircraft(),dogfight=coop&&isDogfightMode(team.mode),paired=coop&&team.mode==='team-dogfight';const health=number(sim.player.health/(a.health||100)*100),minutes=formatRoundTime(dogfight?sim.round?.elapsed:sim.time);
   if(won&&m.number){const previous=progress.completed[m.id];progress.completed[m.id]={score:Math.max(sim.score||0,previous?.score||0),time:sim.time,ending:sim.ending||null};progress.totalTime+=sim.time;if(!saveProgress(progress))toast('This browser could not save your logbook. Keep this tab open.',7500);}
@@ -522,11 +577,32 @@ function finishFlight(){
 }
 
 function openSettings(){
-  audio.unlock();setAircraftTray(false);settingsFromPause=$('pause-dialog').open;resumeAfterSettings=screen==='flight'&&!paused;
+  audio.unlock();setAircraftTray(false);setCameraPanel(false);settingsFromPause=$('pause-dialog').open;resumeAfterSettings=screen==='flight'&&!paused;
   if(resumeAfterSettings){paused=true;setFlightInputs(false);audio.setActive(false);if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:sharedWorldPaused()});}
   if(settingsFromPause)$('pause-dialog').close();renderSettings();$('settings-dialog').showModal();
 }
-function closeSettings(){cancelBindingCapture();controls.clear();if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}if(screen==='operations')renderOperations();}
+function closeSettings(){cancelBindingCapture();audio.stopEnginePreview?.();controls.clear();if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}if(screen==='operations')renderOperations();}
+function openControlGuide(){
+  guideReturnToPause=$('pause-dialog').open;
+  if(screen==='flight'&&!paused)pauseFlight();
+  if($('pause-dialog').open)$('pause-dialog').close();
+  const sides=touchSides(),rise=settings.touchPitch==='push'?'up':'down';
+  const row=(label,detail)=>`<dt>${escapeHTML(label)}</dt><dd>${escapeHTML(detail)}</dd>`;
+  const key=id=>bindingLabel(id),gunner=isGunner();
+  const desktop=gunner?[
+    ['Aim','Move the mouse'],['Fire',`Hold primary mouse button or ${key('gunner:fire')}`],['Change gun',[25,40,105].map(seat=>key('gunner:seat'+seat)).join(' / ')],['Zoom and center',`${key('gunner:zoom')} / ${key('gunner:recenter')}`],
+  ]:[
+    ['Pitch',`${key('pitchUp')} nose up · ${key('pitchDown')} nose down`],['Bank',`${key('rollLeft')} / ${key('rollRight')}`],['Rudder',`${key('yawLeft')} / ${key('yawRight')}`],['Throttle',`${key('throttleUp')} more · ${key('throttleDown')} less`],['Takeoff and landing',`${key('brake')} brake · ${key('gear')} gear · ${key('flaps')} flaps`],['Weapons',`Hold ${key('fire')} to fire guns · ${key('target')} next target · ${key('missile')} missile`],['Camera',`Drag to look · scroll for distance · ${key('centerView')} center · ${key('camera')} cycle views`],
+  ];
+  const touch=gunner?[[`${sides.power} pad`,'Drag to aim'],[`${sides.flight} side`,'Hold Fire. Tap a station button to select a gun.']]:[[`${sides.power} pad`,'Up for more thrust, down for less, sideways for rudder.'],[`${sides.flight} pad`,`Drag ${rise} to raise the nose. Drag sideways to bank.`],['Aircraft and weapons','Tap Systems for brake, gear, flaps and weapons. Hold Fire when available.'],['Instruments','Tap Nav to see mission orders, radar and scores.']];
+  setMarkup('control-guide',`<h3>${isTouchLayout()?'Touch':'Mouse and keyboard'}</h3><dl>${(isTouchLayout()?touch:desktop).map(([label,detail])=>row(label,detail)).join('')}</dl>`);
+  $('controls-dialog').showModal();
+}
+function closeControlGuide(){
+  $('controls-dialog').close();
+  if(guideReturnToPause){guideReturnToPause=false;$('pause-dialog').showModal();}
+  else if(screen==='flight')resumeFlight();
+}
 function bindingInfo(id){const gunner=id.startsWith('gunner:');return {id:gunner?id.slice(7):id,scope:gunner?'gunnerBindings':'keyBindings',actions:gunner?GUNNER_BINDING_ACTIONS:BINDING_ACTIONS};}
 function bindingLabel(id){const info=bindingInfo(id);return formatKeyCode(settings[info.scope][info.id]);}
 function bindingFeedback(message){const el=$('keybinding-feedback');if(el)el.textContent=message;}
@@ -548,9 +624,10 @@ function keyboardSettings(){
 }
 function refreshKeyboardHints(){
   const pair=(a,b)=>`${escapeHTML(bindingLabel(a))} / ${escapeHTML(bindingLabel(b))}`;
-  $('desktop-controls').innerHTML=`${pair('pitchUp','pitchDown')} <span>pitch up / down</span> · ${pair('rollLeft','rollRight')} <span>roll</span> · ${pair('yawLeft','yawRight')} <span>yaw</span> · ${pair('throttleUp','throttleDown')} <span>thrust + / −</span> · ESC <span>pause & setup</span>`;
+  setMarkup('desktop-controls',`${escapeHTML(bindingLabel('pitchUp'))} nose up / ${escapeHTML(bindingLabel('pitchDown'))} down · ${pair('rollLeft','rollRight')} bank · ${pair('yawLeft','yawRight')} rudder · ${pair('throttleUp','throttleDown')} thrust · Drag to look`);
   for(const button of $$('[data-action]')){const action=BINDING_ACTIONS.find(a=>a.id===button.dataset.action);if(action)labelFlightButton(button,action.id,action.label);}
-  labelFlightButton($('camera-button'),'camera','Change camera');
+  labelFlightButton($('camera-button'),'camera','Camera controls (press key to cycle)');
+  labelFlightButton($('center-camera'),'centerView','Center camera view');
   labelFlightButton($('fire-button'),'fire','Hold guns');
   labelFlightButton($('pause-button'),'pause','Pause');
   $('pause-button').title=`Pause · Esc / ${bindingLabel('pause')}`;
@@ -586,7 +663,7 @@ function flightHint(hint){
   if(isTouchLayout()){
     const sides=touchSides();
     if(sim?.player.stalled&&hint)return hint;
-    if(sim?.player.engine&&sim.player.onGround&&sim.player.brake)return `AIRCRAFT → BRAKE releases the wheels. Then push the ${sides.power.toLowerCase()} pad up to add thrust.`;
+    if(sim?.player.engine&&sim.player.onGround&&sim.player.brake)return `Release the brake in Systems. Then push the ${sides.power.toLowerCase()} pad up to add thrust.`;
     if(sim?.player.hover)return `HOVER · ${sides.power}: yaw + thrust; half thrust holds height when upright. ${sides.flight}: pitch and roll tilt the aircraft to move across the ground.`;
     if(sim?.player.onGround&&hint)return hint;
     if(!hint||sim?.mission.kind==='free')return `${sides.power}: yaw + thrust. ${sides.flight}: pitch + roll. ${settings.touchPitch==='push'?'Push up':'Pull down'} to pitch up. Release the thrust pad to hold power.`;
@@ -598,7 +675,7 @@ function flightHint(hint){
 }
 function touchSettings(){
   const sides=touchSides();
-  return `<div class="controls-diagram"><span class="mini-yaw">${sides.power.toUpperCase()}<small>YAW + THRUST</small></span><p>Two thumbs.<br>All four flight axes.</p><span class="mini-flight">${sides.flight.toUpperCase()}<small>PITCH + ROLL</small></span></div><p class="small-note">${sides.power} thumb: move sideways to yaw, up to add thrust, down to reduce it. Release to hold your thrust setting. ${sides.flight} thumb: pitch and roll. The camera follows your aircraft.</p><p class="small-note">To shoot, lift your ${sides.power.toLowerCase()} thumb and hold FIRE. Your ${sides.flight.toLowerCase()} thumb can keep flying. AIRCRAFT opens gear, flaps, brakes and hover controls.</p>`
+  return `<div class="controls-diagram"><span class="mini-yaw">${sides.power.toUpperCase()}<small>YAW + THRUST</small></span><p>Two thumbs.<br>All four flight axes.</p><span class="mini-flight">${sides.flight.toUpperCase()}<small>PITCH + ROLL</small></span></div><p class="small-note">${sides.power} thumb: move sideways to yaw, up to add thrust, down to reduce it. Release to hold your thrust setting. ${sides.flight} thumb: pitch and roll. The camera follows your aircraft.</p><p class="small-note">To shoot, lift your ${sides.power.toLowerCase()} thumb and hold FIRE. Your ${sides.flight.toLowerCase()} thumb can keep flying. SYSTEMS opens gear, flaps, brakes and hover controls.</p>`
     +selectSetting('touchPitch','Pitch direction',[['pull','Pull down to pitch up — like the desktop arrows'],['push','Push up to pitch up']],'Changes only the touch pad. Your desktop key assignments keep their named directions.')
     +toggleSetting('leftHanded','Swap the two thumbs','Move pitch and roll to the left; yaw, thrust and FIRE to the right.')
     +rangeSetting('stickSize','Size of both thumb pads',80,152,2,' px')
@@ -611,19 +688,51 @@ function touchSettings(){
     +'<p class="small-note">AC-130 gunner: one thumb aims, the other holds FIRE. Use the buttons to switch stations or zoom. Swap the two thumbs also applies here.</p>'
     +'<button id="reset-touch-controls" class="secondary wide">Restore touch defaults</button>';
 }
-function rangeSetting(key,label,min,max,step=1,suffix='',help=''){return `<div class="setting-row"><label><span class="setting-top"><span>${label}</span><output data-output="${key}">${settings[key]}${suffix}</output></span><input type="range" data-setting="${key}" min="${min}" max="${max}" step="${step}" value="${settings[key]}" aria-label="${label}">${help?`<p>${help}</p>`:''}</label></div>`;}
+function rangeSetting(key,label,min,max,step=1,suffix='',help='',value=settings[key]){return `<div class="setting-row"><label><span class="setting-top"><span>${label}</span><output data-output="${key}" data-suffix="${suffix}">${settings[key]===null?'Automatic':settings[key]+suffix}</output></span><input type="range" data-setting="${key}" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${label}">${help?`<p>${help}</p>`:''}</label></div>`;}
 function toggleSetting(key,label,help=''){return `<div class="setting-row"><label class="setting-toggle"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''} aria-label="${label}"></label>${help?`<p>${help}</p>`:''}</div>`;}
 function selectSetting(key,label,opts,help=''){return `<div class="setting-row"><label>${label}<select data-setting="${key}">${opts.map(([v,t])=>`<option value="${v}" ${settings[key]===v?'selected':''}>${t}</option>`).join('')}</select></label>${help?`<p>${help}</p>`:''}</div>`;}
+function cameraSettings(){
+  return selectSetting('camera','Default view',Object.entries(CAMERA_MODES))
+    +rangeSetting('chaseZoom','Outside camera distance',80,180,5,'%','Also adjustable with the mouse wheel or the in-flight Camera panel.')
+    +rangeSetting('fov','Vertical field of view',45,90,1,'°','Applies to chase, cinematic and pilot cockpit views.',settings.fov??(innerWidth<innerHeight?67:59))
+    +rangeSetting('mouseLookSensitivity','Mouse look sensitivity',25,200,5,'%')
+    +toggleSetting('keepLookAngle','Keep camera angle when released',`Use ${escapeHTML(bindingLabel('centerView'))} or Center view to reset the angle.`)
+    +'<button id="reset-camera" class="secondary wide">Restore camera defaults</button>';
+}
+function displaySettings(){
+  const sample=sim?currentAircraft():screen==='free'?selectedAircraft:hangarAircraft[hangarIndex];
+  const choices=hangarAircraft.map(a=>`<option value="${escapeHTML(a.id)}"${a.id===sample.id?' selected':''}>${escapeHTML(a.name)}</option>`).join('');
+  return '<h3>Sound</h3>'
+    +toggleSetting('sound','Flight audio')
+    +rangeSetting('volume','Master volume',0,100,5,'%')
+    +rangeSetting('engineVolume','Engine & wind',0,100,5,'%')
+    +rangeSetting('effectsVolume','Effects & warnings',0,100,5,'%')
+    +`<div class="setting-row engine-preview"><label>Engine preview<select id="engine-preview-aircraft">${choices}</select></label><label>Listening position<select id="engine-preview-view"><option value="chase">Outside</option><option value="cockpit"${settings.camera==='cockpit'?' selected':''}>Cockpit</option></select></label><button id="preview-engine" type="button" class="secondary wide"${settings.sound?'':' disabled'}>Hear engine</button><p id="engine-preview-status" class="small-note" role="status"></p></div>`
+    +'<button id="test-audio" class="secondary wide">Test hit &amp; explosion sounds</button>'
+    +toggleSetting('captions','Radio captions')
+    +'<h3>Graphics</h3>'
+    +selectSetting('quality','Graphics quality',[['auto','Automatic — adjusts 3D resolution'],['low','Low — smaller 3D buffer'],['high','High — sharper 3D detail']])
+    +toggleSetting('reducedMotion','Reduced motion','Steadier cameras and fewer effects.')
+    +toggleSetting('highContrast','High-contrast instruments')
+    +toggleSetting('largeText','Larger flight guidance')
+    +selectSetting('theme','Interface appearance',[['night','Night'],['day','Day']]);
+}
 function renderSettings(){
   cancelBindingCapture();
   $$('[data-settings-tab]').forEach(b=>{const active=b.dataset.settingsTab===settingsTab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});let html='';
   if(settingsTab==='keyboard')html=keyboardSettings()+rangeSetting('sensitivity','Control sensitivity',.4,1.8,.1,'×','Applies to pitch, roll and gunner aiming.');
   if(settingsTab==='controls')html=touchSettings();
   if(settingsTab==='flight')html=selectSetting('assist','Flight handling',[['assisted','Assisted — forgiving and coordinated'],['standard','Standard — watch your energy'],['expert','Expert — more demanding handling']],'Start assisted. Each aircraft still has its own speed, inertia and stall limits.')+selectSetting('guidance','On-screen guidance',[['guided','Guided — flight orders and useful hints'],['standard','Standard — objectives with hints'],['minimal','Minimal — fewer overlays']])+toggleSetting('autoLevel','Auto-level when you release flight controls','Acts only with no pitch, roll or yaw input. Turn it off to stop automatic leveling after release. LEVEL remains available for recovery.')+selectSetting('units','Instrument units',[['metric','Metric — km/h and metres'],['aviation','Aviation — knots and feet']])+`<div class="setting-row"><p>Pitch, roll and yaw rotate around your aircraft’s own axes, including when banked or inverted. These are approachable flight models with game-scale distances and simplified aircraft systems. The opening sortie teaches startup, takeoff, weather and landing.</p></div>`;
-  if(settingsTab==='display')html=selectSetting('theme','Interface appearance',[['night','Night — dark menus and background'],['day','Day — light menus and background']],'Choose the appearance of the hangar, menus and panels. Mission lighting follows the sortie.')+toggleSetting('sound','Flight audio','Engine, wind, weapons and warning tones. Every essential warning also appears on screen.')+rangeSetting('volume','Master volume',0,100,5,'%')+rangeSetting('engineVolume','Engine & wind',0,100,5,'%')+rangeSetting('effectsVolume','Effects & warnings',0,100,5,'%')+toggleSetting('captions','Radio captions')+toggleSetting('reducedMotion','Reduced motion','Steadier cameras and fewer visual effects.')+toggleSetting('highContrast','High-contrast instruments')+toggleSetting('largeText','Larger flight guidance')+selectSetting('quality','Graphics quality',[['auto','Automatic — adjusts 3D resolution'],['low','Low — smaller 3D buffer'],['high','High — sharper 3D detail']], 'Automatic aims for smoother flight. Instruments and controls stay the same size as the scene resolution changes.')+selectSetting('camera','Camera',[['chase','Chase — see your aircraft'],['cockpit','Cockpit — pilot view'],['cinematic','Cinematic — a wider following view']])+`<button id="test-audio" class="secondary wide">Test hit &amp; explosion sounds</button><p class="small-note">On iPhone, sound begins after a tap. Device volume and the browser’s audio output still apply.</p>`;
+  if(settingsTab==='camera')html=cameraSettings();
+  if(settingsTab==='display')html=displaySettings();
   if(settingsTab==='display')html+=`<div class="setting-row"><p id="graphics-status" class="small-note">${escapeHTML(graphicsStatus())}</p><button id="copy-graphics-status" class="secondary wide">Copy graphics report</button></div>`;
   $('settings-content').innerHTML=html;$('settings-content').scrollTop=0;
-  $('test-audio')?.addEventListener('click',async()=>{await audio.unlock();audioPreviewUntil=performance.now()+2400;audio.setActive(true);audio.cue('hit',{intensity:.9,weapon:'gun',pan:-.35});setTimeout(()=>audio.cue('explosion',{intensity:.9,distance:90,radius:85,pan:.25}),550);setTimeout(()=>audio.setActive(screen==='flight'&&!paused&&!remotePaused),2400);});
+  $('test-audio')?.addEventListener('click',async()=>{audio.stopEnginePreview?.();await audio.unlock();audioPreviewUntil=performance.now()+2400;audio.setActive(true);audio.cue('hit',{intensity:.9,weapon:'gun',pan:-.35});setTimeout(()=>audio.cue('explosion',{intensity:.9,distance:90,radius:85,pan:.25}),550);setTimeout(()=>audio.setActive(screen==='flight'&&!paused&&!remotePaused),2400);});
+  $('preview-engine')?.addEventListener('click',async()=>{
+    const id=$('engine-preview-aircraft').value,status=$('engine-preview-status');
+    const playing=await audio.previewEngine?.(id,{camera:$('engine-preview-view').value});
+    if(status===$('engine-preview-status'))status.textContent=playing?`${getAircraft(id).name} · idle to cruise`:'Engine preview unavailable. Check flight audio and volume.';
+  });
   $('copy-graphics-status')?.addEventListener('click',copyGraphicsStatus);
 }
 function updateSettings(){
@@ -633,6 +742,8 @@ function updateSettings(){
   $('sound-button').querySelector('.sound-label').textContent=settings.sound?'Sound on':'Sound off';$('sound-glyph').textContent=settings.sound?'◖':'⊘';$('sound-button').setAttribute('aria-label',settings.sound?'Mute sound':'Enable sound');
   const night=settings.theme==='night';$('theme-label').textContent=night?'Night':'Day';$('theme-button').setAttribute('aria-pressed',String(night));$('theme-button').setAttribute('aria-label',night?'Switch to day mode':'Switch to night mode');$('theme-button').title=night?'Switch to day mode':'Switch to night mode';
   if($('graphics-status'))setText('graphics-status',graphicsStatus());
+  if($('preview-engine'))$('preview-engine').disabled=!settings.sound;
+  refreshCameraPanel();
   refreshKeyboardHints();refreshTouchHints();return settingsSaved;
 }
 
@@ -667,7 +778,9 @@ $('scoreboard-button').onclick=e=>{if(e?.detail)$('scoreboard-button').blur();se
 $('debrief-room').onclick=()=>{if(team.isHost){team.returnToLobby();return;}closeDialogs();paused=false;updateRoom();showScreen('squadron');};
 $('copy-room').onclick=async()=>{const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squadron',team.code);try{if(navigator.share&&matchMedia('(pointer:coarse)').matches)await navigator.share({title:'Fly with me · SKYWARD',url:String(url)});else{await navigator.clipboard.writeText(String(url));toast('Invite link copied.');}}catch{toast('Squadron code: '+team.code,7000);}};
 $$('[data-open-settings]').forEach(b=>b.onclick=openSettings);$('close-settings').onclick=closeSettings;$('done-settings').onclick=closeSettings;
-$$('[data-settings-tab]').forEach(b=>b.onclick=()=>{settingsTab=b.dataset.settingsTab;renderSettings();});
+$$('[data-open-controls]').forEach(b=>b.onclick=openControlGuide);$('close-controls').onclick=closeControlGuide;
+$('controls-dialog').addEventListener('cancel',event=>{event.preventDefault();closeControlGuide();});
+$$('[data-settings-tab]').forEach(b=>b.onclick=()=>{audio.stopEnginePreview?.();settingsTab=b.dataset.settingsTab;renderSettings();});
 $('settings-content').addEventListener('click',e=>{
   const button=e.target.closest('[data-binding]');
   if(button){bindingCapture=button.dataset.binding;controls.clear();gunnerControls.clear();refreshBindingButtons();const info=bindingInfo(bindingCapture),action=info.actions.find(a=>a.id===info.id);bindingFeedback(`Press a key for ${action.label}. Escape cancels.`);return;}
@@ -675,9 +788,11 @@ $('settings-content').addEventListener('click',e=>{
   if(e.target.closest('#reset-keybindings')){cancelBindingCapture();controls.clear();settings.keyBindings={...DEFAULT_KEY_BINDINGS};updateSettings();refreshBindingButtons();bindingFeedback('Default keyboard controls restored. '+(settingsSaved?'Saved.':'Applied for this tab; this browser could not save the change.'));}
   if(e.target.closest('#reset-gunner-bindings')){cancelBindingCapture();gunnerControls.clear();settings.gunnerBindings={...DEFAULT_GUNNER_BINDINGS};updateSettings();refreshBindingButtons();bindingFeedback('Default gunner keys restored. '+(settingsSaved?'Saved.':'Applied for this tab.'));}
   if(e.target.closest('#reset-touch-controls')){controls.clear();for(const key of ['stickSize','buttonSize','offsetX','offsetY','sensitivity','deadZone','controlOpacity','leftHanded','touchPitch'])settings[key]=DEFAULTS[key];updateSettings();renderSettings();toast('Touch controls restored.');}
+  if(e.target.closest('#reset-camera')){for(const key of ['camera','chaseZoom','fov','mouseLookSensitivity','keepLookAngle'])settings[key]=DEFAULTS[key];cameraInput.cancel();updateSettings();renderSettings();}
 });
 window.addEventListener('keydown',e=>{
-  if(screen==='flight'&&!$('settings-dialog').open&&!$('pause-dialog').open&&(scoreboardOpen||isSpectating())){if(e.repeat)return;if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(scoreboardOpen)setScoreboard(false);else pauseFlight();return;}if(isSpectating()&&e.code===settings.keyBindings.camera){e.preventDefault();handleAction('camera');return;}}
+  if(e.code==='Escape'&&!$('camera-panel').hidden){e.preventDefault();e.stopImmediatePropagation();setCameraPanel(false,true);return;}
+  if(screen==='flight'&&!$('settings-dialog').open&&!$('pause-dialog').open&&!$('controls-dialog').open&&(scoreboardOpen||isSpectating())){if(e.repeat)return;if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(scoreboardOpen)setScoreboard(false);else pauseFlight();return;}if(isSpectating()&&[settings.keyBindings.camera,settings.keyBindings.centerView].includes(e.code)){e.preventDefault();handleAction(e.code===settings.keyBindings.camera?'camera':'centerView');return;}}
   if(!bindingCapture||!$('settings-dialog').open)return;
   if(e.ctrlKey||e.metaKey||e.altKey){cancelBindingCapture('Key change cancelled. Choose a single key without Control, Command or Alt.');return;}
   e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
@@ -690,9 +805,24 @@ window.addEventListener('keydown',e=>{
   controls.clear();gunnerControls.clear();bindingCapture=null;updateSettings();refreshBindingButtons();
   bindingFeedback(`${action.label}: ${bindingLabel(bindingId)}.${conflict?` ${conflict.label} moved to ${formatKeyCode(settings[info.scope][conflict.id])}.`:''} ${settingsSaved?'Saved.':'Applied for this tab; this browser could not save the change.'}`);
 },true);
-document.addEventListener('pointerdown',e=>{if(bindingCapture&&!e.target.closest('[data-binding],#cancel-binding'))cancelBindingCapture('Key change cancelled.');if($('flight-screen').classList.contains('aircraft-controls-open')&&!e.target.closest('#flight-actions,#weapon-actions,#aircraft-controls-toggle'))setAircraftTray(false);},true);
-window.addEventListener('blur',()=>{if(bindingCapture)cancelBindingCapture('Key change cancelled.');});
-$('settings-content').addEventListener('input',e=>{const t=e.target,k=t.dataset.setting;if(!k)return;settings[k]=t.type==='checkbox'?t.checked:t.type==='range'?Number(t.value):t.value;updateSettings();const o=$('settings-content').querySelector(`[data-output="${k}"]`);if(o)o.textContent=settings[k]+(k.includes('Size')||k.startsWith('offset')?' px':k.toLowerCase().includes('sensitivity')?'×':'%');if(k==='sound'&&settings.sound)audio.unlock();if(k==='leftHanded'||k==='touchPitch'){controls.clear();renderSettings();}});
+document.addEventListener('pointerdown',e=>{
+  if(bindingCapture&&!e.target.closest('[data-binding],#cancel-binding'))cancelBindingCapture('Key change cancelled.');
+  if(!$('camera-panel').hidden&&!e.target.closest('#camera-panel,#camera-button'))setCameraPanel(false);
+  if($('flight-screen').classList.contains('aircraft-controls-open')&&!e.target.closest('#flight-actions,#weapon-actions,#aircraft-controls-toggle'))setAircraftTray(false);
+},true);
+window.addEventListener('blur',()=>{cameraInput.cancel();if(bindingCapture)cancelBindingCapture('Key change cancelled.');});
+$('settings-content').addEventListener('input',e=>{
+  const target=e.target,key=target.dataset.setting;
+  if(['engine-preview-aircraft','engine-preview-view'].includes(target.id)){audio.stopEnginePreview?.();setText('engine-preview-status','');}
+  if(!key)return;
+  settings[key]=target.type==='checkbox'?target.checked:target.type==='range'?Number(target.value):target.value;
+  if(key==='camera')cameraInput.cancel();
+  updateSettings();
+  const output=$('settings-content').querySelector(`[data-output="${key}"]`);
+  if(output)output.textContent=`${settings[key]}${output.dataset.suffix||''}`;
+  if(key==='sound'&&settings.sound)audio.unlock();
+  if(key==='leftHanded'||key==='touchPitch'){controls.clear();renderSettings();}
+});
 $('reset-settings').onclick=()=>{cancelBindingCapture();controls.clear();settings=normalizeSettings(DEFAULTS);updateSettings();renderSettings();toast('Preferences reset. Your logbook is unchanged.');};
 $('settings-dialog').addEventListener('cancel',e=>{e.preventDefault();if(bindingCapture)cancelBindingCapture('Key change cancelled.');else closeSettings();});$('pause-dialog').addEventListener('cancel',e=>{e.preventDefault();resumeFlight();});
 $('aircraft-controls-toggle').onclick=()=>{audio.unlock();setAircraftTray(!$('flight-screen').classList.contains('aircraft-controls-open'));};
@@ -702,7 +832,13 @@ $('pause-button').onclick=pauseFlight;$('resume-button').onclick=resumeFlight;$(
 $('theme-button').onclick=()=>{settings.theme=settings.theme==='night'?'day':'night';updateSettings();};
 $('sound-button').onclick=()=>{settings.sound=!settings.sound;updateSettings();audio.unlock();};
 function bindFlightButton(button,action){button.onclick=event=>{if(event?.detail)button.blur();handleAction(action);};}
-bindFlightButton($('camera-button'),'camera');bindFlightButton($('startup-button'),'startup');
+$('camera-button').onclick=event=>{if(event?.detail)$('camera-button').blur();setCameraPanel($('camera-panel').hidden);};
+$('close-camera').onclick=event=>setCameraPanel(false,!event?.detail);
+$('camera-setup').onclick=()=>{settingsTab='camera';openSettings();};
+$('center-camera').onclick=event=>{cameraInput.cancel();setCameraPanel(false,!event?.detail);};
+$('camera-distance').addEventListener('input',e=>setChaseZoom(Number(e.target.value)));
+for(const button of $$('[data-camera-mode]'))button.onclick=event=>{chooseCamera(button.dataset.cameraMode);if(event?.detail)button.blur();};
+bindFlightButton($('startup-button'),'startup');
 for(const button of $$('[data-action]'))bindFlightButton(button,button.dataset.action);
 $('dismiss-hint').onclick=()=>{hintDismissed=true;$('flight-hint').hidden=true;};$('abort-finale').onclick=()=>handleAction('abort');
 $('retry-mission').onclick=retryFlight;$('next-mission').onclick=()=>{const next=MISSIONS[(sim?.mission.number||1)];if(next)openCampaign(next);else goHome();};
@@ -717,8 +853,8 @@ function retryFlight(){
   }
   startMission(sim.mission);
 }
-document.addEventListener('visibilitychange',()=>{resetFrameSample();if(document.hidden&&bindingCapture)cancelBindingCapture('Key change cancelled.');if(document.hidden&&screen==='flight'&&!paused){pauseFlight();}if(!document.hidden){lastFrame=performance.now();flightClock.reset();if(sim)presentation.reset(sim);}});
-window.addEventListener('resize',()=>{renderer?.resize();resetFrameSample();if($('graphics-status'))setText('graphics-status',graphicsStatus());setAircraftTray(false);markerBoundsDirty=true;refreshKeyboardHints();refreshTouchHints();measureHangarFrame();});
+document.addEventListener('visibilitychange',()=>{resetFrameSample();if(document.hidden){cameraInput.cancel();audio.stopEnginePreview?.();if(bindingCapture)cancelBindingCapture('Key change cancelled.');if(screen==='flight'&&!paused)pauseFlight();}else{lastFrame=performance.now();flightClock.reset();if(sim)presentation.reset(sim);}});
+window.addEventListener('resize',()=>{renderer?.resize();resetFrameSample();if($('graphics-status'))setText('graphics-status',graphicsStatus());cameraInput.cancel();setCameraPanel(false);setAircraftTray(false);markerBoundsDirty=true;refreshKeyboardHints();refreshTouchHints();measureHangarFrame();});
 window.addEventListener('scroll',scheduleHangarMeasurement,{passive:true});
 if(document.fonts?.ready)document.fonts.ready.then(scheduleHangarMeasurement,()=>{});
 
@@ -790,11 +926,12 @@ function frame(now){
     });
     const feedback=combatFeedback.update(sim,dt,{listener:watch||sim.player,camera:renderer.camera,reducedMotion:settings.reducedMotion,suspended:paused||remotePaused||connectionHold,spectating:isSpectating()});
     paintCombatFeedback(feedback);for(const cue of feedback.cues)audio.cue(cue.kind,cue.details);
-    audio.update(watch?{player:watch,mission:sim.mission,aircraft:getAircraft(watch.aircraft)}:sim,dt);
+    const camera=isGunner()?'gunner':isDescending()?'chase':settings.camera;
+    audio.update(watch?{player:watch,mission:sim.mission,aircraft:getAircraft(watch.aircraft)}:sim,dt,{camera});
     const destroyed=sim.status==='failed'&&(sim.player.health<=0||sim.player.crashed);
     if(destroyed&&destructionAt===null)destructionAt=now;
     if(destructionAt!==null)for(const effect of renderView.effects||[])effect.age+=Math.max(0,(now-destructionAt)/1000);
-    renderer.render(renderView,dt,{camera:isGunner()?'gunner':isDescending()?'chase':settings.camera,gunner:isGunner()?gunnerControls.read(0):null,lookX:controls.lookX,lookY:controls.lookY,combatKick:feedback.kick,remotePlayers:visibleRemote,frameSeconds:running&&!paused&&!document.hidden?elapsed:undefined,...(watch?{player:watch,playerId:watch.id}:{})});
+    renderer.render(renderView,dt,{camera,gunner:isGunner()?gunnerControls.read(0):null,lookX:cameraInput.x,lookY:cameraInput.y,chaseZoom:settings.chaseZoom/100,combatKick:feedback.kick,remotePlayers:visibleRemote,frameSeconds:running&&!paused&&!document.hidden?elapsed:undefined,...(watch?{player:watch,playerId:watch.id}:{})});
     if(now-lastHud>90){updateHUD();lastHud=now;markerBoundsDirty=true;}
     updateMarkers(renderView);
     if(sim.status!=='flying'&&!endHandled&&(!destroyed||now-destructionAt>=1250))finishFlight();
@@ -807,6 +944,7 @@ function frame(now){
 try{
   try {renderer=new FlightRenderer($('view'),settings);renderer.backend='webgl';}
   catch(graphicsError){console.warn('WebGL unavailable; using software 3D.',graphicsError.message);const view=$('view'),replacement=view.cloneNode(false);view.replaceWith(replacement);renderer=new SoftwareFlightRenderer(replacement,settings);}
+  cameraInput.attach(renderer.canvas);
   renderer.canvas.dataset.renderer=renderer.backend;renderer.canvas.dataset.version=VERSION;
   renderer.resize();updateSettings();refreshHome();showScreen('home');
   const invite=new URL(location.href).searchParams.get('squadron');if(invite){$('room-code').value=invite.slice(0,6).toUpperCase();showScreen('squadron');}

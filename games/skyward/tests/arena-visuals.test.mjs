@@ -65,7 +65,7 @@ test('explosions advance from a hot core through fire and debris into rising smo
   const effect=Object.freeze({id:'stable-burst',type:'explosion',x:10,y:100,z:-50,radius:70,age:.1,life:2.4}),initial=sampleCombatEffects([effect]);
   assert.ok(initial.some(p=>p.kind==='glow'));assert.ok(initial.filter(p=>p.kind==='fire').length>=4);assert.ok(initial.some(p=>p.kind==='ember'));assert.ok(initial.some(p=>p.kind==='ring'));
   assert.deepEqual(sampleCombatEffects([effect]),initial,'identical id/time yields identical image geometry');
-  const late=sampleCombatEffects([{...effect,age:1.7}]);assert.ok(late.every(p=>p.kind==='smoke'));assert.ok(late.every(p=>p.y>effect.y));assert.equal(sampleCombatEffects([{...effect,age:effect.life}]).length,0);
+  const late=sampleCombatEffects([{...effect,age:1.7}]);assert.ok(late.every(p=>['smoke','cloud'].includes(p.kind)));assert.ok(late.every(p=>p.y>effect.y));assert.equal(sampleCombatEffects([{...effect,age:effect.life}]).length,0);
   const reduced=sampleCombatEffects([effect],{reducedMotion:true});assert.ok(reduced.find(p=>p.kind==='glow').alpha<initial.find(p=>p.kind==='glow').alpha);
   const many=sampleCombatEffects(Array.from({length:500},(_,i)=>({...effect,id:i})));assert.ok(many.length<=EFFECT_BUDGET.layers);assert.ok(many.every(p=>p.alpha>0&&p.alpha<=1&&Number.isFinite(p.x+p.y+p.z+p.radius)));
 });

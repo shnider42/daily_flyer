@@ -97,17 +97,82 @@
 
 #graphics-status { user-select: text; overflow-wrap: anywhere; }
 
+#view.camera-look-enabled { cursor: grab; }
+#view.camera-looking { cursor: grabbing; }
+.camera-panel {
+  position: absolute;
+  z-index: 12;
+  top: max(72px,calc(env(safe-area-inset-top) + 64px));
+  right: max(24px,calc(env(safe-area-inset-right) + 12px));
+  width: min(290px,calc(100vw - 32px));
+  padding: 12px;
+  background: #132731;
+  border: 1px solid #8ea9a2;
+  border-radius: 4px;
+  pointer-events: auto;
+  text-shadow: none;
+}
+.camera-panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+.camera-panel-heading button { width: 44px; min-height: 44px; padding: 0; font-size: 22px; }
+.camera-modes, .camera-panel-actions { display: flex; gap: 4px; }
+.camera-panel button { background: #23414b; border: 1px solid #75908f; border-radius: 3px; color: #f7f4e0; }
+.camera-panel button:hover { background: #36545c; }
+.camera-modes button, .camera-panel-actions button { flex: 1; min-height: 44px; min-width: 0; padding: 6px 3px; font-size: 11px; backdrop-filter: none; }
+.camera-modes button[aria-pressed="true"] { border-color: #edbb8f; color: #ffdab1; background: #5a4735; }
+.camera-panel label { display: flex; justify-content: space-between; margin: 13px 0 0; font-size: 11px; }
+.camera-panel input { min-height: 35px; width: 100%; margin: 2px 0 7px; accent-color: #edbb8f; }
+.camera-panel p { margin: 9px 0 0; color: #c2d3d1; font-size: 10px; line-height: 1.45; }
+.desktop-controls { display: flex; gap: 12px; align-items: center; }
+.control-guide-link { min-height: 34px; padding: 5px 8px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 3px; }
+.desktop-controls .control-guide-link { background: #19343bdd; font-size: 10px; }
+@media (pointer: fine) and (min-width: 1001px) and (max-width: 1200px) {
+  .desktop-controls { bottom: 15px; }
+  #desktop-controls { max-width: 410px; overflow: hidden; text-overflow: ellipsis; }
+}
+.controls-dialog { width: min(510px,calc(100vw - 30px)); }
+.controls-dialog h3 { margin: 10px 0; font-size: 14px; }
+.controls-dialog dl { display: grid; grid-template-columns: minmax(85px,1fr) 3fr; gap: 10px 14px; margin: 12px 0 22px; font-size: 12px; line-height: 1.45; }
+.controls-dialog dt { color: var(--orange); font-weight: 700; }
+.controls-dialog dd { margin: 0; }
+.settings-content > h3 { margin: 0 0 14px; font-size: 14px; }
+.settings-content > h3:not(:first-child) { margin-top: 25px; }
+.engine-preview { display: grid; gap: 10px; }
+.engine-preview select { margin-top: 5px; }
+.engine-preview p { margin: 0; }
+#takeoff-brake { display: none; }
+
 .roster-state { display: grid; justify-items: end; gap: 4px; }
 .roster-state .wingmate-button { min-height: 32px; padding: 4px 1px; font-size: 11px; white-space: nowrap; }
 
 @media (pointer: coarse), (max-width: 1000px) {
   .flight-screen :is(.flight-header-actions,.flight-actions,.weapon-actions,.fire-button) kbd { display: none; }
+  .desktop-controls { display: none; }
+  .flight-screen .camera-panel { top: calc(var(--touch-safe-top) + 56px); right: calc(var(--touch-safe-right) + 12px); max-height: calc(100dvh - var(--touch-safe-top) - var(--touch-safe-bottom) - 69px); overflow: auto; }
+  .flight-screen:not(.aircraft-controls-open) #takeoff-brake:not([hidden]) {
+    display: block;
+    position: absolute;
+    z-index: 7;
+    bottom: calc(var(--touch-base-bottom) + var(--touch-pad-size) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-height: 44px;
+    padding: 7px 9px;
+    background: #533e29;
+    border-color: #e8be89;
+    backdrop-filter: none;
+  }
   .bailout-panel {
     top: calc(var(--touch-safe-top) + 152px);
     bottom: auto;
     max-width: calc(var(--touch-usable-width) - 24px);
   }
   .flight-screen[data-bailout] .flight-hint { display: none; }
+}
+
+@media (max-width: 520px) {
+  .settings-dialog .settings-tabs { gap: 0; padding-inline: 12px; }
+  .settings-dialog .settings-tabs button { padding-inline: 3px; }
+  .hangar-footer .control-guide-link { display: inline-block; margin-inline: auto; font-size: 9px; }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {

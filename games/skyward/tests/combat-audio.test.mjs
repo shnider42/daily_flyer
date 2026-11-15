@@ -135,3 +135,53 @@ test('stereo-panner fallback plays combat through the effects bus',async()=>{
     audio.ctx.advance(1);assert.equal(audio.voices.size,0);
   });
 });
+
+test('flight audio changes aircraft banks, responds to power and camera, and stops at bailout',async()=>{
+  await withAudio(audio=>{
+    const withPose=(changes)=>({...flying,player:{...flying.player,...changes}});
+    audio.update(withPose({aircraft:'spitfire',onGround:true,throttle:.09}),1/60,{camera:'chase'});
+    const spitfire=audio.engineBank,compressor=spitfire.layers.get('rotor').source;
+    const idlePitch=compressor.playbackRate.value;
+    assert.equal(spitfire.layers.size,3);
+    for(let i=0;i<50;i++){audio.ctx.advance(1/60);audio.update(withPose({aircraft:'spitfire'}),1/60,{camera:'cockpit'});}
+    assert.ok(compressor.playbackRate.value>idlePitch*1.3);
+    assert.ok(spitfire.filter.frequency.value<2000);
+    audio.update(flying,1/60);
+    assert.notEqual(audio.engineBank,spitfire);
+    assert.equal(audio.engineBank.aircraft,'f16');
+    audio.ctx.advance(.25);
+    assert.ok([...spitfire.layers.values()].every(layer=>layer.source.disconnected));
+    audio.update(withPose({bailout:{phase:'descending'}}),1/60);
+    assert.equal(audio.engine.gain.value,0);
+    assert.equal(audio.engineBank,null);
+  });
+});
+
+test('idle-to-power previews work from settings and dispose across replay, close and natural end',async()=>{
+  await withAudio(async(audio)=>{
+    audio.setActive(false);
+    assert.equal(await audio.previewEngine('f4',{camera:'chase'}),true);
+    const first=audio.enginePreview;
+    const pitchCalls=first.layers.get('rotor').source.playbackRate.calls.filter(call=>call[0]==='target');
+    assert.ok(pitchCalls[1][1]>pitchCalls[0][1]*1.8);
+    assert.ok(audio.master.gain.value>0);
+    assert.equal(await audio.previewEngine('b767',{camera:'cockpit'}),true);
+    const second=audio.enginePreview;
+    assert.equal(second.aircraft,'b767');
+    assert.ok(second.filter.frequency.value<first.filter.frequency.value);
+    audio.ctx.advance(.2);
+    assert.ok([...first.layers.values()].every(layer=>layer.source.disconnected));
+    audio.stopEnginePreview();
+    assert.equal(audio.enginePreview,null);
+    assert.equal(audio.master.gain.value,0);
+    audio.ctx.advance(.2);
+    assert.ok([...second.layers.values()].every(layer=>layer.source.disconnected));
+    const pending=audio.previewEngine('camel');
+    audio.stopEnginePreview();
+    assert.equal(await pending,false,'closing during WebAudio unlock never starts a late preview');
+    assert.equal(await audio.previewEngine('f16'),true);
+    audio.ctx.advance(3.5);
+    assert.equal(audio.enginePreview,null);
+    assert.equal(audio.master.gain.value,0);
+  });
+});

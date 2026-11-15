@@ -22,6 +22,7 @@ export const BINDING_ACTIONS = Object.freeze([
   {id:'countermeasure',label:'Countermeasures',group:'Weapons & targeting',defaultCode:'KeyX'},
   {id:'radar',label:'Radar',group:'Weapons & targeting',defaultCode:'KeyR'},
   {id:'camera',label:'Change camera',group:'View & pause',defaultCode:'KeyC'},
+  {id:'centerView',label:'Center camera view',group:'View & pause',defaultCode:'KeyO'},
   {id:'pause',label:'Pause',group:'View & pause',defaultCode:'KeyP'},
 ].map(action=>Object.freeze(action)));
 

@@ -14,6 +14,8 @@ import * as operationsUI from '../../public/operations-ui.mjs';
 import { FlightSimulation } from '../../public/sim.mjs';
 import { terrainHeight } from '../../public/sim.mjs';
 import { FlightControls } from '../../public/controls.mjs';
+import { CameraInput } from '../../public/camera-input.mjs';
+import { basis, orientationOf } from '../../public/orientation.mjs';
 import { GunnerControls } from '../../public/gunner-controls.mjs';
 import { FixedStepClock, FlightPresentation } from '../../public/presentation.mjs';
 import { CombatFeedback } from '../../public/combat-feedback.mjs';
@@ -156,7 +158,7 @@ export async function appFixture(t) {
   t.after(() => { for (const key of Object.keys(replacements)) if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key]; });
   let clock = 1000, timer = 0;
   const context = vm.createContext({ ...campaign, ...settingsModule, ...keybindings, ...gunship, ...arena, ...terrain, ...multiplayerUI, ...payloads, ...operations, ...logbook, ...operationsUI, FlightSimulation, terrainHeight,
-    FlightControls, GunnerControls, FixedStepClock, FlightPresentation, CombatFeedback,
+    FlightControls, CameraInput, basis, orientationOf, GunnerControls, FixedStepClock, FlightPresentation, CombatFeedback,
     SquadronClient: RelayAdapter, FlightRenderer: RendererAdapter, SoftwareFlightRenderer: RendererAdapter, FlightAudio: AudioAdapter,
     ...replacements, performance: { now: () => clock }, console, URL, structuredClone,
     location: { href: 'https://example.test/', protocol: 'https:', host: 'example.test' }, navigator: {},

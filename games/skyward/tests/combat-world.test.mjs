@@ -12,8 +12,19 @@ const epsilon=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} vs ${b}`);
 test('explosion flashes, fire, fragments and smoke have distinct readable phases',()=>{
   const e=Object.freeze({id:'blast',type:'explosion',x:40,y:100,z:0,radius:80,life:3,age:.05});
   const early=sampleCombatEffects([e]);assert.ok(early.some(p=>p.kind==='glow'&&p.alpha>.5));assert.ok(early.some(p=>p.kind==='core'&&p.radius>20));assert.ok(early.filter(p=>p.kind==='fire').length>=8);assert.ok(early.some(p=>p.kind==='debris'));
+  assert.ok(early.filter(p=>p.kind==='ember').every(p=>p.stretch>2.9));
+  const expanding=sampleCombatEffects([{...e,age:.18}]);
+  assert.ok(expanding.find(p=>p.kind==='ring').radius>early.find(p=>p.kind==='ring').radius);
+  assert.ok(expanding.some(p=>p.kind==='fire'&&p.stretch>1.5&&p.y>e.y+20),'flames rise in distinct tongues');
   const fire=sampleCombatEffects([{...e,age:.5}]);assert.ok(!fire.some(p=>p.kind==='glow'));assert.ok(fire.some(p=>p.kind==='fire'&&p.alpha>.5));assert.ok(fire.some(p=>p.kind==='smoke'&&p.alpha>.6));
-  const smoke=sampleCombatEffects([{...e,age:2.3}]);assert.ok(smoke.length>=5);assert.ok(smoke.every(p=>p.kind==='smoke'&&p.y>e.y));assert.ok(smoke.some(p=>p.alpha>.5));
+  assert.notDeepEqual(fire.filter(p=>p.kind==='fire').map(p=>p.color),early.filter(p=>p.kind==='fire').map(p=>p.color));
+  const late={...e,age:2.3},smoke=sampleCombatEffects([late]);
+  assert.ok(smoke.length>=5);assert.ok(smoke.every(p=>['smoke','cloud'].includes(p.kind)&&p.y>e.y));assert.ok(smoke.some(p=>p.alpha>.5));
+  const caps=smoke.filter(p=>p.kind==='cloud'),skirt=smoke.filter(p=>p.kind==='smoke');
+  assert.ok(Math.min(...caps.map(p=>p.y))>Math.max(...skirt.map(p=>p.y)));
+  const windy=sampleCombatEffects([late],{wind:{x:14,z:-7}});
+  assert.ok(windy.every((p,i)=>p.x>smoke[i].x&&p.z<smoke[i].z),'plume drifts with the wind');
+  for(let age=0;age<e.life;age+=.015)assert.ok(sampleCombatEffects([{...e,age}]).length<=27);
   const inside={kind:'fire',x:0,y:0,z:0,radius:80,alpha:.98};assert.ok(effectViewAlpha(inside,{x:0,y:0,z:10})<.06,'inside a blast remains transparent');assert.equal(effectViewAlpha(inside,{x:0,y:0,z:400}),inside.alpha);
   const crowded=sampleCombatEffects([...Array.from({length:500},(_,i)=>({id:i,type:'trail',x:0,y:0,z:0,radius:2,age:.6,life:2.4})),e],{capacity:40});assert.ok(crowded.some(p=>p.kind==='glow'),'new hits are not starved by old smoke');assert.ok(crowded.length<=40);
 });
@@ -43,8 +54,9 @@ test('both renderers apply a bounded local camera kick without accumulating it o
   const software=new SoftwareFlightRenderer(canvas());software.loadMission(mission,'f16');
   for(const [r,call,flag]of[[web,'_updateCamera','_cameraInitialized'],[software,'_camera','_cameraReady']]){
     const solve=options=>{r[flag]=false;r[call](pose,1/60,options);return {position:r.camera.position.clone(),quaternion:r.camera.quaternion.clone()};};
-    const normal=solve({camera:'chase'}),hit=solve({camera:'chase',combatKick:kick}),repeat=solve({camera:'chase',combatKick:kick});assert.ok(normal.quaternion.angleTo(hit.quaternion)>.02);assert.ok(normal.position.distanceTo(hit.position)>.1);epsilon(hit.quaternion.angleTo(repeat.quaternion),0);epsilon(hit.position.distanceTo(repeat.position),0);
-    r.settings.reducedMotion=true;const reduced=solve({camera:'chase',combatKick:kick});epsilon(normal.quaternion.angleTo(reduced.quaternion),0);epsilon(normal.position.distanceTo(reduced.position),0);
+    const sameRotation=(a,b)=>epsilon(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z,a.w-b.w),0);
+    const normal=solve({camera:'chase'}),hit=solve({camera:'chase',combatKick:kick}),repeat=solve({camera:'chase',combatKick:kick});assert.ok(normal.quaternion.angleTo(hit.quaternion)>.02);assert.ok(normal.position.distanceTo(hit.position)>.1);sameRotation(hit.quaternion,repeat.quaternion);epsilon(hit.position.distanceTo(repeat.position),0);
+    r.settings.reducedMotion=true;const reduced=solve({camera:'chase',combatKick:kick});sameRotation(normal.quaternion,reduced.quaternion);epsilon(normal.position.distanceTo(reduced.position),0);
   }
   web._updateCamera({...pose,crashed:true},1/60,{camera:'chase'});assert.equal(web._plane.visible,false,'crashed own aircraft is hidden even before health reconciliation');
   assert.equal(pose.roll,1.4);assert.equal(pose.x,100);software.dispose();

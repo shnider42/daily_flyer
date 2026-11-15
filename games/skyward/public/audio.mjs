@@ -1,14 +1,25 @@
 import {COMBAT_AUDIO_LIMITS,COMBAT_SOUND_SECONDS,synthesizeCombatSound,combatCueProfile} from './combat-audio.mjs';
-import {isJetAircraft} from './campaign.mjs';
+import {ENGINE_LAYER_NAMES,engineProfile,synthesizeEngineLayers,engineMix} from './engine-audio.mjs';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const finite=(x,fallback=0)=>Number.isFinite(x)?x:fallback;
 const AMBIENCE_HEADROOM=.55/.8;
+const ENGINE_CACHE_SIZE=5;
+const PREVIEW_SECONDS=3.35;
+
+function disconnectBank(bank){
+  for(const {source,level} of bank.layers.values()){source.disconnect();level.disconnect();}
+  bank.filter.disconnect();bank.gain.disconnect();
+}
+
 export class FlightAudio {
   constructor(settings){
     this.settings=settings;this.ctx=null;this.active=false;this.lastGun=-Infinity;this.lastWarning=-Infinity;
-    this.aircraft=null;this.status='ready';this.voices=new Set();this.lastCombat={hit:-Infinity,explosion:-Infinity};
+    this.status='ready';this.voices=new Set();this.lastCombat={hit:-Infinity,explosion:-Infinity};
     this.duckUntil=0;this.duckLevel=1;this.variation=0;
+    this.engineBuffers=new Map();this.engineBank=null;this.retiringBank=null;this.enginePreview=null;this.previewRequest=0;
+    this.engineLevel=0;this.windLevel=0;
+    this.power=0;this.engineWasRunning=false;
   }
   async unlock(){
     if(!this.settings.sound)return;
@@ -23,9 +34,7 @@ export class FlightAudio {
         this.ambience=c.createGain();this.ambience.gain.value=1;this.ambience.connect(this.master);
         this.effects=c.createGain();this.effects.gain.value=0;this.effects.connect(this.master);
         this.engine=c.createGain();this.engine.gain.value=0;this.engine.connect(this.ambience);
-        this.osc=c.createOscillator();this.osc.type='sawtooth';this.osc.frequency.value=60;this.filter=c.createBiquadFilter();this.filter.type='lowpass';this.filter.frequency.value=400;this.osc.connect(this.filter);this.filter.connect(this.engine);this.osc.start();
-        this.sub=c.createOscillator();this.sub.type='sine';this.sub.frequency.value=30;this.subGain=c.createGain();this.subGain.gain.value=.35;this.sub.connect(this.subGain);this.subGain.connect(this.engine);this.sub.start();
-        this.pulse=c.createOscillator();this.pulse.frequency.value=10;this.pulseGain=c.createGain();this.pulseGain.gain.value=.025;this.pulse.connect(this.pulseGain);this.pulseGain.connect(this.engine.gain);this.pulse.start();
+        this.previewEngineGain=c.createGain();this.previewEngineGain.gain.value=0;this.previewEngineGain.connect(this.ambience);
         const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=b.getChannelData(0),white=c.createBuffer(1,c.sampleRate*2,c.sampleRate),w=white.getChannelData(0);let last=0;
         for(let i=0;i<d.length;i++){const sample=Math.random()*2-1;last=(last+.02*sample)/1.02;d[i]=last*3.5;w[i]=sample;}
         this.noiseBuffer=white;this.windSrc=c.createBufferSource();this.windSrc.buffer=b;this.windSrc.loop=true;
@@ -38,19 +47,135 @@ export class FlightAudio {
       if(this.ctx.state!=='running')await this.ctx.resume();this.status=this.ctx.state==='running'?'ready':'needs-gesture';this.sync();
     }catch{this.status='needs-gesture';}
   }
-  setSettings(s){this.settings=s;this.sync();if(!s.sound||s.effectsVolume===0)this._stopEffects();}
+  setSettings(s){this.settings=s;if(!s.sound)this.stopEnginePreview();this.sync();if(!s.sound||s.effectsVolume===0)this._stopEffects();}
   sync(){
     if(!this.ctx)return;const t=this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(this.settings.sound&&this.active?clamp(finite(this.settings.volume,60),0,100)/100*.8:0,t,.035);
+    this.master.gain.setTargetAtTime(this.settings.sound&&(this.active||this.enginePreview)?clamp(finite(this.settings.volume,60),0,100)/100*.8:0,t,.035);
     this.effects.gain.setTargetAtTime(clamp(finite(this.settings.effectsVolume,70),0,100)/100,t,.02);
+    this.previewEngineGain.gain.setTargetAtTime(this._engineVolume(),t,.04);
   }
-  setActive(v){if(this.active===v)return;this.active=v;if(!v)this._stopEffects();this.sync();}
-  update(sim,dt){
-    if(!this.ctx||!this.active)return;const p=sim.player,c=this.ctx,t=c.currentTime;
-    const jet=isJetAircraft(p.aircraft||sim.mission.aircraft);
-    const living=finite(p.health,100)>0&&!p.crashed&&p.alive!==false,engine=!!p.engine&&living;
-    const throttle=engine?p.throttle||0:0,eng=engine?this.settings.engineVolume/100*(.07+throttle*.12)*AMBIENCE_HEADROOM:0;
-    this.engine.gain.setTargetAtTime(eng,t,living?.12:.035);this.osc.frequency.setTargetAtTime(jet?70+throttle*150:42+throttle*65,t,.12);this.sub.frequency.setTargetAtTime(jet?40+throttle*65:21+throttle*32,t,.12);this.filter.frequency.setTargetAtTime(jet?450+throttle*1250:180+throttle*580,t,.12);this.pulse.frequency.setTargetAtTime(jet?80:8+throttle*18,t,.12);this.pulseGain.gain.setTargetAtTime(engine&&!jet?.015:0,t,.1);this.wind.gain.setTargetAtTime(living?clamp(p.speed/450,0,.42)*this.settings.engineVolume/100*AMBIENCE_HEADROOM:0,t,living?.2:.035);
+  setActive(v){
+    if(this.active===v)return;
+    this.active=v;
+    if(v)this.stopEnginePreview();
+    if(!v){
+      this._stopEffects();
+      if(this.ctx){
+        const t=this.ctx.currentTime;
+        this._setFlightLevels(0,0,t,.045,.07);
+        this._releaseFlightBank(t);
+      }
+    }
+    this.sync();
+  }
+  _engineVolume(){return .41*AMBIENCE_HEADROOM*clamp(finite(this.settings.engineVolume,60),0,100)/100;}
+  _setFlightLevels(engine,wind,t,engineSlew,windSlew){
+    if(engine!==this.engineLevel){
+      this.engineLevel=engine;this.engine.gain.setTargetAtTime(engine,t,engineSlew);
+    }
+    if(wind!==this.windLevel&&(wind===0||Math.abs(wind-this.windLevel)>.0015)){
+      this.windLevel=wind;this.wind.gain.setTargetAtTime(wind,t,windSlew);
+    }
+  }
+  _buffersFor(aircraft){
+    const cached=this.engineBuffers.get(aircraft);
+    if(cached){this.engineBuffers.delete(aircraft);this.engineBuffers.set(aircraft,cached);return cached;}
+    const samples=synthesizeEngineLayers(aircraft),buffers=new Map();
+    for(const name of ENGINE_LAYER_NAMES){
+      const pcm=samples[name],buffer=this.ctx.createBuffer(1,pcm.length,samples.sampleRate);
+      buffer.getChannelData(0).set(pcm);buffers.set(name,buffer);
+    }
+    this.engineBuffers.set(aircraft,buffers);
+    if(this.engineBuffers.size>ENGINE_CACHE_SIZE)this.engineBuffers.delete(this.engineBuffers.keys().next().value);
+    return buffers;
+  }
+  _makeBank(aircraft,output,t){
+    const c=this.ctx,filter=c.createBiquadFilter(),gain=c.createGain(),layers=new Map();
+    filter.type='lowpass';filter.Q.value=.36;filter.connect(gain);gain.gain.value=0;gain.connect(output);
+    const bank={aircraft,profile:engineProfile(aircraft),filter,gain,layers,targets:new Map(),onEnd:null};
+    for(const [name,buffer] of this._buffersFor(aircraft)){
+      const source=c.createBufferSource(),level=c.createGain();source.buffer=buffer;source.loop=true;
+      level.gain.value=0;source.connect(level);level.connect(filter);source.start(t);
+      layers.set(name,{source,level});
+    }
+    layers.get('core').source.onended=()=>{
+      disconnectBank(bank);
+      if(this.retiringBank===bank)this.retiringBank=null;
+      bank.onEnd?.();
+    };
+    return bank;
+  }
+  _silenceBank(bank,t,fade=.045){
+    if(!bank)return;
+    bank.gain.gain.cancelScheduledValues(t);
+    bank.gain.gain.setTargetAtTime(0,t,fade);
+    for(const {source} of bank.layers.values())try{source.stop(t+fade*4);}catch{}
+  }
+  _releaseFlightBank(t){
+    if(!this.engineBank)return;
+    this._silenceBank(this.retiringBank,t,.002);
+    this.retiringBank=this.engineBank;
+    this._silenceBank(this.retiringBank,t,.032);
+    this.engineBank=null;
+  }
+  _flightBank(aircraft,t){
+    if(this.engineBank?.aircraft===aircraft)return this.engineBank;
+    this._releaseFlightBank(t);
+    this.engineBank=this._makeBank(aircraft,this.engine,t);
+    return this.engineBank;
+  }
+  _applyEngineMix(bank,mix,t,seconds=.075){
+    const target=(param,value,epsilon)=>{
+      if(bank.targets.has(param)&&Math.abs(value-bank.targets.get(param))<=epsilon)return;
+      param.setTargetAtTime(value,t,seconds);
+      bank.targets.set(param,value);
+    };
+    target(bank.gain.gain,mix.gain,.006);
+    target(bank.filter.frequency,mix.cutoff,0);
+    for(const [name,{source,level}] of bank.layers){
+      target(source.playbackRate,mix[name].rate,.003);
+      target(level.gain,mix[name].gain,.006);
+    }
+  }
+  async previewEngine(aircraft,{camera=this.settings.camera}={}){
+    this.stopEnginePreview();
+    const request=this.previewRequest;
+    await this.unlock();
+    if(request!==this.previewRequest||this.status!=='ready'||!this.ctx||!this.settings.sound||this.ctx.state!=='running')return false;
+    const t=this.ctx.currentTime,bank=this._makeBank(aircraft||'avro504',this.previewEngineGain,t);
+    this.enginePreview=bank;
+    bank.onEnd=()=>{if(this.enginePreview===bank){this.enginePreview=null;this.sync();}};
+    this.sync();
+    const sequence=[[0,.08,.06],[.48,.96,.38],[1.77,.68,.38],[2.64,.20,.22]];
+    for(const [at,power,slew] of sequence)this._applyEngineMix(bank,engineMix(bank.profile,{power,speed:power*196,camera}),t+at,slew);
+    this._silenceBank(bank,t+PREVIEW_SECONDS-.24,.06);
+    return true;
+  }
+  stopEnginePreview(){
+    this.previewRequest++;
+    if(!this.enginePreview)return;
+    this._silenceBank(this.enginePreview,this.ctx.currentTime,.03);
+    this.enginePreview=null;this.sync();
+  }
+  update(sim,dt,{camera=this.settings.camera}={}){
+    if(!this.ctx||!this.active||this.enginePreview)return;
+    const p=sim.player,t=this.ctx.currentTime,aircraft=p.aircraft||sim.mission.aircraft||'avro504';
+    const living=finite(p.health,100)>0&&!p.crashed&&p.alive!==false;
+    const underCanopy=p.bailout?.phase==='descending',engine=!!p.engine&&living&&!underCanopy;
+    const engineVolume=this._engineVolume();
+    if(engine){
+      const changed=this.engineBank?.aircraft!==aircraft,bank=this._flightBank(aircraft,t);
+      const throttle=clamp(finite(p.throttle),0,1);
+      if(changed||!this.engineWasRunning)this.power=p.onGround?0:throttle;
+      const slew=(throttle>=this.power?bank.profile.spool:bank.profile.spool*.67);
+      this.power+=(throttle-this.power)*(1-Math.exp(-clamp(finite(dt),0,.25)/slew));
+      this._applyEngineMix(bank,engineMix(bank.profile,{power:this.power,speed:p.speed,verticalSpeed:p.verticalSpeed,
+        health:p.health/Math.max(1,finite(sim.aircraft?.health,120)),camera}),t);
+    }else this._releaseFlightBank(t);
+    this.engineWasRunning=engine;
+    const cabin=camera==='cockpit'||camera==='gunner',airspeed=clamp(finite(p.speed)/470,0,1);
+    const wind=living?engineVolume*(underCanopy?.19:(cabin?.31:.60)*airspeed**1.24):0;
+    this._setFlightLevels(engine?engineVolume:0,wind,t,engine?.075:.09,living?.18:.035);
     if(t>=this.duckUntil&&this.duckLevel<1){this.duckLevel=1;this.ambience.gain.setTargetAtTime(1,t,.16);}
     if(living&&p.stalled&&t-this.lastWarning>1.8){this.tone(200,.14,'triangle',.06);this.lastWarning=t;}
   }

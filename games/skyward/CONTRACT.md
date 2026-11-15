@@ -1,4 +1,4 @@
-# SKYWARD module contract · v0.10.1
+# SKYWARD module contract · v0.11.0
 
 Shared source: `games/skyward/public`. ES modules (`.mjs`), no build step; Three.js r160.1 is vendored at `vendor/three.module.js`. Units are meters, seconds, radians and meters/second. All ranges and flight performance are game abstractions.
 
@@ -184,7 +184,7 @@ renderer.render(sim, dt, {
 })
 ```
 
-Both expose `resize()`, `setSettings(settings)`, `project(x,y,z)` (screen pixels and `visible`), `renderMenu(time,aircraft)` and `dispose()`. WebGL construction may throw; the app then uses Canvas rendering. Gunner mode uses the shared station helper and first-person panels. `gunship-views.mjs` and `gunship-scenery.mjs` supply station interiors and the compound. `presentation.mjs` handles fixed-step render interpolation; `camera-pose.mjs` handles the normal cockpit frame.
+Both expose `resize()`, `setSettings(settings)`, `project(x,y,z)` (screen pixels and `visible`), `renderMenu(time,aircraft)` and `dispose()`. WebGL construction may throw; the app then uses Canvas rendering. Gunner mode uses the shared station helper and first-person panels. `gunship-views.mjs` and `gunship-scenery.mjs` supply station interiors and the compound. `presentation.mjs` handles fixed-step render interpolation. `camera-pose.mjs` supplies cockpit framing and fits the rotated aircraft envelope in the chase and cinematic views. Those views take `lookX` and `lookY` in radians and `chaseZoom` as a distance multiplier from 0.8 to 1.8. `camera-input.mjs` owns the local mouse gesture and produces camera input independently of pilot controls and the gunner seat.
 
 When `options.player` is supplied, both renderers focus that pose instead of `sim.player`; `playerId` resets camera tracking when the watched pilot changes. The renderer selects the watched aircraft's model and cockpit while leaving simulation ownership untouched. Remote/dead-aircraft filtering remains the caller's responsibility. Returning to local flight omits the override and resets presentation interpolation after a new life.
 

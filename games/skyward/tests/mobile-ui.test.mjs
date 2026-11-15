@@ -63,6 +63,8 @@ test('systems taps preserve independently held sticks and weapon pointerdown doe
   assert.equal(app.sim.radarOn, true);
   radar.onclick();
   assert.equal(app.sim.radarOn, false);
+  assertTrays(document, false, true);
+  document.getElementById('aircraft-controls-toggle').onclick();
   assertTrays(document, false, false);
   assert.deepEqual(app.controls.read(0), before);
   window.dispatch('pointerup', { pointerId: 33 });

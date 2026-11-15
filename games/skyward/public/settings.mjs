@@ -1,15 +1,15 @@
 import {DEFAULT_KEY_BINDINGS,normalizeKeyBindings,DEFAULT_GUNNER_BINDINGS,normalizeGunnerBindings} from './keybindings.mjs';
 
-export const VERSION = '0.10.1';
+export const VERSION = '0.11.0';
 export const DEFAULTS = Object.freeze({
   assist:'assisted',guidance:'guided',stickSize:120,buttonSize:58,controlOpacity:80,
   sensitivity:1,deadZone:12,touchPitch:'pull',leftHanded:false,
   offsetX:22,offsetY:22,sound:true,volume:60,engineVolume:60,
   effectsVolume:70,reducedMotion:false,highContrast:false,largeText:false,
-  quality:'auto',camera:'chase',autoLevel:true,units:'metric',captions:true,
+  quality:'auto',camera:'chase',chaseZoom:100,mouseLookSensitivity:100,keepLookAngle:false,fov:null,autoLevel:true,units:'metric',captions:true,
   theme:'night',keyBindings:DEFAULT_KEY_BINDINGS,gunnerBindings:DEFAULT_GUNNER_BINDINGS,
 });
-export const RANGES={stickSize:[80,152],buttonSize:[44,76],controlOpacity:[35,100],sensitivity:[0.4,1.8],deadZone:[0,30],offsetX:[12,80],offsetY:[12,90],volume:[0,100],engineVolume:[0,100],effectsVolume:[0,100]};
+export const RANGES={stickSize:[80,152],buttonSize:[44,76],controlOpacity:[35,100],sensitivity:[0.4,1.8],deadZone:[0,30],offsetX:[12,80],offsetY:[12,90],volume:[0,100],engineVolume:[0,100],effectsVolume:[0,100],chaseZoom:[80,180],mouseLookSensitivity:[25,200],fov:[45,90]};
 const ENUMS={assist:['assisted','standard','expert'],guidance:['guided','standard','minimal'],quality:['auto','low','high'],camera:['chase','cockpit','cinematic'],units:['metric','aviation'],theme:['night','day'],touchPitch:['pull','push']};
 export function normalizeSettings(raw={}) {
   const values=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};

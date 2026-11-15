@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.js';
 import {FlightRenderer} from '../public/renderer.mjs';
+import {SoftwareFlightRenderer} from '../public/software.mjs';
+import {AIRFRAME_BOUNDS} from '../public/airframes.mjs';
+import {surfaceHeight} from '../public/terrain.mjs';
 import {PixelBudget} from '../public/pixel-budget.mjs';
 import {setAircraftPose} from '../public/models.mjs';
 import {orientationFromEuler,basis,integrateBodyRotation} from '../public/orientation.mjs';
@@ -78,6 +81,54 @@ test('orbit damping is consistent across 30 Hz and 120 Hz render rates',()=>{
   for(let i=0;i<120;i++)fast._updateCamera(turned,1/120,{camera:'chase'});
   closeVector(slow.camera.position,fast.camera.position,'orbit damping');
   closeVector(slow._cameraTarget,fast._cameraTarget,'target damping');
+});
+
+test('both chase renderers keep the full oriented airframe in frame at the closest zoom',()=>{
+  const cases=[
+    [2560,1440,59,.73,1.54,0,0,0],
+    [390,844,49,1.53,.15,1.6,-1.2,.45],
+    [1280,900,72,-1.54,2.4,0,0,0],
+    [380,900,53,.4,Math.PI,-1.6,1.2,.66],
+  ];
+  for(const [width,height,fov,pitch,roll,lookX,lookY,heading] of cases){
+    const web=rendererFixture(),ctx={setTransform(){}};
+    const cpu=new SoftwareFlightRenderer({width,height,getBoundingClientRect:()=>({width,height}),getContext:()=>ctx},{fov});
+    Object.assign(web,{width,height,settings:{fov}});
+    cpu.mission=web.mission;
+    for(const [id,{min,max}] of Object.entries(AIRFRAME_BOUNDS)){
+      const p={...pose,aircraft:id,y:3200,orientation:orientationFromEuler(heading,pitch,roll)};
+      const options={camera:'chase',chaseZoom:.8,lookX,lookY};
+      web._plane.userData.kind=id;cpu._planeMeta={kind:id};web._cameraInitialized=cpu._cameraReady=false;
+      web._updateCamera(p,1/60,options);cpu._camera(p,1/60,options);
+      closeVector(web.camera.position,cpu.camera.position,'matching chase placement');
+      for(const {camera} of [web,cpu]){
+        camera.updateMatrixWorld(true);
+        const q=new THREE.Quaternion(p.orientation.x,p.orientation.y,p.orientation.z,p.orientation.w);
+        for(const x of [min[0],max[0]])for(const y of [min[1],max[1]])for(const z of [min[2],max[2]]){
+          const corner=new THREE.Vector3(x,y,z).applyQuaternion(q).add(point(p)).project(camera);
+          assert.ok(Math.abs(corner.x)<=.821&&Math.abs(corner.y)<=.821&&Math.abs(corner.z)<1,[id,width,height,pitch,corner.toArray()].join(' '));
+        }
+      }
+    }
+  }
+});
+
+test('chase swings around the plane, returns smoothly, and stays above runway with a low orbit',()=>{
+  const r=rendererFixture(),p={...pose,aircraft:'f16',x:0,y:100,z:0};
+  const deck={x:0,z:0,y:97,width:110,length:1500,heading:0,carrier:true};
+  r.mission={biome:'pacific',runways:[deck]};
+  const fly=(options)=>r._updateCamera(p,1/60,{camera:'chase',...options});
+  fly({chaseZoom:.8});const neutral=r.camera.position.clone(),target=r._cameraTarget.clone();
+  for(let i=0;i<120;i++)fly({lookX:1.3,lookY:.76,chaseZoom:1.8});
+  const turned=r.camera.position.clone();
+  assert.ok(turned.distanceTo(target)>neutral.distanceTo(target)*1.8);
+  assert.ok(turned.x<neutral.x-20&&turned.y>neutral.y+20);
+  fly({chaseZoom:.8});assert.ok(r.camera.position.distanceTo(neutral)>10,'recenter does not snap');
+  for(let i=0;i<120;i++)fly({chaseZoom:.8});
+  assert.ok(r.camera.position.distanceTo(neutral)<.0001);
+  for(let i=0;i<120;i++)fly({lookY:-1.2,chaseZoom:.8});
+  const {x,y,z}=r.camera.position;
+  assert.ok(y>=surfaceHeight(x,z,r.mission)+3.4-1e-8,'camera eye clears the carrier deck');
 });
 
 test('unchanged settings and size do not reset the drawing buffer or projection',()=>{
