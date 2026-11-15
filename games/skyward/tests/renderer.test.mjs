@@ -131,6 +131,18 @@ test('chase swings around the plane, returns smoothly, and stays above runway wi
   assert.ok(y>=surfaceHeight(x,z,r.mission)+3.4-1e-8,'camera eye clears the carrier deck');
 });
 
+test('chase heading follows through a loop without a sudden turn past vertical',()=>{
+  const r=rendererFixture();
+  let previous;
+  for(let degrees=0;degrees<=140;degrees++){
+    const p={...pose,aircraft:'f16',y:4500,orientation:orientationFromEuler(.3,degrees*Math.PI/180,.24)};
+    r._updateCamera(p,1/60,{camera:'chase'});
+    const sight=r.camera.getWorldDirection(new THREE.Vector3());
+    if(previous)assert.ok(sight.angleTo(previous)<.075,`camera swings at ${degrees}° pitch`);
+    previous=sight;
+  }
+});
+
 test('unchanged settings and size do not reset the drawing buffer or projection',()=>{
   const r=rendererFixture(),size={width:800,height:600};let bufferChanges=0,projectionChanges=0;
   r.canvas={getBoundingClientRect:()=>size};

@@ -11,6 +11,15 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 const worldUp={x:0,y:1,z:0};
 const clearanceProbes=[.3,.57,.8,1];
 
+function followAngle(current,target,dt,response,maxRate){
+  const delta=angleDelta(current,target),distance=Math.abs(delta);
+  // Cross large turns at a bounded rate, then ease in close to the target.
+  const linearTime=Math.max(0,(distance-maxRate/response)/maxRate);
+  const linear=maxRate*Math.min(dt,linearTime);
+  const easing=1-Math.exp(-Math.max(0,dt-linearTime)*response);
+  return current+Math.sign(delta)*(linear+(distance-linear)*easing);
+}
+
 // The aircraft points along local +Z; its pilot's right is local -X. Build
 // the eye and look frame in those body axes, including when vertical/inverted.
 export function cockpitView(pose,options={},groundOffset=0){
@@ -79,11 +88,12 @@ export function chaseView(pose,options={},orbit={}){
   // tiny changes in horizontal nose direction as abrupt 180-degree turns.
   const heading=horizontal>=.32?Math.atan2(forward.x,forward.z):
     fresh?Math.atan2(right.z,-right.x):orbit.heading;
-  const follow=fresh?1:1-Math.exp(-dt*(reducedMotion?12:cinematic?4:8));
+  const response=reducedMotion?12:cinematic?4:8;
+  const follow=fresh?1:1-Math.exp(-dt*response);
   const look=fresh?1:1-Math.exp(-dt*(reducedMotion?16:11));
-  orbit.heading=fresh?heading:orbit.heading+angleDelta(orbit.heading,heading)*follow;
+  orbit.heading=fresh?heading:followAngle(orbit.heading,heading,dt,response,3.6);
   const requestedYaw=finite(lookX),requestedTilt=clamp(finite(lookY),-1.2,1.2);
-  orbit.lookX=fresh?requestedYaw:orbit.lookX+angleDelta(orbit.lookX,requestedYaw)*look;
+  orbit.lookX=fresh?requestedYaw:followAngle(orbit.lookX,requestedYaw,dt,reducedMotion?16:11,6);
   orbit.lookY=fresh?requestedTilt:lerp(orbit.lookY,requestedTilt,look);
   orbit.pitch=fresh?forward.y:lerp(orbit.pitch,forward.y,follow);
   const zoom=clamp(finite(chaseZoom,1),.8,1.8);
