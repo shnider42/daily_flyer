@@ -200,3 +200,11 @@ test('v0.2.1 normal play and an existing defensive boarding keep the same ship, 
     else assert.equal(realm.snapshotFor(loaded).state.boarding, null);
   }
 });
+
+test('a downed human on a winning shared deck is evacuated by the authority with a personal recovery receipt',async()=>{
+ const {realm,captains:[captain],vessels:[source],room}=await fixture(1),enemy=enemyFixture(room,source);
+ assert.ok(realm._command(captain,'boardEnemy',{id:enemy.id}).ok);const target=realm.vessels.get(captain.aboard),actor=realm._actor(target);
+ captain.game.state.person.health=0;captain.game.state.person.down=true;for(const guard of target.boarding.enemies)guard.health=0;
+ actor._finishBoarding('won');realm._syncActor(target);
+ assert.equal(captain.aboard,null);assert.equal(captain.game.state.person.down,false);assert.ok(captain.game.state.medicalRecovery?.id);assert.equal(captain.game.state.mode,'person');assert.equal(captain.ownedVesselId,source.id);assert.ok(!realm.failed);
+});

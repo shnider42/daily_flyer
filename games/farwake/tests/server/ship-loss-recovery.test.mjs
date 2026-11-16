@@ -19,7 +19,7 @@ function relocate(realm,vessel,systemId,bodyId){
  return body;
 }
 
-test('one destroyed ship recovers all online and disconnected occupants at its nearest station without replacing anyone’s hull',async()=>{
+test('one destroyed ship recovers all online and disconnected occupants at its nearest accessible hospital without replacing anyone’s hull',async()=>{
  const {realm,captains:[owner,guest,offline],vessels:[carrier,parked,otherParked]}=await fixture(3);
  owner.game.state.fleet.owned.push('tern');owner.game._activateClass('tern',true);carrier.allowCrew=true;
  ok(realm._command(guest,'boardShip',{vesselId:carrier.id}));ok(realm._command(offline,'boardShip',{vesselId:carrier.id}));offline.session=null;
@@ -28,7 +28,7 @@ test('one destroyed ship recovers all online and disconnected occupants at its n
  const actor=realm._actor(carrier);actor._damageShip(99999);realm._syncActor(carrier);
  assert.equal(carrier.ship.hull,0);assert.equal(carrier.ship.destroyed,true);assert.equal(carrier.destroyed,true);assert.equal(realm.vessels.size,count);
  for(const captain of [owner,guest,offline]){
-  assert.equal(captain.aboard,null);assert.equal(captain.game.state.mode,'person');assert.equal(captain.game.state.locationId,station.id);assert.equal(captain.game.state.systemId,'brindle');
+  assert.equal(captain.aboard,null);assert.equal(captain.game.state.mode,'person');assert.equal(captain.game.state.locationId,'orchard');assert.equal(captain.game.state.systemId,'brindle');
   assert.equal(captain.game.state.stationView,null);assert.equal(captain.game.state.shipRecovery.vesselId,carrier.id);assert.equal(captain.game.state.stats.rescues,1);
   assert.equal(realm._command(captain,'launch',{}).ok,false);
  }
@@ -36,7 +36,7 @@ test('one destroyed ship recovers all online and disconnected occupants at its n
  assert.equal(guest.ownedVesselId,parked.id);assert.equal(offline.ownedVesselId,otherParked.id);
  assert.deepEqual(parked.ship,originals[0]);assert.deepEqual(otherParked.ship,originals[1]);assert.equal(parked.systemId,'hearth');
  assert.ok([...realm.vessels.values()].every(vessel=>vessel.name!=='Recovery cutter'));
- for(const compact of [false,true]){const view=realm.snapshotFor(owner,{compact,drainEvents:false});assert.equal(view.state.shipRecovery.destination.bodyId,station.id);assert.equal(view.state.multiplayer.ownedVesselId,null);assert.equal(view.state.ship.unowned,true);}
+ for(const compact of [false,true]){const view=realm.snapshotFor(owner,{compact,drainEvents:false});assert.equal(view.state.shipRecovery.destination.bodyId,'orchard');assert.equal(view.state.multiplayer.ownedVesselId,null);assert.equal(view.state.ship.unowned,true);}
 });
 
 test('restart and delayed reconnect preserve the recovery station instead of moving a survivor to their home',async()=>{

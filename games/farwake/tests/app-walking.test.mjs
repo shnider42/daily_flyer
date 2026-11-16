@@ -23,7 +23,7 @@ function fixture({ health = 100, down = false, stationView = null } = {}) {
   Object.assign(authority.state.person, { x: 100, y: 100, health, down, speed: 112 });
   const openHall = { width: 600, height: 600, tileSize: 24, tiles: Array.from({ length: 25 }, () => Array(25).fill(1)), solids: [], spawn: { x: 100, y: 100 } };
   const network = new FarwakeNetwork({ url: 'https://example.test', storage: null, autoReconnect: false, now: () => time, wallNow: () => 100000 + time, onSnapshot(packet) { context.packet = packet; vm.runInContext('receiveSnapshot(packet)', context); } });
-  context = vm.createContext({
+  context = vm.createContext({recoveryPresentation:{active:false},updateRecovery(){},
     Game, structuredClone, movePerson, network, performance: { now: () => time }, game: Game.fromSave(authority.save()),
     surface: openHall, surfaceKey: 'open-hall', surfaceTarget: null, onlineSnapshot: null, playing: false, hudDirty: false,
     personPredictedAt: null, personVisualAt: null, personVisualOffset: { x: 0, y: 0 },
@@ -84,4 +84,10 @@ test('walking cursors stay monotonic, visual correction decays once, and explici
   close(f.context.personVisualOffset.x, 8 * Math.exp(-.015 * 16)); close(f.context.personVisualAt, 115);
   f.setTime(200); f.snapshot(200, 400, { teleport: true });
   close(f.context.game.state.person.x, 400); close(f.context.personVisualOffset.x, 0); close(f.context.personPredictedAt, 200); close(f.context.personVisualAt, 200);
+});
+
+test('both walking replay paths hold the captain still during medical waking',()=>{
+ const f=fixture();f.context.recoveryPresentation.active=true;
+ f.setTime(100);f.network.setInput({x:1,y:1,fire:true},.1);f.advance();close(f.context.game.state.person.x,100);
+ f.setTime(115);f.snapshot(100,100);close(f.context.game.state.person.x,100);close(f.context.game.state.person.y,100);
 });

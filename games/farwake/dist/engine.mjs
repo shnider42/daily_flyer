@@ -639,7 +639,7 @@ export class Game {
       input={...input,x:0,y:0,thrust:0,turn:0,strafe:0,boost:false,brake:false,mine:false};
     }
     this.state.stats.time+=dt;
-    if(this.medicalRecoveryActive())input={};
+    if(!this._sharedWorld&&this.medicalRecoveryActive())input={};
     if(!this._sharedWorld){this.stepMilitaryRecovery(dt);if(this.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};}
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
     advanceGunneryCooldowns(this.state.ship,dt);
@@ -1900,7 +1900,7 @@ export class Game {
       const text=boarding.source==='rescued-pirates'?'The hijackers are defeated. Your ship is secure; the people who tried to seize it are accounted for.':boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The attacking hull remains outside.`;
       this._event('boarding-complete',{phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,text});
       this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
-      if(this.state.person.health<=0)this.recoverOnFoot();
+      if(!this._sharedWorld&&this.state.person.health<=0)this.recoverOnFoot();
     }else if(phase==='lost'){
       this.state.stats.boardingsLost=(this.state.stats.boardingsLost||0)+1;
       if(enemy?.deck&&boarding.kind==='assault'){enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy||null,contested:false};}

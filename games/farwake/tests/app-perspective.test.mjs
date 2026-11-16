@@ -41,7 +41,7 @@ function fixture({shared=false,game=new Game('app-perspective')}={}){
   let heldInput={thrust:1,strafe:1,x:1,fire:true,mine:true},clearCount=0,context;
   const network=shared?{connected:true,command(name,args){return new Promise((resolve,reject)=>packets.push({name,args,resolve,reject}));},setInput(input){inputs.push(copy(input));}}:null;
   if(shared)game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,aboardVesselId:game.state.ship.id};
-  context=vm.createContext({reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus,normalizeModeZoom,zoomLimits,
+  context=vm.createContext({recoveryPresentation:{active:false},updateRecovery(){},reconcileSurfacePosition,placeIdentity,systemIdentity,guidanceActionsForResult,syncNavyCrewSurface,navyOrderPrompt,navyOrderMatchesEntity,Game,distance,getGunneryView,displayMode,militaryCareerGuided,militaryCareerPrompt,getShipClass,getPersonalWeapon,movePerson,generateSurface,isWalkable,nearestEntity,nearestDeckInteraction,updateNpcLife,syncDamageMarkers,rescueOccupants,getPerspectiveAction,getDisembarkAction,getHelmAction,getBoardingAction,getAirlockStatus,normalizeModeZoom,zoomLimits,
     game,playing:true,network,onlineSnapshot:shared?{fleet:[{...game.state.ship,ownerId:'captain',helmOwner:null}]}:null,
     vesselContactView:null,hudDirty:false,narrativeWaypoint:null,actionPending:false,surface:null,surfaceKey:'',surfaceTarget:null,guideIntent:null,personVisualOffset:{x:8,y:-5},
     wasFire:true,wasMine:true,pointerAim:{active:true,fire:true},combatPreview:{target:'stale-target'},labelLayoutDirty:false,
@@ -339,4 +339,9 @@ test('quiet campaign markers preserve open menus and target the local terminal r
  assert.equal(f.context.surfaceTarget,'morrow:site:service-range:instance:record:drill');assert.equal(f.context.dialog.opened,true);
  f.call('markMilitaryTarget',{systemId:'hearth',bodyId:'morrow',siteId:'service-range',x:200,y:100},{quiet:true});
  assert.equal(f.context.surfaceTarget,null,'combat guidance cannot direct the player out of the operation');assert.equal(f.context.dialog.kind,'inventory');
+});
+
+test('the medical blackout rejects a queued action before it reaches shared authority',async()=>{
+ const f=fixture({shared:true});f.context.recoveryPresentation.active=true;
+ const result=await f.call('invoke','enterCabin',{});assert.equal(result.ok,false);assert.equal(f.packets.length,0);assert.equal(f.calls.length,0);
 });

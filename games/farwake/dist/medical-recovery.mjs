@@ -25,7 +25,7 @@ export function medicalDestination(game,{system=game.system,position=game.state.
   const factionId=medicalFaction(game),post=FIELD_HOSPITALS[factionId];
   return{systemId:system.id,bodyId:front.id,name:post.name,bodyName:front.name,kind:'field-hospital',factionId};
  }
- const candidates=system.bodies.filter(medicalBody).sort((a,b)=>
+ const candidates=system.bodies.filter(body=>medicalBody(body)&&(!game.portAccess||game.portAccess(body,game.galaxy.find(s=>s.id===system.id)).ok)).sort((a,b)=>
   (a.id===bodyId?-1:b.id===bodyId?1:Math.hypot(a.x-finite(position.x),a.y-finite(position.y))-Math.hypot(b.x-finite(position.x),b.y-finite(position.y)))||a.id.localeCompare(b.id));
  for(const body of candidates){
   const surface=generateSurface(body,game.state.seed,game.state.flags);

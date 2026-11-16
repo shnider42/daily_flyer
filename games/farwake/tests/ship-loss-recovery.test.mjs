@@ -6,17 +6,17 @@ import {nearestRecoveryStation} from '../dist/ship-recovery.mjs';
 const ok=result=>{assert.equal(result?.ok,true,result?.reason);return result;};
 function moveSystem(game,id){game._persistRuntime();game.state.systemId=id;game._loadSystem(id);}
 
-test('a destroyed owned hull leaves its captain shipless at the closest station, rather than the first station or home',()=>{
+test('a destroyed owned hull leaves its captain shipless at the nearest accessible hospital without a free military-base landing',()=>{
  const game=new Game('nearest-loss'),ship=game.state.ship,credits=game.state.credits;
  moveSystem(game,'brindle');const stations=game.system.bodies.filter(body=>body.kind==='station'),station=stations.at(-1);
  assert.ok(stations.length>1);Object.assign(ship,{x:station.x+15,y:station.y,vx:140,vy:-80});
  game.state.cargo={ore:17,crystal:9};game.state.upgrades.fold_1=1;
  game._damageShip(99999);
  assert.equal(ship.hull,0);assert.equal(ship.destroyed,true);assert.equal(ship.x,station.x+15);
- assert.equal(game.state.locationId,station.id);assert.equal(game.state.systemId,'brindle');assert.equal(game.state.mode,'person');
+ assert.equal(game.state.locationId,'orchard');assert.equal(game.state.systemId,'brindle');assert.equal(game.state.mode,'person');
  assert.equal(game.ownsShip,false);assert.equal(game.hasActiveVessel,false);assert.deepEqual(game.state.fleet.owned,[]);
  assert.deepEqual(game.state.cargo,{ore:0,crystal:0});assert.deepEqual(game.state.upgrades,{});assert.equal(game.state.credits,credits);
- assert.equal(game.state.shipRecovery.vesselId,ship.id);assert.equal(game.state.shipRecovery.destination.bodyId,station.id);
+ assert.equal(game.state.shipRecovery.vesselId,ship.id);assert.equal(game.state.shipRecovery.destination.bodyId,'orchard');
  assert.equal(game.state.shipRecovery.sourceFactionId,'freewake');assert.equal(game.state.stats.rescues,1);
  assert.equal(game.launch().ok,false);assert.equal(game.chapter.id,'replace_lost_ship');
 });
