@@ -79,6 +79,18 @@ const roles=freeze({sparrow:'utility',kestrel:'courier',mule:'salvage',tern:'pas
  bulwark:'patrol',atlas:'salvage',cairn:'miner',capital:'carrier',
  lark:'passenger',puffin:'freight',osprey:'survey',leviathan:'tender',judicator:'destroyer'});
 
+// Scheduled port service is one encounter population, not the purchase catalog.
+// Needle, Kite, Ark and Confluence belong to Crosswind's faction fleets and
+// physical carrier sorties; they do not operate civilian passenger schedules.
+export const SCHEDULED_TRAFFIC_HULL_IDS=Object.freeze(Object.keys(roles));
+// Keep this released roster explicit. New hulls must not enter an old untyped
+// chart's weighted stream merely because the current purchase catalog grows.
+export const LEGACY_SCHEDULED_TRAFFIC_HULL_IDS=Object.freeze([
+ 'sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas',
+ 'tern','quill','mender','bulwark','cairn','lark','puffin','osprey','leviathan','judicator'
+]);
+const scheduledHullIds=new Set(SCHEDULED_TRAFFIC_HULL_IDS),legacyHullIds=new Set(LEGACY_SCHEDULED_TRAFFIC_HULL_IDS);
+
 // Context multiplies acquisition rarity, rather than replacing it. A crowded
 // terminal needs many working transports; a capital hull remains an uncommon
 // sight there. Bases favor escorts, patrol ships and supporting medical craft.
@@ -99,7 +111,7 @@ export const TRAFFIC_ACQUISITION_RARITY=freeze(Object.fromEntries(SHIP_CLASSES.m
 
 const profileRows=freeze(Object.fromEntries(Object.keys(PORT_KINDS).map(kind=>{
  const profile={kind,...PORT_KINDS[kind]};
- const rows=SHIP_CLASSES.filter(hull=>canHullUsePort(hull.id,profile)&&suitability[kind][hull.id]>0).map(hull=>({
+ const rows=SHIP_CLASSES.filter(hull=>scheduledHullIds.has(hull.id)&&canHullUsePort(hull.id,profile)&&suitability[kind][hull.id]>0).map(hull=>({
   classId:hull.id,weight:TRAFFIC_ACQUISITION_RARITY[hull.id]*suitability[kind][hull.id],
   role:kind==='hub'&&['hauler','capital'].includes(hull.id)?'passenger':kind==='military'&&hull.id==='frigate'?'patrol':roles[hull.id]
  }));
@@ -115,7 +127,8 @@ export function trafficHullWeights(profile){
  // chart must keep its original hull identities and weighted selection stream.
  const legacy=profile.typedCatalog===false;
  if(profile.maxShipLength===PORT_KINDS[profile.kind].maxShipLength&&profile.systemId!=='hearth'&&!legacy)return rows;
- return Object.freeze(rows.filter(row=>canHullUsePort(row.classId,profile)&&!(profile.systemId==='hearth'&&['judicator','dipper'].includes(row.classId))&&!(legacy&&row.classId==='dipper')));
+ return Object.freeze(rows.filter(row=>canHullUsePort(row.classId,profile)&&
+  !(profile.systemId==='hearth'&&(!legacyHullIds.has(row.classId)||row.classId==='judicator'))&&(!legacy||legacyHullIds.has(row.classId))));
 }
 
 /** Repeatable identity, independent of generation order, time and player rank. */

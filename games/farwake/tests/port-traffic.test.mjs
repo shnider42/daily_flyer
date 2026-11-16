@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { SHIP_CLASSES } from '../dist/fleet.mjs';
 import { NAMED_SYSTEMS } from '../dist/content.mjs';
 import { FRONTIER_SYSTEMS } from '../dist/galaxy-expansion.mjs';
-import { PORT_KINDS, MILITARY_PORT_FACTIONS, TRAFFIC_ACQUISITION_RARITY, portProfile, trafficHullWeights, chooseTrafficHull, canHullUsePort } from '../dist/port-traffic.mjs';
+import { PORT_KINDS, MILITARY_PORT_FACTIONS, TRAFFIC_ACQUISITION_RARITY, SCHEDULED_TRAFFIC_HULL_IDS, LEGACY_SCHEDULED_TRAFFIC_HULL_IDS, portProfile, trafficHullWeights, chooseTrafficHull, canHullUsePort } from '../dist/port-traffic.mjs';
+import { WARZONE_FACTION_HULLS } from '../dist/warzone-content.mjs';
 
 const profile=kind=>({id:kind,kind,...PORT_KINDS[kind]});
 const samples=(kind,count=20000)=>{
@@ -12,7 +13,7 @@ const samples=(kind,count=20000)=>{
  return Object.fromEntries(Object.entries(counts).map(([id,value])=>[id,value/count]));
 };
 
-test('every obtainable hull has a contextual traffic route, with closed immutable weighted tables',()=>{
+test('every scheduled hull has a contextual route and every other hull has an authored faction encounter home',()=>{
  const covered=new Set();
  for(const kind of Object.keys(PORT_KINDS)){
   const port=profile(kind),rows=trafficHullWeights(port);
@@ -24,7 +25,15 @@ test('every obtainable hull has a contextual traffic route, with closed immutabl
    assert.ok(canHullUsePort(row.classId,port));covered.add(row.classId);
   }
  }
- assert.deepEqual([...covered].sort(),SHIP_CLASSES.map(hull=>hull.id).sort(),'A new player hull needs a deliberate traffic home.');
+ assert.deepEqual([...covered].sort(),[...SCHEDULED_TRAFFIC_HULL_IDS].sort(),'Every declared scheduled hull needs a deliberate traffic route.');
+ const encounterHomes=new Set(covered);
+ for(const [faction,classes] of Object.entries(WARZONE_FACTION_HULLS))for(const classId of Object.values(classes)){
+  encounterHomes.add(classId);
+  const hull=SHIP_CLASSES.find(hull=>hull.id===classId);assert.ok(hull,`${faction} has a real ${classId} encounter hull`);
+  if(!covered.has(classId)){assert.equal(hull.military,true);assert.equal(hull.faction,faction);}
+ }
+ assert.deepEqual([...encounterHomes].sort(),SHIP_CLASSES.map(hull=>hull.id).sort(),'Every purchasable hull needs a scheduled route or an explicit faction encounter; adding a hull cannot silently skip coverage.');
+ assert.ok(Object.isFrozen(SCHEDULED_TRAFFIC_HULL_IDS));assert.ok(Object.isFrozen(LEGACY_SCHEDULED_TRAFFIC_HULL_IDS));
  for(const kind of ['constructor','__proto__','made-up',undefined]){
   assert.deepEqual(trafficHullWeights({kind,maxShipLength:9999}),[]);
   assert.equal(chooseTrafficHull('seed','id',{kind,maxShipLength:9999}),null);
@@ -41,7 +50,8 @@ test('major terminals favor working transports while capital ships remain except
  const substantial=SHIP_CLASSES.filter(hull=>hull.stats.renderLength>=90).reduce((sum,hull)=>sum+observed[hull.id],0);
  assert.ok(substantial>.65,'Most arrivals are physically bigger than the starter ships and local shuttle.');
  assert.ok(observed.capital>.001&&observed.capital<.005,'A carrier is possible but does not become the ordinary bus.');
- for(const hull of SHIP_CLASSES)assert.ok(observed[hull.id]>0,`${hull.id} can be encountered without being unlocked.`);
+ for(const classId of SCHEDULED_TRAFFIC_HULL_IDS)assert.ok(observed[classId]>0,`${classId} can be encountered without being unlocked.`);
+ for(const classId of ['needle','kite','ark','confluence'])assert.equal(observed[classId],0,`${classId} belongs to a faction fleet, not the terminal's passenger mix.`);
 });
 
 test('military bases favor serious escorts and patrols with visible civilian support traffic',()=>{

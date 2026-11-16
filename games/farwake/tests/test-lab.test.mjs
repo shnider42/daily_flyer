@@ -20,15 +20,32 @@ test('test mode accepts its requested code and exposes only the smaller half of 
   assert.equal(selectedIds.size, cutoff, 'Each practice choice represents one distinct physical hull.');
   assert.ok(areas.every((area, index) => index === 0 || area >= areas[index - 1]), 'Practice choices are ordered by their physical footprint.');
   assert.ok(hiddenClasses.every(hull => hull.stats.renderLength * hull.stats.renderWidth >= areas.at(-1)), 'No smaller hull is hidden behind a larger practice choice.');
-  assert.equal(choices.at(-1).id, 'marten', 'Twenty hulls admit ten practice choices, ending with the six-berth Marten.');
+  assert.equal(choices.at(-1).id, 'marten', 'Twenty-four hulls admit twelve practice choices, ending with the six-berth Marten.');
   assert.deepEqual(choices.slice(-2).map(hull => hull.id), ['mender', 'marten'], 'The five-berth Mender still precedes the six-berth Marten at their equal footprint.');
   assert.equal(areas.at(-2), areas.at(-1), 'The berth tiebreak applies to genuinely equal exterior footprints.');
   assert.ok(hiddenClasses.some(hull => hull.id === 'dipper'));
+  assert.ok(['needle','kite'].every(id=>selectedIds.has(id)), 'The two small faction fighters belong in the ordinary size-ranked combat range.');
+  assert.ok(['confluence','ark'].every(id=>hiddenClasses.some(hull=>hull.id===id)), 'The new capital ships remain beyond the size cutoff.');
   assert.deepEqual(Object.keys(choices[0]).sort(), ['berths', 'id', 'name', 'renderLength', 'renderWidth', 'subtitle'].sort());
   for (const hidden of hiddenClasses) assert.throws(() => createTestSession({ enemyClassId: hidden.id }), /not available in test mode/);
   for (const hidden of hiddenClasses) assert.throws(() => createTestSession({ scenario: 'damage-control', enemyClassId: hidden.id }), /not available in test mode/);
   assert.throws(() => createTestSession({ enemyClassId: 'made-up-hull' }), /not available in test mode/);
   assert.throws(() => createTestSession({ scenario: 'unlock-everything' }), /available test exercises/);
+});
+
+test('single-seat fighters can be practiced against but remain unavailable for a boarding party', () => {
+  for (const id of ['needle','kite']) {
+    const session=createTestSession({scenario:'ship-combat',enemyClassId:id}),{game}=session,enemy=game.system.enemies[0];
+    assert.equal(enemy.berths,1);assert.equal(enemy.boardable,false);
+    Object.assign(enemy,{x:70,y:0,vx:0,vy:0,disabled:true});
+    const rejected=game.boardEnemy(enemy.id);
+    assert.equal(rejected.ok,false);assert.equal(rejected.code,'capacity');
+    assert.equal(game.state.mode,'ship');assert.equal(game.state.boarding,null);
+    for(const scenario of ['boarding','person-combat','raid-defense']){
+      assert.ok(!testEnemyChoices(scenario).some(hull=>hull.id===id));
+      assert.throws(()=>createTestSession({scenario,enemyClassId:id}),/too small for boarding/);
+    }
+  }
 });
 
 test('exercises cannot save, mutate a normal voyage, unlock story, or leave their anonymous range', () => {

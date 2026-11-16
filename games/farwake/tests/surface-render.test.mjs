@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateSurface,isWalkable,movePerson,nearestEntity,drawSurface,repairSolution} from '../dist/surface.mjs';
 import {CABIN_CLASSES,cabinLayout,isCabinWalkable} from '../dist/interior-layouts.mjs';
-import {getShipClass} from '../dist/fleet.mjs';
+import {getShipClass,enemyHullProfile} from '../dist/fleet.mjs';
 import {SpaceRenderer,drawShip,SHIP_VISUALS} from '../dist/space-art.mjs';
 import {seededRandom} from '../dist/engine.mjs';
 import {surfaceCanvasToWorld,surfaceWorldToCanvas} from '../dist/camera-view.mjs';
@@ -29,7 +29,8 @@ for(const[classId,berths]of CABIN_CLASSES.map(c=>[c,getShipClass(c).berths]))tes
  assert.equal(surface.entities.find(e=>e.id==='ship:shared:exit').data.stationRole,'helm');
  const airlock=surface.entities.find(e=>e.id==='ship:shared:entry-airlock');assert.equal(airlock.type,'exit');assert.equal(airlock.data.stationRole,undefined);assert.equal(airlock.data.airlock,true);assert.equal(airlock.x,layout.spawn.x);assert.equal(airlock.y,layout.spawn.y);
  assert.equal(nearestEntity(surface,layout.spawn,10)?.id,airlock.id,'the arrival collar is usable independently of the helm');
- assert.equal(new Set(layout.combatSpawns.map(p=>index(p))).size,4,'four raiders need distinct arrival positions');
+ const boardingProfile=enemyHullProfile(classId);assert.equal(boardingProfile.boardable,berths>=3);
+ if(boardingProfile.boardable)assert.equal(new Set(layout.combatSpawns.map(p=>index(p))).size,4,'A boardable hull needs four distinct raider arrival positions.');
  assert.equal(new Set(layout.crewSpawns.map(p=>index(p))).size,layout.crewSpawns.length,'Every authored standing point is distinct.');
  assert.ok(layout.crewSpawns.length>=crewCount,'Standing space supports both a full working crew and older crowded rosters.');
  for(const p of [...surface.entities,...layout.breaches,...layout.combatSpawns,...layout.crewSpawns]){

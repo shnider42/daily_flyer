@@ -75,7 +75,7 @@ test('every new silhouette renders at its real hull dimensions and reuses its ar
 });
 
 test('the expanded practice range still reveals only the smaller half and keeps its player cutter fixed',()=>{
- const choices=testEnemyChoices();assert.equal(choices.length,10);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','sparrow','mule','tern','petrel','lark','quill','hauler','mender','marten']);
+ const choices=testEnemyChoices();assert.equal(choices.length,12);assert.deepEqual(choices.map(hull=>hull.id),['kestrel','needle','sparrow','mule','tern','kite','petrel','lark','quill','hauler','mender','marten']);
  for(const choice of choices){const practice=createTestSession({enemyClassId:choice.id});assert.equal(practice.game.state.ship.classId,'sparrow');assert.equal(practice.game.system.enemies[0].classId,choice.id);assert.ok(practice.game.currentSystem.danger<=5);}
  for(const id of ['dipper','atlas','capital','frigate','bulwark','cairn','puffin','osprey','leviathan','judicator'])assert.throws(()=>createTestSession({enemyClassId:id}),/not available/);
 });

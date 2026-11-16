@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../dist/engine.mjs';
 import { SHIP_CLASSES, getShipClass } from '../dist/fleet.mjs';
-import { portProfile, canHullUsePort } from '../dist/port-traffic.mjs';
+import { portProfile, canHullUsePort, SCHEDULED_TRAFFIC_HULL_IDS, LEGACY_SCHEDULED_TRAFFIC_HULL_IDS } from '../dist/port-traffic.mjs';
 import { createSystemTraffic, advanceTraffic, captureTraffic, restoreTraffic, catchUpTraffic } from '../dist/traffic.mjs';
 import { WorldPresentation } from '../dist/world-presentation.mjs';
+import { CROSSWIND_SYSTEM_ID, WARZONE_FACTION_HULLS } from '../dist/warzone-content.mjs';
+import { stepWarzoneSpace } from '../dist/warzone-space.mjs';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const close = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} differs from ${b}`);
@@ -20,14 +22,14 @@ const bodies = [
 const make = (seed='working-lanes') => createSystemTraffic({seed,system,bodies,count:22});
 const poses = traffic => traffic.map(({id,x,y,vx,vy,angle,angularVelocity,trafficStatus,destinationId}) => ({id,x,y,vx,vy,angle,angularVelocity,trafficStatus,destinationId}));
 
-test('every obtainable hull can be seen in scheduled traffic without unlocking its purchase', () => {
+test('every scheduled hull can be seen in port traffic without unlocking its purchase', () => {
   const seen = new Set();
   for (let seed = 0; seed < 60; seed++) {
     const traffic = make(`all-hulls-${seed}`);
     assert.equal(traffic.length,22);
     for (const ship of traffic) seen.add(ship.classId);
   }
-  assert.deepEqual([...seen].sort(),SHIP_CLASSES.map(ship=>ship.id).sort());
+  assert.deepEqual([...seen].sort(),[...SCHEDULED_TRAFFIC_HULL_IDS].sort());
   assert.equal(new Game('working-lanes').state.fleet.owned.length,1,'sightings do not add hulls to the player fleet');
 });
 
@@ -40,7 +42,27 @@ test('untyped released port inputs retain the complete pre-expansion scheduled h
     for (const ship of traffic) seen.add(ship.classId);
   }
   assert.equal(seen.has('dipper'),false,'Legacy chart replay does not insert the new field lander into its weighted stream.');
-  assert.deepEqual([...seen].sort(),SHIP_CLASSES.filter(ship=>ship.id!=='dipper').map(ship=>ship.id).sort());
+  assert.deepEqual([...seen].sort(),[...LEGACY_SCHEDULED_TRAFFIC_HULL_IDS].sort());
+});
+
+test('military-only hulls are physically encountered with their own faction fleets and carrier launches',()=>{
+  const game=new Game('military-encounter-homes'),seen=new Map();game.state.systemId=CROSSWIND_SYSTEM_ID;game._loadSystem(CROSSWIND_SYSTEM_ID);
+  assert.deepEqual(game.system.traffic,[],'Crosswind does not substitute commuter routes for its military battle');
+  const observe=()=>{for(const ship of game.system.enemies){
+    if(!seen.has(ship.classId))seen.set(ship.classId,new Set());seen.get(ship.classId).add(ship.faction);
+    if(ship.warzoneSortie){
+      const parent=game.system.enemies.find(parent=>parent.id===ship.warzoneSortie.carrierId);
+      assert.ok(parent,`${ship.classId} launched from an actual carrier`);assert.equal(parent.faction,ship.faction);
+      assert.equal(WARZONE_FACTION_HULLS[ship.faction].fighter,ship.classId);
+      assert.ok([WARZONE_FACTION_HULLS[ship.faction].carrier,WARZONE_FACTION_HULLS[ship.faction].line].includes(parent.classId));
+      assert.equal(ship.trafficRole,undefined,'a carrier fighter has no passenger schedule');
+    }
+  }};
+  observe();for(let tick=0;tick<80;tick++){stepWarzoneSpace(game.system,.1);observe();}
+  for(const [faction,classes]of Object.entries(WARZONE_FACTION_HULLS))for(const classId of Object.values(classes))assert.deepEqual([...(seen.get(classId)||[])],[faction],`${classId} is encountered in the correct faction's fleet`);
+  const encountered=new Set([...SCHEDULED_TRAFFIC_HULL_IDS,...seen.keys()]);
+  assert.deepEqual([...encountered].sort(),SHIP_CLASSES.map(ship=>ship.id).sort(),'all hulls remain observable through scheduled service or actual fleet combat');
+  assert.equal(game.state.fleet.owned.length,1,'military sightings do not unlock or award the new hulls');
 });
 
 test('large scheduled ships never receive a small docking field as either endpoint', () => {
