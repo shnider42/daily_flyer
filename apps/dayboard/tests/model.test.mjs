@@ -46,7 +46,7 @@ test('public app starts empty without publishing personal records', () => {
   assert.equal(seed.tasks.filter(t => t.status === 'next').length, 0);
   assert.ok(seed.tasks.every(t => ['inbox', 'next'].includes(t.status)));
   assert.ok(seed.tasks.every(t => !t.due && !t.followUp && !t.today && t.starter));
-  assert.deepEqual(AREAS, ['career', 'life', 'dfe']);
+  assert.deepEqual(AREAS, ['career', 'life', 'custom']);
   assert.ok(STATUSES.includes('someday'));
 });
 
@@ -68,7 +68,7 @@ test('new tasks have safe defaults; workspace allocates unique numbers', () => {
 test('invalid fields and impossible dates are rejected rather than coerced', () => {
   for (const fields of [
     {title: ''}, {title: '  '}, {title: 'Task', status: 'to-do'},
-    {title: 'Task', area: 'work'}, {title: 'Task', effort: '15'},
+    {title: 'Task', area: 'not a valid id'}, {title: 'Task', effort: '15'},
     {title: 'Task', today: 'false'}, {title: 'Task', due: '2026-02-30'},
     {title: 'Task', followUp: 'tomorrow'}, {title: 'Task', createdAt: '2026-02-30T12:00:00Z'},
     {title: 'Task', checklist: [{id: 'check', text: 'One', done: true}, {id: 'check', text: 'Two', done: false}]},
@@ -132,7 +132,7 @@ test('invalid imports are atomic, including unsupported schemas and broken refer
   const writesBefore = storage.writes;
   const invalid = [
     'not json',
-    JSON.stringify({...workspace(), schemaVersion: 2}),
+    JSON.stringify({...workspace(), schemaVersion: 3}),
     JSON.stringify(workspace([task('Broken reference', {projectId: 'absent'})])),
     JSON.stringify(workspace([task('Bad link', {url: 'https://example.com'})])).replace('https://example.com/', 'javascript:alert(1)'),
     JSON.stringify({...workspace(), settings: {theme: 'dark', welcomeDismissed: 'yes'}}),

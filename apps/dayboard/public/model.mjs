@@ -13,8 +13,13 @@
  * primary record is never overwritten by commit/undo: a valid previous record
  * may be displayed, and importJSON(..., {mode: 'replace'}) explicitly recovers.
  * The malformed original is preserved at `${key}.corrupt` before that recovery.
+ * Version 1 boards are normalized in memory to version 2 with their original
+ * area IDs intact. Before their first durable write, exact original bytes are
+ * retained at `${key}.before-areas-v2`; the primary storage key stays unchanged.
  */
-export const AREAS = Object.freeze(['career', 'life', 'dfe']);
+export const AREAS = Object.freeze(['career', 'life', 'custom']);
+export const AREA_COLORS = Object.freeze(['blue', 'green', 'amber', 'purple', 'teal', 'rose', 'slate']);
+const LEGACY_AREAS = ['career', 'life', 'dfe'];
 export const STATUSES = Object.freeze(['inbox', 'next', 'doing', 'waiting', 'done', 'someday']);
 const PRIORITIES = ['high', 'normal', 'low'];
 const REPEATS = ['none', 'daily', 'weekly', 'monthly'];
@@ -24,8 +29,9 @@ const MAX_PROJECTS = 1000;
 const MAX_JSON_LENGTH = 10 * 1024 * 1024;
 const TASK_KEYS = ['id', 'number', 'title', 'area', 'status', 'priority', 'projectId', 'notes', 'due', 'followUp', 'effort', 'today', 'checklist', 'createdAt', 'updatedAt', 'completedAt', 'archived', 'starter', 'repeat', 'repeatNextId', 'url', 'order'];
 const PROJECT_KEYS = ['id', 'name', 'area', 'url', 'description', 'starter', 'archived'];
+const AREA_KEYS = ['id', 'name', 'color'];
 const SETTINGS_KEYS = ['theme', 'density', 'welcomeDismissed', 'lastBackupAt', 'lastReviewAt'];
-const WORKSPACE_KEYS = ['schemaVersion', 'revision', 'updatedAt', 'tasks', 'projects', 'settings'];
+const WORKSPACE_KEYS = ['schemaVersion', 'revision', 'updatedAt', 'tasks', 'projects', 'settings', 'areas'];
 
 function fail(message) { throw new TypeError(message); }
 function own(object, key) { return Object.prototype.hasOwnProperty.call(object, key); }
@@ -48,6 +54,13 @@ function string(value, label, {empty = true, trim = false, max = 200000} = {}) {
   return result;
 }
 function id(value, label) { return string(value, label, {empty: false, trim: true, max: 200}); }
+function areaId(value, label = 'Area ID') {
+  const result = id(value, label);
+  if (!/^[a-z0-9][a-z0-9_-]{0,199}$/.test(result) || result === 'all') fail(`${label} must be a lowercase identifier and cannot be “all”.`);
+  return result;
+}
+function areaName(value) { return string(value, 'Area name', {empty: false, trim: true, max: 80}); }
+function nameKey(value) { return value.toLowerCase(); }
 function choice(value, choices, label) {
   if (!choices.includes(value)) fail(`${label} must be one of: ${choices.join(', ')}.`);
   return value;
@@ -102,6 +115,73 @@ function freeze(value) {
   return value;
 }
 
+/** Fresh boards get three areas; legacy boards retain all three old identities. */
+export function createDefaultAreas({legacy = false} = {}) {
+  return [
+    {id: 'career', name: 'Career', color: 'blue'},
+    {id: 'life', name: 'Life', color: 'green'},
+    ...(legacy ? [{id: 'dfe', name: 'DFE', color: 'amber'}] : []),
+    {id: 'custom', name: 'Custom', color: 'purple'},
+  ];
+}
+
+export function makeArea(fields = {}) {
+  object(fields, 'Area');
+  knownKeys(fields, AREA_KEYS, 'Area');
+  return {
+    id: areaId(field(fields, 'id', `area-${uid()}`)),
+    name: areaName(fields.name),
+    color: choice(field(fields, 'color', 'purple'), AREA_COLORS, 'Area color'),
+  };
+}
+
+function normalizeAreas(areas) {
+  if (!Array.isArray(areas) || !areas.length) fail('Areas must be a nonempty array.');
+  const ids = new Set(), names = new Set();
+  return areas.map(raw => {
+    object(raw, 'Area');
+    if (!own(raw, 'id')) fail('Every saved area must have an ID.');
+    const area = makeArea(raw);
+    if (ids.has(area.id)) fail(`Area ID is duplicated: ${area.id}.`);
+    if (names.has(nameKey(area.name))) fail(`Area name is duplicated: ${area.name}.`);
+    ids.add(area.id);names.add(nameKey(area.name));
+    return area;
+  });
+}
+
+/** Use inside BoardStore.commit; area identities never depend on their labels. */
+export function addArea(state, fields) {
+  object(state, 'Workspace');
+  const areas = normalizeAreas(state.areas);
+  const area = makeArea(fields);
+  if (areas.some(item => item.id === area.id)) fail('That area ID already exists.');
+  if (areas.some(item => nameKey(item.name) === nameKey(area.name))) fail('An area with that name already exists.');
+  state.areas.push(area);
+  return area;
+}
+
+export function renameArea(state, areaID, name) {
+  object(state, 'Workspace');
+  normalizeAreas(state.areas);
+  areaId(areaID);
+  const area = state.areas.find(item => item.id === areaID);
+  if (!area) fail('That area no longer exists. Reload your board.');
+  const nextName = areaName(name);
+  if (state.areas.some(item => item.id !== areaID && nameKey(item.name) === nameKey(nextName))) fail('An area with that name already exists.');
+  area.name = nextName;
+  return area;
+}
+
+function nameTag(area) {
+  return area.name.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || area.id;
+}
+
+/** A useful capture tag, with a stable-ID fallback when names are ambiguous. */
+export function areaCaptureTag(area, areas = []) {
+  const tag = nameTag(area);
+  return areas.some(item => item.id !== area.id && (item.id === tag || nameTag(item) === tag)) ? area.id : tag;
+}
+
 /** An absolute HTTP(S) URL, or '' when unsafe/invalid. Credentials are rejected. */
 export function safeUrl(value) {
   if (typeof value !== 'string' || /[\u0000-\u001f\u007f]/.test(value)) return '';
@@ -144,7 +224,7 @@ export function makeTask(fields = {}, now) {
     id: id(field(fields, 'id', uid()), 'Task ID'),
     number: integer(field(fields, 'number', 0), 'Task number'),
     title: string(fields.title, 'Task title', {empty: false, trim: true, max: 500}),
-    area: choice(field(fields, 'area', 'career'), AREAS, 'Area'),
+    area: areaId(field(fields, 'area', 'career'), 'Area'),
     status: choice(field(fields, 'status', 'inbox'), STATUSES, 'Status'),
     priority: choice(field(fields, 'priority', 'normal'), PRIORITIES, 'Priority'),
     projectId: string(field(fields, 'projectId', ''), 'Project ID', {trim: true, max: 200}),
@@ -172,7 +252,7 @@ function normalizeProject(project) {
   return {
     id: id(project.id, 'Project ID'),
     name: string(project.name, 'Project name', {empty: false, trim: true, max: 200}),
-    area: choice(project.area, AREAS, 'Project area'),
+    area: areaId(project.area, 'Project area'),
     url: checkedUrl(field(project, 'url', ''), 'Project link'),
     description: string(field(project, 'description', ''), 'Project description', {max: 10000}),
     starter: bool(field(project, 'starter', false), 'Project starter suggestion'),
@@ -183,10 +263,13 @@ function normalizeProject(project) {
 /** Validate an entire workspace, reconstructing only supported schema fields. */
 export function normalizeWorkspace(data) {
   object(data, 'Workspace');
-  knownKeys(data, WORKSPACE_KEYS, 'Workspace');
-  if (data.schemaVersion !== 1) fail('This file uses an unsupported workspace format. Expected schemaVersion 1.');
+  if (![1, 2].includes(data.schemaVersion)) fail('This file uses an unsupported workspace format. Expected schemaVersion 1 or 2.');
+  const legacy = data.schemaVersion === 1;
+  knownKeys(data, legacy ? WORKSPACE_KEYS.filter(key => key !== 'areas') : WORKSPACE_KEYS, 'Workspace');
   if (!Array.isArray(data.tasks) || data.tasks.length > MAX_TASKS) fail(`Tasks must be an array with at most ${MAX_TASKS} items.`);
   if (!Array.isArray(data.projects) || data.projects.length > MAX_PROJECTS) fail(`Projects must be an array with at most ${MAX_PROJECTS} items.`);
+  const areas = legacy ? createDefaultAreas({legacy: true}) : normalizeAreas(data.areas);
+  const areaIds = new Set(areas.map(area => area.id));
   const settings = field(data, 'settings', {});
   object(settings, 'Settings');
   knownKeys(settings, SETTINGS_KEYS, 'Settings');
@@ -194,6 +277,8 @@ export function normalizeWorkspace(data) {
   const projects = data.projects.map(normalizeProject);
   const projectIds = new Set();
   for (const project of projects) {
+    if (legacy) choice(project.area, LEGACY_AREAS, 'Project area');
+    if (!areaIds.has(project.area)) fail(`Project “${project.name}” refers to a missing area.`);
     if (projectIds.has(project.id)) fail(`Project ID is duplicated: ${project.id}.`);
     projectIds.add(project.id);
   }
@@ -205,6 +290,8 @@ export function normalizeWorkspace(data) {
     // An imported record needs a real identity; only makeTask creates new IDs.
     if (!own(raw, 'id')) fail('Every saved task must have an ID.');
     const task = makeTask(raw, now);
+    if (legacy) choice(task.area, LEGACY_AREAS, 'Area');
+    if (!areaIds.has(task.area)) fail(`Task “${task.title}” refers to a missing area.`);
     if (taskIds.has(task.id)) fail(`Task ID is duplicated: ${task.id}.`);
     taskIds.add(task.id);
     if (task.projectId && !projectIds.has(task.projectId)) fail(`Task “${task.title}” refers to a missing project.`);
@@ -220,11 +307,12 @@ export function normalizeWorkspace(data) {
     task.number = nextNumber++;
   }
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: integer(field(data, 'revision', 0), 'Workspace revision'),
     updatedAt: instant(field(data, 'updatedAt', now), 'Workspace updated at'),
     tasks,
     projects,
+    areas,
     settings: {
       theme: choice(field(settings, 'theme', 'dark'), ['dark', 'light'], 'Theme'),
       density: choice(field(settings, 'density', 'comfortable'), ['comfortable', 'compact'], 'Density'),
@@ -236,13 +324,29 @@ export function normalizeWorkspace(data) {
 }
 
 /** Multiline capture stays literal; only list markers and area tags are parsed. */
-export function parseCapture(text, area = 'career') {
+export function parseCapture(text, area = 'career', areas = createDefaultAreas({legacy: true})) {
   string(text, 'Capture text');
-  choice(area, AREAS, 'Capture area');
+  const catalog = normalizeAreas(areas);
+  if (!catalog.some(item => item.id === area)) fail('Capture area does not exist in this board.');
+  // An immutable ID always keeps its meaning, including legacy #career/#dfe
+  // after renaming. Ambiguous name tags stay literal instead of guessing.
+  const tags = new Map(catalog.map(item => [item.id, item.id]));
+  const nameTags = new Map();
+  for (const item of catalog) {
+    const tag = nameTag(item);
+    const existing = nameTags.get(tag);
+    nameTags.set(tag, existing === undefined ? item.id : null);
+  }
+  for (const [tag, areaID] of nameTags) if (areaID !== null && !tags.has(tag)) tags.set(tag, areaID);
   return text.split(/\r?\n/).map(line => {
     let title = line.trim().replace(/^(?:(?:[-*+•]|\d+[.)])\s+)?\[\s*[xX]?\s*\]\s*/, '').replace(/^(?:[-*+•]|\d+[.)])\s+/, '');
     let taskArea = area;
-    title = title.replace(/(^|\s)#(career|life|dfe)(?=\s|$)/gi, (_, spacing, tag) => { taskArea = tag.toLowerCase(); return spacing; }).replace(/[ \t]{2,}/g, ' ').trim();
+    title = title.replace(/(^|\s)#([^\s#]+)(?=\s|$)/gu, (match, spacing, tag) => {
+      const selected = tags.get(tag.toLowerCase());
+      if (selected === undefined) return match;
+      taskArea = selected;
+      return spacing;
+    }).replace(/[ \t]{2,}/g, ' ').trim();
     if (!title) return null;
     return {title, area: taskArea};
   }).filter(Boolean);
@@ -350,10 +454,11 @@ function csvCell(value) {
   if (/^[\s\uFEFF]*[=+\-@]/u.test(result) || /^[\t\r\n]/.test(result)) result = `'${result}`;
   return `"${result.replaceAll('"', '""')}"`;
 }
-export function toCSV(tasks) {
+export function toCSV(tasks, areas) {
   if (!Array.isArray(tasks)) fail('CSV tasks must be an array.');
+  const names = new Map(areas === undefined ? [] : normalizeAreas(areas).map(area => [area.id, area.name]));
   const rows = [['Number', 'Title', 'Area', 'Status', 'Priority', 'Project', 'Due', 'Follow-up', 'Minutes', 'Today', 'Checklist complete', 'Checklist total', 'URL', 'Notes', 'Created', 'Updated', 'Completed', 'Archived']];
-  for (const task of tasks) rows.push([task.number, task.title, task.area, task.status, task.priority, task.projectId, task.due, task.followUp, task.effort, task.today ? 'Yes' : 'No', (task.checklist || []).filter(item => item.done).length, (task.checklist || []).length, task.url, task.notes, task.createdAt, task.updatedAt, task.completedAt, task.archived ? 'Yes' : 'No']);
+  for (const task of tasks) rows.push([task.number, task.title, names.get(task.area) || task.area, task.status, task.priority, task.projectId, task.due, task.followUp, task.effort, task.today ? 'Yes' : 'No', (task.checklist || []).filter(item => item.done).length, (task.checklist || []).length, task.url, task.notes, task.createdAt, task.updatedAt, task.completedAt, task.archived ? 'Yes' : 'No']);
   return rows.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
@@ -363,10 +468,28 @@ function parseWorkspace(text) {
   try { parsed = JSON.parse(text); } catch { fail('This file is not valid JSON. Your current board has not changed.'); }
   return normalizeWorkspace(parsed);
 }
-function emptyWorkspace() { return {schemaVersion: 1, revision: 0, updatedAt: timestampNow(), tasks: [], projects: [], settings: {}}; }
+function emptyWorkspace() { return {schemaVersion: 2, revision: 0, updatedAt: timestampNow(), tasks: [], projects: [], areas: createDefaultAreas(), settings: {}}; }
 function errorText(error) { return error instanceof Error ? error.message : String(error); }
 function mergeWorkspaces(current, incoming) {
   const result = clone(current);
+  const knownAreas = new Set(result.areas.map(area => area.id));
+  const areaNames = new Set(result.areas.map(area => nameKey(area.name)));
+  for (const source of incoming.areas) if (!knownAreas.has(source.id)) {
+    const area = clone(source);
+    if (areaNames.has(nameKey(area.name))) {
+      let index = 1, name;
+      do {
+        const suffix = index === 1 ? ' (imported)' : ` (imported ${index})`;
+        name = area.name.slice(0, 80 - suffix.length).trimEnd() + suffix;
+        index++;
+      } while (areaNames.has(nameKey(name)));
+      area.name = name;
+    }
+    result.areas.push(area);
+    knownAreas.add(area.id);areaNames.add(nameKey(area.name));
+  }
+  // IDs carry assignments. Existing labels/colors win matching IDs; similarly
+  // named areas with different IDs remain separate rather than merging tasks.
   const knownProjects = new Set(result.projects.map(project => project.id));
   for (const project of incoming.projects) if (!knownProjects.has(project.id)) {
     result.projects.push(clone(project));
@@ -401,9 +524,11 @@ export class BoardStore {
     this.key = string(key, 'Storage key', {empty: false, max: 200});
     this.previousKey = `${this.key}.previous`;
     this.corruptKey = `${this.key}.corrupt`;
+    this.legacyKey = `${this.key}.before-areas-v2`;
     this._initial = normalizeWorkspace(initialState === undefined ? emptyWorkspace() : initialState);
     this._state = freeze(clone(this._initial));
     this._raw = null;
+    this._legacyRaw = null;
     this._history = [];
     this._writeBlocked = false;
     this._rawKnown = false;
@@ -434,6 +559,7 @@ export class BoardStore {
       return this._state;
     }
     this._raw = raw;
+    this._legacyRaw = null;
     this._rawKnown = true;
     this._history = [];
     if (raw === null) {
@@ -459,12 +585,14 @@ export class BoardStore {
         const previous = this.storage.getItem(this.previousKey);
         if (previous !== null) {
           this._state = freeze(parseWorkspace(previous));
+          if (JSON.parse(previous).schemaVersion === 1) this._legacyRaw = previous;
           this.loadIssue = `The previous saved snapshot is shown. Your unreadable current record is kept untouched. Export this snapshot, then import it with Replace to recover.`;
         }
       } catch { /* Keep the last trustworthy in-memory state if backup also fails. */ }
       return this._state;
     }
     this._state = freeze(primary);
+    if (JSON.parse(raw).schemaVersion === 1) this._legacyRaw = raw;
     this._writeBlocked = false;
     this.loadIssue = null;
     try {
@@ -490,6 +618,10 @@ export class BoardStore {
     const prior = clone(this._state);
     const previousRaw = JSON.stringify(prior);
     try {
+      // Opening an old board only normalizes it in memory. Its exact original
+      // bytes are retained once before the first durable v2 write, under the
+      // same browser origin. A failed preservation write stops the board save.
+      if (this._legacyRaw !== null && this.storage.getItem(this.legacyKey) === null) this.storage.setItem(this.legacyKey, this._legacyRaw);
       if (this._writeBlocked && recovery && this._raw !== null) this.storage.setItem(this.corruptKey, this._raw);
       this.storage.setItem(this.previousKey, previousRaw);
       this.storage.setItem(this.key, serialized);
@@ -497,8 +629,9 @@ export class BoardStore {
       throw new Error(`The board could not be saved. Your last saved board is unchanged. ${errorText(error)}`);
     }
     // No state, undo history, or revision changes are published before the main
-    // record is durably written. Failure on either write leaves them intact.
+    // record is durably written. Failure at any write leaves them intact.
     this._raw = serialized;
+    this._legacyRaw = null;
     this._state = freeze(next);
     this._writeBlocked = false;
     this.loadIssue = null;
