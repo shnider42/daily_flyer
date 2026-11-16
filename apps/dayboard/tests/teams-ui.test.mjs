@@ -119,7 +119,7 @@ function viewHarness({guard = () => true, hash = ''} = {}) {
   const dialog = {
     open: false,
     get innerHTML() { return html; },
-    set innerHTML(value) { html = value; nodes = new Map(['#team-error', '#team-status', '#team-workspace-list'].map(id => [id, node()])); },
+    set innerHTML(value) { html = value; nodes = new Map(['#team-error', '#team-status', '#team-workspace-list', '#team-create-controls', '#team-creation-note'].map(id => [id, node()])); },
     querySelector(selector) { return selector === '[data-teams-content]' ? (html.includes('data-teams-content') ? {} : null) : (html.includes('data-teams-content') ? nodes.get(selector) || null : null); },
     querySelectorAll() { return []; },
     classList: {add() {}}, setAttribute() {}, removeAttribute() {},
@@ -146,6 +146,7 @@ function viewHarness({guard = () => true, hash = ''} = {}) {
     init: async () => null,
     onAuthChange(listener) { authListener = listener; return () => {}; },
     listWorkspaces: async () => [],
+    capabilities: async () => ({mayCreateWorkspace: false, workspaceLimit: 0, ownedWorkspaceCount: 0}),
     previewInvite: async () => { calls.preview++; return {}; },
   };
   const ui = createTeamsUI({
@@ -218,5 +219,36 @@ test('the workspace click handler opens the chooser when shared configuration is
     assert.equal(view.dialog.open, true);
     assert.match(view.dialog.innerHTML, /Shared workspaces are not available on this build yet/);
     assert.equal(view.notifications.length, 0);
+  } finally { view.dispose(); }
+});
+
+test('an invited member can see their workspaces without being offered organizer controls', async () => {
+  const view = viewHarness();
+  view.service.listWorkspaces = async () => [{id: 'joined', name: 'Invited team', role: 'member', memberCount: 2}];
+  try {
+    await view.ui.init();
+    await view.ui.open();
+    assert.match(view.dialog.querySelector('#team-workspace-list').innerHTML, /Invited team/);
+    assert.equal(view.dialog.querySelector('#team-create-controls').innerHTML, '');
+    assert.match(view.dialog.querySelector('#team-creation-note').textContent, /organizer approval/);
+    await view.click('create');
+    assert.doesNotMatch(view.dialog.innerHTML, /team-create-form/);
+    assert.match(view.dialog.querySelector('#team-error').textContent, /organizer approval/);
+  } finally { view.dispose(); }
+});
+
+test('organizer creation follows the current account allowance and fails closed on a permissions error', async () => {
+  const view = viewHarness();
+  view.service.capabilities = async () => ({mayCreateWorkspace: true, workspaceLimit: 3, ownedWorkspaceCount: 1});
+  try {
+    await view.ui.init();
+    await view.ui.open();
+    assert.match(view.dialog.querySelector('#team-create-controls').innerHTML, /Create workspace/);
+    assert.match(view.dialog.querySelector('#team-creation-note').textContent, /1 of 3/);
+    view.service.capabilities = async () => { throw new Error('Permission lookup failed'); };
+    await view.ui.open();
+    assert.equal(view.dialog.querySelector('#team-create-controls').innerHTML, '');
+    await view.click('create');
+    assert.doesNotMatch(view.dialog.innerHTML, /team-create-form/);
   } finally { view.dispose(); }
 });

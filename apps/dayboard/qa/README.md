@@ -51,3 +51,7 @@ Supported transport operations are workspace list/snapshot/commit, receipt repla
 The following image shows the synthetic candidate after the conflict, lost-response, same-account restoration, and delayed capture checks on November 16, 2026. The bottom strip identifies the test transport and reports its committed-save counts; this is not a live hosted team.
 
 ![Synthetic shared-workspace browser result](browser-result.jpg)
+
+## Privacy release verification
+
+`privacy-live.jpg` records the public privacy notice after the 1.2.1 release. The notice was inspected at desktop and 390px widths in the managed browser preview. The synthetic team fixture also verified that a full organizer allowance hides creation controls and that the signed-out panel explains invitation-only admission and links to the privacy notice before email entry. No hosted sign-in email or invitation was sent.

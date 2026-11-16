@@ -16,6 +16,7 @@ before(async()=>{
   await db.exec(`
     create role anon nologin;
     create role authenticated nologin;
+    create role supabase_auth_admin nologin;
     create schema auth;
     create table auth.users (
       id uuid primary key,email text,email_confirmed_at timestamptz,
@@ -32,6 +33,9 @@ before(async()=>{
   );
   const directory=fileURLToPath(new URL('../supabase/migrations/',import.meta.url));
   for(const file of readdirSync(directory).filter(name=>name.endsWith('.sql')).sort()) await db.exec(readFileSync(`${directory}/${file}`,'utf8'));
+  // These two synthetic organizers exercise many independent boards. Admission
+  // and the production default quota are tested separately in team-admission.
+  await db.query('insert into dayboard_private.organizer_approvals(email,workspace_limit) values($1,100),($2,100)',[emails.owner,emails.other]);
 });
 after(async()=>{await db?.close();});
 

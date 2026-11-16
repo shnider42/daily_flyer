@@ -1,2 +1,2 @@
-/** Enable only after the backend, email delivery, and multi-user checks pass. */
-export const TEAM_CONFIG = Object.freeze({enabled: false, url: '', publishableKey: ''});
+// Team mode remains disabled until the hosted pilot release checks pass.
+export const TEAM_CONFIG = Object.freeze({enabled: false, url: '', publishableKey: '', emailProvider: ''});

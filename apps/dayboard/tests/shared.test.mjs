@@ -508,6 +508,7 @@ test('the real SQL boundary supports two clients, copied recurrence, private pin
     await db.exec(`
       create role anon nologin;
       create role authenticated nologin;
+      create role supabase_auth_admin nologin;
       create schema auth;
       create table auth.users (
         id uuid primary key, email text, email_confirmed_at timestamptz,
@@ -523,6 +524,7 @@ test('the real SQL boundary supports two clients, copied recurrence, private pin
     }
     const directory = new URL('../supabase/migrations/', import.meta.url);
     for (const file of (await readdir(directory)).filter(file => file.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(file, directory), 'utf8'));
+    await db.query('insert into dayboard_private.organizer_approvals(email) values($1)', ['owner@example.test']);
 
     const storage = new MemoryStorage();
     const serviceFor = async (id, email) => {

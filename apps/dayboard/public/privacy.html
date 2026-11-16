@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" data-text-size="larger" data-contrast="standard">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181b20">
+  <meta name="description" content="How Dayboard handles personal browser data, shared workspace content, accounts, and privacy requests.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Privacy & data — Dayboard</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./privacy.css">
+  <script type="module" src="./privacy.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#privacy-main">Skip to privacy policy</a>
+  <header class="privacy-header">
+    <a class="wordmark" href="./">dayboard</a>
+    <a href="./">Return to Dayboard</a>
+  </header>
+  <main id="privacy-main" class="privacy-document">
+    <h1>Privacy & data</h1>
+    <p class="policy-meta">Operator: HoltsniderTech<br>Policy version: November 16, 2026</p>
+
+    <section class="privacy-summary" aria-labelledby="status-title">
+      <h2 id="status-title">Personal mode is available</h2>
+      <p id="sharing-status">Shared workspaces are not active in this build. You can use a personal board without creating an account. Its task content stays in this browser unless you explicitly copy or export it.</p>
+      <p><strong>Finding the website does not give someone access to a team.</strong> The shared pilot, when activated, admits approved organizers and people invited to a workspace. It is not open registration for hosted boards.</p>
+    </section>
+
+    <nav class="privacy-contents" aria-label="On this page">
+      <a href="#personal">Personal board</a>
+      <a href="#shared">Shared workspaces</a>
+      <a href="#access">Who can access data</a>
+      <a href="#providers">Service providers</a>
+      <a href="#retention">Retention & removal</a>
+      <a href="#contact">Requests & contact</a>
+    </nav>
+
+    <section id="personal">
+      <h2>1. Your personal board</h2>
+      <p>Dayboard stores personal tasks, notes, checklists, projects, links, Areas, and board settings in your browser’s local storage. Opening the site, signing in, or joining a team does not automatically upload that board. Each browser and device has its own personal board.</p>
+      <p>The main saved record uses <code>dfe.dayboard.v1</code>. Dayboard also keeps local recovery copies, including a previous snapshot and, when applicable, the original record from an Areas upgrade. Text size and contrast have a separate local preference record. These records are on your device; HoltsniderTech cannot retrieve them through Dayboard’s server.</p>
+      <p>A JSON import into Personal is read and stored in your browser. A JSON or CSV export downloads a file to your device. You control where you keep or share that file. Exports may contain private notes, links, names, or other information you entered.</p>
+      <p>Clearing this site’s browser data removes its local records and can permanently remove your personal board. Download a backup first if you want to keep it. Removing a browser record does not erase files you previously downloaded or copies stored on other devices.</p>
+    </section>
+
+    <section id="shared">
+      <h2>2. What a shared workspace stores</h2>
+      <p>A shared workspace starts empty. Content reaches it when a member creates or edits work there, imports a backup into it, or confirms a copy from Personal. The copy screen starts with no Areas selected and identifies the destination before upload. Copies are independent of the personal originals.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>Information used for the shared pilot</caption>
+          <thead><tr><th scope="col">Data</th><th scope="col">Purpose</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Account and access</th><td>Email address, account identifier, any supplied display name, verification and sign-in information, organizer approval, workspace membership, and invitation records support sign-in and permission checks.</td></tr>
+            <tr><th scope="row">Shared work</th><td>Workspace names, Areas, projects, task text and notes, checklists, links, dates, status, priority, recurrence, and assignments provide the board and collaboration features.</td></tr>
+            <tr><th scope="row">Save and activity records</th><td>Record identifiers and versions, timestamps, action authorship, change summaries, deletion markers, and save receipts support conflict detection, troubleshooting, Undo, and retries without duplicate work.</td></tr>
+            <tr><th scope="row">Personal Today selections</th><td>In a shared workspace, your pins are stored against your account so your shortlist follows you. They are not shown to other members or included in shared activity.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Shared display and review preferences stay in this browser under keys scoped to your account and workspace. Sign-in session information has its own local storage namespace. A pending invitation may also be kept in session storage so it can be resumed after sign-in. Signing out removes the active sign-in session; it does not erase your personal board, downloaded files, or all saved display preferences.</p>
+      <p>Dayboard hosts text and links in this pilot. It does not provide attachment uploads or automatically fetch the content of links you enter. A link you choose to open leads to a separate service governed by that service’s policies.</p>
+    </section>
+
+    <section id="access">
+      <h2>3. Who can access the information</h2>
+      <p><strong>All current members can read and edit a shared workspace’s tasks, notes, projects, and Areas.</strong> Membership also exposes the member directory and assignment information. Areas organize work within that shared boundary; they do not give individual tasks separate access permissions. Owners can invite or remove members.</p>
+      <p>Workspace data is not published as a public board or directory. Possessing an invitation link alone is insufficient: acceptance requires the verified email address on that invitation. Removing a member blocks subsequent authorized access, but cannot recall information they already viewed, copied, or downloaded.</p>
+      <p><strong>HoltsniderTech operates the service and has privileged administrative access to hosted data.</strong> Authorized operators and infrastructure providers may technically access hosted account and workspace information for service operation, support, security, incident investigation, or legal obligations. Your Today pins are private from other workspace members; they are not encrypted against the service operator.</p>
+      <p>Routine host oversight uses workspace and owner account information, membership and content counts, the size of retained board records, and the latest activity time to understand what is being hosted and manage capacity. The board-record size is a content estimate; separate provider metrics measure total database storage. Task and note bodies are not included in that overview. Administrative access is different from a public feature and is not available to ordinary members.</p>
+      <p>Dayboard uses HTTPS and database access controls for hosted work. It does not provide end-to-end encryption that hides shared content from the operator or infrastructure providers.</p>
+    </section>
+
+    <section id="providers">
+      <h2>4. Site delivery and service providers</h2>
+      <p><strong>Render delivers this website.</strong> Loading it sends ordinary network and request information to the hosting infrastructure, such as your IP address, requested address, browser information supplied with the request, and request timing. This is separate from the task text saved only in your browser. Render’s static-site service does not provide HoltsniderTech with an application request-log viewer for individual visits.</p>
+      <p><strong>Supabase supports the shared pilot when it is enabled.</strong> It processes hosted account, authentication, database, and live-update data on HoltsniderTech’s behalf. Authentication and service operations can also produce security and diagnostic records. Opening the personal-only build does not start a Supabase sign-in or board connection.</p>
+      <p id="email-provider-notice">Dayboard cloud sign-in is not available in this build, so this build does not send sign-in emails. If the shared pilot is activated, this notice will identify the email delivery provider.</p>
+      <p>Provider agreements and service configuration determine the processing location and retention of infrastructure records. This notice does not promise a particular log or backup retention window. Those details must be established before a wider hosted rollout.</p>
+      <ul class="provider-links">
+        <li><a href="https://render.com/privacy" target="_blank" rel="noopener noreferrer">Render privacy information</a>, <a href="https://render.com/dpa" target="_blank" rel="noopener noreferrer">data processing agreement</a>, and <a href="https://render.com/docs/logging" target="_blank" rel="noopener noreferrer">logging documentation</a></li>
+        <li><a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase privacy information</a> and <a href="https://supabase.com/legal/dpa" target="_blank" rel="noopener noreferrer">data processing agreement</a></li>
+      </ul>
+      <p>Dayboard’s application code has no advertising pixels, product analytics, session replay, or task-content AI feature. HoltsniderTech does not use Dayboard to sell task content or target advertising. This statement describes Dayboard; it does not replace the infrastructure providers’ own policies.</p>
+    </section>
+
+    <section id="retention">
+      <h2>5. Retention, exports, and removal</h2>
+      <p><strong>Archiving is organization, not erasure.</strong> Archived work remains in the workspace and can still be read by its members. Removing a person from a workspace stops future access but preserves the team’s existing work and authorship records.</p>
+      <p>The shared pilot currently retains live records, records marked as deleted, activity history, and save receipts. Some deleted-record content is retained to support conditional Undo and safe retry. There is no automatic age-based deletion schedule or self-service whole-workspace deletion in this version. A deletion request therefore needs operator review and an explicit explanation of what will be removed or retained.</p>
+      <p>Shared JSON exports contain board content and assignment references, including an assignee’s account identifier and email address. They exclude the exporting person’s Today pins. They are content backups, not full exports of authentication records, membership history, invitations, audit records, or server save receipts. Treat downloaded backups as sensitive to the same degree as the workspace they describe.</p>
+      <p>If a sign-in expires during an edit, Dayboard may retain the unfinished draft and an unconfirmed save in the current tab’s memory for recovery by the same authorized account. Those in-memory drafts are lost when the tab closes. They do not become personal-board records automatically.</p>
+      <p>Copies already held by other members, downloaded files, and provider backups may outlast removal from the active service. A response to a hosted-data deletion request should distinguish those copies and any records that must be retained for security or legal reasons. Dayboard does not promise immediate erasure from every backup.</p>
+    </section>
+
+    <section id="contact">
+      <h2>6. Privacy questions and requests</h2>
+      <p>HoltsniderTech is the operator responsible for this Dayboard deployment. Ask about access, correction, export, account closure, or deletion of hosted information through the contact route below. Include the email used for the shared pilot and the workspace name when relevant; do not send passwords, sign-in links, or a full board backup unless a secure transfer is specifically arranged.</p>
+      <p id="privacy-contact-details" class="contact-status">Email <a href="mailto:chris@holtsnidertech.com">chris@holtsnidertech.com</a> with “Dayboard privacy” in the subject. You can also find the operator’s contact information at <a href="https://www.holtsnidertech.com/#contact" target="_blank" rel="noopener noreferrer">HoltsniderTech</a>.</p>
+      <p>We may need to verify your identity and workspace role before acting on a request. A request concerning your account may affect shared content or other members’ records, so its scope needs to be explained rather than assuming that account closure deletes an entire team. Rights and response requirements can vary by location.</p>
+      <p>For a personal board that has never been uploaded, the available copy is in your browser or your own downloaded backups. The operator cannot recover or erase that device-local content remotely.</p>
+    </section>
+
+    <section id="changes">
+      <h2>7. Changes to this notice</h2>
+      <p>The version date above identifies this notice. Material changes to hosted collection, access, providers, or retention must be reflected here before the changed feature is enabled. Existing personal content will not be automatically uploaded because the policy changes.</p>
+    </section>
+    <footer class="privacy-footer"><a href="./">Return to Dayboard</a><span>HoltsniderTech · Daily Flyer</span></footer>
+  </main>
+</body>
+</html>

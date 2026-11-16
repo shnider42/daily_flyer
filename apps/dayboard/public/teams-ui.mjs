@@ -3,6 +3,7 @@ import {normalizeWorkspace} from './model.mjs';
 const INVITE_SESSION_KEY = 'dfe.dayboard.pending-invite.v1';
 const copy = value => structuredClone(value);
 const countLabel = (count, label) => `${count} ${label}${count === 1 ? '' : 's'}`;
+const privacyLink = '<a href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy &amp; data</a>';
 
 /** An explicit selection, with only its dependencies; the source is never mutated. */
 export function preparePersonalCopy(source, areaIds) {
@@ -32,6 +33,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
   let mode = '', generation = 0, pendingInvite = '', latestInvite = null;
   let copySource = null, copyDraft = null, copyAreaIds = [], copyDestination = null;
   let invitations = [], confirmation = null, unsubscribeAuth = null;
+  let creationPermission = null;
   const dialog = () => document.querySelector('#utility-dialog');
   const q = selector => dialog()?.querySelector(selector);
   const isOurs = () => Boolean(dialog()?.open && q('[data-teams-content]'));
@@ -164,6 +166,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
     if (busy || disposed) return;
     if (!isOurs() && !await maySwitch()) return;
     latestInvite = null;
+    creationPermission = null;
     const store = shared();
     let body = `<p class="team-intro">Choose where you want to work.</p><div class="team-workspace-list">${localButton()}</div>`;
     if (!service.configured) {
@@ -172,20 +175,26 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
       return;
     }
     if (!service.user) {
-      body += `<section class="team-section"><h3>${pendingInvite ? 'Sign in to review your invitation' : 'Sign in for shared workspaces'}</h3><p>${pendingInvite ? 'Use the email address the invitation was sent to. You will review the workspace before joining.' : 'Your personal board stays separate. Creating an account does not upload it.'}</p><form id="team-signin-form"><div class="field"><label class="field-label" for="team-email">Email address</label><input id="team-email" name="email" type="email" maxlength="254" autocomplete="email" required></div><button class="button primary" type="submit">Email me a sign-in link</button></form></section>`;
+      body += `<section class="team-section"><h3>${pendingInvite ? 'Sign in to review your invitation' : 'Invitation-only team pilot'}</h3><p>${pendingInvite ? 'Use the email address the invitation was sent to. You will review the workspace before joining.' : 'Shared access is for invited participants and organizers approved by HoltsniderTech. Your personal board stays in this browser.'}</p><p>Sign-in sends your email address to our authentication and email providers. Signing in does not upload your personal board. ${privacyLink}</p><form id="team-signin-form"><div class="field"><label class="field-label" for="team-email">Email address</label><input id="team-email" name="email" type="email" maxlength="254" autocomplete="email" required></div><button class="button primary" type="submit">Email me a sign-in link</button></form></section>`;
       show('Workspaces', body, pendingInvite ? `${action('cancel-invite', 'Dismiss invitation', 'button plain')}<span class="spacer"></span>${action('close', 'Done', 'button primary')}` : done(), 'workspaces');
       return;
     }
-    body += `<div class="team-account"><span>Signed in as <strong>${esc(userLabel(service.user))}</strong></span>${action('signout', 'Sign out', 'button plain small')}</div><section class="team-section"><div class="team-section-heading"><h3>Shared workspaces</h3>${action('create', `${icon('plus')} Create workspace`, 'button small')}</div><div id="team-workspace-list" class="team-workspace-list" aria-live="polite"><p class="team-loading">Loading your workspaces…</p></div></section>`;
+    body += `<div class="team-account"><span>Signed in as <strong>${esc(userLabel(service.user))}</strong></span>${action('signout', 'Sign out', 'button plain small')}</div><section class="team-section"><div class="team-section-heading"><h3>Shared workspaces</h3><span id="team-create-controls"></span></div><p id="team-creation-note" class="field-hint"></p><div id="team-workspace-list" class="team-workspace-list" aria-live="polite"><p class="team-loading">Loading your workspaces…</p></div></section>`;
     if (store) body += `<div class="team-current-tools">${action('members', 'Members & invitations')}${action('copy', 'Copy from personal board')}</div>`;
     if (pendingInvite) body += `<div class="team-note"><p>You have an invitation to review.</p>${action('review-invite', 'Review invitation', 'button primary')}</div>`;
     const stamp = show('Workspaces', body, done(), 'workspaces');
     try {
-      const workspaces = await service.listWorkspaces();
+      const userId = service.user.id;
+      const [workspaces, capabilities] = await Promise.all([service.listWorkspaces(), service.capabilities()]);
       if (disposed || stamp !== generation || !isOurs() || mode !== 'workspaces') return;
+      if (service.user?.id !== userId) return;
+      creationPermission = {userId, ...capabilities};
+      const controls = q('#team-create-controls'), note = q('#team-creation-note');
+      if (controls) controls.innerHTML = capabilities.mayCreateWorkspace ? action('create', `${icon('plus')} Create workspace`, 'button small') : '';
+      if (note) note.textContent = capabilities.workspaceLimit ? `Organizer allowance: ${capabilities.ownedWorkspaceCount} of ${capabilities.workspaceLimit} workspaces.${capabilities.mayCreateWorkspace ? '' : ' Your allowance is full.'}` : 'New workspaces require organizer approval from HoltsniderTech. You can open workspaces you have joined or accept an invitation.';
       const list = q('#team-workspace-list');
       if (!list) return;
-      list.innerHTML = workspaces.length ? workspaces.map(workspace => `<button type="button" class="team-workspace-row ${workspace.id === shared()?.workspace.id ? 'is-current' : ''}" data-team-action="select" data-workspace-id="${esc(workspace.id)}"><span class="team-row-copy"><strong>${esc(workspace.name)}</strong><small>${countLabel(workspace.memberCount || 1, 'member')} · ${workspace.role === 'owner' ? 'Owner' : 'Member'}</small></span>${workspace.id === shared()?.workspace.id ? '<span class="team-current">Current</span>' : '<span class="team-row-action">Open</span>'}</button>`).join('') : '<p class="team-empty">You have no shared workspaces yet. Create one or accept an invitation.</p>';
+      list.innerHTML = workspaces.length ? workspaces.map(workspace => `<button type="button" class="team-workspace-row ${workspace.id === shared()?.workspace.id ? 'is-current' : ''}" data-team-action="select" data-workspace-id="${esc(workspace.id)}"><span class="team-row-copy"><strong>${esc(workspace.name)}</strong><small>${countLabel(workspace.memberCount || 1, 'member')} · ${workspace.role === 'owner' ? 'Owner' : 'Member'}</small></span>${workspace.id === shared()?.workspace.id ? '<span class="team-current">Current</span>' : '<span class="team-row-action">Open</span>'}</button>`).join('') : `<p class="team-empty">You have no shared workspaces yet. ${capabilities.mayCreateWorkspace ? 'Create one or accept an invitation.' : 'Accept a workspace invitation to join a team.'}</p>`;
     } catch (error) {
       if (stamp === generation && isOurs()) {
         const list = q('#team-workspace-list'); if (list) list.innerHTML = action('workspaces', 'Try loading workspaces again');
@@ -196,6 +205,10 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
 
   function openCreate() {
     if (!service.user) return open();
+    if (creationPermission?.userId !== service.user.id || !creationPermission.mayCreateWorkspace) {
+      feedback('Creating a workspace requires organizer approval and an available allowance. Reopen Workspaces to check your access.', true);
+      return;
+    }
     show('Create a shared workspace', `<p class="team-intro">Start an empty board for a team. You can invite people and choose personal work to copy into it afterwards.</p><form id="team-create-form"><div class="field"><label class="field-label" for="team-name">Workspace name</label><input id="team-name" name="name" maxlength="80" required autocomplete="off" placeholder="For example, DFE team"></div></form>`, `${action('workspaces', 'Cancel')}<span class="spacer"></span><button class="button primary" type="submit" form="team-create-form">Create workspace</button>`, 'create');
     q('#team-name')?.focus();
   }
@@ -247,7 +260,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
     try {
       const preview = await service.previewInvite(pendingInvite);
       if (disposed || stamp !== generation || !isOurs()) return;
-      show('Join a shared workspace', `<p class="team-intro">You have been invited to <strong>${esc(preview.workspaceName)}</strong>.</p><dl class="team-invitation-details"><div><dt>Joining as</dt><dd>${esc(preview.email)}</dd></div><div><dt>Invitation expires</dt><dd>${esc(formatDate(preview.expiresAt))}</dd></div></dl><p>You will be able to see and edit the shared board. Your personal board stays separate; joining does not copy it into this workspace.</p>`, `${action('cancel-invite', 'Cancel')}<span class="spacer"></span>${action('accept-invite', preview.alreadyJoined ? 'Open workspace' : 'Join workspace', 'button primary')}`, 'invitation');
+      show('Join a shared workspace', `<p class="team-intro">You have been invited to <strong>${esc(preview.workspaceName)}</strong>.</p><dl class="team-invitation-details"><div><dt>Joining as</dt><dd>${esc(preview.email)}</dd></div><div><dt>Invitation expires</dt><dd>${esc(formatDate(preview.expiresAt))}</dd></div></dl><p>You will be able to see and edit the shared board. Your personal board stays separate; joining does not copy it into this workspace.</p><p>${privacyLink} explains member visibility, hosting, and retained data.</p>`, `${action('cancel-invite', 'Cancel')}<span class="spacer"></span>${action('accept-invite', preview.alreadyJoined ? 'Open workspace' : 'Join workspace', 'button primary')}`, 'invitation');
     } catch (error) {
       if (stamp === generation && isOurs()) {
         show('Invitation could not be opened', `<p>${esc(error?.message || 'The invitation may have expired or been revoked.')}</p><p>You are signed in as <strong>${esc(userLabel(service.user))}</strong>. The invited email address must match.</p>`, `${action('cancel-invite', 'Dismiss invitation', 'button plain')}<span class="spacer"></span>${action('workspaces', 'Workspaces', 'button primary')}`, 'invitation-error');
@@ -266,7 +279,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
       const projects = copySource.projects.filter(project => project.area === area.id).length;
       return `<label class="team-copy-area"><input type="checkbox" name="areas" value="${esc(area.id)}" ${copyAreaIds.includes(area.id) ? 'checked' : ''}><span class="area-dot" data-color="${esc(area.color)}" aria-hidden="true"></span><span class="team-row-copy"><strong>${esc(area.name)}</strong><small>${countLabel(tasks, 'task')} · ${countLabel(projects, 'project')}</small></span></label>`;
     }).join('');
-    show('Copy personal work to a team', `<p class="team-intro">Choose Areas from your personal board to copy into <strong>${esc(store.workspace.name)}</strong>.</p><p>The copy includes tasks, notes, checklists, projects, and links from those Areas, including completed and archived work. Every member of this workspace will be able to read it.</p><form id="team-copy-form"><fieldset class="team-copy-areas"><legend class="field-label">Areas to copy</legend>${areas}</fieldset><p id="team-copy-count" class="team-copy-count" role="status"></p></form><p class="field-hint">Your personal originals stay in this browser. The team receives independent copies. Personal Today selections and display choices stay personal.</p>`, `${action('workspaces', 'Cancel')}<span class="spacer"></span><button id="team-review-copy" class="button primary" type="submit" form="team-copy-form" ${copyAreaIds.length ? '' : 'disabled'}>Review copy</button>`, 'copy');
+    show('Copy personal work to a team', `<p class="team-intro">Choose Areas from your personal board to copy into <strong>${esc(store.workspace.name)}</strong>.</p><p>The copy includes tasks, notes, checklists, projects, and links from those Areas, including completed and archived work. Every member of this workspace will be able to read it.</p><p>${privacyLink}</p><form id="team-copy-form"><fieldset class="team-copy-areas"><legend class="field-label">Areas to copy</legend>${areas}</fieldset><p id="team-copy-count" class="team-copy-count" role="status"></p></form><p class="field-hint">Your personal originals stay in this browser. The team receives independent copies. Personal Today selections and display choices stay personal.</p>`, `${action('workspaces', 'Cancel')}<span class="spacer"></span><button id="team-review-copy" class="button primary" type="submit" form="team-copy-form" ${copyAreaIds.length ? '' : 'disabled'}>Review copy</button>`, 'copy');
     updateCopyCount();
   }
 
@@ -288,7 +301,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
     const selected = new Set(copyAreaIds);
     if (!selected.size) return;
     copyDraft = preparePersonalCopy(copySource, [...selected]);
-    show('Review what you are sharing', `<p class="team-intro">Copy this work into <strong>${esc(copyDestination.name)}</strong>?</p><div class="team-copy-summary"><strong>${countLabel(copyDraft.tasks.length, 'task')} · ${countLabel(copyDraft.projects.length, 'project')} · ${countLabel(copyDraft.areas.length, 'Area')}</strong><p>${copyDraft.areas.map(area => esc(area.name)).join(' · ')}</p></div>${copyDraft.tasks.length ? `<ul class="team-copy-titles">${copyDraft.tasks.slice(0, 6).map(task => `<li>${esc(task.title)}</li>`).join('')}${copyDraft.tasks.length > 6 ? `<li class="muted">And ${copyDraft.tasks.length - 6} more tasks in the selected Areas.</li>` : ''}</ul>` : ''}<p>Members of <strong>${esc(copyDestination.name)}</strong> will be able to read the copied notes, checklists, project context, and links as well as the task titles.</p><p class="field-hint">This creates independent team copies. Your personal board remains in this browser.</p>`, `${action('copy-back', 'Back')}<span class="spacer"></span>${action('confirm-copy', 'Copy to shared workspace', 'button primary')}`, 'copy-review');
+    show('Review what you are sharing', `<p class="team-intro">Copy this work into <strong>${esc(copyDestination.name)}</strong>?</p><div class="team-copy-summary"><strong>${countLabel(copyDraft.tasks.length, 'task')} · ${countLabel(copyDraft.projects.length, 'project')} · ${countLabel(copyDraft.areas.length, 'Area')}</strong><p>${copyDraft.areas.map(area => esc(area.name)).join(' · ')}</p></div>${copyDraft.tasks.length ? `<ul class="team-copy-titles">${copyDraft.tasks.slice(0, 6).map(task => `<li>${esc(task.title)}</li>`).join('')}${copyDraft.tasks.length > 6 ? `<li class="muted">And ${copyDraft.tasks.length - 6} more tasks in the selected Areas.</li>` : ''}</ul>` : ''}<p>Members of <strong>${esc(copyDestination.name)}</strong> will be able to read the copied notes, checklists, project context, and links as well as the task titles.</p><p class="field-hint">This creates independent team copies. Your personal board remains in this browser. ${privacyLink}</p>`, `${action('copy-back', 'Back')}<span class="spacer"></span>${action('confirm-copy', 'Copy to shared workspace', 'button primary')}`, 'copy-review');
   }
 
   function confirmMemberRemoval(id) {
@@ -377,11 +390,12 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
     if (form.id === 'team-signin-form') {
       const email = String(data.get('email') || '').trim();
       await mutate(() => service.requestSignIn(email), () => {
-        feedback(`Check ${email} for a sign-in link. Your personal board remains here.`);
+        feedback(`If ${email} is eligible for this pilot, check it for a sign-in link. Your personal board remains here.`);
         const submit = form.querySelector('button[type="submit"]'); if (submit) submit.textContent = 'Send another sign-in link';
       }, 'Requesting sign-in link…');
     } else if (form.id === 'team-create-form') {
       if (!await maySwitch()) return;
+      if (creationPermission?.userId !== service.user?.id || !creationPermission?.mayCreateWorkspace) { feedback('Reopen Workspaces to check your organizer access.', true); return; }
       const name = String(data.get('name') || '').trim();
       if (!name) { feedback('Give the workspace a name.', true); return; }
       await mutate(() => service.createWorkspace(name), async store => {

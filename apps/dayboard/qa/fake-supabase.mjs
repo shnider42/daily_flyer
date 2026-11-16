@@ -128,6 +128,7 @@ async function runRPC(name, args, headers, signal) {
   if (signal?.aborted) throw new DOMException('Synthetic request aborted', 'AbortError');
   if (headers.Authorization !== `Bearer ${TOKEN}`) return failure('42501', 'The QA fixture requires its synthetic owner sign-in.');
   if (name === 'dayboard_workspaces') return {data: [{...clone(snapshot.workspace), memberCount: 2}], error: null};
+  if (name === 'dayboard_capabilities') return {data: {mayCreateWorkspace: false, workspaceLimit: 1, ownedWorkspaceCount: 1}, error: null};
   if (args.p_workspace_id !== WORKSPACE) return failure('QA_UNSUPPORTED', 'This QA fixture supports the existing Test team only.');
   if (name === 'dayboard_snapshot') return {data: clone(snapshot), error: null};
   if (name === 'dayboard_invitations') return {data: [], error: null};

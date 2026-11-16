@@ -276,6 +276,17 @@ export class TeamService {
 
   async listWorkspaces() { return await this._rpc('dayboard_workspaces'); }
 
+  async capabilities() {
+    const value = await this._rpc('dayboard_capabilities');
+    if (!value || typeof value.mayCreateWorkspace !== 'boolean' ||
+        !Number.isSafeInteger(value.workspaceLimit) || value.workspaceLimit < 0 ||
+        !Number.isSafeInteger(value.ownedWorkspaceCount) || value.ownedWorkspaceCount < 0 ||
+        (value.mayCreateWorkspace && value.ownedWorkspaceCount >= value.workspaceLimit)) {
+      throw new TeamError('Workspace permissions could not be read. Try opening Workspaces again.', {code: 'INVALID_RESPONSE'});
+    }
+    return Object.freeze({mayCreateWorkspace: value.mayCreateWorkspace, workspaceLimit: value.workspaceLimit, ownedWorkspaceCount: value.ownedWorkspaceCount});
+  }
+
   _openSnapshot(snapshot) {
     const store = new SharedBoardStore(this, snapshot, this._storeOptions);
     this._stores.add(store);
