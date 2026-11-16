@@ -48,7 +48,7 @@ test('shipless personal equipment persists aboard a borrowed hull without reveal
   const full = realm.snapshotFor(guest), compact = realm.snapshotFor(guest, { compact: true }), publicGuest = realm.snapshotFor(owner).players.find(person => person.captainId === guest.id);
   assert.deepEqual(full.state.person.ownedWeapons, ['pulse-sidearm', 'field-carbine']); assert.deepEqual(compact.state.person.ownedWeapons, full.state.person.ownedWeapons);
   assert.equal(full.state.person.weapon, 'field-carbine'); assert.equal(publicGuest.weapon, 'field-carbine'); assert.equal(Object.hasOwn(publicGuest, 'ownedWeapons'), false);
-  assert.equal((await realm.command(guest, 'equipPersonalWeapon', { id: SIDEARM.id, captainId: owner.id })).code, 'distance');
+  assert.equal((await realm.command(guest, 'equipPersonalWeapon', { id: SIDEARM.id, captainId: owner.id })).code, 'location');
   const restored = new Realm({ id: realm.id, snapshot: realm.document(), persistence: storage() }), returning = restored.captains.get(guest.id);
   assert.equal(returning.ownedVesselId, null); assert.equal(returning.aboard, carrier.id); assert.equal(getPersonalWeapon(returning.game.state.person).id, 'field-carbine');
   assert.deepEqual(returning.game.state.person.ownedWeapons, ['pulse-sidearm', 'field-carbine']); assert.equal(restored.captains.get(owner.id).game.state.person.weapon, 'breach-rifle');

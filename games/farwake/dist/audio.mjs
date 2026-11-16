@@ -115,7 +115,7 @@ export class Soundscape{
  }
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(this.recoveryMuted||!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){
-  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
+  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
    // One short throat-like fall, with no echo timers or looping source. The
    // effects bus and ordinary cleanup own all three voices, including mute.
@@ -127,7 +127,11 @@ export class Soundscape{
    case'personHit':this.tone(94,.17,'triangle',.28,32);this.tone(180,.07,'square',.09,80);break;
    case'personDown':this.tone(175,.28,'triangle',.19,56);break;
    case'fire':this.tone(520,.13,'square',.11,90);break;
-   case'bulkhead':this.tone(62,.27,'triangle',.24,23);this.tone(135,.08,'square',.045,72);break;
+   case'bulkhead':this.tone(54,.46,'triangle',.34,19);this.tone(143,.18,'sawtooth',.075,48);this.tone(810,.07,'square',.045,125);break;
+   case'shieldImpact':this.tone(118,.26,'sine',.24,48);this.tone(650,.15,'triangle',.06,240);break;
+   case'rifleShot':this.tone(580,.12,'square',.17,170);this.tone(1160,.04,'triangle',.09,430);break;
+   case'supportShot':this.tone(390,.075,'sawtooth',.15,120);this.tone(980,.035,'square',.065,410);break;
+   case'marksmanShot':this.tone(900,.2,'sawtooth',.17,95);this.tone(85,.26,'triangle',.18,34);break;
    case'shipAlarm':this.tone(330,.34,'triangle',.09,270);setTimeout(()=>this.tone(270,.34,'triangle',.075,220),380);break;
    case'repair':this.tone(310,.13,'triangle',.09,510);break;
    case'hit':this.tone(80,.18,'sawtooth',.22,20);break;

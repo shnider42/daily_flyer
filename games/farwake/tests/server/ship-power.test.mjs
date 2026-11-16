@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {Realm} from '../../server/realm.mjs';
+import {cabinLayout} from '../../dist/fleet.mjs';
+const ok=r=>{assert.equal(r?.ok,true,r?.reason);return r;};
+test('only the actual helmsman or permitted engineer routes the shared physical ship; all aboard receive the same setting',async()=>{
+ const realm=new Realm({id:'POWER123',seed:'power-crew',persistence:{kind:'memory',save:async(_id,v)=>({version:v+1})}});
+ const {captain:owner}=await realm.createCaptain('Owner'),{captain:guest}=await realm.createCaptain('Engineer');
+ ok(realm.attach(owner,{close(){}}));ok(realm.attach(guest,{close(){}}));
+ const ship=realm.vessels.get(owner.ownedVesselId),other=realm.vessels.get(guest.ownedVesselId);
+ realm._cabin(owner,ship);realm._cabin(guest,ship);ship.helmOwner=owner.id;owner.crewRole='helm';owner.game.state.mode='ship';owner.game.state.interior=null;
+ guest.crewRole='passenger';guest.game.state.person.x=0;guest.game.state.person.y=0;
+ assert.equal((await realm.command(guest,'setShipPower',{mode:'guns',vesselId:other.id})).ok,false);
+ ok(await realm.command(owner,'setShipPower',{mode:'thrusters'}));assert.equal(ship.ship.powerPriority,'thrusters');assert.notEqual(other.ship.powerPriority,'thrusters');
+ ship.ship.powerRerouteRemaining=0;ship.grants[guest.id]={allowed:true,roles:['engineering']};guest.crewRole='engineering';
+ Object.assign(guest.game.state.person,cabinLayout(ship.ship.classId).stations.engineering);
+ ok(await realm.command(guest,'setShipPower',{mode:'shields',vesselId:other.id}));assert.equal(ship.ship.powerPriority,'shields');assert.notEqual(other.ship.powerPriority,'shields');
+ assert.equal(realm.snapshotFor(owner).state.ship.powerPriority,'shields');assert.equal(realm.snapshotFor(guest).state.ship.powerPriority,'shields');
+ assert.equal((await realm.command(owner,'setShipPower',{mode:'guns'})).code,'cooldown');
+ guest.game.state.person.down=true;ship.ship.powerRerouteRemaining=0;assert.equal((await realm.command(guest,'setShipPower',{mode:'guns'})).ok,false);
+});

@@ -1,3 +1,4 @@
+import {powerProfile,POWER_LABELS} from '../dist/ship-power.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -37,7 +38,7 @@ function fixture(game){
   async connect(){this.connected=true;const packet={state:arrival.state};this.options.onSnapshot(packet);return packet;}
   disconnect(){this.connected=false;}setInput(){}
  }
- context=vm.createContext({Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,narrativeUI:{refreshCampaign:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
+ context=vm.createContext({powerProfile,POWER_LABELS,Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,narrativeUI:{refreshCampaign:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
   tracked:'kettle',trackedThreadId:'previous-story',narrativeWaypoint:{id:'old-waypoint'},narrativeMarkerKey:'old-story',openingMarkerKey:'old-opening',dutyMarkerKey:'old-duty',militaryMarkerKey:'old-military',guideIntent:'scan',foldDriveTarget:{kind:'beacon'},
   surface:null,surfaceKey:'',surfaceTarget:null,combatPreview:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
   touchLayout:false,settings:{guidance:'simple',showPerformance:false},hudDirty:true,labelLayoutDirty:false,cameraSaveTimer:null,cameraScope:'local',cameraKey:null,localCameraPreferences:{},militaryValue:null,narrativeValue:null,

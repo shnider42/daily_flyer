@@ -204,7 +204,7 @@ export const ProfessionRules={
   const state=stateFor(this),career=state.careers[professionId];if(career.enlisted)return this._fail('You are already enrolled in this profession.','duplicate');
   const employer=check.body.faction||this.currentSystem.faction||'freewake';
   if(factionId&&factionId!==employer)return this._fail('This desk can enroll you only with its local employer. Visit that faction’s port to join it.','faction');
-  career.enlisted=true;career.factionId=employer;if(professionId==='military')rep(this,rival[employer],-3);
+  career.enlisted=true;career.factionId=employer;if(professionId==='military'){rep(this,rival[employer],-3);this.issueServiceWeapon();}
   this._log(`Joined: ${definition.name}`,`${faction(employer)?.name||employer} registered your service. Shift supplies are paid only when you accept work.`,'profession');
   return this._ok({text:`You can now take ${definition.name.toLowerCase()} shifts.`,board:this.professionBoard(entityId)});
  },

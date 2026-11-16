@@ -2,6 +2,7 @@
 import { PERSONAL_WEAPONS, ensureSidearm, getPersonalWeapon } from './combat.mjs';
 import { generateSurface } from './surface.mjs';
 import { interactionInRange } from './live-surface.mjs';
+import { MILITARY_RECRUITER } from './military-content.mjs';
 
 const count = value => Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
 const professions = ['paramedic', 'doctor', 'law', 'military'];
@@ -16,9 +17,19 @@ export function personalGearProgress(game) {
   return { jobs, assignments, completed: jobs + assignments, systems: visited.size };
 }
 
+function serviceArmoryAccess(game) {
+ const state=game.state,career=state.professions?.careers?.military;
+ if(!career?.enlisted||state.mode!=='person'||state.person.health<=0||state.person.down||state.medicalRecovery?.remaining>0)return false;
+ const surface=game._surfaceForInteraction?.()||generateSurface(game.currentBody,state.seed,state.flags);
+ return surface?.entities.some(entity=>!entity.hidden&&interactionInRange(game,surface,entity,46)&&(
+  entity.type==='armory'&&entity.data?.factionId===career.factionId||
+  entity.id===MILITARY_RECRUITER.id&&career.factionId===MILITARY_RECRUITER.factionId||
+  (entity.type==='jobboard'||entity.data?.professionDesk)&&!state.interior&&(game.currentBody?.faction||game.currentSystem.faction)===career.factionId));
+}
 function outfitterAccess(game) {
   const state = game.state;
   if (state.person.health <= 0 || state.person.down) return fail('Recover before handling your personal equipment.', 'incapacitated');
+  if (serviceArmoryAccess(game)) return {ok:true};
   if (!game.atInhabitedPort || state.mode !== 'person' || state.interior || state.exploration) return fail('Visit an inhabited port outfitter on foot for personal equipment.', 'location');
   const surface = game._surfaceForInteraction?.() || generateSurface(game.currentBody, state.seed, state.flags);
   if (!surface?.entities.some(entity => entity.type === 'mechanic' && !entity.hidden && interactionInRange(game, surface, entity, 46))) return fail('Walk to the port outfitter to buy or equip a personal weapon.', 'distance');
@@ -26,12 +37,25 @@ function outfitterAccess(game) {
 }
 
 export const PersonalGearRules = {
+  issueServiceWeapon() {
+    const career=this.state.professions?.careers?.military,person=ensureSidearm(this.state.person);
+    const weapon=career?.enlisted&&PERSONAL_WEAPONS.find(value=>value.factionId===career.factionId&&value.serviceAssignments===0);
+    if(!weapon||person.ownedWeapons.includes(weapon.id))return null;
+    person.ownedWeapons.push(weapon.id);
+    if(person.weapon==='pulse-sidearm')person.weapon=weapon.id;
+    return weapon;
+  },
   personalWeaponInfo(id) {
     const weapon = PERSONAL_WEAPONS.find(value => value.id === id);
     if (!weapon) return this._fail('That personal weapon is not available.', 'target');
     const person = ensureSidearm(this.state.person), progress = personalGearProgress(this), owned = person.ownedWeapons.includes(id), equipped = getPersonalWeapon(person).id === id;
     const base = { weapon, id, cost: weapon.cost, owned, equipped, progress, requirements: { completed: weapon.requiredJobs, systems: weapon.requiredSystems } };
     if (equipped) return { ...base, ...fail('This weapon is equipped.', 'equipped') };
+    if (!owned && weapon.factionId) {
+      const service=this.state.professions?.careers?.military;
+      if(!service?.enlisted||service.factionId!==weapon.factionId)return {...base,...fail('Issued only to enlisted personnel of this faction.','faction')};
+      if(count(service.completed)<weapon.serviceAssignments)return {...base,...fail(`Complete ${weapon.serviceAssignments} military assignments to requisition this weapon.`, 'requirements')};
+    }
     if (!owned && (progress.completed < weapon.requiredJobs || progress.systems < weapon.requiredSystems)) return { ...base, ...fail(`Requires ${weapon.requiredJobs} completed jobs or service assignments and ${weapon.requiredSystems} explored star systems.`, 'requirements') };
     if (!owned && this.state.credits < weapon.cost) return { ...base, ...fail(`This weapon costs ${weapon.cost.toLocaleString('en-US')} credits. You have ${Math.floor(this.state.credits).toLocaleString('en-US')}.`, 'cost') };
     return { ...base, ...outfitterAccess(this) };
@@ -43,8 +67,8 @@ export const PersonalGearRules = {
     this.state.credits -= info.cost;
     this.state.person.ownedWeapons.push(id);
     this.state.person.weapon = id;
-    this._event('upgrade', { weaponId: id, text: `${info.weapon.name} purchased and equipped.` });
-    return this._ok({ weaponId: id, weapon: info.weapon, text: `${info.weapon.name} purchased and equipped.` });
+    this._event('upgrade', { weaponId: id, text: `${info.weapon.name} ${info.weapon.factionId?'issued':'purchased'} and equipped.` });
+    return this._ok({ weaponId: id, weapon: info.weapon, text: `${info.weapon.name} ${info.weapon.factionId?'issued':'purchased'} and equipped.` });
   },
   equipPersonalWeapon(id) {
     const person = ensureSidearm(this.state.person);

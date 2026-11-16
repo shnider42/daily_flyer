@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { InteriorPresentation, syncDamageMarkers, nearestDamageMarker, nearestDeckInteraction, damageStatus, drawInteriorDamageFloor, drawInteriorDamageAir } from '../dist/interior-presentation.mjs';
+import { InteriorPresentation, syncDamageMarkers, nearestDamageMarker, nearestDeckInteraction, damageStatus, drawInteriorDamageFloor, drawInteriorDamageAir, drawCabinImpactOverlay } from '../dist/interior-presentation.mjs';
 import { ensureDamageControl, impactSection, registerShipImpact } from '../dist/interior-damage.mjs';
 import { generateSurface, isWalkable } from '../dist/surface.mjs';
 
@@ -20,6 +20,17 @@ function deck(id='physical-hull',classId='sparrow') {
  return {ship,surface};
 }
 const markers=surface=>surface.entities.filter(entity=>entity.type==='damageControl');
+
+test('a distant impact still has a bounded cabin-wide cue; reduced motion keeps dust and lighting dips off',()=>{
+ const p=new InteriorPresentation(),ship=hull();p.sample(ship,0);addImpact(ship,{x:9999,y:9999});
+ const view=p.sample(ship,.1),moving=new RecordingContext(),still=new RecordingContext();
+ drawCabinImpactOverlay(moving,view,428,820);drawCabinImpactOverlay(still,view,428,820,{motion:false});
+ assert.ok(moving.rects.length>still.rects.length);assert.equal(still.rects.length,12);
+ assert.ok(moving.rects.length<40);assert.equal(moving.globalAlpha,.7);assert.equal(moving.fillStyle,'original');
+ const quiet=new RecordingContext();drawCabinImpactOverlay(quiet,p.sample(ship,1),428,820);assert.equal(quiet.rects.length,0);
+ const shield=new RecordingContext();drawCabinImpactOverlay(shield,{hits:[{...impact(2,1),age:.1,shieldOnly:true}]},428,820);
+ assert.ok(shield.rects.every(rect=>rect.color==='#87cde3'),'shield absorption creates a blue cue without hull debris');
+});
 
 class RecordingContext {
  constructor(){this.rects=[];this.stack=[];this.globalAlpha=.7;this.fillStyle='original';}
@@ -115,8 +126,8 @@ test('rapid real impacts keep shake, flash and effect count bounded and expire w
  assert.deepEqual(effects.hits.map(hit=>hit.serial),[7,8,9,10,11,12]);
  for(const time of [20.12,20.14,20.2,20.3,20.55,20.7]){
   const frame=presentation.sample(ship,time);
-  assert.ok(Math.abs(frame.shake.x)<=3.5&&Math.abs(frame.shake.y)<=3.5);
-  assert.ok(frame.flash>=0&&frame.flash<=.055);assert.ok(frame.hits.length<=6);
+  assert.ok(Math.abs(frame.shake.x)<=7&&Math.abs(frame.shake.y)<=7);
+  assert.ok(frame.flash>=0&&frame.flash<=.095);assert.ok(frame.hits.length<=6);
  }
  assert.deepEqual(presentation.sample(ship,20.78).hits,[]);
 });
@@ -135,7 +146,7 @@ test('Reduce motion removes camera impulses and flashes while keeping actual dan
  assert.ok(Math.abs(absorbed.shake.y)<=Math.abs(normal.shake.y)*.381);assert.equal(absorbed.alarm,false);
 });
 
-test('small physical hull hits remain perceptible at the mobile person zoom without increasing maximum shake',()=>{
+test('small physical hull hits remain perceptible at the mobile person zoom within a bounded seven-pixel shake',()=>{
  const ship=hull(),presentation=new InteriorPresentation();presentation.sample(ship,10);
  addImpact(ship,{strength:.16,hullDamage:2});
  let visibleFrames=0;
@@ -144,7 +155,7 @@ test('small physical hull hits remain perceptible at the mobile person zoom with
   // App converts display pixels to world units before the zoomed camera.
   const zoom=.8,displayX=Math.round((effect.shake.x/zoom)*zoom),displayY=Math.round((effect.shake.y/zoom)*zoom);
   if(Math.abs(displayX)+Math.abs(displayY)>0)visibleFrames++;
-  assert.ok(Math.abs(effect.shake.x)<=3.5&&Math.abs(effect.shake.y)<=3.5);
+  assert.ok(Math.abs(effect.shake.x)<=7&&Math.abs(effect.shake.y)<=7);
  }
  assert.ok(visibleFrames>=4,'a small real impact must survive pixel rounding for more than a single frame');
  assert.deepEqual(presentation.sample(ship,10.2,{motion:false}).shake,{x:0,y:0});

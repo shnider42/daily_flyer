@@ -47,7 +47,7 @@ export function militaryTogetherState(view,snapshot={},context={}){
  return{friend,operation,service,mismatch,sameOperation:!!operation&&operation.id===view.operation?.id,friendMissing:!!context.captainId&&!friend};
 }
 
-export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance=()=> 'simple',dialog,invoke,acceptResult,track,refreshWorld=()=>{},openOrdinaryWork=null,openNavyDuty=null,document:doc=globalThis.document}){
+export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance=()=> 'simple',dialog,invoke,acceptResult,track,refreshWorld=()=>{},openOrdinaryWork=null,openNavyDuty=null,openGear=null,document:doc=globalThis.document}){
  let busy=false,openedContext=null,renderKey='';
  const status=entityId=>getGame().militaryCareerStatus?.(entityId)||{status:'unavailable',actions:[],objective:'The recruiter is preparing the next service briefing.'};
  const identity=()=>{const g=getGame(),s=g.state;return{game:g,key:`${s.seed}:${s.multiplayer?.captainId||'solo'}`};};
@@ -280,6 +280,7 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
   if(view.target)items.push({label:'Show my next task',detail:view.objective,action:()=>mark(view.target)});
   else if(view.status!=='completed')items.push({label:'Find the recruiter on Morrow',action:()=>mark(MILITARY_RECRUITER_TARGET)});
   if(view.status==='completed'&&openOrdinaryWork)items.push({label:'Continue with ordinary service work',action:openOrdinaryWork});
+  if(openGear)items.push({label:'Service armory',detail:'Issued rifle and earned specialist weapons.',action:openGear});
   choices(items);appendLearning(view,{operation:view.operation});appendDeployments(view,entityId);appendServiceDetails(view,entityId);
   choices([{label:'Back to the world',action:()=>dialog.close()}]);remember({mode:'career',entityId,watchMuster:gathering});
  }

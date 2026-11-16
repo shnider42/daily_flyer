@@ -11,7 +11,7 @@ import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass,isCabinWalkable} from './interior-layouts.mjs';
 import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
-import {sidearmAim,facingAngle} from './combat.mjs';
+import {sidearmAim,facingAngle,personalWeaponById} from './combat.mjs';
 import {buildWarzoneGroundInterior,drawWarzoneGroundEffects,drawWarzoneInfantryKit} from './warzone-ground.mjs';
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
@@ -962,8 +962,8 @@ export function drawCharacter(ctx,x,y,options={}){
  if(look?.style==='swept'){pixel(ctx,hair,-6,-24+bob,13,3);pixel(ctx,hair,2,-22+bob,5,4);}if(look?.style==='hood'){pixel(ctx,c,-7,-26+bob,14,4);pixel(ctx,c,-7,-22+bob,3,10);pixel(ctx,c,4,-22+bob,3,10);pixel(ctx,look.accent,-6,-26+bob,12,1);}if(look)pixel(ctx,look.accent,-4,-15+bob,8,1);
  if(options.helmet||options.team==='hostile'){pixel(ctx,'#253b46',-6,-24+bob,12,7);pixel(ctx,options.team==='hostile'?'#d9a07b':'#91c8ce',-4,-19+bob,9,3);pixel(ctx,'#152e3b',-5,-24+bob,10,2);pixel(ctx,c,-8,-14+bob,3,5);pixel(ctx,c,5,-14+bob,3,5);}
  if(armed){
-  const dx=Math.cos(angle),dy=Math.sin(angle),gx=dx*7,gy=-11+dy*7,mx=dx*19,my=-11+dy*19;
-  pixelLine(ctx,gx,gy,mx,my,'#0b1d29',5);pixelLine(ctx,gx,gy,mx,my,'#b7cbcb',3);pixelLine(ctx,gx-dy*2,gy+dx*2,gx-dy*5,gy+dx*5,'#38505c',3);
+  const weapon=personalWeaponById(options.weapon),length={rifle:25,support:28,marksman:33}[weapon.profile]||19,dx=Math.cos(angle),dy=Math.sin(angle),gx=dx*7,gy=-11+dy*7,mx=dx*length,my=-11+dy*length;
+  pixelLine(ctx,gx,gy,mx,my,'#0b1d29',5);pixelLine(ctx,gx,gy,mx,my,weapon.color||'#b7cbcb',weapon.profile==='support'?4:3);if(weapon.profile==='marksman')pixel(ctx,'#a9c9d9',dx*17-dy*4-2,-11+dy*17+dx*4-2,4,3);pixelLine(ctx,gx-dy*2,gy+dx*2,gx-dy*5,gy+dx*5,'#38505c',3);
   pixel(ctx,skin,gx-2,gy-2,3,3);pixel(ctx,options.team==='hostile'?'#eea58b':'#91e4df',dx*12-1,-12+dy*12,2,2);
   if(options.firing||(options.attackUntil||0)>time){pixel(ctx,'#fff1c6',mx+dx*3-2,my+dy*3-2,5,5);pixel(ctx,'#f2bc75',mx+dx*7-1,my+dy*7-1,3,3);}
  }else if(equipped){
@@ -1139,6 +1139,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   else if(e.data.serviceDesk==='passage'){pixel(ctx,'#cbd5b6',x-7,y-17,11,2);pixel(ctx,'#cbd5b6',x+2,y-20,3,8);pixel(ctx,'#cbd5b6',x+5,y-18,3,4);}
   else{pixel(ctx,'#c6c397',x-6,y-19,12,2);pixel(ctx,'#c6c397',x-4,y-17,8,3);pixel(ctx,'#c6c397',x-2,y-14,4,3);}
  }
+ else if(e.type==='armory'){pixel(ctx,'#142c34',x-15,y-23,30,28);pixel(ctx,c,x-13,y-21,26,24);pixel(ctx,'#263b40',x-10,y-19,20,18);for(let i=0;i<3;i++){pixel(ctx,'#c1cdc2',x-7+i*7,y-16,2,14);pixel(ctx,'#778e88',x-9+i*7,y-8,5,3);}pixel(ctx,'#e2cea0',x-10,y+2,20,2);}
  else if(e.type==='station'){
   pixel(ctx,'#0e2733',x-14,y-21,28,26);pixel(ctx,'#557985',x-13,y-23,26,22);pixel(ctx,'#173a48',x-10,y-20,20,12);pixel(ctx,c,x-8,y-18,16,2);pixel(ctx,c,x-2,y-17,4,7);pixel(ctx,'#a9c9bd',x-8,y-5,3,2);pixel(ctx,'#dcc59a',x+5,y-5,3,2);
   if(e.data?.stationRole==='medical'){pixel(ctx,'#bfe1c9',x-6,y-14,12,3);pixel(ctx,'#bfe1c9',x-2,y-18,4,11);}
@@ -1181,7 +1182,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   const yy=y-36+Math.round(Math.sin(time*3));pixel(ctx,'#e5d7ac',x-2,yy,4,2);pixel(ctx,'#e5d7ac',x-1,yy+2,2,2);
  }
 }
-function shortRole(e){if(e.type==='gambling')return e.data?.gameId?.toUpperCase()||'GAMES';if(e.type==='siteObject')return e.data?.survivorId?'CARE / ESCORT':'FIELD WORK';if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.data?.stationRole==='helm'?'Helm':e.role;return{questObject:'EXAMINE',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
+function shortRole(e){if(e.type==='gambling')return e.data?.gameId?.toUpperCase()||'GAMES';if(e.type==='siteObject')return e.data?.survivorId?'CARE / ESCORT':'FIELD WORK';if(e.data?.professionDesk)return'PUBLIC SERVICES';if(e.type==='siteExit')return'SURFACE';if(e.type==='siteEntrance')return'EXPLORE';if(e.type==='exit')return e.data?.stationRole==='helm'?'Helm':e.role;return{questObject:'EXAMINE',armory:'ARMORY',jobboard:'CONTRACTS',mechanic:'SHIPWRIGHT',medic:'MEDIC',terminal:'ARCHIVE',work:'RELAY',crate:'CARGO',delivery:'LOADING',sample:'SAMPLE',crew:'CREW',bunk:'BERTH',station:e.data?.stationRole?.toUpperCase()||'STATION'}[e.type]||e.name;}
 function drawFieldSweep(ctx,field){
  const machine=field?.foreman;if(!machine||machine.disabled||!['telegraph','sweep'].includes(machine.phase))return;
  const y=(machine.lane===0?35.5:45.5)*T,x=26*T,w=20*T;
@@ -1221,11 +1222,11 @@ function drawCombatAim(ctx,person,aim){
 }
 function drawCombatEffects(ctx,effects,emit){
  for(const effect of effects){
-  const age=effect.age||0,progress=effect.progress||0,color=effect.weaponId==='warzone-marksman'?'#b8ccf1':effect.weaponId==='warzone-support'?'#a5cfb7':effect.team==='hostile'?'#efa58b':effect.team==='friendly'?'#9bdedb':'#f3df9e',to=effect.to;
+  const age=effect.age||0,progress=effect.progress||0,color=personalWeaponById(effect.weaponId).color||(effect.weaponId==='warzone-marksman'?'#b8ccf1':effect.weaponId==='warzone-support'?'#a5cfb7':effect.team==='hostile'?'#efa58b':effect.team==='friendly'?'#9bdedb':'#f3df9e'),to=effect.to;
   if(!to||!Number.isFinite(to.x)||!Number.isFinite(to.y))continue;
   if(effect.kind==='shot'&&effect.from){
    const from=effect.from,angle=Math.atan2(to.y-from.y,to.x-from.x),dx=Math.cos(angle),dy=Math.sin(angle),distance=Math.hypot(to.x-from.x,to.y-from.y),offset=Math.min(20,distance),sx=from.x+dx*offset,sy=from.y-11+dy*offset,tx=to.x,ty=to.y-11;
-   ctx.globalAlpha=Math.max(.14,1-progress)*.38;pixelLine(ctx,sx,sy,tx,ty,color,effect.weaponId==='warzone-support'?4:effect.weaponId==='warzone-marksman'?2:3);ctx.globalAlpha=Math.max(.25,1-progress);pixelLine(ctx,sx,sy,tx,ty,'#fff0ce');
+   ctx.globalAlpha=Math.max(.14,1-progress)*.38;pixelLine(ctx,sx,sy,tx,ty,color,(effect.weaponId==='warzone-support'||personalWeaponById(effect.weaponId).profile==='support')?4:(effect.weaponId==='warzone-marksman'||personalWeaponById(effect.weaponId).profile==='marksman')?2:3);ctx.globalAlpha=Math.max(.25,1-progress);pixelLine(ctx,sx,sy,tx,ty,'#fff0ce');
    if(age<.13){pixel(ctx,color,sx-3,sy-3,7,7);pixel(ctx,'#fff5da',sx-2,sy-2,4,4);pixel(ctx,color,sx+dx*5-1,sy+dy*5-1,3,3);}
    const burst=3+Math.floor(progress*7);for(let i=0;i<4;i++){const a=angle+i*Math.PI/2;pixel(ctx,color,tx+Math.cos(a)*burst,ty+Math.sin(a)*burst,2,2);}ctx.globalAlpha=1;
   }else if(effect.kind==='hit'){
@@ -1378,7 +1379,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
   const p=project(decor.x,decor.y);box(decor.kind==='cave-mouth'?'#a6977f':'#8ca8aa',p.x,p.y,Math.max(3,decor.w*scale),Math.max(3,decor.h*scale));
  }
  const markers=[],ordinary=[],exits=[];
- const kinds={gambling:'games',siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',siteObject:'work',questObject:'record',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
+ const kinds={gambling:'games',siteEntrance:'site',siteCache:'cache',siteChoice:'choice',siteRecord:'record',siteObject:'work',questObject:'record',armory:'service',jobboard:'jobs',mechanic:'service',medic:'service',terminal:'record',station:'station',bunk:'bunk',exit:'exit',siteExit:'exit',work:'work',sample:'sample',crate:'cargo',delivery:'cargo'};
  for(const entity of surface.entities){
   if(entity.hidden||entity.disabled||visibility&&!visibility.knowsEntity(entity))continue;const selected=entity.id===targetEntityId,kind=entity.data?.professionDesk?'service':kinds[entity.type];if(!kind&&!selected)continue;
   const done=!!entity.completed||exploration?.collected?.includes(entity.data?.cacheId)||!!exploration?.choices?.[entity.data?.choiceId],point=project(entity.x,entity.y),exit=kind==='exit';
@@ -1476,7 +1477,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const e of surface.entities){
   if(e.hidden||(isDone(e,flags)&&['sample','crate'].includes(e.type))||represented(e)||visibility&&!visibility.canSeePoint(e))continue;
   if(e.x<cameraX||e.x>cameraX+width||e.y<cameraY||e.y>cameraY+height)continue;
-  const selected=near===e,targeted=e.id===targetId,important=['gambling','jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
+  const selected=near===e,targeted=e.id===targetId,important=['armory','gambling','jobboard','mechanic','medic','exit','siteEntrance','siteExit'].includes(e.type);
   if(!important&&!selected&&!targeted)continue;
   const value=selected||targeted||e.type==='siteEntrance'?e.name:shortRole(e),labelY=e.type==='siteEntrance'?e.y-67:e.type==='siteExit'?e.y-26:e.type==='exit'&&!e.data?.stationRole?e.y-26:e.type==='bunk'?e.y-18:e.y-44;
   emit(value,e.x,labelY,selected?'#f1ddb0':targeted?'#e7ce93':'#b6cdc8',selected?14:13,'center',selected?100:targeted?85:40,selected?'interaction':targeted?'objective':'service');

@@ -1,8 +1,16 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.28.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.29.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.29.0 — Infantry arms and reactor priorities
+
+Freewake and Meridian each issue a distinct service rifle on enlistment, plus a support repeater after two military assignments and a precision rifle after five. Existing enlisted captains receive their basic rifle on loading without replacing an advanced equipped weapon. Service weapons are free, personal, and persistent. Support pulses lose force at range; precision weapons trade cadence for reach and penetration. Weapon silhouettes, tracer colors, and firing sounds reflect the equipped class. Requisition and change equipment at your service desk, outfitter, or the new friendly armory beside Vey’s field hospital.
+
+Reactor power is available through the ship menu or the engineering console. Balanced, thrusters, guns, and shields use only fitted systems. Focusing power improves that system at the expense of the others: flight acceleration, gun cycle rate, and delayed shield regeneration change in the real solo/shared simulation. No setting refills resources or resets existing gun cycles. Routing has a two-second settling time, persists on the physical hull, and requires the actual pilot or a permitted engineer; Navy duty rank still applies. Mobile controls stay in the existing menu.
+
+Fresh impacts produce stronger bounded cabin shudders, a brief edge cue, lighting dips, falling dust, and larger spark showers even when the struck bulkhead is off camera. Shield absorption has its own blue cue and muffled sound. Actual fires and breaches remain tied to real damage. Repeated snapshots do not replay impacts; reduced motion removes the shake, flash, and falling debris.
 
 ## 0.28.0 — Lost in Space
 

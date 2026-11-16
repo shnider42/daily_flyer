@@ -27,6 +27,7 @@
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
+import { powerProfile, routeShipPower } from './ship-power.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
 import { GamblingRules } from './gambling.mjs';
 import { appendNeonSystem } from './neon-content.mjs';
@@ -241,6 +242,7 @@ export class Game {
     this.initializeProfessions();
     this.initializeFieldWork();
     this.initializeMilitaryCareer();
+    this.issueServiceWeapon();
     this.initializeMilitaryRecovery();
     this.initializeWarzone();
     if(this.state.interior?.location?.site?.military)this._restoreExploration();
@@ -248,6 +250,8 @@ export class Game {
     this.initializeInteriorDamage();
     this.initializeNpcContracts();
     this.initializeGunnery();
+    this.state.ship.powerPriority=powerProfile(this.state.ship).mode;
+    this.state.ship.powerRerouteRemaining=clamp(finite(this.state.ship.powerRerouteRemaining),0,2);
     if(this.state.pendingEncounter&&!pendingSourceAvailable(this,this.state.pendingEncounter))this.state.pendingEncounter=null;
     this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
     this.syncNarrativeWorld();
@@ -263,7 +267,7 @@ export class Game {
     if(mission.branchId!=='army'||!site||site.missionId!==mission.id)return this._fail('That deployment is unavailable.','military-orders');
     ensureSidearm(this.state.person);
     if(mission.deployment){const transport=this._prepareMilitaryArmyDeployment(mission,active);if(!transport.ok)return transport;}
-    this._log(mission.title,`${mission.summary} Your issued pulse sidearm is ready. Follow the marked entrance at your deployment, and return to Sergeant Venn after the field objective.`, 'profession');
+    this._log(mission.title,`${mission.summary} Your ${getPersonalWeapon(this.state.person).name} is ready. Follow the marked entrance at your deployment, and return to Sergeant Venn after the field objective.`, 'profession');
     return this._ok({text:`Orders received: ${mission.objective}`});
   }
   get system() { return this._runtime; }
@@ -645,6 +649,7 @@ export class Game {
     advanceGunneryCooldowns(this.state.ship,dt);
     this.stepNpcContract(dt,input);
     const sh=this.state.ship;
+    sh.powerRerouteRemaining=Math.max(0,Math.min(2,finite(sh.powerRerouteRemaining))-dt);
     if(this.hasActiveVessel){this.stepInteriorDamage(dt);this.stepRescueOccupants(dt);}
     this.system.miningBeams ||= {};delete this.system.miningBeams[this.playerId];
     this.system.miningTarget=null;this.system.mining=null;
@@ -666,7 +671,7 @@ export class Game {
     if(cosmic.damage>0){this._damageShip(cosmic.damage,{sourceId:cosmic.hazard?.id,cause:'tidal forces'});if(sh.destroyed||sh.hull<=0||this._recoveryTimer)return;}
     this.state.stats.distance+=Math.hypot(sh.x-oldX,sh.y-oldY);
     sh.energy=hullEnergyAfterStep(sh,dt,helmInput);
-    if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+getHullSystems(sh.classId).shieldRecharge*dt);
+    if(!this._hitTimer)sh.shield=Math.min(sh.maxShield,sh.shield+getHullSystems(sh.classId).shieldRecharge*powerProfile(sh).shieldRate*dt);
     if(helmInput.fire)this.fireWeapons();
     else if(!this._sharedWorld&&this.state.stationView==='gunnery'&&!this.state.npcContract?.active&&input.fire)this.fireWeapons(this.playerId,applyGunneryAim(this,this,input));
     if(helmInput.mine)this._mine(dt);
@@ -723,8 +728,28 @@ export class Game {
     const battery=fireControl?.manual?getGunneryBattery(this.state.ship,fireControl.batteryId||'fore'):null;
     if(fireControl?.manual&&!battery)return this._fail('This vessel does not have that gun battery.','battery');
     if(battery?batteryCooldown(this.state.ship,battery.id)>0:this._shotTimer>0)return this._fail('The pulse emitter is cycling.', 'cooldown');
+    if(!(this.state.ship.damage>0&&this.state.ship.range>0))return this._fail('This hull has no operational guns.','no-guns');
     if(this.state.ship.energy<(battery?.energyCost??getHullSystems(this.state.ship.classId).pulseEnergy))return this._fail('The pulse emitter needs reactor charge.', 'energy');
     this._fire(shooterId,fireControl);return this._ok();
+  }
+
+  shipPowerAccess() {
+    const s=this.state;
+    if(!this.hasActiveVessel||s.ship.destroyed)return this._fail('Board an operational vessel first.','no-ship');
+    if(s.person.health<=0||s.person.down||this.medicalRecoveryActive())return this._fail('Recover before changing reactor settings.','incapacitated');
+    if(s.boarding?.phase==='active')return this._fail('Clear the boarding alarm before rerouting power.','boarding');
+    if(s.npcContract?.active){
+      if(s.npcContract.military?.branchId==='navy')return navyDutyAccess(this,'engineering');
+      return this._fail('This hired watch does not authorize reactor control.','permission');
+    }
+    if(s.mode==='ship')return this._ok();
+    const station=cabinLayout(s.ship.classId).stations.engineering;
+    if(s.interior?.kind!=='ship'||!station||distance(s.person,station)>46)return this._fail('Use the helm or walk to the engineering console to route power.','station');
+    return this._ok();
+  }
+  setShipPower(mode) {
+    const access=this.shipPowerAccess();if(!access.ok)return access;
+    return routeShipPower(this.state.ship,mode);
   }
 
   repairFromStation() {
@@ -790,7 +815,7 @@ export class Game {
       const bullet={id:count===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*(battery?.damageScale??system.pulseDamageScale),owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,...(battery?{batteryId:battery.id,kind:battery.kind}:{}),radius:4};
       bullets.push(bullet);this.system.bullets.push(bullet);
     }
-    sh.energy-=battery?.energyCost??system.pulseEnergy;this._shotTimer=Math.max(this._shotTimer||0,battery?.cooldown??system.pulseCooldown);
+    sh.energy-=battery?.energyCost??system.pulseEnergy;this._shotTimer=Math.max(this._shotTimer||0,battery?.cooldown??system.pulseCooldown/powerProfile(sh).gunRate);
     if(battery){sh.gunneryCooldowns||={};sh.gunneryCooldowns[battery.id]=battery.cooldown;}
     const fleetClock=this.system.warzone?.clock,previous=sh.lastShot;
     const liveMuzzles=Number.isFinite(fleetClock)&&previous?.clock==='warzone'&&previous.systemId===this.state.systemId&&Number.isFinite(previous.at)&&previous.at<=fleetClock&&previous.until>fleetClock&&Array.isArray(previous.muzzles)

@@ -114,6 +114,8 @@ export function buildWarzoneGroundInterior(m,_site,{rect,prop,label,point:pt,TIL
  for(const[x,y,c]of[[8,19,stripes.freewake],[8,33,stripes.freewake],[8,47,stripes.freewake],[87,19,stripes.meridian],[87,33,stripes.meridian],[87,47,stripes.meridian]])prop(m,'banner',x,y,2,.4,c,false);
  for(const [id,x,title,color]of[['freewake',30,'UNION FIELD HOSPITAL','#a6cbb8'],['meridian',62,'COMBINE FIELD HOSPITAL','#c5ad8b']]){
   prop(m,'awning',x,55,8,1,color,false);prop(m,'bed',x+1,57,1,2,color,true);prop(m,'cabinet',x+6,57,1,1,color,true);prop(m,'equipment',x+6,58,1,1,color,false);
+  prop(m,'cabinet',x+1,60,1,1,color,true);
+  m.entities.push({id:`field-armory:${id}`,type:'armory',name:id==='freewake'?'Union field armory':'Combine field armory',...pt(x+2,60),color,data:{factionId:id}});
   label(m,title,x,54.7,color);label(m,'+',x+7,56,color);
   m.entities.push({id:`field-medic:${id}`,type:'medic',name:id==='freewake'?'Union duty medic':'Combine duty medic',role:'medic',roleLabel:'Field hospital',...pt(x+5,59),color,text:'You are behind the aid wall. Get your bearings before heading back toward the fighting.',data:{fixedPost:true,factionId:id}});
  }

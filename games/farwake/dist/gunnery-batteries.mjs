@@ -1,4 +1,5 @@
 /** Physical gun mounts shared by the exterior display and authoritative firing. */
+import { powerProfile } from './ship-power.mjs';
 import {getHullSystems} from './hull-systems.mjs';
 import {getShipClass} from './fleet.mjs';
 import {WARZONE_HULL_TACTICS} from './warzone-content.mjs';
@@ -29,7 +30,7 @@ export function getGunneryBatteries(shipOrClassId){
   const secondary=hull.id==='judicator'&&definition.id!=='fore';
   const broadside=physicalBank?.kind==='cannon';
   return{...definition,index,kind:physicalBank?.kind||'pulse',arcHalfAngle:physicalBank?.arc??Math.PI/3,muzzles,mountCount:muzzles.length,
-   energyCost:broadside?12:secondary?12:system.pulseEnergy,cooldown:system.pulseCooldown,
+   energyCost:broadside?12:secondary?12:system.pulseEnergy,cooldown:system.pulseCooldown/powerProfile({...hull.stats,...ship}).gunRate,
    damageScale:broadside?(hull.id==='judicator'?1.2:['confluence','ark'].includes(hull.id)?1.4:1)/muzzles.length:secondary ? .6 : system.pulseDamageScale,
    range:finite(ship.range,hull.stats.range)};
  });

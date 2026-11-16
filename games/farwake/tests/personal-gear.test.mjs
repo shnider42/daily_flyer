@@ -95,7 +95,7 @@ test('purchased weapons apply real boarding damage, range, cooldown, shot identi
     assert.equal(hit.shot.weaponId, id); close(hit.shot.until - hit.shot.at, weapon.shotDuration); assert.equal(game.attackBoarder(target.id).code, 'cooldown');
     assert.equal(Game.fromSave(game.save()).state.person.weapon, id);
   }
-  assert.equal(PERSONAL_WEAPONS.length, 3);
+  assert.equal(PERSONAL_WEAPONS.filter(weapon=>!weapon.factionId).length, 3);
 });
 
 test('an upgraded captain does not upgrade the independently firing NPC crew', () => {

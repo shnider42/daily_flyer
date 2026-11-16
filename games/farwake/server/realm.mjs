@@ -30,6 +30,7 @@ import { WORLD_TYPES_VERSION } from '../dist/world-types.mjs';
 import { SYSTEM_SPACE_VERSION } from '../dist/system-space.mjs';
 import { pendingSourceAvailable } from '../dist/encounter-rules.mjs';
 import { settleNpcContract } from '../dist/npc-contracts.mjs';
+import { routeShipPower } from '../dist/ship-power.mjs';
 import { applyGunneryAim } from '../dist/gunnery.mjs';
 import { navyDutyAccess, navyDutyRoles } from '../dist/navy-duty.mjs';
 import { syncNavyCrewSurface } from '../dist/navy-crew.mjs';
@@ -998,6 +999,16 @@ export class Realm extends BoardingAuthority {
     if(name==='leaveGunnery'){
       c.input={...EMPTY_INPUT};c.appliedInput={...EMPTY_INPUT};return game.leaveGunnery();
     }
+    if(name==='setShipPower'){
+      if(!active||game.state.person.down||game.medicalRecoveryActive()||this._hostileOccupied(active))return fail('Board a safe operational vessel before routing power.','location');
+      const helm=game.state.mode==='ship'&&active.helmOwner===c.id&&this._canRole(c,active,'helm');
+      const engineer=game.state.interior?.kind==='ship'&&this._canRole(c,active,'engineering')&&this._atStation(c,'engineering');
+      if(!helm&&!engineer)return fail('Power routing requires the active helm or a permitted engineering console.','permission');
+      if(game.state.npcContract?.military?.branchId==='navy'){
+        const access=navyDutyAccess(this._actor(active),'engineering',{worker:game});if(!access.ok)return access;
+      }
+      const actor=this._actor(active),result=routeShipPower(actor.state.ship,a.mode);if(result.ok)this._syncActor(active);return result;
+    }
     if(name==='selectGunneryBattery'){
       if(!active||!this._gunneryActive(c,active))return fail('Use the permitted gunnery display before selecting a battery.','station');
       const result=this._withShip(c,active,()=>game.selectGunneryBattery(a));
@@ -1188,7 +1199,6 @@ export class Realm extends BoardingAuthority {
       return result;
     }
     if (name === 'buyPersonalWeapon' || name === 'equipPersonalWeapon') {
-      if (c.aboard || game.state.mode !== 'person' || game.state.interior || !game.atInhabitedPort || !this._nearTypes(c, ['mechanic'])) return fail('Visit the port outfitter on foot for personal equipment.', 'distance');
       return game[name](id);
     }
     if (name === 'buyUpgrade' || name === 'buyShip' || name === 'selectShip') {
@@ -1583,7 +1593,7 @@ export class Realm extends BoardingAuthority {
     else if(state.interior?.kind==='eva'&&c.aboard)state.interior.location=clone(this._location(c));
     else if (state.interior?.kind === 'derelict') state.interior.location = clone(this._location(c));
     const currentDock = c.aboard ? this._dockedBody(vessel) : null;
-    state.multiplayer = { groupStartStatus: c.launchStatus || null, waitingForGroupStart: this._isGroupWaiting(c), captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, weaponsAllowed:!!c.aboard&&this._canRole(c,vessel,'weapons'), home: clone(c.home), serverAuthoritative: true,
+    state.multiplayer = { groupStartStatus: c.launchStatus || null, waitingForGroupStart: this._isGroupWaiting(c), captainId: c.id, name: c.name, realmCode: this.id, ownedVesselId: c.ownedVesselId, aboardVesselId: c.aboard || null, crewRole: c.crewRole, weaponsAllowed:!!c.aboard&&this._canRole(c,vessel,'weapons'),powerAllowed:!!c.aboard&&((ownState.mode==='ship'&&vessel?.helmOwner===c.id&&this._canRole(c,vessel,'helm'))||(ownState.interior?.kind==='ship'&&this._canRole(c,vessel,'engineering')&&this._atStation(c,'engineering'))), home: clone(c.home), serverAuthoritative: true,
       dockedAt: currentDock?.id || null, dockedName: currentDock?.name || null, dockedKind: currentDock?.kind || null,
       canUseBoardingAirlock: this._canUseBoardingAirlock(c), boardingTargets: this._boardingTargets(c),
       returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, hostileBoarding: !!(c.aboard && (vessel.npcHostile || c.boardingTeam && c.boardingTeam !== vessel.ownerId)), canReturn: this._canReturn(c), canTakeHelm: this._canTakeCapturedHelm(c, vessel) };

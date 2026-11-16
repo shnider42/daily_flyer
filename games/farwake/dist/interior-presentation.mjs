@@ -24,13 +24,13 @@ export class InteriorPresentation {
    const strength=clamp(hit.strength,0,1)*(hit.shieldOnly?.38:1),fade=Math.max(0,1-hit.age/.42);
    // Small, real hull hits must survive pixel rounding on a phone. Output is
    // in display pixels; the caller removes person zoom before camera sampling.
-   const amplitude=strength>0?(hit.shieldOnly?.7+strength*1.6:1.6+strength*3.5)*fade*fade:0;
+   const amplitude=strength>0?(hit.shieldOnly?1.1+strength*2:3.5+strength*7)*fade*fade:0;
    x+=Math.sin(hit.serial*2.4+hit.age*61)*amplitude;y+=Math.cos(hit.serial*1.7+hit.age*53)*amplitude;
-   flash=Math.max(flash,Math.max(0,1-hit.age/.17)*strength*.055);
+   flash=Math.max(flash,Math.max(0,1-hit.age/.17)*strength*.095);
   }
   const newEmergency=alarm&&!this.alarm;
   this.serial=Math.max(serial,this.serial,...fresh.map(hit=>hit.serial));this.clock=clock;this.alarm=alarm;
-  return{shake:{x:clamp(x,-3.5,3.5),y:clamp(y,-3.5,3.5)},flash,hits,fresh,alarm,fireCount,breachCount,newEmergency};
+  return{shake:{x:clamp(x,-7,7),y:clamp(y,-7,7)},flash,hits,fresh,alarm,fireCount,breachCount,newEmergency};
  }
 }
 
@@ -124,12 +124,40 @@ export function drawInteriorDamageAir(ctx,surface,damage,{time=0,motion=true,hit
   if(!nearby(hit,view)||hit.shieldOnly)continue;
   const age=clamp(hit.age,0,.65),fade=Math.max(0,1-age/.55),radius=motion?age*55:6;
   ctx.globalAlpha=fade*.85;
-  for(let i=0;i<7;i++){const angle=i*.897+hit.serial;box(ctx,i%3?'#dfaf70':'#f5e4b3',hit.x+Math.cos(angle)*radius,hit.y+Math.sin(angle)*radius,2,2);}
+  for(let i=0;i<13;i++){const angle=i*.897+hit.serial;box(ctx,i%3?'#dfaf70':'#f5e4b3',hit.x+Math.cos(angle)*radius,hit.y+Math.sin(angle)*radius,2,2);}
   ctx.globalAlpha=1;
  }
  if((damage.sections||[]).some(s=>s.fire>.1||s.breach>.1)){
   const glow=motion?.6+.12*Math.sin(time*2):.6;ctx.globalAlpha=glow;
   for(const room of surface.rooms||[]){box(ctx,'#da8d58',(room.x+1)*24,(room.y+1)*24,8,2);box(ctx,'#da8d58',(room.x+room.w-2)*24,(room.y+room.h-1)*24,8,2);}
+ }
+ ctx.restore();
+}
+
+/** Whole-cabin reaction stays visible even when the struck bulkhead is off camera.
+ * No fabricated fires: these are brief vibration dust and emergency light dips. */
+export function drawCabinImpactOverlay(ctx,view,width,height,{motion=true}={}){
+ const hits=view?.hits||[];if(!hits.length)return;
+ const hit=hits.reduce((best,value)=>value.strength*(1-value.age/.65)>best.strength*(1-best.age/.65)?value:best,hits[0]);
+ const fade=Math.max(0,1-hit.age/.65),strength=Math.max(.18,hit.strength),shield=hit.shieldOnly;
+ ctx.save();
+ const edge=Math.max(4,Math.round(Math.min(width,height)*.035));
+ ctx.globalAlpha=Math.min(.45,fade*(.16+strength*.29));
+ for(let i=0;i<3;i++){
+  const inset=i*edge,alpha=ctx.globalAlpha;ctx.globalAlpha=alpha*(1-i*.24);
+  const color=shield?'#87cde3':'#ec9a62';
+  box(ctx,color,inset,inset,width-inset*2,Math.max(1,edge/3));
+  box(ctx,color,inset,height-inset-edge/3,width-inset*2,Math.max(1,edge/3));
+  box(ctx,color,inset,inset,Math.max(1,edge/3),height-inset*2);
+  box(ctx,color,width-inset-edge/3,inset,Math.max(1,edge/3),height-inset*2);
+  ctx.globalAlpha=alpha;
+ }
+ if(!shield&&motion){
+  ctx.globalAlpha=fade*.14;box(ctx,'#050b15',0,0,width,height);
+  for(let i=0;i<16;i++){
+   const phase=((hit.serial*37+i*71)%101)/101,x=width*phase,y=height*(.12+(i%4)*.09)+hit.age*hit.age*height*.48;
+   ctx.globalAlpha=fade*(.3+strength*.35);box(ctx,i%4?'#a49c8c':'#f5d7a0',x+Math.sin(i*3)*hit.age*22,y,i%3?2:3,i%3?2:4);
+  }
  }
  ctx.restore();
 }

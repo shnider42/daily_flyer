@@ -261,7 +261,7 @@ export const MilitaryCareerRules={
    if(state.branchId)return this._fail('Your service branch is already recorded. Resume its current assignment.','duplicate');
    const standing=serviceStanding(this);if(!standing.ok)return standing;
    if(!enlistment.enlisted){enlistment.enlisted=true;enlistment.factionId=campaign.factionId;this.state.rep[campaign.rivalId]=Math.max(-100,finite(this.state.rep[campaign.rivalId])-3);}
-   state.factionId=campaign.factionId;state.branchId=branch.id;state.paused=false;
+   state.factionId=campaign.factionId;state.branchId=branch.id;state.paused=false;this.issueServiceWeapon();
    this._log(`Joined: ${branch.name}`,'Sergeant Venn recorded your branch. Your first deployment begins when you take its briefing.','profession');
    return this._ok({text:`You joined the ${branch.name}. Speak with Sergeant Venn when you are ready for the first assignment.`,status:this.militaryCareerStatus(entityId)});
   }

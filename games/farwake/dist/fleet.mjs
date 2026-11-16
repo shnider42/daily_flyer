@@ -1,4 +1,5 @@
 /** Shared, DOM-free vessel definitions and deterministic flight integration. */
+import { powerProfile } from './ship-power.mjs';
 import { getHullSystems } from './hull-systems.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
 export { cabinLayout, isCabinWalkable } from './interior-layouts.mjs';
@@ -126,13 +127,14 @@ export function advanceShip(ship, delta, input = {}, options = {}) {
   if (!dt) return next;
   const c=getShipClass(ship.classId), stats=c.stats, controls=normaliseFlightInput(input);
   for (const k of ['x','y','vx','vy','angle','angularVelocity']) next[k]=number(ship[k]);
-  const thrust=number(ship.thrustAcceleration,stats.thrustAcceleration);
-  const lateral=number(ship.strafeAcceleration,stats.strafeAcceleration);
+  const power=powerProfile({...stats,...ship});
+  const thrust=number(ship.thrustAcceleration,stats.thrustAcceleration)*power.thrust;
+  const lateral=number(ship.strafeAcceleration,stats.strafeAcceleration)*power.thrust;
   const angularAcceleration=number(ship.angularAcceleration,number(ship.turn,stats.angularAcceleration));
   const angularLimit=number(ship.maxAngularVelocity,stats.maxAngularVelocity);
   const baseDamping=number(ship.angularDamping,stats.angularDamping);
   const boost=controls.boost && controls.thrust>0 && number(ship.energy,100)>8;
-  const cruiseSpeed=number(ship.speed,stats.speed),maxSpeed=cruiseSpeed*1.65;
+  const cruiseSpeed=number(ship.speed,stats.speed)*power.speed,maxSpeed=cruiseSpeed*1.65;
   const radius=number(options.worldRadius,WORLD_RADIUS);
   const count=Math.max(1,Math.ceil(dt/(1/240))),h=dt/count;
   const brake=Math.max(controls.brake,Math.max(0,-controls.thrust));
