@@ -1,8 +1,16 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.29.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.29.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.29.1 — Evacuation from Vey
+
+Enlisted survivors recovered at Vey’s field hospitals now receive free evacuation orders. **Leave Vey** appears in the recovery panel and, for stranded captains, the normal ship/person control. Port services and the objective also lead to the evacuation menu. The menu marks the actual hospital pickup point and books the existing NPC passenger shuttle once the captain is awake and nearby. The shuttle flies to the captain’s home posting; disembark through its entry airlock or the passage menu after docking.
+
+Existing Vey casualty saves gain the missing orders on loading without moving the captain, resetting battlefield progress, or altering credits, rank, surviving ship ownership, or remote berths. Medical evacuation remains available to suspended casualties without restoring their duty clearance. Vey stays a battlefield with field hospitals, rather than gaining ordinary commercial port services.
+
+Validation covers both factions, solo and shared casualty recovery, legacy saves, multiple survivors, physical departure and arrival, pickup directions, and visible desktop/touch actions.
 
 ## 0.29.0 — Infantry arms and reactor priorities
 

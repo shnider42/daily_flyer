@@ -79,7 +79,7 @@ export const MedicalRecoveryRules={
   this._arriveAsPassenger(this.system.bodies.find(body=>body.id===destination.bodyId));
   const cost=Math.floor(s.credits*costRate);s.credits-=cost;s.stats.rescues++;
   this.narrativeRescue?.();this.professionRescue?.();
-  if(destination.kind!=='field-hospital')this.applyMilitaryRecovery?.({systemId:s.systemId,originFactionId,sourceKind,nearestBody:destination});
+  this.applyMilitaryRecovery?.({systemId:s.systemId,originFactionId,sourceKind,nearestBody:destination});
   return this.finishMedicalRecovery(destination,{sourceKind,cost});
  }
 };

@@ -4,6 +4,7 @@ import { getShipClass, cabinLayout } from './fleet.mjs';
 import { systemBodyPosition } from './system-space.mjs';
 import { militaryServiceRank } from './military-ranks.mjs';
 import { nearestRecoveryStation } from './ship-recovery.mjs';
+import { FIELD_HOSPITALS } from './medical-recovery.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
@@ -23,6 +24,18 @@ const aboardPassage=game=>game.state.npcContract?.active&&game.state.npcContract
 const inhabited=body=>body&&body.portServices!==false&&body.landable!==false&&!['blackhole','site','ship','derelict'].includes(body.kind)&&!(body.kind==='moon'&&/barren|rock|dust/.test(String(body.biome)));
 function portDescriptor(game,systemId,bodyId){const system=game.galaxy.find(value=>value.id===systemId),index=system?.bodies.findIndex(body=>body.id===bodyId)??-1;if(index<0)return null;const body=system.bodies[index];return{...body,systemId,bodyId:body.id,...systemBodyPosition(body,index,systemId),radius:body.kind==='planet'?122:body.kind==='moon'?76:70,faction:body.faction||system.faction};}
 function homeFor(game,factionId){const ids=homePorts[factionId];if(!ids)return null;const body=portDescriptor(game,...ids);return body?{systemId:body.systemId,bodyId:body.id,name:body.name}:null;}
+// Vey has aid posts, not a commercial port. A recorded medical evacuation
+// authorizes only a passenger pickup at the post that treated this casualty.
+function fieldHospital(game,destination){
+ const post=FIELD_HOSPITALS[destination?.factionId];
+ if(!post||destination?.kind!=='field-hospital'||destination.systemId!=='crosswind'||destination.bodyId!=='crosswind-vey')return null;
+ const body=portDescriptor(game,destination.systemId,destination.bodyId);if(!body)return null;
+ return{systemId:body.systemId,bodyId:body.id,bodyName:body.name,kind:'field-hospital',factionId:destination.factionId,name:post.name,entityId:`field-medic:${destination.factionId}`,x:post.x,y:post.y};
+}
+function currentFieldCasualty(game){
+ const s=game.state,receipt=s.medicalRecovery||s.shipRecovery,post=fieldHospital(game,receipt?.destination);
+ return post&&s.mode==='person'&&!s.interior&&!s.npcContract?.active&&s.systemId===post.systemId&&s.locationId===post.bodyId?{post,receipt}:null;
+}
 function emit(game,text,type='military-recovery'){game._event?.(type,{text});}
 function cellLocation(game){const r=recovery(game),detention=r?.detention;if(!detention)return null;return{id:`detention:${detention.systemId}:${detention.bodyId}:${game.playerId}`,kind:'detention',biome:'station',name:`${detention.portName} · guarded hospital ward`,faction:detention.captorFactionId,systemId:detention.systemId,parentId:detention.bodyId,portServices:false,landable:false};}
 function enterCell(game,{reset=false}={}){const cell=cellLocation(game);if(!cell)return;const prior=game.state.interior?.kind==='detention';Object.assign(game.state,{mode:'person',locationId:cell.id,interior:{kind:'detention',location:cell},stationView:null,exploration:null,boarding:null,pendingEncounter:null});Object.assign(game.state.person,{weaponDrawn:false,aimManual:false,aimTargetId:null,lastShot:null,attackUntil:0});if(reset||!prior)Object.assign(game.state.person,{x:9.5*24,y:7.5*24,moving:false,vx:0,vy:0});}
@@ -37,10 +50,13 @@ export function detentionSurface(location,seed){
 
 export const MilitaryRecoveryRules={
  initializeMilitaryRecovery(){
-  const raw=recovery(this),career=militaryServiceRank(this);
+  const raw=recovery(this),career=militaryServiceRank(this),casualty=currentFieldCasualty(this);
+  // Released saves skipped return orders at field hospitals. Backfill the
+  // missing warrant once, without moving the survivor or touching belongings.
+  if(career.enlisted&&homeFor(this,career.factionId)&&casualty&&raw?.status!=='aboard'&&(!raw||raw.factionId!==career.factionId||!fieldHospital(this,raw.fieldHospital)))return this.applyMilitaryRecovery({systemId:casualty.post.systemId,originFactionId:casualty.post.factionId,sourceKind:casualty.receipt.sourceKind||'medical-evacuation',vesselId:this.state.shipRecovery?.vesselId||null,nearestBody:casualty.post});
   if(!raw||!career.enlisted||raw.factionId!==career.factionId||!homeFor(this,raw.factionId)){this.state.militaryRecovery=null;return null;}
   const home=homeFor(this,raw.factionId),detention=raw.detention,port=detention&&portDescriptor(this,detention.systemId,detention.bodyId);
-  this.state.militaryRecovery={version:1,factionId:raw.factionId,home,status:['orders','detained','aboard','returned'].includes(raw.status)?raw.status:'orders',issuedAt:Math.max(0,finite(raw.issuedAt)),sourceSystemId:typeof raw.sourceSystemId==='string'?raw.sourceSystemId:this.state.systemId,sourceKind:String(raw.sourceKind||'ship-destroyed').slice(0,60),vesselId:typeof raw.vesselId==='string'?raw.vesselId:null,passageId:typeof raw.passageId==='string'?raw.passageId:null,detention:port&&raw.status==='detained'?{systemId:port.systemId,bodyId:port.id,portName:port.name,captorFactionId:FACTIONS.some(faction=>faction.id===detention.captorFactionId)?detention.captorFactionId:port.faction,remainingSeconds:clamp(finite(detention.remainingSeconds,MILITARY_DETENTION_SECONDS),0,MILITARY_DETENTION_SECONDS)}:null};
+  this.state.militaryRecovery={version:1,factionId:raw.factionId,home,status:['orders','detained','aboard','returned'].includes(raw.status)?raw.status:'orders',issuedAt:Math.max(0,finite(raw.issuedAt)),sourceSystemId:typeof raw.sourceSystemId==='string'?raw.sourceSystemId:this.state.systemId,sourceKind:String(raw.sourceKind||'ship-destroyed').slice(0,60),vesselId:typeof raw.vesselId==='string'?raw.vesselId:null,passageId:typeof raw.passageId==='string'?raw.passageId:null,fieldHospital:fieldHospital(this,raw.fieldHospital),detention:port&&raw.status==='detained'?{systemId:port.systemId,bodyId:port.id,portName:port.name,captorFactionId:FACTIONS.some(faction=>faction.id===detention.captorFactionId)?detention.captorFactionId:port.faction,remainingSeconds:clamp(finite(detention.remainingSeconds,MILITARY_DETENTION_SECONDS),0,MILITARY_DETENTION_SECONDS)}:null};
   if(this.state.militaryRecovery.detention?.remainingSeconds>0)enterCell(this,{reset:this.state.interior?.kind!=='detention'});
   else if(this.state.militaryRecovery.status==='detained'){this.state.militaryRecovery.status='orders';this.state.militaryRecovery.detention=null;if(this.state.interior?.kind==='detention'&&port){const body=this.system.bodies.find(body=>body.id===port.id);if(body)this._arriveAsPassenger(body);}}
   return this.state.militaryRecovery;
@@ -48,11 +64,11 @@ export const MilitaryRecoveryRules={
  applyMilitaryRecovery({systemId=this.state.systemId,originFactionId,sourceKind='ship-destroyed',vesselId=null,nearestBody}={}){
   const career=militaryServiceRank(this);if(!career.enlisted)return null;
   const home=homeFor(this,career.factionId);if(!home)return null;
-  const system=this.galaxy.find(value=>value.id===systemId),captorFactionId=originFactionId||system?.faction,captured=MILITARY_RIVALS[career.factionId]===captorFactionId||MILITARY_RIVALS[captorFactionId]===career.factionId;
+  const hospital=fieldHospital(this,nearestBody),system=this.galaxy.find(value=>value.id===systemId),captorFactionId=hospital?.factionId||originFactionId||system?.faction,captured=!hospital&&(MILITARY_RIVALS[career.factionId]===captorFactionId||MILITARY_RIVALS[captorFactionId]===career.factionId);
   const body=nearestBody&&portDescriptor(this,nearestBody.systemId||this.state.systemId,nearestBody.bodyId||nearestBody.id)||location(this);
-  const state=this.state.militaryRecovery={version:1,factionId:career.factionId,home,status:captured&&body?'detained':'orders',issuedAt:finite(this.state.stats?.time),sourceSystemId:systemId,sourceKind,vesselId,passageId:null,detention:null};
+  const state=this.state.militaryRecovery={version:1,factionId:career.factionId,home,status:captured&&body?'detained':'orders',issuedAt:finite(this.state.stats?.time),sourceSystemId:systemId,sourceKind,vesselId,passageId:null,fieldHospital:hospital,detention:null};
   if(captured&&body){state.detention={systemId:body.systemId||this.state.systemId,bodyId:body.id,portName:body.name,captorFactionId,remainingSeconds:MILITARY_DETENTION_SECONDS};enterCell(this,{reset:true});const text=`${factionName(captorFactionId)} has detained you as opposing military personnel at ${body.name}. Serve five minutes in custody, then use your personal repatriation clearance to request free passage home.`;this._log('Captured in enemy territory',text,'military');emit(this,text);}
-  else{const text=`Your ${factionName(career.factionId)} service record is intact. Port services can arrange a passenger berth to ${home.name} at no charge. The transport remains the pilot’s ship.`;this._log('Repatriation orders issued',text,'military');emit(this,text);}
+  else{const text=hospital?`Medical evacuation to ${home.name} is available at ${hospital.name}. Open Leave Vey to board the free passenger shuttle once you have recovered. Your service record and surviving property are unchanged.`:`Your ${factionName(career.factionId)} service record is intact. Port services can arrange a passenger berth to ${home.name} at no charge. The transport remains the pilot’s ship.`;this._log('Repatriation orders issued',text,'military');emit(this,text);}
   return state;
  },
  militaryEnemyTerritory(factionId=this.currentSystem.faction){
@@ -86,9 +102,14 @@ export const MilitaryRecoveryRules={
  },
  militaryRecoveryStatus(){
   const state=recovery(this);if(!state)return null;
-  const rank=militaryServiceRank(this),body=location(this),detained=!!state.detention&&state.detention.remainingSeconds>1e-7,atHome=!this.state.interior&&this.state.systemId===state.home.systemId&&this.state.locationId===state.home.bodyId,passage=aboardPassage(this),eligible=rank.enlisted&&rank.factionId===state.factionId&&!rank.suspended;
-  const reason=detained?'Serve the remaining detention before boarding.':!eligible?'Your own faction must restore your service clearance before authorizing free passage.':passage?'Your repatriation transport is already underway.':atHome||state.status==='returned'?'You have reached your home posting.':this.state.npcContract?.active?'Complete your current crew watch first.':!body||!inhabited(body)?'Request your passenger berth from an inhabited port.':this.state.person.health<=0||this.state.person.down?'Recover before boarding.':this.state.pendingEncounter?'Finish the current conversation before boarding.':null;
-  return{status:state.status,factionId:state.factionId,factionName:factionName(state.factionId),rank:rank.rank,home:clone(state.home),detained,remainingSeconds:Math.ceil(Math.max(0,finite(state.detention?.remainingSeconds))),captorFaction:state.detention?factionName(state.detention.captorFactionId):null,eligible,canBook:!reason,reason,passage:!!passage,passagePhase:passage?this.state.npcContract.phase:null,passageShipName:passage?this.state.npcContract.shipName:null,arrived:atHome||state.status==='returned',fare:0};
+  const rank=militaryServiceRank(this),body=location(this),detained=!!state.detention&&state.detention.remainingSeconds>1e-7,atHome=!this.state.interior&&this.state.systemId===state.home.systemId&&this.state.locationId===state.home.bodyId,passage=aboardPassage(this),hospital=fieldHospital(this,state.fieldHospital);
+  const evacuation=!!hospital&&this.state.mode==='person'&&!this.state.interior&&this.state.systemId===hospital.systemId&&body?.id===hospital.bodyId;
+  const pickup=evacuation?{...hospital,distance:distance(this.state.person,hospital)}:null,nearPickup=!!pickup&&pickup.distance<=72;
+  // Medical extraction is still available to a suspended casualty. It does
+  // not restore service clearance or authorize any military duty or control.
+  const eligible=rank.enlisted&&rank.factionId===state.factionId&&(!rank.suspended||evacuation);
+  const reason=detained?'Serve the remaining detention before boarding.':!eligible?'Your own faction must restore your service clearance before authorizing free passage.':passage?'Your repatriation transport is already underway.':atHome||state.status==='returned'?'You have reached your home posting.':this.state.npcContract?.active?'Complete your current crew watch first.':!body||!inhabited(body)&&!evacuation?'Request your passenger berth from an inhabited port.':this.state.person.health<=0||this.state.person.down||this.medicalRecoveryActive?.()?'Recover before boarding.':evacuation&&!nearPickup?`Return to ${pickup.name} to board the evacuation shuttle.`:this.state.pendingEncounter?'Finish the current conversation before boarding.':null;
+  return{status:state.status,factionId:state.factionId,factionName:factionName(state.factionId),rank:rank.rank,home:clone(state.home),detained,remainingSeconds:Math.ceil(Math.max(0,finite(state.detention?.remainingSeconds))),captorFaction:state.detention?factionName(state.detention.captorFactionId):null,eligible,canBook:!reason,reason,evacuation,pickup,nearPickup,passage:!!passage,passagePhase:passage?this.state.npcContract.phase:null,passageShipName:passage?this.state.npcContract.shipName:null,arrived:atHome||state.status==='returned',fare:0};
  },
  startMilitaryPassage(){
   if(this._sharedWorld)return fail('The galaxy authority must assign your transport.','authority');
@@ -96,6 +117,7 @@ export const MilitaryRecoveryRules={
   const {contract,ship,inventory}=result;
   const own=this.personalShip,body=location(this);if(this.ownsShip&&body&&this.canUseOwnShipHere())this.state.livelihoods.parkedShip={...clone(own),systemId:this.state.systemId,bodyId:body.id,vesselId:own.id};
   contract.personal={ship:this.state.ship,...Object.fromEntries(fields.map(field=>[field,this.state[field]??(field==='boarding'?null:field==='cargo'?{ore:0,crystal:0}:field==='upgrades'?{}:[])]))};
+  this.releaseWarzoneSurface();
   this.state.npcContract=contract;this.state.ship=ship;for(const field of fields)this.state[field]=inventory[field];
   Object.assign(this.state,{mode:'ship',interior:null,locationId:null,exploration:null,pendingEncounter:null,stationView:null});
   this._enterInterior({id:`ship:${ship.id}`,vesselId:ship.id,vesselName:ship.name,name:`${ship.name} · repatriation passengers`,kind:'ship',biome:'ship',shipClass:ship.classId,classId:ship.classId,crew:clone(inventory.crew),ownership:'crew',ownerName:'Service transport cooperative',faction:contract.factionId,npcContractId:contract.id,dockedAt:contract.origin.bodyId},'ship');

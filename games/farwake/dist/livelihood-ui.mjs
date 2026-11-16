@@ -6,7 +6,8 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
  const purse=()=>`${fmt(game().state.credits)} CR AVAILABLE`;
  const finish=async(name,args={})=>{const owner=game(),captain=owner.state.multiplayer?.captainId||owner.state.seed,revision=dialog.revision;const answer=await invoke(name,args);if(game()!==owner||(game().state.multiplayer?.captainId||game().state.seed)!==captain)return false;if(dialog.revision!==revision){refreshWorld();return false;}if(!acceptResult(answer))return false;if(dialog.revision===revision)dialog.close();refreshWorld();return true;};
  function openPort(){
-  if(game().militaryRecoveryStatus?.()?.detained){openRecovery();return;}
+  const personalRecovery=game().militaryRecoveryStatus?.();
+  if(personalRecovery?.detained||personalRecovery?.evacuation){openRecovery();return;}
   if(game().state.npcContract?.active){openDuty();return;}
   const g=game(),port=g.atInhabitedPort,berth=g.state.livelihoods?.parkedShip,recovery=g.militaryRecoveryStatus?.(),lost=g.state.fleet.history?.some(entry=>entry.type==='loss');
   const parked=g.galaxy.find(s=>s.id===berth?.systemId)?.bodies.find(b=>b.id===berth?.bodyId);
@@ -24,6 +25,13 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
  }
  function openRecovery(){
   const r=game().militaryRecoveryStatus?.();if(!r){openPort();return;}
+  if(r.passage){openDuty();return;}
+  if(r.evacuation){
+   const place=r.pickup?.bodyName||'Vey';
+   dialog.open('Leave '+place,'military-recovery',{eyebrow:'FIELD EVACUATION / FREE TRANSPORT'});
+   dialog.html(`<div class="guide-card"><h3>${esc(r.pickup.name)} → ${esc(r.home.name)}</h3><p>Return to your field hospital to board the evacuation shuttle. Captain Vale flies you to <strong>${esc(r.home.name)}</strong>, where you can find your next posting.</p><p>Fare: <strong>0 CR</strong>. You do not need a ship or credits. You keep your rank, service record, and any surviving ship at its existing berth.</p>${r.reason?`<p role="status">${esc(r.reason)}</p>`:'<p>The shuttle is ready. Board below when you want to leave.</p>'}</div><p>After docking, open <strong>Your passage home</strong> and choose <strong>Disembark</strong>, or use the shuttle’s entry airlock.</p>`);
+   dialog.choices([{label:'Board evacuation shuttle · Free',disabled:!r.canBook,detail:r.reason||'Passenger transport to '+r.home.name,action:()=>finish('startMilitaryPassage')},{label:'Show evacuation point',detail:r.pickup.name,action:()=>{dialog.close();markEntity(r.pickup);}},{label:'Back to the surface',action:()=>dialog.close()}]);return;
+  }
   const minutes=Math.floor(r.remainingSeconds/60),seconds=String(r.remainingSeconds%60).padStart(2,'0');
   dialog.open(r.detained?'Military custody':'Your passage home','military-recovery',{eyebrow:r.detained?r.captorFaction:r.factionName});
   dialog.html(r.detained?`<div class="guide-card"><h3>${minutes}:${seconds} remaining</h3><p>You are held as opposing military personnel. The five-minute term counts time in active play and survives saving or reconnecting.</p><p>After release, request a free passenger berth to ${esc(r.home.name)} using your own service clearance.</p></div>`:`<div class="guide-card"><h3>${esc(r.home.name)}</h3><p>${esc(r.rank)} · ${esc(r.factionName)}</p><p>Your repatriation warrant covers the full fare: <strong>0 CR</strong>. Captain Vale flies the service shuttle while you ride as a passenger. Use its entry airlock after docking.</p><p>Your personal ship ownership and rank are unchanged.</p>${r.reason?`<p>${esc(r.reason)}</p>`:''}</div>`);

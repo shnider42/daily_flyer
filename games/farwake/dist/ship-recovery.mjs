@@ -47,7 +47,7 @@ export const ShipRecoveryRules={
   s.lastBodyId=destination.bodyId;
   s.shipRecovery={version:1,...clone(context),at:finite(s.stats.time)};
   s.stats.rescues++;this._recoveryTimer=8;
-  const outcome=destination.kind==='field-hospital'?null:this.applyMilitaryRecovery?.({systemId:context.sourceSystemId,originFactionId:context.sourceFactionId,sourceKind:context.sourceKind,vesselId:context.vesselId,nearestBody:clone(destination)});
+  const outcome=this.applyMilitaryRecovery?.({systemId:context.sourceSystemId,originFactionId:context.sourceFactionId,sourceKind:context.sourceKind,vesselId:context.vesselId,nearestBody:clone(destination)});
   this.finishMedicalRecovery({...destination,...(outcome?.status==='detained'?{name:destination.name+' · guarded ward'}:{})},{sourceKind:context.sourceKind});
   const text=context.message||`${context.vesselName||'The ship'} was lost. Survivors were recovered at ${destination.name}. No replacement ship was issued.`;
   this._log('Survivors recovered',text,'rescue');
