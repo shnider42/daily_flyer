@@ -3,9 +3,46 @@
 (function (root) {
   'use strict';
   const content = {
-    edition: 'Dein Überblick zur 9. Spielwoche',
-    coverage_note: 'Alle 272 Spiele der Regular Season in 18 Spielwochen und alle 32 Teams. Der Datenstand vom 8. November umfasst 134 abgeschlossene Spiele: sämtliche Spiele bis einschließlich Woche 8 und 13 Spiele aus Woche 9. Zwei Spiele aus Woche 9 stehen noch aus. Zu abgeschlossenen Spielen gibt es Viertelergebnisse, 16 Teamstatistiken, punktbringende Spielzüge und verfügbare Spielerstatistiken. Die Teambereiche ergänzen 316 gesammelte Schlagzeilen und 827 Einträge aus offiziellen Transaktionslisten; für Atlanta und Dallas sind diese Listen nicht verfügbar. Zehn ausgewählte redaktionelle Beiträge wurden am 4. November geprüft und bleiben gesondert gekennzeichnet. Das ist eine datierte Momentaufnahme, kein Live-Ticker.',
+    edition: "Dein Überblick zur 10. Spielwoche",
+    coverage_note: "Alle 272 Spiele und 32 Teams. Datenstand 16. November vor Monday Night Football: 149 abgeschlossene Spiele, alle aus Woche 1–9 sowie 13 aus Woche 10. Chargers gegen Ravens steht noch aus. Ergebnisse, Statistiken, Schlagzeilen und verfügbare offizielle Transaktionslisten wurden aktualisiert. Drei neue Beiträge wurden am 16. November geprüft; zehn historische Beiträge behalten ihren Prüfstand vom 4. November. Das jeweilige Prüfdatum steht beim Beitrag. Fehlende Quellen sind in den Teambereichen gekennzeichnet. Kein Live-Ticker.",
     stories: {
+
+  "maye-nov16": {
+    "title": "Mayes Status nach München ist noch offen.",
+    "safe_title": "Das Verletzungsupdate der Patriots aus München",
+    "kicker": "Verfügbarkeit des Quarterbacks",
+    "metric_label": "Detroit gegen New England",
+    "summary": "Detroit gewann 35–10. Drake Maye schied mit einer Knöchelverletzung aus; Tommy DeVito übernahm.",
+    "before": "Maye startete in München.",
+    "after": "Am 16. November standen weitere Untersuchungen aus.",
+    "context": "Kann der Stamm-Quarterback nicht weiterspielen, übernimmt sein Ersatz.",
+    "detail": "Mike Vrabel bestätigte weder einen Bruch noch ein vorzeitiges Saisonende. Direkt nach der spielfreien Woche rechnete er nicht mit Mayes Einsatz.",
+    "meaning": "Die gemeldete Diagnose und die Ausfalldauer waren vom Trainer noch nicht bestätigt."
+  },
+  "cousins-green-bay": {
+    "title": "Cousins kehrt mit einem Divisionssieg zurück.",
+    "safe_title": "Minnesotas Gastspiel in Green Bay",
+    "kicker": "Ein veränderter Quarterback-Kader",
+    "metric_label": "Minnesota gegen Green Bay",
+    "summary": "Minnesota gewann 30–10 gegen Green Bay. Nach seinem Trade aus Las Vegas spielte Kirk Cousins wieder Quarterback für die Vikings.",
+    "before": "Vikings 6–2; Packers 6–3.",
+    "after": "Vikings 7–2; Packers 6–4.",
+    "context": "Beide Teams spielen in derselben Division mit vier Mannschaften.",
+    "detail": "Cousins brachte 21 von 31 Pässen für 207 Yards an, dazu zwei Touchdowns und eine Interception.",
+    "meaning": "Der ältere Bericht über Kyler Murrays Verpflichtung ist Hintergrund, keine aktuelle Startaufstellung."
+  },
+  "brissett-monday": {
+    "title": "Brissett steht vor seinem Debüt für Baltimore.",
+    "safe_title": "Baltimores Quarterback-Plan für Montag",
+    "kicker": "Monday Night Football",
+    "metric_label": "Erster Ravens-Start geplant",
+    "summary": "Nach seinem Trade aus Arizona soll Jacoby Brissett gegen die Chargers starten.",
+    "before": "Baltimore schloss den Trade am 6. November ab.",
+    "after": "Anstoß: 17. November, 02:15 Uhr in Wien.",
+    "context": "Ein Trade ändert das Team eines Spielers; die Startaufstellung legt seine Rolle für ein Spiel fest.",
+    "detail": "Die Ravens bestätigten den Plan am 16. November nach Verletzungen von Lamar Jackson und Tyler Huntley. Diese Ausgabe enthält noch kein Endergebnis.",
+    "meaning": "Für Baltimores nächstes Spiel ersetzt diese Meldung die ältere Startankündigung für Fagnano."
+  },
       'bears-rise': {
         title: 'Chicago meldet Ansprüche an.',
         safe_title: 'Ein Montagabend-Test in Seattle',

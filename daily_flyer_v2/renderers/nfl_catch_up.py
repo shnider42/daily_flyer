@@ -1,12 +1,25 @@
 import base64
 import json
 import re
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 
 def render_nfl_catch_up(experience):
     template=Path(__file__).with_suffix('.html').read_text()
+    scores=experience.data['scores']
+    cutoff=date.fromisoformat(scores['as_of'])
+    dates={
+        'WEEK_AGO': (cutoff-timedelta(days=7)).isoformat(),
+        'TWO_WEEKS_AGO': (cutoff-timedelta(days=14)).isoformat(),
+        'MONTH_AGO': (cutoff-timedelta(days=30)).isoformat(),
+        'AS_OF': cutoff.isoformat(),
+        'WEEK': f"{scores['latest_week']:02d}",
+        'DATE_STAMP': cutoff.strftime('DATA %b %d').upper(),
+        'EDITION_STAMP': cutoff.strftime('%B %d, %Y DATA EDITION').upper(),
+    }
+    template=re.sub(r'@@('+'|'.join(dates)+r')@@',lambda m:dates[m[1]],template)
     static=ROOT/'static/nfl_catch_up'
     fonts=static/'fonts'
     font_css='/* '+(fonts/'OFL.txt').read_text()+' */\n'

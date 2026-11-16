@@ -1,8 +1,8 @@
 {
-  "as_of": "2026-11-14",
+  "as_of": "2026-11-16",
   "season": "2026/27",
   "competition": "Premier League",
-  "coverage_note": "Recorte consultado em 14/11/2026: os dez resultados do Manchester City na Premier League até 07/11, jogos selecionados de copas e da Champions, e os três próximos compromissos publicados. A classificação dos 20 clubes foi atualizada pela fonte em 10/11/2026. Para os outros times, este recorte mostra apenas os confrontos com o City que estão incluídos aqui. Não é um calendário completo de todas as competições nem um placar ao vivo. Datas futuras podem mudar; confira a fonte antes de acompanhar um jogo.",
+  "coverage_note": "Revisado em 16/11/2026: os dez resultados do City na Premier League até 07/11, jogos selecionados de copas e Champions, três próximos compromissos e notícias da pausa para seleções. A tabela oficial, conferida novamente hoje, continua datada de 10/11. Não houve novo jogo do City desde a última edição. Para outros clubes, só os confrontos com o City incluídos aqui estão cobertos. Não é um calendário completo nem um placar ao vivo; datas futuras podem mudar.",
   "standings_as_of": "2026-11-10",
   "teams": [
     {
@@ -771,17 +771,48 @@
   "stories": [
     {
       "id": "city-after-international-break",
-      "date": "2026-11-14",
+      "date": "2026-11-16",
       "title": "Fulham, Napoli e Arsenal vêm depois da pausa",
       "safe_title": "Os próximos compromissos do City",
-      "summary": "O calendário consultado em 14 de novembro traz Fulham em casa no dia 21, Napoli em casa no dia 24 e Arsenal fora no dia 29.",
+      "summary": "O calendário conferido em 16 de novembro mantém Fulham em casa no dia 21, Napoli em casa no dia 24 e Arsenal fora no dia 29.",
       "context": "Fulham e Arsenal são jogos da Premier League. O encontro com o Napoli vale pela Champions League: cada competição tem sua própria classificação.",
       "detail": "Horários publicados: City × Fulham às 12h30 UTC; City × Napoli às 20h UTC; Arsenal × City às 16h30 UTC. Em Brasília, são 09h30, 17h e 13h30, respectivamente. O jogo com o Arsenal foi transferido para domingo, 29/11. A programação pode mudar.",
       "teams": [
         "MCI"
       ],
       "spoiler": false,
-      "source": "https://www.mancity.com/fixtures",
+      "source": "https://www.mancity.com/news/mens/fulham-premier-league-november-2026-match-preview-63930344",
+      "publisher": "Manchester City",
+      "secondary_source": "https://www.mancity.com/fixtures"
+    },
+    {
+      "id": "internationals-nov15",
+      "date": "2026-11-15",
+      "title": "Doku marca; Anderson é expulso pela Inglaterra",
+      "safe_title": "Os jogadores do City na rodada das seleções",
+      "summary": "A Inglaterra venceu a Espanha por 3 a 2, com expulsão de Elliot Anderson. Doku marcou na vitória da Bélgica por 4 a 1 sobre a Itália.",
+      "context": "Os jogadores estão representando suas seleções durante a pausa no calendário dos clubes. Esses resultados não alteram a tabela da Premier League.",
+      "detail": "Anderson recebeu vermelho direto aos 63 minutos. Doku enfrentou o companheiro de City Donnarumma. Cherki atuou por 82 minutos na vitória da França por 2 a 1 sobre a Turquia. Não se deve deduzir a disponibilidade de um jogador na Premier League apenas deste relato internacional.",
+      "teams": [
+        "MCI"
+      ],
+      "spoiler": true,
+      "source": "https://www.mancity.com/news/mens/international-round-up-15-november-63930376",
+      "publisher": "Manchester City"
+    },
+    {
+      "id": "haaland-norway-nov14",
+      "date": "2026-11-14",
+      "title": "Haaland participa de dois gols pela Noruega",
+      "safe_title": "Haaland em ação pela seleção norueguesa",
+      "summary": "Haaland deu uma assistência e marcou de pênalti na vitória da Noruega por 3 a 1 sobre o País de Gales.",
+      "context": "Este é um resultado de seleções, separado da campanha do Manchester City.",
+      "detail": "O atacante serviu Schjelderup no segundo gol e fez o terceiro no fim. Após os demais resultados do grupo, a Noruega ficou em terceiro, com seis pontos, e enfrenta a Dinamarca em 17 de novembro.",
+      "teams": [
+        "MCI"
+      ],
+      "spoiler": true,
+      "source": "https://www.mancity.com/news/mens/international-roundup-norway-portugal-argentina-brazil-63930279",
       "publisher": "Manchester City"
     },
     {
@@ -918,5 +949,6 @@
   "season_start": "2026-08-01",
   "complete_results_teams": [
     "MCI"
-  ]
+  ],
+  "standings_checked_at": "2026-11-16"
 }

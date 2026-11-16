@@ -10,8 +10,13 @@ def test_registered_product_and_export_match():
     assert 'data-theme="dark"' in html
     assert len(build_flyer_experience('nfl_catch_up').data['scores']['games'])==272
     assert '@@DATA@@' not in html and '@@JS@@' not in html
+    assert 'WEEK 10 EDITION' in html
+    assert 'value="2026-11-09">Last week' in html
+    assert 'value="2026-11-02">Two weeks ago' in html
+    assert 'value="2026-10-17">A month ago' in html
+    assert 'fmt(s.reviewed_at||D.reviewed_at)' in html
     experience=build_flyer_experience('nfl_catch_up')
-    assert experience.data['reviewed_at']=='2026-11-04'
+    assert experience.data['reviewed_at']=='2026-11-16'
 
 def test_json_cannot_close_script():
     from daily_flyer_v2.renderers.nfl_catch_up import render_nfl_catch_up

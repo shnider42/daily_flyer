@@ -7,12 +7,25 @@ same facts; “A little” adds definitions, “The basics” connects changes, 
 
 ## Edition and evidence
 
-Reviewed November 4, 2026. The complete 272-game regular-season schedule covers
-18 weeks, 32 teams and 17 games plus a bye per team. Includes 121 completed games
-through Week 8 and 151 upcoming games. Every completed game has validated quarter
-scores, eight team statistics and player leaders. Ten selected editorial stories
-provide additional context. Eight cover October 29–November 3; two are offseason
-reminders. This is a dated edition, not a live feed.
+Latest edition checked November 16, 2026, before Monday Night Football. The full
+272-game regular-season schedule contains 149 finals: 136 through Week 9 and 13
+in Week 10. Chargers–Ravens remains scheduled. All 149 finals have validated
+quarter totals, 16 team statistics, scoring plays and available player box scores.
+Reporting was refreshed for all 32 teams: 330 headlines and 929 official transaction
+entries. Atlanta and Dallas transaction logs remain explicitly unavailable.
+
+Three new sourced stories cover Maye's unresolved injury status, Cousins' return
+at Green Bay and Brissett's planned Baltimore debut. These are available in English,
+Austrian German, Hindi and Gujarati. Each article now carries its own review date;
+the ten historical stories retain November 4 rather than inheriting today's date.
+The edition badge and relative date presets derive from the score snapshot date.
+
+Soccer was rechecked November 16 against Manchester City's results, fixtures and
+table. No new club match has taken place during the international break. The table
+still carries the source's November 10 date; the next fixtures remain Fulham on
+November 21, Napoli on November 24 and Arsenal on November 29. Two Portuguese
+stories add November 14–15 international-duty news. Other clubs' match coverage
+remains partial and is labeled accordingly. This is a dated edition, not a live feed.
 
 Score provenance: ESPN's public scoreboard JSON, requested with explicit
 2026/regular-season/week parameters, and game-summary JSON validated against
@@ -75,8 +88,10 @@ Preseason and undetermined postseason matchups are outside this regular-season g
 
 ## Update process
 
-1. Run `python scripts/refresh_nfl_catch_up.py --through-week 8 --as-of 2026-11-04`
-   with the intended completed week and cutoff. Choose the day after the last game.
+1. Run `python scripts/refresh_nfl_catch_up.py --through-week 9 --as-of 2026-11-16`
+   with the latest fully completed week and review-date cutoff. Finals from the
+   current partial week are also included. Refresh reporting with
+   `python scripts/refresh_nfl_reporting.py --as-of 2026-11-16`.
 2. Review `daily_flyer_v2/data/nfl_scores.json`; cross-check recent results against
    official game reports and investigate discrepancies.
 3. Review editorial stories independently, retaining event/publication/review dates.

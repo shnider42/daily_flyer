@@ -16,7 +16,7 @@ test('soccer opens in Brazilian Portuguese with Manchester City and independent 
 
 test('malformed links and preferences cannot introduce invalid states', () => {
   const state = C.normalize({since: '2026-02-31', spoilers: 'true', tab: 'invalid', game: 'missing', query: 'x'.repeat(1000)}, D);
-  assert.equal(state.since, '2026-10-15'); assert.equal(state.spoilers, false);
+  assert.equal(state.since, '2026-10-17'); assert.equal(state.spoilers, false);
   assert.equal(state.tab, 'brief'); assert.equal(state.game, null); assert.equal(state.query.length, 100);
   assert.equal(C.normalize(null, D).team, 'MCI');
   assert.equal(C.normalize([], D).team, 'MCI');
