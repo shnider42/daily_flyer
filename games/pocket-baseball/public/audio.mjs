@@ -7,6 +7,7 @@ export class BallparkAudio {
     this.noiseBuffers = new Map(); this.sources = new Set(); this.cooldowns = new Map();
     this.ambient = null; this.active = false; this.paused = false; this.ducked = false;
     this.lastStep = -Infinity; this.lastTime = 0;
+    this.lastAmbientUpdate = -Infinity; this.lastAmbientPhase = null;
   }
   async unlock() {
     if (!this.enabled) return;
@@ -151,6 +152,7 @@ export class BallparkAudio {
     filter.type = 'bandpass'; filter.frequency.value = 740; filter.Q.value = .5; gain.gain.value = .0001;
     source.connect(filter); filter.connect(gain); gain.connect(this.crowdBus);
     this._track(source, [filter, gain]); source.start(); this.ambient = { source, filter, gain };
+    this.lastAmbientUpdate = -Infinity; this.lastAmbientPhase = null;
   }
   event(event, state = null) {
     if (!event || !this.ready) return;
@@ -198,9 +200,15 @@ export class BallparkAudio {
       return;
     }
     this._ambient();
-    if (this.ambient) {
+    const audioTime = this.context.currentTime;
+    // The crowd envelope changes slowly. Send automation at 10 Hz instead of
+    // rescheduling it on every display frame; play-state changes still react now.
+    if (this.ambient && (state?.phase !== this.lastAmbientPhase || audioTime - this.lastAmbientUpdate >= .1 - 1e-6 || audioTime < this.lastAmbientUpdate)) {
       const drama = state?.phase === 'brawl' ? .022 : state?.phase === 'live' ? .012 : .007;
-      this.ambient.gain.gain.setTargetAtTime(drama * (.9 + Math.sin(time * .19) * .1), this.context.currentTime, .3);
+      const gain = this.ambient.gain.gain;
+      gain.cancelAndHoldAtTime?.(audioTime);
+      gain.setTargetAtTime(drama * (.9 + Math.sin(time * .19) * .1), audioTime, .3);
+      this.lastAmbientUpdate = audioTime; this.lastAmbientPhase = state?.phase;
     }
     const charging = state?.phase === 'brawl' && state.brawl?.stage === 'charge';
     const running = state?.phase === 'live' && state.runners?.some(r => !r.out && !r.scored && r.targetBase > (r.pathPosition ?? r.fromBase));

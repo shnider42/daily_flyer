@@ -7,7 +7,7 @@
   <meta name="description" content="Pocket Baseball — a 3D baseball game from Daily Flyer. Play an exhibition or step into batting practice.">
   <title>Pocket Baseball · DFE Sports</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172d29'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23eee8d6'/%3E%3Cpath d='M18 15Q35 32 18 49M46 15Q29 32 46 49' fill='none' stroke='%23b24838' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=0.6.0">
+  <link rel="stylesheet" href="./style.css?v=0.6.1">
 </head>
 <body>
   <main id="app" class="is-menu" tabindex="-1">
@@ -38,7 +38,8 @@
           <button class="showdown-practice" id="start-mound" type="button">Mound showdown <small>Try the new minigame</small></button>
           <button class="friend-button" id="open-online" type="button"><span>PLAY A FRIEND</span><small>Private 1v1 room</small></button>
         </form>
-        <div class="home-footer"><div class="home-links"><button id="home-help" class="text-button">How to play</button><button id="home-roster" class="text-button">Rosters &amp; bullpen</button></div><span>Solo or 1v1</span></div>
+        <div class="home-footer"><div class="home-links"><button id="home-help" class="text-button">How to play</button><button id="home-roster" class="text-button">Rosters &amp; bullpen</button></div><span class="home-build">Solo or 1v1 <b id="home-version">v0.6.1</b></span></div>
+        <button id="home-update" class="update-button text-button" type="button" hidden>Update available · reload</button>
       </div>
       <div class="park-caption" aria-hidden="true"><span class="live-dot"></span> UNDER THE LIGHTS <small id="park-caption-note">LF 310 · CF 390 · RF 302 FT.</small></div>
     </section>
@@ -110,6 +111,7 @@
       </section>
 
       <section id="result-card" class="result-card" hidden aria-live="polite" aria-atomic="true"><p id="result-kicker">THE CALL</p><h2 id="result-title">STRIKE ONE</h2><p id="result-detail"></p><div id="contact-feedback" class="contact-feedback" hidden></div><div id="line-score" class="line-score" hidden></div><div id="mound-choice" class="mound-choice" hidden><p id="mound-choice-detail">Two hit batters. Charge and both players are ejected; the base award stands.</p><button id="charge-mound" type="button">CHARGE THE MOUND</button></div><button id="next-button">NEXT PITCH <span aria-hidden="true"><svg class="button-arrow" viewBox="0 0 24 24" focusable="false"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button><button id="final-menu" class="text-button" hidden>Back to ballpark</button></section>
+      <div id="performance-overlay" class="performance-overlay" hidden aria-label="Frame rate and game build"></div>
       <div id="event-toast" class="event-toast" role="status" hidden></div>
     </section>
 
@@ -118,7 +120,7 @@
     <noscript><div class="error-panel"><h2>JAVASCRIPT IS NEEDED TO PLAY</h2><p>Enable JavaScript in your browser, then refresh the page.</p></div></noscript>
   </main>
 
-  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><p id="pause-venue" class="guide-footnote"></p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label><label class="commentary-setting">COMMENTARY<select id="commentary-mode" aria-describedby="commentary-note"><option value="voice">Voice + captions</option><option value="captions">Captions only</option><option value="off">Off</option></select></label></div><p id="commentary-note" class="guide-footnote">Short play-by-play calls. Voice uses your device’s available voices.</p><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="pause-roster" type="button" class="dialog-secondary">Roster &amp; pitching change</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><form method="dialog" class="dialog-content"><p class="dialog-eyebrow">TIME OUT</p><h2 id="pause-title">GAME PAUSED</h2><p id="pause-reason">Take your time. The next pitch can wait.</p><p id="pause-venue" class="guide-footnote"></p><div class="pause-settings"><label>GUIDANCE<select id="pause-guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label><label>PICTURE<select id="quality"><option value="auto">Automatic</option><option value="low">Performance</option><option value="high">Sharp</option></select></label><label class="commentary-setting">COMMENTARY<select id="commentary-mode" aria-describedby="commentary-note"><option value="voice">Voice + captions</option><option value="captions">Captions only</option><option value="off">Off</option></select></label></div><p id="commentary-note" class="guide-footnote">Short play-by-play calls. Voice uses your device’s available voices.</p><p id="renderer-note" class="guide-footnote" hidden>Compatibility renderer · simplified picture</p><section class="performance-settings" aria-label="Game version and performance"><p id="build-info">Pocket Baseball · v0.6.1</p><p id="performance-summary">Play a few pitches to measure frame timing.</p><label><input id="show-performance" type="checkbox"> Show frame rate during play</label><button id="pause-update" class="update-button text-button" type="button" hidden>Update available · return to ballpark to reload</button></section><button id="resume-button" class="dialog-primary" value="resume">BACK TO THE GAME</button><button id="pause-roster" type="button" class="dialog-secondary">Roster &amp; pitching change</button><button id="fullscreen-button" type="button" class="dialog-secondary">Full screen</button><button id="pause-help" type="button" class="dialog-secondary">Field guide</button><button id="quit-button" type="button" class="dialog-quiet">Return to ballpark</button></form></dialog>
 
   <dialog id="roster-dialog" class="roster-dialog" aria-labelledby="roster-title">
     <div class="roster-shell">
@@ -175,6 +177,14 @@
     </div>
   </dialog>
 
-  <script type="module" src="./app.mjs?v=0.6.0"></script>
+  <script type="module">
+    import('./app.mjs?v=0.6.1').catch(error => {
+      document.getElementById('loading').hidden = true;
+      document.getElementById('error-panel').hidden = false;
+      document.getElementById('error-message').textContent = 'This copy could not finish loading. Reload to get the current game files.';
+      document.getElementById('reload-button').onclick = () => location.reload();
+      console.error('Pocket Baseball: startup', error);
+    });
+  </script>
 </body>
 </html>

@@ -8,6 +8,7 @@ class Parameter {
   linearRampToValueAtTime(value){this.values.push(value);this.value=value;}
   exponentialRampToValueAtTime(value){assert(value>0);this.values.push(value);this.value=value;}
   setTargetAtTime(value){this.values.push(value);this.value=value;}
+  cancelAndHoldAtTime(time){assert(Number.isFinite(time)&&time>=0);this.holds=(this.holds||0)+1;}
 }
 class AudioNode {
   constructor(){for(const key of ['gain','frequency','Q','pan','threshold','knee','ratio','attack','release'])this[key]=new Parameter();this.stops=[];this.starts=[];}
@@ -65,4 +66,28 @@ test('crowd calls are rate limited, speech ducks ambience, and fight events rema
   for(const event of [{type:'fight-action',action:'jab'},{type:'fight-action',action:'guard'},{type:'fight-action',action:'dodge'},{type:'fight-hit',blocked:false},{type:'fight-hit',blocked:true},{type:'fight-end'}])audio.event(event);
   for(const node of audio.context.nodes)for(const key of ['gain','frequency'])assert(node[key].values.every(Number.isFinite));
   audio.reset();assert.equal(audio.sources.size,0);assert.equal(audio.cooldowns.size,0);
+});
+
+test('slow crowd automation is bounded independently of display refresh while play changes react immediately', async t=>{
+  install(t);
+  for(const rate of [30,60,120]){
+    const audio=new BallparkAudio();await audio.unlock();
+    for(let frame=0;frame<rate*10;frame++){
+      audio.context.currentTime=frame/rate;
+      audio.update({time:frame/rate,phase:'ready'});
+    }
+    const gain=audio.ambient.gain.gain;
+    assert.equal(gain.values.length,100,`${rate} Hz should schedule crowd targets at 10 Hz`);
+    assert.equal(gain.holds,100,'superseded envelope segments should be held before retargeting');
+    const before=gain.values.length;
+    audio.context.currentTime+=.001;
+    audio.update({time:10,phase:'brawl'});
+    assert.equal(gain.values.length,before+1,'a play-state reaction cannot wait for the next envelope refresh');
+    assert(gain.value>.015,'the fight crowd target should react immediately');
+    audio.update({time:10,phase:'brawl'},{paused:true});
+    assert.equal(audio.ambient,null);assert.equal(audio.sources.size,0);
+    audio.update({time:10,phase:'brawl'},{paused:false});
+    assert.equal(audio.ambient.gain.gain.values.length,1,'resume should initialize its new envelope immediately');
+    audio.setEnabled(false);assert.equal(audio.ambient,null);assert.equal(audio.sources.size,0);
+  }
 });

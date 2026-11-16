@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.6
+# Pocket Baseball — version 0.6.1
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -357,6 +357,38 @@ and uses `fallback-renderer.mjs`: a perspective Canvas renderer of the same worl
 coordinates. It keeps the game playable with simpler geometry and shading.
 `?software=1` selects this path explicitly. The condensed display font is a local
 Latin subset of Open Sans Condensed Bold; its Apache 2.0 license is included.
+
+### Rendering stability and build identification (0.6.1)
+
+The home-screen footer shows the loaded build. Pause shows the build, **3D** or
+**Compatibility picture**, and the drawing resolution. The optional **Show frame
+rate during play** checkbox adds a small readout; it is off by default. The pause
+report measures actual animation-frame intervals over the most recent 180 active
+frames, including the longest interval and frames over 50 ms. Measurements stay
+in the browser; no performance telemetry is transmitted. New matches reset the
+window, and time spent hidden or paused is excluded.
+
+Player geometry, jersey textures and shader programs are prepared while the
+loading screen is present. At-bat handedness changes, new runners and defensive
+club changes reuse that prepared geometry. Static park transforms are frozen.
+Neither renderer reads layout dimensions on every paint; resize events and
+ResizeObserver cover actual viewport changes. Automatic 3D quality limits the
+total drawing pixels as well as pixel ratio, and waits until a dead ball or pause
+to apply adaptive resolution changes. Sharp remains available in Picture.
+
+The compatibility renderer reuses the stadium background when the camera and
+scoreboard are unchanged, invalidates it when the camera/park/score/size changes,
+and culls off-screen scoreboard textures. Players, the ball and live camera
+tracking continue updating each frame. Score/roster HUD labels refresh at 15 Hz
+or immediately on a phase/input change; pitch timing, swing availability, aim and
+fight defense cues retain the display update rate. Crowd gain automation updates
+at 10 Hz with immediate phase/mute/pause changes.
+
+The build check runs at startup and on return/pause, at most once per minute. A
+newer release exposes a manual reload link on the home screen; it never reloads
+an active game automatically. Versioned modules avoid reusing the previous
+release's application files. Startup module errors expose a reload prompt instead
+of leaving the field-loading screen indefinitely.
 
 Phone input follows the corrected DFE touch behavior: distinct pointer ownership
 for aiming/actions, swing registration on pointerdown, independent cancellation,

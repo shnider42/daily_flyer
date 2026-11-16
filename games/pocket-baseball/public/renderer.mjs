@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.6.0';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.0';
-import { DELIVERIES, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.6.1';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.1';
+import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.1';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -352,6 +352,9 @@ export class BallparkRenderer {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x172c43);
+    // The scene itself never moves. Static park branches can then keep their
+    // world matrices instead of recomputing them with every animated player.
+    this.scene.matrixAutoUpdate = false; this.scene.updateMatrixWorld(true);
     this.scene.fog = new THREE.Fog(0x354251, 215, 480);
     this.camera = new THREE.PerspectiveCamera(51, 1, .075, 700);
     this.camera.position.set(82, 53, -31); this.look = V(0, 3, 38);
@@ -368,6 +371,11 @@ export class BallparkRenderer {
     this.onRestored = () => { this.contextLost = false; this.resize(true); };
     canvas.addEventListener('webglcontextlost', this.onLost);
     canvas.addEventListener('webglcontextrestored', this.onRestored);
+    this.sizeDirty = true;
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => { this.sizeDirty = true; });
+      this.resizeObserver.observe(canvas);
+    }
     this.resize();
   }
 
@@ -380,6 +388,9 @@ export class BallparkRenderer {
     const group = new THREE.Group(); group.name = `park:${this.parkId}`;
     for (const child of [...this.scene.children]) if (!previous.has(child)) group.add(child);
     this.scene.add(group); this.parkGroup = group;
+    group.updateMatrixWorld(true);
+    group.traverse(object => { object.matrixAutoUpdate = false; });
+    group.matrixWorldAutoUpdate = false;
   }
   releasePark() {
     if (!this.parkGroup) return;
@@ -809,7 +820,10 @@ export class BallparkRenderer {
 
   releaseModel(model) {
     if (!model) return;
-    this.scene.remove(model.group); for (const geometry of model.ownedGeometries || []) geometry.dispose();
+    this.scene.remove(model.group);
+    // Player geometry belongs to the prepared template cache. Throwing it away
+    // here made a lefty at-bat or a new runner rebuild and re-upload every joint.
+    if (!model.sharedGeometry) for (const geometry of model.ownedGeometries || []) geometry.dispose();
   }
 
   numberPlayer(model, number) {
@@ -819,7 +833,79 @@ export class BallparkRenderer {
     if (model.backLabel) model.backLabel.material = this.uniformMaterial(model.home, number, true);
   }
 
+  playerKey(home, number, bat, role, handedness) {
+    return `${home}:${bat ? 'batter' : role === 'pitcher' ? 'fielder' : role}:${handedness}:${number % 4}`;
+  }
+
+  clonePlayer(template) {
+    const group = template.group.clone(true), originals = [], copies = [];
+    template.group.traverse(object => originals.push(object));
+    group.traverse(object => copies.push(object));
+    const remap = new Map(originals.map((object, i) => [object, copies[i]]));
+    const model = { ...template, group, lastX: null, lastZ: null, facing: 0, sharedGeometry: true };
+    for (const [name, object] of Object.entries(template)) if (object?.isObject3D) model[name] = remap.get(object);
+    return model;
+  }
+
   player(home, number = 1, bat = false, role = 'fielder', handedness = 'R') {
+    this.playerTemplates ||= new Map();
+    const key = this.playerKey(home, number, bat, role, handedness);
+    const template = this.playerTemplates.get(key);
+    if (template) {
+      const model = this.clonePlayer(template); model.role = role;
+      this.numberPlayer(model, number); this.scene.add(model.group); return model;
+    }
+    const model = this.buildPlayer(home, number, bat, role, handedness);
+    model.sharedGeometry = true;
+    // Retain a pristine transform hierarchy; live poses and numbers must never
+    // alter the template used for the next hitter, runner, or defensive club.
+    this.playerTemplates.set(key, this.clonePlayer(model));
+    return model;
+  }
+
+  async prepare() {
+    if (this.prepared) return;
+    const warm = (home, person, bat, role, hand) => {
+      const model = this.player(home, person.number, bat, role, hand);
+      this.releaseModel(model);
+    };
+    for (let side = 0; side < 2; side++) {
+      const home = side === 1, roster = getRoster(side);
+      for (const person of [...roster.lineup, ...roster.bench]) {
+        for (const hand of person.bats === 'S' ? ['R', 'L'] : [person.bats]) warm(home, person, true, 'batter', hand);
+        warm(home, person, false, 'runner', 'R');
+        warm(home, person, false, 'fielder', person.throws);
+      }
+      for (const person of roster.pitchers) warm(home, person, false, 'pitcher', person.throws);
+      warm(home, { number: 2 }, false, 'catcher', 'R');
+    }
+    for (const material of this.uniformMaterials?.values() || []) this.renderer.initTexture?.(material.map);
+    // Upload the same cached geometry that live players will use. A one-pixel
+    // offscreen pass keeps shader compilation and first-use buffer uploads out
+    // of the first pitch/contact, without displaying the preparation scene.
+    const warmGroup = new THREE.Group();
+    for (const template of this.playerTemplates.values()) warmGroup.add(template.group);
+    this.scene.add(warmGroup);
+    const camera = new THREE.PerspectiveCamera(70, 1, .075, 700);
+    camera.position.set(0, 1.5, 5); camera.lookAt(0, 1, 0);
+    let target;
+    const previousTarget = this.renderer.getRenderTarget?.() || null;
+    try {
+      if (this.renderer.compileAsync) await this.renderer.compileAsync(this.scene, camera);
+      else this.renderer.compile?.(this.scene, camera);
+      if (this.renderer.setRenderTarget) {
+        target = new THREE.WebGLRenderTarget(1, 1);
+        this.renderer.setRenderTarget(target); this.renderer.render(this.scene, camera);
+      }
+    } finally {
+      if (target) { this.renderer.setRenderTarget(previousTarget); target.dispose(); }
+      this.scene.remove(warmGroup);
+      for (const template of this.playerTemplates.values()) warmGroup.remove(template.group);
+    }
+    this.prepared = true;
+  }
+
+  buildPlayer(home, number = 1, bat = false, role = 'fielder', handedness = 'R') {
     this.geometries.jersey ||= new THREE.LatheGeometry([new THREE.Vector2(.200,-.25),new THREE.Vector2(.225,-.15),new THREE.Vector2(.245,.07),new THREE.Vector2(.26,.19),new THREE.Vector2(.20,.25)],12);
     this.geometries.label ||= new THREE.PlaneGeometry(.35, .30);
     this.shadowMaterial ||= new THREE.MeshBasicMaterial({ color: 0x10271b, transparent: true, opacity: .23, depthWrite: false });
@@ -970,17 +1056,24 @@ export class BallparkRenderer {
     this.runnerSelection.rotation.x = -Math.PI / 2; this.runnerSelection.visible = false; this.scene.add(this.runnerSelection);
   }
 
-  setQuality(quality) { this.quality = ['low', 'high', 'auto'].includes(quality) ? quality : 'auto'; this.adaptiveScale = 1; this.resize(true); }
+  setQuality(quality) { this.quality = ['low', 'high', 'auto'].includes(quality) ? quality : 'auto'; this.adaptiveScale = 1; this.pendingScale = null; this.resize(true); }
   resize(force = false) {
     const w = Math.max(1, this.canvas.clientWidth || innerWidth), h = Math.max(1, this.canvas.clientHeight || innerHeight);
-    const cap = this.quality === 'low' ? .85 : this.quality === 'high' ? 2 : this.touch ? 1.25 : 1.5;
-    const dpr = Math.min(devicePixelRatio || 1, cap) * (this.quality === 'auto' ? this.adaptiveScale : 1);
+    const cap = this.quality === 'low' ? .85 : this.quality === 'high' ? 2 : this.touch ? 1.1 : 1.25;
+    const budget = this.quality === 'high' ? Infinity : this.quality === 'low' ? 1000000 : this.touch ? 850000 : 1600000;
+    const dpr = Math.min(devicePixelRatio || 1, cap, Math.sqrt(budget / (w * h))) * (this.quality === 'auto' ? this.adaptiveScale : 1);
     // Avoid reallocating the WebGL drawing buffer every frame (Skyward lesson).
     if (force || w !== this.width || h !== this.height || Math.abs(dpr - (this.dpr || 0)) > .02) {
       this.width = w; this.height = h; this.dpr = dpr;
       this.renderer.setPixelRatio(dpr); this.renderer.setSize(w, h, false);
       this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     }
+    this.sizeDirty = false;
+  }
+
+  getDiagnostics() {
+    return { kind: 'webgl', width: Math.floor(this.width * (this.dpr || 1)), height: Math.floor(this.height * (this.dpr || 1)),
+      scale: this.dpr || 1, drawCalls: this.renderer.info?.render?.calls || 0, triangles: this.renderer.info?.render?.triangles || 0 };
   }
 
   pose(model, x, z, state, { moving = false, facing = model.facing || 0, role = model.role, actor = {}, index = 0 } = {}) {
@@ -1022,17 +1115,26 @@ export class BallparkRenderer {
     if (this.contextLost) return;
     const parkId = resolveParkId(state?.options?.park ?? options.park ?? this.parkId);
     if (parkId !== (this.parkId || 'harbor')) this.setPark(parkId);
-    dt = clamp(Number.isFinite(dt) ? dt : 1 / 60, 0, .08); this.resize();
+    dt = clamp(Number.isFinite(dt) ? dt : 1 / 60, 0, .08);
+    // ResizeObserver and the app's resize handler cover actual layout changes.
+    // Reading clientWidth here after HUD writes forced layout on every frame.
+    if (this.sizeDirty) this.resize();
     this.frameAverage = mix(this.frameAverage, dt || 1 / 60, .02);
-    if (this.quality === 'auto' && ++this.frameCount % 240 === 0) {
-      const previous = this.adaptiveScale;
-      if (this.frameAverage > .027) this.adaptiveScale = Math.max(.70, this.adaptiveScale - .1);
-      else if (this.frameAverage < .019) this.adaptiveScale = Math.min(1, this.adaptiveScale + .05);
-      if (previous !== this.adaptiveScale) this.resize(true);
-    }
     const menu = Boolean(options.menu || !state), t = state?.time || 0;
     this.menuTime += dt;
     const phase = state?.phase || 'ready', brawl = !menu && presentationBrawl(state);
+    this.qualityAge = (this.qualityAge || 0) + dt;
+    if (this.quality === 'auto' && this.qualityAge >= 2) {
+      if (this.frameAverage > .025) this.pendingScale = Math.max(.60, this.adaptiveScale - .12);
+      else if (this.frameAverage < .018 && this.qualityAge >= 10) this.pendingScale = Math.min(1, this.adaptiveScale + .04);
+      if (this.pendingScale != null) this.qualityAge = 0;
+    }
+    const safeToResize = menu || options.paused || ['ready', 'result', 'half', 'final'].includes(phase);
+    if (safeToResize && this.pendingScale != null) {
+      const changed = Math.abs(this.pendingScale - this.adaptiveScale) > .001;
+      this.adaptiveScale = this.pendingScale; this.pendingScale = null;
+      if (changed) this.resize(true);
+    }
     const fielding = !menu && (phase === 'live' || (phase === 'result' && !!state?.play));
     const aim = options.aim || { x: 0, y: 0 }, guidance = options.guidance || state?.guidance || 'simple';
     if (menu) {
@@ -1211,8 +1313,11 @@ export class BallparkRenderer {
   }
   dispose() {
     this.canvas.removeEventListener('webglcontextlost', this.onLost); this.canvas.removeEventListener('webglcontextrestored', this.onRestored);
+    this.resizeObserver?.disconnect();
     const geometries = new Set(), materials = new Set(), textures = new Set();
-    this.scene.traverse(o => { if (o.geometry) geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) { materials.add(m); if (m.map) textures.add(m.map); } });
+    const collect = o => { if (o.geometry) geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) { materials.add(m); if (m.map) textures.add(m.map); } };
+    this.scene.traverse(collect);
+    for (const template of this.playerTemplates?.values() || []) template.group.traverse(collect);
     for (const material of this.uniformMaterials?.values() || []) { materials.add(material); if (material.map) textures.add(material.map); }
     for (const t of textures) t.dispose(); for (const m of materials) m.dispose(); for (const g of geometries) g.dispose(); this.renderer.dispose();
   }

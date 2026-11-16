@@ -1,4 +1,4 @@
-import { getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.0';
+import { getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.1';
 
 const MODES = new Set(['voice', 'captions', 'off']);
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
