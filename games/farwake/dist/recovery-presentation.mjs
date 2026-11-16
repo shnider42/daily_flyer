@@ -9,10 +9,11 @@ export class RecoveryTransition{
   const receipt=state.medicalRecovery,down=state.person?.health<=0||state.person?.down===true;
   if(identity!==this.identity){this.reset();this.identity=identity;this.receipt=receipt?.id||null;if(receipt?.wakeUntil>state.stats.time){this.begin();this.ready=!down;this.destination=receipt.destination;}}
   if(receipt?.id&&receipt.id!==this.receipt){this.receipt=receipt.id;if(!this.active)this.begin();else if(this.phase==='lost')this.age=0;this.ready=!down;this.destination=receipt.destination;}
-  if(down&&!this.active)this.begin();
+  if(down&&(!this.active||this.phase==='waking'))this.begin();
   if(down)this.ready=false;
-  // Recovery always needs an authoritative healthy state and a medical receipt.
-  if(this.active&&!down&&receipt?.id===this.receipt&&this.destination)this.ready=true;
+  // A medic revive or an older server can report consciousness without a new
+  // evacuation receipt. Never leave a healthy captain trapped behind black.
+  if(this.active&&!down)this.ready=true;
   let finished=false;
   if(this.active){this.age+=Math.max(0,Math.min(.1,delta));
    if(this.phase==='lost'&&this.ready&&this.age>=2.5){this.phase='waking';this.age=0;}

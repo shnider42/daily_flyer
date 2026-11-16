@@ -117,7 +117,7 @@ const foldDriveTestUI=createFoldDriveTestUI({dialog,getSession:()=>testSession,r
 const upgradeGuideUI=createUpgradeGuideUI({dialog,getGame:()=>game,getDevice:()=>touchLayout?'touch':'keyboard',isShared:()=>!!network,onNextStep:followFoldDriveStep,openReference:topic=>openHelp({topic,query:topic==='fold-drive'?'fold drive':''}),openGalaxy:()=>openMap('vesper')});
 const recoveryPresentation=createRecoveryPresentation({element:$('recoveryScreen'),app:$('app'),audio,
  onBegin:()=>{dialog.close();setViewPanel(false,{restoreFocus:false});controls?.clear();clearPointerAim();combatFeed.length=0;personVisualOffset={x:0,y:0};transitionFlash=0;},
- onFinish:destination=>{controls?.clear();clearPointerAim();scoreContext=null;toast('Recovered at '+(destination?.name||'the hospital')+'.','good',5000);saveNow();}
+ onFinish:destination=>{controls?.clear();clearPointerAim();scoreContext=null;toast(destination?.name?'Recovered at '+destination.name+'.':'You regain consciousness.','good',5000);saveNow();}
 });
 function updateRecovery(dt=0){return recoveryPresentation.update(game.state,dt,{playing,reducedMotion:settings.reduceMotion||matchMedia('(prefers-reduced-motion: reduce)').matches});}
 controls=new Controls({stick:$('stick'),knob:$('knob'),aimStick:$('aimStick'),aimKnob:$('aimKnob'),getMode:()=>game.state.mode,getCombat:pointerAimAvailable,getGunnery:()=>getGunneryView(game).active,getFlightState:()=>({ship:network?.predictedShip??game.state.ship,flightAssist:settings.flightAssist}),brake:$('brakeButton'),fire:$('fireButton'),mine:$('mineButton'),boost:$('boostButton'),active:()=>playing&&!recoveryPresentation.active&&!dialog.opened&&!viewPanelOpen&&!actionPending&&!game.state.multiplayer?.waitingForGroupStart,onCommand:command});

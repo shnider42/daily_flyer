@@ -60,3 +60,8 @@ test('medical evacuation ends a solo employer watch and restores the captain’s
  const g=new Game('medical-contract',{startMode:'hardcore'});assert.ok(g.acceptNpcContract('gunner').ok);const employer=g.state.ship.id;
  g.state.person.health=0;const result=g.recoverOnFoot();assert.equal(result.ok,true);assert.equal(g.state.npcContract,null);assert.notEqual(g.state.ship.id,employer);assert.equal(g.ownsShip,false);assert.equal(g.state.medicalRecovery.destination.kind,'hospital');
 });
+
+test('a confirmed medic revive or legacy-server recovery cannot strand a healthy captain behind black',()=>{
+ const s=healthy(),t=new RecoveryTransition();t.update(s,0);s.person.health=0;t.update(s,0);tick(t,s,3);s.person.health=50;tick(t,s,4);
+ assert.equal(t.active,false);assert.equal(t.destination,null,'No hospital destination is invented for an in-place revive.');
+});
