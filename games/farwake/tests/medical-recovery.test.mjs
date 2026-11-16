@@ -65,3 +65,12 @@ test('a confirmed medic revive or legacy-server recovery cannot strand a healthy
  const s=healthy(),t=new RecoveryTransition();t.update(s,0);s.person.health=0;t.update(s,0);tick(t,s,3);s.person.health=50;tick(t,s,4);
  assert.equal(t.active,false);assert.equal(t.destination,null,'No hospital destination is invented for an in-place revive.');
 });
+
+test('a passenger injured away from a clinic uses the injury location rather than the parked personal hull',()=>{
+ const g=new Game('medical-passenger-position'),origin=g.system.bodies.find(b=>b.id==='morrow'),clinic=g.system.bodies.find(b=>b.id==='kettle');
+ Object.assign(origin,{x:1000,y:0,portServices:false});Object.assign(clinic,{x:900,y:0});
+ const distant={...clinic,id:'remote-clinic',name:'Remote clinic',x:-1000,y:0};g.system.bodies.push(distant);g.currentSystem.bodies.push({...distant});
+ for(const body of g.system.bodies)if(body!==origin&&body!==clinic&&body!==distant)body.portServices=false;
+ Object.assign(g.state.ship,{x:-1000,y:0});g._arriveAsPassenger(origin);g.state.person.health=0;
+ assert.ok(g.recoverOnFoot().ok);assert.equal(g.state.medicalRecovery.destination.bodyId,'kettle');assert.equal(g.state.ship.x,-1000);
+});

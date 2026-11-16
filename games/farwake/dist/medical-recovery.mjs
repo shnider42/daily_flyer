@@ -73,7 +73,7 @@ export const MedicalRecoveryRules={
   }
   const bodyId=s.exploration?.bodyId||s.interior?.location?.parentId||s.locationId;
   const origin=this.system.bodies.find(b=>b.id===bodyId),originFactionId=origin?.faction||this.currentSystem.faction;
-  destination||=medicalDestination(this,{bodyId});
+  destination||=medicalDestination(this,{bodyId,position:origin||s.ship});
   if(!destination)return this._fail('No hospital is available for recovery.','location');
   if(s.exploration){s.explorationRecords[s.exploration.key]=s.exploration.encounter;this.releaseWarzoneSurface();}
   this._arriveAsPassenger(this.system.bodies.find(body=>body.id===destination.bodyId));
