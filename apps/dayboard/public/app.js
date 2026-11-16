@@ -1,5 +1,6 @@
 import { BoardStore, makeTask, parseCapture, normalizeWorkspace, transitionTask, toCSV, safeUrl } from './model.mjs';
 import { createSeedWorkspace } from './seed.mjs';
+import { DISPLAY_KEY, DISPLAY_DEFAULTS, DISPLAY_OPTIONS, readDisplayPreferences, applyDisplayPreferences } from './display.mjs';
 
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
@@ -51,6 +52,8 @@ const taskOptions = selected => selectOptions(Object.entries(statusName),selecte
 let storage;
 try { storage=window.localStorage; } catch { storage={getItem:()=>{throw new Error('Browser storage is unavailable.');},setItem:()=>{throw new Error('Browser storage is unavailable.');}}; }
 const store=new BoardStore({storage,initialState:createSeedWorkspace()});
+let displayPreferences=readDisplayPreferences(storage);
+applyDisplayPreferences(displayPreferences);
 let ui={view:'board',area:'all',query:'',project:'',priority:'all',layout:'board',mobileStatus:'next'};
 let editingId=null, dirty=false, toastTimer, pendingImport=null, dragId=null, focusReturn=null;
 const views=['board','today','inbox','upcoming','projects','review','someday','archive'];
@@ -73,7 +76,14 @@ const filteredTasks = () => sortTasks(store.state.tasks.filter(matches));
 const areaBadge = area => `<span class="area-label"><span class="area-dot ${area}"></span>${areaName[area]}</span>`;
 const issueKey = task => `DB-${String(task.number).padStart(3,'0')}`;
 const dueValue = task => task.status==='waiting' ? [task.followUp,task.due].filter(Boolean).sort()[0]||'' : task.due;
-const dueTag = task => { const val=dueValue(task); if(!val) return ''; const done=task.status==='done'; const cls=!done&&val<today()?'overdue':!done&&val===today()?'today':''; return `<span class="tag ${cls}" title="${esc(task.status==='waiting'&&task.followUp===val?'Follow up':'Due')}: ${esc(val)}">${icon(task.status==='waiting'?'review':'calendar')}${esc(dateLabel(val))}</span>`; };
+const dueTag = task => {
+  const val=dueValue(task);if(!val)return '';
+  const done=task.status==='done',followUp=task.status==='waiting'&&task.followUp===val;
+  const cls=!done&&val<today()?'overdue':!done&&val===today()?'today':'';
+  const label=followUp?'Follow up':'Due';
+  const visible=cls==='overdue'?`${followUp?'Follow up overdue':'Overdue'} · ${dateLabel(val)}`:`${label} ${dateLabel(val).toLowerCase()==='today'?'today':dateLabel(val)}`;
+  return `<span class="tag ${cls}" title="${esc(label)}: ${esc(val)}">${icon(followUp?'review':'calendar')}${esc(visible)}</span>`;
+};
 function notify(message,{undo=false,error=false}={}){
   clearTimeout(toastTimer);const el=$('#toast');el.className=`toast${error?' error':''}`;el.hidden=false;
   el.innerHTML=`<span>${esc(message)}</span>${undo?`<button data-action="undo" data-revision="${store.state.revision}">Undo</button>`:''}${error?'<button data-action="dismiss-toast">Dismiss</button>':''}`;
@@ -171,7 +181,7 @@ function render(){
 
 let confirmAction=null, openedTaskStamp=null;
 function openUtility(title,body,footer=''){
-  const dialog=$('#utility-dialog');dialog.innerHTML=`<div class="dialog-top"><h2 id="utility-title">${esc(title)}</h2>${iconButton('close','close-utility','Close dialog')}</div><div class="dialog-body">${body}</div>${footer?`<div class="dialog-bottom">${footer}</div>`:''}`;
+  const dialog=$('#utility-dialog');dialog.classList.remove('display-dialog');dialog.innerHTML=`<div class="dialog-top"><h2 id="utility-title">${esc(title)}</h2>${iconButton('close','close-utility','Close dialog')}</div><div class="dialog-body">${body}</div>${footer?`<div class="dialog-bottom">${footer}</div>`:''}`;
   if(!dialog.open)dialog.showModal();
 }
 function confirmDialog(title,copy,action,label='Confirm'){
@@ -228,8 +238,38 @@ function exportBackup(){
   try{download(`dayboard-backup-${today()}.json`,store.exportJSON(),'application/json');const saved=commit(s=>{s.settings.lastBackupAt=now();},'Backup download started.',{undo:false});if(saved&&$('#settings-last-backup'))$('#settings-last-backup').textContent=fullDate(store.state.settings.lastBackupAt);}
   catch(error){notify(`Could not export: ${error.message}`,{error:true});}
 }
+function displayStatus(message,error=false){
+  const status=$('#display-save-status');if(!status)return;
+  status.textContent=message;status.classList.toggle('error',error);
+}
+function syncDisplayControls(){
+  for(const input of $$('[data-display-pref]'))input.checked=displayPreferences[input.dataset.displayPref]===input.value;
+  for(const input of $$('[data-display-setting]'))input.checked=store.state.settings[input.dataset.displaySetting]===input.value;
+}
+function saveDisplayPreferences(next){
+  try{
+    storage.setItem(DISPLAY_KEY,JSON.stringify(next));
+    displayPreferences=next;applyDisplayPreferences(displayPreferences);syncDisplayControls();
+    displayStatus('Display saved. Your board is using these choices.');return true;
+  }catch{
+    syncDisplayControls();displayStatus('Could not save this display change. Your previous choices are still in use.',true);return false;
+  }
+}
+function displayChoices({label,hint,name,key,kind,options,selected}){
+  return `<fieldset class="display-setting"><legend>${esc(label)}</legend><p class="display-hint" id="${name}-help">${esc(hint)}</p><div class="display-choices">${options.map(([value,text])=>`<label class="display-choice"><input type="radio" name="${name}" value="${value}" data-display-${kind}="${key}" aria-describedby="${name}-help" ${value===selected?'checked':''}><span>${esc(text)}</span></label>`).join('')}</div></fieldset>`;
+}
+function openDisplay(){
+  const choices=[
+    {label:'Text size',hint:'Text size changes independently of card spacing.',name:'display-text-size',key:'textSize',kind:'pref',options:[['standard','Standard'],['larger','Larger'],['largest','Largest']],selected:displayPreferences.textSize},
+    {label:'Spacing',hint:'Comfortable shows notes. Compact reduces gaps and hides card notes.',name:'display-density',key:'density',kind:'setting',options:[['comfortable','Comfortable'],['compact','Compact']],selected:store.state.settings.density},
+    {label:'Contrast',hint:'Stronger contrast makes text, borders, and controls more distinct.',name:'display-contrast',key:'contrast',kind:'pref',options:[['standard','Standard'],['strong','Stronger']],selected:displayPreferences.contrast},
+    {label:'Color mode',hint:'Keep the same board in a dark or light workspace.',name:'display-theme',key:'theme',kind:'setting',options:[['dark','Dark'],['light','Light']],selected:store.state.settings.theme},
+  ];
+  openUtility('Display',`<p class="display-intro">Choose how your board reads. Changes apply immediately.</p><div class="display-options">${choices.map(displayChoices).join('')}</div><p id="display-save-status" class="display-save-status" role="status">Your display choices are saved in this browser.</p>`,`<button class="button plain" data-action="reset-display">Reset text & contrast</button><span class="spacer"></span><button class="button primary" data-action="close-utility">Done</button>`);
+  $('#utility-dialog').classList.add('display-dialog');
+}
 function openSettings(){
-  const state=store.state;openUtility('Settings & backup',`<section class="settings-section"><h3>Your workspace</h3><p>Tasks are saved on this device, in this browser. Opening the Render address on another device starts a separate board. No task content is sent to a server.</p><div class="settings-note"><p>Use a JSON backup to move your board between devices. Clearing browser data can remove your board. Keep a backup somewhere you can find it.</p></div><div class="settings-actions"><button class="button primary" data-action="export">${icon('download')} Download backup</button><button class="button" data-action="import">${icon('upload')} Import backup</button><button class="button" data-action="export-csv">Export CSV</button></div><p>Last backup download: <span id="settings-last-backup">${fullDate(state.settings.lastBackupAt)}</span><br>${state.tasks.length} tasks · ${state.projects.length} projects</p></section><section class="settings-section"><h3>Appearance</h3><div class="settings-row"><label for="setting-theme">Color theme</label><select id="setting-theme">${selectOptions([['dark','Dark'],['light','Light']],state.settings.theme)}</select></div><div class="settings-row"><label for="setting-density">Card density</label><select id="setting-density">${selectOptions([['comfortable','Comfortable'],['compact','Compact']],state.settings.density)}</select></div></section><section class="settings-section"><h3>Keep the board tidy</h3><p>Suggestions you have already changed are treated as your tasks.</p><div class="settings-actions"><button class="button" data-action="clear-starters">Clear untouched suggestions</button><button class="button" data-action="go-archive">Open archive</button></div><button class="text-button" data-action="reload-state">Reload saved workspace</button></section><section class="settings-section"><h3>A few useful controls</h3><p><kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>?</kbd> help<br>On desktop, drag a card between columns. On a phone, use the status menu at the bottom of each card.</p><p class="settings-note">Repeat creates the next task when you complete the current one. Due dates and follow-up dates appear in the board; they do not send notifications.</p></section>`);
+  const state=store.state;openUtility('Settings & backup',`<section class="settings-section"><h3>Your workspace</h3><p>Tasks are saved on this device, in this browser. Opening the Render address on another device starts a separate board. No task content is sent to a server.</p><div class="settings-note"><p>Use a JSON backup to move your board between devices. Clearing browser data can remove your board. Keep a backup somewhere you can find it.</p></div><div class="settings-actions"><button class="button primary" data-action="export">${icon('download')} Download backup</button><button class="button" data-action="import">${icon('upload')} Import backup</button><button class="button" data-action="export-csv">Export CSV</button></div><p>Last backup download: <span id="settings-last-backup">${fullDate(state.settings.lastBackupAt)}</span><br>${state.tasks.length} tasks · ${state.projects.length} projects</p></section><section class="settings-section"><h3>Display</h3><p>Choose your text size, card spacing, contrast, and color mode.</p><button class="button" data-action="display">${icon('settings')} Open display settings</button><p class="field-hint">Text size and contrast stay with this browser. Color mode and spacing are included in your board backup.</p></section><section class="settings-section"><h3>Keep the board tidy</h3><p>Suggestions you have already changed are treated as your tasks.</p><div class="settings-actions"><button class="button" data-action="clear-starters">Clear untouched suggestions</button><button class="button" data-action="go-archive">Open archive</button></div><button class="text-button" data-action="reload-state">Reload saved workspace</button></section><section class="settings-section"><h3>A few useful controls</h3><p><kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>?</kbd> help<br>On desktop, drag a card between columns. On a phone, use the status menu at the bottom of each card.</p><p class="settings-note">Repeat creates the next task when you complete the current one. Due dates and follow-up dates appear in the board; they do not send notifications.</p></section>`);
 }
 function openCapture(){
   openUtility('Get it out of your head',`<p>One task per line. No formatting needed. Everything goes to Inbox.</p><textarea id="capture-text" class="list-paste" maxlength="30000" aria-label="Tasks to add, one per line" placeholder="Update the résumé summary\nBook an appointment\nReview one project idea #dfe"></textarea><div class="capture-controls"><select id="capture-area" aria-label="Default area for captured tasks">${selectOptions(Object.entries(areaName),ui.area==='all'?'career':ui.area)}</select><span class="capture-count" id="capture-count">0 tasks</span></div><p class="field-hint">Optional: add #career, #life, or #dfe to a line to choose its area.</p>`,`<span class="spacer"></span><button class="button" data-action="close-utility">Cancel</button><button class="button primary" data-action="save-capture">Add to Inbox</button>`);setTimeout(()=>$('#capture-text').focus(),0);
@@ -256,7 +296,8 @@ document.addEventListener('click',event=>{
     confirm:()=>{const fn=confirmAction;confirmAction=null;$('#utility-dialog').close();fn?.();},
     complete:()=>changeStatus(id,'done'),reopen:()=>changeStatus(id,'next'),start:()=>changeStatus(id,'doing'),
     pin:()=>pinTask(id),
-    settings:openSettings,help:openHelp,
+    settings:openSettings,help:openHelp,display:openDisplay,
+    'reset-display':()=>saveDisplayPreferences({...DISPLAY_DEFAULTS}),
     'capture-list':openCapture,
     'save-capture':()=>{try{const fields=parseCapture($('#capture-text').value,$('#capture-area').value);if(!fields.length){notify('Add at least one task.');return;}if(fields.length>150){notify('Add up to 150 tasks at a time.',{error:true});return;}if(commit(state=>{fields.forEach(f=>addFields(state,f));},`${fields.length} ${fields.length===1?'task':'tasks'} added to Inbox.`)){$('#utility-dialog').close();setView('inbox');}}catch(error){notify(error.message,{error:true});}},
     'clear-filters':()=>{ui.query='';ui.project='';ui.priority='all';$('#search').value='';render();},
@@ -306,11 +347,20 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('change',event=>{
   const el=event.target;
+  if(el.dataset.displayPref){
+    const key=el.dataset.displayPref;
+    if(DISPLAY_OPTIONS[key]?.includes(el.value))saveDisplayPreferences({...displayPreferences,[key]:el.value});
+    return;
+  }
+  if(el.dataset.displaySetting){
+    const key=el.dataset.displaySetting;
+    if(!['theme','density'].includes(key))return;
+    const saved=commit(s=>{s.settings[key]=el.value;},null,{undo:false});syncDisplayControls();
+    displayStatus(saved?'Display saved. Your board is using these choices.':'Could not save this display change. Your previous choices are still in use.',!saved);return;
+  }
   if(el.dataset.statusId){changeStatus(el.dataset.statusId,el.value);return;}
   if(el.id==='project-filter'){ui.project=el.value;render();}
   if(el.id==='priority-filter'){ui.priority=el.value;render();}
-  if(el.id==='setting-theme'){commit(s=>{s.settings.theme=el.value;},null,{undo:false});}
-  if(el.id==='setting-density'){commit(s=>{s.settings.density=el.value;},null,{undo:false});}
   if(el.id==='task-project'){const p=projectById(el.value);if(p)$('#task-area').value=p.area;dirty=true;}
   if(el.id==='task-area'){const p=projectById($('#task-project').value);if(p&&p.area!==el.value)$('#task-project').value='';dirty=true;}
   if(el.id==='task-status'&&['done','someday'].includes(el.value))$('#task-form input[name=today]').checked=false;
@@ -337,9 +387,10 @@ $('#utility-dialog').addEventListener('cancel',()=>{confirmAction=null;});
 window.addEventListener('hashchange',()=>{const view=location.hash.slice(1);if(views.includes(view)){ui.view=view;render();}});
 window.addEventListener('popstate',()=>{ui.view=views.includes(location.hash.slice(1))?location.hash.slice(1):'board';render();});
 window.addEventListener('storage',event=>{
+  if(event.key===DISPLAY_KEY){displayPreferences=readDisplayPreferences(storage);applyDisplayPreferences(displayPreferences);syncDisplayControls();displayStatus('Display choices updated from another tab.');return;}
   if(event.key!=='dfe.dayboard.v1')return;
   if($('#task-dialog').open&&dirty){notify('This board changed in another tab. Save is protected from overwriting that change.',{error:true});return;}
-  try{store.reload();render();if($('#task-dialog').open&&editingId)openTask(editingId);notify(store.loadIssue||'Board updated from another tab.',{error:Boolean(store.loadIssue)});}catch(error){notify(error.message,{error:true});}
+  try{store.reload();render();syncDisplayControls();if($('#task-dialog').open&&editingId)openTask(editingId);notify(store.loadIssue||'Board updated from another tab.',{error:Boolean(store.loadIssue)});}catch(error){notify(error.message,{error:true});}
 });
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
 for(const el of $$('[data-icon]'))el.innerHTML=icon(el.dataset.icon);

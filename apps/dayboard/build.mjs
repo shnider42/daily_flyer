@@ -4,8 +4,10 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
 const root=dirname(fileURLToPath(import.meta.url));
-const checks=spawnSync(process.execPath,['--check',join(root,'public/app.js')],{stdio:'inherit'});
-if(checks.status!==0)process.exit(checks.status||1);
+for(const script of ['app.js','display.mjs']){
+  const checks=spawnSync(process.execPath,['--check',join(root,'public',script)],{stdio:'inherit'});
+  if(checks.status!==0)process.exit(checks.status||1);
+}
 const tests=spawnSync(process.execPath,['--test',...readdirSync(join(root,'tests')).filter(f=>f.endsWith('.test.mjs')).map(f=>join(root,'tests',f))],{stdio:'inherit'});
 if(tests.status!==0)process.exit(tests.status||1);
 const out=join(root,'dist');mkdirSync(out,{recursive:true});cpSync(join(root,'public'),out,{recursive:true});
