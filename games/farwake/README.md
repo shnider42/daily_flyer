@@ -1,8 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.26.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.26.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.26.1 — A score for the warzone
+
+Crosswind now immediately replaces peaceful travel music with a dedicated rotation of **three original heavy battle pieces**. The rotation continues through fleet lulls, crew decks and planetary visits while your captain remains in the system. Each shuffled set plays all three pieces before refilling, with no immediate repeat. Leaving Crosswind returns to the voyage's ordinary music rules.
+
+| Piece | Character | Length |
+| --- | --- | ---: |
+| **Kill Corridor** | Fast thrash, clipped low riffs and double-kick passages · 178 BPM | 2:09 |
+| **Iron Teeth** | Heavy syncopated groove, tom accents and a half-time middle · 142 BPM | 2:15 |
+| **Ashes in Orbit** | Melodic metalcore, harmonized guitar responses and a full-band return · 166 BPM | 2:19 |
+
+All three begin with the band in motion. Eight new synthesized guitar, bass and drum voices give the parts a heavier attack and a short, dry room sound. Their melodies, riffs and arrangements are original. The previous 43 compositions and their instrument sounds are unchanged; the catalog now contains **46 pieces**.
+
+Find the new category under **Settings → Music & listening → Crosswind warzone**. You can request any of its three tracks while there; a peaceful audition waits until you leave the system. Music enable, volume, hidden-tab suspension and conversation ducking still apply. The change follows your actual location without marking a neutral captain as personally under attack. See [music direction](docs/music-direction.md).
 
 ## 0.26.0 — Crosswind and the lives afterward
 

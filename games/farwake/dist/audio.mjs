@@ -2,6 +2,11 @@ import { playbackSession, bindAudioActivation } from './shared/device-audio.mjs'
 import { MusicDirector } from './music-director.mjs';
 import { MUSIC_CUES, THEME_ID, ScorePlayer } from './music-score.mjs';
 
+function listeningSeed(){
+ try{const value=new Uint32Array(1);if(globalThis.crypto?.getRandomValues){globalThis.crypto.getRandomValues(value);return value[0];}}catch{}
+ return `${Date.now()}:${Math.random()}`;
+}
+
 const busGain = (node, value, time, ramp=.08) => {
  if(!node || node._farwakeGain===value)return;
  node._farwakeGain=value;node.gain.cancelScheduledValues(time);node.gain.setTargetAtTime(value,time,ramp);
@@ -10,7 +15,7 @@ export class Soundscape{
  constructor(enabled=()=>true,{musicEnabled=()=>true,musicVolume=()=>.65,musicPresence=()=> 'balanced'}={}){
   this.enabled=enabled;this.musicEnabled=musicEnabled;this.musicVolume=musicVolume;this.musicPresence=musicPresence;
   this.ctx=null;this.master=null;this.musicBus=null;this.last={};this.effects=new Set();
-  this.director=new MusicDirector({cues:MUSIC_CUES,themeId:THEME_ID});
+  this.director=new MusicDirector({cues:MUSIC_CUES,themeId:THEME_ID,seed:listeningSeed()});
   this.score=null;this.retiringScore=null;this.musicToken=null;this.musicDecision=null;this.musicNow=0;this.musicFault=false;
   if(globalThis.document){
    bindAudioActivation(()=>this.unlock(),{enabled:()=>this.enabled()||this.musicEnabled()});
@@ -95,6 +100,7 @@ export class Soundscape{
   const cue=MUSIC_CUES.find(value=>value.id===this.musicDecision?.cueId);
   return {state:this.musicFault?'unavailable':this.ctx?.state||'locked',cueId:cue?.id||null,title:cue?.title||'Quiet',mood:this.musicDecision?.mood||'silence',theme:!!this.musicDecision?.theme,
    preview:!!this.musicDecision?.previewCueId,previewCueId:this.musicDecision?.previewCueId||null,requestedCueId:this.director.previewCueId||null,
+   warzone:!!this.musicDecision?.warzone,
    voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
  }
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}

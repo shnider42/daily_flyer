@@ -38,6 +38,16 @@ const INSTRUMENT = Object.freeze({
   brush: { gain: .1, release: .08, reverb: .09, echo: 0 },
   rim: { gain: .085, release: .035, reverb: .075, echo: 0 },
   shimmer: { gain: .075, release: .4, reverb: .4, echo: .025 },
+  // Short gates keep fast alternate-picked notes separate inside the existing
+  // voice budget. These voices belong to the Crosswind arrangements only.
+  metalChug: { gain: .16, release: .045, reverb: .025, echo: 0, cutoff: 5600 },
+  metalLead: { gain: .105, release: .13, reverb: .105, echo: .035, cutoff: 6500 },
+  metalBass: { gain: .18, release: .055, reverb: .008, echo: 0, cutoff: 2200 },
+  metalKick: { gain: .22, release: .035, reverb: .008, echo: 0, cutoff: 7200 },
+  metalSnare: { gain: .14, release: .065, reverb: .07, echo: 0, cutoff: 7900 },
+  metalHat: { gain: .04, release: .025, reverb: .025, echo: 0, cutoff: 9100 },
+  metalCrash: { gain: .052, release: .16, reverb: .09, echo: 0, cutoff: 8700 },
+  metalTom: { gain: .125, release: .075, reverb: .065, echo: 0, cutoff: 5400 },
 });
 
 function makeBuffer(ctx, duration, fill, channels = 1, nativeRate = false) {
@@ -49,8 +59,8 @@ function makeBuffer(ctx, duration, fill, channels = 1, nativeRate = false) {
   return buffer;
 }
 
-function normalize(data, peak = .86) {
-  const edge = Math.min(240, Math.floor(data.length / 4));
+function normalize(data, peak = .86, edgeFrames = 240) {
+  const edge = Math.min(edgeFrames, Math.floor(data.length / 4));
   let highest = .0001, mean = 0, weights = 0;
   for (let i = 0; i < data.length; i++) {
     const weight = Math.min(1, i / edge, (data.length - 1 - i) / edge);
@@ -164,6 +174,87 @@ function bassBuffer(ctx, midi = 40) {
   });
 }
 
+function saturated(value) {
+  const x = Math.max(-3, Math.min(3, value)), square = x * x;
+  return x * (27 + square) / (27 + 9 * square);
+}
+
+/** Original pickup/amp voices, generated once per pitch zone and touch layer.
+ * Twice-rate drive followed by a two-pole cabinet low-pass avoids turning the
+ * strong upper harmonics into brittle foldover at the bank's 24 kHz rate. */
+function metalString(ctx, midi, muted, bright) {
+  return makeBuffer(ctx, muted ? .8 : 3.5, (data, sr) => {
+    const workRate = sr * 2, driven = new Float32Array(data.length * 2), frequency = midiHz(midi);
+    const modes = Array.from({ length: muted ? 14 : 12 }, (_, index) => {
+      const harmonic = index + 1, pickup = harmonic % 2 ? 1 : .68;
+      return [harmonic * Math.sqrt(1 + .000008 * harmonic * harmonic),
+        pickup / harmonic ** .94, (muted ? .2 : 3.1) / (1 + index * (muted ? .19 : .11))];
+    });
+    modes.push([1.0015, .13, muted ? .115 : 2.2]);
+    modalTone(driven, workRate, frequency, modes,
+      { attack: muted ? .0009 : .0025, noise: bright ? .13 : .055, seed: `metal:${midi}:${muted}` });
+    const preHighpass = Math.exp(-2 * Math.PI * (muted ? 48 : 70) / workRate);
+    const cabinet = 1 - Math.exp(-2 * Math.PI * (bright ? muted ? 5400 : 6200 : muted ? 4200 : 5100) / workRate);
+    let previousInput = 0, high = 0, first = 0, second = 0;
+    const drive = muted ? bright ? 6.2 : 4.3 : bright ? 4.9 : 3.6;
+    for (let i = 0; i < driven.length; i++) {
+      const input = driven[i]; high = preHighpass * (high + input - previousInput); previousInput = input;
+      const clipped = saturated(high * drive);
+      first += cabinet * (clipped - first); second += cabinet * (first - second);
+      if (i % 2) data[i >> 1] = second;
+    }
+    normalize(data, muted ? .87 : .85, Math.max(8, Math.floor(sr * .0008)));
+  });
+}
+
+function metalBass(ctx, midi) {
+  return makeBuffer(ctx, 2.5, (data, sr) => {
+    modalTone(data, sr, midiHz(midi), [[1, 1, 1.35], [2, .34, .58], [3, .16, .3], [4, .07, .12]],
+      { attack: .0015, noise: .018, seed: `metal-bass:${midi}` });
+    let low = 0;
+    const cabinet = 1 - Math.exp(-2 * Math.PI * 2300 / sr);
+    for (let i = 0; i < data.length; i++) { low += cabinet * (saturated(data[i] * 2.3) - low); data[i] = low; }
+    normalize(data, .89, Math.max(8, Math.floor(sr * .001)));
+  });
+}
+
+function metalPercussion(ctx, kind) {
+  const duration = { metalKick: .42, metalSnare: .34, metalHat: .12, metalCrash: 1.8, metalTom: .65 }[kind];
+  const random = randomFor(kind);
+  return makeBuffer(ctx, duration, (data, sr) => {
+    let phase = 0, low = 0, prior = 0;
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sr, noise = random() * 2 - 1;
+      low = .78 * low + .22 * noise;
+      const high = noise - low, edge = noise - prior; prior = noise;
+      if (kind === 'metalKick') {
+        phase += 2 * Math.PI * (49 + 138 * Math.exp(-t / .014)) / sr;
+        data[i] = saturated(Math.sin(phase) * 1.7) * Math.exp(-t / .082)
+          + (.2 * high + .16 * Math.sin(2 * Math.PI * 2580 * t)) * Math.exp(-t / .0045);
+      } else if (kind === 'metalSnare') {
+        const body = .42 * Math.sin(2 * Math.PI * 212 * t) + .16 * Math.sin(2 * Math.PI * 343 * t);
+        data[i] = .76 * high * Math.exp(-t / .067) + saturated(body * 1.8) * Math.exp(-t / .043)
+          + .13 * edge * Math.exp(-t / .007);
+      } else if (kind === 'metalHat') {
+        data[i] = (.42 * edge + .22 * high + .1 * Math.sin(2 * Math.PI * 4613 * t)
+          + .08 * Math.sin(2 * Math.PI * 7019 * t)) * Math.exp(-t / .022);
+      } else if (kind === 'metalCrash') {
+        const metal = Math.sin(2 * Math.PI * 3191 * t) * .11 + Math.sin(2 * Math.PI * 4703 * t) * .09
+          + Math.sin(2 * Math.PI * 6299 * t) * .07 + Math.sin(2 * Math.PI * 8461 * t) * .045;
+        data[i] = (.65 * high + .19 * edge + metal) * Math.exp(-t / .39)
+          + .12 * low * Math.exp(-t / .11);
+      } else {
+        phase += 2 * Math.PI * (104 + 64 * Math.exp(-t / .023)) / sr;
+        data[i] = (Math.sin(phase) + .3 * Math.sin(phase * 1.51)) * Math.exp(-t / .14)
+          + .18 * high * Math.exp(-t / .012);
+      }
+      data[i] *= Math.min(1, (duration - t) / .012);
+    }
+    normalize(data, kind === 'metalHat' ? .66 : kind === 'metalCrash' ? .74 : .88,
+      Math.max(8, Math.floor(sr * .0006)));
+  });
+}
+
 function percussion(ctx, kind) {
   const duration = { kick: .48, snare: .29, hat: .14, brush: .4, rim: .1, shimmer: 2.2 }[kind];
   const random = randomFor(kind), buffer = makeBuffer(ctx, duration, (data, sr) => {
@@ -238,6 +329,14 @@ function sampleFor(ctx, assets, instrument, midi, velocity = .6) {
     key = 'bell'; base = 72; make = () => bellBuffer(ctx);
   } else if (instrument === 'bass') {
     base = midi < 38 ? 31 : 43; key = `bass:${base}`; make = () => bassBuffer(ctx, base);
+  } else if (instrument === 'metalChug' || instrument === 'metalLead') {
+    const muted = instrument === 'metalChug';
+    base = muted ? midi < 43 ? 38 : midi < 55 ? 50 : 62 : midi < 69 ? 62 : midi < 81 ? 74 : 86;
+    key = `${instrument}:${base}:${bright ? 1 : 0}`; make = () => metalString(ctx, base, muted, bright);
+  } else if (instrument === 'metalBass') {
+    base = midi < 34 ? 28 : midi < 46 ? 40 : 52; key = `${instrument}:${base}`; make = () => metalBass(ctx, base);
+  } else if (instrument.startsWith('metal')) {
+    base = instrument === 'metalTom' ? 45 : midi; key = instrument; make = () => metalPercussion(ctx, instrument);
   } else {
     key = instrument; base = midi; make = () => percussion(ctx, instrument);
   }
@@ -267,6 +366,7 @@ function waveFor(ctx, assets, instrument) {
 /** The room belongs to the piece; alarms and other effects bypass this mix. */
 function roomForCue(cue = {}) {
   const tags = new Set(cue.tags || []);
+  if (tags.has('crosswind')) return { room: 'short', reverb: .38, echo: .3, brightness: 1, width: 1, gain: .9 };
   if (cue.family === 'combat' || tags.has('foreman')) return { room: 'short', reverb: .62, echo: .42, brightness: 1.08, width: .85, gain: .95 };
   if (tags.has('cabin')) return { room: 'short', reverb: .72, echo: .55, brightness: .86, width: .7, gain: 1 };
   if (tags.has('nightlife')) return { room: 'short', reverb: .8, echo: .9, brightness: .95, width: .9, gain: .98 };

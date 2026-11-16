@@ -1,7 +1,8 @@
 /**
  * Read-only bridge between the simulation and the score. Enemy counts, planned
  * incidents and atmosphere names are deliberately not danger signals. A music
- * cue must follow something the captain has actually encountered.
+ * cue must follow something the captain has actually encountered. Crosswind's
+ * authored battle score is a place profile, without inventing a personal attack.
  */
 import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
 import { clearSidearmSight } from './combat.mjs';
@@ -131,7 +132,8 @@ export function musicContext({
     ['glimmer-night-market', 'voltage-after-shift'].includes(entity.data?.venueId) &&
     same(entity.data?.homeLocationId, body?.id) &&
     distance(personPosition, point(entity)) <= 180);
-  const musicPlace = cabin ? 'cabin' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
+  const crosswind = visible && state.systemId === 'crosswind';
+  const musicPlace = crosswind ? 'crosswind' : cabin ? 'cabin' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
 
   // Ship damage uses the occupied vessel's own clock. Off-duty damage to a
   // parked personal ship must not change the music while the captain is ashore.
@@ -194,6 +196,7 @@ export function musicContext({
     fieldSite && site.atmosphere === 'machinery' ? 'machinery' : null, foremanActive ? 'foreman' : null,
     fieldSite && Object.values(field?.survivors || {}).some(survivor => survivor.escortId === String(captainId) && survivor.status === 'following') ? 'rescue' : null,
     city ? 'city' : null, city ? 'rain' : null, city || nightlife ? 'voltage' : null, nightlife ? 'nightlife' : null,
+    crosswind ? 'crosswind' : null,
     social ? 'settlement' : 'solitude',
     ['conservatory', 'farm', 'park'].includes(locationKind) ? 'garden' : null,
     ['market', 'tavern', 'restaurant', 'farm'].includes(locationKind) ? 'whimsical' : null,

@@ -59,10 +59,10 @@ function audioContext({ sampleRate = 24000 } = {}) {
 }
 
 test('the score catalog has authored contrast and a full original theme', () => {
-  assert.equal(MUSIC_CUES.length, 43);
+  assert.equal(MUSIC_CUES.length, 46);
   assert.equal(new Set(MUSIC_CUES.map(cue => cue.id)).size, MUSIC_CUES.length);
   assert.deepEqual(new Set(MUSIC_CUES.map(cue => cue.family)), new Set(['theme', 'exploration', 'social', 'discovery', 'tension', 'combat', 'recovery', 'terror', 'cave', 'planet']));
-  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 12);
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 15);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'cave').length, 5);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'planet').length, 10);
   assert.ok(MUSIC_CUES.filter(cue => cue.family === 'exploration').length >= 3);

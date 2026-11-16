@@ -8,7 +8,27 @@ The exploration reference is musical patience: recognizable short pieces arrive,
 
 “The Long Way Home” is the main theme. Its opening rising fifth and descending answer return in changing arrangements; the middle passage offers a brighter harmonic departure before the original phrase comes home. The complete statement is about three minutes and seventeen seconds, followed by its tail. It is a composition with a beginning, development, return, and ending, rather than an endlessly regenerated pad.
 
-The current catalog contains **43 original instrumental pieces**, performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
+The current catalog contains **46 original instrumental pieces**, performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
+
+## Crosswind battle rotation · 0.26.1
+
+Crosswind has an explicit battle-score profile for every captain actually in the system, including neutral arrivals, crew members, and ground visits. It replaces a peaceful or generic combat cue on the first music update, with a 0.35-second departing fade and a 0.9-second incoming fade. The profile stays active through tactical lulls and location changes within Crosswind. It does not fabricate pursuit, incoming fire, or personal combat evidence in the simulation.
+
+| Original piece | Tempo | Written length | Arrangement |
+| --- | ---: | ---: | --- |
+| Kill Corridor | 178 BPM | 129.4 s | Fast thrash picking, chromatic pedal riffs, double-kick passages, a stopped breakdown and a returning lead hook. |
+| Iron Teeth | 142 BPM | 135.2 s | Low syncopated accents, a half-time middle, tom-driven passages and a higher melodic response. |
+| Ashes in Orbit | 166 BPM | 138.8 s | Galloping rhythm, a melodic-metal hook, written twin-lead responses, a breakdown and short solo sections. |
+
+The requested influences are Slayer's fast thrash energy, Slipknot's heavy syncopated groove, and early Avenged Sevenfold's melodic metalcore. The score uses those broad traits in new riffs, melodies and arrangements. It includes no copied songs, lyrics, artist recordings or imitated vocals. Every track starts with guitar, bass, drums and a lead gesture within its first second.
+
+Eight dedicated generated voices—muted rhythm guitar, lead guitar, bass, kick, snare, hat, crash and tom—use the existing shared instrument bank. Guitar samples add saturated harmonics and cabinet filtering, with short rhythm releases so rapid picking stays articulate. The tracks use a short, dry room and restrained echo. The prior 43 written compositions and their sampled instrument bytes remain unchanged.
+
+Automatic selection uses a three-item shuffled bag. Every piece plays once per bag, and the first item of a refill cannot repeat the previous piece. Listening sessions receive a fresh local seed; history is bounded and never sent to the shared server. A manually requested Crosswind piece consumes its pending bag entry, so it cannot immediately repeat when the audition ends. These tracks do not enter ordinary combat selection outside Crosswind.
+
+The listening panel has a **Crosswind warzone** category. Its three pieces can be requested within the warzone. Peaceful audition requests wait until departure, with that condition stated in the panel. Leaving the system restores ordinary recovery and travel rules. Music off, volume, dialogue ducking, hidden-tab suspension and explicitly authored silence still work. More quiet continues to adjust peaceful gaps; it does not turn the ongoing Crosswind rotation back into exploration music.
+
+Focused coverage is in `music-crosswind.test.mjs`, `music-warzone-score.test.mjs`, and the existing music director, audio, score, instrument and library checks. The new arrangements peak at 17, 14 and 15 scheduled voices respectively, including the 180 ms lookahead and release tails, below the existing 20-voice limit per player.
 
 ## Music for the voyage · 0.24.0
 
@@ -39,6 +59,7 @@ The release leaves Hearth, world geography, gameplay state formats and shared pa
 | --- | --- |
 | Title and an explicitly requested listen | Full main theme, with a melody early in the piece. It does not restart each time a menu opens. |
 | Ordinary flight | The original intimate piano, electronic movement, and lyrical plucked/guitar pieces. |
+| Crosswind, from arrival until departure | Three heavy battle tracks in a shuffled rotation, including neutral flight, crew decks and ground visits. The score responds to the authored warzone without inventing a personal attack. |
 | Quiet time on a crew deck | Lamps in the Cabin adds felt piano and a reed answer away from the helm. Real occupied-ship danger still takes priority. |
 | Planetary terrain | Ten additional pieces matched to actual terrain and homeworld culture. World identity is part of the palette, so two bodies in one system do not share a compulsory selection. |
 | Cave exploration | Five sparse pieces with stone-like mallets, piano, bowed tones, and long breaths. Entering a cave alone never implies a hidden monster. |
@@ -73,10 +94,11 @@ Terror is capped at twenty seconds per treatment, once per observed reveal in th
 
 | Module | Responsibility |
 | --- | --- |
-| `music-score.mjs` | Combined 43-piece manifest, the original twelve compositions, composer helpers and `ScorePlayer` transport |
+| `music-score.mjs` | Combined 46-piece manifest, the original twelve compositions, composer helpers and `ScorePlayer` transport |
 | `music-danger.mjs` | Ten written pressure pieces |
 | `music-environments.mjs` | Five cave and ten planetary pieces |
 | `music-places.mjs` | Six pieces for ship life, field expeditions and Voltage |
+| `music-warzone.mjs` | Three written heavy battle pieces for Crosswind |
 | `music-instruments.mjs` | Shared instrument bank, sample and wave generation, bounded sample cache, room profiles and cue trims |
 | `music-context.mjs` | Read-only interpretation of the listener's scene and observed events |
 | `music-director.mjs` | Selection, priority, arrival transitions, recovery, quiet intervals and audition requests |
@@ -97,7 +119,7 @@ The instrument bank is shared by players within one AudioContext. Its sample cac
 
 ## Historical expansion catalog · 0.15.0
 
-Version 0.15.0 added 25 pieces, bringing the catalog to **37 at that release**. The six additions in 0.24.0 bring the current total to 43. The full main-theme event sequence was preserved in both expansions. Durations below describe the written pieces; the renderer allows a short release tail.
+Version 0.15.0 added 25 pieces, bringing the catalog to **37 at that release**. Six additions in 0.24.0 brought it to 43, and the three Crosswind pieces in 0.26.1 bring the current total to 46. The full main-theme event sequence remains preserved. Durations below describe the written pieces; the renderer allows a short release tail.
 
 ### Danger
 

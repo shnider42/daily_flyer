@@ -2,7 +2,7 @@ import { MUSIC_CUES, THEME_ID } from './music-score.mjs';
 
 const GROUPS = Object.freeze([
   ['all', 'All pieces'], ['theme', 'Theme & homecoming'], ['travel', 'Space & ship life'],
-  ['worlds', 'Worlds & caves'], ['social', 'Ports & nightlife'], ['field', 'Field expeditions'], ['danger', 'Danger'],
+  ['worlds', 'Worlds & caves'], ['social', 'Ports & nightlife'], ['field', 'Field expeditions'], ['danger', 'Danger'], ['crosswind', 'Crosswind warzone'],
 ]);
 const FAMILIES = Object.freeze({ theme: 'Main theme', exploration: 'Exploration', planet: 'Planets & moons', cave: 'Caves & passages', social: 'Life at port', discovery: 'Discovery', tension: 'Unease', combat: 'Danger', recovery: 'A moment to recover', terror: 'Rare encounters' });
 const SITUATIONS = Object.freeze({
@@ -13,6 +13,9 @@ const SITUATIONS = Object.freeze({
   'carry-the-light': 'The relief of bringing someone safely out.',
   'after-hours-on-glimmer': 'Low Orbit and the late-night company of Voltage.',
   'rain-on-the-transit-line': 'Glimmer’s streets after dark.',
+  'crosswind-kill-corridor': 'Fast thrash for the fleet crossing: clipped low riffs, double-kick drive, and a hard return after the breakdown.',
+  'crosswind-iron-teeth': 'A heavy syncopated groove: low guitar punches, tom accents, and a grinding half-time middle.',
+  'crosswind-ashes-in-orbit': 'Melodic metalcore: driving rhythm guitars, harmonized lead responses, and a final full-band return.',
 });
 
 export function musicGroup(cue, group = 'all') {
@@ -22,6 +25,7 @@ export function musicGroup(cue, group = 'all') {
   if (group === 'worlds') return ['planet', 'cave'].includes(cue?.family) || cue?.family === 'exploration' && (tags.includes('planet') || tags.includes('cave') || tags.includes('surface'));
   if (group === 'social') return cue?.family === 'social';
   if (group === 'field') return tags.includes('fieldwork');
+  if (group === 'crosswind') return tags.includes('crosswind');
   if (group === 'danger') return ['combat', 'tension', 'terror'].includes(cue?.family);
   return true;
 }
@@ -33,7 +37,7 @@ export function musicListeningText(status = {}, enabled = true, cues = MUSIC_CUE
   if (['suspended', 'interrupted'].includes(status.state)) return 'Music is paused. Tap Listen to resume.';
   const requested = cues.find(cue => cue.id === status.requestedCueId);
   const current = status.cueId && status.title && status.title !== 'Quiet' ? `Now playing · ${status.title}.` : 'A quiet moment between pieces.';
-  if (requested) return `${current} Queued · ${requested.title}. It will play when things settle.`;
+  if (requested) return `${current} Queued · ${requested.title}. ${status.warzone?'It will play after you leave Crosswind.':'It will play when things settle.'}`;
   return current;
 }
 
@@ -95,7 +99,7 @@ export function createMusicLibraryUI({ dialog, audio, getSettings, saveSettings 
   function open() {
     dialog.open('Music & listening', 'music', { eyebrow: 'FARWAKE SCORE' });
     const root = element('section', 'music-library'); root.setAttribute('aria-label', 'Farwake music library');
-    const intro = element('p', 'section-note', 'Choose a piece to hear once. The voyage chooses the score again afterward, with room for silence between pieces.');
+    const intro = element('p', 'section-note', 'Choose a piece to hear once. The voyage chooses the score again afterward. Crosswind keeps its three battle pieces in a shuffled rotation; peaceful travel leaves room for silence.');
     const status = element('p', 'music-listening-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); status.setAttribute('aria-atomic', 'true');
     const selectors = element('div', 'music-selectors');
     const categoryLabel = element('label', 'music-select-label', 'Situation'); categoryLabel.htmlFor = 'musicLibraryGroup';
