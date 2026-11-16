@@ -54,6 +54,7 @@ import { systemContext } from './encounter-context.mjs';
 import { contextualSignals, materializeEncounterContacts, encounterSource, encounterFitsPlace, pendingSourceAvailable, resolvePhysicalEncounter } from './encounter-rules.mjs';
 import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
 import { ShipRecoveryRules } from './ship-recovery.mjs';
+import { MedicalRecoveryRules } from './medical-recovery.mjs';
 import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInteriorDamage, relocateHullOccupants } from './interior-damage.mjs';
 import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 import { conversation, normalizeConversations } from './npc-dialogue.mjs';
@@ -638,6 +639,7 @@ export class Game {
       input={...input,x:0,y:0,thrust:0,turn:0,strafe:0,boost:false,brake:false,mine:false};
     }
     this.state.stats.time+=dt;
+    if(this.medicalRecoveryActive())input={};
     if(!this._sharedWorld){this.stepMilitaryRecovery(dt);if(this.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};}
     for(const key of ['_shotTimer','_hitTimer','_recoveryTimer','_boardingShotTimer','_repairTimer','_crewHealTimer','_damageControlTimer'])this[key]=Math.max(0,finite(this[key])-dt);
     advanceGunneryCooldowns(this.state.ship,dt);
@@ -648,6 +650,7 @@ export class Game {
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
+    if(!this._sharedWorld&&!this.state.exploration&&(!this.state.person.interiorDown||this.state.boarding?.phase==='active')&&(this.state.person.health<=0||this.state.person.down)){this._medicalDownTime=(this._medicalDownTime||0)+dt;if(this._medicalDownTime>=2.5){if(this.state.boarding?.phase==='active')this._finishBoarding('lost');else if(!this.state.npcContract?.active||!this.recoverNpcContract())this.recoverOnFoot();}}else this._medicalDownTime=0;
     const operate=this.hasActiveVessel&&(this.state.mode==='ship'||['ship','eva'].includes(this.state.interior?.kind));
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
     const pilotConscious=this._damageHumans!==undefined||this.state.person.health>0&&!this.state.person.down;
@@ -1897,16 +1900,14 @@ export class Game {
       const text=boarding.source==='rescued-pirates'?'The hijackers are defeated. Your ship is secure; the people who tried to seize it are accounted for.':boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The attacking hull remains outside.`;
       this._event('boarding-complete',{phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,text});
       this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
-      if(this.state.person.health<=0){this.state.person.health=35;this.state.person.down=false;}
+      if(this.state.person.health<=0)this.recoverOnFoot();
     }else if(phase==='lost'){
       this.state.stats.boardingsLost=(this.state.stats.boardingsLost||0)+1;
       if(enemy?.deck&&boarding.kind==='assault'){enemy.deck.occupation=enemy.occupation={boarderId:null,controllerId:enemy.capturedBy||null,contested:false};}
       if(this.netOnBoardingLost?.(boarding)===true)return;
       if(boarding.kind==='defense')this._abandonOccupiedShip(boarding,enemy);
       else{
-        this.state.mode='ship';this.state.locationId=null;this.state.interior=null;
-        this.state.person.health=55;this.state.person.down=false;
-        this._rescue('The surviving boarding party escaped to a station. The target remains in space with its surviving defenders.');
+        this.recoverOnFoot('The surviving boarding party was evacuated to a hospital.');
       }
       this._event('boarding-complete',{phase,text:boarding.kind==='defense'?'Your ship is occupied. Survivors reached the nearest station without a replacement hull; crew casualties remain in the memorial.':'The boarding party withdrew after defeat. Surviving guards still hold the target.'});
     }else if(phase==='retreated'){
@@ -2200,7 +2201,7 @@ export class Game {
     return null;
   }
   service(action) {
-    if (!this.atInhabitedPort) return this._fail('Services and trading are available at inhabited ports.', 'mode');
+    if (!this.atInhabitedPort&&!(action==='rest'&&this.atFieldHospital())) return this._fail('Services and trading are available at inhabited ports.', 'mode');
     if(['repair','refuel','emergency'].includes(action)||this.ownsShip&&action.startsWith('sell')){const access=this.ownShipAccess({atPort:true});if(!access.ok)return access;}
     const quote = this.serviceQuote(action);
     if (!quote) return this._fail('Unknown port service.', 'target');
@@ -2270,5 +2271,5 @@ export class Game {
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules);
-Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules);
+Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules);
 export default Game;

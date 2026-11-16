@@ -1,5 +1,6 @@
-/** Survivors travel to the closest station. Recovery never manufactures a hull. */
+/** Survivors travel to the nearest medical facility. Recovery never manufactures a hull. */
 import {getShipClass} from './fleet.mjs';
+import {medicalDestination} from './medical-recovery.mjs';
 
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const clone=value=>JSON.parse(JSON.stringify(value));
@@ -17,9 +18,9 @@ export function unownedShipRecord(identity='local'){
 }
 
 export function shipRecoveryContext(game,ship=game.state.ship,{sourceKind='ship-destroyed',system=game.system}={}){
- const body=nearestRecoveryStation(system,ship);
+ const destination=medicalDestination(game,{system,position:ship});
  return {sourceSystemId:system.id,sourceFactionId:system.faction,sourcePosition:{x:finite(ship.x),y:finite(ship.y)},sourceKind,
-  vesselId:ship.id,vesselName:ship.name||'Your ship',destination:body?{systemId:system.id,bodyId:body.id,name:body.name}:null};
+  vesselId:ship.id,vesselName:ship.name||'Your ship',destination};
 }
 
 export const ShipRecoveryRules={
@@ -40,13 +41,14 @@ export const ShipRecoveryRules={
  /** Called after both ownership and the character's physical landing are settled. */
  completeShipRecovery(context={}){
   const s=this.state,destination=context.destination;
-  if(!destination)return this._fail('No station is available for survivor recovery.','location');
+  if(!destination)return this._fail('No hospital is available for survivor recovery.','location');
   s.stationView=null;s.pendingEncounter=null;s.boarding=null;
   Object.assign(s.person,{health:Math.max(1,Math.round((s.person.maxHealth||100)*.55)),down:false,weaponDrawn:false,moving:false,vx:0,vy:0});
   s.lastBodyId=destination.bodyId;
   s.shipRecovery={version:1,...clone(context),at:finite(s.stats.time)};
   s.stats.rescues++;this._recoveryTimer=8;
-  const outcome=this.applyMilitaryRecovery?.({systemId:context.sourceSystemId,originFactionId:context.sourceFactionId,sourceKind:context.sourceKind,vesselId:context.vesselId,nearestBody:clone(destination)});
+  const outcome=destination.kind==='field-hospital'?null:this.applyMilitaryRecovery?.({systemId:context.sourceSystemId,originFactionId:context.sourceFactionId,sourceKind:context.sourceKind,vesselId:context.vesselId,nearestBody:clone(destination)});
+  this.finishMedicalRecovery({...destination,...(outcome?.status==='detained'?{name:destination.name+' · guarded ward'}:{})},{sourceKind:context.sourceKind});
   const text=context.message||`${context.vesselName||'The ship'} was lost. Survivors were recovered at ${destination.name}. No replacement ship was issued.`;
   this._log('Survivors recovered',text,'rescue');
   this._event('rescue',{text,bodyId:destination.bodyId,systemId:destination.systemId,vesselId:context.vesselId,shipLost:context.sourceKind==='ship-destroyed',recovery:clone(s.shipRecovery)});
@@ -55,7 +57,7 @@ export const ShipRecoveryRules={
  },
  recoverFromShipLoss(message,{ship=this.state.ship,sourceKind='ship-destroyed'}={}){
   const context=shipRecoveryContext(this,ship,{sourceKind});
-  if(!context.destination)return this._fail('No station is available for survivor recovery.','location');
+  if(!context.destination)return this._fail('No hospital is available for survivor recovery.','location');
   const body=this.system.bodies.find(body=>body.id===context.destination.bodyId);
   if(this.ownsShip&&this.personalShip.id===ship.id)this.losePersonalVessel(ship,{reason:sourceKind==='ship-destroyed'?'destroyed':'captured'});
   this._arriveAsPassenger(body);

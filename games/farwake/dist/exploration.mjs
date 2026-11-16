@@ -220,7 +220,7 @@ function stepInfantry(state,monster,actors,dt,layout,event){
 export function stepSiteEncounter(state,participants,delta,surface){
  if(state.warzoneGround)return stepWarzoneGround(state,participants,delta,surface);
  const dt=clamp(finite(delta),0,.25),layout=surface.combatLayout;if(!dt||!layout)return[];
- const actors=participants.filter(actor=>actor?.person&&actor.person.health>0&&!actor.person.down),events=[];state.time+=dt;
+ const actors=participants.filter(actor=>actor?.person&&!actor.protected&&actor.person.health>0&&!actor.person.down),events=[];state.time+=dt;
  const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});
  const site=surface.site;
  if(state.field)stepFieldEncounter(state,actors,dt,surface,event);

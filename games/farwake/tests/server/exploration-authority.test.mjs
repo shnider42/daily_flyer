@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Realm} from '../../server/realm.mjs';
 import {SIDEARM,clearSidearmSight,sidearmAim} from '../../dist/combat.mjs';
-import {isWalkable} from '../../dist/surface.mjs';
+import {isWalkable,generateSurface} from '../../dist/surface.mjs';
 import {getShipClass,STARTER_SHIP_IDS} from '../../dist/fleet.mjs';
 import {DEFAULT_APPEARANCE} from '../../dist/character.mjs';
 
@@ -99,8 +99,8 @@ test('a downed explorer finishes field recovery after a long restart without rel
  const restored=new Realm({id:realm.id,snapshot,persistence,version:persistence.version}),returned=restored.captains.get(captain.id);
  ok(restored.attach(returned,{close(){}}));
  assert.equal(returned.game.state.locationId,'morrow');assert.equal(returned.game.state.mode,'person');assert.equal(returned.game.state.interior,null);assert.equal(returned.game.state.exploration,null);assert.equal(returned.aboard,null);
- assert.equal(returned.game.state.person.health,Math.round(returned.game.state.person.maxHealth*.35));assert.equal(returned.game.state.person.down,false);assert.equal(returned.game.state.credits,credits-Math.floor(credits*.1));
- assert.deepEqual({x:returned.game.state.person.x,y:returned.game.state.person.y},restored._surface(returned).spawn,'recovery returns to the same planetary landing zone');
+ assert.equal(returned.game.state.person.health,Math.round(returned.game.state.person.maxHealth*.6));assert.equal(returned.game.state.person.down,false);assert.equal(returned.game.state.credits,credits-Math.floor(credits*.1));
+ const medic=generateSurface(returned.game.currentBody,returned.game.state.seed,returned.game.state.flags).entities.find(e=>e.type==='medic');assert.ok(Math.hypot(returned.game.state.person.x-medic.x,returned.game.state.person.y-medic.y)<=24,'recovery returns to the planetary hospital');
  const parked=restored.vessels.get(returned.ownedVesselId);assert.deepEqual({x:parked.ship.x,y:parked.ship.y,hull:parked.ship.hull,dockedAt:parked.dockedAt},pose,'the physical vessel remains at Morrow');
  assert.deepEqual(restored.sites[key].monsters.map(value=>value.health),wounds);assert.equal(returned.game.state.explorationRecords,restored.sites);
  const after=returned.game.state.credits;ok(restored.attach(returned,{close(){}}));assert.equal(returned.game.state.credits,after,'reconnecting cannot apply the recovery fee twice');

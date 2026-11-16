@@ -95,18 +95,17 @@ export const ExpeditionRules={
   },
   _returnFromSite(recovered=false){
     const active=this.state.exploration;if(!active)return this._fail('No surface site to leave.','mode');
+    if(recovered)return this.recoverMedicalCasualty(undefined,{sourceKind:'ground-casualty'});
     const body=this.system.bodies.find(value=>value.id===active.bodyId);if(!body)return this._fail('The landing zone is unavailable.','location');
     this.state.explorationRecords[active.key]=active.encounter;
     if(active.encounter.warzoneGround&&!this._sharedWorld)active.encounter.warzoneGround.lastSoloAt=this.state.stats.time||0;
     this.state.interior=null;this.state.locationId=body.id;this.state.mode='person';this.state.exploration=active.outdoor?active:null;
     if(!this._sharedWorld)resetSiteBoss(active.encounter);
-    const surface=generateSurface(body,this.state.seed,this.state.flags),back=recovered?surface.spawn:active.returnPosition;
+    const surface=generateSurface(body,this.state.seed,this.state.flags),back=active.returnPosition;
     Object.assign(this.state.person,isWalkable(surface,back?.x,back?.y)?back:surface.spawn,{weaponDrawn:false,aimTargetId:null,moving:false,down:false});
-    if(recovered){const cost=Math.floor(this.state.credits*.1);this.state.credits-=cost;this.state.person.health=Math.max(1,Math.round((this.state.person.maxHealth||100)*.35));this._event('rescue',{text:`A field team returned you to the landing zone. Recovery cost ${cost} cr. Your ship and discoveries remain where you left them.`});}
-    else this._event('site-exited',{text:`Back outside · ${body.name}`});
+    this._event('site-exited',{text:`Back outside · ${body.name}`});
     this._siteDownTime=0;this._refreshJobs();
-    if(recovered){const captured=this.recoverMilitaryCasualty?.({originFactionId:body.faction||this.currentSystem.faction,position:body,sourceKind:'ground-casualty'});if(captured)return captured;}
-    return this._ok({body,text:recovered?'Recovered at the landing zone.':`You step back onto ${body.name}.`});
+    return this._ok({body,text:`You step back onto ${body.name}.`});
   },
   siteAction(entityId,action='inspect',optionId){
     const active=this.state.exploration,surface=this._expeditionSurface();
@@ -144,7 +143,7 @@ export const ExpeditionRules={
     return result;
   },
   explorationParticipant(input={}){
-    return{id:this.playerId,name:this._playerName||this.state.captainName||'Captain',person:this.state.person,input,damageMultiplier:this.characterEffects.sidearmDamage,sidearmCooldownMultiplier:this.characterEffects.sidearmCooldown,...(this.state.exploration?.encounter?.warzoneGround?{factionId:this.warzoneFaction?.()||null,hostileFactions:this.state.warzone?.hostileFactions||[],stories:this.state.warzoneStories,onWarzoneAggression:(factionId,details)=>this.recordWarzoneAggression?.(factionId,details)}:{})};
+    return{protected:this.medicalRecoveryActive(),id:this.playerId,name:this._playerName||this.state.captainName||'Captain',person:this.state.person,input,damageMultiplier:this.characterEffects.sidearmDamage,sidearmCooldownMultiplier:this.characterEffects.sidearmCooldown,...(this.state.exploration?.encounter?.warzoneGround?{factionId:this.warzoneFaction?.()||null,hostileFactions:this.state.warzone?.hostileFactions||[],stories:this.state.warzoneStories,onWarzoneAggression:(factionId,details)=>this.recordWarzoneAggression?.(factionId,details)}:{})};
   },
   stepExploration(dt,input={}){
     const active=this.state.exploration,surface=this._expeditionSurface();if(!active||!surface)return;

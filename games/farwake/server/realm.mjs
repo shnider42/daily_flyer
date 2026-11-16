@@ -608,7 +608,7 @@ export class Realm extends BoardingAuthority {
           }
           vessel.occupation = { boarderId: vessel.boardingLeaderId, controllerId: vessel.boardingLeaderId, controllerTeam: vessel.ownerId, contested: false };
         }
-        for (const captain of this.captains.values()) if (captain.aboard === vessel.id && (captain.game.state.person.health <= 0 || captain.game.state.person.down)) { captain.game.state.person.health = 35; captain.game.state.person.down = false; }
+        for (const captain of this.captains.values()) if (captain.aboard === vessel.id && (captain.game.state.person.health <= 0 || captain.game.state.person.down)) { this._recoverCaptain(captain,'Your crew secured the deck while medics evacuated you.'); }
       }
     }
     this._linkNpcVessel(vessel);
@@ -1396,7 +1396,7 @@ export class Realm extends BoardingAuthority {
     }
     // A reconnect does not finish a survivor's journey home for them. Keep
     // the actual ashore location until they book or board real transport.
-    if(c.game.state.shipRecovery&&!c.aboard&&c.game.state.mode==='person'&&!c.game.state.interior&&c.game.galaxy.find(system=>system.id===c.game.state.systemId)?.bodies.some(body=>body.id===c.game.state.locationId)){
+    if((c.game.state.shipRecovery||c.game.state.medicalRecovery)&&c.game.state.person.health>0&&!c.aboard&&c.game.state.mode==='person'&&!c.game.state.interior&&c.game.galaxy.find(system=>system.id===c.game.state.systemId)?.bodies.some(body=>body.id===c.game.state.locationId)){
       this._bindCaptain(c);return;
     }
     if(c.game.state.npcContract?.active){
@@ -1449,8 +1449,10 @@ export class Realm extends BoardingAuthority {
     const activeVessels = new Map(), occupiedSystems = new Set(), timeBefore = new Map([...this.captains.values()].map(c => [c.id, c.game.state.stats.time]));
     for (const c of activeCaptains) {
       this._bindCaptain(c); occupiedSystems.add(c.game.state.systemId);
+      if(c.aboard&&!c.game.state.person.interiorDown&&(c.game.state.person.health<=0||c.game.state.person.down)){c.game._medicalDownTime=(c.game._medicalDownTime||0)+dt;if(c.game._medicalDownTime>=2.5){this._recoverCaptain(c,'Medics evacuated you to a hospital.');c.input={...EMPTY_INPUT};}}else c.game._medicalDownTime=0;
       if(c.session&&c.game.stepMilitaryRecovery(dt)){c.surfaceCache=null;this.markDirty();}
       let input = timestamp - c.inputAt <= INPUT_TIMEOUT_MS && c.session ? c.input : { ...EMPTY_INPUT };
+      if(c.game.medicalRecoveryActive())input={...EMPTY_INPUT};
       if(c.game.militaryRecoveryStatus()?.detained)input={...input,fire:false,mine:false,boost:false};
       const vessel = this.vessels.get(c.aboard);
       if(this._gunneryActive(c,vessel)){

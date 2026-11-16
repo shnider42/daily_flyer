@@ -128,17 +128,6 @@ export const LivelihoodRules={
   return body;
  },
  recoverOnFoot(message){
-  const accessible=body=>isPassengerPort(body)&&this.portAccess(body).ok;
-  const body=[landing(this),...this.system.bodies.filter(body=>body.id===this.state.lastBodyId),...this.system.bodies].find(accessible);
-  if(!body)return this._fail('No inhabited port is available for recovery.','location');
-  this._arriveAsPassenger(body);
-  const cost=Math.floor(this.state.credits*.12);this.state.credits-=cost;
-  this.state.cargo.ore=Math.floor(this.state.cargo.ore*.5);this.state.cargo.crystal=Math.floor(this.state.cargo.crystal*.5);
-  this.state.person.health=Math.max(1,Math.ceil((this.state.person.maxHealth||100)*.6));delete this.state.person.down;
-  this.state.stats.rescues++;this._recoveryTimer=8;
-  this.narrativeRescue?.();this.professionRescue?.();
-  this._log('Port recovery',message||'The local clinic returned you to the settlement. Your ship ownership is unchanged.','log');
-  this._event('rescue',{body,cost,text:message||'Recovered at the local clinic.'});
-  return this._ok({body,cost});
+  return this.recoverMedicalCasualty(message,{sourceKind:'deck-casualty',costRate:.12});
  }
 };

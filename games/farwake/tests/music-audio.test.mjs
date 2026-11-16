@@ -290,3 +290,14 @@ test('Soundscape default theme toggle distinguishes another queued audition from
     assert.equal(b.audio.score, player); assert.equal(b.audio.musicStatus().requestedCueId, null);
   } finally { b.restore(); }
 });
+
+test('death cuts scheduled music and effects immediately and wake restores existing preferences',()=>{
+ const b=boundary();try{
+  const a=b.audio;a.unlock();a.updateMusic({scene:'menu'},0);a.play('fire');assert.ok(a.score);
+  const ctx=a.ctx,settings={...b.settings};a.setRecoveryMuted(true);
+  assert.equal(a.score,null);assert.equal(a.retiringScore,null);assert.equal(a.effects.size,0);
+  assert.equal(a.master.gain.value,0);assert.equal(a.musicBus.gain.value,0);assert.equal(ctx.state,'running');
+  const nodes=ctx.nodes.length;a.unlock();a.play('fire');a.updateMusic({scene:'menu'},1);a.mute();assert.equal(ctx.nodes.length,nodes);assert.equal(a.musicBus.gain.value,0);
+  a.setRecoveryMuted(false);assert.equal(a.ctx,ctx);assert.deepEqual(b.settings,settings);ctx.currentTime=10;a.tone(440);assert.ok(a.effects.size>0);
+ }finally{b.restore();}
+});

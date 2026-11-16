@@ -23,8 +23,16 @@ export class Soundscape{
    globalThis.window?.addEventListener('pagehide',()=>this.suspend());
   }
  }
+ setRecoveryMuted(muted){
+  if(this.recoveryMuted===muted)return;
+  this.recoveryMuted=muted;
+  if(muted){
+   this.stopScores();this.stopEffects();this.director.stopPreview(this.musicNow);this.director.stopTheme(this.musicNow);this.director.suspend(this.musicNow);this.musicDecision=null;
+   if(this.ctx)for(const node of [this.master,this.musicBus])if(node){node.gain.cancelScheduledValues(this.ctx.currentTime);node.gain.setValueAtTime(0,this.ctx.currentTime);node._farwakeGain=0;}
+  }else this.mute();
+ }
  unlock(){
-  if(!(this.enabled()||this.musicEnabled())||globalThis.document?.hidden)return;
+  if(this.recoveryMuted||!(this.enabled()||this.musicEnabled())||globalThis.document?.hidden)return;
   try{
    playbackSession();
    if(!this.ctx||this.ctx.state==='closed'){
@@ -49,20 +57,21 @@ export class Soundscape{
   this.stopScores();this.stopEffects();this.director.suspend(this.musicNow);this.musicDecision=null;
   if(this.ctx&&this.ctx.state==='running')Promise.resolve(this.ctx.suspend()).catch(()=>{});
  }
- musicEvent(signal,now,key=null){if(signal)this.director.notify(signal,now,key);}
+ musicEvent(signal,now,key=null){if(signal&&!this.recoveryMuted)this.director.notify(signal,now,key);}
  requestCue(cueId,now=this.musicNow){
-  if(!MUSIC_CUES.some(cue=>cue.id===cueId)||!this.musicEnabled()||this.musicFault)return false;
+  if(this.recoveryMuted||!MUSIC_CUES.some(cue=>cue.id===cueId)||!this.musicEnabled()||this.musicFault)return false;
   this.unlock();return this.director.requestPreview(cueId,now);
  }
  stopPreview(now=this.musicNow){this.director.stopPreview(now);}
  toggleTheme(start=null){
+  if(this.recoveryMuted)return false;
   if(start===null)start=!(this.musicDecision?.theme||this.director.previewCueId===THEME_ID);
   if(!start){this.director.stopTheme(this.musicNow);return false;}
   if(this.musicDecision?.theme)return true;
   this.unlock();this.director.requestTheme();return true;
  }
  updateMusic(context={},now=0){
-  if(this.musicFault)return null;
+  if(this.recoveryMuted||this.musicFault)return null;
   try{return this.updateScore(context,now);}catch(error){
    // Optional audio must never break rendering, input, or a shared session.
    this.musicFault=true;this.stopScores();this.director.suspend(now);this.musicDecision=null;
@@ -73,6 +82,7 @@ export class Soundscape{
  }
  updateScore(context={},now=0){
   this.musicNow=now;
+  if(this.recoveryMuted)return null;
   if(!this.ctx||this.ctx.state!=='running'){
    if(this.score||this.retiringScore){this.stopScores();this.director.suspend(now);}
    this.musicDecision=null;return null;
@@ -103,7 +113,7 @@ export class Soundscape{
    warzone:!!this.musicDecision?.warzone,
    voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
  }
- tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
+ tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(this.recoveryMuted||!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
  play(name){
   const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
@@ -155,5 +165,5 @@ export class Soundscape{
   if(atmosphere==='drain'){this.tone(63,1.4,'triangle',.045,39);this.tone(610,.12,'sine',.02,260);return index%2?'A pipe answers a knock you did not make.':'A drop rings in a tank that should be dry.';}
   this.tone(index%2?95:140,.9,'triangle',.04,38);setTimeout(()=>this.tone(62,.25,'sine',.035,36),520);return'The empty room settles. Something taps behind the wall.';
  }
- mute(){if(!this.ctx)return;busGain(this.master,this.enabled()?.17:0,this.ctx.currentTime,.02);if(!this.musicEnabled()){busGain(this.musicBus,0,this.ctx.currentTime,.02);this.stopScores();this.director.suspend(this.musicNow);this.musicDecision=null;}}
+ mute(){if(!this.ctx||this.recoveryMuted)return;busGain(this.master,this.enabled()?.17:0,this.ctx.currentTime,.02);if(!this.musicEnabled()){busGain(this.musicBus,0,this.ctx.currentTime,.02);this.stopScores();this.director.suspend(this.musicNow);this.musicDecision=null;}}
 }

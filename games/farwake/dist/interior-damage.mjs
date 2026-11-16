@@ -210,12 +210,8 @@ export const InteriorDamageRules={
    delete person.interiorDown;
    if(this.netOnInteriorCasualty){this.netOnInteriorCasualty(game);continue;}
    const hull=game.currentDamageHull();if(!hull||hull.id!==casualty.vesselId)continue;
-   if(game.recoverMilitaryCasualty?.({position:hull,sourceKind:'interior-casualty'}))continue;
-   if(game.state.mode==='ship')game._enterInterior(game._cabinLocation(),'ship');
-   const recovered=game.state.person,point=recoveryPoint(hull);
-   Object.assign(recovered,point,{health:25,down:false,weaponDrawn:false,moving:false});
-   if(interiorExposure(hull,point,{delta:.1})>0)recovered.interiorProtectedUntil=game.state.stats.time+5;
-   game._event('rescue',{vesselId:hull.id,text:'Emergency medical systems stabilized you in a safer compartment. The ship still needs damage control.'});
+   if(game.state.npcContract?.active&&game.recoverNpcContract())continue;
+   game.recoverMedicalCasualty(undefined,{sourceKind:'interior-casualty',costRate:0});
   }
  },
  damageControl(sectionId,action){

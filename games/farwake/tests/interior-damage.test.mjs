@@ -104,14 +104,14 @@ test('paid port repair clears local damage and emergency rescue does not leave a
  registerShipImpact(ship,{hullDamage:20});game._rescue('Test tow');assert.equal(interiorDamageSummary(ship).alarm,false);
 });
 
-test('solo interior incapacitation stabilizes at a safe medical point without repairing the hull or erasing hazards',()=>{
+test('solo interior incapacitation evacuates to a hospital without repairing the hull or erasing hazards',()=>{
  const game=cabin();game.state.person.health=1;const{ship,section}=hit(game),damage=section.damage,breach=section.breach,hull=ship.hull;
  assert.equal(game.state.person.health,0);assert.equal(game.state.person.down,true);
  for(let i=0;i<40;i++)game.stepPilot(.1,{});assert.equal(game.state.person.health,0,'The beacon takes five seconds.');
  const restored=Game.fromSave(game.save());for(let i=0;i<12;i++)restored.stepPilot(.1,{});
- assert.equal(restored.state.person.health,25);assert.equal(restored.state.person.down,false);assert.equal(restored.state.mode,'person');assert.equal(restored.state.ship.hull,hull);
+ assert.equal(restored.state.person.health,60);assert.equal(restored.state.person.down,false);assert.equal(restored.state.mode,'person');assert.equal(restored.state.ship.hull,hull);
  const savedSection=restored.state.ship.damageControl.sections.find(value=>value.id===section.id);assert.equal(savedSection.damage,damage);assert.equal(savedSection.breach,breach);assert.ok(savedSection.fire>0);
- assert.equal(interiorExposure(restored.state.ship,restored.state.person,{delta:.1}),0);for(let i=0;i<10;i++)restored.stepPilot(.1,{});assert.equal(restored.state.person.health,25,'The recovery area does not immediately down the captain again.');
+ assert.equal(restored.state.interior,null);assert.equal(restored.state.medicalRecovery.destination.kind,'hospital');for(let i=0;i<10;i++)restored.stepPilot(.1,{});assert.equal(restored.state.person.health,60,'The hospital does not expose the captain to the damaged hull.');
 });
 
 test('an active boarding fight keeps its established downed and escape rules',()=>{

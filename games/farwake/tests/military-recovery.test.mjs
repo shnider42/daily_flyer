@@ -59,7 +59,7 @@ test('interior incapacitation in enemy territory captures the solo soldier witho
 
 test('an Army casualty in a rival planetary interior is captured rather than returned outside free to leave',()=>{
  const game=captain({systemId:'meridian',bodyId:'serein'}),outdoors=generateSurface(game.currentBody,game.state.seed,game.state.flags),entrance=outdoors.entities.find(entity=>entity.type==='siteEntrance'&&entity.data?.siteKind!=='military');assert.ok(entrance);
- Object.assign(game.state.person,{x:entrance.x,y:entrance.y});ok(game.enterSite(entrance.data.siteId));game.state.person.health=0;game.state.person.down=true;ok(game._returnFromSite(true));assert.equal(game.militaryRecoveryStatus().detained,true);assert.equal(game.state.militaryRecovery.detention.bodyId,'ledger');assert.equal(game.ownsShip,false);
+ Object.assign(game.state.person,{x:entrance.x,y:entrance.y});ok(game.enterSite(entrance.data.siteId));game.state.person.health=0;game.state.person.down=true;ok(game._returnFromSite(true));assert.equal(game.militaryRecoveryStatus().detained,true);assert.equal(game.state.militaryRecovery.detention.bodyId,'serein');assert.equal(game.state.medicalRecovery.destination.kind,'hospital');assert.equal(game.ownsShip,false);
 });
 
 

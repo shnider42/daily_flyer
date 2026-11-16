@@ -112,6 +112,11 @@ export function buildWarzoneGroundInterior(m,_site,{rect,prop,label,point:pt,TIL
  prop(m,'fence',35,57,8,.3,'#78877c',false);prop(m,'fence',53,57,13,.3,'#78877c',false);prop(m,'floorarrows',37,61,5,1,'#b3c6a6',false);
  for(let i=0;i<8;i++){prop(m,'debris',38+i*3,8+(i%3),1,1,'#817765',false);prop(m,'bones',70+i%3,15+Math.floor(i/3),1,1,'#96917f',false);}
  for(const[x,y,c]of[[8,19,stripes.freewake],[8,33,stripes.freewake],[8,47,stripes.freewake],[87,19,stripes.meridian],[87,33,stripes.meridian],[87,47,stripes.meridian]])prop(m,'banner',x,y,2,.4,c,false);
+ for(const [id,x,title,color]of[['freewake',30,'UNION FIELD HOSPITAL','#a6cbb8'],['meridian',62,'COMBINE FIELD HOSPITAL','#c5ad8b']]){
+  prop(m,'awning',x,55,8,1,color,false);prop(m,'bed',x+1,57,1,2,color,true);prop(m,'cabinet',x+6,57,1,1,color,true);prop(m,'equipment',x+6,58,1,1,color,false);
+  label(m,title,x,54.7,color);label(m,'+',x+7,56,color);
+  m.entities.push({id:`field-medic:${id}`,type:'medic',name:id==='freewake'?'Union duty medic':'Combine duty medic',role:'medic',roleLabel:'Field hospital',...pt(x+5,59),color,text:'You are behind the aid wall. Get your bearings before heading back toward the fighting.',data:{fixedPost:true,factionId:id}});
+ }
  m.spawn=pt(47,55);m.exit=pt(47,56);
  if(m.kind==='planet'){rect(m,42,54,11,6,TILE.PAD);prop(m,'shuttle',43,56,4,2,'#9aafb0',false);prop(m,'trail-light',48,58,1,1,'#bdc9b2',false);m.noPortServices=true;m.outdoorWarzone=true;}
  label(m,'LANDING SHUTTLE',43,59,'#c9d4b7');label(m,'← CLINIC / EVACUATION',30,62,'#c9d4b7');label(m,'NEUTRAL CLINIC',11,55,'#b9cfbd');label(m,'COVERED AID PASSAGE',53,60,'#c0c9b0');label(m,'APARTMENT SHELTER',75,54,'#c9c1a3');
@@ -282,7 +287,7 @@ function stepInfantryUnit(state,unit,actors,dt,layout,event){
 }
 export function stepWarzoneGround(state,participants,delta,surface){
  const dt=clamp(finite(delta),0,.25),layout=surface?.combatLayout,w=state?.warzoneGround;if(!dt||!layout||!w)return[];
- const actors=participants.filter(a=>a?.person&&a.person.health>0&&!a.person.down),events=[];state.time+=dt;const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});
+ const actors=participants.filter(a=>a?.person&&!a.protected&&a.person.health>0&&!a.person.down),events=[];state.time+=dt;const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});
  if(at>=w.phaseUntil)nextPhase(state,event);for(const side of WARZONE_GROUND_FACTIONS)if(at>=w.nextWave[side])reinforce(state,side,event);
  for(const id of Object.keys(state.actorCooldowns))if(!actors.some(a=>String(a.id||'local')===id))delete state.actorCooldowns[id];
  for(const actor of actors){

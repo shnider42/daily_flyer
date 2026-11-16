@@ -105,7 +105,7 @@ test('an interior casualty recovers at a safe berth while the real damaged hull 
  assert.equal(owner.game.state.person.down,true);tick(realm,40);assert.equal(owner.aboard,vessel.id);
  const restored=new Realm({id:realm.id,snapshot:realm.document(),persistence:storage()}),patient=restored.captains.get(owner.id),friend=restored.captains.get(guest.id),physical=restored.vessels.get(vessel.id);
  for(const captain of [patient,friend])restored.attach(captain,{close(){}});tick(restored,12);
- assert.equal(patient.aboard,null);assert.equal(patient.game.state.mode,'person');assert.equal(patient.game.state.locationId,'kettle');assert.equal(patient.game.state.person.down,false);assert.equal(patient.game.state.person.health,55);
+ assert.equal(patient.aboard,null);assert.equal(patient.game.state.mode,'person');assert.equal(patient.game.state.locationId,'kettle');assert.equal(patient.game.state.person.down,false);assert.equal(patient.game.state.person.health,60);
  assert.equal(friend.aboard,vessel.id);assert.equal(physical.dockedAt,null);assert.equal(physical.ship.x,before.x);assert.equal(physical.ship.y,before.y);assert.equal(physical.ship.hull,before.hull);
  const damaged=physical.ship.damageControl.sections.find(value=>value.id===section.id);assert.equal(damaged.damage,before.damage);assert.equal(damaged.breach,before.breach);assert.ok(damaged.fire>0);
 });

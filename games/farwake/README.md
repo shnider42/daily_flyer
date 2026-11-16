@@ -1,8 +1,18 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.27.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.28.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.28.0 — Lost in Space
+
+Death immediately silences the score and sound effects and covers the game with black and only “Lost in Space.” Once the authority confirms medical recovery, a slow eyelid opening reveals the hospital. Controls, HUD, dialogues, and held firing inputs stay suppressed through the transition. Reduced motion uses a steady fade of the same duration; audio preferences remain unchanged and music resumes through the normal director after waking.
+
+Civilian casualties wake beside a medic at the local clinic or nearest inhabited medical body. Crosswind casualties are evacuated to Union or Combine field hospitals behind Vey’s southern aid wall. Explicit affiliation wins; unaffiliated characters use relative reputation, with a random rescue team when both sides are equal (including zero/zero). The faction is chosen once per rescue and survives reconnects. Both posts have beds, equipment, duty medics, and working treatment services without turning Vey into a trading port.
+
+A saved recovery receipt keeps solo and shared transitions consistent even when destruction and recovery occur between frames. Survivors are protected while waking. Existing loss of a destroyed hull, surviving property, military service, battlefield state, and discoveries persist. Existing captivity outside Crosswind takes place in a guarded hospital ward, with its established release and repatriation rules. Reconnecting cannot teleport a recovered patient home or charge the recovery fee twice.
+
+Validation: casualty destination and faction policy, protected medical placement, persistence, solo/shared ship loss and ground/interior/boarding casualties, immediate audio cutoff and preference restoration, transition timing, repeated snapshots, reduced motion, and mobile portrait/landscape browser checks.
 
 ## 0.27.1 — Mobile gun stations
 
