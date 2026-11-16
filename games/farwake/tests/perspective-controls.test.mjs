@@ -6,6 +6,25 @@ import {cabinLayout} from '../dist/interior-layouts.mjs';
 import {getPerspectiveAction,getBoardingAction,getLocalPortVessels,getDisembarkAction,getHelmAction} from '../dist/perspective-controls.mjs';
 import {placeRaider} from './helpers/combat-fixtures.mjs';
 
+test('Vey uses its physical landing shuttle for departure and shared boarding without an interior exit',()=>{
+ const game=new Game('vey-outdoor-controls');
+ game.state.systemId='crosswind';game._loadSystem('crosswind');game.state.pendingEncounter=null;
+ const body=game.system.bodies.find(body=>body.id==='crosswind-vey');
+ Object.assign(game.state.ship,{x:body.x,y:body.y+body.radius+30});ok(game.dock(body.id));
+ const surface=generateSurface(game.currentBody,game.state.seed),landing=surface.entities.find(entity=>entity.type==='exit');
+ assert.equal(game.state.exploration.outdoor,true);assert.equal(game.state.interior,null);
+ assert.ok(landing);assert.equal(surface.entities.some(entity=>entity.type==='siteExit'||entity.type==='siteEntrance'),false);
+ Object.assign(game.state.person,{x:landing.x,y:landing.y});
+ let current=getPerspectiveAction(game,{surface});assert.equal(current.command,'quickLaunch');assert.equal(current.enabled,true);
+ game.state.person.x+=100;current=getPerspectiveAction(game,{surface});assert.equal(current.command,'quickLaunch');assert.equal(current.targetId,landing.id);assert.equal(current.enabled,false);assert.match(current.reason,/landing shuttle/);
+ game.state.multiplayer={captainId:'captain',ownedVesselId:game.state.ship.id,portVesselId:game.state.ship.id};
+ const parked=vessel(game,{dockedAt:body.id,canBoard:true,availableBerths:2});
+ assert.equal(getLocalPortVessels(game,[parked]).length,1);
+ current=getPerspectiveAction(game,{shared:true,fleet:[parked],surface});assert.equal(current.command,'boardShip');assert.equal(current.enabled,false);
+ Object.assign(game.state.person,{x:landing.x,y:landing.y});
+ current=getPerspectiveAction(game,{shared:true,fleet:[parked],surface});assert.equal(current.command,'boardShip');assert.equal(current.enabled,true);assert.equal(current.args.vesselId,parked.id);
+});
+
 const ok=result=>assert.equal(result.ok,true,result.reason);
 const choice=(game,options)=>getPerspectiveAction(game,{surface:game.state.mode==='person'&&game.currentBody?generateSurface(game.currentBody,game.state.seed):null,...options});
 const vessel=(game,overrides={})=>({id:game.state.ship.id,ownerId:'captain',systemId:game.state.systemId,x:game.state.ship.x,y:game.state.ship.y,dockedAt:null,helmOwner:null,hull:100,maxHull:100,grantedRoles:[],...overrides});

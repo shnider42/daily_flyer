@@ -418,7 +418,7 @@ export class Realm extends BoardingAuthority {
     const ground=this.sites[key]?.warzoneGround;
     if(ground&&(firstBind||arriving||game.state.exploration?.key!==key)&&![...this.captains.values()].some(other=>other!==captain&&other.session&&other.game.state.exploration?.key===key)){
       const elapsed=ground.lastActiveAt?Math.max(0,(now()-ground.lastActiveAt)/1000):0;
-      if(elapsed>.25)catchUpWarzoneGround(this.sites[key],elapsed,generateSurface(location,this.seed,game.state.flags));
+      if(elapsed>.25)catchUpWarzoneGround(this.sites[key],elapsed,generateSurface(location.site.outdoor?body:location,this.seed,game.state.flags));
       ground.lastActiveAt=now();
     }
     // An arriving explorer starts a fresh unfinished attempt when nobody is
@@ -441,10 +441,11 @@ export class Realm extends BoardingAuthority {
     return changed;
   }
   _bindExploration(captain) {
+    captain.game.state.explorationRecords=this.sites;
+    captain.game.activateWarzoneSurface();
     const active=captain.game.state.exploration;
     const previous=captain._boundSiteKey;captain._boundSiteKey=active?.key||null;
     if(previous&&previous!==captain._boundSiteKey)this._resetAbandonedSite(previous);
-    captain.game.state.explorationRecords=this.sites;
     if(!active)return;
     const encounter=this._prepareExploration(captain,active.bodyId,active.siteId,{arriving:previous!==active.key});
     if(encounter){active.encounter=encounter;if(encounter.field&&captain.game.state.interior?.kind==='site')captain.game.state.interior.location.field=encounter.field;}
@@ -650,6 +651,7 @@ export class Realm extends BoardingAuthority {
     if (captain.aboard === vessel.id && game.state.interior?.kind === 'ship') return fail('You are already aboard.', 'duplicate');
     if (this._inCombat(vessel) || this._inCombat(source)) return fail('Finish the immediate fight before transferring between ships.', 'combat');
     const samePort = vessel.dockedAt && game.state.mode === 'person' && !game.state.interior && game.state.locationId === vessel.dockedAt;
+    if(samePort&&game.state.exploration?.outdoor&&!this._nearTypes(captain,['exit']))return fail('Return to the landing shuttle before boarding a ship.','distance');
     if (!samePort) {
       const departure = this._boardingDeparture(captain, source); if (departure) return departure;
       if (vessel.dockedAt || distance(vessel.ship, source.ship) >= 220 + Math.max(vessel.ship.radius || 0, source.ship.radius || 0)) return fail('Meet at the same port or approach within tether range.', 'distance');
@@ -803,6 +805,7 @@ export class Realm extends BoardingAuthority {
   }
   _cabin(captain, vessel) {
     captain.game.state.stationView=null;
+    captain.game.releaseWarzoneSurface();
     captain.game.state.exploration=null; captain.game.state.person.weaponDrawn=false;
     captain.aboard = vessel.id; captain.portVesselId = null; captain.game.state.systemId = vessel.systemId; captain.game.state.mode = 'person';
     captain.game.state.locationId = `ship:${vessel.id}`; captain.crewRole = 'passenger';
@@ -878,6 +881,7 @@ export class Realm extends BoardingAuthority {
   }
   _landCharacter(captain, systemId, bodyId, position) {
     captain.game.state.stationView=null;
+    captain.game.releaseWarzoneSurface();
     const previous = this.vessels.get(captain.aboard), remembered = this.vessels.get(captain.portVesselId), owned = this.vessels.get(captain.ownedVesselId);
     // A return berth belongs to passengers as well as permitted pilots.
     captain.portVesselId = [previous, remembered, owned].find(vessel => vessel?.dockedAt === bodyId && vessel.systemId === systemId && this._canBoard(captain, vessel))?.id || null;
@@ -955,7 +959,8 @@ export class Realm extends BoardingAuthority {
 
   _quickLaunch(c, args = {}) {
     const game=c.game,s=game.state,person=s.person,body=game.system.bodies.find(value=>value.id===s.locationId);
-    if(s.mode!=='person'||s.interior||s.exploration||c.aboard||!body)return fail('Return outside to your ship’s landing before launching.','location');
+    if(s.mode!=='person'||s.interior||s.exploration&&!s.exploration.outdoor||c.aboard||!body)return fail('Return outside to your ship’s landing before launching.','location');
+    if(s.exploration?.outdoor&&!this._nearTypes(c,['exit']))return fail('Return to the landing shuttle before leaving the battlefield.','distance');
     if(person.health<=0||person.down)return fail('You are incapacitated and cannot launch.','incapacitated');
     if(s.pendingEncounter)return fail('Finish this conversation before launching.','encounter');
     const vessel=this.vessels.get(c.portVesselId||c.ownedVesselId);
@@ -963,7 +968,7 @@ export class Realm extends BoardingAuthority {
     if(vessel.destroyed||vessel.ship.destroyed||vessel.ship.hull<=0)return fail('Your ship is no longer intact.','destroyed');
     if(!this._canRole(c,vessel,'helm'))return fail('The owner has not granted you the helm.','permission');
     if(vessel.helmOwner&&vessel.helmOwner!==c.id)return fail('Another captain holds the helm.','station-occupied');
-    if(vessel.boarding?.phase==='active'||vessel.pvp?.phase==='active'||vessel.occupation?.contested||vessel.npcOccupied||this._hostileOccupied(vessel)&&vessel.occupation?.controllerId!==c.id||this._inCombat(vessel)||vessel.actor?._hitTimer>0||game.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,vessel.ship)<700))return fail('Resolve the immediate attack before using the departure shortcut.','combat');
+    if(vessel.boarding?.phase==='active'||vessel.pvp?.phase==='active'||vessel.occupation?.contested||vessel.npcOccupied||this._hostileOccupied(vessel)&&vessel.occupation?.controllerId!==c.id||this._inCombat(vessel)||vessel.actor?._hitTimer>0||game.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===vessel.id)&&distance(enemy,vessel.ship)<700))return fail('Resolve the immediate attack before using the departure shortcut.','combat');
     const exit=this._surface(c)?.entities.find(entity=>!entity.hidden&&entity.type==='exit'&&!entity.data?.stationRole);
     if(!exit)return fail('There is no departure point at this landing.','location');
     const pose={x:person.x,y:person.y};
@@ -1130,7 +1135,7 @@ export class Realm extends BoardingAuthority {
       const priorPermit=actor._permittedVessel;actor._permittedVessel=vessel.ship;
       let result;try{result=actor.launch();}finally{actor._permittedVessel=priorPermit;}
       this._syncActor(vessel);
-      if (result.ok) { vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.portVesselId = null; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
+      if (result.ok) { game.releaseWarzoneSurface(); vessel.dockedAt = null; vessel.helmOwner = c.id; c.aboard = vessel.id; c.portVesselId = null; c.crewRole = 'helm'; game.state.mode = 'ship'; game.state.locationId = null; game.state.interior = null; }
       return result;
     }
     if (name === 'travel') {
@@ -1539,6 +1544,7 @@ export class Realm extends BoardingAuthority {
     const owner = this.captains.get(vessel.ownerId), occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id), source = this.vessels.get(viewer.aboard), helmsman = this.captains.get(vessel.helmOwner), occupiedBerths = this._berthsUsed(vessel);
     return { id: vessel.id, ownerId: vessel.ownerId, ownerName: vessel.npcContractId?(owner.game.state.npcContract?.military?.branchId==='navy'?'Freewake Navy':'Local service cooperative'):owner.name, name: vessel.name, classId: vessel.ship.classId, systemId: vessel.systemId, dockedAt: vessel.dockedAt,
       ...Object.fromEntries(['x', 'y', 'vx', 'vy', 'angle', 'angularVelocity', 'hull', 'maxHull', 'shield', 'maxShield', 'radius', 'renderLength', 'renderWidth'].map(key => [key, vessel.ship[key]])),
+      lastShot: clone(vessel.ship.lastShot || null),
       allowCrew: vessel.allowCrew, helmOwner: vessel.helmOwner, helmName: helmsman?.name || null, helmOccupied: !!vessel.helmOwner && (!helmsman || !!helmsman.session || helmsman.disconnectUntil > now()), berths: getShipClass(vessel.ship.classId).berths, occupants: occupants.length, occupiedBerths, availableBerths: Math.max(0, getShipClass(vessel.ship.classId).berths - occupiedBerths), installedBunks: vessel.installedBunks,
       crewAshore: this._crewAshore(vessel), canPilot: this._canRole(viewer, vessel, 'helm'),
       bunks: clone(vessel.bunks), canBoard: this._canBoard(viewer, vessel), destroyed: !!vessel.destroyed,

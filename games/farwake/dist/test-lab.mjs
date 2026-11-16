@@ -20,7 +20,7 @@ export const TEST_SCENARIOS = Object.freeze([
 ].map(scenario => Object.freeze(scenario)));
 
 function allowedClasses() {
-  const ranked = [...SHIP_CLASSES].sort((a, b) =>
+  const ranked = SHIP_CLASSES.filter(hull => !hull.military).sort((a, b) =>
     a.stats.renderLength * a.stats.renderWidth - b.stats.renderLength * b.stats.renderWidth ||
     a.stats.renderLength - b.stats.renderLength || a.berths - b.berths);
   return ranked.slice(0, Math.max(1, Math.floor(ranked.length / 2)));

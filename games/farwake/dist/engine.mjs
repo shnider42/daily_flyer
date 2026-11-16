@@ -784,11 +784,16 @@ export class Game {
     for(let mount=0;mount<count;mount++){
       const muzzle=battery?.muzzles[mount]||system.pulseMuzzles?.[mount],side=muzzle?.[1]??(mount*2-(count-1))*system.pulseOffset;
       const forward=muzzle?.[0]??nose,mountAngle=muzzle||fireControl?.manual?sh.angle:angle;
-      const bullet={id:count===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*(battery?.damageScale??system.pulseDamageScale),owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,...(battery?{batteryId:battery.id}:{}),radius:4};
+      const bullet={id:count===1?volleyId:`${volleyId}:${mount}`,x:sh.x+Math.cos(mountAngle)*forward-Math.sin(mountAngle)*side,y:sh.y+Math.sin(mountAngle)*forward+Math.cos(mountAngle)*side,vx:Math.cos(angle)*650+sh.vx*.3,vy:Math.sin(angle)*650+sh.vy*.3,ttl:sh.range/650,damage:sh.damage*(battery?.damageScale??system.pulseDamageScale),owner:'player',ownerId:String(shooterId),shooterId:String(shooterId),vesselId,...(battery?{batteryId:battery.id,kind:battery.kind}:{}),radius:4};
       bullets.push(bullet);this.system.bullets.push(bullet);
     }
     sh.energy-=battery?.energyCost??system.pulseEnergy;this._shotTimer=Math.max(this._shotTimer||0,battery?.cooldown??system.pulseCooldown);
     if(battery){sh.gunneryCooldowns||={};sh.gunneryCooldowns[battery.id]=battery.cooldown;}
+    const fleetClock=this.system.warzone?.clock,previous=sh.lastShot;
+    const liveMuzzles=Number.isFinite(fleetClock)&&previous?.clock==='warzone'&&previous.systemId===this.state.systemId&&Number.isFinite(previous.at)&&previous.at<=fleetClock&&previous.until>fleetClock&&Array.isArray(previous.muzzles)
+      ?previous.muzzles.slice(-8).filter(muzzle=>Number.isFinite(muzzle.x)&&Number.isFinite(muzzle.y)&&Number.isFinite(muzzle.angle)&&muzzle.until>fleetClock&&muzzle.until<=fleetClock+.18).map(muzzle=>({...muzzle})):[];
+    sh.lastShot=Number.isFinite(fleetClock)?{id:volleyId,clock:'warzone',systemId:this.state.systemId,at:fleetClock,until:fleetClock+.18,bankId:battery?.id||'forward',angle,
+      muzzles:[...liveMuzzles,...bullets.map((shot,index)=>({x:shot.x,y:shot.y,angle,until:fleetClock+.18,bankId:battery?.id||'forward',mountId:index}))].slice(-8)}:null;
     const first=bullets[0];this._event('shot',{id:volleyId,ownerId:first.ownerId,shooterId:first.shooterId,vesselId,...(battery?{batteryId:battery.id}:{}),x:first.x,y:first.y,angle,projectileIds:bullets.map(bullet=>bullet.id)});
   }
 
@@ -1047,6 +1052,7 @@ export class Game {
     this._flag(`visited_${body.id}`); this._flag(`landed_${body.id}`); this._flag('first_landing');
     if (body.id === 'kettle') this._flag('docked_kettle');
     if (body.id === 'morrow') this._flag('landed_morrow');
+    this.activateWarzoneSurface({preservePosition:false});
     const visitId = `${this.state.systemId}/${body.id}`;
     if (!this.state.visited.includes(visitId)) {
       this.state.visited.push(visitId);
@@ -1062,7 +1068,12 @@ export class Game {
     const vesselAccess=this.ownShipAccess({atPort:true});if(!vesselAccess.ok)return vesselAccess;
     if (this.state.pendingEncounter) return this._fail('Finish this conversation first.', 'encounter');
     if (this.state.interior) return this._leaveInterior();
+    if(this.state.exploration?.outdoor){
+      const exit=this._expeditionSurface()?.entities.find(entity=>entity.type==='exit'&&!entity.hidden);
+      if(!exit||distance(this.state.person,exit)>46)return this._fail('Return to the landing shuttle before leaving the battlefield.','distance');
+    }
     const body = this.currentBody || this.system.bodies[0];
+    this.releaseWarzoneSurface();
     this.state.mode = 'ship'; this.state.locationId = null;
     this.state.ship.x = body.x; this.state.ship.y = body.y + body.radius + 75;
     this.state.ship.vx = 0; this.state.ship.vy = 0; this.state.ship.angle = Math.PI / 2; this.state.ship.angularVelocity=0;
@@ -1077,7 +1088,7 @@ export class Game {
   quickLaunch() {
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     const s=this.state,body=this.system.bodies.find(value=>value.id===s.locationId);
-    if(s.mode!=='person'||s.interior||s.exploration||!body)return this._fail('Return outside to your ship’s landing before launching.','location');
+    if(s.mode!=='person'||s.interior||s.exploration&&!s.exploration.outdoor||!body)return this._fail('Return outside to your ship’s landing before launching.','location');
     if(s.person.health<=0||s.person.down)return this._fail('You are incapacitated and cannot launch.','incapacitated');
     if(s.pendingEncounter)return this._fail('Finish this conversation before launching.','encounter');
     if(s.ship.destroyed||s.ship.hull<=0)return this._fail('Your ship is no longer intact.','destroyed');
@@ -1452,6 +1463,7 @@ export class Game {
   leaveDerelict() { return this.state.interior?.kind === 'derelict' ? this._leaveInterior() : this._fail('You are not on a derelict.', 'mode'); }
   _enterInterior(location, kind, signalId = null) {
     const sh = this.state.ship;
+    this.releaseWarzoneSurface();
     this.state.interior = {kind, location, signalId, liveVessel:kind==='enemy'||kind==='ship', returnShip:{x:sh.x,y:sh.y,vx:sh.vx,vy:sh.vy,angle:sh.angle,angularVelocity:sh.angularVelocity},returnLocation:this.state.locationId};
     this.state.mode='person';this.state.locationId=location.id;
     if(!this.state.interior.liveVessel||kind==='enemy'){sh.vx=0;sh.vy=0;sh.angularVelocity=0;}

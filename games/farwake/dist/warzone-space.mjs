@@ -1,9 +1,9 @@
 /** A bounded, persistent fleet war. The room authority calls this exactly once. */
 import { getShipClass, enemyHullProfile } from './fleet.mjs';
-import { CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL, WARZONE_FACTION_STYLE, isWarzoneSystem } from './warzone-content.mjs';
+import { CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL, WARZONE_FACTION_STYLE, WARZONE_FACTION_HULLS, WARZONE_HULL_TACTICS, isWarzoneSystem } from './warzone-content.mjs';
 
-export const WARZONE_SPACE_VERSION = 1;
-export const WARZONE_SPACE_LIMITS = Object.freeze({ initialPerSide: 28, ships: 80, projectiles: 160, effects: 48, recentLosses: 64, targetDecisionSeconds: .45, catchUpSeconds: 90 });
+export const WARZONE_SPACE_VERSION = 2;
+export const WARZONE_SPACE_LIMITS = Object.freeze({ initialPerSide: 28, ships: 80, lineShips: 60, fighters: 24, fightersPerSide: 12, carriersPerSide: 2, projectiles: 160, effects: 48, recentLosses: 64, targetDecisionSeconds: .45, catchUpSeconds: 90 });
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -13,8 +13,9 @@ const between = (state, low, high) => low + random(state) * (high - low);
 const angleDelta = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const validFaction = id => !!WARZONE_FACTION_STYLE[id];
-const unit = value => value?.warzone === true && value.hp > 0 && !value.promotedVesselId && !value.canonicalVesselId;
+const unit = value => value?.warzone === true && value.hp > 0 && !value.promotedVesselId && !value.canonicalVesselId && !value.warzoneRecovered && !value.warzoneWithdrawn;
 const combatant = value => unit(value) && !value.disabled && !value.capturedBy && !value.boardingTargetId;
+const isFighter = value => value?.classId === 'needle' || value?.classId === 'kite';
 const participantId = value => String(value.vesselId || value.ship?.id || value.id || '');
 const sideIds = runtime => Array.isArray(runtime.warzoneFactions) && runtime.warzoneFactions.length === 2 && runtime.warzoneFactions.every(validFaction) ? [...runtime.warzoneFactions] : ['freewake', 'meridian'];
 
@@ -28,7 +29,10 @@ const COMPOSITION = Object.freeze([
   ...Array.from({ length: 2 }, () => ({ classId: 'bulwark', size: 'large', role: 'battery ship' })),
   { classId: 'capital', size: 'massive', role: 'fleet carrier' }, { classId: 'judicator', size: 'massive', role: 'line destroyer' }
 ]);
-const PROFILE_BY_CLASS = new Map(COMPOSITION.map(value => [value.classId, value]));
+const PROFILE_BY_CLASS = new Map([...COMPOSITION, { classId: 'confluence', size: 'massive', role: 'line cruiser' }, { classId: 'ark', size: 'massive', role: 'fleet carrier' },
+  { classId: 'needle', size: 'small', role: 'carrier interceptor' }, { classId: 'kite', size: 'small', role: 'carrier striker' }].map(value => [value.classId, value]));
+const factionHulls = faction => WARZONE_FACTION_HULLS[faction] || WARZONE_FACTION_HULLS.freewake;
+const compositionFor = faction => COMPOSITION.map(template => template.classId === 'capital' ? PROFILE_BY_CLASS.get(factionHulls(faction).carrier) : template.classId === 'judicator' ? PROFILE_BY_CLASS.get(factionHulls(faction).line) : template);
 const TITLES = ['After Rain', 'Long Watch', 'Kept Promise', 'Low Lantern', 'Third Shift', 'Steady Hand', 'Way Through', 'Iron Orchard', 'Open Channel', 'Hold Fast', 'Rising Tide', 'Last Measure'];
 const PHASES = Object.freeze({
   crossfire: { label: 'Crossfire over Vey', intensity: .86, shift: 0, cadence: 1 },
@@ -47,10 +51,23 @@ function sectorsFor(runtime) {
 
 function profile(classId) {
   const source = PROFILE_BY_CLASS.get(classId) || COMPOSITION[0], hull = getShipClass(source.classId), stats = hull.stats;
+  if (isFighter(source)) return { ...source, hull, stats, maxHp: Math.round(stats.maxHull), speed: stats.speed * .92, damage: stats.damage * .48, range: 720, standoff: 180 };
   const factor = { small: 1.12, medium: 1.16, large: 1.22, massive: 1.28 }[source.size];
   return { ...source, hull, stats, maxHp: Math.round(stats.maxHull * factor), speed: stats.speed * ({ small: .72, medium: .61, large: .48, massive: .42 }[source.size]),
     damage: stats.damage * ({ small: .57, medium: .56, large: .54, massive: .58 }[source.size]), range: { small: 760, medium: 1050, large: 1400, massive: 1780 }[source.size],
     standoff: { small: 240, medium: 490, large: 920, massive: 1280 }[source.size] };
+}
+
+const localPoint = (ship, x, y) => ({ x: ship.x + Math.cos(ship.angle) * x - Math.sin(ship.angle) * y, y: ship.y + Math.sin(ship.angle) * x + Math.cos(ship.angle) * y });
+const fallbackTactics = new Map();
+function tacticsFor(ship) {
+  if (WARZONE_HULL_TACTICS[ship.classId]) return WARZONE_HULL_TACTICS[ship.classId];
+  if (!fallbackTactics.has(ship.classId)) {
+    const systems = getShipClass(ship.classId).systems;
+    fallbackTactics.set(ship.classId, { batteries: [{ id: 'forward', angle: 0, arc: .35, kind: 'pulse',
+      muzzles: systems.pulseMuzzles || Array.from({ length: systems.pulseCount || 1 }, (_, index) => [ship.renderLength * .43, (index * 2 - ((systems.pulseCount || 1) - 1)) * systems.pulseOffset]) }], hangars: [] });
+  }
+  return fallbackTactics.get(ship.classId);
 }
 
 function makeShip(runtime, faction, template, { initial = false, slot = 0, lane = null, picket = false } = {}) {
@@ -74,6 +91,12 @@ const safeText = (value, max = 100) => typeof value === 'string' ? value.replace
 function restoreShip(runtime, raw) {
   const state = runtime.warzone, match = typeof raw?.id === 'string' && /^crosswind:fleet:([a-z]+):(\d{1,10})$/.exec(raw.id);
   if (!match || !state.factions.includes(match[1]) || !PROFILE_BY_CLASS.has(raw.classId)) return null;
+  // Existing prizes retain their real hull and boarding deck. Unclaimed legacy
+  // Combine capital ships acquire their own navy's hull without healing damage.
+  if (state._fromVersion === 1 && match[1] === 'meridian' && !raw.capturedBy && !raw.promotedVesselId && !raw.canonicalVesselId && !raw.boardingTargetId && !raw.deck && !raw.damageControl && ['capital', 'judicator'].includes(raw.classId)) {
+    const oldMaximum = profile(raw.classId).maxHp, classId = raw.classId === 'capital' ? 'ark' : 'confluence';
+    raw = { ...raw, classId, hp: finite(raw.hp, oldMaximum) / oldMaximum * profile(classId).maxHp };
+  }
   const source = profile(raw.classId), serial = Number(match[2]); state.serial = Math.max(state.serial, serial);
   const style = WARZONE_FACTION_STYLE[match[1]], hp = clamp(finite(raw.hp, source.maxHp), 0, source.maxHp);
   if (hp <= 0) return null;
@@ -96,12 +119,12 @@ function restoreShip(runtime, raw) {
 export function installWarzoneSpace(runtime, { seed = 'farwake', saved = null, elapsed = 0 } = {}) {
   if (!isWarzoneSystem(runtime)) return null;
   if (runtime.warzone?._installed === true) return runtime.warzone;
-  const prior = saved?.version === WARZONE_SPACE_VERSION ? saved : null, factions = sideIds(runtime), clock = clamp(finite(prior?.clock), 0, 1e12);
+  const prior = [1, WARZONE_SPACE_VERSION].includes(saved?.version) ? saved : null, factions = sideIds(runtime), clock = clamp(finite(prior?.clock), 0, 1e12);
   const state = { version: WARZONE_SPACE_VERSION, systemId: CROSSWIND_SYSTEM_ID, factions, clock, rng: Number.isInteger(prior?.rng) ? prior.rng >>> 0 : hash(`${seed}:crosswind:war-v1`), serial: Math.max(0, Math.floor(finite(prior?.serial))),
     phase: PHASES[prior?.phase] ? prior.phase : 'crossfire', nextPhaseAt: clamp(finite(prior?.nextPhaseAt, clock + 82), clock + .1, clock + 180), front: clamp(finite(prior?.front), -700, 700),
     nextDecisionAt: 0, nextBoardingAt: clamp(finite(prior?.nextBoardingAt, clock + 150), clock + .1, clock + 300), nextWaveAt: {}, waves: {}, casualties: {}, withdrawals: {}, projectiles: [], effects: [], recentLosses: [], sectors: sectorsFor(runtime),
-    shotSerial: Math.max(0, Math.floor(finite(prior?.shotSerial))), effectSerial: Math.max(0, Math.floor(finite(prior?.effectSerial))) };
-  Object.defineProperty(state, '_installed', { value: true }); runtime.warzone = state; runtime.warzoneFactions = factions;
+    shotSerial: Math.max(0, Math.floor(finite(prior?.shotSerial))), effectSerial: Math.max(0, Math.floor(finite(prior?.effectSerial))), carriers: {}, fighterFlights: {}, batteries: {}, maneuvers: {} };
+  Object.defineProperty(state, '_installed', { value: true }); Object.defineProperty(state, '_fromVersion', { value: prior?.version || WARZONE_SPACE_VERSION }); runtime.warzone = state; runtime.warzoneFactions = factions;
   for (const faction of factions) {
     const nextWave = Number.isFinite(prior?.nextWaveAt?.[faction]) ? prior.nextWaveAt[faction] : clock + between(state, 36, 72);
     state.nextWaveAt[faction] = clamp(nextWave, clock + .1, clock + 120);
@@ -116,7 +139,8 @@ export function installWarzoneSpace(runtime, { seed = 'farwake', saved = null, e
     for (const raw of (Array.isArray(prior.ships) ? prior.ships : []).slice(0, WARZONE_SPACE_LIMITS.ships)) {
       const ship = restoreShip(runtime, raw); if (!ship || ids.has(ship.id)) continue; ids.add(ship.id); runtime.enemies.push(ship);
     }
-  } else for (const faction of factions) for (let i = 0; i < COMPOSITION.length; i++) runtime.enemies.push(makeShip(runtime, faction, COMPOSITION[i], { initial: true, slot: i, picket: i === 12 }));
+  } else for (const faction of factions) for (const [i, template] of compositionFor(faction).entries()) runtime.enemies.push(makeShip(runtime, faction, template, { initial: true, slot: i, picket: i === 12 }));
+  restoreTactics(runtime, prior);
   if (elapsed > 0) catchUpWarzoneSpace(runtime, elapsed);
   return state;
 }
@@ -126,6 +150,176 @@ function addEffect(state, effect) {
   if (state.effects.length > WARZONE_SPACE_LIMITS.effects) state.effects.splice(0, state.effects.length - WARZONE_SPACE_LIMITS.effects);
 }
 
+function newCarrier(runtime, ship, raw = null) {
+  const state = runtime.warzone, capacity = tacticsFor(ship).fighterCapacity || 0;
+  return { nextLaunchAt: clamp(Number.isFinite(raw?.nextLaunchAt) ? raw.nextLaunchAt : state.clock + between(state, 2, 6), 0, state.clock + 90),
+    slots: Array.from({ length: capacity }, (_, index) => ({ fighterId: safeText(raw?.slots?.[index]?.fighterId, 180),
+      readyAt: clamp(finite(raw?.slots?.[index]?.readyAt, state.clock), 0, state.clock + 120) })) };
+}
+
+function restoreTactics(runtime, saved) {
+  const state = runtime.warzone, carriers = new Map();
+  for (const ship of runtime.enemies.filter(unit)) {
+    const banks = {};
+    for (const bank of tacticsFor(ship).batteries) {
+      const raw = saved?.batteries?.[ship.id]?.[bank.id];
+      banks[bank.id] = { readyAt: clamp(finite(raw?.readyAt, state.clock + ship.cooldown), 0, state.clock + 12),
+        cursor: clamp(Math.floor(finite(raw?.cursor)), 0, bank.muzzles.length - 1), nextAt: clamp(finite(raw?.nextAt), 0, state.clock + 12),
+        targetId: safeText(raw?.targetId, 180), kind: raw?.kind === 'player' ? 'player' : 'fleet' };
+    }
+    state.batteries[ship.id] = banks;
+    const raw = saved?.maneuvers?.[ship.id];
+    if (raw && ['approach', 'pass', 'break', 'broadside'].includes(raw.phase)) state.maneuvers[ship.id] = {
+      targetId: safeText(raw.targetId, 180), phase: raw.phase, until: clamp(finite(raw.until), 0, state.clock + 12),
+      x: clamp(finite(raw.x), -7600, 7600), y: clamp(finite(raw.y), -7600, 7600), side: raw.side === -1 ? -1 : 1 };
+    if (combatant(ship) && tacticsFor(ship).fighterCapacity && (carriers.get(ship.faction) || 0) < WARZONE_SPACE_LIMITS.carriersPerSide) {
+      state.carriers[ship.id] = newCarrier(runtime, ship, saved?.carriers?.[ship.id]); carriers.set(ship.faction, (carriers.get(ship.faction) || 0) + 1);
+    }
+  }
+  for (const ship of runtime.enemies.filter(ship => unit(ship) && isFighter(ship)).slice(0, WARZONE_SPACE_LIMITS.fighters)) {
+    const raw = saved?.fighterFlights?.[ship.id] || {}, phases = ['launching', 'attack', 'returning', 'disengaging', 'disabled'];
+    state.fighterFlights[ship.id] = { carrierId: safeText(raw.carrierId, 180), slot: clamp(Math.floor(finite(raw.slot)), 0, 5),
+      phase: phases.includes(raw.phase) ? raw.phase : 'disengaging', until: clamp(finite(raw.until, state.clock + 45), 0, state.clock + 90),
+      sortieUntil: clamp(finite(raw.sortieUntil, state.clock + 50), 0, state.clock + 90), ammo: clamp(Math.floor(finite(raw.ammo, 36)), 0, 36),
+      bay: clamp(Math.floor(finite(raw.bay)), 0, 1), launchAngle: finite(raw.launchAngle, ship.angle), docking: raw.docking === true };
+  }
+  reconcileSquadrons(runtime);
+}
+
+function publishSquadrons(runtime) {
+  const state = runtime.warzone;
+  for (const ship of runtime.enemies) {
+    const carrier = state.carriers[ship.id], flight = state.fighterFlights[ship.id];
+    if (carrier) ship.warzoneCarrier = { capacity: carrier.slots.length, ready: carrier.slots.filter(slot => !slot.fighterId && slot.readyAt <= state.clock).length,
+      deployed: carrier.slots.filter(slot => slot.fighterId).length, rearming: carrier.slots.filter(slot => !slot.fighterId && slot.readyAt > state.clock).length, fighterClassId: factionHulls(ship.faction).fighter };
+    else delete ship.warzoneCarrier;
+    if (flight) ship.warzoneSortie = { carrierId: flight.carrierId, slot: flight.slot, phase: flight.phase };
+    else delete ship.warzoneSortie;
+  }
+}
+
+function releaseFighter(runtime, ship, recovered = false) {
+  const state = runtime.warzone, flight = state.fighterFlights[ship.id]; if (!flight) return;
+  const carrier = state.carriers[flight.carrierId], slot = carrier?.slots[flight.slot];
+  if (slot?.fighterId === ship.id) { slot.fighterId = null; slot.readyAt = state.clock + between(state, recovered ? 18 : 36, recovered ? 32 : 64); }
+  delete state.fighterFlights[ship.id]; delete state.maneuvers[ship.id]; delete ship.warzoneSortie;
+}
+
+function rehomeFighter(runtime, ship, flight) {
+  const state = runtime.warzone;
+  flight.carrierId = null; flight.slot = 0; flight.docking = false; delete state.maneuvers[ship.id];
+  for (const parent of runtime.enemies) {
+    const carrier = state.carriers[parent.id], index = carrier?.slots.findIndex(slot => !slot.fighterId) ?? -1;
+    if (parent.faction !== ship.faction || !combatant(parent) || index < 0) continue;
+    flight.carrierId = parent.id; flight.slot = index; flight.bay = index % tacticsFor(parent).hangars.length; flight.phase = 'returning'; carrier.slots[index].fighterId = ship.id; return;
+  }
+  flight.phase = 'disengaging'; flight.until = state.clock + 45;
+}
+
+function detachCarrier(runtime, carrierId) {
+  const state = runtime.warzone; if (!state.carriers[carrierId]) return;
+  delete state.carriers[carrierId];
+  const parent = runtime.enemies.find(ship => ship.id === carrierId); if (parent) delete parent.warzoneCarrier;
+  for (const ship of runtime.enemies) {
+    const flight = state.fighterFlights[ship.id]; if (flight?.carrierId === carrierId) rehomeFighter(runtime, ship, flight);
+  }
+}
+
+function reconcileSquadrons(runtime) {
+  const state = runtime.warzone, ships = new Map(runtime.enemies.map(ship => [ship.id, ship]));
+  for (const id of Object.keys(state.carriers)) if (!combatant(ships.get(id))) detachCarrier(runtime, id);
+  for (const [id, flight] of Object.entries(state.fighterFlights)) {
+    const ship = ships.get(id);
+    if (!ship || !unit(ship) || ship.capturedBy) { releaseFighter(runtime, ship || { id }); continue; }
+    if (ship.disabled) flight.phase = 'disabled';
+    const carrier = state.carriers[flight.carrierId], slot = carrier?.slots[flight.slot];
+    if (flight.carrierId && (!slot || ships.get(flight.carrierId)?.faction !== ship.faction || slot.fighterId && slot.fighterId !== id)) rehomeFighter(runtime, ship, flight);
+    else if (slot) slot.fighterId = id;
+  }
+  for (const carrier of Object.values(state.carriers)) for (const slot of carrier.slots) if (slot.fighterId && !state.fighterFlights[slot.fighterId]) { slot.fighterId = null; slot.readyAt = Math.max(slot.readyAt, state.clock + 36); }
+  for (const key of ['batteries', 'maneuvers']) for (const id of Object.keys(state[key])) if (!unit(ships.get(id))) delete state[key][id];
+  for (const ship of runtime.enemies.filter(combatant)) {
+    if (!state.batteries[ship.id]) state.batteries[ship.id] = Object.fromEntries(tacticsFor(ship).batteries.map(bank => [bank.id, { readyAt: state.clock + ship.cooldown, cursor: 0, nextAt: 0, targetId: null, kind: 'fleet' }]));
+    if (!tacticsFor(ship).fighterCapacity || state.carriers[ship.id]) continue;
+    const count = Object.keys(state.carriers).filter(id => ships.get(id)?.faction === ship.faction).length;
+    if (count < WARZONE_SPACE_LIMITS.carriersPerSide) state.carriers[ship.id] = newCarrier(runtime, ship);
+  }
+  publishSquadrons(runtime);
+}
+
+function advanceCarriers(runtime, onEvent) {
+  const state = runtime.warzone;
+  for (const parent of runtime.enemies.slice()) {
+    const carrier = state.carriers[parent.id];
+    if (!carrier || !combatant(parent) || parent.hp < parent.maxHp * .3 || state.clock < carrier.nextLaunchAt || state.phase === 'resupply-lull') continue;
+    carrier.nextLaunchAt = state.clock + between(state, 9, 17);
+    const fighters = runtime.enemies.filter(ship => ship.warzone && ship.hp > 0 && isFighter(ship)), lineCount = runtime.enemies.filter(ship => ship.warzone && ship.hp > 0).length;
+    let room = Math.min(WARZONE_SPACE_LIMITS.ships - lineCount, WARZONE_SPACE_LIMITS.fighters - fighters.length,
+      WARZONE_SPACE_LIMITS.fightersPerSide - fighters.filter(ship => ship.faction === parent.faction).length, 2), launched = 0;
+    for (let index = 0; index < carrier.slots.length && room > 0; index++) {
+      const slot = carrier.slots[index]; if (slot.fighterId || slot.readyAt > state.clock) continue;
+      const bays = tacticsFor(parent).hangars, bayIndex = index % bays.length, bay = bays[bayIndex], point = localPoint(parent, bay.x, bay.y), angle = parent.angle + bay.angle;
+      const ship = makeShip(runtime, parent.faction, PROFILE_BY_CLASS.get(factionHulls(parent.faction).fighter), { initial: true, slot: index, lane: parent.warzoneLane });
+      Object.assign(ship, { x: point.x, y: point.y, angle, vx: parent.vx + Math.cos(angle) * 70, vy: parent.vy + Math.sin(angle) * 70, cooldown: 1.4 });
+      runtime.enemies.push(ship); slot.fighterId = ship.id;
+      state.fighterFlights[ship.id] = { carrierId: parent.id, slot: index, phase: 'launching', until: state.clock + 1.4,
+        sortieUntil: state.clock + between(state, 48, 72), ammo: 36, bay: bayIndex, launchAngle: angle, docking: false };
+      state.batteries[ship.id] = Object.fromEntries(tacticsFor(ship).batteries.map(bank => [bank.id, { readyAt: state.clock + 1.4, cursor: 0, nextAt: 0, targetId: null, kind: 'fleet' }]));
+      ship.warzoneSortie = { carrierId: parent.id, slot: index, phase: 'launching' };
+      addEffect(state, { kind: 'fighter-launch', ...point, angle, size: ship.renderLength, faction: ship.faction, sourceId: parent.id, shipClass: ship.classId, duration: .8 });
+      room--; launched++;
+    }
+    if (launched) onEvent?.('warzone-sortie', { faction: parent.faction, carrierId: parent.id, count: launched });
+  }
+  publishSquadrons(runtime);
+}
+
+function moveFighterSortie(runtime, ship, dt) {
+  const state = runtime.warzone, flight = state.fighterFlights[ship.id]; if (!flight) return false;
+  if (flight.phase === 'launching' && state.clock >= flight.until) flight.phase = 'attack';
+  if (flight.phase === 'attack' && (state.clock >= flight.sortieUntil || flight.ammo <= 0 || ship.hp < ship.maxHp * .4 || state.phase === 'resupply-lull')) { flight.phase = 'returning'; flight.docking = false; delete state.maneuvers[ship.id]; }
+  if (flight.phase === 'attack') return false;
+  ship.targetId = null; ship.targetVesselId = null; ship.warzoneTargetKind = null;
+  let aim, speed = profile(ship.classId).speed;
+  if (flight.phase === 'returning') {
+    const parent = runtime.enemies.find(candidate => candidate.id === flight.carrierId && combatant(candidate)), bay = parent && tacticsFor(parent).hangars[flight.bay];
+    if (!parent || !bay) { rehomeFighter(runtime, ship, flight); return true; }
+    const point = localPoint(parent, bay.x, bay.y), d = distance(ship, point), outward = parent.angle + bay.angle;
+    const approach = { x: point.x + Math.cos(outward) * 220, y: point.y + Math.sin(outward) * 220 };
+    if (distance(ship, approach) < 95 || d < 180 && (ship.x - point.x) * Math.cos(outward) + (ship.y - point.y) * Math.sin(outward) > 0) flight.docking = true;
+    if (d < 27) {
+      addEffect(state, { kind: 'fighter-recovery', ...point, angle: parent.angle + bay.angle, size: ship.renderLength, faction: ship.faction, sourceId: parent.id, shipClass: ship.classId, duration: .6 });
+      releaseFighter(runtime, ship, true); ship.warzoneRecovered = true; return true;
+    }
+    if (flight.docking) {
+      // Recovery thrusters match the translating and turning hangar mouth.
+      // This short final approach avoids endlessly orbiting a moving carrier.
+      const bayVx = parent.vx - (point.y - parent.y) * finite(parent.angularVelocity), bayVy = parent.vy + (point.x - parent.x) * finite(parent.angularVelocity);
+      let vx = bayVx + (point.x - ship.x) * 1.7, vy = bayVy + (point.y - ship.y) * 1.7;
+      const factor = Math.min(1, speed * .8 / Math.max(1, Math.hypot(vx, vy))); vx *= factor; vy *= factor;
+      const heading = Math.atan2(point.y - ship.y, point.x - ship.x), turn = clamp(angleDelta(ship.angle, heading), -getShipClass(ship.classId).stats.maxAngularVelocity * dt, getShipClass(ship.classId).stats.maxAngularVelocity * dt);
+      ship.angle += turn; ship.angularVelocity = dt ? turn / dt : 0;
+      const acceleration = 1 - Math.exp(-dt * 4); ship.vx += (vx - ship.vx) * acceleration; ship.vy += (vy - ship.vy) * acceleration;
+      ship.x += ship.vx * dt; ship.y += ship.vy * dt; return true;
+    }
+    aim = Math.atan2(approach.y + parent.vy * .5 - ship.y, approach.x + parent.vx * .5 - ship.x);
+  } else if (flight.phase === 'launching') aim = flight.launchAngle;
+  else if (flight.phase === 'disengaging') {
+    const sign = state.factions.indexOf(ship.faction) ? 1 : -1;
+    aim = Math.atan2(state.sectors[ship.warzoneLane].y - ship.y, sign * 6500 - ship.x);
+    if (state.clock >= flight.until || Math.abs(ship.x) > 6200) {
+      addEffect(state, { kind: 'warp-out', x: ship.x, y: ship.y, size: ship.renderLength, faction: ship.faction, duration: .9 });
+      releaseFighter(runtime, ship); ship.warzoneWithdrawn = true; state.withdrawals[ship.faction]++; return true;
+    }
+  } else return true;
+  const turn = clamp(angleDelta(ship.angle, aim), -getShipClass(ship.classId).stats.maxAngularVelocity * dt, getShipClass(ship.classId).stats.maxAngularVelocity * dt);
+  ship.angle += turn; ship.angularVelocity = dt ? turn / dt : 0;
+  const acceleration = 1 - Math.exp(-dt * 4);
+  ship.vx += (Math.cos(ship.angle) * speed - ship.vx) * acceleration; ship.vy += (Math.sin(ship.angle) * speed - ship.vy) * acceleration;
+  ship.x = clamp(ship.x + ship.vx * dt, -7600, 7600); ship.y = clamp(ship.y + ship.vy * dt, -7600, 7600);
+  return true;
+}
+
 /** Call before the ordinary bullet path removes a fleet hull killed by a player. */
 export function notifyWarzoneDestroyed(runtime, ship, details = {}) {
   const state = runtime?.warzone;
@@ -133,7 +327,9 @@ export function notifyWarzoneDestroyed(runtime, ship, details = {}) {
   ship.warzoneDeathRecorded = true;
   state.recentLosses.push(ship.id); state.recentLosses = state.recentLosses.slice(-WARZONE_SPACE_LIMITS.recentLosses);
   state.casualties[ship.faction]++; ship.hp = 0; ship.active = false;
-  addEffect(state, { kind: 'explosion', x: ship.x, y: ship.y, size: ship.renderLength, faction: ship.faction, duration: ship.warzoneSize === 'massive' ? 2.7 : 1.3 });
+  addEffect(state, { kind: 'explosion', x: ship.x, y: ship.y, size: ship.renderLength, faction: ship.faction, shipClass: ship.classId, angle: ship.angle,
+    vx: finite(ship.vx), vy: finite(ship.vy), seed: hash(ship.id), sourceId: ship.id, duration: ship.warzoneSize === 'massive' ? 5.8 : ship.warzoneSize === 'large' ? 3.2 : 1.3 });
+  releaseFighter(runtime, ship, false); detachCarrier(runtime, ship.id);
   if (details.byPlayer) state.lastPlayerAction = { faction: ship.faction, at: state.clock, sourceId: safeText(details.sourceId, 100), kind: 'ship-destroyed' };
   return true;
 }
@@ -169,10 +365,13 @@ function chooseTargets(runtime, participants) {
   const offset = Math.floor(state.clock / WARZONE_SPACE_LIMITS.targetDecisionSeconds) % Math.max(1, ships.length);
   for (let index = 0; index < ships.length; index++) {
     const ship = ships[(index + offset) % ships.length], source = profile(ship.classId), sector = state.sectors[ship.warzoneLane], sign = state.factions.indexOf(ship.faction) ? 1 : -1;
+    if (isFighter(ship) && state.fighterFlights[ship.id]?.phase !== 'attack') { ship.targetId = null; ship.targetVesselId = null; ship.warzoneTargetKind = null; continue; }
     let target = null, best = Infinity;
     for (const other of ships) {
       if (other.faction === ship.faction) continue;
-      const dist = distance(ship, other), lane = Math.abs(ship.warzoneLane - other.warzoneLane), value = dist + lane * 340 - (other.warzoneSize === 'massive' && ship.warzoneSize === 'massive' ? 200 : 0);
+      const dist = distance(ship, other), lane = Math.abs(ship.warzoneLane - other.warzoneLane), value = dist + lane * 340
+        + (ship.warzoneSize === 'massive' ? other.warzoneSize === 'massive' ? -550 : other.warzoneSize === 'small' ? 650 : 0 : 0)
+        - (isFighter(ship) && isFighter(other) ? 160 : 0);
       if (value < best) { best = value; target = other; }
     }
     let player = null, playerScore = Infinity;
@@ -215,15 +414,17 @@ function advanceWaves(runtime, onEvent) {
   const state = runtime.warzone;
   for (const faction of state.factions) {
     if (state.clock < state.nextWaveAt[faction]) continue;
-    const alive = runtime.enemies.filter(unit), count = alive.filter(ship => ship.faction === faction && !ship.capturedBy).length;
+    const alive = runtime.enemies.filter(unit), lineShips = alive.filter(ship => !isFighter(ship)), own = lineShips.filter(ship => ship.faction === faction && !ship.capturedBy), count = own.length;
     const depleted = count < 20, lull = state.phase === 'resupply-lull';
     state.nextWaveAt[faction] = state.clock + between(state, depleted ? 16 : lull ? 45 : 26, depleted ? 36 : lull ? 95 : 62);
-    const wanted = state.phase === 'resupply-lull' ? 25 : 29 + Math.floor(random(state) * 7), room = WARZONE_SPACE_LIMITS.ships - alive.length;
+    const occupied = runtime.enemies.filter(ship => ship.warzone && ship.hp > 0);
+    const wanted = state.phase === 'resupply-lull' ? 25 : 28 + Math.floor(random(state) * 4), room = Math.min(WARZONE_SPACE_LIMITS.ships - occupied.length, WARZONE_SPACE_LIMITS.lineShips - occupied.filter(ship => !isFighter(ship)).length);
     const waveSize = Math.max(0, Math.min(room, wanted - count, (depleted ? 9 : 5) + Math.floor(random(state) * 7)));
     if (!waveSize) continue;
-    const lane = Math.floor(random(state) * state.sectors.length), heavy = random(state) < .22; state.waves[faction]++;
+    const lane = Math.floor(random(state) * state.sectors.length), heavy = random(state) < .22, composition = compositionFor(faction);
+    const missingMassive = [factionHulls(faction).carrier, factionHulls(faction).line].filter(classId => !own.some(ship => ship.classId === classId)); state.waves[faction]++;
     for (let i = 0; i < waveSize; i++) {
-      const template = heavy && i === 0 ? COMPOSITION[24 + Math.floor(random(state) * 4)] : COMPOSITION[Math.floor(random(state) * 26)];
+      const template = i < missingMassive.length ? PROFILE_BY_CLASS.get(missingMassive[i]) : heavy && i === 0 ? composition[24 + Math.floor(random(state) * 2)] : composition[Math.floor(random(state) * 26)];
       runtime.enemies.push(makeShip(runtime, faction, template, { slot: i, lane }));
     }
     onEvent?.('warzone-reinforcement', { systemId: CROSSWIND_SYSTEM_ID, faction, count: waveSize, lane: state.sectors[lane].name, text: `${WARZONE_FACTION_STYLE[faction].short}: ${waveSize} fresh ships entering the ${state.sectors[lane].name.toLowerCase()}.` });
@@ -236,13 +437,37 @@ function obstructed(runtime, from, to) {
 }
 function moveShip(runtime, ship, target, dt) {
   const state = runtime.warzone, source = profile(ship.classId), home = ship.warzoneAim || ship, retreat = ship.warzoneRetreating;
-  let tx = home.x, ty = home.y;
+  let tx = home.x, ty = home.y, maneuverSpeed = 1;
   if (target && !retreat) {
     const dist = distance(ship, target), dx = dist > .01 ? (target.x - ship.x) / dist : 1, dy = dist > .01 ? (target.y - ship.y) / dist : 0;
     const hold = source.standoff * (state.phase === 'resupply-lull' ? 1.35 : 1), weight = ship.warzoneSize === 'massive' ? .3 : ship.warzoneSize === 'large' ? .56 : .85;
     const approachX = target.x - dx * hold, approachY = target.y - dy * hold;
     tx = home.x * (1 - weight) + approachX * weight; ty = home.y * (1 - weight) + approachY * weight;
-    if (ship.warzoneSize === 'small' && dist < hold * 1.3) { const orbit = hash(ship.id) % 2 ? 1 : -1; tx += -dy * 180 * orbit; ty += dx * 180 * orbit; }
+    const batteries = tacticsFor(ship).batteries, broadside = batteries.some(bank => bank.id === 'port'), bearing = Math.atan2(dy, dx);
+    let maneuver = state.maneuvers[ship.id];
+    if (broadside && dist < source.range * (maneuver?.phase === 'broadside' ? 1.08 : .98) && !obstructed(runtime, ship, target)) {
+      if (maneuver?.phase !== 'broadside' || maneuver.targetId !== target.id) {
+        const side = Math.abs(angleDelta(ship.angle, bearing - Math.PI / 2)) < Math.abs(angleDelta(ship.angle, bearing + Math.PI / 2)) ? 1 : -1;
+        maneuver = state.maneuvers[ship.id] = { targetId: target.id, phase: 'broadside', side, until: 0, x: 0, y: 0 };
+      }
+      // Range corrections are made by turning the bow. A heavy hull presents
+      // one real side battery; it cannot translate sideways and shoot aft.
+      const heading = bearing - maneuver.side * Math.PI / 2 + maneuver.side * clamp((dist - hold) / hold, -.32, .32);
+      tx = ship.x + Math.cos(heading) * 500; ty = ship.y + Math.sin(heading) * 500; maneuverSpeed = .48;
+    } else if (!broadside) {
+      if (!maneuver || maneuver.targetId !== target.id || maneuver.phase === 'broadside') maneuver = state.maneuvers[ship.id] = { targetId: target.id, phase: 'approach', side: hash(ship.id) % 2 ? 1 : -1, until: 0, x: 0, y: 0 };
+      if (maneuver.phase === 'break' && (state.clock >= maneuver.until || distance(ship, maneuver) < 90)) maneuver.phase = 'approach';
+      if (maneuver.phase === 'approach' && dist < (ship.warzoneSize === 'small' ? 500 : 660)) {
+        maneuver.phase = 'pass'; maneuver.x = target.x + dx * 620; maneuver.y = target.y + dy * 620; maneuver.until = state.clock + 6;
+      }
+      if (maneuver.phase === 'pass' && (state.clock >= maneuver.until || distance(ship, maneuver) < 110)) {
+        maneuver.phase = 'break'; maneuver.until = state.clock + 3.2;
+        maneuver.x = ship.x + Math.cos(ship.angle) * 350 - Math.sin(ship.angle) * 330 * maneuver.side;
+        maneuver.y = ship.y + Math.sin(ship.angle) * 350 + Math.cos(ship.angle) * 330 * maneuver.side;
+      }
+      if (maneuver.phase === 'pass' || maneuver.phase === 'break') { tx = maneuver.x; ty = maneuver.y; }
+      else { tx = target.x + finite(target.vx) * .3; ty = target.y + finite(target.vy) * .3; }
+    } else if (maneuver?.phase === 'broadside') delete state.maneuvers[ship.id];
   }
   tx += ship.warzoneSeparation?.x || 0; ty += ship.warzoneSeparation?.y || 0;
   let dx = tx - ship.x, dy = ty - ship.y;
@@ -251,9 +476,10 @@ function moveShip(runtime, ship, target, dt) {
     if (d >= exclusion || d < .01) continue;
     dx += (ship.x - body.x) / d * (exclusion - d) * 7; dy += (ship.y - body.y) / d * (exclusion - d) * 7;
   }
-  const aim = Math.atan2(dy, dx), turn = clamp(angleDelta(ship.angle, aim), -source.stats.maxAngularVelocity * .6 * dt, source.stats.maxAngularVelocity * .6 * dt);
+  const turnScale = isFighter(ship) ? 1 : ['large', 'massive'].includes(ship.warzoneSize) ? .6 : .8;
+  const aim = Math.atan2(dy, dx), turn = clamp(angleDelta(ship.angle, aim), -source.stats.maxAngularVelocity * turnScale * dt, source.stats.maxAngularVelocity * turnScale * dt);
   ship.angle += turn; ship.angularVelocity = dt ? turn / dt : 0;
-  const remaining = Math.hypot(dx, dy), speed = source.speed * clamp(remaining / 160, .08, 1) * (state.phase === 'resupply-lull' && !retreat ? .8 : 1), acceleration = 1 - Math.exp(-dt * source.stats.thrustAcceleration / 80);
+  const remaining = Math.hypot(dx, dy), speed = source.speed * maneuverSpeed * clamp(remaining / 160, .08, 1) * (state.phase === 'resupply-lull' && !retreat ? .8 : 1), acceleration = 1 - Math.exp(-dt * source.stats.thrustAcceleration / 80);
   ship.vx += (Math.cos(ship.angle) * speed - ship.vx) * acceleration; ship.vy += (Math.sin(ship.angle) * speed - ship.vy) * acceleration;
   ship.x += ship.vx * dt; ship.y += ship.vy * dt;
   // A navigation correction prevents heavy hulls from cutting through a planet
@@ -269,17 +495,54 @@ function moveShip(runtime, ship, target, dt) {
 
 function fire(runtime, ship, target, kind) {
   const state = runtime.warzone, source = profile(ship.classId), phase = PHASES[state.phase];
-  if (ship.cooldown > 0 || state.projectiles.length >= WARZONE_SPACE_LIMITS.projectiles || !target || distance(ship, target) > source.range || obstructed(runtime, ship, target)) return;
-  const speed = ship.warzoneSize === 'massive' ? 590 : ship.warzoneSize === 'large' ? 520 : 440, dist = distance(ship, target), lead = Math.min(1.5, dist / speed) * .7;
-  const aim = Math.atan2(target.y + finite(target.vy) * lead - ship.y, target.x + finite(target.vx) * lead - ship.x);
-  if (Math.abs(angleDelta(ship.angle, aim)) > (['large', 'massive'].includes(ship.warzoneSize) ? Math.PI : .85)) return;
-  const spread = (random(state) - .5) * (ship.warzoneSize === 'small' ? .12 : .065), angle = aim + spread, radius = ship.warzoneSize === 'massive' ? 6 : 3;
-  const muzzle = Math.min(ship.radius + 8, ship.renderLength * .42), x = ship.x + Math.cos(angle) * muzzle, y = ship.y + Math.sin(angle) * muzzle;
-  state.projectiles.push({ id: `crosswind:pulse:${++state.shotSerial}`, x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, ttl: source.range / speed + .15,
-    damage: source.damage, radius, owner: ship.id, ownerId: ship.id, vesselId: ship.id, faction: ship.faction, color: WARZONE_FACTION_STYLE[ship.faction].color,
-    targetId: ship.targetId, targetVesselId: ship.targetVesselId, targetKind: kind, warzone: true });
-  ship.cooldown = between(state, ship.warzoneSize === 'small' ? 1.7 : 2.3, ship.warzoneSize === 'massive' ? 4.4 : 3.6) * phase.cadence;
-  ship.lastShot = { until: state.clock + .16, angle }; ship.warzoneLastShotAt = state.clock;
+  const flight = state.fighterFlights[ship.id];
+  if (ship.cooldown > 0 || state.projectiles.length >= WARZONE_SPACE_LIMITS.projectiles || flight && (flight.phase !== 'attack' || flight.ammo <= 0)) return;
+  const speed = isFighter(ship) ? 740 : ship.warzoneSize === 'massive' ? 640 : ship.warzoneSize === 'large' ? 590 : 490;
+  const solution = (bank, candidate, mount = bank.muzzles[0]) => {
+    if (!candidate || distance(ship, candidate) > source.range) return null;
+    const muzzle = localPoint(ship, mount[0], mount[1]), lead = Math.min(1.6, distance(muzzle, candidate) / speed) * .82;
+    const angle = Math.atan2(candidate.y + finite(candidate.vy) * lead - muzzle.y, candidate.x + finite(candidate.vx) * lead - muzzle.x);
+    if (Math.abs(angleDelta(ship.angle + bank.angle, angle)) > bank.arc || obstructed(runtime, muzzle, candidate)) return null;
+    return { ...muzzle, angle };
+  };
+  for (const bank of tacticsFor(ship).batteries) {
+    const battery = state.batteries[ship.id]?.[bank.id]; if (!battery || state.clock < battery.readyAt || state.clock < battery.nextAt) continue;
+    let chosen = null, targetKind = 'fleet';
+    if (battery.cursor) {
+      if (battery.kind === 'player' && kind === 'player' && target?.id === battery.targetId) { chosen = target; targetKind = 'player'; }
+      else if (battery.kind === 'fleet') chosen = runtime.enemies.find(candidate => candidate.id === battery.targetId && combatant(candidate) && candidate.faction !== ship.faction);
+    } else if (solution(bank, target)) { chosen = target; targetKind = kind; }
+    // An independent opposite battery can engage another military hull. Only
+    // the already-budgeted captain target is ever eligible for captain fire.
+    if (!chosen && !battery.cursor && bank.kind === 'cannon') {
+      let nearest = Infinity;
+      for (const other of runtime.enemies) {
+        if (!combatant(other) || other.faction === ship.faction) continue;
+        const d = distance(ship, other); if (d < nearest && solution(bank, other)) { chosen = other; nearest = d; }
+      }
+    }
+    if (!chosen) { battery.cursor = 0; battery.nextAt = state.clock + .22; battery.targetId = null; continue; }
+    battery.targetId = chosen.id; battery.kind = targetKind;
+    const mountIndex = battery.cursor, mount = bank.muzzles[mountIndex], aim = solution(bank, chosen, mount);
+    if (!aim) { battery.cursor = 0; battery.nextAt = state.clock + .22; battery.targetId = null; continue; }
+    if (state.projectiles.length >= WARZONE_SPACE_LIMITS.projectiles || flight?.ammo === 0) break;
+    const angle = aim.angle + (random(state) - .5) * (bank.kind === 'cannon' ? .024 : .045), radius = bank.kind === 'cannon' ? ship.warzoneSize === 'massive' ? 5 : 4 : 2.5;
+    const mountId = `${bank.id}:${mountIndex}`, damageScale = bank.kind === 'cannon' ? ship.warzoneSize === 'massive' ? .48 : .65 : bank.muzzles.length > 1 ? .62 : 1;
+    state.projectiles.push({ id: `crosswind:pulse:${++state.shotSerial}`, x: aim.x, y: aim.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, ttl: source.range / speed + .15,
+      damage: source.damage * damageScale, radius, owner: ship.id, ownerId: ship.id, vesselId: ship.id, faction: ship.faction, color: WARZONE_FACTION_STYLE[ship.faction].color,
+      targetId: targetKind === 'player' ? ship.targetId : chosen.id, targetVesselId: chosen.id, targetKind, warzone: true,
+      bankId: bank.id, mountId, kind: bank.kind, sourceX: aim.x, sourceY: aim.y });
+    if (flight) flight.ammo--;
+    const muzzles = (ship.lastShot?.muzzles || []).filter(muzzle => muzzle.until > state.clock).slice(-7);
+    muzzles.push({ x: aim.x, y: aim.y, angle, until: state.clock + .2, bankId: bank.id, mountId });
+    ship.lastShot = { until: state.clock + .2, angle, bankId: bank.id, muzzles }; ship.warzoneLastShotAt = state.clock;
+    battery.cursor++;
+    if (battery.cursor >= bank.muzzles.length) {
+      battery.cursor = 0; battery.targetId = null;
+      battery.readyAt = state.clock + (isFighter(ship) ? between(state, .75, 1.1) : bank.kind === 'cannon' ? between(state, ship.warzoneSize === 'massive' ? 4.4 : 3.1, ship.warzoneSize === 'massive' ? 6.2 : 4.5) : between(state, 1.7, 3.1)) * phase.cadence;
+    }
+    battery.nextAt = state.clock + (bank.kind === 'cannon' ? .13 : .055);
+  }
 }
 
 function segmentDistance(point, x, y, endX, endY) {
@@ -354,6 +617,7 @@ export function stepWarzoneSpace(runtime, delta, options = {}) {
   for (const ship of runtime.enemies) if (ship.warzone && ship.hp <= 0) notifyWarzoneDestroyed(runtime, ship);
   runtime.enemies = runtime.enemies.filter(ship => !ship.warzone || ship.hp > 0);
   advancePhase(runtime, options.onEvent); advanceWaves(runtime, options.onEvent);
+  reconcileSquadrons(runtime); advanceCarriers(runtime, options.onEvent);
   const desiredFront = PHASES[state.phase].shift; state.front += (desiredFront - state.front) * Math.min(1, dt * .025);
   if (state.clock >= state.nextDecisionAt) { chooseTargets(runtime, participants); state.nextDecisionAt = state.clock + WARZONE_SPACE_LIMITS.targetDecisionSeconds; }
   const ships = new Map(runtime.enemies.map(ship => [ship.id, ship])), people = new Map(participants.map(person => [person.vesselId, person]));
@@ -369,6 +633,7 @@ export function stepWarzoneSpace(runtime, delta, options = {}) {
       continue;
     }
     ship.active = true;
+    if (moveFighterSortie(runtime, ship, dt)) continue;
     const participant = ship.warzoneTargetKind === 'player' ? people.get(ship.targetVesselId) : null;
     const candidate = participant?.ship || ships.get(ship.targetId), target = candidate && (participant ? hostileTo(ship, participant) : combatant(candidate) && candidate.faction !== ship.faction) ? candidate : null;
     moveShip(runtime, ship, target, dt);
@@ -376,7 +641,9 @@ export function stepWarzoneSpace(runtime, delta, options = {}) {
     fire(runtime, ship, target, participant ? 'player' : 'fleet');
   }
   advanceProjectiles(runtime, dt, participants, options); advanceBoarding(runtime, participants, options);
-  runtime.enemies = runtime.enemies.filter(ship => !ship.warzone || ship.hp > 0 && !ship.warzoneWithdrawn);
+  for (const ship of runtime.enemies) if (ship.warzoneWithdrawn || ship.warzoneRecovered) { releaseFighter(runtime, ship); detachCarrier(runtime, ship.id); }
+  runtime.enemies = runtime.enemies.filter(ship => !ship.warzone || ship.hp > 0 && !ship.warzoneWithdrawn && !ship.warzoneRecovered);
+  reconcileSquadrons(runtime);
   return state;
 }
 
@@ -392,6 +659,7 @@ export function captureWarzoneSpace(runtime) {
   const fields = ['id', 'name', 'faction', 'classId', 'warzoneLane', 'x', 'y', 'vx', 'vy', 'angle', 'hp', 'energy', 'cooldown', 'boardingCooldown', 'disabled', 'warzoneSpawnedAt', 'warzonePicket', 'warzoneExitAt', 'warzoneLastHitAt', 'damageControl', 'deck', 'capturedBy', 'promotedVesselId', 'canonicalVesselId', 'boardingTargetId', 'boardingOriginId', 'occupation'];
   return { version: WARZONE_SPACE_VERSION, clock: state.clock, rng: state.rng, serial: state.serial, shotSerial: state.shotSerial, effectSerial: state.effectSerial, phase: state.phase, nextPhaseAt: state.nextPhaseAt, front: state.front, nextWaveAt: { ...state.nextWaveAt }, nextBoardingAt: state.nextBoardingAt,
     waves: { ...state.waves }, casualties: { ...state.casualties }, withdrawals: { ...state.withdrawals },
+    carriers: clone(state.carriers), fighterFlights: clone(state.fighterFlights), batteries: clone(state.batteries), maneuvers: clone(state.maneuvers),
     ships: runtime.enemies.filter(ship => ship.warzone && ship.hp > 0 && !ship.warzoneWithdrawn).slice(0, WARZONE_SPACE_LIMITS.ships).map(ship => Object.fromEntries(fields.filter(key => ship[key] !== undefined).map(key => [key, clone(ship[key])])))};
 }
 
@@ -402,8 +670,10 @@ export function warzoneSpaceView(runtime, viewer = {}) {
   return { version: WARZONE_SPACE_VERSION, systemId: CROSSWIND_SYSTEM_ID, clock: state.clock, phase: state.phase, phaseLabel: PHASES[state.phase]?.label || 'Fleet action', intensity: PHASES[state.phase]?.intensity || .7,
     viewerFaction: state.factions.includes(factionId) ? factionId : null, hostileFactions: (Array.isArray(viewer.hostileFactions) ? viewer.hostileFactions : []).filter(id => state.factions.includes(id)),
     factions: state.factions.map(id => ({ id, name: WARZONE_FACTION_STYLE[id].name, short: WARZONE_FACTION_STYLE[id].short, color: WARZONE_FACTION_STYLE[id].color,
-      ships: ships.filter(ship => ship.faction === id && !ship.capturedBy).length, fighting: ships.filter(ship => ship.faction === id && combatant(ship)).length, casualties: state.casualties[id], withdrawals: state.withdrawals[id] })),
+      ships: ships.filter(ship => ship.faction === id && !ship.capturedBy).length, fighters: ships.filter(ship => ship.faction === id && !ship.capturedBy && isFighter(ship)).length,
+      fighting: ships.filter(ship => ship.faction === id && combatant(ship)).length, casualties: state.casualties[id], withdrawals: state.withdrawals[id] })),
+    squadrons: ships.filter(ship => ship.warzoneCarrier).map(ship => ({ carrierId: ship.id, faction: ship.faction, ...ship.warzoneCarrier })),
     sectors: state.sectors.map(sector => ({ ...sector, x: sector.x + state.front })),
-    projectiles: state.projectiles.map(({ id, x, y, vx, vy, ttl, radius, color, faction, ownerId, targetVesselId }) => ({ id, x, y, vx, vy, ttl, radius, color, faction, ownerId, targetVesselId })),
-    effects: state.effects.map(({ id, kind, x, y, size, faction, at, until }) => ({ id, kind, x, y, size, faction, at, until })) };
+    projectiles: state.projectiles.map(({ id, x, y, vx, vy, ttl, radius, color, faction, ownerId, targetVesselId, bankId, mountId, kind, sourceX, sourceY }) => ({ id, x, y, vx, vy, ttl, radius, color, faction, ownerId, targetVesselId, bankId, mountId, kind, sourceX, sourceY })),
+    effects: state.effects.map(({ id, kind, x, y, size, faction, at, until, shipClass, angle, vx, vy, seed, sourceId }) => ({ id, kind, x, y, size, faction, at, until, shipClass, angle, vx, vy, seed, sourceId })) };
 }

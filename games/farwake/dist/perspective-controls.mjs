@@ -67,7 +67,7 @@ export function getBoardingAction(game,vessel,{fleet=[],connected=true}={}){
  if(vessel.occupation?.contested||vessel.npcHostile&&!vessel.captured||vessel.hostile)return blocked(result,'This ship is hostile or occupied. Use its boarding contact to resolve the encounter.');
  if(!boardAccess(vessel,mp.captainId))return blocked(result,'The owner must allow you aboard. Open CREW to review ship access.');
  if(vessel.systemId!==state.systemId)return blocked(result,'Travel to the same star system before boarding.');
- if(state.interior||state.exploration)return blocked(result,'Leave this interior and reach the ship’s port or approach in your own ship.');
+ if(state.interior||state.exploration&&!state.exploration.outdoor)return blocked(result,'Leave this interior and reach the ship’s port or approach in your own ship.');
  if(state.mode==='person'){
   if(!vessel.dockedAt||vessel.dockedAt!==state.locationId)return blocked(result,'This ship is not parked at your port. Meet it at its actual landing area.');
  }else{
@@ -124,7 +124,7 @@ export function getReturnToShipAction(game,{shared=false,connected=true,fleet=[]
 
 export function getLocalPortVessels(game,fleet=[]){
  const state=game?.state||{},mp=state.multiplayer||{};
- if(state.mode!=='person'||state.interior||state.exploration)return [];
+ if(state.mode!=='person'||state.interior||state.exploration&&!state.exploration.outdoor)return [];
  return fleet.filter(vessel=>vessel.systemId===state.systemId&&vessel.dockedAt===state.locationId&&!dead(vessel)&&!vessel.hostile&&!vessel.occupation?.contested&&boardAccess(vessel,mp.captainId));
 }
 
@@ -182,7 +182,7 @@ function returnAction(game,{shared,fleet,surface}){
 
 function launchAction(game,{shared,fleet}){
  const state=game.state,mp=state.multiplayer||{},result=action('Return to ship','quickLaunch','Return to your locally parked ship and launch.');
- if(state.interior||state.exploration)return blocked(result,'Leave this interior before returning to your ship.');
+ if(state.interior||state.exploration&&!state.exploration.outdoor)return blocked(result,'Leave this interior before returning to your ship.');
  const body=game.system?.bodies?.find(body=>body.id===state.locationId);
  if(!body)return blocked(result,'Reach your ship’s landing area before launching.');
  if(shared){
@@ -211,13 +211,13 @@ export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],
   else if(!airlock||distance(state.person,airlock)>56)result=blocked(result,'Follow the hull markings back to the exterior airlock.');
  }else if(state.npcContract?.active){
   result=action('Crew duty','openCrewDuty',state.npcContract?.military?'Review your Navy assignment. Return to Morrow and report to the recruiter for service pay.':'View your assigned work aboard this NPC-piloted ship, or collect wages after docking.');
- }else if(state.mode==='person'&&!interior&&!state.exploration&&game.atInhabitedPort&&!localBoarding&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
+ }else if(state.mode==='person'&&!interior&&(!state.exploration||state.exploration.outdoor)&&game.atInhabitedPort&&!localBoarding&&(game.ownsShip===false||game.canUseOwnShipHere?.()===false)){
   result=action('Port services','openPortServices','Find work, buy passenger passage, or visit the shipwright.');
  }else if(state.mode==='ship'){
   result=action('Walk deck','enterCabin','Leave the helm and walk inside this ship. Its momentum continues.');
   if(dead(state.ship))result=blocked(result,'This hull is no longer intact.');
   else if(!shared&&game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===state.ship.id)&&distance(enemy,state.ship)<600))result=blocked(result,'Clear the immediate attack before leaving the helm.');
- }else if(interior?.kind==='site'||state.exploration){
+ }else if(interior?.kind==='site'||state.exploration&&!state.exploration.outdoor){
   const exit=surface?.entities?.find(entity=>entity.type==='siteExit'&&!entity.hidden);
   result=action('Exit site','exitSite','Return through this place’s entrance to the surface.',exit?.id||`${state.locationId}:exit`);
   if(!exit||distance(state.person,exit)>46)result=blocked(result,'Walk to the marked entrance to leave this place.');
@@ -229,6 +229,11 @@ export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],
   result=cleared?helmAction(game,{shared,fleet}):returnAction(game,{shared,fleet,surface});
  }else if(interior?.kind==='ship')result=helmAction(game,{shared,fleet});
  else result=launchAction(game,{shared,fleet});
+ if(state.exploration?.outdoor&&['quickLaunch','boardShip'].includes(result.command)){
+  const landing=surface?.entities?.find(entity=>entity.type==='exit'&&!entity.hidden);
+  result={...result,targetId:landing?.id};
+  if(!landing||distance(state.person,landing)>46)result=blocked(result,'Return to the marked landing shuttle before boarding or leaving the battlefield.');
+ }
  if(state.person?.health<=0||state.person?.down)return blocked(result,'You are incapacitated. Wait for recovery before changing perspective.');
  if(shared&&!connected)return blocked(result,'Reconnecting to the galaxy. The shortcut will be ready when your captain is connected.');
  if(state.pendingEncounter)return blocked(result,'Finish or close the current conversation before changing perspective.');

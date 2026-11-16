@@ -4,7 +4,7 @@ import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteRewar
 import { canSeeConcealedActor } from './site-visibility.mjs';
 import { militarySiteLocation } from './military-sites.mjs';
 import { fieldSurfaceView } from './floodworks.mjs';
-import { catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundHostiles, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
+import { WARZONE_GROUND_SITE_ID, isWarzoneGroundBody, catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundHostiles, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -15,7 +15,7 @@ export const ExpeditionRules={
   _restoreExploration(){
     this.state.warzoneStories=normalizeWarzoneGroundStories(this.state.warzoneStories);
     const active=this.state.exploration;
-    if(!active){if(this.state.interior?.kind==='site'){this.state.locationId=this.state.interior.location?.parentId||this.state.lastBodyId;this.state.interior=null;}return;}
+    if(!active){if(this.state.mode==='person'&&!this.state.interior&&isWarzoneGroundBody(this.state.locationId)){this.activateWarzoneSurface({preservePosition:false});return;}if(this.state.interior?.kind==='site'){this.state.locationId=this.state.interior.location?.parentId||this.state.lastBodyId;this.state.interior=null;}return;}
     const body=this.system.bodies.find(value=>value.id===active.bodyId),candidate=body&&explorationLocation(body,active.siteId,this.state.seed),context=candidate&&militarySiteLocation(this,body,candidate,{allowPaused:true}),location=context?.ok?context.location:null;
     if(!location||this.state.mode!=='person'){
       this.state.exploration=null;
@@ -27,17 +27,35 @@ export const ExpeditionRules={
     if(encounter.field)location.field=encounter.field;
     if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     this.state.explorationRecords[key]=encounter;
-    const outdoor=generateSurface(body,this.state.seed,this.state.flags),back=active.returnPosition;
-    const returnPosition=back&&validNumber(back.x)&&validNumber(back.y)&&isWalkable(outdoor,back.x,back.y)?{x:back.x,y:back.y}:{...outdoor.spawn};
-    this.state.exploration={key,bodyId:body.id,siteId:location.site.id,returnPosition,encounter};
-    this.state.interior={kind:'site',location};this.state.locationId=location.id;
+    const outdoorMap=generateSurface(body,this.state.seed,this.state.flags),back=active.returnPosition;
+    const returnPosition=back&&validNumber(back.x)&&validNumber(back.y)&&isWalkable(outdoorMap,back.x,back.y)?{x:back.x,y:back.y}:{...outdoorMap.spawn};
+    const outdoor=location.site.outdoor===true;
+    this.state.exploration={key,bodyId:body.id,siteId:location.site.id,returnPosition,encounter,...(outdoor?{outdoor:true}:{})};
+    this.state.interior=outdoor?null:{kind:'site',location};this.state.locationId=outdoor?body.id:location.id;
     const surface=this._expeditionSurface();if(!isWalkable(surface,this.state.person.x,this.state.person.y))Object.assign(this.state.person,surface.spawn);
   },
+  activateWarzoneSurface({preservePosition=true}={}){
+    const s=this.state;if(s.mode!=='person'||s.interior||!isWarzoneGroundBody(s.locationId))return false;
+    if(s.exploration?.outdoor&&s.exploration.bodyId===s.locationId)return s.exploration;
+    const body=this.system.bodies.find(value=>value.id===s.locationId),location=body&&explorationLocation(body,WARZONE_GROUND_SITE_ID,s.seed),context=location&&militarySiteLocation(this,body,location);if(!context?.ok)return false;
+    const key=context.key,prior=s.explorationRecords[key],encounter=this._sharedWorld&&prior?prior:createSiteState(location.site,prior);
+    encounter.visited++;s.explorationRecords[key]=encounter;s.exploration={key,bodyId:body.id,siteId:WARZONE_GROUND_SITE_ID,outdoor:true,returnPosition:null,encounter};
+    s.warzoneStories||=normalizeWarzoneGroundStories();const surface=this._expeditionSurface();
+    if(!this._sharedWorld){const previous=encounter.warzoneGround.lastSoloAt,now=s.stats.time||0;if(previous!==null)catchUpWarzoneGround(encounter,Math.max(0,now-previous),surface);encounter.warzoneGround.lastSoloAt=now;}
+    if(!preservePosition||!isWalkable(surface,s.person.x,s.person.y))Object.assign(s.person,surface.spawn,{moving:false});
+    if(encounter.visited===1)this._log('Vey · Ashfall Front',location.site.story,'exploration');
+    return s.exploration;
+  },
+  releaseWarzoneSurface(){
+    const active=this.state.exploration;if(!active?.outdoor)return false;
+    this.state.explorationRecords[active.key]=active.encounter;if(!this._sharedWorld)active.encounter.warzoneGround.lastSoloAt=this.state.stats.time||0;
+    this.state.exploration=null;this._expeditionMap=null;return true;
+  },
   _expeditionSurface(){
-    if(!this.state.exploration||this.state.interior?.kind!=='site')return null;
-    const location=this.state.interior.location,encounter=this.state.exploration.encounter;
+    const active=this.state.exploration;if(!active||!active.outdoor&&this.state.interior?.kind!=='site')return null;
+    const location=active.outdoor?this.system.bodies.find(body=>body.id===active.bodyId):this.state.interior.location,encounter=active.encounter;if(!location)return null;
     if(encounter.field)location.field=encounter.field;
-    const key=`${this.state.exploration.key}:${!!location.evacuated}:${encounter.field?.revision||0}`;
+    const key=`${this.state.exploration.key}:${!!active.outdoor}:${!!location.evacuated}:${encounter.field?.revision||0}`;
     if(this._expeditionMap?.key!==key)this._expeditionMap={key,value:generateSurface(location,this.state.seed,this.state.flags)};
     return warzoneGroundSurfaceView(fieldSurfaceView(this._expeditionMap.value,encounter),this.state.warzoneStories);
   },
@@ -46,6 +64,7 @@ export const ExpeditionRules={
     if(this.state.pendingEncounter)return this._fail('Finish your current conversation first.','encounter');
     const body=this.system.bodies.find(value=>value.id===this.state.locationId),candidate=body&&explorationLocation(body,siteId,this.state.seed);
     if(!candidate)return this._fail('There is no entrance to that place here.','target');
+    if(candidate.site.outdoor)return this._fail('Ashfall is Vey’s open surface. The battle is already outside your landing shuttle.','outdoor');
     const context=militarySiteLocation(this,body,candidate);if(!context?.ok)return this._fail(context?.reason||'This deployment is not assigned to you.',context?.code||'military-orders');
     const location=context.location;
     const outdoor=generateSurface(body,this.state.seed,this.state.flags),entrance=outdoor.entities.find(entity=>entity.type==='siteEntrance'&&entity.data?.siteId===siteId);
@@ -69,6 +88,7 @@ export const ExpeditionRules={
   },
   exitSite(){
     const surface=this._expeditionSurface();if(!surface)return this._fail('You are not inside a surface site.','mode');
+    if(this.state.exploration?.outdoor)return this._fail('You are already outdoors on Vey. Return to the landing shuttle to board or depart.','outdoor');
     if(this.state.person.health<=0)return this._fail('Your emergency beacon is calling for help.','incapacitated');
     if(!near(surface,this.state.person,null,['siteExit']))return this._fail('Return to the marked entrance to leave.','distance');
     return this._returnFromSite(false);
@@ -78,7 +98,7 @@ export const ExpeditionRules={
     const body=this.system.bodies.find(value=>value.id===active.bodyId);if(!body)return this._fail('The landing zone is unavailable.','location');
     this.state.explorationRecords[active.key]=active.encounter;
     if(active.encounter.warzoneGround&&!this._sharedWorld)active.encounter.warzoneGround.lastSoloAt=this.state.stats.time||0;
-    this.state.interior=null;this.state.locationId=body.id;this.state.mode='person';this.state.exploration=null;
+    this.state.interior=null;this.state.locationId=body.id;this.state.mode='person';this.state.exploration=active.outdoor?active:null;
     if(!this._sharedWorld)resetSiteBoss(active.encounter);
     const surface=generateSurface(body,this.state.seed,this.state.flags),back=recovered?surface.spawn:active.returnPosition;
     Object.assign(this.state.person,isWalkable(surface,back?.x,back?.y)?back:surface.spawn,{weaponDrawn:false,aimTargetId:null,moving:false,down:false});
@@ -93,7 +113,7 @@ export const ExpeditionRules={
     if(!active||!surface||this.state.person.health<=0)return this._fail('Enter this place on foot first.','mode');
     const entity=near(surface,this.state.person,entityId,['siteRecord','siteCache','siteChoice']);
     if(!entity)return this._fail('Move closer to that object.','distance');
-    const site=this.state.interior.location.site;
+    const site=surface.site;
     if(site.warzone||site.crosswindSupport){const reply=warzoneGroundStoryAction(this,entity,action,optionId);if(reply)return reply;}
     if(entity.type==='siteRecord'&&action==='inspect'){
       if(site.military&&entity.data.recordId===site.objectiveId){
@@ -135,7 +155,7 @@ export const ExpeditionRules={
     if(this.state.person.health<=0){this._siteDownTime=(this._siteDownTime||0)+dt;if(this._siteDownTime>=2.5)this._returnFromSite(true);}else this._siteDownTime=0;
   },
   recordExplorationEvents(events){
-    const site=this.state.interior?.location?.site,active=this.state.exploration;
+    const active=this.state.exploration,site=this.state.interior?.location?.site||(active?.outdoor?{warzone:true}:null);
     for(const event of events){
       const groundFaction=site?.warzone&&event.factionId,hostileFactions=this.warzoneHostilities?.()||[];
       this.events.push(groundFaction?{...event,team:hostileFactions.includes(groundFaction)?'hostile':this.warzoneFaction?.()===groundFaction?'friendly':'neutral'}:event);

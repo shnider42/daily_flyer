@@ -43,11 +43,31 @@ test('full and compact observations share real fleet damage and pulses without d
   assert.deepEqual(compactSnapshot(first).world.warzone,first.world.warzone,'both compact encodings retain the same public combat observations');
   assert.equal(first.world.warzone.projectiles.length,room.runtime.warzone.projectiles.length);
   for(const view of[first,second,compact]){
-    for(const key of ['rng','nextWaveAt','nextPhaseAt','nextBoardingAt','serial','recentLosses'])assert.equal(Object.hasOwn(view.world.warzone,key),false,key);
+    for(const key of ['rng','nextWaveAt','nextPhaseAt','nextBoardingAt','serial','recentLosses','carriers','fighterFlights','batteries','maneuvers'])assert.equal(Object.hasOwn(view.world.warzone,key),false,key);
     assert.equal(view.state.worlds?.crosswind?.warzoneSpace,undefined);assert.ok(view.world.enemies.some(ship=>ship.hp<ship.maxHp),'captains see actual fleet wounds');
+    assert.ok(view.world.enemies.some(ship=>ship.warzoneSortie&&['needle','kite'].includes(ship.classId)),'the shared room shows actual launched fighters');
+    assert.ok(view.world.warzone.squadrons.length>=2);assert.ok(view.world.warzone.squadrons.every(wing=>wing.deployed+wing.ready+wing.rearming===wing.capacity));
   }
   first.world.enemies[0].hp=99999;first.world.warzone.projectiles[0].x=99999;assert.deepEqual(poses(room.runtime),original);assert.notEqual(room.runtime.warzone.projectiles[0].x,99999);
   const vessel=realm.vessels.get(one.aboard);realm._cabin(one,vessel);const interior=realm.snapshotFor(one,{compact:true,drainEvents:false});assert.equal(interior.world.warzone.projectiles.length,0);assert.equal(interior.world.warzone.effects.length,0);
+});
+
+test('an occupied capital stops NPC launches and keeps its canonical hull and detached wings after restart',async t=>{
+  const time=clock(t),{realm,captains:[captain,witness],room}=await fixture();captain.game.state.fleet.owned.push('marten');captain.game._activateClass('marten',true);
+  const source=realm.vessels.get(captain.ownedVesselId),enemy=room.runtime.enemies.find(ship=>ship.faction==='meridian'&&ship.classId==='ark');
+  room.runtime.warzone.carriers[enemy.id].nextLaunchAt=0;ticks(realm,time,1);
+  const wing=room.runtime.enemies.filter(ship=>ship.warzoneSortie?.carrierId===enemy.id);assert.equal(wing.length,2);
+  Object.assign(enemy,{disabled:true,active:false,hp:enemy.maxHp*.35,vx:0,vy:0,warzoneExitAt:.1});Object.assign(source.ship,{x:enemy.x-130,y:enemy.y,vx:0,vy:0});
+  ok(realm._command(captain,'boardEnemy',{id:enemy.id}));const prize=realm.vessels.get(captain.aboard);assert.equal(prize.ship.classId,'ark');assert.equal(enemy.canonicalVesselId,prize.id);
+  ticks(realm,time,3);assert.equal(room.runtime.warzone.carriers[enemy.id],undefined);assert.equal(room.runtime.warzone.batteries[enemy.id],undefined);
+  for(const fighter of wing)assert.notEqual(room.runtime.warzone.fighterFlights[fighter.id]?.carrierId,enemy.id,'boarding does not leave an enemy fighter factory inside the player vessel');
+  const observed=realm.snapshotFor(witness,{drainEvents:false});assert.equal(observed.remoteShips.filter(ship=>ship.id===prize.id).length,1);assert.ok(!observed.world.enemies.some(ship=>ship.id===enemy.id));
+  const document=realm.document(),restored=new Realm({id:realm.id,snapshot:structuredClone(document),persistence:realm.persistence}),returned=restored._room('crosswind');
+  assert.equal(restored.vessels.get(prize.id).ship.classId,'ark');assert.equal(returned.runtime.enemies.find(ship=>ship.id===enemy.id).canonicalVesselId,prize.id);
+  assert.equal(returned.runtime.warzone.carriers[enemy.id],undefined);assert.equal(returned.runtime.warzone.batteries[enemy.id],undefined);
+  for(const [id,flight]of Object.entries(returned.runtime.warzone.fighterFlights)){
+    assert.ok(returned.runtime.enemies.some(ship=>ship.id===id));if(flight.carrierId)assert.equal(returned.runtime.warzone.carriers[flight.carrierId].slots[flight.slot].fighterId,id);
+  }
 });
 
 test('authority restart and empty-room revisits keep one persistent battle with bounded catchup',async t=>{

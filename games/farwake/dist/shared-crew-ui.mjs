@@ -248,7 +248,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=(
    return;
   }
   const localAboard=!!vessel&&mp.aboardVesselId===vessel.id,remoteAboard=!!vessel&&friend.vesselId===vessel.id;
-  const localAtPort=!!vessel?.dockedAt&&s.systemId===vessel.systemId&&(localAboard||s.mode==='person'&&!s.interior&&!s.exploration&&s.locationId===vessel.dockedAt);
+  const localAtPort=!!vessel?.dockedAt&&s.systemId===vessel.systemId&&(localAboard||s.mode==='person'&&!s.interior&&(!s.exploration||s.exploration.outdoor)&&s.locationId===vessel.dockedAt);
   const friendAtPort=!!vessel?.dockedAt&&friend.location.systemId===vessel.systemId&&(remoteAboard||friend.location.roomKind==='surface'&&friend.location.bodyId===vessel.dockedAt);
   const grant=vessel?.grants?.[friend.captainId],allowed=vessel?isOwner(g,vessel)?grant?grant.allowed===true:vessel.allowCrew===true:vessel.canBoard===true:false;
   const shipName=vessel?.name||'one ship',portName=vessel?.dockedAt?bodyName(vessel.systemId,vessel.dockedAt):null;

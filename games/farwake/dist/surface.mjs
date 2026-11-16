@@ -12,7 +12,7 @@ import {cabinLayout,resolveCabinClass,isCabinWalkable} from './interior-layouts.
 import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
 import {sidearmAim,facingAngle} from './combat.mjs';
-import {buildWarzoneGroundInterior,drawWarzoneGroundEffects} from './warzone-ground.mjs';
+import {buildWarzoneGroundInterior,drawWarzoneGroundEffects,drawWarzoneInfantryKit} from './warzone-ground.mjs';
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
@@ -559,8 +559,8 @@ function preflightSurface(location,seed){
  for(const[x,y]of[[31,26],[30,33],[32,48],[49,66],[72,32],[82,28],[86,63],[60,22]])prop(m,'tree',x,y,1,1,'#6b9668',true);
  addFrontierSites(m,location,seed);return m;
 }
-function expeditionSurface(location,seed){
- const site=location.site,m=makeMap(site.cols,site.rows,site.kind==='cave'?'cave':site.kind==='igloo'?'ice':'shelter',site.name,location.id,seed,'site');
+function expeditionSurface(location,seed,outdoor=false){
+ const site=location.site,m=makeMap(site.cols,site.rows,outdoor?'ash':site.kind==='cave'?'cave':site.kind==='igloo'?'ice':'shelter',outdoor?location.name:site.name,location.id,seed,outdoor?'planet':'site');
  m.siteId=site.id;m.parentId=location.parentId;m.atmosphere=site.atmosphere;m.site=site;
  rect(m,1,1,m.cols-2,m.rows-2,TILE.WALL);
  if(site.warzone){
@@ -590,7 +590,8 @@ function expeditionSurface(location,seed){
   if(site.kind==='shelter'||site.kind==='igloo'){prop(m,'heater',19,16,2,2,'#8ba3a1',true);prop(m,'boots',8,18,1,1,'#8c806c',false);}
   label(m,'SURFACE ←',4,18,'#c5d2c0');
  }
- entity(m,'exit','siteExit','Return to surface','Leave this place',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#c5ddbb',{siteId:site.id,parentId:location.parentId},'The way back is open. You can leave even while a threat is alive.');
+ if(outdoor)entity(m,'exit','exit','Landing shuttle','Return to ship',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#d9bd87',{},'The sheltered landing pad is open. Return to your ship here.');
+ else entity(m,'exit','siteExit','Return to surface','Leave this place',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#c5ddbb',{siteId:site.id,parentId:location.parentId},'The way back is open. You can leave even while a threat is alive.');
  for(const cache of site.caches)entity(m,'cache:'+cache.id,'siteCache',cache.name,'Recover supplies',cache.x,cache.y,'#d7c292',{siteId:site.id,cacheId:cache.id},cache.text);
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
@@ -829,17 +830,17 @@ function addQuestEntities(m,location){
 export function generateSurface(location={},seed='farwake',flags=[]){
  location=resolveLocation(location);
  if(location.kind==='detention')return detentionSurface(location,seed);
- const kind=kindOf(location);const m=isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
- if(m.kind==='planet'&&!m.authoredCity)scalePlanetRegion(m,location);
+ const kind=kindOf(location),outdoorWarzone=location.id==='crosswind-vey'&&kind==='planet';const m=outdoorWarzone?expeditionSurface({...location,parentId:location.id,site:explorationSites(location,seed).find(site=>site.warzone)},seed,true):isNeonCity(location)?createNeonCity(location,seed,{makeMap,rect,line,room,point,entity,personEntity,prop,label,addArchive,addLocalWork,TILE}):kind==='eva'?evaSurface(location,seed):kind==='site'?expeditionSurface(location,seed):kind==='station'?station(location,seed):kind==='ship'?ship(location,seed):kind==='derelict'?derelict(location,seed):planet(location,seed);
+ if(m.kind==='planet'&&!m.authoredCity&&!m.outdoorWarzone)scalePlanetRegion(m,location);
  m.faction=location.faction||null;m.systemId=location.systemId;m.systemName=location.systemName;m.localLore=location.localLore;m.loreId=location.loreId;m.flags=Array.isArray(flags)?[...flags]:[];
  // Interactive spaces always remain clear. Furniture is collision-enabled,
  // but items and characters never fence in an interaction or a landing spawn.
  if(m.kind!=='ship')m.solids=m.solids.filter(s=>![m.spawn,m.exit,...m.entities].some(e=>e.x>s.x-15&&e.x<s.x+s.w+15&&e.y>s.y-15&&e.y<s.y+s.h+15));
  for(const e of m.entities){const tx=Math.floor(e.x/T),ty=Math.floor(e.y/T);if(BLOCKED.has(m.tiles[ty]?.[tx]))m.tiles[ty][tx]=m.kind==='planet'?TILE.GROUND:TILE.FLOOR;}
- if(m.kind==='planet')restorePlanetAccess(m);
+ if(m.kind==='planet'&&!m.outdoorWarzone)restorePlanetAccess(m);
  addQuestEntities(m,location);
  addPublicGambling(m,location,{reachableTiles,entity,label});
- if(m.kind==='site'){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
+ if(m.kind==='site'||m.outdoorWarzone){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
  return m;
 }
 /** Collision uses a small circular-feeling square footprint below the sprite. */
@@ -1220,11 +1221,11 @@ function drawCombatAim(ctx,person,aim){
 }
 function drawCombatEffects(ctx,effects,emit){
  for(const effect of effects){
-  const age=effect.age||0,progress=effect.progress||0,color=effect.team==='hostile'?'#efa58b':effect.team==='friendly'?'#9bdedb':'#f3df9e',to=effect.to;
+  const age=effect.age||0,progress=effect.progress||0,color=effect.weaponId==='warzone-marksman'?'#b8ccf1':effect.weaponId==='warzone-support'?'#a5cfb7':effect.team==='hostile'?'#efa58b':effect.team==='friendly'?'#9bdedb':'#f3df9e',to=effect.to;
   if(!to||!Number.isFinite(to.x)||!Number.isFinite(to.y))continue;
   if(effect.kind==='shot'&&effect.from){
    const from=effect.from,angle=Math.atan2(to.y-from.y,to.x-from.x),dx=Math.cos(angle),dy=Math.sin(angle),distance=Math.hypot(to.x-from.x,to.y-from.y),offset=Math.min(20,distance),sx=from.x+dx*offset,sy=from.y-11+dy*offset,tx=to.x,ty=to.y-11;
-   ctx.globalAlpha=Math.max(.14,1-progress)*.38;pixelLine(ctx,sx,sy,tx,ty,color,3);ctx.globalAlpha=Math.max(.25,1-progress);pixelLine(ctx,sx,sy,tx,ty,'#fff0ce');
+   ctx.globalAlpha=Math.max(.14,1-progress)*.38;pixelLine(ctx,sx,sy,tx,ty,color,effect.weaponId==='warzone-support'?4:effect.weaponId==='warzone-marksman'?2:3);ctx.globalAlpha=Math.max(.25,1-progress);pixelLine(ctx,sx,sy,tx,ty,'#fff0ce');
    if(age<.13){pixel(ctx,color,sx-3,sy-3,7,7);pixel(ctx,'#fff5da',sx-2,sy-2,4,4);pixel(ctx,color,sx+dx*5-1,sy+dy*5-1,3,3);}
    const burst=3+Math.floor(progress*7);for(let i=0;i<4;i++){const a=angle+i*Math.PI/2;pixel(ctx,color,tx+Math.cos(a)*burst,ty+Math.sin(a)*burst,2,2);}ctx.globalAlpha=1;
   }else if(effect.kind==='hit'){
@@ -1278,7 +1279,7 @@ function drawBellwetherTell(ctx,actor,layout){
 function drawInfantryTell(ctx,actor,layout){
  if(actor.attackKind!=='ranged'||actor.health<=0||!(actor.windup>0)||!layout)return;
  const angle=actor.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle);
- const aim=sidearmAim(actor,[],{aiming:true,aimX:dx,aimY:dy},layout),length=Math.hypot(aim.to.x-actor.x,aim.to.y-actor.y);
+ const aim=sidearmAim(actor,[],{aiming:true,aimX:dx,aimY:dy},layout);let length=Math.hypot(aim.to.x-actor.x,aim.to.y-actor.y);if(actor.warzoneUnit){length=0;for(let d=3;d<=actor.range;d+=3){if(!isCabinWalkable(layout,actor.x+dx*d,actor.y+dy*d,1))break;length=d;}}
  for(let d=16;d<length;d+=14)pixelLine(ctx,actor.x+dx*d,actor.y+dy*d,actor.x+dx*Math.min(d+7,length),actor.y+dy*Math.min(d+7,length),actor.warzoneUnit&&actor.team!=='hostile'?actor.stripeColor:'#bd7968',1);
  pixel(ctx,'#f2c98b',actor.x-2,actor.y-36,4,6);pixel(ctx,'#f2c98b',actor.x-1,actor.y-28,2,2);
 }
@@ -1459,12 +1460,12 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});if(a.warzoneUnit&&a.health>0){pixel(ctx,a.stripeColor||'#c9cfba',a.x-7,a.y-23,3,a.role==='leader'?6:3);if(a.role==='medic'){pixel(ctx,'#d6ded0',a.x+4,a.y-22,5,2);pixel(ctx,'#d6ded0',a.x+5,a.y-23,2,5);}if((a.healUntil||0)>combatTime){pixel(ctx,'#b8d9ad',a.x-2,a.y-37,5,2);pixel(ctx,'#b8d9ad',a.x-1,a.y-39,2,6);}}actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:!a.warzoneUnit&&(combatActive||a.weaponDrawn||a.team==='hostile'),color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});drawWarzoneInfantryKit(ctx,{...a,...cues},combatTime);actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
  drawNeonRain(ctx,surface,{cameraX,cameraY,width,height,time,reduceMotion:options.reduceMotion});
- if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
+ if(surface.kind==='site'||surface.outdoorWarzone)drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
  drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'air'});
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){

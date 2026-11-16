@@ -13,6 +13,33 @@ export const WARZONE_FACTION_STYLE = Object.freeze({
   cinder: Object.freeze({ name: 'Cinder Clans', short: 'CINDER', color: '#c19a89', hull: '#b1a39b', stripe: 'bar', prefix: 'Clan' })
 });
 
+// Combat geometry uses the same local coordinates as the exterior art: +x is
+// the bow and +y is starboard. These are muzzle tips, not decorative hull dots.
+const frozenTactics = value => Object.freeze({ ...value,
+  batteries: Object.freeze(value.batteries.map(bank => Object.freeze({ ...bank, muzzles: Object.freeze(bank.muzzles.map(point => Object.freeze(point))) }))),
+  hangars: Object.freeze((value.hangars || []).map(bay => Object.freeze(bay))) });
+const broadside = (id, points) => ({ id, angle: id === 'port' ? -Math.PI / 2 : Math.PI / 2, arc: .66, muzzles: points, kind: 'cannon' });
+const pairedSides = (xs, ys) => [broadside('port', xs.map((x, i) => [x, -ys[i]])), broadside('starboard', xs.map((x, i) => [x, ys[i]]))];
+export const WARZONE_HULL_TACTICS = Object.freeze({
+  capital: frozenTactics({ batteries: pairedSides([-62, -16, 39, 82], [52, 42, 32, 16]), fighterCapacity: 6,
+    hangars: [{ id: 'port', x: -44, y: -48, angle: -Math.PI / 2 }, { id: 'starboard', x: -44, y: 48, angle: Math.PI / 2 }] }),
+  judicator: frozenTactics({ batteries: pairedSides([-170, -95, -15, 65], [112, 91, 66, 42]), fighterCapacity: 4,
+    hangars: [{ id: 'port', x: -185, y: -96, angle: -Math.PI / 2 }, { id: 'starboard', x: -185, y: 96, angle: Math.PI / 2 }] }),
+  confluence: frozenTactics({ batteries: [broadside('port', [[-145, -66], [-60, -90], [30, -94], [115, -68]]), broadside('starboard', [[-145, 68], [-60, 98], [30, 90], [115, 72]])], fighterCapacity: 4,
+    hangars: [{ id: 'port', x: -151, y: -65, angle: -Math.PI / 2 }, { id: 'starboard', x: -151, y: 61, angle: Math.PI / 2 }] }),
+  ark: frozenTactics({ batteries: [broadside('port', [[-125, -75], [-45, -72], [55, -36], [155, -63]]), broadside('starboard', [[-125, 80], [-45, 85], [55, 78], [155, 63]])], fighterCapacity: 6,
+    hangars: [{ id: 'port', x: -65, y: -88, angle: -Math.PI / 2 }, { id: 'starboard', x: -45, y: 85, angle: Math.PI / 2 }] }),
+  frigate: frozenTactics({ batteries: pairedSides([-29, 25], [31, 27]) }),
+  bulwark: frozenTactics({ batteries: pairedSides([-32, 31], [44, 38]) }),
+  needle: frozenTactics({ batteries: [{ id: 'forward', angle: 0, arc: .23, muzzles: [[14, -8], [14, 8]], kind: 'fighter' }] }),
+  kite: frozenTactics({ batteries: [{ id: 'forward', angle: 0, arc: .25, muzzles: [[22, -24], [22, 24]], kind: 'fighter' }] })
+});
+
+export const WARZONE_FACTION_HULLS = Object.freeze({
+  freewake: Object.freeze({ fighter: 'needle', carrier: 'capital', line: 'judicator' }),
+  meridian: Object.freeze({ fighter: 'kite', carrier: 'ark', line: 'confluence' })
+});
+
 /** Territorial anchors are authored places, rather than scattered generated claims. */
 export function nearestWarzoneFactions(galaxy = [], point = CROSSWIND_POSITION) {
   const closest = new Map();

@@ -1,5 +1,5 @@
 import {pixelRect,pixelLine,pixelRing,labelSink} from './pixel-art.mjs';
-import {resolveCabinClass} from './interior-layouts.mjs';
+import {resolveCabinClass,FACTION_HULL_OUTLINES} from './interior-layouts.mjs';
 import {getShipClass} from './fleet.mjs';
 import {beginPixelFrame,pixelCamera,worldToCanvas,canvasToWorld} from './render-viewport.mjs';
 import {normalizeShipZoom} from './camera-view.mjs';
@@ -8,7 +8,7 @@ import {portProfile} from './port-traffic.mjs';
 import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
 import {stationTypeFor,planetTypeFor,systemTypeFor} from './world-types.mjs';
 import {stationPlan,planetTerrainSample} from './place-geometry.mjs';
-import {WARZONE_FACTION_STYLE} from './warzone-content.mjs';
+import {WARZONE_FACTION_STYLE,WARZONE_HULL_TACTICS} from './warzone-content.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Chart coverage follows the system extent; ship and world sprites keep their
 // physical size, so more space never silently zooms out the flight camera.
@@ -21,6 +21,7 @@ function polygon(ctx,points,color){
  const min=Math.floor(Math.min(...points.map(p=>p[1]))),max=Math.ceil(Math.max(...points.map(p=>p[1])));ctx.fillStyle=color;
  for(let y=min;y<=max;y++){const hits=[];for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y))hits.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1]));}hits.sort((a,b)=>a-b);for(let i=0;i<hits.length;i+=2)if(hits[i+1]!==undefined)ctx.fillRect(Math.round(hits[i]),y,Math.max(1,Math.round(hits[i+1]-hits[i])),1);}
 }
+function lobe(ctx,x,y,rx,ry,color){polygon(ctx,Array.from({length:16},(_,i)=>{const a=i/16*TAU;return[x+Math.cos(a)*rx,y+Math.sin(a)*ry];}),color);}
 export const SHIP_VISUALS={
  sparrow:{length:64,width:42,thrusters:[[-30,-14],[-30,14]]},
  hauler:{length:104,width:66,thrusters:[[-50,-21],[-50,0],[-50,21]]},
@@ -41,7 +42,11 @@ export const SHIP_VISUALS={
  puffin:{length:124,width:78,thrusters:[[-60,-24],[-58,0],[-60,24]]},
  osprey:{length:166,width:94,thrusters:[[-80,-24],[-77,-8],[-77,8],[-80,24]]},
  leviathan:{length:330,width:176,thrusters:[[-162,-55],[-159,-28],[-157,0],[-159,28],[-162,55]]},
- judicator:{length:500,width:280,thrusters:[[-247,-96],[-247,-64],[-247,-32],[-247,0],[-247,32],[-247,64],[-247,96]]}
+ judicator:{length:500,width:280,thrusters:[[-247,-96],[-247,-64],[-247,-32],[-247,0],[-247,32],[-247,64],[-247,96]]},
+ needle:{length:52,width:50,thrusters:[[-17,-4],[-17,4]]},
+ kite:{length:70,width:66,thrusters:[[-31,-23],[-23,-11],[-23,11],[-31,23]]},
+ confluence:{length:440,width:216,thrusters:[[-213,-34],[-217,-12],[-217,12],[-211,34]]},
+ ark:{length:400,width:196,thrusters:[[-197,-22],[-199,-7],[-199,8],[-195,24],[-164,57]]}
 };
 const palettes={temperate:['#193d48','#2f6d70','#598f7d','#b5b982','#c4d1bd'],earth:['#183e56','#2b6d79','#5e956f','#a7b88b','#d5ddcb'],forest:['#173e42','#356b56','#6a8b58','#a7a16c','#c5caa6'],garden:['#183e46','#3c7772','#6b9f75','#a8b787','#d7dbc2'],arid:['#674a3b','#a07554','#c29e70','#dec59b','#f0dcbd'],desert:['#694a3c','#a37652','#c79e69','#d7b77e','#ebd2a7'],ice:['#244056','#4c788a','#83afbc','#c4d6d6','#edf2e4'],ocean:['#183d59','#2b6581','#5c96a1','#84aea2','#d6e0cc'],volcanic:['#342e39','#5e4042','#8c5545','#c47851','#e8ac6d'],industrial:['#34343b','#61545a','#8a7a71','#b59f7e','#d2c6a3'],ruin:['#343f42','#62766c','#8b9b82','#b4b59a','#d1d2b8'],barren:['#343b47','#58616b','#7d8990','#a3ada8','#d1d4c2'],station:['#233b4a','#385560','#718d8e','#a4b4a5','#d9d6b4']};
 const shipCache=new Map(),workCanvases=new Map(),stationCache=new Map();
@@ -232,6 +237,78 @@ function hullSprite(shipClass,color,damage=0){
   p('#294653',-76,-19,88,38);p('#698891',-71,-15,77,30);p('#b7c7b5',-67,-15,69,3);p('#203f4c',-38,-9,38,18);p('#8ec6c9',-34,-6,29,12);p('#d3e4cb',-31,-6,22,2);
   p('#7e918a',-143,-52,19,104);for(const y of[-53,-27,-1,25,51]){p('#19313f',-163,y-8,21,16);p('#4c6873',-156,y-5,11,10);p('#8da9a7',-151,y-4,4,8);}
   for(const y of[-64,57])for(let x=-117;x<-24;x+=15){p('#334f59',x,y,10,5);p('#bdd1b4',x+2,y+1,5,2);}p('#ad986d',3,-12,14,24);p('#554b38',6,-9,3,18);p('#554b38',12,-9,2,18);
+ }else if(shipClass==='needle'){
+  // A compact pressure pod hangs between two long radiator foils. The gaps,
+  // cross-struts, and paired chin barrels keep the little interceptor readable.
+  polygon(ctx,FACTION_HULL_OUTLINES.needle,dark);
+  for(const side of[-1,1]){
+   const y=side*21;polygon(ctx,[[-24,y-2],[-19,y-4],[19,y-4],[24,y],[19,y+3],[-20,y+3]],shade);
+   pixelLine(ctx,-21,y-3,19,y-3,light,2);pixelLine(ctx,-22,y+2,20,y+2,edge,2);
+   for(let xx=-16;xx<21;xx+=7){pixelLine(ctx,xx,y-2,xx+2,y+2,'#243f49',2);p('#9cbab0',xx,y-3,2,1);}
+   p('#506c73',-5,side<0?-18:7,10,11);p('#aabcb0',-3,side<0?-17:8,3,9);
+   p('#6d8b8d',4,side*8-2,11,4);p('#e0d3a8',11,side*8-1,6,2);
+  }
+  lobe(ctx,0,0,18,10,'#29434f');lobe(ctx,0,-1,14,8,color);lobe(ctx,3,-1,9,6,'#264957');
+  p('#7cc6ca',2,-5,8,8);p('#cce9d7',3,-5,5,2);p('#527b87',7,-3,3,4);pixelLine(ctx,-10,-5,-3,-7,light,2);
+  p('#859c9a',-15,-4,6,8);p('#304e5a',-17,-4,3,8);p('#89b8a7',-5,-2,4,3);
+ }else if(shipClass==='kite'){
+  // Four separated swept foils frame a long pressure pod. Their dark roots and
+  // two forward tips distinguish the striker from the Union's panel fighter.
+  polygon(ctx,FACTION_HULL_OUTLINES.kite,dark);
+  for(const side of[-1,1]){
+   polygon(ctx,[[-33,side*22],[-28,side*29],[-10,side*14],[7,side*9],[-5,side*8],[-21,side*13]],shade);
+   pixelLine(ctx,-29,side*23,-9,side*12,light,3);pixelLine(ctx,-26,side*26,-12,side*16,color,3);
+   polygon(ctx,[[4,side*9],[18,side*25],[24,side*31],[25,side*27],[20,side*16],[12,side*7]],color);
+   pixelLine(ctx,9,side*10,23,side*27,light,2);p('#826e54',15,side*20-2,9,4);
+   pixelLine(ctx,17,side*24,28,side*24,'#c9ccb6',2);p('#f1ddad',22,side*24-1,5,2);
+   for(const [xx,yy]of[[-29,side*22],[-21,side*10]]){p('#24414e',xx-3,yy-4,12,8);p('#9caca5',xx,yy-3,8,6);p('#d3d0ae',xx,yy-3,7,2);p('#355e70',xx-2,yy-2,3,4);}
+  }
+  polygon(ctx,[[-24,-4],[-14,-8],[6,-7],[33,-2],[35,0],[33,2],[6,7],[-14,8],[-24,4]],edge);
+  polygon(ctx,[[-19,-4],[-10,-6],[7,-5],[30,-1],[30,1],[6,4],[-14,5],[-19,3]],color);
+  pixelLine(ctx,-12,-5,25,-2,light,2);p('#254450',-2,-4,14,8);p('#83bfc3',1,-3,9,5);p('#d4e2c8',2,-3,7,1);
+  p('#c7ad7b',-12,-3,6,6);pixelLine(ctx,14,0,31,0,'#c6c9ad',1);
+ }else if(shipClass==='confluence'){
+  // Overlapping rounded habitat lobes replace the opposing fleet's armored
+  // wedge: light roofs, deep seams, and irregular pods form an original cruiser.
+  polygon(ctx,FACTION_HULL_OUTLINES.confluence,dark);
+  polygon(ctx,FACTION_HULL_OUTLINES.confluence.map(([xx,yy])=>[xx*.974,yy*.94]),shade);
+  lobe(ctx,-8,0,203,55,color);lobe(ctx,-12,-9,189,41,mix(color,1.05));
+  for(const [xx,yy,rx,ry]of[[-86,-51,77,37],[15,-70,60,31],[-60,67,71,35],[70,48,62,31],[134,-20,56,28]]){
+   lobe(ctx,xx,yy,rx,ry,'#465b5f');lobe(ctx,xx,yy-3,rx-4,ry-4,color);lobe(ctx,xx-3,yy-7,rx-11,ry-9,mix(color,1.11));
+   pixelLine(ctx,xx-rx*.5,yy-ry*.5,xx+rx*.42,yy-ry*.5,'#d0d0b9',2);
+   for(let offset=-rx*.6;offset<rx*.6;offset+=17){p('#586f6e',xx+offset,yy+ry*.3,8,3);p('#b9c8b6',xx+offset+1,yy+ry*.3,5,1);}
+  }
+  lobe(ctx,167,0,45,28,mix(color,1.03));lobe(ctx,165,-2,32,18,'#7e9690');pixelLine(ctx,147,-12,186,-9,'#c8d1bd',2);
+  lobe(ctx,-28,-3,74,31,'#4f696d');lobe(ctx,-28,-7,64,23,'#90a69e');lobe(ctx,-20,-9,41,14,'#c0c5ae');
+  p('#294b56',-45,-16,49,13);p('#8bc2c4',-41,-14,40,7);p('#d3e2c8',-38,-14,31,2);for(let xx=-32;xx<0;xx+=12)p('#4d7a81',xx,-14,2,7);
+  for(const [xx,yy]of[[-172,-22],[-137,17],[47,-33],[74,20],[131,20]]){lobe(ctx,xx,yy,13,8,'#425d64');lobe(ctx,xx-1,yy-2,9,5,'#abb8a5');p('#d8d2ac',xx-4,yy-4,6,2);}
+  for(const side of[-1,1]){pixelLine(ctx,-163,side*43,-108,side*43,'#58736f',3);pixelLine(ctx,45,side*23,129,side*23,'#6c837a',2);for(let xx=-150;xx<130;xx+=21)p('#d8d9bc',xx,side*20,5,2);}
+  for(const [xx,yy]of getShipClass(shipClass).systems.pulseMuzzles){p('#304a54',xx-11,yy-4,13,8);p('#acb9a7',xx-8,yy-3,9,5);p('#d0c3a0',xx-1,yy-1,9,2);}
+  for(const [xx,yy]of SHIP_VISUALS.confluence.thrusters){lobe(ctx,xx+7,yy,13,10,'#344e5d');p('#71909a',xx-1,yy-7,14,14);p('#274d63',xx-3,yy-5,10,10);p('#95bbbf',xx+2,yy-4,3,8);}
+ }else if(shipClass==='ark'){
+  // An off-center flight deck, squared command prow, and exposed long spine
+  // make the carrier legible beside both a rounded cruiser and a wedge destroyer.
+  polygon(ctx,FACTION_HULL_OUTLINES.ark,dark);
+  polygon(ctx,FACTION_HULL_OUTLINES.ark.map(([xx,yy])=>[xx*.974,yy*.94]),shade);
+  polygon(ctx,[[-190,-28],[-144,-35],[126,-26],[176,-15],[183,17],[124,29],[-145,35],[-190,26]],color);
+  pixelLine(ctx,-174,-28,125,-22,light,3);pixelLine(ctx,-178,28,121,25,edge,3);
+  polygon(ctx,[[-148,-74],[-113,-92],[-18,-92],[19,-73],[22,-49],[-141,-50]],'#546b6d');
+  polygon(ctx,[[-141,-72],[-111,-86],[-20,-86],[12,-71],[13,-55],[-136,-55]],color);
+  pixelLine(ctx,-110,-86,-21,-86,light,3);p('#263f4a',-118,-77,104,19);p('#162f3b',-113,-74,94,12);
+  for(let xx=-107;xx<-18;xx+=16){p('#859c97',xx,-74,3,12);p('#d1be8d',xx+5,-72,6,2);}
+  polygon(ctx,[[-159,52],[83,48],[78,80],[47,91],[-133,86],[-158,69]],color);
+  pixelLine(ctx,-151,53,75,51,light,3);p('#49636a',-139,61,188,20);p('#213c49',-129,65,170,11);
+  for(let xx=-123;xx<40;xx+=18){p('#879f98',xx,64,3,13);p('#c8cba9',xx+5,67,7,2);}
+  for(const [xx,yy]of[[-94,81],[-43,82],[10,81],[-70,-87],[-26,-87]]){p('#8b9d90',xx,yy,26,4);p('#bdc2a5',xx+2,yy,21,1);}
+  polygon(ctx,[[144,-62],[179,-67],[193,-50],[193,51],[178,67],[145,61],[135,25],[135,-26]],'#4c646b');
+  polygon(ctx,[[149,-55],[177,-60],[186,-47],[186,48],[177,60],[150,54],[142,24],[142,-25]],color);
+  p('#b7c4ae',147,-48,35,4);p('#294a58',154,-35,21,69);p('#85bfc4',159,-31,11,60);p('#d4e1c6',159,-30,3,56);
+  for(const yy of[-21,-6,9,24])p('#477481',159,yy,11,3);
+  p('#3b5662',-143,-20,223,40);p('#82998e',-136,-16,206,32);p('#c6cbb0',-131,-16,196,3);
+  for(let xx=-119;xx<70;xx+=31){p('#29434e',xx,-9,21,18);p('#667f83',xx+2,-7,17,14);p('#a9b5a3',xx+4,-7,12,2);}
+  p('#acac8c',87,-14,37,28);p('#697d75',91,-10,29,20);p('#d5c18b',94,-7,20,3);
+  for(const [xx,yy]of getShipClass(shipClass).systems.pulseMuzzles){p('#304b57',xx-10,yy-5,14,10);p('#b9c4b1',xx-7,yy-3,12,6);p('#ddd0a7',xx,yy-1,11,2);}
+  for(const [xx,yy]of SHIP_VISUALS.ark.thrusters){p('#294959',xx-1,yy-6,20,12);p('#7c98a0',xx+3,yy-5,13,10);p('#3d7187',xx,yy-3,8,6);p('#adccca',xx+5,yy-2,3,4);}
  }else if(shipClass==='judicator'){
   // An armored line destroyer, drawn at its native 500-pixel length. Stepped
   // superstructure and a recessed seven-engine stern give the wedge real scale.
@@ -282,11 +359,102 @@ function hullSprite(shipClass,color,damage=0){
   for(const[x,y]of SHIP_VISUALS.capital.thrusters)p('#132e3e',x-3,y-4,9,8);
  }
  // Readable habitation windows and a docking hatch distinguish crew hulls from fighters.
+ if(shipClass!=='needle'&&shipClass!=='kite'){
  const berths=getShipClass(shipClass).berths,windows=Math.ceil(berths/2),spacing=shipClass==='sparrow'?8:Math.min(16,profile.length*.075),start=shipClass==='mender'?-24:-profile.length*.29;
  for(let i=0;i<windows;i++)for(const side of[-1,1]){const x=start+i*spacing,y=side*profile.width*.19;p('#19313e',x-1,y-1,5,4);p('#b9d7c7',x,y,3,2);}
  const hatchX=-profile.length*.12,hatchY=profile.width*.28;p('#112d3a',hatchX-5,hatchY-4,10,8);p('#94a9a6',hatchX-4,hatchY-3,8,6);p('#294a57',hatchX-2,hatchY-2,4,4);p('#d8c18b',hatchX-5,hatchY-4,3,2);p('#d8c18b',hatchX+2,hatchY+2,3,2);
+ }
  if(damage>.2){const r=random(hash(key));for(let i=0;i<Math.floor(damage*14);i++){const x=(r()-.5)*profile.length*.65,y=(r()-.5)*profile.width*.45;p('#273c43',x,y,5+r()*8,2+r()*4);if(damage>.6)p('#c8916f',x+1,y,2,1);}}
  const sprite={canvas:c,length:profile.length,width:profile.width};shipCache.set(key,sprite);if(shipCache.size>120)shipCache.delete(shipCache.keys().next().value);return sprite;
+}
+function warzoneHullEquipment(ctx,shipClass,ox,oy){
+ const tactics=WARZONE_HULL_TACTICS[shipClass];if(!tactics)return;
+ for(const bank of tactics.batteries||[]){
+  const large=bank.kind==='cannon',length=large?12:7,c=Math.cos(bank.angle),s=Math.sin(bank.angle);
+  for(const [x,y]of bank.muzzles){
+   const tip={x:ox+x,y:oy+y},base={x:tip.x-c*length,y:tip.y-s*length};
+   pixelRect(ctx,'#19333f',base.x-(large?5:2),base.y-(large?5:2),large?10:4,large?10:4);
+   pixelRect(ctx,'#7b9291',base.x-(large?4:1),base.y-(large?4:1),large?8:3,large?7:3);
+   pixelLine(ctx,base.x,base.y,tip.x,tip.y,'#d4c8a7',large?3:2);
+   pixelLine(ctx,tip.x-c*2,tip.y-s*2,tip.x,tip.y,'#edf0cf',1);
+  }
+ }
+ for(const bay of tactics.hangars||[]){
+  ctx.save();ctx.translate(ox+bay.x,oy+bay.y);ctx.rotate(bay.angle);
+  pixelRect(ctx,'#101f2b',-14,-10,15,20);pixelRect(ctx,'#4c6269',-15,-12,18,3);pixelRect(ctx,'#4c6269',-15,9,18,3);
+  for(const y of[-7,-1,5]){pixelRect(ctx,'#718e8d',-13,y,3,3);pixelRect(ctx,'#d6c690',-3,y,3,2);}
+  pixelRect(ctx,'#7eb6b8',0,-8,2,16);ctx.restore();
+ }
+}
+
+/** Render only an observed muzzle, in world-projected coordinates. The battery
+ * direction comes from the shot; no renderer-side aiming or random flash exists. */
+export function drawBatteryFlash(ctx,x,y,angle=0,scale=1,{kind='cannon',motion=true}={}){
+ const unit=Math.max(.6,scale),large=kind==='cannon',length=(large?21:9)*unit,width=(large?5:2)*unit,c=Math.cos(angle),s=Math.sin(angle);
+ ctx.save();ctx.globalAlpha=motion?.88:.5;
+ pixelLine(ctx,x-c*unit,y-s*unit,x+c*length,y+s*length,large?'#c28e62':'#c8bb87',Math.max(1,width));
+ pixelLine(ctx,x,y,x+c*length*.68,y+s*length*.68,motion?'#fff0cc':'#d8cfab',Math.max(1,width*.45));
+ if(large){pixelLine(ctx,x+c*5*unit-s*6*unit,y+s*5*unit+c*6*unit,x+c*9*unit+s*6*unit,y+s*9*unit-c*6*unit,'#e6c18e',Math.max(1,unit));}
+ ctx.restore();
+}
+
+/** Read-only, deterministic battle effects. The authority owns the short bounded
+ * list and its clock; drawing never advances a seed, spawns an effect, or edits it. */
+export function drawWarzoneEffect(ctx,effect,{x=effect.x,y=effect.y,clock=0,zoom=1,rasterScale=1,motion=true}={}){
+ const at=Number(effect.at)||0,span=Math.max(.01,(Number(effect.until)||at+.01)-at),age=(clock-at)/span;
+ if(age<0||age>=1||![x,y,zoom,rasterScale].every(Number.isFinite))return false;
+ const r=Math.max(.5,rasterScale),progress=motion?clamp(age,0,1):.43,fade=1-progress,
+  size=clamp((Number(effect.size)||36)*Math.max(.01,zoom),6*r,260*r),color=WARZONE_FACTION_STYLE[effect.faction]?.color||'#a5bcb4',
+  seed=Number.isFinite(effect.seed)?effect.seed:hash(`${effect.id||effect.kind}:${effect.x}:${effect.y}:${at}`),rng=random(seed),angle=Number(effect.angle)||0;
+ ctx.save();
+ if(effect.kind==='warp-in'||effect.kind==='warp-out'){
+  const radius=size*(.2+progress*.45);ctx.globalAlpha=fade*.7;
+  pixelRing(ctx,x,y,radius*.33,radius,color,{step:2*r,width:r,dashed:true,phase:motion?progress*12:0});
+  pixelLine(ctx,x-radius*.65,y,x+radius*.65,y,'#cfdfd3',Math.max(r,2*r*fade));
+ }else if(effect.kind==='fighter-launch'||effect.kind==='fighter-recovery'){
+  const c=Math.cos(angle),s=Math.sin(angle),length=clamp(size*.8,12*r,48*r),direction=effect.kind==='fighter-recovery'?-1:1,travel=length*(motion?progress:.35)*direction;
+  ctx.globalAlpha=fade*.65;pixelLine(ctx,x-c*5*r-s*7*r,y-s*5*r+c*7*r,x-c*5*r+s*7*r,y-s*5*r-c*7*r,color,r);
+  pixelLine(ctx,x,y,x+c*travel,y+s*travel,color,2*r);
+  pixelLine(ctx,x+c*travel*.55,y+s*travel*.55,x+c*travel,y+s*travel,'#d9e9d7',r);
+  for(let i=0;i<3;i++){const offset=(i+1)*length*.17,side=(i%2?1:-1)*3*r;pixelRect(ctx,'#86c1bd',x+c*(travel-offset*direction)-s*side,y+s*(travel-offset*direction)+c*side,r,r);}
+ }else{
+  const explosion=effect.kind==='explosion',bodySize=explosion?size:Math.min(size,44*r),spread=bodySize*(.12+Math.sqrt(progress)*.68),
+   driftX=clamp((Number(effect.vx)||0)*span*progress*zoom*.12,-size*.3,size*.3),driftY=clamp((Number(effect.vy)||0)*span*progress*zoom*.12,-size*.3,size*.3),cx=x+driftX,cy=y+driftY;
+  // Dark expanding vapor sits behind the hot core, leaving a readable aftermath
+  // after the white flash has gone. Each hull has an irregular, stable pattern.
+  if(explosion){
+   for(let i=0;i<6;i++){
+    const a=rng()*TAU,reach=(.16+rng()*.38)*spread,rr=bodySize*(.08+rng()*.075)*(.45+progress*1.8),aspect=.58+rng()*.5;
+    ctx.globalAlpha=clamp((progress+.15)*fade*.78,0,.42);
+    lobe(ctx,cx+Math.cos(a)*reach,cy+Math.sin(a)*reach,rr,rr*aspect,i%2?'#263139':'#343133');
+    if(progress<.75){ctx.globalAlpha=fade*.2;lobe(ctx,cx+Math.cos(a)*reach,cy+Math.sin(a)*reach,rr*.7,rr*aspect*.7,'#8c5944');}
+   }
+  }
+  const shock=bodySize*(.18+progress*.78);ctx.globalAlpha=fade*(explosion?.58:.75)*(motion?1:.55);
+  pixelRing(ctx,cx,cy,shock,shock*(explosion?.73:.54),explosion?'#d7a971':color,{step:Math.max(2*r,shock/95),width:r});
+  if(explosion&&progress<.48){ctx.globalAlpha=fade*.25;pixelRing(ctx,cx,cy,shock*.78,shock*.59,'#edd3a4',{step:3*r,width:r});}
+  // Fast flash, orange body, then embers. Reduced motion keeps a muted static
+  // aftermath for the effect lifetime, with no rapidly changing flare or spray.
+  if(motion&&progress<(explosion?.24:.42)){
+   const core=bodySize*(explosion?.2:.28)*(1-progress/(explosion?.24:.42));ctx.globalAlpha=.9;
+   lobe(ctx,cx,cy,Math.max(r,core),Math.max(r,core*.7),'#e9ae6c');
+   lobe(ctx,cx,cy,Math.max(r,core*.57),Math.max(r,core*.42),'#fff1cb');
+   pixelLine(ctx,cx-core*1.5,cy,cx+core*1.5,cy,'#f6d8a0',r);
+  }else if(explosion){ctx.globalAlpha=fade*.5;lobe(ctx,cx,cy,Math.max(r,bodySize*.08*fade),Math.max(r,bodySize*.05*fade),'#b0734d');}
+  const count=explosion?(size>95*r?20:12):7,bias=angle+rng()*1.7;
+  for(let i=0;i<count;i++){
+   const a=bias+i*2.399+(rng()-.5)*.9,reach=spread*(.4+rng()*.9),c=Math.cos(a),s=Math.sin(a),
+    xx=cx+c*reach,yy=cy+s*reach*(.62+rng()*.5),length=(1+rng()*2)*r+bodySize*(explosion?.016:.008)*(.6+rng()),width=Math.max(r,length*(.2+rng()*.2));
+   ctx.globalAlpha=fade*(i%4===0?.9:.65);pixelLine(ctx,xx-c*length*2,yy-s*length*2,xx,yy,'#725546',Math.max(r,width*.6));
+   polygon(ctx,[[xx+c*length,yy+s*length],[xx-c*length-s*width,yy-s*length+c*width],[xx-c*length+s*width,yy-s*length-c*width]],i%4===0?'#d6b47f':i%3===0?'#77908b':'#9e8266');
+   if(i%3===0&&progress<.8){ctx.globalAlpha=fade;pixelRect(ctx,'#f0cd8a',xx+c*length,yy+s*length,r,r);}
+  }
+  if(explosion&&size>90*r){
+   for(let i=0;i<3;i++){const a=angle+(rng()-.5)*2.4,offset=(rng()-.5)*bodySize*.6,phase=progress-(.12+i*.11);if(phase<0||phase>.18)continue;
+    const flare=bodySize*.055*(1-phase/.18);ctx.globalAlpha=(motion?.65:.18)*fade;lobe(ctx,cx+Math.cos(a)*offset,cy+Math.sin(a)*offset,Math.max(r,flare),Math.max(r,flare*.7),'#e5a36b');}
+  }
+ }
+ ctx.restore();return true;
 }
 /** Backward-compatible positional sprite call. options.size is hull length before scale. */
 export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,time=0,boost=false,options={}){
@@ -302,7 +470,8 @@ export function drawShip(ctx,x,y,angle=0,color='#c5d4c9',scale=1,thrust=false,ti
   });
  }
  wc.drawImage(sprite.canvas,Math.round(ox-sprite.canvas.width/2),Math.round(oy-sprite.canvas.height/2));
- if(options.firing){const mounts=getShipClass(shipClass).systems.pulseMuzzles||[[profile.length*.5,0]];for(const [mx,my] of mounts){const front=ox+mx;pixelRect(wc,'#f3e2b1',front+3,oy+my-2,7,4);pixelRect(wc,'#c8a568',front+11,oy+my-1,4,2);}}
+ if(options.warzone||getShipClass(shipClass).military)warzoneHullEquipment(wc,shipClass,ox,oy);
+ if(options.firing&&!options.warzone){const mounts=getShipClass(shipClass).systems.pulseMuzzles||[[profile.length*.5,0]];for(const [mx,my] of mounts){const front=ox+mx;pixelRect(wc,'#f3e2b1',front+3,oy+my-2,7,4);pixelRect(wc,'#c8a568',front+11,oy+my-1,4,2);}}
  if(options.disabled){for(let i=0;i<3;i++){const xx=ox-profile.length*.2+i*9;pixelRect(wc,'#d7a575',xx,oy+Math.sin(time+i)*5,2,2);}}
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));ctx.rotate(angle);ctx.scale(factor,factor);ctx.drawImage(work,-work.width/2,-work.height/2);ctx.restore();
  return{length:profile.length*factor,width:profile.width*factor};
@@ -454,15 +623,9 @@ export class SpaceRenderer{
   if(warzone){
    if(zoomMultiplier<=.45&&!welcome)for(const sector of warzone.sectors||[]){const p=to(sector.x,sector.y);if(!visible(p,50*r))continue;ctx.globalAlpha=.35;pixelRing(ctx,p.x,p.y,26*r,18*r,'#a99f87',{...ring,dashed:true});ctx.globalAlpha=1;emit(sector.name,p.x,p.y+31*r,'#9baaa8',12,'center',18,'battlefront');}
    for(const effect of (warzone.effects||[]).slice(-48)){
-    const p=to(effect.x,effect.y),span=Math.max(.01,effect.until-effect.at),progress=motion?clamp((warzone.clock-effect.at)/span,0,1):.35;
-    const size=Math.max(4*r,Math.min(170*r,(effect.size||30)*z)),radius=size*(effect.kind==='explosion'?.24+progress*.65:.2+progress*.45);
-    if(progress>=1||!visible(p,radius+8*r))continue;const color=WARZONE_FACTION_STYLE[effect.faction]?.color||'#a5bcb4';ctx.globalAlpha=(1-progress)*.7;
-    if(effect.kind==='warp-in'||effect.kind==='warp-out'){
-     pixelRing(ctx,p.x,p.y,radius*.33,radius,color,{...ring,dashed:true,phase:progress*12});pixelLine(ctx,p.x-radius*.65,p.y,p.x+radius*.65,p.y,'#cfdfd3',Math.max(r,2*r*(1-progress)));
-    }else{
-     pixelRing(ctx,p.x,p.y,radius,radius*.82,effect.kind==='explosion'?'#d5ab78':color,ring);
-     const seed=hash(effect.id);for(let i=0;i<(effect.kind==='explosion'?9:4);i++){const angle=seed%53+i*2.399,d=radius*(.55+(i%3)*.18);pixelRect(ctx,i%2?'#dec292':'#ad8f72',p.x+Math.cos(angle)*d,p.y+Math.sin(angle)*d,Math.max(r,3*r*(1-progress)),2*r);}
-    }ctx.globalAlpha=1;
+    const p=to(effect.x,effect.y),radius=clamp((effect.size||36)*z,6*r,260*r)*1.35+12*r;
+    if(!visible(p,radius))continue;
+    drawWarzoneEffect(ctx,effect,{x:p.x,y:p.y,clock:warzone.clock,zoom:z,rasterScale:r,motion});
    }
   }
   // A boarding party leaves two physical hulls in the system. Draw their tether
@@ -482,8 +645,14 @@ export class SpaceRenderer{
    const data=normalizeShip(v),kind=resolveCabinClass(data.shipClass),pr=SHIP_VISUALS[kind],p=to(data.x,data.y),length=(data.renderLength||pr.length)*z;if(!visible(p,length))return;
    const fleetStyle=data.warzone?warzoneVesselPresentation(data,warzoneViewer):null,hull=data.hull??data.hp??100,maxHull=data.maxHull??data.maxHp??100,disabled=data.disabled||data.disabledUntil>combatTime,speed=Math.hypot(data.vx||0,data.vy||0),hostile=fleetStyle?fleetStyle.hostile:(enemy||data.hostile===true)&&data.hostile!==false&&!data.capturedBy,col=self?'#c6d5c8':data.color|| (hostile?'#bb8d7b':remote||parked?'#9bbdc3':'#889fa8');
    if(hull<=0||data.dead)return;
-   drawShip(ctx,p.x,p.y,data.angle||0,col,z,speed>(traffic?4:10),motion?time:0,data.boosting||data.boost,{shipClass:kind,size:data.renderLength,damage:1-hull/maxHull,disabled,thrusters:data.thrusters,firing:(data.lastShot?.until||0)>(data.warzone?warzone?.clock??combatTime:combatTime)});
+   const shotClock=data.warzone||data.lastShot?.clock==='warzone'?warzone?.clock??Infinity:combatTime,hasMuzzles=Array.isArray(data.lastShot?.muzzles);
+   drawShip(ctx,p.x,p.y,data.angle||0,col,z,speed>(traffic?4:10),motion?time:0,data.boosting||data.boost,{shipClass:kind,size:data.renderLength,damage:1-hull/maxHull,disabled,thrusters:data.thrusters,warzone:!!data.warzone,firing:!hasMuzzles&&(data.lastShot?.until||0)>shotClock});
    if(fleetStyle)fleetMarking(ctx,data,p,z,r,fleetStyle);
+   if(hasMuzzles)for(const muzzle of data.lastShot.muzzles.slice(0,8)){
+    if((muzzle.until??data.lastShot.until??0)<=shotClock||![muzzle.x,muzzle.y].every(Number.isFinite))continue;
+    const at=to(muzzle.x,muzzle.y),kind=WARZONE_HULL_TACTICS[data.classId]?.batteries?.find(bank=>bank.id===(muzzle.bankId||data.lastShot.bankId))?.kind||'pulse';
+    drawBatteryFlash(ctx,at.x,at.y,muzzle.angle??data.lastShot.angle??data.angle,z,{kind,motion});
+   }
    if((data.shield||0)>0&&(self||data.shieldHitUntil>combatTime)){ctx.globalAlpha=data.shieldHitUntil>combatTime?.55:.15;pixelRing(ctx,p.x,p.y,length*.57,(data.renderWidth||pr.width)*z*.68,'#8bced5',ring);ctx.globalAlpha=1;}
    // At overview range a small hull stays its true size. Separate brackets and
    // a heading tick identify the contact without exaggerating its collision or
@@ -510,7 +679,12 @@ export class SpaceRenderer{
   for(const e of enemies)paintVessel(e,{enemy:true});
   for(const parked of parkedShips)if(!remoteShips.some(remote=>remote.id===parked.id||remote.ship?.id===parked.id)&&ship.id!==parked.id)paintVessel(parked,{parked:true});
   for(const remote of remoteShips)paintVessel(remote,{remote:true});
-  for(const b of [...(sys.bullets||[]),...(warzone?.projectiles||[])]){const p=to(b.x,b.y);if(!visible(p,12*r))continue;const col=b.color|| (b.owner==='player'||b.friendly?'#eddfaa':'#e8a182'),back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*.018,b.y-(b.vy||Math.sin(b.angle||0)*400)*.018);pixelLine(ctx,p.x,p.y,back.x,back.y,col,clamp((b.radius||3)*z,r,3*r));pixelRect(ctx,'#fff0c6',p.x,p.y,2*r,2*r);}
+  for(const b of [...(sys.bullets||[]),...(warzone?.projectiles||[])]){
+   const p=to(b.x,b.y);if(!visible(p,16*r))continue;
+   const cannon=b.kind==='cannon',tail=cannon?.032:.018,col=b.color||(b.owner==='player'||b.friendly?'#eddfaa':'#e8a182'),back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*tail,b.y-(b.vy||Math.sin(b.angle||0)*400)*tail),width=clamp((b.radius||3)*z,r,(cannon?4:3)*r);
+   if(cannon){ctx.globalAlpha=.3;pixelLine(ctx,p.x,p.y,back.x,back.y,col,width+3*r);ctx.globalAlpha=1;}
+   pixelLine(ctx,p.x,p.y,back.x,back.y,col,width);pixelRect(ctx,cannon?'#fff0cf':'#fff0c6',p.x-r,p.y-r,(cannon?3:2)*r,(cannon?3:2)*r);
+  }
   const sp=to(ship.x,ship.y);let mining=ship.miningTarget||sys.miningTarget||game.miningTarget;if(typeof mining==='string')mining=(sys.asteroids||[]).find(a=>a.id===mining);
   if(mining){const p=to(mining.x,mining.y);ctx.globalAlpha=.35;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#69cdbd',3*r);ctx.globalAlpha=1;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#c9f2d5',r);for(let i=0;i<5;i++){const a=time*13+i*1.3,d=(2+(i*3+time*21)%11)*r;pixelRect(ctx,i%2?'#eedba2':'#a8dbc3',p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,r,r);}}
   paintVessel(ship,{self:true});

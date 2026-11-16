@@ -4,8 +4,8 @@ import { Game } from '../dist/engine.mjs';
 import { getShipClass } from '../dist/fleet.mjs';
 import { systemBodyPosition } from '../dist/system-space.mjs';
 import { bodyVisualRadius } from '../dist/world-types.mjs';
-import { appendWarzoneSystem, nearestWarzoneFactions, CROSSWIND_ARRIVAL, WARZONE_FACTION_STYLE } from '../dist/warzone-content.mjs';
-import { installWarzoneSpace, stepWarzoneSpace, captureWarzoneSpace, catchUpWarzoneSpace, warzoneSpaceView, notifyWarzoneDestroyed, recordWarzoneAggression, warzoneTargetLimit, WARZONE_SPACE_LIMITS } from '../dist/warzone-space.mjs';
+import { appendWarzoneSystem, nearestWarzoneFactions, CROSSWIND_ARRIVAL, WARZONE_FACTION_STYLE, WARZONE_HULL_TACTICS } from '../dist/warzone-content.mjs';
+import { installWarzoneSpace, stepWarzoneSpace, captureWarzoneSpace, catchUpWarzoneSpace, warzoneSpaceView, notifyWarzoneDestroyed, recordWarzoneAggression, warzoneTargetLimit, WARZONE_SPACE_LIMITS, WARZONE_SPACE_VERSION } from '../dist/warzone-space.mjs';
 import { SpaceRenderer, warzoneVesselPresentation } from '../dist/space-art.mjs';
 
 function world(seed='crosswind-test',saved=null){
@@ -44,20 +44,24 @@ test('each fleet starts with 28 real military hulls in four size groups and a me
     for(const ship of ships){const hull=getShipClass(ship.classId);assert.equal(ship.radius,hull.stats.radius);assert.equal(ship.renderLength,hull.stats.renderLength);assert.equal(ship.berths,hull.berths);assert.equal(ship.boardable,hull.berths>=3);assert.equal(ship.reward,0);}
   }
   assert.ok(runtime.enemies.find(ship=>ship.classId==='judicator').renderLength>runtime.enemies.find(ship=>ship.classId==='sparrow').renderLength*7);
+  assert.deepEqual(runtime.enemies.filter(ship=>ship.faction==='freewake'&&ship.warzoneSize==='massive').map(ship=>ship.classId),['capital','judicator']);
+  assert.deepEqual(runtime.enemies.filter(ship=>ship.faction==='meridian'&&ship.warzoneSize==='massive').map(ship=>ship.classId),['ark','confluence']);
   const old={id:'crosswind',enemies:[{id:'random-raider'},{id:'claimed',capturedBy:'captain'},{id:'promoted',canonicalVesselId:'owned'}],traffic:[{id:'commuter'},{id:'occupied',capturedBy:'captain'}]};installWarzoneSpace(old);
   assert.ok(!old.enemies.some(ship=>ship.id==='random-raider'));assert.ok(old.enemies.some(ship=>ship.id==='claimed'));assert.ok(old.enemies.some(ship=>ship.id==='promoted'));assert.deepEqual(old.traffic.map(ship=>ship.id),['occupied']);
   const other={id:'hearth',enemies:[]};assert.equal(installWarzoneSpace(other),null);assert.deepEqual(other,{id:'hearth',enemies:[]});
 });
 
 test('the unattended battle inflicts actual losses, keeps replacing ships, and changes phase within bounded budgets',()=>{
-  const runtime=world('crosswind-probe'),phases=new Set(),timings={freewake:[],meridian:[]};let hits=0,losses=0,maxShips=0,maxShots=0,maxEffects=0;
+  const runtime=world('crosswind-probe'),phases=new Set(),timings={freewake:[],meridian:[]};let hits=0,losses=0,maxShips=0,maxShots=0,maxEffects=0,maxFighters=0;
   for(let i=0;i<9000;i++){
     stepWarzoneSpace(runtime,.1,{onShipHit(ship,damage){assert.ok(damage>0&&ship.hp<ship.maxHp);hits++;},onShipDestroyed(){losses++;},onEvent(kind,event){if(kind==='warzone-reinforcement')timings[event.faction].push(runtime.warzone.clock);}});
     phases.add(runtime.warzone.phase);maxShips=Math.max(maxShips,runtime.enemies.length);maxShots=Math.max(maxShots,runtime.warzone.projectiles.length);maxEffects=Math.max(maxEffects,runtime.warzone.effects.length);
+    maxFighters=Math.max(maxFighters,runtime.enemies.filter(ship=>['needle','kite'].includes(ship.classId)).length);
   }
   assert.ok(hits>200&&losses>15,`${hits} damaging hits and ${losses} hull losses`);assert.ok(phases.size>=3);
   assert.ok(maxShips<=WARZONE_SPACE_LIMITS.ships&&maxShots<=WARZONE_SPACE_LIMITS.projectiles&&maxEffects<=WARZONE_SPACE_LIMITS.effects);
   assert.ok(runtime.warzone.recentLosses.length<=WARZONE_SPACE_LIMITS.recentLosses);
+  assert.ok(maxFighters>=8&&maxFighters<=WARZONE_SPACE_LIMITS.fighters,'visible sorties remain inside the fighter reserve and the total hull cap');
   for(const faction of runtime.warzone.factions){
     assert.ok(timings[faction].length>8);const intervals=timings[faction].slice(1).map((time,index)=>Math.round(time-timings[faction][index]));assert.ok(new Set(intervals).size>4);
     assert.ok(runtime.enemies.filter(ship=>ship.faction===faction).length>=18,'replacement traffic sustains fleet scale after a long visit');
@@ -89,6 +93,90 @@ test('restoring keeps live damage, schedules, RNG and monotonic IDs without refi
   const view=warzoneSpaceView(restored,{factionId:'freewake',hostileFactions:['meridian','made-up']});
   assert.equal(view.viewerFaction,'freewake');assert.deepEqual(view.hostileFactions,['meridian']);assert.ok(view.factions.every(faction=>Number.isInteger(faction.ships)));
   for(const key of ['rng','nextWaveAt','nextPhaseAt','nextBoardingAt','recentLosses','serial'])assert.equal(Object.hasOwn(view,key),false,key);
+});
+
+test('legacy fleets acquire faction hulls without resetting wounds, clocks, or occupied prizes',()=>{
+  const original=world(),legacy=captureWarzoneSpace(original);legacy.version=1;legacy.clock=118;legacy.nextPhaseAt=180;
+  delete legacy.carriers;delete legacy.fighterFlights;delete legacy.batteries;delete legacy.maneuvers;
+  const carrier=legacy.ships.find(ship=>ship.faction==='meridian'&&ship.classId==='ark'),prize=legacy.ships.find(ship=>ship.faction==='meridian'&&ship.classId==='confluence');
+  carrier.classId='capital';carrier.hp=Math.round(getShipClass('capital').stats.maxHull*1.28)*.37;
+  prize.classId='judicator';prize.hp=287;prize.canonicalVesselId='occupied-capital';prize.capturedBy='captain';prize.deck={guardState:'retained'};
+  const restored=world('ignored-legacy-seed',legacy),upgraded=restored.enemies.find(ship=>ship.id===carrier.id),occupied=restored.enemies.find(ship=>ship.id===prize.id);
+  assert.equal(upgraded.classId,'ark');assert.ok(Math.abs(upgraded.hp/upgraded.maxHp-.37)<1e-12);
+  assert.equal(occupied.classId,'judicator');assert.equal(occupied.hp,287);assert.equal(occupied.canonicalVesselId,'occupied-capital');assert.deepEqual(occupied.deck,{guardState:'retained'});
+  assert.equal(restored.warzone.clock,118);assert.equal(restored.enemies.length,legacy.ships.length);assert.deepEqual(restored.enemies.map(ship=>ship.id),legacy.ships.map(ship=>ship.id));
+  const saved=captureWarzoneSpace(restored);assert.equal(saved.version,WARZONE_SPACE_VERSION);assert.deepEqual(captureWarzoneSpace(world('reload-upgrade',saved)),saved);
+});
+
+test('fighters launch from physical faction hangars, recover, rearm, and survive a save between sorties',()=>{
+  for(const [classId,fighterId]of[['capital','needle'],['ark','kite']]){
+    const runtime=world(`hangar-${classId}`),carrier=runtime.enemies.find(ship=>ship.classId===classId);runtime.enemies=[carrier];runtime.bodies=[];
+    Object.assign(carrier,{x:0,y:0,vx:0,vy:0,angle:0,warzoneAim:{x:0,y:0},cooldown:0});runtime.warzone.nextDecisionAt=1e9;runtime.warzone.carriers[carrier.id].nextLaunchAt=0;
+    stepWarzoneSpace(runtime,.001);const wing=runtime.enemies.filter(ship=>ship!==carrier);assert.equal(wing.length,2,'the carrier launches a cohort instead of instantly filling space');
+    for(const [index,fighter]of wing.entries()){
+      const bay=WARZONE_HULL_TACTICS[classId].hangars[index];assert.equal(fighter.classId,fighterId);assert.ok(Math.hypot(fighter.x-bay.x,fighter.y-bay.y)<1);
+      assert.equal(fighter.warzoneSortie.carrierId,carrier.id);assert.equal(fighter.warzoneSortie.phase,'launching');assert.equal(fighter.boardable,false);
+    }
+    const saved=captureWarzoneSpace(runtime),restored=world('hangar-restore',saved);assert.deepEqual(captureWarzoneSpace(restored),saved);freezeWaves(runtime);
+    const recoveries=new Set(),launches=new Set(),phases=new Set();let sawRearm=false,max=0;
+    for(let tick=0;tick<1600;tick++){
+      stepWarzoneSpace(runtime,.1);max=Math.max(max,runtime.enemies.length);sawRearm||=carrier.warzoneCarrier.rearming>0;
+      for(const fighter of runtime.enemies)if(fighter.warzoneSortie)phases.add(fighter.warzoneSortie.phase);
+      for(const effect of runtime.warzone.effects){if(effect.kind==='fighter-recovery')recoveries.add(effect.id);if(effect.kind==='fighter-launch')launches.add(effect.id);}
+      for(const [id,flight]of Object.entries(runtime.warzone.fighterFlights))assert.equal(runtime.warzone.carriers[flight.carrierId]?.slots[flight.slot]?.fighterId,id,'every deployed fighter has one real carrier slot');
+    }
+    assert.ok(phases.has('attack')&&phases.has('returning'));assert.ok(recoveries.size>=3&&launches.size>6,`${classId}: ${recoveries.size} recoveries and ${launches.size} launches`);
+    assert.ok(sawRearm);assert.ok(max<=1+WARZONE_HULL_TACTICS[classId].fighterCapacity);assert.equal(runtime.warzone.casualties[carrier.faction],0,'recovery is not counted as a casualty');
+  }
+});
+
+test('captured or lost carriers stop launching and their fighters rehome or withdraw without orphan links',()=>{
+  const runtime=world(),carrier=runtime.enemies.find(ship=>ship.classId==='capital'),fallback=runtime.enemies.find(ship=>ship.classId==='judicator');runtime.enemies=[carrier,fallback];runtime.bodies=[];freezeWaves(runtime);
+  runtime.warzone.nextDecisionAt=1e9;runtime.warzone.carriers[carrier.id].nextLaunchAt=0;runtime.warzone.carriers[fallback.id].nextLaunchAt=1e9;
+  stepWarzoneSpace(runtime,.01);const wing=runtime.enemies.filter(ship=>ship.classId==='needle');assert.equal(wing.length,2);
+  carrier.canonicalVesselId='player-prize';carrier.capturedBy='captain';stepWarzoneSpace(runtime,.01);
+  assert.equal(runtime.warzone.carriers[carrier.id],undefined);assert.equal(carrier.warzoneCarrier,undefined);
+  for(const fighter of wing){assert.equal(fighter.warzoneSortie.carrierId,fallback.id);assert.equal(fighter.warzoneSortie.phase,'returning');}
+  notifyWarzoneDestroyed(runtime,fallback);stepWarzoneSpace(runtime,.01);
+  for(const fighter of wing){assert.equal(fighter.warzoneSortie.carrierId,null);assert.equal(fighter.warzoneSortie.phase,'disengaging');}
+  run(runtime,46);assert.deepEqual(Object.keys(runtime.warzone.carriers),[]);assert.deepEqual(Object.keys(runtime.warzone.fighterFlights),[]);
+  assert.deepEqual(runtime.enemies.map(ship=>ship.id),[carrier.id],'the canonical prize remains while unhomed NPC wings leave');
+});
+
+test('cannon banks fire from their own hull tips and require a real broadside turn',()=>{
+  const prepare=(x,y)=>{
+    const runtime=world(),ship=runtime.enemies.find(ship=>ship.classId==='judicator'),target=runtime.enemies.find(ship=>ship.classId==='confluence');runtime.enemies=[ship,target];runtime.bodies=[];freezeWaves(runtime);runtime.warzone.nextDecisionAt=1e9;
+    Object.assign(ship,{x:0,y:0,vx:0,vy:0,angle:0,cooldown:0,targetId:target.id,targetVesselId:target.id,warzoneTargetKind:'fleet',warzoneAim:{x:0,y:0}});
+    Object.assign(target,{x,y,vx:0,vy:0,angle:0,cooldown:1000,warzoneAim:{x,y}});
+    for(const state of Object.values(runtime.warzone.batteries[ship.id]))Object.assign(state,{readyAt:0,nextAt:0,cursor:0});
+    for(const state of Object.values(runtime.warzone.carriers))state.nextLaunchAt=1e9;
+    return{runtime,ship,target};
+  };
+  const broadside=prepare(0,900);stepWarzoneSpace(broadside.runtime,.001);
+  const first=broadside.runtime.warzone.projectiles.find(shot=>shot.ownerId===broadside.ship.id);assert.ok(first);assert.equal(first.bankId,'starboard');assert.equal(first.kind,'cannon');
+  const mount=WARZONE_HULL_TACTICS.judicator.batteries.find(bank=>bank.id==='starboard').muzzles[0],ship=broadside.ship;
+  assert.ok(Math.abs(first.sourceX-(ship.x+Math.cos(ship.angle)*mount[0]-Math.sin(ship.angle)*mount[1]))<1e-8);
+  assert.ok(Math.abs(first.sourceY-(ship.y+Math.sin(ship.angle)*mount[0]+Math.cos(ship.angle)*mount[1]))<1e-8);
+  assert.equal(ship.lastShot.muzzles[0].mountId,first.mountId);assert.equal(ship.lastShot.muzzles[0].x,first.sourceX);
+  run(broadside.runtime,.7);const volley=broadside.runtime.warzone.projectiles.filter(shot=>shot.ownerId===ship.id);
+  assert.deepEqual(new Set(volley.map(shot=>shot.mountId)),new Set(['starboard:0','starboard:1','starboard:2','starboard:3']));
+  assert.ok(broadside.runtime.warzone.batteries[ship.id].starboard.readyAt>broadside.runtime.warzone.clock);assert.equal(broadside.runtime.warzone.batteries[ship.id].port.readyAt,0,'the unused bank has an independent cycle');
+  const bow=prepare(900,0),hp=bow.target.hp;stepWarzoneSpace(bow.runtime,.001);assert.ok(!bow.runtime.warzone.projectiles.some(shot=>shot.ownerId===bow.ship.id),'there is no invisible all-direction nose cannon');
+  run(bow.runtime,14);assert.ok(Math.abs(bow.ship.angle)>.6,'the capital physically turns to present a cannon bank');assert.ok(bow.target.hp<hp,'aligned batteries then damage the opposing real hull');
+});
+
+test('carrier fighters make forward firing passes and break away before returning to attack',()=>{
+  const runtime=world(),carrier=runtime.enemies.find(ship=>ship.classId==='capital'),target=runtime.enemies.find(ship=>ship.faction==='meridian'&&ship.classId==='marten');runtime.enemies=[carrier,target];runtime.bodies=[];freezeWaves(runtime);
+  runtime.warzone.nextDecisionAt=1e9;runtime.warzone.carriers[carrier.id].nextLaunchAt=0;Object.assign(carrier,{x:-2200,y:0,cooldown:1000,warzoneAim:{x:-2200,y:0}});stepWarzoneSpace(runtime,.001);
+  const fighter=runtime.enemies.find(ship=>ship.classId==='needle');runtime.enemies=[carrier,target,fighter];runtime.warzone.carriers[carrier.id].nextLaunchAt=1e9;
+  Object.assign(fighter,{x:-450,y:0,vx:180,vy:0,angle:0,cooldown:0,targetId:target.id,targetVesselId:target.id,warzoneTargetKind:'fleet'});runtime.warzone.fighterFlights[fighter.id].phase='attack';
+  Object.assign(target,{x:0,y:0,vx:0,vy:0,angle:0,cooldown:1000,warzoneAim:{x:0,y:0}});for(const bank of Object.values(runtime.warzone.batteries[fighter.id])){bank.readyAt=0;bank.nextAt=0;}
+  const phases=new Set(),shots=new Set();let passed=false;
+  for(let tick=0;tick<180;tick++){
+    stepWarzoneSpace(runtime,.1);phases.add(runtime.warzone.maneuvers[fighter.id]?.phase);passed||=fighter.x>target.x+120;
+    for(const shot of runtime.warzone.projectiles.filter(shot=>shot.ownerId===fighter.id&&!shots.has(shot.id))){shots.add(shot.id);const offset=Math.atan2(Math.sin(Math.atan2(shot.vy,shot.vx)-fighter.angle),Math.cos(Math.atan2(shot.vy,shot.vx)-fighter.angle));assert.ok(Math.abs(offset)<.28,'fighter guns cannot swivel behind its cockpit');}
+  }
+  assert.ok(shots.size>0);assert.ok(passed&&phases.has('pass')&&phases.has('break'));assert.ok(target.hp<target.maxHp);
 });
 
 test('one vessel counts once, neutral ships are ignored, and large hulls attract more of a bounded hostile response',()=>{

@@ -14,8 +14,8 @@ function vessel(id='sparrow'){
  game.system.enemies=[];return game;
 }
 
-test('all twenty hulls have distinct immutable equipment without expanding the solo starting choices',()=>{
- assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.systems.name)).size,20);
+test('all twenty-four hulls have distinct immutable equipment without expanding the solo starting choices',()=>{
+ assert.equal(new Set(SHIP_CLASSES.map(hull=>hull.systems.name)).size,24);
  assert.deepEqual(STARTER_SHIP_IDS,['sparrow','kestrel','mule']);
  for(const hull of SHIP_CLASSES){assert.equal(hull.systems,getHullSystems(hull.id));assert.ok(Object.isFrozen(hull.systems));assert.ok(hull.systems.description&&hull.systems.tradeoff);}
  assert.equal(getHullSystems('old-missing-class'),getHullSystems('sparrow'));

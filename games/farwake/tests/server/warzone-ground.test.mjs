@@ -4,15 +4,42 @@ import {Realm} from '../../server/realm.mjs';
 import {warzoneGroundHostiles,WARZONE_GROUND_SITE_ID} from '../../dist/warzone-ground.mjs';
 import {sidearmAim} from '../../dist/combat.mjs';
 import {isWalkable} from '../../dist/surface.mjs';
+import {cabinLayout} from '../../dist/fleet.mjs';
 const ok=value=>{assert.equal(value?.ok,true,value?.reason);return value;};
 const persistence=()=>({kind:'memory',version:0,snapshot:null,async save(_id,version,snapshot){this.snapshot=structuredClone(snapshot);this.version=version+1;return{version:this.version};}});
 const session=()=>({close(){}});
-async function fixture(count=2){const storage=persistence(),realm=new Realm({id:'ASHFALL1',seed:'ashfall-authority',persistence:storage}),captains=[];for(let i=0;i<count;i++){const{captain}=await realm.createCaptain(`Relief captain ${i+1}`,{startMode:'hardcore'});ok(realm.attach(captain,session()));realm._landCharacter(captain,'crosswind','crosswind-vey');const entry=place(realm,captain,e=>e.type==='siteEntrance'&&e.data?.siteId===WARZONE_GROUND_SITE_ID);assert.ok(entry);ok(await realm.command(captain,'enterSite',{siteId:WARZONE_GROUND_SITE_ID}));captains.push(captain);}return{realm,captains,storage};}
+async function fixture(count=2){const storage=persistence(),realm=new Realm({id:'ASHFALL1',seed:'ashfall-authority',persistence:storage}),captains=[];for(let i=0;i<count;i++){const{captain}=await realm.createCaptain(`Relief captain ${i+1}`,{startMode:'hardcore'});ok(realm.attach(captain,session()));realm._landCharacter(captain,'crosswind','crosswind-vey');assert.equal(captain.game.state.exploration?.outdoor,true);assert.equal(captain.game.state.interior,null);captains.push(captain);}return{realm,captains,storage};}
 function place(realm,captain,predicate){const entity=realm._surface(captain).entities.find(predicate);assert.ok(entity);Object.assign(captain.game.state.person,{x:entity.x,y:entity.y});return entity;}
 function object(realm,captain,id){return place(realm,captain,e=>e.data?.choiceId===id);}
 async function choose(realm,captain,id,optionId,requestId){const entity=object(realm,captain,id);return ok(await realm.command(captain,'siteAction',{entityId:entity.id,action:'choose',optionId},requestId));}
 function step(realm,count=1){for(let i=0;i<count;i++){for(const captain of realm.captains.values())if(captain.session)realm.acceptInput(captain,captain.inputSeq+1,{});realm.step(.1,realm.tick+1,Date.now());}}
 async function restart(f){f.realm.markDirty();await f.realm.flush();const realm=new Realm({id:f.realm.id,version:f.storage.version,snapshot:structuredClone(f.storage.snapshot),persistence:f.storage}),captains=f.captains.map(c=>realm.captains.get(c.id));for(const c of captains)ok(realm.attach(c,session()));return{realm,captains,storage:f.storage};}
+
+test('real vessel landing, physical reboarding, passenger disembarkation and reconnect preserve the outdoor shared front',async()=>{
+ const storage=persistence();let realm=new Realm({id:'ASHFALL-PORT',seed:'ashfall-vessel-lifecycle',persistence:storage});
+ let owner=(await realm.createCaptain('Shuttle pilot')).captain,guest=(await realm.createCaptain('Relief passenger',{startMode:'hardcore'})).captain;
+ for(const captain of[owner,guest])ok(realm.attach(captain,session()));
+ let vessel=realm.vessels.get(owner.ownedVesselId);const vesselId=vessel.id;vessel.systemId='crosswind';realm._bindCaptain(owner);
+ const body=realm._room('crosswind').runtime.bodies.find(body=>body.id==='crosswind-vey');Object.assign(vessel.ship,{x:body.x,y:body.y+body.radius+60,vx:0,vy:0});
+ ok(await realm.command(owner,'dock',{id:body.id}));assert.equal(owner.aboard,null);assert.equal(owner.game.state.interior,null);assert.equal(owner.game.state.exploration.outdoor,true);assert.equal(realm._surface(owner).id,body.id);
+ const key=owner.game.state.exploration.key,encounter=owner.game.state.exploration.encounter;
+ ok(await realm.command(owner,'setCrewAccess',{captainId:guest.id,allowed:true,roles:[]}));realm._landCharacter(guest,'crosswind',body.id);
+ assert.equal(guest.game.state.exploration.encounter,encounter);
+ await choose(realm,owner,'hospital','accept');await choose(realm,owner,'depot','recover');
+ assert.equal((await realm.command(owner,'boardShip',{vesselId})).code,'distance');assert.equal((await realm.command(owner,'launch',{})).code,'distance');assert.equal(owner.game.state.exploration.encounter,encounter);
+ place(realm,owner,entity=>entity.type==='exit');ok(await realm.command(owner,'boardShip',{vesselId}));assert.equal(owner.game.state.exploration,null);assert.equal(owner.game.state.interior.kind,'ship');assert.equal(realm.sites[key],encounter);
+ Object.assign(owner.game.state.person,{x:0,y:0});assert.equal((await realm.command(owner,'disembark',{})).code,'distance');
+ Object.assign(owner.game.state.person,cabinLayout(vessel.ship.classId).spawn);ok(await realm.command(owner,'disembark',{}));assert.equal(owner.game.state.interior,null);assert.equal(owner.game.state.exploration.encounter,encounter);assert.equal(owner.game.state.warzoneStories.hospital.stage,'part');
+ place(realm,guest,entity=>entity.type==='exit');ok(await realm.command(guest,'boardShip',{vesselId}));assert.equal(guest.game.state.exploration,null);
+ place(realm,owner,entity=>entity.type==='exit');ok(await realm.command(owner,'launch',{}));assert.equal(owner.game.state.exploration,null);assert.equal(owner.game.state.mode,'ship');assert.equal(guest.aboard,vesselId);
+ ok(await realm.command(owner,'dock',{id:body.id}));assert.equal(owner.game.state.exploration.encounter,encounter);assert.equal(guest.game.state.interior.kind,'ship');assert.equal(guest.game.state.exploration,null);
+ Object.assign(guest.game.state.person,cabinLayout(vessel.ship.classId).spawn);ok(await realm.command(guest,'disembark',{}));assert.equal(guest.game.state.exploration.encounter,encounter);assert.equal(guest.portVesselId,vesselId);
+ const time=encounter.time;realm.detach(owner,owner.session);step(realm,2);assert.ok(encounter.time>time);ok(realm.attach(owner,session()));assert.equal(owner.game.state.exploration.encounter,guest.game.state.exploration.encounter);
+ let f=await restart({realm,captains:[owner,guest],storage});realm=f.realm;[owner,guest]=f.captains;vessel=realm.vessels.get(vesselId);
+ assert.equal(owner.game.state.exploration.outdoor,true);assert.equal(owner.game.state.exploration.encounter,guest.game.state.exploration.encounter);assert.equal(owner.game.state.exploration.encounter,realm.sites[key]);assert.equal(owner.game.state.locationId,'crosswind-vey');assert.equal(owner.game.state.interior,null);assert.equal(owner.game.state.warzoneStories.hospital.stage,'part');assert.equal(guest.game.state.warzoneStories.hospital.stage,'unasked');assert.equal(vessel.dockedAt,'crosswind-vey');
+ for(const captain of[owner,guest]){place(realm,captain,entity=>entity.type==='exit');ok(await realm.command(captain,'boardShip',{vesselId}));assert.equal(captain.game.state.exploration,null);}
+ assert.ok(!realm.failed);
+});
 
 test('Ashfall captains share one encounter and one clock while snapshots hide future battle rolls',async()=>{
  const{realm,captains:[one,two]}=await fixture(),encounter=one.game.state.exploration.encounter;assert.equal(encounter,two.game.state.exploration.encounter);assert.equal(encounter,realm.sites[one.game.state.exploration.key]);assert.equal(realm.roomInfo(one).id,realm.roomInfo(two).id);
@@ -51,7 +78,7 @@ test('physical relief work and rewards stay personal, survive restart, and rejec
 
 test('Lorn dispatch remains personal and single-payment while Orsa and empty-front revisit show saved consequences',async()=>{
  let f=await fixture(),realm=f.realm,[one,two]=f.captains;const key=one.game.state.exploration.key,encounter=one.game.state.exploration.encounter;
- const enter=async(captain,bodyId,siteId)=>{if(captain.game.state.exploration){place(realm,captain,e=>e.type==='siteExit');ok(await realm.command(captain,'exitSite',{}));}realm._landCharacter(captain,'crosswind',bodyId);place(realm,captain,e=>e.type==='siteEntrance'&&e.data?.siteId===siteId);ok(await realm.command(captain,'enterSite',{siteId}));};
+ const enter=async(captain,bodyId,siteId)=>{if(captain.game.state.exploration&&!captain.game.state.exploration.outdoor){place(realm,captain,e=>e.type==='siteExit');ok(await realm.command(captain,'exitSite',{}));}realm._landCharacter(captain,'crosswind',bodyId);if(bodyId!=='crosswind-vey'){place(realm,captain,e=>e.type==='siteEntrance'&&e.data?.siteId===siteId);ok(await realm.command(captain,'enterSite',{siteId}));}};
  await enter(one,'crosswind-lorn','fuel-dispatch');await enter(two,'crosswind-lorn','fuel-dispatch');const credits=one.game.state.credits;await choose(realm,one,'fuel-dispatch','hauler','dispatch-pay');assert.equal(one.game.state.credits,credits+90);assert.equal(two.game.state.warzoneStories.dispatch.decision,null);assert.equal((await realm.command(one,'siteAction',{entityId:object(realm,one,'fuel-dispatch').id,action:'choose',optionId:'hauler'},'dispatch-repeat')).ok,false);await choose(realm,two,'fuel-dispatch','relief');
  await enter(two,'crosswind-orsa','thawline-reception');assert.match(ok(await realm.command(two,'siteAction',{entityId:object(realm,two,'refuge-arrivals').id,action:'inspect'})).text,/whole sleeping hall/);
  const time=encounter.time;encounter.warzoneGround.lastActiveAt=Date.now()-200000;await enter(one,'crosswind-vey',WARZONE_GROUND_SITE_ID);assert.equal(one.game.state.exploration.encounter,realm.sites[key]);assert.ok(Math.abs(encounter.time-time-90)<.01,'an empty front catches up only ninety seconds');assert.equal(one.game.state.warzoneStories.evacuation.stage,'unasked');assert.equal(one.game.state.credits,credits+90);

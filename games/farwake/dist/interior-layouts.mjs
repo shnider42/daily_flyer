@@ -1,12 +1,20 @@
 /** Shared, DOM-free deck geometry. Fore is up; each plan follows its physical hull. */
 export const CABIN_TILE=24;
 export const CABIN_REVISION=3;
-export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','dipper','bulwark','cairn','lark','puffin','osprey','leviathan','judicator'];
+export const CABIN_CLASSES=['sparrow','hauler','frigate','capital','kestrel','mule','petrel','marten','atlas','tern','quill','mender','dipper','bulwark','cairn','lark','puffin','osprey','leviathan','judicator','needle','kite','confluence','ark'];
 const pt=(x,y)=>({x:(x+.5)*CABIN_TILE,y:(y+.5)*CABIN_TILE});
 const room=(id,name,x,y,w,h,color)=>({id,name,x,y,w,h,color});
 const fixture=(kind,x,y,w=1,h=1,color=null,solid=true)=>({kind,x,y,w,h,color,solid});
 const passage=(x,y,w,h)=>({x,y,w,h});
 const C={bridge:'#97c6ce',engineering:'#e5ba7b',medical:'#82bcae',quarters:'#a6accc',cargo:'#c6af82',security:'#d29783',science:'#90c7b5',common:'#b7c09b'};
+// Shared with the exterior renderer: these are authored hulls, not scaled copies
+// of a civilian cutter. Radiator foils are enclosed in the mask but never floors.
+export const FACTION_HULL_OUTLINES=Object.freeze(Object.fromEntries(Object.entries({
+ needle:[[-26,-22],[-20,-25],[20,-25],[26,-20],[26,-17],[7,-17],[7,-9],[16,-6],[18,0],[16,6],[7,9],[7,17],[26,17],[26,20],[20,25],[-20,25],[-26,22],[-26,17],[-7,17],[-7,9],[-15,6],[-18,0],[-15,-6],[-7,-9],[-7,-17],[-26,-17]],
+ kite:[[-35,-22],[-29,-31],[-12,-16],[6,-11],[18,-26],[23,-33],[28,-31],[22,-16],[14,-7],[32,-3],[35,0],[32,3],[14,7],[22,16],[28,31],[23,33],[18,26],[6,11],[-12,16],[-29,31],[-35,22],[-21,10],[-24,5],[-27,0],[-24,-5],[-21,-10]],
+ confluence:[[-220,-25],[-211,-52],[-180,-69],[-146,-72],[-118,-88],[-73,-99],[-25,-96],[3,-107],[54,-101],[77,-80],[120,-77],[155,-61],[198,-50],[218,-24],[220,0],[208,28],[183,43],[138,53],[119,75],[76,86],[25,100],[-23,95],[-70,108],[-112,96],[-141,74],[-181,65],[-207,45],[-220,16]],
+ ark:[[-200,-30],[-189,-50],[-157,-50],[-145,-80],[-114,-98],[-15,-98],[26,-77],[32,-44],[125,-32],[142,-68],[182,-73],[200,-52],[200,55],[180,74],[139,67],[121,37],[93,43],[85,87],[49,98],[-136,93],[-166,74],[-173,45],[-191,43],[-200,27]]
+}).map(([id,points])=>[id,Object.freeze(points.map(point=>Object.freeze(point)))])));
 // These outlines are the exterior pixel-art pressure hulls, viewed bow-right.
 // Rotating their coordinates into the deck gives every floor the same bow-up frame.
 const silhouettes={
@@ -29,7 +37,8 @@ const silhouettes={
  puffin:[[-62,-27],[-48,-39],[30,-39],[62,-20],[62,20],[30,39],[-48,39],[-62,27]],
  osprey:[[-83,-27],[-70,-44],[-18,-47],[28,-34],[77,-12],[83,0],[77,12],[28,34],[-18,47],[-70,44],[-83,27]],
  leviathan:[[-165,-66],[-142,-88],[48,-88],[165,-66],[165,-41],[30,-35],[30,35],[165,41],[165,66],[48,88],[-142,88],[-165,66]],
- judicator:[[-250,-122],[-230,-140],[-165,-132],[245,-9],[250,0],[245,9],[-165,132],[-230,140],[-250,122]]
+ judicator:[[-250,-122],[-230,-140],[-165,-132],[245,-9],[250,0],[245,9],[-165,132],[-230,140],[-250,122]],
+ ...FACTION_HULL_OUTLINES
 };
 const definitions={
  sparrow:{name:'Sparrow',cols:14,rows:20,berths:2,plan:'A small cockpit opens directly into one shared work cabin with two fold-down bunks.',
@@ -164,6 +173,34 @@ const definitions={
   stations:{helm:[51,129],navigation:[52,61],engineering:[51,170],medical:[34,134],security:[52,103]},
   spawn:[51,149],bunks:[[12,159],[18,159],[24,159],[30,159],[12,166],[18,166],[24,166],[30,166],[12,173],[18,173],[24,173],[30,173],[70,159],[76,159],[82,159],[88,159],[70,166],[76,166],[82,166],[88,166],[70,173],[76,173],[82,173],[88,173]],breaches:[[15,149],[88,149]],combatSpawns:[[15,149],[17,149],[86,149],[88,149]],crewSpawns:[[51,55],[52,72],[54,82],[30,100],[72,100],[52,107],[25,119],[78,119],[50,127],[55,131],[34,136],[72,135],[36,149],[65,149],[15,160],[21,160],[27,160],[33,167],[33,174],[73,160],[79,160],[85,160],[91,167],[91,174],[51,164],[53,172]],archive:[70,132],manifest:[55,149],
   fixtures:[fixture('equipment',48,48,1,5,'#8ca5a6'),fixture('commandtable',43,71,4,4,'#7e9d9f'),fixture('books',60,74,1,5,'#879991'),fixture('armory',24,94,8,2,'#a8afa8'),fixture('armory',68,94,8,2,'#a8afa8'),fixture('equipment',24,105,2,7,'#8c9698'),fixture('equipment',76,105,2,7,'#8c9698'),fixture('commandtable',43,96,4,3,'#8ca7a2'),fixture('console',45,123,14,1,'#7f9b9f'),fixture('window',45,122,14,1,null,false),fixture('commandtable',45,137,4,3,'#8ca7a2'),fixture('equipment',58,138,1,4,'#8d9a9a'),fixture('bed',23,124,1,5,'#91c5b7'),fixture('bed',27,124,1,5,'#91c5b7'),fixture('bed',31,124,1,5,'#91c5b7'),fixture('cabinet',23,139,5,1,'#8ba49b'),fixture('table',66,124,5,1,'#ad9474'),fixture('table',75,124,4,1,'#ad9474'),fixture('books',79,136,1,5,'#879991'),fixture('engine',43,158,4,14,'#628c99'),fixture('engine',57,158,3,14,'#628c99')]
+ },
+ needle:{name:'Needle',cols:22,rows:24,berths:1,plan:'One enclosed cockpit and an aft service recess sit between uninhabited radiator foils. A fold-down rest berth shares the small maintenance space.',
+  rooms:[room('cockpit','INTERCEPTOR COCKPIT',8,6,6,7,C.bridge),room('service','SOLO SERVICE RECESS',8,12,6,7,C.engineering)],
+  corridors:[passage(10,8,2,10)],doors:[passage(10,11,2,3)],
+  stations:{helm:[10,9],navigation:[11,11],engineering:[12,16],medical:[12,14],security:[10,16]},
+  spawn:[11,13],bunks:[[9,17]],breaches:[[11,15]],combatSpawns:[[11,14],[12,15]],crewSpawns:[[11,10],[11,14]],archive:[12,10],manifest:[12,15],
+  fixtures:[fixture('console',9,7,3,1,'#7e9b9b'),fixture('window',9,6,3,1,null,false),fixture('engine',12,17,1,1,'#648c9b')]
+ },
+ kite:{name:'Kite',cols:24,rows:26,berths:1,plan:'A narrow flight cockpit opens into a compact shield-service bay and a single rest berth. The four pulse foils contain no passenger deck.',
+  rooms:[room('cockpit','STRIKE COCKPIT',10,7,5,8,C.bridge),room('service','SHIELD SERVICE BAY',9,14,7,8,C.engineering)],
+  corridors:[passage(11,10,2,11)],doors:[passage(11,13,2,3)],
+  stations:{helm:[12,11],navigation:[12,14],engineering:[13,19],medical:[11,18],security:[12,17]},
+  spawn:[12,16],bunks:[[10,20]],breaches:[[13,17]],combatSpawns:[[12,18],[13,18]],crewSpawns:[[11,12],[12,19]],archive:[13,15],manifest:[14,18],
+  fixtures:[fixture('console',11,8,3,1,'#b0a187'),fixture('window',11,7,3,1,null,false),fixture('engine',14,19,1,1,'#658995')]
+ },
+ confluence:{name:'Confluence',cols:82,rows:164,berths:20,plan:'Rounded habitat lobes surround a long command and reactor spine. Port and starboard battery galleries connect to twenty berths, two small launch galleries, medical stores, and a broad forward chart room.',
+  rooms:[room('bridge','CRUISER BRIDGE',31,14,20,29,C.bridge),room('navigation','FORWARD CHART ROOM',24,43,34,15,C.science),room('portbattery','PORT BATTERY GALLERY',9,61,22,31,C.security),room('starboardbattery','STARBOARD BATTERY GALLERY',51,61,22,31,C.security),room('common','CENTRAL COMMON DECK',31,61,20,31,C.common),room('portquarters','PORT HABITAT / 01–10',11,99,25,28,C.quarters),room('starboardquarters','STARBOARD / 11–20',46,99,25,28,C.quarters),room('medical','PORT MEDICAL & LAUNCH',15,131,18,18,C.medical),room('stores','STARBOARD LAUNCH STORES',49,131,18,18,C.cargo),room('engineering','SPLIT REACTOR SPINE',33,130,16,27,C.engineering)],
+  corridors:[passage(39,29,4,126),passage(22,57,3,45),passage(58,57,3,45),passage(22,57,39,4),passage(11,94,60,5),passage(22,126,39,5),passage(24,144,34,3)],doors:[passage(22,89,3,15),passage(58,89,3,15),passage(24,128,3,7),passage(55,128,3,7)],
+  stations:{helm:[40,24],navigation:[42,50],engineering:[40,145],medical:[24,139],security:[23,76]},
+  spawn:[40,96],bunks:[[15,112],[19,112],[23,112],[27,112],[31,112],[15,123],[19,123],[23,123],[27,123],[31,123],[49,112],[53,112],[57,112],[61,112],[65,112],[49,123],[53,123],[57,123],[61,123],[65,123]],breaches:[[23,96],[59,96]],combatSpawns:[[23,96],[25,96],[57,96],[59,96]],crewSpawns:[[40,29],[42,36],[34,48],[47,52],[23,69],[24,84],[59,69],[59,84],[36,75],[45,85],[25,97],[56,97],[16,113],[24,113],[32,124],[50,113],[58,113],[66,124],[25,139],[57,140],[40,137],[42,149]],archive:[46,78],manifest:[43,97],
+  fixtures:[fixture('console',35,19,10,1,'#9da99d'),fixture('window',35,18,10,1,null,false),fixture('commandtable',29,47,4,4,'#899f9a'),fixture('armory',13,66,9,2,'#a9a88f'),fixture('armory',61,66,8,2,'#a9a88f'),fixture('table',34,67,3,1,'#b3a17f'),fixture('table',44,67,3,1,'#b3a17f'),fixture('bed',18,134,1,5,'#9bc9b8'),fixture('bed',21,134,1,5,'#9bc9b8'),fixture('cargo',61,135,3,5,'#ae9f79'),fixture('engine',35,137,2,13,'#6d8d9b'),fixture('engine',45,137,2,13,'#6d8d9b')]
+ },
+ ark:{name:'Ark',cols:78,rows:156,berths:16,plan:'A broad command prow leads into a long engineering spine. An asymmetric starboard flight gallery, port repair hangar, medical bay, and sixteen berths fill the separate working pods.',
+  rooms:[room('bridge','CARRIER COMMAND PROW',22,9,35,18,C.bridge),room('flightcontrol','FLIGHT CONTROL SPINE',31,29,17,31,C.science),room('medical','CREW INFIRMARY',29,64,19,24,C.medical),room('portquarters','PORT BERTHS / 01–08',10,72,20,27,C.quarters),room('flightgallery','STARBOARD FLIGHT GALLERY',50,52,21,47,C.cargo),room('common','CARRIER MESS',29,89,19,13,C.common),room('porthangar','PORT REPAIR HANGAR',7,103,23,28,C.engineering),room('starboardquarters','STARBOARD / 09–16',50,105,20,30,C.quarters),room('engineering','LONG DRIVE SPINE',30,105,19,42,C.engineering)],
+  corridors:[passage(37,17,3,128),passage(37,55,25,4),passage(18,98,44,4),passage(18,130,44,4)],doors:[passage(28,84,5,3),passage(20,96,3,11),passage(58,97,3,11),passage(28,118,5,3),passage(47,118,6,3)],
+  stations:{helm:[38,18],navigation:[40,39],engineering:[38,135],medical:[35,75],security:[60,69]},
+  spawn:[38,100],bunks:[[13,83],[17,83],[21,83],[25,83],[13,94],[17,94],[21,94],[25,94],[53,118],[57,118],[61,118],[65,118],[53,130],[57,130],[61,130],[65,130]],breaches:[[21,100],[59,100]],combatSpawns:[[21,100],[23,100],[57,100],[59,100]],crewSpawns:[[38,22],[41,36],[39,47],[61,59],[60,71],[58,87],[34,75],[21,85],[26,95],[40,95],[27,100],[53,100],[19,115],[24,124],[54,119],[62,131],[38,128],[40,140]],archive:[41,92],manifest:[42,100],
+  fixtures:[fixture('console',29,13,19,1,'#abac9c'),fixture('window',29,12,19,1,null,false),fixture('commandtable',33,35,3,4,'#8b9f98'),fixture('equipment',44,44,1,6,'#a59d87'),fixture('bed',32,68,1,5,'#94c5b6'),fixture('bed',42,68,1,5,'#94c5b6'),fixture('table',32,92,3,1,'#b09c77'),fixture('table',43,92,2,1,'#b09c77'),fixture('shuttle',55,77,10,4,'#b9beb0',false),fixture('cargo',65,56,3,7,'#9fa38e'),fixture('workbench',11,108,6,2,'#b8a27d'),fixture('equipment',10,118,3,5,'#8eaaa0'),fixture('engine',32,116,2,20,'#668d9b'),fixture('engine',44,116,2,20,'#668d9b')]
  },
  capital:{name:'Horizon Capital',cols:58,rows:118,berths:10,plan:'A tapered command bow, broad habitation wings, and two hangar shoulders around the reactor spine.',
   rooms:[room('bridge','COMMAND BOW',22,16,14,24,C.bridge),room('medical','PORT MEDICAL WING',7,42,17,21,C.medical),room('security','STARBOARD SECURITY WING',34,42,17,21,C.security),room('portquarters','PORT HABITAT / 01–05',5,66,20,25,C.quarters),room('starboardquarters','STARBOARD / 06–10',33,66,20,25,C.quarters),room('hangar','PORT HANGAR & FREIGHT',5,95,20,16,C.cargo),room('engineering','REACTOR SPINE',23,94,12,22,C.engineering),room('galley','STARBOARD COMMON DECK',34,95,19,16,C.common)],

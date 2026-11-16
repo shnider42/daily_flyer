@@ -10,7 +10,7 @@ const get = (value, key) => value instanceof Map ? value.get(key) : own(value, k
 const credentialKeys = new Set(['token', 'tokenhash', 'accesstoken', 'refreshtoken', 'idtoken', 'bearertoken', 'password', 'passwordhash', 'encryptedpassword', 'secret', 'secrethash', 'apikey', 'servicekey', 'servicerolekey', 'serverkey', 'keyhash', 'privatekey', 'signingkey', 'authorization', 'cookie', 'cookies', 'sessioncookie', 'sessiontoken', 'recoverycode', 'recoverytoken', 'credential', 'credentials']);
 const credentialField = key => credentialKeys.has(String(key).replace(/[^a-z0-9]/gi, '').toLowerCase());
 const sharedBattleField = (key, value) => key === 'warzoneSpace' || key === 'warzoneGround' || key === 'warzone' && object(value) && (own(value, 'projectiles') || own(value, 'nextWaveAt') || Array.isArray(value.factions));
-const battleInternalFields = new Set(['rng', 'seed', 'nextWave', 'nextWaveAt', 'nextPhaseAt', 'phaseUntil', 'nextBoardingAt', 'nextShellAt', 'nextDecisionAt', 'projectiles', 'shells', 'effects']);
+const battleInternalFields = new Set(['rng', 'seed', 'nextWave', 'nextWaveAt', 'nextPhaseAt', 'phaseUntil', 'nextBoardingAt', 'nextShellAt', 'nextDecisionAt', 'projectiles', 'shells', 'effects', 'carriers', 'fighterFlights', 'batteries', 'maneuvers']);
 
 /** Preserve a person's own game records without copying credential material or
  * another human's actor details embedded in a shared boarding encounter. Site

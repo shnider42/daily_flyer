@@ -1,8 +1,25 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.26.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.27.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.27.0 — The battle is outside
+
+**Landing on Vey now places you directly on Ashfall's outdoor battlefield.** The covered landing sits beside the fighting, with the clinic to the west and shelter to the east. There is no separate battle entrance. The map marks connected streets, relief work and the landing shuttle; boarding or departing requires returning to that physical landing. Earlier Ashfall saves migrate outdoors and retain relief decisions, encounter progress and valid positions.
+
+Each six-person squad now has a **leader, rifle trooper, support gunner, marksman, grenadier and medic**. Their weapons have different ranges, bursts, accuracy, windups and recharge times. Fireteams alternate movement and covering fire, seek flanking routes, relocate after bursts, fall back under pressure and avoid warned blast zones. Medics move to wounded squadmates. Mortars and lobbed grenades leave layered flashes, shock rings, fragments, dust and craters. Nearby blast warnings share one readable notice; distant grenades do not flood the HUD.
+
+| Faction | Carrier fighter | Capital fleet |
+| --- | --- | --- |
+| **Freewake Union** | **Needle**, a compact interceptor between two armored panels | **Horizon** carrier and wedge-shaped **Judicator** line destroyer |
+| **Meridian Combine** | **Kite**, a four-foil strike fighter | **Ark**, an asymmetric fleet carrier, and **Confluence**, a broad lobed cruiser |
+
+Capital ships launch their faction's fighters from physical hangar mouths. Fighters make attack passes, break away, return to a carrier to rearm, and launch again. Sorties and replacement waves share bounded populations. Capitals and heavy escorts turn to present port or starboard cannon batteries, whose individual mounts fire within actual arcs. Gun stations aboard owned or captured capitals use the same broadside geometry. The four new hulls have authored interiors, normal ship stats and equipment profiles.
+
+Fleet explosions now scale with the lost hull: a short core flash, expanding shock front, asymmetric fragments, drifting smoke and fading embers. Muzzle flashes come from the firing battery. Reduced-motion presentation keeps useful impact aftermath without the fast flare and debris motion.
+
+This release retains the **three Crosswind battle tracks** described below. Hearth's authored geography and existing surface layouts remain preserved. See [the updated battle notes](docs/crosswind-warzone.md) for mechanics, persistence and bounds.
 
 ## 0.26.1 — A score for the warzone
 

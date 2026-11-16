@@ -1,9 +1,10 @@
 /** Physical gun mounts shared by the exterior display and authoritative firing. */
 import {getHullSystems} from './hull-systems.mjs';
 import {getShipClass} from './fleet.mjs';
+import {WARZONE_HULL_TACTICS} from './warzone-content.mjs';
 
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
-const capitalHulls=new Set(['capital','leviathan','judicator']);
+const capitalHulls=new Set(['capital','leviathan','judicator','confluence','ark']);
 const directions=Object.freeze([
  Object.freeze({id:'fore',name:'Fore battery',direction:'Forward',bearing:0}),
  Object.freeze({id:'port',name:'Port battery',direction:'Left side',bearing:-Math.PI/2}),
@@ -23,9 +24,14 @@ export function getGunneryBatteries(shipOrClassId){
   // A line destroyer has paired broadside and stern mounts. Its existing
   // four-barrel forward volley remains intact for both helm and gun station.
   if(hull.id==='judicator'&&definition.id!=='fore')muzzles=definition.id==='aft'?[[-nose,-width*.1],[-nose,width*.1]]:[[-length*.17,muzzles[0][1]],[length*.05,muzzles[0][1]]];
+  const physicalBank=WARZONE_HULL_TACTICS[hull.id]?.batteries.find(bank=>bank.id===definition.id);
+  if(physicalBank)muzzles=physicalBank.muzzles.map(point=>[...point]);
   const secondary=hull.id==='judicator'&&definition.id!=='fore';
-  return{...definition,index,arcHalfAngle:Math.PI/3,muzzles,mountCount:muzzles.length,
-   energyCost:secondary?12:system.pulseEnergy,cooldown:system.pulseCooldown,damageScale:secondary ? .6 : system.pulseDamageScale,range:finite(ship.range,hull.stats.range)};
+  const broadside=physicalBank?.kind==='cannon';
+  return{...definition,index,kind:physicalBank?.kind||'pulse',arcHalfAngle:physicalBank?.arc??Math.PI/3,muzzles,mountCount:muzzles.length,
+   energyCost:broadside?12:secondary?12:system.pulseEnergy,cooldown:system.pulseCooldown,
+   damageScale:broadside?(hull.id==='judicator'?1.2:['confluence','ark'].includes(hull.id)?1.4:1)/muzzles.length:secondary ? .6 : system.pulseDamageScale,
+   range:finite(ship.range,hull.stats.range)};
  });
 }
 

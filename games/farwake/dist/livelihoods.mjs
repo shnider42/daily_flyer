@@ -115,8 +115,10 @@ export const LivelihoodRules={
  },
  _arriveAsPassenger(body,{discovery=true}={}){
   const surface=generateSurface(body,this.state.seed,this.state.flags);
+  this.releaseWarzoneSurface();
   Object.assign(this.state,{mode:'person',locationId:body.id,lastBodyId:body.id,interior:null,exploration:null,boarding:null});
   Object.assign(this.state.person,{...surface.spawn,facing:'up',moving:false,weaponDrawn:false});
+  this.activateWarzoneSurface();
   this._flag(`visited_${body.id}`);this._flag(`landed_${body.id}`);this._flag('first_landing');
   if(body.id==='kettle')this._flag('docked_kettle');
   if(body.id==='morrow')this._flag('landed_morrow');

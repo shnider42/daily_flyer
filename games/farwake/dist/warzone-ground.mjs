@@ -2,16 +2,28 @@
  * while relief work and its rewards belong to the captain who actually does it. */
 import { ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
+import { pixelLine, pixelRing } from './pixel-art.mjs';
 
 export const WARZONE_GROUND_SITE_ID='ashfall-front';
 export const WARZONE_GROUND_KEY='crosswind-vey:site:ashfall-front';
 export const WARZONE_GROUND_FACTIONS=Object.freeze(['freewake','meridian']);
 export const WARZONE_GROUND_LIMIT=18;
+export const isWarzoneGroundBody=value=>(typeof value==='string'?value:value?.id)==='crosswind-vey';
 const T=24,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),finite=(v,d=0)=>typeof v==='number'&&Number.isFinite(v)?v:d;
 const serial=v=>Math.floor(clamp(finite(v),0,1e9)),point=(x,y)=>({x:(x+.5)*T,y:(y+.5)*T}),range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const faction=v=>WARZONE_GROUND_FACTIONS.includes(v)?v:null;
 const colors={freewake:'#9eae93',meridian:'#97a6b7'},stripes={freewake:'#87b9a8',meridian:'#c4ae80'};
-const lanes=[20,34,48],roles=['leader','medic','support','rifle','rifle','rifle'];
+const lanes=[20,34,48],roles=['leader','medic','support','rifle','marksman','grenadier'];
+export const WARZONE_INFANTRY_WEAPONS=Object.freeze({
+ leader:Object.freeze({id:'warzone-burst',name:'command burst carbine',range:250,damage:9,captainDamage:3,burst:3,interval:.14,windup:.42,cooldown:[1.7,2.5],spread:.055,speed:80,health:90}),
+ medic:Object.freeze({id:'warzone-medic-pistol',name:'medic sidearm',range:174,damage:8,captainDamage:3,burst:1,interval:.2,windup:.38,cooldown:[2,3],spread:.07,speed:78,health:76}),
+ support:Object.freeze({id:'warzone-support',name:'belt-fed suppressor',range:290,damage:6,captainDamage:2.5,burst:5,interval:.11,windup:.65,cooldown:[2.5,3.4],spread:.12,speed:62,health:110}),
+ rifle:Object.freeze({id:'warzone-rifle',name:'service rifle',range:260,damage:12,captainDamage:4,burst:2,interval:.22,windup:.34,cooldown:[1.6,2.4],spread:.055,speed:84,health:84}),
+ marksman:Object.freeze({id:'warzone-marksman',name:'long-pulse rifle',range:370,damage:26,captainDamage:8,burst:1,interval:.2,windup:.95,cooldown:[3.2,4.6],spread:.018,speed:68,health:78}),
+ grenadier:Object.freeze({id:'warzone-grenade-carbine',name:'grenadier carbine',range:230,damage:10,captainDamage:4,burst:1,interval:.2,windup:.4,cooldown:[1.7,2.5],spread:.075,speed:78,health:92})
+});
+const infantryWeapon=unit=>WARZONE_INFANTRY_WEAPONS[unit.role]||WARZONE_INFANTRY_WEAPONS.rifle;
+const MAX_SHELLS=10,SAFE_LINE=54*T;
 const PHASES=[
  {id:'crossfire',name:'Contested streets',duration:[32,52],text:'Both lines are holding. Rifle fire crosses the rail yards; the southern aid passage remains open.'},
  {id:'freewake-push',name:'Union advance',duration:[25,44],text:'Union squad leaders call an advance through the rail yards. Combine troops fall back between the loading bays.'},
@@ -21,11 +33,11 @@ const PHASES=[
 ];
 const choice=(id,name,x,y,text)=>({id,name,x,y,text,options:[]});
 const site={
- id:WARZONE_GROUND_SITE_ID,name:'Ashfall Front',kind:'warzone',warzone:true,cols:96,rows:68,tileX:56,tileY:41,hostile:false,atmosphere:'ashfall',
- summary:'Three streets under continuous fire. A southern aid passage links the landing gate, clinic and civilian shelter.',
+ id:WARZONE_GROUND_SITE_ID,name:'Ashfall Front',kind:'warzone',warzone:true,outdoor:true,cols:96,rows:68,tileX:56,tileY:41,hostile:false,atmosphere:'ashfall',
+ summary:'Vey’s outdoor freight district is the front line. A southern aid passage links the landing pad, clinic and civilian shelter.',
  story:'Vey’s freight district has become a front line. Union cloth strips and Combine pale-amber shoulder bars disappear into dust between the warehouses. Nobody here calls the next reinforcement a victory. The southern passage is sheltered: find Dr Elian, evacuation coordinator Asha and the missing-persons desk there. The rail yard, central works and tram street are active combat lanes. Neither army deliberately targets an unaligned captain until that captain opens fire; stray shots and artillery still hurt.',
  records:[
-  {id:'district-map',name:'Evacuation route and front map',x:10,y:61,text:'WEST: Union approach. EAST: Combine approach. Three parallel fronts cross the RAIL YARD (north), CENTRAL WORKS and TRAM STREET (south). Gaps at the east and west loading roads connect them. SOUTHERN AID PASSAGE: landing gate → clinic → service underpass → apartment shelter. This covered passage is outside the scheduled artillery grid. A red expanding ground marker warns of an incoming shell. Do not treat a lull as a ceasefire.'},
+  {id:'district-map',name:'Evacuation route and front map',x:50,y:56,text:'You are at the central landing shuttle, behind the retaining wall. TRAM STREET is immediately north through the screened gap. WEST along the covered aid passage: clinic, evacuation coordinator and missing-persons desk. EAST: the apartment shelter. The RAIL YARD and CENTRAL WORKS lie farther north, connected by the loading roads. Union troops approach from the west; Combine troops from the east. The southern aid passage is outside the scheduled artillery grid. The marked circle gives you a brief warning before a grenade or mortar lands. Do not treat a lull as a ceasefire.'},
   {id:'ward-log',name:'Clinic casualty board',x:16,y:57,text:'The admission columns say civilian, Union and Combine. The discharge column only says alive. A nurse has washed the last clean blanket three times. Beneath the next-of-kin list: no photographs of patients, and no weapons fired in the ward.'},
   {id:'school-wall',name:'School wall',x:61,y:42,text:'A child’s height marks remain on the one wall still standing. Someone has moved the class register into the shelter. The date of the last lesson is weeks old; the date of the next evacuation has been erased twice.'}
  ],
@@ -76,7 +88,7 @@ export function warzoneGroundSites(body){return({'crosswind-vey':[site],'crosswi
  * lanes connect at the loading roads and central service spine. */
 export function buildWarzoneGroundInterior(m,_site,{rect,prop,label,point:pt,TILE}){
  m.warzone=true;m.palette={ground:'#42454a',ground2:'#494a4d',floor:'#4c4e4d',floor2:'#454847',edge:'#737b76',wall:'#2e3439',wallTop:'#777c77',path:'#61625c',water:'#293b44',light:'#c5c5aa',accent:'#b1b8a1'};
- rect(m,3,3,90,62,TILE.FLOOR);
+ rect(m,3,3,90,62,m.kind==='planet'?TILE.GROUND:TILE.FLOOR);
  for(const y of lanes)rect(m,4,y-3,88,7,TILE.PATH);
  for(const x of[6,30,47,69,89])rect(m,x-2,4,5,59,TILE.PATH);
  // Ruined blocks create cover without closing the streets into isolated rooms.
@@ -89,18 +101,20 @@ export function buildWarzoneGroundInterior(m,_site,{rect,prop,label,point:pt,TIL
  for(const[x,y]of[[27,12],[46,28],[70,42]]){prop(m,'cargo',x,y,3,2,'#494b4c',true);prop(m,'debris',x-1,y+2,5,1,'#7b7061',false);}
  // A heavy retaining wall screens a continuous southern aid passage. Openings
  // into the fighting are deliberate, wide and marked, never required to leave.
- rect(m,5,53,24,1,TILE.WALL);rect(m,34,53,35,1,TILE.WALL);rect(m,74,53,16,1,TILE.WALL);
+ rect(m,5,53,24,1,TILE.WALL);rect(m,34,53,11,1,TILE.WALL);rect(m,50,53,19,1,TILE.WALL);rect(m,74,53,16,1,TILE.WALL);
+ prop(m,'cargo',46,51,2,1,'#737c72',true);
  rect(m,4,54,87,11,TILE.FLOOR);rect(m,4,61,87,3,TILE.PATH);
  for(const x of[11,14,17])prop(m,'bed',x,57,1,2,'#a6aea1',true);
  prop(m,'console',24,55,3,1,'#8c9e93',true);prop(m,'table',18,59,2,1,'#8f8571',true);prop(m,'books',22,62,1,1,'#b4b1a0',false);
  prop(m,'awning',9,55,18,1,'#a1b4a3',false);prop(m,'banner',9,55,1,3,'#c6d0b9',false);
  for(const x of[76,80,84])prop(m,'bed',x,55,2,2,'#969a8b',true);
  prop(m,'table',81,62,4,1,'#9b8f7c',true);prop(m,'bowls',81,62,4,1,'#c3bca6',false);
- prop(m,'fence',35,57,31,.3,'#78877c',false);prop(m,'floorarrows',37,61,5,1,'#b3c6a6',false);
+ prop(m,'fence',35,57,8,.3,'#78877c',false);prop(m,'fence',53,57,13,.3,'#78877c',false);prop(m,'floorarrows',37,61,5,1,'#b3c6a6',false);
  for(let i=0;i<8;i++){prop(m,'debris',38+i*3,8+(i%3),1,1,'#817765',false);prop(m,'bones',70+i%3,15+Math.floor(i/3),1,1,'#96917f',false);}
  for(const[x,y,c]of[[8,19,stripes.freewake],[8,33,stripes.freewake],[8,47,stripes.freewake],[87,19,stripes.meridian],[87,33,stripes.meridian],[87,47,stripes.meridian]])prop(m,'banner',x,y,2,.4,c,false);
- m.spawn=pt(7,61);m.exit=pt(5,61);
- label(m,'LANDING GATE ←',5,64,'#c9d4b7');label(m,'NEUTRAL CLINIC',11,55,'#b9cfbd');label(m,'COVERED AID PASSAGE',36,60,'#c0c9b0');label(m,'APARTMENT SHELTER',75,54,'#c9c1a3');
+ m.spawn=pt(47,55);m.exit=pt(47,56);
+ if(m.kind==='planet'){rect(m,42,54,11,6,TILE.PAD);prop(m,'shuttle',43,56,4,2,'#9aafb0',false);prop(m,'trail-light',48,58,1,1,'#bdc9b2',false);m.noPortServices=true;m.outdoorWarzone=true;}
+ label(m,'LANDING SHUTTLE',43,59,'#c9d4b7');label(m,'← CLINIC / EVACUATION',30,62,'#c9d4b7');label(m,'NEUTRAL CLINIC',11,55,'#b9cfbd');label(m,'COVERED AID PASSAGE',53,60,'#c0c9b0');label(m,'APARTMENT SHELTER',75,54,'#c9c1a3');
  label(m,'RAIL YARD',43,18,'#c8bca3');label(m,'CENTRAL WORKS',42,32,'#c8bca3');label(m,'TRAM STREET',43,46,'#c8bca3');label(m,'DEPOT',24,44,'#c0b99d');label(m,'SCHOOL RECORDS',55,40,'#c4baa4');
  m.warzoneFires=[[19,8],[35,27],[61,8],[79,40],[46,28],[70,42]].map(([x,y])=>pt(x,y));
  m.warzoneMemorial=pt(29,62);
@@ -109,9 +123,9 @@ export function buildWarzoneGroundInterior(m,_site,{rect,prop,label,point:pt,TIL
 function rng(w){w.rng=(Math.imul(w.rng,1664525)+1013904223)>>>0;return w.rng/4294967296;}
 const roll=(w,a,b)=>a+rng(w)*(b-a);
 function unitTemplate(key,side,slot,generation=0){
- const role=roles[slot%6],squad=Math.floor(slot/6),west=side==='freewake',hp=role==='support'?88:role==='leader'?80:64;
- return{id:`${key}:infantry:${side}:${slot}:${generation}`,slot,generation,factionId:side,squadId:`${side}:${squad}`,lane:squad,role,name:`${west?'Union':'Combine'} ${['Rail','Works','Tram'][squad]} ${role==='rifle'?'rifleman':role}`,
-  species:'human',warzoneUnit:true,team:side,hostile:false,...point((west?35:60)+(slot%3-1)*2,lanes[squad]+(slot%2?1:-1)),health:hp,maxHealth:hp,armor:role==='support'?8:4,damage:role==='support'?14:10,speed:role==='support'?43:53,range:240,sightRange:330,radius:6,hitRadius:9,color:colors[side],stripeColor:stripes[side],attackKind:'ranged',weapon:'field-carbine',ownedWeapons:['pulse-sidearm','field-carbine'],status:'alive',facing:west?'right':'left',weaponDrawn:true,cooldown:.7+(slot%6)*.2,windup:0,aimAngle:west?0:Math.PI,targetId:null,alert:true,moving:false,healCooldown:0};
+ const role=roles[slot%6],profile=WARZONE_INFANTRY_WEAPONS[role],squad=Math.floor(slot/6),west=side==='freewake',startX=squad===2?(west?41:54):(west?35:60);
+ return{id:`${key}:infantry:${side}:${slot}:${generation}`,slot,generation,factionId:side,squadId:`${side}:${squad}`,lane:squad,role,name:`${west?'Union':'Combine'} ${['Rail','Works','Tram'][squad]} ${role==='rifle'?'rifle trooper':role}`,
+  species:'human',warzoneUnit:true,helmet:true,team:side,hostile:false,...point(startX+(slot%3-1)*2,lanes[squad]+(slot%2?1:-1)),health:profile.health,maxHealth:profile.health,armor:role==='support'?8:4,damage:profile.damage,speed:profile.speed,range:profile.range,sightRange:profile.range+110,radius:6,hitRadius:9,color:colors[side],stripeColor:stripes[side],attackKind:'ranged',weapon:'field-carbine',weaponId:profile.id,weaponName:profile.name,ownedWeapons:['pulse-sidearm','field-carbine'],status:'alive',facing:west?'right':'left',weaponDrawn:true,cooldown:.7+(slot%6)*.2,windup:0,aimAngle:west?0:Math.PI,targetId:null,alert:true,moving:false,healCooldown:0,burstLeft:0,burstTimer:0,suppression:0,grenadeCooldown:4+slot%3,tactic:'advance',tacticUntil:0,moveUntil:0,moveGoal:null,relocations:0,lastSeen:null,fireteam:slot%2};
 }
 const restoredPoint=(raw,fallback)=>({x:clamp(finite(raw?.x,fallback.x),3*T,92*T),y:clamp(finite(raw?.y,fallback.y),3*T,65*T)});
 /** Slot IDs, profiles and counts are authored; save data restores outcomes only. */
@@ -120,11 +134,11 @@ export function createWarzoneGroundState(site,saved={}){
  const phase=PHASES.some(p=>p.id===raw.phase)?raw.phase:'crossfire';
  const w={version:1,rng:Math.floor(clamp(finite(raw.rng,0x97fa321),0,4294967295))>>>0,phase,phaseUntil:clamp(finite(raw.phaseUntil,time+38),time,time+60),cycle:serial(raw.cycle),lastSoloAt:typeof raw.lastSoloAt==='number'?clamp(finite(raw.lastSoloAt),0,1e12):null,lastActiveAt:clamp(finite(raw.lastActiveAt),0,8e15),decisionAt:time,fronts:Array.from({length:3},(_,i)=>clamp(finite(raw.fronts?.[i],48),35,61)),nextWave:{},waves:{},casualties:{},nextShell:clamp(finite(raw.nextShell,time+9),time,time+20),shells:[],scars:[],radio:PHASES.find(p=>p.id===phase).text};
  for(const side of WARZONE_GROUND_FACTIONS){w.nextWave[side]=clamp(finite(raw.nextWave?.[side],time+15+(side==='meridian'?6:0)),time,time+50);w.waves[side]=serial(raw.waves?.[side]);w.casualties[side]=serial(raw.casualties?.[side]);}
- w.shells=(Array.isArray(raw.shells)?raw.shells:[]).slice(-6).filter(s=>finite(s.until)<=time+4&&finite(s.until)>time).map((s,i)=>({id:`${site.key}:shell:restored:${i}`, ...restoredPoint(s,point(48,34)),radius:clamp(finite(s.radius,48),32,66),impactAt:clamp(finite(s.impactAt),time-2,time+2.2),until:clamp(finite(s.until),time,time+4),impacted:s.impacted===true}));
- w.scars=(Array.isArray(raw.scars)?raw.scars:[]).slice(-32).map(s=>({...restoredPoint(s,point(48,34)),type:s.type==='casualty'?'casualty':'crater',factionId:faction(s.factionId),at:clamp(finite(s.at),0,time)}));
+ w.shells=(Array.isArray(raw.shells)?raw.shells:[]).slice(-MAX_SHELLS).filter(s=>finite(s.until)<=time+6&&finite(s.until)>time).map((s,i)=>({id:`${site.key}:shell:restored:${i}`, ...restoredPoint(s,point(48,34)),kind:s.kind==='grenade'?'grenade':'mortar',from:s.from?restoredPoint(s.from,point(48,34)):null,launchedAt:clamp(finite(s.launchedAt,time),time-5,time),radius:clamp(finite(s.radius,48),32,66),factionId:faction(s.factionId),attackerId:typeof s.attackerId==='string'?s.attackerId.slice(0,120):'artillery',impactAt:clamp(finite(s.impactAt),time-4,time+2.2),until:clamp(finite(s.until),time,time+6),impacted:s.impacted===true}));
+ w.scars=(Array.isArray(raw.scars)?raw.scars:[]).slice(-32).map(s=>({...restoredPoint(s,point(48,34)),type:s.type==='casualty'?'casualty':'crater',radius:clamp(finite(s.radius,38),20,66),factionId:faction(s.factionId),at:clamp(finite(s.at),0,time)}));
  const monsters=WARZONE_GROUND_FACTIONS.flatMap(side=>Array.from({length:WARZONE_GROUND_LIMIT},(_,slot)=>{
   const old=valid&&(Array.isArray(prior.monsters)?prior.monsters:[]).find(u=>u?.factionId===side&&u.slot===slot),base=unitTemplate(site.key,side,slot,serial(old?.generation)),health=clamp(finite(old?.health,base.maxHealth),0,base.maxHealth);
-  return{...base,...restoredPoint(old,base),health,status:health>0?'alive':'dead',cooldown:clamp(finite(old?.cooldown,base.cooldown),0,4),healCooldown:clamp(finite(old?.healCooldown),0,3),lastHitBy:typeof old?.lastHitBy==='string'?old.lastHitBy.slice(0,90):null};
+  return{...base,...restoredPoint(old,base),health,status:health>0?'alive':'dead',cooldown:clamp(finite(old?.cooldown,base.cooldown),0,5),healCooldown:clamp(finite(old?.healCooldown),0,3),grenadeCooldown:clamp(finite(old?.grenadeCooldown,base.grenadeCooldown),0,15),suppression:clamp(finite(old?.suppression),0,2),relocations:serial(old?.relocations),lastHitBy:typeof old?.lastHitBy==='string'?old.lastHitBy.slice(0,90):null};
  }));
  return{id:site.key,siteId:site.id,warzone:true,warzoneGround:w,time,visited:serial(prior.visited),shotSerial:serial(prior.shotSerial),monsters,collected:[],choices:{},actorCooldowns:{},cleared:false};
 }
@@ -157,7 +171,7 @@ function walk(unit,goal,dt,layout,speed=unit.speed){
 }
 function scar(w,entry){w.scars.push(entry);if(w.scars.length>32)w.scars.splice(0,w.scars.length-32);}
 function hitUnit(state,unit,damage,attackerId,at,event,shot={}){
- if(unit.health<=0)return;unit.health=Math.max(0,unit.health-damage);unit.hitUntil=at+.24;unit.lastHitBy=attackerId;event('person-hit',{...shot,id:(shot.id||`${state.id}:hit:${++state.shotSerial}`)+':hit',attackerId,targetId:unit.id,targetName:unit.name,x:unit.x,y:unit.y,health:unit.health,maxHealth:unit.maxHealth,damage});
+ if(unit.health<=0)return;unit.health=Math.max(0,unit.health-damage);unit.hitUntil=at+.24;unit.lastHitBy=attackerId;unit.suppression=Math.min(2,(unit.suppression||0)+.55);event('person-hit',{...shot,id:(shot.id||`${state.id}:hit:${++state.shotSerial}`)+':hit',attackerId,targetId:unit.id,targetName:unit.name,x:unit.x,y:unit.y,health:unit.health,maxHealth:unit.maxHealth,damage});
  if(unit.health<=0){unit.status='dead';unit.moving=false;unit.windup=0;unit.targetId=null;state.warzoneGround.casualties[unit.factionId]=Math.min(1e9,state.warzoneGround.casualties[unit.factionId]+1);scar(state.warzoneGround,{x:unit.x,y:unit.y,type:'casualty',factionId:unit.factionId,at});event('boarder-down',{...shot,id:(shot.id||`${state.id}:down:${++state.shotSerial}`)+':down',attackerId,targetId:unit.id,actorId:unit.id,x:unit.x,y:unit.y,text:`${unit.name} fell in the street.`});}
 }
 function hitCaptain(state,actor,damage,at,event,shot){if(actor.person.health<=0)return;const p=actor.person;p.health=Math.max(0,p.health-damage);p.hitUntil=at+.24;event('person-hit',{...shot,id:shot.id+':hit',targetId:actor.id,targetName:actor.name||'Captain',x:p.x,y:p.y,damage,health:p.health,maxHealth:p.maxHealth||100});if(p.health<=0){p.down=true;event('person-down',{...shot,id:shot.id+':down',targetId:actor.id,text:`${actor.name||'A captain'} is down. A field rescue team is responding.`});}}
@@ -170,34 +184,101 @@ function reinforce(state,side,event){
  for(const old of dead.slice(0,count)){const fresh=unitTemplate(state.id,side,old.slot,Math.min(1e9,old.generation+1));Object.assign(fresh,point(side==='freewake'?9+old.slot%3*2:91-old.slot%3*2,lanes[old.lane]+(old.slot%2?1:-1)));Object.assign(old,fresh);}
  w.nextWave[side]=state.time+roll(w,w.phase==='resupply'?13:19,w.phase==='resupply'?25:43);if(!count)return;w.waves[side]++;w.radio=`${side==='freewake'?'Union':'Combine'} relief squad: ${count} soldiers reached the ${['rail','works','tram'][dead[0].lane]} approach. Casualties are being carried behind the line.`;event('warzone-ground-reinforcements',{factionId:side,count,text:w.radio});
 }
+const tacticalCells=new WeakMap();
+function coverCells(layout){
+ let cells=tacticalCells.get(layout);if(cells)return cells;cells=[];
+ for(let y=16;y<=51;y++)for(let x=7;x<=91;x++){
+  const i=y*layout.cols+x;if(!layout.walkable[i])continue;
+  const nearWall=[i-1,i+1,i-layout.cols,i+layout.cols].some(j=>!layout.walkable[j]);
+  if(nearWall||x%3===0&&y%3===0){const p=point(x,y);if(isCabinWalkable(layout,p.x,p.y,6))cells.push({...p,cover:nearWall});}
+ }
+ tacticalCells.set(layout,cells);return cells;
+}
+function tacticalGoal(unit,anchor,layout,{target=null,retreat=false,minimumMove=35}={}){
+ let best=null,score=Infinity;const profile=infantryWeapon(unit),west=unit.factionId==='freewake',ideal=unit.role==='marksman'?profile.range*.8:unit.role==='support'?profile.range*.65:profile.range*.52;
+ for(const p of coverCells(layout)){
+  if(Math.abs(p.y-lanes[unit.lane]*T)>170||range(unit,p)>310||range(unit,p)<minimumMove)continue;
+  const forward=(p.x-unit.x)*(west?1:-1);if(retreat&&forward>12)continue;
+  let cost=range(p,anchor)+range(p,unit)*.25-(p.cover?24:0);
+  if(target){const d=range(p,target);cost+=Math.abs(d-ideal)*.18;if(clearSidearmSight(layout,p,target))cost-=unit.role==='marksman'?32:12;}
+  if(cost<score){score=cost;best=p;}
+ }
+ if(best)return{x:best.x,y:best.y};
+ const center=point(clamp(Math.floor(anchor.x/T),7,91),clamp(Math.floor(anchor.y/T),16,51));return isCabinWalkable(layout,center.x,center.y,6)?center:{x:unit.x,y:unit.y};
+}
+function planMove(state,unit,layout,target,alive){
+ const w=state.warzoneGround,at=state.time,side=unit.factionId==='freewake'?1:-1,squad=alive.filter(other=>other.squadId===unit.squadId),leader=squad.find(other=>other.role==='leader');
+ const bounding=Math.floor((at+unit.lane*1.7+(side===1?0:2.5))/4.8)%2===unit.fireteam;
+ const wounded=unit.health/unit.maxHealth<.38||unit.suppression>.9,unsupported=squad.length<=2;
+ const flank=(unit.role==='rifle'||unit.role==='grenadier')&&bounding;
+ const holding=unit.role==='support'||unit.role==='marksman';let anchor;
+ if(wounded||unsupported){unit.tactic='fallback';anchor={x:unit.x-side*110,y:lanes[unit.lane]*T+(unit.slot%2?55:-55)};}
+ else if(flank&&target){unit.tactic='flank';anchor={x:target.x-side*120,y:target.y+(unit.slot%2?94:-94)};}
+ else if(bounding&&!holding&&unit.role!=='medic'){unit.tactic='bound';anchor={x:Math.min(61*T,Math.max(35*T,(w.fronts[unit.lane]+side*2)*T)),y:lanes[unit.lane]*T+(unit.slot%2?48:-48)};}
+ else{unit.tactic=unit.role==='support'?'suppress':unit.role==='marksman'?'overwatch':'cover';const depth=unit.role==='marksman'?7:unit.role==='support'?4:unit.role==='medic'?5:2;anchor={x:(w.fronts[unit.lane]-side*depth)*T,y:lanes[unit.lane]*T+(unit.slot%2?54:-42)};}
+ if(leader&&range(unit,leader)>300&&!holding)anchor={x:leader.x-side*28,y:leader.y+(unit.slot%2?44:-44)};
+ unit.moveGoal=tacticalGoal(unit,anchor,layout,{target,retreat:wounded||unsupported,minimumMove:unit.targetId?40:12});
+ unit.tacticUntil=at+roll(w,3.5,6.5);unit.moveUntil=at+roll(w,unit.tactic==='bound'||unit.tactic==='flank'?1.8:1.2,unit.tactic==='fallback'?3.4:2.8);unit.relocations=Math.min(1e9,(unit.relocations||0)+1);
+}
 function tacticalTargets(state,actors,layout){
  const alive=state.monsters.filter(u=>u.health>0),counts=new Map(),leaders=new Map(alive.filter(u=>u.role==='leader').map(u=>[u.squadId,u]));
  for(const unit of alive){
-  const leader=leaders.get(unit.squadId);unit.leaderId=leader?.id||null;unit.squadOrder=state.warzoneGround.phase==='resupply'?'hold':state.warzoneGround.phase===unit.factionId+'-push'?'advance':'cover';
+  const leader=leaders.get(unit.squadId);unit.leaderId=leader?.id||null;unit.squadOrder=state.warzoneGround.phase==='resupply'?'regroup':state.warzoneGround.phase===unit.factionId+'-push'?'advance':'bound and cover';
   unit.healTargetId=null;
-  if(unit.role==='medic'){const wounded=alive.filter(u=>u.factionId===unit.factionId&&u.id!==unit.id&&u.health<u.maxHealth-9&&range(unit,u)<180).sort((a,b)=>((a.squadId===unit.squadId?0:1)-(b.squadId===unit.squadId?0:1))||(a.health/a.maxHealth-b.health/b.maxHealth)||range(unit,a)-range(unit,b))[0];if(wounded){unit.healTargetId=wounded.id;unit.targetId=null;continue;}}
+  if(unit.role==='medic'){const wounded=alive.filter(u=>u.factionId===unit.factionId&&u.id!==unit.id&&u.health<u.maxHealth-9&&range(unit,u)<230).sort((a,b)=>((a.squadId===unit.squadId?0:1)-(b.squadId===unit.squadId?0:1))||(a.health/a.maxHealth-b.health/b.maxHealth)||range(unit,a)-range(unit,b))[0];if(wounded){unit.healTargetId=wounded.id;unit.tactic='aid';unit.targetId=null;continue;}}
   let target=alive.filter(u=>u.factionId!==unit.factionId&&range(unit,u)<unit.sightRange&&clearSidearmSight(layout,unit,u)).sort((a,b)=>(range(unit,a)-(a.id===leader?.targetId?45:0))-(range(unit,b)-(b.id===leader?.targetId?45:0)))[0]||null;
-  const candidates=actors.filter(a=>a.person.health>0&&(a.hostileFactions?.includes(unit.factionId)||a.factionId&&a.factionId!==unit.factionId)&&(counts.get(a.id)||0)<2&&range(unit,a.person)<240&&clearSidearmSight(layout,unit,a.person)).sort((a,b)=>range(unit,a.person)-range(unit,b.person));
-  const actor=candidates[0];if(actor&&(!target||range(unit,actor.person)<range(unit,target)*.72)&&rng(state.warzoneGround)<.45){target={id:actor.id,...actor.person};counts.set(actor.id,(counts.get(actor.id)||0)+1);}
-  unit.targetId=target?.id||null;
+  const candidates=actors.filter(a=>a.person.health>0&&a.person.y<SAFE_LINE&&(a.hostileFactions?.includes(unit.factionId)||a.factionId&&a.factionId!==unit.factionId)&&(counts.get(a.id)||0)<2&&range(unit,a.person)<Math.min(unit.range,310)&&clearSidearmSight(layout,unit,a.person)).sort((a,b)=>range(unit,a.person)-range(unit,b.person));
+  const actor=candidates[0];if(actor&&(!target||range(unit,actor.person)<range(unit,target)*.72)&&rng(state.warzoneGround)<.4){target={...actor.person,id:actor.id};counts.set(actor.id,(counts.get(actor.id)||0)+1);}
+  unit.targetId=target?.id||null;if(target)unit.lastSeen={x:target.x,y:target.y,at:state.time};else if(unit.lastSeen&&state.time-unit.lastSeen.at>4)unit.lastSeen=null;
+  if(!unit.moveGoal||state.time>=unit.tacticUntil||unit.suppression>1.2&&unit.tactic!=='fallback')planMove(state,unit,layout,target||unit.lastSeen,alive);
  }
 }
+/** NPC weapons use their own authored range, with the same solid-tile occlusion
+ * as player weapons. Each burst keeps the direction shown by its wind-up. */
+function infantryAim(unit,candidates,layout,angle,rangeLimit){
+ const dx=Math.cos(angle),dy=Math.sin(angle),from={x:unit.x,y:unit.y};let wallDistance=rangeLimit,blocked=false;
+ for(let d=2;d<=rangeLimit;d+=3)if(!isCabinWalkable(layout,from.x+dx*d,from.y+dy*d,1)){wallDistance=Math.max(0,d-3);blocked=true;break;}
+ let selected=null,entry=wallDistance+1;
+ for(const target of candidates){const x=target.x-from.x,y=target.y-from.y,along=x*dx+y*dy,cross=Math.abs(x*dy-y*dx),radius=target.hitRadius||9;if(along<0||along>rangeLimit||cross>radius)continue;const start=along-Math.sqrt(Math.max(0,radius*radius-cross*cross));if(start<=wallDistance&&start<entry&&clearSidearmSight(layout,unit,target)){entry=start;selected=target;}}
+ return{from,to:selected?{x:selected.x,y:selected.y}:{x:from.x+dx*wallDistance,y:from.y+dy*wallDistance},target:selected,blocked:!selected&&blocked};
+}
 function fireInfantry(state,unit,actors,layout,event){
- const w=state.warzoneGround,angle=unit.aimAngle,dx=Math.cos(angle),dy=Math.sin(angle),candidates=[...state.monsters.filter(u=>u.health>0&&u.factionId!==unit.factionId),...actors.filter(a=>a.person.health>0).map(a=>({...a.person,id:a.id,captain:a}))];
- // Lock the firing direction at the start of the tell. Neutral captains can be
- // caught by a line aimed at a soldier; they are never acquired as targets.
- const aim=sidearmAim(unit,candidates,{aiming:true,aimX:dx,aimY:dy},layout),target=aim.target,at=state.time,id=`${state.id}:shot:${++state.shotSerial}`,damage=target?.captain?unit.role==='support'?6:4:unit.damage;
- const shot={id,team:unit.factionId,attackerId:unit.id,actorName:unit.name,factionId:unit.factionId,weaponId:'field-carbine',angle,from:{...aim.from},to:{...aim.to},x:unit.x,y:unit.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:aim.blocked,damage:target?damage:0,until:at+.22};unit.lastShot=shot;event('person-shot',shot);
+ const w=state.warzoneGround,profile=infantryWeapon(unit),angle=unit.aimAngle+roll(w,-profile.spread,profile.spread),candidates=[...state.monsters.filter(u=>u.health>0&&u.factionId!==unit.factionId),...actors.filter(a=>a.person.health>0).map(a=>({...a.person,id:a.id,captain:a}))];
+ const aim=infantryAim(unit,candidates,layout,angle,profile.range),target=aim.target,at=state.time,id=`${state.id}:shot:${++state.shotSerial}`,damage=target?.captain?profile.captainDamage:profile.damage;
+ const shot={id,team:unit.factionId,attackerId:unit.id,actorName:unit.name,factionId:unit.factionId,weaponId:profile.id,angle,from:{...aim.from},to:{...aim.to},x:unit.x,y:unit.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:aim.blocked,damage:target?damage:0,until:at+(unit.role==='marksman'?.3:.16)};unit.lastShot=shot;unit.attackUntil=at+.14;event('person-shot',shot);
  if(target?.captain)hitCaptain(state,target.captain,damage,at,event,shot);else if(target)hitUnit(state,target,damage,unit.id,at,event,shot);
- unit.cooldown=roll(w,unit.role==='support'?1.1:1.8,unit.role==='support'?1.9:3);unit.windup=0;
+ if(unit.role==='support')for(const enemy of state.monsters)if(enemy.health>0&&enemy.factionId!==unit.factionId){const dx=aim.to.x-unit.x,dy=aim.to.y-unit.y,length=Math.hypot(dx,dy),along=length?((enemy.x-unit.x)*dx+(enemy.y-unit.y)*dy)/length:-1,cross=length?Math.abs((enemy.x-unit.x)*dy-(enemy.y-unit.y)*dx)/length:1e9;if(along>0&&along<length+15&&cross<34)enemy.suppression=Math.min(2,(enemy.suppression||0)+.35);}
+}
+function queueShell(state,position,{kind='mortar',from=null,unit=null}={},event){
+ const w=state.warzoneGround,at=state.time;if(w.shells.length>=MAX_SHELLS||position.y>=52*T||position.y<16*T)return false;
+ const fuse=kind==='grenade'?1.55:1.9,s={...position,id:`${state.id}:shell:${++state.shotSerial}`,kind,from:from?{x:from.x,y:from.y}:null,launchedAt:at,radius:kind==='grenade'?42:roll(w,50,66),attackerId:unit?.id||'artillery',factionId:unit?.factionId||null,impactAt:at+fuse,until:at+fuse+3.4,impacted:false};w.shells.push(s);event('warzone-ground-incoming',{id:s.id,x:s.x,y:s.y,kind,radius:s.radius,impactAt:s.impactAt,factionId:s.factionId,text:kind==='grenade'?'Grenade — move out of the amber circle.':'Incoming mortar — leave the marked impact zone.'});return true;
 }
 function shells(state,actors,layout,event){
  const w=state.warzoneGround,at=state.time;
  if(at>=w.nextShell){w.nextShell=at+roll(w,w.phase==='barrage'?2.8:8,w.phase==='barrage'?5:16);if(w.phase!=='resupply'){
-  const lane=Math.floor(rng(w)*3),pos=point(w.fronts[lane]+roll(w,-10,10),lanes[lane]+roll(w,-2,2));if(isCabinWalkable(layout,pos.x,pos.y,1)){const s={...pos,id:`${state.id}:shell:${++state.shotSerial}`,radius:roll(w,42,60),impactAt:at+1.8,until:at+3.2,impacted:false};w.shells.push(s);event('warzone-ground-incoming',{id:s.id,x:s.x,y:s.y,radius:s.radius,impactAt:s.impactAt,text:'Incoming shell — leave the marked impact zone.'});}
+  const lane=Math.floor(rng(w)*3),pos=point(w.fronts[lane]+roll(w,-10,10),lanes[lane]+roll(w,-2,2));if(isCabinWalkable(layout,pos.x,pos.y,1))queueShell(state,pos,{},event);
  }}
- for(const s of w.shells)if(!s.impacted&&at>=s.impactAt){s.impacted=true;scar(w,{x:s.x,y:s.y,type:'crater',at});const shot={id:s.id,team:'environment',weaponId:'artillery',attackerId:'artillery',actorName:'Artillery',x:s.x,y:s.y,to:{x:s.x,y:s.y}};event('warzone-ground-impact',{...shot,radius:s.radius});for(const unit of state.monsters)if(unit.health>0&&range(s,unit)<s.radius&&clearSidearmSight(layout,s,unit))hitUnit(state,unit,44,'artillery',at,event,shot);for(const actor of actors)if(range(s,actor.person)<s.radius&&clearSidearmSight(layout,s,actor.person))hitCaptain(state,actor,26,at,event,shot);}
- w.shells=w.shells.filter(s=>s.until>at).slice(-6);
+ for(const s of w.shells)if(!s.impacted&&at>=s.impactAt){s.impacted=true;scar(w,{x:s.x,y:s.y,type:'crater',radius:s.radius,at});const shot={id:s.id,team:s.factionId||'environment',weaponId:s.kind==='grenade'?'warzone-grenade':'warzone-mortar',attackerId:s.attackerId||'artillery',actorName:s.kind==='grenade'?'Grenade':'Mortar',factionId:s.factionId,x:s.x,y:s.y,to:{x:s.x,y:s.y}};event('warzone-ground-impact',{...shot,radius:s.radius,kind:s.kind});for(const unit of state.monsters)if(unit.health>0&&range(s,unit)<s.radius&&clearSidearmSight(layout,s,unit))hitUnit(state,unit,s.kind==='grenade'?36:52,shot.attackerId,at,event,shot);for(const actor of actors)if(range(s,actor.person)<s.radius&&clearSidearmSight(layout,s,actor.person))hitCaptain(state,actor,s.kind==='grenade'?16:26,at,event,shot);}
+ w.shells=w.shells.filter(s=>s.until>at).slice(-MAX_SHELLS);
+}
+function stepInfantryUnit(state,unit,actors,dt,layout,event){
+ if(unit.health<=0){unit.moving=false;return;}
+ if(!isCabinWalkable(layout,unit.x,unit.y,6))Object.assign(unit,point(unit.factionId==='freewake'?9+unit.slot%3*2:91-unit.slot%3*2,lanes[unit.lane]+(unit.slot%2?1:-1)));
+ const at=state.time,w=state.warzoneGround,profile=infantryWeapon(unit);unit.cooldown=Math.max(0,unit.cooldown-dt);unit.healCooldown=Math.max(0,unit.healCooldown-dt);unit.grenadeCooldown=Math.max(0,unit.grenadeCooldown-dt);unit.suppression=Math.max(0,unit.suppression-dt*.3);
+ const incoming=w.shells.find(s=>!s.impacted&&s.impactAt>at&&range(s,unit)<s.radius+32);
+ if(incoming){if(unit.evading!==incoming.id){const dx=unit.x-incoming.x,dy=unit.y-incoming.y,len=Math.hypot(dx,dy)||1;unit.moveGoal=tacticalGoal(unit,{x:unit.x+dx/len*125,y:unit.y+dy/len*125},layout,{minimumMove:50});unit.evading=incoming.id;}unit.tactic='evade';unit.windup=0;unit.burstLeft=0;walk(unit,unit.moveGoal,dt,layout,unit.speed*1.2);unit.tacticUntil=at+.8;return;}unit.evading=null;
+ if(unit.burstLeft>0){unit.moving=false;unit.burstTimer-=dt;while(unit.burstLeft>0&&unit.burstTimer<=0){fireInfantry(state,unit,actors,layout,event);unit.burstLeft--;unit.burstTimer+=profile.interval;}if(!unit.burstLeft){unit.cooldown=roll(w,...profile.cooldown);unit.tacticUntil=Math.min(unit.tacticUntil,at+roll(w,.6,1.8));}return;}
+ if(unit.windup>0){unit.moving=false;unit.windup=Math.max(0,unit.windup-dt);if(!unit.windup){unit.burstLeft=profile.burst;unit.burstTimer=0;}return;}
+ const wounded=unit.healTargetId&&state.monsters.find(u=>u.id===unit.healTargetId&&u.health>0);
+ if(wounded&&wounded.health<wounded.maxHealth-2){if(range(unit,wounded)>38)walk(unit,wounded,dt,layout);else{unit.moving=false;if(!unit.healCooldown){wounded.health=Math.min(wounded.maxHealth,wounded.health+12);unit.healCooldown=1.6;unit.healUntil=at+.65;}}return;}
+ const target=state.monsters.find(u=>u.id===unit.targetId&&u.health>0)||actors.find(a=>a.id===unit.targetId&&a.person.health>0)?.person,visible=target&&clearSidearmSight(layout,unit,target);
+ if(unit.role==='grenadier'&&!unit.grenadeCooldown&&target&&visible&&range(unit,target)>85&&range(unit,target)<270&&target.y<52*T&&!state.monsters.some(friend=>friend.health>0&&friend.factionId===unit.factionId&&range(friend,target)<65)){
+  const landing={x:target.x+roll(w,-14,14),y:target.y+roll(w,-14,14)};if(queueShell(state,landing,{kind:'grenade',from:unit,unit},event)){unit.grenadeCooldown=roll(w,8,13);unit.tactic='throw';unit.attackUntil=at+.4;unit.tacticUntil=at+.5;}
+ }
+ const mustMove=unit.moveGoal&&range(unit,unit.moveGoal)>12&&(at<unit.moveUntil||!visible||range(unit,target)>profile.range*.93);
+ if(mustMove){walk(unit,unit.moveGoal,dt,layout,unit.speed*(unit.suppression>.5?.8:1));return;}
+ if(target&&visible&&range(unit,target)<=profile.range){unit.moving=false;if(!unit.cooldown){unit.aimAngle=Math.atan2(target.y-unit.y,target.x-unit.x);unit.facing=Math.abs(Math.cos(unit.aimAngle))>Math.abs(Math.sin(unit.aimAngle))?Math.cos(unit.aimAngle)<0?'left':'right':Math.sin(unit.aimAngle)<0?'up':'down';unit.windup=profile.windup;unit.attackUntil=at+profile.windup;}return;}
+ if(unit.moveGoal&&range(unit,unit.moveGoal)>12)walk(unit,unit.moveGoal,dt,layout);else{unit.moving=false;unit.tacticUntil=Math.min(unit.tacticUntil,at+.5);}
 }
 export function stepWarzoneGround(state,participants,delta,surface){
  const dt=clamp(finite(delta),0,.25),layout=surface?.combatLayout,w=state?.warzoneGround;if(!dt||!layout||!w)return[];
@@ -216,18 +297,7 @@ export function stepWarzoneGround(state,participants,delta,surface){
   if(target){if(!actor.hostileFactions?.includes(target.factionId)){actor.hostileFactions=[...(actor.hostileFactions||[]),target.factionId];actor.onWarzoneAggression?.(target.factionId,{source:'ground',ground:true,targetId:target.id});}hitUnit(state,target,damage,id,at,event,shot);}
  }
  if(at>=w.decisionAt){tacticalTargets(state,actors,layout);w.decisionAt=at+.25;}
- for(const unit of state.monsters){
-  if(unit.health<=0){unit.moving=false;continue;}if(!isCabinWalkable(layout,unit.x,unit.y,6))Object.assign(unit,point(unit.factionId==='freewake'?9+unit.slot%3*2:91-unit.slot%3*2,lanes[unit.lane]+(unit.slot%2?1:-1)));unit.cooldown=Math.max(0,unit.cooldown-dt);unit.healCooldown=Math.max(0,unit.healCooldown-dt);
-  if(unit.windup>0){unit.moving=false;unit.windup=Math.max(0,unit.windup-dt);if(!unit.windup)fireInfantry(state,unit,actors,layout,event);continue;}
-  const wounded=unit.healTargetId&&state.monsters.find(u=>u.id===unit.healTargetId&&u.health>0);
-  if(wounded&&wounded.health<wounded.maxHealth-2){if(range(unit,wounded)>38)walk(unit,wounded,dt,layout);else{unit.moving=false;if(!unit.healCooldown){wounded.health=Math.min(wounded.maxHealth,wounded.health+12);unit.healCooldown=1.6;unit.healUntil=at+.65;}}continue;}
-  const other=state.monsters.find(u=>u.id===unit.targetId&&u.health>0),captain=actors.find(a=>a.id===unit.targetId&&a.person.health>0),target=other||captain?.person;
-  if(target&&range(unit,target)<=205&&clearSidearmSight(layout,unit,target)){unit.moving=false;if(!unit.cooldown){unit.aimAngle=Math.atan2(target.y-unit.y,target.x-unit.x)+roll(w,-.035,.035);unit.windup=.55;unit.attackUntil=at+.55;}continue;}
-  const side=unit.factionId==='freewake'?1:-1,lane=unit.lane,front=w.fronts[lane],offset=unit.role==='medic'?-side*4:unit.role==='support'?-side*2:side;
-  const leader=state.monsters.find(u=>u.id===unit.leaderId&&u.health>0);
-  const goal=leader&&range(unit,leader)>180?leader:target&&range(unit,target)<300?target:point(Math.round(front+offset+(unit.slot%3-1)*2),lanes[lane]+(unit.slot%2?1:-1));
-  if(range(unit,goal)>18)walk(unit,goal,dt,layout,unit.speed*(unit.role!=='leader'&&!leader ? .85 : 1));else unit.moving=false;
- }
+ for(const unit of state.monsters)stepInfantryUnit(state,unit,actors,dt,layout,event);
  shells(state,actors,layout,event);
  for(const actor of actors)stepEscort(state,actor,dt,layout,event);
  state.cleared=false;return events;
@@ -338,21 +408,56 @@ export function warzoneGroundSurfaceView(surface,stories){
  })};
 }
 
-/** Low-cost pixel effects: bounded persistent scars, shell warnings, burning
- * blocks and a ward/memorial that visibly reflects the captain's relief work. */
+/** Role-specific carried weapons remain legible without changing the player kit. */
+export function drawWarzoneInfantryKit(ctx,unit,time=0){
+ if(!unit.warzoneUnit||unit.health<=0)return;const px=(c,x,y,w,h)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),w,h);},angle=unit.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle),x=unit.x,y=unit.y-11;
+ const length={medic:12,leader:19,rifle:22,support:25,marksman:30,grenadier:19}[unit.role]||20,wide=unit.role==='support'||unit.role==='grenadier'?5:unit.role==='marksman'?2:3;
+ pixelLine(ctx,x+dx*7,y+dy*7,x+dx*length,y+dy*length,'#101c25',wide+2);pixelLine(ctx,x+dx*8,y+dy*8,x+dx*length,y+dy*length,unit.role==='marksman'?'#a5b8b4':unit.role==='support'?'#8c9998':'#b5bcb0',wide);
+ if(unit.role==='marksman')pixelLine(ctx,x+dx*10-dy*3,y+dy*10+dx*3,x+dx*17-dy*3,y+dy*17+dx*3,'#b2c9df',2);
+ if(unit.role==='support'){px('#697f72',unit.x-9,unit.y-18,6,9);px('#cab383',x+dx*11-2,y+dy*11+3,5,5);}
+ if(unit.role==='grenadier'){for(let i=0;i<3;i++)px('#d0ad71',unit.x-6+i*4,unit.y-9,2,4);px('#60776c',x+dx*15-3,y+dy*15-3,6,6);}
+ px(unit.stripeColor||'#c9cfba',unit.x-7,unit.y-23,3,unit.role==='leader'?6:3);
+ if(unit.factionId==='freewake')px('#233b36',unit.x-7,unit.y-21,3,1);
+ if(unit.role==='medic'){px('#d6ded0',unit.x+4,unit.y-22,5,2);px('#d6ded0',unit.x+5,unit.y-23,2,5);}
+ if((unit.healUntil||0)>time){px('#b8d9ad',unit.x-2,unit.y-37,5,2);px('#b8d9ad',unit.x-1,unit.y-39,2,6);}
+ if(unit.firing||unit.lastShot?.until>time){const mx=x+dx*(length+3),my=y+dy*(length+3),c=unit.role==='marksman'?'#bdd5ff':unit.role==='support'?'#bde5d3':'#f4d69b';px(c,mx-3,my-3,6,6);px('#fff4dc',mx-1,my-1,3,3);}
+}
+
+/** Warning circles, visible lobs, flash, shock fronts, debris and smoke are
+ * computed from ten bounded blast records. Rendering never advances combat. */
 export function drawWarzoneGroundEffects(ctx,surface,encounter,{time=0,cameraX=0,cameraY=0,width=800,height=600,reduceMotion=false,layer='floor'}={}){
  if(surface?.site?.crosswindSupport){
   if(layer==='floor'&&surface.site.crosswindSupport==='refuge'&&surface.warzoneStories?.dispatch?.decision==='relief'){ctx.fillStyle='#e4c992';for(const x of[8,20,29])ctx.fillRect(x*T,21*T,24,3);}
   return;
  }
- if(!surface?.warzone)return;const w=encounter?.warzoneGround,at=encounter?.time||0,visible=p=>p.x>cameraX-80&&p.y>cameraY-90&&p.x<cameraX+width+80&&p.y<cameraY+height+80,px=(c,x,y,ww,hh)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),ww,hh);};
+ if(!surface?.warzone)return;const w=encounter?.warzoneGround,at=encounter?.time||0,visible=p=>p.x>cameraX-120&&p.y>cameraY-140&&p.x<cameraX+width+120&&p.y<cameraY+height+140,px=(c,x,y,ww,hh)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(ww)),Math.max(1,Math.round(hh)));};
  if(layer==='floor'){
-  for(const s of w?.scars||[])if(visible(s)){if(s.type==='crater'){px('#282c30',s.x-20,s.y-8,40,16);px('#343435',s.x-14,s.y-12,28,24);px('#786d60',s.x-16,s.y+7,29,3);}else{px('#382e2f',s.x-9,s.y-4,18,8);px(colors[s.factionId]||'#a09d91',s.x-10,s.y-3,18,4);}}
-  for(const shell of w?.shells||[])if(!shell.impacted&&visible(shell)){const pulse=reduceMotion?1:.6+Math.sin(time*12)*.25,r=shell.radius;ctx.globalAlpha=pulse;px('#df9a6e',shell.x-r,shell.y-r,r*2,2);px('#df9a6e',shell.x-r,shell.y+r,r*2,2);px('#df9a6e',shell.x-r,shell.y-r,2,r*2);px('#df9a6e',shell.x+r,shell.y-r,2,r*2);px('#edc792',shell.x-5,shell.y-1,10,2);px('#edc792',shell.x-1,shell.y-5,2,10);ctx.globalAlpha=1;}
+  for(const s of w?.scars||[])if(visible(s)){
+   if(s.type==='crater'){
+    const r=(s.radius||40)*.57;px('#303034',s.x-r,s.y-r*.46,r*2,r*.92);px('#24282c',s.x-r*.72,s.y-r*.62,r*1.44,r*1.24);px('#393b3a',s.x-r*.55,s.y-r*.36,r*1.1,r*.72);pixelRing(ctx,s.x,s.y,r,r*.65,'#817460',{step:3,dashed:true,phase:s.x%6,width:2});
+    for(let i=0;i<7;i++){const a=i*.897+s.x*.01;pixelLine(ctx,s.x+Math.cos(a)*r*.7,s.y+Math.sin(a)*r*.5,s.x+Math.cos(a)*r*1.3,s.y+Math.sin(a)*r*.9,'#282c2e',1);}
+    if(at-s.at<7)for(let i=0;i<3;i++)px(reduceMotion?'#b47c4b':Math.sin(time*4+i)>0?'#c58e55':'#8d5d42',s.x-9+i*9,s.y+(i%2)*5,2,2);
+   }else{px('#382e2f',s.x-9,s.y-4,18,8);px(colors[s.factionId]||'#a09d91',s.x-10,s.y-3,18,4);}
+  }
+  for(const shell of w?.shells||[])if(!shell.impacted&&visible(shell)){
+   const r=shell.radius,progress=clamp((at-shell.launchedAt)/Math.max(.1,shell.impactAt-shell.launchedAt),0,1),color=shell.kind==='grenade'?'#edc782':'#e7a17c';ctx.globalAlpha=reduceMotion?.9:.64+Math.sin(time*9)*.17;
+   pixelRing(ctx,shell.x,shell.y,r,r,color,{step:3,dashed:true,phase:reduceMotion?0:time*9,width:2});pixelRing(ctx,shell.x,shell.y,r*(1-progress),r*(1-progress),color,{step:5,width:1});px(color,shell.x-6,shell.y-1,12,2);px(color,shell.x-1,shell.y-6,2,12);ctx.globalAlpha=1;
+  }
   const stories=surface.warzoneStories;if(stories?.hospital.allocation){const c=stories.hospital.allocation==='theatre'?'#e4d7a4':'#a8d7c2';for(const x of[11,14,17])px(c,x*T,56*T,20,3);if(stories.hospital.allocation==='triage')for(let x=32;x<76;x+=6)px('#a8d7c2',x*T,62*T,6,2);}
   if(stories?.names.stage==='done'){const p=surface.warzoneMemorial;px('#a6aaa0',p.x-12,p.y-26,24,26);px('#333e40',p.x-9,p.y-23,18,18);for(let i=0;i<3;i++)px(stories.names.decision==='public'?'#d7d0b4':'#9eb9b6',p.x-6,p.y-20+i*5,12,1);px('#c4ae74',p.x-15,p.y,3,5);}
   return;
  }
  for(const [i,p]of(surface.warzoneFires||[]).entries())if(visible(p)){const flicker=reduceMotion?0:Math.sin(time*8+i)*3;px('#302c2c',p.x-11,p.y-4,23,8);px('#a85f3b',p.x-8,p.y-13-flicker,15,15+flicker);px('#d79b53',p.x-3,p.y-9-flicker,6,11+flicker);ctx.globalAlpha=.35;for(let j=0;j<3;j++){const rise=reduceMotion?j*17:(time*13+j*18+i*7)%58;px('#6e6b65',p.x-8+j*3,p.y-21-rise,18+j*6,10+j*4);}ctx.globalAlpha=1;}
- for(const shell of w?.shells||[])if(shell.impacted&&visible(shell)){const age=at-shell.impactAt,r=Math.min(shell.radius,12+age*90);ctx.globalAlpha=Math.max(0,.8-age*.5);px(age<.25?'#e7ca87':'#93816b',shell.x-r,shell.y-r*.5,r*2,r);ctx.globalAlpha=1;}
+ for(const shell of w?.shells||[])if(visible(shell)){
+  if(!shell.impacted){
+   if(!reduceMotion){const progress=clamp((at-shell.launchedAt)/Math.max(.1,shell.impactAt-shell.launchedAt),0,1),from=shell.from||{x:shell.x-60,y:shell.y-220},lob=shell.kind==='grenade'?Math.sin(progress*Math.PI)*62:0,x=from.x+(shell.x-from.x)*progress,y=from.y+(shell.y-from.y)*progress-lob;ctx.globalAlpha=.45;pixelLine(ctx,x-(shell.x-from.x)*.055,y-(shell.y-from.y)*.055,x,y,shell.kind==='grenade'?'#d4ba81':'#f0c693',2);ctx.globalAlpha=1;px('#172628',x-3,y-3,6,6);px(shell.kind==='grenade'?'#b7c6a1':'#fff0ba',x-2,y-2,4,4);}
+   continue;
+  }
+  const age=Math.max(0,at-shell.impactAt),radius=shell.radius,seed=shell.x*.13+shell.y*.37;
+  if(!reduceMotion&&age<.23){const r=Math.min(radius*.75,12+age*220);ctx.globalAlpha=Math.max(.2,1-age*3);px('#b66a3b',shell.x-r,shell.y-r*.7,r*2,r*1.4);px('#eab268',shell.x-r*.7,shell.y-r*.9,r*1.4,r*1.8);px('#fff0c6',shell.x-r*.35,shell.y-r*.5,r*.7,r);}
+  if(age<1.15){const wave=reduceMotion?radius:12+age*radius*1.7;ctx.globalAlpha=(1-age/1.15)*.65;pixelRing(ctx,shell.x,shell.y,wave,wave*.8,'#c5b79b',{step:3,dashed:age>.45,phase:0,width:age<.45?3:2});}
+  if(!reduceMotion&&age<1.3)for(let i=0;i<12;i++){const angle=i*Math.PI/6+seed,distance=age*(36+(i%4)*18),x=shell.x+Math.cos(angle)*distance,y=shell.y+Math.sin(angle)*distance*.65-Math.sin(age/1.3*Math.PI)*(12+i%3*9);ctx.globalAlpha=1-age/1.3;px(i%3===0?'#d5a564':'#8d8678',x,y,i%3+2,2);}
+  if(age>.12){const fade=Math.min(.52,(3.4-age)*.22);ctx.globalAlpha=Math.max(0,fade);for(let i=0;i<(reduceMotion?3:6);i++){const drift=reduceMotion?0:age*(i%2?9:-6),size=13+age*7+i%3*5,x=shell.x+Math.cos(seed+i*1.9)*(15+age*5)+drift,y=shell.y-8-age*(reduceMotion?7:22)-i%3*9;px(i%2?'#6d6a61':'#81786a',x-size*.5,y-size*.3,size,size*.6);px(i%2?'#6d6a61':'#81786a',x-size*.35,y-size*.5,size*.7,size);}}
+  ctx.globalAlpha=1;
+ }
 }

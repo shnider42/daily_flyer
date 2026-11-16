@@ -1,8 +1,8 @@
-# Crosswind warzone — 0.26.0
+# Crosswind warzone — 0.27.0
 
 Crosswind adds a persistent Freewake–Meridian fleet battle near Hearth, an infantry front on Vey, and civilian work whose consequences can be revisited. The military simulation is shared; allegiance, sortie credit, relief stories, and their rewards belong to each captain. The existing Hearth system is preserved.
 
-The same release adds three optional return campaigns at Hearth's original contacts. Their choices, actual tasks, personal benefits, and save rules are documented in [campaign-aftermaths.md](campaign-aftermaths.md).
+Version 0.26.0 also added three optional return campaigns at Hearth's original contacts. Their choices, actual tasks, personal benefits, and save rules are documented in [campaign-aftermaths.md](campaign-aftermaths.md).
 
 ## Location and authored places
 
@@ -12,7 +12,7 @@ The system is appended after the existing galaxy's metadata and geography are ge
 
 | Place | Implemented role |
 | --- | --- |
-| **Vey** (`crosswind-vey`) | Industrial planet and the main battleground. Land, then enter **Ashfall Front** (`ashfall-front`). Vey has no ordinary port services. |
+| **Vey** (`crosswind-vey`) | Industrial planet and the main battleground. Landing directly activates **Ashfall Front** (`ashfall-front`) on the outdoor surface, beside the covered southern approach. Vey has no ordinary port services. |
 | **Orsa** (`crosswind-orsa`) | Ice-world refuge outside the main firing lanes. **Thawline Refuge Reception** (`thawline-reception`) is a compact, peaceful authored interior with an arrivals board, staff, and return visits to the rescued tenants. |
 | **Lorn** (`crosswind-lorn`) | Desert supply world. **Cistern Nine Dispatch** (`fuel-dispatch`) is a compact, peaceful authored interior with a civilian power-cell allocation choice and persistent staff responses. |
 | **Third Light** (`crosswind-third-light`) | Relief station deliberately placed near Orsa and its evacuation approach. Its geography metadata names Orsa as its anchor and records the reason for that placement. |
@@ -21,23 +21,34 @@ There are exactly **three planets**, plus Third Light station. Orsa and Lorn hav
 
 ## Fleet composition and spatial behavior
 
-The first visit creates **56 military ships: 28 per faction**. These use existing hull classes with military profiles and roles.
+The first visit creates **56 military ships: 28 per faction**. They use faction-specific capital classes plus screens and escorts with military profiles and roles. Carrier-launched fighters join this initial force as hangars cycle.
 
 | Size | Per faction | Starting classes per faction |
 | --- | ---: | --- |
 | Small | 12 | 8 Kestrels, 4 Sparrows |
 | Medium | 8 | 4 Martens, 2 Quills, 2 Petrels |
 | Large | 6 | 4 Frigates, 2 Bulwarks |
-| Massive | 2 | 1 Capital carrier, 1 Judicator |
+| Massive | 2 | Freewake: 1 Horizon carrier, 1 Judicator. Meridian: 1 Ark carrier, 1 Confluence cruiser. |
 | **Total** | **28** | **56 across both factions** |
 
-The factions share a restrained military hull palette, with Freewake's green split markings and Meridian's amber bar markings providing readable distinctions. Each side has a real medium picket, **Watchknife**, for arrival contact. If the original picket has been lost, arrival can use another suitable surviving ship or the channel's fallback identity.
+The factions retain a restrained military hull palette, with Freewake's green split markings and Meridian's amber bar markings providing readable distinctions. The silhouettes also differ: Freewake fields the wedge-shaped Judicator and twin-panel Needle interceptor; Meridian fields the lobed Confluence, asymmetric Ark and four-foil Kite strike fighter. Each side has a real medium picket, **Watchknife**, for arrival contact. If the original picket has been lost, arrival can use another suitable surviving ship or the channel's fallback identity.
 
 Ships fight across three sectors around Vey: the northern battery lane, freight crossing, and evacuation approach edge. Size affects speed, weapon range, and preferred distance. Separation and planetary obstruction checks help keep the engagement distributed; capitals do not use the same movement profile as screens.
 
 The fleet continues fighting other fleet units when a captain arrives. Deliberate assignments against player hulls have two limits: a global budget of approximately 28% of available combatants, with a minimum budget of one when forces are very small, and a physical hull's mass limits its own assignments to **2, 3, 5, or 7**. Larger ships also receive a stronger targeting score and a larger acquisition reach. These are targeting limits, not a limit on stray projectiles or a guarantee of survival. Neutral ships are not deliberately acquired without hostile evidence, but they can cross an existing shot's path.
 
 Tactical target selection runs at 0.45-second intervals. Positions and projectiles continue advancing between decisions.
+
+### Hangars, fighter sorties and batteries
+
+Each faction can maintain two active NPC carrier controllers. Capital and Ark carriers have six fighter slots each; Judicator and Confluence line ships have four. Fighters launch from a physical hangar mouth, accelerate clear of their parent, make attack passes, and return when ammunition, damage, sortie duration or a resupply phase requires it. A returned fighter frees its active hull slot while its carrier rearms the sortie. Parent loss can rehome surviving fighters to a suitable allied carrier or make them disengage. Captured or promoted carriers leave the NPC launch controller, preserving ordinary player-vessel authority.
+
+The battle allows at most **24 active carrier fighters, 12 per faction**, within the overall **80 NPC hull** limit. Ordinary line replacements have a separate 60-hull bound so waves and sorties share capacity without unlimited growth. Current ready, deployed and rearming counts are observable; future launch schedules remain private to the authority.
+
+Heavy ships turn to present a port or starboard battery. Each cannon uses its own hull-relative muzzle, a real half-arc of about 38 degrees and a staggered volley cadence. Forward-armed escorts and fighters use approach, pass and break maneuvers. A ship facing the wrong way must turn before that bank can hit its intended target. Gun stations on player-controlled capitals use these same side-mount positions and arcs; helm fire retains the hull's forward equipment behavior.
+
+Hull-scaled explosion effects have a short flash, expanding shock front, asymmetric fragments, drifting smoke and embers. Fighter departures and recoveries have their own brief hangar effects. Effects are bounded, deterministic from their observed event data and read-only during rendering; reduced motion retains a quieter aftermath.
+
 
 ## Ebb, replacement, and bounded state
 
@@ -50,6 +61,8 @@ Waves arrive on different lanes and can include heavier ships. Destroying every 
 | Fleet limit | Current bound |
 | --- | ---: |
 | NPC fleet hulls managed by the battle | 80 |
+| Ordinary line hulls | 60, within the 80-hull total |
+| Carrier fighters | 24 total, 12 per faction, within the 80-hull total |
 | Fleet projectiles | 160 |
 | Fleet visual effects | 48 |
 | Recent loss IDs | 64 |
@@ -88,13 +101,13 @@ Player boarding remains available for eligible disabled hulls through the actual
 
 ## Ashfall's infantry war
 
-Ashfall is a **96 × 68 tile** authored district with three connected combat lanes: Rail Yard, Central Works, and Tram Street. Loading roads and a central service spine connect the lanes. Ruined blocks and staggered cover leave routes around the fighting. A covered southern aid passage links the landing gate, clinic, and apartment shelter, with deliberate entrances into the combat streets.
+Ashfall is a **96 × 68 tile** authored district with three connected combat lanes: Rail Yard, Central Works, and Tram Street. Loading roads and a central service spine connect the lanes. Ruined blocks and staggered cover leave routes around the fighting. A covered southern aid passage links the central landing shuttle, western clinic, and eastern apartment shelter, with deliberate openings into the combat streets. Both armies and their effects are on this same surface. The state retains the canonical Ashfall encounter key while the captain has Vey as their location and no site interior. Earlier indoor saves migrate to this outdoor representation, preserving personal story outcomes and valid coordinates.
 
-Each faction has **18 persistent infantry slots**, arranged as three six-person squads: leader, medic, support soldier, and three riflemen. The **36 shared slots** are replaced in bounded waves instead of accumulating new soldiers forever. Squads follow lane orders and their leaders' positions, medics seek wounded comrades, and leader loss affects movement. Infantry acquires hostile captains selectively while continuing the faction battle. Neutral captains can still be struck by crossfire or artillery.
+Each faction has **18 persistent infantry slots**, arranged as three six-person squads: leader, medic, support gunner, rifle trooper, marksman and grenadier. The **36 shared slots** are replaced in bounded waves instead of accumulating new soldiers forever. Each role has its own weapon range, windup, burst length, spread, damage and cooldown. Fireteams alternate bounds and covering fire; troops relocate after bursts, use flanking routes, withdraw when wounded or suppressed, and dodge warned blast areas. Medics seek wounded squadmates and leader loss affects coordination. Infantry acquires hostile captains selectively while continuing the faction battle. Neutral captains can still be struck by crossfire or artillery.
 
-Ground phases include contested streets, a Union advance, artillery exchange, a Combine counterattack, and an uneasy resupply lull. Replacement waves restore roughly 3–6 casualties at a time; schedules vary, with shorter intervals during resupply. Artillery displays an impact warning before damaging exposed units. Its scheduled impact grid covers the combat lanes, leaving the southern aid passage outside that grid. Cover and line-of-sight still matter. The passage is a sheltered route, not an invulnerability toggle.
+Ground phases include contested streets, a Union advance, artillery exchange, a Combine counterattack, and an uneasy resupply lull. Replacement waves restore roughly 3–6 casualties at a time; schedules vary, with shorter intervals during resupply. Artillery and lobbed grenades display impact warnings before damaging exposed units. Layered blast flashes, shock rings, fragments, smoke and craters make impacts readable at both early and late stages. Its scheduled impact grid covers the combat lanes, leaving the southern aid passage outside that grid. Cover and line-of-sight still matter. The passage is a sheltered route, not an invulnerability toggle.
 
-The site never becomes permanently cleared. Persistent visual scars are limited to 32, active shells to 6, and cached route fields to 72 per layout. Deaths, replacements, phases, and random state persist within the shared encounter. The civilian rooms on Orsa and Lorn do not instantiate Ashfall's infantry simulation.
+The site never becomes permanently cleared. Persistent visual scars are limited to 32, active mortar/grenade warnings to 10, and cached route fields to 72 per layout. Deaths, replacements, phases, and random state persist within the shared encounter. The civilian rooms on Orsa and Lorn do not instantiate Ashfall's infantry simulation.
 
 ## Civilian stories and return visits
 
@@ -115,9 +128,9 @@ Orsa's arrivals board, Tavi Esher, Bren Lo, and the rescued tenants provide retu
 
 An occupied system advances the fleet once per authoritative room tick, regardless of the number of captains. Captains at Ashfall share one ground encounter and its clock. Empty rooms and sites store their current state. Re-entry can catch up **at most 90 seconds of NPC-only simulation**, rather than replaying every second of a long absence. This produces changed fronts and replacement activity without an unbounded restart cost. Player ships, mission duty, and civilian escorts do not gain progress from that catch-up.
 
-Fleet random state, replacement schedules, live hulls, losses, and phase state are saved. Transient fleet projectiles and effects are not accumulated in save history. Full and compact observations show the current battle while withholding future random state and wave, phase, and boarding schedules. Ground observations retain already visible artillery warnings but strip future battle rolls. Canonical captured vessels remain in the realm's vessel records instead of being duplicated into an ordinary NPC contact.
+Fleet random state, replacement schedules, live hulls, losses, phase state, hangar slots, fighter sorties, battery cooldowns and maneuvers are saved. The v2 fleet record migrates earlier unoccupied Meridian capital NPCs to their faction silhouettes while retaining hull identity and damage fraction; occupied/captured prizes and hulls with a saved deck or damage-control interior keep their actual class. Transient fleet projectiles and effects are not accumulated in save history. Full and compact observations show the current battle while withholding future random state and wave, phase, and boarding schedules. Ground observations retain already visible artillery warnings but strip future battle rolls. Canonical captured vessels remain in the realm's vessel records instead of being duplicated into an ordinary NPC contact.
 
-The briefing shows affiliation, current force counts, phase, sortie progress, and routes to Vey, Orsa, and Hearth. Its live counters refresh within the existing dialog, and menu-session guards reject stale replies after a menu or connection changes. The arrival warning feeds the existing music tension system; this update does not add a separately recorded soundtrack or promise a unique composition for each battle phase.
+The briefing shows affiliation, current force counts, phase, sortie progress, and routes to Vey, Orsa, and Hearth. Its live counters refresh within the existing dialog, and menu-session guards reject stale replies after a menu or connection changes. Since 0.26.1, the actual Crosswind location selects three original synthesized heavy battle pieces in a shuffled rotation throughout the system. Peaceful music resumes after departure. See [music direction](music-direction.md).
 
 | Module | Responsibility |
 | --- | --- |
@@ -138,8 +151,8 @@ The warzone regression files exercise these behaviors:
 - `tests/server/warzone-credit.test.mjs`: borrowed-helm attribution, separate gunner contributions, one duty tick per physical captain, absent-owner exclusions, canonical target damage, and payment replay protection across restart.
 - `tests/warzone-ground.test.mjs` and `tests/server/warzone-ground.test.mjs`: connected routes, active armies and replacement, neutral/friendly behavior, medics, physical relief stages, escort movement, Orsa's named arrivals, Lorn's personal dispatch choice, separate captain progress, restart, and NPC-only catch-up.
 
-One local synthetic run of the first shared fleet test measured approximately **0.628 ms per ten-captain room tick** and **0.742 ms per captain's compact snapshot**. The test starts with 56 NPC warships fighting normally and ten online captains in separate neutral ships, with no input, positioned away from the engagement. After a 300-tick one-versus-ten-captain comparison, it times 300 further `Realm.step(1/30)` calls. Snapshot timing uses 200 `snapshotFor({ compact: true, drainEvents: false })` calls in 20 batches of ten.
+Before this update, one local synthetic run of the 0.26.0 shared fleet test measured approximately **0.628 ms per ten-captain room tick** and **0.742 ms per captain's compact snapshot**. The test starts with 56 NPC warships fighting normally and ten online captains in separate neutral ships, with no input, positioned away from the engagement. After a 300-tick one-versus-ten-captain comparison, it times 300 further `Realm.step(1/30)` calls. Snapshot timing uses 200 `snapshotFor({ compact: true, drainEvents: false })` calls in 20 batches of ten.
 
-Those values are measurements from this Node workspace, not production budgets or browser frame-time guarantees. They exclude network serialization and sending, browser rendering, and active ten-player close combat or infantry fighting. The test emits fresh timing diagnostics on each run; a deployment or rendering performance claim needs measurements in that environment. Fleet and ground population limits bound work but do not replace those measurements.
+Those older values are a baseline from this Node workspace and do not measure the new carrier or tactical behavior. They are not production budgets or browser frame-time guarantees. They exclude network serialization and sending, browser rendering, and active ten-player close combat or infantry fighting. The test emits fresh timing diagnostics on each run; a deployment or rendering performance claim needs measurements in that environment. Fleet and ground population limits bound work but do not replace those measurements.
 
 Release verification should use the recorded test results for the candidate revision and include real browser and multiplayer playtests for readability, pacing, arrival safety, rare boarding frequency, and civilian-story clarity.
