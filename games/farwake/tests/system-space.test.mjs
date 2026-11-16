@@ -34,7 +34,7 @@ function surveyGalaxy(){
  // every old hull/route field against the independent0.10 fixture. Bounds and
  // duplicate checks below always use the actual new runtime, including traffic.
  trafficControl.galaxy=releasedChart(game.galaxy).map(system=>({...system,bodies:system.bodies.map(body=>({...body,visualRadius:releasedRadius(body)}))}));
- const releasedSystems=game.galaxy.filter(system=>system.id!=='voltage');
+ const releasedSystems=game.galaxy.filter(system=>!['voltage','crosswind'].includes(system.id));
  const counts=Object.fromEntries(keys.map(key=>[key,0])),actualCounts=Object.fromEntries(keys.map(key=>[key,0])),bounds=[],duplicates=[],dimensions=new Set();
  for(const system of releasedSystems){
   game.state.systemId=system.id;game._loadSystem(system.id);const world=game.system;

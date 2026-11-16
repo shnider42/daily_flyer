@@ -61,6 +61,27 @@ test('a reply from a departed connection is not applied to the replacement capta
   resolve({ ok: true }); await request; assert.equal(recorded, 0);
 });
 
+test('a relief decision keeps its contact and next task without an unrelated discovery receipt', async () => {
+  const panel = dialog(), current = game(); let resolve;
+  panel.html = function (markup) { this.markup = markup; };
+  panel.choices = function (items) { this.groups ??= []; this.groups.push(items); };
+  const context = vm.createContext({ dialog: panel, game: current, network: null, captureMenuSession,
+    surface: { warzone: true }, esc: String, fmt: String, effectSummary: answer => answer.credits ? `+${answer.credits} cr` : '',
+    audio: { play() { throw new Error('Accepting an escort task does not collect an item.'); } },
+    result: answer => answer.ok,
+    invoke: async (_, args) => args.action === 'inspect' ? { ok: true, title: 'Asha · civilian evacuation', text: 'Meet the tenants at the apartment shelter.', choice: { options: [{ id: 'accept', label: 'Agree to escort the three tenants' }] } } : new Promise(done => { resolve = done; }) });
+  vm.runInContext(['menuSession', 'runMenuAction', 'openSiteEntity', 'showSiteResult'].map(declaration).join('\n'), context);
+  await context.openSiteEntity({ id: 'ashfall:evacuation', type: 'siteChoice', name: 'Asha', data: {} });
+  const request = panel.groups[0][0].action();
+  resolve({ ok: true, credits: 0, text: 'Three seats are reserved. Meet Siv, Oren and Mara at the apartment shelter.' }); await request;
+  assert.equal(panel.title, 'Asha · civilian evacuation');
+  assert.equal(panel.kind, 'site-record'); assert.equal(panel.options.contextKey, 'site:ashfall:evacuation');
+  assert.equal(panel.options.eyebrow, 'CIVILIAN RELIEF');
+  assert.match(panel.markup, /Meet Siv, Oren and Mara/);
+  assert.doesNotMatch(panel.markup, /discovery|You now have|Hold/);
+  assert.equal(panel.groups.at(-1)[0].label, 'Return to exploring');
+});
+
 test('the actual legacy notebook uses the same destinations and width as stories', () => {
   const context = vm.createContext({ testSession: null, game: game(), dialog: dialog(), document,
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }), fmt: String });

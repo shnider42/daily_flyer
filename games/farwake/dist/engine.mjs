@@ -30,6 +30,9 @@ import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidear
 import { PersonalGearRules } from './personal-gear.mjs';
 import { GamblingRules } from './gambling.mjs';
 import { appendNeonSystem } from './neon-content.mjs';
+import { appendWarzoneSystem, CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL } from './warzone-content.mjs';
+import { installWarzoneSpace, stepWarzoneSpace, captureWarzoneSpace, notifyWarzoneDestroyed, recordWarzoneAggression as recordFleetAggression } from './warzone-space.mjs';
+import { WarzoneRules } from './warzone-rules.mjs';
 import { GunneryRules, clampGunneryAim, applyGunneryAim } from './gunnery.mjs';
 import { getGunneryBattery, batteryCooldown, advanceGunneryCooldowns } from './gunnery-batteries.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
@@ -159,7 +162,7 @@ export function buildGalaxy(seed = 'farwake') {
       });
     }
   }
-  return decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(appendNeonSystem(expandGalaxy(systems, seed))), seed), seed);
+  return appendWarzoneSystem(decorateStationGeography(decorateGalaxyTypes(appendFactionPorts(appendNeonSystem(expandGalaxy(systems, seed))), seed), seed),seed);
 }
 
 function initialState(seed, options = {}) {
@@ -238,6 +241,7 @@ export class Game {
     this.initializeFieldWork();
     this.initializeMilitaryCareer();
     this.initializeMilitaryRecovery();
+    this.initializeWarzone();
     if(this.state.interior?.location?.site?.military)this._restoreExploration();
     this.initializeRescueOccupants();
     this.initializeInteriorDamage();
@@ -247,7 +251,7 @@ export class Game {
     this.state.worldDirector=advanceWorldDirector(this.state.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy}).state;
     this.syncNarrativeWorld();
     this.syncProfessionWorld();
-    syncDirectorWorld(this,this.worldDirector);
+    if(this.state.systemId!==CROSSWIND_SYSTEM_ID)syncDirectorWorld(this,this.worldDirector);
     this._checkChapters();
   }
 
@@ -445,10 +449,11 @@ export class Game {
     if (!this._runtime) return;
     const record = this._record();
     record.trafficStates = captureTraffic(this.system.traffic);
+    if(this.system.warzone){record.warzoneSpace=captureWarzoneSpace(this.system);record.warzoneLastVisit=this.state.stats.time;}
     record.pickups = this.system.pickups.map(x => clone(x));
     record.enemyHealth ||= {};
     record.enemyStates ||= {};
-    for (const e of this.system.enemies) if (e.hp > 0) {
+    for (const e of this.system.enemies) if (e.hp > 0 && !e.warzone) {
       record.enemyHealth[e.id] = e.hp;
       record.enemyStates[e.id]={classId:e.classId,damageControl:e.damageControl?clone(e.damageControl):null,energy:e.energy,x:e.x,y:e.y,vx:e.vx||0,vy:e.vy||0,angle:e.angle,dockedAt:e.dockedAt||null,disabled:!!e.disabled,boardingTargetId:e.boardingTargetId||null,boardingOriginId:e.boardingOriginId||null,boardingCharge:e.boardingCharge||0,boardingCooldown:e.boardingCooldown||0,deck:e.deck?clone(e.deck):null,occupation:e.occupation?clone(e.occupation):null,capturedBy:e.capturedBy||null,promotedVesselId:e.promotedVesselId||null,canonicalVesselId:e.canonicalVesselId||null};
     }
@@ -552,13 +557,14 @@ export class Game {
     for(let i=0;i<16;i++)r();
     const traffic = restoreTraffic(createSystemTraffic({seed:this.state.seed,system:{...data,spatialScale:SYSTEM_SPACE_SCALE,radius:WORLD_RADIUS},bodies,count:context.trafficCount}), record.trafficStates);
     for(const contact of traffic)if(context.region!=='core'&&contact.faction==='concord'&&['patrol','escort','carrier'].includes(contact.trafficRole)&&hash(`${this.state.seed}:${contact.id}:patrol-assistance`)%100<3)contact.encounterId='patrol';
-    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, systemTypeId:data.systemTypeId, typeLabel:data.typeLabel, typeDescription:data.typeDescription, stellar:data.stellar, activity:data.activity, worldTypesVersion:WORLD_TYPES_VERSION, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:flavorSystemSignals(data,contextualSignals(data,signals,this.state.seed)), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
-    materializeEncounterContacts(this);
+    this._runtime = { id, name: data.name, faction: data.faction, danger: data.danger, biome: data.biome, description: data.description, systemTypeId:data.systemTypeId, typeLabel:data.typeLabel, typeDescription:data.typeDescription, stellar:data.stellar, activity:data.activity, worldTypesVersion:WORLD_TYPES_VERSION, spaceVersion:SYSTEM_SPACE_VERSION, spatialScale:SYSTEM_SPACE_SCALE, context, warzoneFactions:data.warzoneFactions, bodies, asteroids, enemies, parkedShips:clone(record.parkedShips||[]).filter(sh=>sh.hull>0&&sh.id!==this.state.ship.id), bullets: [], pickups: clone(record.pickups), signals:flavorSystemSignals(data,contextualSignals(data,signals,this.state.seed)), traffic, miningTarget: null, mining: null, miningBeams:{}, width: WORLD_RADIUS * 2, height: WORLD_RADIUS * 2, radius: WORLD_RADIUS };
+    if(id===CROSSWIND_SYSTEM_ID)installWarzoneSpace(this.system,{seed:this.state.seed,saved:record.warzoneSpace,elapsed:Math.max(0,this.state.stats.time-(record.warzoneLastVisit??this.state.stats.time))});
+    else materializeEncounterContacts(this);
     for(const ship of [...this.system.parkedShips,...this.system.enemies])relocateHullOccupants(ship);
     record.visits = (record.visits || 0) + 1;
     if(this.state.narrative)this.syncNarrativeWorld();
     if(this.state.professions)this.syncProfessionWorld();
-    if(this.worldDirector)syncDirectorWorld(this,this.worldDirector);
+    if(this.worldDirector&&id!==CROSSWIND_SYSTEM_ID)syncDirectorWorld(this,this.worldDirector);
   }
 
   _updateStats(heal = false) {
@@ -616,7 +622,7 @@ export class Game {
     if(!this._sharedWorld){
       const result=advanceWorldDirector(this.worldDirector,this.state.stats.time,{seed:this.state.seed,systems:this.galaxy});
       if(result.state!==this.state.worldDirector){
-        this.state.worldDirector=result.state;syncDirectorWorld(this,result.state);this.syncProfessionWorld();
+        this.state.worldDirector=result.state;if(this.state.systemId!==CROSSWIND_SYSTEM_ID)syncDirectorWorld(this,result.state);this.syncProfessionWorld();
         for(const event of result.transitions)if(event.systemId===this.state.systemId)this._event(event.type,event);
       }
     }
@@ -672,6 +678,26 @@ export class Game {
     this._rewardGames=new Map([...games,...recipients].map(g=>[g.playerId,g]));
     this.stepNarrativeWorld(dt,[...recipients,...games]);
     const targets=[...games.filter(g=>g.hasActiveVessel&&g.netTargetEligible!==false&&(g.state.mode==='ship'||['ship','enemy','eva'].includes(g.state.interior?.kind)||g.netTargetEligible===true)),...this._parkedActors()];
+    if(this.system.warzone){
+      const participants=targets.map(game=>({id:game.playerId,vesselId:game.netVesselId||game.state.ship.id,ship:game.state.ship,game,
+        factionId:game.warzoneFaction?.()||null,hostileFactions:game.warzoneHostilities?.()||[],targetEligible:game.netTargetEligible!==false,
+        boardingEligible:!game._parkedVessel,boardingActive:game.state.boarding?.phase==='active',pendingEncounter:!!game.state.pendingEncounter,parked:!!game._parkedVessel}));
+      stepWarzoneSpace(this.system,dt,{participants,
+        onEvent:(type,event)=>{const recipient=event.vesselId&&participants.find(value=>value.vesselId===event.vesselId);if(recipient)recipient.game._event(type,event);else this._worldEvent(type,event);},
+        onPlayerHit:(participant,amount,details)=>participant.game._damageShip(amount,details),
+        onShipHit:(ship,amount,details)=>{const occupant=games.find(game=>game.state.interior?.kind==='enemy'&&game.currentDamageHull()?.id===ship.id);if(occupant||ship.damageControl)(occupant||this)._registerInteriorHit(ship,amount,0,details);},
+        onShipDestroyed:ship=>this._boardedTargetDestroyed(ship),
+        onBoarding:(ship,participant)=>participant.game.startBoarding(ship.id)
+      });
+      // A captain's actual carrier takes precedence over an empty owned hull
+      // whose vessel proxy shares that captain's personal mission state.
+      const dutyStates=new Set();
+      for(const game of [...recipients,...games]){
+        if(dutyStates.has(game.state.warzone))continue;
+        dutyStates.add(game.state.warzone);
+        game.stepWarzoneDuty?.(dt,game._warzoneDutyContext?.()||{ship:game.state.ship,eligible:targets.includes(game)&&!game._parkedVessel});
+      }
+    }
     this._updateEnemies(dt,targets);
     stepPeacekeeperDefense(this.system,dt,targets,(type,event)=>this._worldEvent(type,event));
     this._updateBullets(dt,targets);
@@ -805,7 +831,7 @@ export class Game {
 
   _updateEnemies(dt, targets = [this]) {
     for(const e of this.system.enemies){
-      if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId)continue;
+      if(e.hp<=0||e.promotedVesselId||e.canonicalVesselId||e.warzone)continue;
       if(e.trainingTarget){e.active=false;e.vx=0;e.vy=0;continue;}
       if(e.disabled||e.boardingTargetId||e.capturedBy){e.active=false;e.vx=0;e.vy=0;continue;}
       const target=targets.filter(g=>e.militaryOperationId&&g.state.npcContract?.military?.operationId===e.militaryOperationId||(g.state.rep[e.faction]||0)<45).sort((a,b)=>distance(e,a.state.ship)-distance(e,b.state.ship))[0];
@@ -871,9 +897,14 @@ export class Game {
           const stored=this._record().spawned.find(enemy=>enemy.id===hit.id);
           if(stored&&stored!==hit)Object.assign(stored,{hp:hit.hp,disabled:hit.hp<=hit.maxHp*.4,professionContributors:{...hit.professionContributors}});
         }
-        this._record().enemyHealth[hit.id]=hit.hp;
+        if(hit.warzone){
+          const credited=this._rewardGames?.get(b.ownerId)||shooter||this;
+          recordFleetAggression(this.system,{vesselId:b.vesselId,id:b.ownerId},hit);
+          credited.recordWarzoneAggression?.(hit.faction,{targetId:hit.id});credited.recordWarzoneDamage?.(hit.faction,damage);
+          if(shooter&&shooter!==credited){shooter.recordWarzoneAggression?.(hit.faction,{targetId:hit.id});if(shooter.state.warzone!==credited.state.warzone)shooter.recordWarzoneDamage?.(hit.faction,damage);}
+        }else this._record().enemyHealth[hit.id]=hit.hp;
         this._worldEvent('hit',{id:`${b.id}:hit`,systemId:this.state.systemId,attackerId:b.ownerId,sourceVesselId:b.vesselId,x:hit.x,y:hit.y,target:'enemy',targetId:hit.id,vesselId:hit.id,damage:b.damage});
-        if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
+        if(hit.hp<=0){const owner=this._rewardGames?.get(b.ownerId)||this._worldGames?.find(g=>(g.netVesselId||g.state.ship.id)===b.vesselId)||this;if(hit.warzone)notifyWarzoneDestroyed(this.system,hit,{sourceId:b.ownerId,byPlayer:true});else this._defeat(hit,owner);this._boardedTargetDestroyed(hit);}
         else if(hit.hp<=hit.maxHp*.4&&!hit.disabled){hit.disabled=true;hit.active=false;hit.vx=0;hit.vy=0;this._worldEvent('disabled',{enemyId:hit.id,text:hit.trainingTarget?`${hit.name} disabled. Continue the gunnery exercise.`:hit.militaryOperationId?`${hit.name} disabled. The marked contact is neutralized.`:`${hit.name} disabled. Close to board, or finish the hull.`});}
       }else{
         const hit=targets.filter(g=>g.state.ship.hull>0&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).sort((a,c)=>Math.hypot(a.state.ship.x-fromX,a.state.ship.y-fromY)-Math.hypot(c.state.ship.x-fromX,c.state.ship.y-fromY))[0];
@@ -1051,7 +1082,7 @@ export class Game {
     if(s.pendingEncounter)return this._fail('Finish this conversation before launching.','encounter');
     if(s.ship.destroyed||s.ship.hull<=0)return this._fail('Your ship is no longer intact.','destroyed');
     const portAccess=this.ownShipAccess({atPort:true});if(!portAccess.ok)return portAccess;
-    if(s.boarding?.phase==='active'||this._hitTimer>0||this.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,s.ship)<700))return this._fail('Resolve the immediate attack before using the departure shortcut.','combat');
+    if(s.boarding?.phase==='active'||this._hitTimer>0||this.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===s.ship.id)&&distance(enemy,s.ship)<700))return this._fail('Resolve the immediate attack before using the departure shortcut.','combat');
     if(body.landable===false||distance(s.ship,body)>body.radius+155)return this._fail('Your ship must be parked at this landing to launch from here.','location');
     return this.launch();
   }
@@ -1091,10 +1122,12 @@ export class Game {
     this._loadSystem(id);
     const port = this.system.bodies.find(b => b.kind === 'station') || this.system.bodies[0];
     Object.assign(this.state.ship, { x: port.x, y: port.y + port.radius + 95, vx: 0, vy: 0 });
+    if(id===CROSSWIND_SYSTEM_ID)Object.assign(this.state.ship,{...CROSSWIND_ARRIVAL,vx:0,vy:0});
     this._discoverNear(id);
     this._log(`Arrived in ${this.currentSystem.name}`, this.currentSystem.description, 'discovery');
     this._event('jump', { systemId: id, target: this.currentSystem, text: `Welcome to ${this.currentSystem.name}` });
     this._refreshJobs(); this._checkChapters();
+    this.warzoneArrival();
     if (id === 'sol' && this.hasFlag('vault_recovered') && !this.state.encounterHistory.includes('earth_arrival')) {
       const greeting=this.triggerEncounter('earth_arrival');
       if(greeting.ok) this._event('encounter',{id:greeting.encounter.id,encounter:greeting.encounter});
@@ -1364,7 +1397,7 @@ export class Game {
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship') return this._fail('Take the helm before entering the cabin.', 'mode');
     if (this.state.pendingEncounter) return this._fail('Resolve the open transmission first.', 'encounter');
-    if (this.system.enemies.some(e => e.active && distance(e, this.state.ship) < 600)) return this._fail('You need to clear immediate danger before leaving the helm.', 'combat');
+    if (this.system.enemies.some(e => e.active && (!e.warzone||e.warzoneTargetKind==='player'&&e.targetVesselId===this.state.ship.id) && distance(e, this.state.ship) < 600)) return this._fail('You need to clear immediate danger before leaving the helm.', 'combat');
     return this._enterInterior(this._cabinLocation(), 'ship');
   }
   exitCabin() { return this.dockedPortInfo()?this.disembark():this.state.interior?.kind === 'ship' ? this._leaveInterior() : this._fail('You are not in your cabin.', 'mode'); }
@@ -1519,7 +1552,9 @@ export class Game {
     const shipClass=enemy.classId;
     const result=this._enterInterior(this._enemyLocation(enemy),'enemy',enemy.id);
     if(!result.ok)return result;
-    return this._beginBoarding(enemy,'assault',shipClass);
+    const boarding=this._beginBoarding(enemy,'assault',shipClass);
+    if(boarding.ok&&enemy.warzone)this.recordWarzoneAggression(enemy.faction,{targetId:enemy.id,boarding:true});
+    return boarding;
   }
 
   /** Called by an NPC's completed grapple, never by a random casualty roll. */
@@ -1529,10 +1564,10 @@ export class Game {
     if(this.state.boarding?.phase==='active')return this._fail('A boarding action is already underway.','boarding');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('This vessel is not exposed in space.','mode');
     const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.disabled);
-    if(!enemy||enemy.boardingTargetId)return this._fail('That pirate ship cannot attach a boarding tether.','target');
-    if(!enemyHullProfile(enemy.classId).boardable)return this._fail('That small raider cannot carry an external boarding party.','capacity');
+    if(!enemy||enemy.boardingTargetId)return this._fail('That ship cannot attach a boarding tether.','target');
+    if(!enemyHullProfile(enemy.classId).boardable)return this._fail('That craft cannot carry an external boarding party.','capacity');
     if(this.state.ship.shield>Math.max(4,this.state.ship.maxShield*.2))return this._fail('Your shields block the grapples.','shield');
-    if(distance(enemy,this.state.ship)>175+this.state.ship.radius)return this._fail('The pirate grapples cannot reach your hull.','distance');
+    if(distance(enemy,this.state.ship)>175+this.state.ship.radius)return this._fail('The boarding grapples cannot reach your hull.','distance');
     if(this.state.mode==='ship')this._enterInterior(this._cabinLocation(),'ship');
     return this._beginBoarding(enemy,'defense',this.state.ship.classId);
   }
@@ -1543,7 +1578,7 @@ export class Game {
     const freshEnemies=()=>Array.from({length:count},(_,i)=>{
       const point=layout.combatSpawns[i%layout.combatSpawns.length];
       const actorId=`${id}:hostile:${i}`,species=chooseNpcSpecies(this.state.seed,actorId,{systemId:this.state.systemId});
-      return {id:actorId,name:i?'Boarding raider':'Pirate breacher',species,...point,health:52,maxHealth:52,team:'hostile',role:'raider',color:'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
+      return {id:actorId,name:enemy.warzone?(i?'Military boarding trooper':'Military breacher'):i?'Boarding raider':'Pirate breacher',species,...point,health:52,maxHealth:52,team:'hostile',role:enemy.warzone?'marine':'raider',color:enemy.warzone?(FACTIONS.find(f=>f.id===enemy.faction)?.color||'#a4b3ae'):'#e69079',facing:'right',damage:7+Math.floor((this.currentSystem.danger||1)/2),cooldown:1.8+i*.35,speed:52,status:'active'};
     });
     if(kind==='assault')enemy.deck ||= {shipClass,enemies:freshEnemies(),cleared:false,rewardClaimed:false,occupation:null,shotSerial:0};
     const enemies=kind==='assault'?enemy.deck.enemies:freshEnemies();
@@ -1847,7 +1882,7 @@ export class Game {
       }else if(enemy){enemy.disabled=true;enemy.vx=0;enemy.vy=0;}
       this.state.credits+=reward;
       this.state.stats.boardingsWon=(this.state.stats.boardingsWon||0)+1;this._flag('won_ground_fight');this._flag(boarding.kind==='assault'?'captured_vessel':'repelled_boarders');
-      const text=boarding.source==='rescued-pirates'?'The hijackers are defeated. Your ship is secure; the people who tried to seize it are accounted for.':boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The pirate hull remains outside.`;
+      const text=boarding.source==='rescued-pirates'?'The hijackers are defeated. Your ship is secure; the people who tried to seize it are accounted for.':boarding.kind==='assault'?`Deck secure. ${reward} credits recovered. ${enemy?.name||'The target'} remains a separate damaged vessel. Return across the tether or take its helm.`:`Boarders repelled. ${reward} credits recovered. The attacking hull remains outside.`;
       this._event('boarding-complete',{phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,text});
       this._log(boarding.kind==='assault'?'The prize is secured':'The deck is ours',`${reward} credits recovered. ${this.livingCrew.length} crew members survived.`,'boarding');
       if(this.state.person.health<=0){this.state.person.health=35;this.state.person.down=false;}
@@ -2223,5 +2258,5 @@ export class Game {
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules);
-Object.assign(Game.prototype,MilitaryRecoveryRules);
+Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules);
 export default Game;

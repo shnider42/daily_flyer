@@ -9,6 +9,8 @@ const entries = value => value instanceof Map ? [...value] : object(value) ? Obj
 const get = (value, key) => value instanceof Map ? value.get(key) : own(value, key) ? value[key] : undefined;
 const credentialKeys = new Set(['token', 'tokenhash', 'accesstoken', 'refreshtoken', 'idtoken', 'bearertoken', 'password', 'passwordhash', 'encryptedpassword', 'secret', 'secrethash', 'apikey', 'servicekey', 'servicerolekey', 'serverkey', 'keyhash', 'privatekey', 'signingkey', 'authorization', 'cookie', 'cookies', 'sessioncookie', 'sessiontoken', 'recoverycode', 'recoverytoken', 'credential', 'credentials']);
 const credentialField = key => credentialKeys.has(String(key).replace(/[^a-z0-9]/gi, '').toLowerCase());
+const sharedBattleField = (key, value) => key === 'warzoneSpace' || key === 'warzoneGround' || key === 'warzone' && object(value) && (own(value, 'projectiles') || own(value, 'nextWaveAt') || Array.isArray(value.factions));
+const battleInternalFields = new Set(['rng', 'seed', 'nextWave', 'nextWaveAt', 'nextPhaseAt', 'phaseUntil', 'nextBoardingAt', 'nextShellAt', 'nextDecisionAt', 'projectiles', 'shells', 'effects']);
 
 /** Preserve a person's own game records without copying credential material or
  * another human's actor details embedded in a shared boarding encounter. Site
@@ -18,14 +20,15 @@ function safeCopy(value, captainId) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(item => safeCopy(item, captainId));
+  if (Array.isArray(value.monsters) && (object(value.warzoneGround) || value.warzone === true)) return pick(value, ['id', 'siteId', 'warzone'], captainId);
   if (value.sharedOperation === true && object(value.participants)) {
     const scoped = { ...value, participants: own(value.participants, captainId) ? { [captainId]: value.participants[captainId] } : {} };
-    return Object.fromEntries(Object.entries(scoped).filter(([key]) => !credentialField(key) && !['__proto__', 'prototype', 'constructor'].includes(key)).map(([key, item]) => [key, safeCopy(item, captainId)]));
+    return Object.fromEntries(Object.entries(scoped).filter(([key, item]) => !credentialField(key) && !sharedBattleField(key, item) && !['__proto__', 'prototype', 'constructor'].includes(key)).map(([key, item]) => [key, safeCopy(item, captainId)]));
   }
   if (value.human === true && (value.captainId || value.id) !== captainId) {
     return { human: true, captainId: value.captainId || value.id, detailsExcluded: 'Another captain’s actor details.' };
   }
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !credentialField(key) && !['__proto__', 'prototype', 'constructor'].includes(key) && !(key === 'field' && value.kind === 'site')).map(([key, item]) => [key, safeCopy(item, captainId)]));
+  return Object.fromEntries(Object.entries(value).filter(([key, item]) => !credentialField(key) && !sharedBattleField(key, item) && !['__proto__', 'prototype', 'constructor'].includes(key) && !(key === 'field' && value.kind === 'site')).map(([key, item]) => [key, safeCopy(item, captainId)]));
 }
 function pick(value, fields, captainId) {
   return Object.fromEntries(fields.filter(key => own(value, key)).map(key => [key, safeCopy(value[key], captainId)]));
@@ -46,8 +49,8 @@ function redactCredentialValues(value, values) {
 }
 
 const CAPTAIN_FIELDS = ['id', 'name', 'createdAt', 'lastSeen', 'home', 'cameraPreferences', 'cameraRevision', 'ownedVesselId', 'aboard', 'crewRole', 'returnVesselId', 'portVesselId', 'boardingTeam', 'combatAtDisconnect', 'launchStatus', 'launchReady'];
-const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'fieldWork', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits', 'gamblingSerial', 'gamblingHistory'];
-const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView', 'gamblingSession', 'gamblingView'];
+const GAME_FIELDS = ['version', 'spaceVersion', 'worldTypesVersion', 'stationGeographyVersion', 'seed', 'startMode', 'mode', 'systemId', 'locationId', 'credits', 'character', 'characterLocked', 'captainName', 'cargo', 'rep', 'flags', 'upgrades', 'visited', 'discovered', 'missions', 'completedJobs', 'abandonedJobs', 'journal', 'encounterHistory', 'crew', 'formerCrew', 'memorial', 'fleet', 'boardingHistory', 'knownLore', 'completedChapters', 'pendingEncounter', 'stats', 'ship', 'person', 'rng', 'encounterPolicyVersion', 'nextEncounterAt', 'lastBodyId', 'jobSerial', 'activityTokens', 'lastSaveAt', 'interior', 'storyActions', 'livelihoods', 'narrative', 'professions', 'fieldWork', 'warzone', 'warzoneStories', 'militaryCareer', 'militaryRecovery', 'shipRecovery', 'stationView', 'npcContract', 'npcContractSerial', 'npcContractHistory', 'cosmicWarning', 'parkedShip', 'passenger', 'passengerSerial', 'passengerCompleted', 'passengerHistory', 'transitSerial', 'earthChoice', 'alliance', 'returnVesselId', 'multiplayer', 'openingMission', 'conversations', 'socialEpoch', 'socialVisits', 'gamblingSerial', 'gamblingHistory'];
+const SHARED_GAME_FIELDS = ['worlds', 'explorationRecords', 'worldDirector', 'cameraPreferences', 'cameraRevision', 'boarding', 'exploration', 'openingMissionAvailability', 'npcLife', 'militaryOperationsView', 'warzoneView', 'gamblingSession', 'gamblingView'];
 
 /** Network-address counters are not a visitor log. Expired entries are removed
  * on access and during server maintenance, with a hard bound on memory. */
@@ -94,10 +97,33 @@ function fieldWorkData(value, captainId) {
   return data;
 }
 
+/** Stored Crosswind choices belong to this captain. Fleet schedules, shared
+ * actors, and any historical extra keys do not belong in the personal branch. */
+function warzoneData(value, captainId) {
+  if (!object(value)) return value === null ? null : {};
+  const data = pick(value, ['version', 'side', 'hostileFactions', 'visits', 'acknowledged', 'lastHail'], captainId);
+  if (own(value, 'mission')) data.mission = value.mission ? pick(value.mission, ['id', 'factionId', 'damage', 'seconds', 'status', 'paid'], captainId) : null;
+  return data;
+}
+function warzoneStoriesData(value, captainId) {
+  if (!object(value)) return value === null ? null : {};
+  const data = pick(value, ['version', 'revision'], captainId);
+  if (own(value, 'hospital')) data.hospital = pick(value.hospital, ['stage', 'allocation'], captainId);
+  if (own(value, 'names')) data.names = pick(value.names, ['stage', 'registry', 'tags', 'decision'], captainId);
+  if (own(value, 'dispatch')) data.dispatch = pick(value.dispatch, ['decision'], captainId);
+  if (own(value, 'evacuation')) {
+    data.evacuation = pick(value.evacuation, ['stage'], captainId);
+    if (own(value.evacuation, 'escort')) data.evacuation.escort = value.evacuation.escort ? pick(value.evacuation.escort, ['x', 'y', 'moving', 'waiting', 'walkTime'], captainId) : null;
+  }
+  return data;
+}
+
 function gameData(captain) {
   const state = captain.game?.state || captain.game || {}, id = captain.id;
   const game = pick(state, GAME_FIELDS, id);
   if (own(state, 'fieldWork')) game.fieldWork = fieldWorkData(state.fieldWork, id);
+  if (own(state, 'warzone')) game.warzone = warzoneData(state.warzone, id);
+  if (own(state, 'warzoneStories')) game.warzoneStories = warzoneStoriesData(state.warzoneStories, id);
   if (state.gamblingSession || state.gamblingView || state.gamblingHistory?.length) Object.assign(game, publicGamblingAccount(state));
   if (own(state, 'boarding')) game.boarding = state.boarding ? pick(state.boarding, ['id', 'kind', 'phase', 'vesselId', 'originVesselId', 'targetId', 'leaderId', 'systemId', 'time', 'combatTime', 'outcome'], id) : null;
   if (own(state, 'exploration')) game.exploration = state.exploration ? pick(state.exploration, ['key', 'bodyId', 'siteId', 'returnPosition'], id) : null;
@@ -117,15 +143,26 @@ function sharedSources(source) {
  * supply game context without copying the surrounding multi-player record. */
 function identityLinks(value, captainId, ownVesselIds) {
   const keyedRecords = [], references = [];
-  function visit(item, path) {
+  const battleContribution = item => {
+    if (typeof item === 'number' || typeof item === 'boolean') return item;
+    if (!object(item)) return undefined;
+    // Shared battle maps may grow beyond scalar cooldowns. Retain only this
+    // captain's contribution facts, never a participant roster or nested state.
+    const fields = ['damage', 'aid', 'hits', 'kills', 'assists', 'claimed', 'at', 'lastAt', 'paid', 'seconds'];
+    return Object.fromEntries(fields.filter(key => own(item, key) && ['number', 'boolean'].includes(typeof item[key])).map(key => [key, item[key]]));
+  };
+  function visit(item, path, inBattle = false) {
     if (item === captainId || typeof item === 'string' && ownVesselIds.has(item)) { references.push({ path, value: item }); return; }
-    if (Array.isArray(item)) { item.forEach((child, index) => visit(child, [...path, index])); return; }
+    if (Array.isArray(item)) { item.forEach((child, index) => visit(child, [...path, index], inBattle)); return; }
     if (!object(item)) return;
+    inBattle ||= item.warzone === true || object(item.warzoneGround);
     for (const [key, child] of Object.entries(item)) {
-      if (credentialField(key) || key === 'actor') continue;
+      if (credentialField(key) || key === 'actor' || inBattle && battleInternalFields.has(key)) continue;
       const next = [...path, key];
-      if (key === captainId) keyedRecords.push({ path: next, value: safeCopy(child, captainId) });
-      else visit(child, next);
+      if (key === captainId) {
+        const record = inBattle ? battleContribution(child) : safeCopy(child, captainId);
+        if (record !== undefined) keyedRecords.push({ path: next, value: record });
+      } else visit(child, next, inBattle || sharedBattleField(key, child));
     }
   }
   visit(value, []);
@@ -177,7 +214,7 @@ export function createPrivacyExport(source, captain, { sourceKind = 'durable-sna
     scope: { kind: 'farwake-shared-captain', realmCode, captainId: id, source: sourceKind, durableVersion: version, isRealmOwner: source.ownerId === id },
     manifest: {
       description: 'Your selected shared captain’s records and their links in shared game state. This is a privacy export, not a passport or a restorable realm backup.',
-      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Your field tools, current assignment, completed qualifications and personal contribution receipts', 'Your departure readiness and participation, with the shared ship choice when applicable', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
+      included: ['Captain identity, creation and last-seen times, home, settings and gameplay record', 'Your field tools, current assignment, completed qualifications and personal contribution receipts', 'Your Crosswind allegiance, sortie progress, and civilian relief choices', 'Your departure readiness and participation, with the shared ship choice when applicable', 'Retained command retry results', 'Owned vessels and homes', 'Your grants, bunk claims, and control or conflict relationships on other vessels', 'Shared game values keyed by your captain and exact references to your captain or owned vessels'],
       source: sourceKind === 'live-authority' ? 'Current authority memory, which can include changes newer than the last durable save. Exporting does not save, attach, or advance the captain.' : 'The last accepted durable realm snapshot. No game session was opened to read it.',
       counts,
       unrecognizedGameFields: personal.unrecognizedFields,

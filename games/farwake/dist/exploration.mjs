@@ -7,6 +7,7 @@ import { socialPlaces, isPreflightBody } from './social-world.mjs';
 import { SPECIES_PLANET_PLACES } from './species-content.mjs';
 import { militaryGroundSites } from './military-sites.mjs';
 import { fieldSites, isFieldSite, normalizeFieldState, stepFieldEncounter, resetFieldAttempt } from './floodworks.mjs';
+import { warzoneGroundSites, createWarzoneGroundState, stepWarzoneGround } from './warzone-ground.mjs';
 const TILE=24, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
 const hash=value=>{let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -33,12 +34,12 @@ export function explorationSites(body={},seed='farwake'){
  if(['station','ship','derelict','site'].includes(body.kind))return[];
  const bodyId=String(body.id||'world'),world=body.name||'this world',h=hash(`${seed}:${bodyId}:expeditions`);
  const barren=/barren|rock|dust/.test(String(body.biome))||body.kind==='asteroid',ice=/ice|froz|snow/.test(String(body.biome));
- const raw=isPreflightBody(body)?[]:bodyId==='morrow'?morrow:[
+ const raw=isPreflightBody(body)||['crosswind-vey','crosswind-orsa','crosswind-lorn'].includes(bodyId)?[]:bodyId==='morrow'?morrow:[
   {id:'hollow',name:ice?'Blue-Ice Fissure':barren?'Basalt Hollow':'Ridgefall Cavern',kind:'cave',tileX:68+(h%9),tileY:16,hostile:true,monsterCount:1+(h%2),summary:ice?'Deep tracks vanish beneath the ice.':'The wind dies at the threshold. Something has dragged debris inside.',story:`An old survey stake bears the name of ${world}. Beneath it, the ground has been disturbed recently.`,caches:[{id:'survey-case',name:'Abandoned survey case',x:33,y:24,reward:reward(65+h%31,2+h%3,h%2),text:'The recorder still holds usable terrain readings. The sealed supplies can travel with you.'}],records:[{id:'warning',name:'Survey warning',x:23,y:9,text:['RETURN BEFORE THE SHADOW REACHES THE MARKER. The rest has been scratched away.','Do not answer the tapping. It follows a different route back.','Our instruments found nothing alive. That is the part I no longer believe.'][h%3]}]},
   {id:'shelter',name:ice?'Unmarked Ice Shelter':barren?'Survey Shelter 04':'Wayfarer’s Hut',kind:ice?'igloo':'shelter',tileX:30+(h%8),tileY:60,empty:true,summary:ice?'One small dome rises from the snow. No footprints approach it.':'A closed shelter stands far from the landing beacon.',story:'Nothing moves in the room. The sound that brought you here stops as soon as the door closes.',records:[{id:'shelter-note',name:'A folded note',x:18,y:9,text:['If you are the next person to sleep here, please tell me what you dreamed. There is no name.','I left a light in every window. From outside, only one was burning.','The heater is cold. You can still hear it cooling.'][h%3]}]},
   ...(!barren?[{id:'field-relay',name:ice?'Thawline Relay':'Outlying Field Relay',kind:'pump',tileX:87,tileY:55,summary:'A maintenance beacon repeats a low-priority fault.',story:`This small field station once kept the outer routes of ${world} supplied.`,choices:[{id:'relay',name:'Field relay controller',x:25,y:10,text:'Restore the relay for local travelers, or take its remaining power cells for salvage.',options:[{id:'restore',label:'Restore the route beacon',reward:reward(100+h%35),text:'The route beacon returns to service. The local cooperative credits your account.'},{id:'salvage',label:'Recover the spare cells',reward:reward(25,6),text:'The cells are reusable. The beacon stays dark.'}]}],records:[{id:'route',name:'Route register',x:11,y:18,text:'The last route record lists a convoy of seven. Eight engines are audible in the recording.'}]}]:[])
  ];
- return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed),...militaryGroundSites(body),...fieldSites(body)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
+ return [...raw,...planetPlaces(body),...(SPECIES_PLANET_PLACES[bodyId]||[]),...socialPlaces(body,seed),...militaryGroundSites(body),...fieldSites(body),...warzoneGroundSites(body)].map(item=>freeze({...defaults[item.kind],...item,...(bodyId==='tinbell'&&item.id==='hollow'?{monsterCount:1,bossId:'bellwether'}:{}),bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
 }
 export function explorationLocation(body,siteId,seed='farwake'){
  const site=explorationSites(body,seed).find(value=>value.id===siteId);if(!site)return null;
@@ -59,6 +60,7 @@ function restoreBellwether(raw,site,time,attemptSerial,revealSerial){
 }
 /** Restore only authored monsters and known claim IDs; arbitrary save data cannot mint loot. */
 export function createSiteState(site,saved={}){
+ if(site.warzone)return createWarzoneGroundState(site,saved);
  const prior=saved&&typeof saved==='object'?saved:{},width=site.cols*TILE,height=site.rows*TILE;
  const time=clamp(finite(prior.time),0,1e12),attemptSerial=serial(prior.attemptSerial),revealSerial=serial(prior.revealSerial);
  const watch=site.military&&site.watch?{elapsed:clamp(finite(prior.watch?.elapsed),0,site.watch.seconds),contactResolved:false,attackOccurred:false,completed:false}:null;
@@ -216,6 +218,7 @@ function stepInfantry(state,monster,actors,dt,layout,event){
 }
 /** Participants have {id,name,person,input,damageMultiplier,damageTakenMultiplier,sidearmCooldownMultiplier}. Call once per occupied site. */
 export function stepSiteEncounter(state,participants,delta,surface){
+ if(state.warzoneGround)return stepWarzoneGround(state,participants,delta,surface);
  const dt=clamp(finite(delta),0,.25),layout=surface.combatLayout;if(!dt||!layout)return[];
  const actors=participants.filter(actor=>actor?.person&&actor.person.health>0&&!actor.person.down),events=[];state.time+=dt;
  const at=state.time,event=(type,details)=>events.push({type,siteId:state.id,at,...details});

@@ -18,7 +18,7 @@ const UTILITY_DIALOGS = new Set([
   'ship', 'save', 'passport', 'privacy', 'privacy-data', 'online', 'connect',
   'connecting', 'connection-error', 'new', 'captain', 'captain-setup',
   'test-gate', 'test-menu', 'test-controls', 'home', 'bunk', 'damage-overview',
-  'damage-section', 'crew-departure', 'music', 'music-library'
+  'damage-section', 'crew-departure', 'music', 'music-library', 'warzone'
 ]);
 const SOCIAL_SITE_KINDS = new Set(['social', 'market', 'clinic']);
 const SOCIAL_PEOPLE = new Set(['npc', 'mechanic', 'merchant', 'bartender', 'settler', 'contact']);
@@ -37,7 +37,7 @@ export function occupiedVesselThreats(world, hull, captainId) {
     enemy?.active === true && finite(enemy.hp) > 0 && !enemy.disabled && !enemy.trainingTarget &&
     !enemy.capturedBy && !enemy.promotedVesselId && !enemy.canonicalVesselId &&
     targetsOccupied(enemy, captainId, vesselId) && distance(position, point(enemy)) <= 1100);
-  const incoming = vesselId != null && list(world?.bullets).some(bullet =>
+  const incoming = vesselId != null && [...list(world?.bullets),...list(world?.warzone?.projectiles)].some(bullet =>
     finite(bullet?.ttl) > 0 && !same(bullet.ownerId ?? bullet.owner, captainId) &&
     targetsOccupied(bullet, captainId, vesselId) &&
     distance(position, point(bullet)) <= Math.max(180, finite(hull?.radius) + 120));
@@ -289,6 +289,7 @@ export function classifyMusicEvent(event, context = {}) {
       return localPerson || localVessel ? 'combat' : null;
     case 'boarding-warning':
       return scope.vesselId != null ? 'tension' : null;
+    case 'warzone-arrival':
     case 'cosmic-warning':
       return scope.vesselId != null ? 'tension' : null;
     case 'boarding-complete':

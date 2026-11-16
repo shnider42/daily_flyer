@@ -1,6 +1,8 @@
-/** Three authored campaigns in places that already exist in Hearth.
+/** Authored campaigns and return visits in places that already exist in Hearth.
  * Their agreements belong to the captain; no shared geography is rewritten.
  */
+import { buildLocalAftermaths, localAftermathConsequence } from './local-aftermaths.mjs';
+export { LOCAL_AFTERMATH_IDS } from './local-aftermaths.mjs';
 export const LOCAL_CAMPAIGN_IDS = Object.freeze(['cold_chain', 'fair_departure', 'clear_signal']);
 
 const options = (ids, labels = ids) => ids.map((id, i) => ({ id: String(id), label: String(labels[i]) }));
@@ -166,11 +168,13 @@ export function buildLocalCampaigns(at) {
           licensed: 'Len receives a corrected timetable, but the supporting report now belongs to Silas. It solves today’s dispatch error while leaving the broker in charge of future access. Ada retains her private verification copy. Your ordinary ship scans now need 6 charge.',
         }),
       ]),
+    ...buildLocalAftermaths(at),
   ];
 }
 
 const completed = (game, id) => game?.state?.narrative?.quests?.[id]?.status === 'completed';
 export function localCampaignConsequence(id, choices = {}) {
+  const aftermath = localAftermathConsequence(id, choices); if (aftermath) return aftermath;
   if (id === 'cold_chain') return choices.agreement === 'care'
     ? 'Your captain receives 25% off infirmary treatment at Morrow. Other ports and hull repairs keep their normal prices.'
     : choices.agreement === 'workshop' ? 'Your captain receives 15% off hull repairs at Morrow. Other ports and medical treatment keep their normal prices.' : null;
@@ -187,6 +191,11 @@ export function localCampaignPresentation(definition, record) {
 
 export function localServiceBenefit(game, action) {
   if (!completed(game, 'cold_chain') || game.state.systemId !== 'hearth' || game.state.locationId !== 'morrow' || game.state.interior || game.state.mode !== 'person') return null;
+  const followup = game.state.narrative.quests.cold_chain_aftercare;
+  if (followup?.status === 'completed') {
+    if (followup.choices?.support === 'rota' && action === 'rest') return { multiplier: .65, label: 'Verified Morrow handover agreement · 35% off total' };
+    if (followup.choices?.support === 'spares' && action === 'repair') return { multiplier: .78, label: 'Verified Morrow spare-kit agreement · 22% off total' };
+  }
   const agreement = game.state.narrative.quests.cold_chain.choices?.agreement;
   if (agreement === 'care' && action === 'rest') return { multiplier: .75, label: 'Morrow clinic agreement · 25% off' };
   if (agreement === 'workshop' && action === 'repair') return { multiplier: .85, label: 'Morrow workshop agreement · 15% off' };
@@ -194,20 +203,109 @@ export function localServiceBenefit(game, action) {
 }
 
 export function localScanCost(game, signal) {
-  return signal && !signal.story && !signal.earthCampaign && completed(game, 'clear_signal') ? 6 : 8;
+  if (!signal || signal.story || signal.earthCampaign || !completed(game, 'clear_signal')) return 8;
+  return completed(game, 'signal_aftercare') ? 5 : 6;
 }
 
-export function localCharterSupport(game, originSystem, typeId) {
+export function localCharterSupport(game, originSystem, typeId, { original = false } = {}) {
   if (originSystem !== 'hearth' || !completed(game, 'fair_departure')) return null;
   const charter = game.state.narrative.quests.fair_departure.choices?.charter;
   const terms = { care: { type: 'patient', bonus: 10, label: 'Clinic charter · +10 cr' }, commute: { type: 'commuter', bonus: 6, label: 'Shift-worker charter · +6 cr' }, courier: { type: 'courier', bonus: 8, label: 'Courier charter · +8 cr' } }[charter];
-  return terms?.type === typeId ? terms : null;
+  if (!terms) return null;
+  const followup = game.state.narrative.quests.departure_aftercare;
+  if (!original && followup?.status === 'completed') {
+    if (followup.choices?.reserve === 'shared' && terms.type !== typeId && ['patient', 'commuter', 'courier'].includes(typeId)) return { type: typeId, bonus: 4, label: 'Open-seat reserve · +4 cr' };
+    if (followup.choices?.reserve === 'clear' && terms.type === typeId) return { ...terms, bonus: terms.bonus + 2, label: `Revised ${charter === 'care' ? 'clinic' : charter === 'commute' ? 'shift-worker' : 'courier'} charter · +${terms.bonus + 2} cr` };
+  }
+  return terms.type === typeId ? terms : null;
 }
 
-export function recordCampaignPassage(game, passenger, definition) {
+export function recordCampaignPassage(game, passenger, definition, followupDefinition) {
+  let changed = false;
   const record = game.state.narrative?.quests?.fair_departure;
-  if (record?.status !== 'active' || definition?.stages[record.stage]?.id !== 'trial' || passenger.originSystem !== 'hearth' || passenger.targetSystem !== 'hearth' || game.hasFlag('thread:fair_departure_trial_complete')) return false;
-  game._flag('thread:fair_departure_trial_complete');
-  game._event('thread-progress', { threadId: 'fair_departure', text: 'Hearth trial fare completed. Return to Len Vale at Kettle to approve your charter.' });
-  return true;
+  if (record?.status === 'active' && definition?.stages[record.stage]?.id === 'trial' && passenger.originSystem === 'hearth' && passenger.targetSystem === 'hearth' && !game.hasFlag('thread:fair_departure_trial_complete')) {
+    game._flag('thread:fair_departure_trial_complete');
+    game._event('thread-progress', { threadId: 'fair_departure', text: 'Hearth trial fare completed. Return to Len Vale at Kettle to approve your charter.' }); changed = true;
+  }
+  const followup = game.state.narrative?.quests?.departure_aftercare;
+  const reservation = localAftermathFare(game, { id: 'kettle' }, followupDefinition);
+  if (followup?.status === 'active' && followupDefinition?.stages[followup.stage]?.id === 'trial' && isAftermathPassenger(passenger) && passenger.type === reservation?.type && passenger.name === reservation?.name && !game.hasFlag('thread:departure_aftercare_trial_complete')) {
+    game._flag('thread:departure_aftercare_trial_complete');
+    game._event('thread-progress', { threadId: 'departure_aftercare', text: `${passenger.name} reached Morrow. Return to Len at Kettle with this named booking’s receipt.` }); changed = true;
+  }
+  return changed;
+}
+
+/** Public text and the actual action resolve the same original choice. */
+export function campaignStageText(game, definition, record, step) {
+  const answers = step?.respondToThread ? game.state.narrative?.quests?.[step.respondToThread]?.choices : record?.choices;
+  return step?.responses?.[answers?.[step.respondTo]] || step?.text || definition?.summary || '';
+}
+
+export function localAftermathFare(game, origin, definition) {
+  const record = game.state.narrative?.quests?.departure_aftercare;
+  if (game.state.systemId !== 'hearth' || origin?.id !== 'kettle' || record?.status !== 'active' || definition?.stages[record.stage]?.id !== 'trial' || game.hasFlag('thread:departure_aftercare_trial_complete')) return null;
+  const worker = game.state.narrative.quests.fair_departure?.choices?.charter === 'care';
+  return { aftermathId: 'departure_aftercare', targetBody: 'morrow', type: worker ? 'commuter' : 'patient', name: worker ? 'Tamsin Roe' : 'Eda Moss',
+    text: worker ? 'Len’s reserved test booking: Tamsin needs to reach Morrow’s pump-maintenance shift. Complete this named fare at Morrow’s Passage desk.' : 'Len’s reserved test booking: Eda needs to reach her clinic appointment on Morrow. Complete this named fare at Morrow’s Passage desk.' };
+}
+
+export function isAftermathPassenger(passenger) {
+  return passenger?.aftermathId === 'departure_aftercare' && passenger.id === `passenger:hearth:kettle:${passenger.serial}:aftercare` && passenger.originSystem === 'hearth' && passenger.originBody === 'kettle' && passenger.targetSystem === 'hearth' && passenger.targetBody === 'morrow' && ['patient', 'commuter'].includes(passenger.type);
+}
+
+/** What this captain can read on returning; never mutates a shared object. */
+export function localCampaignObjectText(game, id) {
+  const quests = game.state.narrative?.quests || {};
+  if (id === 'clinic-case' && completed(game, 'cold_chain_aftercare')) return quests.cold_chain_aftercare.choices.support === 'rota'
+    ? 'Beside your tested regulator record is a paid handover rota and a clear alarm card: keep the case powered, simulate the warning, acknowledge it, restore MONITOR. The next attendant has signed beneath a question of her own. Your captain’s Morrow infirmary agreement now covers 35% of the fee in total.'
+    : 'Your tested regulator record now lists the labeled spare at Mara’s bench and the alarm test steps. The attendant has added the spare’s shelf location in her own handwriting. Your captain’s Morrow workshop agreement now covers 22% of hull repairs in total.';
+  if (id === 'clinic-case' && completed(game, 'cold_chain')) return 'Your supply-repair tag is attached to the case. The sealed M-14 compartment passed its temperature and batch checks; the unlabelled compartment remains held for the clinic. A new handover note asks how to test the warning without warming the medicine. Mara wants to discuss it when you return.';
+  if (id === 'passenger-slip' && completed(game, 'departure_aftercare')) return quests.departure_aftercare.choices.reserve === 'shared'
+    ? 'Len has pinned your named passenger’s completed Kettle-to-Morrow receipt beside the rejected booking. Your dispatch terms now list an open-seat reserve: the two fare types outside your original charter receive 4 cr extra. The old rejection stays in the file so the next shift can see why the terms changed.'
+    : 'Your named passenger’s completed receipt is filed beside the old rejection. The booking form now states your charter’s covered journeys before asking for a name. Your original eligible fare type receives 2 cr more; the other categories are clearly quoted at their ordinary rate.';
+  if (id === 'freight-register' && completed(game, 'departure_aftercare')) return 'The 07:00 freight window and 07:15 passenger boarding remain on your corrected schedule. The revised dispatch agreement is attached beside them, with the completed named journey as its test record. An accepted fare keeps the quote written on its own ticket.';
+  if (id === 'dome-recorder' && completed(game, 'signal_aftercare')) return quests.signal_aftercare.choices.record === 'consent'
+    ? 'The corrected receiver carries your fresh 10:00-to-10:03 station-pulse test. Its public warning includes the clock evidence; consented journey records are kept separately for named reviewers. Earlier public or licensed copies remain in circulation. Your ordinary scanner uses the checked reference at 5 charge.'
+    : 'The corrected receiver carries your fresh station-pulse test and instructions for repeating it. The public benchmark verifies warning time without identifying a passenger. Earlier public or licensed reports still exist. Your ordinary scanner uses this independently checked reference at 5 charge.';
+  if (id === 'dome-recorder' && completed(game, 'clear_signal')) return 'Your ordinary weather receiver correction is recorded beside the dome’s older, stranger tapes. The clock now agrees with Kettle. Replies to the report ask who can check its evidence and who agreed to share the journey details. Ada has kept those replies for your next visit.';
+  return null;
+}
+
+export function localAftermathTopic(game, contactId) {
+  const q = game.state.narrative?.quests || {};
+  if (contactId === 'mara-reed' && completed(game, 'cold_chain')) {
+    const done = q.cold_chain_aftercare?.status === 'completed', spare = q.cold_chain_aftercare?.choices?.support === 'spares';
+    if (q.cold_chain_aftercare?.status === 'active') return { id: 'mara-after-repair', label: 'How is the repair holding?', text: q.cold_chain_aftercare.choices?.support
+      ? spare ? 'The spare is labeled and paid for in parts. Before I change your workshop terms, check the card against the medicine case and bring me that handover. I want the next attendant to find the same instructions at both ends.' : 'The handover time is funded. We still owe the next attendant a checked card beside the actual case. Bring that back before I file your new clinic terms. Paying for the rota was the beginning of the promise.'
+      : q.cold_chain_aftercare.solved?.includes('alarm-test') ? 'The warning test passed without warming the case. Now we have to decide who answers the next call: a paid handover, or a spare the workshop can reach. I will not ask the attendant to guess again.' : 'The regulator still works. We are checking what the next attendant can understand without either of us beside her. Her note on the case and the pump-house alarm test should tell us what the handover missed.' };
+    return { id: 'mara-after-repair', label: 'How is the repair holding?', text: done
+      ? spare ? 'The spare is where both shifts can reach it. The new attendant labeled its shelf herself. I used to leave a finished machine and assume the handover was obvious. Your visit made me look at the person who inherits it.' : 'There is paid time for the handover now. The new attendant stayed and asked questions instead of pretending she knew the panel. The regulator mattered. So did making it safe for somebody to say she did not understand it.'
+      : q.cold_chain.choices?.agreement === 'care' ? 'The regulator is holding, and your clinic agreement is in the book. The new attendant still needs a handover she can follow. Ask me about The Next Shift; I want you to see the note she left on the case.' : 'The regulator is holding. Your workshop agreement covers the hardware; the new attendant needs someone to explain the alarm. Ask me about The Next Shift. A part can be fixed while its handover is still broken.' };
+  }
+  if (contactId === 'len-vale' && completed(game, 'fair_departure')) {
+    const done = q.departure_aftercare?.status === 'completed';
+    if (q.departure_aftercare?.status === 'active') {
+      const name = q.fair_departure.choices?.charter === 'care' ? 'Tamsin' : 'Eda';
+      return { id: 'len-after-charter', label: 'Who is the charter working for?', text: game.hasFlag('thread:departure_aftercare_trial_complete')
+        ? `${name} reached Morrow. That is the receipt I needed, with the same name as the rejected booking. Bring it through the follow-up report so I can approve the terms we agreed.`
+        : q.departure_aftercare.choices?.reserve ? `${name} has a reserved booking at Kettle’s Passage desk. Carry that fare to Morrow and complete it at the destination desk. Your revised supplement is still pending; the test keeps its actual quoted fare.`
+        : `${name} is still outside your original charter. We agreed to look at the rejected booking and hear Mara’s account before changing anything. A corrected timetable does not answer every question about who can use it.` };
+    }
+    return { id: 'len-after-charter', label: 'Who is the charter working for?', text: done
+      ? q.departure_aftercare.choices?.reserve === 'shared' ? 'I keep the rejected booking beside the completed receipt. It reminds me that a spare berth and a usable passage are different promises. Your reserve is small, but the next passenger sees its actual terms before committing to a journey.' : 'Your charter still has a boundary. Now it is printed before the booking, where people can plan around it. I wanted a wider reserve. I also remember that you carried the person whose complaint started this.'
+      : q.fair_departure.choices?.charter === 'care' ? 'The patient supplement works. Tamsin keeps Morrow’s pumps running and does not qualify for it. She asked me why. Ask about The People in the Margin; I kept her booking instead of filing the complaint away.' : q.fair_departure.choices?.charter === 'courier' ? 'Silas pays the courier reserve exactly as agreed. Eda’s clinic journey is outside it. That is a decision we made, not a fault in the timetable. Ask about The People in the Margin if you are ready to look at it.' : 'The shift-worker reserve works. Eda needs a clinic appointment, so the form excludes her. Ask about The People in the Margin; I would like the next passenger to understand that boundary before reaching the airlock.' };
+  }
+  if (contactId === 'ada-finch' && completed(game, 'clear_signal')) {
+    const done = q.signal_aftercare?.status === 'completed';
+    if (q.signal_aftercare?.status === 'active') return { id: 'ada-after-report', label: 'What happened after the report?', text: q.signal_aftercare.solved?.includes('verification')
+      ? 'Your fresh station reference and the recorder agree. Bring me that verified record for the handover. The next watch needs the instructions with the answer; the old report remains part of what happened.'
+      : q.signal_aftercare.choices?.record === 'consent' ? 'The consent register is funded. Its private journey records still need to be kept apart from the public warning. Finish the independent flight check and the recorder comparison before we put this procedure into use.'
+      : q.signal_aftercare.choices?.record === 'station' ? 'We chose a public station benchmark. The flight reading and recorder comparison must show that it works without a passenger’s name. A simpler source is only useful if the next observer can check it.'
+      : 'We are looking at the replies now. Len can show us what the next watch can check for itself. I want that answer before choosing how we record the next warning; the first report will stay in the record.' };
+    return { id: 'ada-after-report', label: 'What happened after the report?', text: done
+      ? q.signal_aftercare.choices?.record === 'consent' ? 'The next observer asked whose permission the record needed. I put that question on the form. The public clock test and the consented journey receipts now have separate purposes. Earlier copies still exist; we can be more careful with what we ask people to share next.' : 'Someone from the next watch repeated the station test without asking me to explain it. That is how I know the instructions are useful. The new warning proves its clock, not a passenger’s private life. It leaves the older report in the record where it belongs.'
+      : q.clear_signal.choices?.publication === 'open' ? 'One of the passengers recognized their journey in the appendix. Existing copies cannot be recalled. Ask about A Warning People Can Use; we need a way to verify future warnings without publishing another person’s movements.' : q.clear_signal.choices?.publication === 'licensed' ? 'The next watch was quoted a fee for the evidence. Silas owns the licensed copy; we cannot pretend otherwise. Ask about A Warning People Can Use. A fresh public reference can give them a way to check the clock.' : 'The names stayed private. The next watch could not check the anonymous source without coming to me. Ask about A Warning People Can Use; I want a verification procedure that survives whoever happens to be on duty.' };
+  }
+  return null;
 }

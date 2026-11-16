@@ -8,6 +8,7 @@ import {portProfile} from './port-traffic.mjs';
 import {LEGACY_WORLD_RADIUS,WORLD_RADIUS} from './system-space.mjs';
 import {stationTypeFor,planetTypeFor,systemTypeFor} from './world-types.mjs';
 import {stationPlan,planetTerrainSample} from './place-geometry.mjs';
+import {WARZONE_FACTION_STYLE} from './warzone-content.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Chart coverage follows the system extent; ship and world sprites keep their
 // physical size, so more space never silently zooms out the flight camera.
@@ -363,6 +364,18 @@ export function vesselVisualProfile(value={}){
 }
 function normalizeShip(value){const ship=value.ship||value;return{...value,...ship,...vesselVisualProfile(value),id:value.id||value.captainId||ship.id,name:ship.name||value.shipName||value.name};}
 
+/** Uniform markings identify a fleet without painting its whole hull a team color. */
+export function warzoneVesselPresentation(vessel,viewer={}){
+ const style=WARZONE_FACTION_STYLE[vessel?.faction]||WARZONE_FACTION_STYLE.freewake,faction=viewer.viewerFaction||viewer.factionId||null;
+ return{...style,hostile:!vessel?.capturedBy&&(viewer.hostileFactions?.includes(vessel?.faction)||!!faction&&faction!==vessel?.faction)};
+}
+function fleetMarking(ctx,ship,p,z,r,style){
+ const length=ship.renderLength*z,width=ship.renderWidth*z,angle=ship.angle||0,c=Math.cos(angle),s=Math.sin(angle),at=(x,y)=>({x:p.x+c*x-s*y,y:p.y+s*x+c*y});
+ const stripeX=-length*.20,thickness=Math.max(r,Math.min(3*r,length*.025)),half=Math.max(2*r,width*.23),gap=Math.max(r,width*.055);
+ const line=(from,to)=>{const a=at(stripeX,from),b=at(stripeX,to);pixelLine(ctx,a.x,a.y,b.x,b.y,style.color,thickness);};
+ ctx.globalAlpha=.8;if(style.stripe==='split'){line(-half,-gap);line(gap,half);}else line(-half,half);ctx.globalAlpha=1;
+}
+
 export class SpaceRenderer{
  constructor(){const rng=random(832);this.stars=Array.from({length:500},()=>({x:rng(),y:rng(),size:rng()>.94?2:1,a:.25+rng()*.7,depth:.035+rng()*.16,color:rng()>.8?'#d5b98e':rng()>.75?'#83b8c5':'#a0bcc4'}));this.planetCache=new Map();this.nebulaCache=new Map();this.camera={x:0,y:0};this.particles=[];this.health=new Map();this.lastSystem=null;this.lastTime=0;}
  planet(body){
@@ -412,7 +425,11 @@ export class SpaceRenderer{
    for(let dy=-rr;dy<=rr;dy+=r){const half=Math.sqrt(Math.max(0,rr*rr-dy*dy));pixelRect(ctx,color,xx-half,yy+dy,half*2+r,r);}ctx.globalAlpha=1;pixelRect(ctx,'#f4e7ce',xx-rr*.35,yy-rr*.4,Math.max(r,rr*.8),r);
   }
   for(const st of this.stars){const x=((st.x*w*2-cx*st.depth*r)%(w*2)+w*2)%(w*2),y=((st.y*h*2-cy*st.depth*r)%(h*2)+h*2)%(h*2);if(x>w||y>h)continue;ctx.globalAlpha=st.a*(motion?.9+Math.sin(time*.3+st.x*45)*.1:1);pixelRect(ctx,st.color,x,y,st.size*r,st.size*r);if(st.size===2&&st.a>.8){ctx.globalAlpha=.22;pixelRect(ctx,st.color,x-2*r,y,6*r,r);pixelRect(ctx,st.color,x,y-2*r,r,6*r);}}ctx.globalAlpha=1;
-  const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId);
+  const bodies=sys.bodies||[],remoteShips=(options.remoteShips||[]).map(normalizeShip),parkedShips=(sys.parkedShips||[]).map(normalizeShip),enemies=(sys.enemies||[]).filter(e=>!e.promotedVesselId&&!e.canonicalVesselId),warzone=sys.warzone,warzoneViewer=options.warzoneViewer||warzone||{};
+  const fleetLabelIds=new Set(enemies.filter(e=>e.warzone&&e.hp>0&&visible(to(e.x,e.y),(e.renderLength||64)*z)).sort((a,b)=>{
+   const rank=e=>e.id===tracked?-100000:e.disabled?-6000:e.warzonePicket?-3500:e.targetVesselId===ship.id?-2500:e.warzoneSize==='massive'?-800:0;
+   return rank(a)+Math.hypot(a.x-ship.x,a.y-ship.y)-rank(b)-Math.hypot(b.x-ship.x,b.y-ship.y);
+  }).slice(0,6).map(e=>e.id));
   const stellarHazard=cosmicInfluence(ship,bodies).hazard;
   for(const b of bodies){const p=to(b.x,b.y),radius=(b.radius??b.r??65)*z,well=b.kind==='blackhole',margin=well?(b.warningRadius||COSMIC_RULES.warningRadius)*z:radius*2+40*r;if(!visible(p,margin))continue;
    if(well){
@@ -434,6 +451,20 @@ export class SpaceRenderer{
    else{pixelRect(ctx,'#1a3647',p.x-5*r,p.y-7*r,10*r,14*r);pixelRect(ctx,'#a1c7c4',p.x-4*r,p.y-6*r,8*r,3*r);pixelRect(ctx,'#5a8e9b',p.x-9*r,p.y-2*r,18*r,4*r);pixelRect(ctx,'#cfc499',p.x-r,p.y-11*r,2*r,5*r);}
    const signalRadius=(17+Math.floor((motion?time:0)%2*6))*r;pixelRing(ctx,p.x,p.y,signalRadius,signalRadius,sig.failed?'#d58b7f88':'#7dbab477',{...ring,dashed:true,phase:time*4});emit(sig.name||'Unidentified signal',p.x,p.y+(sig.kind==='derelict'||sig.earthCampaign?34:28)*r,sig.earthCampaign?'#bad8cb':'#9acbc7',13,'center',sig.id===tracked?75:25,'signal');
   }
+  if(warzone){
+   if(zoomMultiplier<=.45&&!welcome)for(const sector of warzone.sectors||[]){const p=to(sector.x,sector.y);if(!visible(p,50*r))continue;ctx.globalAlpha=.35;pixelRing(ctx,p.x,p.y,26*r,18*r,'#a99f87',{...ring,dashed:true});ctx.globalAlpha=1;emit(sector.name,p.x,p.y+31*r,'#9baaa8',12,'center',18,'battlefront');}
+   for(const effect of (warzone.effects||[]).slice(-48)){
+    const p=to(effect.x,effect.y),span=Math.max(.01,effect.until-effect.at),progress=motion?clamp((warzone.clock-effect.at)/span,0,1):.35;
+    const size=Math.max(4*r,Math.min(170*r,(effect.size||30)*z)),radius=size*(effect.kind==='explosion'?.24+progress*.65:.2+progress*.45);
+    if(progress>=1||!visible(p,radius+8*r))continue;const color=WARZONE_FACTION_STYLE[effect.faction]?.color||'#a5bcb4';ctx.globalAlpha=(1-progress)*.7;
+    if(effect.kind==='warp-in'||effect.kind==='warp-out'){
+     pixelRing(ctx,p.x,p.y,radius*.33,radius,color,{...ring,dashed:true,phase:progress*12});pixelLine(ctx,p.x-radius*.65,p.y,p.x+radius*.65,p.y,'#cfdfd3',Math.max(r,2*r*(1-progress)));
+    }else{
+     pixelRing(ctx,p.x,p.y,radius,radius*.82,effect.kind==='explosion'?'#d5ab78':color,ring);
+     const seed=hash(effect.id);for(let i=0;i<(effect.kind==='explosion'?9:4);i++){const angle=seed%53+i*2.399,d=radius*(.55+(i%3)*.18);pixelRect(ctx,i%2?'#dec292':'#ad8f72',p.x+Math.cos(angle)*d,p.y+Math.sin(angle)*d,Math.max(r,3*r*(1-progress)),2*r);}
+    }ctx.globalAlpha=1;
+   }
+  }
   // A boarding party leaves two physical hulls in the system. Draw their tether
   // from stable vessel IDs, including when the target is a shared vessel actor.
   const vessels=[ship,...remoteShips,...parkedShips,...(sys.enemies||[]).map(normalizeShip)],findVessel=id=>vessels.find(v=>v.id===id||v.vesselId===id||v.ship?.id===id),links=new Map();
@@ -449,22 +480,25 @@ export class SpaceRenderer{
   }
   const paintVessel=(v,{remote=false,enemy=false,traffic=false,self=false,parked=false}={})=>{
    const data=normalizeShip(v),kind=resolveCabinClass(data.shipClass),pr=SHIP_VISUALS[kind],p=to(data.x,data.y),length=(data.renderLength||pr.length)*z;if(!visible(p,length))return;
-   const hull=data.hull??data.hp??100,maxHull=data.maxHull??data.maxHp??100,disabled=data.disabled||data.disabledUntil>combatTime,speed=Math.hypot(data.vx||0,data.vy||0),hostile=(enemy||data.hostile===true)&&data.hostile!==false&&!data.capturedBy,col=self?'#c6d5c8':data.color|| (hostile?'#bb8d7b':remote||parked?'#9bbdc3':'#889fa8');
+   const fleetStyle=data.warzone?warzoneVesselPresentation(data,warzoneViewer):null,hull=data.hull??data.hp??100,maxHull=data.maxHull??data.maxHp??100,disabled=data.disabled||data.disabledUntil>combatTime,speed=Math.hypot(data.vx||0,data.vy||0),hostile=fleetStyle?fleetStyle.hostile:(enemy||data.hostile===true)&&data.hostile!==false&&!data.capturedBy,col=self?'#c6d5c8':data.color|| (hostile?'#bb8d7b':remote||parked?'#9bbdc3':'#889fa8');
    if(hull<=0||data.dead)return;
-   drawShip(ctx,p.x,p.y,data.angle||0,col,z,speed>(traffic?4:10),motion?time:0,data.boosting||data.boost,{shipClass:kind,size:data.renderLength,damage:1-hull/maxHull,disabled,thrusters:data.thrusters,firing:(data.lastShot?.until||0)>combatTime});
+   drawShip(ctx,p.x,p.y,data.angle||0,col,z,speed>(traffic?4:10),motion?time:0,data.boosting||data.boost,{shipClass:kind,size:data.renderLength,damage:1-hull/maxHull,disabled,thrusters:data.thrusters,firing:(data.lastShot?.until||0)>(data.warzone?warzone?.clock??combatTime:combatTime)});
+   if(fleetStyle)fleetMarking(ctx,data,p,z,r,fleetStyle);
    if((data.shield||0)>0&&(self||data.shieldHitUntil>combatTime)){ctx.globalAlpha=data.shieldHitUntil>combatTime?.55:.15;pixelRing(ctx,p.x,p.y,length*.57,(data.renderWidth||pr.width)*z*.68,'#8bced5',ring);ctx.globalAlpha=1;}
    // At overview range a small hull stays its true size. Separate brackets and
    // a heading tick identify the contact without exaggerating its collision or
    // boarding footprint, or replacing its art with an undiscovered ship type.
    if(zoomMultiplier<=.45&&length/r<18){
-    const mark=self?'#c6dfcf':hostile?'#dca18b':'#8fbec7',radius=Math.max(length*.63,8*r),corner=3*r;
+    const mark=fleetStyle?.color||(self?'#c6dfcf':hostile?'#dca18b':'#8fbec7'),radius=Math.max(length*.63,8*r),corner=3*r;
     for(const side of[-1,1])for(const vertical of[-1,1]){const x=p.x+side*radius,y=p.y+vertical*radius;pixelLine(ctx,x,y,x-side*corner,y,mark,r);pixelLine(ctx,x,y,x,y-vertical*corner,mark,r);}
     const angle=data.angle||0;pixelLine(ctx,p.x+Math.cos(angle)*(radius+2*r),p.y+Math.sin(angle)*(radius+2*r),p.x+Math.cos(angle)*(radius+5*r),p.y+Math.sin(angle)*(radius+5*r),mark,r);
    }
-   if(enemy){
+   if(enemy&&(!data.warzone||fleetLabelIds.has(data.id))){
     const barWidth=clamp(length*.55,30*r,70*r),labelY=p.y+data.renderWidth*z*.6+8*r;
-    pixelRect(ctx,'#543b3c',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth,3*r);pixelRect(ctx,disabled?'#d9bf85':'#dc9781',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth*clamp(hull/maxHull,0,1),3*r);
-    emit(data.name||'Hostile vessel',p.x,labelY,disabled?'#e6cc8c':'#e8b09a',13,'center',disabled?86:55,disabled?'boarding':'hostile');
+    const contactColor=disabled?'#d9bf85':fleetStyle?.color||'#dc9781';
+    pixelRect(ctx,fleetStyle?'#283e46':'#543b3c',p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth,3*r);pixelRect(ctx,contactColor,p.x-barWidth/2,p.y-data.renderWidth*z*.6-7*r,barWidth*clamp(hull/maxHull,0,1),3*r);
+    if(fleetStyle&&hostile)pixelRect(ctx,'#d59987',p.x+barWidth/2+3*r,p.y-data.renderWidth*z*.6-7*r,3*r,3*r);
+    emit(data.name||'Hostile vessel',p.x,labelY,disabled?'#e6cc8c':fleetStyle?.color||'#e8b09a',13,'center',disabled?86:data.id===tracked?80:55,disabled?'boarding':fleetStyle?'fleet-contact':'hostile');
     if(disabled||data.occupation?.contested||data.capturedBy){const status=data.occupation?.contested?'CONTESTED':data.capturedBy?'SECURED':data.boardable===false?'DISABLED':'BOARD';emit(`${status} · ${data.berths} BERTHS · ${data.subtitle.toUpperCase()}`,p.x,labelY+13*r,data.capturedBy?'#a8d7c9':'#c9b995',12,'center',85,'boarding');}
    }
    if(remote)emit(data.name||data.displayName||'Independent captain',p.x,p.y+(data.renderWidth||pr.width)*z*.6+10*r,'#add9d7',14,'center',70,'remote');
@@ -476,10 +510,11 @@ export class SpaceRenderer{
   for(const e of enemies)paintVessel(e,{enemy:true});
   for(const parked of parkedShips)if(!remoteShips.some(remote=>remote.id===parked.id||remote.ship?.id===parked.id)&&ship.id!==parked.id)paintVessel(parked,{parked:true});
   for(const remote of remoteShips)paintVessel(remote,{remote:true});
-  for(const b of sys.bullets||[]){const p=to(b.x,b.y);if(!visible(p,12*r))continue;const col=b.owner==='player'||b.friendly?'#eddfaa':'#e8a182',back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*.018,b.y-(b.vy||Math.sin(b.angle||0)*400)*.018);pixelLine(ctx,p.x,p.y,back.x,back.y,col,2*r);pixelRect(ctx,'#fff0c6',p.x,p.y,2*r,2*r);}
+  for(const b of [...(sys.bullets||[]),...(warzone?.projectiles||[])]){const p=to(b.x,b.y);if(!visible(p,12*r))continue;const col=b.color|| (b.owner==='player'||b.friendly?'#eddfaa':'#e8a182'),back=to(b.x-(b.vx||Math.cos(b.angle||0)*400)*.018,b.y-(b.vy||Math.sin(b.angle||0)*400)*.018);pixelLine(ctx,p.x,p.y,back.x,back.y,col,clamp((b.radius||3)*z,r,3*r));pixelRect(ctx,'#fff0c6',p.x,p.y,2*r,2*r);}
   const sp=to(ship.x,ship.y);let mining=ship.miningTarget||sys.miningTarget||game.miningTarget;if(typeof mining==='string')mining=(sys.asteroids||[]).find(a=>a.id===mining);
   if(mining){const p=to(mining.x,mining.y);ctx.globalAlpha=.35;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#69cdbd',3*r);ctx.globalAlpha=1;pixelLine(ctx,sp.x,sp.y,p.x,p.y,'#c9f2d5',r);for(let i=0;i<5;i++){const a=time*13+i*1.3,d=(2+(i*3+time*21)%11)*r;pixelRect(ctx,i%2?'#eedba2':'#a8dbc3',p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,r,r);}}
   paintVessel(ship,{self:true});
+  if(warzone){const living=new Set([ship,...remoteShips,...parkedShips,...enemies,...(sys.traffic||[])].map(v=>v.id));for(const id of this.health.keys())if(!living.has(id)&&id!=='player')this.health.delete(id);}
   for(const particle of this.particles){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.ttl-=dt;const p=to(particle.x,particle.y);ctx.globalAlpha=clamp(particle.ttl*3,0,1);pixelRect(ctx,particle.color,p.x,p.y,2*r,r);}ctx.globalAlpha=1;this.particles=this.particles.filter(p=>p.ttl>0).slice(-150);
   if(!welcome&&guidance!=='expert'){
    const target=[...bodies,...(sys.signals||[]),...(sys.asteroids||[]),...enemies,...parkedShips,...remoteShips,...(options.waypoint?[options.waypoint]:[])].find(b=>b.id===tracked);
@@ -489,5 +524,5 @@ export class SpaceRenderer{
   ctx.restore();return{cameraX:view.cameraX,cameraY:view.cameraY,zoom:z,width:w,height:h,offsetX:view.offsetX,offsetY:view.offsetY};
  }
  toWorld(x,y){return this.view?canvasToWorld(x,y,this.view):{x:(x-this.w/2)/this.zoom+this.camera.x,y:(y-this.h/2)/this.zoom+this.camera.y};}
- radar(ctx,game,tracked){const w=ctx.canvas.width,h=ctx.canvas.height,s=game.state.ship,sys=game.system||{},cx=w/2,cy=h/2,r=Math.min(w,h)/2-8;ctx.clearRect(0,0,w,h);for(const n of[.3,.65,1])pixelRing(ctx,cx,cy,r*n,r*n,'#35536288');pixelLine(ctx,cx-r,cy,cx+r,cy,'#2b475466');pixelLine(ctx,cx,cy-r,cx,cy+r,'#2b475466');const scale=r/systemRadarRange(sys),dot=(x,y,col,size=3)=>{const px=cx+(x-s.x)*scale,py=cy+(y-s.y)*scale;if(Math.hypot(px-cx,py-cy)>r)return;pixelRect(ctx,col,px-size/2,py-size/2,size,size);};for(const a of sys.asteroids||[])if(!a.depleted)dot(a.x,a.y,'#536768',2);for(const b of sys.bodies||[]){if(b.kind==='blackhole'){const px=cx+(b.x-s.x)*scale,py=cy+(b.y-s.y)*scale;if(Math.hypot(px-cx,py-cy)<r){pixelRing(ctx,px,py,6,6,b.id===tracked?'#f0d6a0':'#d09b78');pixelRect(ctx,'#03070f',px-2,py-2,4,4);}}else dot(b.x,b.y,b.id===tracked?'#ebcf99':'#8bbfb5',b.kind==='station'?5:7);}for(const e of sys.enemies||[])if(!e.dead)dot(e.x,e.y,'#db8870',4);for(const p of sys.signals||[])if(!p.resolved)dot(p.x,p.y,'#aab5d3',4);pixelLine(ctx,cx,cy,cx+Math.cos(s.angle||0)*7,cy+Math.sin(s.angle||0)*7,'#eee6c4',2);}
+ radar(ctx,game,tracked){const w=ctx.canvas.width,h=ctx.canvas.height,s=game.state.ship,sys=game.system||{},cx=w/2,cy=h/2,r=Math.min(w,h)/2-8;ctx.clearRect(0,0,w,h);for(const n of[.3,.65,1])pixelRing(ctx,cx,cy,r*n,r*n,'#35536288');pixelLine(ctx,cx-r,cy,cx+r,cy,'#2b475466');pixelLine(ctx,cx,cy-r,cx,cy+r,'#2b475466');const scale=r/systemRadarRange(sys),dot=(x,y,col,size=3)=>{const px=cx+(x-s.x)*scale,py=cy+(y-s.y)*scale;if(Math.hypot(px-cx,py-cy)>r)return;pixelRect(ctx,col,px-size/2,py-size/2,size,size);};for(const a of sys.asteroids||[])if(!a.depleted)dot(a.x,a.y,'#536768',2);for(const b of sys.bodies||[]){if(b.kind==='blackhole'){const px=cx+(b.x-s.x)*scale,py=cy+(b.y-s.y)*scale;if(Math.hypot(px-cx,py-cy)<r){pixelRing(ctx,px,py,6,6,b.id===tracked?'#f0d6a0':'#d09b78');pixelRect(ctx,'#03070f',px-2,py-2,4,4);}}else dot(b.x,b.y,b.id===tracked?'#ebcf99':'#8bbfb5',b.kind==='station'?5:7);}for(const e of sys.enemies||[])if(!e.dead&&e.hp!==0&&!e.promotedVesselId&&!e.canonicalVesselId)dot(e.x,e.y,e.disabled?'#b6a47d':e.warzone?WARZONE_FACTION_STYLE[e.faction]?.color||'#a3b5af':'#db8870',e.warzoneSize==='massive'?6:4);for(const p of sys.signals||[])if(!p.resolved)dot(p.x,p.y,'#aab5d3',4);pixelLine(ctx,cx,cy,cx+Math.cos(s.angle||0)*7,cy+Math.sin(s.angle||0)*7,'#eee6c4',2);}
 }

@@ -12,6 +12,7 @@ import {cabinLayout,resolveCabinClass,isCabinWalkable} from './interior-layouts.
 import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
 import {sidearmAim,facingAngle} from './combat.mjs';
+import {buildWarzoneGroundInterior,drawWarzoneGroundEffects} from './warzone-ground.mjs';
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
@@ -450,10 +451,11 @@ function addFrontierSites(m,location,seed,connect=null){
  for(const site of m.sites){
   const x=site.tileX,y=site.tileY,joinY=y<38?38:66;
   if(connect)connect(x,y);else{line(m,x,y,x,joinY,TILE.PATH,2);line(m,x,joinY,48,joinY,TILE.PATH,2);}
-  entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',socialStyle:site.style||null},site.summary);
+  entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',...(site.warzone?{warzone:true}:{}),socialStyle:site.style||null},site.summary);
   const facade=site.style==='preflight'?'reed-house':{cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house',social:['park','farm'].includes(site.style)?'garden-gate':'frontier-hut'}[site.kind]||'frontier-hut';
   prop(m,facade,x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':site.kind==='sanctum'?'#b1c5c3':'#8b9b96',false);
   prop(m,'trail-light',x-2,y,1,1,site.hostile?'#d6ae82':'#a6c9bd',false);
+  if(site.warzone){prop(m,'cargo',x-4,y-1,2,1,'#7d8477',false);prop(m,'cargo',x+3,y-1,2,1,'#7d8477',false);prop(m,'banner',x-2,y-3,5,.4,'#ba9b70',false);label(m,'WARZONE / RELIEF GATE',x-3,y+2,'#d2b787');}
  }
 }
 function barrenSurface(location,seed){
@@ -561,7 +563,9 @@ function expeditionSurface(location,seed){
  const site=location.site,m=makeMap(site.cols,site.rows,site.kind==='cave'?'cave':site.kind==='igloo'?'ice':'shelter',site.name,location.id,seed,'site');
  m.siteId=site.id;m.parentId=location.parentId;m.atmosphere=site.atmosphere;m.site=site;
  rect(m,1,1,m.cols-2,m.rows-2,TILE.WALL);
- if(isFieldSite(site)){
+ if(site.warzone){
+  buildWarzoneGroundInterior(m,site,{rect,prop,label,point,TILE});
+ }else if(isFieldSite(site)){
   buildFieldInterior(m,site,normalizeFieldState(site,location.field),{rect,prop,label,point,TILE});
  }else if(site.kind==='military'){
   militaryInterior(m,site,{rect,prop,label,point,TILE});
@@ -1275,7 +1279,7 @@ function drawInfantryTell(ctx,actor,layout){
  if(actor.attackKind!=='ranged'||actor.health<=0||!(actor.windup>0)||!layout)return;
  const angle=actor.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle);
  const aim=sidearmAim(actor,[],{aiming:true,aimX:dx,aimY:dy},layout),length=Math.hypot(aim.to.x-actor.x,aim.to.y-actor.y);
- for(let d=16;d<length;d+=14)pixelLine(ctx,actor.x+dx*d,actor.y+dy*d,actor.x+dx*Math.min(d+7,length),actor.y+dy*Math.min(d+7,length),'#bd7968',1);
+ for(let d=16;d<length;d+=14)pixelLine(ctx,actor.x+dx*d,actor.y+dy*d,actor.x+dx*Math.min(d+7,length),actor.y+dy*Math.min(d+7,length),actor.warzoneUnit&&actor.team!=='hostile'?actor.stripeColor:'#bd7968',1);
  pixel(ctx,'#f2c98b',actor.x-2,actor.y-36,4,6);pixel(ctx,'#f2c98b',actor.x-1,actor.y-28,2,2);
 }
 function drawRangeTarget(ctx,actor,time){
@@ -1383,7 +1387,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
  const mark=(marker)=>{const radius=marker.kind==='exit'?5:marker.kind==='site'?4:3;box('#0b1c27',marker.x-radius-1,marker.y-radius-1,radius*2+3,radius*2+3);box(marker.color,marker.x-radius,marker.y-radius,radius*2+1,radius*2+1);if(marker.kind==='exit'){box('#294039',marker.x-1,marker.y-3,3,7);box('#294039',marker.x-3,marker.y-1,7,3);}else if(marker.done)box('#213d38',marker.x-1,marker.y-1,3,3);};
  for(const marker of [...ordinary,...exits])mark(marker);
  // A different captain's discovery never grants local sight through cavern walls.
- for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert&&(!visibility||visibility.canSeeActor(monster))){const point=project(monster.x,monster.y);box('#17232a',point.x-4,point.y-4,9,9);box('#df8b77',point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:'hostile',...point,color:'#df8b77'});}
+ for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert&&(!visibility||visibility.canSeeActor(monster))){const point=project(monster.x,monster.y),friendly=monster.warzoneUnit&&monster.team!=='hostile',color=friendly?monster.stripeColor||'#a1bcb0':'#df8b77';box('#17232a',point.x-4,point.y-4,9,9);box(color,point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:friendly?'infantry':'hostile',...point,color});}
  const chosen=markers.find(marker=>marker.selected);if(chosen){const r=9,c='#f4c97f';box(c,chosen.x-r,chosen.y-r,7,2);box(c,chosen.x-r,chosen.y-r,2,7);box(c,chosen.x+r-6,chosen.y-r,7,2);box(c,chosen.x+r-1,chosen.y-r,2,7);box(c,chosen.x-r,chosen.y+r-1,7,2);box(c,chosen.x-r,chosen.y+r-6,2,7);box(c,chosen.x+r-6,chosen.y+r-1,7,2);box(c,chosen.x+r-1,chosen.y+r-6,2,7);}
  const player=project(person?.x??surface.spawn.x,person?.y??surface.spawn.y);box('#102936',player.x-6,player.y-6,13,13);box('#f2f5df',player.x-4,player.y-4,9,9);box('#4b9caa',player.x-1,player.y-1,3,3);
  const direction=facingAngle(person?.facing||'up');pixelLine(ctx,player.x+Math.cos(direction)*7,player.y+Math.sin(direction)*7,player.x+Math.cos(direction)*11,player.y+Math.sin(direction)*11,'#f2f5df',2);
@@ -1433,8 +1437,9 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,propEmit);
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  drawFieldSweep(ctx,surface.field);
+ drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'floor'});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
- for(const actor of actors){drawBellwetherTell(ctx,actor,surface.combatLayout);drawInfantryTell(ctx,actor,surface.combatLayout);}
+ for(const actor of actors)if(actor.x>cameraX-220&&actor.x<cameraX+width+220&&actor.y>cameraY-220&&actor.y<cameraY+height+220){drawBellwetherTell(ctx,actor,surface.combatLayout);drawInfantryTell(ctx,actor,surface.combatLayout);}
  if(aim)drawCombatAim(ctx,person,aim);
  const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)&&(!visibility||visibility.canSeePoint(candidate))?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
@@ -1454,12 +1459,13 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:combatActive||a.weaponDrawn||a.team==='hostile',color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});if(a.warzoneUnit&&a.health>0){pixel(ctx,a.stripeColor||'#c9cfba',a.x-7,a.y-23,3,a.role==='leader'?6:3);if(a.role==='medic'){pixel(ctx,'#d6ded0',a.x+4,a.y-22,5,2);pixel(ctx,'#d6ded0',a.x+5,a.y-23,2,5);}if((a.healUntil||0)>combatTime){pixel(ctx,'#b8d9ad',a.x-2,a.y-37,5,2);pixel(ctx,'#b8d9ad',a.x-1,a.y-39,2,6);}}actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
  drawNeonRain(ctx,surface,{cameraX,cameraY,width,height,time,reduceMotion:options.reduceMotion});
  if(surface.kind==='site')drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
+ drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'air'});
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){
   const shot=actor.lastShot;if(shot&&shot.until>combatTime&&Number.isFinite(shot.targetX)&&Number.isFinite(shot.targetY)&&(!visibility||visibility.canSeePoint({x:shot.targetX,y:shot.targetY}))){ctx.globalAlpha=.7;pixelLine(ctx,shot.x??actor.x,shot.y??actor.y-10,shot.targetX,shot.targetY,actor.team==='hostile'?'#eaa983':'#d6e7b9');ctx.globalAlpha=1;pixel(ctx,'#ffe1ac',shot.targetX-1,shot.targetY-1,3,3);}
@@ -1478,6 +1484,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const actor of actors){
   if(actor.x<cameraX+4||actor.x>cameraX+width-4||actor.y<cameraY+4||actor.y>cameraY+height+22)continue;
   if((actor.health??100)<=0)continue;
+  if(actor.warzoneUnit&&actor.role!=='leader'&&actor.id!==aim?.targetId&&Math.hypot(actor.x-person.x,actor.y-person.y)>110)continue;
   const hostile=actor.team==='hostile'||actor.hostile===true,name=actor.name||actor.displayName||actor.crewRole|| (hostile?'Boarder':'Crewmate');
   const piloting=actor.station==='helm'&&actor.perspective==='ship'&&!actor.down;
   const label=piloting?`${name} · ${actor.sleeping?'Helm (away)':'Piloting'}`:name;

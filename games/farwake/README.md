@@ -1,8 +1,38 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.25.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.26.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.26.0 — Crosswind and the lives afterward
+
+**Crosswind** is one Fold I jump from Hearth. The two closest authored territorial factions, **Freewake and Meridian**, are fighting around its three planets. Arrival puts you on an outer approach and a medium military picket hails you: leave the main battle lanes, remain unaligned, or commit to a side. Existing service with either faction takes precedence and immediately assigns a relief-approach sortie. The briefing is available through the objective arrow, flight menu, Settings, and chart.
+
+The initial engagement has **56 military ships, 28 per faction**: screens, medium escorts, frigates, heavy hulls, carriers and Judicators. Green split markings and amber bars distinguish the two fleets. Ships fight one another across three lanes, maneuver around planets, take damage and withdraw. Pushes, counterattacks, resupply lulls and randomized replacement waves keep the battle changing. A fleet wipe does not end it. Larger player hulls attract more deliberate attackers, with targeting budgets that keep the other fleet as the main enemy. Unaligned ships can still be struck by crossfire. Enemy boarding is a rare, conditional opportunity with a visible grapple warning and a chance to escape.
+
+| Destination | What is there | What your captain can leave behind |
+| --- | --- | --- |
+| **Vey · Ashfall Front** | Three infantry lanes, cover, ruined homes, warned artillery and 18 soldiers per army in coordinated squads. A sheltered southern passage links the clinic and apartment shelter. | Restore theatre or triage power; physically escort **Siv, Oren and Mara** to the clinic; recover missing-person records and choose public memorials or private family notices. |
+| **Orsa · Thawline Refuge Reception** | A quiet reception ward, staff, an arrivals board and the nearby **Third Light** relief station. | The tenants your captain rescued reappear here, with named follow-up. A later fuel allocation changes the refuge's heating and conversations. |
+| **Lorn · Cistern Nine Dispatch** | A civilian power-cell shipment with two competing requests. | Heat Orsa's sleeping hall, or restart a cooperative hauler and earn 90 cr. The unmet need remains in the local record. |
+
+Military service and voluntary support determine personal relations. Deliberate attacks and boarding also mark the actual attacking hull as hostile; changing pilots does not erase that evidence. The opening sortie needs **45 accumulated seconds near Vey and 180 confirmed opposing hull damage**, paying **220 cr once**. Crew contributions follow the real firing captain and physically present commander, including borrowed and boarded ships.
+
+The battle has bounded ship, projectile and infantry populations. Saved encounters continue on return, with up to **90 seconds of NPC-only catch-up**. Captains, escorts and rewards do not advance while absent. This is a persistent local battle; its fleets do not simulate an unlimited off-screen interstellar war.
+
+### Return to the people in Hearth
+
+Each of the three early campaigns now has an optional follow-up at its original contact. The follow-ups remember the first decision, require new physical work, and change the records and conversations you can revisit.
+
+| Follow-up | The problem after the original success | Lasting agreement after completion |
+| --- | --- | --- |
+| **The Next Shift** · Mara Reed | A repaired clinic needs a handover the next attendant can actually use. Test the alarm, fund a rota or supply a spare, and verify the case. | **35% total Morrow infirmary discount** or **22% total Morrow hull-repair discount**; the other original agreement remains. |
+| **The People in the Margin** · Len Vale | The new timetable still excludes someone. Investigate their rejected booking and carry the named traveler on a real Kettle–Morrow fare. | An open-seat reserve adds **4 cr** to previously uncovered fare types, or a narrower charter adds **2 cr more** to its original eligible type. Existing accepted quotes stay intact. |
+| **A Warning People Can Use** · Ada Finch | The published signal report has a different weakness depending on who received it. Agree on usable evidence, fly another reading and verify it at Northwatch. | Ordinary scans use **5 reactor charge** after final handover. The earlier publication and its consequences remain recorded. |
+
+Relief decisions retain their contact, menu frame and next physical task instead of changing to an unrelated discovery receipt. Shared snapshots expose the visible fight and this captain's own stories, without future reinforcement timers or other captains' private outcomes. **Hearth's authored geography and exact existing surface baselines remain unchanged.**
+
+See [Crosswind's simulation and authority notes](docs/crosswind-warzone.md) and [campaign aftermaths](docs/campaign-aftermaths.md) for the complete mechanics, costs, limits and verification scope.
 
 ## 0.25.0 — Steadier menus, stories closer to home
 

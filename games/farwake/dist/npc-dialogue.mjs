@@ -8,6 +8,7 @@ import { localSiteResponse } from './local-site-dialogue.mjs';
 import { militaryDialogue, militaryServiceRank } from './military-ranks.mjs';
 import { militaryMission } from './military-content.mjs';
 import { conversationTopics } from './conversation-topics.mjs';
+import { campaignStageText } from './local-campaigns.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -246,7 +247,7 @@ function narrative(game, entity) {
     return record?.status === 'active' && (definition.offeredBy === id || definition.stages[record.stage]?.at?.contactId === id);
   }).sort((a, b) => finite(records[b.id].startedAt) - finite(records[a.id].startedAt));
   const definition = relevant[0], record = definition && records[definition.id], step = definition?.stages[record?.stage];
-  if (step?.at?.contactId === id) return { context: 'mission', greeting: ACTIVE_LINES[`${definition.id}:${step.id}`] || shortAuthored(step.responses?.[record.choices?.[step.respondTo]] || step.text, 'You’re here. Tell me where things stand.'), rumor: step.objective || 'Open this story in your notebook to review the current task.', missionId: definition.id };
+  if (step?.at?.contactId === id) return { context: 'mission', greeting: ACTIVE_LINES[`${definition.id}:${step.id}`] || shortAuthored(campaignStageText(game, definition, record, step), 'You’re here. Tell me where things stand.'), rumor: step.objective || 'Open this story in your notebook to review the current task.', missionId: definition.id };
   if (definition) {
     const lines = { 'len-vale': 'Still working on the fare? I’m here when you’re ready.', 'ada-finch': 'Take your time. Bring back what you actually find.', 'silas-voss': 'Our arrangement still stands. Anything about it troubling you?', 'orin-dax': 'Don’t let the fee do your thinking. Check the evidence.', 'mara-reed': 'The job’s still on my mind. Let me know what you find.', 'tiva': 'Listen carefully. Bring back what was said, including the silences.' };
     return { context: 'mission', greeting: lines[id] || `You’re working on “${definition.title}”. What do you need to check?`, rumor: step?.objective || 'Open this story in your notebook to review the current task.', missionId: definition.id };

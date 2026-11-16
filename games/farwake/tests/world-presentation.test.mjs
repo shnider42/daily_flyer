@@ -69,6 +69,28 @@ test('anonymous bullets use bounded velocity and current membership rather than 
   assert.equal(second.world.bullets[0].x, 20); assert.equal(presentation.sample(3200).world.bullets.length, 0);
 });
 
+test('military pulses extrapolate only current live shots, stop at the short bound, and never resurrect after a hit or room change', () => {
+  const presentation = new WorldPresentation(), first = packet(1000, 0), second = packet(1100, 10);
+  first.world.warzone = { clock: 5, phase: 'crossfire', projectiles: [{ id: 'old-pulse', x: 500, y: 100, vx: -500, vy: 0, ttl: 3 }] };
+  second.world.warzone = { clock: 5.1, phase: 'crossfire', sectors: [{ id: 'freight-cut' }], projectiles: [
+    { id: 'new-pulse', x: 20, y: 10, vx: 500, vy: -80, ttl: 1, faction: 'meridian', targetVesselId: 'own-hull' },
+    { id: 'expiring-pulse', x: 40, y: 10, vx: 500, vy: 0, ttl: .05 },
+    { id: 'already-expired', x: 40, y: 10, vx: 500, vy: 0, ttl: 0 }
+  ] };
+  const original = JSON.stringify([first, second]); presentation.push(first); presentation.push(second);
+  const view = presentation.sample(1200).world.warzone;
+  assert.equal(view.projectiles.length, 1); assert.equal(view.projectiles[0].id, 'new-pulse');
+  close(view.projectiles[0].x, 70); close(view.projectiles[0].y, 2); assert.equal(view.projectiles[0].targetVesselId, 'own-hull');
+  assert.equal(view.sectors, second.world.warzone.sectors); assert.equal(view.phase, 'crossfire');
+  close(presentation.sample(1800).world.warzone.projectiles[0].x, 95);
+  assert.equal(presentation.sample(2200).world.warzone.projectiles.length, 0, 'a stale snapshot cannot keep a pulse alive beyond its authoritative lifetime');
+  assert.equal(JSON.stringify([first, second]), original);
+  const removed = packet(1200, 20); removed.world.warzone = { ...second.world.warzone, projectiles: [] }; presentation.push(removed);
+  assert.equal(presentation.sample(1200).world.warzone.projectiles.length, 0); assert.equal(presentation.push(second), false);
+  const departure = packet(1300, 0, { room: { id: 'realm:system:orsa' }, state: { systemId: 'orsa' } }); presentation.push(departure);
+  assert.equal(presentation.sample(1350).world.warzone, undefined); assert.equal(presentation.frames.length, 1);
+});
+
 test('boarding actors interpolate only within the same active boarding action', () => {
   const presentation = new WorldPresentation(), make = (time, x, id = 'boarding-one') => packet(time, 0, {
     room: {id: 'realm:ship:cinder'}, state: {systemId: 'hearth', boarding: {id, startedAt: 4, phase: 'active', enemies: [{id: 'boarder', x, y: 100, health: 52}], allies: []}}

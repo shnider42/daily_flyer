@@ -101,8 +101,16 @@ export class WorldPresentation {
     const bullets = (this.latest.world.bullets || []).filter(bullet => !finite(bullet.ttl) || bullet.ttl > age).map(bullet => ({
       ...bullet, x: bullet.x + (finite(bullet.vx) ? bullet.vx : 0) * seconds, y: bullet.y + (finite(bullet.vy) ? bullet.vy : 0) * seconds
     }));
+    // Fleet shots carry stable IDs, but current membership still wins over old
+    // frames. Predict only an observed live pulse, never a future volley or a
+    // pulse the authority has already removed after a hit.
+    const warzone = this.latest.world.warzone;
+    const fleetProjectiles = warzone ? (warzone.projectiles || []).filter(shot => finite(shot.ttl) && shot.ttl > age && finite(shot.x) && finite(shot.y)).map(shot => ({
+      ...shot, x: shot.x + (finite(shot.vx) ? shot.vx : 0) * seconds, y: shot.y + (finite(shot.vy) ? shot.vy : 0) * seconds
+    })) : null;
     return {
-      world: { ...this.latest.world, enemies: interpolate(this.latest.world.enemies, 'enemies'), traffic: interpolate(this.latest.world.traffic, 'traffic'), parkedShips: interpolate(this.latest.world.parkedShips, 'parkedShips'), bullets },
+      world: { ...this.latest.world, enemies: interpolate(this.latest.world.enemies, 'enemies'), traffic: interpolate(this.latest.world.traffic, 'traffic'), parkedShips: interpolate(this.latest.world.parkedShips, 'parkedShips'), bullets,
+        ...(warzone ? { warzone: { ...warzone, projectiles: fleetProjectiles } } : {}) },
       boardingActors: interpolate(this.latest.actors, 'boarders'),
       explorationActors: interpolate(this.latest.explorationActors, 'explorers')
     };

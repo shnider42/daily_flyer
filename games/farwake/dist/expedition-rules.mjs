@@ -4,6 +4,7 @@ import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteRewar
 import { canSeeConcealedActor } from './site-visibility.mjs';
 import { militarySiteLocation } from './military-sites.mjs';
 import { fieldSurfaceView } from './floodworks.mjs';
+import { catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundHostiles, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -12,6 +13,7 @@ const validNumber=value=>typeof value==='number'&&Number.isFinite(value);
 
 export const ExpeditionRules={
   _restoreExploration(){
+    this.state.warzoneStories=normalizeWarzoneGroundStories(this.state.warzoneStories);
     const active=this.state.exploration;
     if(!active){if(this.state.interior?.kind==='site'){this.state.locationId=this.state.interior.location?.parentId||this.state.lastBodyId;this.state.interior=null;}return;}
     const body=this.system.bodies.find(value=>value.id===active.bodyId),candidate=body&&explorationLocation(body,active.siteId,this.state.seed),context=candidate&&militarySiteLocation(this,body,candidate,{allowPaused:true}),location=context?.ok?context.location:null;
@@ -37,7 +39,7 @@ export const ExpeditionRules={
     if(encounter.field)location.field=encounter.field;
     const key=`${this.state.exploration.key}:${!!location.evacuated}:${encounter.field?.revision||0}`;
     if(this._expeditionMap?.key!==key)this._expeditionMap={key,value:generateSurface(location,this.state.seed,this.state.flags)};
-    return fieldSurfaceView(this._expeditionMap.value,encounter);
+    return warzoneGroundSurfaceView(fieldSurfaceView(this._expeditionMap.value,encounter),this.state.warzoneStories);
   },
   enterSite(siteId){
     if(this.state.mode!=='person'||this.state.interior||this.state.person.health<=0)return this._fail('Reach an entrance on foot first.','mode');
@@ -56,8 +58,10 @@ export const ExpeditionRules={
     this.state.explorationRecords[key]=encounter;
     this.state.exploration={key,bodyId:body.id,siteId,returnPosition:{x:this.state.person.x,y:this.state.person.y},encounter};
     this.state.interior={kind:'site',location};this.state.locationId=location.id;
-    const surface=this._expeditionSurface();Object.assign(this.state.person,surface.spawn,{moving:false});
-    this.state.person.weaponDrawn=encounter.monsters.some(monster=>monster.health>0&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
+    const surface=this._expeditionSurface();
+    if(encounter.warzoneGround&&!this._sharedWorld){const previous=encounter.warzoneGround.lastSoloAt,now=this.state.stats.time||0;if(previous!==null)catchUpWarzoneGround(encounter,Math.max(0,now-previous),surface);encounter.warzoneGround.lastSoloAt=now;}
+    Object.assign(this.state.person,surface.spawn,{moving:false});
+    this.state.person.weaponDrawn=(encounter.warzoneGround?warzoneGroundHostiles(encounter,{factionId:this.warzoneFaction?.(),hostileFactions:this.state.warzone?.hostileFactions}):encounter.monsters).some(monster=>monster.health>0&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
     this.recordActivity('explore',{token:`entered:${key}`});
     if(encounter.visited===1)this._log(location.name,location.site.story,'exploration');
     this._event('site-entered',{text:`${location.name} · ${location.site.summary}`,siteId,atmosphere:location.site.atmosphere});
@@ -73,6 +77,7 @@ export const ExpeditionRules={
     const active=this.state.exploration;if(!active)return this._fail('No surface site to leave.','mode');
     const body=this.system.bodies.find(value=>value.id===active.bodyId);if(!body)return this._fail('The landing zone is unavailable.','location');
     this.state.explorationRecords[active.key]=active.encounter;
+    if(active.encounter.warzoneGround&&!this._sharedWorld)active.encounter.warzoneGround.lastSoloAt=this.state.stats.time||0;
     this.state.interior=null;this.state.locationId=body.id;this.state.mode='person';this.state.exploration=null;
     if(!this._sharedWorld)resetSiteBoss(active.encounter);
     const surface=generateSurface(body,this.state.seed,this.state.flags),back=recovered?surface.spawn:active.returnPosition;
@@ -89,6 +94,7 @@ export const ExpeditionRules={
     const entity=near(surface,this.state.person,entityId,['siteRecord','siteCache','siteChoice']);
     if(!entity)return this._fail('Move closer to that object.','distance');
     const site=this.state.interior.location.site;
+    if(site.warzone||site.crosswindSupport){const reply=warzoneGroundStoryAction(this,entity,action,optionId);if(reply)return reply;}
     if(entity.type==='siteRecord'&&action==='inspect'){
       if(site.military&&entity.data.recordId===site.objectiveId){
         if(active.encounter.monsters.some(enemy=>enemy.health>0))return this._fail(site.training?'Hit all three range targets before checking the qualification terminal.':'Clear the armed threat before completing this objective.','military-threat');
@@ -118,19 +124,21 @@ export const ExpeditionRules={
     return result;
   },
   explorationParticipant(input={}){
-    return{id:this.playerId,name:this._playerName||this.state.captainName||'Captain',person:this.state.person,input,damageMultiplier:this.characterEffects.sidearmDamage,sidearmCooldownMultiplier:this.characterEffects.sidearmCooldown};
+    return{id:this.playerId,name:this._playerName||this.state.captainName||'Captain',person:this.state.person,input,damageMultiplier:this.characterEffects.sidearmDamage,sidearmCooldownMultiplier:this.characterEffects.sidearmCooldown,...(this.state.exploration?.encounter?.warzoneGround?{factionId:this.warzoneFaction?.()||null,hostileFactions:this.state.warzone?.hostileFactions||[],stories:this.state.warzoneStories,onWarzoneAggression:(factionId,details)=>this.recordWarzoneAggression?.(factionId,details)}:{})};
   },
   stepExploration(dt,input={}){
     const active=this.state.exploration,surface=this._expeditionSurface();if(!active||!surface)return;
     const events=stepSiteEncounter(active.encounter,[this.explorationParticipant(input)],dt,surface);
     this.recordExplorationEvents(events);
+    if(active.encounter.warzoneGround&&!this._sharedWorld)active.encounter.warzoneGround.lastSoloAt=this.state.stats.time||0;
     this.recordMilitaryFieldPresence?.(dt);
     if(this.state.person.health<=0){this._siteDownTime=(this._siteDownTime||0)+dt;if(this._siteDownTime>=2.5)this._returnFromSite(true);}else this._siteDownTime=0;
   },
   recordExplorationEvents(events){
     const site=this.state.interior?.location?.site,active=this.state.exploration;
     for(const event of events){
-      this.events.push(event);
+      const groundFaction=site?.warzone&&event.factionId,hostileFactions=this.warzoneHostilities?.()||[];
+      this.events.push(groundFaction?{...event,team:hostileFactions.includes(groundFaction)?'hostile':this.warzoneFaction?.()===groundFaction?'friendly':'neutral'}:event);
       if(event.attackerId===this.playerId){const training=active?.encounter.monsters.find(enemy=>enemy.id===event.targetId)?.trainingTarget,field=event.type==='person-shot'?'personShots':event.type==='person-hit'?'personHits':event.type==='boarder-down'&&!training?'personKills':null;if(field)this.state.stats[field]=(this.state.stats[field]||0)+1;}
       if(site?.military&&active&&event.type==='person-hit'&&event.attackerId===this.playerId&&event.siteId===active.encounter.id&&active.encounter.monsters.some(enemy=>enemy.id===event.targetId))this.observeMilitaryEvent?.('ground-hit',{operationId:site.operationId,siteId:site.id,objectiveId:site.training?'hits':'damage',amount:site.training?1:event.damage,token:site.training?event.targetId:event.id});
     }

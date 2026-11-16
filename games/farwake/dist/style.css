@@ -92,3 +92,6 @@
 .modal-backdrop{align-items:flex-start}
 .modal-body{scrollbar-gutter:stable}
 @media(min-width:801px) and (pointer:fine){.modal-backdrop{padding-top:clamp(24px,5dvh,48px)}}
+
+/* The warzone briefing keeps its frame while live observations change. */
+.warzone-intro{color:var(--muted);font-size:.85rem}.warzone-fleet-counts{font-size:.82rem;line-height:1.65;color:#b8c9cc;font-variant-numeric:tabular-nums}.warzone-chart-warning{padding:.7rem .85rem;border-left:3px solid #c4ae80;background:#c4ae8010;color:#e0cda7;line-height:1.5}.inline-feedback{padding:.6rem .8rem;border-left:2px solid #87b9a8;color:#bbd7cc}

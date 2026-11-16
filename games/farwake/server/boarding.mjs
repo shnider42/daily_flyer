@@ -185,7 +185,13 @@ export class BoardingAuthority {
     enemy.damageControl = vessel.ship.damageControl; enemy.energy = vessel.ship.energy; enemy.shield = vessel.ship.shield; enemy.active = false; enemy.disabled = this._npcEngineDisabled(vessel) || weak(vessel); enemy.occupation = vessel.occupation || enemy.occupation;
     if (enemy.deck && vessel.boarding?.enemies) enemy.deck.enemies = vessel.boarding.enemies;
   }
+  _recordWarzoneBoarding(captain,source,enemy){
+    if(!enemy?.warzone)return;
+    captain.game.recordWarzoneAggression(enemy.faction,{targetId:enemy.id,boarding:true});
+    source.warzoneHostileFactions=[...new Set([...(source.warzoneHostileFactions||[]),enemy.faction])].filter(id=>['freewake','meridian'].includes(id));
+  }
   _joinNpcBoarding(captain, source, target) {
+    this._recordWarzoneBoarding(captain,source,this._enemyFor(target));
     if (source.helmOwner === captain.id) source.helmOwner = null;
     captain.returnVesselId = source.id; captain.boardingTeam = this._captainTeam(captain, source);
     this._cabin(captain, target); captain.crewRole = 'security';
@@ -220,6 +226,7 @@ export class BoardingAuthority {
     });
     if (pilotedByOther) Object.assign(source.ship, motion);
     if (!result.ok) return result;
+    this._recordWarzoneBoarding(captain,source,enemy);
     boarding.originVesselId = source.id;
     if (!target) {
       const vesselId = `prize:${source.systemId}:${enemy.id}`, ship = enemyShipState(enemy, vesselId);

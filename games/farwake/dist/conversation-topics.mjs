@@ -1,5 +1,6 @@
 /** Optional, concrete conversation topics. These explain existing actions; they
  * never create a job, claim a repair happened, or move a captain's progress. */
+import { localAftermathTopic } from './local-campaigns.mjs';
 const topic = (id, label, text) => ({ id, label, text });
 const ROLE_TOPICS = {
   mechanic: [
@@ -102,6 +103,7 @@ export function conversationTopics(game, entity, role, response = {}) {
   const personId = data.contactId || String(entity.id || '').replace(/^quest:/, '');
   const person = PEOPLE[personId], help = ROLE_TOPICS[person?.helpRole || role] || ROLE_TOPICS.refugee;
   const topics = person ? [person.subject, help[0]] : [...help];
+  const aftermath = localAftermathTopic(game, personId); if (aftermath) topics.unshift(aftermath);
   const currentBody = state.exploration?.bodyId || state.interior?.location?.parentId || state.locationId;
   const bodyId = data.homeLocationId || data.bodyId || currentBody;
   if (bodyId === currentBody && (!data.systemId || data.systemId === state.systemId) && PLACES[bodyId]) topics.push(PLACES[bodyId]);

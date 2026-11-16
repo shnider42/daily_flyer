@@ -194,7 +194,7 @@ function launchAction(game,{shared,fleet}){
  const carrier=state.ship;
  if(dead(carrier))return blocked(result,'Your parked ship is no longer intact.');
  if(distance(carrier,body)>(body.radius||0)+155)return blocked(result,'Your ship is no longer at this landing area. Return to its actual port first.');
- if(game._hitTimer>0||game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,carrier)<700))return blocked(result,'Clear the immediate attack before returning to your parked ship.');
+ if(game._hitTimer>0||game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===carrier.id)&&distance(enemy,carrier)<700))return blocked(result,'Clear the immediate attack before returning to your parked ship.');
  return result;
 }
 
@@ -216,7 +216,7 @@ export function getPerspectiveAction(game,{shared=false,connected=true,fleet=[],
  }else if(state.mode==='ship'){
   result=action('Walk deck','enterCabin','Leave the helm and walk inside this ship. Its momentum continues.');
   if(dead(state.ship))result=blocked(result,'This hull is no longer intact.');
-  else if(!shared&&game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&distance(enemy,state.ship)<600))result=blocked(result,'Clear the immediate attack before leaving the helm.');
+  else if(!shared&&game.system?.enemies?.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===state.ship.id)&&distance(enemy,state.ship)<600))result=blocked(result,'Clear the immediate attack before leaving the helm.');
  }else if(interior?.kind==='site'||state.exploration){
   const exit=surface?.entities?.find(entity=>entity.type==='siteExit'&&!entity.hidden);
   result=action('Exit site','exitSite','Return through this place’s entrance to the surface.',exit?.id||`${state.locationId}:exit`);
