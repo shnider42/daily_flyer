@@ -1,8 +1,16 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.27.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.27.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.27.1 — Mobile gun stations
+
+The left thumbstick now aims the selected gun without firing. Hold the separate FIRE control on the right to shoot. Fore, Port, Stbd (starboard), and Aft remain one tap away in a 54-pixel-high row above AIM, with readiness markers and the selected mount highlighted. The left-handed setting mirrors both controls and the battery row. Single-battery hulls do not show a redundant selector.
+
+A compact status strip shows readiness, the selected battery, and off-arc guidance; its help button explains the controls. Back to deck remains at the top left. Repeated battery-selection toasts no longer cover the mobile battle. Keyboard/mouse controls and ship/infantry movement retain their existing mappings.
+
+Validation: input separation and pointer-release tests, existing local/shared gunnery tests, field-guide tests, and browser checks at 428-pixel portrait, 780-pixel landscape, 320-pixel small-phone width, maximum text size, mirrored controls, and desktop.
 
 ## 0.27.0 — The battle is outside
 

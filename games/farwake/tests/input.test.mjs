@@ -74,6 +74,31 @@ function fixture(){
 }
 const idle={x:0,y:0,thrust:0,strafe:0,turn:0,aimX:0,aimY:0,aiming:false,fire:false,mine:false,boost:false,brake:false};
 
+test('gunnery separates the aiming thumb from the trigger and never moves the captain or helm',()=>{
+ for(const move of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){
+  const input=inputVector({mode:'person',combat:true,gunnery:true,move,aim:{x:1,y:1},keys:new Set(['KeyW','ShiftLeft','KeyR','KeyX'])});
+  assert.equal(input.aimX,move.x);assert.equal(input.aimY,move.y);assert.equal(input.aiming,true);assert.equal(input.fire,false);
+  for(const axis of ['x','y','thrust','strafe','turn'])assert.equal(input[axis],0,axis);
+  for(const action of ['mine','boost','brake'])assert.equal(input[action],false,action);
+ }
+ const keyboard=inputVector({gunnery:true,keys:new Set(['ArrowLeft','Space'])});
+ assert.equal(keyboard.aimX,-1);assert.equal(keyboard.fire,true);
+});
+
+test('gunnery fire can release independently while the aim thumb remains held, and clearing releases both',()=>{
+ const oldWindow=globalThis.window,oldDocument=globalThis.document;
+ try{
+  const f=fixture();f.controls.getMode=()=> 'person';f.controls.getCombat=()=>true;f.controls.getGunnery=()=>true;
+  f.stick.emit('pointerdown',{pointerId:101,clientX:86,clientY:50});
+  assert.equal(f.controls.vector().aiming,true);assert.equal(f.controls.vector().fire,false);
+  f.fire.emit('pointerdown',{pointerId:102});assert.equal(f.controls.vector().fire,true);assert.equal(f.controls.vector().aimX,1);
+  f.fire.emit('pointercancel',{pointerId:102});assert.equal(f.controls.vector().fire,false);assert.equal(f.controls.vector().aimX,1);
+  f.fire.emit('pointerdown',{pointerId:103});f.stick.emit('pointerup',{pointerId:101});
+  assert.equal(f.controls.vector().fire,true);assert.equal(f.controls.vector().aiming,false,'the station retains its last aim when the aiming thumb lifts');
+  f.controls.clear();assert.deepEqual(f.controls.vector(),idle);assert.equal(f.fire.captures.size,0);assert.equal(f.stick.captures.size,0);
+ }finally{globalThis.window=oldWindow;globalThis.document=oldDocument;}
+});
+
 test('boarding keyboard aim is independent of walking and does not shoot until fire is held',()=>{
  const walkAndAim=inputVector({mode:'person',combat:true,keys:new Set(['KeyW','ArrowRight'])});
  assert.equal(walkAndAim.y,-1);assert.equal(walkAndAim.x,0);

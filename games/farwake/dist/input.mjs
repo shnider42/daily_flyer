@@ -5,8 +5,15 @@ const held=(keys,...names)=>names.some(name=>keys.has(name));
 const clamp=n=>Math.max(-1,Math.min(1,n));
 
 /** Pure keyboard/touch mapping; walking and vessel control remain separate axes. */
-export function inputVector({keys=new Set(),move={x:0,y:0},aim={x:0,y:0},buttons=new Set(),mode='ship',combat=false,ship={},flightAssist=true}={}) {
+export function inputVector({keys=new Set(),move={x:0,y:0},aim={x:0,y:0},buttons=new Set(),mode='ship',combat=false,gunnery=false,ship={},flightAssist=true}={}) {
   const onFootCombat=mode==='person'&&combat,arrowX=Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),arrowY=Number(keys.has('ArrowDown'))-Number(keys.has('ArrowUp'));
+  // At a gun station the movement stick aims. Only the separate trigger fires;
+  // neither thumb can walk the captain or steer the NPC/crewmate's vessel.
+  if(gunnery){
+    const aimX=clamp(move.x+arrowX),aimY=clamp(move.y+arrowY);
+    return{x:0,y:0,thrust:0,strafe:0,turn:0,aimX,aimY,aiming:Math.hypot(aimX,aimY)>.2,
+      fire:buttons.has('fire')||keys.has('Space'),mine:false,boost:false,brake:false};
+  }
   let x=move.x+Number(keys.has('KeyD'))-Number(keys.has('KeyA'))+(onFootCombat?0:arrowX);
   let y=move.y+Number(keys.has('KeyS'))-Number(keys.has('KeyW'))+(onFootCombat?0:arrowY);
   const magnitude=Math.max(1,Math.hypot(x,y));
@@ -22,10 +29,10 @@ export function inputVector({keys=new Set(),move={x:0,y:0},aim={x:0,y:0},buttons
 
 // Every control owns its initiating pointer; releasing one never cancels the others.
 export class Controls {
-  constructor({stick,knob,aimStick=null,aimKnob=null,getMode=()=> 'ship',getCombat=()=>false,getFlightState=null,getShip=()=>null,fire,mine,boost,brake=null,active,onCommand}) {
+  constructor({stick,knob,aimStick=null,aimKnob=null,getMode=()=> 'ship',getCombat=()=>false,getGunnery=()=>false,getFlightState=null,getShip=()=>null,fire,mine,boost,brake=null,active,onCommand}) {
     this.keys=new Set();this.held=new Map();this.move={x:0,y:0};this.aim={x:0,y:0};
     this.owner=null;this.aimOwner=null;this.stick=stick;this.knob=knob;this.aimStick=aimStick;this.aimKnob=aimKnob;
-    this.active=active;this.onCommand=onCommand;this.getMode=getMode;this.getCombat=getCombat;this.getFlightState=getFlightState||(()=>({ship:getShip()}));this.cancellers=[];
+    this.active=active;this.onCommand=onCommand;this.getMode=getMode;this.getCombat=getCombat;this.getGunnery=getGunnery;this.getFlightState=getFlightState||(()=>({ship:getShip()}));this.cancellers=[];
     [stick,aimStick,fire,mine,boost,brake].filter(Boolean).forEach(protectGameSurface);
     this.bindStick(stick,knob,false);if(aimStick)this.bindStick(aimStick,aimKnob,true);
     this.bind(fire,'fire');this.bind(mine,'mine');this.bind(boost,'boost');this.bind(brake,'brake');
@@ -73,6 +80,6 @@ export class Controls {
     el.addEventListener('click',e=>{if(e.detail===0&&this.active())this.onCommand(action==='fire'?'primaryDown':action);});
     this.cancellers.push(()=>{if(owner===null)return;const id=owner;finish({pointerId:id});if(el.hasPointerCapture?.(id))el.releasePointerCapture(id);});
   }
-  vector(){const state=this.getFlightState()||{};return inputVector({keys:this.keys,move:this.move,aim:this.aim,buttons:this.held,mode:this.getMode(),combat:this.getCombat(),ship:state.ship||state,flightAssist:state.flightAssist!==false});}
+  vector(){const state=this.getFlightState()||{};return inputVector({keys:this.keys,move:this.move,aim:this.aim,buttons:this.held,mode:this.getMode(),combat:this.getCombat(),gunnery:this.getGunnery(),ship:state.ship||state,flightAssist:state.flightAssist!==false});}
   clear(){for(const cancel of this.cancellers)cancel();this.keys.clear();this.held.clear();this.move={x:0,y:0};this.aim={x:0,y:0};}
 }

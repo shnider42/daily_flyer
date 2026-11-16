@@ -42,3 +42,31 @@
 .navy-department{padding:.1rem 0 .7rem;border-bottom:1px solid #8eabb126}
 .navy-department h3{color:#9fc8c4}
 .navy-department p{margin:.65rem 0}
+
+/* Touch gunnery belongs to the thumbs: pick a mount above AIM, fire opposite.
+   The panel is placed in the control deck on touch, beside its actual stick. */
+.touch-layout.gunnery-view #stick{visibility:visible!important;pointer-events:auto!important}
+.touch-layout.gunnery-view #aimStick{display:none!important}
+.touch-layout.gunnery-view .control-deck #fireButton{right:var(--right-edge);left:auto;bottom:calc(27px * var(--control-scale) + var(--deck-bottom));width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;flex-direction:column}
+.touch-layout.gunnery-view .control-deck #fireButton span{display:block;font-size:1.6rem}
+.touch-layout.gunnery-view.left-handed .control-deck #fireButton{right:auto;left:var(--thumb-edge)}
+.touch-layout:not(.welcome-active) #controlDeck .gunnery-batteries{top:auto;bottom:calc(var(--thumb-size) + 39px * var(--control-scale) + var(--deck-bottom));left:var(--thumb-edge);right:auto;transform:none;width:min(248px,calc(100% - var(--thumb-edge) - var(--right-edge) - 88px));max-width:none;padding:4px;border:1px solid var(--hud-border,#456577);border-radius:6px;background:var(--hud-surface,#0b1929e8);box-shadow:var(--hud-shadow,0 2px 6px #030a144d)}
+.touch-layout.left-handed:not(.welcome-active) #controlDeck .gunnery-batteries{left:auto;right:var(--right-edge)}
+.touch-layout #controlDeck .gunnery-batteries[data-single=true],.touch-layout #controlDeck .battery-heading,.touch-layout #controlDeck .gunnery-batteries>p{display:none}
+.touch-layout #controlDeck .battery-choices{grid-template-columns:repeat(4,minmax(44px,1fr));gap:3px}
+.touch-layout #controlDeck .battery-choice{position:relative;display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:4px 2px 7px;border-radius:3px}
+.touch-layout #controlDeck .battery-choice>strong{font-size:clamp(13px,.82rem,17px);line-height:1.2;white-space:nowrap}
+.touch-layout #controlDeck .battery-choice>small{display:none}
+.touch-layout #controlDeck .battery-choice:after{content:'';position:absolute;left:7px;right:7px;bottom:3px;height:3px;border-radius:2px;background:#71828b}
+.touch-layout #controlDeck .battery-choice[data-state=ready]:after{background:#a4dfc8}
+.touch-layout #controlDeck .battery-choice[data-state=cycling]:after{background:#e0bc7a}
+.touch-layout #controlDeck .battery-choice[data-state=low-power]:after{background:#e99682}
+.touch-layout.gunnery-view:not(.welcome-active) .mobile-weapon{top:12px;bottom:auto;left:12px;right:12px;width:max-content;max-width:calc(100% - 24px);border-radius:4px;flex-wrap:nowrap}
+.touch-layout.immersive-hud.gunnery-view:not(.welcome-active) .mobile-weapon{top:var(--coach-top);bottom:auto;left:var(--hud-edge);right:var(--hud-right);width:max-content;max-width:calc(100% - var(--hud-edge) - var(--hud-right))}
+.touch-layout.gunnery-view #mobileAim{order:0;flex:1 1 auto}
+.touch-layout.gunnery-view #mobileWeaponHelp{flex:0 0 44px}
+.touch-layout.gunnery-view .mobile-weapon .sidearm-glyph{display:none}
+/* Back to deck is already the top-left perspective control. */
+.touch-layout.gunnery-view .interaction-wrap{display:none}
+
+.touch-layout.gunnery-view:not(.welcome-active) .mobile-weapon:not([hidden]){display:flex!important}
