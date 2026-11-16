@@ -1,6 +1,6 @@
 # Dayboard
 
-A small, personal Kanban workspace with customizable areas for work, life, and other projects. Built in the Daily Flyer repository as a self-contained static application. It branches from `staging` and does not modify other themes or shared routes.
+A small Kanban workspace with customizable areas for work, life, and other projects. Built in the Daily Flyer repository as a static application. The optional shared-workspace candidate is on `feat/dayboard-teams`; team mode defaults to disabled. The published personal application remains on `feat/dayboard-personal` until the hosted activation gates below are complete.
 
 ## Use
 
@@ -36,21 +36,49 @@ Existing schema v1 boards automatically receive **Career, Life, DFE, and Custom*
 
 ## Persistence and privacy
 
-The application shell is public. Board data is browser-local under `dfe.dayboard.v1` and is not uploaded. Every browser/device has its own workspace. No authentication, analytics, external fonts, external script dependencies, or cloud synchronization are present.
+The application shell is public. Personal board data remains browser-local under `dfe.dayboard.v1`. Every browser/device has its own personal workspace. Opening the app, enabling team capability, or signing in does not upload that workspace. With team mode disabled, no authentication client or backend connection is started. There are no analytics or external fonts. The optional Supabase client is bundled with the application, rather than loaded from a third-party script host.
 
 Download a JSON backup to preserve the entire workspace, including area names and colors, or transfer it manually. Both schema v1 and v2 backups can be imported. Merge adds incoming records and keeps the newer timestamp for matching tasks; current project and area metadata win matching-ID collisions. Distinct imported areas keep their own identities even if their names collide, in which case the imported name receives an `(imported)` suffix. Replace validates the entire file before replacing the workspace. CSV export uses current area names and is for reading in spreadsheets, not complete restoration. CSV cells are protected against formula execution.
 
 Writes validate state before persisting. A failed durable write does not publish the change to in-memory state. A previous snapshot supports recovery, and conflicting writes from another tab are rejected. Corrupt local data is never silently reset. A valid replacement import is the explicit recovery path. Settings clearly describe device-local storage, backup, and lack of notifications. Due dates are in-app dates; they do not send messages or system reminders.
 
+## Optional shared workspaces
+
+Use the workspace selector to keep **Personal** separate from each named shared workspace. A shared workspace starts empty with a **General** area; it does not inherit the personal board's categories or records. Creating a workspace makes the signed-in person its owner. Every current member can read and edit its tasks, notes, projects, and areas. Owners additionally manage invitations and member removal. Assignees must be current workspace members.
+
+Invitations are email-bound, expire after seven days, and require verified sign-in with the invited address. The person reviews the destination before accepting. Owners receive a copyable link; this application does not send invitation messages automatically. Removal stops future authorized reads and writes, clears assignments, and preserves existing shared work. Previously downloaded content cannot be recalled.
+
+**Copy from personal board** starts with no Areas selected. It shows the destination and content counts before adding independent copies. Only the selected Areas and disclosed content are included. Personal originals, Today selections, display choices, and review history are not uploaded. Copies receive new record IDs; subsequent personal and shared edits are independent. A task's invalid or cross-Area project/recurrence reference is cleared in the prepared copy rather than pulling in unselected private context.
+
+Shared Today selections are private to the signed-in person. Theme, spacing, and review preferences use an account-and-workspace-scoped browser key. Text size and contrast remain device preferences. Auth uses a separate storage namespace. None of those team keys replaces `dfe.dayboard.v1` or its existing backups.
+
+Shared writes submit only changed records with their expected versions. Stale edits fail without overwriting the newer record. An open editor also checks the version from when it opened, including after a background refresh. A recurring completion and its successor commit together. Undo reverses only the original action, and fails atomically if a later edit changed an affected record. Unrelated edits remain intact.
+
+A lost response leaves the save **unconfirmed**, not silently successful or safely failed. Retry resends the original request ID and payload; the server receipt prevents duplicate tasks. Further shared changes and workspace switching are blocked until that result is resolved. Drafts stay visible on errors, and confirming an earlier save does not erase later typing. Session or access loss switches back to Personal. Unfinished team drafts and pending requests remain in memory in that tab, scoped to the original account and workspace; restoring them requires fresh membership authorization. They are not an offline queue and do not survive closing the tab.
+
+JSON team exports contain board content and assignment references. Import adds independent copies, matches assignments only to existing members, and never imports membership or replaces shared work. JSON export is useful for content recovery; it is not a database backup of permissions, receipts, or activity history.
+
+The server schema and exact RPC/access contract are documented in [supabase/README.md](supabase/README.md). The staged deployment and acceptance criteria are in [TEAM_ROLLOUT.md](TEAM_ROLLOUT.md).
+
 ## Development and deployment
 
-No dependency installation is required. Node.js 22 or newer is used only for build-time checks.
+Use Node.js 22 or newer. The build installs pinned packages from `package-lock.json` if its build dependency is absent. Dependencies include the bundled Supabase SDK, esbuild, and PGlite for isolated PostgreSQL tests.
 
 ```sh
 node apps/dayboard/build.mjs
 ```
 
-The build checks the application syntax, runs the model tests, and copies public assets to `apps/dayboard/dist` with a build-info record. Serve that directory with a static server for local work.
+The build checks all application modules, runs the personal, client, database, and selected-copy tests, bundles the browser application, and writes `apps/dayboard/dist/build-info.json`. Serve `dist`, not the unbundled `public` directory. Tests use synthetic identities and an isolated local database; they do not access a hosted project.
+
+Team mode is opt-in at build time:
+
+```text
+DAYBOARD_TEAMS_ENABLED=true
+DAYBOARD_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+DAYBOARD_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Do not set these on the live service until the activation gates pass. Only an HTTPS origin and publishable API key are accepted. Service-role and secret keys are rejected. The build permits connections only to that backend's HTTPS/WSS origin in its Content Security Policy. When disabled, the output contains an empty backend URL/key and retains the same-origin policy.
 
 Render configuration:
 
@@ -60,8 +88,8 @@ Render configuration:
 - Build command: `node apps/dayboard/build.mjs`
 - Publish directory: `apps/dayboard/dist`
 - Auto deploy: on commit
-- No secrets or server environment variables are required.
+- No credentials are required for personal mode. Team mode uses the public configuration above; no privileged server credential is shipped to the browser.
 
 ## Important boundaries
 
-The board is not connected to Jira, email, calendars, job applications, or other career applications. Future account-based sync needs authenticated per-user durable storage and a local-data import path; a public write endpoint or a server-local JSON file would not provide those guarantees.
+The board is not connected to Jira, calendars, job applications, or other career applications. Team sign-in email needs an explicitly configured delivery provider and verified redirect settings. Live Auth, PostgREST, Realtime, two-browser concurrency, and backup restoration still require a hosted pilot. Ownership transfer, workspace deletion, and retention management are not implemented yet; they must be resolved before a wider hosted rollout.
