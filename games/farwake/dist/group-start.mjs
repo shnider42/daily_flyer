@@ -3,6 +3,9 @@ import { SHIP_CLASSES, STARTER_SHIP_IDS } from './fleet.mjs';
 
 export const GROUP_STARTER_TIERS = Object.freeze([
   Object.freeze({ id: 'lark', minPlayers: 2 }),
+  Object.freeze({ id: 'swift', minPlayers: 2 }),
+  Object.freeze({ id: 'kingfisher', minPlayers: 2 }),
+  Object.freeze({ id: 'lamprey', minPlayers: 2 }),
   Object.freeze({ id: 'puffin', minPlayers: 4 }),
   Object.freeze({ id: 'osprey', minPlayers: 7 })
 ]);

@@ -85,7 +85,7 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=(
   const state=stateOf(game()),snap=snapshot(),mp=state.multiplayer||{},fleet=snap.fleet||[];
   return JSON.stringify({guidance:guidance(),connected:connected(),realm:snap.realm,place:[state.mode,state.systemId,state.locationId,state.interior?.kind,state.exploration?.bodyId,state.npcContract?.active,state.person?.down,state.person?.health<=0],mp:[mp.captainId,mp.ownedVesselId,mp.aboardVesselId,mp.portVesselId,mp.dockedAt,mp.dockedName,mp.returnVesselId,mp.canReturn],
    people:(snap.presence||[]).map(({captainId,name,online,systemId,locationId,roomKind,roomId,vesselId,crewRole,military})=>({captainId,name,online,systemId,locationId,roomKind,roomId,vesselId,crewRole,military})),
-   fleet:fleet.map(vessel=>({id:vessel.id,name:vessel.name,ownerId:vessel.ownerId,ownerName:vessel.ownerName,systemId:vessel.systemId,dockedAt:vessel.dockedAt,allowCrew:vessel.allowCrew,grants:vessel.grants,grantedRoles:vessel.grantedRoles,canBoard:vessel.canBoard,canPilot:vessel.canPilot,helmOwner:vessel.helmOwner,helmName:vessel.helmName,helmOccupied:vessel.helmOccupied,berths:vessel.berths,occupants:vessel.occupants,availableBerths:vessel.availableBerths,occupiedBerths:vessel.occupiedBerths,crewAshore:vessel.crewAshore,destroyed:!intact(vessel),npcContractId:vessel.npcContractId,boarding:getBoardingAction(game(),vessel,{fleet,connected:connected()}).reason})),
+   fleet:fleet.map(vessel=>({id:vessel.id,name:vessel.name,ownerId:vessel.ownerId,ownerName:vessel.ownerName,systemId:vessel.systemId,dockedAt:vessel.dockedAt,allowCrew:vessel.allowCrew,grants:vessel.grants,grantedRoles:vessel.grantedRoles,canBoard:vessel.canBoard,canPilot:vessel.canPilot,helmOwner:vessel.helmOwner,helmName:vessel.helmName,helmOccupied:vessel.helmOccupied,berths:vessel.berths,occupants:vessel.occupants,availableBerths:vessel.availableBerths,occupiedBerths:vessel.occupiedBerths,casualCrew:vessel.casualCrew,crewAshore:vessel.crewAshore,destroyed:!intact(vessel),npcContractId:vessel.npcContractId,boarding:getBoardingAction(game(),vessel,{fleet,connected:connected()}).reason})),
    exit:getDisembarkAction(game(),{shared:true,connected:connected(),fleet})?.reason,helm:getHelmAction(game(),{shared:true,connected:connected(),fleet}).reason});
  }
  function rememberView(open,root){activeView={open,root,owner:context(),signature:presenceSignature()};}
@@ -130,6 +130,10 @@ export function createSharedCrewUI({getGame,getSnapshot,getNetwork,getGuidance=(
   const facts=append(card,'div','shared-ship-facts');
   append(facts,'span','',`At helm: ${pilotName(vessel)}`);
   append(facts,'span','',Number.isFinite(vessel.occupiedBerths)?`${vessel.occupiedBerths} / ${vessel.berths} berths in use`:`${vessel.occupants??0} aboard · ${vessel.berths} berths`);
+  if(vessel.casualCrew?.requestedCount){
+   append(facts,'span','',`${vessel.casualCrew.activeCount} NPCs on duty · ${vessel.casualCrew.reserveCount} in reserve`);
+   append(card,'p','shared-crew-explanation',`NPCs yield their berths and roles to players. ${vessel.availableBerths} ${vessel.availableBerths===1?'place':'places'} available for arriving captains.`);
+  }
   if(vessel.crewAshore?.length)append(card,'p','shared-crew-ashore',`Still ashore: ${vessel.crewAshore.map(person=>person.name).join(', ')}`);
   const actions=append(card,'div','shared-crew-actions');
   if(hiredDuty) {

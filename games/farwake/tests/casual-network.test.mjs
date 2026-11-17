@@ -7,11 +7,12 @@ test('the transport sends a Casual origin on fresh create/join and scopes the ch
   const requests = [], network = () => new FarwakeNetwork({ url: 'https://galaxy.example.test', storage: null, autoReconnect: false,
     fetchImpl: async (url, options) => { if(url.endsWith('/api/config'))return new Response(JSON.stringify({ok:true,worldContentVersion:WORLD_CONTENT_VERSION}));requests.push({ url, options, body: JSON.parse(options.body) }); return new Response(JSON.stringify({ ok: false, reason: 'Stop before opening a session' }), { status: 503 }); }
   });
-  await assert.rejects(network().connect({ create: true, name: 'Host', galaxySeed: 'preview-seed', startMode: 'casual', startSystemId: 'brindle' }), /Stop before/);
-  await assert.rejects(network().connect({ realmCode: 'ABCD1234', name: 'Guest', galaxySeed: 'must-not-reseed', startMode: 'casual', startSystemId: 'vesper' }), /Stop before/);
+  await assert.rejects(network().connect({ create: true, name: 'Host', galaxySeed: 'preview-seed', startMode: 'casual', startSystemId: 'brindle', casualCrewCount: 37 }), /Stop before/);
+  await assert.rejects(network().connect({ realmCode: 'ABCD1234', name: 'Guest', galaxySeed: 'must-not-reseed', startMode: 'casual', startSystemId: 'vesper', casualCrewCount: 1000000 }), /Stop before/);
   assert.equal(requests[0].body.action, 'create'); assert.equal(requests[0].body.galaxySeed, 'preview-seed');
   assert.equal(requests[0].body.startMode, 'casual'); assert.equal(requests[0].body.startSystemId, 'brindle');
   assert.equal(requests[1].body.action, 'join'); assert.equal(requests[1].body.startMode, 'casual'); assert.equal(requests[1].body.startSystemId, 'vesper');
+  assert.equal(requests[0].body.casualCrewCount,37);assert.equal(requests[1].body.casualCrewCount,1000000);
   assert.equal(Object.hasOwn(requests[1].body, 'galaxySeed'), false);
   for (const request of requests) { assert.equal(request.options.credentials, 'omit'); assert.equal(request.options.cache, 'no-store'); }
 });

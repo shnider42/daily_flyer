@@ -117,7 +117,7 @@ export class FarwakeNetwork {
     this.now = now; this.wallNow = wallNow; this.inputHistory = new InputTimeline(now()); this.lastInputRecordAt = null;
     this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null;
   }
-  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, startSystemId, galaxySeed, character, openingMission = false, startTogether = false } = {}) {
+  async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, startSystemId, casualCrewCount, galaxySeed, character, openingMission = false, startTogether = false } = {}) {
     this.manualClose = false;
     const suppliedPassport = passport || (!create ? readPassport(realmCode, this.storage) : null);
     this.passport = suppliedPassport ? normalizePassport(suppliedPassport) : null;
@@ -129,7 +129,7 @@ export class FarwakeNetwork {
     const config = await configResponse.json();
     if (!configResponse.ok || !config.ok) throw new Error(config.reason || 'The multiplayer service is unavailable.');
     if (config.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);
-    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', worldContentVersion: WORLD_CONTENT_VERSION, realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
+    const response = await this.fetch(`${this.url}/api/realms`, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', body: JSON.stringify({ action: create ? 'create' : this.passport ? 'resume' : 'join', worldContentVersion: WORLD_CONTENT_VERSION, realmCode: realmCode || this.passport?.realmCode, name, realmName, starterShip, startMode, startSystemId, casualCrewCount, character, ...(create ? { galaxySeed, openingMission: openingMission === true, startTogether: startTogether === true } : {}), passport: this.passport }) });
     const registration = await response.json();
     if (!response.ok || !registration.ok) throw new Error(registration.reason || 'The realm could not be joined.');
     if (registration.worldContentVersion !== WORLD_CONTENT_VERSION) throw new Error(WORLD_CONTENT_REFRESH_MESSAGE);

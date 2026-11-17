@@ -26,10 +26,10 @@ async function ready(realm, captains) { for (const captain of captains.slice(1))
 test('group hull thresholds are 2, 4 and 7 actual captains, with room for every occupant', () => {
   const allowed = count => groupLaunchChoices(count).filter(hull => hull.eligible).map(hull => hull.id);
   assert.deepEqual(allowed(1), ['sparrow', 'kestrel', 'mule']);
-  assert.deepEqual(allowed(2), ['sparrow', 'mule', 'lark']);
-  assert.deepEqual(allowed(3), ['lark']);
-  assert.deepEqual(allowed(4), ['lark', 'puffin']);
-  assert.deepEqual(allowed(6), ['puffin']);
+  assert.deepEqual(allowed(2), ['sparrow', 'mule', 'lark', 'swift', 'kingfisher', 'lamprey']);
+  assert.deepEqual(allowed(3), ['lark', 'swift', 'kingfisher', 'lamprey']);
+  assert.deepEqual(allowed(4), ['lark', 'swift', 'kingfisher', 'lamprey', 'puffin']);
+  assert.deepEqual(allowed(6), ['lamprey', 'puffin']);
   assert.deepEqual(allowed(7), ['puffin', 'osprey']);
   assert.deepEqual(allowed(10), ['osprey']);
   assert.deepEqual(allowed(11), []);

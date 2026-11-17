@@ -85,7 +85,7 @@ test('Hearth and legacy ports retain their traffic roster while typed research p
  assert.ok(Array.from({length:256},(_,i)=>chooseTrafficHull('farwake','field-traffic-'+i,research)).includes('dipper'));
  const legacyBody={...body};delete legacyBody.stationTypeId;delete legacyBody.planetTypeId;
  const legacy=portProfile(system,legacyBody);assert.equal(legacy.typedCatalog,false);
- assert.deepEqual(trafficHullWeights(legacy),trafficHullWeights(research).filter(row=>row.classId!=='dipper'),'Untyped released port inputs retain the ordered pre-expansion weights.');
+ assert.deepEqual(trafficHullWeights(legacy),trafficHullWeights(research).filter(row=>!['dipper','swift','kingfisher','lamprey'].includes(row.classId)),'Untyped released port inputs retain the ordered pre-expansion weights.');
  assert.equal(canHullUsePort('dipper',{kind:'outpost',...PORT_KINDS.outpost}),false,'The broad lander does not fit a serviced small outpost berth.');
  assert.equal(canHullUsePort('dipper',{kind:'regional',...PORT_KINDS.regional}),true);
 });

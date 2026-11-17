@@ -58,6 +58,7 @@ import { ShipRecoveryRules } from './ship-recovery.mjs';
 import { MedicalRecoveryRules } from './medical-recovery.mjs';
 import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInteriorDamage, relocateHullOccupants } from './interior-damage.mjs';
 import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
+import { createCasualCrewRoster, normalizeCasualCrewCount, reconcileCasualCrew, casualCrewStatus, isCasualCrew, captureCasualCrew } from './casual-crew.mjs';
 import { conversation, normalizeConversations } from './npc-dialogue.mjs';
 import { normalizeSocialVisits } from './social-world.mjs';
 import { chooseNpcSpecies, normalizeSpecies, speciesName } from './species.mjs';
@@ -193,6 +194,8 @@ export class Game {
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
     const casualStart=!isSave&&this.state.startMode==='casual';
     if(casualStart){
+      const crewCount=normalizeCasualCrewCount(options.casualCrewCount);
+      if(crewCount)this.state.ship.casualCrew=createCasualCrewRoster(crewCount,`${this.state.seed}:${options.casualCrewIdentity||this.state.ship.id}:departure`);
       // Origin choices belong only to creation. Restoring a voyage must never
       // move its captain or replace equipment lost during play.
       const origin=this.galaxy.find(system=>system.id===options.startSystemId&&publicStartingPort(system))||this.galaxy.find(system=>system.id==='hearth');
@@ -209,6 +212,7 @@ export class Game {
     this._updateCharacter();
     if(!isSave)this.state.person.health=this.state.person.maxHealth;
     this._updateStats(false);
+    if(casualStart&&this.state.ship.casualCrew){this.state.ship.hull=this.state.ship.maxHull;this.state.ship.energy=this.state.ship.maxEnergy;}
     this._loadSystem(this.state.systemId);
     if(casualStart){
       const port=publicStartingPort(this.system);
@@ -314,6 +318,13 @@ export class Game {
   get livingCrew() { return this.state.crew.filter(c => c.health > 0 && c.status !== 'dead'); }
   get crewCapacity() { return this.hasActiveVessel?Math.max(0,this.state.ship.berths-Math.max(1,finite(this.state.ship.humanOccupants,1))-this.narrativeBerths()-this.professionBerths()-this.rescuedBerths()):0; }
   get freeBerths() { return Math.max(0,this.crewCapacity-this.livingCrew.filter(crew=>!crew.serviceCrew).length); }
+  casualCrewStatus() { return casualCrewStatus(this.state); }
+  syncCasualCrew(options = {}) {
+    const result=reconcileCasualCrew(this.state,{reservedBerths:this.narrativeBerths()+this.professionBerths()+this.rescuedBerths(),...options});
+    if(result.changed)this._updateStats(false);
+    if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
+    return result;
+  }
   get characterEffects() { return characterModifiers(this.state.character); }
   get hasHyperdrive() { return this.hasActiveVessel&&(Object.keys(this.state.upgrades).some(id => /hyperdrive|fold.?drive|lightdrive|jumpdrive|ftldrive/i.test(id)) || this.state.flags.includes('hyperdrive_installed') || this.state.ship.warpRange > 0); }
 
@@ -574,6 +585,12 @@ export class Game {
 
   _updateStats(heal = false) {
     const sh = this.state.ship;
+    // Shared snapshots already contain the authority's physical working watch.
+    // Never put a reserve back on duty from a guest's personal quest/role view.
+    if(!this.state.multiplayer?.serverAuthoritative){
+      const reservedBerths=typeof this.narrativeBerths==='function'?this.narrativeBerths()+this.professionBerths()+this.rescuedBerths():undefined;
+      reconcileCasualCrew(this.state,{...(reservedBerths===undefined?{}:{reservedBerths})});
+    }
     const previous = { hull: sh.maxHull || 100, shield: sh.maxShield || 35, fuel: sh.maxFuel || 30 };
     const hullClass=getShipClass(sh.classId);
     const values = { ...hullClass.stats, classId:hullClass.id, berths:hullClass.berths, turn:hullClass.stats.angularAcceleration, warpRange:0 };
@@ -1390,7 +1407,7 @@ export class Game {
     return this._ok(base);
   }
   _canActivateClass(shipClass) {
-    if(this.livingCrew.length+Math.max(1,this.state.ship.humanOccupants||1)+this.narrativeBerths()+this.professionBerths()+this.rescuedBerths()>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard, including passengers and patients.','capacity');
+    if(this.livingCrew.filter(member=>!isCasualCrew(member)).length+Math.max(1,this.state.ship.humanOccupants||1)+this.narrativeBerths()+this.professionBerths()+this.rescuedBerths()>shipClass.berths)return this._fail('This hull does not have enough berths for everyone aboard, including passengers and patients.','capacity');
     const capacity=shipClass.stats.cargoCap+(this.state.ship.cargoCap-this.shipClass.stats.cargoCap);
     if(this.cargoUsed>capacity)return this._fail('Unload cargo before switching to a smaller hold.','cargo');
     return this._ok();
@@ -1555,6 +1572,10 @@ export class Game {
     const crew=this.state.crew.find(c=>c.id===id&&c.health>0);if(!crew)return this._fail('This crew member is not aboard.','target');
     if(crew.role==='quartermaster'&&this.cargoUsed>this.state.ship.cargoCap-8)return this._fail('Unload cargo before releasing your quartermaster’s storage arrangements.','cargo');
     this.state.formerCrew.push({...clone(crew),status:'released',departedAt:this.state.stats.time,systemId:this.state.systemId,locationId:this.state.locationId});
+    if(isCasualCrew(crew)&&this.state.ship.casualCrew){
+      const active=this.livingCrew.filter(isCasualCrew).length,roster=this.state.ship.casualCrew;
+      roster.dutyLimit=Math.max(0,Math.min(roster.dutyLimit??active,active)-1);
+    }
     this.state.crew.splice(this.state.crew.indexOf(crew),1);this._updateStats(false);
     this._log(`Safe travels, ${crew.name}`,`${crew.name} disembarked at ${this.currentBody.name}. Their berth is free for another traveler.`,'crew');
     this._event('crew',{crew,text:`${crew.name} disembarked. A berth is now free.`});return this._ok({crew});
@@ -1782,6 +1803,7 @@ export class Game {
   _parkCurrentVessel() {
     const ship=this.state.ship;
     if(!this.hasActiveVessel||ship.hull<=0||ship.destroyed)return null;
+    captureCasualCrew(this.state);
     const parked={...clone(ship),vx:0,vy:0,angularVelocity:0,ownerId:this.playerId,storedUpgrades:clone(this.state.upgrades),systemId:this.state.systemId};
     this.system.parkedShips ||= [];
     const old=this.system.parkedShips.findIndex(v=>v.id===ship.id);
@@ -1799,7 +1821,7 @@ export class Game {
     if(boarding.phase!=='won'||!enemy.deck?.cleared)return this._fail('Clear every hostile from this deck before taking its helm.','boarding');
     if(distance(this.state.person,combatLayout(boarding.shipClass).stations.helm)>46)return this._fail('Walk to this vessel’s bridge helm before taking command.','distance');
     const hull=getShipClass(enemy.classId),ship=enemyShipState(enemy);
-    if(this.livingCrew.length+1+this.rescuedBerths(ship)>hull.berths)return this._fail(`This hull has ${hull.berths} berths, including its rescued passengers. Return to your ship and arrange a smaller crew before transferring command.`,'capacity');
+    if(this.livingCrew.filter(member=>!isCasualCrew(member)).length+1+this.rescuedBerths(ship)>hull.berths)return this._fail(`This hull has ${hull.berths} berths, including its rescued passengers. Return to your ship and arrange a smaller crew before transferring command.`,'capacity');
     if(this.cargoUsed>hull.stats.cargoCap)return this._fail('Unload cargo before transferring command to this smaller hold.','capacity');
     const origin=this._parkCurrentVessel(),fraction=ship.hull/ship.maxHull;
     this._releaseBoardingTether();
@@ -1820,7 +1842,7 @@ export class Game {
     if(!target)return this._fail('That vessel is no longer parked in this system.','target');
     if(target.ownerId&&target.ownerId!==this.playerId)return this._fail('That vessel is not under your command.','permission');
     if(distance(target,this.state.ship)>this.state.ship.radius+target.radius+110)return this._fail('Close to your parked vessel to transfer command.','distance');
-    if(this.livingCrew.length+1+this.rescuedBerths(target)>target.berths||this.cargoUsed>target.cargoCap)return this._fail('Your crew, cargo, and that vessel’s rescued passengers will not fit aboard that vessel.','capacity');
+    if(this.livingCrew.filter(member=>!isCasualCrew(member)).length+1+this.rescuedBerths(target)>target.berths||this.cargoUsed>target.cargoCap)return this._fail('Your crew, cargo, and that vessel’s rescued passengers will not fit aboard that vessel.','capacity');
     const previous=this._parkCurrentVessel();
     this.system.parkedShips=this.system.parkedShips.filter(v=>v.id!==target.id);
     const {storedUpgrades,ownerId,systemId,...ship}=clone(target);
@@ -1940,6 +1962,7 @@ export class Game {
       this._event('boarding-complete',{phase,text:'Boarding party withdrawn. The damaged vessel and its surviving crew remain in the system.'});
     }
     this._syncBoardedVessel();
+    this._updateStats(false);
   }
 
   _abandonOccupiedShip(boarding,raider) {

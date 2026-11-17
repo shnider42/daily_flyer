@@ -3,6 +3,7 @@ import { drawShip } from './space-art.mjs';
 import { getShipClass } from './fleet.mjs';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+const PAIR_DUTIES = { swift: 'Pilot + navigation / scanning', kingfisher: 'Pilot + weapons / engineering', lamprey: 'Pilot + salvage / medical' };
 
 export function createGroupStartUI({ dialog, getSnapshot, invoke, acceptResult = result => result?.ok === true, onDepart = () => {}, onLeave = () => {}, toast = () => {} }) {
   let shownFor = null, wasWaiting = false, busy = false, rosterKey = '', error = '', displayedSelection = null;
@@ -30,11 +31,11 @@ export function createGroupStartUI({ dialog, getSnapshot, invoke, acceptResult =
       <div class="group-departure-top"><div><p>Share this galaxy code. Your friends can join from the title screen.</p><div class="group-departure-code"><input readonly aria-label="Galaxy invitation code" value="${esc(code)}" data-group-code><button type="button" data-copy-group-code>Copy code</button></div></div><p><strong data-group-count></strong><br><span class="muted">Only connected captains in this lobby count.</span></p></div>
       <h3>Your departure crew</h3><ul class="group-departure-roster" data-group-roster aria-live="polite"></ul>
       <p data-group-host-note></p>
-      <div class="group-departure-ships" role="group" aria-label="Departure ship choices">${lobby.choices.map(choice => `<button type="button" class="entry-card group-departure-ship" data-group-ship="${esc(choice.id)}" aria-pressed="false"><span class="group-departure-ship-head"><strong>${esc(choice.name)}</strong><small data-group-chosen></small></span><canvas width="256" height="110" data-group-preview="${esc(choice.id)}" aria-label="${esc(choice.name)} silhouette"></canvas><span>${esc(choice.subtitle)}</span><span>${choice.berths} ${choice.berths === 1 ? 'berth' : 'berths'} · ${choice.minPlayers === 1 ? 'Compact starter' : `${choice.minPlayers}+ captains`}</span><small data-group-ship-reason></small></button>`).join('')}</div>
-      <p class="group-departure-ready"><strong data-group-selection></strong><span data-group-equipment></span></p>
+      <div class="group-departure-ships" role="group" aria-label="Departure ship choices">${lobby.choices.map(choice => `<button type="button" class="entry-card group-departure-ship" data-group-ship="${esc(choice.id)}" aria-pressed="false"><span class="group-departure-ship-head"><strong>${esc(choice.name)}</strong><small data-group-chosen></small></span><canvas width="256" height="110" data-group-preview="${esc(choice.id)}" aria-label="${esc(choice.name)} silhouette"></canvas><span>${esc(choice.subtitle)}</span><span>${choice.berths} ${choice.berths === 1 ? 'berth' : 'berths'} · ${choice.minPlayers === 1 ? 'Compact starter' : `${choice.minPlayers}+ captains`}</span>${PAIR_DUTIES[choice.id]?`<span class="group-pair-duty">${esc(PAIR_DUTIES[choice.id])}</span>`:''}<small data-group-ship-reason></small></button>`).join('')}</div>
+      <p class="group-departure-ready"><strong data-group-selection></strong><span data-group-equipment></span><span data-group-crew></span></p>
       <p class="group-departure-status" role="status" aria-live="polite" data-group-status></p>
       <div class="group-departure-actions"><button type="button" class="button-primary" data-group-board>Board together</button><button type="button" class="button-primary" data-group-ready>Ready for this ship</button><button type="button" class="button-secondary" data-group-leave></button></div>
-      <p class="section-note">Everyone starting together may board, use the stations, and pilot the shared ship. The host owns it. Other captains keep their compact ships docked at Kettle. This departure includes no fold drive, story progress, or extra credits.</p>
+      <p class="section-note" data-group-departure-note></p>
     </section>`);
     const body = dialog.body;
     body.querySelector('[data-copy-group-code]').onclick = async () => {
@@ -78,6 +79,9 @@ export function createGroupStartUI({ dialog, getSnapshot, invoke, acceptResult =
     displayedSelection = { classId: lobby.selectedClassId, selectionRevision: lobby.selectionRevision };
     const hull = selected && getShipClass(selected.id);
     body.querySelector('[data-group-equipment]').textContent = hull?.systems ? ` ${hull.systems.name}: ${hull.systems.description}` : '';
+    const crew=lobby.casualCrew;
+    body.querySelector('[data-group-crew]').textContent=crew?.requestedCount?`${crew.requestedCount} starting NPC crew · ${crew.activeCount} on duty · ${crew.reserveCount} in reserve. Players take priority for berths and roles.`:'';
+    body.querySelector('[data-group-departure-note]').textContent=`Everyone starting together may board, use the stations, and pilot the shared ship. The host owns it. Other captains keep their personal ships and NPC rosters docked at Kettle. ${lobby.hostStartMode==='casual'?'The host’s Casual equipment and NPC crew transfer to this ship.':'This departure includes no fold drive, story progress, or extra credits.'}`;
     body.querySelector('[data-group-status]').textContent = error || (busy ? 'Saving your departure choice…' : lobby.reason || (lobby.isHost ? 'Everyone is ready. Board your ship together when you want to begin.' : 'Ready for the host to bring the crew aboard.'));
     const board = body.querySelector('[data-group-board]'), ready = body.querySelector('[data-group-ready]'), leave = body.querySelector('[data-group-leave]');
     board.hidden = !lobby.isHost; board.disabled = busy || !lobby.canLaunch;

@@ -20,6 +20,17 @@
 .captain-origin.selected{border-color:#e1c284;box-shadow:inset 3px 0 0 #e1c284;background:#1b2e38}
 .captain-origin span{font-size:1em}
 .captain-start-system{margin:16px 0;padding:16px;border:1px solid #5f817c;background:#142c35;min-width:0}
+.captain-start-crew{margin:16px 0;padding:16px;border:1px solid #526873;background:#152831;min-width:0}
+.captain-start-crew>p{margin:12px 0 0;color:#bdced1;line-height:1.55}
+.captain-start-crew>.captain-note{font-size:.92em;color:#aebfc8}
+.captain-crew-controls{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.captain-crew-controls>label{display:flex;flex-direction:column;gap:6px;flex:1 1 170px;min-width:0;max-width:300px;color:#c8d3d4}
+.captain-crew-controls input{width:100%;min-width:0;min-height:46px;padding:9px 10px;background:#0b1b28;border:1px solid #66817e;font-size:max(16px,1.08rem);color:#e4e9df}
+.captain-crew-controls input:focus{outline:2px solid #e1c284;outline-offset:2px}
+.captain-crew-controls input[aria-invalid=true]{border-color:#eea38e}
+.captain-crew-presets{display:flex;gap:6px;flex-wrap:wrap}
+.captain-crew-presets button{min-width:46px;padding:8px 12px}
+.captain-crew-presets button[aria-pressed=true]{border-color:#e1c284;background:#233a40;color:#f0dfae}
 .captain-start-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;color:#efe1bb}
 .captain-start-heading>span{font-size:.85em;letter-spacing:.08em;color:#a7cdbc}
 .captain-system-fields{display:flex;gap:12px;flex-wrap:wrap}

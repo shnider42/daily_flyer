@@ -1,8 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.29.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.30.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.30.0 — A ship for two, a crew that makes room
+
+Three new shared-departure hulls unlock with two connected captains. Each has its own exterior, walkable deck, reachable working stations, and equipment that changes the simulation. They are also available through ordinary shipyards.
+
+| Ship | Two-person work | Strengths and limits | Berths |
+| --- | --- | --- | ---: |
+| Swift | Pilot plus navigation/scanning | Fast twin-boom courier; efficient boost and cheaper fold travel, with light armor and a small hold. | 4 |
+| Kingfisher | Pilot plus weapons/engineering | Compact escort with paired pulse shots and quicker shield recovery; high weapons draw and limited fuel/cargo. | 4 |
+| Lamprey | Pilot plus salvage/medical | Recovery tug with a long-reach tractor, stronger repair/treatment tools, and a large hold; slow handling and a light gun. | 6 |
+
+In **Casual** captain setup, choose the number of starting NPC crew with a numeric field or quick presets. There is no gameplay roster cap. Only a working watch occupies spare berths and contributes ship effects; the rest wait in a compact reserve. A very large requested roster does not create an equally large crowd of simulated people.
+
+Players take priority over the starting NPC watch. Late arrivals reclaim NPC berths, and an NPC specialist stands down when an authorized human takes the corresponding station. NPC coverage returns when the space and role are free, while brief disconnects preserve the human's place. Existing human occupants and station permissions still apply. Wounds, released crew, casualties, personal ships, and the shared hull's roster survive reconnects and saved-world restoration. Reserve replacements do not appear in an active boarding fight.
+
+To start together: create a shared galaxy, choose **Casual**, set the NPC count, keep **Gather a crew before departure** enabled, and start in **Hearth**. Share the galaxy code. With two captains connected, choose Swift, Kingfisher, or Lamprey; the guest readies and the host selects **Board together**. The host's Casual equipment and NPC roster transfer to the departure ship. Other captains retain their own ships and rosters at Kettle. Existing voyages receive no new crew or reset.
 
 ## 0.29.1 — Evacuation from Vey
 

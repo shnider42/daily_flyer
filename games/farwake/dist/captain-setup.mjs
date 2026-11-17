@@ -1,5 +1,6 @@
 /** New-captain choices and appearance editing. Drafts never mutate a live voyage. */
 import { STARTER_SHIPS, normalizeStarterShip } from './fleet.mjs';
+import { normalizeCasualCrewCount } from './casual-crew.mjs';
 import { drawShip } from './space-art.mjs';
 import {
   CHARACTER_TRAITS, MAX_TRAITS, SKIN_TONES, SUIT_COLORS, HAIR_COLORS, HAIR_STYLES,
@@ -24,7 +25,7 @@ const dangerLabel=value=>['Low','Guarded','Hazardous','High','Extreme'][Math.max
  */
 export function openCaptainSetup(dialog,{
   mode='create',character={},locked=false,starterShip='sparrow',startMode='regular',
-  startSystemId='hearth',startSystems=[],
+  startSystemId='hearth',startSystems=[],casualCrewCount=0,
   openingMission=false,openingPolicy='choose',groupStartPolicy='none',startTogether=true,
   onComplete=()=>{},onCancel=()=>{}
 }={}) {
@@ -36,6 +37,9 @@ export function openCaptainSetup(dialog,{
   let selectedTogether=startTogether!==false;
   let selectedShip=normalizeStarterShip(starterShip),selectedStart=['casual','hardcore'].includes(startMode)?startMode:'regular',selectedOpening=openingMission===true,step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
   let selectedSystemId=validSystem(startSystemId),systemSearch='';
+  let crewCountDraft=String(normalizeCasualCrewCount(casualCrewCount));
+  const selectedCrewCount=()=>normalizeCasualCrewCount(Number(crewCountDraft));
+  const validCrewCount=()=>Number.isSafeInteger(Number(crewCountDraft))&&Number(crewCountDraft)>=0;
   const selectedSystem=()=>systems.find(system=>system.id===selectedSystemId)||DEFAULT_START_SYSTEM;
   const remoteStart=()=>selectedStart==='casual'&&selectedSystemId!=='hearth';
   const canGather=()=>selectedStart!=='hardcore'&&!remoteStart();
@@ -68,7 +72,7 @@ export function openCaptainSetup(dialog,{
   function selection(){
     const profile=normalizeCharacter(draft);
     if(!creating&&(!chooseTraits||locked))profile.traits=[...original.traits];
-    return {starterShip:selectedShip,startMode:selectedStart,character:profile,chooseTraits:creating||(!locked&&chooseTraits),...(creating&&selectedStart==='casual'?{startSystemId:selectedSystemId}:{}),...(chooseOpening?{openingMission:selectedOpening&&!remoteStart()}:{}),...(chooseGroupStart?{startTogether:canGather()&&selectedTogether}:{})};
+    return {starterShip:selectedShip,startMode:selectedStart,character:profile,chooseTraits:creating||(!locked&&chooseTraits),...(creating&&selectedStart==='casual'?{startSystemId:selectedSystemId,casualCrewCount:selectedCrewCount()}:{}),...(chooseOpening?{openingMission:selectedOpening&&!remoteStart()}:{}),...(chooseGroupStart?{startTogether:canGather()&&selectedTogether}:{})};
   }
   async function submit(){
     if(busy||finished)return;
@@ -111,7 +115,14 @@ export function openCaptainSetup(dialog,{
     const root=dialog.body.querySelector('.captain-setup');
     root.querySelector('[data-captain-cancel]').onclick=cancel;
     if(isShip)bindShips(root);else bindCaptain(root);
-    root.querySelector('[data-captain-next]')?.addEventListener('click',()=>{step='captain';error='';render();});
+    root.querySelector('[data-captain-next]')?.addEventListener('click',()=>{
+      if(selectedStart==='casual'&&!validCrewCount()){
+        error='Enter a whole number of NPC crew, starting at zero.';
+        root.querySelector('[data-captain-error]').textContent=error;
+        const input=root.querySelector('[data-casual-crew-count]');input?.setAttribute('aria-invalid','true');input?.focus?.();return;
+      }
+      step='captain';error='';render();
+    });
     root.querySelector('[data-captain-back]')?.addEventListener('click',()=>{step='ship';error='';render();});
     root.querySelector('[data-captain-submit]')?.addEventListener('click',submit);
   }
@@ -154,8 +165,19 @@ export function openCaptainSetup(dialog,{
       <p class="captain-system-risk" id="captain-system-risk">Choose at your own risk. Local enemies, faction restrictions, and recovery rules still apply.</p>
     </section>`;
   }
+  function crewMarkup(){
+    if(selectedStart!=='casual')return '';
+    return `<section class="captain-start-crew" aria-label="Casual starting NPC crew">
+      <div class="captain-start-heading"><strong>Your starting NPC crew</strong><span>INCLUDED</span></div>
+      <div class="captain-crew-controls"><label>Number of NPC crew<input type="number" inputmode="numeric" min="0" step="1" data-casual-crew-count value="${esc(crewCountDraft)}" aria-describedby="captain-crew-help"></label>
+        <div class="captain-crew-presets" role="group" aria-label="Quick crew counts">${[0,2,4,8].map(count=>`<button type="button" class="button-secondary" data-crew-preset="${count}" aria-pressed="${selectedCrewCount()===count}">${count===0?'None':count}</button>`).join('')}</div>
+      </div>
+      <p id="captain-crew-help">Choose any whole number. A working watch fills spare berths; the rest wait in reserve. NPCs make room when friends board and step aside for the ship roles they choose.</p>
+      ${groupStartPolicy!=='none'?'<p class="captain-note">A shared departure uses the host’s NPC roster. Joining captains keep their own roster with their personal ship.</p>':''}
+    </section>`;
+  }
   function shipMarkup(){
-    const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='casual'?' selected':''}" data-start-mode="casual" aria-pressed="${selectedStart==='casual'}"><strong>Casual</strong><span>A ship, 180 CR, and a fitted fold drive. Choose your starting system and explore sooner.</span></button><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR in Hearth. Earn your fold drive as you go.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">Choose your beginning. Combat, jobs, faction permissions, and recovery follow the same rules in every mode.</p>${systemMarkup()}${openingMarkup()}${groupMarkup()}`;
+    const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='casual'?' selected':''}" data-start-mode="casual" aria-pressed="${selectedStart==='casual'}"><strong>Casual</strong><span>A ship, 180 CR, and a fitted fold drive. Choose your starting system and explore sooner.</span></button><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR in Hearth. Earn your fold drive as you go.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">Choose your beginning. Combat, jobs, faction permissions, and recovery follow the same rules in every mode.</p>${systemMarkup()}${crewMarkup()}${openingMarkup()}${groupMarkup()}`;
     if(selectedStart==='hardcore')return `${origin}<div class="captain-included"><span>YOUR FIRST MORNING / MORROW</span><strong>Find work. Book a passage. Earn your own ship.</strong><p>Work on the docks or join a paid crew for freight, repairs, survey, care, or security. Passenger tickets and your first ship cost credits.</p></div>`;
     return `${origin}<p class="captain-intro">Three compact working ships. A cockpit, a berth, and room to begin.</p>
       <p class="captain-included"><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?'Your first ship includes Fold Drive I, Vector thrusters, and an Echo scanner. <strong>5 ly fold range · Cost: 0 CR</strong>':'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
@@ -175,6 +197,16 @@ export function openCaptainSetup(dialog,{
   }
   function bindShips(root){
     for(const button of root.querySelectorAll('[data-start-mode]'))button.onclick=()=>{selectedStart=button.dataset.startMode;render();};
+    const crewInput=root.querySelector('[data-casual-crew-count]');
+    const updateCrewCount=()=>{
+      crewCountDraft=crewInput.value;
+      crewInput.setAttribute('aria-invalid',String(!validCrewCount()));
+      for(const button of root.querySelectorAll('[data-crew-preset]'))button.setAttribute('aria-pressed',String(validCrewCount()&&Number(button.dataset.crewPreset)===selectedCrewCount()));
+      if(validCrewCount()){error='';root.querySelector('[data-captain-error]').textContent='';}
+    };
+    crewInput?.addEventListener('input',updateCrewCount);
+    crewInput?.addEventListener('change',updateCrewCount);
+    for(const button of root.querySelectorAll('[data-crew-preset]'))button.onclick=()=>{crewInput.value=button.dataset.crewPreset;updateCrewCount();};
     root.querySelector('[data-start-system]')?.addEventListener('change',event=>{
       const scrollTop=dialog.body.scrollTop;
       selectedSystemId=validSystem(event.target.value);render();
@@ -206,7 +238,7 @@ export function openCaptainSetup(dialog,{
   }
   function captainMarkup(){
     const appearance=draft.appearance,canChoose=creating||!locked;
-    const startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR · Fold Drive I fitted`:`Regular · Hearth · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR`;
+    const startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR · Fold Drive I fitted · ${selectedCrewCount()} NPC crew`:`Regular · Hearth · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR`;
     return `<div class="captain-identity">
       <div class="captain-portrait"><canvas width="128" height="128" data-captain-portrait aria-label="Your captain’s appearance"></canvas><span data-captain-look></span></div>
       <div class="captain-identity-copy"><p class="captain-intro">A face for the places you’ll go.</p><p class="captain-note">Your appearance is yours to change. It has no effect on your abilities.</p>

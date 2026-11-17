@@ -87,6 +87,33 @@ function fixture(t, options = {}) {
   return { dialog, controller, find, click, chooseOpening, chooseSystem, submitted, cancelled, closed, close };
 }
 
+test('Casual starting crew accepts a custom large count and retains it through captain setup', async t => {
+  const f=fixture(t,{startMode:'casual',groupStartPolicy:'choose'}),input=f.find('[data-casual-crew-count]');
+  assert.ok(input);assert.equal(input.attributes.max,undefined);assert.equal(input.value,'0');
+  input.value='1000000';await input.fire('input');
+  assert.equal(f.controller.getSelection().casualCrewCount,1000000);
+  await f.click('[data-captain-next]');
+  assert.match(f.find('.captain-summary').textContent,/1000000 NPC crew/);
+  await f.click('[data-captain-back]');assert.equal(f.find('[data-casual-crew-count]').value,'1000000');
+  await f.click('[data-captain-next]');await f.click('[data-captain-submit]');
+  assert.equal(f.submitted[0].casualCrewCount,1000000);assert.equal(f.submitted[0].startTogether,true);
+});
+
+test('NPC crew presets remain Casual-only and invalid counts cannot silently start a different roster', async t => {
+  const f=fixture(t,{startMode:'casual'});
+  for(const value of ['-1','2.5','9007199254740992']){
+    const input=f.find('[data-casual-crew-count]');input.value=value;await input.fire('input');
+    await f.click('[data-captain-next]');
+    assert.ok(f.find('[data-casual-crew-count]'));assert.match(f.find('[data-captain-error]').textContent,/whole number/);
+  }
+  await f.click('[data-crew-preset="8"]');assert.equal(f.controller.getSelection().casualCrewCount,8);
+  await f.click('[data-start-mode="regular"]');assert.equal(f.find('[data-casual-crew-count]'),null);
+  assert.equal(Object.hasOwn(f.controller.getSelection(),'casualCrewCount'),false);
+  await f.click('[data-start-mode="hardcore"]');assert.equal(Object.hasOwn(f.controller.getSelection(),'casualCrewCount'),false);
+  await f.click('[data-start-mode="casual"]');assert.equal(f.find('[data-casual-crew-count]').value,'8');
+  await f.click('[data-captain-next]');await f.click('[data-captain-submit]');assert.equal(f.submitted[0].casualCrewCount,8);
+});
+
 test('a new voyage starts freely unless its opening mission is explicitly selected', async t => {
   const f = fixture(t), checkbox = f.find('[data-opening-mission]');
   assert.equal(checkbox.checked, false); assert.equal(checkbox.attributes.type, 'checkbox');

@@ -77,11 +77,13 @@ export function canHullUsePort(classId,profile){
 const roles=freeze({sparrow:'utility',kestrel:'courier',mule:'salvage',tern:'passenger',hauler:'freight',
  quill:'courier',petrel:'survey',mender:'medical',dipper:'survey',marten:'escort',frigate:'survey',
  bulwark:'patrol',atlas:'salvage',cairn:'miner',capital:'carrier',
- lark:'passenger',puffin:'freight',osprey:'survey',leviathan:'tender',judicator:'destroyer'});
+ lark:'passenger',swift:'courier',kingfisher:'escort',lamprey:'salvage',puffin:'freight',osprey:'survey',leviathan:'tender',judicator:'destroyer'});
 
 // Scheduled port service is one encounter population, not the purchase catalog.
 // Needle, Kite, Ark and Confluence belong to Crosswind's faction fleets and
 // physical carrier sorties; they do not operate civilian passenger schedules.
+// Swift couriers, Kingfisher escorts and Lamprey recovery crews work typed ports
+// beyond Hearth; the released roster below keeps existing charts unchanged.
 export const SCHEDULED_TRAFFIC_HULL_IDS=Object.freeze(Object.keys(roles));
 // Keep this released roster explicit. New hulls must not enter an old untyped
 // chart's weighted stream merely because the current purchase catalog grows.
@@ -95,12 +97,12 @@ const scheduledHullIds=new Set(SCHEDULED_TRAFFIC_HULL_IDS),legacyHullIds=new Set
 // terminal needs many working transports; a capital hull remains an uncommon
 // sight there. Bases favor escorts, patrol ships and supporting medical craft.
 const suitability=freeze({
- hub:{sparrow:.8,kestrel:.65,mule:.4,tern:5,hauler:32,quill:4,petrel:2,mender:4,dipper:.5,marten:1,frigate:1.2,bulwark:.25,atlas:5,cairn:4,capital:.8,lark:.65,puffin:1.4,osprey:1.1,leviathan:3,judicator:.5},
- military:{sparrow:.4,kestrel:.7,mule:.3,tern:.5,hauler:2,quill:2,petrel:1,mender:8,dipper:.25,marten:50,frigate:35,bulwark:70,atlas:1,cairn:.3,capital:8,lark:.2,puffin:.8,osprey:.9,leviathan:6,judicator:28},
- industrial:{sparrow:1,kestrel:.5,mule:8,tern:1,hauler:18,quill:1,petrel:.5,mender:1,dipper:2,marten:2,frigate:.5,bulwark:.5,atlas:50,cairn:60,capital:.3,lark:.4,puffin:1.5,osprey:.6,leviathan:20,judicator:0},
- research:{sparrow:1.5,kestrel:4,mule:.5,tern:2,hauler:2,quill:5,petrel:22,mender:3,dipper:4,marten:.7,frigate:4,bulwark:0,atlas:0,cairn:0,capital:0,lark:.5,puffin:1,osprey:0,leviathan:0,judicator:0},
- regional:{sparrow:2,kestrel:2,mule:1.5,tern:6,hauler:8,quill:3,petrel:2,mender:3,dipper:2,marten:1,frigate:0,bulwark:0,atlas:0,cairn:0,capital:0,lark:1.4,puffin:1.5,osprey:0,leviathan:0,judicator:0},
- outpost:{sparrow:4,kestrel:3,mule:3,tern:3,hauler:0,quill:0,petrel:2,mender:0,dipper:0,marten:0,frigate:0,bulwark:0,atlas:0,cairn:0,capital:0,lark:0,puffin:0,osprey:0,leviathan:0,judicator:0}
+ hub:{sparrow:.8,kestrel:.65,mule:.4,tern:5,hauler:32,quill:4,petrel:2,mender:4,dipper:.5,marten:1,frigate:1.2,bulwark:.25,atlas:5,cairn:4,capital:.8,swift:.4,kingfisher:.15,lamprey:.2,lark:.65,puffin:1.4,osprey:1.1,leviathan:3,judicator:.5},
+ military:{sparrow:.4,kestrel:.7,mule:.3,tern:.5,hauler:2,quill:2,petrel:1,mender:8,dipper:.25,marten:50,frigate:35,bulwark:70,atlas:1,cairn:.3,capital:8,swift:.2,kingfisher:1.5,lamprey:.1,lark:.2,puffin:.8,osprey:.9,leviathan:6,judicator:28},
+ industrial:{sparrow:1,kestrel:.5,mule:8,tern:1,hauler:18,quill:1,petrel:.5,mender:1,dipper:2,marten:2,frigate:.5,bulwark:.5,atlas:50,cairn:60,capital:.3,swift:.15,kingfisher:.2,lamprey:1.5,lark:.4,puffin:1.5,osprey:.6,leviathan:20,judicator:0},
+ research:{sparrow:1.5,kestrel:4,mule:.5,tern:2,hauler:2,quill:5,petrel:22,mender:3,dipper:4,marten:.7,frigate:4,bulwark:0,atlas:0,cairn:0,capital:0,swift:.3,kingfisher:0,lamprey:.1,lark:.5,puffin:1,osprey:0,leviathan:0,judicator:0},
+ regional:{sparrow:2,kestrel:2,mule:1.5,tern:6,hauler:8,quill:3,petrel:2,mender:3,dipper:2,marten:1,frigate:0,bulwark:0,atlas:0,cairn:0,capital:0,swift:.65,kingfisher:.3,lamprey:.4,lark:1.4,puffin:1.5,osprey:0,leviathan:0,judicator:0},
+ outpost:{sparrow:4,kestrel:3,mule:3,tern:3,hauler:0,quill:0,petrel:2,mender:0,dipper:0,marten:0,frigate:0,bulwark:0,atlas:0,cairn:0,capital:0,swift:0,kingfisher:0,lamprey:0,lark:0,puffin:0,osprey:0,leviathan:0,judicator:0}
 });
 
 /** The public tables contain proportions; divide a weight by the total for %. */

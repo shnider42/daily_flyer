@@ -209,10 +209,10 @@ test('physical distress contacts keep their source position and ordinary traffic
 
 test('civilian ferries and dispatch runners cannot inherit a military patrol transmission', () => {
   let civilians=0,patrols=0;
-  // The original seed remains a full civilian audit. The released Farwake
-  // seed supplies an actual eligible escort after public port mixes diversify;
+  // The original seed remains a full civilian audit. The expanded-catalog
+  // fixture supplies an actual Kingfisher escort outside the core;
   // assistance is still a rare hash choice, never guaranteed in every galaxy.
-  for(const seed of ['patrol-source-audit','farwake']){
+  for(const seed of ['patrol-source-audit','cooperative-traffic-audit-10']){
    const game=new Game(seed);
    for(const system of game.galaxy){
     game.state.systemId=system.id;game._loadSystem(system.id);

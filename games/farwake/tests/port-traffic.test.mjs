@@ -56,7 +56,7 @@ test('major terminals favor working transports while capital ships remain except
 
 test('military bases favor serious escorts and patrols with visible civilian support traffic',()=>{
  const observed=samples('military');
- assert.ok(observed.marten+observed.bulwark+observed.frigate>.75);
+ assert.ok(observed.marten+observed.bulwark+observed.frigate+observed.kingfisher>.75);
  assert.ok(observed.marten>.3&&observed.bulwark>.25&&observed.frigate>.12);
  assert.ok(observed.mender>.04&&observed.mender<.08);
  assert.ok(observed.capital>.01&&observed.capital<.03);
@@ -73,7 +73,7 @@ test('small fields have no over-sized arrivals and research/industrial ports hav
  assert.ok(small.sparrow+small.kestrel+small.mule>.78);
  const research=samples('research');assert.ok(research.petrel>.3);assert.ok(research.kestrel>.23);
  assert.equal(research.capital+research.cairn+research.atlas+research.bulwark,0);
- const industry=samples('industrial');assert.ok(industry.mule+industry.hauler+industry.atlas+industry.cairn+industry.puffin+industry.leviathan>.82);
+ const industry=samples('industrial');assert.ok(industry.mule+industry.hauler+industry.atlas+industry.cairn+industry.puffin+industry.leviathan+industry.lamprey>.82);
  assert.ok(industry.capital<.003);assert.ok(industry.atlas>.13&&industry.cairn>.15);
 });
 
@@ -120,7 +120,7 @@ test('quarantine, ruins, preflight cultures and unserviced bodies do not gain ro
 
 test('selection is stable under replay, player progression, unrelated choices and call order',()=>{
  const hub=profile('hub'),ids=[0,1,2,3,4,40,42,164];
- const expected=['hauler','hauler','quill','sparrow','quill','sparrow','tern','hauler'];
+ const expected=['hauler','hauler','quill','sparrow','mender','sparrow','tern','hauler'];
  assert.deepEqual(ids.map(i=>chooseTrafficHull('port-tests',`npc:${i}`,hub)),expected);
  assert.deepEqual([...ids].reverse().map(i=>chooseTrafficHull('port-tests',`npc:${i}`,{...hub,playerRank:999,playerShip:'capital',time:100000})).reverse(),expected);
  for(let i=0;i<100;i++)chooseTrafficHull('other-seed',`unrelated:${i}`,profile('military'));

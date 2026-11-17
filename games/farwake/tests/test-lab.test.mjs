@@ -20,9 +20,9 @@ test('test mode accepts its requested code and exposes only the smaller half of 
   assert.equal(selectedIds.size, cutoff, 'Each practice choice represents one distinct physical hull.');
   assert.ok(areas.every((area, index) => index === 0 || area >= areas[index - 1]), 'Practice choices are ordered by their physical footprint.');
   assert.ok(hiddenClasses.every(hull => hull.stats.renderLength * hull.stats.renderWidth >= areas.at(-1)), 'No smaller hull is hidden behind a larger practice choice.');
-  assert.equal(choices.at(-1).id, 'marten', 'Twenty-four hulls admit twelve practice choices, ending with the six-berth Marten.');
-  assert.deepEqual(choices.slice(-2).map(hull => hull.id), ['mender', 'marten'], 'The five-berth Mender still precedes the six-berth Marten at their equal footprint.');
-  assert.equal(areas.at(-2), areas.at(-1), 'The berth tiebreak applies to genuinely equal exterior footprints.');
+  assert.equal(choices.at(-1).id, 'lamprey', 'Twenty-seven hulls admit thirteen practice choices, ending with the six-berth Lamprey.');
+  assert.deepEqual(choices.slice(-2).map(hull => hull.id), ['kingfisher', 'lamprey'], 'The compact escort precedes the wider recovery tug at the practice cutoff.');
+  assert.ok(hiddenClasses.some(hull => hull.id === 'mender') && hiddenClasses.some(hull => hull.id === 'marten'), 'The larger medical and escort hulls now lie beyond the thirteen-ship practice cutoff.');
   assert.ok(hiddenClasses.some(hull => hull.id === 'dipper'));
   assert.ok(['needle','kite'].every(id=>selectedIds.has(id)), 'The two small faction fighters belong in the ordinary size-ranked combat range.');
   assert.ok(['confluence','ark'].every(id=>hiddenClasses.some(hull=>hull.id===id)), 'The new capital ships remain beyond the size cutoff.');
