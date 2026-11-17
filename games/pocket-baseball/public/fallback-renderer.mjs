@@ -1,7 +1,7 @@
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.7.0';
-import { samplePlayerMotion, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.7.0';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.0';
-import { getPitcher } from './rosters.mjs?v=0.7.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.7.1';
+import { samplePlayerMotion, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.7.1';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.1';
+import { getPitcher } from './rosters.mjs?v=0.7.1';
 
 // Perspective software renderer. Geometry uses the same metres and boundaries
 // as the simulation; only presentation is simplified when WebGL is unavailable.

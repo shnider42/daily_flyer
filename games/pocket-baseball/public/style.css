@@ -414,3 +414,260 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
 
 .action-area{position:relative}
 .bunt-warning{position:absolute;right:0;bottom:calc(100% + 6px);width:180px;text-align:right;font-size:8px;font-weight:bold;letter-spacing:.45px;color:var(--gold);text-shadow:0 1px 5px #102824;pointer-events:none}
+
+/* Phone controls are disclosures; the field keeps the middle of the screen. */
+#preplay-toolbar,#pitch-picker-toggle{display:none}
+@media (max-width:700px), (max-height:530px) and (orientation:landscape){
+  #app{
+    --hud-top:max(8px,env(safe-area-inset-top));
+    --hud-left:max(10px,env(safe-area-inset-left));
+    --hud-right:max(10px,env(safe-area-inset-right));
+    --hud-bottom:max(12px,calc(env(safe-area-inset-bottom) + 6px));
+  }
+
+  /* Both teams, inning and count fit into two short rows. */
+  #app .scorebug,#app .practicebug{
+    top:var(--hud-top);left:var(--hud-left);
+    width:min(280px,calc(100% - var(--hud-left) - var(--hud-right) - 54px));
+    border-bottom-width:2px;box-shadow:0 2px 7px #0003;
+  }
+  #app .scorebug{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 49px;grid-template-rows:30px 28px}
+  #app .scorebug .score-heading{grid-column:3;grid-row:1;padding:0 5px;justify-content:center;font-size:8px;letter-spacing:.35px}
+  #app .scorebug .score-heading>span:first-child,#app .scorebug .team-name{display:none}
+  #app .score-team{grid-row:1;min-height:30px;padding:0 6px;gap:5px;border-left-width:3px}
+  #app .score-team.away{grid-column:1}
+  #app .score-team.home{grid-column:2}
+  #app .score-team b{font-size:11px;letter-spacing:.6px}
+  #app .score-team strong{font-size:18px;min-width:18px}
+  #app .count-row{grid-column:1 / -1;grid-row:2;height:28px;padding:0 9px;gap:8px}
+  #app .count-row b{font-size:12px;letter-spacing:.5px}
+  #app .count-row small{font-size:7px;letter-spacing:.4px}
+  #app .base-diamond{width:30px;height:25px;transform:none}
+  #app .practicebug .score-heading{padding:7px 8px;font-size:7px;letter-spacing:.5px}
+  #app .practice-totals{padding:5px 8px;gap:10px;justify-content:space-between}
+  #app .practice-totals>span{display:flex;align-items:baseline;gap:4px}
+  #app .practice-totals strong{font-size:17px}
+  #app .practice-totals small{margin:0;font-size:6px;letter-spacing:.4px}
+  #app .game-tools{top:var(--hud-top);right:var(--hud-right);gap:0}
+  #app #roster-button,#app #sound-button,#app #help-button{display:none}
+  #app #pause-button{width:44px;height:44px;min-height:44px;padding:11px}
+  #app .role-banner{
+    top:calc(var(--hud-top) + 65px);left:var(--hud-left);transform:none;
+    width:min(330px,calc(100% - var(--hud-left) - var(--hud-right) - 54px));
+    max-width:none;text-align:left;line-height:1.4;
+  }
+  #app .role-banner b{font-size:9px;letter-spacing:.35px}
+  #app.is-online .role-banner{width:min(280px,calc(100% - var(--hud-left) - var(--hud-right) - 110px))}
+  #app .role-banner span,#app .status-tip{display:none}
+  #app[data-phase="windup"] .role-banner,#app[data-phase="pitch"] .role-banner,#app[data-phase="live"] .role-banner{display:none}
+  #app .pitch-readout{top:calc(var(--hud-top) + 65px);left:var(--hud-left);gap:6px;font-size:9px}
+  #app .pitch-readout b{font-size:8px;letter-spacing:.45px}
+  #app .pitch-readout span{font-size:10px}
+
+  /* A connection badge is quiet; a paused or lost connection stays legible. */
+  #app .connection-strip{
+    top:calc(var(--hud-top) + 65px);left:auto;right:var(--hud-right);transform:none;
+    width:auto;max-width:100px;padding:3px 6px;font-size:8px;line-height:1.4;
+  }
+  #app .connection-strip b{font-size:8px;letter-spacing:.3px}
+  #app .connection-strip:not(.waiting) #connection-detail{display:none}
+  #app .connection-strip.waiting{
+    top:calc(var(--hud-top) + 85px);left:var(--hud-left);right:var(--hud-right);
+    width:auto;max-width:none;padding:7px 9px;background:rgba(15,31,26,.97);
+    align-items:flex-start;font-size:10px;z-index:12;
+  }
+  #app .connection-strip.waiting b{font-size:9px;line-height:1.55}
+  #app .connection-strip.waiting #connection-detail{display:block;white-space:normal}
+
+  /* Thumb controls occupy the corners, with no permanent instruction card. */
+  #app .game-ui .controls{
+    bottom:var(--hud-bottom);left:var(--hud-left);right:var(--hud-right);height:104px;
+  }
+  #app .aim-pad{width:88px;height:88px;background:rgba(16,40,34,.46)}
+  #app .aim-pad:after{inset:14px}
+  #app .control-label{font-size:8px;letter-spacing:.8px;margin-bottom:5px}
+  #app .keyboard-hint,#app .action-button small,#app .secondary-swings small,#app .pitch-selection small{display:none}
+  #app .action-area{gap:7px;padding-bottom:0}
+  #app .action-button{width:84px;height:84px;min-height:84px;flex:0 0 84px}
+  #app .action-button b{font-size:12px;letter-spacing:.4px}
+  #app .secondary-swings{gap:5px}
+  #app .secondary-swings .power-button,#app .bunt-button{width:58px;height:44px;min-height:44px;padding:4px}
+  #app .secondary-swings b{font-size:9px;letter-spacing:.25px}
+  #app .bunt-warning{width:157px;font-size:7px;letter-spacing:.15px;bottom:calc(100% + 6px)}
+  #app .timing-cue{
+    bottom:calc(var(--hud-bottom) + 128px);left:auto;right:var(--hud-right);
+    transform:none;width:154px;
+  }
+  #app .timing-cue>span{font-size:8px;letter-spacing:.6px;margin-top:6px}
+
+  /* Pitch choice and tactics expand upward only when requested. */
+  #app #pitch-picker-toggle{
+    display:flex;align-items:center;justify-content:space-between;gap:5px;position:absolute;
+    right:106px;bottom:102px;width:112px;min-height:44px;padding:7px 8px;
+    background:rgba(12,31,27,.93);border:1px solid #9aa58d88;
+    color:var(--cream);font-size:9px;font-weight:bold;letter-spacing:.2px;
+    pointer-events:auto;text-align:left;
+  }
+  #app #pitch-picker-toggle:after{content:'+';font-size:16px;font-weight:normal;color:var(--gold);flex:0 0 auto}
+  #app.pitch-picker-open #pitch-picker-toggle:after{content:'−'}
+  #app #pitch-selection{
+    display:none;right:0;bottom:153px;width:218px;padding:7px;
+    grid-template-columns:1fr 1fr;gap:5px;max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 240px);
+    overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+    background:rgba(12,31,27,.97);border:1px solid #9aa58d88;z-index:5;pointer-events:auto;
+  }
+  #app.pitch-picker-open #pitch-selection{display:grid}
+  #app #pitch-selection button{min-height:44px;padding:7px;font-size:9px;letter-spacing:.25px}
+  #app #defensive-tactics{right:0;bottom:102px;width:100px;border-color:#9aa58d88;background:rgba(12,31,27,.93);z-index:6}
+  #app #defensive-tactics summary{min-height:42px;padding:9px 8px;font-size:9px;letter-spacing:.3px;gap:5px;color:var(--cream)}
+  #app #tactics-summary{display:none}
+  #app .tactics-content{
+    position:absolute;right:-1px;bottom:calc(100% + 7px);width:218px;
+    max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 240px);
+    overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+    padding:0 10px 10px;background:rgba(12,31,27,.97);border:1px solid #9aa58d88;
+  }
+  #app .tactics-content label{font-size:8px;letter-spacing:.4px}
+  #app .tactics-content select,#app #pitchout-button{min-height:44px;font-size:10px}
+  #app .tactics-content p{font-size:9px;line-height:1.4;margin:7px 0}
+  #app #pitchout-button small{display:none}
+  #app #pitch-meter{display:none;right:0;bottom:110px;width:218px}
+  #app.meter-running #pitch-meter{display:block}
+  #app #pitch-meter>span{font-size:9px;letter-spacing:.4px;margin-top:7px}
+  #app.meter-running #pitch-picker-toggle,#app.meter-running #pitch-selection,#app.meter-running #defensive-tactics{display:none}
+
+  /* Runners get one quick steal action; leads and pickoffs live in a tray. */
+  #app .preplay-controls{
+    top:auto;left:var(--hud-left);bottom:calc(var(--hud-bottom) + 102px);transform:none;
+    width:190px;max-width:none;padding:0;border:0;background:none;box-shadow:none;z-index:7;
+  }
+  #app.is-pitching .preplay-controls{width:108px}
+  #app #preplay-toolbar{display:flex;gap:5px;align-items:stretch}
+  #app #preplay-toolbar button{
+    display:flex;align-items:center;justify-content:center;gap:5px;flex:1 1 0;
+    min-width:0;min-height:44px;padding:7px 6px;background:rgba(12,31,27,.93);
+    border:1px solid #9aa58d88;font-size:9px;font-weight:bold;letter-spacing:.2px;
+  }
+  #app #preplay-toggle:after{content:'+';font-size:15px;font-weight:normal;color:var(--gold)}
+  #app.preplay-open #preplay-toggle:after{content:'−'}
+  #app #preplay-toolbar #mobile-steal{background:var(--cream);border-color:var(--cream);color:var(--ink)}
+  #app #preplay-toolbar #mobile-steal.queued{background:var(--gold);border-color:var(--gold)}
+  #app #preplay-body{
+    display:none;position:absolute;left:0;bottom:calc(100% + 7px);
+    width:min(340px,calc(100vw - var(--hud-left) - var(--hud-right)));
+    max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 240px);
+    overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+    padding:10px;background:rgba(12,31,27,.97);border:1px solid #9aa58d88;border-top:2px solid var(--gold);
+  }
+  #app.preplay-open #preplay-body{display:block}
+  #app .preplay-heading{font-size:9px;letter-spacing:.4px;margin-bottom:8px}
+  #app .preplay-heading>span{font-size:8px}
+  #app .preplay-controls .runner-picker{margin:0 0 6px;flex-wrap:nowrap}
+  #app .preplay-controls .runner-picker button{min-height:44px;font-size:9px;letter-spacing:0;padding:6px}
+  #app .lead-actions button,#app .pickoff-actions button{min-height:44px;font-size:9px;padding:7px 5px}
+  #app .lead-actions small,#app .preplay-controls .live-control-hint{display:none}
+  #app.is-pitching[data-phase="windup"] .preplay-controls,#app.is-pitching[data-phase="pitch"] .preplay-controls,#app[data-phase="live"] .preplay-controls,#app.meter-running .preplay-controls{display:none}
+
+  /* Live decisions stay along the bottom instead of covering the infield. */
+  #app .live-panel{
+    right:var(--hud-right);bottom:var(--hud-bottom);padding:8px;
+    border-top-width:2px;background:rgba(12,31,27,.92);box-shadow:none;
+  }
+  #app .live-panel-heading{margin:0 0 7px;font-size:9px;letter-spacing:.4px;min-height:12px}
+  #app .live-panel-heading>b{font-size:9px}
+  #app .live-panel-heading>span{font-size:8px;letter-spacing:.2px}
+  #app .live-control-hint{display:none}
+  #app .field-controls{width:min(320px,calc(100% - var(--hud-left) - var(--hud-right)))}
+  #app .throw-diamond{grid-template-columns:repeat(4,1fr);grid-template-rows:44px;gap:5px}
+  #app .throw-diamond:before{display:none}
+  #app .throw-diamond button{grid-row:1;min-height:44px;padding:7px 4px}
+  #app .throw-diamond [data-throw="1"]{grid-column:1}
+  #app .throw-diamond [data-throw="2"]{grid-column:2}
+  #app .throw-diamond [data-throw="3"]{grid-column:3}
+  #app .throw-diamond [data-throw="4"]{grid-column:4}
+  #app .throw-diamond button b{font-size:10px}
+  #app .throw-diamond button small,#app .run-advance small,#app .runner-secondary small{display:none}
+  #app .runner-controls{
+    width:min(340px,calc(100% - var(--hud-left) - var(--hud-right)));
+    display:grid;grid-template-columns:1.1fr 1fr;column-gap:6px;
+  }
+  #app .runner-controls .live-panel-heading,#app #runner-picker{grid-column:1 / -1}
+  #app #runner-picker{margin:0 0 6px;gap:4px;flex-wrap:nowrap}
+  #app #runner-picker button{min-height:44px;min-width:0;padding:5px;font-size:8px;letter-spacing:0}
+  #app .run-advance{min-height:48px;padding:9px;justify-content:center}
+  #app .run-advance b{font-size:12px;letter-spacing:.3px}
+  #app .runner-secondary{margin:0;gap:5px}
+  #app .runner-secondary button{min-height:48px;padding:7px 4px}
+  #app .runner-secondary b{font-size:8px;letter-spacing:.1px}
+
+  /* Short feedback and opt-in panels remain readable at small viewport heights. */
+  #app .event-toast{
+    top:calc(var(--hud-top) + 105px);width:max-content;max-width:calc(100% - 40px);
+    white-space:normal;padding:6px 10px;font-size:10px;letter-spacing:.35px;
+  }
+  #app .performance-overlay{top:calc(var(--hud-top) + 110px);right:var(--hud-right);max-width:210px;font-size:9px}
+  #app .result-card{
+    top:50%;transform:translate(-50%,-50%);width:min(350px,calc(100% - var(--hud-left) - var(--hud-right)));
+    max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 24px);
+    overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:18px;
+  }
+  #app .result-card h2{font-size:31px}
+  #app .result-card #next-button,#app #charge-mound{min-height:44px}
+  #app .result-card.has-mound-choice{
+    top:calc((100% + var(--hud-top) - var(--hud-bottom)) / 2);
+    max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 16px);
+  }
+  #app .fight-score{
+    top:var(--hud-top);left:var(--hud-left);transform:none;
+    width:calc(100% - var(--hud-left) - var(--hud-right) - 54px);max-width:480px;
+    grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);gap:7px;padding:8px;
+  }
+  #app .fighter-status b{font-size:9px}
+  #app .fighter-status small{font-size:6px;letter-spacing:0;margin:4px 0}
+  #app .fight-clock b{font-size:27px}
+  #app .fight-clock span{font-size:6px;letter-spacing:.1px;margin-top:3px}
+  #app .fight-controls{
+    bottom:var(--hud-bottom);left:auto;right:var(--hud-right);transform:none;
+    width:min(340px,calc(100% - var(--hud-left) - var(--hud-right)));padding:8px;
+  }
+  #app .fight-controls>p{font-size:10px;line-height:1.35;min-height:0;margin:0 0 7px}
+  #app .fight-energy{grid-template-columns:75px 1fr 52px;gap:6px;font-size:7px;letter-spacing:0;margin-bottom:7px}
+  #app .fight-actions{gap:6px}
+  #app .fight-actions button{min-height:48px;padding:8px 5px}
+  #app .fight-actions b{font-size:10px;letter-spacing:.4px}
+  #app .fight-actions small{display:none}
+  #app.is-brawl .scorebug,#app.is-brawl .practicebug,#app.is-brawl .role-banner{display:none}
+  #app.is-brawl .connection-strip{top:calc(var(--hud-top) + 76px)}
+  #app.is-brawl .connection-strip.waiting{top:calc(var(--hud-top) + 90px)}
+  #app.is-brawl .event-toast{top:calc(var(--hud-top) + 117px)}
+  #app.is-brawl .performance-overlay{top:calc(var(--hud-top) + 145px)}
+  dialog{max-height:calc(100dvh - max(16px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)))}
+  dialog::backdrop{backdrop-filter:none}
+  .dialog-primary,.dialog-secondary,.dialog-quiet{min-height:44px}
+}
+
+@media (max-width:360px){
+  #app .preplay-controls{width:170px}
+  #app.is-pitching .preplay-controls{width:88px}
+  #app #preplay-toolbar button{font-size:8px;letter-spacing:0;padding:6px 4px}
+  #app #pitch-picker-toggle{right:96px;width:106px}
+  #app #defensive-tactics{width:90px}
+  #app .timing-cue{width:140px}
+}
+
+@media (max-height:530px) and (orientation:landscape){
+  #app .role-banner{width:280px}
+  #app .preplay-controls{bottom:calc(var(--hud-bottom) + 105px)}
+  #app .timing-cue{bottom:calc(var(--hud-bottom) + 117px)}
+  #app.is-brawl .event-toast{top:calc(var(--hud-top) + 90px);max-width:280px}
+  #app .connection-strip.waiting{left:auto;width:min(340px,calc(100% - 320px));top:calc(var(--hud-top) + 51px)}
+  #app.is-brawl .connection-strip.waiting{top:calc(var(--hud-top) + 76px)}
+  #app .result-card{padding:14px 18px}
+  #app .result-card h2{font-size:28px}
+  #app .fight-controls{width:330px}
+}
+
+@media (min-width:701px) and (max-height:530px) and (orientation:landscape){
+  #app .event-toast{top:var(--hud-top);max-width:calc(100% - 430px);padding:6px 9px}
+  #app.is-brawl .event-toast{top:calc(var(--hud-top) + 90px);max-width:280px}
+}

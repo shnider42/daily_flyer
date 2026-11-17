@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.7.0';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.0';
-import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.7.0';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.7.1';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.1';
+import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.7.1';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.

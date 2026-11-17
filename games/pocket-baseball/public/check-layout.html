@@ -26,8 +26,10 @@
     <h1>Developer layout preview</h1>
     <p>Real iframe viewports for checking the game’s responsive layout. This does not emulate touch hardware, device performance, or Safari.</p>
     <nav aria-label="Viewport sizes">
-      <button id="portrait" aria-pressed="true">Portrait · 430 × 932</button>
-      <button id="landscape" aria-pressed="false">Landscape · 932 × 430</button>
+      <button id="portrait" data-width="430" data-height="932" aria-pressed="true">Tall phone · 430 × 932</button>
+      <button id="phone" data-width="428" data-height="780" aria-pressed="false">Phone · 428 × 780</button>
+      <button id="compact" data-width="375" data-height="667" aria-pressed="false">Small phone · 375 × 667</button>
+      <button id="landscape" data-width="932" data-height="430" aria-pressed="false">Landscape · 932 × 430</button>
       <label><input id="software" type="checkbox" checked>Compatibility picture</label>
       <a href="./" target="_blank" rel="noopener">Open full game</a>
     </nav>
@@ -36,12 +38,12 @@
   <p id="dimensions" class="dimensions">430 × 932 CSS pixels</p>
   <script>
     const frame=document.getElementById('preview'),device=document.getElementById('device');
-    for(const mode of ['portrait','landscape'])document.getElementById(mode).addEventListener('click',()=>{
-      const portrait=mode==='portrait',width=portrait?430:932,height=portrait?932:430;
+    const presets=[...document.querySelectorAll('button[data-width]')];
+    for(const button of presets)button.addEventListener('click',()=>{
+      const width=Number(button.dataset.width),height=Number(button.dataset.height);
       device.style.width=width+'px';frame.style.width=width+'px';frame.style.height=height+'px';
       document.getElementById('dimensions').textContent=width+' × '+height+' CSS pixels';
-      document.getElementById('portrait').setAttribute('aria-pressed',String(portrait));
-      document.getElementById('landscape').setAttribute('aria-pressed',String(!portrait));
+      for(const preset of presets)preset.setAttribute('aria-pressed',String(preset===button));
     });
     document.getElementById('software').addEventListener('change',event=>{frame.src='./?debug=1'+(event.target.checked?'&software=1':'');});
   </script>

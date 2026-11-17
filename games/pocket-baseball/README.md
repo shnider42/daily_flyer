@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.7.0
+# Pocket Baseball — version 0.7.1
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -46,6 +46,32 @@ Rookie, Club and Pro change timing forgiveness and CPU skill. Simple, Moderate
 and Expert change guidance only. These settings are intentionally independent.
 Simple shows a timing cue and strike zone; Moderate removes the timing cue;
 Expert minimizes explanatory overlays.
+
+### Phone controls and field visibility
+
+The compact phone layout keeps a short score/count/base strip at the top and
+the main controls in the lower corners. **Pause** is the only always-visible
+utility button; sound, roster changes and the field guide are available there.
+Player details and repeated instruction panels clear during the delivery and
+live play so the pitcher, ball and strike zone remain visible.
+
+With runners aboard, the compact runner control opens lead and runner-selection
+options when needed. **STEAL** stays directly accessible for the selected runner,
+including during the delivery. The same control cancels a queued steal while
+that cancellation is legal. The expanded card retains all pickoff and lead
+choices.
+
+When pitching, tap the current pitch name to open the repertoire. **TACTICS**
+opens positioning and pitchout options. Only one secondary panel is open at a
+time; choosing a pitch, starting the meter, or beginning a delivery clears the
+relevant panel. The pitch meter appears while setting the release. BUNT, POWER,
+and SWING remain direct actions, with no extra menu step to hit the ball.
+
+Live running and throwing keep their destination controls along the bottom.
+Small portrait and landscape layouts use the same commands and timing. The
+full desktop layout remains available on larger screens. The developer layout
+preview includes tall, shorter-height, small-phone and landscape viewports;
+these verify layout rather than emulating mobile hardware or browser performance.
 
 ## Ballparks
 

@@ -3,10 +3,10 @@
  * World units are metres. Home is (0, 0, 0), +z is centre field, +x is first.
  * Input and snapshots are deliberately independent from the browser renderer.
  */
-import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.7.0';
-import { DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.7.0';
-export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.0';
-export { TEAM_ROSTERS, DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.7.0';
+import { fieldRadius, fenceHeight, resolveParkId, sweptParkWall } from './parks.mjs?v=0.7.1';
+import { DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.7.1';
+export { PARKS, FENCE_HEIGHT, FEET_TO_METRES, getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.1';
+export { TEAM_ROSTERS, DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher, getBatterBody } from './rosters.mjs?v=0.7.1';
 export const MOUND_RULES = Object.freeze({ hitsToOffer: 2, chargeDuration: 1.5, fightDuration: 10, separateDuration: 1.5 });
 export const FIGHT_ACTIONS = Object.freeze({
   jab: Object.freeze({ label: 'Jab', cost: 23, duration: .66, cooldown: .90, impact: .42 }),
