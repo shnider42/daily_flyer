@@ -299,7 +299,7 @@ export class Realm extends BoardingAuthority {
     if (this.conflicted || this.storageError) throw new Error('Realm persistence is temporarily unavailable.');
     if (this.onlineCount >= MAX_ONLINE) throw new Error('This realm already has ten online captains.');
     if (this.captains.size >= 256) throw new Error('This realm has reached its saved-passport limit.');
-    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, casualCrewIdentity:id, name:cleanName(name), openingMission:this.settings.openingMission});
+    const id = newCaptainId(), token = newSecret(), game = new Game(this.seed, {...options, startContext:'shared', casualCrewIdentity:id, name:cleanName(name), openingMission:this.settings.openingMission});
     game._directorShared=this.director;
     const atPort = game.state.mode === 'person' && !game.state.interior && !!game.state.locationId;
     if (!atPort && game.state.startMode !== 'casual') { const angle = this.captains.size * 2.399963; game.state.ship.x = Math.sin(angle) * 155; game.state.ship.y = Math.cos(angle) * 155; }

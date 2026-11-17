@@ -67,7 +67,26 @@ export const SHIP_CLASSES = Object.freeze([
 /** Public new-captain choices; later hulls are never included in this catalog. */
 export const STARTER_SHIP_IDS = Object.freeze(['sparrow','kestrel','mule']);
 export const STARTER_SHIPS = Object.freeze(STARTER_SHIP_IDS.map(id => SHIP_CLASSES.find(hull => hull.id === id)));
-export const normalizeStarterShip = id => STARTER_SHIP_IDS.includes(id) ? id : 'sparrow';
+const SOLO_CASUAL_HULLS = Object.freeze(SHIP_CLASSES.filter(hull => !hull.military && hull.id !== 'judicator')
+  .sort((one, two) => one.berths - two.berths || one.cost - two.cost || one.id.localeCompare(two.id)));
+const SOLO_CASUAL_MAX_BERTHS = Math.max(...SOLO_CASUAL_HULLS.map(hull => hull.berths));
+
+/** Only an explicit Solo departure can use NPCs to choose a larger first hull.
+ * Shared departures still count connected captains in groupLaunchChoices.
+ * Very large rosters retain a virtual reserve instead of inventing more bunks. */
+export function starterShipChoices(options = {}) {
+  const value = options?.casualCrewCount;
+  const validCount = typeof value === 'number' || typeof value === 'string' && /^\d+$/.test(value.trim());
+  const count = validCount ? Number(value) : 0;
+  if (options?.startContext !== 'solo' || options?.startMode !== 'casual' || !Number.isSafeInteger(count) || count <= 0) return STARTER_SHIPS;
+  const neededBerths = Math.min(count, SOLO_CASUAL_MAX_BERTHS - 1) + 1;
+  return SOLO_CASUAL_HULLS.filter(hull => hull.berths >= neededBerths);
+}
+
+export function normalizeStarterShip(id, options = {}) {
+  const choices = starterShipChoices(options);
+  return choices.some(hull => hull.id === id) ? id : choices[0].id;
+}
 
 export const CREW_ROLES = Object.freeze({
   engineer:{name:'Engineer',cost:160,health:100,damage:9,description:'Adds 10 hull integrity and can repair ship systems.',color:'#d8b878'},

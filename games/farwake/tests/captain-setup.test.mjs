@@ -230,8 +230,8 @@ test('Regular stays the default alongside Casual and Hardcore; Casual includes a
   assert.equal(Object.hasOwn(f.controller.getSelection(), 'startSystemId'), false);
   await f.click('[data-start-mode="casual"]');
   assert.equal(f.controller.getSelection().startSystemId, 'hearth');
-  assert.match(f.find('.captain-included').textContent, /Fold Drive I, Vector thrusters, and an Echo scanner/);
-  assert.match(f.find('.captain-included').textContent, /5 ly fold range/);
+  assert.match(f.find('[data-start-equipment]').textContent, /Fold Drive I, Vector thrusters, and an Echo scanner/);
+  assert.match(f.find('[data-start-equipment]').textContent, /5 ly fold range/);
   assert.match(f.find('.captain-system-detail').textContent, /Hearth · Freewake Union/);
   await f.click('[data-captain-next]'); await f.click('[data-captain-submit]');
   assert.equal(f.submitted[0].startMode, 'casual'); assert.equal(f.submitted[0].startSystemId, 'hearth');
@@ -324,4 +324,44 @@ test('a failed Casual submission retains destination, hull, appearance, and trai
   assert.equal(submitted.length, 2); assert.deepEqual(submitted[1], submitted[0]);
   assert.equal(submitted[1].starterShip, 'mule'); assert.equal(submitted[1].character.appearance.suit, 'rust');
   assert.deepEqual(submitted[1].character.traits, ['long_stride']);
+});
+
+test('Solo Casual eight-NPC preset selects a fitting ship and submits the reviewed hull', async t => {
+  const f=fixture(t,{startMode:'casual',startContext:'solo'});
+  await f.click('[data-crew-preset="8"]');
+  assert.equal(f.controller.getSelection().starterShip,'osprey');
+  assert.deepEqual(f.dialog.body.querySelectorAll('[data-starter-ship]').map(button=>button.dataset.starterShip),['osprey','atlas','cairn','capital','leviathan']);
+  assert.match(f.find('[data-crew-allocation]').textContent,/Osprey · 8 NPCs aboard · 0 in reserve/);
+  assert.match(f.find('[data-crew-allocation]').textContent,/Walk aboard/);
+  await f.click('[data-starter-ship="capital"]');
+  assert.match(f.find('[data-crew-allocation]').textContent,/Horizon · 8 NPCs aboard · 0 in reserve/);
+  await f.click('[data-captain-next]');
+  assert.match(f.find('.captain-summary').textContent,/Horizon.*8 NPC crew · 8 aboard · 0 in reserve/);
+  await f.click('[data-captain-back]');assert.equal(f.controller.getSelection().starterShip,'capital');
+  await f.click('[data-captain-next]');await f.click('[data-captain-submit]');
+  assert.equal(f.submitted[0].starterShip,'capital');assert.equal(f.submitted[0].casualCrewCount,8);
+});
+
+test('typing a Solo crew count refreshes ships without replacing the input and shows physical overflow', async t => {
+  const f=fixture(t,{startMode:'casual',startContext:'solo'}),input=f.find('[data-casual-crew-count]');
+  input.value='8';await input.fire('input');
+  assert.equal(f.find('[data-casual-crew-count]'),input);
+  assert.equal(f.controller.getSelection().starterShip,'osprey');
+  input.value='16';await input.fire('input');
+  assert.equal(f.find('[data-casual-crew-count]'),input);
+  assert.equal(f.controller.getSelection().starterShip,'leviathan');
+  assert.match(f.find('[data-crew-allocation]').textContent,/15 NPCs aboard · 1 in reserve/);
+  input.value='0';await input.fire('input');
+  assert.deepEqual(f.dialog.body.querySelectorAll('[data-starter-ship]').map(button=>button.dataset.starterShip),['sparrow','kestrel','mule']);
+  assert.equal(f.controller.getSelection().starterShip,'sparrow');
+});
+
+test('shared eight-NPC setup keeps personal starters and exposes its real reserve count', async t => {
+  const f=fixture(t,{startMode:'casual',groupStartPolicy:'choose'});
+  await f.click('[data-crew-preset="8"]');
+  assert.deepEqual(f.dialog.body.querySelectorAll('[data-starter-ship]').map(button=>button.dataset.starterShip),['sparrow','kestrel','mule']);
+  assert.match(f.find('[data-crew-allocation]').textContent,/1 NPC aboard · 7 in reserve/);
+  await f.click('[data-starter-ship="kestrel"]');
+  assert.match(f.find('[data-crew-allocation]').textContent,/0 NPCs aboard · 8 in reserve/);
+  assert.match(f.dialog.body.textContent,/2, 4, or 7 connected captains/);
 });

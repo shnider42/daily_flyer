@@ -38,7 +38,7 @@ import { GunneryRules, clampGunneryAim, applyGunneryAim } from './gunnery.mjs';
 import { getGunneryBattery, batteryCooldown, advanceGunneryCooldowns } from './gunnery-batteries.mjs';
 import { navyDutyAccess } from './navy-duty.mjs';
 import { normalizeCharacter, normalizeAppearance, characterModifiers } from './character.mjs';
-import { normalizeStarterShip, STARTER_SHIP_IDS } from './fleet.mjs';
+import { normalizeStarterShip, starterShipChoices, STARTER_SHIP_IDS } from './fleet.mjs';
 import { ExpeditionRules } from './expedition-rules.mjs';
 import { NarrativeRules } from './quest-rules.mjs';
 import { ProfessionRules, militaryPortAccess } from './profession-rules.mjs';
@@ -169,7 +169,7 @@ export function buildGalaxy(seed = 'farwake') {
 }
 
 function initialState(seed, options = {}) {
-  const starter = getShipClass(normalizeStarterShip(options.starterShip)), character = normalizeCharacter(options.character);
+  const starter = getShipClass(normalizeStarterShip(options.starterShip, options)), character = normalizeCharacter(options.character);
   const startMode=normalizeStartMode(options.startMode),shipless=startMode==='hardcore';
   return {
     version: SAVE_VERSION, spaceVersion: SYSTEM_SPACE_VERSION, worldTypesVersion: WORLD_TYPES_VERSION, stationGeographyVersion: STATION_GEOGRAPHY_VERSION, seed: String(seed || 'farwake'), startMode, mode: shipless?'person':'ship', systemId: 'hearth', locationId: shipless?'morrow':null,
@@ -192,6 +192,7 @@ export class Game {
     const fresh = initialState(isSave ? supplied.seed : supplied, isSave ? {} : options);
     this.galaxy = buildGalaxy(fresh.seed);
     this.state = isSave ? this._restore(fresh, supplied) : fresh;
+    this._startContext = options.startContext === 'shared' ? 'shared' : null;
     const casualStart=!isSave&&this.state.startMode==='casual';
     if(casualStart){
       const crewCount=normalizeCasualCrewCount(options.casualCrewCount);
@@ -1391,6 +1392,49 @@ export class Game {
       this._log(chapter.title, chapter.debrief || chapter.brief, 'chapter');
       this._event('chapter', { chapter, text: chapter.debrief || `${chapter.title} complete` });
     }
+  }
+
+  /** Read-only repair offer for the original undersized Solo Casual departure.
+   * Loading a save never claims it, replaces a hull, or materializes new crew. */
+  casualCrewShipOptions() {
+    const s=this.state,crew=casualCrewStatus(s),shared=this._startContext==='shared'||s.multiplayer?.serverAuthoritative||!!this._directorShared||!!this._sharedWorld;
+    const initialHull=STARTER_SHIP_IDS.includes(s.ship.classId)&&s.fleet.owned.length===1&&s.fleet.owned[0]===s.ship.classId&&!s.fleet.history.length;
+    const eligible=!shared&&s.startMode==='casual'&&this.ownsShip&&!s.ship.destroyed&&s.ship.hull>0&&initialHull
+      &&!!crew&&crew.totalCount>Math.max(0,this.shipClass.berths-1)&&!this.hasFlag('casual_crew_ship_fitted');
+    const choices=eligible?starterShipChoices({startContext:'solo',startMode:'casual',casualCrewCount:crew.requestedCount}).map(hull=>{
+      const preview={ship:{...clone(s.ship),classId:hull.id},crew:clone(s.crew),formerCrew:clone(s.formerCrew)};
+      const allocation=reconcileCasualCrew(preview,{reservedBerths:this.narrativeBerths()+this.professionBerths()+this.rescuedBerths()});
+      const capacity=this._canActivateClass(hull);
+      return {...hull,fit:{ok:capacity.ok,reason:capacity.reason||'',code:capacity.code||null},
+        crewPreview:{activeCount:allocation.activeCount,reserveCount:allocation.reserveCount,totalCount:allocation.totalCount,lostCount:allocation.lostCount}};
+    }):[];
+    const base={eligible,choices,requestedCount:crew?.requestedCount||0,activeCount:crew?.activeCount||0,reserveCount:crew?.reserveCount||0,
+      totalCount:crew?.totalCount||0,currentClassId:s.ship.classId,recommendedShipId:choices[0]?.id||null,cost:0,ore:0};
+    const unavailable=(reason,code)=>({...this._fail(reason,code),...base});
+    if(shared)return unavailable('This departure-crew correction is available only in a Solo voyage.','shared');
+    if(!eligible)return unavailable('This one-time correction is for an original Casual starter whose departure crew did not fit.','ineligible');
+    if(s.npcContract?.active)return unavailable('Finish your crew contract before fitting your personal ship.','contract');
+    if(s.boarding?.phase==='active'||s.ship.pvp?.phase==='active'||this._hitTimer>0||this.system.enemies.some(enemy=>enemy.hp>0&&enemy.active&&(!enemy.warzone||enemy.warzoneTargetKind==='player'&&enemy.targetVesselId===s.ship.id)&&distance(enemy,s.ship)<700))return unavailable('Resolve the immediate attack before fitting a crew ship.','combat');
+    if(s.pendingEncounter)return unavailable('Finish the open conversation before fitting a crew ship.','encounter');
+    if(!this.atInhabitedPort)return unavailable('Dock and step ashore at an inhabited port to choose a ship for this crew.','mode');
+    const access=this.ownShipAccess({atPort:true});if(!access.ok)return {...access,...base};
+    if(choices.every(hull=>!hull.fit.ok))return unavailable(choices[0]?.fit.reason||'The available hulls cannot hold everyone and the current cargo.','capacity');
+    return {...this._ok(),...base,reason:''};
+  }
+
+  fitCasualCrewShip(id) {
+    const offer=this.casualCrewShipOptions();if(!offer.ok)return offer;
+    const hull=offer.choices.find(choice=>choice.id===id);
+    if(!hull)return this._fail('Choose one of the offered ships that can hold your departure crew.','target');
+    const capacity=this._canActivateClass(hull);if(!capacity.ok)return capacity;
+    const fromClassId=this.state.ship.classId;
+    this.state.fleet.owned.push(hull.id);
+    this._activateClass(hull.id,false);
+    Object.assign(this.state.fleet.history.at(-1),{type:'casual-crew-fit',fromClassId});
+    this._flag('casual_crew_ship_fitted');
+    const crew=this.casualCrewStatus(),text=`${this.state.ship.name||'Your ship'} is fitted as ${hull.name}. ${crew.activeCount} NPC crew are on duty${crew.reserveCount?`, with ${crew.reserveCount} in reserve`:''}. Your voyage continues from this port.`;
+    this._log('A ship for your departure crew',text,'fleet');
+    return this._ok({shipClass:this.shipClass,cost:0,ore:0,...crew,text});
   }
 
   classInfo(id) {

@@ -99,3 +99,27 @@ test('resuming the same shared captain preserves an intentional navigation marke
  assert.equal(f.context.dialog.opened,false);assert.equal(f.context.tracked,'lilt');assert.equal(f.context.trackedThreadId,'local-story');
  assert.equal(f.context.narrativeWaypoint.id,'intentional-waypoint');assert.equal(f.context.guideIntent,'dock');
 });
+
+test('the real Solo setup boundary carries a crew-capable hull into the new voyage',()=>{
+ let setup,started;
+ const context=vm.createContext({testSession:null,dialog:{close(){}},newVoyageSeed:()=> 'solo-ui-boundary',
+  buildGalaxy:()=>[],startSystemChoices:()=>[],openCaptainSetup:(_dialog,options)=>{setup=options;},
+  start:(fresh,options)=>{assert.equal(fresh,true);started=new Game(options.galaxySeed,options);},
+  openTestControls:()=>assert.fail('ordinary Solo setup entered the test range')});
+ vm.runInContext(declaration('openNewCaptain'),context);context.openNewCaptain();
+ assert.equal(setup.startContext,'solo');
+ const result=setup.onComplete({startMode:'casual',casualCrewCount:8,starterShip:'osprey',startContext:'shared'});
+ assert.equal(result.ok,true);assert.equal(started.state.ship.classId,'osprey');
+ assert.equal(started.casualCrewStatus().activeCount,8);assert.equal(started.casualCrewStatus().reserveCount,0);
+});
+
+test('the actual local command dispatcher applies an explicit old-Solo crew ship choice',async()=>{
+ const game=new Game('old-solo-command',{startMode:'casual',casualCrewCount:8});
+ assert.equal(game.state.ship.classId,'sparrow');assert.equal(game.dock('kettle').ok,true);
+ const context=vm.createContext({game,network:null,testSession:null});
+ vm.runInContext(declaration('performInvoke'),context);
+ const before=game.state.credits,result=await context.performInvoke('fitCasualCrewShip',{id:'osprey'});
+ assert.equal(result.ok,true);assert.equal(result.cost,0);assert.equal(game.state.credits,before);
+ assert.equal(game.state.ship.classId,'osprey');assert.equal(game.casualCrewStatus().activeCount,8);
+ assert.equal((await context.performInvoke('fitCasualCrewShip',{id:'atlas'})).ok,false);
+});

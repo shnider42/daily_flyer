@@ -1,5 +1,5 @@
 /** New-captain choices and appearance editing. Drafts never mutate a live voyage. */
-import { STARTER_SHIPS, normalizeStarterShip } from './fleet.mjs';
+import { starterShipChoices, normalizeStarterShip, getShipClass } from './fleet.mjs';
 import { normalizeCasualCrewCount } from './casual-crew.mjs';
 import { drawShip } from './space-art.mjs';
 import {
@@ -26,7 +26,7 @@ const dangerLabel=value=>['Low','Guarded','Hazardous','High','Extreme'][Math.max
 export function openCaptainSetup(dialog,{
   mode='create',character={},locked=false,starterShip='sparrow',startMode='regular',
   startSystemId='hearth',startSystems=[],casualCrewCount=0,
-  openingMission=false,openingPolicy='choose',groupStartPolicy='none',startTogether=true,
+  openingMission=false,openingPolicy='choose',groupStartPolicy='none',startTogether=true,startContext=groupStartPolicy==='none'?'solo':'shared',
   onComplete=()=>{},onCancel=()=>{}
 }={}) {
   const creating=mode!=='edit',original=normalizeCharacter(character),draft=normalizeCharacter(character);
@@ -35,11 +35,14 @@ export function openCaptainSetup(dialog,{
   if(!systems.some(system=>system.id==='hearth'))systems.unshift({...DEFAULT_START_SYSTEM});
   const validSystem=id=>systems.some(system=>system.id===id)?id:'hearth';
   let selectedTogether=startTogether!==false;
-  let selectedShip=normalizeStarterShip(starterShip),selectedStart=['casual','hardcore'].includes(startMode)?startMode:'regular',selectedOpening=openingMission===true,step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
+  let selectedShip=normalizeStarterShip(starterShip,{startContext,startMode,casualCrewCount}),selectedStart=['casual','hardcore'].includes(startMode)?startMode:'regular',selectedOpening=openingMission===true,step=creating?'ship':'captain',chooseTraits=creating,busy=false,finished=false,error='';
   let selectedSystemId=validSystem(startSystemId),systemSearch='';
   let crewCountDraft=String(normalizeCasualCrewCount(casualCrewCount));
   const selectedCrewCount=()=>normalizeCasualCrewCount(Number(crewCountDraft));
   const validCrewCount=()=>Number.isSafeInteger(Number(crewCountDraft))&&Number(crewCountDraft)>=0;
+  const shipOptions=()=>({startContext,startMode:selectedStart,casualCrewCount:selectedCrewCount()});
+  const allocation=(hull=getShipClass(selectedShip))=>({aboard:Math.min(selectedCrewCount(),Math.max(0,hull.berths-1)),reserve:Math.max(0,selectedCrewCount()-Math.max(0,hull.berths-1))});
+  const shipNote=hull=>SHIP_NOTES[hull.id]||{role:hull.subtitle,benefit:hull.systems.description,cost:hull.systems.tradeoff,color:'#a5bdba'};
   const selectedSystem=()=>systems.find(system=>system.id===selectedSystemId)||DEFAULT_START_SYSTEM;
   const remoteStart=()=>selectedStart==='casual'&&selectedSystemId!=='hearth';
   const canGather=()=>selectedStart!=='hardcore'&&!remoteStart();
@@ -97,6 +100,7 @@ export function openCaptainSetup(dialog,{
   }
   function render(){
     if(finished)return;
+    selectedShip=normalizeStarterShip(selectedShip,shipOptions());
     const isShip=step==='ship';
     dialog.open(isShip?'Where does your story begin?':creating?'Make this captain yours':'Your captain','captain-setup',{
       eyebrow:creating?`NEW VOYAGE / ${isShip?'1 · YOUR START':'2 · YOUR CAPTAIN'}`:'CAPTAIN’S LOCKER',wide:true
@@ -172,17 +176,26 @@ export function openCaptainSetup(dialog,{
       <div class="captain-crew-controls"><label>Number of NPC crew<input type="number" inputmode="numeric" min="0" step="1" data-casual-crew-count value="${esc(crewCountDraft)}" aria-describedby="captain-crew-help"></label>
         <div class="captain-crew-presets" role="group" aria-label="Quick crew counts">${[0,2,4,8].map(count=>`<button type="button" class="button-secondary" data-crew-preset="${count}" aria-pressed="${selectedCrewCount()===count}">${count===0?'None':count}</button>`).join('')}</div>
       </div>
-      <p id="captain-crew-help">Choose any whole number. A working watch fills spare berths; the rest wait in reserve. NPCs make room when friends board and step aside for the ship roles they choose.</p>
+      <p id="captain-crew-help">${startContext==='solo'?'Your crew count selects ships with room for you and your NPCs. Counts beyond the largest working ship’s capacity keep the extra crew in reserve.':'A working watch fills your personal ship’s spare berths; the rest wait in reserve.'} NPCs make room when friends board and step aside for the ship roles they choose.</p>
+      <div class="captain-included" data-crew-allocation aria-live="polite">${crewAllocationMarkup()}</div>
       ${groupStartPolicy!=='none'?'<p class="captain-note">A shared departure uses the host’s NPC roster. Joining captains keep their own roster with their personal ship.</p>':''}
     </section>`;
+  }
+  function crewAllocationMarkup(){
+    const hull=getShipClass(selectedShip),count=allocation(hull);
+    return `<strong>${esc(hull.name)} · ${count.aboard} NPC${count.aboard===1?'':'s'} aboard · ${count.reserve} in reserve</strong><p>${hull.berths} berths, including yours. ${count.aboard?'Use Walk aboard to meet your crew on the ship’s deck.':'Crew aboard your ship will appear on its deck.'}${count.reserve?' Reserve crew are listed in the Crew menu and join the working watch when there is room.':''}</p>`;
   }
   function shipMarkup(){
     const origin=`<div class="captain-origins" role="group" aria-label="Starting mode"><button type="button" class="captain-origin${selectedStart==='casual'?' selected':''}" data-start-mode="casual" aria-pressed="${selectedStart==='casual'}"><strong>Casual</strong><span>A ship, 180 CR, and a fitted fold drive. Choose your starting system and explore sooner.</span></button><button type="button" class="captain-origin${selectedStart==='regular'?' selected':''}" data-start-mode="regular" aria-pressed="${selectedStart==='regular'}"><strong>Regular</strong><span>A small ship and 180 CR in Hearth. Earn your fold drive as you go.</span></button><button type="button" class="captain-origin${selectedStart==='hardcore'?' selected':''}" data-start-mode="hardcore" aria-pressed="${selectedStart==='hardcore'}"><strong>Hardcore · start on foot</strong><span>No ship. 180 CR in your pocket on Morrow. Earn your way into space.</span></button></div><p class="captain-note">Choose your beginning. Combat, jobs, faction permissions, and recovery follow the same rules in every mode.</p>${systemMarkup()}${crewMarkup()}${openingMarkup()}${groupMarkup()}`;
     if(selectedStart==='hardcore')return `${origin}<div class="captain-included"><span>YOUR FIRST MORNING / MORROW</span><strong>Find work. Book a passage. Earn your own ship.</strong><p>Work on the docks or join a paid crew for freight, repairs, survey, care, or security. Passenger tickets and your first ship cost credits.</p></div>`;
-    return `${origin}<p class="captain-intro">Three compact working ships. A cockpit, a berth, and room to begin.</p>
-      <p class="captain-included"><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?'Your first ship includes Fold Drive I, Vector thrusters, and an Echo scanner. <strong>5 ly fold range · Cost: 0 CR</strong>':'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
-      <div class="captain-ships" role="group" aria-label="Choose your starter ship">${STARTER_SHIPS.map(hull=>{
-        const note=SHIP_NOTES[hull.id];
+    return `${origin}<div data-starter-catalog>${shipCatalogMarkup()}</div>`;
+  }
+  function shipCatalogMarkup(){
+    const crewed=startContext==='solo'&&selectedStart==='casual'&&selectedCrewCount()>0;
+    return `<p class="captain-intro">${crewed?'Choose a ship for your crew. Each option shows how many NPCs will be aboard.':'Three compact working ships. A cockpit, a berth, and room to begin.'}</p>
+      <p class="captain-included" data-start-equipment><span>DEPARTURE GRANT</span> ${selectedStart==='casual'?'Your first ship includes Fold Drive I, Vector thrusters, and an Echo scanner. <strong>5 ly fold range · Cost: 0 CR</strong>':'Your first ship is included. <strong>Cost: 0 CR</strong>'}</p>
+      <div class="captain-ships" role="group" aria-label="Choose your starter ship">${starterShipChoices(shipOptions()).map(hull=>{
+        const note=shipNote(hull),count=allocation(hull);
         return `<button type="button" class="captain-ship${hull.id===selectedShip?' selected':''}" data-starter-ship="${esc(hull.id)}" aria-pressed="${hull.id===selectedShip}">
           <span class="captain-ship-head"><strong>${esc(hull.name)}</strong><span class="captain-selected">${hull.id===selectedShip?'SELECTED':'CHOOSE'}</span></span>
           <span class="captain-ship-type">${esc(hull.subtitle)}</span>
@@ -191,9 +204,10 @@ export function openCaptainSetup(dialog,{
           <span class="captain-ship-benefit">${esc(note.benefit)}</span>
           <span class="captain-ship-cost">${esc(note.cost)}</span>
           <span class="captain-ship-spec">${hull.berths} ${hull.berths===1?'berth':'berths'} <span>·</span> ${hull.stats.cargoCap} cargo <span>·</span> ${hull.stats.maxHull} hull</span>
+          ${selectedStart==='casual'&&selectedCrewCount()>0?`<span class="captain-ship-spec">${count.aboard} NPC${count.aboard===1?'':'s'} aboard <span>·</span> ${count.reserve} in reserve</span>`:''}
         </button>`;
       }).join('')}</div>
-      <p class="captain-note">${chooseGroupStart||groupStartPolicy==='realm'?'These are your personal ships, each with a small walkable cabin. If you gather a crew before departure, larger shared ships become available at Kettle with 2, 4, or 7 connected captains.':'All three have a small walkable cabin. Larger quarters and more crew come with ships you earn later.'}</p>`;
+      <p class="captain-note">${crewed?'Your selected hull and starting NPC crew are included. Larger ships have longer decks, more inertia, and crew spread through their working rooms.':chooseGroupStart||groupStartPolicy==='realm'?'These are your personal ships, each with a small walkable cabin. If you gather a crew before departure, larger shared ships become available at Kettle with 2, 4, or 7 connected captains.':'All three have a small walkable cabin. In Casual, add NPC crew to choose a larger working ship.'}</p>`;
   }
   function bindShips(root){
     for(const button of root.querySelectorAll('[data-start-mode]'))button.onclick=()=>{selectedStart=button.dataset.startMode;render();};
@@ -202,7 +216,12 @@ export function openCaptainSetup(dialog,{
       crewCountDraft=crewInput.value;
       crewInput.setAttribute('aria-invalid',String(!validCrewCount()));
       for(const button of root.querySelectorAll('[data-crew-preset]'))button.setAttribute('aria-pressed',String(validCrewCount()&&Number(button.dataset.crewPreset)===selectedCrewCount()));
-      if(validCrewCount()){error='';root.querySelector('[data-captain-error]').textContent='';}
+      if(validCrewCount()){
+        error='';root.querySelector('[data-captain-error]').textContent='';
+        selectedShip=normalizeStarterShip(selectedShip,shipOptions());
+        const catalog=root.querySelector('[data-starter-catalog]');catalog.innerHTML=shipCatalogMarkup();bindShipCards(catalog);
+        root.querySelector('[data-crew-allocation]').innerHTML=crewAllocationMarkup();
+      }
     };
     crewInput?.addEventListener('input',updateCrewCount);
     crewInput?.addEventListener('change',updateCrewCount);
@@ -220,25 +239,31 @@ export function openCaptainSetup(dialog,{
     });
     root.querySelector('[data-opening-mission]')?.addEventListener('change',event=>{selectedOpening=event.target.checked;});
     root.querySelector('[data-start-together]')?.addEventListener('change',event=>{selectedTogether=event.target.checked;});
+    bindShipCards(root);
+  }
+  function bindShipCards(root){
     for(const canvas of root.querySelectorAll('[data-ship-preview]')){
       const compact=canvas.getBoundingClientRect().width<150,id=canvas.dataset.shipPreview,height=compact?288:112;
       canvas.width=288;canvas.height=height;const ctx=canvas.getContext('2d');
       ctx.imageSmoothingEnabled=false;ctx.fillStyle='#0a1824';ctx.fillRect(0,0,288,height);
       ctx.fillStyle='#1c343e';for(let x=16;x<288;x+=32)ctx.fillRect(x,0,1,height);for(let y=8;y<height;y+=24)ctx.fillRect(0,y,288,1);
       ctx.fillStyle='#30444b';ctx.fillRect(40,height-20,208,1);
-      drawShip(ctx,144,compact?140:53,0,SHIP_NOTES[id].color,compact?2.7:1.75,false,0,false,{shipClass:id});
+      const hull=getShipClass(id),cy=compact?140:53,pad=8,availableW=2*Math.min(144-pad,288-pad-144),availableH=2*Math.min(cy-pad,height-pad-cy);
+      const scale=Math.min(compact?2.7:1.75,availableW/(hull.stats.renderLength+14),availableH/(hull.stats.renderWidth+14));
+      drawShip(ctx,144,cy,0,shipNote(hull).color,scale,false,0,false,{shipClass:id});
     }
     for(const button of root.querySelectorAll('[data-starter-ship]'))button.onclick=()=>{
-      selectedShip=normalizeStarterShip(button.dataset.starterShip);
+      selectedShip=normalizeStarterShip(button.dataset.starterShip,shipOptions());
       for(const other of root.querySelectorAll('[data-starter-ship]')){
         const selected=other.dataset.starterShip===selectedShip;
         other.classList.toggle('selected',selected);other.setAttribute('aria-pressed',String(selected));other.querySelector('.captain-selected').textContent=selected?'SELECTED':'CHOOSE';
       }
+      const crewSummary=dialog.body.querySelector('[data-crew-allocation]');if(crewSummary)crewSummary.innerHTML=crewAllocationMarkup();
     };
   }
   function captainMarkup(){
     const appearance=draft.appearance,canChoose=creating||!locked;
-    const startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR · Fold Drive I fitted · ${selectedCrewCount()} NPC crew`:`Regular · Hearth · ${STARTER_SHIPS.find(hull=>hull.id===selectedShip).name} · 180 CR`;
+    const count=allocation(),startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${getShipClass(selectedShip).name} · 180 CR · Fold Drive I fitted · ${selectedCrewCount()} NPC crew · ${count.aboard} aboard · ${count.reserve} in reserve`:`Regular · Hearth · ${getShipClass(selectedShip).name} · 180 CR`;
     return `<div class="captain-identity">
       <div class="captain-portrait"><canvas width="128" height="128" data-captain-portrait aria-label="Your captain’s appearance"></canvas><span data-captain-look></span></div>
       <div class="captain-identity-copy"><p class="captain-intro">A face for the places you’ll go.</p><p class="captain-note">Your appearance is yours to change. It has no effect on your abilities.</p>

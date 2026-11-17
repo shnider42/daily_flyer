@@ -69,6 +69,22 @@ test('two friends launch with the host’s compact reserve and keep their person
   assert.ok(JSON.stringify(guestView.state.ship.casualCrew).length < 20_000);
 });
 
+test('a forged Solo starting context cannot turn NPCs into connected captains or unlock a shared departure hull', async () => {
+  const realm = new Realm({ id: 'SOLOFAKE', seed: 'shared-start-context', persistence: storage(), settings: { startTogether: true } });
+  const { captain } = await realm.createCaptain('One real captain', { startMode: 'casual', startContext: 'solo', starterShip: 'osprey', casualCrewCount: 8 });
+  ok(realm.attach(captain, { close() {} }));
+  const vessel = realm.vessels.get(captain.ownedVesselId), lobby = realm._groupStartView(captain);
+  assert.equal(vessel.ship.classId, 'sparrow'); assert.deepEqual(captain.game.state.fleet.owned, ['sparrow']);
+  assert.equal(vessel.ship.casualCrew.requestedCount, 8);
+  assert.equal(captain.game.casualCrewStatus().activeCount, 1); assert.equal(captain.game.casualCrewStatus().reserveCount, 7);
+  assert.equal(lobby.onlineCount, 1); assert.equal(lobby.roster.length, 1);
+  assert.deepEqual(lobby.choices.filter(hull => hull.eligible).map(hull => hull.id), ['sparrow', 'kestrel', 'mule']);
+  assert.equal(lobby.choices.find(hull => hull.id === 'osprey').eligible, false);
+  const requested = await realm.command(captain, 'chooseGroupShip', { classId: 'osprey', startContext: 'solo', casualCrewCount: 8, connectedCount: 9 });
+  assert.equal(requested.ok, false); assert.equal(realm.groupStart.selectedClassId, 'sparrow');
+  assert.equal(vessel.ship.classId, 'sparrow'); assert.equal(captain.game.state.credits, 180);
+});
+
 test('late human arrivals replace NPC duty berths up to the real hull capacity', async () => {
   const { realm, owner, vessel } = await launch();
   for (let index = 0; index < 4; index++) {

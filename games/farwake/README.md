@@ -1,8 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.31.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.31.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.31.1 — Solo Casual ships that fit the crew
+
+Solo Casual now chooses from working hulls with room for the captain and the requested NPC crew. Selecting eight NPCs defaults to **Osprey** and also offers Atlas, Cairn, Horizon and Leviathan. All eight are physically aboard these hulls. Setup updates the ship list as the count changes and shows the exact **aboard / reserve** split on the selected ship, each card and the final review. Larger ship previews fit their full silhouettes on desktop and mobile.
+
+The largest available working hull, Leviathan, carries the captain and fifteen NPCs. Larger requested rosters keep their excess in reserve. A shared departure still uses its actual connected-captain requirements; the authority supplies the shared context itself.
+
+The Crew menu shows the hull's berths and actual roster split, with **Walk aboard** available from the helm. NPCs are visible throughout the ship interior; they do not appear as people in the exterior flight view or accompany the captain ashore.
+
+An affected existing Solo Casual voyage can use **Crew → Choose a ship for this crew** at an inhabited port. This free, one-time adjustment applies while its original compact starter remains its only owned hull and it has no hull-change history. The captain explicitly chooses the replacement. Credits, cargo, voyage progress, crew identities and injuries are preserved; hull condition is carried across. The offer accounts for released crew, hired specialists and passengers before showing how many NPCs will be aboard.
+
+World content revision 6 keeps published clients and the shared authority on the same release.
 
 ## 0.31.0 — Fifty kinds of expedition
 
