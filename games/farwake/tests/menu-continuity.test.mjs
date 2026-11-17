@@ -7,6 +7,7 @@ import { createNotebookNavigation, NOTEBOOK_SECTIONS } from '../dist/notebook-na
 import { Game } from '../dist/engine.mjs';
 import { STORY_CHAPTERS } from '../dist/content.mjs';
 import { foldDrivePlan } from '../dist/upgrade-guidance.mjs';
+import { createRecoveryReportUI } from '../dist/recovery-report-ui.mjs';
 
 const source = readFileSync(new URL('../dist/app.mjs', import.meta.url), 'utf8');
 const declarations = [...source.matchAll(/^(?:async )?function (\w+)\(/gm)];
@@ -85,6 +86,8 @@ test('a relief decision keeps its contact and next task without an unrelated dis
 test('the actual legacy notebook uses the same destinations and width as stories', () => {
   const context = vm.createContext({ testSession: null, game: game(), dialog: dialog(), document,
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }), fmt: String });
+  context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,
+    invoke: (...args) => context.invoke(...args), acceptResult: answer => context.result(answer) });
   vm.runInContext(declaration('openJournal'), context); context.openJournal('log');
   const nav = context.dialog.body.children[0].children[0];
   assert.deepEqual(nav.children.map(button => button.dataset.notebookSection), NOTEBOOK_SECTIONS.map(([key]) => key));
@@ -156,6 +159,8 @@ function notebookContext(current, extra = {}) {
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }),
     appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
     appendFoldDriveLink() {}, ...extra });
+  context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,
+    invoke: (...args) => context.invoke(...args), acceptResult: answer => context.result(answer) });
   vm.runInContext(['menuSession', 'runMenuAction', 'notebookChapterText', 'openJournal'].map(declaration).join('\n'), context);
   return context;
 }

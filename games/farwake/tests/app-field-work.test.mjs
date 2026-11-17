@@ -9,6 +9,7 @@ import {reconcileSurfacePosition} from '../dist/surface-position.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {rescueOccupants} from '../dist/rescue-rules.mjs';
 import {getGunneryView} from '../dist/gunnery-view.mjs';
+import {syncRecoveredCrewSurface} from '../dist/survivor-surface.mjs';
 
 const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
 const declarations=[...source.matchAll(/^(?:async )?function (\w+)\(/gm)];
@@ -22,7 +23,7 @@ function fieldGame(){
 }
 function surfaceFixture(game=fieldGame()){
  let clears=0;
- const context=vm.createContext({game,network:null,onlineSnapshot:null,surface:null,surfaceKey:'',surfaceTarget:null,generateSurface,isWalkable,fieldSurfaceView,reconcileSurfacePosition,updateNpcLife,rescueOccupants,
+ const context=vm.createContext({game,network:null,onlineSnapshot:null,surface:null,surfaceKey:'',surfaceTarget:null,generateSurface,isWalkable,fieldSurfaceView,reconcileSurfacePosition,updateNpcLife,rescueOccupants,syncRecoveredCrewSurface,
   controls:{clear(){clears++;}},updateSurfaceFlags(){},syncDeckDamage(){}});
  vm.runInContext(['ensureSurface','syncNpcLife','npcTime'].map(declaration).join('\n'),context);
  context.ensureSurface();return{game,context,get clears(){return clears;}};

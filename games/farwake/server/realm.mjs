@@ -933,7 +933,12 @@ export class Realm extends BoardingAuthority {
     captain.portVesselId = [previous, remembered, owned].find(vessel => vessel?.dockedAt === bodyId && vessel.systemId === systemId && this._canBoard(captain, vessel))?.id || null;
     captain.game.state.exploration=null; captain.game.state.person.weaponDrawn=false;
     captain.aboard = null; captain.boardingTeam = null; captain.returnVesselId = null; captain.crewRole = 'passenger'; captain.game.state.systemId = systemId; captain.game.state.locationId = bodyId; captain.game.state.mode = 'person'; captain.game.state.interior = null;
-    if (previous) this._syncCasualCrew(previous);
+    if (previous) {
+      // A settlement reads the occupied hull before the person leaves. Refresh
+      // that count after landing even when this ship has no Casual roster.
+      previous.ship.humanOccupants = Math.max(1, [...this.captains.values()].filter(other => other.aboard === previous.id).length);
+      this._syncCasualCrew(previous);
+    }
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true);
     if (position && isWalkable(this._surface(captain), position.x, position.y)) Object.assign(captain.game.state.person, position);
     captain.game.syncRecoveryReturn();
