@@ -79,9 +79,9 @@
       "Bug Tracker",
       "Hell Let Loose Vietnam"
     ],
-    "updatedAt": "2026-11-13",
-    "updateSummary": "Expanded Catch Up and a privacy policy; official announcement links refreshed Nov 13.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cb6a5d4e7d70d8717b999e6f1e94ebbffbc49ea"
+    "updatedAt": "2026-11-16",
+    "updateSummary": "Official announcement feed and source-link checks refreshed Nov 16; bug and content records retain their own dates.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c5e1aeb1888ad11b4319e72d4c27153c4eaff9e7"
   },
   {
     "id": "further-in",
@@ -281,10 +281,10 @@
   {
     "id": "huddle",
     "title": "Huddle",
-    "subtitle": "Get back into the NFL",
-    "description": "Catch up on NFL teams, games and stories in English, Austrian German, Hindi or Gujarati.",
+    "subtitle": "NFL and soccer, caught up",
+    "description": "Catch up on NFL teams and games in four languages, or follow Manchester City in the Brazilian Portuguese soccer edition.",
     "type": "catch-up",
-    "subtype": "NFL",
+    "subtype": "NFL & soccer",
     "tags": [
       "NFL",
       "Football",
@@ -292,7 +292,10 @@
       "English",
       "Austrian German",
       "Hindi",
-      "Gujarati"
+      "Gujarati",
+      "Soccer",
+      "Brazilian Portuguese",
+      "Manchester City"
     ],
     "art": "huddle",
     "url": "https://dfe-nfl-catch-up.onrender.com/",
@@ -304,11 +307,14 @@
     "aliases": [
       "Back in the Huddle",
       "NFL Catch Up",
-      "NFL Catch-up"
+      "NFL Catch-up",
+      "Soccer Catch Up",
+      "Futebol",
+      "Manchester City"
     ],
-    "updatedAt": "2026-11-12",
-    "updateSummary": "Hindi and Gujarati added; Austrian mode starts with the Vikings. Football data snapshot: Nov 8.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/ecf08e5dcd5fe11a719afe52e6d684ffe8664117"
+    "updatedAt": "2026-11-16",
+    "updateSummary": "NFL and Manchester City coverage refreshed Nov 16, with dated game details, team news and explainers.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e9d38bcb7dbf4b6e2dc67bf6959a7f8d2054459c"
   },
   {
     "id": "vineyard",
@@ -497,7 +503,8 @@
       "Multiplayer",
       "Co-op",
       "2v2",
-      "4 players"
+      "4 players",
+      "Parachute"
     ],
     "art": "skyward",
     "url": "https://dfe-skyward.onrender.com/",
@@ -510,8 +517,8 @@
       "Skyward Flight"
     ],
     "updatedAt": "2026-11-14",
-    "updateSummary": "Four-player 2v2 and co-op, five new planes, parachute bailouts and larger desktop controls.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bf1c0366e4319ccabc7776185a5974a6dc7a75bd"
+    "updateSummary": "Distinct engine sounds, mouse look, adjustable outside cameras, revised explosions and large-screen rendering controls.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/2a283f83b2ad0759c90858dad053ec3ce0231bdd"
   },
   {
     "id": "hockey",
@@ -768,7 +775,7 @@
     "id": "farwake",
     "title": "FARWAKE",
     "subtitle": "The Quiet Earth",
-    "description": "Pilot ships, explore varied planets and stations, and investigate Earth's silence in a shared galaxy.",
+    "description": "Pilot ships, explore planets and stations, join faction crews and fight through ground and space battles in a shared galaxy.",
     "type": "games",
     "subtype": "Space exploration",
     "tags": [
@@ -776,7 +783,9 @@
       "Solo",
       "Multiplayer",
       "Exploration",
-      "Campaign"
+      "Campaign",
+      "Faction fleets",
+      "Ground combat"
     ],
     "art": "farwake",
     "url": "https://dfe-farwake.onrender.com/",
@@ -789,21 +798,23 @@
       "The Quiet Earth",
       "Farwake Galaxy"
     ],
-    "updatedAt": "2026-11-13",
-    "updateSummary": "Casual fold-drive starts, the Earth campaign and restored crew airlock boarding.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c9b817a6fb7e0a47956ddc6cec561defb545a390"
+    "updatedAt": "2026-11-16",
+    "updateSummary": "Surface warzones, faction fleets, hospital recovery and ship power controls. Stranded navy crews can call a free evacuation from Vey.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/de829ea533389ab20fae6dae65949903f5271213"
   },
   {
     "id": "dayboard",
     "title": "Dayboard",
     "subtitle": "A little room for what is next",
-    "description": "Organize personal tasks and projects with a Kanban board, Today view and local backups.",
+    "description": "Plan tasks with a personal Kanban board, custom areas, recurring tasks and a Today view, with adjustable text and density.",
     "type": "tools",
     "subtype": "Personal board",
     "tags": [
       "Tasks",
       "Planning",
-      "Local storage"
+      "Local storage",
+      "Custom areas",
+      "Display settings"
     ],
     "art": "dayboard",
     "url": "https://dfe-dayboard.onrender.com/",
@@ -815,7 +826,10 @@
     "aliases": [
       "Personal Kanban",
       "Life Board"
-    ]
+    ],
+    "updatedAt": "2026-11-16",
+    "updateSummary": "Custom areas preserve existing tasks; text, contrast and layout controls, plus a clear privacy policy. Personal boards stay in your browser.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/ab9c64dc1beece7cc0412b63a111a41477d6eb53"
   },
   {
     "id": "pocket-baseball",
@@ -839,13 +853,13 @@
       "Fenway",
       "Pocket Baseball"
     ],
-    "updatedAt": "2026-11-13",
-    "updateSummary": "Thirteen pitches, bullpen changes, handed players and a 104-mph specialist.",
+    "updatedAt": "2026-11-16",
+    "updateSummary": "Bunts, pitchouts and defensive positioning, with rendering fixes. Commentary and play-by-play captions have been removed.",
     "linkKind": "app",
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-baseball",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/3a9745ad20ab53df5831c241581e73204e1ab2d2"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c982b6f64ef1f3591d42a95394026c0f6abb3f1a"
   },
   {
     "id": "sunday-broadcast",
@@ -870,12 +884,12 @@
       "Sunday Football"
     ],
     "updatedAt": "2026-11-14",
-    "updateSummary": "Private 1v1, replays and a rebuilt desktop layout that gives the field more room.",
+    "updateSummary": "Mouse-led receiver passing, optional hardcore free aim, smoother desktop play and camera controls.",
     "linkKind": "app",
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/sunday-broadcast",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/5351d4aeb32c65e10d9404ef06e2d267db93811a"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/a79e545346241caa4921e8ec69530b7cd3736e8d"
   },
   {
     "id": "shenanigans-golf",
@@ -969,5 +983,65 @@
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
     "updateSource": "https://github.com/shnider42/daily_flyer/commit/8a95ae449ecbd397d21ac2c453931ae534862b25"
+  },
+  {
+    "id": "skybreak",
+    "title": "SKYBREAK",
+    "subtitle": "One island. Ten contenders.",
+    "description": "Drop into a ten-player island battle royale with scavenged weapons, buildable walls and ramps, and a closing storm. Bots fill empty seats.",
+    "type": "games",
+    "subtype": "Battle royale",
+    "tags": ["3D", "Multiplayer", "10 players", "Solo", "Bots", "Building"],
+    "art": "skybreak",
+    "url": "https://dfe-skybreak.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/skybreak-royale",
+    "createdAt": "2026-11-14",
+    "datePrecision": "day",
+    "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
+    "aliases": ["Skybreak Royale", "Battle Royale", "Fortnite concept"],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Solo practice, quick matches and private rooms, with gliders, building and controller or touch controls.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/cff20f8cad3175142494e3ae7e859f21b8f2be39"
+  },
+  {
+    "id": "trailmark",
+    "title": "Trailmark",
+    "subtitle": "Find the next turn",
+    "description": "A hiking pilot for Four Ponds in Bourne, with a local trail map, GPS route checks, checkpoint guidance and offline saving.",
+    "type": "tools",
+    "subtype": "Hiking pilot",
+    "tags": ["Outdoors", "Hiking", "Maps", "GPS", "GPX", "Four Ponds", "Bourne"],
+    "art": "trailmark",
+    "url": "https://dfe-trailmark.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/trailmark-hiking",
+    "createdAt": "2026-11-14",
+    "datePrecision": "day",
+    "dateSource": "First Trailmark build and public Render deployment verified; America/New_York calendar date.",
+    "aliases": ["Four Ponds", "Bourne hiking", "Trail guide"],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Route imports, local field notes and GPX export. GPS monitoring needs the app visible; routes await field checks.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/67f5389b799ed335b6cdc5d989f539c2bddf9683"
+  },
+  {
+    "id": "loudsource",
+    "title": "Loudsource",
+    "subtitle": "Let the room pick the next song",
+    "description": "Request songs, vote on the party queue and play trivia or polls from your phone. Guests join with a nickname; the host controls Spotify.",
+    "type": "tools",
+    "subtype": "Party music",
+    "tags": ["Music", "Party", "Voting", "Spotify", "Trivia", "Polls", "Asynchronous"],
+    "art": "loudsource",
+    "url": "https://ds-ls-1.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/loudsource",
+    "createdAt": "2026-04-21",
+    "datePrecision": "day",
+    "dateSource": "Earliest verified Render service creation: April 22 at 03:18 UTC, April 21 in America/New_York. The party redesign shipped November 14.",
+    "aliases": ["Loud Source", "Loudsource4", "Party playlist", "ds-ls-1"],
+    "updatedAt": "2026-11-14",
+    "updateSummary": "Simpler guest voting, separate song requests, asynchronous trivia and polls, and clearer Spotify host controls.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cf65a1bdd7fb5429b26f74b8eceb2834ec9fe19"
   }
 ]

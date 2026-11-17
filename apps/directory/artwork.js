@@ -39,6 +39,9 @@ export const ART_PALETTES = Object.freeze({
   'shenanigans-golf':{background:'#e8dfc1',foreground:'#285647',accent:'#d7673e'},
   'corner-pocket':{background:'#183f35',foreground:'#f0dfb7',accent:'#ca8a4d'},
   'low-water':{background:'#172c32',foreground:'#d5d9c9',accent:'#bd694d'},
+  skybreak:{background:'#a8cbd4',foreground:'#182f44',accent:'#e76f38'},
+  trailmark:{background:'#e9e4cf',foreground:'#2a4b3e',accent:'#ba7937'},
+  loudsource:{background:'#e37b43',foreground:'#f4e5c6',accent:'#36273f'},
 });
 const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -319,6 +322,38 @@ const covers={
       ${type('LOW',30,218,150,'#d5d9c9',{width:374})}${type('WATER',30,330,119,'#d5d9c9',{width:570})}
       <path d="M0 308Q67 296 135 309T270 308T405 310T540 308T675 309V420H0Z" fill="#42716f" opacity=".65"/>${line('M0 309Q67 297 135 310T270 309T405 311T540 309T675 310','#829e8e',2)}
       ${rect(30,348,295,34,'#bd694d')}${note('FIVE CHAPTERS / SOLO',43,371,'#152c32',{size:13,spacing:1.2})}${note('KEEP THE POWER ON',31,50,'#a8bcb1',{size:12,spacing:2})}${paper(u,.3)}`,
+  }),
+  skybreak:u=>({
+    body:`${rect(0,0,640,420,'#a8cbd4')}${note('10-PLAYER BATTLE ROYALE',30,41,'#182f44',{size:13,spacing:2})}
+      ${type('SKYBREAK',23,153,118,'#182f44',{width:594})}${line('M29 170H610','#182f44',2)}
+      <ellipse cx="443" cy="298" rx="175" ry="91" fill="none" stroke="#f4e5c6" stroke-width="3" stroke-dasharray="9 9"/>
+      <path d="M0 355 72 324 129 337 196 283 258 310 309 280 385 322 447 292 530 323 593 305 640 327V420H0Z" fill="#405d5d"/>
+      <path d="M0 367 72 336 129 349 196 295 258 322 309 292 385 334 447 304 530 335 593 317 640 339V420H0Z" fill="#182f44"/>
+      <path d="M184 288V249H229V307M241 309V267H281V296" fill="#d9d5b7" stroke="#182f44" stroke-width="3"/>
+      ${line('M190 256 222 280M222 256 190 280M248 274 274 291','#8c917b',2)}
+      <path d="M415 202Q470 161 525 202L470 190Z" fill="#e76f38" stroke="#182f44" stroke-width="3"/>
+      ${line('M417 202 466 242M523 202 474 242M470 190V240','#f4e5c6',2)}
+      <circle cx="470" cy="243" r="6" fill="#182f44"/>${line('M470 249V265M470 253 459 246M470 253 481 246M470 265 462 278M470 265 480 277','#182f44',4)}
+      ${rect(0,379,640,41,'#182f44')}${note('LOOT / BUILD / OUTLAST',30,406,'#f4e5c6',{size:12,spacing:2})}${paper(u,.17)}`,
+  }),
+  trailmark:u=>({
+    body:`${rect(0,0,640,420,'#e9e4cf')}${rect(19,19,602,382,'none','stroke="#2a4b3e" stroke-width="1.5"')}
+      ${note('FOUR PONDS / BOURNE',31,49,'#2a4b3e',{size:13,spacing:2})}${type('TRAILMARK',27,143,98,'#2a4b3e',{width:584})}${line('M30 161H610','#2a4b3e',2)}
+      <g fill="none" stroke="#6c8060" stroke-width="1" opacity=".35"><path d="M20 218Q83 154 147 208T277 207 414 184 620 226M20 235Q83 171 147 225T277 224 414 201 620 243M20 252Q83 188 147 242T277 241 414 218 620 260M20 313Q122 266 204 321T389 306 620 340M20 330Q122 283 204 338T389 323 620 357M20 347Q122 300 204 355T389 340 620 374"/></g>
+      <g fill="#a9c6ba" stroke="#718f80" stroke-width="1.5"><path d="M79 212Q119 194 131 222T112 271Q84 290 68 265T79 212Z"/><path d="M223 257Q247 248 260 276T237 306Q202 301 208 280T223 257Z"/><path d="M381 203Q415 178 438 205T423 249Q392 260 373 239T381 203Z"/><path d="M495 317Q517 286 546 307T554 351Q531 369 502 354T495 317Z"/></g>
+      <path d="M64 353 154 314 174 235 285 218 315 291 377 348 459 279 523 230" fill="none" stroke="#ba7937" stroke-width="5" stroke-linejoin="round" stroke-dasharray="10 7"/>
+      <g fill="#e9e4cf" stroke="#2a4b3e" stroke-width="3"><circle cx="64" cy="353" r="7"/><circle cx="174" cy="235" r="7"/><circle cx="315" cy="291" r="7"/><circle cx="459" cy="279" r="7"/></g>
+      <path d="m523 218 9 20-9-4-9 4Z" fill="#2a4b3e"/><path d="M576 192V241M567 207 576 192 585 207" fill="none" stroke="#2a4b3e" stroke-width="2"/>${note('N',571,185,'#2a4b3e',{size:10,spacing:0})}
+      ${rect(29,374,582,26,'#e9e4cf')}${note('MAP / CHECKPOINTS / FIELD NOTES',31,392,'#2a4b3e',{size:11,spacing:1.3})}${paper(u,.25)}`,
+  }),
+  loudsource:u=>({
+    body:`${rect(0,0,640,420,'#e37b43')}${rect(19,19,602,382,'none','stroke="#36273f" stroke-width="2"')}
+      ${note('SONGS / VOTES / TRIVIA',31,49,'#36273f',{size:13,spacing:2})}${type('LOUDSOURCE',27,145,91,'#36273f',{width:584})}${line('M30 166H610','#36273f',2)}
+      <g transform="translate(182 282)"><circle r="96" fill="#36273f"/><g fill="none" stroke="#f4e5c6" stroke-opacity=".28" stroke-width="1"><circle r="82"/><circle r="73"/><circle r="64"/><circle r="55"/></g><circle r="36" fill="#f4e5c6"/><path d="M-30 0H30" stroke="#e37b43" stroke-width="2"/><circle r="6" fill="#36273f"/></g>
+      <g fill="#f4e5c6" stroke="#36273f" stroke-width="2"><rect x="320" y="199" width="271" height="49"/><rect x="320" y="261" width="271" height="49"/><rect x="320" y="323" width="271" height="49"/></g>
+      ${line('M337 217H482M337 229H429M337 279H464M337 291H410M337 341H478M337 353H443','#36273f',3)}
+      <g fill="#36273f"><path d="m548 209 12 13h-8v16h-8v-16h-8ZM548 271l12 13h-8v16h-8v-16h-8ZM548 333l12 13h-8v16h-8v-16h-8Z"/></g>
+      ${note('YOUR PARTY. YOUR QUEUE.',32,392,'#36273f',{size:11,spacing:1.5})}${paper(u,.22)}`,
   }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}
