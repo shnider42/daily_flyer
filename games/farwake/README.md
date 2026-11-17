@@ -1,8 +1,22 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.30.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.31.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.31.0 — Fifty kinds of expedition
+
+The repeated frontier cave, empty hut, and repair relay now give way to **49 authored encounter types**, alongside the preserved Hearth cavern family for **50 types in total**. They occupy existing planets and moons: no chart coordinates, shared galaxy codes, or ship ownership are reset. Curated destinations put every new type somewhere on the normal chart; other worlds draw a stable, biome-appropriate selection from the same catalog. Existing authored quest sites, Hearth, Glimmer, preflight cultures, and Crosswind retain their established content.
+
+These encounters use sixteen distinct physical layouts: bridge approaches, trenches, crash fields, tidal islands, quarries, fungal groves, courtyards, archive yards, power works, clinic camps, nests, ice fissures, antenna arrays, flooded ruins, observatories, and convoy roads. Outdoor trails lead into open terrain rather than another enclosed cave. Roads, water, cover, and sightlines are shared by drawing and combat.
+
+Tasks include comparing witness records, safe equipment sequences, treatment and evacuation decisions, custody disputes, ecological interventions, and local skirmishes. Evidence and prior work gate later actions. Outcomes, collected rewards, wounded or dead combatants, and resolved choices persist in solo saves and shared galaxies. The same final decision or cache cannot pay two captains. Existing captains saved inside an old generic site can still finish and leave it.
+
+Eight new creature or machine silhouettes use fast melee, ranged spit, armored sentinel, pack movement, and armed-combatant behavior. Local faction fighters can attack one another while leaving neutral visitors alone. Assisted aim respects neutrality; a deliberate shot can turn the struck faction's local troops against that captain. Peaceful residents remain people to talk to, not automatic targets.
+
+The chart's **On the surface** section previews local leads. Site briefings, the field objective, and **Mark next step** on the local chart identify the relevant physical evidence or control. Named residents discuss their own situation and the recorded outcome. Occasional recruitment-film satire, notices, and off-duty exchanges add camp without replacing urgent dialogue or Hearth's authored voices.
+
+The original frontier entrance coordinates remain the same, keeping settlement services and paid homes in place. Content revision 5 asks older clients to refresh before rejoining the shared authority. See [the expedition catalog](docs/frontier-expeditions.md) for the full list and implementation notes.
 
 ## 0.30.0 — A ship for two, a crew that makes room
 

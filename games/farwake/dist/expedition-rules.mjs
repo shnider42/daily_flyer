@@ -5,6 +5,7 @@ import { canSeeConcealedActor } from './site-visibility.mjs';
 import { militarySiteLocation } from './military-sites.mjs';
 import { fieldSurfaceView } from './floodworks.mjs';
 import { WARZONE_GROUND_SITE_ID, isWarzoneGroundBody, catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundHostiles, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
+import { inspectStoryChoice, storySurfaceView, expeditionHostileTo } from './expedition-story-rules.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -57,7 +58,7 @@ export const ExpeditionRules={
     if(encounter.field)location.field=encounter.field;
     const key=`${this.state.exploration.key}:${!!active.outdoor}:${!!location.evacuated}:${encounter.field?.revision||0}`;
     if(this._expeditionMap?.key!==key)this._expeditionMap={key,value:generateSurface(location,this.state.seed,this.state.flags)};
-    return warzoneGroundSurfaceView(fieldSurfaceView(this._expeditionMap.value,encounter),this.state.warzoneStories);
+    return warzoneGroundSurfaceView(storySurfaceView(fieldSurfaceView(this._expeditionMap.value,encounter),encounter),this.state.warzoneStories);
   },
   enterSite(siteId){
     if(this.state.mode!=='person'||this.state.interior||this.state.person.health<=0)return this._fail('Reach an entrance on foot first.','mode');
@@ -80,7 +81,7 @@ export const ExpeditionRules={
     const surface=this._expeditionSurface();
     if(encounter.warzoneGround&&!this._sharedWorld){const previous=encounter.warzoneGround.lastSoloAt,now=this.state.stats.time||0;if(previous!==null)catchUpWarzoneGround(encounter,Math.max(0,now-previous),surface);encounter.warzoneGround.lastSoloAt=now;}
     Object.assign(this.state.person,surface.spawn,{moving:false});
-    this.state.person.weaponDrawn=(encounter.warzoneGround?warzoneGroundHostiles(encounter,{factionId:this.warzoneFaction?.(),hostileFactions:this.state.warzone?.hostileFactions}):encounter.monsters).some(monster=>monster.health>0&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
+    this.state.person.weaponDrawn=(encounter.warzoneGround?warzoneGroundHostiles(encounter,{factionId:this.warzoneFaction?.(),hostileFactions:this.state.warzone?.hostileFactions}):encounter.monsters).some(monster=>expeditionHostileTo(monster,this.playerId)&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
     this.recordActivity('explore',{token:`entered:${key}`});
     if(encounter.visited===1)this._log(location.name,location.site.story,'exploration');
     this._event('site-entered',{text:`${location.name} · ${location.site.summary}`,siteId,atmosphere:location.site.atmosphere});
@@ -123,9 +124,10 @@ export const ExpeditionRules={
         if(site.objectiveId==='rescue')this.state.interior.location.evacuated=true;
         this.observeMilitaryEvent?.('ground-objective',{operationId:site.operationId,siteId:site.id,objectiveId:site.objectiveId,amount:1,token:`${site.operationId}:objective:${site.objectiveId}`});
       }
-      const result=inspectSiteRecord(site,entity.data.recordId);if(result.ok){const first=this.recordActivity('explore',{token:`record:${active.key}:${entity.data.recordId}`});if(first.first)this._log(result.title,result.text,'exploration');}return result;
+      const result=inspectSiteRecord(site,entity.data.recordId,active.encounter);if(result.ok){const first=this.recordActivity('explore',{token:`record:${active.key}:${entity.data.recordId}`});if(first.first)this._log(result.title,result.text,'exploration');}return result;
     }
     if(entity.type==='siteChoice'&&action==='inspect'){
+      if(site.expedition)return inspectStoryChoice(active.encounter,site,entity.data.choiceId);
       const choice=site.choices.find(item=>item.id===entity.data.choiceId);if(!choice)return this._fail('No decision is available here.','target');
       return this._ok({title:choice.name,text:choice.text,choice:clone(choice),chosen:active.encounter.choices[choice.id]||null});
     }
@@ -138,7 +140,14 @@ export const ExpeditionRules={
     Object.assign(active.encounter,draft);
     this.state.credits+=result.credits||0;this.state.cargo.ore+=result.ore||0;this.state.cargo.crystal+=result.crystal||0;
     if(result.heal)this.state.person.health=Math.min(this.state.person.maxHealth||100,this.state.person.health+result.heal);
-    this.recordActivity('explore',{token:`claimed:${active.key}:${entity.id}`});this._refreshJobs();
+    if(site.expedition&&result.rep){
+      const applied={};
+      for(const[faction,value]of Object.entries(result.rep))if(Object.hasOwn(this.state.rep,faction)&&Number.isFinite(value)){
+        const before=this.state.rep[faction],after=Math.max(-100,Math.min(100,before+value));this.state.rep[faction]=after;if(after!==before)applied[faction]=after-before;
+      }
+      result.rep=applied;if(result.effects?.rep)result.effects.rep={...applied};
+    }
+    if(result.completed!==false)this.recordActivity('explore',{token:`claimed:${active.key}:${entity.id}`});this._refreshJobs();
     this._log(entity.name,result.text,'exploration');this._event('site-reward',{...result});
     return result;
   },

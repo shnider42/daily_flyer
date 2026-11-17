@@ -39,10 +39,10 @@ test('every expedition has a reachable immediate retreat, all records and reward
  }
 });
 
-test('barren moons are sparse, with both danger and an empty shelter, and their sites remain deterministic',()=>{
+test('barren moons remain sparse while their two authored expeditions stay distinct and deterministic',()=>{
  const body={id:'silent-rock',name:'Silent Rock',kind:'moon',biome:'barren'},surface=generateSurface(body,'quiet');
  assert.ok(surface.barren);assert.equal(surface.entities.filter(e=>['npc','medic','mechanic','jobboard'].includes(e.type)).length,0);
- assert.equal(surface.sites.length,2);assert.ok(surface.sites.some(site=>site.hostile));assert.ok(surface.sites.some(site=>site.empty&&!site.caches.length&&!site.choices.length));
+ assert.equal(surface.sites.length,2);assert.ok(surface.sites.every(site=>site.expedition&&site.objective&&site.choices.length));assert.equal(new Set(surface.sites.map(site=>site.archetypeId)).size,2);
  assert.deepEqual(explorationSites(body,'quiet'),explorationSites(body,'quiet'));assert.notDeepEqual(explorationSites(body,'quiet'),explorationSites(body,'different'));
  assert.equal(explorationLocation(body,'invented','quiet'),null);assert.deepEqual(explorationSites({id:'station',kind:'station'}),[]);
 });

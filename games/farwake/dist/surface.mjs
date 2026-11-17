@@ -15,6 +15,9 @@ import {sidearmAim,facingAngle,personalWeaponById} from './combat.mjs';
 import {buildWarzoneGroundInterior,drawWarzoneGroundEffects,drawWarzoneInfantryKit} from './warzone-ground.mjs';
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
+import {buildExpeditionStoryLayout} from './expedition-story-layouts.mjs';
+import {drawExpeditionProp,drawExpeditionWildlife,drawExpeditionFactionKit,expeditionFactionColor} from './expedition-story-art.mjs';
+import {expeditionHostileTo,storySurfaceView} from './expedition-story-rules.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
 import {appearancePalette} from './character.mjs';
 import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
@@ -451,8 +454,8 @@ function addFrontierSites(m,location,seed,connect=null){
  for(const site of m.sites){
   const x=site.tileX,y=site.tileY,joinY=y<38?38:66;
   if(connect)connect(x,y);else{line(m,x,y,x,joinY,TILE.PATH,2);line(m,x,joinY,48,joinY,TILE.PATH,2);}
-  entity(m,'site:'+site.id,'siteEntrance',site.name,'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',...(site.warzone?{warzone:true}:{}),socialStyle:site.style||null},site.summary);
-  const facade=site.style==='preflight'?'reed-house':{cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house',social:['park','farm'].includes(site.style)?'garden-gate':'frontier-hut'}[site.kind]||'frontier-hut';
+  entity(m,'site:'+site.id,'siteEntrance',site.name,site.expedition&&site.outdoors?'Follow trail':'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',...(site.warzone?{warzone:true}:{}),...(site.expedition?{expedition:true,outdoors:!!site.outdoors,actionLabel:site.outdoors?'Follow trail':'Enter',objective:site.objective,storyType:site.storyType||site.genre,archetypeId:site.archetypeId}:{}),socialStyle:site.style||null},site.summary);
+  const facade=site.expedition?(site.outdoors?'story-trail-marker':site.kind==='cave'?'cave-mouth':site.layout==='observatory'?'dome':'story-gate'):site.style==='preflight'?'reed-house':{cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house',social:['park','farm'].includes(site.style)?'garden-gate':'frontier-hut'}[site.kind]||'frontier-hut';
   prop(m,facade,x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':site.kind==='sanctum'?'#b1c5c3':'#8b9b96',false);
   prop(m,'trail-light',x-2,y,1,1,site.hostile?'#d6ae82':'#a6c9bd',false);
   if(site.warzone){prop(m,'cargo',x-4,y-1,2,1,'#7d8477',false);prop(m,'cargo',x+3,y-1,2,1,'#7d8477',false);prop(m,'banner',x-2,y-3,5,.4,'#ba9b70',false);label(m,'WARZONE / RELIEF GATE',x-3,y+2,'#d2b787');}
@@ -565,6 +568,8 @@ function expeditionSurface(location,seed,outdoor=false){
  rect(m,1,1,m.cols-2,m.rows-2,TILE.WALL);
  if(site.warzone){
   buildWarzoneGroundInterior(m,site,{rect,prop,label,point,TILE});
+ }else if(site.expedition){
+  buildExpeditionStoryLayout(m,site,{prop,point});
  }else if(isFieldSite(site)){
   buildFieldInterior(m,site,normalizeFieldState(site,location.field),{rect,prop,label,point,TILE});
  }else if(site.kind==='military'){
@@ -591,7 +596,7 @@ function expeditionSurface(location,seed,outdoor=false){
   label(m,'SURFACE ←',4,18,'#c5d2c0');
  }
  if(outdoor)entity(m,'exit','exit','Landing shuttle','Return to ship',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#d9bd87',{},'The sheltered landing pad is open. Return to your ship here.');
- else entity(m,'exit','siteExit','Return to surface','Leave this place',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#c5ddbb',{siteId:site.id,parentId:location.parentId},'The way back is open. You can leave even while a threat is alive.');
+ else entity(m,'exit','siteExit',site.expedition&&site.outdoors?'Return to landing trails':'Return to surface',site.expedition&&site.outdoors?'Follow the return trail':'Leave this place',Math.floor(m.exit.x/T),Math.floor(m.exit.y/T),'#c5ddbb',{siteId:site.id,parentId:location.parentId,...(site.expedition?{expedition:true,outdoors:!!site.outdoors}:{})},'The way back is open. You can leave even while a threat is alive.');
  for(const cache of site.caches)entity(m,'cache:'+cache.id,'siteCache',cache.name,'Recover supplies',cache.x,cache.y,'#d7c292',{siteId:site.id,cacheId:cache.id},cache.text);
  for(const record of site.records)entity(m,'record:'+record.id,'siteRecord',record.name,'Read',record.x,record.y,'#9bc4c1',{siteId:site.id,recordId:record.id},record.text);
  for(const choice of site.choices)entity(m,'choice:'+choice.id,'siteChoice',choice.name,'Inspect',choice.x,choice.y,'#d5b98e',{siteId:site.id,choiceId:choice.id},choice.text);
@@ -600,7 +605,7 @@ function expeditionSurface(location,seed,outdoor=false){
   const e=entity(m,'field:'+item.id,'siteObject',item.name,item.survivorId?'Care & escort':'Field work',Math.floor(item.x/T),Math.floor(item.y/T),item.survivorId?'#a7cbb8':'#d6b47b',{siteId:site.id,fieldObjectId:item.id,...(item.survivorId?{survivorId:item.survivorId,survivorStatus:item.status}:{} )},item.text);
   e.x=item.x;e.y=item.y;
  }
- for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(SPECIES_INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=normalizeSpecies(person.species);if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
+ for(const person of [...(INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(SPECIES_INTERIOR_RESIDENTS[`${location.parentId}:${site.id}`]||[]),...(site.residents||[])]){const e=personEntity(m,location,'resident:'+person.id,'npc',person.role,person.x,person.y,person.color||'#a5bca2',{...person,data:{...person.data,siteId:site.id,bodyId:location.parentId,species:person.species||'human'}});if(person.species)e.species=normalizeSpecies(person.species);if(site.expedition&&Number.isFinite(person.health)){e.maxHealth=Math.max(1,Number.isFinite(person.maxHealth)?person.maxHealth:100);e.health=Math.max(0,Math.min(e.maxHealth,person.health));}if(person.data?.recurringId)e.id='social:recurring:'+person.data.recurringId;}
  if(site.military&&location.evacuated)m.entities=m.entities.filter(entity=>!entity.data?.militaryCivilian);
  return m;
 }
@@ -870,7 +875,7 @@ function text(ctx,value,x,y,color='#d8e2d7',size=9,align='left'){ctx.font=`${siz
 function tileDraw(ctx,m,x,y,p,time){
  if(drawNeonTile(ctx,m,x,y,time))return;
  const tile=m.tiles[y][x],wx=x*T,wy=y*T,n=noise(x,y,m.seed);
- if(tile===TILE.VOID){if(m.kind==='site'){pixel(ctx,'#080f17',wx,wy,T,T);return;}if(n>.89){pixel(ctx,n>.98?'#b4d3d0':'#416677',wx+Math.floor(n*17),wy+Math.floor(noise(y,x,m.seed)*20),1,1);if(n>.99)pixel(ctx,'#253f51',wx+Math.floor(n*17)-2,wy+Math.floor(noise(y,x,m.seed)*20),5,1);}return;}
+ if(tile===TILE.VOID){if(m.outdoors){pixel(ctx,p.ground,wx,wy,T,T);return;}if(m.kind==='site'){pixel(ctx,'#080f17',wx,wy,T,T);return;}if(n>.89){pixel(ctx,n>.98?'#b4d3d0':'#416677',wx+Math.floor(n*17),wy+Math.floor(noise(y,x,m.seed)*20),1,1);if(n>.99)pixel(ctx,'#253f51',wx+Math.floor(n*17)-2,wy+Math.floor(noise(y,x,m.seed)*20),5,1);}return;}
  if(m.biome==='cave'&&[TILE.WALL,TILE.FLOOR,TILE.PATH,TILE.GROUND,TILE.RUBBLE].includes(tile)){
   if(tile===TILE.WALL){
    pixel(ctx,'#242d2b',wx,wy,T,T);
@@ -887,6 +892,7 @@ function tileDraw(ctx,m,x,y,p,time){
   return;
  }
  if(tile===TILE.WALL){
+  if(m.outdoors){pixel(ctx,p.ground,wx,wy,T,T);pixel(ctx,p.wall,wx,wy+6,T,18);pixel(ctx,p.wallTop,wx+2,wy+3,T-5,8);pixel(ctx,p.edge,wx+4,wy+3,12,2);pixel(ctx,p.wall,wx+4,wy+10,16,2);if(n>.45)pixel(ctx,p.edge,wx+12,wy+17,9,2);return;}
   pixel(ctx,'#0c1d28',wx,wy,T,T);pixel(ctx,p.wall,wx+1,wy+4,T-2,T-5);pixel(ctx,p.wallTop,wx,wy,T,6);pixel(ctx,p.edge,wx+1,wy+6,T-2,2);pixel(ctx,'#101f2b',wx,wy+21,T,3);pixel(ctx,'#132a36',wx+21,wy+8,3,13);
   if(x%3===0){pixel(ctx,'#9cacaa',wx+3,wy+2,2,1);pixel(ctx,'#738b8e',wx+17,wy+2,2,1);}if((x+y)%7===0){pixel(ctx,'#51707c',wx+4,wy+12,13,2);pixel(ctx,'#233b46',wx+4,wy+15,13,2);}
   if(m.kind==='planet'&&(x===0||y===0||x===m.cols-1||y===m.rows-1)){pixel(ctx,p.ground,wx,wy,T,T);pixel(ctx,p.wall,wx+1,wy+8,23,16);pixel(ctx,p.wallTop,wx+4,wy+4,15,7);pixel(ctx,p.edge,wx+2,wy+10,9,2);}
@@ -916,9 +922,14 @@ function tileDraw(ctx,m,x,y,p,time){
   else if(m.terrain==='terminator'&&x>m.cols*.6)pixel(ctx,shadeColor(shade,.78),wx,wy,T,3);
   return;
  }
+ if(tile===TILE.RUBBLE&&m.outdoors){
+  pixel(ctx,p.ground2||p.ground,wx,wy,T,T);
+  for(let i=0;i<4;i++){const nn=noise(x*4+i,y,m.seed),xx=wx+2+Math.floor(nn*16),yy=wy+3+Math.floor(noise(y*4+i,x,m.seed)*15);pixel(ctx,p.wall,xx,yy+2,5,3);pixel(ctx,nn>.5?p.edge:p.wallTop,xx,yy,4,2);}
+  return;
+ }
  if(tile===TILE.PATH){
   pixel(ctx,p.path,wx,wy,T,T);
-  if(m.kind==='planet'){pixel(ctx,p.ground,wx,wy,1,T);if(n>.3)pixel(ctx,'#aa9b7c',wx+4,wy+7,3,1);if(n>.6)pixel(ctx,'#534f43',wx+14,wy+16,2,1);if((x+y)%3===0){pixel(ctx,'#82765c',wx+3,wy+3,15,8);pixel(ctx,'#9b8b69',wx+4,wy+3,13,1);}if(n<.25){pixel(ctx,'#776a52',wx+7,wy+13,12,7);pixel(ctx,'#a09271',wx+8,wy+13,10,1);}}
+  if(m.kind==='planet'||m.outdoors){pixel(ctx,p.ground,wx,wy,1,T);if(n>.3)pixel(ctx,'#aa9b7c',wx+4,wy+7,3,1);if(n>.6)pixel(ctx,'#534f43',wx+14,wy+16,2,1);if((x+y)%3===0){pixel(ctx,'#82765c',wx+3,wy+3,15,8);pixel(ctx,'#9b8b69',wx+4,wy+3,13,1);}if(n<.25){pixel(ctx,'#776a52',wx+7,wy+13,12,7);pixel(ctx,'#a09271',wx+8,wy+13,10,1);}}
   else{pixel(ctx,p.floor2,wx+22,wy,2,T);pixel(ctx,'#3e5962',wx,wy+22,T,2);pixel(ctx,'#8a9e91',wx+3,wy+4,2,1);if(x%5===0){pixel(ctx,'#708d86',wx+6,wy+11,9,2);pixel(ctx,'#3a555c',wx+6,wy+14,9,1);}}
   return;
  }
@@ -980,6 +991,7 @@ export function drawContactPortrait(ctx,entity={}){
 }
 function drawProp(ctx,d,m,time,emit){
  if(drawNeonProp(ctx,d,m,time,emit))return;
+ if(drawExpeditionProp(ctx,d))return;
  const{x,y,w,h}=d,p=m.palette||PALETTES[m.biome]||PALETTES.station,c=d.color||p.accent;
  if(d.kind==='bowls'){for(let i=2;i<w-5;i+=21){pixel(ctx,'#605447',x+i,y+9,12,6);pixel(ctx,c,x+i-2,y+6,16,5);pixel(ctx,'#806b4e',x+i,y+6,12,2);}return;}
  if(d.kind==='cards'){for(let i=0;i<4;i++){pixel(ctx,'#ded8bd',x+5+i*13,y+5+(i%2)*4,10,13);pixel(ctx,i%2?'#9b655f':'#45625d',x+7+i*13,y+7+(i%2)*4,3,4);}return;}
@@ -1132,7 +1144,7 @@ function drawEntity(ctx,e,m,time,flags,near){
   const status=e.data.survivorStatus;drawCharacter(ctx,x,y,{id:e.id,color:status==='injured'?'#bfa285':'#92bdac',facing:'down',moving:status==='following',time,resting:status==='injured',armed:false});
   pixel(ctx,status==='injured'?'#e6b283':status==='safe'?'#a8d8b5':'#b6d1c1',x-3,y-36,6,3);pixel(ctx,status==='injured'?'#e6b283':'#b6d1c1',x-1,y-38,2,7);
  }
- else if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,identityId:e.identityId||e.data?.crewId||e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
+ else if(['npc','crew','mechanic','medic'].includes(e.type)&&!e.data?.automated){const asleep=e.life?.activity==='sleeping',bed=asleep&&e.life?.restingAt==='bed'?e.life.restTarget:null,injured=m.expedition&&Number.isFinite(e.health)&&e.health<e.maxHealth;drawCharacter(ctx,bed?.x??x,bed?bed.y+10:y,{id:e.data?.guestId||e.id,identityId:e.identityId||e.data?.crewId||e.data?.guestId||e.id,color:c,species:e.species||e.data?.species,facing:e.facing||'down',moving:e.moving,time,health:e.health??e.data?.health,hurtUntil:e.data?.hurtUntil,role:e.role,carried:e.life?.carrying,resting:injured||e.life?.activity==='resting'||e.life?.activity==='eating',asleep});drawResidentTask(ctx,e,time);if(m.kind==='ship')actorHealth(ctx,{x,y,health:e.data?.health,maxHealth:e.data?.maxHealth,hurtUntil:e.data?.hurtUntil},time);else if(injured)actorHealth(ctx,e,time);if(e.type==='medic'&&!asleep){pixel(ctx,'#e7e5c9',x-3,y-21,6,3);pixel(ctx,'#5caa90',x-1,y-22,2,5);}}
  else if(e.data?.serviceDesk){
   pixel(ctx,'#162d36',x-14,y-24,28,27);pixel(ctx,'#55767c',x-13,y-26,26,22);pixel(ctx,'#152d37',x-10,y-23,20,14);pixel(ctx,c,x-9,y-22,18,2);pixel(ctx,'#a5b9ac',x-11,y-7,22,3);pixel(ctx,'#314d56',x-9,y-3,18,7);
   if(e.data.serviceDesk==='public'){pixel(ctx,'#c9ddc6',x-6,y-16,12,3);pixel(ctx,'#c9ddc6',x-2,y-20,4,11);}
@@ -1240,6 +1252,7 @@ function drawCombatEffects(ctx,effects,emit){
 }
 /** Wildlife has its own silhouette; it is never a recolored human boarder. */
 function drawWildlife(ctx,actor,time){
+ if(drawExpeditionWildlife(ctx,actor,time))return;
  if(actor.species==='bellwether'){drawBellwether(ctx,actor,time);return;}
  const x=Math.round(actor.x),y=Math.round(actor.y),small=actor.species==='skitter',dead=actor.health<=0,step=actor.moving?Math.sin(time*15)>0?2:-2:0,c=(actor.hitUntil||0)>time?'#e2c3a6':actor.color||'#a5967e';
  pixel(ctx,'#101b20',x-(small?15:21),y-1,small?30:42,5);
@@ -1314,7 +1327,7 @@ function normalizedActors(options){
  for(const a of options.remotePeople||[])if(a&&(!a.mode||a.mode==='person'))list.push({...a,remote:true});
  const board=options.boardingActors||[],actors=Array.isArray(board)?board:[...(board.enemies||[]),...(board.allies||[])];
  for(const a of actors)if(a)list.push(a);
- for(const a of options.exploration?.monsters||[])if(a)list.push(a);
+ for(const a of options.exploration?.monsters||[])if(a){const hostile=a.expeditionActor?expeditionHostileTo(a,options.localCaptainId):null;list.push(hostile===null?a:{...a,hostile,team:hostile?'hostile':a.team==='hostile'?'neutral':a.team});}
  const ids=new Set();return list.filter(a=>{const id=a.id||a.captainId;if(a.hidden||!Number.isFinite(a.x)||!Number.isFinite(a.y)||id&&ids.has(id))return false;if(id)ids.add(id);return true;});
 }
 function visibleHomes(surface,options){
@@ -1358,8 +1371,8 @@ function zoomLayer(ctx,width,height){
 }
 
 /** A bounded survey diagram. Draws tile runs directly, never a world-sized raster. */
-export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null,visibility=createSiteVisibility(surface,person)}={}){
- surface=fieldSurfaceView(surface,exploration);
+export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null,visibility=createSiteVisibility(surface,person),localCaptainId=null}={}){
+ surface=storySurfaceView(fieldSurfaceView(surface,exploration),exploration);
  const bounded=(value,fallback)=>Math.max(32,Math.min(720,Number.isFinite(Number(value))?Math.round(Number(value)):fallback));
  width=bounded(width,360);height=bounded(height,280);
  const padding=Math.max(7,Math.min(18,Math.floor(Math.min(width,height)*.055))),available=Math.min((width-padding*2)/surface.cols,(height-padding*2)/surface.rows);
@@ -1375,7 +1388,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
   for(let x=1;x<=surface.cols;x++)if(x===surface.cols||tileColor(x,y)!==color){box(color,offsetX+start*cell,offsetY+y*cell,(x-start)*cell,cell);start=x;if(x<surface.cols)color=tileColor(x,y);}
  }
  // Large entrances have recognizable footprints without drawing individual furniture.
- for(const decor of surface.decor)if((!visibility||visibility.knowsPoint(decor))&&['frontier-hut','dome','igloo','cave-mouth','market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house'].includes(decor.kind)){
+ for(const decor of surface.decor)if((!visibility||visibility.knowsPoint(decor))&&['frontier-hut','dome','igloo','cave-mouth','market-house','clinic-house','lab-house','choral-house','glass-house','theatre-house','story-gate','story-tent','story-wreckage','story-dish'].includes(decor.kind)){
   const p=project(decor.x,decor.y);box(decor.kind==='cave-mouth'?'#a6977f':'#8ca8aa',p.x,p.y,Math.max(3,decor.w*scale),Math.max(3,decor.h*scale));
  }
  const markers=[],ordinary=[],exits=[];
@@ -1389,7 +1402,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
  const mark=(marker)=>{const radius=marker.kind==='exit'?5:marker.kind==='site'?4:3;box('#0b1c27',marker.x-radius-1,marker.y-radius-1,radius*2+3,radius*2+3);box(marker.color,marker.x-radius,marker.y-radius,radius*2+1,radius*2+1);if(marker.kind==='exit'){box('#294039',marker.x-1,marker.y-3,3,7);box('#294039',marker.x-3,marker.y-1,7,3);}else if(marker.done)box('#213d38',marker.x-1,marker.y-1,3,3);};
  for(const marker of [...ordinary,...exits])mark(marker);
  // A different captain's discovery never grants local sight through cavern walls.
- for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert&&(!visibility||visibility.canSeeActor(monster))){const point=project(monster.x,monster.y),friendly=monster.warzoneUnit&&monster.team!=='hostile',color=friendly?monster.stripeColor||'#a1bcb0':'#df8b77';box('#17232a',point.x-4,point.y-4,9,9);box(color,point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:friendly?'infantry':'hostile',...point,color});}
+ for(const monster of exploration?.monsters||[])if(monster.health>0&&monster.alert&&(!visibility||visibility.canSeeActor(monster))){const point=project(monster.x,monster.y),friendly=monster.expeditionActor?!expeditionHostileTo(monster,localCaptainId):monster.warzoneUnit&&monster.team!=='hostile',color=friendly?(monster.expeditionActor?expeditionFactionColor(monster.factionId):monster.stripeColor||'#a1bcb0'):'#df8b77';box('#17232a',point.x-4,point.y-4,9,9);box(color,point.x-3,point.y-3,7,7);markers.push({id:monster.id,name:monster.name,kind:friendly?(monster.factionId||monster.warzoneUnit?'infantry':'creature'):'hostile',...point,color});}
  const chosen=markers.find(marker=>marker.selected);if(chosen){const r=9,c='#f4c97f';box(c,chosen.x-r,chosen.y-r,7,2);box(c,chosen.x-r,chosen.y-r,2,7);box(c,chosen.x+r-6,chosen.y-r,7,2);box(c,chosen.x+r-1,chosen.y-r,2,7);box(c,chosen.x-r,chosen.y+r-1,7,2);box(c,chosen.x-r,chosen.y+r-6,2,7);box(c,chosen.x+r-6,chosen.y+r-1,7,2);box(c,chosen.x+r-1,chosen.y+r-6,2,7);}
  const player=project(person?.x??surface.spawn.x,person?.y??surface.spawn.y);box('#102936',player.x-6,player.y-6,13,13);box('#f2f5df',player.x-4,player.y-4,9,9);box('#4b9caa',player.x-1,player.y-1,3,3);
  const direction=facingAngle(person?.facing||'up');pixelLine(ctx,player.x+Math.cos(direction)*7,player.y+Math.sin(direction)*7,player.x+Math.cos(direction)*11,player.y+Math.sin(direction)*11,'#f2f5df',2);
@@ -1397,7 +1410,7 @@ export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=
 }
 
 export function drawSurface(ctx,surface,options={}){
- surface=fieldSurfaceView(surface,options.exploration);
+ surface=storySurfaceView(fieldSurfaceView(surface,options.exploration),options.exploration);
  const person=options.person||surface.spawn,width=options.width||ctx.canvas.width,height=options.height||ctx.canvas.height;
  const cameraOptions={x:person.x,y:person.y,worldWidth:surface.width,worldHeight:surface.height,width,height,zoom:options.zoom,rasterScale:options.rasterScale,cameraX:options.cameraX,cameraY:options.cameraY};
  let view=surfaceCamera(cameraOptions);
@@ -1428,7 +1441,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>(!effect.boardingId||effect.boardingId===options.boarding?.id)&&(!effect.siteId||effect.siteId===options.exploration?.id)&&(!visibility||visibility.canSeePoint(effect.to)&&(!effect.from||visibility.canSeePoint(effect.from)))):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
  const suppliedAim=options.combat?.aim,aim=combatActive?(visibility?sidearmAim(person,actors.filter(a=>a.team==='hostile'),suppliedAim?.manual?{aiming:true,aimX:Math.cos(suppliedAim.angle),aimY:Math.sin(suppliedAim.angle)}:{},surface.combatLayout):(suppliedAim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass))):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
- beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
+ beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'||surface.outdoors?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
  const minX=Math.max(0,Math.floor(cameraX/T)-1),maxX=Math.min(surface.cols,Math.ceil((cameraX+width)/T)+1),minY=Math.max(0,Math.floor(cameraY/T)-1),maxY=Math.min(surface.rows,Math.ceil((cameraY+height)/T)+1);
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)tileDraw(ctx,surface,x,y,p,time);
  for(const room of surface.rooms||[]){ctx.globalAlpha=.10;if(surface.kind==='ship'){for(let y=Math.max(minY,room.y+1);y<Math.min(maxY,room.y+room.h-1);y++)for(let x=Math.max(minX,room.x+1);x<Math.min(maxX,room.x+room.w-1);x++)if([TILE.FLOOR,TILE.PATH].includes(surface.tiles[y]?.[x]))pixel(ctx,room.color,x*T,y*T,T,T);}else pixel(ctx,room.color,(room.x+1)*T,(room.y+1)*T,(room.w-2)*T,(room.h-2)*T);ctx.globalAlpha=1;}
@@ -1461,7 +1474,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   else if(item.animal)drawDomesticAnimal(ctx,item.animal,time);
   else if(item.home)drawHomeMarker(ctx,item.home,options.localCaptainId,time,true);
   else if(item.entity)drawEntity(ctx,item.entity,surface,time,flags,near===item.entity);
-  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:!a.warzoneUnit&&(combatActive||a.weaponDrawn||a.team==='hostile'),color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});drawWarzoneInfantryKit(ctx,{...a,...cues},combatTime);actorHealth(ctx,{...a,...cues},combatTime);}
+  else if(item.actor){const a=item.actor,cues=actorCues(a);if(a.trainingTarget)drawRangeTarget(ctx,a,combatTime);else if(isWildlifeSpecies(a.species))drawWildlife(ctx,{...a,...cues,reduceMotion:options.reduceMotion},combatTime);else drawCharacter(ctx,a.x,a.y,{...a,...cues,armed:!a.warzoneUnit&&(combatActive||a.weaponDrawn||a.team==='hostile'),color:a.color||(a.team==='hostile'?'#bc7b69':'#83b4b9'),time:combatTime,moving:a.moving||Math.hypot(a.vx||0,a.vy||0)>2});drawWarzoneInfantryKit(ctx,{...a,...cues},combatTime);drawExpeditionFactionKit(ctx,a);actorHealth(ctx,{...a,...cues},combatTime);}
   else{const cues=actorCues(person);drawCharacter(ctx,person.x,person.y,{...person,...cues,armed:combatActive||person.weaponDrawn,aimAngle:aim?.angle??person.aimAngle,color:person.color||'#cab078',time:combatTime,walkTime:person.walkTime,carried:person.carrying||flags.has('carrying:'+surface.id)});actorHealth(ctx,{...person,...cues},combatTime);}
  }
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});

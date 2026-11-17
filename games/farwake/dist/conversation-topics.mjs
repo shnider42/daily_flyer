@@ -1,6 +1,7 @@
 /** Optional, concrete conversation topics. These explain existing actions; they
  * never create a job, claim a repair happened, or move a captain's progress. */
 import { localAftermathTopic } from './local-campaigns.mjs';
+import { frontierConversationTopic } from './frontier-bulletins.mjs';
 const topic = (id, label, text) => ({ id, label, text });
 const ROLE_TOPICS = {
   mechanic: [
@@ -95,6 +96,7 @@ const PLACES = {
 export function conversationTopics(game, entity, role, response = {}) {
   if (response.context === 'urgent' || entity.data?.automated) return [];
   const data = entity.data || {}, state = game.state;
+  if (response.context === 'local-expedition') return response.rumor ? [topic('local-expedition', 'What is happening here?', response.rumor)] : [];
   if (data.socialOnly || data.techLevel === 'preflight' || data.culture === 'reedbound') {
     // A quiet social place keeps its own subject. Industrial advice would make
     // distinct cultures sound like another spaceport service desk.
@@ -107,5 +109,6 @@ export function conversationTopics(game, entity, role, response = {}) {
   const currentBody = state.exploration?.bodyId || state.interior?.location?.parentId || state.locationId;
   const bodyId = data.homeLocationId || data.bodyId || currentBody;
   if (bodyId === currentBody && (!data.systemId || data.systemId === state.systemId) && PLACES[bodyId]) topics.push(PLACES[bodyId]);
+  const bulletin = frontierConversationTopic(game, entity, role); if (bulletin && !person && !aftermath) topics.unshift(bulletin);
   return topics.slice(0, 3).map(value => ({ ...value }));
 }

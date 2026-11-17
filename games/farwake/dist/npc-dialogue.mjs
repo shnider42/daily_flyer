@@ -9,6 +9,7 @@ import { militaryDialogue, militaryServiceRank } from './military-ranks.mjs';
 import { militaryMission } from './military-content.mjs';
 import { conversationTopics } from './conversation-topics.mjs';
 import { campaignStageText } from './local-campaigns.mjs';
+import { storyStatus } from './expedition-story-rules.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -304,6 +305,14 @@ function localNews(game, entity, role) {
   return null;
 }
 
+function expeditionConversation(game, entity) {
+  const site = game.state.interior?.location?.site, encounter = game.state.exploration?.encounter;
+  if (!site?.expedition || !encounter || entity.data?.siteId !== site.id || entity.type !== 'npc') return null;
+  const status = storyStatus(encounter, site);
+  return { context: 'local-expedition', greeting: entity.text || entity.data?.greeting || site.story,
+    rumor: status.completed ? status.aftermath || 'Our local record includes your decision.' : [status.objective, status.pendingSummary].filter(Boolean).join(' ') };
+}
+
 function relationship(game, entity, known) {
   const relation = game.state.narrative?.relations?.[contactId(entity)], trust = finite(relation?.trust), standing = finite(game.state.rep?.[entity.data?.faction]);
   const label = trust >= 8 ? 'Trusted' : trust >= 3 ? 'Warm' : trust <= -6 ? 'Estranged' : trust <= -2 ? 'Wary' : standing <= -20 ? 'Wary' : standing >= 20 ? 'Welcomed' : known ? 'Familiar' : 'Unacquainted';
@@ -373,7 +382,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
-  let response = urgent(game, entity, role) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
+  let response = urgent(game, entity, role) || expeditionConversation(game,entity) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };
   if (!response && relation.trust >= 3) response = { context: 'relationship', greeting: relation.trust >= 8 ? 'You’ve earned my trust. Sit with me a moment.' : 'Good to see you. I haven’t forgotten what you did.' };
   if (!response && relation.standing <= -20) response = { context: 'relationship', greeting: role === 'medic' ? 'I know where you stand with the port. If you need care, say so.' : 'Your reputation gets here before you do. What do you need?' };
@@ -386,10 +395,10 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const suppliedRumors = Array.isArray(entity.data?.rumors) ? entity.data.rumors : [];
   const rumors = (suppliedRumors.length ? suppliedRumors : topics.length ? topics.map(value => value.text) : data.rumors || []).filter(value => typeof value === 'string' && value.trim());
   const rumorPool = (rumors.length ? rumors : ['No new local report. Your notebook keeps the people, jobs and destinations you have already found.']).map(value => shortAuthored(value, 'No new local report.'));
-  const rumor = response.context === 'urgent' ? response.rumor : news?.rumor || response.rumor || variedRumor(rumorPool, key, newVisit ? previous?.rumorKey : null);
+  const rumor = ['urgent', 'local-expedition'].includes(response.context) ? response.rumor : news?.rumor || response.rumor || variedRumor(rumorPool, key, newVisit ? previous?.rumorKey : null);
   const remembered = rememberedUpdate(response, previous, entity, role, clock, key);
   response = remembered.response;
-  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), topics, ...(response.updateText ? { updateText: text(response.updateText, 900) } : {}), newsContext: news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
+  const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), topics, ...(response.updateText ? { updateText: text(response.updateText, 900) } : {}), newsContext: response.context === 'local-expedition' ? response.context : news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };
   if (record && id && !entity.data?.automated && !['__proto__', 'prototype', 'constructor'].includes(id)) {
     const details = { ...(remembered.updateKey ? { updateKey: remembered.updateKey } : {}), rumorKey: `rumor:${hash(rumor)}` };
     if (!previous) memory.people.push({ id, count: 1, lastAt: at, context: result.context, ...details });

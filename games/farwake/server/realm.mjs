@@ -14,6 +14,7 @@ import { normalizeCameraPreferences } from '../dist/camera-preferences.mjs';
 import { explorationLocation, createSiteState, stepSiteEncounter, isBellwether, resetSiteBoss } from '../dist/exploration.mjs';
 import { militarySiteLocation } from '../dist/military-sites.mjs';
 import { fieldSurfaceView } from '../dist/floodworks.mjs';
+import { storySurfaceView } from '../dist/expedition-story-rules.mjs';
 import { clone, clamp, finite, cleanName, newCaptainId, newSecret, secretHash, verifySecret, MAX_ONLINE, DISCONNECT_GRACE_MS, INPUT_TIMEOUT_MS, SURFACE_RANGE, EMPTY_INPUT, cleanInput, fail, ok, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 import { rescueOccupants, rescuedBerthCount, normalizeRescueShip } from '../dist/rescue-rules.mjs';
 import { ensureDamageControl, safeCabinPoint, relocateHullOccupants, DAMAGE_CONTROL_RULES } from '../dist/interior-damage.mjs';
@@ -462,7 +463,7 @@ export class Realm extends BoardingAuthority {
     for(const captain of captains){const active=captain.game.state.exploration;if(!active)continue;if(!groups.has(active.key))groups.set(active.key,[]);groups.get(active.key).push(captain);}
     for(const [key,crew] of groups){
       const leader=crew[0],encounter=leader.game.state.exploration.encounter,surface=this._surface(leader);
-      const boss=encounter.monsters.some(isBellwether)||!!encounter.field?.foreman,military=leader.game.state.interior?.location?.site?.military,participants=boss||military||encounter.field||encounter.warzoneGround?crew.filter(c=>c.session):crew;
+      const boss=encounter.monsters.some(isBellwether)||!!encounter.field?.foreman,military=leader.game.state.interior?.location?.site?.military,participants=boss||military||encounter.field||encounter.warzoneGround||surface.site?.expedition?crew.filter(c=>c.session):crew;
       const events=stepSiteEncounter(encounter,participants.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
       if(encounter.warzoneGround)encounter.warzoneGround.lastActiveAt=now();
       for(const captain of crew){
@@ -794,7 +795,7 @@ export class Realm extends BoardingAuthority {
     if (captain.surfaceCache?.key !== key) captain.surfaceCache = { key, value: generateSurface(location, this.seed, captain.game.state.flags) };
     const surface = updateNpcLife(captain.surfaceCache.value, time, { holds: this._npcHoldsFor(captain, time) });
     syncNavyCrewSurface(surface, location.crew || []);
-    return warzoneGroundSurfaceView(fieldSurfaceView(surface,encounter),captain.game.state.warzoneStories);
+    return warzoneGroundSurfaceView(storySurfaceView(fieldSurfaceView(surface,encounter),encounter),captain.game.state.warzoneStories);
   }
   _ensurePersonPosition(captain, reset = false) {
     const surface = this._surface(captain); if (!surface) return;

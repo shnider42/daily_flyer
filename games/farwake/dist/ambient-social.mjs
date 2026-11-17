@@ -1,4 +1,5 @@
 /** Quiet, optional nearby chatter. Sampling never creates a quest or stops play. */
+import { frontierAmbientExchanges } from './frontier-bulletins.mjs';
 const hash=value=>{let n=2166136261;for(const c of String(value))n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const exchanges={
@@ -34,6 +35,6 @@ export function sampleAmbientConversation(surface,seconds,person,{memory,allow=t
  const speaker=people[0],addressed=roll%5===0&&distance(speaker,person)<65&&seconds-memory.lastAddressAt>=720;
  let lines,kind,heardKey;
  if(addressed){kind='addressed';const options=addressedLines[style]||addressedLines.default,available=options.filter(line=>!heard.some(row=>row.key===`addressed:${hash(line)}`));if(!available.length)return null;const text=available[Math.floor(roll/11)%available.length];heardKey=`addressed:${hash(text)}`;lines=[{speakerId:speaker.id,speaker:speaker.name,text}];}
- else{const other=people.slice(1).find(entity=>distance(entity,speaker)<=96);if(!other)return null;const options=exchanges[style]||exchanges.default,available=options.filter(pair=>!heard.some(row=>row.key===`exchange:${hash(pair.join('|'))}`));if(!available.length)return null;const pair=available[Math.floor(roll/11)%available.length];heardKey=`exchange:${hash(pair.join('|'))}`;kind='overheard';lines=[{speakerId:speaker.id,speaker:speaker.name,text:pair[0]},{speakerId:other.id,speaker:other.name,text:pair[1]}];}
+ else{const other=people.slice(1).find(entity=>distance(entity,speaker)<=96);if(!other)return null;const camp=frontierAmbientExchanges(surface,window),options=camp.length?camp:exchanges[style]||exchanges.default,available=options.filter(pair=>!heard.some(row=>row.key===`exchange:${hash(pair.join('|'))}`));if(!available.length)return null;const pair=available[Math.floor(roll/11)%available.length];heardKey=`exchange:${hash(pair.join('|'))}`;kind='overheard';lines=[{speakerId:speaker.id,speaker:speaker.name,text:pair[0]},{speakerId:other.id,speaker:other.name,text:pair[1]}];}
  return{id:`${surface.id}:${window}`,kind,lines,duration:7,until:seconds+7,nextMemory:{...memory,lastAt:seconds,lastWindow:window,lastAddressAt:addressed?seconds:memory.lastAddressAt,heard:[...heard,{key:heardKey,at:seconds}].slice(-HISTORY_LIMIT),speakers:[...speakers,...lines.map(line=>({key:line.speakerId,at:seconds}))].slice(-HISTORY_LIMIT)}};
 }
