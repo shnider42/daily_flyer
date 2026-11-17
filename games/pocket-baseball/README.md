@@ -1,4 +1,4 @@
-# Pocket Baseball — version 0.6.1
+# Pocket Baseball — version 0.7.0
 
 A solo and private-room 1v1 baseball game in the Daily Flyer repository, inspired
 by the readable pitching, timing and broadcast presentation of early-2000s
@@ -23,7 +23,10 @@ immediately. Choose **Play a friend** for an online match.
 | Aim bat / locate pitch | Left pad | Arrows or WASD |
 | Contact swing | SWING | Space |
 | Power swing | POWER | Shift |
+| Bunt | BUNT | F |
 | Choose pitch | Current pitcher's repertoire buttons | 1–4 |
+| Select a pitchout | PITCHOUT in pitching tactics | O |
+| Position the defense | Defensive alignment selector before pitching | Mouse / touch |
 | Pitch meter | Tap PITCH, then RELEASE in gold | Space twice |
 | Throw / queue a throw | 1ST, 2ND, 3RD, HOME diamond | 1–4 (4 is home) |
 | Try an extra base | GO 2ND / GO 3RD / GO HOME | E / Space |
@@ -186,7 +189,7 @@ hit batting side can choose to charge. Pauses and disconnects freeze the fight;
 a reconnect restores the same participants and pending actions. Prediction may
 advance the presentation clock but cannot invent damage or roster changes.
 
-## Animation, sound, and commentary
+## Animation and ballpark sound
 
 Both the WebGL and compatibility pictures share the same animation poses and
 release points. Batters now load their legs, transfer weight, and follow through;
@@ -198,20 +201,52 @@ reticles are hidden during a fight.
 Ballpark audio uses layered bat cracks, glove pops, pitch and throw air, dirt
 footsteps and slides, bounces, wall impacts, a quiet crowd bed, cheers, organ
 phrases, and separate fight/umpire sounds. Cached noise buffers and short-lived
-audio nodes keep the effects inexpensive. A limiter controls peaks; crowd and
-organ levels duck while commentary speaks. Sound starts only after a gesture,
-and mute/pause/menu transitions clear pending sounds.
+audio nodes keep the effects inexpensive. A limiter controls peaks. Sound starts
+only after a gesture, and mute/pause/menu transitions clear pending sounds.
 
-**Pause → Commentary** offers **Voice + captions**, **Captions only**, and **Off**.
-The short calls react to actual events and roster names, with varied wording,
-priority, and repeat suppression. Only one call is current; old calls are cleared
-for the next delivery. Commentary never reveals the selected pitch, velocity,
-location, or knuckleball hang before the pitch is resolved.
+Spoken commentary and play-by-play captions have been removed. The client no
+longer loads a commentary controller, schedules speech, or renders a radio
+caption panel. Previous commentary preferences cannot enable them again. Score,
+count, pitch results and control guidance remain part of the game interface.
 
-Spoken calls use an available local English browser/device voice, not recorded
-human announcers. If no suitable voice is available, captions remain. The sound
-button silences effects and speech while keeping captions unless commentary is
-off. Device voice quality and availability vary.
+## Small ball and defensive positioning
+
+**Bunting:** tap **BUNT / F** as the ball reaches the plate. It uses the same
+input timing and bat aim as a swing, but deadens the ball for a short play in the
+infield. Aim left or right to place it; timing and height still matter. A poor
+attempt can miss, go foul or pop up. A foul bunt with two strikes is a strikeout.
+Contact and power swings retain their previous timing and ball-flight behavior.
+
+A bunt stays live: runners and fielders must reach their destinations, and the
+defense chooses its throw. With fewer than two outs, runners on first or second
+automatically try one base once the bunt is on the ground. A runner on third
+holds unless you send them; use the existing runner controls for a squeeze. Neither advancing the runner nor reaching first is
+guaranteed. **Baserunning practice** starts with runners on first and third so
+these decisions can be tried without waiting for runners to get aboard.
+
+**Pitchouts:** before the delivery, choose **PITCHOUT / O** and use the usual
+pitch meter. Every pitcher can throw one without changing their normal
+repertoire. The ball goes well outside, away from the batter; taking it adds a
+ball to the count and can produce a walk. If a runner goes, the catcher receives
+a faster transfer into the throw. The defense still chooses a base and the ball
+and runner still race physically. Pitchouts do not grant automatic outs.
+
+**Defensive positioning:** choose an alignment before pitching. The selection
+physically changes fielder starting locations and stays with that club until it
+is changed. It cannot be changed during a delivery or a live play.
+
+| Alignment | Purpose | Tradeoff |
+| --- | --- | --- |
+| Normal | Balanced starting positions | No special coverage advantage |
+| Double play | Bring the middle infield closer to second | Less coverage toward the corners and through the holes |
+| Infield in | Shorten a play at home and close on soft infield contact | Ground balls have more room to get through |
+| Deep | Give the outfield a head start on long drives | More room for short hits to land |
+
+These are tactical choices within the assisted fielding system. They do not
+replace physical pickups, throws, force plays, tags, or the runner controls.
+In 1v1 the server validates both the defending side and the current play; a
+reconnect restores the chosen positioning. Bunts use the existing bounded swing
+timing allowance, and immediate local animation cannot decide an outcome.
 
 ## Decisions while the ball is in play
 
@@ -296,7 +331,7 @@ and submit their release-meter quality.
   affects location and effectiveness, including knuckleball control and hang risk.
 - Named lineups and bullpens, left/right/switch batting, left/right pitching,
   five deliveries, pitcher fatigue, CPU pitching changes and a 104 mph specialist.
-- Contact and power swings, timing-dependent spray, spatial bat aim, grounders,
+- Contact, power and bunt attempts, timing-dependent spray, spatial bat aim, grounders,
   line drives, fly balls, physical catches, ground pickups, throws to every base,
   wall rebounds, and fair home runs.
 - Articulated player rigs, coordinated deliveries and throwing motions, runner
@@ -304,14 +339,15 @@ and submit their release-meter quality.
   scoreboard, pitch/contact feedback, bat/glove/crowd sounds and organ accents.
 - Physical lead-offs, queued steals, catcher throws, bounded pickoff attempts,
   tag-up retouching, doubling off, sacrifice flies and a baserunning practice mode.
+- Tactical pitchouts and physical normal, double-play, infield-in and deep
+  defensive positioning; two-strike foul bunts and live bunt fielding.
 - Private authoritative two-player rooms, shared readiness and pauses, bounded
   swing compensation, and temporary same-tab rejoin.
 
 ### Current limits
 
 Field movement remains assisted; baserunning destinations and throw choices are
-player decisions. It does not yet implement bunts,
-pinch hitters, defensive substitutions, balks,
+player decisions. It does not yet implement pinch hitters, defensive substitutions, balks,
 dropped-third-strike advances, infield fly, or a complete appeal
 system. Ball four awards mandatory walk advancement and ends a concurrent steal;
 optional further advances on a live walk are not simulated. Tag-up controls
@@ -434,6 +470,8 @@ third-out scoring, and bounded swing input. Added tests cover leads, steals,
 pickoff races, tag-up retouching, sacrifice flies, third-out combinations, both
 human sides, room lifecycle, sequence/role/pitch validation, delayed swings,
 prediction boundaries, compressed HTTP/SSE convergence and cancellation races.
+Tactical checks cover bunt contact and foul strikeouts, pitchouts, physical
+defensive positioning, snapshot recovery and authoritative online inputs.
 Roster checks cover substitution ownership and reentry, fatigue and practice
 stamina, both pitching hands, switch hitters, the 104 mph ceiling, body sweeps,
 forced HBP awards, dead-ball swinging strikes, delayed inputs and contact behind

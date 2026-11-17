@@ -1,7 +1,7 @@
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.6.1';
-import { samplePlayerMotion, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.6.1';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.1';
-import { getPitcher } from './rosters.mjs?v=0.6.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, inStrikeZone } from './engine.mjs?v=0.7.0';
+import { samplePlayerMotion, presentationBatter, presentationHand, presentationBrawl, brawlCamera } from './renderer.mjs?v=0.7.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.0';
+import { getPitcher } from './rosters.mjs?v=0.7.0';
 
 // Perspective software renderer. Geometry uses the same metres and boundaries
 // as the simulation; only presentation is simplified when WebGL is unavailable.
@@ -310,8 +310,8 @@ export class CompatibilityRenderer {
       let elbow=add(shoulder,armTransform(vec(0,-.29,0)));
       let hand=add(elbow,armTransform(rotateX(vec(0,-.285,0),p[name+'Elbow'])));
       if(role==='batter'&&p.batVisible){
-        const grip=rotateX(rotateY(rotateZ(vec(0,name===(lefty?'left':'right')?.055:.145,0),p.bat[2]),p.bat[1]),p.bat[0]);
-        hand=add(vec(lefty?.015:-.015,.42,.27),grip);
+        const grip=rotateX(rotateY(rotateZ(vec(0,name===(lefty?'left':'right')?.055:p.batTopGrip,0),p.bat[2]),p.bat[1]),p.bat[0]);
+        hand=add(vec(lefty?.015:-.015,p.batHeight,p.batReach),grip);
         const delta=sub(hand,shoulder),distance=clamp(Math.hypot(delta.x,delta.y,delta.z),.04,.572),direction=norm(delta),plane=vec(side,.15,-.25),along=dot(plane,direction),bend=norm(sub(plane,vec(direction.x*along,direction.y*along,direction.z*along))),cos=clamp((.29*.29+distance*distance-.285*.285)/(2*.29*distance),-1,1),sin=Math.sqrt(1-cos*cos);
         elbow=add(shoulder,vec(.29*(direction.x*cos+bend.x*sin),.29*(direction.y*cos+bend.y*sin),.29*(direction.z*cos+bend.z*sin)));
       }
@@ -356,7 +356,7 @@ export class CompatibilityRenderer {
       const glove=hands[gloveHand],q=this.project(glove.x,glove.y,glove.z);c.fillStyle='#926137';c.beginPath();c.ellipse(q.x,q.y,Math.max(1,.13*scale),Math.max(1,.16*scale),-.2,0,TAU);c.fill();c.strokeStyle='#d4aa70';c.lineWidth=Math.max(.6,.012*scale);c.beginPath();c.arc(q.x,q.y,Math.max(1,.09*scale),-.4,2.4);c.stroke();if(scale>15){c.strokeStyle='#5d3d25';c.lineWidth=Math.max(.5,scale*.010);for(let i=0;i<3;i++){c.beginPath();c.moveTo(q.x+(i-1)*scale*.047,q.y-.10*scale);c.lineTo(q.x+(i-1)*scale*.045,q.y+.045*scale);c.stroke();}}
     }
     if(role==='batter'&&p.batVisible){
-      const pivot=vec(lefty?.015:-.015,.42,.27),batVector=rotateX(rotateY(rotateZ(vec(0,.94,0),p.bat[2]),p.bat[1]),p.bat[0]);
+      const pivot=vec(lefty?.015:-.015,p.batHeight,p.batReach),batVector=rotateX(rotateY(rotateZ(vec(0,.94,0),p.bat[2]),p.bat[1]),p.bat[0]);
       this.line(torso(pivot),torso(add(pivot,batVector)),'#4c4030',Math.max(2,scale*.055));this.line(torso(add(pivot,vec(0,.08,0))),torso(add(pivot,batVector)),'#d6b382',Math.max(1.6,scale*.045));
     }
     if(role==='pitcher'&&['ready','windup'].includes(state?.phase)&&!state?.ball?.visible){const holding=hands[throwingHand],q=this.project(holding.x,holding.y,holding.z);if(q.visible){c.fillStyle='#fff3d9';c.beginPath();c.arc(q.x,q.y,Math.max(1.2,.041*scale),0,TAU);c.fill();}}

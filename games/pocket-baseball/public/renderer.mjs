@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.6.1';
-import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.6.1';
-import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.1';
+import { BASES, STRIKE_ZONE, AIM_AREA, PITCH_AIM_AREA, MOUND_RULES, FIGHT_ACTIONS, inStrikeZone } from './engine.mjs?v=0.7.0';
+import { getPark, resolveParkId, fieldRadius, fenceHeight, getWallSegments } from './parks.mjs?v=0.7.0';
+import { DELIVERIES, getRoster, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.7.0';
 
 // The simulation uses +x toward first base. Mirror x in the view so first base
 // appears on the right from behind home, without changing authoritative state.
@@ -134,7 +134,8 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
   const p = { hipY: breath * .008, hipX: 0, hipZ: 0, roll: 0, lean: 0, twist: 0, head: 0, stride: 0,
     leftHip: .08, rightHip: .08, leftKnee: .12, rightKnee: .12,
     leftArm: -.12, rightArm: -.12, leftElbow: -.16, rightElbow: -.16,
-    leftSpread: .08, rightSpread: -.08, bat: [-.25, 0, -.32], batVisible: role === 'batter', slide: 0 };
+    leftSpread: .08, rightSpread: -.08, bat: [-.25, 0, -.32], batVisible: role === 'batter',
+    batHeight: .42, batReach: .27, batTopGrip: .145, slide: 0 };
   if (state?.brawl && ['brawl', 'result'].includes(phase) && actor.brawlSide !== undefined) return sampleBrawlMotion(state, actor, p) || p;
   if (moving) {
     const cycle = Math.sin(time * 15 + index * .73), opposite = Math.sin(time * 15 + index * .73 + Math.PI);
@@ -200,7 +201,21 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     p.leftSpread = -.10; p.rightSpread = .12; p.twist = -.17; p.head = -.22;
     p.bat = [-.25 + breath * .035, Math.sin(time * 3.6) * .025, -.32];
     const age = state?.swing ? time - state.swing.time : -1;
-    if (age >= 0 && age < .72) {
+    if (state?.swing?.bunt && age >= 0 && age < .72) {
+      // A bunt meets the ball on the input frame, then gives slightly with the
+      // impact. Keep the barrel across the plate instead of a full swing arc.
+      const recover = smooth((age - .30) / .42), meet = 1 - recover;
+      const aimY = clamp(state.swing.aim?.y || 0, -1, 1), aimX = clamp(state.swing.aim?.x || 0, -1, 1);
+      const give = Math.sin(clamp(age / .30, 0, 1) * Math.PI) * .035;
+      p.hipY = mix(-.13 + aimY * .14, -.045, recover); p.lean = .08 * meet;
+      p.twist = mix(0, -.17, recover); p.head = mix(-.08, -.22, recover);
+      p.leftHip = mix(-.34, -.16, recover); p.rightHip = mix(-.20, .12, recover);
+      p.leftKnee = mix(.52, .28, recover); p.rightKnee = mix(.46, .22, recover);
+      p.hipZ = -give; p.batHeight = mix(.34 + aimY * .20, .42, recover);
+      p.batReach = mix(.19 - give, .27, recover);
+      p.batTopGrip = mix(.30 - .04 * Math.abs(aimX) - .11 * Math.max(0, -aimY), .145, recover);
+      p.bat = [mix(Math.PI / 2 - p.lean, -.25, recover), 0, mix(aimX * .16, -.32, recover)];
+    } else if (age >= 0 && age < .72) {
       // Swing intent is impact, so the bat reaches the plate on that frame.
       const u = smooth(age / .42), recover = smooth((age - .42) / .30);
       p.twist = mix(u * 1.45, -.17, recover); p.lean = mix(.12, 0, recover);
@@ -235,6 +250,15 @@ export function samplePlayerMotion(state, role, { moving = false, actor = {}, in
     if (phase === 'pitch' && state?.ball?.z < 5) {
       p.leftSpread = clamp(-state.ball.x * .42, -.38, .38);
       p.leftArm -= clamp((state.ball.y - .9) * .3, -.22, .3);
+      if (pitch?.type === 'pitchout' && state.ball.visible) {
+        // Rise and step toward the pitch only once its visible path reaches
+        // the plate area. The hidden intended target never drives this pose.
+        const receive = smooth((5 - state.ball.z) / 4);
+        p.hipY += .36 * receive; p.hipX = -clamp(state.ball.x, -1.5, 1.5) * .32 * receive;
+        p.leftHip = p.rightHip = mix(-1.85, -1.05, receive);
+        p.leftKnee = p.rightKnee = mix(1.85, 1.18, receive);
+        p.lean = mix(.14, .04, receive);
+      }
     }
     if (phase === 'result' && !play) {
       const rise = smooth((state.phaseTime || 0) / .48); p.hipY += rise * .12;
@@ -1087,10 +1111,11 @@ export class BallparkRenderer {
     model.leftForearm.rotation.x = p.leftElbow; model.rightForearm.rotation.x = p.rightElbow;
     if (model.batPivot) {
       model.batPivot.visible = p.batVisible; model.batPivot.rotation.set(...p.bat);
+      model.batPivot.position.y = p.batHeight; model.batPivot.position.z = p.batReach;
       if (p.batVisible) {
         model.group.updateMatrixWorld(true);
         this.reachHand(model, model.hand === 'L' ? 'left' : 'right', model.batPivot.localToWorld(V(0, .055, 0)));
-        this.reachHand(model, model.hand === 'L' ? 'right' : 'left', model.batPivot.localToWorld(V(0, .145, 0)));
+        this.reachHand(model, model.hand === 'L' ? 'right' : 'left', model.batPivot.localToWorld(V(0, p.batTopGrip, 0)));
       }
     }
     model.shadow.scale.set(p.slide ? .8 : .43, p.slide ? .25 : .34, 1);

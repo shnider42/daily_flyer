@@ -1,5 +1,5 @@
 /** Private-room transport. UI, drawing and sound stay in app.mjs. */
-import { BaseballGame } from './engine.mjs?v=0.6.1';
+import { BaseballGame } from './engine.mjs?v=0.7.0';
 
 const STORAGE_KEY = 'dfe.baseball.online.v1';
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -7,9 +7,9 @@ const clock = () => typeof performance !== 'undefined' ? performance.now() : Dat
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const phaseKey = s => `${s.phase}:${s.phaseStartedAt}:${s.inning}:${s.half}:${s.nextPitchId}`;
 const pitchId = s => s.phase === 'ready' ? s.nextPitchId : (s.pitch?.id ?? s.nextPitchId);
-const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'changePitcher', 'chargeMound', 'fight']);
+const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'defense', 'changePitcher', 'chargeMound', 'fight']);
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-const AUTHORITY_FIELDS = ['score', 'hits', 'hitByPitches', 'lineScore', 'outs', 'balls', 'strikes', 'bases', 'batterIndex', 'pitching', 'practice', 'result', 'pending', 'lastContact', 'temper', 'confrontation', 'brawl', 'lineupChanges', 'ejections'];
+const AUTHORITY_FIELDS = ['score', 'hits', 'hitByPitches', 'lineScore', 'outs', 'balls', 'strikes', 'bases', 'batterIndex', 'pitching', 'practice', 'result', 'pending', 'lastContact', 'temper', 'confrontation', 'brawl', 'lineupChanges', 'ejections', 'defensiveAlignment'];
 function storage() { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; } }
 function savedSession(baseUrl) {
   try { const value = JSON.parse(storage()?.getItem(STORAGE_KEY) || 'null'); return value && (!baseUrl || value.baseUrl === baseUrl.replace(/\/$/, '')) ? value : null; } catch { return null; }
@@ -179,7 +179,7 @@ export class OnlineSession {
     if (swing && !this._authority?.swing && s.pitch?.id === swing.pitchId && ['windup', 'pitch'].includes(s.phase) && s.time - swing.time <= .225) {
       // Pose preview only. _predict temporarily removes this unconfirmed swing so
       // it cannot generate a hit, strike, runner, or scoring decision locally.
-      s.swing = { time: swing.time, power: !!swing.power, aim: { ...swing.aim } };
+      s.swing = { time: swing.time, power: !swing.bunt && !!swing.power, bunt: swing.bunt === true, aim: { ...swing.aim } };
     } else this._predictionSwing = null;
   }
   _predict(dt) {

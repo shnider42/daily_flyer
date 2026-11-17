@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { RoomHub, RoomError, phaseKey, commandPitchId } from '../multiplayer.mjs';
 import { createServer } from '../server.mjs';
 import { OnlineSession } from '../public/online.mjs';
-import { getBatterBody, PITCH_AIM_AREA } from '../public/engine.mjs';
+import { getBatterBody, PITCH_AIM_AREA, inStrikeZone } from '../public/engine.mjs';
 
 function pair(options = {}) {
   let milliseconds = 100000;
@@ -41,6 +41,77 @@ function offerOnlineCharge(p) {
   }
   assert.ok(p.room.game.state.confrontation);
 }
+
+test('defensive positioning belongs to the fielding seat and survives rejoin without moving the clock', t => {
+  const p = pair(); t.after(() => p.hub.close()); p.start();
+  const s = p.room.game.state, before = s.time;
+  const shortstop = s.fielders.find(f => f.id === 'SS');
+  const original = { x: shortstop.x, z: shortstop.z };
+  assert.equal(p.input(0, { type: 'defense', side: 1, alignment: 'infieldIn' }).code, 'wrong_side');
+  assert.equal(p.input(1, { type: 'defense', alignment: 'invented' }).code, 'bad_alignment');
+  assert.equal(p.input(1, { type: 'defense', alignment: 'infieldIn' }, { phaseKey: 'old-play' }).code, 'stale_phase');
+  assert.equal(p.input(1, { type: 'defense', alignment: 'infieldIn', pitchId: 99 }).code, 'stale_pitch');
+  assert.equal(p.input(1, { type: 'defense', alignment: 'infieldIn' }).ok, true);
+  assert.equal(s.time, before);
+  assert.equal(s.defensiveAlignment[0], 'normal');
+  assert.equal(s.defensiveAlignment[1], 'infieldIn');
+  const positioned = s.fielders.find(f => f.id === 'SS');
+  assert.notDeepEqual({ x: positioned.x, z: positioned.z }, original);
+  const rejoined = p.hub.rejoin(p.room.code, p.credentials[1].token);
+  assert.equal(rejoined.packet.snapshot.state.defensiveAlignment[1], 'infieldIn');
+  assert.deepEqual(rejoined.packet.snapshot.state.fielders, p.room.game.snapshot().state.fielders);
+  assert.equal(p.input(1, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } }).ok, true);
+  assert.equal(p.input(1, { type: 'defense', alignment: 'deep' }).ok, false);
+  assert.equal(s.defensiveAlignment[1], 'infieldIn');
+});
+
+test('an online pitchout is available outside the pitcher repertoire and costs a called ball', t => {
+  const p = pair(); t.after(() => p.hub.close()); p.start();
+  const game = p.room.game;
+  assert.equal(game.availablePitches.includes('pitchout'), false);
+  assert.equal(p.input(1, { type: 'pitch', pitchType: 'pitchout', quality: 1, aim: { x: 0, y: 0 } }).ok, true);
+  assert.equal(game.state.pitch.type, 'pitchout');
+  assert.equal(inStrikeZone(game.state.pitch.target), false);
+  p.until(s => s.phase === 'result');
+  assert.equal(game.state.balls, 1);
+  assert.equal(game.state.strikes, 0);
+  assert.equal(game.state.outs, 0);
+});
+
+test('a delayed online bunt uses the same bounded timing allowance and remains a bunt on the server', t => {
+  const p = pair(); t.after(() => p.hub.close()); p.start();
+  p.input(1, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } });
+  const targetTime = p.room.game.state.pitch.contactAt;
+  p.until(s => s.time >= targetTime + .12);
+  p.room.players[0].rtt = 180;
+  assert.equal(p.input(0, { type: 'swing', bunt: true, time: targetTime - .2, aim: { x: 0, y: 0 } }).code, 'late_input');
+  assert.equal(p.input(0, { type: 'swing', bunt: true, power: true, time: targetTime, aim: { x: 0, y: 0 } }).ok, true);
+  assert.equal(p.room.game.state.swing.bunt, true);
+  assert.equal(p.room.game.state.swing.power, false);
+  assert.equal(p.room.game.state.lastContact.bunt, true);
+  assert.ok(Math.abs(p.room.game.state.lastContact.timing) < 1e-9);
+});
+
+test('local bunt preview cannot create contact, change the defense, or announce a result ahead of authority', t => {
+  const p = pair(); t.after(() => p.hub.close()); p.start();
+  p.input(1, { type: 'defense', alignment: 'doublePlay' });
+  p.input(1, { type: 'pitch', pitchType: 'fastball', quality: 1, aim: { x: 0, y: 0 } });
+  p.until(s => s.time >= s.pitch.contactAt - .05);
+  const session = new OnlineSession({ storageEnabled: false });
+  session.side = 0; session.generation = p.room.generation; session.code = p.room.code;
+  session._closed = false; session.connected = true;
+  session._packet(p.hub.packet(p.room, p.room.players[0]));
+  const authority = session.game.snapshot();
+  session._predictionSwing = { type: 'swing', pitchId: 1, time: p.room.game.state.pitch.contactAt, aim: { x: 0, y: 0 }, bunt: true, power: false };
+  session._predict(.2);
+  assert.equal(session.game.state.swing.bunt, true);
+  assert.equal(session.game.state.phase, 'pitch');
+  assert.equal(session.game.state.lastContact, null);
+  assert.deepEqual(session.game.state.score, authority.state.score);
+  assert.deepEqual(session.game.state.defensiveAlignment, authority.state.defensiveAlignment);
+  assert.equal(session.game.state.result, null);
+  assert.equal(session.game.drainEvents().length, 0);
+});
 
 test('online mound choices belong to the hit batter and clear the other player’s ready signal', t=>{
   const p=pair();t.after(()=>p.hub.close());p.start();offerOnlineCharge(p);

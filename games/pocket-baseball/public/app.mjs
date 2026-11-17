@@ -1,21 +1,20 @@
-import { FrameStats } from './frame-stats.mjs?v=0.6.1';
-import { BaseballGame, PITCHES, PITCHERS, STEP, PARKS, FIGHT_ACTIONS, getPark, resolveParkId, fieldRadius } from './engine.mjs?v=0.6.1';
-import { BallparkRenderer } from './renderer.mjs?v=0.6.1';
-import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.6.1';
-import { BallparkAudio } from './audio.mjs?v=0.6.1';
-import { BaseballCommentary } from './commentary.mjs?v=0.6.1';
-import { OnlineSession } from './online.mjs?v=0.6.1';
-import { ONLINE_API_BASE } from './online-config.mjs?v=0.6.1';
-import { DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.6.1';
+import { FrameStats } from './frame-stats.mjs?v=0.7.0';
+import { BaseballGame, PITCHES, PITCHERS, PITCHOUT, DEFENSIVE_ALIGNMENTS, STEP, PARKS, FIGHT_ACTIONS, getPark, resolveParkId, fieldRadius } from './engine.mjs?v=0.7.0';
+import { BallparkRenderer } from './renderer.mjs?v=0.7.0';
+import { CompatibilityRenderer } from './fallback-renderer.mjs?v=0.7.0';
+import { BallparkAudio } from './audio.mjs?v=0.7.0';
+import { OnlineSession } from './online.mjs?v=0.7.0';
+import { ONLINE_API_BASE } from './online-config.mjs?v=0.7.0';
+import { DELIVERIES, getRoster, getLineup, getBatter, getBatterHand, getPitcher } from './rosters.mjs?v=0.7.0';
 
-const BUILD_VERSION = '0.6.1';
+const BUILD_VERSION = '0.7.0';
 const $ = id => document.getElementById(id);
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
 const text = (element, value) => { const next = String(value); if (element.textContent !== next) element.textContent = next; };
 const attribute = (element, name, value) => { const next = String(value); if (element.getAttribute(name) !== next) element.setAttribute(name, next); };
 const setDisabled = (element, value) => { if (element.disabled !== !!value) element.disabled = !!value; };
 const visible = (element, show) => { if (element.hidden === show) element.hidden = !show; };
-const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, commentary: 'voice', quality: 'auto', showPerformance: false, pitcher: 'balanced', opponentPitcher: 'balanced', park: 'fenway' };
+const defaults = { innings: 3, difficulty: 'rookie', guidance: 'simple', sound: true, quality: 'auto', showPerformance: false, pitcher: 'balanced', opponentPitcher: 'balanced', park: 'fenway' };
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem('dfe.baseball.preferences.v1') || '{}') || {}; } catch { /* Private browsing can decline persistence. */ }
 const prefs = {
@@ -24,7 +23,6 @@ const prefs = {
   difficulty: ['rookie', 'club', 'pro'].includes(saved.difficulty) ? saved.difficulty : defaults.difficulty,
   guidance: ['simple', 'moderate', 'expert'].includes(saved.guidance) ? saved.guidance : defaults.guidance,
   sound: typeof saved.sound === 'boolean' ? saved.sound : defaults.sound,
-  commentary: ['voice', 'captions', 'off'].includes(saved.commentary) ? saved.commentary : defaults.commentary,
   quality: ['auto', 'low', 'high'].includes(saved.quality) ? saved.quality : defaults.quality,
   showPerformance: saved.showPerformance === true,
   pitcher: PITCHERS[saved.pitcher] ? saved.pitcher : defaults.pitcher,
@@ -36,7 +34,7 @@ const refs = Object.fromEntries([
   'home-version','home-update','pause-update','build-info','performance-summary','show-performance','performance-overlay',
   'app','home-screen','game-ui','loading','error-panel','error-message','scorebug','practicebug','inning-label','away-score','home-score','away-bat','home-bat','count','outs',
   'practice-pitches','practice-hits','practice-hr','practice-best','role-banner','role-title','role-detail','pitch-readout','pitch-name','pitch-speed','timing-cue','timing-marker','timing-label',
-  'status-tip','status-label','status-detail','controls','aim-label','aim-pad','aim-stick','pitch-selection','pitch-meter','meter-marker','meter-label','power-button','action-button','action-label','action-hint',
+  'status-tip','status-label','status-detail','controls','aim-label','aim-pad','aim-stick','pitch-selection','pitch-meter','meter-marker','meter-label','power-button','bunt-button','bunt-warning','secondary-swings','defensive-tactics','tactics-summary','defense-alignment','defense-description','pitchout-button','pitchout-label','action-button','action-label','action-hint',
   'result-card','result-kicker','result-title','result-detail','contact-feedback','next-button','final-menu','line-score','event-toast','pause-dialog','pause-reason','help-dialog',
   'sound-button','pause-button','help-button','innings','difficulty','guidance','pause-guidance','quality','setup-note',
   'pitcher','opponent-pitcher','pitcher-note','opponent-note','field-controls','throw-status','field-control-hint',
@@ -45,16 +43,12 @@ const refs = Object.fromEntries([
   'online-dialog','online-entry','online-lobby','online-status','online-title','create-room','join-room','room-code','room-share-code','room-players','room-ready','room-settings','rejoin-room',
   'connection-strip','connection-label','connection-detail','park','park-note','venue-name','edition-venue','park-caption-note','pause-venue',
   'roster-button','roster-dialog','roster-title','roster-side','roster-lineup-tab','roster-bullpen-tab','roster-lineup','roster-bullpen','roster-lineup-rows','roster-pitchers','roster-context','roster-status','close-roster',
-  'roster-bench','commentary-mode','commentary-note','broadcast-caption','broadcast-text','mound-choice','mound-choice-detail','charge-mound',
+  'roster-bench','mound-choice','mound-choice-detail','charge-mound',
   'fight-score','fight-your-name','fight-other-name','fight-your-health','fight-other-health','fight-clock','fight-stage','fight-controls','fight-hint','fight-energy','fight-energy-label','fight-ready','fight-jab','fight-guard','fight-dodge',
 ].map(id => [id, $(id)]));
 const hudNodes = { outs: [...refs.outs.querySelectorAll('i')], bases: [...document.querySelectorAll('.base-diamond i')], diamond: document.querySelector('.base-diamond'), practiceTitle: refs.practicebug.querySelector('.score-heading span') };
 const frameStats = new FrameStats();
 const audio = new BallparkAudio(prefs.sound);
-const commentary = new BaseballCommentary({ mode: prefs.commentary, enabled: prefs.sound, onSpeaking: speaking => audio.setDucked(speaking), onCaption: message => {
-  text(refs['broadcast-text'], message || ''); visible(refs['broadcast-caption'], !!message);
-  refs.app.classList.toggle('has-commentary', !!message);
-} });
 let renderer, rendererKind = 'webgl', game = new BaseballGame({ ...prefs, mode: 'exhibition', seed: 2003 });
 let screen = 'menu', paused = false, helpOrigin = null, lastFrame = performance.now();
 let aim = { x: 0, y: 0 }, aimPointer = null, pitchType = 'fastball', meter = { active: false, startedAt: 0, value: 0 };
@@ -76,8 +70,11 @@ const guidanceDescriptions = {
 
 for (const id of ['innings','difficulty','guidance','quality']) refs[id].value = String(prefs[id]);
 refs['pause-guidance'].value = prefs.guidance;
-refs['commentary-mode'].value = prefs.commentary;
 refs['show-performance'].checked = prefs.showPerformance;
+for (const [key, alignment] of Object.entries(DEFENSIVE_ALIGNMENTS)) {
+  const option=document.createElement('option');option.value=key;option.textContent=alignment.label;
+  refs['defense-alignment'].append(option);
+}
 text(refs['home-version'],`v${BUILD_VERSION}`);
 const shortName = name => { const parts=String(name||'Player').split(' '); return parts.length>1?`${parts[0][0]}. ${parts.slice(1).join(' ')}`:parts[0]; };
 const pitcherPerson = (side, profileId) => getRoster(side).pitchers.find(p=>p.profileId===profileId)||getRoster(side).pitchers[0];
@@ -156,10 +153,7 @@ function updateSoundButton() {
 }
 updateSoundButton();
 
-function unlockBroadcast() { commentary.unlock(); return audio.unlock(); }
-function updateCommentaryNote() {
-  text(refs['commentary-note'],prefs.commentary==='off'?'Commentary is off. Ballpark effects follow the sound button.':prefs.commentary==='captions'?'Short play-by-play captions; no spoken voice.':commentary.voiceAvailable===false?'No compatible voice is available here. Commentary captions are still on.':'Short play-by-play calls using an available device voice.');
-}
+function unlockAudio() { return audio.unlock(); }
 
 function updatePerformanceInfo(force = false, now = performance.now()) {
   visible(refs['performance-overlay'], screen === 'game' && prefs.showPerformance && !paused);
@@ -363,9 +357,9 @@ function onlineChanged() {
   }
   if(hasRoom&&['playing','paused','finished'].includes(room.status)&&(online.connected||(screen==='game'&&game===online.game))){
     if(screen!=='game'||game!==online.game)startOnlineGame();
-    if(room.status==='playing'&&!onlinePauseRequested&&paused&&!refs['roster-dialog'].open){paused=false;if(refs['pause-dialog'].open)refs['pause-dialog'].close();resetFrameClock();unlockBroadcast();}
+    if(room.status==='playing'&&!onlinePauseRequested&&paused&&!refs['roster-dialog'].open){paused=false;if(refs['pause-dialog'].open)refs['pause-dialog'].close();resetFrameClock();unlockAudio();}
     if(room.status==='paused'){
-      if(!paused){commentary.suspend();audio.suspend();updatePerformanceInfo(true);}
+      if(!paused){audio.suspend();updatePerformanceInfo(true);}
       paused=true;resetInput();
       text(refs['pause-reason'],onlinePauseRequested?'Time is called. Resume when you are ready.':room.reason||'The match is paused while your opponent returns.');
       if(!refs['pause-dialog'].open&&!refs['help-dialog'].open&&!refs['roster-dialog'].open)refs['pause-dialog'].showModal();
@@ -385,7 +379,7 @@ function onlineChanged() {
   }
 }
 function startOnlineGame() {
-  commentary.reset();audio.reset();fightBusy=false;chargeBusy=false;
+  audio.reset();fightBusy=false;chargeBusy=false;
   game=online.game;screen='game';paused=false;helpOrigin=null;lastPhase=null;lastBattingSide=null;
   updateParkDisplay(game.options.park);renderer?.setPark?.(game.options.park);
   onlinePauseRequested=!!online.room?.pauseSides?.includes(online.side);
@@ -397,8 +391,7 @@ function startOnlineGame() {
   if(refs['roster-dialog'].open){rosterOrigin=null;refs['roster-dialog'].close();}
   frameStats.reset();lastHudAt=-Infinity;
   resetInput();resetFrameClock();updatePitchButtons();drawAimStick();
-  unlockBroadcast().then(()=>audio.organ());refs.app.focus({preventScroll:true});
-  commentary.event({type:'start'},game.state);
+  unlockAudio().then(()=>audio.organ());refs.app.focus({preventScroll:true});
 }
 function updateOnlineStatus() {
   visible(refs['connection-strip'],!!online);if(!online)return;
@@ -416,7 +409,7 @@ function updateOnlineStatus() {
   }
 }
 function openOnline() {
-  unlockBroadcast();text(refs['online-status'],'');
+  unlockAudio();text(refs['online-status'],'');
   visible(refs['online-entry'],true);visible(refs['online-lobby'],false);
   visible(refs['rejoin-room'],Boolean(OnlineSession.hasSavedSession?.(onlineBase())));
   refs['online-dialog'].showModal();refs['online-title'].focus({preventScroll:true});
@@ -452,7 +445,7 @@ refs['online-dialog'].addEventListener('cancel',event=>{event.preventDefault();$
 
 function startGame(mode = 'exhibition', scenario = null) {
   disconnectOnline();
-  commentary.reset();audio.reset();fightBusy=false;chargeBusy=false;
+  audio.reset();fightBusy=false;chargeBusy=false;
   frameStats.reset();lastHudAt=-Infinity;
   const seed = (Date.now() ^ Math.floor(performance.now()*1000)) >>> 0;
   prefs.innings = +refs.innings.value; prefs.difficulty = refs.difficulty.value; prefs.guidance = refs.guidance.value;
@@ -469,13 +462,12 @@ function startGame(mode = 'exhibition', scenario = null) {
   if (refs['help-dialog'].open) refs['help-dialog'].close();
   if(refs['roster-dialog'].open){rosterOrigin=null;refs['roster-dialog'].close();}
   applyGuidance(prefs.guidance);updateParkDisplay(prefs.park);renderer?.setPark?.(prefs.park);updatePitchButtons();updateHUD();
-  unlockBroadcast().then(() => audio.organ());
-  commentary.event({type:'start'},game.state);
+  unlockAudio().then(() => audio.organ());
   refs.app.focus({ preventScroll: true });
 }
 function returnHome() {
   disconnectOnline();
-  commentary.reset();audio.reset();fightBusy=false;chargeBusy=false;
+  audio.reset();fightBusy=false;chargeBusy=false;
   screen = 'menu'; paused = false; helpOrigin = null; meter.active = false;
   resetInput(); resetFrameClock();
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
@@ -490,7 +482,7 @@ function returnHome() {
 }
 function pauseGame(reason = 'Take your time. The next pitch can wait.', showDialog = true) {
   if (screen !== 'game') return;
-  commentary.suspend();audio.suspend();updateCommentaryNote();
+  audio.suspend();
   paused = true; resetInput(); resetFrameClock();
   if(online&&!onlinePauseRequested){onlinePauseRequested=true;online.pause().catch(onlineError);}
   updatePerformanceInfo(true); checkForUpdate();
@@ -507,7 +499,7 @@ function resumeGame() {
   if(online){onlinePauseRequested=false;online.resume().catch(onlineError);}
   if (refs['pause-dialog'].open) refs['pause-dialog'].close();
   refs.app.focus({ preventScroll: true });
-  unlockBroadcast();
+  unlockAudio();
 }
 function openHelp(origin = 'game') {
   if (refs['help-dialog'].open) return;
@@ -542,8 +534,7 @@ refs.quality.addEventListener('change', () => { prefs.quality=refs.quality.value
 refs['show-performance'].addEventListener('change',()=>{prefs.showPerformance=refs['show-performance'].checked;savePrefs();updatePerformanceInfo(true);});
 refs['home-update'].addEventListener('click',()=>location.reload());
 refs['pause-update'].addEventListener('click',returnHome);
-refs['sound-button'].addEventListener('click', () => { prefs.sound=!prefs.sound;audio.setEnabled(prefs.sound);commentary.setEnabled(prefs.sound);if(prefs.sound)commentary.unlock();updateSoundButton();savePrefs(); });
-refs['commentary-mode'].addEventListener('change',()=>{prefs.commentary=refs['commentary-mode'].value;commentary.setMode(prefs.commentary);updateCommentaryNote();savePrefs();});
+refs['sound-button'].addEventListener('click', () => { prefs.sound=!prefs.sound;audio.setEnabled(prefs.sound);updateSoundButton();savePrefs(); });
 refs['pause-button'].addEventListener('click', () => pauseGame());
 refs['help-button'].addEventListener('click', () => openHelp());
 $('home-help').addEventListener('click', () => openHelp('menu'));
@@ -580,7 +571,7 @@ function updatePitchButtons() {
       refs['pitch-selection'].append(button);
     }
   }
-  if(!keys.includes(pitchType))pitchType=keys[0];
+  if(pitchType!=='pitchout'&&!keys.includes(pitchType))pitchType=keys[0];
   for (const button of refs['pitch-selection'].querySelectorAll('button')) {
     const selected = button.dataset.pitch === pitchType;
     button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected));
@@ -589,10 +580,42 @@ function updatePitchButtons() {
 function choosePitch(event) {
   const button=event.target.closest('button[data-pitch]');
   if(!button||screen!=='game'||paused||game.state.phase!=='ready'||game.isBatting)return;
-  event.preventDefault();pitchType=button.dataset.pitch;updatePitchButtons();unlockBroadcast();
+  event.preventDefault();pitchType=button.dataset.pitch;updatePitchButtons();updateTacticsControls();unlockAudio();
 }
 refs['pitch-selection'].addEventListener('pointerdown',choosePitch);
 refs['pitch-selection'].addEventListener('click',event=>{if(event.detail===0)choosePitch(event);});
+
+function updateTacticsControls() {
+  const s=game.state,show=screen==='game'&&!game.isBatting&&s.phase==='ready';
+  visible(refs['defensive-tactics'],show);
+  if(!show){if(refs['defensive-tactics'].open)refs['defensive-tactics'].open=false;return;}
+  const alignment=s.defensiveAlignment?.[1-s.battingSide]||'normal';
+  const config=DEFENSIVE_ALIGNMENTS[alignment]||DEFENSIVE_ALIGNMENTS.normal;
+  if(refs['defense-alignment'].value!==alignment)refs['defense-alignment'].value=alignment;
+  text(refs['defense-description'],config.description);
+  text(refs['tactics-summary'],pitchType==='pitchout'?'PITCHOUT':config.label);
+  const blocked=paused||isOnlineBlocked()||meter.active;
+  setDisabled(refs['defense-alignment'],blocked);setDisabled(refs['pitchout-button'],blocked);
+  attribute(refs['pitchout-button'],'aria-pressed',pitchType==='pitchout');
+  text(refs['pitchout-label'],pitchType==='pitchout'?'CANCEL PITCHOUT':'PITCHOUT');
+  if(meter.active&&refs['defensive-tactics'].open)refs['defensive-tactics'].open=false;
+}
+function choosePitchout() {
+  if(screen!=='game'||paused||isOnlineBlocked()||game.isBatting||game.state.phase!=='ready'||meter.active)return;
+  pitchType=pitchType==='pitchout'?(game.availablePitches?.[0]||'fastball'):'pitchout';
+  refs['defensive-tactics'].open=false;
+  unlockAudio();updatePitchButtons();updateHUD();
+  if(pitchType==='pitchout')showToast('PITCHOUT · BALL IF TAKEN · QUICKER THROW',1.8);
+}
+refs['pitchout-button'].addEventListener('click',choosePitchout);
+refs['defense-alignment'].addEventListener('change',()=>{
+  if(screen!=='game'||paused||isOnlineBlocked()||game.isBatting||game.state.phase!=='ready'||meter.active){updateTacticsControls();return;}
+  const alignment=refs['defense-alignment'].value;
+  if(!dispatch({type:'defense',alignment}))showToast(game.lastRejection||'Set the defense before the delivery.',1.8);
+  else showToast(`${DEFENSIVE_ALIGNMENTS[alignment].label.toUpperCase()} · FIELDERS SET`,1.2);
+  updateHUD();
+});
+
 
 const baseName=base=>({0:'HOME',1:'1ST',2:'2ND',3:'3RD',4:'HOME'})[base]||'BASE';
 function liveRunners(){return(game.state.runners||[]).filter(r=>!r.out&&!r.scored&&(r.pathPosition??r.base??0)<4);}
@@ -611,7 +634,7 @@ function runnerHoldBase(r){
 function controlRunner(action){
   if(screen!=='game'||paused||isOnlineBlocked()||game.state.phase!=='live'||game.state.play?.fair===false||!game.isBatting)return;
   const runner=selectedRunner();if(!runner)return;
-  unlockBroadcast();
+  unlockAudio();
   if(!dispatch({type:'run',runnerId:runner.id,action}))showToast(game.lastRejection||'That runner cannot make this move.',1.6);
   updateLiveControls();
 }
@@ -623,7 +646,7 @@ function cycleRunner(){
 }
 function throwToBase(base){
   if(screen!=='game'||paused||isOnlineBlocked()||game.state.phase!=='live'||game.state.play?.fair===false||game.isBatting)return;
-  unlockBroadcast();
+  unlockAudio();
   if(dispatch({type:'throw',base})){selectedThrowBase=base;updateLiveControls();}
   else showToast(game.lastRejection||'Wait for the fielder to get the ball.',1.6);
 }
@@ -645,13 +668,13 @@ refs['runner-picker'].addEventListener('click',event=>{if(event.detail===0)pickR
 function preplayCommand(type,action){
   if(screen!=='game'||paused||isOnlineBlocked()||!game.isBatting||!['ready','windup','pitch'].includes(game.state.phase))return;
   const runner=selectedRunner();if(!runner)return;
-  unlockBroadcast();
+  unlockAudio();
   if(!dispatch({type,runnerId:runner.id,...(action?{action}:{})}))showToast(game.lastRejection||'Wait for the runner to settle.',1.8);
   updatePreplayControls();
 }
 function pickOff(base){
   if(screen!=='game'||paused||isOnlineBlocked()||game.isBatting||game.state.phase!=='ready')return;
-  unlockBroadcast();meter.active=false;
+  unlockAudio();meter.active=false;
   if(!dispatch({type:'pickoff',base}))showToast(game.lastRejection||'No runner to pick off there.',1.8);
   updateHUD();
 }
@@ -755,10 +778,11 @@ function eventSimulationTime(event) {
   const interpolation=(1-clamp(game.interpolationAlpha??1,0,1))*STEP;
   return Math.max(0,game.state.time-interpolation-age);
 }
-function triggerAction(event, power = false) {
+function triggerAction(event, power = false, bunt = false) {
   if(screen!=='game'||paused||isOnlineBlocked()||refs['help-dialog'].open||refs['pause-dialog'].open)return;
-  unlockBroadcast();
+  unlockAudio();
   const s=game.state;
+  if(bunt&&(!game.isBatting||!['windup','pitch'].includes(s.phase)))return;
   if(s.phase==='result'||s.phase==='half'){nextPlay();return;}
   if(s.phase==='final'){if(online)returnHome();else startGame(game.options.mode,game.options.scenario);return;}
   if(s.phase==='live'){
@@ -770,8 +794,8 @@ function triggerAction(event, power = false) {
   }
   if(game.isBatting){
     if(['windup','pitch'].includes(s.phase)&&!s.swing){
-      const accepted=dispatch({type:'swing',power,aim:{...aim},time:eventSimulationTime(event)});
-      if(accepted){audio.whoosh();refs['action-button'].classList.add('pressed');}
+      const accepted=dispatch({type:'swing',power:bunt?false:power,bunt,aim:{...aim},time:eventSimulationTime(event)});
+      if(accepted){if(!bunt)audio.whoosh(power);refs['action-button'].classList.add('pressed');}
     }
   }else if(s.phase==='ready'){
     if(!meter.active){meter={active:true,startedAt:s.time,value:0};}
@@ -786,7 +810,7 @@ function triggerAction(event, power = false) {
 }
 function nextPlay() {
   if(screen!=='game'||paused||chargeBusy)return;
-  unlockBroadcast();
+  unlockAudio();
   if(game.state.phase==='final'){if(online)returnHome();else startGame(game.options.mode,game.options.scenario);return;}
   if(isOnlineBlocked())return;
   dispatch({type:'next'});
@@ -797,7 +821,7 @@ refs['next-button'].addEventListener('click', nextPlay);
 async function chargeMound() {
   const s=game.state,side=online?.side??game.options.localSide;
   if(screen!=='game'||paused||chargeBusy||isOnlineBlocked()||s.confrontation?.battingSide!==side||online?.waitingForOpponent)return;
-  unlockBroadcast();chargeBusy=true;updateHUD();
+  unlockAudio();chargeBusy=true;updateHUD();
   try{
     const result=online?await online.send({type:'chargeMound'}):{ok:game.command({type:'chargeMound',side}),error:game.lastRejection};
     if(!result.ok)showToast(result.error||'The hitter cannot charge now.',2);
@@ -808,7 +832,7 @@ async function chargeMound() {
 async function fightAction(action) {
   const s=game.state,side=online?.side??game.options.localSide,f=s.brawl?.fighters?.[side],move=FIGHT_ACTIONS[action];
   if(screen!=='game'||paused||fightBusy||isOnlineBlocked()||s.phase!=='brawl'||s.brawl.stage!=='fight'||!f||!move||s.time+1e-9<f.cooldownUntil||f.stamina+1e-9<move.cost)return;
-  unlockBroadcast();fightBusy=true;updateFightHUD();
+  unlockAudio();fightBusy=true;updateFightHUD();
   try{
     const result=online?await online.send({type:'fight',action}):{ok:game.command({type:'fight',action,side}),error:game.lastRejection};
     if(!result.ok)showToast(result.error||'Wait for your next opening.',1);
@@ -842,9 +866,11 @@ refs['charge-mound'].addEventListener('click',chargeMound);
 for(const action of Object.keys(FIGHT_ACTIONS))refs[`fight-${action}`].addEventListener('click',()=>fightAction(action));
 refs['action-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,false);});
 refs['power-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,true);});
+refs['bunt-button'].addEventListener('pointerdown', event => {event.preventDefault();triggerAction(event,false,true);});
 // Native keyboard/assistive clicks have no pointerdown. Pointer clicks are already handled.
 refs['action-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,false);});
 refs['power-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,true);});
+refs['bunt-button'].addEventListener('click', event => {if(event.detail===0)triggerAction(event,false,true);});
 
 function setAimFromPointer(event) {
   const rect=refs['aim-pad'].getBoundingClientRect();
@@ -856,7 +882,7 @@ function drawAimStick() { refs['aim-stick'].style.transform=`translate(${aim.x*3
 refs['aim-pad'].addEventListener('pointerdown', event => {
   if(screen!=='game'||paused||aimPointer!==null)return;
   event.preventDefault();aimPointer=event.pointerId;
-  refs['aim-pad'].setPointerCapture(event.pointerId);setAimFromPointer(event);unlockBroadcast();
+  refs['aim-pad'].setPointerCapture(event.pointerId);setAimFromPointer(event);unlockAudio();
   if(event.pointerType==='touch'){touchMode=true;refs.app.classList.add('touch-mode');}
 });
 refs['aim-pad'].addEventListener('pointermove', event => {if(event.pointerId===aimPointer){event.preventDefault();setAimFromPointer(event);}});
@@ -880,7 +906,7 @@ window.addEventListener('keydown', event => {
   }
   // Let a focused button retain its normal Enter/Space activation semantics.
   if(['Space','Enter'].includes(event.code)&&event.target instanceof Element&&event.target.closest('button'))return;
-  const codes=['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Enter','Digit1','Digit2','Digit3','Digit4','KeyE','KeyQ','KeyR','KeyB','KeyZ','KeyX','KeyC'];
+  const codes=['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Enter','Digit1','Digit2','Digit3','Digit4','KeyE','KeyQ','KeyR','KeyB','KeyZ','KeyX','KeyC','KeyF','KeyO'];
   if(!codes.includes(event.code))return;
   event.preventDefault();
   if(event.repeat)return;
@@ -888,6 +914,8 @@ window.addEventListener('keydown', event => {
   if(event.code==='Space')triggerAction(event,pressed.has('ShiftLeft')||pressed.has('ShiftRight'));
   else if(event.code==='ShiftLeft'||event.code==='ShiftRight'){if(game.isBatting&&['windup','pitch'].includes(game.state.phase))triggerAction(event,true);}
   else if(event.code==='Enter'&&['result','half','final'].includes(game.state.phase))nextPlay();
+  else if(event.code==='KeyF'&&game.isBatting)triggerAction(event,false,true);
+  else if(event.code==='KeyO'&&!game.isBatting)choosePitchout();
   else if(game.isBatting&&['ready','windup','pitch'].includes(game.state.phase)){
     if(event.code==='KeyZ')preplayCommand('lead','shorten');
     else if(event.code==='KeyX')preplayCommand('lead','extend');
@@ -902,7 +930,7 @@ window.addEventListener('keydown', event => {
   }
   else if(event.code.startsWith('Digit')&&!game.isBatting&&game.state.phase==='live')throwToBase(+event.code.slice(-1));
   else if(event.code.startsWith('Digit')&&!game.isBatting&&game.state.phase==='ready'){
-    const key=(game.availablePitches||[])[+event.code.slice(-1)-1];if(key){pitchType=key;updatePitchButtons();}
+    const key=(game.availablePitches||[])[+event.code.slice(-1)-1];if(key){pitchType=key;updatePitchButtons();updateTacticsControls();}
   }
 });
 window.addEventListener('keyup',event=>pressed.delete(event.code));
@@ -926,19 +954,23 @@ function updateImmediateHUD(s, batting, phase) {
   const active=['ready','windup','pitch'].includes(phase);
   visible(refs.controls,active);
   text(refs['aim-label'],batting?'BAT AIM':'PITCH LOCATION');
-  visible(refs['power-button'],batting);
+  visible(refs['secondary-swings'],batting);
+  visible(refs['bunt-warning'],batting&&active&&!s.swing&&s.strikes===2);
+  updateTacticsControls();
   visible(refs['pitch-selection'],!batting&&phase==='ready');
   visible(refs['pitch-meter'],!batting&&phase==='ready');
   refs['action-button'].classList.toggle('pitching',!batting);
   const canSwing=batting&&['windup','pitch'].includes(phase)&&!s.swing;
   setDisabled(refs['action-button'],isOnlineBlocked()||(batting?!canSwing:phase!=='ready'));
   setDisabled(refs['power-button'],isOnlineBlocked()||!canSwing);
-  text(refs['action-label'],batting?(s.swing?'SWUNG':'SWING'):(meter.active?'RELEASE':'PITCH'));
+  setDisabled(refs['bunt-button'],isOnlineBlocked()||!canSwing);
+  attribute(refs['bunt-button'],'title',s.strikes===2?'A foul bunt with two strikes is an out.':'Time the bunt at the plate. Aim to deaden the ball toward either side.');
+  text(refs['action-label'],batting?(s.swing?(s.swing.bunt?'BUNTED':'SWUNG'):'SWING'):(meter.active?'RELEASE':pitchType==='pitchout'?'PITCHOUT':'PITCH'));
   text(refs['action-hint'],'SPACE');
   if(!batting&&phase==='ready'){
     meter.value=meter.active?meterValue(s.time):0;
     refs['meter-marker'].style.left=`${meter.value*100}%`;
-    text(refs['meter-label'],meter.active?'TAP AGAIN IN THE GOLD':'TAP PITCH TO START');
+    text(refs['meter-label'],meter.active?'TAP AGAIN IN THE GOLD':pitchType==='pitchout'?'PITCHOUT · BALL IF TAKEN':'TAP PITCH TO START');
   }
   const showTiming=batting&&prefs.guidance==='simple'&&phase==='pitch'&&!s.swing;
   visible(refs['timing-cue'],showTiming);
@@ -989,7 +1021,7 @@ function updateHUD({force=true,now=performance.now()}={}) {
   visible(refs['role-banner'],!['result','half','final','brawl'].includes(phase));
   const pitchRead=!!s.pitch&&['live','result'].includes(phase);
   visible(refs['pitch-readout'],pitchRead);
-  if(pitchRead){text(refs['pitch-name'],PITCHES[s.pitch.type]?.label?.toUpperCase()||s.pitch.type.toUpperCase());text(refs['pitch-speed'],`${Math.round(s.pitch.mph)} MPH`);}
+  if(pitchRead){text(refs['pitch-name'],(s.pitch.type==='pitchout'?PITCHOUT.label:PITCHES[s.pitch.type]?.label)?.toUpperCase()||s.pitch.type.toUpperCase());text(refs['pitch-speed'],`${Math.round(s.pitch.mph)} MPH`);}
   updateLiveControls();
   updatePreplayControls();updateOnlineStatus();
   visible(refs['status-tip'],!['result','half','final','brawl'].includes(phase));
@@ -1056,9 +1088,9 @@ function updateHUD({force=true,now=performance.now()}={}) {
 function processEvents() {
   for(const event of game.drainEvents()){
     audio.event(event,game.state);
-    commentary.event(event,game.state);
     if(event.type==='run')showToast(event.side===0?'HARBOR SCORES':'FOUNDRY SCORES',1.8);
-    if(event.type==='contact'&&event.quality>.9)showToast('ON THE BARREL',1.1);
+    if(event.type==='contact'&&event.bunt)showToast('BUNT IN PLAY · WATCH THE RUNNERS',1.1);
+    else if(event.type==='contact'&&event.quality>.9)showToast('ON THE BARREL',1.1);
     if(event.type==='out'&&event.base)showToast(`OUT AT ${baseName(event.base)}`,1.5);
     if(event.type==='pickoff')showToast('PICKOFF ATTEMPT',1.3);
     if(event.type==='steal')showToast('RUNNER GOING',1.3);
@@ -1126,7 +1158,6 @@ function frame(now){
     }
     if(screen==='game'&&online&&(paused||isOnlineBlocked())){online.update(0);processEvents();updateHUD({force:false,now});}
     audio.update(game.state,{active:screen==='game',paused:paused||isOnlineBlocked()});
-    commentary.update(game.state,{active:screen==='game',paused:paused||isOnlineBlocked()});
     Object.assign(renderOptions,{menu:screen==='menu',paused:paused||isOnlineBlocked(),guidance:prefs.guidance,aim,quality:prefs.quality,interpolationAlpha:game.interpolationAlpha,batting:game.isBatting,selectedRunnerId});
     renderer.render(game.state,dt,renderOptions);
     if(screen==='game'&&!paused&&!isOnlineBlocked())frameStats.record(intervalMs,performance.now()-workStarted);

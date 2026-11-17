@@ -301,15 +301,9 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
   .role-banner span{font-size:8px}
 }
 
-/* Broadcast and short mound showdowns keep the field in view. */
+/* Short mound showdowns keep the field in view. */
 .showdown-practice{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:9px 2px;font-size:11px;min-height:35px;text-align:left;color:var(--cream)}
 .showdown-practice small{color:var(--muted);font-size:9px;font-weight:normal}
-.pause-settings .commentary-setting{grid-column:1/-1}
-.broadcast-caption{position:absolute;left:50%;bottom:max(28px,calc(env(safe-area-inset-bottom) + 12px));transform:translateX(-50%);width:min(480px,calc(100% - 440px));padding:10px 14px;background:rgba(7,24,23,.88);border-left:2px solid var(--gold);text-align:left;pointer-events:none}
-.broadcast-caption>span{font-size:7px;letter-spacing:1.3px;font-weight:bold;color:var(--gold)}
-.broadcast-caption p{font-size:12px;line-height:1.45;margin:4px 0 0;color:var(--cream)}
-.has-commentary .status-tip{visibility:hidden}
-.is-live .broadcast-caption{left:max(22px,env(safe-area-inset-left));transform:none;width:265px}
 .mound-choice{padding:10px 0 13px;border-top:1px solid rgba(218,168,81,.4);margin-top:12px}
 .mound-choice p{font-size:11px;line-height:1.5;color:#dfcaa6;margin:0 0 10px}
 #charge-mound{width:100%;min-height:44px;background:#683b31;border:1px solid #b67755;color:#fff0d8;font-size:11px;font-weight:bold;letter-spacing:.6px;padding:12px}
@@ -341,7 +335,6 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
 .touch-mode .fight-actions small{display:none}
 .is-brawl .scorebug,.is-brawl .practicebug,.is-brawl .role-banner{display:none}
 .is-brawl .connection-strip{top:max(22px,env(safe-area-inset-top));left:max(22px,env(safe-area-inset-left));transform:none;width:auto;max-width:calc(100% - 220px)}
-.is-brawl .broadcast-caption{bottom:max(176px,calc(env(safe-area-inset-bottom) + 162px));width:min(440px,calc(100% - 36px))}
 .is-brawl .event-toast{top:28%;font-size:11px;max-width:90%;text-align:center}
 .roster-bench{border-top:1px solid var(--line);margin-top:18px;padding-top:12px}
 .roster-bench h3{font-size:10px;letter-spacing:1px;margin:0 0 9px;color:var(--gold)}
@@ -349,28 +342,20 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
 .roster-bench small{color:var(--muted);font-size:9px;text-align:right}
 .roster-bench .ejected{color:#df9d83}
 @media(max-width:700px){
-  .broadcast-caption{bottom:max(174px,calc(env(safe-area-inset-bottom) + 162px));width:calc(100% - 40px);max-width:380px;padding:8px 11px}
-  .broadcast-caption p{font-size:11px}
-  .is-live .broadcast-caption{left:50%;transform:translateX(-50%);top:calc(max(12px,env(safe-area-inset-top)) + 214px);bottom:auto;width:calc(100% - 44px);max-width:360px}
   .fight-score{width:calc(100% - 28px);top:max(67px,calc(env(safe-area-inset-top) + 54px));gap:10px;padding:11px;grid-template-columns:minmax(0,1fr) 65px minmax(0,1fr)}
   .fighter-status b{font-size:11px}.fighter-status small{font-size:6px;letter-spacing:.4px}.fight-clock b{font-size:32px}.fight-clock span{font-size:6px}
   .fight-controls{bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px));padding:12px;width:calc(100% - 28px);max-width:420px}
   .fight-controls>p{font-size:10px;min-height:28px}
   .fight-actions button{min-height:58px}
-  .is-brawl .broadcast-caption{bottom:max(190px,calc(env(safe-area-inset-bottom) + 174px));width:calc(100% - 40px)}
   .result-card.has-mound-choice{width:calc(100% - 34px);max-width:390px}
   .showdown-practice{font-size:10px}.showdown-practice small{font-size:8px}
 }
 @media(max-height:530px) and (orientation:landscape){
   .showdown-practice{min-height:29px;padding:5px 2px;font-size:9px}.showdown-practice small{font-size:8px}
-  .broadcast-caption{bottom:max(14px,env(safe-area-inset-bottom));width:min(320px,calc(100% - 430px));padding:7px 10px}
-  .broadcast-caption p{font-size:10px;line-height:1.3}.broadcast-caption>span{font-size:6px}
-  .is-live .broadcast-caption{top:auto;left:max(20px,env(safe-area-inset-left));bottom:max(20px,env(safe-area-inset-bottom));transform:none;width:260px}
   .fight-score{top:max(12px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));transform:none;width:calc(100% - 210px);max-width:530px;padding:8px 12px;gap:12px;grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)}
   .fight-clock b{font-size:27px}.fighter-status b{font-size:10px}.fighter-status small{margin:5px 0;font-size:6px}.fight-clock span{font-size:6px}
   .fight-controls{left:auto;right:max(18px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));transform:none;width:330px;padding:9px 11px}
   .fight-controls>p{font-size:9px;margin-bottom:7px;min-height:13px}.fight-energy{margin-bottom:7px;font-size:7px}.fight-actions{gap:6px}.fight-actions button{min-height:43px;padding:6px}.fight-actions b{font-size:10px}.fight-actions small{font-size:6px;margin-top:3px}
-  .is-brawl .broadcast-caption{left:max(20px,env(safe-area-inset-left));bottom:max(15px,env(safe-area-inset-bottom));transform:none;width:min(300px,calc(100% - 395px))}
   .is-brawl .connection-strip{top:82px;left:max(20px,env(safe-area-inset-left))}
   .is-brawl .event-toast{top:24%;max-width:45%;font-size:9px}
   .result-card.has-mound-choice{width:360px;padding:14px 20px;max-height:calc(100dvh - 20px)}
@@ -387,3 +372,45 @@ dialog{background:var(--ink-deep);color:var(--cream);border:1px solid rgba(238,2
 .performance-overlay{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 48px));right:max(20px,env(safe-area-inset-right));max-width:230px;padding:5px 8px;background:rgba(9,24,20,.9);color:#e3dfd0;font:10px/1.4 ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:pre-line;pointer-events:none;z-index:8}
 .is-brawl .performance-overlay{top:max(165px,calc(env(safe-area-inset-top) + 150px))}
 @media(max-height:500px) and (min-width:600px){.performance-overlay{top:62px;right:18px;font-size:9px}.is-brawl .performance-overlay{top:62px}}
+
+/* Tactical choices are made before the delivery. The live field remains clear. */
+.secondary-swings{display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.secondary-swings .power-button,.bunt-button{width:68px;height:44px;min-height:44px;margin:0;border-radius:4px;border:1px solid rgba(238,232,216,.5);background:rgba(19,41,35,.84);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:3px}
+.bunt-button b{font-size:10px;letter-spacing:.5px}
+.bunt-button small{font-size:7px;letter-spacing:1px;color:var(--muted)}
+.bunt-button:active:not(:disabled){transform:translateY(2px)}
+.touch-mode .bunt-button small,.touch-mode #pitchout-button small{display:none}
+.defensive-tactics{position:absolute;right:125px;bottom:139px;width:205px;pointer-events:auto;background:rgba(12,31,27,.96);border:1px solid rgba(238,232,216,.28);z-index:3}
+.defensive-tactics summary{min-height:40px;padding:12px 9px;cursor:pointer;font-size:8px;font-weight:bold;letter-spacing:.7px;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:9px;color:var(--muted);touch-action:manipulation}
+.defensive-tactics summary::-webkit-details-marker{display:none}
+.defensive-tactics summary:after{content:'+';font-size:15px;color:var(--gold);line-height:1}
+.defensive-tactics[open] summary:after{content:'−'}
+.defensive-tactics summary span{color:var(--cream);font-size:9px;font-weight:normal;letter-spacing:0;margin-left:auto}
+.defensive-tactics summary:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.tactics-content{padding:0 10px 10px;border-top:1px solid var(--line)}
+.tactics-content label{display:block;margin-top:10px;font-size:8px;font-weight:bold;letter-spacing:.7px;color:var(--muted)}
+.tactics-content select{pointer-events:auto;font-size:11px;min-height:40px;padding:8px;margin-top:5px}
+.tactics-content p{font-size:9px;line-height:1.5;margin:7px 0 10px;color:#c7ccbd}
+#pitchout-button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:9px 10px;background:#263d32;border:1px solid #9caa8d99;font-size:9px;letter-spacing:.6px}
+#pitchout-button small{font-size:8px;color:var(--muted)}
+#pitchout-button[aria-pressed="true"]{color:var(--gold);border-color:var(--gold)}
+.tactics-content #pitchout-note{margin-bottom:0}
+@media(max-width:700px){
+  .secondary-swings .power-button,.bunt-button{width:61px;height:44px;min-height:44px}
+  .bunt-button b{font-size:9px}
+  .defensive-tactics{right:0;bottom:222px;width:190px}
+  .defensive-tactics summary{min-height:40px}
+  .tactics-content{max-height:235px;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+}
+@media(max-width:370px){.secondary-swings .power-button,.bunt-button{width:54px}.defensive-tactics{width:182px}}
+@media(max-height:530px) and (orientation:landscape){
+  .secondary-swings{gap:4px}
+  .secondary-swings .power-button,.bunt-button{width:55px;height:42px;min-height:42px}
+  .bunt-button b{font-size:8px}
+  .defensive-tactics{right:102px;bottom:111px;width:185px}
+  .defensive-tactics summary{min-height:34px;padding:9px}
+  .tactics-content{max-height:calc(100dvh - 220px);overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+}
+
+.action-area{position:relative}
+.bunt-warning{position:absolute;right:0;bottom:calc(100% + 6px);width:180px;text-align:right;font-size:8px;font-weight:bold;letter-spacing:.45px;color:var(--gold);text-shadow:0 1px 5px #102824;pointer-events:none}

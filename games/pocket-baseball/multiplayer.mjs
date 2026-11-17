@@ -1,10 +1,10 @@
 /** Private, ephemeral two-player rooms. The server owns every baseball outcome. */
 import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
-import { BaseballGame, PITCHERS, resolveParkId } from './public/engine.mjs';
+import { BaseballGame, PITCHERS, DEFENSIVE_ALIGNMENTS, resolveParkId } from './public/engine.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'changePitcher', 'chargeMound', 'fight']);
+const GAME_INPUTS = new Set(['pitch', 'swing', 'throw', 'run', 'lead', 'steal', 'pickoff', 'defense', 'changePitcher', 'chargeMound', 'fight']);
 const BAT_INPUTS = new Set(['swing', 'run', 'lead', 'steal']);
 const MAX_REWIND = .2;
 export const phaseKey = state => `${state.phase}:${state.phaseStartedAt}:${state.inning}:${state.half}:${state.nextPitchId}`;
@@ -244,7 +244,12 @@ export class RoomHub {
       if (!Number.isFinite(input.time)) fail(400, 'A swing timestamp is required.', 'bad_time');
       const allowance = Math.min(MAX_REWIND, (player.rtt === null ? .07 : player.rtt / 2000) + .08);
       if (input.time < s.time - allowance - 1e-8 || input.time > s.time + .025) fail(409, 'The swing arrived outside the connection timing window.', 'late_input');
-      clean.time = input.time; clean.aim = this._aim(input.aim); clean.power = !!input.power;
+      clean.time = input.time; clean.aim = this._aim(input.aim); clean.bunt = input.bunt === true; clean.power = !clean.bunt && !!input.power;
+    }
+    if (input.type === 'defense') {
+      if (envelope.phaseKey !== phaseKey(s)) fail(409, 'The play changed while you were setting the defense.', 'stale_phase');
+      if (typeof input.alignment !== 'string' || !Object.hasOwn(DEFENSIVE_ALIGNMENTS, input.alignment)) fail(400, 'Choose a defensive alignment.', 'bad_alignment');
+      clean.alignment = input.alignment;
     }
     if (input.type === 'throw' || input.type === 'pickoff') {
       if (!Number.isInteger(input.base) || input.base < 1 || input.base > (input.type === 'pickoff' ? 3 : 4)) fail(400, 'Choose a valid base.', 'bad_base');

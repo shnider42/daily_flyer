@@ -113,6 +113,64 @@ test('left-handed batter mirrors the box, bat and grip without mirroring jersey 
   assert(grip.distanceTo(hand)<.006);
 });
 
+test('bunt holds a horizontal barrel with a split grip in both pictures and mirrors for lefties', () => {
+  const renderer=scene(),software=new CompatibilityRenderer(canvas()),state=pitchState(),batter=getRoster(0).lineup[0];
+  state.swing={time:state.time,bunt:true,power:false,aim:{x:0,y:0}};
+  const tips=[];
+  for(const hand of ['R','L']){
+    state.pitch.batter={...batter,hand};
+    const before=JSON.stringify(state);renderer.render(state,1/60,{});software.render(state,1/60,{batting:true});
+    const model=renderer.batter,grip=model.batPivot.localToWorld(new THREE.Vector3(0,.055,0));
+    const top=model.batPivot.localToWorld(new THREE.Vector3(0,.30,0)),tip=model.batPivot.localToWorld(new THREE.Vector3(0,.94,0));
+    const lowerHand=hand==='L'?'left':'right',upperHand=hand==='L'?'right':'left';
+    assert(Math.abs(tip.y-grip.y)<.015,'the bunt barrel should stay horizontal');
+    assert(grip.distanceTo(model[`${lowerHand}Hand`].getWorldPosition(new THREE.Vector3()))<.006);
+    assert(top.distanceTo(model[`${upperHand}Hand`].getWorldPosition(new THREE.Vector3()))<.006);
+    assert(top.distanceTo(grip)>.20,'the top hand should slide up for the bunt');
+    const fallbackHands=software.person({...batter,hand,x:hand==='L'?1.02:-1.02,z:-.04},state,false,'batter',(hand==='L'?1:-1)*Math.PI/2);
+    for(const side of ['left','right']){
+      const gpu=model[`${side}Hand`].getWorldPosition(new THREE.Vector3()),cpu=fallbackHands[side];
+      assert(Math.hypot(gpu.x+cpu.x,gpu.y-cpu.y,gpu.z-cpu.z)<.006,'both pictures must share the bunt grip');
+    }
+    assert.equal(JSON.stringify(state),before);tips.push(tip);
+  }
+  assert(Math.abs(tips[0].x+tips[1].x)<1e-8);assert(Math.abs(tips[0].y-tips[1].y)<1e-8);assert(Math.abs(tips[0].z-tips[1].z)<1e-8);
+  for(const hand of ['R','L'])for(const x of [-1,0,1])for(const y of [-1,0,1]){
+    state.pitch.batter={...batter,hand};state.swing.aim={x,y};renderer.render(state,1/60,{});
+    const pose=samplePlayerMotion(state,'batter'),model=renderer.batter;
+    for(const [side,height] of [[hand==='L'?'left':'right',.055],[hand==='L'?'right':'left',pose.batTopGrip]]){
+      const grip=model.batPivot.localToWorld(new THREE.Vector3(0,height,0));
+      assert(grip.distanceTo(model[`${side}Hand`].getWorldPosition(new THREE.Vector3()))<.008,'aiming a bunt must not detach a hand');
+    }
+  }
+});
+
+test('bunt absorbs contact without the full swing arc and normal swing animation is unchanged', () => {
+  const state=pitchState();state.swing={time:1,bunt:true,aim:{x:0,y:0}};
+  for(const age of [0,.08,.20,.30]){
+    state.time=1+age;const bunt=samplePlayerMotion(state,'batter');
+    assert(Math.abs(bunt.twist)<.001);assert(bunt.batTopGrip>.29);assert(bunt.bat[0]>1.45);
+  }
+  state.time=1.15;const bunt=samplePlayerMotion(state,'batter');assert(bunt.hipZ<0);
+  state.swing.bunt=false;const normal=samplePlayerMotion(state,'batter');
+  delete state.swing.bunt;assert.deepEqual(samplePlayerMotion(state,'batter'),normal);
+  assert(normal.twist>.3);assert.equal(normal.batTopGrip,.145);
+  state.swing.bunt=true;state.time=1.73;const recovered=samplePlayerMotion(state,'batter');
+  assert.equal(recovered.batTopGrip,.145);assert.equal(recovered.batHeight,.42);assert.equal(recovered.batReach,.27);
+});
+
+test('pitchout catcher responds to the visible arrival without revealing its target early', () => {
+  const state=pitchState();state.pitch.type='pitchout';state.pitch.target={x:1.45,y:1.6,z:0};
+  const waiting=samplePlayerMotion(state,'catcher');state.pitch.type='fastball';
+  assert.deepEqual(samplePlayerMotion(state,'catcher'),waiting);
+  state.pitch.type='pitchout';state.ball={...state.ball,x:1.2,y:1.5,z:1,visible:true};
+  const before=JSON.stringify(state),receive=samplePlayerMotion(state,'catcher');
+  assert(receive.hipY>waiting.hipY+.3);assert(receive.hipX<-.3);
+  assert.equal(JSON.stringify(state),before);
+  state.pitch.target={x:-1.45,y:.2,z:0};assert.deepEqual(samplePlayerMotion(state,'catcher'),receive);
+  state.ball.visible=false;assert.equal(samplePlayerMotion(state,'catcher').hipX,0);
+});
+
 test('hit-by-pitch presentation keeps the struck batter through the result and starts at impact', () => {
   const renderer=scene(),state=pitchState(),struck={...getRoster(0).lineup[0],hand:'R'};
   state.pitch.batter=struck;state.pitch.hitByPitch={at:1.4,point:{x:-.82,y:1.1,z:-.04},hand:'R',playerId:struck.id};

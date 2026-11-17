@@ -59,10 +59,9 @@ test('pause and menu clear pending sounds and do not schedule footsteps', async 
   audio.update(state,{active:false});assert.equal(audio.sources.size,0);
 });
 
-test('crowd calls are rate limited, speech ducks ambience, and fight events remain bounded', async t=>{
+test('crowd calls are rate limited and fight events remain bounded', async t=>{
   install(t);const audio=new BallparkAudio();await audio.unlock();audio.crowd(true);
   const afterFirst=audio.context.nodes.length;for(let i=0;i<20;i++)audio.crowd(true);assert.equal(audio.context.nodes.length,afterFirst);
-  audio.setDucked(true);assert.equal(audio.crowdBus.gain.value,.32);audio.setDucked(false);assert.equal(audio.crowdBus.gain.value,.7);
   for(const event of [{type:'fight-action',action:'jab'},{type:'fight-action',action:'guard'},{type:'fight-action',action:'dodge'},{type:'fight-hit',blocked:false},{type:'fight-hit',blocked:true},{type:'fight-end'}])audio.event(event);
   for(const node of audio.context.nodes)for(const key of ['gain','frequency'])assert(node[key].values.every(Number.isFinite));
   audio.reset();assert.equal(audio.sources.size,0);assert.equal(audio.cooldowns.size,0);
@@ -90,4 +89,15 @@ test('slow crowd automation is bounded independently of display refresh while pl
     assert.equal(audio.ambient.gain.gain.values.length,1,'resume should initialize its new envelope immediately');
     audio.setEnabled(false);assert.equal(audio.ambient,null);assert.equal(audio.sources.size,0);
   }
+});
+
+
+test('a bunt uses a soft tap and does not schedule a full swing whoosh', async t=>{
+  install(t);const audio=new BallparkAudio();await audio.unlock();
+  const before=audio.sources.size;
+  audio.event({type:'swing',bunt:true});assert.equal(audio.sources.size,before);
+  audio.event({type:'contact',quality:1,bunt:true});
+  const buntSources=audio.sources.size-before;assert.equal(buntSources,2);
+  audio.reset();audio.event({type:'contact',quality:1,bunt:false});
+  assert(audio.sources.size>buntSources);
 });

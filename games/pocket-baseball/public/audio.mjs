@@ -5,7 +5,7 @@ export class BallparkAudio {
     this.enabled = !!enabled; this.context = null; this.master = null;
     this.effects = null; this.crowdBus = null; this.music = null;
     this.noiseBuffers = new Map(); this.sources = new Set(); this.cooldowns = new Map();
-    this.ambient = null; this.active = false; this.paused = false; this.ducked = false;
+    this.ambient = null; this.active = false; this.paused = false;
     this.lastStep = -Infinity; this.lastTime = 0;
     this.lastAmbientUpdate = -Infinity; this.lastAmbientPhase = null;
   }
@@ -34,13 +34,6 @@ export class BallparkAudio {
     this.enabled = !!enabled;
     if (this.master) this.master.gain.setTargetAtTime(enabled ? .56 : 0, this.context.currentTime, .04);
     if (!enabled) this._stopSources(); else this.unlock();
-  }
-  setDucked(ducked) {
-    if (this.ducked === !!ducked) return;
-    this.ducked = !!ducked;
-    if (!this.context) return;
-    this.crowdBus?.gain.setTargetAtTime(this.ducked ? .32 : .7, this.context.currentTime, .12);
-    this.music?.gain.setTargetAtTime(this.ducked ? .25 : .6, this.context.currentTime, .12);
   }
   _noiseBuffer(kind = 'white') {
     if (this.noiseBuffers.has(kind)) return this.noiseBuffers.get(kind);
@@ -157,8 +150,11 @@ export class BallparkAudio {
   event(event, state = null) {
     if (!event || !this.ready) return;
     const type = event.type;
-    if (type === 'contact') this.bat(event.quality ?? .6);
-    else if (type === 'swing') this.whoosh(event.power);
+    if (type === 'contact') {
+      if(event.bunt){this.noise(.03,.065,{frequency:1350,type:'lowpass'});this.tone(340,.065,.055,'triangle',0,180);}
+      else this.bat(event.quality ?? .6);
+    }
+    else if (type === 'swing' && !event.bunt) this.whoosh(event.power);
     else if (type === 'pitch' && this._allow('pitch', .25)) this.noise(.15, .016, { frequency: 1100, endFrequency: 2400, attack: .04 });
     else if (type === 'hit-by-pitch') {
       this.noise(.09, .15, { frequency: 480, type: 'lowpass' }); this.tone(88, .11, .075, 'sine', 0, 43); this.crowd(false);
@@ -218,6 +214,6 @@ export class BallparkAudio {
     for (const source of this.sources) { try { source.stop(); } catch {} }
     this.sources.clear(); this.ambient = null;
   }
-  reset() { this._stopSources(); this.cooldowns.clear(); this.lastStep = -Infinity; this.lastTime = 0; this.paused = false; this.setDucked(false); }
+  reset() { this._stopSources(); this.cooldowns.clear(); this.lastStep = -Infinity; this.lastTime = 0; this.paused = false; }
   suspend() { this._stopSources(); if (this.context?.state === 'running') this.context.suspend().catch(() => {}); }
 }
