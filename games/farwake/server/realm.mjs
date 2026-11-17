@@ -42,6 +42,7 @@ import { CROSSWIND_SYSTEM_ID } from '../dist/warzone-content.mjs';
 import { catchUpWarzoneSpace, warzoneSpaceView, notifyWarzoneDestroyed } from '../dist/warzone-space.mjs';
 import { warzoneGroundSurfaceView, warzoneGroundView, catchUpWarzoneGround } from '../dist/warzone-ground.mjs';
 import { isCasualCrew, reconcileCasualCrew } from '../dist/casual-crew.mjs';
+import { syncRecoveredCrewSurface } from '../dist/survivor-surface.mjs';
 
 const HOST_FIELDS = ['cargo', 'upgrades', 'fleet', 'crew', 'formerCrew', 'memorial', 'boarding', 'boardingHistory', 'flags', 'rep', 'stats', 'knownLore', 'completedChapters', 'missions', 'completedJobs', 'abandonedJobs', 'activityTokens', 'journal'];
 const ROLE_ALIASES = { engineer: 'engineering', medic: 'medical', gunner: 'weapons', navigator: 'navigation', scientist: 'scanner' };
@@ -102,7 +103,7 @@ export class Realm extends BoardingAuthority {
     this.director=advanceWorldDirector(snapshot?.director,now()/1000,{seed:this.seed,systems:this.galaxy}).state;
     const savedPerspectives=new Map(), savedEncounters=new Map();
     for (const data of Object.values(snapshot?.captains || {})) {
-      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, ...savedGame } = data.game || {};
+      const { cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, voyageView, ...savedGame } = data.game || {};
       savedPerspectives.set(data.id,savedGame.mode);
       if (savedGame.pendingEncounter) savedEncounters.set(data.id, savedGame.pendingEncounter);
       const game = Game.fromSave({ ...savedGame, seed: this.seed, worlds: {} });
@@ -395,6 +396,14 @@ export class Realm extends BoardingAuthority {
   }
   _bindCaptain(captain) {
     captain.game._directorShared=this.director;
+    captain.game._voyagePersonalContext=()=>{
+      const owned=this.vessels.get(captain.ownedVesselId);
+      return owned?{ship:owned.ship,crew:this._crewFor(owned),systemId:owned.systemId,bodyId:owned.dockedAt||null,aboard:captain.aboard===owned.id}:null;
+    };
+    captain.game._voyageOccupiedContext=()=>{
+      const occupied=this.vessels.get(captain.aboard);
+      return occupied?{ship:occupied.ship,crew:this._crewFor(occupied),systemId:occupied.systemId,bodyId:occupied.dockedAt||null,personal:occupied.id===captain.ownedVesselId,aboard:true}:null;
+    };
     captain.game._earthFlightContext = shipId => {
       const physical = this.vessels.get(shipId || captain.aboard);
       return { ship: physical?.ship || null, operating: !!physical && captain.aboard === physical.id && this._helm(captain, physical) && physical.systemId === captain.game.state.systemId };
@@ -529,7 +538,7 @@ export class Realm extends BoardingAuthority {
     actor._navyCrewInCombat=vessel.pvp?.phase==='active';
     actor.netOnInteriorCasualty=game=>{
       const captain=[...this.captains.values()].find(c=>c.game===game&&c.aboard===vessel.id);
-      if(captain)this._recoverCaptain(captain,`Your emergency medical beacon brought you to a safe berth. ${vessel.name} remains damaged where you left it.`);
+      if(captain)this._recoverCaptain(captain,`Your emergency medical beacon brought you to a safe berth. ${vessel.name} remains damaged where you left it.`,{sourceKind:'interior-casualty'});
     };
     actor.state.character = (this.captains.get(vessel.helmOwner)||beneficiary).game.state.character;
     actor.state.exploration=null; actor.state.explorationRecords={};
@@ -568,7 +577,10 @@ export class Realm extends BoardingAuthority {
     actor.netOnBoardedTargetDestroyed = () => this._destroyVessel(vessel);
     actor.netOnBoardingLost = boarding => {
       if (boarding.kind === 'defense') { vessel.npcOccupied = true; vessel.npcHostile = true; vessel.occupation = { boarderId: boarding.targetId, controllerId: null, contested: true }; }
-      for (const captain of [...this.captains.values()]) if (captain.aboard === vessel.id) this._recoverCaptain(captain, `Your escape capsule reached a safe port. ${vessel.name} remains damaged and occupied in space.`);
+      const occupants=[...this.captains.values()].filter(captain=>captain.aboard===vessel.id),owners=[...this.captains.values()].filter(captain=>captain.ownedVesselId===vessel.id&&this._hostileOccupied(vessel));
+      const contexts=this._vesselRecoveryContexts(vessel,[...new Set([...occupants,...owners])],{sourceKind:'deck-defeat'});
+      for(const captain of occupants)this._recoverCaptain(captain, `Your escape capsule reached a safe port. ${vessel.name} remains damaged and occupied in space.`,{context:contexts.get(captain.id)});
+      for(const captain of owners)this._detachLostVessel(captain,vessel,{context:contexts.get(captain.id)});
       return true;
     };
     return actor;
@@ -795,7 +807,9 @@ export class Realm extends BoardingAuthority {
     if (captain.surfaceCache?.key !== key) captain.surfaceCache = { key, value: generateSurface(location, this.seed, captain.game.state.flags) };
     const surface = updateNpcLife(captain.surfaceCache.value, time, { holds: this._npcHoldsFor(captain, time) });
     syncNavyCrewSurface(surface, location.crew || []);
-    return warzoneGroundSurfaceView(storySurfaceView(fieldSurfaceView(surface,encounter),encounter),captain.game.state.warzoneStories);
+    const view=warzoneGroundSurfaceView(storySurfaceView(fieldSurfaceView(surface,encounter),encounter),captain.game.state.warzoneStories);
+    syncRecoveredCrewSurface(view,captain.game);
+    return view;
   }
   _ensurePersonPosition(captain, reset = false) {
     const surface = this._surface(captain); if (!surface) return;
@@ -882,10 +896,10 @@ export class Realm extends BoardingAuthority {
         if(!settlement.ok)settlement=this._settleMilitaryParticipant(captain,vessel,{interrupted:true,disembarkingAt:body});
         game.state.npcContract=null;
       }else if (contract.vesselId === vessel.id && contract.employeeId === captain.id) {
-        settlement = settleNpcContract(game, { ship: vessel.ship, disembarkingAt: body });
+        settlement = this._withShip(captain,vessel,()=>settleNpcContract(game, { ship: vessel.ship, disembarkingAt: body }));
         // Old or damaged accounting must not lock an otherwise usable airlock.
         // An invalid watch can end without minting wages or completion credit.
-        if (!settlement.ok) settlement = settleNpcContract(game, { ship: vessel.ship, interrupted: true });
+        if (!settlement.ok) settlement = this._withShip(captain,vessel,()=>settleNpcContract(game, { ship: vessel.ship, interrupted: true }));
         game.state.npcContract = null; vessel.actor = null;
       } else this._interruptNpcContract(captain);
     }
@@ -922,6 +936,7 @@ export class Realm extends BoardingAuthority {
     if (previous) this._syncCasualCrew(previous);
     this._bindCaptain(captain); this._ensurePersonPosition(captain, true);
     if (position && isWalkable(this._surface(captain), position.x, position.y)) Object.assign(captain.game.state.person, position);
+    captain.game.syncRecoveryReturn();
   }
 
   async command(captain, name, args = {}, requestId = '') {
@@ -1014,9 +1029,25 @@ export class Realm extends BoardingAuthority {
 
   _command(c, name, a) {
     if (name === 'setCameraPreferences') return this._setCameraPreferences(c, a);
+    // Recovery receipts belong to the authenticated person, including while
+    // detained. No supplied captain, vessel, or report body is trusted here.
+    if(name==='acknowledgeRecoveryReport'){
+      if(a.id!==undefined&&!smallId(a.id))return fail('Choose a recovery report from your own record.','recovery-report');
+      return c.game.acknowledgeRecoveryReport(a.id);
+    }
     const recoveryAccess=c.game.militaryRecoveryAccess(name);if(!recoveryAccess.ok)return recoveryAccess;
     if (['chooseGroupShip', 'groupStartReady', 'startGroupVoyage', 'leaveGroupStart'].includes(name)) return this._groupStartCommand(c, name, a);
     const game = c.game, active = this.vessels.get(c.aboard), owned = this.vessels.get(c.ownedVesselId);
+    if(name==='rejoinRecoveredCrew'){
+      if(game.state.person.health<=0||game.state.person.down||game.medicalRecoveryActive())return fail('Finish medical recovery before bringing the crew aboard.','incapacitated');
+      if(c.aboard||game.state.interior||game.state.npcContract?.active||!owned||owned.ownerId!==c.id||owned.destroyed||this._hostileOccupied(owned)||owned.systemId!==game.state.systemId||owned.dockedAt!==game.state.locationId)return fail('Bring your own intact ship to the recovered crew’s port before inviting them aboard.','vessel');
+      const groupId=a.groupId??a.id;
+      if(groupId!==undefined&&!smallId(groupId))return fail('Choose a recovered party from your own record.','recovery-crew');
+      owned.ship.humanOccupants=1+[...this.captains.values()].filter(other=>other.id!==c.id&&other.aboard===owned.id).length;
+      const result=game.rejoinRecoveredCrew(groupId);
+      if(result.ok){owned.actor=null;this._syncCasualCrew(owned);c.surfaceCache=null;}
+      return result;
+    }
     if(name==='startMilitaryPassage')return this._startMilitaryPassage(c,a);
     // A real docked airlock wins over stale lobby, watch, combat and tether
     // state. The exit itself still verifies the actual captain and location.
@@ -1641,6 +1672,9 @@ export class Realm extends BoardingAuthority {
     state.gamblingView = c.game.gamblingStatus({ includeReplay: false });
     state.militaryOperationsView = this._militaryOperationsView(c);
     state.earthCampaignView = c.game.earthCampaignStatus?.() || null;
+    // The visible deck may belong to someone else. This private view retains
+    // the authenticated captain's own company and its real physical berth.
+    if(!compact)state.voyageView={crewWhereabouts:clone(c.game.crewWhereabouts())};
     state.warzoneView = c.game.warzoneStatus();
     // Encounter rolls stay with the authority. A clear watch is not a promise
     // that nothing will happen, and a client cannot inspect a future alarm.
@@ -1687,7 +1721,7 @@ export class Realm extends BoardingAuthority {
     const captains = {};
     for (const c of this.captains.values()) {
       c.game._persistRuntime(); c.game.state.lastSaveAt = c.game.state.stats.time;
-      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, warzoneView, ...personalState } = c.game.state;
+      const { worlds, explorationRecords, worldDirector, cameraPreferences: localCameraPreferences, cameraRevision: localCameraRevision, openingMissionAvailability, npcLife, militaryOperationsView, earthCampaignView, warzoneView, voyageView, ...personalState } = c.game.state;
       const game = clone(personalState); game.worlds = {};
       captains[c.id] = { id: c.id, name: c.name, launchStatus: c.launchStatus || null, launchReady: c.launchReady === true, tokenHash: c.tokenHash, createdAt: c.createdAt, lastSeen: c.lastSeen, home: clone(c.home), cameraPreferences: clone(c.cameraPreferences), cameraRevision: c.cameraRevision, ownedVesselId: c.ownedVesselId, aboard: c.aboard, crewRole: c.crewRole, returnVesselId: c.returnVesselId || null, portVesselId: c.portVesselId || null, boardingTeam: c.boardingTeam || null, combatAtDisconnect: c.combatAtDisconnect || false, recentCommands: clone(c.recentCommands), game };
     }

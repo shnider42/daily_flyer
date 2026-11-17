@@ -1,9 +1,10 @@
 /** Port travel and paid crew work share one compact, context-aware menu. */
 import { escapeHtml as esc, fmt } from './ui.mjs';
 
-export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWorld,markEntity,openJobs,openShipyard,openProfile,openDamage,openNavyDuty=null}){
+export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWorld,markEntity,openJobs,openShipyard,openProfile,openDamage,openNavyDuty=null,openCrewWhereabouts=null,openRecoveryReport=null}){
  const game=()=>getGame();
  const purse=()=>`${fmt(game().state.credits)} CR AVAILABLE`;
+ const crewLinks=()=>[...(openCrewWhereabouts?[{label:'Your personal crew & whereabouts',detail:'Your own crew, the service company, and survivors ashore.',action:openCrewWhereabouts}]:[]),...(openRecoveryReport&&game().recoveryReport?.()?[{label:'Recovery & return report',detail:'Ship condition, named crew outcomes, and your route home.',action:openRecoveryReport}]:[])];
  const finish=async(name,args={})=>{const owner=game(),captain=owner.state.multiplayer?.captainId||owner.state.seed,revision=dialog.revision;const answer=await invoke(name,args);if(game()!==owner||(game().state.multiplayer?.captainId||game().state.seed)!==captain)return false;if(dialog.revision!==revision){refreshWorld();return false;}if(!acceptResult(answer))return false;if(dialog.revision===revision)dialog.close();refreshWorld();return true;};
  function openPort(){
   const personalRecovery=game().militaryRecoveryStatus?.();
@@ -20,17 +21,19 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
    {label:'Local jobs',detail:'No ship needed for dockside work.',disabled:!port,action:()=>{dialog.close();markEntity({type:'jobboard'});}},
    {label:g.ownsShip?'Visit the shipwright':lost?'Buy a replacement ship':'Buy your first ship',detail:g.ownsShip?'Hulls, upgrades and repairs.':'Used hulls. Prices at the workshop.',disabled:!port,action:()=>{dialog.close();markEntity({type:'mechanic'});}},
    {label:'Your captain',detail:'Appearance & traits',action:openProfile},
+   ...crewLinks(),
    {label:'Back outside',action:()=>dialog.close()}
   ]);
  }
  function openRecovery(){
+  if(openRecoveryReport&&game().recoveryReport?.()){openRecoveryReport();return;}
   const r=game().militaryRecoveryStatus?.();if(!r){openPort();return;}
   if(r.passage){openDuty();return;}
   if(r.evacuation){
    const place=r.pickup?.bodyName||'Vey';
    dialog.open('Leave '+place,'military-recovery',{eyebrow:'FIELD EVACUATION / FREE TRANSPORT'});
-   dialog.html(`<div class="guide-card"><h3>${esc(r.pickup.name)} → ${esc(r.home.name)}</h3><p>Return to your field hospital to board the evacuation shuttle. Captain Vale flies you to <strong>${esc(r.home.name)}</strong>, where you can find your next posting.</p><p>Fare: <strong>0 CR</strong>. You do not need a ship or credits. You keep your rank, service record, and any surviving ship at its existing berth.</p>${r.reason?`<p role="status">${esc(r.reason)}</p>`:'<p>The shuttle is ready. Board below when you want to leave.</p>'}</div><p>After docking, open <strong>Your passage home</strong> and choose <strong>Disembark</strong>, or use the shuttle’s entry airlock.</p>`);
-   dialog.choices([{label:'Board evacuation shuttle · Free',disabled:!r.canBook,detail:r.reason||'Passenger transport to '+r.home.name,action:()=>finish('startMilitaryPassage')},{label:'Show evacuation point',detail:r.pickup.name,action:()=>{dialog.close();markEntity(r.pickup);}},{label:'Back to the surface',action:()=>dialog.close()}]);return;
+   dialog.html(`<div class="guide-card"><h3>${esc(r.pickup.name)} → ${esc(r.home.name)}</h3><p>Captain Vale flies you to <strong>${esc(r.home.name)}</strong>. Board at ${esc(r.pickup.name)}${Number.isFinite(r.pickup.distance)&&!r.nearPickup?`, ${Math.ceil(r.pickup.distance)} m away`:''}.</p><p>Fare: <strong>0 CR</strong>. You do not need a ship or credits. You keep your rank, service record, and any surviving ship at its existing berth.</p>${r.reason?`<p role="status">${esc(r.reason)}</p>`:'<p>The shuttle is ready. Board below when you want to leave.</p>'}</div><p>After docking, open <strong>Your passage home</strong> and choose <strong>Disembark</strong>, or use the shuttle’s entry airlock.</p>`);
+   dialog.choices([{label:'Board evacuation shuttle · Free',disabled:!r.canBook,detail:r.reason||`Destination ${r.home.name} · Fare 0 CR`,action:()=>finish('startMilitaryPassage')},{label:'Show evacuation point',detail:r.pickup.name,action:()=>{dialog.close();markEntity(r.pickup);}},...crewLinks(),{label:'Back to the surface',action:()=>dialog.close()}]);return;
   }
   const minutes=Math.floor(r.remainingSeconds/60),seconds=String(r.remainingSeconds%60).padStart(2,'0');
   dialog.open(r.detained?'Military custody':'Your passage home','military-recovery',{eyebrow:r.detained?r.captorFaction:r.factionName});
@@ -101,11 +104,11 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
   }},{label:'Back to the deck',action:()=>dialog.close()}]);
  }
  function openDuty(){
-  if(openNavyDuty?.())return;
+  if(openNavyDuty?.()){dialog.choices(crewLinks());return;}
   const passage=game().npcContractStatus?.();if(passage?.repatriation){
    dialog.open('Your passage home','crew-duty',{eyebrow:'MILITARY PASSENGER / FARE COVERED'});
    dialog.html(`<h3>${esc(passage.shipName)}</h3><p class="duty-route">${esc(passage.routeName)}</p><div class="guide-card"><p>${esc(passage.task)}</p></div><p>Fare: <strong>0 CR</strong>. Captain Vale has the helm. The shuttle belongs to the transport service.</p>`);
-   dialog.choices([...(passage.canFinish?[{label:`Disembark at ${passage.destination.name}`,action:()=>finish('completeNpcContract')}]:[]),{label:passage.canFinish?'Show the entry airlock':'Back to the passenger deck',action:()=>{dialog.close();if(passage.canFinish)markEntity({type:'exit'});}}]);return;
+   dialog.choices([...(passage.canFinish?[{label:`Disembark at ${passage.destination.name}`,action:()=>finish('completeNpcContract')}]:[]),...crewLinks(),{label:passage.canFinish?'Show the entry airlock':'Back to the passenger deck',action:()=>{dialog.close();if(passage.canFinish)markEntity({type:'exit'});}}]);return;
   }
   const g=game(),s=g.npcContractStatus();if(!s?.active){openPort();return;}
   const phases={boarding:'Before departure',outbound:'Under way',working:'On station',returning:'Homeward',docked:'Moored',failed:'Run interrupted'};
@@ -127,7 +130,7 @@ export function createLivelihoodUI({getGame,dialog,invoke,acceptResult,refreshWo
    if(s.work?.sectionId)choices.push({label:'Damage control',action:openDamage});
    if(s.phase!=='returning'&&!s.eva?.active)choices.push({label:s.phase==='boarding'?'Cancel this watch':'Ask to return early',detail:'Pay covers completed work.',action:async()=>{if(await finish('cancelNpcContract'))openDuty();}});
   }
-  choices.push({label:'Back to the deck',action:()=>dialog.close()});dialog.choices(choices);
+  choices.push(...crewLinks(),{label:'Back to the deck',action:()=>dialog.close()});dialog.choices(choices);
  }
  return {openPort,openRecovery,openPassage,openCrewJobs,openDuty,openTask,markDuty};
 }

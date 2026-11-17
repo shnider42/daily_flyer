@@ -125,6 +125,7 @@ export const LivelihoodRules={
   const visitId=`${this.state.systemId}/${body.id}`;
   if(!this.state.visited.includes(visitId))this.state.visited.push(visitId);
   if(discovery){this._refreshJobs();this._checkChapters();}
+  this.syncRecoveryReturn?.();
   return body;
  },
  recoverOnFoot(message){

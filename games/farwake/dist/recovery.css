@@ -10,3 +10,42 @@
 .recovery-screen[data-reduced="true"]{background:rgba(0,0,0,calc(1 - var(--eye-open)))}
 .recovery-screen[data-reduced="true"] .recovery-lid{display:none}
 .recovering #app>:not(.flightdeck),.recovering .flightdeck>:not(#gameCanvas),.recovering #modalBackdrop{visibility:hidden!important}
+
+/* One small persistent route card; the full roster lives in the scrollable report. */
+.recovery-status-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.recovery-status-actions button{min-height:46px;line-height:1.35;text-align:left;padding:9px 11px}
+.recovery-status-actions button:first-child{border-color:#a6a080;color:#ffe0a0}
+.recovery-status-actions button:last-child{font-size:.86rem;color:#c5d9df}
+.recovery-status-actions:has(button:last-child[hidden]){grid-template-columns:1fr}
+.recovery-route,.recovery-arrival,.boarding-party-brief{padding:14px 16px;background:#142c37;border-left:3px solid #9dbdba;margin-bottom:14px}
+.recovery-arrival{border-color:#c8c895}
+.recovery-route>strong,.recovery-arrival>strong,.boarding-party-brief>strong{display:block;color:#f0e5bd;line-height:1.45}
+.recovery-route p,.recovery-arrival p,.boarding-party-brief p{margin:8px 0 0}
+.recovery-record section{border-top:1px solid #304b59;padding-top:16px;margin-top:20px}
+.recovery-record h3,.recovery-crew-group h3{margin:0 0 9px;font-size:1.05rem;color:#e4ded0}
+.recovery-record section>p:last-child{margin-bottom:0}
+.recovery-crew-list{padding:0;margin:0;list-style:none}
+.recovery-crew-list li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:12px;padding:12px 0;border-bottom:1px solid #263f4d}
+.recovery-crew-list li:last-child{border-bottom:0}
+.recovery-crew-list strong,.recovery-crew-list span{display:block;overflow-wrap:anywhere;line-height:1.4}
+.recovery-crew-list strong{font-size:.95rem;color:#e6e9df;font-weight:600}
+.recovery-crew-list span{margin-top:3px;color:#b9ccd1;font-size:.86rem}
+.recovery-crew-list [data-outcome="dead"]>div:last-child strong{color:#f4afa2}
+.recovery-crew-list [data-outcome="unknown"]>div:last-child strong{color:#e4c697}
+.recovery-crew-group{margin:22px 0 10px;padding-top:15px;border-top:1px solid #304b59}
+.recovery-crew-group>p{margin-bottom:6px}
+.recovery-feedback{padding:12px 14px;border-left:3px solid #d8ad7b;background:#2e2927;color:#f4d7b7}
+.recovery-log-link{width:100%;min-height:46px;margin:0 0 18px;text-align:left}
+.modal[data-kind="recovery-report"],.modal[data-kind="crew-whereabouts"],.modal[data-kind="recovery-history"]{width:620px}
+.modal[data-kind="recovery-report"] .modal-body,.modal[data-kind="crew-whereabouts"] .modal-body{overflow-x:hidden;overflow-wrap:anywhere}
+@media(max-width:520px){
+ .recovery-status{gap:6px}
+ .recovery-status>span{font-size:.84rem;line-height:1.4}
+ .recovery-status-actions{gap:6px}
+ .recovery-status-actions button{font-size:.88rem;min-height:46px;padding:8px 10px}
+ .recovery-status-actions button:last-child{font-size:.82rem}
+ .recovery-route,.recovery-arrival,.boarding-party-brief{padding:12px}
+ .recovery-crew-list li{gap:10px;padding:11px 0}
+ .recovery-crew-list strong{font-size:.91rem}
+ .recovery-crew-list span{font-size:.82rem}
+}

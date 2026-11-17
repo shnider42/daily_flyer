@@ -828,16 +828,18 @@ export function settleNpcContract(game,{interrupted=false,ship=game.state.ship,d
 
 function restorePersonal(game,contract,{body=null}={}){
  const personal=contract.personal;if(!personal)return;
+ const recoveredIds=new Set((game.state.voyageMemory?.recoveredCrews||[]).flatMap(group=>group.crew.map(person=>person.id))),recoveredMemorial=(game.state.memorial||[]).filter(row=>recoveredIds.has(row.crewId));
  const systemId=body?game.state.systemId:contract.origin.systemId;
  if(systemId!==game.state.systemId){game._persistRuntime();game.state.systemId=systemId;game._loadSystem(systemId);}
  game.state.ship=personal.ship;
  for(const field of inventoryFields)game.state[field]=personal[field];
+ game.state.memorial||=[];for(const row of recoveredMemorial)if(!game.state.memorial.some(prior=>prior.crewId===row.crewId))game.state.memorial.push(row);
  game.state.mode='person';game.state.systemId=body?game.state.systemId:contract.origin.systemId;game.state.locationId=body?.id||contract.origin.bodyId;game.state.interior=null;game.state.exploration=null;game.state.person.weaponDrawn=false;
  game.state.stationView=null;
  body ||= game.system.bodies.find(body=>body.id===contract.origin.bodyId);
  if(body){const surface=generateSurface(body,game.state.seed,game.state.flags);Object.assign(game.state.person,surface.spawn);}
  delete contract.personal;game.state.npcContract=null;
- game._damageHullOverride=null;game._damageCrewPositions=null;game._refreshJobs?.();
+ game._damageHullOverride=null;game._damageCrewPositions=null;game._refreshJobs?.();game.syncRecoveryReturn?.();
 }
 
 export const NpcContractRules={
@@ -912,13 +914,16 @@ export const NpcContractRules={
  },
  recoverNpcContract(message){
   const contract=active(this);if(!contract||this._sharedWorld)return false;
-  const ship=this.state.ship,context=shipRecoveryContext(this,ship,{sourceKind:ship.destroyed||ship.hull<=0?'ship-destroyed':'deck-defeat'});
+  const ship=this.state.ship,context=shipRecoveryContext(this,ship,{sourceKind:ship.destroyed||ship.hull<=0?'ship-destroyed':this.state.boarding?.phase==='lost'&&this.state.boarding.kind==='defense'?'deck-defeat':'boarding-casualty',personal:false});
   const body=this.system.bodies.find(body=>body.id===context.destination?.bodyId);if(!body)return false;
   // The personal hull belongs to its original berth, even after a remote Navy
   // deployment. Restoring inventory is not a transfer or a replacement vessel.
   const personal=contract.personal?.ship;
   if(personal&&!personal.unowned&&!this.state.livelihoods.parkedShip)this.state.livelihoods.parkedShip={...clone(personal),systemId:contract.origin.systemId,bodyId:contract.origin.bodyId,vesselId:personal.id};
-  settleNpcContract(this,{interrupted:true});restorePersonal(this,contract,{body});
+  this.disembarkRecoveredPassengers?.(context.destination,{ship,crew:this.state.crew,incidentId:context.incidentId});
+  settleNpcContract(this,{interrupted:true});
+  const incident=this.state.voyageMemory?.incidents.find(row=>row.id===context.incidentId);if(incident?.service&&contract.military)incident.service.outcome=contract.outcome||'interrupted';
+  restorePersonal(this,contract,{body});
   this._arriveAsPassenger(body);
   this.completeShipRecovery({...context,...(message?{message}:{})});return true;
  }

@@ -47,9 +47,10 @@ export const MedicalRecoveryRules={
   return !!this._expeditionSurface()?.entities.some(e=>e.type==='medic'&&e.data?.factionId&&Math.hypot(e.x-s.person.x,e.y-s.person.y)<=46);
  },
  medicalRecoveryActive(){return finite(this.state.medicalRecovery?.wakeUntil)>finite(this.state.stats.time);},
- finishMedicalRecovery(destination,{sourceKind='casualty',cost=0}={}){
+ finishMedicalRecovery(destination,{sourceKind='casualty',cost=0,incidentId=null,serviceDestination=null}={}){
   const s=this.state,body=this.system.bodies.find(b=>b.id===destination.bodyId);
   if(!body)return this._fail('The medical destination is unavailable.','location');
+  if(incidentId&&s.medicalRecovery?.incidentId===incidentId)return this._ok({body,destination:clone(s.medicalRecovery.destination),cost:s.medicalRecovery.cost,incidentId});
   // Landing has already been authorized by solo rules or _landCharacter on the server.
   const custody=s.interior?.kind==='detention';
   if(!custody)this.activateWarzoneSurface();
@@ -58,7 +59,9 @@ export const MedicalRecoveryRules={
   delete s.person.interiorDown;delete s.person.lastShot;
   s.stationView=null;s.pendingEncounter=null;s.boarding=null;
   const serial=Math.max(0,Math.floor(finite(s.medicalRecovery?.serial)))+1;
-  s.medicalRecovery={version:1,serial,id:`${this.playerId}:${serial}`,at:s.stats.time,wakeUntil:s.stats.time+MEDICAL_WAKE_SECONDS,sourceKind,cost,destination:clone(destination)};
+  s.medicalRecovery={version:1,serial,id:`${this.playerId}:${serial}`,at:s.stats.time,wakeUntil:s.stats.time+MEDICAL_WAKE_SECONDS,sourceKind,cost,destination:clone(destination),incidentId:incidentId||s.voyageMemory?.pendingId||null};
+  const report=this.completeRecoveryIncident?.({incidentId:s.medicalRecovery.incidentId,destination,cost,medicalReceipt:s.medicalRecovery,serviceDestination});
+  if(report)s.medicalRecovery.incidentId=report.id;
   this._recoveryTimer=MEDICAL_WAKE_SECONDS+3;this._siteDownTime=0;this._medicalDownTime=0;
   const text=`Recovered at ${destination.name}.${cost?` Treatment cost ${cost} cr.`:''} Your surviving property and service record are unchanged.`;
   this._log('Medical recovery',text,'rescue');
@@ -67,6 +70,7 @@ export const MedicalRecoveryRules={
  },
  recoverMedicalCasualty(message,{sourceKind='ground-casualty',costRate=.1,destination=null}={}){
   const s=this.state;
+  if(this.medicalRecoveryActive()&&s.person.health>0&&!s.person.down)return this._ok({destination:clone(s.medicalRecovery.destination),incidentId:s.medicalRecovery.incidentId});
   if(s.npcContract?.active&&!this._sharedWorld){
    const recovered=this.recoverNpcContract(message||'Your duty watch ended with a medical evacuation.');
    return recovered?this._ok({destination:clone(s.medicalRecovery.destination)}):this._fail('No hospital is available for recovery.','location');
@@ -75,11 +79,13 @@ export const MedicalRecoveryRules={
   const origin=this.system.bodies.find(b=>b.id===bodyId),originFactionId=origin?.faction||this.currentSystem.faction;
   destination||=medicalDestination(this,{bodyId,position:origin||s.ship});
   if(!destination)return this._fail('No hospital is available for recovery.','location');
+  const incident=this.beginRecoveryIncident?.({sourceKind,destination,boarding:s.boarding});
+  if(s.boarding&&!s.ship.npcEmployer&&s.ship.id===this.personalShip?.id)this.evacuatePersonalCrew?.(destination,{incidentId:incident?.id,ship:s.ship,crew:s.crew,personal:true});
   if(s.exploration){s.explorationRecords[s.exploration.key]=s.exploration.encounter;this.releaseWarzoneSurface();}
   this._arriveAsPassenger(this.system.bodies.find(body=>body.id===destination.bodyId));
   const cost=Math.floor(s.credits*costRate);s.credits-=cost;s.stats.rescues++;
   this.narrativeRescue?.();this.professionRescue?.();
   this.applyMilitaryRecovery?.({systemId:s.systemId,originFactionId,sourceKind,nearestBody:destination});
-  return this.finishMedicalRecovery(destination,{sourceKind,cost});
+  return this.finishMedicalRecovery(destination,{sourceKind,cost,incidentId:incident?.id});
  }
 };

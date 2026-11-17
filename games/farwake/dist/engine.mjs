@@ -56,6 +56,7 @@ import { contextualSignals, materializeEncounterContacts, encounterSource, encou
 import { RescueRules, rescueOccupants } from './rescue-rules.mjs';
 import { ShipRecoveryRules } from './ship-recovery.mjs';
 import { MedicalRecoveryRules } from './medical-recovery.mjs';
+import { VoyageMemoryRules } from './voyage-memory.mjs';
 import { InteriorDamageRules, ensureDamageControl, stepShipDamage, clearInteriorDamage, relocateHullOccupants } from './interior-damage.mjs';
 import { getHullSystems, hullEnergyAfterStep } from './hull-systems.mjs';
 import { createCasualCrewRoster, normalizeCasualCrewCount, reconcileCasualCrew, casualCrewStatus, isCasualCrew, captureCasualCrew } from './casual-crew.mjs';
@@ -254,6 +255,7 @@ export class Game {
     this.initializeRescueOccupants();
     this.initializeInteriorDamage();
     this.initializeNpcContracts();
+    this.initializeVoyageMemory();
     this.initializeGunnery();
     this.state.ship.powerPriority=powerProfile(this.state.ship).mode;
     this.state.ship.powerRerouteRemaining=clamp(finite(this.state.ship.powerRerouteRemaining),0,2);
@@ -974,6 +976,7 @@ export class Game {
     const absorbed = Math.min(sh.shield, amount);
     const hullDamage=Math.min(sh.hull,Math.max(0,amount-absorbed));
     sh.shield -= absorbed; sh.hull = Math.max(0,sh.hull-hullDamage);
+    if(hullDamage>0)sh.lastDamage={at:this.state.stats.time,sourceId:details.sourceId||null,cause:details.cause||null};
     const hullAfterImpact=sh.hull;
     this._registerInteriorHit(sh,hullDamage,absorbed,details);
     // Losing a specialist recalculates stats. Its ordinary one-hull minimum
@@ -1776,6 +1779,7 @@ export class Game {
 
   _personHit(target,shot,health=target.health,maxHealth=target.maxHealth||100) {
     target.hitUntil=this.state.stats.time+.24;target.lastHitBy=shot.attackerId;
+    if(target.game)target.game.state.person.lastInjury={boardingId:this.state.boarding.id,at:shot.at,attackerId:shot.attackerId,actorName:shot.actorName,weaponId:shot.weaponId,damage:shot.damage};
     const event={id:shot.id+':hit',boardingId:this.state.boarding.id,at:shot.at,until:shot.at+.65,x:target.x,y:target.y,targetId:target.id,
       targetName:target.name||'Captain',attackerId:shot.attackerId,actorName:shot.actorName,team:shot.team,weaponId:shot.weaponId,damage:shot.damage,health,maxHealth};
     this._event('person-hit',event);return event;
@@ -1974,6 +1978,7 @@ export class Game {
     this.syncRescueCombat();
     this.state.boardingHistory.push({id:boarding.id,kind:boarding.kind,phase,vesselId:boarding.vesselId,originVesselId:boarding.originVesselId,systemId:this.state.systemId,time:this.state.stats.time,casualties:boarding.allies.filter(a=>a.health<=0).map(a=>a.crewId)});
     const enemy=this.system.enemies.find(e=>e.id===boarding.targetId);
+    if(!this._sharedWorld&&(phase==='lost'||phase==='won'&&(this.state.person.health<=0||this.state.person.down)))this.beginRecoveryIncident({key:`boarding:${boarding.id}`,sourceKind:'boarding-casualty',boarding,losses:{shipLost:phase==='lost'&&boarding.kind==='defense'}});
     if(enemy){
       enemy.boardingCooldown=60;enemy.active=false;enemy.boardingCharge=0;
       if(boarding.kind==='assault'&&enemy.deck){enemy.deck.enemies=boarding.enemies;enemy.deck.shotSerial=boarding.shotSerial||0;}
@@ -2363,5 +2368,5 @@ export class Game {
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
 Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules);
-Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules);
+Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules,VoyageMemoryRules);
 export default Game;

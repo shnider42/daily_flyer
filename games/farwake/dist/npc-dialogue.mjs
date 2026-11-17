@@ -10,6 +10,7 @@ import { militaryMission } from './military-content.mjs';
 import { conversationTopics } from './conversation-topics.mjs';
 import { campaignStageText } from './local-campaigns.mjs';
 import { storyStatus } from './expedition-story-rules.mjs';
+import { voyageReaction } from './voyage-reactions.mjs';
 
 export const CONVERSATION_LIMIT = 96;
 const REMEMBER_AFTER = 30;
@@ -341,13 +342,13 @@ function routine(entity, role, clock, key) {
   return choose(voice[clock.period] || voice.morning, key);
 }
 
-const updateContexts = new Set(['mission', 'consequence', 'local-choice', 'relationship']);
+const updateContexts = new Set(['mission', 'consequence', 'local-choice', 'relationship', 'recovery', 'homecoming']);
 function rememberedUpdate(response, previous, entity, role, clock, key) {
   if (!updateContexts.has(response.context)) return { response, updateKey: null };
-  const updateKey = `${response.context}:${hash(response.greeting + '|' + (response.missionId || '') + '|' + (response.context === 'mission' ? response.rumor || '' : ''))}`;
+  const updateKey = `${response.context}:${hash(response.greeting + '|' + (response.incidentId || response.missionId || '') + '|' + (response.context === 'mission' ? response.rumor || '' : ''))}`;
   if (previous?.updateKey !== updateKey) return { response, updateKey };
-  const updateLabel = response.context === 'mission' ? 'Review the current job' : response.context === 'local-choice' ? 'About the decision here' : response.context === 'relationship' ? 'About where we stand' : 'About what happened';
-  const updateText = [response.greeting, response.context === 'mission' ? response.rumor : ''].filter(Boolean).join(' ');
+  const updateLabel = response.updateLabel || (response.context === 'mission' ? 'Review the current job' : response.context === 'local-choice' ? 'About the decision here' : response.context === 'relationship' ? 'About where we stand' : 'About what happened');
+  const updateText = [response.greeting, ['mission', 'recovery', 'homecoming'].includes(response.context) ? response.rumor : ''].filter(Boolean).join(' ');
   // Preserve the useful explanation on request, without opening every return
   // visit by reciting the same completed job or decision in full.
   const greeting = response.context === 'mission' ? choose(['The job is still open. What do you need to check?', 'We can review the next step, or talk about something else.'], key)
@@ -382,7 +383,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const activity = text(entity.life?.label || (entity.data?.automated ? 'Service terminal' : ''), 40), data = DIALOGUE[role] || DIALOGUE.refugee;
   const social = socialConversation(state, entity, at, { record, storyTime });
   const news = entity.data?.socialOnly ? null : localNews(game, entity, role);
-  let response = urgent(game, entity, role) || expeditionConversation(game,entity) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
+  let response = urgent(game, entity, role) || voyageReaction(game, entity, { known, role }) || expeditionConversation(game,entity) || militaryMember(game,entity,role) || opening(game, entity) || narrative(game, entity) || mainStory(game, entity) || localSiteResponse(state,entity) || social;
   if (!response && relation.trust <= -2) response = { context: 'relationship', greeting: relation.trust <= -6 ? 'I remember what happened. Keep this conversation to what you need.' : 'We can talk. That doesn’t mean I’m easy with how things turned out.' };
   if (!response && relation.trust >= 3) response = { context: 'relationship', greeting: relation.trust >= 8 ? 'You’ve earned my trust. Sit with me a moment.' : 'Good to see you. I haven’t forgotten what you did.' };
   if (!response && relation.standing <= -20) response = { context: 'relationship', greeting: role === 'medic' ? 'I know where you stand with the port. If you need care, say so.' : 'Your reputation gets here before you do. What do you need?' };
@@ -395,7 +396,7 @@ export function conversation(game, entity = {}, { record = true, time, storyTime
   const suppliedRumors = Array.isArray(entity.data?.rumors) ? entity.data.rumors : [];
   const rumors = (suppliedRumors.length ? suppliedRumors : topics.length ? topics.map(value => value.text) : data.rumors || []).filter(value => typeof value === 'string' && value.trim());
   const rumorPool = (rumors.length ? rumors : ['No new local report. Your notebook keeps the people, jobs and destinations you have already found.']).map(value => shortAuthored(value, 'No new local report.'));
-  const rumor = ['urgent', 'local-expedition'].includes(response.context) ? response.rumor : news?.rumor || response.rumor || variedRumor(rumorPool, key, newVisit ? previous?.rumorKey : null);
+  const rumor = ['urgent', 'local-expedition', 'recovery', 'homecoming'].includes(response.context) ? response.rumor : news?.rumor || response.rumor || variedRumor(rumorPool, key, newVisit ? previous?.rumorKey : null);
   const remembered = rememberedUpdate(response, previous, entity, role, clock, key);
   response = remembered.response;
   const result = { ...response, greeting: text(response.greeting), rumor: text(rumor), topics, ...(response.updateText ? { updateText: text(response.updateText, 900) } : {}), newsContext: response.context === 'local-expedition' ? response.context : news?.newsContext || response.context, activity, relationship: social?.relationship || relation.label, trust: relation.trust, standing: relation.standing, known, name: text(entity.name, 80), role: text(entity.data?.roleLabel || entity.role || role, 80), clock: clock.text, localHour: clock.hour, species, speciesLabel:speciesLabel(species), background:species!=='human'&&response.context!=='urgent'?text(speciesBackground(species,entity.data?.crewId||entity.data?.guestId||id,localBody(game,entity))):'' };

@@ -78,7 +78,8 @@ export const MilitaryRecoveryRules={
   if(!this.militaryEnemyTerritory(originFactionId))return null;
   if(this.state.npcContract?.active&&!this._sharedWorld){this.recoverNpcContract('The damaged crew was recovered in opposing faction territory. Your personal hull remains at its berth.');return this._ok({captured:true});}
   const body=nearestRecoveryStation(this.system,position);if(!body)return null;
-  const destination={systemId:this.state.systemId,bodyId:body.id,name:body.name},context={sourceSystemId:this.state.systemId,sourceFactionId:originFactionId,sourceKind,sourcePosition:{x:finite(position.x),y:finite(position.y)},vesselId:this.state.ship.id,vesselName:this.state.ship.name,destination,message:'You were incapacitated in opposing faction territory and taken into military custody. Your surviving property remains where you left it.'};
+  const destination={systemId:this.state.systemId,bodyId:body.id,name:body.name},incident=this.beginRecoveryIncident?.({sourceKind,destination,boarding:this.state.boarding}),context={sourceSystemId:this.state.systemId,sourceFactionId:originFactionId,sourceKind,sourcePosition:{x:finite(position.x),y:finite(position.y)},vesselId:this.state.ship.id,vesselName:this.state.ship.name,destination,incidentId:incident?.id,message:'You were incapacitated in opposing faction territory and taken into military custody. Your surviving property remains where you left it.'};
+  if(this.state.boarding&&!this.state.ship.npcEmployer)this.evacuatePersonalCrew?.(destination,{incidentId:incident?.id});
   this._arriveAsPassenger(body);return this.completeShipRecovery(context);
  },
  militaryRecoveryAccess(name){
@@ -97,7 +98,7 @@ export const MilitaryRecoveryRules={
    state.detention=null;state.status='orders';this._arriveAsPassenger(body);this.state.pendingEncounter=null;
    const text='Your five-minute detention is complete. You are released at the station landing with repatriation clearance. Open Port services to request a free military passenger berth home.';this._log('Released from military detention',text,'military');emit(this,text,'military-released');return true;
   }
-  if(!aboardPassage(this)&&!this.state.interior&&this.state.systemId===state.home.systemId&&this.state.locationId===state.home.bodyId&&state.status!=='returned'){state.status='returned';state.passageId=null;emit(this,`You have returned to ${state.home.name}. Your rank, service record, and personal clearance are unchanged.`);}
+  if(!aboardPassage(this)&&!this.state.interior&&this.state.systemId===state.home.systemId&&this.state.locationId===state.home.bodyId){if(state.status!=='returned'){state.status='returned';state.passageId=null;emit(this,`You have returned to ${state.home.name}. Your rank, service record, and personal clearance are unchanged.`);}this.syncRecoveryReturn?.();}
   return false;
  },
  militaryRecoveryStatus(){
@@ -131,13 +132,18 @@ export const MilitaryRecoveryRules={
 export function createMilitaryPassage(game,{employeeId=game.playerId||'local',shared=false}={}){
  const status=game.militaryRecoveryStatus();if(!status?.canBook)return fail(status?.reason||'A military casualty report must issue repatriation orders first.');
  const originBody=location(game),destination=portDescriptor(game,status.home.systemId,status.home.bodyId);if(!destination||!inhabited(destination))return fail('The service transport cannot find your home posting.');
- const serial=Math.max(0,Math.floor(finite(game.state.npcContractSerial)))+1,id=`repatriation:${employeeId}:${game.state.seed}:${serial}`,vesselId=`vessel:${id}`,hull=getShipClass('tern');
+ const origin={systemId:game.state.systemId,bodyId:originBody.id,name:originBody.name,x:originBody.x,y:originBody.y,radius:originBody.radius};
+ const waiting=game.recoveredPassageParty?.(origin)||[],batch=Math.min(14,waiting.length),hull=['tern','lark','mender','hauler','puffin','frigate','osprey','leviathan'].map(getShipClass).find(hull=>hull.berths>=batch+2)||getShipClass('leviathan');
+ const serial=Math.max(0,Math.floor(finite(game.state.npcContractSerial)))+1,id=`repatriation:${employeeId}:${game.state.seed}:${serial}`,vesselId=`vessel:${id}`;
  const remote=game.state.systemId!==destination.systemId,heading=remote?Math.atan2(-originBody.y,-originBody.x):Math.atan2(destination.y-originBody.y,destination.x-originBody.x),dockPoint={x:originBody.x+Math.cos(heading)*(originBody.radius+75),y:originBody.y+Math.sin(heading)*(originBody.radius+75)},departure={x:dockPoint.x+Math.cos(heading)*850,y:dockPoint.y+Math.sin(heading)*850};
  const arrivalAngle=remote?Math.atan2(-destination.y,-destination.x):heading,arrival={x:destination.x-Math.cos(arrivalAngle)*(destination.radius+1100),y:destination.y-Math.sin(arrivalAngle)*(destination.radius+1100),angle:arrivalAngle},arrivalDock={x:destination.x-Math.cos(arrivalAngle)*(destination.radius+75),y:destination.y-Math.sin(arrivalAngle)*(destination.radius+75)};
  const ship={...hull.stats,id:vesselId,name:'Homeward Passage',classId:hull.id,berths:hull.berths,humanOccupants:1,...dockPoint,vx:0,vy:0,angle:heading,angularVelocity:0,hull:hull.stats.maxHull,shield:hull.stats.maxShield,energy:hull.stats.maxEnergy,fuel:hull.stats.maxFuel,npcEmployer:true,dockedAt:originBody.id};
- const layout=cabinLayout(hull.id),origin={systemId:game.state.systemId,bodyId:originBody.id,name:originBody.name,x:originBody.x,y:originBody.y,radius:originBody.radius};
+ const layout=cabinLayout(hull.id);
  const contract={version:4,repatriation:true,id,serial,employeeId:String(employeeId),shared,active:true,roleId:'passenger',roleName:'Military passenger',vesselId,shipName:ship.name,classId:hull.id,origin,destination:{systemId:destination.systemId,bodyId:destination.id,name:destination.name},dockPoint,workPoint:remote?departure:arrivalDock,route:{remote,jumped:false,departure,arrival,arrivalDock,jumpClock:0},routeName:`${origin.name} → ${destination.name}`,factionId:status.factionId,phase:'boarding',dockedAt:originBody.id,clock:0,phaseClock:0,startedAt:finite(game.state.stats?.time),reward:0,paid:false,aborted:false,work:{done:false,progress:0}};
  const inventory={cargo:{ore:0,crystal:0},upgrades:{},crew:[{id:`${id}:pilot`,name:'Captain Vale',species:'human',role:'pilot',...layout.stations.helm,health:100,maxHealth:100,status:'active',greeting:`Your ${status.factionName} repatriation warrant covers this berth. I have the helm. Step ashore at ${destination.name} when we dock.`}],formerCrew:[],memorial:[],boardingHistory:[],boarding:null};
+ const passengers=game.boardRecoveredPassengers?.(ship,origin,batch)||[];inventory.crew.push(...passengers);
+ contract.recoveredPassengers=passengers.map(person=>({crewId:person.recoveryCrewId,groupId:person.recoveryGroupId}));contract.waitingSurvivors=Math.max(0,waiting.length-passengers.length);
+ if(contract.waitingSurvivors)emit(game,`${passengers.length} recovered crewmates have real passenger berths. ${contract.waitingSurvivors} remain at ${origin.name}; their locations are retained in the crew record.`);
  game.state.npcContractSerial=serial;return ok({contract,ship,inventory});
 }
 
@@ -168,6 +174,7 @@ export function settleMilitaryPassage(game,contract,{interrupted=false,ship=game
  if(orders){orders.status=completed?'returned':'orders';orders.passageId=null;}
  contract.paid=true;contract.active=false;contract.paidAmount=0;contract.completedAt=finite(worker.state.stats?.time);contract.outcome=interrupted?'interrupted':completed?'completed':'partial';
  const destination={systemId:game.state.systemId,bodyId:body?.id||contract.origin.bodyId,name:body?.name||contract.origin.name},text=completed?`Welcome home to ${destination.name}. The service covered your passage. Your rank and clearance are unchanged.`:interrupted?'The repatriation transport was interrupted. Your personal travel orders remain valid.':'You left the transport before reaching home. Your repatriation orders remain valid.';
+ if(!interrupted)worker.disembarkRecoveredPassengers?.(destination,{ship,crew:game.state.crew});
  game.state.npcContractHistory=[...(game.state.npcContractHistory||[]),{id:contract.id,roleId:'passenger',repatriation:true,origin:clone(contract.origin),destination,wages:0,fare:0,outcome:contract.outcome,at:contract.completedAt}].slice(-32);
  game._log?.('Military repatriation',text,'military');emit(game,text);return ok({contract,origin:clone(contract.origin),destination,wages:0,fare:0,completed,returned:completed,outcome:contract.outcome,text});
 }

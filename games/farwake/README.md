@@ -1,8 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.31.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.32.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.32.0 — The people who came back
+
+Medical recovery now keeps a personal incident record: the known cause, boarding outcome, incident vessel, actual losses, named crew outcomes, treatment destination, and military return orders. The report opens after the captain finishes waking. Its next action appears before the crew list and remains available on the recovery HUD. An enlisted casualty at Vey can see the pickup, destination, and **0 CR** fare, then board the existing physical evacuation service directly when nearby.
+
+Personal ship loss preserves living crew and their wounds in an evacuation manifest. Confirmed deaths remain casualties. The **Crew → Your crew & their whereabouts** view separates a captain's personal crew, a Navy vessel's company, survivors awaiting reunion, and memorial records. Crew left aboard a berthed personal ship during Navy duty retain that actual location; they are not reported as participants in a service-ship casualty.
+
+Recovered personal crew appear as named people beside the correct clinic or field hospital. A return transport takes the actual survivors waiting at its pickup and selects a hull with real berths for its passengers. Eight survivors travel with the captain and a pilot aboard an Osprey; the largest transport carries fourteen survivors, with any additional people explicitly recorded as waiting at the pickup. Their identities and injuries survive a save or shared-world restart during passage. After physical arrival and disembarkation, survivors wait beside the destination clinic. They can rejoin an owned ship at that port when there is a real berth for each person. Casual reserves remain compact, and human occupants keep priority over NPC stations and berths.
+
+Returning to the home posting produces a debrief with the known crew outcomes and a durable acknowledgment. Treating medics, recovered crewmates, the captain's own service desk, and familiar people at home react to the recorded incident. Strangers and distant ports do not acquire private casualty knowledge. Survival does not award another mission payment or promotion: existing assignment results, injuries, destroyed property, and confirmed casualties remain the basis for consequences.
+
+Hostile boarding briefings show the actual allied NPC party, the origin ship's hull condition, its continued exposure to outside fire, and the route back through the entry airlock. A captain who falls before the allies secure the target receives a report that preserves both events.
+
+The latest twelve recovery reports remain available in the voyage log. Existing saves retain their progress and receive a limited report from any older recovery receipt. Facts the old save never retained—such as a cleared crew manifest or the exact attacking source—are explicitly left unknown. The update does not invent replacement survivors or reset the voyage.
+
+World content revision **7** keeps the published client and shared authority aligned. Validation covers the eight-person Navy/evacuation/Morrow journey, physical shuttle capacity, wounded and dead passengers, boarding outcomes, save/restart persistence, personal versus service ownership, human station priority, dialogue knowledge boundaries, and reachable survivor placement.
 
 ## 0.31.1 — Solo Casual ships that fit the crew
 

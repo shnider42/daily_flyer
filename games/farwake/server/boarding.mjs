@@ -11,7 +11,7 @@ const present = (captain, vessel) => captain.aboard === vessel.id && alive(capta
 const weak = vessel => !vessel.destroyed && vessel.ship.hull > 0 && vessel.ship.hull <= vessel.ship.maxHull * .48 && vessel.ship.shield <= vessel.ship.maxShield * .2;
 const airborne = vessel => vessel && !vessel.dockedAt && !vessel.destroyed && vessel.ship.hull > 0;
 const close = (one, two, range = 220) => one && two && one.systemId === two.systemId && distance(one.ship, two.ship) <= range + Math.max(one.ship.radius || 0, two.ship.radius || 0);
-const liveCrew = crew => !crew.dead && crew.health > 0;
+const liveCrew = crew => !crew.dead && crew.status !== 'dead' && crew.health > 0;
 
 export class BoardingAuthority {
   _migrateLegacyBoarding() {
@@ -395,6 +395,7 @@ export class BoardingAuthority {
     const human = target.human && this.captains.get(target.captainId), member = target.crewId && this._crewFor(vessel).find(crew => crew.id === target.crewId);
     const victim = human?.game.state.person || member; if (!victim) return shot;
     victim.health = Math.max(0, victim.health - attacker.damage); victim.hitUntil = at + .24; victim.lastHitBy = attacker.id; target.health = victim.health;
+    if(human)victim.lastInjury={kind:'boarding-shot',boardingId:combat.id,attackerId:attacker.id,actorName:attacker.name,weaponId:weapon.id,damage:attacker.damage,at,vesselId:vessel.id};
     this._deckEvent(vessel, { ...shot, type: 'person-hit', id: `${shot.id}:hit`, until: at + .65, x: target.x, y: target.y, health: victim.health, maxHealth: target.maxHealth || 100 });
     if (!victim.health) {
       const event = { ...shot, type: human ? 'person-down' : 'boarder-down', id: `${shot.id}:down`, x: target.x, y: target.y, actorId: target.id, until: at + 1.5, text: `${attacker.name} downed ${target.name}.` };
@@ -425,32 +426,57 @@ export class BoardingAuthority {
     }
     this._refreshOccupation(vessel);
   }
-  _recoverCaptain(captain, text) {
-    const previous = this.vessels.get(captain.aboard); if (previous?.helmOwner === captain.id) previous.helmOwner = null;
+  _captureCaptainRecovery(captain,previous,{sourceKind=null,cause=null}={}){
     const game=captain.game,system=this._room(previous?.systemId||game.state.systemId).runtime;
-    const context=shipRecoveryContext(game,previous?.ship||game.state.ship,{system,sourceKind:previous?.destroyed?'ship-destroyed':'deck-defeat'});
+    // Capture the actual deck before ending an employer watch or detaching a
+    // lost registration. A guest's personal manifest may be safely elsewhere.
+    return shipRecoveryContext(game,previous?.ship||game.state.ship,{system,
+      sourceKind:sourceKind||(previous?.destroyed?'ship-destroyed':game.state.person.interiorDown?'interior-casualty':previous?.boarding?.phase==='won'?'boarding-evacuation':previous?.boarding||previous?.pvp?'deck-defeat':'ship-casualty'),
+      cause,crew:previous?this._crewFor(previous):game.state.crew,personal:previous?previous.id===captain.ownedVesselId:!game.state.npcContract?.active,
+      boarding:previous?.boarding||previous?.pvp||null});
+  }
+  _vesselRecoveryContexts(vessel,captains,options={}){
+    const contexts=new Map(captains.map(captain=>[captain.id,this._captureCaptainRecovery(captain,vessel,options)]));
+    const companyDestination=contexts.get(vessel.ownerId)?.destination||contexts.values().next().value?.destination;
+    for(const context of contexts.values())context.serviceDestination=companyDestination;
+    return contexts;
+  }
+  _recoverCaptain(captain, text, {sourceKind=null,cause=null,context=null}={}) {
+    const previous = this.vessels.get(captain.aboard); if (previous?.helmOwner === captain.id) previous.helmOwner = null;
+    const game=captain.game;
+    context ||= this._captureCaptainRecovery(captain,previous,{sourceKind,cause});
     if(!context.destination)return;
+    if(previous)game.disembarkRecoveredPassengers(context.destination,{ship:previous.ship,crew:this._crewFor(previous),incidentId:context.incidentId});
     this._interruptNpcContract(captain);
     captain.game.state.boarding = null; captain.game._boardingShotTimer = 0; captain.returnVesselId = null; captain.boardingTeam = null;
     const owned = this.vessels.get(captain.ownedVesselId);
-    if (owned && (owned.destroyed || this._hostileOccupied(owned))) this._detachLostVessel(captain, owned);
+    if (owned && (owned.destroyed || this._hostileOccupied(owned))) this._detachLostVessel(captain, owned,{context:owned===previous?context:null});
     this._landCharacter(captain,context.destination.systemId,context.destination.bodyId);
     game.completeShipRecovery({...context,...(text?{message:`${text} You are ashore at ${context.destination.name}; no replacement hull was issued.`}:{})});
     captain.events.push(...game.drainEvents());captain.surfaceCache=null;this._refreshOccupation(previous);
   }
-  _detachLostVessel(captain, previous) {
+  _detachLostVessel(captain, previous, {context=null}={}) {
     if(!previous||captain.ownedVesselId!==previous.id)return;
-    // Keep the manifest attached to the physical wreck or occupied vessel.
-    // A compatibility record has no hull, ownership, berth, or launch rights.
-    previous.inventory = { cargo: captain.game.state.cargo, upgrades: captain.game.state.upgrades, crew: captain.game.state.crew, formerCrew: captain.game.state.formerCrew, memorial: captain.game.state.memorial, boardingHistory: captain.game.state.boardingHistory };
-    captain.game.losePersonalVessel(previous.ship,{reason:previous.destroyed?'destroyed':'captured'});
+    const game=captain.game,inventory=this._inventoryFor(previous),aboard=captain.aboard===previous.id;
+    context ||= shipRecoveryContext(game,previous.ship,{system:this._room(previous.systemId).runtime,sourceKind:previous.destroyed?'ship-destroyed':'deck-defeat',crew:inventory.crew,personal:true,boarding:previous.boarding||previous.pvp||null});
+    // Surviving people evacuate; property and confirmed casualties remain with
+    // the hull. The helper removes their IDs and roster from that physical ship
+    // so a later captor cannot duplicate or resurrect the recovered company.
+    game.evacuatePersonalCrew(context.destination,{incidentId:context.incidentId,ship:previous.ship,crew:inventory.crew,personal:true});
+    previous.inventory = Object.fromEntries(['cargo','upgrades','crew','formerCrew','memorial','boardingHistory'].map(key=>[key,inventory[key]]));
+    game.losePersonalVessel(previous.ship,{reason:previous.destroyed?'destroyed':'captured',incidentId:context.incidentId,destination:context.destination});
     captain.ownedVesselId=null;if(captain.portVesselId===previous.id)captain.portVesselId=null;
     if (previous.actor) { previous.actor.state.ship = previous.ship; previous.actor.state.crew = previous.inventory.crew; }
+    if(!aboard)game.completeRecoveryIncident({incidentId:context.incidentId,destination:context.destination,captainRecovered:false});
   }
   _destroyVessel(vessel, details = {}) {
     if (vessel.destroyed) return true;
     vessel.destroyed = true; vessel.ship.destroyed = true; vessel.ship.hull = 0; vessel.ship.shield = 0; vessel.helmOwner = null; vessel.ship.vx = 0; vessel.ship.vy = 0;
     const occupants = [...this.captains.values()].filter(c => c.aboard === vessel.id);
+    const owners=[...this.captains.values()].filter(captain=>captain.ownedVesselId===vessel.id);
+    // Every witness gets the same pre-evacuation company manifest, even when
+    // the owner's recovery removes those people before the next person lands.
+    const contexts=this._vesselRecoveryContexts(vessel,[...new Set([...occupants,...owners])],{sourceKind:'ship-destroyed'});
     // A relief survivor belongs to the actual carrier, even if the captain
     // who accepted the rescue has gone ashore or owns a different ship.
     for (const captain of this.captains.values()) {
@@ -472,11 +498,22 @@ export class BoardingAuthority {
       captain.game.professionRescue?.();
       if(!occupants.includes(captain))captain.game.narrativeRescue();
     }
-    for (const member of this._crewFor(vessel)) if (liveCrew(member)) { member.health = 0; member.status = 'dead'; member.dead = true; }
-    for (const captain of occupants) this._recoverCaptain(captain, `${vessel.name} was destroyed. An escape capsule brought you to a safe port; its wreck remains in space.`);
+    // A destroyed hull does not prove that every living person aboard died.
+    // Named survivors are evacuated by the owner's recovery path; actual
+    // combat deaths already have zero health and retain their memorials.
+    for (const captain of occupants) this._recoverCaptain(captain, `${vessel.name} was destroyed. An escape capsule brought you to a safe port; its wreck remains in space.`,{context:contexts.get(captain.id)});
     // An owner who is ashore or aboard another vessel loses the destroyed
     // registration too, but never moves with the absent hull's survivors.
-    for(const captain of this.captains.values())if(captain.ownedVesselId===vessel.id)this._detachLostVessel(captain,vessel);
+    for(const captain of owners)this._detachLostVessel(captain,vessel,{context:contexts.get(captain.id)});
+    if(vessel.npcContractId){
+      const destination=contexts.get(vessel.ownerId)?.destination||occupants.map(captain=>captain.game.state.medicalRecovery?.destination).find(Boolean),inventory=this._inventoryFor(vessel);
+      if(destination){
+        const departed=new Set(inventory.formerCrew.map(member=>member.id));
+        for(const member of inventory.crew.filter(liveCrew))if(!departed.has(member.id))inventory.formerCrew.push({...clone(member),status:'evacuated',recoveryLocation:clone(destination)});
+        inventory.crew=inventory.crew.filter(member=>!liveCrew(member));
+        if(vessel.actor)vessel.actor.state.crew=inventory.crew;
+      }
+    }
     if (vessel.boarding) vessel.boarding.phase = 'lost'; if (vessel.pvp) vessel.pvp.phase = 'destroyed';
     vessel.occupation = { boarderId: null, controllerId: null, contested: false };
     if(vessel.npcEnemyId){
