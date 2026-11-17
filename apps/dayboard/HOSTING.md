@@ -4,7 +4,7 @@ Dayboard is operated by **Holtsnider Tech**. The public personal board remains a
 
 ## Hosting inventory
 
-Inventory at the 2026-11-16 handoff:
+Inventory updated November 17, 2026; provisioning observations remain dated to November 16:
 
 | Component | Verified target / current state |
 | --- | --- |
@@ -17,11 +17,17 @@ Inventory at the 2026-11-16 handoff:
 | Database region | US East, `us-east-1` |
 | Provisioning quote | **$0 / Free** for this project creation; not a promise that all hosting, email delivery or future usage will be free |
 | Database SQL | Both migrations installed; all 10 application tables have RLS enabled; browser roles cannot read inventory, change approvals or invoke the Auth hook |
-| Hosted activation | Auth hook registration, actual Auth endpoint tests, email delivery, recovery/retention decisions and hosted multiuser verification remain gates |
+| Auth admission | Before User Created Postgres hook registered and enabled; one unrelated real OTP request rejected with its HTTP 403 message |
+| Callback configuration | Site URL and sole allowed redirect: `https://dfe-dayboard.onrender.com/`; no wildcards |
+| Data API exposure | `public` and `graphql_public` checked; `dayboard_private` excluded; defaults were not changed |
+| Email delivery | Custom SMTP OFF; no custom provider configured |
+| Remaining activation | Positive/invited Auth paths, invitation expiry/revocation, SMTP delivery, hosted multiuser/concurrency checks, recovery and deletion/retention operations |
 
-The initial hosted inventory contains **0 Auth accounts, 0 organizer approvals, 0 workspaces, 0 task records and 0 invitations**. The new database uses about 11.5 MiB including provider/schema overhead; this is not user task content. Security advisers returned no warning/error findings and seven informational “RLS enabled, no policy” entries for private tables intentionally accessed only through guarded functions. Do not add broad policies to silence those entries; see the [adviser explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+The November 16 initial inventory contained **0 Auth accounts, 0 organizer approvals, 0 workspaces, 0 task records and 0 invitations**, with about 11.5 MiB of database/provider overhead. Security advisers returned no warning/error findings and seven informational “RLS enabled, no policy” entries for private tables intentionally accessed only through guarded functions. Do not add broad policies to silence those entries; see the [adviser explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
 
-The SQL connector cannot assume the managed `supabase_auth_admin` role. Hosted role grants were inspected, but the real Auth endpoint still needs testing after hook registration. Dashboard registration and inspection of exposed Data API schemas require dashboard sign-in; neither is claimed complete.
+Dashboard sign-in succeeded on November 17. The hook was saved as **ENABLED**; Auth allows new users through that hook, requires email confirmation, and has anonymous sign-in and manual linking OFF. Only the Email provider is enabled. Exact Site URL/redirect saves and exposed-schema inspection were confirmed in the Dashboard.
+
+One real OTP POST with a unique `@example.invalid` address, `create_user: true`, PKCE `s256` and the published root redirect returned **HTTP 403** (`code: unknown`): **“Shared Dayboard access requires a current invitation or host approval.”** No user or session was created. At **2026-11-17 20:46:06 UTC**, post-request counts remained **0 Auth accounts, 0 organizer approvals, 0 workspaces and 0 invitations**. This verifies only the negative admission path. The [rollout evidence](TEAM_ROLLOUT.md#hosted-auth-configuration-and-negative-admission--november-17-2026) records the remaining checks; no release attestations were set and team mode remains disabled.
 
 This project is dedicated to Dayboard. Do not apply Dayboard migrations or configuration to the separate SuggestionBox project. Update this inventory after deployment or provider changes; project health is a point-in-time observation.
 
@@ -66,8 +72,8 @@ Disabling organizer approval stops new workspace creation, not existing membersh
 ## Gates before shared mode is enabled
 
 1. **Verify the installed SQL.** Inspect migrations, grants, RLS, security advisers and publication. Keep `dayboard_private` outside the Data API's exposed schemas. Confirm the approval registry and inventory are inaccessible to browser roles.
-2. **Register and test the Auth hook.** Enable the Before User Created Postgres hook at `pg-functions://postgres/dayboard_private/before_user_created`. Applying SQL alone does not activate it. Test the actual hosted Auth endpoint with authorized test identities: unrelated signup rejected; approved organizer and current invitee admitted; expired/revoked invitations rejected. Admission must not itself grant membership. Keep anonymous sign-in disabled and email confirmation required. See [hook behavior](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook) and [configuration/permissions](https://supabase.com/docs/guides/auth/auth-hooks).
-3. **Configure and test sign-in delivery.** Name the actual provider, configure exact callback origins, and verify delivery to an invited address outside the Supabase organization. The built-in sender only delivers to infrastructure-organization members and is limited to two messages/hour; do not add application users to that organization to bypass it. See [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) and [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits).
+2. **Complete the Auth hook tests.** The hook at `pg-functions://postgres/dayboard_private/before_user_created` is registered/enabled and unrelated signup rejection is verified. Still test approved-organizer and current-invitee admission, expired/revoked invitations and explicit membership acceptance through real Auth. Keep anonymous sign-in disabled and email confirmation required. Applying SQL alone would not register the hook in a replacement project. See [hook behavior](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook) and [configuration/permissions](https://supabase.com/docs/guides/auth/auth-hooks).
+3. **Configure and test sign-in delivery.** Custom SMTP remains OFF. Name and configure the actual provider, retain the exact published Site URL/sole redirect, and verify delivery and invitation resumption for an invited address outside the Supabase organization. The built-in sender only delivers to infrastructure-organization members and is limited to two messages/hour; do not add application users to that organization to bypass it. See [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) and [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits).
 4. **Complete hosted multiuser QA.** Verify two real sessions, simultaneous creation at quota, competing edits, removal while another session is open, reconnect/retry, invitation resumption and continued personal-board isolation. Local tests do not establish hosted Auth/PostgREST/Realtime or multi-connection behavior.
 5. **Establish recovery and retention operations.** Choose and test a database backup/restore procedure, define how pilot deletion requests are fulfilled, and record the retention limits that actually apply. A board JSON export is not a database recovery plan. Ensure the public privacy notice matches deployed providers and current behavior.
 

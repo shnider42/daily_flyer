@@ -66,13 +66,15 @@ JSON team exports contain board content and assignment references. Import adds i
 
 The server schema and exact RPC/access contract are documented in [supabase/README.md](supabase/README.md). Disabling organizer approval stops future workspace creation; it does not suspend an existing membership or revoke outstanding invitations. The database runbook describes those separate controls. The staged deployment and acceptance criteria are in [TEAM_ROLLOUT.md](TEAM_ROLLOUT.md), and current infrastructure/operations are recorded in [HOSTING.md](HOSTING.md).
 
-## Hosted pilot status — November 16, 2026
+## Hosted pilot status — November 17, 2026
 
-The user-approved dedicated Supabase project **Dayboard** (`llkfchgbvnejrsqgvxgc`) has been created in **HoltsniderTech**, using the **$0 / Free provisioning quote**, in US East (`us-east-1`). It was healthy at provisioning. Both migrations are installed. Hosted read-only verification found **0 Auth users, 0 organizer approvals, 0 workspaces, 0 task records, and 0 invitations**.
+The user-approved dedicated Supabase project **Dayboard** (`llkfchgbvnejrsqgvxgc`) has been created in **HoltsniderTech**, using the **$0 / Free provisioning quote**, in US East (`us-east-1`). It was healthy at provisioning. Both migrations are installed. The November 16 initial inventory had **0 Auth users, 0 organizer approvals, 0 workspaces, 0 task records, and 0 invitations**.
 
 All 10 application tables have RLS enabled. Inspected grants prevent browser roles from reading the operator inventory, changing organizer approvals, or executing the Auth hook. Security advisers reported **0 warnings, 0 errors, and 7 informational findings** for private tables with RLS but no direct client policy; these tables intentionally use guarded RPC access.
 
-**The Before User Created hook is not registered, so hosted signup admission is not activated.** The available connector cannot configure that Auth setting, and Dashboard access reached a sign-in wall. No Auth request was sent. Dashboard inspection of exposed Data API schemas, actual hosted Auth endpoint behavior, configured SMTP/delivery, hosted concurrency, and backup/restore remain gates. Keep team mode disabled until those checks are completed; installed SQL and build flags do not establish them.
+**The Before User Created hook is registered and enabled.** Dashboard inspection confirmed email confirmation ON, anonymous sign-in/manual linking OFF, and only Email authentication enabled. New users remain allowed subject to the hook. The Site URL and sole allowed redirect are exactly `https://dfe-dayboard.onrender.com/`, with no wildcards. Exposed schemas are `public` and `graphql_public`; `dayboard_private` is excluded.
+
+Exactly one real OTP request for an unrelated synthetic address returned **HTTP 403** with **“Shared Dayboard access requires a current invitation or host approval.”** No user or session was created; post-request counts at **2026-11-17 20:46:06 UTC** remained **0 Auth accounts, 0 organizer approvals, 0 workspaces and 0 invitations**. This verifies only negative admission. Custom SMTP is OFF with no provider configured. Positive/invited signup, invitation expiry/revocation, delivery, hosted two-user/concurrency checks, backup/restore and deletion operations remain gates. No release attestations were set and team mode remains disabled; see [TEAM_ROLLOUT.md](TEAM_ROLLOUT.md) for evidence.
 
 ## Development and deployment
 
@@ -111,4 +113,4 @@ Render configuration:
 
 ## Important boundaries
 
-The board is not connected to Jira, calendars, job applications, or other career applications. Team sign-in email needs an explicitly configured delivery provider and verified redirect settings. Actual Auth-hook registration/endpoint behavior, SMTP delivery, exposed-schema Dashboard inspection, PostgREST, Realtime, two-browser concurrency, and backup restoration remain hosted activation checks. Ownership transfer, automated account/workspace deletion, and retention cleanup are not implemented yet; define pilot request handling and recovery before activation and complete lifecycle operations before a wider hosted rollout.
+The board is not connected to Jira, calendars, job applications, or other career applications. Team sign-in email still needs a configured delivery provider and successful callback/delivery testing. Hook registration, exact redirect configuration, schema exposure and one negative Auth request are verified; positive/invited Auth, SMTP, PostgREST, Realtime, two-browser concurrency and backup restoration remain activation checks. Ownership transfer, automated account/workspace deletion and retention cleanup are not implemented yet; define pilot request handling and recovery before activation and complete lifecycle operations before a wider hosted rollout.
