@@ -230,3 +230,65 @@ test('shared PvP sidearms apply each shooter trait and publish the actual victim
   realm.step(.02,13,Date.now());ok(realm._command(attacker,'attackBoarder',{enemyId:defender.id}));
   assert.equal(defender.game.state.person.health,60);
 });
+
+test('Dead Reckoning changes the chart quote and the fuel actually spent at the helm',()=>{
+  const game=new Game('fold-perk',{startMode:'casual',character:{traits:['dead_reckoning']}});
+  const plain=new Game('fold-perk',{startMode:'casual'});
+  const target='vesper',quote=ok(game.travelInfo(target)),fuel=game.state.ship.fuel;
+  assert.equal(quote.fuelCost,Math.ceil((2+quote.distance*.65)*.8));
+  assert.ok(quote.fuelCost<ok(plain.travelInfo(target)).fuelCost);
+  game.state.ship.fuel=quote.fuelCost-1;
+  assert.equal(game.travel(target).code,'fuel');
+  game.state.ship.fuel=fuel;
+  ok(game.travel(target)); assert.equal(game.state.ship.fuel,fuel-quote.fuelCost);
+});
+
+test('Wreck Rigger offers a manual pickup at the same extended boundary the action accepts',()=>{
+  const game=captain('distant-crate',['wreck_rigger']),plain=captain('distant-crate');
+  const range=plain.manualSalvageReach*1.35;
+  for(const g of [game,plain]){
+    Object.assign(g.state.ship,{x:0,y:0});g.system.bodies=[];g.system.enemies=[];g.system.signals=[];g.system.traffic=[];
+    g.system.pickups=[{id:'outer-crate',name:'Test cargo',x:range,y:0,ore:2}];
+  }
+  assert.equal(plain.salvage('outer-crate').code,'distance');
+  assert.equal(game.interact().range,range);
+  game.system.pickups[0].x+=1;assert.equal(game.salvage('outer-crate').code,'distance');
+  game.system.pickups[0].x=range;assert.equal(ok(game.salvage('outer-crate')).ore,2);
+  assert.equal(game.salvage('outer-crate').code,'target');
+});
+
+test('Core Sampler pays once on the first successful derelict scan and respects hold capacity',()=>{
+  for(const [traits,kind,full,expected] of [
+    [['core_sampler'],'derelict',false,1],[['core_sampler'],'derelict',true,0],
+    [['core_sampler'],'survey',false,0],[[],'derelict',false,0]
+  ]){
+    const game=new Game('derelict-perk',{startMode:'casual',startSystemId:'afterlight',character:{traits}});
+    const signal=game.system.signals.find(s=>s.kind===kind);
+    Object.assign(game.state.ship,{x:signal.x,y:signal.y,energy:0});
+    if(full)game.state.cargo.ore=game.state.ship.cargoCap;
+    assert.equal(game.scan(signal.id).code,'energy');assert.equal(game.state.cargo.crystal,0);
+    game.state.ship.energy=100;ok(game.scan(signal.id));assert.equal(game.state.cargo.crystal,expected);
+    const reloaded=Game.fromSave(game.save());
+    reloaded.scan(signal.id);
+    assert.equal(reloaded.state.cargo.crystal,expected);
+    assert.ok(reloaded.cargoUsed<=reloaded.state.ship.cargoCap);
+  }
+});
+
+test('port perks pay their posted sale and job values, and Standby Rider works on foot',()=>{
+  for(const [trait,priceRate,wageRate] of [['ore_broker',1.2,.9],['contract_hand',.9,1.15]]){
+    const game=captain('paid-perks',[trait]);land(game);
+    game.state.cargo={ore:10,crystal:5};const before=game.state.credits;
+    const quote=game.serviceQuote('sell');assert.equal(quote.value,Math.floor(380*priceRate));
+    ok(game.service('sell'));assert.equal(game.state.credits,before+quote.value);
+    const work=game.availableJobs().find(job=>job.type==='work');assert.equal(work.reward,Math.round(120*wageRate));
+    ok(game.acceptJob(work.id));for(let i=0;i<3;i++)ok(game.recordActivity('work',{token:'port-perk-'+i}));
+    const credits=game.state.credits;ok(game.turnInJob(work.id));assert.equal(game.state.credits,credits+work.reward);
+  }
+  const plain=new Game('commuter',{startMode:'hardcore'});
+  const rider=new Game('commuter',{startMode:'hardcore',character:{traits:['standby_rider']}});
+  const fare=Math.round(ok(plain.passengerQuote('kettle')).fare*.7);
+  assert.equal(ok(rider.passengerQuote('kettle')).fare,fare);
+  rider.state.credits=fare;assert.equal(ok(rider.takePassengerTransit('kettle')).receipt.fare,fare);
+  assert.equal(rider.state.credits,0);assert.equal(rider.ownsShip,false);
+});

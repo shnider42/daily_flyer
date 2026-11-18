@@ -81,6 +81,10 @@
 .captain-traits-heading{display:flex;align-items:center;justify-content:space-between;gap:15px}
 .captain-traits-heading h3{font-size:1.22em;margin:0;color:#f0e8cc}
 .captain-traits-heading>span{font-size:1em;font-variant-numeric:tabular-nums;white-space:nowrap;color:#e3c690}
+.captain-trait-group{border-top:1px solid #344957}
+.captain-trait-group summary{padding:12px 4px;cursor:pointer;color:#e9e4cd;font-weight:600;min-height:46px}
+.captain-trait-group summary:focus-visible{outline:2px solid #e1c284;outline-offset:-2px}
+.captain-trait-group[open]{padding-bottom:12px}
 .captain-trait-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .captain-trait{display:flex;flex-direction:column;align-items:stretch;padding:14px;text-align:left;background:#142735;border:1px solid #3a5260;border-bottom:3px solid #08141d;min-width:0}
 .captain-trait.selected{border-color:#91c2b2;background:#1b343c;box-shadow:inset 3px 0 0 #91c2b2}

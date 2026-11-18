@@ -365,3 +365,17 @@ test('shared eight-NPC setup keeps personal starters and exposes its real reserv
   assert.match(f.find('[data-crew-allocation]').textContent,/0 NPCs aboard · 8 in reserve/);
   assert.match(f.dialog.body.textContent,/2, 4, or 7 connected captains/);
 });
+
+test('perks from different activity groups keep both selections and show flat and percentage effects',async t=>{
+  const f=fixture(t);await f.click('[data-captain-next]');
+  assert.equal(f.dialog.body.querySelectorAll('details').length,4);
+  assert.equal(f.dialog.body.querySelectorAll('[data-trait]').length,14);
+  await f.click('[data-trait="core_sampler"]');await f.click('[data-trait="triage_medic"]');
+  assert.equal(f.find('[data-trait-count]').textContent,'2 / 2');
+  assert.equal(f.find('[data-trait="dead_reckoning"]').disabled,true);
+  assert.match(f.find('[data-captain-summary]').textContent,/\+1 crystal on a first derelict scan/);
+  assert.match(f.find('[data-captain-summary]').textContent,/\+50% medbay healing below half health/);
+  await f.click('[data-captain-back]');await f.click('[data-captain-next]');
+  assert.equal(f.dialog.body.querySelectorAll('details').filter(group=>Object.hasOwn(group.attributes,'open')).length,2);
+  await f.click('[data-captain-submit]');assert.deepEqual(f.submitted[0].character.traits,['core_sampler','triage_medic']);
+});

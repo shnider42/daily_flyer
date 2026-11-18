@@ -1426,20 +1426,20 @@ export class Realm extends BoardingAuthority {
         if (!role || !this._canRole(c, active, role)) return fail('Your Navy rank does not authorize this duty station.', 'military-rank');
         const actor = this._actor(active), access = navyDutyAccess(actor, role, { worker: game });
         if (!access.ok) return access;
-        const result = a.action === 'repair' ? actor.repairFromStation()
+        const result = a.action === 'repair' ? actor.repairFromStation(game)
           : this._withShip(c, active, () => game.navyCrewAction('scan', { signalId: a.signalId }));
         if (result.ok) { c.crewRole = role; game.state.stationView = null; }
         this._syncActor(active); return result;
       }
       if (!this._canRole(c, active, c.crewRole) || !this._atStation(c, c.crewRole)) return fail('Operate this control from its assigned console.', 'distance');
       const actor = this._actor(active);
-      if (a.action === 'repair' && c.crewRole === 'engineering') { const result = actor.repairFromStation(); this._syncActor(active); return result; }
+      if (a.action === 'repair' && c.crewRole === 'engineering') { const result = actor.repairFromStation(game); this._syncActor(active); return result; }
       if (a.action === 'scan' && ['scanner', 'navigation'].includes(c.crewRole)) {
         const signal = a.signalId ? actor.system.signals.find(signal => signal.id === a.signalId) : actor.system.signals.filter(signal => !signal.resolved && distance(signal, active.ship) <= active.ship.scanRange).sort((one, two) => distance(one, active.ship) - distance(two, active.ship))[0];
         if (!signal) return fail('No unresolved signal is within scanner range.', 'target');
         return this._command(c, 'scan', { id: signal.id });
       }
-      if (a.action === 'heal' && c.crewRole === 'medical') { const patients = [...this.captains.values()].filter(patient => patient.aboard === active.id).map(patient => patient.game); const result = actor.medicalFromStation(patients); this._syncActor(active); return result; }
+      if (a.action === 'heal' && c.crewRole === 'medical') { const patients = [...this.captains.values()].filter(patient => patient.aboard === active.id).map(patient => patient.game); const result = actor.medicalFromStation(patients, game); this._syncActor(active); return result; }
       return fail('This action requires the matching crew station.', 'station');
     }
     return fail('Unknown crew action.', 'command');

@@ -3,7 +3,7 @@ import { starterShipChoices, normalizeStarterShip, getShipClass } from './fleet.
 import { normalizeCasualCrewCount } from './casual-crew.mjs';
 import { drawShip } from './space-art.mjs';
 import {
-  CHARACTER_TRAITS, MAX_TRAITS, SKIN_TONES, SUIT_COLORS, HAIR_COLORS, HAIR_STYLES,
+  CHARACTER_TRAITS, TRAIT_EFFECT_LABELS, MAX_TRAITS, SKIN_TONES, SUIT_COLORS, HAIR_COLORS, HAIR_STYLES,
   normalizeCharacter, appearancePalette, characterModifiers, drawCaptainPortrait
 } from './character.mjs';
 
@@ -261,6 +261,19 @@ export function openCaptainSetup(dialog,{
       const crewSummary=dialog.body.querySelector('[data-crew-allocation]');if(crewSummary)crewSummary.innerHTML=crewAllocationMarkup();
     };
   }
+  function traitGroupsMarkup(){
+    const groups = ['On foot', 'Flight & salvage', 'Crew stations', 'Trade & travel'];
+    return groups.map(group => {
+      const traits = CHARACTER_TRAITS.filter(trait => trait.group === group);
+      const cards = traits.map(trait => `<button type="button" class="captain-trait${draft.traits.includes(trait.id)?' selected':''}" data-trait="${esc(trait.id)}" aria-pressed="${draft.traits.includes(trait.id)}">
+          <span class="captain-trait-top"><strong>${esc(trait.name)}</strong><span class="captain-trait-mark" aria-hidden="true">${draft.traits.includes(trait.id)?'✓':'+'}</span></span>
+          <span class="captain-trait-description">${esc(trait.description)}</span>
+          <span class="captain-trait-benefit"><b>Gain</b> ${esc(trait.benefit)}</span><span class="captain-trait-cost"><b>Tradeoff</b> ${esc(trait.cost)}</span>
+        </button>`).join('');
+      const open = traits.some(trait => draft.traits.includes(trait.id));
+      return `<details class="captain-trait-group"${open?' open':''}><summary>${esc(group)}</summary><div class="captain-trait-grid">${cards}</div></details>`;
+    }).join('');
+  }
   function captainMarkup(){
     const appearance=draft.appearance,canChoose=creating||!locked;
     const count=allocation(),startSummary=selectedStart==='hardcore'?'Hardcore · Morrow · 180 CR · no ship':selectedStart==='casual'?`Casual · ${selectedSystem().name} · ${getShipClass(selectedShip).name} · 180 CR · Fold Drive I fitted · ${selectedCrewCount()} NPC crew · ${count.aboard} aboard · ${count.reserve} in reserve`:`Regular · Hearth · ${getShipClass(selectedShip).name} · 180 CR`;
@@ -276,14 +289,10 @@ export function openCaptainSetup(dialog,{
       </div>
     </div>
     <section class="captain-traits" aria-label="Captain traits">
-      <div class="captain-traits-heading"><h3>What shaped you?</h3><span data-trait-count>${draft.traits.length} / ${MAX_TRAITS}</span></div>
-      ${canChoose?`<p class="captain-note">Choose up to two optional traits. Every advantage comes with a drawback. Choosing none gives you balanced abilities.</p>
+      <div class="captain-traits-heading"><h3>Captain perks</h3><span data-trait-count>${draft.traits.length} / ${MAX_TRAITS}</span></div>
+      ${canChoose?`<p class="captain-note">Open an activity to see its perks. Pick up to two, or skip this for a balanced captain. Your choices are permanent once confirmed.</p>
         ${!creating?`<label class="captain-finalize"><input type="checkbox" data-finalize-traits${chooseTraits?' checked':''}><span><strong>Choose my traits now</strong><small>This is a one-time choice. Leave this off to change only your appearance.</small></span></label>`:''}
-        <div class="captain-trait-grid" data-trait-grid${!creating&&!chooseTraits?' hidden':''}>${CHARACTER_TRAITS.map(trait=>`<button type="button" class="captain-trait${draft.traits.includes(trait.id)?' selected':''}" data-trait="${esc(trait.id)}" aria-pressed="${draft.traits.includes(trait.id)}">
-          <span class="captain-trait-top"><strong>${esc(trait.name)}</strong><span class="captain-trait-mark" aria-hidden="true">${draft.traits.includes(trait.id)?'✓':'+'}</span></span>
-          <span class="captain-trait-description">${esc(trait.description)}</span>
-          <span class="captain-trait-benefit"><b>Gain</b> ${esc(trait.benefit)}</span><span class="captain-trait-cost"><b>Tradeoff</b> ${esc(trait.cost)}</span>
-        </button>`).join('')}</div>
+        <div data-trait-grid${!creating&&!chooseTraits?' hidden':''}>${traitGroupsMarkup()}</div>
         <p class="captain-trait-hint" data-trait-hint aria-live="polite"></p>`:
         `<p class="captain-note">Your traits were chosen at departure. Appearance can still be changed.</p><div class="captain-locked-traits">${original.traits.length?original.traits.map(id=>{const trait=CHARACTER_TRAITS.find(value=>value.id===id);return `<div><strong>${esc(trait.name)}</strong><span>${esc(trait.benefit)}</span><span class="captain-trait-cost">${esc(trait.cost)}</span></div>`;}).join(''):'<p>No traits · balanced abilities.</p>'}</div>`}
     </section>
@@ -310,8 +319,9 @@ export function openCaptainSetup(dialog,{
         button.querySelector('.captain-trait-mark').textContent=selected?'✓':'+';
       }
       const hint=root.querySelector('[data-trait-hint]');if(hint)hint.textContent=!active?'Appearance only. You can choose traits when you’re ready.':chosen.length>=MAX_TRAITS?'Two traits selected. Remove one to choose a different trait.':chosen.length?'One trait selected. You can choose one more, or leave it here.':'No traits selected. A balanced captain is a complete choice.';
-      const modifiers=characterModifiers({traits:chosen}),names={walkSpeed:'walking speed',maxHealth:'maximum health',sidearmDamage:'sidearm damage',sidearmCooldown:'shot delay',mining:'mining rate',jobRewards:'job credits',serviceCost:'service costs'};
-      const effects=Object.entries(modifiers).filter(([,value])=>value!==1).map(([key,value])=>`${percent(value)} ${names[key]}`);
+      const modifiers=characterModifiers({traits:chosen});
+      const effects=Object.entries(TRAIT_EFFECT_LABELS).filter(([key])=>modifiers[key]!==1).map(([key,label])=>`${percent(modifiers[key])} ${label}`);
+      if(modifiers.derelictCrystals)effects.push(`+${modifiers.derelictCrystals} crystal on a first derelict scan with room in the hold`);
       root.querySelector('[data-captain-summary]').textContent=chosen.length?`${chosen.map(traitName).join(' + ')} · ${effects.join(' · ')}`:'No traits · standard health, movement, combat, and earnings.';
     }
     for(const button of root.querySelectorAll('[data-trait]'))button.onclick=()=>{

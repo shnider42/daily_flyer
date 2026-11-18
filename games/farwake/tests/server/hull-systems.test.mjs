@@ -5,9 +5,9 @@ import {getShipClass} from '../../dist/fleet.mjs';
 
 const ok=result=>assert.equal(result.ok,true,result.reason);
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-7,`${actual} != ${expected}`);
-async function crew(classId,role){
+async function crew(classId,role,traits=[]){
  const persistence={kind:'memory',async save(_id,version){return{version:version+1};}},realm=new Realm({id:'HULLTOOLS',seed:'hull-tools-shared',persistence});
- const{captain:owner}=await realm.createCaptain('Owner'),{captain:guest}=await realm.createCaptain('Crew');
+ const{captain:owner}=await realm.createCaptain('Owner'),{captain:guest}=await realm.createCaptain('Crew',{character:{traits}});
  for(const captain of [owner,guest])realm.attach(captain,{close(){}});
  const vessel=realm.vessels.get(owner.ownedVesselId),hull=getShipClass(classId);
  Object.assign(vessel.ship,hull.stats,{classId,berths:hull.berths,x:0,y:500,vx:0,vy:0,angle:0,hull:hull.stats.maxHull,shield:hull.stats.maxShield,energy:50});
@@ -39,4 +39,18 @@ test('medical treatment aboard a carrier reaches its actual pilot and visiting c
  const{realm,owner,guest,vessel}=await crew('capital','medical');owner.game.state.person.health=40;guest.game.state.person.health=50;const before=vessel.ship.energy;
  ok(await realm.command(guest,'crewAction',{action:'heal'}));assert.equal(owner.game.state.person.health,64);assert.equal(guest.game.state.person.health,74);assert.equal(vessel.ship.energy,before-20);
  const outside=realm.vessels.get(guest.ownedVesselId);assert.equal(outside.ship.energy,100,'The visitor’s own parked reactor is not charged for carrier treatment.');
+});
+
+test('a visiting Patchwright shortens the shared rig cooldown and a visiting medic treats critical patients',async()=>{
+ const engineering=await crew('atlas','engineering',['patchwright']);
+ const {realm,guest,vessel}=engineering;vessel.ship.hull=300;
+ ok(await realm.command(guest,'crewAction',{action:'repair'}));
+ near(realm._actor(vessel)._repairTimer,getShipClass('atlas').systems.repairCooldown*.75);
+ assert.equal((await realm.command(guest,'crewAction',{action:'repair'})).code,'cooldown');
+
+ const med=await crew('capital','medical',['triage_medic']);
+ med.owner.game.state.person.health=40;med.guest.game.state.person.health=45;
+ ok(await med.realm.command(med.guest,'crewAction',{action:'heal'}));
+ assert.equal(med.owner.game.state.person.health,76,'An injured pilot below half gets 36 points.');
+ assert.equal(med.guest.game.state.person.health,69,'At exactly half of her personal maximum, the medic gets 24 points.');
 });

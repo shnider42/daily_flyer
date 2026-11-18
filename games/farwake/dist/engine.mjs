@@ -772,7 +772,7 @@ export class Game {
     return routeShipPower(this.state.ship,mode);
   }
 
-  repairFromStation() {
+  repairFromStation(operator = this) {
     if(!this.hasActiveVessel)return this._fail('There is no ship to repair.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the engineering station aboard an active ship.', 'mode');
     const sh=this.state.ship,system=getHullSystems(sh.classId);
@@ -780,7 +780,7 @@ export class Game {
     if(this._repairTimer>0)return this._fail('The repair rig is cooling.', 'cooldown');
     if(sh.energy<system.repairEnergy)return this._fail(`The repair rig needs ${system.repairEnergy} reactor charge.`, 'energy');
     const restored=Math.min(system.repairHull,sh.maxHull-sh.hull);
-    sh.energy-=system.repairEnergy;sh.hull+=restored;this._repairTimer=system.repairCooldown;
+    sh.energy-=system.repairEnergy;sh.hull+=restored;this._repairTimer=system.repairCooldown*operator.characterEffects.repairCooldown;
     this._event('service',{text:`Engineering restored ${restored} hull integrity.`});return this._ok({hull:restored,energy:system.repairEnergy});
   }
 
@@ -797,7 +797,7 @@ export class Game {
     return this._scanActiveShip(signal.id);
   }
 
-  medicalFromStation(patients = [this]) {
+  medicalFromStation(patients = [this], operator = this) {
     if(!this.hasActiveVessel)return this._fail('Visit a port clinic for treatment until you have access to a ship’s medical station.','no-ship');
     if(this.state.mode!=='ship'&&this.state.interior?.kind!=='ship')return this._fail('Use the medical station aboard your ship.','mode');
     if(this._crewHealTimer>0)return this._fail('The medical station is preparing the next treatment.','cooldown');
@@ -808,9 +808,14 @@ export class Game {
     if(!people.length&&!crew.length&&!rescued.length)return this._fail('Everyone aboard is already healthy.','full');
     if(this.state.ship.energy<system.healEnergy)return this._fail(`The medical station needs ${system.healEnergy} reactor charge.`,'energy');
     this.state.ship.energy-=system.healEnergy;this._crewHealTimer=system.healCooldown;
-    for(const g of people)g.state.person.health=Math.min(g.state.person.maxHealth||100,g.state.person.health+system.healPerson);
-    for(const c of crew){c.health=Math.min(c.maxHealth,c.health+system.healCrew);c.status=c.health===c.maxHealth?'active':'injured';}
-    for(const person of rescued)person.health=Math.min(person.maxHealth||68,person.health+system.healCrew);
+    const { triageHealing } = operator.characterEffects;
+    const heal = (person, baseAmount, maximum) => {
+      const amount = person.health < maximum / 2 ? baseAmount * triageHealing : baseAmount;
+      person.health = Math.min(maximum, person.health + amount);
+    };
+    for(const g of people)heal(g.state.person,system.healPerson,g.state.person.maxHealth||100);
+    for(const c of crew){heal(c,system.healCrew,c.maxHealth);c.status=c.health===c.maxHealth?'active':'injured';}
+    for(const person of rescued)heal(person,system.healCrew,person.maxHealth||68);
     if(this.state.interior?.kind==='ship')this.state.interior.location.crew=clone(this.state.crew);
     this._event('service',{text:'Medical treatment restored vitality to the injured crew.'});
     return this._ok({healedPeople:people.length,healedCrew:crew.length,healedPassengers:rescued.length,energy:system.healEnergy});
@@ -1041,8 +1046,11 @@ export class Game {
     if (bodies.length) return bodies[0];
     const signal = this.system.signals.filter(s => !s.resolved && distance(sh, s) <= sh.scanRange).sort((a, b) => distance(sh, a) - distance(sh, b))[0];
     if (signal) return { type: 'signal', id: signal.id, signalId: signal.id, name: signal.name, signal, distance: distance(sh, signal), range: sh.scanRange };
-    const salvageReach=getHullSystems(sh.classId).salvageReach,pickup=this.system.pickups.find(p=>distance(p,sh)<salvageReach);
-    if (pickup) return { type: 'salvage', id: pickup.id, name: pickup.name || 'Loose salvage', pickup, distance: distance(pickup, sh), range: salvageReach };
+    if (this.system.pickups.length) {
+      const range = this.manualSalvageReach;
+      const pickup = this.system.pickups.find(item => distance(item, sh) <= range);
+      if (pickup) return { type: 'salvage', id: pickup.id, name: pickup.name || 'Loose salvage', pickup, distance: distance(pickup, sh), range };
+    }
     const traffic = this.system.traffic.filter(t => trafficHailDistance(t, sh) <= PEACEKEEPER_HAIL_DISTANCE).sort((a,b)=>trafficHailDistance(a,sh)-trafficHailDistance(b,sh))[0];
     if (traffic) return { type: 'hail', id: traffic.id, name: traffic.name, traffic, distance: distance(traffic, sh), range:Math.hypot(traffic.renderLength||32,traffic.renderWidth||24)/2+sh.radius+PEACEKEEPER_HAIL_DISTANCE };
     return null;
@@ -1158,7 +1166,7 @@ export class Game {
     if (!target) return this._fail('Unknown star system.', 'target');
     const current = this.currentSystem;
     const dist = Math.hypot(target.gx - current.gx, target.gy - current.gy);
-    const fuelCost = Math.ceil((2+dist*.65)*getHullSystems(this.state.ship.classId).foldFuelMultiplier);
+    const fuelCost = Math.ceil((2+dist*.65)*getHullSystems(this.state.ship.classId).foldFuelMultiplier*this.characterEffects.foldFuel);
     const base = { target, distance: dist, fuelCost, range: this.state.ship.warpRange };
     if (id === current.id) return this._fail('You are already in this system.', 'same-system');
     if (this.state.mode !== 'ship') return { ...this._fail('Launch your ship before jumping.', 'mode'), ...base };
@@ -1220,6 +1228,13 @@ export class Game {
       this.progressJob('survey', 1, {token:signal.id});
       this._flag('scanned_signal'); this._flag('first_scan');
       this.state.credits += 18;
+      if (signal.kind === 'derelict') {
+        const sample = this.characterEffects.derelictCrystals;
+        if (sample && this.cargoUsed + sample <= this.state.ship.cargoCap) {
+          this.state.cargo.crystal += sample;
+          this._event('sample', {text:`Core Sampler recovered ${sample} crystal from the derelict.`});
+        }
+      }
       this._refreshJobs();
     }
     if (signal.story && signal.id === 'hearth:story:tinbell') {
@@ -1249,12 +1264,14 @@ export class Game {
     return this._ok({ text: lore?.text || 'Survey recovered.', credits: reward });
   }
 
+  get manualSalvageReach() { return getHullSystems(this.state.ship.classId).salvageReach * this.characterEffects.salvageReach; }
+
   salvage(id) {
     const vesselAccess=this.ownShipAccess();if(!vesselAccess.ok)return vesselAccess;
     if (this.state.mode !== 'ship' && this.state.interior?.kind !== 'ship') return this._fail('Salvage is collected from your ship.', 'mode');
     const item = this.system.pickups.find(p => p.id === id);
     if (!item) return this._fail('There is no salvage left here.', 'target');
-    if (distance(item, this.state.ship) > getHullSystems(this.state.ship.classId).salvageReach) return this._fail('Fly closer to collect the salvage.', 'distance');
+    if (distance(item, this.state.ship) > this.manualSalvageReach) return this._fail('Fly closer to collect the salvage.', 'distance');
     const ore = Math.min(item.ore || 0, Math.max(0, this.state.ship.cargoCap - this.cargoUsed));
     this.state.cargo.ore += ore; item.ore = (item.ore || 0) - ore;
     const crystal = Math.min(item.crystal || 0, Math.max(0, this.state.ship.cargoCap - this.cargoUsed));
@@ -2293,7 +2310,7 @@ export class Game {
       const ore = action === 'sellCrystal' ? 0 : this.state.cargo.ore;
       const crystal = action === 'sellOre' ? 0 : this.state.cargo.crystal;
       const marketMultiplier = 1 + Math.max(-0.15, Math.min(0.2, (this.state.rep[this.currentBody?.faction] || 0) / 250));
-      return { action, cost: 0, value: Math.floor((ore * 14 + crystal * 48) * marketMultiplier), ore, crystal, label: 'Sell cargo' };
+      return { action, cost: 0, value: Math.floor((ore * 14 + crystal * 48) * marketMultiplier * this.characterEffects.mineralSales), ore, crystal, label: 'Sell cargo' };
     }
     if (action === 'emergency') return { action, cost: 0, label: 'Emergency port assistance' };
     return null;

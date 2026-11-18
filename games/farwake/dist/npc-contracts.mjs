@@ -641,7 +641,7 @@ function performModernWork(game,contract,action,{worker=game,playerId=worker.pla
  const access=workerAccess(game,contract,worker,playerId,action==='fire'?'security':action==='heal'?'medical':null);if(!access.ok)return access;
  let result;
  if(action==='fire'){result=game.fireWeapons(playerId,worker.state.stationView==='gunnery'?applyGunneryAim(game,worker,input):null);if(result.ok){contract.work.shots=finite(contract.work.shots)+1;contract.work.lastShotAt=contract.clock;worker.state.person.gunneryReadyAt=game.state.stats.time+getHullSystems(game.state.ship.classId).pulseCooldown;}}
- else if(action==='heal')result=game.medicalFromStation([worker]);
+ else if(action==='heal')result=game.medicalFromStation([worker], worker);
  else{
   if(sectionId&&sectionId!==contract.work.sectionId)return fail('Use the marked damaged compartment.','target');
   const original={person:game.state.person,mode:game.state.mode,interior:game.state.interior};game.state.person=worker.state.person;game.state.mode='person';game.state.interior=worker.state.interior;
@@ -682,7 +682,7 @@ export function performNpcContractWork(game,action,{worker=game,playerId=worker.
    if(!contract.work.shotAnnounced){contract.work.shotAnnounced=true;emit(game,'Ship guns firing. These are the employer’s exterior pulse guns; hold FIRE while the NPC pilot keeps the marked target ahead. Confirmed hits appear in Crew duty.');}
   }
  }
- else if(action==='heal')result=game.medicalFromStation([worker]);
+ else if(action==='heal')result=game.medicalFromStation([worker], worker);
  else{
   if(sectionId&&sectionId!==contract.work.sectionId)return fail('Use the marked compartment for this assignment.','target');
   // Existing damage-control validation uses the actual worker position and

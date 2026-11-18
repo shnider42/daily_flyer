@@ -87,7 +87,8 @@ export const LivelihoodRules={
   if(!body||!isPassengerPort(body)||body.id===origin.id)return {...this._fail('Choose another inhabited planet or station in this system.','target'),credits};
   // Spreading a system out changes the voyage, not the already posted tariff.
   const spacing=Math.max(1,finite(this.system.radius,WORLD_RADIUS)/LEGACY_WORLD_RADIUS);
-  const fare=18+Math.ceil(distance(origin,body)/(120*spacing)),base={body,bodyId:body.id,name:body.name,originId:origin.id,originName:origin.name,systemId:this.state.systemId,fare,cost:fare,credits,remaining:Math.max(0,credits-fare),service:'Local passenger ferry'};
+  const postedFare=18+Math.ceil(distance(origin,body)/(120*spacing));
+  const fare=Math.round(postedFare*this.characterEffects.ferryFare),base={body,bodyId:body.id,name:body.name,originId:origin.id,originName:origin.name,systemId:this.state.systemId,fare,cost:fare,credits,remaining:Math.max(0,credits-fare),service:'Local passenger ferry'};
   if(this.state.npcContract?.active)return {...this._fail('Finish your signed crew contract before buying passenger passage.','contract'),...base};
   if(this.state.person.health<=0||this.state.person.down)return {...this._fail('You are incapacitated and cannot board passenger transport.','incapacitated'),...base};
   if(this.state.pendingEncounter)return {...this._fail('Finish your conversation before boarding.','encounter'),...base};

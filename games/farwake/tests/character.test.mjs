@@ -5,7 +5,7 @@ import {
   normalizeAppearance, normalizeCharacter, characterModifiers, appearancePalette, drawCaptainPortrait
 } from '../dist/character.mjs';
 
-const baseline = { walkSpeed:1,maxHealth:1,sidearmDamage:1,sidearmCooldown:1,mining:1,jobRewards:1,serviceCost:1 };
+const baseline = { walkSpeed:1,maxHealth:1,sidearmDamage:1,sidearmCooldown:1,mining:1,jobRewards:1,serviceCost:1,foldFuel:1,salvageReach:1,repairCooldown:1,triageHealing:1,mineralSales:1,ferryFare:1,derelictCrystals:0 };
 
 test('old captains and malformed character data retain baseline rules and valid cosmetics',()=>{
   for(const value of [undefined,null,false,42,'captain',[],{traits:'hot_cell'},{appearance:null}]) {
@@ -37,15 +37,17 @@ test('trait normalization rejects fabricated benefits, duplicates, and more than
 });
 
 test('every advertised trait has a real bounded benefit and cost, including paired effects',()=>{
-  assert.equal(CHARACTER_TRAITS.length,6);
-  const lowerIsBetter=new Set(['sidearmCooldown','serviceCost']);
+  assert.equal(CHARACTER_TRAITS.length,14);
+  assert.equal(new Set(CHARACTER_TRAITS.map(trait=>trait.id)).size,CHARACTER_TRAITS.length);
+  const lowerIsBetter=new Set(['sidearmCooldown','serviceCost','foldFuel','repairCooldown','ferryFare']);
   for(const trait of CHARACTER_TRAITS) {
     assert.ok(trait.benefit&&trait.cost);
     const effects=Object.entries(trait.modifiers);
-    assert.ok(effects.some(([key,value])=>lowerIsBetter.has(key)?value<1:value>1),trait.id+' needs a benefit');
+    assert.ok(trait.derelictCrystals===1 || effects.some(([key,value])=>lowerIsBetter.has(key)?value<1:value>1),trait.id+' needs a benefit');
     assert.ok(effects.some(([key,value])=>lowerIsBetter.has(key)?value>1:value<1),trait.id+' needs a cost');
     assert.ok(Object.isFrozen(trait)&&Object.isFrozen(trait.modifiers));
-    for(const other of CHARACTER_TRAITS)for(const value of Object.values(characterModifiers({traits:[trait.id,other.id]}))) {
+    for(const other of CHARACTER_TRAITS)for(const [key,value] of Object.entries(characterModifiers({traits:[trait.id,other.id]}))) {
+      if(key==='derelictCrystals'){assert.ok(value===0||value===1);continue;}
       assert.ok(Number.isFinite(value)&&value>=.65&&value<=1.5,trait.id+' + '+other.id);
     }
   }

@@ -35,44 +35,102 @@ export const HAIR_STYLES = freezeList([
 
 export const DEFAULT_APPEARANCE = Object.freeze({ skin:'warm', suit:'teal', hair:'dark', style:'crop' });
 export const MAX_TRAITS = 2;
+export const TRAIT_EFFECT_LABELS = Object.freeze({
+  walkSpeed:'walking speed', maxHealth:'maximum health', sidearmDamage:'sidearm damage', sidearmCooldown:'shot delay',
+  mining:'mining rate', jobRewards:'job credits', serviceCost:'port service costs', foldFuel:'fold fuel use',
+  salvageReach:'manual salvage reach', repairCooldown:'repair rig cooldown', triageHealing:'medbay healing below half health',
+  mineralSales:'ore and crystal sale prices', ferryFare:'local ferry fares'
+});
+const neutralModifiers = Object.freeze(Object.fromEntries(Object.keys(TRAIT_EFFECT_LABELS).map(key => [key, 1])));
 export const CHARACTER_TRAITS = Object.freeze([
   {
-    id:'long_stride', name:'Long Stride',
+    id:'long_stride', group:'On foot', name:'Long Stride',
     description:'You learned to cross open country with very little on your back.',
     benefit:'Walk 15% faster.', cost:'15% less maximum health.',
     modifiers:{ walkSpeed:1.15, maxHealth:.85 }
   },
   {
-    id:'bulkhead_born', name:'Bulkhead Born',
+    id:'bulkhead_born', group:'On foot', name:'Bulkhead Born',
     description:'Years hauling equipment through cramped passages made you hard to put down.',
     benefit:'20% more maximum health.', cost:'Walk 12% slower.',
     modifiers:{ maxHealth:1.2, walkSpeed:.88 }
   },
   {
-    id:'hot_cell', name:'Hot Cell',
+    id:'hot_cell', group:'On foot', name:'Hot Cell',
     description:'You tune a sidearm for one forceful pulse, then wait for its cell to settle.',
     benefit:'Sidearm hits deal 25% more damage.', cost:'30% longer between sidearm shots.',
     modifiers:{ sidearmDamage:1.25, sidearmCooldown:1.3 }
   },
   {
-    id:'quick_hands', name:'Quick Hands',
+    id:'quick_hands', group:'On foot', name:'Quick Hands',
     description:'Your familiar low-power pulse setting lets you fire again sooner.',
     benefit:'20% shorter delay between sidearm shots.', cost:'Sidearm hits deal 15% less damage.',
     modifiers:{ sidearmCooldown:.8, sidearmDamage:.85 }
   },
   {
-    id:'belt_born', name:'Belt Born',
+    id:'belt_born', group:'Trade & travel', name:'Belt Born',
     description:'You read mineral seams better than you negotiate a work contract.',
     benefit:'Mine 25% faster.', cost:'Job credit rewards are 10% lower.',
     modifiers:{ mining:1.25, jobRewards:.9 }
   },
   {
-    id:'port_regular', name:'Port Regular',
+    id:'port_regular', group:'Trade & travel', name:'Port Regular',
     description:'You know the repair counters and their people. Ore fields are less familiar.',
     benefit:'Ship services and infirmary visits cost 15% less.', cost:'Mine 15% slower.',
     modifiers:{ serviceCost:.85, mining:.85 }
+  },
+  {
+    id:'dead_reckoning', group:'Flight & salvage', name:'Dead Reckoning',
+    description:'You plot a fold by hand and spend your port calls paying for specialist maintenance.',
+    benefit:'Use 20% less fuel per fold jump, rounded up to a whole unit.', cost:'Port repairs, refueling, and infirmary visits cost 10% more.',
+    modifiers:{ foldFuel:.8, serviceCost:1.1 }
+  },
+  {
+    id:'wreck_rigger', group:'Flight & salvage', name:'Wreck Rigger',
+    description:'Your line launcher lets you hook debris before the ship drifts past it.',
+    benefit:'Use Collect from 35% farther away when flying near loose salvage.', cost:'Walk 8% slower.',
+    modifiers:{ salvageReach:1.35, walkSpeed:.92 }
+  },
+  {
+    id:'core_sampler', group:'Flight & salvage', name:'Core Sampler',
+    description:'Your scanner carries a small sampling head for silent freighters.',
+    derelictCrystals:1,
+    benefit:'The first scan of a derelict signal puts 1 crystal in your hold if there’s room.', cost:'Mine 15% slower.',
+    modifiers:{ mining:.85 }
+  },
+  {
+    id:'patchwright', group:'Crew stations', name:'Patchwright',
+    description:'You can reset a ship’s repair rig between cycles while the metal is still warm.',
+    benefit:'The hull repair rig you operate is ready again 25% sooner.', cost:'Your sidearm deals 10% less damage.',
+    modifiers:{ repairCooldown:.75, sidearmDamage:.9 }
+  },
+  {
+    id:'triage_medic', group:'Crew stations', name:'Triage Medic',
+    description:'You trained on relief ships where the next patient could be a captain or a rescued passenger.',
+    benefit:'When you operate a ship’s medical station, patients below half health get 50% more healing.', cost:'You have 10% less maximum health.',
+    modifiers:{ triageHealing:1.5, maxHealth:.9 }
+  },
+  {
+    id:'standby_rider', group:'Trade & travel', name:'Standby Rider',
+    description:'You know which ticket window sells the spare ferry seats.',
+    benefit:'Pay 30% less for local passenger ferry tickets.', cost:'Use 10% more fuel when you make a fold jump.',
+    modifiers:{ ferryFare:.7, foldFuel:1.1 }
+  },
+  {
+    id:'ore_broker', group:'Trade & travel', name:'Ore Broker',
+    description:'You know what a hold of ore will fetch before the buyer makes an offer.',
+    benefit:'Sell ore and crystal for 20% more at port.', cost:'Job credit rewards are 10% lower.',
+    modifiers:{ mineralSales:1.2, jobRewards:.9 }
+  },
+  {
+    id:'contract_hand', group:'Trade & travel', name:'Contract Hand',
+    description:'Your references get you better wages on the docks and on paid watches.',
+    benefit:'Earn 15% more on posted jobs and paid crew contracts.', cost:'Sell ore and crystal for 10% less at port.',
+    modifiers:{ jobRewards:1.15, mineralSales:.9 }
   }
 ].map(trait => Object.freeze({ ...trait, modifiers:Object.freeze(trait.modifiers) })));
+
+const traitById = new Map(CHARACTER_TRAITS.map(trait => [trait.id, trait]));
 
 const select = (items, value, fallback) => typeof value === 'string' && items.some(item => item.id === value) ? value : fallback;
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -88,24 +146,32 @@ export function normalizeAppearance(raw) {
   };
 }
 
-/** Choice locking belongs to the authority; a client cannot import a lock flag. */
-export function normalizeCharacter(raw) {
-  const value = object(raw), traits = [];
-  for (const id of Array.isArray(value.traits) ? value.traits : []) {
-    if (typeof id !== 'string' || traits.includes(id) || !CHARACTER_TRAITS.some(trait => trait.id === id)) continue;
+function normalizeTraits(raw) {
+  const traits = [];
+  for (const id of Array.isArray(raw) ? raw : []) {
+    if (!traitById.has(id) || traits.includes(id)) continue;
     traits.push(id);
     if (traits.length === MAX_TRAITS) break;
   }
-  return { appearance:normalizeAppearance(value.appearance), traits };
+  return traits;
 }
 
-/** Values are multiplicative. Recompute from the profile, never from modified stats. */
+/** Choice locking belongs to the authority; a client cannot import a lock flag. */
+export function normalizeCharacter(raw) {
+  const value = object(raw);
+  return { appearance:normalizeAppearance(value.appearance), traits:normalizeTraits(value.traits) };
+}
+
+/** Rates multiply; a derelict sample is a flat cargo award. Always derive both from the profile. */
 export function characterModifiers(profile) {
-  const result = { walkSpeed:1, maxHealth:1, sidearmDamage:1, sidearmCooldown:1, mining:1, jobRewards:1, serviceCost:1 };
-  for (const id of normalizeCharacter(profile).traits) {
-    for (const [key, value] of Object.entries(CHARACTER_TRAITS.find(trait => trait.id === id).modifiers)) result[key] *= value;
+  const result = { ...neutralModifiers, derelictCrystals:0 };
+  for (const id of normalizeTraits(profile?.traits)) {
+    const trait = traitById.get(id);
+    for (const [key, value] of Object.entries(trait.modifiers)) {
+      result[key] = Math.round(result[key] * value * 1e6) / 1e6;
+    }
+    result.derelictCrystals += trait.derelictCrystals ?? 0;
   }
-  for (const key of Object.keys(result)) result[key] = Math.round(result[key] * 1e6) / 1e6;
   return result;
 }
 

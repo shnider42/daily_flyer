@@ -771,7 +771,7 @@ Solo saves retain each site's creatures, recovered supplies, and decisions. Shar
 
 Five additional ship classes bring the fleet to nine. New solo and shared captains choose **Sparrow / Kestrel / Mule** at no cost. Later hulls offer surveying, escort, or industrial specializations, with matching exterior scale, cabin capacity, stations, handling, and progression requirements. New designs appear in appropriate traffic and hostile groups. Starting menus expose only the three choices; the shipyard introduces later designs when their progression requirements are met, and practice still limits opponents to the smaller half of hulls. Existing captains and owned fleets remain intact.
 
-Captain creation provides skin, suit, hair, and head-style choices plus up to two optional traits. Choosing none is valid. Trait benefits and drawbacks affect actual walking, vitality, sidearm damage/cooldown, mining rate, job pay, or port service costs. **Ship → Your captain** (also in Settings) edits appearance. Pre-0.4 captains get one optional trait-selection opportunity there; traits are fixed after confirmation, while appearance remains editable in a safe location. Appearance and traits are included in solo exports and shared captain persistence. Accepted contracts keep their agreed pay.
+Captain creation provides skin, suit, hair, and head-style choices plus up to two optional traits. Choosing none is valid. Perks cover movement and combat on foot, fold travel and salvage, crew station work, and the port economy. A Core Sampler can recover crystal from the first scan of a derelict. A Triage Medic gives extra treatment to patients below half health, including rescued passengers. On shared ships, the captain operating the station supplies the perk. **Ship → Your captain** (also in Settings) edits appearance. Pre-0.4 captains get one optional trait-selection opportunity there; traits are fixed after confirmation, while appearance remains editable in a safe location. Appearance and traits are included in solo exports and shared captain persistence. Accepted contracts keep their agreed pay.
 
 Shipyard purchases, crew hiring, medical/port services, home/bunk costs, and paid story choices show cost alongside current funds/resources. Purchase cards show the remainder or exact shortfall. Funds and requirements are still checked by the authoritative rules when the action is performed.
 
@@ -849,7 +849,7 @@ A deterministic local simulation checks client prediction at **60 and 120 FPS**,
 | Professions | Paramedic, doctor, faction law enforcement, and military service with persistent ranks and paid assignments |
 | Civilian travel and crew work | Paid local passenger tickets, repeatable work without a ship, and gunner/fire crew/medic contracts aboard NPC-piloted vessels |
 | Living frontier | Shared rescue calls, raids, outbreaks, and border clashes that resolve with or without player participation |
-| Captain | Appearance choices and six optional traits; choose up to two with explicit benefits and drawbacks |
+| Captain | Appearance choices and fourteen optional traits; choose up to two with explicit benefits and drawbacks |
 | Starting origins | Casual with a fold-equipped ship and selectable system; Regular with a small ship; Hardcore on foot; all begin with 180 credits |
 | Shared play | Up to 10 simultaneous captains per galaxy, independent travel, shared vessels, and persistent homes |
 
