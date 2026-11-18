@@ -1,5 +1,7 @@
 export const MENU_THEME = Object.freeze({
-  id: 'shnider-theme', title: 'Theme — Shnider', family: 'theme',
+  id: 'shnider-theme', title: 'Farwake menu theme', family: 'theme',
+  // Keep the upload's stable ID, but do not infer its composer's name from the filename.
+  artist: null, credit: 'Original music contributed by a friend of Farwake.',
   durationSeconds: 197.625, tags: Object.freeze(['menu', 'theme']), loopInMenu: true,
 });
 

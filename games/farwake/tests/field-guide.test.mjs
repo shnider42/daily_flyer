@@ -38,6 +38,14 @@ test('search finds multiplayer problems and synonyms, and safely treats regex ch
  assert.equal(searchFieldGuide('').length,fieldGuideTopics().length);
 });
 
+test('plain allegiance questions find the side explanation and Crosswind recommends it',()=>{
+ for(const question of ['who is on my side','who am I sided with','why are both sides hostile']){
+  assert.equal(searchFieldGuide(question)[0]?.id,'allegiance',question);
+ }
+ assert.equal(recommendFieldGuideTopics({systemId:'crosswind',military:{enlisted:true,branchId:'army'}})[0],'allegiance');
+ assert.equal(recommendFieldGuideTopics({systemId:'crosswind',recovery:{arrived:false}})[0],'recovery');
+});
+
 test('fold-drive questions lead to the actual installation instructions and named calibration chapter',()=>{
  for(const query of ['fold drive','how do I install the fold drive','rules to install the fold drive','fold drive requirements','Something in the belt','calibration','Tinbell beacon','parts required']){
   assert.equal(searchFieldGuide(query)[0]?.id,'fold-drive',query);

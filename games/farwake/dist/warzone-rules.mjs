@@ -1,6 +1,8 @@
 /** Personal allegiance and verifiable sorties within the shared Crosswind war. */
 import { FACTIONS } from './content.mjs';
 import { CROSSWIND_SYSTEM_ID, CROSSWIND_BODY_IDS } from './warzone-content.mjs';
+import { generateSurface } from './surface.mjs';
+import { warzoneRelation } from './warzone-allegiance.mjs';
 
 const SIDES = ['freewake', 'meridian'];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -37,6 +39,32 @@ export const WarzoneRules = {
   warzoneHostilities() {
     const side = this.warzoneFaction();
     return [...new Set([...(this.state.warzone?.hostileFactions || []), ...(side ? [opposite(side)] : [])])];
+  },
+  warzoneRelation(factionId) {
+    return warzoneRelation(factionId, { factionId: this.warzoneFaction(), hostileFactions: this.warzoneHostilities() });
+  },
+  warzoneCeasefireStatus() {
+    const s = this.state, service = s.professions?.careers?.military, side = this.warzoneFaction();
+    const factionId = side || (service?.enlisted && SIDES.includes(service.factionId) ? service.factionId : null);
+    const context = this._warzoneCeasefireContext?.() || {};
+    const needed = !!factionId && [...(s.warzone?.hostileFactions || []), ...(context.hostileFactions || [])].includes(factionId);
+    let reason = !factionId ? 'You have no side to request a ceasefire with. Attacks on neutral factions are not cleared here.'
+      : service?.enlisted && SIDES.includes(service.factionId) && !this.warzoneServiceFaction() ? 'Your military clearance is suspended. Repair your standing with your own faction first.'
+      : !needed ? 'Your side is not hostile to you.'
+      : s.systemId !== CROSSWIND_SYSTEM_ID || s.mode !== 'person' || s.locationId !== CROSSWIND_BODY_IDS.orsa || s.interior || s.exploration ? 'Land on Orsa and walk to its outdoor landing area to request a ceasefire.'
+      : !conscious(this) ? 'Recover before requesting a ceasefire.'
+      : s.boarding?.phase === 'active' || s.pendingEncounter || this._hitTimer > 0 || context.reason ? context.reason || 'Finish the immediate fight or conversation before requesting a ceasefire.' : null;
+    if (!reason) {
+      const body = this.system.bodies.find(body => body.id === CROSSWIND_BODY_IDS.orsa);
+      const key = `${s.systemId}:${s.flags?.length || 0}`;
+      if (!body) reason = 'Orsa’s landing is unavailable here.';
+      else {
+        if (this._warzoneCeasefireLanding?.key !== key) this._warzoneCeasefireLanding = { key, spawn: generateSurface(body, s.seed, s.flags).spawn };
+        const { spawn } = this._warzoneCeasefireLanding;
+        if (!Number.isFinite(s.person.x) || !Number.isFinite(s.person.y) || Math.hypot(s.person.x - spawn.x, s.person.y - spawn.y) > 100) reason = 'Return to Orsa’s outdoor landing area to request a ceasefire.';
+      }
+    }
+    return { needed, available: !reason, reason, action: 'ceasefire', actionLabel: 'Request a ceasefire with your side', factionId, factionName: name(factionId), target: { systemId: CROSSWIND_SYSTEM_ID, bodyId: CROSSWIND_BODY_IDS.orsa, label: 'Orsa landing' } };
   },
   warzoneArrival({ restored = false } = {}) {
     if (this.state.systemId !== CROSSWIND_SYSTEM_ID) return;
@@ -96,6 +124,16 @@ export const WarzoneRules = {
     if (this.state.systemId !== CROSSWIND_SYSTEM_ID) return this._fail('Crosswind orders are available inside the warzone.', 'location');
     if (!conscious(this)) return this._fail('Recover before answering the military channel.', 'down');
     const state = this.state.warzone || this.initializeWarzone();
+    if (action === 'ceasefire') {
+      const check = this.warzoneCeasefireStatus();
+      if (factionId && factionId !== check.factionId) return this._fail('You can request a ceasefire only with your own side.', 'faction');
+      if (!check.available) return this._fail(check.reason, 'ceasefire');
+      state.hostileFactions = state.hostileFactions.filter(id => id !== check.factionId);
+      const text = `${name(check.factionId)} accepted your ceasefire. Your side will stop treating you as an attacker. Your service, rank, and mission progress stay the same; the opposing side remains hostile.`;
+      this._log('Ceasefire with your side', text, 'story');
+      this._event('warzone-ceasefire', { factionId: check.factionId, text });
+      return this._ok({ factionId: check.factionId, text });
+    }
     if (action === 'acknowledge') { state.acknowledged = true; return this._ok({ text: 'Warning acknowledged. Orsa and Third Light are on the outer relief approach.' }); }
     if (action !== 'join' || !SIDES.includes(factionId)) return this._fail('Choose a listed faction or remain unaligned.', 'action');
     const service = this.state.professions?.careers?.military;
@@ -111,6 +149,7 @@ export const WarzoneRules = {
     const state = this.state.warzone || this.initializeWarzone(), side = this.warzoneFaction(), inWarzone = this.state.systemId === CROSSWIND_SYSTEM_ID;
     const mission = state.mission, service = this.state.professions?.careers?.military;
     return { inWarzone, factionId: side, factionName: name(side), service: !!this.warzoneServiceFaction(),
+      ceasefire: this.warzoneCeasefireStatus(),
       hostileFactions: this.warzoneHostilities(), source: state.lastHail || 'Crosswind military channel', acknowledged: state.acknowledged,
       mission: mission ? { ...mission, title: 'Keep the relief approach open',
         objective: mission.status === 'complete' ? 'Your relief screen is complete. The fleet war and ground front continue.' : `Screen Vey's approach: ${Math.floor(mission.seconds)}/45 seconds within 1,200 units · ${Math.floor(mission.damage)}/180 opposing hull damage.`,

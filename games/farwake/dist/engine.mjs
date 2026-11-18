@@ -934,7 +934,7 @@ export class Game {
           return !!(shooter?.netHostileTo?.has(targetId)&&g.netHostileTo?.has(sourceId));
         };
         const hits=[
-          ...this.system.enemies.filter(e=>e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId&&e.capturedBy!==b.ownerId&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).map(e=>({point:e,enemy:e})),
+          ...this.system.enemies.filter(e=>e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId&&e.capturedBy!==b.ownerId&&(!e.warzone||(shooter||this).warzoneRelation(e.faction)!=='ally')&&segmentDistance(e,fromX,fromY,b.x,b.y)<=e.radius+(b.radius||4)+4).map(e=>({point:e,enemy:e})),
           ...targets.filter(g=>g.state.ship.hull>0&&hostileVessel(g)&&segmentDistance(g.state.ship,fromX,fromY,b.x,b.y)<=g.state.ship.radius+(b.radius||4)).map(g=>({point:g.state.ship,game:g}))
         ].sort((a,c)=>Math.hypot(a.point.x-fromX,a.point.y-fromY)-Math.hypot(c.point.x-fromX,c.point.y-fromY));
         const collision=hits[0];if(!collision)continue;b.ttl=0;
@@ -1645,6 +1645,7 @@ export class Game {
     const enemy=this.system.enemies.find(e=>e.id===enemyId&&e.hp>0&&!e.promotedVesselId&&!e.canonicalVesselId);
     if(!enemy||!enemy.disabled)return this._fail('Disable the target’s engines before boarding.','disabled');
     if(enemy.trainingTarget)return this._fail('This is an unmanned Navy practice hull, with no boardable interior.','training-target');
+    if(enemy.warzone&&this.warzoneRelation(enemy.faction)==='ally')return this._fail('This ship is on your side. Army or Navy service does not give you permission to board its crew deck.','friendly');
     if(enemy.boardingTargetId)return this._fail('Another boarding party already has the tether.','occupied');
     const profile=enemyHullProfile(enemy.classId||((this.currentSystem.danger||1)>=3?'hauler':'sparrow')),gap=distance(enemy,ship);
     if(!Number.isFinite(gap)||gap>ship.radius+profile.radius+110)return this._fail('Close to the disabled vessel before attaching a tether.','distance');

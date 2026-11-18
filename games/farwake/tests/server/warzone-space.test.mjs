@@ -21,6 +21,48 @@ async function fixture(count=2){
 function ticks(realm,time,count=1){for(let i=0;i<count;i++){time.advance(1/30);realm.step(1/30,realm.tick+1,time.now());}}
 const poses=runtime=>runtime.enemies.filter(ship=>ship.warzone).map(({id,x,y,hp,targetId})=>({id,x,y,hp,targetId}));
 
+test('shared weapons honor the helmsman’s side and friendly boarding is denied without creating hostility',async()=>{
+ const{realm,captains:[helm,gunner],room}=await fixture(),vessel=realm.vessels.get(helm.aboard);
+ ok(await realm.command(helm,'warzoneAction',{action:'join',factionId:'freewake'}));
+ ok(await realm.command(gunner,'warzoneAction',{action:'join',factionId:'meridian'}));
+ vessel.grants[gunner.id]={allowed:true,roles:['weapons']};realm._cabin(gunner,vessel);gunner.crewRole='weapons';
+ const ally=room.runtime.enemies.find(ship=>ship.faction==='freewake'&&ship.warzoneSize==='medium');
+ Object.assign(ally,{x:vessel.ship.x+110,y:vessel.ship.y,disabled:true,active:false,hp:ally.maxHp*.35,vx:0,vy:0});
+ const before=ally.hp,actor=realm._actor(vessel);
+ actor._worldGames=[actor];actor._rewardGames=new Map([[helm.id,helm.game],[gunner.id,gunner.game]]);
+ room.runtime.bullets.push({id:'shared-stray-pulse',owner:'player',ownerId:gunner.id,vesselId:vessel.id,x:ally.x-ally.radius-8,y:ally.y,vx:300,vy:0,ttl:1,damage:11,radius:4});
+ actor._updateBullets(.1,[actor]);
+ assert.equal(ally.hp,before,'a gunner with different personal allegiance still uses the occupied ship’s allegiance');
+ assert.deepEqual(helm.game.state.warzone.hostileFactions,[]);assert.deepEqual(vessel.warzoneHostileFactions||[],[]);
+ assert.equal((await realm.command(helm,'boardEnemy',{id:ally.id})).code,'friendly');
+ assert.equal(helm.aboard,vessel.id);assert.deepEqual(helm.game.state.warzone.hostileFactions,[]);
+ const promoted={id:'promoted-allied-hull',ownerId:gunner.id,systemId:'crosswind',npcEnemyId:ally.id,npcHostile:true,captured:false,ship:{...ally,hull:ally.hp},hostileTo:[]};
+ assert.equal(realm._shipsHostile(vessel,promoted),false);assert.equal(realm._shipsHostile(promoted,vessel),false,'promoting a boarded NPC hull does not reverse an ally’s relation');
+});
+
+test('an Orsa ceasefire repairs the requesting captain and permitted docked hull without clearing another captain’s record',async()=>{
+ const{realm,captains:[one,two],room}=await fixture(),vessel=realm.vessels.get(one.aboard),other=realm.vessels.get(two.aboard);
+ for(const captain of[one,two]){ok(await realm.command(captain,'warzoneAction',{action:'join',factionId:'freewake'}));captain.game.state.warzone.hostileFactions=['freewake','meridian'];}
+ vessel.warzoneHostileFactions=['freewake','meridian'];other.warzoneHostileFactions=['freewake','meridian'];
+ const orsa=room.runtime.bodies.find(body=>body.id==='crosswind-orsa');
+ vessel.dockedAt=orsa.id;vessel.helmOwner=null;Object.assign(vessel.ship,{x:orsa.x,y:orsa.y+orsa.radius+60,vx:0,vy:0});
+ realm._landCharacter(one,'crosswind',orsa.id);assert.equal(one.portVesselId,vessel.id);
+ const before=structuredClone(one.game.state.warzone.mission);
+ vessel.boarding={phase:'active'};assert.equal((await realm.command(one,'warzoneAction',{action:'ceasefire'})).ok,false);
+ assert.deepEqual(one.game.state.warzone.hostileFactions,['freewake','meridian']);vessel.boarding=null;
+ assert.equal(realm.snapshotFor(one,{drainEvents:false}).state.warzoneView.ceasefire.available,true);
+ ok(await realm.command(one,'warzoneAction',{action:'ceasefire',factionId:'freewake'}));
+ assert.deepEqual(one.game.state.warzone.hostileFactions,['meridian']);assert.deepEqual(vessel.warzoneHostileFactions,['meridian']);
+ assert.deepEqual(two.game.state.warzone.hostileFactions,['freewake','meridian']);assert.deepEqual(other.warzoneHostileFactions,['freewake','meridian']);
+ assert.deepEqual(one.game.state.warzone.mission,before);
+ vessel.warzoneHostileFactions.push('freewake');assert.equal(one.game.warzoneStatus().ceasefire.needed,true,'a ship-only incident is still visible to its permitted captain');
+ ok(await realm.command(one,'warzoneAction',{action:'ceasefire'}));
+ const restored=new Realm({id:realm.id,snapshot:realm.document(),persistence:realm.persistence});
+ assert.deepEqual(restored.captains.get(one.id).game.warzoneHostilities(),['meridian']);
+ assert.deepEqual(restored.vessels.get(vessel.id).warzoneHostileFactions,['meridian']);
+ assert.deepEqual(restored.captains.get(two.id).game.state.warzone.hostileFactions,['freewake','meridian']);
+});
+
 test('one shared fleet advances once per room with one or ten captains and stays within the frame budget',async t=>{
   const time=clock(t),small=await fixture(1),full=await fixture(10);
   const start=performance.now();

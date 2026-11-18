@@ -19,7 +19,7 @@ function fixture(level='simple'){
  const context=vm.createContext({tutorial,settings,playing:true,touchLayout:true,viewPanelOpen:false,coachExpanded:false,coachPrompt:null,highlightedControl:null,toolTrayOpen:false,labelLayoutDirty:false,hudDirty:false,dismissedRoute:'',dismissedGuideEpisode:'',surfaceTarget:null,
   document:{body:{classList:classes()}},window:{innerHeight:850},$:element,hudText:(el,value)=>{const changed=el.textContent!==value;el.textContent=value;return changed;},setToolTray(){},nearby:()=>state.nearby,damageGuide:()=>null,
   dialog:{opened:false,close(){this.opened=false;}},selectGuide:()=>tutorial.select({seed:'app-guidance',mode:settings.guidance}),guidanceContext:()=>({...state,guidance:settings.guidance,timeSeconds:tutorial.time}),
-  activeMilitaryCareer:()=>null,game:{state:{mode:'person'},militaryRecoveryStatus:()=>null,openingMissionStatus:()=>null,npcContractStatus:()=>null},navyOrderPrompt:()=>null,militaryCareerPrompt:()=>null,openingPrompt:()=>route,currentPerspectiveAction:()=>({}),routePrompt:()=>route,openHelp(){this.helpOpened=true;}
+  activeMilitaryCareer:()=>null,game:{state:{mode:'person'},militaryRecoveryStatus:()=>null,openingMissionStatus:()=>null,npcContractStatus:()=>null},navyOrderPrompt:()=>null,warzoneGuidePrompt:()=>null,militaryCareerPrompt:()=>null,openingPrompt:()=>route,currentPerspectiveAction:()=>({}),routePrompt:()=>route,openHelp(){this.helpOpened=true;}
  });
  vm.runInContext(code,context);context.selectGuide();return{context,tutorial,state,settings,element,route,storage};
 }
@@ -70,4 +70,15 @@ test('a Navy crewmate asking for help gets the active order rather than a generi
  f.context.activeMilitaryCareer=()=>({branchId:'navy',status:'active'});
  f.context.navyOrderPrompt=()=>({id:'navy:medical',title:'Prepare medical',body:'Reach medical and follow the current casualty-readiness order.',compactBody:'Reach medical for your current order.',flow:'route',controlTarget:'modePill'});
  f.context.requestActionHelp();assert.equal(f.context.coachPrompt.title,'Prepare medical');assert.equal(f.context.coachPrompt.requested,true);
+});
+
+test('war explanations yield to concrete controls and dismiss without starving other guidance',()=>{
+ const f=fixture(),war={id:'warzone-help:freewake',title:'Army fighting is on Vey',body:'Freewake is on your side.',flow:'route'};
+ f.context.game.state.systemId='crosswind';f.context.warzoneGuidePrompt=()=>war;
+ const movement={id:'walk',successAction:'person-move',completed:false},dock={id:'dock',successAction:'dock'};
+ assert.equal(f.context.chooseGuidancePrompt({},movement),movement);
+ assert.equal(f.context.chooseGuidancePrompt({nearby:{type:'dock'}},dock),dock);
+ assert.equal(f.context.chooseGuidancePrompt({},null),war);
+ f.context.dismissedRoute=war.id;
+ assert.equal(f.context.chooseGuidancePrompt({},null),f.route,'Dismissing war help leaves the next useful action available.');
 });

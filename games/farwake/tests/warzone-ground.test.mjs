@@ -128,6 +128,21 @@ test('neutral captains are not automatically targeted, explicit aggression is pe
  Object.assign(neutral.person,shot.p);neutral.input=shot.input;const aggression=[];neutral.onWarzoneAggression=id=>aggression.push(id);stepSiteEncounter(encounter,[neutral,ally],.1,surface);assert.deepEqual(aggression,['meridian']);assert.ok(warzoneGroundHostiles(encounter,neutral).every(u=>u.factionId==='meridian'));assert.deepEqual(ally.hostileFactions,[]);
 });
 
+test('a friendly infantry burst passes its own captain while neutral crossfire and recorded hostility remain dangerous',()=>{
+ for(const relation of['ally','neutral','hostile']){
+  const{surface,encounter}=fixture();encounter.monsters.forEach(unit=>unit.health=0);
+  const shooter=encounter.monsters.find(unit=>unit.factionId==='freewake'&&unit.role==='marksman'),opponent=encounter.monsters.find(unit=>unit.factionId==='meridian'&&unit.role==='rifle');
+  Object.assign(shooter,pt(8,61),{health:78,aimAngle:0,burstLeft:1,burstTimer:0});
+  Object.assign(opponent,pt(14,61),{health:84,cooldown:99});
+  encounter.warzoneGround.decisionAt=999;encounter.warzoneGround.nextShell=999;
+  const actor={id:'captain-in-firing-lane',person:{...pt(11,61),health:100,maxHealth:100},input:{},factionId:relation==='neutral'?null:'freewake',hostileFactions:relation==='hostile'?['freewake']:[]};
+  const events=stepSiteEncounter(encounter,[actor],.1,surface),shot=events.find(event=>event.type==='person-shot'&&event.attackerId===shooter.id);
+  assert.ok(shot,'the burst actually fired');
+  if(relation==='ally'){assert.equal(actor.person.health,100);assert.equal(shot.targetId,opponent.id);assert.ok(opponent.health<84);}
+  else{assert.ok(actor.person.health<100,relation);assert.equal(shot.targetId,actor.id);}
+ }
+});
+
 test('squad medics heal wounded comrades and soldiers retain working route positions',()=>{
  const {surface,encounter}=fixture(),medic=encounter.monsters.find(u=>u.factionId==='freewake'&&u.role==='medic'),wounded=encounter.monsters.find(u=>u.factionId==='freewake'&&u.role==='leader');
  Object.assign(medic,pt(20,61));Object.assign(wounded,pt(21,61),{health:20});for(let i=0;i<8;i++)stepSiteEncounter(encounter,[],.1,surface);assert.ok(wounded.health>20);assert.equal(medic.healTargetId,wounded.id);

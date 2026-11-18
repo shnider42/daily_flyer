@@ -5,6 +5,7 @@ import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidear
 import { clone, fail, ok, SURFACE_RANGE } from './protocol.mjs';
 import { normalizeSpecies } from '../dist/species.mjs';
 import { shipRecoveryContext } from '../dist/ship-recovery.mjs';
+import { warzoneRelation } from '../dist/warzone-allegiance.mjs';
 
 const alive = captain => captain.game.state.person.health > 0 && !captain.game.state.person.down;
 const present = (captain, vessel) => captain.aboard === vessel.id && alive(captain);
@@ -70,7 +71,18 @@ export class BoardingAuthority {
   }
   _shipsHostile(source, target) {
     if (!source || !target || source.id === target.id || this._vesselTeam(source) === this._vesselTeam(target) && !target.npcHostile) return false;
+    // Fleet summaries also contain distant hulls. Relation checks must never
+    // recreate an evicted room just to label one of those contacts.
+    const fleetTarget = target.npcEnemyId && !target.captured && this.rooms.get(target.systemId)?.runtime.enemies.find(enemy => enemy.id === target.npcEnemyId);
+    const fleetSource = source.npcEnemyId && !source.captured && this.rooms.get(source.systemId)?.runtime.enemies.find(enemy => enemy.id === source.npcEnemyId);
+    if (!source.hostileTo?.includes(target.id) && !target.hostileTo?.includes(source.id) &&
+      (fleetTarget?.warzone && this._warzoneVesselRelation(source, fleetTarget.faction) === 'ally' || fleetSource?.warzone && this._warzoneVesselRelation(target, fleetSource.faction) === 'ally')) return false;
     return !!(target.npcHostile || source.npcHostile || source.hostileTo?.includes(target.id) || target.hostileTo?.includes(source.id));
+  }
+  _warzoneVesselRelation(vessel, factionId) {
+    const commander = this.captains.get(vessel?.helmOwner) || this.captains.get(vessel?.occupation?.controllerId) || this.captains.get(vessel?.ownerId);
+    const npc = vessel?.npcEnemyId && !vessel.captured && this.rooms.get(vessel.systemId)?.runtime.enemies.find(enemy => enemy.id === vessel.npcEnemyId);
+    return warzoneRelation(factionId, { factionId: npc?.faction || commander?.game.warzoneFaction(), hostileFactions: [...(vessel?.warzoneHostileFactions || []), ...(commander?.game.warzoneHostilities() || [])] });
   }
   _canDeclareHostility(captain, target) {
     const source = this.vessels.get(captain.aboard);
@@ -100,6 +112,7 @@ export class BoardingAuthority {
     if (captain.game.state.pendingEncounter) return fail('Resolve the open transmission first.', 'encounter');
     if (!enemy || enemy.hp <= 0) return fail('That vessel is no longer here.', 'target');
     if (enemy.trainingTarget) return fail('This is an unmanned Navy practice hull, with no boardable interior.', 'training-target');
+    if (enemy.warzone && (captain.game.warzoneRelation(enemy.faction) === 'ally' || this._warzoneVesselRelation(source, enemy.faction) === 'ally')) return fail('This ship is on your side. Army or Navy service does not give you permission to board its crew deck.', 'friendly');
     const target = enemy.canonicalVesselId && this.vessels.get(enemy.canonicalVesselId);
     if (!enemyHullProfile(enemy.classId).boardable && !(target?.boarding?.kind === 'assault' && target.combatInterior)) return fail('This craft is too small for a boarding party.', 'capacity');
     if (target && (target.captured || target.pvp || target.dockedAt)) return fail('This hull has a player-controlled berth. Use crew access or explicitly declare a hostile boarding action.', 'permission');

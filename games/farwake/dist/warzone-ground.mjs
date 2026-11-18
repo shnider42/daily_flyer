@@ -3,6 +3,7 @@
 import { ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
 import { pixelLine, pixelRing } from './pixel-art.mjs';
+import { warzoneRelation } from './warzone-allegiance.mjs';
 
 export const WARZONE_GROUND_SITE_ID='ashfall-front';
 export const WARZONE_GROUND_KEY='crosswind-vey:site:ashfall-front';
@@ -150,7 +151,7 @@ export function createWarzoneGroundState(site,saved={}){
  return{id:site.key,siteId:site.id,warzone:true,warzoneGround:w,time,visited:serial(prior.visited),shotSerial:serial(prior.shotSerial),monsters,collected:[],choices:{},actorCooldowns:{},cleared:false};
 }
 function allegiance(value={}){return typeof value==='string'?{factionId:faction(value),hostileFactions:[]}:{factionId:faction(value?.factionId||value?.side),hostileFactions:(value?.hostileFactions||[]).filter(faction)};}
-export function warzoneGroundHostiles(encounter,viewer={}){const a=allegiance(viewer);return(encounter?.monsters||[]).filter(u=>u.health>0&&faction(u.factionId)&&(a.hostileFactions.includes(u.factionId)||!!a.factionId&&u.factionId!==a.factionId));}
+export function warzoneGroundHostiles(encounter,viewer={}){const a=allegiance(viewer);return(encounter?.monsters||[]).filter(u=>u.health>0&&faction(u.factionId)&&warzoneRelation(u.factionId,a)==='hostile');}
 export function warzoneGroundView(encounter,viewer={}){
  if(!encounter?.warzoneGround)return encounter;
  const a=allegiance(viewer),hostiles=new Set(warzoneGroundHostiles(encounter,a).map(u=>u.id)),w=encounter.warzoneGround;
@@ -250,7 +251,7 @@ function infantryAim(unit,candidates,layout,angle,rangeLimit){
  return{from,to:selected?{x:selected.x,y:selected.y}:{x:from.x+dx*wallDistance,y:from.y+dy*wallDistance},target:selected,blocked:!selected&&blocked};
 }
 function fireInfantry(state,unit,actors,layout,event){
- const w=state.warzoneGround,profile=infantryWeapon(unit),angle=unit.aimAngle+roll(w,-profile.spread,profile.spread),candidates=[...state.monsters.filter(u=>u.health>0&&u.factionId!==unit.factionId),...actors.filter(a=>a.person.health>0).map(a=>({...a.person,id:a.id,captain:a}))];
+ const w=state.warzoneGround,profile=infantryWeapon(unit),angle=unit.aimAngle+roll(w,-profile.spread,profile.spread),candidates=[...state.monsters.filter(u=>u.health>0&&u.factionId!==unit.factionId),...actors.filter(a=>a.person.health>0&&warzoneRelation(unit.factionId,a)!=='ally').map(a=>({...a.person,id:a.id,captain:a}))];
  const aim=infantryAim(unit,candidates,layout,angle,profile.range),target=aim.target,at=state.time,id=`${state.id}:shot:${++state.shotSerial}`,damage=target?.captain?profile.captainDamage:profile.damage;
  const shot={id,team:unit.factionId,attackerId:unit.id,actorName:unit.name,factionId:unit.factionId,weaponId:profile.id,angle,from:{...aim.from},to:{...aim.to},x:unit.x,y:unit.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:aim.blocked,damage:target?damage:0,until:at+(unit.role==='marksman'?.3:.16)};unit.lastShot=shot;unit.attackUntil=at+.14;event('person-shot',shot);
  if(target?.captain)hitCaptain(state,target.captain,damage,at,event,shot);else if(target)hitUnit(state,target,damage,unit.id,at,event,shot);

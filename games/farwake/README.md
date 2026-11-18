@@ -4,9 +4,21 @@
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
-## 0.32.1 — Shnider’s menu theme
+## 0.33.0 — Plain guidance and consistent allegiance
 
-The title screen now plays **Theme — Shnider**, the supplied 3:18 recording, and loops it until the voyage begins. It fades into the voyage score when entering solo or shared play and returns when going back to the title. Listen / Stop, saved music volume, mute, hidden-tab suspension, and death silence use the existing audio lifecycle. The recording streams from the game’s own assets; it is not decoded into a full-song Web Audio buffer. Its AAC audio is unchanged, with container metadata moved forward for streaming.
+Simple guidance on phones now keeps a short instruction visible even when Compact tips is enabled. A persistent **Your side** button identifies the captain’s faction, Army/Navy branch and rank, with named enemies in Crosswind. It opens the relevant briefing and current choices. Shared crew see their personal service separately from the occupied ship’s allegiance and attack record. Friendly and neutral fleet contacts no longer suppress useful guidance as if they were incoming enemies.
+
+The service panel explains available and locked rank permissions, remaining promotion progress, and the difference between recruiter assignments and Crosswind’s ongoing war. The war briefing puts Vey, Orsa and the route back to Hearth before optional detail. “Who is on my side?” is searchable in the field guide. Reading or changing guidance does not change rank, allegiance, mission progress, or game difficulty.
+
+Ordinary ship fire now protects unprovoked allied military hulls, matching ground weapon behavior. Allied infantry bullets no longer hit their own affiliated captains; marked explosions and neutral crossfire remain dangerous. Army/Navy membership does not authorize assault boarding a friendly military hull. Existing saves with their own side recorded as hostile can explicitly request a ceasefire at **Orsa’s outdoor landing**, preserving rank, missions and opposing hostility. The shared server applies this only to the requester and their eligible docked hulls.
+
+The recorded **Farwake menu theme** has a visible title-screen and listening-panel credit: “Original music contributed by a friend of Farwake.” The contributor’s preferred name has not been supplied. Update `MENU_THEME.artist` and `MENU_THEME.credit` once confirmed; the title is not an artist attribution. Audio playback and the recording are unchanged.
+
+Validation focuses on mobile Simple presentation, twelve-mission Army continuity, personal versus shared-ship allegiance, friendly fire, explicit ceasefire repair, boarding authority, and music credits. The existing deployment test gates still run on Render.
+
+## 0.32.1 — Recorded menu theme
+
+The title screen now plays **Farwake menu theme**, the supplied 3:18 recording, and loops it until the voyage begins. It fades into the voyage score when entering solo or shared play and returns when going back to the title. Listen / Stop, saved music volume, mute, hidden-tab suspension, and death silence use the existing audio lifecycle. The recording streams from the game’s own assets; it is not decoded into a full-song Web Audio buffer. Its AAC audio is unchanged, with container metadata moved forward for streaming.
 
 Settings → Music & listening includes the recording and the original synthesized **The Long Way Home**. Requesting the new theme during a voyage plays it once, subject to the existing danger and Crosswind priorities.
 

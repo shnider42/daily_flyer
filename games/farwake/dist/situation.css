@@ -1,0 +1,23 @@
+/* A readable identity remains available when action tips are dismissed. */
+.situation-button{position:absolute;top:124px;left:24px;width:min(355px,calc(100% - 48px));min-height:50px;display:flex;align-items:center;gap:10px;padding:7px 12px;text-align:left;background:#102633ee;border:1px solid #759893;border-left:3px solid #a4d4bc;z-index:8;color:#eaf2e4;line-height:1.35}
+.situation-button>span{flex:1;min-width:0}.situation-button strong,.situation-button small{display:block;font-size:.88rem;font-weight:500}.situation-button small{margin-top:2px;color:#c3d5d4;font-size:.82rem}.situation-button>b{font-size:1.15rem;color:#d7e7d7;font-weight:500}.situation-button[data-tone="warning"]{border-left-color:#ffba89;background:#382c2aef}.situation-button:focus-visible{outline:2px solid #f3d69a;outline-offset:3px}
+.situation-button[hidden],.welcome-active .situation-button{display:none!important}
+.situation-visible:not(.touch-layout) :is(#coachCard,.objective-card){top:calc(124px + var(--situation-height,50px) + 8px)}
+.touch-layout .situation-button{top:12px;left:12px;right:12px;width:auto;max-width:540px;min-height:48px;z-index:8;padding:6px 11px;border-radius:4px}
+.touch-layout.situation-visible :is(#coachCard,.recovery-status){top:calc(12px + var(--situation-height,50px) + 8px)}
+.touch-layout.immersive-hud:not(.welcome-active) .situation-button{top:var(--coach-top);left:var(--hud-edge);right:var(--hud-right);width:auto;max-width:440px;background:#102633e8}
+.touch-layout.immersive-hud.situation-visible:not(.welcome-active) #coachCard{top:calc(var(--coach-top) + var(--situation-height,50px) + 8px)}
+.touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .situation-button{left:auto;right:var(--hud-right);width:calc(42% - 18px);max-width:330px}
+.touch-layout.immersive-hud.touch-landscape.situation-visible:not(.welcome-active) #coachCard{top:var(--coach-top);left:var(--hud-edge);right:auto;transform:none;width:calc(58% - 24px);max-width:440px}
+.touch-layout.view-open .situation-button{visibility:hidden;pointer-events:none}
+/* Simple keeps the actual next step visible, even with Compact tips enabled. */
+.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy p{display:block;font-size:.9rem;line-height:1.4;margin:4px 0 2px;color:#e0e8df}
+.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy{padding-top:7px;padding-bottom:7px;max-height:150px;overflow:auto}
+.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy strong{font-size:.91rem;color:#b7d9c9}
+.menu-theme-credit{font-size:.82rem!important;line-height:1.5;color:#bdcbd0;margin:10px 0 0;max-width:36rem}
+.music-piece-credit{font-size:.9rem;line-height:1.5;color:#d1ddd5;border-left:2px solid #a2c3b0;padding-left:10px;margin:.6rem 0 1rem}
+.music-piece-credit[hidden]{display:none}
+@media(max-width:375px){.touch-layout .situation-button strong{font-size:.82rem}.touch-layout .situation-button small{font-size:.78rem}}
+
+.touch-layout.immersive-hud.situation-visible.recovery-active:not(.welcome-active) .recovery-status,.touch-layout.immersive-hud.situation-visible.gunnery-view:not(.welcome-active) .mobile-weapon{top:calc(var(--coach-top) + var(--situation-height,50px) + 8px)}
+.touch-layout:not(.immersive-hud).situation-visible.gunnery-view .mobile-weapon{top:calc(12px + var(--situation-height,50px) + 8px)}

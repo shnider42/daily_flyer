@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { createMusicLibraryUI, musicGroup, musicListeningText } from '../dist/music-library-ui.mjs';
 import { THEME_ID, MUSIC_CUES } from '../dist/music-catalog.mjs';
+import { MENU_THEME } from '../dist/recorded-theme.mjs';
 
 class Element {
   constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.textContent = ''; this.value = ''; this.checked = false; this.hidden = false; this.disabled = false; }
@@ -19,7 +20,7 @@ const catalog = [
   { id: 'foreman', title: 'Foreman cycle', family: 'combat', tags: ['fieldwork'], durationSeconds: 52 },
   { id: 'port', title: 'After hours', family: 'social', tags: ['nightlife'], durationSeconds: 74 },
 ];
-function fixture(initial = {}, initialStatus = {}) {
+function fixture(initial = {}, initialStatus = {}, cues = catalog) {
   const settings = { music: true, musicVolume: .65, musicPresence: 'balanced', sound: false, ...initial };
   let status = { state: 'running', cueId: null, title: 'Quiet', theme: false, preview: false, previewCueId: null, requestedCueId: null, ...initialStatus };
   const calls = [], saved = [], notices = [];
@@ -33,7 +34,7 @@ function fixture(initial = {}, initialStatus = {}) {
     stopPreview(now) { calls.push(['stop', now]); status = { ...status, preview: false, previewCueId: null, requestedCueId: null }; },
   };
   const ui = createMusicLibraryUI({ dialog, audio, getSettings: () => settings, saveSettings: () => saved.push({ ...settings }),
-    openSettings: () => dialog.open('Settings', 'settings'), now: () => 88, document, cues: catalog, toast: (...args) => notices.push(args) });
+    openSettings: () => dialog.open('Settings', 'settings'), now: () => 88, document, cues, toast: (...args) => notices.push(args) });
   const all = () => { const list = []; function visit(node) { list.push(node); node.children.forEach(visit); } visit(dialog.body); return list; };
   return { ui, dialog, settings, calls, saved, notices, all, node: id => all().find(node => node.id === id),
     button: label => all().find(node => node.tagName === 'button' && node.textContent === label),
@@ -65,6 +66,19 @@ test('Listen is the explicit gesture that enables music and requests exactly the
   assert.equal(f.button('Cancel queued piece').attributes['aria-pressed'], 'true');
   f.button('Cancel queued piece').onclick();
   assert.deepEqual(f.calls.at(-1), ['stop', 88]); assert.equal(f.settings.music, true);
+});
+
+test('the recorded theme has a visible contribution credit that does not carry over to another piece', () => {
+  const f = fixture({}, {}, MUSIC_CUES); f.ui.open();
+  assert.equal(f.node('musicLibraryPiece').value, THEME_ID);
+  assert.equal(f.node('musicLibraryCredit').textContent, MENU_THEME.credit);
+  assert.equal(f.node('musicLibraryCredit').hidden, false);
+  assert.match(f.node('musicLibraryPiece').attributes['aria-describedby'], /musicLibraryCredit/);
+  assert.doesNotMatch(f.text(), /by Shnider/);
+  f.node('musicLibraryPiece').value = 'long-way-home'; f.node('musicLibraryPiece').onchange();
+  assert.equal(f.node('musicLibraryCredit').hidden, true);
+  assert.equal(f.node('musicLibraryCredit').textContent, '');
+  assert.deepEqual(f.calls, [], 'Reading music credits does not start playback.');
 });
 
 test('volume and cadence changes persist independently without requesting a piece or unmuting', () => {
@@ -128,7 +142,7 @@ test('the real title button distinguishes a queued theme from a different reques
   assert.ok(start >= 0 && end > start);
   const status = { state: 'running', theme: false, title: 'Quiet', requestedCueId: 'port' }, calls = [];
   const buttons = { themeButton: new Element('button'), settingsThemeButton: new Element('button') };
-  const context = vm.createContext({ audio: { musicStatus: () => status, toggleTheme: value => { calls.push(value); return value; } }, THEME_ID,
+  const context = vm.createContext({ audio: { musicStatus: () => status, toggleTheme: value => { calls.push(value); return value; } }, THEME_ID, MENU_THEME,
     settings: { music: true, musicVolume: .65 }, $: id => buttons[id], applySettings() {}, localCameraPreferences: {}, scoreContextAt: 0, playing: false,
     hudText: (node, value) => { node.textContent = value; }, musicListeningText, musicLibraryUI: { refresh() {} }, toast() {} });
   vm.runInContext(app.slice(start, end), context); context.syncThemeButtons();

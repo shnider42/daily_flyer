@@ -17,13 +17,13 @@ export function militaryCareerPrompt(status,{mode='person',nearby=null,gunnery=f
  const operation=status.operation,muster=(status.actions||[]).find(action=>action.action==='createOperation'&&!action.separate);
  if(operation&&['muster','forming'].includes(operation.phase)){
   const launch=operation.actions?.find(action=>action.action==='launchOperation'),ready=launch?.available===true;
-  const body=ready?`Review the names in your unit, then open your service orders and choose ${launch.label||'Depart with this roster'}. Every captain keeps their own rank and duty record.`:`Stay beside Sergeant Venn on Morrow and review your unit’s readiness. ${launch?.reason||`${operation.leaderName||'The operation leader'} authorizes departure when the unit is ready.`}`;
-  return{id:`service-muster:${operation.id}:${ready?'depart':'gather'}`,title:ready?'Your unit is ready to depart':'Gather your military unit',body,compactBody:ready?'Check the roster, then authorize departure in service orders.':launch?.reason||`Gather at Morrow. ${operation.leaderName||'The leader'} authorizes departure.`,flow:'route',learningFlow:'service',topicId:ready?'military-deploy':'military-ready',...(ready?{successAction:'military-deploy'}:{}),controlTarget:'objectiveDetails'};
+  const body=ready?`Review the names in your unit, then open your service orders and choose ${launch.label||'Depart with this roster'}. You can leave alone or with the friends listed here.`:`Stay beside Sergeant Venn on Morrow. Your mission group must be ready before leaving. ${launch?.reason||`${operation.leaderName||'The group leader'} chooses when to leave.`}`;
+  return{id:`service-muster:${operation.id}:${ready?'depart':'gather'}`,title:ready?'Your group is ready to leave':'Meet your mission group',body,compactBody:ready?'Check the names, then choose Depart in your service orders.':launch?.reason||`Meet at Morrow. ${operation.leaderName||'The group leader'} chooses when to leave.`,flow:'route',learningFlow:'service',topicId:ready?'military-deploy':'military-ready',...(ready?{successAction:'military-deploy'}:{}),controlTarget:'objectiveDetails'};
  }
  const targetId=status.target?.entityId,near=!!targetId&&(nearby?.id===targetId||nearby?.id?.endsWith(':'+targetId));
  if(status.status==='ready'&&muster){
-  const body=muster.available===false?muster.reason||status.objective:'Open your service orders and choose Open or join a muster. Ask your friend to use Serve together and join that same roster before departure. You can also depart alone.';
-  return{id:`service-muster:${status.branchId}:open:${muster.available===false?'approach':'ready'}`,title:'Choose one deployment roster',body,compactBody:muster.available===false?muster.reason||status.objective:'Open or join a muster; check both names before departure.',flow:'route',learningFlow:'service',topicId:'military-muster',successAction:'military-muster',controlTarget:near||muster.available!==false?'objectiveDetails':'stick'};
+  const body=muster.available===false?muster.reason||status.objective:'Open your service orders and choose Open or join a muster. A muster is the group for this mission. Friends use Serve together to join that same roster. You can also leave alone.';
+  return{id:`service-muster:${status.branchId}:open:${muster.available===false?'approach':'ready'}`,title:'Choose your mission group',body,compactBody:muster.available===false?muster.reason||status.objective:'Choose Open or join a muster; check the names before leaving.',flow:'route',learningFlow:'service',topicId:'military-muster',successAction:'military-muster',controlTarget:near||muster.available!==false?'objectiveDetails':'stick'};
  }
  const body=gunnery?'Keep watch through the gun display. Aim and fire at assigned contacts. The NPC captain flies; Back to deck leaves this view.':near?`${touch?'Tap the highlighted action':'Press E'} to continue your assignment.`:status.objective;
  const successAction=status.status==='debrief'?'military-debrief':status.status==='ready'?'military-deploy':null;
@@ -32,6 +32,21 @@ export function militaryCareerPrompt(status,{mode='person',nearby=null,gunnery=f
 
 const branchName=id=>({navy:'Navy',army:'Army'})[id]||'service';
 const factionName=id=>FACTIONS.find(faction=>faction.id===id)?.name||id||'Freewake';
+/** Explain the personal record already supplied by the game, without granting access. */
+export function militaryServiceBasics(view={},rank={}){
+ const faction=rank.factionId||view.factionId,branch=rank.branchId||view.branchId;
+ if(!rank.enlisted)return {identity:'You have not joined an army or navy.',role:'Sergeant Venn recruits for the Freewake Union. Choose Army to fight on foot, or Navy to work aboard a military ship.',allowed:[],locked:[],progress:null};
+ const identity=`You serve the ${factionName(faction)}${branch?` ${branchName(branch)}`:''}. Your rank is ${rank.rank||'Recruit'}.`;
+ const role=rank.suspended?'Your service is suspended because your faction considers your standing hostile. Your rank is saved, but you cannot accept its military orders.':branch==='army'?'You are a ground soldier. Army orders send you to places where you walk, aim, and fight on foot. You can still fly your own ship and do civilian work.':branch==='navy'?'You serve aboard military ships. Follow the ship’s current orders; its NPC captain handles the flight. You can still fly your own ship and do civilian work.':'Your faction keeps your military record. Choose a branch where the recruiter offers one.';
+ const capabilities=[['join','Join an assigned mission','Enlist and restore friendly standing first.'],['leadRoutine','Lead routine missions','Earn your first promotion.'],['leadFrontier','Lead missions in rival territory','Earn your second promotion.'],['command','Accept section command orders','Earn your third promotion.'],['strategicOrders','Accept senior command orders','Earn your fourth promotion.']];
+ const allowed=[],locked=[];
+ for(const [id,label,reason] of capabilities){
+  if(rank.permissions?.[id]===true&&!rank.suspended)allowed.push(label);
+  else if(rank.permissions?.[id]===false||rank.suspended)locked.push({label,reason:rank.suspended?'Your service is suspended.':reason});
+ }
+ const progress=Number.isFinite(rank.remaining)&&rank.nextRankName?`${rank.completed||0} completed assignments. Finish and report back after ${rank.remaining} more to reach ${rank.nextRankName}.`:`${rank.completed||0} completed assignments.`;
+ return {identity,role,allowed,locked,progress};
+}
 const rosterStatus=person=>({ready:'Ready at the recruiter',waiting:'Not ready at the recruiter',offline:'Offline',aboard:'Aboard',field:'In the field',ashore:'Ashore',returned:'Back for debrief',debriefed:'Debrief filed'})[person.status]||(person.online===false?'Offline':'On this roster');
 const phaseName=phase=>({muster:'Gathering at Morrow',forming:'Gathering at Morrow',active:'Under way',returned:'Back for debrief',debrief:'Back for debrief',closed:'Complete',completed:'Complete',cancelled:'Muster closed',failed:'Returned without completion'})[phase]||phase||'Gathering at Morrow';
 const operationsFor=view=>[...(view.operation?[view.operation]:[]),...(view.operations||[]).filter(operation=>operation.id!==view.operation?.id)];
@@ -114,6 +129,13 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
   options.innerHTML=`<summary>Briefing & service record</summary>${greeting?`<p>“${esc(greeting)}”</p>`:''}${view.summary?`<p>${esc(view.summary)}</p>`:''}${rank.enlisted?`<p>${rank.completed||0} completed assignments. ${rank.nextRank!=null?`${rank.completed||0} / ${rank.nextRank} assignments toward ${esc(rank.nextRankName)}.`:'Senior service rank attained.'} ${esc(rank.permissionLabels?.at(-1)||'Duty permissions suspended.')}</p>`:''}${view.chapters?.map(chapter=>`<p><strong>${esc(chapter.title)}</strong> · ${esc(chapter.status==='completed'?'Complete':chapter.status==='active'?'Current assignment':chapter.status==='available'?'Next assignment':'Later in your service')}</p>`).join('')||''}`;
   actionButtons(options,(view.actions||[]).filter(action=>action.action==='pause'||action.separate),entityId);dialog.body.append(options);
  }
+ function appendPermissions(view){
+  const rank=rankFor(view),basics=militaryServiceBasics(view,rank);
+  if(!rank.enlisted)return;
+  const details=doc.createElement('details');details.className='thread-history';
+  details.innerHTML=`<summary>What can I do at this rank?</summary><p>${esc(basics.role)}</p>${basics.allowed.length?`<p><strong>You can:</strong></p><ul>${basics.allowed.map(label=>`<li>${esc(label)}.</li>`).join('')}</ul>`:''}${basics.locked.length?`<p><strong>Not yet:</strong></p><ul>${basics.locked.map(item=>`<li>${esc(item.label)}. ${esc(item.reason)}</li>`).join('')}</ul>`:''}<p>${esc(basics.progress)}</p><p>A rank opens orders you may accept. It does not give you control of every friendly soldier or ship. Army service does not change you into a Navy crew member.</p><p>A locked button tells you what else is needed: the right place, the right branch, a higher rank, or finishing your current mission.</p>`;
+  dialog.body.append(details);
+ }
  function appendDeployments(view,entityId){
   if(!view.deployments?.length)return;
   const section=doc.createElement('details');section.className='thread-history';section.innerHTML='<summary>Deployment board</summary>';
@@ -165,32 +187,32 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
    notes=['Military service is optional. Your ship and unfinished civilian jobs stay with you.','Navy begins with a gun-station qualification; Army begins on the Morrow range. Each gives you one assignment at a time.','Promotions require completed assignments and debriefs. They do not happen after every mission, and your friends keep their own ranks.'];
   }else if(view.status==='paused'){
    steps=[{text:'Use Resume your service when you want assignment guidance again.',done:false}];
-   notes=['Taking leave hides the career guidance and keeps your assignment. A live ship or field watch keeps moving until you physically leave it.'];
+   notes=['Taking leave hides these reminders. You still serve the same faction, and the enemy still treats you as its opponent.','Your current assignment is saved. A military ship or battle keeps moving until you actually leave it.'];
   }else if(view.status==='debrief'){
-   steps=[{text:'Return to Sergeant Venn on Morrow and use File your debrief.',done:false}];
-   notes=['Your personal objectives must be complete. Pay and completed-assignment credit are awarded by your own debrief, even when friends shared the operation.'];
+   steps=[{text:'Go back to Sergeant Venn on Morrow. Choose File your debrief to report that you finished.',done:false}];
+   notes=['A debrief means reporting back after the mission. This is when you get paid and the mission counts toward promotion. Each player must report back.'];
   }else if(view.status==='failed'){
    steps=[{text:'Review the interruption and return to the recruiter for fresh orders.',done:false}];
    notes=['An unfinished operation gives no completion credit. Use the available return transport or recovery route before starting another assignment.'];
   }else if(view.active){
-   title=view.branchId==='navy'?'Your role aboard the carrier':'Carrying out a field assignment';
+   title=view.branchId==='navy'?'Your role aboard the carrier':'Your Army mission, step by step';
    const objectives=view.active.objectives||[],atSite=!!view.target?.siteId&&state.interior?.location?.site?.id===view.target.siteId;
    steps=view.branchId==='navy'?[
     {text:'Open Current ship orders. The NPC commander flies; follow your assigned station marker.',done:!!state.npcContract?.active},
     {text:'Carry out the current order and your own duty requirements. Follow the fire orders before shooting.',done:!!objectives.length&&objectives.every(objective=>objective.done)},
     {text:'Return with the carrier, use the entry airlock, and file your own debrief at Morrow.',done:false}
    ]:[
-    {text:'Use Show my next task and travel to the marked field site.',done:atSite},
-    {text:'Move and aim separately, use cover, and complete the listed personal objectives.',done:!!objectives.length&&objectives.every(objective=>objective.done)},
-    {text:'Use the marked field console or watch log when the site task allows it, then return for your debrief.',done:false}
+    {text:'Tap Show my next task. Follow the marker to the named place and use its entrance.',done:atSite},
+    {text:'Move and aim separately. Stay behind cover, fire at the mission’s enemies, and finish the tasks listed above.',done:!!objectives.length&&objectives.every(objective=>objective.done)},
+    {text:'Use the marked field console or watch log if asked. Then go back to Venn and choose File your debrief to get paid and count the mission.',done:false}
    ];
    next=view.objective;
-   notes=view.branchId==='navy'?['Gun batteries have different directions and firing arcs. Select a battery that covers the contact; Back to deck returns to the interior.','A quiet watch still requires time at your assigned station. Your personal contribution and debrief are recorded separately from the rest of the crew.']:['A marker guides you to an assigned place; it does not reveal hidden creatures or remove fog of war.','Some assignments require time on watch or a field-console interaction as well as fighting. Read the current objective before leaving.','In a shared unit, everyone must contribute their own required work and file their own debrief.'];
+   notes=view.branchId==='navy'?['Gun batteries have different directions and firing arcs. Select a battery that covers the contact; Back to deck returns to the interior.','A quiet watch still requires time at your assigned station. Your personal contribution and debrief are recorded separately from the rest of the crew.']:['A marker guides you to the mission; it does not reveal hidden creatures or clear unexplored areas.','If the task says Keep watch, stay at the marked post until its timer finishes. If it names a console or log, walk up and use it.','Crosswind is a separate, ongoing war. Fighting there does not automatically finish this Army assignment or count toward promotion.'];
   }else{
    steps=[{text:shared?'Meet Sergeant Venn and open or join a muster for your next assignment.':'Meet Sergeant Venn and accept the next assignment or an available standing deployment.',done:false}];
    notes=['Choose a deployment whose requirements you meet. Joining an eligible leader can let a lower-ranking recruit serve in the same operation.'];
   }
-  if(rank.enlisted&&Number.isFinite(rank.remaining)&&rank.nextRankName)notes.push(`${rank.remaining} more completed assignment${rank.remaining===1?'':'s'} toward ${rank.nextRankName}. Each captain earns their own promotion credit.`);
+  if(rank.enlisted&&Number.isFinite(rank.remaining)&&rank.nextRankName)notes.push(`${rank.remaining} more completed assignment${rank.remaining===1?'':'s'} toward ${rank.nextRankName}. Finish the mission and report back to make it count.`);
   const section=doc.createElement('div');section.className='guidance-flow-container';
   section.innerHTML=guidanceFlowMarkup({id:'military-service',title,level,steps,notes,next,expanded:!mismatch&&!missing});dialog.body.append(section);
  }
@@ -259,7 +281,7 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
   const entityId=typeof entityOrId==='string'?entityOrId:entityOrId?.id||null,view=status(entityId),joins=(view.actions||[]).filter(action=>action.action==='join');
   dialog.open(joins.length?'A place in the service':view.branchName||'Your military service','military-career',{eyebrow:joins.length?'SERGEANT SERA VENN / MORROW':view.factionName||'FREEWAKE SERVICE'});
   if(joins.length){
-   dialog.html('<p>“If you want a clear next assignment, I can put you with a crew. Choose the work that suits you. You can return to your own voyage whenever you want.”</p><p class="section-note">Joining is optional. Your existing ship, rank, and unfinished jobs stay with you.</p>');
+   dialog.html('<div class="duty-current"><span>CHOOSE YOUR SIDE AND JOB</span><strong>This recruiter serves the Freewake Union.</strong><p>Army: fight on foot. Navy: work aboard a military ship.</p></div><p>Either choice makes you Freewake military. In the Crosswind war, Meridian is the opposing side. Your branch stays on your record when you travel.</p><p class="section-note">Joining is optional. You keep your own ship and unfinished civilian jobs.</p>');
    if(entityId!==MILITARY_RECRUITER_ID&&joins.every(action=>action.available===false)){
     choices([{label:'Find the recruiter on Morrow',detail:'Sergeant Sera Venn waits beside the landing. Navy serves aboard a carrier; Army deploys on foot.',action:()=>mark(MILITARY_RECRUITER_TARGET)},{label:'Not now',action:()=>dialog.close()}]);appendLearning(view);remember({mode:'career',entityId});return;
    }
@@ -270,7 +292,7 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
   }
   const objectives=view.active?.objectives||[];
   const rank=rankFor(view),gathering=view.operation?.phase==='muster';
-  const rankText=rank.enlisted?`<p class="mini"><strong>${esc(rank.rank)}</strong> · ${rank.completed||0} completed assignments</p>`:'';
+  const basics=militaryServiceBasics(view,rank),rankText=rank.enlisted?`<p><strong>${esc(basics.identity)}</strong></p><p class="mini">${esc(basics.progress)}</p>`:'';
   dialog.html(`${rankText}${gathering?'':`<div class="duty-current"><span>${view.status==='paused'?'ON LEAVE':view.status==='completed'?'SERVICE RECORD':'YOUR NEXT TASK'}</span><strong>${esc(view.title||view.objective||'Speak to the recruiter')}</strong><p>${esc(view.objective||'Return to Sergeant Sera Venn on Morrow for your next assignment.')}</p></div>${objectives.length?`<ol class="duty-checklist">${objectives.map(objective=>`<li class="${objective.done?'done':'current'}"><span aria-hidden="true">${objective.done?'✓':'·'}</span>${esc(objective.label)}${Number.isFinite(objective.required)&&objective.required>1?` · ${Math.min(objective.required,Math.max(0,Number(objective.value)||0))} / ${objective.required}`:''}</li>`).join('')}</ol>`:''}`}`);
   appendOperations(view,entityId);
   const actions=(view.actions||[]).filter(action=>action.action!=='join');
@@ -281,7 +303,7 @@ export function createMilitaryCareerUI({getGame,getSnapshot=()=>({}),getGuidance
   else if(view.status!=='completed')items.push({label:'Find the recruiter on Morrow',action:()=>mark(MILITARY_RECRUITER_TARGET)});
   if(view.status==='completed'&&openOrdinaryWork)items.push({label:'Continue with ordinary service work',action:openOrdinaryWork});
   if(openGear)items.push({label:'Service armory',detail:'Issued rifle and earned specialist weapons.',action:openGear});
-  choices(items);appendLearning(view,{operation:view.operation});appendDeployments(view,entityId);appendServiceDetails(view,entityId);
+  choices(items);appendPermissions(view);appendLearning(view,{operation:view.operation});appendDeployments(view,entityId);appendServiceDetails(view,entityId);
   choices([{label:'Back to the world',action:()=>dialog.close()}]);remember({mode:'career',entityId,watchMuster:gathering});
  }
  function appendEntry(root){

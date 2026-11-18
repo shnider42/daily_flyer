@@ -6,7 +6,7 @@ const GROUPS = Object.freeze([
 ]);
 const FAMILIES = Object.freeze({ theme: 'Main theme', exploration: 'Exploration', planet: 'Planets & moons', cave: 'Caves & passages', social: 'Life at port', discovery: 'Discovery', tension: 'Unease', combat: 'Danger', recovery: 'A moment to recover', terror: 'Rare encounters' });
 const SITUATIONS = Object.freeze({
-  'shnider-theme': 'Farwake’s recorded menu theme by Shnider. It loops on the title screen and plays once when requested during a voyage.',
+  'shnider-theme': 'Farwake’s recorded menu theme. It loops on the title screen and plays once when requested during a voyage.',
   'long-way-home': 'The original synthesized theme. A small beginning, a wider horizon, and the way home.',
   'lamps-in-the-cabin': 'Quiet time aboard ship, away from the helm.',
   'under-the-service-lights': 'Following service passages and bringing the Floodworks back to life.',
@@ -67,6 +67,8 @@ export function createMusicLibraryUI({ dialog, audio, getSettings, saveSettings 
   }
   function describe() {
     const cue = cues.find(entry => entry.id === selectedId);
+    text(view.credit, cue?.credit || ''); view.credit.hidden = !cue?.credit;
+    view.piece.setAttribute('aria-describedby', cue?.credit ? 'musicLibraryDescription musicLibraryCredit' : 'musicLibraryDescription');
     if (!cue) { text(view.description, 'There are no pieces in this selection.'); return; }
     const seconds = Math.round(cue.durationSeconds || 0), duration = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     text(view.detail, `${FAMILIES[cue.family] || 'Farwake score'} · ${duration}`);
@@ -111,6 +113,7 @@ export function createMusicLibraryUI({ dialog, audio, getSettings, saveSettings 
     const piece = element('select'); piece.id = 'musicLibraryPiece'; pieceLabel.append(piece);
     selectors.append(categoryLabel, pieceLabel);
     const count = element('span', 'music-piece-count'), detail = element('p', 'music-piece-detail'), description = element('p', 'music-piece-description');
+    const credit = element('p', 'music-piece-credit'); credit.id = 'musicLibraryCredit'; credit.hidden = true;
     description.id = 'musicLibraryDescription'; piece.setAttribute('aria-describedby', description.id);
     const actions = element('div', 'music-listening-actions'), play = element('button', 'button-primary', 'Listen'), adaptive = element('button', '', 'Return to voyage music');
     play.type = adaptive.type = 'button'; actions.append(play, adaptive);
@@ -125,8 +128,8 @@ export function createMusicLibraryUI({ dialog, audio, getSettings, saveSettings 
       setting('How often music plays', 'Changes the quiet between peaceful pieces. Danger responds when it happens.', presence));
     const foot = element('p', 'audio-note', 'Listening here is personal. In a shared galaxy, the world keeps moving and immediate danger takes priority.');
     const back = element('button', 'music-settings-back', 'Back to settings'); back.type = 'button';
-    root.append(intro, status, selectors, count, detail, description, actions, controls, foot, back); dialog.body.append(root);
-    view = { revision: dialog.revision, root, category, piece, count, detail, description, status, play, adaptive, enabled, volume, volumeValue, presence };
+    root.append(intro, status, selectors, count, detail, description, credit, actions, controls, foot, back); dialog.body.append(root);
+    view = { revision: dialog.revision, root, category, piece, count, detail, description, credit, status, play, adaptive, enabled, volume, volumeValue, presence };
     category.onchange = validAction(() => { group = GROUPS.some(([id]) => id === category.value) ? category.value : 'all'; choose(); });
     piece.onchange = validAction(() => { if (cues.some(cue => cue.id === piece.value && musicGroup(cue, group))) selectedId = piece.value; describe(); refresh(); });
     let playIntent = null;

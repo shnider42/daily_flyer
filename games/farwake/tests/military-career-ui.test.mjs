@@ -8,7 +8,8 @@ import {updateNpcLife,npcLifeActors} from '../dist/npc-life.mjs';
 import {militaryGroundSite} from '../dist/military-sites.mjs';
 import {getPersonalWeapon} from '../dist/combat.mjs';
 import {Soundscape} from '../dist/audio.mjs';
-import {createMilitaryCareerUI,militaryCareerGuided,militaryCareerPrompt,militaryTogetherState,MILITARY_RECRUITER_ID} from '../dist/military-career-ui.mjs';
+import {createMilitaryCareerUI,militaryCareerGuided,militaryCareerPrompt,militaryTogetherState,militaryServiceBasics,MILITARY_RECRUITER_ID} from '../dist/military-career-ui.mjs';
+import {militaryRankFor} from '../dist/military-ranks.mjs';
 
 function node(tagName='div'){return{tagName,children:[],innerHTML:'',append(...children){this.children.push(...children);}};}
 function fixture({view,pending=null,snapshot={},guidance='simple'}={}){
@@ -20,6 +21,18 @@ function fixture({view,pending=null,snapshot={},guidance='simple'}={}){
 const joins=()=>({status:'unjoined',guidanceActive:false,actions:[{action:'join',branchId:'navy',entityId:MILITARY_RECRUITER_ID,label:'Join Navy',available:true,detail:'Serve on a carrier.'},{action:'join',branchId:'army',entityId:MILITARY_RECRUITER_ID,label:'Join Army',available:true,detail:'Deploy on foot.'}]});
 const active=()=>({status:'active',guidanceActive:true,branchId:'army',branchName:'Freewake Army',title:'Field qualification',objective:'Hit each target, then use the range terminal.',target:{systemId:'hearth',bodyId:'morrow',siteId:'service-range',entityId:'record:drill'},active:{operationId:'test-operation',phase:'active',objectives:[{id:'hits',label:'Hit three frames',value:1,required:3,done:false}]},actions:[{action:'pause',label:'Take leave',available:true}]});
 const descendants=root=>(root.children||[]).flatMap(child=>[child,...descendants(child)]);
+
+test('twelve Army assignments explain personal faction, frontier permission, and the remaining command promotion',()=>{
+ const rank=militaryRankFor({enlisted:true,factionId:'freewake',rankVersion:1,completed:12},{branchId:'army'}),before=JSON.stringify(rank),basics=militaryServiceBasics({},rank);
+ assert.match(basics.identity,/Freewake Union Army.*Corporal/);
+ assert.ok(basics.allowed.includes('Lead missions in rival territory'));
+ assert.ok(!basics.allowed.includes('Accept section command orders'));
+ assert.ok(basics.locked.some(item=>item.label==='Accept section command orders'));
+ assert.match(basics.progress,/4 more to reach Sergeant/);
+ assert.equal(JSON.stringify(rank),before);
+ const suspended=militaryServiceBasics({}, {...rank,suspended:true});
+ assert.deepEqual(suspended.allowed,[]);assert.match(suspended.role,/suspended/);assert.match(suspended.identity,/Corporal/);
+});
 
 test('service panel shows personal rank beside a mixed-rank operation and dispatches the exact authority action',async()=>{
  const join={action:'joinOperation',operationId:'operation-7',missionId:'frontier-duty',entityId:MILITARY_RECRUITER_ID,label:'Join this watch',available:true};

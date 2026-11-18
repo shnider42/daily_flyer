@@ -38,7 +38,7 @@ import { syncNavyCrewSurface } from '../dist/navy-crew.mjs';
 import { occupiedVesselThreats } from '../dist/music-context.mjs';
 import { CASUAL_START_UPGRADES, publicStartingPort } from '../dist/livelihoods.mjs';
 import { discardGamblingReplay } from '../dist/gambling.mjs';
-import { CROSSWIND_SYSTEM_ID } from '../dist/warzone-content.mjs';
+import { CROSSWIND_SYSTEM_ID, CROSSWIND_BODY_IDS } from '../dist/warzone-content.mjs';
 import { catchUpWarzoneSpace, warzoneSpaceView, notifyWarzoneDestroyed } from '../dist/warzone-space.mjs';
 import { warzoneGroundSurfaceView, warzoneGroundView, catchUpWarzoneGround } from '../dist/warzone-ground.mjs';
 import { isCasualCrew, reconcileCasualCrew } from '../dist/casual-crew.mjs';
@@ -396,6 +396,7 @@ export class Realm extends BoardingAuthority {
   }
   _bindCaptain(captain) {
     captain.game._directorShared=this.director;
+    captain.game._warzoneCeasefireContext=()=>this._warzoneCeasefireContext(captain);
     captain.game._voyagePersonalContext=()=>{
       const owned=this.vessels.get(captain.ownedVesselId);
       return owned?{ship:owned.ship,crew:this._crewFor(owned),systemId:owned.systemId,bodyId:owned.dockedAt||null,aboard:captain.aboard===owned.id}:null;
@@ -663,6 +664,13 @@ export class Realm extends BoardingAuthority {
     if (!vessel || vessel.dockedAt) return false;
     const room = this.rooms.get(vessel.systemId);
     return !!(vessel.actor?._hitTimer > 0 || vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active' || room?.runtime.enemies.some(e => e.hp > 0 && e.active && (!e.warzone||e.warzoneTargetKind==='player'&&e.targetVesselId===vessel.id) && distance(e, vessel.ship) < 700));
+  }
+  _warzoneCeasefireContext(captain) {
+    const vessels = [...new Set([captain.portVesselId, captain.ownedVesselId])].map(id => this.vessels.get(id)).filter(vessel =>
+      vessel && vessel.systemId === CROSSWIND_SYSTEM_ID && vessel.dockedAt === CROSSWIND_BODY_IDS.orsa && !vessel.destroyed &&
+      (vessel.ownerId === captain.id || vessel.occupation?.controllerId === captain.id || this._canRole(captain, vessel, 'helm')));
+    const contested = vessels.some(vessel => vessel.boarding?.phase === 'active' || vessel.pvp?.phase === 'active' || vessel.occupation?.contested || vessel.npcOccupied || vessel.actor?._hitTimer > 0);
+    return { vessels, hostileFactions: [...new Set(vessels.flatMap(vessel => vessel.warzoneHostileFactions || []))], reason: contested ? 'Resolve the boarding action or immediate attack on your ship before requesting a ceasefire.' : null };
   }
   _canBoard(captain, vessel) { if(vessel?.npcContractId){const member=this._militaryContract(vessel)?.military?.participants?.[captain.id];return !vessel.destroyed&&!this._hostileOccupied(vessel)&&captain.game.state.npcContract?.active&&captain.game.state.npcContract.id===vessel.npcContractId&&(!vessel.militaryOperationId||!!member&&!member.settled&&!member.withdrawn&&vessel.grants[captain.id]?.allowed===true);} if (vessel && !vessel.destroyed && !vessel.npcOccupied && vessel.occupation?.controllerId === captain.id && !vessel.occupation.contested) return true; return !!vessel && !vessel.destroyed && !this._hostileOccupied(vessel) && (vessel.ownerId === captain.id || (vessel.grants[captain.id] ? vessel.grants[captain.id].allowed === true : vessel.allowCrew)); }
   _friendlyBoardingCheck(captain, vessel) {
@@ -1178,7 +1186,14 @@ export class Realm extends BoardingAuthority {
       const result=game.enterSite(a.siteId||id);if(result.ok){c.surfaceCache=null;this._bindExploration(c);}return result;
     }
     if (name === 'exitSite') {const result=game.exitSite();if(result.ok)c.surfaceCache=null;return result;}
-    if (name === 'warzoneAction') return game.warzoneAction(a);
+    if (name === 'warzoneAction') {
+      const result = game.warzoneAction(a);
+      if (result.ok && a.action === 'ceasefire') for (const vessel of this._warzoneCeasefireContext(c).vessels) {
+        vessel.warzoneHostileFactions = (vessel.warzoneHostileFactions || []).filter(id => id !== result.factionId);
+        vessel.actor = null;
+      }
+      return result;
+    }
     if (name === 'siteAction') return game.siteAction(a.entityId,a.action,a.optionId);
     if (name === 'fieldWorkAction') {
       this._bindExploration(c);

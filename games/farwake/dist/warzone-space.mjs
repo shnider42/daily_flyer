@@ -1,6 +1,7 @@
 /** A bounded, persistent fleet war. The room authority calls this exactly once. */
 import { getShipClass, enemyHullProfile } from './fleet.mjs';
 import { CROSSWIND_SYSTEM_ID, CROSSWIND_ARRIVAL, WARZONE_FACTION_STYLE, WARZONE_FACTION_HULLS, WARZONE_HULL_TACTICS, isWarzoneSystem } from './warzone-content.mjs';
+import { warzoneRelation } from './warzone-allegiance.mjs';
 
 export const WARZONE_SPACE_VERSION = 2;
 export const WARZONE_SPACE_LIMITS = Object.freeze({ initialPerSide: 28, ships: 80, lineShips: 60, fighters: 24, fightersPerSide: 12, carriersPerSide: 2, projectiles: 160, effects: 48, recentLosses: 64, targetDecisionSeconds: .45, catchUpSeconds: 90 });
@@ -348,7 +349,7 @@ export function warzoneTargetLimit(ship = {}) {
 }
 
 function hostileTo(ship, participant) {
-  return participant.hostileFactions?.includes(ship.faction) || validFaction(participant.factionId) && participant.factionId !== ship.faction;
+  return warzoneRelation(ship.faction, participant) === 'hostile';
 }
 function activeParticipants(participants) {
   const result = [], seen = new Set();

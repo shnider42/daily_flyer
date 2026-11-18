@@ -49,9 +49,9 @@ test('reconnecting and departure states replace stale crew claims without losing
  assert.match(f.element('onlineButton').attributes['aria-label'],/Create or join a shared galaxy/);
 });
 
-test('compact mobile guidance expands without covering the screen by default or highlighting the wrong menu',()=>{
+test('Simple mobile guidance shows its short instruction and expands without highlighting the wrong menu',()=>{
  const f=fixture();f.context.showCoach(f.prompt);
- assert.equal(f.element('coachBody').hidden,true);assert.equal(f.element('coachCopy').attributes.role,'button');
+ assert.equal(f.element('coachBody').hidden,false);assert.equal(f.element('coachBody').textContent,f.prompt.compactBody);assert.equal(f.element('coachCopy').attributes.role,'button');
  assert.equal(f.element('coachCopy').attributes['aria-expanded'],'false');
  assert.equal(f.element('onlineButton').classList.contains('coach-highlight'),true);
  assert.equal(f.element('pauseButton').classList.contains('coach-highlight'),false);
@@ -64,7 +64,7 @@ test('explicit Action help expands even the same dismissed detail and remains co
  const f=fixture();f.context.showCoach(f.prompt);f.context.requestActionHelp();
  assert.equal(f.element('coachBody').hidden,false);assert.equal(f.context.coachExpanded,true);
  f.context.coachExpanded=false;f.context.showCoach(f.context.coachPrompt);
- assert.equal(f.element('coachBody').hidden,true);
+ assert.equal(f.element('coachBody').hidden,false);assert.equal(f.element('coachBody').textContent,f.prompt.compactBody);
  f.context.requestActionHelp();assert.equal(f.element('coachBody').hidden,false);
 });
 

@@ -61,6 +61,7 @@ export function readSettings(){
 }
 export function applySettings(settings,{cameraPreferences=settings}={}){
  if(!['simple','moderate','expert'].includes(settings.guidance))settings.guidance='simple';
+ document.body.classList.toggle('guidance-simple',settings.guidance==='simple');
  document.body.classList.toggle('guidance-moderate',settings.guidance==='moderate');
  document.body.classList.toggle('guidance-expert',settings.guidance==='expert');
  settings.textScale=Math.max(1,Math.min(1.6,Number(settings.textScale)||1));settings.controlScale=Math.max(.8,Math.min(1.2,Number(settings.controlScale)||1));Object.assign(settings,normalizeCameraPreferences(settings));delete settings.worldZoom;
