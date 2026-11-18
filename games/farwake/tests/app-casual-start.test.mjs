@@ -9,6 +9,7 @@ import {getShipClass} from '../dist/fleet.mjs';
 import {publicStartingPort} from '../dist/livelihoods.mjs';
 import {systemIdentity} from '../dist/world-identity.mjs';
 import {earthCampaignPresentation} from '../dist/earth-campaign-ui.mjs';
+import {situationView} from '../dist/situation-guidance.mjs';
 
 // Run the real HUD and connection handlers with Game state; only browser and
 // transport boundaries are replaced. The assertions observe displayed advice
@@ -19,13 +20,13 @@ const declaration=name=>{
  const index=declarations.findIndex(match=>match[1]===name);assert.ok(index>=0,name);
  return source.slice(declarations[index].index,declarations[index+1]?.index??source.length);
 };
-const code=['updateHUD','connectGalaxy'].map(declaration).join('\n');
+const code=['updateSituationHUD','updateHUD','connectGalaxy'].map(declaration).join('\n');
 const noop=()=>{};
 function classes(){
  const values=new Set();return{add:(...names)=>names.forEach(name=>values.add(name)),remove:(...names)=>names.forEach(name=>values.delete(name)),contains:name=>values.has(name),toggle(name,force){const enabled=force??!values.has(name);enabled?values.add(name):values.delete(name);return enabled;}};
 }
 function node(){
- const children=new Map();return{textContent:'',innerHTML:'',hidden:false,style:{},classList:classes(),setAttribute:noop,focus:noop,
+ const children=new Map();return{textContent:'',innerHTML:'',hidden:false,style:{},dataset:{},classList:classes(),setAttribute:noop,focus:noop,
   children:Array.from({length:7},()=>({textContent:'',innerHTML:'',hidden:false})),
   querySelector(selector){if(!children.has(selector))children.set(selector,node());return children.get(selector);}};
 }
@@ -38,7 +39,7 @@ function fixture(game){
   async connect(){this.connected=true;const packet={state:arrival.state};this.options.onSnapshot(packet);return packet;}
   disconnect(){this.connected=false;}setInput(){}
  }
- context=vm.createContext({powerProfile,POWER_LABELS,Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,narrativeUI:{refreshCampaign:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
+ context=vm.createContext({powerProfile,POWER_LABELS,Game,FACTIONS,getShipClass,publicStartingPort,systemIdentity,earthCampaignPresentation,situationView,narrativeUI:{refreshCampaign:noop},warzoneUI:{refresh:noop},game,network:null,onlineSnapshot:null,stored:null,playing:true,testSession:null,connectionState:'offline',
   tracked:'kettle',trackedThreadId:'previous-story',narrativeWaypoint:{id:'old-waypoint'},narrativeMarkerKey:'old-story',openingMarkerKey:'old-opening',dutyMarkerKey:'old-duty',militaryMarkerKey:'old-military',guideIntent:'scan',foldDriveTarget:{kind:'beacon'},
   surface:null,surfaceKey:'',surfaceTarget:null,combatPreview:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
   touchLayout:false,settings:{guidance:'simple',showPerformance:false},hudDirty:true,labelLayoutDirty:false,cameraSaveTimer:null,cameraScope:'local',cameraKey:null,localCameraPreferences:{},militaryValue:null,narrativeValue:null,
