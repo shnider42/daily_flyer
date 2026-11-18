@@ -17,12 +17,24 @@ def validate(data, issues):
     announcement_ids = set()
     for s in sources.values():
         assert s['authority'] in {'official_publisher', 'verified_developer'}
-        assert s['announcement_id'].isdigit() and s['announcement_id'] not in announcement_ids
-        announcement_ids.add(s['announcement_id'])
+        source_type = s.get('source_type', 'steam_announcement')
+        assert source_type in {'steam_announcement', 'official_developer_statement'}, 'Unsupported source type'
+        if source_type == 'official_developer_statement':
+            assert s['authority'] == 'verified_developer', 'Developer statements require verified developer authority'
+            assert 'announcement_id' not in s, 'External statements must not claim a Steam announcement ID'
+            assert isinstance(s.get('source_locator'), str) and s['source_locator'].strip(), 'Developer statements require a source locator'
+            assert isinstance(s.get('hash_basis'), str) and s['hash_basis'].strip(), 'Developer statements require a reproducible hash basis'
+            allowed_hosts = {'blog.playstation.com'}
+        else:
+            announcement_id = s.get('announcement_id')
+            assert isinstance(announcement_id, str) and announcement_id.isdigit(), 'Steam sources require a numeric announcement ID'
+            assert announcement_id not in announcement_ids
+            announcement_ids.add(announcement_id)
+            allowed_hosts = HOSTS
         assert re.fullmatch(r'[a-f0-9]{64}', s['content_sha256'])
         for url in [s['url'], s['reviewed_via']]:
             u = urlsplit(url)
-            assert u.scheme == 'https' and u.hostname in HOSTS and not u.username and not u.password and u.port in (None, 443)
+            assert u.scheme == 'https' and u.hostname in allowed_hosts and not u.username and not u.password and u.port in (None, 443)
         datetime.fromisoformat(s['published_at'].replace('Z', '+00:00'))
         assert s['published_at'][:10] <= s['reviewed_at'] <= data['reviewed_at']
         assert s['review_scope'] and s['publisher'] and s['title']

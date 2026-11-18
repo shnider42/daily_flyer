@@ -2,8 +2,15 @@
 
 Public route: `/#catch-up`. The homepage introduction and top navigation link here.
 Twenty curated topics describe released mechanics from the content ledger. The guide
-is partial coverage of October 7–21, 2026, reviewed November 10. It is not a complete
+is partial coverage of October 7–21, 2026, reviewed November 18. It is not a complete
 tutorial, tactical ranking, or independent gameplay test.
+
+The November 18 review checks the November 12 release-schedule notice and November 13
+Khe Sanh preview. Update 2.0 now targets early December and Update 3.0 early 2027;
+neither announcement establishes a new release. Both announcements are pinned as
+reviewed sources, while the twenty released-change topics, live baseline hashes and
+October 21 coverage boundary remain intact. Rebuilding also imports the latest
+reviewed summaries from the linked bug records.
 
 The November 10 review rechecks the existing official sources and adds the previously
 omitted Patch 1.6 combat-audio and spawn-sound changes. The released comparison window
@@ -50,9 +57,10 @@ updated. Do not regenerate locks blindly. The SHA-256 feature hash is canonical
 JSON with sorted keys, UTF-8, ensure_ascii=False and separators=(',', ':').
 
 `reviewed_source_ids` records newer official announcements that were checked but
-did not release new gameplay rules. The November 6 Community Feedback #9 is pinned
-by source identity and content hash for that purpose. It is included in the built
-source list so the browser does not flag an already-reviewed announcement again;
+did not release new gameplay rules. Community Feedback #9, the November 12 schedule
+notice and the November 13 Khe Sanh preview are pinned by source identity and content
+hash for that purpose. They are included in the built source list so the browser
+does not flag an already-reviewed announcement again;
 it does not extend `coverage_through`, add a release comparison or promote a future
 feature into a live baseline. Edited known sources and newer announcements still
 require review. Source publication/review dates and the review lock are validated.

@@ -13,10 +13,12 @@ from urllib.error import HTTPError
 ROOT=Path('hllv_tracker');OUTPUT=ROOT/'official-feed.json'
 API='https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=3079210&count=100&maxlength=0&feeds=steam_community_announcements'
 HOSTS={'api.steampowered.com','steamcommunity.com','store.steampowered.com','steamstore-a.akamaihd.net','www.hellletloose.com','hellletloose.com','www.reddit.com','reddit.com'}
+LINK_CHECK_ONLY_PATHS={'blog.playstation.com':{'/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam'}}
 
 def allowed(url):
     u=urlsplit(url)
-    if u.scheme!='https' or u.hostname not in HOSTS or u.username or u.password or u.port not in (None,443):return False
+    if u.scheme!='https' or u.hostname not in HOSTS|LINK_CHECK_ONLY_PATHS.keys() or u.username or u.password or u.port not in (None,443):return False
+    if u.hostname in LINK_CHECK_ONLY_PATHS:return u.path.rstrip('/') in LINK_CHECK_ONLY_PATHS[u.hostname]
     if u.hostname=='api.steampowered.com':return u.path.startswith('/ISteamNews/GetNewsForApp/')
     if u.hostname=='steamstore-a.akamaihd.net':return u.path.startswith('/news/externalpost/steam_community_announcements/')
     return True
@@ -67,7 +69,7 @@ def normalize(raw,now,issues,features=()):
         if post.get('feedname')!='steam_community_announcements':continue
         gid=str(post.get('gid',''));title=plain(post.get('title',''));url=post.get('url','');timestamp=post.get('date')
         if not gid.isdigit() or gid in seen or not title or len(title)>300 or not allowed(url):raise ValueError('Invalid official entry')
-        if urlsplit(url).hostname in {'api.steampowered.com','www.reddit.com','reddit.com'}:raise ValueError('Not an official announcement destination')
+        if urlsplit(url).hostname in {'api.steampowered.com','www.reddit.com','reddit.com'}|LINK_CHECK_ONLY_PATHS.keys():raise ValueError('Not an official announcement destination')
         if type(timestamp) is not int or timestamp>now.timestamp()+300 or timestamp<1609459200:raise ValueError('Invalid announcement date')
         seen.add(gid);body=plain(post.get('contents',''))
         if not body:raise ValueError('Official post has no text')

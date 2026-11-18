@@ -1,9 +1,61 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-11-10",
+  "reviewed_at": "2026-11-18",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected functionality from Community Feedback 6–9 and Patches 1.6–1.7, reviewed through November 10. Added coverage of earlier audio changes and five previously omitted feature discussions. Patch 1.7 remains the latest verified release; November 6 statements describe further work and targets, not a new patch. This is not a complete roadmap or independent gameplay verification.",
+  "coverage_note": "Selected released functionality and future plans reviewed through November 18. Patch 1.7 remains the latest verified release. November 12 moved Update 2.0 to early December and Update 3.0 to early 2027; November 13 previews Khe Sanh and confirms future PS5 QSSR. Exact release days remain unannounced. Roadmap content and developer statements do not change live baselines or establish independent gameplay verification.",
   "sources": [
+    {
+      "id": "khe_sanh_preview_20261113",
+      "announcement_id": "1849192144188312",
+      "title": "Khe Sanh | Developer Deep Dive Video",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016409",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144188312",
+      "published_at": "2026-11-13T17:23:35Z",
+      "content_sha256": "b69919ad7760c05eeea6952960e9cc239aca97aea3d69680949d28433be83df0",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "Publisher preview text describes upcoming Khe Sanh mechanics and setting. The linked video was not watched; previewed mechanics are not a released update or independent gameplay test."
+    },
+    {
+      "id": "sony_qssr_20261113",
+      "source_type": "official_developer_statement",
+      "external_id": "playstation-blog-425724",
+      "title": "QSSR arrives in Marvel’s Spider-Man 2, Control Resonant, The Finals, Arc Raiders, No Man’s Sky, and Hell Let Loose: Vietnam",
+      "publisher": "Sony Interactive Entertainment / Expression Games",
+      "authority": "verified_developer",
+      "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "published_at": "2026-11-13T14:00:16Z",
+      "modified_at": "2026-11-14T01:18:15Z",
+      "content_sha256": "142cc716521f144abd0aef5dcab75ae3366e9ef1ea323d3c8349cb576e35625b",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "Expression Games game director statement confirming QSSR for HLLV in an upcoming update, with no named release date/version. Other games have different release states; none is transferred to HLLV.",
+      "reviewed_via": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "source_locator": "Expression Games — Paul Rustchynsky",
+      "hash_basis": "Title + newline + normalized visible article entry-content; collector plain() normalization; excludes comments/navigation."
+    },
+    {
+      "id": "release_dates_20261112",
+      "announcement_id": "1849192144183671",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "published_at": "2026-11-12T16:34:51Z",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "reviewed_at": "2026-11-18",
+      "review_scope": "HLLV release-window changes and roadmap content, including the embedded roadmap image inspected separately. Regular HLL Update 22 is excluded. Schedule targets are not released functionality; the outage statement does not establish a game-server incident.",
+      "reviewed_images": [
+        {
+          "url": "https://clan.fastly.steamstatic.com/images/45748053/048c6e7c46b5059e96d9adbb03f510e4f4a77146.jpg",
+          "content_sha256": "f2a3698c34d4b87f230b3ca6c7f33f88630ce2122db4a5eb3e8747bd1b1b3779",
+          "hash_basis": "SHA-256 of downloaded JPEG bytes; image text is excluded from the Steam announcement text hash.",
+          "reviewed_at": "2026-11-18",
+          "source_locator": "Post Launch Roadmap: Update 2.0, Update 3.0 and General Improvements panels"
+        }
+      ]
+    },
     {
       "id": "cf9",
       "announcement_id": "1848664643345363",
@@ -286,14 +338,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "A Radio / Equipment input swap is planned.",
-      "target": "Update 2.0",
-      "latest_source_id": "cf8",
+      "change": "The earlier Radio / Equipment swap plan targets 2.0. That update now targets early December; the scheduling post does not separately reconfirm this option.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf8",
           "status": "planned",
           "summary": "An additional controller option is planned."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The earlier Radio / Equipment swap plan targets 2.0. That update now targets early December; the scheduling post does not separately reconfirm this option."
         }
       ],
       "related_issue_ids": [],
@@ -302,6 +359,23 @@
         "radio and equipment",
         "radio",
         "controller customisation"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "This option is not confirmed live by the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "A Radio / Equipment input swap is planned.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf8"
+          }
+        }
       ]
     },
     {
@@ -392,9 +466,9 @@
         ]
       },
       "status": "planned",
-      "change": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live.",
-      "target": "Update 2.0",
-      "latest_source_id": "cf9",
+      "change": "The previously announced 50-server cap remains planned for 2.0. Its release window has moved to early December; the larger cap is not confirmed live.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf8",
@@ -405,6 +479,11 @@
           "source_id": "cf9",
           "status": "planned",
           "summary": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The previously announced 50-server cap remains planned for 2.0. Its release window has moved to early December; the larger cap is not confirmed live."
         }
       ],
       "related_issue_ids": [
@@ -431,6 +510,23 @@
             "status": "under_consideration",
             "target": "No confirmed release",
             "latest_source_id": "cf8"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "The Favourites cap is now announced as 50 servers for Update 2.0. The larger limit is not confirmed live.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
           }
         }
       ]
@@ -507,9 +603,9 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed.",
-      "target": "Update 2.0 · November 2026 target",
-      "latest_source_id": "cf9",
+      "change": "The preview describes the 1968 combat base as HLLV’s first Assault map, with a changing monsoon and interactive elephant grass. This is upcoming content, not a release notice.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "khe_sanh_preview_20261113",
       "history": [
         {
           "source_id": "cf8",
@@ -525,6 +621,16 @@
           "source_id": "cf9",
           "status": "planned",
           "summary": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Khe Sanh remains in Update 2.0, now targeted for early December following the publisher’s infrastructure disruption. No exact launch day is announced."
+        },
+        {
+          "source_id": "khe_sanh_preview_20261113",
+          "status": "planned",
+          "summary": "The preview describes the 1968 combat base as HLLV’s first Assault map, with a changing monsoon and interactive elephant grass. This is upcoming content, not a release notice."
         }
       ],
       "related_issue_ids": [],
@@ -561,6 +667,36 @@
             "status": "planned",
             "target": "Update 2.0 · November 2026 target",
             "latest_source_id": "patch17"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh will include weather. The map remains planned for Update 2.0; an exact launch day is not confirmed.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh remains in Update 2.0, now targeted for early December following the publisher’s infrastructure disruption. No exact launch day is announced.",
+            "status": "planned",
+            "target": "Update 2.0 · early December 2026 target",
+            "latest_source_id": "release_dates_20261112"
           }
         }
       ]
@@ -766,9 +902,9 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation.",
-      "target": "Update 3.0 target",
-      "latest_source_id": "cf9",
+      "change": "Clan Tags were previously linked to Battalions. The revised roadmap lists Battalions as a beta in Update 3.0, now early 2027; it does not separately restate Clan Tag functionality.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf8",
@@ -779,6 +915,11 @@
           "source_id": "cf9",
           "status": "planned",
           "summary": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Clan Tags were previously linked to Battalions. The revised roadmap lists Battalions as a beta in Update 3.0, now early 2027; it does not separately restate Clan Tag functionality."
         }
       ],
       "related_issue_ids": [],
@@ -801,6 +942,21 @@
             "status": "under_consideration",
             "target": "No confirmed release",
             "latest_source_id": "cf8"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed statement does not establish availability.",
+              "source_ids": []
+            },
+            "change": "Clan Tags are planned alongside Battalions, targeting Update 3.0, rather than a separate interim implementation.",
+            "status": "planned",
+            "target": "Update 3.0 target",
+            "latest_source_id": "cf9"
           }
         }
       ]
@@ -1205,14 +1361,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7.",
-      "target": "Update 2.0 · November 2026 target",
-      "latest_source_id": "patch17",
+      "change": "ANZAC representation remains planned for 2.0 in early December. The roadmap labels ANZAC player cosmetics as Deluxe Edition content; it does not establish a separate playable faction or exclusive combat mechanics.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "patch17",
           "status": "planned",
           "summary": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "ANZAC representation remains planned for 2.0 in early December. The roadmap labels ANZAC player cosmetics as Deluxe Edition content; it does not establish a separate playable faction or exclusive combat mechanics."
         }
       ],
       "related_issue_ids": [],
@@ -1220,6 +1381,23 @@
       "monitor_terms": [
         "anzac",
         "allied forces"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7.",
+            "status": "planned",
+            "target": "Update 2.0 · November 2026 target",
+            "latest_source_id": "patch17"
+          }
+        }
       ]
     },
     {
@@ -1232,10 +1410,10 @@
         "summary": "Not released in the reviewed announcement.",
         "source_ids": []
       },
-      "status": "planned",
-      "change": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed.",
-      "target": "Dependent on Sony availability · no confirmed release date",
-      "latest_source_id": "cf9",
+      "status": "in_development",
+      "change": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live.",
+      "target": "Upcoming HLLV update · date and version unannounced",
+      "latest_source_id": "sony_qssr_20261113",
       "history": [
         {
           "source_id": "patch17",
@@ -1246,6 +1424,16 @@
           "source_id": "cf9",
           "status": "planned",
           "summary": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap retains PS5 QSSR under General Improvements without assigning a particular update or exact date. No HLLV release is established."
+        },
+        {
+          "source_id": "sony_qssr_20261113",
+          "status": "in_development",
+          "summary": "Expression’s game director confirms PS5 QSSR integration through an upcoming HLLV update. The developer statement names no release day or version; the feature is not confirmed live."
         }
       ],
       "related_issue_ids": [
@@ -1269,6 +1457,36 @@
             "status": "planned",
             "target": "No confirmed release date",
             "latest_source_id": "patch17"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "QSSR integration still depends on Sony making the technology available. The publisher describes availability later in 2026; no game release date is confirmed.",
+            "status": "planned",
+            "target": "Dependent on Sony availability · no confirmed release date",
+            "latest_source_id": "cf9"
+          }
+        },
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Not released in the reviewed announcement.",
+              "source_ids": []
+            },
+            "change": "The roadmap retains PS5 QSSR under General Improvements without assigning a particular update or exact date. No HLLV release is established.",
+            "status": "planned",
+            "target": "Upcoming integration · no confirmed release date",
+            "latest_source_id": "release_dates_20261112"
           }
         }
       ]
@@ -1470,14 +1688,19 @@
         "source_ids": []
       },
       "status": "in_development",
-      "change": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion.",
-      "target": "Update 2.0 target · subject to completion",
-      "latest_source_id": "cf9",
+      "change": "Party Chat remains on the roadmap under General Improvements. The earlier 2.0 target was conditional on completion; the revised graphic does not assign it an update-specific date.",
+      "target": "Earlier 2.0 target conditional · roadmap timing unspecified",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "in_development",
           "summary": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "Party Chat remains on the roadmap under General Improvements. The earlier 2.0 target was conditional on completion; the revised graphic does not assign it an update-specific date."
         }
       ],
       "related_issue_ids": [
@@ -1488,6 +1711,23 @@
         "party chat",
         "party voice",
         "different units"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced in-match extension is not confirmed live; earlier lobby Party Voice Chat fixes are a separate record.",
+              "source_ids": []
+            },
+            "change": "Party Chat for groups split across Units and roles is in development, targeting 2.0 subject to completion.",
+            "status": "in_development",
+            "target": "Update 2.0 target · subject to completion",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1501,14 +1741,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified.",
-      "target": "Update 2.0",
-      "latest_source_id": "cf9",
+      "change": "The new bunker was announced for 2.0. That update now targets early December; the scheduling post does not add bunker specifications or a shipped confirmation.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "planned",
           "summary": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The new bunker was announced for 2.0. That update now targets early December; the scheduling post does not add bunker specifications or a shipped confirmation."
         }
       ],
       "related_issue_ids": [],
@@ -1517,6 +1762,23 @@
         "new bunker",
         "bunker type",
         "defensive variety"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The additional bunker type is not confirmed live. Existing Engineer buildables and Barbed Wire limits remain as previously released.",
+              "source_ids": []
+            },
+            "change": "An additional bunker type is announced for Update 2.0; construction costs and placement limits are not specified.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1530,14 +1792,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression.",
-      "target": "Update 2.0",
-      "latest_source_id": "cf9",
+      "change": "Free unlockable cosmetics remain in 2.0, now early December. The roadmap separates these from Deluxe Edition player and helicopter cosmetics.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "planned",
           "summary": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Free unlockable cosmetics remain in 2.0, now early December. The roadmap separates these from Deluxe Edition player and helicopter cosmetics."
         }
       ],
       "related_issue_ids": [],
@@ -1546,6 +1813,23 @@
         "unlockable cosmetics",
         "free cosmetics",
         "progression rewards"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The expanded cosmetic selection is not confirmed live.",
+              "source_ids": []
+            },
+            "change": "Update 2.0 is planned to add more unlockable cosmetics, including free rewards tied to progression.",
+            "status": "planned",
+            "target": "Update 2.0",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1559,20 +1843,42 @@
         "source_ids": []
       },
       "status": "in_development",
-      "change": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified.",
-      "target": "2027 target",
-      "latest_source_id": "cf9",
+      "change": "The revised roadmap assigns Commendations to Update 3.0 in early 2027, narrowing the earlier general 2027 plan. No exact date or reward scheme is specified.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "in_development",
           "summary": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "The revised roadmap assigns Commendations to Update 3.0 in early 2027, narrowing the earlier general 2027 plan. No exact date or reward scheme is specified."
         }
       ],
       "related_issue_ids": [],
       "related_suggestions": [],
       "monitor_terms": [
         "commendations"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Commendations are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "Commendations are in development with a 2027 target. A particular update, month or reward scheme is not specified.",
+            "status": "in_development",
+            "target": "2027 target",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1586,14 +1892,19 @@
         "source_ids": []
       },
       "status": "testing",
-      "change": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains.",
-      "target": "Update 2.0 · subject to final testing",
-      "latest_source_id": "cf9",
+      "change": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation.",
+      "target": "Update 2.0 · early December 2026 target · final testing pending",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "testing",
           "summary": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "testing",
+          "summary": "D-pad marker selection and overlap-placement work retain their earlier 2.0 testing scope. The release window is now early December; this schedule change does not confirm final validation."
         }
       ],
       "related_issue_ids": [
@@ -1605,6 +1916,23 @@
         "marker menu",
         "d-pad",
         "placing a marker"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced controller-map changes are not confirmed live.",
+              "source_ids": []
+            },
+            "change": "D-pad marker selection is intended to preserve movement-stick input. Marker placement over existing map elements is also being addressed; final testing remains.",
+            "status": "testing",
+            "target": "Update 2.0 · subject to final testing",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1679,14 +2007,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named.",
-      "target": "Future maps · no confirmed dates",
-      "latest_source_id": "cf9",
+      "change": "Khe Sanh and Rung Sat now have roadmap windows in 2.0 and 3.0. The earlier urban-combat discussion still lacks a named urban map or a separate delivery date.",
+      "target": "Named maps in 2.0/3.0 · urban-map timing unconfirmed",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "planned",
           "summary": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Khe Sanh and Rung Sat now have roadmap windows in 2.0 and 3.0. The earlier urban-combat discussion still lacks a named urban map or a separate delivery date."
         }
       ],
       "related_issue_ids": [],
@@ -1696,6 +2029,23 @@
         "urban-style",
         "environmental variety",
         "future battlefields"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "Additional urban-style battlefields are not confirmed live in this announcement.",
+              "source_ids": []
+            },
+            "change": "Future maps are planned to broaden environments, including closer urban combat. More information is promised for 2027; individual maps and release dates are not named.",
+            "status": "planned",
+            "target": "Future maps · no confirmed dates",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1709,14 +2059,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates.",
-      "target": "Update 2.0 arsenal expansion · further content undated",
-      "latest_source_id": "cf9",
+      "change": "The roadmap names seven 2.0 weapons: scoped M14, L1A1, F1, MAT-49, Stoner 63, SVD and L16A1 mortar. PPSh-41 and M3A1 Grease Gun are listed for 3.0. Role access and balance values are not specified.",
+      "target": "Update 2.0 · early December 2026; Update 3.0 · early 2027",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf9",
           "status": "planned",
           "summary": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap names seven 2.0 weapons: scoped M14, L1A1, F1, MAT-49, Stoner 63, SVD and L16A1 mortar. PPSh-41 and M3A1 Grease Gun are listed for 3.0. Role access and balance values are not specified."
         }
       ],
       "related_issue_ids": [],
@@ -1725,6 +2080,23 @@
         "available arsenal",
         "faction-specific",
         "more weapons"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The further arsenal expansion is not confirmed live; the Thompson and M16A1 magazine option already shipped in 1.7.",
+              "source_ids": []
+            },
+            "change": "More weapons are announced for 2.0. Further weapons, vehicles and faction-specific equipment are planned beyond that without item-level dates.",
+            "status": "planned",
+            "target": "Update 2.0 arsenal expansion · further content undated",
+            "latest_source_id": "cf9"
+          }
+        }
       ]
     },
     {
@@ -1795,14 +2167,19 @@
         "source_ids": []
       },
       "status": "in_development",
-      "change": "Aim Assist work targets 2.0, conditional on development and testing.",
-      "target": "Update 2.0 target · subject to development and testing",
-      "latest_source_id": "cf6",
+      "change": "The earlier Aim Assist plan targets 2.0 subject to development and testing. That update now targets early December; the scheduling post does not independently confirm completion.",
+      "target": "Update 2.0 · early December 2026 target · testing conditional",
+      "latest_source_id": "release_dates_20261112",
       "history": [
         {
           "source_id": "cf6",
           "status": "in_development",
           "summary": "Conditional target announced."
+        },
+        {
+          "source_id": "release_dates_20261112",
+          "status": "in_development",
+          "summary": "The earlier Aim Assist plan targets 2.0 subject to development and testing. That update now targets early December; the scheduling post does not independently confirm completion."
         }
       ],
       "related_issue_ids": [
@@ -1811,6 +2188,23 @@
       "related_suggestions": [],
       "monitor_terms": [
         "aim assist"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-11-18",
+          "reason": "Reviewed November 12–13 source updates; previous assessment and live baseline preserved.",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The announced improvements are not confirmed released.",
+              "source_ids": []
+            },
+            "change": "Aim Assist work targets 2.0, conditional on development and testing.",
+            "status": "in_development",
+            "target": "Update 2.0 target · subject to development and testing",
+            "latest_source_id": "cf6"
+          }
+        }
       ]
     },
     {
@@ -1935,6 +2329,205 @@
         "audio pass",
         "spawn audio",
         "distant gunfire"
+      ]
+    },
+    {
+      "id": "HLLV-F050",
+      "title": "Rung Sat map",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Rung Sat is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Rung Sat is named as the map for Update 3.0, now targeted for early 2027. The announcement does not give a launch day or detailed map rules.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Rung Sat is named as the map for Update 3.0, now targeted for early 2027. The announcement does not give a launch day or detailed map rules."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "rung sat"
+      ]
+    },
+    {
+      "id": "HLLV-F051",
+      "title": "US and NVA armored personnel carriers",
+      "category": "Vehicles",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The new APC vehicle class is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The roadmap lists APCs for both US and NVA in 3.0. Passenger capacity, spawn behavior, costs and armament specifications are not provided.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap lists APCs for both US and NVA in 3.0. Passenger capacity, spawn behavior, costs and armament specifications are not provided."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "armored personnel carriers",
+        "armoured personnel carriers",
+        "apcs"
+      ]
+    },
+    {
+      "id": "HLLV-F052",
+      "title": "Battalions beta",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Battalions is not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The revised roadmap labels Battalions as a beta for 3.0. The earlier Clan Tags connection remains recorded separately; detailed membership and management behavior is not described.",
+      "target": "Update 3.0 · early 2027 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The revised roadmap labels Battalions as a beta for 3.0. The earlier Clan Tags connection remains recorded separately; detailed membership and management behavior is not described."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "battalions"
+      ]
+    },
+    {
+      "id": "HLLV-F053",
+      "title": "Green Berets, Navy SEALs and NVA cosmetics",
+      "category": "Community tools",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "These additional cosmetic packs are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The roadmap lists Green Berets, Navy SEALs and NVA infantry player cosmetics as Deluxe Edition content for 2.0. This does not establish separate gameplay factions or combat advantages.",
+      "target": "Update 2.0 · early December 2026 target",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The roadmap lists Green Berets, Navy SEALs and NVA infantry player cosmetics as Deluxe Edition content for 2.0. This does not establish separate gameplay factions or combat advantages."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "green berets",
+        "navy seals",
+        "nva infantry",
+        "deluxe edition"
+      ]
+    },
+    {
+      "id": "HLLV-F054",
+      "title": "Vehicle cosmetic expansion",
+      "category": "Vehicles",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The roadmap’s additional vehicle skins are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Vehicle skins are listed for 2.0, with helicopter skins separately labelled Deluxe Edition content. APC skins are listed for 3.0. No vehicle performance changes are established by these cosmetic entries.",
+      "target": "Update 2.0 · early December 2026; APC skins in 3.0 · early 2027",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "Vehicle skins are listed for 2.0, with helicopter skins separately labelled Deluxe Edition content. APC skins are listed for 3.0. No vehicle performance changes are established by these cosmetic entries."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vehicle skins",
+        "helicopter skins",
+        "apc skins"
+      ]
+    },
+    {
+      "id": "HLLV-F055",
+      "title": "Xbox FSR 4.1",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "FSR 4.1 for Xbox is not confirmed released in HLLV.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The revised roadmap lists Xbox FSR 4.1 under General Improvements, without a particular update or date. PC AMD upscaling and frame-generation releases do not establish Xbox availability.",
+      "target": "General Improvements · release date unspecified",
+      "latest_source_id": "release_dates_20261112",
+      "history": [
+        {
+          "source_id": "release_dates_20261112",
+          "status": "planned",
+          "summary": "The revised roadmap lists Xbox FSR 4.1 under General Improvements, without a particular update or date. PC AMD upscaling and frame-generation releases do not establish Xbox availability."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "fsr 4.1",
+        "xbox"
+      ]
+    },
+    {
+      "id": "HLLV-F056",
+      "title": "Khe Sanh monsoon and elephant grass",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "These Khe Sanh environmental mechanics are not confirmed live.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The preview describes weather shifting into a monsoon that reduces visibility and masks sounds. Elephant grass slows movement and produces nearby audio cues; numerical effects are not specified.",
+      "target": "Khe Sanh in Update 2.0 · early December 2026 target",
+      "latest_source_id": "khe_sanh_preview_20261113",
+      "history": [
+        {
+          "source_id": "khe_sanh_preview_20261113",
+          "status": "planned",
+          "summary": "The preview describes weather shifting into a monsoon that reduces visibility and masks sounds. Elephant grass slows movement and produces nearby audio cues; numerical effects are not specified."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "monsoon",
+        "elephant grass",
+        "dynamic weather"
       ]
     }
   ]

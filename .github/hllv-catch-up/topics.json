@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "reviewed_at": "2026-11-10",
+  "reviewed_at": "2026-11-18",
   "coverage_from": "2026-10-07",
   "coverage_through": "2026-10-21",
   "release": "Patch 1.7",
@@ -557,6 +557,8 @@
     }
   ],
   "reviewed_source_ids": [
-    "cf9"
+    "cf9",
+    "release_dates_20261112",
+    "khe_sanh_preview_20261113"
   ]
 }

@@ -12,6 +12,14 @@ class FeedTests(unittest.TestCase):
   for url in ['http://steamcommunity.com/x','https://steamcommunity.com.evil.invalid/x','https://user:pass@steamcommunity.com/x','https://127.0.0.1/x','https://steamcommunity.com:8443/x']:
    self.assertFalse(n.allowed(url))
    with self.assertRaises(ValueError):n.normalize(self.fixture(url=url),datetime.now(timezone.utc),[])
+ def test_reviewed_sony_article_is_link_check_only(self):
+  article='https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam'
+  self.assertTrue(n.allowed(article));self.assertTrue(n.allowed(article+'/'))
+  for url in ['https://blog.playstation.com/unreviewed-article',article.replace('blog.playstation.com','blog.playstation.com.evil.invalid'),article.replace('https:','http:'),article.replace('https://','https://user@'),article.replace('blog.playstation.com','blog.playstation.com:444')]:
+   self.assertFalse(n.allowed(url))
+  # A forged feed name does not turn this external statement into Steam news.
+  with self.assertRaisesRegex(ValueError,'Not an official announcement destination'):
+   n.normalize(self.fixture(url=article,feedname='steam_community_announcements'),datetime.now(timezone.utc),[])
  def test_empty_wrong_and_future(self):
   for raw in [b'{}',b'{"appnews":{"appid":3079210,"newsitems":[]}}',self.fixture(date=9999999999)]:
    with self.assertRaises(ValueError):n.normalize(raw,datetime.now(timezone.utc),[])

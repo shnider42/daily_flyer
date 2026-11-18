@@ -60,3 +60,7 @@ node .github/hllv-features/test_browser.cjs
 The test accepts `HLLV_TEST_URL`, `HLLV_BROWSER_EXECUTABLE` and optional
 `HLLV_CHROMIUM_ARGS_JSON`. Production verification separately checks that normal URLs
 match the committed bytes. Test screenshots are temporary artifacts.
+
+## November 18 source review
+
+The ledger has 56 topics and 12 reviewed sources. Nine earlier announcement hashes were unchanged; the two November 12–13 Steam posts and the independently inspected roadmap image add future context only. The PlayStation Blog quotation from Expression Games uses an explicit `official_developer_statement` source with a source locator and article hash basis, without an invented Steam ID. Its article destination is checked by the collector; its editorial content is reviewed manually. Steam announcement matching and status approval remain separate.

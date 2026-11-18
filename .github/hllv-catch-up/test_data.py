@@ -50,7 +50,7 @@ class GuideEvidenceTests(unittest.TestCase):
         data = module['build']()
         self.assertIn('cf9', {s['id'] for s in data['sources']})
         self.assertEqual(data['coverage_through'], '2026-10-21')
-        self.assertEqual(data['reviewed_at'], '2026-11-10')
+        self.assertEqual(data['reviewed_at'], '2026-11-18')
         self.assertNotIn('cf9', {c['source_id'] for t in data['topics'] for c in t['changes']})
         # The current frontend compares announcement IDs/hashes and uses the
         # newest reviewed source as its review boundary. Its data now includes
@@ -64,6 +64,27 @@ class GuideEvidenceTests(unittest.TestCase):
         next(s for s in changed['sources'] if s['id'] == 'cf9')['content_sha256'] = '0' * 64
         with self.assertRaisesRegex(AssertionError, 'source changed'):
             module['build'](features=changed)
+
+    def test_delay_notice_and_map_preview_remain_unreleased(self):
+        data = module['build']()
+        expected = {
+            'release_dates_20261112': ('1849192144183671', '5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db'),
+            'khe_sanh_preview_20261113': ('1849192144188312', 'b69919ad7760c05eeea6952960e9cc239aca97aea3d69680949d28433be83df0'),
+        }
+        by_source = {s['id']: s for s in data['sources']}
+        for sid, (announcement_id, content_hash) in expected.items():
+            self.assertIn(sid, data['reviewed_source_ids'])
+            self.assertEqual(by_source[sid]['announcement_id'], announcement_id)
+            self.assertEqual(by_source[sid]['content_sha256'], content_hash)
+        self.assertFalse(set(expected) & {c['source_id'] for t in data['topics'] for c in t['changes']})
+        self.assertNotIn('HLLV-F009', {f for t in data['topics'] for f in t['feature_ids']})
+        self.assertEqual(max(c['date'] for t in data['topics'] for c in t['changes']), '2026-10-21')
+        for sid in expected:
+            with self.subTest(source=sid):
+                changed = copy.deepcopy(features)
+                next(s for s in changed['sources'] if s['id'] == sid)['content_sha256'] = '0' * 64
+                with self.assertRaisesRegex(AssertionError, 'source changed'):
+                    module['build'](features=changed)
 
     def test_unknown_reviewed_announcement_is_rejected(self):
         topics = json.loads(Path('.github/hllv-catch-up/topics.json').read_text())

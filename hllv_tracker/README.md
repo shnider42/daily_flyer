@@ -20,7 +20,9 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 118 issue dossiers, 49 content topics and 20 Catch Up briefings. The November 10 review adds fresh crash observations, a qualified white-flicker workaround report, a separately scoped PS5 graphics report, six previously omitted content topics and a combat-audio briefing. No existing bug status changed and no newer release was established. Review coverage and exclusions are recorded in `reviews/2026-11-10-source-review.json`.
+The current tracker contains 123 issue dossiers, 56 content topics and 20 Catch Up briefings. The November 18 review updates release windows to early December for 2.0 and early 2027 for 3.0, incorporates the Khe Sanh preview and verified QSSR developer statement, refreshes ten existing bug dossiers and adds five scoped reports. No existing issue status or live feature baseline changes. The roadmap, Support evidence and coverage boundaries are recorded in `reviews/2026-11-18-source-review.json`.
+
+The November 10 snapshot contained 118 issue dossiers, 49 content topics and 20 Catch Up briefings. The November 10 review adds fresh crash observations, a qualified white-flicker workaround report, a separately scoped PS5 graphics report, six previously omitted content topics and a combat-audio briefing. No existing bug status changed and no newer release was established. Review coverage and exclusions are recorded in `reviews/2026-11-10-source-review.json`.
 
 The November 9 snapshot contained 117 issue dossiers, 43 feature topics and 19 Catch Up briefings. The November 9 review incorporates Community Feedback #9 (November 6), seven new qualified reports and recent Support follow-ups. Patch 1.7 (October 21) remains the latest verified release. Certain PS5 crashes now have an official memory explanation; additional memory, replication and NVIDIA settings fixes remain unreleased. New feature targets stay separate from live behavior. Coverage, source checks and exclusions are in `reviews/2026-11-09-source-review.json`.
 
@@ -95,7 +97,7 @@ offers twenty reviewed returning-player briefings with independent date, familia
 and optional role controls. Three reading levels present factual comparisons,
 current rules, official sources and related bug records. Every level preserves
 access to all reviewed facts; Catch Up does not provide tactical advice. It covers
-selected October 7–21, 2026 changes, reviewed November 10; it is not a complete
+selected October 7–21, 2026 changes, reviewed November 18; it is not a complete
 tutorial. Filtered briefings and expanded topics are shareable through the URL.
 
 Source, review locks and maintenance instructions are in `.github/hllv-catch-up/`.

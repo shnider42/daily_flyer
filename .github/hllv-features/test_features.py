@@ -19,9 +19,62 @@ data=json.loads(Path('hllv_tracker/data/features.json').read_text())
 issues=json.loads(Path('hllv_tracker/data/issues.json').read_text())
 
 class FeatureTests(unittest.TestCase):
+    def with_developer_statement(self):
+        fixture=copy.deepcopy(data)
+        fixture['sources'].append({
+            'id':'reviewed_statement_fixture',
+            'source_type':'official_developer_statement',
+            'title':'Synthetic developer statement',
+            'publisher':'Verified developer on PlayStation Blog',
+            'authority':'verified_developer',
+            'url':'https://blog.playstation.com/example/',
+            'reviewed_via':'https://blog.playstation.com/example/',
+            'source_locator':'Named developer section in the article body',
+            'hash_basis':'Title + newline + normalized visible article body, excluding comments',
+            'content_sha256':'1'*64,
+            'published_at':fixture['reviewed_at']+'T00:00:00Z',
+            'reviewed_at':fixture['reviewed_at'],
+            'review_scope':'Synthetic schema fixture; not a game-release claim.',
+        })
+        return fixture
+
     def test_reviewed_records(self):
         self.assertGreaterEqual(len(data['features']),33)
         self.assertEqual(v.validate(data,issues['issues']),len(data['features']))
+
+    def test_verified_external_statement_does_not_require_fake_steam_id(self):
+        fixture=self.with_developer_statement()
+        self.assertEqual(v.validate(fixture,issues['issues']),len(data['features']))
+        self.assertNotIn('announcement_id',fixture['sources'][-1])
+
+    def test_external_statement_keeps_narrow_source_requirements(self):
+        changes=[
+            lambda s:s.update(authority='official_publisher'),
+            lambda s:s.update(announcement_id='123456'),
+            lambda s:s.pop('source_locator'),
+            lambda s:s.update(hash_basis=''),
+            lambda s:s.pop('source_type'),
+            lambda s:s.update(source_type='community_blog'),
+            lambda s:s.update(url='https://blog.playstation.com.evil.example/post'),
+            lambda s:s.update(url='https://blog.playstation.com@evil.example/post'),
+            lambda s:s.update(url='https://user@blog.playstation.com/post'),
+            lambda s:s.update(url='http://blog.playstation.com/post'),
+            lambda s:s.update(url='https://blog.playstation.com:444/post'),
+            lambda s:s.update(reviewed_via='https://untrusted.example/post'),
+        ]
+        for number,change in enumerate(changes):
+            with self.subTest(case=number):
+                bad=self.with_developer_statement();change(bad['sources'][-1])
+                with self.assertRaises(AssertionError):v.validate(bad,issues['issues'])
+
+    def test_steam_sources_still_require_numeric_identity_and_original_hosts(self):
+        for change in [lambda s:s.pop('announcement_id'),
+                       lambda s:s.update(announcement_id='not-numeric'),
+                       lambda s:s.update(url='https://blog.playstation.com/example/')]:
+            bad=copy.deepcopy(data)
+            source=next(s for s in bad['sources'] if s.get('source_type','steam_announcement')=='steam_announcement')
+            change(source)
+            with self.assertRaises(AssertionError):v.validate(bad,issues['issues'])
 
     def test_invalid_authority_live_claim_and_relationship(self):
         changes=[lambda d:d['sources'][0].update(authority='community_moderator'),
