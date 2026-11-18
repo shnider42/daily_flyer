@@ -1,2 +1,2 @@
-// This personal-only release does not initialize or enable shared services.
+// Team mode remains disabled until the hosted pilot release checks pass.
 export const TEAM_CONFIG = Object.freeze({enabled: false, url: '', publishableKey: '', emailProvider: ''});

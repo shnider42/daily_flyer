@@ -19,6 +19,7 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
       <a href="#board" class="brand" aria-label="Dayboard home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>dayboard<span class="brand-sub">PERSONAL WORKSPACE</span></span></a>
+      <button id="workspace-switcher" class="workspace-switcher" data-team-action="workspaces" aria-label="Workspaces: Personal, this browser" aria-haspopup="dialog"><span class="workspace-switcher-copy"><strong id="workspace-name">Personal</strong><small id="workspace-kind">This browser</small></span><span class="workspace-switcher-arrow" aria-hidden="true">⌄</span></button>
       <button class="capture-button" data-action="new-task"><span aria-hidden="true">＋</span> New task <kbd>N</kbd></button>
       <nav class="main-nav" id="main-nav" aria-label="Views"></nav>
       <div class="areas-heading"><div class="nav-label">AREAS</div><button class="icon-button" data-action="areas" aria-label="Manage areas" title="Manage areas"><span data-icon="settings"></span></button></div>
@@ -41,9 +42,19 @@
         <div class="topbar-tools"><label class="search-wrap"><span data-icon="search"></span><input id="search" type="search" placeholder="Find a task…" aria-label="Search tasks and projects" autocomplete="off"><kbd>/</kbd></label><button class="button subtle display-button" data-action="display" aria-label="Display settings"><span data-icon="settings"></span><span>Display</span></button><button class="icon-button" data-action="theme" id="theme-button" aria-label="Switch color theme" title="Switch color theme"><span data-icon="sun"></span></button></div>
       </header>
       <section class="workspace-header">
-        <div><div class="page-eyebrow" id="page-eyebrow">SUNDAY, NOVEMBER 8</div><h1 id="page-title">My board</h1><p id="page-description">A place for what needs doing. One next step at a time.</p></div>
+        <div><div class="workspace-heading-meta"><button id="workspace-scope" class="workspace-scope" data-team-action="workspaces" aria-haspopup="dialog">Personal · this browser</button><div class="page-eyebrow" id="page-eyebrow">SUNDAY, NOVEMBER 8</div></div><h1 id="page-title">My board</h1><p id="page-description">A place for what needs doing. One next step at a time.</p></div>
         <div class="header-actions"><button class="button subtle" data-action="capture-list" aria-label="Paste a list" title="Paste a list"><span data-icon="list-plus"></span><span>Paste a list</span></button><button class="button primary" data-action="new-task" aria-label="New task"><span data-icon="plus"></span><span>New task</span></button></div>
       </section>
+      <details id="shared-connection" class="shared-connection" hidden>
+        <summary><span class="connection-dot" aria-hidden="true"></span><span id="connection-label" aria-live="polite"></span><span class="connection-disclosure" aria-hidden="true">Details</span></summary>
+        <div class="connection-details">
+          <p id="connection-save"></p>
+          <p id="connection-detail"></p>
+          <p id="connection-freshness" class="connection-meta"></p>
+          <p id="connection-timing" class="connection-meta" hidden></p>
+          <button id="connection-check" class="button small" type="button" data-action="refresh-shared">Check for updates</button>
+        </div>
+      </details>
       <div id="notice-region"></div>
       <section class="focus-strip" id="focus-strip" aria-label="Today's focus"></section>
       <section class="toolbar" id="toolbar" aria-label="Board filters"></section>

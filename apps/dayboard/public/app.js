@@ -1,6 +1,10 @@
 import { BoardStore, makeTask, parseCapture, normalizeWorkspace, transitionTask, toCSV, safeUrl, AREA_COLORS, addArea, renameArea, areaCaptureTag } from './model.mjs';
 import { createSeedWorkspace } from './seed.mjs';
 import { DISPLAY_KEY, DISPLAY_DEFAULTS, DISPLAY_OPTIONS, readDisplayPreferences, applyDisplayPreferences } from './display.mjs';
+import { TeamService, readBoardBackup } from './shared.mjs';
+import { TEAM_CONFIG } from './team-config.mjs';
+import { createTeamsUI } from './teams-ui.mjs';
+import { describeSharedConnection } from './connection-status.mjs';
 
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
@@ -50,10 +54,18 @@ const selectOptions = (entries,selected) => entries.map(([value,label])=>`<optio
 const taskOptions = selected => selectOptions(Object.entries(statusName),selected);
 let storage;
 try { storage=window.localStorage; } catch { storage={getItem:()=>{throw new Error('Browser storage is unavailable.');},setItem:()=>{throw new Error('Browser storage is unavailable.');}}; }
-const store=new BoardStore({storage,initialState:createSeedWorkspace()});
+const localStore=new BoardStore({storage,initialState:createSeedWorkspace()});
+let store=localStore, teamsUI=null, unsubscribeStore=null, pendingSave=false, saveToken=null, lastSaveError='', utilityDirty=false, connectionTimer=null;
+const retainedDrafts=new Map();
+const pendingEditors=new WeakMap();
+let editorStore=null, utilityEditorStore=null, editingTaskId=null;
+const teamService=new TeamService(TEAM_CONFIG,{storage,personalSettings:localStore.state.settings});
+const isShared=()=>store.kind==='shared';
+const currentDraft=()=>[...retainedDrafts.values()].find(draft=>draft.userId===teamService.user?.id);
+const recordVersion=(collection,id)=>store.versions?.[collection]?.[id]||0;
 let displayPreferences=readDisplayPreferences(storage);
 applyDisplayPreferences(displayPreferences);
-let ui={view:'board',area:'all',query:'',project:'',priority:'all',layout:'board',mobileStatus:'next'};
+let ui={view:'board',area:'all',query:'',project:'',priority:'all',assignee:'all',layout:'board',mobileStatus:'next'};
 let editingId=null, dirty=false, toastTimer, pendingImport=null, dragId=null, focusReturn=null;
 const views=['board','today','inbox','upcoming','projects','review','someday','archive'];
 const pageInfo={
@@ -73,11 +85,19 @@ const areaEntries = () => store.state.areas.map(area=>[area.id,area.name]);
 const defaultArea = () => areaById('career')?.id||store.state.areas[0].id;
 const selectedArea = () => areaById(ui.area)?.id||defaultArea();
 const activeTasks = () => store.state.tasks.filter(t=>!t.archived && t.status!=='done' && t.status!=='someday');
-const matches = t => (ui.area==='all'||t.area===ui.area) && (!ui.project||t.projectId===ui.project) && (ui.priority==='all'||t.priority===ui.priority) && (!ui.query||`${t.title} ${t.notes} ${t.url} ${projectById(t.projectId)?.name||''} DB-${t.number}`.toLowerCase().includes(ui.query.toLowerCase()));
+const matches = t => (ui.area==='all'||t.area===ui.area) && (!ui.project||t.projectId===ui.project) && (ui.priority==='all'||t.priority===ui.priority) && (!isShared()||ui.assignee==='all'||(ui.assignee==='mine'?store.assignees[t.id]===teamService.user?.id:!store.assignees[t.id])) && (!ui.query||`${t.title} ${t.notes} ${t.url} ${projectById(t.projectId)?.name||''} DB-${t.number}`.toLowerCase().includes(ui.query.toLowerCase()));
 const sortTasks = list => [...list].sort((a,b)=>a.order-b.order||a.number-b.number);
 const filteredTasks = () => sortTasks(store.state.tasks.filter(matches));
 const areaDot = id => `<span class="area-dot" data-color="${esc(areaById(id)?.color||'slate')}" aria-hidden="true"></span>`;
 const areaBadge = id => `<span class="area-label" title="${esc(areaById(id)?.name||id)}">${areaDot(id)}<span class="area-label-text">${esc(areaById(id)?.name||id)}</span></span>`;
+const assigneeName = task => {const id=store.assignees?.[task.id];if(!id)return 'Unassigned';const member=store.members?.find(item=>item.userId===id);return member?.displayName||member?.email||'Former member';};
+const assignmentLine = task => isShared()?`<div class="task-assignee" title="${esc(assigneeName(task))}">${store.assignees?.[task.id]?'Assigned to ':''}${esc(assigneeName(task))}</div>`:'';
+const authorLabel = (taskId, field) => {
+  const userId=store.audit?.[taskId]?.[field];
+  if(!userId)return '';
+  const member=store.members?.find(item=>item.userId===userId);
+  return ` by ${esc(member?.displayName||member?.email||'a former member')}`;
+};
 const issueKey = task => `DB-${String(task.number).padStart(3,'0')}`;
 const dueValue = task => task.status==='waiting' ? [task.followUp,task.due].filter(Boolean).sort()[0]||'' : task.due;
 const dueTag = task => {
@@ -93,21 +113,67 @@ function notify(message,{undo=false,error=false}={}){
   el.innerHTML=`<span>${esc(message)}</span>${undo?`<button data-action="undo" data-revision="${store.state.revision}">Undo</button>`:''}${error?'<button data-action="dismiss-toast">Dismiss</button>':''}`;
   if(!error)toastTimer=setTimeout(()=>{el.hidden=true;},6000);
 }
-function commit(mutator,message,{undo=true,rerender=true}={}){
-  try {store.commit(mutator);$('#toast').hidden=true;if(rerender)render();if(message)notify(message,{undo});return true;}
-  catch(error){$('#save-status').classList.add('error');$('#save-status').innerHTML='<span class="save-dot"></span><span>Change was not saved</span>';notify(error.message||'Could not save. Export your board before closing.',{error:true});return false;}
+function renderSaveStatus(){
+  const el=$('#save-status');
+  const status=isShared()?describeSharedConnection(store,{saving:pendingSave,saveError:lastSaveError}):null;
+  const problem=status?status.saveError:lastSaveError||store.loadIssue;
+  el.classList.toggle('error',Boolean(problem));
+  el.classList.toggle('waiting',Boolean(status?.saveWaiting));
+  const label=status?.saveLabel||(pendingSave?'Saving…':problem?'Storage needs attention':'Saved in this browser');
+  if(el.lastElementChild?.textContent!==label)el.innerHTML=`<span class="save-dot"></span><span>${esc(label)}</span>`;
+  el.setAttribute('aria-live','polite');
+  const panel=$('#shared-connection');
+  panel.hidden=!status;
+  if(!status){panel.open=false;return;}
+  panel.dataset.tone=status.tone;
+  for(const [id,text] of Object.entries({'connection-label':status.label,'connection-save':status.saveLabel,'connection-detail':status.detail,'connection-freshness':status.freshness,'connection-timing':status.response})){
+    const node=$(`#${id}`);if(node.textContent!==text)node.textContent=text;
+  }
+  $('#connection-timing').hidden=!status.response;
+  const check=$('#connection-check');
+  check.dataset.action=status.action;check.textContent=status.actionLabel;check.disabled=status.actionDisabled;
+}
+async function saveOperation(action,message,{undo=true,rerender=true}={}){
+  if(pendingSave){notify('A change is still saving. Please wait.',{error:true});return false;}
+  const target=store;
+  const token={};saveToken=token;
+  const submitted=target.hasPending?null:captureSubmittedEditors(target);
+  if(submitted&&target.kind==='shared')pendingEditors.set(target,submitted);
+  pendingSave=true;lastSaveError='';renderSaveStatus();
+  const controls=$$('dialog[open] input,dialog[open] select,dialog[open] textarea,dialog[open] button').map(el=>[el,el.disabled]);
+  for(const [el] of controls)el.disabled=true;
+  try{
+    await action(target);
+    if(submitted)pendingEditors.delete(target);
+    if(store!==target)return false;
+    $('#toast').hidden=true;if(rerender)render({preserveInlineDraft:true});
+    if(message)notify(message,{undo:undo&&target.canUndo});
+    return true;
+  }catch(error){
+    if(submitted&&!target.hasPending)pendingEditors.delete(target);
+    if(store===target){lastSaveError=error.message||'This change could not be saved.';notify(lastSaveError,{error:true});renderNotice();}
+    return false;
+  }finally{
+    if(saveToken===token){pendingSave=false;saveToken=null;for(const [el,disabled] of controls)if(el.isConnected)el.disabled=disabled;}
+    renderSaveStatus();renderNotice();
+  }
+}
+async function commit(mutator,message,{undo=true,rerender=true,assignments}={}){
+  return saveOperation(target=>target.commit(mutator,{assignments}),message,{undo,rerender});
 }
 function updateTask(id,changes,message){return commit(state=>{const task=state.tasks.find(t=>t.id===id);if(!task)throw new Error('This task no longer exists. Reload the board.');Object.assign(task,changes,{updatedAt:now(),starter:false});},message);}
-function setView(view){if(!views.includes(view))view='board';ui.view=view;ui.project='';ui.priority='all';ui.query='';$('#search').value='';document.body.classList.remove('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded','false');if(location.hash!==`#${view}`)history.pushState(null,'',`#${view}`);render();window.scrollTo({top:0,behavior:'instant'});}
+function setView(view){if(!views.includes(view))view='board';ui.view=view;ui.project='';ui.priority='all';ui.assignee='all';ui.query='';$('#search').value='';document.body.classList.remove('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded','false');if(location.hash!==`#${view}`)history.pushState(null,'',`#${view}`);render();window.scrollTo({top:0,behavior:'instant'});}
 function renderNav(){
-  const all=activeTasks();const nav=[['board','board','My board',all.length],['today','focus','Today',all.filter(t=>t.today).length],['inbox','inbox','Inbox',all.filter(t=>t.status==='inbox').length],['upcoming','calendar','Dates & follow-ups',all.filter(t=>dueValue(t)).length],['projects','folder','Projects',''],['review','review','Weekly reset',''],['someday','later','Someday',store.state.tasks.filter(t=>!t.archived&&t.status==='someday').length]];
+  const all=activeTasks();const nav=[['board','board',isShared()?'Team board':'My board',all.length],['today','focus','Today',all.filter(t=>t.today).length],['inbox','inbox','Inbox',all.filter(t=>t.status==='inbox').length],['upcoming','calendar','Dates & follow-ups',all.filter(t=>dueValue(t)).length],['projects','folder','Projects',''],['review','review','Weekly reset',''],['someday','later','Someday',store.state.tasks.filter(t=>!t.archived&&t.status==='someday').length]];
   $('#main-nav').innerHTML=nav.map(([view,ico,label,count])=>`<button class="nav-item ${ui.view===view?'active':''}" data-view="${view}" ${ui.view===view?'aria-current="page"':''}>${icon(ico)}<span>${label}</span>${count!==''?`<span class="nav-count">${count}</span>`:''}</button>`).join('');
   const areaCounts=new Map();for(const task of all)areaCounts.set(task.area,(areaCounts.get(task.area)||0)+1);
   $('#area-nav').innerHTML=areaEntries().map(([area,name])=>`<button class="nav-item ${ui.area===area?'active':''}" data-area="${esc(area)}" aria-pressed="${ui.area===area}" title="${esc(name)}">${areaDot(area)}<span class="area-name">${esc(name)}</span><span class="nav-count">${areaCounts.get(area)||0}</span></button>`).join('');
 }
 function renderNotice(){
   let out='';
-  if(store.loadIssue)out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>Check your saved workspace</strong><p>${esc(store.loadIssue)}</p></div><button class="text-button" data-action="settings">Backup & restore</button></div>`;
+  if(store.hasPending&&!store.busy&&!pendingSave)out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>A save needs confirmation</strong><p>The reply did not arrive. Retry the original save before making another change.</p></div><button class="button small" data-action="retry-pending">Retry original save</button></div>`;
+  if(currentDraft())out+=`<div class="notice">${icon('note')}<div class="notice-copy"><strong>An unsaved team draft is kept in this tab</strong><p>Reopen its workspace to review the current record before saving. Keep this tab open until it is resolved.</p></div><button class="button small" data-action="restore-team-draft">Restore draft</button></div>`;
+  if(store.loadIssue&&!isShared())out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>Check your saved workspace</strong><p>${esc(store.loadIssue)}</p></div><button class="text-button" data-action="settings">Backup & restore</button></div>`;
   if(!store.state.settings.welcomeDismissed&&!store.state.tasks.length){out+=`<div class="notice">${icon('info')}<div class="notice-copy"><strong>Your workspace is ready.</strong><p>Add a task, paste a list, or import your prepared board. Nothing else to configure.</p></div><button class="text-button" data-action="import">Import board</button>${iconButton('close','dismiss-welcome','Dismiss introduction')}</div>`;}else if(!store.state.settings.welcomeDismissed){out+=`<div class="notice">${icon('info')}<div class="notice-copy"><strong>Your board is ready.</strong><p>Starter suggestions are editable. Pin a few to Today, or clear them and start with your own.</p></div><button class="text-button" data-action="clear-starters">Clear suggestions</button>${iconButton('close','dismiss-welcome','Dismiss introduction')}</div>`;}
   $('#notice-region').innerHTML=out;
 }
@@ -123,7 +189,8 @@ function renderToolbar(){
     ?`<select class="filter-select area-filter" id="area-filter" aria-label="Filter by area">${selectOptions([['all','All areas'],...areaEntries()],ui.area)}</select>`
     :`<div class="filter-tabs" role="group" aria-label="Area"><button class="filter-tab ${ui.area==='all'?'active':''}" data-filter-area="all" aria-pressed="${ui.area==='all'}">All areas</button>${areaEntries().map(([area,label])=>`<button class="filter-tab ${ui.area===area?'active':''}" data-filter-area="${esc(area)}" aria-pressed="${ui.area===area}" title="${esc(label)}">${areaDot(area)}<span class="area-filter-name">${esc(label)}</span></button>`).join('')}</div>`;
   if(ui.view!=='projects')out+=`<div class="toolbar-divider"></div><select class="filter-select" id="project-filter" aria-label="Filter by project"><option value="">All projects</option>${selectOptions(relevant.map(p=>[p.id,p.name]),ui.project)}</select><select class="filter-select" id="priority-filter" aria-label="Filter by priority">${selectOptions([['all','Any priority'],['high','High priority'],['normal','Normal priority'],['low','Low priority']],ui.priority)}</select>`;
-  if(ui.query||ui.project||ui.priority!=='all')out+='<button class="filter-clear" data-action="clear-filters">Clear filters</button>';
+  if(isShared()&&ui.view!=='projects')out+=`<select class="filter-select" id="assignee-filter" aria-label="Filter by assignee">${selectOptions([['all','Everyone'],['mine','Assigned to me'],['unassigned','Unassigned']],ui.assignee)}</select>`;
+  if(ui.query||ui.project||ui.priority!=='all'||ui.assignee!=='all')out+='<button class="filter-clear" data-action="clear-filters">Clear filters</button>';
   out+='<div class="toolbar-spacer"></div>';
   if(ui.view==='board'){const count=filteredTasks().filter(t=>!t.archived&&t.status!=='someday').length;out+=`<span class="task-total">${count} tasks</span><div class="view-toggle" role="group" aria-label="Layout"><button class="icon-button ${ui.layout==='board'?'active':''}" data-layout="board" aria-label="Board layout" title="Board layout" aria-pressed="${ui.layout==='board'}">${icon('board')}</button><button class="icon-button ${ui.layout==='list'?'active':''}" data-layout="list" aria-label="List layout" title="List layout" aria-pressed="${ui.layout==='list'}">${icon('list')}</button></div>`;}
   el.innerHTML=out;
@@ -135,6 +202,7 @@ function taskCard(t){
     <button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.title)}</button>
     ${t.notes?`<p class="task-note">${esc(t.notes.replace(/^Starter suggestion\.?\s*:?\s*/i,''))}</p>`:''}
     ${project?`<div class="task-project">${esc(project.name)}</div>`:''}
+    ${assignmentLine(t)}
     <div class="card-meta">${t.priority==='high'?`<span class="tag high">${icon('flag')}High</span>`:t.priority==='low'?'<span class="tag low">Low</span>':''}${dueTag(t)}${t.effort?`<span class="tag">${icon('later')}${t.effort}m</span>`:''}${checklist.length?`<span class="tag" title="Checklist progress">${icon('check')}${checklist.filter(c=>c.done).length}/${checklist.length}</span>`:''}${t.repeat!=='none'?`<span class="tag" title="Repeats ${esc(t.repeat)}">${icon('repeat')}</span>`:''}${t.starter?'<span class="tag suggestion">Suggestion</span>':''}</div>
     <div class="card-bottom"><span class="issue-key">${issueKey(t)}</span>${t.url&&safeUrl(t.url)?`<a class="icon-button" href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer" title="Open task link" aria-label="Open task link">${icon('external')}</a>`:''}<select class="card-status" data-status-id="${esc(t.id)}" aria-label="Status for ${esc(t.title)}">${taskOptions(t.status)}</select></div>
   </article>`;
@@ -149,7 +217,7 @@ function renderBoard(){
     return `<section class="column ${ui.mobileStatus===status?'mobile-active':''}" data-drop-status="${status}" aria-label="${statusName[status]}"><h2 class="column-header"><span class="status-dot ${status}"></span>${statusName[status]}<span class="column-count">${cards.length}</span>${iconButton('plus','new-task',`Add task to ${statusName[status]}`,`data-new-status="${status}"`)}</h2><p class="column-hint">${status==='doing'&&cards.length>3?'More than three active. Finish one before adding another.':columnHints[status]}</p><div class="card-stack">${cards.length?cards.map(taskCard).join(''):`<div class="column-empty">${icon(empty[0])}<strong>${empty[1]}</strong><p>${empty[2]}</p></div>`}</div><button class="column-add" data-action="new-task" data-new-status="${status}">${icon('plus')} Add task</button></section>`;
   }).join('')}</div></div>`;
 }
-function taskRow(t){return `<div class="task-row"><button class="complete-button ${t.status==='done'?'checked':''}" data-action="${t.status==='done'?'reopen':'complete'}" data-id="${esc(t.id)}" aria-label="${t.status==='done'?'Reopen':'Complete'} ${esc(t.title)}">${t.status==='done'?icon('check'):''}</button><div class="row-title"><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.title)}</button><div class="row-subtitle">${issueKey(t)}${t.projectId?` · ${esc(projectById(t.projectId)?.name||'')}`:''}${t.starter?' · Starter suggestion':''}${t.archived?' · Archived':''}</div></div><div class="row-area">${areaBadge(t.area)}</div><div class="row-status">${t.archived?`<button class="button small" data-action="unarchive" data-id="${esc(t.id)}">Restore</button>`:`<select class="card-status" data-status-id="${esc(t.id)}" aria-label="Status for ${esc(t.title)}">${taskOptions(t.status)}</select>`}</div><div class="row-due">${dueTag(t)}</div><button class="icon-button pin ${t.today?'active':''}" data-action="pin" data-id="${esc(t.id)}" aria-label="${t.today?'Unpin':'Pin'} ${esc(t.title)}" ${t.archived?'disabled':''}>${icon('pin')}</button></div>`;}
+function taskRow(t){return `<div class="task-row"><button class="complete-button ${t.status==='done'?'checked':''}" data-action="${t.status==='done'?'reopen':'complete'}" data-id="${esc(t.id)}" aria-label="${t.status==='done'?'Reopen':'Complete'} ${esc(t.title)}">${t.status==='done'?icon('check'):''}</button><div class="row-title"><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.title)}</button><div class="row-subtitle">${issueKey(t)}${t.projectId?` · ${esc(projectById(t.projectId)?.name||'')}`:''}${t.starter?' · Starter suggestion':''}${t.archived?' · Archived':''}${isShared()?` · ${esc(assigneeName(t))}`:''}</div></div><div class="row-area">${areaBadge(t.area)}</div><div class="row-status">${t.archived?`<button class="button small" data-action="unarchive" data-id="${esc(t.id)}">Restore</button>`:`<select class="card-status" data-status-id="${esc(t.id)}" aria-label="Status for ${esc(t.title)}">${taskOptions(t.status)}</select>`}</div><div class="row-due">${dueTag(t)}</div><button class="icon-button pin ${t.today?'active':''}" data-action="pin" data-id="${esc(t.id)}" aria-label="${t.today?'Unpin':'Pin'} ${esc(t.title)}" ${t.archived?'disabled':''}>${icon('pin')}</button></div>`;}
 function renderList(tasks,empty='No tasks here yet.',copy='Add a task, or adjust your filters.'){
   return tasks.length?`<div class="list-frame"><div class="list-head"><span></span><span>Task</span><span class="row-area">Area</span><span>Status</span><span>Date</span><span></span></div>${tasks.map(taskRow).join('')}</div>`:emptyState('list',empty,copy,'new-task','New task');
 }
@@ -159,7 +227,7 @@ function renderToday(){
   const globalCount=activeTasks().filter(t=>t.today).length;
   return `<div class="content-pad"><div class="today-layout"><div>${globalCount>3?'<div class="focus-note warning">You have more than three tasks pinned across your areas. You can keep them, or take one off the list.</div>':''}${focus.length?focus.map((t,i)=>`<article class="today-task"><span class="today-number">${String(i+1).padStart(2,'0')}</span><div class="today-main">${areaBadge(t.area)}<button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.title)}</button>${t.notes?`<p class="task-note">${esc(t.notes.replace(/^Starter suggestion\.?\s*:?\s*/i,''))}</p>`:''}<div class="card-meta">${dueTag(t)}${t.effort?`<span class="tag">${t.effort} minutes</span>`:''}${t.starter?'<span class="tag suggestion">Suggestion</span>':''}</div><div class="today-actions"><button class="button primary small" data-action="${t.status==='doing'?'complete':'start'}" data-id="${esc(t.id)}">${icon(t.status==='doing'?'check':'arrow')}${t.status==='doing'?'Mark done':'Start this'}</button><button class="button plain small" data-action="edit" data-id="${esc(t.id)}">Open details</button></div></div>${iconButton('close','pin','Take off Today',`data-id="${esc(t.id)}"`)}</article>`).join(''):emptyState('focus','What would make today useful?','Choose one task from the shortlist, or pin a task from your board. You do not need to fill all three places.','go-board','Choose from board')}</div><aside class="today-aside"><h2>Ready to pick up</h2><p>Next actions first. These are options, not extra commitments.</p>${candidates.length?candidates.map(t=>`<div class="queue-item"><div><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.title)}</button>${areaBadge(t.area)}</div>${iconButton('plus','pin',`Add ${t.title} to Today`,`data-id="${esc(t.id)}"`)}</div>`).join(''):'<p>No more tasks in this view.</p>'}<button class="text-button" data-view="board">Open the full board →</button></aside></div></div>`;
 }
-function renderInbox(){return `<div class="content-pad"><form class="inbox-capture" id="quick-capture"><input name="title" id="quick-title" required maxlength="240" placeholder="What needs doing?" aria-label="Quick task title" autocomplete="off"><select name="area" aria-label="Area for new task">${selectOptions(areaEntries(),selectedArea())}</select><button class="button primary" type="submit">Add</button></form>${renderList(filteredTasks().filter(t=>!t.archived&&t.status==='inbox'),'Inbox is clear.','Capture a task above when something comes to mind.')}</div>`;}
+function renderInbox(){return `<div class="content-pad"><form class="inbox-capture" id="quick-capture" data-draft-id="${crypto.randomUUID()}"><input name="title" id="quick-title" required maxlength="240" placeholder="What needs doing?" aria-label="Quick task title" autocomplete="off"><select name="area" aria-label="Area for new task">${selectOptions(areaEntries(),selectedArea())}</select><button class="button primary" type="submit">Add</button></form>${renderList(filteredTasks().filter(t=>!t.archived&&t.status==='inbox'),'Inbox is clear.','Capture a task above when something comes to mind.')}</div>`;}
 function renderUpcoming(){
   const list=filteredTasks().filter(t=>!t.archived&&!['done','someday'].includes(t.status)&&dueValue(t)).sort((a,b)=>dueValue(a).localeCompare(dueValue(b))||a.order-b.order);
   if(!list.length)return `<div class="content-pad">${emptyState('calendar','No dates to keep track of.','Add a due date to a task, or a follow-up date to something you are waiting on. Dates appear here; this app does not send notifications.','go-board','Open your board')}</div>`;
@@ -172,41 +240,49 @@ function renderProjects(){
 }
 function renderReview(){
   const all=activeTasks(), inbox=all.filter(t=>t.status==='inbox'),waiting=all.filter(t=>t.status==='waiting'),doing=all.filter(t=>t.status==='doing'),done=store.state.tasks.filter(t=>t.status==='done'&&!t.archived),focus=all.filter(t=>t.today),weekAgo=Date.now()-7*86400000,weekDone=done.filter(t=>t.completedAt&&Date.parse(t.completedAt)>=weekAgo);
-  return `<div class="content-pad"><div class="review-layout"><section class="review-main"><h2>Make a little room for the week.</h2><p>Clear the loose ends, check what is waiting, and choose the next few things. This is a checklist for reviewing your board, not a score.</p><div class="review-step"><span class="review-step-num">1</span><div><h3>Empty your head into Inbox</h3><p>${inbox.length} ${inbox.length===1?'task needs':'tasks need'} sorting. Move something to Next, Someday, or the archive.</p><button class="button small" data-view="inbox">Open Inbox</button></div></div><div class="review-step"><span class="review-step-num">2</span><div><h3>Check dates and people you are waiting on</h3><p>${waiting.length} ${waiting.length===1?'task is':'tasks are'} waiting. Add a follow-up date where a nudge would help.</p><button class="button small" data-view="upcoming">Review dates</button></div></div><div class="review-step"><span class="review-step-num">3</span><div><h3>Choose a manageable next step</h3><p>${doing.length} in progress. ${focus.length} pinned to Today. Choose what matters across your areas.</p><button class="button small" data-view="today">Choose your focus</button></div></div><div class="review-step"><span class="review-step-num">4</span><div><h3>Keep a copy of your work</h3><p>Changes are saved on this browser. A downloaded backup can move them to another device or restore them later.</p><button class="button small" data-action="export">${icon('download')} Download backup</button></div></div><button class="button primary" data-action="finish-review">${icon('check')} Finish this review</button></section><aside class="review-aside"><h3>Your board, at a glance</h3><p>Counts describe what is on the board. They are not a measure of your day.</p>${store.state.areas.map(area=>`<div class="review-stat"><span>${esc(area.name)} active tasks</span><strong>${all.filter(t=>t.area===area.id).length}</strong></div>`).join('')}<div class="review-stat"><span>Completed in 7 days</span><strong>${weekDone.length}</strong></div><div class="review-stat"><span>In Someday</span><strong>${store.state.tasks.filter(t=>!t.archived&&t.status==='someday').length}</strong></div><p>Last review: ${fullDate(store.state.settings.lastReviewAt)}<br>Last backup: ${fullDate(store.state.settings.lastBackupAt)}</p><button class="button small" data-action="archive-done" ${done.length?'':'disabled'}>Archive completed tasks</button></aside></div></div>`;
+  return `<div class="content-pad"><div class="review-layout"><section class="review-main"><h2>Make a little room for the week.</h2><p>Clear the loose ends, check what is waiting, and choose the next few things. This is a checklist for reviewing your board, not a score.</p><div class="review-step"><span class="review-step-num">1</span><div><h3>Empty your head into Inbox</h3><p>${inbox.length} ${inbox.length===1?'task needs':'tasks need'} sorting. Move something to Next, Someday, or the archive.</p><button class="button small" data-view="inbox">Open Inbox</button></div></div><div class="review-step"><span class="review-step-num">2</span><div><h3>Check dates and people you are waiting on</h3><p>${waiting.length} ${waiting.length===1?'task is':'tasks are'} waiting. Add a follow-up date where a nudge would help.</p><button class="button small" data-view="upcoming">Review dates</button></div></div><div class="review-step"><span class="review-step-num">3</span><div><h3>Choose a manageable next step</h3><p>${doing.length} in progress. ${focus.length} pinned to Today. Choose what matters across your areas.</p><button class="button small" data-view="today">Choose your focus</button></div></div><div class="review-step"><span class="review-step-num">4</span><div><h3>Keep a copy of your work</h3><p>${isShared()?'Team work is saved to the shared workspace. Download a copy of its tasks, projects, areas, and assignments.':'Changes are saved on this browser. A downloaded backup can move them to another device or restore them later.'}</p><button class="button small" data-action="export">${icon('download')} Download backup</button></div></div><button class="button primary" data-action="finish-review">${icon('check')} Finish this review</button></section><aside class="review-aside"><h3>Your board, at a glance</h3><p>Counts describe what is on the board. They are not a measure of your day.</p>${store.state.areas.map(area=>`<div class="review-stat"><span>${esc(area.name)} active tasks</span><strong>${all.filter(t=>t.area===area.id).length}</strong></div>`).join('')}<div class="review-stat"><span>Completed in 7 days</span><strong>${weekDone.length}</strong></div><div class="review-stat"><span>In Someday</span><strong>${store.state.tasks.filter(t=>!t.archived&&t.status==='someday').length}</strong></div><p>Last review: ${fullDate(store.state.settings.lastReviewAt)}<br>Last backup: ${fullDate(store.state.settings.lastBackupAt)}</p><button class="button small" data-action="archive-done" ${done.length?'':'disabled'}>Archive completed tasks</button></aside></div></div>`;
 }
-function render(){
+function render({preserveInlineDraft=false}={}){
+  const quick=preserveInlineDraft&&$('#quick-title')?{value:$('#quick-title').value,area:$('#quick-capture select')?.value,id:$('#quick-capture').dataset.draftId,focused:document.activeElement===$('#quick-title')}:null;
   if(ui.area!=='all'&&!areaById(ui.area))ui.area='all';
   document.documentElement.dataset.theme=store.state.settings.theme;document.documentElement.dataset.density=store.state.settings.density;
-  const [title,description]=pageInfo[ui.view];$('#page-title').textContent=title;$('#page-description').textContent=description;$('#breadcrumb-view').textContent=title;
+  const [baseTitle,baseDescription]=pageInfo[ui.view];const title=isShared()&&ui.view==='board'?store.workspace.name:baseTitle,description=isShared()&&ui.view==='board'?'Shared with this workspace’s members. Your Today shortlist stays personal.':baseDescription;$('#page-title').textContent=title;$('#page-description').textContent=description;$('#breadcrumb-view').textContent=title;
   $('#page-eyebrow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
   $('#theme-button').innerHTML=icon(store.state.settings.theme==='dark'?'sun':'moon');$('#theme-button').setAttribute('aria-label',`Switch to ${store.state.settings.theme==='dark'?'light':'dark'} mode`);
   renderNav();renderNotice();renderFocus();renderToolbar();
   const content={board:renderBoard,today:renderToday,inbox:renderInbox,upcoming:renderUpcoming,projects:renderProjects,review:renderReview,someday:()=>`<div class="content-pad">${renderList(filteredTasks().filter(t=>!t.archived&&t.status==='someday'),'Nothing parked here.','Move tasks to Someday when you want to keep the idea without committing to it.')}</div>`,archive:()=>`<div class="content-pad">${renderList(filteredTasks().filter(t=>t.archived),'The archive is empty.','Archived tasks stay here until you restore them.')}</div>`};
   $('#workspace-content').innerHTML=content[ui.view]();
-  $('#workspace-footer').innerHTML=`<span>Changes stay on this browser. <button class="text-button" data-action="export">Download a backup</button></span><span class="footer-shortcuts"><span><kbd>N</kbd> new task</span><span><kbd>/</kbd> search</span><span><kbd>?</kbd> shortcuts</span></span>`;
-  if(!store.loadIssue){$('#save-status').classList.remove('error');$('#save-status').innerHTML='<span class="save-dot"></span><span>Saved in this browser</span>';}else{$('#save-status').classList.add('error');$('#save-status').innerHTML='<span class="save-dot"></span><span>Storage needs attention</span>';}
+  if(quick&&$('#quick-title')){$('#quick-title').value=quick.value;$('#quick-capture').dataset.draftId=quick.id;if($$('#quick-capture select option').some(option=>option.value===quick.area))$('#quick-capture select').value=quick.area;if(quick.focused)$('#quick-title').focus();}
+  $('#workspace-footer').innerHTML=`<span>${isShared()?'Changes are shared with this workspace’s members.':'Changes stay on this browser.'} <button class="text-button" data-action="export">Download a backup</button></span><span class="footer-shortcuts"><span><kbd>N</kbd> new task</span><span><kbd>/</kbd> search</span><span><kbd>?</kbd> shortcuts</span></span>`;
+  $('.storage-note').textContent=isShared()?'Shared workspace · members only':'Local workspace · no cloud sync';
+  document.title=isShared()?`${store.workspace.name} — Dayboard`:'Dayboard — personal workspace';
+  renderSaveStatus();teamsUI?.refresh();
 }
 
-let confirmAction=null, openedTaskStamp=null, openedAreaSnapshot=null;
+let confirmAction=null, openedTaskStamp=null, openedAreaSnapshot=null, openedProjectSnapshot=null;
+let openedTaskVersion=0,openedPinVersion=0,openedAreaVersion=0,openedProjectVersion=0;
 function openUtility(title,body,footer=''){
-  const dialog=$('#utility-dialog');dialog.classList.remove('display-dialog','areas-dialog');dialog.innerHTML=`<div class="dialog-top"><h2 id="utility-title">${esc(title)}</h2>${iconButton('close','close-utility','Close dialog')}</div><div class="dialog-body">${body}</div>${footer?`<div class="dialog-bottom">${footer}</div>`:''}`;
+  const dialog=$('#utility-dialog');utilityDirty=false;utilityEditorStore=store;dialog.classList.remove('display-dialog','areas-dialog','teams-dialog');dialog.innerHTML=`<div class="dialog-top"><h2 id="utility-title">${esc(title)}</h2>${iconButton('close','close-utility','Close dialog')}</div><div class="dialog-body">${body}</div>${footer?`<div class="dialog-bottom">${footer}</div>`:''}`;
   if(!dialog.open)dialog.showModal();
 }
 function confirmDialog(title,copy,action,label='Confirm'){
   confirmAction=action;openUtility(title,`<p class="confirm-copy">${esc(copy)}</p>`,`<span class="spacer"></span><button class="button" data-action="close-utility">Cancel</button><button class="button primary" data-action="confirm">${esc(label)}</button>`);
 }
 function openTask(id=null,defaults={}){
+  if(pendingSave)return;
   const original=id?taskById(id):null;if(id&&!original)return;
-  editingId=id;dirty=false;openedTaskStamp=original?.updatedAt||null;focusReturn=document.activeElement;
+  editingId=id;editingTaskId=id||crypto.randomUUID();editorStore=store;dirty=false;openedTaskStamp=original?.updatedAt||null;openedTaskVersion=recordVersion('tasks',id);openedPinVersion=recordVersion('pins',id);focusReturn=document.activeElement;
   const t=original||{title:'',area:projectById(ui.project)?.area||selectedArea(),status:'inbox',priority:'normal',notes:'',projectId:ui.project||'',due:'',followUp:'',effort:0,repeat:'none',today:false,url:'',checklist:[],...defaults};
   const projects=store.state.projects.filter(p=>!p.archived||p.id===t.projectId);
-  $('#task-dialog').innerHTML=`<form id="task-form"><div class="dialog-top"><span class="issue-key">${original?issueKey(original):'NEW'}</span><h2 id="task-dialog-title">${original?'Task details':'Add a task'}</h2>${iconButton('close','close-task','Close task')}</div><div class="dialog-body"><div id="task-error"></div><div class="field"><label class="field-label" for="task-title">What needs doing?</label><textarea name="title" id="task-title" class="task-title-input" maxlength="240" required rows="2" placeholder="Start with one next action…">${esc(t.title)}</textarea></div><div class="form-grid"><div class="field"><label class="field-label" for="task-area">Area</label><select name="area" id="task-area">${selectOptions(areaEntries(),t.area)}</select></div><div class="field"><label class="field-label" for="task-status">Status</label><select name="status" id="task-status">${taskOptions(t.status)}</select></div></div><div class="field check-field"><label class="checkbox-label"><input type="checkbox" name="today" ${t.today?'checked':''}> Pin to Today</label></div><div class="field"><label class="field-label" for="task-notes">Notes / next step</label><textarea name="notes" id="task-notes" class="notes" rows="4" maxlength="20000" placeholder="A useful detail, the person you are waiting on, or what done looks like.">${esc(t.notes)}</textarea></div><details class="optional-fields" ${original?'open':''}><summary>Dates, project & other details</summary><div class="form-grid"><div class="field"><label class="field-label" for="task-priority">Priority</label><select name="priority" id="task-priority">${selectOptions([['high','High'],['normal','Normal'],['low','Low']],t.priority)}</select></div><div class="field"><label class="field-label" for="task-project">Project (optional)</label><select name="projectId" id="task-project"><option value="">No project</option>${selectOptions(projects.map(p=>[p.id,p.name]),t.projectId)}</select></div><div class="field"><label class="field-label" for="task-due">Due date</label><input type="date" name="due" id="task-due" value="${esc(t.due)}"></div><div class="field"><label class="field-label" for="task-followup">Follow-up date</label><input type="date" name="followUp" id="task-followup" value="${esc(t.followUp)}"><p class="field-hint">Used in Dates & follow-ups while Waiting.</p></div><div class="field"><label class="field-label" for="task-effort">Time needed</label><select name="effort" id="task-effort">${selectOptions([['0','Not estimated'],['15','15 minutes'],['30','30 minutes'],['60','1 hour'],['90','90 minutes']],String(t.effort))}</select></div><div class="field"><label class="field-label" for="task-repeat">Repeat when completed</label><select name="repeat" id="task-repeat">${selectOptions([['none','Does not repeat'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']],t.repeat)}</select></div><div class="field full"><label class="field-label" for="task-url">Link</label><input type="url" name="url" id="task-url" value="${esc(t.url)}" maxlength="2048" placeholder="https://…">${t.url&&safeUrl(t.url)?`<a class="project-link-preview" href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer">Open link ↗</a>`:''}</div></div></details><div class="dialog-section"><div class="dialog-section-header"><h3>Small steps</h3><span class="small-text muted">Optional checklist</span></div><div id="task-checklist">${(t.checklist||[]).map(checklistRow).join('')}</div><button type="button" class="checklist-add" data-action="add-checklist">${icon('plus')} Add a step</button></div>${t.starter?'<p class="field-hint suggestion-note">Starter suggestion. Saving an edit makes it your task.</p>':''}</div><div class="dialog-bottom">${original?`<button type="button" class="button plain" data-action="${original.archived?'unarchive-editor':'archive-editor'}">${icon('archive')}${original.archived?'Restore':'Archive'}</button>`:'<span class="small-text muted">Only a title is required.</span>'}<span class="spacer"></span><button type="button" class="button" data-action="close-task">Cancel</button><button type="submit" class="button primary">${original?'Save changes':'Create task'}</button></div>${original?`<div class="dialog-meta"><span>Created ${fullDate(original.createdAt)}</span><span>Updated ${fullDate(original.updatedAt)}</span></div>`:''}</form>`;
-  const dialog=$('#task-dialog');if(!dialog.open)dialog.showModal();setTimeout(()=>$('#task-title').focus(),0);
+  $('#task-dialog').innerHTML=`<form id="task-form"><div class="dialog-top"><span class="issue-key">${original?issueKey(original):'NEW'}</span><h2 id="task-dialog-title">${original?'Task details':'Add a task'}</h2>${iconButton('close','close-task','Close task')}</div><div class="dialog-body"><div id="task-error"></div><div class="field"><label class="field-label" for="task-title">What needs doing?</label><textarea name="title" id="task-title" class="task-title-input" maxlength="240" required rows="2" placeholder="Start with one next action…">${esc(t.title)}</textarea></div><div class="form-grid"><div class="field"><label class="field-label" for="task-area">Area</label><select name="area" id="task-area">${selectOptions(areaEntries(),t.area)}</select></div><div class="field"><label class="field-label" for="task-status">Status</label><select name="status" id="task-status">${taskOptions(t.status)}</select></div></div><div class="field check-field"><label class="checkbox-label"><input type="checkbox" name="today" ${t.today?'checked':''}> Pin to Today</label></div>${isShared()?`<div class="field"><label class="field-label" for="task-assignee">Assigned to</label><select id="task-assignee" name="assigneeId">${selectOptions([['','Unassigned'],...(store.members||[]).map(member=>[member.userId,member.displayName||member.email])],store.assignees?.[id]||'')}</select></div>`:''}<div class="field"><label class="field-label" for="task-notes">Notes / next step</label><textarea name="notes" id="task-notes" class="notes" rows="4" maxlength="20000" placeholder="A useful detail, the person you are waiting on, or what done looks like.">${esc(t.notes)}</textarea></div><details class="optional-fields" ${original?'open':''}><summary>Dates, project & other details</summary><div class="form-grid"><div class="field"><label class="field-label" for="task-priority">Priority</label><select name="priority" id="task-priority">${selectOptions([['high','High'],['normal','Normal'],['low','Low']],t.priority)}</select></div><div class="field"><label class="field-label" for="task-project">Project (optional)</label><select name="projectId" id="task-project"><option value="">No project</option>${selectOptions(projects.map(p=>[p.id,p.name]),t.projectId)}</select></div><div class="field"><label class="field-label" for="task-due">Due date</label><input type="date" name="due" id="task-due" value="${esc(t.due)}"></div><div class="field"><label class="field-label" for="task-followup">Follow-up date</label><input type="date" name="followUp" id="task-followup" value="${esc(t.followUp)}"><p class="field-hint">Used in Dates & follow-ups while Waiting.</p></div><div class="field"><label class="field-label" for="task-effort">Time needed</label><select name="effort" id="task-effort">${selectOptions([['0','Not estimated'],['15','15 minutes'],['30','30 minutes'],['60','1 hour'],['90','90 minutes']],String(t.effort))}</select></div><div class="field"><label class="field-label" for="task-repeat">Repeat when completed</label><select name="repeat" id="task-repeat">${selectOptions([['none','Does not repeat'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']],t.repeat)}</select></div><div class="field full"><label class="field-label" for="task-url">Link</label><input type="url" name="url" id="task-url" value="${esc(t.url)}" maxlength="2048" placeholder="https://…">${t.url&&safeUrl(t.url)?`<a class="project-link-preview" href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer">Open link ↗</a>`:''}</div></div></details><div class="dialog-section"><div class="dialog-section-header"><h3>Small steps</h3><span class="small-text muted">Optional checklist</span></div><div id="task-checklist">${(t.checklist||[]).map(checklistRow).join('')}</div><button type="button" class="checklist-add" data-action="add-checklist">${icon('plus')} Add a step</button></div>${t.starter?'<p class="field-hint suggestion-note">Starter suggestion. Saving an edit makes it your task.</p>':''}</div><div class="dialog-bottom">${original?`<button type="button" class="button plain" data-action="${original.archived?'unarchive-editor':'archive-editor'}">${icon('archive')}${original.archived?'Restore':'Archive'}</button>`:'<span class="small-text muted">Only a title is required.</span>'}<span class="spacer"></span><button type="button" class="button" data-action="close-task">Cancel</button><button type="submit" class="button primary">${original?'Save changes':'Create task'}</button></div>${original?`<div class="dialog-meta"><span>Created${isShared()?authorLabel(original.id,'createdBy'):''} ${fullDate(original.createdAt)}</span><span>Updated${isShared()?authorLabel(original.id,'updatedBy'):''} ${fullDate(original.updatedAt)}</span></div>`:''}</form>`;
+  $('#task-form').dataset.draftId=editingTaskId;
+  const dialog=$('#task-dialog');if(!dialog.open)dialog.showModal();setTimeout(()=>$('#task-title')?.focus(),0);
 }
 function checklistRow(item){return `<div class="checklist-item" data-check-id="${esc(item.id)}"><input type="checkbox" aria-label="Step complete" ${item.done?'checked':''}><input type="text" maxlength="500" value="${esc(item.text)}" aria-label="Checklist step" placeholder="One small step…"><button type="button" class="icon-button" data-action="remove-checklist" aria-label="Remove step">${icon('close')}</button></div>`;}
 function closeTask(force=false){
+  if(pendingSave&&!force){notify('Wait for this save to finish.',{error:true});return;}
   if(dirty&&!force){confirmDialog('Discard unsaved changes?','Your saved task will stay as it was. The edits in this panel have not been saved.',()=>closeTask(true),'Discard edits');return;}
-  $('#task-dialog').close();editingId=null;dirty=false;focusReturn?.focus?.();
+  $('#task-dialog').close();editingId=null;editingTaskId=null;editorStore=null;dirty=false;focusReturn?.focus?.();
 }
 function nextNumber(state){return Math.max(0,...state.tasks.map(t=>t.number))+1;}
 function nextOrder(state){return Math.max(0,...state.tasks.map(t=>t.order))+1;}
@@ -214,36 +290,38 @@ function addFields(state,fields){const task=makeTask({...fields,number:nextNumbe
 function applyStatus(state,task,status){
   transitionTask(state,task.id,status,{today:today(),now:now()});
 }
-function changeStatus(id,status){
+async function changeStatus(id,status){
   const task=taskById(id);if(!task)return;
   const recurrence=task.repeat!=='none'&&status==='done'&&task.status!=='done';
-  commit(state=>{const found=state.tasks.find(t=>t.id===id);applyStatus(state,found,status);},recurrence?'Completed. The next occurrence is in Next.':status==='done'?'Task completed.':`Moved to ${statusName[status]}.`);
+  return commit(state=>{const found=state.tasks.find(t=>t.id===id);applyStatus(state,found,status);},recurrence?'Completed. The next occurrence is in Next.':status==='done'?'Task completed.':`Moved to ${statusName[status]}.`);
 }
-function saveTask(form,{archived=null}={}){
+async function saveTask(form,{archived=null}={}){
+  if(editorStore!==store){notify('This draft belongs to a different workspace. Reopen it there before saving.',{error:true});return;}
+  if(pendingSave)return;
   if(!form.reportValidity())return;
   const data=new FormData(form);const title=String(data.get('title')||'').trim();if(!title){$('#task-title').setCustomValidity('Give this task a title.');$('#task-title').reportValidity();return;}
   const project=projectById(String(data.get('projectId')||''));
   const fields={title,area:String(data.get('area')),status:String(data.get('status')),priority:String(data.get('priority')),projectId:String(data.get('projectId')||''),notes:String(data.get('notes')||'').trim(),due:String(data.get('due')||''),followUp:String(data.get('followUp')||''),effort:Number(data.get('effort')||0),repeat:String(data.get('repeat')||'none'),today:data.get('today')==='on',url:String(data.get('url')||'').trim(),checklist:$$('.checklist-item',form).map(row=>({id:row.dataset.checkId,text:$('input[type=text]',row).value.trim(),done:$('input[type=checkbox]',row).checked})).filter(c=>c.text)};
   if(project&&project.area!==fields.area){$('#task-error').innerHTML='<div class="dialog-error">The selected project belongs to a different area. Change the area or choose another project.</div>';$('#task-project').focus();return;}
   const existing=editingId?taskById(editingId):null;
-  if(editingId&&(!existing||existing.updatedAt!==openedTaskStamp)){$('#task-error').innerHTML='<div class="dialog-error">This task changed while it was open. Copy your edits, close this panel, and reopen the task to see the current version.</div>';return;}
-  const saved=commit(state=>{
+  if(editingId&&(!existing||existing.updatedAt!==openedTaskStamp||recordVersion('tasks',editingId)!==openedTaskVersion||recordVersion('pins',editingId)!==openedPinVersion)){$('#task-error').innerHTML='<div class="dialog-error">This task or your Today selection changed while it was open. Your draft is still here. Copy your edits, close this panel, and reopen the task to see the current version.</div>';return;}
+  const saved=await commit(state=>{
     if(editingId){const task=state.tasks.find(t=>t.id===editingId);const oldStatus=task.status;Object.assign(task,fields,{status:oldStatus,starter:false,updatedAt:now()});applyStatus(state,task,fields.status);if(archived!==null)task.archived=archived;if(task.archived||['done','someday'].includes(task.status))task.today=false;}
-    else {const task=addFields(state,{...fields,status:'inbox'});applyStatus(state,task,fields.status);}
-  },archived===true?'Task saved and archived.':archived===false?'Task saved and restored.':editingId?'Task saved.':'Task added.');
+    else {const task=addFields(state,{id:editingTaskId,...fields,status:'inbox'});applyStatus(state,task,fields.status);}
+  },archived===true?'Task saved and archived.':archived===false?'Task saved and restored.':editingId?'Task saved.':'Task added.',{assignments:isShared()?{[editingTaskId]:String(data.get('assigneeId')||'')||null}:undefined});
   if(saved){dirty=false;closeTask(true);if(activeTasks().filter(t=>t.today).length>3)notify('More than three tasks are pinned. You can unpin one whenever you need room.');}
-  else $('#task-error').innerHTML='<div class="dialog-error">These edits have not been saved. Your form is still here. Check the error message before trying again.</div>';
+  else if($('#task-error'))$('#task-error').innerHTML=`<div class="dialog-error">${esc(lastSaveError||'These edits have not been saved. Your draft is still here.')}${store.hasPending?'<br><button type="button" class="button small" data-action="retry-pending">Retry original save</button>':''}</div>`;
 }
-function pinTask(id){
+async function pinTask(id){
   const task=taskById(id);if(!task||task.archived)return;if(task.status==='done'){notify('Reopen this task before pinning it to Today.');return;}
   const pinned=task.today;const changes={today:!pinned,...(task.status==='someday'&&!pinned?{status:'next'}:{})};
-  if(updateTask(id,changes,pinned?'Removed from Today.':'Pinned to Today.')&&!pinned&&activeTasks().filter(t=>t.today).length>3)notify('Pinned. You now have more than three tasks in Today.');
+  if(await updateTask(id,changes,pinned?'Removed from Today.':'Pinned to Today.')&&!pinned&&activeTasks().filter(t=>t.today).length>3)notify('Pinned. You now have more than three tasks in Today.');
 }
 function download(filename,content,type){
   const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function exportBackup(){
-  try{download(`dayboard-backup-${today()}.json`,store.exportJSON(),'application/json');const saved=commit(s=>{s.settings.lastBackupAt=now();},'Backup download started.',{undo:false});if(saved&&$('#settings-last-backup'))$('#settings-last-backup').textContent=fullDate(store.state.settings.lastBackupAt);}
+async function exportBackup(){
+  try{download(`dayboard-backup-${today()}.json`,store.exportJSON(),'application/json');const saved=await commit(s=>{s.settings.lastBackupAt=now();},'Backup download started.',{undo:false});if(saved&&$('#settings-last-backup'))$('#settings-last-backup').textContent=fullDate(store.state.settings.lastBackupAt);}
   catch(error){notify(`Could not export: ${error.message}`,{error:true});}
 }
 function displayStatus(message,error=false){
@@ -290,24 +368,168 @@ function openAreas(message=''){
 function openAreaForm(id=null){
   const area=id?areaById(id):{name:'',color:AREA_COLORS[store.state.areas.length%AREA_COLORS.length]};
   if(!area)return;
-  openedAreaSnapshot=id?JSON.stringify(area):null;
+  openedAreaSnapshot=id?JSON.stringify(area):null;openedAreaVersion=recordVersion('areas',id);
   openUtility(id?'Edit area':'Add area',`<form id="area-form" data-area-id="${esc(id||'')}"><div id="area-error" role="alert"></div><div class="field"><label class="field-label" for="area-name">Area name</label><input id="area-name" name="name" value="${esc(area.name)}" maxlength="80" required autocomplete="off" placeholder="For example, Learning or Home"><p class="field-hint">Use any name that helps you organize your board.</p></div><div class="field"><label class="field-label" for="area-color">Color marker</label><select id="area-color" name="color">${selectOptions(AREA_COLORS.map(color=>[color,color[0].toUpperCase()+color.slice(1)]),area.color)}</select></div>${id?'<p class="field-hint">Renaming keeps this area’s tasks and projects together.</p>':''}</form>`,`<span class="spacer"></span><button class="button" data-action="areas">Cancel</button><button class="button primary" type="submit" form="area-form">${id?'Save area':'Add area'}</button>`);
-  $('#utility-dialog').classList.add('areas-dialog');$('#area-name').focus();
+  $('#area-form').dataset.draftId=id||crypto.randomUUID();$('#utility-dialog').classList.add('areas-dialog');$('#area-name').focus();
 }
 function openSettings(){
-  const state=store.state;openUtility('Settings & backup',`<section class="settings-section"><h3>Your workspace</h3><p>Tasks are saved on this device, in this browser. Opening the Render address on another device starts a separate board. No task content is sent to a server.</p><p><a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy & data</a> — how this board stores information and how to contact HoltsniderTech.</p><div class="settings-note"><p>Use a JSON backup to move your board between devices. Clearing browser data can remove your board. Keep a backup somewhere you can find it.</p></div><div class="settings-actions"><button class="button primary" data-action="export">${icon('download')} Download backup</button><button class="button" data-action="import">${icon('upload')} Import backup</button><button class="button" data-action="export-csv">Export CSV</button></div><p>Last backup download: <span id="settings-last-backup">${fullDate(state.settings.lastBackupAt)}</span><br>${state.tasks.length} tasks · ${state.projects.length} projects · ${state.areas.length} areas</p></section><section class="settings-section"><h3>Display</h3><p>Choose your text size, card spacing, contrast, and color mode.</p><button class="button" data-action="display">${icon('settings')} Open display settings</button><p class="field-hint">Text size and contrast stay with this browser. Color mode and spacing are included in your board backup.</p></section><section class="settings-section"><h3>Areas</h3><p>Rename your categories, choose their color markers, or add more.</p><button class="button" data-action="areas">Manage areas</button></section><section class="settings-section"><h3>Keep the board tidy</h3><p>Suggestions you have already changed are treated as your tasks.</p><div class="settings-actions"><button class="button" data-action="clear-starters">Clear untouched suggestions</button><button class="button" data-action="go-archive">Open archive</button></div><button class="text-button" data-action="reload-state">Reload saved workspace</button></section><section class="settings-section"><h3>A few useful controls</h3><p><kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>?</kbd> help<br>On desktop, drag a card between columns. On a phone, use the status menu at the bottom of each card.</p><p class="settings-note">Repeat creates the next task when you complete the current one. Due dates and follow-up dates appear in the board; they do not send notifications.</p></section>`);
+  const state=store.state,shared=isShared();
+  const locationCopy=shared
+    ? `This is <strong>${esc(store.workspace.name)}</strong>, a shared workspace. Its members can read and edit its tasks, notes, projects, and areas. Your Today pins and display choices stay personal.`
+    : 'Tasks are saved on this device, in this browser. Opening Dayboard on another device starts a separate personal board. Personal task content stays in this browser until you explicitly copy or export it.';
+  const backupCopy=shared
+    ? 'A downloaded copy includes board content and assignments. Import adds new copies; it does not replace the team’s existing work or invite members.'
+    : 'Use a JSON backup to move your personal board between devices. Clearing browser data can remove it. Keep a backup somewhere you can find it.';
+  openUtility('Settings & backup',`<section class="settings-section"><h3>${shared?'Shared workspace':'Your personal workspace'}</h3><p>${locationCopy}</p><div class="settings-note"><p>${backupCopy}</p></div><div class="settings-actions"><button class="button primary" data-action="export">${icon('download')} Download backup</button><button class="button" data-action="import">${icon('upload')} ${shared?'Import as new work':'Import backup'}</button><button class="button" data-action="export-csv">Export CSV</button></div><p>Last backup download: <span id="settings-last-backup">${fullDate(state.settings.lastBackupAt)}</span><br>${state.tasks.length} tasks · ${state.projects.length} projects · ${state.areas.length} areas</p>${shared?'<button class="button" data-team-action="members">Members & invitations</button>':''}</section><section class="settings-section"><h3>Privacy &amp; data</h3><p>See what stays in this browser, what is shared with a team, who can access hosted data, and how to request deletion.</p><a class="button" href="./privacy.html" target="_blank" rel="noopener noreferrer">Read the privacy policy</a></section><section class="settings-section"><h3>Display</h3><p>Choose your text size, card spacing, contrast, and color mode.</p><button class="button" data-action="display">${icon('settings')} Open display settings</button><p class="field-hint">Your display choices do not change another member’s display.</p></section><section class="settings-section"><h3>Areas</h3><p>Rename your categories, choose their color markers, or add more.</p><button class="button" data-action="areas">Manage areas</button></section><section class="settings-section"><h3>Keep the board tidy</h3><p>Suggestions you have already changed are treated as your tasks.</p><div class="settings-actions"><button class="button" data-action="clear-starters">Clear untouched suggestions</button><button class="button" data-action="go-archive">Open archive</button></div><button class="text-button" data-action="reload-state">Reload saved workspace</button></section><section class="settings-section"><h3>A few useful controls</h3><p><kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>?</kbd> help<br>On desktop, drag a card between columns. On a phone, use the status menu at the bottom of each card.</p><p class="settings-note">Repeat creates the next task when you complete the current one. Due dates and follow-up dates appear in the board; they do not send notifications.</p></section>`);
 }
 function openCapture(){
   openUtility('Get it out of your head',`<p>One task per line. No formatting needed. Everything goes to Inbox.</p><textarea id="capture-text" class="list-paste" maxlength="30000" aria-label="Tasks to add, one per line" placeholder="Update the résumé summary\nBook an appointment\nReview one project idea"></textarea><div class="capture-controls"><select id="capture-area" aria-label="Default area for captured tasks">${selectOptions(areaEntries(),selectedArea())}</select><span class="capture-count" id="capture-count">0 tasks</span></div><p class="field-hint">Optional: add an area tag such as ${store.state.areas.slice(0,3).map(area=>`#${esc(areaCaptureTag(area,store.state.areas))}`).join(', ')} to a line to choose its area.</p>`,`<span class="spacer"></span><button class="button" data-action="close-utility">Cancel</button><button class="button primary" data-action="save-capture">Add to Inbox</button>`);setTimeout(()=>$('#capture-text').focus(),0);
 }
 function openProject(id=null){
   const p=id?projectById(id):{name:'',area:selectedArea(),url:'',description:''};if(!p)return;
-  openUtility(id?'Edit project':'Add a project',`<form id="project-form" data-project-id="${esc(id||'')}"><div id="project-error"></div><div class="field"><label class="field-label" for="project-name">Project name</label><input id="project-name" name="name" value="${esc(p.name)}" maxlength="100" required placeholder="A project, a client, or a body of work"></div><div class="field"><label class="field-label" for="project-area">Area</label><select id="project-area" name="area">${selectOptions(areaEntries(),p.area)}</select></div><div class="field"><label class="field-label" for="project-url">Website or reference link</label><input id="project-url" name="url" type="url" maxlength="2048" value="${esc(p.url)}" placeholder="https://…"></div><div class="field"><label class="field-label" for="project-description">Context / where you left off</label><textarea id="project-description" name="description" maxlength="4000" rows="4">${esc(p.description)}</textarea></div></form>`,`<span class="spacer"></span><button class="button" data-action="close-utility">Cancel</button><button type="submit" form="project-form" class="button primary">Save project</button>`);setTimeout(()=>$('#project-name').focus(),0);
+  openedProjectSnapshot=id?JSON.stringify(p):null;openedProjectVersion=recordVersion('projects',id);
+  openUtility(id?'Edit project':'Add a project',`<form id="project-form" data-project-id="${esc(id||'')}" data-draft-id="${esc(id||crypto.randomUUID())}"><div id="project-error"></div><div class="field"><label class="field-label" for="project-name">Project name</label><input id="project-name" name="name" value="${esc(p.name)}" maxlength="100" required placeholder="A project, a client, or a body of work"></div><div class="field"><label class="field-label" for="project-area">Area</label><select id="project-area" name="area">${selectOptions(areaEntries(),p.area)}</select></div><div class="field"><label class="field-label" for="project-url">Website or reference link</label><input id="project-url" name="url" type="url" maxlength="2048" value="${esc(p.url)}" placeholder="https://…"></div><div class="field"><label class="field-label" for="project-description">Context / where you left off</label><textarea id="project-description" name="description" maxlength="4000" rows="4">${esc(p.description)}</textarea></div></form>`,`<span class="spacer"></span><button class="button" data-action="close-utility">Cancel</button><button type="submit" form="project-form" class="button primary">Save project</button>`);setTimeout(()=>$('#project-name').focus(),0);
 }
-function openHelp(){openUtility('A small board, a simple routine',`<section class="settings-section"><h3>Capture → choose → finish</h3><p>Use Inbox for loose ends. Move something to Next when it is actionable. Put it In progress when you start, or Waiting when the next move belongs to someone else. Done keeps a record of what you finished.</p><p class="settings-note">Pin a few tasks to Today. It is a shortlist across your areas, independent of a task's status. Someday keeps ideas off the active board.</p></section><section class="settings-section"><h3>Keyboard shortcuts</h3><table class="shortcut-table"><tbody><tr><td>New task</td><td><kbd>N</kbd></td></tr><tr><td>Find a task</td><td><kbd>/</kbd></td></tr><tr><td>Save an open task</td><td><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd></td></tr><tr><td>Close a panel</td><td><kbd>Esc</kbd></td></tr><tr><td>Show this help</td><td><kbd>?</kbd></td></tr></tbody></table></section><section class="settings-section"><h3>Across devices</h3><p>Download a JSON backup from Settings & backup, then import it on your other device. Merge keeps tasks from both boards; Replace restores the backup as a whole. This is a manual transfer, not automatic sync.</p></section><section class="settings-section"><h3>On your phone</h3><p>Choose a column using the status tabs. Each card has a status menu, so dragging is never required. You can also use List view. In Safari, Share → Add to Home Screen gives the board its own icon.</p></section>`);}
+function openHelp(){openUtility('A small board, a simple routine',`<section class="settings-section"><h3>Capture → choose → finish</h3><p>Use Inbox for loose ends. Move something to Next when it is actionable. Put it In progress when you start, or Waiting when the next move belongs to someone else. Done keeps a record of what you finished.</p><p class="settings-note">Pin a few tasks to Today. It is a shortlist across your areas, independent of a task's status. Someday keeps ideas off the active board.</p></section><section class="settings-section"><h3>Keyboard shortcuts</h3><table class="shortcut-table"><tbody><tr><td>New task</td><td><kbd>N</kbd></td></tr><tr><td>Find a task</td><td><kbd>/</kbd></td></tr><tr><td>Save an open task</td><td><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd></td></tr><tr><td>Close a panel</td><td><kbd>Esc</kbd></td></tr><tr><td>Show this help</td><td><kbd>?</kbd></td></tr></tbody></table></section><section class="settings-section"><h3>Across devices</h3><p>${isShared()?'Sign in to the same account and open this shared workspace on another device. Saved changes are shared with its members. Your personal browser board remains separate.':'Download a JSON backup from Settings & backup, then import it on your other device. Merge keeps tasks from both boards; Replace restores the backup as a whole. Your personal board uses manual transfer.'}</p></section><section class="settings-section"><h3>On your phone</h3><p>Choose a column using the status tabs. Each card has a status menu, so dragging is never required. You can also use List view. In Safari, Share → Add to Home Screen gives the board its own icon.</p></section>`);}
 
-document.addEventListener('click',event=>{
+function canSwitchWorkspace(){
+  if(pendingSave||store.busy||store.hasPending){notify(store.hasPending?'Retry the original save before changing workspaces.':'Wait for the current save to finish.',{error:true});return false;}
+  if(dirty||utilityDirty||$('#quick-title')?.value.trim()){notify('Save or close the current draft before changing workspaces.',{error:true});return false;}
+  return true;
+}
+
+function activateWorkspace(next,{forced=false}={}){
+  if(next===store)return;
+  if(!forced&&!canSwitchWorkspace())throw new Error('The current workspace still has an unfinished change.');
+  if(next.kind==='shared'&&next.userId!==teamService.user?.id){next.dispose();throw new Error('The signed-in account changed. Open the workspace again.');}
+  const previous=store;
+  if(forced){pendingSave=false;saveToken=null;}
+  unsubscribeStore?.();unsubscribeStore=null;
+  clearInterval(connectionTimer);connectionTimer=null;
+  closeTask(true);
+  store=next;
+  if(previous.kind==='shared')previous.dispose();
+  lastSaveError='';pendingImport=null;confirmAction=null;utilityDirty=false;utilityEditorStore=null;
+  ui={...ui,view:'board',area:'all',query:'',project:'',priority:'all',assignee:'all'};
+  $('#search').value='';$('#toast').hidden=true;
+  history.replaceState(null,'','#board');
+  if(isShared()){
+    unsubscribeStore=store.subscribe((changed,{type})=>{
+      if(changed!==store)return;
+      if(type==='access-lost'){leaveUnavailableWorkspace(changed,'Your access to this workspace ended. Your personal board is open; any unfinished team draft is kept in this tab.');return;}
+      if(type==='state'||type==='preferences')render({preserveInlineDraft:true});
+      else {renderSaveStatus();renderNotice();}
+    });
+    // Repaint only connection text; never rebuild the board or a draft on a timer.
+    connectionTimer=setInterval(()=>{if(document.visibilityState!=='hidden')renderSaveStatus();},5000);
+  }
+  render();
+}
+
+function captureDialogDraft(dialog){
+  return {html:dialog.innerHTML,className:dialog.className,controls:$$('input,select,textarea',dialog).map(el=>({value:el.value,checked:el.checked}))};
+}
+
+function editorSignature(form){
+  if(!form)return null;
+  return JSON.stringify({id:form.id,draftId:form.dataset.draftId,controls:$$('input,select,textarea',form).map(el=>[el.name,el.type,el.value,el.checked,el.closest('.checklist-item')?.dataset.checkId])});
+}
+
+function captureSubmittedEditors(target){
+  return {
+    task:editorStore===target&&$('#task-dialog').open?editorSignature($('#task-form')):null,
+    utility:utilityEditorStore===target&&$('#utility-dialog').open?editorSignature($('#area-form,#project-form')||($('#capture-text')?$('#utility-dialog'):null)):null,
+    quick:$('#quick-capture')?{id:$('#quick-capture').dataset.draftId,title:$('#quick-title').value,area:$('#quick-capture select').value}:null,
+  };
+}
+
+function finishQuickCapture(submitted){
+  const form=$('#quick-capture');
+  if(!submitted||!form||form.dataset.draftId!==submitted.id||!taskById(submitted.id))return;
+  if($('#quick-title').value===submitted.title&&$('#quick-capture select').value===submitted.area)$('#quick-title').value='';
+  form.dataset.draftId=crypto.randomUUID();
+}
+
+function finishPendingEditors(target){
+  const submitted=pendingEditors.get(target);pendingEditors.delete(target);
+  if(!submitted)return;
+  if(submitted.task&&editorStore===target&&$('#task-dialog').open){
+    if(submitted.task===editorSignature($('#task-form'))){dirty=false;closeTask(true);}
+    else {
+      if(!editingId&&taskById(editingTaskId))editingId=editingTaskId;
+      $('#task-error').innerHTML='<div class="dialog-error">The original save is confirmed. This draft contains later edits that have not been saved. Copy those edits, close this panel, and reopen the saved task to review its current version.</div>';
+    }
+  }
+  const utilityForm=$('#area-form,#project-form')||($('#capture-text')?$('#utility-dialog'):null);
+  if(submitted.utility&&utilityEditorStore===target&&$('#utility-dialog').open&&submitted.utility===editorSignature(utilityForm)){utilityDirty=false;$('#utility-dialog').close();}
+  finishQuickCapture(submitted.quick);
+}
+
+function restoreDialogDraft(dialog,saved){
+  dialog.className=saved.className;dialog.innerHTML=saved.html;
+  $$('input,select,textarea',dialog).forEach((el,index)=>{const value=saved.controls[index];if(value){el.value=value.value;if('checked'in el)el.checked=value.checked;}});
+  // A session can end while saveOperation has temporarily disabled a form.
+  $$('input,select,textarea,button',dialog).forEach(el=>{el.disabled=false;});
+  if(!dialog.open)dialog.showModal();
+}
+
+function retainTeamDraft(target){
+  const task=$('#task-dialog'),utility=$('#utility-dialog');
+  const taskDraft=task.open&&editorStore===target&&(dirty||pendingSave)?captureDialogDraft(task):null;
+  const utilityDraft=utility.open&&utilityEditorStore===target&&$('#area-form,#project-form,#capture-text',utility)&&(utilityDirty||pendingSave)?captureDialogDraft(utility):null;
+  const quick=$('#quick-title')?.value.trim()?{title:$('#quick-title').value,area:$('#quick-capture select').value,id:$('#quick-capture').dataset.draftId}:null;
+  if(!taskDraft&&!utilityDraft&&!quick&&!target.hasPending)return;
+  const key=`${target.userId}:${target.workspace.id}`;
+  retainedDrafts.set(key,{
+    key,userId:target.userId,workspaceId:target.workspace.id,previousStore:target,hadPending:target.hasPending,
+    task:taskDraft,utility:utilityDraft,quick,ui:{...ui},editingId,editingTaskId,
+    openedTaskStamp,openedTaskVersion,openedPinVersion,openedAreaSnapshot,openedAreaVersion,openedProjectSnapshot,openedProjectVersion,
+  });
+}
+
+function leaveUnavailableWorkspace(target,message){
+  if(target!==store||target.kind!=='shared')return;
+  retainTeamDraft(target);
+  $('#utility-dialog').close();utilityDirty=false;
+  activateWorkspace(localStore,{forced:true});
+  notify(message,{error:true});
+}
+
+async function restoreTeamDraft(){
+  const draft=currentDraft();if(!draft||!canSwitchWorkspace())return;
+  try{
+    const previous=draft.previousStore;
+    const reopened=await teamService.reopenWorkspace(previous);
+    draft.previousStore=reopened;
+    if(pendingEditors.has(previous))pendingEditors.set(reopened,pendingEditors.get(previous));
+    if(!canSwitchWorkspace()){reopened.dispose();return;}
+    activateWorkspace(reopened);
+    ui={...draft.ui};$('#search').value=ui.query;history.replaceState(null,'',`#${ui.view}`);render();
+    const confirmed=draft.hadPending&&!reopened.hasPending&&!previous.lastError;
+    if(!confirmed&&draft.task){
+      restoreDialogDraft($('#task-dialog'),draft.task);
+      editingId=draft.editingId;editingTaskId=draft.editingTaskId;editorStore=store;dirty=true;
+      openedTaskStamp=draft.openedTaskStamp;openedTaskVersion=draft.openedTaskVersion;openedPinVersion=draft.openedPinVersion;
+      if(!editingId&&taskById(editingTaskId)&&!store.hasPending)openTask(editingTaskId);
+    }
+    if(!confirmed&&draft.utility){
+      restoreDialogDraft($('#utility-dialog'),draft.utility);utilityEditorStore=store;utilityDirty=true;
+      openedAreaSnapshot=draft.openedAreaSnapshot;openedAreaVersion=draft.openedAreaVersion;
+      openedProjectSnapshot=draft.openedProjectSnapshot;openedProjectVersion=draft.openedProjectVersion;
+    }
+    if(!confirmed&&draft.quick&&$('#quick-title')){
+      $('#quick-title').value=draft.quick.title;$('#quick-capture').dataset.draftId=draft.quick.id;
+      if($$('#quick-capture select option').some(option=>option.value===draft.quick.area))$('#quick-capture select').value=draft.quick.area;
+      if(taskById(draft.quick.id)&&!store.hasPending)$('#quick-title').value='';
+    }
+    retainedDrafts.delete(draft.key);renderNotice();renderSaveStatus();
+    notify(store.hasPending?'Your original save is still waiting for confirmation. Use Retry original save.':confirmed?'The original save was confirmed. The current workspace is open.':'Draft restored. Saving will check for changes made while you were away.');
+  }catch(error){notify(error.message||'This draft could not be reopened. It is still kept in this tab.',{error:true});}
+}
+
+document.addEventListener('click',async event=>{
   const button=event.target.closest('button,a[data-view]');if(!button)return;
+  if(pendingSave&&!button.dataset.teamAction){event.preventDefault();return;}
   if(button.dataset.view){setView(button.dataset.view);return;}
   if(button.dataset.area){ui.area=button.dataset.area;ui.project='';setView('board');return;}
   if(button.dataset.filterArea){ui.area=button.dataset.filterArea;ui.project='';render();return;}
@@ -318,8 +540,8 @@ document.addEventListener('click',event=>{
     'new-task':()=>{const project=projectById(projectId||ui.project);openTask(null,{...(project?{projectId:project.id,area:project.area}:{}),status:button.dataset.newStatus||(ui.view==='someday'?'someday':'inbox')});},
     edit:()=>openTask(id),
     'close-task':()=>closeTask(),
-    'close-utility':()=>{$('#utility-dialog').close();confirmAction=null;},
-    confirm:()=>{const fn=confirmAction;confirmAction=null;$('#utility-dialog').close();fn?.();},
+    'close-utility':()=>{$('#utility-dialog').close();confirmAction=null;utilityDirty=false;},
+    confirm:async()=>{const fn=confirmAction;confirmAction=null;$('#utility-dialog').close();await fn?.();},
     complete:()=>changeStatus(id,'done'),reopen:()=>changeStatus(id,'next'),start:()=>changeStatus(id,'doing'),
     pin:()=>pinTask(id),
     settings:openSettings,help:openHelp,display:openDisplay,areas:()=>openAreas(),
@@ -327,18 +549,43 @@ document.addEventListener('click',event=>{
     'edit-area':()=>openAreaForm(button.dataset.areaId),
     'reset-display':()=>saveDisplayPreferences({...DISPLAY_DEFAULTS}),
     'capture-list':openCapture,
-    'save-capture':()=>{try{const fields=parseCapture($('#capture-text').value,$('#capture-area').value,store.state.areas);if(!fields.length){notify('Add at least one task.');return;}if(fields.length>150){notify('Add up to 150 tasks at a time.',{error:true});return;}if(commit(state=>{fields.forEach(f=>addFields(state,f));},`${fields.length} ${fields.length===1?'task':'tasks'} added to Inbox.`)){$('#utility-dialog').close();setView('inbox');}}catch(error){notify(error.message,{error:true});}},
-    'clear-filters':()=>{ui.query='';ui.project='';ui.priority='all';$('#search').value='';render();},
+    'save-capture':async()=>{try{if(utilityEditorStore!==store)throw new Error('This list belongs to a different workspace.');const fields=parseCapture($('#capture-text').value,$('#capture-area').value,store.state.areas);if(!fields.length){notify('Add at least one task.');return;}if(fields.length>150){notify('Add up to 150 tasks at a time.',{error:true});return;}if(await commit(state=>{fields.forEach(f=>addFields(state,f));},`${fields.length} ${fields.length===1?'task':'tasks'} added to Inbox.`)){utilityDirty=false;$('#utility-dialog').close();setView('inbox');}}catch(error){notify(error.message,{error:true});}},
+    'clear-filters':()=>{ui.query='';ui.project='';ui.priority='all';ui.assignee='all';$('#search').value='';render();},
     'dismiss-welcome':()=>commit(state=>{state.settings.welcomeDismissed=true;},null,{undo:false}),
     'clear-starters':()=>{const count=store.state.tasks.filter(t=>t.starter).length;if(!count){notify('No untouched suggestions to clear.');return;}confirmDialog('Clear starter suggestions?',`Remove ${count} untouched starter suggestions. Tasks you have edited or moved will stay, and the project directory will stay. You can undo this.`,()=>commit(state=>{state.tasks=state.tasks.filter(t=>!t.starter);state.settings.welcomeDismissed=true;},'Starter suggestions cleared.'),'Clear suggestions');},
     theme:()=>commit(state=>{state.settings.theme=state.settings.theme==='dark'?'light':'dark';},null,{undo:false}),
-    undo:()=>{if(Number(button.dataset.revision)!==store.state.revision){notify('A newer change was saved. That undo is no longer available.');return;}try{store.undo();render();notify('Last change undone.');}catch(error){notify(error.message,{error:true});}},
+    undo:async()=>{if(!isShared()&&Number(button.dataset.revision)!==store.state.revision){notify('A newer change was saved. That undo is no longer available.');return;}await saveOperation(target=>target.undo(),'Last change undone.',{undo:false});},
     'dismiss-toast':()=>{$('#toast').hidden=true;},
     export:exportBackup,
     'export-csv':()=>{download(`dayboard-tasks-${today()}.csv`,toCSV(store.state.tasks,store.state.areas),'text/csv;charset=utf-8');notify('CSV download started. Use a JSON backup to restore the full workspace.');},
     import:()=>{$('#import-file').value='';$('#import-file').click();},
-    'confirm-import':()=>{if(!pendingImport)return;const mode=$('input[name=import-mode]:checked')?.value||'merge';const apply=()=>{try{store.importJSON(pendingImport,{mode});pendingImport=null;$('#utility-dialog').close();render();notify('Backup imported.',{undo:true});}catch(error){notify(error.message,{error:true});}};if(mode==='replace')confirmDialog('Replace this workspace?','All current tasks, projects, and areas will be replaced by this backup. Download your current board first if you want to keep a separate copy.',apply,'Replace workspace');else apply();},
-    'reload-state':()=>{try{store.reload();render();openSettings();notify(store.loadIssue||'Saved workspace reloaded.',{error:Boolean(store.loadIssue)});}catch(error){notify(error.message,{error:true});}},
+    'confirm-import':async()=>{
+      if(!pendingImport)return;
+      if(utilityEditorStore!==store)throw new Error('The import destination changed. Choose the backup again.');
+      const mode=isShared()?'merge':$('input[name=import-mode]:checked')?.value||'merge';
+      const text=pendingImport;
+      const apply=async()=>{
+        const input=isShared()?text:JSON.stringify(readBoardBackup(text));
+        if(await saveOperation(target=>target.importJSON(input,{mode}),isShared()?'Imported as new shared work.':'Backup imported.')){
+          pendingImport=null;utilityDirty=false;$('#utility-dialog').close();
+        }
+      };
+      if(mode==='replace')confirmDialog('Replace this workspace?','All current tasks, projects, and areas will be replaced by this backup. Download your current board first if you want to keep a separate copy.',apply,'Replace workspace');
+      else await apply();
+    },
+    'retry-pending':async()=>{
+      if(!store.hasPending)return;
+      const target=store;
+      if(await saveOperation(current=>current.retryPending(),'The original save is confirmed.'))finishPendingEditors(target);
+    },
+    'restore-team-draft':()=>restoreTeamDraft(),
+    'refresh-shared':async()=>{
+      if(!isShared()||pendingSave||store.busy||store.hasPending)return;
+      const target=store;
+      try{await target.reload();}catch(error){if(store===target)notify(error.message||'Updates could not be checked. Your draft is still here.',{error:true});}
+      if(store===target)renderSaveStatus();
+    },
+    'reload-state':async()=>{if(await saveOperation(target=>target.hasPending?target.retryPending():target.reload(),'Saved workspace reloaded.',{undo:false}))openSettings();},
     menu:()=>{const open=document.body.classList.toggle('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded',String(open));},
     'close-menu':()=>{document.body.classList.remove('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded','false');},
     'go-board':()=>setView('board'),
@@ -354,36 +601,51 @@ document.addEventListener('click',event=>{
     'archive-done':()=>{const count=store.state.tasks.filter(t=>t.status==='done'&&!t.archived).length;confirmDialog('Archive completed tasks?',`Move ${count} completed tasks out of the board. They will remain in Archive and can be restored.`,()=>commit(state=>{state.tasks.filter(t=>t.status==='done'&&!t.archived).forEach(t=>{t.archived=true;t.today=false;t.updatedAt=now();});},'Completed tasks archived.'),'Archive tasks');},
     'finish-review':()=>commit(state=>{state.settings.lastReviewAt=now();},'Review finished. Your next steps are ready.',{undo:false}),
   };
-  if(actions[action]){event.preventDefault();actions[action]();}
+  if(actions[action]){event.preventDefault();try{await actions[action]();}catch(error){notify(error.message||'This action could not be completed.',{error:true});}}
 });
 document.addEventListener('click',event=>{if(event.target.matches('.sidebar-scrim')){document.body.classList.remove('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded','false');}});
-document.addEventListener('submit',event=>{
+document.addEventListener('submit',async event=>{
   if(event.target.id==='area-form'){
     event.preventDefault();const form=event.target;if(!form.reportValidity())return;
     const data=new FormData(form),id=form.dataset.areaId,name=String(data.get('name')||'').trim(),color=String(data.get('color'));
     try{
-      if(id&&JSON.stringify(areaById(id))!==openedAreaSnapshot)throw new Error('This area changed while it was open. Copy your edits, cancel, and reopen the area to see the current version.');
-      store.commit(state=>{if(id){renameArea(state,id,name);state.areas.find(area=>area.id===id).color=color;}else addArea(state,{name,color});});
-      render();openAreas(id?'Area updated. Its tasks and projects are still assigned.':'Area added. It is ready to use throughout your board.');
-    }catch(error){$('#area-error').innerHTML=`<div class="dialog-error">${esc(error.message||'The area could not be saved. Your board has not changed.')}</div>`;$('#area-name').focus();}
+      if(id&&(JSON.stringify(areaById(id))!==openedAreaSnapshot||recordVersion('areas',id)!==openedAreaVersion))throw new Error('This area changed while it was open. Copy your edits, cancel, and reopen the area to see the current version.');
+      if(utilityEditorStore!==store)throw new Error('This form belongs to a different workspace. Reopen the area there.');
+      const saved=await commit(state=>{if(id){renameArea(state,id,name);state.areas.find(area=>area.id===id).color=color;}else addArea(state,{id:form.dataset.draftId,name,color});},null);
+      if(!saved)throw new Error(lastSaveError||'The area could not be saved.');
+      utilityDirty=false;openAreas(id?'Area updated. Its tasks and projects are still assigned.':'Area added. It is ready to use throughout your board.');
+    }catch(error){if($('#area-error')){$('#area-error').innerHTML=`<div class="dialog-error">${esc(error.message||'The area could not be saved. Your board has not changed.')}${store.hasPending?'<br><button type="button" class="button small" data-action="retry-pending">Retry original save</button>':''}</div>`;$('#area-name').focus();}}
     return;
   }
-  if(event.target.id==='task-form'){event.preventDefault();saveTask(event.target);}
+  if(event.target.id==='task-form'){event.preventDefault();await saveTask(event.target);}
   if(event.target.id==='quick-capture'){
     event.preventDefault();const form=event.target;const data=new FormData(form);const title=String(data.get('title')||'').trim();if(!title)return;
-    if(commit(s=>addFields(s,{title,area:String(data.get('area')),status:'inbox'}),'Task added to Inbox.'))$('#quick-title')?.focus();
+    const submitted={id:form.dataset.draftId,title:String(data.get('title')),area:String(data.get('area'))};
+    if(await commit(s=>addFields(s,{id:submitted.id,title,area:submitted.area,status:'inbox'}),'Task added to Inbox.')){finishQuickCapture(submitted);$('#quick-title')?.focus();}
   }
   if(event.target.id==='project-form'){
-    event.preventDefault();const data=new FormData(event.target);const id=event.target.dataset.projectId;const fields={name:String(data.get('name')||'').trim(),area:String(data.get('area')),url:String(data.get('url')||'').trim(),description:String(data.get('description')||'').trim()};if(!fields.name)return;
-    if(commit(state=>{if(id){const p=state.projects.find(p=>p.id===id);if(!p)throw new Error('Project not found.');Object.assign(p,fields,{starter:false});state.tasks.filter(t=>t.projectId===id).forEach(t=>{t.area=p.area;t.updatedAt=now();});}else state.projects.push({id:crypto.randomUUID(),...fields,starter:false,archived:false});},'Project saved.'))$('#utility-dialog').close();
+    event.preventDefault();const form=event.target;if(!form.reportValidity())return;
+    const data=new FormData(form),id=form.dataset.projectId;
+    const fields={name:String(data.get('name')||'').trim(),area:String(data.get('area')),url:String(data.get('url')||'').trim(),description:String(data.get('description')||'').trim()};if(!fields.name)return;
+    try{
+      if(utilityEditorStore!==store)throw new Error('This form belongs to a different workspace. Reopen the project there.');
+      if(id&&(JSON.stringify(projectById(id))!==openedProjectSnapshot||recordVersion('projects',id)!==openedProjectVersion))throw new Error('This project changed while it was open. Copy your edits, close this panel, and reopen the project to see the current version.');
+      const saved=await commit(state=>{
+        if(id){const project=state.projects.find(p=>p.id===id);if(!project)throw new Error('Project not found.');const areaChanged=project.area!==fields.area;Object.assign(project,fields,{starter:false});if(areaChanged)state.tasks.filter(t=>t.projectId===id).forEach(t=>{t.area=project.area;t.updatedAt=now();});}
+        else state.projects.push({id:form.dataset.draftId,...fields,starter:false,archived:false});
+      },'Project saved.');
+      if(!saved)throw new Error(lastSaveError||'The project could not be saved. Your draft is still here.');
+      utilityDirty=false;$('#utility-dialog').close();
+    }catch(error){if($('#project-error'))$('#project-error').innerHTML=`<div class="dialog-error">${esc(error.message)}${store.hasPending?'<br><button type="button" class="button small" data-action="retry-pending">Retry original save</button>':''}</div>`;}
   }
 });
 document.addEventListener('input',event=>{
   if(event.target.id==='search'){ui.query=event.target.value;renderToolbar();const out={board:renderBoard,today:renderToday,inbox:renderInbox,upcoming:renderUpcoming,projects:renderProjects,someday:()=>`<div class="content-pad">${renderList(filteredTasks().filter(t=>!t.archived&&t.status==='someday'))}</div>`,archive:()=>`<div class="content-pad">${renderList(filteredTasks().filter(t=>t.archived))}</div>`};if(out[ui.view])$('#workspace-content').innerHTML=out[ui.view]();}
+  if(event.target.closest('#area-form,#project-form')||event.target.id==='capture-text')utilityDirty=true;
   if(event.target.closest('#task-form')){dirty=true;if(event.target.id==='task-title')event.target.setCustomValidity('');}
   if(event.target.id==='capture-text'){const count=event.target.value.split('\n').filter(l=>l.trim()).length;$('#capture-count').textContent=`${count} ${count===1?'task':'tasks'}`;}
 });
-document.addEventListener('change',event=>{
+document.addEventListener('change',async event=>{
   const el=event.target;
   if(el.dataset.displayPref){
     const key=el.dataset.displayPref;
@@ -393,10 +655,12 @@ document.addEventListener('change',event=>{
   if(el.dataset.displaySetting){
     const key=el.dataset.displaySetting;
     if(!['theme','density'].includes(key))return;
-    const saved=commit(s=>{s.settings[key]=el.value;},null,{undo:false});syncDisplayControls();
+    const saved=await commit(s=>{s.settings[key]=el.value;},null,{undo:false});syncDisplayControls();
     displayStatus(saved?'Display saved. Your board is using these choices.':'Could not save this display change. Your previous choices are still in use.',!saved);return;
   }
-  if(el.dataset.statusId){changeStatus(el.dataset.statusId,el.value);return;}
+  if(el.dataset.statusId){await changeStatus(el.dataset.statusId,el.value);return;}
+  if(el.closest('#area-form,#project-form'))utilityDirty=true;
+  if(el.id==='assignee-filter'){ui.assignee=el.value;render();}
   if(el.id==='area-filter'){ui.area=el.value;ui.project='';render();}
   if(el.id==='project-filter'){ui.project=el.value;render();}
   if(el.id==='priority-filter'){ui.priority=el.value;render();}
@@ -406,12 +670,19 @@ document.addEventListener('change',event=>{
   if(el.closest('#task-form'))dirty=true;
 });
 $('#import-file').addEventListener('change',async event=>{
-  const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024){notify('This backup is too large. The maximum is 8 MB.',{error:true});return;}
-  try{const text=await file.text();const imported=normalizeWorkspace(JSON.parse(text));pendingImport=text;openUtility('Import a workspace backup',`<p>Review this file before changing your board.</p><div class="import-summary"><strong>${esc(file.name)}</strong><br>${imported.tasks.length} tasks · ${imported.projects.length} projects · ${imported.areas.length} areas</div><label class="import-mode"><input type="radio" name="import-mode" value="merge" checked><span><strong>Merge with this board</strong><p>Keep your tasks and add the backup. For matching IDs, keep the newer task.</p></span></label><label class="import-mode"><input type="radio" name="import-mode" value="replace"><span><strong>Replace this board</strong><p>Restore all tasks, projects, areas, and settings from the backup.</p></span></label>`,`<button class="button" data-action="export">Back up current board</button><span class="spacer"></span><button class="button primary" data-action="confirm-import">Import backup</button>`);}catch(error){notify(`Backup was not imported: ${error.message}`,{error:true});}
+  const file=event.target.files[0];if(!file)return;
+  if(file.size>8*1024*1024){notify('This backup is too large. The maximum is 8 MB.',{error:true});return;}
+  try{
+    const text=await file.text(),imported=readBoardBackup(text);pendingImport=text;
+    const modes=isShared()
+      ? `<div class="settings-note"><p>Add independent copies to <strong>${esc(store.workspace.name)}</strong>. Its members will be able to read the imported content. Current shared work stays in place; workspace membership is not imported. <a href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy &amp; data</a></p></div>`
+      : '<label class="import-mode"><input type="radio" name="import-mode" value="merge" checked><span><strong>Merge with this board</strong><p>Keep your tasks and add the backup. For matching IDs, keep the newer task.</p></span></label><label class="import-mode"><input type="radio" name="import-mode" value="replace"><span><strong>Replace this board</strong><p>Restore all tasks, projects, areas, and settings from the backup.</p></span></label>';
+    openUtility('Import a workspace backup',`<p>Review this file before changing your board.</p><div class="import-summary"><strong>${esc(file.name)}</strong><br>${imported.tasks.length} tasks · ${imported.projects.length} projects · ${imported.areas.length} areas</div>${modes}`,`<button class="button" data-action="export">Back up current board</button><span class="spacer"></span><button class="button primary" data-action="confirm-import">${isShared()?'Add to shared workspace':'Import backup'}</button>`);
+  }catch(error){notify(`Backup was not imported: ${error.message}`,{error:true});}
 });
 document.addEventListener('dragstart',event=>{const card=event.target.closest('.task-card');if(!card)return;if(event.target.closest('button,select,a,input')){event.preventDefault();return;}dragId=card.dataset.taskId;event.dataTransfer.setData('text/plain',dragId);event.dataTransfer.effectAllowed='move';card.classList.add('dragging');});
 document.addEventListener('dragover',event=>{const col=event.target.closest('[data-drop-status]');if(col&&dragId){event.preventDefault();event.dataTransfer.dropEffect='move';$$('.column.drag-over').forEach(c=>c.classList.remove('drag-over'));col.classList.add('drag-over');}});
-document.addEventListener('drop',event=>{const col=event.target.closest('[data-drop-status]');if(col&&dragId){event.preventDefault();const status=col.dataset.dropStatus;const id=dragId;dragId=null;changeStatus(id,status);}});
+document.addEventListener('drop',async event=>{const col=event.target.closest('[data-drop-status]');if(col&&dragId){event.preventDefault();const status=col.dataset.dropStatus;const id=dragId;dragId=null;await changeStatus(id,status);}});
 document.addEventListener('dragend',()=>{dragId=null;$$('.dragging,.drag-over').forEach(el=>el.classList.remove('dragging','drag-over'));});
 document.addEventListener('keydown',event=>{
   const editing=event.target.matches('input,textarea,select,[contenteditable=true]');
@@ -422,16 +693,29 @@ document.addEventListener('keydown',event=>{
   if(event.key==='?'){event.preventDefault();openHelp();}
 });
 $('#task-dialog').addEventListener('cancel',event=>{event.preventDefault();closeTask();});
-$('#utility-dialog').addEventListener('cancel',()=>{confirmAction=null;});
+$('#utility-dialog').addEventListener('cancel',event=>{if(pendingSave){event.preventDefault();return;}confirmAction=null;utilityDirty=false;});
 window.addEventListener('hashchange',()=>{const view=location.hash.slice(1);if(views.includes(view)){ui.view=view;render();}});
 window.addEventListener('popstate',()=>{ui.view=views.includes(location.hash.slice(1))?location.hash.slice(1):'board';render();});
 window.addEventListener('storage',event=>{
   if(event.key===DISPLAY_KEY){displayPreferences=readDisplayPreferences(storage);applyDisplayPreferences(displayPreferences);syncDisplayControls();displayStatus('Display choices updated from another tab.');return;}
   if(event.key!=='dfe.dayboard.v1')return;
-  if($('#task-dialog').open&&dirty){notify('This board changed in another tab. Save is protected from overwriting that change.',{error:true});return;}
-  try{store.reload();render();syncDisplayControls();if($('#task-dialog').open&&editingId)openTask(editingId);notify(store.loadIssue||'Board updated from another tab.',{error:Boolean(store.loadIssue)});}catch(error){notify(error.message,{error:true});}
+  if(store===localStore&&$('#task-dialog').open&&dirty){notify('This board changed in another tab. Save is protected from overwriting that change.',{error:true});return;}
+  try{
+    localStore.reload();
+    if(store!==localStore)return;
+    render({preserveInlineDraft:true});syncDisplayControls();if($('#task-dialog').open&&editingId)openTask(editingId);
+    notify(store.loadIssue||'Board updated from another tab.',{error:Boolean(store.loadIssue)});
+  }catch(error){notify(error.message,{error:true});}
 });
-window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(dirty||utilityDirty||pendingSave||store.hasPending||retainedDrafts.size||$('#quick-title')?.value.trim()){event.preventDefault();event.returnValue='';}});
 for(const el of $$('[data-icon]'))el.innerHTML=icon(el.dataset.icon);
 ui.view=views.includes(location.hash.slice(1))?location.hash.slice(1):'board';
+teamService.onAuthChange(({user})=>{
+  if(user?.id!==teamService.user?.id)return;
+  if(isShared()&&store.userId!==user?.id){
+    leaveUnavailableWorkspace(store,'Your sign-in changed. Your personal board is open. Sign in with the original account to recover any unfinished team draft.');
+  }else {renderNotice();teamsUI?.refresh();}
+});
+teamsUI=createTeamsUI({service:teamService,localStore,getStore:()=>store,onWorkspaceChange:next=>activateWorkspace(next),onBeforeSwitch:canSwitchWorkspace,openUtility,notify,esc,icon});
 render();
+void teamsUI.init();
