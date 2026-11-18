@@ -1,6 +1,7 @@
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
@@ -13,8 +14,41 @@ import { PRIVACY_EXPORT_VERSION, RequestRateLimits, validExportPassport, authent
 import { PROTOCOL_VERSION, SIMULATION_HZ, INPUT_HZ, SNAPSHOT_HZ, MAX_ONLINE, newRealmCode, validRealmCode, normaliseRealmCode, cleanName, RateLimit, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
+const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon', '.m4a': 'audio/mp4' };
 const json = (response, status, value) => { response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); response.end(JSON.stringify(value)); };
+
+// Media clients request byte ranges to start playback and seek without buffering the whole song.
+function streamAudio(request, response, filename, size) {
+  let start = 0, end = size - 1, status = 200;
+  const headers = { 'content-type': mime['.m4a'], 'accept-ranges': 'bytes', 'cache-control': 'no-cache' };
+  // Range applies to GET only; HEAD reports the complete representation's metadata.
+  if (request.method === 'GET' && request.headers.range !== undefined) {
+    const match = /^bytes=(\d*)-(\d*)$/i.exec(request.headers.range.trim());
+    const first = match?.[1] ? Number(match[1]) : null, last = match?.[2] ? Number(match[2]) : null;
+    let valid = !!match && (first !== null || last !== null) && size > 0
+      && (first === null || Number.isSafeInteger(first)) && (last === null || Number.isSafeInteger(last));
+    if (valid && first === null) { valid = last > 0; start = Math.max(0, size - last); }
+    else if (valid) { start = first; end = last === null ? size - 1 : Math.min(last, size - 1); valid = start < size && end >= start; }
+    if (!valid) {
+      response.writeHead(416, { ...headers, 'content-range': `bytes */${size}`, 'content-length': 0 });
+      return response.end();
+    }
+    status = 206; headers['content-range'] = `bytes ${start}-${end}/${size}`;
+  }
+  headers['content-length'] = size ? end - start + 1 : 0;
+  if (request.method === 'HEAD' || !size) { response.writeHead(status, headers); return response.end(); }
+  const stream = createReadStream(filename, { start, end });
+  response.once('close', () => stream.destroy());
+  stream.once('error', error => {
+    if (response.destroyed) return;
+    if (response.headersSent) response.destroy(error);
+    else json(response, 404, { ok: false, reason: 'File not found.' });
+  });
+  stream.once('open', () => {
+    if (response.destroyed) return stream.destroy();
+    response.writeHead(status, headers); stream.pipe(response);
+  });
+}
 
 /** Frequent motion packets omit journals, static asteroid geometry and realm rosters. */
 export function compactSnapshot(snapshot) {
@@ -147,6 +181,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     if (filename !== staticDir && !filename.startsWith(`${staticDir}${path.sep}`)) return json(response, 403, { ok: false, reason: 'Path not allowed.' });
     try {
       const info = await stat(filename); if (!info.isFile()) throw new Error('not a file');
+      if (path.extname(filename) === '.m4a') return streamAudio(request, response, filename, info.size);
       const contents = await readFile(filename);
       response.writeHead(200, { 'content-type': mime[path.extname(filename)] || 'application/octet-stream', 'content-length': contents.length, 'cache-control': 'no-cache' });
       response.end(request.method === 'HEAD' ? undefined : contents);

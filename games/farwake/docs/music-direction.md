@@ -6,9 +6,11 @@ Farwake's score should make a small personal journey feel worth taking in a very
 
 The exploration reference is musical patience: recognizable short pieces arrive, develop, and leave room for the world. The title theme uses the spacious phrasing of 1970s progressive and psychedelic rock: warm electric piano, a sustained melodic guitar voice, independently moving bass, gentle organ, restrained drums, and echo. The melodies and arrangements in this repository are original compositions. They do not sample recordings or quote the reference artists' songs.
 
-“The Long Way Home” is the main theme. Its opening rising fifth and descending answer return in changing arrangements; the middle passage offers a brighter harmonic departure before the original phrase comes home. The complete statement is about three minutes and seventeen seconds, followed by its tail. It is a composition with a beginning, development, return, and ending, rather than an endlessly regenerated pad.
+Since 0.32.1, the title-screen theme is the supplied recording **Theme — Shnider** (197.625 seconds). It streams locally through the existing music bus, loops on the title screen, and fades out when a voyage begins. A menu Stop stays stopped until another Listen or a later return to the title. In-game requests play the recording once. The original composition remains available in Music & listening.
 
-The current catalog contains **46 original instrumental pieces**, performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
+“The Long Way Home” is the original synthesized theme. Its opening rising fifth and descending answer return in changing arrangements; the middle passage offers a brighter harmonic departure before the original phrase comes home. The complete statement is about three minutes and seventeen seconds, followed by its tail. It is a composition with a beginning, development, return, and ending, rather than an endlessly regenerated pad.
+
+The current catalog contains **46 original instrumental pieces** plus the recorded menu theme. The composed pieces are performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
 
 ## Crosswind battle rotation · 0.26.1
 
@@ -57,7 +59,7 @@ The release leaves Hearth, world geography, gameplay state formats and shared pa
 
 | Situation | Musical treatment |
 | --- | --- |
-| Title and an explicitly requested listen | Full main theme, with a melody early in the piece. It does not restart each time a menu opens. |
+| Title and an explicitly requested listen | The Shnider recording loops on the title screen. Voyage entry fades it out; in-game auditions play once. Pause/settings do not restart the menu loop. |
 | Ordinary flight | The original intimate piano, electronic movement, and lyrical plucked/guitar pieces. |
 | Crosswind, from arrival until departure | Three heavy battle tracks in a shuffled rotation, including neutral flight, crew decks and ground visits. The score responds to the authored warzone without inventing a personal attack. |
 | Quiet time on a crew deck | Lamps in the Cabin adds felt piano and a reed answer away from the helm. Real occupied-ship danger still takes priority. |

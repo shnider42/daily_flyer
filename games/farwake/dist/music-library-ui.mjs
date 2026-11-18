@@ -1,4 +1,4 @@
-import { MUSIC_CUES, THEME_ID } from './music-score.mjs';
+import { MUSIC_CUES, THEME_ID } from './music-catalog.mjs';
 
 const GROUPS = Object.freeze([
   ['all', 'All pieces'], ['theme', 'Theme & homecoming'], ['travel', 'Space & ship life'],
@@ -6,7 +6,8 @@ const GROUPS = Object.freeze([
 ]);
 const FAMILIES = Object.freeze({ theme: 'Main theme', exploration: 'Exploration', planet: 'Planets & moons', cave: 'Caves & passages', social: 'Life at port', discovery: 'Discovery', tension: 'Unease', combat: 'Danger', recovery: 'A moment to recover', terror: 'Rare encounters' });
 const SITUATIONS = Object.freeze({
-  'long-way-home': 'The main theme. A small beginning, a wider horizon, and the way home.',
+  'shnider-theme': 'Farwake’s recorded menu theme by Shnider. It loops on the title screen and plays once when requested during a voyage.',
+  'long-way-home': 'The original synthesized theme. A small beginning, a wider horizon, and the way home.',
   'lamps-in-the-cabin': 'Quiet time aboard ship, away from the helm.',
   'under-the-service-lights': 'Following service passages and bringing the Floodworks back to life.',
   'the-foreman-cycle': 'The active machine bay, with room to hear its warnings.',
@@ -20,7 +21,7 @@ const SITUATIONS = Object.freeze({
 
 export function musicGroup(cue, group = 'all') {
   const tags = cue?.tags || [];
-  if (group === 'theme') return cue?.id === THEME_ID || ['recovery', 'discovery'].includes(cue?.family);
+  if (group === 'theme') return ['theme', 'recovery', 'discovery'].includes(cue?.family);
   if (group === 'travel') return cue?.family === 'exploration' && (tags.includes('flight') || tags.includes('ship'));
   if (group === 'worlds') return ['planet', 'cave'].includes(cue?.family) || cue?.family === 'exploration' && (tags.includes('planet') || tags.includes('cave') || tags.includes('surface'));
   if (group === 'social') return cue?.family === 'social';

@@ -1,12 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Soundscape } from '../dist/audio.mjs';
-import { MUSIC_CUES, THEME_ID } from '../dist/music-score.mjs';
+import { MUSIC_CUES, THEME_ID } from '../dist/music-catalog.mjs';
 
 class Events {
   constructor() { this.listeners = new Map(); }
   addEventListener(type, fn) { if (!this.listeners.has(type)) this.listeners.set(type, []); this.listeners.get(type).push(fn); }
   emit(type, event = {}) { for (const fn of this.listeners.get(type) || []) fn(event); }
+}
+class MediaDouble extends Events {
+  constructor(src) { super(); this.src = src; this.paused = true; this.currentTime = 0; this.readyState = 4; this.duration = 197.625; }
+  play() { this.paused = false; return Promise.resolve(); }
+  pause() { this.paused = true; }
+  load() {}
+  setAttribute() {}
 }
 class Param {
   constructor(value = 0) { this.value = value; this.events = []; }
@@ -38,6 +45,7 @@ class AudioContextDouble extends Events {
   createGain() { return this.node('gain'); }
   createOscillator() { return this.node('oscillator'); }
   createBufferSource() { return this.node('buffer-source'); }
+  createMediaElementSource(media) { const node = this.node('media-element'); node.media = media; return node; }
   createBiquadFilter() { return this.node('filter'); }
   createDelay() { return this.node('delay'); }
   createConvolver() { return this.node('convolver'); }
@@ -54,10 +62,10 @@ class AudioContextDouble extends Events {
 }
 
 function boundary({ sound = true, music = true } = {}) {
-  const originals = new Map(['document', 'window', 'AudioContext'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const originals = new Map(['document', 'window', 'AudioContext', 'Audio'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   const document = new Events(); document.hidden = false;
   const window = new Events();
-  Object.assign(globalThis, { document, window, AudioContext: AudioContextDouble });
+  Object.assign(globalThis, { document, window, AudioContext: AudioContextDouble, Audio: MediaDouble });
   AudioContextDouble.instances = [];
   const settings = { sound, music, volume: .5, presence: 'balanced' };
   const audio = new Soundscape(() => settings.sound, { musicEnabled: () => settings.music, musicVolume: () => settings.volume, musicPresence: () => settings.presence });
@@ -169,14 +177,16 @@ test('external audio interruption clears the director and resumes without replay
   } finally { b.restore(); }
 });
 
-test('rapid musical transitions retain at most a current and retiring score and stop superseded players', () => {
+test('rapid musical transitions retain at most a current and retiring score and stop superseded players', async () => {
   const b = boundary();
   try {
     b.audio.unlock(); b.audio.updateMusic({ scene: 'menu' }, 0); const theme = b.audio.score;
+    // A streamed theme becomes audible after play() settles; an unstarted request is stopped immediately.
+    await Promise.resolve();
     b.audio.musicEvent('combat', 1, 'incoming-hit');
     b.audio.ctx.currentTime = 1;
     b.audio.updateMusic({ scene: 'exploration' }, 1); const combat = b.audio.score;
-    assert.equal(b.audio.retiringScore, theme);
+    assert.ok(b.audio.retiringScore === theme, 'the already-playing theme fades out during the transition');
     b.audio.ctx.currentTime = 1.1;
     b.audio.updateMusic({ scene: 'exploration', silence: true }, 1.1);
     assert.equal(theme.status().disposed, true);
@@ -196,12 +206,12 @@ test('an unavailable music graph fails quiet without throwing into the game loop
     console.warn = (...args) => warnings.push(args);
     b.audio.unlock();
     b.audio.ctx.createConvolver = () => { throw new Error('Unsupported test reverb'); };
-    assert.doesNotThrow(() => b.audio.updateMusic({ scene: 'menu' }, 0));
+    assert.doesNotThrow(() => b.audio.updateMusic({ scene: 'exploration' }, 0));
     assert.equal(b.audio.musicStatus().state, 'unavailable');
     assert.equal(b.audio.musicBus.gain.value, 0);
     assert.equal(b.audio.score, null);
     assert.equal(b.audio.director.current, null);
-    for (let now = 1; now <= 60; now++) b.audio.updateMusic({ scene: 'menu' }, now);
+    for (let now = 1; now <= 60; now++) b.audio.updateMusic({ scene: 'exploration' }, now);
     assert.equal(warnings.length, 1, 'No failure/retry storm on every animation frame.');
     b.audio.tone(440); assert.equal(b.audio.effects.size, 1);
   } finally { console.warn = warn; b.restore(); }

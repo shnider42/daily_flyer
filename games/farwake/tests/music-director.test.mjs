@@ -12,6 +12,49 @@ const flight = { scene: 'exploration', paletteKey: 'sol', tags: ['flight'] };
 const planet = { scene: 'exploration', environment: 'planet', paletteKey: 'hearth:morrow:temperate', tags: ['planet', 'ground', 'temperate'] };
 const cave = { scene: 'exploration', environment: 'cave', paletteKey: 'hearth:tinbell:cave', tags: ['cave', 'ground', 'stone'] };
 
+const recordedMenu = () => new MusicDirector({ cues: cues.map(cue => cue.id === 'theme' ? { ...cue, loopInMenu: true } : cue), themeId: 'theme', seed: 'menu-recording' });
+
+test('recorded title music loops until stopped and returns on the next title visit', () => {
+  const d = recordedMenu(), menu = { scene: 'menu' }, first = d.update(menu, 0);
+  assert.equal(first.loop, true);
+  assert.equal(d.update(menu, 700).token, first.token, 'The media loop is not restarted by the director.');
+  d.stopTheme(701);
+  assert.equal(d.update(menu, 1200).cueId, null, 'An explicit Stop stays stopped on the title.');
+  d.update(flight, 1201);
+  const returned = d.update(menu, 1202);
+  assert.equal(returned.cueId, 'theme'); assert.equal(returned.loop, true); assert.notEqual(returned.token, first.token);
+});
+
+test('recorded title listening fades into gameplay while an in-game audition plays only once', () => {
+  const d = recordedMenu(), menu = { scene: 'menu' };
+  d.requestTheme(); const title = d.update(menu, 0);
+  assert.equal(title.preview, true); assert.equal(title.loop, true);
+  const voyage = d.update(flight, 1);
+  assert.equal(voyage.mood, 'exploration'); assert.equal(voyage.loop, false);
+  assert.notEqual(voyage.cueId, title.cueId);
+  d.requestTheme(); const audition = d.update({ ...flight, menuOpen: true }, 2);
+  assert.equal(audition.cueId, 'theme'); assert.equal(audition.loop, false);
+  assert.notEqual(d.update(flight, 185).cueId, 'theme');
+});
+
+test('hidden title music resumes after the normal quiet interval without overriding explicit Stop', () => {
+  const d = recordedMenu(), menu = { scene: 'menu' };
+  d.update(menu, 0); d.suspend(1);
+  assert.equal(d.update(menu, 10).cueId, null);
+  assert.equal(d.update(menu, 13).cueId, 'theme');
+  d.stopTheme(14); d.suspend(15); d.update(menu, 20);
+  assert.equal(d.update(menu, 200).cueId, null);
+});
+
+test('auditioning another piece on the title returns to the recorded menu loop afterward', () => {
+  const d = recordedMenu(), menu = { scene: 'menu' };
+  d.update(menu, 0); d.requestPreview('exploration-1');
+  assert.equal(d.update(menu, 1).cueId, 'exploration-1');
+  assert.equal(d.update(menu, 44).cueId, 'theme');
+  d.stopTheme(45); d.requestPreview('exploration-2'); d.update(menu, 46);
+  assert.equal(d.update(menu, 100).cueId, null, 'An earlier explicit theme Stop is still respected.');
+});
+
 test('menu theme has a full statement and does not restart when opening menus', () => {
   const d = make(), first = d.update({ scene: 'menu' }, 1);
   assert.equal(first.cueId, 'theme');

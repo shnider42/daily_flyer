@@ -31,6 +31,7 @@ const LOCATION_TRANSITION_SECONDS = 6;
 export class MusicDirector {
   constructor({ cues = [], themeId = 'long-way-home', seed = 'farwake' } = {}) {
     this.cues = cues; this.themeId = themeId; this.seed = musicSeed(seed);
+    this.loopingMenuTheme = !!cues.find(cue => cue.id === themeId)?.loopInMenu;
     this.sequence = 0; this.current = null; this.nextMusicAt = 0; this.lastNow = 0;
     this.combatUntil = -Infinity; this.tensionUntil = -Infinity; this.discoveryUntil = -Infinity;
     this.terrorUntil = -Infinity; this.recoveryUntil = -Infinity; this.lastTerror = -Infinity;
@@ -85,6 +86,7 @@ export class MusicDirector {
   }
 
   suspend(now = this.lastNow) {
+    if (this.current?.menuPlayback) this.themePlayed = false;
     this.current = null; this.suspended = true; this.nextMusicAt = now + 5;
   }
 
@@ -183,9 +185,11 @@ export class MusicDirector {
 
   begin(cue, now, context, { fast = false, preview = false } = {}) {
     if (!cue) return;
+    const menuPlayback = !!cue.loopInMenu && context.scene === 'menu';
+    if (preview && !menuPlayback && this.current?.menuPlayback) this.themePlayed = false;
     this.sequence++;
     this.current = { cue, token: this.sequence, startedAt: now,
-      until: now + duration(cue) + 2,
+      until: menuPlayback ? Infinity : now + duration(cue) + 2, menuPlayback,
       seed: musicSeed(`${context.paletteKey}|${cue.id}|${this.sequence}`),
       fadeIn: fast ? .9 : cue.family === 'theme' ? 1.6 : 3.5,
       fadeOut: fast ? .35 : 4, preview,
@@ -227,6 +231,15 @@ export class MusicDirector {
     const changedPlace = this.placeKey !== null && this.placeKey !== placeKey;
     const previousPlaceFamily = this.placeFamily, previousPlaceProfile = this.placeProfile;
     this.placeKey = placeKey; this.placeFamily = placeFamily; this.placeProfile = context.musicPlace || null;
+    if (this.loopingMenuTheme) {
+      if (!inGame && previousPlaceFamily !== 'theme') {
+        this.current = null; this.themePlayed = false; this.nextMusicAt = now;
+      } else if (inGame && this.current?.menuPlayback) {
+        // A title-screen listen belongs to the menu, including an explicit
+        // Listen request. In-game auditions still play once when requested.
+        this.current = null; this.nextMusicAt = now;
+      }
+    }
     // Let the current phrase breathe briefly when arriving somewhere with its
     // own music, then crossfade. A menu theme cannot linger for minutes in a
     // cave. Briefly crossing a threshold and returning cancels the transition.
@@ -258,7 +271,7 @@ export class MusicDirector {
     if (this.current && now >= this.current.until) {
       const family = this.current.cue.family, preview = this.current.preview;
       this.current = null;
-      this.nextMusicAt = now + (danger(family) && !preview ? 1.5 : this.gap(presence));
+      this.nextMusicAt = now + (!inGame && this.loopingMenuTheme && !this.themePlayed ? 0 : danger(family) && !preview ? 1.5 : this.gap(presence));
       if (family === 'recovery' && !preview) { this.recoveryUntil = -Infinity; this.nextMusicAt = now + Math.max(35, this.gap(presence)); }
       // An ordinary ending inside an arrival's short grace period must not
       // replace that pending location transition with a much longer rest.
@@ -314,6 +327,7 @@ export class MusicDirector {
       seed: this.current?.seed ?? this.seed, mood, duck: clamp(duck, 0, 1),
       fadeIn: this.current?.fadeIn ?? 3, fadeOut: fadeOut ?? this.current?.fadeOut ?? 4,
       theme: this.current?.cue.id === this.themeId, preview: !!this.current?.preview,
+      loop: !!this.current?.menuPlayback,
       warzone: this.warzoneActive,
       previewCueId: this.current?.preview ? this.current.cue.id : null, requestedCueId: this.previewCueId,
       nextMusicAt: this.nextMusicAt };

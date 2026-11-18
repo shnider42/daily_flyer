@@ -1,8 +1,14 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.32.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.32.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.32.1 — Shnider’s menu theme
+
+The title screen now plays **Theme — Shnider**, the supplied 3:18 recording, and loops it until the voyage begins. It fades into the voyage score when entering solo or shared play and returns when going back to the title. Listen / Stop, saved music volume, mute, hidden-tab suspension, and death silence use the existing audio lifecycle. The recording streams from the game’s own assets; it is not decoded into a full-song Web Audio buffer. Its AAC audio is unchanged, with container metadata moved forward for streaming.
+
+Settings → Music & listening includes the recording and the original synthesized **The Long Way Home**. Requesting the new theme during a voyage plays it once, subject to the existing danger and Crosswind priorities.
 
 ## 0.32.0 — The people who came back
 

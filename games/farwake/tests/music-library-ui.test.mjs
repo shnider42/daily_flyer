@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { createMusicLibraryUI, musicGroup, musicListeningText } from '../dist/music-library-ui.mjs';
-import { THEME_ID, MUSIC_CUES } from '../dist/music-score.mjs';
+import { THEME_ID, MUSIC_CUES } from '../dist/music-catalog.mjs';
 
 class Element {
   constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.textContent = ''; this.value = ''; this.checked = false; this.hidden = false; this.disabled = false; }
