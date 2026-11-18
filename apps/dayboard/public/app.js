@@ -4,6 +4,7 @@ import { DISPLAY_KEY, DISPLAY_DEFAULTS, DISPLAY_OPTIONS, readDisplayPreferences,
 import { TeamService, readBoardBackup } from './shared.mjs';
 import { TEAM_CONFIG } from './team-config.mjs';
 import { createTeamsUI } from './teams-ui.mjs';
+import { describeSharedConnection } from './connection-status.mjs';
 
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
@@ -54,7 +55,7 @@ const taskOptions = selected => selectOptions(Object.entries(statusName),selecte
 let storage;
 try { storage=window.localStorage; } catch { storage={getItem:()=>{throw new Error('Browser storage is unavailable.');},setItem:()=>{throw new Error('Browser storage is unavailable.');}}; }
 const localStore=new BoardStore({storage,initialState:createSeedWorkspace()});
-let store=localStore, teamsUI=null, unsubscribeStore=null, pendingSave=false, saveToken=null, lastSaveError='', utilityDirty=false;
+let store=localStore, teamsUI=null, unsubscribeStore=null, pendingSave=false, saveToken=null, lastSaveError='', utilityDirty=false, connectionTimer=null;
 const retainedDrafts=new Map();
 const pendingEditors=new WeakMap();
 let editorStore=null, utilityEditorStore=null, editingTaskId=null;
@@ -91,6 +92,12 @@ const areaDot = id => `<span class="area-dot" data-color="${esc(areaById(id)?.co
 const areaBadge = id => `<span class="area-label" title="${esc(areaById(id)?.name||id)}">${areaDot(id)}<span class="area-label-text">${esc(areaById(id)?.name||id)}</span></span>`;
 const assigneeName = task => {const id=store.assignees?.[task.id];if(!id)return 'Unassigned';const member=store.members?.find(item=>item.userId===id);return member?.displayName||member?.email||'Former member';};
 const assignmentLine = task => isShared()?`<div class="task-assignee" title="${esc(assigneeName(task))}">${store.assignees?.[task.id]?'Assigned to ':''}${esc(assigneeName(task))}</div>`:'';
+const authorLabel = (taskId, field) => {
+  const userId=store.audit?.[taskId]?.[field];
+  if(!userId)return '';
+  const member=store.members?.find(item=>item.userId===userId);
+  return ` by ${esc(member?.displayName||member?.email||'a former member')}`;
+};
 const issueKey = task => `DB-${String(task.number).padStart(3,'0')}`;
 const dueValue = task => task.status==='waiting' ? [task.followUp,task.due].filter(Boolean).sort()[0]||'' : task.due;
 const dueTag = task => {
@@ -108,11 +115,23 @@ function notify(message,{undo=false,error=false}={}){
 }
 function renderSaveStatus(){
   const el=$('#save-status');
-  const problem=lastSaveError||store.loadIssue||store.lastError?.message;
+  const status=isShared()?describeSharedConnection(store,{saving:pendingSave,saveError:lastSaveError}):null;
+  const problem=status?status.saveError:lastSaveError||store.loadIssue;
   el.classList.toggle('error',Boolean(problem));
-  const label=pendingSave||store.busy?'Saving…':store.hasPending?'Save needs confirmation':problem?(isShared()?'Shared save needs attention':'Storage needs attention'):(isShared()?'Saved to shared workspace':'Saved in this browser');
-  el.innerHTML=`<span class="save-dot"></span><span>${esc(label)}</span>`;
+  el.classList.toggle('waiting',Boolean(status?.saveWaiting));
+  const label=status?.saveLabel||(pendingSave?'Saving…':problem?'Storage needs attention':'Saved in this browser');
+  if(el.lastElementChild?.textContent!==label)el.innerHTML=`<span class="save-dot"></span><span>${esc(label)}</span>`;
   el.setAttribute('aria-live','polite');
+  const panel=$('#shared-connection');
+  panel.hidden=!status;
+  if(!status){panel.open=false;return;}
+  panel.dataset.tone=status.tone;
+  for(const [id,text] of Object.entries({'connection-label':status.label,'connection-save':status.saveLabel,'connection-detail':status.detail,'connection-freshness':status.freshness,'connection-timing':status.response})){
+    const node=$(`#${id}`);if(node.textContent!==text)node.textContent=text;
+  }
+  $('#connection-timing').hidden=!status.response;
+  const check=$('#connection-check');
+  check.dataset.action=status.action;check.textContent=status.actionLabel;check.disabled=status.actionDisabled;
 }
 async function saveOperation(action,message,{undo=true,rerender=true}={}){
   if(pendingSave){notify('A change is still saving. Please wait.',{error:true});return false;}
@@ -136,7 +155,7 @@ async function saveOperation(action,message,{undo=true,rerender=true}={}){
     return false;
   }finally{
     if(saveToken===token){pendingSave=false;saveToken=null;for(const [el,disabled] of controls)if(el.isConnected)el.disabled=disabled;}
-    renderSaveStatus();
+    renderSaveStatus();renderNotice();
   }
 }
 async function commit(mutator,message,{undo=true,rerender=true,assignments}={}){
@@ -152,9 +171,9 @@ function renderNav(){
 }
 function renderNotice(){
   let out='';
-  if(store.hasPending)out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>A save needs confirmation</strong><p>The reply did not arrive. Retry the original save before making another change.</p></div><button class="button small" data-action="retry-pending">Retry original save</button></div>`;
+  if(store.hasPending&&!store.busy&&!pendingSave)out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>A save needs confirmation</strong><p>The reply did not arrive. Retry the original save before making another change.</p></div><button class="button small" data-action="retry-pending">Retry original save</button></div>`;
   if(currentDraft())out+=`<div class="notice">${icon('note')}<div class="notice-copy"><strong>An unsaved team draft is kept in this tab</strong><p>Reopen its workspace to review the current record before saving. Keep this tab open until it is resolved.</p></div><button class="button small" data-action="restore-team-draft">Restore draft</button></div>`;
-  if(store.loadIssue)out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>Check your saved workspace</strong><p>${esc(store.loadIssue)}</p></div><button class="text-button" data-action="settings">Backup & restore</button></div>`;
+  if(store.loadIssue&&!isShared())out+=`<div class="notice error">${icon('info')}<div class="notice-copy"><strong>Check your saved workspace</strong><p>${esc(store.loadIssue)}</p></div><button class="text-button" data-action="settings">Backup & restore</button></div>`;
   if(!store.state.settings.welcomeDismissed&&!store.state.tasks.length){out+=`<div class="notice">${icon('info')}<div class="notice-copy"><strong>Your workspace is ready.</strong><p>Add a task, paste a list, or import your prepared board. Nothing else to configure.</p></div><button class="text-button" data-action="import">Import board</button>${iconButton('close','dismiss-welcome','Dismiss introduction')}</div>`;}else if(!store.state.settings.welcomeDismissed){out+=`<div class="notice">${icon('info')}<div class="notice-copy"><strong>Your board is ready.</strong><p>Starter suggestions are editable. Pin a few to Today, or clear them and start with your own.</p></div><button class="text-button" data-action="clear-starters">Clear suggestions</button>${iconButton('close','dismiss-welcome','Dismiss introduction')}</div>`;}
   $('#notice-region').innerHTML=out;
 }
@@ -255,7 +274,7 @@ function openTask(id=null,defaults={}){
   editingId=id;editingTaskId=id||crypto.randomUUID();editorStore=store;dirty=false;openedTaskStamp=original?.updatedAt||null;openedTaskVersion=recordVersion('tasks',id);openedPinVersion=recordVersion('pins',id);focusReturn=document.activeElement;
   const t=original||{title:'',area:projectById(ui.project)?.area||selectedArea(),status:'inbox',priority:'normal',notes:'',projectId:ui.project||'',due:'',followUp:'',effort:0,repeat:'none',today:false,url:'',checklist:[],...defaults};
   const projects=store.state.projects.filter(p=>!p.archived||p.id===t.projectId);
-  $('#task-dialog').innerHTML=`<form id="task-form"><div class="dialog-top"><span class="issue-key">${original?issueKey(original):'NEW'}</span><h2 id="task-dialog-title">${original?'Task details':'Add a task'}</h2>${iconButton('close','close-task','Close task')}</div><div class="dialog-body"><div id="task-error"></div><div class="field"><label class="field-label" for="task-title">What needs doing?</label><textarea name="title" id="task-title" class="task-title-input" maxlength="240" required rows="2" placeholder="Start with one next action…">${esc(t.title)}</textarea></div><div class="form-grid"><div class="field"><label class="field-label" for="task-area">Area</label><select name="area" id="task-area">${selectOptions(areaEntries(),t.area)}</select></div><div class="field"><label class="field-label" for="task-status">Status</label><select name="status" id="task-status">${taskOptions(t.status)}</select></div></div><div class="field check-field"><label class="checkbox-label"><input type="checkbox" name="today" ${t.today?'checked':''}> Pin to Today</label></div>${isShared()?`<div class="field"><label class="field-label" for="task-assignee">Assigned to</label><select id="task-assignee" name="assigneeId">${selectOptions([['','Unassigned'],...(store.members||[]).map(member=>[member.userId,member.displayName||member.email])],store.assignees?.[id]||'')}</select></div>`:''}<div class="field"><label class="field-label" for="task-notes">Notes / next step</label><textarea name="notes" id="task-notes" class="notes" rows="4" maxlength="20000" placeholder="A useful detail, the person you are waiting on, or what done looks like.">${esc(t.notes)}</textarea></div><details class="optional-fields" ${original?'open':''}><summary>Dates, project & other details</summary><div class="form-grid"><div class="field"><label class="field-label" for="task-priority">Priority</label><select name="priority" id="task-priority">${selectOptions([['high','High'],['normal','Normal'],['low','Low']],t.priority)}</select></div><div class="field"><label class="field-label" for="task-project">Project (optional)</label><select name="projectId" id="task-project"><option value="">No project</option>${selectOptions(projects.map(p=>[p.id,p.name]),t.projectId)}</select></div><div class="field"><label class="field-label" for="task-due">Due date</label><input type="date" name="due" id="task-due" value="${esc(t.due)}"></div><div class="field"><label class="field-label" for="task-followup">Follow-up date</label><input type="date" name="followUp" id="task-followup" value="${esc(t.followUp)}"><p class="field-hint">Used in Dates & follow-ups while Waiting.</p></div><div class="field"><label class="field-label" for="task-effort">Time needed</label><select name="effort" id="task-effort">${selectOptions([['0','Not estimated'],['15','15 minutes'],['30','30 minutes'],['60','1 hour'],['90','90 minutes']],String(t.effort))}</select></div><div class="field"><label class="field-label" for="task-repeat">Repeat when completed</label><select name="repeat" id="task-repeat">${selectOptions([['none','Does not repeat'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']],t.repeat)}</select></div><div class="field full"><label class="field-label" for="task-url">Link</label><input type="url" name="url" id="task-url" value="${esc(t.url)}" maxlength="2048" placeholder="https://…">${t.url&&safeUrl(t.url)?`<a class="project-link-preview" href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer">Open link ↗</a>`:''}</div></div></details><div class="dialog-section"><div class="dialog-section-header"><h3>Small steps</h3><span class="small-text muted">Optional checklist</span></div><div id="task-checklist">${(t.checklist||[]).map(checklistRow).join('')}</div><button type="button" class="checklist-add" data-action="add-checklist">${icon('plus')} Add a step</button></div>${t.starter?'<p class="field-hint suggestion-note">Starter suggestion. Saving an edit makes it your task.</p>':''}</div><div class="dialog-bottom">${original?`<button type="button" class="button plain" data-action="${original.archived?'unarchive-editor':'archive-editor'}">${icon('archive')}${original.archived?'Restore':'Archive'}</button>`:'<span class="small-text muted">Only a title is required.</span>'}<span class="spacer"></span><button type="button" class="button" data-action="close-task">Cancel</button><button type="submit" class="button primary">${original?'Save changes':'Create task'}</button></div>${original?`<div class="dialog-meta"><span>Created ${fullDate(original.createdAt)}</span><span>Updated ${fullDate(original.updatedAt)}</span></div>`:''}</form>`;
+  $('#task-dialog').innerHTML=`<form id="task-form"><div class="dialog-top"><span class="issue-key">${original?issueKey(original):'NEW'}</span><h2 id="task-dialog-title">${original?'Task details':'Add a task'}</h2>${iconButton('close','close-task','Close task')}</div><div class="dialog-body"><div id="task-error"></div><div class="field"><label class="field-label" for="task-title">What needs doing?</label><textarea name="title" id="task-title" class="task-title-input" maxlength="240" required rows="2" placeholder="Start with one next action…">${esc(t.title)}</textarea></div><div class="form-grid"><div class="field"><label class="field-label" for="task-area">Area</label><select name="area" id="task-area">${selectOptions(areaEntries(),t.area)}</select></div><div class="field"><label class="field-label" for="task-status">Status</label><select name="status" id="task-status">${taskOptions(t.status)}</select></div></div><div class="field check-field"><label class="checkbox-label"><input type="checkbox" name="today" ${t.today?'checked':''}> Pin to Today</label></div>${isShared()?`<div class="field"><label class="field-label" for="task-assignee">Assigned to</label><select id="task-assignee" name="assigneeId">${selectOptions([['','Unassigned'],...(store.members||[]).map(member=>[member.userId,member.displayName||member.email])],store.assignees?.[id]||'')}</select></div>`:''}<div class="field"><label class="field-label" for="task-notes">Notes / next step</label><textarea name="notes" id="task-notes" class="notes" rows="4" maxlength="20000" placeholder="A useful detail, the person you are waiting on, or what done looks like.">${esc(t.notes)}</textarea></div><details class="optional-fields" ${original?'open':''}><summary>Dates, project & other details</summary><div class="form-grid"><div class="field"><label class="field-label" for="task-priority">Priority</label><select name="priority" id="task-priority">${selectOptions([['high','High'],['normal','Normal'],['low','Low']],t.priority)}</select></div><div class="field"><label class="field-label" for="task-project">Project (optional)</label><select name="projectId" id="task-project"><option value="">No project</option>${selectOptions(projects.map(p=>[p.id,p.name]),t.projectId)}</select></div><div class="field"><label class="field-label" for="task-due">Due date</label><input type="date" name="due" id="task-due" value="${esc(t.due)}"></div><div class="field"><label class="field-label" for="task-followup">Follow-up date</label><input type="date" name="followUp" id="task-followup" value="${esc(t.followUp)}"><p class="field-hint">Used in Dates & follow-ups while Waiting.</p></div><div class="field"><label class="field-label" for="task-effort">Time needed</label><select name="effort" id="task-effort">${selectOptions([['0','Not estimated'],['15','15 minutes'],['30','30 minutes'],['60','1 hour'],['90','90 minutes']],String(t.effort))}</select></div><div class="field"><label class="field-label" for="task-repeat">Repeat when completed</label><select name="repeat" id="task-repeat">${selectOptions([['none','Does not repeat'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']],t.repeat)}</select></div><div class="field full"><label class="field-label" for="task-url">Link</label><input type="url" name="url" id="task-url" value="${esc(t.url)}" maxlength="2048" placeholder="https://…">${t.url&&safeUrl(t.url)?`<a class="project-link-preview" href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer">Open link ↗</a>`:''}</div></div></details><div class="dialog-section"><div class="dialog-section-header"><h3>Small steps</h3><span class="small-text muted">Optional checklist</span></div><div id="task-checklist">${(t.checklist||[]).map(checklistRow).join('')}</div><button type="button" class="checklist-add" data-action="add-checklist">${icon('plus')} Add a step</button></div>${t.starter?'<p class="field-hint suggestion-note">Starter suggestion. Saving an edit makes it your task.</p>':''}</div><div class="dialog-bottom">${original?`<button type="button" class="button plain" data-action="${original.archived?'unarchive-editor':'archive-editor'}">${icon('archive')}${original.archived?'Restore':'Archive'}</button>`:'<span class="small-text muted">Only a title is required.</span>'}<span class="spacer"></span><button type="button" class="button" data-action="close-task">Cancel</button><button type="submit" class="button primary">${original?'Save changes':'Create task'}</button></div>${original?`<div class="dialog-meta"><span>Created${isShared()?authorLabel(original.id,'createdBy'):''} ${fullDate(original.createdAt)}</span><span>Updated${isShared()?authorLabel(original.id,'updatedBy'):''} ${fullDate(original.updatedAt)}</span></div>`:''}</form>`;
   $('#task-form').dataset.draftId=editingTaskId;
   const dialog=$('#task-dialog');if(!dialog.open)dialog.showModal();setTimeout(()=>$('#task-title')?.focus(),0);
 }
@@ -386,6 +405,7 @@ function activateWorkspace(next,{forced=false}={}){
   const previous=store;
   if(forced){pendingSave=false;saveToken=null;}
   unsubscribeStore?.();unsubscribeStore=null;
+  clearInterval(connectionTimer);connectionTimer=null;
   closeTask(true);
   store=next;
   if(previous.kind==='shared')previous.dispose();
@@ -400,6 +420,8 @@ function activateWorkspace(next,{forced=false}={}){
       if(type==='state'||type==='preferences')render({preserveInlineDraft:true});
       else {renderSaveStatus();renderNotice();}
     });
+    // Repaint only connection text; never rebuild the board or a draft on a timer.
+    connectionTimer=setInterval(()=>{if(document.visibilityState!=='hidden')renderSaveStatus();},5000);
   }
   render();
 }
@@ -557,6 +579,12 @@ document.addEventListener('click',async event=>{
       if(await saveOperation(current=>current.retryPending(),'The original save is confirmed.'))finishPendingEditors(target);
     },
     'restore-team-draft':()=>restoreTeamDraft(),
+    'refresh-shared':async()=>{
+      if(!isShared()||pendingSave||store.busy||store.hasPending)return;
+      const target=store;
+      try{await target.reload();}catch(error){if(store===target)notify(error.message||'Updates could not be checked. Your draft is still here.',{error:true});}
+      if(store===target)renderSaveStatus();
+    },
     'reload-state':async()=>{if(await saveOperation(target=>target.hasPending?target.retryPending():target.reload(),'Saved workspace reloaded.',{undo:false}))openSettings();},
     menu:()=>{const open=document.body.classList.toggle('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded',String(open));},
     'close-menu':()=>{document.body.classList.remove('sidebar-open');$('.mobile-menu').setAttribute('aria-expanded','false');},

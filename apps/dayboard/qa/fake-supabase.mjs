@@ -11,6 +11,7 @@ const authListeners = new Set(), channels = new Set(), qaListeners = new Set();
 const receipts = new Map(), taskNumbers = new Map([['qa-first', 1], ['qa-second', 2]]);
 let session = ownerSession(), nextNumber = 3, committed = 0, dropped = 0, remoteEdits = 0;
 let loseArmed = false, lossRequest = null, lossRemaining = 0, delayArmed = false;
+let online = true, liveUpdates = true;
 let lastEvent = 'Ready. Open Workspaces, then Test team.';
 let snapshot = initialSnapshot();
 
@@ -40,12 +41,22 @@ function initialSnapshot() {
 }
 
 export function qaState() {
-  return {signedIn: Boolean(session), committed, dropped, revision: snapshot.workspace.revision, taskCount: snapshot.data.tasks.length, loseArmed, delayArmed, lastEvent};
+  return {signedIn: Boolean(session), online, liveUpdates, committed, dropped, revision: snapshot.workspace.revision, taskCount: snapshot.data.tasks.length, loseArmed, delayArmed, lastEvent};
 }
 
 export function subscribeQA(listener) { qaListeners.add(listener); listener(qaState()); return () => qaListeners.delete(listener); }
 function announce(message) { lastEvent = message; for (const listener of qaListeners) listener(qaState()); }
-function broadcast() { for (const channel of channels) queueMicrotask(() => { if (channels.has(channel)) channel.update?.({eventType: 'UPDATE'}); }); }
+function broadcast() {
+  if (!online || !liveUpdates) return;
+  for (const channel of channels) queueMicrotask(() => {
+    if (online && liveUpdates && channels.has(channel)) channel.update?.({eventType: 'UPDATE'});
+  });
+}
+function publishChannelStatus(channel) {
+  queueMicrotask(() => {
+    if (channels.has(channel)) channel.status?.(online && liveUpdates ? 'SUBSCRIBED' : 'CHANNEL_ERROR');
+  });
+}
 function changeSession(next, event) { session = next; for (const listener of authListeners) listener(event, clone(session)); }
 function advance(target) { target.workspace.revision++; target.data.revision = target.workspace.revision; target.data.updatedAt = stamp(); }
 
@@ -55,7 +66,20 @@ export function qaAction(action) {
     announce('Armed: the next save is committed once, then both automatic replies are lost. Use Retry original save afterwards.');
   } else if (action === 'delay') {
     delayArmed = true;
-    announce('Armed: the next save reply waits 2 seconds after the synthetic server commits it.');
+    announce('Armed: the next save reply waits 3 seconds after the synthetic server commits it.');
+  } else if (action === 'offline') {
+    online = !online;
+    for (const channel of channels) publishChannelStatus(channel);
+    globalThis.window.dispatchEvent(new Event(online ? 'online' : 'offline'));
+    announce(online
+      ? 'Synthetic connection restored. HTTP requests can complete; any unconfirmed save still needs its original retry.'
+      : 'Synthetic offline mode: requests fail and update notifications stop. No browser or real network setting changed.');
+  } else if (action === 'polling') {
+    liveUpdates = !liveUpdates;
+    for (const channel of channels) publishChannelStatus(channel);
+    announce(liveUpdates
+      ? `Synthetic live notifications enabled.${online ? ' The subscription can reconnect.' : ' Reconnect the test connection to receive them.'}`
+      : 'Synthetic polling-only mode: live notifications stop; HTTP snapshots and saves remain available while online.');
   } else if (action === 'remote') {
     const task = snapshot.data.tasks.find(item => item.id === 'qa-first');
     if (!task) { announce('The first synthetic task was removed. Reload this QA page to reset it.'); return; }
@@ -65,7 +89,7 @@ export function qaAction(action) {
     task.updatedAt = stamp(); snapshot.versions.tasks[task.id]++;
     snapshot.audit[task.id].updatedBy = MEMBER;
     advance(snapshot); broadcast();
-    announce(`Synthetic remote edit ${remoteEdits} committed. Any already-open editor should retain its draft and detect the conflict.`);
+    announce(`Synthetic remote edit ${remoteEdits} committed.${online && liveUpdates ? ' Live notification published.' : ' No live notification; a later snapshot can retrieve it.'} Any already-open editor should retain its draft and detect the conflict.`);
   } else if (action === 'expire') {
     changeSession(null, 'SIGNED_OUT');
     announce('Synthetic sign-in expired. No token or account was changed outside this page.');
@@ -126,6 +150,7 @@ function applyCommit(args) {
 
 async function runRPC(name, args, headers, signal) {
   if (signal?.aborted) throw new DOMException('Synthetic request aborted', 'AbortError');
+  if (!online) return {data: null, error: {message: 'Synthetic connection is offline. No request reached the fixture server.'}};
   if (headers.Authorization !== `Bearer ${TOKEN}`) return failure('42501', 'The QA fixture requires its synthetic owner sign-in.');
   if (name === 'dayboard_workspaces') return {data: [{...clone(snapshot.workspace), memberCount: 2}], error: null};
   if (name === 'dayboard_capabilities') return {data: {mayCreateWorkspace: false, workspaceLimit: 1, ownedWorkspaceCount: 1}, error: null};
@@ -138,8 +163,9 @@ async function runRPC(name, args, headers, signal) {
   const result = applyCommit(args);
   if (result.error) return result;
   announce(result.data.receipt.replayed ? 'Original request replayed; no additional transaction was committed.' : 'Synthetic shared save committed.');
-  if (delayed) await new Promise(resolve => setTimeout(resolve, 2000));
+  if (delayed) await new Promise(resolve => setTimeout(resolve, 3000));
   if (signal?.aborted) throw new DOMException('Synthetic request aborted after commit', 'AbortError');
+  if (!online) return {data: null, error: {message: 'Synthetic connection went offline before the save reply arrived.'}};
   if (args.p_request_id === lossRequest && lossRemaining > 0) {
     lossRemaining--; dropped++;
     announce(`Synthetic server has the save; reply ${3 - lossRemaining - 1} of 2 was deliberately lost.`);
@@ -167,7 +193,7 @@ const client = {
   channel() {
     const channel = {
       on(_type, _filter, callback) { channel.update = callback; return channel; },
-      subscribe(callback) { channels.add(channel); queueMicrotask(() => { if (channels.has(channel)) callback('SUBSCRIBED'); }); return channel; },
+      subscribe(callback) { channel.status = callback; channels.add(channel); publishChannelStatus(channel); return channel; },
     };
     return channel;
   },

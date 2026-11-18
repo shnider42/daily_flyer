@@ -23,6 +23,6 @@ const html = readFileSync(join(source, 'index.html'), 'utf8')
   .replace("connect-src 'self'", "connect-src 'none'")
   .replace('<link rel="stylesheet" href="./style.css">', '<link rel="stylesheet" href="./style.css">\n  <link rel="stylesheet" href="./qa.css">');
 writeFileSync(join(output, 'index.html'), html);
-const hashes = Object.fromEntries(['app.js', 'shared.mjs', 'teams-ui.mjs'].map(name => [name, createHash('sha256').update(readFileSync(join(source, name))).digest('hex')]));
+const hashes = Object.fromEntries(['app.js', 'shared.mjs', 'teams-ui.mjs', 'connection-status.mjs'].map(name => [name, createHash('sha256').update(readFileSync(join(source, name))).digest('hex')]));
 writeFileSync(join(output, 'qa-build-info.json'), JSON.stringify({synthetic: true, backendSecurityTest: false, builtAt: new Date().toISOString(), productionSourceSHA256: hashes}, null, 2));
 console.log(`Synthetic client/UI fixture built at ${output}. No hosted calls; connect-src is none.`);

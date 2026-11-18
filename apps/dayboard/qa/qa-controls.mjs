@@ -2,7 +2,8 @@ import {qaAction, qaState, subscribeQA} from './fake-supabase.mjs';
 
 const actions = [
   ['lose', 'Lose next save replies'], ['remote', 'Remote edit first task'],
-  ['expire', 'Expire test sign-in'], ['restore', 'Restore test sign-in'], ['delay', 'Delay next save 2s'],
+  ['expire', 'Expire test sign-in'], ['restore', 'Restore test sign-in'], ['delay', 'Delay next save 3s'],
+  ['offline', 'Simulate offline'], ['polling', 'Polling only'],
 ];
 
 function strip(inDialog = false) {
@@ -16,10 +17,16 @@ function strip(inDialog = false) {
 
 function updateStrip(section, state) {
   const text = section.querySelector('.qa-state');
-  const message = `${state.signedIn ? 'Owner signed in' : 'Signed out'} · Server revision ${state.revision} · ${state.committed} committed saves · ${state.dropped} lost replies · ${state.taskCount} team tasks. ${state.lastEvent}`;
+  const message = `${state.signedIn ? 'Owner signed in' : 'Signed out'} · Synthetic ${state.online ? 'online' : 'offline'} · ${state.liveUpdates ? 'Live notifications enabled' : 'Polling only'} · Server revision ${state.revision} · ${state.committed} committed saves · ${state.dropped} lost replies · ${state.taskCount} team tasks. ${state.lastEvent}`;
   if (text.textContent !== message) text.textContent = message;
   section.querySelector('[data-qa-action="lose"]').setAttribute('aria-pressed', String(state.loseArmed));
   section.querySelector('[data-qa-action="delay"]').setAttribute('aria-pressed', String(state.delayArmed));
+  const offline = section.querySelector('[data-qa-action="offline"]');
+  offline.setAttribute('aria-pressed', String(!state.online));
+  offline.title = state.online ? 'Make synthetic requests fail and stop live updates.' : 'Restore the synthetic connection.';
+  const polling = section.querySelector('[data-qa-action="polling"]');
+  polling.setAttribute('aria-pressed', String(!state.liveUpdates));
+  polling.title = state.liveUpdates ? 'Stop synthetic live notifications while keeping requests available.' : 'Restore synthetic live notifications.';
 }
 
 // These visible links remain operable during a deliberately stalled save. They

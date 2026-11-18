@@ -45,6 +45,16 @@
         <div><div class="workspace-heading-meta"><button id="workspace-scope" class="workspace-scope" data-team-action="workspaces" aria-haspopup="dialog">Personal · this browser</button><div class="page-eyebrow" id="page-eyebrow">SUNDAY, NOVEMBER 8</div></div><h1 id="page-title">My board</h1><p id="page-description">A place for what needs doing. One next step at a time.</p></div>
         <div class="header-actions"><button class="button subtle" data-action="capture-list" aria-label="Paste a list" title="Paste a list"><span data-icon="list-plus"></span><span>Paste a list</span></button><button class="button primary" data-action="new-task" aria-label="New task"><span data-icon="plus"></span><span>New task</span></button></div>
       </section>
+      <details id="shared-connection" class="shared-connection" hidden>
+        <summary><span class="connection-dot" aria-hidden="true"></span><span id="connection-label" aria-live="polite"></span><span class="connection-disclosure" aria-hidden="true">Details</span></summary>
+        <div class="connection-details">
+          <p id="connection-save"></p>
+          <p id="connection-detail"></p>
+          <p id="connection-freshness" class="connection-meta"></p>
+          <p id="connection-timing" class="connection-meta" hidden></p>
+          <button id="connection-check" class="button small" type="button" data-action="refresh-shared">Check for updates</button>
+        </div>
+      </details>
       <div id="notice-region"></div>
       <section class="focus-strip" id="focus-strip" aria-label="Today's focus"></section>
       <section class="toolbar" id="toolbar" aria-label="Board filters"></section>

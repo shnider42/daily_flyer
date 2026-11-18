@@ -88,6 +88,16 @@ Browser checks used the production client source with a visibly labelled synthet
 
 The reusable fixture is in `qa/`; it is excluded from production assets. The oversized desktop iframe preview had an interaction issue with the new chooser; the direct production and synthetic pages both opened it successfully. No claim is made here about full mobile QA, real email delivery, hosted Realtime, or concurrent PostgreSQL lock scheduling. Those remain pilot gates.
 
+## Connection and collaboration follow-up — November 17, 2026
+
+The candidate now distinguishes confirmed shared saves from the freshness of the displayed board. A compact disclosure below the workspace header is available on desktop and mobile layouts. It identifies live updates, periodic checks, offline state, slow requests, delayed updates, and saves whose reply has not been confirmed. The details show the last authorized confirmation and the measured duration of the last successful request, including transport and server processing. A connected subscription never proves board freshness or that every teammate has received a change. Routine quick polling does not repeatedly announce a changing status to screen readers.
+
+The store now ignores an obsolete refresh failure after a newer save, coalesces update notifications received during an active read into a follow-up read, refreshes on reconnect, and restores its live-transport label when a surviving subscription receives an update. Reconnect never automatically replays an uncertain write. Timers and browser listeners are removed when the workspace closes. These follow the existing DFE patterns of explicit acknowledgements, request identity, generation checks, and connection feedback while retaining Dayboard's record-level conflict and membership protections.
+
+Task details use the existing authorized authorship metadata to identify the creator and last editor. The sign-in message explains the same-browser invitation-tab return; no authentication method, SMTP settings, admission policy, or hosted data changed.
+
+Verification: the production build passed its existing gate with **100 tests**. New focused coverage checks the failed-read race, invalidation during an active refresh, monotonic timing and slow operations, offline/reconnect/disposal, no automatic pending-write replay, and the distinction between save confirmation and update freshness. The visibly synthetic QA fixture now includes offline and polling-only toggles and a three-second delayed save. Browser verification of these new visual states remains uncompleted: local Chromium could not start under the runtime restrictions, and the cloud browser could not access the local preview. This does not replace the hosted two-user and delivery checks above. Team mode remains disabled.
+
 ## Release sequence
 
 1. Keep the candidate separate and team mode disabled. Verify the personal 1.2.1 privacy deployment at the existing public origin; keep the existing browser storage key and data unchanged.

@@ -357,7 +357,7 @@ export class TeamService {
  * There is no persistent shared-content cache or automatic offline write queue.
  */
 export class SharedBoardStore {
-  constructor(service, snapshot, {autoSubscribe = true, pollInterval = 15000} = {}) {
+  constructor(service, snapshot, {autoSubscribe = true, pollInterval = 15000, slowAfterMs = 2000, now = Date.now, monotonicNow = () => performance.now(), scheduleTimeout = setTimeout, cancelTimeout = clearTimeout} = {}) {
     this.kind = 'shared';
     this.service = service;
     this.userId = service._requireUser();
@@ -370,7 +370,17 @@ export class SharedBoardStore {
     this._readEpoch = 0;
     this._refreshPromise = null;
     this._reloadQueued = false;
-    this._pollInterval = Math.max(5000, pollInterval);
+    this._pollInterval = Number.isFinite(pollInterval) ? Math.max(5000, pollInterval) : 15000;
+    this._slowAfterMs = Number.isFinite(slowAfterMs) ? Math.max(1, slowAfterMs) : 2000;
+    this._now = now;
+    this._monotonicNow = monotonicNow;
+    this._scheduleTimeout = scheduleTimeout;
+    this._cancelTimeout = cancelTimeout;
+    this._online = (globalThis.window?.navigator?.onLine ?? globalThis.navigator?.onLine) !== false;
+    this._connectionRequest = null;
+    this._lastConfirmedAt = null;
+    this._lastResponseMs = null;
+    this._slowTimer = null;
     this._channel = null;
     this._pollTimer = null;
     this._reloadTimer = null;
@@ -396,6 +406,14 @@ export class SharedBoardStore {
   get busy() { return this._saving; }
   get hasPending() { return this._pending !== null; }
   get canUndo() { return this._history.length > 0 && !this.busy && !this.hasPending && !this._disposed; }
+  get connection() {
+    return Object.freeze({
+      updates: this.updates, online: this._online,
+      checking: this._connectionRequest?.kind === 'check', slow: this._connectionRequest?.slow === true,
+      lastConfirmedAt: this._lastConfirmedAt, lastResponseMs: this._lastResponseMs,
+      pollIntervalMs: this._pollInterval,
+    });
+  }
 
   _assertActive() {
     if (this._disposed) throw new TeamError(this._disposeReason || 'Reopen this shared workspace before saving.', {code: 'AUTH_CHANGED'});
@@ -403,6 +421,7 @@ export class SharedBoardStore {
   }
 
   _emit(type = 'state') {
+    if (this._disposed) return;
     for (const listener of this._listeners) {
       try { listener(this, {type}); } catch { /* Never report a durable save as failed because rendering failed. */ }
     }
@@ -410,7 +429,29 @@ export class SharedBoardStore {
 
   subscribe(listener) { this._listeners.add(listener); return () => this._listeners.delete(listener); }
 
-  _applySnapshot(snapshot, {initial = false} = {}) {
+  _beginConnectionRequest(kind) {
+    this._cancelTimeout(this._slowTimer);
+    const request = {kind, slow: false};
+    this._connectionRequest = request;
+    this._slowTimer = this._scheduleTimeout(() => {
+      if (this._disposed || this._connectionRequest !== request) return;
+      this._slowTimer = null;
+      request.slow = true;
+      this._emit('connection');
+    }, this._slowAfterMs);
+    this._emit('connection');
+    return request;
+  }
+
+  _finishConnectionRequest(request) {
+    if (this._connectionRequest !== request) return;
+    this._cancelTimeout(this._slowTimer);
+    this._slowTimer = null;
+    this._connectionRequest = null;
+    this._emit('connection');
+  }
+
+  _applySnapshot(snapshot, {initial = false, responseMs = null} = {}) {
     object(snapshot, 'Shared workspace');
     const workspace = object(snapshot.workspace, 'Workspace');
     uuid(workspace.id, 'Workspace ID');
@@ -450,6 +491,10 @@ export class SharedBoardStore {
     this.loadIssue = null;
     this.lastError = null;
     this.syncStatus = 'saved';
+    // Freshness comes from an authorized, validated response, never a socket
+    // subscription, a browser connectivity hint, or the board's edit time.
+    this._lastConfirmedAt = this._now();
+    if (responseMs !== null) this._lastResponseMs = responseMs;
     if (!initial) this._emit('state');
     return true;
   }
@@ -466,16 +511,28 @@ export class SharedBoardStore {
     this._assertActive();
     if (this.hasPending) return await this.retryPending();
     if (this.busy) { this._reloadQueued = true; return this.state; }
-    if (this._refreshPromise) return this._refreshPromise;
+    if (this._refreshPromise) { this._reloadQueued = true; return this._refreshPromise; }
+    this._cancelTimeout(this._reloadTimer);
+    this._reloadTimer = null;
+    this._reloadQueued = false;
     const epoch = this._readEpoch;
+    const request = this._beginConnectionRequest('check');
+    const started = this._monotonicNow();
     this._refreshPromise = (async () => {
       try {
         const snapshot = await this.service._rpc('dayboard_snapshot', {p_workspace_id: this.workspace.id}, this.userId);
+        const responseMs = Math.max(0, this._monotonicNow() - started);
         this._assertActive();
-        if (epoch === this._readEpoch && !this.busy) this._applySnapshot(snapshot);
+        if (epoch === this._readEpoch && !this.busy) this._applySnapshot(snapshot, {responseMs});
         return this.state;
-      } catch (error) { if (!this._disposed) this._handleError(error, {loading: true}); throw error; }
-      finally { this._refreshPromise = null; }
+      } catch (error) {
+        if (!this._disposed && epoch === this._readEpoch && !this.busy && this.service.user?.id === this.userId) this._handleError(error, {loading: true});
+        throw error;
+      } finally {
+        this._refreshPromise = null;
+        this._finishConnectionRequest(request);
+        this._drainReload();
+      }
     })();
     return this._refreshPromise;
   }
@@ -548,13 +605,16 @@ export class SharedBoardStore {
     this._saving = true;
     this._readEpoch++;
     this.syncStatus = 'saving';
+    const request = this._beginConnectionRequest('save');
     this._emit('saving');
     try {
-      let response;
+      let response, responseMs;
       // One transport retry uses exactly the original request ID and payload.
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
+          const started = this._monotonicNow();
           response = await this.service._rpc('dayboard_commit', {p_workspace_id: this.workspace.id, p_request_id: pending.requestId, p_changes: pending.changes}, this.userId);
+          responseMs = Math.max(0, this._monotonicNow() - started);
           break;
         } catch (error) {
           if (!error.uncertain || attempt === 1 || this._disposed) throw error;
@@ -570,7 +630,7 @@ export class SharedBoardStore {
         if (!expectedVersion) throw new TeamError('The server response is missing a saved record version. Retry the original save.', {code: 'RECEIPT', uncertain: true});
         return {...change, expectedVersion};
       });
-      this._applySnapshot(response);
+      this._applySnapshot(response, {responseMs});
       this._pending = null;
       if (pending.undo) this._history.pop();
       else if (inverse.length) {
@@ -587,8 +647,9 @@ export class SharedBoardStore {
       throw error;
     } finally {
       this._saving = false;
+      this._finishConnectionRequest(request);
       this._emit('settled');
-      if (this._reloadQueued && !this.hasPending && !this._disposed) { this._reloadQueued = false; this._requestReload(); }
+      this._drainReload();
     }
   }
 
@@ -649,10 +710,18 @@ export class SharedBoardStore {
   }
 
   _requestReload() {
-    if (this._disposed || this.hasPending) return;
-    if (this.busy) { this._reloadQueued = true; return; }
-    if (this._reloadTimer) return;
-    this._reloadTimer = setTimeout(() => { this._reloadTimer = null; this.reload().catch(() => {}); }, 100);
+    if (this._disposed) return;
+    if (this.busy || this._refreshPromise) { this._reloadQueued = true; return; }
+    if (this.hasPending || !this._online || this._reloadTimer !== null) return;
+    this._reloadQueued = false;
+    this._reloadTimer = this._scheduleTimeout(() => {
+      this._reloadTimer = null;
+      if (!this._disposed && this._online && !this.hasPending) this.reload().catch(() => {});
+    }, 100);
+  }
+
+  _drainReload() {
+    if (this._reloadQueued && !this.busy && !this._refreshPromise) this._requestReload();
   }
 
   _startUpdates() {
@@ -660,10 +729,19 @@ export class SharedBoardStore {
     if (client?.channel) {
       try {
         this._channel = client.channel(`dayboard-${this.workspace.id}-${newID()}`)
-          .on('postgres_changes', {event: 'UPDATE', schema: 'public', table: 'dayboard_workspaces', filter: `id=eq.${this.workspace.id}`}, () => this._requestReload())
+          .on('postgres_changes', {event: 'UPDATE', schema: 'public', table: 'dayboard_workspaces', filter: `id=eq.${this.workspace.id}`}, () => {
+            if (this._disposed) return;
+            // A surviving subscription may resume without another SUBSCRIBED.
+            // Its notification proves transport activity, not board freshness.
+            if (this._online && this.updates !== 'live') {
+              this.updates = 'live';
+              this._emit('connection');
+            }
+            this._requestReload();
+          })
           .subscribe(status => {
             if (this._disposed) return;
-            this.updates = status === 'SUBSCRIBED' ? 'live' : 'polling';
+            this.updates = status === 'SUBSCRIBED' && this._online ? 'live' : 'polling';
             if (status === 'SUBSCRIBED') this._requestReload();
             this._emit('connection');
           });
@@ -672,12 +750,26 @@ export class SharedBoardStore {
     const poll = () => {
       if (this._disposed) return;
       if (globalThis.document?.visibilityState !== 'hidden') this._requestReload();
-      this._pollTimer = setTimeout(poll, this._pollInterval);
+      this._pollTimer = this._scheduleTimeout(poll, this._pollInterval);
     };
-    this._pollTimer = setTimeout(poll, this._pollInterval);
-    this._onReconnect = () => this._requestReload();
+    this._pollTimer = this._scheduleTimeout(poll, this._pollInterval);
+    this._onReconnect = () => {
+      if (this._disposed) return;
+      this._online = true;
+      this._emit('connection');
+      this._requestReload();
+    };
+    this._onOffline = () => {
+      if (this._disposed) return;
+      this._online = false;
+      this.updates = 'polling';
+      this._cancelTimeout(this._reloadTimer);
+      this._reloadTimer = null;
+      this._emit('connection');
+    };
     this._onVisible = () => { if (globalThis.document?.visibilityState === 'visible') this._requestReload(); };
     globalThis.window.addEventListener('online', this._onReconnect);
+    globalThis.window.addEventListener('offline', this._onOffline);
     globalThis.document?.addEventListener('visibilitychange', this._onVisible);
   }
 
@@ -686,13 +778,20 @@ export class SharedBoardStore {
     this._disposed = true;
     this._disposeReason = reason;
     this._readEpoch++;
-    clearTimeout(this._pollTimer);
-    clearTimeout(this._reloadTimer);
+    this._cancelTimeout(this._pollTimer);
+    this._cancelTimeout(this._reloadTimer);
+    this._cancelTimeout(this._slowTimer);
+    this._pollTimer = null;
+    this._reloadTimer = null;
+    this._slowTimer = null;
+    this._connectionRequest = null;
+    this._reloadQueued = false;
     if (this._channel) {
       try { Promise.resolve(this.service._client?.removeChannel(this._channel)).catch(() => {}); }
       catch { /* The store stays closed even if the transport is already gone. */ }
     }
     if (this._onReconnect) globalThis.window?.removeEventListener('online', this._onReconnect);
+    if (this._onOffline) globalThis.window?.removeEventListener('offline', this._onOffline);
     if (this._onVisible) globalThis.document?.removeEventListener('visibilitychange', this._onVisible);
     this.service._stores?.delete(this);
     this._listeners.clear();

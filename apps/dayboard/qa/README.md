@@ -28,10 +28,14 @@ The synthetic team server and sign-in live only in memory and reset on page relo
 The labelled strip also appears inside open dialogs, allowing checks while an editor is open. Its controls remain operable during deliberately stalled saves.
 
 - **Lose next save replies:** Arms the next commit. The synthetic server commits it once, then loses both replies for that request ID, including the client's automatic retry. The strip reports committed-save and lost-reply counts.
-- **Remote edit first task:** Changes the first task's title and notes, advances its record version, and publishes a synthetic update notification.
+- **Remote edit first task:** Changes the first task's title and notes and advances its record version. It publishes a synthetic update notification only when the fixture is online with live notifications enabled. Polling can retrieve the edit independently.
 - **Expire test sign-in:** Emits a sign-out event for the synthetic account.
 - **Restore test sign-in:** Restores the same synthetic owner. This sends no email.
-- **Delay next save 2s:** Commits the next save, then delays its response by two seconds. It can be combined with expiry or lost replies.
+- **Delay next save 3s:** Commits the next save, then delays its response by three seconds, long enough to exercise the app's two-second slow-request indicator. It can be combined with expiry or lost replies.
+- **Simulate offline:** Toggle button. When pressed, synthetic RPC requests fail and live notifications stop. Restoring it emits an online event and restores the selected live/polling mode. This changes only the fixture, not the browser's actual network connection or `navigator.onLine`. A connection lost during a delayed save leaves the commit intact and loses its reply.
+- **Polling only:** Toggle button. When pressed, live notifications stop and the channel reports a connection error, but HTTP-style snapshots and saves remain available while online. Restoring it reconnects the synthetic channel. It does not fabricate a network latency value.
+
+Both connection toggles expose their current state through `aria-pressed`; the strip announces the synthetic connection and notification modes. Request timings shown by the production connection UI measure the fixture's local execution and deliberate delay, not hosted network performance.
 
 ## Focused browser checks
 
@@ -41,10 +45,20 @@ The labelled strip also appears inside open dialogs, allowing checks while an ed
 | Uncertain save | Arm **Lose next save replies**, create a task, and save. | One server transaction and one new task are recorded; the app reports an unconfirmed save and keeps the draft. |
 | Original-save recovery | After the uncertain-save error, type an additional edit, then use **Retry original save**. | The original receipt is recovered without another transaction or duplicate task. The additional typing remains available to save separately. |
 | Sign-in expiry | Type an unsaved shared draft, use **Expire test sign-in**, then **Restore test sign-in** and the app's **Restore draft** action. | The app first returns to Personal. The draft is restored only for its original identity and workspace. |
-| Quick-capture overlap | Arm **Delay next save 2s**, submit an Inbox quick capture, and type the next thought while the reply is delayed. | Confirmation of the first save retains the next thought. Submitting that thought creates a separate task. |
+| Slow save | Arm **Delay next save 3s**, then save a shared edit. Inspect the shared connection label and details. | After two seconds, the UI explains that confirmation is still pending. It shows a saved result only after the delayed reply completes. |
+| Polling fallback | Press **Polling only**, use **Remote edit first task**, and wait for the next visible-tab poll. | Connection details identify periodic checks instead of live updates. The snapshot retrieves the remote edit; successful shared saves remain available. |
+| Offline freshness | Press **Simulate offline** while a shared board is open. Inspect the connection label and details; then restore the connection. | The UI identifies the offline/stale state without marking existing confirmed edits unsaved. Reconnecting permits a fresh snapshot. |
+| Lost connection after commit | Arm **Delay next save 3s**, save a shared edit, then press **Simulate offline** before the reply arrives. Restore the connection and use **Retry original save**. | The existing commit is recovered through its original receipt, without another transaction or duplicate task. Freshness recovery does not silently discard the pending operation. |
+| Quick-capture overlap | Arm **Delay next save 3s**, submit an Inbox quick capture, and type the next thought while the reply is delayed. | Confirmation of the first save retains the next thought. Submitting that thought creates a separate task. |
 | Personal isolation | Create synthetic personal tasks and Areas, switch to Test team and make changes, then return to Personal. | The same personal tasks and Areas remain, without team records being merged into them. |
 
 Supported transport operations are workspace list/snapshot/commit, receipt replay, minimal update subscriptions, and an empty pending-invitation list. Workspace creation and invitation mutations return an explicit QA-unsupported error.
+
+These are expected results for focused manual checks, not a record that the new connection scenarios have been executed. The production connection elements are `#shared-connection` and `#connection-label`; the QA build records the source hash of `connection-status.mjs` along with the app, shared store, and team UI.
+
+## Connection follow-up verification
+
+The production build gate passed with 100 tests after the connection follow-up. The new browser scenarios above have not been verified visually: the current execution environment prevented local Chromium from starting, and its cloud browser could not reach the local fixture. The earlier observed results below are retained with their original date; they are not evidence for the new status display.
 
 ## Observed browser result
 

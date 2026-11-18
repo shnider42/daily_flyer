@@ -390,7 +390,7 @@ export function createTeamsUI({service, localStore, getStore, onWorkspaceChange,
     if (form.id === 'team-signin-form') {
       const email = String(data.get('email') || '').trim();
       await mutate(() => service.requestSignIn(email), () => {
-        feedback(`If ${email} is eligible for this pilot, check it for a sign-in link. Your personal board remains here.`);
+        feedback(`If ${email} is eligible for this pilot, check it for a sign-in link. Open the link in this same browser.${pendingInvite ? ' Keep this invitation tab open, then return here to review and join the workspace. If needed, reopen your original invitation link after signing in.' : ' Return here after signing in to choose a workspace.'} Your personal board remains here.`);
         const submit = form.querySelector('button[type="submit"]'); if (submit) submit.textContent = 'Send another sign-in link';
       }, 'Requesting sign-in link…');
     } else if (form.id === 'team-create-form') {

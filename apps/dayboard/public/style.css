@@ -534,6 +534,8 @@ label {
 .save-status.error .save-dot {
   background: var(--red);
 }
+.save-status.waiting { color: var(--amber); }
+.save-status.waiting .save-dot { background: var(--amber); }
 .storage-note {
   font-size: .722rem;
   display: block;
@@ -3249,6 +3251,40 @@ dialog::backdrop {
 }
 .workspace-scope:hover {
   text-decoration-color: currentColor;
+}
+.shared-connection {
+  margin: -8px var(--gutter) 18px;
+  max-width: 44rem;
+  color: var(--secondary);
+  font-size: .778rem;
+  line-height: 1.5;
+}
+.shared-connection > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 36px;
+  cursor: pointer;
+  list-style: none;
+}
+.shared-connection > summary::-webkit-details-marker { display: none; }
+.shared-connection > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.connection-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--green); }
+.connection-disclosure { color: var(--muted); font-size: .722rem; text-decoration: underline; text-underline-offset: 3px; }
+.shared-connection[data-tone=warning] > summary,
+.shared-connection[data-tone=waiting] > summary { color: var(--amber); }
+.shared-connection[data-tone=warning] .connection-dot,
+.shared-connection[data-tone=waiting] .connection-dot { background: var(--amber); }
+.shared-connection[data-tone=error] > summary { color: var(--red); }
+.shared-connection[data-tone=error] .connection-dot { background: var(--red); }
+.connection-details { border-left: 2px solid var(--line); padding: 2px 0 4px 14px; margin: 3px 0 8px 3px; overflow-wrap: anywhere; }
+.connection-details p { margin: 0 0 9px; }
+#connection-save { color: var(--ink); font-weight: 600; }
+.connection-details .connection-meta { color: var(--muted); font-size: .722rem; }
+@media(max-width: 620px) {
+  .shared-connection > summary { min-height: 44px; }
 }
 .team-retry {
   display: block;

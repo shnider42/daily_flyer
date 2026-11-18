@@ -119,6 +119,62 @@ async function setup({server = new Server(), storage = new MemoryStorage(), serv
   return {service, store, server, storage, client, authChange: (userId = MEMBER) => authCallback('SIGNED_IN', {user: {id: userId, email: 'member@example.test', email_confirmed_at: NOW}})};
 }
 
+const settle = () => new Promise(resolve => setImmediate(resolve));
+
+function connectionClock() {
+  let elapsed = 0, wall = Date.parse(NOW), nextTimer = 0;
+  const timers = new Map();
+  return {
+    options: {
+      autoSubscribe: false, now: () => wall, monotonicNow: () => elapsed,
+      scheduleTimeout: (callback, delay) => { const id = ++nextTimer; timers.set(id, {callback, at: elapsed + delay}); return id; },
+      cancelTimeout: id => timers.delete(id),
+    },
+    get now() { return wall; },
+    get timerCount() { return timers.size; },
+    shiftWall(ms) { wall += ms; },
+    advance(ms) {
+      const target = elapsed + ms;
+      while (true) {
+        const next = [...timers].filter(([, timer]) => timer.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!next) break;
+        const [id, timer] = next;
+        wall += timer.at - elapsed; elapsed = timer.at;
+        timers.delete(id); timer.callback();
+      }
+      wall += target - elapsed; elapsed = target;
+    },
+  };
+}
+
+function connectionSurface(client) {
+  const previousWindow = globalThis.window, previousDocument = globalThis.document;
+  const listeners = new Map();
+  const target = name => ({
+    addEventListener(type, listener) { const key = `${name}:${type}`; if (!listeners.has(key)) listeners.set(key, new Set()); listeners.get(key).add(listener); },
+    removeEventListener(type, listener) { listeners.get(`${name}:${type}`)?.delete(listener); },
+  });
+  globalThis.window = {...target('window'), navigator: {onLine: true}};
+  globalThis.document = {...target('document'), visibilityState: 'visible'};
+  let update, status, removed = 0;
+  const channel = {
+    on(_event, _filter, callback) { update = callback; return this; },
+    subscribe(callback) { status = callback; return this; },
+  };
+  client.channel = () => channel;
+  client.removeChannel = () => { removed++; };
+  return {
+    update: () => update(), status: value => status(value),
+    event(type) { for (const listener of listeners.get(`window:${type}`) || []) listener(); },
+    get listenerCount() { return [...listeners.values()].reduce((total, set) => total + set.size, 0); },
+    get removedChannels() { return removed; },
+    restore() {
+      if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow;
+      if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+    },
+  };
+}
+
 test('team mode is disabled by default and cannot instantiate an SDK or reach a backend', async () => {
   let called = false;
   const service = new TeamService(TEAM_CONFIG, {clientFactory: () => { called = true; throw new Error('Should not run'); }});
@@ -261,6 +317,215 @@ test('a slow refresh cannot overwrite a later acknowledged edit', async () => {
   release();
   await refresh;
   assert.equal(store.state.tasks[0].title, 'Newer acknowledged work');
+});
+
+test('an obsolete refresh failure cannot replace a newer save or its connection confirmation', async t => {
+  const clock = connectionClock();
+  const {store, server} = await setup({serviceOptions: {storeOptions: clock.options}});
+  t.after(() => store.dispose());
+  let rejectRead;
+  server.handler = async (name, _args, respond) => {
+    if (name === 'dayboard_snapshot') return await new Promise(resolve => { rejectRead = () => resolve({data: null, error: {code: '42501', message: 'Obsolete denied read'}}); });
+    clock.advance(25);
+    return respond();
+  };
+  const refresh = store.reload();
+  const failed = assert.rejects(refresh, /Obsolete denied read/);
+  await settle();
+  clock.advance(100);
+  await store.commit(draft => { draft.tasks[0].title = 'Newer confirmed save'; });
+  const confirmed = store.connection;
+  assert.equal(confirmed.lastResponseMs, 25);
+  assert.equal(confirmed.checking, false);
+  rejectRead();
+  await failed;
+  assert.equal(store.state.tasks[0].title, 'Newer confirmed save');
+  assert.equal(store.syncStatus, 'saved');
+  assert.equal(store.lastError, null);
+  assert.equal(store.loadIssue, null);
+  assert.deepEqual(store.connection, confirmed);
+  assert.equal(store._disposed, false, 'an old permission response must not revoke a newer successful session');
+});
+
+test('updates arriving during a refresh coalesce into a fresh authorized read after it settles', async t => {
+  const clock = connectionClock();
+  const {store, server, client} = await setup({serviceOptions: {storeOptions: clock.options}});
+  const surface = connectionSurface(client);
+  t.after(() => { store.dispose(); surface.restore(); });
+  store._startUpdates();
+  let release, reads = 0;
+  server.handler = async (name, _args, respond) => {
+    if (name === 'dayboard_snapshot' && ++reads === 1) {
+      const older = respond();
+      return await new Promise(resolve => { release = () => resolve(older); });
+    }
+    return respond();
+  };
+  const first = store.reload();
+  await settle();
+  server.editTask('b', {title: 'Changed after the first read'});
+  surface.update(); surface.update();
+  clock.advance(100);
+  await settle();
+  assert.equal(reads, 1, 'invalidation must not start overlapping refreshes');
+  release();
+  await first;
+  clock.advance(100);
+  await settle();
+  assert.equal(reads, 2, 'an invalidation received in flight must not disappear with the old reply');
+  assert.equal(store.state.tasks.find(task => task.id === 'b').title, 'Changed after the first read');
+  assert.equal(store.connection.checking, false);
+});
+
+test('connection timing distinguishes slow reads and saves and only records valid responses using monotonic time', async t => {
+  const clock = connectionClock();
+  const {store, server} = await setup({serviceOptions: {storeOptions: clock.options}});
+  t.after(() => store.dispose());
+  assert.ok(Object.isFrozen(store.connection));
+  assert.equal(store.connection.lastConfirmedAt, clock.now);
+  assert.equal(store.connection.lastResponseMs, null);
+  assert.equal(store.connection.pollIntervalMs, 15000);
+  let release;
+  server.handler = async (_name, _args, respond) => {
+    const response = respond();
+    return await new Promise(resolve => { release = () => resolve(response); });
+  };
+  const events = [];
+  store.subscribe((_store, event) => events.push(event.type));
+  const state = store.state;
+  const read = store.reload();
+  await settle();
+  assert.equal(store.connection.checking, true);
+  clock.advance(1999);
+  assert.equal(store.connection.slow, false);
+  clock.advance(1);
+  assert.equal(store.connection.slow, true);
+  assert.equal(store.state, state, 'slow feedback must not mutate board content');
+  assert.ok(events.every(type => type === 'connection'));
+  clock.shiftWall(60 * 60 * 1000);
+  clock.advance(250);
+  release();
+  await read;
+  assert.equal(store.connection.lastResponseMs, 2250, 'a wall-clock adjustment must not change measured response time');
+  assert.equal(store.connection.lastConfirmedAt, clock.now);
+  assert.equal(store.connection.checking, false);
+  assert.equal(store.connection.slow, false);
+  assert.equal(clock.timerCount, 0);
+
+  const save = store.commit(draft => { draft.tasks[0].title = 'Slow acknowledged save'; });
+  await settle();
+  assert.equal(store.connection.checking, false);
+  assert.equal(store.busy, true);
+  clock.advance(2075);
+  assert.equal(store.connection.slow, true);
+  release();
+  await save;
+  assert.equal(store.connection.lastResponseMs, 2075);
+  assert.equal(store.connection.slow, false);
+  assert.equal(clock.timerCount, 0);
+
+  const confirmed = store.connection;
+  server.handler = async () => ({data: null, error: {code: 'NETWORK', message: 'Read unavailable'}});
+  clock.advance(400);
+  await assert.rejects(store.reload(), /Read unavailable/);
+  assert.equal(store.connection.lastConfirmedAt, confirmed.lastConfirmedAt);
+  assert.equal(store.connection.lastResponseMs, confirmed.lastResponseMs);
+  assert.equal(store.connection.checking, false);
+  assert.equal(clock.timerCount, 0);
+});
+
+test('browser connectivity is immediate, online always rechecks, and disposal silences timers and late replies', async t => {
+  const clock = connectionClock();
+  const {store, server, client} = await setup({serviceOptions: {storeOptions: clock.options}});
+  const surface = connectionSurface(client);
+  t.after(() => { store.dispose(); surface.restore(); });
+  store._startUpdates();
+  const events = [];
+  store.subscribe((_store, event) => events.push(event.type));
+  const openedAt = store.connection.lastConfirmedAt;
+  surface.status('SUBSCRIBED');
+  assert.equal(store.connection.updates, 'live');
+  assert.equal(store.connection.lastConfirmedAt, openedAt, 'socket subscription does not confirm board freshness');
+  clock.advance(100);
+  await settle();
+  const reads = () => server.calls.filter(call => call.name === 'dayboard_snapshot').length;
+  assert.equal(reads(), 2, 'subscription follows the initial opening with an authorized read');
+  server.editTask('a', {title: 'New work while already subscribed'});
+  surface.event('online');
+  clock.advance(100);
+  await settle();
+  assert.equal(reads(), 3, 'online revalidates even when the channel was already subscribed');
+  assert.equal(store.state.tasks[0].title, 'New work while already subscribed');
+  const state = store.state, confirmed = store.connection;
+  surface.event('offline');
+  assert.equal(store.connection.online, false);
+  assert.equal(store.connection.updates, 'polling');
+  assert.equal(store.state, state);
+  clock.advance(15000);
+  await settle();
+  assert.equal(reads(), 3, 'background polling pauses while the browser reports offline');
+  assert.equal(store.connection.lastConfirmedAt, confirmed.lastConfirmedAt);
+
+  let release;
+  server.handler = async (_name, _args, respond) => {
+    const response = respond();
+    return await new Promise(resolve => { release = () => resolve(response); });
+  };
+  surface.status('SUBSCRIBED');
+  surface.event('online');
+  assert.equal(store.connection.online, true);
+  assert.equal(store.connection.updates, 'polling');
+  surface.update();
+  assert.equal(store.connection.updates, 'live', 'a surviving subscription can resume without a new SUBSCRIBED callback');
+  assert.equal(store.connection.lastConfirmedAt, confirmed.lastConfirmedAt);
+  clock.advance(100);
+  await settle();
+  assert.equal(store.connection.checking, true);
+  const inFlight = store._refreshPromise;
+  const closed = assert.rejects(inFlight, /closed/);
+  store.dispose();
+  const afterDisposal = store.connection, eventCount = events.length;
+  assert.equal(clock.timerCount, 0);
+  assert.equal(surface.listenerCount, 0);
+  assert.equal(surface.removedChannels, 1);
+  surface.status('SUBSCRIBED'); surface.update(); surface.event('online');
+  clock.advance(20000);
+  release();
+  await closed;
+  assert.equal(events.length, eventCount);
+  assert.deepEqual(store.connection, afterDisposal);
+  assert.equal(store.connection.checking, false);
+  assert.equal(store.connection.slow, false);
+});
+
+test('connection recovery never replays an unconfirmed write or advertises it as confirmed', async t => {
+  const clock = connectionClock();
+  const {store, server, client} = await setup({serviceOptions: {storeOptions: clock.options}});
+  const surface = connectionSurface(client);
+  t.after(() => { store.dispose(); surface.restore(); });
+  store._startUpdates();
+  const confirmedAt = store.connection.lastConfirmedAt;
+  server.handler = async (name, _args, respond) => {
+    const response = respond();
+    if (name === 'dayboard_commit') throw new Error('Lost response');
+    return response;
+  };
+  await assert.rejects(store.commit(draft => { draft.tasks[0].title = 'Original pending save'; }), error => error.uncertain);
+  const originalRequest = server.calls.find(call => call.name === 'dayboard_commit').args.p_request_id;
+  const calls = server.calls.length;
+  assert.equal(store.hasPending, true);
+  surface.event('offline'); surface.event('online'); surface.status('SUBSCRIBED'); surface.update();
+  clock.advance(15000);
+  await settle();
+  assert.equal(server.calls.length, calls, 'connection events must not replay the pending operation');
+  assert.equal(store.hasPending, true);
+  assert.equal(store.connection.lastConfirmedAt, confirmedAt);
+  server.handler = null;
+  await store.retryPending();
+  assert.equal(server.calls.at(-1).args.p_request_id, originalRequest);
+  assert.equal(server.applied, 1);
+  assert.equal(store.hasPending, false);
+  assert.equal(store.connection.lastConfirmedAt, clock.now);
 });
 
 test('an account change during a save cannot publish or retry the original account’s request under another identity', async () => {
