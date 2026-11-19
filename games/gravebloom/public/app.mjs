@@ -401,4 +401,4 @@ for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) stick.
 selectClass(selectedClass); syncSound(); refreshContinue(); renderer.resize(); requestAnimationFrame(frame);
 const invite = new URL(location.href).searchParams.get('party'); if (invite) { $('#join-code').value = invite.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); status('Choose your class, then tap Join friends.', 9000); }
 const savedSession = read(STORAGE.session, null, sessionStorage);
-if (savedSession?.code && savedSession?.token && !invite) { status('You have a recent party. Trying to reconnect…', 0); connectParty('resume', savedSession); }
+if (savedSession?.code && savedSession?.token && (!invite || invite.toUpperCase() === savedSession.code)) { status('You have a recent party. Trying to reconnect…', 0); connectParty('resume', savedSession); }
