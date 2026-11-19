@@ -28,6 +28,7 @@ import {createAirlockUI} from '../dist/airlock-ui.mjs';
 import {updateNpcLife} from '../dist/npc-life.mjs';
 import {musicContext,classifyMusicEvent} from '../dist/music-context.mjs';
 import {nearbyShipThreat} from '../dist/situation-guidance.mjs';
+import {personalFireUsesShipStation} from '../dist/personal-fire.mjs';
 
 // Exercise the real app handlers with a small DOM boundary, without opening a
 // browser, invoking the render loop, or replacing the actual Game rules.
@@ -61,7 +62,7 @@ function fixture() {
     localStorage:{getItem:key=>storageEntries.get(key)??null,setItem:(key,value)=>storageEntries.set(key,value),removeItem:key=>storageEntries.delete(key)},
     game:normal,stored,tracked:'saved-contact',playing:false,actionPending:false,testSession:null,testReturn:null,testUnlocked:false,testConfig:{scenario:'ship-combat',enemyClassId:testEnemyChoices()[0].id},testOutcome:'',
     network:null,onlineSnapshot:null,connectionState:'offline',surface:null,surfaceKey:'',surfaceTarget:null,personVisualOffset:{x:0,y:0},personPredictedAt:null,personVisualAt:null,
-    stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
+    stepAccumulator:0,saveTimer:0,localShotAt:-Infinity,elapsed:0,combatFeed:[],controls:{clear(){}},combatPresentation:{reset(){}},quietEarthPresentation:{reset(){}},personalFireUsesShipStation,worldPresentation:{reset(){}},renderer:{lastSystem:'hearth'},
     tutorial,settings:{guidance:'simple',leftHanded:false,shipZoom:.65,personZoom:1.15,immersiveHud:true,translucentHud:true,compactTips:true},touchLayout:false,guideIntent:null,combatPreview:null,coachPrompt:null,ambientCue:null,performance:{now:()=>0},hideCoach(){},
     localCameraPreferences:{shipZoom:.65,personZoom:1.15},cameraScope:'local',cameraKey:null,cameraSaveTimer:null,normalizeCameraPreferences,normalizeModeZoom,zoomLimits,labelLayoutDirty:false,hudDirty:false,
     setTimeout:schedule,clearTimeout:cancel,applySettings(settings,{cameraPreferences=settings}={}){preferenceWrites.push(normalizeCameraPreferences(cameraPreferences));},queueResize(){},updatePerformanceHUD(){},

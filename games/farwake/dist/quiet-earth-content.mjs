@@ -17,11 +17,11 @@ export const isQuietEarth = site => site?.quietEarth === true && site.id === QUI
 export const QUIET_EARTH_BEATS = freeze([
   {
     id: 'pressure-vent', ...point(43, 73), radius: 80, sfx: 'bulkhead',
-    text: 'A pressure shutter slams beside you. Only a loose vent. The green return lights are still on.'
+    text: ''
   },
   {
     id: 'service-cart', ...point(61, 46), radius: 84, sfx: 'bulkhead',
-    text: 'Metal wheels scrape behind the wall. An empty service cart rolls against its stop. Then silence.'
+    text: ''
   }
 ]);
 
@@ -53,7 +53,7 @@ const site = freeze({
       id: 'service', name: 'Service strip · Receiver route', x: 49, y: 46,
       objective: 'Turn west into Service Hall 02. Read the service strip at the gold marker.',
       requireChoices: { breaker: 'restore' },
-      text: 'RECEIVER: continue to the west turn, then follow the upper hall east. Copy the local buffer; do not answer the incoming call. GREEN LIGHTS: return to intake.'
+      text: 'RECEIVER: continue to the west turn, then follow the upper hall east. Local recordings remain available while the return line is down. GREEN LIGHTS: return to intake.'
     }
   ],
   choices: [
@@ -79,11 +79,11 @@ const site = freeze({
     {
       id: 'receiver', name: 'Deep receiver · Local buffer', x: 119, y: 12,
       requireChoices: { breaker: 'restore' }, requireRecords: ['service'],
-      text: 'A fresh Earth address appears above a local recording. The receiver asks for an answer. Copying the buffer does not require one.',
+      text: 'A fresh Earth address appears above a local recording. The local buffer is ready to copy.',
       objective: 'At the west end, turn north. Follow Service Hall 03 east to the deep receiver.',
       options: [{
-        id: 'copy', label: 'Copy the recording without answering', reward: reward(),
-        text: 'The recording is yours. A voice finishes your arrival message before you speak. Movement erupts behind the receiver. GET OUT. Follow the green lights back to intake and seal the inner door.'
+        id: 'copy', label: 'Copy the local recording', reward: reward(),
+        text: 'GET BACK TO THE ENTRY. Follow the green floor lights and seal the inner door.'
       }]
     },
     {
@@ -189,7 +189,8 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
     decor('light', x + 4, 69, 5, .25, '#829a91');
     decor('doorframe', x + 10, 70, 1, 7, '#475d62');
   }
-  decor('equipment', 41, 70, 3, 1, '#6b8782', true);
+  // The vent grille and service cart are drawn by the scene presenter, so they can move.
+  decor('pipe', 40.5, 70, .5, 2, '#6b8782');
   decor('debris', 45, 71, 2, 1, '#b9ad90');
   decor('bench', 67, 70, 5, 1, '#7e8c85', true);
   label(m, 'SERVICE 01 →', 25, 70, '#9eafb0'); label(m, 'NO OPERATOR ON SHIFT', 79, 70, '#9eafb0');
@@ -205,9 +206,9 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
     decor('light', x + 10, 42, 4, .25, '#83978e');
     decor('pipe', x + 15, 43, .5, 2, '#647975');
   }
-  decor('cargo', 59, 43, 3, 1, '#94a096', true);
-  decor('boots', 62, 44, 1, 1, '#8e8272');
-  label(m, '← SERVICE 02', 105, 43, '#9eafb0'); label(m, 'PLEASE LEAVE THE CART HERE', 58, 42, '#b0b2a0');
+  decor('cabinet', 57, 43, 1, 1, '#6d857d', true);
+  decor('boots', 64, 44, 1, 1, '#8e8272');
+  label(m, '← SERVICE 02', 105, 43, '#9eafb0');
 
   decor('table', 17, 31, 5, 2, '#827c6c', true);
   decor('bench', 17, 35, 5, 1, '#827c6c', true);
@@ -224,8 +225,8 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
     decor('doorframe', x + 17, 17, 1, 7, '#40575d');
   }
   decor('debris', 87, 18, 2, 1, '#a99b88');
-  decor('clawmarks', 100, 17, 2, 1, '#8e7a70');
-  label(m, 'SERVICE 03 →', 17, 17, '#9eafb0'); label(m, 'LOCAL BUFFER / DO NOT ANSWER', 89, 16, '#b8b3a0');
+  decor('debris', 100, 17, 2, 1, '#8e8270');
+  label(m, 'SERVICE 03 →', 17, 17, '#9eafb0'); label(m, 'LOCAL RECORDINGS', 89, 16, '#b8b3a0');
 
   decor('window', 109, 5, 12, 1, '#527578');
   decor('console', 114, 7, 9, 1, '#89aaa3', true);

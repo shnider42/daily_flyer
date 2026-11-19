@@ -30,7 +30,9 @@ function stopForeman(f){
 }
 
 test('Field expeditions preserve Hearth outside the authored Relay Nine upgrade',()=>{
- const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['7bd3867add7899a338c62598cbd1c0036db3568c2e112fbe89b6d95680fb2965','baeada330c306b26e4de9e6f84b5e76c70127f6b707ed18dd5286048adda3ece','ecd31cfce784c206051fa37b44d8df7898f9f35e22fcc1f1f024fecffaa7c319'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
+ // Relay Nine's spoiler-free text and moving fixtures intentionally update only
+ // Morrow's snapshots; Kettle, Tinbell and every non-Relay room remain unchanged.
+ const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['4e7f5fd4dd75c82aaf2cd878c0909f9ef83eea249383ecea01eb490da665f095','29235a7b733d22f3b3de2e23ec063244a327fc66d3342d590873f3129c20262d','ede89b738c4a8411a99a5f212048f43e99eac1aa7c4f346f1a9b94c43d4b52cd'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
  for(const value of NAMED_SYSTEMS.find(system=>system.id==='hearth').bodies){const sites=explorationSites(value,'farwake');assert.deepEqual([digest(sites),digest(generateSurface(value,'farwake')),digest(sites.map(site=>generateSurface(explorationLocation(value,site.id,'farwake'),'farwake')))],expected[value.id]);assert.deepEqual(fieldSites(value),[]);}
  assert.deepEqual(fieldSites({id:'orchard',kind:'planet',systemId:'hearth'}),[]);

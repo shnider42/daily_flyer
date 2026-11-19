@@ -140,6 +140,40 @@ test('the scream respects sound mute, hidden documents and effects interruption 
   } finally { b.restore(); }
 });
 
+test('corridor reflections are bounded scheduled effects and stop with the foreground session', () => {
+  const b = boundary({ sound: true, music: false });
+  try {
+    b.audio.unlock(); b.audio.corridorShot();
+    const voices = [...b.audio.effects];
+    assert.equal(voices.length, 2);
+    assert.ok(voices.every(voice => voice.started > 0 && voice.stops[0] < .7));
+    assert.ok(voices.every(voice => voice.kind === 'buffer-source'));
+    b.audio.suspend();
+    assert.equal(b.audio.effects.size, 0);
+    assert.ok(voices.every(voice => voice.disconnected));
+    b.audio.unlock(); assert.equal(b.audio.effects.size, 0, 'returning never replays a stale echo');
+    b.settings.sound = false; b.audio.corridorShot(); assert.equal(b.audio.effects.size, 0);
+    b.settings.sound = true; b.document.hidden = true; b.audio.corridorShot(); assert.equal(b.audio.effects.size, 0);
+  } finally { b.restore(); }
+});
+
+test('quiet corridor room sounds leave silence between cues and never explain the scene in a caption', () => {
+  const b = boundary({ sound: true, music: false });
+  try {
+    b.audio.unlock();
+    assert.equal(b.audio.siteAtmosphere(0, 'quiet-earth'), null);
+    assert.equal(b.audio.effects.size, 0);
+    assert.equal(b.audio.siteAtmosphere(2, 'quiet-earth'), null);
+    const voices = b.audio.effects.size; assert.equal(voices, 2);
+    assert.equal(b.audio.siteAtmosphere(10, 'quiet-earth'), null);
+    assert.equal(b.audio.effects.size, voices, 'no repeating drone fills the quiet interval');
+    b.audio.play('corridorVent');
+    assert.ok(b.audio.effects.size < 10);
+    assert.ok(b.audio.roomDuckUntil > b.audio.ctx.currentTime);
+    b.audio.suspend(); assert.equal(b.audio.effects.size, 0);
+  } finally { b.restore(); }
+});
+
 test('backgrounding stops active notes and effects so a return cannot resume stale shots', () => {
   const b = boundary();
   try {

@@ -20,6 +20,7 @@ import {drawExpeditionProp,drawExpeditionWildlife,drawExpeditionFactionKit,exped
 import {expeditionHostileTo,storySurfaceView} from './expedition-story-rules.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
 import {buildQuietEarthInterior} from './quiet-earth-content.mjs';
+import {drawQuietEarthPresentation} from './quiet-earth-presentation.mjs';
 import {appearancePalette} from './character.mjs';
 import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
 import {DISTRICT_RESIDENTS,INTERIOR_RESIDENTS,districtNames} from './planet-content.mjs';
@@ -1441,7 +1442,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  for(const e of surface.entities)if(options.exploration?.collected?.includes(e.data?.cacheId)||options.exploration?.choices?.[e.data?.choiceId])flags.add('done:'+e.id);
  const actors=normalizedActors(options).filter(actor=>!visibility||visibility.canSeeActor(actor)),actorCrew=new Set(actors.flatMap(a=>[a.crewId,a.crew?.id]).filter(Boolean)),actorGuests=new Set(actors.flatMap(a=>[a.id,a.rescueGuestId]).filter(Boolean)),homes=visibleHomes(surface,options);
  const represented=entity=>entity.type==='crew'&&actorCrew.has(entity.data?.crewId)||entity.data?.rescuePassenger&&actorGuests.has(entity.data.guestId);
- const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>(!effect.boardingId||effect.boardingId===options.boarding?.id)&&(!effect.siteId||effect.siteId===options.exploration?.id)&&(!visibility||visibility.canSeePoint(effect.to)&&(!effect.from||visibility.canSeePoint(effect.from)))):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
+ const effects=Array.isArray(options.combatEffects)?options.combatEffects.filter(effect=>(!effect.boardingId||effect.boardingId===options.boarding?.id)&&(!effect.siteId||effect.siteId===(options.exploration?.id||surface.id))&&(!visibility||visibility.canSeePoint(effect.to)&&(!effect.from||visibility.canSeePoint(effect.from)))):[],combatActive=options.combat?.active??options.boarding?.phase==='active';
  const suppliedAim=options.combat?.aim,aim=combatActive?(visibility?sidearmAim(person,actors.filter(a=>a.team==='hostile'),suppliedAim?.manual?{aiming:true,aimX:Math.cos(suppliedAim.angle),aimY:Math.sin(suppliedAim.angle)}:{},surface.combatLayout):(suppliedAim||sidearmAim(person,actors.filter(a=>a.team==='hostile'),{},surface.combatLayout||surface.shipClass))):null;
  const actorCues=actor=>{const id=actor.id||actor.captainId||(actor===person?options.localCaptainId||'local':null);return{firing:effects.some(e=>e.kind==='shot'&&e.attackerId===id&&e.age<.13),hurtUntil:effects.some(e=>e.kind==='hit'&&e.targetId===id&&e.age<.2)?combatTime+.1:actor.hurtUntil||actor.hitUntil};};
  beginPixelFrame(ctx);ctx.save();pixel(ctx,surface.kind==='planet'||surface.outdoors?'#13292c':'#07141f',0,0,width,height);ctx.translate(-cameraX,-cameraY);
@@ -1453,6 +1454,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  const visible=d=>d.x+d.w>cameraX-72&&d.x<cameraX+width+72&&d.y+d.h>cameraY-72&&d.y<cameraY+height+72;
  const flat=new Set(['label','window','light','fence','debris','sign','roomstripe','doorframe','airlock','banner','floorarrows','awning','vesselmark','training-mat','tether-mark','neon-sign','neon-puddle','city-lane','city-rug','city-walllight']);
  for(const d of surface.decor)if(flat.has(d.kind)&&visible(d))drawProp(ctx,d,surface,time,propEmit);
+ drawQuietEarthPresentation(ctx,surface,{person,exploration:options.exploration,presentation:options.quietEarthPresentation,time:options.effectTime??time,reduceMotion:options.reduceMotion,cameraX,cameraY,width,height,layer:'floor'});
  drawInteriorDamageFloor(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,view:{cameraX,cameraY,width,height}});
  drawFieldSweep(ctx,surface.field);
  drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'floor'});
@@ -1483,6 +1485,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  drawInteriorDamageAir(ctx,surface,options.damageControl,{time,motion:options.damageMotion!==false,hits:options.damageHits||[],view:{cameraX,cameraY,width,height}});
  drawNeonRain(ctx,surface,{cameraX,cameraY,width,height,time,reduceMotion:options.reduceMotion});
  if(surface.kind==='site'||surface.outdoorWarzone)drawSiteAir(ctx,surface,person,cameraX,cameraY,width,height,time,visibility);
+ drawQuietEarthPresentation(ctx,surface,{person,exploration:options.exploration,presentation:options.quietEarthPresentation,time:options.effectTime??time,reduceMotion:options.reduceMotion,cameraX,cameraY,width,height,layer:'air'});
  drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'air'});
  // Event cues survive sparse network snapshots. Older callers can still show lastShot.
  if(!Array.isArray(options.combatEffects))for(const actor of [...actors,person]){

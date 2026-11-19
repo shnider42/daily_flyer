@@ -27,6 +27,7 @@
 import { FACTIONS, NAMED_SYSTEMS, ENCOUNTERS, STORY_CHAPTERS, UPGRADES, LORE } from './content.mjs';
 import { SHIP_CLASSES, CREW_ROLES, STATION_ROLES, getShipClass, advanceShip, normaliseFlightInput, cabinLayout, isCabinWalkable, enemyHullProfile, enemyShipState } from './fleet.mjs';
 import { SIDEARM, ensureSidearm, getPersonalWeapon, personalWeaponDamage, sidearmAim, clearSidearmSight } from './combat.mjs';
+import { PersonalFireRules } from './personal-fire.mjs';
 import { powerProfile, routeShipPower } from './ship-power.mjs';
 import { PersonalGearRules } from './personal-gear.mjs';
 import { GamblingRules } from './gambling.mjs';
@@ -675,6 +676,7 @@ export class Game {
     this.system.miningTarget=null;this.system.mining=null;
     if(this.state.boarding?.phase==='active')this._stepBoarding(dt,input,options.boardingParticipants);
     if(this.state.exploration && !this._sharedWorld) this.stepExploration(dt, input);
+    if(!this._sharedWorld)this.stepPersonalFreeFire(dt,input);
     if(!this._sharedWorld&&!this.state.exploration&&(!this.state.person.interiorDown||this.state.boarding?.phase==='active')&&(this.state.person.health<=0||this.state.person.down)){this._medicalDownTime=(this._medicalDownTime||0)+dt;if(this._medicalDownTime>=2.5){if(this.state.boarding?.phase==='active')this._finishBoarding('lost');else if(!this.state.npcContract?.active||!this.recoverNpcContract())this.recoverOnFoot();}}else this._medicalDownTime=0;
     const operate=this.hasActiveVessel&&(this.state.mode==='ship'||['ship','eva'].includes(this.state.interior?.kind));
     if(!operate){this.state.cosmicWarning=null;sh.energy=Math.min(sh.maxEnergy,sh.energy+dt*14);this._checkChapters();return;}
@@ -2385,6 +2387,6 @@ export class Game {
 }
 
 Object.assign(Game.prototype, ExpeditionRules, NarrativeRules, ProfessionRules, MilitaryCareerRules, RescueRules, ShipRecoveryRules, InteriorDamageRules, LivelihoodRules, NpcContractRules, OpeningMissionRules, PersonalGearRules);
-Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules);
+Object.assign(Game.prototype,GunneryRules,GamblingRules,FieldWorkRules,PersonalFireRules);
 Object.assign(Game.prototype,MilitaryRecoveryRules,WarzoneRules,MedicalRecoveryRules,VoyageMemoryRules);
 export default Game;

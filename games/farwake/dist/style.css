@@ -95,3 +95,9 @@
 
 /* The warzone briefing keeps its frame while live observations change. */
 .warzone-intro{color:var(--muted);font-size:.85rem}.warzone-fleet-counts{font-size:.82rem;line-height:1.65;color:#b8c9cc;font-variant-numeric:tabular-nums}.warzone-chart-warning{padding:.7rem .85rem;border-left:3px solid #c4ae80;background:#c4ae8010;color:#e0cda7;line-height:1.5}.inline-feedback{padding:.6rem .8rem;border-left:2px solid #87b9a8;color:#bbd7cc}
+
+/* Carrying a weapon should not fill the scene with a permanent battle report. */
+.combat-panel.weapon-only .combat-count,.combat-panel.weapon-only .combat-feed{display:none}
+.quiet-earth-scene .combat-panel{width:min(275px,28vw);padding:10px 12px;background:#0b1929bd;box-shadow:none}
+.quiet-earth-scene .combat-panel .combat-controls,.quiet-earth-scene .combat-panel .combat-count,.quiet-earth-scene .combat-panel .combat-feed{display:none}
+.quiet-earth-scene .combat-panel .aim-status{font-size:.82rem;margin-top:7px}

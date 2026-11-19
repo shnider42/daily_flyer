@@ -8,6 +8,7 @@ const livingParticipant = actor => actor?.person && Number.isFinite(actor.person
 const owns = (object, key) => Object.hasOwn(object || {}, key);
 const accepted = (actual, expected) => expected === true ? !!actual : Array.isArray(expected) ? expected.includes(actual) : actual === expected;
 const beatIds = new Set(QUIET_EARTH_BEATS.map(beat => beat.id));
+const cueDurations = Object.freeze({ 'pressure-vent': 2.4, 'service-cart': 3.2 });
 
 /** Cue receipts never contain a mission stage, actor health, or invented targets. */
 export function normalizeQuietEarthState(site, saved = {}) {
@@ -64,7 +65,18 @@ export function applyQuietEarthConsequences(state, site) {
     if (!active || !live(monster)) {
       monster.alert = false; monster.windup = 0; monster.moving = false; monster.targetId = null;
       if (!active) monster.aggressors = [];
-    } else if (waking) monster.alert = true;
+    } else {
+      // One pursuer gains ground slowly on a walking captain. The others
+      // create pressure around the receiver without a mandatory kill gate.
+      if (monster.id === `${site.key}:actor:return-echo` || monster.id === 'return-echo') monster.speed = 116;
+      if (waking) {
+        monster.alert = true;
+        // Movement makes the change visible immediately; this first attack
+        // delay lets the player regain control after closing the receiver.
+        // The settled receipt prevents reload from granting a new delay.
+        if (!state.quietEarth.ambushAnnounced) monster.cooldown = Math.max(Number.isFinite(monster.cooldown) ? monster.cooldown : 0, 1.4);
+      }
+    }
   }
   state.cleared = !active || !list(state.monsters).some(monster => monster.quietEarthActor && live(monster));
 }
@@ -84,16 +96,20 @@ export function stepQuietEarthEncounter(state, actors, dt, surface, event) {
   if (phase.completed) {
     if (!progress.escapeAnnounced) {
       progress.escapeAnnounced = true; bump(state);
+      const seal = list(site.choices).find(choice => choice.id === 'evacuate');
       event('quiet-earth-beat', { id: `${state.id}:quiet-earth:escaped`, beatId: 'escaped', phase: 'complete', sfx: 'dock',
-        text: 'The inner door seals. You made it out. The recovered signal is safe; the surface exit is beside you.' });
+        x: ((seal?.x || 8) + .5) * 24, y: ((seal?.y || 73) + .5) * 24, effect: 'seal', duration: 1.6,
+        text: 'Door sealed. The surface exit is beside you.' });
     }
     return;
   }
   if (phase.triggered) {
     if (!progress.ambushAnnounced) {
       progress.ambushAnnounced = true; bump(state);
+      const receiver = list(site.choices).find(choice => choice.id === 'receiver');
       event('quiet-earth-beat', { id: `${state.id}:quiet-earth:ambush`, beatId: 'ambush', phase: 'escape', sfx: 'bulkhead',
-        text: 'The receiver answered something inside the walls. GET BACK TO THE ENTRY. Follow the green lights. You do not have to kill them.' });
+        x: ((receiver?.x || 119) + .5) * 24, y: ((receiver?.y || 12) + .5) * 24, effect: 'power-failure', duration: 3.6,
+        text: 'GET BACK TO THE ENTRY. Follow the green lights.' });
     }
     return;
   }
@@ -103,7 +119,7 @@ export function stepQuietEarthEncounter(state, actors, dt, surface, event) {
     if (!participants.some(actor => Math.hypot(actor.person.x - beat.x, actor.person.y - beat.y) <= beat.radius)) continue;
     progress.cues.push(beat.id); bump(state);
     event('quiet-earth-beat', { id: `${state.id}:quiet-earth:${beat.id}`, beatId: beat.id, phase: 'quiet', harmless: true,
-      x: beat.x, y: beat.y, text: beat.text, sfx: beat.sfx });
+      x: beat.x, y: beat.y, effect: beat.id, duration: cueDurations[beat.id] || 2.4, text: '', sfx: beat.sfx });
   }
 }
 
@@ -127,8 +143,8 @@ export function quietEarthStatus(state, site) {
   }
   if (escaping) {
     nextTargetId = `${site.key}:choice:evacuate`;
-    objective = 'Get back to the entry. Follow the green lights. You do not have to kill them.';
-    pendingSummary = 'At the entry console, seal the inner door. The surface exit is beside it.';
+    objective = 'Get back to the entry. Follow the green lights.';
+    pendingSummary = "Shoot to make space. You don't have to kill them all. Seal the door beside the exit.";
   } else if (completed) {
     nextTargetId = null;
     objective = 'You made it out. The relay is sealed and the recovered signal is safe.';

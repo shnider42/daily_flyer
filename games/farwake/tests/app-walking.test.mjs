@@ -27,7 +27,7 @@ function fixture({ health = 100, down = false, stationView = null } = {}) {
     Game, structuredClone, movePerson, network, performance: { now: () => time }, game: Game.fromSave(authority.save()),
     surface: openHall, surfaceKey: 'open-hall', surfaceTarget: null, onlineSnapshot: null, playing: false, hudDirty: false,
     personPredictedAt: null, personVisualAt: null, personVisualOffset: { x: 0, y: 0 },
-    combatPresentation: { reset() {} }, combatFeed: [], clearPointerAim() {},
+    combatPresentation: { reset() {} }, quietEarthPresentation: { reset() {} }, combatFeed: [], clearPointerAim() {},
     controls: { clear() {} }, worldPresentation: { push() {} }, frameMonitor: { snapshot() {} },
     receiveCameraPreferences() {}, // Camera profile persistence is exercised separately; these packets contain only walking state.
     ensureSurface() { context.surface = context.game.state.mode === 'person' ? openHall : null; }, updateSurfaceFlags() {}, processEvents() {},

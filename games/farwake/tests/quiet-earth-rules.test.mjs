@@ -67,11 +67,18 @@ test('both false alarms happen at their actual locations once per shared site, w
   assert.equal(f.events.length, 1);
   assert.equal(f.events[0].beatId, QUIET_EARTH_BEATS[0].id);
   assert.equal(f.events[0].harmless, true);
+  assert.equal(f.events[0].text, '', 'The physical false alarm does not explain itself in a toast.');
+  assert.equal(f.events[0].effect, 'pressure-vent');
+  assert.equal(f.events[0].duration, 2.4);
+  assert.equal(f.events[0].x, QUIET_EARTH_BEATS[0].x);
+  assert.equal(f.events[0].y, QUIET_EARTH_BEATS[0].y);
   assert.ok(crew.every(actor => actor.person.health === 100));
   const second = QUIET_EARTH_BEATS[1];
   Object.assign(f.actor.person, { x: second.x, y: second.y });
   f.step(); f.step();
   assert.deepEqual(f.events.map(event => event.beatId), QUIET_EARTH_BEATS.map(beat => beat.id));
+  assert.equal(f.events[1].effect, 'service-cart');
+  assert.equal(f.events[1].duration, 3.2);
   assert.ok(f.events.every(event => event.type === 'quiet-earth-beat' && event.phase === 'quiet' && !Object.hasOwn(event, 'damage')));
   assert.ok(f.state.monsters.every(actor => actor.hidden && actor.pacified));
 });
@@ -95,6 +102,12 @@ test('the ambush is announced once, remains earned after reload, and cannot repl
   assert.equal(f.events[0].beatId, 'ambush');
   assert.equal(f.events[0].phase, 'escape');
   assert.match(f.events[0].text, /GET BACK TO THE ENTRY/);
+  assert.doesNotMatch(f.events[0].text, /receiver|answered|inside the walls/i);
+  assert.equal(f.events[0].effect, 'power-failure');
+  assert.equal(f.events[0].duration, 3.6);
+  const receiver = f.site.choices.find(choice => choice.id === 'receiver');
+  assert.equal(f.events[0].x, (receiver.x + .5) * 24);
+  assert.equal(f.events[0].y, (receiver.y + .5) * 24);
   f.state.quietEarth = normalizeQuietEarthState(f.site, clone(f.state.quietEarth));
   Object.assign(f.actor.person, { x: QUIET_EARTH_BEATS[1].x, y: QUIET_EARTH_BEATS[1].y });
   f.step(); assert.equal(f.events.length, 1);
@@ -129,7 +142,23 @@ test('the objective advances through the actual evidence and then points back to
   assert.equal(view().nextTargetId, `${f.site.key}:choice:receiver`);
   f.state.choices.receiver = 'copy';
   assert.equal(view().nextTargetId, `${f.site.key}:choice:evacuate`);
-  assert.equal(view().objective, 'Get back to the entry. Follow the green lights. You do not have to kill them.');
+  assert.equal(view().objective, 'Get back to the entry. Follow the green lights.');
+  assert.match(view().pendingSummary, /Shoot to make space/);
+  assert.match(view().pendingSummary, /don't have to kill/);
   assert.equal(view().completedTasks, 3);
   const before = JSON.stringify(f.state); view(); view(); assert.equal(JSON.stringify(f.state), before, 'reading the HUD does not advance the mission');
+});
+
+test('one pursuer closes on hesitation and first-contact grace does not renew after a settled reload', () => {
+  const f = fixture(); trigger(f);
+  const pursuer = f.state.monsters.find(actor => actor.id.endsWith(':return-echo'));
+  assert.equal(pursuer.speed, 116);
+  assert.ok(f.state.monsters.every(actor => actor.cooldown >= 1.4));
+  f.step();
+  const health = f.state.monsters.map(actor => actor.health);
+  for (const actor of f.state.monsters) { actor.cooldown = .1; actor.quietEarthDormant = true; }
+  f.state.quietEarth = normalizeQuietEarthState(f.site, clone(f.state.quietEarth));
+  applyQuietEarthConsequences(f.state, f.site);
+  assert.ok(f.state.monsters.every(actor => actor.cooldown === .1), 'Restoring a settled attack does not grant a new grace period.');
+  assert.deepEqual(f.state.monsters.map(actor => actor.health), health);
 });

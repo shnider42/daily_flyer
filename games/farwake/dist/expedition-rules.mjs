@@ -1,11 +1,10 @@
 /** Persistent planetary interiors. These same rules serve solo and shared captains. */
 import { generateSurface, isWalkable } from './surface.mjs';
 import { explorationLocation, createSiteState, inspectSiteRecord, claimSiteReward, stepSiteEncounter, resetSiteBoss } from './exploration.mjs';
-import { canSeeConcealedActor } from './site-visibility.mjs';
 import { militarySiteLocation } from './military-sites.mjs';
 import { fieldSurfaceView } from './floodworks.mjs';
-import { WARZONE_GROUND_SITE_ID, isWarzoneGroundBody, catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundHostiles, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
-import { inspectStoryChoice, storySurfaceView, expeditionHostileTo } from './expedition-story-rules.mjs';
+import { WARZONE_GROUND_SITE_ID, isWarzoneGroundBody, catchUpWarzoneGround, normalizeWarzoneGroundStories, warzoneGroundStoryAction, warzoneGroundSurfaceView } from './warzone-ground.mjs';
+import { inspectStoryChoice, storySurfaceView } from './expedition-story-rules.mjs';
 
 const clone=value=>JSON.parse(JSON.stringify(value));
 const range=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -82,7 +81,7 @@ export const ExpeditionRules={
     const surface=this._expeditionSurface();
     if(encounter.warzoneGround&&!this._sharedWorld){const previous=encounter.warzoneGround.lastSoloAt,now=this.state.stats.time||0;if(previous!==null)catchUpWarzoneGround(encounter,Math.max(0,now-previous),surface);encounter.warzoneGround.lastSoloAt=now;}
     Object.assign(this.state.person,surface.spawn,{moving:false});
-    this.state.person.weaponDrawn=(encounter.warzoneGround?warzoneGroundHostiles(encounter,{factionId:this.warzoneFaction?.(),hostileFactions:this.state.warzone?.hostileFactions}):encounter.monsters).some(monster=>expeditionHostileTo(monster,this.playerId)&&(!monster.concealed||canSeeConcealedActor(surface.combatLayout,this.state.person,monster)));
+    this.state.person.weaponDrawn=true;
     this.recordActivity('explore',{token:`entered:${key}`});
     if(encounter.visited===1)this._log(location.name,location.site.story,'exploration');
     this._event('site-entered',{text:`${location.name} · ${location.site.summary}`,siteId,atmosphere:location.site.atmosphere});

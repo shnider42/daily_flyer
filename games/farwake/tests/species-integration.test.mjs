@@ -114,14 +114,18 @@ test('community advice is physical, remembered on return, and never turns a peac
   let game=new Game('people-return-'+bodyId,{startMode:'hardcore'});game.state.systemId=systemId;game._loadSystem(systemId);game.state.mode='person';game.state.locationId=bodyId;
   const outside=generateSurface(game.currentBody,game.state.seed),entrance=outside.entities.find(entity=>entity.data?.siteId===siteId);
   Object.assign(game.state.person,entrance);ok(game.enterSite(siteId));
-  assert.equal(game.state.person.weaponDrawn,false,'a clinic or public workshop never draws the gun on entry');
+  assert.equal(game.state.person.weaponDrawn,true,'the same ready weapon is available in a peaceful public room');
+  assert.equal(game.state.exploration.encounter.monsters.length,0);game.drainEvents();game.stepExploration(.01,{});
+  assert.ok(!game.drainEvents().some(event=>['person-shot','person-hit','monster-revealed'].includes(event.type)),'weapon readiness cannot start an encounter or fire by itself');
   let inside=generateSurface(game.currentBody,game.state.seed),speaker=inside.entities.find(entity=>entity.id.endsWith(':resident:'+residentId));
   assert.notEqual(game.conversation(speaker,{record:false}).context,'local-choice');
   const choice=inside.entities.find(entity=>entity.type==='siteChoice'),credits=game.state.credits;
   Object.assign(game.state.person,choice);ok(game.siteAction(choice.id,'choose',option));
   assert.equal(game.state.credits,credits);assert.equal(game.siteAction(choice.id,'choose',option).ok,false);
-  game=Game.fromSave(game.save());inside=generateSurface(game.currentBody,game.state.seed);speaker=inside.entities.find(entity=>entity.id.endsWith(':resident:'+residentId));
+  game=Game.fromSave(game.save());game.drainEvents();game.stepExploration(.01,{});
+  assert.ok(!game.drainEvents().some(event=>['person-shot','person-hit','monster-revealed'].includes(event.type)),'restoring transient weapon readiness keeps the room peaceful');
+  inside=generateSurface(game.currentBody,game.state.seed);speaker=inside.entities.find(entity=>entity.id.endsWith(':resident:'+residentId));
   const returned=game.conversation(speaker,{record:false});assert.equal(returned.context,'local-choice');assert.match(returned.greeting,expected);
-  assert.equal(game.state.credits,credits);assert.equal(game.state.person.weaponDrawn,false);
+  assert.equal(game.state.credits,credits);assert.equal(game.state.person.weaponDrawn,true);assert.equal(game.state.exploration.encounter.monsters.length,0);
  }
 });

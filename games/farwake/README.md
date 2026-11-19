@@ -4,6 +4,14 @@
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
 
+## 0.34.1 — Armed exploration and corridor presence
+
+The personal weapon stays available throughout on-foot exploration, including quiet or cleared sites and peaceful decks and ports. Mouse/arrows and the right thumb stick aim; click, Space, or FIRE shoots in the chosen direction. Shots outside active encounters are harmless to residents, hit the actual walls, and use the normal recharge. Ship gun stations retain their existing controls.
+
+Relay Nine now carries its quieter moments through moving equipment, local steam, deeper wall shadows, restrained pools of light, and persistent changes in the room. Footsteps and gunfire have short room reflections. Sparse sound effects leave real silence between them and share the existing mute/background cleanup. The supplied Morrow Flightline track remains in the score; firing into an empty hall does not announce combat through the music.
+
+Once an actual threat is present, a confirmed hit briefly interrupts its pursuit. Running remains useful and escape never requires clearing the room. Hidden future interaction text and map markers appear only when their prerequisites are met. The existing route, saved records, rewards and exit remain intact. Reduced motion keeps the visible end states without sliding equipment or sweeping lights. World content revision **9** keeps the client and shared authority aligned.
+
 ## 0.34.0 — Quiet Earth: The Silent Mile
 
 The first guided corridor mission is playable at **Hearth → Morrow → Relay Nine**. Open **Captain’s menu → Quiet Earth** to mark the route; the Galaxy map and notebook’s Missions page also link to it. No enlistment or previous campaign completion is required.

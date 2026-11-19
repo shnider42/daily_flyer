@@ -265,19 +265,20 @@ export function stepSiteEncounter(state,participants,delta,surface){
  }
  for(const actor of actors){
   const person=ensureSidearm(actor.person),id=String(actor.id||'local');state.actorCooldowns[id]=Math.max(0,finite(state.actorCooldowns[id])-dt);
-  const threatened=state.monsters.some(monster=>expeditionHostileTo(monster,id)&&(!monster.concealed||canSeeConcealedActor(layout,person,monster)));
-  const deliberate=state.monsters.some(monster=>monster.concealed&&!monster.quietEarthDormant)&&!!(actor.input?.aiming||actor.input?.fire)||site?.expedition&&actor.input?.aiming===true&&state.monsters.some(monster=>monster.health>0&&!monster.pacified&&!monster.quietEarthDormant);
-  if(!threatened&&!deliberate){person.weaponDrawn=false;person.aimTargetId=null;person.aimManual=false;continue;}
+  // The field weapon is available in quiet and cleared places too. Its controls
+  // must not reveal that an encounter has started or ended. Empty shots still
+  // trace the real walls and use the same recharge as a shot at a live target.
   const candidates=site?.expedition?state.monsters.filter(monster=>!monster.quietEarthDormant&&!monster.hidden&&(actor.input?.aiming===true?!monster.pacified:expeditionHostileTo(monster,id))):state.monsters;
   const aim=sidearmAim(person,candidates,actor.input||{},layout);person.aimAngle=aim.angle;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;person.weaponDrawn=true;
   if(!actor.input?.fire||state.actorCooldowns[id]>0)continue;
   const weapon=getPersonalWeapon(person),target=aim.target,cooldown=weapon.cooldown*clamp(finite(actor.sidearmCooldownMultiplier,1),.5,2),damage=target?personalWeaponDamage(person,target,clamp(finite(actor.damageMultiplier,1),.4,2)):0,shotId=`${state.id}:shot:${++state.shotSerial}`;
   state.actorCooldowns[id]=cooldown;person.weaponReadyAt=at+cooldown;person.attackUntil=at+weapon.shotDuration;
   const shot={id:shotId,team:'player',attackerId:id,actorName:actor.name||'Captain',weaponId:weapon.id,angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:!!aim.blocked,damage,until:at+weapon.shotDuration};person.lastShot=shot;event('person-shot',shot);
-  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
+  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;if(target.quietEarthActor&&target.health>0){target.quietEarthStaggerUntil=at+.45;target.windup=0;target.attackUntil=0;}event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
  }
  for(const monster of state.monsters){
   if(monster.health<=0||monster.quietEarthDormant)continue;
+  if(monster.quietEarthActor&&at<finite(monster.quietEarthStaggerUntil)){monster.moving=false;monster.windup=0;continue;}
   if(isBellwether(monster)){stepBellwether(state,monster,actors,dt,layout,event);continue;}
   if(monster.stationary||monster.attackKind==='none'){monster.moving=false;monster.windup=0;continue;}
   if(!isCabinWalkable(layout,monster.x,monster.y,6)){let best=null,bestDistance=Infinity;for(let cell=0;cell<layout.walkable.length;cell++){if(!layout.walkable[cell])continue;const point=pt(cell%layout.cols,Math.floor(cell/layout.cols)),distance=Math.hypot(point.x-monster.x,point.y-monster.y);if(distance<bestDistance&&isCabinWalkable(layout,point.x,point.y,6)){best=point;bestDistance=distance;}}if(best)Object.assign(monster,best);}

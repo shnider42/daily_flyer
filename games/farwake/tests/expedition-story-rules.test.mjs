@@ -75,7 +75,8 @@ test('neutral faction units fight each other without automatically attacking an 
   const state = createSiteState(site), surface = openSurface(site), captain = person('neutral', 17, 26);
   const health = state.monsters.map(unit => unit.health), events = [];
   for (let index = 0; index < 300 && state.monsters.every(unit => unit.health > 0); index++) events.push(...stepSiteEncounter(state, [captain], .1, surface));
-  assert.equal(captain.person.health, 100); assert.equal(captain.person.weaponDrawn, false);
+  assert.equal(captain.person.health, 100); assert.equal(captain.person.weaponDrawn, true);
+  assert.equal(events.some(event => event.type === 'person-shot' && event.attackerId === captain.id), false, 'Readiness never fires on neutral squads without input.');
   assert.ok(state.monsters.some((unit, index) => unit.health < health[index]), 'The opposing squads cause real damage without player fire.');
   assert.ok(events.some(event => event.type === 'person-hit' && state.monsters.some(unit => unit.id === event.targetId)));
   assert.ok(state.monsters.every(unit => !expeditionHostileTo(unit, captain.id)));
@@ -101,7 +102,8 @@ test('the authored relief bridge becomes a real moving faction battle while a ne
   assert.ok(state.monsters.some((unit, index) => unit.health < before[index].health), 'Faction combat causes actual wounds within 45 seconds.');
   assert.ok(events.some(event => event.type === 'person-hit' && state.monsters.some(unit => unit.id === event.targetId)));
   assert.equal(new Set(events.map(event => event.id)).size, events.length, 'Shots and impacts have distinct IDs so the presentation does not suppress damage feedback.');
-  assert.equal(captain.person.health, 100); assert.equal(captain.person.weaponDrawn, false);
+  assert.equal(captain.person.health, 100); assert.equal(captain.person.weaponDrawn, true);
+  assert.equal(events.some(event => event.type === 'person-shot' && event.attackerId === captain.id), false);
   assert.ok(state.monsters.every(unit => !expeditionHostileTo(unit, captain.id)));
 });
 
@@ -110,6 +112,8 @@ test('manual aggression targets the offending captain while automatic aim leaves
   const state = createSiteState(site), surface = openSurface(site), shooter = person('shooter', 13, 15, { fire: true }), observer = person('bystander', 15, 16);
   const before = state.monsters[0].health;
   stepSiteEncounter(state, [shooter, observer], .1, surface); assert.equal(state.monsters[0].health, before);
+  shooter.input = { aiming: true, aimX: 1, aimY: 0 };
+  stepSiteEncounter(state, [shooter, observer], .25, surface); // The preceding blank pulse uses the normal recharge.
   shooter.input = { fire: true, aiming: true, aimX: 1, aimY: 0 };
   stepSiteEncounter(state, [shooter, observer], .1, surface);
   assert.ok(state.monsters[0].health < before); assert.equal(expeditionHostileTo(state.monsters[0], 'shooter'), true);

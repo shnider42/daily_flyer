@@ -1556,6 +1556,13 @@ export class Realm extends BoardingAuthority {
       c.appliedInput = input; c.ack = c.inputSeq;
       if (c.game.state.mode === 'person' && c.game.state.person.health > 0) {
         const surface = this._surface(c); if (surface) { c.game.state.person.speed = (input.boost ? 155 : 112)*c.game.characterEffects.walkSpeed; movePerson(surface, c.game.state.person, input.x, input.y, dt); }
+        // A quiet deck or port still accepts a personal trigger. A staffed ship
+        // weapon station and an active boarding fight keep their own authority.
+        const shipStation = vessel && c.crewRole === 'weapons' && this._canRole(c, vessel, 'weapons') && this._atStation(c, 'weapons');
+        if (c.session && !shipStation && !vessel?.pvp && vessel?.boarding?.phase !== 'active') {
+          const shot = c.game.stepPersonalFreeFire(dt, input, surface);
+          if (shot) for (const other of activeCaptains) if (other !== c && other.session && this.roomInfo(other).id === this.roomInfo(c).id) other.game._event('person-shot', shot);
+        }
       }
       if (vessel) { activeVessels.set(vessel.id, vessel); occupiedSystems.add(vessel.systemId); }
     }

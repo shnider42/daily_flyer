@@ -67,6 +67,13 @@ export function inspectStoryChoice(state, site, id) {
   const choice = site.choices.find(item => item.id === id);
   if (!choice) return { ok: false, reason: 'No task is available at this object.' };
   const common = storyGate(state, site, choice), current = state.story?.puzzles?.[id] || [], selected = chosenOption(state, choice);
+  // The entry panel exists before it is needed. Looking at it must not reveal
+  // a later objective or the result text of a disabled escape action.
+  if (site.quietEarth && id === 'evacuate' && !common.ok) return {
+    ok: true, title: choice.name, text: 'The door panel is on standby. The outside door is open.',
+    choice: { id: choice.id, name: choice.name, options: [] }, chosen: null, resolutionText: null,
+    progress: 0, story: storyStatus(state, site)
+  };
   const options = choice.options.map(option => {
     const gate = common.ok ? storyGate(state, site, option) : common;
     return { ...clone(option), disabled: !!state.choices[id] || !gate.ok, reason: state.choices[id] ? 'This task is already settled.' : gate.reason || '' };
@@ -167,6 +174,15 @@ export function storySurfaceView(surface, state) {
   let evacuated = false, treated = false;
   for (const choice of site.choices || []) { const effects = chosenOption(state, choice)?.effects; evacuated ||= effects?.evacuateResidents === true; treated ||= effects?.treatResidents === true; }
   const view = { ...surface, expeditionStatus: storyStatus(state, site), entities: surface.entities.map(entity => {
+    if (site.quietEarth) {
+      const gate = entity.type === 'siteChoice' && entity.data?.choiceId === 'evacuate'
+        ? site.choices.find(choice => choice.id === 'evacuate')
+        : entity.type === 'siteCache' ? site.caches.find(cache => cache.id === entity.data?.cacheId && cache.requireChoices) : null;
+      // Hide future action markers in both world labels and the local chart.
+      // The authored exit and ordinary equipment remain available throughout.
+      // Recompute both directions when a cached projected map is supplied.
+      if (gate) entity = { ...entity, hidden: !storyGate(state, site, gate).ok };
+    }
     const done = entity.type === 'siteRecord' ? read.has(entity.data.recordId) : entity.type === 'siteChoice' ? !!state.choices?.[entity.data.choiceId] : entity.type === 'siteCache' ? claimed.has(entity.data.cacheId) : false;
     if (entity.type === 'npc' && entity.data?.siteId === site.id) {
       const projected = { ...entity, ...(evacuated && entity.data?.evacuable !== false ? { hidden: true, moving: false } : {}), ...(treated ? { health: entity.maxHealth || 100, text: entity.data?.treatedText || 'Treatment is complete. The relief team can take it from here.' } : {}), data: { ...entity.data, expeditionTreated: treated, expeditionEvacuated: evacuated } };

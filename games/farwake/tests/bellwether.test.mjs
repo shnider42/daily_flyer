@@ -39,7 +39,7 @@ test('Tinbell has one unique concealed Bellwether across seeds, while other cave
 
 test('entry, nearby occlusion and deliberate blind shots do not reveal or move the dormant creature',()=>{
  const f=cave(),captain=actor('captain',f.surface.spawn),before=structuredClone(f.boss);
- assert.deepEqual(advance(f,[captain],2),[]);assert.deepEqual(f.boss,before);assert.equal(captain.person.weaponDrawn,false);
+ assert.deepEqual(advance(f,[captain],2),[]);assert.deepEqual(f.boss,before);assert.equal(captain.person.weaponDrawn,true);assert.equal(captain.person.aimTargetId,null);
  Object.assign(captain.person,point(19,7));assert.ok(Math.hypot(captain.person.x-f.boss.x,captain.person.y-f.boss.y)<230);
  assert.equal(canSeeSitePoint(f.surface.combatLayout,captain.person,f.boss),false);
  captain.input={fire:true,aiming:true,aimX:1,aimY:0};const events=advance(f,[captain],1);
@@ -55,7 +55,8 @@ test('a visible party member wakes it even when the nearest captain is occluded,
  const events=stepSiteEncounter(f.state,[hidden,visible],.01,f.surface),reveal=events.find(event=>event.type==='monster-revealed');
  assert.ok(reveal);assert.equal(reveal.targetId,'visible');assert.equal(reveal.siteId,f.state.id);assert.equal(reveal.actorId,BELLWETHER_ID);assert.equal(reveal.serial,1);
  assert.equal(f.boss.revealed,true);assert.equal(f.boss.hidden,false);assert.equal(f.boss.concealed,true);
- assert.equal(hidden.person.weaponDrawn,false,'another captain cannot grant sight through stone');
+ assert.equal(hidden.person.weaponDrawn,true,'the weapon stays available without announcing a visible target');
+ assert.equal(hidden.person.aimTargetId,null);assert.equal(canSeeConcealedActor(f.surface.combatLayout,hidden.person,f.boss),false,'another captain cannot grant sight through stone');
  assert.equal(advance(f,[hidden,visible],.3).filter(event=>event.type==='monster-revealed').length,0);
  const first=cave(),shooter=actor();shooter.input={fire:true};const firstEvents=stepSiteEncounter(first.state,[shooter],.01,first.surface);
  assert.ok(firstEvents.findIndex(event=>event.type==='monster-revealed')<firstEvents.findIndex(event=>event.type==='person-shot'));
@@ -193,7 +194,7 @@ test('solo retreat resets the unfinished attempt, active reload keeps wounds, an
  const game=new Game('bellwether-solo'),moon=game.system.bodies.find(body=>body.id==='tinbell');
  Object.assign(game.state.ship,{x:moon.x,y:moon.y+moon.radius+60,vx:0,vy:0});assert.equal(game.dock('tinbell').ok,true);
  const enter=()=>{const surface=generateSurface(game.currentBody,game.state.seed),door=surface.entities.find(entity=>entity.type==='siteEntrance'&&entity.data.siteId==='hollow');Object.assign(game.state.person,{x:door.x,y:door.y});assert.equal(game.enterSite('hollow').ok,true);};
- enter();assert.equal(game.state.person.weaponDrawn,false);Object.assign(game.state.person,point(27,11));game.drainEvents();game.stepExploration(.01,{fire:true});
+ enter();assert.equal(game.state.person.weaponDrawn,true);assert.equal(game.state.exploration.encounter.monsters[0].revealed,false);Object.assign(game.state.person,point(27,11));game.drainEvents();game.stepExploration(.01,{fire:true});
  const encounter=game.state.exploration.encounter,boss=encounter.monsters[0],first=game.drainEvents().find(event=>event.type==='monster-revealed');assert.equal(boss.health,1496);
  const restored=Game.fromSave(game.save());assert.equal(restored.state.exploration.encounter.monsters[0].health,1496);assert.equal(restored.state.exploration.encounter.monsters[0].revealed,true);
  restored.stepExploration(.01,{});assert.ok(!restored.drainEvents().some(event=>event.type==='monster-revealed'));

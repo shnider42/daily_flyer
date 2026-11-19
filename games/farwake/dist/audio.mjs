@@ -39,7 +39,7 @@ export class Soundscape{
    playbackSession();
    if(!this.ctx||this.ctx.state==='closed'){
     const Audio=globalThis.AudioContext||globalThis.window?.AudioContext||globalThis.window?.webkitAudioContext;
-    if(!Audio)return;this.ctx=new Audio({latencyHint:'interactive'});this.musicFault=false;
+    if(!Audio)return;this.ctx=new Audio({latencyHint:'interactive'});this.musicFault=false;this.noiseBuffer=null;
     this.master=this.ctx.createGain();this.master.gain.value=this.enabled()?.17:0;this.master.connect(this.ctx.destination);
     this.musicBus=this.ctx.createGain();this.musicBus.gain.value=0;this.musicBus.connect(this.ctx.destination);
     this.recordings=new Map(RECORDED_MUSIC.map(recording=>[recording.cue.id,new RecordedTheme(this.ctx,this.musicBus,recording)]));
@@ -95,7 +95,8 @@ export class Soundscape{
   const decision=this.director.update(context,now,{enabled:this.musicEnabled(),presence:this.musicPresence()});
   this.musicDecision=decision;
   const volume=Number(this.musicVolume());
-  busGain(this.musicBus,(this.musicEnabled()?Math.max(0,Math.min(1,Number.isFinite(volume)?volume:.65))*.7:0)*decision.duck,this.ctx.currentTime,.12);
+  const roomDuck=this.ctx.currentTime<(this.roomDuckUntil||0) ? .58 : 1;
+  busGain(this.musicBus,(this.musicEnabled()?Math.max(0,Math.min(1,Number.isFinite(volume)?volume:.65))*.7:0)*decision.duck*roomDuck,this.ctx.currentTime,.12);
   if(decision.token!==this.musicToken){
    this.retiringScore?.dispose();this.retiringScore=null;
    if(this.score){this.score.stop(decision.fadeOut);this.retiringScore=this.score;this.score=null;}
@@ -119,9 +120,37 @@ export class Soundscape{
    voices:(this.score?.status().activeVoices||0)+(this.retiringScore?.status().activeVoices||0)};
  }
  tone(freq,duration=.1,type='sine',volume=.2,endFreq=null,attack=.008){if(this.recoveryMuted||!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;try{const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(10,endFreq),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(duration/2,Math.max(.008,attack)));g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);this.effects.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.effects.delete(o);};o.start(t);o.stop(t+duration+.03);}catch{}}
- play(name){
-  const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
+ /** Short filtered room sounds share the effects lifecycle, including scheduled echoes. */
+ roomNoise(duration=.2,volume=.04,{delay=0,pan=0,endPan=pan,frequency=900,type='lowpass'}={}){
+  if(this.recoveryMuted||!this.enabled()||!this.ctx||this.ctx.state!=='running'||globalThis.document?.hidden||this.effects.size>=40)return;
+  try{
+   const ctx=this.ctx,t=ctx.currentTime+Math.max(0,Math.min(.8,delay));
+   if(!this.noiseBuffer){
+    this.noiseBuffer=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*1.2),ctx.sampleRate);
+    const data=this.noiseBuffer.getChannelData(0);let seed=7613;
+    for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data[i]=(seed/4294967296)*2-1;}
+   }
+   duration=Math.max(.025,Math.min(1,duration));
+   const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain(),panner=ctx.createStereoPanner?.();
+   source.buffer=this.noiseBuffer;filter.type=type;filter.frequency.setValueAtTime(frequency,t);
+   gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(Math.max(0,Math.min(.25,volume)),t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+   source.connect(filter);filter.connect(gain);
+   if(panner){panner.pan.setValueAtTime(Math.max(-1,Math.min(1,pan)),t);panner.pan.linearRampToValueAtTime(Math.max(-1,Math.min(1,endPan)),t+duration);gain.connect(panner);panner.connect(this.master);}else gain.connect(this.master);
+   this.effects.add(source);source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();panner?.disconnect();this.effects.delete(source);};
+   source.start(t);source.stop(t+duration+.025);
+  }catch{}
+ }
+ corridorShot(){
+  // Reflections have no new trigger, damage, or music signal of their own.
+  this.roomNoise(.18,.065,{delay:.10,pan:-.42,frequency:950});
+  this.roomNoise(.33,.035,{delay:.28,pan:.5,frequency:580});
+ }
+ play(name,{pan=0}={}){
+  const now=performance.now(),limit={fire:130,mine:180,footstep:250,corridorFootstep:330,corridorVent:900,corridorCart:900,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
+   case'corridorFootstep':this.tone(67,.065,'triangle',.11,31);this.roomNoise(.06,.045,{frequency:680});this.roomNoise(.12,.022,{delay:.16,pan:.25,frequency:400});break;
+   case'corridorVent':this.tone(80,.25,'triangle',.18,30);this.roomNoise(.66,.19,{pan,frequency:1800,type:'highpass'});this.roomNoise(.2,.055,{delay:.28,pan:-pan,frequency:640});if(this.ctx&&this.enabled()&&!this.recoveryMuted)this.roomDuckUntil=this.ctx.currentTime+1.25;break;
+   case'corridorCart':this.roomNoise(.72,.13,{pan,endPan:pan*.25,frequency:630});this.tone(173,.28,'triangle',.06,91);this.roomNoise(.12,.09,{delay:.62,pan:pan*.25,frequency:1100});if(this.ctx&&this.enabled()&&!this.recoveryMuted)this.roomDuckUntil=this.ctx.currentTime+1.25;break;
    case'corridorClang':this.tone(82,.48,'triangle',.23,28);this.tone(730,.09,'square',.035,115);break;
    case'relayStatic':this.tone(920,.16,'sawtooth',.025,170);this.tone(315,.27,'sine',.055,245);break;
    case'quietEarthAlarm':this.tone(248,.8,'sawtooth',.11,62,.05);this.tone(660,.46,'triangle',.08,195);this.tone(105,.85,'sine',.14,40,.08);break;
@@ -156,11 +185,17 @@ export class Soundscape{
  interiorAlarm(time,{active=false}={}){if(!active){this.nextInteriorAlarm=null;return;}if(!this.enabled())return;if(this.nextInteriorAlarm===null||this.nextInteriorAlarm===undefined||time>=this.nextInteriorAlarm){this.play('shipAlarm');this.nextInteriorAlarm=time+3.5;}}
  /** Sparse location sounds are effects, so a quiet room still has a voice with music off. */
  siteAtmosphere(time,atmosphere){
-  if(atmosphere==='quiet-earth')return null;
   if(!atmosphere||!this.enabled())return null;
   if(this.siteSoundKind!==atmosphere){this.siteSoundKind=atmosphere;this.nextSiteSound=time+1.2;this.siteSoundIndex=0;}
   if(time<(this.nextSiteSound??0))return null;
   const index=(this.siteSoundIndex??0);this.siteSoundIndex=index+1;this.nextSiteSound=time+11+(index%4)*3;
+  if(atmosphere==='quiet-earth'){
+   // A few quiet electrical/air sounds, separated by real silence. Never a threat cue or caption.
+   this.nextSiteSound=time+18+(index%3)*7;
+   this.tone(index%2?49:63,1.4,'sine',.022,index%2?43:52,.18);
+   this.roomNoise(.65,.024,{pan:index%2?-.55:.45,frequency:380});
+   return null;
+  }
   if(atmosphere==='cave'){
    if(index%2===0){this.tone(820,.19,'sine',.075,470);setTimeout(()=>this.tone(630,.4,'sine',.025,410),260);return'A drop falls somewhere beyond the lamplight.';}
    this.tone(58,2.3,'triangle',.07,31);this.tone(95,1.6,'sine',.025,55);return'A low rumble travels through the stone.';
