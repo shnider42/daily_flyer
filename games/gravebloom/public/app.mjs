@@ -351,7 +351,7 @@ $('#modal-body').addEventListener('click', async event => {
   else if (['equip', 'salvage', 'drop'].includes(type)) { perform({ type, itemId: button.dataset.item }); openInventory(); }
   else if (type === 'start-party') { button.disabled = true; send({ type: 'start' }); }
   else if (type === 'claim' || type === 'cleanse') { button.disabled = true; perform({ type: 'choose', choice: type }); }
-  else if (type === 'new-journey') { if (mode === 'solo') startSolo(); else { perform({ type: 'restart' }); currentPhase = ''; currentZone = -1; runRecorded = false; closeModal(true); } }
+  else if (type === 'new-journey') { if (mode === 'solo') startSolo(); else { perform({ type: 'restart' }); currentPhase = ''; currentZone = -1; observedWorldKey = ''; knownItems.clear(); seenMessages.clear(); oldHp = null; oldLevel = 1; runRecorded = false; closeModal(true); } }
   else if (type === 'fresh-solo') startSolo(); else if (type === 'continue-solo') startSolo(read(STORAGE.save, null));
   else if (type === 'choice-equipment') openInventory();
   else if (type === 'copy-code' || type === 'copy-invite') {

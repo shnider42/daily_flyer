@@ -8,3 +8,6 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
 @media(pointer:fine){body.playing #world{cursor:none}}
+
+@media(max-width:760px){input,select,.start-options input,.start-options select,.join-row input{font-size:16px}.objective p{font-size:.875rem;line-height:1.25}.touch-actions small{font-size:.65rem}}
+@media(max-height:520px) and (min-width:600px){.objective p{font-size:.75rem}}
