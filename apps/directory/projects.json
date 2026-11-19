@@ -79,9 +79,9 @@
       "Bug Tracker",
       "Hell Let Loose Vietnam"
     ],
-    "updatedAt": "2026-11-16",
-    "updateSummary": "Official announcement feed and source-link checks refreshed Nov 16; bug and content records retain their own dates.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c5e1aeb1888ad11b4319e72d4c27153c4eaff9e7"
+    "updatedAt": "2026-11-18",
+    "updateSummary": "Reviewed 123 issue dossiers, 56 content topics and 20 Catch Up briefings against the latest official plans and supporting evidence.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e7d1b143eedf6e69b480acab92a0f4f21bce0578"
   },
   {
     "id": "further-in",
@@ -798,15 +798,15 @@
       "The Quiet Earth",
       "Farwake Galaxy"
     ],
-    "updatedAt": "2026-11-16",
-    "updateSummary": "Surface warzones, faction fleets, hospital recovery and ship power controls. Stranded navy crews can call a free evacuation from Vey.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/de829ea533389ab20fae6dae65949903f5271213"
+    "updatedAt": "2026-11-19",
+    "updateSummary": "The Quiet Earth corridor opening adds staged lighting, fog of war and looping ambience. New captain perks, clearer faction guidance and revised danger music.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b7c29941bd6a1ae2af0d7adbb706d5f0197c6123"
   },
   {
     "id": "dayboard",
     "title": "Dayboard",
     "subtitle": "A little room for what is next",
-    "description": "Plan tasks with a personal Kanban board, custom areas, recurring tasks and a Today view, with adjustable text and density.",
+    "description": "Plan tasks with a personal Kanban board, custom areas, recurring tasks and a Today shortlist. Adjust text, contrast and spacing; keep browser-local saves with JSON backup and CSV export.",
     "type": "tools",
     "subtype": "Personal board",
     "tags": [
@@ -814,7 +814,9 @@
       "Planning",
       "Local storage",
       "Custom areas",
-      "Display settings"
+      "Recurring tasks",
+      "Display settings",
+      "Backup and export"
     ],
     "art": "dayboard",
     "url": "https://dfe-dayboard.onrender.com/",
@@ -828,8 +830,11 @@
       "Life Board"
     ],
     "updatedAt": "2026-11-16",
-    "updateSummary": "Custom areas preserve existing tasks; text, contrast and layout controls, plus a clear privacy policy. Personal boards stay in your browser.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/ab9c64dc1beece7cc0412b63a111a41477d6eb53"
+    "updateSummary": "Custom areas preserve existing tasks; adjustable text, contrast and spacing, plus a readable privacy policy. Personal boards stay in your browser.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/ab9c64dc1beece7cc0412b63a111a41477d6eb53",
+    "featuredRank": 2,
+    "featuredLabel": "Personal task board",
+    "featuredSummary": "Custom areas, a Today shortlist and recurring tasks, with text-size and contrast options. Saves in your browser."
   },
   {
     "id": "pocket-baseball",
@@ -853,13 +858,13 @@
       "Fenway",
       "Pocket Baseball"
     ],
-    "updatedAt": "2026-11-16",
-    "updateSummary": "Bunts, pitchouts and defensive positioning, with rendering fixes. Commentary and play-by-play captions have been removed.",
+    "updatedAt": "2026-11-17",
+    "updateSummary": "A compact phone HUD clears more of the field during play, with primary controls and stealing still accessible. Bunts, pitchouts and defensive positioning remain available.",
     "linkKind": "app",
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-baseball",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/c982b6f64ef1f3591d42a95394026c0f6abb3f1a"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/72e62021de150993d800048d447c48c98715fcaf"
   },
   {
     "id": "sunday-broadcast",
@@ -1043,5 +1048,43 @@
     "updatedAt": "2026-11-14",
     "updateSummary": "Simpler guest voting, separate song requests, asynchronous trivia and polls, and clearer Spotify host controls.",
     "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cf65a1bdd7fb5429b26f74b8eceb2834ec9fe19"
+  },
+  {
+    "id": "gravebloom",
+    "title": "GRAVEBLOOM",
+    "subtitle": "A descent for one to four",
+    "description": "Choose Warrior, Archer or Wizard for a Diablo-style action RPG with three dungeon areas, boss battles and randomized loot. Play alone or in a party of four; claim boss hearts for powers and tougher enemies, or cleanse them to strengthen the party.",
+    "type": "games",
+    "subtype": "Action RPG",
+    "tags": [
+      "Top-down",
+      "Action RPG",
+      "Solo",
+      "Co-op",
+      "Multiplayer",
+      "1–4 players",
+      "Random loot"
+    ],
+    "art": "gravebloom",
+    "url": "https://dfe-gravebloom.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/gravebloom",
+    "createdAt": "2026-11-19",
+    "datePrecision": "day",
+    "dateSource": "First Gravebloom build commit 37babe3, 19 Nov 2026 at 18:19 America/New_York.",
+    "aliases": [
+      "Gravebloom",
+      "Diablo",
+      "Diablo-like",
+      "Diablo based",
+      "Loot RPG",
+      "Warrior Archer Wizard"
+    ],
+    "updatedAt": "2026-11-19",
+    "updateSummary": "First playable descent: three classes, three areas and bosses, personal loot and four-player co-op. Includes solo checkpoints and party reconnect fixes.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/27dc1659e28194d9e9b2e0df5da0a3b38c1317cc",
+    "featuredRank": 1,
+    "featuredLabel": "Diablo-style co-op",
+    "featuredSummary": "Choose Warrior, Archer or Wizard. Fight through three areas, beat their bosses and roll new loot, alone or with up to three friends."
   }
 ]

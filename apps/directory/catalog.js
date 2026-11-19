@@ -1,5 +1,8 @@
 export const TYPE_LABELS = Object.freeze({games:'Games','catch-up':'Catch up',tools:'Tools',stories:'Stories & culture'});
 export const SORTS = ['newest','updated','oldest','name','type'];
+export function featuredProjects(projects) {
+  return projects.filter(p=>Number.isInteger(p.featuredRank)).sort((a,b)=>a.featuredRank-b.featuredRank);
+}
 export function normalize(value) { return String(value ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 export function selectProjects(projects, {query='',type='all',sort='newest',favoritesOnly=false,kind=''}={}, favorites=new Set()) {
   const tokens = normalize(query).trim().split(/\s+/).filter(Boolean);
@@ -39,11 +42,16 @@ export function projectLink(project) {
 }
 export function validateCatalog(projects) {
   if(!Array.isArray(projects) || !projects.length) throw new Error('The project catalog is empty.');
-  const ids=new Set();
+  const ids=new Set(),featuredRanks=new Set();
   for(const p of projects) {
     if(!/^[a-z0-9-]+$/.test(p.id) || ids.has(p.id)) throw new Error('A project ID is missing or repeated.');
     ids.add(p.id);
     if(!p.title || !TYPE_LABELS[p.type] || !p.art) throw new Error('A project is missing its name, type, or artwork.');
+    if(p.featuredRank!==undefined) {
+      if(!Number.isInteger(p.featuredRank) || p.featuredRank<1 || featuredRanks.has(p.featuredRank)) throw new Error('Featured project ranks must be unique positive integers.');
+      if(typeof p.featuredLabel!=='string' || !p.featuredLabel.trim() || typeof p.featuredSummary!=='string' || !p.featuredSummary.trim()) throw new Error('A featured project needs a label and summary.');
+      featuredRanks.add(p.featuredRank);
+    }
     if(!projectLink(p)) throw new Error('A project has no valid HTTPS destination.');
     if(!['day','month','unknown'].includes(p.datePrecision)) throw new Error('A project has an invalid date precision.');
     if(p.datePrecision!=='unknown' && (!/^\d{4}-\d{2}-\d{2}$/.test(p.createdAt??'') || Number.isNaN(Date.parse(p.createdAt)))) throw new Error('A project has an invalid date.');

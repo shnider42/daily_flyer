@@ -42,6 +42,7 @@ export const ART_PALETTES = Object.freeze({
   skybreak:{background:'#a8cbd4',foreground:'#182f44',accent:'#e76f38'},
   trailmark:{background:'#e9e4cf',foreground:'#2a4b3e',accent:'#ba7937'},
   loudsource:{background:'#e37b43',foreground:'#f4e5c6',accent:'#36273f'},
+  gravebloom:{background:'#17221e',foreground:'#e9dec2',accent:'#bd5349'},
 });
 const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -354,6 +355,21 @@ const covers={
       ${line('M337 217H482M337 229H429M337 279H464M337 291H410M337 341H478M337 353H443','#36273f',3)}
       <g fill="#36273f"><path d="m548 209 12 13h-8v16h-8v-16h-8ZM548 271l12 13h-8v16h-8v-16h-8ZM548 333l12 13h-8v16h-8v-16h-8Z"/></g>
       ${note('YOUR PARTY. YOUR QUEUE.',32,392,'#36273f',{size:11,spacing:1.5})}${paper(u,.22)}`,
+  }),
+  gravebloom:u=>({
+    body:`${rect(0,0,640,420,'#17221e')}${rect(18,18,604,384,'none','stroke="#71816a" stroke-width="1"')}
+      ${note('BOSSES / LOOT / CORRUPTION',32,45,'#b4b998',{size:12,spacing:2})}
+      ${type('GRAVEBLOOM',29,124,77,'#e9dec2',{family:'serif',width:580,weight:700})}${line('M30 143H610','#71816a',1.5)}
+      <path d="M206 350V260Q206 199 320 159 434 199 434 260V350" fill="#0d1513" stroke="#71816a" stroke-width="8"/>
+      <path d="M226 350V260Q226 213 320 179 414 213 414 260V350M245 350V264Q245 230 320 200 395 230 395 264V350" fill="none" stroke="#364b3c" stroke-width="3"/>
+      ${line('M320 159V179M256 190 268 206M384 190 372 206M206 259H226M414 259H434M206 310H226M414 310H434','#b4b998',2)}
+      <path d="M320 297C305 281 279 265 281 244 283 224 309 222 320 241 331 222 357 224 359 244 361 265 335 281 320 297Z" fill="#bd5349" stroke="#e9dec2" stroke-width="2"/>
+      ${line('M320 286V325L291 347 277 362M320 314 349 337 370 350M320 325 324 352 313 365M291 347 263 344 248 353M349 337 374 329 389 337','#bd5349',4)}
+      ${line('M306 236 296 216 284 210M331 235 337 216 350 208M298 256 315 262 325 251 343 255','#e9dec2',2)}
+      <g transform="translate(111 248)" stroke="#b4b998" fill="none" stroke-width="3"><path d="M0-61 8-44 6 25H-6L-8-44ZM-23 29H23M0 30V62M-8 62H8"/><path d="M0-47V20" stroke="#71816a" stroke-width="1"/></g>
+      <g transform="translate(516 249)" stroke="#b4b998" fill="none" stroke-width="3"><path d="M-7-57Q44 0-7 57M-7-57 13 0-7 57M-32 0H40M30-9 40 0 30 9"/></g>
+      ${line('M46 335H175M465 335H594','#71816a',1)}${note('CLAIM',111,357,'#b4b998',{size:11,spacing:2,anchor:'middle'})}${note('OR CLEANSE',523,357,'#b4b998',{size:11,spacing:1.4,anchor:'middle'})}
+      ${rect(19,377,602,25,'#bd5349')}${note('WARRIOR / ARCHER / WIZARD',32,394,'#f3e9cf',{size:10,spacing:1})}${note('1–4 PLAYER CO-OP',608,394,'#f3e9cf',{size:10,spacing:.8,anchor:'end'})}${paper(u,.24)}`,
   }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}

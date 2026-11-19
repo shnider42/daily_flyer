@@ -1,11 +1,11 @@
 import {renderArtwork} from './artwork.js';
-import {TYPE_LABELS,SORTS,selectProjects,formatAddedDate,formatUpdatedDate,projectLink,validateCatalog} from './catalog.js';
+import {TYPE_LABELS,SORTS,selectProjects,featuredProjects,formatAddedDate,formatUpdatedDate,projectLink,validateCatalog} from './catalog.js';
 const STORE='dfe.directory.v1';
 const $=id=>document.getElementById(id);
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const star='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg>';
 const copyIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1"/></svg>';
-const ACCENTS={dsl:'#c4cf9d',gridiron:'#cfeaa4',infierno:'#dfaf9e','further-in':'#d6cd96',breach:'#f2b19c','irish-today':'#b1d4b7',garage:'#9dc9df','night-transfer':'#9dcbd0',mypassages:'#b1dacf',saltbound:'#96d7cc',empires:'#d0bd90',huddle:'#b8cc8d',vineyard:'#c3b99d','roster-radar':'#adce96',lockstep:'#d8c09a','next-chapter':'#e1c4a6','soph-slump':'#dcc39b','magic-catch-up':'#d3b4de',rlcs:'#9ebfe5',skyward:'#abd1e5',hockey:'#a7d7e7',soccer:'#d4d885','sleeve-notes':'#e4bb91',battlezone:'#a4de9e','when-ants-stare':'#ceab8c','last-exit':'#c4b1d8',afterglow:'#d6b2dd','claim-denied':'#d5a29a','magic-duel':'#c9aed3','relay-fieldguide':'#e1b892',farwake:'#acb8da',dayboard:'#c1ccaf',baseball:'#d8dfb4','sunday-broadcast':'#e7c589','shenanigans-golf':'#bcd49e','corner-pocket':'#e1c092','low-water':'#aac6bc',skybreak:'#b4d6df',trailmark:'#cfcea7',loudsource:'#edbd8a'};
+const ACCENTS={dsl:'#c4cf9d',gridiron:'#cfeaa4',infierno:'#dfaf9e','further-in':'#d6cd96',breach:'#f2b19c','irish-today':'#b1d4b7',garage:'#9dc9df','night-transfer':'#9dcbd0',mypassages:'#b1dacf',saltbound:'#96d7cc',empires:'#d0bd90',huddle:'#b8cc8d',vineyard:'#c3b99d','roster-radar':'#adce96',lockstep:'#d8c09a','next-chapter':'#e1c4a6','soph-slump':'#dcc39b','magic-catch-up':'#d3b4de',rlcs:'#9ebfe5',skyward:'#abd1e5',hockey:'#a7d7e7',soccer:'#d4d885','sleeve-notes':'#e4bb91',battlezone:'#a4de9e','when-ants-stare':'#ceab8c','last-exit':'#c4b1d8',afterglow:'#d6b2dd','claim-denied':'#d5a29a','magic-duel':'#c9aed3','relay-fieldguide':'#e1b892',farwake:'#acb8da',dayboard:'#c1ccaf',gravebloom:'#d3b38b',baseball:'#d8dfb4','sunday-broadcast':'#e7c589','shenanigans-golf':'#bcd49e','corner-pocket':'#e1c092','low-water':'#aac6bc',skybreak:'#b4d6df',trailmark:'#cfcea7',loudsource:'#edbd8a'};
 function readStored(){try{const value=JSON.parse(localStorage.getItem(STORE)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
 const stored=readStored(),params=new URLSearchParams(location.search);
 const fromURL=['q','type','sort','saved','kind'].some(k=>params.has(k));
@@ -14,13 +14,20 @@ const initialType=params.get('type')||(fromURL?'all':'games');
 const initialSort=params.get('sort')||'newest';
 const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'games',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
 const favorites=new Set(Array.isArray(stored.favorites)?stored.favorites.filter(x=>typeof x==='string'):[]);
-let projects=[],visible=[],toastTimer,catalogReady=false;
+let projects=[],visible=[],featured=[],toastTimer,catalogReady=false;
 function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset,#explore-all').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({view:state.view,favorites:[...favorites]}));}catch{}}
 function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='games'||state.query||state.sort!=='newest'||state.favoritesOnly||state.kind)url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
 async function copy(text,message){try{await navigator.clipboard.writeText(text);toast(message);}catch{$('copy-text').value=text;$('copy-dialog').showModal();$('copy-text').focus();$('copy-text').select();}}
 function displayURL(link){const url=new URL(link);return {host:url.hostname,path:(url.pathname==='/'?'':url.pathname)+url.search+url.hash};}
+function featuredCard(p){
+  const title=escapeHTML(p.title),link=escapeHTML(projectLink(p));
+  return `<a class="featured-card" data-featured="${escapeHTML(p.id)}" href="${link}" target="_blank" rel="noopener noreferrer" aria-label="Open ${title} in a new tab" style="--card-accent:${ACCENTS[p.art]||'#d9ecae'}">
+    <div class="featured-art" aria-hidden="true">${renderArtwork({...p,id:'featured-'+p.id})}</div>
+    <div class="featured-copy"><span class="featured-label">${escapeHTML(p.featuredLabel)}</span><h3>${title}</h3><p>${escapeHTML(p.featuredSummary)}</p><span class="featured-action">${p.type==='games'?'Play':'Open'} ${title}<svg class="launch-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></span></div>
+  </a>`;
+}
 function card(p){
   const link=projectLink(p),title=escapeHTML(p.title),isFavorite=favorites.has(p.id),address=displayURL(link);
   const access=p.linkKind==='source'?'Source project':p.linkKind==='preview'?'Preview':p.access==='signin'?'Sign-in required':'';
@@ -29,7 +36,7 @@ function card(p){
     <a class="card-visual" href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">${renderArtwork(p)}</a>
     <div class="card-body">
       <div class="card-heading"><h2><a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${title} in a new tab">${title}<svg class="launch-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></a></h2><button type="button" class="favorite-button" data-favorite="${escapeHTML(p.id)}" aria-label="${isFavorite?'Remove':'Add'} ${title} ${isFavorite?'from':'to'} favorites" aria-pressed="${isFavorite}" title="${isFavorite?'Remove favorite':'Save favorite'}">${star}</button></div>
-      <div class="card-meta"><span class="card-kind">${escapeHTML(p.subtype)}</span><span title="${p.datePrecision==='month'?'Added in this approximate month; the exact day is not recorded.':'Added: first recorded theme build or deployment.'}"><time${p.createdAt?` datetime="${escapeHTML(p.datePrecision==='month'?p.createdAt.slice(0,7):p.createdAt)}"`:''}>${escapeHTML(formatAddedDate(p))}</time></span></div>
+      <div class="card-meta"><span class="card-kind">${escapeHTML(p.subtype)}${p.featuredRank?'<span class="featured-tag">Featured</span>':''}</span><span title="${p.datePrecision==='month'?'Added in this approximate month; the exact day is not recorded.':'Added: first recorded theme build or deployment.'}"><time${p.createdAt?` datetime="${escapeHTML(p.datePrecision==='month'?p.createdAt.slice(0,7):p.createdAt)}"`:''}>${escapeHTML(formatAddedDate(p))}</time></span></div>
       <p class="card-description">${escapeHTML(p.description)}</p>
       ${p.updateSummary?`<p class="card-update"><span class="update-date">Updated <time datetime="${escapeHTML(p.updatedAt)}">${escapeHTML(formatUpdatedDate(p))}</time></span>${escapeHTML(p.updateSummary)}</p>`:''}
       ${note?`<p class="card-note">${escapeHTML(note)}</p>`:''}
@@ -40,6 +47,7 @@ function card(p){
 }
 function render({persist=true}={}){
   visible=selectProjects(projects,state,favorites);
+  $('featured').hidden=!featured.length||Boolean(state.query.trim()||state.kind||state.favoritesOnly)||!['games','all'].includes(state.type);
   $('collection').innerHTML=visible.map(card).join('');
   $('collection').classList.toggle('is-list',state.view==='list');
   $('view-grid').setAttribute('aria-pressed',String(state.view==='grid'));
@@ -65,6 +73,8 @@ async function init(){
   try{
     const response=await fetch('./projects.json');if(!response.ok)throw new Error('Could not load the catalog.');
     projects=validateCatalog(await response.json());
+    featured=featuredProjects(projects);
+    $('featured-projects').innerHTML=featured.map(featuredCard).join('');
     for(const id of favorites)if(!projects.some(p=>p.id===id))favorites.delete(id);
     $('total-count').textContent=projects.length;
     $('other-projects-count').textContent=projects.filter(p=>p.type!=='games').length;
