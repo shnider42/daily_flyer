@@ -21,6 +21,7 @@ const BIOME_TAGS = new Set(['temperate', 'forest', 'desert', 'ocean', 'ice', 'vo
 const PLACE_TAGS = new Set(['cabin', 'fieldwork', 'voltage', 'foreman', 'nightlife', 'crosswind']);
 const ambientFamily = context => context.scene === 'menu' ? 'theme'
   : context.musicPlace === 'crosswind' ? 'combat'
+  : context.musicPlace === 'long-corridor' ? 'corridor'
   : context.environment === 'cave' ? 'cave'
   : ['cabin', 'fieldwork'].includes(context.musicPlace) ? 'exploration'
   : context.scene === 'social' ? 'social'
@@ -96,7 +97,7 @@ export class MusicDirector {
   }
 
   select(family, now, context) {
-    let pool = this.cues.filter(cue => cue.family === family);
+    let pool = this.cues.filter(cue => family === 'corridor' ? cue.tags?.includes('long-corridor') : cue.family === family);
     const tags = context.tags || [];
     if (family === 'combat' && context.musicPlace === 'crosswind') {
       pool = pool.filter(cue => cue.tags?.includes('crosswind'));
@@ -183,15 +184,15 @@ export class MusicDirector {
     return pool[(Math.floor(this.random() * pool.length) + regional) % pool.length];
   }
 
-  begin(cue, now, context, { fast = false, preview = false } = {}) {
+  begin(cue, now, context, { fast = false, preview = false, mood = cue?.family } = {}) {
     if (!cue) return;
     const menuPlayback = !!cue.loopInMenu && context.scene === 'menu';
     if (preview && !menuPlayback && this.current?.menuPlayback) this.themePlayed = false;
     this.sequence++;
-    this.current = { cue, token: this.sequence, startedAt: now,
+    this.current = { cue, mood, token: this.sequence, startedAt: now,
       until: menuPlayback ? Infinity : now + duration(cue) + 2, menuPlayback,
       seed: musicSeed(`${context.paletteKey}|${cue.id}|${this.sequence}`),
-      fadeIn: fast ? .9 : cue.family === 'theme' ? 1.6 : 3.5,
+      fadeIn: fast ? .9 : cue.family === 'theme' || mood === 'corridor' ? 1.6 : 3.5,
       fadeOut: fast ? .35 : 4, preview,
       placeKey: this.placeKey, placeFamily: this.placeFamily, placeProfile: this.placeProfile };
     this.transitionKey = null; this.transitionAt = Infinity;
@@ -229,6 +230,7 @@ export class MusicDirector {
     const inGame = context.scene !== 'menu', crosswind = this.warzoneActive;
     const placeFamily = ambientFamily(context), placeKey = `${placeFamily}:${context.paletteKey || context.contextKey || 'open-sky'}`;
     const changedPlace = this.placeKey !== null && this.placeKey !== placeKey;
+    const transitionSeconds = placeFamily === 'corridor' || this.placeFamily === 'corridor' ? 1.5 : LOCATION_TRANSITION_SECONDS;
     const previousPlaceFamily = this.placeFamily, previousPlaceProfile = this.placeProfile;
     this.placeKey = placeKey; this.placeFamily = placeFamily; this.placeProfile = context.musicPlace || null;
     if (this.loopingMenuTheme) {
@@ -243,14 +245,14 @@ export class MusicDirector {
     // Let the current phrase breathe briefly when arriving somewhere with its
     // own music, then crossfade. A menu theme cannot linger for minutes in a
     // cave. Briefly crossing a threshold and returning cancels the transition.
-    const mismatchedPlace = this.current && !this.current.preview && !danger(this.current.cue.family) && this.current.cue.family !== 'recovery'
+    const mismatchedPlace = this.current && !this.current.preview && !danger(this.current.mood) && this.current.mood !== 'recovery'
       && this.current.placeKey !== placeKey && (environmental(placeFamily) || environmental(this.current.placeFamily) || this.placeProfile || this.current.placeProfile);
     if (mismatchedPlace) {
-      if (this.transitionKey !== placeKey) { this.transitionKey = placeKey; this.transitionAt = now + LOCATION_TRANSITION_SECONDS; }
+      if (this.transitionKey !== placeKey) { this.transitionKey = placeKey; this.transitionAt = now + transitionSeconds; }
       if (now >= this.transitionAt && !context.paused) { this.current = null; this.nextMusicAt = now; this.transitionKey = null; this.transitionAt = Infinity; }
     } else { this.transitionKey = null; this.transitionAt = Infinity; }
     if (!this.current && changedPlace && (environmental(placeFamily) || environmental(previousPlaceFamily) || this.placeProfile || previousPlaceProfile)) {
-      this.nextMusicAt = Math.min(this.nextMusicAt, now + LOCATION_TRANSITION_SECONDS);
+      this.nextMusicAt = Math.min(this.nextMusicAt, now + transitionSeconds);
     }
     const combat = inGame && (now < this.combatUntil || context.emergency);
     const tense = inGame && now < this.tensionUntil;
@@ -265,11 +267,11 @@ export class MusicDirector {
     const underPressure = crosswind || combat || terror || tense;
     if (this.lastDanger && !underPressure && inGame) {
       this.recoveryUntil = now + 28; this.nextMusicAt = now; this.recoveryRequested = false;
-      if (this.current && danger(this.current.cue.family)) this.current = null;
+      if (this.current && danger(this.current.mood)) this.current = null;
     }
     this.lastDanger = !!underPressure;
     if (this.current && now >= this.current.until) {
-      const family = this.current.cue.family, preview = this.current.preview;
+      const family = this.current.mood, preview = this.current.preview;
       this.current = null;
       this.nextMusicAt = now + (!inGame && this.loopingMenuTheme && !this.themePlayed ? 0 : danger(family) && !preview ? 1.5 : this.gap(presence));
       if (family === 'recovery' && !preview) { this.recoveryUntil = -Infinity; this.nextMusicAt = now + Math.max(35, this.gap(presence)); }
@@ -279,8 +281,8 @@ export class MusicDirector {
     }
     if (!underPressure && inGame && !this.current?.preview) {
       const recover = this.recoveryRequested && now < this.recoveryUntil;
-      const discover = this.discoveryRequested && now < this.discoveryUntil && now >= this.recoveryUntil;
-      if ((recover || discover) && this.current?.cue.family !== (recover ? 'recovery' : 'discovery')) {
+      const discover = placeFamily !== 'corridor' && this.discoveryRequested && now < this.discoveryUntil && now >= this.recoveryUntil;
+      if ((recover || discover) && this.current?.mood !== (recover ? 'recovery' : 'discovery')) {
         this.current = null; this.nextMusicAt = now;
       }
       if (recover || now >= this.recoveryUntil) this.recoveryRequested = false;
@@ -288,20 +290,21 @@ export class MusicDirector {
     }
     let mood = crosswind || combat ? 'combat' : terror ? 'terror' : tense ? 'tension'
       : inGame && now < this.recoveryUntil ? 'recovery'
-      : !inGame ? 'theme' : now < this.discoveryUntil || context.scene === 'discovery' ? 'discovery'
+      : !inGame ? 'theme' : placeFamily === 'corridor' ? placeFamily
+      : now < this.discoveryUntil || context.scene === 'discovery' ? 'discovery'
       : placeFamily;
     if (this.current && !this.current.preview && !!this.current.cue.tags?.includes('crosswind') !== crosswind) {
       this.current = null; this.nextMusicAt = now;
     }
-    if (this.current && !this.current.preview && danger(this.current.cue.family) && !danger(mood)) this.current = null;
-    if (this.current && danger(mood) && (this.current.cue.family !== mood || this.current.preview && !(crosswind && this.current.cue.tags?.includes('crosswind')))) {
+    if (this.current && !this.current.preview && danger(this.current.mood) && !danger(mood)) this.current = null;
+    if (this.current && danger(mood) && (this.current.mood !== mood || this.current.preview && !(crosswind && this.current.cue.tags?.includes('crosswind')))) {
       // A hit can interrupt a peaceful phrase; further hits do not restart it.
       if (this.current.preview && !this.previewRequested) {
         this.previewCueId = this.current.cue.id; this.previewRequested = true;
       }
       this.current = null; this.nextMusicAt = now;
     }
-    if (this.current?.cue.family === 'recovery' && !this.current.preview && now >= this.recoveryUntil) {
+    if (this.current?.mood === 'recovery' && !this.current.preview && now >= this.recoveryUntil) {
       this.current = null; this.nextMusicAt = now + Math.max(35, this.gap(presence));
     }
     const requested = this.cues.find(cue => cue.id === this.previewCueId);
@@ -315,11 +318,11 @@ export class MusicDirector {
         else { mood = 'silence'; this.nextMusicAt = now + 15; }
       } else if (!context.paused || underPressure) {
         const cue = this.select(mood, now, context);
-        if (cue) this.begin(cue, now, context, { fast: danger(mood) });
+        if (cue) this.begin(cue, now, context, { fast: danger(mood), mood });
         else this.nextMusicAt = now + 12;
       }
     }
-    return this.decision(this.current?.cue.family || (underPressure ? mood : 'silence'), duck);
+    return this.decision(this.current?.mood || (underPressure ? mood : 'silence'), duck);
   }
 
   decision(mood, duck = 1, fadeOut = null) {

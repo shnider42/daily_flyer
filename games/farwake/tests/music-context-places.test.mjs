@@ -5,6 +5,9 @@ import { Realm } from '../server/realm.mjs';
 import { generateSurface, isWalkable } from '../dist/surface.mjs';
 import { fieldObjectPosition, FOREMAN_POSITION, normalizeFieldState } from '../dist/floodworks.mjs';
 import { musicContext, classifyMusicEvent } from '../dist/music-context.mjs';
+import { MUSIC_CUES, THEME_ID } from '../dist/music-catalog.mjs';
+import { MusicDirector } from '../dist/music-director.mjs';
+import { MORROW_FLIGHTLINE } from '../dist/recorded-theme.mjs';
 
 const ok = result => { assert.equal(result?.ok, true, result?.reason); return result; };
 const read = (game, extra = {}) => musicContext({ game, playing: true, surface: game._expeditionSurface?.() || null, ...extra });
@@ -58,6 +61,46 @@ test('Voltage streets and the actual nearby gaming venue have distinct palettes 
   assert.equal(read(game, { surface }).musicPlace, 'city', 'A hidden or absent venue is not inferred from a city name.');
   game.state.systemId = 'hearth'; game.state.locationId = 'kettle';
   assert.equal(read(game, { surface }).musicPlace, null, 'A stale city surface cannot score a different body.');
+});
+
+test('the opened Floodworks passage scores the walk without inventing danger', () => {
+  const game = enterField(new Game('music-service-corridor'));
+  const director = new MusicDirector({ cues: MUSIC_CUES, themeId: THEME_ID });
+  const workshop = read(game);
+  assert.equal(workshop.musicPlace, 'fieldwork');
+  assert.notEqual(director.update(workshop, 0).cueId, MORROW_FLIGHTLINE.id);
+  act(game, 'workshop-cutter', 'claim');
+  act(game, 'service-panel', 'cut');
+  const cut = game.drainEvents().find(event => event.type === 'field-work-action');
+  director.notify(classifyMusicEvent(cut, read(game)), 1);
+  director.update(read(game), 1);
+  Object.assign(game.state.person, point(12, 27));
+  const corridor = read(game);
+  assert.equal(corridor.musicPlace, 'long-corridor');
+  assert.equal(corridor.observedThreat, false);
+  director.update(corridor, 2);
+  const music = director.update(corridor, 4);
+  assert.equal(music.cueId, MORROW_FLIGHTLINE.id);
+  assert.equal(music.mood, 'corridor');
+  assert.equal(music.loop, false);
+  Object.assign(game.state.person, point(12, 19));
+  assert.equal(director.update(read(game), 5).token, music.token);
+  assert.equal(director.update({ ...read(game), combat: true }, 6).mood, 'combat');
+});
+
+test('Morrow Flightline can be selected during ordinary ground and space combat', () => {
+  for (const tags of [['ground', 'surface'], ['ship', 'flight']]) {
+    const director = new MusicDirector({ cues: MUSIC_CUES, themeId: THEME_ID });
+    const context = { scene: 'exploration', combat: true, tags };
+    const selected = new Set();
+    for (let now = 0; now < 180; now += 1) {
+      const cue = director.select('combat', now, context);
+      selected.add(cue.id);
+      director.lastPlayed.set(cue.id, now);
+    }
+    assert.ok(selected.has(MORROW_FLIGHTLINE.id), tags.join(', '));
+    assert.ok(selected.size > 1);
+  }
 });
 
 test('Foreman phases mean one continuous threat only inside the active bay, and darkness or an idle machine are not danger', () => {

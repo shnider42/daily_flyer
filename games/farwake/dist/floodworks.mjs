@@ -267,6 +267,9 @@ export function buildFieldInterior(m,site,field,helpers){
   const sections=[['INTAKE / FIELD WORKSHOP',3,29,18,23,'#537466'],['SERVICE GALLERY',3,3,18,23,'#6c7161'],['DRAIN PUMP ROOM',24,3,24,22,'#456e7c'],['FOREMAN / MACHINE BAY',24,29,25,23,'#86694d'],['RECOVERY WARD',53,29,22,23,'#527367'],['MAINTENANCE ARCHIVE',53,3,22,22,'#62677d']];
   m.rooms=sections.map(([name,x,y,w,h,color])=>({name,x,y,w,h,color}));
   for(const [name,x,y,w,h]of sections){rect(m,x,y,w,h,TILE.FLOOR);label(m,name,x+1,y+1,'#c2d0bb');}
+  // The service gallery and its entry passage share one traversal cue.
+  m.musicCorridors=[{x:3*T,y:3*T,w:18*T,h:23*T}];
+  if(field.serviceCut)m.musicCorridors.push({x:10*T,y:25*T,w:5*T,h:6*T});
   rect(m,10,25,5,6,field.serviceCut?TILE.GRATE:TILE.WALL);
   rect(m,20,12,5,4,TILE.PATH);
   rect(m,32,24,5,7,field.drained?TILE.GRATE:TILE.WATER);

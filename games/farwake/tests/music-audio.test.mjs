@@ -179,6 +179,7 @@ test('external audio interruption clears the director and resumes without replay
 
 test('rapid musical transitions retain at most a current and retiring score and stop superseded players', async () => {
   const b = boundary();
+  b.audio.director.cues = MUSIC_CUES.filter(cue => cue.family !== 'combat' || cue.id === 'morrow-flightline-loop');
   try {
     b.audio.unlock(); b.audio.updateMusic({ scene: 'menu' }, 0); const theme = b.audio.score;
     // A streamed theme becomes audible after play() settles; an unstarted request is stopped immediately.
@@ -186,11 +187,13 @@ test('rapid musical transitions retain at most a current and retiring score and 
     b.audio.musicEvent('combat', 1, 'incoming-hit');
     b.audio.ctx.currentTime = 1;
     b.audio.updateMusic({ scene: 'exploration' }, 1); const combat = b.audio.score;
+    // Combat may also select a streamed recording; allow its play() to settle.
+    await Promise.resolve();
     assert.ok(b.audio.retiringScore === theme, 'the already-playing theme fades out during the transition');
     b.audio.ctx.currentTime = 1.1;
     b.audio.updateMusic({ scene: 'exploration', silence: true }, 1.1);
     assert.equal(theme.status().disposed, true);
-    assert.equal(b.audio.retiringScore, combat);
+    assert.ok(b.audio.retiringScore === combat, 'the already-playing recording fades out during silence');
     assert.equal(b.audio.score, null);
     b.audio.ctx.currentTime = 1.2;
     b.audio.updateMusic({ scene: 'exploration' }, 1.2);
@@ -241,8 +244,9 @@ test('Soundscape auditions a non-theme cue through its real director and reports
   } finally { b.restore(); }
 });
 
-test('Soundscape interrupts a real audition for observed danger, requeues it safely, and cancels only the audition', () => {
+test('Soundscape interrupts a real audition for observed danger, requeues it safely, and cancels only the audition', async () => {
   const b = boundary(), flight = { scene: 'exploration', paletteKey: 'outside', tags: ['ship', 'flight'] };
+  b.audio.director.cues = MUSIC_CUES.filter(cue => cue.family !== 'combat' || cue.id === 'morrow-flightline-loop');
   const at = now => { b.audio.ctx.currentTime = now; return b.audio.updateMusic(flight, now); };
   try {
     const id = 'rain-on-the-transit-line';
@@ -250,6 +254,7 @@ test('Soundscape interrupts a real audition for observed danger, requeues it saf
     const preview = b.audio.score;
     b.audio.musicEvent('combat', 1, 'actual-targeted-volley');
     const battle = at(1), battlePlayer = b.audio.score;
+    await Promise.resolve();
     assert.equal(battle.mood, 'combat'); assert.equal(battle.preview, false);
     assert.equal(b.audio.musicStatus().requestedCueId, id);
     assert.equal(b.audio.musicStatus().previewCueId, null);
@@ -258,8 +263,9 @@ test('Soundscape interrupts a real audition for observed danger, requeues it saf
     const resumed = at(16);
     assert.equal(resumed.previewCueId, id); assert.equal(b.audio.musicStatus().requestedCueId, null);
     assert.ok(preview.status().disposed); assert.notEqual(b.audio.score, preview);
-    assert.equal(b.audio.retiringScore, battlePlayer);
+    assert.ok(b.audio.retiringScore === battlePlayer, 'the already-playing recording fades when the audition returns');
     b.audio.musicEvent('combat', 17, 'renewed-local-fire'); const renewed = at(17), renewedPlayer = b.audio.score;
+    await Promise.resolve();
     assert.equal(b.audio.musicStatus().requestedCueId, id);
     b.audio.stopPreview(18);
     assert.equal(at(18).token, renewed.token); assert.equal(b.audio.score, renewedPlayer);

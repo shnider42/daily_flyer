@@ -132,8 +132,11 @@ export function musicContext({
     ['glimmer-night-market', 'voltage-after-shift'].includes(entity.data?.venueId) &&
     same(entity.data?.homeLocationId, body?.id) &&
     distance(personPosition, point(entity)) <= 180);
+  const corridor = visible && mode === 'person' && !onVessel && personPosition &&
+    list(surface?.musicCorridors).some(({ x, y, w, h }) =>
+      personPosition.x >= x && personPosition.x < x + w && personPosition.y >= y && personPosition.y < y + h);
   const crosswind = visible && state.systemId === 'crosswind';
-  const musicPlace = crosswind ? 'crosswind' : cabin ? 'cabin' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
+  const musicPlace = crosswind ? 'crosswind' : cabin ? 'cabin' : corridor ? 'long-corridor' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
 
   // Ship damage uses the occupied vessel's own clock. Off-duty damage to a
   // parked personal ship must not change the music while the captain is ashore.
@@ -252,7 +255,7 @@ export function classifyMusicEvent(event, context = {}) {
 
   switch (event.type) {
     case 'field-work-action': {
-      if (scope.mode !== 'person' || context.musicPlace !== 'fieldwork' || !localPerson || event.siteId == null) return null;
+      if (scope.mode !== 'person' || !context.tags?.includes('fieldwork') || !localPerson || event.siteId == null) return null;
       if (event.action === 'handover' && event.firstHandover === true &&
         list(event.evidenceKinds).some(kind => kind === 'rescue' || kind === 'aftercare')) return 'recovery';
       if (event.action === 'release' && event.geometryChanged === true && event.foremanStopped === true) return 'recovery';
@@ -261,7 +264,7 @@ export function classifyMusicEvent(event, context = {}) {
       return null;
     }
     case 'field-progress':
-      if (scope.mode !== 'person' || context.musicPlace !== 'fieldwork' || event.siteId == null) return null;
+      if (scope.mode !== 'person' || !context.tags?.includes('fieldwork') || event.siteId == null) return null;
       if (event.fieldKind === 'foreman') return context.foremanActive ? 'combat' : null;
       if (event.fieldKind === 'rescue' && list(context.nearbySafeSurvivorIds).includes(event.survivorId)) return 'recovery';
       return null;

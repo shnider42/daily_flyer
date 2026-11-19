@@ -6,6 +6,7 @@ const GROUPS = Object.freeze([
 ]);
 const FAMILIES = Object.freeze({ theme: 'Main theme', exploration: 'Exploration', planet: 'Planets & moons', cave: 'Caves & passages', social: 'Life at port', discovery: 'Discovery', tension: 'Unease', combat: 'Danger', recovery: 'A moment to recover', terror: 'Rare encounters' });
 const SITUATIONS = Object.freeze({
+  'morrow-flightline-loop': 'A recorded cue for the Floodworks service gallery and the danger rotation.',
   'shnider-theme': 'Farwake’s recorded menu theme. It loops on the title screen and plays once when requested during a voyage.',
   'long-way-home': 'The original synthesized theme. A small beginning, a wider horizon, and the way home.',
   'lamps-in-the-cabin': 'Quiet time aboard ship, away from the helm.',

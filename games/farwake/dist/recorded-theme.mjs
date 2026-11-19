@@ -5,13 +5,22 @@ export const MENU_THEME = Object.freeze({
   durationSeconds: 197.625, tags: Object.freeze(['menu', 'theme']), loopInMenu: true,
 });
 
-const themeURL = new URL('./music/shnider-menu-theme.m4a', import.meta.url).href;
+export const MORROW_FLIGHTLINE = Object.freeze({
+  id: 'morrow-flightline-loop', title: 'Morrow Flightline Loop', family: 'combat',
+  durationSeconds: 142.222, cooldownSeconds: 240,
+  tags: Object.freeze(['long-corridor', 'ground', 'flight']), intensity: .64,
+});
+
+export const RECORDED_MUSIC = Object.freeze([
+  { cue: MENU_THEME, url: new URL('./music/shnider-menu-theme.m4a', import.meta.url).href },
+  { cue: MORROW_FLIGHTLINE, url: new URL('./music/morrow-flightline-loop.m4a', import.meta.url).href },
+]);
 const seconds = value => Number.isFinite(value) ? Math.max(0, value) : 0;
 
 /** One reusable media element keeps streaming memory and browser activation bounded. */
 export class RecordedTheme {
-  constructor(ctx, destination) {
-    this.ctx = ctx; this.destination = destination;
+  constructor(ctx, destination, recording = RECORDED_MUSIC[0]) {
+    this.ctx = ctx; this.destination = destination; this.recording = recording;
     this.media = null; this.source = null; this.gain = null; this.owner = null;
     this.pending = null; this.serial = 0; this.primed = false; this.blocked = false; this.error = null;
   }
@@ -21,8 +30,8 @@ export class RecordedTheme {
     try {
       const Audio = globalThis.Audio || globalThis.window?.Audio;
       if (!Audio || !this.ctx?.createMediaElementSource) return false;
-      const media = new Audio(themeURL), gain = this.ctx.createGain();
-      media.preload = 'auto'; media.playsInline = true; gain.gain.value = 0;
+      const media = new Audio(this.recording.url), gain = this.ctx.createGain();
+      media.preload = this.recording.cue.loopInMenu ? 'auto' : 'metadata'; media.playsInline = true; gain.gain.value = 0;
       const source = this.ctx.createMediaElementSource(media);
       source.connect(gain); gain.connect(this.destination);
       this.media = media; this.source = source; this.gain = gain;
@@ -115,7 +124,7 @@ class RecordedThemePlayer {
   }
 
   play(cueId, { fadeIn = 1.6, loop = false } = {}) {
-    if (this._disposed || cueId !== MENU_THEME.id) return this;
+    if (this._disposed || cueId !== this.transport.recording.cue.id) return this;
     this.currentCue = cueId; this.fadeIn = seconds(fadeIn); this.loop = !!loop;
     this.playing = true; this.ended = false; this._fadingIn = false; this._stoppingAt = null;
     this.transport.start(this); return this;

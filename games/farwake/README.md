@@ -1,8 +1,14 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.32.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.33.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.33.1 — Morrow Flightline corridor and danger music
+
+The supplied guitar-free **Morrow Flightline Loop** now plays in the Floodworks service gallery and its opened entry passage, and joins the regular ground and space danger rotation. The corridor cue follows the player's position without treating the area itself as an attack. It fades when leaving the passage and yields to encountered danger. Settings → Music & listening also makes the recording available on demand.
+
+The 2:22 cue streams as AAC using the existing volume, mute, browser activation, and interruption handling. The recorded menu theme and Crosswind's dedicated battle rotation retain their existing roles. This release scores the existing Floodworks corridor; it does not add new Earth-campaign rooms.
 
 ## 0.33.0 — Plain guidance and consistent allegiance
 
