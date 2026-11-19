@@ -157,7 +157,7 @@ function notebookContext(current, extra = {}) {
   const context = vm.createContext({ game: current, dialog: dialog(), document, testSession: null, network: {},
     captureMenuSession, foldDrivePlan, STORY_CHAPTERS, fmt: String, esc: String,
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }),
-    appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
+    appendQuietEarthEntry() {}, appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
     appendFoldDriveLink() {}, ...extra });
   context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,
     invoke: (...args) => context.invoke(...args), acceptResult: answer => context.result(answer) });
