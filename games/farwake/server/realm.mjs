@@ -477,7 +477,7 @@ export class Realm extends BoardingAuthority {
       const events=stepSiteEncounter(encounter,participants.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
       if(encounter.warzoneGround)encounter.warzoneGround.lastActiveAt=now();
       for(const captain of crew){
-        const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>event.type!=='monster-revealed'));
+        const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>!['monster-revealed','quiet-earth-beat'].includes(event.type)));
         if(military&&captain.session&&game.state.person.health>0&&!game.state.person.down){
           game.recordMilitaryFieldPresence?.(dt);
           const operation=this._militaryOperation(captain),site=game.state.interior?.location?.site;

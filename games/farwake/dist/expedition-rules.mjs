@@ -23,8 +23,9 @@ export const ExpeditionRules={
       if(this.state.interior?.kind==='site'){this.state.interior=null;this.state.locationId=body?.id||this.state.lastBodyId;}
       return;
     }
-    const key=context.key;
-    const encounter=createSiteState(location.site,this.state.explorationRecords[key]||active.encounter);
+    const key=context.key,prior=this.state.explorationRecords[key]||active.encounter;
+    const relayUpgrade=location.site.quietEarth&&prior?.quietEarth?.version!==1;
+    const encounter=createSiteState(location.site,prior);
     if(encounter.field)location.field=encounter.field;
     if(location.site.military)location.evacuated=encounter.objectives?.rescue===true;
     this.state.explorationRecords[key]=encounter;
@@ -33,7 +34,7 @@ export const ExpeditionRules={
     const outdoor=location.site.outdoor===true;
     this.state.exploration={key,bodyId:body.id,siteId:location.site.id,returnPosition,encounter,...(outdoor?{outdoor:true}:{})};
     this.state.interior=outdoor?null:{kind:'site',location};this.state.locationId=outdoor?body.id:location.id;
-    const surface=this._expeditionSurface();if(!isWalkable(surface,this.state.person.x,this.state.person.y))Object.assign(this.state.person,surface.spawn);
+    const surface=this._expeditionSurface();if(relayUpgrade||!isWalkable(surface,this.state.person.x,this.state.person.y))Object.assign(this.state.person,surface.spawn);
   },
   activateWarzoneSurface({preservePosition=true}={}){
     const s=this.state;if(s.mode!=='person'||s.interior||!isWarzoneGroundBody(s.locationId))return false;
@@ -110,7 +111,7 @@ export const ExpeditionRules={
   },
   siteAction(entityId,action='inspect',optionId){
     const active=this.state.exploration,surface=this._expeditionSurface();
-    if(!active||!surface||this.state.person.health<=0)return this._fail('Enter this place on foot first.','mode');
+    if(!active||!surface||this.state.person.health<=0||this.state.person.down)return this._fail('Enter this place on foot while conscious first.','mode');
     const entity=near(surface,this.state.person,entityId,['siteRecord','siteCache','siteChoice']);
     if(!entity)return this._fail('Move closer to that object.','distance');
     const site=surface.site;

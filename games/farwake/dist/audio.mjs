@@ -122,6 +122,9 @@ export class Soundscape{
  play(name){
   const now=performance.now(),limit={fire:130,mine:180,footstep:250,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
+   case'corridorClang':this.tone(82,.48,'triangle',.23,28);this.tone(730,.09,'square',.035,115);break;
+   case'relayStatic':this.tone(920,.16,'sawtooth',.025,170);this.tone(315,.27,'sine',.055,245);break;
+   case'quietEarthAlarm':this.tone(248,.8,'sawtooth',.11,62,.05);this.tone(660,.46,'triangle',.08,195);this.tone(105,.85,'sine',.14,40,.08);break;
    // One short throat-like fall, with no echo timers or looping source. The
    // effects bus and ordinary cleanup own all three voices, including mute.
    case'bellwetherScream':this.tone(248,.84,'sawtooth',.14,64,.075);this.tone(695,.64,'triangle',.09,176,.06);this.tone(112,.94,'sine',.15,42,.1);break;
@@ -153,6 +156,7 @@ export class Soundscape{
  interiorAlarm(time,{active=false}={}){if(!active){this.nextInteriorAlarm=null;return;}if(!this.enabled())return;if(this.nextInteriorAlarm===null||this.nextInteriorAlarm===undefined||time>=this.nextInteriorAlarm){this.play('shipAlarm');this.nextInteriorAlarm=time+3.5;}}
  /** Sparse location sounds are effects, so a quiet room still has a voice with music off. */
  siteAtmosphere(time,atmosphere){
+  if(atmosphere==='quiet-earth')return null;
   if(!atmosphere||!this.enabled())return null;
   if(this.siteSoundKind!==atmosphere){this.siteSoundKind=atmosphere;this.nextSiteSound=time+1.2;this.siteSoundIndex=0;}
   if(time<(this.nextSiteSound??0))return null;

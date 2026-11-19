@@ -1,11 +1,12 @@
 /** Authored expedition gates, shared decisions, and bounded local combat. */
 import { clearSidearmSight, sidearmAim } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
+import { applyQuietEarthConsequences, quietEarthStatus } from './quiet-earth-rules.mjs';
 
 const finite = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const clone = value => JSON.parse(JSON.stringify(value));
-const alive = actor => actor && actor.health > 0 && actor.status !== 'dead';
+const alive = actor => actor && actor.health > 0 && actor.status !== 'dead' && !actor.quietEarthDormant;
 const list = value => Array.isArray(value) ? value : [];
 const safeIds = values => [...new Set(list(values).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 160))].slice(0, 256);
 const chosenOption = (state, choice) => choice.puzzle && state.choices?.[choice.id] === 'complete' ? choice.puzzle : choice.options?.find(option => option.id === state.choices?.[choice.id]);
@@ -93,6 +94,7 @@ export function applyStoryConsequences(state, site) {
       monster.pacified = true; monster.alert = false; monster.windup = 0; monster.moving = false; monster.targetId = null;
     } else if (provoked.has(monster.factionId)) monster.hostileToPlayer = true;
   }
+  if (site.quietEarth) applyQuietEarthConsequences(state, site);
   state.cleared = storyThreats(state).length === 0;
 }
 
@@ -123,6 +125,7 @@ export function claimStoryChoice(state, site, choiceId, optionId) {
 /** A compact objective suitable for the field HUD, notebook, and local map. */
 export function storyStatus(state, site) {
   if (!site?.expedition || !state) return null;
+  if (site.quietEarth) return quietEarthStatus(state, site);
   const choices = site.choices || [], records = site.records || [], read = state.story?.readRecords || [];
   const completed = site.completionChoiceId ? !!state.choices?.[site.completionChoiceId] : choices.length ? choices.every(choice => !!state.choices?.[choice.id]) : records.every(record => read.includes(record.id));
   const outcomes = choices.map(choice => ({ choice, selected: chosenOption(state, choice) })).filter(item => item.selected);

@@ -19,6 +19,7 @@ import {buildExpeditionStoryLayout} from './expedition-story-layouts.mjs';
 import {drawExpeditionProp,drawExpeditionWildlife,drawExpeditionFactionKit,expeditionFactionColor} from './expedition-story-art.mjs';
 import {expeditionHostileTo,storySurfaceView} from './expedition-story-rules.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
+import {buildQuietEarthInterior} from './quiet-earth-content.mjs';
 import {appearancePalette} from './character.mjs';
 import {FRONTIER_SYSTEMS} from './galaxy-expansion.mjs';
 import {DISTRICT_RESIDENTS,INTERIOR_RESIDENTS,districtNames} from './planet-content.mjs';
@@ -454,7 +455,7 @@ function addFrontierSites(m,location,seed,connect=null){
  for(const site of m.sites){
   const x=site.tileX,y=site.tileY,joinY=y<38?38:66;
   if(connect)connect(x,y);else{line(m,x,y,x,joinY,TILE.PATH,2);line(m,x,joinY,48,joinY,TILE.PATH,2);}
-  entity(m,'site:'+site.id,'siteEntrance',site.name,site.expedition&&site.outdoors?'Follow trail':'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',...(site.warzone?{warzone:true}:{}),...(site.expedition?{expedition:true,outdoors:!!site.outdoors,actionLabel:site.outdoors?'Follow trail':'Enter',objective:site.objective,storyType:site.storyType||site.genre,archetypeId:site.archetypeId}:{}),socialStyle:site.style||null},site.summary);
+  entity(m,'site:'+site.id,'siteEntrance',site.name,site.expedition&&site.outdoors?'Follow trail':'Enter',x,y,site.hostile?'#d7ac86':'#a6c6c3',{siteId:site.id,bodyId:location.id,siteKind:site.kind,summary:site.summary,socialOnly:site.kind==='social',...(site.warzone?{warzone:true}:{}),...(site.expedition?{expedition:true,outdoors:!!site.outdoors,actionLabel:site.outdoors?'Follow trail':'Enter',objective:site.objective,storyType:site.storyType||site.genre,archetypeId:site.archetypeId,...(site.quietEarth?{quietEarth:true,briefing:site.briefing}:{})}:{}),socialStyle:site.style||null},site.summary);
   const facade=site.expedition?(site.outdoors?'story-trail-marker':site.kind==='cave'?'cave-mouth':site.layout==='observatory'?'dome':'story-gate'):site.style==='preflight'?'reed-house':{cave:'cave-mouth',igloo:'igloo',observatory:'dome',market:'market-house',clinic:'clinic-house',laboratory:'lab-house',sanctum:'choral-house',conservatory:'glass-house',theatre:'theatre-house',social:['park','farm'].includes(site.style)?'garden-gate':'frontier-hut'}[site.kind]||'frontier-hut';
   prop(m,facade,x-1.5,y-2.2,4,3,site.kind==='igloo'?'#c1d7d3':site.kind==='sanctum'?'#b1c5c3':'#8b9b96',false);
   prop(m,'trail-light',x-2,y,1,1,site.hostile?'#d6ae82':'#a6c9bd',false);
@@ -568,6 +569,8 @@ function expeditionSurface(location,seed,outdoor=false){
  rect(m,1,1,m.cols-2,m.rows-2,TILE.WALL);
  if(site.warzone){
   buildWarzoneGroundInterior(m,site,{rect,prop,label,point,TILE});
+ }else if(site.quietEarth){
+  buildQuietEarthInterior(m,site,{rect,prop,label,point,TILE});
  }else if(site.expedition){
   buildExpeditionStoryLayout(m,site,{prop,point});
  }else if(isFieldSite(site)){

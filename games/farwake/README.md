@@ -1,8 +1,18 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.33.1 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.34.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.34.0 — Quiet Earth: The Silent Mile
+
+The first guided corridor mission is playable at **Hearth → Morrow → Relay Nine**. Open **Captain’s menu → Quiet Earth** to mark the route; the Galaxy map and notebook’s Missions page also link to it. No enlistment or previous campaign completion is required.
+
+Relay Nine now contains three long service halls, an abandoned shift room, and a deep receiver. Check in, follow short changing objectives, restore the far breaker, and copy the receiver recording. Two harmless environmental scares interrupt the quiet buildup. Copying the recording triggers an ambush and a clear return objective. Follow the green return lights and seal the intake door; killing the pursuing creatures is optional. The 380-tile outward route uses real collision and shared encounter state. Morrow Flightline supplies the corridor cue, with ordinary danger scoring after the revealed trap.
+
+The receiver action returns control immediately, and the shared ambush alert closes a teammate’s open menu so everyone can move. Progress, the one-time completion reward, and cue receipts persist in solo and shared saves. Captains already inside the old Relay Nine resume once at the new intake; previously recovered signal-buffer supplies remain claimed. Other Morrow geography and sites, Kettle, and Tinbell are preserved.
+
+This release delivers the new campaign opening. Later chapters and the final Earth revelation are not included; the existing Long Silence campaign remains available.
 
 ## 0.33.1 — Morrow Flightline corridor and danger music
 

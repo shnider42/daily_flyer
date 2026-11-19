@@ -29,8 +29,8 @@ function stopForeman(f){
  Object.assign(f.actor.person,point(45,48));step(f,110);waitFor(f,'recovery');ok(act(f,'release-starboard','release'));
 }
 
-test('Hearth content and all generated surfaces retain the exact 0.22 baseline',()=>{
- const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['2c68d4716647064b4821cc032a859142171122e952dedb5b5e2ef03fec8a38c1','3396b2cce8bd7d52a04f88c18a9fbf44e39c035e7ae0f9a4a863e0363bb732ab','8e20271cce5f3fe1d6a1458716bacfccdc2235716b742662e6b86b6d1e71dab0'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
+test('Field expeditions preserve Hearth outside the authored Relay Nine upgrade',()=>{
+ const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['7bd3867add7899a338c62598cbd1c0036db3568c2e112fbe89b6d95680fb2965','baeada330c306b26e4de9e6f84b5e76c70127f6b707ed18dd5286048adda3ece','ecd31cfce784c206051fa37b44d8df7898f9f35e22fcc1f1f024fecffaa7c319'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
  for(const value of NAMED_SYSTEMS.find(system=>system.id==='hearth').bodies){const sites=explorationSites(value,'farwake');assert.deepEqual([digest(sites),digest(generateSurface(value,'farwake')),digest(sites.map(site=>generateSurface(explorationLocation(value,site.id,'farwake'),'farwake')))],expected[value.id]);assert.deepEqual(fieldSites(value),[]);}
  assert.deepEqual(fieldSites({id:'orchard',kind:'planet',systemId:'hearth'}),[]);

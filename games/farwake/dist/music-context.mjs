@@ -171,7 +171,10 @@ export function musicContext({
   const eva = contract?.assignment?.eva;
   const lowSuitAir = aboardContract && interior?.kind === 'eva' && eva?.active === true && eva.warned === true && finite(eva.oxygen, Infinity) <= 30;
   const boarding = mode === 'person' && ['ship', 'enemy'].includes(interior?.kind) && state.boarding?.phase === 'active';
-  const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding || foremanActive);
+  const relayEncounter = site?.quietEarth && same(site.id, siteId) ? state.exploration?.encounter : null;
+  const relayAlarm = mode === 'person' && !onVessel && relayEncounter?.quietEarth?.ambushAnnounced === true &&
+    list(relayEncounter.monsters).some(actor => actor.quietEarthActor && !actor.quietEarthDormant && !actor.pacified && finite(actor.health) > 0);
+  const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding || foremanActive || relayAlarm);
   const emergency = visible && !!(alarm || medicalEmergency || lowSuitAir || aboardContract && contract.emergency === true);
   const tension = visible && !!(perceivedThreat || onVessel && state.cosmicWarning || observedCue?.revealed === true && observedCue.tag === 'tension');
 
@@ -254,6 +257,9 @@ export function classifyMusicEvent(event, context = {}) {
   if (!localPerson && (unseen(event.targetId) || unseen(event.attackerId || event.actorId))) return null;
 
   switch (event.type) {
+    case 'quiet-earth-beat':
+      if (scope.mode !== 'person' || event.siteId == null) return null;
+      return event.beatId === 'ambush' ? 'combat' : event.beatId === 'escaped' ? 'recovery' : null;
     case 'field-work-action': {
       if (scope.mode !== 'person' || !context.tags?.includes('fieldwork') || !localPerson || event.siteId == null) return null;
       if (event.action === 'handover' && event.firstHandover === true &&
