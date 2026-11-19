@@ -1078,7 +1078,7 @@ function drawProp(ctx,d,m,time,emit){
  if(d.kind==='coat'){pixel(ctx,'#b5aa8d',x+11,y-5,2,5);pixel(ctx,c,x+6,y,12,20);pixel(ctx,c,x+2,y+2,4,12);pixel(ctx,c,x+18,y+2,4,12);pixel(ctx,'#3c4c4e',x+11,y+1,2,19);return;}
  if(d.kind==='boots'){pixel(ctx,'#1b2b31',x+2,y+5,8,11);pixel(ctx,c,x+2,y+5,6,8);pixel(ctx,'#1b2b31',x+12,y+3,8,11);pixel(ctx,c,x+12,y+3,6,8);return;}
  if(d.kind==='label'){if(emit)emit(d.text,x+2,y+3,c,13,'left',8,'room');else text(ctx,d.text,x+2,y+4,c,8);return;}
- if(d.kind==='light'){pixel(ctx,'#16282f',x,y,w,h+4);pixel(ctx,c,x+4,y+1,w-8,2);ctx.globalAlpha=.08;pixel(ctx,c,x-8,y+4,w+16,20);ctx.globalAlpha=1;return;}
+ if(d.kind==='light'){const powered=!d.lightCircuit||m.quietEarthLighting?.powered?.[d.lightCircuit]===true;pixel(ctx,'#16282f',x,y,w,h+4);pixel(ctx,powered?c:'#35423f',x+4,y+1,w-8,2);if(powered){ctx.globalAlpha=.08;pixel(ctx,c,x-8,y+4,w+16,20);ctx.globalAlpha=1;}return;}
  if(d.kind==='window'){
   pixel(ctx,'#0d1c2b',x,y,w,h);pixel(ctx,'#88adb1',x,y,w,2);pixel(ctx,'#35545e',x,y+h-2,w,2);
   for(let i=6;i<w;i+=23){pixel(ctx,'#476a7c',x+i,y+7,1,1);pixel(ctx,'#99b4bb',x+i+10,y+15,1,1);pixel(ctx,'#3d5c66',x+i+17,y+1,2,h-2);}return;
@@ -1375,8 +1375,9 @@ function zoomLayer(ctx,width,height){
 }
 
 /** A bounded survey diagram. Draws tile runs directly, never a world-sized raster. */
-export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null,visibility=createSiteVisibility(surface,person),localCaptainId=null}={}){
+export function drawSurfaceMap(ctx,surface,{person=surface.spawn,targetEntityId=null,width=ctx.canvas?.width||360,height=ctx.canvas?.height||280,exploration=null,visibility=null,localCaptainId=null}={}){
  surface=storySurfaceView(fieldSurfaceView(surface,exploration),exploration);
+ visibility??=createSiteVisibility(surface,person,{observerId:localCaptainId});
  const bounded=(value,fallback)=>Math.max(32,Math.min(720,Number.isFinite(Number(value))?Math.round(Number(value)):fallback));
  width=bounded(width,360);height=bounded(height,280);
  const padding=Math.max(7,Math.min(18,Math.floor(Math.min(width,height)*.055))),available=Math.min((width-padding*2)/surface.cols,(height-padding*2)/surface.rows);

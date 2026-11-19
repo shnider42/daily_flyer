@@ -1,0 +1,8 @@
+/* Only the world uses the reticle. HUD buttons, menus, and paused play stay native. */
+@media (any-pointer: fine){
+ #gameCanvas[data-game-cursor="aim"]{cursor:url('./cursor-aim.svg') 12 12,crosshair}
+ #gameCanvas[data-game-cursor="navigate"]{cursor:url('./cursor-navigation.svg') 12 12,crosshair}
+}
+@media (forced-colors: active),(prefers-contrast: more){
+ #gameCanvas[data-game-cursor]{cursor:crosshair}
+}

@@ -13,14 +13,17 @@ const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('h
 // The corridor presentation pass updates four Relay Nine text fields embedded in
 // Morrow's site catalog. Outdoor geometry and all non-Relay interiors were compared
 // directly with c6511a2 in three seeds; only these Morrow/catalog hashes change.
+// 0.34.2 adds Relay lighting controls/metadata. Against ff48c8a, farwake,
+// hearth-preservation and legacy-content preserve outdoor geometry/entities except
+// Relay metadata, every other interior, and Relay floor/solids/spawn/exit.
 const baseline={
  farwake:{
-  surfaces:{kettle:'c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb',morrow:'29235a7b733d22f3b3de2e23ec063244a327fc66d3342d590873f3129c20262d',tinbell:'6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176'},
-  sites:'6dda22c029ab61b63fcd44aaa5320fe12620ef3619aeb06e2ee9707e86b85b4b'
+  surfaces:{kettle:'c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb',morrow:'099f1427d456b1e720fcb8c6e623a58dec35c2b43252bf36a5ffbee55bd48a25',tinbell:'6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176'},
+  sites:'72464c74425abf0b6ccfb839bc771740f2581b6bd7a7e3681d2c5beb354fd24b'
  },
  'hearth-preservation':{
-  surfaces:{kettle:'c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f',morrow:'c28fa0d6b56258a66a6ba5a92ece3970ce6007da56385b2e573253a70f4c12a0',tinbell:'8fd24814ddfe782233667c3e83ddedc635c8de9b9d63dead0c42e9f3057761f0'},
-  sites:'cd92ad488e9e30ddfb4c418b166a226c6aa4ceeceda483df6f18e41ad935967a'
+  surfaces:{kettle:'c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f',morrow:'025f21df8f8e135fe9d0a60bf5c2c155fc8f3137679079b768d7cfd929472b0d',tinbell:'8fd24814ddfe782233667c3e83ddedc635c8de9b9d63dead0c42e9f3057761f0'},
+  sites:'84f13ac4d3aa2438a07e5d7bbf3ce00ce26f0915475565431297b7480ea15a35'
  }
 };
 for(const [seed,expected] of Object.entries(baseline))test(`Hearth preserves its baseline with the authored 0.34 Relay Nine upgrade (${seed})`,()=>{

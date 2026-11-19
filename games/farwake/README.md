@@ -1,8 +1,14 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.34.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.34.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.34.2 — Relay lighting and quieter controls
+
+Relay Nine starts with Tinbell-style lamplight and wall occlusion. Local switches restore lighting section by section, with powered circuits saved in solo and shared voyages. The current objective guides the next usable control while unlit areas retain their limited visibility.
+
+Morrow Flightline repeats during quiet corridor exploration. Actual danger interrupts it through the existing adaptive score. A small aiming or navigation reticle replaces the arrow over the active game world; menus, HUD controls, paused play and unfocused windows keep the normal pointer. Touch controls remain unchanged. World content revision **10** keeps the client and shared authority aligned.
 
 ## 0.34.1 — Armed exploration and corridor presence
 

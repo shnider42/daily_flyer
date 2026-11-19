@@ -1,5 +1,6 @@
 /** Shared, deterministic progression for the first Quiet Earth corridor. */
 import { isQuietEarth, QUIET_EARTH_BEATS } from './quiet-earth-content.mjs';
+import { quietEarthLightState } from './quiet-earth-lighting.mjs';
 
 const list = value => Array.isArray(value) ? value : [];
 const live = actor => actor && Number.isFinite(actor.health) && actor.health > 0 && actor.status !== 'dead';
@@ -128,7 +129,10 @@ export function quietEarthStatus(state, site) {
   if (!state || !isQuietEarth(site)) return null;
   const progress = progression(state, site), choices = list(site.choices), records = list(site.records);
   const completed = progress.completed, escaping = progress.triggered && !completed;
-  let next = choices.find(choice => !owns(progress.choices, choice.id));
+  // A restored main or receiver feed already powers earlier optional relays in
+  // older saves. Reflect that in guidance without inventing claims or choices.
+  const settled = new Set([...Object.keys(progress.choices), ...quietEarthLightState(state, site).completedChoices]);
+  let next = choices.find(choice => !settled.has(choice.id));
   let nextTargetId = next ? `${site.key}:choice:${next.id}` : null;
   let objective = next?.objective || (next ? `Follow the gold marker to ${next.name}.` : site.objective);
   let pendingSummary = next?.name || '';
@@ -154,6 +158,6 @@ export function quietEarthStatus(state, site) {
     objective, pendingSummary, nextTargetId, completed,
     aftermath: completed ? objective : '', aftermathNotes: completed ? [objective] : [],
     readCount: records.filter(record => progress.read.has(record.id)).length, evidenceCount: records.length,
-    completedTasks: Object.keys(progress.choices).length, taskCount: choices.length,
+    completedTasks: choices.filter(choice => settled.has(choice.id)).length, taskCount: choices.length,
     threats: escaping ? list(state.monsters).filter(monster => monster.quietEarthActor && live(monster)).length : 0 };
 }

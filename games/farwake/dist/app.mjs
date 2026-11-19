@@ -26,6 +26,7 @@ import { createPersonalGearUI } from './personal-gear-ui.mjs';
 import { createGamblingUI } from './gambling-ui.mjs';
 import { createFieldWorkUI } from './field-work-ui.mjs';
 import { createQuietEarthPresentation } from './quiet-earth-presentation.mjs';
+import { createGameCursor } from './game-cursor.mjs';
 import { personalFireLayout, personalFireUsesShipStation } from './personal-fire.mjs';
 import { fieldSurfaceView } from './floodworks.mjs';
 import { storyStatus, storySurfaceView, expeditionHostileTo } from './expedition-story-rules.mjs';
@@ -132,6 +133,7 @@ const recoveryPresentation=createRecoveryPresentation({element:$('recoveryScreen
 });
 function updateRecovery(dt=0){return recoveryPresentation.update(game.state,dt,{playing,reducedMotion:settings.reduceMotion||matchMedia('(prefers-reduced-motion: reduce)').matches});}
 controls=new Controls({stick:$('stick'),knob:$('knob'),aimStick:$('aimStick'),aimKnob:$('aimKnob'),getMode:()=>game.state.mode,getCombat:pointerAimAvailable,getGunnery:()=>getGunneryView(game).active,getFlightState:()=>({ship:network?.predictedShip??game.state.ship,flightAssist:settings.flightAssist}),brake:$('brakeButton'),fire:$('fireButton'),mine:$('mineButton'),boost:$('boostButton'),active:()=>playing&&!recoveryPresentation.active&&!dialog.opened&&!viewPanelOpen&&!actionPending&&!game.state.multiplayer?.waitingForGroupStart,onCommand:command});
+const gameCursor=createGameCursor({canvas,active:()=>playing&&!dialog.opened&&!viewPanelOpen&&!recoveryPresentation.active&&!actionPending&&!game.state.multiplayer?.waitingForGroupStart,aiming:pointerAimAvailable});
 $('continueButton').hidden=!stored;
 $('startButton').textContent=stored?'Start another solo voyage':'Play solo';
 $('resumeGalaxy').hidden=!readPassport();
@@ -434,7 +436,7 @@ function recordCombatFeed(text){combatFeed.push({text,at:elapsed});if(combatFeed
 function processCombatEvent(event){
  if(event.type==='quiet-earth-beat'){
   if(event.siteId!==game.state.exploration?.encounter?.id)return true;
-  if(event.harmless&&Number.isFinite(event.x)&&Math.hypot(event.x-game.state.person.x,event.y-game.state.person.y)>300)return true;
+  if(event.harmless&&Number.isFinite(event.x)&&(Math.hypot(event.x-game.state.person.x,event.y-game.state.person.y)>300||localSiteVisibility()?.canSeePoint(event)===false))return true;
   if(combatPresentation.claim(event,elapsed)){
    if(event.beatId==='ambush'){dialog.close();setViewPanel(false);controls?.clear();clearPointerAim();}
    quietEarthPresentation.receive(event,elapsed);
@@ -1686,7 +1688,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.34.1',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.34.2',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }
@@ -1713,7 +1715,7 @@ function drawLabels(labels){
  }
 }
 
-function frame(now){updateRecovery();const gunnery=syncGunneryPresentation();frameMonitor.frame(now,!document.hidden);const rawDt=Math.max(0,(now-(lastTime||now))/1000),dt=Math.min(.1,rawDt);lastTime=now;elapsed+=dt;const active=playing&&!recoveryPresentation.active&&!dialog.opened&&!document.hidden;let input=active&&!actionPending?controls.vector():{};input.flightAssist=settings.flightAssist;if(active&&!actionPending&&personalAimAvailable()){if(pointerAim.active&&!input.aiming){const aim=surfaceCanvasToWorld(pointerAim.x,pointerAim.y,surfaceView),dx=aim.x-game.state.person.x-personVisualOffset.x,dy=aim.y-game.state.person.y-personVisualOffset.y,length=Math.hypot(dx,dy);if(length>.5){input.aimX=dx/length;input.aimY=dy/length;input.aiming=true;}}if(pointerAim.fire)input.fire=true;}if(active&&!actionPending&&gunnery.active)input=projectGunneryInput(input,gunnery,network?.renderedShip||game.state.ship,{pointer:pointerAim,toWorld:(x,y)=>renderer.toWorld(x,y)});
+function frame(now){updateRecovery();gameCursor.update();const gunnery=syncGunneryPresentation();frameMonitor.frame(now,!document.hidden);const rawDt=Math.max(0,(now-(lastTime||now))/1000),dt=Math.min(.1,rawDt);lastTime=now;elapsed+=dt;const active=playing&&!recoveryPresentation.active&&!dialog.opened&&!document.hidden;let input=active&&!actionPending?controls.vector():{};input.flightAssist=settings.flightAssist;if(active&&!actionPending&&personalAimAvailable()){if(pointerAim.active&&!input.aiming){const aim=surfaceCanvasToWorld(pointerAim.x,pointerAim.y,surfaceView),dx=aim.x-game.state.person.x-personVisualOffset.x,dy=aim.y-game.state.person.y-personVisualOffset.y,length=Math.hypot(dx,dy);if(length>.5){input.aimX=dx/length;input.aimY=dy/length;input.aiming=true;}}if(pointerAim.fire)input.fire=true;}if(active&&!actionPending&&gunnery.active)input=projectGunneryInput(input,gunnery,network?.renderedShip||game.state.ship,{pointer:pointerAim,toWorld:(x,y)=>renderer.toWorld(x,y)});
  const guideBefore=active?guideMotionState():null;
  if(playing){if(network){
   network.setInput(input,rawDt);

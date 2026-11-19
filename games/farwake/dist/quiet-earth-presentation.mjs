@@ -1,5 +1,6 @@
 /** Small, local scene effects. Nothing in this module discovers or moves an actor. */
 import { isQuietEarth } from './quiet-earth-content.mjs';
+import { quietEarthLightState } from './quiet-earth-lighting.mjs';
 import { pixelRect as pixel, pixelLine } from './pixel-art.mjs';
 
 const SITE = 'morrow:site:relay-nine', TILE = 24;
@@ -10,9 +11,9 @@ const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
 const vent = Object.freeze({ x: 41 * TILE, y: 70 * TILE + 3, w: 72, h: 29 });
 const cart = Object.freeze({ x: 59 * TILE, y: 43 * TILE + 8, w: 57, h: 32, travel: 48 });
 const halls = Object.freeze([
-  { x: 24 * TILE, y: 70 * TILE, w: 92 * TILE, h: 7 * TILE, direction: -1 },
-  { x: 14 * TILE, y: 43 * TILE, w: 102 * TILE, h: 7 * TILE, direction: 1 },
-  { x: 14 * TILE, y: 17 * TILE, w: 93 * TILE, h: 7 * TILE, direction: -1 }
+  { x: 24 * TILE, y: 70 * TILE, w: 92 * TILE, h: 7 * TILE, direction: -1, circuit: 'intake' },
+  { x: 14 * TILE, y: 43 * TILE, w: 102 * TILE, h: 7 * TILE, direction: 1, circuit: 'middle' },
+  { x: 14 * TILE, y: 17 * TILE, w: 93 * TILE, h: 7 * TILE, direction: -1, circuit: 'upper' }
 ]);
 
 /** Network receipts are deduplicated; animations cannot follow the captain outside. */
@@ -116,17 +117,19 @@ function drawCart(ctx, moved, event, motion) {
   pixel(ctx, '#a1a78c', cart.x + cart.travel + 62, y + 23, 4, 17);
 }
 
-function drawLightPools(ctx, view, escaping, powered) {
+function drawLightPools(ctx, view, escaping, lighting) {
   for (let row = 0; row < halls.length; row++) {
     const hall = halls[row]; if (!inView(hall, view)) continue;
-    const lowPower = row === 1 && !powered;
+    const powered = lighting.powered[hall.circuit];
     for (let offset = 48; offset < hall.w - 80; offset += 288) {
       const x = hall.x + offset;
       if (x + 130 < view.cameraX || x > view.cameraX + view.width) continue;
-      ctx.globalAlpha = lowPower ? .045 : escaping ? .055 : .09;
-      pixel(ctx, escaping ? '#b99468' : '#b8c5a7', x, hall.y + 10, 92, 110);
-      ctx.globalAlpha *= .6;
-      pixel(ctx, escaping ? '#b99468' : '#b8c5a7', x - 16, hall.y + 37, 124, 80);
+      if (powered) {
+        ctx.globalAlpha = escaping ? .055 : .11;
+        pixel(ctx, escaping ? '#b99468' : '#b8c5a7', x, hall.y + 10, 92, 110);
+        ctx.globalAlpha *= .6;
+        pixel(ctx, escaping ? '#b99468' : '#b8c5a7', x - 16, hall.y + 37, 124, 80);
+      }
       ctx.globalAlpha = .16;
       pixel(ctx, '#05141d', x + 140, hall.y + 10, 80, 109);
       ctx.globalAlpha = 1;
@@ -176,6 +179,7 @@ function drawAir(ctx, view, scene, event, motion, time) {
 export function drawQuietEarthPresentation(ctx, surface, options = {}) {
   if (!isQuietEarth(surface?.site) && !(surface?.quietEarth && surface.id === SITE)) return;
   const exploration = options.exploration || {}, cues = exploration.quietEarth?.cues || [];
+  const lighting = surface.quietEarthLighting || quietEarthLightState(exploration, surface.site);
   const presentation = options.presentation || EMPTY, choices = exploration.choices || {};
   const motion = options.reduceMotion !== true, escaping = choices.receiver === 'copy' && choices.evacuate !== 'seal';
   const ventEvent = eventFor(presentation, 'pressure-vent'), cartEvent = eventFor(presentation, 'service-cart');
@@ -184,7 +188,7 @@ export function drawQuietEarthPresentation(ctx, surface, options = {}) {
   ctx.save();
   if (options.layer === 'floor') {
     drawDeepWalls(ctx, surface, view);
-    drawLightPools(ctx, view, escaping, choices.breaker === 'restore');
+    drawLightPools(ctx, view, escaping, lighting);
     if (inView(vent, view, 32)) drawVent(ctx, cues.includes('pressure-vent') || !!ventEvent, ventEvent, motion);
     if (inView({ ...cart, w: cart.w + cart.travel }, view, 24)) drawCart(ctx, cues.includes('service-cart') || !!cartEvent, cartEvent, motion);
   } else if (options.layer === 'air') {

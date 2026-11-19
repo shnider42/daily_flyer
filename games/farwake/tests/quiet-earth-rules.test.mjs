@@ -133,19 +133,23 @@ test('the objective advances through the actual evidence and then points back to
   const f = fixture(), view = () => quietEarthStatus(f.state, f.site);
   assert.equal(view().nextTargetId, `${f.site.key}:choice:check-in`);
   f.state.choices['check-in'] = 'begin';
+  assert.equal(view().nextTargetId, `${f.site.key}:choice:intake-lights`);
+  f.state.choices['intake-lights'] = 'restore';
   assert.equal(view().nextTargetId, `${f.site.key}:record:voices`);
   f.state.story.readRecords.push('voices');
   assert.equal(view().nextTargetId, `${f.site.key}:choice:breaker`);
   f.state.choices.breaker = 'restore';
   assert.equal(view().nextTargetId, `${f.site.key}:record:service`);
   f.state.story.readRecords.push('service');
+  assert.equal(view().nextTargetId, `${f.site.key}:choice:upper-lights`);
+  f.state.choices['upper-lights'] = 'restore';
   assert.equal(view().nextTargetId, `${f.site.key}:choice:receiver`);
   f.state.choices.receiver = 'copy';
   assert.equal(view().nextTargetId, `${f.site.key}:choice:evacuate`);
   assert.equal(view().objective, 'Get back to the entry. Follow the green lights.');
   assert.match(view().pendingSummary, /Shoot to make space/);
   assert.match(view().pendingSummary, /don't have to kill/);
-  assert.equal(view().completedTasks, 3);
+  assert.equal(view().completedTasks, 5);
   const before = JSON.stringify(f.state); view(); view(); assert.equal(JSON.stringify(f.state), before, 'reading the HUD does not advance the mission');
 });
 

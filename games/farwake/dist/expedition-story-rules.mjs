@@ -2,6 +2,7 @@
 import { clearSidearmSight, sidearmAim } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
 import { applyQuietEarthConsequences, quietEarthStatus } from './quiet-earth-rules.mjs';
+import { projectQuietEarthLighting, quietEarthLightState } from './quiet-earth-lighting.mjs';
 
 const finite = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -157,7 +158,7 @@ const storyViewCache = new WeakMap();
 /** View-only aftermath. Unchanged animation frames reuse their entity view. */
 export function storySurfaceView(surface, state) {
   const site = surface?.site; if (!site?.expedition || !state) return surface;
-  const revision = `${state.story?.revision || 0}:${Object.keys(state.choices || {}).length}:${state.collected?.length || 0}`;
+  const revision = `${state.story?.revision || 0}:${Object.keys(state.choices || {}).length}:${state.collected?.length || 0}:${site.quietEarth ? quietEarthLightState(state, site).key : ''}`;
   const cached = storyViewCache.get(surface);
   if (cached?.revision === revision) {
     // Authority samples ambient routes on its base map. Keep the projection's
@@ -173,7 +174,7 @@ export function storySurfaceView(surface, state) {
   const people = [];
   let evacuated = false, treated = false;
   for (const choice of site.choices || []) { const effects = chosenOption(state, choice)?.effects; evacuated ||= effects?.evacuateResidents === true; treated ||= effects?.treatResidents === true; }
-  const view = { ...surface, expeditionStatus: storyStatus(state, site), entities: surface.entities.map(entity => {
+  const view = projectQuietEarthLighting({ ...surface, expeditionStatus: storyStatus(state, site), entities: surface.entities.map(entity => {
     if (site.quietEarth) {
       const gate = entity.type === 'siteChoice' && entity.data?.choiceId === 'evacuate'
         ? site.choices.find(choice => choice.id === 'evacuate')
@@ -189,7 +190,7 @@ export function storySurfaceView(surface, state) {
       people.push({ source: entity, projected }); return projected;
     }
     return done ? { ...entity, completed: true, data: { ...entity.data, completed: true, expeditionDone: true } } : entity;
-  }) };
+  }) }, state);
   const entry = { revision, view, source: surface, people }; storyViewCache.set(surface, entry); storyViewCache.set(view, entry); return view;
 }
 

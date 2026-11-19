@@ -39,7 +39,7 @@ const site = freeze({
   archetypeId: 'quiet-earth-silent-mile', layout: 'quiet-earth-corridor', outdoors: false,
   terrainBiome: 'shelter', atmosphere: 'quiet-earth', hostile: false, empty: false,
   summary: 'Quiet Earth · Opening mission. Follow a fresh Earth signal through Relay Nine’s silent service halls.',
-  briefing: 'Check in beside the entrance. Follow the single marked route, restore the breaker, and copy the far receiver. Green floor lights always lead back outside. You can leave at any time.',
+  briefing: 'Check in beside the entrance. The overhead lights are out; your suit lamp shows the way nearby. Restore the marked lighting relays as you follow the receiver route. Green floor lights lead back outside. You can leave at any time.',
   objective: 'Use the check-in terminal beside the entrance. Green lights mark your way back.',
   story: 'Relay Nine has received a fresh Earth return address. Its intake desk answers, but the operator does not. The receiver is at the far end of three long service halls. The outside door remains available.',
   completionChoiceId: 'evacuate',
@@ -53,7 +53,7 @@ const site = freeze({
       id: 'service', name: 'Service strip · Receiver route', x: 49, y: 46,
       objective: 'Turn west into Service Hall 02. Read the service strip at the gold marker.',
       requireChoices: { breaker: 'restore' },
-      text: 'RECEIVER: continue to the west turn, then follow the upper hall east. Local recordings remain available while the return line is down. GREEN LIGHTS: return to intake.'
+      text: 'RECEIVER: continue west to the shift room. Its lighting relay supplies the upper hall; restore it, then follow that hall east. Local recordings remain available while the return line is down. GREEN LIGHTS: return to intake.'
     }
   ],
   choices: [
@@ -63,17 +63,37 @@ const site = freeze({
       objective: 'Check in at the intake desk beside the entrance.',
       options: [{
         id: 'begin', label: 'Check in and follow the receiver route', reward: reward(),
-        text: 'Entry recorded. Follow the lower hall east. Read the fault transcript, then restore the breaker at the far turn.'
+        text: 'Entry recorded. Follow the lower hall east to the first lighting relay. Your suit lamp and the green return strips work on reserve power.'
+      }]
+    },
+    {
+      id: 'intake-lights', name: 'Service Hall 01 lighting relay', x: 55, y: 72,
+      requireChoices: { 'check-in': 'begin' },
+      text: 'The overhead supply is isolated. This local relay can light the intake and the first service hall.',
+      objective: 'Follow the lower hall east. Restore Hall 01 lighting at the amber wall console.',
+      options: [{
+        id: 'restore', label: 'Restore Hall 01 lights', reward: reward(),
+        text: 'The intake and Hall 01 lights come on. Continue east to the fault transcript, then the main breaker at the far turn.'
       }]
     },
     {
       id: 'breaker', name: 'Far-hall breaker', x: 118, y: 55,
       requireChoices: { 'check-in': 'begin' }, requireRecords: ['voices'],
-      text: 'The next hall is on reserve power. The breaker can restore its receiver line without closing the way back.',
-      objective: 'At the far eastern turn, use the orange breaker console to restore receiver power.',
+      text: 'The middle hall is on reserve power. The main breaker restores its lights and receiver line, and reconnects the intake lighting feed.',
+      objective: 'At the far eastern turn, use the orange breaker console to restore Hall 02 lighting and receiver power.',
       options: [{
         id: 'restore', label: 'Restore receiver power', reward: reward(),
-        text: 'The receiver line is live. Turn west into the middle hall, read the service strip, and continue around the far bend.'
+        text: 'Hall 02 lights come on and the receiver line is live. Turn west into the middle hall and read the service strip.'
+      }]
+    },
+    {
+      id: 'upper-lights', name: 'Upper-hall lighting relay', x: 12, y: 32,
+      requireChoices: { breaker: 'restore' }, requireRecords: ['service'],
+      text: 'The shift-room panel supplies the western turn, upper hall, and receiver room. The main feed is ready.',
+      objective: 'Continue west, then north into the shift room. Restore the upper hall lights at its amber relay.',
+      options: [{
+        id: 'restore', label: 'Restore upper hall lights', reward: reward(),
+        text: 'The western turn and upper hall lights come on. Continue north, then follow Hall 03 east to the receiver.'
       }]
     },
     {
@@ -163,6 +183,11 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
 
   const green = '#a0d5ad', steel = '#607b80', amber = '#d1b67f';
   const decor = (kind, x, y, w = 1, h = 1, color = steel, solid = false) => prop(m, kind, x, y, w, h, color, solid);
+  const ceilingLight = (circuit, x, y, w = 5, color = '#b8c5a7') => {
+    const fixture = decor('light', x, y, w, .25, color);
+    fixture.lightCircuit = circuit;
+    return fixture;
+  };
   const returnLight = (x, y, direction) => {
     decor('light', x, y, 2, .25, green);
     label(m, direction, x + .15, y + .35, green);
@@ -181,29 +206,33 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
   decor('coat', 21, 67, 1, 1, '#a69c80');
   decor('boots', 20, 78, 1, 1, '#8e8272');
   decor('cabinet', 20, 70, 2, 3, '#70877e', true);
+  ceilingLight('intake', 6, 65, 6);
   label(m, 'OUTSIDE ←', 4, 69, green); label(m, 'INTAKE / CHECK IN', 10, 66, '#c3d5cc');
   label(m, 'GREEN = RETURN', 7, 80, green);
 
   for (const x of [30, 54, 78, 102]) {
     decor('pipe', x, 70, .5, 2, '#6e8079');
-    decor('light', x + 4, 69, 5, .25, '#829a91');
+    ceilingLight('intake', x + 4, 69);
     decor('doorframe', x + 10, 70, 1, 7, '#475d62');
   }
   // The vent grille and service cart are drawn by the scene presenter, so they can move.
   decor('pipe', 40.5, 70, .5, 2, '#6b8782');
   decor('debris', 45, 71, 2, 1, '#b9ad90');
   decor('bench', 67, 70, 5, 1, '#7e8c85', true);
+  decor('console', 54, 70, 3, 1, amber);
+  label(m, 'HALL 01 / LIGHTS', 53, 69, amber);
   label(m, 'SERVICE 01 →', 25, 70, '#9eafb0'); label(m, 'NO OPERATOR ON SHIFT', 79, 70, '#9eafb0');
 
   decor('engine', 110, 58, 2, 6, '#71817b', true);
   decor('pipe', 112, 55, .5, 9, '#899181');
   decor('console', 118, 53, 4, 1, amber, true);
   decor('cargo', 110, 54, 3, 2, '#748079', true);
+  ceilingLight('middle', 111, 52, 5);
   label(m, 'RECEIVER BREAKER', 111, 52, amber); label(m, 'NEXT HALL ↑', 116, 50, '#b1c0b5');
 
   for (const x of [25, 49, 73, 97]) {
     decor('window', x, 42, 7, 1, '#54747b');
-    decor('light', x + 10, 42, 4, .25, '#83978e');
+    ceilingLight('middle', x + 10, 42, 4);
     decor('pipe', x + 15, 43, .5, 2, '#647975');
   }
   decor('cabinet', 57, 43, 1, 1, '#6d857d', true);
@@ -215,13 +244,15 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
   decor('coat', 20, 38, 1, 1, '#a69c80');
   decor('boots', 19, 39, 1, 1, '#8e8272');
   decor('cabinet', 5, 30, 1, 4, '#657d75', true);
-  decor('light', 17, 29, 5, .25, '#899486');
+  ceilingLight('upper', 17, 29);
+  decor('console', 11, 29, 3, 1, amber);
+  label(m, 'UPPER HALL / LIGHTS', 8, 28, amber);
   label(m, 'SHIFT ENDS 06:00', 16, 29, '#b7b6a1');
   label(m, 'RECEIVER ↑ THEN →', 5, 25, '#b1c0b5');
 
   for (const x of [25, 49, 73, 97]) {
     decor('pipe', x, 17, .5, 2, '#6e8079');
-    decor('light', x + 10, 16, 5, .25, '#708c87');
+    ceilingLight('upper', x + 10, 16);
     decor('doorframe', x + 17, 17, 1, 7, '#40575d');
   }
   decor('debris', 87, 18, 2, 1, '#a99b88');
@@ -234,6 +265,7 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
   decor('antenna', 109, 7, 1, 2, '#90a39b');
   decor('cabinet', 108, 24, 1, 4, '#617f78', true);
   decor('debris', 121, 29, 2, 1, '#9c9683');
+  ceilingLight('upper', 114, 5, 7);
   label(m, 'EARTH / RETURN ADDRESS', 109, 6, '#bfd0bd');
   label(m, 'COPY LOCAL BUFFER', 116, 10, '#c8d9c8');
   label(m, 'INTAKE ←', 108, 22, green);

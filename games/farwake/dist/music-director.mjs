@@ -14,6 +14,7 @@ const duration = cue => Number(cue?.durationSeconds) || ((cue?.bars || 16) * 4 *
 const danger = family => ['combat', 'tension', 'terror'].includes(family);
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const environmental = family => family === 'cave' || family === 'planet';
+const loopingCorridor = context => context.scene !== 'menu' && context.musicPlace === 'long-corridor' && context.loopCorridor === true;
 const GENERIC_TAGS = new Set(['flight', 'surface', 'settlement', 'solitude', 'ship', 'ground',
   'combat', 'tension', 'terror', 'exploration', 'planet', 'cave']);
 const BIOME_TAGS = new Set(['temperate', 'forest', 'desert', 'ocean', 'ice', 'volcanic',
@@ -144,7 +145,7 @@ export class MusicDirector {
     }
     const available = pool.filter(cue => now - (this.lastPlayed.get(cue.id) ?? -Infinity) >= (cue.cooldownSeconds ?? 180));
     if (available.length) pool = available;
-    else if (!danger(family)) return null;
+    else if (!danger(family) && !(family === 'corridor' && loopingCorridor(context))) return null;
     const fresh = pool.filter(cue => !this.history.slice(-2).includes(cue.id));
     if (fresh.length) pool = fresh;
     const specific = tags.filter(tag => !GENERIC_TAGS.has(tag));
@@ -187,10 +188,11 @@ export class MusicDirector {
   begin(cue, now, context, { fast = false, preview = false, mood = cue?.family } = {}) {
     if (!cue) return;
     const menuPlayback = !!cue.loopInMenu && context.scene === 'menu';
+    const corridorPlayback = !preview && mood === 'corridor' && loopingCorridor(context);
     if (preview && !menuPlayback && this.current?.menuPlayback) this.themePlayed = false;
     this.sequence++;
     this.current = { cue, mood, token: this.sequence, startedAt: now,
-      until: menuPlayback ? Infinity : now + duration(cue) + 2, menuPlayback,
+      until: menuPlayback || corridorPlayback ? Infinity : now + duration(cue) + 2, menuPlayback, corridorPlayback,
       seed: musicSeed(`${context.paletteKey}|${cue.id}|${this.sequence}`),
       fadeIn: fast ? .9 : cue.family === 'theme' || mood === 'corridor' ? 1.6 : 3.5,
       fadeOut: fast ? .35 : 4, preview,
@@ -273,8 +275,9 @@ export class MusicDirector {
     if (this.current && now >= this.current.until) {
       const family = this.current.mood, preview = this.current.preview;
       this.current = null;
-      this.nextMusicAt = now + (!inGame && this.loopingMenuTheme && !this.themePlayed ? 0 : danger(family) && !preview ? 1.5 : this.gap(presence));
-      if (family === 'recovery' && !preview) { this.recoveryUntil = -Infinity; this.nextMusicAt = now + Math.max(35, this.gap(presence)); }
+      const loopReady = !inGame && this.loopingMenuTheme && !this.themePlayed || loopingCorridor(context) && !underPressure;
+      this.nextMusicAt = now + (loopReady ? 0 : danger(family) && !preview ? 1.5 : this.gap(presence));
+      if (family === 'recovery' && !preview) { this.recoveryUntil = -Infinity; this.nextMusicAt = loopingCorridor(context) ? now : now + Math.max(35, this.gap(presence)); }
       // An ordinary ending inside an arrival's short grace period must not
       // replace that pending location transition with a much longer rest.
       if (this.transitionKey === placeKey) this.nextMusicAt = Math.min(this.nextMusicAt, this.transitionAt);
@@ -305,7 +308,7 @@ export class MusicDirector {
       this.current = null; this.nextMusicAt = now;
     }
     if (this.current?.mood === 'recovery' && !this.current.preview && now >= this.recoveryUntil) {
-      this.current = null; this.nextMusicAt = now + Math.max(35, this.gap(presence));
+      this.current = null; this.nextMusicAt = loopingCorridor(context) ? now : now + Math.max(35, this.gap(presence));
     }
     const requested = this.cues.find(cue => cue.id === this.previewCueId);
     if (this.previewRequested && (!underPressure || crosswind && requested?.tags?.includes('crosswind'))) {
@@ -330,7 +333,7 @@ export class MusicDirector {
       seed: this.current?.seed ?? this.seed, mood, duck: clamp(duck, 0, 1),
       fadeIn: this.current?.fadeIn ?? 3, fadeOut: fadeOut ?? this.current?.fadeOut ?? 4,
       theme: this.current?.cue.id === this.themeId, preview: !!this.current?.preview,
-      loop: !!this.current?.menuPlayback,
+      loop: !!(this.current?.menuPlayback || this.current?.corridorPlayback),
       warzone: this.warzoneActive,
       previewCueId: this.current?.preview ? this.current.cue.id : null, requestedCueId: this.previewCueId,
       nextMusicAt: this.nextMusicAt };

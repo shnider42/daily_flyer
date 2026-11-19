@@ -137,6 +137,9 @@ export function musicContext({
       personPosition.x >= x && personPosition.x < x + w && personPosition.y >= y && personPosition.y < y + h);
   const crosswind = visible && state.systemId === 'crosswind';
   const musicPlace = crosswind ? 'crosswind' : cabin ? 'cabin' : corridor ? 'long-corridor' : fieldSite ? 'fieldwork' : nightlife ? 'nightlife' : city ? 'city' : null;
+  // Relay Nine's opening recording holds the walk together even when a player
+  // stops to explore. Other passages keep their existing occasional score.
+  const loopCorridor = musicPlace === 'long-corridor' && site?.quietEarth === true && same(site.id, 'relay-nine');
 
   // Ship damage uses the occupied vessel's own clock. Off-duty damage to a
   // parked personal ship must not change the music while the captain is ashore.
@@ -218,7 +221,7 @@ export function musicContext({
     contextKey, shipPosition, personPosition
   };
   return {
-    scene, paletteKey, culture, environment, biome: text(parentBody?.biome), bodyId: parentId || null, locationKind, locationId, contextKey, musicPlace, tags,
+    scene, paletteKey, culture, environment, biome: text(parentBody?.biome), bodyId: parentId || null, locationKind, locationId, contextKey, musicPlace, loopCorridor, tags,
     playing: !!playing, hidden: !!hidden, now: finite(now), menuOpen, dialogue, paused,
     observedThreat, combat: observedThreat, pursuit: visible && !!(pursuit || groundPursuit), tension, emergency,
     terror: !!terrorKey, terrorKey, silence,
