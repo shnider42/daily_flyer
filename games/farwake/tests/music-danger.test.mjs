@@ -28,17 +28,22 @@ test('ten additional danger pieces retain independent identities and cover diffe
  assert.ok(MUSIC_CUES.some(cue=>cue.id==='keep-her-together'),'the original battle piece remains in the catalog');
 });
 
-test('every danger piece introduces a tune, develops it, returns to it, and has an authored ending',()=>{
+test('danger pieces retain distinct bass and drum arrangements, remaining melodies, and written endings without guitar leads',()=>{
  const melodies=new Set(),rhythms=new Set();
  for(const cue of DANGER_COMPOSITIONS){
-  const score=scoreEvents(cue.id),lead=score.events.filter(event=>event.part==='melody');
-  assert.ok(lead.length>=28,`${cue.id}: a written melody carries the piece`);
-  assert.ok(lead[0].beat*60/score.bpm<1.5,`${cue.id}: an immediate musical gesture establishes urgency`);
-  const first=lead.filter(event=>event.beat>=7.9&&event.beat<score.beats*.5).map(event=>event.midi);
-  const returning=lead.filter(event=>event.beat>=score.beats*.64&&event.beat<score.beats-7.9).map(event=>event.midi);
+  const score=scoreEvents(cue.id),lead=score.events.filter(event=>event.part==='melody'),bass=score.events.filter(event=>event.part==='bass');
+  assert.ok(score.events.every(event=>event.instrument!=='guitar'&&event.instrument!=='metalLead'),`${cue.id}: removed guitar layers cannot sound`);
+  assert.ok(lead.length>=8,`${cue.id}: the authored non-guitar phrases remain`);
+  assert.ok(lead.every(event=>['piano','pluck','organ'].includes(event.instrument)),`${cue.id}: no substitute lead is introduced`);
+  for(const part of ['bass','rhythm'])assert.ok(score.events.some(event=>event.part===part&&event.beat*60/score.bpm<.25),`${cue.id}: immediate ${part} establishes urgency`);
+  const first=bass.filter(event=>event.beat<32).map(event=>event.midi);
+  const returning=bass.filter(event=>event.beat>=score.beats*.72&&event.beat<score.beats-8).map(event=>event.midi);
   const statements=new Set(windows(first,5));
-  assert.ok(windows(returning,5).some(window=>statements.has(window)),`${cue.id}: the later melody recalls its opening statement`);
-  assert.ok(lead.some(event=>event.beat>score.beats-12),`${cue.id}: an authored coda follows the return`);
+  assert.ok(windows(returning,5).some(window=>statements.has(window)),`${cue.id}: the bass returns to its opening figure`);
+  const section=start=>score.events.filter(event=>['bass','rhythm'].includes(event.part)&&event.beat>=start-.02&&event.beat<start+16-.02)
+   .map(event=>`${Math.round((event.beat-start)*4)}:${event.duration}:${event.midi}:${event.instrument}`).join(',');
+  assert.notEqual(section(0),section(Math.floor(cue.bars*.5)*4),`${cue.id}: the middle develops the bass and percussion arrangement`);
+  assert.ok(bass.some(event=>event.beat>score.beats-4.1&&event.duration>=1.5),`${cue.id}: a held final bass note closes the arrangement`);
   melodies.add(lead.slice(0,20).map(event=>event.midi).join(','));
   rhythms.add(score.events.filter(event=>event.part==='rhythm'&&event.beat<16).map(event=>`${Math.round(event.beat*4)/4}:${event.instrument}`).join(','));
  }

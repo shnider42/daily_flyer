@@ -17,7 +17,7 @@ const SITUATIONS = Object.freeze({
   'rain-on-the-transit-line': 'Glimmer’s streets after dark.',
   'crosswind-kill-corridor': 'Fast thrash for the fleet crossing: clipped low riffs, double-kick drive, and a hard return after the breakdown.',
   'crosswind-iron-teeth': 'A heavy syncopated groove: low guitar punches, tom accents, and a grinding half-time middle.',
-  'crosswind-ashes-in-orbit': 'Melodic metalcore: driving rhythm guitars, harmonized lead responses, and a final full-band return.',
+  'crosswind-ashes-in-orbit': 'Driving metalcore rhythm guitars, a contrasting middle, and a final full-band return.',
 });
 
 export function musicGroup(cue, group = 'all') {

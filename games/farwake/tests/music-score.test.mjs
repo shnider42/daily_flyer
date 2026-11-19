@@ -87,6 +87,24 @@ test('the complete original main theme preserves every authored note and perform
     '52892c51b20a51506eebe29bbca828e114b6367f4f74b782e92083c68199d3bd');
 });
 
+test('danger guitar removal preserves the backing score and every peaceful arrangement', () => {
+  const danger = MUSIC_CUES.filter(cue => ['combat', 'tension', 'terror'].includes(cue.family));
+  for (const cue of danger) {
+    assert.ok(scoreEvents(cue.id).events.every(event => !['guitar', 'metalLead'].includes(event.instrument)), cue.id);
+  }
+  assert.ok(scoreEvents('crosswind-ashes-in-orbit').events.some(event => event.instrument === 'metalChug'),
+    'Low rhythm guitars remain in the battle music.');
+  // Captured from the previous score with only the removed layers excluded.
+  // This protects all surviving pitches, durations, timing, velocity and pan.
+  for (const [cues, expected] of [
+    [danger, 'eae5f2b732e076be72d7f5511f11e7e36790a737af14cbbd290238d4a2547512'],
+    [MUSIC_CUES.filter(cue => !danger.includes(cue)), 'daab7592f8251d1ecb283a5ac8426d1aa5db5deb5d2c72f5634cc014f7401c37'],
+  ]) {
+    const scores = cues.map(cue => ({ id: cue.id, ...scoreEvents(cue.id, { seed: 'danger-guitar-removal' }) }));
+    assert.equal(createHash('sha256').update(JSON.stringify(scores)).digest('hex'), expected);
+  }
+});
+
 test('all scores are finite, ordered and reproducible; seeds change performance rather than composition', () => {
   for (const cue of MUSIC_CUES) {
     const first = scoreEvents(cue.id, { seed: 'a-home-system' }), same = scoreEvents(cue.id, { seed: 'a-home-system' });

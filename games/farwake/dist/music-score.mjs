@@ -364,13 +364,19 @@ export function scoreEvents(cueId, { seed = 1 } = {}) {
   if (!metadata) throw new RangeError(`Unknown Farwake music cue: ${cueId}`);
   const s = composer(), random = randomFor(seed), beats = metadata.bars * 4;
   BUILDERS[cueId](s);
+  // Remove the synthetic guitar leads from danger arrangements. Keep this
+  // after performance variation so every retained note keeps its exact timing
+  // and mix. Low Crosswind rhythm guitars remain; uploaded recordings use
+  // RecordedTheme and never pass through this score renderer.
+  const danger = ['combat', 'tension', 'terror'].includes(metadata.family);
   const events = s.events.filter(event => event.beat < beats && event.duration > 0).map(event => {
     const timing = event.instrument === 'pad' || event.instrument === 'bowed' ? 0 : (random() - .5) * .018;
     return { ...event, beat: +clamp(event.beat + timing, 0, beats - .02).toFixed(5),
       duration: +Math.min(event.duration, beats - event.beat).toFixed(5),
       velocity: +clamp(event.velocity * (.965 + random() * .07), .05, .95).toFixed(5),
       pan: +clamp(event.pan + (random() - .5) * .045, -.7, .7).toFixed(5) };
-  }).sort((a, b) => a.beat - b.beat);
+  }).filter(event => !danger || !['guitar', 'metalLead'].includes(event.instrument))
+    .sort((a, b) => a.beat - b.beat);
   return { bpm: metadata.bpm, beats, events };
 }
 
