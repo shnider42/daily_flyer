@@ -721,7 +721,8 @@ async function openSiteEntity(entity,feedback=null){
  const current=menuSession(),answer=await invoke('siteAction',{entityId:entity.id,action:'inspect'});if(!current()||!result(answer)||!current())return;
  const relief=!!(surface?.warzone||surface?.site?.crosswindSupport),recordView={kind:'site-record',contextKey:'site:'+entity.id,eyebrow:relief?'CIVILIAN RELIEF':answer.choice?'A DECISION THAT STAYS':'FIELD RECORD',relief};
  dialog.open(answer.title??entity.name,recordView.kind,recordView);
- dialog.html(`<p>${esc(answer.text)}</p>`);
+ dialog.html(`<p class="field-record-copy">${esc(answer.text)}</p>`);
+ if(answer.loreId)dialog.body.insertAdjacentHTML('beforeend','<p class="mini muted">Saved in Log → Lore. You can read it again later.</p>');
  if(feedback?.text)dialog.body.insertAdjacentHTML('beforeend',`<div class="result-note" role="status">${esc(feedback.text)}</div>`);
  if(answer.choice){
   if(answer.chosen){const chosen=answer.choice.options.find(option=>option.id===answer.chosen);dialog.body.insertAdjacentHTML('beforeend',`<div class="result-note">${esc(answer.resolutionText??chosen?.text??'This decision has already been made.')}</div>`);}
@@ -1688,7 +1689,7 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.34.2',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.35.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
  if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }

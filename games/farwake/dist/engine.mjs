@@ -1257,7 +1257,7 @@ export class Game {
     const reward = signal.kind === 'derelict' ? 60 : 28;
     this.state.credits += reward;
     const earlyLore = ['quiet_earth','severance','sparrow','lanes','kettle_history','union_charter','cinder_debt','open_frequency'];
-    const archivePool = this.hasFlag('vault_recovered') ? LORE : LORE.filter(l => earlyLore.includes(l.id));
+    const archivePool = LORE.filter(l => !l.physicalSourceOnly && (this.hasFlag('vault_recovered') || earlyLore.includes(l.id)));
     const lore = archivePool[(hash(signal.id) + this.state.stats.scans) % archivePool.length];
     if (lore && !this.state.knownLore.includes(lore.id)) this.state.knownLore.push(lore.id);
     this._log(signal.name, lore?.text || 'An old survey packet records another small part of the galaxy.', 'discovery');

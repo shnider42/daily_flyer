@@ -1,4 +1,6 @@
 /** The first Quiet Earth field mission. Authored coordinates are tiles unless noted. */
+import { createQuietEarthCorridorPlan, buildQuietEarthAnnexes } from './quiet-earth-layouts.mjs';
+import { quietEarthLoreRecords } from './quiet-earth-lore.mjs';
 const TILE_SIZE = 24;
 const point = (x, y) => ({ x: (x + .5) * TILE_SIZE, y: (y + .5) * TILE_SIZE });
 const reward = (credits = 0, ore = 0, crystal = 0, heal = 0) => ({ credits, ore, crystal, heal });
@@ -141,9 +143,20 @@ const site = freeze({
   monsterCount: 4
 });
 
-export function quietEarthSites(body = {}) {
+const seededSites = new Map();
+export function quietEarthSites(body = {}, seed = 'farwake') {
   if (typeof body === 'string') body = { id: body };
-  return body?.id === 'morrow' && (body.kind == null || body.kind === 'planet') ? [site] : [];
+  if (body?.id !== 'morrow' || body.kind != null && body.kind !== 'planet') return [];
+  const key = String(seed);
+  if (!seededSites.has(key)) {
+    const corridorPlan = createQuietEarthCorridorPlan(key);
+    seededSites.set(key, freeze({ ...site, corridorPlan,
+      briefing: site.briefing + ' Old stores and archive passages branch from the main halls. Their records are optional; green signs point back to the service route.',
+      records: [...site.records, ...quietEarthLoreRecords(corridorPlan.evidenceAnchors)],
+      quietEarthBeats: [...QUIET_EARTH_BEATS, ...corridorPlan.cues] }));
+    while (seededSites.size > 64) seededSites.delete(seededSites.keys().next().value);
+  }
+  return [seededSites.get(key)];
 }
 
 /** Geometry stays fixed through the ambush; no hidden teleport or new escape wall. */
@@ -170,7 +183,7 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
   rect(m, 10, 20, 1, 27, TILE.GRATE);
   rect(m, 10, 20, 108, 1, TILE.GRATE);
   m.spawn = point(6, 73); m.exit = point(4, 73);
-  m.musicCorridors = [{ x: 3 * TILE_SIZE, y: 6 * TILE_SIZE, w: 122 * TILE_SIZE, h: 75 * TILE_SIZE }];
+  m.musicCorridors = [{ x: 3 * TILE_SIZE, y: 3 * TILE_SIZE, w: 122 * TILE_SIZE, h: 78 * TILE_SIZE }];
   m.storyZones = [
     { id: 'intake', name: 'Intake · Outside door', x: 3, y: 66, w: 21, h: 15 },
     { id: 'lower-hall', name: 'Service hall 01', x: 24, y: 70, w: 99, h: 7 },
@@ -269,6 +282,7 @@ export function buildQuietEarthInterior(m, site, { rect, prop, label, point, TIL
   label(m, 'EARTH / RETURN ADDRESS', 109, 6, '#bfd0bd');
   label(m, 'COPY LOCAL BUFFER', 116, 10, '#c8d9c8');
   label(m, 'INTAKE ←', 108, 22, green);
+  buildQuietEarthAnnexes(m, site, { rect, prop, label, TILE });
   m.storyAnchors = [m.spawn, m.exit, ...site.records, ...site.choices, ...site.caches].map(item => item === m.spawn || item === m.exit ? { ...item } : point(item.x, item.y));
   return m;
 }

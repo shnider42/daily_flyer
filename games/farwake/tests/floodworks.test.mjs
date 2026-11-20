@@ -30,10 +30,12 @@ function stopForeman(f){
 }
 
 test('Field expeditions preserve Hearth outside the authored Relay Nine upgrade',()=>{
- // 0.34.2 changes only Relay Nine lighting controls/metadata in these snapshots.
- // Three seeds compared with ff48c8a preserve outdoor geometry, every non-Relay
- // room and Relay floor/solids/spawn/exit; Kettle and Tinbell hashes stay fixed.
- const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['e32b6eeb12f7c1d6db263df37bb519c43659335604363c9f41de94ad97a1259a','099f1427d456b1e720fcb8c6e623a58dec35c2b43252bf36a5ffbee55bd48a25','7e6f535226211648a7e807ad13bb2d9d7a910ef972367e5f37fa7a3564a1edf1'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
+ // 0.35 adds only seeded Relay Nine annexes, cues and optional field records.
+ // Direct comparison with the pre-0.35 source in farwake, hearth-preservation and
+ // legacy-content preserved outdoor geometry/services, every non-Relay room,
+ // and all released Relay walkable tiles/solids/spawn/exit. Only its briefing and
+ // embedded catalog change outdoors; Kettle and Tinbell hashes remain unchanged.
+ const expected={kettle:['4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945','c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb','4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945'],morrow:['ce3e81ef5fa17f12dcbe0f5c0519aa9cdb9ff3bc95887b2c5455556d1b674757','3fd0d41eb228fcec99b3425998a5415b498ca16b9e87e32f139088cc21abf45d','342b4b7a8bc395539c1830e06236e44f4cc84ea5426b1c1761df3f056a079034'],tinbell:['2bac516ce8f612724dffbc6905f185cd59b89e5c2f80332092915392c0618f02','6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176','f3833a3109bb31cefde5f29e4fe76385dace96bf9e9306706d500a35b09f0522']};
  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
  for(const value of NAMED_SYSTEMS.find(system=>system.id==='hearth').bodies){const sites=explorationSites(value,'farwake');assert.deepEqual([digest(sites),digest(generateSurface(value,'farwake')),digest(sites.map(site=>generateSurface(explorationLocation(value,site.id,'farwake'),'farwake')))],expected[value.id]);assert.deepEqual(fieldSites(value),[]);}
  assert.deepEqual(fieldSites({id:'orchard',kind:'planet',systemId:'hearth'}),[]);

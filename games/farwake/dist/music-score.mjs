@@ -10,6 +10,7 @@ import { DANGER_COMPOSITIONS } from './music-danger.mjs';
 import { ENVIRONMENT_COMPOSITIONS } from './music-environments.mjs';
 import { PLACE_COMPOSITIONS } from './music-places.mjs';
 import { WARZONE_COMPOSITIONS } from './music-warzone.mjs';
+import { QUIET_EARTH_COMPOSITIONS } from './music-quiet-earth.mjs';
 import { INSTRUMENT, makeAssets, sampleFor, waveFor, midiHz, mixForCue } from './music-instruments.mjs';
 
 export const THEME_ID = 'long-way-home';
@@ -36,7 +37,7 @@ export const MUSIC_CUES = Object.freeze([
   cue('after-the-static', 'After the Static', 'recovery', 12, 68, 240, ['recovery', 'breathing-room'], .15),
   cue('home-in-a-pocket', 'Home in a Pocket', 'recovery', 16, 70, 720, ['home', 'theme-reprise', 'safe-return'], .17),
   cue('a-room-without-an-answer', 'A Room Without an Answer', 'terror', 12, 58, 1200, ['authored-terror', 'sparse'], .24),
-  ...[...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS, ...WARZONE_COMPOSITIONS].map(({ id, title, family, bars, bpm, cooldownSeconds, tags, intensity }) =>
+  ...[...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS, ...WARZONE_COMPOSITIONS, ...QUIET_EARTH_COMPOSITIONS].map(({ id, title, family, bars, bpm, cooldownSeconds, tags, intensity }) =>
     cue(id, title, family, bars, bpm, cooldownSeconds, tags, intensity)),
 ]);
 
@@ -343,7 +344,7 @@ const BUILDERS = {
   'after-the-static': s => buildRecovery(s),
   'home-in-a-pocket': s => buildRecovery(s, true),
   'a-room-without-an-answer': buildTerror,
-  ...Object.fromEntries([...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS, ...WARZONE_COMPOSITIONS].map(entry => [entry.id, s => entry.build(s, H)])),
+  ...Object.fromEntries([...DANGER_COMPOSITIONS, ...ENVIRONMENT_COMPOSITIONS, ...PLACE_COMPOSITIONS, ...WARZONE_COMPOSITIONS, ...QUIET_EARTH_COMPOSITIONS].map(entry => [entry.id, s => entry.build(s, H)])),
 };
 
 function seedValue(seed) {

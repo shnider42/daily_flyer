@@ -2,9 +2,10 @@
 import { isQuietEarth } from './quiet-earth-content.mjs';
 import { quietEarthLightState } from './quiet-earth-lighting.mjs';
 import { pixelRect as pixel, pixelLine } from './pixel-art.mjs';
+import { CORRIDOR_CUE_DURATIONS } from './quiet-earth-layouts.mjs';
 
 const SITE = 'morrow:site:relay-nine', TILE = 24;
-const durations = Object.freeze({ 'pressure-vent': 2.4, 'service-cart': 3.2, ambush: 3.6, escaped: 1.2 });
+const durations = Object.freeze({ ...CORRIDOR_CUE_DURATIONS, ambush: 3.6, escaped: 1.2 });
 const EMPTY = Object.freeze({ events: Object.freeze([]) });
 const clamp = value => Math.max(0, Math.min(1, value));
 const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
@@ -144,6 +145,47 @@ function drawLightPools(ctx, view, escaping, lighting) {
   }
 }
 
+/** Mundane equipment moves, stalls and settles. None of these drawings is an actor. */
+function drawAnnexDisturbance(ctx, cue, settled, event, motion) {
+  const x = cue.x - 38, y = cue.y - 46, age = event?.age || 0, active = !!event && motion;
+  if (cue.id === 'relay-stutter') {
+    const trying = active && (age < .65 || age > 1.8 && age < 2.35 || age > 3.6);
+    const lit = active ? trying : settled;
+    pixel(ctx, '#14282c', x, y, 67, 41); pixel(ctx, '#4c6e6b', x + 2, y + 2, 63, 5);
+    for (let i = 0; i < 5; i++) {
+      pixel(ctx, '#263f43', x + 6 + i * 11, y + 12, 7, 22);
+      pixel(ctx, lit ? i === 3 ? '#d3b681' : '#9eb9a4' : '#3f524c', x + 7 + i * 11, y + 14, 5, 5);
+    }
+    // The cabinet briefly starts, stops, then finds a steady low working light.
+    if (lit) { ctx.globalAlpha = .09; pixel(ctx, '#b7c7a8', x + 4, y + 37, 58, 31); ctx.globalAlpha = 1; }
+  } else if (cue.id === 'empty-lift') {
+    const opening = active ? age < .8 ? smooth(age / .8) * .32 : age < 2.1 ? .32 : .32 + smooth((age - 2.1) / 1.2) * .68 : settled ? 1 : 0;
+    pixel(ctx, '#0b1a22', x - 4, y - 4, 80, 66); pixel(ctx, '#58706c', x - 3, y - 4, 78, 5);
+    pixel(ctx, '#263b3c', x + 4, y + 7, 63, 48);
+    // A coiled cable and an empty tool tray explain the shape behind the stuck door.
+    pixel(ctx, '#7e8774', x + 24, y + 30, 22, 5); pixel(ctx, '#15272d', x + 29, y + 31, 12, 3);
+    pixel(ctx, '#82927e', x + 13, y + 44, 37, 6); pixel(ctx, '#344e4b', x + 16, y + 44, 31, 2);
+    const gap = Math.round(opening * 31);
+    pixel(ctx, '#6c837c', x + 3, y + 3, 32 - gap, 52); pixel(ctx, '#5b7470', x + 36 + gap, y + 3, 31 - gap, 52);
+    pixel(ctx, settled ? '#adbd8d' : '#b29369', x + 72, y + 17, 4, 5);
+  } else if (cue.id === 'hanging-sheet') {
+    // The loose sheet catches a fan twice. Between the movements the rack is still.
+    const moving = active && (age < 1.25 || age > 2.35 && age < 3.65);
+    const sway = moving ? Math.sin(age * 6.5) * 12 * (1 - Math.min(age, 4.5) / 5) : 0;
+    pixel(ctx, '#4a6865', x + 2, y + 4, 66, 4); pixel(ctx, '#6b8175', x + 5, y + 8, 3, 54); pixel(ctx, '#6b8175', x + 62, y + 8, 3, 54);
+    pixel(ctx, '#a3a38c', x + 17 + sway, y + 9, 31, 40); pixel(ctx, '#767e72', x + 17 + sway, y + 44, 34, 5);
+    pixel(ctx, '#c2bfa1', x + 19 + sway, y + 10, 3, 29); pixel(ctx, '#8c947e', x + 38 + sway * .6, y + 12, 3, 32);
+    pixel(ctx, '#203b3c', x + 9, y + 57, 52, 4);
+  } else if (cue.id === 'pipe-knock') {
+    const shaking = active && (age < .55 || age > 1.55 && age < 2.3), offset = shaking ? Math.round(Math.sin(age * 34) * 2) : 0;
+    pixel(ctx, '#39595a', x + 1, y + 4, 69, 8); pixel(ctx, '#8b9987', x + 1, y + 4 + offset, 69, 3);
+    for (const dx of [8, 54]) pixel(ctx, '#5e7970', x + dx, y, 5, 17);
+    const drop = active ? smooth((age - 1.9) / .55) : settled ? 1 : 0;
+    pixel(ctx, '#a6a387', x + 36, y + 14 + Math.round(drop * 25), 10, 7);
+    pixel(ctx, '#40595a', x + 38, y + 15 + Math.round(drop * 25), 6, 2);
+  }
+}
+
 function drawAir(ctx, view, scene, event, motion, time) {
   if (event && inView({ x: vent.x - 25, y: vent.y, w: 130, h: 140 }, view) && motion) {
     // Deterministic puffs spread into the hall, then dissipate. No screen-wide flash.
@@ -191,6 +233,10 @@ export function drawQuietEarthPresentation(ctx, surface, options = {}) {
     drawLightPools(ctx, view, escaping, lighting);
     if (inView(vent, view, 32)) drawVent(ctx, cues.includes('pressure-vent') || !!ventEvent, ventEvent, motion);
     if (inView({ ...cart, w: cart.w + cart.travel }, view, 24)) drawCart(ctx, cues.includes('service-cart') || !!cartEvent, cartEvent, motion);
+    for (const cue of surface.site?.corridorPlan?.cues || []) {
+      if (!inView({ x: cue.x - 48, y: cue.y - 52, w: 100, h: 90 }, view)) continue;
+      drawAnnexDisturbance(ctx, cue, cues.includes(cue.id), eventFor(presentation, cue.id), motion);
+    }
   } else if (options.layer === 'air') {
     // A dropped mug, a still-wet ring and one chair pulled away: ordinary work interrupted.
     const tableX = 17 * TILE, tableY = 31 * TILE;

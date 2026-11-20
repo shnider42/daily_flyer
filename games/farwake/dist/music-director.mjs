@@ -19,7 +19,7 @@ const GENERIC_TAGS = new Set(['flight', 'surface', 'settlement', 'solitude', 'sh
   'combat', 'tension', 'terror', 'exploration', 'planet', 'cave']);
 const BIOME_TAGS = new Set(['temperate', 'forest', 'desert', 'ocean', 'ice', 'volcanic',
   'industrial', 'barren', 'ruin', 'earth']);
-const PLACE_TAGS = new Set(['cabin', 'fieldwork', 'voltage', 'foreman', 'nightlife', 'crosswind']);
+const PLACE_TAGS = new Set(['cabin', 'fieldwork', 'voltage', 'foreman', 'nightlife', 'crosswind', 'quiet-earth']);
 const ambientFamily = context => context.scene === 'menu' ? 'theme'
   : context.musicPlace === 'crosswind' ? 'combat'
   : context.musicPlace === 'long-corridor' ? 'corridor'
@@ -122,6 +122,15 @@ export class MusicDirector {
     // A named place's music is not a random fallback for every other room or
     // fight. It enters the pool only when this listener is actually there.
     pool = pool.filter(cue => !(cue.tags || []).some(tag => PLACE_TAGS.has(tag) && !tags.includes(tag)));
+    // Quiet Earth has its own battle score after danger is established. Keep
+    // it separate from `long-corridor`: the opening recording must never turn
+    // into a threat cue merely because the captain enters an unsettling hall.
+    // Narrow before cooldown/freshness filtering so a long encounter cannot
+    // fall back to the same recording that was playing before the attack.
+    if (family === 'combat' && tags.includes('quiet-earth')) {
+      const encounterScore = pool.filter(cue => cue.tags?.includes('quiet-earth'));
+      if (encounterScore.length) pool = encounterScore;
+    }
     if (family === 'social' && !tags.includes('whimsical') && !tags.includes('garden')) {
       pool = pool.filter(cue => !cue.tags?.includes('whimsical'));
     }

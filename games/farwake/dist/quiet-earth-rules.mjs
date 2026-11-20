@@ -1,6 +1,8 @@
 /** Shared, deterministic progression for the first Quiet Earth corridor. */
 import { isQuietEarth, QUIET_EARTH_BEATS } from './quiet-earth-content.mjs';
 import { quietEarthLightState } from './quiet-earth-lighting.mjs';
+import { CORRIDOR_CUE_DURATIONS } from './quiet-earth-layouts.mjs';
+import { canSeeSitePoint } from './site-visibility.mjs';
 
 const list = value => Array.isArray(value) ? value : [];
 const live = actor => actor && Number.isFinite(actor.health) && actor.health > 0 && actor.status !== 'dead';
@@ -8,16 +10,16 @@ const livingParticipant = actor => actor?.person && Number.isFinite(actor.person
   && Number.isFinite(actor.person.health) && actor.person.health > 0 && !actor.person.down && !actor.protected;
 const owns = (object, key) => Object.hasOwn(object || {}, key);
 const accepted = (actual, expected) => expected === true ? !!actual : Array.isArray(expected) ? expected.includes(actual) : actual === expected;
-const beatIds = new Set(QUIET_EARTH_BEATS.map(beat => beat.id));
-const cueDurations = Object.freeze({ 'pressure-vent': 2.4, 'service-cart': 3.2 });
+const beatsFor = site => Array.isArray(site?.quietEarthBeats) ? site.quietEarthBeats : QUIET_EARTH_BEATS;
 
 /** Cue receipts never contain a mission stage, actor health, or invented targets. */
 export function normalizeQuietEarthState(site, saved = {}) {
   if (!isQuietEarth(site)) return null;
   const prior = saved && typeof saved === 'object' ? saved : {};
+  const beats = beatsFor(site), beatIds = new Set(beats.map(beat => beat.id));
   return {
     version: 1,
-    cues: [...new Set(list(prior.cues).filter(id => typeof id === 'string' && beatIds.has(id)))].slice(0, QUIET_EARTH_BEATS.length),
+    cues: [...new Set(list(prior.cues).filter(id => typeof id === 'string' && beatIds.has(id)))].slice(0, beats.length),
     ambushAnnounced: prior.ambushAnnounced === true,
     escapeAnnounced: prior.escapeAnnounced === true
   };
@@ -115,12 +117,13 @@ export function stepQuietEarthEncounter(state, actors, dt, surface, event) {
     return;
   }
   if (!phase.started) return;
-  for (const beat of QUIET_EARTH_BEATS) {
+  for (const beat of beatsFor(site)) {
     if (progress.cues.includes(beat.id)) continue;
-    if (!participants.some(actor => Math.hypot(actor.person.x - beat.x, actor.person.y - beat.y) <= beat.radius)) continue;
+    if (!participants.some(actor => Math.hypot(actor.person.x - beat.x, actor.person.y - beat.y) <= beat.radius
+      && (!surface.combatLayout || canSeeSitePoint(surface.combatLayout, actor.person, beat)))) continue;
     progress.cues.push(beat.id); bump(state);
     event('quiet-earth-beat', { id: `${state.id}:quiet-earth:${beat.id}`, beatId: beat.id, phase: 'quiet', harmless: true,
-      x: beat.x, y: beat.y, effect: beat.id, duration: cueDurations[beat.id] || 2.4, text: '', sfx: beat.sfx });
+      x: beat.x, y: beat.y, effect: beat.id, duration: CORRIDOR_CUE_DURATIONS[beat.id] || 2.4, text: '', sfx: beat.sfx });
   }
 }
 

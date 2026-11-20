@@ -6,6 +6,7 @@ import { musicContext, classifyMusicEvent } from '../dist/music-context.mjs';
 import { MusicDirector } from '../dist/music-director.mjs';
 import { MUSIC_CUES, THEME_ID } from '../dist/music-catalog.mjs';
 import { MORROW_FLIGHTLINE } from '../dist/recorded-theme.mjs';
+import { QUIET_EARTH_DANGER_ID } from '../dist/music-quiet-earth.mjs';
 
 function relay() {
   const game = new Game('relay-loop', { startMode: 'casual', startSystemId: 'hearth' });
@@ -47,6 +48,7 @@ test('revealed danger interrupts the loop, recovery plays, and the corridor resu
   director.notify(classifyMusicEvent(onset, quiet), 1, onset.id);
   const battle = director.update(quiet, 1);
   assert.equal(battle.mood, 'combat'); assert.equal(battle.loop, false);
+  assert.equal(battle.cueId, QUIET_EARTH_DANGER_ID);
   assert.notEqual(battle.token, first.token); assert.ok(battle.fadeOut < .5);
   for (let now = 2; now <= 6; now++) {
     assert.equal(director.update({ ...quiet, observedThreat: true }, now).token, battle.token);

@@ -59,10 +59,10 @@ function audioContext({ sampleRate = 24000 } = {}) {
 }
 
 test('the score catalog has authored contrast and a full original theme', () => {
-  assert.equal(MUSIC_CUES.length, 46);
+  assert.equal(MUSIC_CUES.length, 47);
   assert.equal(new Set(MUSIC_CUES.map(cue => cue.id)).size, MUSIC_CUES.length);
   assert.deepEqual(new Set(MUSIC_CUES.map(cue => cue.family)), new Set(['theme', 'exploration', 'social', 'discovery', 'tension', 'combat', 'recovery', 'terror', 'cave', 'planet']));
-  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 15);
+  assert.equal(MUSIC_CUES.filter(cue => cue.family === 'combat').length, 16);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'cave').length, 5);
   assert.equal(MUSIC_CUES.filter(cue => cue.family === 'planet').length, 10);
   assert.ok(MUSIC_CUES.filter(cue => cue.family === 'exploration').length >= 3);
@@ -97,7 +97,7 @@ test('danger guitar removal preserves the backing score and every peaceful arran
   // Captured from the previous score with only the removed layers excluded.
   // This protects all surviving pitches, durations, timing, velocity and pan.
   for (const [cues, expected] of [
-    [danger, 'eae5f2b732e076be72d7f5511f11e7e36790a737af14cbbd290238d4a2547512'],
+    [danger.filter(cue => cue.id !== 'no-way-back'), 'eae5f2b732e076be72d7f5511f11e7e36790a737af14cbbd290238d4a2547512'],
     [MUSIC_CUES.filter(cue => !danger.includes(cue)), 'daab7592f8251d1ecb283a5ac8426d1aa5db5deb5d2c72f5634cc014f7401c37'],
   ]) {
     const scores = cues.map(cue => ({ id: cue.id, ...scoreEvents(cue.id, { seed: 'danger-guitar-removal' }) }));

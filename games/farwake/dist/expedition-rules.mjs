@@ -124,7 +124,7 @@ export const ExpeditionRules={
         if(site.objectiveId==='rescue')this.state.interior.location.evacuated=true;
         this.observeMilitaryEvent?.('ground-objective',{operationId:site.operationId,siteId:site.id,objectiveId:site.objectiveId,amount:1,token:`${site.operationId}:objective:${site.objectiveId}`});
       }
-      const result=inspectSiteRecord(site,entity.data.recordId,active.encounter);if(result.ok){const first=this.recordActivity('explore',{token:`record:${active.key}:${entity.data.recordId}`});if(first.first)this._log(result.title,result.text,'exploration');}return result;
+      const result=inspectSiteRecord(site,entity.data.recordId,active.encounter);if(result.ok){const record=site.records.find(item=>item.id===entity.data.recordId);if(record?.loreId){if(!this.state.knownLore.includes(record.loreId))this.state.knownLore.push(record.loreId);result.loreId=record.loreId;}const first=this.recordActivity('explore',{token:`record:${active.key}:${entity.data.recordId}`});if(first.first)this._log(result.title,result.text,'exploration');}return result;
     }
     if(entity.type==='siteChoice'&&action==='inspect'){
       if(site.expedition)return inspectStoryChoice(active.encounter,site,entity.data.choiceId);

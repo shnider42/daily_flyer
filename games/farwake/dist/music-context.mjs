@@ -176,7 +176,8 @@ export function musicContext({
   const boarding = mode === 'person' && ['ship', 'enemy'].includes(interior?.kind) && state.boarding?.phase === 'active';
   const relayEncounter = site?.quietEarth && same(site.id, siteId) ? state.exploration?.encounter : null;
   const relayAlarm = mode === 'person' && !onVessel && relayEncounter?.quietEarth?.ambushAnnounced === true &&
-    list(relayEncounter.monsters).some(actor => actor.quietEarthActor && !actor.quietEarthDormant && !actor.pacified && finite(actor.health) > 0);
+    list(relayEncounter.monsters).some(actor => actor.quietEarthActor && actor.revealed === true && actor.hidden !== true &&
+      !actor.quietEarthDormant && !actor.pacified && finite(actor.health) > 0);
   const observedThreat = visible && !!(recentImpact || incoming || pursuit || groundPursuit || announcedAttack || boarding || foremanActive || relayAlarm);
   const emergency = visible && !!(alarm || medicalEmergency || lowSuitAir || aboardContract && contract.emergency === true);
   const tension = visible && !!(perceivedThreat || onVessel && state.cosmicWarning || observedCue?.revealed === true && observedCue.tag === 'tension');
@@ -206,6 +207,7 @@ export function musicContext({
     fieldSite && Object.values(field?.survivors || {}).some(survivor => survivor.escortId === String(captainId) && survivor.status === 'following') ? 'rescue' : null,
     city ? 'city' : null, city ? 'rain' : null, city || nightlife ? 'voltage' : null, nightlife ? 'nightlife' : null,
     crosswind ? 'crosswind' : null,
+    mode === 'person' && !onVessel && site?.quietEarth === true && same(site.id, siteId) ? 'quiet-earth' : null,
     social ? 'settlement' : 'solitude',
     ['conservatory', 'farm', 'park'].includes(locationKind) ? 'garden' : null,
     ['market', 'tavern', 'restaurant', 'farm'].includes(locationKind) ? 'whimsical' : null,
@@ -261,7 +263,7 @@ export function classifyMusicEvent(event, context = {}) {
 
   switch (event.type) {
     case 'quiet-earth-beat':
-      if (scope.mode !== 'person' || event.siteId == null) return null;
+      if (scope.mode !== 'person' || event.siteId == null || event.harmless === true) return null;
       return event.beatId === 'ambush' ? 'combat' : event.beatId === 'escaped' ? 'recovery' : null;
     case 'field-work-action': {
       if (scope.mode !== 'person' || !context.tags?.includes('fieldwork') || !localPerson || event.siteId == null) return null;

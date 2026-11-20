@@ -2,6 +2,8 @@
 
 Version 0.31.0 · World content revision 5
 
+For the later Morrow corridor format, optional Earth evidence and continuity constraints, read [Quiet Earth canon and corridor authoring](quiet-earth-canon.md) before extending that storyline. The systems below remain its underlying expedition framework.
+
 ## Scope
 
 Fifty encounter archetypes are available: the existing Hearth cavern family and 49 new authored frontier stories. The new stories use 16 physical layout families, with different evidence, repair sequences, choices, residents, creatures, battles and persistent consequences.

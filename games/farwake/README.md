@@ -1,8 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.34.2 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.35.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.35.0 — Branching corridors and older departures
+
+Relay Nine keeps its released main route, interaction positions, staged lighting and green return strips. Each galaxy seed now adds three branching human service networks with loops, dead ends and optional archive alcoves. Re-entry, reload and shared authority use the same seed. Existing voyages retain their old floor and progress while gaining their deterministic side passages.
+
+Three or four additional harmless disturbances vary with the galaxy: a relay that tries and stalls, an empty lift that catches before opening, a loose sheet moving in bursts, and an occasional pipe knock. These use the current physical presentation and once-only saved cue receipts. They do not wake the dormant encounter or start danger scoring.
+
+**No Way Back** is a new original 2:10 danger piece, with a recurring piano line, minor/modal harmony, bass pulse, low percussion and restrained sustained voices. It belongs to actual danger inside Quiet Earth sites. The contributed menu theme and opening **Morrow Flightline Loop** recordings remain unchanged; the quiet corridor loop resumes through the existing danger-release rules. Listen on demand in **Settings → Music & listening → Danger**.
+
+Five optional physical records introduce human evacuation orders, the facility's repair history, similarities across nonhuman departures, a disputed ancient Collective translation, and five attributed faction explanations. Reading them saves a personal copy in **Log → Lore**. They do not gate the receiver or escape. A shared site's read receipt does not silently give another captain the fragment, and ordinary survey rewards cannot reveal these records.
+
+The original Earth campaigns' survivors, rescues and choices remain true. The deeper cause is still unresolved. This release adds fragments and a reusable corridor format; it does not complete or automatically generate the later campaign. See [Quiet Earth continuity and authoring](docs/quiet-earth-canon.md) and [music direction](docs/music-direction.md) before extending it. World content revision **11** aligns the client and shared authority.
 
 ## 0.34.2 — Relay lighting and quieter controls
 

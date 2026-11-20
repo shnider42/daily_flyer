@@ -12,7 +12,17 @@ The recorded theme was created by the project creator’s friend. Its visible cr
 
 “The Long Way Home” is the original synthesized theme. Its opening rising fifth and descending answer return in changing arrangements; the middle passage offers a brighter harmonic departure before the original phrase comes home. The complete statement is about three minutes and seventeen seconds, followed by its tail. It is a composition with a beginning, development, return, and ending, rather than an endlessly regenerated pad.
 
-The current catalog contains **46 original instrumental pieces** plus the recorded menu theme. The composed pieces are performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
+The current catalog contains **47 original instrumental pieces** plus the two supplied recordings, **Farwake menu theme** and **Morrow Flightline Loop**. The composed pieces are performed by the game's local synthesizer. A recorded or studio-produced performance can replace its renderer later without changing the musical director or gameplay hooks. A recognizable theme can be composed now; whether it becomes memorable to players needs actual listening and repeated play.
+
+## Quiet Earth: No Way Back
+
+**No Way Back** is the dedicated score for actual danger in Quiet Earth corridor missions. It is a complete 64-bar original composition at **118 BPM**, approximately **2:10** before its short release tail. It uses the uploaded menu recording's C-centred minor/modal colour as a harmonic reference, rather than confusing that recording with the older D-minor synthesized theme. Its melody is newly written; the uploaded recordings are not sampled, replaced, or modified.
+
+A mid-register piano question rises through C, D and E-flat before its descending answer. The arrangement develops that phrase through rounded analog synthesis, a lower organ response, felt piano and a restrained bowed bed. Tight bass movement, kick/snare spacing and occasional low toms provide urgency. Two quieter passages retain the pulse during the fight, and the principal melody returns near the end. There are no guitar, plucked-string, metal rhythm or metal lead voices. It reuses the existing shared instrument bank and peaks at ten written voices including release tails, below the twenty-voice budget.
+
+The opening **Morrow Flightline Loop** remains the continuously looping quiet corridor recording. New missions carry `site.quietEarth`, and the listener's context supplies the corresponding place tag only while physically inside that site. That tag selects No Way Back only once the existing director has real combat or emergency evidence. Location, darkness, a false scare, an empty shot or another captain's unrelated attack cannot start it. The danger cue deliberately does not carry the `long-corridor` tag, so it cannot enter the peaceful recording pool. A long ongoing encounter keeps the dedicated danger score even when its ordinary repeat cooldown has not expired.
+
+After danger ends, the existing fourteen-second evidence hold prevents flicker, the recovery passage plays, and the original corridor loop returns. **Settings → Music & listening → Danger → No Way Back → Listen** auditions the piece explicitly. Existing mute, hidden-tab suspension, volume, dialogue ducking and music priority rules continue to apply. Focused checks are in `music-quiet-earth.test.mjs` and `music-relay-loop.test.mjs`; preserved score fingerprints continue to protect every pre-existing arrangement.
 
 ## Crosswind battle rotation · 0.26.1
 
@@ -98,8 +108,9 @@ Terror is capped at twenty seconds per treatment, once per observed reveal in th
 
 | Module | Responsibility |
 | --- | --- |
-| `music-score.mjs` | Combined 46-piece manifest, the original twelve compositions, composer helpers and `ScorePlayer` transport |
+| `music-score.mjs` | Combined 47-piece manifest, the original twelve compositions, composer helpers and `ScorePlayer` transport |
 | `music-danger.mjs` | Ten written pressure pieces |
+| `music-quiet-earth.mjs` | No Way Back, the dedicated guitar-free Quiet Earth danger composition |
 | `music-environments.mjs` | Five cave and ten planetary pieces |
 | `music-places.mjs` | Six pieces for ship life, field expeditions and Voltage |
 | `music-warzone.mjs` | Three written heavy battle pieces for Crosswind |
@@ -125,7 +136,7 @@ The instrument bank is shared by players within one AudioContext. Its sample cac
 
 ## Historical expansion catalog · 0.15.0
 
-Version 0.15.0 added 25 pieces, bringing the catalog to **37 at that release**. Six additions in 0.24.0 brought it to 43, and the three Crosswind pieces in 0.26.1 bring the current total to 46. The full main-theme event sequence remains preserved. Durations below describe the written pieces; the renderer allows a short release tail.
+Version 0.15.0 added 25 pieces, bringing the catalog to **37 at that release**. Six additions in 0.24.0 brought it to 43, and the three Crosswind pieces in 0.26.1 brought it to 46. No Way Back brings the composed total to 47. The full main-theme event sequence remains preserved. Durations below describe the written pieces; the renderer allows a short release tail.
 
 ### Danger
 

@@ -1,5 +1,6 @@
 // FARWAKE — The Quiet Earth. Original authored world content.
 // All costs are positive in conditions; effects are additive. Flags are persistent strings.
+import { QUIET_EARTH_LORE } from './quiet-earth-lore.mjs';
 export const FACTIONS = [
   {id:'concord',name:'Terran Continuity',short:'CONTINUITY',color:'#80a9e6',philosophy:'Nobody should lose citizenship because Earth stopped answering.',tension:'Its rescue fleets keep people alive. Its emergency laws never seem to expire.'},
   {id:'freewake',name:'Freewake Union',short:'FREEWAKE',color:'#64d7b1',philosophy:'The people who keep a station breathing should own it.',tension:'Mutual aid crosses borders, but a strike can leave an entire moon without water.'},
@@ -64,7 +65,8 @@ export const LORE = [
   {id:'cinder_debt',title:'A Debt of Warmth',text:'Cinder families mark rescue debts with a strip of red cloth tied beside the airlock. A ship displaying one can ask for sanctuary. Even raiders sometimes honor it. Sometimes is an uncomfortable foundation for a civilization.'},
   {id:'open_frequency',title:'The Open Frequency',text:'The first evacuation signal was a public channel. When factions encrypted their networks, ordinary ships kept it alive with weather reports, lost names, recipes, and calls for help. A galaxy can share a frequency without sharing a government.'},
   {id:'silent_engine',title:'The Engine Beneath Palimpsest',text:'The buried machine measures how local space bends. It was old before humanity arrived, yet it responds to careful calibration. It offers no prophecy, only measurements that make the long way home possible.'},
-  {id:'return_ethic',title:'Returning Is Not Ownership',text:'People who stayed on Earth rebuilt under conditions the outer colonies cannot imagine. Coming home may mean asking permission. The hardest part of the journey is admitting that ancestry is not a deed.'}
+  {id:'return_ethic',title:'Returning Is Not Ownership',text:'People who stayed on Earth rebuilt under conditions the outer colonies cannot imagine. Coming home may mean asking permission. The hardest part of the journey is admitting that ancestry is not a deed.'},
+  ...QUIET_EARTH_LORE
 ];
 
 export const ENCOUNTERS = [

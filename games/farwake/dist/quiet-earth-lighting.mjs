@@ -7,7 +7,7 @@ const zone = (id, section, x, y, w, h) => Object.freeze({ id, section, x: x * TI
 
 export const QUIET_EARTH_DARK_RANGE = 230;
 export const QUIET_EARTH_LIT_RANGE = 650;
-/** World-space rectangles match the fixed corridor geometry, not its labels. */
+/** World-space rectangles match the released main halls, not their labels. */
 export const QUIET_EARTH_LIGHT_ZONES = Object.freeze([
   zone('intake', 'intake', 3, 66, 21, 15),
   zone('lower-hall', 'intake', 21, 70, 102, 7),
@@ -40,6 +40,17 @@ for (const key of ['000', '100', '110', '111']) {
     zones: Object.freeze(QUIET_EARTH_LIGHT_ZONES.filter(item => powered[item.section])) }));
 }
 
+const siteStates = new WeakMap();
+function statesFor(site) {
+  if (!site?.corridorPlan) return states;
+  if (!siteStates.has(site)) {
+    const zones = [...QUIET_EARTH_LIGHT_ZONES, ...site.corridorPlan.wings.map(wing => wing.lightZone)];
+    siteStates.set(site, new Map([...states].map(([key, state]) => [key, Object.freeze({ ...state,
+      zones: Object.freeze(zones.filter(item => state.powered[item.section])) })])));
+  }
+  return siteStates.get(site);
+}
+
 /**
  * A later saved choice only restores power when its preceding authored evidence
  * is valid. The existing main feed backfeeds intake; copying the receiver also
@@ -59,7 +70,7 @@ export function quietEarthLightState(state, site = null) {
   const middle = started && read.has('voices') && choices.breaker === 'restore';
   const intake = started && choices['intake-lights'] === 'restore' || middle;
   const upper = middle && read.has('service') && (choices['upper-lights'] === 'restore' || choices.receiver === 'copy');
-  return states.get(`${intake ? 1 : 0}${middle ? 1 : 0}${upper ? 1 : 0}`);
+  return statesFor(site).get(`${intake ? 1 : 0}${middle ? 1 : 0}${upper ? 1 : 0}`);
 }
 
 const sourceLayouts = new WeakMap(), layoutViews = new WeakMap(), surfaceViews = new WeakMap();
