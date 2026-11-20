@@ -9,13 +9,16 @@ A lightweight event follow-through tool for Leadership MetroWest alumni. Indepen
 - Optional availability and "What could this community help you with?" make responses actionable and reciprocal.
 - Follow-up permission is explicit and separate. No newsletter subscription, email, SMS, or message is sent by this application.
 - Each saved response has a private capability link for review, changes, and deletion. Treat that link as a password. It is kept in memory, not browser local storage; copy it before closing the page.
-- `/#organizer`: visibly marked demo with 30 fictional responses. These never enter the database.
-- `/#qr`: locally generated QR and printable event sign; no third-party QR tracking service.
+- `/organizer/`: separate organizer workspace. This opens to sign-in; real responses require the private access key.
+- `/organizer/#demo`: visibly marked demo with 30 fictional responses. These never enter the database. The original `/#organizer` link redirects here.
+- `/organizer/#qr`: locally generated QR and printable event sign; no third-party QR tracking service. The original `/#qr` link redirects here. QR and private participant links always point to the attendee root URL.
+- The Display menu offers System, Light, Night, and High contrast. System follows device dark-mode and increased-contrast preferences. Only the display choice is stored locally; no answers, contact details, or access keys are persisted in browser storage.
+- The mobile form uses a compact introduction, single-column fields, large touch controls, and normal-flow actions that do not cover the on-screen keyboard. Later steps collapse the introduction. Internal navigation preserves the unfinished form in memory.
 - Live organizer access uses a separate high-entropy private key. That key is never included in source or public assets. A link fragment can hand it to the browser without transmitting it as a URL parameter; the app removes the fragment after reading it. Keep the organizer link private.
 
 ## Implementation
 
-`public/` is dependency-free HTML, CSS, and JavaScript. Run `node apps/lmw/build.mjs` from the DailyFlyer repository and publish `apps/lmw/dist` as a Render static site. The local managed preview can serve `public/` directly.
+`public/` is dependency-free HTML, CSS, and JavaScript. Run `node apps/lmw/build.mjs` from the DailyFlyer repository and publish `apps/lmw/dist` as a Render static site. The build creates the attendee page and an explicit `/organizer/index.html` shell so the organizer URL can be opened or refreshed directly. Serve `dist/` for local previews after building. No SPA rewrite rule is required.
 
 The Supabase Edge Function `lmw-connect` is the only data path. The `public.lmw_*` tables have row-level security enabled and no anonymous/authenticated grants. The Edge Function alone holds database privileges, and it validates the appropriate participant or organizer capability for every sensitive action. Public GET returns event metadata only. The schema and Edge Function are in `backend/`.
 
@@ -34,7 +37,7 @@ The outreach CSV excludes people who did not permit email follow-up. Exported ce
 ## Pilot operation
 
 1. Try the attendee flow with fictional details and delete the test response.
-2. Open the live organizer view with the private organizer key; the ordinary public organizer page shows fictional demo data only.
+2. Open `/organizer/` and sign in with the private organizer key. Use the separate demo link to explore fictional data. Sign out when finished; a refresh also clears the in-memory key.
 3. Print the QR sign for the event. The short URL remains visible as an alternative.
 4. Follow up only about the interests a person selected, through the channels they permitted. Record planned/connected/closed status.
 5. Close intake when the event pilot ends. Review duplicates manually; no automated merge asserts that an unverified email proves identity.

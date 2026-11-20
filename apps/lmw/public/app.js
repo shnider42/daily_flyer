@@ -17,18 +17,22 @@
   const emptyData = () => ({first_name:'', last_name:'', graduate_year:'', email:'', phone:'', current_employer:'', engagement:'', interests:[], availability:'', help_needed:'', contact_permission:'', phone_permission:false, privacy_consent:false});
   const state = {
     data: emptyData(), step: 0, event: {slug: EVENT_SLUG, title:'LMW networking night', is_open:true}, eventLoaded:false,
-    manage:null, editing:false, submission:null, organizerKey:'', organizerMode:'demo', records:[], demoRecords:null,
-    filters:{search:'', interest:'', status:'', permission:''}, busy:false, view:'preferences'
+    manage:null, editing:false, submission:null, organizerKey:'', organizerMode:'locked', records:[], demoRecords:null,
+    filters:{search:'', interest:'', status:'', permission:''}, busy:false, view:'preferences', organizerRevision:0, routeRevision:0
   };
   let toastTimer;
+  let lastRoutedUrl = '';
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const checked = (value) => value ? ' checked' : '';
   const selected = (a,b) => a === b ? ' selected' : '';
   const apiUrl = () => window.LMW_CONFIG?.apiUrl || '';
-  const eventUrl = () => `${location.origin}${location.pathname}?event=${EVENT_SLUG}`;
-  const managementUrl = () => state.manage ? `${location.origin}${location.pathname}#manage=${state.manage.token}&id=${state.manage.id}` : '';
+  const eventUrl = () => `${location.origin}/?event=${EVENT_SLUG}`;
+  const managementUrl = () => state.manage ? `${location.origin}/#manage=${state.manage.token}&id=${state.manage.id}` : '';
+  const isOrganizerPath = () => /^\/organizer\/?$/.test(location.pathname);
   const yearLabel = (value) => value === 'current' ? 'Current participant' : value === 'unknown' ? 'Year not specified' : `Class of ${value}`;
   const recordData = (record) => ({...record, ...(record.data || {})});
+  const organizerSession = () => ({key:state.organizerKey, revision:state.organizerRevision, route:state.routeRevision, mode:state.organizerMode});
+  const sameOrganizerSession = session => session.key===state.organizerKey && session.revision===state.organizerRevision && session.route===state.routeRevision && session.mode===state.organizerMode;
 
   function notify(message) {
     const toast = document.getElementById('toast');
@@ -92,15 +96,21 @@
 
   function setNav(view) {
     state.view = view;
+    const organizerPage = isOrganizerPath();
+    document.body.dataset.page = organizerPage ? 'organizer' : 'attendee';
+    document.getElementById('organizer-navigation').hidden = !organizerPage;
+    document.getElementById('portal-label').textContent = organizerPage ? 'Organizer workspace' : 'Alumni connections';
+    document.getElementById('organizer-access-link').hidden = organizerPage;
+    document.title = organizerPage ? 'Organizer workspace · Leadership MetroWest' : view === 'privacy' ? 'Privacy & your choices · LMW pilot' : 'Keep the connection going · Leadership MetroWest';
     document.querySelectorAll('[data-nav]').forEach(link => {
-      const current = link.dataset.nav === view;
+      const current = link.dataset.nav === view || (view === 'organizer-gate' && link.dataset.nav === 'organizer');
       link.classList.toggle('active', current);
       if (current) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
     });
   }
 
   function intro() {
-    return `<aside class="intro"><p class="eyebrow" data-event-title>${esc(state.event.title)}</p><h1>Keep the <br>connection <br>going<span class="accent">.</span></h1><p class="lead">You’ve met the people. Let’s find a small, useful way to stay connected.</p><hr class="intro-rule"><h2 class="why-heading">A little time. A real connection.</h2><ul class="quiet-list"><li>Meet someone with a shared interest.</li><li>Find a way to help that fits your life.</li><li>Tell this community what you need.</li></ul><p class="intro-note">Curious is enough. Choosing an interest doesn’t commit you to a committee, a project, or a mailing list.</p></aside>`;
+    return `<aside class="intro"><p class="eyebrow" data-event-title>${esc(state.event.title)}</p><h1>Keep the <br>connection <br>going<span class="accent">.</span></h1><p class="lead">A useful introduction. A chance to lend a hand. A community you can turn to.</p><p class="mobile-intro-note">About a minute. No account needed.</p><hr class="intro-rule"><h2 class="why-heading">What would make LMW useful to you?</h2><ul class="quiet-list"><li>Meet someone with a shared interest.</li><li>Find a way to help that fits your life.</li><li>Tell this community what you need.</li></ul><p class="intro-note">An interest is a starting point. You choose what happens next.</p></aside>`;
   }
 
   function stepper() {
@@ -116,7 +126,7 @@
 
   function firstStep() {
     const d = state.data;
-    return `<p class="step-count">Step 1 of 3</p><h2 id="form-heading">A little about you.</h2><p class="form-help">About a minute. No account needed.<br>The four details below help organizers connect the dots.</p>
+    return `<p class="step-count">Step 1 of 3</p><h2 id="form-heading">A little about you.</h2><p class="form-help">Four details to start. Phone and employer are optional.</p>
       <div class="field-grid">
         <div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" autocomplete="given-name" maxlength="80" required value="${esc(d.first_name)}"></div>
         <div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" autocomplete="family-name" maxlength="80" required value="${esc(d.last_name)}"></div>
@@ -133,7 +143,7 @@
 
   function secondStep() {
     const d = state.data;
-    return `<p class="step-count">Step 2 of 3</p><h2 id="form-heading">Find your kind of involved.</h2><p class="form-help">A conversation counts. So does helping once.</p>
+    return `<p class="step-count">Step 2 of 3</p><h2 id="form-heading">What interests you?</h2><p class="form-help">A conversation counts. So does helping once.</p>
       <fieldset class="choice-group"><legend>Are you willing to be more engaged in LMW?</legend><div class="choice-stack">
       ${Object.entries(engagementLabels).map(([value,label]) => `<label class="choice"><input type="radio" name="engagement" value="${value}" required${checked(d.engagement===value)}><span class="choice-copy">${esc(label)}${value==='not_now'?'<small>It’s fine to simply stay connected.</small>':''}</span></label>`).join('')}</div></fieldset>
       <div id="interest-section" class="interest-section"${d.engagement==='not_now'?' hidden':''}>
@@ -153,7 +163,7 @@
         <label class="choice"><input type="radio" name="contact_permission" value="none" required${checked(d.contact_permission==='none')}><span class="choice-copy">No follow-up for now.<small>Save my preferences without contacting me.</small></span></label>
       </div></fieldset>
       ${d.phone ? `<div id="phone-permission-wrap"${d.contact_permission==='none'?' hidden':''}><label class="check-consent"><input type="checkbox" name="phone_permission"${checked(d.phone_permission)}><span>An organizer may also call me about what I shared. <span class="optional">optional</span></span></label><p class="hint">This does not give permission for text messages.</p></div>`:''}
-      <div class="privacy-brief"><p><strong>Your preferences are private.</strong> This independent pilot stores your answers with Supabase for the pilot organizer. Your contact details are not shown to other attendees.</p><p>Preferences expire 90 days after your last save. You’ll get a private link to update or delete them. <a href="#privacy">Read how this pilot handles your information.</a></p></div>
+      <div class="privacy-brief"><p><strong>Your preferences are private.</strong> This independent pilot stores your answers for the pilot organizer. Your contact details are not shown to other attendees.</p><p>Preferences expire 90 days after your last save. You’ll get a private link to update or delete them. <a href="/#privacy" data-app-route>Read how this pilot handles your information.</a></p></div>
       <label class="check-consent"><input type="checkbox" name="privacy_consent" required${checked(d.privacy_consent)}><span>I agree to the storage and use of these details as described above, with only the follow-up I selected.</span></label>
       <div class="form-actions"><button type="button" id="back" class="quiet">Back</button><button type="submit" id="save-preferences" class="primary">${state.editing?'Save changes':'Save my preferences'}</button></div>`;
   }
@@ -193,6 +203,7 @@
 
   function renderPreferences(moveFocus = false) {
     setNav('preferences');
+    document.body.dataset.step = String(state.step);
     main.innerHTML = `<div class="experience">${intro()}<section class="form-panel" aria-labelledby="form-heading">
       ${state.editing?'<div class="manage-header">You’re updating your saved preferences. Only you and the pilot organizer can see these details.</div>':''}
       <div id="event-closed" class="form-error" hidden>Responses for this event are closed. Existing private links still let you update or delete a response.</div>
@@ -232,30 +243,41 @@
   }
 
   async function savePreferences() {
+    const routeRevision = state.routeRevision;
+    const originalManage = state.manage;
+    const originalData = state.data;
+    const editing = state.editing;
     state.busy = true;
     const button = document.getElementById('save-preferences');
     button.disabled = true;
     button.textContent = 'Saving…';
     document.getElementById('form-error').hidden = true;
     try {
-      if (state.editing) {
-        await api('manage_update', {id:state.manage.id,manage_token:state.manage.token,data:state.data});
+      if (editing) {
+        await api('manage_update', {id:originalManage.id,manage_token:originalManage.token,data:originalData});
       } else {
         if (!state.submission) state.submission = {id:crypto.randomUUID(),token:randomToken()};
-        await api('submit', {event_slug:EVENT_SLUG,id:state.submission.id,manage_token:state.submission.token,website:state.website || '',data:state.data});
-        state.manage = {...state.submission};
+        const submission = state.submission;
+        await api('submit', {event_slug:EVENT_SLUG,id:submission.id,manage_token:submission.token,website:state.website || '',data:originalData});
+        if (state.manage!==originalManage || state.data!==originalData) return;
+        state.manage = {...submission};
       }
+      if (editing && (state.manage!==originalManage || state.data!==originalData)) return;
       state.editing = true;
-      renderSuccess();
+      if (routeRevision === state.routeRevision) renderSuccess();
+      else notify('Your preferences were saved. Return to the form to review them.');
     } catch (error) {
-      formError(error.message);
-      button.disabled = false;
-      button.textContent = state.editing ? 'Save changes' : 'Save my preferences';
+      if (routeRevision === state.routeRevision) {
+        formError(error.message);
+        button.disabled = false;
+        button.textContent = state.editing ? 'Save changes' : 'Save my preferences';
+      } else notify(error.message);
     } finally { state.busy = false; }
   }
 
   function renderSuccess() {
     setNav('preferences');
+    document.body.dataset.step = 'success';
     const contact = state.data.contact_permission === 'email';
     main.innerHTML = `<div class="experience">${intro()}<section class="form-panel success-content" aria-labelledby="success-title"><div class="success-icon" aria-hidden="true">✓</div><p class="eyebrow">Preferences saved</p><h2 id="success-title">Thanks for letting<br>us know${state.data.first_name?', '+esc(state.data.first_name):''}.</h2><p>${contact?'An organizer may follow up about what you shared. Your preferences do not sign you up for a newsletter.':'Your preferences are saved. You haven’t asked to be contacted.'}</p><p>No email or text has been sent.</p><div class="private-link-box"><label for="private-link">Keep your private update link</label><p class="hint">Treat this like a password. Anyone with it can view, update, or delete your response. It won’t be emailed to you.</p><input id="private-link" readonly value="${esc(managementUrl())}" aria-label="Your private management link"><button type="button" id="copy-private" class="navy small">Copy private link</button></div><div class="button-row"><button type="button" id="edit-preferences">Review or change my answers</button></div><p class="hint">Preferences expire 90 days after your last save.</p></section></div>`;
     document.getElementById('copy-private').addEventListener('click',() => copy(managementUrl(),document.getElementById('private-link')));
@@ -265,13 +287,16 @@
   }
 
   async function loadManagement(token, id) {
+    const revision = state.routeRevision;
     setNav('preferences');
     main.innerHTML = '<div class="page narrow-page"><p class="loading" role="status">Opening your saved preferences…</p></div>';
-    state.manage = {token,id};
-    history.replaceState(null,'','#manage');
+    history.replaceState(null,'','/#manage');
+    lastRoutedUrl = location.href;
     try {
       const result = await api('manage_get',{id,manage_token:token});
+      if (revision !== state.routeRevision) return;
       if (!result.response) throw new Error('This private link is no longer available. The response may have expired or been deleted.');
+      state.manage = {token,id};
       state.data = {...emptyData(),...recordData(result.response)};
       state.data.graduate_year = String(state.data.graduate_year || '');
       state.data.interests = Array.isArray(state.data.interests) ? state.data.interests : [];
@@ -279,21 +304,29 @@
       state.step = 0;
       renderPreferences();
     } catch (error) {
-      main.innerHTML = `<div class="page narrow-page"><div class="prose"><h1>We couldn’t open that response.</h1><p>${esc(error.message)}</p><p>Check that you copied the entire private link. Preferences expire 90 days after the last save.</p><a href="#">Return to the event form</a></div></div>`;
+      if (revision !== state.routeRevision) return;
+      main.innerHTML = `<div class="page narrow-page"><div class="prose"><h1>We couldn’t open that response.</h1><p>${esc(error.message)}</p><p>Check that you copied the entire private link. Preferences expire 90 days after the last save.</p><a href="/" data-app-route>Return to the event form</a></div></div>`;
     }
   }
 
   async function deleteMine() {
-    if (!state.manage || !confirm('Delete your saved response? It will be removed from the pilot’s active records and this private link will stop working.')) return;
+    if (state.busy || !state.manage || !confirm('Delete your saved response? It will be removed from the pilot’s active records and this private link will stop working.')) return;
+    state.busy=true;
+    const routeRevision=state.routeRevision;
+    const management=state.manage;
     const button = document.getElementById('delete-mine');
     button.disabled = true;
     try {
-      await api('manage_delete',{id:state.manage.id,manage_token:state.manage.token});
+      await api('manage_delete',{id:management.id,manage_token:management.token});
+      if (state.manage!==management) return;
       state.manage = null; state.submission = null; state.data = emptyData(); state.editing = false; state.step = 0;
-      history.replaceState(null,'','#');
+      if (routeRevision!==state.routeRevision) {notify('Your saved response was deleted.');return;}
+      history.replaceState(null,'','/');
+      lastRoutedUrl = location.href;
       main.innerHTML = '<div class="page narrow-page"><div class="prose"><p class="eyebrow">Response deleted</p><h1>Your choice is yours.</h1><p>Your response has been removed from the pilot’s active records. Your private link no longer works.</p><p>Hosting providers may keep limited operational logs or backups under their own retention policies.</p><a href="#" id="return-form">Return to the event form</a></div></div>';
       document.getElementById('return-form').addEventListener('click',event => { event.preventDefault(); renderPreferences(); });
-    } catch(error) { button.disabled = false; formError(error.message); }
+    } catch(error) { if(routeRevision===state.routeRevision){button.disabled=false;formError(error.message);}else notify(error.message); }
+    finally {state.busy=false;}
   }
 
   function syntheticRecords() {
@@ -326,10 +359,33 @@
       ${isDemo?'<div class="demo-banner"><strong>Demo · 30 made-up responses.</strong> Explore the organizer view. These are fictional people; changes here stay in this preview.</div>':'<div class="demo-banner"><strong>Private organizer view.</strong> These are real pilot responses. Email addresses are self-reported, not verified. Only follow up with the permission shown.</div>'}`;
   }
 
+  function renderOrganizerGate(message = '') {
+    setNav('organizer-gate');
+    main.innerHTML = `<div class="page organizer-gate"><section class="organizer-welcome"><p class="eyebrow">The organizer workspace</p><h1>Good connections<br>need a next step<span class="accent">.</span></h1><p class="lead">Make it easy to follow through on what people shared.</p><ul class="gate-feature-list"><li>Find alumni by interest, class year, or organization.</li><li>See who welcomes a conversation—and who doesn’t.</li><li>Keep track of introductions and useful next steps.</li></ul><p class="login-demo">Want to take a look first? <a href="/organizer/#demo" data-app-route>Explore 30 fictional responses</a>.</p></section><section class="organizer-login" aria-labelledby="login-title"><p class="eyebrow">Private access</p><h2 id="login-title">Organizer sign in</h2><p class="login-note">Use the access key supplied by the pilot owner to open real responses.</p><form id="login-form"><div id="login-error" class="form-error" role="alert"${message?'':' hidden'}>${esc(message)}</div><div class="field"><label for="organizer-key">Organizer access key</label><input id="organizer-key" name="key" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="128"></div><button type="submit" class="navy">Open private responses</button></form><p class="login-note">Your key is kept only for this tab’s current session. Sign out when you’re finished, especially on a shared device.</p></section></div>`;
+    document.getElementById('login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.target, button = form.querySelector('button');
+      const key = String(new FormData(form).get('key') || '').trim();
+      const box = document.getElementById('login-error');
+      box.hidden = true;
+      if (!/^[a-f0-9]{64}$/i.test(key)) {box.textContent='Please enter the full organizer access key.';box.hidden=false;return;}
+      state.organizerKey = key;
+      state.organizerRevision++;
+      const revision = state.organizerRevision;
+      button.disabled = true;button.textContent='Opening…';
+      try { await loadLiveRecords(true); }
+      catch(error) {
+        if (revision !== state.organizerRevision) return;
+        state.organizerKey='';state.organizerMode='locked';
+        box.textContent=error.message;box.hidden=false;button.disabled=false;button.textContent='Open private responses';
+      }
+    });
+  }
+
   function renderOrganizer() {
     setNav('organizer');
     if (!state.demoRecords) state.demoRecords = syntheticRecords();
-    main.innerHTML = `<div class="page organizer-page">${adminHeader()}<div id="organizer-error" class="form-error" role="alert" hidden></div><div id="organizer-stats"></div>
+    main.innerHTML = `<div class="page organizer-page organizer-shell">${adminHeader()}<div id="organizer-error" class="form-error" role="alert" hidden></div><div id="organizer-stats"></div>
       <div class="filters"><div class="field"><label for="search-responses">Find a person or organization</label><input type="search" id="search-responses" placeholder="Name, email, employer, or class year" value="${esc(state.filters.search)}"></div>
       <div class="field"><label for="filter-interest">Interest</label><select id="filter-interest"><option value="">All interests</option>${Object.entries(interestLabels).map(([value,label]) => `<option value="${value}"${selected(state.filters.interest,value)}>${esc(label)}</option>`).join('')}</select></div>
       <div class="field"><label for="filter-status">Progress</label><select id="filter-status"><option value="">All progress</option>${Object.entries({...statusLabels,no_followup:'No follow-up requested'}).map(([value,label]) => `<option value="${value}"${selected(state.filters.status,value)}>${esc(label)}</option>`).join('')}</select></div>
@@ -342,11 +398,17 @@
     const bindings = {'search-responses':['search','input'],'filter-interest':['interest','change'],'filter-status':['status','change'],'filter-permission':['permission','change']};
     for (const [id,[key,event]] of Object.entries(bindings)) document.getElementById(id).addEventListener(event, e => { state.filters[key] = e.target.value; renderRecords(); });
     document.getElementById('open-login')?.addEventListener('click', openLogin);
-    document.getElementById('refresh-records')?.addEventListener('click', loadLiveRecords);
-    document.getElementById('sign-out')?.addEventListener('click', () => { state.organizerKey=''; state.organizerMode='demo'; state.records=[]; state.filters={search:'',interest:'',status:'',permission:''}; renderOrganizer(); notify('Signed out. Showing fictional demo responses.'); });
+    document.getElementById('refresh-records')?.addEventListener('click', () => loadLiveRecords());
+    document.getElementById('sign-out')?.addEventListener('click', () => {
+      state.organizerRevision++;
+      state.organizerKey='';state.organizerMode='locked';state.records=[];
+      state.filters={search:'',interest:'',status:'',permission:''};
+      navigate('/organizer/', true);notify('Signed out. Private responses are closed.');
+    });
     document.getElementById('export-responses').addEventListener('click',exportRecords);
     document.getElementById('event-settings-form')?.addEventListener('submit',async event => {
       event.preventDefault();
+      const session=organizerSession();
       const form = event.target, button = form.querySelector('button'); button.disabled=true;
       try {
         const values = new FormData(form);
@@ -354,8 +416,9 @@
         if (!title) throw new Error('Add an event name.');
         const is_open = values.get('is_open')==='on';
         await api('event_update',{event_slug:EVENT_SLUG,title,is_open},true);
+        if(!sameOrganizerSession(session)) return;
         state.event = {...state.event,title,is_open}; notify('Event settings saved.');
-      } catch(error) { organizerError(error.message); } finally {button.disabled=false;}
+      } catch(error) { if(sameOrganizerSession(session)) organizerError(error.message); } finally {button.disabled=false;}
     });
   }
 
@@ -365,6 +428,7 @@
   }
 
   function renderRecords() {
+    if(state.view!=='organizer' || !document.getElementById('response-list')) return;
     const all = currentRecords().map(recordData);
     const rows = filteredRecords().map(recordData);
     document.getElementById('organizer-stats').innerHTML = `<div class="stat-strip"><div class="stat"><strong>${all.length}</strong><span>${state.organizerMode==='demo'?'Example responses':'Responses saved'}</span></div><div class="stat"><strong>${all.filter(r=>r.engagement==='yes').length}</strong><span>Ready to get involved</span></div><div class="stat"><strong>${all.filter(r=>r.engagement==='maybe').length}</strong><span>Curious to learn more</span></div><div class="stat"><strong>${all.filter(r=>r.contact_permission==='email').length}</strong><span>Welcome a personal email</span></div></div>`;
@@ -380,6 +444,7 @@
   }
 
   function openRecord(id) {
+    const session=organizerSession();
     const raw = currentRecords().find(row => row.id===id);
     if (!raw) return;
     const row = recordData(raw);
@@ -397,51 +462,53 @@
         if (status === 'planned' && !allowed) throw new Error('This person has not requested follow-up. Please leave them uncontacted.');
         if (state.organizerMode==='live') {
           const result = await api('admin_update',{id,status,note},true);
+          if(!sameOrganizerSession(session)) return;
           if (!result.response) throw new Error('The change was sent, but its saved state could not be confirmed. Refresh responses before continuing.');
           Object.assign(raw,result.response);
         } else Object.assign(raw,{status,note});
         dialog.close();renderRecords();notify(state.organizerMode==='demo'?'Demo progress updated.':'Progress saved.');
-      } catch(error) {const box=document.getElementById('detail-error');box.textContent=error.message;box.hidden=false;button.disabled=false;}
+      } catch(error) {if(!sameOrganizerSession(session))return;const box=document.getElementById('detail-error');if(box){box.textContent=error.message;box.hidden=false;}button.disabled=false;}
     });
     dialog.querySelector('#delete-response').addEventListener('click',async event => {
       if (!confirm(`Delete ${row.first_name}’s ${state.organizerMode==='demo'?'example ':''}response? This cannot be undone.`)) return;
       event.target.disabled=true;
       try {
         if (state.organizerMode==='live') await api('admin_delete',{id},true);
+        if(!sameOrganizerSession(session)) return;
         if (state.organizerMode==='demo') state.demoRecords=state.demoRecords.filter(r=>r.id!==id); else state.records=state.records.filter(r=>r.id!==id);
         dialog.close();renderRecords();notify('Response deleted.');
-      } catch(error) {const box=document.getElementById('detail-error');box.textContent=error.message;box.hidden=false;event.target.disabled=false;}
+      } catch(error) {if(!sameOrganizerSession(session))return;const box=document.getElementById('detail-error');if(box){box.textContent=error.message;box.hidden=false;}event.target.disabled=false;}
     });
     dialog.showModal();
   }
 
-  function openLogin() {
-    const dialog = document.getElementById('login-dialog');
-    dialog.innerHTML = '<div class="dialog-top"><div><p class="eyebrow">Private access</p><h2 id="login-title">Organizer sign in</h2></div><button class="close-dialog" aria-label="Close sign in">×</button></div><p class="detail-meta">Use the private organizer key supplied by the pilot owner. It stays only in memory for this tab.</p><form id="login-form"><div id="login-error" class="form-error" role="alert" hidden></div><div class="field"><label for="organizer-key">Organizer access key</label><input id="organizer-key" name="key" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false"></div><button type="submit" class="navy">Open private responses</button></form><p class="dialog-note">The demo is open to everyone. Real contact details require this key.</p>';
-    dialog.querySelector('.close-dialog').addEventListener('click',()=>dialog.close());
-    dialog.querySelector('#login-form').addEventListener('submit',async event => {
-      event.preventDefault();
-      const button=event.target.querySelector('button');button.disabled=true;button.textContent='Opening…';
-      state.organizerKey=String(new FormData(event.target).get('key')||'').trim();
-      try { await loadLiveRecords(true);dialog.close(); }
-      catch(error) {state.organizerKey='';const box=document.getElementById('login-error');box.textContent=error.message;box.hidden=false;button.disabled=false;button.textContent='Open private responses';}
-    });
-    dialog.showModal();
-  }
+  function openLogin() { navigate('/organizer/'); }
 
   async function loadLiveRecords(throwErrors = false) {
+    const key = state.organizerKey;
+    const revision = state.organizerRevision;
+    const routeRevision = state.routeRevision;
+    if (!key) return false;
     const button=document.getElementById('refresh-records');
     if(button){button.disabled=true;button.textContent='Refreshing…';}
     try {
       const body=await api('admin_list',{event_slug:EVENT_SLUG},true);
+      if (key !== state.organizerKey || revision !== state.organizerRevision || routeRevision !== state.routeRevision) return false;
       state.records=Array.isArray(body.responses)?body.responses:[];
       if(body.event) state.event={...state.event,...body.event};
       state.organizerMode='live';
-      renderOrganizer();
+      if (isOrganizerPath() && !['#qr','#demo'].includes(location.hash)) {
+        history.replaceState(null,'','/organizer/#responses');lastRoutedUrl=location.href;
+        renderOrganizer();
+        if (throwErrors) focusPageHeading();
+      }
+      return true;
     } catch(error) {
+      if (key !== state.organizerKey || revision !== state.organizerRevision || routeRevision !== state.routeRevision) return false;
       if(throwErrors===true)throw error;
       organizerError(error.message);
       if(button){button.disabled=false;button.textContent='Refresh responses';}
+      return false;
     }
   }
 
@@ -452,6 +519,7 @@
   }
 
   async function exportRecords() {
+    const session=organizerSession();
     const button=document.getElementById('export-responses');
     if(button?.disabled) return;
     const isDemo=state.organizerMode==='demo';
@@ -462,7 +530,7 @@
       let permissionsCheckedAt='Not applicable — fictional example';
       if(!isDemo) {
         const latest=await api('admin_list',{event_slug:EVENT_SLUG},true);
-        if(state.organizerMode!=='live'||state.organizerKey!==exportOrganizerKey) throw new Error('The organizer session changed while permissions were being checked. Sign in again before exporting.');
+        if(!sameOrganizerSession(session) || state.organizerMode!=='live'||state.organizerKey!==exportOrganizerKey) return;
         if(!Array.isArray(latest.responses)) throw new Error('Current permissions could not be verified. Nothing was exported. Please refresh and try again.');
         state.records=latest.responses;
         if(latest.event) state.event={...state.event,...latest.event};
@@ -477,7 +545,7 @@
       const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=`lmw-${isDemo?'demo-':''}permitted-outreach-${new Date().toISOString().slice(0,10)}.csv`;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
       notify(`${rows.length} ${isDemo?'fictional ':''}permitted contacts exported.`);
     } catch(error) {
-      organizerError(`Nothing was exported. ${error.message}`);
+      if(sameOrganizerSession(session)) organizerError(`Nothing was exported. ${error.message}`);
     } finally {
       if(button){button.disabled=false;button.textContent=originalLabel;}
     }
@@ -492,33 +560,83 @@
 
   function renderPrivacy() {
     setNav('privacy');
-    main.innerHTML=`<div class="page narrow-page"><div class="page-header"><div><p class="eyebrow">Privacy &amp; your choices</p><h1>Your details, with a purpose.</h1><p class="page-subtitle">What this pilot collects, who can see it, and how you stay in control.</p></div></div><div class="prose"><h2>Who runs this pilot</h2><p>This is an independent DailyFlyer proof of concept operated by Holtsnider Tech. It is not the official Leadership MetroWest website and does not imply endorsement by LMW. The pilot owner controls organizer access.</p><h2>What you share</h2><p>The form asks for your first name, last name, LMW graduate year, and email. Phone and employer are optional. You can also share interests, availability, a brief request for help, and your follow-up choices. Please do not include sensitive information in free-text answers.</p><h2>What it is used for</h2><p>The pilot organizer can use your preferences to understand interests and plan useful connections or opportunities. Your email address is self-reported and is not verified. An email address alone is not permission to contact you.</p><p>If you choose a personal email, an organizer may follow up about what you shared. A phone call requires the separate call-permission checkbox. This pilot never grants text-message permission. “No follow-up” means your response is for planning only. Nothing here automatically signs you up for newsletters, marketing, or a public directory.</p><h2>Who can see it</h2><p>Your answers are stored with Supabase and restricted to the pilot organizer and people with authorized organizer access. Other attendees cannot browse your information. The public organizer demo contains fictional examples only. An authorized organizer can export permitted contacts for manual follow-up; an exported copy is outside the site’s direct control.</p><h2>Your private update link</h2><p>After saving, you receive a private link that can view, change, or delete your response. It is not emailed to you. Keep it somewhere safe and treat it like a password: anyone with that link has access to your response. The site does not keep your answers in your browser’s local storage.</p><h2>Retention and deletion</h2><p>Preferences expire 90 days after your last save. You can delete your response sooner through your private link. Deletion removes it from the pilot’s active records; hosting providers may retain limited operational logs or backups under their own policies. For an exported copy, a lost private link, or another privacy request, contact the pilot owner.</p><h2>Technical information</h2><p>This site does not use advertising, analytics, or tracking pixels. Supabase and the hosting provider process requests to operate the service and may keep operational logs. Temporary abuse controls may be used to protect the response form.</p><h2>Contact</h2><p>For questions, access requests, or deletion help: <a href="mailto:chris@holtsnidertech.com">chris@holtsnidertech.com</a>.</p><p><a href="#">Return to your preferences</a></p></div></div>`;
+    main.innerHTML=`<div class="page narrow-page"><div class="page-header"><div><p class="eyebrow">Privacy &amp; your choices</p><h1>Your details, with a purpose.</h1><p class="page-subtitle">What this pilot collects, who can see it, and how you stay in control.</p></div></div><div class="prose"><h2>Who runs this pilot</h2><p>This is an independent DailyFlyer proof of concept operated by Holtsnider Tech. It is not the official Leadership MetroWest website and does not imply endorsement by LMW. The pilot owner controls organizer access.</p><h2>What you share</h2><p>The form asks for your first name, last name, LMW graduate year, and email. Phone and employer are optional. You can also share interests, availability, a brief request for help, and your follow-up choices. Please do not include sensitive information in free-text answers.</p><h2>What it is used for</h2><p>The pilot organizer can use your preferences to understand interests and plan useful connections or opportunities. Your email address is self-reported and is not verified. An email address alone is not permission to contact you.</p><p>If you choose a personal email, an organizer may follow up about what you shared. A phone call requires the separate call-permission checkbox. This pilot never grants text-message permission. “No follow-up” means your response is for planning only. Nothing here automatically signs you up for newsletters, marketing, or a public directory.</p><h2>Who can see it</h2><p>Your answers are stored with Supabase and restricted to the pilot organizer and people with authorized organizer access. Other attendees cannot browse your information. The public organizer demo contains fictional examples only. An authorized organizer can export permitted contacts for manual follow-up; an exported copy is outside the site’s direct control.</p><h2>Your private update link</h2><p>After saving, you receive a private link that can view, change, or delete your response. It is not emailed to you. Keep it somewhere safe and treat it like a password: anyone with that link has access to your response. The site does not keep your answers or access keys in your browser’s local storage. It remembers only your display preference (System, Light, Night, or High contrast) on this device.</p><h2>Retention and deletion</h2><p>Preferences expire 90 days after your last save. You can delete your response sooner through your private link. Deletion removes it from the pilot’s active records; hosting providers may retain limited operational logs or backups under their own policies. For an exported copy, a lost private link, or another privacy request, contact the pilot owner.</p><h2>Technical information</h2><p>This site does not use advertising, analytics, or tracking pixels. Supabase and the hosting provider process requests to operate the service and may keep operational logs. Temporary abuse controls may be used to protect the response form.</p><h2>Contact</h2><p>For questions, access requests, or deletion help: <a href="mailto:chris@holtsnidertech.com">chris@holtsnidertech.com</a>.</p><p><a href="/" data-app-route>Return to your preferences</a></p></div></div>`;
   }
 
-  async function route() {
+  function focusPageHeading() {
+    const heading = main.querySelector('#form-heading, #success-title') || main.querySelector('h1, h2') || main;
+    heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});
+  }
+
+  function navigate(url, replace = false) {
     if (document.getElementById('preferences-form')) captureForm();
-    const hash=location.hash.slice(1);
+    history[replace?'replaceState':'pushState'](null,'',url);
+    return route(true);
+  }
+
+  async function route(force = false) {
+    if (force !== true && location.href === lastRoutedUrl) return;
+    const previousUrl = lastRoutedUrl;
+    if (document.getElementById('preferences-form')) captureForm();
+    state.routeRevision++;
+    const revision = state.routeRevision;
+    document.querySelectorAll('dialog').forEach(dialog=>{if(dialog.open)dialog.close();dialog.innerHTML='';});
+    document.querySelector('.appearance-control')?.removeAttribute('open');
+    let hash=location.hash.slice(1);
+    if (hash==='organizer') {
+      history.replaceState(null,'','/organizer/#demo');hash='demo';
+    } else if (hash==='qr' && !isOrganizerPath()) {
+      history.replaceState(null,'','/organizer/#qr');
+    } else if (hash==='privacy' && isOrganizerPath()) {
+      history.replaceState(null,'','/#privacy');
+    } else if (isOrganizerPath() && location.pathname==='/organizer') {
+      history.replaceState(null,'','/organizer/'+location.search+location.hash);
+    }
+    lastRoutedUrl=location.href;
     if(hash.startsWith('organizer=')) {
       const key=hash.slice('organizer='.length);
-      history.replaceState(null,'','#organizer');
+      history.replaceState(null,'','/organizer/#responses');lastRoutedUrl=location.href;
+      state.organizerRevision++;
       state.organizerKey=/^[a-f0-9]{64}$/i.test(key)?key:'';
-      renderOrganizer();
-      if(state.organizerKey){try{await loadLiveRecords(true);}catch(error){state.organizerKey='';organizerError(error.message);}}
-      else organizerError('That organizer link is not valid. Use your organizer access key to sign in.');
-    } else if(hash==='organizer') renderOrganizer();
-    else if(hash==='qr') renderQr();
-    else if(hash==='privacy') renderPrivacy();
-    else if(hash.startsWith('manage=')) {
+      state.organizerMode='locked';state.records=[];
+      renderOrganizerGate();
+      if(state.organizerKey){
+        const revision=state.organizerRevision;
+        try{await loadLiveRecords(true);}catch(error){
+          if(revision===state.organizerRevision){state.organizerKey='';renderOrganizerGate(error.message);}
+        }
+      } else renderOrganizerGate('That organizer link is not valid. Use your organizer access key to sign in.');
+    } else if(hash.startsWith('manage=')) {
       const params=new URLSearchParams(hash);
       const token=params.get('manage')||'',id=params.get('id')||'';
+      history.replaceState(null,'','/#manage');lastRoutedUrl=location.href;
       if(/^[a-f0-9]{64}$/i.test(token)&&/^[a-f0-9-]{36}$/i.test(id)) await loadManagement(token,id);
       else {renderPreferences();formError('That private link is incomplete. Please copy the entire link you saved.');}
-    } else if(hash==='manage'&&state.manage) {state.editing=true;renderPreferences();}
+    } else if(isOrganizerPath()) {
+      if(hash==='qr') renderQr();
+      else if(hash==='demo') {state.organizerMode='demo';renderOrganizer();}
+      else if(state.organizerKey) {renderOrganizerGate();await loadLiveRecords();}
+      else {state.organizerMode='locked';renderOrganizerGate();}
+    } else if(hash==='privacy') renderPrivacy();
+    else if(hash==='manage'&&state.manage) {state.editing=true;renderPreferences();}
     else renderPreferences();
-    window.scrollTo({top:0,behavior:'auto'});
+    if(revision===state.routeRevision){
+      window.scrollTo({top:0,behavior:'auto'});
+      if(previousUrl && !document.getElementById('form-error')?.matches(':not([hidden])')) focusPageHeading();
+    }
   }
 
-  window.addEventListener('hashchange',route);
+  document.addEventListener('click', event => {
+    const link=event.target.closest('a');
+    if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if(link.classList.contains('skip-link')) {event.preventDefault();main.focus();main.scrollIntoView({block:'start'});return;}
+    if(!link.hasAttribute('data-app-route') || link.target || link.hasAttribute('download')) return;
+    const url=new URL(link.href,location.href);
+    if(url.origin!==location.origin) return;
+    event.preventDefault();navigate(url.pathname+url.search+url.hash);
+  });
+  window.addEventListener('hashchange',()=>route());
+  window.addEventListener('popstate',()=>route());
   // Opening another screen never writes form drafts or access keys into persistent browser storage.
   route();
   loadEvent();
