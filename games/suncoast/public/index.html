@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#142b2d"><meta name="description" content="SUNCOAST. Three islands. A city for sale. Your name on the receipt. An original Daily Flyer open-world crime story."><title>SUNCOAST · A Daily Flyer game</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#142b2d"><meta name="description" content="SUNCOAST. Three islands. A city for sale. Your name on the receipt. An original Daily Flyer open-world crime story."><title>SUNCOAST · A Daily Flyer game</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css?v=0.1.1"></head>
 <body>
 <svg class="icon-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
 <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4M10 19h4"/></symbol>
@@ -21,13 +21,13 @@
  <div class="title-actions"><button id="continue" class="button primary" hidden>Continue your story</button><button id="start" class="button primary">Start your story</button></div>
  <div class="title-links"><button data-panel="help">How to play</button><button data-panel="settings">Options</button><span>Single player · Saves on this device</span></div><p id="menu-status" role="status"></p></div>
  <div class="city-stamp"><span>25° N / 80° W</span><strong>BAHÍA<br>LUCERO</strong><span>THREE ISLANDS.<br>NO CLEAN HANDS REQUIRED.</span></div>
- <div class="title-bottom"><span>A CITY FOR SALE. YOUR NAME ON THE RECEIPT.</span><span id="version">FIRST CHAPTERS · 0.1.0</span></div>
+ <div class="title-bottom"><span>A CITY FOR SALE. YOUR NAME ON THE RECEIPT.</span><span id="version">FIRST CHAPTERS · 0.1.1</span></div>
 </section>
 <section id="hud" hidden aria-label="Game interface">
  <div class="vitals"><div class="name-line"><strong>LUCÍA REYES</strong><span id="cash">$280</span></div><div class="bars"><div class="bar health" title="Health"><span id="health-fill"></span></div><span id="health-value">100</span></div><div class="equipment"><span id="vehicle-label">On foot</span><span id="weapon-label">Unarmed</span></div></div>
  <div class="place"><span id="district">SANTA ELENA</span><small id="clock">17:35</small></div>
  <div class="wanted"><div id="stars" aria-label="No police attention">★★★★★★</div><strong id="wanted-state">NO POLICE ATTENTION</strong><p id="wanted-reason"></p><div class="search-meter" hidden><span></span></div></div>
- <div class="objective"><div class="objective-head"><span class="mission-dot"></span><strong id="objective-title"></strong><span id="objective-progress"></span></div><p id="objective-text"></p><small id="objective-hint"></small></div>
+ <div class="objective"><div class="objective-head"><span class="mission-dot"></span><strong id="objective-title"></strong><span id="objective-progress"></span><button id="objective-toggle" type="button" aria-expanded="false" aria-controls="objective-hint" aria-label="Show current job guidance">Help</button></div><p id="objective-text"></p><small id="objective-hint"></small></div>
  <div id="notification" role="status" hidden></div>
  <nav class="hud-nav" aria-label="Game menus"><button data-panel="phone" aria-label="Open phone and story jobs" title="Phone · Tab"><svg><use href="#i-phone"/></svg><span>Phone</span></button><button data-panel="map" aria-label="Open city map" title="City map · M"><svg><use href="#i-map"/></svg><span>Map</span></button><button data-panel="pause" aria-label="Pause game" title="Pause · Escape"><svg><use href="#i-menu"/></svg><span>Pause</span></button></nav>
  <button id="mini-wrap" aria-label="Open city map"><canvas id="minimap" width="220" height="150"></canvas><div><span id="minimap-label">SANTA ELENA</span><span>M</span></div></button>
@@ -41,5 +41,5 @@
 <div id="dialogue-overlay" hidden><section class="dialogue" role="dialog" aria-modal="true" aria-labelledby="dialogue-title"><div class="speaker-mark" id="speaker-mark">IR</div><div class="dialogue-body"><p id="dialogue-speaker"></p><h2 id="dialogue-title"></h2><p id="dialogue-text"></p><div id="dialogue-choices"></div></div></section></div>
 <div id="outcome-overlay" hidden><section class="outcome" role="dialog" aria-modal="true"><span id="outcome-label">STILL BREATHING</span><h2 id="outcome-title"></h2><p id="outcome-text"></p><div><button id="recover" class="button primary">Get back out there</button><button id="retry" class="button secondary">Restart this job</button></div><small>Completed jobs, relationships, and open islands stay with you.</small></section></div>
 <input type="file" id="import-save" accept="application/json,.json" hidden>
-<script type="module" src="app.mjs"></script>
+<script type="module" src="app.mjs?v=0.1.1"></script>
 </body></html>

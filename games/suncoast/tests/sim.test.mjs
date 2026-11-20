@@ -57,6 +57,8 @@ test('Every authored mission and choice is reachable; unlocks occur sequentially
 test('Checkpoint restoration retains money, interior, decisions and a recoverable arrest state',()=>{
  const g=Sim.createGame();g.player.interior='home';g.player.x=320;g.player.y=240;g.player.cash=619;g.progress.choices.example='community';g.progress.rep.community=3;
  const restored=Sim.restoreGame(Sim.serializeGame(g));assert.equal(restored.player.cash,619);assert.equal(restored.player.interior,'home');assert.equal(restored.progress.choices.example,'community');assert.equal(restored.progress.rep.community,3);
+ const driving=emptyGame(),active=driving.vehicles.find(v=>v.id==='lucia-car');active.speed=180;driving.player.vehicleId=active.id;driving.player.lastVehicleId=active.id;Object.assign(driving.player,{x:active.x,y:active.y});driving.player.cash=777;driving.progress.choices.saved_decision='community';const parked=Sim.restoreGame(Sim.serializeGame(driving)),parkedCar=Sim.getVehicle(parked);assert.equal(parkedCar.speed,0,'Continuing a save waits for the first drive input');assert.deepEqual({id:parkedCar.id,x:parkedCar.x,y:parkedCar.y},{id:active.id,x:active.x,y:active.y});assert.equal(parked.player.cash,777);assert.equal(parked.progress.choices.saved_decision,'community');assert.equal(active.speed,180,'Saving does not interrupt a running vehicle');
+
  Sim.addCrime(restored,6,'Test');Sim.surrender(restored);const again=Sim.restoreGame(Sim.serializeGame(restored));assert.equal(again.phase,'busted');assert.equal(Sim.recover(again),true);
  const sea=emptyGame(),vessel=sea.vehicles.find(v=>v.type==='boat'&&v.owned);Object.assign(vessel,{x:1990,y:1830});Object.assign(sea.player,{x:vessel.x,y:vessel.y,vehicleId:vessel.id});Sim.startMission(sea,MISSIONS[0].id);Sim.addCrime(sea,6,'Test');Sim.surrender(sea);Sim.recover(sea,'retry');assert.ok(isLand(sea.player.x,sea.player.y),'Impounded offshore checkpoint returns to safe land');assert.ok(islandAt(sea.player.x,sea.player.y)<=sea.progress.unlocked,'Recovery never deposits player on a restricted island');
  assert.throws(()=>Sim.restoreGame({}),/incomplete/);const invalid=Sim.serializeGame(g);invalid.player.x='oops';assert.throws(()=>Sim.restoreGame(invalid),/invalid/);
@@ -88,4 +90,14 @@ test('Business services require proximity and an impounded vehicle stays inacces
  const h=emptyGame(),compact=h.vehicles.find(v=>v.type==='compact'&&v.owned),truck=h.vehicles.find(v=>v.id==='tomi-truck');Object.assign(compact,{x:810,y:1780,hp:20});truck.hp=80;h.player.cash=1000;Object.assign(h.player,{x:845,y:1780});assert.equal(Sim.interact(h),true);assert.equal(h.player.vehicleId,compact.id);Sim.interact(h);assert.equal(h.player.lastVehicleId,compact.id);h.player.interior='garage';assert.equal(Sim.service(h,'repair'),true);assert.equal(compact.hp,105);assert.equal(truck.hp,80,'Repair must not silently select the nearer truck');const truckColor=truck.color;assert.equal(Sim.service(h,'paint'),true);assert.equal(truck.color,truckColor,'Respray targets the last driven car');
  h.player.interior=null;h.player.vehicleId=truck.id;Sim.addCrime(h,6,'Test truck impound');Sim.surrender(h);Sim.recover(h);h.player.interior='precinct';const compactPosition={x:compact.x,y:compact.y};assert.equal(Sim.service(h,'tow'),true);assert.equal(truck.impounded,false,'The arrested truck must be recovered instead of the first compact');assert.deepEqual({x:compact.x,y:compact.y},compactPosition);assert.equal(h.player.lastVehicleId,truck.id);
 
+});
+
+
+test('Touch Brake / Reverse stops forward motion before backing out of a wall, with or without the stick',()=>{
+ for(const touch of [false,true]){
+  const g=emptyGame(),v=g.vehicles.find(v=>v.id==='lucia-car');g.vehicles=[v];g.npcs=[];Object.assign(v,{x:740,y:1112,angle:-Math.PI/2,speed:0,hp:105});Object.assign(g.player,{x:v.x,y:v.y,vehicleId:v.id,invulnerable:99});
+  tick(g,1,{reverse:true,touch,mx:0,my:touch?1:0});assert.ok(v.y>1155,'Held reverse backs clear of the wall');assert.ok(v.speed<0);assert.equal(v.hp,105,'Reversing does not push the nose into the wall');
+ }
+ const g=emptyGame(),v=g.vehicles.find(v=>v.id==='lucia-car');g.vehicles=[v];g.npcs=[];Object.assign(v,{x:1020,y:1900,angle:0,speed:180,hp:105});Object.assign(g.player,{x:v.x,y:v.y,vehicleId:v.id,invulnerable:99});
+ Sim.step(g,{reverse:true},.05);assert.ok(v.speed>0&&v.speed<180,'The first reverse input brakes, without instantly changing direction');tick(g,1,{reverse:true});assert.ok(v.speed<0,'Keeping it held engages reverse after stopping');assert.equal(v.hp,105);
 });

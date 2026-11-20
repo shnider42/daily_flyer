@@ -2,7 +2,7 @@
 import { WORLD, LOCATIONS, VEHICLE_TYPES, islandAt, isLand, isSolid, nearestRoad, lineOfSight } from './world.mjs';
 import { MISSIONS, CONTACTS } from './content.mjs';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 const TAU = Math.PI * 2;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 const num = (v,d=0) => Number.isFinite(v) ? v : d;
@@ -270,7 +270,7 @@ export function recover(g,choice='continue'){
  const kind=g.phase,p=g.player,oldVehicle=getVehicle(g);if(oldVehicle){oldVehicle.speed=0;oldVehicle.driver=false;}
  p.vehicleId=null;p.interior=null;p.hp=100;p.armor=0;p.stamina=100;p.invulnerable=6;g.phase='playing';g.outcome=null;g.bullets=[];g.effects=[];clearWanted(g);g._water=0;
  const cp=g._checkpoint;
- if(choice==='retry'&&cp?.mission){g.mission={id:cp.mission.id,step:cp.mission.step,elapsed:0};p.interior=cp.interior;const vessel=g.vehicles.find(v=>v.id===cp.vehicleId&&v.type==='boat'&&v.hp>0&&!v.impounded&&!isLand(v.x,v.y));if(p.interior){p.x=cp.x;p.y=cp.y;}else if(vessel){p.x=vessel.x;p.y=vessel.y;p.vehicleId=vessel.id;p.lastVehicleId=vessel.id;vessel.driver=true;}else Object.assign(p,safePoint(cp.x,cp.y,10,true,g.progress.unlocked));enterStep(g);note(g,'Back at the job checkpoint. Your hospital bill or fine still counts.');}
+ if(choice==='retry'&&cp?.mission){g.mission={id:cp.mission.id,step:cp.mission.step,elapsed:0};p.interior=cp.interior;const vessel=g.vehicles.find(v=>v.id===cp.vehicleId&&v.type==='boat'&&v.hp>0&&!v.impounded&&!isLand(v.x,v.y));if(p.interior){p.x=cp.x;p.y=cp.y;}else if(vessel){p.x=vessel.x;p.y=vessel.y;p.vehicleId=vessel.id;p.lastVehicleId=vessel.id;vessel.driver=true;vessel.speed=0;}else Object.assign(p,safePoint(cp.x,cp.y,10,true,g.progress.unlocked));enterStep(g);note(g,'Back at the job checkpoint. Your hospital bill or fine still counts.');}
  else{Object.assign(p,outside(kind==='busted'?'precinct':'clinic'));if(g.mission){g.mission.step=Math.max(0,g.mission.step);g.mission.elapsed=0;const s=missionStep(g);if(s?.type==='escape')advance(g);else if(s?.type==='choice')storyDialogue(g,s);}note(g,kind==='busted'?'Released. Tomi can recover a car for you. Your job can still be finished.':'You survived. Your current job is still available. Get your bearings before heading back.');}
  // Never strand an injured or released player without a way to move.
  const own=g.vehicles.find(v=>v.owned&&v.type!=='boat');if(own&&own.hp<=0){const q=roadPoint(location(kind==='busted'?'precinct':'clinic'));Object.assign(own,q,{hp:typeOf(own).health||100,speed:0,impounded:false});}
@@ -284,8 +284,21 @@ function tickVehicles(g,dt,input){
    p.lastVehicleId=car.id;
    let throttle=clamp(num(input.throttle,-num(input.my)), -1,1),steer=clamp(num(input.steer,input.mx||0),-1,1);
    if(input.touch){const mag=Math.hypot(input.mx||0,input.my||0);if(mag>.15){const target=Math.atan2(input.my,input.mx);const d=wrap(target-car.angle);steer=clamp(d*1.7,-1,1);throttle=mag*(Math.abs(d)>1.6?.28:1);}else throttle=0;}
+   // The touch Brake / Reverse control brakes first, then backs up while held.
+   // With a stick, reverse travel follows the indicated world direction; without
+   // a stick it backs straight out, so a wall can never require a forward U-turn.
+   if(input.reverse){
+    steer=0;throttle=-1;
+    if(car.speed<=0&&input.touch&&Math.hypot(input.mx||0,input.my||0)>.15){
+     const heading=Math.atan2(input.my,input.mx)+Math.PI;
+     steer=-clamp(wrap(heading-car.angle)*1.7,-1,1);
+    }
+   }
    const accel=t.accel||95,max=t.maxSpeed||240,turn=t.turn||2.5;
-   if(input.brake)car.speed*=Math.exp(-dt*5.5);else if(throttle)car.speed+=throttle*accel*dt;else car.speed*=Math.exp(-dt*(t.water?.32:.8));
+   if(input.brake)car.speed*=Math.exp(-dt*5.5);
+   else if(input.reverse)car.speed=car.speed>0?Math.max(0,car.speed-accel*2*dt):car.speed-accel*.7*dt;
+   else if(throttle)car.speed+=throttle*accel*dt;
+   else car.speed*=Math.exp(-dt*(t.water?.32:.8));
    car.speed=clamp(car.speed,-max*.32,max);car.angle+=steer*turn*dt*clamp(Math.abs(car.speed)/65,.08,1)*(car.speed<0?-1:1);
    const dx=Math.cos(car.angle)*car.speed*dt,dy=Math.sin(car.angle)*car.speed*dt;
    let hit=false;
@@ -434,6 +447,7 @@ export function restoreGame(data){
  for(const key of ['vehicles','npcs','police','bullets','effects','notifications'])if(!Array.isArray(g[key]))g[key]=base[key];
  g.vehicles=g.vehicles.filter(v=>VEHICLE_TYPES[v.type]&&Number.isFinite(v.x)&&Number.isFinite(v.y));if(!g.vehicles.length)g.vehicles=base.vehicles;
  if(g.player.vehicleId&&!g.vehicles.some(v=>v.id===g.player.vehicleId))g.player.vehicleId=null;
+ const occupied=getVehicle(g);if(occupied)occupied.speed=0; // Resume parked, before the first input arrives.
  g.wanted={...base.wanted,...g.wanted};g.wanted.stars=clamp(Math.floor(num(g.wanted.stars)),0,6);g.wanted.heat=clamp(num(g.wanted.heat),0,240);
  g.bullets=[];g.effects=[];g.time=num(g.time);g._rng=num(g._rng,372984);g._id=num(g._id,1000);
  if(g.mission){const m=missionData(g);if(!m||!Number.isInteger(g.mission.step)||!m.steps[g.mission.step]||g.progress.completed.includes(m.id)){g.mission=null;g.dialogue=null;}}

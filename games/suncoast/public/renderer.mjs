@@ -2,7 +2,21 @@
 import { WORLD, LOCATIONS, VEHICLE_TYPES, isLand, nearestRoad } from './world.mjs';
 
 const TAU = Math.PI * 2;
-const TILE = 512;
+const TILE = 256;
+const WORLD_PIXELS = 4_000_000;
+const MAP_PIXELS = 2_000_000;
+const TERRAIN_BYTES = 48 * 1024 * 1024;
+// A canvas's backing dimensions are device pixels, never a fallback CSS size.
+// In particular a display:none minimap has a 0×0 CSS rect and must not be resized.
+function canvasSize(canvas, pixelBudget) {
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width, height = rect.height;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return null;
+  const deviceRatio = Number.isFinite(globalThis.devicePixelRatio) && globalThis.devicePixelRatio > 0 ? globalThis.devicePixelRatio : 1;
+  const dpr = Math.min(deviceRatio, 3, Math.sqrt(pixelBudget / (width * height)));
+  const pixelWidth = Math.max(1, Math.floor(width * dpr)), pixelHeight = Math.max(1, Math.floor(height * dpr));
+  return { width, height, pixelWidth, pixelHeight, dpr, scaleX: pixelWidth / width, scaleY: pixelHeight / height };
+}
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const hash = (x, y, salt = 0) => {
   let n = Math.imul((x | 0) + salt * 371, 374761393) ^ Math.imul((y | 0) + 91, 668265263);
@@ -104,25 +118,35 @@ export class Renderer {
   constructor(canvas) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});
     this.camera={x:650,y:1000,zoom:1};this.width=1;this.height=1;this.dpr=1;
-    this.cache=new Map();this.mapCache=null;this.mapTransform={scale:1,ox:0,oy:0};
+    this.cache=new Map();this.cacheBytes=0;this.tileDensity=1;this.mapCache=null;this.mapTransform={scale:1,ox:0,oy:0};
     this.lastAt=0;this.lastInterior=undefined;this.initial=true;this.elapsed=0;
     this.resize();
   }
   resize() {
-    const rect=this.canvas.getBoundingClientRect();
-    this.width=Math.max(1,rect.width||globalThis.innerWidth||1024);this.height=Math.max(1,rect.height||globalThis.innerHeight||768);
-    this.dpr=Math.min(globalThis.devicePixelRatio||1,1.6,Math.sqrt(2200000/(this.width*this.height)));
-    this.canvas.width=Math.round(this.width*this.dpr);this.canvas.height=Math.round(this.height*this.dpr);
+    const size=canvasSize(this.canvas,WORLD_PIXELS);if(!size)return false;
+    this.width=size.width;this.height=size.height;this.dpr=size.dpr;this.scaleX=size.scaleX;this.scaleY=size.scaleY;
+    if(this.canvas.width!==size.pixelWidth)this.canvas.width=size.pixelWidth;
+    if(this.canvas.height!==size.pixelHeight)this.canvas.height=size.pixelHeight;
+    this.ctx.imageSmoothingEnabled=true;this.ctx.imageSmoothingQuality='high';
+    return true;
   }
   screenToWorld(x,y) { return {x:(x-this.width/2)/this.camera.zoom+this.camera.x,y:(y-this.height/2)/this.camera.zoom+this.camera.y}; }
   worldToScreen(x,y){return{x:(x-this.camera.x)*this.camera.zoom+this.width/2,y:(y-this.camera.y)*this.camera.zoom+this.height/2};}
   _tile(tx,ty) {
-    const key=tx+','+ty;
+    const density=this.tileDensity,key=density+':'+tx+','+ty;
     if(this.cache.has(key)){const v=this.cache.get(key);this.cache.delete(key);this.cache.set(key,v);return v;}
-    const tile=document.createElement('canvas');tile.width=TILE+2;tile.height=TILE+2;
-    const c=tile.getContext('2d',{alpha:false});c.translate(-tx*TILE+1,-ty*TILE+1);
+    const side=Math.ceil((TILE+2)*density),bytes=side*side*4;
+    // Release evicted backing stores before allocating another retina tile.
+    while(this.cache.size&&this.cacheBytes+bytes>TERRAIN_BYTES){
+      const oldest=this.cache.keys().next().value,old=this.cache.get(oldest);
+      this.cacheBytes-=old.width*old.height*4;this.cache.delete(oldest);old.width=1;old.height=1;
+    }
+    const tile=document.createElement('canvas');tile.width=side;tile.height=side;
+    const c=tile.getContext('2d',{alpha:false});
+    // Use the actual raster ratio after rounding so the 1-world-pixel bleed aligns.
+    const raster=side/(TILE+2);c.setTransform(raster,0,0,raster,(-tx*TILE+1)*raster,(-ty*TILE+1)*raster);
     this._terrain(c,{x:tx*TILE-1,y:ty*TILE-1,w:TILE+2,h:TILE+2});
-    this.cache.set(key,tile);if(this.cache.size>48)this.cache.delete(this.cache.keys().next().value);
+    this.cache.set(key,tile);this.cacheBytes+=bytes;
     return tile;
   }
   _terrain(c,v) {
@@ -190,18 +214,30 @@ export class Renderer {
     let targetX=p.x,targetY=p.y;
     let baseZoom=this.width<600?1.04:1.15;
     if(vehicle){baseZoom=this.width<600?.79:.94;targetX+=Math.cos(vehicle.angle||0)*clamp((vehicle.speed||0)*.2,-60,100);targetY+=Math.sin(vehicle.angle||0)*clamp((vehicle.speed||0)*.2,-60,100);}
-    if(interior){baseZoom=this.width<700||this.height<500?.9:Math.min((this.width-36)/700,(this.height-140)/540,1.7);const halfW=this.width/(2*baseZoom),halfH=this.height/(2*baseZoom);targetX=halfW>=320?320:clamp(p.x,halfW-15,640-halfW+15);targetY=halfH>=230?240:clamp(p.y,halfH-15,460-halfH+15);}
+    if(interior){
+      const mobileView=this.width<=760||this.height<=600;
+      baseZoom=mobileView?.9:Math.min((this.width-36)/700,(this.height-140)/540,1.7);
+      if(mobileView){targetX=p.x;targetY=p.y;}
+      else{const halfW=this.width/(2*baseZoom),halfH=this.height/(2*baseZoom);targetX=halfW>=320?320:clamp(p.x,halfW-15,640-halfW+15);targetY=halfH>=230?240:clamp(p.y,halfH-15,460-halfH+15);}
+    }
     if(menu){targetX=800+Math.sin(this.elapsed*.025)*190;targetY=1450+Math.cos(this.elapsed*.02)*150;baseZoom=.9;}
     if(this.initial||this.lastInterior!==interior){this.camera.x=targetX;this.camera.y=targetY;this.camera.zoom=baseZoom*zoom;this.initial=false;}
     const follow=1-Math.exp(-dt*6);this.camera.x+=(targetX-this.camera.x)*follow;this.camera.y+=(targetY-this.camera.y)*follow;this.camera.zoom+=(baseZoom*zoom-this.camera.zoom)*(1-Math.exp(-dt*4));this.lastInterior=interior;
     const c=this.ctx,z=this.camera.zoom;
-    c.setTransform(this.dpr,0,0,this.dpr,0,0);box(c,0,0,this.width,this.height,palette.ocean);
+    c.setTransform(this.scaleX||this.dpr,0,0,this.scaleY||this.dpr,0,0);box(c,0,0,this.width,this.height,palette.ocean);
     c.save();c.translate(this.width/2,this.height/2);c.scale(z,z);c.translate(-this.camera.x,-this.camera.y);
     const v={x:this.camera.x-this.width/(2*z),y:this.camera.y-this.height/(2*z),w:this.width/z,h:this.height/z};
     if(interior){this._interior(c,g,LOCATIONS[interior]||WORLD.buildings.find(b=>b.id===interior),v,objective);}
     else{
       const minX=Math.floor(v.x/TILE),maxX=Math.floor((v.x+v.w)/TILE),minY=Math.floor(v.y/TILE),maxY=Math.floor((v.y+v.h)/TILE);
-      for(let tx=minX;tx<=maxX;tx++)for(let ty=minY;ty<=maxY;ty++)c.drawImage(this._tile(tx,ty),tx*TILE-1,ty*TILE-1);
+      const visibleTiles=(maxX-minX+1)*(maxY-minY+1);
+      // Match device pixels at the requested zoom, while fitting all visible tiles
+      // into the byte budget so a wide/zoomed-out view cannot churn the cache.
+      // Using the target also avoids rebuilding at each intermediate zoom level
+      // during the smooth transition into or out of a vehicle.
+      this.tileDensity=clamp(Math.ceil(this.dpr*baseZoom*zoom*4)/4,.25,4);
+      while(this.tileDensity>.25&&Math.ceil((TILE+2)*this.tileDensity)**2*4*visibleTiles>TERRAIN_BYTES)this.tileDensity-=.25;
+      for(let tx=minX;tx<=maxX;tx++)for(let ty=minY;ty<=maxY;ty++)c.drawImage(this._tile(tx,ty),tx*TILE-1,ty*TILE-1,TILE+2,TILE+2);
       this._waterMotion(c,g,v);
       this._gates(c,g,v);
       if(!menu)this._route(c,g,objective,waypoint,v);
@@ -372,7 +408,7 @@ export class Renderer {
     this._person(c,g.player,g,'player');
     for(const npc of g.npcs||[])if(npc.interior===g.player.interior)this._person(c,npc,g,'person');
     this._effects(c,g);
-    text(c,(loc?.name||'INTERIOR').toUpperCase(),320,-33,15,'#d4dbc8');
+    if(this.width>760&&this.height>600)text(c,(loc?.name||'INTERIOR').toUpperCase(),320,-33,15,'#d4dbc8');
   }
   _offscreen(c,obj,g){
     const pos=this.worldToScreen(obj.x,obj.y),pad=50;
@@ -383,9 +419,11 @@ export class Renderer {
     const distance=Math.round(Math.hypot(obj.x-g.player.x,obj.y-g.player.y)/4);text(c,`${distance} m`,x-Math.cos(a)*27,y-Math.sin(a)*27,11,'#f4e6c7');
   }
   drawMap(canvas,g,{waypoint=null,objective=null,full=true}={}){
-    const rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width||canvas.width||300),h=Math.max(1,rect.height||canvas.height||200),dpr=Math.min(globalThis.devicePixelRatio||1,1.5);
-    if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
-    const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);box(c,0,0,w,h,'#173d43');
+    const size=canvasSize(canvas,MAP_PIXELS);if(!size)return null;
+    const w=size.width,h=size.height;
+    if(canvas.width!==size.pixelWidth)canvas.width=size.pixelWidth;
+    if(canvas.height!==size.pixelHeight)canvas.height=size.pixelHeight;
+    const c=canvas.getContext('2d');c.setTransform(size.scaleX,0,0,size.scaleY,0,0);box(c,0,0,w,h,'#173d43');
     let scale,ox,oy;
     if(full){scale=Math.min((w-38)/WORLD.width,(h-38)/WORLD.height);ox=(w-WORLD.width*scale)/2;oy=(h-WORLD.height*scale)/2;}
     else{scale=Math.max(w/1450,h/1100);const p=g.player.interior?(LOCATIONS[g.player.interior]||WORLD.buildings.find(b=>b.id===g.player.interior))?.door||g.player:g.player;ox=w/2-p.x*scale;oy=h/2-p.y*scale;}

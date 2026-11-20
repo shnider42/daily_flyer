@@ -40,7 +40,7 @@ Use the gold objective marker and the short instruction panel. Open **Phone** to
 | --- | --- | --- |
 | Walk / swim | WASD or arrow keys | Left stick |
 | Drive | W/S accelerate and reverse; A/D steer | Point left stick in desired direction |
-| Brake | Space | Brake button |
+| Brake / reverse | Space brakes; S reverses | Hold Brake / Reverse to stop and back up |
 | Interact / enter / exit | E | Gold Use button; label changes with context |
 | Sprint | Shift | Run button |
 | Aim / attack | Mouse + left button, or F | Hold Fire / Punch; assisted aim |
@@ -51,7 +51,7 @@ Use the gold objective marker and the short instruction panel. Open **Phone** to
 
 Stop a vehicle before getting out. Small cars, sedans, sports cars, pickups, vans, motorcycles, boats, and police vehicles have different speed, acceleration, turning and durability. Vehicles can be damaged or disabled. Tomi handles repairs, paint, and recovery.
 
-Simple guidance explains actions in plain language. Moderate shortens hints; Expert retains objectives. Camera zoom, sound, optional quiet instrumental radio, touch controls and reduced interface motion are adjustable. Solo play pauses in menus, conversations, and when the page is hidden. Portrait and landscape layouts are supported.
+Simple guidance explains actions in plain language. On phones, tap Help beside the objective to expand its full guidance. Moderate shortens hints; Expert retains objectives. Camera zoom, sound, optional quiet instrumental radio, touch controls and reduced interface motion are adjustable. Solo play pauses in menus, conversations, and when the page is hidden. Portrait and landscape layouts are supported.
 
 ## Police attention
 
@@ -99,6 +99,16 @@ The complete solo story is stored in this browser under `dfe.suncoast.save.v1`, 
 
 There is no account, multiplayer service, chat, cloud save, tracking library, or backend player database. The hosting provider receives ordinary web requests. Browser storage can be cleared by the user or browser; export a backup for a separate copy.
 
+## Mobile fixes in 0.1.1
+
+A hidden minimap previously multiplied its existing backing size by device pixel ratio on each HUD update. On high-density landscape phones this could grow without bound, exhaust canvas memory, and break rendering. Hidden/zero-size canvases now skip allocation and drawing; resize calls are idempotent. The world and terrain cache now render at phone pixel density instead of enlarging undersized bitmaps.
+
+Phone HUD controls have at least 44px targets, safe-area offsets, separated landscape positions, expandable objective help, and no full-screen backdrop blur. Menus and dialogue hide and disable gameplay controls. Rotation and visual viewport changes resize the renderer and clear held inputs. The mobile interior camera follows Lucía so room edges and doors cannot move her behind touch controls. The stick has a small dead zone and ignores a second pointer until the current one releases.
+
+The touch Brake / Reverse control now stops forward movement, then backs up. Saved games resume with the occupied vehicle stationary. Existing story saves and decisions remain compatible.
+
+Focused regressions cover repeated hidden-map drawing, 3× portrait/landscape buffers, allocation budgets, backing-store release, braking/reversing out of a wall, and safe vehicle resume. The development server exposes `/__qa/mobile` for narrow and landscape layout checks; this page is outside the production assets and does not emulate physical Safari or device pixel density.
+
 ## Development and deployment
 
 No dependency installation is required. Node 22 or newer:
@@ -119,7 +129,7 @@ The existing DFE Flask entry point and other deployed games are not changed by t
 
 ### Architecture
 
-`world.mjs` owns city geometry, named places and vehicle definitions. `content.mjs` owns authored missions, contact text and endings. `sim.mjs` is a DOM-free simulation, stepped at 60 Hz with bounded catch-up. `renderer.mjs` uses culled, cached terrain chunks and caps the internal buffer near 2.2 million pixels. `app.mjs` owns responsive UI, input and local persistence. `audio.mjs` creates original effects after a user gesture.
+`world.mjs` owns city geometry, named places and vehicle definitions. `content.mjs` owns authored missions, contact text and endings. `sim.mjs` is a DOM-free simulation, stepped at 60 Hz with bounded catch-up. `renderer.mjs` uses culled, cached terrain chunks and uses native screen density up to 3× within a 4-million-pixel main-canvas budget. Maps stay within 2 million pixels; terrain rasterizes at camera density with a 48 MiB cache budget. `app.mjs` owns responsive UI, input and local persistence. `audio.mjs` creates original effects after a user gesture.
 
 ### Verification and current limits
 

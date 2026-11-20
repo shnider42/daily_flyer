@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SUNCOAST mobile layout check</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#101d23;color:#edf3ed;font:14px system-ui}header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;justify-content:center}button{font:inherit;background:#263b40;color:inherit;border:1px solid #5c777b;border-radius:5px;padding:9px 12px;cursor:pointer}button[aria-pressed=true]{background:#f2c76b;color:#122f33}main{display:grid;justify-items:center;padding:0 8px 8px}iframe{display:block;border:0;background:#183737;width:390px;height:844px;box-shadow:0 0 0 1px #537276}p{margin:0 10px;color:#b5c9c9}
+</style>
+<header aria-label="Development viewport presets">
+  <strong>Mobile layout</strong>
+  <button data-size="360,640">360 × 640</button>
+  <button data-size="390,844" aria-pressed="true">390 × 844</button>
+  <button data-size="430,880">430 × 880</button>
+  <button data-size="844,390">844 × 390</button>
+  <button data-size="932,430">932 × 430</button>
+  <p>Layout and pointer checks. Device pixel density is tested separately.</p>
+</header>
+<main><iframe src="/" title="SUNCOAST viewport"></iframe></main>
+<script>
+ const frame=document.querySelector('iframe');
+ for(const button of document.querySelectorAll('[data-size]'))button.addEventListener('click',()=>{
+   const [width,height]=button.dataset.size.split(',').map(Number);
+   frame.style.width=width+'px';frame.style.height=height+'px';
+   for(const b of document.querySelectorAll('[data-size]'))b.setAttribute('aria-pressed',String(b===button));
+ });
+</script>
+</html>
