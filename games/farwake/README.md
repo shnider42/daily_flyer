@@ -1,8 +1,20 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.36.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.37.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.37.0 — A fiercer Bellwether and leaner shared galaxies
+
+Tinbell's one concealed Bellwether now alternates a committed charge, a resonant shockwave and marked rockfalls. Its split throat, moving ribs and raised spines change with its attack; below 45% health, the cracked shell and faster pursuit signal an enraged phase. Distinct sound cues, visible preparation and recovery openings make each attack readable. Retreat resets an unfinished attempt; an earned kill remains permanent.
+
+The exact supplied **Farwake V33B — Triplets & Clean Ending** recording scores a locally witnessed Bellwether battle and the existing active Floodworks Foreman bay. It keeps its full arrangement and clean ending. Other wildlife, ordinary combat and unexplored locations cannot select it. Existing worlds gain no extra boss placements. World content revision **13** keeps the changed attacks aligned between solo play and the shared authority; refresh existing tabs before reconnecting.
+
+Shared galaxies now negotiate incremental network updates. Changed movement, combat and metadata reach each captain without repeatedly resending unchanged entity descriptions. The authority still prepares its regular metadata at one-second intervals, and full baselines cover joining, commands, transitions and recovery. The original packet format remains available to matching-content clients that do not negotiate deltas.
+
+A congested connection skips superseded periodic snapshots before building them or draining events. Browser controls also wait for queued data to clear, then send the latest controls. Other players continue independently. Remote smoothing follows actual simulation timestamps and no longer treats extra command responses as network jitter.
+
+Settings → Performance includes update age, smoothing delay, incoming traffic and queued controls. The authority's `/healthz` response provides bounded, aggregate tick, scheduling, snapshot and congestion measurements without captain or galaxy identifiers. These measurements distinguish server workload from connection delay; they do not change gameplay, save timing or ownership.
 
 ## 0.36.0 — Creatures with their own ecology
 

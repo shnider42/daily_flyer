@@ -203,3 +203,46 @@ test('solo retreat resets the unfinished attempt, active reload keeps wounds, an
  enter();Object.assign(game.state.person,point(27,11));game.drainEvents();game.stepExploration(.01,{});const next=game.drainEvents().find(event=>event.type==='monster-revealed');
  assert.ok(next);assert.notEqual(next.id,first.id);assert.equal(next.serial,first.serial+1);assert.equal(next.attemptSerial,1);
 });
+
+test('the resonant shockwave has a full warning, safe outer ground and real rock cover',()=>{
+ const f=arena();f.boss.attackSerial=2;
+ const caught=actor('caught',{x:660,y:600}),dodger=actor('dodger',{x:600,y:640}),covered=actor('covered',{x:700,y:600});
+ const layout=f.surface.combatLayout;for(let y=0;y<layout.rows;y++)layout.walkable[y*layout.cols+28]=0;
+ const actors=[caught,dodger,covered],start=stepSiteEncounter(f.state,actors,.01,f.surface);
+ assert.equal(f.boss.bossAttack,'shockwave');assert.equal(f.boss.phase,'windup');
+ assert.ok(start.some(event=>event.type==='bellwether-attack'&&event.phase==='tell'&&event.kind==='shockwave'));
+ advance(f,actors,1.29);assert.equal(caught.person.health,100,'the entire warning is harmless');
+ dodger.person.y=750;
+ const events=until(f,actors,()=>f.boss.phase==='strike');
+ assert.equal(caught.person.health,56);assert.equal(dodger.person.health,100,'outside the marked radius is safe');
+ assert.equal(covered.person.health,100,'solid rock blocks the pressure wave');
+ assert.equal(events.filter(event=>event.type==='person-hit').length,1);
+ advance(f,actors,.2);assert.equal(caught.person.health,56,'the visible wave tail cannot deal repeated damage');
+ until(f,actors,()=>f.boss.phase==='recovery');assert.ok(f.boss.recovery>=1.2);
+});
+
+test('rockfall stays on its warned ground and the wounded phase adds one avoidable mark without shortening the tell',()=>{
+ const f=arena();Object.assign(f.boss,{attackSerial:3,health:600});
+ const dodger=actor('dodger',{x:720,y:600}),caught=actor('caught',{x:753,y:600}),actors=[dodger,caught];
+ const start=stepSiteEncounter(f.state,actors,.01,f.surface),marks=structuredClone(f.boss.attackTargets);
+ assert.equal(f.boss.bossAttack,'rockfall');assert.equal(marks.length,2);assert.equal(f.boss.enraged,true);
+ assert.ok(f.boss.speed>BELLWETHER_PROFILE.speed);close(f.boss.windup,1.1);
+ assert.equal(start.filter(event=>event.type==='bellwether-attack'&&event.phase==='enraged').length,1);
+ dodger.person.y=710;advance(f,actors,.4);assert.deepEqual(f.boss.attackTargets,marks,'the falling rock never follows a dodging captain');
+ f.state=createSiteState(f.site,structuredClone(f.state));f.boss=f.state.monsters[0];
+ assert.deepEqual(f.boss.attackTargets,marks,'reloading the warning preserves its committed positions');
+ const events=until(f,actors,()=>f.boss.phase==='strike');
+ assert.equal(dodger.person.health,100);assert.equal(caught.person.health,54);
+ assert.equal(events.filter(event=>event.type==='person-hit'&&event.targetId==='caught').length,1,'overlapping marks cannot double-hit one captain');
+ const struck=createSiteState(f.site,structuredClone(f.state));f.state=struck;f.boss=struck.monsters[0];
+ const resumed=advance(f,actors,.2);assert.equal(caught.person.health,54);assert.ok(!resumed.some(event=>event.type==='person-hit'),'a saved impact is not applied twice');
+ assert.ok(!resumed.some(event=>event.phase==='enraged'),'reconnect does not replay phase entry');
+});
+
+test('a sustained encounter develops through distinct attacks without spawning extra creatures',()=>{
+ const f=arena(),captain=actor('durable-fixture',{x:660,y:600});captain.person.health=captain.person.maxHealth=1000;
+ const kinds=[];
+ for(let frame=0;frame<3000&&kinds.length<4;frame++)for(const event of stepSiteEncounter(f.state,[captain],.01,f.surface))if(event.type==='bellwether-attack'&&event.phase==='tell')kinds.push(event.kind);
+ assert.deepEqual(kinds,['lunge','lunge','shockwave','rockfall']);assert.equal(f.state.monsters.length,1);
+ assert.ok(resetSiteBoss(f.state));assert.equal(f.boss.attackSerial,0);assert.deepEqual(f.boss.attackTargets,[]);assert.equal(f.boss.enraged,false);
+});

@@ -11,7 +11,7 @@ import {DIALOGUE,NAMED_SYSTEMS,LORE} from './content.mjs';
 import {cabinLayout,resolveCabinClass,isCabinWalkable} from './interior-layouts.mjs';
 import {drawInteriorDamageFloor,drawInteriorDamageAir,nearestDeckInteraction} from './interior-presentation.mjs';
 import {labelSink,pixelLine,pixelRing} from './pixel-art.mjs';
-import {sidearmAim,facingAngle,personalWeaponById} from './combat.mjs';
+import {sidearmAim,facingAngle,personalWeaponById,clearSidearmSight} from './combat.mjs';
 import {buildWarzoneGroundInterior,drawWarzoneGroundEffects,drawWarzoneInfantryKit} from './warzone-ground.mjs';
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
@@ -1262,26 +1262,60 @@ function drawWildlife(ctx,actor,time){
  pixel(ctx,'#44564d',x+front*(small?10:15)-5,y-13,11,9);pixel(ctx,actor.windup>0?'#eec179':'#ced3aa',x+front*(small?13:18)-1,y-12,3,2);pixel(ctx,'#d8c7a4',x+front*(small?17:22)-2,y-7,4,2);
  if(actor.windup>0){pixelRing(ctx,x,y,small?19:26,9,'#e1a378',{dashed:true,phase:Math.floor(time*9)});pixel(ctx,'#f1cf91',x-2,y-36,4,6);}
 }
-/** A broad stone carapace and an empty resonating throat, not a humanoid sprite. */
+/** Pale hooked limbs, a split stone crown and a throat that opens like a bell. */
 function drawBellwether(ctx,actor,time){
  const x=Math.round(actor.x),y=Math.round(actor.y),dead=actor.health<=0,windup=actor.phase==='windup'||actor.windup>0,lunge=actor.phase==='lunge',recover=actor.phase==='recovery',motion=actor.reduceMotion!==true;
- const angle=Number.isFinite(actor.aimAngle)?actor.aimAngle:facingAngle(actor.facing),dx=Math.cos(angle),dy=Math.sin(angle),step=motion&&actor.moving?Math.sin(time*12)>0?3:-3:0,crouch=windup?4:recover?2:0;
- pixel(ctx,'#071013',x-37,y-6,74,12);pixel(ctx,'#0c191b',x-31,y+4,62,4);
- if(dead){pixel(ctx,'#364043',x-30,y-20,61,22);pixel(ctx,'#768382',x-23,y-26,44,12);pixel(ctx,'#172329',x-7,y-22,18,16);pixel(ctx,'#b6b7a6',x-8,y-23,20,3);for(const s of[-1,1])pixelLine(ctx,x+s*19,y-6,x+s*36,y+4,'#6b7772',5);return;}
- for(const side of[-1,1])for(const offset of[-17,0,17]){const foot=x+side*(32+(offset===0?4:0)),yy=y+offset*.35+step*side;pixelLine(ctx,x+side*17,y-17+offset*.45+crouch,foot,yy-4,'#37474a',7);pixelLine(ctx,foot,yy-4,foot+side*3,yy+4,'#99a99c',3);pixel(ctx,'#c2c4aa',foot+side*3-2,yy+3,5,2);}
+ const kind=actor.bossAttack||'lunge',ring=kind==='shockwave'&&(windup||actor.phase==='strike'),rattle=kind==='rockfall'&&windup,enraged=actor.enraged===true;
+ const angle=Number.isFinite(actor.aimAngle)?actor.aimAngle:facingAngle(actor.facing),dx=Math.cos(angle),dy=Math.sin(angle),step=motion&&actor.moving?Math.sin(time*12)>0?3:-3:0,crouch=ring?-9:rattle?-4:windup?5:recover?3:0;
+ const twitch=motion&&rattle?(Math.floor(time*10)%3)-1:0;
+ pixel(ctx,'#060c10',x-43,y-7,86,14);pixel(ctx,'#0c191b',x-34,y+5,68,4);
+ if(dead){pixel(ctx,'#343c40',x-33,y-20,67,22);pixel(ctx,'#8b9187',x-25,y-29,48,15);pixel(ctx,'#070c12',x-9,y-24,21,19);pixel(ctx,'#c8c8b4',x-10,y-26,23,3);for(const s of[-1,1]){pixelLine(ctx,x+s*20,y-12,x+s*41,y+3,'#7f8b84',5);pixelLine(ctx,x+s*41,y+3,x+s*48,y-6,'#b9c0ac',2);}return;}
+ for(const side of[-1,1])for(const [index,offset]of[-18,0,18].entries()){
+  const foot=x+side*(38+(offset===0?7:0)+twitch),yy=y+offset*.4+step*side*(index%2?-1:1),knee=yy-(ring?18:12);
+  pixelLine(ctx,x+side*17,y-19+offset*.45+crouch,foot-side*5,knee,'#2e3c43',7);
+  pixelLine(ctx,foot-side*5,knee,foot+side*3,yy+4,'#a4b0a4',4);pixelLine(ctx,foot+side*3,yy+4,foot+side*7,yy-4,'#d5d3bc',2);
+  pixel(ctx,'#182b32',foot-side*6,knee-3,6,6);
+ }
  const hit=(actor.hitUntil||actor.hurtUntil||0)>time;
- for(const [yy,half,color]of[[-36,14,'#566967'],[-32,23,'#95a797'],[-26,29,'#738a82'],[-18,31,'#4a6463'],[-9,25,'#324e52'],[-3,17,'#243d43']])pixel(ctx,hit?'#c9c4a7':color,x-half,y+yy+crouch,half*2+1,9);
- for(const side of[-1,1])for(const offset of[-18,-6,7]){pixel(ctx,'#b0bba3',x+side*(19-Math.abs(offset+6)/4)-4,y+offset-12+crouch,9,5);pixel(ctx,'#415c60',x+side*11-2,y+offset-9+crouch,4,7);}
- pixel(ctx,'#c4c5a9',x-3,y-40+crouch,7,18);pixel(ctx,'#526d68',x-1,y-38+crouch,3,16);
- for(const [ox,oy]of[[-22,-23],[19,-20],[-14,-6],[13,-31]])pixel(ctx,'#9e795b',x+ox,y+oy+crouch,4,3);
- const throatX=Math.round(x+dx*(lunge?23:18)),throatY=Math.round(y-18+dy*13+crouch),openThroat=windup||lunge;
- pixelRing(ctx,throatX,throatY,openThroat?14:11,openThroat?13:9,'#c0b89b');pixelRing(ctx,throatX,throatY,openThroat?11:8,openThroat?10:6,'#6e8c85');
- pixel(ctx,'#02090e',throatX-(openThroat?8:6),throatY-(openThroat?8:4),openThroat?17:13,openThroat?17:9);
- pixel(ctx,openThroat?'#e8b98a':'#95c0ad',throatX-5,throatY-3,2,2);pixel(ctx,openThroat?'#e8b98a':'#95c0ad',throatX+4,throatY-3,2,2);
- if(windup){pixel(ctx,'#f2c88b',x-2,y-48,4,7);pixel(ctx,'#f2c88b',x-1,y-39,2,2);}
+ for(const [yy,half,color]of[[-40,13,'#626c69'],[-35,22,'#b5bcaa'],[-28,29,'#8b9a8f'],[-19,31,'#566c69'],[-10,25,'#344b50'],[-3,17,'#20353d']])pixel(ctx,hit?'#e3d7ba':color,x-half+twitch,y+yy+crouch,half*2+1,9);
+ // The dorsal plates separate when wounded; this changes its outline, not its
+ // collision size, so earned dodges never become invisible hit-box changes.
+ for(const side of[-1,1])for(const offset of[-22,-8,7]){
+  const rib=x+side*(19-Math.abs(offset+6)/4)+twitch;
+  pixelLine(ctx,rib,y+offset-7+crouch,rib+side*(enraged?10:5),y+offset-22+crouch,'#c4c9b4',4);
+  pixelLine(ctx,rib-side*5,y+offset-5+crouch,rib-side*2,y+offset-14+crouch,enraged?'#b2644d':'#394e53',3);
+ }
+ pixel(ctx,'#d4d1b8',x-3+twitch,y-46+crouch,7,21);pixel(ctx,enraged?'#ad6950':'#465f60',x-1+twitch,y-44+crouch,3,18);
+ const throatX=Math.round(x+dx*(lunge?25:18)+twitch),throatY=Math.round(y-19+dy*13+crouch),openThroat=windup||lunge||actor.phase==='strike',spread=ring?19:openThroat?15:10;
+ pixelRing(ctx,throatX,throatY,spread+3,spread+1,'#c9c6aa');pixelRing(ctx,throatX,throatY,spread,spread-2,'#637d77');
+ pixel(ctx,'#02070c',throatX-spread+3,throatY-spread+4,spread*2-5,spread*2-7);
+ for(const side of[-1,1])for(let tooth=0;tooth<3;tooth++)pixelLine(ctx,throatX+side*(spread-1),throatY-8+tooth*7,throatX+side*(spread-5),throatY-5+tooth*7,'#d2c5a7',2);
+ if(openThroat){pixel(ctx,enraged?'#b36d50':'#9e9580',throatX-2,throatY+2,4,ring?12:7);pixel(ctx,'#071019',throatX-1,throatY-5,2,12);}
+ else{pixel(ctx,'#a9b8a0',throatX-6,throatY-4,2,2);pixel(ctx,'#a9b8a0',throatX+5,throatY-4,2,2);}
+ if(windup){pixel(ctx,'#f2c88b',x-2,y-60,4,7);pixel(ctx,'#f2c88b',x-1,y-51,2,2);}
 }
-function drawBellwetherTell(ctx,actor,layout){
- if(actor.species!=='bellwether'||actor.health<=0||!(actor.phase==='windup'||actor.windup>0))return;
+function drawBellwetherTell(ctx,actor,layout,time=0,reduceMotion=false){
+ if(actor.species!=='bellwether'||actor.health<=0||!(actor.phase==='windup'||actor.windup>0||actor.phase==='strike'))return;
+ const kind=actor.bossAttack||'lunge',striking=actor.phase==='strike';
+ if(kind!=='lunge'){
+  const clear=point=>!layout||isCabinWalkable(layout,point.x,point.y,1)&&clearSidearmSight(layout,actor,point);
+  const dot=(x,y,color,size=2)=>{if(clear({x,y}))pixel(ctx,color,x-size/2,y-size/2,size,size);};
+  const circle=(center,radius,color)=>{for(let i=0;i<56;i++){if(!striking&&i%4===3)continue;const a=i/56*Math.PI*2;dot(center.x+Math.cos(a)*radius,center.y+Math.sin(a)*radius,color);}};
+  if(kind==='shockwave'){
+   const radius=actor.shockwaveRadius||124;circle(actor,radius,'#e0b77c');
+   if(striking){circle(actor,radius*.55,'#b8876d');circle(actor,radius*.82,'#9b7466');}
+   else for(let i=0;i<8;i++){const a=i*Math.PI/4;dot(actor.x+Math.cos(a)*(radius+8),actor.y+Math.sin(a)*(radius+8),'#f0cc8c',3);}
+  }else{
+   for(const target of actor.attackTargets||[]){
+    const radius=actor.rockfallRadius||30;circle(target,radius,striking?'#d6c2a2':'#e0b77c');
+    for(let i=0;i<5;i++){const a=i*2.4,spread=8+i*3,x=target.x+Math.cos(a)*spread,y=target.y+Math.sin(a)*spread;
+     dot(x,y,striking?'#9a9986':'#b89972',striking?7:2);
+     if(!striking&&!reduceMotion){const fall=(time*28+i*7)%21;dot(x,y-21+fall,'#d0bb92',2);}
+    }
+   }
+  }
+  return;
+ }
  const angle=actor.aimAngle||0,dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx,width=(actor.hitRadius||16)+6;
  let length=0;for(let d=3;d<=(actor.lungeRange||250);d+=3){if(layout&&!isCabinWalkable(layout,actor.x+dx*d,actor.y+dy*d,actor.radius||14))break;length=d;}
  if(length<24)return;
@@ -1454,7 +1488,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  drawFieldSweep(ctx,surface.field);
  drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'floor'});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
- for(const actor of actors)if(actor.x>cameraX-220&&actor.x<cameraX+width+220&&actor.y>cameraY-220&&actor.y<cameraY+height+220){drawBellwetherTell(ctx,actor,surface.combatLayout);if(!drawCreatureTell(ctx,actor,surface.combatLayout,combatTime))drawInfantryTell(ctx,actor,surface.combatLayout);}
+ for(const actor of actors)if(actor.x>cameraX-220&&actor.x<cameraX+width+220&&actor.y>cameraY-220&&actor.y<cameraY+height+220){drawBellwetherTell(ctx,actor,surface.combatLayout,combatTime,options.reduceMotion);if(!drawCreatureTell(ctx,actor,surface.combatLayout,combatTime))drawInfantryTell(ctx,actor,surface.combatLayout);}
  if(aim)drawCombatAim(ctx,person,aim);
  const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)&&(!visibility||visibility.canSeePoint(candidate))?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
@@ -1505,6 +1539,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   const piloting=actor.station==='helm'&&actor.perspective==='ship'&&!actor.down;
   const label=piloting?`${name} · ${actor.sleeping?'Helm (away)':'Piloting'}`:name;
   emit(label,actor.x,actor.y-(actor.species==='bellwether'?67:isWildlifeSpecies(actor.species)?creatureArtHeight(actor.species)+18:47),hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
+  if(actor.species==='bellwether'&&actor.phase==='windup')emit(({shockwave:'Outside the ring',rockfall:'Move off the marks'}[actor.bossAttack]||'Move sideways'),actor.x,actor.y+21,'#f2ce8a',13,'center',95,'combat-warning');
  }
  for(const home of homes){const mine=!!options.localCaptainId&&home.ownerId===options.localCaptainId,nearby=Math.hypot(home.x-person.x,home.y-person.y)<70,owner=mine?'Your':home.ownerName?`${home.ownerName}’s`:'Captain’s';emit(`${owner} ${home.kind==='outpost'?'outpost':'room'}`,home.x,home.y-(home.kind==='outpost'?48:27),mine?'#e5be79':'#8ec8d2',13,'center',nearby?70:mine?45:30,'home');}
  if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e)&&(!visibility||visibility.canSeePoint(e)));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}

@@ -457,6 +457,15 @@ function processCombatEvent(event){
   if(combatPresentation.claim(event,elapsed)){const caption=event.text||'A scream tears through the cavern.';audio.play('bellwetherScream');recordCombatFeed(caption);toast(caption,'info',5000,{priority:'urgent'});scoreContextAt=-Infinity;}
   return true;
  }
+ if(event.type==='bellwether-attack'){
+  if(combatPresentation.claim(event,elapsed)){
+   const sound=event.phase==='enraged'?'bellwetherEnraged':event.phase==='tell'?({lunge:'bellwetherCharge',shockwave:'bellwetherInhale',rockfall:'bellwetherRattle'}[event.kind]):event.phase==='impact'&&event.kind!=='lunge'?'bellwetherImpact':null;
+   if(sound)audio.play(sound);
+   if(event.text)recordCombatFeed(event.text);
+   scoreContextAt=-Infinity;hudDirty=true;
+  }
+  return true;
+ }
  if(!['person-shot','person-hit','boarder-down','person-down','crew-death'].includes(event.type))return false;
  const accepted=combatPresentation.push(event,elapsed);if(!accepted)return true;
  const id=network?.passport?.captainId??game.playerId??'local',local=event.attackerId===id||!network&&event.attackerId==='local';
@@ -1717,8 +1726,8 @@ function openFlightMenu(){
 
 function performanceSummary(){const metrics=frameMonitor.summary();return `${metrics.fps?Math.round(metrics.fps):'…'} FPS${network?` · ${Math.round(network.latency.rtt||0)} ms`:''}`;}
 function performanceReport(){
- const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.36.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
- if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`);
+ const metrics=frameMonitor.summary(),latency=network?.latency,lines=['FARWAKE 0.37.0',`Mode: ${testSession?'isolated test':network?'shared galaxy':'solo'} / ${game.state.mode}`,`Frame rate: ${metrics.fps.toFixed(1)} FPS`,`Frame interval p95: ${metrics.frameP95.toFixed(1)} ms`,`Longest recent frame: ${metrics.frameMax.toFixed(1)} ms`];
+ if(network)lines.push(`Connection: ${connectionState}`,`Round-trip ping: ${Math.round(latency?.rtt||0)} ms`,`Server updates: ${metrics.updateHz.toFixed(1)} / second`,`Update gap p95: ${metrics.updateP95.toFixed(1)} ms`,`Longest recent update gap: ${metrics.updateMax.toFixed(1)} ms`,`Current update age: ${Math.round(latency?.snapshotAgeMs||0)} ms`,`Remote smoothing: ${Math.round(latency?.interpolationMs||0)} ms`,`Incoming game data: ${((latency?.receivedBytesPerSecond||0)/1024).toFixed(1)} KiB / second`,`Incremental updates: ${latency?.deltaSnapshots?'active':'waiting for server'}`,`Queued controls: ${latency?.inputBufferedBytes||0} bytes`,`Superseded controls skipped: ${latency?.skippedInputs||0}`);
  lines.push(`World pixels: ${pixelView.logicalWidth} × ${pixelView.logicalHeight}`,`Presentation: ${canvas.width} × ${canvas.height} / ${pixelView.physicalPixelsPerPixel} device pixels per world pixel`,`Ship zoom: ${Math.round(settings.shipZoom*100)}% / Person zoom: ${Math.round(settings.personZoom*100)}%`,`Mobile view: ${settings.immersiveHud?'fills screen':'framed'} / ${settings.translucentHud?'translucent':'solid'} controls`,`Text scale: ${Math.round(settings.textScale*100)}%`,`Reduced motion: ${settings.reduceMotion?'on':'off'}`);return lines.join('\n');
 }
 function updatePerformanceHUD(){const report=$('performanceReport');if(report)hudText(report,performanceReport());if(playing&&settings.showPerformance)hudText($('coordinate'),performanceSummary());}

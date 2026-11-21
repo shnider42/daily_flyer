@@ -146,7 +146,7 @@ export class Soundscape{
   this.roomNoise(.33,.035,{delay:.28,pan:.5,frequency:580});
  }
  play(name,{pan=0}={}){
-  const now=performance.now(),limit={fire:130,mine:180,footstep:250,corridorFootstep:330,corridorVent:900,corridorCart:900,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
+  const now=performance.now(),limit={fire:130,mine:180,footstep:250,corridorFootstep:330,corridorVent:900,corridorCart:900,hit:180,sidearm:90,crewShot:170,enemyShot:150,sidearmHit:90,personHit:170,personDown:250,bulkhead:220,shieldImpact:220,supportShot:95,marksmanShot:150,rifleShot:100,shipAlarm:3000,repair:180,bellwetherScream:1000,bellwetherCharge:650,bellwetherInhale:1100,bellwetherRattle:1000,bellwetherImpact:400,bellwetherEnraged:1500}[name]??80;if(now-(this.last[name]??-1000)<limit)return;this.last[name]=now;
   switch(name){
    case'corridorFootstep':this.tone(67,.065,'triangle',.11,31);this.roomNoise(.06,.045,{frequency:680});this.roomNoise(.12,.022,{delay:.16,pan:.25,frequency:400});break;
    case'corridorVent':this.tone(80,.25,'triangle',.18,30);this.roomNoise(.66,.19,{pan,frequency:1800,type:'highpass'});this.roomNoise(.2,.055,{delay:.28,pan:-pan,frequency:640});if(this.ctx&&this.enabled()&&!this.recoveryMuted)this.roomDuckUntil=this.ctx.currentTime+1.25;break;
@@ -156,7 +156,12 @@ export class Soundscape{
    case'quietEarthAlarm':this.tone(248,.8,'sawtooth',.11,62,.05);this.tone(660,.46,'triangle',.08,195);this.tone(105,.85,'sine',.14,40,.08);break;
    // One short throat-like fall, with no echo timers or looping source. The
    // effects bus and ordinary cleanup own all three voices, including mute.
-   case'bellwetherScream':this.tone(248,.84,'sawtooth',.14,64,.075);this.tone(695,.64,'triangle',.09,176,.06);this.tone(112,.94,'sine',.15,42,.1);break;
+   case'bellwetherScream':this.tone(314,.88,'sawtooth',.12,53,.075);this.tone(781,.72,'triangle',.08,137,.06);this.tone(83,.94,'sine',.15,31,.1);break;
+   case'bellwetherCharge':this.tone(86,.35,'sawtooth',.08,42,.045);this.tone(192,.22,'triangle',.06,121,.04);break;
+   case'bellwetherInhale':this.tone(52,.8,'triangle',.10,124,.08);this.tone(178,.7,'sawtooth',.055,318,.09);break;
+   case'bellwetherRattle':this.tone(280,.12,'triangle',.07,164,.035);this.tone(147,.42,'square',.035,58,.04);this.roomNoise(.5,.045,{pan,frequency:1400});break;
+   case'bellwetherImpact':this.tone(64,.35,'triangle',.2,19,.035);this.tone(122,.16,'sawtooth',.06,39,.03);this.roomNoise(.3,.055,{pan,frequency:650});break;
+   case'bellwetherEnraged':this.tone(204,.68,'sawtooth',.09,50,.065);this.tone(432,.4,'triangle',.05,123,.06);break;
    case'sidearm':this.tone(740,.095,'square',.20,210);this.tone(1340,.045,'triangle',.10,640);break;
    case'crewShot':this.tone(470,.09,'triangle',.13,180);break;
    case'enemyShot':this.tone(250,.12,'sawtooth',.13,95);break;

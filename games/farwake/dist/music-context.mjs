@@ -7,6 +7,7 @@
 import { isFoggedSite, canSeeConcealedActor } from './site-visibility.mjs';
 import { clearSidearmSight } from './combat.mjs';
 import { FOREMAN_BAY, isFieldSite } from './floodworks.mjs';
+import { isBellwether } from './exploration.mjs';
 const list = value => Array.isArray(value) ? value : [];
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const text = value => typeof value === 'string' ? value : '';
@@ -165,6 +166,20 @@ export function musicContext({
       same(actor.targetId, captainId) && distance(personPosition, point(actor)) <= 360 &&
       canSeeConcealedActor(layout, state.person, actor) && clearSidearmSight(layout, state.person, actor));
 
+  // Only authored bosses qualify. The candidate key can survive a brief loss
+  // of sight, but the director may latch it only after this listener sees it.
+  // Another captain's shared reveal is never evidence for this observer.
+  const bossEncounter = state.exploration?.encounter;
+  const bellwether = visible && mode === 'person' && !onVessel && same(site?.id, siteId)
+    && site?.bodyId === 'tinbell' && site.id === 'hollow' && finite(state.person?.health) > 0 && !state.person?.down
+    ? list(bossEncounter?.monsters).find(actor => isBellwether(actor) && finite(actor.health) > 0
+      && actor.alert === true && actor.revealed === true && actor.phase !== 'dormant') : null;
+  const bossEncounterKey = foremanActive
+    ? `${captainId}:${contextKey}:foreman:${bossEncounter?.attemptSerial || 0}`
+    : bellwether ? `${captainId}:${contextKey}:${bellwether.id}:${bossEncounter?.attemptSerial || 0}` : null;
+  const bossObserved = !!foremanActive || !!bellwether && !!layout
+    && canSeeConcealedActor(layout, state.person, bellwether);
+
   const contract = state.npcContract?.active ? state.npcContract : null;
   const aboardContract = !!contract && onVessel && same(contract.vesselId, vesselId);
   const complication = contract?.version === 2 ? contract.assignment?.complication : null;
@@ -232,6 +247,7 @@ export function musicContext({
     terror: !!terrorKey, terrorKey, silence,
     safeNow: visible && !observedThreat && !tension && !emergency && !terrorKey,
     intensity: observedThreat ? .78 : emergency ? .62 : tension ? .32 : 0,
+    bossEncounterKey, bossObserved,
     foremanActive: !!foremanActive, nearbySafeSurvivorIds, concealedActorIds, visibleActorIds, scope, ...scope
   };
 }

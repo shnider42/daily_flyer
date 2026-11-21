@@ -148,11 +148,12 @@ function visibleMiss(event, from, to, visibility) {
 
 /** Filter before audio, captions, score and retained effects, not just before pixels. */
 export function visibleSiteCombatEvent(event, { surface, observer, actors = [], captainId = 'local', visibility = createSiteVisibility(surface, observer) } = {}) {
-  if (!['person-shot', 'person-hit', 'boarder-down', 'person-down', 'crew-death', 'monster-revealed'].includes(event?.type)) return event;
+  if (!['person-shot', 'person-hit', 'boarder-down', 'person-down', 'crew-death', 'monster-revealed', 'bellwether-attack'].includes(event?.type)) return event;
   if (event.siteId && event.siteId !== surface?.id || event.type === 'monster-revealed' && !visibility) return null;
   if (!visibility) return event;
   if (event.siteId !== surface.id) return null;
   const actor = actors.find(value => value.id === (event.monsterId || event.attackerId || event.actorId));
+  if (event.type === 'bellwether-attack') return actor && visibility.canSeeActor(actor) ? event : null;
   if (event.type === 'monster-revealed') {
     const seen = actor && visibility.canSeeActor(actor);
     return { ...event, text: seen ? 'The Bellwether opens its hollow throat and screams.' : 'A scream tears through the cavern.',

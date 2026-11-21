@@ -6,6 +6,7 @@ const GROUPS = Object.freeze([
 ]);
 const FAMILIES = Object.freeze({ theme: 'Main theme', exploration: 'Exploration', planet: 'Planets & moons', cave: 'Caves & passages', social: 'Life at port', discovery: 'Discovery', tension: 'Unease', combat: 'Danger', recovery: 'A moment to recover', terror: 'Rare encounters' });
 const SITUATIONS = Object.freeze({
+  'farwake-v33b': 'The recorded boss battle piece, reserved for exceptional encounters you have actually witnessed. Its triplet figures and clean ending are preserved.',
   'no-way-back': 'A C-minor pressure piece for actual danger in Quiet Earth: piano, warm synthesizer, low bass and drums. The quiet corridor keeps its own recording.',
   'morrow-flightline-loop': 'A recorded cue for the Floodworks service gallery and the danger rotation.',
   'shnider-theme': 'Farwake’s recorded menu theme. It loops on the title screen and plays once when requested during a voyage.',

@@ -125,3 +125,54 @@ test('taking and leaving the helm keeps the visible pilot at the physical statio
   interpolation.push({...packet(1400,released),players:[]},1400);
   assert.equal(interpolation.sample(1450).players.length,0,'a departed crewmate is removed rather than retained as a station ghost');
 });
+
+test('a congested upload keeps only current controls and does not consume unsent sequence numbers', () => {
+  let time = 0; const sent = [];
+  const network = new FarwakeNetwork({ url: 'https://example.test', storage: null, autoReconnect: false, now: () => time });
+  network.connected = true;
+  network.socket = { readyState: 1, bufferedAmount: 0, send: json => sent.push(JSON.parse(json)) };
+  network.setInput({ thrust: 1, fire: true }); network._sendInput();
+  assert.equal(network.seq, 1);
+  network.socket.bufferedAmount = 8192;
+  for (let i = 0; i < 80; i++) { time += 50; network.setInput({ thrust: 1, fire: true }); network._sendInput(); }
+  network.setInput({ thrust: 0, fire: false, brake: true });
+  assert.equal(sent.length, 1, 'superseded inputs cannot build a delayed steering/fire backlog');
+  assert.equal(network.seq, 1); assert.equal(network.unacknowledged.length, 1);
+  assert.equal(network.latency.skippedInputs, 80); assert.equal(network.latency.inputBufferedBytes, 8192);
+  assert.equal(network._send({ type: 'command', id: 'reliable', name: 'scan', args: {} }), true, 'named commands retain reliable delivery');
+  network.socket.bufferedAmount = 0; network._sendInput();
+  assert.equal(sent.at(-1).seq, 2); assert.deepEqual(sent.at(-1).input, { thrust: 0, fire: false, brake: true });
+  assert.deepEqual(network.unacknowledged.map(frame => frame.seq), [1, 2]);
+  network.socket.readyState = 3; network._sendInput();
+  assert.equal(network.seq, 2, 'a socket that closed before sending cannot consume a sequence');
+});
+
+test('remote motion uses simulation time and same-tick command results do not inflate interpolation delay', () => {
+  const interpolation = new RemoteInterpolator();
+  const packet = (time, x, health = 100) => ({ serverTime: time + 50, simulatedAt: time, room: { id: 'deck' }, remoteShips: [], players: [{ captainId: 'friend', x, y: 0, vx: 100, health }] });
+  for (let i = 0; i < 10; i++) {
+    const time = 1000 + i * 100;
+    interpolation.push(packet(time, i * 10), time + 75);
+    interpolation.push({ ...packet(time, i * 10, 80), type: 'result', serverTime: time + 90 }, time + 115);
+  }
+  assert.equal(interpolation.delayMs, 100, 'regular transport remains at its base delay despite extra command results');
+  assert.equal(interpolation.frames.length, 10, 'one simulation pose occupies one interpolation slot');
+  assert.equal(interpolation.sample(1950).players[0].x, 85, 'motion is placed at its physics time rather than its later serialization time');
+  assert.equal(interpolation.sample(1950).players[0].health, 80, 'same-tick authoritative health still updates immediately');
+  assert.equal(interpolation.push(packet(1500, -900), 2000), false);
+  assert.equal(interpolation.sample(1950).players[0].x, 85, 'older simulation poses cannot rewind remote motion');
+});
+
+test('reconnecting and changing rooms discard old jitter instead of adding delay to a recovered connection', () => {
+  const interpolation = new RemoteInterpolator({ delayMs: 90, maxDelayMs: 220 });
+  const packet = (time, room = 'one') => ({ serverTime: time, room: { id: room }, remoteShips: [], players: [] });
+  interpolation.push(packet(1000), 1000); interpolation.push(packet(1100), 1500);
+  assert.ok(interpolation.delayMs > 90);
+  interpolation.reset();
+  assert.equal(interpolation.delayMs, 90); assert.equal(interpolation.jitter, 0);
+  interpolation.push(packet(2000), 2000); interpolation.push(packet(2100), 2500);
+  assert.ok(interpolation.delayMs > 90);
+  interpolation.push(packet(2200, 'two'), 2700);
+  assert.equal(interpolation.delayMs, 90); assert.equal(interpolation.frames.length, 1);
+  assert.equal(interpolation.frames[0].roomId, 'two');
+});

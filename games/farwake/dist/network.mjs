@@ -5,10 +5,12 @@ import { InputTimeline, MAX_PREDICTION_MS, correctedPose, poseCorrection, decayC
 import { normalizePassport } from './privacy-data.mjs';
 import { WORLD_RADIUS } from './system-space.mjs';
 import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from './world-content.mjs';
+import { SNAPSHOT_DELTA_VERSION, SnapshotDeltaDecoder } from './snapshot-delta.mjs';
 
 export const MULTIPLAYER_PROTOCOL = 1;
 export const PASSPORT_STORAGE_KEY = 'farwake.multiplayer.passport.v1';
 const copy = value => structuredClone(value);
+const utf8 = new TextEncoder();
 const bounded = (value, low, high) => Math.max(low, Math.min(high, Number(value) || 0));
 const defaultStorage = () => { try { return globalThis.localStorage; } catch { return undefined; } };
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
@@ -64,14 +66,30 @@ export function mergeSnapshot(previous, packet) {
 
 /** Bounded render delay. One peer's late packets never affect another peer's clock. */
 export class RemoteInterpolator {
-  constructor({ delayMs = 100, maxDelayMs = 220 } = {}) { this.delayMs = delayMs; this.maxDelayMs = maxDelayMs; this.jitter = 0; this.lastArrival = null; this.frames = []; }
-  push(snapshot, arrival = Date.now()) {
-    if (this.lastArrival !== null) { this.jitter += (Math.abs(arrival - this.lastArrival - 100) - this.jitter) * .1; this.delayMs = Math.min(this.maxDelayMs, Math.max(100, 100 + this.jitter * 1.6)); }
-    this.lastArrival = arrival;
-    this.frames.push({ at: snapshot.serverTime, remoteShips: copy(snapshot.remoteShips || []), players: copy(snapshot.players || []), roomId: snapshot.room?.id });
-    if (this.frames.length > 24) this.frames.shift();
+  constructor({ delayMs = 100, maxDelayMs = 220 } = {}) {
+    this.maxDelayMs = Math.max(0, maxDelayMs); this.baseDelayMs = bounded(delayMs, 0, this.maxDelayMs); this.frames = []; this.reset();
   }
-  reset() { this.frames.length = 0; this.lastArrival = null; }
+  push(snapshot, arrival = Date.now()) {
+    const at = Number(snapshot.simulatedAt ?? snapshot.serverTime);
+    if (!Number.isFinite(at)) return false;
+    if (this.frames.length && this.frames.at(-1).roomId !== snapshot.room?.id) this.reset();
+    const latest = this.frames.at(-1);
+    if (latest && at < latest.at) return false;
+    const frame = { at, remoteShips: copy(snapshot.remoteShips || []), players: copy(snapshot.players || []), roomId: snapshot.room?.id };
+    // Command results can update metadata without advancing simulation. Keep
+    // their current membership/health, but do not count them as network jitter.
+    if (latest?.at === at) { this.frames[this.frames.length - 1] = frame; return true; }
+    if (this.lastArrival !== null) {
+      const variation = Math.abs((arrival - this.lastArrival) - (at - this.lastSimulatedAt));
+      this.jitter += (variation - this.jitter) * .1;
+      this.delayMs = Math.min(this.maxDelayMs, this.baseDelayMs + this.jitter * 1.6);
+    }
+    this.lastArrival = arrival; this.lastSimulatedAt = at;
+    this.frames.push(frame);
+    if (this.frames.length > 24) this.frames.shift();
+    return true;
+  }
+  reset() { this.frames.length = 0; this.lastArrival = null; this.lastSimulatedAt = null; this.jitter = 0; this.delayMs = this.baseDelayMs; }
   sample(serverNow = Date.now()) {
     if (!this.frames.length) return { remoteShips: [], players: [] };
     const target = serverNow - this.delayMs;
@@ -115,7 +133,8 @@ export class FarwakeNetwork {
     this.socket = null; this.passport = null; this.input = {}; this.seq = 0; this.pending = new Map(); this.unacknowledged = []; this.interpolator = new RemoteInterpolator();
     this.connected = false; this.manualClose = false; this.clockOffset = 0; this.rtt = 0; this.predictedShip = null; this.renderedShip = null; this.visualOffset = zeroCorrection(); this.reconnectAttempt = 0;
     this.now = now; this.wallNow = wallNow; this.inputHistory = new InputTimeline(now()); this.lastInputRecordAt = null;
-    this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null;
+    this.predictedAt = null; this.visualAt = null; this.authorityAt = null; this.predictionReset = null; this.lastInputSentAt = null; this.skippedInputs = 0; this.receivedWindow = [];
+    this.snapshotDecoder = new SnapshotDeltaDecoder(); this.deltaSnapshots = false;
   }
   async connect({ create = false, realmCode, name, realmName, passport, starterShip, startMode, startSystemId, casualCrewCount, galaxySeed, character, openingMission = false, startTogether = false } = {}) {
     this.manualClose = false;
@@ -137,14 +156,15 @@ export class FarwakeNetwork {
     return this._open();
   }
   _open() {
-    clearTimeout(this.reconnectTimer); this._clearTimers();
+    clearTimeout(this.reconnectTimer); this._clearTimers(); this.receivedWindow = []; this.snapshotDecoder.reset(); this.deltaSnapshots = false;
     return new Promise((resolve, reject) => {
       const endpoint = new URL('/ws', this.url); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:';
       const socket = this.socket = new this.WebSocket(endpoint.href);
       let welcomed = false, helloAt = this.now(), helloWall = this.wallNow();
       const timeout = setTimeout(() => { socket.close(); reject(new Error('Timed out while connecting to the realm.')); }, 15000);
-      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, worldContentVersion: WORLD_CONTENT_VERSION, passport: normalizePassport(this.passport) })); });
+      socket.addEventListener('open', () => { helloAt = this.now(); helloWall = this.wallNow(); socket.send(JSON.stringify({ type: 'hello', protocol: MULTIPLAYER_PROTOCOL, worldContentVersion: WORLD_CONTENT_VERSION, snapshotDelta: SNAPSHOT_DELTA_VERSION, passport: normalizePassport(this.passport) })); });
       socket.addEventListener('message', event => {
+        this._recordIncoming(typeof event.data === 'string' ? utf8.encode(event.data).byteLength : event.data?.byteLength || event.data?.size || 0);
         let packet; try { packet = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)); } catch { return; }
         if (packet.type === 'welcome') {
           if (packet.worldContentVersion !== WORLD_CONTENT_VERSION) {
@@ -155,7 +175,7 @@ export class FarwakeNetwork {
           welcomed = true; clearTimeout(timeout); this.connected = true; this.reconnectAttempt = 0; this.seq = packet.ack || 0; this.unacknowledged = [];
           this.rtt = Math.max(0, this.now() - helloAt);
           this.clockOffset = packet.serverTime - (helloWall + this.rtt / 2);
-          this.lastInputSentAt = null; this.interpolator.reset(); this._snapshot(packet, true); this._startTimers(); this.onStatus({ state: 'connected', realm: packet.realm }); resolve(packet);
+          this.lastInputSentAt = null; this.skippedInputs = 0; this.interpolator.reset(); this._snapshot(packet, true); this._startTimers(); this.onStatus({ state: 'connected', realm: packet.realm }); resolve(packet);
         } else if (packet.type === 'snapshot' && welcomed) this._snapshot(packet);
         else if (packet.type === 'result' && welcomed) {
           if (packet.state) this._snapshot(packet);
@@ -187,6 +207,11 @@ export class FarwakeNetwork {
     this.pingTimer = setInterval(() => this._send({ type: 'ping', sentAt: this.wallNow() }), 3000);
   }
   _clearTimers() { clearInterval(this.inputTimer); clearInterval(this.pingTimer); }
+  _recordIncoming(bytes) {
+    const at = this.now(); this.receivedWindow.push({ at, bytes });
+    this._pruneIncoming(at);
+  }
+  _pruneIncoming(at = this.now()) { while (this.receivedWindow.length && this.receivedWindow[0].at <= at - 1000) this.receivedWindow.shift(); }
   _send(packet) { if (this.socket?.readyState === 1) { this.socket.send(JSON.stringify(packet)); return true; } return false; }
   setInput(input = {}, frameSeconds) {
     const now = this.now(); this.input = { ...input };
@@ -195,8 +220,12 @@ export class FarwakeNetwork {
   }
   _sendInput() {
     if (!this.connected) return;
-    const frame = { type: 'input', seq: ++this.seq, input: this.input };
+    // Controls supersede one another. Do not append old steering/fire samples
+    // behind a blocked upload; the next send uses the latest current controls.
+    if (this.socket?.bufferedAmount > 0) { this.skippedInputs++; return; }
+    const frame = { type: 'input', seq: this.seq + 1, input: this.input };
     if (this._send(frame)) {
+      this.seq = frame.seq;
       const now = this.now(), elapsed = this.lastInputSentAt === null ? 0 : Math.max(0, now - this.lastInputSentAt);
       this.unacknowledged.push({ seq: frame.seq, input: { ...this.input }, at: now, dt: elapsed / 1000 }); this.lastInputSentAt = now;
       if (this.unacknowledged.length > 80) this.unacknowledged.shift();
@@ -228,6 +257,11 @@ export class FarwakeNetwork {
     this.renderedShip = correctedPose(this.predictedShip, this.visualOffset, this._radius());
   }
   _snapshot(packet, reset = false) {
+    if (reset) this.snapshotDecoder.reset();
+    const deltaSnapshots = packet.snapshotDelta === SNAPSHOT_DELTA_VERSION;
+    packet = this.snapshotDecoder.decode(packet);
+    if (!packet) return;
+    this.deltaSnapshots = deltaSnapshots;
     if (!packet.state) return;
     if (!reset && this.latest && packet.tick < this.latest.tick) return;
     packet = mergeSnapshot(this.latest, packet);
@@ -252,7 +286,7 @@ export class FarwakeNetwork {
     } else this.visualOffset = poseCorrection(displayed, predicted);
     this.lastRoomId = packet.room?.id; this.predictedShip = predicted; this.predictedAt = this.clampPredictionTime(now); this.visualAt = now;
     this.renderedShip = correctedPose(predicted, this.visualOffset, this._radius());
-    this.interpolator.push(packet); this.onSnapshot(packet);
+    this.interpolator.push(packet, this.wallNow()); this.onSnapshot(packet);
   }
   predictShip(dt, input = this.input) {
     if (!this.predictedShip) return this.state?.ship || null;
@@ -276,5 +310,12 @@ export class FarwakeNetwork {
     this.manualClose = true; this.setInput({}); this._send({ type: 'goodbye' }); clearTimeout(this.reconnectTimer); this._clearTimers(); this.socket?.close(1000, 'Captain disconnected'); this.connected = false;
   }
   exportPassport() { return JSON.stringify(normalizePassport(this.passport), null, 2); }
-  get latency() { return { rtt: this.rtt, interpolationMs: this.interpolator.delayMs, unacknowledgedInputs: this.unacknowledged.length }; }
+  get latency() {
+    const now = this.now(); this._pruneIncoming(now);
+    return { rtt: this.rtt, interpolationMs: this.interpolator.delayMs, unacknowledgedInputs: this.unacknowledged.length,
+      inputBufferedBytes: this.socket?.bufferedAmount || 0, skippedInputs: this.skippedInputs,
+      deltaSnapshots: this.deltaSnapshots,
+      snapshotAgeMs: this.authorityAt === null ? 0 : Math.max(0, now - this.authorityAt),
+      receivedBytesPerSecond: this.receivedWindow.reduce((sum, sample) => sum + sample.bytes, 0) };
+  }
 }

@@ -117,6 +117,22 @@ Each input carries a monotonically increasing sequence number. Snapshots acknowl
 
 Motion packets contain the current ship/person, combat actors, projectiles, resource totals, and compact asteroid state. Journals, full static asteroid geometry, realm rosters, and other slower metadata travel in the full snapshots. `network.mjs` merges these into the same full snapshot object before notifying the app. Reliable ordered WebSocket delivery plus periodic full snapshots make room transitions and reconnections explicit. Congested sockets drop superseded snapshots rather than delaying simulation.
 
+### Incremental updates and congestion (0.37.0)
+
+The browser advertises the optional `snapshotDelta` capability during the authenticated WebSocket hello. The packet protocol remains compatible: clients with the matching world-content revision that do not negotiate deltas receive the existing full and compact packets. Upgraded clients reconstruct the same public snapshot contract before prediction and rendering. This release separately advances world-content revision to 13 for Bellwether's new attacks; clients with an older content revision must refresh.
+
+Incremental packets describe changes to the previous transmitted snapshot. Object deletions, array membership/order, `null` clears, permission changes and room transitions must reconstruct exactly. Sender baselines advance only for sent packets. Decoder baselines are independent of mutable presentation and prediction state. Joining, command results and room changes provide complete baselines, and periodic complete baselines allow recovery after a missing or rejected delta. Full-only metadata continues to be prepared about once per second even when its wire representation is incremental.
+
+Each synchronous realm broadcast shares a neutral world projection and its delta work. Both caches are freshly allocated for that broadcast. Captain-specific Tinbell progress, Crosswind allegiance, ship/room state and permissions are applied separately. Cached views do not alias authoritative objects, and commands never reuse an earlier broadcast cache.
+
+Periodic snapshots are skipped before projection or event draining when the socket already has queued data. This bounds additional stale snapshots; it cannot recall bytes already handed to TCP or remove actual network travel time. Continuous browser inputs likewise wait for their outgoing queue to clear and then send the current controls. Input sequence numbers advance only when a frame is sent. Commands and confirmed action results retain their reliable, durable behavior.
+
+Remote interpolation compares arrival intervals with actual simulation-time intervals. Extra command responses at the same simulation timestamp replace that pose without manufacturing jitter. Reconnects and room transitions reset the smoothing estimate. Local movement prediction, authority collisions, input expiry and per-captain action validation remain the same.
+
+Settings → Performance reports round-trip ping, server update frequency/gaps, current update age, remote smoothing, incoming bytes and queued/skipped controls. These measurements stay in the browser. `/healthz` includes a bounded ten-second aggregate `performance` summary: simulation rate, tick work, snapshot work/bytes, scheduling delay and congestion skips. It carries no captain IDs, realm codes, credentials, inputs or saved state.
+
+The reproducible local comparison is `node scripts/benchmark-network.mjs --baseline-ref=dc4d651 --repeats=3 --samples=120`. With four simulated clients, warmed median aggregate traffic fell from 1,086,404 to 326,163 bytes/second in Hearth (70.0%), 4,466,289 to 994,965 in Crosswind (77.7%), and 1,018,157 to 145,865 aboard a shared Judicator with 20 NPCs (85.7%). Snapshot construction plus encoding took 6.4% less time in Hearth, 41.2% less in Crosswind, and effectively the same time aboard the shared capital ship. The baseline uses the preceding snapshot projection against identical simulated state, with current simulation helpers. These fixtures exclude socket transmission, persistence, browser rendering and Internet travel time; they do not measure player RTT or FPS. The equivalent GitHub baseline is `983429f`; use that revision when running from `games/farwake` in the wider repository. Omitting the flag compares current uncached legacy packets.
+
 Interest management is by star system and by character location/interior. Space views receive ships in that star system. A crew deck receives its local people and combat actors; it does not receive another deck's detailed character movement. Realm-wide presence is coarse: names, online state, system, room, and vessel. It does not contain remote surface coordinates. No public chat is implemented.
 
 One `Game` vessel actor advances each physical vessel. A separate system coordinator calls `stepWorld` **once per occupied star system**, with all physical vessels as targets and individual captains as reward recipients. Ten humans on one capital therefore do not advance NPCs or projectiles ten times. Their person movement remains independent.
@@ -198,6 +214,8 @@ Authority commands include flight transitions (`dock`, `launch`, `travel`), inte
 | `server/persistence.mjs` | Versioned development files and authenticated gateway adapter. |
 | `server/protocol.mjs` | Protocol constants, input sanitization, random credentials, token hashing, rate limits. |
 | `dist/network.mjs` | Browser transport, passport storage, reconciliation, interpolation, compact snapshot reconstruction. |
+| `dist/snapshot-delta.mjs` | Negotiated incremental snapshot encoding and immutable reconstruction. |
+| `server/performance.mjs` | Bounded aggregate simulation, scheduling and transport measurements. |
 | `dist/engine.mjs`, `dist/fleet.mjs` | Shared game rules, per-vessel simulation, once-per-system world simulation, pure flight physics. |
 | `dist/surface.mjs`, `dist/interior-layouts.mjs` | Shared collision and authoritative entity/console/bunk coordinates. |
 | `dist/military-career.mjs`, `dist/military-content.mjs`, `dist/military-sites.mjs` | Authored career/standing orders, personal evidence and debriefs, Army sites and transport. |

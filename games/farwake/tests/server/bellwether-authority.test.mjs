@@ -95,3 +95,37 @@ test('the authority ignores client damage and weapon claims and exposes no reset
  assert.equal((await f.realm.command(captain,'resetSiteBoss',{key})).ok,false);assert.equal(state.monsters[0].health,health);assert.equal(state.time,time);
  assert.equal((await f.realm.command(captain,'enterSite',{siteId:'hollow'})).ok,false,'entering again from inside cannot reset wounds');assert.equal(state.monsters[0].health,health);
 });
+
+test('one or four captains see the same shockwave and a saved impact cannot strike twice',async()=>{
+ const outcomes=[];
+ for(const count of [1,4]){
+  const f=await fixture(count),encounter=await enterAll(f),boss=encounter.monsters[0];boss.attackSerial=2;
+  for(const captain of f.captains)Object.assign(captain.game.state.person,point(27,11));
+  tick(f.realm);assert.equal(boss.bossAttack,'shockwave');assert.equal(boss.phase,'windup');
+  for(const captain of f.captains){const view=f.realm.snapshotFor(captain,{compact:true}).state.exploration.encounter.monsters[0];assert.equal(view.bossAttack,'shockwave');assert.equal(view.shockwaveRadius,boss.shockwaveRadius);assert.equal(view.attackUntil,boss.attackUntil);}
+  for(let frame=0;frame<50&&boss.phase==='windup';frame++)tick(f.realm);
+  assert.equal(boss.phase,'strike');
+  for(const captain of f.captains){assert.equal(captain.game.state.person.health,56);const events=f.realm.snapshotFor(captain).events;assert.equal(events.filter(event=>event.type==='person-hit'&&event.targetId===captain.id&&event.weaponId==='bellwether-shockwave').length,1);}
+  outcomes.push({time:encounter.time,phase:boss.phase,remaining:boss.strikeRemaining,health:boss.health});
+  const resumed=await restart(f);tick(resumed.realm,new Map(),5);
+  for(const captain of resumed.captains){assert.equal(captain.game.state.person.health,56);assert.ok(!resumed.realm.snapshotFor(captain).events.some(event=>event.weaponId==='bellwether-shockwave'),'restored visual tail never deals another hit');}
+ }
+ assert.deepEqual(outcomes[0],outcomes[1],'additional captains do not accelerate phases or multiply boss simulation');
+});
+
+test('disconnected captains receive no historical attack tells and a reset clears pending cues from the old attempt',async()=>{
+ const f=await fixture(),[one,two]=f.captains,encounter=await enterAll(f),boss=encounter.monsters[0];
+ f.realm.detach(one,one.session);boss.attackSerial=2;Object.assign(two.game.state.person,point(27,11));tick(f.realm);
+ assert.equal(boss.bossAttack,'shockwave');assert.equal(boss.phase,'windup');
+ assert.ok(f.realm.snapshotFor(two).events.some(event=>event.type==='bellwether-attack'&&event.phase==='tell'));
+ ok(f.realm.attach(one,{close(){}}));
+ assert.ok(!f.realm.snapshotFor(one).events.some(event=>event.type==='bellwether-attack'),'an absent captain cannot accumulate another captain’s tells');
+ for(let frame=0;frame<200&&boss.attackSerial<4;frame++)tick(f.realm);
+ assert.equal(boss.bossAttack,'rockfall');assert.equal(boss.phase,'windup');
+ const pending=one.events.find(event=>event.type==='bellwether-attack'&&event.phase==='tell');assert.ok(pending);
+ one.game.events.push({...pending});
+ f.realm.detach(one,one.session);f.realm.detach(two,two.session);
+ assert.equal(boss.phase,'dormant');assert.equal(encounter.attemptSerial,1);
+ assert.ok(!one.events.some(event=>event.type==='bellwether-attack'));assert.ok(!one.game.events.some(event=>event.type==='bellwether-attack'));
+ ok(f.realm.attach(one,{close(){}}));assert.ok(!f.realm.snapshotFor(one).events.some(event=>event.type==='bellwether-attack'));
+});

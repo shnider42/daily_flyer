@@ -12,7 +12,7 @@ The existing nine biological IDs remain valid. Six additions fill different visu
 | --- | --- | --- | --- |
 | Stoneback | Low broad body and layered shell | Braces its front for a short slam; moving around the planted front matters. | Mineral seams and sheltered rock; can be unprovoked. |
 | Cave skitter | Small body and many legs | Quick two-part bite; the first pause is not the recovery window. | Scavenging around roots, caves and service debris. |
-| The Bellwether | Massive pale hunter | Its existing committed lunge and authored boss rules remain separate. | The named Tinbell encounter only. |
+| The Bellwether | Pale hooked limbs, a split stone crown and a hollow toothed throat | Committed charge, resonant shockwave and marked rockfall; its wounded phase opens the shell and adds pressure. | The named Tinbell encounter only. |
 | Reedstalker | Long legs and a sensory crest | Approaches from the flank before a pounce. | Root corridors, wetlands and interrupted migration routes. |
 | Mire spitter | Squat body and expanding throat sac | Aimed spit rewards moving sideways after it commits or using cover. | Still pools and damp feeding shelves. |
 | Shardling | Angular mineral-crusted body | A spreading shard fan threatens more than one center line. | Crystal pockets in limestone or ice. |
@@ -65,6 +65,26 @@ Tinbell's established sight range and Relay Nine's suit lamp, fog and restored l
 Most new caves use clear visibility. Selected root grottos have a closed, misty canopy, and selected glacial caves have a deep shaft with failed survey lamps. Those conditions use local sight; they are selected independently of the population, so a restricted cave can also be empty or peaceful. Limestone skylights, tidal sea arches and lava-tube vent glow keep their current clear visibility.
 
 The field guide explains how to react to visible attacks without listing undiscovered creatures or revealing an upcoming encounter. Simple guidance should clarify movement, available actions and an escape route, rather than requiring the player to read an encyclopedia during combat.
+
+## Tinbell's Bellwether
+
+The Bellwether remains one optional, authored predator in Tinbell Hollow. Its larger pale hooked silhouette, widening throat and splitting stone crown make its current action visible; they do not add creatures or enlarge the collision hull. The encounter still begins only when a living captain actually sees it through the existing fog and solid-rock sight checks. A shared first scream does not reveal its identity, health bar, attack labels or boss music to a captain who remains behind cover.
+
+The encounter starts with two committed charges and then develops into a repeating charge, charge, shockwave and rockfall sequence. Each attack plants the creature during its warning and leaves a recovery window. The short guidance beside a visible creature states the needed movement.
+
+| Attack | Readable warning | Response and recovery |
+| --- | --- | --- |
+| Committed charge | A crouch, low throat cue and wall-limited lane for 0.8 seconds | Move sideways after the direction locks. The charge stops at solid rock and leaves 1.1 seconds of recovery. |
+| Resonant shockwave | A raised, widening throat and a marked 124-unit radius for 1.3 seconds | Get completely outside the ring or behind solid rock. The impact occurs once, followed by a brief visible ripple and 1.3 seconds of recovery. |
+| Rockfall | Crown rattle, falling dust and a 30-unit circle fixed on the captain's position for 1.1 seconds | Move off the marked ground; it cannot follow the captain. The rubble impact occurs once and leaves 1.4 seconds of recovery. |
+
+At 45% health, the shell opens, the creature pursues slightly faster, and rockfall can add one separated mark ahead of the original target when the floor and sight line allow it. The warning times remain unchanged. Overlapping marks can never hit the same captain twice in one attack. This is an escalation of the same creature, with no summoned animals or unavoidable damage pulse.
+
+The existing health, armor and weapon progression remain: an early sidearm attempt is very difficult, while earned weapons substantially shorten the fight. Retreat is valid. Leaving, disconnecting or losing the last living participant resets an unfinished attempt; an ally still inside keeps it active. Active saves retain wounds, attack kind, committed targets and remaining phase time. A saved impact tail is presentation only and cannot apply damage again. Defeat remains permanent, and old cache claims cannot pay twice. Boss state version 2 adds these phases without replacing the actor or changing its stable encounter ID.
+
+The same authority steps the encounter once for one or four captains. Attack cues have attempt-specific identities, are filtered by local visibility, and cannot build up for disconnected captains or survive a reset. Reduced motion retains the warning geometry while freezing decorative motion. See [music direction](music-direction.md) for the locally observed engagement and recorded boss score; music does not itself discover the creature.
+
+Boss music remains limited to the existing Bellwether and Floodworks Foreman encounters. This release adds no boss placements. Ordinary cavern wildlife, prism sentinels and Relay Nine's creatures keep their existing ecology and mission pacing.
 
 ## Relay Nine stays a paced mission
 

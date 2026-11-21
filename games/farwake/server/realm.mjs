@@ -450,11 +450,11 @@ export class Realm extends BoardingAuthority {
     if(!encounter?.monsters?.some(isBellwether)&&!encounter?.field?.foreman)return false;
     if([...this.captains.values()].some(c=>c.session&&c.game.state.exploration?.key===key&&c.game.state.person.health>0&&!c.game.state.person.down))return false;
     const changed=resetSiteBoss(encounter);
-    // A disconnected client must not replay an earlier attempt's scream when
+    // A disconnected client must not replay an earlier attempt's boss cues when
     // it reconnects after the creature has already gone dormant again.
     for(const captain of this.captains.values()){
-      captain.events=captain.events.filter(event=>event.type!=='monster-revealed'||event.siteId!==encounter.id);
-      captain.game.events=captain.game.events.filter(event=>event.type!=='monster-revealed'||event.siteId!==encounter.id);
+      captain.events=captain.events.filter(event=>!['monster-revealed','bellwether-attack'].includes(event.type)||event.siteId!==encounter.id);
+      captain.game.events=captain.game.events.filter(event=>!['monster-revealed','bellwether-attack'].includes(event.type)||event.siteId!==encounter.id);
     }
     return changed;
   }
@@ -477,7 +477,7 @@ export class Realm extends BoardingAuthority {
       const events=stepSiteEncounter(encounter,participants.map(c=>c.game.explorationParticipant(c.appliedInput||EMPTY_INPUT)),dt,surface);
       if(encounter.warzoneGround)encounter.warzoneGround.lastActiveAt=now();
       for(const captain of crew){
-        const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>!['monster-revealed','quiet-earth-beat'].includes(event.type)));
+        const game=captain.game;game.recordExplorationEvents(captain.session?events:events.filter(event=>!['monster-revealed','bellwether-attack','quiet-earth-beat'].includes(event.type)));
         if(military&&captain.session&&game.state.person.health>0&&!game.state.person.down){
           game.recordMilitaryFieldPresence?.(dt);
           const operation=this._militaryOperation(captain),site=game.state.interior?.location?.site;
@@ -1659,7 +1659,7 @@ export class Realm extends BoardingAuthority {
       canReturn: viewer.aboard === vessel.id && this._canReturn(viewer), boardingAction: this._boardingAction(viewer, { vessel }),
       npcContractId:vessel.npcContractId||null, grantedRoles: viewer.id === owner.id && !vessel.npcContractId ? [...STATION_ROLES] : vessel.grants[viewer.id]?.roles || [], ...(viewer.id === owner.id && !vessel.npcContractId ? { grants: clone(vessel.grants) } : {}) };
   }
-  snapshotFor(c, { drainEvents = true, compact = false } = {}) {
+  snapshotFor(c, { drainEvents = true, compact = false, worldViews = null } = {}) {
     const timestamp = now(), room = this.roomInfo(c), vessel = this.vessels.get(c.aboard || c.portVesselId || c.ownedVesselId), ownState = c.game.state;
     if (vessel) this._syncCasualCrew(vessel);
     const exteriorGunnery=this._gunneryActive(c,c.aboard?this.vessels.get(c.aboard):null);
@@ -1677,7 +1677,6 @@ export class Realm extends BoardingAuthority {
       state.worlds = { [state.systemId]: clone(publicRecord) };
       if (aboardOwner) {
         state.crew = clone(this._crewFor(vessel));
-        if (state.interior?.kind === 'ship') state.interior.location = clone(this._locationForVessel(vessel, c));
       }
 
     }
@@ -1711,21 +1710,33 @@ export class Realm extends BoardingAuthority {
     // current, explicitly targeted danger so their score follows the same
     // attack as the pilot's without exposing distant actors or planned events.
     state.musicThreat = c.aboard ? occupiedVesselThreats(relevantWorld, ship, c.id) : null;
-    let world;
-    if (compact) {
-      world = clone(Object.fromEntries(MOTION_WORLD_FIELDS.filter(key=>key!=='warzone').map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));
-      world.asteroidStates = inSpace ? relevantWorld.asteroids.map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) : [];
-    } else if (inSpace) {const {warzone,...publicWorld}=relevantWorld;world=clone(publicWorld);}
-    else {
-      const { asteroids, enemies, bullets, pickups, traffic, signals, warzone, ...metadata } = relevantWorld;
-      world = clone({ ...metadata, asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] });
+    // The broadcaster may reuse neutral world data only within this one
+    // synchronous batch. It creates a fresh map after every simulation pass;
+    // commands and standalone snapshots do not keep or use this cache.
+    const worldViewKey = `${compact}:${inSpace}`;
+    let commonWorld = worldViews?.get(relevantWorld)?.get(worldViewKey);
+    if (!commonWorld) {
+      if (compact) {
+        commonWorld = clone(Object.fromEntries(MOTION_WORLD_FIELDS.filter(key=>key!=='warzone').map(key => [key, inSpace || key.startsWith('mining') ? relevantWorld[key] : []])));
+        commonWorld.asteroidStates = inSpace ? relevantWorld.asteroids.map(rock => [rock.id, Math.round(rock.angle * 1000) / 1000, rock.hp, rock.ore, rock.crystal]) : [];
+      } else if (inSpace) {const {warzone,...publicWorld}=relevantWorld;commonWorld=clone(publicWorld);}
+      else {
+        const { asteroids, enemies, bullets, pickups, traffic, signals, warzone, ...metadata } = relevantWorld;
+        commonWorld = clone({ ...metadata, asteroids: [], enemies: [], bullets: [], pickups: [], traffic: [], signals: [] });
+      }
+      commonWorld.enemies = (commonWorld.enemies || []).filter(enemy => !enemy.canonicalVesselId && !enemy.promotedVesselId);
+      if (worldViews) {
+        if (!worldViews.has(relevantWorld)) worldViews.set(relevantWorld, new Map());
+        worldViews.get(relevantWorld).set(worldViewKey, commonWorld);
+      }
     }
+    // Captain-specific signal progress and allegiance never enter the shared
+    // projection. The common tree is already detached from authority state.
+    const world = { ...commonWorld, signals: commonWorld.signals.map(signal => signal.id === 'hearth:story:tinbell' ? { ...signal, resolved: c.game.hasFlag('belt_signal_scanned') } : signal) };
     const fleetController=c.aboard&&vessel?(this.captains.get(vessel.helmOwner)||this.captains.get(vessel.occupation?.controllerId)||this.captains.get(vessel.ownerId)):c;
     world.warzone=warzoneSpaceView(relevantWorld,{factionId:fleetController?.game.warzoneFaction(),hostileFactions:[...(vessel?.warzoneHostileFactions||[]),...(fleetController?.game.warzoneHostilities()||[])]});
     if(!inSpace&&world.warzone){world.warzone.projectiles=[];world.warzone.effects=[];}
     if(state.exploration?.encounter?.warzoneGround)state.exploration.encounter=warzoneGroundView(ownState.exploration.encounter,{factionId:c.game.warzoneFaction(),hostileFactions:c.game.warzoneHostilities()});
-    world.enemies = (world.enemies || []).filter(enemy => !enemy.canonicalVesselId && !enemy.promotedVesselId);
-    for (const signal of world.signals) if (signal.id === 'hearth:story:tinbell') signal.resolved = c.game.hasFlag('belt_signal_scanned');
     const players = room.kind === 'system' ? [] : [...this.captains.values()].filter(other => other.id !== c.id && (other.session || other.aboard || other.home) && (other.game.state.mode === 'person' && this.roomInfo(other).id === room.id || ['ship', 'boarding'].includes(room.kind) && other.aboard === c.aboard && this._helm(other, vessel))).map(other => {
       const person = this._publicCaptain(other, c);
       // The space camera does not remove the pilot's body from this deck.

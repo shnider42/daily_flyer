@@ -159,3 +159,30 @@ test('the charge tell is fixed under reduced motion and stops at the boss footpr
   const lane = render(1).filter(rect => rect[0] === '#72554b');
   assert.ok(lane.length > 0); assert.ok(lane.every(rect => rect[2] >= boss.x - length - 1), 'no warning pixels project beyond the physical stopping point');
 });
+
+test('area attack warnings match their fixed footprints, respect cover and never reveal an occluded boss', () => {
+  const { surface, encounter, boss, person } = fixture(), observer = { ...person, ...point(27, 11) };
+  const render = (viewer, monsters, combatTime = 1) => {
+    const ctx = new RecordingContext(), labels = [];
+    drawSurface(ctx, surface, { person: viewer, width: 1008, height: 768, cameraX: 0, cameraY: 0,
+      exploration: { ...encounter, monsters }, labels, time: 0, combatTime, reduceMotion: true });
+    return { rects: ctx.rects, labels };
+  };
+  for (const [kind, hint] of [['shockwave', 'Outside the ring'], ['rockfall', 'Move off the marks']]) {
+    Object.assign(boss, { phase: 'windup', windup: 1, bossAttack: kind, attackTargets: [point(27, 11)], enraged: true });
+    assert.deepEqual(render(person, [boss]), render(person, []), 'a hidden area tell cannot leak pixels or a label through fog');
+    const visible = render(observer, [boss]);
+    assert.deepEqual(visible, render(observer, [boss], 2.7), 'reduced motion retains a stable warning for either attack');
+    assert.ok(visible.labels.some(label => label.kind === 'combat-warning' && label.text === hint));
+    const center = kind === 'shockwave' ? boss : boss.attackTargets[0], radius = kind === 'shockwave' ? boss.shockwaveRadius : boss.rockfallRadius;
+    const ring = visible.rects.filter(rect => rect[0] === '#e0b77c');assert.ok(ring.length > 10);
+    for (const rect of ring) {
+      const p = { x: rect[2] + rect[4] / 2, y: rect[3] + rect[5] / 2 };
+      assert.ok(Math.abs(Math.hypot(p.x - center.x, p.y - center.y) - radius) < 1);
+      assert.equal(clearSidearmSight(surface.combatLayout, boss, p), true, 'solid cover clips the dangerous boundary');
+    }
+    const event = { type: 'bellwether-attack', siteId: encounter.id, actorId: boss.id, kind, phase: 'tell' }, options = { surface, actors: [boss] };
+    assert.equal(visibleSiteCombatEvent(event, { ...options, observer: person }), null);
+    assert.equal(visibleSiteCombatEvent(event, { ...options, observer }), event);
+  }
+});

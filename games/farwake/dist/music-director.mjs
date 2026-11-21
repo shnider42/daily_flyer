@@ -44,6 +44,7 @@ export class MusicDirector {
     this.placeKey = null; this.placeFamily = null; this.placeProfile = null;
     this.transitionKey = null; this.transitionAt = Infinity;
     this.crosswindBag = []; this.lastCrosswindCue = null; this.warzoneActive = false;
+    this.bossKey = null;
   }
 
   random() {
@@ -100,6 +101,13 @@ export class MusicDirector {
   select(family, now, context) {
     let pool = this.cues.filter(cue => family === 'corridor' ? cue.tags?.includes('long-corridor') : cue.family === family);
     const tags = context.tags || [];
+    if (family === 'combat' && context.bossActive) {
+      const bossCue = pool.find(cue => cue.tags?.includes('boss'));
+      if (bossCue) return bossCue;
+    }
+    // A boss recording never becomes a generic combat fallback, even when
+    // every ordinary cue is on cooldown or the captain has been fighting long.
+    pool = pool.filter(cue => !cue.tags?.includes('boss'));
     if (family === 'combat' && context.musicPlace === 'crosswind') {
       pool = pool.filter(cue => cue.tags?.includes('crosswind'));
       if (!pool.length) return null;
@@ -232,13 +240,21 @@ export class MusicDirector {
       this.suppressed = false; this.suspended = false;
       this.nextMusicAt = now + 3;
     }
-    if (context.observedThreat || context.combat || context.pursuit) this.combatUntil = now + 14;
+    const candidateBossKey = context.scene !== 'menu' && typeof context.bossEncounterKey === 'string'
+      ? context.bossEncounterKey : null;
+    const previousBossKey = this.bossKey;
+    if (candidateBossKey !== this.bossKey) this.bossKey = context.bossObserved ? candidateBossKey : null;
+    const boss = !!this.bossKey;
+    if (previousBossKey && !boss && !context.observedThreat && !context.combat && !context.pursuit && !context.emergency) {
+      this.combatUntil = now; this.terrorUntil = now;
+    }
+    if (boss || context.observedThreat || context.combat || context.pursuit) this.combatUntil = now + 14;
     if (context.tension) this.tensionUntil = now + 9;
     if (context.silence) {
       this.current = null; this.nextMusicAt = now + 12;
       return this.decision('silence', duck, .8);
     }
-    const inGame = context.scene !== 'menu', crosswind = this.warzoneActive;
+    const inGame = context.scene !== 'menu', crosswind = this.warzoneActive && !boss;
     const placeFamily = ambientFamily(context), placeKey = `${placeFamily}:${context.paletteKey || context.contextKey || 'open-sky'}`;
     const changedPlace = this.placeKey !== null && this.placeKey !== placeKey;
     const transitionSeconds = placeFamily === 'corridor' || this.placeFamily === 'corridor' ? 1.5 : LOCATION_TRANSITION_SECONDS;
@@ -305,6 +321,9 @@ export class MusicDirector {
       : !inGame ? 'theme' : placeFamily === 'corridor' ? placeFamily
       : now < this.discoveryUntil || context.scene === 'discovery' ? 'discovery'
       : placeFamily;
+    if (this.current && !this.current.preview && !!this.current.cue.tags?.includes('boss') !== boss) {
+      this.current = null; this.nextMusicAt = now;
+    }
     if (this.current && !this.current.preview && !!this.current.cue.tags?.includes('crosswind') !== crosswind) {
       this.current = null; this.nextMusicAt = now;
     }
@@ -329,7 +348,7 @@ export class MusicDirector {
         if (!this.themePlayed) this.begin(this.cues.find(cue => cue.id === this.themeId), now, context);
         else { mood = 'silence'; this.nextMusicAt = now + 15; }
       } else if (!context.paused || underPressure) {
-        const cue = this.select(mood, now, context);
+        const cue = this.select(mood, now, { ...context, bossActive: boss });
         if (cue) this.begin(cue, now, context, { fast: danger(mood), mood });
         else this.nextMusicAt = now + 12;
       }

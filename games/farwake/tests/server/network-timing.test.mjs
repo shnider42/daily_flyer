@@ -50,12 +50,29 @@ test('direct motion snapshots match the established compact protocol in space an
   // Both encodings describe the same observation time. Resident routines carry
   // a wall-clock sample alongside the existing packet timestamp.
   const snapshotAt = Date.now(); t.mock.method(Date, 'now', () => snapshotAt);
-  for (const cabin of [false, true]) {
-    if (cabin) realm._cabin(captain, realm.vessels.get(captain.ownedVesselId));
+  const vessel = realm.vessels.get(captain.ownedVesselId), locationForVessel = realm._locationForVessel.bind(realm);
+  let locationProjections = 0;
+  realm._locationForVessel = (...args) => { locationProjections++; return locationForVessel(...args); };
+  for (const view of ['space', 'cabin', 'refitted-cabin']) {
+    if (view === 'cabin') realm._cabin(captain, vessel);
+    if (view === 'refitted-cabin') {
+      // A refit can occur without advancing the simulation tick. Both packet
+      // shapes must replace the old stored deck descriptor immediately.
+      captain.game.state.ship.classId = 'hauler'; captain.game._updateStats(false);
+      vessel.name = 'Refitted test vessel';
+    }
+    locationProjections = 0;
     const full = realm.snapshotFor(captain, { drainEvents: false });
+    const fullProjections = locationProjections;
+    locationProjections = 0;
     const motion = realm.snapshotFor(captain, { drainEvents: false, compact: true });
+    assert.equal(fullProjections, locationProjections, 'Full metadata must not rebuild a deck descriptor that the common snapshot projection replaces.');
     const oldShape = compactSnapshot(full); oldShape.serverTime = motion.serverTime;
     assert.deepEqual(motion, oldShape);
+    if (view !== 'space') {
+      assert.equal(full.state.interior.location.shipClassId, vessel.ship.classId);
+      assert.equal(full.state.interior.location.vesselName, vessel.name);
+    }
     assert.equal(motion.simulatedAt, stamp); assert.ok(motion.simulatedAt <= motion.serverTime);
     assert.equal(motion.state.journal, undefined); assert.equal(motion.state.worlds, undefined);
     assert.equal(motion.fleet, undefined); assert.equal(motion.presence, undefined);

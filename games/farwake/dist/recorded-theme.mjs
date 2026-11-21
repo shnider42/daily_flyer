@@ -11,9 +11,16 @@ export const MORROW_FLIGHTLINE = Object.freeze({
   tags: Object.freeze(['long-corridor', 'ground', 'flight']), intensity: .64,
 });
 
+export const FARWAKE_V33B = Object.freeze({
+  id: 'farwake-v33b', title: 'Farwake V33B — Triplets & Clean Ending', family: 'combat',
+  durationSeconds: 141.177, cooldownSeconds: 240,
+  tags: Object.freeze(['boss', 'ground']), intensity: .82,
+});
+
 export const RECORDED_MUSIC = Object.freeze([
   { cue: MENU_THEME, url: new URL('./music/shnider-menu-theme.m4a', import.meta.url).href },
   { cue: MORROW_FLIGHTLINE, url: new URL('./music/morrow-flightline-loop.m4a', import.meta.url).href },
+  { cue: FARWAKE_V33B, url: new URL('./music/farwake-v33b-triplets-clean-ending.m4a', import.meta.url).href },
 ]);
 const seconds = value => Number.isFinite(value) ? Math.max(0, value) : 0;
 

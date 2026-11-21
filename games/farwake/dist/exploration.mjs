@@ -21,7 +21,9 @@ const pt=(x,y)=>({x:(x+.5)*TILE,y:(y+.5)*TILE});
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const reward=(credits=0,ore=0,crystal=0,heal=0)=>({credits,ore,crystal,heal});
 export const BELLWETHER_ID='tinbell:site:hollow:bellwether';
-export const BELLWETHER_PROFILE=Object.freeze({health:1500,armor:20,damage:58,speed:208,sightRange:230,radius:14,hitRadius:16,lungeSpeed:360,lungeRange:400,lungeTriggerRange:64,windupDuration:.8,recoveryDuration:1.1});
+export const BELLWETHER_PROFILE=Object.freeze({health:1500,armor:20,damage:58,speed:208,sightRange:230,radius:14,hitRadius:16,lungeSpeed:360,lungeRange:400,lungeTriggerRange:64,windupDuration:.8,recoveryDuration:1.1,
+ shockwaveRadius:124,shockwaveDamage:44,shockwaveWindup:1.3,rockfallRadius:30,rockfallDamage:46,rockfallWindup:1.1,enrageHealthFraction:.45,enrageSpeed:224});
+const BELLWETHER_ATTACKS=Object.freeze({lunge:{windup:.8,recovery:1.1},shockwave:{windup:1.3,recovery:1.3},rockfall:{windup:1.1,recovery:1.4}});
 export const isBellwether=monster=>monster?.id===BELLWETHER_ID&&monster.species==='bellwether';
 const isBellwetherSite=site=>site?.bodyId==='tinbell'&&site.id==='hollow';
 const serial=value=>Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(finite(value))));
@@ -64,15 +66,21 @@ export function explorationLocation(body,siteId,seed='farwake'){
 }
 const monsterTemplate=(site,index)=>site.expedition?storyMonsterTemplate(site,index):site.military&&site.hostiles?.[index]?{...site.hostiles[index],id:`${site.key}:infantry:${site.hostiles[index].id}`,cooldown:.8+index*.25,windup:0,alert:false,facing:'left'}:configureCreature({id:`${site.key}:wildlife:${index}`,name:site.kind==='conservatory'?(index?'Glass skitter':'Root grazer'):site.kind==='laboratory'?(index?'Vent skitter':'Filter crawler'):index?'Cave skitter':'Stoneback',species:index?'skitter':'stoneback',team:'hostile',hostile:true,x:pt(index?30:25,index?22:14).x,y:pt(index?30:25,index?22:14).y,health:index?48:96,maxHealth:index?48:96,speed:index?64:42,damage:index?9:16,range:25,cooldown:0,windup:0,alert:false,facing:'left',color:site.kind==='conservatory'?(index?'#b6b7d1':'#86b6aa'):index?'#a7b391':'#a5967e'});
 const bellwetherTemplate=()=>({id:BELLWETHER_ID,name:'The Bellwether',species:'bellwether',team:'hostile',hostile:true,...BELLWETHER_PROFILE,...pt(27,7),maxHealth:BELLWETHER_PROFILE.health,
- range:26,status:'alive',concealed:true,hidden:true,revealed:false,alert:false,phase:'dormant',facing:'left',color:'#929185',moving:false,windup:0,cooldown:0,recovery:0,lungeRemaining:0,lungeHitIds:[],aimAngle:Math.PI,attackUntil:0,hitUntil:0,lastHitBy:null,targetId:null});
+ range:26,status:'alive',concealed:true,hidden:true,revealed:false,alert:false,phase:'dormant',facing:'left',color:'#929185',moving:false,windup:0,cooldown:0,recovery:0,lungeRemaining:0,lungeHitIds:[],aimAngle:Math.PI,attackUntil:0,hitUntil:0,lastHitBy:null,targetId:null,
+ bossAttack:'lunge',attackSerial:0,attackTargets:[],strikeRemaining:0,enraged:false});
 function restoreBellwether(raw,site,time,attemptSerial,revealSerial){
  const base=bellwetherTemplate();if(!raw)return{...base,attemptSerial,revealSerial};
  const health=clamp(finite(raw.health,base.health),0,base.maxHealth),dead=health<=0,revealed=dead||raw.revealed===true||raw.alert===true;
- const phase=dead?'dead':!revealed?'dormant':['chase','windup','lunge','recovery'].includes(raw.phase)?raw.phase:'chase';
- const windup=phase==='windup'?clamp(finite(raw.windup),0,base.windupDuration):0,recovery=phase==='recovery'?clamp(finite(raw.recovery),0,base.recoveryDuration):0;
+ const bossAttack=Object.hasOwn(BELLWETHER_ATTACKS,raw.bossAttack)?raw.bossAttack:'lunge',timing=BELLWETHER_ATTACKS[bossAttack];
+ let phase=dead?'dead':!revealed?'dormant':['chase','windup','lunge','strike','recovery'].includes(raw.phase)?raw.phase:'chase';
+ const attackTargets=(Array.isArray(raw.attackTargets)?raw.attackTargets:[]).filter(point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y)).slice(0,2).map(point=>({x:clamp(point.x,TILE,site.cols*TILE-TILE),y:clamp(point.y,TILE,site.rows*TILE-TILE)}));
+ if(phase==='lunge'&&bossAttack!=='lunge'||phase==='strike'&&bossAttack==='lunge'||phase==='windup'&&bossAttack==='rockfall'&&!attackTargets.length)phase='chase';
+ const windup=phase==='windup'?clamp(finite(raw.windup),0,timing.windup):0,recovery=phase==='recovery'?clamp(finite(raw.recovery),0,timing.recovery):0,strikeRemaining=phase==='strike'?clamp(finite(raw.strikeRemaining),0,.35):0;
+ const enraged=health>0&&health<=base.maxHealth*base.enrageHealthFraction;
  return{...base,x:clamp(finite(raw.x,base.x),TILE,site.cols*TILE-TILE),y:clamp(finite(raw.y,base.y),TILE,site.rows*TILE-TILE),health,status:dead?'dead':'alive',revealed,hidden:!revealed,alert:revealed&&!dead,phase,windup,recovery,
   lungeRemaining:phase==='lunge'?clamp(finite(raw.lungeRemaining),0,base.lungeRange):0,lungeHitIds:phase==='lunge'?[...new Set((Array.isArray(raw.lungeHitIds)?raw.lungeHitIds:[]).filter(id=>typeof id==='string'&&id.length<=80))].slice(0,10):[],
-  aimAngle:finite(raw.aimAngle,base.aimAngle),attackUntil:phase==='windup'?time+windup:phase==='lunge'?time+clamp(finite(raw.lungeRemaining),0,base.lungeRange)/base.lungeSpeed:0,
+  bossAttack,attackSerial:serial(raw.attackSerial),attackTargets:dead?[]:attackTargets,strikeRemaining,enraged,speed:enraged?base.enrageSpeed:base.speed,
+  aimAngle:finite(raw.aimAngle,base.aimAngle),attackUntil:phase==='windup'?time+windup:phase==='lunge'?time+clamp(finite(raw.lungeRemaining),0,base.lungeRange)/base.lungeSpeed:phase==='strike'?time+strikeRemaining:0,
   lastHitBy:typeof raw.lastHitBy==='string'?raw.lastHitBy.slice(0,80):null,targetId:typeof raw.targetId==='string'?raw.targetId.slice(0,80):null,attemptSerial,revealSerial};
 }
 /** Restore only authored monsters and known claim IDs; arbitrary save data cannot mint loot. */
@@ -95,7 +103,7 @@ export function createSiteState(site,saved={}){
  if(watch)watch.completed=watch.elapsed+1e-6>=site.watch.seconds&&monsters.every(monster=>monster.health<=0);
  const choices={};for(const choice of site.choices){const chosen=prior.choices?.[choice.id];if(choice.puzzle?chosen==='complete':choice.options.some(option=>option.id===chosen))choices[choice.id]=chosen;}
  const field=isFieldSite(site)?normalizeFieldState(site,prior.field):null;
- const state={id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.expedition?{story:normalizeStoryState(site,prior.story)}:{}),...(field?{field}:{}),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{},...(watch?{watch}:{})}:{}),...(isBellwetherSite(site)?{bossVersion:1,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:(!watch||watch.completed)&&monsters.every(monster=>monster.health<=0)&&(!field?.foreman||field.foreman.disabled)};
+ const state={id:site.key,siteId:site.id,time,shotSerial:serial(prior.shotSerial),...(site.expedition?{story:normalizeStoryState(site,prior.story)}:{}),...(field?{field}:{}),...(site.military?{military:true,operationId:site.operationId,objectives:prior.objectives?.[site.objectiveId]===true?{[site.objectiveId]:true}:{},...(watch?{watch}:{})}:{}),...(isBellwetherSite(site)?{bossVersion:2,attemptSerial,revealSerial}:{}),visited:Math.max(0,Math.floor(finite(prior.visited))),monsters,collected:[...new Set((Array.isArray(prior.collected)?prior.collected:[]).filter(id=>site.caches.some(cache=>cache.id===id)))],choices,actorCooldowns:{},cleared:(!watch||watch.completed)&&monsters.every(monster=>monster.health<=0)&&(!field?.foreman||field.foreman.disabled)};
  if(site.quietEarth)state.quietEarth=normalizeQuietEarthState(site,prior.quietEarth);
  if(site.expedition)applyStoryConsequences(state,site);return state;
 }
@@ -153,7 +161,32 @@ function revealBellwether(state,monster,target,event){
  event('monster-revealed',{id:`${state.id}:reveal:${state.revealSerial}`,serial:state.revealSerial,attemptSerial:serial(state.attemptSerial),actorId:monster.id,monsterId:monster.id,attackerId:monster.id,actorName:monster.name,name:monster.name,targetId:target.id,x:monster.x,y:monster.y,text:'A ragged, bell-like scream tears through the cavern.'});
 }
 const nearestActor=(monster,actors)=>actors.reduce((nearest,actor)=>!nearest||Math.hypot(actor.person.x-monster.x,actor.person.y-monster.y)<Math.hypot(nearest.person.x-monster.x,nearest.person.y-monster.y)?actor:nearest,null);
-function recoverBellwether(monster){Object.assign(monster,{phase:'recovery',recovery:monster.recoveryDuration,windup:0,lungeRemaining:0,moving:false,attackUntil:0});}
+function recoverBellwether(monster){Object.assign(monster,{phase:'recovery',recovery:BELLWETHER_ATTACKS[monster.bossAttack||'lunge'].recovery,windup:0,lungeRemaining:0,strikeRemaining:0,moving:false,attackUntil:0});}
+function bellwetherAttackEvent(state,monster,event,phase){
+ const kind=monster.bossAttack||'lunge',text=phase==='tell'?{lunge:'It braces to charge. Move sideways.',shockwave:'Its throat widens. Get outside the ring.',rockfall:'Dust gathers overhead. Move off the marked ground.'}[kind]:phase==='enraged'?'The shell splits. It is moving faster.':undefined;
+ event('bellwether-attack',{id:`${state.id}:boss:${state.attemptSerial||0}:${monster.attackSerial}:${phase}`,actorId:monster.id,attackerId:monster.id,actorName:monster.name,kind,phase,x:monster.x,y:monster.y,targetId:monster.targetId,text});
+}
+function beginBellwetherAttack(state,monster,target,kind,layout,event){
+ const person=target.person,angle=Math.atan2(person.y-monster.y,person.x-monster.x),targets=[];
+ if(kind==='rockfall'){
+  targets.push({x:person.x,y:person.y});
+  if(monster.enraged){const extra={x:person.x+Math.cos(angle)*66,y:person.y+Math.sin(angle)*66};if(isCabinWalkable(layout,extra.x,extra.y,6)&&clearSidearmSight(layout,monster,extra))targets.push(extra);}
+ }
+ Object.assign(monster,{bossAttack:kind,attackSerial:serial(monster.attackSerial)+1,phase:'windup',windup:BELLWETHER_ATTACKS[kind].windup,attackUntil:state.time+BELLWETHER_ATTACKS[kind].windup,
+  aimAngle:angle,attackTargets:targets,strikeRemaining:0,moving:false,lungeHitIds:[]});
+ const dx=person.x-monster.x,dy=person.y-monster.y;monster.facing=Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';
+ bellwetherAttackEvent(state,monster,event,'tell');
+}
+function hitBellwetherArea(state,monster,actors,layout,event){
+ const kind=monster.bossAttack,points=kind==='shockwave'?[monster]:monster.attackTargets,radius=kind==='shockwave'?monster.shockwaveRadius:monster.rockfallRadius;
+ for(const target of actors){
+  const person=target.person;if(person.health<=0||person.down||!clearSidearmSight(layout,monster,person)||!points.some(point=>Math.hypot(person.x-point.x,person.y-point.y)<=radius+6))continue;
+  const damage=(kind==='shockwave'?monster.shockwaveDamage:monster.rockfallDamage)*clamp(finite(target.damageTakenMultiplier,1),.4,2),id=`${state.id}:${kind}:${++state.shotSerial}`;
+  person.health=Math.max(0,person.health-damage);person.hitUntil=state.time+.24;
+  const hit={id,team:'hostile',attackerId:monster.id,actorName:monster.name,weaponId:`bellwether-${kind}`,targetId:target.id,targetName:target.name||'Captain',x:person.x,y:person.y,to:{x:person.x,y:person.y},damage,health:person.health,maxHealth:person.maxHealth||100};
+  event('person-hit',hit);if(person.health<=0){person.down=true;event('person-down',{...hit,id:id+':down',text:`${monster.name} downed ${target.name||'the captain'}.`});}
+ }
+}
 function hitBellwetherTargets(state,monster,actors,from,to,layout,event){
  const dx=to.x-from.x,dy=to.y-from.y,length2=dx*dx+dy*dy,at=state.time;
  for(const target of actors){
@@ -170,14 +203,25 @@ function hitBellwetherTargets(state,monster,actors,from,to,layout,event){
 function stepBellwether(state,monster,actors,dt,layout,event){
  if(!monster.revealed||!actors.length){monster.moving=false;return;}
  const at=state.time,living=actors.filter(actor=>actor.person.health>0&&!actor.person.down);
+ if(!monster.enraged&&monster.health<=monster.maxHealth*monster.enrageHealthFraction){monster.enraged=true;monster.speed=monster.enrageSpeed;bellwetherAttackEvent(state,monster,event,'enraged');}
  if(monster.phase==='recovery'){
   monster.recovery=Math.max(0,monster.recovery-dt);monster.moving=false;
   if(!monster.recovery)monster.phase='chase';return;
  }
  if(monster.phase==='windup'){
   monster.windup=Math.max(0,monster.windup-dt);monster.moving=false;
-  if(!monster.windup){monster.phase='lunge';monster.lungeRemaining=monster.lungeRange;monster.lungeHitIds=[];monster.attackUntil=at+monster.lungeRange/monster.lungeSpeed;}
+  if(!monster.windup){
+   if(!monster.bossAttack||monster.bossAttack==='lunge'){monster.phase='lunge';monster.lungeRemaining=monster.lungeRange;monster.lungeHitIds=[];monster.attackUntil=at+monster.lungeRange/monster.lungeSpeed;}
+   else{monster.phase='strike';monster.strikeRemaining=.35;monster.attackUntil=at+.35;hitBellwetherArea(state,monster,living,layout,event);}
+   bellwetherAttackEvent(state,monster,event,'impact');
+  }
   return;
+ }
+ if(monster.phase==='strike'){
+  // Area damage resolves once, after the complete visible warning. The short
+  // remaining phase is presentation, so save/reload cannot repeat the hit.
+  monster.strikeRemaining=Math.max(0,monster.strikeRemaining-dt);monster.moving=false;
+  if(!monster.strikeRemaining)recoverBellwether(monster);return;
  }
  if(monster.phase==='lunge'){
   // Swept, short physical steps stop the entire body at a wall. The locked
@@ -199,14 +243,16 @@ function stepBellwether(state,monster,actors,dt,layout,event){
  if(!target){monster.moving=false;return;}
  monster.targetId=target.id;
  const person=target.person,distance=Math.hypot(person.x-monster.x,person.y-monster.y);
+ const kind=['lunge','lunge','shockwave','rockfall'][serial(monster.attackSerial)%4];
+ if(seen.includes(target)&&kind!=='lunge'&&distance<=(kind==='shockwave'?104:210)){
+  beginBellwetherAttack(state,monster,target,kind,layout,event);return;
+ }
  const reach=Math.max(0,distance-monster.hitRadius-6+1),contact={x:monster.x+(person.x-monster.x)/Math.max(1,distance)*reach,y:monster.y+(person.y-monster.y)/Math.max(1,distance)*reach};
  // A captain's smaller body may fit beside a corner where this creature
  // cannot. Route around it until the locked charge can physically reach
  // contact; do not repeatedly throw a blocked lunge at a visible target.
- if(seen.includes(target)&&distance<=monster.lungeTriggerRange&&clearMonsterPath(layout,monster,contact,monster.radius)){
-  const dx=person.x-monster.x,dy=person.y-monster.y;
-  Object.assign(monster,{phase:'windup',windup:monster.windupDuration,attackUntil:at+monster.windupDuration,aimAngle:Math.atan2(dy,dx),moving:false,lungeHitIds:[]});
-  monster.facing=Math.abs(dx)>Math.abs(dy)?dx<0?'left':'right':dy<0?'up':'down';return;
+ if(kind==='lunge'&&seen.includes(target)&&distance<=monster.lungeTriggerRange&&clearMonsterPath(layout,monster,contact,monster.radius)){
+  beginBellwetherAttack(state,monster,target,kind,layout,event);return;
  }
  monster.phase='chase';walkMonster(monster,person,dt,layout,at);
 }
@@ -263,7 +309,7 @@ export function stepSiteEncounter(state,participants,delta,surface){
  // cannot bypass the scream. Walls and fog use the very same discovery rule.
  for(const monster of state.monsters)if(isBellwether(monster)&&monster.health>0){
   if(!isCabinWalkable(layout,monster.x,monster.y,monster.radius)){
-   Object.assign(monster,pt(27,7),{phase:monster.revealed?'chase':'dormant',windup:0,recovery:0,lungeRemaining:0,lungeHitIds:[],attackUntil:0,moving:false});routeCache.delete(monster);
+   Object.assign(monster,pt(27,7),{phase:monster.revealed?'chase':'dormant',windup:0,recovery:0,lungeRemaining:0,lungeHitIds:[],attackTargets:[],strikeRemaining:0,attackUntil:0,moving:false});routeCache.delete(monster);
   }
   if(monster.revealed)continue;
   const seen=nearestActor(monster,actors.filter(actor=>canSeeSitePoint(layout,actor.person,monster)));
@@ -280,7 +326,7 @@ export function stepSiteEncounter(state,participants,delta,surface){
   const weapon=getPersonalWeapon(person),target=aim.target,cooldown=weapon.cooldown*clamp(finite(actor.sidearmCooldownMultiplier,1),.5,2),damage=target?creatureDamageTaken(target,person,personalWeaponDamage(person,target,clamp(finite(actor.damageMultiplier,1),.4,2))):0,shotId=`${state.id}:shot:${++state.shotSerial}`;
   state.actorCooldowns[id]=cooldown;person.weaponReadyAt=at+cooldown;person.attackUntil=at+weapon.shotDuration;
   const shot={id:shotId,team:'player',attackerId:id,actorName:actor.name||'Captain',weaponId:weapon.id,angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:!!aim.blocked,damage,until:at+weapon.shotDuration};person.lastShot=shot;event('person-shot',shot);
-  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;if(target.quietEarthActor&&target.health>0){target.quietEarthStaggerUntil=at+.45;target.windup=0;target.attackUntil=0;interruptCreature(target);}event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;interruptCreature(target);if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
+  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;if(target.quietEarthActor&&target.health>0){target.quietEarthStaggerUntil=at+.45;target.windup=0;target.attackUntil=0;interruptCreature(target);}event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;interruptCreature(target);if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.attackTargets=[];target.strikeRemaining=0;target.attackUntil=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
  }
  for(const monster of state.monsters){
   if(monster.health<=0||monster.quietEarthDormant)continue;

@@ -10,6 +10,8 @@ import { normalizeStartMode } from '../dist/livelihoods.mjs';
 import { WORLD_CONTENT_VERSION, WORLD_CONTENT_REFRESH_MESSAGE } from '../dist/world-content.mjs';
 import { persistenceFromEnvironment } from './persistence.mjs';
 import { FixedStepClock } from './timing.mjs';
+import { AuthorityPerformance } from './performance.mjs';
+import { SNAPSHOT_DELTA_VERSION, SnapshotDeltaEncoder } from '../dist/snapshot-delta.mjs';
 import { PRIVACY_EXPORT_VERSION, RequestRateLimits, validExportPassport, authenticateExport, createPrivacyExport } from './privacy.mjs';
 import { PROTOCOL_VERSION, SIMULATION_HZ, INPUT_HZ, SNAPSHOT_HZ, MAX_ONLINE, newRealmCode, validRealmCode, normaliseRealmCode, cleanName, RateLimit, MOTION_STATE_FIELDS, MOTION_WORLD_FIELDS } from './protocol.mjs';
 
@@ -90,6 +92,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
   const manager = new RealmManager(persistence), sockets = new Set(), rates = new RequestRateLimits();
   const started = Date.now(); let closing = false, tick = 0;
   const clock = new FixedStepClock({ hz: SIMULATION_HZ, now: performance.now() });
+  const metrics = new AuthorityPerformance();
   const configuredOrigins = new Set(allowedOrigins);
   if (process.env.RENDER_EXTERNAL_URL) configuredOrigins.add(new URL(process.env.RENDER_EXTERNAL_URL).origin);
   function originAllowed(request) {
@@ -107,7 +110,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     let pathname; try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); } catch { return json(response, 400, { ok: false, reason: 'Invalid URL.' }); }
     if (pathname === '/healthz') {
       const storageHealthy = [...manager.realms.values()].every(realm => !realm.storageError);
-      return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0) });
+      return json(response, closing || !storageHealthy ? 503 : 200, { ok: !closing && storageHealthy, service: 'farwake', protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION, uptimeSeconds: Math.floor((Date.now() - started) / 1000), durable: persistence.durable, storage: storageHealthy ? 'ready' : 'unavailable', onlineCaptains: [...manager.realms.values()].reduce((n, r) => n + r.onlineCount, 0), activeSystems: [...manager.realms.values()].reduce((n, r) => n + r.rooms.size, 0), performance: metrics.summary() });
     }
     if (pathname === '/api/config' && request.method === 'GET') return json(response, 200, { ok: true, protocol: PROTOCOL_VERSION, worldContentVersion: WORLD_CONTENT_VERSION, capacity: MAX_ONLINE, simulationHz: SIMULATION_HZ, inputHz: INPUT_HZ, snapshotHz, privacyExportVersion: PRIVACY_EXPORT_VERSION });
     const startOptionsMatch = pathname.match(/^\/api\/realms\/([^/]+)\/start-options$/);
@@ -196,7 +199,17 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     sockets.add(ws); let realm = null, captain = null, authenticating = false, inFlight = 0;
     ws.isAlive = true; ws.on('pong', () => { ws.isAlive = true; });
     const trafficLimit = new RateLimit(55, 100), commandLimit = new RateLimit(8, 16);
-    const send = packet => { if (ws.readyState === 1) ws.send(JSON.stringify(packet)); };
+    const send = (packet, { resetSnapshot = packet.type !== 'snapshot', snapshotStartedAt = performance.now(), deltaViews = null } = {}) => {
+      if (ws.readyState !== 1) return false;
+      const prepared = packet.state && session.deltaEncoder
+        ? session.deltaEncoder.prepare(packet, { reset: resetSnapshot || Date.now() - (session.lastDeltaResetAt || 0) >= 5000, shared: deltaViews }) : null;
+      const data = prepared ? prepared.data : JSON.stringify(packet);
+      ws.send(data);
+      if (packet.state) metrics.snapshot(Buffer.byteLength(data), performance.now() - snapshotStartedAt);
+      // Failed/skipped sends never establish a baseline the browser did not see.
+      if (prepared) { session.deltaEncoder.commit(prepared); if (prepared.full) session.lastDeltaResetAt = Date.now(); }
+      return true;
+    };
     const session = { send, close: (code, reason) => ws.close(code, reason), ws };
     const helloTimer = setTimeout(() => ws.close(4001, 'A captain passport is required.'), 10000); helloTimer.unref?.();
     ws.on('message', async buffer => {
@@ -218,6 +231,7 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
           if (!captain) throw new Error('Invalid captain passport.');
           const result = realm.attach(captain, session);
           if (!result.ok) { send({ type: 'error', ...result }); captain = null; ws.close(result.code === 'realm-full' ? 4003 : 1013, result.reason); return; }
+          if (packet.snapshotDelta === SNAPSHOT_DELTA_VERSION) session.deltaEncoder = new SnapshotDeltaEncoder();
           clearTimeout(helloTimer); const snapshot = realm.snapshotFor(captain); session.lastFullAt = Date.now(); session.lastRoomId = snapshot.room.id; session.lastSystemId = snapshot.room.systemId; session.lastShipClass = snapshot.state.ship.classId; send({ type: 'welcome', ...snapshot, worldContentVersion: WORLD_CONTENT_VERSION });
         } catch (error) { send({ type: 'error', code: 'authentication', reason: error.message }); ws.close(4001, 'Authentication failed.'); }
         return;
@@ -238,35 +252,52 @@ export async function startServer({ port = Number(process.env.PORT || 3000), hos
     ws.on('error', () => {});
   });
   const snapshotEvery = Math.max(1, Math.round(SIMULATION_HZ / snapshotHz));
-  let simulation, nextSnapshotTick = snapshotEvery;
+  let simulation, nextSnapshotTick = snapshotEvery, scheduledAt = performance.now();
   const simulate = () => {
     if (closing) return;
     const time = performance.now(), wallTime = Date.now();
+    metrics.schedule(time - scheduledAt);
     clock.advance(time, (dt, nextTick, remaining) => {
+      const stepStartedAt = performance.now();
       tick = nextTick;
       for (const realm of manager.realms.values()) {
         try { realm.step(dt, tick, wallTime, wallTime - remaining * 1000); }
         catch (error) { realm.failed = true; for (const c of realm.captains.values()) c.session?.close(1011, 'Realm validation failed. Reconnect to restore the last durable revision.'); manager.realms.delete(realm.id); console.error('Realm simulation error:', realm.id, error.message); }
       }
+      metrics.tick(performance.now() - stepStartedAt);
     });
     if (tick >= nextSnapshotTick) {
       nextSnapshotTick = (Math.floor(tick / snapshotEvery) + 1) * snapshotEvery;
       // After a delayed callback, publish only the newest completed state, not a burst of obsolete frames.
-      for (const realm of manager.realms.values()) for (const c of realm.captains.values()) if (c.session) {
+      for (const realm of manager.realms.values()) {
+        // Reuse only immutable neutral world projections within this one
+        // synchronous broadcast. Commands and later ticks receive fresh views.
+        const worldViews = new Map(), deltaViews = new WeakMap();
+        for (const c of realm.captains.values()) if (c.session) {
         // Drop superseded snapshots for a congested socket. Never wait for client acknowledgments.
-        if (c.session.ws.bufferedAmount > 524288) continue;
+        // One pending snapshot is enough. Queuing another would put fresh
+        // movement behind stale frames on a slow link. Check before generating
+        // a packet or draining its reliable gameplay events.
+        if (c.session.ws.readyState !== 1) continue;
+        if (c.session.ws.bufferedAmount > 0) { metrics.skip(); continue; }
         try {
+          const snapshotStartedAt = performance.now();
           const room = realm.roomInfo(c), shipClass = realm.vessels.get(c.aboard || c.ownedVesselId)?.ship.classId || c.game.state.ship.classId;
-          const full = room.id !== c.session.lastRoomId || room.systemId !== c.session.lastSystemId || shipClass !== c.session.lastShipClass || Date.now() - (c.session.lastFullAt || 0) >= 1000;
-          const snapshot = realm.snapshotFor(c, { compact: !full });
+          const changedContext = room.id !== c.session.lastRoomId || room.systemId !== c.session.lastSystemId || shipClass !== c.session.lastShipClass;
+          const full = changedContext || Date.now() - (c.session.lastFullAt || 0) >= 1000;
+          const snapshot = realm.snapshotFor(c, { compact: !full, worldViews });
           if (full) { c.session.lastFullAt = Date.now(); c.session.lastRoomId = room.id; c.session.lastSystemId = room.systemId; c.session.lastShipClass = shipClass; }
-          c.session.send({ type: 'snapshot', ...snapshot });
+          c.session.send({ type: 'snapshot', ...snapshot }, { resetSnapshot: changedContext, snapshotStartedAt, deltaViews });
         } catch (error) { console.error('Snapshot error:', realm.id, error.message); }
+        }
       }
     }
-    simulation = setTimeout(simulate, clock.nextDelay(performance.now())); simulation.unref?.();
+    const completedAt = performance.now(), delay = clock.nextDelay(completedAt);
+    scheduledAt = completedAt + delay;
+    simulation = setTimeout(simulate, delay); simulation.unref?.();
   };
-  simulation = setTimeout(simulate, clock.nextDelay(performance.now()));
+  const initialDelay = clock.nextDelay(performance.now()); scheduledAt = performance.now() + initialDelay;
+  simulation = setTimeout(simulate, initialDelay);
   const flushing = setInterval(() => manager.flush(), flushIntervalMs);
   const heartbeat = setInterval(() => { for (const socket of sockets) { if (!socket.isAlive) { socket.terminate(); continue; } socket.isAlive = false; if (socket.readyState === 1) socket.ping(); } }, heartbeatIntervalMs);
   const rateCleanup = setInterval(() => rates.prune(), 60000);
