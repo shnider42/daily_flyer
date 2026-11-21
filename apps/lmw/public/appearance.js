@@ -15,7 +15,7 @@
     const theme = preference === 'system' ? (contrast.matches ? 'contrast' : dark.matches ? 'night' : 'light') : preference;
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.appearance = preference;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'contrast' ? '#000000' : theme === 'night' ? '#101922' : '#f4f5f3');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'contrast' ? '#000000' : theme === 'night' ? '#0e1728' : '#f4f6f9');
     document.querySelectorAll('[name="appearance"]').forEach(input => { input.checked = input.value === preference; });
     document.querySelectorAll('[data-appearance-label]').forEach(node => { node.textContent = labels[preference]; });
     const summary = document.querySelector('.appearance-control summary');

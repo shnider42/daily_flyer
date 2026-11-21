@@ -45,3 +45,9 @@ The outreach CSV excludes people who did not permit email follow-up. Exported ce
 ## Brand and content references
 
 Official background: https://leadershipmetrowest.org/about/ . The Academy's first graduating class was 1987. This prototype uses a new restrained navy/orange design, not a claim of official brand approval. No actual event date, venue, participants, committee openings, or endorsements are invented.
+
+## Logo and palette
+
+The supplied transparent PNG is `public/logo.png`, used in the shared header, browser icon, and printable event sign. It retains the source mark rather than replacing it with CSS artwork. The source photograph embeds Display P3; its dominant colors interpreted in sRGB are navy `#0F2346` and orange `#F37721`. These are the UI brand tokens; generated PNG edge and fill pixels may vary slightly.
+
+Orange is used for decorative accents and primary buttons with navy labels. Light-mode text and form-control indicators use navy for contrast; Night uses orange accents on dark navy surfaces. High contrast retains its accessible black, white, and yellow controls. A compact light backing keeps the original navy logo visible in the dark modes.
