@@ -1,0 +1,121 @@
+name: HLLV forms theme dates and source collection
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/hllv-ux-20261012/**, .github/workflows/hllv-ux-20261012.yml]
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: community_fixture_only
+          POSTGRES_DB: community_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres -d community_test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      COMMUNITY_TEST_DATABASE_URL: postgresql://postgres:community_fixture_only@localhost:5432/community_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Prepare interface and source collector
+        id: release
+        run: |
+          python3 -m py_compile .github/hllv-ux-20261012/*.py
+          python3 .github/hllv-ux-20261012/install.py
+          node --check .github/hllv-community/app.js
+          node --check .github/hllv-ux-20261012/feed.js
+          python3 .github/hllv-ux-20261012/test_feed.py
+          python3 .github/hllv-ux-20261012/nightly.py
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          print('publish='+str(json.loads(Path('.github/hllv-ux-20261012/release.json').read_text())['publish']).lower())
+          PY
+          git diff --check
+      - name: Install isolated test dependencies
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'psycopg[binary]==3.2.10' playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/ux-browser.log 2>&1 || { tail -40 /tmp/ux-browser.log; exit 1; }
+      - name: Verify authorization types and server-side date ordering
+        run: python3 .github/hllv-ux-20261012/test_database.py
+      - name: Verify integrated forms themes ordering and authentication regression
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/ux-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-ux-20261012/test_browser.py
+          python3 .github/hllv-ux-20261012/test_browser.py --engine webkit
+          python3 .github/hllv-password/test_browser.py --standalone
+          python3 .github/hllv-password/test_browser.py --standalone --engine webkit
+          node .github/hllv-evidence/test_evidence.cjs
+      - name: Generate replay migration without changing hosted database
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          npx --yes supabase@2.120.0 migration new --help
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          root=Path('suggestion_box');files=list(root.glob('supabase/migrations/*_hllv_report_type_date_order.sql'))
+          if not files:
+              subprocess.run(['npx','--yes','supabase@2.120.0','migration','new','hllv_report_type_date_order'],cwd=root,check=True)
+              files=list(root.glob('supabase/migrations/*_hllv_report_type_date_order.sql'))
+          assert len(files)==1
+          source=Path('.github/hllv-ux-20261012/schema.sql').read_bytes()
+          if files[0].stat().st_size:assert files[0].read_bytes()==source
+          else:files[0].write_bytes(source)
+          PY
+      - name: Publish only tested tracker interface and collected feed
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/index.html hllv_tracker/assets hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json hllv_tracker/reviews/ux-2026-10-12.json hllv_tracker/official-feed.json .github/hllv-community/app.js .github/hllv-community/refine.py .github/hllv-community/section.html .github/hllv-community/test_browser.py .github/hllv-password/test_browser.py .github/hllv-rehearsal/practice.js suggestion_box/supabase/migrations/*_hllv_report_type_date_order.sql
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish type-guided feedback, dark theme, newest-first dates and nightly-source display'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify production exact files and browser journeys
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');manifest=json.loads((root/'deployment-manifest.json').read_text());paths=['','index.html','official-feed.json']+manifest['files'];last='Not checked'
+          for attempt in range(60):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read()
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-community/test_public.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hllv-dark-form-previews
+          path: artifacts/
+          retention-days: 3
+      - name: Record verification scope
+        run: |
+          echo "Verified code: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo '23 isolated database tests; synthetic Chromium/WebKit feedback and account flows; dynamic copy/drafts; default dark and deliberate light; chronological ordering; safe source collection. No real account credentials, submissions, votes or developer approvals created.' >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,49 @@
+name: HLLV interface workbench inputs
+# Read-only source snapshot for private submission threads and public moderator notes.
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/workflows/hllv-workbench-20261012.yml]
+permissions:
+  contents: read
+jobs:
+  inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Read public Auth settings without sending email or registering anyone
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          from pathlib import Path
+          cfg=json.loads(Path('hllv_tracker/suggestions-config.json').read_text())
+          req=urllib.request.Request(cfg['supabase_url']+'/auth/v1/settings',headers={'apikey':cfg['publishable_key']})
+          with urllib.request.urlopen(req,timeout=20) as r:settings=json.load(r)
+          public={k:settings.get(k) for k in ['disable_signup','mailer_autoconfirm','phone_autoconfirm','external','captcha_enabled']}
+          Path('public-auth-settings.json').write_text(json.dumps(public,indent=2)+'\n')
+          print(json.dumps(public))
+          try:
+              with urllib.request.urlopen('https://supabase.com/changelog.md',timeout=20) as r:changes=r.read(500000).decode()
+              Path('supabase-changelog.md').write_text(changes)
+          except Exception as e:print('Changelog read unavailable:',type(e).__name__)
+          PY
+      - name: Package tracked source files only
+        run: |
+          python3 - <<'PY'
+          import subprocess, zipfile
+          from pathlib import Path
+          paths=subprocess.check_output(['git','ls-files','hllv_tracker','.github','suggestion_box'],text=True).splitlines()
+          with zipfile.ZipFile('hllv-workbench-inputs.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in paths+['public-auth-settings.json','supabase-changelog.md']:
+                  p=Path(name)
+                  if p.is_file():z.write(p,name)
+          print('Packaged tracked source and public settings only; no private user data or secret keys.')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hllv-workbench-inputs
+          path: hllv-workbench-inputs.zip
+          retention-days: 3

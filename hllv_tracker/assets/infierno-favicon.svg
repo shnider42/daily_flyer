@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Infierno Liberado</title>
+  <path fill="#101618" d="M0 0h64v64H0z"/>
+  <path fill="#ff9b81" d="M0 0h64v6H0z"/>
+  <path fill="#f0eee4" d="M10 18h18v7h-5v18h5v7H10v-7h5V25h-5zM35 18h8v24h12v8H35z"/>
+</svg>

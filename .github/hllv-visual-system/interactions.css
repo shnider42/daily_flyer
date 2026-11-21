@@ -1,0 +1,125 @@
+/* Interaction contract: preserve working controls, fill missing feedback, and
+   change paint only. Hover never changes layout, type weight, or position. */
+:root { --ui-hover-surface: #dce1d6; --ui-hover-border: #68775f; --ui-hover-muted: #4f594b; }
+html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda4; --ui-hover-muted: #bcc7cb; }
+:where(a[href], button:enabled, summary, select:enabled, input[type="checkbox"]:enabled,
+  input[type="radio"]:enabled, label:has(input:is([type="checkbox"],[type="radio"]):enabled)) {
+  cursor: pointer;
+}
+:where(summary):focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+
+/* These are articles with individual controls, not whole-row actions. */
+#suggestionBox .cb-row:hover { background: transparent; }
+
+/* Grid summaries suppress the browser's disclosure marker. */
+.response-entry > summary { position: relative; padding-inline-end: 26px; min-height: 44px; }
+.response-entry > summary::after { content: "+"; position: absolute; right: 4px; top: 0; color: var(--red); font-size: 1.2rem; }
+.response-entry[open] > summary::after { content: "−"; }
+
+/* Paint the accent outside the row: several homepage rows have no horizontal
+   padding. An inset stripe can cover their first letters. No geometry changes. */
+@media (hover: hover) and (pointer: fine) {
+  #home .home-issue:enabled:hover,
+  #featuresPage .ft-row[href]:hover,
+  #landing :is(.featured-issue:enabled, .ft-row[href]):hover,
+  #suggestionBox :is(.cb-entry, .mi-row):enabled:hover {
+    --muted: var(--ui-hover-muted);
+    background: var(--ui-hover-surface);
+    box-shadow: -3px 0 0 0 var(--section-accent, var(--red));
+  }
+  #landing .community-path[href]:hover {
+    --muted: var(--ui-hover-muted);
+    background: var(--ui-hover-surface);
+    box-shadow: 0 0 0 1px var(--path-color);
+  }
+  #home .home-issue:hover .record-title,
+  #featuresPage .ft-row:hover .record-title,
+  #landing .featured-issue:hover h3,
+  #landing .ft-row:hover .record-title {
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
+  }
+  #landing .featured-issue { transition: background-color .15s ease; }
+
+  #home .status-filter:enabled:hover,
+  #app .tab:enabled:hover,
+  #suggestionBox .cb-tabs button:enabled:hover {
+    color: var(--ink); border-color: var(--ui-hover-border);
+  }
+  #home .status-filter:not(.active):enabled:hover,
+  #app .tab:not(.active):enabled:hover,
+  #suggestionBox .cb-tabs button:not([aria-pressed="true"]):enabled:hover {
+    background: var(--ui-hover-surface);
+  }
+  .site-nav .top-link:enabled:hover { background-color: #414e43; color: #fff; }
+  .site-nav .theme-toggle:enabled:hover,
+  .site-nav .account-menu > summary:hover { background-color: #303e43; }
+  .site-nav .theme-toggle:enabled:hover,
+  .site-nav .account-menu > summary:hover,
+  .site-nav .top-link.active:enabled:hover {
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .25em;
+  }
+  #app .back:enabled:hover,
+  #app .evidence-source a[href]:hover,
+  .landing-footer a[href]:hover,
+  #featuresPage :is(.ft-back, .ft-citations a, .ft-history a, .ft-related a, .ft-footer a)[href]:hover,
+  #landing :is(.ft-feed-links a, .ft-issue-links a)[href]:hover,
+  #suggestionBox :is(.cb-related, .sg-check a, .thread-source a)[href]:hover {
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
+  }
+  /* Low specificity lets already-working summary treatments take precedence. */
+  :where(details:not(.account-menu)) > summary:hover {
+    --muted: var(--ui-hover-muted); background-color: var(--ui-hover-surface);
+  }
+
+  #suggestionBox .sg-button.secondary:enabled:hover {
+    background: var(--ui-hover-surface); border-color: var(--ui-hover-border);
+  }
+  #suggestionBox .cb-vote:enabled:hover { border-color: var(--ink); }
+  #suggestionBox .cb-vote:not([aria-pressed="true"]):enabled:hover { background: var(--ui-hover-surface); }
+  #suggestionBox .sg-button:not(.secondary):enabled:hover {
+    background: color-mix(in srgb, var(--ink) 75%, #000);
+  }
+  #suggestionBox .sg-button.cb-primary:enabled:hover {
+    background: color-mix(in srgb, var(--red) 75%, #000);
+  }
+  html[data-theme="dark"] #suggestionBox .sg-button:not(.secondary):enabled:hover { background: #8e3523; }
+  html[data-theme="dark"] .site-nav .account-bar button:enabled:hover { border-color: var(--ink); }
+
+  #home .home-tools :is(input,select):enabled:hover,
+  #home .date-order select:enabled:hover,
+  #featuresPage :is(input,select):enabled:hover,
+  #suggestionBox :is(input:not([type="checkbox"]):not([type="radio"]),textarea,select):enabled:hover,
+  .response-tools select:enabled:hover {
+    border-color: var(--ui-hover-border);
+  }
+  #suggestionBox .cb-form #cbKind:enabled:hover { border-color: var(--ink); }
+}
+
+/* Native disabled controls remain visibly unavailable even under the pointer.
+   Explicit primary-button rules neutralize older unguarded :hover styles. */
+:is(button,input,textarea,select):disabled, [aria-disabled="true"] { cursor: not-allowed; }
+#suggestionBox .sg-button:disabled { cursor: not-allowed; }
+:is(input,textarea,select):disabled { opacity: .55; }
+#suggestionBox .sg-button:not(.secondary):disabled:hover { background: var(--ink); }
+#suggestionBox .sg-button.cb-primary:disabled:hover { background: var(--red); }
+html[data-theme="dark"] #suggestionBox .sg-button:not(.secondary):disabled:hover { background: var(--button); }
+.site-nav .account-bar button:disabled:hover { border-color: var(--line); }
+html[data-theme="dark"] .site-nav .account-bar button:disabled:hover { border-color: #68767d; }
+
+/* Touch does not have a discovery hover. Record titles keep a familiar link
+   cue, while existing arrows, button shapes and disclosure markers stay intact. */
+@media (hover: none), (pointer: coarse) {
+  #home .record-title,
+  #featuresPage .record-title,
+  #landing .featured-issue h3,
+  #landing .ft-row .record-title {
+    text-decoration: underline; text-decoration-thickness: 1px;
+    text-decoration-color: var(--muted); text-underline-offset: .2em;
+  }
+  .site-nav .theme-toggle { text-decoration: underline; text-underline-offset: .2em; }
+  :is(a[href],button:enabled,summary):not([aria-disabled="true"]):active { filter: brightness(.9); }
+  html[data-theme="dark"] :is(a[href],button:enabled,summary):not([aria-disabled="true"]):active { filter: brightness(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #landing .featured-issue { transition: none; }
+}

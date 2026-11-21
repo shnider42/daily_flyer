@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-20",
+  "coverage_from": "2026-10-01",
+  "coverage_note": "Selected topics from Community Feedback 6–8 and Patch 1.6. October 20 adds two publisher-tracked requests from the October 15 update; this is not a new announcement or a complete roadmap. Support replies do not establish feature commitments.",
+  "sources": [
+    {
+      "id": "cf8",
+      "announcement_id": "1846651706678313",
+      "title": "Community Feedback #8 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-8",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+      "published_at": "2026-10-15T16:00:50Z",
+      "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+      "reviewed_at": "2026-10-20",
+      "review_scope": "Selected functionality statements, including Clan Tags and rank emblems. Re-read October 20; the publisher text hash is unchanged. Tracked requests are not confirmed development."
+    },
+    {
+      "id": "cf7",
+      "announcement_id": "1846018067933766",
+      "title": "Community Feedback #7 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-7",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
+      "published_at": "2026-10-09T15:37:43Z",
+      "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
+      "reviewed_at": "2026-10-16",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+    },
+    {
+      "id": "patch16",
+      "announcement_id": "1846018067925606",
+      "title": "Patch 1.6 | Hell Let Loose: Vietnam",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067925606",
+      "published_at": "2026-10-07T10:01:03Z",
+      "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
+      "reviewed_at": "2026-10-16",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+    },
+    {
+      "id": "cf6",
+      "announcement_id": "1845383656381776",
+      "title": "Community Feedback #6 | Command Post",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://www.hellletloose.com/blog/community-update-6",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656381776",
+      "published_at": "2026-10-01T15:12:24Z",
+      "content_sha256": "15b2da22c6d9e7eed823ce0764640a7797e63f8ad90c5f05816e24c8c3fcf83a",
+      "reviewed_at": "2026-10-16",
+      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+    }
+  ],
+  "features": [
+    {
+      "id": "HLLV-F001",
+      "title": "Engineer buildables & Barbed Wire",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Level 1 construction costs no Supplies; upgrades still do. Barbed Wire: two per Engineer, with no team cap in 1.6.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "planned",
+      "change": "Barbed Wire: three per Engineer and 50 per side are planned.",
+      "target": "Patch 1.7",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Free basic construction and revised placement limits released."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "Barbed Wire limits revised following feedback."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-072"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "barbed wire",
+        "buildables",
+        "engineer"
+      ]
+    },
+    {
+      "id": "HLLV-F002",
+      "title": "Unit composition & Medics",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Units have two Medic slots and two Rifleman slots, replacing one and three respectively.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "under_consideration",
+      "change": "Further Medic and role improvements are being explored.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Unit slot allocation changed."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Additional role changes remain exploratory."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "medic",
+        "unit composition"
+      ]
+    },
+    {
+      "id": "HLLV-F003",
+      "title": "Controller Crouch / Melee swap",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "This option is not confirmed live by the reviewed sources.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "A Crouch / Melee input swap is announced.",
+      "target": "Patch 1.7",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Additional controller options were being reviewed."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "A specific input swap now has a target release."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "crouch",
+        "melee",
+        "controller customisation"
+      ]
+    },
+    {
+      "id": "HLLV-F004",
+      "title": "Controller Radio / Equipment swap",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "This option is not confirmed live by the reviewed sources.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "A Radio / Equipment input swap is planned.",
+      "target": "Update 2.0",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "An additional controller option is planned."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "radio and equipment",
+        "radio",
+        "controller customisation"
+      ]
+    },
+    {
+      "id": "HLLV-F005",
+      "title": "Controller dead zones & remapping",
+      "category": "Controls",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Additional ADS dead-zone and separate sensitivity options are not confirmed live by these sources.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Dead-zone and sensitivity requests remain under review; full remapping is not planned near term.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "ADS dead zones and separate sensitivity settings requested."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Requests reviewed; no short-term full-remapping commitment."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-067"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "dead zones",
+        "remapping",
+        "sensitivity settings"
+      ]
+    },
+    {
+      "id": "HLLV-F006",
+      "title": "Server Browser sorting & filters",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Fuller servers are prioritised; filters persist between sessions and Favourites target the correct server.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "released",
+      "change": "The developer confirms the browser changes are live.",
+      "target": "Released in Patch 1.6",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Browser ordering, persistent filters and Favourites corrections shipped."
+        },
+        {
+          "source_id": "cf8",
+          "status": "released",
+          "summary": "Developer follow-up confirms the released behavior."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-058",
+        "HLLV-069"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "server browser",
+        "persistent filters",
+        "fuller servers"
+      ]
+    },
+    {
+      "id": "HLLV-F007",
+      "title": "Favourites capacity",
+      "category": "Servers",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Favourites saving was corrected in 1.6. These sources do not specify the current numerical limit.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "under_consideration",
+      "change": "A higher Favourites limit is under technical review.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "A capacity increase is conditional on technical feasibility."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-069"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "favourites",
+        "favorites"
+      ]
+    },
+    {
+      "id": "HLLV-F008",
+      "title": "Transport boat engine shutdown",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "An engine left running prevents transport-boat spawning.",
+        "source_ids": [
+          "cf6"
+        ]
+      },
+      "status": "in_development",
+      "change": "The revised plan shuts the engine off on manual driver exit, preserving driver-kill counterplay.",
+      "target": "Patch 1.7 if feasible; otherwise a later update",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "under_consideration",
+          "summary": "Exit-triggered and idle-time shutdown approaches were discussed."
+        },
+        {
+          "source_id": "cf7",
+          "status": "in_development",
+          "summary": "Feedback narrowed the plan to manual exit rather than driver death."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-062",
+        "HLLV-068"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "boat",
+        "transport boats",
+        "engine shutdown"
+      ]
+    },
+    {
+      "id": "HLLV-F009",
+      "title": "Khe Sanh map",
+      "category": "Maps",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "A live release is not confirmed in the reviewed sources.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Khe Sanh is announced as the next new map.",
+      "target": "Update 2.0",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "New map confirmed for the upcoming major update."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "khe sanh",
+        "map variety"
+      ]
+    },
+    {
+      "id": "HLLV-F010",
+      "title": "PS5 display options",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed sources do not yet confirm release of these display options.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "PSSR and VRR remain targeted for the next patch.",
+      "target": "Patch 1.7",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "planned",
+          "summary": "PSSR targets PS5 Pro; VRR targets PS5 and PS5 Pro, subject to testing."
+        },
+        {
+          "source_id": "cf8",
+          "status": "planned",
+          "summary": "The upcoming-patch target is reiterated."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-006",
+        "HLLV-057"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "pssr",
+        "vrr",
+        "console visual"
+      ]
+    },
+    {
+      "id": "HLLV-F011",
+      "title": "Saved role loadouts",
+      "category": "Gameplay",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Saved presets are not confirmed live in the reviewed source.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Role presets are being explored within longer-term UI plans. Discussion does not establish a delivery commitment.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Saved loadouts enter longer-term UI discussion."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "role loadouts",
+        "loadout presets",
+        "saveable"
+      ]
+    },
+    {
+      "id": "HLLV-F012",
+      "title": "Vote Kick visibility & voting time",
+      "category": "Community tools",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Vote Kick notifications default to visible; the response window increased from 15 to 30 seconds.",
+        "source_ids": [
+          "patch16"
+        ]
+      },
+      "status": "released",
+      "change": "Released moderation changes remain under observation.",
+      "target": "Released in Patch 1.6",
+      "latest_source_id": "cf7",
+      "history": [
+        {
+          "source_id": "patch16",
+          "status": "released",
+          "summary": "Default visibility and longer voting time released."
+        },
+        {
+          "source_id": "cf7",
+          "status": "released",
+          "summary": "Developers are monitoring the response to the live changes."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-063"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vote kick",
+        "votekick",
+        "vote to kick"
+      ]
+    },
+    {
+      "id": "HLLV-F013",
+      "title": "Expanded match statistics",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Expanded statistics are not confirmed live by these sources.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Expanded statistics remain a tracked community request.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf7",
+          "status": "under_consideration",
+          "summary": "Expanded statistics discussed within longer-term UI plans."
+        },
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Tracking a request is not confirmation of development."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "statistics",
+        "match stats"
+      ]
+    },
+    {
+      "id": "HLLV-F014",
+      "title": "Text chat usability",
+      "category": "Community tools",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Developers describe limited chat length and limited conversation scrollback.",
+        "source_ids": [
+          "cf6"
+        ]
+      },
+      "status": "in_development",
+      "change": "Chat size, positioning and history navigation are being investigated together; a higher character limit alone would not address usability.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf6",
+      "history": [
+        {
+          "source_id": "cf6",
+          "status": "in_development",
+          "summary": "Wider chat-interface improvements are being investigated."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "text chat",
+        "character limit",
+        "scroll back"
+      ]
+    },
+    {
+      "id": "HLLV-F015",
+      "title": "Clan Tags",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Clan Tags are named among community requests the publisher is tracking; development is not confirmed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "clan tags"
+      ]
+    },
+    {
+      "id": "HLLV-F016",
+      "title": "Rank emblems",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Rank emblems are named among community requests the publisher is tracking; development is not confirmed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "rank emblems"
+      ]
+    }
+  ]
+}

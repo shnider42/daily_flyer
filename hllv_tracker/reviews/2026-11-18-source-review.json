@@ -1,0 +1,1359 @@
+{
+  "date": "2026-11-18",
+  "review_release": "2026-11-18-source-review",
+  "base_commit": "e462af5528ac0324f5fa6f3c7228a5c07f514cf2",
+  "page_updated_at": "2026-11-18T18:34:12Z",
+  "updated_issues": [
+    "HLLV-003",
+    "HLLV-006",
+    "HLLV-007",
+    "HLLV-008",
+    "HLLV-034",
+    "HLLV-038",
+    "HLLV-057",
+    "HLLV-060",
+    "HLLV-076",
+    "HLLV-105"
+  ],
+  "new_issues": [
+    "HLLV-119",
+    "HLLV-120",
+    "HLLV-121",
+    "HLLV-122",
+    "HLLV-123"
+  ],
+  "updated_features": [
+    "HLLV-F004",
+    "HLLV-F007",
+    "HLLV-F009",
+    "HLLV-F015",
+    "HLLV-F028",
+    "HLLV-F029",
+    "HLLV-F034",
+    "HLLV-F035",
+    "HLLV-F036",
+    "HLLV-F037",
+    "HLLV-F038",
+    "HLLV-F041",
+    "HLLV-F042",
+    "HLLV-F045"
+  ],
+  "new_features": [
+    "HLLV-F050",
+    "HLLV-F051",
+    "HLLV-F052",
+    "HLLV-F053",
+    "HLLV-F054",
+    "HLLV-F055",
+    "HLLV-F056"
+  ],
+  "issue_count": 123,
+  "feature_count": 56,
+  "catch_up_topic_count": 20,
+  "source_references": 307,
+  "distinct_issue_source_urls": 110,
+  "changed_existing_issue_statuses": [],
+  "changed_existing_feature_current_baselines": [],
+  "latest_verified_release": {
+    "title": "Patch 1.7",
+    "date": "2026-10-21"
+  },
+  "latest_official_announcement": {
+    "id": "1849192144188312",
+    "title": "Khe Sanh | Developer Deep Dive Video",
+    "published_at": "2026-11-13T17:23:35Z",
+    "content_sha256": "b69919ad7760c05eeea6952960e9cc239aca97aea3d69680949d28433be83df0"
+  },
+  "independent_gameplay_testing": false,
+  "scope": "Updated all active release targets and current summaries against November 12–13 official statements; added selected November 11–17 Support/player evidence; regenerated all three public data snapshots and rechecked source collection.",
+  "official_source_review": {
+    "new_sources": [
+      {
+        "id": "release_dates_20261112",
+        "announcement_id": "1849192144183671",
+        "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+        "publisher": "Hell Let Loose / Team17",
+        "authority": "official_publisher",
+        "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+        "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+        "published_at": "2026-11-12T16:34:51Z",
+        "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+        "reviewed_at": "2026-11-18",
+        "review_scope": "HLLV release-window changes and roadmap content, including the embedded roadmap image inspected separately. Regular HLL Update 22 is excluded. Schedule targets are not released functionality; the outage statement does not establish a game-server incident.",
+        "reviewed_images": [
+          {
+            "url": "https://clan.fastly.steamstatic.com/images/45748053/048c6e7c46b5059e96d9adbb03f510e4f4a77146.jpg",
+            "content_sha256": "f2a3698c34d4b87f230b3ca6c7f33f88630ce2122db4a5eb3e8747bd1b1b3779",
+            "hash_basis": "SHA-256 of downloaded JPEG bytes; image text is excluded from the Steam announcement text hash.",
+            "reviewed_at": "2026-11-18",
+            "source_locator": "Post Launch Roadmap: Update 2.0, Update 3.0 and General Improvements panels"
+          }
+        ]
+      },
+      {
+        "id": "khe_sanh_preview_20261113",
+        "announcement_id": "1849192144188312",
+        "title": "Khe Sanh | Developer Deep Dive Video",
+        "publisher": "Hell Let Loose / Team17",
+        "authority": "official_publisher",
+        "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016409",
+        "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144188312",
+        "published_at": "2026-11-13T17:23:35Z",
+        "content_sha256": "b69919ad7760c05eeea6952960e9cc239aca97aea3d69680949d28433be83df0",
+        "reviewed_at": "2026-11-18",
+        "review_scope": "Publisher preview text describes upcoming Khe Sanh mechanics and setting. The linked video was not watched; previewed mechanics are not a released update or independent gameplay test."
+      },
+      {
+        "id": "sony_qssr_20261113",
+        "source_type": "official_developer_statement",
+        "external_id": "playstation-blog-425724",
+        "title": "QSSR arrives in Marvel’s Spider-Man 2, Control Resonant, The Finals, Arc Raiders, No Man’s Sky, and Hell Let Loose: Vietnam",
+        "publisher": "Sony Interactive Entertainment / Expression Games",
+        "authority": "verified_developer",
+        "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+        "published_at": "2026-11-13T14:00:16Z",
+        "modified_at": "2026-11-14T01:18:15Z",
+        "content_sha256": "142cc716521f144abd0aef5dcab75ae3366e9ef1ea323d3c8349cb576e35625b",
+        "reviewed_at": "2026-11-18",
+        "review_scope": "Expression Games game director statement confirming QSSR for HLLV in an upcoming update, with no named release date/version. Other games have different release states; none is transferred to HLLV.",
+        "reviewed_via": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+        "source_locator": "Expression Games — Paul Rustchynsky",
+        "hash_basis": "Title + newline + normalized visible article entry-content; collector plain() normalization; excludes comments/navigation."
+      }
+    ],
+    "unchanged_registered_source_hashes": [
+      {
+        "id": "cf9",
+        "announcement_id": "1848664643345363",
+        "matches": true
+      },
+      {
+        "id": "ama2_live",
+        "announcement_id": "1847920302238261",
+        "matches": true
+      },
+      {
+        "id": "ama2_invitation",
+        "announcement_id": "1847920302231605",
+        "matches": true
+      },
+      {
+        "id": "patch17",
+        "announcement_id": "1847286114028257",
+        "matches": true
+      },
+      {
+        "id": "cf8",
+        "announcement_id": "1846651706678313",
+        "matches": true
+      },
+      {
+        "id": "cf7",
+        "announcement_id": "1846018067933766",
+        "matches": true
+      },
+      {
+        "id": "patch16",
+        "announcement_id": "1846018067925606",
+        "matches": true
+      },
+      {
+        "id": "commandpost_15_16",
+        "announcement_id": "1845383656387240",
+        "matches": true
+      },
+      {
+        "id": "cf6",
+        "announcement_id": "1845383656381776",
+        "matches": true
+      }
+    ],
+    "roadmap_image_reviewed": true,
+    "preview_video_watched": false
+  },
+  "source_refs_added": [
+    {
+      "issue_id": "HLLV-003",
+      "type": "player report",
+      "publisher": "Steam community",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback...",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101811728",
+      "date": "2026-11-11",
+      "source_published_at": "2026-11-11T03:40:58Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "570428645101811728",
+      "content_sha256": "9da074aee9c7c14a00757d31d2670d0b077563db72e4363fe7a5f690e7a2770e",
+      "source_author_id": "76561197992698454",
+      "source_category": "Player report",
+      "claim": "A PC player describes an EOSSDK-headed access-violation stack and separate silent exits, with more occurrences during helicopter play on their system. The report explicitly leaves root cause and any relationship between signatures unresolved."
+    },
+    {
+      "issue_id": "HLLV-003",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback...",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101859844",
+      "date": "2026-11-11",
+      "source_published_at": "2026-11-11T17:19:54Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428645101859844; opening report and surrounding replies reviewed",
+      "content_sha256": "c81e63cd6632b9ea58779d6b07958ba7daa899f4730f293050069981460992cd",
+      "source_author_id": "76561199418165143",
+      "source_category": "Team17 Support",
+      "claim": "Support requests a private ticket with DxDiag after the player offers detailed crash evidence. It does not confirm that the signatures match a known defect or identify a root cause.",
+      "authority_checked_at": "2026-11-18T18:27:04Z"
+    },
+    {
+      "issue_id": "HLLV-003",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback...",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428931264625525",
+      "date": "2026-11-15",
+      "source_published_at": "2026-11-15T18:08:49Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428931264625525; opening report and surrounding replies reviewed",
+      "content_sha256": "9afead6cf50e3ed77d447b9d6bdeec0977569e515071782d6a14741051a4c22d",
+      "source_author_id": "76561198363837070",
+      "source_category": "Team17 Support",
+      "claim": "Support continues diagnostic troubleshooting of another PC crash report on November 15. A participant’s memory-leak theory is not endorsed or verified in the response.",
+      "authority_checked_at": "2026-11-18T18:27:04Z"
+    },
+    {
+      "issue_id": "HLLV-003",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "EasyanticheatESO.sys crashing",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570429190779754313",
+      "date": "2026-11-17",
+      "source_published_at": "2026-11-17T16:42:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570429190779754313; opening report and surrounding replies reviewed",
+      "content_sha256": "9648ff2d3028c44f8ac7bb2aad6eb2c33d137c778419f41faa5ca724953f92ab",
+      "source_author_id": "76561199418459134",
+      "source_category": "Team17 Support",
+      "claim": "Support asks a later crash reporter about hardware tuning and suggests testing defaults. This is case-specific troubleshooting, not a confirmed tuning-related diagnosis or proof that every post concerns Easy Anti-Cheat.",
+      "authority_checked_at": "2026-11-18T18:27:05Z"
+    },
+    {
+      "issue_id": "HLLV-003",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "game crash nvidia geforcenow and other",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124162308/?ctp=1#c570428931264699185",
+      "date": "2026-11-16",
+      "source_published_at": "2026-11-16T14:17:50Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428931264699185; opening report and surrounding replies reviewed",
+      "content_sha256": "7e97c27e5643e3862fb666f31bd259508af733df87a4377d5c85e94d18af9515",
+      "source_author_id": "76561198363837070",
+      "source_category": "Team17 Support",
+      "claim": "Support asks a new participant which symptom in the mixed cloud-play thread they mean. The brief same-problem reply is not treated as confirmation of every issue listed in the opening post.",
+      "authority_checked_at": "2026-11-18T18:27:04Z"
+    },
+    {
+      "issue_id": "HLLV-006",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "Update 2.0 now targets early December. The roadmap places PS5 QSSR and Xbox FSR 4.1 in General Improvements without assigning them a release date or update number."
+    },
+    {
+      "issue_id": "HLLV-006",
+      "type": "official update",
+      "publisher": "Sony Interactive Entertainment / Expression Games",
+      "title": "QSSR arrives in Marvel’s Spider-Man 2, Control Resonant, The Finals, Arc Raiders, No Man’s Sky, and Hell Let Loose: Vietnam",
+      "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "date": "2026-11-13",
+      "source_published_at": "2026-11-13T14:00:16Z",
+      "source_edited_at": "2026-11-14T01:18:15Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "content_sha256": "142cc716521f144abd0aef5dcab75ae3366e9ef1ea323d3c8349cb576e35625b",
+      "source_locator": "Expression Games — Paul Rustchynsky",
+      "hash_basis": "Title + newline + normalized visible article entry-content; collector plain() normalization; excludes comments/navigation.",
+      "claim": "Expression Games confirms QSSR for Hell Let Loose: Vietnam on PS5 through an upcoming update. The statement names no date or version and does not say it has shipped."
+    },
+    {
+      "issue_id": "HLLV-007",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The November 12 publisher notice moves Update 2.0 to early December 2026 and Update 3.0 to early 2027. No exact day or released fix is established by the schedule change; earlier feature-specific conditions still apply."
+    },
+    {
+      "issue_id": "HLLV-008",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The publisher attributes delayed 2.0/3.0 releases to Team17 network/infrastructure issues. It does not identify the cause of individual player disconnects, live game-server failures, EOS errors or Qonzer/SoulSniper incidents."
+    },
+    {
+      "issue_id": "HLLV-034",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The November 12 publisher notice moves Update 2.0 to early December 2026 and Update 3.0 to early 2027. No exact day or released fix is established by the schedule change; earlier feature-specific conditions still apply."
+    },
+    {
+      "issue_id": "HLLV-038",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The revised roadmap lists Party Chat under General Improvements, without a release date or version. Update 2.0 moves to early December; the earlier subject-to-completion Party Chat target is not a delivery guarantee."
+    },
+    {
+      "issue_id": "HLLV-057",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The November 12 publisher notice moves Update 2.0 to early December 2026 and Update 3.0 to early 2027. No exact day or released fix is established by the schedule change; earlier feature-specific conditions still apply."
+    },
+    {
+      "issue_id": "HLLV-060",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The release-delay notice changes the overall 2.0/3.0 schedule but makes no NVIDIA-specific fix announcement. It does not identify a delivered solution or guarantee inclusion in 2.0."
+    },
+    {
+      "issue_id": "HLLV-076",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The release-delay notice changes the overall 2.0/3.0 schedule but makes no NVIDIA-specific fix announcement. It does not identify a delivered solution or guarantee inclusion in 2.0."
+    },
+    {
+      "issue_id": "HLLV-105",
+      "type": "official update",
+      "publisher": "Hell Let Loose / Team17",
+      "title": "Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T16:34:51Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1849192144183671",
+      "announcement_id": "1849192144183671",
+      "content_sha256": "5ba8287d6c31db900b2a056c54362044b6bbf926fc1b8db24263344e80fcf1db",
+      "source_locator": "Hell Let Loose: Vietnam release schedule; General Improvements panel of the updated roadmap",
+      "claim": "The November 12 publisher notice moves Update 2.0 to early December 2026 and Update 3.0 to early 2027. No exact day or released fix is established by the schedule change; earlier feature-specific conditions still apply."
+    },
+    {
+      "issue_id": "HLLV-119",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Something i think it needed to be worked on..",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c570428931264714790",
+      "date": "2026-11-16",
+      "source_published_at": "2026-11-16T17:51:21Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428931264714790; opening report and surrounding replies reviewed",
+      "content_sha256": "ff5e87b98d1e68da3b83d6a95a16f92fac44e28b35035e024658564ad6ab0b7e",
+      "source_author_id": "76561198363837070",
+      "source_category": "Team17 Support",
+      "claim": "Support acknowledges an inventory-state issue in which the M203 fails to resupply unless its firing mode is selected, and asks whether the new report matches that condition. No fix or release is announced.",
+      "authority_checked_at": "2026-11-18T18:27:05Z"
+    },
+    {
+      "issue_id": "HLLV-120",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Social unit bug",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101898924/?ctp=1#c570428645101936328",
+      "date": "2026-11-12",
+      "source_published_at": "2026-11-12T13:44:31Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428645101936328; opening report and surrounding replies reviewed",
+      "content_sha256": "b0039e3e3769cea2993493802a5a89696b8345ff614cf0c40f9baa8048bacf85",
+      "source_author_id": "76561199418165143",
+      "source_category": "Team17 Support",
+      "claim": "Support requests further interface details and file verification for a PC report of the missing Leave Social Unit button after disconnection. No reproduction result or recovery is recorded.",
+      "authority_checked_at": "2026-11-18T18:27:10Z"
+    },
+    {
+      "issue_id": "HLLV-121",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Failed to load EOS overlay/ Failed to login to EOS errors",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101870123/?ctp=1#c570428645101875485",
+      "date": "2026-11-11",
+      "source_published_at": "2026-11-11T20:47:10Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428645101875485; opening report and surrounding replies reviewed",
+      "content_sha256": "ecfec717a3e48e9521cea37ff0e2e870e8464e0bd10630a0e2367e0219df5fc6",
+      "source_author_id": "76561199418165143",
+      "source_category": "Team17 Support",
+      "claim": "Support responds to EOS overlay-loading and login errors with a troubleshooting link. It does not identify a cause, confirm a service outage or report successful recovery.",
+      "authority_checked_at": "2026-11-18T18:27:09Z"
+    },
+    {
+      "issue_id": "HLLV-122",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "Start up black screen",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/591816596100559560/?ctp=1#c570428645101853053",
+      "date": "2026-11-11",
+      "source_published_at": "2026-11-11T15:49:52Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428645101853053; opening report and surrounding replies reviewed",
+      "content_sha256": "13afaf285f97cbfbef691a7730eea1ed6786edc83eabade3b4d66944746ff872",
+      "source_author_id": "76561199418165143",
+      "source_category": "Team17 Support",
+      "claim": "Support cannot access the new reporter’s diagnostic upload and requests a replacement link for the startup black-screen complaint. No diagnosis or fix is stated.",
+      "authority_checked_at": "2026-11-18T18:27:16Z"
+    },
+    {
+      "issue_id": "HLLV-123",
+      "type": "support thread",
+      "publisher": "Team17 Support",
+      "title": "EasyanticheatESO.sys crashing",
+      "url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570428645101861194",
+      "date": "2026-11-11",
+      "source_published_at": "2026-11-11T17:35:02Z",
+      "source_reviewed_at": "2026-11-18",
+      "source_locator": "Reply 570428645101861194; opening report and surrounding replies reviewed",
+      "content_sha256": "bd5142443b524efcafeae22cdee95c6329faf291c0a2a51fbebcead0a528f15f",
+      "source_author_id": "76561199418165143",
+      "source_category": "Team17 Support",
+      "claim": "Support suggests repairing Easy Anti-Cheat and requests diagnostics if the mid-match crash persists. It identifies the reporter’s second post as a duplicate; it does not confirm that the anti-cheat component caused the crash.",
+      "authority_checked_at": "2026-11-18T18:27:05Z"
+    }
+  ],
+  "source_checks": {
+    "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam",
+      "title": "QSSR arrives in Marvel’s Spider-Man 2, Control Resonant, The Finals, Arc Raiders, No Man’s Sky, and Hell Let Loose: Vietnam – PlayStation.Blog"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/0/631219394426482804/?ctp=1#c572680221973568054": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/0/631219394426482804/?ctp=1#c572680221973568054",
+      "title": "possible fix for the ground flickering white / AMD instant replay :: Hell Let Loose: Vietnam General Discussions"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+      "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722828347": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722828347",
+      "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722993157": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722993157",
+      "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/?ctp=1#c562545439722991680": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/?ctp=1#c562545439722991680",
+      "title": "Crashing from firing tanks main gun :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439722813894/?ctp=1#c562545439722993447": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722813894/?ctp=1#c562545439722993447",
+      "title": "Can't bring up markers (ie tank) when i refresh hud :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439722866531/?ctp=1#c562545439722994101": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722866531/?ctp=1#c562545439722994101",
+      "title": "vietnam HLL :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439722894186/?ctp=1#c562545439722993961": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722894186/?ctp=1#c562545439722993961",
+      "title": "UI bug since 1.6 :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439722914380/?ctp=1#c562545439722994382": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722914380/?ctp=1#c562545439722994382",
+      "title": "Crashing to Desktop - If it matters Im always in a tank :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485791622": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485791622",
+      "title": "Problems with uploading to the map :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485987775": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485987775",
+      "title": "Problems with uploading to the map :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545740485793191/?ctp=1#c562545740485793965": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485793191/?ctp=1#c562545740485793965",
+      "title": "rpg does not hit any tank ..after update...wtf :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/?ctp=1#c562545740485991792": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/?ctp=1#c562545740485991792",
+      "title": "First shot register on your body causes you to lag :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879",
+      "title": "I have an hour long clip :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682",
+      "title": "I have an hour long clip :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540",
+      "title": "map visual bug post 1.6 :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
+      "title": "Suggestions on QOL improvements. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/?ctp=1#c562545439722986963": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/?ctp=1#c562545439722986963",
+      "title": "another LoD issue :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570426339809731198/?ctp=1#c562545439722987240": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809731198/?ctp=1#c562545439722987240",
+      "title": "Game crashes instantly when pressing Push-to-Talk (Squad/Proximity) — still happening after 1.5.2/1.6 :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570426530135769009/?ctp=1#c562545439722991162": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426530135769009/?ctp=1#c562545439722991162",
+      "title": "Official Server EU #28 is bugged :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570428645101861194": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570428645101861194",
+      "title": "EasyanticheatESO.sys crashing :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570429190779754313": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101859283/?ctp=1#c570429190779754313",
+      "title": "EasyanticheatESO.sys crashing :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570428645101870123/?ctp=1#c570428645101875485": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101870123/?ctp=1#c570428645101875485",
+      "title": "Failed to load EOS overlay/ Failed to login to EOS errors :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/570428645101898924/?ctp=1#c570428645101936328": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570428645101898924/?ctp=1#c570428645101936328",
+      "title": "Social unit bug :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679173080153044/?ctp=1#c572679490124137734": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679173080153044/?ctp=1#c572679490124137734",
+      "title": "Dlss :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124162308/?ctp=1#c570428931264699185": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124162308/?ctp=1#c570428931264699185",
+      "title": "game crash nvidia geforcenow and other :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124162308/?ctp=1#c572679490124237769": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124162308/?ctp=1#c572679490124237769",
+      "title": "game crash nvidia geforcenow and other :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c570428931264714790": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c570428931264714790",
+      "title": "Something i think it needed to be worked on.. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679490124236763": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679490124236763",
+      "title": "Something i think it needed to be worked on.. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679770568923706": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679770568923706",
+      "title": "Something i think it needed to be worked on.. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679810651840623": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124190693/?ctp=1#c572679810651840623",
+      "title": "Something i think it needed to be worked on.. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124401819/?ctp=1#c572679770568931860": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124401819/?ctp=1#c572679770568931860",
+      "title": "I have something to ask :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679490124401819/?ctp=1#c572679810651839814": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679490124401819/?ctp=1#c572679810651839814",
+      "title": "I have something to ask :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679917415809813/?ctp=1#c572679917415815075": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679917415809813/?ctp=1#c572679917415815075",
+      "title": "Poor FPS on a 7900 xtx :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679917415809813/?ctp=2#c572680221973558901": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679917415809813/?ctp=2#c572680221973558901",
+      "title": "Poor FPS on a 7900 xtx :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572679917415820485/?ctp=1#c572679917415821235": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572679917415820485/?ctp=1#c572679917415821235",
+      "title": "Me quedé trabado en un pozo :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/572680221973584296/?ctp=1#c572680221973585266": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/572680221973584296/?ctp=1#c572680221973585266",
+      "title": "Background matrix creeping in :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101811728": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101811728",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback... :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101859844": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428645101859844",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback... :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428931264625525": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932464793374155/?ctp=1#c570428931264625525",
+      "title": "HLL Vietnam just crashed during the best match I've ever had... 63 kills, 33 kill streak, 4.85 K/D, big comeback... :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
+      "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
+      "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
+      "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
+      "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
+      "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074",
+      "title": "Voice chat isn't working; it doesn't even let me communicate with my teammates, and they can't communicate with me either. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
+      "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
+      "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539",
+      "title": "VOIP: Reducing the sound via the sliders has almost no impact :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
+      "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
+      "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
+      "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
+      "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769",
+      "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
+      "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898",
+      "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564",
+      "title": "Texture streaming issue: Low-res/muddy bush textures on certain maps :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530",
+      "title": "m72 sights :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072",
+      "title": "Failed to load user's save data.Please try again :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030",
+      "title": "Failed to load user's save data.Please try again :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273",
+      "title": "destroying garrison with flames or explosives grants no points :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853",
+      "title": "DLSS option missing after patch 1.6 :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c570426339809609829": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/",
+      "title": "Hell Let Loose: Vietnam Report a Problem :: Steam Community"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c590691913363951171": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/",
+      "title": "Hell Let Loose: Vietnam Report a Problem :: Steam Community"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096",
+      "title": "Weapon \"Prep\" animations dont match the actual \"Prep\" time :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219",
+      "title": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!! :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
+      "title": "Tutorial Bug :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c562545439722995267": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c562545439722995267",
+      "title": "foliage looks TERRIBLE. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
+      "title": "foliage looks TERRIBLE. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178",
+      "title": "Error window appear :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713",
+      "title": "Sound Problems since the last update :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129",
+      "title": "fps changes :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259",
+      "title": "AMD crashes unacceptable. :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/591816302688228809/?ctp=1#c572679173080075775": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688228809/?ctp=1#c572679173080075775",
+      "title": "Bugs and problems still needed to be worked on... :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/591816596100559560/?ctp=1#c570428645101853053": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/591816596100559560/?ctp=1#c570428645101853053",
+      "title": "Start up black screen :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c562545439722987651": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c562545439722987651",
+      "title": "\"failed to load user data please try again\" :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712",
+      "title": "\"failed to load user data please try again\" :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+      "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
+      "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
+      "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/663863457493294735/?ctp=3#c572679770568959998": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493294735/?ctp=3#c572679770568959998",
+      "title": "1 hour of gameplay than constant amd crashes :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
+      "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Patch 1.7 | Full Changelog | Now Live!"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/675137336435016216",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Release Dates Update | Hell Let Loose: Vietnam & Hell Let Loose"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/695403007258394989",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Community Feedback #9 | Command Post"
+    },
+    "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post"
+    },
+    "https://www.hellletloose.com/blog/5-before-launch": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/5-before-launch",
+      "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-1": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-1",
+      "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-2": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-2",
+      "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-3": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-3",
+      "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-4": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-4",
+      "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-5": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-5",
+      "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-6": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-6",
+      "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-7": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-7",
+      "title": "Blog - Community Feedback #7 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-8": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-8",
+      "title": "Blog - Community Feedback #8 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
+      "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+      "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-2": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
+      "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-3": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
+      "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-4": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
+      "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-6": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-update-1-5": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
+      "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/",
+      "title": "Reddit"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19samp0mizrgl/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19samp0mizrgl/",
+      "title": "Reddit"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19sfb71twnbuq/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/comment/19sfb71twnbuq/",
+      "title": "Reddit"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/graphics_glitch/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xq4ny6/graphics_glitch/",
+      "title": "Reddit"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsf4a8/so_crashy/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsf4a8/so_crashy/",
+      "title": "Reddit"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsm1t6/game_crashed_4_games_in_a_row/": {
+      "checked_at": "2026-11-18T18:34:12Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1xsm1t6/game_crashed_4_games_in_a_row/",
+      "title": "Reddit"
+    }
+  },
+  "manual_discussion_review": {
+    "support_threads_fully_read": 9,
+    "support_pages_read": 10,
+    "support_comments_read": 59,
+    "support_parser_complete": true,
+    "staff_identity_pending_in_selected_threads": 0,
+    "tracked_feed_coverage": "57/58 tracked threads complete in the November 18 17:22Z collector snapshot. The keybinding thread linked to HLLV-007 redirects unexpectedly and remains unavailable.",
+    "discovery_feed_coverage": "104 eligible candidates; 17 completed in that bounded pass and 87 not fully scanned in that run. This is not an exhaustive forum review.",
+    "listing_scope": "First two current pages of Report a Problem and General Discussions inspected for leads; selected issue-bearing threads were read in full.",
+    "general_threads_fully_read": 6,
+    "general_pages_read": 6,
+    "general_staff_replies_found": 0,
+    "general_parser_complete": true
+  },
+  "collection_snapshot": {
+    "checked_at": "2026-11-18T18:34:12Z",
+    "announcement_state": "ok",
+    "source_urls_checked": 110,
+    "tracked_threads_total": 63,
+    "tracked_threads_complete": 61,
+    "verified_responses_retained": 141,
+    "discovery_eligible_candidates": 99,
+    "discovery_threads_complete_this_run": 0,
+    "discovery_not_fully_scanned_this_run": 99,
+    "discovery_identities_pending": 1,
+    "content_reviews_pending": 1,
+    "source_urls_responding_http_200": 110,
+    "source_urls_non_200": 0,
+    "accessibility_scope": "HTTP status and destination only. Generic Reddit responses and redirected discussion pages do not establish that source content was retrieved or substantively revalidated.",
+    "incomplete_tracked_threads": [
+      {
+        "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/",
+        "tracked_issue_ids": [
+          "HLLV-007"
+        ],
+        "state": "unavailable",
+        "failure_kind": "unexpected_redirect",
+        "last_attempt_at": "2026-11-18T18:34:12Z",
+        "last_complete_at": "2026-10-20T12:48:26Z"
+      },
+      {
+        "url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
+        "tracked_issue_ids": [
+          "HLLV-011"
+        ],
+        "state": "unavailable",
+        "failure_kind": "run_budget",
+        "last_attempt_at": "2026-11-18T18:34:12Z",
+        "last_complete_at": "2026-11-18T17:22:00Z"
+      }
+    ]
+  },
+  "excluded_leads": [
+    {
+      "issue": "HLLV-029",
+      "source_urls": [
+        "https://steamcommunity.com/app/3079210/discussions/1/570428645101797884/?ctp=1#c570428645101845680",
+        "https://steamcommunity.com/app/3079210/discussions/1/570428645101797884/?ctp=1#c570428645101937100"
+      ],
+      "reason": "Linux/Proton partial-channel complaint differs from this all-channel failure. Context retained in review without changing the dossier."
+    },
+    {
+      "id": "HLLV-115",
+      "reason": "The only newer reply in the low-FPS thread is a November 13 player suggestion about a rendering API. It supplies no test result or Support update; preserve November 8 evidence date and unresolved status."
+    },
+    {
+      "ids": [
+        "HLLV-111",
+        "HLLV-112",
+        "HLLV-113",
+        "HLLV-117"
+      ],
+      "reason": "The new November 16 reply in their shared source thread is about M203 resupply. Do not apply its date or acknowledgment to water, truck or rifle records."
+    },
+    {
+      "id": "HLLV-095",
+      "reason": "The newly reported missing Social Unit control differs from the scoped join/leave-button fix documented in Patch 1.7; do not reopen or close one solely because of the other."
+    }
+  ],
+  "limitations": [
+    "No independent gameplay testing, newly verified release or existing bug-status closure.",
+    "Current release windows are targets. The Sony QSSR statement and undated roadmap improvements do not establish a release version or date.",
+    "The infrastructure announcement concerns release delays and does not establish causes of live-server, EOS or hosting incidents.",
+    "Public Support responses do not automatically establish internal reproduction, cause or a verified workaround; duplicate posters are not independent confirmations.",
+    "All 110 recorded bug-source destinations returned HTTP 200 in the latest accessibility check. This does not validate content: Reddit responses had a generic page title and one Steam discussion redirects unexpectedly. Earlier access failures and historical evidence are retained.",
+    "The latest reply pass completed 61 of 63 tracked threads; one unexpected redirect and the run budget prevented two completions. The shared run budget prevented all 99 broader discovery candidates from completing in this pass. Earlier scan history and separate manual discussion review remain recorded; community coverage is not exhaustive.",
+    "Creator-video/comment and private-community evidence remain outside connected collection. Written preview text and the roadmap image were reviewed; the video was not watched.",
+    "Sony is a manually reviewed developer-statement source with destination checks; it is not relabelled as a Steam announcement or automatically monitored for editorial changes."
+  ],
+  "validation": {
+    "catch_up_tests": 10,
+    "feature_tests": 8,
+    "feed_tests": 7,
+    "existing_issue_statuses_preserved": true,
+    "existing_issue_sources_and_timelines_preserved": true,
+    "existing_feature_current_baselines_preserved": true,
+    "catch_up_release_window_preserved": true,
+    "layout_styles_and_privacy_policy_preserved": true,
+    "frontend_change_scope": "Feature source link allowlist and provenance label support for the verified Sony developer statement only.",
+    "live_deployment_verification": "Required after publication; not inferred from local data validation."
+  }
+}

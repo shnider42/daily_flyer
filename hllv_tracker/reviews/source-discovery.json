@@ -1,0 +1,96 @@
+{
+  "existing_threads_complete": 17,
+  "existing_threads_total": 17,
+  "discovery": {
+    "schema_version": 1,
+    "enabled": true,
+    "scope": "First two recently active listing pages per forum, plus rotating retained discoveries. Not all Steam discussions; staff replies only, not opening posts.",
+    "state": "partial",
+    "monitoring_started_at": "2026-10-15T15:18:14Z",
+    "last_attempt_at": "2026-10-15T15:18:14Z",
+    "last_window_complete_at": null,
+    "pages_per_forum": 2,
+    "thread_limit_per_pass": 24,
+    "listings": [
+      {
+        "forum": "1",
+        "label": "Report a Problem",
+        "url": "https://steamcommunity.com/app/3079210/discussions/1/",
+        "state": "window_checked",
+        "pages_checked": 2,
+        "pages_planned": 2,
+        "total_forum_topics": 294,
+        "failure_kind": null,
+        "last_attempt_at": "2026-10-15T15:18:14Z"
+      },
+      {
+        "forum": "0",
+        "label": "General Discussions",
+        "url": "https://steamcommunity.com/app/3079210/discussions/0/",
+        "state": "window_checked",
+        "pages_checked": 2,
+        "pages_planned": 2,
+        "total_forum_topics": 274,
+        "failure_kind": null,
+        "last_attempt_at": "2026-10-15T15:18:14Z"
+      }
+    ],
+    "listed_distinct_threads": 60,
+    "new_candidates_this_run": 57,
+    "candidate_count": 57,
+    "eligible_candidates": 48,
+    "zero_reply_leads_not_scanned": 9,
+    "threads_attempted_this_run": 24,
+    "threads_complete_this_run": 24,
+    "awaiting_first_complete_scan": 24,
+    "not_fully_scanned_this_run": 24,
+    "unqualified_leads_expired_or_capped": 0,
+    "staff_response_threads_retained": 2,
+    "staff_responses_retained": 7,
+    "identities_pending": 0,
+    "new_replies_this_run": 0,
+    "edited_replies_this_run": 0,
+    "reviewed_issue_records_changed": false,
+    "content_reviews_pending": 0
+  },
+  "affiliate_monitor": {
+    "schema_version": 1,
+    "state": "not_connected",
+    "directory_url": "https://www.hellletloose.com/community",
+    "last_attempt_at": "2026-10-15T15:18:14Z",
+    "directory_verified_count": 2,
+    "content_collection_enabled": false,
+    "channels": [
+      {
+        "name": "SoulSniper",
+        "channel_url": "https://www.youtube.com/@SoulSniperYT",
+        "directory_label": "SoulSniper",
+        "directory_url": "https://www.hellletloose.com/community",
+        "directory_status": "listed",
+        "directory_checked_at": "2026-10-15T15:18:14Z",
+        "last_directory_verified_at": "2026-10-15T15:18:14Z",
+        "content_status": "not_connected",
+        "content_collection_enabled": false,
+        "failure_kind": null,
+        "note": "Directory relationship only. No channel videos, comments, replies or private community content were collected."
+      },
+      {
+        "name": "Gebatron",
+        "channel_url": "https://www.youtube.com/@GebatronGaming",
+        "directory_label": "Gebatron",
+        "directory_url": "https://www.hellletloose.com/community",
+        "directory_status": "listed",
+        "directory_checked_at": "2026-10-15T15:18:14Z",
+        "last_directory_verified_at": "2026-10-15T15:18:14Z",
+        "content_status": "not_connected",
+        "content_collection_enabled": false,
+        "failure_kind": null,
+        "note": "Directory relationship only. No channel videos, comments, replies or private community content were collected."
+      }
+    ],
+    "required_setup": "Authorized YouTube Data API access plus a refreshable, deletable cache and delivery integration. Not a public Git archive of API comment bodies.",
+    "interpretation": "Partnership identifies a community affiliate, not authority to speak for Team17."
+  },
+  "reviewed_bug_statuses_changed": false,
+  "supabase_changed": false
+}
