@@ -8,6 +8,7 @@ import { Game } from '../dist/engine.mjs';
 import { STORY_CHAPTERS } from '../dist/content.mjs';
 import { foldDrivePlan } from '../dist/upgrade-guidance.mjs';
 import { createRecoveryReportUI } from '../dist/recovery-report-ui.mjs';
+import { appendNoticeHistory } from '../dist/notice-history-ui.mjs';
 
 const source = readFileSync(new URL('../dist/app.mjs', import.meta.url), 'utf8');
 const declarations = [...source.matchAll(/^(?:async )?function (\w+)\(/gm)];
@@ -16,7 +17,7 @@ function declaration(name) {
   return source.slice(declarations[index].index, declarations[index + 1]?.index ?? source.length);
 }
 class Element {
-  constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.attributes = {}; this.textContent = ''; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.attributes = {}; this.style = {}; this.textContent = ''; }
   append(...children) { this.children.push(...children); }
   insertAdjacentHTML(_, html) { this.children.push({ html }); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
@@ -84,8 +85,11 @@ test('a relief decision keeps its contact and next task without an unrelated dis
 });
 
 test('the actual legacy notebook uses the same destinations and width as stories', () => {
+  const message = Object.freeze({ id: 'notice-1', text: 'Course marked.\nFollow <Morrow> on the local chart.', type: 'info', count: 2, time: 100 });
   const context = vm.createContext({ testSession: null, game: game(), dialog: dialog(), document,
-    createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }), fmt: String });
+    createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }), fmt: String,
+    syncNoticePresentation() {}, noticeHistory: () => Object.freeze([message]),
+    appendNoticeHistory: (parent, entries, options) => appendNoticeHistory(parent, entries, { ...options, document }) });
   context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,
     invoke: (...args) => context.invoke(...args), acceptResult: answer => context.result(answer) });
   vm.runInContext(declaration('openJournal'), context); context.openJournal('log');
@@ -94,6 +98,18 @@ test('the actual legacy notebook uses the same destinations and width as stories
   assert.equal(nav.children.find(button => button.dataset.notebookSection === 'log').attributes['aria-current'], 'page');
   assert.equal(context.dialog.kind, 'narrative'); assert.equal(context.dialog.options.wide, true);
   assert.equal(context.dialog.options.contextKey, 'notebook:log');
+  const recent = context.dialog.body.children[0].children[1].children[0];
+  assert.equal(recent.tagName, 'details'); assert.equal(recent.open, false, 'Ordinary log navigation keeps visit messages folded.');
+  assert.equal(recent.children[0].textContent, 'Recent messages · 1');
+  const row = recent.children[1].children.find(child => child.dataset?.noticeId === message.id);
+  assert.equal(row.children.at(-1).textContent, message.text, 'The real renderer retains full text and line breaks without interpreting markup.');
+  assert.equal(row.children.at(-1).style.whiteSpace, 'pre-wrap');
+  context.openJournal('log', { showMessages: true, noticeId: message.id });
+  const selected = context.dialog.body.children[0].children[1].children[0];
+  assert.equal(selected.open, true);
+  assert.equal(selected.children[1].children.find(child => child.dataset?.noticeId === message.id).dataset.selected, 'true');
+  assert.equal(context.dialog.options.contextKey, 'notebook:log', 'Reading a notice uses the existing notebook destination.');
+  assert.equal(context.dialog.options.wide, true);
 });
 
 test('shipyard services retain all four tabs and show earned support in the current quote', () => {
@@ -157,6 +173,8 @@ function notebookContext(current, extra = {}) {
   const context = vm.createContext({ game: current, dialog: dialog(), document, testSession: null, network: {},
     captureMenuSession, foldDrivePlan, STORY_CHAPTERS, fmt: String, esc: String,
     createNotebookNavigation: (key, select) => createNotebookNavigation(key, select, { document }),
+    syncNoticePresentation() {}, noticeHistory: () => [],
+    appendNoticeHistory: (parent, entries, options) => appendNoticeHistory(parent, entries, { ...options, document }),
     appendQuietEarthEntry() {}, appendFieldWorkEntry() {}, militaryCareerUI: { appendEntry() {} }, openingUI: { appendEntry() {} },
     appendFoldDriveLink() {}, ...extra });
   context.recoveryReportUI = createRecoveryReportUI({ getGame: () => context.game, dialog: context.dialog,

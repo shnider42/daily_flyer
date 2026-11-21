@@ -25,7 +25,7 @@ const draftKey = 'dfe.farwake.camera-pending.v1:GALAXY:captain-one';
 // voyage serialization are real.
 function fixture({ local = prefs(.8, 1.2), server = prefs(.4, .75), revision = 5 } = {}) {
   let timerId = 0, context;
-  const timers = new Map(), elements = new Map(), entries = new Map(), saves = [], downloads = [], notices = [], commands = [], instances = [];
+  const timers = new Map(), elements = new Map(), entries = new Map(), saves = [], downloads = [], notices = [], noticeClears = [], commands = [], instances = [];
   const authority = { preferences: { ...server }, revision };
   const faults = { save: false, connect: false };
   const solo = new Game('camera-local-voyage');
@@ -89,13 +89,14 @@ function fixture({ local = prefs(.8, 1.2), server = prefs(.4, .75), revision = 5
     openTestControls() { assert.fail('test controls not expected'); }, openPassport() { assert.fail('solo save panel should not become a passport dialog'); },
     openEncounter() {}, esc: String, readPassport: () => passport,
     toast: message => notices.push(message), hudText: (target, value) => { target.textContent = value; },
+    clearNotices: options => noticeClears.push(copy(options ?? {})),
     saveGame(game) { if (faults.save) return false; saves.push(JSON.parse(game.serialize())); return true; },
     receiveSnapshot(packet) { context.game = Game.fromSave(packet.state); context.onlineSnapshot = packet; context.receiveCameraPreferences(packet); },
   });
   vm.runInContext(code, context);
   context.cameraProfile = new CameraProfile({ onChange: context.applyCameraState, schedule, cancel });
   context.activateLocalCamera(local);
-  return { context, timers, entries, saves, downloads, notices, commands, instances, authority, faults, element };
+  return { context, timers, entries, saves, downloads, notices, noticeClears, commands, instances, authority, faults, element };
 }
 
 test('a voyage exported immediately after a zoom edit includes both current modes before debounce', async () => {
@@ -112,6 +113,8 @@ test('a voyage exported immediately after a zoom edit includes both current mode
   other.context.openSavePanel();
   other.element('saveText').value = JSON.stringify(exported);
   await other.element('importSave').onclick();
+  assert.equal(other.element('saveFeedback').textContent, '', 'Successful import completes its browser UI boundaries.');
+  assert.deepEqual(other.noticeClears, [{ history: true }]);
   assert.deepEqual(other.context.cameraProfile.preferences, prefs(.3, .65));
   assert.deepEqual(other.saves[0].cameraPreferences, prefs(.3, .65));
   assert.deepEqual(JSON.parse(other.entries.get('device-settings')), { shipZoom: .3, personZoom: .65, textScale: 1.4, controlScale: 1.1 });
@@ -135,6 +138,7 @@ test('failed voyage import cannot change the active voyage or camera profile', a
   assert.equal(f.context.game, before);
   assert.deepEqual(f.context.cameraProfile.preferences, prefs(.8, 1.2));
   assert.match(f.element('saveFeedback').textContent, /does not look like a Farwake save/i);
+  assert.deepEqual(f.noticeClears, [], 'Failed imports leave the active voyage notices alone.');
 });
 
 test('shared welcome uses saved captain cameras, and sign-off restores the separate solo cameras', async () => {

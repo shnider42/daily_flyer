@@ -105,7 +105,8 @@ test('the quiet corridor coach follows the current action and only gives escape 
   assert.equal(storyStatus(encounter, site).phase, 'escape');
   const escape = context.chooseGuidancePrompt({ combat: { active: true } }, unrelated, { target: null });
   assert.equal(escape.title, 'Return to the entry');
-  assert.match(escape.compactBody, /Green lights/); assert.match(escape.compactBody, /Shoot to make space/); assert.match(escape.compactBody, /entry door control/);
+  assert.match(escape.compactBody, /green lights/i); assert.match(escape.compactBody, /entry door control/i);
+  assert.match(escape.body, /shoot to make space/i, 'Expanded help retains the combat advice while the compact strip gives the escape action.');
   assert.ok(escape.compactBody.length < 100, 'The live escape instruction fits the compact touch coach.');
   context.settings.guidance = 'expert'; assert.equal(context.chooseGuidancePrompt({}, unrelated), null);
 });
