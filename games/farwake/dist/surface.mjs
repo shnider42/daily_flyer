@@ -16,6 +16,9 @@ import {buildWarzoneGroundInterior,drawWarzoneGroundEffects,drawWarzoneInfantryK
 import {createSiteVisibility} from './site-visibility.mjs';
 import {explorationSites} from './exploration.mjs';
 import {buildExpeditionStoryLayout} from './expedition-story-layouts.mjs';
+import {buildCavernInterior} from './cavern-layouts.mjs';
+import {settlementFootprints} from './settlement-footprints.mjs';
+import {drawCreatureTell,creatureArtHeight} from './creature-art.mjs';
 import {drawExpeditionProp,drawExpeditionWildlife,drawExpeditionFactionKit,expeditionFactionColor} from './expedition-story-art.mjs';
 import {expeditionHostileTo,storySurfaceView} from './expedition-story-rules.mjs';
 import {isFieldSite,normalizeFieldState,fieldObjectPosition,fieldSurfaceView,buildFieldInterior,FOREMAN_POSITION,FOREMAN_TIMING} from './floodworks.mjs';
@@ -326,18 +329,7 @@ function regionalPlanet(location,seed){
  m.settlementId=plan.id;m.settlementName=plan.name;m.settlementDescription=plan.description;m.barren=plan.barren;
  if(plan.landform==='canyon'&&!['lava','glacier','frozen-sea'].includes(type.id)){m.regionalWaterColor='#29282c';m.regionalBarrierKind='chasm';}
  for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)m.tiles[y][x]=x===0||y===0||x===m.cols-1||y===m.rows-1?TILE.WALL:({water:TILE.WATER,rubble:TILE.RUBBLE,metal:TILE.METAL,ground:TILE.GROUND}[settlementLandformAt(plan,x,y)]||TILE.GROUND);
- const sites=explorationSites(location,seed),reserved=sites.map(site=>({x:site.tileX,y:site.tileY,w:12,h:10})),centers={};
- // Service buildings may move around a fixed authored cave or named address.
- // Those entrances keep their released coordinates and persistent site IDs.
- const fit=(desired,w,h)=>{
-  const clear=p=>p.x-w/2>=3&&p.y-h/2>=3&&p.x+w/2<m.cols-3&&p.y+h/2<m.rows-3&&!reserved.some(q=>Math.abs(q.x-p.x)<(q.w+w)/2+2&&Math.abs(q.y-p.y)<(q.h+h)/2+2);
-  const candidates=[];for(let dy=-16;dy<=16;dy+=2)for(let dx=-16;dx<=16;dx+=2)candidates.push({x:desired.x+dx,y:desired.y+dy,d:dx*dx+dy*dy});candidates.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
-  let p=candidates.find(clear);
-  if(!p)for(let y=8;y<m.rows-8&&!p;y+=2)for(let x=8;x<m.cols-8;x+=2)if(clear({x,y})){p={x,y};break;}
-  p||={...desired};const result={x:p.x,y:p.y};reserved.push({...result,w,h});return result;
- };
- centers.landing=fit(plan.anchors.landing,10,8);
- if(!plan.barren){for(const name of['workshop','clinic','common','keeper'])centers[name]=fit(plan.anchors[name],name==='common'?12:10,8);centers.square=fit(plan.anchors.square,13,9);}
+ const sites=explorationSites(location,seed),{centers}=settlementFootprints(plan,sites,m.cols,m.rows);
  const l=centers.landing;
  rect(m,l.x-5,l.y-4,11,9,TILE.GROUND);rect(m,l.x-4,l.y-3,9,7,TILE.PAD);rect(m,l.x-3,l.y-1,7,2,TILE.METAL);
  m.spawn=point(l.x,l.y);m.exit=point(l.x,l.y+2);network.add(l.y*m.cols+l.x);network.add((l.y+2)*m.cols+l.x);
@@ -572,6 +564,8 @@ function expeditionSurface(location,seed,outdoor=false){
   buildWarzoneGroundInterior(m,site,{rect,prop,label,point,TILE});
  }else if(site.quietEarth){
   buildQuietEarthInterior(m,site,{rect,prop,label,point,TILE});
+ }else if(site.cavern){
+  buildCavernInterior(m,site,{prop,point});
  }else if(site.expedition){
   buildExpeditionStoryLayout(m,site,{prop,point});
  }else if(isFieldSite(site)){
@@ -849,7 +843,7 @@ export function generateSurface(location={},seed='farwake',flags=[]){
  if(m.kind==='planet'&&!m.outdoorWarzone)restorePlanetAccess(m);
  addQuestEntities(m,location);
  addPublicGambling(m,location,{reachableTiles,entity,label});
- if(m.kind==='site'||m.outdoorWarzone){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height};}
+ if(m.kind==='site'||m.outdoorWarzone){const walkable=[];for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++)walkable.push(isWalkable(m,(x+.5)*T,(y+.5)*T,1)?1:0);m.combatLayout={tile:T,tileSize:T,cols:m.cols,rows:m.rows,walkable,width:m.width,height:m.height,...(m.site?.visibility?{visibility:m.site.visibility}:{})};}
  return m;
 }
 /** Collision uses a small circular-feeling square footprint below the sprite. */
@@ -1221,7 +1215,7 @@ function drawFieldMachine(ctx,field,time,emit){
 function actorHealth(ctx,actor,time){
  const health=Number(actor.health??actor.hp??100),maximum=Math.max(1,Number(actor.maxHealth??actor.maxHp??100)),hostile=actor.team==='hostile'||actor.hostile===true;
  if(health<=0)return;
- if(hostile||health<maximum||actor.showHealth){const wide=actor.species==='bellwether',w=wide?44:24,x=Math.round(actor.x)-w/2,y=Math.round(actor.y)-(wide?54:34);pixel(ctx,'#10232b',x-1,y-1,w+2,5);pixel(ctx,hostile?'#653c38':'#3b5956',x,y,w,3);pixel(ctx,hostile?'#e79a7b':'#9acbb0',x,y,Math.round(w*clamp(health/maximum,0,1)),3);}
+ if(hostile||health<maximum||actor.showHealth){const wide=actor.species==='bellwether',w=wide?44:24,x=Math.round(actor.x)-w/2,y=Math.round(actor.y)-(wide?54:isWildlifeSpecies(actor.species)?creatureArtHeight(actor.species)+5:34);pixel(ctx,'#10232b',x-1,y-1,w+2,5);pixel(ctx,hostile?'#653c38':'#3b5956',x,y,w,3);pixel(ctx,hostile?'#e79a7b':'#9acbb0',x,y,Math.round(w*clamp(health/maximum,0,1)),3);}
  if((actor.hurtUntil||actor.hitUntil||0)>time){pixel(ctx,'#eab49b',actor.x-10,actor.y-18,2,2);pixel(ctx,'#eab49b',actor.x+9,actor.y-7,2,2);}
 }
 function aimBracket(ctx,x,y,color){
@@ -1460,7 +1454,7 @@ function drawSurfacePixels(ctx,surface,options={}){
  drawFieldSweep(ctx,surface.field);
  drawWarzoneGroundEffects(ctx,surface,options.exploration,{time,cameraX,cameraY,width,height,reduceMotion:options.reduceMotion,layer:'floor'});
  for(const home of homes)if(home.x>cameraX-30&&home.x<cameraX+width+30&&home.y>cameraY-30&&home.y<cameraY+height+45)drawHomeMarker(ctx,home,options.localCaptainId,time);
- for(const actor of actors)if(actor.x>cameraX-220&&actor.x<cameraX+width+220&&actor.y>cameraY-220&&actor.y<cameraY+height+220){drawBellwetherTell(ctx,actor,surface.combatLayout);drawInfantryTell(ctx,actor,surface.combatLayout);}
+ for(const actor of actors)if(actor.x>cameraX-220&&actor.x<cameraX+width+220&&actor.y>cameraY-220&&actor.y<cameraY+height+220){drawBellwetherTell(ctx,actor,surface.combatLayout);if(!drawCreatureTell(ctx,actor,surface.combatLayout,combatTime))drawInfantryTell(ctx,actor,surface.combatLayout);}
  if(aim)drawCombatAim(ctx,person,aim);
  const candidate=surface.kind==='ship'?nearestDeckInteraction(surface,person):nearestEntity(surface,person,43),near=candidate&&!represented(candidate)&&(!visibility||visibility.canSeePoint(candidate))?candidate:null,targetId=options.mission?.targetEntityId||options.mission?.entityId,items=[];
  for(const d of surface.decor)if(!flat.has(d.kind)&&visible(d))items.push({y:d.y+d.h,prop:d});
@@ -1510,7 +1504,7 @@ function drawSurfacePixels(ctx,surface,options={}){
   const hostile=actor.team==='hostile'||actor.hostile===true,name=actor.name||actor.displayName||actor.crewRole|| (hostile?'Boarder':'Crewmate');
   const piloting=actor.station==='helm'&&actor.perspective==='ship'&&!actor.down;
   const label=piloting?`${name} · ${actor.sleeping?'Helm (away)':'Piloting'}`:name;
-  emit(label,actor.x,actor.y-(actor.species==='bellwether'?67:47),hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
+  emit(label,actor.x,actor.y-(actor.species==='bellwether'?67:isWildlifeSpecies(actor.species)?creatureArtHeight(actor.species)+18:47),hostile?'#f1b296':piloting?'#e6c58a':'#b3dcd8',13,'center',hostile?82:75,hostile?'hostile':actor.remote?'remote':'crew');
  }
  for(const home of homes){const mine=!!options.localCaptainId&&home.ownerId===options.localCaptainId,nearby=Math.hypot(home.x-person.x,home.y-person.y)<70,owner=mine?'Your':home.ownerName?`${home.ownerName}’s`:'Captain’s';emit(`${owner} ${home.kind==='outpost'?'outpost':'room'}`,home.x,home.y-(home.kind==='outpost'?48:27),mine?'#e5be79':'#8ec8d2',13,'center',nearby?70:mine?45:30,'home');}
  if(targetId){const e=surface.entities.find(e=>e.id===targetId&&!e.hidden&&!represented(e)&&(!visibility||visibility.canSeePoint(e)));if(e){const x=e.x-17,y=e.y-27;for(const[dx,dy]of[[0,0],[29,0],[0,29],[29,29]]){pixel(ctx,'#e2c98f',x+dx,y+dy,5,1);pixel(ctx,'#e2c98f',x+dx+(dx?4:0),y+dy-(dy?4:0),1,5);}}}

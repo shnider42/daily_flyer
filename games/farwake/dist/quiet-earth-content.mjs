@@ -1,6 +1,7 @@
 /** The first Quiet Earth field mission. Authored coordinates are tiles unless noted. */
 import { createQuietEarthCorridorPlan, buildQuietEarthAnnexes } from './quiet-earth-layouts.mjs';
 import { quietEarthLoreRecords } from './quiet-earth-lore.mjs';
+import { creatureProfile, selectHabitatCreatures } from './creature-catalog.mjs';
 const TILE_SIZE = 24;
 const point = (x, y) => ({ x: (x + .5) * TILE_SIZE, y: (y + .5) * TILE_SIZE });
 const reward = (credits = 0, ore = 0, crystal = 0, heal = 0) => ({ credits, ore, crystal, heal });
@@ -144,13 +145,46 @@ const site = freeze({
 });
 
 const seededSites = new Map();
+function relayCreature(slot, species, index) {
+  const profile = creatureProfile(species);
+  if (!profile) return slot;
+  return { ...slot, species, combatProfile: profile.combatProfile, profile: profile.combatProfile, color: profile.color,
+    // This is an escape scene. Different bodies keep a forgiving damage budget
+    // and readable attack preparation; no creature can seal the return route.
+    health: index === 0 ? 80 : 64, maxHealth: index === 0 ? 80 : 64, damage: 10, armor: 0,
+    speed: index === 1 ? 104 : species === 'stoneback' ? 42 : species === 'coilworm' ? 45 : 68,
+    windupDuration: Math.max(.8, species === 'ember-mite' ? 1.2 : .8), fireDelay: 1.8 };
+}
+function relayRoster(seed) {
+  const pool = selectHabitatCreatures('service-tunnel', `${seed}:relay-nine-population`, { count: 15 });
+  const pursuer = pool.find(profile => ['skitter', 'ember-mite'].includes(profile.id));
+  const rest = pool.filter(profile => profile.id !== pursuer.id);
+  return site.hostiles.map((slot, index) => relayCreature(slot, (index === 1 ? pursuer : rest[index === 0 ? 0 : index - 1]).id, index));
+}
+
+/** A witnessed or injured released contact retains its identity on reload. */
+export function quietEarthRestoreSite(currentSite, prior = {}) {
+  if (!isQuietEarth(currentSite) || !Array.isArray(prior.monsters)) return currentSite;
+  const seenEncounter = prior.choices?.receiver === 'copy' || prior.choices?.evacuate === 'seal';
+  let changed = false;
+  const hostiles = currentSite.hostiles.map((slot, index) => {
+    const raw = prior.monsters.find(actor => actor?.id === `${currentSite.key}:actor:${slot.id}`), profile = creatureProfile(raw?.species);
+    const seen = raw && (seenEncounter || raw.revealed === true || raw.alert === true || raw.health <= 0 ||
+      Number.isFinite(raw.health) && Number.isFinite(raw.maxHealth) && raw.health < raw.maxHealth);
+    if (!seen || !profile || !(raw.species === 'shardling' || profile.habitats.includes('service-tunnel')) || raw.species === slot.species) return slot;
+    changed = true;
+    return relayCreature(slot, raw.species, index);
+  });
+  return changed ? { ...currentSite, hostiles } : currentSite;
+}
+
 export function quietEarthSites(body = {}, seed = 'farwake') {
   if (typeof body === 'string') body = { id: body };
   if (body?.id !== 'morrow' || body.kind != null && body.kind !== 'planet') return [];
   const key = String(seed);
   if (!seededSites.has(key)) {
     const corridorPlan = createQuietEarthCorridorPlan(key);
-    seededSites.set(key, freeze({ ...site, corridorPlan,
+    seededSites.set(key, freeze({ ...site, corridorPlan, hostiles: relayRoster(key),
       briefing: site.briefing + ' Old stores and archive passages branch from the main halls. Their records are optional; green signs point back to the service route.',
       records: [...site.records, ...quietEarthLoreRecords(corridorPlan.evidenceAnchors)],
       quietEarthBeats: [...QUIET_EARTH_BEATS, ...corridorPlan.cues] }));

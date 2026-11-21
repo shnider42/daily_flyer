@@ -1,5 +1,6 @@
 import { normalizeCameraPreferences, normalizeModeZoom } from './camera-preferences.mjs';
 import { pickDeviceSettings } from './privacy-data.mjs';
+import { createNoticeCenter } from './notice-center.mjs';
 
 export const $=id=>document.getElementById(id);
 export const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -72,5 +73,35 @@ export function applySettings(settings,{cameraPreferences=settings}={}){
  // accessibility still save here without replacing this browser's solo camera.
  try{localStorage.setItem('dfe.farwake.settings.v1',JSON.stringify(pickDeviceSettings({...settings,...normalizeCameraPreferences(cameraPreferences)})));}catch{}
 }
-export function toast(message,type='info',duration=4600){if(!message)return;const e=document.createElement('div');e.className=`toast ${type}`;e.textContent=message;$('toastStack').append(e);while($('toastStack').children.length>4)$('toastStack').firstChild.remove();setTimeout(()=>e.remove(),duration);}
+let notices = null;
+const noticeParts = new WeakMap();
+function noticeStack(){return typeof document==='undefined'?null:document.getElementById('toastStack');}
+function updateNotice(element,record,{priority}){
+ const parts=noticeParts.get(element);if(!parts)return;
+ const className=`toast ${record.type}${priority==='urgent'?' notice-urgent':''}`;if(element.className!==className)element.className=className;
+ if(element.dataset.priority!==priority){element.dataset.priority=priority;element.setAttribute('role',priority==='urgent'?'alert':'status');element.setAttribute('aria-live',priority==='urgent'?'assertive':'polite');element.setAttribute('aria-atomic','true');}
+ element.dataset.noticeId=record.id;
+ if(parts.text.textContent!==record.text){parts.text.textContent=record.text;parts.message.setAttribute('aria-label',`Read full notice: ${record.text}`);}
+ const count=record.count>1?`×${record.count}`:'';if(parts.count.textContent!==count)parts.count.textContent=count;parts.count.hidden=record.count<=1;
+}
+function noticeController(){
+ if(notices)return notices;
+ notices=createNoticeCenter({
+  render(record,{priority,onRead,onDismiss}){
+   const stack=noticeStack();if(!stack)return null;
+   const element=document.createElement('div'),message=document.createElement('button'),text=document.createElement('span'),count=document.createElement('span'),dismiss=document.createElement('button');
+   message.type='button';message.className='toast-message';text.className='toast-text';count.className='toast-count';count.setAttribute('aria-hidden','true');
+   dismiss.type='button';dismiss.className='toast-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss notice');
+   message.addEventListener('click',event=>{event.stopPropagation();onRead();});dismiss.addEventListener('click',event=>{event.stopPropagation();onDismiss();});
+   message.append(text,count);element.append(message,dismiss);noticeParts.set(element,{message,text,count,dismiss});updateNotice(element,record,{priority});stack.append(element);return element;
+  },update:updateNotice,
+  onConfigure({compact,quiet}){const stack=noticeStack();if(stack){stack.dataset.compact=String(compact);stack.dataset.quiet=String(quiet);}}
+ });return notices;
+}
+export function toast(message,type='info',duration=4600,options={}){return noticeController().show(message,type,duration,options);}
+export function configureNotices(options={}){noticeController().configure(options);}
+export function noticeHistory(){return noticeController().history();}
+export function recordNotice(message,type='info',options={}){return noticeController().record(message,type,options);}
+export function clearNotices(options={}){noticeController().clear(options);}
+export function hasVisibleNotice(){return noticeController().hasVisible();}
 export function portrait(canvas,color='#83cbbb',seed=1){const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.fillStyle='#162635';c.fillRect(0,0,32,40);c.fillStyle='#293f4d';for(let i=0;i<7;i++){c.fillRect((i*7+seed*3)%32,i*6,4,1);}c.fillStyle='#0c1923';c.fillRect(6,31,21,9);c.fillStyle=color;c.fillRect(7,28,18,12);c.fillRect(4,31,6,9);c.fillRect(24,31,5,9);c.fillStyle='#384c5b';c.fillRect(15,28,3,12);c.fillStyle='#deb48e';c.fillRect(10,9,13,17);c.fillRect(8,14,3,8);c.fillRect(23,14,2,7);c.fillStyle='#be8f71';c.fillRect(10,22,13,4);c.fillRect(14,26,6,4);c.fillStyle=['#706457','#352b2b','#a6a294','#4e453e'][seed%4];c.fillRect(9,5,15,7);c.fillRect(7,9,5,7);c.fillRect(22,9,3,6);c.fillStyle='#1e2930';c.fillRect(12,16,2,2);c.fillRect(20,16,2,2);c.fillStyle='#785a4b';c.fillRect(15,22,5,1);c.fillStyle='#ead3a0';c.fillRect(10,31,3,2);}

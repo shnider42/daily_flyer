@@ -160,7 +160,8 @@ export function musicContext({
   const layout = surface?.combatLayout;
   const groundPursuit = mode === 'person' && !onVessel && !!layout?.walkable &&
     list(state.exploration?.encounter?.monsters).some(actor =>
-      finite(actor?.health) > 0 && actor.alert === true && actor.attackKind !== 'none' && !actor.stationary &&
+      finite(actor?.health) > 0 && actor.alert === true && actor.attackKind !== 'none' &&
+      (!actor.stationary || actor.windup > 0 || actor.phase === 'strike') &&
       same(actor.targetId, captainId) && distance(personPosition, point(actor)) <= 360 &&
       canSeeConcealedActor(layout, state.person, actor) && clearSidearmSight(layout, state.person, actor));
 
@@ -214,7 +215,9 @@ export function musicContext({
     ['clinic', 'sanctum', 'church', 'vault'].includes(locationKind) ? 'reflective' : null
   ].filter(Boolean))];
   const terrorKey = visible ? revealedTerror(state, site, observedCue, surface) : null;
-  const concealedActors = isFoggedSite(surface) ? list(state.exploration?.encounter?.monsters).filter(actor => actor.concealed) : [];
+  // Ordinary wildlife behind contextual cave fog is just as unseen as a
+  // scripted concealed boss. Shared events must respect this captain's sight.
+  const concealedActors = isFoggedSite(surface) ? list(state.exploration?.encounter?.monsters) : [];
   const concealedActorIds = concealedActors.map(actor => actor.id), visibleActorIds = concealedActors.filter(actor => canSeeConcealedActor(surface.combatLayout, state.person, actor)).map(actor => actor.id);
   const silence = !!hidden || visible && observedCue?.tag === 'silence' && observedCue.revealed === true;
   const scope = {

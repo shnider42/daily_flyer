@@ -1,8 +1,24 @@
 # FARWAKE — The Quiet Earth
 
-**Version 0.35.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
+**Version 0.36.0 · DailyFlyer · Solo voyages and persistent shared galaxies for up to 10 online captains**
 
 [Play Farwake](https://dfe-farwake.onrender.com/) · [Multiplayer service and direct game](https://dfe-farwake-universe.onrender.com/)
+
+## 0.36.0 — Creatures with their own ecology
+
+Farwake now has **15 biological creature types**: the nine established identities and six new forms—rimehorn, tidebell, coilworm, kiln crab, veilwing and root snare. The fourteen ordinary species have distinct movement and attack patterns, including locked charges, double bites, spreading shots, lingering clouds, ring pulses and stationary ambushes. Visible preparation and recovery give movement, cover and positioning a purpose. Bellwether retains its authored boss encounter; machines and sapient factions remain separate.
+
+Five seeded cavern families appear selectively on generated planets and moons: limestone chambers, root galleries, tidal shelves, glacial fractures and cooled lava tubes. Each has its own physical routes, environmental details and compatible wildlife. Populations may be empty, peaceful, mixed or hostile. Neutral species do not join a neighboring species' fight. Surveying and leaving do not require clearing every creature.
+
+Visibility follows the place. Selected enclosed root and glacial caverns use nearby lamplight or mist; skylit, tidal and vent-lit variants remain clear. Darkness does not imply a fight. Rendering, targeting, pursuit scoring and shared combat cues apply the same local visibility rule, so an unseen threat does not announce itself through the music.
+
+Relay Nine's four dormant contacts now draw a varied, seeded service-tunnel roster. Its opening, harmless disturbances, lighting, music, receiver trigger and escape route remain intact. Existing witnessed, wounded and dead contacts preserve their identities and outcomes; an untouched dormant encounter can adopt the new roster. Existing named worlds, expedition stories, settlements, paid homes and claims retain their positions and progress.
+
+The reusable [creature ecology guide](docs/creature-ecology.md) records habitats, silhouettes, attack preparation, counterplay and continuity rules. Ordinary wildlife is not automatically evidence about Earth or an extension of the Collective. World content revision **12** keeps solo and shared simulation aligned. Validation covers physical cavern traversal, readable attacks, visibility, neutral wildlife, saved wounds and deaths, shared authority, and unchanged prior geography.
+
+Mobile now keeps one actual notice at a time. Routine notices use at most two visible lines, expire within 2.8 seconds, and do not displace an urgent warning. Repeats combine; old hidden notices cannot reappear. Tap a notice to read its complete text, or open **Menu → Recent messages** / **Log → Voyage log**. The bounded history covers the current visit and stays separate from saved journal and lore records.
+
+With Compact tips enabled, Simple guidance keeps one useful next instruction; tapping expands the complete explanation. Incidental nearby speech waits while moving, reading a notice or expanding help, and its complete exchange is available in recent messages. Full-tip preferences, recovery controls, physical warning circles and required mission actions remain available. See [mobile presentation continuity](docs/mobile-presentation.md).
 
 ## 0.35.0 — Branching corridors and older departures
 

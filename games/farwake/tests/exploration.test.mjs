@@ -72,6 +72,7 @@ test('creature attacks have a readable windup, can be escaped, and damage each t
  const{surface,state}=cave(),captain=actor(24,14);state.monsters[1].health=0;const monster=state.monsters[0];
  stepSiteEncounter(state,[captain],.1,surface);assert.ok(monster.windup>0);assert.equal(captain.person.health,100);
  captain.person.x-=120;for(let i=0;i<6;i++)stepSiteEncounter(state,[captain],.1,surface);assert.equal(captain.person.health,100);
+ for(let i=0;i<10&&monster.phase==='recovery';i++)stepSiteEncounter(state,[captain],.1,surface);
  monster.cooldown=0;Object.assign(captain.person,{x:monster.x-18,y:monster.y});
  const events=[];for(let i=0;i<7;i++)events.push(...stepSiteEncounter(state,[captain],.1,surface));assert.equal(events.filter(e=>e.type==='person-hit').length,1);assert.equal(captain.person.health,84);
 });

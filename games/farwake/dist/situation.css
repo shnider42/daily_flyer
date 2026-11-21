@@ -10,10 +10,10 @@
 .touch-layout.immersive-hud.touch-landscape:not(.welcome-active) .situation-button{left:auto;right:var(--hud-right);width:calc(42% - 18px);max-width:330px}
 .touch-layout.immersive-hud.touch-landscape.situation-visible:not(.welcome-active) #coachCard{top:var(--coach-top);left:var(--hud-edge);right:auto;transform:none;width:calc(58% - 24px);max-width:440px}
 .touch-layout.view-open .situation-button{visibility:hidden;pointer-events:none}
-/* Simple keeps the actual next step visible, even with Compact tips enabled. */
-.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy p{display:block;font-size:.9rem;line-height:1.4;margin:4px 0 2px;color:#e0e8df}
-.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy{padding-top:7px;padding-bottom:7px;max-height:150px;overflow:auto}
-.touch-layout.guidance-simple.compact-tips:not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy strong{font-size:.91rem;color:#b7d9c9}
+/* Simple's concise action is in the title; expand it to read the explanation. */
+.touch-layout.guidance-simple:is(.compact-tips,.coach-condensed):not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy p{display:none}
+.touch-layout.guidance-simple:is(.compact-tips,.coach-condensed):not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy{padding:4px 0;max-height:none;overflow:hidden}
+.touch-layout.guidance-simple:is(.compact-tips,.coach-condensed):not(.coach-expanded):not(.welcome-active) #coachCard .coach-copy strong{font-size:.93rem;color:#e0e8df}
 .menu-theme-credit{font-size:.82rem!important;line-height:1.5;color:#bdcbd0;margin:10px 0 0;max-width:36rem}
 .music-piece-credit{font-size:.9rem;line-height:1.5;color:#d1ddd5;border-left:2px solid #a2c3b0;padding-left:10px;margin:.6rem 0 1rem}
 .music-piece-credit[hidden]{display:none}
@@ -21,3 +21,11 @@
 
 .touch-layout.immersive-hud.situation-visible.recovery-active:not(.welcome-active) .recovery-status,.touch-layout.immersive-hud.situation-visible.gunnery-view:not(.welcome-active) .mobile-weapon{top:calc(var(--coach-top) + var(--situation-height,50px) + 8px)}
 .touch-layout:not(.immersive-hud).situation-visible.gunnery-view .mobile-weapon{top:calc(12px + var(--situation-height,50px) + 8px)}
+
+/* Incidental speech shares the notice space and stays out of the center.
+   Its complete exchange remains available in Recent messages. */
+.touch-layout #ambientCaption{left:var(--hud-edge,12px);right:var(--hud-right,12px);bottom:var(--notice-bottom);transform:none;width:auto;max-width:420px;min-height:44px;padding:7px 10px;border-radius:5px;box-shadow:var(--hud-shadow,none);font-size:.88rem;line-height:1.35;background:var(--hud-surface,#122734f7);pointer-events:auto;touch-action:manipulation;cursor:pointer}
+.touch-layout #ambientCaption:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.touch-layout #ambientCaption p:not(:last-child){display:none}
+.touch-layout #ambientCaption p:last-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;max-height:2.7em;margin:0}
+.touch-layout.touch-landscape #ambientCaption{left:28%;right:28%;max-width:none}

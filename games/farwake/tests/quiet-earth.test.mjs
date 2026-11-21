@@ -102,6 +102,7 @@ test('solo interaction enforces physical proximity and order, then exposes an es
   assert.match(status.objective, /back|entry|escape/i);
   assert.match(status.objective + ' ' + status.pendingSummary, /do not have to kill|don't have to kill|without.*kill|no need to kill/i);
   assert.ok(encounter.monsters.every(monster => monster.health > 0));
+  const captainShots = [];
   const seal = entity(game, 'siteChoice', 'evacuate');
   for (const position of route(surface, game.state.person, seal)) {
     const dx = Math.abs(position.x - game.state.person.x) < .001 ? 0 : Math.sign(position.x - game.state.person.x);
@@ -109,12 +110,14 @@ test('solo interaction enforces physical proximity and order, then exposes an es
     const dt = 24 / game.state.person.speed;
     movePerson(surface, game.state.person, dx, dy, dt);
     game.stepExploration(dt, {});
+    captainShots.push(...game.drainEvents().filter(event => event.type === 'person-shot' && event.attackerId === game.playerId));
     assert.ok(game.state.person.health > 0, 'A healthy captain must be able to escape at normal walking speed without firing.');
   }
   const reward = ok(game.siteAction(seal.id, 'choose', 'seal'));
   assert.equal(game.state.credits, before + (reward.credits || 0));
   assert.equal(storyStatus(encounter, site).completed, true);
-  assert.ok(encounter.monsters.every(monster => monster.health > 0), 'Sealing the entry resolves escape while every pursuer is still alive.');
+  assert.equal(captainShots.length, 0, 'The captain escaped without firing.');
+  assert.ok(encounter.monsters.some(monster => monster.health > 0), 'Sealing the entry resolves escape with living pursuers; an ember mite can expend itself during its own attack.');
   assert.equal(storyThreats(encounter).length, 0);
   const exit = surface.entities.find(value => value.type === 'siteExit');
   Object.assign(game.state.person, { x: exit.x, y: exit.y });

@@ -67,6 +67,8 @@ Use a deliberate rhythm with variable local details:
 
 This is a format, not a demand that every future corridor ends in the same receiver ambush. Some can remain harmless, require a rescue, leave a question unresolved, or return to a place whose people remember the player. Change the rhythm as well as the wallpaper. Ship each new episode as authored content; do not advertise future chapters as already playable.
 
+See [creatures and cavern ecology](creature-ecology.md) before varying the encounter roster. Biological creature identity does not establish Collective membership, and a larger roster must not move the real danger transition into the opening halls.
+
 ## Reuse these systems
 
 | Need | Existing implementation to extend |

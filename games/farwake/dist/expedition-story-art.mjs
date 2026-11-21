@@ -1,8 +1,10 @@
 /** Small, cached pixel silhouettes for the expedition catalogue. */
 import {pixelRect as pixel,pixelLine,pixelRing} from './pixel-art.mjs';
+import {CREATURE_IDS,creatureProfile} from './creature-catalog.mjs';
+import {drawCreatureBody} from './creature-art.mjs';
 
 const PROP_KINDS=new Set(['story-trail-marker','story-gate','story-sandbags','story-wreckage','story-tent','story-mushroom','story-nest','story-dish','coral']);
-export const EXPEDITION_WILDLIFE=Object.freeze(['reedstalker','mire-spitter','shardling','sporeback','glassmaw','ember-mite','prism-sentinel','sentry-drone']);
+export const EXPEDITION_WILDLIFE=Object.freeze([...CREATURE_IDS.filter(id=>id!=='bellwether'),'prism-sentinel','sentry-drone']);
 const wildlife=new Set(EXPEDITION_WILDLIFE),propCache=new Map(),creatureCache=new Map();
 export function expeditionFactionColor(factionId){return({freewake:'#9ac8a7',meridian:'#a6b9e0',cinder:'#d5a17a',concord:'#c7c8b4',lantern:'#cdb3dc'}[factionId]||'#9dbbb5');}
 function paintCached(ctx,cache,key,width,height,anchorX,anchorY,x,y,paint){
@@ -114,19 +116,20 @@ function creaturePixels(ctx,species,front,step,hurt,dead,windup,color){
  }
 }
 
-/** False preserves the original Stoneback, Skitter and Bellwether artwork. */
+/** Bellwether keeps its dedicated boss artwork; ordinary wildlife shares cached poses. */
 export function drawExpeditionWildlife(ctx,actor,time=0){
  const species=actor.species;if(!wildlife.has(species))return false;
- const front=actor.facing==='left'?-1:1,moving=actor.reduceMotion!==true&&(actor.moving||Math.hypot(actor.vx||0,actor.vy||0)>2),step=moving?(Math.sin(time*12)>0?1:-1):0,hurt=(actor.hitUntil||actor.hurtUntil||0)>time,dead=actor.health<=0,windup=actor.windup>0||actor.phase==='windup',color=actor.color||'';
+ if(drawCreatureBody(ctx,actor,time))return true;
+ const front=actor.facing==='left'?-1:1,moving=actor.reduceMotion!==true&&(actor.moving||Math.hypot(actor.vx||0,actor.vy||0)>2),step=moving?(Math.sin(time*12)>0?1:-1):0,hurt=(actor.hitUntil||actor.hurtUntil||0)>time,dead=actor.health<=0,windup=actor.windup>0||actor.phase==='windup',color=actor.color||creatureProfile(species)?.color||'';
  const key=`${species}:${front}:${step}:${Number(hurt)}:${Number(dead)}:${Number(windup)}:${color}`;
  paintCached(ctx,creatureCache,key,96,80,48,64,actor.x,actor.y,target=>creaturePixels(target,species,front,step,hurt,dead,windup,color));
- if(windup&&!dead){pixelRing(ctx,actor.x,actor.y,species==='ember-mite'?19:30,10,'#e0b17f',{dashed:true,phase:Math.floor(time*8)});pixel(ctx,'#f5d49b',actor.x-2,actor.y-52,4,6);pixel(ctx,'#f5d49b',actor.x-1,actor.y-44,2,2);}
+ if(windup&&!dead&&!actor.creatureBehavior){pixelRing(ctx,actor.x,actor.y,species==='ember-mite'?19:30,10,'#e0b17f',{dashed:true,phase:actor.reduceMotion?0:Math.floor(time*8)});pixel(ctx,'#f5d49b',actor.x-2,actor.y-52,4,6);pixel(ctx,'#f5d49b',actor.x-1,actor.y-44,2,2);}
  return true;
 }
 
 /** Faction opponents remain identifiable without labelling them all enemies. */
 export function drawExpeditionFactionKit(ctx,actor){
- if(!actor.expeditionActor||!actor.factionId||actor.health<=0)return;
+ if(!actor.expeditionActor||!actor.factionId||actor.health<=0||creatureProfile(actor.species))return;
  const x=Math.round(actor.x),y=Math.round(actor.y),c=expeditionFactionColor(actor.factionId);
  pixel(ctx,c,x-8,y-16,4,4);pixel(ctx,'#d4d9bd',x-7,y-15,2,1);
  if(actor.combatProfile==='faction-support'){pixel(ctx,'#3f5960',x+6,y-19,6,13);pixel(ctx,c,x+7,y-18,4,3);pixel(ctx,'#afbaa6',x+7,y-8,4,2);}

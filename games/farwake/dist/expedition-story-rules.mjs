@@ -3,6 +3,7 @@ import { clearSidearmSight, sidearmAim } from './combat.mjs';
 import { isCabinWalkable } from './interior-layouts.mjs';
 import { applyQuietEarthConsequences, quietEarthStatus } from './quiet-earth-rules.mjs';
 import { projectQuietEarthLighting, quietEarthLightState } from './quiet-earth-lighting.mjs';
+import { configureCreature, usesCreatureRules, stepCreatureEncounter, interruptCreature, creatureDamageTaken } from './creature-rules.mjs';
 
 const finite = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -208,12 +209,12 @@ export function storyMonsterTemplate(site, index) {
   const authored = site.hostiles?.[index]; if (!authored) return null;
   const combatProfile = Object.hasOwn(EXPEDITION_COMBAT_PROFILES, authored.combatProfile) ? authored.combatProfile : 'fast-melee';
   const profile = EXPEDITION_COMBAT_PROFILES[combatProfile], armed = ['raider', 'faction-rifle', 'faction-support'].includes(combatProfile);
-  return { ...authored, ...profile, id: `${site.key}:actor:${authored.id}`, combatProfile, expeditionActor: true,
+  return configureCreature({ ...authored, ...profile, id: `${site.key}:actor:${authored.id}`, combatProfile, expeditionActor: true,
     maxHealth: profile.health, hostileToPlayer: authored.hostileToPlayer !== false, hostileTo: safeIds(authored.hostileTo).slice(0, 8),
     team: authored.hostileToPlayer === false ? 'neutral' : 'hostile', hostile: authored.hostileToPlayer !== false,
     ...(armed ? { weapon: 'field-carbine', ownedWeapons: ['pulse-sidearm', 'field-carbine'], weaponDrawn: true } : {}),
     cooldown: .6 + index * .17, windup: 0, alert: false, facing: index % 2 ? 'left' : 'right',
-    formationIndex: index, originX: authored.x, originY: authored.y, aggressors: [], pacified: false, targetId: null, moving: false };
+    formationIndex: index, originX: authored.x, originY: authored.y, aggressors: [], pacified: false, targetId: null, moving: false }, authored);
 }
 
 export function restoreStoryMonster(base, raw = {}) {
@@ -244,20 +245,25 @@ function nearestTarget(unit, actors, state) {
 
 function hitTarget(state, attacker, target, damage, event, shot) {
   const person = target.person || target;
-  const actual = Math.max(1, damage - (!target.person ? finite(person.armor) * .5 : 0)) * (target.person ? clamp(finite(target.damageTakenMultiplier, 1), .4, 2) : 1);
+  const actual = creatureDamageTaken(person, attacker, Math.max(1, damage - (!target.person ? finite(person.armor) * .5 : 0))) * (target.person ? clamp(finite(target.damageTakenMultiplier, 1), .4, 2) : 1);
   person.health = Math.max(0, person.health - actual); person.hitUntil = state.time + .24;
   if (!target.person) { person.lastHitBy = attacker.id; person.alert = true; }
   const impact = { ...shot, id: `${shot.id}:hit`, damage: actual, targetId: target.id, targetName: target.name || 'Captain', x: person.x, y: person.y, health: person.health, maxHealth: person.maxHealth || 100 };
   event('person-hit', impact);
   if (person.health <= 0) {
-    person.down = true; person.status = 'dead'; person.windup = 0; person.moving = false;
+    person.down = true; person.status = 'dead'; person.windup = 0; person.moving = false; interruptCreature(person);
     event(target.person ? 'person-down' : 'boarder-down', { ...impact, id: `${shot.id}:down`, actorId: target.id, text: `${attacker.name} brought down ${target.name || 'a captain'}.` });
   }
 }
 
 /** Each authored unit has a bounded target pool and reuses the existing route cache. */
 export function stepStoryMonster(state, unit, actors, delta, layout, event, walk) {
-  if (unit.pacified) { unit.moving = false; unit.windup = 0; return; }
+  if (unit.pacified) { unit.moving = false; unit.windup = 0; interruptCreature(unit); return; }
+  if (usesCreatureRules(unit)) {
+    const targets = [...actors.filter(actor => actor.person.health > 0 && !actor.person.down && expeditionHostileTo(unit, actor.id)),
+      ...state.monsters.filter(other => opposed(unit, other))];
+    stepCreatureEncounter(state, unit, targets, delta, layout, event, walk); return;
+  }
   const dt = clamp(finite(delta), 0, .25), at = state.time, target = nearestTarget(unit, actors, state);
   unit.cooldown = Math.max(0, finite(unit.cooldown) - dt);
   if (!target) {

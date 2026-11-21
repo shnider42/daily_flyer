@@ -22,17 +22,21 @@ const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('h
 // Relay catalog. Every other site and every outdoor tile/service remain identical;
 // all released Relay walkable positions, solids, spawn and exit remain intact.
 // quiet-earth-variation.test.mjs checks additive geometry across 16 seeds.
+// The creature ecology pass changes only Relay's embedded four-slot roster.
+// A clean 0.35 comparison in farwake, hearth-preservation and floodworks proved
+// identical outdoor maps and every interior after removing only Relay hostiles.
+// No cave geometry, entity, route, service or other Hearth catalog row changed.
 const baseline={
  farwake:{
-  surfaces:{kettle:'c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb',morrow:'3fd0d41eb228fcec99b3425998a5415b498ca16b9e87e32f139088cc21abf45d',tinbell:'6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176'},
-  sites:'7023f7c0fb5cdcbf5bc71cea18d3e539363e76305c5c0d3a90feaf825a0082a2'
+  surfaces:{kettle:'c893a6b5fd4f497d47da384a58090da34125f26171f78cfb03bbe9eed283defb',morrow:'9d202827a467ffd09d28b52cbbe9e2d69090407c64566b175e6a0cc339aaada8',tinbell:'6b7fbf5ee76524bcef84817ebaeb2746376ea9fbf5de775d752519ceef83b176'},
+  sites:'daedb4627d93f42f537ebba7ce5ec19332ab0b48f56845406e90c4e851e2fa8f'
  },
  'hearth-preservation':{
-  surfaces:{kettle:'c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f',morrow:'0f45c5156c6e9861e164ff251cf21e0c2701242594e4a84f646885e515a820f5',tinbell:'8fd24814ddfe782233667c3e83ddedc635c8de9b9d63dead0c42e9f3057761f0'},
-  sites:'294bab8735c7f9be11aeec6fc2a88b90e64882ce3b11dc22fa9d53f60f0fa609'
+  surfaces:{kettle:'c70a921cf8db4cdcde5ae6b1f47a2e26bde5b39c1ee84e2b2d2222059e43e45f',morrow:'6794e879a956dfe585ef6a724ab2f5224e62a805b3e4238675c0d1470f6b8931',tinbell:'8fd24814ddfe782233667c3e83ddedc635c8de9b9d63dead0c42e9f3057761f0'},
+  sites:'f539fd75ca54071b39a6b68da784176cbd5787e912a8cf4470702113fdb3d1e6'
  }
 };
-for(const [seed,expected] of Object.entries(baseline))test(`Hearth preserves its baseline with the authored 0.35 Relay Nine variation (${seed})`,()=>{
+for(const [seed,expected] of Object.entries(baseline))test(`Hearth preserves its baseline with the authored Relay Nine variation and roster (${seed})`,()=>{
  const hearth=buildGalaxy(seed).find(system=>system.id==='hearth');
  assert.equal(digest(hearth),'e001d59d987c94f04bc2064a643306fc7281b73ac1afdf226bcb5d0a67f62570','authored bodies, station positions, story and opening geography');
  assert.deepEqual(Object.fromEntries(hearth.bodies.map(body=>[body.id,digest(generateSurface(body,seed,[]))])),expected.surfaces,'every outdoor tile, entity, service and arrival');

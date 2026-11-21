@@ -52,13 +52,13 @@ class Recorder{
  drawImage(){this.images++;}
 }
 
-test('all eight expedition creatures have distinct nonhuman outlines and death poses',()=>{
+test('all ordinary wildlife and machines have distinct nonhuman outlines and death poses',()=>{
  const masks=[];
  for(const species of EXPEDITION_WILDLIFE){const actor={species,x:64,y:64,health:100,facing:'right'},ctx=new Recorder(),before=JSON.stringify(actor);assert.equal(drawExpeditionWildlife(ctx,actor,2),true);assert.equal(JSON.stringify(actor),before);masks.push(digest([...ctx.pixels].sort()));
   const dead=new Recorder();drawExpeditionWildlife(dead,{...actor,health:0},2);assert.notEqual(digest([...ctx.pixels].sort()),digest([...dead.pixels].sort()));
   assert.ok(ctx.rects.every(r=>r.slice(0,4).every(Number.isFinite)));
  }
- assert.equal(new Set(masks).size,8,'different species require visibly different outlines, independent of palette');
+ assert.equal(new Set(masks).size,16,'fourteen ordinary biological species and two machines need distinct outlines, independent of palette');
  assert.equal(drawExpeditionWildlife(new Recorder(),{species:'bellwether',x:1,y:1,health:100},0),false,'Hearth keeps its existing renderer');
 });
 

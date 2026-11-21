@@ -3,6 +3,7 @@
  * Keep species identity in its own deterministic stream so adding a population
  * never consumes a world, combat, loot or incident random number.
  */
+import {CREATURE_IDS} from './creature-catalog.mjs';
 const freeze = value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) freeze(child);
@@ -43,7 +44,7 @@ export const SPECIES = freeze({
 });
 export const SPECIES_IDS = Object.freeze(Object.keys(SPECIES));
 export const NONHUMAN_SPECIES_IDS = Object.freeze(SPECIES_IDS.filter(id => id !== 'human'));
-const WILDLIFE = new Set(['stoneback', 'skitter', 'bellwether', 'reedstalker', 'mire-spitter', 'shardling', 'sporeback', 'glassmaw', 'ember-mite', 'prism-sentinel', 'sentry-drone']);
+const WILDLIFE = new Set([...CREATURE_IDS, 'prism-sentinel', 'sentry-drone']);
 export const isPeopleSpecies = value => typeof value === 'string' && Object.hasOwn(SPECIES, value);
 export const isWildlifeSpecies = value => typeof value === 'string' && WILDLIFE.has(value);
 export const normalizeSpecies = value => isPeopleSpecies(value) ? value : 'human';

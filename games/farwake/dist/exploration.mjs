@@ -9,8 +9,10 @@ import { militaryGroundSites } from './military-sites.mjs';
 import { fieldSites, isFieldSite, normalizeFieldState, stepFieldEncounter, resetFieldAttempt } from './floodworks.mjs';
 import { warzoneGroundSites, createWarzoneGroundState, stepWarzoneGround } from './warzone-ground.mjs';
 import { expeditionStorySites } from './expedition-stories.mjs';
-import { quietEarthSites } from './quiet-earth-content.mjs';
+import { quietEarthSites, quietEarthRestoreSite } from './quiet-earth-content.mjs';
 import { normalizeQuietEarthState, stepQuietEarthEncounter } from './quiet-earth-rules.mjs';
+import { configureCreature, restoreCreatureState, usesCreatureRules, stepCreatureEncounter, interruptCreature, creatureDamageTaken } from './creature-rules.mjs';
+import { cavernSites } from './cavern-content.mjs';
 import { normalizeStoryState, inspectStoryRecord, claimStoryChoice, storyGate, applyStoryConsequences, storyThreats, storyMonsterTemplate, restoreStoryMonster, expeditionHostileTo, recordStoryAggression, stepStoryMonster, bumpStoryRevision } from './expedition-story-rules.mjs';
 const TILE=24, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback=0)=>typeof n==='number'&&Number.isFinite(n)?n:fallback;
@@ -50,16 +52,17 @@ function legacyExplorationSites(body={},seed='farwake'){
 export function explorationSites(body={},seed='farwake'){
  if(typeof body==='string')body={id:body,name:body};
  const existing=legacyExplorationSites(body,seed),stories=expeditionStorySites(body,seed);
- if(!stories.length)return existing;
+ if(!stories.length)return[...existing,...cavernSites(body,seed,existing)];
  const bodyId=String(body.id||'world');
  const authored=stories.map(item=>freeze({...defaults[item.kind],...item,bodyId,key:`${bodyId}:site:${item.id}`,entrance:pt(item.tileX,item.tileY),hostile:!!item.hostile,empty:!!item.empty,caches:item.caches||[],records:item.records||[],choices:item.choices||[]}));
- return[...authored,...existing.filter(site=>!['hollow','shelter','field-relay'].includes(site.id))];
+ const sites=[...authored,...existing.filter(site=>!['hollow','shelter','field-relay'].includes(site.id))];
+ return[...sites,...cavernSites(body,seed,sites)];
 }
 export function explorationLocation(body,siteId,seed='farwake'){
  const site=explorationSites(body,seed).find(value=>value.id===siteId)||(['hollow','shelter','field-relay'].includes(siteId)?legacyExplorationSites(body,seed).find(value=>value.id===siteId):null);if(!site)return null;
  return{...body,id:site.key,kind:'site',name:site.name,parentId:body.id,siteId:site.id,site,localLore:site.story,biome:site.kind==='igloo'?'ice':site.kind==='cave'?'cave':'shelter'};
 }
-const monsterTemplate=(site,index)=>site.expedition?storyMonsterTemplate(site,index):site.military&&site.hostiles?.[index]?{...site.hostiles[index],id:`${site.key}:infantry:${site.hostiles[index].id}`,cooldown:.8+index*.25,windup:0,alert:false,facing:'left'}:({id:`${site.key}:wildlife:${index}`,name:site.kind==='conservatory'?(index?'Glass skitter':'Root grazer'):site.kind==='laboratory'?(index?'Vent skitter':'Filter crawler'):index?'Cave skitter':'Stoneback',species:index?'skitter':'stoneback',team:'hostile',hostile:true,x:pt(index?30:25,index?22:14).x,y:pt(index?30:25,index?22:14).y,health:index?48:96,maxHealth:index?48:96,speed:index?64:42,damage:index?9:16,range:25,cooldown:0,windup:0,alert:false,facing:'left',color:site.kind==='conservatory'?(index?'#b6b7d1':'#86b6aa'):index?'#a7b391':'#a5967e'});
+const monsterTemplate=(site,index)=>site.expedition?storyMonsterTemplate(site,index):site.military&&site.hostiles?.[index]?{...site.hostiles[index],id:`${site.key}:infantry:${site.hostiles[index].id}`,cooldown:.8+index*.25,windup:0,alert:false,facing:'left'}:configureCreature({id:`${site.key}:wildlife:${index}`,name:site.kind==='conservatory'?(index?'Glass skitter':'Root grazer'):site.kind==='laboratory'?(index?'Vent skitter':'Filter crawler'):index?'Cave skitter':'Stoneback',species:index?'skitter':'stoneback',team:'hostile',hostile:true,x:pt(index?30:25,index?22:14).x,y:pt(index?30:25,index?22:14).y,health:index?48:96,maxHealth:index?48:96,speed:index?64:42,damage:index?9:16,range:25,cooldown:0,windup:0,alert:false,facing:'left',color:site.kind==='conservatory'?(index?'#b6b7d1':'#86b6aa'):index?'#a7b391':'#a5967e'});
 const bellwetherTemplate=()=>({id:BELLWETHER_ID,name:'The Bellwether',species:'bellwether',team:'hostile',hostile:true,...BELLWETHER_PROFILE,...pt(27,7),maxHealth:BELLWETHER_PROFILE.health,
  range:26,status:'alive',concealed:true,hidden:true,revealed:false,alert:false,phase:'dormant',facing:'left',color:'#929185',moving:false,windup:0,cooldown:0,recovery:0,lungeRemaining:0,lungeHitIds:[],aimAngle:Math.PI,attackUntil:0,hitUntil:0,lastHitBy:null,targetId:null});
 function restoreBellwether(raw,site,time,attemptSerial,revealSerial){
@@ -79,12 +82,15 @@ export function createSiteState(site,saved={}){
  const time=clamp(finite(prior.time),0,1e12),attemptSerial=serial(prior.attemptSerial),revealSerial=serial(prior.revealSerial);
  const watch=site.military&&site.watch?{elapsed:clamp(finite(prior.watch?.elapsed),0,site.watch.seconds),contactResolved:false,attackOccurred:false,completed:false}:null;
  if(watch&&watch.elapsed+1e-6>=site.watch.attackDelay){watch.contactResolved=true;watch.attackOccurred=(hash(`${site.key}:watch-contact`)/4294967296)<site.watch.attackChance;}
- const encounterSite=watch?{...site,hostile:watch.attackOccurred,monsterCount:watch.attackOccurred?site.hostiles.length:0}:site;
+ const restorationSite=site.quietEarth?quietEarthRestoreSite(site,prior):site;
+ const encounterSite=watch?{...restorationSite,hostile:watch.attackOccurred,monsterCount:watch.attackOccurred?site.hostiles.length:0}:restorationSite;
  // This is a new authored encounter, not an upgraded generic Stoneback. Old
  // wildlife cannot stand in for its death; old cache claims still remain paid.
  const monsters=isBellwetherSite(site)?[restoreBellwether((Array.isArray(prior.monsters)?prior.monsters:[]).find(monster=>monster?.id===BELLWETHER_ID),site,time,attemptSerial,revealSerial)]:Array.from({length:encounterSite.expedition?Math.min(8,encounterSite.hostiles?.length||0):encounterSite.hostile?encounterSite.monsterCount||1:0},(_,index)=>{
   const base=monsterTemplate(encounterSite,index),raw=Array.isArray(prior.monsters)?prior.monsters.find(m=>m?.id===base.id):null;
-  return{...base,...(site.expedition?restoreStoryMonster(base,raw||{}):{}),x:clamp(finite(raw?.x,base.x),TILE,width-TILE),y:clamp(finite(raw?.y,base.y),TILE,height-TILE),health:clamp(finite(raw?.health,base.health),0,base.maxHealth),cooldown:clamp(finite(raw?.cooldown),0,site.expedition?4:2),windup:0,alert:!!raw?.alert,lastHitBy:typeof raw?.lastHitBy==='string'?raw.lastHitBy.slice(0,80):null,status:raw?.health===0?'dead':'alive'};
+  const pristineRelay=site.quietEarth&&raw?.quietEarthDormant===true&&raw?.revealed!==true&&!raw?.alert&&raw?.health>0&&raw.health===raw.maxHealth&&prior.choices?.receiver!=='copy'&&prior.choices?.evacuate!=='seal';
+  const restored={...base,...(site.expedition?restoreStoryMonster(base,raw||{}):{}),x:clamp(finite(raw?.x,base.x),TILE,width-TILE),y:clamp(finite(raw?.y,base.y),TILE,height-TILE),health:pristineRelay?base.health:clamp(finite(raw?.health,base.health),0,base.maxHealth),cooldown:clamp(finite(raw?.cooldown),0,site.expedition?4:2),windup:0,alert:!!raw?.alert,lastHitBy:typeof raw?.lastHitBy==='string'?raw.lastHitBy.slice(0,80):null,status:raw?.health===0?'dead':'alive'};
+  return restoreCreatureState(restored,raw||{},time);
  });
  if(watch)watch.completed=watch.elapsed+1e-6>=site.watch.seconds&&monsters.every(monster=>monster.health<=0);
  const choices={};for(const choice of site.choices){const chosen=prior.choices?.[choice.id];if(choice.puzzle?chosen==='complete':choice.options.some(option=>option.id===chosen))choices[choice.id]=chosen;}
@@ -271,18 +277,19 @@ export function stepSiteEncounter(state,participants,delta,surface){
   const candidates=site?.expedition?state.monsters.filter(monster=>!monster.quietEarthDormant&&!monster.hidden&&(actor.input?.aiming===true?!monster.pacified:expeditionHostileTo(monster,id))):state.monsters;
   const aim=sidearmAim(person,candidates,actor.input||{},layout);person.aimAngle=aim.angle;person.aimTargetId=aim.targetId;person.aimManual=aim.manual;person.weaponDrawn=true;
   if(!actor.input?.fire||state.actorCooldowns[id]>0)continue;
-  const weapon=getPersonalWeapon(person),target=aim.target,cooldown=weapon.cooldown*clamp(finite(actor.sidearmCooldownMultiplier,1),.5,2),damage=target?personalWeaponDamage(person,target,clamp(finite(actor.damageMultiplier,1),.4,2)):0,shotId=`${state.id}:shot:${++state.shotSerial}`;
+  const weapon=getPersonalWeapon(person),target=aim.target,cooldown=weapon.cooldown*clamp(finite(actor.sidearmCooldownMultiplier,1),.5,2),damage=target?creatureDamageTaken(target,person,personalWeaponDamage(person,target,clamp(finite(actor.damageMultiplier,1),.4,2))):0,shotId=`${state.id}:shot:${++state.shotSerial}`;
   state.actorCooldowns[id]=cooldown;person.weaponReadyAt=at+cooldown;person.attackUntil=at+weapon.shotDuration;
   const shot={id:shotId,team:'player',attackerId:id,actorName:actor.name||'Captain',weaponId:weapon.id,angle:aim.angle,from:{...aim.from},to:{...aim.to},x:aim.from.x,y:aim.from.y,targetX:aim.to.x,targetY:aim.to.y,targetId:target?.id||null,targetName:target?.name||null,hit:!!target,blocked:!!aim.blocked,damage,until:at+weapon.shotDuration};person.lastShot=shot;event('person-shot',shot);
-  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;if(target.quietEarthActor&&target.health>0){target.quietEarthStaggerUntil=at+.45;target.windup=0;target.attackUntil=0;}event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
+  if(target){recordStoryAggression(state,target,id);target.health=Math.max(0,target.health-damage);target.hitUntil=at+.24;target.lastHitBy=id;target.alert=true;if(target.quietEarthActor&&target.health>0){target.quietEarthStaggerUntil=at+.45;target.windup=0;target.attackUntil=0;interruptCreature(target);}event('person-hit',{...shot,id:shotId+':hit',x:target.x,y:target.y,health:target.health,maxHealth:target.maxHealth});if(target.health<=0){target.status='dead';target.windup=0;interruptCreature(target);if(isBellwether(target)){target.phase='dead';target.alert=false;target.recovery=0;target.lungeRemaining=0;target.moving=false;}event('boarder-down',{...shot,id:shotId+':down',x:target.x,y:target.y,actorId:target.id,text:`${actor.name||'You'} brought down ${target.name}.`});}}
  }
  for(const monster of state.monsters){
   if(monster.health<=0||monster.quietEarthDormant)continue;
-  if(monster.quietEarthActor&&at<finite(monster.quietEarthStaggerUntil)){monster.moving=false;monster.windup=0;continue;}
+  if(monster.quietEarthActor&&at<finite(monster.quietEarthStaggerUntil)){monster.moving=false;monster.windup=0;interruptCreature(monster);continue;}
   if(isBellwether(monster)){stepBellwether(state,monster,actors,dt,layout,event);continue;}
-  if(monster.stationary||monster.attackKind==='none'){monster.moving=false;monster.windup=0;continue;}
+  if(monster.stationary&&!usesCreatureRules(monster)||monster.attackKind==='none'){monster.moving=false;monster.windup=0;continue;}
   if(!isCabinWalkable(layout,monster.x,monster.y,6)){let best=null,bestDistance=Infinity;for(let cell=0;cell<layout.walkable.length;cell++){if(!layout.walkable[cell])continue;const point=pt(cell%layout.cols,Math.floor(cell/layout.cols)),distance=Math.hypot(point.x-monster.x,point.y-monster.y);if(distance<bestDistance&&isCabinWalkable(layout,point.x,point.y,6)){best=point;bestDistance=distance;}}if(best)Object.assign(monster,best);}
   if(monster.expeditionActor){stepStoryMonster(state,monster,actors,dt,layout,event,walkMonster);continue;}
+  if(usesCreatureRules(monster)){stepCreatureEncounter(state,monster,actors,dt,layout,event,walkMonster);continue;}
   if(monster.attackKind==='ranged'){stepInfantry(state,monster,actors,dt,layout,event);continue;}
   monster.cooldown=Math.max(0,finite(monster.cooldown)-dt);
   const target=actors.filter(actor=>actor.person.health>0).sort((a,b)=>Math.hypot(a.person.x-monster.x,a.person.y-monster.y)-Math.hypot(b.person.x-monster.x,b.person.y-monster.y))[0];if(!target){monster.targetId=null;monster.windup=0;monster.moving=false;continue;}

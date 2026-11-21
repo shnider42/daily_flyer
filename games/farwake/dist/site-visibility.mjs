@@ -11,11 +11,12 @@ const open = (layout, x, y) => x >= 0 && y >= 0 && x < layout.cols && y < layout
 const inBounds = (layout, point) => finitePoint(point) && point.x >= 0 && point.y >= 0 && point.x < layout.cols * tileSize(layout) && point.y < layout.rows * tileSize(layout);
 const poweredPoint = (layout, point) => layout.siteLighting?.kind === 'relay-nine' && layout.siteLighting.zones.some(zone =>
   point.x >= zone.x && point.y >= zone.y && point.x < zone.x + zone.w && point.y < zone.y + zone.h);
-const pointRange = (layout, point) => poweredPoint(layout, point) ? layout.siteLighting.litRange : TINBELL_SIGHT_RANGE;
-const maximumRange = layout => layout.siteLighting?.zones?.length ? layout.siteLighting.litRange : TINBELL_SIGHT_RANGE;
+const localRange = layout => layout?.visibility?.mode === 'local' && Number.isFinite(layout.visibility.range) ? Math.max(120, Math.min(480, layout.visibility.range)) : TINBELL_SIGHT_RANGE;
+const pointRange = (layout, point) => poweredPoint(layout, point) ? layout.siteLighting.litRange : localRange(layout);
+const maximumRange = layout => layout.siteLighting?.zones?.length ? layout.siteLighting.litRange : localRange(layout);
 
 export function isFoggedSite(surface) {
-  return isQuietEarthSurface(surface) || !!surface && (surface.id === 'tinbell:site:hollow' || surface.key === 'tinbell:site:hollow' ||
+  return surface?.site?.visibility?.mode === 'local' || surface?.visibility?.mode === 'local' || surface?.combatLayout?.visibility?.mode === 'local' || isQuietEarthSurface(surface) || !!surface && (surface.id === 'tinbell:site:hollow' || surface.key === 'tinbell:site:hollow' ||
     (surface.parentId === 'tinbell' || surface.bodyId === 'tinbell') && (surface.siteId === 'hollow' || surface.id === 'hollow'));
 }
 
@@ -85,9 +86,10 @@ export function canSeeSitePoint(layout, observer, point, visible = null) {
 
 /** Shared by aim authority and rendering. Global alert/reveal is not local sight. */
 export function canSeeConcealedActor(layout, observer, actor) {
-  if (!actor) return false;
-  if (!actor.concealed) return actor.hidden !== true;
-  if (actor.hidden || actor.revealed !== true || !layout?.walkable || !finitePoint(observer) || !finitePoint(actor)) return false;
+  if (!actor || actor.hidden || actor.concealed && actor.revealed !== true) return false;
+  const localVisibility = layout?.visibility?.mode === 'local' || layout?.siteLighting?.kind === 'relay-nine';
+  if (!actor.concealed && !localVisibility) return true;
+  if (!layout?.walkable || !finitePoint(observer) || !finitePoint(actor)) return false;
   return canSeeSitePoint(layout, observer, actor);
 }
 
@@ -111,7 +113,7 @@ export function createSiteVisibility(surface, observer = surface?.spawn, { obser
   const canSeeActor = actor => !!actor && !actor.hidden && (!actor.concealed || actor.revealed === true) && canSeePoint(actor);
   const knowsPoint = point => inBounds(layout, point) && !!memory.explored[cellIndex(layout, point)];
   const knowsEntity = entity => entity?.type === 'siteExit' || entity?.type === 'exit' || knowsPoint(entity);
-  return { active: true, siteId: surface.id, range: maximumRange(layout), lampRange: TINBELL_SIGHT_RANGE, tile: tileSize(layout), cols: layout.cols, rows: layout.rows,
+  return { active: true, siteId: surface.id, range: maximumRange(layout), lampRange: localRange(layout), reason: surface.site?.visibility?.reason || '', tile: tileSize(layout), cols: layout.cols, rows: layout.rows,
     visible, explored: memory.explored, canSeePoint, canSeeActor, knowsPoint, knowsEntity };
 }
 

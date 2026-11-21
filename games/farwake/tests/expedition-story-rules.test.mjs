@@ -121,19 +121,19 @@ test('manual aggression targets the offending captain while automatic aim leaves
   const restored = createSiteState(site, state); assert.equal(expeditionHostileTo(restored.monsters[0], 'shooter'), true);
 });
 
-test('the same combat loop produces rapid melee, ranged pressure, armor, and pack flanking', () => {
-  const template = combatProfile => story({ hostiles: [soldier(combatProfile, 'wildlife', combatProfile, 16, 15, { hostileToPlayer: true, hostileTo: [], species: 'reedstalker' })] });
-  const fast = template('fast-melee'), heavy = template('sentinel');
+test('species behavior produces rapid melee, ranged pressure, armor, and pack flanking', () => {
+  const template = species => story({ hostiles: [soldier(species, 'wildlife', 'fast-melee', 16, 15, { hostileToPlayer: true, hostileTo: [], species })] });
+  const fast = template('skitter'), heavy = template('rimehorn');
   const quick = createSiteState(fast), armored = createSiteState(heavy), target = person('target', 25, 15);
   quick.monsters[0].alert = true; armored.monsters[0].alert = true;
   for (let index = 0; index < 6; index++) { stepSiteEncounter(quick, [target], .1, openSurface(fast)); stepSiteEncounter(armored, [target], .1, openSurface(heavy)); }
   assert.ok(quick.monsters[0].x - point(16, 15).x > armored.monsters[0].x - point(16, 15).x);
   assert.ok(armored.monsters[0].armor > quick.monsters[0].armor);
-  const rangedSite = template('spitter'), ranged = createSiteState(rangedSite), near = person('near', 20, 15), events = [];
+  const rangedSite = template('mire-spitter'), ranged = createSiteState(rangedSite), near = person('near', 20, 15), events = [];
   for (let index = 0; index < 60; index++) events.push(...stepSiteEncounter(ranged, [near], .1, openSurface(rangedSite)));
   assert.ok(events.some(event => event.type === 'person-shot' && event.weaponId === 'acid-spit'));
   assert.ok(near.person.health < 100, 'Spitters can harm someone beyond melee reach.');
-  const packSite = template('pack-stalker'), pack = createSiteState(packSite), prey = person('prey', 24, 15); pack.monsters[0].alert = true;
+  const packSite = template('reedstalker'), pack = createSiteState(packSite), prey = person('prey', 24, 15); pack.monsters[0].alert = true;
   stepSiteEncounter(pack, [prey], .2, openSurface(packSite)); assert.notEqual(pack.monsters[0].y, point(16, 15).y, 'A pack stalker approaches from a flank.');
 });
 
@@ -145,7 +145,7 @@ test('ranged tells keep their locked direction, permit a sidestep, and stop miss
   const dodged = stepSiteEncounter(state, [captain], .1, surface).find(event => event.type === 'person-shot');
   assert.ok(dodged); assert.equal(dodged.hit, false); assert.equal(dodged.angle, 0); assert.equal(captain.person.health, 100);
   Object.assign(captain.person, point(20, 15)); surface.combatLayout.walkable[15 * 48 + 18] = 0;
-  Object.assign(unit, { windup: .05, aimAngle: 0, aimTargetId: captain.id });
+  Object.assign(unit, { phase: 'windup', windup: .05, aimAngle: 0, aimTargetId: captain.id, attackHitIds: [] });
   const blocked = stepSiteEncounter(state, [captain], .1, surface).find(event => event.type === 'person-shot');
   assert.ok(blocked); assert.equal(blocked.hit, false); assert.equal(blocked.blocked, true);
   assert.ok(blocked.to.x < 18 * 24, 'The shot ends before the first opaque tile.'); assert.equal(captain.person.health, 100);

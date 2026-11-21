@@ -7,6 +7,8 @@ Farwake is an existing DailyFlyer game with solo saves and server-authoritative 
 - Quiet Earth, Morrow's Relay Nine, corridor missions, The Collective, or the Earth mystery: read `docs/quiet-earth-canon.md`, then the relevant `quiet-earth-*` modules and tests.
 - Music or danger detection: read `docs/music-direction.md`. Keep the contributed title recording, its credit, and the Morrow Flightline quiet corridor recording intact unless the user requests an edit to them.
 - Expedition content: read `docs/frontier-expeditions.md`. Reuse expedition sites, physical records, interaction prerequisites, saved receipts, and the existing personal Lore archive.
+- Biological creatures, caverns or sight conditions: read `docs/creature-ecology.md`. Use habitat-aware catalogs and shared combat rules; darkness, species and hostility are separate facts.
+- Mobile messages, guidance or notification history: read `docs/mobile-presentation.md`. Keep the current action clear and full notices accessible without obscuring play or changing authority state.
 - Shared-world changes: read `docs/multiplayer.md`. Solo and shared authority must derive the same geometry and consequences from the same galaxy seed.
 
 ## Preserve established decisions
