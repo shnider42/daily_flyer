@@ -1,6 +1,6 @@
 # LMW connections — DailyFlyer proof of concept
 
-A lightweight event follow-through tool for Leadership MetroWest alumni. Independent prototype operated by Holtsnider Tech; it is not an official LMW service or an imported alumni directory.
+A lightweight event follow-through demo using Lesson Missionwide (LMW) as a fictional placeholder name. Independent prototype operated by Holtsnider Tech; it does not represent an approved organization service or an imported alumni directory.
 
 ## Experience
 
@@ -42,6 +42,8 @@ The outreach CSV excludes people who did not permit email follow-up. Exported ce
 4. Follow up only about the interests a person selected, through the channels they permitted. Record planned/connected/closed status.
 5. Close intake when the event pilot ends. Review duplicates manually; no automated merge asserts that an unverified email proves identity.
 
-## Brand and content references
+## Temporary demo branding
 
-Official background: https://leadershipmetrowest.org/about/ . The Academy's first graduating class was 1987. This prototype uses a new restrained navy/orange design, not a claim of official brand approval. No actual event date, venue, participants, committee openings, or endorsements are invented.
+Lesson Missionwide is a fictional placeholder name pending approval of organization-specific branding. Keep the LMW acronym, URLs, QR destination, API names, and stored data identifiers stable. The demo does not link to an organization's official website or imply its approval. No actual event date, venue, participants, committee openings, or endorsements are invented.
+
+When approved branding is restored, update the visible name in `public/index.html`, `public/app.js`, the organizer title in `build.mjs`, the style comment, and this documentation; also review the placeholder notices and any approved external link. Rebuild both attendee and organizer pages together. No data migration or QR regeneration is needed for a name change.

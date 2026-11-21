@@ -1,6 +1,6 @@
 # LMW pilot backend
 
-This backend belongs to the independent DFE Leadership MetroWest proof of concept. It does not send email or SMS, enroll people in a newsletter, or publish a member directory.
+This backend belongs to the independent DFE Lesson Missionwide (LMW) demo. Lesson Missionwide is a fictional placeholder name pending branding approval; the LMW API and data identifiers stay stable. It does not send email or SMS, enroll people in a newsletter, or publish a member directory.
 
 ## Deploy
 
