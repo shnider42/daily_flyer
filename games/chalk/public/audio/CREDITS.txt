@@ -1,0 +1,45 @@
+CHALK — recorded sound sources
+Verified 22 November 2026. All listed recordings are offered under CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+rifle-shot.mp3
+Source: M16 Single Shot 1.flac — qubodup
+https://freesound.org/people/qubodup/sounds/162398/
+Public player media: https://cdn.freesound.org/previews/162/162398_71257-hq.mp3
+The uploader describes rifle training on an aircraft carrier, extracted from
+U.S. government video. The sound page explicitly lists Creative Commons 0.
+This file is the publisher's HQ MP3 preview, with no additional processing.
+
+rotor-loop.mp3
+Source: Helicopter Loop.flac — qubodup
+https://freesound.org/people/qubodup/sounds/187678/
+Public player media: https://cdn.freesound.org/previews/187/187678_71257-hq.mp3
+The uploader describes a loopable military helicopter recording extracted from
+U.S. government video. The sound page explicitly lists Creative Commons 0.
+The exact helicopter model is not established. This file is the publisher's
+HQ MP3 preview, with no additional processing.
+
+wind.mp3
+Source: Mild Wind Background Noise — Bashar3A / Bashar from Skirmish.io
+https://opengameart.org/content/mild-wind-background-noise
+Creator: https://skirmish.io/bashar
+Public player media: https://opengameart.org/sites/default/files/wind%20background%20noise%202_01.mp3
+Source license: CC0 1.0, explicitly linked on the sound page.
+Processed for CHALK: a 12-second excerpt beginning at 4 seconds, converted to
+mono at 22,050 Hz, with a 0.45-second loop crossfade and modest level adjustment.
+The resulting loop is approximately 11.55 seconds, encoded as 80 kbps MP3.
+
+hostile-shot.mp3
+Source: AK-47 — qubodup
+https://freesound.org/people/qubodup/sounds/184750/
+Public player media: https://cdn.freesound.org/previews/184/184750_71257-hq.mp3
+The uploader describes AK-family weapons at training grounds, mostly in
+Afghanistan, extracted from U.S. government videos. The page lists CC0 1.0.
+Processed for CHALK: one isolated shot near 19 seconds, trimmed to 0.68 seconds,
+converted to mono at 24,000 Hz, level adjusted, with short edge fades.
+It is a distinct recorded report for opposing armed fighters, without claiming
+an exact weapon model for every character or an original 1993 recording.
+
+These are reusable recordings from other places and times, not archival audio
+of the Battle of Mogadishu. In-game distance filtering, stereo placement, and
+level changes are playback processing rather than separate recordings.

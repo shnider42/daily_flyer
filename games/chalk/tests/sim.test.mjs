@@ -81,3 +81,35 @@ test('final convoy loading cannot complete with a teammate outside or downed',()
   straggler.downed=false;straggler.hp=60;
   run(s,.5);assert.equal(s.status,'won');
 });
+test('shot sounds remain readable after short muzzle flashes expire during catch-up',()=>{
+  const s=createGame();clearThreats(s);const p=pl(s);
+  step(s,{fire:true,aimX:p.x+200,aimY:p.y},1/60);
+  const shot=s.soundEvents.find(event=>event.type==='shot'&&event.actorId===p.id);
+  assert.ok(shot);assert.equal(shot.weapon,'rifle');assert.equal(shot.team,'squad');
+  const muzzle=s.effects.find(effect=>effect.type==='muzzle');
+  assert.equal(muzzle.actorId,p.id);assert.equal(muzzle.weapon,'rifle');
+  run(s,2.2);
+  assert.equal(s.effects.some(effect=>effect.type==='muzzle'),false);
+  assert.equal(s.soundEvents.filter(event=>event.id===shot.id).length,1);
+  run(s,1);assert.equal(s.soundEvents.some(event=>event.id===shot.id),false);
+});
+test('held reload input emits one start and one completion event per transition',()=>{
+  const s=createGame();clearThreats(s);const p=pl(s);p.ammo=0;
+  run(s,2.8,{reload:true});
+  const reloads=s.soundEvents.filter(event=>event.actorId===p.id&&event.type.startsWith('reload_'));
+  assert.deepEqual(reloads.map(event=>event.type),['reload_start','reload_end']);
+  assert.ok(reloads[0].id<reloads[1].id);assert.ok(reloads[0].time<reloads[1].time);
+  assert.equal(p.ammo,p.magSize);
+});
+test('sound events are bounded, ordered and contain spatial smoke and concrete impacts',()=>{
+  const s=createGame();clearThreats(s);const p=pl(s);
+  step(s,{smoke:true},1/60);
+  const smoke=s.soundEvents.find(event=>event.type==='smoke');assert.ok(smoke);assert.equal(smoke.actorId,p.id);assert.ok(Math.hypot(smoke.x-p.x,smoke.y-p.y)>50);
+  const wall=s.world.buildings[0],origin={x:wall.x-20,y:wall.y+65};
+  s.bullets=[{id:9000,x:origin.x,y:origin.y,px:origin.x,py:origin.y,vx:1000,vy:0,team:'squad',owner:p.id,weapon:'rifle',damage:24,ttl:1}];
+  step(s,{},.05);const impact=s.soundEvents.find(event=>event.type==='impact');assert.ok(impact);assert.equal(impact.material,'concrete');assert.ok(Math.abs(impact.x-wall.x)<.001);
+  for(let i=0;i<180;i++){p.cooldown=0;p.ammo=p.magSize;step(s,{fire:true,aimX:p.x+200,aimY:p.y},.001);}
+  assert.equal(s.soundEvents.length,128);
+  assert.equal(new Set(s.soundEvents.map(event=>event.id)).size,128);
+  assert.ok(s.soundEvents.every((event,i,all)=>!i||event.id>all[i-1].id));
+});
