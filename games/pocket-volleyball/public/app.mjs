@@ -387,19 +387,21 @@ function updateHUD() {
     $(`sets-${team}`).setAttribute('aria-label', `${state.sets[team]} sets won`);
   }
   const myController = online ? room.seat : 0, player = controllerPlayer(state, myController);
+  const landingTeam = state.phase === 'rally' ? (predictLanding(state.ball).x < 0 ? 0 : 1) : state.possession;
+  const displayedTouches = landingTeam === state.possession ? state.touches : 0;
   setText('team-0-name', 'TIDELINE'); setText('team-1-name', 'SUNBREAK');
   let message = state.message || 'Play on';
   if (state.phase === 'serve') message = state.serverId === player?.id ? 'YOUR SERVE' : `${TEAM_NAMES[state.servingTeam].toUpperCase()} TO SERVE`;
-  else if (state.phase === 'rally') message = `${TEAM_NAMES[state.possession].toUpperCase()} · ${['RECEIVE','SET IT UP','ATTACK','OVER THE NET'][Math.min(state.touches, 3)]}`;
+  else if (state.phase === 'rally') message = `${TEAM_NAMES[landingTeam].toUpperCase()} · ${['RECEIVE','SET IT UP','ATTACK','OVER THE NET'][Math.min(displayedTouches, 3)]}`;
   setText('rally-message', message);
-  [...$('touch-count').children].forEach((e,i) => e.classList.toggle('used', i < state.touches));
+  [...$('touch-count').children].forEach((e,i) => e.classList.toggle('used', i < displayedTouches));
   const point = state.phase === 'point' || state.phase === 'set';
   $('point-call').hidden = !point;
   if (point) { $('point-call').querySelector('strong').textContent = state.phase === 'set' ? 'SET WON' : 'POINT'; $('point-call').querySelector('span').textContent = state.message; }
   const touchMode = document.body.classList.contains('touch');
   const passName = touchMode ? 'Pass / Set' : 'J or Space';
   const hints = state.phase === 'serve' ? (state.serverId === player?.id ? `Hold ${passName} to serve. Move sideways to place it.` : 'Get ready. Watch the landing ring.')
-    : state.phase === 'rally' ? (state.possession === player?.team ? (state.touches >= 2 ? 'Get under the set. Hold Spike for the finish.' : `Move to the landing ring. Hold ${touchMode ? 'Pass / Set' : 'J'} to meet the ball.`) : 'Cover the open sand. A dive can save a low ball.')
+    : state.phase === 'rally' ? (landingTeam === player?.team ? (displayedTouches >= 2 ? 'Get under the set. Hold Spike for the finish.' : `Move to the landing ring. Hold ${touchMode ? 'Pass / Set' : 'J'} to meet the ball.`) : 'Cover the open sand. A dive can save a low ball.')
     : point ? 'Next rally coming up.' : '';
   setText('play-hint', preferences.guidance === 'simple' ? hints : '');
   if (state.phase === 'match' && !resultShown) {
