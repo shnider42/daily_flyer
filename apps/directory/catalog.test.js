@@ -5,7 +5,7 @@ import {selectProjects,formatAddedDate,validateCatalog,projectLink} from './cata
 import {ART_KEYS,renderArtwork} from './artwork.js';
 const catalog=JSON.parse(await readFile(new URL('./projects.json',import.meta.url),'utf8'));
 test('every catalog entry has a launch destination and matching artwork',()=>{
-  assert.equal(validateCatalog(catalog).length,41);
+  assert.equal(validateCatalog(catalog).length,42);
   for(const p of catalog){assert.ok(ART_KEYS.includes(p.art),p.id);assert.match(renderArtwork(p),/<svg/);assert.equal(new URL(projectLink(p)).protocol,'https:');}
 });
 test('the two sports routes open the intended sport instead of the same default game',()=>{
@@ -44,5 +44,5 @@ test('recent updates surface older projects without changing their creation orde
   assert.deepEqual(selectProjects(sample,{sort:'newest'}).map(p=>p.id),['new-release','earlier-update','older-updated','unrecorded']);
 });
 test('game subtype filter distinguishes sports from the other games',()=>{
-  assert.deepEqual(selectProjects(catalog,{type:'games',kind:'Sports',sort:'name'}).map(p=>p.id),['corner-pocket','pocket-baseball','gridiron','hockey','soccer','shenanigans-golf','sunday-broadcast']);
+  assert.deepEqual(selectProjects(catalog,{type:'games',kind:'Sports',sort:'name'}).map(p=>p.id),['corner-pocket','pocket-baseball','gridiron','hockey','soccer','volleyball','shenanigans-golf','sunday-broadcast']);
 });

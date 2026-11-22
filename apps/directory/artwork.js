@@ -24,6 +24,7 @@ export const ART_PALETTES = Object.freeze({
   skyward:{background:'#b8cbd0',foreground:'#223f4c',accent:'#c86e38'},
   hockey:{background:'#e5e8df',foreground:'#234a7e',accent:'#ce4e39'},
   soccer:{background:'#e6c836',foreground:'#212821',accent:'#69884a'},
+  volleyball:{background:'#092f3b',foreground:'#fff7d8',accent:'#ef7156'},
   'sleeve-notes':{background:'#de6d3c',foreground:'#f2e2b8',accent:'#263f63'},
   battlezone:{background:'#111c17',foreground:'#b0df7d',accent:'#d9edac'},
   'when-ants-stare':{background:'#292326',foreground:'#d4ac7f',accent:'#f0d9b8'},
@@ -370,6 +371,22 @@ const covers={
       <g transform="translate(516 249)" stroke="#b4b998" fill="none" stroke-width="3"><path d="M-7-57Q44 0-7 57M-7-57 13 0-7 57M-32 0H40M30-9 40 0 30 9"/></g>
       ${line('M46 335H175M465 335H594','#71816a',1)}${note('CLAIM',111,357,'#b4b998',{size:11,spacing:2,anchor:'middle'})}${note('OR CLEANSE',523,357,'#b4b998',{size:11,spacing:1.4,anchor:'middle'})}
       ${rect(19,377,602,25,'#bd5349')}${note('WARRIOR / ARCHER / WIZARD',32,394,'#f3e9cf',{size:10,spacing:1})}${note('1–4 PLAYER CO-OP',608,394,'#f3e9cf',{size:10,spacing:.8,anchor:'end'})}${paper(u,.24)}`,
+  }),
+  volleyball:u=>({
+    body:`${rect(0,0,640,420,'#092f3b')}${note('POCKET',31,47,'#f8dc75',{size:25,spacing:5})}${note('BEACH DOUBLES',607,42,'#8edce1',{size:11,spacing:1.5,anchor:'end'})}
+      ${type('VOLLEYBALL',25,151,96,'#fff7d8',{width:590})}${rect(0,177,640,243,'#efce91')}
+      <path d="M610 177Q572 241 607 296T602 420H640V177Z" fill="#78bfc0"/>${line('M603 177Q565 241 600 296T595 420','#fff7d8',3,'opacity=".75"')}
+      <path d="M63 225H518L563 367H18Z" fill="#e5bd7b" stroke="#fff7d8" stroke-width="4"/>
+      ${line('M290 223V369','#906b4933',12)}${line('M288 214V358','#092f3b',5)}${line('M291 214V358','#fff7d8',3,'stroke-dasharray="3 5"')}
+      ${line('M282 212H299M282 359H299','#092f3b',4)}${line('M276 214V358M299 214V358','#092f3b',1,'opacity=".35"')}
+      <g fill="#155365" stroke="#fff7d8" stroke-width="2.5"><ellipse cx="138" cy="272" rx="20" ry="11"/><ellipse cx="204" cy="332" rx="20" ry="11"/></g>
+      <g fill="#168fab" stroke="#092f3b" stroke-width="2"><circle cx="138" cy="265" r="12"/><circle cx="204" cy="325" r="12"/></g>
+      <g fill="#862f32" stroke="#fff7d8" stroke-width="2.5"><ellipse cx="400" cy="273" rx="20" ry="11"/><ellipse cx="466" cy="333" rx="20" ry="11"/></g>
+      <g fill="#ef7156" stroke="#092f3b" stroke-width="2"><circle cx="400" cy="266" r="12"/><circle cx="466" cy="326" r="12"/></g>
+      ${line('M209 303Q306 161 411 222','#092f3b',2,'stroke-dasharray="6 6"')}
+      <ellipse cx="430" cy="267" rx="16" ry="6" fill="#906b4944"/><circle cx="430" cy="222" r="20" fill="#fff7d8" stroke="#092f3b" stroke-width="2"/>
+      ${line('M413 212Q432 218 439 240M421 204Q422 220 412 230','#ef7156',4)}${line('M432 203Q432 215 449 221','#168fab',4)}
+      ${note('SOLO / LOCAL / ONLINE',29,402,'#092f3b',{size:12,spacing:2})}${note('2v2',571,402,'#092f3b',{size:16,spacing:1,anchor:'end'})}${paper(u,.15)}`,
   }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}

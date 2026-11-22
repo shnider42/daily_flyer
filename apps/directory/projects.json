@@ -1086,5 +1086,37 @@
     "featuredRank": 1,
     "featuredLabel": "Diablo-style co-op",
     "featuredSummary": "Choose Warrior, Archer or Wizard. Fight through three areas, beat their bosses and roll new loot, alone or with up to three friends."
+  },
+  {
+    "id": "volleyball",
+    "title": "Pocket Volleyball",
+    "subtitle": "A little sand. A good rally.",
+    "description": "Play 2-on-2 beach doubles with a CPU teammate, share one screen for versus or co-op, or invite a friend into a private online court. Bump, set, spike, dive and block through best-of-three matches, with quick sets to 11 or classic sets to 21.",
+    "type": "games",
+    "subtype": "Sports",
+    "tags": [
+      "Volleyball",
+      "Beach doubles",
+      "Top-down",
+      "Solo",
+      "Local versus",
+      "Co-op",
+      "Online",
+      "2 players",
+      "Touch",
+      "Keyboard",
+      "Gamepad"
+    ],
+    "art": "volleyball",
+    "url": "https://dfe-pocket-volleyball.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-volleyball",
+    "createdAt": "2026-11-22",
+    "datePrecision": "day",
+    "dateSource": "First Pocket Volleyball build and Render release, 22 Nov 2026 in America/New_York; source commit dc6190071b03e0e85a1d14608746439657e83813.",
+    "aliases": ["Pocket Volley", "Beach volleyball", "Pocket Sports Volleyball"],
+    "updatedAt": "2026-11-22",
+    "updateSummary": "First playable release, v0.1.0: solo doubles, same-screen versus and co-op, and private online versus or co-op for two devices. Touch, keyboard and gamepad controls; online reconnect pauses the match until both players are ready.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/dc6190071b03e0e85a1d14608746439657e83813"
   }
 ]
