@@ -81,6 +81,31 @@ test('final convoy loading cannot complete with a teammate outside or downed',()
   straggler.downed=false;straggler.hp=60;
   run(s,.5);assert.equal(s.status,'won');
 });
+test('member can clear a nearby convoy barrier while the AI leader is away',()=>{
+  function atBarrier(playerOffset){
+    const s=createGame({mission:2,role:'member'});clearThreats(s);
+    s.stageIndex=1;s.convoyIndex=1;
+    const barrier=s.convoyRoute[2];
+    s.vehicles[0].x=barrier.x-70;s.vehicles[0].y=barrier.y;
+    pl(s).x=barrier.x+playerOffset;pl(s).y=barrier.y;
+    return s;
+  }
+  const working=atBarrier(-30);step(working,{interact:true},1/30);
+  assert.ok(working.convoyClear>0);assert.match(working.interactionPrompt,/Clearing obstruction/);
+  const idle=atBarrier(-30);step(idle,{},1/30);assert.equal(idle.convoyClear,0);
+  const tooFar=atBarrier(-90);step(tooFar,{interact:true},1/30);assert.equal(tooFar.convoyClear,0);
+  const downed=atBarrier(-30);pl(downed).downed=true;pl(downed).hp=0;step(downed,{interact:true},1/30);assert.equal(downed.convoyClear,0);
+});
+test('automatic leader barrier clearing respects wait and never doubles player progress',()=>{
+  const s=createGame({mission:2,role:'member'});clearThreats(s);s.stageIndex=1;s.convoyIndex=1;
+  const barrier=s.convoyRoute[2],leader=s.squad[0];
+  s.vehicles[0].x=barrier.x-70;s.vehicles[0].y=barrier.y;
+  leader.x=barrier.x+35;leader.y=barrier.y;pl(s).x=barrier.x-30;pl(s).y=barrier.y;
+  step(s,{},1/30);assert.ok(Math.abs(s.convoyClear-1/30)<1e-10);
+  step(s,{interact:true},1/30);assert.ok(Math.abs(s.convoyClear-2/30)<1e-10);
+  issueOrder(s,'wait');step(s,{},1/30);assert.ok(Math.abs(s.convoyClear-2/30)<1e-10);
+  step(s,{interact:true},1/30);assert.ok(Math.abs(s.convoyClear-3/30)<1e-10);
+});
 test('shot sounds remain readable after short muzzle flashes expire during catch-up',()=>{
   const s=createGame();clearThreats(s);const p=pl(s);
   step(s,{fire:true,aimX:p.x+200,aimY:p.y},1/60);

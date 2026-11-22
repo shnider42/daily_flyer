@@ -1,1 +1,1 @@
-{"game":"CHALK","version":"1.1.0","date":"2026-11-22","missions":4,"roles":["leader","member"],"multiplayer":false,"rendering":"Canvas 2D","audio":"recorded rifle, rotor and wind samples with spatial processing"}
+{"game":"CHALK","version":"1.2.0","date":"2026-11-22","missions":4,"roles":["leader","member"],"multiplayer":false,"rendering":"Canvas 2D","audio":"recorded rifle, rotor and wind samples with spatial processing","mobile":"full-screen HUD, adaptive thumb controls, contextual assistance"}

@@ -376,8 +376,10 @@ function updateConvoy(s,input,dt){
   if(!next){advance(s);return;}
   const blocked=next.blocked&&!s.convoyCleared.includes(s.convoyIndex+1)&&distance(v,next)<110;
   if(blocked){
-    v.waiting=true;const worker=s.role==='member'?currentLeader(s):pl;
-    const canWork=distance(worker,next)<85&&worker.alive&&!worker.downed&&((s.role==='member'&&humanNear(s,next,260)&&s.waitUntil<=s.time)||input.interact);
+    v.waiting=true;const worker=currentLeader(s);
+    const playerWorking=input.interact&&humanNear(s,next,85);
+    const leaderWorking=s.role==='member'&&distance(worker,next)<85&&worker.alive&&!worker.downed&&humanNear(s,next,260)&&s.waitUntil<=s.time;
+    const canWork=playerWorking||leaderWorking;
     if(canWork){s.convoyClear+=dt;s.interactionPrompt=`Clearing obstruction · ${Math.round(s.convoyClear/6*100)}%`;}
     if(s.convoyClear>=6){s.convoyCleared.push(s.convoyIndex+1);s.convoyClear=0;const prop=s.world.props.find(p=>p.type==='barricade'&&distance(p,next)<10);if(prop)prop.cleared=true;radio(s,'HALE','Route is open. Keep up with the vehicles.');}
   }else{

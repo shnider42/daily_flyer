@@ -1,6 +1,6 @@
 {
   "name": "dfe-chalk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "CHALK \u2014 a historically inspired top-down squad campaign set in Mogadishu.",
@@ -8,7 +8,7 @@
     "dev": "node server.mjs",
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "build": "node --check public/app.mjs && node --check public/renderer.mjs && node --check public/sim.mjs && node --check public/audio.mjs && node --test tests/*.test.mjs"
+    "build": "node --check public/app.mjs && node --check public/touch-input.mjs && node --check public/renderer.mjs && node --check public/sim.mjs && node --check public/audio.mjs && node --test tests/*.test.mjs"
   },
   "engines": {
     "node": ">=22"

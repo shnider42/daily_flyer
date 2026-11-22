@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { stickVector, touchIntent } from '../public/touch-input.mjs';
+
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
+
+test('thumb dead zone prevents drift and starts smoothly at its boundary', () => {
+  assert.deepEqual(stickVector(0, 0, 50), { x: 0, y: 0, magnitude: 0 });
+  assert.deepEqual(stickVector(6, 0, 50), { x: 0, y: 0, magnitude: .12 });
+  const justOutside = stickVector(6.00005, 0, 50);
+  assert.ok(justOutside.x > 0 && justOutside.x < .00001);
+  const halfway = stickVector(28, 0, 50);
+  near(halfway.x, .5); near(halfway.y, 0); near(halfway.magnitude, .56);
+});
+
+test('diagonal and overextended thumb movement preserve direction without increasing speed', () => {
+  const diagonal = stickVector(40, 40, 40);
+  near(diagonal.x, Math.SQRT1_2); near(diagonal.y, Math.SQRT1_2);
+  near(Math.hypot(diagonal.x, diagonal.y), 1);
+  assert.equal(diagonal.magnitude, 1);
+  assert.deepEqual(stickVector(-200, 0, 40), { x: -1, y: 0, magnitude: 1 });
+  const diagonalIntent = touchIntent({ moveX: 1, moveY: 1 });
+  near(Math.hypot(diagonalIntent.moveX, diagonalIntent.moveY), 1);
+  assert.equal(diagonalIntent.sprint, true);
+});
+
+test('invalid thumb geometry becomes neutral input', () => {
+  for (const args of [[NaN, 0, 40], [0, Infinity, 40], [1, 1, 0], [1, 1, -4], [1, 1, Infinity], [1, 1, 40, -1], [1, 1, 40, 1]]) {
+    assert.deepEqual(stickVector(...args), { x: 0, y: 0, magnitude: 0 });
+  }
+});
+
+test('light aim drag turns without firing, and outer drag fires at the threshold', () => {
+  const base = { aimX: 1, aimY: 0 };
+  assert.equal(touchIntent({ ...base, aimStrength: .12 }).aiming, false);
+  const aiming = touchIntent({ ...base, aimStrength: .13 });
+  assert.equal(aiming.aiming, true); assert.equal(aiming.firing, false);
+  assert.equal(touchIntent({ ...base, aimStrength: .559 }).firing, false);
+  assert.equal(touchIntent({ ...base, aimStrength: .56 }).firing, true);
+});
+
+test('sprint needs a deliberate movement drag and stops when aiming', () => {
+  assert.equal(touchIntent({ moveX: .919 }).sprint, false);
+  assert.equal(touchIntent({ moveX: .92 }).sprint, true);
+  const movingAim = touchIntent({ moveX: 1, aimX: 0, aimY: -1, aimStrength: .3 });
+  assert.equal(movingAim.moveX, 1); assert.equal(movingAim.aiming, true);
+  assert.equal(movingAim.firing, false); assert.equal(movingAim.sprint, false);
+  const firing = touchIntent({ moveX: 1, aimX: 0, aimY: -1, aimStrength: 1 });
+  assert.equal(firing.firing, true); assert.equal(firing.sprint, false);
+});
+
+test('map or order placement blocks movement, aim, fire, and sprint together', () => {
+  assert.deepEqual(touchIntent({ moveX: 1, moveY: 1, aimX: -1, aimY: -1, aimStrength: 1, blocked: true }), {
+    moveX: 0, moveY: 0, aiming: false, firing: false, sprint: false
+  });
+});
+
+test('absent or malformed input cannot trigger aiming or firing', () => {
+  const neutral = { moveX: 0, moveY: 0, aiming: false, firing: false, sprint: false };
+  assert.deepEqual(touchIntent(), neutral);
+  assert.deepEqual(touchIntent({ moveX: NaN, moveY: Infinity, aimX: 1, aimStrength: NaN }), neutral);
+  assert.deepEqual(touchIntent({ aimX: NaN, aimY: 1, aimStrength: 1 }), neutral);
+  assert.deepEqual(touchIntent({ aimStrength: 1 }), neutral);
+});

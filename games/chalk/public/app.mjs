@@ -1,6 +1,7 @@
 import { MISSIONS, createGame, step, issueOrder, setRole, getObjective, hasLineOfSight } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
+import { stickVector, touchIntent } from './touch-input.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
@@ -16,7 +17,7 @@ if (!['simple', 'moderate', 'expert'].includes(preferences.guidance)) preference
 if (!preferences.completed || typeof preferences.completed !== 'object') preferences.completed = {};
 
 const touchQuery = matchMedia('(pointer: coarse)');
-let touch = touchQuery.matches || navigator.maxTouchPoints > 0 || preferences.touchControls === true;
+let touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0);
 let selectedMission = 0;
 let game = null;
 let menuScene = createGame({ mission: 1, role: 'leader', difficulty: 'story', seed: 19931003 });
@@ -30,9 +31,13 @@ let hudTimer = 0;
 let lastRadio = '';
 let toastTimer;
 let previousDialogFocus = null;
+let safeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+let viewportSize = '';
+let touchAim = null;
+let interactionPointer = null;
 const keys = new Set();
 const pointer = { x: 0, y: 0, valid: false, fire: false };
-const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, interact: false };
+const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, aimStrength: 0, interact: false };
 const actions = { reload: false, smoke: false };
 const activeSticks = new Map();
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -45,11 +50,23 @@ function toast(text) { $('toast').textContent = text; $('toast').hidden = false;
 function fit() {
   document.body.classList.toggle('touch', touch && mode !== 'menu');
   const rect = $('battlefield').getBoundingClientRect();
+  const size = `${Math.round(rect.width)}:${Math.round(rect.height)}:${touch}`;
+  if (viewportSize && size !== viewportSize) clearInput();
+  viewportSize = size;
   renderer.resize(rect.width, rect.height, Math.min(devicePixelRatio || 1, 2));
+  measureSafeInsets();
+}
+function measureSafeInsets() {
+  if (!touch || mode === 'menu') { safeInsets = { top: 0, right: 0, bottom: 0, left: 0 }; return; }
+  const rect = canvas.getBoundingClientRect();
+  const controlsRect = $('touchControls').getBoundingClientRect();
+  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad')];
+  const top = Math.max(...topElements.map(el => el?.getBoundingClientRect().bottom || rect.top)) - rect.top + 10;
+  safeInsets = { top: Math.min(rect.height * .43, top), right: 20, bottom: showMap ? 58 : Math.min(rect.height * .43, rect.bottom - controlsRect.top + 10), left: 20 };
 }
 new ResizeObserver(fit).observe($('battlefield'));
 window.addEventListener('resize', fit);
-touchQuery.addEventListener('change', () => { touch = touchQuery.matches || navigator.maxTouchPoints > 0; $('touchControls').hidden = !touch || mode === 'menu'; fit(); });
+touchQuery.addEventListener('change', () => { clearInput(); touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0); $('touchControls').hidden = !touch || mode === 'menu'; fit(); soundUI(); });
 
 function soundUI() {
   $('menuSound').textContent = preferences.sound ? 'Sound on' : 'Sound off';
@@ -76,34 +93,38 @@ function missionMenu() {
 }
 function clearInput() {
   keys.clear(); pointer.fire = false; pointer.valid = false;
-  touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.interact = false;
+  touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.aimStrength = 0; touchInput.interact = false; touchAim = null;
   actions.reload = false; actions.smoke = false;
-  for (const [id, record] of activeSticks) { try { record.element.releasePointerCapture(id); } catch {} }
+  for (const [id, record] of [...activeSticks]) { try { record.element.releasePointerCapture(id); } catch {} }
   activeSticks.clear();
+  if (interactionPointer !== null) { try { $('touchInteract').releasePointerCapture(interactionPointer); } catch {} interactionPointer = null; }
   document.querySelectorAll('.stick-knob').forEach(knob => knob.style.transform = 'translate(0, 0)');
+  document.querySelectorAll('.joystick').forEach(el => { el.classList.remove('active', 'firing', 'sprinting'); el.style.removeProperty('--stick-origin-x'); el.style.removeProperty('--stick-origin-y'); });
+  $('touchInteract').classList.remove('working');
 }
 function startMission(index = selectedMission) {
   selectedMission = clamp(index, 0, MISSIONS.length - 1);
   game = createGame({ mission: selectedMission, role: preferences.role, difficulty: preferences.difficulty, seed: Date.now() >>> 0 });
   mode = 'playing'; paused = false; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
   clearInput();
-  document.body.classList.remove('in-menu', 'orders-open');
+  document.body.classList.remove('in-menu', 'orders-open', 'map-open', 'placing-order');
   $('menu').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
   $('mapLegend').hidden = true; $('orderHint').hidden = true;
   $('missionName').textContent = game.mission.title.toUpperCase();
   updateOrders(); audio.unlock(); audio.setEnabled(preferences.sound); fit(); updateHUD();
   canvas.focus({ preventScroll: true });
-  toast(touch ? 'Left stick moves. Right stick aims and fires.' : 'WASD to move. Follow the amber objective marker.');
+  syncMapUI(); closeOrders();
+  toast(touch ? 'Left: move · Right: aim, push farther to fire' : 'WASD to move. Follow the amber objective marker.');
 }
 function returnToMenu() {
   mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.stop();
-  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch');
+  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order');
   $('menu').hidden = false; $('hud').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = true;
   missionMenu(); fit(); $('deploy').focus({ preventScroll: true });
 }
 function pause(value = true) {
   if (mode !== 'playing') return;
-  paused = value; accumulator = 0; clearInput();
+  paused = value; accumulator = 0; clearInput(); closeOrders();
   $('pauseOverlay').hidden = !value;
   $('switchRole').textContent = game.role === 'leader' ? 'Switch to squad member' : 'Take command of the squad';
   if (value) { audio.stop(); $('resume').focus(); } else { audio.unlock(); audio.setEnabled(preferences.sound); canvas.focus({ preventScroll: true }); }
@@ -113,23 +134,54 @@ function updateOrders() {
   $('orderLabel').textContent = leader ? 'SQUAD ORDERS' : 'REQUESTS TO HALE';
   const items = leader ? [['move', '', 'Move'], ['follow', 'Q', 'Regroup'], ['hold', 'H', 'Hold'], ['assist', 'F', 'Assist']] : [['ready', 'Q', 'Ready'], ['wait', 'H', 'Wait'], ['help', 'F', 'Need help']];
   $('orderButtons').innerHTML = items.map(([type, key, label]) => `<button data-order="${type}">${key ? `<kbd>${key}</kbd>` : ''}${label}</button>`).join('');
-  $('touchOrder').textContent = leader ? 'SQUAD ORDERS' : 'RADIO REQUESTS';
+  ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
+  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders' : 'Radio requests');
+  $('touchOrder').setAttribute('aria-controls', 'orderButtons');
   $('desktopHint').textContent = leader ? 'WASD move · Mouse fire · E assist · R reload · G smoke · Right click order' : 'WASD move · Mouse fire · E assist · R reload · Q ready · H wait · F help';
 }
 function doOrder(type, point) {
   if (mode !== 'playing' || paused) return;
   if (type === 'move' && !point) {
-    placingOrder = true; $('orderHint').hidden = false;
-    if (touch) { showMap = true; $('mapLegend').hidden = false; }
+    clearInput(); closeOrders(); placingOrder = true;
+    if (touch) showMap = true;
+    syncMapUI();
     return;
   }
   issueOrder(game, type, point);
-  placingOrder = false; $('orderHint').hidden = true;
-  document.body.classList.remove('orders-open');
-  if (touch && type === 'move') { showMap = false; $('mapLegend').hidden = true; }
+  clearInput(); placingOrder = false; closeOrders();
+  if (touch && type === 'move') showMap = false;
+  syncMapUI();
   audio.click(); updateHUD();
 }
-function toggleMap() { if (mode !== 'playing' || paused) return; showMap = !showMap; $('mapLegend').hidden = !showMap; $('mapToggle').textContent = showMap ? 'CLOSE' : 'MAP'; pointer.fire = false; }
+function closeOrders() { document.body.classList.remove('orders-open'); $('touchOrder').setAttribute('aria-expanded', 'false'); }
+function syncMapUI() {
+  document.body.classList.toggle('map-open', showMap);
+  document.body.classList.toggle('placing-order', placingOrder);
+  $('mapLegend').hidden = !showMap;
+  $('orderHint').hidden = !placingOrder;
+  $('orderHint').textContent = touch ? 'Tap a destination for the squad.' : 'Choose a destination on the battlefield. Escape cancels.';
+  ($('mapToggleLabel') || $('mapToggle')).textContent = showMap ? 'Close' : 'Map';
+  $('mapToggle').setAttribute('aria-pressed', String(showMap));
+  $('mapToggle').setAttribute('aria-label', showMap ? 'Close battlefield map' : 'Toggle battlefield map');
+  measureSafeInsets();
+}
+function toggleMap() {
+  if (mode !== 'playing' || paused) return;
+  clearInput(); closeOrders(); showMap = !showMap; placingOrder = false; syncMapUI();
+}
+function cancelOrder() { clearInput(); placingOrder = false; if (touch) showMap = false; syncMapUI(); }
+function canAct() { return mode === 'playing' && !paused && !showMap && !placingOrder && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
+
+function assistAction() {
+  const p = player(); if (!p || !p.alive || p.downed || !game) return null;
+  const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
+  if (down) return { label: 'Revive', detail: `Hold to help ${down.name}`, progress: (down.reviveProgress || 0) / 4 };
+  const objective = getObjective(game), distance = objective ? Math.hypot(p.x-objective.x,p.y-objective.y) : Infinity;
+  if (objective?.kind === 'rescue' && distance < objective.radius) return { label: 'Rescue', detail: 'Hold to stabilize the crew', progress: objective.progress || 0 };
+  if (objective?.kind === 'barricade' && distance < 85) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
+  if (p.hp < p.maxHp && p.medkits > 0 && !['rescue','barricade'].includes(objective?.kind)) return { label: 'Bandage', detail: 'Hold to bandage yourself', progress: (p.bandageProgress || 0) / 3 };
+  return null;
+}
 function openInfo(id) {
   previousDialogFocus = document.activeElement;
   if (mode === 'playing' && !paused) pause(true);
@@ -151,37 +203,68 @@ $('deploy').addEventListener('click', () => startMission());
 $('menuSound').addEventListener('click', () => { preferences.sound = !preferences.sound; soundUI(); if (preferences.sound) audio.unlock(); save(); });
 $('soundToggle').addEventListener('change', event => { preferences.sound = event.target.checked; soundUI(); save(); });
 $('motionToggle').addEventListener('change', event => { preferences.reducedMotion = event.target.checked; save(); });
-$('touchToggle').addEventListener('change', event => { touch = event.target.checked; preferences.touchControls = touch; $('touchControls').hidden = !touch || mode === 'menu'; save(); fit(); });
+$('touchToggle').addEventListener('change', event => { clearInput(); closeOrders(); touch = event.target.checked; preferences.touchControls = touch; $('touchControls').hidden = !touch || mode === 'menu'; save(); fit(); updateHUD(); });
 $('pauseButton').addEventListener('click', () => pause());
 $('resume').addEventListener('click', () => pause(false));
-$('switchRole').addEventListener('click', () => { const role = game.role === 'leader' ? 'member' : 'leader'; setRole(game, role); chooseRole(role); updateOrders(); pause(false); toast(role === 'leader' ? 'You have command of the squad.' : 'Hale has command. Stay with the squad.'); });
+$('switchRole').addEventListener('click', () => { const role = game.role === 'leader' ? 'member' : 'leader'; clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); setRole(game, role); chooseRole(role); updateOrders(); pause(false); updateHUD(); toast(role === 'leader' ? 'You have command of the squad.' : 'Hale has command. Stay with the squad.'); });
 $('restart').addEventListener('click', () => startMission());
 $('returnMenu').addEventListener('click', returnToMenu);
 $('resultMenu').addEventListener('click', returnToMenu);
 $('replay').addEventListener('click', () => startMission());
 $('nextMission').addEventListener('click', () => { if (selectedMission + 1 < MISSIONS.length) { selectedMission++; returnToMenu(); } else returnToMenu(); });
 $('mapToggle').addEventListener('click', toggleMap);
-$('touchOrder').addEventListener('click', () => document.body.classList.toggle('orders-open'));
-$('touchReload').addEventListener('click', () => actions.reload = true);
-$('touchSmoke').addEventListener('click', () => actions.smoke = true);
-for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'lostpointercapture']) $('touchInteract').addEventListener(type, event => {
-  event.preventDefault(); touchInput.interact = type === 'pointerdown';
-  if (type === 'pointerdown') { $('touchInteract').setPointerCapture(event.pointerId); audio.unlock(); }
+$('touchOrder').addEventListener('click', () => {
+  if (mode !== 'playing' || paused || showMap || placingOrder) return;
+  clearInput(); const open = document.body.classList.toggle('orders-open'); $('touchOrder').setAttribute('aria-expanded', String(open));
+});
+$('orderClose')?.addEventListener('click', closeOrders);
+$('cancelOrder')?.addEventListener('click', cancelOrder);
+$('touchReload').addEventListener('click', () => { if (canAct()) actions.reload = true; });
+$('touchSmoke').addEventListener('click', () => { if (canAct()) actions.smoke = true; });
+$('touchInteract').addEventListener('pointerdown', event => {
+  if (!canAct() || !assistAction() || interactionPointer !== null) return;
+  event.preventDefault(); interactionPointer = event.pointerId; touchInput.interact = true;
+  $('touchInteract').setPointerCapture(event.pointerId); $('touchInteract').classList.add('working'); audio.unlock();
+});
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('touchInteract').addEventListener(type, event => {
+  if (interactionPointer !== event.pointerId) return;
+  event.preventDefault(); interactionPointer = null; touchInput.interact = false; $('touchInteract').classList.remove('working');
 });
 
 function bindStick(element, kind) {
-  const update = (event) => {
-    const record = activeSticks.get(event.pointerId); if (!record) return;
-    const rect = element.getBoundingClientRect(); const radius = rect.width * .32;
-    let dx = (event.clientX - rect.left - rect.width / 2) / radius, dy = (event.clientY - rect.top - rect.height / 2) / radius;
-    const length = Math.hypot(dx, dy); if (length > 1) { dx /= length; dy /= length; }
-    if (length < .13) dx = dy = 0;
-    element.querySelector('.stick-knob').style.transform = `translate(${dx * radius}px,${dy * radius}px)`;
-    touchInput[`${kind}X`] = dx; touchInput[`${kind}Y`] = dy;
+  const update = event => {
+    const record = activeSticks.get(event.pointerId); if (!record || record.element !== element) return;
+    if (Math.hypot(event.clientX-record.startX,event.clientY-record.startY) > 4) record.dragged = true;
+    const vector = stickVector(event.clientX-record.x,event.clientY-record.y,record.radius);
+    // A tap on the aim pad never fires; an intentional drag controls aim strength.
+    const strength = kind === 'aim' && !record.dragged ? 0 : vector.magnitude;
+    const x = strength ? vector.x : 0, y = strength ? vector.y : 0;
+    element.querySelector('.stick-knob').style.transform = `translate(${x*record.radius}px,${y*record.radius}px)`;
+    touchInput[`${kind}X`] = x; touchInput[`${kind}Y`] = y;
+    if (kind === 'aim') touchInput.aimStrength = strength;
+    element.classList.toggle('firing', kind === 'aim' && strength >= .56);
+    element.classList.toggle('sprinting', kind === 'move' && Math.hypot(x,y) >= .92 && touchInput.aimStrength <= .12);
   };
-  element.addEventListener('pointerdown', event => { if (paused || mode !== 'playing') return; event.preventDefault(); element.setPointerCapture(event.pointerId); activeSticks.set(event.pointerId, { element, kind }); update(event); audio.unlock(); });
-  element.addEventListener('pointermove', event => { event.preventDefault(); update(event); });
-  const release = event => { if (!activeSticks.has(event.pointerId)) return; activeSticks.delete(event.pointerId); touchInput[`${kind}X`] = 0; touchInput[`${kind}Y`] = 0; element.querySelector('.stick-knob').style.transform = 'translate(0,0)'; };
+  element.addEventListener('pointerdown', event => {
+    if (!canAct() || event.button > 0 || [...activeSticks.values()].some(record => record.kind === kind)) return;
+    event.preventDefault(); pointer.fire = false; pointer.valid = false;
+    const rect = element.getBoundingClientRect(), base = element.querySelector('.stick-base')?.getBoundingClientRect() || rect;
+    const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+    const x = kind === 'move' ? clamp(event.clientX,cx-22,cx+22) : cx;
+    const y = kind === 'move' ? clamp(event.clientY,cy-22,cy+22) : cy;
+    element.style.setProperty('--stick-origin-x',`${x-cx}px`); element.style.setProperty('--stick-origin-y',`${y-cy}px`);
+    element.setPointerCapture(event.pointerId); element.classList.add('active');
+    activeSticks.set(event.pointerId,{element,kind,x,y,radius:Math.min(base.width,base.height)*.34,startX:event.clientX,startY:event.clientY,dragged:false});
+    update(event); audio.unlock();
+  });
+  element.addEventListener('pointermove', event => { if (!activeSticks.has(event.pointerId)) return; event.preventDefault(); update(event); });
+  const release = event => {
+    const record = activeSticks.get(event.pointerId); if (!record || record.element !== element) return;
+    activeSticks.delete(event.pointerId); touchInput[`${kind}X`] = 0; touchInput[`${kind}Y`] = 0;
+    if (kind === 'aim') { touchInput.aimStrength = 0; touchAim = null; }
+    element.querySelector('.stick-knob').style.transform = 'translate(0,0)'; element.classList.remove('active','firing','sprinting');
+    element.style.removeProperty('--stick-origin-x'); element.style.removeProperty('--stick-origin-y');
+  };
   element.addEventListener('pointerup', release); element.addEventListener('pointercancel', release); element.addEventListener('lostpointercapture', release);
 }
 bindStick($('moveStick'), 'move'); bindStick($('aimStick'), 'aim');
@@ -196,7 +279,7 @@ canvas.addEventListener('pointerdown', event => {
     if (game.role === 'leader') doOrder('move', renderer.screenToWorld(point.x, point.y));
     return;
   }
-  if (showMap) return;
+  if (showMap || event.pointerType === 'touch' || !canAct()) { pointer.valid = false; return; }
   if (event.button === 0) { pointer.fire = true; canvas.setPointerCapture(event.pointerId); }
 });
 canvas.addEventListener('pointerup', () => pointer.fire = false);
@@ -216,15 +299,18 @@ window.addEventListener('keydown', event => {
   if (mode !== 'playing') return;
   if (event.code === 'Escape') {
     event.preventDefault();
-    if (placingOrder) { placingOrder = false; $('orderHint').hidden = true; return; }
+    if (paused) { pause(false); return; }
+    if (placingOrder) { cancelOrder(); return; }
+    if (showMap) { toggleMap(); return; }
+    if (document.body.classList.contains('orders-open')) { clearInput(); closeOrders(); return; }
     pause(!paused); return;
   }
   if (paused) return;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code)) event.preventDefault();
   keys.add(event.code);
   if (event.repeat) return;
-  if (event.code === 'KeyR') actions.reload = true;
-  if (event.code === 'KeyG') actions.smoke = true;
+  if (event.code === 'KeyR' && canAct()) actions.reload = true;
+  if (event.code === 'KeyG' && canAct()) actions.smoke = true;
   if (event.code === 'KeyM') toggleMap();
   if (event.code === 'KeyQ') doOrder(game.role === 'leader' ? 'follow' : 'ready');
   if (event.code === 'KeyH') doOrder(game.role === 'leader' ? 'hold' : 'wait');
@@ -237,13 +323,15 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && mod
 
 function controls() {
   const p = player();
-  let moveX = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + touchInput.moveX;
-  let moveY = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + touchInput.moveY;
+  if (!canAct()) { touchAim = null; return { moveX:0, moveY:0, aimX:null, aimY:null, fire:false, interact:false, reload:false, smoke:false, sprint:false }; }
+  const intent = touchIntent(touchInput);
+  let moveX = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + intent.moveX;
+  let moveY = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + intent.moveY;
   let aim = pointer.valid && !showMap ? renderer.screenToWorld(pointer.x, pointer.y) : null;
   let fire = pointer.fire && !showMap && !placingOrder;
-  const stickLength = Math.hypot(touchInput.aimX, touchInput.aimY);
-  if (p && stickLength > .15) {
-    aim = { x: p.x + touchInput.aimX * 600, y: p.y + touchInput.aimY * 600 }; fire = !showMap && !placingOrder;
+  if (p && intent.aiming) {
+    const stickLength = Math.hypot(touchInput.aimX,touchInput.aimY);
+    aim = { x: p.x + touchInput.aimX/stickLength * 600, y: p.y + touchInput.aimY/stickLength * 600 }; fire = intent.firing;
     if (preferences.guidance === 'simple') {
       const direction = Math.atan2(touchInput.aimY, touchInput.aimX);
       let closest = null, score = Infinity;
@@ -257,8 +345,14 @@ function controls() {
       if (closest) aim = { x: closest.x, y: closest.y };
     }
   }
-  if (showMap || placingOrder) { fire = false; }
-  return { moveX, moveY, aimX: aim?.x ?? null, aimY: aim?.y ?? null, fire, interact: keys.has('KeyE') || touchInput.interact, reload: actions.reload, smoke: actions.smoke, sprint: keys.has('ShiftLeft') || keys.has('ShiftRight') };
+  touchAim = intent.aiming && aim ? { ...aim, firing: fire } : null;
+  const assist = assistAction();
+  if (touchInput.interact && !assist) { touchInput.interact = false; $('touchInteract').classList.remove('working'); }
+  const interact = keys.has('KeyE') || touchInput.interact;
+  const sprint = !interact && (keys.has('ShiftLeft') || keys.has('ShiftRight') || intent.sprint);
+  $('moveStick').classList.toggle('sprinting', !!intent.sprint && !interact);
+  const autoReload = touch && p?.ammo === 0 && p.reserve > 0 && p.reloadTimer <= 0;
+  return { moveX, moveY, aimX: aim?.x ?? null, aimY: aim?.y ?? null, fire: fire && !interact, interact, reload: actions.reload || autoReload, smoke: actions.smoke, sprint };
 }
 
 function updateHUD() {
@@ -278,25 +372,38 @@ function updateHUD() {
     $('ammo').textContent = p.ammo ?? 0; $('reserve').textContent = `/ ${p.reserve ?? 0}`;
     $('reloadLabel').textContent = p.reloadTimer > 0 ? 'RELOADING' : p.ammo === 0 ? 'RELOAD' : '';
     $('smokeCount').textContent = `SMOKE × ${p.smokes ?? 0}`;
-    $('touchSmoke').textContent = `SMOKE ${p.smokes ?? 0}`;
+    if ($('touchSmokeQty')) $('touchSmokeQty').textContent = p.smokes ?? 0;
+    else $('touchSmoke').textContent = `Smoke ${p.smokes ?? 0}`;
+    $('touchSmoke').setAttribute('aria-label', `Smoke, ${p.smokes ?? 0} remaining`);
+    ($('touchReloadLabel') || $('touchReload')).textContent = p.reloadTimer > 0 ? 'Loading' : 'Reload';
+    $('touchReload').setAttribute('aria-label', p.reloadTimer > 0 ? 'Reloading' : 'Reload weapon');
+    $('touchReload').classList.toggle('reloading', p.reloadTimer > 0);
     $('downedBanner').hidden = !p.downed;
-    $('touchReload').disabled = p.reloadTimer > 0 || !p.reserve;
+    $('touchReload').disabled = p.reloadTimer > 0 || !p.reserve || p.ammo === p.magSize;
     $('touchSmoke').disabled = !p.smokes;
   }
-  const messages = game.radio.slice(-3); const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
+  const assist = assistAction();
+  $('touchInteract').disabled = !assist;
+  $('touchInteract').classList.toggle('available', !!assist);
+  $('touchInteract').style.setProperty('--assist-progress', `${clamp(assist?.progress || 0,0,1)*100}%`);
+  ($('touchInteractLabel') || $('touchInteract')).textContent = assist?.label || 'Assist';
+  $('touchInteract').setAttribute('aria-label', assist?.detail || 'Assist — move near someone who needs help');
+  const messages = touch ? game.radio.filter(m => game.time-m.time < 8).slice(-1) : game.radio.slice(-3); const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
   const interactText = typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
   let hint = interactText;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? (touch ? 'Follow the amber marker. Your squad follows you.' : 'Follow the amber marker. Right click to send your squad.') : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = hint.replace(/\bHold E\b/gi, 'Hold ASSIST').replace(/\bPress E\b/gi, 'Hold ASSIST');
+  if (touch) hint = assist ? assist.detail : '';
   $('contextHint').textContent = hint;
   $('desktopHint').style.visibility = preferences.guidance === 'expert' ? 'hidden' : 'visible';
   $('hud').dataset.stage = String(game.stageIndex); $('hud').dataset.status = game.status;
+  $('hud').dataset.role = game.role;
+  measureSafeInsets();
 }
 
 function finishMission() {
-  mode = 'result'; clearInput(); audio.stop();
+  mode = 'result'; clearInput(); closeOrders(); audio.stop();
   const won = game.status === 'won';
   const fitSquad = game.squad.filter(s => s.alive && !s.downed).length;
   const harmed = game.stats.civilianHarm || 0;
@@ -331,7 +438,7 @@ function frame(now) {
     hudTimer += dt;
     if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
   }
-  renderer.render(game || menuScene, { time: now / 1000, menu: mode === 'menu', paused, pointer: pointer.valid ? pointer : null, showMap, guidance: preferences.guidance, reducedMotion: preferences.reducedMotion });
+  renderer.render(game || menuScene, { time: now / 1000, menu: mode === 'menu', paused, pointer: pointer.valid ? pointer : null, showMap, placingOrder, guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, aim: touchAim });
   requestAnimationFrame(frame);
 }
 

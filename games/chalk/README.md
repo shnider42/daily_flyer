@@ -32,7 +32,7 @@ As **Hale**, command Move, Regroup, Hold, and Assist. As **Mercer**, Hale naviga
 | M | Battlefield map |
 | Escape | Pause |
 
-Touch uses a left movement stick, a right aim/fire stick, and separate action buttons below the battlefield. The pause menu can enable touch controls manually. Landscape and portrait layouts are supported. Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 250 KB and load asynchronously, with procedural fallback. Reduce motion suppresses the drifting atmosphere.
+Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. An empty magazine reloads automatically when ammunition remains. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. The Squad / Radio button opens a compact command panel; Move opens the district map with a visible Cancel action. Opening the map, pausing, changing touch mode, and rotating the phone release held input. The portrait menu fits a 390 × 844 viewport without scrolling. The pause menu can enable touch controls manually. Landscape and portrait layouts are supported. Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 250 KB and load asynchronously, with procedural fallback. Reduce motion suppresses the drifting atmosphere.
 
 Squad members navigate around buildings, fire at visible armed opponents, and help downed teammates. The medic can recover the player. Ammunition, smoke, and bandages are limited. Squad members who are down for too long can be lost; the entire squad being incapacitated or the player being unrecoverable ends the mission. Mission results emphasize survival, rescues, civilian harm, and completion time rather than kills.
 
@@ -57,13 +57,13 @@ npm run build --prefix games/chalk
 
 The local server defaults to port 3000, accepts `PORT` or `--port`, and supports the managed preview's `--host` option. Production is a static site with `games/chalk/public` as its publish directory.
 
-The simulation is deterministic and independent of the DOM. Seventeen focused tests cover mission routes, commander/member role differences, cohesion, ammunition, smoke, recovery of a downed player, civilian targeting, all four AI-led mission progressions, loss states, recovered crew, actor/wall collision ordering, and retained audio events across short visual effects. Browser QA covers desktop controls, role switching, pause, mission selection, and portrait/touch layout. A physical iPhone/Safari session is not included in this verification.
+The simulation is deterministic and independent of the DOM. Nineteen focused simulation tests cover mission routes, commander/member role differences, cohesion, ammunition, smoke, recovery of a downed player, civilian targeting, all four AI-led mission progressions, loss states, recovered crew, actor/wall collision ordering, retained audio events across short visual effects, and player/AI barricade clearing in member mode. Seven additional touch-input tests cover dead zones, diagonal movement, aim/fire thresholds, sprint exclusion, invalid input, and blocked controls. Browser QA covers desktop controls, role switching, pause, mission selection, and portrait/touch layout. A physical iPhone/Safari session is not included in this verification.
 
 Files:
 
 - `public/sim.mjs`: collision, navigation, combat, squad AI, civilians, and mission progression.
 - `public/renderer.mjs`: original Canvas 2D artwork, city cache, camera, effects, and map.
-- `public/app.mjs`, `index.html`, `style.css`: menus, input, HUD, local preferences, and debrief.
+- `public/app.mjs`, `touch-input.mjs`, `index.html`, `style.css`: menus, input, HUD, local preferences, and debrief.
 - `public/audio.mjs`: spatial playback of recorded rifle, helicopter, and wind samples, with procedural foley and fallback. Source credits and CC0 licenses are in `public/audio/CREDITS.txt`.
 - `server.mjs`: development preview only; production needs no game server.
 

@@ -71,6 +71,34 @@ export class Renderer {
     return p.x >= -padding && p.y >= -padding && p.x <= this.width + padding && p.y <= this.height + padding;
   }
 
+  playableRect(view = {}) {
+    if (!view.touch) return { left: 0, top: 0, right: this.width, bottom: this.height, width: this.width, height: this.height, cx: this.width / 2, cy: this.height / 2 };
+    const insets = view.safeInsets || {};
+    const portrait = this.height > this.width;
+    const left = clamp(finite(insets.left, 12), 0, Math.max(0, this.width - 180));
+    const right = this.width - clamp(finite(insets.right, 12), 0, Math.max(0, this.width - left - 180));
+    const top = clamp(finite(insets.top, portrait ? 140 : 96), 0, Math.max(0, this.height - 96));
+    const bottom = this.height - clamp(finite(insets.bottom, portrait ? 180 : 130), 0, Math.max(0, this.height - top - 96));
+    return { left, top, right, bottom, width: right - left, height: bottom - top, cx: (left + right) / 2, cy: (top + bottom) / 2 };
+  }
+
+  markerBounds(view) {
+    if (view.touch) {
+      const r = this.safeRect || this.playableRect(view);
+      return { left: r.left + 25, right: r.right - 25, top: r.top + 23, bottom: r.bottom - 35, cx: r.cx, cy: (r.top + r.bottom - 12) / 2 };
+    }
+    const top = this.width < 600 ? 130 : 100;
+    return { left: 44, right: this.width - 44, top, bottom: Math.max(top + 35, this.height - 125), cx: this.width / 2, cy: (top + Math.max(top + 35, this.height - 125)) / 2 };
+  }
+
+  edgePoint(point, bounds) {
+    const dx = point.x - bounds.cx, dy = point.y - bounds.cy;
+    const tx = (dx < 0 ? bounds.cx - bounds.left : bounds.right - bounds.cx) / Math.max(.001, Math.abs(dx));
+    const ty = (dy < 0 ? bounds.cy - bounds.top : bounds.bottom - bounds.cy) / Math.max(.001, Math.abs(dy));
+    const scale = Math.max(0, Math.min(tx, ty));
+    return { x: clamp(bounds.cx + dx * scale, bounds.left, bounds.right), y: clamp(bounds.cy + dy * scale, bounds.top, bounds.bottom) };
+  }
+
   makeMap(world, missionIndex) {
     const w = finite(world.width, 2400), h = finite(world.height, 1900);
     const cache = newCanvas(w, h), ctx = cache.getContext('2d');
@@ -341,14 +369,16 @@ export class Renderer {
     const radius = Math.max(7, finite(actor.radius, 10));
     const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
     ctx.save(); ctx.translate(actor.x, actor.y);
-    if (isPlayer) {
-      ctx.fillStyle = 'rgba(133,205,175,.12)'; ctx.beginPath(); ctx.arc(0, 0, radius + 10, 0, TAU); ctx.fill();
-      ctx.strokeStyle = COLORS.player; ctx.lineWidth = 1.8 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, radius + 7, .15, TAU - .15); ctx.stroke();
+    if (!view.menu && isPlayer) {
+      const ringRadius = radius + (view.touch ? 5 : 7);
+      ctx.fillStyle = 'rgba(133,205,175,.08)'; ctx.beginPath(); ctx.arc(0, 0, ringRadius + 2, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(12,25,20,.72)'; ctx.lineWidth = 4 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, ringRadius, .15, TAU - .15); ctx.stroke();
+      ctx.strokeStyle = COLORS.player; ctx.lineWidth = 1.7 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, ringRadius, .15, TAU - .15); ctx.stroke();
       ctx.save(); ctx.rotate(angle); ctx.fillStyle = COLORS.player; ctx.beginPath(); ctx.moveTo(radius + 13, 0); ctx.lineTo(radius + 7, -3.5); ctx.lineTo(radius + 7, 3.5); ctx.fill(); ctx.restore();
-    } else if (ally) {
+    } else if (!view.menu && ally) {
       ctx.strokeStyle = actor.downed ? '#e2a16c' : 'rgba(135,202,180,.65)'; ctx.lineWidth = 1.4 / this.camera.zoom;
       ctx.beginPath(); ctx.arc(0, 0, radius + 4, 0, TAU); ctx.stroke();
-    } else if (civilian || survivor) {
+    } else if (!view.menu && (civilian || survivor)) {
       ctx.strokeStyle = 'rgba(206,204,231,.45)'; ctx.lineWidth = 1 / this.camera.zoom;
       ctx.beginPath(); ctx.moveTo(0, -radius - 5); ctx.lineTo(radius + 5, 0); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 5, 0); ctx.closePath(); ctx.stroke();
     }
@@ -361,15 +391,17 @@ export class Renderer {
       circle(ctx, 12, 0, 5, ally ? '#9b9f7b' : '#b29c76');
       line(ctx, -13, -3, -20, -6, gear, 4); line(ctx, -13, 3, -19, 8, gear, 4);
     } else {
-      ctx.fillStyle = 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
+      ctx.fillStyle = view.touch ? 'rgba(17,22,18,.56)' : 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
       const walk = actor.moving || actor.speed > 1 || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
       const stride = walk ? Math.sin(time * 16 + finite(actor.id?.length)) * 2.5 : 0;
       line(ctx, -5, -4, -10 + stride, -5, '#494b36', 4); line(ctx, -5, 4, -10 - stride, 5, '#494b36', 4);
       ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
+      if (view.touch) { ctx.strokeStyle = 'rgba(24,31,24,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       if (!civilian) { ctx.fillStyle = gear; ctx.fillRect(-6, -6, 7, 12); ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3); }
       if (!civilian && !survivor) {
         line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, 11, 3, uniform, 4);
         line(ctx, 4, 2, 24, 2, '#202d25', 3); ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
+        if (view.touch) line(ctx, 15, 1, 23, 1, '#8b9078', .7);
       } else {
         line(ctx, 0, -7, 8, -8, uniform, 3.5); line(ctx, 0, 7, 8, 8, uniform, 3.5);
       }
@@ -378,7 +410,7 @@ export class Renderer {
       if (actor.role === 'medic' || actor.kind === 'medic') { ctx.fillStyle = '#d6ddbd'; ctx.fillRect(-4, -8, 5, 4); line(ctx, -1.5, -7.5, -1.5, -4.5, '#66765b', 1); }
     }
     ctx.restore(); ctx.restore();
-    if (actor.downed) {
+    if (actor.downed && !view.menu) {
       const p = this.worldToScreen(actor.x, actor.y - 22);
       this.screenBadge(p.x, p.y, ally ? 'HELP' : 'WOUNDED', '#edb37b', .8 + pulse * .2);
     } else if (ally && this.camera.zoom > .65 && !view.menu) {
@@ -389,19 +421,32 @@ export class Renderer {
         this.ctx.fillStyle = 'rgba(17,25,21,.8)'; this.ctx.fillRect(p.x - 15, p.y, 30, 4);
         this.ctx.fillStyle = hp < .35 ? '#d98869' : '#8bbba2'; this.ctx.fillRect(p.x - 15, p.y, 30 * hp, 4); this.ctx.restore();
       }
-      if (!isPlayer) this.worldLabel(actor.x, actor.y + 25, (actor.name || '').split(' ').at(-1).toUpperCase(), '#c3d5be', 10);
+      if (!isPlayer) this.worldLabel(actor.x, actor.y + 25, (actor.name || '').split(' ').at(-1).toUpperCase(), '#c3d5be', view.touch ? 11 : 10);
     }
   }
 
   worldLabel(x, y, text, color = '#dedbc5', fontSize = 12) {
-    if (!text) return;
+    if (!text || this.menuView) return;
     const p = this.worldToScreen(x, y), ctx = this.ctx;
+    const bounds = this.touchView && !this.mapView ? this.safeRect : null;
+    if (bounds && (p.y < bounds.top + 7 || p.y > bounds.bottom - 7 || p.x < bounds.left || p.x > bounds.right)) return;
     ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (bounds) {
+      const maxWidth = Math.min(270, bounds.width - 20);
+      if (ctx.measureText(text).width > maxWidth) {
+        while (text.length > 3 && ctx.measureText(`${text}…`).width > maxWidth) text = text.slice(0, -1);
+        text += '…';
+      }
+      const half = ctx.measureText(text).width / 2 + 5;
+      p.x = clamp(p.x, bounds.left + half, bounds.right - half);
+    }
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(23,31,25,.8)'; ctx.strokeText(text, p.x, p.y); ctx.fillStyle = color; ctx.fillText(text, p.x, p.y); ctx.restore();
   }
 
   screenBadge(x, y, text, color, alpha = 1) {
+    if (this.menuView) return;
+    if (this.touchView && !this.mapView && (y < this.safeRect.top + 8 || y > this.safeRect.bottom - 8)) return;
     const ctx = this.ctx; ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.globalAlpha = alpha;
     ctx.font = '700 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const w = ctx.measureText(text).width + 12;
@@ -428,19 +473,17 @@ export class Renderer {
     this.objectiveIndicator = null;
     const o = state.objective;
     if (!o || view.menu || view.showMap || !Number.isFinite(o.x) || !Number.isFinite(o.y)) return;
-    const p = this.worldToScreen(o.x, o.y), margin = 44, topMargin = this.width < 600 ? 130 : 100;
-    if (p.x > margin && p.x < this.width - margin && p.y > topMargin && p.y < this.height - 120) return;
-    const center = { x: this.width / 2, y: this.height / 2 }, dx = p.x - center.x, dy = p.y - center.y;
-    const tx = (dx < 0 ? center.x - margin : this.width - margin - center.x) / Math.max(.001, Math.abs(dx));
-    const ty = (dy < 0 ? center.y - topMargin : this.height - 125 - center.y) / Math.max(.001, Math.abs(dy));
-    const scale = Math.max(0, Math.min(tx, ty)), x = clamp(center.x + dx * scale, margin, this.width - margin), y = clamp(center.y + dy * scale, topMargin, this.height - 125);
+    const p = this.worldToScreen(o.x, o.y), bounds = this.markerBounds(view);
+    if (p.x > bounds.left && p.x < bounds.right && p.y > bounds.top && p.y < bounds.bottom) return;
+    const { x, y } = this.edgePoint(p, bounds);
     this.objectiveIndicator = { x, y };
-    const ctx = this.ctx, angle = Math.atan2(dy, dx), player = (state.squad || []).find(s => s.id === state.playerId);
+    const ctx = this.ctx, angle = Math.atan2(p.y - y, p.x - x), player = (state.squad || []).find(s => s.id === state.playerId);
     ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
     ctx.fillStyle = 'rgba(24,31,24,.86)'; circle(ctx, 0, 0, 17, 'rgba(24,31,24,.86)', 'rgba(237,193,124,.5)', 1);
     ctx.strokeStyle = COLORS.objective; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(4, 0); ctx.lineTo(-4, 6); ctx.stroke(); ctx.restore();
-    ctx.font = '600 10px ui-monospace, monospace'; ctx.fillStyle = '#f0cd92'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText(player ? `${Math.round(distance(player, o) / 8)} m` : 'OBJECTIVE', x, y + 23);
+    ctx.font = `600 ${view.touch ? 11 : 10}px ui-monospace, monospace`; ctx.fillStyle = '#f0cd92'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const label = player ? `${Math.round(distance(player, o) / 8)} m` : 'OBJECTIVE';
+    ctx.strokeStyle = 'rgba(15,28,23,.95)'; ctx.lineWidth = 3; ctx.strokeText(label, x, y + 22); ctx.fillText(label, x, y + 22);
   }
 
   drawLeaderIndicator(state, view) {
@@ -450,24 +493,21 @@ export class Renderer {
       || (state.squad || []).find(a => a.alive !== false && !a.downed && a.id !== state.playerId);
     if (!player || !leader) return;
     const p = this.worldToScreen(leader.x, leader.y);
-    const portrait = this.width < 700 && this.height > this.width;
-    const compact = this.height < 400;
-    const margin = 42;
-    const top = portrait ? Math.min(264, this.height * .38) : compact ? Math.min(125, this.height * .42) : 205;
-    const bottom = Math.max(top + 35, this.height - (compact ? 65 : 130));
-    if (p.x > margin && p.x < this.width - margin && p.y > top && p.y < bottom) return;
-    const center = { x: this.width / 2, y: (top + bottom) / 2 };
-    const dx = p.x - center.x, dy = p.y - center.y;
-    const tx = (dx < 0 ? center.x - margin : this.width - margin - center.x) / Math.max(.001, Math.abs(dx));
-    const ty = (dy < 0 ? center.y - top : bottom - center.y) / Math.max(.001, Math.abs(dy));
-    const scale = Math.max(0, Math.min(tx, ty));
-    let x = clamp(center.x + dx * scale, margin, this.width - margin), y = clamp(center.y + dy * scale, top, bottom);
+    let bounds = this.markerBounds(view);
+    if (!view.touch) {
+      const portrait = this.width < 700 && this.height > this.width, compact = this.height < 400;
+      const top = portrait ? Math.min(264, this.height * .38) : compact ? Math.min(125, this.height * .42) : 205;
+      const bottom = Math.max(top + 35, this.height - (compact ? 65 : 130));
+      bounds = { left: 42, right: this.width - 42, top, bottom, cx: this.width / 2, cy: (top + bottom) / 2 };
+    }
+    if (p.x > bounds.left && p.x < bounds.right && p.y > bounds.top && p.y < bounds.bottom) return;
+    let { x, y } = this.edgePoint(p, bounds);
     // Keep the squad marker distinct when the leader and mission destination share a bearing.
     const other = this.objectiveIndicator;
     if (other && Math.hypot(x - other.x, y - other.y) < 62) {
-      if (y > top + 57) y -= 57;
-      else if (y < bottom - 57) y += 57;
-      else x = clamp(x + (x < this.width / 2 ? 62 : -62), margin, this.width - margin);
+      if (y > bounds.top + 57) y -= 57;
+      else if (y < bounds.bottom - 57) y += 57;
+      else x = clamp(x + (x < this.width / 2 ? 72 : -72), bounds.left, bounds.right);
     }
     const ctx = this.ctx, angle = Math.atan2(p.y - y, p.x - x);
     ctx.save(); ctx.translate(x, y);
@@ -475,9 +515,35 @@ export class Renderer {
     ctx.rotate(angle); ctx.strokeStyle = '#a5e1c8'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(4, 0); ctx.lineTo(-4, 6); ctx.stroke(); ctx.restore();
     const label = `${(leader.name || 'LEADER').split(' ').at(-1).toUpperCase()} · ${Math.round(distance(player, leader) / 8)} m`;
-    ctx.save(); ctx.font = '600 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.strokeStyle = 'rgba(15,28,23,.95)'; ctx.lineWidth = 3; ctx.strokeText(label, x, y + 22);
-    ctx.fillStyle = '#b3e1cb'; ctx.fillText(label, x, y + 22); ctx.restore();
+    ctx.save(); ctx.font = `600 ${view.touch ? 11 : 10}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const halfLabel = ctx.measureText(label).width / 2 + 8;
+    const labelX = clamp(x, halfLabel, this.width - halfLabel);
+    ctx.strokeStyle = 'rgba(15,28,23,.95)'; ctx.lineWidth = 3; ctx.strokeText(label, labelX, y + 22);
+    ctx.fillStyle = '#b3e1cb'; ctx.fillText(label, labelX, y + 22); ctx.restore();
+  }
+
+  drawTouchAim(state, view) {
+    if (!view.touch || !view.aim || view.menu || view.showMap) return;
+    const player = (state.squad || []).find(a => a.id === state.playerId);
+    if (!player || player.downed || player.alive === false || !Number.isFinite(view.aim.x) || !Number.isFinite(view.aim.y)) return;
+    const start = this.worldToScreen(player.x, player.y), target = this.worldToScreen(view.aim.x, view.aim.y);
+    const dx = target.x - start.x, dy = target.y - start.y, distance = Math.hypot(dx, dy);
+    if (distance < 30) return;
+    const ux = dx / distance, uy = dy / distance, r = this.safeRect;
+    const tx = (ux < 0 ? start.x - r.left - 10 : r.right - start.x - 10) / Math.max(.001, Math.abs(ux));
+    const ty = (uy < 0 ? start.y - r.top - 10 : r.bottom - start.y - 10) / Math.max(.001, Math.abs(uy));
+    const length = Math.min(distance, this.width < 600 ? 112 : 140, tx, ty);
+    if (length < 35) return;
+    const x = start.x + ux * length, y = start.y + uy * length, ctx = this.ctx;
+    const color = view.aim.firing ? '#e9c48a' : '#c5e5d4';
+    ctx.save();
+    const fade = ctx.createLinearGradient(start.x + ux * 25, start.y + uy * 25, x, y);
+    fade.addColorStop(0, view.aim.firing ? 'rgba(233,196,138,.16)' : 'rgba(197,229,212,.14)');
+    fade.addColorStop(1, view.aim.firing ? 'rgba(233,196,138,.64)' : 'rgba(197,229,212,.5)');
+    ctx.setLineDash([3, 5]); line(ctx, start.x + ux * 25, start.y + uy * 25, x, y, fade, 1.2); ctx.setLineDash([]);
+    circle(ctx, x, y, 5.5, 'rgba(18,26,21,.15)', color, 1.2);
+    circle(ctx, x, y, view.aim.firing ? 1.5 : .9, color);
+    ctx.restore();
   }
 
   drawOrder(state, time, view) {
@@ -576,17 +642,27 @@ export class Renderer {
     const delta = Math.min(.06, Math.max(.001, (now - this.lastRender) / 1000 || 1 / 60)); this.lastRender = now;
     if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) { this.makeMap(world, state.missionIndex); this.cameraReady = false; }
     const player = (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
-    let zoom = (this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .65, 1.65);
+    this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu;
+    this.safeRect = this.playableRect(view);
+    const safe = this.safeRect;
+    let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .65, 1.65);
     let tx = player.x, ty = player.y;
-    // Keep the aiming space below the taller phone HUD. The canvas itself excludes touch controls.
+    // Keep the soldier in the usable battlefield between the HUD and thumb controls.
     if (!view.menu && !view.showMap) {
-      const portrait = this.width < 700 && this.height > this.width;
-      const compactLandscape = this.height < 400;
-      const focusOffset = portrait ? Math.min(42, this.height * .065) : compactLandscape ? Math.min(24, this.height * .08) : 0;
-      ty -= focusOffset / zoom;
+      if (view.touch) {
+        tx -= (safe.cx - this.width / 2) / zoom;
+        ty -= (safe.cy - this.height / 2) / zoom;
+      } else {
+        const portrait = this.width < 700 && this.height > this.width;
+        const compactLandscape = this.height < 400;
+        const focusOffset = portrait ? Math.min(42, this.height * .065) : compactLandscape ? Math.min(24, this.height * .08) : 0;
+        ty -= focusOffset / zoom;
+      }
     }
     if (view.showMap) {
-      zoom = Math.min((this.width - 36) / world.width, (this.height - 72) / world.height); tx = world.width / 2; ty = world.height / 2;
+      zoom = Math.min((safe.width - 36) / world.width, (safe.height - (view.touch ? 30 : 72)) / world.height);
+      tx = world.width / 2 - (safe.cx - this.width / 2) / zoom;
+      ty = world.height / 2 - (safe.cy - this.height / 2) / zoom;
     } else if (view.menu) {
       zoom = Math.max(this.width / world.width, this.height / world.height) * 1.3;
       tx = world.width * .55 + (view.reducedMotion ? 0 : Math.sin(time * .025) * 140);
@@ -598,17 +674,27 @@ export class Renderer {
       const edgeAllowance = view.menu ? 0 : 40 / zoom;
       tx = world.width <= halfW * 2 ? world.width / 2 : clamp(tx, halfW - edgeAllowance, world.width - halfW + edgeAllowance);
       ty = world.height <= halfH * 2 ? world.height / 2 : clamp(ty, halfH - edgeAllowance, world.height - halfH + edgeAllowance);
+      if (view.touch && !view.menu) {
+        // At the map edge, allow only the extra framing needed to keep the soldier clear of controls.
+        const margin = Math.min(36, safe.height * .3);
+        tx = clamp(tx, player.x - (safe.right - margin - this.width / 2) / zoom, player.x - (safe.left + margin - this.width / 2) / zoom);
+        ty = clamp(ty, player.y - (safe.bottom - margin - this.height / 2) / zoom, player.y - (safe.top + margin - this.height / 2) / zoom);
+      }
     }
-    const snap = !this.cameraReady || this.lastPlayerId !== state.playerId || view.showMap || this.lastMapView !== !!view.showMap || this.lastMenuView !== !!view.menu;
+    const layoutKey = `${this.width}:${this.height}:${safe.left}:${safe.top}:${safe.right}:${safe.bottom}:${!!view.touch}`;
+    const snap = !this.cameraReady || this.lastPlayerId !== state.playerId || view.showMap || this.lastMapView !== !!view.showMap || this.lastMenuView !== !!view.menu || this.lastLayoutKey !== layoutKey;
     const smoothing = snap || view.reducedMotion ? 1 : 1 - Math.exp(-delta * 12);
     this.camera.x += (tx - this.camera.x) * smoothing; this.camera.y += (ty - this.camera.y) * smoothing; this.camera.zoom += (zoom - this.camera.zoom) * smoothing;
     this.cameraReady = true; this.lastPlayerId = state.playerId; this.lastMapView = !!view.showMap; this.lastMenuView = !!view.menu;
+    this.lastLayoutKey = layoutKey;
     const ctx = this.ctx;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = view.showMap ? '#101b17' : '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
     ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
     // A muted strip of ground fills the limited camera overscan; the dark perimeter still marks the map edge.
-    ctx.fillStyle = '#6d6550'; ctx.fillRect(-80, -80, world.width + 160, world.height + 160);
+    const overscan = view.touch ? Math.max(this.width, this.height) / zoom : 80;
+    if (!view.showMap) { ctx.fillStyle = '#6d6550'; ctx.fillRect(-overscan, -overscan, world.width + overscan * 2, world.height + overscan * 2); }
     ctx.drawImage(this.mapCache, 0, 0);
+    if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
     this.drawObjective(state, time, view); this.drawOrder(state, time, view);
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
@@ -627,7 +713,9 @@ export class Renderer {
         ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
       }
     }
-    ctx.restore(); this.drawAtmosphere(state, time, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
+    ctx.restore();
+    if (!view.showMap) this.drawAtmosphere(state, time, view);
+    this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
     if (view.pointer && !view.menu && !view.showMap) {
       const x = view.pointer.x, y = view.pointer.y;
       if (Number.isFinite(x) && Number.isFinite(y)) {
@@ -637,8 +725,9 @@ export class Renderer {
       }
     }
     if (view.showMap) {
-      ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', this.width / 2, 22);
-      ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace'; ctx.fillText(state.role === 'leader' ? 'Select MOVE, then a position • M to close' : 'Stay with the marked squad • M to close', this.width / 2, this.height - 22);
+      ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
+      ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
+      ctx.fillText(view.touch ? (view.placingOrder ? 'Tap a street to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a position • M to close' : 'Stay with the marked squad • M to close', safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
     }
   }
 

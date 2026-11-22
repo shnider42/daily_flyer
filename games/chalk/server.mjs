@@ -9,7 +9,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { Allow: 'GET, HEAD' }); res.end(); return; }
   try {
     const url = new URL(req.url, 'http://localhost');
-    if (url.pathname === '/health') { res.writeHead(200, { 'Content-Type': mime['.json'] }); res.end(JSON.stringify({ game: 'CHALK', version: '1.1.0', ready: true })); return; }
+    if (url.pathname === '/health') { res.writeHead(200, { 'Content-Type': mime['.json'] }); res.end(JSON.stringify({ game: 'CHALK', version: '1.2.0', ready: true })); return; }
     const requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const target = path.resolve(root, `.${requested}`);
     if (!target.startsWith(root) || requested.includes('\0')) { res.writeHead(403); res.end(); return; }
