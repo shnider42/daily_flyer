@@ -43,6 +43,7 @@ let onlineRole = null;
 let onlineConnection = 'idle';
 let coopDialogMode = 'create';
 let coopBusy = false;
+let coopCommandEpoch = null;
 let lastRoomRoster = '';
 const neutralInput = () => ({ moveX:0,moveY:0,aimX:null,aimY:null,fire:false,interact:false,reload:false,smoke:false,sprint:false });
 const online = () => !!coop?.active || !!game?.coop;
@@ -132,6 +133,7 @@ function startMission(index = selectedMission) {
 }
 function returnToMenu() {
   if (online()) coop.leave();
+  coopCommandEpoch = null;
   onlineEpoch = null; onlineRole = null; $('coopOverlay').hidden = true; $('coopBadge').hidden = true;
   mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.stop();
   document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'online');
@@ -448,7 +450,7 @@ function finishMission() {
   $('resultStats').innerHTML = stats.map(([value,label]) => `<div class="result-stat"><strong>${escape(value)}</strong><span>${escape(label)}</span></div>`).join('');
   $('nextMission').hidden = !won;
   $('nextMission').textContent = selectedMission + 1 < MISSIONS.length ? 'NEXT MISSION BRIEFING' : 'RETURN TO FIELD ORDERS';
-  $('replay').disabled = false; $('coopResultWait').hidden = true; $('resultMenu').textContent = 'Back to field orders';
+  $('replay').disabled = false; $('nextMission').disabled = false; $('coopResultWait').hidden = true; $('resultMenu').textContent = 'Back to field orders';
   if (online()) {
     $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = 'SQUAD BRIEFING';
     $('replay').disabled = !coop.isHost; $('replay').textContent = 'Replay with squad';
@@ -463,12 +465,12 @@ function updatePauseUI() {
   $('pauseTitle').textContent = shared ? 'Field menu.' : 'Paused.';
   $('pauseDescription').textContent = shared ? (coop.connected ? 'The online mission continues while this menu is open.' : onlineConnection === 'error' ? 'The connection ended. Leave this squad to create or join another.' : 'Reconnecting to your squad. Your soldier is covered by AI while disconnected.') : 'The squad is waiting.';
   $('switchRole').textContent = shared ? 'Swap player roles' : game?.role === 'leader' ? 'Switch to squad member' : 'Take command of the squad';
-  $('switchRole').disabled = shared && (!coop.isHost || !coop.connected);
+  $('switchRole').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
   $('restart').textContent = shared ? 'Restart for squad' : 'Restart mission';
-  $('restart').disabled = shared && (!coop.isHost || !coop.connected);
+  $('restart').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
   $('returnMenu').textContent = shared ? 'Leave squad' : 'Field orders';
   $('coopLobbyButton').hidden = !shared || !coop.isHost;
-  $('coopLobbyButton').disabled = shared && !coop.connected;
+  $('coopLobbyButton').disabled = shared && (!coop.connected || coopCommandEpoch !== null);
   $('coopPauseInfo').hidden = !shared;
   if (shared) {
     const room = coop.room;
@@ -488,10 +490,23 @@ function coopError(error) {
   if (game?.coop && !coop?.active) pause(true);
 }
 async function runCoopAction(action) {
-  try { await action(); } catch { /* The client's onError keeps the failure visible. */ }
+  if (coopCommandEpoch !== null) return;
+  const epoch = coop.room?.epoch ?? -1;
+  coopCommandEpoch = epoch; coopMessage('');
+  if (coop.room) renderCoopRoom(coop.room);
+  try { await action(); }
+  catch { coopCommandEpoch = null; /* The client's onError keeps the failure visible. */ }
+  finally {
+    // A command acknowledgement can arrive before its new state. Keep host
+    // controls locked until that state carries the current epoch.
+    if (coop.room?.epoch !== epoch) coopCommandEpoch = null;
+    if (coop.room) renderCoopRoom(coop.room);
+    if (paused) updatePauseUI();
+  }
 }
 function updateCoopStatus(status) {
   onlineConnection = status.state;
+  if (status.state !== 'connected') coopCommandEpoch = null;
   $('coopBadge').classList.toggle('reconnecting', status.state !== 'connected');
   if (status.state === 'connecting') coopMessage('Connecting to the squad service… The first connection can take a moment.');
   if (status.state === 'reconnecting') { clearInput(); coopMessage('Connection interrupted. Rejoining your squad…'); }
@@ -523,6 +538,7 @@ function openCoop(kind, code = '') {
 }
 function renderCoopRoom(room) {
   if (!room) return;
+  if (coopCommandEpoch !== null && room.epoch !== coopCommandEpoch) coopCommandEpoch = null;
   const connected = room.players.filter(p => p.connected);
   $('coopBadge').hidden = false;
   $('coopBadge').textContent = onlineConnection === 'connected' ? `${connected.length}/2 CO-OP` : onlineConnection === 'error' ? 'OFFLINE' : 'REJOINING';
@@ -538,7 +554,7 @@ function renderCoopRoom(room) {
     if (game?.coop) updateOrders();
   }
   $('coopMission').value = room.mission; $('coopDifficulty').value = room.difficulty;
-  const canManage = coop.connected && coop.isHost;
+  const canManage = coop.connected && coop.isHost && coopCommandEpoch === null;
   $('coopMission').disabled = !canManage; $('coopDifficulty').disabled = !canManage;
   $('coopSwapLobby').disabled = !canManage; $('coopStart').disabled = !canManage;
   $('coopLobbyHint').textContent = coop.isHost ? `You host the room. ${connected.length === 1 ? 'Your friend can join now or during the mission. AI holds the other positions.' : 'Both players are connected. You can swap who leads before deploying.'}` : 'The host chooses the mission and deploys the squad. You can move and fight independently once deployed.';
@@ -553,7 +569,7 @@ function renderCoopRoom(room) {
     fit(); if (entering) $('coopStart').disabled ? $('coopCopyLink').focus() : $('coopStart').focus();
   }
   if (paused) updatePauseUI();
-  if (mode === 'result') { $('replay').disabled = !canManage; $('nextMission').hidden = !coop.isHost; $('coopResultWait').hidden = coop.isHost; }
+  if (mode === 'result') { $('replay').disabled = !canManage; $('nextMission').disabled = !canManage; $('nextMission').hidden = !coop.isHost; $('coopResultWait').hidden = coop.isHost; }
 }
 function receiveCoopState(state) {
   const room = coop?.room; if (!room || room.status === 'lobby' || !state) return;
@@ -609,14 +625,20 @@ function initializeCoop() {
   $('coopStart').addEventListener('click',()=>{ audio.unlock(); audio.setEnabled(preferences.sound); runCoopAction(()=>coop.start()); });
   $('coopSwapLobby').addEventListener('click',()=>runCoopAction(()=>coop.swapRoles()));
   $('coopLobbyButton').addEventListener('click',()=>runCoopAction(()=>coop.returnToLobby()));
-  $('coopMission').addEventListener('change',()=>runCoopAction(()=>coop.configure({mission:Number($('coopMission').value)})));
-  $('coopDifficulty').addEventListener('change',()=>runCoopAction(()=>coop.configure({difficulty:$('coopDifficulty').value})));
+  $('coopMission').addEventListener('change',event=>{ const mission=Number(event.target.value); runCoopAction(()=>coop.configure({mission})); });
+  $('coopDifficulty').addEventListener('change',event=>{ const difficulty=event.target.value; runCoopAction(()=>coop.configure({difficulty})); });
   const invite = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
   const hasInvite = /^[A-Z0-9]{6}$/.test(invite);
   if (url && coop.session && (!hasInvite || coop.session.code === invite)) {
     $('coopOverlay').hidden=false; $('coopConnectForm').hidden=true; $('coopLobby').hidden=true;
     $('coopTitle').textContent='Rejoining your squad.'; $('coopDescription').textContent='Recovering your room and player position.';
-    coop.resume().catch(()=>{ $('coopConnectForm').hidden=false; $('coopConnect').textContent='CREATE SQUAD'; $('coopName').value=preferences.callsign||'Player'; });
+    coop.resume().catch(()=>{
+      if ($('coopOverlay').hidden) return;
+      coopDialogMode='create'; $('coopConnectForm').hidden=false; $('coopConnect').textContent='CREATE SQUAD'; $('coopName').value=preferences.callsign||'Player';
+      $('coopTitle').textContent='Start a fresh squad.'; $('coopDescription').textContent='The previous room could not be recovered. You can create another squad here.';
+      $('coopCodeLabel').hidden=true; $('coopCode').required=false;
+      $('coopConnectBrief').textContent=`${MISSIONS[selectedMission].title} · ${preferences.difficulty}`;
+    });
   } else if (hasInvite) openCoop('join',invite);
 }
 
