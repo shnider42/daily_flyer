@@ -1,4 +1,4 @@
-// CHALK — deterministic, browser-independent single-player simulation.
+// CHALK — deterministic, browser-independent solo and authoritative co-op simulation.
 // Fictional squad and compressed mission geography inspired by October 1993.
 export const MISSIONS = [
   { id:'cordon', title:'Cordon', subtitle:'A short operation', time:'3 OCT 1993 · AFTERNOON', description:'Take up the cordon, hold the collection point, and get your squad to the convoy.', briefing:['A brief operation is becoming a long afternoon. Your four-person chalk has landed several blocks from the objective.','Move together. Secure the collection point, then meet the waiting convoy. Civilians are still in the streets.'], goals:['Reach the first rally point','Hold the collection point','Regroup at the convoy'] },
@@ -174,14 +174,40 @@ function seedEnemies(s){
 function spawnEnemy(s,p){const hp=DIFFICULTIES[s.difficulty].enemyHp;s.enemies.push(actor(s,'enemy','Armed fighter',random(s)<.2?'gunner':'rifleman',p.x,p.y,{hp,maxHp:hp,home:{...p},ammo:30,reserve:300,alert:false,accuracy:range(s,.09,.16)}));}
 function aliveSquad(s){return s.squad.filter(a=>a.alive&&!a.downed);}
 function player(s){return s.squad.find(a=>a.id===s.playerId);}
-function currentLeader(s){return s.squad.find(a=>a.role==='leader'&&a.alive&&!a.downed)||s.squad.find(a=>a.alive&&!a.downed&&a.id!==s.playerId)||player(s);}
+function controlled(s,a){return !!a&&(s.coop?(s.humanIds||[]).includes(a.id):a.id===s.playerId);}
+function humans(s){return s.squad.filter(a=>controlled(s,a));}
+function inputFor(s,a,inputs){
+  if(!controlled(s,a))return{};
+  const input=s.coop?(inputs instanceof Map?inputs.get(a.id):inputs?.[a.id]):inputs;
+  return input&&typeof input==='object'?input:{};
+}
+function currentLeader(s){return s.squad.find(a=>a.role==='leader'&&a.alive&&!a.downed)||(s.coop?humans(s).find(a=>a.alive&&!a.downed):null)||s.squad.find(a=>a.alive&&!a.downed&&a.id!==s.playerId)||player(s);}
+function syncCoopControl(s){
+  const owned=humans(s);
+  const canonical=owned.find(a=>a.role==='leader'&&a.alive)||owned.find(a=>a.alive)||owned[0]||s.squad.find(a=>a.role==='leader')||s.squad[0];
+  s.playerId=canonical.id;
+  s.role=controlled(s,currentLeader(s))?'leader':'member';
+}
+/** Set server-owned human slots; any vacant soldier immediately returns to AI. */
+export function setHumanPlayers(s,actorIds=[]){
+  const previous=new Set(s.coop?s.humanIds:[]),previousRole=s.role;
+  const allowed=new Set(s.squad.filter(a=>a.role==='leader'||a.role==='rifleman').map(a=>a.id));
+  s.coop=true;s.humanIds=[...new Set(Array.isArray(actorIds)?actorIds:[])].filter(id=>allowed.has(id)).slice(0,2);
+  for(const a of s.squad){
+    a.human=s.humanIds.includes(a.id);
+    if(a.human!==previous.has(a.id)){a.path=[];a.pathTimer=0;a.moving=false;a.bandageProgress=0;}
+  }
+  syncCoopControl(s);
+  if(previousRole!==s.role){s.waitUntil=0;s.order={type:'follow',x:player(s).x,y:player(s).y,label:'Regroup on the leader'};}
+  return [...s.humanIds];
+}
 function describeLeader(s,text){if(s.leaderOrder===text)return;s.leaderOrder=text;}
 function phase(s){return s.stages[s.stageIndex];}
 function checkpointSupplies(s){if(s.difficulty==='story')for(const a of s.squad)if(a.alive&&!a.downed)a.hp=Math.min(a.maxHp,a.hp+12);}
 function advance(s){
   s.stats.objectives++;s.stageIndex++;s.phaseTime=0;s.progress=0;checkpointSupplies(s);
   if(s.stageIndex>=s.stages.length){s.status='won';s.stats.rescued=s.survivors.filter(a=>a.alive&&a.stabilized).length;s.endReason='Chalk accounted for. Mission complete.';radio(s,'RADIO','You are inside the collection point. Stand down.');return;}
-  const p=phase(s);radio(s,'HALE',`${p.title}. ${p.description}`);s.order={type:'follow',x:player(s).x,y:player(s).y,label:'Regroup on you'};updateObjective(s);
+  const p=phase(s);radio(s,'HALE',`${p.title}. ${p.description}`);s.order={type:'follow',x:player(s).x,y:player(s).y,label:s.coop?'Regroup on the leader':'Regroup on you'};if(s.coop&&s.role==='leader')describeLeader(s,s.order.label);updateObjective(s);
 }
 export function getObjective(s){return s.objective;}
 function updateObjective(s){
@@ -216,7 +242,32 @@ export function issueOrder(s,type,point){
   s.order={type,x:dest.x,y:dest.y,label:labels[type]};for(const a of s.squad){a.path=[];a.pathTimer=0;}
   if(s.time-s.lastCommand>.7){radio(s,'HALE',labels[type]+'.');s.lastCommand=s.time;}return true;
 }
+/** A peer may command only its assigned actor; room ownership does not grant command. */
+export function issueCoopOrder(s,actorId,type,point){
+  const actor=s.squad.find(a=>a.id===actorId);
+  if(!s.coop||s.status!=='playing'||!controlled(s,actor)||!actor.alive)return false;
+  if(actor.role!=='leader'){
+    if(type==='wait'){s.waitUntil=s.time+12;radio(s,actor.name.toUpperCase(),'Hold up. Give me a moment.');describeLeader(s,s.role==='member'?'Holding for the squad · 12 seconds':`${actor.name} requests a hold`);return true;}
+    if(type==='ready'){s.waitUntil=0;radio(s,actor.name.toUpperCase(),'Ready. Moving with you.');if(s.role==='leader')describeLeader(s,s.order.label);return true;}
+    if(type==='help'){s.helpRequested=true;s.helpTargetId=actor.id;s.aidTimer=0;radio(s,actor.name.toUpperCase(),'Medic, I need help.');return true;}
+    return false;
+  }
+  if(!['follow','move','hold','assist'].includes(type))return false;
+  let dest=point&&Number.isFinite(point.x)&&Number.isFinite(point.y)?nearbyFree(s,point.x,point.y):{x:actor.x,y:actor.y};
+  if(type==='assist'){
+    const wounded=[...s.squad,...s.survivors.filter(a=>a.stabilized)].find(a=>a.alive&&a.downed);
+    if(wounded)dest={x:wounded.x,y:wounded.y};
+    else if(actor.hp<actor.maxHp){s.helpRequested=true;s.helpTargetId=actor.id;s.aidTimer=0;}
+  }
+  const labels={follow:'Regroup on the leader',move:'Move to the marker',hold:'Hold this position',assist:'Help the wounded'};
+  s.order={type,x:dest.x,y:dest.y,label:labels[type]};
+  describeLeader(s,labels[type]);
+  for(const a of s.squad)if(!controlled(s,a)){a.path=[];a.pathTimer=0;}
+  if(s.time-s.lastCommand>.7){radio(s,actor.name.toUpperCase(),labels[type]+'.');s.lastCommand=s.time;}
+  return true;
+}
 export function setRole(s,role){
+  if(s.coop)return false;
   if(role!=='leader'&&role!=='member')return;s.role=role;
   const desired=s.squad.find(a=>a.role===(role==='leader'?'leader':'rifleman')&&a.alive)||s.squad.find(a=>a.alive);
   if(desired)s.playerId=desired.id;s.waitUntil=0;s.order={type:'follow',x:desired?.x||200,y:desired?.y||1720,label:'Regroup on you'};
@@ -251,7 +302,7 @@ function safeShot(s,a,t){
 function damage(s,a,amount,source){
   if(!a.alive||a.downed)return;a.hp=Math.max(0,a.hp-amount);a.suppression=clamp((a.suppression||0)+.3,0,1);effect(s,'hit',a.x,a.y,.23);
   if(a.team==='civilian'&&!a.harmed){a.harmed=true;s.stats.civilianHarm++;radio(s,'RADIO','Civilian hurt. Check your fire.');}
-  if(source===s.playerId&&a.team==='enemy')s.stats.hits++;
+  if((s.coop?s.humanIds.includes(source):source===s.playerId)&&a.team==='enemy')s.stats.hits++;
   if(a.hp<=0){
     a.downed=true;a.bleed=0;a.reviveProgress=0;a.path=[];
     if(a.team==='squad'){s.stats.squadDowns++;radio(s,a.name.toUpperCase(),`${a.name} down. Need help here.`);}
@@ -295,26 +346,28 @@ function revive(s,target,helper,dt){
   target.reviveProgress+=dt;if(target.reviveProgress>=4){target.downed=false;target.hp=Math.round(target.maxHp*.65);target.bleed=0;target.reviveProgress=0;target.suppression=0;radio(s,helper.name.toUpperCase(),`${target.name} is back up. Stay close.`);effect(s,'heal',target.x,target.y,1);}
 }
 function aiTarget(s){
-  const p=phase(s),pl=player(s),leader=currentLeader(s);
+  const p=phase(s),leader=currentLeader(s);
   if(!p)return{x:leader.x,y:leader.y};
   const down=[...s.squad,...s.survivors.filter(a=>a.stabilized)].find(a=>a.alive&&a.downed);
   if(down){describeLeader(s,`Helping ${down.name} · hold the squad together`);return{x:down.x,y:down.y};}
   if(s.waitUntil>s.time){describeLeader(s,`Holding for you · ${Math.ceil(s.waitUntil-s.time)} seconds`);return{x:leader.x,y:leader.y};}
-  if(distance(leader,pl)>290&&!pl.downed){describeLeader(s,'Waiting for you · regroup on Hale');return{x:leader.x,y:leader.y};}
+  if(humans(s).some(a=>a.alive&&!a.downed&&distance(leader,a)>290)){describeLeader(s,'Waiting for you · regroup on Hale');return{x:leader.x,y:leader.y};}
   if(s.objective.kind==='barricade'){describeLeader(s,'Clearing the route · cover the convoy');return{x:s.objective.x,y:s.objective.y};}
   if(p.kind==='convoy'){const v=s.vehicles[0];describeLeader(s,v.waiting?'Regroup on the lead vehicle':'Accompanying the relief convoy');return{x:v.x,y:v.y};}
   if(p.kind==='rescue'){describeLeader(s,'Protect the medic · crew recovery in progress');return{x:s.objective.x,y:s.objective.y};}
   if(p.kind==='hold'&&distance(leader,p)<p.radius){describeLeader(s,'Hold this area · watch your squad');return{x:p.x,y:p.y};}
   describeLeader(s,`Moving · ${p.title}`);return{x:p.x,y:p.y};
 }
-function updateSquad(s,input,dt){
-  const pl=player(s),leader=currentLeader(s),dest=s.role==='member'?aiTarget(s):null;
-  const casualties=[...s.squad,...s.survivors.filter(a=>a.stabilized)].filter(a=>a.alive&&a.downed),helper=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&a.id!==s.playerId)||s.squad.find(a=>a.alive&&!a.downed&&a.id!==s.playerId);
+function updateSquad(s,inputs,dt){
+  const pl=player(s),leader=currentLeader(s),dest=s.role==='member'?aiTarget(s):null,anchorPlayer=s.coop?leader:pl;
+  const casualties=[...s.squad,...s.survivors.filter(a=>a.stabilized)].filter(a=>a.alive&&a.downed),helper=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&!controlled(s,a))||s.squad.find(a=>a.alive&&!a.downed&&!controlled(s,a));
+  const aidTarget=s.squad.find(a=>a.id===s.helpTargetId&&a.alive&&!a.downed)||pl;
   for(const a of s.squad){
     if(!a.alive)continue;
-    if(a.downed){a.bleed+=dt;if(a.bleed>85){a.alive=false;radio(s,'RADIO',`${a.name} could not be recovered in time.`);if(a.id===s.playerId){s.status='lost';s.endReason='You could not be recovered. Retry the mission.';}}continue;}
+    if(a.downed){a.bleed+=dt;if(a.bleed>85){a.alive=false;radio(s,'RADIO',`${a.name} could not be recovered in time.`);if(!s.coop&&a.id===s.playerId){s.status='lost';s.endReason='You could not be recovered. Retry the mission.';}}continue;}
     a.target=null;
-    if(a.id===s.playerId){
+    if(controlled(s,a)){
+      const input=inputFor(s,a,inputs);
       let mx=finite(input.moveX),my=finite(input.moveY);const len=Math.hypot(mx,my);if(len>1){mx/=len;my/=len;}
       a.moving=len>.05;const speed=(input.sprint?166:112)*(1-a.suppression*.22);move(s,a,mx*speed*dt,my*speed*dt);
       if(Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX-a.x,input.aimY-a.y)>2)a.angle=Math.atan2(input.aimY-a.y,input.aimX-a.x);else if(len>.05&&!input.fire)a.angle=Math.atan2(my,mx);
@@ -327,13 +380,13 @@ function updateSquad(s,input,dt){
     }
     let work=false;
     if(a===helper&&casualties.length){const wounded=casualties.sort((b,c)=>distance(a,b)-distance(a,c))[0];navigate(s,a,wounded,128,dt,40);if(distance(a,wounded)<65){revive(s,wounded,a,dt);work=true;}a.medicTarget=wounded.id;}
-    else if(a.role==='medic'&&s.helpRequested&&pl.alive&&!pl.downed&&pl.hp<pl.maxHp&&a.medkits>0){navigate(s,a,pl,128,dt,55);if(distance(a,pl)<72){s.aidTimer+=dt;work=true;if(s.aidTimer>3){pl.hp=Math.min(pl.maxHp,pl.hp+55);a.medkits--;s.helpRequested=false;s.aidTimer=0;radio(s,'AMES','You are patched. Stay with us.');}}}
+    else if(a.role==='medic'&&s.helpRequested&&aidTarget.alive&&!aidTarget.downed&&aidTarget.hp<aidTarget.maxHp&&a.medkits>0){navigate(s,a,aidTarget,128,dt,55);if(distance(a,aidTarget)<72){s.aidTimer+=dt;work=true;if(s.aidTimer>3){aidTarget.hp=Math.min(aidTarget.maxHp,aidTarget.hp+55);a.medkits--;s.helpRequested=false;s.helpTargetId=null;s.aidTimer=0;radio(s,'AMES','You are patched. Stay with us.');}}}
     else if(a.role==='medic'&&phase(s)?.kind==='rescue'&&humanNear(s,s.survivors[phase(s).crew],220)){const crew=s.survivors[phase(s).crew];navigate(s,a,crew,122,dt,42);work=distance(a,crew)<70;}
     else{
       let target;
       if(s.role==='member'&&a===leader)target=dest;
       else if(s.role==='member'){const idx=s.squad.indexOf(a),off=[[-42,48],[42,48],[-42,-42],[42,-42]][idx];target=nearbyFree(s,leader.x+off[0],leader.y+off[1]);}
-      else if(s.order.type==='follow'){const idx=s.squad.indexOf(a),off=[[0,0],[-40,32],[40,32],[0,65]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(pl,p)<p.radius+15?p:pl;target=nearbyFree(s,anchor.x+off[0],anchor.y+off[1]);}
+      else if(s.order.type==='follow'){const idx=s.squad.indexOf(a),off=[[0,0],[-40,32],[40,32],[0,65]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(anchorPlayer,p)<p.radius+15?p:anchorPlayer;target=nearbyFree(s,anchor.x+off[0],anchor.y+off[1]);}
       else{const idx=s.squad.indexOf(a),off=[[-36,-35],[36,-35],[-36,35],[36,35]][idx];target=nearbyFree(s,s.order.x+off[0],s.order.y+off[1]);}
       navigate(s,a,target,116,dt,s.role==='member'&&a===leader?26:20);
     }
@@ -343,7 +396,7 @@ function updateSquad(s,input,dt){
   }
   // Gentle separation prevents identical stacked silhouettes without blocking paths.
   const units=s.squad.filter(a=>a.alive&&!a.downed);
-  for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++){const a=units[i],b=units[j],d=distance(a,b);if(d>0&&d<25){const n=(25-d)*.45,dx=(a.x-b.x)/d*n,dy=(a.y-b.y)/d*n;if(a.id!==s.playerId)move(s,a,dx,dy);if(b.id!==s.playerId)move(s,b,-dx,-dy);}}
+  for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++){const a=units[i],b=units[j],d=distance(a,b);if(d>0&&d<25){const n=(25-d)*.45,dx=(a.x-b.x)/d*n,dy=(a.y-b.y)/d*n;if(!controlled(s,a))move(s,a,dx,dy);if(!controlled(s,b))move(s,b,-dx,-dy);}}
 }
 function updateEnemies(s,dt){
   for(const a of s.enemies){
@@ -369,40 +422,45 @@ function updateCivilians(s,dt){
   const lead=currentLeader(s);
   for(let i=0;i<s.survivors.length;i++){const c=s.survivors[i];if(c.alive&&c.stabilized&&!c.downed){const target=nearbyFree(s,lead.x-30+i*60,lead.y+74);navigate(s,c,target,119,dt,35);}}
 }
-function humanNear(s,p,range=p.radius){const pl=player(s);return pl.alive&&!pl.downed&&distance(pl,p)<range;}
+function humanNear(s,p,range=p.radius){return humans(s).some(a=>a.alive&&!a.downed&&distance(a,p)<range);}
+function allHumansNear(s,p,range=p.radius){
+  const living=humans(s).filter(a=>a.alive);
+  return living.length>0&&living.every(a=>!a.downed&&distance(a,p)<range);
+}
+function humanWorking(s,p,inputs,range=p.radius){return humans(s).some(a=>a.alive&&!a.downed&&distance(a,p)<range&&inputFor(s,a,inputs).interact);}
 function squadIn(s,p){return aliveSquad(s).filter(a=>distance(a,p)<p.radius).length;}
-function updateConvoy(s,input,dt){
-  const v=s.vehicles[0],next=s.convoyRoute[s.convoyIndex+1],pl=player(s);
+function updateConvoy(s,inputs,dt){
+  const v=s.vehicles[0],next=s.convoyRoute[s.convoyIndex+1];
   if(!next){advance(s);return;}
   const blocked=next.blocked&&!s.convoyCleared.includes(s.convoyIndex+1)&&distance(v,next)<110;
   if(blocked){
     v.waiting=true;const worker=currentLeader(s);
-    const playerWorking=input.interact&&humanNear(s,next,85);
+    const playerWorking=humanWorking(s,next,inputs,85);
     const leaderWorking=s.role==='member'&&distance(worker,next)<85&&worker.alive&&!worker.downed&&humanNear(s,next,260)&&s.waitUntil<=s.time;
     const canWork=playerWorking||leaderWorking;
     if(canWork){s.convoyClear+=dt;s.interactionPrompt=`Clearing obstruction · ${Math.round(s.convoyClear/6*100)}%`;}
     if(s.convoyClear>=6){s.convoyCleared.push(s.convoyIndex+1);s.convoyClear=0;const prop=s.world.props.find(p=>p.type==='barricade'&&distance(p,next)<10);if(prop)prop.cleared=true;radio(s,'HALE','Route is open. Keep up with the vehicles.');}
   }else{
-    const close=aliveSquad(s).filter(a=>distance(a,v)<265).length>=2&&pl.alive&&!pl.downed&&distance(pl,v)<310;
+    const close=aliveSquad(s).filter(a=>distance(a,v)<265).length>=2&&allHumansNear(s,v,310);
     v.waiting=!close;
     if(close){const dx=next.x-v.x,dy=next.y-v.y,d=Math.hypot(dx,dy),amount=Math.min(62*dt,d);v.angle=Math.atan2(dy,dx);v.x+=Math.cos(v.angle)*amount;v.y+=Math.sin(v.angle)*amount;if(d<8)s.convoyIndex++;}
   }
   for(let i=1;i<s.vehicles.length;i++){const a=s.vehicles[i],front=s.vehicles[i-1];if(distance(a,front)>113){const dx=front.x-a.x,dy=front.y-a.y;a.angle=Math.atan2(dy,dx);a.x+=Math.cos(a.angle)*62*dt;a.y+=Math.sin(a.angle)*62*dt;}}
   s.progress=s.convoyIndex/(s.convoyRoute.length-1);
 }
-function updateMission(s,input,dt){
+function updateMission(s,inputs,dt){
   const p=phase(s);if(!p)return;
-  if(p.kind==='convoy'){updateConvoy(s,input,dt);return;}
+  if(p.kind==='convoy'){updateConvoy(s,inputs,dt);return;}
   let work=false;
-  if(p.kind==='rally')work=humanNear(s,p)&&squadIn(s,p)>=Math.min(3,aliveSquad(s).length);
+  if(p.kind==='rally')work=allHumansNear(s,p)&&squadIn(s,p)>=Math.min(3,aliveSquad(s).length);
   if(p.kind==='hold'){
-    work=squadIn(s,p)>=Math.min(2,aliveSquad(s).length)&&humanNear(s,p,p.radius+100);
+    work=squadIn(s,p)>=Math.min(2,aliveSquad(s).length)&&allHumansNear(s,p,p.radius+100);
     if(s.stageIndex===s.stages.length-1)work=work&&s.squad.filter(a=>a.alive).every(a=>!a.downed&&distance(a,p)<p.radius);
   }
   if(p.kind==='rescue'){
-    const c=s.survivors[p.crew],pl=player(s),medic=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&a.id!==s.playerId);
+    const c=s.survivors[p.crew],medic=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&!controlled(s,a));
     if(medic&&humanNear(s,c,220)&&distance(medic,c)<70)work=true;
-    if(input.interact&&distance(pl,c)<p.radius&&!pl.downed)work=true;
+    if(humanWorking(s,c,inputs,p.radius))work=true;
     if(work)s.interactionPrompt=`Stabilizing ${c.name} · ${Math.round(s.phaseTime/p.duration*100)}%`;
   }
   if(p.kind==='extract'){
@@ -419,10 +477,20 @@ function updateMission(s,input,dt){
 }
 function updateVisibility(s,dt){s.visibilityTimer-=dt;if(s.visibilityTimer>0)return;s.visibilityTimer=.12;const eyes=aliveSquad(s);for(const e of s.enemies)e.visible=eyes.some(a=>distance(a,e)<(s.missionIndex===2?390:540)&&combatLOS(s,a,e));}
 export function step(s,input={},dt=1/60){
+  return advanceSimulation(s,input,dt);
+}
+/** Step one shared world once, applying both players' latest inputs independently. */
+export function stepCoop(s,inputsByActorId={},dt=1/60){
+  if(!s.coop)setHumanPlayers(s,[s.playerId]);
+  return advanceSimulation(s,inputsByActorId,dt);
+}
+function advanceSimulation(s,input,dt){
   if(s.status!=='playing')return s;dt=clamp(finite(dt),0,.05);if(!dt)return s;s.time+=dt;s.stats.elapsed=s.time;s.interactionPrompt='';
+  if(s.coop)syncCoopControl(s);
   for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
   updateSquad(s,input,dt);updateEnemies(s,dt);updateBullets(s,dt);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
+  else if(s.coop&&s.squad.filter(a=>a.role==='leader'||a.role==='rifleman').every(a=>!a.alive)){s.status='lost';s.endReason='Neither player soldier could be recovered. Regroup and retry the mission.';}
   if(s.status==='playing')updateMission(s,input,dt);
   if(s.status==='playing')updateObjective(s);
   updateVisibility(s,dt);
