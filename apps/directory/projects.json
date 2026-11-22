@@ -1118,5 +1118,37 @@
     "updatedAt": "2026-11-22",
     "updateSummary": "First playable release, v0.1.0: solo doubles, same-screen versus and co-op, and private online versus or co-op for two devices. Touch, keyboard and gamepad controls; online reconnect pauses the match until both players are ready.",
     "updateSource": "https://github.com/shnider42/daily_flyer/commit/dc6190071b03e0e85a1d14608746439657e83813"
+  },
+  {
+    "id": "chalk",
+    "title": "CHALK",
+    "subtitle": "Stay with your squad",
+    "description": "Lead a four-person squad or serve under a computer squad leader through four top-down missions inspired by Mogadishu in 1993. Reach crash survivors, guide the relief convoy and bring the squad to safety. Fictional characters and compressed maps, with civilian protection and squad survival at the center.",
+    "type": "games",
+    "subtype": "Squad action",
+    "tags": [
+      "Top-down",
+      "Solo",
+      "Squad",
+      "AI teammates",
+      "Missions",
+      "Rescue",
+      "Touch",
+      "Keyboard"
+    ],
+    "art": "chalk",
+    "url": "https://dfe-chalk.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/chalk-mogadishu/games/chalk",
+    "createdAt": "2026-11-22",
+    "datePrecision": "day",
+    "dateSource": "First CHALK build, 22 Nov 2026 in America/New_York.",
+    "aliases": [
+      "Chalk",
+      "Black Hawk Down",
+      "Mogadishu",
+      "Squad game"
+    ]
   }
 ]
+

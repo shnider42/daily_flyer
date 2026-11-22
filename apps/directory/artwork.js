@@ -44,6 +44,7 @@ export const ART_PALETTES = Object.freeze({
   trailmark:{background:'#e9e4cf',foreground:'#2a4b3e',accent:'#ba7937'},
   loudsource:{background:'#e37b43',foreground:'#f4e5c6',accent:'#36273f'},
   gravebloom:{background:'#17221e',foreground:'#e9dec2',accent:'#bd5349'},
+  chalk:{background:'#262923',foreground:'#e6dcc3',accent:'#c58c4b'},
 });
 const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -388,6 +389,17 @@ const covers={
       ${line('M413 212Q432 218 439 240M421 204Q422 220 412 230','#ef7156',4)}${line('M432 203Q432 215 449 221','#168fab',4)}
       ${note('SOLO / LOCAL / ONLINE',29,402,'#092f3b',{size:12,spacing:2})}${note('2v2',571,402,'#092f3b',{size:16,spacing:1,anchor:'end'})}${paper(u,.15)}`,
   }),
+  chalk:u=>({
+    body:`${rect(0,0,640,420,'#262923')}${rect(19,19,602,382,'none','stroke="#786e58" stroke-width="1"')}
+      ${note('MOGADISHU / 1993',31,46,'#b6aa8e',{size:13,spacing:2})}${note('SQUAD ACTION',609,46,'#c58c4b',{size:12,spacing:1.2,anchor:'end'})}
+      ${type('CHALK',24,198,168,'#e6dcc3',{width:584})}${line('M28 101H614M27 161H613','#262923',3)}${line('M30 215H610','#786e58',1.5)}
+      <g fill="#685f4a" stroke="#887b60" stroke-width="1"><path d="M24 236H126V287H94V328H24Z"/><path d="M147 236H246V304H147Z"/><path d="M24 346H147V377H24Z"/><path d="M170 325H245V377H170Z"/><path d="M425 236H505V295H455V319H425Z"/><path d="M528 236H616V334H528Z"/><path d="M455 341H616V377H455Z"/></g>
+      <g fill="#34372e"><rect x="39" y="247" width="54" height="22"/><rect x="158" y="247" width="73" height="44"/><rect x="542" y="250" width="60" height="68"/><circle cx="64" cy="304" r="10"/><circle cx="474" cy="261" r="11"/></g>
+      ${line('M279 246 279 300 375 300 375 371','#c58c4b',2,'stroke-dasharray="7 7"')}
+      <g transform="translate(355 274) rotate(-26)"><path d="M-18-28Q0-44 18-28L16 25 5 35 5 73H-5V35L-16 25Z" fill="#171c19" stroke="#b6aa8e" stroke-width="2"/><path d="M-13-20H13V-8H-13Z" fill="#6f8b85"/>${line('M-63 0H63M0-57V57','#b6aa8e',3)}${line('M-20 65H20','#b6aa8e',3)}</g>
+      <g fill="#89a69a" stroke="#19231e" stroke-width="2"><circle cx="281" cy="344" r="7"/><circle cx="301" cy="355" r="7"/><circle cx="281" cy="368" r="7"/><circle cx="322" cy="366" r="7"/></g>
+      ${rect(20,382,600,18,'#c58c4b')}${note('LEAD THE SQUAD / FOLLOW THE LEADER',31,395,'#262923',{size:10,spacing:1.1})}${paper(u,.3)}`,
+  }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}
       ${type('DAY',42,204,169,'#252c29',{width:414})}${type('BOARD',42,299,102,'#252c29',{width:548})}
@@ -407,3 +419,4 @@ export function renderArtwork(project={}){
   const common=`<pattern id="${uid}-grain" width="89" height="73" patternUnits="userSpaceOnUse"><g fill="${palette.foreground}"><circle cx="6" cy="11" r=".8"/><circle cx="39" cy="46" r=".7"/><circle cx="76" cy="19" r=".65"/><circle cx="61" cy="63" r=".8"/><circle cx="16" cy="58" r=".6"/><circle cx="50" cy="9" r=".6"/></g><path d="M12 34h5M64 38h3M33 68h4M81 55h2" stroke="${palette.foreground}" stroke-width=".6"/></pattern><pattern id="${uid}-dots" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="${palette.foreground}"/></pattern><pattern id="${uid}-hatch" width="9" height="9" patternUnits="userSpaceOnUse"><path d="M-2 2 2-2M0 9 9 0M7 11 11 7" fill="none" stroke="${palette.foreground}" stroke-width="1"/></pattern><pattern id="${uid}-scan" width="4" height="5" patternUnits="userSpaceOnUse"><path d="M0 4H4" fill="none" stroke="${palette.foreground}" stroke-width=".6"/></pattern>`;
   return `<svg class="project-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" preserveAspectRatio="xMidYMid slice" role="presentation" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%"><defs>${common}${defs}</defs>${body}</svg>`;
 }
+
