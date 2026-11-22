@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#092f3b">
+  <meta name="description" content="Pocket Volleyball. A little sand, a good rally. Play beach doubles solo, together on one screen, or online with a friend.">
+  <title>Pocket Volleyball · Daily Flyer</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="game-stage" aria-label="Pocket Volleyball game">
+    <canvas id="court" aria-label="Beach volleyball court. Use the keyboard, a gamepad, or the on-screen controls to play."></canvas>
+    <header id="topbar">
+      <a class="brand" href="https://dfe-directory.onrender.com/" aria-label="Daily Flyer games"><span class="brand-symbol">DF</span><span>DAILY FLYER<small>POCKET SPORTS CLUB</small></span></a>
+      <div class="top-actions"><button id="sound" class="quiet-button" aria-pressed="true" title="Toggle sound">Sound on</button><button id="fullscreen" class="quiet-button" title="Toggle fullscreen">Full screen</button><button id="help" class="quiet-button">How to play</button></div>
+    </header>
+
+    <section id="home" class="setup-panel home-panel" aria-labelledby="game-title">
+      <div class="eyebrow"><span class="short-rule"></span> BEACH DOUBLES</div>
+      <h1 id="game-title"><span>POCKET</span>VOLLEYBALL<span class="title-ball" aria-hidden="true"></span></h1>
+      <p class="tagline">A little sand. A good rally.</p>
+      <div class="menu-actions">
+        <button id="quick-match" class="menu-button primary"><strong>Quick match</strong><span>You + a CPU teammate</span></button>
+        <button id="local-choice" class="menu-button"><strong>Two players</strong><span>Versus or co-op · one screen</span></button>
+        <button id="online-choice" class="menu-button"><strong>Play online</strong><span>Two devices · one room code</span></button>
+      </div>
+      <div class="settings-row"><label>Opponents<select id="difficulty"><option value="chill">Chill</option><option value="club" selected>Club</option><option value="pro">Pro</option></select></label><label>Sets to<select id="target"><option value="11">11 · quick</option><option value="21">21 · classic</option></select></label><label>Guidance<select id="guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label></div>
+      <div class="menu-footer"><span>2 ON 2 · BEST OF THREE</span><span>v0.1.0</span></div>
+    </section>
+
+    <section id="local-panel" class="setup-panel" hidden aria-labelledby="local-title">
+      <button class="text-button back-home">Back to the beach</button><div class="eyebrow">TWO PLAYERS / ONE SCREEN</div><h2 id="local-title">Friends.<br>Friendly rivals.</h2><p>Each side has two players. Bring a teammate, or take a side each with a CPU partner.</p>
+      <div class="menu-actions"><button id="local-versus" class="menu-button primary"><strong>Play versus</strong><span>Player 1 vs. Player 2</span></button><button id="local-coop" class="menu-button"><strong>Play on the same team</strong><span>You two vs. the CPU</span></button></div>
+      <div class="control-note"><strong>Shared keyboard</strong><p><b>P1</b> WASD + J / K / L / Q<br><b>P2</b> Arrows + Comma / Period / Slash / Right Shift</p><span>Or connect one or two gamepads. Shared touch controls work best on a tablet in landscape.</span></div>
+    </section>
+
+    <section id="online-panel" class="setup-panel" hidden aria-labelledby="online-title">
+      <button class="text-button back-home">Back to the beach</button><div class="eyebrow">TWO PLAYERS / TWO DEVICES</div><h2 id="online-title">Meet at<br>the net.</h2><p>Create a room and send your friend its link. No account needed.</p>
+      <div class="segmented" role="group" aria-label="Online match type"><button id="net-versus" aria-pressed="true">Versus</button><button id="net-coop" aria-pressed="false">Same team</button></div>
+      <button id="create-room" class="menu-button primary"><strong>Create a room</strong><span id="online-settings">Club · sets to 11</span></button>
+      <div class="join-line"><label for="room-input">Have a code?</label><div><input id="room-input" placeholder="ABC123" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Room code"><button id="join-room" class="solid-button">Join</button></div></div>
+      <p id="online-status" class="status-line" role="status"></p><p class="fine-print">Rooms last for this session. The match pauses during a connection interruption.</p>
+    </section>
+
+    <section id="lobby-panel" class="setup-panel" hidden aria-labelledby="lobby-title">
+      <button id="leave-room" class="text-button">Leave room</button><div class="eyebrow" id="lobby-mode">ONLINE DOUBLES</div><h2 id="lobby-title">Your court<br>is ready.</h2>
+      <div class="invite"><span>ROOM CODE</span><strong id="room-code">------</strong><button id="copy-link" class="solid-button">Copy invite link</button><input id="invite-link" aria-label="Invite link" readonly hidden></div>
+      <div class="seats"><div id="seat-0"><span>PLAYER 1</span><strong>Waiting</strong></div><div id="seat-1"><span>PLAYER 2</span><strong>Waiting</strong></div></div>
+      <button id="start-online" class="menu-button primary" disabled><strong>Start match</strong><span>Waiting for a friend</span></button><p id="lobby-status" class="status-line" role="status">Send the link or share the code.</p>
+    </section>
+
+    <div id="hud" hidden>
+      <button id="pause" class="hud-button" aria-label="Pause match"><i class="pause-bars" aria-hidden="true"></i><span>Menu</span></button>
+      <div class="scoreboard" aria-label="Score"><div class="team blue"><span id="team-0-name">TIDELINE</span><div class="set-dots" id="sets-0" aria-label="Sets won"></div></div><strong id="score-0">0</strong><div class="score-middle"><span id="set-label">SET 1</span><span id="match-label">FIRST TO 11</span></div><strong id="score-1">0</strong><div class="team coral"><span id="team-1-name">SUNBREAK</span><div class="set-dots" id="sets-1" aria-label="Sets won"></div></div></div>
+      <div class="connection-info"><span id="mode-label">SOLO DOUBLES</span><span id="latency"></span></div>
+    </div>
+    <div id="rally-strip" hidden><span id="rally-message">Your serve</span><div id="touch-count" aria-label="Team touches"><i></i><i></i><i></i></div></div>
+    <div id="point-call" aria-hidden="true" hidden><strong>POINT</strong><span></span></div>
+    <p id="play-hint" hidden>Move to the landing ring. Hold Pass / Set to meet the ball.</p>
+
+    <div id="touch-controls" hidden>
+      <div class="touch-player" data-seat="0"><div class="stick-wrap"><span class="pad-label">MOVE</span><div class="joystick" data-seat="0" role="application" aria-label="Player 1 movement stick"><span class="stick-cross"></span><span class="stick-knob"></span></div></div><div class="touch-buttons"><button class="action small-action" data-seat="0" data-action="switch"><span>Y</span>Switch</button><button class="action small-action" data-seat="0" data-action="dive"><span>X</span>Dive / Block</button><button class="action pass-action" data-seat="0" data-action="pass"><span>A</span>Pass / Set</button><button class="action spike-action" data-seat="0" data-action="spike"><span>B</span>Spike</button></div></div>
+      <div class="touch-player second-pad" data-seat="1"><div class="stick-wrap"><span class="pad-label">P2 · MOVE</span><div class="joystick" data-seat="1" role="application" aria-label="Player 2 movement stick"><span class="stick-cross"></span><span class="stick-knob"></span></div></div><div class="touch-buttons"><button class="action small-action" data-seat="1" data-action="switch"><span>Y</span>Switch</button><button class="action small-action" data-seat="1" data-action="dive"><span>X</span>Dive / Block</button><button class="action pass-action" data-seat="1" data-action="pass"><span>A</span>Pass / Set</button><button class="action spike-action" data-seat="1" data-action="spike"><span>B</span>Spike</button></div></div>
+    </div>
+    <div id="keyboard-hint" hidden><span><kbd>W A S D</kbd> move</span><span><kbd>J</kbd> pass / set</span><span><kbd>K</kbd> spike</span><span><kbd>L</kbd> dive / block</span><span><kbd>Q</kbd> switch</span></div>
+    <div id="toast" role="status" hidden></div>
+    <div id="loading" role="status">Setting up the court…</div>
+  </main>
+
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><div class="eyebrow">TIME OUT</div><h2 id="pause-title">Take a<br>breather.</h2><p id="pause-message">The match is paused.</p><button id="resume" class="menu-button primary"><strong>Resume play</strong></button><button id="pause-help" class="menu-button"><strong>Controls & rules</strong></button><button id="exit-match" class="text-button">End match & return to menu</button></dialog>
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><div class="eyebrow">THE SHORT VERSION</div><h2 id="help-title">Keep it up.</h2></div><button id="close-help" class="quiet-button">Close</button></div><div class="help-steps"><p><b>01 / FIND THE BALL</b> The ring on the sand shows where the ball is heading. Move there before it drops.</p><p><b>02 / BUILD THE RALLY</b> Hold <em>Pass / Set</em> as the ball reaches you. Your first two touches build with your teammate; your third sends it over.</p><p><b>03 / FINISH IT</b> Hold <em>Spike</em> for an attacking shot. Move across the court while hitting to aim. <em>Dive / Block</em> stretches for a save or challenges a ball near the net.</p></div><table class="controls-table"><thead><tr><th>Action</th><th>P1 / solo</th><th>P2</th><th>Pad</th></tr></thead><tbody><tr><td>Move</td><td>WASD</td><td>Arrows</td><td>Left stick</td></tr><tr><td>Pass / Set / Serve</td><td>J or Space</td><td>, or Num 1</td><td>A</td></tr><tr><td>Spike</td><td>K</td><td>. or Num 2</td><td>B</td></tr><tr><td>Dive / Block</td><td>L</td><td>/ or Num 3</td><td>X</td></tr><tr><td>Switch player</td><td>Q</td><td>Right Shift / Num 0</td><td>Y</td></tr></tbody></table><p class="help-rule">Two players per side. Three touches. Every rally scores. Win a set by two; win two sets to take the match. A deciding set goes to 11.</p><p class="help-rule">In co-op, you each keep your own player. In solo and versus, your partner is the CPU; player switching follows the next receiver. Simple and Moderate guidance include forgiving defensive assists.</p><button id="help-done" class="solid-button">Got it</button></dialog>
+  <dialog id="result-dialog" aria-labelledby="result-title"><div class="eyebrow">MATCH COMPLETE</div><h2 id="result-title">Good game.</h2><div id="result-score">2 — 0</div><p id="result-description"></p><button id="rematch" class="menu-button primary"><strong>Play again</strong></button><button id="result-menu" class="text-button">Back to the beach</button></dialog>
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>

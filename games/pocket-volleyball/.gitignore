@@ -1,0 +1,3 @@
+node_modules/
+.openai/
+public/_qa-*.html

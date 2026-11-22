@@ -1,0 +1,14 @@
+{
+  "name": "dfe-pocket-volleyball",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pocket Volleyball — solo, local two-player and private online beach volleyball.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": { "ws": "8.22.2" }
+}
