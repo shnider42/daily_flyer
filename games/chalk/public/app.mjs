@@ -4,19 +4,20 @@ import { GameAudio } from './audio.mjs';
 import { stickVector, touchIntent } from './touch-input.mjs';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
+import { clientToCanvasPoint } from './desktop-input.mjs';
+import { createDefaults, normalizePreferences, renderDensity } from './settings.mjs';
+import { FramePacer, FrameMeter } from './performance.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
 const renderer = new Renderer(canvas);
 const audio = new GameAudio();
 const STORAGE = 'dfe-chalk-v1';
-const defaults = { role: 'leader', difficulty: 'standard', guidance: 'simple', sound: true, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, completed: {} };
-let preferences = { ...defaults };
-try { preferences = { ...defaults, ...JSON.parse(localStorage.getItem(STORAGE) || '{}') }; } catch { /* Storage can be unavailable in a private browsing session. */ }
-if (!['leader', 'member'].includes(preferences.role)) preferences.role = 'leader';
-if (!['story', 'standard', 'veteran'].includes(preferences.difficulty)) preferences.difficulty = 'standard';
-if (!['simple', 'moderate', 'expert'].includes(preferences.guidance)) preferences.guidance = 'simple';
-if (!preferences.completed || typeof preferences.completed !== 'object') preferences.completed = {};
+const defaults = createDefaults({ reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
+let preferences = normalizePreferences({}, defaults);
+try { preferences = normalizePreferences(JSON.parse(localStorage.getItem(STORAGE) || '{}'), defaults); } catch { /* Gameplay works when storage is unavailable. */ }
+const framePacer = new FramePacer();
+const frameMeter = new FrameMeter();
 
 const touchQuery = matchMedia('(pointer: coarse)');
 let touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0);
@@ -27,14 +28,20 @@ let mode = 'menu';
 let paused = false;
 let showMap = false;
 let placingOrder = false;
-let lastTime = 0;
 let accumulator = 0;
 let hudTimer = 0;
 let lastRadio = '';
 let toastTimer;
 let previousDialogFocus = null;
 let safeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+let desktopObstacles = [];
+let desktopObstacleKey = '';
 let viewportSize = '';
+let canvasRect = null;
+let statsAt = 0;
+let statsMode = '';
+let squadRowsKey = '';
+let squadRows = [];
 let touchAim = null;
 let interactionPointer = null;
 let coop = null;
@@ -58,6 +65,10 @@ const clock = value => `${String(Math.floor(value / 60)).padStart(2, '0')}:${Str
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 function save() { try { localStorage.setItem(STORAGE, JSON.stringify(preferences)); } catch { /* Gameplay works without persistent storage. */ } }
+function text(id, value) { const node = typeof id === 'string' ? $(id) : id, content = String(value ?? ''); if (node && node.textContent !== content) node.textContent = content; }
+function attr(node, name, value) { value = String(value); if (node.getAttribute(name) !== value) node.setAttribute(name, value); }
+function style(node, name, value) { if (node.style[name] !== value) node.style[name] = value; }
+function flag(node, name, enabled) { if (node.classList.contains(name) !== !!enabled) node.classList.toggle(name, !!enabled); }
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3400); }
 function fit() {
   document.body.classList.toggle('touch', touch && mode !== 'menu');
@@ -65,11 +76,28 @@ function fit() {
   const size = `${Math.round(rect.width)}:${Math.round(rect.height)}:${touch}`;
   if (viewportSize && size !== viewportSize) clearInput();
   viewportSize = size;
-  renderer.resize(rect.width, rect.height, Math.min(devicePixelRatio || 1, 2));
+  renderer.resize(rect.width, rect.height, renderDensity(rect.width, rect.height, devicePixelRatio || 1, preferences.renderScale, preferences.graphicsQuality));
+  const bounds = canvas.getBoundingClientRect();
+  canvasRect = { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height };
+  text('renderInfo', `Canvas 2D · ${canvas.width} × ${canvas.height} render pixels · ${renderer.width} × ${renderer.height} viewport`);
   measureSafeInsets();
 }
 function measureSafeInsets() {
-  if (!touch || mode === 'menu') { safeInsets = { top: 0, right: 0, bottom: 0, left: 0 }; return; }
+  if (!touch || mode === 'menu') {
+    safeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+    const next = [];
+    if (!touch && mode === 'playing' && !$('hud').hidden) {
+      const origin = canvasRect || { left: 0, top: 0 };
+      for (const selector of ['.topbar', '.objective-panel', '.squad-status-stack', '.orders', '.weapon-panel']) {
+        const el = document.querySelector(selector), r = el.getBoundingClientRect();
+        if (r.width && r.height) next.push({ left: r.left - origin.left, top: r.top - origin.top, right: r.right - origin.left, bottom: r.bottom - origin.top });
+      }
+    }
+    const key = JSON.stringify(next);
+    if (key !== desktopObstacleKey) { desktopObstacleKey = key; desktopObstacles = next; }
+    return;
+  }
+  desktopObstacles = []; desktopObstacleKey = '';
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
   const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad')];
@@ -86,7 +114,65 @@ function soundUI() {
   $('motionToggle').checked = preferences.reducedMotion;
   $('touchToggle').checked = touch;
   audio.setEnabled(preferences.sound);
+  audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume });
 }
+
+function syncSettings() {
+  for (const field of document.querySelectorAll('[data-setting]')) {
+    const value = field.dataset.setting === 'touchControls' ? touch : preferences[field.dataset.setting];
+    if (field.type === 'checkbox') field.checked = !!value;
+    else field.value = String(value);
+    if (field.type === 'range') text(`${field.id}Value`, field.id === 'cameraLookahead' && !Number(value) ? 'Off' : `${Math.round(Number(value) * 100)}%`);
+  }
+  $('guidance').value = preferences.guidance;
+}
+function applySettings(key) {
+  if (!key || key === 'touchControls') {
+    const next = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0);
+    if (next !== touch) { clearInput(); closeOrders(); touch = next; }
+    $('touchControls').hidden = !touch || mode === 'menu';
+  }
+  document.body.dataset.hudDetail = preferences.hudDetail;
+  document.documentElement.style.setProperty('--hud-scale', String(preferences.hudScale));
+  $('performanceStats').hidden = !preferences.showFPS;
+  soundUI(); syncSettings();
+  if (!key || ['graphicsQuality','renderScale','hudScale','touchControls'].includes(key)) fit();
+  if (!key || ['graphicsQuality','renderScale','frameLimit'].includes(key)) { framePacer.reset(); frameMeter.reset(); }
+  if (game) updateHUD();
+}
+function changeSetting(key, value) {
+  preferences = normalizePreferences({ ...preferences, [key]: value }, defaults);
+  applySettings(key); save();
+}
+function selectSettingsTab(name, focus = false) {
+  for (const button of document.querySelectorAll('[data-settings-tab]')) {
+    const selected = button.dataset.settingsTab === name;
+    button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    if (selected && focus) button.focus();
+  }
+  for (const panel of document.querySelectorAll('[data-settings-panel]')) panel.hidden = panel.dataset.settingsPanel !== name;
+}
+for (const field of document.querySelectorAll('[data-setting]')) {
+  field.addEventListener(field.type === 'range' ? 'input' : 'change', () => {
+    const value = field.type === 'checkbox' ? field.checked : field.type === 'range' || field.dataset.setting === 'frameLimit' ? Number(field.value) : field.value;
+    changeSetting(field.dataset.setting, value);
+  });
+}
+for (const button of document.querySelectorAll('[data-settings-tab]')) {
+  button.addEventListener('click', () => selectSettingsTab(button.dataset.settingsTab));
+  button.addEventListener('keydown', event => {
+    const tabs = ['video','controls','audio','interface'];
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault();
+    const index = tabs.indexOf(button.dataset.settingsTab);
+    selectSettingsTab(tabs[event.key === 'Home' ? 0 : event.key === 'End' ? 3 : (index + (event.key === 'ArrowRight' ? 1 : 3)) % 4], true);
+  });
+}
+$('settingsReset').addEventListener('click', () => {
+  const { role, difficulty, completed, callsign } = preferences;
+  preferences = normalizePreferences({ ...defaults, role, difficulty, completed, callsign }, defaults);
+  applySettings(); save(); toast('Settings reset. Mission progress kept.');
+});
 function chooseRole(role) {
   preferences.role = role;
   document.querySelectorAll('[data-role]').forEach(button => { const chosen = button.dataset.role === role; button.classList.toggle('selected', chosen); button.setAttribute('aria-pressed', String(chosen)); });
@@ -105,6 +191,7 @@ function missionMenu() {
 }
 function clearInput() {
   keys.clear(); pointer.fire = false; pointer.valid = false;
+  document.body.classList.remove('desktop-aim');
   touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.aimStrength = 0; touchInput.interact = false; touchAim = null;
   actions.reload = false; actions.smoke = false;
   for (const [id, record] of [...activeSticks]) { try { record.element.releasePointerCapture(id); } catch {} }
@@ -129,7 +216,8 @@ function startMission(index = selectedMission) {
   updateOrders(); audio.unlock(); audio.setEnabled(preferences.sound); fit(); updateHUD();
   canvas.focus({ preventScroll: true });
   syncMapUI(); closeOrders();
-  toast(touch ? 'Left: move · Right: aim, push farther to fire' : 'WASD to move. Follow the amber objective marker.');
+  clearTimeout(toastTimer); $('toast').hidden = true;
+  if (touch) toast('Left: move · Right: aim, push farther to fire');
 }
 function returnToMenu() {
   if (online()) coop.leave();
@@ -168,7 +256,8 @@ function doOrder(type, point) {
   }
   if (online()) coop.order(type, point).catch(() => {});
   else issueOrder(game, type, point);
-  clearInput(); placingOrder = false; closeOrders();
+  if (placingOrder || touch && type === 'move') clearInput();
+  placingOrder = false; closeOrders();
   if (touch && type === 'move') showMap = false;
   syncMapUI();
   audio.click(); updateHUD();
@@ -205,9 +294,13 @@ function assistAction() {
 function openInfo(id) {
   previousDialogFocus = document.activeElement;
   if (mode === 'playing' && !paused) pause(true);
+  if (id === 'settingsDialog') syncSettings();
   $(id).showModal();
 }
-document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('close', () => previousDialogFocus?.focus?.()));
+document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('close', () => {
+  const target = paused && !$('pauseOverlay').contains(previousDialogFocus) ? $('resume') : previousDialogFocus;
+  target?.focus?.();
+}));
 document.addEventListener('click', event => {
   const button = event.target.closest('button'); if (!button) return;
   if (button.dataset.role) chooseRole(button.dataset.role);
@@ -218,12 +311,12 @@ document.addEventListener('click', event => {
 $('difficulty').value = preferences.difficulty;
 $('guidance').value = preferences.guidance;
 $('difficulty').addEventListener('change', event => { preferences.difficulty = event.target.value; save(); });
-$('guidance').addEventListener('change', event => { preferences.guidance = event.target.value; save(); });
+$('guidance').addEventListener('change', event => changeSetting('guidance', event.target.value));
 $('deploy').addEventListener('click', () => startMission());
 $('menuSound').addEventListener('click', () => { preferences.sound = !preferences.sound; soundUI(); if (preferences.sound) audio.unlock(); save(); });
 $('soundToggle').addEventListener('change', event => { preferences.sound = event.target.checked; soundUI(); save(); });
-$('motionToggle').addEventListener('change', event => { preferences.reducedMotion = event.target.checked; save(); });
-$('touchToggle').addEventListener('change', event => { clearInput(); closeOrders(); touch = event.target.checked; preferences.touchControls = touch; $('touchControls').hidden = !touch || mode === 'menu'; save(); fit(); updateHUD(); });
+$('motionToggle').addEventListener('change', event => changeSetting('reducedMotion', event.target.checked));
+$('touchToggle').addEventListener('change', event => changeSetting('touchControls', event.target.checked));
 $('pauseButton').addEventListener('click', () => pause());
 $('resume').addEventListener('click', () => pause(false));
 $('switchRole').addEventListener('click', () => {
@@ -292,12 +385,13 @@ function bindStick(element, kind) {
 }
 bindStick($('moveStick'), 'move'); bindStick($('aimStick'), 'aim');
 
-function screenPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: event.clientX - rect.left, y: event.clientY - rect.top }; }
-canvas.addEventListener('pointermove', event => { const point = screenPoint(event); pointer.x = point.x; pointer.y = point.y; pointer.valid = event.pointerType !== 'touch'; });
+function screenPoint(event) { return clientToCanvasPoint(event.clientX, event.clientY, canvasRect, { width: renderer.width, height: renderer.height }); }
+canvas.addEventListener('pointermove', event => { const point = screenPoint(event); if (!point) return; pointer.x = point.x; pointer.y = point.y; pointer.valid = event.pointerType !== 'touch' && (point.inside || pointer.fire); });
+canvas.addEventListener('pointerleave', () => { if (!pointer.fire) pointer.valid = false; });
 canvas.addEventListener('pointerdown', event => {
   if (mode !== 'playing' || paused) return;
   event.preventDefault(); canvas.focus({ preventScroll: true }); audio.unlock();
-  const point = screenPoint(event); pointer.x = point.x; pointer.y = point.y; pointer.valid = true;
+  const point = screenPoint(event); if (!point) return; pointer.x = point.x; pointer.y = point.y; pointer.valid = true;
   if (placingOrder || event.button === 2) {
     if (game.role === 'leader') doOrder('move', renderer.screenToWorld(point.x, point.y));
     return;
@@ -310,6 +404,7 @@ canvas.addEventListener('pointercancel', () => pointer.fire = false);
 canvas.addEventListener('lostpointercapture', () => pointer.fire = false);
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 window.addEventListener('keydown', event => {
+  if (event.code === 'F3') { event.preventDefault(); if (!event.repeat) changeSetting('showFPS', !preferences.showFPS); return; }
   if (document.querySelector('dialog[open]')) return;
   const overlay = !$('coopOverlay').hidden ? $('coopOverlay') : !$('pauseOverlay').hidden ? $('pauseOverlay') : !$('resultOverlay').hidden ? $('resultOverlay') : null;
   if (overlay && event.code === 'Tab') {
@@ -343,7 +438,7 @@ window.addEventListener('keydown', event => {
 });
 window.addEventListener('keyup', event => keys.delete(event.code));
 window.addEventListener('blur', () => { clearInput(); if (mode === 'playing' && !paused) pause(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'playing' && !paused) pause(); });
+document.addEventListener('visibilitychange', () => { framePacer.reset(); frameMeter.reset(); if (document.hidden && mode === 'playing' && !paused) pause(); });
 
 function controls() {
   const p = player();
@@ -370,67 +465,69 @@ function controls() {
     }
   }
   touchAim = intent.aiming && aim ? { ...aim, firing: fire } : null;
-  const assist = assistAction();
-  if (touchInput.interact && !assist) { touchInput.interact = false; $('touchInteract').classList.remove('working'); }
+  if (touchInput.interact && !assistAction()) { touchInput.interact = false; $('touchInteract').classList.remove('working'); }
   const interact = keys.has('KeyE') || touchInput.interact;
   const sprint = !interact && (keys.has('ShiftLeft') || keys.has('ShiftRight') || intent.sprint);
-  $('moveStick').classList.toggle('sprinting', !!intent.sprint && !interact);
-  const autoReload = touch && p?.ammo === 0 && p.reserve > 0 && p.reloadTimer <= 0;
+  if (touch) flag($('moveStick'), 'sprinting', !!intent.sprint && !interact);
+  const autoReload = preferences.autoReload && p?.ammo === 0 && p.reserve > 0 && p.reloadTimer <= 0;
   return { moveX, moveY, aimX: aim?.x ?? null, aimY: aim?.y ?? null, fire: fire && !interact, interact, reload: actions.reload || autoReload, smoke: actions.smoke, sprint };
 }
 
 function updateHUD() {
   if (!game) return;
-  const p = player(); const objective = getObjective(game);
-  $('objectiveTitle').textContent = objective?.title || 'Stay with the squad';
-  $('objectiveDetail').textContent = objective?.detail || objective?.description || '';
-  $('objectiveProgress').style.width = `${clamp(Number(objective?.progress) || 0, 0, 1) * 100}%`;
-  $('stageNumber').textContent = `${Math.min(game.stageIndex + 1, game.stageCount)}/${game.stageCount}`;
-  $('missionClock').textContent = clock(game.time);
-  $('leaderIntent').textContent = game.role === 'member' ? `HALE / ${game.leaderOrder || 'Stay together.'}` : game.order?.label || '';
-  $('squad').innerHTML = game.squad.map(s => `<div class="squad-member ${s.id === game.playerId ? 'active' : ''} ${s.downed || !s.alive ? 'downed' : ''}"><strong>${escape(s.name)}${s.id === game.playerId ? ' ·' : ''}</strong><small>${s.downed ? 'DOWN' : !s.alive ? 'LOST' : escape(s.role || s.kind)}</small><div class="squad-health"><span style="width:${clamp(s.hp / s.maxHp, 0, 1) * 100}%"></span></div></div>`).join('');
-  if (online()) {
-    const peers = coop.room?.players || [];
-    $('squad').innerHTML = game.squad.map(s => { const peer=peers.find(p=>p.actorId===s.id && p.connected); return `<div class="squad-member ${s.id===game.playerId?'active':''} ${s.downed||!s.alive?'downed':''}" data-human="${!!peer}" title="${escape(peer?peer.name:'Computer controlled')}"><strong>${escape(s.name)}${s.id===game.playerId?' ·':''}</strong><small>${s.downed?'DOWN':!s.alive?'LOST':peer?escape(peer.name):'AI · '+escape(s.role)}</small><div class="squad-health"><span style="width:${clamp(s.hp/s.maxHp,0,1)*100}%"></span></div></div>`; }).join('');
+  const p = player(), objective = getObjective(game), shared = online();
+  text('objectiveTitle', objective?.title || 'Stay with the squad');
+  text('objectiveDetail', objective?.detail || objective?.description || '');
+  style($('objectiveProgress'), 'width', `${Math.round(clamp(Number(objective?.progress) || 0, 0, 1) * 100)}%`);
+  text('stageNumber', `${Math.min(game.stageIndex + 1, game.stageCount)}/${game.stageCount}`);
+  text('missionClock', clock(game.time));
+  text('leaderIntent', game.role === 'member' ? `HALE / ${game.leaderOrder || 'Stay together.'}` : game.order?.label || '');
+  const rowKey = game.squad.map(s => s.id).join('|');
+  if (rowKey !== squadRowsKey) {
+    $('squad').innerHTML = game.squad.map(() => '<div class="squad-member"><strong></strong><small></small><div class="squad-health"><span></span></div></div>').join('');
+    squadRows = [...$('squad').children].map(root => ({ root, name: root.querySelector('strong'), role: root.querySelector('small'), health: root.querySelector('.squad-health span') }));
+    squadRowsKey = rowKey;
   }
+  const peers = shared ? coop.room?.players || [] : [];
+  game.squad.forEach((soldier, i) => {
+    const row = squadRows[i], peer = peers.find(peer => peer.actorId === soldier.id && peer.connected), mine = soldier.id === game.playerId;
+    flag(row.root, 'active', mine); flag(row.root, 'downed', soldier.downed || !soldier.alive);
+    attr(row.root, 'data-human', !!peer); attr(row.root, 'title', peer ? peer.name : mine && !shared ? 'You' : 'Computer controlled');
+    text(row.name, soldier.name + (mine ? ' ·' : ''));
+    text(row.role, soldier.downed ? 'DOWN' : !soldier.alive ? 'LOST' : peer ? peer.name : (shared ? 'AI · ' : '') + (soldier.role || soldier.kind));
+    style(row.health, 'width', `${Math.round(clamp(soldier.hp / soldier.maxHp, 0, 1) * 100)}%`);
+  });
   if (p) {
-    const health = clamp(Math.round(p.hp / p.maxHp * 100), 0, 100);
-    $('playerName').textContent = p.name.toUpperCase(); $('healthText').textContent = `${health}%`; $('healthBar').style.width = `${health}%`;
-    $('healthBar').style.background = health < 35 ? 'var(--danger)' : '';
-    $('ammo').textContent = p.ammo ?? 0; $('reserve').textContent = `/ ${p.reserve ?? 0}`;
-    $('reloadLabel').textContent = p.reloadTimer > 0 ? 'RELOADING' : p.ammo === 0 ? 'RELOAD' : '';
-    $('smokeCount').textContent = `SMOKE × ${p.smokes ?? 0}`;
-    if ($('touchSmokeQty')) $('touchSmokeQty').textContent = p.smokes ?? 0;
-    else $('touchSmoke').textContent = `Smoke ${p.smokes ?? 0}`;
-    $('touchSmoke').setAttribute('aria-label', `Smoke, ${p.smokes ?? 0} remaining`);
-    ($('touchReloadLabel') || $('touchReload')).textContent = p.reloadTimer > 0 ? 'Loading' : 'Reload';
-    $('touchReload').setAttribute('aria-label', p.reloadTimer > 0 ? 'Reloading' : 'Reload weapon');
-    $('touchReload').classList.toggle('reloading', p.reloadTimer > 0);
+    const health = clamp(Math.round(p.hp / p.maxHp * 100), 0, 100), reloading = p.reloadTimer > 0;
+    text('playerName', p.name.toUpperCase()); text('healthText', `${health}%`); style($('healthBar'), 'width', `${health}%`);
+    style($('healthBar'), 'background', health < 35 ? 'var(--danger)' : '');
+    text('ammo', p.ammo ?? 0); text('reserve', `/ ${p.reserve ?? 0}`);
+    text('reloadLabel', reloading ? 'RELOADING' : p.ammo === 0 ? 'RELOAD' : '');
+    text('smokeCount', `SMOKE × ${p.smokes ?? 0}`); text('touchSmokeQty', p.smokes ?? 0);
+    attr($('touchSmoke'), 'aria-label', `Smoke, ${p.smokes ?? 0} remaining`);
+    text('touchReloadLabel', reloading ? 'Loading' : 'Reload');
+    attr($('touchReload'), 'aria-label', reloading ? 'Reloading' : 'Reload weapon'); flag($('touchReload'), 'reloading', reloading);
     $('downedBanner').hidden = !p.downed && p.alive;
-    $('downedTitle').textContent = p.alive ? 'YOU ARE DOWN' : 'SOLDIER LOST';
-    $('downedDetail').textContent = p.alive ? 'Your squad is coming to help. Stay with them.' : online() ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.';
-    $('touchReload').disabled = p.reloadTimer > 0 || !p.reserve || p.ammo === p.magSize;
-    $('touchSmoke').disabled = !p.smokes;
+    text('downedTitle', p.alive ? 'YOU ARE DOWN' : 'SOLDIER LOST');
+    text('downedDetail', p.alive ? 'Your squad is coming to help. Stay with them.' : shared ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.');
+    $('touchReload').disabled = reloading || !p.reserve || p.ammo === p.magSize; $('touchSmoke').disabled = !p.smokes;
   }
   const assist = assistAction();
-  $('touchInteract').disabled = !assist;
-  $('touchInteract').classList.toggle('available', !!assist);
-  $('touchInteract').style.setProperty('--assist-progress', `${clamp(assist?.progress || 0,0,1)*100}%`);
-  ($('touchInteractLabel') || $('touchInteract')).textContent = assist?.label || 'Assist';
-  $('touchInteract').setAttribute('aria-label', assist?.detail || 'Assist — move near someone who needs help');
-  const messages = touch ? game.radio.filter(m => game.time-m.time < 8).slice(-1) : game.radio.slice(-3); const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
+  $('touchInteract').disabled = !assist; flag($('touchInteract'), 'available', !!assist);
+  const assistProgress = `${Math.round(clamp(assist?.progress || 0, 0, 1) * 100)}%`;
+  if ($('touchInteract').style.getPropertyValue('--assist-progress') !== assistProgress) $('touchInteract').style.setProperty('--assist-progress', assistProgress);
+  text('touchInteractLabel', assist?.label || 'Assist');
+  attr($('touchInteract'), 'aria-label', assist?.detail || 'Assist — move near someone who needs help');
+  const messages = game.radio.filter(m => game.time - m.time < (touch ? 8 : 14)).slice(touch || preferences.hudDetail === 'compact' ? -1 : -2);
+  const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
-  const interactText = online() ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
+  const interactText = shared ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
   let hint = interactText;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
-  if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? (touch ? 'Follow the amber marker. Your squad follows you.' : 'Follow the amber marker. Right click to send your squad.') : 'Stay near Hale. He will lead you to the objective.';
+  if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? 'Follow the amber marker. Right click to send your squad.' : 'Stay near Hale. He will lead you to the objective.';
   if (touch) hint = assist ? assist.detail : '';
-  $('contextHint').textContent = hint;
-  $('desktopHint').style.visibility = preferences.guidance === 'expert' ? 'hidden' : 'visible';
-  $('hud').dataset.stage = String(game.stageIndex); $('hud').dataset.status = game.status;
-  $('hud').dataset.role = game.role;
-  $('hud').dataset.online = String(online());
-  if (online()) { $('hud').dataset.room = coop.room?.code || ''; $('hud').dataset.humans = String(game.humanIds?.length || 0); }
+  text('contextHint', hint); style($('desktopHint'), 'visibility', preferences.guidance === 'expert' ? 'hidden' : 'visible');
+  for (const [key,value] of Object.entries({ stage: game.stageIndex, status: game.status, role: game.role, online: shared, room: shared ? coop.room?.code || '' : '', humans: shared ? game.humanIds?.length || 0 : 1 })) attr($('hud'), `data-${key}`, value);
   measureSafeInsets();
 }
 
@@ -642,34 +739,63 @@ function initializeCoop() {
   } else if (hasInvite) openCoop('join',invite);
 }
 
+function renderView(now) {
+  const followActorId = game?.coop && player()?.alive === false ? game.squad.find(s => s.alive && !s.downed)?.id : null;
+  const aimActive = !touch && pointer.valid && canAct() && !document.querySelector('dialog[open]');
+  flag(document.body, 'desktop-aim', aimActive);
+  return { time: now / 1000, menu: mode === 'menu', paused, pointer: aimActive ? pointer : null, showMap, placingOrder,
+    guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
+    quality: preferences.graphicsQuality, zoom: preferences.cameraZoom, lookahead: preferences.cameraLookahead,
+    crosshair: preferences.crosshairStyle, crosshairScale: preferences.crosshairScale, aimColor: preferences.aimColor, aimLine: preferences.aimLine };
+}
+function updatePerformance(now) {
+  if (now - statsAt < 500) return;
+  statsAt = now;
+  if (!preferences.showFPS) return;
+  const stats = frameMeter.sample();
+  const label = stats.samples > 2 ? `${Math.round(stats.fps)} FPS · ${stats.frameMS.toFixed(1)} ms · p95 ${stats.p95.toFixed(1)} ms` : 'Measuring frame rate…';
+  text('performanceStats', `${label} · Canvas 2D · ${canvas.width} × ${canvas.height}`);
+  $('performanceStats').dataset.report = JSON.stringify({ ...stats, backend: 'Canvas 2D', width: renderer.width, height: renderer.height, bufferWidth: canvas.width, bufferHeight: canvas.height, quality: preferences.graphicsQuality, mode, paused, mission: game?.missionIndex ?? null });
+}
 function frame(now) {
-  const dt = lastTime ? Math.min((now - lastTime) / 1000, .1) : 0;
-  lastTime = now;
+  requestAnimationFrame(frame);
+  if (document.hidden) return;
+  const blocked = paused || !!document.querySelector('dialog[open]');
+  const cap = mode === 'playing' && !blocked ? preferences.frameLimit : 30;
+  const dt = framePacer.next(now, cap);
+  if (dt === null) return;
+  const began = performance.now();
+  const timingMode = `${mode}:${blocked}:${game?.missionIndex}:${preferences.graphicsQuality}:${canvas.width}:${canvas.height}`;
+  if (statsMode !== timingMode) { frameMeter.reset(); statsMode = timingMode; statsAt = -Infinity; }
+  const view = renderView(now);
+  // Input and drawing share exactly one camera transform for this frame.
+  renderer.updateCamera(game || menuScene, view);
   if (game?.coop && mode === 'playing') {
-    coop.input(!paused && !document.querySelector('dialog[open]') ? controls() : neutralInput());
+    coop.input(!blocked ? controls() : neutralInput());
     game = coop.getState(dt) || game;
     actions.reload = false; actions.smoke = false;
-    if (!paused && coop.connected) audio.tick(game, dt);
+    if (!blocked && coop.connected) audio.tick(game, dt);
     hudTimer += dt;
-    if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
+    if (hudTimer >= .1) { updateHUD(); hudTimer %= .1; }
     if (game.status !== 'playing') finishMission();
-  } else if (game && mode === 'playing' && !paused && !document.querySelector('dialog[open]')) {
+  } else if (game && mode === 'playing' && !blocked) {
     accumulator += dt;
+    const input = controls();
     let count = 0;
     while (accumulator >= 1 / 60 && count++ < 6) {
-      step(game, controls(), 1 / 60);
-      actions.reload = false; actions.smoke = false;
+      step(game, input, 1 / 60);
+      input.reload = false; input.smoke = false; actions.reload = false; actions.smoke = false;
       accumulator -= 1 / 60;
       if (game.status !== 'playing') { finishMission(); break; }
     }
     if (mode === 'playing') audio.tick(game, dt);
     hudTimer += dt;
-    if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
+    if (hudTimer >= .1) { updateHUD(); hudTimer %= .1; }
   }
-  const followActorId = game?.coop && player()?.alive === false ? game.squad.find(s => s.alive && !s.downed)?.id : null;
-  renderer.render(game || menuScene, { time: now / 1000, menu: mode === 'menu', paused, pointer: pointer.valid ? pointer : null, showMap, placingOrder, guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, aim: touchAim, followActorId });
-  requestAnimationFrame(frame);
+  renderer.render(game || menuScene, { ...view, aim: touchAim, cameraPrepared: true });
+  frameMeter.record(now, performance.now() - began);
+  updatePerformance(now);
 }
 
-chooseRole(preferences.role); soundUI(); missionMenu(); fit();
+chooseRole(preferences.role); applySettings(); missionMenu();
 initializeCoop(); requestAnimationFrame(frame);

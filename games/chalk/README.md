@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.3 adds private two-player co-op to this standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
+Version 1.4 improves desktop performance, mouse aiming, HUD layout, and settings in this standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
 
 ## Play
 
@@ -14,6 +14,42 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 | Dawn Mile | Move through three rally positions and bring the surviving squad to the aid station. |
 
 The missions share a compact city street layout, with varying blocks, landmarks, objectives, and afternoon/night/dawn lighting. They are intentionally short; an efficient route takes roughly one to two minutes, with human play varying by exploration and combat. Vehicles follow a route and wait for the squad. They do not have a damage model in this version.
+
+## Desktop update: version 1.4
+
+The camera is prepared before mouse coordinates are converted into the world, and drawing uses that same transform. Human weapon spread affects the projectile without moving the soldier's requested facing. There is one custom reticle; the native cursor returns in menus and on interface controls. Immediate Regroup, Hold, and Assist commands preserve held movement and fire. Camera lookahead defaults off. Near map edges, the followed soldier is kept clear of the desktop HUD with bounded extra framing.
+
+**Settings** is available in field orders, the desktop top bar, and the pause/field menu. Changes apply immediately and persist on this device. Reset retains mission completion, role, difficulty, and callsign.
+
+| Category | Controls |
+| --- | --- |
+| Video | Performance / Balanced / High effects; Automatic / 75% / 100% rendering; 60 / 120 / uncapped frame limit; camera zoom; reduced motion; performance display |
+| Aim & controls | Camera lookahead; cross / ring / dot reticle; reticle size and color; optional wall obstruction cue; reload on empty; touch controls |
+| Audio | Separate master, effects, and ambience levels; the Sound switch mutes without losing the mix |
+| HUD | HUD size from 85% to 130%; Standard / Compact detail; guidance level |
+
+The aim path uses the simulation's solid-building intersection math. It indicates cover, not hit probability, bullet range, or actor hits. Disabling **Reload when empty** stops the client from requesting an idle reload; pressing R or firing an empty magazine still starts a reload. Input is absolute mouse aim, so there is no artificial mouse-sensitivity multiplier or smoothing slider.
+
+**F3** toggles actual rendered FPS, frame time, p95 frame time, the Canvas 2D backend, and backing-buffer dimensions. The frame cap does not change the simulation's fixed step or the co-op server's timing. Menus and paused rendering are capped at 30 FPS, and hidden-page drawing stops. A lower canvas resolution does not lower HUD text resolution or change cursor-to-world mapping.
+
+Automatic rendering limits the pixel budget to about 1.6 million in Performance, 2.07 million in Balanced, or 5.3 million in High. At a 2560 × 1440 viewport and device-pixel ratio 1, Balanced Auto draws a 1920 × 1080 battlefield; 100% draws the full 2560 × 1440. The effects quality and explicit resolution controls are independent. Native DPR is bounded at 2, and the minimum render density is 0.5.
+
+Rendering reuses the baked district, samples only the visible map rectangle, caches smoke and light textures, and reduces decorative particles by quality. Full-screen CSS grain compositing and backdrop blur were removed. Squad rows are retained, and unchanged HUD text and health values no longer rebuild the panel. Smoke visibility, night visibility, injury cues, actors, and objectives remain at every quality.
+
+### Desktop verification
+
+The 1.4 pass was compared with the published 1.3 build in the same foreground Linux Chromium test browser, using a Cordon/Story/leader scene with audio off. The 2560 × 1440 iframe had a genuine 2560 × 1440 layout and was scaled for inspection; the 1280 × 720 iframe was unscaled. These are browser-environment measurements, not a benchmark of the user's computer. Samples were taken after loading and settling; ordinary variation is expected.
+
+| Viewport | Build / settings | Actual canvas buffer | Observed FPS |
+| --- | --- | --- | --- |
+| 2560 × 1440 | 1.3 baseline | 2560 × 1440 | 14.2 |
+| 2560 × 1440 | 1.4 Balanced, full resolution | 2560 × 1440 | 30.1 |
+| 2560 × 1440 | 1.4 Balanced, 75% (same density as new Auto) | 1920 × 1080 | 50.7 |
+| 2560 × 1440 | 1.4 Performance, Auto | 1687 × 949 | 60.0 |
+| 1280 × 720 | 1.3 baseline | 1280 × 720 | 54.5 |
+| 1280 × 720 | 1.4 Balanced, Auto | 1280 × 720 | 60.0 |
+
+Browser checks also covered scaled/compact HUD layout, changing settings and resetting them, mouse aiming and firing, holding movement while issuing Regroup, and portrait/landscape touch layouts. The desktop test does not establish high-refresh performance on a physical 120 Hz display or Internet co-op latency.
 
 ## Private two-player co-op
 
@@ -60,8 +96,9 @@ As **Hale**, command Move, Regroup, Hold, and Assist. As **Mercer**, request Rea
 | Q / H / F | Regroup / Hold / Assist; member mode uses Ready / Wait / Need help |
 | M | Battlefield map |
 | Escape | Pause in solo; open the field menu in co-op |
+| F3 | Toggle frame-rate and render-resolution display |
 
-Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. An empty magazine reloads automatically when ammunition remains. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. The Squad / Radio button opens a compact command panel; Move opens the district map with a visible Cancel action. Opening the map or field menu, changing touch mode, and rotating the phone release held input. The field menu can enable touch controls manually. Landscape and portrait layouts are supported. Reduce motion suppresses the drifting atmosphere.
+Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. By default, an empty magazine reloads automatically when ammunition remains; Settings can disable the idle reload request. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. The Squad / Radio button opens a compact command panel; Move opens the district map with a visible Cancel action. Opening the map or field menu, changing touch mode, and rotating the phone release held input. The field menu can enable touch controls manually. Landscape and portrait layouts are supported. Reduce motion suppresses the drifting atmosphere.
 
 Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 250 KB and load asynchronously, with procedural fallback.
 
@@ -96,9 +133,9 @@ npm test --prefix games/chalk
 npm run test:server --prefix games/chalk
 ```
 
-The static `build` checks browser-module syntax and runs the simulation, touch-input, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 59-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
+The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 83-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
 
-The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, seven touch-input tests, ten client tests, and 12 server tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Release browser checks cover two separate sessions creating and joining a room, four-person rosters, a member hosting while their friend leads, role swaps, local field menus, invite links, reload recovery, and mobile layouts at 390 × 844 and 844 × 390. The deployed WebSocket service was also checked with two real clients. These checks do not include a physical iPhone/Safari session.
+The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, seven touch-input tests, ten client tests, 12 server tests, seven desktop-input/aim tests, four renderer/camera tests, six settings tests, and seven frame-pacing/meter tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Release browser checks cover two separate sessions creating and joining a room, four-person rosters, a member hosting while their friend leads, role swaps, local field menus, invite links, reload recovery, and mobile layouts at 390 × 844 and 844 × 390. The deployed WebSocket service was also checked with two real clients. These checks do not include a physical iPhone/Safari session.
 
 ## Farwake reuse and networking
 
@@ -115,7 +152,8 @@ Files:
 
 - `public/sim.mjs`: collision, navigation, combat, squad AI, civilians, and mission progression.
 - `public/renderer.mjs`: original Canvas 2D artwork, city cache, camera, effects, and map.
-- `public/app.mjs`, `touch-input.mjs`, `index.html`, `style.css`: menus, input, HUD, local preferences, and debrief.
+- `public/app.mjs`, `touch-input.mjs`, `desktop-input.mjs`, `index.html`, `style.css`: menus, input, HUD, and debrief.
+- `public/settings.mjs`, `performance.mjs`: validated local preferences, rendering budgets, frame pacing, and diagnostics.
 - `public/audio.mjs`: spatial playback of recorded rifle, helicopter, and wind samples, with procedural foley and fallback. Source credits and CC0 licenses are in `public/audio/CREDITS.txt`.
 - `public/coop-client.mjs`: client connection, session recovery, state hydration, movement prediction, and interpolation.
 - `public/coop-protocol.mjs`, `snapshot-delta.mjs`: shared wire contract, input cleaning, and snapshot codec.

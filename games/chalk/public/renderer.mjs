@@ -1,4 +1,5 @@
 import { hasLineOfSight } from './sim.mjs';
+import { traceAim } from './desktop-input.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -43,19 +44,23 @@ export class Renderer {
     this.lastRender = 0;
     this.cameraReady = false;
     this.visibleEnemies = [];
+    this.actorBuffer = [];
+    this.sprites = new Map();
+    this.atmosphereCache = null;
+    this.dust = Array.from({length:32}, (_, i) => ({x:hash(i+2), y:hash(i+23), speed:4+hash(i+99)*8, alpha:.07+hash(i+35)*.08, size:1+hash(i+56)*2, phase:i}));
     this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
   }
 
   resize(width, height, dpr = 1) {
     this.width = Math.max(1, Math.round(width));
     this.height = Math.max(1, Math.round(height));
-    this.dpr = clamp(dpr || 1, 1, 2);
+    this.dpr = clamp(finite(dpr, 1) || 1, .5, 2);
     const bw = Math.round(this.width * this.dpr), bh = Math.round(this.height * this.dpr);
     if (this.canvas.width !== bw || this.canvas.height !== bh) {
       this.canvas.width = bw; this.canvas.height = bh;
     }
     this.ctx.imageSmoothingEnabled = true;
-    this.ctx.imageSmoothingQuality = 'high';
+    this.ctx.imageSmoothingQuality = 'low';
   }
 
   screenToWorld(x, y) {
@@ -99,9 +104,48 @@ export class Renderer {
     return { x: clamp(bounds.cx + dx * scale, bounds.left, bounds.right), y: clamp(bounds.cy + dy * scale, bounds.top, bounds.bottom) };
   }
 
+  radialSprite(key, stops, inner = 0) {
+    if (this.sprites.has(key)) return this.sprites.get(key);
+    const size = 128, sprite = newCanvas(size, size), ctx = sprite.getContext('2d');
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, inner, size / 2, size / 2, size / 2);
+    for (const [at, color] of stops) gradient.addColorStop(at, color);
+    ctx.fillStyle = gradient; ctx.fillRect(0, 0, size, size);
+    this.sprites.set(key, sprite); return sprite;
+  }
+
+  smokeSprite() {
+    if (this.sprites.has('smoke')) return this.sprites.get('smoke');
+    const sprite = newCanvas(256, 256), ctx = sprite.getContext('2d');
+    // Bake the seven overlapping puffs as a single texture. Rotation keeps the
+    // same slow drift without seven newly rasterized radial gradients per frame.
+    ctx.globalAlpha = .75;
+    for (let i = 0; i < 7; i++) {
+      const x = 128 + Math.cos(i * 2.4) * 33, y = 128 + Math.sin(i * 2.4) * 33;
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 80);
+      gradient.addColorStop(0, 'rgba(171,170,151,.55)'); gradient.addColorStop(.5, 'rgba(156,158,145,.35)'); gradient.addColorStop(1, 'rgba(145,150,139,0)');
+      ctx.fillStyle = gradient; ctx.fillRect(x - 80, y - 80, 160, 160);
+    }
+    this.sprites.set('smoke', sprite); return sprite;
+  }
+
+  atmosphereSprites() {
+    const key = `${this.width}:${this.height}`;
+    if (this.atmosphereCache?.key === key) return this.atmosphereCache;
+    const ratio = Math.min(1, 512 / Math.max(this.width, this.height));
+    const w = Math.max(1, Math.round(this.width * ratio)), h = Math.max(1, Math.round(this.height * ratio));
+    const make = (inner, outer, color) => {
+      const sprite = newCanvas(w, h), ctx = sprite.getContext('2d');
+      const gradient = ctx.createRadialGradient(w / 2, h / 2, Math.min(w,h) * inner, w / 2, h / 2, Math.hypot(w,h) * outer);
+      gradient.addColorStop(0, `rgba(${color},0)`); gradient.addColorStop(1, `rgba(${color},1)`);
+      ctx.fillStyle = gradient; ctx.fillRect(0,0,w,h); return sprite;
+    };
+    this.atmosphereCache = {key, vignette:make(.3,.57,'11,20,16'), damage:make(.25,.6,'102,47,28')};
+    return this.atmosphereCache;
+  }
+
   makeMap(world, missionIndex) {
     const w = finite(world.width, 2400), h = finite(world.height, 1900);
-    const cache = newCanvas(w, h), ctx = cache.getContext('2d');
+    const cache = newCanvas(w, h), ctx = cache.getContext('2d', {alpha:false});
     ctx.fillStyle = COLORS.sand; ctx.fillRect(0, 0, w, h);
     // Large faded patches break the uniform ground without a noisy per-frame filter.
     for (let i = 0; i < 220; i++) {
@@ -318,9 +362,8 @@ export class Renderer {
 
   drawFire(ctx, x, y, time, size) {
     const pulse = .8 + Math.sin(time * 16 + x) * .12;
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 2.3);
-    glow.addColorStop(0, 'rgba(235,145,57,.38)'); glow.addColorStop(1, 'rgba(214,97,31,0)');
-    ctx.fillStyle = glow; ctx.fillRect(x - size * 2.3, y - size * 2.3, size * 4.6, size * 4.6);
+    const glow = this.radialSprite('fire', [[0,'rgba(235,145,57,.38)'], [1,'rgba(214,97,31,0)']]);
+    ctx.drawImage(glow, x - size * 2.3, y - size * 2.3, size * 4.6, size * 4.6);
     for (let i = 0; i < 5; i++) {
       const dx = Math.sin(time * 7 + i * 3) * size * .35, dy = Math.cos(time * 9 + i * 2) * size * .3;
       circle(ctx, x + dx, y + dy, size * (.55 - i * .075) * pulse, ['#9d542e', '#cc7534', '#e29c47', '#ecc372', '#f4dda1'][i]);
@@ -546,6 +589,49 @@ export class Renderer {
     ctx.restore();
   }
 
+  drawDesktopAim(state, view) {
+    if (view.touch || !view.pointer || view.menu || view.showMap || view.paused) return;
+    const {x,y} = view.pointer, player = state.squad?.find(actor => actor.id === state.playerId);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !player?.alive || player.downed) return;
+    const ctx = this.ctx, scale = clamp(finite(view.crosshairScale,1), .75, 1.5);
+    const color = {white:'#eff2df', amber:'#edbd72', teal:'#9de4d5'}[view.aimColor] || '#eff2df';
+    const spread = (player.moving ? 2 : 0) + clamp(finite(player.suppression),0,1) * 5;
+    ctx.save();
+    if (view.aimLine) {
+      const target = this.screenToWorld(x,y), dx = target.x-player.x, dy = target.y-player.y, length = Math.hypot(dx,dy);
+      if (length > 26) {
+        const from = {x:player.x+dx/length*20, y:player.y+dy/length*20};
+        const previous = this.aimTrace;
+        if (!previous || previous.world !== state.world || Math.abs(from.x-previous.from.x) + Math.abs(from.y-previous.from.y) + Math.abs(target.x-previous.target.x) + Math.abs(target.y-previous.target.y) > .5) {
+          this.aimTrace = {world:state.world, from, target, result:traceAim(state.world,from,target)};
+        }
+        const trace = this.aimTrace.result, start = this.worldToScreen(from.x,from.y);
+        const end = trace ? this.worldToScreen(trace.point.x,trace.point.y) : {x,y};
+        ctx.globalAlpha = .6; ctx.setLineDash([3,6]);
+        line(ctx,start.x,start.y,end.x,end.y,trace?.blocked ? '#e5a078' : color,1);
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+        if (trace?.blocked) {
+          circle(ctx,end.x,end.y,5*scale,'rgba(24,29,22,.8)');
+          line(ctx,end.x-3*scale,end.y-3*scale,end.x+3*scale,end.y+3*scale,'#f1ad82',1.5);
+          line(ctx,end.x+3*scale,end.y-3*scale,end.x-3*scale,end.y+3*scale,'#f1ad82',1.5);
+        }
+      }
+    }
+    const style = ['cross','ring','dot'].includes(view.crosshair) ? view.crosshair : 'cross';
+    if (style === 'ring') {
+      circle(ctx,x,y,(6+spread)*scale,null,'rgba(14,23,18,.9)',3.5);
+      circle(ctx,x,y,(6+spread)*scale,null,color,1.3);
+    } else if (style === 'cross') {
+      const gap = (4+spread)*scale, outer = gap+6*scale;
+      for (const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        line(ctx,x+dx*gap,y+dy*gap,x+dx*outer,y+dy*outer,'rgba(14,23,18,.9)',3.5);
+        line(ctx,x+dx*gap,y+dy*gap,x+dx*outer,y+dy*outer,color,1.3);
+      }
+    }
+    circle(ctx,x,y,(style === 'dot' ? 2.2 : 1.25)*scale,color,'rgba(14,23,18,.9)',1.2);
+    ctx.restore();
+  }
+
   drawOrder(state, time, view) {
     const order = state.order;
     if (view.menu || !order || !Number.isFinite(order.x) || !Number.isFinite(order.y) || order.type === 'follow') return;
@@ -560,14 +646,9 @@ export class Renderer {
   }
 
   drawSmoke(ctx, s, time) {
-    const r = finite(s.radius, 90), opacity = clamp(finite(s.ttl, 10) / 2, 0, 1) * .75;
-    ctx.save(); ctx.globalAlpha = opacity;
-    for (let i = 0; i < 7; i++) {
-      const a = i * 2.4 + time * .1, d = r * .33, x = s.x + Math.cos(a) * d, y = s.y + Math.sin(a) * d;
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, r * .8);
-      gradient.addColorStop(0, 'rgba(171,170,151,.55)'); gradient.addColorStop(.5, 'rgba(156,158,145,.35)'); gradient.addColorStop(1, 'rgba(145,150,139,0)');
-      ctx.fillStyle = gradient; ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    }
+    const r = finite(s.radius, 90), opacity = clamp(finite(s.ttl, 10) / 2, 0, 1), extent = r * 1.28;
+    ctx.save(); ctx.globalAlpha = opacity; ctx.translate(s.x, s.y); ctx.rotate(time * .1);
+    ctx.drawImage(this.smokeSprite(), -extent, -extent, extent * 2, extent * 2);
     ctx.restore();
   }
 
@@ -604,8 +685,8 @@ export class Renderer {
       for (const actor of state.squad || []) {
         if (actor.alive === false || !this.inView(actor.x, actor.y, 160)) continue;
         const p = this.worldToScreen(actor.x, actor.y), r = 165 * this.camera.zoom;
-        const g = ctx.createRadialGradient(p.x, p.y, 10, p.x, p.y, r); g.addColorStop(0, 'rgba(191,194,148,.08)'); g.addColorStop(1, 'rgba(191,194,148,0)');
-        ctx.fillStyle = g; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+        const light = this.radialSprite('night-light', [[0,'rgba(191,194,148,.08)'], [1,'rgba(191,194,148,0)']], 4);
+        ctx.drawImage(light, p.x - r, p.y - r, r * 2, r * 2);
       }
       ctx.restore();
     } else if (state.missionIndex === 3) {
@@ -613,39 +694,92 @@ export class Renderer {
     } else if (state.missionIndex === 1) {
       ctx.fillStyle = 'rgba(133,75,35,.06)'; ctx.fillRect(0, 0, w, h);
     }
-    if (!view.reducedMotion) {
-      // Airborne dust. Low contrast and bounded count, never obscures the unit silhouettes.
-      for (let i = 0; i < 32; i++) {
-        const x = (hash(i + 2) * w + time * (4 + hash(i + 99) * 8)) % (w + 60) - 30;
-        const y = (hash(i + 23) * h + Math.sin(time * .3 + i) * 8) % h;
-        ctx.fillStyle = `rgba(223,203,158,${.07 + hash(i + 35) * .08})`; ctx.fillRect(x, y, 1 + hash(i + 56) * 2, 1);
+    if (!view.reducedMotion && this.quality !== 'performance') {
+      // The particles retain their seeded appearance without hashing each frame.
+      const count = this.quality === 'high' ? 32 : 12;
+      ctx.fillStyle = '#dfcb9e';
+      for (let i = 0; i < count; i++) {
+        const dust = this.dust[i];
+        const x = (dust.x * w + time * dust.speed) % (w + 60) - 30;
+        const y = (dust.y * h + Math.sin(time * .3 + dust.phase) * 8) % h;
+        ctx.globalAlpha = dust.alpha; ctx.fillRect(x, y, dust.size, 1);
       }
+      ctx.globalAlpha = 1;
     }
-    const vignette = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .3, w / 2, h / 2, Math.hypot(w, h) * .57);
-    vignette.addColorStop(0, 'rgba(13,22,18,0)'); vignette.addColorStop(1, view.menu ? 'rgba(11,20,16,.48)' : 'rgba(11,20,16,.3)');
-    ctx.fillStyle = vignette; ctx.fillRect(0, 0, w, h);
+    if (view.menu || this.quality !== 'performance') {
+      ctx.globalAlpha = view.menu ? .48 : this.quality === 'high' ? .3 : .22;
+      ctx.drawImage(this.atmosphereSprites().vignette, 0, 0, w, h); ctx.globalAlpha = 1;
+    }
     const player = (state.squad || []).find(s => s.id === state.playerId);
     if (player && !view.menu) {
       const pressure = clamp(finite(player.suppression), 0, 1);
       const injured = 1 - clamp(player.hp / (player.maxHp || 100), 0, 1);
       if (pressure > .1 || injured > .5) {
-        const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .25, w / 2, h / 2, Math.hypot(w, h) * .6);
-        g.addColorStop(0, 'rgba(102,47,28,0)'); g.addColorStop(1, `rgba(102,47,28,${Math.max(pressure * .25, (injured - .5) * .5)})`);
-        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+        // Health/suppression feedback stays present at every graphics level.
+        ctx.globalAlpha = Math.max(pressure * .25, (injured - .5) * .5);
+        ctx.drawImage(this.atmosphereSprites().damage, 0, 0, w, h); ctx.globalAlpha = 1;
       }
     }
   }
 
-  render(state, view = {}) {
+  keepDesktopActorClear(player, world, obstacles) {
+    if (!Array.isArray(obstacles) || !obstacles.length) return;
+    const margin = 32, width = this.width, height = this.height, zoom = this.camera.zoom;
+    // The app measures HUD geometry outside the rendering loop and replaces
+    // this array when it changes. The renderer never asks the DOM for layout.
+    if (this.desktopObstacleSource !== obstacles || this.desktopObstacleWidth !== width || this.desktopObstacleHeight !== height) {
+      this.desktopObstacleSource = obstacles; this.desktopObstacleWidth = width; this.desktopObstacleHeight = height;
+      this.desktopObstacles = obstacles.filter(r => r && [r.left,r.top,r.right,r.bottom].every(Number.isFinite) && r.right > r.left && r.bottom > r.top && r.right > 0 && r.bottom > 0 && r.left < width && r.top < height)
+        .map(r => ({left:Math.max(-margin,r.left-margin),top:Math.max(-margin,r.top-margin),right:Math.min(width+margin,r.right+margin),bottom:Math.min(height+margin,r.bottom+margin)}));
+    }
+    const blocked = this.desktopObstacles;
+    if (!blocked.length) return;
+    const point = this.worldToScreen(player.x, player.y), halfW = width / zoom / 2, halfH = height / zoom / 2;
+    // Keep extra framing bounded even if panels leave no fully clear position.
+    const extraX = Math.min(360, width * .35) / zoom, extraY = Math.min(360, height * .35) / zoom;
+    const minCameraX = (world.width <= halfW * 2 ? world.width / 2 : halfW) - extraX;
+    const maxCameraX = (world.width <= halfW * 2 ? world.width / 2 : world.width - halfW) + extraX;
+    const minCameraY = (world.height <= halfH * 2 ? world.height / 2 : halfH) - extraY;
+    const maxCameraY = (world.height <= halfH * 2 ? world.height / 2 : world.height - halfH) + extraY;
+    const left = Math.max(margin, (player.x - maxCameraX) * zoom + width / 2);
+    const right = Math.min(width - margin, (player.x - minCameraX) * zoom + width / 2);
+    const top = Math.max(margin, (player.y - maxCameraY) * zoom + height / 2);
+    const bottom = Math.min(height - margin, (player.y - minCameraY) * zoom + height / 2);
+    if (right < left || bottom < top) return;
+    const obstructed = (x,y) => blocked.some(r => x > r.left && x < r.right && y > r.top && y < r.bottom);
+    let x = clamp(point.x,left,right), y = clamp(point.y,top,bottom);
+    if (obstructed(x,y)) {
+      // The nearest clear point around a union of rectangles lies on one of
+      // their edges (or the original axis). Checking both axes also handles
+      // stacked and overlapping panels without alternating between them.
+      const xs = [x,left,right], ys = [y,top,bottom];
+      for (const rect of blocked) { xs.push(clamp(rect.left,left,right),clamp(rect.right,left,right)); ys.push(clamp(rect.top,top,bottom),clamp(rect.bottom,top,bottom)); }
+      let best = Infinity, bestX, bestY;
+      for (const cx of xs) for (const cy of ys) {
+        const cost = (cx-point.x)**2 + (cy-point.y)**2;
+        if (cost < best && !obstructed(cx,cy)) { best=cost; bestX=cx; bestY=cy; }
+      }
+      if (!Number.isFinite(best)) return;
+      x=bestX; y=bestY;
+    }
+    this.camera.x += (point.x-x) / zoom;
+    this.camera.y += (point.y-y) / zoom;
+  }
+
+  updateCamera(state, view = {}) {
     if (!state || !state.world) return;
     const world = state.world, time = finite(view.time, state.time || 0), now = globalThis.performance?.now() ?? Date.now();
     const delta = Math.min(.06, Math.max(.001, (now - this.lastRender) / 1000 || 1 / 60)); this.lastRender = now;
-    if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) { this.makeMap(world, state.missionIndex); this.cameraReady = false; }
+    if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) {
+      const sameLayout = this.mapCache && Number.isFinite(state.seed) && this.mapSeed === state.seed && this.mapMission === state.missionIndex && this.mapCache.width === world.width && this.mapCache.height === world.height;
+      if (sameLayout) this.mapIdentity = world;
+      else { this.makeMap(world, state.missionIndex); this.mapSeed = state.seed; this.cameraReady = false; }
+    }
     const player = (state.squad || []).find(s => view.followActorId && s.id === view.followActorId) || (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
     this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu;
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;
-    let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .65, 1.65);
+    let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .8, 1.4);
     let tx = player.x, ty = player.y;
     // Keep the soldier in the usable battlefield between the HUD and thumb controls.
     if (!view.menu && !view.showMap) {
@@ -668,6 +802,11 @@ export class Renderer {
       tx = world.width * .55 + (view.reducedMotion ? 0 : Math.sin(time * .025) * 140);
       ty = world.height * .48 + (view.reducedMotion ? 0 : Math.cos(time * .023) * 80);
     }
+    if (!view.touch && !view.menu && !view.showMap && view.pointer && finite(view.lookahead) > 0) {
+      const amount = clamp(finite(view.lookahead), 0, 1);
+      tx += clamp((view.pointer.x - this.width / 2) / this.width, -.5, .5) * 240 / zoom * amount;
+      ty += clamp((view.pointer.y - this.height / 2) / this.height, -.5, .5) * 160 / zoom * amount;
+    }
     const halfW = this.width / zoom / 2, halfH = this.height / zoom / 2;
     if (!view.showMap) {
       // A small amount of outside-map framing prevents the boundary from pinning soldiers beneath HUD panels.
@@ -683,25 +822,43 @@ export class Renderer {
     }
     const layoutKey = `${this.width}:${this.height}:${safe.left}:${safe.top}:${safe.right}:${safe.bottom}:${!!view.touch}`;
     const snap = !this.cameraReady || this.lastPlayerId !== state.playerId || view.showMap || this.lastMapView !== !!view.showMap || this.lastMenuView !== !!view.menu || this.lastLayoutKey !== layoutKey;
-    const smoothing = snap || view.reducedMotion ? 1 : 1 - Math.exp(-delta * 12);
+    const smoothing = snap || view.reducedMotion ? 1 : 1 - Math.exp(-delta * (view.touch ? 12 : 18));
     this.camera.x += (tx - this.camera.x) * smoothing; this.camera.y += (ty - this.camera.y) * smoothing; this.camera.zoom += (zoom - this.camera.zoom) * smoothing;
+    // Apply the visibility constraint after smoothing so it cannot interpolate
+    // through a HUD panel. Input mapping then uses this exact camera all frame.
+    if (!view.touch && !view.menu && !view.showMap) this.keepDesktopActorClear(player,world,view.desktopObstacles);
     this.cameraReady = true; this.lastPlayerId = state.playerId; this.lastMapView = !!view.showMap; this.lastMenuView = !!view.menu;
     this.lastLayoutKey = layoutKey;
+  }
+
+  render(state, view = {}) {
+    if (!state?.world) return;
+    if (!view.cameraPrepared || !this.cameraReady) this.updateCamera(state, view);
+    const world = state.world, time = finite(view.time, state.time || 0), zoom = this.camera.zoom, safe = this.safeRect;
+    this.quality = ['performance','balanced','high'].includes(view.quality) ? view.quality : 'balanced';
     const ctx = this.ctx;
+    ctx.imageSmoothingQuality = this.quality === 'high' ? 'high' : 'low';
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = view.showMap ? '#101b17' : '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
     ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
     // A muted strip of ground fills the limited camera overscan; the dark perimeter still marks the map edge.
-    const overscan = view.touch ? Math.max(this.width, this.height) / zoom : 80;
+    const overscan = view.touch ? Math.max(this.width, this.height) / zoom : Math.max(80, this.width / zoom / 2 - this.camera.x, this.camera.x + this.width / zoom / 2 - world.width, this.height / zoom / 2 - this.camera.y, this.camera.y + this.height / zoom / 2 - world.height);
     if (!view.showMap) { ctx.fillStyle = '#6d6550'; ctx.fillRect(-overscan, -overscan, world.width + overscan * 2, world.height + overscan * 2); }
-    ctx.drawImage(this.mapCache, 0, 0);
+    // Bound the source work to the visible district instead of resampling the whole city.
+    const left = clamp(Math.floor(this.camera.x - this.width / zoom / 2) - 1, 0, world.width);
+    const top = clamp(Math.floor(this.camera.y - this.height / zoom / 2) - 1, 0, world.height);
+    const right = clamp(Math.ceil(this.camera.x + this.width / zoom / 2) + 1, 0, world.width);
+    const bottom = clamp(Math.ceil(this.camera.y + this.height / zoom / 2) + 1, 0, world.height);
+    if (right > left && bottom > top) ctx.drawImage(this.mapCache, left, top, right-left, bottom-top, left, top, right-left, bottom-top);
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
     this.drawObjective(state, time, view); this.drawOrder(state, time, view);
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
-    this.visibleEnemies = (state.enemies || []).filter(a => a.alive !== false && this.actorVisible(state, a));
-    const actors = [...(state.civilians || []), ...(state.survivors || []), ...this.visibleEnemies, ...(state.squad || [])];
+    this.visibleEnemies.length = 0;
+    for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
+    const actors = this.actorBuffer; actors.length = 0;
+    for (const group of [state.civilians, state.survivors, this.visibleEnemies, state.squad]) for (const actor of group || []) if (this.inView(actor.x, actor.y, 65)) actors.push(actor);
     actors.sort((a, b) => a.y - b.y);
-    for (const actor of actors) if (this.inView(actor.x, actor.y, 65)) this.drawActor(ctx, actor, state, time, view);
+    for (const actor of actors) this.drawActor(ctx, actor, state, time, view);
     this.drawEffects(ctx, state, time);
     for (const smoke of state.smokes || []) if (this.inView(smoke.x, smoke.y, finite(smoke.radius, 90) * 1.5)) this.drawSmoke(ctx, smoke, time);
     // The wreck's rising plume stays separate from gameplay smoke and drifts with the wind.
@@ -709,21 +866,14 @@ export class Renderer {
     for (const wreck of wrecks) if (this.inView(wreck.x, wreck.y, 220)) {
       for (let i = 0; i < 5; i++) {
         const drift = ((time * 8 + i * 27) % 140), r = 11 + drift * .21, x = wreck.x - 18 + drift * .35, y = wreck.y - drift * .6;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(34,37,30,${.28 * (1 - drift / 150)})`); g.addColorStop(1, 'rgba(34,37,30,0)');
-        ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        const plume = this.radialSprite('wreck-plume', [[0,'rgba(34,37,30,1)'], [1,'rgba(34,37,30,0)']]);
+        ctx.globalAlpha = .28 * (1 - drift / 150); ctx.drawImage(plume, x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1;
       }
     }
     ctx.restore();
     if (!view.showMap) this.drawAtmosphere(state, time, view);
     this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
-    if (view.pointer && !view.menu && !view.showMap) {
-      const x = view.pointer.x, y = view.pointer.y;
-      if (Number.isFinite(x) && Number.isFinite(y)) {
-        ctx.strokeStyle = 'rgba(220,232,204,.8)'; ctx.lineWidth = 1;
-        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) line(ctx, x + dx * 5, y + dy * 5, x + dx * 10, y + dy * 10, 'rgba(220,232,204,.8)', 1);
-        circle(ctx, x, y, 1, '#dce8cc');
-      }
-    }
+    this.drawDesktopAim(state, view);
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';

@@ -2,11 +2,13 @@
 // Source attribution and editing notes are in audio/CREDITS.txt.
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const MASTER_GAIN = .44;
 const SAMPLE_FILES = { rifle: 'rifle-shot.mp3', hostile: 'hostile-shot.mp3', rotor: 'rotor-loop.mp3', wind: 'wind.mp3' };
 
 export class GameAudio {
   constructor() {
     this.enabled = true; this.context = null; this.master = null; this.noise = null;
+    this.levels = { master: 1, effects: 1, ambience: 1 }; this.effectsBus = null; this.ambienceBus = null;
     this.voices = new Set(); this.loops = new Map(); this.samples = new Map(); this.sampleStatus = {};
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
@@ -21,7 +23,10 @@ export class GameAudio {
         const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
         if (!AudioContextClass) { this.unavailable = true; return false; }
         const context = this.context = new AudioContextClass({ latencyHint: 'interactive' });
-        this.master = context.createGain(); this.master.gain.value = this.enabled ? .44 : 0;
+        this.master = context.createGain(); this.master.gain.value = this.enabled ? MASTER_GAIN * this.levels.master : 0;
+        this.effectsBus = context.createGain(); this.effectsBus.gain.value = this.levels.effects;
+        this.ambienceBus = context.createGain(); this.ambienceBus.gain.value = this.levels.ambience;
+        this.effectsBus.connect(this.master); this.ambienceBus.connect(this.master);
         const limiter = context.createDynamicsCompressor();
         limiter.threshold.value = -12; limiter.knee.value = 8; limiter.ratio.value = 10;
         limiter.attack.value = .002; limiter.release.value = .16;
@@ -78,7 +83,7 @@ export class GameAudio {
     const filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 2400;
     const convolver = c.createConvolver(); convolver.buffer = impulse;
     this.reverbReturn = c.createGain(); this.reverbReturn.gain.value = 0;
-    this.reverbInput.connect(filter); filter.connect(convolver); convolver.connect(this.reverbReturn); this.reverbReturn.connect(this.master);
+    this.reverbInput.connect(filter); filter.connect(convolver); convolver.connect(this.reverbReturn); this.reverbReturn.connect(this.effectsBus);
   }
 
   _makeEngine() {
@@ -94,10 +99,28 @@ export class GameAudio {
 
   setEnabled(enabled) {
     this.enabled = Boolean(enabled);
+    this._applyLevels();
+    if (!this.enabled) this.stop();
+  }
+
+  setLevels(levels = {}) {
+    for (const key of ['master', 'effects', 'ambience']) {
+      if (Number.isFinite(levels?.[key])) this.levels[key] = clamp(levels[key], 0, 1);
+    }
+    this._applyLevels();
+    return { ...this.levels };
+  }
+
+  _applyLevels() {
     if (!this.context || !this.master) return;
     const now = this.context.currentTime;
-    this.master.gain.cancelScheduledValues(now); this.master.gain.setTargetAtTime(this.enabled ? .44 : 0, now, .018);
-    if (!this.enabled) this.stop();
+    for (const [node, value] of [
+      [this.master, this.enabled ? MASTER_GAIN * this.levels.master : 0],
+      [this.effectsBus, this.levels.effects], [this.ambienceBus, this.levels.ambience],
+    ]) {
+      if (!node) continue;
+      node.gain.cancelScheduledValues(now); node.gain.setTargetAtTime(value, now, .018);
+    }
   }
 
   _ready() { return Boolean(this.enabled && this.context?.state === 'running'); }
@@ -131,7 +154,7 @@ export class GameAudio {
     source.connect(high); high.connect(low); low.connect(envelope);
     let panner = null;
     if (c.createStereoPanner) { panner = c.createStereoPanner(); panner.pan.value = clamp(pan, -.9, .9); envelope.connect(panner); }
-    const output = panner || envelope; output.connect(this.master);
+    const output = panner || envelope; output.connect(this.effectsBus);
     let send = null;
     if (wet && this.reverbInput) { send = c.createGain(); send.gain.value = wet; output.connect(send); send.connect(this.reverbInput); }
     const voice = { source, envelope, priority, nodes: [source, envelope, low, high, panner, send] };
@@ -152,8 +175,8 @@ export class GameAudio {
       low.type = 'lowpass'; low.frequency.value = lowpass; high.type = 'highpass'; high.frequency.value = highpass;
       volume.gain.value = 0; source.connect(high); high.connect(low); low.connect(volume);
       let panner = null;
-      if (c.createStereoPanner) { panner = c.createStereoPanner(); volume.connect(panner); panner.connect(this.master); }
-      else volume.connect(this.master);
+      if (c.createStereoPanner) { panner = c.createStereoPanner(); volume.connect(panner); panner.connect(this.ambienceBus); }
+      else volume.connect(this.ambienceBus);
       loop = { buffer, source, volume, low, high, panner }; this.loops.set(key, loop);
       source.onended = () => { for (const node of [source, volume, low, high, panner]) if (node) { try { node.disconnect(); } catch {} } };
       source.start();

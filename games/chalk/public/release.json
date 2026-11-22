@@ -1,1 +1,39 @@
-{"game":"CHALK","version":"1.3.0","date":"2026-11-22","missions":4,"roles":["leader","member"],"multiplayer":{"mode":"private online co-op","humans":2,"squadSize":4,"aiFillsOpenSlots":true,"rolesSwappable":true,"reconnect":true},"rendering":"Canvas 2D","audio":"recorded rifle, rotor and wind samples with spatial processing","mobile":"full-screen HUD, adaptive thumb controls, contextual assistance"}
+{
+  "game": "CHALK",
+  "version": "1.4.0",
+  "date": "2026-11-22",
+  "missions": 4,
+  "roles": [
+    "leader",
+    "member"
+  ],
+  "multiplayer": {
+    "mode": "private online co-op",
+    "humans": 2,
+    "squadSize": 4,
+    "aiFillsOpenSlots": true,
+    "rolesSwappable": true,
+    "reconnect": true
+  },
+  "rendering": "Canvas 2D",
+  "audio": "recorded rifle, rotor and wind samples with spatial processing",
+  "mobile": "full-screen HUD, adaptive thumb controls, contextual assistance",
+  "desktop": {
+    "camera": "stable by default; camera and mouse input share one transform",
+    "aim": "single adjustable reticle with optional cover cue",
+    "settings": [
+      "graphics quality",
+      "render resolution",
+      "frame limit",
+      "camera zoom",
+      "camera lookahead",
+      "reticle",
+      "reload on empty",
+      "master/effects/ambience volume",
+      "HUD scale/detail",
+      "performance display"
+    ],
+    "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
+    "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
+  }
+}

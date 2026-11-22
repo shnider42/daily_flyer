@@ -27,7 +27,7 @@ function soundEvent(s,type,a,extra={}){
   if(s.soundEvents.length>128)s.soundEvents.splice(0,s.soundEvents.length-128);
 }
 function rectContains(r,x,y,pad=0){return x>=r.x-pad&&x<=r.x+r.w+pad&&y>=r.y-pad&&y<=r.y+r.h+pad;}
-function segmentRectEntry(a,b,r,pad=0){
+export function segmentRectEntry(a,b,r,pad=0){
   let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;
   for(const [p,q] of [[-dx,a.x-r.x+pad],[dx,r.x+r.w+pad-a.x],[-dy,a.y-r.y+pad],[dy,r.y+r.h+pad-a.y]]){
     if(Math.abs(p)<1e-8){if(q<0)return Infinity;}else{const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return Infinity;}
@@ -289,11 +289,14 @@ function shoot(s,a,angle,isPlayer=false){
   if(a.team==='enemy'){a.burst=(a.burst||0)+1;a.cooldown=a.burst%3===0?range(s,1.25,1.75):.19;}
   else a.cooldown=isPlayer?.15:(a.role==='support'?.4:.56);
   const spread=a.team==='enemy'?a.accuracy:isPlayer?.018+.045*(a.suppression||0)+(a.moving?.02:0):.04;
-  angle+=range(s,-spread,spread);a.angle=angle;
-  const x=a.x+Math.cos(angle)*20,y=a.y+Math.sin(angle)*20;
+  const shotAngle=angle+range(s,-spread,spread);
+  // Projectile dispersion should not pull a human's aim away from the cursor.
+  // Preserve the same random draw and projectile trajectory as before.
+  if(!isPlayer)a.angle=shotAngle;
+  const x=a.x+Math.cos(shotAngle)*20,y=a.y+Math.sin(shotAngle)*20;
   const metadata={team:a.team,actorId:a.id,weapon:weaponFor(a)};
-  s.bullets.push({id:++s.nextId,x,y,px:x,py:y,vx:Math.cos(angle)*930,vy:Math.sin(angle)*930,team:a.team,owner:a.id,weapon:metadata.weapon,damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage:24,ttl:.64});
-  effect(s,'muzzle',x,y,.075,angle,metadata);soundEvent(s,'shot',a,{x,y});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
+  s.bullets.push({id:++s.nextId,x,y,px:x,py:y,vx:Math.cos(shotAngle)*930,vy:Math.sin(shotAngle)*930,team:a.team,owner:a.id,weapon:metadata.weapon,damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage:24,ttl:.64});
+  effect(s,'muzzle',x,y,.075,shotAngle,metadata);soundEvent(s,'shot',a,{x,y});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
 }
 function safeShot(s,a,t){
   const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy;
