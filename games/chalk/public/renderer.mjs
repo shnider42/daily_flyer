@@ -641,7 +641,7 @@ export class Renderer {
     const world = state.world, time = finite(view.time, state.time || 0), now = globalThis.performance?.now() ?? Date.now();
     const delta = Math.min(.06, Math.max(.001, (now - this.lastRender) / 1000 || 1 / 60)); this.lastRender = now;
     if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) { this.makeMap(world, state.missionIndex); this.cameraReady = false; }
-    const player = (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
+    const player = (state.squad || []).find(s => view.followActorId && s.id === view.followActorId) || (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
     this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu;
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;

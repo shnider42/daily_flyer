@@ -2,6 +2,8 @@ import { MISSIONS, createGame, step, issueOrder, setRole, getObjective, hasLineO
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
 import { stickVector, touchIntent } from './touch-input.mjs';
+import { CoopClient } from './coop-client.mjs';
+import { coopServerURL } from './network-config.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
@@ -35,6 +37,15 @@ let safeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 let viewportSize = '';
 let touchAim = null;
 let interactionPointer = null;
+let coop = null;
+let onlineEpoch = null;
+let onlineRole = null;
+let onlineConnection = 'idle';
+let coopDialogMode = 'create';
+let coopBusy = false;
+let lastRoomRoster = '';
+const neutralInput = () => ({ moveX:0,moveY:0,aimX:null,aimY:null,fire:false,interact:false,reload:false,smoke:false,sprint:false });
+const online = () => !!coop?.active || !!game?.coop;
 const keys = new Set();
 const pointer = { x: 0, y: 0, valid: false, fire: false };
 const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, aimStrength: 0, interact: false };
@@ -101,8 +112,11 @@ function clearInput() {
   document.querySelectorAll('.stick-knob').forEach(knob => knob.style.transform = 'translate(0, 0)');
   document.querySelectorAll('.joystick').forEach(el => { el.classList.remove('active', 'firing', 'sprinting'); el.style.removeProperty('--stick-origin-x'); el.style.removeProperty('--stick-origin-y'); });
   $('touchInteract').classList.remove('working');
+  if (online()) coop.clearInput();
 }
 function startMission(index = selectedMission) {
+  if (online()) coop.leave();
+  onlineEpoch = null; onlineRole = null; document.body.classList.remove('online'); $('coopBadge').hidden = true;
   selectedMission = clamp(index, 0, MISSIONS.length - 1);
   game = createGame({ mission: selectedMission, role: preferences.role, difficulty: preferences.difficulty, seed: Date.now() >>> 0 });
   mode = 'playing'; paused = false; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
@@ -117,8 +131,10 @@ function startMission(index = selectedMission) {
   toast(touch ? 'Left: move · Right: aim, push farther to fire' : 'WASD to move. Follow the amber objective marker.');
 }
 function returnToMenu() {
+  if (online()) coop.leave();
+  onlineEpoch = null; onlineRole = null; $('coopOverlay').hidden = true; $('coopBadge').hidden = true;
   mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.stop();
-  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order');
+  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'online');
   $('menu').hidden = false; $('hud').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = true;
   missionMenu(); fit(); $('deploy').focus({ preventScroll: true });
 }
@@ -126,12 +142,13 @@ function pause(value = true) {
   if (mode !== 'playing') return;
   paused = value; accumulator = 0; clearInput(); closeOrders();
   $('pauseOverlay').hidden = !value;
-  $('switchRole').textContent = game.role === 'leader' ? 'Switch to squad member' : 'Take command of the squad';
+  updatePauseUI();
   if (value) { audio.stop(); $('resume').focus(); } else { audio.unlock(); audio.setEnabled(preferences.sound); canvas.focus({ preventScroll: true }); }
 }
 function updateOrders() {
   const leader = game.role === 'leader';
-  $('orderLabel').textContent = leader ? 'SQUAD ORDERS' : 'REQUESTS TO HALE';
+  const leaderPeer = online() ? coop.room?.players.find(p => p.role === 'leader' && p.connected) : null;
+  $('orderLabel').textContent = leader ? 'SQUAD ORDERS' : leaderPeer ? `REQUESTS TO ${leaderPeer.name.toUpperCase()}` : 'REQUESTS TO HALE';
   const items = leader ? [['move', '', 'Move'], ['follow', 'Q', 'Regroup'], ['hold', 'H', 'Hold'], ['assist', 'F', 'Assist']] : [['ready', 'Q', 'Ready'], ['wait', 'H', 'Wait'], ['help', 'F', 'Need help']];
   $('orderButtons').innerHTML = items.map(([type, key, label]) => `<button data-order="${type}">${key ? `<kbd>${key}</kbd>` : ''}${label}</button>`).join('');
   ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
@@ -147,7 +164,8 @@ function doOrder(type, point) {
     syncMapUI();
     return;
   }
-  issueOrder(game, type, point);
+  if (online()) coop.order(type, point).catch(() => {});
+  else issueOrder(game, type, point);
   clearInput(); placingOrder = false; closeOrders();
   if (touch && type === 'move') showMap = false;
   syncMapUI();
@@ -170,7 +188,7 @@ function toggleMap() {
   clearInput(); closeOrders(); showMap = !showMap; placingOrder = false; syncMapUI();
 }
 function cancelOrder() { clearInput(); placingOrder = false; if (touch) showMap = false; syncMapUI(); }
-function canAct() { return mode === 'playing' && !paused && !showMap && !placingOrder && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
+function canAct() { return mode === 'playing' && !paused && (!online() || coop.connected) && !showMap && !placingOrder && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
 
 function assistAction() {
   const p = player(); if (!p || !p.alive || p.downed || !game) return null;
@@ -206,12 +224,15 @@ $('motionToggle').addEventListener('change', event => { preferences.reducedMotio
 $('touchToggle').addEventListener('change', event => { clearInput(); closeOrders(); touch = event.target.checked; preferences.touchControls = touch; $('touchControls').hidden = !touch || mode === 'menu'; save(); fit(); updateHUD(); });
 $('pauseButton').addEventListener('click', () => pause());
 $('resume').addEventListener('click', () => pause(false));
-$('switchRole').addEventListener('click', () => { const role = game.role === 'leader' ? 'member' : 'leader'; clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); setRole(game, role); chooseRole(role); updateOrders(); pause(false); updateHUD(); toast(role === 'leader' ? 'You have command of the squad.' : 'Hale has command. Stay with the squad.'); });
-$('restart').addEventListener('click', () => startMission());
+$('switchRole').addEventListener('click', () => {
+  if (online()) { clearInput(); runCoopAction(() => coop.swapRoles()); return; }
+  const role = game.role === 'leader' ? 'member' : 'leader'; clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); setRole(game, role); chooseRole(role); updateOrders(); pause(false); updateHUD(); toast(role === 'leader' ? 'You have command of the squad.' : 'Hale has command. Stay with the squad.');
+});
+$('restart').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission());
 $('returnMenu').addEventListener('click', returnToMenu);
 $('resultMenu').addEventListener('click', returnToMenu);
-$('replay').addEventListener('click', () => startMission());
-$('nextMission').addEventListener('click', () => { if (selectedMission + 1 < MISSIONS.length) { selectedMission++; returnToMenu(); } else returnToMenu(); });
+$('replay').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission());
+$('nextMission').addEventListener('click', () => { if (online()) { runCoopAction(() => coop.returnToLobby()); return; } if (selectedMission + 1 < MISSIONS.length) { selectedMission++; returnToMenu(); } else returnToMenu(); });
 $('mapToggle').addEventListener('click', toggleMap);
 $('touchOrder').addEventListener('click', () => {
   if (mode !== 'playing' || paused || showMap || placingOrder) return;
@@ -288,14 +309,15 @@ canvas.addEventListener('lostpointercapture', () => pointer.fire = false);
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 window.addEventListener('keydown', event => {
   if (document.querySelector('dialog[open]')) return;
-  const overlay = !$('pauseOverlay').hidden ? $('pauseOverlay') : !$('resultOverlay').hidden ? $('resultOverlay') : null;
+  const overlay = !$('coopOverlay').hidden ? $('coopOverlay') : !$('pauseOverlay').hidden ? $('pauseOverlay') : !$('resultOverlay').hidden ? $('resultOverlay') : null;
   if (overlay && event.code === 'Tab') {
-    const focusable = [...overlay.querySelectorAll('button, input')].filter(el => !el.disabled && !el.hidden && el.offsetParent !== null);
+    const focusable = [...overlay.querySelectorAll('button, input, select')].filter(el => !el.disabled && !el.hidden && el.offsetParent !== null);
     const first = focusable[0], last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     return;
   }
+  if (overlay === $('coopOverlay') && event.code === 'Escape') { event.preventDefault(); returnToMenu(); return; }
   if (mode !== 'playing') return;
   if (event.code === 'Escape') {
     event.preventDefault();
@@ -365,6 +387,10 @@ function updateHUD() {
   $('missionClock').textContent = clock(game.time);
   $('leaderIntent').textContent = game.role === 'member' ? `HALE / ${game.leaderOrder || 'Stay together.'}` : game.order?.label || '';
   $('squad').innerHTML = game.squad.map(s => `<div class="squad-member ${s.id === game.playerId ? 'active' : ''} ${s.downed || !s.alive ? 'downed' : ''}"><strong>${escape(s.name)}${s.id === game.playerId ? ' ·' : ''}</strong><small>${s.downed ? 'DOWN' : !s.alive ? 'LOST' : escape(s.role || s.kind)}</small><div class="squad-health"><span style="width:${clamp(s.hp / s.maxHp, 0, 1) * 100}%"></span></div></div>`).join('');
+  if (online()) {
+    const peers = coop.room?.players || [];
+    $('squad').innerHTML = game.squad.map(s => { const peer=peers.find(p=>p.actorId===s.id && p.connected); return `<div class="squad-member ${s.id===game.playerId?'active':''} ${s.downed||!s.alive?'downed':''}" data-human="${!!peer}" title="${escape(peer?peer.name:'Computer controlled')}"><strong>${escape(s.name)}${s.id===game.playerId?' ·':''}</strong><small>${s.downed?'DOWN':!s.alive?'LOST':peer?escape(peer.name):'AI · '+escape(s.role)}</small><div class="squad-health"><span style="width:${clamp(s.hp/s.maxHp,0,1)*100}%"></span></div></div>`; }).join('');
+  }
   if (p) {
     const health = clamp(Math.round(p.hp / p.maxHp * 100), 0, 100);
     $('playerName').textContent = p.name.toUpperCase(); $('healthText').textContent = `${health}%`; $('healthBar').style.width = `${health}%`;
@@ -378,7 +404,9 @@ function updateHUD() {
     ($('touchReloadLabel') || $('touchReload')).textContent = p.reloadTimer > 0 ? 'Loading' : 'Reload';
     $('touchReload').setAttribute('aria-label', p.reloadTimer > 0 ? 'Reloading' : 'Reload weapon');
     $('touchReload').classList.toggle('reloading', p.reloadTimer > 0);
-    $('downedBanner').hidden = !p.downed;
+    $('downedBanner').hidden = !p.downed && p.alive;
+    $('downedTitle').textContent = p.alive ? 'YOU ARE DOWN' : 'SOLDIER LOST';
+    $('downedDetail').textContent = p.alive ? 'Your squad is coming to help. Stay with them.' : online() ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.';
     $('touchReload').disabled = p.reloadTimer > 0 || !p.reserve || p.ammo === p.magSize;
     $('touchSmoke').disabled = !p.smokes;
   }
@@ -390,7 +418,7 @@ function updateHUD() {
   $('touchInteract').setAttribute('aria-label', assist?.detail || 'Assist — move near someone who needs help');
   const messages = touch ? game.radio.filter(m => game.time-m.time < 8).slice(-1) : game.radio.slice(-3); const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
-  const interactText = typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
+  const interactText = online() ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
   let hint = interactText;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? (touch ? 'Follow the amber marker. Your squad follows you.' : 'Follow the amber marker. Right click to send your squad.') : 'Stay near Hale. He will lead you to the objective.';
@@ -399,11 +427,13 @@ function updateHUD() {
   $('desktopHint').style.visibility = preferences.guidance === 'expert' ? 'hidden' : 'visible';
   $('hud').dataset.stage = String(game.stageIndex); $('hud').dataset.status = game.status;
   $('hud').dataset.role = game.role;
+  $('hud').dataset.online = String(online());
+  if (online()) { $('hud').dataset.room = coop.room?.code || ''; $('hud').dataset.humans = String(game.humanIds?.length || 0); }
   measureSafeInsets();
 }
 
 function finishMission() {
-  mode = 'result'; clearInput(); closeOrders(); audio.stop();
+  mode = 'result'; paused = false; $('pauseOverlay').hidden = true; clearInput(); closeOrders(); audio.stop();
   const won = game.status === 'won';
   const fitSquad = game.squad.filter(s => s.alive && !s.downed).length;
   const harmed = game.stats.civilianHarm || 0;
@@ -418,14 +448,190 @@ function finishMission() {
   $('resultStats').innerHTML = stats.map(([value,label]) => `<div class="result-stat"><strong>${escape(value)}</strong><span>${escape(label)}</span></div>`).join('');
   $('nextMission').hidden = !won;
   $('nextMission').textContent = selectedMission + 1 < MISSIONS.length ? 'NEXT MISSION BRIEFING' : 'RETURN TO FIELD ORDERS';
+  $('replay').disabled = false; $('coopResultWait').hidden = true; $('resultMenu').textContent = 'Back to field orders';
+  if (online()) {
+    $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = 'SQUAD BRIEFING';
+    $('replay').disabled = !coop.isHost; $('replay').textContent = 'Replay with squad';
+    $('coopResultWait').hidden = coop.isHost; $('resultMenu').textContent = 'Leave squad';
+  } else $('replay').textContent = 'Replay mission';
   $('resultOverlay').hidden = false;
-  (won ? $('nextMission') : $('replay')).focus();
+  (online() && !coop.isHost ? $('resultMenu') : won ? $('nextMission') : $('replay')).focus();
+}
+
+function updatePauseUI() {
+  const shared = online();
+  $('pauseTitle').textContent = shared ? 'Field menu.' : 'Paused.';
+  $('pauseDescription').textContent = shared ? (coop.connected ? 'The online mission continues while this menu is open.' : onlineConnection === 'error' ? 'The connection ended. Leave this squad to create or join another.' : 'Reconnecting to your squad. Your soldier is covered by AI while disconnected.') : 'The squad is waiting.';
+  $('switchRole').textContent = shared ? 'Swap player roles' : game?.role === 'leader' ? 'Switch to squad member' : 'Take command of the squad';
+  $('switchRole').disabled = shared && (!coop.isHost || !coop.connected);
+  $('restart').textContent = shared ? 'Restart for squad' : 'Restart mission';
+  $('restart').disabled = shared && (!coop.isHost || !coop.connected);
+  $('returnMenu').textContent = shared ? 'Leave squad' : 'Field orders';
+  $('coopLobbyButton').hidden = !shared || !coop.isHost;
+  $('coopLobbyButton').disabled = shared && !coop.connected;
+  $('coopPauseInfo').hidden = !shared;
+  if (shared) {
+    const room = coop.room;
+    const humans = room?.players.filter(p => p.connected).length || 0;
+    $('coopPauseSummary').textContent = `Room ${room?.code || '—'} · ${humans} human${humans === 1 ? '' : 's'} + ${4-humans} AI · You ${game?.role === 'leader' ? 'lead' : 'follow'}.${coop.isHost ? ' You host this room.' : ' The host can swap roles.'}`;
+  }
+}
+
+function coopMessage(text, error = false) {
+  $('coopMessage').textContent = text || '';
+  $('coopMessage').classList.toggle('error', error);
+}
+function coopError(error) {
+  const message = error?.message || String(error || 'Could not connect to the squad.');
+  coopBusy = false; $('coopConnect').disabled = false;
+  if (!$('coopOverlay').hidden) coopMessage(message, true); else toast(message);
+  if (game?.coop && !coop?.active) pause(true);
+}
+async function runCoopAction(action) {
+  try { await action(); } catch { /* The client's onError keeps the failure visible. */ }
+}
+function updateCoopStatus(status) {
+  onlineConnection = status.state;
+  $('coopBadge').classList.toggle('reconnecting', status.state !== 'connected');
+  if (status.state === 'connecting') coopMessage('Connecting to the squad service… The first connection can take a moment.');
+  if (status.state === 'reconnecting') { clearInput(); coopMessage('Connection interrupted. Rejoining your squad…'); }
+  if (status.state === 'connected') {
+    coopBusy = false; $('coopConnect').disabled = false; coopMessage('');
+    const current = new URL(location.href);
+    if (current.searchParams.has('room')) { current.searchParams.delete('room'); history.replaceState(null,'',current.href); }
+  }
+  if (status.state === 'error') {
+    coopBusy = false; $('coopConnect').disabled = false; $('coopBadge').textContent = 'OFFLINE';
+    coopMessage(status.reason || 'The connection ended. Try creating or joining a squad again.', true);
+    for (const id of ['coopStart','coopSwapLobby','coopMission','coopDifficulty']) $(id).disabled = true;
+  }
+  if (coop?.room) renderCoopRoom(coop.room);
+  if (paused) updatePauseUI();
+}
+function openCoop(kind, code = '') {
+  if (!coopServerURL()) { toast('The co-op service is not available in this build.'); return; }
+  if (online()) returnToMenu();
+  coopDialogMode = kind; coopBusy = false;
+  $('coopOverlay').hidden = false; $('coopConnectForm').hidden = false; $('coopLobby').hidden = true;
+  $('coopTitle').textContent = kind === 'join' ? 'Join your squad.' : 'Stay together.';
+  $('coopDescription').textContent = 'Two people. Four soldiers. AI fills the open positions.';
+  $('coopCodeLabel').hidden = kind !== 'join'; $('coopCode').required = kind === 'join'; $('coopCode').value = code.toUpperCase();
+  $('coopName').value = preferences.callsign || 'Player';
+  $('coopConnect').textContent = kind === 'join' ? 'JOIN SQUAD' : 'CREATE SQUAD'; $('coopConnect').disabled = false;
+  $('coopConnectBrief').textContent = kind === 'join' ? 'Enter the code your friend shared. You take the other player position.' : `${MISSIONS[selectedMission].title} · ${preferences.difficulty} · You ${preferences.role === 'leader' ? 'lead as Hale' : 'play as Mercer; your friend can lead'}.`;
+  coopMessage(''); $('coopName').focus();
+}
+function renderCoopRoom(room) {
+  if (!room) return;
+  const connected = room.players.filter(p => p.connected);
+  $('coopBadge').hidden = false;
+  $('coopBadge').textContent = onlineConnection === 'connected' ? `${connected.length}/2 CO-OP` : onlineConnection === 'error' ? 'OFFLINE' : 'REJOINING';
+  $('coopBadge').setAttribute('aria-label', `Online squad ${room.code}, ${connected.length} player${connected.length === 1 ? '' : 's'}. Open squad details`);
+  $('coopRoomCode').textContent = room.code;
+  const rosterKey = JSON.stringify([room.players,coop.session?.playerId]);
+  if (lastRoomRoster !== rosterKey) {
+    $('coopRoster').innerHTML = [['Hale','Squad leader'],['Mercer','Squad mate'],['Ames','Medic'],['Webb','Support']].map(([name,role],slot) => {
+      const peer = room.players.find(p => p.slot === slot), mine = peer?.id === coop.session?.playerId;
+      const occupant = peer ? `${peer.name}${mine?' · You':''}${peer.connected?'':' · Reconnecting'}` : slot < 2 ? 'Open for friend · AI controls' : 'Computer controlled';
+      return `<div class="coop-roster-row ${mine?'mine':''}"><div><strong>${escape(name)} <small>${escape(role)} · ${escape(occupant)}</small></strong></div><span class="coop-seat ${peer?.connected?'human':peer?'offline':''}">${peer?.connected?'HUMAN':'AI'}</span></div>`;
+    }).join(''); lastRoomRoster = rosterKey;
+    if (game?.coop) updateOrders();
+  }
+  $('coopMission').value = room.mission; $('coopDifficulty').value = room.difficulty;
+  const canManage = coop.connected && coop.isHost;
+  $('coopMission').disabled = !canManage; $('coopDifficulty').disabled = !canManage;
+  $('coopSwapLobby').disabled = !canManage; $('coopStart').disabled = !canManage;
+  $('coopLobbyHint').textContent = coop.isHost ? `You host the room. ${connected.length === 1 ? 'Your friend can join now or during the mission. AI holds the other positions.' : 'Both players are connected. You can swap who leads before deploying.'}` : 'The host chooses the mission and deploys the squad. You can move and fight independently once deployed.';
+  if (room.status === 'lobby') {
+    const entering = $('coopLobby').hidden || mode !== 'menu';
+    mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; onlineEpoch = null; onlineRole = null;
+    clearInput(); closeOrders(); audio.stop();
+    document.body.classList.add('in-menu','online'); document.body.classList.remove('touch','map-open','placing-order');
+    $('menu').hidden = false; $('hud').hidden = true; $('touchControls').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true;
+    $('coopOverlay').hidden = false; $('coopConnectForm').hidden = true; $('coopLobby').hidden = false;
+    $('coopTitle').textContent = 'Squad briefing.'; $('coopDescription').textContent = 'Hale and Mercer are player positions. Ames and Webb stay with you as AI.';
+    fit(); if (entering) $('coopStart').disabled ? $('coopCopyLink').focus() : $('coopStart').focus();
+  }
+  if (paused) updatePauseUI();
+  if (mode === 'result') { $('replay').disabled = !canManage; $('nextMission').hidden = !coop.isHost; $('coopResultWait').hidden = coop.isHost; }
+}
+function receiveCoopState(state) {
+  const room = coop?.room; if (!room || room.status === 'lobby' || !state) return;
+  const fresh = onlineEpoch !== room.epoch || !game?.coop;
+  const changedRole = onlineRole !== null && onlineRole !== state.role;
+  const keepMenu = paused && changedRole && game?.coop && game.seed === state.seed && game.missionIndex === state.missionIndex;
+  game = state;
+  if (fresh) {
+    onlineEpoch = room.epoch; selectedMission = state.missionIndex;
+    mode = 'playing'; paused = !!keepMenu; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
+    clearInput(); closeOrders(); audio.stop();
+    document.body.classList.remove('in-menu','orders-open','map-open','placing-order'); document.body.classList.add('online');
+    $('menu').hidden = true; $('coopOverlay').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = !paused; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
+    $('missionName').textContent = game.mission.title.toUpperCase();
+    syncMapUI(); if (!paused) { audio.unlock(); audio.setEnabled(preferences.sound); } fit();
+    if (!document.querySelector('dialog[open]')) (paused ? $('resume') : canvas).focus({preventScroll:true});
+  }
+  if (fresh || changedRole) {
+    clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); updateOrders();
+    if (changedRole) toast(state.role === 'leader' ? 'You now lead the squad.' : 'You now play as the squad mate.');
+  }
+  onlineRole = state.role;
+  if (paused) updatePauseUI();
+  if (fresh) updateHUD();
+  if (state.status !== 'playing' && mode !== 'result') finishMission();
+}
+async function copyCoopInvite() {
+  if (!coop?.room) return;
+  const invite = new URL(location.href); invite.search = ''; invite.hash = ''; invite.searchParams.set('room',coop.room.code);
+  try { await navigator.clipboard.writeText(invite.href); toast('Invite link copied.'); }
+  catch { toast(`Share room code ${coop.room.code} with your friend.`); }
+}
+function initializeCoop() {
+  const url = coopServerURL();
+  coop = new CoopClient({url:url || undefined,onRoom:renderCoopRoom,onState:receiveCoopState,onStatus:updateCoopStatus,onError:coopError});
+  $('coopMission').innerHTML = MISSIONS.map((mission,i)=>`<option value="${i}">${escape(mission.title)}</option>`).join('');
+  $('coopCreate').addEventListener('click',()=>openCoop('create'));
+  $('coopJoinOpen').addEventListener('click',()=>openCoop('join'));
+  $('coopConnectForm').addEventListener('submit',async event=>{
+    event.preventDefault(); if(coopBusy)return;
+    audio.unlock(); audio.setEnabled(preferences.sound);
+    coopBusy=true; $('coopConnect').disabled=true;
+    preferences.callsign=$('coopName').value.trim().slice(0,20)||'Player'; save();
+    try {
+      if(coopDialogMode==='join') await coop.join({code:$('coopCode').value.trim().toUpperCase(),name:preferences.callsign});
+      else await coop.create({name:preferences.callsign,role:preferences.role,mission:selectedMission,difficulty:preferences.difficulty});
+    } catch { /* onError owns the visible message. */ }
+    finally { coopBusy=false; $('coopConnect').disabled=false; }
+  });
+  for(const id of ['coopClose','coopCancelConnect','coopLeave']) $(id).addEventListener('click',returnToMenu);
+  for(const id of ['coopCopyLink','coopCopyPause']) $(id).addEventListener('click',copyCoopInvite);
+  $('coopBadge').addEventListener('click',()=>pause(true));
+  $('coopStart').addEventListener('click',()=>{ audio.unlock(); audio.setEnabled(preferences.sound); runCoopAction(()=>coop.start()); });
+  $('coopSwapLobby').addEventListener('click',()=>runCoopAction(()=>coop.swapRoles()));
+  $('coopLobbyButton').addEventListener('click',()=>runCoopAction(()=>coop.returnToLobby()));
+  $('coopMission').addEventListener('change',()=>runCoopAction(()=>coop.configure({mission:Number($('coopMission').value)})));
+  $('coopDifficulty').addEventListener('change',()=>runCoopAction(()=>coop.configure({difficulty:$('coopDifficulty').value})));
+  const invite = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+  const hasInvite = /^[A-Z0-9]{6}$/.test(invite);
+  if (url && coop.session && (!hasInvite || coop.session.code === invite)) {
+    $('coopOverlay').hidden=false; $('coopConnectForm').hidden=true; $('coopLobby').hidden=true;
+    $('coopTitle').textContent='Rejoining your squad.'; $('coopDescription').textContent='Recovering your room and player position.';
+    coop.resume().catch(()=>{ $('coopConnectForm').hidden=false; $('coopConnect').textContent='CREATE SQUAD'; $('coopName').value=preferences.callsign||'Player'; });
+  } else if (hasInvite) openCoop('join',invite);
 }
 
 function frame(now) {
   const dt = lastTime ? Math.min((now - lastTime) / 1000, .1) : 0;
   lastTime = now;
-  if (game && mode === 'playing' && !paused && !document.querySelector('dialog[open]')) {
+  if (game?.coop && mode === 'playing') {
+    coop.input(!paused && !document.querySelector('dialog[open]') ? controls() : neutralInput());
+    game = coop.getState(dt) || game;
+    actions.reload = false; actions.smoke = false;
+    if (!paused && coop.connected) audio.tick(game, dt);
+    hudTimer += dt;
+    if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
+    if (game.status !== 'playing') finishMission();
+  } else if (game && mode === 'playing' && !paused && !document.querySelector('dialog[open]')) {
     accumulator += dt;
     let count = 0;
     while (accumulator >= 1 / 60 && count++ < 6) {
@@ -438,8 +644,10 @@ function frame(now) {
     hudTimer += dt;
     if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
   }
-  renderer.render(game || menuScene, { time: now / 1000, menu: mode === 'menu', paused, pointer: pointer.valid ? pointer : null, showMap, placingOrder, guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, aim: touchAim });
+  const followActorId = game?.coop && player()?.alive === false ? game.squad.find(s => s.alive && !s.downed)?.id : null;
+  renderer.render(game || menuScene, { time: now / 1000, menu: mode === 'menu', paused, pointer: pointer.valid ? pointer : null, showMap, placingOrder, guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, aim: touchAim, followActorId });
   requestAnimationFrame(frame);
 }
 
-chooseRole(preferences.role); soundUI(); missionMenu(); fit(); requestAnimationFrame(frame);
+chooseRole(preferences.role); soundUI(); missionMenu(); fit();
+initializeCoop(); requestAnimationFrame(frame);
