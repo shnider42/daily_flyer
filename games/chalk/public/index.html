@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#141715">
+  <meta name="description" content="CHALK: a gritty, top-down squad game inspired by the Battle of Mogadishu. Lead a four-person squad or follow an AI leader through four rescue and extraction missions.">
+  <title>CHALK — Mogadishu, 1993</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="in-menu">
+  <main id="game" aria-label="CHALK squad game">
+    <div id="battlefield"><canvas id="world" tabindex="0" aria-label="Battlefield. Move with W A S D, aim with the mouse, hold left mouse to fire. E to assist, R to reload. Press Escape for controls."></canvas></div>
+    <div class="film-grain" aria-hidden="true"></div>
+    <div id="menu" class="menu-screen">
+      <header class="menu-header"><a href="https://dfe-directory.onrender.com/" class="dfe-link">DAILY FLYER <span>GAMES</span></a><span class="edition">SQUAD CAMPAIGN / 01</span></header>
+      <div class="menu-layout">
+        <section class="title-block">
+          <p class="eyebrow"><span class="small-cross" aria-hidden="true">+</span> MOGADISHU · 3–4 OCTOBER 1993</p>
+          <h1>CHALK<span class="title-line"></span></h1>
+          <p class="tagline">Stay together.<br> Bring them home.</p>
+          <p class="intro">Four soldiers. A city in chaos. A short operation becomes a fight to reach the wounded—and get out.</p>
+          <div class="role-picker" role="group" aria-label="Your role">
+            <button type="button" data-role="leader" class="role-choice selected" aria-pressed="true"><span class="role-symbol" aria-hidden="true">▰</span><span><strong>Lead the squad</strong><small>You choose the orders.</small></span></button>
+            <button type="button" data-role="member" class="role-choice" aria-pressed="false"><span class="role-symbol" aria-hidden="true">▱</span><span><strong>Follow the leader</strong><small>AI commands. You fight alongside.</small></span></button>
+          </div>
+          <p class="role-explanation" id="roleExplanation">Control Hale. Move your squad, call a hold, and send help to the wounded.</p>
+        </section>
+        <section class="operation-panel" aria-label="Mission selection">
+          <div class="section-label"><span>FIELD ORDERS</span><span id="campaignCount">0 / 4 COMPLETE</span></div>
+          <div id="missionList" class="mission-list"></div>
+          <div class="briefing"><p class="brief-time" id="briefTime"></p><h2 id="briefTitle">Cordon</h2><p id="briefDescription"></p><p id="briefGoal" class="brief-goal"></p></div>
+          <div class="settings-row"><label>Difficulty<select id="difficulty"><option value="story">Story</option><option value="standard" selected>Standard</option><option value="veteran">Veteran</option></select></label><label>Guidance<select id="guidance"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></label></div>
+          <button id="deploy" class="primary-button">DEPLOY TO CORDON</button>
+          <p class="start-hint">Single player · Four-person squad · Desktop & touch</p>
+        </section>
+      </div>
+      <footer class="menu-footer"><p>A fictional squad. A real historical setting.</p><div><button class="text-button" data-dialog="contextDialog">Historical context</button><button class="text-button" data-dialog="helpDialog">Controls</button><button id="menuSound" class="text-button">Sound on</button></div></footer>
+    </div>
+
+    <div id="hud" class="hud" hidden>
+      <header class="topbar"><div class="field-title"><strong>CHALK</strong><span id="missionName">CORDON</span></div><div class="top-actions"><span id="missionClock">00:00</span><button id="mapToggle" title="Map (M)" aria-label="Toggle battlefield map">MAP</button><button id="pauseButton" title="Pause (Escape)" aria-label="Pause game">Ⅱ</button></div></header>
+      <section class="objective-panel" aria-label="Current objective"><div class="objective-heading"><span class="objective-mark" aria-hidden="true">◇</span><div><p id="objectiveTitle"></p><p id="objectiveDetail"></p></div><span id="stageNumber"></span></div><div class="progress-track"><span id="objectiveProgress"></span></div></section>
+      <section id="squad" class="squad-panel" aria-label="Squad status"></section>
+      <div id="leaderIntent" class="leader-intent"></div>
+      <div id="orderHint" class="order-hint" hidden>Choose a destination on the battlefield. Escape cancels.</div>
+      <div id="downedBanner" class="downed-banner" hidden>YOU ARE DOWN<span>Your squad is coming to help. Stay with them.</span></div>
+      <div id="radio" class="radio-feed" aria-label="Radio messages" aria-live="polite"></div>
+      <div id="contextHint" class="context-hint"></div>
+      <div class="bottom-strip"><section class="orders" aria-label="Squad orders"><span id="orderLabel" class="order-label">SQUAD ORDERS</span><div id="orderButtons"></div></section><section class="weapon-panel" aria-label="Your equipment"><div><span id="playerName">HALE</span><span id="healthText">100%</span></div><div class="health-track"><span id="healthBar"></span></div><p class="ammo"><strong id="ammo">30</strong><span id="reserve">/ 150</span><span id="reloadLabel"></span></p><p id="smokeCount">SMOKE × 2</p></section></div>
+      <div id="desktopHint" class="desktop-hint">WASD move · Mouse fire · E assist · R reload · G smoke · Right click order</div>
+      <div id="mapLegend" class="map-legend" hidden><span class="ally-key">● Squad</span><span class="objective-key">◇ Objective</span><span>○ Civilians</span><span>M to close</span></div>
+    </div>
+
+    <div id="touchControls" class="touch-controls" hidden>
+      <div id="moveStick" class="joystick" role="application" aria-label="Movement thumbstick"><div class="stick-cross"></div><span class="stick-knob"></span><span class="stick-label">MOVE</span></div>
+      <div class="touch-actions"><button id="touchInteract" class="touch-assist">ASSIST</button><div><button id="touchReload">RELOAD</button><button id="touchSmoke">SMOKE</button></div><button id="touchOrder">SQUAD ORDERS</button></div>
+      <div id="aimStick" class="joystick aim-stick" role="application" aria-label="Aim and fire thumbstick"><div class="stick-cross"></div><span class="stick-knob"></span><span class="stick-label">AIM / FIRE</span></div>
+    </div>
+
+    <div id="pauseOverlay" class="overlay" hidden><section class="dialog-card pause-card" role="dialog" aria-modal="true" aria-labelledby="pauseTitle"><p class="eyebrow">HOLD POSITION</p><h2 id="pauseTitle">Paused.</h2><p>The squad is waiting.</p><button id="resume" class="primary-button">RESUME MISSION</button><button id="switchRole" class="secondary-button">Switch to squad member</button><div class="pause-options"><label><input id="soundToggle" type="checkbox" checked> Sound</label><label><input id="motionToggle" type="checkbox"> Reduce motion</label><label><input id="touchToggle" type="checkbox"> Touch controls</label></div><div class="pause-links"><button class="text-button" data-dialog="helpDialog">Controls</button><button id="restart" class="text-button">Restart mission</button><button id="returnMenu" class="text-button">Field orders</button></div></section></div>
+    <div id="resultOverlay" class="overlay" hidden><section class="dialog-card result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle"><p id="resultEyebrow" class="eyebrow">MISSION COMPLETE</p><h2 id="resultTitle">Accounted for.</h2><p id="resultDescription"></p><div id="resultStats" class="result-stats"></div><p class="debrief-note">The measure of the mission is who makes it home.</p><button id="nextMission" class="primary-button">NEXT MISSION</button><button id="replay" class="secondary-button">Replay mission</button><button id="resultMenu" class="text-button">Back to field orders</button></section></div>
+
+    <dialog id="contextDialog" class="info-dialog"><form method="dialog"><button class="close-button" aria-label="Close historical context">×</button></form><p class="eyebrow">THE SETTING</p><h2>Mogadishu, 1993.</h2><p>On 3–4 October 1993, a U.S. raid in Mogadishu became a prolonged rescue operation after two Black Hawk helicopters were shot down. The battle took place amid Somalia’s civil conflict and a wider humanitarian and political crisis.</p><p>The overnight relief effort included U.S., Malaysian, and Pakistani forces. Somali civilians suffered in the fighting. The city was home to people, not simply a battlefield.</p><p><strong>CHALK is a fictionalized game, not a reconstruction.</strong> The four-person squad, names, dialogue, maps, sequence lengths, and outcomes are invented or compressed. It does not reproduce the film’s script or depict individual historical soldiers.</p><p>The missions emphasize squad survival, rescue, civilian protection, and withdrawal. Civilians are unarmed, AI squad members do not target them, and civilian harm is recorded.</p><h3>Historical references</h3><ul><li><a href="https://history.army.mil/portals/143/Images/Publications/catalog/70-81-1.pdf" target="_blank" rel="noopener noreferrer">U.S. Army Center of Military History: The U.S. Army in Somalia, 1992–1994</a></li><li><a href="https://www.army.mil/article/113311/we_didnt_leave_anybody_behind_10th_mountain_division_veterans_reflect_on_mogadishu_rescue_missi" target="_blank" rel="noopener noreferrer">U.S. Army: veterans reflect on the Mogadishu rescue</a></li><li><a href="https://history.state.gov/milestones/1993-2000/somalia" target="_blank" rel="noopener noreferrer">U.S. Department of State: Somalia, 1992–1993</a></li></ul></dialog>
+    <dialog id="helpDialog" class="info-dialog"><form method="dialog"><button class="close-button" aria-label="Close controls">×</button></form><p class="eyebrow">FIELD MANUAL</p><h2>Keep your squad close.</h2><p>Move between the amber objective markers. Your squad fights alongside you, helps the wounded, and needs to reach extraction together. Use walls to break line of sight. Smoke creates a short window to move.</p><div class="control-list"><div><kbd>W A S D</kbd><span>Move (arrow keys also work)</span></div><div><kbd>MOUSE</kbd><span>Aim; hold left button to fire</span></div><div><kbd>SHIFT</kbd><span>Sprint</span></div><div><kbd>E</kbd><span>Hold to assist, rescue, or interact</span></div><div><kbd>R</kbd><span>Reload</span></div><div><kbd>G</kbd><span>Throw smoke toward your aim</span></div><div><kbd>RIGHT CLICK</kbd><span>Order squad to a position (leader)</span></div><div><kbd>Q / H / F</kbd><span>Regroup / Hold / Assist; in member mode: Ready / Wait / Help</span></div><div><kbd>M / ESC</kbd><span>Map / Pause</span></div></div><h3>On a phone</h3><p>Left stick moves. Drag the right stick to aim and fire. Use <strong>Assist</strong> beside wounded soldiers and objectives. The <strong>Squad orders</strong> button opens commands; choose Move, then tap the map. Landscape gives you more room, and portrait is supported.</p><h3>Your two roles</h3><p><strong>Lead:</strong> play as Hale and give the squad destinations and priorities. <strong>Follow:</strong> play as Mercer while Hale leads the mission, announces intentions, and waits if you fall behind. You can switch roles from pause.</p><p>Progress and preferences stay in this browser. A mission restarts if you reload the page. No account is needed.</p></dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </main>
+  <noscript>This game needs JavaScript enabled.</noscript>
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>

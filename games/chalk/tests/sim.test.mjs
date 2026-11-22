@@ -1,0 +1,83 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {MISSIONS,createGame,step,issueOrder,setRole,getObjective,hasLineOfSight,findPath} from '../public/sim.mjs';
+
+const pl=s=>s.squad.find(a=>a.id===s.playerId);
+function clearThreats(s){s.enemies=[];s.maxEnemies=0;}
+function run(s,seconds,input={}){for(let i=0;i<seconds*30&&s.status==='playing';i++)step(s,input,1/30);}
+function travel(s,target,maxSeconds=60){
+  for(let i=0;i<maxSeconds*30&&s.status==='playing';i++){
+    const p=pl(s);if(Math.hypot(p.x-target.x,p.y-target.y)<35)return true;
+    const route=findPath(s,p,target),next=route[0];if(!next)return false;const dx=next.x-p.x,dy=next.y-p.y,d=Math.hypot(dx,dy);step(s,{moveX:dx/d,moveY:dy/d,interact:true},1/30);
+  }return false;
+}
+
+test('all four missions create isolated, deterministic states and objectives',()=>{
+  assert.equal(MISSIONS.length,4);
+  for(let m=0;m<4;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
+});
+test('collision and pathfinding keep mission routes reachable',()=>{
+  for(let m=0;m<4;m++){const s=createGame({mission:m,seed:4});for(const stage of s.stages){const route=findPath(s,pl(s),stage);assert.ok(route.length,`mission ${m}, ${stage.title}`);for(const p of route)assert.ok(!s.world.buildings.some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h));}}
+  const s=createGame();clearThreats(s);const b=s.world.buildings[0];pl(s).x=b.x-15;pl(s).y=b.y+30;run(s,2,{moveX:1});assert.ok(pl(s).x<b.x);assert.equal(hasLineOfSight(s,{x:b.x-50,y:b.y+50},{x:b.x+b.w+50,y:b.y+50}),false);
+});
+test('commander orders are different from member requests',()=>{
+  const s=createGame();assert.ok(issueOrder(s,'hold',{x:680,y:1340}));assert.equal(s.order.type,'hold');const leaderId=s.playerId;setRole(s,'member');assert.notEqual(s.playerId,leaderId);assert.equal(issueOrder(s,'move',{x:100,y:100}),false);assert.equal(issueOrder(s,'wait'),true);assert.equal(s.waitUntil,12);issueOrder(s,'ready');assert.equal(s.waitUntil,0);assert.equal(issueOrder(s,'help'),true);
+});
+test('AI leader waits for a separated human and responds to wait',()=>{
+  const s=createGame({role:'member'});clearThreats(s);pl(s).x=2120;pl(s).y=1720;const leader=s.squad[0],before={x:leader.x,y:leader.y};run(s,2);assert.match(s.leaderOrder,/Waiting/);assert.ok(Math.hypot(leader.x-before.x,leader.y-before.y)<25);pl(s).x=leader.x+35;pl(s).y=leader.y;issueOrder(s,'wait');run(s,2);assert.match(s.leaderOrder,/Holding/);issueOrder(s,'ready');run(s,2);assert.ok(Math.hypot(leader.x-before.x,leader.y-before.y)>50);
+});
+test('magazines, reloads and finite smoke supplies work',()=>{
+  const s=createGame();clearThreats(s);const p=pl(s);p.ammo=2;run(s,.4,{fire:true,aimX:p.x+200,aimY:p.y});assert.equal(p.ammo,0);run(s,3,{reload:true});assert.ok(p.ammo>0);assert.ok(p.reserve<180);step(s,{smoke:true},1/30);assert.equal(p.smokes,2);assert.equal(s.smokes.length,1);run(s,15);assert.equal(s.smokes.length,0);
+});
+test('medic recovers a downed player without ending the mission',()=>{
+  const s=createGame({role:'member'});clearThreats(s);const p=pl(s);p.hp=0;p.downed=true;run(s,12);assert.equal(s.status,'playing');assert.equal(p.downed,false);assert.ok(p.hp>0);
+});
+test('AI never selects civilians and player fire records civilian harm',()=>{
+  const s=createGame();clearThreats(s);const p=pl(s),c=s.civilians[0];c.x=p.x+75;c.y=p.y;c.shelter={x:c.x,y:c.y};run(s,2);assert.equal(c.hp,c.maxHp);run(s,.5,{fire:true,aimX:c.x,aimY:c.y});assert.equal(s.stats.civilianHarm,1);assert.ok(c.hp<c.maxHp);
+});
+test('leader can finish the cordon without killing every enemy',()=>{
+  const s=createGame({mission:0});clearThreats(s);
+  for(let stage=0;stage<3;stage++){const before=s.stageIndex;assert.ok(travel(s,s.stages[before]));run(s,65);assert.ok(s.stageIndex>before);}
+  assert.equal(s.status,'won');assert.equal(s.stats.objectives,3);
+});
+test('all four campaigns progress with an AI leader and a human keeping up',()=>{
+  for(let mission=0;mission<4;mission++){
+    const s=createGame({mission,role:'member',seed:17});clearThreats(s);
+    for(let frame=0;frame<30*420&&s.status==='playing';frame++){
+      const p=pl(s),leader=s.squad.find(a=>a.role==='leader'),d=Math.hypot(p.x-leader.x,p.y-leader.y);let input={interact:true};
+      if(d>47){const next=findPath(s,p,leader)[0];if(next){const dx=next.x-p.x,dy=next.y-p.y,n=Math.hypot(dx,dy);input={...input,moveX:dx/n,moveY:dy/n};}}
+      step(s,input,1/30);
+    }
+    assert.equal(s.status,'won',`${MISSIONS[mission].title}: stage ${s.stageIndex}, ${s.objective?.detail}, ${s.leaderOrder}`);
+    if(mission===1)assert.equal(s.stats.rescued,2);
+    if(mission===2)assert.equal(s.convoyCleared.length,2);
+  }
+});
+test('a squad wipe fails clearly and stops simulation',()=>{
+  const s=createGame();for(const a of s.squad){a.downed=true;a.hp=0;}step(s,{},1/30);assert.equal(s.status,'lost');const time=s.time;step(s,{},1);assert.equal(s.time,time);
+});
+test('recovered crew can be helped again if hit during the escort',()=>{
+  const s=createGame({mission:1});clearThreats(s);const crew=s.survivors[0];crew.stabilized=true;crew.hp=0;crew.downed=true;crew.x=pl(s).x+45;crew.y=pl(s).y+20;run(s,12);assert.equal(crew.downed,false);assert.ok(crew.hp>0);
+});
+test('buildings stop shots before they can hit actors behind them',()=>{
+  const s=createGame();clearThreats(s);const b=s.world.buildings[0],p=pl(s),c=s.civilians[0];p.x=b.x-35;p.y=b.y+60;c.x=b.x+b.w+35;c.y=p.y;c.shelter={x:c.x,y:c.y};run(s,2,{fire:true,aimX:c.x,aimY:c.y});assert.equal(c.hp,c.maxHp);assert.equal(s.stats.civilianHarm,0);
+});
+test('a shot hits an actor in front of a wall before reaching the wall in the same step',()=>{
+  const s=createGame();clearThreats(s);const wall=s.world.buildings[0],civilian=s.civilians[0];
+  civilian.x=wall.x-17;civilian.y=wall.y+70;civilian.shelter={x:civilian.x,y:civilian.y};
+  const origin={x:wall.x-60,y:civilian.y};
+  s.bullets=[{id:9000,x:origin.x,y:origin.y,px:origin.x,py:origin.y,vx:2000,vy:0,team:'squad',owner:s.playerId,damage:24,ttl:1}];
+  step(s,{},.05);
+  assert.equal(civilian.hp,civilian.maxHp-24);assert.equal(s.stats.civilianHarm,1);
+});
+test('final convoy loading cannot complete with a teammate outside or downed',()=>{
+  const s=createGame({mission:2});clearThreats(s);s.stageIndex=s.stages.length-1;
+  const objective=s.stages[s.stageIndex];s.phaseTime=objective.duration-.1;
+  for(let i=0;i<s.squad.length;i++){s.squad[i].x=objective.x+i*22;s.squad[i].y=objective.y;}
+  const straggler=s.squad[3];straggler.x=objective.x-500;
+  run(s,.3);assert.equal(s.status,'playing');assert.ok(s.phaseTime<objective.duration);
+  straggler.x=objective.x+50;straggler.y=objective.y;straggler.hp=0;straggler.downed=true;
+  run(s,.3);assert.equal(s.status,'playing');assert.ok(s.phaseTime<objective.duration);
+  straggler.downed=false;straggler.hp=60;
+  run(s,.5);assert.equal(s.status,'won');
+});

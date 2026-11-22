@@ -1,0 +1,676 @@
+import { hasLineOfSight } from './sim.mjs';
+
+const TAU = Math.PI * 2;
+const COLORS = {
+  sand: '#817359', road: '#55534a', ally: '#84c7b6', player: '#c4efda',
+  enemy: '#db735b', objective: '#e9b969', civilian: '#c5c4dc', ink: '#151d1b'
+};
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function hash(n) { n = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return n - Math.floor(n); }
+function colorPick(list, n) { return list[Math.floor(hash(n) * list.length)]; }
+function circle(ctx, x, y, radius, fill, stroke, line = 1) {
+  ctx.beginPath(); ctx.arc(x, y, Math.max(0, radius), 0, TAU);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = line; ctx.stroke(); }
+}
+function line(ctx, x1, y1, x2, y2, color, width = 1) {
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+}
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+function newCanvas(width, height) {
+  const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
+  canvas.width = width; canvas.height = height; return canvas;
+}
+
+/** Draws the battlefield at native map resolution once, then composites dynamic units. */
+export class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', { alpha: false });
+    this.width = Math.max(1, canvas.clientWidth || 960);
+    this.height = Math.max(1, canvas.clientHeight || 640);
+    this.dpr = 1;
+    this.camera = { x: 1200, y: 950, zoom: 1 };
+    this.mapCache = null;
+    this.mapIdentity = null;
+    this.lastPlayerId = null;
+    this.lastRender = 0;
+    this.cameraReady = false;
+    this.visibleEnemies = [];
+    this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
+  }
+
+  resize(width, height, dpr = 1) {
+    this.width = Math.max(1, Math.round(width));
+    this.height = Math.max(1, Math.round(height));
+    this.dpr = clamp(dpr || 1, 1, 2);
+    const bw = Math.round(this.width * this.dpr), bh = Math.round(this.height * this.dpr);
+    if (this.canvas.width !== bw || this.canvas.height !== bh) {
+      this.canvas.width = bw; this.canvas.height = bh;
+    }
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+  }
+
+  screenToWorld(x, y) {
+    return { x: (x - this.width / 2) / this.camera.zoom + this.camera.x, y: (y - this.height / 2) / this.camera.zoom + this.camera.y };
+  }
+
+  worldToScreen(x, y) {
+    return { x: (x - this.camera.x) * this.camera.zoom + this.width / 2, y: (y - this.camera.y) * this.camera.zoom + this.height / 2 };
+  }
+
+  inView(x, y, padding = 100) {
+    const p = this.worldToScreen(x, y);
+    return p.x >= -padding && p.y >= -padding && p.x <= this.width + padding && p.y <= this.height + padding;
+  }
+
+  makeMap(world, missionIndex) {
+    const w = finite(world.width, 2400), h = finite(world.height, 1900);
+    const cache = newCanvas(w, h), ctx = cache.getContext('2d');
+    ctx.fillStyle = COLORS.sand; ctx.fillRect(0, 0, w, h);
+    // Large faded patches break the uniform ground without a noisy per-frame filter.
+    for (let i = 0; i < 220; i++) {
+      const x = hash(i * 4 + 5) * w, y = hash(i * 4 + 6) * h;
+      ctx.fillStyle = i % 3 ? 'rgba(209,184,135,.045)' : 'rgba(45,42,33,.035)';
+      ctx.beginPath(); ctx.ellipse(x, y, 20 + hash(i) * 130, 8 + hash(i + 1) * 50, hash(i + 3) * TAU, 0, TAU); ctx.fill();
+    }
+    for (const road of world.roads || []) this.drawRoad(ctx, road);
+    // Dust, grit and old tire marks are all baked into the ground layer.
+    for (let i = 0; i < 7800; i++) {
+      const x = hash(i + 44) * w, y = hash(i + 155) * h;
+      ctx.fillStyle = i % 2 ? 'rgba(24,26,20,.12)' : 'rgba(238,212,163,.12)';
+      ctx.fillRect(x, y, 1 + hash(i + 9) * 2.4, .6 + hash(i + 21) * 1.5);
+    }
+    for (const building of world.buildings || []) this.drawBuildingShadow(ctx, building);
+    for (const prop of world.props || []) {
+      if (!this.isDynamicProp(prop)) this.drawProp(ctx, prop, 0, false);
+    }
+    for (const building of world.buildings || []) this.drawBuilding(ctx, building);
+    // Uneven edge establishes the playable district without a bright game-board border.
+    ctx.strokeStyle = 'rgba(35,34,27,.55)'; ctx.lineWidth = 14; ctx.strokeRect(0, 0, w, h);
+    this.mapCache = cache; this.mapIdentity = world; this.mapMission = missionIndex;
+  }
+
+  drawRoad(ctx, road) {
+    const { x, y } = road, w = road.w ?? road.width ?? 100, h = road.h ?? road.height ?? 100;
+    ctx.fillStyle = '#6c6655'; ctx.fillRect(x - 8, y - 8, w + 16, h + 16);
+    ctx.fillStyle = '#56564e'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = 'rgba(219,195,145,.12)';
+    if (w > h) {
+      ctx.fillRect(x, y, w, 8); ctx.fillRect(x, y + h - 8, w, 8);
+      line(ctx, x, y + 16, x + w, y + 16, 'rgba(32,33,29,.16)', 5);
+      line(ctx, x, y + h - 16, x + w, y + h - 16, 'rgba(32,33,29,.16)', 5);
+      for (let k = 28; k < w; k += 90) { ctx.fillStyle = 'rgba(212,195,153,.12)'; ctx.fillRect(x + k, y + h / 2 - 1, 32, 2); }
+    } else {
+      ctx.fillRect(x, y, 8, h); ctx.fillRect(x + w - 8, y, 8, h);
+      line(ctx, x + 16, y, x + 16, y + h, 'rgba(32,33,29,.16)', 5);
+      line(ctx, x + w - 16, y, x + w - 16, y + h, 'rgba(32,33,29,.16)', 5);
+      for (let k = 28; k < h; k += 90) { ctx.fillStyle = 'rgba(212,195,153,.12)'; ctx.fillRect(x + w / 2 - 1, y + k, 2, 32); }
+    }
+    for (let i = 0; i < 15; i++) {
+      const seed = x * .2 + y * .3 + i * 32;
+      const px = x + hash(seed) * w, py = y + hash(seed + 1) * h;
+      ctx.strokeStyle = 'rgba(28,31,26,.14)'; ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + hash(seed + 3) * 25 - 12, py + 10); ctx.lineTo(px - 6, py + 21); ctx.stroke();
+    }
+  }
+
+  drawBuildingShadow(ctx, b) {
+    const w = b.w ?? b.width, h = b.h ?? b.height;
+    if (!w || !h) return;
+    ctx.fillStyle = 'rgba(29,30,25,.32)';
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + w, b.y); ctx.lineTo(b.x + w + 18, b.y + 27);
+    ctx.lineTo(b.x + w + 18, b.y + h + 27); ctx.lineTo(b.x + 18, b.y + h + 27); ctx.lineTo(b.x, b.y + h); ctx.closePath(); ctx.fill();
+  }
+
+  drawBuilding(ctx, b) {
+    const { x, y } = b, w = b.w ?? b.width, h = b.h ?? b.height;
+    if (!w || !h) return;
+    const seed = x * 1.32 + y * 2.71 + finite(b.tone) * 13;
+    const concrete = b.color || colorPick(['#a29579', '#b09c79', '#958772', '#b5a284', '#a3977d', '#9b8d70'], seed);
+    ctx.fillStyle = '#4c4c3e'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = concrete; ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+    ctx.fillStyle = 'rgba(233,216,174,.22)'; ctx.fillRect(x + 3, y + 3, w - 6, 4); ctx.fillRect(x + 3, y + 7, 3, h - 10);
+    ctx.fillStyle = 'rgba(48,46,34,.28)'; ctx.fillRect(x + 7, y + h - 9, w - 10, 6); ctx.fillRect(x + w - 8, y + 7, 5, h - 12);
+    // Concrete slabs and weather stains.
+    for (let i = 1; i < Math.ceil(w / 58); i++) line(ctx, x + i * 58, y + 9, x + i * 58, y + h - 10, 'rgba(67,61,47,.09)');
+    for (let i = 1; i < Math.ceil(h / 63); i++) line(ctx, x + 9, y + i * 63, x + w - 10, y + i * 63, 'rgba(67,61,47,.055)');
+    for (let i = 0; i < 18; i++) {
+      const px = x + 8 + hash(seed + i * 7) * Math.max(1, w - 20), py = y + 9 + hash(seed + i * 7 + 1) * Math.max(1, h - 20);
+      ctx.fillStyle = 'rgba(59,53,39,.09)'; ctx.fillRect(px, py, 3 + hash(seed + i * 8) * 14, 2);
+    }
+    if (w > 70 && h > 55) {
+      // Roof access shed with a deep doorway and a separate shadow.
+      const sx = x + w - 38, sy = y + 15;
+      ctx.fillStyle = 'rgba(32,33,26,.24)'; ctx.fillRect(sx + 5, sy + 7, 25, 30);
+      ctx.fillStyle = '#777565'; ctx.fillRect(sx, sy, 25, 29);
+      ctx.fillStyle = '#aaa28a'; ctx.fillRect(sx, sy, 25, 5);
+      ctx.fillStyle = '#343c33'; ctx.fillRect(sx + 8, sy + 22, 10, 7);
+      if (hash(seed) > .27) {
+        const tx = x + 25, ty = y + h - 28;
+        circle(ctx, tx + 6, ty + 7, 13, 'rgba(35,36,29,.24)');
+        circle(ctx, tx, ty, 12, '#64695e', '#4f554c', 2);
+        circle(ctx, tx - 3, ty - 3, 6, '#8b8d76');
+        ctx.fillStyle = '#555b4f'; ctx.fillRect(tx - 4, ty - 13, 8, 4);
+      }
+      if (w > 110 && h > 85) {
+        const ax = x + w * .5 - 14, ay = y + h * .45 - 10;
+        ctx.fillStyle = 'rgba(35,36,29,.22)'; ctx.fillRect(ax + 5, ay + 7, 29, 22);
+        ctx.fillStyle = '#6e7569'; ctx.fillRect(ax, ay, 27, 21);
+        for (let k = 4; k < 24; k += 5) line(ctx, ax + k, ay + 3, ax + k, ay + 18, '#a0a393', 2);
+      }
+      if (hash(seed + 22) > .55) {
+        const dx = x + w * .6, dy = y + h - 18;
+        line(ctx, dx, dy + 6, dx, dy - 11, '#454a40', 2);
+        ctx.save(); ctx.translate(dx, dy - 7); ctx.rotate(-.65); ctx.fillStyle = '#c1bfa1'; ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, TAU); ctx.fill(); ctx.restore();
+      }
+    }
+    if (hash(seed + 2) > .62 && w > 60) {
+      // Canvas shade along a street-facing wall.
+      const aw = Math.min(w - 12, 65), ax = x + 6, ay = y + h;
+      ctx.fillStyle = 'rgba(31,33,29,.2)'; ctx.fillRect(ax + 5, ay + 3, aw, 16);
+      ctx.fillStyle = colorPick(['#6b7f72', '#aa7453', '#8e8059', '#9b9a7b'], seed + 8); ctx.fillRect(ax, ay - 2, aw, 13);
+      for (let k = 0; k < aw; k += 13) { ctx.fillStyle = 'rgba(234,224,181,.16)'; ctx.fillRect(ax + k, ay - 2, 5, 13); }
+      line(ctx, ax, ay + 11, ax + aw, ay + 11, '#494e41', 2);
+    }
+    // Small air vents, roof masonry chips and occasional repaired corner.
+    ctx.fillStyle = '#605f50'; ctx.fillRect(x + 10, y + 12, 12, 5);
+    if (hash(seed + 4) > .72) {
+      ctx.fillStyle = '#7b725d'; ctx.beginPath(); ctx.moveTo(x + w, y + h - 25); ctx.lineTo(x + w - 14, y + h - 18); ctx.lineTo(x + w - 23, y + h); ctx.lineTo(x + w, y + h); ctx.fill();
+      for (let k = 0; k < 5; k++) { ctx.fillStyle = '#8d846b'; ctx.fillRect(x + w + hash(seed + k) * 13, y + h + hash(seed + k + 6) * 10, 4, 3); }
+    }
+  }
+
+  isDynamicProp(p) { return ['crash', 'helicopter', 'barricade', 'barrier', 'fire', 'checkpoint'].includes(p.type); }
+
+  drawProp(ctx, p, time = 0, dynamic = true) {
+    if (p.cleared || p.removed || p.active === false && p.type === 'barricade') return;
+    const x = finite(p.x), y = finite(p.y), w = finite(p.w, 30), h = finite(p.h, 20), type = p.type || p.kind || 'rubble';
+    ctx.save(); ctx.translate(x, y); ctx.rotate(finite(p.angle));
+    if (type === 'stadium') {
+      ctx.fillStyle = '#56604a'; ctx.fillRect(0, 0, w, h);
+      roundRect(ctx, 12, 11, w - 24, h - 22, 35, '#9b8968', '#71664c');
+      roundRect(ctx, 23, 19, w - 46, h - 38, 27, '#767d58', '#c5b48c');
+      for (let i = 0; i < 4; i++) {
+        line(ctx, 17, 5 + i * 3, w - 17, 5 + i * 3, '#8b9277', 1);
+        line(ctx, 17, h - 5 - i * 3, w - 17, h - 5 - i * 3, '#8b9277', 1);
+      }
+      ctx.strokeStyle = 'rgba(227,225,191,.5)'; ctx.lineWidth = 1; ctx.strokeRect(41, 27, w - 82, h - 54);
+      line(ctx, w / 2, 27, w / 2, h - 27, 'rgba(227,225,191,.5)'); circle(ctx, w / 2, h / 2, 12, null, 'rgba(227,225,191,.5)');
+      // Aid tents beside the stand identify the final safe area without adding signage to combat streets.
+      ctx.fillStyle = '#bdb99a'; ctx.fillRect(-53, h - 36, 43, 32); ctx.fillRect(-53, h - 79, 43, 32);
+      line(ctx, -31, h - 36, -31, h - 4, '#777b62', 2); line(ctx, -31, h - 79, -31, h - 47, '#777b62', 2);
+      ctx.fillStyle = '#5c7058'; ctx.fillRect(-40, h - 25, 16, 6); ctx.fillRect(-35, h - 30, 6, 16);
+    } else if (type === 'car' || type === 'wreck' || type === 'wrecked-car') {
+      ctx.fillStyle = 'rgba(25,28,23,.3)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 7, w, h);
+      for (const yy of [-h / 2 - 2, h / 2 - 2]) { ctx.fillStyle = '#252c26'; ctx.fillRect(-w / 2 + 6, yy, 9, 4); ctx.fillRect(w / 2 - 15, yy, 9, 4); }
+      roundRect(ctx, -w / 2, -h / 2, w, h, 3, colorPick(['#7d8a7d', '#b4a583', '#896d56', '#84857b'], x + y), '#494d40');
+      ctx.fillStyle = '#414d49'; ctx.fillRect(-w * .12, -h / 2 + 3, w * .23, h - 6);
+      ctx.fillStyle = 'rgba(213,203,163,.21)'; ctx.fillRect(w / 2 - 10, -h / 2 + 3, 6, h - 6);
+      if (type !== 'car') { line(ctx, -w / 2, -h / 2, w / 3, h / 3, '#4a4536', 3); circle(ctx, -w * .3, 0, h * .48, 'rgba(29,30,24,.65)'); }
+    } else if (type === 'tree' || type === 'palm') {
+      ctx.save(); ctx.translate(8, 10); this.drawPalm(ctx, .4, '#3c4530'); ctx.restore();
+      this.drawPalm(ctx, .9, '#63714a');
+      circle(ctx, 0, 0, 4, '#7f7850');
+    } else if (type === 'market' || type === 'stall') {
+      ctx.fillStyle = 'rgba(25,29,23,.23)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 6, w, h);
+      ctx.fillStyle = '#6d5f41'; ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.fillStyle = colorPick(['#a9895e', '#738975', '#ad7758'], x * 3 + y); ctx.fillRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
+      for (let i = -w / 2; i < w / 2; i += 11) { ctx.fillStyle = 'rgba(245,222,171,.15)'; ctx.fillRect(i, -h / 2 - 2, 5, h + 4); }
+      line(ctx, -w / 2, 0, w / 2, 0, 'rgba(42,44,32,.3)');
+    } else if (type === 'sandbag' || type === 'sandbags' || type === 'barricade' || type === 'barrier') {
+      ctx.fillStyle = 'rgba(26,29,24,.28)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 6, w, h);
+      for (let i = -w / 2; i < w / 2; i += 13) {
+        roundRect(ctx, i, -h / 2, Math.min(14, w / 2 - i), h, 4, type.startsWith('barr') ? '#8a7150' : '#9c9270', '#655f47');
+        line(ctx, i + 5, -h / 2 + 2, i + 4, h / 2 - 2, 'rgba(204,191,144,.3)');
+      }
+      if (type === 'barricade' && dynamic) {
+        ctx.strokeStyle = 'rgba(233,185,105,.9)'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.strokeRect(-w / 2 - 5, -h / 2 - 5, w + 10, h + 10); ctx.setLineDash([]);
+      }
+    } else if (type === 'crate' || type === 'supply') {
+      ctx.fillStyle = 'rgba(26,29,24,.25)'; ctx.fillRect(-w / 2 + 4, -h / 2 + 5, w, h);
+      ctx.fillStyle = '#827858'; ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.strokeStyle = '#b0a47c'; ctx.lineWidth = 2; ctx.strokeRect(-w / 2 + 2, -h / 2 + 2, w - 4, h - 4);
+      line(ctx, -w / 2 + 2, -h / 2 + 2, w / 2 - 2, h / 2 - 2, '#5a5941', 2);
+    } else if (type === 'crash' || type === 'helicopter') {
+      this.drawHelicopter(ctx, 0, 0, 0, false, time);
+    } else if (type === 'fire') {
+      this.drawFire(ctx, 0, 0, time, 18);
+    } else if (type === 'lamp') {
+      circle(ctx, 0, 0, 4, '#484f42'); line(ctx, 0, 0, -6, -8, '#40493d', 3); circle(ctx, -6, -8, 3, '#d9c58e');
+    } else {
+      for (let i = 0; i < 7; i++) {
+        const dx = (hash(x + y + i) - .5) * w, dy = (hash(x - y + i + 77) - .5) * h;
+        ctx.save(); ctx.translate(dx, dy); ctx.rotate(hash(i + x) * TAU);
+        ctx.fillStyle = '#555644'; ctx.fillRect(-3 + 2, -3 + 3, 7, 5);
+        ctx.fillStyle = colorPick(['#a4997a', '#8e866a', '#b3a58a'], i + x); ctx.fillRect(-3, -3, 7, 5); ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  drawPalm(ctx, alpha, color) {
+    ctx.save(); ctx.globalAlpha *= alpha;
+    for (let i = 0; i < 7; i++) {
+      ctx.save(); ctx.rotate(i * TAU / 7 + .25); ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(10, -12, 30, -3); ctx.quadraticCurveTo(15, -1, 0, 0); ctx.fill();
+      line(ctx, 3, -2, 28, -3, '#79835b', .7); ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  drawHelicopter(ctx, x, y, angle = 0, flying = false, time = 0) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    if (!flying) {
+      ctx.fillStyle = 'rgba(27,28,23,.65)'; ctx.beginPath(); ctx.ellipse(0, 0, 76, 45, -.2, 0, TAU); ctx.fill();
+      for (let i = 0; i < 19; i++) { const a = hash(i + 6) * TAU, r = 22 + hash(i + 17) * 61; ctx.fillStyle = i % 2 ? '#4d5144' : '#79715b'; ctx.fillRect(Math.cos(a) * r, Math.sin(a) * r * .55, 5 + hash(i) * 8, 4); }
+    }
+    ctx.fillStyle = flying ? '#3d4940' : '#424b3e';
+    ctx.beginPath(); ctx.moveTo(-45, -7); ctx.lineTo(-8, -14); ctx.lineTo(20, -13); ctx.quadraticCurveTo(42, -12, 43, 0); ctx.quadraticCurveTo(42, 14, 20, 14); ctx.lineTo(-8, 14); ctx.lineTo(-45, 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#73806a'; ctx.fillRect(-13, -12, 33, 24);
+    ctx.fillStyle = '#283831'; ctx.beginPath(); ctx.moveTo(23, -10); ctx.lineTo(33, -8); ctx.lineTo(38, 0); ctx.lineTo(23, 0); ctx.fill(); ctx.fillRect(23, 3, 12, 7);
+    ctx.fillStyle = '#38463a'; ctx.fillRect(-79, -4, 45, 8);
+    ctx.fillStyle = '#56624e'; ctx.fillRect(-78, -17, 10, 34);
+    line(ctx, -22, -20, 25, -20, '#262e27', 3); line(ctx, -22, 20, 25, 20, '#262e27', 3);
+    for (const yy of [-20, 20]) { line(ctx, -10, yy, -6, Math.sign(yy) * 12, '#3d4839', 3); line(ctx, 18, yy, 14, Math.sign(yy) * 12, '#3d4839', 3); }
+    ctx.save(); ctx.rotate(flying ? time * 22 : -.42);
+    if (flying) { circle(ctx, 0, 0, 64, 'rgba(51,60,48,.13)'); ctx.globalAlpha = .6; }
+    ctx.fillStyle = '#2b362e'; ctx.fillRect(-64, -3, 128, 6); ctx.fillRect(-3, -64, 6, flying ? 128 : 109); ctx.restore();
+    circle(ctx, 0, 0, 6, '#8a8c70', '#3e493b', 2);
+    if (!flying) { circle(ctx, -20, 0, 16, 'rgba(21,26,20,.7)'); this.drawFire(ctx, -21, -3, time, 13); }
+    ctx.restore();
+  }
+
+  drawFire(ctx, x, y, time, size) {
+    const pulse = .8 + Math.sin(time * 16 + x) * .12;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 2.3);
+    glow.addColorStop(0, 'rgba(235,145,57,.38)'); glow.addColorStop(1, 'rgba(214,97,31,0)');
+    ctx.fillStyle = glow; ctx.fillRect(x - size * 2.3, y - size * 2.3, size * 4.6, size * 4.6);
+    for (let i = 0; i < 5; i++) {
+      const dx = Math.sin(time * 7 + i * 3) * size * .35, dy = Math.cos(time * 9 + i * 2) * size * .3;
+      circle(ctx, x + dx, y + dy, size * (.55 - i * .075) * pulse, ['#9d542e', '#cc7534', '#e29c47', '#ecc372', '#f4dda1'][i]);
+    }
+  }
+
+  drawVehicle(ctx, v, time) {
+    if (v.kind === 'helicopter' || v.kind === 'crash') { this.drawHelicopter(ctx, v.x, v.y, finite(v.angle), false, time); return; }
+    ctx.save(); ctx.translate(v.x, v.y); ctx.rotate(finite(v.angle));
+    const w = finite(v.w, 64), h = finite(v.h, 34), apc = v.kind === 'apc';
+    ctx.fillStyle = 'rgba(19,26,21,.37)'; ctx.fillRect(-w / 2 + 7, -h / 2 + 8, w, h);
+    for (const yy of [-h / 2 - 4, h / 2 - 1]) {
+      ctx.fillStyle = '#262d27'; ctx.fillRect(-w / 2 + 7, yy, apc ? w - 14 : 13, 6);
+      if (!apc) ctx.fillRect(w / 2 - 17, yy, 11, 6);
+    }
+    roundRect(ctx, -w / 2, -h / 2, w, h, apc ? 5 : 2, apc ? '#818a70' : '#8e9277', '#414e3e');
+    ctx.fillStyle = '#a7ac90'; ctx.fillRect(-w / 2 + 4, -h / 2 + 3, w - 8, 3);
+    ctx.fillStyle = '#4e6055'; ctx.fillRect(w / 2 - 18, -h / 2 + 4, 8, h - 8);
+    if (apc) {
+      circle(ctx, -3, 0, 11, '#6a795e', '#3b4a38', 2);
+      line(ctx, 0, 0, 30, 0, '#334131', 5);
+      for (let k = 0; k < 3; k++) { ctx.strokeStyle = '#56664c'; ctx.strokeRect(-w / 2 + 6 + k * 8, -h / 2 + 7, 5, h - 14); }
+    } else {
+      ctx.fillStyle = '#71785f'; ctx.fillRect(-w / 2 + 4, -h / 2 + 4, w * .57, h - 8);
+      for (let xx = -w / 2 + 8; xx < w * .1; xx += 12) line(ctx, xx, -h / 2 + 5, xx, h / 2 - 5, '#a8a58a', 1.3);
+    }
+    // Generic UN vehicle identification references the multinational relief, not a specific unit.
+    if (apc) { ctx.save(); ctx.rotate(-Math.PI / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#e8e5d7'; ctx.textAlign = 'center'; ctx.fillText('UN', 0, -w / 2 + 11); ctx.restore(); }
+    ctx.fillStyle = '#d0c696'; ctx.fillRect(w / 2 - 2, -h / 2 + 3, 3, 6); ctx.fillRect(w / 2 - 2, h / 2 - 9, 3, 6);
+    if ((v.hp ?? 1) <= 0) { ctx.globalAlpha = .8; circle(ctx, 0, 0, h * .65, '#343b2d'); }
+    ctx.restore();
+    if (v.waiting && this.camera.zoom > .55) this.worldLabel(v.x, v.y - 34, typeof v.waiting === 'string' ? v.waiting : 'CONVOY WAITING', '#e1c798', 11);
+  }
+
+  actorVisible(state, actor) {
+    if (typeof actor.visible === 'boolean') return actor.visible;
+    for (const ally of state.squad || []) {
+      if (ally.alive !== false && !ally.downed && distance(ally, actor) < (state.missionIndex === 2 ? 440 : 560) && hasLineOfSight(state, ally, actor)) return true;
+    }
+    return false;
+  }
+
+  drawActor(ctx, actor, state, time, view) {
+    if (actor.alive === false && !actor.downed) return;
+    const isPlayer = actor.id === state.playerId, ally = actor.team === 'squad', civilian = actor.team === 'civilian', survivor = actor.team === 'survivor';
+    const radius = Math.max(7, finite(actor.radius, 10));
+    const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
+    ctx.save(); ctx.translate(actor.x, actor.y);
+    if (isPlayer) {
+      ctx.fillStyle = 'rgba(133,205,175,.12)'; ctx.beginPath(); ctx.arc(0, 0, radius + 10, 0, TAU); ctx.fill();
+      ctx.strokeStyle = COLORS.player; ctx.lineWidth = 1.8 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, radius + 7, .15, TAU - .15); ctx.stroke();
+      ctx.save(); ctx.rotate(angle); ctx.fillStyle = COLORS.player; ctx.beginPath(); ctx.moveTo(radius + 13, 0); ctx.lineTo(radius + 7, -3.5); ctx.lineTo(radius + 7, 3.5); ctx.fill(); ctx.restore();
+    } else if (ally) {
+      ctx.strokeStyle = actor.downed ? '#e2a16c' : 'rgba(135,202,180,.65)'; ctx.lineWidth = 1.4 / this.camera.zoom;
+      ctx.beginPath(); ctx.arc(0, 0, radius + 4, 0, TAU); ctx.stroke();
+    } else if (civilian || survivor) {
+      ctx.strokeStyle = 'rgba(206,204,231,.45)'; ctx.lineWidth = 1 / this.camera.zoom;
+      ctx.beginPath(); ctx.moveTo(0, -radius - 5); ctx.lineTo(radius + 5, 0); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 5, 0); ctx.closePath(); ctx.stroke();
+    }
+    ctx.save(); ctx.rotate(angle);
+    const uniform = ally ? '#8e9770' : civilian ? '#b3a8c0' : survivor ? '#b2ac85' : '#a37f58';
+    const gear = ally ? '#4c5a40' : '#615d44';
+    if (actor.downed) {
+      ctx.fillStyle = 'rgba(21,27,22,.45)'; ctx.beginPath(); ctx.ellipse(4, 5, 17, 9, 0, 0, TAU); ctx.fill();
+      roundRect(ctx, -13, -5, 24, 10, 4, uniform);
+      circle(ctx, 12, 0, 5, ally ? '#9b9f7b' : '#b29c76');
+      line(ctx, -13, -3, -20, -6, gear, 4); line(ctx, -13, 3, -19, 8, gear, 4);
+    } else {
+      ctx.fillStyle = 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
+      const walk = actor.moving || actor.speed > 1 || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
+      const stride = walk ? Math.sin(time * 16 + finite(actor.id?.length)) * 2.5 : 0;
+      line(ctx, -5, -4, -10 + stride, -5, '#494b36', 4); line(ctx, -5, 4, -10 - stride, 5, '#494b36', 4);
+      ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
+      if (!civilian) { ctx.fillStyle = gear; ctx.fillRect(-6, -6, 7, 12); ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3); }
+      if (!civilian && !survivor) {
+        line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, 11, 3, uniform, 4);
+        line(ctx, 4, 2, 24, 2, '#202d25', 3); ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
+      } else {
+        line(ctx, 0, -7, 8, -8, uniform, 3.5); line(ctx, 0, 7, 8, 8, uniform, 3.5);
+      }
+      circle(ctx, 2, 0, civilian ? 5 : 6.2, civilian ? '#695449' : ally ? '#a0a380' : '#b49a70', civilian ? null : gear, 1.2);
+      if (ally) { line(ctx, 0, -3, 6, -3, '#bfbe93', 1.1); circle(ctx, -2, 1, 2, '#747b59'); }
+      if (actor.role === 'medic' || actor.kind === 'medic') { ctx.fillStyle = '#d6ddbd'; ctx.fillRect(-4, -8, 5, 4); line(ctx, -1.5, -7.5, -1.5, -4.5, '#66765b', 1); }
+    }
+    ctx.restore(); ctx.restore();
+    if (actor.downed) {
+      const p = this.worldToScreen(actor.x, actor.y - 22);
+      this.screenBadge(p.x, p.y, ally ? 'HELP' : 'WOUNDED', '#edb37b', .8 + pulse * .2);
+    } else if (ally && this.camera.zoom > .65 && !view.menu) {
+      const hp = clamp(actor.hp / (actor.maxHp || 100), 0, 1);
+      if (hp < .85) {
+        const p = this.worldToScreen(actor.x, actor.y - 24);
+        this.ctx.save(); this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        this.ctx.fillStyle = 'rgba(17,25,21,.8)'; this.ctx.fillRect(p.x - 15, p.y, 30, 4);
+        this.ctx.fillStyle = hp < .35 ? '#d98869' : '#8bbba2'; this.ctx.fillRect(p.x - 15, p.y, 30 * hp, 4); this.ctx.restore();
+      }
+      if (!isPlayer) this.worldLabel(actor.x, actor.y + 25, (actor.name || '').split(' ').at(-1).toUpperCase(), '#c3d5be', 10);
+    }
+  }
+
+  worldLabel(x, y, text, color = '#dedbc5', fontSize = 12) {
+    if (!text) return;
+    const p = this.worldToScreen(x, y), ctx = this.ctx;
+    ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(23,31,25,.8)'; ctx.strokeText(text, p.x, p.y); ctx.fillStyle = color; ctx.fillText(text, p.x, p.y); ctx.restore();
+  }
+
+  screenBadge(x, y, text, color, alpha = 1) {
+    const ctx = this.ctx; ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.globalAlpha = alpha;
+    ctx.font = '700 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(text).width + 12;
+    roundRect(ctx, x - w / 2, y - 8, w, 16, 2, 'rgba(20,28,22,.9)'); ctx.fillStyle = color; ctx.fillText(text, x, y + .5); ctx.restore();
+  }
+
+  drawObjective(state, time, view) {
+    const o = state.objective;
+    if (!o || !Number.isFinite(o.x) || !Number.isFinite(o.y) || view.menu) return;
+    const ctx = this.ctx, r = finite(o.radius, 45), pulse = view.reducedMotion ? 0 : (time * .38) % 1;
+    ctx.save(); ctx.translate(o.x, o.y);
+    ctx.fillStyle = 'rgba(232,179,97,.065)'; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(237,193,124,.55)'; ctx.lineWidth = 1.5 / this.camera.zoom;
+    ctx.setLineDash([8 / this.camera.zoom, 7 / this.camera.zoom]); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    if (pulse > 0) { ctx.strokeStyle = `rgba(237,193,124,${.22 * (1 - pulse)})`; ctx.beginPath(); ctx.arc(0, 0, r + pulse * 18, 0, TAU); ctx.stroke(); }
+    ctx.lineWidth = 2 / this.camera.zoom; ctx.strokeStyle = COLORS.objective;
+    ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(9, 0); ctx.lineTo(0, 9); ctx.lineTo(-9, 0); ctx.closePath(); ctx.stroke();
+    if (o.progress > 0) { ctx.lineWidth = 4 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, r + 5, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(o.progress, 0, 1)); ctx.stroke(); }
+    ctx.restore();
+    if (this.camera.zoom > .55 && view.guidance !== 'expert') this.worldLabel(o.x, o.y - r - 16, (o.title || 'OBJECTIVE').toUpperCase(), COLORS.objective, 11);
+  }
+
+  drawObjectiveIndicator(state, view) {
+    this.objectiveIndicator = null;
+    const o = state.objective;
+    if (!o || view.menu || view.showMap || !Number.isFinite(o.x) || !Number.isFinite(o.y)) return;
+    const p = this.worldToScreen(o.x, o.y), margin = 44, topMargin = this.width < 600 ? 130 : 100;
+    if (p.x > margin && p.x < this.width - margin && p.y > topMargin && p.y < this.height - 120) return;
+    const center = { x: this.width / 2, y: this.height / 2 }, dx = p.x - center.x, dy = p.y - center.y;
+    const tx = (dx < 0 ? center.x - margin : this.width - margin - center.x) / Math.max(.001, Math.abs(dx));
+    const ty = (dy < 0 ? center.y - topMargin : this.height - 125 - center.y) / Math.max(.001, Math.abs(dy));
+    const scale = Math.max(0, Math.min(tx, ty)), x = clamp(center.x + dx * scale, margin, this.width - margin), y = clamp(center.y + dy * scale, topMargin, this.height - 125);
+    this.objectiveIndicator = { x, y };
+    const ctx = this.ctx, angle = Math.atan2(dy, dx), player = (state.squad || []).find(s => s.id === state.playerId);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = 'rgba(24,31,24,.86)'; circle(ctx, 0, 0, 17, 'rgba(24,31,24,.86)', 'rgba(237,193,124,.5)', 1);
+    ctx.strokeStyle = COLORS.objective; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(4, 0); ctx.lineTo(-4, 6); ctx.stroke(); ctx.restore();
+    ctx.font = '600 10px ui-monospace, monospace'; ctx.fillStyle = '#f0cd92'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(player ? `${Math.round(distance(player, o) / 8)} m` : 'OBJECTIVE', x, y + 23);
+  }
+
+  drawLeaderIndicator(state, view) {
+    if (state.role !== 'member' || view.menu || view.showMap) return;
+    const player = (state.squad || []).find(a => a.id === state.playerId);
+    const leader = (state.squad || []).find(a => a.role === 'leader' && a.alive !== false && !a.downed && a.id !== state.playerId)
+      || (state.squad || []).find(a => a.alive !== false && !a.downed && a.id !== state.playerId);
+    if (!player || !leader) return;
+    const p = this.worldToScreen(leader.x, leader.y);
+    const portrait = this.width < 700 && this.height > this.width;
+    const compact = this.height < 400;
+    const margin = 42;
+    const top = portrait ? Math.min(264, this.height * .38) : compact ? Math.min(125, this.height * .42) : 205;
+    const bottom = Math.max(top + 35, this.height - (compact ? 65 : 130));
+    if (p.x > margin && p.x < this.width - margin && p.y > top && p.y < bottom) return;
+    const center = { x: this.width / 2, y: (top + bottom) / 2 };
+    const dx = p.x - center.x, dy = p.y - center.y;
+    const tx = (dx < 0 ? center.x - margin : this.width - margin - center.x) / Math.max(.001, Math.abs(dx));
+    const ty = (dy < 0 ? center.y - top : bottom - center.y) / Math.max(.001, Math.abs(dy));
+    const scale = Math.max(0, Math.min(tx, ty));
+    let x = clamp(center.x + dx * scale, margin, this.width - margin), y = clamp(center.y + dy * scale, top, bottom);
+    // Keep the squad marker distinct when the leader and mission destination share a bearing.
+    const other = this.objectiveIndicator;
+    if (other && Math.hypot(x - other.x, y - other.y) < 62) {
+      if (y > top + 57) y -= 57;
+      else if (y < bottom - 57) y += 57;
+      else x = clamp(x + (x < this.width / 2 ? 62 : -62), margin, this.width - margin);
+    }
+    const ctx = this.ctx, angle = Math.atan2(p.y - y, p.x - x);
+    ctx.save(); ctx.translate(x, y);
+    circle(ctx, 0, 0, 16, 'rgba(15,31,25,.94)', '#87c3ad', 1.5);
+    ctx.rotate(angle); ctx.strokeStyle = '#a5e1c8'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(4, 0); ctx.lineTo(-4, 6); ctx.stroke(); ctx.restore();
+    const label = `${(leader.name || 'LEADER').split(' ').at(-1).toUpperCase()} · ${Math.round(distance(player, leader) / 8)} m`;
+    ctx.save(); ctx.font = '600 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.strokeStyle = 'rgba(15,28,23,.95)'; ctx.lineWidth = 3; ctx.strokeText(label, x, y + 22);
+    ctx.fillStyle = '#b3e1cb'; ctx.fillText(label, x, y + 22); ctx.restore();
+  }
+
+  drawOrder(state, time, view) {
+    const order = state.order;
+    if (view.menu || !order || !Number.isFinite(order.x) || !Number.isFinite(order.y) || order.type === 'follow') return;
+    const ctx = this.ctx; ctx.save();
+    const size = 16 / this.camera.zoom; ctx.strokeStyle = '#9fd7c2'; ctx.lineWidth = 1.5 / this.camera.zoom;
+    ctx.beginPath(); ctx.moveTo(order.x - size, order.y - size / 2); ctx.lineTo(order.x - size, order.y - size); ctx.lineTo(order.x - size / 2, order.y - size);
+    ctx.moveTo(order.x + size / 2, order.y - size); ctx.lineTo(order.x + size, order.y - size); ctx.lineTo(order.x + size, order.y - size / 2);
+    ctx.moveTo(order.x + size, order.y + size / 2); ctx.lineTo(order.x + size, order.y + size); ctx.lineTo(order.x + size / 2, order.y + size);
+    ctx.moveTo(order.x - size / 2, order.y + size); ctx.lineTo(order.x - size, order.y + size); ctx.lineTo(order.x - size, order.y + size / 2); ctx.stroke();
+    ctx.restore();
+    if (this.camera.zoom > .5) this.worldLabel(order.x, order.y + size + 14 / this.camera.zoom, (order.label || order.type).toUpperCase(), '#a9d6c4', 10);
+  }
+
+  drawSmoke(ctx, s, time) {
+    const r = finite(s.radius, 90), opacity = clamp(finite(s.ttl, 10) / 2, 0, 1) * .75;
+    ctx.save(); ctx.globalAlpha = opacity;
+    for (let i = 0; i < 7; i++) {
+      const a = i * 2.4 + time * .1, d = r * .33, x = s.x + Math.cos(a) * d, y = s.y + Math.sin(a) * d;
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, r * .8);
+      gradient.addColorStop(0, 'rgba(171,170,151,.55)'); gradient.addColorStop(.5, 'rgba(156,158,145,.35)'); gradient.addColorStop(1, 'rgba(145,150,139,0)');
+      ctx.fillStyle = gradient; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    ctx.restore();
+  }
+
+  drawEffects(ctx, state, time) {
+    for (const b of state.bullets || []) {
+      if (!this.inView(b.x, b.y, 30)) continue;
+      const px = Number.isFinite(b.px) ? b.px : b.x - finite(b.vx) * .013, py = Number.isFinite(b.py) ? b.py : b.y - finite(b.vy) * .013;
+      line(ctx, px, py, b.x, b.y, b.team === 'squad' ? 'rgba(255,225,151,.85)' : 'rgba(246,161,102,.82)', 1.3 / this.camera.zoom);
+      circle(ctx, b.x, b.y, 1.5 / this.camera.zoom, '#fff0ba');
+    }
+    for (const e of state.effects || []) {
+      if (!this.inView(e.x, e.y, 50)) continue;
+      const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
+      ctx.save(); ctx.globalAlpha = life;
+      if (e.type === 'muzzle') {
+        ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle)); ctx.fillStyle = '#ffd88c'; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(10, 0); ctx.lineTo(0, 3); ctx.lineTo(3, 0); ctx.fill();
+      } else if (e.type === 'explosion') {
+        this.drawFire(ctx, e.x, e.y, time, 10 + (1 - life) * 25);
+      } else {
+        const radius = 3 + (1 - life) * 13;
+        circle(ctx, e.x, e.y, radius, e.type === 'hit' ? 'rgba(217,177,123,.5)' : 'rgba(193,177,139,.4)');
+        for (let i = 0; i < 4; i++) { const a = i * 2.4 + e.x; line(ctx, e.x + Math.cos(a) * radius * .7, e.y + Math.sin(a) * radius * .7, e.x + Math.cos(a) * radius, e.y + Math.sin(a) * radius, '#d0bd8a', 1); }
+      }
+      ctx.restore();
+    }
+  }
+
+  drawAtmosphere(state, time, view) {
+    const ctx = this.ctx, w = this.width, h = this.height;
+    if (state.missionIndex === 2) {
+      ctx.fillStyle = 'rgba(9,24,26,.42)'; ctx.fillRect(0, 0, w, h);
+      // A limited pool of practical light follows each teammate through the night.
+      ctx.save(); ctx.globalCompositeOperation = 'screen';
+      for (const actor of state.squad || []) {
+        if (actor.alive === false || !this.inView(actor.x, actor.y, 160)) continue;
+        const p = this.worldToScreen(actor.x, actor.y), r = 165 * this.camera.zoom;
+        const g = ctx.createRadialGradient(p.x, p.y, 10, p.x, p.y, r); g.addColorStop(0, 'rgba(191,194,148,.08)'); g.addColorStop(1, 'rgba(191,194,148,0)');
+        ctx.fillStyle = g; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+      }
+      ctx.restore();
+    } else if (state.missionIndex === 3) {
+      ctx.fillStyle = 'rgba(166,157,144,.09)'; ctx.fillRect(0, 0, w, h);
+    } else if (state.missionIndex === 1) {
+      ctx.fillStyle = 'rgba(133,75,35,.06)'; ctx.fillRect(0, 0, w, h);
+    }
+    if (!view.reducedMotion) {
+      // Airborne dust. Low contrast and bounded count, never obscures the unit silhouettes.
+      for (let i = 0; i < 32; i++) {
+        const x = (hash(i + 2) * w + time * (4 + hash(i + 99) * 8)) % (w + 60) - 30;
+        const y = (hash(i + 23) * h + Math.sin(time * .3 + i) * 8) % h;
+        ctx.fillStyle = `rgba(223,203,158,${.07 + hash(i + 35) * .08})`; ctx.fillRect(x, y, 1 + hash(i + 56) * 2, 1);
+      }
+    }
+    const vignette = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .3, w / 2, h / 2, Math.hypot(w, h) * .57);
+    vignette.addColorStop(0, 'rgba(13,22,18,0)'); vignette.addColorStop(1, view.menu ? 'rgba(11,20,16,.48)' : 'rgba(11,20,16,.3)');
+    ctx.fillStyle = vignette; ctx.fillRect(0, 0, w, h);
+    const player = (state.squad || []).find(s => s.id === state.playerId);
+    if (player && !view.menu) {
+      const pressure = clamp(finite(player.suppression), 0, 1);
+      const injured = 1 - clamp(player.hp / (player.maxHp || 100), 0, 1);
+      if (pressure > .1 || injured > .5) {
+        const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .25, w / 2, h / 2, Math.hypot(w, h) * .6);
+        g.addColorStop(0, 'rgba(102,47,28,0)'); g.addColorStop(1, `rgba(102,47,28,${Math.max(pressure * .25, (injured - .5) * .5)})`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      }
+    }
+  }
+
+  render(state, view = {}) {
+    if (!state || !state.world) return;
+    const world = state.world, time = finite(view.time, state.time || 0), now = globalThis.performance?.now() ?? Date.now();
+    const delta = Math.min(.06, Math.max(.001, (now - this.lastRender) / 1000 || 1 / 60)); this.lastRender = now;
+    if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) { this.makeMap(world, state.missionIndex); this.cameraReady = false; }
+    const player = (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
+    let zoom = (this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .65, 1.65);
+    let tx = player.x, ty = player.y;
+    // Keep the aiming space below the taller phone HUD. The canvas itself excludes touch controls.
+    if (!view.menu && !view.showMap) {
+      const portrait = this.width < 700 && this.height > this.width;
+      const compactLandscape = this.height < 400;
+      const focusOffset = portrait ? Math.min(42, this.height * .065) : compactLandscape ? Math.min(24, this.height * .08) : 0;
+      ty -= focusOffset / zoom;
+    }
+    if (view.showMap) {
+      zoom = Math.min((this.width - 36) / world.width, (this.height - 72) / world.height); tx = world.width / 2; ty = world.height / 2;
+    } else if (view.menu) {
+      zoom = Math.max(this.width / world.width, this.height / world.height) * 1.3;
+      tx = world.width * .55 + (view.reducedMotion ? 0 : Math.sin(time * .025) * 140);
+      ty = world.height * .48 + (view.reducedMotion ? 0 : Math.cos(time * .023) * 80);
+    }
+    const halfW = this.width / zoom / 2, halfH = this.height / zoom / 2;
+    if (!view.showMap) {
+      // A small amount of outside-map framing prevents the boundary from pinning soldiers beneath HUD panels.
+      const edgeAllowance = view.menu ? 0 : 40 / zoom;
+      tx = world.width <= halfW * 2 ? world.width / 2 : clamp(tx, halfW - edgeAllowance, world.width - halfW + edgeAllowance);
+      ty = world.height <= halfH * 2 ? world.height / 2 : clamp(ty, halfH - edgeAllowance, world.height - halfH + edgeAllowance);
+    }
+    const snap = !this.cameraReady || this.lastPlayerId !== state.playerId || view.showMap || this.lastMapView !== !!view.showMap || this.lastMenuView !== !!view.menu;
+    const smoothing = snap || view.reducedMotion ? 1 : 1 - Math.exp(-delta * 12);
+    this.camera.x += (tx - this.camera.x) * smoothing; this.camera.y += (ty - this.camera.y) * smoothing; this.camera.zoom += (zoom - this.camera.zoom) * smoothing;
+    this.cameraReady = true; this.lastPlayerId = state.playerId; this.lastMapView = !!view.showMap; this.lastMenuView = !!view.menu;
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
+    ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
+    // A muted strip of ground fills the limited camera overscan; the dark perimeter still marks the map edge.
+    ctx.fillStyle = '#6d6550'; ctx.fillRect(-80, -80, world.width + 160, world.height + 160);
+    ctx.drawImage(this.mapCache, 0, 0);
+    for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
+    this.drawObjective(state, time, view); this.drawOrder(state, time, view);
+    for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
+    this.visibleEnemies = (state.enemies || []).filter(a => a.alive !== false && this.actorVisible(state, a));
+    const actors = [...(state.civilians || []), ...(state.survivors || []), ...this.visibleEnemies, ...(state.squad || [])];
+    actors.sort((a, b) => a.y - b.y);
+    for (const actor of actors) if (this.inView(actor.x, actor.y, 65)) this.drawActor(ctx, actor, state, time, view);
+    this.drawEffects(ctx, state, time);
+    for (const smoke of state.smokes || []) if (this.inView(smoke.x, smoke.y, finite(smoke.radius, 90) * 1.5)) this.drawSmoke(ctx, smoke, time);
+    // The wreck's rising plume stays separate from gameplay smoke and drifts with the wind.
+    const wrecks = (state.vehicles || []).filter(v => v.kind === 'helicopter' || v.kind === 'crash');
+    for (const wreck of wrecks) if (this.inView(wreck.x, wreck.y, 220)) {
+      for (let i = 0; i < 5; i++) {
+        const drift = ((time * 8 + i * 27) % 140), r = 11 + drift * .21, x = wreck.x - 18 + drift * .35, y = wreck.y - drift * .6;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(34,37,30,${.28 * (1 - drift / 150)})`); g.addColorStop(1, 'rgba(34,37,30,0)');
+        ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+    }
+    ctx.restore(); this.drawAtmosphere(state, time, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
+    if (view.pointer && !view.menu && !view.showMap) {
+      const x = view.pointer.x, y = view.pointer.y;
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        ctx.strokeStyle = 'rgba(220,232,204,.8)'; ctx.lineWidth = 1;
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) line(ctx, x + dx * 5, y + dy * 5, x + dx * 10, y + dy * 10, 'rgba(220,232,204,.8)', 1);
+        circle(ctx, x, y, 1, '#dce8cc');
+      }
+    }
+    if (view.showMap) {
+      ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', this.width / 2, 22);
+      ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace'; ctx.fillText(state.role === 'leader' ? 'Select MOVE, then a position • M to close' : 'Stay with the marked squad • M to close', this.width / 2, this.height - 22);
+    }
+  }
+
+  renderMinimap(canvas, state) { return renderMinimap(canvas, state, { camera: this.camera, viewport: { width: this.width, height: this.height } }); }
+}
+
+/** A compact tactical map. Does not reveal enemies beyond the squad's line of sight. */
+export function renderMinimap(canvas, state, options = {}) {
+  if (!canvas || !state?.world) return;
+  const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, world = state.world;
+  ctx.clearRect(0, 0, width, height);
+  const scale = Math.min((width - 12) / world.width, (height - 12) / world.height);
+  const ox = (width - world.width * scale) / 2, oy = (height - world.height * scale) / 2;
+  ctx.fillStyle = '#18251f'; ctx.fillRect(0, 0, width, height);
+  ctx.save(); ctx.translate(ox, oy); ctx.scale(scale, scale);
+  ctx.fillStyle = '#394439'; ctx.fillRect(0, 0, world.width, world.height);
+  for (const r of world.roads || []) { ctx.fillStyle = '#465245'; ctx.fillRect(r.x, r.y, r.w ?? r.width, r.h ?? r.height); }
+  for (const b of world.buildings || []) { ctx.fillStyle = '#72806a'; ctx.fillRect(b.x, b.y, b.w ?? b.width, b.h ?? b.height); }
+  for (const v of state.vehicles || []) { ctx.fillStyle = '#b7c5a1'; ctx.fillRect(v.x - 3 / scale, v.y - 1.5 / scale, 6 / scale, 3 / scale); }
+  const o = state.objective;
+  if (o && Number.isFinite(o.x)) { circle(ctx, o.x, o.y, 5 / scale, 'rgba(237,191,112,.2)', COLORS.objective, 1.4 / scale); }
+  for (const a of state.enemies || []) {
+    if (a.alive === false) continue;
+    const visible = typeof a.visible === 'boolean' ? a.visible : (state.squad || []).some(s => s.alive !== false && !s.downed && distance(a, s) < 500 && hasLineOfSight(state, a, s));
+    if (visible) circle(ctx, a.x, a.y, 1.5 / scale, '#d57e62');
+  }
+  for (const a of state.squad || []) if (a.alive !== false || a.downed) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
+  if (options.camera && options.viewport) {
+    const c = options.camera, v = options.viewport, w = v.width / c.zoom, h = v.height / c.zoom;
+    ctx.strokeStyle = 'rgba(200,215,180,.35)'; ctx.lineWidth = .8 / scale; ctx.strokeRect(c.x - w / 2, c.y - h / 2, w, h);
+  }
+  ctx.restore();
+  ctx.font = '9px ui-monospace, monospace'; ctx.fillStyle = '#bdc7a9'; ctx.textAlign = 'right'; ctx.fillText('N', width - 7, 12);
+  line(ctx, width - 10, 25, width - 10, 16, '#bdc7a9', 1); line(ctx, width - 10, 16, width - 13, 20, '#bdc7a9', 1); line(ctx, width - 10, 16, width - 7, 20, '#bdc7a9', 1);
+}
