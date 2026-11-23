@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildingAt, getSolidWalls, prepareBuildingInteriors } from '../public/building-geometry.mjs';
-import { createGame, findPath, hasLineOfSight, issueOrder, segmentRectEntry, setHumanPlayers, step, stepCoop } from '../public/sim.mjs';
+import { applyBreach, createGame, findPath, hasLineOfSight, issueOrder, segmentRectEntry, setHumanPlayers, step, stepCoop } from '../public/sim.mjs';
 import { traceAim } from '../public/desktop-input.mjs';
 import { CoopStateHydrator, predictMovement } from '../public/coop-client.mjs';
 
@@ -30,6 +30,7 @@ test('every house has usable street doors and reachable rooms in all four missio
     for (const building of game.world.buildings) {
       assert.equal(building.enterable, true);
       assert.equal(building.doors.length, 2);
+      assert.ok(building.baseWalls.every(wall => wall.axis === (wall.side === 'west' || wall.side === 'east' ? 'y' : 'x')), 'short facade sections retain their true wall orientation');
       const [north, south] = building.doors;
       assert.equal((south.x - 20) % 40, 0, 'door centers coincide with walkable navigation columns');
       assert.equal(hasLineOfSight(game, south.outside, north.outside), true, 'doors and interior passage form an open sight line');
@@ -168,6 +169,70 @@ test('co-op hydration rebuilds identical static interiors from the authoritative
   assert.deepEqual(hydrated.world.walls, world.walls);
   assert.deepEqual(hydrated.world.buildings, world.buildings);
   assert.deepEqual(hydrated.grid, grid);
+});
+
+test('AI routes and all three squadmates use a narrow breach in a formerly unbreachable shallow house', () => {
+  const game = quietGame({ mission: 0, seed: 17 }), house = game.world.buildings.find(building => building.id === 'b02');
+  const from = { x: 1260, y: 420, radius: 17 }, target = { x: 1350, y: 340 };
+  const originalRoute = findPath(game, from, target);
+  assert.ok(originalRoute.some(point => point.y < house.y), 'before the blast the route detours to the original north door');
+  Object.assign(player(game), target);
+  for (let index = 1; index < game.squad.length; index++) Object.assign(game.squad[index], {
+    x: 1260 - (index - 1) * 20, y: 340, path: originalRoute, pathTarget: target, pathTimer: 100,
+  });
+  const result = applyBreach(game, { x: 1309, y: 340, wallId: 'b02:west' }), opening = result.created[0];
+  assert.equal(opening.width, 48);
+  assert.ok(game.squad.every(actor => !actor.path.length && actor.pathTimer === 0), 'old detours invalidate as the wall opens');
+  const route = findPath(game, from, target);
+  assert.ok(route.length && route.length < originalRoute.length, 'the navigation grid connects the new passage');
+  assert.ok(route.every(point => point.y > house.y && point.y < house.y + house.h));
+  let previous = from;
+  for (const point of route) {
+    assert.ok(game.world.walls.every(wall => !Number.isFinite(segmentRectEntry(previous, point, wall, 17))));
+    previous = point;
+  }
+  assert.deepEqual(previous, target);
+  const crossed = new Set();
+  for (let tick = 0; tick < 240; tick++) {
+    const before = game.squad.map(actor => actor.x);
+    step(game, {}, 1 / 30);
+    for (let index = 1; index < game.squad.length; index++) {
+      const actor = game.squad[index];
+      if (before[index] < house.x && actor.x >= house.x) {
+        assert.ok(actor.y > opening.from + actor.radius && actor.y < opening.to - actor.radius, 'the real actor crosses the cleared breach, not a wall or corner');
+        crossed.add(actor.id);
+      }
+    }
+  }
+  assert.equal(crossed.size, 3);
+  assert.ok(game.squad.every(actor => buildingAt(game.world, actor) === house));
+});
+
+test('late co-op joins reconstruct narrow and door-adjacent openings before prediction and navigation', () => {
+  const original = quietGame({ mission: 0, seed: 17 });
+  applyBreach(original, { x: 1309, y: 340, wallId: 'b02:west' });
+  applyBreach(original, { x: 1345, y: 305, wallId: 'b02:north-left' });
+  const house = original.world.buildings.find(building => building.id === 'b02');
+  assert.deepEqual(house.breaches.map(opening => opening.width), [48, 50]);
+  const { world, grid, stages, ...state } = original;
+  const packet = { state, init: { seed: 17, mission: 0, difficulty: 'standard', epoch: 1 }, room: { code: 'ABCDEF', players: [{ id: 'human', actorId: original.playerId, role: 'leader' }] } };
+  const hydrator = new CoopStateHydrator(), result = hydrator.apply(packet, 'human'), hydrated = result.game;
+  assert.equal(result.changedGeometry, true);
+  assert.deepEqual(hydrated.world.walls, world.walls);
+  assert.deepEqual(hydrated.grid, grid);
+  const intact = quietGame({ mission: 0, seed: 17 }).world, remoteWorld = hydrated.world;
+  for (const opening of house.breaches) {
+    const actor = { ...player(hydrated), ...opening.outside }, direction = opening.side === 'west' ? { moveX: 1 } : { moveY: 1 };
+    actor.x += (direction.moveX || 0) * 20; actor.y += (direction.moveY || 0) * 20;
+    const predicted = predictMovement(actor, direction, .22, hydrated.world);
+    const closed = predictMovement(actor, direction, .22, intact);
+    assert.ok(Math.hypot(predicted.x - actor.x, predicted.y - actor.y) > Math.hypot(closed.x - actor.x, closed.y - actor.y) + 5);
+    assert.equal(buildingAt(hydrated.world, predicted)?.id, house.id);
+    assertClearRoute(hydrated, opening.outside, opening.inside, `${opening.side} late-join breach`);
+  }
+  const repeated = hydrator.apply(packet, 'human');
+  assert.equal(repeated.changedGeometry, false);
+  assert.equal(repeated.game.world, remoteWorld);
 });
 
 test('legacy and custom worlds retain solid-footprint collision when interior data is absent', () => {

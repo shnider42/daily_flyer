@@ -89,7 +89,7 @@ test('the grenadier keeps finite launcher ownership and observation ends on stal
   assert.equal(room.game.humanIds.length,2);assert.equal(room.game.squad.filter(a=>!a.human).length,2);
 });
 
-test('old map and movement protocol versions cannot join a current authoritative room',()=>{
+test('old map, movement and breach protocol versions cannot join a current authoritative room',()=>{
   const {rooms,room}=setup(),old=new Peer();
   rooms.handle(old,{type:'join',protocol:PROTOCOL-1,code:room.code,name:'Old tab'});
   assert.equal(old.messages.at(-1).code,'protocol');assert.match(old.messages.at(-1).reason,/Refresh/);
@@ -219,11 +219,12 @@ test('only the host can continue a completed operation; carry and assignments su
   assert.equal(host.messages.at(-1).ok,false);assert.equal(room.mission,3,'the final chapter has no invented fifth mission');
 });
 
-test('a real co-op launcher creates one authoritative breach that survives reconnect and resets on restart',()=>{
+test('a real co-op launcher shares a newly eligible frontage breach through reconnect and resets on restart',()=>{
   const {rooms,room,host,guest,start,step,command}=setup({seed:()=>17});start();
-  Object.assign(room.game.squad[1],{x:210,y:1500});room.game.civilians=[];
-  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:1,input:{grenade:true,aimX:350,aimY:1500}});step(18);
+  Object.assign(room.game.squad[1],{x:1355,y:226});room.game.civilians=[];
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:1,input:{grenade:true,aimX:1355,aimY:344}});step(18);
   assert.equal(room.game.destruction.revision,1);assert.equal(room.game.squad[1].grenades,3);
+  const opening=room.game.destruction.breaches[0];assert.equal(opening.wallId,'b02:north-left');assert.equal(opening.to-opening.from,50);
   assert.deepEqual(host.latest.state.destruction,room.game.destruction);assert.deepEqual(guest.latest.state.destruction,room.game.destruction);
   const blast=host.latest.state.soundEvents.find(e=>e.type==='explosion');assert.ok(blast.breached);assert.equal(blast.sourceActorId,room.game.squad[1].id);assert.ok(blast.sourceTime<=blast.time);
   command(host,'breach',{x:1000,y:1000});assert.equal(host.messages.at(-1).ok,false);assert.equal(room.game.destruction.revision,1,'there is no client-supplied geometry command');

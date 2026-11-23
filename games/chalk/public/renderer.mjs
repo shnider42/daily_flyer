@@ -12,11 +12,11 @@ const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const MUZZLE_PROFILES = Object.freeze({
-  rifle: Object.freeze({ duration: .11, length: 21, width: 10, radius: 62, offset: 4 }),
-  hostile: Object.freeze({ duration: .11, length: 23, width: 11, radius: 66, offset: 4 }),
-  support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, offset: 10 }),
-  hostile_support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, offset: 10 }),
-  sniper: Object.freeze({ duration: .15, length: 34, width: 11, radius: 86, offset: 12 }),
+  rifle: Object.freeze({ duration: .11, length: 21, width: 10, radius: 62, nightRadius: 88, offset: 4 }),
+  hostile: Object.freeze({ duration: .11, length: 23, width: 11, radius: 66, nightRadius: 92, offset: 4 }),
+  support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, nightRadius: 106, offset: 10 }),
+  hostile_support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, nightRadius: 106, offset: 10 }),
+  sniper: Object.freeze({ duration: .15, length: 34, width: 11, radius: 86, nightRadius: 118, offset: 12 }),
 });
 export function missionLighting(state) {
   return state?.mission?.lighting || (state?.missionIndex === 2 ? 'night' : state?.missionIndex === 3 ? 'dawn' : state?.missionIndex === 1 ? 'late-afternoon' : 'day');
@@ -79,6 +79,34 @@ function insideBuilding(building, point) {
     point.y >= building.y && point.y <= building.y + (building.h ?? building.height);
 }
 
+const portalCache = new WeakMap();
+/** Joined doors and breaches form one approach; cache the small interval merge
+ * until damage changes rather than reopening an artificial jamb every frame. */
+function housePortals(building) {
+  const doors = building.doors, breaches = building.breaches, revision = finite(building.wallRevision);
+  const cached = portalCache.get(building);
+  if (cached && cached.doors === doors && cached.breaches === breaches && cached.revision === revision && cached.count === (doors?.length || 0) + (breaches?.length || 0)) return cached.portals;
+  const spans = [];
+  for (const portal of [...(doors || []), ...(breaches || [])]) {
+    if (!['north', 'south', 'east', 'west'].includes(portal.side) || !Number.isFinite(portal.x) || !Number.isFinite(portal.y) || !(portal.width > 0)) continue;
+    const vertical = portal.side === 'east' || portal.side === 'west', center = vertical ? portal.y : portal.x;
+    spans.push({ side: portal.side, vertical, normal: vertical ? portal.x : portal.y, from: center - portal.width / 2, to: center + portal.width / 2 });
+  }
+  spans.sort((a, b) => a.side.localeCompare(b.side) || a.normal - b.normal || a.from - b.from);
+  const portals = [];
+  for (const span of spans) {
+    const previous = portals.at(-1);
+    if (previous && previous.side === span.side && Math.abs(previous.normal - span.normal) < .001 && span.from <= previous.to + .001) previous.to = Math.max(previous.to, span.to);
+    else portals.push({ ...span });
+  }
+  for (const portal of portals) {
+    const center = (portal.from + portal.to) / 2;
+    portal.x = portal.vertical ? portal.normal : center; portal.y = portal.vertical ? center : portal.normal; portal.width = portal.to - portal.from;
+  }
+  portalCache.set(building, { doors, breaches, revision, count: (doors?.length || 0) + (breaches?.length || 0), portals });
+  return portals;
+}
+
 /** Roof removal is a viewing aid, never a source of enemy visibility. */
 export function houseRevealed(building, state, view = {}) {
   if (!building.enterable || view.menu) return false;
@@ -97,7 +125,7 @@ export function houseRevealed(building, state, view = {}) {
     const across = vertical ? player.y - door.y : player.x - door.x;
     return outward >= -12 && outward <= 72 && Math.abs(across) <= Math.max(12, door.width / 2 - 5);
   };
-  return (building.doors || []).some(approach) || (building.breaches || []).some(approach);
+  return housePortals(building).some(approach);
 }
 
 /** Draws the battlefield at native map resolution once, then composites dynamic units. */
@@ -217,7 +245,7 @@ export class Renderer {
   }
 
   updateMuzzleFlashes(state, view = {}) {
-    const now = finite(view.time, finite(state.time)), gameTime = finite(state.time);
+    const now = finite(view.time, finite(state.time)), gameTime = finite(state.time), night = missionLighting(state) === 'night';
     const baseScene = `${state.seed}:${state.missionIndex}`, scene = `${baseScene}:${view.effectEpoch ?? ''}`;
     const rewound = this.muzzleStateTime !== null && gameTime < this.muzzleStateTime - .001;
     const reset = this.muzzleScene !== scene || rewound;
@@ -242,11 +270,12 @@ export class Renderer {
       if (age < -.05 || age > .22) continue;
       const profile = muzzleProfile(event.weapon), source = muzzleOrigin(event, state.world);
       const flash = { ...source, actorId: event.actorId, weapon: event.weapon, angle: finite(event.angle), profile,
-        born: now - Math.min(Math.max(0, age), profile.duration - .045), geometryRevision: finite(state.world.geometryRevision) };
+        born: now - Math.min(Math.max(0, age), profile.duration - .045), geometryRevision: finite(state.world.geometryRevision),
+        lightRadius: night ? profile.nightRadius : profile.radius };
       if (!this.muzzleVisible(state, flash, view)) continue;
       // Successive rounds from one automatic weapon share a single local light.
       this.muzzleFlashes = this.muzzleFlashes.filter(previous => previous.actorId !== flash.actorId);
-      flash.polygon = muzzleLightPolygon(state.world, flash, profile.radius);
+      flash.polygon = muzzleLightPolygon(state.world, flash, flash.lightRadius);
       this.muzzleFlashes.push(flash);
       if (this.muzzleFlashes.length > 24) this.muzzleFlashes.shift();
     }
@@ -259,30 +288,38 @@ export class Renderer {
       if (!this.muzzleVisible(state, flash, view)) continue;
       const life = clamp(1 - (now - flash.born) / flash.profile.duration, 0, 1);
       if (!life) continue;
-      const profile = flash.profile;
+      const profile = flash.profile, lightRadius = night ? profile.nightRadius : profile.radius;
+      const brightNight = night && !view.reducedMotion;
+      // Hold a clear peak for the first few frames, then decay within the
+      // original shot lifetime. Small mobile sprites remain legible without
+      // lengthening automatic fire into a continuous light or a screen flash.
+      const pulse = brightNight ? Math.sqrt(Math.min(1, life / .62)) : Math.sqrt(life);
       const revision = finite(state.world.geometryRevision);
-      if (!flash.polygon || flash.geometryRevision !== revision) { flash.polygon = muzzleLightPolygon(state.world, flash, profile.radius); flash.geometryRevision = revision; }
+      if (!flash.polygon || flash.geometryRevision !== revision || flash.lightRadius !== lightRadius) {
+        flash.polygon = muzzleLightPolygon(state.world, flash, lightRadius); flash.geometryRevision = revision; flash.lightRadius = lightRadius;
+      }
       const points = flash.polygon;
       ctx.save(); ctx.beginPath();
       for (let i = 0; i < points.length; i++) { const point = points[i]; if (i) ctx.lineTo(point.x, point.y); else ctx.moveTo(point.x, point.y); }
       ctx.closePath(); ctx.clip();
       // The bright core and surrounding light both stop at masonry and roofs.
-      ctx.beginPath(); ctx.rect(flash.x - profile.radius, flash.y - profile.radius, profile.radius * 2, profile.radius * 2);
+      ctx.beginPath(); ctx.rect(flash.x - lightRadius, flash.y - lightRadius, lightRadius * 2, lightRadius * 2);
       for (const house of this.houseCutaways) {
         const b = house.building;
-        if (house.amount >= .9 || b.x > flash.x + profile.radius || b.y > flash.y + profile.radius || b.x + b.w < flash.x - profile.radius || b.y + b.h < flash.y - profile.radius) continue;
+        if (house.amount >= .9 || b.x > flash.x + lightRadius || b.y > flash.y + lightRadius || b.x + b.w < flash.x - lightRadius || b.y + b.h < flash.y - lightRadius) continue;
         ctx.rect(b.x, b.y, b.w, b.h);
       }
       ctx.clip('evenodd');
-      if (night && !view.reducedMotion) {
-        const radius = profile.radius * (this.quality === 'performance' ? .8 : 1);
-        ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = .58 * Math.sqrt(life);
-        ctx.drawImage(this.radialSprite('muzzle-light', [[0, 'rgba(255,192,99,.78)'], [.3, 'rgba(246,161,65,.36)'], [1, 'rgba(230,141,50,0)']]), flash.x - radius, flash.y - radius, radius * 2, radius * 2);
+      if (brightNight) {
+        const radius = lightRadius * (this.quality === 'performance' ? .8 : 1);
+        ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = .9 * pulse;
+        ctx.drawImage(this.radialSprite('muzzle-light', [[0, 'rgba(255,216,151,.96)'], [.22, 'rgba(255,184,90,.66)'], [.58, 'rgba(245,149,57,.22)'], [1, 'rgba(230,141,50,0)']]), flash.x - radius, flash.y - radius, radius * 2, radius * 2);
         ctx.restore();
       }
       ctx.save(); ctx.translate(flash.x, flash.y); ctx.rotate(flash.angle);
-      ctx.globalAlpha = (view.reducedMotion ? .65 : 1) * Math.sqrt(life);
-      const length = profile.length * (night ? 1 : .86), width = profile.width * (night ? 1 : .85);
+      ctx.globalAlpha = (view.reducedMotion ? .65 : 1) * pulse;
+      if (brightNight) ctx.globalCompositeOperation = 'screen';
+      const length = profile.length * (brightNight ? 1.65 : night ? 1 : .86), width = profile.width * (brightNight ? 1.45 : night ? 1 : .85);
       ctx.drawImage(this.muzzleSprite(flash.weapon), -length * .22, -width, length * 1.25, width * 2);
       ctx.restore(); ctx.restore();
     }
@@ -717,14 +754,31 @@ export class Renderer {
     for (const building of state.world?.buildings || []) for (const breach of building.breaches || []) {
       if (!this.inView(breach.x, breach.y, 90)) continue;
       const half = finite(breach.width, 80) / 2, thickness = finite(breach.thickness, 10);
+      const vertical = breach.side === 'east' || breach.side === 'west', center = vertical ? breach.y : breach.x;
+      const portal = housePortals(building).find(portal => portal.side === breach.side && Math.abs(portal.normal - (vertical ? breach.x : breach.y)) < .001 && portal.from <= center && portal.to >= center);
+      const joinedFrom = portal && portal.from < center - half - .001, joinedTo = portal && portal.to > center + half + .001;
+      const reversed = breach.side === 'north' || breach.side === 'east';
+      const joinedLeft = reversed ? joinedTo : joinedFrom, joinedRight = reversed ? joinedFrom : joinedTo;
       ctx.save(); ctx.translate(breach.x, breach.y); ctx.rotate(finite(breach.angle));
       // This small sill covers the old roof edge; the rest of the roof and
       // building footprint remain intact. The house patch supplies the room.
       ctx.fillStyle = '#777762'; ctx.fillRect(-half, -thickness - 11, half * 2, thickness + 16);
-      line(ctx, -half, -thickness - 8, -half, 4, '#474b3a', 3);
-      line(ctx, half, -thickness - 8, half, 4, '#474b3a', 3);
-      line(ctx, -half - 2, -thickness - 6, -half + 3, -thickness + 3, '#b6a680', 4);
-      line(ctx, half - 3, -thickness + 2, half + 2, -thickness - 7, '#b6a680', 4);
+      // Remove the old doorway post and folded leaf baked into the district
+      // cache where this cut now joins it, retaining the worn threshold step.
+      for (const edge of [joinedLeft ? -half : null, joinedRight ? half : null]) if (edge !== null) {
+        ctx.fillStyle = '#777762'; ctx.fillRect(edge - 8, -thickness - 15, 16, thickness + 28);
+        ctx.fillStyle = '#a59b7c'; ctx.fillRect(edge - 8, 1, 16, 8);
+        ctx.fillStyle = '#b7ad8c'; ctx.fillRect(edge - 8, 1, 16, 2);
+        ctx.fillStyle = 'rgba(55,53,40,.35)'; ctx.fillRect(edge - 8, 9, 16, 3);
+      }
+      if (!joinedLeft) {
+        line(ctx, -half, -thickness - 8, -half, 4, '#474b3a', 3);
+        line(ctx, -half - 2, -thickness - 6, -half + 3, -thickness + 3, '#b6a680', 4);
+      }
+      if (!joinedRight) {
+        line(ctx, half, -thickness - 8, half, 4, '#474b3a', 3);
+        line(ctx, half - 3, -thickness + 2, half + 2, -thickness - 7, '#b6a680', 4);
+      }
       ctx.drawImage(this.breachSprite(breach.from), -64, -16); ctx.restore();
     }
   }

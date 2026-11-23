@@ -1,6 +1,6 @@
 # CHALK: expanding the field experience
 
-This is a working design direction for the fictional game, informed by the user's request for a larger, more convincing squad experience. It distinguishes the implemented 1.9 pass from proposed future systems. The existing historical-context panel remains the authority on what the game represents: an invented squad and compressed encounters in a documented historical setting.
+This is a working design direction for the fictional game, informed by the user's request for a larger, more convincing squad experience. It distinguishes the implemented 1.10 pass from proposed future systems. The existing historical-context panel remains the authority on what the game represents: an invented squad and compressed encounters in a documented historical setting.
 
 ## The experience to build toward
 
@@ -144,3 +144,9 @@ Persistent bodies and blood should remain restrained and useful to understanding
 - Test desktop rendering at 1280 × 720 and 2560 × 1440 and phone layouts in both orientations. Report viewport, actual render buffer, and Canvas backend alongside any frame-rate measurement.
 - Distinguish shipped behavior, prototypes, and future proposals in release notes.
 
+
+## Expanded in 1.10
+
+Localized destruction now accepts narrower side-wall passages in small or shallow buildings and can remove suitable frontage sections beside an existing doorway. Each building allows four bounded cuts; corner supports, remaining walls, interior partitions, and roofs remain. The larger set of canonical opening widths is shared under co-op protocol 6. This is still localized wall damage, not structural collapse.
+
+Night muzzle cores and local warm illumination are stronger at normal desktop and mobile scales, with a brief peak inside the existing shot lifetime. Daylight and reduced-motion behavior retain the previous tuning. The effect remains shot-driven, clipped by geometry, and bounded to one light per actor and 24 lights overall.

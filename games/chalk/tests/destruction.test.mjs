@@ -35,21 +35,23 @@ test('a localized breach changes shared sight, aim and clearance while preservin
   assert.equal(world.buildings[1].wallRevision, 0);
 });
 
-test('repeat impacts stay local and no building receives more than two openings', () => {
+test('repeat impacts stay local and no building receives more than four openings', () => {
   const { world, house, destruction } = fixture();
   assert.equal(hitWest(world, destruction).changed, true);
   assert.equal(hitWest(world, destruction).changed, false, 'the same impact cannot widen an existing gap');
   const second = breachAtBlast(world, destruction, { x: 341, y: 180, wallId: 'home:east' });
   assert.equal(second.changed, true);
-  assert.equal(breachAtBlast(world, destruction, { x: 99, y: 260, wallId: 'home:west' }).changed, false);
-  assert.equal(destruction.breaches.length, 2); assert.equal(house.breaches.length, 2);
+  assert.equal(breachAtBlast(world, destruction, { x: 99, y: 260, wallId: 'home:west' }).changed, true);
+  assert.equal(breachAtBlast(world, destruction, { x: 341, y: 260, wallId: 'home:east' }).changed, true);
+  assert.equal(breachAtBlast(world, destruction, { x: 150, y: 99, wallId: 'home:north-left' }).changed, false);
+  assert.equal(destruction.breaches.length, 4); assert.equal(house.breaches.length, 4);
   assert.ok(house.walls.length >= house.baseWalls.length, 'cuts split walls rather than erasing the house');
   assert.equal(world.buildings.length, 2);
 });
 
 test('range, intact cover, fixed doors and partitions constrain explosive openings', () => {
   for (const impact of [
-    { x: 40, y: 180 }, { x: 99, y: 180, radius: 0 }, { x: 99, y: 99 },
+    { x: 40, y: 180 }, { x: 99, y: 180, radius: 0 },
     { x: 220, y: 99 }, { x: 150, y: 214, wallId: 'home:partition-left' }, { x: NaN, y: 180 },
   ]) {
     const { world, destruction } = fixture();
@@ -61,6 +63,42 @@ test('range, intact cover, fixed doors and partitions constrain explosive openin
   assert.equal(breachAtBlast(world, destruction, { x: 49, y: 180, wallId: 'home:west' }).changed, false, 'a separate intact wall shields the candidate');
   assert.equal(breachAtBlast(world, destruction, { x: 341, y: 180, wallId: 'home:east' }).changed, true);
   assert.ok(world.walls.includes(barrier), 'unrelated custom solids survive reconstruction');
+});
+
+test('near-corner blasts remove a usable wall section without removing the corner support', () => {
+  const { world, house, destruction } = fixture();
+  const result = breachAtBlast(world, destruction, { x: 99, y: 99, wallId: 'home:west' });
+  assert.equal(result.changed, true);
+  assert.equal(hasLineOfSight({ world }, { x: 62, y: 105 }, { x: 138, y: 105 }), false);
+  assert.ok(house.walls.some(wall => wall.id === 'home:west' && wall.y === house.y && wall.h >= 10));
+  const opening = result.created[0];
+  assert.ok(world.walls.every(wall => !Number.isFinite(segmentRectEntry(opening.outside, opening.inside, wall, 17))));
+});
+
+test('street-facing walls can open into existing doors while the outer supports and partitions stay intact', () => {
+  for (const side of ['north', 'south']) {
+    const { world } = createGame({ mission: 0, seed: 17 }), house = world.buildings.find(building => building.id === 'b02');
+    const original = structuredClone(house), door = house.doors.find(door => door.side === side), destruction = createDestructionState();
+    const result = breachAtBlast(world, destruction, { x: 1345, y: door.y + (side === 'north' ? -1 : 1), wallId: `b02:${side}-left` });
+    assert.equal(result.changed, true);
+    const opening = result.created[0];
+    assert.equal(opening.width, 50);
+    assert.equal(opening.to, door.x - door.width / 2, 'the new gap joins the original threshold without an invisible jamb');
+    assert.equal(traceAim({ walls: original.baseWalls }, opening.outside, opening.inside).blocked, true);
+    assert.equal(traceAim(world, opening.outside, opening.inside).blocked, false);
+    assert.ok(world.walls.every(wall => !Number.isFinite(segmentRectEntry(opening.outside, opening.inside, wall, 17))));
+    assert.deepEqual(house.doors, original.doors);
+    assert.deepEqual(house.walls.filter(wall => wall.kind === 'partition'), original.walls.filter(wall => wall.kind === 'partition'));
+    assert.ok(house.walls.some(wall => wall.id === opening.wallId && wall.x === house.x + 10 && wall.w === 10));
+    const remote = createGame({ mission: 0, seed: 17 }).world;
+    assert.equal(syncBuildingDamage(remote, JSON.parse(JSON.stringify(destruction))).changed, true);
+    assert.deepEqual(remote.walls, world.walls);
+    const forged = structuredClone(destruction), record = forged.breaches[0];
+    record.from -= 1; record.id = `${record.wallId}:${record.from}:${record.to}`;
+    const untouched = createGame({ mission: 0, seed: 17 }).world, intact = structuredClone(untouched.walls);
+    assert.equal(syncBuildingDamage(untouched, forged).changed, false, 'arbitrary wider cuts are not canonical');
+    assert.deepEqual(untouched.walls, intact);
+  }
 });
 
 test('canonical snapshots reproduce breaches once and a reset restores original walls', () => {
@@ -107,17 +145,21 @@ test('actual player movement and client prediction both cross the opened seed-17
   assert.ok(actor.x > 315 && actor.x < 400, 'the soldier passes through the real wall opening');
 });
 
-test('generated breach centers retain soldier clearance across varied mission layouts', () => {
-  for (let mission = 0; mission < 4; mission++) for (const seed of [4, 17, 19931003]) {
+test('every generated building has a usable destructible section across all six mission layouts', () => {
+  for (let mission = 0; mission < 6; mission++) for (const seed of [4, 17, 19931003]) {
     const { world } = createGame({ mission, seed }), destruction = createDestructionState();
-    let opened = 0;
-    for (const house of world.buildings.slice(0, 4)) {
-      const result = breachAtBlast(world, destruction, { x: house.x - 1, y: house.y + 74, wallId: `${house.id}:west` });
-      if (!result.changed) continue;
-      opened++;
+    for (const house of world.buildings) {
+      let result;
+      for (const side of ['west', 'east']) {
+        for (let y = Math.ceil((house.y - 20) / 40) * 40 + 20; y < house.y + house.h; y += 40) {
+          result = breachAtBlast(world, destruction, { x: side === 'west' ? house.x - 1 : house.x + house.w + 1, y, wallId: `${house.id}:${side}` });
+          if (result.changed) break;
+        }
+        if (result?.changed) break;
+      }
+      assert.ok(result?.changed, `${mission}/${seed}/${house.id} has a usable destructible wall`);
       const opening = result.created[0];
       assert.ok(world.walls.every(wall => !Number.isFinite(segmentRectEntry(opening.outside, opening.inside, wall, 17))), `${mission}/${seed}/${house.id} leaves a usable passage`);
     }
-    assert.ok(opened > 0, `${mission}/${seed} has usable destructible sections`);
   }
 });

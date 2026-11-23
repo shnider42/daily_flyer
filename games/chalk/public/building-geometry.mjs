@@ -38,7 +38,7 @@ export function prepareBuildingInteriors(world) {
     const walls = [];
     const wall = (key, side, wx, wy, ww, wh, kind = 'perimeter') => {
       if (ww <= 0 || wh <= 0) return;
-      walls.push({ id: `${id}:${key}`, x: wx, y: wy, w: ww, h: wh, buildingId: id, kind, side, axis: ww > wh ? 'x' : 'y' });
+      walls.push({ id: `${id}:${key}`, x: wx, y: wy, w: ww, h: wh, buildingId: id, kind, side, axis: side === 'west' || side === 'east' ? 'y' : 'x' });
     };
     wall('west', 'west', x, y, WALL, h); wall('east', 'east', x + w - WALL, y, WALL, h);
     for (const [side, edgeY] of [['north', y], ['south', y + h - WALL]]) {

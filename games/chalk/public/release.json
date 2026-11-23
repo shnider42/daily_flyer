@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "date": "2026-11-23",
   "missions": 6,
   "roles": [
@@ -54,16 +54,24 @@
   },
   "buildings": {
     "enterable": true,
-    "entry": "Open north/south doorways or an explosive breach in a qualifying perimeter section",
+    "entry": "Open north/south doorways, widened frontages, or explosive gaps in qualifying perimeter sections",
     "interiors": "shared walls, room partitions, decorative furnishings and automatic roof cutaways",
     "sharedCollision": "solo, AI navigation, bullets, sight lines, desktop aim and co-op prediction",
     "destruction": {
       "type": "localized perimeter openings",
-      "maxPerBuilding": 2,
-      "openingWidthWorldUnits": 80,
+      "maxPerBuilding": 4,
       "persistentForMission": true,
       "sharedWithCoop": true,
-      "scope": "remaining walls, fixed doors, corners, partitions and roof stay intact; no structural collapse"
+      "scope": "Localized side-wall cuts and doorway-adjacent frontage damage; corner supports, remaining walls, partitions and roof stay intact; no structural collapse",
+      "isolatedOpeningWidthsWorldUnits": [
+        80,
+        56,
+        48
+      ],
+      "doorwayExtensionWorldUnits": {
+        "min": 36,
+        "max": 80
+      }
     }
   },
   "squadRoles": [
@@ -72,9 +80,9 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 5,
+  "protocol": 6,
   "squad": {
-    "soloSelection": "HUD cards or keyboard 1–4, retaining each soldier state",
+    "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
     "formation": "wider outside, compressed through doors",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
@@ -180,8 +188,13 @@
       "SAW/support",
       "sniper"
     ],
-    "illumination": "Brief bounded local glow with wall/roof/smoke visibility gates; cached sprites and shot geometry",
+    "illumination": "Brighter night-only muzzle cores and broader warm light pools; brief shot-driven peaks, wall/roof/smoke visibility gates, cached sprites and bounded shot geometry",
     "reducedMotion": "Retains a dimmer muzzle core without local glow",
-    "sourceFlash": "Visible night sources require unobstructed squad sight; no persistent marker or terrain revelation"
+    "sourceFlash": "Visible night sources require unobstructed squad sight; no persistent marker or terrain revelation",
+    "nightCoreScale": {
+      "length": 1.65,
+      "width": 1.45
+    },
+    "activeLightLimit": 24
   }
 }

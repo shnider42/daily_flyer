@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer, houseRevealed, renderMinimap, missionLighting, muzzleOrigin, muzzleProfile, muzzleLightPolygon } from '../public/renderer.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
-import { breachAtBlast, createDestructionState } from '../public/destruction.mjs';
+import { breachAtBlast, createDestructionState, syncBuildingDamage } from '../public/destruction.mjs';
 
 function fixture(ratio=1) {
   const methods = { measureText: text => ({width:String(text).length*6}) };
@@ -397,6 +397,62 @@ test('a sidewall breach lifts the roof only when approached through its actual o
   assert.equal(houseRevealed(house, state, { menu: true }), false);
 });
 
+function joinedFacadeFixture(side, edge) {
+  const f = fixture();
+  f.state.world = prepareBuildingInteriors({ width: 2400, height: 1900, buildings: [{ id: 'home', x: 100, y: 100, w: 240, h: 240, tone: .3 }] });
+  f.renderer.camera = { x: 220, y: 220, zoom: 1 };
+  const house = f.state.world.buildings[0], door = house.doors.find(door => door.side === side);
+  const join = door.x + (edge === 'left' ? -1 : 1) * door.width / 2;
+  Object.assign(f.actor, { x: join, y: door.y + (side === 'north' ? -38 : 38) });
+  const impact = { x: join + (edge === 'left' ? -30 : 30), y: door.y + (side === 'north' ? -1 : 1), wallId: `home:${side}-${edge}` };
+  return { ...f, house, door, join, impact };
+}
+
+test('door-adjacent breaches form one continuous roof approach and reset restores the intact jamb', () => {
+  for (const side of ['north', 'south']) for (const edge of ['left', 'right']) {
+    const { state, actor, house, join, impact } = joinedFacadeFixture(side, edge);
+    assert.equal(houseRevealed(house, state), false, 'the original doorway edge is still masonry');
+    const result = breachAtBlast(state.world, createDestructionState(), impact), opening = result.created[0];
+    assert.equal(result.changed, true);
+    near(edge === 'left' ? opening.to : opening.from, join);
+    for (const offset of [-4, 0, 4]) {
+      actor.x = join + offset;
+      assert.equal(houseRevealed(house, state), true, `${side}/${edge}: no false post remains at the shared threshold`);
+    }
+    actor.x = edge === 'left' ? opening.from - 6 : opening.to + 6;
+    assert.equal(houseRevealed(house, state), false, 'the surviving outer support still hides the room');
+    actor.x = join;
+    syncBuildingDamage(state.world, createDestructionState());
+    assert.equal(houseRevealed(house, state), false, 'damage reset invalidates the merged opening cache');
+  }
+});
+
+test('joined doorway artwork removes both old and new posts while retaining the real wall edge and threshold', () => {
+  for (const side of ['north', 'south']) for (const edge of ['left', 'right']) {
+    const { renderer, state, impact } = joinedFacadeFixture(side, edge), fills = [], strokes = [], sprites = [];
+    const opening = breachAtBlast(state.world, createDestructionState(), impact).created[0];
+    let path = [];
+    renderer.ctx.beginPath = () => { path = []; };
+    renderer.ctx.moveTo = (x, y) => path.push([x, y]); renderer.ctx.lineTo = (x, y) => path.push([x, y]);
+    renderer.ctx.stroke = () => strokes.push({ style: renderer.ctx.strokeStyle, path: [...path] });
+    renderer.ctx.fillRect = (x, y, w, h) => fills.push({ style: renderer.ctx.fillStyle, x, y, w, h });
+    renderer.breachSprite = () => ({ kind: 'rubble' }); renderer.ctx.drawImage = sprite => sprites.push(sprite.kind);
+    renderer.drawBreaches(renderer.ctx, state);
+    const joined = opening.width / 2 * ((side === 'north') === (edge === 'left') ? -1 : 1);
+    const jambs = strokes.filter(stroke => stroke.style === '#474b3a'), chips = strokes.filter(stroke => stroke.style === '#b6a680');
+    assert.equal(jambs.length, 1); assert.equal(chips.length, 1, 'chips mark only a real surviving wall edge');
+    assert.equal(jambs[0].path[0][0], -joined);
+    assert.ok(fills.some(fill => fill.style === '#777762' && fill.x < joined - 7 && fill.x + fill.w > joined + 7 && fill.y <= -opening.thickness - 14 && fill.y + fill.h >= 12), 'the patch covers the cached doorway post and folded leaf on both sides of the join');
+    assert.ok(fills.some(fill => fill.style === '#a59b7c' && fill.x < joined && fill.x + fill.w > joined), 'the worn threshold continues through the cleared join');
+    assert.deepEqual(sprites, ['rubble']);
+  }
+  const { renderer, state } = fixture(), jambs = [];
+  state.world.buildings = [{ breaches: [{ side: 'west', x: 1200, y: 950, width: 48, thickness: 10, angle: Math.PI / 2 }] }];
+  renderer.breachSprite = () => ({}); renderer.ctx.stroke = () => { if (renderer.ctx.strokeStyle === '#474b3a') jambs.push(true); };
+  renderer.drawBreaches(renderer.ctx, state);
+  assert.equal(jambs.length, 2, 'a narrower isolated opening retains both masonry edges');
+});
+
 test('geometry changes repaint only the affected room texture and a same-seed restart restores it', () => {
   const { renderer, state } = indoorFixture(), pristine = structuredClone(state.world), map = renderer.mapCache, repainted = [];
   for (const house of renderer.houseCutaways) house.canvas.getContext = () => renderer.ctx;
@@ -539,7 +595,7 @@ test('night flash light is local, clipped, cached and reduced-motion aware', () 
   renderer.updateMuzzleFlashes(state, { time: 10 });
   renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10 });
   assert.deepEqual(draws.map(draw => draw.kind), ['light', 'core']);
-  assert.ok(draws[0].rect[2] <= 172 && draws[0].rect[3] <= 172, 'lighting covers a short patch rather than the viewport');
+  assert.ok(draws[0].rect[2] <= 236 && draws[0].rect[3] <= 236, 'the brighter lighting remains a short patch rather than the viewport');
   assert.ok(clips.includes('evenodd'), 'closed roofs are removed from the local light/core clip');
   draws.length = 0;
   renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10.01, reducedMotion: true });
@@ -550,6 +606,36 @@ test('night flash light is local, clipped, cached and reduced-motion aware', () 
   renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10.02 });
   assert.notEqual(renderer.muzzleFlashes[0].polygon, oldPolygon);
   assert.ok(renderer.muzzleFlashes[0].polygon.every(point => point.x < 1250));
+});
+
+test('night flashes have a readable peak at desktop and mobile zoom without amplifying day or reduced-motion shots', () => {
+  for (const [width, height, touch] of [[1440, 900, false], [390, 844, true], [844, 390, true]]) {
+    const { renderer, state } = shotFixture(), draws = [];
+    renderer.resize(width, height, 1);
+    renderer.updateCamera(state, { touch, zoom: touch ? .75 : 1, reducedMotion: true });
+    renderer.ctx.drawImage = (sprite, ...rect) => draws.push({ kind: sprite.kind, rect, alpha: renderer.ctx.globalAlpha });
+    renderer.updateMuzzleFlashes(state, { time: 10 });
+    const capture = (lighting, elapsed, reducedMotion = false) => {
+      state.mission.lighting = lighting; draws.length = 0;
+      renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10 + elapsed, reducedMotion });
+      return draws.map(draw => ({ ...draw }));
+    };
+    const [dayCore] = capture('day', .03);
+    near(dayCore.rect[2], muzzleProfile('rifle').length * .86 * 1.25);
+    const [nightLight, nightCore] = capture('night', .03);
+    assert.equal(nightLight.kind, 'light'); assert.equal(nightCore.kind, 'core');
+    assert.ok(nightCore.rect[2] > dayCore.rect[2] * 1.8, 'the night flare is materially larger than the unchanged daylight cue');
+    // The warm rifle artwork occupies 52 of its cached texture's 96 pixels.
+    assert.ok(nightCore.rect[2] * 52 / 96 * renderer.camera.zoom >= 18, 'the visible flare survives 75% mobile zoom');
+    assert.ok(nightCore.alpha >= .99 && nightLight.alpha >= .85, 'the early peak survives a normal frame interval');
+    assert.ok(nightLight.rect[2] * renderer.camera.zoom >= 130, 'a visible warm light pool surrounds the muzzle at mobile zoom');
+    const [reducedCore] = capture('night', .03, true);
+    assert.equal(draws.length, 1, 'reduced motion retains only the basic muzzle cue');
+    assert.ok(reducedCore.rect[2] < nightCore.rect[2] * .7 && reducedCore.alpha < .65);
+    const [lateLight, lateCore] = capture('night', .09);
+    assert.ok(lateLight.alpha < nightLight.alpha * .7 && lateCore.alpha < nightCore.alpha * .7, 'both layers decay before the original shot ends');
+    assert.deepEqual(capture('night', .111), [], 'stronger night feedback does not prolong a shot');
+  }
 });
 
 test('night shot feedback is drawn after the tint and overlapping automatic rounds stay bounded', () => {
