@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Renderer, houseRevealed } from '../public/renderer.mjs';
+import { Renderer, houseRevealed, renderMinimap } from '../public/renderer.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 
 function fixture(ratio=1) {
@@ -189,4 +189,83 @@ test('an open roof keeps friendly actors readable without exposing enemies behin
   ];
   renderer.drawEffects(renderer.ctx,state,1);
   assert.deepEqual(muzzleAngles,[.7],'a hidden indoor enemy does not leak its position through a muzzle flash');
+});
+
+test('binocular framing widens the view and preserves the prepared input transform', () => {
+  const { renderer, state, actor } = fixture();
+  renderer.updateCamera(state, { reducedMotion: true, observing: true });
+  const ordinary = { ...renderer.camera };
+  assert.equal(ordinary.zoom, 1.2, 'other roles cannot activate binocular framing');
+  actor.role = 'grenadier'; actor.observing = true;
+  const view = { reducedMotion: true, observing: true, quality: 'performance' };
+  renderer.updateCamera(state, view);
+  assert.ok(renderer.camera.zoom < ordinary.zoom);
+  assert.ok(renderer.camera.x > ordinary.x, 'framing looks toward the binocular direction');
+  const camera = { ...renderer.camera }, aim = renderer.screenToWorld(1050, 420), labels = [];
+  renderer.ctx.fillText = text => labels.push(text);
+  actor.angle = .4;
+  renderer.render(state, { ...view, cameraPrepared: true });
+  assert.deepEqual(renderer.camera, camera);
+  assert.deepEqual(renderer.screenToWorld(1050, 420), aim);
+  assert.ok(labels.includes('BINOCULARS · SHARED SIGHT'));
+  actor.observing = false;
+  renderer.updateCamera(state, { reducedMotion: true });
+  near(renderer.camera.zoom, ordinary.zoom);
+});
+
+test('squad labels identify the four loadouts without adding another panel', () => {
+  const { renderer, state, actor } = fixture();
+  state.playerId = 'uncontrolled';
+  const labels = [];
+  renderer.worldLabel = (_x, _y, text) => labels.push(text);
+  for (const [name, role] of [['Hale', 'leader'], ['Mercer', 'grenadier'], ['Ames', 'medic'], ['Webb', 'support']]) {
+    renderer.drawActor(renderer.ctx, { ...actor, name, role }, state, 1, {});
+  }
+  assert.deepEqual(labels, ['HALE · LEAD', 'MERCER · GREN', 'AMES · MEDIC', 'WEBB · SAW']);
+});
+
+test('quick battlefield orders flash at the supplied point even before the persistent order arrives', () => {
+  const { renderer, state } = fixture(), arcs = [];
+  state.order = { type: 'follow' };
+  renderer.ctx.arc = (x, y, radius) => arcs.push({ x, y, radius });
+  renderer.drawOrder(state, 1, { quickOrder: { point: { x: 1400, y: 820 }, active: true }, reducedMotion: true });
+  assert.equal(arcs.length, 1);
+  assert.equal(arcs[0].x, 1400); assert.equal(arcs[0].y, 820);
+  assert.ok(arcs[0].radius > 0);
+  renderer.drawOrder(state, 1, { quickOrder: { point: { x: 1400, y: 820 }, active: false } });
+  renderer.drawOrder(state, 1, { quickOrder: { point: { x: NaN, y: 820 }, active: true } });
+  assert.equal(arcs.length, 1, 'inactive or invalid previews draw nothing');
+});
+
+test('a sniper glint and minimap contact both disappear behind a fresh wall or smoke', () => {
+  const { renderer, state } = fixture(), arcs = [];
+  const sniper = { id: 20, x: 1400, y: 950, angle: Math.PI, alive: true, team: 'enemy', kind: 'sniper', aimCharge: .8, visible: true };
+  state.enemies = [sniper];
+  renderer.ctx.arc = (x, y, radius) => arcs.push({ x, y, radius });
+  const render = () => { arcs.length = 0; renderer.render(state, { quality: 'performance', reducedMotion: true }); };
+  render();
+  assert.ok(arcs.some(arc => arc.x === 17 && arc.y === -1), 'a sighted charged sniper has the restrained scope cue');
+  state.world.walls = [{ x: 1300, y: 0, w: 10, h: 1900 }];
+  render();
+  assert.ok(!arcs.some(arc => arc.x === 17 && arc.y === -1), 'stale visible flags do not expose the sniper');
+  const minimap = { width: 180, height: 144, getContext: () => renderer.ctx };
+  arcs.length = 0; renderMinimap(minimap, state);
+  assert.ok(!arcs.some(arc => arc.x === sniper.x && arc.y === sniper.y));
+  state.world.walls = []; state.smokes = [{ x: 1300, y: 950, radius: 90, ttl: 10 }];
+  arcs.length = 0; renderMinimap(minimap, state);
+  assert.ok(!arcs.some(arc => arc.x === sniper.x && arc.y === sniper.y), 'smoke uses the same contact gate on the minimap');
+});
+
+test('launcher projectiles have a raised arc and a short ground blast without uncached fire textures', () => {
+  const { renderer, state } = fixture(), arcs = [];
+  renderer.ctx.arc = (x, y, radius) => arcs.push({ x, y, radius });
+  renderer.drawFire = () => assert.fail('launcher impact should use its brief ground burst');
+  state.grenades = [{ x: 1300, y: 950, px: 1290, py: 950, progress: .5, team: 'squad' }];
+  state.effects = [{ x: 1400, y: 950, type: 'explosion', weapon: 'grenade', radius: 76, ttl: .3, maxTtl: .6 }];
+  renderer.drawEffects(renderer.ctx, state, 1);
+  assert.ok(arcs.some(arc => arc.x === 1300 && arc.y < 950), 'the round lifts above its ground position');
+  assert.ok(arcs.some(arc => arc.x > 1300 && arc.x < 1310 && arc.y > 950), 'a small ground shadow gives the arc depth');
+  const blast = arcs.find(arc => arc.x === 1400 && arc.y === 950);
+  assert.ok(blast.radius > 20 && blast.radius < 76);
+  assert.ok(arcs.every(arc => Number.isFinite(arc.radius)));
 });

@@ -340,12 +340,12 @@ export class GameAudio {
     if (spatial.d > 1200 || !own && this.shotBudget < 1) return;
     this.shotBudget = Math.max(0, this.shotBudget - 1);
     const weapon = event.weapon || (event.team === 'enemy' ? 'hostile' : 'rifle');
-    const sample = this.samples.get(weapon === 'hostile' ? 'hostile' : 'rifle');
+    const sample = this.samples.get(weapon === 'hostile' || weapon === 'sniper' ? 'hostile' : 'rifle');
     const gain = own ? 1 : spatial.gain;
     const pan = own ? 0 : spatial.pan;
-    const rate = (weapon === 'support' ? .91 : 1) * (.975 + Math.random() * .05);
+    const rate = (weapon === 'support' ? .91 : weapon === 'sniper' ? .83 : 1) * (.975 + Math.random() * .05);
     const priority = own ? 3 : event.team === 'squad' ? 2 : 1;
-    const reportGain = own ? .46 : weapon === 'hostile' ? .47 : .36;
+    const reportGain = own ? .46 : weapon === 'sniper' ? .56 : weapon === 'hostile' ? .47 : .36;
     if (sample) this._voice({ buffer: sample, duration: sample.duration / rate, gain: reportGain * gain,
       rate, highpass: 48, lowpass: own ? 10000 : spatial.lowpass, pan, wet: .12, priority });
     else {
@@ -355,14 +355,22 @@ export class GameAudio {
       this._voice({ duration: .085, gain: .075 * gain, frequency: weapon === 'support' ? 125 : 155, endFrequency: 52, highpass: 35, lowpass: 500, pan, priority });
     }
     if (own) this._voice({ duration: .045, gain: .027, highpass: 1800, lowpass: 5100, delay: .045, priority: 2 });
+    if (weapon === 'sniper') this._voice({ duration: .38, gain: .10 * gain, highpass: 140, lowpass: Math.min(1800,spatial.lowpass), delay: .14, pan, wet: .2, priority: 1 });
   }
 
   _event(event, player) {
     if (!player) return;
     if (event.type === 'shot') { this._shot(event, player); return; }
-    const s = this._spatial(event, player); if (s.d > 500) return;
+    const s = this._spatial(event, player); if (s.d > (event.type === 'explosion' ? 1250 : 500)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
-    if (event.type === 'reload_start') {
+    if (event.type === 'grenade_launch') {
+      this._voice({ duration: .12, gain: .23 * gain, highpass: 65, lowpass: 1000, pan: s.pan, wet: .08, priority: own ? 3 : 1 });
+      this._voice({ duration: .16, gain: .12 * gain, frequency: 145, endFrequency: 48, highpass: 30, lowpass: 480, pan: s.pan, priority: own ? 3 : 1 });
+    } else if (event.type === 'explosion') {
+      this._voice({ duration: .17, gain: .48 * s.gain, highpass: 90, lowpass: Math.min(4200,s.lowpass), pan: s.pan, wet: .18, priority: 3 });
+      this._voice({ duration: .65, gain: .25 * s.gain, highpass: 28, lowpass: 480, delay: .035, pan: s.pan, wet: .22, priority: 2 });
+      this._voice({ duration: .38, gain: .17 * s.gain, frequency: 80, endFrequency: 30, highpass: 20, lowpass: 260, pan: s.pan, priority: 2 });
+    } else if (event.type === 'reload_start') {
       this._voice({ duration: .06, gain: .09 * gain, highpass: 650, lowpass: 3200, pan: s.pan, priority: own ? 2 : 0 });
       this._voice({ duration: .15, gain: .065 * gain, highpass: 300, lowpass: 1800, delay: .19, pan: s.pan });
       this._voice({ duration: .05, gain: .055 * gain, highpass: 950, lowpass: 3700, delay: .43, pan: s.pan });

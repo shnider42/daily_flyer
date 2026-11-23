@@ -9,7 +9,8 @@
  *   leave; ping {sentAt}; resync. Commands optionally receive result {id,ok,reason}.
  * Shared play has no global pause: opening a local menu sends neutral input.
  */
-export const PROTOCOL = 1;
+// Version 2 shares revised city generation and role movement with the authority.
+export const PROTOCOL = 2;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;
@@ -29,6 +30,6 @@ export function cleanInput(raw = {}) {
   return {moveX,moveY,aimX:Number.isFinite(raw.aimX)?clamp(raw.aimX,-1200,3600):null,
     aimY:Number.isFinite(raw.aimY)?clamp(raw.aimY,-1200,3100):null,
     fire:raw.fire===true,interact:raw.interact===true,reload:raw.reload===true,
-    smoke:raw.smoke===true,sprint:raw.sprint===true};
+    smoke:raw.smoke===true,sprint:raw.sprint===true,grenade:raw.grenade===true,observe:raw.observe===true};
 }
 export const EMPTY_INPUT = Object.freeze(cleanInput());

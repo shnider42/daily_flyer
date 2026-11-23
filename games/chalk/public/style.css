@@ -345,3 +345,89 @@ body.desktop-aim #world{cursor:none}
   .menu-settings-button,.settings-tabs button,.settings-footer .text-button,.settings-done{min-height:44px}
   .setting-field input[type="range"]{height:44px}.setting-field select{min-height:44px}
 }
+
+/* Four fixed squad jobs; cards stay usable without opening the mission menu. */
+button.squad-member{appearance:none;text-align:left;font:inherit;line-height:normal;touch-action:manipulation}
+button.squad-member:focus-visible{outline:2px solid #e3ca8b;outline-offset:3px}
+button.squad-member:not(:disabled):hover{border-color:#d6c18b;background:#34402c}
+button.squad-member:not(:disabled):active{background:#4b5135}
+button.squad-member:disabled{opacity:.55}
+button.squad-member.active:disabled{opacity:1}
+.online button.squad-member:disabled:not(.downed){opacity:1}
+.touch .performance-stats{right:auto;left:12px;text-align:left}
+.squad-member .squad-health{display:block;width:100%;height:3px;min-height:0;flex:none;overflow:hidden;line-height:0}
+.squad-member .squad-health>span{display:block;height:100%;max-width:100%}
+.weapon-name{margin:6px 0 0;font:10px/1.2 var(--mono);letter-spacing:.08em;color:#b9c5ab}
+.specialty-text{margin:5px 0 0;font:10px/1.4 var(--mono);color:#cbbb91}
+.specialty-text:empty{display:none}
+.solo-switch-hint{font:12px/1.45 Arial,sans-serif!important;color:#abbca2!important;margin:15px 0 9px!important}
+.solo-squad-picker{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.solo-squad-picker button{min-height:58px;padding:9px 10px;text-align:left;border:1px solid #73856575;border-radius:6px;background:#102018;color:#d7e0ca}
+.solo-squad-picker button strong{display:block;font:600 12px/1.3 var(--mono)}
+.solo-squad-picker button small{display:block;margin-top:4px;font:11px/1.35 Arial,sans-serif;color:#a7b99d}
+.solo-squad-picker button[aria-pressed="true"],.solo-squad-picker button.active{border-color:#d6c18b;background:#d6c18b12}
+.solo-squad-picker button:not(:disabled):hover{border-color:#e2cb8d;background:#30402a}
+.solo-squad-picker button:not(:disabled):active{background:#485233}
+.squad-role-guide{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 16px}
+.squad-role-guide p{margin:0!important;padding:12px;border:1px solid #74836650;border-radius:6px;background:#101d17}
+.squad-role-guide strong{display:block;font:600 12px/1.4 var(--mono);color:#dac994}
+.squad-role-guide span{display:block;font:13px/1.5 Arial,sans-serif;margin-top:6px;color:#b8c5ae}
+
+/* Thumb pads retain their space; a single command strip stays within one tap. */
+.touch{--touch-height:calc(var(--touch-bottom) + 194px)}
+.touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--touch-height:calc(var(--touch-bottom) + 246px)}
+.touch .squad-panel{gap:5px;padding:0}
+.touch button.squad-member{min-height:44px;padding:5px 6px 4px;border:1px solid #a9bda42b;border-radius:5px;background:#102019bb;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.touch button.squad-member.active{border-color:#d6c18b99;background:#d6c18b13}
+.touch button.squad-member strong{width:100%;font-size:max(10px,calc(11px * var(--mobile-scale)));line-height:1.2}
+.touch button.squad-member small{display:block;max-width:100%;font:9px/1.2 Arial,sans-serif;margin-top:2px;color:#a8bba0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.02em}
+.touch button.squad-member.active small{color:#d7c894}
+.touch button.squad-member.downed small{font-size:9px;line-height:1.2;padding:0 2px;margin-top:2px;color:#f2ba9e}
+.touch button.squad-member .squad-health{width:100%;margin-top:4px;flex:none}
+.touch .quick-orders{position:absolute;left:50%;bottom:calc(var(--touch-bottom) + 145px);transform:translateX(-50%);display:flex;gap:6px;align-items:center;width:max-content;pointer-events:none}
+.touch .quick-orders button,.touch .quick-orders #touchOrder{position:relative;left:auto;right:auto;top:auto;bottom:auto;order:0;min-height:44px;height:44px;min-width:58px;width:auto;padding:7px 11px;font-size:12px;border-radius:10px;flex-direction:row;gap:5px;white-space:nowrap}
+.touch .quick-orders #touchOrder{padding:7px 9px;border-color:#cebb8566;color:#e2d2a5;background:#18281ff0}
+.touch .quick-orders #touchOrder svg{width:18px;height:18px}
+.touch .quick-orders #touchRegroup{color:#bfd6bd}
+.touch .quick-orders #touchHold{color:#e0cda2}
+.touch .touch-actions .touch-assist{bottom:calc(var(--touch-bottom) + 197px);min-height:44px;height:44px;font-size:13px}
+.touch .specialty-actions{position:absolute;left:50%;bottom:var(--touch-bottom);transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}
+.touch .specialty-actions button{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:54px;min-width:48px;height:56px;min-height:48px;padding:6px 3px;font-size:11px;border-radius:11px}
+.touch .specialty-actions #touchObserve[aria-pressed="true"]{background:#c7dabb35;border-color:#c8dfad;color:#eef0ce;box-shadow:0 0 0 2px #b9d4a81a}
+.touch .specialty-actions #touchGrenade{border-color:#d2b57a66;color:#ead5a6}
+.touch .touch-actions button:focus-visible{outline:2px solid #ead59b;outline-offset:3px}
+.touch .weapon-name{font-size:9px;line-height:1.2;letter-spacing:.07em;margin:0 0 2px;color:#bbcab0}
+.touch .specialty-text{max-width:110px;font-size:9px;line-height:1.3;margin-top:3px}
+.touch[data-mobile-hud-detail="compact"] .specialty-text{display:none}
+.touch .weapon-panel{bottom:calc(var(--touch-bottom) + 198px)}
+.touch.orders-open .quick-orders #touchOrder{border-color:#dcc88f;background:#d4c18b25;color:#f1e4be}
+@media(max-width:420px){
+  .squad-role-guide{grid-template-columns:1fr}
+  .touch .quick-orders button,.touch .quick-orders #touchOrder{padding-left:9px;padding-right:9px;min-width:56px}
+}
+@media(orientation:portrait) and (max-width:420px){
+  .touch:has(#touchInteract:not(:disabled)) .weapon-panel,.touch:has(#touchInteract.working) .weapon-panel{bottom:calc(var(--touch-bottom) + 250px)}
+}
+@media(orientation:portrait){
+  .touch .context-hint{left:12px;right:12px;bottom:calc(var(--touch-height) + 80px);transform:none;width:auto;max-width:none;padding:6px 9px;font-size:12px;line-height:1.35}
+  .touch .toast{bottom:calc(var(--touch-height) + 122px)}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .touch{--touch-height:calc(var(--touch-bottom) + var(--mobile-stick-height))}
+  .touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--touch-height:calc(var(--touch-bottom) + 162px)}
+  .touch .squad-panel{gap:5px;padding-top:0}
+  .touch button.squad-member{padding-left:5px;padding-right:5px}
+  .touch .touch-actions{position:absolute;left:50%;bottom:var(--touch-bottom);transform:translateX(-50%);display:grid;grid-template-columns:1fr 1fr;gap:8px;width:max-content;max-width:calc(100% - 300px);align-items:end}
+  .touch .quick-orders{position:static;left:auto;bottom:auto;transform:none;grid-column:1/-1;grid-row:1;justify-self:center;gap:6px}
+  .touch .utility-actions,.touch .specialty-actions{position:static;left:auto;bottom:auto;transform:none;display:flex;gap:6px;justify-content:center;grid-row:2}
+  .touch .utility-actions{grid-column:1}
+  .touch .specialty-actions{grid-column:2}
+  .touch .touch-actions:not(:has(#touchSpecialty:not([hidden]))) .utility-actions{grid-column:1/-1}
+  .touch .utility-actions button,.touch .specialty-actions button{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:50px;min-width:48px;height:48px;min-height:48px;padding:4px;font-size:10px;border-radius:9px;gap:3px}
+  .touch .touch-actions button svg{width:18px;height:18px}
+  .touch .touch-actions .touch-assist{position:absolute;left:50%;top:auto;right:auto;bottom:110px;transform:translateX(-50%);width:110px;height:44px;min-height:44px;flex-direction:row;gap:7px;border-radius:11px}
+  .touch .weapon-panel{bottom:calc(var(--touch-bottom) + 132px)}
+  .touch .context-hint{bottom:calc(var(--touch-height) + 6px);max-width:calc(100% - 300px)}
+  .touch.orders-open .orders{bottom:calc(var(--touch-height) + 6px)}
+  .touch .toast{bottom:calc(var(--touch-height) + 12px)}
+}

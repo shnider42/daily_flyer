@@ -32,11 +32,11 @@ export class CoopRooms {
     return packet;
   }
   _newPlayer(slot,name){const token=newSecret();return {player:{id:newPlayerId(),name:cleanName(name,slot===0?'Squad leader':'Squad mate'),slot,
-    tokenHash:secretHash(token),peer:null,seq:0,input:{...EMPTY_INPUT},actions:{reload:false,smoke:false},lastInput:this.now(),disconnectedAt:null,commands:new Map()},token};}
+    tokenHash:secretHash(token),peer:null,seq:0,input:{...EMPTY_INPUT},actions:{reload:false,smoke:false,grenade:false},lastInput:this.now(),disconnectedAt:null,commands:new Map()},token};}
   _newGame(room){
     room.seed=this.seed();room.epoch++;room.tick=0;
     room.game=createGame({mission:room.mission,difficulty:room.difficulty,role:'leader',seed:room.seed});
-    for(const p of room.players){p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false};p.lastInput=this.now();}
+    for(const p of room.players){p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false,grenade:false};p.lastInput=this.now();}
     this._syncHumans(room);
   }
   _syncHumans(room){setHumanPlayers(room.game,room.players.filter(p=>p.peer).map(p=>room.game.squad[p.slot].id));}
@@ -49,7 +49,7 @@ export class CoopRooms {
   _attach(room,p,peer,token){
     if(p.peer&&p.peer!==peer){const old=p.peer;old.roomCode=null;old.playerId=null;
       old.send({type:'replaced',reason:'This player connected in another tab.'});old.close?.(4009,'Session replaced');}
-    p.peer=peer;p.disconnectedAt=null;p.seq=0;p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false};p.lastInput=this.now();p.commands.clear();
+    p.peer=peer;p.disconnectedAt=null;p.seq=0;p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false,grenade:false};p.lastInput=this.now();p.commands.clear();
     peer.roomCode=room.code;peer.playerId=p.id;peer.deltaEncoder=new SnapshotDeltaEncoder();peer.lastFullAt=0;
     room.lastActivity=this.now();room.emptySince=null;this._syncHumans(room);
     peer.send({type:'joined',session:{code:room.code,playerId:p.id,token},room:this._publicRoom(room)});
@@ -97,9 +97,9 @@ export class CoopRooms {
     if(type==='input'){
       if(!Number.isSafeInteger(message.seq)||message.seq<=p.seq||message.epoch!==room.epoch)return;
       const input=cleanInput(message.input);p.seq=message.seq;p.lastInput=this.now();
-      if(statusOf(room)!=='playing'){p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false};return;}
-      p.actions.reload ||= input.reload;p.actions.smoke ||= input.smoke;
-      p.input={...input,reload:false,smoke:false};return;
+      if(statusOf(room)!=='playing'){p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false,grenade:false};return;}
+      p.actions.reload ||= input.reload;p.actions.smoke ||= input.smoke;p.actions.grenade ||= input.grenade;
+      p.input={...input,reload:false,smoke:false,grenade:false};return;
     }
     if(message.id!==undefined&&(typeof message.id!=='string'||message.id.length<1||message.id.length>80))return this.reject(peer,'Invalid command identifier.','protocol');
     if(message.id&&p.commands.has(message.id)){peer.send(p.commands.get(message.id));return;}
@@ -118,7 +118,7 @@ export class CoopRooms {
     }else if(type==='return_lobby'){
       room.status='lobby';this._newGame(room);room.reason='Choose the next mission together.';
     }else if(type==='swap_roles'){
-      for(const member of room.players){member.slot=1-member.slot;member.input={...EMPTY_INPUT};member.actions={reload:false,smoke:false};}
+      for(const member of room.players){member.slot=1-member.slot;member.input={...EMPTY_INPUT};member.actions={reload:false,smoke:false,grenade:false};}
       room.epoch++;this._syncHumans(room);room.reason='Command changed hands. Your assigned soldier has changed.';
     }else if(type==='order'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before giving squad orders.');
@@ -134,7 +134,7 @@ export class CoopRooms {
     const state={};for(const key of stateFields)if(room.game[key]!==undefined)state[key]=room.game[key];
     for(const key of ['squad','civilians','survivors'])state[key]=room.game[key].map(actorView);
     state.enemies=room.game.enemies.filter(a=>a.visible).map(actorView);
-    for(const key of ['vehicles','bullets','effects','soundEvents','smokes'])state[key]=room.game[key];
+    for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes'])state[key]=room.game[key];
     const actorId=room.game.squad[p.slot].id;state.playerId=actorId;state.role=p.slot===0?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,
       init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch},
@@ -160,7 +160,7 @@ export class CoopRooms {
   disconnect(peer){
     const room=this.rooms.get(peer.roomCode),p=room?.players.find(p=>p.id===peer.playerId);
     if(!room||p?.peer!==peer)return;
-    p.peer=null;p.disconnectedAt=this.now();p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false};
+    p.peer=null;p.disconnectedAt=this.now();p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false,grenade:false};
     peer.roomCode=null;peer.playerId=null;this._syncHumans(room);
     room.reason=`${p.name} disconnected. AI has their soldier while they reconnect.`;
     if(!room.players.some(p=>p.peer))room.emptySince=this.now();
@@ -186,7 +186,7 @@ export class CoopRooms {
         const inputs={};for(const p of room.players){if(!p.peer)continue;
           const fresh=now-p.lastInput<=INPUT_TIMEOUT_MS;
           inputs[room.game.squad[p.slot].id]=fresh?{...p.input,...p.actions}:{...EMPTY_INPUT};
-          p.actions={reload:false,smoke:false};}
+          p.actions={reload:false,smoke:false,grenade:false};}
         stepCoop(room.game,inputs,dt);room.tick++;this.metrics.steps++;
         if(room.game.status!=='playing'){room.reason=room.game.endReason||'Mission complete.';changed=true;}
       }

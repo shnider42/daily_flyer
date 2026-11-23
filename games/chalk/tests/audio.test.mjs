@@ -194,3 +194,22 @@ test('crossing a doorway softly muffles exterior ambience and adds restrained ro
   }
   assert.equal(audio.reverbReturn.gain.value, outsideReflections);
 });
+
+test('launcher, blast, and sniper events remain spatial, bounded, and governed by mute', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const player = { id: 'mercer', x: 200, y: 200 };
+  audio._event({ type:'shot', weapon:'sniper', actorId:'sniper', team:'enemy', x:780, y:200 },player);
+  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('hostile')),'sniper uses the opposing report recording');
+  const before = audio.voices.size;
+  audio._event({ type:'explosion', x:2000, y:2000 },player);
+  assert.equal(audio.voices.size,before,'inaudibly distant blasts do not allocate voices');
+  audio._event({ type:'grenade_launch', actorId:'mercer', x:200, y:200 },player);
+  assert.ok(audio.voices.size > before);
+  for (let i=0;i<25;i++) audio._event({ type:'explosion', x:320, y:200 },player);
+  assert.ok(audio.voices.size <= 32,'burst events obey the existing audio voice cap');
+  audio.setEnabled(false);
+  audio._event({ type:'grenade_launch', actorId:'mercer', x:200, y:200 },player);
+  audio._event({ type:'explosion', x:320, y:200 },player);
+  assert.equal(audio.voices.size,0,'mute also governs the new weapons');
+});

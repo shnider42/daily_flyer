@@ -1,13 +1,14 @@
-import { MISSIONS, createGame, step, issueOrder, setRole, getObjective, hasLineOfSight } from './sim.mjs';
+import { MISSIONS, createGame, step, issueOrder, selectSquadMember, getObjective, hasLineOfSight } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent } from './touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap } from './touch-input.mjs';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
 import { createDefaults, normalizePreferences, renderDensity } from './settings.mjs';
 import { FramePacer, FrameMeter } from './performance.mjs';
 import { buildingAt } from './building-geometry.mjs';
+import { roleProfile } from './squad-roles.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
@@ -46,6 +47,9 @@ let squadRows = [];
 let interiorNotice = { scene: '', id: '', at: 0 };
 let touchAim = null;
 let interactionPointer = null;
+let observing = false;
+let quickOrder = null;
+const groundOrderTap = new GroundOrderTap();
 let coop = null;
 let onlineEpoch = null;
 let onlineRole = null;
@@ -54,12 +58,12 @@ let coopDialogMode = 'create';
 let coopBusy = false;
 let coopCommandEpoch = null;
 let lastRoomRoster = '';
-const neutralInput = () => ({ moveX:0,moveY:0,aimX:null,aimY:null,fire:false,interact:false,reload:false,smoke:false,sprint:false });
+const neutralInput = () => ({ moveX:0,moveY:0,aimX:null,aimY:null,fire:false,interact:false,reload:false,smoke:false,grenade:false,observe:false,sprint:false });
 const online = () => !!coop?.active || !!game?.coop;
 const keys = new Set();
 const pointer = { x: 0, y: 0, valid: false, fire: false };
 const touchInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, aimStrength: 0, interact: false };
-const actions = { reload: false, smoke: false };
+const actions = { reload: false, smoke: false, grenade: false };
 const activeSticks = new Map();
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const player = () => game?.squad.find(s => s.id === game.playerId);
@@ -206,7 +210,10 @@ function clearInput() {
   keys.clear(); pointer.fire = false; pointer.valid = false;
   document.body.classList.remove('desktop-aim');
   touchInput.moveX = 0; touchInput.moveY = 0; touchInput.aimX = 0; touchInput.aimY = 0; touchInput.aimStrength = 0; touchInput.interact = false; touchAim = null;
-  actions.reload = false; actions.smoke = false;
+  actions.reload = false; actions.smoke = false; actions.grenade = false; observing = false;
+  const tapId = groundOrderTap.pending?.id;
+  groundOrderTap.cancel();
+  if (tapId !== undefined) { try { canvas.releasePointerCapture(tapId); } catch {} }
   for (const [id, record] of [...activeSticks]) { try { record.element.releasePointerCapture(id); } catch {} }
   activeSticks.clear();
   if (interactionPointer !== null) { try { $('touchInteract').releasePointerCapture(interactionPointer); } catch {} interactionPointer = null; }
@@ -230,7 +237,7 @@ function startMission(index = selectedMission) {
   canvas.focus({ preventScroll: true });
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
-  if (touch) toast('Left: move · Right: aim, push farther to fire');
+  if (touch) toast(game.role === 'leader' ? 'Tap ground to move the squad · Tap a soldier to take control' : 'Tap a soldier to take control · Right stick: aim and fire');
 }
 function returnToMenu() {
   if (online()) coop.leave();
@@ -258,21 +265,25 @@ function updateOrders() {
   ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
   $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders' : 'Radio requests');
   $('touchOrder').setAttribute('aria-controls', 'orderButtons');
-  $('desktopHint').textContent = leader ? 'WASD move · Mouse fire · E assist · R reload · G smoke · Right click order' : 'WASD move · Mouse fire · E assist · R reload · Q ready · H wait · F help';
+  text('touchRegroup', leader ? 'Regroup' : 'Ready'); text('touchHold', leader ? 'Hold' : 'Wait');
+  attr($('touchRegroup'), 'aria-label', leader ? 'Regroup the squad now' : 'Tell the leader you are ready');
+  attr($('touchHold'), 'aria-label', leader ? 'Hold the squad here' : 'Ask the leader to wait');
+  $('desktopHint').textContent = (leader ? 'WASD move · Mouse fire · E assist · R reload · G smoke · Right click order' : 'WASD move · Mouse fire · E assist · R reload · Q ready · H wait') + (online() ? '' : ' · 1–4 soldier');
 }
 function doOrder(type, point) {
-  if (mode !== 'playing' || paused) return;
+  if (mode !== 'playing' || paused || !player()?.alive || player()?.downed || online() && !coop.connected) return;
   if (type === 'move' && !point) {
+    if (game.role !== 'leader') return;
     clearInput(); closeOrders(); placingOrder = true;
-    if (touch) showMap = true;
     syncMapUI();
     return;
   }
   if (online()) coop.order(type, point).catch(() => {});
   else issueOrder(game, type, point);
-  if (placingOrder || touch && type === 'move') clearInput();
+  if (placingOrder || showMap) clearInput();
   placingOrder = false; closeOrders();
   if (touch && type === 'move') showMap = false;
+  if (type === 'move' && point) quickOrder = { point: { ...point }, until: performance.now()+1050 };
   syncMapUI();
   audio.click(); updateHUD();
 }
@@ -294,6 +305,28 @@ function toggleMap() {
 }
 function cancelOrder() { clearInput(); placingOrder = false; if (touch) showMap = false; syncMapUI(); }
 function canAct() { return mode === 'playing' && !paused && (!online() || coop.connected) && !showMap && !placingOrder && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
+
+function switchSoldier(id) {
+  if (mode !== 'playing' || online() || !game) return;
+  const next = game.squad.find(soldier => String(soldier.id) === String(id));
+  if (!next || next.id === game.playerId || !selectSquadMember(game, next.id)) return;
+  clearInput(); closeOrders(); placingOrder = false; showMap = false; quickOrder = null;
+  chooseRole(game.role); syncMapUI(); updateOrders(); updateHUD(); updatePauseUI();
+  if (paused) pause(false); else canvas.focus({ preventScroll: true });
+  // The selected card, equipment and radio line already identify the new soldier.
+}
+function toggleObservation() {
+  if (!canAct() || player()?.role !== 'grenadier') return;
+  observing = !observing; pointer.fire = false;
+  if (observing) actions.grenade = false;
+  flag($('aimStick'), 'firing', !observing && touchInput.aimStrength >= .56);
+  flag($('moveStick'), 'sprinting', !observing && Math.hypot(touchInput.moveX,touchInput.moveY) >= .92 && touchInput.aimStrength <= .12);
+  audio.click(); updateHUD();
+}
+function launchGrenade() {
+  const p = player();
+  if (canAct() && p?.role === 'grenadier' && p.grenades > 0 && !(p.grenadeCooldown > 0) && !(p.reloadTimer > 0) && !observing) actions.grenade = true;
+}
 
 function assistAction() {
   const p = player(); if (!p || !p.alive || p.downed || !game) return null;
@@ -321,6 +354,7 @@ document.addEventListener('click', event => {
   if (button.dataset.mission !== undefined) { selectedMission = Number(button.dataset.mission); missionMenu(); }
   if (button.dataset.dialog) openInfo(button.dataset.dialog);
   if (button.dataset.order) doOrder(button.dataset.order);
+  if (button.dataset.soldier) switchSoldier(button.dataset.soldier);
 });
 $('difficulty').value = preferences.difficulty;
 $('guidance').value = preferences.guidance;
@@ -338,7 +372,7 @@ $('pauseButton').addEventListener('click', () => pause());
 $('resume').addEventListener('click', () => pause(false));
 $('switchRole').addEventListener('click', () => {
   if (online()) { clearInput(); runCoopAction(() => coop.swapRoles()); return; }
-  const role = game.role === 'leader' ? 'member' : 'leader'; clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); setRole(game, role); chooseRole(role); updateOrders(); pause(false); updateHUD(); toast(role === 'leader' ? 'You have command of the squad.' : 'Hale has command. Stay with the squad.');
+  const next = game.squad.find(s => s.alive && !s.downed && s.id !== game.playerId); if (next) switchSoldier(next.id);
 });
 $('restart').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission());
 $('returnMenu').addEventListener('click', returnToMenu);
@@ -354,6 +388,10 @@ $('orderClose')?.addEventListener('click', closeOrders);
 $('cancelOrder')?.addEventListener('click', cancelOrder);
 $('touchReload').addEventListener('click', () => { if (canAct()) actions.reload = true; });
 $('touchSmoke').addEventListener('click', () => { if (canAct()) actions.smoke = true; });
+$('touchRegroup').addEventListener('click', () => doOrder(game?.role === 'leader' ? 'follow' : 'ready'));
+$('touchHold').addEventListener('click', () => doOrder(game?.role === 'leader' ? 'hold' : 'wait'));
+$('touchObserve').addEventListener('click', toggleObservation);
+$('touchGrenade').addEventListener('click', launchGrenade);
 $('touchInteract').addEventListener('pointerdown', event => {
   if (!canAct() || !assistAction() || interactionPointer !== null) return;
   event.preventDefault(); interactionPointer = event.pointerId; touchInput.interact = true;
@@ -375,7 +413,7 @@ function bindStick(element, kind) {
     element.querySelector('.stick-knob').style.transform = `translate(${x*record.radius}px,${y*record.radius}px)`;
     touchInput[`${kind}X`] = x; touchInput[`${kind}Y`] = y;
     if (kind === 'aim') touchInput.aimStrength = strength;
-    element.classList.toggle('firing', kind === 'aim' && strength >= .56);
+    element.classList.toggle('firing', kind === 'aim' && strength >= .56 && !observing);
     element.classList.toggle('sprinting', kind === 'move' && Math.hypot(x,y) >= .92 && touchInput.aimStrength <= .12);
   };
   element.addEventListener('pointerdown', event => {
@@ -403,7 +441,11 @@ function bindStick(element, kind) {
 bindStick($('moveStick'), 'move'); bindStick($('aimStick'), 'aim');
 
 function screenPoint(event) { return clientToCanvasPoint(event.clientX, event.clientY, canvasRect, { width: renderer.width, height: renderer.height }); }
-canvas.addEventListener('pointermove', event => { const point = screenPoint(event); if (!point) return; pointer.x = point.x; pointer.y = point.y; pointer.valid = event.pointerType !== 'touch' && (point.inside || pointer.fire); });
+canvas.addEventListener('pointermove', event => {
+  groundOrderTap.move(event.pointerId,event.clientX,event.clientY);
+  const point = screenPoint(event); if (!point) return;
+  pointer.x = point.x; pointer.y = point.y; pointer.valid = !touch && event.pointerType !== 'touch' && (point.inside || pointer.fire);
+});
 canvas.addEventListener('pointerleave', () => { if (!pointer.fire) pointer.valid = false; });
 canvas.addEventListener('pointerdown', event => {
   if (mode !== 'playing' || paused) return;
@@ -413,12 +455,22 @@ canvas.addEventListener('pointerdown', event => {
     if (game.role === 'leader') doOrder('move', renderer.screenToWorld(point.x, point.y));
     return;
   }
+  if (touch || event.pointerType === 'touch') {
+    pointer.valid = false;
+    if (game.role === 'leader' && point.inside && (canAct() || showMap) && event.button <= 0 && groundOrderTap.begin(event.pointerId,event.clientX,event.clientY,event.timeStamp)) canvas.setPointerCapture(event.pointerId);
+    return;
+  }
   if (showMap || event.pointerType === 'touch' || !canAct()) { pointer.valid = false; return; }
   if (event.button === 0) { pointer.fire = true; canvas.setPointerCapture(event.pointerId); }
 });
-canvas.addEventListener('pointerup', () => pointer.fire = false);
-canvas.addEventListener('pointercancel', () => pointer.fire = false);
-canvas.addEventListener('lostpointercapture', () => pointer.fire = false);
+canvas.addEventListener('pointerup', event => {
+  pointer.fire = false;
+  if (groundOrderTap.end(event.pointerId,event.clientX,event.clientY,event.timeStamp) && game?.role === 'leader' && (canAct() || showMap && !paused)) {
+    const point = screenPoint(event);
+    if (point?.inside) doOrder('move', renderer.screenToWorld(point.x,point.y));
+  }
+});
+for (const type of ['pointercancel','lostpointercapture']) canvas.addEventListener(type,event => { pointer.fire=false; groundOrderTap.cancel(event.pointerId); });
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 window.addEventListener('keydown', event => {
   if (event.code === 'F3') { event.preventDefault(); if (!event.repeat) changeSetting('showFPS', !preferences.showFPS); return; }
@@ -445,8 +497,11 @@ window.addEventListener('keydown', event => {
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code)) event.preventDefault();
   keys.add(event.code);
   if (event.repeat) return;
+  if (/^Digit[1-4]$/.test(event.code) && !online()) { event.preventDefault(); const soldier = game.squad[Number(event.code.slice(-1))-1]; if (soldier) switchSoldier(soldier.id); return; }
   if (event.code === 'KeyR' && canAct()) actions.reload = true;
   if (event.code === 'KeyG' && canAct()) actions.smoke = true;
+  if (event.code === 'KeyB') toggleObservation();
+  if (event.code === 'KeyV') launchGrenade();
   if (event.code === 'KeyM') toggleMap();
   if (event.code === 'KeyQ') doOrder(game.role === 'leader' ? 'follow' : 'ready');
   if (event.code === 'KeyH') doOrder(game.role === 'leader' ? 'hold' : 'wait');
@@ -459,7 +514,8 @@ document.addEventListener('visibilitychange', () => { framePacer.reset(); frameM
 
 function controls() {
   const p = player();
-  if (!canAct()) { touchAim = null; return { moveX:0, moveY:0, aimX:null, aimY:null, fire:false, interact:false, reload:false, smoke:false, sprint:false }; }
+  if (!canAct()) { touchAim = null; return neutralInput(); }
+  const observe = observing && p?.role === 'grenadier';
   const intent = touchIntent(touchInput);
   let moveX = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + intent.moveX;
   let moveY = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + intent.moveY;
@@ -468,11 +524,11 @@ function controls() {
   if (p && intent.aiming) {
     const stickLength = Math.hypot(touchInput.aimX,touchInput.aimY);
     aim = { x: p.x + touchInput.aimX/stickLength * 600, y: p.y + touchInput.aimY/stickLength * 600 }; fire = intent.firing;
-    if (preferences.guidance === 'simple') {
+    if (preferences.guidance === 'simple' && !observe) {
       const direction = Math.atan2(touchInput.aimY, touchInput.aimX);
       let closest = null, score = Infinity;
       for (const enemy of game.enemies) {
-        if (!enemy.alive || enemy.downed) continue;
+        if (!enemy.alive || enemy.downed || !enemy.visible) continue;
         const distance = Math.hypot(enemy.x - p.x, enemy.y - p.y);
         const angle = Math.atan2(enemy.y - p.y, enemy.x - p.x);
         const difference = Math.abs(Math.atan2(Math.sin(angle - direction), Math.cos(angle - direction)));
@@ -481,13 +537,14 @@ function controls() {
       if (closest) aim = { x: closest.x, y: closest.y };
     }
   }
+  if (observe) fire = false;
   touchAim = intent.aiming && aim ? { ...aim, firing: fire } : null;
   if (touchInput.interact && !assistAction()) { touchInput.interact = false; $('touchInteract').classList.remove('working'); }
   const interact = keys.has('KeyE') || touchInput.interact;
-  const sprint = !interact && (keys.has('ShiftLeft') || keys.has('ShiftRight') || intent.sprint);
-  if (touch) flag($('moveStick'), 'sprinting', !!intent.sprint && !interact);
+  const sprint = !interact && !observe && (keys.has('ShiftLeft') || keys.has('ShiftRight') || intent.sprint);
+  if (touch) flag($('moveStick'), 'sprinting', !!intent.sprint && !interact && !observe);
   const autoReload = preferences.autoReload && p?.ammo === 0 && p.reserve > 0 && p.reloadTimer <= 0;
-  return { moveX, moveY, aimX: aim?.x ?? null, aimY: aim?.y ?? null, fire: fire && !interact, interact, reload: actions.reload || autoReload, smoke: actions.smoke, sprint };
+  return { moveX, moveY, aimX: aim?.x ?? null, aimY: aim?.y ?? null, fire: fire && !interact, interact, reload: actions.reload || autoReload, smoke: actions.smoke, grenade: actions.grenade && !interact, observe, sprint };
 }
 
 function updateHUD() {
@@ -501,32 +558,48 @@ function updateHUD() {
   text('leaderIntent', game.role === 'member' ? `HALE / ${game.leaderOrder || 'Stay together.'}` : game.order?.label || '');
   const rowKey = game.squad.map(s => s.id).join('|');
   if (rowKey !== squadRowsKey) {
-    $('squad').innerHTML = game.squad.map(() => '<div class="squad-member"><strong></strong><small></small><div class="squad-health"><span></span></div></div>').join('');
+    $('squad').innerHTML = game.squad.map(() => '<button type="button" class="squad-member"><strong></strong><small></small><span class="squad-health"><span></span></span></button>').join('');
     squadRows = [...$('squad').children].map(root => ({ root, name: root.querySelector('strong'), role: root.querySelector('small'), health: root.querySelector('.squad-health span') }));
     squadRowsKey = rowKey;
   }
   const peers = shared ? coop.room?.players || [] : [];
   game.squad.forEach((soldier, i) => {
     const row = squadRows[i], peer = peers.find(peer => peer.actorId === soldier.id && peer.connected), mine = soldier.id === game.playerId;
+    const profile = roleProfile(soldier);
     flag(row.root, 'active', mine); flag(row.root, 'downed', soldier.downed || !soldier.alive);
-    attr(row.root, 'data-human', !!peer); attr(row.root, 'title', peer ? peer.name : mine && !shared ? 'You' : 'Computer controlled');
+    row.root.disabled = shared || !soldier.alive || soldier.downed;
+    attr(row.root, 'data-soldier', soldier.id); attr(row.root, 'aria-pressed', mine);
+    attr(row.root, 'data-human', !!peer); attr(row.root, 'title', `${soldier.name} · ${profile.label} · ${shared ? peer?.name || 'Computer controlled' : mine ? 'You' : `Take control (${i+1})`}`);
+    attr(row.root, 'aria-label', `${soldier.name}, ${profile.label}${mine ? ', controlling' : shared ? ', '+(peer?.name || 'AI') : ', select soldier '+(i+1)}${soldier.downed ? ', down' : !soldier.alive ? ', lost' : ''}`);
     text(row.name, soldier.name + (mine ? ' ·' : ''));
-    text(row.role, soldier.downed ? 'DOWN' : !soldier.alive ? 'LOST' : peer ? peer.name : (shared ? 'AI · ' : '') + (soldier.role || soldier.kind));
+    text(row.role, soldier.downed ? 'DOWN' : !soldier.alive ? 'LOST' : profile.shortLabel + (shared && !peer ? ' · AI' : ''));
     style(row.health, 'width', `${Math.round(clamp(soldier.hp / soldier.maxHp, 0, 1) * 100)}%`);
   });
   if (p) {
+    const profile = roleProfile(p), heavy = p.role === 'grenadier', usingBinos = heavy && observing;
     const health = clamp(Math.round(p.hp / p.maxHp * 100), 0, 100), reloading = p.reloadTimer > 0;
     text('playerName', p.name.toUpperCase()); text('healthText', `${health}%`); style($('healthBar'), 'width', `${health}%`);
     style($('healthBar'), 'background', health < 35 ? 'var(--danger)' : '');
     text('ammo', p.ammo ?? 0); text('reserve', `/ ${p.reserve ?? 0}`);
     text('reloadLabel', reloading ? 'RELOADING' : p.ammo === 0 ? 'RELOAD' : '');
     text('smokeCount', `SMOKE × ${p.smokes ?? 0}`); text('touchSmokeQty', p.smokes ?? 0);
+    text('weaponName', profile.weaponLabel);
+    text('specialtyText', heavy ? `${usingBinos ? 'BINOCULARS · ' : ''}40 mm × ${p.grenades ?? 0}${p.grenadeCooldown > 0 ? ' · Loading' : touch ? '' : ' · B scan / V launch'}` : p.role === 'medic' ? `MEDIC · AID × ${p.medkits ?? 0}` : p.role === 'support' ? 'SAW · SUSTAINED FIRE' : touch ? 'LEAD · TAP GROUND TO COMMAND' : 'LEAD · RIGHT CLICK TO COMMAND');
+    $('touchSpecialty').hidden = !heavy;
+    text('touchGrenadeQty', p.grenades ?? 0); $('touchGrenade').disabled = !p.grenades || p.grenadeCooldown > 0 || reloading || usingBinos || !p.alive || p.downed;
+    attr($('touchGrenade'), 'aria-label', `Launch 40 mm grenade toward your aim, ${p.grenades ?? 0} remaining${p.grenadeCooldown > 0 ? ', reloading' : ''}`);
+    $('touchObserve').disabled = !p.alive || p.downed;
+    attr($('touchObserve'), 'aria-pressed', usingBinos); attr($('touchObserve'), 'aria-label', usingBinos ? 'Lower binoculars' : 'Use binoculars'); text('touchObserveLabel', usingBinos ? 'Lower' : 'Binos');
+    text($('aimStick').querySelector('.stick-label'), usingBinos ? 'SCAN' : 'AIM / FIRE');
+    attr($('aimStick'), 'aria-label', usingBinos ? 'Scan with binoculars thumbstick' : 'Aim and fire thumbstick');
+    flag(document.body, 'observing', usingBinos);
+    for (const id of ['touchRegroup','touchHold','touchOrder']) $(id).disabled = !p.alive || p.downed;
     attr($('touchSmoke'), 'aria-label', `Smoke, ${p.smokes ?? 0} remaining`);
     text('touchReloadLabel', reloading ? 'Loading' : 'Reload');
     attr($('touchReload'), 'aria-label', reloading ? 'Reloading' : 'Reload weapon'); flag($('touchReload'), 'reloading', reloading);
     $('downedBanner').hidden = !p.downed && p.alive;
     text('downedTitle', p.alive ? 'YOU ARE DOWN' : 'SOLDIER LOST');
-    text('downedDetail', p.alive ? 'Your squad is coming to help. Stay with them.' : shared ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.');
+    text('downedDetail', !shared && game.squad.some(s => s.id !== p.id && s.alive && !s.downed) ? touch ? 'Tap another soldier above to take control.' : 'Press 1–4 or click another soldier to take control.' : p.alive ? 'Your squad is coming to help. Stay with them.' : shared ? 'Your partner is still in the mission. Stay with the squad.' : 'Your squad could not recover you.');
     $('touchReload').disabled = reloading || !p.reserve || p.ammo === p.magSize; $('touchSmoke').disabled = !p.smokes;
   }
   const assist = assistAction();
@@ -542,7 +615,8 @@ function updateHUD() {
   let hint = interactText;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? 'Follow the amber marker. Right click to send your squad.' : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = assist ? assist.detail : '';
+  if (touch) hint = assist ? assist.detail : game.role === 'leader' && game.time < 18 ? 'Tap ground: move squad · Tap soldier: take control' : '';
+  if (!hint && observing) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : 'Binoculars · Mouse to scan · B to lower';
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
   if (interiorNotice.scene !== scene || interiorNotice.id !== (house?.id || '')) interiorNotice = { scene, id: house?.id || '', at: game.time };
@@ -552,7 +626,7 @@ function updateHUD() {
   }
   attr($('hud'), 'data-building', house?.id || '');
   text('contextHint', hint); style($('desktopHint'), 'visibility', preferences.guidance === 'expert' ? 'hidden' : 'visible');
-  for (const [key,value] of Object.entries({ stage: game.stageIndex, status: game.status, role: game.role, online: shared, room: shared ? coop.room?.code || '' : '', humans: shared ? game.humanIds?.length || 0 : 1 })) attr($('hud'), `data-${key}`, value);
+  for (const [key,value] of Object.entries({ stage: game.stageIndex, status: game.status, role: game.role, online: shared, room: shared ? coop.room?.code || '' : '', humans: shared ? game.humanIds?.length || 0 : 1, player: game.playerId, specialty: p?.role || '', observing: observing && p?.role === 'grenadier', grenades: p?.grenades ?? 0, seed: game.seed, order: game.order?.type || '', 'order-x': Math.round(game.order?.x || 0), 'order-y': Math.round(game.order?.y || 0) })) attr($('hud'), `data-${key}`, value);
   measureSafeInsets();
 }
 
@@ -588,6 +662,9 @@ function updatePauseUI() {
   $('pauseDescription').textContent = shared ? (coop.connected ? 'The online mission continues while this menu is open.' : onlineConnection === 'error' ? 'The connection ended. Leave this squad to create or join another.' : 'Reconnecting to your squad. Your soldier is covered by AI while disconnected.') : 'The squad is waiting.';
   $('switchRole').textContent = shared ? 'Swap player roles' : game?.role === 'leader' ? 'Switch to squad member' : 'Take command of the squad';
   $('switchRole').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
+  $('switchRole').hidden = !shared;
+  $('soloSquadPicker').hidden = shared; $('soloSwitchHint').hidden = shared;
+  if (!shared && game) $('soloSquadPicker').innerHTML = game.squad.map((soldier,i) => `<button type="button" data-soldier="${escape(soldier.id)}" aria-pressed="${soldier.id === game.playerId}" ${!soldier.alive || soldier.downed ? 'disabled' : ''}><strong>${escape(soldier.name)}</strong><small>${escape(roleProfile(soldier).label)}${soldier.downed ? ' · Down' : !soldier.alive ? ' · Lost' : !touch ? ` · ${i+1}` : ''}</small></button>`).join('');
   $('restart').textContent = shared ? 'Restart for squad' : 'Restart mission';
   $('restart').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
   $('returnMenu').textContent = shared ? 'Leave squad' : 'Field orders';
@@ -668,7 +745,7 @@ function renderCoopRoom(room) {
   $('coopRoomCode').textContent = room.code;
   const rosterKey = JSON.stringify([room.players,coop.session?.playerId]);
   if (lastRoomRoster !== rosterKey) {
-    $('coopRoster').innerHTML = [['Hale','Squad leader'],['Mercer','Squad mate'],['Ames','Medic'],['Webb','Support']].map(([name,role],slot) => {
+    $('coopRoster').innerHTML = [['Hale','Squad lead'],['Mercer','Grenadier'],['Ames','Medic'],['Webb','Machine gunner · SAW']].map(([name,role],slot) => {
       const peer = room.players.find(p => p.slot === slot), mine = peer?.id === coop.session?.playerId;
       const occupant = peer ? `${peer.name}${mine?' · You':''}${peer.connected?'':' · Reconnecting'}` : slot < 2 ? 'Open for friend · AI controls' : 'Computer controlled';
       return `<div class="coop-roster-row ${mine?'mine':''}"><div><strong>${escape(name)} <small>${escape(role)} · ${escape(occupant)}</small></strong></div><span class="coop-seat ${peer?.connected?'human':peer?'offline':''}">${peer?.connected?'HUMAN':'AI'}</span></div>`;
@@ -711,7 +788,7 @@ function receiveCoopState(state) {
   }
   if (fresh || changedRole) {
     clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); updateOrders();
-    if (changedRole) toast(state.role === 'leader' ? 'You now lead the squad.' : 'You now play as the squad mate.');
+    if (changedRole) toast(state.role === 'leader' ? 'You now lead the squad.' : 'You now play as Mercer, the grenadier.');
   }
   onlineRole = state.role;
   if (paused) updatePauseUI();
@@ -769,6 +846,7 @@ function renderView(now) {
   const aimActive = !touch && pointer.valid && canAct() && !document.querySelector('dialog[open]');
   flag(document.body, 'desktop-aim', aimActive);
   return { time: now / 1000, menu: mode === 'menu', paused, pointer: aimActive ? pointer : null, showMap, placingOrder,
+    observing: observing && player()?.role === 'grenadier' && canAct(), quickOrder: quickOrder?.until > now ? { point: quickOrder.point, active: true } : null,
     guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
     quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,
     crosshair: preferences.crosshairStyle, crosshairScale: preferences.crosshairScale, aimColor: preferences.aimColor, aimLine: preferences.aimLine };
@@ -800,7 +878,7 @@ function frame(now) {
   if (game?.coop && mode === 'playing') {
     coop.input(!blocked ? controls() : neutralInput());
     game = coop.getState(dt) || game;
-    actions.reload = false; actions.smoke = false;
+    actions.reload = false; actions.smoke = false; actions.grenade = false;
     if (!blocked && coop.connected) audio.tick(game, dt);
     hudTimer += dt;
     if (hudTimer >= .1) { updateHUD(); hudTimer %= .1; }
@@ -810,8 +888,14 @@ function frame(now) {
     const input = controls();
     let count = 0;
     while (accumulator >= 1 / 60 && count++ < 6) {
+      const controlledBefore = game.playerId;
       step(game, input, 1 / 60);
-      input.reload = false; input.smoke = false; actions.reload = false; actions.smoke = false;
+      if (game.playerId !== controlledBefore) {
+        clearInput(); Object.assign(input, neutralInput()); closeOrders(); placingOrder = false; showMap = false; quickOrder = null;
+        syncMapUI(); updateOrders(); updateHUD();
+        toast(`${player().name} selected · ${roleProfile(player()).label}`);
+      }
+      input.reload = false; input.smoke = false; input.grenade = false; actions.reload = false; actions.smoke = false; actions.grenade = false;
       accumulator -= 1 / 60;
       if (game.status !== 'playing') { finishMission(); break; }
     }
@@ -825,4 +909,6 @@ function frame(now) {
 }
 
 chooseRole(preferences.role); applySettings(); missionMenu(); audio.setScene('menu');
-initializeCoop(); requestAnimationFrame(frame);
+initializeCoop();
+for (const id of ['deploy','coopCreate','coopJoinOpen']) $(id).disabled = false;
+requestAnimationFrame(frame);

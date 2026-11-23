@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stickVector, touchIntent } from '../public/touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap } from '../public/touch-input.mjs';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
@@ -61,4 +61,24 @@ test('absent or malformed input cannot trigger aiming or firing', () => {
   assert.deepEqual(touchIntent({ moveX: NaN, moveY: Infinity, aimX: 1, aimStrength: NaN }), neutral);
   assert.deepEqual(touchIntent({ aimX: NaN, aimY: 1, aimStrength: 1 }), neutral);
   assert.deepEqual(touchIntent({ aimStrength: 1 }), neutral);
+});
+
+test('a ground order tap remains independent from a second held joystick pointer', () => {
+  const tap = new GroundOrderTap();
+  assert.equal(tap.begin(8,200,320,100),true);
+  assert.equal(tap.begin(9,30,700,120),false);
+  tap.move(9,30,640); tap.cancel(9);
+  assert.equal(tap.end(9,30,640,200),false);
+  assert.equal(tap.end(8,204,324,260),true);
+  assert.equal(tap.end(8,204,324,270),false);
+});
+
+test('ground drags, long holds, cancellations and invalid coordinates never issue orders', () => {
+  const tap = new GroundOrderTap();
+  tap.begin(1,200,300,100); tap.move(1,250,300); tap.move(1,200,300);
+  assert.equal(tap.end(1,200,300,200),false);
+  tap.begin(2,200,300,300); assert.equal(tap.end(2,200,300,1000),false);
+  tap.begin(3,200,300,1100); tap.cancel(); assert.equal(tap.end(3,200,300,1150),false);
+  assert.equal(tap.begin(4,NaN,300,1200),false);
+  tap.begin(4,200,300,1200); assert.equal(tap.end(4,Infinity,300,1230),false);
 });

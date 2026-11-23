@@ -67,6 +67,35 @@ test('one-shot reload and smoke are latched once while movement updates are coal
   assert.ok(actor.reloadTimer>0);assert.equal(host.latest.ack,2);
 });
 
+test('the grenadier keeps finite launcher ownership and observation ends on stale input or a role exchange',()=>{
+  const {rooms,room,host,guest,start,step,advance,command}=setup();start();
+  const [hale,mercer]=room.game.squad;room.game.civilians=[];
+  const aim={aimX:mercer.x-200,aimY:mercer.y};
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:1,input:{...aim,grenade:true}});
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:2,input:{...aim}});
+  step();assert.equal(mercer.grenades,3);assert.equal(room.game.grenades.length,1);assert.equal(room.game.grenades[0].owner,mercer.id);
+  rooms.snapshot(room);assert.equal(host.latest.state.grenades.length,1);assert.equal(guest.latest.state.squad[1].role,'grenadier');
+  step(6);assert.equal(mercer.grenades,3,'one action cannot consume another round on a later server tick');
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:3,input:{...aim,observe:true,fire:true}});
+  const ammo=mercer.ammo;step();assert.equal(mercer.observing,true);assert.equal(mercer.ammo,ammo);
+  advance(600);assert.equal(mercer.observing,false);
+  mercer.grenadeCooldown=0;
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:4,input:{...aim,observe:true,grenade:true}});
+  step();assert.equal(mercer.grenades,3,'observation blocks firing the launcher');
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:5,input:{...aim}});step();assert.equal(mercer.grenades,3,'a blocked action is not replayed after observation');
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:6,input:{...aim,grenade:true,observe:true}});
+  command(host,'swap_roles');step();
+  assert.equal(mercer.grenades,3);assert.equal(mercer.observing,false);assert.equal(hale.grenades,0);
+  assert.equal(room.game.humanIds.length,2);assert.equal(room.game.squad.filter(a=>!a.human).length,2);
+});
+
+test('old map and movement protocol versions cannot join a current authoritative room',()=>{
+  const {rooms,room}=setup(),old=new Peer();
+  rooms.handle(old,{type:'join',protocol:PROTOCOL-1,code:room.code,name:'Old tab'});
+  assert.equal(old.messages.at(-1).code,'protocol');assert.match(old.messages.at(-1).reason,/Refresh/);
+  assert.equal(old.closed.code,4001);assert.equal(room.players.length,2);
+});
+
 test('role exchange is atomic, idempotent and rejects controls queued for the previous soldier',()=>{
   const {rooms,room,host,guest,start,command}=setup({role:'member'});start();
   const epoch=room.epoch,hostId=room.hostId,ids=room.game.squad.map(a=>a.id),time=room.game.time;
@@ -147,9 +176,9 @@ test('Farwake deltas resume from the last successful send and full resync includ
 });
 
 test('untrusted controls, session verification and origin permissions are bounded',()=>{
-  const input=cleanInput({moveX:999,moveY:999,aimX:Infinity,aimY:1e9,fire:'yes',smoke:true});
+  const input=cleanInput({moveX:999,moveY:999,aimX:Infinity,aimY:1e9,fire:'yes',smoke:true,grenade:'yes',observe:1});
   assert.ok(Math.abs(Math.hypot(input.moveX,input.moveY)-1)<1e-12);assert.equal(input.aimX,null);assert.equal(input.aimY,3100);
-  assert.equal(input.fire,false);assert.equal(input.smoke,true);
+  assert.equal(input.fire,false);assert.equal(input.smoke,true);assert.equal(input.grenade,false);assert.equal(input.observe,false);
   const token=newSecret();assert.equal(verifySecret(token,secretHash(token)),true);assert.equal(verifySecret(newSecret(),secretHash(token)),false);
   const bucket=new RateLimit(2,2,0);assert.equal(bucket.take(0),true);assert.equal(bucket.take(0),true);assert.equal(bucket.take(0),false);assert.equal(bucket.take(500),true);
   assert.equal(allowedOrigin(undefined,'authority.test'),true);assert.equal(allowedOrigin('https://authority.test','authority.test'),true);

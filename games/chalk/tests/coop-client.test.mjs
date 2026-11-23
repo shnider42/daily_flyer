@@ -118,6 +118,20 @@ test('transport coalesces latest controls under backpressure and transmits a one
   } finally { client.leave(); }
 });
 
+test('grenade edges survive coalescing once while clearing input cancels observation and queued launches', async()=>{
+  const {client,socket,setTime}=await connectedClient();
+  try{
+    client.input({grenade:true,observe:true});socket.bufferedAmount=50;assert.equal(client._sendInput(),false);
+    client.input({observe:true});setTime(30);socket.bufferedAmount=0;client._sendInput();
+    assert.equal(socket.sent.at(-1).input.grenade,true);assert.equal(socket.sent.at(-1).input.observe,true);
+    setTime(60);client._sendInput();assert.equal(socket.sent.at(-1).input.grenade,false);assert.equal(socket.sent.at(-1).input.observe,true);
+    client.input({grenade:true,observe:true});socket.bufferedAmount=50;client.clearInput();
+    socket.bufferedAmount=0;client._sendInput();
+    assert.equal(socket.sent.at(-1).input.grenade,false);assert.equal(socket.sent.at(-1).input.observe,false);
+    client.input({observe:true});setTime(1000);client._sendInput();assert.equal(socket.sent.at(-1).input.observe,false,'stale input ends a binocular scan');
+  }finally{client.leave();}
+});
+
 test('stale input becomes neutral and local prediction is bounded by the last authority snapshot', async () => {
   const {client,socket,setTime}=await connectedClient();
   try {

@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "date": "2026-11-22",
   "missions": 4,
   "roles": [
@@ -22,7 +22,12 @@
     "hudScaleDefault": 0.85,
     "hudDetailDefault": "compact",
     "separateDesktopPreferences": true,
-    "fullSizeTouchTargets": true
+    "fullSizeTouchTargets": true,
+    "directGroundOrders": true,
+    "immediateCommands": [
+      "Regroup",
+      "Hold"
+    ]
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -47,5 +52,22 @@
     "entry": "walk through open north/south doorways",
     "interiors": "shared walls, room partitions, decorative furnishings and automatic roof cutaways",
     "sharedCollision": "solo, AI navigation, bullets, sight lines, desktop aim and co-op prediction"
-  }
+  },
+  "squadRoles": [
+    "leader",
+    "grenadier",
+    "medic",
+    "machine gunner"
+  ],
+  "protocol": 2,
+  "squad": {
+    "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
+    "formation": "wider outside, compressed through doors",
+    "grenadier": "slower; four launcher rounds and directional binoculars",
+    "medic": "faster revival and six supplies",
+    "machineGunner": "M249 SAW with 100-round belt"
+  },
+  "worldVariation": "Seeded building footprints, alleys, courtyards and district details; fixed mission routes and anchors",
+  "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts",
+  "enemies": "Occasional single sniper with visible aim warning and slow follow-up"
 }

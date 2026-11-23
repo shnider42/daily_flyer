@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.5 adds enterable houses, wider mobile framing, a compact mobile HUD, and a layered ambient soundscape in this standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
+Version 1.6 gives the four soldiers distinct specialties, adds immediate mobile squad orders and solo soldier selection, widens formations, introduces occasional snipers, varies the district each play, and clarifies shared sight. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
 
 ## Play
 
@@ -14,6 +14,33 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 | Dawn Mile | Move through three rally positions and bring the surviving squad to the aid station. |
 
 The missions share a compact city street layout, with varying blocks, landmarks, objectives, and afternoon/night/dawn lighting. They are intentionally short; an efficient route takes roughly one to two minutes, with human play varying by exploration and combat. Vehicles follow a route and wait for the squad. They do not have a damage model in this version.
+
+## Squad and field control: version 1.6
+
+| Soldier | Specialty | Gameplay difference |
+| --- | --- | --- |
+| Hale | Squad lead | Gives Move, Regroup, Hold, and Assist orders. AI Hale leads toward objectives when a different soldier is selected. |
+| Mercer | Grenadier | Carbine, four launcher rounds, and binoculars. Moves at 80% of baseline speed; observation slows movement further and prevents firing. |
+| Ames | Medic | Carbine, six medical supplies, and a 2.6-second revive versus the ordinary 4-second revive. |
+| Webb | Machine gunner | M249 SAW, a 100-round belt, and sustained suppressive fire. Reloads take longer. |
+
+These are fictional gameplay loadouts and balance values, not a reconstruction of an actual four-man team. In solo, click or tap a soldier's HUD card or use **1–4** to take control immediately. The pause menu also has a four-soldier picker. The soldier retains health, ammunition, equipment, and position; the previous soldier returns to AI. Downed or lost soldiers cannot be selected. If your controlled soldier is incapacitated, select another standing squad member to continue.
+
+On mobile, **tap visible ground as Hale to move the squad there**. No map or command menu is required. A tap is separate from the joystick pointers, and immediate ground orders leave held movement intact. Drags, long holds, and cancelled touches do not place destinations. **Regroup** and **Hold** are always one tap away; other soldiers have immediate Ready and Wait requests. The map remains available for distant destinations, and the Squad/Radio panel retains additional commands.
+
+As Mercer, use **B** or **Binos** to observe, and **V** or **40 mm** to launch toward the current aim. The launcher is manually controlled, consumes finite ammunition, has a reload interval, and does not fire while binoculars are raised. The blast can harm squad members and civilians; walls block its reach. Binoculars extend sight in the facing direction, with a wider camera view and unobtrusive framing. They do not reveal enemies through buildings or smoke. The medic and machine gunner use their specialties under AI as well as human control.
+
+Squad spacing is wider on open streets and compresses inside buildings. Paths use reachable navigation points on the actor's side of a wall, which prevents the wider formation from pulling followers through blocked corners. The full squad and rescued crew still need to reach mission/extraction areas together.
+
+Each mission starts with a fresh deterministic layout seed. Residential frontage, alleys, courtyards, building setbacks, footprints, and decorative district details vary, while main roads, mission anchors, convoy paths, and the first Cordon doorway remain stable. Co-op clients rebuild the same layout from the authoritative seed.
+
+Occasional enemy snipers have a slower shot cycle and a visible aim-charge glint when the squad has a clear sight line. Only one can be active at a time. Their aim resets when sight is broken; walls and smoke remain useful cover. The sniper's sound has a distinct opposing-fire report and tail.
+
+Shared squad sight now has a light terrain overlay that distinguishes current observation from remembered and unseen terrain. Daylight terrain remains readable. Walls, doors, and smoke shape visibility, and out-of-sight enemies are hidden rather than frozen in place on the map. The overlay uses cached, low-resolution masks refreshed at 8 Hz; drawing still uses the existing bounded Canvas 2D buffer. Night retains its existing darker treatment.
+
+The co-op seats remain Hale and Mercer, with Ames and Webb under AI control when both humans are connected. Solo selection does not steal a partner's soldier. Protocol 2 protects the new map and movement contract: after the update, both people should refresh before joining the same room. Existing music and all earlier audio assets are retained; new launcher/blast cues use the existing bounded audio mixer.
+
+Foreground Linux Chromium checks of Cordon/Story with audio off measured approximately 60 FPS at a 1280 × 720 viewport and buffer, and 53 FPS at a 2560 × 1440 viewport with a 1920 × 1080 buffer, using Balanced/Auto. These are measurements of this browser environment, not guarantees for a physical desktop or phone. F3 exposes the same diagnostics during play.
 
 ## Houses, mobile framing, and ambience: version 1.5
 
@@ -78,9 +105,9 @@ The squad always contains exactly four soldiers:
 | Soldier | Role | With two connected players |
 | --- | --- | --- |
 | Hale | Squad leader | Human; gives squad orders |
-| Mercer | Rifleman / squad member | Human; moves and fights independently |
+| Mercer | Grenadier | Human; moves and fights independently; launcher and binoculars |
 | Ames | Medic | Computer-controlled |
-| Webb | Support | Computer-controlled |
+| Webb | Machine gunner / M249 SAW | Computer-controlled |
 
 The room host manages deployment, mission settings, restarts, and role swaps. Hosting is separate from leading: the host can play Mercer while the invited player controls Hale. **Swap player roles** is available to the host in the briefing and the mission's field menu, and changes the assigned soldiers without restarting the mission. Squad-command permissions follow Hale, regardless of who hosts.
 
@@ -98,7 +125,7 @@ Rooms exist only in server memory. With no connected humans, mission simulation 
 
 ## Roles and controls
 
-As **Hale**, command Move, Regroup, Hold, and Assist. As **Mercer**, request Ready, Wait, or Need help. When Hale is computer-controlled, he navigates mission objectives and waits if you fall behind; with a human Hale, that person leads. Solo players can switch roles from pause without restarting. In co-op, the room host swaps the players' assignments from the briefing or field menu.
+As **Hale**, command Move, Regroup, Hold, and Assist. As any other soldier, request Ready, Wait, or Need help. When Hale is computer-controlled, he navigates mission objectives and waits if you fall behind; with a human Hale, that person leads. Solo players select any standing soldier from the HUD or pause menu without restarting. In co-op, the room host swaps the two players' assignments from the briefing or field menu.
 
 | Input | Action |
 | --- | --- |
@@ -108,17 +135,19 @@ As **Hale**, command Move, Regroup, Hold, and Assist. As **Mercer**, request Rea
 | E, held | Assist, stabilize, clear an obstruction, or bandage yourself |
 | R | Reload |
 | G | Throw smoke toward your aim |
+| 1–4 | Select Hale / Mercer / Ames / Webb in solo |
+| B / V | Mercer: toggle binoculars / launch a grenade toward aim |
 | Right click or T | Place a squad destination in leader mode |
 | Q / H / F | Regroup / Hold / Assist; member mode uses Ready / Wait / Need help |
 | M | Battlefield map |
 | Escape | Pause in solo; open the field menu in co-op |
 | F3 | Toggle frame-rate and render-resolution display |
 
-Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. By default, an empty magazine reloads automatically when ammunition remains; Settings can disable the idle reload request. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. The Squad / Radio button opens a compact command panel; Move opens the district map with a visible Cancel action. Opening the map or field menu, changing touch mode, and rotating the phone release held input. The field menu can enable touch controls manually. Landscape and portrait layouts are supported. Reduce motion suppresses the drifting atmosphere.
+Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. By default, an empty magazine reloads automatically when ammunition remains; Settings can disable the idle reload request. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. As Hale, tap ground directly for a move order; Regroup and Hold need one tap. The Squad / Radio button opens additional commands, and the map remains optional for distant movement. Mercer also has Binos and 40 mm controls. Opening the map or field menu, changing touch mode, rotating the phone, or switching soldier releases held input. The field menu can enable touch controls manually. Landscape and portrait layouts are supported. Reduce motion suppresses the drifting atmosphere.
 
 Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 530 KB and load asynchronously, with procedural fallback.
 
-Squad members navigate around buildings and through open doorways, fire at visible armed opponents, and help downed teammates. The medic can recover either human player. Ammunition, smoke, and bandages are limited. Squad members who are down for too long can be lost. In solo, an unrecoverable player ends the mission; in co-op, the surviving player can continue after the other is lost. The shared mission fails when the whole squad is incapacitated or neither playable soldier can recover. Mission results emphasize survival, rescues, civilian harm, and completion time rather than kills.
+Squad members navigate around buildings and through open doorways, fire at visible armed opponents, and help downed teammates. The medic can recover either human player. Ammunition, launcher rounds, smoke, and bandages are limited. Squad members who are down for too long can be lost. In solo, a standing teammate remains selectable after your current soldier is lost; in co-op, the surviving player can continue after the other is lost. The shared mission fails when the whole squad is incapacitated or neither co-op player soldier can recover. Mission results emphasize survival, rescues, civilian harm, and completion time rather than kills.
 
 ## Historical framing
 
@@ -149,9 +178,9 @@ npm test --prefix games/chalk
 npm run test:server --prefix games/chalk
 ```
 
-The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 107-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
+The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 143-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
 
-The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, seven touch-input tests, ten client tests, 12 server tests, seven desktop-input/aim tests, nine renderer/camera tests, seven settings tests, seven frame-pacing/meter tests, 11 building/interior tests, and seven audio scene tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Release browser checks cover two separate sessions creating and joining a room, four-person rosters, a member hosting while their friend leads, role swaps, local field menus, invite links, reload recovery, and mobile layouts at 390 × 844 and 844 × 390. The deployed WebSocket service was also checked with two real clients. These checks do not include a physical iPhone/Safari session.
+The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, 11 role/combat tests, nine touch-input tests, 11 client tests, 14 server tests, seven desktop-input/aim tests, 14 renderer/camera tests, eight shared-visibility tests, six world-variation tests, seven settings tests, seven frame-pacing/meter tests, 11 building/interior tests, and eight audio scene tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Earlier co-op release checks covered two separate browser sessions, four-person rosters, a member hosting while their friend leads, role swaps, field menus, invite links, reload recovery, and the deployed service with two real clients. Version 1.6 adds automated protocol, finite launcher ownership, observation cancellation, and seeded map reconstruction checks. Two separate browser tabs also verified the local current-version service: a grenadier host and leader guest, exactly two AI soldiers, binocular controls, launcher ammunition changing from four to three, and a role exchange retaining those three rounds. Browser QA covers direct ground orders, all four solo selections, binocular/launcher controls, and portrait/landscape layouts at 390 × 844 and 844 × 390. These checks do not include physical multi-touch hardware or iPhone/Safari.
 
 ## Farwake reuse and networking
 
@@ -168,6 +197,9 @@ Files:
 
 - `public/sim.mjs`: collision, navigation, combat, squad AI, civilians, and mission progression.
 - `public/building-geometry.mjs`: deterministic doorways, walls, rooms, and shared solid geometry.
+- `public/world-variation.mjs`: deterministic district footprints, alleys, courtyards, and decoration.
+- `public/squad-roles.mjs`: shared role loadouts, movement, and directional observation ranges.
+- `public/visibility.mjs`: wall/smoke sight polygons, shared contact checks, and cached terrain memory.
 - `public/renderer.mjs`: original Canvas 2D artwork, cached city/interiors, roof cutaways, camera, effects, and map.
 - `public/app.mjs`, `touch-input.mjs`, `desktop-input.mjs`, `index.html`, `style.css`: menus, input, HUD, and debrief.
 - `public/settings.mjs`, `performance.mjs`: validated local preferences, rendering budgets, frame pacing, and diagnostics.

@@ -1,5 +1,6 @@
 import { createGame } from './sim.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
+import { movementSpeed } from './squad-roles.mjs';
 import { PROTOCOL, INPUT_HZ, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
 import { SnapshotDeltaDecoder } from './snapshot-delta.mjs';
 
@@ -46,7 +47,8 @@ export function predictMovement(actor, input, seconds, world) {
   const radius = finite(actor.radius, 13), width = finite(world.width, 2400), height = finite(world.height, 1900);
   const free = (x, y) => x >= radius && y >= radius && x <= width-radius && y <= height-radius &&
     !getSolidWalls(world).some(b => x >= b.x-radius && x <= b.x+b.w+radius && y >= b.y-radius && y <= b.y+b.h+radius);
-  const speed = (controls.sprint ? 166 : 112) * (1 - clamp(finite(actor.suppression), 0, 1) * .22);
+  result.observing = actor.role === 'grenadier' && controls.observe;
+  const speed = movementSpeed(result, controls.sprint);
   for (let remaining = duration; remaining > 0;) {
     const dt = Math.min(1/60, remaining); remaining -= dt;
     const x = clamp(result.x + controls.moveX * speed * dt, radius, width-radius);
@@ -298,7 +300,7 @@ export class CoopClient {
   input(controls={}) {
     if (!controls || !Object.keys(controls).length) { this.clearInput(); return; }
     const now=this.now(), input=cleanInput(controls);
-    for (const type of ['reload','smoke']) if (input[type] && !this._edges[type]) this._edges[type]={at:now};
+    for (const type of ['reload','smoke','grenade']) if (input[type] && !this._edges[type]) this._edges[type]={at:now};
     this._input=input; this._lastInputAt=now;
   }
   clearInput() {
@@ -311,7 +313,7 @@ export class CoopClient {
     if (this.socket?.bufferedAmount>0) { this.skippedInputs++; return false; }
     const now=this.now(), stale=now-this._lastInputAt>250;
     const input=forceNeutral||stale ? {...EMPTY_INPUT} : {...this._input};
-    for (const type of ['reload','smoke']) input[type]=!forceNeutral&&!stale&&!!this._edges[type]&&now-this._edges[type].at<EDGE_LIFETIME_MS;
+    for (const type of ['reload','smoke','grenade']) input[type]=!forceNeutral&&!stale&&!!this._edges[type]&&now-this._edges[type].at<EDGE_LIFETIME_MS;
     const frame={type:'input',seq:this._sequence+1,epoch:this._room.epoch,input};
     if (!this._send(frame)) return false;
     this._sequence=frame.seq; this._edges={};

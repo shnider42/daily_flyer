@@ -31,3 +31,23 @@ export function touchIntent({ moveX = 0, moveY = 0, aimX = 0, aimY = 0, aimStren
     sprint: Math.hypot(moveX, moveY) >= .92 && !aiming
   };
 }
+
+/** A battlefield tap is independent of either captured joystick pointer. */
+export class GroundOrderTap {
+  constructor({ slop = 12, duration = 450 } = {}) { this.slop = slop; this.duration = duration; this.pending = null; }
+  begin(id, x, y, time) {
+    if (this.pending || ![x,y,time].every(Number.isFinite)) return false;
+    this.pending = { id, x, y, time }; return true;
+  }
+  move(id, x, y) {
+    const tap = this.pending;
+    if (tap?.id === id && (!Number.isFinite(x) || !Number.isFinite(y) || Math.hypot(x-tap.x,y-tap.y) > this.slop)) this.pending = null;
+  }
+  end(id, x, y, time) {
+    const tap = this.pending;
+    if (!tap || tap.id !== id) return false;
+    this.pending = null;
+    return [x,y,time].every(Number.isFinite) && time >= tap.time && time-tap.time <= this.duration && Math.hypot(x-tap.x,y-tap.y) <= this.slop;
+  }
+  cancel(id) { if (id === undefined || this.pending?.id === id) this.pending = null; }
+}

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,findPath,getObjective,issueCoopOrder,setHumanPlayers,stepCoop} from '../public/sim.mjs';
+import {movementSpeed} from '../public/squad-roles.mjs';
 
 function createCoop(options={}){
   const state=createGame({seed:63,...options});
@@ -30,7 +31,7 @@ test('one shared tick moves two humans independently without applying AI movemen
   const before=[{x:hale.x,y:hale.y},{x:mercer.x,y:mercer.y}];
   stepCoop(s,{[hale.id]:{moveX:1},[mercer.id]:{moveY:-1}},1/30);
   assert.ok(Math.abs(hale.x-before[0].x-112/30)<1e-9);assert.equal(hale.y,before[0].y);
-  assert.equal(mercer.x,before[1].x);assert.ok(Math.abs(mercer.y-before[1].y+112/30)<1e-9);
+  assert.equal(mercer.x,before[1].x);assert.ok(Math.abs(mercer.y-before[1].y+movementSpeed(mercer)/30)<1e-9);
   assert.ok(Math.abs(s.time-1/30)<1e-12);
   assert.equal(issueCoopOrder(s,hale.id,'move',{x:680,y:1340}),true);
   const stopped=[{x:hale.x,y:hale.y},{x:mercer.x,y:mercer.y}];

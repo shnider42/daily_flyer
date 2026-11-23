@@ -1,5 +1,6 @@
-import { hasLineOfSight } from './sim.mjs';
 import { traceAim } from './desktop-input.mjs';
+import { roleProfile } from './squad-roles.mjs';
+import { enemyInSharedSight, SharedSightLayer } from './visibility.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -74,6 +75,7 @@ export class Renderer {
     this.actorBuffer = [];
     this.sprites = new Map();
     this.atmosphereCache = null;
+    this.sharedSight = new SharedSightLayer();
     this.dust = Array.from({length:32}, (_, i) => ({x:hash(i+2), y:hash(i+23), speed:4+hash(i+99)*8, alpha:.07+hash(i+35)*.08, size:1+hash(i+56)*2, phase:i}));
     this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
   }
@@ -180,6 +182,7 @@ export class Renderer {
       ctx.fillStyle = i % 3 ? 'rgba(209,184,135,.045)' : 'rgba(45,42,33,.035)';
       ctx.beginPath(); ctx.ellipse(x, y, 20 + hash(i) * 130, 8 + hash(i + 1) * 50, hash(i + 3) * TAU, 0, TAU); ctx.fill();
     }
+    for (const district of world.districts || []) this.drawDistrict(ctx, district);
     for (const road of world.roads || []) this.drawRoad(ctx, road);
     // Dust, grit and old tire marks are all baked into the ground layer.
     for (let i = 0; i < 7800; i++) {
@@ -208,6 +211,29 @@ export class Renderer {
     // Uneven edge establishes the playable district without a bright game-board border.
     ctx.strokeStyle = 'rgba(35,34,27,.55)'; ctx.lineWidth = 14; ctx.strokeRect(0, 0, w, h);
     this.mapCache = cache; this.mapIdentity = world; this.mapMission = missionIndex;
+    this.mapLayoutVersion = world.layoutVersion; this.mapLayoutSeed = world.layoutSeed;
+  }
+
+  drawDistrict(ctx, district) {
+    const { x, y, w, h, kind } = district, tone = finite(district.tone, .5);
+    ctx.save();
+    ctx.fillStyle = kind === 'workshop' ? 'rgba(64,68,58,.10)' : kind === 'market' ? 'rgba(185,153,104,.10)' : kind === 'courtyard' ? 'rgba(165,160,126,.08)' : 'rgba(150,137,108,.05)';
+    ctx.fillRect(x, y, w, h);
+    if (kind === 'courtyard') {
+      const px = x + w * .32, py = y + h * .25, pw = w * .36, ph = h * .5;
+      ctx.fillStyle = 'rgba(170,165,137,.12)'; ctx.fillRect(px, py, pw, ph);
+      for (let xx = px + 20; xx < px + pw; xx += 20) line(ctx, xx, py, xx, py + ph, 'rgba(63,65,51,.12)');
+      for (let yy = py + 20; yy < py + ph; yy += 20) line(ctx, px, yy, px + pw, yy, 'rgba(63,65,51,.10)');
+    } else if (kind === 'workshop') {
+      ctx.setLineDash([12, 5, 22, 8]);
+      for (const offset of [0, 12]) line(ctx, x + 18 + offset, y + 24, x + w * (.65 + tone * .2) + offset, y + h - 20, 'rgba(46,49,40,.10)', 3);
+    } else if (kind === 'market') {
+      for (let i = 0; i < 5; i++) {
+        const px = x + 14 + hash(x + i * 7) * (w - 40), py = y + 12 + hash(y + i * 11) * (h - 28);
+        ctx.fillStyle = 'rgba(207,173,116,.065)'; ctx.fillRect(px, py, 22 + tone * 24, 10);
+      }
+    }
+    ctx.restore();
   }
 
   drawRoad(ctx, road) {
@@ -245,8 +271,9 @@ export class Renderer {
   drawBuilding(ctx, b) {
     const { x, y } = b, w = b.w ?? b.width, h = b.h ?? b.height;
     if (!w || !h) return;
-    const seed = x * 1.32 + y * 2.71 + finite(b.tone) * 13;
-    const concrete = b.color || colorPick(['#a29579', '#b09c79', '#958772', '#b5a284', '#a3977d', '#9b8d70'], seed);
+    const seed = x * 1.32 + y * 2.71 + finite(b.tone) * 13 + finite(b.variation) * 37;
+    const palette = b.style === 'workshop' ? ['#8b8c78', '#92947f', '#878876', '#9b9981'] : b.style === 'masonry' ? ['#a18e71', '#aa9478', '#97856c', '#af9a7c'] : ['#a29579', '#b09c79', '#958772', '#b5a284', '#a3977d', '#9b8d70'];
+    const concrete = b.color || colorPick(palette, seed);
     ctx.fillStyle = '#4c4c3e'; ctx.fillRect(x, y, w, h);
     ctx.fillStyle = concrete; ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
     ctx.fillStyle = 'rgba(233,216,174,.22)'; ctx.fillRect(x + 3, y + 3, w - 6, 4); ctx.fillRect(x + 3, y + 7, 3, h - 10);
@@ -254,6 +281,16 @@ export class Renderer {
     // Concrete slabs and weather stains.
     for (let i = 1; i < Math.ceil(w / 58); i++) line(ctx, x + i * 58, y + 9, x + i * 58, y + h - 10, 'rgba(67,61,47,.09)');
     for (let i = 1; i < Math.ceil(h / 63); i++) line(ctx, x + 9, y + i * 63, x + w - 10, y + i * 63, 'rgba(67,61,47,.055)');
+    if (b.style === 'workshop') {
+      for (let xx = x + 11; xx < x + w - 9; xx += 8) {
+        line(ctx, xx, y + 9, xx, y + h - 11, 'rgba(49,58,49,.14)');
+        line(ctx, xx + 2, y + 9, xx + 2, y + h - 11, 'rgba(200,203,169,.12)');
+      }
+    } else if (b.style === 'masonry') {
+      for (let xx = x + 15; xx < x + w - 12; xx += 19) {
+        line(ctx, xx, y + h - 9, xx, y + h - 4, 'rgba(55,47,34,.22)');
+      }
+    }
     for (let i = 0; i < 18; i++) {
       const px = x + 8 + hash(seed + i * 7) * Math.max(1, w - 20), py = y + 9 + hash(seed + i * 7 + 1) * Math.max(1, h - 20);
       ctx.fillStyle = 'rgba(59,53,39,.09)'; ctx.fillRect(px, py, 3 + hash(seed + i * 8) * 14, 2);
@@ -543,17 +580,13 @@ export class Renderer {
   }
 
   actorVisible(state, actor) {
-    if (typeof actor.visible === 'boolean') return actor.visible;
-    for (const ally of state.squad || []) {
-      if (ally.alive !== false && !ally.downed && distance(ally, actor) < (state.missionIndex === 2 ? 440 : 560) && hasLineOfSight(state, ally, actor)) return true;
-    }
-    return false;
+    return enemyInSharedSight(state, actor);
   }
 
   drawActor(ctx, actor, state, time, view) {
     if (actor.alive === false && !actor.downed) return;
     const isPlayer = actor.id === state.playerId, ally = actor.team === 'squad', civilian = actor.team === 'civilian', survivor = actor.team === 'survivor';
-    const radius = Math.max(7, finite(actor.radius, 10));
+    const radius = Math.max(7, finite(actor.radius, 10)), profile = ally ? roleProfile(actor) : null;
     const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
     ctx.save(); ctx.translate(actor.x, actor.y);
     if (!view.menu && isPlayer) {
@@ -584,17 +617,49 @@ export class Renderer {
       line(ctx, -5, -4, -10 + stride, -5, '#494b36', 4); line(ctx, -5, 4, -10 - stride, 5, '#494b36', 4);
       ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
       if (view.touch) { ctx.strokeStyle = 'rgba(24,31,24,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); }
-      if (!civilian) { ctx.fillStyle = gear; ctx.fillRect(-6, -6, 7, 12); ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3); }
+      if (!civilian) {
+        ctx.fillStyle = gear; ctx.fillRect(-6, -6, 7, 12);
+        if (profile?.id === 'grenadier') { ctx.fillStyle = '#596445'; ctx.fillRect(-11, -8, 7, 16); line(ctx, -9, -6, -9, 5, '#aaa37a', 2); }
+        ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3);
+      }
       if (!civilian && !survivor) {
         line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, 11, 3, uniform, 4);
-        line(ctx, 4, 2, 24, 2, '#202d25', 3); ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
-        if (view.touch) line(ctx, 15, 1, 23, 1, '#8b9078', .7);
+        if (profile?.id === 'grenadier' && actor.observing) {
+          // Slung launcher and raised binoculars, rather than a second HUD panel.
+          line(ctx, 0, 8, 18, 8, '#29392e', 3);
+          ctx.fillStyle = '#25362c'; ctx.fillRect(8, -6, 8, 4); ctx.fillRect(8, 2, 8, 4);
+          line(ctx, 11, -2, 11, 2, '#8d9d83', 2);
+        } else {
+          const barrel = profile?.id === 'support' ? 30 : actor.kind === 'sniper' ? 32 : 24;
+          line(ctx, 4, 2, barrel, 2, '#202d25', profile?.id === 'support' ? 3.8 : 3);
+          ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
+          if (profile?.id === 'support') {
+            ctx.fillStyle = '#6f7550'; ctx.fillRect(10, 4, 8, 6);
+            line(ctx, 24, 2, 27, -3, '#293a2d', 1.5); line(ctx, 24, 2, 27, 7, '#293a2d', 1.5);
+          } else if (profile?.id === 'grenadier') line(ctx, 10, 6, 22, 6, '#556047', 4);
+          else if (actor.kind === 'sniper') { ctx.fillStyle = '#3b493a'; ctx.fillRect(12, -1, 8, 3); }
+          if (view.touch) line(ctx, 15, 1, barrel - 1, 1, '#8b9078', .7);
+        }
       } else {
         line(ctx, 0, -7, 8, -8, uniform, 3.5); line(ctx, 0, 7, 8, 8, uniform, 3.5);
       }
       circle(ctx, 2, 0, civilian ? 5 : 6.2, civilian ? '#695449' : ally ? '#a0a380' : '#b49a70', civilian ? null : gear, 1.2);
       if (ally) { line(ctx, 0, -3, 6, -3, '#bfbe93', 1.1); circle(ctx, -2, 1, 2, '#747b59'); }
-      if (actor.role === 'medic' || actor.kind === 'medic') { ctx.fillStyle = '#d6ddbd'; ctx.fillRect(-4, -8, 5, 4); line(ctx, -1.5, -7.5, -1.5, -4.5, '#66765b', 1); }
+      if (profile?.id === 'medic' || actor.kind === 'medic') {
+        ctx.fillStyle = '#d6ddbd'; ctx.fillRect(-7, -9, 6, 6);
+        line(ctx, -4, -8, -4, -4, '#66765b', 1.2); line(ctx, -6, -6, -2, -6, '#66765b', 1.2);
+      } else if (profile?.id === 'leader') {
+        line(ctx, -4, -7, -1, -9, '#d4d2a6', 1); line(ctx, -1, -9, 2, -7, '#d4d2a6', 1);
+      }
+      if (actor.team === 'enemy' && actor.kind === 'sniper' && actor.aimCharge > .1 && !view.menu) {
+        // Called only for a currently sighted actor: the glint cannot reveal a
+        // gunman through masonry or smoke, including stale network snapshots.
+        const charge = clamp(actor.aimCharge, 0, 1), size = 2.5 + charge * 2;
+        ctx.save(); ctx.globalAlpha = .35 + charge * .6;
+        circle(ctx, 17, -1, size * .55, '#f0d4a0');
+        line(ctx, 17 - size, -1, 17 + size, -1, '#f5dca8', .8);
+        line(ctx, 17, -1 - size, 17, -1 + size, '#f5dca8', .8); ctx.restore();
+      }
     }
     ctx.restore(); ctx.restore();
     if (actor.downed && !view.menu) {
@@ -608,7 +673,10 @@ export class Renderer {
         this.ctx.fillStyle = 'rgba(17,25,21,.8)'; this.ctx.fillRect(p.x - 15, p.y, 30, 4);
         this.ctx.fillStyle = hp < .35 ? '#d98869' : '#8bbba2'; this.ctx.fillRect(p.x - 15, p.y, 30 * hp, 4); this.ctx.restore();
       }
-      if (!isPlayer) this.worldLabel(actor.x, actor.y + 25, (actor.name || '').split(' ').at(-1).toUpperCase(), '#c3d5be', view.touch ? 11 : 10);
+      if (!isPlayer) {
+        const name = (actor.name || '').split(' ').at(-1).toUpperCase();
+        this.worldLabel(actor.x, actor.y + 25, `${name}${name ? ' · ' : ''}${profile.shortLabel}`, '#c3d5be', 10);
+      }
     }
   }
 
@@ -777,8 +845,20 @@ export class Renderer {
   }
 
   drawOrder(state, time, view) {
+    if (view.menu) return;
+    const quick = view.quickOrder;
+    if (quick?.active && Number.isFinite(quick.point?.x) && Number.isFinite(quick.point?.y)) {
+      const { x, y } = quick.point, ctx = this.ctx;
+      const pulse = view.reducedMotion ? .4 : (time * 1.8) % 1, size = (17 + pulse * 10) / this.camera.zoom;
+      ctx.save();
+      circle(ctx, x, y, size, 'rgba(153,220,194,.08)', `rgba(174,231,207,${.75 - pulse * .4})`, 1.5 / this.camera.zoom);
+      line(ctx, x, y - 25 / this.camera.zoom, x, y - 8 / this.camera.zoom, '#c3eed9', 2 / this.camera.zoom);
+      ctx.fillStyle = '#c3eed9'; ctx.beginPath(); ctx.moveTo(x, y - 4 / this.camera.zoom);
+      ctx.lineTo(x - 4 / this.camera.zoom, y - 10 / this.camera.zoom); ctx.lineTo(x + 4 / this.camera.zoom, y - 10 / this.camera.zoom); ctx.fill();
+      ctx.restore();
+    }
     const order = state.order;
-    if (view.menu || !order || !Number.isFinite(order.x) || !Number.isFinite(order.y) || order.type === 'follow') return;
+    if (!order || !Number.isFinite(order.x) || !Number.isFinite(order.y) || order.type === 'follow') return;
     const ctx = this.ctx; ctx.save();
     const size = 16 / this.camera.zoom; ctx.strokeStyle = '#9fd7c2'; ctx.lineWidth = 1.5 / this.camera.zoom;
     ctx.beginPath(); ctx.moveTo(order.x - size, order.y - size / 2); ctx.lineTo(order.x - size, order.y - size); ctx.lineTo(order.x - size / 2, order.y - size);
@@ -797,6 +877,13 @@ export class Renderer {
   }
 
   drawEffects(ctx, state, time, view = {}) {
+    for (const grenade of state.grenades || []) {
+      if (!this.inView(grenade.x, grenade.y, 35) || this.houseVisibility(grenade, view) <= .05) continue;
+      const progress = clamp(finite(grenade.progress), 0, 1), lift = Math.sin(progress * Math.PI) * 22;
+      circle(ctx, grenade.x + 2, grenade.y + 3, 3.5, 'rgba(24,30,22,.35)');
+      line(ctx, finite(grenade.px, grenade.x), finite(grenade.py, grenade.y) - lift, grenade.x, grenade.y - lift, 'rgba(205,186,130,.55)', 1.3 / this.camera.zoom);
+      circle(ctx, grenade.x, grenade.y - lift, 2.8, '#c2b27e', '#3f4a34', 1);
+    }
     for (const b of state.bullets || []) {
       if (!this.inView(b.x, b.y, 30) || this.houseVisibility(b, view) <= .05) continue;
       const px = Number.isFinite(b.px) ? b.px : b.x - finite(b.vx) * .013, py = Number.isFinite(b.py) ? b.py : b.y - finite(b.vy) * .013;
@@ -812,7 +899,15 @@ export class Renderer {
       if (e.type === 'muzzle') {
         ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle)); ctx.fillStyle = '#ffd88c'; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(10, 0); ctx.lineTo(0, 3); ctx.lineTo(3, 0); ctx.fill();
       } else if (e.type === 'explosion') {
-        this.drawFire(ctx, e.x, e.y, time, 10 + (1 - life) * 25);
+        if (e.weapon === 'grenade' || e.radius) {
+          const reach = clamp(finite(e.radius, 76), 24, 110), spread = Math.sqrt(1 - life), radius = 7 + spread * reach * .72;
+          circle(ctx, e.x, e.y, radius, 'rgba(192,170,127,.22)', 'rgba(205,182,138,.4)', 2.5);
+          if (life > .66) circle(ctx, e.x, e.y, 8 + life * 9, '#f4d19a');
+          for (let i = 0; i < 7; i++) {
+            const angle = i * 2.4 + e.x, end = radius * (1 + hash(i + e.y) * .3);
+            line(ctx, e.x + Math.cos(angle) * radius * .55, e.y + Math.sin(angle) * radius * .55, e.x + Math.cos(angle) * end, e.y + Math.sin(angle) * end, '#cdb78e', 1.4);
+          }
+        } else this.drawFire(ctx, e.x, e.y, time, 10 + (1 - life) * 25);
       } else {
         const radius = 3 + (1 - life) * 13;
         circle(ctx, e.x, e.y, radius, e.type === 'hit' ? 'rgba(217,177,123,.5)' : 'rgba(193,177,139,.4)');
@@ -829,7 +924,7 @@ export class Renderer {
       // A limited pool of practical light follows each teammate through the night.
       ctx.save(); ctx.globalCompositeOperation = 'screen';
       for (const actor of state.squad || []) {
-        if (actor.alive === false || !this.inView(actor.x, actor.y, 160)) continue;
+        if (actor.alive === false || actor.downed || !this.inView(actor.x, actor.y, 160)) continue;
         const p = this.worldToScreen(actor.x, actor.y), r = 165 * this.camera.zoom;
         const light = this.radialSprite('night-light', [[0,'rgba(191,194,148,.08)'], [1,'rgba(191,194,148,0)']], 4);
         ctx.drawImage(light, p.x - r, p.y - r, r * 2, r * 2);
@@ -866,6 +961,30 @@ export class Renderer {
         ctx.drawImage(this.atmosphereSprites().damage, 0, 0, w, h); ctx.globalAlpha = 1;
       }
     }
+  }
+
+  drawObservation(state, view) {
+    if (view.menu || view.showMap) return;
+    const player = (state.squad || []).find(actor => actor.id === (view.followActorId || state.playerId));
+    if (!player || player.role !== 'grenadier' || player.downed || player.alive === false || !(player.observing || view.observing)) return;
+    const ctx = this.ctx, x = this.safeRect.cx, y = view.touch ? this.safeRect.top + (this.height > this.width ? 49 : 17) : 84;
+    ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.font = '600 10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const label = 'BINOCULARS · SHARED SIGHT', width = ctx.measureText(label).width + 36;
+    roundRect(ctx, x - width / 2, y - 12, width, 24, 4, 'rgba(20,31,24,.72)', 'rgba(158,195,165,.28)');
+    ctx.fillStyle = '#bfd1b7'; ctx.fillText(label, x + 9, y);
+    const gx = x - width / 2 + 13;
+    circle(ctx, gx - 3, y + 1, 2.7, null, '#bfd1b7', 1); circle(ctx, gx + 3, y + 1, 2.7, null, '#bfd1b7', 1);
+    line(ctx, gx - 1, y - 2, gx + 1, y - 2, '#bfd1b7', 1);
+    // Open corner marks suggest glass without masking the battlefield in black.
+    const reach = Math.min(this.safeRect.width * .24, 160), cy = this.safeRect.cy;
+    ctx.strokeStyle = 'rgba(187,213,184,.23)'; ctx.lineWidth = 1;
+    for (const side of [-1, 1]) {
+      const bx = x + side * reach;
+      ctx.beginPath(); ctx.moveTo(bx - side * 12, cy - 42); ctx.lineTo(bx, cy - 42); ctx.lineTo(bx, cy - 29);
+      ctx.moveTo(bx, cy + 29); ctx.lineTo(bx, cy + 42); ctx.lineTo(bx - side * 12, cy + 42); ctx.stroke();
+    }
+    ctx.restore();
   }
 
   keepDesktopActorClear(player, world, obstacles) {
@@ -916,8 +1035,8 @@ export class Renderer {
     if (!state || !state.world) return;
     const world = state.world, time = finite(view.time, state.time || 0), now = globalThis.performance?.now() ?? Date.now();
     const delta = Math.min(.06, Math.max(.001, (now - this.lastRender) / 1000 || 1 / 60)); this.lastRender = now;
-    if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex) {
-      const sameLayout = this.mapCache && Number.isFinite(state.seed) && this.mapSeed === state.seed && this.mapMission === state.missionIndex && this.mapCache.width === world.width && this.mapCache.height === world.height;
+    if (this.mapIdentity !== world || !this.mapCache || this.mapMission !== state.missionIndex || this.mapLayoutVersion !== world.layoutVersion || this.mapLayoutSeed !== world.layoutSeed) {
+      const sameLayout = this.mapCache && Number.isFinite(state.seed) && this.mapSeed === state.seed && this.mapMission === state.missionIndex && this.mapLayoutVersion === world.layoutVersion && this.mapLayoutSeed === world.layoutSeed && this.mapCache.width === world.width && this.mapCache.height === world.height;
       if (sameLayout) this.mapIdentity = world;
       else { this.makeMap(world, state.missionIndex); this.mapSeed = state.seed; this.cameraReady = false; }
     }
@@ -926,6 +1045,8 @@ export class Renderer {
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;
     let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), view.touch ? .6 : .8, view.touch ? 1.25 : 1.4);
+    const observing = player.role === 'grenadier' && !player.downed && player.alive !== false && (player.observing || view.observing) && !view.menu && !view.showMap;
+    if (observing) zoom *= .76;
     let tx = player.x, ty = player.y;
     // Keep the soldier in the usable battlefield between the HUD and thumb controls.
     if (!view.menu && !view.showMap) {
@@ -952,6 +1073,10 @@ export class Renderer {
       const amount = clamp(finite(view.lookahead), 0, 1);
       tx += clamp((view.pointer.x - this.width / 2) / this.width, -.5, .5) * 240 / zoom * amount;
       ty += clamp((view.pointer.y - this.height / 2) / this.height, -.5, .5) * 160 / zoom * amount;
+    }
+    if (observing) {
+      const ahead = view.touch ? 110 : 190;
+      tx += Math.cos(finite(player.angle)) * ahead; ty += Math.sin(finite(player.angle)) * ahead;
     }
     const halfW = this.width / zoom / 2, halfH = this.height / zoom / 2;
     if (!view.showMap) {
@@ -997,6 +1122,10 @@ export class Renderer {
     const bottom = clamp(Math.ceil(this.camera.y + this.height / zoom / 2) + 1, 0, world.height);
     if (right > left && bottom > top) ctx.drawImage(this.mapCache, left, top, right-left, bottom-top, left, top, right-left, bottom-top);
     this.drawHouseCutaways(ctx, view, {left, top, right, bottom});
+    if (!view.menu) {
+      this.sharedSight.update(state, time);
+      this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:state.missionIndex === 2, map:view.showMap});
+    }
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
     this.drawObjective(state, time, view); this.drawOrder(state, time, view);
@@ -1027,10 +1156,15 @@ export class Renderer {
     if (!view.showMap) this.drawAtmosphere(state, time, view);
     this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
     this.drawDesktopAim(state, view);
+    this.drawObservation(state, view);
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
       ctx.fillText(view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close', safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
+      if (!view.touch || safe.height > 190) {
+        ctx.fillStyle = '#9eae98'; ctx.font = '10px ui-monospace, monospace';
+        ctx.fillText('Clear ground: squad sight · Muted: terrain only', safe.cx, view.touch ? safe.top + 21 : 39);
+      }
     }
   }
 
@@ -1064,7 +1198,7 @@ export function renderMinimap(canvas, state, options = {}) {
   if (o && Number.isFinite(o.x)) { circle(ctx, o.x, o.y, 5 / scale, 'rgba(237,191,112,.2)', COLORS.objective, 1.4 / scale); }
   for (const a of state.enemies || []) {
     if (a.alive === false) continue;
-    const visible = typeof a.visible === 'boolean' ? a.visible : (state.squad || []).some(s => s.alive !== false && !s.downed && distance(a, s) < 500 && hasLineOfSight(state, a, s));
+    const visible = enemyInSharedSight(state, a);
     if (visible) circle(ctx, a.x, a.y, 1.5 / scale, '#d57e62');
   }
   for (const a of state.squad || []) if (a.alive !== false || a.downed) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
