@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { populateDistrictLife, streetPropBounds } from '../public/district-life.mjs';
 import { getSolidWalls } from '../public/building-geometry.mjs';
-import { createGame, applyBreach, findPath, hasLineOfSight, segmentRectEntry, step } from '../public/sim.mjs';
+import { MISSIONS, createGame, applyBreach, findPath, hasLineOfSight, segmentRectEntry, step } from '../public/sim.mjs';
 import { traceAim } from '../public/desktop-input.mjs';
 import { CoopStateHydrator, predictMovement } from '../public/coop-client.mjs';
 
@@ -11,7 +11,7 @@ const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h
 
 test('each seeded district has a bounded varied civilian street fabric and isolated contextual fires', () => {
   const signatures = new Set(), types = new Set();
-  for (let mission = 0; mission < 6; mission++) for (const seed of [4, 17, 19931003]) {
+  for (let mission = 0; mission < MISSIONS.length; mission++) for (const seed of [4, 17, 19931003]) {
     const { world } = createGame({ mission, seed }), vehicles = world.streetProps.filter(prop => VEHICLES.includes(prop.type));
     assert.ok(vehicles.length >= 24 && vehicles.length <= 65, `${mission}/${seed}: visible parked street traffic remains bounded`);
     assert.ok(world.streetProps.length >= 45 && world.streetProps.length <= 120);
@@ -41,7 +41,7 @@ test('each seeded district has a bounded varied civilian street fabric and isola
     assert.deepEqual({ props: world.streetProps, solids: world.streetSolids, fires: world.ambientFires }, original, 'reconstruction does not duplicate street objects or consume combat state');
     signatures.add(JSON.stringify(world.streetProps));
   }
-  assert.equal(signatures.size, 18, 'both seed and all six mission identities change the street fabric');
+  assert.equal(signatures.size, MISSIONS.length * 3, 'both seed and every mission identity change the street fabric');
   for (const type of ['car', 'pickup', 'van', 'handcart', 'washline', 'materials', 'barrels', 'tires', 'jars', 'sacks']) assert.ok(types.has(type), type);
 });
 

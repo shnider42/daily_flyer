@@ -7,12 +7,18 @@
  * C -> S input {seq,epoch,input}; order {id,epoch,order,point?}; start/restart/
  *   swap_roles/return_lobby/continue_operation {id,epoch}; configure {id,epoch,mission,difficulty};
  *   story_choice {id,epoch,decisionId,optionId}; members recommend, leaders decide.
+ *   tactical_ping {id,epoch,point}; any live assigned soldier may mark a location.
+ *   select_soldier {id,epoch,actorId}; either player chooses any unclaimed soldier.
+ * Room soldiers=[{id,slot,name,role,alive,downed,claimedBy,connected}] includes all
+ * four actors even in the briefing. Disconnected players reserve their selection
+ * during reconnect grace. Changing selection advances the epoch without resetting
+ * the squad's physical state. Capacity remains two humans, in any of four slots.
  *   leave; ping {sentAt}; resync. Commands optionally receive result {id,ok,reason}.
  * Shared play has no global pause: opening a local menu sends neutral input.
  * Explicit neutral frames carry cancelActions:true to discard pending one-shots.
  */
-// Version 8 adds finite hand grenades and authoritative flash exposure.
-export const PROTOCOL = 8;
+// Version 9 adds shared tactical pings, operations and four-slot soldier selection.
+export const PROTOCOL = 9;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;

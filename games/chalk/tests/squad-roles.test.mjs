@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,step,selectSquadMember,setHumanPlayers,issueOrder,findPath,getSolidWalls,segmentRectEntry} from '../public/sim.mjs';
+import {MISSIONS,createGame,step,selectSquadMember,setHumanPlayers,issueOrder,findPath,getSolidWalls,segmentRectEntry} from '../public/sim.mjs';
 import {roleProfile,movementSpeed,visionRange} from '../public/squad-roles.mjs';
+import {ENCOUNTERS} from '../public/encounters.mjs';
 import {predictMovement} from '../public/coop-client.mjs';
 
 function quietGame(options={}){
@@ -169,10 +170,20 @@ test('a sniper gives an aimed-shot warning, breaks charge on lost sight, and can
 });
 
 test('planned long approaches contain a sniper and the live population stays capped at one',()=>{
-  for(let seed=1;seed<=12;seed++)for(let mission=0;mission<6;mission++){
+  for(let seed=1;seed<=12;seed++)for(let mission=0;mission<MISSIONS.length;mission++){
     const game=createGame({seed,mission}),snipers=game.enemies.filter(a=>a.kind==='sniper');
-    assert.equal(snipers.length,[1,3,4].includes(mission)?1:0,'snipers belong to planned long-range approaches, not an eight-percent global roll');
+    assert.equal(snipers.length,ENCOUNTERS[mission].some(group=>group.kinds.includes('sniper'))?1:0,'snipers belong to planned long-range approaches, not an eight-percent global roll');
     game.stageIndex=game.stages.length-1;game.time=110;step(game,{},1/30);
     assert.ok(game.enemies.filter(a=>a.alive&&a.kind==='sniper').length<=1);
+  }
+});
+
+test('night visibility follows every operation’s lighting, including standalone missions',()=>{
+  const actor={role:'grenadier',observing:true,x:0,y:0,angle:0},front={x:600,y:0},side={x:0,y:600};
+  for(const [mission,definition] of MISSIONS.entries()){
+    const night=definition.lighting==='night';
+    assert.equal(visionRange(actor,mission,front),night?650:900,definition.title);
+    assert.equal(visionRange(actor,mission,side),night?390:540,definition.title);
+    assert.equal(visionRange({...actor,observing:false},mission,front),night?390:540,definition.title);
   }
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,step,issueOrder,hasLineOfSight,rebuildNavigationGrid,buildingAt} from '../public/sim.mjs';
+import {MISSIONS,createGame,step,issueOrder,hasLineOfSight,rebuildNavigationGrid,buildingAt} from '../public/sim.mjs';
 import {enemyProfile} from '../public/combat-profiles.mjs';
 import {initializeEncounters,updateEncounters} from '../public/encounters.mjs';
 
@@ -29,8 +29,8 @@ function sawArena(){
   const target=enemy('rifleman',900,550,{cooldown:999});return{s,webb,target};
 }
 
-test('authored approaches start as separated, connected small groups across the six operations',()=>{
-  for(let mission=0;mission<6;mission++)for(const seed of [4,17,63]){
+test('authored approaches start as separated, connected small groups across every operation',()=>{
+  for(let mission=0;mission<MISSIONS.length;mission++)for(const seed of [4,17,63]){
     const s=createGame({mission,seed,difficulty:'standard'}),groups=Map.groupBy(s.enemies,a=>a.encounterId);
     assert.ok(groups.size>=1);
     for(const [id,members] of groups){

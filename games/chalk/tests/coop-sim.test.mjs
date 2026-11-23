@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,findPath,getObjective,issueCoopOrder,setHumanPlayers,stepCoop} from '../public/sim.mjs';
+import {MISSIONS,createGame,findPath,getObjective,issueCoopOrder,setHumanPlayers,stepCoop} from '../public/sim.mjs';
 import {movementSpeed} from '../public/squad-roles.mjs';
 
 function createCoop(options={}){
@@ -14,16 +14,16 @@ function run(state,seconds,inputs={}){
 }
 const near=(actor,point,dx=0,dy=0)=>{actor.x=point.x+dx;actor.y=point.y+dy;};
 
-test('co-op assigns only the two playable slots and keeps exactly four persistent soldiers',()=>{
+test('co-op assigns any two of four playable slots and keeps exactly four persistent soldiers',()=>{
   const s=createCoop(),ids=s.squad.map(a=>a.id);
   assert.deepEqual(s.humanIds,ids.slice(0,2));
   assert.equal(s.squad.filter(a=>a.human).length,2);
   assert.equal(s.squad.filter(a=>!a.human).length,2);
   setHumanPlayers(s,[ids[1],ids[1],ids[2],99999,ids[0],ids[3]]);
-  assert.deepEqual(s.humanIds,[ids[1],ids[0]]);
+  assert.deepEqual(s.humanIds,[ids[1],ids[2]]);
   assert.deepEqual(s.squad.map(a=>a.id),ids);
   assert.equal(s.squad.length,4);
-  assert.equal(s.playerId,ids[0]);
+  assert.equal(s.playerId,ids[1]);
 });
 
 test('one shared tick moves two humans independently without applying AI movement to either',()=>{
@@ -37,6 +37,22 @@ test('one shared tick moves two humans independently without applying AI movemen
   const stopped=[{x:hale.x,y:hale.y},{x:mercer.x,y:mercer.y}];
   run(s,1);
   assert.deepEqual([{x:hale.x,y:hale.y},{x:mercer.x,y:mercer.y}],stopped);
+});
+
+test('human medic and machine gunner keep their own movement, treatment and weapons without AI movement',()=>{
+  const s=createCoop(),[, ,ames,webb]=s.squad;
+  setHumanPlayers(s,[ames.id,webb.id]);
+  const before=[{x:ames.x,y:ames.y},{x:webb.x,y:webb.y}];
+  stepCoop(s,{[ames.id]:{moveX:1},[webb.id]:{moveY:-1}},1/30);
+  assert.ok(Math.abs(ames.x-before[0].x-movementSpeed(ames)/30)<1e-9);assert.equal(ames.y,before[0].y);
+  assert.equal(webb.x,before[1].x);assert.ok(Math.abs(webb.y-before[1].y+movementSpeed(webb)/30)<1e-9);
+  const stationary=[{x:ames.x,y:ames.y},{x:webb.x,y:webb.y}];run(s,.5);
+  assert.deepEqual([{x:ames.x,y:ames.y},{x:webb.x,y:webb.y}],stationary);
+  ames.hp-=30;webb.cooldown=0;const ammunition=webb.ammo;
+  stepCoop(s,{[ames.id]:{interact:true},[webb.id]:{fire:true,aimX:webb.x+300,aimY:webb.y}},1/30);
+  assert.ok(ames.bandageProgress>0);assert.equal(webb.ammo,ammunition-1);
+  assert.ok(s.soundEvents.some(event=>event.type==='shot'&&event.actorId===webb.id));
+  assert.equal(s.squad.filter(actor=>actor.human).length,2);
 });
 
 test('human fire, smoke and ammunition stay attributed to each assigned soldier',()=>{
@@ -101,7 +117,7 @@ test('the AI medic can recover either or both human players',()=>{
   assert.ok(mercer.hp>mercer.maxHp-60);
 });
 
-test('one human lost does not end the shared mission but neither player soldier recoverable does',()=>{
+test('lost human soldiers can be replaced by standing squadmates before the entire chalk is down',()=>{
   const s=createCoop(),[hale,mercer]=s.squad;
   hale.downed=true;hale.hp=0;hale.bleed=85;
   s.squad[2].x=s.squad[3].x=2120;
@@ -111,7 +127,11 @@ test('one human lost does not end the shared mission but neither player soldier 
   assert.equal(s.playerId,mercer.id);
   mercer.downed=true;mercer.hp=0;mercer.bleed=85;
   stepCoop(s,{},1/30);
-  assert.equal(s.status,'lost');
+  assert.equal(s.status,'playing');
+  setHumanPlayers(s,[s.squad[2].id,s.squad[3].id]);
+  assert.equal(s.squad.filter(actor=>actor.human).length,2);
+  s.squad[2].downed=s.squad[3].downed=true;
+  stepCoop(s,{},1/30);assert.equal(s.status,'lost');
 });
 
 test('rally and convoy movement wait for both living humans',()=>{
@@ -139,8 +159,8 @@ test('either human can stabilize crew or clear barriers without doubling progres
   assert.ok(Math.abs(c.convoyClear-2/30)<1e-12);
 });
 
-test('all six missions complete with two human inputs and two AI squad mates',()=>{
-  for(let mission=0;mission<6;mission++){
+test('all missions complete with two human inputs and two AI squad mates',()=>{
+  for(let mission=0;mission<MISSIONS.length;mission++){
     const s=createCoop({mission,difficulty:'story'});
     for(let frame=0;frame<30*720&&s.status==='playing';frame++){
       const objective=getObjective(s),inputs={};

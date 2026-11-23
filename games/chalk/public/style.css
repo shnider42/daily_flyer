@@ -546,3 +546,143 @@ button.squad-member.active:disabled{opacity:1}
   .touch .utility-actions #touchReload,.touch .utility-actions #touchSmoke,.touch .utility-actions #touchThrow{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:50px;min-width:48px;height:48px;min-height:48px;padding:4px;font-size:10px;order:0}
   .touch .utility-actions #touchThrow{width:56px}
 }
+
+/* Guidance describes the whole interface, with a readable desktop baseline. */
+.guidance-summary{font-size:15px;line-height:1.5;color:#d9ddc9;margin:0 0 10px}
+.difficulty-explanation{font-size:13px;line-height:1.45;color:#aebda4;margin:0 0 16px}
+.guidance-copy{line-height:1.45;color:#c3d1b9}
+.objective-explanation{margin:9px 0 0;padding-top:8px;border-top:1px solid #91a78038}
+.squad-explanation{font-size:13px;margin:0;max-width:405px;background:#112019e8;padding:6px 9px;border-radius:3px}
+.ammo-explanation{font-size:12px;margin:5px 0 9px;color:#acbda3}
+.throwable-explanation{font-size:13px;margin:8px 0 0;color:#c5cfb9}
+.order-explanation{display:none}
+.ping-key{color:#99d9ff}
+.guidance-coach{position:absolute;top:74px;right:22px;width:350px;padding:16px 18px;pointer-events:auto;background:#14231cf5;border:1px solid #8ca37b69;border-left:3px solid #ceb779;border-radius:5px;box-shadow:0 4px 18px #0003;color:#e6e8d8}
+.guidance-coach header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.guidance-coach header>span{font:11px/1.4 var(--mono);letter-spacing:.04em;color:#ddc98e}
+.guidance-coach header button{font:12px/1.4 Arial,sans-serif;color:#b7c7ac;text-decoration:underline;text-underline-offset:3px;min-height:28px}
+.guidance-coach h2{font-size:22px;line-height:1.2;font-weight:600;letter-spacing:-.02em;margin:0 0 10px}
+.guidance-coach p{font-size:16px;line-height:1.45;margin:0 0 12px}
+.guidance-coach .coach-task{padding:10px 12px;background:#52634935;border-radius:3px;border-left:2px solid #9caf85;font-size:15px;color:#e2e6ce}
+.guidance-coach footer{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.guidance-coach footer button{min-height:32px;padding:6px 9px;font-size:13px;color:#c2d0b4;border:1px solid #71825e70;border-radius:3px}
+.guidance-coach #coachNext{background:#cbb47b;color:#182217;border-color:#cbb47b}
+.guidance-coach footer button:disabled{opacity:.4}
+[data-coach-focus="squad"] .squad-panel,[data-coach-focus="orders"] .orders,[data-coach-focus="objective"] .objective-panel,[data-coach-focus="mapToggle"] #mapToggle{outline:2px solid #d6bc7c;outline-offset:4px}
+body[data-guidance="expert"] .guidance-copy,body[data-guidance="expert"] .difficulty-explanation{display:none}
+body[data-guidance="moderate"] .squad-explanation,body[data-guidance="moderate"] .throwable-explanation{display:none}
+body[data-guidance="simple"] .setting-field small,body[data-guidance="simple"] .setting-toggle small{font-size:14px;line-height:1.5;color:#bdcdb1}
+body[data-guidance="simple"] .settings-section-intro p,body[data-guidance="simple"] .settings-note,body[data-guidance="simple"] .settings-header>p:last-child{font-size:14px;line-height:1.5;color:#bdcdb1}
+body[data-guidance="simple"] .setting-field>span,body[data-guidance="simple"] .setting-toggle strong{font-size:16px}
+body[data-guidance="simple"] .setting-field select{font-size:16px;min-height:42px}
+body[data-guidance="simple"] .settings-tabs button{font-size:15px}
+body[data-guidance="simple"] .info-dialog>p,body[data-guidance="simple"] .info-dialog li{font-size:17px;line-height:1.6}
+body[data-guidance="simple"] .role-explanation,body[data-guidance="simple"] .briefing>p:not(.brief-time){font-size:16px;line-height:1.5;color:#c6cfbb}
+body[data-guidance="simple"] .start-hint{font-size:13px}
+body[data-guidance="simple"] .briefing .brief-goal{font-size:15px!important}
+body[data-guidance="simple"] .radio-line{color:#dce3cf}
+body[data-guidance="simple"] .story-detail,body[data-guidance="simple"] #storyDetail{font-size:16px;line-height:1.5}
+body[data-guidance="simple"] .story-options button span{font-size:14px;line-height:1.45}
+body[data-guidance="simple"] .story-authority,body[data-guidance="simple"] .story-timing{font-size:13px;line-height:1.4}
+body[data-guidance="simple"] .pause-card>p,body[data-guidance="simple"] .solo-switch-hint,body[data-guidance="simple"] .result-card>p{font-size:16px;line-height:1.5}
+body[data-guidance="simple"] .result-stat span,body[data-guidance="simple"] .story-debrief,body[data-guidance="simple"] .story-debrief li{font-size:14px;line-height:1.5}
+.plain-guide{margin:18px 0 26px}.plain-guide>div{padding:12px 0;border-bottom:1px solid #6d805e48}.plain-guide dt{font-weight:600;color:#e7ddbd;margin:0 0 4px}.plain-guide dd{font-size:16px;line-height:1.5;margin:0;color:#bfcdb4}
+.field-guide kbd{font:12px/1.4 var(--mono);padding:2px 4px;border:1px solid #71825d80;border-radius:3px;color:#e4d4a4;white-space:normal}
+.field-guide .control-list>div{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:9px 0}.field-guide .control-list kbd{max-width:55%;flex:none}.field-guide .control-list span{text-align:right;font-size:14px}
+.bindings-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.bindings-heading h3{margin:0;font-size:19px}.bindings-heading .text-button{font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.bindings-editor>p{font-size:14px!important;line-height:1.5!important;color:#b8c8ac!important;max-width:none!important}
+.binding-rows h4{font:12px/1.4 var(--mono);letter-spacing:.05em;color:#d3c38e;margin:24px 0 7px;padding:0 0 9px;border-bottom:1px solid #87976f50}
+.binding-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid #5b71533d}
+.binding-action{min-width:0}.binding-action strong{display:block;font-size:15px;font-weight:500;color:#e0e7d4}.binding-action small{display:block;font-size:12px;line-height:1.45;color:#a8bc9c;max-width:400px;margin-top:4px}
+.binding-slots{display:flex;gap:7px;flex:none}.binding-slots button{font:12px/1.3 var(--mono);width:108px;min-height:36px;padding:7px 6px;border:1px solid #7d916969;border-radius:4px;color:#e0d9b9;background:#283822}.binding-slots button:hover,.binding-slots button.listening{border-color:#e4cb86;background:#495338}
+.binding-capture{position:sticky;top:-23px;z-index:2;padding:14px 16px;margin:16px 0;background:#34432b;border:1px solid #d6bc7c;border-radius:4px;box-shadow:0 8px 18px #07100c99}.binding-capture strong{font-size:17px;color:#f0e2b8}.binding-capture p{font-size:14px;line-height:1.5;color:#e2e8d4;margin:7px 0 12px}.binding-capture>div{display:flex;gap:12px;flex-wrap:wrap}.binding-capture button{min-height:35px;padding:6px 10px;border:1px solid #a0b38b;border-radius:4px;font-size:13px;color:#e2ebd5;background:#1c2c20}.binding-capture #bindingReplace{background:#d4be82;color:#172418;border-color:#d4be82}
+body[data-guidance="simple"] .binding-action small{font-size:14px}body[data-guidance="expert"] .binding-action small{display:none}
+@media(min-width:701px){
+  body:not(.touch)[data-guidance="simple"] .objective-panel{width:380px;padding:14px 15px}
+  body:not(.touch)[data-guidance="simple"] #objectiveTitle{font-size:19px;line-height:1.3}
+  body:not(.touch)[data-guidance="simple"] #objectiveDetail{font-size:15px;line-height:1.4;color:#c7d1bb}
+  body:not(.touch)[data-guidance="simple"] .objective-explanation{font-size:15px;line-height:1.5}
+  body:not(.touch)[data-guidance="simple"] #stageNumber{font:12px/1.5 var(--mono);white-space:nowrap}
+  body:not(.touch)[data-guidance="simple"] .mission-cargo{font-size:14px}
+  body:not(.touch)[data-guidance="simple"] .squad-status-stack{width:425px;bottom:calc(143px * var(--hud-scale));gap:7px}
+  body:not(.touch)[data-guidance="simple"] .squad-member{width:100px;min-height:58px;padding:9px}
+  body:not(.touch)[data-guidance="simple"] .squad-member strong{font-size:14px}
+  body:not(.touch)[data-guidance="simple"] .squad-member small{font-size:12px;line-height:1.3}
+  body:not(.touch)[data-guidance="simple"] .leader-intent{font:14px/1.4 Arial,sans-serif;max-width:425px}
+  body:not(.touch)[data-guidance="simple"] .radio-line{font-size:15px;line-height:1.4}
+  body:not(.touch)[data-guidance="simple"] .radio-line strong{font-size:12px}
+  body:not(.touch)[data-guidance="simple"] .bottom-strip{bottom:38px}
+  body:not(.touch)[data-guidance="simple"] .orders{padding:10px 12px;max-width:540px}
+  body:not(.touch)[data-guidance="simple"] .order-label{font-size:12px}
+  body:not(.touch)[data-guidance="simple"] #orderButtons button{min-height:52px;font-size:15px;padding:8px 10px;max-width:132px;text-align:left}
+  body:not(.touch)[data-guidance="simple"] #orderButtons button kbd{font-size:11px;display:block;margin:0 0 4px;color:#d0c29b}
+  body:not(.touch)[data-guidance="simple"] .order-explanation{display:block;font:12px/1.35 Arial,sans-serif;color:#aebfa2;margin-top:5px}
+  body:not(.touch)[data-guidance="simple"] .weapon-panel{width:242px;padding:13px 15px}
+  body:not(.touch)[data-guidance="simple"] .weapon-panel>div:first-child{font-size:14px}
+  body:not(.touch)[data-guidance="simple"] .ammo{font-size:15px}
+  body:not(.touch)[data-guidance="simple"] .ammo strong{font-size:40px}
+  body:not(.touch)[data-guidance="simple"] #reloadLabel{font-size:12px}
+  body:not(.touch)[data-guidance="simple"] #smokeCount,body:not(.touch)[data-guidance="simple"] .weapon-name,body:not(.touch)[data-guidance="simple"] .specialty-text,body:not(.touch)[data-guidance="simple"] .throwable-keys{font-size:12px;line-height:1.45}
+  body:not(.touch)[data-guidance="simple"] .throwable-picker button{font-size:14px;min-height:32px}
+  body:not(.touch)[data-guidance="simple"] .desktop-hint{font:13px/1.35 Arial,sans-serif;bottom:10px;color:#cbd7bd}
+  body:not(.touch)[data-guidance="simple"] .context-hint{font-size:15px;max-width:min(450px,calc(100% - 850px));bottom:44px}
+  body:not(.touch)[data-guidance="simple"] .map-legend{font-size:14px;max-width:75vw;flex-wrap:wrap}
+  body:not(.touch)[data-guidance="simple"] .top-actions button{min-height:38px;font-size:14px}
+  body:not(.touch)[data-guidance="moderate"] .objective-panel{width:350px;padding:12px 14px}
+  body:not(.touch)[data-guidance="moderate"] #objectiveTitle{font-size:17px;line-height:1.3}
+  body:not(.touch)[data-guidance="moderate"] #objectiveDetail,body:not(.touch)[data-guidance="moderate"] .objective-explanation{font-size:14px;line-height:1.4}
+  body:not(.touch)[data-guidance="moderate"] .squad-member{width:94px;min-height:52px}
+  body:not(.touch)[data-guidance="moderate"] .squad-member strong{font-size:13px}
+  body:not(.touch)[data-guidance="moderate"] .squad-member small{font-size:11px}
+  body:not(.touch)[data-guidance="moderate"] #orderButtons button{font-size:14px;min-height:38px}
+  body:not(.touch)[data-guidance="moderate"] .radio-line{font-size:14px}
+  body:not(.touch)[data-guidance="moderate"] .leader-intent{font-size:12px}
+  body:not(.touch)[data-guidance="moderate"] .weapon-panel{width:210px}
+  body:not(.touch)[data-guidance="moderate"] .weapon-panel>div:first-child,body:not(.touch)[data-guidance="moderate"] .throwable-picker button{font-size:13px}
+  body:not(.touch)[data-guidance="moderate"] .context-hint{font-size:14px}
+  body:not(.touch)[data-guidance="moderate"] .desktop-hint{font:12px/1.4 Arial,sans-serif}
+  body:not(.touch)[data-guidance="simple"][data-hud-detail="compact"] #objectiveDetail,body:not(.touch)[data-guidance="simple"][data-hud-detail="compact"] .squad-member:not(.downed) small{display:block}
+  body:not(.touch)[data-guidance="simple"][data-hud-detail="compact"] .squad-status-stack .leader-intent{display:block}
+  body:not(.touch)[data-guidance="simple"][data-hud-detail="compact"] .order-explanation{display:none}
+  body:not(.touch).map-open .guidance-coach{top:72px;right:22px;width:300px}
+  body:not(.touch) .context-hint[data-tone="danger"]{border-color:#cf9377;color:#f0cfbb}
+  body:not(.touch) .context-hint[data-tone="warning"]{border-color:#d6bc7c}
+}
+@media(min-width:701px) and (max-height:850px){
+  body:not(.touch)[data-guidance="simple"] .radio-line:not(:last-child){display:none}
+  body:not(.touch)[data-guidance="simple"] .squad-explanation{display:none}
+  body:not(.touch)[data-guidance="simple"] .squad-status-stack{bottom:calc(132px * var(--hud-scale))}
+  body:not(.touch)[data-guidance="simple"] .order-explanation{display:none}
+  body:not(.touch)[data-guidance="simple"] .context-hint{bottom:44px;max-width:calc(100vw - 790px)}
+  .guidance-coach{width:325px;padding:13px 15px}.guidance-coach h2{font-size:20px}.guidance-coach p{font-size:15px;margin-bottom:10px}.guidance-coach .coach-task{font-size:14px}
+  body:not(.touch)[data-guidance="simple"] .ammo-explanation{font-size:12px}
+  body:not(.touch)[data-guidance="simple"] .throwable-explanation{display:none}
+}
+@media(min-width:701px) and (max-width:1100px){
+  body:not(.touch)[data-guidance="simple"] .objective-panel{width:330px}
+  body:not(.touch)[data-guidance="simple"] .context-hint{bottom:150px;max-width:calc(100vw - 640px);font-size:14px}
+  body:not(.touch)[data-guidance="simple"] .weapon-panel{width:215px}
+  body:not(.touch)[data-guidance="simple"] .squad-status-stack{width:365px}
+  body:not(.touch)[data-guidance="simple"] .squad-member{width:88px}
+  body:not(.touch)[data-guidance="simple"] #orderButtons button{font-size:14px;padding:7px}
+  body:not(.touch)[data-guidance="simple"] .desktop-hint{font-size:12px}
+  .guidance-coach{width:300px}.guidance-coach p{font-size:14px}
+}
+.touch .objective-explanation,.touch .squad-explanation,.touch .ammo-explanation,.touch .throwable-explanation,.touch .guidance-coach,.touch .hud-guidance{display:none!important}
+@media(max-width:700px){
+  .binding-row{gap:8px}.binding-action strong{font-size:13px}.binding-action small{font-size:12px!important}.binding-slots{gap:4px}.binding-slots button{width:73px;min-height:40px;font-size:10px}.bindings-heading{align-items:flex-start}.bindings-heading h3{font-size:17px}.bindings-heading .text-button{font-size:12px;max-width:120px;text-align:right}
+  .guidance-summary{font-size:14px;line-height:1.4}.difficulty-explanation{font-size:12px}
+  .guidance-coach{width:min(300px,calc(100vw - 30px));right:15px;top:160px}
+}
+
+/* Soldier ownership is visible both before deployment and on the live cards. */
+.squad-owner{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:10px/1.35 Arial,sans-serif;font-style:normal;color:#b8c9a7;margin-top:3px}
+.squad-member.active .squad-owner{color:#e3cc91}.squad-member:disabled:not(.active) .squad-owner{color:#b2bcb0}
+body:not(.touch)[data-guidance="simple"] .squad-owner{font-size:12px}
+body[data-guidance="expert"]:not(.online) .squad-owner{display:none}
+.touch .squad-owner{font-size:9px;margin-top:1px}.touch:not(.online) .squad-owner{display:none}
+.coop-pick-hint{font-size:14px;line-height:1.5;color:#c9d4bf;margin:15px 0 8px}
+button.coop-roster-row{width:100%;text-align:left;color:inherit;font:inherit;min-height:65px;gap:16px;cursor:pointer}
+button.coop-roster-row>span:first-child{min-width:0}.coop-roster-row strong{font-size:16px}.coop-roster-row small{display:block;font-size:13px;line-height:1.5;color:#adbf9e;margin-top:4px}.coop-roster-row .coop-seat{flex:none;font-size:11px}
+button.coop-roster-row:not(:disabled):hover{background:#33432a;border-color:#d2bd81}button.coop-roster-row:disabled{opacity:.7;cursor:default}button.coop-roster-row.mine{opacity:1;border-color:#d2bd81}
+.dialog-card{max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain}

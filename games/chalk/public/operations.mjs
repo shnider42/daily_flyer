@@ -1,4 +1,4 @@
-// Small, authoritative field tasks shared by all six operations.
+// Small, authoritative field tasks shared by the campaign and standalone operations.
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const standing=a=>a&&a.alive&&!a.downed;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -24,9 +24,16 @@ export function initializeOperations(s,hooks){
   }
   if(s.missionIndex===3)for(let i=0;i<2;i++)s.survivors.push(hooks.actor(s,'survivor',`Straggler ${i+1}`,'crew',160+i*70,1830,{hp:45,maxHp:70,downed:false,stabilized:true,radius:12,escortSpeed:42}));
   if(s.missionIndex===1)for(const c of s.survivors)c.escortSpeed=42;
-  if(s.missionIndex===5)for(const stage of s.stages.filter(p=>p.kind==='rescue')){
-    s.survivors.push(hooks.actor(s,'survivor',stage.crew===0?'Resident 1':'Resident 2','resident',stage.x,stage.y,{hp:35,maxHp:65,downed:true,stabilized:false,radius:11,missionWait:true,escortSpeed:38}));
+  for(const stage of s.stages.filter(p=>p.kind==='rescue'&&(s.missionIndex===5||p.spawnSurvivor))){
+    s.survivors[stage.crew]=hooks.actor(s,'survivor',stage.survivorName||`Resident ${stage.crew+1}`,stage.survivorKind||'resident',stage.x,stage.y,{hp:35,maxHp:65,downed:true,stabilized:false,radius:11,missionWait:true,escortSpeed:stage.escortSpeed||38});
     s.operation.objects.push({id:stage.id,kind:'evac',label:stage.title,x:stage.x,y:stage.y,stageId:stage.id,completed:false});
+  }
+  // Walking residents stay sheltered until the active gather task is completed.
+  // They are real vulnerable actors, not inventory or an automatic escort credit.
+  for(const stage of s.stages.filter(p=>p.waitingGroup))for(const [index,name] of stage.waitingGroup.names.entries()){
+    const offset=(index-(stage.waitingGroup.names.length-1)/2)*18;
+    const point=hooks.free(s,stage.x,stage.y+offset,12)?{x:stage.x,y:stage.y+offset}:stage;
+    s.survivors.push(hooks.actor(s,'survivor',name,'resident',point.x,point.y,{hp:65,maxHp:65,downed:false,stabilized:true,radius:11,missionWait:true,releaseStageId:stage.id,escortSpeed:stage.waitingGroup.escortSpeed||40}));
   }
 }
 export function operationItem(s,id){return s.operation?.items.find(item=>item.id===id)||null;}
@@ -115,6 +122,11 @@ export function operationWork(s,inputs,dt,hooks){
   if(p.kind==='recon'){
     s.operation.observed.push(p.id);hooks.radio(s,worker.name.toUpperCase(),'Approach checked from here. Blind corners remain; move together.');
   }
+  if(p.action==='gather'){
+    const group=s.survivors.filter(c=>c.releaseStageId===p.id&&c.alive);
+    for(const resident of group)resident.missionWait=false;
+    hooks.radio(s,worker.name.toUpperCase(),`${group.length} ${group.length===1?'resident is':'residents are'} accounted for. Help anyone who cannot walk, and keep everyone close.`);
+  }else if(p.completedMessage)hooks.radio(s,worker.name.toUpperCase(),p.completedMessage);
   if(p.transmission)s.operation.transmission={remaining:p.transmission,complete:false};
   const object=s.operation.objects.find(o=>o.id===p.id);if(object)object.completed=true;
   s.operation.completed.push(p.id);hooks.advance(s);return true;

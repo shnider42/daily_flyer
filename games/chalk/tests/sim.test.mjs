@@ -12,8 +12,8 @@ function travel(s,target,maxSeconds=60){
   }return false;
 }
 
-test('all six missions create isolated, deterministic states and objectives',()=>{
-  assert.equal(MISSIONS.length,6);
+test('all ten missions create isolated, deterministic states and objectives',()=>{
+  assert.equal(MISSIONS.length,10);
   for(let m=0;m<MISSIONS.length;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
 });
 test('collision and pathfinding keep mission routes reachable',()=>{
@@ -45,7 +45,7 @@ test('leader can finish the expanded cordon without killing every enemy',()=>{
   assert.equal(s.status,'won');assert.equal(s.stats.objectives,s.stages.length);assert.equal(s.operation.items[0].status,'delivered');
 });
 
-test('all six operations progress with an AI leader and a human keeping up',()=>{
+test('all operations progress with an AI leader and a human keeping up',()=>{
   for(let mission=0;mission<MISSIONS.length;mission++){
     const s=createGame({mission,role:'member',seed:17});clearThreats(s);
     for(let frame=0;frame<30*720&&s.status==='playing';frame++){

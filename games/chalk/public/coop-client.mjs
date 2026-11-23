@@ -399,6 +399,7 @@ export class CoopClient {
     // Expire short effects between authority packets; never repeat them as commands.
     const age=Math.min(.25,Math.max(0,(now-this._receivedAt)/1000));
     if (this._latestState?.effects) this.game.effects=this._latestState.effects.filter(effect => finite(effect.ttl)-age>0).map(effect=>({...effect,ttl:effect.ttl-age}));
+    if (this._latestState?.pings) this.game.pings=this._latestState.pings.filter(ping => ping.expiresAt>finite(this._latestState.time)+Math.max(0,(now-this._receivedAt)/1000));
     return this.game;
   }
   _command(type,args={}) {
@@ -412,6 +413,13 @@ export class CoopClient {
     });
   }
   order(type,point) { return this._command('order',{order:type,...(point?{point}: {})}); }
+  ping(point) { return this._command('tactical_ping',{point}); }
+  selectSoldier(actorId) {
+    const id=typeof actorId==='string'&&/^\d+$/.test(actorId)?Number(actorId):actorId;
+    if(!Number.isSafeInteger(id))return Promise.reject(this._report('Choose one of the four squad soldiers.'));
+    this.clearInput();
+    return this._command('select_soldier',{actorId:id});
+  }
   storyChoice(decisionId,optionId) { return this._command('story_choice',{decisionId,optionId}); }
   continueOperation() { this.clearInput(); return this._command('continue_operation'); }
   start() { return this._command('start'); }

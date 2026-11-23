@@ -1,8 +1,8 @@
 // Small invitation rooms using Farwake's single-authority, authenticated-session model.
 import {randomBytes} from 'node:crypto';
-import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,placePing,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
 import {SnapshotDeltaEncoder} from '../public/snapshot-delta.mjs';
-import {PROTOCOL,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
+import {PROTOCOL,MAX_HUMANS,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,THROW_ACTIONS,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
 
 const emptyActions=()=>({reload:false,smoke:false,grenade:false,frag:false,flashbang:false,throwTargets:{}});
@@ -13,11 +13,11 @@ const actorView = actor => {
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
   'progress','radio','stats','order','leaderOrder','phaseTime','objective','convoyIndex','convoyClear','convoyCleared',
-  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction','operation'];
+  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction','operation','pings'];
 const statusOf = room => room.status==='lobby'?'lobby':room.game.status;
 const validMission = value => Number.isInteger(value)&&value>=0&&value<MISSIONS.length;
 const validDifficulty = value => Object.hasOwn(DIFFICULTIES,value);
-const aliases={swapRoles:'swap_roles',returnLobby:'return_lobby'};
+const aliases={swapRoles:'swap_roles',returnLobby:'return_lobby',selectSoldier:'select_soldier'};
 
 export class CoopRooms {
   constructor({now=()=>Date.now(),maxRooms=16,idleMs=15*60*1000,emptyMs=60000,graceMs=DISCONNECT_GRACE_MS,
@@ -42,11 +42,21 @@ export class CoopRooms {
     this._syncHumans(room);
   }
   _syncHumans(room){setHumanPlayers(room.game,room.players.filter(p=>p.peer).map(p=>room.game.squad[p.slot].id));}
+  _refreshAssignments(room){
+    // The physical squad stays intact. A fresh epoch discards controls that were
+    // sent for the previous ownership layout, including queued grenade releases.
+    room.epoch++;
+    for(const p of room.players){p.input={...EMPTY_INPUT};p.actions=emptyActions();p.lastInput=this.now();}
+    this._syncHumans(room);
+  }
   _publicRoom(room){
-    return {code:room.code,hostId:room.hostId,leaderId:room.players.find(p=>p.slot===0)?.id||null,status:statusOf(room),
-      mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,reason:room.reason,capacity:2,
-      players:room.players.map(p=>({id:p.id,name:p.name,actorId:room.game.squad[p.slot].id,slot:p.slot,
-        role:p.slot===0?'leader':'member',connected:!!p.peer,ready:!!p.peer}))};
+    return {code:room.code,hostId:room.hostId,leaderId:room.players.find(p=>room.game.squad[p.slot].role==='leader')?.id||null,status:statusOf(room),
+      mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,reason:room.reason,capacity:MAX_HUMANS,
+      players:room.players.map(p=>{const actor=room.game.squad[p.slot];return{id:p.id,name:p.name,actorId:actor.id,slot:p.slot,
+        role:actor.role==='leader'?'leader':'member',soldierName:actor.name,specialty:actor.role,connected:!!p.peer,ready:!!p.peer};}),
+      soldiers:room.game.squad.map((actor,slot)=>{const owner=room.players.find(p=>p.slot===slot);return{
+        id:actor.id,slot,name:actor.name,role:actor.role,alive:actor.alive,downed:actor.downed,
+        claimedBy:owner?.id||null,connected:!!owner?.peer};})};
   }
   _attach(room,p,peer,token){
     if(p.peer&&p.peer!==peer){const old=p.peer;old.roomCode=null;old.playerId=null;
@@ -76,8 +86,10 @@ export class CoopRooms {
         return this.reject(peer,'The reconnect pass expired or is invalid. Join again with the squad code.','invalid-session',true);
       this._attach(room,p,peer,message.token);return true;
     }
-    if(room.players.length>=2)return this.reject(peer,'This room already has two human players.','room-full',true);
-    const slot=room.players.some(p=>p.slot===0)?1:0,{player,token}=this._newPlayer(slot,message.name);
+    if(room.players.length>=MAX_HUMANS)return this.reject(peer,'This room already has two human players.','room-full',true);
+    const slot=room.game.squad.findIndex((actor,index)=>!room.players.some(p=>p.slot===index)&&(statusOf(room)!=='playing'||actor.alive&&!actor.downed));
+    if(slot<0)return this.reject(peer,'No standing soldier is available to join. Ask your friend to return to the squad briefing.','no-soldier',true);
+    const {player,token}=this._newPlayer(slot,message.name);
     room.players.push(player);room.reason=room.status==='lobby'?'Squad assembled. The host can deploy.':'Your squad mate joined the mission.';
     this._attach(room,player,peer,token);return true;
   }
@@ -130,13 +142,34 @@ export class CoopRooms {
       room.reason='The operation continues. Earlier supply, fatigue and civilian outcomes carry into this chapter.';
     }else if(type==='return_lobby'){
       room.status='lobby';room.campaign=null;this._newGame(room);room.reason='Choose a fresh mission together.';
+    }else if(type==='select_soldier'){
+      if(room.status!=='lobby'&&statusOf(room)!=='playing')return finish(false,'Return to the squad briefing before choosing another soldier.');
+      if(!Number.isSafeInteger(message.actorId))return finish(false,'Choose one of the four squad soldiers.');
+      const slot=room.game.squad.findIndex(actor=>actor.id===message.actorId),actor=room.game.squad[slot];
+      if(!actor)return finish(false,'That soldier is not in this squad.');
+      const owner=room.players.find(member=>member.slot===slot&&member!==p);
+      if(owner)return finish(false,owner.peer?`${actor.name} is controlled by ${owner.name}. Choose an available soldier.`:`${actor.name} is reserved while ${owner.name} reconnects.`);
+      if(statusOf(room)==='playing'&&(!actor.alive||actor.downed))return finish(false,actor.alive?`${actor.name} is down. Choose a standing soldier.`:`${actor.name} has been lost. Choose a standing soldier.`);
+      if(p.slot===slot)return finish(true);
+      p.slot=slot;this._refreshAssignments(room);room.reason=`${p.name} now controls ${actor.name}. AI controls the soldier they left.`;
     }else if(type==='swap_roles'){
-      for(const member of room.players){member.slot=1-member.slot;member.input={...EMPTY_INPUT};member.actions=emptyActions();}
-      room.epoch++;this._syncHumans(room);room.reason='Command changed hands. Your assigned soldier has changed.';
+      // Preserve the older host swap control after either person chooses Ames
+      // or Webb: exchange actual assignments, never apply two-slot arithmetic.
+      const slots=room.players.length===2?[room.players[1].slot,room.players[0].slot]:[room.players[0].slot===0?1:0];
+      if(statusOf(room)==='playing'&&slots.some(slot=>!room.game.squad[slot].alive||room.game.squad[slot].downed))return finish(false,'Both destination soldiers must be standing to exchange assignments.');
+      room.players.forEach((member,index)=>member.slot=slots[index]);
+      this._refreshAssignments(room);room.reason='Your assigned soldiers have been exchanged.';
     }else if(type==='story_choice'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before replying to a radio decision.');
       if(typeof message.decisionId!=='string'||message.decisionId.length>80||typeof message.optionId!=='string'||message.optionId.length>40)return finish(false,'Invalid radio choice.');
       if(!chooseStoryOption(room.game,message.decisionId,message.optionId,room.game.squad[p.slot].id))return finish(false,'That radio choice is unavailable to your soldier or has already been resolved.');
+    }else if(type==='tactical_ping'){
+      if(statusOf(room)!=='playing')return finish(false,'Deploy before marking a location.');
+      const point=message.point;
+      if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x<0||point.x>room.game.world.width||point.y<0||point.y>room.game.world.height)return finish(false,'Choose a point inside the district.');
+      const owner=room.game.squad[p.slot];
+      if(!owner.alive||owner.downed)return finish(false,'Your soldier must be able to act to place a ping.');
+      if(!placePing(room.game,point,owner.id))return finish(false,'Wait a moment before placing another ping.');
     }else if(type==='order'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before giving squad orders.');
       const order=message.order;
@@ -145,14 +178,14 @@ export class CoopRooms {
       if(order==='move'&&(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x<0||point.x>room.game.world.width||point.y<0||point.y>room.game.world.height))return finish(false,'Choose a destination inside the district.');
       if(!issueCoopOrder(room.game,room.game.squad[p.slot].id,order,point))return finish(false,'That order is unavailable to your soldier.');
     }else return finish(false,'Unknown squad command.');
-    finish(true);this.snapshot(room,{reset:true});return true;
+    finish(true);this.snapshot(room,{reset:type!=='tactical_ping'});return true;
   }
   snapshotFor(room,p){
     const state={};for(const key of stateFields)if(room.game[key]!==undefined)state[key]=room.game[key];
     for(const key of ['squad','civilians','survivors'])state[key]=room.game[key].map(actorView);
     state.enemies=room.game.enemies.filter(a=>a.visible).map(actorView);
     for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
-    const actorId=room.game.squad[p.slot].id;state.playerId=actorId;state.role=p.slot===0?'leader':'member';
+    const actor=room.game.squad[p.slot],actorId=actor.id;state.playerId=actorId;state.role=actor.role==='leader'?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,
       init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,campaign:room.game.campaign},
       room:this._publicRoom(room),state,worldProps:room.game.world.props};

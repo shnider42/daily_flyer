@@ -1,3 +1,5 @@
+import { MISSIONS } from './mission-definitions.mjs';
+
 // Fictional gameplay loadouts, shared by simulation, prediction and presentation.
 // The values describe game balance rather than real weapon specifications.
 export const SQUAD_ROLES = Object.freeze({
@@ -33,12 +35,13 @@ export function movementSpeed(actor, sprint = false) {
 
 /** Shared day/night range; point-dependent use keeps binoculars directional. */
 export function visionRange(actor, missionIndex = 0, point) {
-  const base = missionIndex === 2 ? 390 : 540;
+  const night = MISSIONS[missionIndex]?.lighting === 'night';
+  const base = night ? 390 : 540;
   if (actor?.role !== 'grenadier' || !actor.observing) return base;
   if (point) {
     const direction = Math.atan2(point.y - actor.y, point.x - actor.x);
     const difference = Math.atan2(Math.sin(direction - finite(actor.angle)), Math.cos(direction - finite(actor.angle)));
     if (Math.abs(difference) > OBSERVE_HALF_ANGLE) return base;
   }
-  return missionIndex === 2 ? 650 : 900;
+  return night ? 650 : 900;
 }

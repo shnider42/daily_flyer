@@ -249,6 +249,7 @@ function actor(s,team,name,kind,x,y,extra={}){return{id:++s.nextId,team,name,kin
 export function createGame({mission=0,role='leader',difficulty='standard',seed=19931003,campaign=null}={}){
   const missionIndex=clamp(Math.floor(finite(mission)),0,MISSIONS.length-1);if(!DIFFICULTIES[difficulty])difficulty='standard';role=role==='member'?'member':'leader';
   const s={missionIndex,mission:MISSIONS[missionIndex],role,difficulty,seed,rngState:(seed>>>0)||1,time:0,status:'playing',endReason:'',nextId:0,world:null,squad:[],enemies:[],civilians:[],survivors:[],vehicles:[],bullets:[],grenades:[],effects:[],soundEvents:[],smokes:[],bodies:[],bloodstains:[],objective:null,stageIndex:0,stageCount:0,progress:0,radio:[],stats:{shots:0,hits:0,squadDowns:0,rescued:0,civilianHarm:0,objectives:0,elapsed:0},order:{type:'follow',x:200,y:1720,label:'Regroup on you'},leaderOrder:'Move to the first rally point',playerId:null,waitUntil:0,spawnTimer:16,visibilityTimer:0,aidTimer:0,maxEnemies:DIFFICULTIES[difficulty].maxEnemies,convoyIndex:0,convoyClear:0,convoyCleared:[],lastLeaderState:'',lastCommand:-20,lastSniperAt:-100,lastFearAt:-100,phaseTime:0};
+  s.pings=[];s.nextPingId=0;
   s.destruction=createDestructionState();
   makeWorld(s);
   const hp=DIFFICULTIES[difficulty].playerHp;
@@ -267,6 +268,12 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
   if(missionIndex===2){
     s.convoyRoute=[{x:200,y:1340},{x:680,y:1340},{x:1160,y:1340,blocked:true},{x:1160,y:960},{x:1640,y:960,blocked:true,repair:true},{x:2120,y:960},{x:2120,y:580}];
     s.vehicles.push({id:++s.nextId,x:200,y:1340,angle:-Math.PI/2,w:80,h:41,hp:220,maxHp:220,kind:'apc',active:true,waiting:true,name:'Relief lead'},{id:++s.nextId,x:200,y:1455,angle:-Math.PI/2,w:80,h:41,hp:220,maxHp:220,kind:'apc',active:true,name:'Relief carrier'},{id:++s.nextId,x:200,y:1570,angle:-Math.PI/2,w:72,h:36,hp:180,maxHp:180,kind:'truck',active:true,name:'Casualty transport'});
+    s.convoyRoute.filter(p=>p.blocked&&!p.repair).forEach(p=>s.world.props.push({type:'barricade',x:p.x,y:p.y,w:82,h:23,cleared:false}));
+  }
+  if(missionIndex===7){
+    s.convoyRoute=[{x:680,y:1720},{x:740,y:1720,blocked:true,repair:true},{x:1160,y:1720},{x:1640,y:1720},{x:1640,y:1340,blocked:true},{x:2120,y:1340},{x:2120,y:960}];
+    s.vehicles.push({id:++s.nextId,x:680,y:1720,angle:0,w:72,h:36,hp:180,maxHp:180,kind:'truck',active:true,waiting:true,name:'Stranded transport'},
+      {id:++s.nextId,x:560,y:1720,angle:0,w:72,h:36,hp:180,maxHp:180,kind:'truck',active:true,waiting:true,name:'Following transport'});
     s.convoyRoute.filter(p=>p.blocked&&!p.repair).forEach(p=>s.world.props.push({type:'barricade',x:p.x,y:p.y,w:82,h:23,cleared:false}));
   }
   for(let i=0;i<10;i++){
@@ -333,7 +340,7 @@ function syncCoopControl(s){
 /** Set server-owned human slots; any vacant soldier immediately returns to AI. */
 export function setHumanPlayers(s,actorIds=[]){
   const previous=new Set(s.coop?s.humanIds:[]),previousRole=s.role;
-  const allowed=new Set(s.squad.slice(0,2).map(a=>a.id));
+  const allowed=new Set(s.squad.map(a=>a.id));
   s.coop=true;s.humanIds=[...new Set(Array.isArray(actorIds)?actorIds:[])].filter(id=>allowed.has(id)).slice(0,2);
   for(const a of s.squad){
     a.human=s.humanIds.includes(a.id);
@@ -361,12 +368,12 @@ function updateObjective(s){
     else detail=lead.waiting?'Convoy waiting · stay near the lead vehicle':`Convoy moving · ${s.convoyIndex+1}/${s.convoyRoute.length}`;
   }else if(kind==='rescue'){const c=s.survivors[p.crew];x=c.x;y=c.y;detail=`Treatment · ${Math.round(s.phaseTime/p.duration*100)}%`;}
   else if(kind==='recon')detail=`Face the marked approach · ${Math.round(s.phaseTime/p.duration*100)}% observed`;
-  else if(kind==='interact')detail=`Enter the house · ${p.interactionLabel} · hold Assist nearby`;
+  else if(kind==='interact')detail=`${p.interior?'Enter the house · ':''}${p.interactionLabel} · hold Assist nearby`;
   else if(kind==='deliver'){
     const item=operationItem(s,p.itemId),carrier=s.squad.find(a=>a.id===item?.carrierId);
     detail=item?.status==='ground'?`Recover the dropped ${item.label.toLowerCase()} · hold Assist nearby`:`${carrier?.name||'Squad'} carries ${item?.label?.toLowerCase()||'the item'} · hand it over nearby`;
   }else if(kind==='hold'){
-    detail=`Cover loading · ${Math.ceil(Math.max(0,p.duration-s.phaseTime))} sec`;
+    detail=`${p.holdLabel||'Cover loading'} · ${Math.ceil(Math.max(0,p.duration-s.phaseTime))} sec`;
     if(s.stageIndex===s.stages.length-1){const living=s.squad.filter(a=>a.alive),present=living.filter(a=>!a.downed&&distance(a,p)<p.radius).length;detail+=` · Squad ${present}/${living.length}`;}
   }else if(kind==='extract'||kind==='escort'){
     const living=s.squad.filter(a=>a.alive),inZone=living.filter(a=>!a.downed&&distance(a,p)<p.radius).length,crew=s.survivors.filter(a=>a.alive&&a.stabilized&&!a.missionWait),crewIn=crew.filter(a=>distance(a,p)<p.radius).length;
@@ -375,6 +382,25 @@ function updateObjective(s){
   }else detail=s.phaseTime>0?'Account for the chalk':'Bring the chalk to this street';
   s.objective={id:p.id,x,y,radius:p.radius,title:kind==='repair'?'Restart the stalled carrier':kind==='barricade'?'Clear the obstruction':actionTarget?.recovery?actionTarget.label:p.title,description:kind==='repair'?'Hold Assist beside the stalled lead carrier to restart it.':kind==='barricade'?'Hold Assist near the barrier, or let your AI leader clear it.':p.description,kind,progress:kind==='repair'?s.convoyClear/8:kind==='barricade'?s.convoyClear/6:clamp(s.phaseTime/(actionTarget?.recovery?2:p.duration||1),0,1),detail,interaction,interactionLabel:kind==='repair'?'Restart carrier':actionTarget?.label||p.interactionLabel||null,actionTarget,lookAt:p.lookAt||null};
 }
+export const PING_DURATION = 8;
+export const PING_COOLDOWN = .6;
+
+/** A point of interest, never an order or a source of squad sight. */
+export function placePing(s,point,actorId=s?.playerId){
+  if(s?.status!=='playing'||!Number.isFinite(s.time)||!point||
+    !Number.isFinite(point.x)||!Number.isFinite(point.y)||
+    !Number.isFinite(s.world?.width)||!Number.isFinite(s.world?.height)||
+    point.x<0||point.y<0||point.x>s.world.width||point.y>s.world.height)return false;
+  const owner=s.squad.find(a=>a.id===actorId);
+  if(!owner?.alive||owner.downed)return false;
+  const pings=s.pings||[],previous=pings.find(p=>p.actorId===actorId);
+  if(previous&&s.time-previous.createdAt<PING_COOLDOWN)return false;
+  const ping={id:++s.nextPingId,actorId:owner.id,name:String(owner.name||'Squad').slice(0,24),
+    x:point.x,y:point.y,createdAt:s.time,expiresAt:s.time+PING_DURATION};
+  s.pings=[...pings.filter(p=>p.actorId!==actorId&&p.expiresAt>s.time).slice(-3),ping];
+  return true;
+}
+
 export function issueOrder(s,type,point){
   if(s.status!=='playing')return false;const pl=player(s);
   if(s.role==='member'){
@@ -965,7 +991,8 @@ function advanceSimulation(s,input,dt){
   for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.handThrowCooldown=Math.max(0,(a.handThrowCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
   updateSquad(s,input,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
-  else if(s.coop&&s.squad.slice(0,2).every(a=>!a.alive)){s.status='lost';s.endReason='Neither player soldier could be recovered. Regroup and retry the mission.';}
+  // A human may take over any standing AI squadmate. Losing the two initially
+  // selected soldiers must not end a mission while another soldier can continue.
   if(s.status==='playing')updateOperations(s,dt,operationHooks);
   if(s.status==='playing')updateStory(s,input,dt,storyHooks);
   if(s.status==='playing')updateMission(s,input,dt);
@@ -978,5 +1005,6 @@ function advanceSimulation(s,input,dt){
   for(const e of s.effects)e.ttl-=dt;s.effects=s.effects.filter(e=>e.ttl>0);
   for(const smoke of s.smokes)smoke.ttl-=dt;s.smokes=s.smokes.filter(e=>e.ttl>0);
   s.soundEvents=s.soundEvents.filter(event=>s.time-event.time<=3);
+  s.pings=(s.pings||[]).filter(p=>p.expiresAt>s.time);
   return s;
 }

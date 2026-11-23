@@ -28,6 +28,58 @@ function setup({role='leader',duo=true,...options}={}){
   return {rooms,room,host,guest,command,step,advance,start};
 }
 
+test('shared tactical pings identify the assigned soldier without moving the squad or revealing enemies',()=>{
+  const {rooms,room,host,guest,command,start}=setup();start();
+  command(host,'order',{order:'hold'});
+  room.game.squad[2].path=[{x:120,y:150}];
+  room.game.enemies=[{id:700,visible:false,alive:true,x:1800,y:100}];
+  const before=structuredClone({order:room.game.order,squad:room.game.squad,enemies:room.game.enemies,radio:room.game.radio,soundEvents:room.game.soundEvents});
+  const point={x:1800,y:100};
+  command(guest,'tactical_ping',{point,actorId:room.game.squad[0].id});
+  assert.equal(guest.messages.at(-1).ok,true);
+  assert.equal(room.game.pings[0].actorId,room.game.squad[1].id,'a peer cannot impersonate the leader with an actorId field');
+  assert.equal(room.game.pings[0].name,'Mercer');
+  assert.deepEqual(host.latest.state.pings,guest.latest.state.pings);
+  assert.equal(host.latest.state.enemies.length,0);
+  assert.deepEqual({order:room.game.order,squad:room.game.squad,enemies:room.game.enemies,radio:room.game.radio,soundEvents:room.game.soundEvents},before);
+  const id=guest.messages.at(-1).id,pingId=room.game.pings[0].id;
+  rooms.handle(guest,{type:'tactical_ping',id,epoch:room.epoch,point:{x:20,y:20}});
+  assert.equal(room.game.pings[0].id,pingId);assert.equal(room.game.pings[0].x,1800,'retransmission is idempotent');
+  command(guest,'tactical_ping',{point:{x:20,y:20}});assert.equal(guest.messages.at(-1).ok,false);
+  command(host,'tactical_ping',{point:{x:20,y:20}});assert.equal(host.messages.at(-1).ok,true,'each player has their own cooldown');
+  assert.equal(room.game.pings.length,2);
+});
+
+test('tactical ping lifecycle rejects invalid states, preserves heartbeat, and resets on mission epochs',()=>{
+  const {rooms,room,host,guest,command,start,step}=setup();
+  command(host,'tactical_ping',{point:{x:10,y:10}});assert.equal(host.messages.at(-1).ok,false);
+  start();
+  for(const point of [{x:NaN,y:10},{x:0,y:Infinity},{x:-1,y:0},{x:99999,y:10},null]) {
+    command(host,'tactical_ping',{point});assert.equal(host.messages.at(-1).ok,false);
+  }
+  command(host,'tactical_ping',{epoch:room.epoch-1,point:{x:10,y:10}});assert.equal(host.messages.at(-1).ok,false);
+  room.game.squad[1].downed=true;command(guest,'tactical_ping',{point:{x:10,y:10}});assert.equal(guest.messages.at(-1).ok,false);room.game.squad[1].downed=false;
+  rooms.handle(host,{type:'ping',sentAt:123});assert.equal(host.messages.at(-1).type,'pong');assert.equal(room.game.pings.length,0);
+  command(host,'tactical_ping',{point:{x:10,y:10}});step(241);assert.equal(room.game.pings.length,0);
+  command(host,'tactical_ping',{point:{x:10,y:10}});assert.equal(room.game.pings.length,1);
+  const epoch=room.epoch;command(host,'restart');assert.ok(room.epoch>epoch);assert.equal(room.game.pings.length,0);assert.deepEqual(host.latest.state.pings,[]);
+});
+
+test('all four added missions configure, deploy, restart and snapshot through authoritative rooms',()=>{
+  for(let mission=6;mission<10;mission++){
+    const {room,host,guest,command}=setup();
+    command(host,'configure',{mission});assert.equal(host.messages.at(-1).ok,true);assert.equal(room.game.missionIndex,mission);
+    command(host,'start');assert.equal(host.messages.at(-1).ok,true);assert.equal(room.status,'playing');
+    assert.equal(guest.latest.init.mission,mission);assert.equal(guest.latest.state.mission.category,'side');
+    assert.equal(guest.latest.state.objective.id,room.game.stages[0].id);
+    if(mission===6)assert.equal(guest.latest.state.survivors[0].name,'Courier');
+    if(mission===7)assert.equal(guest.latest.state.vehicles.length,2);
+    if(mission===8)assert.equal(guest.latest.state.survivors.filter(actor=>actor.missionWait).length,3);
+    const epoch=room.epoch;command(host,'restart');assert.ok(room.epoch>epoch);assert.equal(room.game.missionIndex,mission);assert.equal(room.game.stageIndex,0);
+    command(host,'return_lobby');command(host,'configure',{mission:10});assert.equal(host.messages.at(-1).ok,false);assert.equal(room.game.missionIndex,mission);
+  }
+});
+
 test('invitation rooms retain exactly four actors and host authority is independent of squad leadership',()=>{
   const {rooms,room,host,guest,command,start}=setup({role:'member'});
   assert.match(room.code,/^[A-HJ-NP-Z2-9]{6}$/);

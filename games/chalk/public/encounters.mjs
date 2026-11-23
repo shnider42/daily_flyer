@@ -24,6 +24,19 @@ export const ENCOUNTERS = [
   [group('evac-south','evac-entry',[{x:680,y:1135},{x:680,y:1000},{x:550,y:960},{x:825,y:960}],['rifleman','gunner','rifleman','flanker']),
     group('evac-crossing','evac-west-stop',[{x:1160,y:365},{x:1020,y:580},{x:1295,y:580},{x:1160,y:710}],['gunner','flanker','rifleman','rifleman']),
     group('evac-north','evac-north-route',[{x:2120,y:350},{x:1980,y:200},{x:2260,y:200}],['rifleman','rifleman','flanker'])],
+  [group('lantern-address','lantern-first-address',[{x:680,y:1135},{x:820,y:1340},{x:560,y:1340}],['rifleman','flanker','rifleman']),
+    group('lantern-inner-block','lantern-second-address',[{x:1160,y:760},{x:1300,y:960},{x:1020,y:960}],['rifleman','gunner','flanker']),
+    group('lantern-return-street','lantern-south-stop',[{x:1160,y:1540},{x:1020,y:1340},{x:825,y:1340}],['rifleman','flanker','rifleman'])],
+  [group('engine-south-road','engine-observe',[{x:1160,y:1515},{x:1290,y:1720},{x:1020,y:1720}],['gunner','rifleman','flanker']),
+    group('engine-crossing','engine-convoy',[{x:1640,y:1135},{x:1505,y:1340},{x:1780,y:1340},{x:1640,y:1460}],['gunner','rifleman','rifleman','flanker'],9),
+    group('engine-loading-street','engine-loading',[{x:2120,y:740},{x:1990,y:960},{x:2250,y:960}],['rifleman','gunner','flanker'])],
+  [group('crossing-street','crossing-observe',[{x:680,y:1135},{x:550,y:1340},{x:820,y:1340}],['gunner','rifleman','flanker']),
+    group('crossing-far-side','crossing-call',[{x:1160,y:1135},{x:1030,y:1340},{x:1300,y:1340}],['rifleman','flanker','rifleman']),
+    group('crossing-aid-route','crossing-north-stop',[{x:680,y:365},{x:550,y:580},{x:815,y:580}],['rifleman','gunner','rifleman'])],
+  [group('watch-southern-corners','watch-south',[{x:680,y:745},{x:550,y:960},{x:810,y:960}],['rifleman','rifleman','flanker']),
+    group('watch-east-avenue','watch-east',[{x:2120,y:745},{x:1980,y:960},{x:2260,y:960}],['gunner','rifleman','rifleman']),
+    group('watch-north-sightline','watch-north',[{x:1640,y:200},{x:1500,y:200},{x:1780,y:200}],['sniper','rifleman','rifleman']),
+    group('watch-west-return','watch-transmit',[{x:680,y:365},{x:545,y:580}],['flanker','rifleman'])],
 ];
 export function initializeEncounters(s,hooks){
   const definitions=ENCOUNTERS[s.missionIndex]||[];

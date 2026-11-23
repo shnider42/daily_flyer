@@ -1453,6 +1453,46 @@ export class Renderer {
     if (this.camera.zoom > .5 && !(view.touch && view.guidance === 'expert')) this.worldLabel(order.x, order.y + size + 14 / this.camera.zoom, (order.label || order.type).toUpperCase(), '#a9d6c4', 10);
   }
 
+  drawPings(state, view) {
+    if (view.menu) return;
+    const ctx=this.ctx,zoom=this.camera.zoom,color='#99cdf4';
+    for (const ping of (state.pings||[]).slice(-4)) {
+      if (!Number.isFinite(ping.x)||!Number.isFinite(ping.y)||!(ping.expiresAt>state.time)||!this.inView(ping.x,ping.y,40)) continue;
+      const remaining=ping.expiresAt-state.time,age=Math.max(0,state.time-ping.createdAt),size=(view.guidance==='simple'?10:8)/zoom;
+      ctx.save();ctx.globalAlpha=clamp(remaining,0,1);ctx.translate(ping.x,ping.y);
+      if (!view.reducedMotion&&age<.8) circle(ctx,0,0,(12+age*25)/zoom,null,`rgba(153,205,244,${.6*(1-age/.8)})`,1.5/zoom);
+      ctx.beginPath();ctx.moveTo(0,-size);ctx.lineTo(size,0);ctx.lineTo(0,size);ctx.lineTo(-size,0);ctx.closePath();
+      ctx.fillStyle='#14283be8';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=2/zoom;ctx.stroke();
+      circle(ctx,0,0,2/zoom,color);ctx.restore();
+      this.worldLabel(ping.x,ping.y+size+15/zoom,`PING · ${ping.name.toUpperCase()}`,color,view.guidance==='simple'?14:view.guidance==='moderate'?12:11);
+    }
+  }
+
+  drawPingIndicator(state, view) {
+    if (view.menu||view.showMap) return;
+    // The latest offscreen ping gets one edge cue; the map retains every marker.
+    const bounds=this.markerBounds(view),ping=(state.pings||[]).findLast(item=>{
+      if (!(item.expiresAt>state.time)||!Number.isFinite(item.x)||!Number.isFinite(item.y)) return false;
+      const p=this.worldToScreen(item.x,item.y);
+      return p.x<bounds.left||p.x>bounds.right||p.y<bounds.top||p.y>bounds.bottom;
+    });
+    if (!ping) return;
+    const point=this.worldToScreen(ping.x,ping.y),ctx=this.ctx,color='#99cdf4';
+    let {x,y}=this.edgePoint(point,bounds);
+    const objective=this.objectiveIndicator;
+    if (objective&&Math.hypot(x-objective.x,y-objective.y)<60) {
+      if (y<bounds.bottom-62) y+=62;
+      else if (y>bounds.top+62) y-=62;
+      else x=clamp(x+(x<this.width/2?70:-70),bounds.left,bounds.right);
+    }
+    ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(point.y-y,point.x-x));
+    circle(ctx,0,0,15,'#14283be8',color,1.5);ctx.beginPath();ctx.moveTo(-4,-5);ctx.lineTo(4,0);ctx.lineTo(-4,5);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+    const label=`PING · ${ping.name.toUpperCase()}`;
+    ctx.save();ctx.font=`600 ${view.guidance==='simple'?13:11}px ui-monospace, monospace`;ctx.textAlign='center';ctx.textBaseline='top';
+    const half=ctx.measureText(label).width/2+7,labelX=clamp(x,half,this.width-half);
+    ctx.strokeStyle='#102018';ctx.lineWidth=3;ctx.strokeText(label,labelX,y+19);ctx.fillStyle=color;ctx.fillText(label,labelX,y+19);ctx.restore();
+  }
+
   drawSmoke(ctx, s, time) {
     const r = finite(s.radius, 90), opacity = clamp(finite(s.ttl, 10) / 2, 0, 1), extent = r * 1.28;
     ctx.save(); ctx.globalAlpha = opacity; ctx.translate(s.x, s.y); ctx.rotate(time * .1);
@@ -1830,23 +1870,25 @@ export class Renderer {
         ctx.globalAlpha = .28 * (1 - drift / 150); ctx.drawImage(plume, x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1;
       }
     }
+    // An annotation sits above fog and effects, but grants no terrain or actor sight.
+    this.drawPings(state, view);
     ctx.restore();
     if (!view.showMap) this.drawAtmosphere(state, time, view);
     if (this.muzzleFlashes.length) {
       ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
       this.drawMuzzleFlashes(ctx, state, view); ctx.restore();
     }
-    this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
+    this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view); this.drawPingIndicator(state, view);
     this.drawDesktopAim(state, view);
     this.drawObservation(state, view);
     this.drawThrowableAim(state, view);
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
-      ctx.fillText(view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close', safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
+      ctx.fillText(view.mapHint || (view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close'), safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
       if (!view.touch || safe.height > 190) {
         ctx.fillStyle = '#9eae98'; ctx.font = '10px ui-monospace, monospace';
-        ctx.fillText('Clear ground: squad sight · Muted: terrain only', safe.cx, view.touch ? safe.top + 21 : 39);
+        ctx.fillText(view.mapLegend || 'Bright: squad sight · Dim: explored · Dark: unseen · Blue: ping', safe.cx, view.touch ? safe.top + 21 : 39);
       }
     }
     this.drawFlashExposure(state, view);
@@ -1886,6 +1928,11 @@ export function renderMinimap(canvas, state, options = {}) {
     if (visible) circle(ctx, a.x, a.y, 1.5 / scale, '#d57e62');
   }
   for (const a of state.squad || []) if (a.alive !== false) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
+  for (const ping of (state.pings||[]).slice(-4)) {
+    if (!Number.isFinite(ping.x)||!Number.isFinite(ping.y)||!(ping.expiresAt>state.time)) continue;
+    const size=3.8/scale;ctx.beginPath();ctx.moveTo(ping.x,ping.y-size);ctx.lineTo(ping.x+size,ping.y);ctx.lineTo(ping.x,ping.y+size);ctx.lineTo(ping.x-size,ping.y);ctx.closePath();
+    ctx.fillStyle='#14283b';ctx.fill();ctx.strokeStyle='#99cdf4';ctx.lineWidth=1.2/scale;ctx.stroke();
+  }
   if (options.camera && options.viewport) {
     const c = options.camera, v = options.viewport, w = v.width / c.zoom, h = v.height / c.zoom;
     ctx.strokeStyle = 'rgba(200,215,180,.35)'; ctx.lineWidth = .8 / scale; ctx.strokeRect(c.x - w / 2, c.y - h / 2, w, h);

@@ -5,6 +5,17 @@ import { flashIntensity } from './flash-status.mjs';
 const TAU = Math.PI * 2;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
+// A shared charcoal tint makes the three information states easy to read:
+// current sight is clear; explored ground is dim; never-seen ground is darker.
+// These are presentation values, never limits on range, targeting, or scouting.
+export const FOG_STYLE = Object.freeze({
+  color: '11,21,24', rememberedAlpha: .34, unseenAlpha: .70,
+  dayStrength: .9, nightStrength: .78, mapStrength: 1,
+});
+// The remembered tint is composited over this base. Solve source-over alpha so
+// unseen ground reaches its intended opacity rather than becoming double-dark.
+const unseenBaseAlpha = (FOG_STYLE.unseenAlpha - FOG_STYLE.rememberedAlpha) / (1 - FOG_STYLE.rememberedAlpha);
+
 /** Living, seeing eyes only. A casualty or blinded soldier cannot scout. */
 export function sightObservers(state) {
   return (state.squad || []).filter(actor => actor.alive !== false && !actor.downed && flashIntensity(actor, state.time) < .8 && Number.isFinite(actor.x) && Number.isFinite(actor.y));
@@ -163,7 +174,8 @@ function drawPolygons(ctx, polygons, scaleX, scaleY) {
 }
 
 /** Three small surfaces, eight updates/second, one cropped composite per frame.
- * Ground always remains readable. This layer never controls hostile visibility.
+ * Terrain remains readable under the distinct memory/unseen shades. This layer
+ * never controls hostile visibility or stores actors in explored terrain.
  */
 export class SharedSightLayer {
   constructor({ createCanvas = canvasFactory, interval = .125, maxSize = 640 } = {}) {
@@ -203,10 +215,10 @@ export class SharedSightLayer {
     memory.drawImage(this.current, 0, 0);
     overlay.clearRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'source-over';
-    overlay.fillStyle = 'rgba(77,91,83,.105)'; overlay.fillRect(0, 0, this.width, this.height);
+    overlay.fillStyle = `rgba(${FOG_STYLE.color},${unseenBaseAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'destination-out'; overlay.drawImage(this.remembered, 0, 0);
     overlay.globalCompositeOperation = 'source-over';
-    overlay.fillStyle = 'rgba(41,55,49,.085)'; overlay.fillRect(0, 0, this.width, this.height);
+    overlay.fillStyle = `rgba(${FOG_STYLE.color},${FOG_STYLE.rememberedAlpha})`; overlay.fillRect(0, 0, this.width, this.height);
     overlay.globalCompositeOperation = 'destination-out'; overlay.drawImage(this.current, 0, 0);
     overlay.globalCompositeOperation = 'source-over';
     return true;
@@ -215,7 +227,7 @@ export class SharedSightLayer {
   draw(ctx, bounds, { night = false, map = false } = {}) {
     if (!this.overlay || bounds.right <= bounds.left || bounds.bottom <= bounds.top) return;
     const w = bounds.right - bounds.left, h = bounds.bottom - bounds.top;
-    ctx.save(); ctx.globalAlpha = night ? .6 : map ? .8 : 1;
+    ctx.save(); ctx.globalAlpha = map ? FOG_STYLE.mapStrength : night ? FOG_STYLE.nightStrength : FOG_STYLE.dayStrength;
     // Bilinear upsampling of the quarter-resolution mask gives a quiet, soft
     // sight edge without a full-resolution blur or per-frame ray tracing.
     ctx.imageSmoothingEnabled = true;

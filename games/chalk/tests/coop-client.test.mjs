@@ -42,6 +42,48 @@ async function connectedClient(options={}) {
   return {client,socket,storage,statuses,errors,rooms,states,encoder,setTime:value=>time=value};
 }
 
+test('tactical pings use an acknowledged command separate from heartbeat and hydrate without ordering',async()=>{
+  const {client,socket,encoder,setTime}=await connectedClient();
+  try {
+    const point={x:1700,y:120},order=structuredClone(client.game.order),pending=client.ping(point);
+    const command=socket.sent.at(-1);assert.equal(command.type,'tactical_ping');assert.equal(command.epoch,1);assert.deepEqual(command.point,point);
+    point.x=10;assert.equal(command.point.x,1700);
+    socket.receive({type:'result',id:command.id,ok:true});await pending;
+    const packet=fixture({time:.1});packet.state.pings=[{id:1,actorId:packet.actorId,name:'Hale',x:1700,y:120,createdAt:.1,expiresAt:8.1}];
+    const prepared=encoder.prepare(packet);setTime(100);socket.receive(prepared.packet);encoder.commit(prepared);
+    assert.deepEqual(client.game.pings,packet.state.pings);assert.deepEqual(client.game.order,order);
+    setTime(8200);client.getState(.016);assert.deepEqual(client.game.pings,[],'markers do not linger if the connection stops delivering snapshots');
+  } finally {client.leave();}
+});
+
+test('selecting another soldier cancels old controls and hydrates its identity and inventory after confirmation',async()=>{
+  const {client,socket,encoder,setTime}=await connectedClient();
+  try{
+    const next=fixture({time:.1,epoch:2}),medic=next.state.squad[2];
+    client.input({moveX:1,fire:true,frag:true,flashbang:true});
+    const request=client.selectSoldier(String(medic.id)),command=socket.sent.at(-1),neutral=socket.sent.at(-2);
+    assert.equal(command.type,'select_soldier');assert.equal(command.actorId,medic.id);assert.equal(command.epoch,1);
+    assert.equal(neutral.type,'input');assert.equal(neutral.cancelActions,true);assert.equal(neutral.input.fire,false);
+    assert.equal(client._input.moveX,0);assert.deepEqual(client._edges,{});
+    socket.receive({type:'result',id:command.id,ok:true});await request;
+    Object.assign(next.room.players[0],{actorId:medic.id,slot:2,role:'member',specialty:'medic',soldierName:'Ames'});
+    next.room.leaderId=null;next.actorId=medic.id;next.state.playerId=medic.id;next.state.role='member';
+    next.state.humanIds=[medic.id,next.state.squad[1].id];medic.hp=73;medic.ammo=12;
+    next.room.soldiers=next.state.squad.map((actor,slot)=>({id:actor.id,slot,name:actor.name,role:actor.role,alive:actor.alive,downed:actor.downed,claimedBy:slot===2?'peer1':slot===1?'peer2':null,connected:slot===2||slot===1}));
+    const prepared=encoder.prepare(next,{reset:true});setTime(100);socket.receive(prepared.packet);encoder.commit(prepared);
+    assert.equal(client.game.playerId,medic.id);assert.equal(client.localPlayer.slot,2);assert.equal(client.role,'member');
+    assert.equal(client.game.squad[2].hp,73);assert.equal(client.game.squad[2].ammo,12);
+    assert.equal(client.room.soldiers.length,4);assert.equal(client._input.fire,false);assert.equal(client._history.length,0);
+    assert.deepEqual(client.session,session,'switching soldiers keeps the reconnect identity');
+    client._sendInput();assert.equal(socket.sent.at(-1).epoch,2);assert.equal(socket.sent.at(-1).input.frag,false);
+    const failed=client.selectSoldier(next.state.squad[1].id),outgoing=socket.sent.at(-1);
+    const rejected=assert.rejects(failed,/controlled by/);
+    socket.receive({type:'result',id:outgoing.id,ok:false,reason:'Mercer is controlled by Two.'});await rejected;
+    assert.equal(client.game.playerId,medic.id,'a rejected selection cannot change the local soldier');
+    await assert.rejects(client.selectSoldier('not-a-soldier'),/Choose/);
+  }finally{client.leave();}
+});
+
 test('co-op session validation rejects incomplete credentials and normalizes room codes', () => {
   const storage=new MemoryStorage(); storage.setItem(COOP_SESSION_KEY,JSON.stringify({...session,code:'abc def'}));
   assert.deepEqual(readCoopSession(storage),session);

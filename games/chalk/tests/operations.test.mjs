@@ -7,10 +7,10 @@ const run=(s,seconds,input={})=>{for(let f=0;f<Math.ceil(seconds*30)&&s.status==
 const stage=(s,id)=>s.stages.find(p=>p.id===id);
 function enterStage(s,id){s.stageIndex=s.stages.findIndex(p=>p.id===id);s.phaseTime=0;step(s,{},1/30);return s.stages[s.stageIndex];}
 
-test('six operations have distinct action routes, real indoor targets, and a four-chapter continuation boundary',()=>{
-  assert.equal(MISSIONS.length,6);assert.deepEqual(MISSIONS.map(m=>m.category),['campaign','campaign','campaign','campaign','side','side']);
-  assert.deepEqual(MISSIONS.map((_,i)=>getNextCampaignMission(i)),[1,2,3,null,null,null]);
-  for(let mission=0;mission<6;mission++)for(const seed of [4,17,63]){
+test('ten operations have distinct action routes, real indoor targets, and a four-chapter continuation boundary',()=>{
+  assert.equal(MISSIONS.length,10);assert.deepEqual(MISSIONS.map(m=>m.category),[...Array(4).fill('campaign'),...Array(6).fill('side')]);
+  assert.deepEqual(MISSIONS.map((_,i)=>getNextCampaignMission(i)),[1,2,3,...Array(7).fill(null)]);
+  for(let mission=0;mission<MISSIONS.length;mission++)for(const seed of [4,17,63]){
     const s=quiet({mission,seed});assert.ok(s.stages.length>=5);
     assert.ok(s.stages.some(p=>['recon','interact','deliver','escort'].includes(p.kind)));
     for(const target of s.stages.filter(p=>p.interior))assert.ok(buildingAt(s.world,target),`${s.mission.title}: ${target.id} is an actual indoor target`);
@@ -48,7 +48,7 @@ test('two humans cannot double pickup or delivery progress or duplicate a carrie
 });
 
 test('mission groups are finite, preplaced snipers are reliable, and quiet stages do not replenish a random ring',()=>{
-  for(let mission=0;mission<6;mission++)for(const seed of [4,17,63]){
+  for(let mission=0;mission<MISSIONS.length;mission++)for(const seed of [4,17,63]){
     const s=createGame({mission,seed,difficulty:'story'}),initial=s.encounters.totalSpawned;
     if([1,3,4].includes(mission))assert.equal(s.enemies.filter(a=>a.kind==='sniper').length,1);
     for(const a of s.squad){a.hp=100000;a.maxHp=100000;a.ammo=0;a.reserve=0;}

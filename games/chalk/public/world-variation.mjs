@@ -22,7 +22,9 @@ const overlaps = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w > b.x - p
 /** Mutates only static layout; does not consume the combat simulation RNG. */
 export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
   if (!world || !Array.isArray(world.buildings)) return world;
-  const mission = Math.max(0, Math.min(5, Math.floor(Number.isFinite(missionIndex) ? missionIndex : 0)));
+  // The simulation validates mission selection against its catalog. Keep the
+  // actual identity here so later operations receive their own seeded district.
+  const mission = Math.max(0, Math.floor(Number.isFinite(missionIndex) ? missionIndex : 0));
   const random = seeded(seed, mission), pick = choices => choices[Math.floor(random() * choices.length)];
   const original = world.buildings;
   const buildings = [], districts = [], decorations = [];
@@ -35,6 +37,10 @@ export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
     else if (mission === 3 && row === 0) kind = pick(['courtyard', 'residential']);
     else if (mission === 4 && col >= 2) kind = pick(['workshop', 'residential']);
     else if (mission === 5 && row <= 1) kind = pick(['courtyard', 'residential']);
+    else if (mission === 6 && row >= 1 && row <= 2) kind = pick(['residential', 'courtyard']);
+    else if (mission === 7 && row >= 2) kind = pick(['workshop', 'workshop', 'courtyard']);
+    else if (mission === 8 && row >= 1 && row <= 2 && col <= 2) kind = pick(['residential', 'market']);
+    else if (mission === 9 && row <= 1) kind = pick(['courtyard', 'courtyard', 'residential']);
     const variant = row === 1 && col === 1 ? 0 : Math.floor(random() * 4);
     const district = { id, row, col, x: XS[col] + 76, y: YS[row] + 72, w: 328, h: 236,
       kind, tone: random(), variant: ['frontage', 'alley', 'court', 'setback'][variant] };

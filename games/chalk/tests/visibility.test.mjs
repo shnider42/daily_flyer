@@ -140,6 +140,55 @@ function fakeCanvas(width, height) {
   return { width, height, calls, getContext: () => ctx };
 }
 
+// A few representative pixels are enough to verify the mask compositing
+// contract without requiring a native Canvas package in the server build.
+// Polygon coverage uses the actual sight fan, including its doorway rays.
+function sampledCanvas(points) {
+  return (width, height) => {
+    const pixels = points.map(point => ({ ...point, alpha: 0 }));
+    let scaleX = 1, scaleY = 1, polygon = [];
+    const ctx = {
+      globalCompositeOperation: 'source-over', fillStyle: '#fff',
+      setTransform(a, _b, _c, d) { scaleX = a; scaleY = d; },
+      clearRect() { for (const point of pixels) point.alpha = 0; },
+      beginPath() { polygon = []; },
+      moveTo(x, y) { polygon.push({ x: x * scaleX, y: y * scaleY }); },
+      lineTo(x, y) { polygon.push({ x: x * scaleX, y: y * scaleY }); },
+      closePath() {},
+      fill() { for (const point of pixels) if (inside(point, { points: polygon })) composite(point, opacity()); },
+      fillRect(x, y, w, h) { for (const point of pixels) if (point.x >= x * scaleX && point.x <= (x + w) * scaleX && point.y >= y * scaleY && point.y <= (y + h) * scaleY) composite(point, opacity()); },
+      drawImage(source) { for (let i = 0; i < pixels.length; i++) composite(pixels[i], source.pixels[i].alpha); },
+    };
+    const opacity = () => ctx.fillStyle.startsWith('rgba(') ? Number(ctx.fillStyle.slice(5, -1).split(',')[3]) : 1;
+    const composite = (point, alpha) => { point.alpha = ctx.globalCompositeOperation === 'destination-out' ? point.alpha * (1 - alpha) : alpha + point.alpha * (1 - alpha); };
+    return { width, height, pixels, getContext: () => ctx };
+  };
+}
+
+test('actual doorway samples distinguish clear sight, explored memory, and never-seen terrain without revealing contacts', () => {
+  const { state, observer } = fixture();
+  state.world.walls = [{ x: 150, y: 0, w: 10, h: 260 }, { x: 150, y: 340, w: 10, h: 1260 }];
+  const locations = [{ x: 90, y: 300 }, { x: 350, y: 300 }, { x: 350, y: 80 }, { x: 1400, y: 1200 }];
+  const layer = new SharedSightLayer({ createCanvas: sampledCanvas(locations.map(point => ({ x: point.x / 4, y: point.y / 4 }))) });
+  layer.update(state, 1);
+  let shades = layer.overlay.pixels.map(point => point.alpha);
+  assert.deepEqual(shades.slice(0, 2), [0, 0], 'the open doorway leaves current sight clear');
+  assert.ok(shades[2] >= .65 && shades[3] >= .65, 'walls and distance leave a pronounced unseen shade');
+  observer.x = 350; observer.y = 80;
+  layer.update(state, 1.125);
+  shades = layer.overlay.pixels.map(point => point.alpha);
+  assert.ok(shades[0] >= .3 && shades[0] < .4, 'ground left behind is remembered at an intermediate shade');
+  assert.equal(shades[2], 0, 'walking around the wall reveals the newly visible area');
+  assert.ok(shades[3] > shades[0] + .3, 'never-seen ground remains distinctly darker than memory');
+  assert.equal(enemyInSharedSight(state, { ...locations[0], visible: true }), false, 'remembered terrain cannot keep an old enemy visible through the wall');
+  state.squad.push({ id: 'medic', role: 'medic', alive: true, ...locations[0] });
+  layer.update(state, 1.25);
+  assert.equal(layer.overlay.pixels[0].alpha, 0, 'a second living squadmate still shares clear sight');
+  state.pings = [{ ...locations[3], expiresAt: 8 }]; state.objective = locations[3];
+  layer.update(state, 1.375);
+  assert.ok(layer.overlay.pixels[3].alpha >= .65, 'a ping or known objective does not explore terrain');
+});
+
 test('the low-resolution mask is bounded, throttled, and retains terrain memory across co-op snapshots', () => {
   const { state, observer } = fixture();
   state.world.width = 8000; state.world.height = 5000;

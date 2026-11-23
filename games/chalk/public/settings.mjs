@@ -1,3 +1,5 @@
+import { createDefaultBindings, normalizeBindings } from './control-bindings.mjs';
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 const own = (record, key) => Object.hasOwn(record, key) ? record[key] : undefined;
@@ -43,6 +45,7 @@ export function createDefaults({ reducedMotion = false, touchControls } = {}) {
     bloodEffects: true,
     hudScale: 1, hudDetail: 'standard', showFPS: false,
     mobileCameraZoom: .75, mobileHudScale: .85, mobileHudDetail: 'compact',
+    keyBindings: createDefaultBindings(),
     ...(typeof touchControls === 'boolean' ? { touchControls } : {}),
   };
 }
@@ -83,6 +86,7 @@ function clean(raw, fallback) {
   const limit = numeric(own(input, 'frameLimit'));
   result.frameLimit = FRAME_LIMITS.includes(limit) ? limit : fallback.frameLimit;
   result.completed = completions(isRecord(own(input, 'completed')) ? input.completed : fallback.completed);
+  result.keyBindings = normalizeBindings(own(input, 'keyBindings'), fallback.keyBindings);
 
   const touch = own(input, 'touchControls');
   if (typeof touch === 'boolean') result.touchControls = touch;

@@ -1,8 +1,8 @@
 {
   "game": "CHALK",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "date": "2026-11-23",
-  "missions": 6,
+  "missions": 10,
   "roles": [
     "leader",
     "member"
@@ -13,7 +13,8 @@
     "squadSize": 4,
     "aiFillsOpenSlots": true,
     "rolesSwappable": true,
-    "reconnect": true
+    "reconnect": true,
+    "soldierSelection": "Each player can choose any free Hale/Mercer/Ames/Webb slot in the briefing or during a mission; occupied slots are labelled, inventory persists, host status stays separate from command."
   },
   "rendering": "Canvas 2D",
   "audio": "Fourteen recorded squad phrases; routine orders share a sixty-second speech cooldown and ordinary exact lines rest for three minutes. Old move-out clip retained but removed from menu and mission playback. Nearby voices use position and room/street reflections; blocked or distant squadmates use radio, crossfading the same running phrase. Separate squad voice and flashbang ringing levels. Existing city ambience, gunfire propagation, doorway tails and music retained.",
@@ -50,10 +51,20 @@
       "blood marks",
       "room and street reflections",
       "squad voice volume",
-      "flashbang ringing volume"
+      "flashbang ringing volume",
+      "keyboard and mouse rebinding",
+      "two shortcuts per action",
+      "replayable introduction"
     ],
     "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
-    "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
+    "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions",
+    "guidance": {
+      "simple": "Larger text, plain explanations across objectives/squad/equipment/radio/settings, and a six-step action-driven introduction with skip/back/replay and saved progress.",
+      "moderate": "Readable labels and concise help for current actions and combat state.",
+      "expert": "Compact labels and essential alerts."
+    },
+    "controls": "All gameplay keys and mouse buttons can be rebound with two slots per action, explicit conflict resolution, saved preferences, and live-updating prompts. Escape always remains a safe menu/cancel route.",
+    "ping": "Middle mouse or P by default: eight-second named blue location marker, one per soldier, shared in co-op; never changes squad orders or reveals enemies. Can be used on the map and while firing."
   },
   "buildings": {
     "enterable": true,
@@ -83,16 +94,16 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 8,
+  "protocol": 9,
   "squad": {
-    "soloSelection": "HUD cards or keyboard 1–4, retaining each soldier state",
+    "soloSelection": "HUD cards or rebindable soldier shortcuts, retaining each soldier state",
     "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
     "machineGunner": "M249 SAW with 100-round belt; AI fires bounded 12-round strings at weapon cadence with pauses and reloads"
   },
   "worldVariation": "Six distinct seeded mission layouts with district identities, parked sedans/pickups/vans, abandoned stalls, handcarts, work yards, materials and constrained fires; fixed routes, doors, casualty access and usable breach approaches reserved",
-  "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts; strongly flashed observers stop scouting, recovery scales their vision range",
+  "visibility": "Clear shared current sight, dim remembered terrain, and much darker unseen terrain on the battlefield and map; walls/smoke occlude contacts; strongly flashed observers stop scouting, recovery scales their vision range",
   "enemies": {
     "types": [
       "rifleman",
@@ -108,7 +119,7 @@
     "weightedAndRoleLimits": true,
     "visibleSpawnExclusion": true,
     "sniperLimit": 1,
-    "encounters": "Finite coherent 3–4-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
+    "encounters": "Finite coherent 3\u20134-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
     "deliberateSniperOperations": [
       "First Crash",
       "Dawn Mile",
@@ -127,7 +138,7 @@
     "soloContinuationSavedLocally": true,
     "coopContinuationHostOnly": true,
     "historicalFraming": "fictional choices and composite encounters within documented raid-to-rescue context",
-    "standaloneOperations": 2
+    "standaloneOperations": 6
   },
   "casualties": {
     "bodies": "persist until new mission or restart",
@@ -207,7 +218,7 @@
     }
   },
   "campaignMissions": 4,
-  "standaloneOperations": 2,
+  "standaloneOperations": 6,
   "missionSelection": {
     "campaign": [
       "Cordon",
@@ -217,7 +228,11 @@
     ],
     "fictionalStandalone": [
       "Signal House",
-      "Courtyard Evacuation"
+      "Courtyard Evacuation",
+      "Lantern Search",
+      "Dead Engine",
+      "Crossing Guard",
+      "Watchline"
     ],
     "continuation": "Chronological campaign only; Dawn Mile completes the campaign"
   },
@@ -269,11 +284,11 @@
       "frag": 2,
       "flashbang": 2
     },
-    "desktop": "Y selects Frag/Flash/Smoke; N throws toward aim. G smoke and V grenadier40mm remain.",
+    "desktop": "Default Y selects Frag/Flash/Smoke; N throws toward aim. G throws smoke, V fires the grenadier launcher. All shortcuts can be rebound.",
     "mobile": "Tap type to select; drag Throw to aim and release; return to button to cancel.",
     "frag": "Timed thrown blast; walls shield actors; exposed allies/civilians can be harmed; no masonry breach.",
     "flashbang": "Nonlethal LOS and distance exposure; strong shared-room effect; smooth vision/hearing recovery; brief configurable ringing; blinded AI pauses firing and scouting.",
     "flight": "Short arc, wall stop, ground fuse; no bounce/roll simulation.",
-    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol8."
+    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol9."
   }
 }
