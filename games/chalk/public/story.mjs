@@ -31,8 +31,8 @@ export function initializeStory(s,campaign,hooks){
   const carry=normalizeCampaignCarry(campaign);
   // A carry is tied to the next chronological chapter. Selecting a different
   // mission deliberately starts a fresh operation rather than applying old debt.
-  s.campaign=carry&&carry.fromMission===s.missionIndex-1?carry:null;
-  s.story={chapter:chapterNames[s.missionIndex],briefing:briefings[s.missionIndex][0],activeDecision:null,opportunities:[],log:[],summary:[],
+  s.campaign=s.missionIndex<4&&carry&&carry.fromMission===s.missionIndex-1?carry:null;
+  s.story={chapter:chapterNames[s.missionIndex]||s.mission.title,briefing:s.mission.briefing?.[0]||briefings[s.missionIndex]?.[0]||'',activeDecision:null,opportunities:[],log:[],summary:[],
     consequences:{medicalSpent:0,smokeSpent:0,fatigueAdded:0,assisted:0,additionalLoaded:0,loadingSeconds:0,holdSeconds:0,localCallsQuiet:!!s.campaign?.civilianHarm},
     resolved:{},nextLogId:1,observedStage:0,finalized:false};
   if(s.campaign){
@@ -48,7 +48,8 @@ export function initializeStory(s,campaign,hooks){
     if(changes.length)summary(s,`From the previous chapter: ${changes.join('; ')}.`);
   }
   const points=[{x:680,y:1515,closeStage:2},{x:1160,y:1155,closeStage:3},{x:680,y:1385,closeStage:2},{x:1160,y:1115,closeStage:3}];
-  const position=points[s.missionIndex],resident=s.civilians.at(-1);
+  const position=points[s.missionIndex]||{x:680,y:1115,closeStage:s.stages.length-1},resident=s.civilians.at(-1);
+  position.closeStage=s.missionIndex===0?s.stages.findIndex(p=>p.id==='cordon-delivery'):s.missionIndex===1?s.stages.findIndex(p=>p.id==='crash-exit-observe'):s.missionIndex===2?s.stages.findIndex(p=>p.id==='relief-radio'):s.missionIndex===3?s.stages.findIndex(p=>p.id==='dawn-route'):s.stages.length-1;
   if(resident){
     const point=hooks.nearbyFree(s,position.x,position.y),id=`resident-${s.missionIndex}`;
     Object.assign(resident,point,{name:'Injured resident',hp:26,needsAid:true,storyOpportunityId:id,path:[],pathTimer:0,
@@ -62,6 +63,7 @@ export function initializeStory(s,campaign,hooks){
   }
 }
 function decisionFor(s){
+  if(s.missionIndex>=4)return null;
   if(s.missionIndex===0)return {id:'cordon-pickup',title:'The pickup is being revised',
     detail:'Ground transport has a plan, but one reported approach is blocked. The vehicles can reposition while you hold. Neither route is confirmed clear.',
     options:[{id:'original',label:'Keep the original pickup',detail:'No extra hold. Withdraw farther to the original street; continuing the operation adds one fatigue step (+2 seconds at each later regroup).'},
@@ -85,10 +87,14 @@ function decisionFor(s){
 }
 function shouldOpen(s){
   if(s.missionIndex===0)return s.time>=8||s.stageIndex>=1;
-  if(s.missionIndex===1)return s.stageIndex>=1||s.time>=5&&s.squad.some(a=>standing(a)&&distance(a,{x:1160,y:960})<250);
-  return s.stageIndex>=1;
+  if(s.missionIndex===1)return s.stages[s.stageIndex]?.kind==='rescue'||s.time>=5&&s.squad.some(a=>standing(a)&&distance(a,{x:1160,y:960})<250);
+  if(s.missionIndex===2)return s.stageIndex>=s.stages.findIndex(p=>p.id==='relief-convoy');
+  return s.missionIndex===3&&s.stageIndex>=s.stages.findIndex(p=>p.id==='dawn-observe');
 }
-function decisionExpiredByStage(s){return s.stageIndex>[1,2,2,1][s.missionIndex];}
+function decisionExpiredByStage(s){
+  const ids=['collection-hold','crash-crew-two','relief-loading','dawn-medical'];
+  return s.stageIndex>s.stages.findIndex(p=>p.id===ids[s.missionIndex]);
+}
 function smokeCarrier(s){return s.squad.find(a=>standing(a)&&a.smokes>0&&distance(a,{x:1160,y:960})<340);}
 function updateAvailability(s){
   const decision=s.story.activeDecision;if(decision?.id!=='crash-smoke')return;
@@ -102,9 +108,10 @@ function resolve(s,optionId,actor,hooks,reason='order'){
   let report='';
   if(decision.id==='cordon-pickup'){
     if(optionId==='reposition'){
-      s.stages[1].duration+=8;consequences.holdSeconds+=8;
-      Object.assign(s.stages[2],{x:1640,y:960,title:'Reach the revised pickup',description:'The trucks have repositioned to the closer street. Bring every surviving squad member.'});
-      for(const [i,vehicle] of s.vehicles.entries())if(vehicle.kind==='truck'){vehicle.x=1610+i*105;vehicle.y=960;}
+      s.stages.find(p=>p.id==='collection-hold').duration+=8;consequences.holdSeconds+=8;
+      for(const stage of s.stages.filter(p=>['cordon-delivery','cordon-extract'].includes(p.id)))Object.assign(stage,{x:1640,y:960,title:stage.kind==='deliver'?'Bring the radio to the revised pickup':'Reach the revised pickup',description:'The trucks have repositioned to the closer street. Bring the radio and every surviving squad member.'});
+      const object=s.operation?.objects.find(o=>o.id==='cordon-delivery');if(object){object.x=1640;object.y=960;}
+      s.convoyRoute=[{x:1160,y:960},{x:1160,y:1340},{x:1640,y:1340},{x:1640,y:960}];
       report='Trucks are repositioning to the closer street. We hold eight seconds longer; that approach is still unconfirmed.';
       summary(s,'Pickup moved one street closer; the collection-point hold increased by 8 seconds.');
     }else{
@@ -120,7 +127,7 @@ function resolve(s,optionId,actor,hooks,reason='order'){
     }else{report='Keep that smoke for the withdrawal. Cover the medic from here.';summary(s,'Reserved smoke for the withdrawal; crew treatment continued without the extra screen.');}
   }else if(decision.id==='relief-capacity'){
     if(optionId==='extra'){
-      s.stages[2].duration+=12;consequences.loadingSeconds+=12;consequences.fatigueAdded++;
+      s.stages.find(p=>p.id==='relief-loading').duration+=12;consequences.loadingSeconds+=12;consequences.fatigueAdded++;
       // Existing residents become collection-point casualties; no extra enemy
       // spawns, magic intelligence or escort dependency is introduced as a reward.
       for(const resident of s.civilians)if(resident.transportWaiting&&resident.alive)resident.transportCandidate=true;
@@ -128,7 +135,8 @@ function resolve(s,optionId,actor,hooks,reason='order'){
       summary(s,'Accepted two additional wounded residents; loading increased by 12 seconds and continuing adds 1 fatigue step.');
     }else{report='Keep the assigned load. Tell the aid team we cannot confirm the next vehicle for their two residents.';summary(s,'Kept the assigned load. Two residents remained with the aid team; their later transport is unconfirmed.');}
   }else if(optionId==='east'){
-    Object.assign(s.stages[2],{x:2120,y:960,title:'Regroup on the eastern avenue',description:'Account for the chalk before the open northbound approach.'});
+    Object.assign(s.stages.find(p=>p.id==='dawn-route'),{x:2120,y:960,title:'Deliver supplies on the eastern avenue',description:'Pass the medical satchel to the aid team before the open northbound approach.'});
+    const object=s.operation?.objects.find(o=>o.id==='dawn-route');if(object){object.x=2120;object.y=960;}
     report='Use the eastern avenue. Longer in the open; regroup before turning toward the aid station.';
     summary(s,'Used the eastern avenue: a longer open leg and a different final rally point.');
   }else{report='Keep to the market junction. Check the corners; the report is not a promise of a clear route.';summary(s,'Kept the market route and its covered corners; the next rally remained at the original junction.');}
@@ -163,7 +171,7 @@ export function storyInteraction(s,actorId,hooks){
 function updateOpportunities(s,inputs,dt,hooks){
   for(const op of s.story.opportunities){
     if(op.status!=='available')continue;
-    const resident=s.civilians.find(c=>c.id===op.actorId);if(!resident)continue;
+    const resident=s.civilians.find(c=>c.id===op.actorId);if(!resident)continue;op.x=resident.x;op.y=resident.y;
     if(!resident.alive){op.status='lost';if(op.revealed)summary(s,'The injured resident died before reaching cover.');continue;}
     if(s.stageIndex>=op.closeStage){
       op.status='passed';resident.needsAid=false;
@@ -175,7 +183,7 @@ function updateOpportunities(s,inputs,dt,hooks){
     }
     const helper=s.squad.find(a=>a.medkits>0&&aidOpportunity(s,a,hooks)?.id===op.id&&hooks.inputFor(s,a,inputs).interact&&
       ![...s.squad,...s.survivors.filter(c=>c.stabilized)].some(c=>c.alive&&c.downed&&distance(a,c)<70&&hooks.hasLineOfSight(s,a,c))&&
-      !(['rescue','barricade'].includes(s.objective?.kind)&&distance(a,s.objective)<(s.objective.kind==='barricade'?85:s.objective.radius)));
+      !(['rescue','barricade','repair','interact','deliver','recon'].includes(s.objective?.kind)&&distance(a,s.objective)<(s.objective.kind==='barricade'?85:s.objective.radius)));
     if(!helper)continue;
     op.progress=clamp(op.progress+dt/(helper.role==='medic'?4.5:6),0,1);helper.bandageProgress=0;
     s.interactionPrompt=`Aiding resident · ${Math.round(op.progress*100)}%`;
@@ -190,7 +198,7 @@ function updateOpportunities(s,inputs,dt,hooks){
 export function updateStory(s,inputs,dt,hooks){
   if(!s.story||s.status!=='playing')return;
   if(s.story.observedStage!==s.stageIndex){
-    s.story.observedStage=s.stageIndex;s.story.briefing=briefings[s.missionIndex][s.stageIndex]||s.story.briefing;
+    s.story.observedStage=s.stageIndex;s.story.briefing=s.stages[s.stageIndex]?.description||s.story.briefing;
     log(s,hooks,s.story.briefing,'briefing');
   }
   if(s.stats.civilianHarm>0&&!s.story.consequences.localCallsQuiet){
@@ -199,7 +207,7 @@ export function updateStory(s,inputs,dt,hooks){
     log(s,hooks,'After that civilian was hit, nearby voices have fallen quiet. We will have to check close by for anyone needing help.','consequence');
   }
   const definition=decisionFor(s);
-  if(!s.story.activeDecision&&!s.story.resolved[definition.id]&&shouldOpen(s)){
+  if(definition&&!s.story.activeDecision&&!s.story.resolved[definition.id]&&shouldOpen(s)){
     const {window,...decision}=definition;s.story.activeDecision={...decision,openedAt:s.time,deadline:s.time+window};
     updateAvailability(s);log(s,hooks,decision.detail,'request');
   }
@@ -228,11 +236,17 @@ export function finalizeStory(s,hooks){
     summary(s,`${boarded.length} of the two additional residents survived to board the relief vehicles.`);
   }
   if(s.stats.civilianHarm&&!s.story.summary.some(text=>text.includes('Civilian harm')))summary(s,'Civilian harm quieted nearby calls; close observation remains possible in a continued chapter.');
+  if(s.status==='won'){
+    for(const item of s.operation?.items||[])if(item.status==='delivered')summary(s,`${item.label} reached its receiving point with the chalk.`);
+    if(s.missionIndex===3)summary(s,`${s.survivors.filter(c=>c.alive&&c.stabilized).length} of the two attached soldiers reached the aid station.`);
+    if(s.missionIndex===4&&s.operation?.transmission?.complete)summary(s,'The isolated radio sent the route report before the chalk withdrew.');
+    if(s.missionIndex===5)summary(s,`${s.survivors.filter(c=>c.alive&&c.stabilized).length} of the two residents reached the aid station.`);
+  }
   if(!s.story.summary.length)summary(s,'No optional field decision was completed. The fate of people left outside the chalk is not fully known.');
 }
 /** A new chapter starts with fresh actors and these explicitly bounded effects. */
 export function campaignOutcome(s){
-  if(s?.status!=='won'||!s.story)return null;
+  if(s?.status!=='won'||!s.story||s.missionIndex>=4)return null;
   const prior=normalizeCampaignCarry(s.campaign),c=s.story.consequences;
   return normalizeCampaignCarry({version:1,fromMission:s.missionIndex,medicalDebt:(prior?.medicalDebt||0)+c.medicalSpent,
     smokeDebt:(prior?.smokeDebt||0)+c.smokeSpent,fatigue:(prior?.fatigue||0)+c.fatigueAdded,

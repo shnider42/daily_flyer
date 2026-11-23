@@ -10,7 +10,7 @@ test('defaults respect system motion and optional touch detection without sharin
   assert.equal(first.reducedMotion, true); assert.equal(first.touchControls, false);
   assert.equal(second.graphicsQuality, 'balanced'); assert.equal(second.renderScale, 'auto');
   assert.equal(second.frameLimit, 60); assert.equal(second.aimLine, true);
-  assert.equal(second.bloodEffects, true); assert.equal(second.distressVolume, .65);
+  assert.equal(second.bloodEffects, true); assert.equal(second.distressVolume, .65); assert.equal(second.reflectionsVolume, .8);
   assert.equal(Object.hasOwn(second, 'touchControls'), false);
   first.completed.cordon = true;
   assert.deepEqual(second.completed, {});

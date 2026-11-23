@@ -1,6 +1,6 @@
 # CHALK: expanding the field experience
 
-This is a working design direction for the fictional game, informed by the user's request for a larger, more convincing squad experience. It distinguishes the implemented 1.8 pass from proposed future systems. The existing historical-context panel remains the authority on what the game represents: an invented squad and compressed encounters in a documented historical setting.
+This is a working design direction for the fictional game, informed by the user's request for a larger, more convincing squad experience. It distinguishes the implemented 1.9 pass from proposed future systems. The existing historical-context panel remains the authority on what the game represents: an invented squad and compressed encounters in a documented historical setting.
 
 ## The experience to build toward
 
@@ -66,6 +66,22 @@ The initial explosion should resolve damage against the wall that existed at det
 
 This first pass is localized gameplay destruction. Structural collapse, arbitrary mesh damage, multi-storey demolition, deformable rubble, and fully simulated acoustics require separate work and validation.
 
+## Implemented in 1.9
+
+The four chronological campaign chapters now use longer sequences that mix reconnaissance, physical equipment, rescue, escort, convoy work, and withdrawal. Signal House and Courtyard Evacuation add two independent fictional situations. Completing Dawn Mile ends the chronological campaign; the side operations do not extend the history it depicts.
+
+Radios, a medical satchel, and a battery are objects placed inside the world. A soldier collects and carries them, and delivery requires the carrier to reach the receiver. Incapacitation drops the equipment at the casualty, where another soldier can recover it. Reconnaissance requires observing a specific approach with an actual sight line. Rescued crew and residents physically follow the squad through the route. These mission objects are implemented; general ammunition or medical-inventory handoffs between squad members remain a separate proposal.
+
+Night Relief includes an authored stalled-carrier event, with contextual work beside the lead vehicle to restart it. This recovery is already playable. General vehicle damage, disabled-vehicle selection, towing, seat capacity, and evacuation rerouting caused by combat damage remain future systems.
+
+Finite enemy groups now occupy authored approaches as operation stages change. There is no unlimited around-player reinforcement ring. First Crash, Dawn Mile, and Signal House deliberately include sniper positions, while preserving sight checks, the aiming warning, population limits, and an escape through cover or smoke.
+
+Navigation accounts for actor clearance, reachable destinations, doors, and new breaches. Threatened mobile civilians choose reachable shelter and stay through nearby danger; injured or otherwise immobilized residents cower. Their posture remains unarmed. Further route/behavior work should build on these changes rather than reinstate random wandering under fire.
+
+Actual shot events produce muzzle-position flashes and bounded night illumination. Walls, smoke, and closed roofs still limit what can be seen. Different rifle, support, and sniper signatures use cached sprites and shot geometry; reduced motion keeps the core feedback without the light patch. Mobile live play centers the controlled soldier in the usable area even at map edges, and Moderate/Expert reduce healthy squad labels while Expert also removes routine world text and coaching.
+
+Sound now has distinct, reusable room and street reflection responses selected using source and listener geometry, including doors and breaches. They are procedurally designed acoustic impressions, not measured rooms or a full wave solver. A dedicated reflections slider changes their level without muting direct effects. The existing propagation scheduler, voice mix, ambient menu, music assets, and recordings remain.
+
 ## Next additions worth prioritizing
 
 | Priority | Concept | What it adds | Dependency or constraint |
@@ -75,7 +91,7 @@ This first pass is localized gameplay destruction. Structural collapse, arbitrar
 | 3 | Coordinated bounding movement | Send one pair to cover while the other moves; useful for both AI leadership and human squad command. | Build on the existing ground tap and formation system. Keep an immediate cancel/regroup command. |
 | 4 | Rocket threat | A slower, clearly telegraphed attack can damage cover and force relocation. | Distinct visible preparation, finite ammunition, long recovery, reliable line of fire, and a separate role budget. No instant unseen lethal shot. |
 | 5 | Route intelligence with uncertainty | A report might be old, incomplete, or contradictory; reaching a junction can confirm what is actually there. | Separate reported conditions from observed facts. Give the player an intelligible reason when orders change. |
-| 6 | Convoy damage and recovery | A disabled vehicle changes the evacuation plan, available seats, and the route. | First give vehicles coherent damage, collision, boarding, and evacuation rules; cosmetic smoke alone is insufficient. |
+| 6 | General vehicle damage and recovery | Combat damage can disable a vehicle and change available seats or the evacuation route. | Build beyond the shipped authored carrier restart: coherent damage, collision, towing or recovery ownership, boarding, and evacuation rules are still needed. |
 | 7 | Local fire and secondary hazards | A burning room or vehicle can obscure or block a route and endanger residents. | Bounded propagation, strong warning cues, and a usable alternative. Avoid uncontrolled fire across the whole map. |
 | 8 | Limited communication | Distance, obstruction, or radio trouble creates coordination pressure; nearby voice commands remain useful. | Text accessibility and solo AI must keep the mission understandable. Do not turn this into random input failure. |
 | 9 | Richer house interiors | Courtyards, broken furnishings, distinct shops, and alternate entries make streets and buildings memorable. | Reuse cached art; preserve readable exits and sufficient clearance for the entire squad. |
@@ -105,7 +121,7 @@ Vehicle space, able-bodied escorts, and loading time matter. The squad may be ab
 
 ## Sound production beyond this pass
 
-Build a small, curated sound library before increasing the number of simultaneous layers. Priorities are clean weapon identities, convincing near/far variants, surface impacts, gear movement, and a larger set of performed squad calls. Use short contextual calls such as contact, covering, moving, reloading, casualty, and hold. Caption useful commands and avoid random speech that contradicts the current order.
+Build a small, curated sound library before increasing the number of simultaneous layers. The implemented room/street reflection model is a foundation; additional recorded locations, surfaces, or response profiles need their own source credits and listening checks. Priorities are clean weapon identities, convincing near/far variants, surface impacts, gear movement, and a larger set of performed squad calls. Use short contextual calls such as contact, covering, moving, reloading, casualty, and hold. Caption useful commands and avoid random speech that contradicts the current order.
 
 The ambient scene can include sparse rotors, engines, distant reports, dogs, metal shutters, footsteps inside nearby rooms, and wind around open streets. A sound should have a plausible place and reason. Quiet periods matter; constant maximum combat noise would erase the contrast between a nearby threat, a distant fight, and a moment to assess the squad.
 
@@ -119,7 +135,7 @@ Persistent bodies and blood should remain restrained and useful to understanding
 
 ## Acceptance before adding more
 
-- All four missions remain completable with AI leadership and solo role switching.
+- All six operations remain completable with AI leadership and solo role switching; the four-chapter campaign and two independent side operations retain their separate completion rules.
 - Touch movement, immediate squad commands, and Assist remain usable without opening multiple panels.
 - A new wall opening agrees across collision, sight, aiming, AI navigation, and both co-op clients.
 - A distant report is delayed because of distance and source time; nearby impact and pass events come from actual projectile travel.

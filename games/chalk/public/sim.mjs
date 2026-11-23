@@ -8,14 +8,13 @@ import { initializeStory, updateStory, finalizeStory, chooseOption, storyInterac
 import { WORLD_UNITS_PER_METRE, ballisticProfile, enemyProfile, encounterBudget, canAddEnemy } from './combat-profiles.mjs';
 import { squadCanSeePoint } from './visibility.mjs';
 import { createDestructionState, breachAtBlast } from './destruction.mjs';
+import { seedCivilianShelters, updateCivilianBehavior } from './civilian-behavior.mjs';
 export { campaignOutcome, normalizeCampaignCarry } from './story.mjs';
 export { getSolidWalls, buildingAt } from './building-geometry.mjs';
-export const MISSIONS = [
-  { id:'cordon', title:'Cordon', subtitle:'A short operation', time:'3 OCT 1993 · AFTERNOON', description:'Take up the cordon, hold the collection point, and get your squad to the convoy.', briefing:['A brief operation is becoming a long afternoon. Your four-person chalk has landed several blocks from the objective.','Move together. Secure the collection point, then meet the waiting convoy. Civilians are still in the streets.'], goals:['Reach the first rally point','Hold the collection point','Regroup at the convoy'] },
-  { id:'first-crash', title:'First Crash', subtitle:'The mission has changed', time:'3 OCT 1993 · LATE AFTERNOON', description:'Reach a downed helicopter, stabilize its crew, and bring them to the collection point.', briefing:['A helicopter is down. Smoke marks the site beyond the market. The crew need help before they can move.','Stay close while the medic works. Recovered crew will follow the squad. Bring them to the casualty collection point.'], goals:['Reach the crash site','Stabilize both crew members','Escort the crew to safety'] },
-  { id:'night-relief', title:'Night Relief', subtitle:'A way through the city', time:'3–4 OCT 1993 · OVERNIGHT', description:'Accompany the relief vehicles, clear two obstructions, and cover casualty loading.', briefing:['A relief force is working its way through the city. Malaysian and Pakistani forces were part of the historical rescue effort alongside U.S. troops.','In this condensed mission, accompany the convoy and clear its blocked route. Vehicles wait when the squad falls behind.'], goals:['Meet the relief convoy','Clear the blocked route','Hold while casualties board'] },
-  { id:'dawn-mile', title:'Dawn Mile', subtitle:'Get the survivors through', time:'4 OCT 1993 · DAWN', description:'Move through the city to the aid station. Keep the squad together; there is no need to clear every street.', briefing:['The night is ending. Casualties fill the transport, and your chalk is moving out on foot.','Follow the rally points to the stadium medical station. Help anyone who goes down and get every surviving squad member inside.'], goals:['Reach three rally positions','Keep the squad together','Extract at the aid station'] },
-];
+import { MISSIONS, stagesFor, getNextCampaignMission, nightMission } from './mission-definitions.mjs';
+import { initializeOperations, updateOperations, operationWork, missionInteraction, missionActionTarget, operationItem } from './operations.mjs';
+import { initializeEncounters, updateEncounters } from './encounters.mjs';
+export { MISSIONS, getNextCampaignMission } from './mission-definitions.mjs';
 
 export const DIFFICULTIES = { story:{enemyDamage:7,enemyHp:54,maxEnemies:10,spawnDelay:17,playerHp:140}, standard:{enemyDamage:10,enemyHp:72,maxEnemies:16,spawnDelay:18,playerHp:120}, veteran:{enemyDamage:15,enemyHp:92,maxEnemies:20,spawnDelay:14,playerHp:100} };
 const W=2400,H=1900,CELL=40,COLS=W/CELL,ROWS=Math.ceil(H/CELL);
@@ -49,9 +48,9 @@ function segmentRect(a,b,r,pad=0){return Number.isFinite(segmentRectEntry(a,b,r,
 export function hasLineOfSight(s,a,b){return !getSolidWalls(s.world).some(r=>segmentRect(a,b,r));}
 function walkLine(s,a,b,r=15){return !getSolidWalls(s.world).some(ob=>segmentRect(a,b,ob,r));}
 function free(s,x,y,r=15){return x>=r&&y>=r&&x<=W-r&&y<=H-r&&!getSolidWalls(s.world).some(b=>rectContains(b,x,y,r));}
-function nearbyFree(s,x,y){
-  x=clamp(x,25,W-25);y=clamp(y,25,H-25);if(free(s,x,y))return{x,y};
-  for(let ring=1;ring<15;ring++)for(let i=0;i<ring*8;i++){const a=TAU*i/(ring*8),p={x:x+Math.cos(a)*ring*24,y:y+Math.sin(a)*ring*24};if(free(s,p.x,p.y))return p;}
+function nearbyFree(s,x,y,radius=15){
+  x=clamp(x,25,W-25);y=clamp(y,25,H-25);if(free(s,x,y,radius))return{x,y};
+  for(let ring=1;ring<15;ring++)for(let i=0;i<ring*8;i++){const a=TAU*i/(ring*8),p={x:x+Math.cos(a)*ring*24,y:y+Math.sin(a)*ring*24};if(free(s,p.x,p.y,radius))return p;}
   return{x:200,y:1720};
 }
 function makeWorld(s){
@@ -97,9 +96,26 @@ export function applyBreach(s,impact){
   return result;
 }
 
-function nodeFor(s,p){
+// Per-world edge clearance is cached outside snapshots. Thin walls may sit
+// between two free grid centres, so node occupancy alone is insufficient.
+const navigationEdges=new WeakMap();
+function navigationEdge(s,from,to,dx,dy,radius=13){
+  const walls=getSolidWalls(s.world),revision=s.world.geometryRevision||0;
+  let cache=navigationEdges.get(s.world);
+  if(!cache||cache.walls!==walls||cache.wallCount!==walls.length||cache.revision!==revision||cache.grid!==s.grid){
+    cache={walls,wallCount:walls.length,revision,grid:s.grid,edges:new Map()};navigationEdges.set(s.world,cache);
+  }
+  if(!cache.edges.has(radius))cache.edges.set(radius,new Uint8Array(s.grid.length*9));
+  const edges=cache.edges.get(radius),key=from*9+(dy+1)*3+dx+1;
+  if(!edges[key]){
+    const clear=walkLine(s,nodePoint(from),nodePoint(to),radius);edges[key]=clear?1:2;
+    edges[to*9+(1-dy)*3+1-dx]=edges[key];
+  }
+  return edges[key]===1;
+}
+function nodeFor(s,p,radius=13){
   const gx=clamp(Math.floor(p.x/CELL),0,COLS-1),gy=clamp(Math.floor(p.y/CELL),0,ROWS-1);
-  const reachable=id=>!s.grid[id]&&walkLine(s,p,nodePoint(id),13);
+  const reachable=id=>!s.grid[id]&&walkLine(s,p,nodePoint(id),radius);
   if(reachable(gy*COLS+gx))return gy*COLS+gx;
   for(let r=1;r<12;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
     if(Math.abs(dx)!==r&&Math.abs(dy)!==r)continue;const x=gx+dx,y=gy+dy;
@@ -109,8 +125,9 @@ function nodeFor(s,p){
 const nodePoint=(id)=>({x:(id%COLS)*CELL+CELL/2,y:Math.floor(id/COLS)*CELL+CELL/2});
 // Bounded A*; coordinates are world pixels. Useful for AI and deterministic tests.
 export function findPath(s,from,to){
-  const end=nearbyFree(s,to.x,to.y);if(walkLine(s,from,end))return[end];
-  const start=nodeFor(s,from),goal=nodeFor(s,end);if(start<0||goal<0)return[];if(start===goal)return walkLine(s,from,end)?[end]:[];
+  const radius=clamp(Math.ceil(from.radius||13),9,17),end=nearbyFree(s,to.x,to.y,radius);if(walkLine(s,from,end,radius))return[end];
+  const start=nodeFor(s,from,radius),goal=nodeFor(s,end,radius);if(start<0||goal<0)return[];
+  if(start===goal){const middle=nodePoint(start);return walkLine(s,from,middle,radius)&&walkLine(s,middle,end,radius)?[middle,end]:[];}
   const g=new Float32Array(s.grid.length).fill(Infinity),prev=new Int32Array(s.grid.length).fill(-1),closed=new Uint8Array(s.grid.length),heap=[];
   const goalX=goal%COLS,goalY=Math.floor(goal/COLS);
   function push(id,cost){const n={id,cost};heap.push(n);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p].cost<=cost)break;heap[i]=heap[p];i=p;}heap[i]=n;}
@@ -119,15 +136,16 @@ export function findPath(s,from,to){
   while(heap.length&&iterations++<4000){const n=pop();if(closed[n])continue;if(n===goal)break;closed[n]=1;const x=n%COLS,y=Math.floor(n/COLS);
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       if(dx===0&&dy===0)continue;const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;const id=ny*COLS+nx;
-      if(s.grid[id]||closed[id]||(dx&&dy&&(s.grid[y*COLS+nx]||s.grid[ny*COLS+x])))continue;
+      if(s.grid[id]||closed[id]||(dx&&dy&&(s.grid[y*COLS+nx]||s.grid[ny*COLS+x]))||!navigationEdge(s,n,id,dx,dy,radius))continue;
       const cost=g[n]+(dx&&dy?1.4142:1);if(cost<g[id]){g[id]=cost;prev[id]=n;push(id,cost+Math.hypot(nx-goalX,ny-goalY));}
     }
   }
   if(prev[goal]===-1)return[];
-  const route=[];for(let n=goal;n!==start&&n!==-1;n=prev[n])route.push(nodePoint(n));route.reverse();route.push(end);
-  // String-pull only when a radius-expanded segment really clears all walls.
+  const route=[];for(let n=goal;n!==start&&n!==-1;n=prev[n])route.push(nodePoint(n));route.push(nodePoint(start));route.reverse();route.push(end);
+  // Keep the start attachment and every corner until a complete, radius-expanded
+  // shortcut clears it. A skipped threshold must never turn into a wall crossing.
   const short=[];let at=from,index=0;
-  while(index<route.length){let far=index;for(let j=index+1;j<route.length;j++){if(walkLine(s,at,route[j]))far=j;else break;}short.push(route[far]);at=route[far];index=far+1;}
+  while(index<route.length){let far=index;for(let j=index+1;j<route.length;j++){if(walkLine(s,at,route[j],radius))far=j;else break;}if(!walkLine(s,at,route[far],radius))return[];short.push(route[far]);at=route[far];index=far+1;}
   return short;
 }
 function move(s,a,dx,dy){
@@ -135,42 +153,30 @@ function move(s,a,dx,dy){
   if(free(s,nx,a.y,r))a.x=nx;if(free(s,a.x,ny,r))a.y=ny;
 }
 function navigate(s,a,target,speed,dt,stop=12){
-  // A nearby point may be in the next room. Follow its doorway route until
-  // the actor can actually reach it, rather than stopping on the other side.
-  if(distance(a,target)<=stop&&walkLine(s,a,target,a.radius||13)){a.moving=false;return true;}
+  const radius=a.radius||13;
+  // A nearby point may be in another room. Proximity only counts when the
+  // actor can reach the target on its own side of the wall.
+  if(distance(a,target)<=stop&&walkLine(s,a,target,radius)){a.moving=false;a.navStalled=0;return true;}
   a.pathTimer=(a.pathTimer||0)-dt;
-  if(!a.path||!a.path.length||a.pathTimer<=0||!a.pathTarget||distance(target,a.pathTarget)>65){a.path=findPath(s,a,target);a.pathTarget={...target};a.pathTimer=.9+random(s)*.3;}
-  while(a.path.length&&distance(a,a.path[0])<18)a.path.shift();
+  const shifted=!a.pathTarget||distance(target,a.pathTarget)>65;
+  if(!a.path||a.pathTimer<=0||shifted){a.path=findPath(s,a,target);a.pathTarget={x:target.x,y:target.y};a.pathTimer=.9+(a.id%7)*.045;}
+  // Once the final leg is clear, track a moving leader smoothly instead of
+  // waiting at their old position for the next scheduled path refresh.
+  if(a.path.length===1&&walkLine(s,a,target,radius)){a.path[0]={x:target.x,y:target.y};a.pathTarget={x:target.x,y:target.y};}
+  // The old 18px pop radius could discard the final destination outside its
+  // 12/15px completion radius, or skip a turn while still beside the door frame.
+  while(a.path.length>1&&distance(a,a.path[0])<18&&walkLine(s,a,a.path[1],radius))a.path.shift();
   const dest=a.path[0];if(!dest){a.moving=false;return false;}
   const dx=dest.x-a.x,dy=dest.y-a.y,len=Math.hypot(dx,dy),amount=Math.min(speed*dt,len);
-  if(len){move(s,a,dx/len*amount,dy/len*amount);if(!a.target)a.angle=Math.atan2(dy,dx);a.moving=true;}
-  return false;
+  const beforeX=a.x,beforeY=a.y;
+  if(len){move(s,a,dx/len*amount,dy/len*amount);if(!a.target)a.angle=Math.atan2(dy,dx);}
+  const moved=Math.hypot(a.x-beforeX,a.y-beforeY);a.moving=moved>.01;
+  a.navStalled=moved<amount*.12?(a.navStalled||0)+dt:0;
+  if(a.path.length>1&&distance(a,dest)<.6)a.path.shift();
+  if(a.navStalled>.45){a.path=[];a.pathTimer=0;a.navStalled=0;}
+  return distance(a,target)<=stop&&walkLine(s,a,target,radius);
 }
 function actor(s,team,name,kind,x,y,extra={}){return{id:++s.nextId,team,name,kind,x,y,angle:-Math.PI/2,hp:100,maxHp:100,alive:true,downed:false,radius:13,cooldown:range(s,.1,.8),suppression:0,reloadTimer:0,ammo:30,magSize:30,reserve:180,path:[],pathTimer:0,reviveProgress:0,bleed:0,visible:team!=='enemy',...extra};}
-function stagesFor(m){
-  if(m===0)return[
-    {kind:'rally',x:680,y:1340,radius:100,title:'Form the cordon',description:'Get the squad to the first rally point.',duration:2},
-    {kind:'hold',x:1160,y:960,radius:125,title:'Hold the collection point',description:'Keep at least two squad members inside the marked area.',duration:55},
-    {kind:'extract',x:1640,y:580,radius:150,title:'Regroup at the convoy',description:'Bring every surviving squad member to the vehicles.',duration:3},
-  ];
-  if(m===1)return[
-    {kind:'rally',x:1160,y:960,radius:130,title:'Reach the crash site',description:'Follow the smoke and regroup near the downed helicopter.',duration:2},
-    {kind:'rescue',x:1110,y:950,radius:75,title:'Stabilize the first crew member',description:'Hold Interact nearby, or protect the medic while they work.',duration:13,crew:0},
-    {kind:'rescue',x:1215,y:1020,radius:75,title:'Stabilize the second crew member',description:'The crew need help before they can follow you.',duration:13,crew:1},
-    {kind:'extract',x:2120,y:580,radius:165,title:'Escort the crew to safety',description:'Keep the recovered crew close and bring everyone to the collection point.',duration:3},
-  ];
-  if(m===2)return[
-    {kind:'rally',x:200,y:1340,radius:130,title:'Meet the relief convoy',description:'Rally with the vehicles. The convoy moves when your squad is close.',duration:2},
-    {kind:'convoy',x:200,y:1340,radius:190,title:'Accompany the relief convoy',description:'Stay close to the lead vehicle. Clear the route when it stops.',duration:1},
-    {kind:'hold',x:2120,y:580,radius:160,title:'Cover casualty loading',description:'Bring every surviving squad member to the convoy and cover casualty loading.',duration:42},
-  ];
-  return[
-    {kind:'rally',x:680,y:1340,radius:130,title:'Leave the collection point',description:'Rally the squad here before moving to the next street.',duration:8},
-    {kind:'rally',x:1160,y:960,radius:130,title:'Cross the market district',description:'Hold for a head count. You do not need to clear every street.',duration:10},
-    {kind:'rally',x:1640,y:580,radius:130,title:'Reach the final junction',description:'Rally everyone here. The aid station is beyond the next block.',duration:12},
-    {kind:'extract',x:2120,y:200,radius:170,title:'Reach the aid station',description:'Bring every surviving squad member inside the extraction area.',duration:3},
-  ];
-}
 export function createGame({mission=0,role='leader',difficulty='standard',seed=19931003,campaign=null}={}){
   const missionIndex=clamp(Math.floor(finite(mission)),0,MISSIONS.length-1);if(!DIFFICULTIES[difficulty])difficulty='standard';role=role==='member'?'member':'leader';
   const s={missionIndex,mission:MISSIONS[missionIndex],role,difficulty,seed,rngState:(seed>>>0)||1,time:0,status:'playing',endReason:'',nextId:0,world:null,squad:[],enemies:[],civilians:[],survivors:[],vehicles:[],bullets:[],grenades:[],effects:[],soundEvents:[],smokes:[],bodies:[],bloodstains:[],objective:null,stageIndex:0,stageCount:0,progress:0,radio:[],stats:{shots:0,hits:0,squadDowns:0,rescued:0,civilianHarm:0,objectives:0,elapsed:0},order:{type:'follow',x:200,y:1720,label:'Regroup on you'},leaderOrder:'Move to the first rally point',playerId:null,waitUntil:0,spawnTimer:16,visibilityTimer:0,aidTimer:0,maxEnemies:DIFFICULTIES[difficulty].maxEnemies,convoyIndex:0,convoyClear:0,convoyCleared:[],lastLeaderState:'',lastCommand:-20,lastSniperAt:-100,lastFearAt:-100,phaseTime:0};
@@ -188,16 +194,18 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
     s.vehicles.push({id:++s.nextId,x:1160,y:960,angle:.65,w:150,h:60,hp:0,maxHp:100,kind:'helicopter',active:false,name:'Downed helicopter'});
     s.survivors.push(actor(s,'survivor','Crew 1','crew',1110,950,{hp:40,maxHp:70,downed:true,stabilized:false,radius:12}),actor(s,'survivor','Crew 2','crew',1215,1020,{hp:40,maxHp:70,downed:true,stabilized:false,radius:12}));
   }
-  if(missionIndex===0)s.vehicles.push({id:++s.nextId,x:1610,y:580,angle:0,w:72,h:35,hp:180,maxHp:180,kind:'truck',active:false,name:'Extraction transport'},{id:++s.nextId,x:1715,y:580,angle:0,w:72,h:35,hp:180,maxHp:180,kind:'truck',active:false,name:'Extraction transport'});
+  if(missionIndex===0){s.convoyRoute=[{x:1160,y:960},{x:680,y:960},{x:680,y:580},{x:1160,y:580},{x:1640,y:580}];s.vehicles.push({id:++s.nextId,x:1160,y:960,angle:Math.PI,w:72,h:35,hp:180,maxHp:180,kind:'truck',active:false,name:'Collection transport'},{id:++s.nextId,x:1265,y:960,angle:Math.PI,w:72,h:35,hp:180,maxHp:180,kind:'truck',active:false,name:'Collection transport'});}
   if(missionIndex===2){
-    s.convoyRoute=[{x:200,y:1340},{x:680,y:1340},{x:1160,y:1340,blocked:true},{x:1160,y:960},{x:1640,y:960,blocked:true},{x:2120,y:960},{x:2120,y:580}];
+    s.convoyRoute=[{x:200,y:1340},{x:680,y:1340},{x:1160,y:1340,blocked:true},{x:1160,y:960},{x:1640,y:960,blocked:true,repair:true},{x:2120,y:960},{x:2120,y:580}];
     s.vehicles.push({id:++s.nextId,x:200,y:1340,angle:-Math.PI/2,w:80,h:41,hp:220,maxHp:220,kind:'apc',active:true,waiting:true,name:'Relief lead'},{id:++s.nextId,x:200,y:1455,angle:-Math.PI/2,w:80,h:41,hp:220,maxHp:220,kind:'apc',active:true,name:'Relief carrier'},{id:++s.nextId,x:200,y:1570,angle:-Math.PI/2,w:72,h:36,hp:180,maxHp:180,kind:'truck',active:true,name:'Casualty transport'});
-    s.convoyRoute.filter(p=>p.blocked).forEach(p=>s.world.props.push({type:'barricade',x:p.x,y:p.y,w:82,h:23,cleared:false}));
+    s.convoyRoute.filter(p=>p.blocked&&!p.repair).forEach(p=>s.world.props.push({type:'barricade',x:p.x,y:p.y,w:82,h:23,cleared:false}));
   }
   for(let i=0;i<10;i++){
     const x=[680,1160,1640,2120][i%4]+range(s,-45,45),y=[580,960,1340][i%3]+range(s,-40,40);
     s.civilians.push(actor(s,'civilian',`Civilian ${i+1}`,'civilian',x,y,{hp:45,maxHp:45,radius:11,shelter:nearbyFree(s,x+range(s,-130,130),y+range(s,-130,130)),panicked:0}));
   }
+  seedCivilianShelters(s,{free,hasLineOfSight,findPath,walkLine,navigate,soundEvent});
+  initializeOperations(s,operationHooks);
   seedEnemies(s);
   initializeStory(s,campaign,storyHooks);
   updateObjective(s);
@@ -206,13 +214,8 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
   return s;
 }
 
-function seedEnemies(s){
-  const points=[{x:680,y:1100},{x:950,y:960},{x:1370,y:960},{x:1640,y:800},{x:1870,y:580},{x:2120,y:330},{x:1640,y:1340},{x:2120,y:960},{x:680,y:580}];
-  for(let i=0;i<Math.min(encounterBudget(s.difficulty).initial,s.maxEnemies);i++){
-    const p=nearbyFree(s,points[i].x+range(s,-35,35),points[i].y+range(s,-35,35));
-    spawnEnemy(s,p,i===5,i===1?'flanker':i===2?'gunner':null);
-  }
-}
+function seedEnemies(s){initializeEncounters(s,encounterHooks);}
+const encounterHooks={nearbyFree,canAddEnemy,squadCanSeePoint,spawnEnemy};
 function spawnEnemy(s,p,allowSniper=false,preferredKind=null){
   if(!canAddEnemy(s,'rifleman'))return false;
   const hp=DIFFICULTIES[s.difficulty].enemyHp,sniper=allowSniper&&s.time-s.lastSniperAt>90&&canAddEnemy(s,'sniper')&&random(s)<.08;
@@ -237,6 +240,13 @@ function inputFor(s,a,inputs){
 }
 function currentLeader(s){return s.squad.find(a=>a.role==='leader'&&a.alive&&!a.downed)||(s.coop?humans(s).find(a=>a.alive&&!a.downed):null)||s.squad.find(a=>a.alive&&!a.downed&&a.id!==s.playerId)||player(s);}
 const storyHooks={radio,controlled,currentLeader,hasLineOfSight,combatLOS,nearbyFree,soundEvent,inputFor};
+const operationHooks={...storyHooks,free,findPath,actor,advance};
+export function getMissionInteraction(s,actorId=s.playerId){
+  const action=missionInteraction(s,actorId,operationHooks);if(action)return action;
+  const a=s.squad.find(a=>a.id===actorId),o=s.objective;
+  if(o?.kind==='repair'&&a?.alive&&!a.downed&&controlled(s,a)&&distance(a,o)<85&&hasLineOfSight(s,a,o))return{id:o.id,label:'Restart carrier',detail:'Hold to restart the stalled carrier · 8 seconds',progress:s.convoyClear/8,x:o.x,y:o.y,radius:85,available:true};
+  return null;
+}
 /** A member recommends; the current human squad leader keeps the final order. */
 export function chooseStoryOption(s,decisionId,optionId,actorId=s.playerId){
   const accepted=chooseOption(s,decisionId,optionId,actorId,storyHooks);
@@ -274,21 +284,27 @@ function advance(s){
 }
 export function getObjective(s){return s.objective;}
 function updateObjective(s){
-  const p=phase(s);if(!p)return;let x=p.x,y=p.y,kind=p.kind,interaction=kind==='rescue',detail='';
+  const p=phase(s);if(!p)return;let x=p.x,y=p.y,kind=p.kind,interaction=['rescue','interact','deliver'].includes(kind),detail='',actionTarget=missionActionTarget(s);
+  if(actionTarget){x=actionTarget.x;y=actionTarget.y;}
   if(kind==='convoy'){
     const lead=s.vehicles[0],next=s.convoyRoute[s.convoyIndex+1];x=lead.x;y=lead.y;
-    if(next?.blocked&&!s.convoyCleared.includes(s.convoyIndex+1)&&distance(lead,next)<110){x=next.x;y=next.y;interaction=true;kind='barricade';detail=`Clear obstruction · ${Math.ceil(Math.max(0,6-s.convoyClear))} sec`;}
+    if(next?.blocked&&!s.convoyCleared.includes(s.convoyIndex+1)&&distance(lead,next)<110){x=next.repair?lead.x:next.x;y=next.repair?lead.y:next.y;interaction=true;kind=next.repair?'repair':'barricade';detail=`${next.repair?'Restart carrier':'Clear obstruction'} · ${Math.ceil(Math.max(0,(next.repair?8:6)-s.convoyClear))} sec`;}
     else detail=lead.waiting?'Convoy waiting · stay near the lead vehicle':`Convoy moving · ${s.convoyIndex+1}/${s.convoyRoute.length}`;
-  }else if(kind==='rescue'){const c=s.survivors[p.crew];x=c.x;y=c.y;detail=`Stabilizing · ${Math.round(s.phaseTime/p.duration*100)}%`;}
-  else if(kind==='hold'){
-    detail=`Hold position · ${Math.ceil(Math.max(0,p.duration-s.phaseTime))} sec`;
+  }else if(kind==='rescue'){const c=s.survivors[p.crew];x=c.x;y=c.y;detail=`Treatment · ${Math.round(s.phaseTime/p.duration*100)}%`;}
+  else if(kind==='recon')detail=`Face the marked approach · ${Math.round(s.phaseTime/p.duration*100)}% observed`;
+  else if(kind==='interact')detail=`Enter the house · ${p.interactionLabel} · hold Assist nearby`;
+  else if(kind==='deliver'){
+    const item=operationItem(s,p.itemId),carrier=s.squad.find(a=>a.id===item?.carrierId);
+    detail=item?.status==='ground'?`Recover the dropped ${item.label.toLowerCase()} · hold Assist nearby`:`${carrier?.name||'Squad'} carries ${item?.label?.toLowerCase()||'the item'} · hand it over nearby`;
+  }else if(kind==='hold'){
+    detail=`Cover loading · ${Math.ceil(Math.max(0,p.duration-s.phaseTime))} sec`;
     if(s.stageIndex===s.stages.length-1){const living=s.squad.filter(a=>a.alive),present=living.filter(a=>!a.downed&&distance(a,p)<p.radius).length;detail+=` · Squad ${present}/${living.length}`;}
-  }
-  else if(kind==='extract'){
-    const living=s.squad.filter(a=>a.alive),inZone=living.filter(a=>!a.downed&&distance(a,p)<p.radius).length,crew=s.survivors.filter(a=>a.alive&&a.stabilized),crewIn=crew.filter(a=>distance(a,p)<p.radius).length;
-    detail=`Squad ${inZone}/${living.length}${crew.length?` · Crew ${crewIn}/${crew.length}`:''}`;
-  }else detail=s.phaseTime>0?`Rallying the squad · ${Math.ceil(Math.max(0,p.duration-s.phaseTime))} sec`:'Move the squad into the marked area';
-  s.objective={x,y,radius:p.radius,title:kind==='barricade'?'Clear the obstruction':p.title,description:kind==='barricade'?'Hold Interact near the barrier, or let your AI leader clear it.':p.description,kind,progress:kind==='barricade'?s.convoyClear/6:clamp(s.phaseTime/(p.duration||1),0,1),detail,interaction};
+  }else if(kind==='extract'||kind==='escort'){
+    const living=s.squad.filter(a=>a.alive),inZone=living.filter(a=>!a.downed&&distance(a,p)<p.radius).length,crew=s.survivors.filter(a=>a.alive&&a.stabilized&&!a.missionWait),crewIn=crew.filter(a=>distance(a,p)<p.radius).length;
+    detail=`Squad ${inZone}/${living.length}${crew.length?` · People ${crewIn}/${crew.length}`:''}`;
+    if(p.requiresTransmission&&!s.operation?.transmission?.complete)detail+=` · Report ${Math.ceil(s.operation?.transmission?.remaining||0)} sec`;
+  }else detail=s.phaseTime>0?'Account for the chalk':'Bring the chalk to this street';
+  s.objective={id:p.id,x,y,radius:p.radius,title:kind==='repair'?'Restart the stalled carrier':kind==='barricade'?'Clear the obstruction':actionTarget?.recovery?actionTarget.label:p.title,description:kind==='repair'?'Hold Assist beside the stalled lead carrier to restart it.':kind==='barricade'?'Hold Assist near the barrier, or let your AI leader clear it.':p.description,kind,progress:kind==='repair'?s.convoyClear/8:kind==='barricade'?s.convoyClear/6:clamp(s.phaseTime/(actionTarget?.recovery?2:p.duration||1),0,1),detail,interaction,interactionLabel:kind==='repair'?'Restart carrier':actionTarget?.label||p.interactionLabel||null,actionTarget,lookAt:p.lookAt||null};
 }
 export function issueOrder(s,type,point){
   if(s.status!=='playing')return false;const pl=player(s);
@@ -509,9 +525,13 @@ function aiTarget(s){
   const down=[...s.squad,...s.survivors.filter(a=>a.stabilized)].find(a=>a.alive&&a.downed);
   if(down){describeLeader(s,`Helping ${down.name} · hold the squad together`);return{x:down.x,y:down.y};}
   if(s.waitUntil>s.time){describeLeader(s,`Holding for you · ${Math.ceil(s.waitUntil-s.time)} seconds`);return{x:leader.x,y:leader.y};}
+  const lagging=s.survivors.find(c=>c.alive&&c.stabilized&&!c.downed&&!c.missionWait&&distance(leader,c)>210);
+  if(lagging){describeLeader(s,`Waiting for ${lagging.name} · keep the escort together`);return{x:leader.x,y:leader.y};}
   if(humans(s).some(a=>a.alive&&!a.downed&&distance(leader,a)>290)){describeLeader(s,'Waiting for you · regroup on Hale');return{x:leader.x,y:leader.y};}
-  if(s.objective.kind==='barricade'){describeLeader(s,'Clearing the route · cover the convoy');return{x:s.objective.x,y:s.objective.y};}
+  if(['barricade','repair'].includes(s.objective.kind)){describeLeader(s,'Clearing the route · cover the convoy');return{x:s.objective.x,y:s.objective.y};}
   if(p.kind==='convoy'){const v=s.vehicles[0];describeLeader(s,v.waiting?'Regroup on the lead vehicle':'Accompanying the relief convoy');return{x:v.x,y:v.y};}
+  if(['interact','deliver'].includes(p.kind)){const target=missionActionTarget(s)||p;describeLeader(s,target.label||p.title);return{x:target.x,y:target.y};}
+  if(p.kind==='recon'){describeLeader(s,'Checking the next approach');return{x:p.x,y:p.y};}
   if(p.kind==='rescue'){describeLeader(s,'Protect the medic · crew recovery in progress');return{x:s.objective.x,y:s.objective.y};}
   if(p.kind==='hold'&&distance(leader,p)<p.radius){describeLeader(s,'Hold this area · watch your squad');return{x:p.x,y:p.y};}
   describeLeader(s,`Moving · ${p.title}`);return{x:p.x,y:p.y};
@@ -541,7 +561,7 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
       if(input.reload)tryReload(s,a);if(input.grenade&&!input.sprint)launchGrenade(s,a,input,frameStart);if(input.fire&&!input.sprint)shoot(s,a,a.angle,true,frameStart);
       if(input.smoke&&a.smokes>0){a.smokes--;const aim={x:a.x+Math.cos(a.angle)*145,y:a.y+Math.sin(a.angle)*145},p=nearbyFree(s,aim.x,aim.y);s.smokes.push({...p,radius:105,ttl:14});effect(s,'smoke',p.x,p.y,1);soundEvent(s,'smoke',a,{x:p.x,y:p.y});radio(s,a.name.toUpperCase(),'Smoke out. Keep moving.');}
       if(input.interact){const down=casualties.filter(c=>distance(a,c)<70&&hasLineOfSight(s,a,c)).sort((c,d)=>distance(a,c)-distance(a,d))[0];if(down){revive(s,down,a,dt);s.interactionPrompt=`Helping ${down.name} · ${Math.round(down.reviveProgress/4*100)}%`;}
-        else if(a.hp<a.maxHp&&a.medkits>0&&!getStoryInteraction(s,a.id)&&s.objective?.kind!=='rescue'&&s.objective?.kind!=='barricade'){a.bandageProgress=(a.bandageProgress||0)+dt*(a.role==='medic'?1.35:1);if(a.bandageProgress>=3){a.medkits--;a.hp=Math.min(a.maxHp,a.hp+55);a.bandageProgress=0;effect(s,'heal',a.x,a.y,1);radio(s,a.name.toUpperCase(),'Bandaged. Ready to move.');}s.interactionPrompt=`Bandaging · ${Math.round(a.bandageProgress/3*100)}%`;}}
+        else if(a.hp<a.maxHp&&a.medkits>0&&!getStoryInteraction(s,a.id)&&s.objective?.kind!=='rescue'&&s.objective?.kind!=='barricade'&&s.objective?.kind!=='repair'&&!getMissionInteraction(s,a.id)){a.bandageProgress=(a.bandageProgress||0)+dt*(a.role==='medic'?1.35:1);if(a.bandageProgress>=3){a.medkits--;a.hp=Math.min(a.maxHp,a.hp+55);a.bandageProgress=0;effect(s,'heal',a.x,a.y,1);radio(s,a.name.toUpperCase(),'Bandaged. Ready to move.');}s.interactionPrompt=`Bandaging · ${Math.round(a.bandageProgress/3*100)}%`;}}
       else a.bandageProgress=0;
       continue;
     }
@@ -549,6 +569,7 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
     let work=false;
     if(a===helper&&casualties.length){const wounded=casualties.sort((b,c)=>distance(a,b)-distance(a,c))[0];navigate(s,a,wounded,movementSpeed(a)*128/112,dt,40);if(distance(a,wounded)<65&&hasLineOfSight(s,a,wounded)){revive(s,wounded,a,dt);work=true;}a.medicTarget=wounded.id;}
     else if(a.role==='medic'&&s.helpRequested&&aidTarget.alive&&!aidTarget.downed&&aidTarget.hp<aidTarget.maxHp&&a.medkits>0){navigate(s,a,aidTarget,128,dt,55);if(distance(a,aidTarget)<72&&hasLineOfSight(s,a,aidTarget)){s.aidTimer+=dt*1.35;work=true;if(s.aidTimer>3){aidTarget.hp=Math.min(aidTarget.maxHp,aidTarget.hp+55);a.medkits--;s.helpRequested=false;s.helpTargetId=null;s.aidTimer=0;radio(s,'AMES','You are patched. Stay with us.');}}}
+    else if(phase(s)?.kind==='deliver'&&operationItem(s,phase(s).itemId)?.carrierId===a.id){navigate(s,a,phase(s),movementSpeed(a),dt,22);work=distance(a,phase(s))<phase(s).radius;}
     else if(a.role==='medic'&&phase(s)?.kind==='rescue'&&humanNear(s,s.survivors[phase(s).crew],220)){const crew=s.survivors[phase(s).crew];navigate(s,a,crew,122,dt,42);work=distance(a,crew)<70&&hasLineOfSight(s,a,crew);}
     else{
       let target;
@@ -556,9 +577,9 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
       else if(s.role==='member'){const idx=s.squad.indexOf(a),off=[[0,0],[66,48],[-66,48],[0,102]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(leader,p)<p.radius+15?p:leader;target=formationPoint(s,anchor,off);}
       else if(s.order.type==='follow'){const idx=s.squad.indexOf(a),off=[[0,0],[66,48],[-66,48],[0,102]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(anchorPlayer,p)<p.radius+15?p:anchorPlayer;target=formationPoint(s,anchor,off);}
       else{const idx=s.squad.indexOf(a),off=[[-60,-55],[60,-55],[-60,55],[60,55]][idx];target=formationPoint(s,s.order,off);}
-      navigate(s,a,target,movementSpeed(a)*116/112,dt,s.role==='member'&&a===leader?26:20);
+      navigate(s,a,target,movementSpeed(a)*116/112,dt,s.role==='member'&&a===leader?(['interact','deliver'].includes(phase(s)?.kind)?6:26):20);
     }
-    const enemy=targetFor(s,a,s.enemies,s.missionIndex===2?350:440);a.target=enemy?.id||null;
+    const enemy=targetFor(s,a,s.enemies,nightMission(s)?350:440);a.target=enemy?.id||null;
     if(enemy){a.angle=Math.atan2(enemy.y-a.y,enemy.x-a.x);if(!work&&safeShot(s,a,enemy))shoot(s,a,a.angle,false,frameStart);}
     if(a.ammo<=0)tryReload(s,a);
   }
@@ -570,7 +591,7 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
   }
 }
 function perceiveEnemy(s,a,targets,dt){
-  const profile=enemyProfile(a),limit=s.missionIndex===2?profile.nightRange:profile.range;
+  const profile=enemyProfile(a),limit=nightMission(s)?profile.nightRange:profile.range;
   a.senseTimer=(a.senseTimer||0)-dt;
   let target=targets.find(candidate=>candidate.id===a.perceivedTargetId)||null;
   if(a.senseTimer<=0||a.perceivedTargetId!=null&&!target){
@@ -579,8 +600,8 @@ function perceiveEnemy(s,a,targets,dt){
     a.senseTimer=.18+(a.id%3)*.016;a.sensedAt=s.time;
     target=targetFor(s,a,targets,limit);a.perceivedTargetId=target?.id??null;
     if(target){a.lastKnown={x:target.x,y:target.y};a.lastSeenAt=s.time;}
-    else if(a.kind==='flanker'){
-      const heard=s.soundEvents.findLast(event=>event.type==='shot'&&event.team==='squad'&&s.time-event.time<.3&&distance(a,event)<700);
+    else{
+      const heard=s.soundEvents.findLast(event=>(event.type==='shot'||event.type==='explosion')&&event.team==='squad'&&s.time-event.time<.3&&distance(a,event)<(hasLineOfSight(s,a,event)?700:320));
       if(heard){a.lastKnown={x:heard.x,y:heard.y};a.lastSeenAt=s.time;}
     }
   }
@@ -592,7 +613,7 @@ function chooseFlankGoal(s,a){
   const candidates=[side,-side].map(sign=>nearbyFree(s,known.x+nx*205-ny*sign*210,known.y+ny*205+nx*sign*210));
   // At most two bounded route searches per plan, never one per render frame.
   for(const goal of candidates){
-    if(distance(a,goal)<60||distance(known,goal)<150)continue;
+    if(distance(a,goal)<60||distance(known,goal)<150||a.defensive&&distance(a.home,goal)>(a.defenseRadius||500))continue;
     const path=findPath(s,a,goal);if(!path.length)continue;
     a.flankGoal=goal;a.path=path;a.pathTarget={...goal};a.pathTimer=1.1;
     a.flankReached=false;a.flankHoldUntil=0;a.flankExpiresAt=s.time+8;
@@ -613,79 +634,85 @@ function updateFlanker(s,a,target,dt,frameStart){
   a.settleTime=a.moving?0:(a.settleTime||0)+dt;
   if(target){
     a.angle=Math.atan2(target.y-a.y,target.x-a.x);
-    if(a.settleTime>=.25&&a.cooldown<=0&&distance(a,target)<(s.missionIndex===2?profile.nightRange:profile.range)&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
+    if(a.settleTime>=.25&&a.cooldown<=0&&distance(a,target)<(nightMission(s)?profile.nightRange:profile.range)&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
   }
+}
+function enemyAdvance(s,a,point,speed,dt,stop){
+  if(!point){a.moving=false;return;}
+  let goal=point;
+  if(a.defensive&&a.home){const dx=point.x-a.home.x,dy=point.y-a.home.y,d=Math.hypot(dx,dy),r=a.defenseRadius||300;if(d>r)goal=nearbyFree(s,a.home.x+dx/d*r,a.home.y+dy/d*r);}
+  navigate(s,a,goal,speed,dt,stop);
 }
 function updateEnemies(s,dt,frameStart=s.time-dt){
   const targets=aliveSquad(s);
   for(const a of s.enemies){
-    if(!a.alive)continue;const near=targets.reduce((best,t)=>!best||distance(a,t)<distance(a,best)?t:best,null);if(!near)continue;
-    const d=distance(a,near);if(d<(a.kind==='sniper'?850:650))a.alert=true;if(!a.alert)continue;
-    const profile=enemyProfile(a),target=perceiveEnemy(s,a,targets,dt),limit=s.missionIndex===2?profile.nightRange:profile.range;
-    a.target=target?.id||null;
+    if(!a.alive)continue;
+    const profile=enemyProfile(a),target=perceiveEnemy(s,a,targets,dt),limit=nightMission(s)?profile.nightRange:profile.range;
+    const remembered=a.lastKnown&&s.time-a.lastSeenAt<=6;
+    a.alert=!!(target||remembered);a.target=target?.id||null;
+    if(!a.alert){
+      a.aimCharge=0;a.aimTargetId=null;a.braced=false;a.braceProgress=0;a.tactic=a.kind==='flanker'?'search':'watch';
+      if(a.defensive&&a.home&&distance(a,a.home)>35)enemyAdvance(s,a,a.home,profile.speed*.75,dt,25);else a.moving=false;
+      continue;
+    }
     if(a.kind==='sniper'){
+      a.moving=false;
       if(target&&distance(a,target)<limit&&combatLOS(s,a,target)){
-        a.moving=false;a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+        a.angle=Math.atan2(target.y-a.y,target.x-a.x);
         if(a.aimTargetId!==target.id){a.aimCharge=0;a.aimTargetId=target.id;}
         if(a.cooldown<=0&&a.reloadTimer<=0&&a.ammo>0){
           a.aimCharge=Math.min(1,(a.aimCharge||0)+dt/(profile.braceDuration+(a.suppression||0)*.9));
-          if(a.aimCharge>=1)shoot(s,a,a.angle,false,frameStart);
+          if(a.aimCharge>=1){
+            const ammo=a.ammo;shoot(s,a,a.angle,false,frameStart);
+            if(a.ammo<ammo&&!a.reportedShot){
+              a.reportedShot=true;const dx=a.x-target.x,dy=a.y-target.y,direction=Math.abs(dx)>Math.abs(dy)?dx>0?'east':'west':dy>0?'south':'north';
+              radio(s,target.name.toUpperCase(),`Long rifle report from the ${direction}. Get off the open street and check the far approach.`);
+            }
+          }
         }else a.aimCharge=0;
-      }else{a.aimCharge=0;a.aimTargetId=null;if(d<950)navigate(s,a,near,35,dt,410);}
+      }else{a.aimCharge=0;a.aimTargetId=null;}
     }else if(a.kind==='gunner'){
       const sight=target&&distance(a,target)<limit&&combatLOS(s,a,target);
       if(sight){
         a.angle=Math.atan2(target.y-a.y,target.x-a.x);
-        if(distance(a,target)>profile.stop+20)navigate(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+        if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
         if(a.moving||a.reloadTimer>0||a.suppression>.65)a.braceProgress=0;
         else a.braceProgress=Math.min(1,(a.braceProgress||0)+dt/(profile.braceDuration*(1+a.suppression*.8)));
         a.braced=a.braceProgress>=1;a.tactic=a.braced?'support':'brace';
         if(a.braced&&a.cooldown<=0)shoot(s,a,a.angle,false,frameStart);
       }else{
-        a.braceProgress=0;a.braced=false;a.tactic='advance';
-        if(d<900)navigate(s,a,a.lastKnown||near,profile.speed,dt,profile.stop);else a.moving=false;
+        a.braceProgress=0;a.braced=false;a.tactic='search';
+        if(remembered)enemyAdvance(s,a,a.lastKnown,profile.speed,dt,profile.stop);else a.moving=false;
       }
     }else if(a.kind==='flanker')updateFlanker(s,a,target,dt,frameStart);
     else if(target){
       a.angle=Math.atan2(target.y-a.y,target.x-a.x);
-      if(distance(a,target)>profile.stop+20)navigate(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+      if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
       if(a.cooldown<=0&&distance(a,target)<limit&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
-    }else if(d<900)navigate(s,a,near,profile.speed,dt,230);else a.moving=false;
+    }else if(remembered)enemyAdvance(s,a,a.lastKnown,profile.speed,dt,230);else a.moving=false;
     if(a.ammo<=0)tryReload(s,a);
   }
-  s.spawnTimer-=dt;
-  if(s.spawnTimer<=0){
-    const budget=encounterBudget(s.difficulty);s.spawnTimer=budget.spawnDelay;
-    for(let recruit=0;recruit<budget.reinforcementCount&&canAddEnemy(s,'rifleman');recruit++){
-      const p=s.objective||player(s);
-      for(let n=0;n<18;n++){
-        const angle=range(s,0,TAU),r=range(s,470,720),dest=nearbyFree(s,p.x+Math.cos(angle)*r,p.y+Math.sin(angle)*r);
-        if(targets.every(a=>distance(a,dest)>420)&&!squadCanSeePoint(s,dest)&&s.enemies.every(a=>!a.alive||distance(a,dest)>70)){
-          spawnEnemy(s,dest,s.time>30);break;
-        }
-      }
-    }
+  updateEncounters(s,dt,encounterHooks);
+}
+
+function survivorFollowPoint(s,c,lead,index){
+  const p=phase(s),extracting=p&&['extract','escort'].includes(p.kind)&&distance(lead,p)<p.radius*.85;
+  const anchor=extracting?p:lead,room=buildingAt(s.world,anchor),side=index%2===0?-1:1;
+  const offsets=extracting?[[side*24,18],[side*18,-18],[0,0]]:[[side*30,68],[side*24,40],[0,32],[side*24,0],[0,0]];
+  for(const [dx,dy] of offsets){
+    const point={x:anchor.x+dx,y:anchor.y+dy};
+    if(extracting&&distance(point,p)>Math.max(0,p.radius-38))continue;
+    // Do not move a desired offset to the far side of the next wall. Staying
+    // closer to the escort is better than assigning a room they cannot reach.
+    if(buildingAt(s.world,point)!==room||!free(s,point.x,point.y,c.radius||12)||!walkLine(s,anchor,point,c.radius||12))continue;
+    return point;
   }
+  return{x:anchor.x,y:anchor.y};
 }
 function updateCivilians(s,dt){
-  const threats=s.soundEvents.filter(event=>(event.type==='shot'||event.type==='explosion')&&s.time-event.time<.18);
-  for(const c of s.civilians){
-    if(!c.alive||c.evacuated)continue;
-    const threat=threats.findLast(event=>event.id>(c.lastThreatSoundId||0)&&distance(c,event)<(event.type==='explosion'?480:360));
-    if(threat){
-      c.lastThreatSoundId=threat.id;c.panicked=10;
-      if(s.time-(c.lastFearAt??-100)>=10&&s.time-(s.lastFearAt??-100)>=4){
-        c.lastFearAt=s.time;s.lastFearAt=s.time;
-        soundEvent(s,'civilian_fear',c,{victimId:c.id,cause:threat.type==='explosion'?'blast':'bullet',alive:true,downed:false});
-      }
-    }
-    c.panicked=Math.max(0,c.panicked-dt);
-    if(c.needsAid)continue;
-    if(c.panicked>0)navigate(s,c,c.shelter,105,dt,15);
-    else if(distance(c,c.shelter)>20&&s.time>12)navigate(s,c,c.shelter,40,dt,15);
-  }
-  const lead=currentLeader(s);
-  for(let i=0;i<s.survivors.length;i++){const c=s.survivors[i];if(c.alive&&c.stabilized&&!c.downed){const target=nearbyFree(s,lead.x-30+i*60,lead.y+74);navigate(s,c,target,119,dt,35);}}
+  updateCivilianBehavior(s,dt,{free,hasLineOfSight,findPath,walkLine,navigate,soundEvent});
+  const lead=currentLeader(s),p=phase(s),extracting=p&&['extract','escort'].includes(p.kind)&&distance(lead,p)<p.radius*.85;
+  for(let i=0;i<s.survivors.length;i++){const c=s.survivors[i];if(c.alive&&c.stabilized&&!c.downed&&!c.missionWait){const target=survivorFollowPoint(s,c,lead,i);navigate(s,c,target,c.escortSpeed||119,dt,extracting?12:24);}}
 }
 function humanNear(s,p,range=p.radius){return humans(s).some(a=>a.alive&&!a.downed&&distance(a,p)<range);}
 function allHumansNear(s,p,range=p.radius){
@@ -700,13 +727,15 @@ function updateConvoy(s,inputs,dt){
   const blocked=next.blocked&&!s.convoyCleared.includes(s.convoyIndex+1)&&distance(v,next)<110;
   if(blocked){
     v.waiting=true;const worker=currentLeader(s);
-    const playerWorking=humanWorking(s,next,inputs,85);
-    const leaderWorking=s.role==='member'&&distance(worker,next)<85&&worker.alive&&!worker.downed&&humanNear(s,next,260)&&s.waitUntil<=s.time;
+    const workPoint=next.repair?v:next,duration=next.repair?8:6;
+    if(next.repair&&s.convoyTroubleAt!==s.convoyIndex){s.convoyTroubleAt=s.convoyIndex;radio(s,'DRIVER','Lead carrier stalled at the junction. Cover us and help restart it.');}
+    const playerWorking=humanWorking(s,workPoint,inputs,85);
+    const leaderWorking=s.role==='member'&&distance(worker,workPoint)<85&&worker.alive&&!worker.downed&&humanNear(s,workPoint,260)&&s.waitUntil<=s.time;
     const canWork=playerWorking||leaderWorking;
-    if(canWork){s.convoyClear+=dt;s.interactionPrompt=`Clearing obstruction · ${Math.round(s.convoyClear/6*100)}%`;}
-    if(s.convoyClear>=6){s.convoyCleared.push(s.convoyIndex+1);s.convoyClear=0;const prop=s.world.props.find(p=>p.type==='barricade'&&distance(p,next)<10);if(prop)prop.cleared=true;radio(s,'HALE','Route is open. Keep up with the vehicles.');}
+    if(canWork){s.convoyClear+=dt;s.interactionPrompt=`${next.repair?'Restarting carrier':'Clearing obstruction'} · ${Math.round(s.convoyClear/duration*100)}%`;}
+    if(s.convoyClear>=duration){s.convoyCleared.push(s.convoyIndex+1);s.convoyClear=0;const prop=s.world.props.find(p=>p.type==='barricade'&&distance(p,next)<10);if(prop)prop.cleared=true;radio(s,'HALE',next.repair?'Carrier running. Stay with the vehicles.':'Route is open. Keep up with the vehicles.');}
   }else{
-    const close=aliveSquad(s).filter(a=>distance(a,v)<265).length>=2&&allHumansNear(s,v,310);
+    const close=aliveSquad(s).filter(a=>distance(a,v)<265).length>=2&&allHumansNear(s,v,310)&&s.survivors.filter(c=>c.alive&&c.stabilized&&!c.missionWait).every(c=>!c.downed&&distance(c,v)<300);
     v.waiting=!close;
     if(close){const dx=next.x-v.x,dy=next.y-v.y,d=Math.hypot(dx,dy),amount=Math.min(62*dt,d);v.angle=Math.atan2(dy,dx);v.x+=Math.cos(v.angle)*amount;v.y+=Math.sin(v.angle)*amount;if(d<8)s.convoyIndex++;}
   }
@@ -716,6 +745,7 @@ function updateConvoy(s,inputs,dt){
 function updateMission(s,inputs,dt){
   const p=phase(s);if(!p)return;
   if(p.kind==='convoy'){updateConvoy(s,inputs,dt);return;}
+  if(operationWork(s,inputs,dt,operationHooks))return;
   let work=false;
   if(p.kind==='rally')work=allHumansNear(s,p)&&squadIn(s,p)>=Math.min(3,aliveSquad(s).length);
   if(p.kind==='hold'){
@@ -728,22 +758,23 @@ function updateMission(s,inputs,dt){
     if(humanWorking(s,c,inputs,p.radius))work=true;
     if(work)s.interactionPrompt=`Stabilizing ${c.name} · ${Math.round(s.phaseTime/p.duration*100)}%`;
   }
-  if(p.kind==='extract'){
-    const alive=s.squad.filter(a=>a.alive),crew=s.survivors.filter(a=>a.alive);
+  if(p.kind==='escort'||p.kind==='extract'){
+    const alive=s.squad.filter(a=>a.alive),crew=s.survivors.filter(a=>a.alive&&!a.missionWait);
     work=alive.every(a=>!a.downed&&distance(a,p)<p.radius)&&crew.every(a=>a.stabilized&&!a.downed&&distance(a,p)<p.radius);
+    if(p.requiresTransmission&&!s.operation?.transmission?.complete)work=false;
   }
   if(work)s.phaseTime+=dt;
   s.progress=clamp(s.phaseTime/(p.duration||1),0,1);
   if(s.phaseTime>=p.duration){
-    if(p.kind==='rescue'){const c=s.survivors[p.crew];c.downed=false;c.stabilized=true;c.hp=c.maxHp;radio(s,'AMES',`${c.name} can move. Keep them with us.`);}
-    if(s.missionIndex===0&&s.stageIndex===1)radio(s,'RADIO','A helicopter is down. All chalks, stand by for new orders.');
+    if(p.kind==='rescue'){const c=s.survivors[p.crew];c.downed=false;c.stabilized=true;c.missionWait=false;c.hp=c.maxHp;const marker=s.operation?.objects.find(o=>o.id===p.id);if(marker)marker.completed=true;radio(s,'AMES',`${c.name} can move. Keep them with us.`);}
+    if(p.id==='collection-hold')radio(s,'RADIO','A helicopter is down. All chalks, stand by for new orders.');
     advance(s);
   }
 }
 function updateVisibility(s,dt){
   s.visibilityTimer-=dt;if(s.visibilityTimer>0)return;s.visibilityTimer=.12;const eyes=aliveSquad(s);
   for(const e of s.enemies)e.visible=eyes.some(a=>{
-    const range=visionRange(a,s.missionIndex,e),glint=e.kind==='sniper'&&e.aimCharge>0?(s.missionIndex===2?520:760):0;
+    const range=visionRange(a,s.missionIndex,e),glint=e.kind==='sniper'&&e.aimCharge>0?(nightMission(s)?520:760):0;
     return distance(a,e)<Math.max(range,glint)&&combatLOS(s,a,e);
   });
 }
@@ -762,6 +793,7 @@ function advanceSimulation(s,input,dt){
   updateSquad(s,input,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
   else if(s.coop&&s.squad.slice(0,2).every(a=>!a.alive)){s.status='lost';s.endReason='Neither player soldier could be recovered. Regroup and retry the mission.';}
+  if(s.status==='playing')updateOperations(s,dt,operationHooks);
   if(s.status==='playing')updateStory(s,input,dt,storyHooks);
   if(s.status==='playing')updateMission(s,input,dt);
   if(s.status==='playing')updateObjective(s);

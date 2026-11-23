@@ -8,10 +8,11 @@ function run(s,seconds,input={}){for(let i=0;i<Math.ceil(seconds*30)&&s.status==
 function placeSquad(s,x,y){s.squad.forEach((a,i)=>{a.x=x+(i%2?28:-28);a.y=y+(i>1?26:-26);a.path=[];a.pathTimer=0;});}
 function openDecision(s){
   if(s.missionIndex===0)s.time=8;
-  else s.stageIndex=1;
+  else s.stageIndex=s.stages.findIndex(p=>p.id===({1:'crash-crew-one',2:'relief-convoy',3:'dawn-observe'})[s.missionIndex]);
   if(s.missionIndex===1)placeSquad(s,1160,960);
   step(s,{},1/30);assert.ok(s.story.activeDecision);return s.story.activeDecision;
 }
+const stage=(s,id)=>s.stages.find(p=>p.id===id);
 function choose(s,option,actorId=s.playerId){return chooseStoryOption(s,s.story.activeDecision.id,option,actorId);}
 
 test('each chapter offers a finite radio decision and preserves its standing plan without a reply',()=>{
@@ -27,14 +28,14 @@ test('each chapter offers a finite radio decision and preserves its standing pla
 });
 
 test('the pickup decision trades real holding time for a closer reachable extraction and resolves only once',()=>{
-  const s=quiet(),decision=openDecision(s),before=s.stages[1].duration;
+  const s=quiet(),decision=openDecision(s),before=stage(s,'collection-hold').duration;
   assert.equal(choose(s,'reposition'),true);
-  assert.equal(s.stages[1].duration,before+8);assert.deepEqual({x:s.stages[2].x,y:s.stages[2].y},{x:1640,y:960});
-  assert.ok(s.vehicles.every(v=>v.y===960));assert.ok(findPath(s,s.stages[1],s.stages[2]).length);
-  assert.equal(chooseStoryOption(s,decision.id,'reposition'),false);assert.equal(s.stages[1].duration,before+8);
+  assert.equal(stage(s,'collection-hold').duration,before+8);assert.deepEqual({x:stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').x,y:stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y},{x:1640,y:960});
+  assert.ok(s.vehicles.every(v=>v.y===960));assert.ok(findPath(s,stage(s,s.missionIndex===3?'dawn-observe':'collection-hold'),stage(s,s.missionIndex===3?'dawn-route':'cordon-extract')).length);
+  assert.equal(chooseStoryOption(s,decision.id,'reposition'),false);assert.equal(stage(s,'collection-hold').duration,before+8);
   assert.equal(s.story.consequences.fatigueAdded,0);
   const original=quiet();openDecision(original);choose(original,'original');
-  assert.equal(original.stages[1].duration,before);assert.equal(original.stages[2].y,580);
+  assert.equal(stage(original,'collection-hold').duration,before);assert.equal(stage(original,'cordon-extract').y,580);
   assert.equal(original.story.consequences.fatigueAdded,1);
 });
 
@@ -53,25 +54,25 @@ test('a smoke decision consumes a finite squad round and creates an actual tempo
 
 test('taking extra casualties lengthens exposed loading and records who actually boarded',()=>{
   const s=quiet({mission:2});openDecision(s);assert.equal(choose(s,'extra'),true);
-  assert.equal(s.stages[2].duration,54);assert.equal(s.civilians.filter(c=>c.transportCandidate).length,2);
-  s.stageIndex=2;placeSquad(s,2120,580);s.phaseTime=41.9;
+  assert.equal(stage(s,'relief-loading').duration,54);assert.equal(s.civilians.filter(c=>c.transportCandidate).length,2);
+  s.stageIndex=s.stages.findIndex(p=>p.id==='relief-loading');placeSquad(s,2120,580);s.phaseTime=41.9;
   run(s,.4);assert.equal(s.status,'playing','the original 42-second load cannot finish the enlarged manifest');
   s.phaseTime=53.9;run(s,.4);assert.equal(s.status,'won');
   assert.equal(s.story.consequences.additionalLoaded,2);assert.equal(s.civilians.filter(c=>c.evacuated).length,2);
   assert.equal(campaignOutcome(s).fatigue,1);
   const assigned=quiet({mission:2});openDecision(assigned);choose(assigned,'manifest');
-  assert.equal(assigned.stages[2].duration,42);assert.equal(assigned.civilians.filter(c=>c.transportCandidate).length,0);
+  assert.equal(stage(assigned,'relief-loading').duration,42);assert.equal(assigned.civilians.filter(c=>c.transportCandidate).length,0);
   assert.ok(assigned.story.summary.some(text=>text.includes('aid team')));
 });
 
 test('a route decision changes a reachable later rally and walking onto that approach also communicates the choice',()=>{
   const s=quiet({mission:3});openDecision(s);assert.equal(choose(s,'east'),true);
-  assert.deepEqual({x:s.stages[2].x,y:s.stages[2].y},{x:2120,y:960});
-  assert.ok(findPath(s,s.stages[1],s.stages[2]).length);assert.ok(findPath(s,s.stages[2],s.stages[3]).length);
+  assert.deepEqual({x:stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').x,y:stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y},{x:2120,y:960});
+  assert.ok(findPath(s,stage(s,s.missionIndex===3?'dawn-observe':'collection-hold'),stage(s,s.missionIndex===3?'dawn-route':'cordon-extract')).length);assert.ok(findPath(s,stage(s,'dawn-route'),stage(s,'dawn-extract')).length);
   const walked=quiet({mission:3});openDecision(walked);
   Object.assign(walked.squad[0],{x:2120,y:960});step(walked,{},1/30);
   assert.equal(walked.story.resolved['dawn-approach'].optionId,'east');
-  assert.equal(walked.stages[2].x,2120);
+  assert.equal(stage(walked,'dawn-route').x,2120);
 });
 
 test('foreign, incapacitated, unknown, expired and already-passed choices cannot mutate the mission',()=>{
@@ -80,13 +81,13 @@ test('foreign, incapacitated, unknown, expired and already-passed choices cannot
   assert.equal(chooseStoryOption(s,'unknown','reposition'),false);assert.equal(choose(s,'unknown'),false);
   s.squad[0].downed=true;assert.equal(choose(s,'reposition'),false);s.squad[0].downed=false;
   s.time=decision.deadline;assert.equal(choose(s,'reposition'),false);s.time=decision.openedAt;
-  s.stageIndex=2;assert.equal(choose(s,'reposition'),false);assert.deepEqual(s.stages,before);
+  s.stageIndex=s.stages.findIndex(p=>p.id==='cordon-delivery');assert.equal(choose(s,'reposition'),false);assert.deepEqual(s.stages,before);
 });
 
 test('every solo role can recommend a decision while the AI leader explains its accepted order',()=>{
   for(const role of ['leader','grenadier','medic','support']){
     const s=quiet();selectSquadMember(s,s.squad.find(a=>a.role===role).id);openDecision(s);
-    assert.equal(choose(s,'reposition'),true);assert.equal(s.stages[2].y,960);
+    assert.equal(choose(s,'reposition'),true);assert.equal(stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y,960);
     if(role!=='leader'){
       assert.ok(s.story.log.some(entry=>entry.kind==='recommendation'));
       assert.ok(s.story.log.some(entry=>entry.kind==='decision'&&entry.speaker==='HALE'&&entry.text.includes('Agreed')));
@@ -98,15 +99,15 @@ test('a co-op member recommendation cannot overrule the human leader or spend a 
   const s=quiet();setHumanPlayers(s,s.squad.slice(0,2).map(a=>a.id));s.time=8;stepCoop(s,{},1/30);
   const [leader,member]=s.squad,decision=s.story.activeDecision;
   assert.equal(chooseStoryOption(s,decision.id,'reposition',member.id),true);
-  assert.equal(s.stages[1].duration,55);assert.equal(s.stages[2].y,580);
+  assert.equal(stage(s,'collection-hold').duration,55);assert.equal(stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y,580);
   assert.equal(s.story.activeDecision.recommendation.actorId,member.id);
   const logCount=s.story.log.length;
   assert.equal(chooseStoryOption(s,decision.id,'reposition',member.id),true);assert.equal(s.story.log.length,logCount);
-  assert.equal(chooseStoryOption(s,decision.id,'original',leader.id),true);assert.equal(s.stages[2].y,580);
+  assert.equal(chooseStoryOption(s,decision.id,'original',leader.id),true);assert.equal(stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y,580);
   assert.equal(chooseStoryOption(s,decision.id,'reposition',member.id),false);
   const ai=quiet();setHumanPlayers(ai,[ai.squad[1].id]);ai.time=8;stepCoop(ai,{},1/30);
   assert.equal(chooseStoryOption(ai,ai.story.activeDecision.id,'reposition',ai.squad[1].id),true);
-  assert.equal(ai.stages[2].y,960,'a member with an AI leader still has a usable story decision');
+  assert.equal(stage(ai,'cordon-extract').y,960,'a member with an AI leader still has a usable story decision');
 });
 
 test('the exposed story commander matches fallback authority when Hale is incapacitated',()=>{
@@ -114,7 +115,7 @@ test('the exposed story commander matches fallback authority when Hale is incapa
   const [hale,mercer]=s.squad;assert.equal(getStoryLeaderId(s),hale.id);
   hale.downed=true;assert.equal(getStoryLeaderId(s),mercer.id);
   assert.equal(chooseStoryOption(s,s.story.activeDecision.id,'reposition',mercer.id),true);
-  assert.equal(s.stages[2].y,960);assert.equal(s.story.log.at(-1).speaker,'MERCER');
+  assert.equal(stage(s,s.missionIndex===3?'dawn-route':'cordon-extract').y,960);assert.equal(s.story.log.at(-1).speaker,'MERCER');
 });
 
 test('physical field aid works with every solo role and costs one supply before self-bandaging',()=>{
@@ -169,10 +170,10 @@ test('chapter carry is bounded, explicit and applies only to the next chapter; a
   const carry=campaignOutcome(s);assert.deepEqual(carry,{version:1,fromMission:0,medicalDebt:1,smokeDebt:0,fatigue:1,civilianHarm:1,aided:1});
   const next=quiet({mission:1,campaign:carry}),fresh=quiet({mission:1});
   assert.equal(next.squad.find(a=>a.role==='medic').medkits,fresh.squad.find(a=>a.role==='medic').medkits-1);
-  assert.equal(next.stages[0].duration,fresh.stages[0].duration+2);assert.equal(next.story.consequences.localCallsQuiet,true);
+  assert.equal(stage(next,'crash-entry').duration,stage(fresh,'crash-entry').duration+2);assert.equal(next.story.consequences.localCallsQuiet,true);
   assert.deepEqual(next.campaign,carry);assert.ok(next.story.log.some(entry=>entry.kind==='carry'&&entry.text.includes('fewer medical')));
   assert.equal(quiet({mission:3,campaign:carry}).campaign,null);
-  const replay=createGame({mission:1,seed:next.seed,campaign:next.campaign});assert.deepEqual(replay.campaign,next.campaign);assert.equal(replay.stages[0].duration,next.stages[0].duration);
+  const replay=createGame({mission:1,seed:next.seed,campaign:next.campaign});assert.deepEqual(replay.campaign,next.campaign);assert.equal(stage(replay,'crash-entry').duration,stage(next,'crash-entry').duration);
   assert.equal(normalizeCampaignCarry({version:1,fromMission:99}),null);assert.equal(normalizeCampaignCarry([]),null);
   assert.deepEqual(normalizeCampaignCarry({version:1,fromMission:2,medicalDebt:999,smokeDebt:-9,fatigue:1e9,civilianHarm:Infinity,aided:999,unknown:'ignored'}),
     {version:1,fromMission:2,medicalDebt:3,smokeDebt:0,fatigue:3,civilianHarm:0,aided:4});

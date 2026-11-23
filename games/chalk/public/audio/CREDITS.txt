@@ -146,3 +146,17 @@ for the listener and only at a projectile speed above the reference sound
 speed. Its short lateral sound travel uses the closest-approach approximation.
 Concrete chips and opened-wall debris tails are procedural; a heavier tail
 requires a blast that actually breached geometry, not a cosmetic dust effect.
+
+Room and street reflection design — 23 November 2026
+
+The room and street stereo response kernels are procedural sound design made
+for CHALK. Seeded noise, shaped decay, and discrete reflection transients produce
+a short, dense room response and a later, more widely spaced urban street
+response. These are not recorded or measured impulse responses of actual rooms,
+streets, Mogadishu buildings, or locations from the historical battle.
+
+The game reuses the two response buffers and selects their sends using the
+source and listener locations, room enclosure, walls, doors, and explosive
+openings. This is a bounded geometry-based approximation, not a full sound-wave
+simulation. The Room & street reflections control changes the reflected layer
+without removing direct effects. Existing recordings and music assets remain.

@@ -13,7 +13,7 @@ function arena(kind=null){
   let enemy=null;
   if(kind){const profile=enemyProfile(kind);enemy={...template,id:++s.nextId,kind,name:profile.name,x:780,y:500,hp:1000,maxHp:1000,alive:true,downed:false,
     ammo:profile.magazine,magSize:profile.magazine,reserve:profile.reserve,accuracy:0,cooldown:0,senseTimer:0,perceivedTargetId:null,lastKnown:null,lastSeenAt:-100,
-    braceProgress:0,braced:false,nextFlankAt:0,flankSide:1,path:[],pathTimer:0,suppression:0};s.enemies=[enemy];}
+    braceProgress:0,braced:false,nextFlankAt:0,flankSide:1,defensive:false,path:[],pathTimer:0,suppression:0};s.enemies=[enemy];}
   return {s,p,enemy};
 }
 function projectile(s,{x=300,y=525,range=600,weapon='hostile'}={}){
@@ -51,7 +51,7 @@ test('larger encounters honor living-count, weighted specialist and sight-safe r
     const s=createGame({difficulty,seed}),budget=encounterBudget(difficulty);
     for(const a of s.squad){a.hp=100000;a.maxHp=100000;a.ammo=0;a.reserve=0;}
     for(let wave=0;wave<14;wave++){
-      const prior=new Set(s.enemies.map(a=>a.id));s.spawnTimer=0;s.time+=20;step(s,{},1/30);
+      const prior=new Set(s.enemies.map(a=>a.id));s.stageIndex=Math.min(s.stages.length-1,Math.floor(wave/2));s.phaseTime=0;s.spawnTimer=0;s.time+=20;step(s,{},1/30);
       const living=s.enemies.filter(a=>a.alive);
       assert.ok(living.length<=budget.maxAlive);assert.ok(living.reduce((total,a)=>total+enemyProfile(a).cost,0)<=budget.weight);
       for(const [kind,cap] of [['gunner',budget.gunners],['flanker',budget.flankers],['sniper',1]])assert.ok(living.filter(a=>a.kind===kind).length<=cap);

@@ -119,7 +119,7 @@ test('rally and convoy movement wait for both living humans',()=>{
   near(hale,p,-30);near(s.squad[2],p,30);near(s.squad[3],p,0,40);
   run(s,3);assert.equal(s.stageIndex,0);assert.equal(s.phaseTime,0);
   near(mercer,p,0,-35);run(s,3);assert.equal(s.stageIndex,1);
-  const c=createCoop({mission:2});c.stageIndex=1;
+  const c=createCoop({mission:2});c.stageIndex=c.stages.findIndex(p=>p.kind==='convoy');
   const v=c.vehicles[0];near(c.squad[0],v,-30);near(c.squad[2],v,30);near(c.squad[3],v,0,45);c.squad[1].x=2120;c.squad[1].y=1720;
   stepCoop(c,{},1/30);assert.equal(v.waiting,true);assert.equal(v.x,200);
   near(c.squad[1],v,0,-40);stepCoop(c,{},1/30);
@@ -127,26 +127,26 @@ test('rally and convoy movement wait for both living humans',()=>{
 });
 
 test('either human can stabilize crew or clear barriers without doubling progress',()=>{
-  const s=createCoop({mission:1}),[hale,mercer]=s.squad;s.stageIndex=1;
+  const s=createCoop({mission:1}),[hale,mercer]=s.squad;s.stageIndex=s.stages.findIndex(p=>p.kind==='rescue');
   const crew=s.survivors[0];near(mercer,crew,30);
   stepCoop(s,{[mercer.id]:{interact:true}},1/30);assert.ok(Math.abs(s.phaseTime-1/30)<1e-12);
   near(hale,crew,-30);stepCoop(s,{[hale.id]:{interact:true},[mercer.id]:{interact:true}},1/30);
   assert.ok(Math.abs(s.phaseTime-2/30)<1e-12);
-  const c=createCoop({mission:2});c.stageIndex=1;c.convoyIndex=1;
+  const c=createCoop({mission:2});c.stageIndex=c.stages.findIndex(p=>p.kind==='convoy');c.convoyIndex=1;
   const barrier=c.convoyRoute[2];near(c.vehicles[0],barrier,-70);near(c.squad[1],barrier,-30);
   stepCoop(c,{[c.squad[1].id]:{interact:true}},1/30);assert.ok(Math.abs(c.convoyClear-1/30)<1e-12);
   near(c.squad[0],barrier,30);stepCoop(c,{[c.squad[0].id]:{interact:true},[c.squad[1].id]:{interact:true}},1/30);
   assert.ok(Math.abs(c.convoyClear-2/30)<1e-12);
 });
 
-test('all four missions complete with two human inputs and two AI squad mates',()=>{
-  for(let mission=0;mission<4;mission++){
+test('all six missions complete with two human inputs and two AI squad mates',()=>{
+  for(let mission=0;mission<6;mission++){
     const s=createCoop({mission,difficulty:'story'});
-    for(let frame=0;frame<30*420&&s.status==='playing';frame++){
+    for(let frame=0;frame<30*720&&s.status==='playing';frame++){
       const objective=getObjective(s),inputs={};
       for(const [index,a] of s.squad.slice(0,2).entries()){
         const target={x:objective.x+(index?25:-25),y:objective.y};
-        const d=Math.hypot(a.x-target.x,a.y-target.y);inputs[a.id]={interact:true};
+        const d=Math.hypot(a.x-target.x,a.y-target.y);inputs[a.id]={interact:true,...(objective.lookAt?{aimX:objective.lookAt.x,aimY:objective.lookAt.y}:{})};
         if(d>32){const next=findPath(s,a,target)[0];if(next){const dx=next.x-a.x,dy=next.y-a.y,length=Math.hypot(dx,dy);inputs[a.id].moveX=dx/length;inputs[a.id].moveY=dy/length;}}
       }
       stepCoop(s,inputs,1/30);

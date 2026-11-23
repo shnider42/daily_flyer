@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Renderer, houseRevealed, renderMinimap } from '../public/renderer.mjs';
+import { Renderer, houseRevealed, renderMinimap, missionLighting, muzzleOrigin, muzzleProfile, muzzleLightPolygon } from '../public/renderer.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { breachAtBlast, createDestructionState } from '../public/destruction.mjs';
 
@@ -445,4 +445,244 @@ test('breach rubble stays local and dust is witnessed, temporary and reduced-mot
   renderer.drawEffects(renderer.ctx, state, 1, { reducedMotion: true }); assert.deepEqual(draws, []);
   state.world.walls = [{ x: 1250, y: 0, w: 10, h: 1900 }];
   renderer.drawEffects(renderer.ctx, state, 1); assert.deepEqual(draws, [], 'fresh cover blocks stale witnessed dust');
+});
+
+function shotFixture() {
+  const f = fixture();
+  f.state.mission = { lighting: 'night' }; f.state.time = 1; f.state.status = 'playing';
+  f.state.soundEvents = [{ id: 10, type: 'shot', actorId: 1, team: 'squad', weapon: 'rifle', x: 1220, y: 950, angle: 0, time: 1, sourceTime: 1 }];
+  f.renderer.muzzleSprite = weapon => ({ kind: 'core', weapon });
+  f.renderer.radialSprite = key => ({ kind: 'light', key });
+  return f;
+}
+
+test('weapon flashes start at the barrel and stay on the near side of thin cover', () => {
+  const source = { x: 500, y: 500, angle: 0, weapon: 'support' };
+  const world = { walls: Array.from({ length: 30 }, (_, i) => ({ x: i * 20, y: 10, w: 10, h: 10 })) };
+  near(muzzleOrigin(source, world).x, 510);
+  world.walls.push({ x: 505, y: 450, w: 4, h: 100 });
+  assert.ok(muzzleOrigin(source, world).x < 505, 'longer weapon artwork cannot project the flash through a wall');
+  assert.ok(muzzleProfile('support').duration > muzzleProfile('rifle').duration);
+  assert.ok(muzzleProfile('sniper').length > muzzleProfile('rifle').length);
+  const polygon = muzzleLightPolygon({ walls: [{ x: 530, y: 0, w: 8, h: 1900 }] }, source, 86);
+  assert.ok(polygon.length >= 24);
+  assert.ok(polygon.every(point => point.x < 530), 'every light ray terminates on this side of the wall');
+  assert.ok(polygon.some(point => point.x > 529), 'the light actually reaches the wall instead of disappearing');
+});
+
+test('shot-ring flashes survive missed short effects, expire on presentation time, and never replay a repeated packet', () => {
+  const { renderer, state } = shotFixture();
+  state.effects = []; state.soundEvents[0].sourceTime = .88;
+  renderer.updateMuzzleFlashes(state, { time: 10 });
+  assert.equal(renderer.muzzleFlashes.length, 1, 'a recently received real shot gets a brief visible presentation');
+  const flash = renderer.muzzleFlashes[0], polygon = flash.polygon;
+  renderer.updateMuzzleFlashes(state, { time: 10.015 });
+  assert.equal(renderer.muzzleFlashes.length, 1); assert.equal(renderer.muzzleFlashes[0], flash);
+  renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10.015 });
+  assert.equal(flash.polygon, polygon, 'unchanged frames reuse the local clipping polygon');
+  renderer.updateMuzzleFlashes(state, { time: 10.06 });
+  assert.equal(renderer.muzzleFlashes.length, 0, 'a stalled network clock cannot freeze a muzzle flash');
+  state.soundEvents = structuredClone(state.soundEvents);
+  renderer.updateMuzzleFlashes(state, { time: 11 });
+  assert.equal(renderer.muzzleFlashes.length, 0, 'a copied snapshot cannot replay the event');
+  state.soundEvents.push({ ...state.soundEvents[0], id: 11, sourceTime: .1 });
+  renderer.updateMuzzleFlashes(state, { time: 11.1 });
+  assert.equal(renderer.muzzleFlashes.length, 0, 'stale history does not become a new flash');
+});
+
+test('night muzzle sources need current unobstructed sight but never expose a distant enemy actor', () => {
+  const { renderer, state } = shotFixture();
+  state.soundEvents[0] = { ...state.soundEvents[0], x: 1750, actorId: 40, weapon: 'sniper', team: 'enemy' };
+  const enemy = { id: 40, x: 1730, y: 950, team: 'enemy', kind: 'sniper', alive: true, visible: false };
+  state.enemies = [enemy];
+  renderer.updateMuzzleFlashes(state, { time: 10 });
+  assert.equal(renderer.muzzleFlashes.length, 1, 'an unobstructed distant night source can be momentarily seen');
+  assert.equal(renderer.actorVisible(state, enemy), false);
+  assert.equal(enemy.visible, false, 'a flash grants neither a silhouette nor lasting contact intelligence');
+  const flash = renderer.muzzleFlashes[0];
+  state.world.walls = [{ x: 1500, y: 0, w: 10, h: 1900 }];
+  assert.equal(renderer.muzzleVisible(state, flash), false);
+  state.world.walls = []; state.smokes = [{ x: 1500, y: 950, radius: 100, ttl: 10 }];
+  assert.equal(renderer.muzzleVisible(state, flash), false);
+  state.smokes = []; renderer.houseCutaways = [{ building: { x: 1700, y: 900, w: 130, h: 150 }, amount: 0 }];
+  assert.equal(renderer.muzzleVisible(state, flash), false, 'closed roofs do not carry flashes from rooms underneath');
+  renderer.houseCutaways = []; state.mission.lighting = 'day';
+  assert.equal(renderer.muzzleVisible(state, flash), false, 'daytime sources retain normal sight range');
+});
+
+test('pause, map, epoch changes and same-seed restarts clear obsolete flashes', () => {
+  const { renderer, state } = shotFixture();
+  renderer.updateMuzzleFlashes(state, { time: 10, effectEpoch: 'room:1' });
+  assert.equal(renderer.muzzleFlashes.length, 1);
+  renderer.updateMuzzleFlashes(state, { time: 10.01, paused: true, effectEpoch: 'room:1' });
+  assert.equal(renderer.muzzleFlashes.length, 0);
+  renderer.updateMuzzleFlashes(state, { time: 10.02, effectEpoch: 'room:1' });
+  assert.equal(renderer.muzzleFlashes.length, 0);
+  state.soundEvents.push({ ...state.soundEvents[0], id: 11 });
+  renderer.updateMuzzleFlashes(state, { time: 10.03, showMap: true, effectEpoch: 'room:1' });
+  renderer.updateMuzzleFlashes(state, { time: 10.04, effectEpoch: 'room:1' });
+  assert.equal(renderer.muzzleFlashes.length, 0, 'closing the map cannot play shots that happened while it was open');
+  state.soundEvents.push({ ...state.soundEvents[0], id: 12 });
+  renderer.updateMuzzleFlashes(state, { time: 10.05, effectEpoch: 'room:1' });
+  assert.equal(renderer.muzzleFlashes.length, 1);
+  renderer.updateMuzzleFlashes(state, { time: 10.06, effectEpoch: 'room:2' });
+  assert.equal(renderer.muzzleFlashes.length, 0, 'changing co-op role clears the previous presentation without replay');
+  state.time = .05; state.soundEvents = [{ ...state.soundEvents[0], id: 2, time: .05, sourceTime: .05 }];
+  renderer.updateMuzzleFlashes(state, { time: 11, effectEpoch: 'room:3' });
+  assert.equal(renderer.muzzleFlashes.length, 1, 'new low event IDs are valid after a real mission restart');
+});
+
+test('night flash light is local, clipped, cached and reduced-motion aware', () => {
+  const { renderer, state } = shotFixture(), draws = [], clips = [];
+  renderer.ctx.drawImage = (sprite, ...rect) => draws.push({ kind: sprite.kind, rect, alpha: renderer.ctx.globalAlpha });
+  renderer.ctx.clip = mode => clips.push(mode);
+  renderer.updateMuzzleFlashes(state, { time: 10 });
+  renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10 });
+  assert.deepEqual(draws.map(draw => draw.kind), ['light', 'core']);
+  assert.ok(draws[0].rect[2] <= 172 && draws[0].rect[3] <= 172, 'lighting covers a short patch rather than the viewport');
+  assert.ok(clips.includes('evenodd'), 'closed roofs are removed from the local light/core clip');
+  draws.length = 0;
+  renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10.01, reducedMotion: true });
+  assert.deepEqual(draws.map(draw => draw.kind), ['core']);
+  assert.ok(draws[0].alpha < .7, 'the basic shot cue survives with a quieter intensity');
+  const oldPolygon = renderer.muzzleFlashes[0].polygon;
+  state.world.walls = [{ x: 1250, y: 0, w: 8, h: 1900 }]; state.world.geometryRevision = 1;
+  renderer.drawMuzzleFlashes(renderer.ctx, state, { time: 10.02 });
+  assert.notEqual(renderer.muzzleFlashes[0].polygon, oldPolygon);
+  assert.ok(renderer.muzzleFlashes[0].polygon.every(point => point.x < 1250));
+});
+
+test('night shot feedback is drawn after the tint and overlapping automatic rounds stay bounded', () => {
+  const { renderer, state } = shotFixture(), order = [];
+  renderer.drawActor = () => order.push('actor'); renderer.drawAtmosphere = () => order.push('night'); renderer.drawMuzzleFlashes = () => order.push('flash');
+  renderer.render(state, { time: 10, quality: 'performance', reducedMotion: true });
+  assert.ok(order.indexOf('actor') < order.indexOf('night'));
+  assert.ok(order.indexOf('night') < order.indexOf('flash'));
+  state.soundEvents = Array.from({ length: 40 }, (_, i) => ({ ...state.soundEvents[0], id: 20 + i, actorId: i + 50, x: 1240 + i }));
+  renderer.updateMuzzleFlashes(state, { time: 10.01 });
+  assert.equal(renderer.muzzleFlashes.length, 24);
+  state.soundEvents.push({ ...state.soundEvents.at(-1), id: 61, weapon: 'support' });
+  renderer.updateMuzzleFlashes(state, { time: 10.02 });
+  assert.equal(renderer.muzzleFlashes.filter(flash => flash.actorId === 89).length, 1, 'automatic fire shares one local pulse per weapon');
+  assert.equal(missionLighting({ missionIndex: 4, mission: { lighting: 'night' } }), 'night');
+});
+
+test('muzzle textures are small and reused across weapon families and snapshots', t => {
+  const original = globalThis.OffscreenCanvas, created = [];
+  globalThis.OffscreenCanvas = class {
+    constructor(width, height) { this.width = width; this.height = height; created.push(this); this.context = new Proxy({}, { get: (target, key) => key in target ? target[key] : (() => {}) }); }
+    getContext() { return this.context; }
+  };
+  t.after(() => { if (original === undefined) delete globalThis.OffscreenCanvas; else globalThis.OffscreenCanvas = original; });
+  const { renderer } = fixture();
+  const rifle = renderer.muzzleSprite('rifle'), support = renderer.muzzleSprite('support'), sniper = renderer.muzzleSprite('sniper');
+  for (let i = 0; i < 100; i++) { assert.equal(renderer.muzzleSprite('hostile'), rifle); assert.equal(renderer.muzzleSprite('hostile_support'), support); assert.equal(renderer.muzzleSprite('sniper'), sniper); }
+  assert.equal(created.length, 3); assert.ok(created.every(canvas => canvas.width === 96 && canvas.height === 48));
+});
+
+test('operation equipment requires sight and contextual objectives use compact action markers', () => {
+  const { renderer, state } = fixture(), positions = [], arcs = [];
+  state.operation = { objects: [{ id: 'radio', kind: 'radio', x: 1260, y: 950 }, { id: 'hidden', kind: 'medical', x: 1400, y: 950 }], items: [{ id: 'battery', kind: 'battery', status: 'carried', carrierId: 1 }] };
+  state.world.walls = [{ x: 1350, y: 0, w: 10, h: 1900 }];
+  renderer.ctx.translate = (x, y) => positions.push({ x, y });
+  renderer.drawOperationObjects(renderer.ctx, state);
+  assert.ok(positions.some(point => point.x === 1260));
+  assert.ok(positions.some(point => point.x === 1184), 'carried equipment follows its actual carrier');
+  assert.ok(!positions.some(point => point.x === 1400), 'an equipment marker cannot reveal a hidden room');
+  renderer.ctx.arc = (x, y, r) => arcs.push(r); renderer.worldLabel = () => {};
+  for (const kind of ['interact', 'recon', 'deliver', 'escort']) {
+    state.objective = { kind, x: 1260, y: 950, radius: 120, title: 'Action', lookAt: { x: 1500, y: 950 }, progress: .5 };
+    renderer.drawObjective(state, 1, {});
+  }
+  assert.ok(arcs.every(radius => radius <= 55), 'action phases do not inherit the old wide hold circle');
+});
+
+test('threatened civilians keep an unarmed bent posture without extra labels', () => {
+  const { renderer, state, actor } = fixture(), scales = [], labels = [];
+  renderer.ctx.scale = (x, y) => scales.push({ x, y }); renderer.worldLabel = (_x, _y, text) => labels.push(text);
+  const civilian = { ...actor, id: 30, team: 'civilian', role: undefined, civilianState: 'cowering' };
+  renderer.drawActor(renderer.ctx, civilian, state, 1, {});
+  assert.ok(scales.some(scale => scale.x === .88 && scale.y === .86));
+  assert.deepEqual(labels, []);
+  scales.length = 0; civilian.civilianState = 'idle'; renderer.drawActor(renderer.ctx, civilian, state, 1, {});
+  assert.equal(scales.length, 0);
+  civilian.civilianState = 'fleeing'; civilian.panicked = 0; renderer.drawActor(renderer.ctx, civilian, state, 1, {});
+  assert.equal(scales.length, 0, 'quiet homeward movement does not look like an active panic');
+});
+
+test('touch follow keeps the controlled soldier at the usable center at every world edge and through zoom or binocular changes', () => {
+  for (const [width, height, safeInsets] of [
+    [390, 844, { top: 176, bottom: 196, left: 16, right: 16 }],
+    [844, 390, { top: 86, bottom: 108, left: 14, right: 14 }],
+  ]) {
+    const { renderer, state, actor } = fixture(); renderer.resize(width, height, 1);
+    const view = { touch: true, zoom: .75, safeInsets, lookahead: 1, pointer: { x: width, y: height } };
+    const positions = [[13, 13], [2387, 13], [2387, 1887], [13, 1887], [1200, 950]];
+    for (const [x, y] of positions) {
+      actor.x = x; actor.y = y; renderer.updateCamera(state, view);
+      const point = renderer.worldToScreen(actor.x, actor.y);
+      near(point.x, renderer.safeRect.cx); near(point.y, renderer.safeRect.cy);
+      const before = { ...renderer.camera }; actor.x += 3; actor.y += 2;
+      renderer.updateCamera(state, view);
+      near(renderer.camera.x - before.x, 3); near(renderer.camera.y - before.y, 2);
+      near(renderer.worldToScreen(actor.x, actor.y).x, renderer.safeRect.cx);
+    }
+    actor.role = 'grenadier'; actor.observing = true;
+    for (const angle of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      actor.angle = angle;
+      renderer.updateCamera(state, { ...view, zoom: 1.15, observing: true });
+      const point = renderer.worldToScreen(actor.x, actor.y);
+      near(point.x, renderer.safeRect.cx); near(point.y, renderer.safeRect.cy);
+    }
+    const preparedZoom = renderer.camera.zoom;
+    actor.x -= 11; actor.y += 9;
+    renderer.render(state, { ...view, quality: 'performance', reducedMotion: true, cameraPrepared: true });
+    near(renderer.camera.zoom, preparedZoom);
+    const postStep = renderer.worldToScreen(actor.x, actor.y);
+    near(postStep.x, renderer.safeRect.cx); near(postStep.y, renderer.safeRect.cy);
+    state.squad.push({ ...actor, id: 2, x: 27, y: 1850 }); state.playerId = 2;
+    renderer.updateCamera(state, view);
+    const selected = renderer.worldToScreen(27, 1850);
+    near(selected.x, renderer.safeRect.cx); near(selected.y, renderer.safeRect.cy);
+    renderer.updateCamera(state, { ...view, showMap: true });
+    const districtCenter = renderer.worldToScreen(state.world.width / 2, state.world.height / 2);
+    near(districtCenter.x, renderer.safeRect.cx); near(districtCenter.y, renderer.safeRect.cy);
+  }
+});
+
+test('touch corner framing fills the whole viewport with matching ground outside the cropped district', () => {
+  for (const [width, height] of [[390, 844], [844, 390]]) for (const [x, y] of [[13, 13], [2387, 13], [2387, 1887], [13, 1887]]) {
+    const { renderer, state, actor } = fixture(), fills = []; renderer.resize(width, height, 1);
+    actor.x = x; actor.y = y;
+    renderer.ctx.fillRect = (x, y, w, h) => { if (renderer.ctx.fillStyle === '#6d6550') fills.push({ x, y, w, h }); };
+    const view = { touch: true, zoom: .6, safeInsets: { top: height > width ? 220 : 90, bottom: height > width ? 240 : 115, left: 16, right: 16 }, quality: 'performance', reducedMotion: true };
+    renderer.updateCamera(state, view); renderer.render(state, { ...view, cameraPrepared: true });
+    assert.equal(fills.length, 1);
+    const ground = fills[0], topLeft = renderer.worldToScreen(ground.x, ground.y), bottomRight = renderer.worldToScreen(ground.x + ground.w, ground.y + ground.h);
+    assert.ok(topLeft.x <= 0 && topLeft.y <= 0 && bottomRight.x >= width && bottomRight.y >= height, 'the camera margin cannot expose an unpainted or dark background strip');
+  }
+});
+
+test('Expert touch hides routine world text while retaining action markers and casualty cues; other touch labels avoid the controlled soldier', () => {
+  const { renderer, state, actor } = fixture(), labels = []; renderer.resize(390, 844, 1);
+  renderer.ctx.fillText = text => labels.push(text);
+  const view = { touch: true, zoom: .75, guidance: 'expert', reducedMotion: true };
+  renderer.updateCamera(state, view);
+  renderer.drawActor(renderer.ctx, { ...actor, id: 2, name: 'Ames', role: 'medic', x: actor.x + 25 }, state, 1, view);
+  state.order = { type: 'move', x: actor.x + 15, y: actor.y + 15, label: 'Move to this point' };
+  renderer.drawOrder(state, 1, view);
+  renderer.worldLabel(actor.x, actor.y - 70, 'CONVOY WAITING');
+  state.objective = { kind: 'interact', x: actor.x + 50, y: actor.y, title: 'Repair radio', radius: 120 };
+  let strokes = 0; renderer.ctx.stroke = () => strokes++;
+  renderer.drawObjective(state, 1, view);
+  assert.ok(strokes > 0, 'the actionable target still has its compact visual marker');
+  assert.deepEqual(labels, []);
+  renderer.drawActor(renderer.ctx, { ...actor, id: 3, x: actor.x, y: actor.y - 70, downed: true }, state, 1, view);
+  assert.deepEqual(labels, ['HELP']);
+  labels.length = 0; renderer.updateCamera(state, { ...view, guidance: 'moderate' });
+  renderer.drawActor(renderer.ctx, { ...actor, id: 4, name: 'Webb', role: 'support', x: actor.x + 30, y: actor.y + 70 }, state, 1, { ...view, guidance: 'moderate' });
+  assert.deepEqual(labels, [], 'Moderate touch uses squad HUD cards instead of repeating healthy names over the world');
+  renderer.worldLabel(actor.x, actor.y + 10, 'SQUAD MATE');
+  renderer.worldLabel(actor.x, actor.y + 70, 'CLEAR OF THE SOLDIER');
+  assert.deepEqual(labels, ['CLEAR OF THE SOLDIER']);
 });

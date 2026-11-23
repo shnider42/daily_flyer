@@ -1,17 +1,17 @@
 // Small invitation rooms using Farwake's single-authority, authenticated-session model.
 import {randomBytes} from 'node:crypto';
-import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,chooseStoryOption,campaignOutcome,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,chooseStoryOption,campaignOutcome,getNextCampaignMission,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
 import {SnapshotDeltaEncoder} from '../public/snapshot-delta.mjs';
 import {PROTOCOL,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
 
 const actorView = actor => {
-  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,...view}=actor;
+  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,...view}=actor;
   return view;
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
   'progress','radio','stats','order','leaderOrder','phaseTime','objective','convoyIndex','convoyClear','convoyCleared',
-  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction'];
+  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction','operation'];
 const statusOf = room => room.status==='lobby'?'lobby':room.game.status;
 const validMission = value => Number.isInteger(value)&&value>=0&&value<MISSIONS.length;
 const validDifficulty = value => Object.hasOwn(DIFFICULTIES,value);
@@ -116,8 +116,8 @@ export class CoopRooms {
       if(type==='start'&&room.status!=='lobby')return finish(false,'The mission has already started.');
       this._newGame(room);room.status='playing';room.reason='Stay together. Bring the squad home.';
     }else if(type==='continue_operation'){
-      if(statusOf(room)!=='won'||room.mission>=MISSIONS.length-1)return finish(false,'Finish this chapter before continuing to an available next chapter.');
-      room.campaign=campaignOutcome(room.game);room.mission++;this._newGame(room);room.status='playing';
+      if(statusOf(room)!=='won'||getNextCampaignMission(room.mission)===null)return finish(false,'Finish this chapter before continuing to an available next chapter.');
+      room.campaign=campaignOutcome(room.game);room.mission=getNextCampaignMission(room.mission);this._newGame(room);room.status='playing';
       room.reason='The operation continues. Earlier supply, fatigue and civilian outcomes carry into this chapter.';
     }else if(type==='return_lobby'){
       room.status='lobby';room.campaign=null;this._newGame(room);room.reason='Choose a fresh mission together.';

@@ -1,6 +1,7 @@
 // Field audio: CC0 recordings where available, with bounded procedural fallbacks.
 // Source attribution and editing notes are in audio/CREDITS.txt.
 import { buildingAt } from './building-geometry.mjs';
+import { environmentAt, eventEnvironment, reverbImpulseData } from './audio-environments.mjs';
 import { SOUND_SPEED_MPS, WORLD_UNITS_PER_METRE, MAX_PENDING_ARRIVALS, ARRIVAL_LOOKAHEAD,
   ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticHearingRange, reportProfile } from './acoustics.mjs';
 
@@ -17,7 +18,9 @@ const SCENES = new Set(['menu', 'mission', 'paused']);
 export class GameAudio {
   constructor() {
     this.enabled = true; this.context = null; this.master = null; this.noise = null;
-    this.levels = { master: 1, effects: 1, ambience: 1, distress: .65 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
+    this.levels = { master: 1, effects: 1, ambience: 1, distress: .65, reflections: .8 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
+    this.reverbBanks = {}; this.reverbBuffers = {}; this.reflectionsNeedFlush = false; this.listenerEnvironment = null;
+    this.environmentTimer = 0; this.environmentKey = ''; this.lastAcousticSpace = null;
     this.voices = new Set(); this.loops = new Map(); this.samples = new Map(); this.sampleStatus = {};
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
@@ -97,26 +100,53 @@ export class GameAudio {
     data.audioPending = String(this.pendingArrivals.length);
     data.audioPropagation = `${SOUND_SPEED_MPS}m/s@${WORLD_UNITS_PER_METRE}units/m`;
     data.audioArrivals = JSON.stringify({ ...this.propagationStats, last: this.arrivalTrace.at(-1) || null });
+    data.audioEnvironment = this.listenerEnvironment?.kind || 'open';
+    data.audioReflections = JSON.stringify({ room:this.reverbBanks.room?.output.gain.value||0, street:this.reverbBanks.street?.output.gain.value||0, source:this.lastAcousticSpace?.sourceKind||null, occluded:this.lastAcousticSpace?.occluded||false });
   }
 
   _makeReflections() {
-    const c = this.context, length = Math.floor(c.sampleRate * .48), impulse = c.createBuffer(2, length, c.sampleRate);
-    for (let channel = 0; channel < 2; channel++) {
-      const data = impulse.getChannelData(channel);
-      for (let i = 0; i < length; i++) {
-        const t = i / c.sampleRate;
-        data[i] = t < .037 ? 0 : (Math.random() * 2 - 1) * Math.exp(-t * 13) * .13;
+    const c = this.context;
+    for(const kind of ['room','street']) {
+      if(!this.reverbBuffers[kind]) {
+        const channels=reverbImpulseData(c.sampleRate,kind),buffer=c.createBuffer(2,channels[0].length,c.sampleRate);
+        channels.forEach((channel,i)=>buffer.getChannelData(i).set(channel)); this.reverbBuffers[kind]=buffer;
       }
-      for (const [time, level] of [[.047, .21], [.081, .13], [.133, .07]]) {
-        const at = Math.floor((time + channel * .006) * c.sampleRate);
-        for (let i = 0; i < 25; i++) data[at + i] += level * (1 - i / 25) * (i % 2 ? -.5 : 1);
-      }
+      const old=this.reverbBanks[kind];
+      if(old)for(const node of Object.values(old))node.disconnect?.();
+      const input=c.createGain(),filter=c.createBiquadFilter(),convolver=c.createConvolver(),output=c.createGain();
+      input.gain.value=1; filter.type='lowpass';filter.frequency.value=kind==='room'?3100:2500;
+      convolver.normalize=false;convolver.buffer=this.reverbBuffers[kind]; output.gain.value=0;
+      input.connect(filter);filter.connect(convolver);convolver.connect(output);output.connect(this.effectsBus);
+      this.reverbBanks[kind]={input,filter,convolver,output};
     }
-    this.reverbInput = c.createGain(); this.reverbInput.gain.value = 1;
-    const filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 2400;
-    const convolver = c.createConvolver(); convolver.buffer = impulse;
-    this.reverbReturn = c.createGain(); this.reverbReturn.gain.value = 0;
-    this.reverbInput.connect(filter); filter.connect(convolver); convolver.connect(this.reverbReturn); this.reverbReturn.connect(this.effectsBus);
+    // Retain these aliases for existing diagnostics and voice-route inspection.
+    this.reverbInput=this.reverbBanks.room.input;this.reverbReturn=this.reverbBanks.room.output;
+    this.reflectionsNeedFlush=false;this.environmentKey='';this.environmentTimer=0;
+  }
+
+  _clearReflections() {
+    if(this.reflectionsNeedFlush)return;
+    const now=this.context?.currentTime||0;
+    for(const bank of Object.values(this.reverbBanks)) {bank.output.gain.cancelScheduledValues(now);bank.output.gain.setTargetAtTime(0,now,.012);}
+    // Reconnect the two nodes with cached kernels on resume. An old convolution
+    // tail must not reappear after a very short pause, mute, or listener swap.
+    this.reflectionsNeedFlush=true;
+  }
+
+  _mixReflections(state, player, dt) {
+    if(!this.context||this.levels.master===0||this.levels.effects===0||this.levels.reflections===0)return;
+    if(this.reflectionsNeedFlush)this._makeReflections();
+    this.environmentTimer-=dt;
+    const house=buildingAt(state.world,player);
+    const key=`${state.seed}:${state.missionIndex}:${state.world?.geometryRevision||0}:${house?.id||house?.x||'out'}:${Math.floor(player.x/16)}:${Math.floor(player.y/16)}`;
+    if(this.environmentKey===key&&this.environmentTimer>0)return;
+    this.environmentKey=key;this.environmentTimer=.12;
+    const env=this.listenerEnvironment=environmentAt(state.world,player),now=this.context.currentTime;
+    for(const kind of ['room','street']) {
+      const bank=this.reverbBanks[kind];
+      bank.output.gain.setTargetAtTime(env[`${kind}Return`]*this.levels.reflections,now,.16);
+      bank.filter.frequency.setTargetAtTime(env[`${kind}Cutoff`],now,.2);
+    }
   }
 
   _makeEngine() {
@@ -274,7 +304,7 @@ export class GameAudio {
 
   setLevels(levels = {}) {
     const effectsAudible = this.levels.master > 0 && this.levels.effects > 0;
-    for (const key of ['master', 'effects', 'ambience', 'distress']) {
+    for (const key of ['master', 'effects', 'ambience', 'distress', 'reflections']) {
       if (Number.isFinite(levels?.[key])) this.levels[key] = clamp(levels[key], 0, 1);
     }
     this._applyLevels();
@@ -282,6 +312,8 @@ export class GameAudio {
       this._cancelArrivals();
       if (this.lastState) this.needsLiveCursor = true;
     }
+    if (this.levels.master === 0 || this.levels.effects === 0 || this.levels.reflections === 0) this._clearReflections();
+    this.environmentKey='';
     if (this.levels.master === 0 || this.levels.effects === 0) this._stopVoices(voice => voice.bus !== 'menu' && voice.bus !== 'ambience');
     if (this.levels.distress === 0) this._stopVoices(voice => voice.bus === 'distress');
     this._syncScene();
@@ -306,7 +338,7 @@ export class GameAudio {
 
   _voice({ buffer = null, duration = .1, gain = .08, frequency = 0, endFrequency,
     lowpass = 6500, highpass = 60, pan = 0, delay = 0, attack = .0015,
-    rate = 1, wet = 0, priority = 0, bus = 'effects', offset = 0, actorId = null } = {}) {
+    rate = 1, wet = 0, space = null, priority = 0, bus = 'effects', offset = 0, actorId = null } = {}) {
     if (!this._ready() || this.levels.master === 0 || bus === 'distress' && this.levels.distress === 0 ||
       bus !== 'menu' && bus !== 'ambience' && this.levels.effects === 0) return;
     if (this.voices.size >= 32) {
@@ -337,10 +369,15 @@ export class GameAudio {
     if (c.createStereoPanner) { panner = c.createStereoPanner(); panner.pan.value = clamp(pan, -.9, .9); envelope.connect(panner); }
     const output = panner || envelope;
     output.connect(bus === 'menu' ? this.menuBus : bus === 'distress' ? this.distressBus : bus === 'ambience' ? this.missionAmbienceBus : this.effectsBus);
-    let send = null;
+    const sends=[];
     // Distress has its own volume path; a shared effects reverb must not bypass it.
-    if (wet && bus === 'effects' && this.reverbInput) { send = c.createGain(); send.gain.value = wet; output.connect(send); send.connect(this.reverbInput); }
-    const voice = { source, envelope, priority, bus, actorId, start, nodes: [source, envelope, low, high, panner, send] };
+    if (wet && bus === 'effects' && this.levels.reflections > 0) {
+      const mix=space||{room:this.listenerEnvironment?.enclosure||0,street:1-(this.listenerEnvironment?.enclosure||0)*.75};
+      for(const kind of ['room','street'])if(mix[kind]>.015&&this.reverbBanks[kind]) {
+        const send=c.createGain();send.gain.value=clamp(wet*mix[kind],0,.85);output.connect(send);send.connect(this.reverbBanks[kind].input);sends.push(send);
+      }
+    }
+    const voice = { source, envelope, priority, bus, actorId, start, space, nodes: [source, envelope, low, high, panner, ...sends] };
     this.voices.add(voice);
     source.onended = () => { this.voices.delete(voice); for (const n of voice.nodes) if (n) { try { n.disconnect(); } catch {} } };
     if (frequency) source.start(start); else if (sample) source.start(start, offset); else source.start(start, Math.random() * .8);
@@ -380,11 +417,11 @@ export class GameAudio {
   }
 
   _spatial(event, player, world = null) {
-    const d = distance({ x: event.x ?? player.x, y: event.y ?? player.y }, player);
-    const sourceRoom = buildingAt(world, event), listenerRoom = buildingAt(world, player);
-    const occluded = sourceRoom !== listenerRoom && Boolean(sourceRoom || listenerRoom);
+    const source={x:event.x??player.x,y:event.y??player.y},d=distance(source,player);
+    const space=eventEnvironment(world,source,player),occluded=space.occluded;
+    this.lastAcousticSpace=space;
     return { d, gain: (occluded ? .48 : 1) / (1 + (d / 165) ** 1.25), pan: ((event.x ?? player.x) - player.x) / 390,
-      lowpass: Math.min(occluded ? 1350 : 10000, clamp(10000 / (1 + d / 270), 850, 10000)), occluded };
+      lowpass: Math.min(occluded ? 1350 : 10000, clamp(10000 / (1 + d / 270), 850, 10000)), occluded, space };
   }
 
   _presentationTime(state, timing = {}) {
@@ -468,10 +505,10 @@ export class GameAudio {
     const priority = own ? 3 : event.team === 'squad' ? 2 : 1;
     const reportGain = own ? Math.max(.46, profile.gain) : profile.gain;
     if (sample) this._voice({ buffer: sample, duration: Math.min(profile.duration, sample.duration / rate), gain: reportGain * gain,
-      rate, highpass: profile.highpass, lowpass: own ? 10000 : spatial.lowpass, pan, wet: .12, priority });
+      rate, highpass: profile.highpass, lowpass: own ? 10000 : spatial.lowpass, pan, wet: .58, space:spatial.space, priority });
     else {
       this._voice({ duration: weapon === 'hostile' ? .12 : .075, gain: .3 * gain, highpass: 650,
-        lowpass: own ? 8500 : spatial.lowpass, pan, wet: .18, priority });
+        lowpass: own ? 8500 : spatial.lowpass, pan, wet: .58, space:spatial.space, priority });
       this._voice({ duration: .16, gain: .2 * gain, highpass: 45, lowpass: weapon === 'hostile' ? 650 : 1100, pan, priority });
       this._voice({ duration: .085, gain: .075 * gain, frequency: weapon === 'support' ? 125 : 155, endFrequency: 52, highpass: 35, lowpass: 500, pan, priority });
     }
@@ -480,7 +517,7 @@ export class GameAudio {
     if (own || spatial.d < 150 && profile.mechanism > .04) this._voice({ duration: .045, gain: profile.mechanism * gain,
       highpass: weapon === 'support' ? 950 : 1800, lowpass: Math.min(5100, spatial.lowpass), pan, delay: .035, priority: own ? 2 : 0 });
     if (profile.tail) this._voice({ duration: weapon === 'sniper' ? .42 : .14, gain: profile.tail * gain,
-      highpass: 140, lowpass: Math.min(1800, spatial.lowpass), delay: .115, pan, wet: .2, priority: 1 });
+      highpass: 140, lowpass: Math.min(1800, spatial.lowpass), delay: .115, pan, wet: .22, space:spatial.space, priority: 1 });
   }
 
   _nearPass(event, player, state) {
@@ -548,7 +585,7 @@ export class GameAudio {
     const sample = this.samples.get(++this.fearVariant % 2 ? 'fear1' : 'fear2');
     if (!sample) return;
     this.lastFearTime = now;
-    const rate = .97 + Math.random() * .06, night = state?.missionIndex === 2 ? .8 : 1;
+    const rate = .97 + Math.random() * .06, night = (state?.mission?.lighting==='night'||!state?.mission?.lighting&&state?.missionIndex===2) ? .8 : 1;
     this._voice({ buffer: sample, duration: Math.min(1.15, sample.duration / rate), gain: .26 * s.gain * night,
       lowpass: s.lowpass, highpass: 160, pan: s.pan, rate, attack: .012, bus: 'distress', priority: 1,
       actorId: event.victimId ?? event.actorId });
@@ -563,17 +600,17 @@ export class GameAudio {
     const s = this._spatial(event, player, state?.world); if (s.d > acousticHearingRange(event.type)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
     if (event.type === 'grenade_launch') {
-      this._voice({ duration: .12, gain: .23 * gain, highpass: 65, lowpass: 1000, pan: s.pan, wet: .08, priority: own ? 3 : 1 });
+      this._voice({ duration: .12, gain: .23 * gain, highpass: 65, lowpass: 1000, pan: s.pan, wet: .32, space:s.space, priority: own ? 3 : 1 });
       this._voice({ duration: .16, gain: .12 * gain, frequency: 145, endFrequency: 48, highpass: 30, lowpass: 480, pan: s.pan, priority: own ? 3 : 1 });
     } else if (event.type === 'explosion') {
-      this._voice({ duration: .17, gain: .48 * s.gain, highpass: 90, lowpass: Math.min(4200,s.lowpass), pan: s.pan, wet: .18, priority: 3 });
-      this._voice({ duration: .65, gain: .25 * s.gain, highpass: 28, lowpass: 480, delay: .035, pan: s.pan, wet: .22, priority: 2 });
+      this._voice({ duration: .17, gain: .48 * s.gain, highpass: 90, lowpass: Math.min(4200,s.lowpass), pan: s.pan, wet: .48, space:s.space, priority: 3 });
+      this._voice({ duration: .65, gain: .25 * s.gain, highpass: 28, lowpass: 480, delay: .035, pan: s.pan, wet: .28, space:s.space, priority: 2 });
       this._voice({ duration: .38, gain: .17 * s.gain, frequency: 80, endFrequency: 30, highpass: 20, lowpass: 260, pan: s.pan, priority: 2 });
       this._voice({ buffer: this.rumble, duration: event.breached ? 1.75 : .95, gain: (event.breached ? .18 : .1) * s.gain,
         highpass: 35, lowpass: Math.min(900, s.lowpass), delay: .055, pan: s.pan, attack: .02, priority: 1 });
       if (event.breached) {
         // One tail for an actual opened wall, never one sound per dust sprite.
-        this._voice({ duration: .38, gain: .085 * s.gain, highpass: 360, lowpass: Math.min(2900, s.lowpass), delay: .14, pan: s.pan, wet: .08, priority: 1 });
+        this._voice({ duration: .38, gain: .085 * s.gain, highpass: 360, lowpass: Math.min(2900, s.lowpass), delay: .14, pan: s.pan, wet: .12, space:s.space, priority: 1 });
         this._voice({ duration: .15, gain: .045 * s.gain, highpass: 110, lowpass: Math.min(1500, s.lowpass), delay: .43, pan: s.pan, priority: 0 });
       }
     } else if (event.type === 'reload_start') {
@@ -584,11 +621,11 @@ export class GameAudio {
       this._voice({ duration: .075, gain: .1 * gain, highpass: 500, lowpass: 4200, pan: s.pan, priority: own ? 2 : 0 });
       this._voice({ duration: .04, gain: .065 * gain, highpass: 1300, lowpass: 5100, delay: .07, pan: s.pan });
     } else if (event.type === 'smoke') {
-      this._voice({ duration: .12, gain: .11 * s.gain, highpass: 80, lowpass: 1100, pan: s.pan, wet: .06 });
+      this._voice({ duration: .12, gain: .11 * s.gain, highpass: 80, lowpass: 1100, pan: s.pan, wet: .14, space:s.space });
       this._voice({ duration: 1.2, gain: .035 * s.gain, highpass: 900, lowpass: 4000, delay: .08, pan: s.pan, attack: .07 });
     } else if (event.type === 'impact') {
       this._voice({ duration: event.material === 'concrete' ? .075 : .055, gain: .085 * s.gain,
-        highpass: event.material === 'concrete' ? 1100 : 240, lowpass: Math.min(4500, s.lowpass), pan: s.pan, wet: .04, priority: s.d < 80 ? 3 : 0 });
+        highpass: event.material === 'concrete' ? 1100 : 240, lowpass: Math.min(4500, s.lowpass), pan: s.pan, wet: .15, space:s.space, priority: s.d < 80 ? 3 : 0 });
       if (event.material === 'concrete' && s.d < 220) this._voice({ duration: .08, gain: .026 * s.gain,
         highpass: 650, lowpass: Math.min(3100, s.lowpass), delay: .055, pan: s.pan, priority: 0 });
     }
@@ -635,7 +672,7 @@ export class GameAudio {
   _ambience(state, player, dt) {
     if (!this._ready() || !player) return;
     const indoors = Boolean(buildingAt(state.world, player)), wind = this.samples.get('wind');
-    const bed = (state.missionIndex === 2 ? .78 : 1) * (this.context.currentTime < this.foregroundUntil ? .58 : 1);
+    const bed = ((state.mission?.lighting==='night'||!state.mission?.lighting&&state.missionIndex===2) ? .78 : 1) * (this.context.currentTime < this.foregroundUntil ? .58 : 1);
     const breeze = .83 + Math.sin(state.time * .19) * .12 + Math.sin(state.time * .071) * .05;
     // Existing loop gain/filter ramps soften each threshold crossing without
     // rebuilding audio nodes or tracing sound paths through individual walls.
@@ -662,8 +699,7 @@ export class GameAudio {
         highpass: 130, pan: s.pan, rate: .94 + Math.sin(state.time * .27) * .025 });
     } else this._stopLoop('wreck-fire');
     for (const v of vehicles) this.vehiclePositions.set(v.id, { x: v.x, y: v.y });
-    const density = (state.world?.buildings || []).filter(b => distance({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, player) < 310).length;
-    this.reverbReturn?.gain.setTargetAtTime(Math.min(.34, .13 + Math.min(density, 5) * .035 + (indoors ? .04 : 0)), this.context.currentTime, .3);
+    this._mixReflections(state,player,dt);
   }
 
   tick(state, dt = 0, timing = {}) {
@@ -685,7 +721,7 @@ export class GameAudio {
     } else if (changedListener || changedEpoch) {
       // A role swap changes transport epoch but keeps the same mission's event
       // ring. Keep its cursor; discard old-perspective arrivals without replay.
-      this._cancelArrivals(); this._stopVoices(voice => voice.bus !== 'menu');
+      this._cancelArrivals(); this._stopVoices(voice => voice.bus !== 'menu'); this._clearReflections();
       this.needsLiveCursor = true; this.presentationAnchor = null;
     }
     this.transportEpoch = timing.epoch ?? this.transportEpoch;
@@ -754,7 +790,7 @@ export class GameAudio {
     const now = this.context?.currentTime || 0;
     for (const key of [...this.loops.keys()]) if (!key.startsWith('menu:')) this._stopLoop(key);
     this._stopVoices(voice => voice.bus !== 'menu');
-    if (this.reverbReturn) { this.reverbReturn.gain.cancelScheduledValues(now); this.reverbReturn.gain.setTargetAtTime(0, now, .015); }
+    this._clearReflections();
   }
 
   stop() {

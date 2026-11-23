@@ -168,13 +168,11 @@ test('a sniper gives an aimed-shot warning, breaks charge on lost sight, and can
   game.world.walls=[{x:650,y:0,w:20,h:1900}];run(game,2);assert.equal(sniper.aimCharge,0);
 });
 
-test('seeded snipers are occasional and the live population stays capped at one',()=>{
-  let withSniper=0;
-  for(let seed=1;seed<=48;seed++){
-    const game=createGame({seed}),snipers=game.enemies.filter(a=>a.kind==='sniper');
-    assert.ok(snipers.length<=1);if(snipers.length)withSniper++;
-    game.spawnTimer=0;game.time=110;step(game,{},1/30);
+test('planned long approaches contain a sniper and the live population stays capped at one',()=>{
+  for(let seed=1;seed<=12;seed++)for(let mission=0;mission<6;mission++){
+    const game=createGame({seed,mission}),snipers=game.enemies.filter(a=>a.kind==='sniper');
+    assert.equal(snipers.length,[1,3,4].includes(mission)?1:0,'snipers belong to planned long-range approaches, not an eight-percent global roll');
+    game.stageIndex=game.stages.length-1;game.time=110;step(game,{},1/30);
     assert.ok(game.enemies.filter(a=>a.alive&&a.kind==='sniper').length<=1);
   }
-  assert.ok(withSniper>0&&withSniper<24,'snipers add occasional variation, not a mandatory encounter on every map');
 });

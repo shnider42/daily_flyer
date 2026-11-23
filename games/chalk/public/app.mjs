@@ -1,4 +1,4 @@
-import { MISSIONS, createGame, step, issueOrder, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
+import { MISSIONS, createGame, step, issueOrder, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
 import { stickVector, touchIntent, GroundOrderTap } from './touch-input.mjs';
@@ -31,7 +31,7 @@ try {
   const saved = JSON.parse(localStorage.getItem(OPERATION_STORAGE) || 'null');
   if (saved && Number.isInteger(saved.nextMission) && saved.nextMission > 0 && saved.nextMission < MISSIONS.length && saved.carry && typeof saved.carry === 'object') {
     const carry = normalizeCampaignCarry(saved.carry);
-    if (carry && carry.fromMission === saved.nextMission - 1) { operationPlan = { nextMission: saved.nextMission, carry }; selectedMission = saved.nextMission; }
+    if (carry && getNextCampaignMission(carry.fromMission) === saved.nextMission) { operationPlan = { nextMission: saved.nextMission, carry }; selectedMission = saved.nextMission; }
   }
 } catch { /* A fresh mission remains available without saved operation data. */ }
 let game = null;
@@ -123,9 +123,11 @@ function measureSafeInsets() {
   desktopObstacles = []; desktopObstacleKey = '';
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
-  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio')];
+  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio'), $('radio')];
   const top = Math.max(...topElements.map(el => el?.getBoundingClientRect().bottom || rect.top)) - rect.top + 10;
-  safeInsets = { top: Math.min(rect.height * .43, top), right: 20, bottom: showMap ? 58 : Math.min(rect.height * .43, rect.bottom - controlsRect.top + 10), left: 20 };
+  const hintRect = $('contextHint').getBoundingClientRect();
+  const controlsTop = hintRect.width && hintRect.height ? Math.min(controlsRect.top, hintRect.top) : controlsRect.top;
+  safeInsets = { top: Math.min(rect.height * .43, top), right: 20, bottom: showMap ? 58 : Math.min(rect.height * .43, rect.bottom - controlsTop + 10), left: 20 };
 }
 new ResizeObserver(fit).observe($('battlefield'));
 window.addEventListener('resize', fit);
@@ -140,7 +142,7 @@ function soundUI() {
   $('motionToggle').checked = preferences.reducedMotion;
   $('touchToggle').checked = touch;
   audio.setEnabled(preferences.sound);
-  audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume, distress: preferences.distressVolume });
+  audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume, distress: preferences.distressVolume, reflections: preferences.reflectionsVolume });
 }
 function wakeAudio(event) {
   if (!preferences.sound || event?.target?.closest?.('#menuSound') || audio.context?.state === 'running') return;
@@ -166,6 +168,7 @@ function applySettings(key) {
   }
   document.body.dataset.hudDetail = preferences.hudDetail;
   document.body.dataset.mobileHudDetail = preferences.mobileHudDetail;
+  document.body.dataset.guidance = preferences.guidance;
   document.documentElement.style.setProperty('--hud-scale', String(preferences.hudScale));
   document.documentElement.style.setProperty('--mobile-hud-scale', String(preferences.mobileHudScale));
   $('performanceStats').hidden = !preferences.showFPS;
@@ -214,13 +217,14 @@ function chooseRole(role) {
   save();
 }
 function missionMenu() {
-  $('campaignCount').textContent = `${Object.keys(preferences.completed).filter(key => preferences.completed[key]).length} / ${MISSIONS.length} COMPLETE`;
-  $('missionList').innerHTML = MISSIONS.map((mission, i) => `<button type="button" class="mission-choice ${i === selectedMission ? 'selected' : ''}" data-mission="${i}" aria-pressed="${i === selectedMission}"><span class="mission-number">0${i + 1}</span><span class="mission-name">${escape(mission.title)}</span>${preferences.completed[mission.id] ? '<span class="mission-completed">COMPLETE</span>' : ''}</button>`).join('');
+  $('campaignCount').textContent = `${MISSIONS.filter(mission => preferences.completed[mission.id]).length} / ${MISSIONS.length} COMPLETE`;
+  $('missionList').innerHTML = MISSIONS.map((mission, i) => `${mission.category === 'side' && MISSIONS[i-1]?.category !== 'side' ? '<p class="mission-group-label">STANDALONE FIELD OPERATIONS</p>' : ''}<button type="button" class="mission-choice ${i === selectedMission ? 'selected' : ''}" data-mission="${i}" aria-pressed="${i === selectedMission}" aria-label="${escape(mission.title)}${mission.category === 'side' ? ', standalone operation' : ', campaign chapter '+(i+1)}${preferences.completed[mission.id] ? ', completed' : ''}"><span class="mission-number">${String(i + 1).padStart(2,'0')}</span><span class="mission-name">${escape(mission.title)}</span>${preferences.completed[mission.id] ? '<span class="mission-completed" aria-label="Completed">✓</span>' : ''}</button>`).join('');
   const mission = MISSIONS[selectedMission];
   $('briefTime').textContent = mission.time || mission.subtitle;
   $('briefTitle').textContent = mission.title;
   $('briefDescription').textContent = mission.description;
   $('briefGoal').textContent = mission.goals?.[0] || mission.briefing?.[0] || '';
+  text('briefCategory', mission.category === 'side' ? 'Standalone operation · Fictional scenario' : `Campaign chapter ${selectedMission + 1} of 4`);
   $('deploy').textContent = `DEPLOY TO ${mission.title.toUpperCase()}`;
   const continuing = operationPlan?.nextMission === selectedMission;
   $('operationStatus').hidden = !operationPlan;
@@ -262,7 +266,7 @@ function startMission(index = selectedMission, { restart = false, fresh = false 
   canvas.focus({ preventScroll: true });
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
-  if (touch) toast(game.role === 'leader' ? 'Tap ground to move the squad · Tap a soldier to take control' : 'Tap a soldier to take control · Right stick: aim and fire');
+  if (touch && preferences.guidance === 'simple') toast(game.role === 'leader' ? 'Tap ground to move the squad · Tap a soldier to take control' : 'Tap a soldier to take control · Right stick: aim and fire');
 }
 function returnToMenu() {
   if (online()) coop.leave();
@@ -359,11 +363,13 @@ function assistAction() {
   const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70 && hasLineOfSight(game, p, s)).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
   if (down) return { label: 'Revive', detail: `Hold to help ${down.name}`, progress: (down.reviveProgress || 0) / 4 };
   const objective = getObjective(game), distance = objective ? Math.hypot(p.x-objective.x,p.y-objective.y) : Infinity;
-  if (objective?.kind === 'rescue' && distance < objective.radius && hasLineOfSight(game, p, objective)) return { label: 'Rescue', detail: 'Hold to stabilize the crew', progress: objective.progress || 0 };
+  if (objective?.kind === 'rescue' && distance < objective.radius && hasLineOfSight(game, p, objective)) return { label: 'Rescue', detail: 'Hold to stabilize the wounded', progress: objective.progress || 0 };
   if (objective?.kind === 'barricade' && distance < 85 && hasLineOfSight(game, p, objective)) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
+  const missionAction = getMissionInteraction(game, p.id);
+  if (missionAction && missionAction.available !== false) return missionAction;
   const fieldAction = getStoryInteraction(game, p.id);
   if (fieldAction) return { ...fieldAction, detail: `Hold to aid resident · ${fieldAction.detail.replace(/^Hold to use /, 'uses ')}` };
-  if (p.hp < p.maxHp && p.medkits > 0 && !['rescue','barricade'].includes(objective?.kind)) return { label: 'Bandage', detail: 'Hold to bandage yourself', progress: (p.bandageProgress || 0) / 3 };
+  if (p.hp < p.maxHp && p.medkits > 0 && !['rescue','barricade','repair'].includes(objective?.kind)) return { label: 'Bandage', detail: 'Hold to bandage yourself', progress: (p.bandageProgress || 0) / 3 };
   return null;
 }
 function resetStoryUI() {
@@ -417,12 +423,12 @@ async function selectStoryOption(optionId) {
 }
 function continueOperation() {
   if (!game) return;
-  const nextMission = game.missionIndex + 1;
+  const nextMission = getNextCampaignMission(game.missionIndex);
   if (online()) {
-    runCoopAction(() => game.status === 'won' && nextMission < MISSIONS.length ? coop.continueOperation() : coop.returnToLobby());
+    runCoopAction(() => game.status === 'won' && nextMission !== null ? coop.continueOperation() : coop.returnToLobby());
     return;
   }
-  if (game.status === 'won' && nextMission < MISSIONS.length) {
+  if (game.status === 'won' && nextMission !== null) {
     const carry = campaignOutcome(game);
     if (carry) { operationPlan = { nextMission, carry }; saveOperation(); }
     selectedMission = nextMission;
@@ -651,6 +657,8 @@ function updateHUD() {
   const p = player(), objective = getObjective(game), shared = online();
   text('objectiveTitle', objective?.title || 'Stay with the squad');
   text('objectiveDetail', objective?.detail || objective?.description || '');
+  const carriedItems = (game.operation?.items || []).filter(item => item.status === 'carried');
+  text('missionCargo', carriedItems.map(item => `${item.carrierId === game.playerId ? 'Carrying' : game.squad.find(soldier => soldier.id === item.carrierId)?.name || 'Squad'}: ${item.label}`).join(' · '));
   style($('objectiveProgress'), 'width', `${Math.round(clamp(Number(objective?.progress) || 0, 0, 1) * 100)}%`);
   text('stageNumber', `${Math.min(game.stageIndex + 1, game.stageCount)}/${game.stageCount}`);
   text('missionClock', clock(game.time));
@@ -707,15 +715,18 @@ function updateHUD() {
   if ($('touchInteract').style.getPropertyValue('--assist-progress') !== assistProgress) $('touchInteract').style.setProperty('--assist-progress', assistProgress);
   text('touchInteractLabel', assist?.label || 'Assist');
   attr($('touchInteract'), 'aria-label', assist?.detail || 'Assist — move near someone who needs help');
-  const messages = game.radio.filter(m => game.time - m.time < (touch ? 8 : 14)).slice(touch || preferences.hudDetail === 'compact' ? -1 : -2);
+  const minimalGuidance = preferences.guidance === 'expert';
+  const messages = game.radio.filter(m => game.time - m.time < (minimalGuidance ? 5 : touch ? 8 : 14)).slice(touch || minimalGuidance || preferences.hudDetail === 'compact' ? -1 : -2);
   const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
-  const interactText = shared ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
-  let hint = interactText || (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '');
+  const interactionControl = touch ? `Hold ${(assist?.label || 'Assist').toUpperCase()}` : 'Hold E';
+  const assistHint = assist ? `${interactionControl} to ${assist.detail.replace(/^Hold to /,'').replace(/[.]$/,'')}.` : '';
+  const interactText = shared ? assistHint : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
+  let hint = interactText || assistHint;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? 'Follow the amber marker. Right click to send your squad.' : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = assist ? assist.detail : game.role === 'leader' && game.time < 18 ? shared ? 'Tap ground: move squad · Regroup / Hold act immediately' : 'Tap ground: move squad · Tap soldier: take control' : '';
-  if (!hint && observing) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : 'Binoculars · Mouse to scan · B to lower';
+  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 18 ? shared ? 'Tap ground: move squad · Regroup / Hold act immediately' : 'Tap ground: move squad · Tap soldier: take control' : '';
+  if (!hint && observing && !(touch && minimalGuidance)) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : 'Binoculars · Mouse to scan · B to lower';
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
   if (interiorNotice.scene !== scene || interiorNotice.id !== (house?.id || '')) interiorNotice = { scene, id: house?.id || '', at: game.time };
@@ -750,12 +761,13 @@ function finishMission() {
   $('storyDebrief').hidden = !summary.length && !log.length;
   $('storySummary').innerHTML = summary.map(item => `<li>${escape(item)}</li>`).join('');
   $('storyLog').innerHTML = log.map(item => `<li><time>${clock(Number(item.time) || 0)}</time><span><strong>${escape(item.speaker || 'FIELD')}</strong> ${escape(item.text)}</span></li>`).join('');
-  text('operationCarryHint', won && game.missionIndex + 1 < MISSIONS.length ? 'Continue operation to carry supply costs, fatigue, and civilian consequences into the next mission. Each chapter assembles a new squad state.' : 'These decisions belong to this playthrough. Replay to take a different approach.');
+  const nextChapter = getNextCampaignMission(game.missionIndex);
+  text('operationCarryHint', won && nextChapter !== null ? 'Continue operation to carry supply costs, fatigue, and civilian consequences into the next mission. Each chapter assembles a new squad state.' : game.mission.category === 'side' ? 'This standalone operation does not change the four-chapter campaign. Replay to try another approach.' : 'These decisions belong to this playthrough. Replay to take a different approach.');
   $('nextMission').hidden = !won;
-  $('nextMission').textContent = selectedMission + 1 < MISSIONS.length ? 'CONTINUE OPERATION' : 'RETURN TO FIELD ORDERS';
+  $('nextMission').textContent = nextChapter !== null ? 'CONTINUE OPERATION' : 'RETURN TO FIELD ORDERS';
   $('replay').disabled = false; $('nextMission').disabled = false; $('coopResultWait').hidden = true; $('resultMenu').textContent = 'Back to field orders';
   if (online()) {
-    $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = won && game.missionIndex + 1 < MISSIONS.length ? 'CONTINUE WITH SQUAD' : 'SQUAD BRIEFING';
+    $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = won && nextChapter !== null ? 'CONTINUE WITH SQUAD' : 'SQUAD BRIEFING';
     $('replay').disabled = !coop.isHost; $('replay').textContent = 'Replay with squad';
     $('coopResultWait').hidden = coop.isHost; $('resultMenu').textContent = 'Leave squad';
   } else $('replay').textContent = 'Replay mission';
@@ -954,6 +966,7 @@ function renderView(now) {
   const aimActive = !touch && pointer.valid && canAct() && !document.querySelector('dialog[open]');
   flag(document.body, 'desktop-aim', aimActive);
   return { time: now / 1000, menu: mode === 'menu', paused, pointer: aimActive ? pointer : null, showMap, placingOrder,
+    effectEpoch: online() ? `${coop.room?.code || ''}:${coop.room?.epoch ?? ''}` : null,
     observing: observing && player()?.role === 'grenadier' && canAct(), quickOrder: quickOrder?.until > now ? { point: quickOrder.point, active: true } : null,
     guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, bloodEffects: preferences.bloodEffects, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
     quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameAudio } from '../public/audio.mjs';
+import { reverbImpulseData, environmentAt, eventEnvironment, acousticLineBlocked } from '../public/audio-environments.mjs';
+import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { WORLD_UNITS_PER_METRE, SOUND_SPEED_MPS, MAX_PENDING_ARRIVALS, acousticTravelDelay,
   acousticSourceTime, acousticArrivalTime, reportProfile } from '../public/acoustics.mjs';
 
@@ -65,6 +67,68 @@ function setup(t, { failedAssets = false } = {}) {
     contextState(state) { audio.context.state = state; audio.context.listeners.get('statechange')?.(); },
   };
 }
+
+test('room response starts densely while the street response has separated later reflections', () => {
+  const room=reverbImpulseData(8000,'room'),street=reverbImpulseData(8000,'street');
+  const energy=(data,from,to)=>data.slice(Math.floor(from*8000),Math.floor(to*8000)).reduce((sum,v)=>sum+v*v,0);
+  assert.ok(energy(room[0],0,.06)>.35);
+  assert.equal(energy(street[0],0,.06),0);
+  assert.ok(energy(street[0],.14,.6)>energy(room[0],.14,.6)*5);
+  assert.ok(street[0].length>room[0].length);
+  assert.notDeepEqual(room[0],room[1], 'stereo responses do not collapse to identical channels');
+  assert.deepEqual(room,reverbImpulseData(8000,'room'));
+  for(const data of [...room,...street]) assert.ok(data.every(value=>Number.isFinite(value)&&Math.abs(value)<.8));
+});
+
+test('real doorways transmit direct sound while perimeter and partition walls muffle it', () => {
+  const world={buildings:[{id:'house',x:100,y:100,w:260,h:220,tone:.5}]};prepareBuildingInteriors(world);
+  const b=world.buildings[0],door=b.doors[0],outside=door.outside,inside=door.inside;
+  assert.equal(acousticLineBlocked(world,outside,inside),false);
+  assert.equal(eventEnvironment(world,outside,inside).occluded,false);
+  assert.equal(acousticLineBlocked(world,{x:70,y:170},{x:140,y:170}),true);
+  const partition=b.walls.find(w=>w.kind==='partition');
+  assert.equal(acousticLineBlocked(world,{x:partition.x+12,y:partition.y-25},{x:partition.x+12,y:partition.y+25}),true);
+  const before=environmentAt(world,{x:140,y:150});
+  b.breaches=[{x:100,y:170},{x:360,y:170}];
+  const after=environmentAt(world,{x:140,y:150});
+  assert.ok(after.enclosure<before.enclosure, 'opened perimeter reduces enclosed room response');
+});
+
+test('source location selects room or street response and reflections never bypass the effects bus', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const world={buildings:[{id:'room',x:100,y:100,w:180,h:200,tone:.3}]};prepareBuildingInteriors(world);
+  const player={id:1,x:170,y:180,hp:100},state={time:1,seed:1,missionIndex:4,mission:{lighting:'night'},world,vehicles:[]};
+  audio._ambience(state,player,.016);
+  audio._shot({id:1,type:'shot',actorId:1,x:170,y:180,weapon:'rifle',team:'squad'},player,state);
+  let report=[...audio.voices].find(v=>v.source.buffer===audio.samples.get('rifle'));
+  assert.ok(report.space.room>report.space.street);
+  assert.ok(report.nodes.some(node=>node?.connections.includes(audio.reverbBanks.room.input)));
+  for(const bank of Object.values(audio.reverbBanks))assert.ok(bank.output.connections.includes(audio.effectsBus));
+  h.advance(2);player.x=50;player.y=180;audio._ambience(state,player,.016);
+  audio._shot({id:2,type:'shot',actorId:1,x:50,y:180,weapon:'rifle',team:'squad'},player,state);
+  report=[...audio.voices].find(v=>v.source.buffer===audio.samples.get('rifle'));
+  assert.ok(report.space.street>report.space.room);
+  assert.ok(report.nodes.some(node=>node?.connections.includes(audio.reverbBanks.street.input)));
+});
+
+test('reflections volume can be muted without changing the dry weapon report or retaining an old tail', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const player={id:1,x:10,y:10,hp:100},state={time:0,missionIndex:0,world:{buildings:[]},vehicles:[]};
+  audio._ambience(state,player,.016);const buffers={...audio.reverbBuffers},oldBank=audio.reverbBanks.street;
+  audio.setLevels({reflections:0});
+  audio._shot({type:'shot',actorId:1,x:10,y:10,weapon:'rifle',team:'squad'},player,state);
+  const voice=[...audio.voices].find(v=>v.source.buffer===audio.samples.get('rifle'));
+  assert.ok(voice);assert.ok(voice.nodes.some(n=>n?.connections.includes(audio.effectsBus)));
+  assert.ok(!voice.nodes.some(n=>n?.connections.includes(oldBank.input)));
+  assert.equal(oldBank.output.gain.value,0);
+  audio.setLevels({reflections:.8});audio._ambience(state,player,.016);
+  assert.notEqual(audio.reverbBanks.street.convolver,oldBank.convolver);
+  assert.equal(audio.reverbBuffers.street,buffers.street,'clearing a tail reuses the cached response');
+  assert.ok(oldBank.convolver.disconnected);
+  const resumed=audio.reverbBanks.street.convolver;
+  audio.setScene('paused');audio.setScene('mission');audio._ambience(state,player,.016);
+  assert.notEqual(audio.reverbBanks.street.convolver,resumed,'quick pause cannot replay the previous tail');
+});
 
 test('menu waits for a gesture, opens with a recorded command, and stays sparse', async t => {
   const h = setup(t), { audio } = h;
@@ -163,7 +227,7 @@ test('missing recordings fall back quietly without blocking menu playback', asyn
   assert.equal(h.timers.size, 1);
 });
 
-test('crossing a doorway softly muffles exterior ambience and adds restrained room reflections', async t => {
+test('crossing a doorway fades exterior ambience and exchanges street reflections for a denser room response', async t => {
   const h = setup(t), { audio } = h;
   audio.setScene('mission'); await h.unlock();
   const player = { x: 99, y: 150 };
@@ -175,6 +239,9 @@ test('crossing a doorway softly muffles exterior ambience and adds restrained ro
     return [key, { loop, gain: loop.volume.gain.value, cutoff: loop.low.frequency.value }];
   }));
   const outsideReflections = audio.reverbReturn.gain.value;
+  const streetReflections = audio.reverbBanks.street.output.gain.value;
+  const roomKernel = audio.reverbBanks.room.convolver;
+  const streetKernel = audio.reverbBanks.street.convolver;
   player.x = 101; audio._ambience(state, player, .016);
   for (const [key, before] of outside) {
     const loop = audio.loops.get(key);
@@ -187,8 +254,11 @@ test('crossing a doorway softly muffles exterior ambience and adds restrained ro
     }
   }
   assert.ok(audio.reverbReturn.gain.value > outsideReflections);
-  assert.ok(audio.reverbReturn.gain.value <= outsideReflections + .045);
-  assert.equal(audio.reverbReturn.gain.events.at(-1)[3], .3);
+  assert.ok(audio.reverbReturn.gain.value > outsideReflections * 3, 'entering a house has a clearly different reverberant balance');
+  assert.ok(audio.reverbBanks.street.output.gain.value < streetReflections);
+  assert.equal(audio.reverbReturn.gain.events.at(-1)[3], .16);
+  assert.equal(audio.reverbBanks.room.convolver, roomKernel, 'crossing does not rebuild impulse responses');
+  assert.equal(audio.reverbBanks.street.convolver, streetKernel);
   player.x = 99; audio._ambience(state, player, .016);
   for (const [key, before] of outside) {
     assert.equal(audio.loops.get(key).volume.gain.value, before.gain);

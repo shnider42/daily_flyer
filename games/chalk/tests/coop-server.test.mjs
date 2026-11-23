@@ -179,12 +179,12 @@ test('radio authority follows assigned soldiers, recommendations survive reconne
   const {rooms,room,host,guest,start,step,command}=setup({role:'member'});start();
   room.game.time=8;step();const decision=room.game.story.activeDecision;
   command(host,'story_choice',{decisionId:decision.id,optionId:'reposition',actorId:room.game.squad[0].id});
-  assert.equal(host.messages.at(-1).ok,true);assert.equal(room.game.stages[1].duration,55);
+  assert.equal(host.messages.at(-1).ok,true);assert.equal(room.game.stages.find(p=>p.id==='collection-hold').duration,55);
   assert.equal(room.game.story.activeDecision.recommendation.actorId,room.game.squad[1].id,'a forged actorId cannot turn the room host into the squad leader');
   assert.deepEqual(host.latest.state.story,guest.latest.state.story);
   const packet={type:'story_choice',id:'final-radio-order',epoch:room.epoch,decisionId:decision.id,optionId:'reposition'};
-  rooms.handle(guest,packet);assert.equal(room.game.stages[1].duration,63);assert.equal(room.game.story.activeDecision,null);
-  rooms.handle(guest,packet);assert.equal(room.game.stages[1].duration,63,'a repeated command acknowledgement cannot apply the cost twice');
+  rooms.handle(guest,packet);assert.equal(room.game.stages.find(p=>p.id==='collection-hold').duration,63);assert.equal(room.game.story.activeDecision,null);
+  rooms.handle(guest,packet);assert.equal(room.game.stages.find(p=>p.id==='collection-hold').duration,63,'a repeated command acknowledgement cannot apply the cost twice');
   room.game.enemies.push({id:999,team:'enemy',kind:'rifleman',x:200,y:1720,angle:0,hp:0,maxHp:72,alive:false,downed:true,deathTime:0});
   room.game.bloodstains.push({id:'blood-network',x:200,y:1720,angle:0,amount:1,seed:4,at:8,seen:true});
   step();rooms.snapshot(room,{reset:true});
@@ -194,7 +194,7 @@ test('radio authority follows assigned soldiers, recommendations survive reconne
   assert.equal(back.latest.state.story.resolved[decision.id].optionId,'reposition');
   command(host,'restart');room.game.enemies=[];room.game.maxEnemies=0;room.game.time=8;step();rooms.disconnect(back);
   command(host,'story_choice',{decisionId:room.game.story.activeDecision.id,optionId:'reposition'});
-  assert.equal(room.game.stages[1].duration,63,'a remaining member can recommend a real change to the AI leader');
+  assert.equal(room.game.stages.find(p=>p.id==='collection-hold').duration,63,'a remaining member can recommend a real change to the AI leader');
 });
 
 test('only the host can continue a completed operation; carry and assignments survive restart but fresh lobby missions reset them',()=>{
@@ -208,11 +208,11 @@ test('only the host can continue a completed operation; carry and assignments su
   rooms.handle(host,packet);assert.equal(host.messages.at(-1).ok,true);assert.equal(room.mission,1);assert.equal(room.game.status,'playing');
   assert.deepEqual(room.players.map(p=>({id:p.id,slot:p.slot})),assignments);assert.equal(room.game.squad.length,4);assert.equal(room.game.squad.filter(a=>a.human).length,2);
   assert.deepEqual(room.game.campaign,{version:1,fromMission:0,medicalDebt:1,smokeDebt:1,fatigue:1,civilianHarm:1,aided:0});
-  assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.squad[0].smokes,2);assert.equal(room.game.stages[0].duration,4);
+  assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.squad[0].smokes,2);assert.equal(room.game.stages.find(p=>p.id==='crash-entry').duration,4);
   assert.deepEqual(host.latest.init.campaign,room.game.campaign);assert.deepEqual(host.latest.state.campaign,guest.latest.state.campaign);
   assert.deepEqual(room.game.bodies,[]);assert.deepEqual(room.game.bloodstains,[]);
   rooms.handle(host,packet);assert.equal(room.mission,1,'replaying Continue cannot skip a chapter');
-  command(host,'restart');assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.stages[0].duration,4,'restart reapplies initial carry once');
+  command(host,'restart');assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.stages.find(p=>p.id==='crash-entry').duration,4,'restart reapplies initial carry once');
   const carry=structuredClone(room.game.campaign);command(host,'swap_roles');assert.deepEqual(room.game.campaign,carry);assert.equal(room.game.squad.length,4);
   command(host,'return_lobby');assert.equal(room.campaign,null);assert.equal(room.game.campaign,null);assert.equal(room.game.squad[2].medkits,6);
   command(host,'configure',{mission:3});command(host,'start');room.game.status='won';command(host,'continue_operation');
@@ -298,4 +298,16 @@ test('HTTP and socket boundaries reject foreign origins, invalid payloads and un
   const binary=await socketClient(url);const binaryClosed=once(binary.ws,'close');binary.ws.send(Buffer.from('no'));assert.equal((await binaryClosed)[0],1003);
   const large=await socketClient(url);const largeClosed=new Promise(resolve=>large.ws.once('close',resolve));large.ws.send('x'.repeat(9000));assert.equal(await largeClosed,1009);
   const abandoned=await socketClient(url);const abandonedClosed=once(abandoned.ws,'close');assert.equal((await abandoned.wait(p=>p.type==='error')).code,'handshake');assert.equal((await abandonedClosed)[0],4001);
+});
+
+test('field cargo and independent side operations survive co-op snapshots and stop at the campaign boundary',()=>{
+  const {rooms,room,host,guest,start,step,command}=setup();start();
+  const p=room.game.stages.find(p=>p.id==='cordon-radio');room.game.stageIndex=room.game.stages.indexOf(p);
+  Object.assign(room.game.squad[1],{x:p.x,y:p.y});
+  for(let i=1;i<=100;i++){rooms.handle(guest,{type:'input',epoch:room.epoch,seq:i,input:{interact:true}});step();}
+  const item=room.game.operation.items[0];assert.equal(item.status,'carried');assert.equal(item.carrierId,room.game.squad[1].id);
+  rooms.snapshot(room,{reset:true});assert.deepEqual(host.latest.state.operation,room.game.operation);assert.deepEqual(host.latest.state.operation,guest.latest.state.operation);
+  const session=guest.session;rooms.disconnect(guest);const back=new Peer();rooms.handle(back,{type:'resume',protocol:PROTOCOL,...session});assert.equal(back.latest.state.operation.items[0].carrierId,room.game.squad[1].id);
+  command(host,'restart');assert.equal(room.game.operation.items[0].status,'ground');
+  command(host,'return_lobby');command(host,'configure',{mission:4});assert.equal(room.game.mission.category,'side');command(host,'start');room.game.status='won';command(host,'continue_operation');assert.equal(host.messages.at(-1).ok,false);assert.equal(room.mission,4);
 });

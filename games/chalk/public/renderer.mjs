@@ -1,6 +1,7 @@
 import { traceAim } from './desktop-input.mjs';
 import { roleProfile } from './squad-roles.mjs';
-import { enemyInSharedSight, squadCanSeePoint, SharedSightLayer } from './visibility.mjs';
+import { enemyInSharedSight, squadCanSeePoint, rayWallDistance, SharedSightLayer } from './visibility.mjs';
+import { getSolidWalls } from './building-geometry.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -10,6 +11,49 @@ const COLORS = {
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const MUZZLE_PROFILES = Object.freeze({
+  rifle: Object.freeze({ duration: .11, length: 21, width: 10, radius: 62, offset: 4 }),
+  hostile: Object.freeze({ duration: .11, length: 23, width: 11, radius: 66, offset: 4 }),
+  support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, offset: 10 }),
+  hostile_support: Object.freeze({ duration: .135, length: 29, width: 13, radius: 78, offset: 10 }),
+  sniper: Object.freeze({ duration: .15, length: 34, width: 11, radius: 86, offset: 12 }),
+});
+export function missionLighting(state) {
+  return state?.mission?.lighting || (state?.missionIndex === 2 ? 'night' : state?.missionIndex === 3 ? 'dawn' : state?.missionIndex === 1 ? 'late-afternoon' : 'day');
+}
+export function muzzleProfile(weapon) { return MUZZLE_PROFILES[weapon] || MUZZLE_PROFILES.rifle; }
+
+/** Keep the visual muzzle at the visible barrel end without crossing cover. */
+export function muzzleOrigin(event, world) {
+  const angle = finite(event.angle), dx = Math.cos(angle), dy = Math.sin(angle), profile = muzzleProfile(event.weapon);
+  let offset = profile.offset;
+  for (const wall of getSolidWalls(world || {})) {
+    const hit = rayWallDistance(event.x, event.y, dx, dy, wall, offset + .5);
+    if (hit <= offset) offset = Math.max(0, hit - .4);
+  }
+  return { x: event.x + dx * offset, y: event.y + dy * offset };
+}
+
+/** A short light fan is computed once per actual shot and geometry revision. */
+export function muzzleLightPolygon(world, source, radius) {
+  const walls = getSolidWalls(world || {}).filter(wall => {
+    const x = clamp(source.x, wall.x, wall.x + wall.w), y = clamp(source.y, wall.y, wall.y + wall.h);
+    return (x - source.x) ** 2 + (y - source.y) ** 2 <= radius * radius;
+  });
+  const angles = [];
+  for (let i = 0; i < 24; i++) angles.push(i * TAU / 24);
+  for (const wall of walls) for (const x of [wall.x, wall.x + wall.w]) for (const y of [wall.y, wall.y + wall.h]) {
+    if ((x - source.x) ** 2 + (y - source.y) ** 2 > radius * radius) continue;
+    const angle = Math.atan2(y - source.y, x - source.x);
+    for (const delta of [-.0002, 0, .0002]) angles.push((angle + delta + TAU) % TAU);
+  }
+  angles.sort((a, b) => a - b);
+  return angles.map(angle => {
+    const dx = Math.cos(angle), dy = Math.sin(angle); let reach = radius;
+    for (const wall of walls) reach = rayWallDistance(source.x, source.y, dx, dy, wall, reach);
+    return { x: source.x + dx * Math.max(0, reach - .3), y: source.y + dy * Math.max(0, reach - .3) };
+  });
+}
 function hash(n) { n = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return n - Math.floor(n); }
 function colorPick(list, n) { return list[Math.floor(hash(n) * list.length)]; }
 function circle(ctx, x, y, radius, fill, stroke, line = 1) {
@@ -77,6 +121,10 @@ export class Renderer {
     this.sprites = new Map();
     this.atmosphereCache = null;
     this.sharedSight = new SharedSightLayer();
+    this.muzzleFlashes = [];
+    this.muzzleCursor = 0;
+    this.muzzleScene = null;
+    this.muzzleStateTime = null;
     this.dust = Array.from({length:32}, (_, i) => ({x:hash(i+2), y:hash(i+23), speed:4+hash(i+99)*8, alpha:.07+hash(i+35)*.08, size:1+hash(i+56)*2, phase:i}));
     this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
   }
@@ -141,6 +189,103 @@ export class Renderer {
     for (const [at, color] of stops) gradient.addColorStop(at, color);
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, size, size);
     this.sprites.set(key, sprite); return sprite;
+  }
+
+  muzzleSprite(weapon) {
+    const family = weapon === 'sniper' ? 'sniper' : weapon === 'support' || weapon === 'hostile_support' ? 'support' : 'rifle';
+    const key = `muzzle:${family}`;
+    if (this.sprites.has(key)) return this.sprites.get(key);
+    const sprite = newCanvas(96, 48), ctx = sprite.getContext('2d');
+    ctx.translate(18, 24);
+    const length = family === 'sniper' ? 59 : family === 'support' ? 53 : 45;
+    ctx.fillStyle = 'rgba(255,163,66,.82)';
+    ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(8, -9); ctx.lineTo(15, -17); ctx.lineTo(21, -6);
+    ctx.lineTo(length, 0); ctx.lineTo(24, 6); ctx.lineTo(15, 15); ctx.lineTo(8, 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffe9ad'; ctx.beginPath(); ctx.moveTo(-4, -2); ctx.lineTo(9, -6); ctx.lineTo(length * .75, 0); ctx.lineTo(9, 6); ctx.lineTo(-4, 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff8d8'; ctx.beginPath(); ctx.ellipse(4, 0, 11, 3, 0, 0, TAU); ctx.fill();
+    if (family === 'support') { line(ctx, 20, -14, 29, -18, '#eeb776', 1.6); line(ctx, 26, 11, 34, 15, '#eeb776', 1.4); }
+    this.sprites.set(key, sprite); return sprite;
+  }
+
+  muzzleVisible(state, flash, view = {}) {
+    if (view.menu || view.showMap || view.paused || !this.inView(flash.x, flash.y, 100) || this.houseVisibility(flash, view) < .9) return false;
+    // A distant night source may be briefly visible along an open street, but
+    // it does not reveal the shooter, their marker, or remembered terrain.
+    const night = missionLighting(state) === 'night', limit = night ? 900 : 600;
+    const witnesses = (state.squad || []).filter(actor => actor.alive !== false && !actor.downed && distance(actor, flash) <= limit);
+    return witnesses.length > 0 && squadCanSeePoint({ ...state, squad: witnesses }, flash, { ignoreRange: night });
+  }
+
+  updateMuzzleFlashes(state, view = {}) {
+    const now = finite(view.time, finite(state.time)), gameTime = finite(state.time);
+    const baseScene = `${state.seed}:${state.missionIndex}`, scene = `${baseScene}:${view.effectEpoch ?? ''}`;
+    const rewound = this.muzzleStateTime !== null && gameTime < this.muzzleStateTime - .001;
+    const reset = this.muzzleScene !== scene || rewound;
+    if (reset) {
+      this.muzzleFlashes.length = 0;
+      if (this.muzzleBaseScene !== baseScene || rewound || gameTime < .25) this.muzzleCursor = 0;
+      this.muzzleScene = scene; this.muzzleBaseScene = baseScene;
+    }
+    this.muzzleStateTime = gameTime;
+    const events = state.soundEvents || [];
+    if (view.menu || view.showMap || view.paused || state.status && state.status !== 'playing') {
+      this.muzzleFlashes.length = 0;
+      for (const event of events) this.muzzleCursor = Math.max(this.muzzleCursor, finite(event.id));
+      return;
+    }
+    this.muzzleFlashes = this.muzzleFlashes.filter(flash => now >= flash.born && now - flash.born < flash.profile.duration);
+    for (const event of events) {
+      if (!Number.isFinite(event.id) || event.id <= this.muzzleCursor) continue;
+      this.muzzleCursor = event.id;
+      if (event.type !== 'shot' || !Number.isFinite(event.x) || !Number.isFinite(event.y)) continue;
+      const sourceTime = finite(event.sourceTime, finite(event.time, gameTime)), age = gameTime - sourceTime;
+      if (age < -.05 || age > .22) continue;
+      const profile = muzzleProfile(event.weapon), source = muzzleOrigin(event, state.world);
+      const flash = { ...source, actorId: event.actorId, weapon: event.weapon, angle: finite(event.angle), profile,
+        born: now - Math.min(Math.max(0, age), profile.duration - .045), geometryRevision: finite(state.world.geometryRevision) };
+      if (!this.muzzleVisible(state, flash, view)) continue;
+      // Successive rounds from one automatic weapon share a single local light.
+      this.muzzleFlashes = this.muzzleFlashes.filter(previous => previous.actorId !== flash.actorId);
+      flash.polygon = muzzleLightPolygon(state.world, flash, profile.radius);
+      this.muzzleFlashes.push(flash);
+      if (this.muzzleFlashes.length > 24) this.muzzleFlashes.shift();
+    }
+  }
+
+  drawMuzzleFlashes(ctx, state, view = {}) {
+    if (!this.muzzleFlashes.length || view.menu || view.showMap || view.paused) return;
+    const now = finite(view.time, finite(state.time)), night = missionLighting(state) === 'night';
+    for (const flash of this.muzzleFlashes) {
+      if (!this.muzzleVisible(state, flash, view)) continue;
+      const life = clamp(1 - (now - flash.born) / flash.profile.duration, 0, 1);
+      if (!life) continue;
+      const profile = flash.profile;
+      const revision = finite(state.world.geometryRevision);
+      if (!flash.polygon || flash.geometryRevision !== revision) { flash.polygon = muzzleLightPolygon(state.world, flash, profile.radius); flash.geometryRevision = revision; }
+      const points = flash.polygon;
+      ctx.save(); ctx.beginPath();
+      for (let i = 0; i < points.length; i++) { const point = points[i]; if (i) ctx.lineTo(point.x, point.y); else ctx.moveTo(point.x, point.y); }
+      ctx.closePath(); ctx.clip();
+      // The bright core and surrounding light both stop at masonry and roofs.
+      ctx.beginPath(); ctx.rect(flash.x - profile.radius, flash.y - profile.radius, profile.radius * 2, profile.radius * 2);
+      for (const house of this.houseCutaways) {
+        const b = house.building;
+        if (house.amount >= .9 || b.x > flash.x + profile.radius || b.y > flash.y + profile.radius || b.x + b.w < flash.x - profile.radius || b.y + b.h < flash.y - profile.radius) continue;
+        ctx.rect(b.x, b.y, b.w, b.h);
+      }
+      ctx.clip('evenodd');
+      if (night && !view.reducedMotion) {
+        const radius = profile.radius * (this.quality === 'performance' ? .8 : 1);
+        ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = .58 * Math.sqrt(life);
+        ctx.drawImage(this.radialSprite('muzzle-light', [[0, 'rgba(255,192,99,.78)'], [.3, 'rgba(246,161,65,.36)'], [1, 'rgba(230,141,50,0)']]), flash.x - radius, flash.y - radius, radius * 2, radius * 2);
+        ctx.restore();
+      }
+      ctx.save(); ctx.translate(flash.x, flash.y); ctx.rotate(flash.angle);
+      ctx.globalAlpha = (view.reducedMotion ? .65 : 1) * Math.sqrt(life);
+      const length = profile.length * (night ? 1 : .86), width = profile.width * (night ? 1 : .85);
+      ctx.drawImage(this.muzzleSprite(flash.weapon), -length * .22, -width, length * 1.25, width * 2);
+      ctx.restore(); ctx.restore();
+    }
   }
 
   smokeSprite() {
@@ -746,6 +891,8 @@ export class Renderer {
       ctx.beginPath(); ctx.moveTo(0, -radius - 5); ctx.lineTo(radius + 5, 0); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 5, 0); ctx.closePath(); ctx.stroke();
     }
     ctx.save(); ctx.rotate(angle);
+    const frightened = civilian && !actor.downed && (['sheltered', 'cowering'].includes(actor.civilianState) || finite(actor.panicked) > 0);
+    if (frightened) ctx.scale(.88, .86);
     const uniform = ally ? '#8e9770' : civilian ? '#b3a8c0' : survivor ? '#b2ac85' : actor.kind === 'flanker' ? '#ac936c' : actor.kind === 'gunner' ? '#8e8061' : '#a37f58';
     const gear = ally ? '#4c5a40' : '#615d44';
     if (actor.downed) {
@@ -756,8 +903,10 @@ export class Renderer {
     } else {
       ctx.fillStyle = view.touch ? 'rgba(17,22,18,.56)' : 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
       const walk = actor.moving || actor.speed > 1 || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
-      const braced = actor.kind === 'gunner' && actor.braced, stride = walk && !braced ? Math.sin(time * 16 + finite(actor.id?.length)) * 2.5 : 0;
-      line(ctx, -5, -4, (braced ? -14 : -10) + stride, braced ? -8 : -5, '#494b36', 4); line(ctx, -5, 4, (braced ? -14 : -10) - stride, braced ? 8 : 5, '#494b36', 4);
+      const braced = actor.kind === 'gunner' && actor.braced, cowering = frightened && !walk;
+      const stride = walk && !braced ? Math.sin(time * (frightened ? 20 : 16) + finite(actor.id?.length)) * 2.5 : 0;
+      line(ctx, -5, -4, (braced ? -14 : cowering ? -7 : -10) + stride, braced ? -8 : cowering ? -8 : -5, '#494b36', 4);
+      line(ctx, -5, 4, (braced ? -14 : cowering ? -7 : -10) - stride, braced ? 8 : cowering ? 8 : 5, '#494b36', 4);
       ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
       if (view.touch) { ctx.strokeStyle = 'rgba(24,31,24,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       if (!civilian) {
@@ -786,6 +935,11 @@ export class Renderer {
           else if (actor.kind === 'sniper') { ctx.fillStyle = '#3b493a'; ctx.fillRect(12, -1, 8, 3); }
           if (view.touch) line(ctx, 15, 1, barrel - 1, 1, '#8b9078', .7);
         }
+      } else if (frightened) {
+        // Bent shoulders and empty hands close to the head distinguish a
+        // person seeking cover without adding another tactical label.
+        line(ctx, -1, -7, 6, -6, uniform, 3.5); line(ctx, 6, -6, 7, -2, '#806957', 2.4);
+        line(ctx, -1, 7, 6, 6, uniform, 3.5); line(ctx, 6, 6, 7, 2, '#806957', 2.4);
       } else {
         line(ctx, 0, -7, 8, -8, uniform, 3.5); line(ctx, 0, 7, 8, 8, uniform, 3.5);
       }
@@ -819,7 +973,7 @@ export class Renderer {
         this.ctx.fillStyle = 'rgba(17,25,21,.8)'; this.ctx.fillRect(p.x - 15, p.y, 30, 4);
         this.ctx.fillStyle = hp < .35 ? '#d98869' : '#8bbba2'; this.ctx.fillRect(p.x - 15, p.y, 30 * hp, 4); this.ctx.restore();
       }
-      if (!isPlayer) {
+      if (!isPlayer && !(view.touch && view.guidance !== 'simple')) {
         const name = (actor.name || '').split(' ').at(-1).toUpperCase();
         this.worldLabel(actor.x, actor.y + 25, `${name}${name ? ' · ' : ''}${profile.shortLabel}`, '#c3d5be', 10);
       }
@@ -827,7 +981,7 @@ export class Renderer {
   }
 
   worldLabel(x, y, text, color = '#dedbc5', fontSize = 12) {
-    if (!text || this.menuView) return;
+    if (!text || this.menuView || this.touchView && this.guidanceView === 'expert') return;
     const p = this.worldToScreen(x, y), ctx = this.ctx;
     const bounds = this.touchView && !this.mapView ? this.safeRect : null;
     if (bounds && (p.y < bounds.top + 7 || p.y > bounds.bottom - 7 || p.x < bounds.left || p.x > bounds.right)) return;
@@ -841,6 +995,9 @@ export class Renderer {
       }
       const half = ctx.measureText(text).width / 2 + 5;
       p.x = clamp(p.x, bounds.left + half, bounds.right - half);
+      // Routine labels are expendable when a nearby soldier or object would
+      // place text across the controlled soldier's body or aiming origin.
+      if (this.focusScreen && Math.abs(p.x - this.focusScreen.x) < half + 24 && Math.abs(p.y - this.focusScreen.y) < 30) { ctx.restore(); return; }
     }
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(23,31,25,.8)'; ctx.strokeText(text, p.x, p.y); ctx.fillStyle = color; ctx.fillText(text, p.x, p.y); ctx.restore();
   }
@@ -858,6 +1015,31 @@ export class Renderer {
     const o = state.objective;
     if (!o || !Number.isFinite(o.x) || !Number.isFinite(o.y) || view.menu) return;
     const ctx = this.ctx, r = finite(o.radius, 45), pulse = view.reducedMotion ? 0 : (time * .38) % 1;
+    if (['interact', 'recon', 'deliver', 'escort'].includes(o.kind)) {
+      const target = o.actionTarget || o, x = finite(target.x, o.x), y = finite(target.y, o.y);
+      ctx.save(); ctx.translate(x, y); ctx.strokeStyle = COLORS.objective; ctx.lineWidth = 1.5 / this.camera.zoom;
+      if (o.kind === 'recon') {
+        const angle = o.lookAt ? Math.atan2(o.lookAt.y - o.y, o.lookAt.x - o.x) : 0;
+        ctx.save(); ctx.rotate(angle); ctx.strokeStyle = 'rgba(230,186,115,.36)';
+        ctx.beginPath(); ctx.moveTo(14, 0); ctx.arc(0, 0, 55, -.3, .3); ctx.closePath(); ctx.stroke(); ctx.restore();
+        circle(ctx, -4, 0, 4, 'rgba(25,35,28,.8)', COLORS.objective, 1.2); circle(ctx, 4, 0, 4, 'rgba(25,35,28,.8)', COLORS.objective, 1.2);
+        line(ctx, -2, -3, 2, -3, COLORS.objective, 1.4);
+      } else if (o.kind === 'escort') {
+        for (const at of [-5, 5]) { ctx.beginPath(); ctx.moveTo(-6, at + 4); ctx.lineTo(0, at - 2); ctx.lineTo(6, at + 4); ctx.stroke(); }
+      } else {
+        const gap = 17;
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          ctx.beginPath(); ctx.moveTo(sx * gap, sy * (gap - 6)); ctx.lineTo(sx * gap, sy * gap); ctx.lineTo(sx * (gap - 6), sy * gap); ctx.stroke();
+        }
+      }
+      if (o.progress > 0) {
+        ctx.fillStyle = 'rgba(27,35,27,.8)'; ctx.fillRect(-20, 23, 40, 4);
+        ctx.fillStyle = COLORS.objective; ctx.fillRect(-20, 23, 40 * clamp(o.progress, 0, 1), 4);
+      }
+      ctx.restore();
+      if (this.camera.zoom > .55 && view.guidance !== 'expert') this.worldLabel(x, y - 32, (o.title || o.interactionLabel || 'OBJECTIVE').toUpperCase(), COLORS.objective, 11);
+      return;
+    }
     ctx.save(); ctx.translate(o.x, o.y);
     ctx.fillStyle = 'rgba(232,179,97,.065)'; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
     ctx.strokeStyle = 'rgba(237,193,124,.55)'; ctx.lineWidth = 1.5 / this.camera.zoom;
@@ -868,6 +1050,44 @@ export class Renderer {
     if (o.progress > 0) { ctx.lineWidth = 4 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, r + 5, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(o.progress, 0, 1)); ctx.stroke(); }
     ctx.restore();
     if (this.camera.zoom > .55 && view.guidance !== 'expert') this.worldLabel(o.x, o.y - r - 16, (o.title || 'OBJECTIVE').toUpperCase(), COLORS.objective, 11);
+  }
+
+  drawOperationObjects(ctx, state, view = {}) {
+    if (view.menu) return;
+    const operation = state.operation;
+    if (!operation) return;
+    const draw = (object, carried = false) => {
+      if (!Number.isFinite(object.x) || !Number.isFinite(object.y) || !this.inView(object.x, object.y, 60) || this.houseVisibility(object, view) < .9 || !squadCanSeePoint(state, object)) return;
+      ctx.save(); ctx.translate(object.x, object.y); if (carried) ctx.scale(.65, .65);
+      ctx.globalAlpha = object.completed ? .7 : 1;
+      ctx.fillStyle = 'rgba(20,25,19,.35)'; ctx.beginPath(); ctx.ellipse(2, 4, 17, 10, 0, 0, TAU); ctx.fill();
+      if (object.kind === 'radio') {
+        roundRect(ctx, -14, -9, 28, 19, 3, '#444f40', '#96977a');
+        ctx.fillStyle = '#273a31'; ctx.fillRect(-9, -5, 11, 8);
+        line(ctx, -7, -1, -4, 1, '#acbc8b', 1); line(ctx, -4, 1, -1, -3, '#acbc8b', 1);
+        circle(ctx, 8, -3, 2.3, '#b3ad85'); circle(ctx, 8, 5, 1.3, object.completed ? '#94b78a' : '#d7b36c');
+        line(ctx, 11, -8, 15, -29, '#b0ac83', 1.7); line(ctx, -11, 11, -17, 15, '#485442', 2);
+      } else if (object.kind === 'evac') {
+        roundRect(ctx, -16, -9, 32, 18, 3, '#8b9176', '#3a4838');
+        line(ctx, -23, -7, 23, -7, '#a1a384', 2); line(ctx, -23, 7, 23, 7, '#a1a384', 2);
+        ctx.fillStyle = '#d2d5b7'; ctx.fillRect(-3, -6, 6, 12); ctx.fillRect(-7, -2, 14, 4);
+      } else {
+        const medical = object.kind === 'medical';
+        roundRect(ctx, -11, -8, 22, 16, 3, medical ? '#798468' : '#4d594c', '#b4b493');
+        ctx.fillStyle = '#3c4938'; ctx.fillRect(-3, -10, 6, 3); ctx.fillRect(-2, -8, 4, 16);
+        if (medical) { ctx.fillStyle = '#dedfc5'; ctx.fillRect(-1, -4, 3, 8); ctx.fillRect(-4, -1, 9, 3); }
+        else { circle(ctx, -7, -4, 1.3, '#c0b276'); circle(ctx, 7, -4, 1.3, '#c0b276'); line(ctx, -6, 3, 6, 3, '#9da58a', 1); }
+      }
+      ctx.restore();
+    };
+    for (const object of operation.objects || []) draw(object);
+    for (const item of operation.items || []) {
+      if (item.status === 'ground') draw(item);
+      else if (item.status === 'carried') {
+        const carrier = (state.squad || []).find(actor => actor.id === item.carrierId && actor.alive !== false);
+        if (carrier) draw({ ...item, x: carrier.x - Math.cos(finite(carrier.angle)) * 16, y: carrier.y - Math.sin(finite(carrier.angle)) * 16 }, true);
+      }
+    }
   }
 
   drawStoryOpportunities(state, view = {}) {
@@ -1031,7 +1251,7 @@ export class Renderer {
     ctx.moveTo(order.x + size, order.y + size / 2); ctx.lineTo(order.x + size, order.y + size); ctx.lineTo(order.x + size / 2, order.y + size);
     ctx.moveTo(order.x - size / 2, order.y + size); ctx.lineTo(order.x - size, order.y + size); ctx.lineTo(order.x - size, order.y + size / 2); ctx.stroke();
     ctx.restore();
-    if (this.camera.zoom > .5) this.worldLabel(order.x, order.y + size + 14 / this.camera.zoom, (order.label || order.type).toUpperCase(), '#a9d6c4', 10);
+    if (this.camera.zoom > .5 && !(view.touch && view.guidance === 'expert')) this.worldLabel(order.x, order.y + size + 14 / this.camera.zoom, (order.label || order.type).toUpperCase(), '#a9d6c4', 10);
   }
 
   drawSmoke(ctx, s, time) {
@@ -1056,6 +1276,9 @@ export class Renderer {
       circle(ctx, b.x, b.y, 1.5 / this.camera.zoom, '#fff0ba');
     }
     for (const e of state.effects || []) {
+      // The shot event ring survives simulation catch-up and co-op snapshots;
+      // those flashes are composited after the atmosphere below.
+      if (e.type === 'muzzle' && Array.isArray(state.soundEvents)) continue;
       if (!this.inView(e.x, e.y, 50) || this.houseVisibility(e, view) <= .05) continue;
       // A revealed floor plan does not expose a gunman behind its partition.
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
@@ -1098,7 +1321,8 @@ export class Renderer {
 
   drawAtmosphere(state, time, view) {
     const ctx = this.ctx, w = this.width, h = this.height;
-    if (state.missionIndex === 2) {
+    const lighting = missionLighting(state);
+    if (lighting === 'night') {
       ctx.fillStyle = 'rgba(9,24,26,.42)'; ctx.fillRect(0, 0, w, h);
       // A limited pool of practical light follows each teammate through the night.
       ctx.save(); ctx.globalCompositeOperation = 'screen';
@@ -1109,9 +1333,9 @@ export class Renderer {
         ctx.drawImage(light, p.x - r, p.y - r, r * 2, r * 2);
       }
       ctx.restore();
-    } else if (state.missionIndex === 3) {
+    } else if (lighting === 'dawn') {
       ctx.fillStyle = 'rgba(166,157,144,.09)'; ctx.fillRect(0, 0, w, h);
-    } else if (state.missionIndex === 1) {
+    } else if (lighting === 'late-afternoon') {
       ctx.fillStyle = 'rgba(133,75,35,.06)'; ctx.fillRect(0, 0, w, h);
     }
     if (!view.reducedMotion && this.quality !== 'performance') {
@@ -1210,6 +1434,16 @@ export class Renderer {
     this.camera.y += (point.y-y) / zoom;
   }
 
+  centerTouchCamera(state, view) {
+    if (!view.touch || view.menu || view.showMap || !this.safeRect) return;
+    const squad = state.squad || [];
+    const player = squad.find(actor => view.followActorId && actor.id === view.followActorId) || squad.find(actor => actor.id === state.playerId) || squad[0];
+    if (!player) return;
+    this.camera.x = player.x - (this.safeRect.cx - this.width / 2) / this.camera.zoom;
+    this.camera.y = player.y - (this.safeRect.cy - this.height / 2) / this.camera.zoom;
+    this.focusScreen = this.worldToScreen(player.x, player.y);
+  }
+
   updateCamera(state, view = {}) {
     if (!state || !state.world) return;
     const world = state.world, time = finite(view.time, state.time || 0), now = globalThis.performance?.now() ?? Date.now();
@@ -1220,7 +1454,7 @@ export class Renderer {
       else { this.makeMap(world, state.missionIndex); this.mapSeed = state.seed; this.cameraReady = false; }
     }
     const player = (state.squad || []).find(s => view.followActorId && s.id === view.followActorId) || (state.squad || []).find(s => s.id === state.playerId) || state.squad?.[0] || { x: world.width / 2, y: world.height / 2 };
-    this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu;
+    this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu; this.guidanceView = view.guidance;
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;
     let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), view.touch ? .6 : .8, view.touch ? 1.25 : 1.4);
@@ -1253,30 +1487,32 @@ export class Renderer {
       tx += clamp((view.pointer.x - this.width / 2) / this.width, -.5, .5) * 240 / zoom * amount;
       ty += clamp((view.pointer.y - this.height / 2) / this.height, -.5, .5) * 160 / zoom * amount;
     }
-    if (observing) {
-      const ahead = view.touch ? 110 : 190;
+    if (observing && !view.touch) {
+      const ahead = 190;
       tx += Math.cos(finite(player.angle)) * ahead; ty += Math.sin(finite(player.angle)) * ahead;
     }
     const halfW = this.width / zoom / 2, halfH = this.height / zoom / 2;
-    if (!view.showMap) {
+    const centeredTouch = view.touch && !view.menu && !view.showMap;
+    if (!view.showMap && !centeredTouch) {
       // A small amount of outside-map framing prevents the boundary from pinning soldiers beneath HUD panels.
       const edgeAllowance = view.menu ? 0 : 40 / zoom;
       tx = world.width <= halfW * 2 ? world.width / 2 : clamp(tx, halfW - edgeAllowance, world.width - halfW + edgeAllowance);
       ty = world.height <= halfH * 2 ? world.height / 2 : clamp(ty, halfH - edgeAllowance, world.height - halfH + edgeAllowance);
-      if (view.touch && !view.menu) {
-        // At the map edge, allow only the extra framing needed to keep the soldier clear of controls.
-        const margin = Math.min(36, safe.height * .3);
-        tx = clamp(tx, player.x - (safe.right - margin - this.width / 2) / zoom, player.x - (safe.left + margin - this.width / 2) / zoom);
-        ty = clamp(ty, player.y - (safe.bottom - margin - this.height / 2) / zoom, player.y - (safe.top + margin - this.height / 2) / zoom);
-      }
     }
     const layoutKey = `${this.width}:${this.height}:${safe.left}:${safe.top}:${safe.right}:${safe.bottom}:${!!view.touch}`;
     const snap = !this.cameraReady || this.lastPlayerId !== state.playerId || view.showMap || this.lastMapView !== !!view.showMap || this.lastMenuView !== !!view.menu || this.lastLayoutKey !== layoutKey;
     const smoothing = snap || view.reducedMotion ? 1 : 1 - Math.exp(-delta * (view.touch ? 12 : 18));
     this.camera.x += (tx - this.camera.x) * smoothing; this.camera.y += (ty - this.camera.y) * smoothing; this.camera.zoom += (zoom - this.camera.zoom) * smoothing;
+    if (centeredTouch) {
+      // World edges do not pin the view. Derive translation from the actual
+      // eased zoom so movement, observation, and zoom changes all retain the
+      // controlled soldier at the center between the HUD and thumb controls.
+      this.centerTouchCamera(state, view);
+    }
     // Apply the visibility constraint after smoothing so it cannot interpolate
     // through a HUD panel. Input mapping then uses this exact camera all frame.
     if (!view.touch && !view.menu && !view.showMap) this.keepDesktopActorClear(player,world,view.desktopObstacles);
+    this.focusScreen = !view.menu && !view.showMap ? this.worldToScreen(player.x, player.y) : null;
     this.cameraReady = true; this.lastPlayerId = state.playerId; this.lastMapView = !!view.showMap; this.lastMenuView = !!view.menu;
     this.lastLayoutKey = layoutKey;
   }
@@ -1284,15 +1520,20 @@ export class Renderer {
   render(state, view = {}) {
     if (!state?.world) return;
     if (!view.cameraPrepared || !this.cameraReady) this.updateCamera(state, view);
+    // Touch aiming is directional. Follow post-step movement without changing
+    // the prepared zoom; desktop cursor/world mapping retains its full frame.
+    if (view.cameraPrepared) this.centerTouchCamera(state, view);
     const world = state.world, time = finite(view.time, state.time || 0), zoom = this.camera.zoom, safe = this.safeRect;
     this.quality = ['performance','balanced','high'].includes(view.quality) ? view.quality : 'balanced';
     this.refreshHouseGeometry(world);
     this.updateHouseCutaways(state, view, time);
+    this.updateMuzzleFlashes(state, view);
     const ctx = this.ctx;
     ctx.imageSmoothingQuality = this.quality === 'high' ? 'high' : 'low';
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = view.showMap ? '#101b17' : '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
     ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
-    // A muted strip of ground fills the limited camera overscan; the dark perimeter still marks the map edge.
+    // Matching ground fills the camera margin when touch follow looks beyond
+    // the district boundary. The cropped map remains bounded to real terrain.
     const overscan = view.touch ? Math.max(this.width, this.height) / zoom : Math.max(80, this.width / zoom / 2 - this.camera.x, this.camera.x + this.width / zoom / 2 - world.width, this.height / zoom / 2 - this.camera.y, this.camera.y + this.height / zoom / 2 - world.height);
     if (!view.showMap) { ctx.fillStyle = '#6d6550'; ctx.fillRect(-overscan, -overscan, world.width + overscan * 2, world.height + overscan * 2); }
     // Bound the source work to the visible district instead of resampling the whole city.
@@ -1308,10 +1549,11 @@ export class Renderer {
     this.drawBloodstains(ctx, state, view); this.drawBodies(ctx, state, view);
     if (!view.menu) {
       this.sharedSight.update(state, time);
-      this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:state.missionIndex === 2, map:view.showMap});
+      this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:missionLighting(state) === 'night', map:view.showMap});
     }
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
+    this.drawOperationObjects(ctx, state, view);
     this.drawObjective(state, time, view); this.drawStoryOpportunities(state, view); this.drawOrder(state, time, view);
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
     this.visibleEnemies.length = 0;
@@ -1338,6 +1580,10 @@ export class Renderer {
     }
     ctx.restore();
     if (!view.showMap) this.drawAtmosphere(state, time, view);
+    if (this.muzzleFlashes.length) {
+      ctx.save(); ctx.translate(this.width / 2, this.height / 2); ctx.scale(this.camera.zoom, this.camera.zoom); ctx.translate(-this.camera.x, -this.camera.y);
+      this.drawMuzzleFlashes(ctx, state, view); ctx.restore();
+    }
     this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
     this.drawDesktopAim(state, view);
     this.drawObservation(state, view);

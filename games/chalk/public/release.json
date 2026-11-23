@@ -1,8 +1,8 @@
 {
   "game": "CHALK",
-  "version": "1.8.0",
-  "date": "2026-11-22",
-  "missions": 4,
+  "version": "1.9.0",
+  "date": "2026-11-23",
+  "missions": 6,
   "roles": [
     "leader",
     "member"
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Distance-delayed muzzle reports, projectile near-passes, impacts and explosions; distinct rifle/SAW/support/sniper mixes; recorded pain and fear performances, separate distress mix, contextual ambience and command priority. Existing ambient menu and music assets retained.",
+  "audio": "Distance-delayed muzzle reports, real projectile near-passes, impacts and explosions; distinct rifle/SAW/support/sniper mixes; source/listener-aware room and street reflections with an independent reflections slider; performed pain and fear, contextual ambience and command priority. Existing ambient menu and music assets retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -27,7 +27,9 @@
     "immediateCommands": [
       "Regroup",
       "Hold"
-    ]
+    ],
+    "camera": "Controlled soldier stays centered in the usable area between HUD and thumb controls, including world edges and zoom transitions",
+    "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues"
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -44,7 +46,8 @@
       "HUD scale/detail",
       "performance display",
       "distress voice volume",
-      "blood marks"
+      "blood marks",
+      "room and street reflections"
     ],
     "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
     "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
@@ -69,9 +72,9 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 4,
+  "protocol": 5,
   "squad": {
-    "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
+    "soloSelection": "HUD cards or keyboard 1–4, retaining each soldier state",
     "formation": "wider outside, compressed through doors",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
@@ -93,7 +96,13 @@
     },
     "weightedAndRoleLimits": true,
     "visibleSpawnExclusion": true,
-    "sniperLimit": 1
+    "sniperLimit": 1,
+    "encounters": "Finite groups at authored approaches; no random around-player reinforcement ring",
+    "deliberateSniperOperations": [
+      "First Crash",
+      "Dawn Mile",
+      "Signal House"
+    ]
   },
   "story": {
     "chapters": 4,
@@ -102,10 +111,11 @@
     "humanLeaderAuthority": true,
     "memberRecommendations": true,
     "physicalRouteChoice": true,
-    "continuation": "bounded supply costs, fatigue and civilian communication consequences; fresh actor state each chapter",
+    "continuation": "Bounded supply costs, fatigue and civilian communication consequences across the four campaign chapters; fresh actor state each chapter; side operations remain independent",
     "soloContinuationSavedLocally": true,
     "coopContinuationHostOnly": true,
-    "historicalFraming": "fictional choices and composite encounters within documented raid-to-rescue context"
+    "historicalFraming": "fictional choices and composite encounters within documented raid-to-rescue context",
+    "standaloneOperations": 2
   },
   "casualties": {
     "bodies": "persist until new mission or restart",
@@ -124,6 +134,54 @@
     "nearPassRequiresActualTrajectory": true,
     "pendingLimit": 96,
     "activeVoiceLimit": 32,
-    "pausedOrHiddenClearsQueue": true
+    "pausedOrHiddenClearsQueue": true,
+    "environmentResponses": "Two cached procedural stereo response kernels: short dense room reflections and later spaced street reflections",
+    "environmentGeometry": "Source and listener rooms, walls, openings and breaches select the response; bounded approximation, not a full acoustic solver",
+    "reflectionsDefault": 0.8,
+    "reflectionsZeroKeepsDirectSound": true
+  },
+  "campaignMissions": 4,
+  "standaloneOperations": 2,
+  "missionSelection": {
+    "campaign": [
+      "Cordon",
+      "First Crash",
+      "Night Relief",
+      "Dawn Mile"
+    ],
+    "fictionalStandalone": [
+      "Signal House",
+      "Courtyard Evacuation"
+    ],
+    "continuation": "Chronological campaign only; Dawn Mile completes the campaign"
+  },
+  "operations": {
+    "interactions": [
+      "physical interior pickup",
+      "casualty item drop and recovery",
+      "carrier delivery",
+      "directional line-of-sight reconnaissance",
+      "casualty escort",
+      "radio restoration",
+      "convoy obstruction clearance",
+      "authored stalled-carrier restart"
+    ],
+    "finiteAuthoredEncounters": true,
+    "generalVehicleDamage": false
+  },
+  "navigation": {
+    "routes": "Clearance-aware paths through doors and breaches, reachable destinations, and recovery from blocked movement",
+    "civilians": "Threatened residents seek reachable shelter, remain sheltered through nearby danger, or cower if immobilized; rescued residents follow escort routes"
+  },
+  "nightEffects": {
+    "trigger": "Actual shot events at weapon positions",
+    "profiles": [
+      "rifle",
+      "SAW/support",
+      "sniper"
+    ],
+    "illumination": "Brief bounded local glow with wall/roof/smoke visibility gates; cached sprites and shot geometry",
+    "reducedMotion": "Retains a dimmer muzzle core without local glow",
+    "sourceFlash": "Visible night sources require unobstructed squad sight; no persistent marker or terrain revelation"
   }
 }

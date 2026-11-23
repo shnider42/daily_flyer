@@ -200,7 +200,7 @@ test('hydration preserves story and persistent remains through updates, then rec
   const continued={...packet,init:{seed:2468,mission:1,difficulty:'story',epoch:2,campaign},state,
     room:{...packet.room,mission:1,epoch:2},worldProps:structuredClone(nextWorld.props)};
   const result=hydrator.apply(continued,'peer1');assert.equal(result.changedEpoch,true);assert.notEqual(result.game.world,world);
-  assert.deepEqual(result.game.campaign,campaign);assert.equal(result.game.stages[0].duration,4);assert.equal(result.game.squad[2].medkits,5);
+  assert.deepEqual(result.game.campaign,campaign);assert.equal(result.game.stages.find(p=>p.id==='crash-entry').duration,4);assert.equal(result.game.squad[2].medkits,5);
   assert.deepEqual(result.game.bodies,[]);assert.deepEqual(result.game.bloodstains,[]);assert.equal(result.game.squad.length,4);
 });
 

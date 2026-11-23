@@ -12,12 +12,12 @@ function travel(s,target,maxSeconds=60){
   }return false;
 }
 
-test('all four missions create isolated, deterministic states and objectives',()=>{
-  assert.equal(MISSIONS.length,4);
-  for(let m=0;m<4;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
+test('all six missions create isolated, deterministic states and objectives',()=>{
+  assert.equal(MISSIONS.length,6);
+  for(let m=0;m<MISSIONS.length;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
 });
 test('collision and pathfinding keep mission routes reachable',()=>{
-  for(let m=0;m<4;m++){const s=createGame({mission:m,seed:4});for(const stage of s.stages){const route=findPath(s,pl(s),stage);assert.ok(route.length,`mission ${m}, ${stage.title}`);for(const p of route)assert.ok(!getSolidWalls(s.world).some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h));}}
+  for(let m=0;m<MISSIONS.length;m++){const s=createGame({mission:m,seed:4});for(const stage of s.stages){const route=findPath(s,pl(s),stage);assert.ok(route.length,`mission ${m}, ${stage.title}`);for(const p of route)assert.ok(!getSolidWalls(s.world).some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h));}}
   const s=createGame();clearThreats(s);const b=s.world.buildings[0];pl(s).x=b.x-15;pl(s).y=b.y+30;run(s,2,{moveX:1});assert.ok(pl(s).x<b.x);assert.equal(hasLineOfSight(s,{x:b.x-50,y:b.y+50},{x:b.x+b.w+50,y:b.y+50}),false);
 });
 test('commander orders are different from member requests',()=>{
@@ -35,15 +35,20 @@ test('medic recovers a downed player without ending the mission',()=>{
 test('AI never selects civilians and player fire records civilian harm',()=>{
   const s=createGame();clearThreats(s);const p=pl(s),c=s.civilians[0];c.x=p.x+75;c.y=p.y;c.shelter={x:c.x,y:c.y};run(s,2);assert.equal(c.hp,c.maxHp);run(s,.5,{fire:true,aimX:c.x,aimY:c.y});assert.equal(s.stats.civilianHarm,1);assert.ok(c.hp<c.maxHp);
 });
-test('leader can finish the cordon without killing every enemy',()=>{
+test('leader can finish the expanded cordon without killing every enemy',()=>{
   const s=createGame({mission:0});clearThreats(s);
-  for(let stage=0;stage<3;stage++){const before=s.stageIndex;assert.ok(travel(s,s.stages[before]));run(s,65);assert.ok(s.stageIndex>before);}
-  assert.equal(s.status,'won');assert.equal(s.stats.objectives,3);
+  for(let frame=0;frame<30*480&&s.status==='playing';frame++){
+    const o=getObjective(s),p=pl(s),input={interact:true,...(o.lookAt?{aimX:o.lookAt.x,aimY:o.lookAt.y}:{})};
+    if(Math.hypot(p.x-o.x,p.y-o.y)>22){const next=findPath(s,p,o)[0];if(next){const dx=next.x-p.x,dy=next.y-p.y,n=Math.hypot(dx,dy);input.moveX=dx/n;input.moveY=dy/n;}}
+    step(s,input,1/30);
+  }
+  assert.equal(s.status,'won');assert.equal(s.stats.objectives,s.stages.length);assert.equal(s.operation.items[0].status,'delivered');
 });
-test('all four campaigns progress with an AI leader and a human keeping up',()=>{
-  for(let mission=0;mission<4;mission++){
+
+test('all six operations progress with an AI leader and a human keeping up',()=>{
+  for(let mission=0;mission<MISSIONS.length;mission++){
     const s=createGame({mission,role:'member',seed:17});clearThreats(s);
-    for(let frame=0;frame<30*420&&s.status==='playing';frame++){
+    for(let frame=0;frame<30*720&&s.status==='playing';frame++){
       const p=pl(s),leader=s.squad.find(a=>a.role==='leader'),d=Math.hypot(p.x-leader.x,p.y-leader.y);let input={interact:true};
       if(d>47){const next=findPath(s,p,leader)[0];if(next){const dx=next.x-p.x,dy=next.y-p.y,n=Math.hypot(dx,dy);input={...input,moveX:dx/n,moveY:dy/n};}}
       step(s,input,1/30);
@@ -84,7 +89,7 @@ test('final convoy loading cannot complete with a teammate outside or downed',()
 test('member can clear a nearby convoy barrier while the AI leader is away',()=>{
   function atBarrier(playerOffset){
     const s=createGame({mission:2,role:'member'});clearThreats(s);
-    s.stageIndex=1;s.convoyIndex=1;
+    s.stageIndex=s.stages.findIndex(p=>p.kind==='convoy');s.convoyIndex=1;
     const barrier=s.convoyRoute[2];
     s.vehicles[0].x=barrier.x-70;s.vehicles[0].y=barrier.y;
     pl(s).x=barrier.x+playerOffset;pl(s).y=barrier.y;
@@ -97,7 +102,7 @@ test('member can clear a nearby convoy barrier while the AI leader is away',()=>
   const downed=atBarrier(-30);pl(downed).downed=true;pl(downed).hp=0;step(downed,{interact:true},1/30);assert.equal(downed.convoyClear,0);
 });
 test('automatic leader barrier clearing respects wait and never doubles player progress',()=>{
-  const s=createGame({mission:2,role:'member'});clearThreats(s);s.stageIndex=1;s.convoyIndex=1;
+  const s=createGame({mission:2,role:'member'});clearThreats(s);s.stageIndex=s.stages.findIndex(p=>p.kind==='convoy');s.convoyIndex=1;
   const barrier=s.convoyRoute[2],leader=s.squad[0];
   s.vehicles[0].x=barrier.x-70;s.vehicles[0].y=barrier.y;
   leader.x=barrier.x+35;leader.y=barrier.y;pl(s).x=barrier.x-30;pl(s).y=barrier.y;
