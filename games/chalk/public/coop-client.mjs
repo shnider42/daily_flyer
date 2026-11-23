@@ -2,7 +2,7 @@ import { createGame, rebuildNavigationGrid } from './sim.mjs';
 import { syncBuildingDamage } from './destruction.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
 import { movementSpeed } from './squad-roles.mjs';
-import { PROTOCOL, INPUT_HZ, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
+import { PROTOCOL, INPUT_HZ, THROW_ACTIONS, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
 import { SnapshotDeltaDecoder } from './snapshot-delta.mjs';
 
 // Adapted from Farwake's network.mjs transport: latest-input coalescing,
@@ -156,7 +156,7 @@ export class CoopClient {
     this.autoReconnect=autoReconnect; this.autoTimers=autoTimers; this.connectTimeoutMs=connectTimeoutMs;
     this.connected=false; this._session=readCoopSession(storage); this._room=null; this.game=null;
     this.decoder=new SnapshotDeltaDecoder(); this.hydrator=new CoopStateHydrator(); this.interpolator=new SquadInterpolator();
-    this._input={...EMPTY_INPUT}; this._edges={}; this._history=[]; this._pending=new Map(); this._unacknowledged=[];
+    this._input={...EMPTY_INPUT}; this._edges={}; this._cancelActionsPending=false; this._history=[]; this._pending=new Map(); this._unacknowledged=[];
     this._sequence=0; this._commandSequence=0; this._generation=0; this._connecting=false; this._manualClose=false;
     this._reconnectAttempt=0; this._reconnecting=false; this._request=null; this._status='idle'; this._roomSignature=''; this._cancelConnect=null;
     this._lastMessageAt=0; this._lastInputAt=0; this._renderAt=null; this._authorityAt=null; this._authorityPlayer=null;
@@ -235,7 +235,7 @@ export class CoopClient {
           const session=packet.session;
           if (!session || !validRoomCode(session.code) || !session.playerId || !session.token) return;
           joined=true; this.connected=true; this._connecting=false; this._reconnecting=false; this._reconnectAttempt=0;
-          this._saveSession(session); this._sequence=0; this._unacknowledged=[]; this._input={...EMPTY_INPUT}; this._edges={};
+          this._saveSession(session); this._sequence=0; this._unacknowledged=[]; this._input={...EMPTY_INPUT}; this._edges={}; this._cancelActionsPending=false;
           this._updateRoom(packet.room); this._setStatus('connected'); this._startTimers(); settle(null,packet);
         } else if (packet.type==='snapshot' && joined) this._snapshot(packet);
         else if (packet.type==='result') {
@@ -303,23 +303,36 @@ export class CoopClient {
   input(controls={}) {
     if (!controls || !Object.keys(controls).length) { this.clearInput(); return; }
     const now=this.now(), input=cleanInput(controls);
-    for (const type of ['reload','smoke','grenade']) if (input[type] && !this._edges[type]) this._edges[type]={at:now};
+    for (const type of ['reload','smoke','grenade','frag','flashbang']) if (input[type] && !this._edges[type]) this._edges[type]={at:now,
+      aimX:input.throwTargets[type]?.x??input.throwAimX??input.aimX,aimY:input.throwTargets[type]?.y??input.throwAimY??input.aimY};
     this._input=input; this._lastInputAt=now;
   }
   clearInput() {
     this._input={...EMPTY_INPUT}; this._edges={}; this._lastInputAt=this.now(); this._history=[]; this._renderAt=this.now();
+    this._cancelActionsPending=true;
     this._correction={x:0,y:0}; this._unacknowledged=[];
     if (this.connected) this._sendInput(true);
   }
   _sendInput(forceNeutral=false) {
+    if(forceNeutral)this._cancelActionsPending=true;
     if (!this.connected || !this._room || this._room.status!=='playing') return false;
     if (this.socket?.bufferedAmount>0) { this.skippedInputs++; return false; }
     const now=this.now(), stale=now-this._lastInputAt>250;
-    const input=forceNeutral||stale ? {...EMPTY_INPUT} : {...this._input};
-    for (const type of ['reload','smoke','grenade']) input[type]=!forceNeutral&&!stale&&!!this._edges[type]&&now-this._edges[type].at<EDGE_LIFETIME_MS;
-    const frame={type:'input',seq:this._sequence+1,epoch:this._room.epoch,input};
+    const cancelActions=this._cancelActionsPending||stale;
+    const input=cancelActions ? {...EMPTY_INPUT} : {...this._input};
+    input.throwTargets={};
+    for (const type of ['reload','smoke','grenade','frag','flashbang']) input[type]=!cancelActions&&!!this._edges[type]&&now-this._edges[type].at<EDGE_LIFETIME_MS;
+    // A captured mobile throw must retain its release target while ordinary
+    // look/movement updates are coalesced. Keep that point separate from rifle aim.
+    for(const type of THROW_ACTIONS)if(input[type])input.throwTargets[type]={x:this._edges[type].aimX,y:this._edges[type].aimY};
+    const throwType=THROW_ACTIONS.find(type=>input[type]);
+    if(throwType){input.throwAimX=this._edges[throwType].aimX;input.throwAimY=this._edges[throwType].aimY;}
+    const frame={type:'input',seq:this._sequence+1,epoch:this._room.epoch,input,...(cancelActions?{cancelActions:true}:{})};
     if (!this._send(frame)) return false;
-    this._sequence=frame.seq; this._edges={};
+    this._sequence=frame.seq; this._cancelActionsPending=false;
+    // A new press after clearInput belongs after the cancellation packet. Keep
+    // it for the next send if backpressure delayed that explicit neutral frame.
+    if(!cancelActions||stale)this._edges={};
     this._unacknowledged.push({seq:frame.seq,at:now});
     if (this._unacknowledged.length>80) this._unacknowledged.shift();
     return true;
@@ -353,7 +366,7 @@ export class CoopClient {
     this.onState(this.game);
   }
   _resetPrediction() {
-    this._input={...EMPTY_INPUT}; this._edges={}; this._history=[]; this._unacknowledged=[]; this._renderAt=null;
+    this._input={...EMPTY_INPUT}; this._edges={}; this._cancelActionsPending=false; this._history=[]; this._unacknowledged=[]; this._renderAt=null;
     this._authorityAt=null; this._authorityPlayer=null; this._correction={x:0,y:0}; this.interpolator.reset();
   }
   _predictAt(now) {

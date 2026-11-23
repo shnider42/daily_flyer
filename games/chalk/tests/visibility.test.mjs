@@ -52,6 +52,34 @@ test('a second living teammate shares sight while casualties and removed actors 
   assert.equal(enemyInSharedSight(state, { ...point, visible: true }), false);
 });
 
+test('flash exposure stops blind scouting and stale contacts, then smoothly restores shared sight', () => {
+  const { state, observer } = fixture(), point = { x: 450, y: 300 };
+  const layer = new SharedSightLayer({ createCanvas: fakeCanvas });
+  state.time = 9; layer.update(state, state.time);
+  const memory = layer.remembered, clears = memory.calls.filter(call => call.method === 'clearRect').length;
+  Object.assign(observer, { flashStartedAt: 10, flashUntil: 13, flashStrength: 1 });
+  state.time = 10.1; layer.update(state, state.time);
+  assert.deepEqual(sightObservers(state), []);
+  assert.deepEqual(layer.polygons, []);
+  assert.deepEqual(sightPolygon(state, observer).points, []);
+  assert.equal(squadCanSeePoint(state, { x: 70, y: 300 }), false);
+  assert.equal(enemyInSharedSight(state, { ...point, visible: true }), false);
+  const ally = { id: 'unaffected', x: 460, y: 300, alive: true, role: 'medic' };
+  state.squad.push(ally); assert.equal(squadCanSeePoint(state, point), true, 'an unaffected teammate can still share a contact');
+  state.squad.pop();
+  state.time = 11.5; layer.update(state, state.time);
+  assert.equal(sightObservers(state).length, 1);
+  assert.equal(squadCanSeePoint(state, { x: 150, y: 300 }), true);
+  assert.equal(squadCanSeePoint(state, point), false);
+  assert.equal(enemyInSharedSight(state, { ...point, visible: true }), false, 'an old visible flag cannot bypass reduced recovery range');
+  assert.equal(inside(point, layer.polygons[0]), false);
+  assert.equal(layer.remembered, memory);
+  assert.equal(memory.calls.filter(call => call.method === 'clearRect').length, clears, 'flash impairment does not erase already explored terrain');
+  state.time = 13; layer.update(state, state.time);
+  assert.equal(squadCanSeePoint(state, point), true);
+  assert.equal(inside(point, layer.polygons[0]), true);
+});
+
 test('smoke occludes terrain and contacts, including a stale authoritative reveal', () => {
   const { state, observer } = fixture(), point = { x: 450, y: 300 };
   state.smokes = [{ x: 250, y: 300, radius: 90, ttl: 10 }];

@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "date": "2026-11-23",
   "missions": 6,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Layered day/dawn/night city ambience; distant finite battle bursts, helicopter and engine passes, residential dogs, metal and local fire. Quieter six-take recorded footfalls. Outdoor gunfire tails remain audible and become muffled through doorway crossings. Existing weapon reports, voices, propagation and music retained.",
+  "audio": "Fourteen recorded squad phrases; routine orders share a sixty-second speech cooldown and ordinary exact lines rest for three minutes. Old move-out clip retained but removed from menu and mission playback. Nearby voices use position and room/street reflections; blocked or distant squadmates use radio, crossfading the same running phrase. Separate squad voice and flashbang ringing levels. Existing city ambience, gunfire propagation, doorway tails and music retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -29,7 +29,8 @@
       "Hold"
     ],
     "camera": "Controlled soldier stays centered in the usable area between HUD and thumb controls, including world edges and zoom transitions",
-    "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues"
+    "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues",
+    "throwables": "Compact type selector and drag-to-aim release-to-throw control with cancellation"
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -47,7 +48,9 @@
       "performance display",
       "distress voice volume",
       "blood marks",
-      "room and street reflections"
+      "room and street reflections",
+      "squad voice volume",
+      "flashbang ringing volume"
     ],
     "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
     "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
@@ -80,16 +83,16 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 7,
+  "protocol": 8,
   "squad": {
-    "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
+    "soloSelection": "HUD cards or keyboard 1–4, retaining each soldier state",
     "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
     "machineGunner": "M249 SAW with 100-round belt; AI fires bounded 12-round strings at weapon cadence with pauses and reloads"
   },
   "worldVariation": "Six distinct seeded mission layouts with district identities, parked sedans/pickups/vans, abandoned stalls, handcarts, work yards, materials and constrained fires; fixed routes, doors, casualty access and usable breach approaches reserved",
-  "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts",
+  "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts; strongly flashed observers stop scouting, recovery scales their vision range",
   "enemies": {
     "types": [
       "rifleman",
@@ -105,7 +108,7 @@
     "weightedAndRoleLimits": true,
     "visibleSpawnExclusion": true,
     "sniperLimit": 1,
-    "encounters": "Finite coherent 3\u20134-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
+    "encounters": "Finite coherent 3–4-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
     "deliberateSniperOperations": [
       "First Crash",
       "Dawn Mile",
@@ -260,5 +263,17 @@
     "firePresentation": "Positioned crackle, bounded flames and smoke; observed visibility and wall-clipped glow",
     "drivableVehicles": false,
     "generalVehicleDamage": false
+  },
+  "throwables": {
+    "inventoryPerSoldier": {
+      "frag": 2,
+      "flashbang": 2
+    },
+    "desktop": "Y selects Frag/Flash/Smoke; N throws toward aim. G smoke and V grenadier40mm remain.",
+    "mobile": "Tap type to select; drag Throw to aim and release; return to button to cancel.",
+    "frag": "Timed thrown blast; walls shield actors; exposed allies/civilians can be harmed; no masonry breach.",
+    "flashbang": "Nonlethal LOS and distance exposure; strong shared-room effect; smooth vision/hearing recovery; brief configurable ringing; blinded AI pauses firing and scouting.",
+    "flight": "Short arc, wall stop, ground fuse; no bounce/roll simulation.",
+    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol8."
   }
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stickVector, touchIntent, GroundOrderTap } from '../public/touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag } from '../public/touch-input.mjs';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
@@ -81,4 +81,36 @@ test('ground drags, long holds, cancellations and invalid coordinates never issu
   tap.begin(3,200,300,1100); tap.cancel(); assert.equal(tap.end(3,200,300,1150),false);
   assert.equal(tap.begin(4,NaN,300,1200),false);
   tap.begin(4,200,300,1200); assert.equal(tap.end(4,Infinity,300,1230),false);
+});
+
+test('throwing requires a deliberate captured drag, while taps and return-to-center cancel', () => {
+  const drag = new ThrowableDrag();
+  assert.equal(drag.begin(1, 200, 500), true);
+  assert.equal(drag.end(1, 200, 500), null);
+  drag.begin(2, 200, 500); drag.move(2, 205, 500);
+  assert.equal(drag.vector(), null);
+  drag.move(2, 280, 500); assert.ok(drag.vector());
+  assert.equal(drag.end(2, 202, 501), null, 'bringing a prepared throw back to the button cancels it');
+});
+
+test('throw dragging preserves direction and bounds range without consuming another pointer', () => {
+  const drag = new ThrowableDrag();
+  drag.begin(1, 100, 100);
+  assert.equal(drag.begin(2, 200, 200), false);
+  drag.move(2, 250, 300); drag.cancel(2);
+  assert.equal(drag.end(2, 250, 300), null);
+  drag.move(1, 300, -100);
+  const vector = drag.end(1, 300, -100);
+  near(vector.x, Math.SQRT1_2); near(vector.y, -Math.SQRT1_2); assert.equal(vector.strength, 1);
+  assert.equal(drag.end(1, 300, -100), null, 'release cannot create a duplicate throw');
+});
+
+test('cancellation and invalid throw coordinates cannot leave an armed gesture behind', () => {
+  const drag = new ThrowableDrag();
+  assert.equal(drag.begin(1, NaN, 100), false);
+  drag.begin(1, 100, 100); drag.move(1, 200, 100); drag.cancel();
+  assert.equal(drag.end(1, 200, 100), null);
+  drag.begin(2, 100, 100); drag.move(2, Infinity, 100);
+  assert.equal(drag.pending, null);
+  drag.begin(3, 100, 100); assert.equal(drag.end(3, 100, NaN), null);
 });

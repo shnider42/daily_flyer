@@ -23,6 +23,8 @@ const RANGES = {
   ambienceVolume: [0, 1],
   distressVolume: [0, 1],
   reflectionsVolume: [0, 1],
+  squadVoiceVolume: [0, 1],
+  flashRingingVolume: [0, 1],
   hudScale: [.85, 1.3],
   mobileHudScale: [.75, 1.15],
 };
@@ -37,6 +39,7 @@ export function createDefaults({ reducedMotion = false, touchControls } = {}) {
     cameraZoom: 1, cameraLookahead: 0, crosshairStyle: 'cross', crosshairScale: 1,
     aimColor: 'white', aimLine: true, autoReload: true,
     masterVolume: 1, effectsVolume: 1, ambienceVolume: 1, distressVolume: .65, reflectionsVolume: .8,
+    squadVoiceVolume: .85, flashRingingVolume: .35,
     bloodEffects: true,
     hudScale: 1, hudDetail: 'standard', showFPS: false,
     mobileCameraZoom: .75, mobileHudScale: .85, mobileHudDetail: 'compact',

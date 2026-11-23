@@ -14,6 +14,7 @@ export { getSolidWalls, buildingAt } from './building-geometry.mjs';
 import { MISSIONS, stagesFor, getNextCampaignMission, nightMission } from './mission-definitions.mjs';
 import { initializeOperations, updateOperations, operationWork, missionInteraction, missionActionTarget, operationItem } from './operations.mjs';
 import { initializeEncounters, updateEncounters } from './encounters.mjs';
+import { HAND_GRENADES, flashIntensity, flashExposure, applyFlashStatus } from './hand-grenades.mjs';
 export { MISSIONS, getNextCampaignMission } from './mission-definitions.mjs';
 
 export const DIFFICULTIES = { story:{enemyDamage:7,enemyHp:54,maxEnemies:10,spawnDelay:17,playerHp:140}, standard:{enemyDamage:10,enemyHp:72,maxEnemies:16,spawnDelay:18,playerHp:120}, veteran:{enemyDamage:15,enemyHp:92,maxEnemies:20,spawnDelay:14,playerHp:100} };
@@ -25,7 +26,7 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finite=(n,f=0)=>Number.isFinite(n)?n:f;
 function random(s){s.rngState=(Math.imul(s.rngState,1664525)+1013904223)>>>0;return s.rngState/4294967296;}
 function range(s,a,b){return a+(b-a)*random(s);}
-function radio(s,speaker,text){s.radio.push({id:++s.nextId,time:s.time,speaker,text});if(s.radio.length>10)s.radio.shift();}
+function radio(s,speaker,text){const who=s.squad.find(a=>a.name.toUpperCase()===speaker);s.radio.push({id:++s.nextId,time:s.time,speaker,text,...(who?{actorId:who.id,x:who.x,y:who.y}:{})});if(s.radio.length>10)s.radio.shift();}
 function effect(s,type,x,y,ttl=.2,angle=0,metadata={}){s.effects.push({type,x,y,ttl,maxTtl:ttl,angle,...metadata});if(s.effects.length>220)s.effects.shift();}
 function weaponFor(a){return a.team==='enemy'?enemyProfile(a).weapon:roleProfile(a).weapon;}
 function soundEvent(s,type,a,extra={}){
@@ -211,6 +212,7 @@ function planCover(s,a,threat,anchor=a.home||a,maxTravel=170,leash=220){
   a.coverShelter=reachable(sheltered.filter(({point})=>distance(point,a.coverPoint||a)<115));
 }
 function navigate(s,a,target,speed,dt,stop=12){
+  if(flashIntensity(a,s.time)>.25){a.moving=false;return false;}
   const radius=a.radius||13,remaining=distance(a,target);
   // An exterior formation slot can be close to a doorway. Do not finish at
   // its usual arrival radius while the follower's body is still across that
@@ -252,7 +254,7 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
   const hp=DIFFICULTIES[difficulty].playerHp;
   s.squad=[['Hale','leader',200,1720],['Mercer','grenadier',260,1768],['Ames','medic',140,1768],['Webb','support',200,1824]].map(([name,role,x,y])=>{
     const loadout=roleProfile(role);
-    return actor(s,'squad',name,role,x,y,{role,hp,maxHp:hp,smokes:role==='leader'||role==='grenadier'?3:2,medkits:loadout.medkits,ammo:loadout.magSize,magSize:loadout.magSize,reserve:loadout.reserve,grenades:role==='grenadier'?4:0,grenadeCooldown:0,observing:false});
+    return actor(s,'squad',name,role,x,y,{role,hp,maxHp:hp,smokes:role==='leader'||role==='grenadier'?3:2,medkits:loadout.medkits,ammo:loadout.magSize,magSize:loadout.magSize,reserve:loadout.reserve,grenades:role==='grenadier'?4:0,grenadeCooldown:0,frags:2,flashbangs:2,handThrowCooldown:0,observing:false});
   });
   s.playerId=role==='leader'?s.squad[0].id:s.squad[1].id;
   player(s).cooldown=0;
@@ -442,6 +444,7 @@ function targetFor(s,a,targets,maxRange){
 function tryReload(s,a){if(a.reloadTimer<=0&&a.ammo<a.magSize&&a.reserve>0){a.reloadTimer=a.team==='enemy'?enemyProfile(a).reload:roleProfile(a).reloadDuration;soundEvent(s,'reload_start',a);}}
 function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
   if(a.downed||!a.alive||a.observing||a.cooldown>0||a.reloadTimer>0)return;
+  const dazzle=flashIntensity(a,s.time);if(!isPlayer&&dazzle>.25)return;
   if(a.ammo<=0){tryReload(s,a);return;}
   a.ammo--;
   if(a.kind==='sniper'){a.cooldown=range(s,...enemyProfile(a).recovery);a.aimCharge=0;}
@@ -449,7 +452,7 @@ function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
   else if(isPlayer)a.cooldown=roleProfile(a).fireInterval;
   else{const discipline=AI_FIRE_DISCIPLINE[a.role]||AI_FIRE_DISCIPLINE.leader;a.burst=(a.burst||0)+1;a.cooldown=a.burst%discipline.burst===0?range(s,...discipline.recovery):roleProfile(a).fireInterval;}
   const spread=a.team==='enemy'?a.accuracy+(a.suppression||0)*.07+(a.moving?.04:0):isPlayer?.018+.045*(a.suppression||0)+(a.moving?.02:0):(a.role==='support'?.065:.045)+(a.moving?.045:0);
-  const shotAngle=angle+range(s,-spread,spread);
+  const shotAngle=angle+range(s,-spread-dazzle*.13,spread+dazzle*.13);
   // Projectile dispersion should not pull a human's aim away from the cursor.
   // Preserve the same random draw and projectile trajectory as before.
   if(!isPlayer)a.angle=shotAngle;
@@ -464,47 +467,91 @@ function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
     speedMps:ballistics.speedMps,rangeRemaining:ballistics.range,firedAt:sourceTime,originX:x,originY:y,travelled:0,nearPassIds:[]});
   effect(s,'muzzle',x,y,.075,shotAngle,metadata);soundEvent(s,'shot',a,{x,y,sourceTime,sourceActorId:a.id,speedMps:ballistics.speedMps,angle:shotAngle});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
 }
+function throwAim(a,input,type,reach){
+  const point=input.throwTargets?.[type];
+  if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))return point;
+  if(Number.isFinite(input.throwAimX)&&Number.isFinite(input.throwAimY))return{x:input.throwAimX,y:input.throwAimY};
+  if(Number.isFinite(input.aimX)&&Number.isFinite(input.aimY))return{x:input.aimX,y:input.aimY};
+  return{x:a.x+Math.cos(a.angle)*reach,y:a.y+Math.sin(a.angle)*reach};
+}
 function launchGrenade(s,a,input,sourceTime=s.time){
   if(a.role!=='grenadier'||a.grenades<=0||a.grenadeCooldown>0||a.reloadTimer>0||a.observing)return false;
   // Manual launcher use only: the human chooses where a blast is safe.
-  const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?{x:input.aimX,y:input.aimY}:{x:a.x+Math.cos(a.angle)*280,y:a.y+Math.sin(a.angle)*280};
+  const aim=throwAim(a,input,'grenade',280);
   const direction=Math.atan2(aim.y-a.y,aim.x-a.x),reach=clamp(distance(a,aim),90,360);
   const targetX=clamp(a.x+Math.cos(direction)*reach,12,W-12),targetY=clamp(a.y+Math.sin(direction)*reach,12,H-12);
   a.grenades--;a.grenadeCooldown=3;a.cooldown=Math.max(a.cooldown,.45);
-  s.grenades.push({id:++s.nextId,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,progress:0,duration:.55+reach/850,owner:a.id,team:a.team,firedAt:sourceTime});
+  s.grenades.push({id:++s.nextId,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,progress:0,duration:.55+reach/850,owner:a.id,team:a.team,weapon:'grenade',firedAt:sourceTime});
   soundEvent(s,'grenade_launch',a,{weapon:'grenade',sourceTime});s.stats.shots++;s.lastShot=s.time;
   return true;
 }
+function throwHandGrenade(s,a,input,weapon,sourceTime=s.time){
+  const config=HAND_GRENADES[weapon];
+  if(!config||!(a[config.inventory]>0)||a.handThrowCooldown>0||a.reloadTimer>0||a.observing||!a.alive||a.downed)return false;
+  const aim=throwAim(a,input,weapon,config.defaultRange);
+  const direction=Math.atan2(aim.y-a.y,aim.x-a.x),reach=clamp(distance(a,aim),config.minimumRange,config.range);
+  const targetX=clamp(a.x+Math.cos(direction)*reach,12,W-12),targetY=clamp(a.y+Math.sin(direction)*reach,12,H-12);
+  a[config.inventory]--;a.handThrowCooldown=config.cooldown;a.cooldown=Math.max(a.cooldown,.45);
+  s.grenades.push({id:++s.nextId,kind:'hand',weapon,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,
+    progress:0,duration:.42+reach/700,owner:a.id,team:a.team,firedAt:sourceTime,fuseUntil:sourceTime+config.fuse,landed:false,detonated:false});
+  soundEvent(s,'grenade_throw',a,{weapon,sourceTime});
+  radio(s,a.name.toUpperCase(),weapon==='frag'?'Frag out.':'Flashbang out.');
+  s.stats.shots++;return true;
+}
 function explodeGrenade(s,g,sourceTime=s.time){
-  const radius=76;
-  effect(s,'explosion',g.x,g.y,.6,0,{radius,team:g.team,actorId:g.owner,weapon:'grenade'});
+  const weapon=g.weapon||'grenade';
+  if(weapon==='flashbang'){
+    const radius=HAND_GRENADES.flashbang.radius;
+    for(const a of [...s.enemies,...s.squad,...s.civilians,...s.survivors]){
+      if(!a.alive||a.evacuated)continue;
+      const strength=flashExposure(s.world,g,a);if(!applyFlashStatus(a,strength,sourceTime))continue;
+      if(a.team==='civilian')a.lastDanger={x:g.x,y:g.y,type:'flashbang',time:s.time};
+    }
+    effect(s,'flashbang',g.x,g.y,.3,0,{radius,team:g.team,actorId:g.owner,weapon});
+    soundEvent(s,'flashbang',{id:g.owner,x:g.x,y:g.y,team:g.team},{weapon,radius,sourceTime,sourceActorId:g.owner});
+    return;
+  }
+  const radius=weapon==='frag'?HAND_GRENADES.frag.radius:76;
+  effect(s,'explosion',g.x,g.y,.6,0,{radius,team:g.team,actorId:g.owner,weapon});
   for(const a of [...s.enemies,...s.squad,...s.civilians,...s.survivors]){
     if(!a.alive||a.downed)continue;
     const d=distance(a,g);if(d>=radius||!hasLineOfSight(s,g,a))continue;
-    damage(s,a,Math.round(74*(1-d/radius)+14),g.owner,'blast',Math.atan2(a.y-g.y,a.x-g.x),sourceTime);
+    damage(s,a,Math.round((weapon==='frag'?96:74)*(1-d/radius)+14),g.owner,'blast',Math.atan2(a.y-g.y,a.x-g.x),sourceTime);
   }
   // The original wall shields this blast. The resulting opening changes only
   // subsequent sight, movement and projectiles.
-  const breach=applyBreach(s,{x:g.x,y:g.y,radius,wallId:g.impactWallId});
-  soundEvent(s,'explosion',{id:g.owner,x:g.x,y:g.y,team:g.team},{weapon:'grenade',radius,sourceTime,sourceActorId:g.owner,breached:breach.changed,breachCount:breach.created.length});
+  // Fragments harm exposed actors but do not punch new doors through masonry.
+  // The existing 40 mm round retains CHALK's structural breaching behavior.
+  const breach=weapon==='frag'?{changed:false,created:[]}:applyBreach(s,{x:g.x,y:g.y,radius,wallId:g.impactWallId});
+  soundEvent(s,'explosion',{id:g.owner,x:g.x,y:g.y,team:g.team},{weapon,radius,sourceTime,sourceActorId:g.owner,breached:breach.changed,breachCount:breach.created.length});
 }
 function updateGrenades(s,dt,frameStart=s.time-dt){
   for(const g of s.grenades){
+    if(g.kind==='hand'&&g.landed){
+      if(s.time>=g.fuseUntil){explodeGrenade(s,g,g.fuseUntil);g.detonated=true;}
+      continue;
+    }
     const travelTime=Math.min(dt,(1-g.progress)*g.duration);
     g.px=g.x;g.py=g.y;g.progress=Math.min(1,g.progress+travelTime/g.duration);
     const origin={x:g.x,y:g.y},next={x:g.startX+(g.targetX-g.startX)*g.progress,y:g.startY+(g.targetY-g.startY)*g.progress};
     let collision=Infinity;for(const wall of getSolidWalls(s.world)){const entry=segmentRectEntry(origin,next,wall);if(entry<collision){collision=entry;g.impactWallId=wall.id;}}
     if(Number.isFinite(collision)){
-      // Detonate just before the obstruction so the wall still shields its far side.
+      // Stop before the obstruction so its far side remains shielded. Hand
+      // grenades settle here until their fuse; 40 mm rounds explode on impact.
       const length=distance(origin,next),t=Math.max(0,collision-.75/Math.max(1,length));
       g.x=origin.x+(next.x-origin.x)*t;g.y=origin.y+(next.y-origin.y)*t;g.progress=1;
     }else{g.x=next.x;g.y=next.y;}
-    if(g.progress>=1)explodeGrenade(s,g,frameStart+travelTime*(Number.isFinite(collision)?collision:1));
+    if(g.progress>=1){
+      if(g.kind==='hand'){
+        g.landed=true;
+        if(s.time>=g.fuseUntil){explodeGrenade(s,g,g.fuseUntil);g.detonated=true;}
+      }else explodeGrenade(s,g,frameStart+travelTime*(Number.isFinite(collision)?collision:1));
+    }
   }
-  s.grenades=s.grenades.filter(g=>g.progress<1);
+  s.grenades=s.grenades.filter(g=>g.kind==='hand'?!g.detonated:g.progress<1);
 }
 function safeShot(s,a,t){
-  const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy,spread=(a.role==='support'?.065:.045)+(a.moving?.045:0);
+  const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy,spread=(a.role==='support'?.065:.045)+(a.moving?.045:0)+flashIntensity(a,s.time)*.13;
   return !s.civilians.some(c=>{if(!c.alive||c.downed)return false;const f=((c.x-a.x)*dx+(c.y-a.y)*dy)/len2;if(f<=0||f>=1)return false;return Math.hypot(c.x-a.x-f*dx,c.y-a.y-f*dy)<24+f*Math.sqrt(len2)*spread;});
 }
 function damage(s,a,amount,source,cause='bullet',angle,sourceTime=s.time){
@@ -645,13 +692,15 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
       a.moving=len>.05;const speed=movementSpeed(a,input.sprint);move(s,a,mx*speed*dt,my*speed*dt);
       if(Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX-a.x,input.aimY-a.y)>2)a.angle=Math.atan2(input.aimY-a.y,input.aimX-a.x);else if(len>.05&&!input.fire)a.angle=Math.atan2(my,mx);
       if(input.reload)tryReload(s,a);if(input.grenade&&!input.sprint)launchGrenade(s,a,input,frameStart);if(input.fire&&!input.sprint)shoot(s,a,a.angle,true,frameStart);
-      if(input.smoke&&a.smokes>0){a.smokes--;const aim={x:a.x+Math.cos(a.angle)*145,y:a.y+Math.sin(a.angle)*145},p=nearbyFree(s,aim.x,aim.y);s.smokes.push({...p,radius:105,ttl:14});effect(s,'smoke',p.x,p.y,1);soundEvent(s,'smoke',a,{x:p.x,y:p.y});radio(s,a.name.toUpperCase(),'Smoke out. Keep moving.');}
+      if(!input.sprint){if(input.frag)throwHandGrenade(s,a,input,'frag',frameStart);else if(input.flashbang)throwHandGrenade(s,a,input,'flashbang',frameStart);}
+      if(input.smoke&&a.smokes>0){a.smokes--;const target=throwAim(a,input,'smoke',145),angle=Math.atan2(target.y-a.y,target.x-a.x),aim={x:a.x+Math.cos(angle)*145,y:a.y+Math.sin(angle)*145},p=nearbyFree(s,aim.x,aim.y);s.smokes.push({...p,radius:105,ttl:14});effect(s,'smoke',p.x,p.y,1);soundEvent(s,'smoke',a,{x:p.x,y:p.y});radio(s,a.name.toUpperCase(),'Smoke out. Keep moving.');}
       if(input.interact){const down=casualties.filter(c=>distance(a,c)<70&&hasLineOfSight(s,a,c)).sort((c,d)=>distance(a,c)-distance(a,d))[0];if(down){revive(s,down,a,dt);s.interactionPrompt=`Helping ${down.name} · ${Math.round(down.reviveProgress/4*100)}%`;}
         else if(a.hp<a.maxHp&&a.medkits>0&&!getStoryInteraction(s,a.id)&&s.objective?.kind!=='rescue'&&s.objective?.kind!=='barricade'&&s.objective?.kind!=='repair'&&!getMissionInteraction(s,a.id)){a.bandageProgress=(a.bandageProgress||0)+dt*(a.role==='medic'?1.35:1);if(a.bandageProgress>=3){a.medkits--;a.hp=Math.min(a.maxHp,a.hp+55);a.bandageProgress=0;effect(s,'heal',a.x,a.y,1);radio(s,a.name.toUpperCase(),'Bandaged. Ready to move.');}s.interactionPrompt=`Bandaging · ${Math.round(a.bandageProgress/3*100)}%`;}}
       else a.bandageProgress=0;
       continue;
     }
     a.observing=false;
+    if(flashIntensity(a,s.time)>.25){a.moving=false;a.tactic='disoriented';continue;}
     const enemy=targetFor(s,a,s.enemies,nightMission(s)?350:440);a.target=enemy?.id||null;
     let work=false;
     if(a===helper&&casualties.length){const wounded=casualties.sort((b,c)=>distance(a,b)-distance(a,c))[0];navigate(s,a,wounded,movementSpeed(a)*128/112,dt,40);if(distance(a,wounded)<65&&hasLineOfSight(s,a,wounded)){revive(s,wounded,a,dt);work=true;}a.medicTarget=wounded.id;}
@@ -760,6 +809,7 @@ function updateEnemies(s,dt,frameStart=s.time-dt){
   const targets=aliveSquad(s);
   for(const a of s.enemies){
     if(!a.alive)continue;
+    if(flashIntensity(a,s.time)>.25){a.moving=false;a.alert=false;a.target=null;a.perceivedTargetId=null;a.senseTimer=0;a.tactic='disoriented';continue;}
     const profile=enemyProfile(a),target=perceiveEnemy(s,a,targets,dt),limit=nightMission(s)?profile.nightRange:profile.range;
     const remembered=a.lastKnown&&s.time-a.lastSeenAt<=6;
     a.alert=!!(target||remembered);a.target=target?.id||null;
@@ -895,9 +945,9 @@ function updateMission(s,inputs,dt){
   }
 }
 function updateVisibility(s,dt){
-  s.visibilityTimer-=dt;if(s.visibilityTimer>0)return;s.visibilityTimer=.12;const eyes=aliveSquad(s);
+  s.visibilityTimer-=dt;if(s.visibilityTimer>0)return;s.visibilityTimer=.12;const eyes=aliveSquad(s).filter(a=>flashIntensity(a,s.time)<.8);
   for(const e of s.enemies)e.visible=eyes.some(a=>{
-    const range=visionRange(a,s.missionIndex,e),glint=e.kind==='sniper'&&e.aimCharge>0?(nightMission(s)?520:760):0;
+    const recovery=1-flashIntensity(a,s.time)*.8,range=visionRange(a,s.missionIndex,e)*recovery,glint=e.kind==='sniper'&&e.aimCharge>0?(nightMission(s)?520:760)*recovery:0;
     return distance(a,e)<Math.max(range,glint)&&combatLOS(s,a,e);
   });
 }
@@ -912,7 +962,7 @@ export function stepCoop(s,inputsByActorId={},dt=1/60){
 function advanceSimulation(s,input,dt){
   if(s.status!=='playing')return s;dt=clamp(finite(dt),0,.05);if(!dt)return s;const frameStart=s.time;s.time+=dt;s.stats.elapsed=s.time;s.interactionPrompt='';
   if(s.coop)syncCoopControl(s);
-  for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
+  for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.handThrowCooldown=Math.max(0,(a.handThrowCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
   updateSquad(s,input,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
   else if(s.coop&&s.squad.slice(0,2).every(a=>!a.alive)){s.status='lost';s.endReason='Neither player soldier could be recovered. Regroup and retry the mission.';}

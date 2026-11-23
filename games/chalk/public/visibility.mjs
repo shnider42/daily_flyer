@@ -1,12 +1,13 @@
 import { getSolidWalls } from './building-geometry.mjs';
 import { OBSERVE_HALF_ANGLE, visionRange } from './squad-roles.mjs';
+import { flashIntensity } from './flash-status.mjs';
 
 const TAU = Math.PI * 2;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
-/** Living eyes only. A casualty remains marked, but cannot scout for the squad. */
+/** Living, seeing eyes only. A casualty or blinded soldier cannot scout. */
 export function sightObservers(state) {
-  return (state.squad || []).filter(actor => actor.alive !== false && !actor.downed && Number.isFinite(actor.x) && Number.isFinite(actor.y));
+  return (state.squad || []).filter(actor => actor.alive !== false && !actor.downed && flashIntensity(actor, state.time) < .8 && Number.isFinite(actor.x) && Number.isFinite(actor.y));
 }
 
 /** First intersection of a unit direction with a solid rectangle, without allocations. */
@@ -54,7 +55,10 @@ export function squadCanSeePoint(state, point, { ignoreRange = false } = {}) {
   const walls = getSolidWalls(state.world);
   for (const observer of sightObservers(state)) {
     const dx = point.x - observer.x, dy = point.y - observer.y, length = Math.hypot(dx, dy);
-    if (!ignoreRange && length > visionRange(observer, state.missionIndex, point)) continue;
+    const dazzle = flashIntensity(observer, state.time);
+    // A stale authoritative contact or a distant report cannot bypass the
+    // current listener's impairment. Unaffected squad eyes still share sight.
+    if ((!ignoreRange || dazzle > 0) && length > visionRange(observer, state.missionIndex, point) * (1 - dazzle * .8)) continue;
     if (length < .001) return true;
     let blocked = false;
     for (const wall of walls) {
@@ -84,7 +88,9 @@ function smokeRayLimit(observer, dx, dy, smoke, limit) {
 
 /** Corner rays preserve doorways and hard occlusion; a small regular fan rounds range limits. */
 export function sightPolygon(state, observer) {
-  const world = state.world, maxRange = visionRange(observer, state.missionIndex);
+  const dazzle = flashIntensity(observer, state.time), recovery = 1 - dazzle * .8;
+  if (dazzle >= .8) return { observerId: observer.id, origin: { x: observer.x, y: observer.y }, points: [] };
+  const world = state.world, maxRange = visionRange(observer, state.missionIndex) * recovery;
   const walls = getSolidWalls(world).filter(wall => {
     const x = clamp(observer.x, wall.x, wall.x + (wall.w ?? wall.width));
     const y = clamp(observer.y, wall.y, wall.y + (wall.h ?? wall.height));
@@ -104,7 +110,7 @@ export function sightPolygon(state, observer) {
   // Shared masonry endpoints are also deduplicated before this bounded pass.
   for (const point of corners.values()) {
     const dx = point.x - observer.x, dy = point.y - observer.y, distance = Math.hypot(dx, dy);
-    if (distance < .001 || distance > visionRange(observer, state.missionIndex, point) + .01) continue;
+    if (distance < .001 || distance > visionRange(observer, state.missionIndex, point) * recovery + .01) continue;
     let blocked = false;
     for (const wall of walls) {
       if (rayWallDistance(observer.x, observer.y, dx / distance, dy / distance, wall, distance) < distance - .01) { blocked = true; break; }
@@ -123,7 +129,7 @@ export function sightPolygon(state, observer) {
   const points = [];
   for (const angle of [...angles].sort((a, b) => a - b)) {
     const dx = Math.cos(angle), dy = Math.sin(angle);
-    let length = visionRange(observer, state.missionIndex, { x: observer.x + dx * maxRange, y: observer.y + dy * maxRange });
+    let length = visionRange(observer, state.missionIndex, { x: observer.x + dx * maxRange, y: observer.y + dy * maxRange }) * recovery;
     // Keep the mask inside the district; overscan remains an unobtrusive border.
     if (dx > .000001) length = Math.min(length, (world.width - observer.x) / dx);
     else if (dx < -.000001) length = Math.min(length, -observer.x / dx);

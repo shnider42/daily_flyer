@@ -522,3 +522,27 @@ button.squad-member.active:disabled{opacity:1}
 .touch[data-guidance="expert"] .context-hint,.touch[data-guidance="expert"] .leader-intent,.touch[data-guidance="expert"] .desktop-hint,.touch[data-guidance="expert"] #objectiveDetail{display:none}
 .touch[data-guidance="expert"] .radio-line{max-width:100%;font-size:11px;line-height:1.35;padding:4px 7px}
 .touch[data-guidance="expert"] .squad-member:not(.downed) small{display:none}
+
+/* One selected throwable keeps the field controls compact. */
+.throwable-picker{display:flex;gap:4px;margin-top:9px}
+.throwable-picker button{flex:1;min-width:0;min-height:36px;padding:5px 3px;border:1px solid #9aaf9140;border-radius:4px;background:#1a2a20;color:#c3cfb8;font:11px var(--mono)}
+.throwable-picker button span{display:block;margin-top:3px;color:#ecdfb7;font-size:13px}
+.throwable-picker button[aria-pressed="true"]{border-color:#d6bd79;background:#ccb67620;color:#f0dfb0}
+.throwable-picker button.empty{opacity:.5}
+.throwable-picker button:focus-visible{outline:2px solid #e4ce92;outline-offset:2px}
+.throwable-keys{font:10px var(--mono);color:#b9c5af;margin:5px 0 0}
+.throwable-keys kbd{color:#e4d298;font:inherit}
+.flash-status{font:600 10px/1.4 var(--mono);color:#eee2bd;letter-spacing:.035em;margin:7px 0 0}
+.flash-status:empty{display:none}
+.touch .throwable-picker,.touch .throwable-keys{display:none}
+.touch .flash-status{font-size:9px;max-width:120px;margin-top:4px}
+.touch .throwable-cycle{position:absolute;top:4px;left:5px;font-size:11px;color:#a5ba9d}
+.touch #touchThrow{width:54px;height:58px;left:calc(50% + 4px);bottom:calc(var(--touch-bottom) + 67px);border-color:#d2b57a66;color:#ead5a6;font-size:11px}
+.touch #touchReload{left:max(14px,env(safe-area-inset-left));right:auto;bottom:calc(var(--touch-bottom) + 145px);width:50px;height:44px;min-height:44px;gap:2px;font-size:10px}
+.touch #touchReload svg{width:17px;height:17px}
+.touch #touchSmoke{border-color:#c2d3b85c}
+.touch #touchThrow.working{border-color:#ebd391;background:#6d6939de}
+@media(orientation:landscape) and (max-height:600px){
+  .touch .utility-actions #touchReload,.touch .utility-actions #touchSmoke,.touch .utility-actions #touchThrow{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:50px;min-width:48px;height:48px;min-height:48px;padding:4px;font-size:10px;order:0}
+  .touch .utility-actions #touchThrow{width:56px}
+}

@@ -51,3 +51,30 @@ export class GroundOrderTap {
   }
   cancel(id) { if (id === undefined || this.pending?.id === id) this.pending = null; }
 }
+
+/** A throwable uses its own captured drag. Returning to the button cancels;
+ * tapping it or losing a pointer never arms an explosive. */
+export class ThrowableDrag {
+  constructor({ deadZone = 14, reach = 92 } = {}) { this.deadZone = deadZone; this.reach = reach; this.pending = null; }
+  begin(id, x, y) {
+    if (this.pending || ![x, y].every(Number.isFinite)) return false;
+    this.pending = { id, x, y, dx: 0, dy: 0 }; return true;
+  }
+  move(id, x, y) {
+    const drag = this.pending;
+    if (drag?.id !== id) return;
+    if (![x, y].every(Number.isFinite)) { this.pending = null; return; }
+    drag.dx = x - drag.x; drag.dy = y - drag.y;
+  }
+  vector() {
+    const drag = this.pending, length = drag ? Math.hypot(drag.dx, drag.dy) : 0;
+    if (length < this.deadZone) return null;
+    return { x: drag.dx / length, y: drag.dy / length, strength: clamp((length - this.deadZone) / (this.reach - this.deadZone), 0, 1) };
+  }
+  end(id, x, y) {
+    if (this.pending?.id !== id) return null;
+    this.move(id, x, y);
+    const result = this.vector(); this.pending = null; return result;
+  }
+  cancel(id) { if (id === undefined || this.pending?.id === id) this.pending = null; }
+}

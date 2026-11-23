@@ -132,6 +132,53 @@ test('grenade edges survive coalescing once while clearing input cancels observa
   }finally{client.leave();}
 });
 
+test('frag and flashbang inputs survive backpressure once and expire instead of throwing after a pause',async()=>{
+  const {client,socket,setTime}=await connectedClient();
+  try{
+    client.input({frag:true,aimX:300,aimY:400});socket.bufferedAmount=50;assert.equal(client._sendInput(),false);
+    client.input({moveX:1,aimX:800,aimY:900});setTime(30);socket.bufferedAmount=0;client._sendInput();
+    assert.equal(socket.sent.at(-1).input.frag,true);assert.equal(socket.sent.at(-1).input.flashbang,false);
+    assert.equal(socket.sent.at(-1).input.throwAimX,300);assert.equal(socket.sent.at(-1).input.throwAimY,400);
+    assert.equal(socket.sent.at(-1).input.aimX,800);assert.equal(socket.sent.at(-1).input.aimY,900,'rifle aim stays independent of the latched throw');
+    setTime(60);client._sendInput();assert.equal(socket.sent.at(-1).input.frag,false);
+    client.input({flashbang:true});socket.bufferedAmount=50;client.clearInput();
+    socket.bufferedAmount=0;client._sendInput();assert.equal(socket.sent.at(-1).input.flashbang,false);
+    client.input({frag:true,flashbang:true});setTime(1000);client._sendInput();
+    assert.equal(socket.sent.at(-1).input.frag,false);assert.equal(socket.sent.at(-1).input.flashbang,false);
+    client.input({smoke:true,aimX:120,aimY:220});client.input({aimX:600,aimY:700});client._sendInput();
+    assert.equal(socket.sent.at(-1).input.throwAimX,120);assert.equal(socket.sent.at(-1).input.throwAimY,220);
+  }finally{client.leave();}
+});
+
+test('different throw edges retain separate release targets when coalesced into one packet',async()=>{
+  const {client,socket}=await connectedClient();
+  try{
+    client.input({frag:true,aimX:300,aimY:400});
+    client.input({smoke:true,aimX:500,aimY:600});
+    client.input({aimX:700,aimY:800});client._sendInput();
+    const input=socket.sent.at(-1).input;
+    assert.equal(input.frag,true);assert.equal(input.smoke,true);
+    assert.deepEqual(input.throwTargets,{frag:{x:300,y:400},smoke:{x:500,y:600}});
+    assert.equal(input.aimX,700);assert.equal(input.aimY,800);
+  }finally{client.leave();}
+});
+
+test('explicit input cancellation survives backpressure and is sent before a new post-pause throw',async()=>{
+  const {client,socket,setTime}=await connectedClient();
+  try{
+    client.input({frag:true,aimX:300,aimY:400});client._sendInput();
+    assert.equal(socket.sent.at(-1).input.frag,true);
+    socket.bufferedAmount=50;client.clearInput();
+    client.input({flashbang:true,aimX:500,aimY:600});setTime(30);socket.bufferedAmount=0;client._sendInput();
+    const cancelled=socket.sent.at(-1);assert.equal(cancelled.cancelActions,true);
+    assert.equal(cancelled.input.frag,false);assert.equal(cancelled.input.flashbang,false);
+    setTime(60);client._sendInput();const resumed=socket.sent.at(-1);
+    assert.equal(resumed.cancelActions,undefined);assert.equal(resumed.input.frag,false);assert.equal(resumed.input.flashbang,true);
+    assert.deepEqual(resumed.input.throwTargets.flashbang,{x:500,y:600});
+    setTime(90);client._sendInput();assert.equal(socket.sent.at(-1).input.flashbang,false);
+  }finally{client.leave();}
+});
+
 test('stale input becomes neutral and local prediction is bounded by the last authority snapshot', async () => {
   const {client,socket,setTime}=await connectedClient();
   try {

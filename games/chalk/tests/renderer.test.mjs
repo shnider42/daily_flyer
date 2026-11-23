@@ -303,6 +303,59 @@ test('launcher projectiles have a raised arc and a short ground blast without un
   assert.ok(arcs.every(arc => Number.isFinite(arc.radius)));
 });
 
+test('flash exposure follows only the controlled soldier and recovers on simulation time even over the map', () => {
+  const { renderer, state, actor } = fixture(), veils = [];
+  renderer.ctx.fillRect = (x, y, width, height) => veils.push({ alpha: renderer.ctx.globalAlpha, color: renderer.ctx.fillStyle, width, height });
+  Object.assign(actor, { flashStartedAt: 10, flashUntil: 13, flashStrength: 1 });
+  state.time = 10.1; renderer.drawFlashExposure(state, {});
+  assert.equal(veils.length, 1); near(veils[0].alpha, .96);
+  assert.equal(veils[0].width, renderer.width); assert.equal(veils[0].height, renderer.height);
+  state.time = 11.5; renderer.drawFlashExposure(state, { showMap: true });
+  assert.ok(veils[1].alpha > .1 && veils[1].alpha < veils[0].alpha, 'the map does not bypass the recovery veil');
+  renderer.drawFlashExposure(state, { reducedMotion: true });
+  near(veils[2].alpha, veils[1].alpha); assert.equal(veils[2].color, '#17201f');
+  state.time = 13; renderer.drawFlashExposure(state, {}); assert.equal(veils.length, 3);
+  state.time = 10.1; state.playerId = 2; state.squad.push({ id: 2, alive: true });
+  renderer.drawFlashExposure(state, {}); assert.equal(veils.length, 3, 'a soldier switch does not inherit the prior actor’s flash');
+  state.playerId = 1; renderer.drawFlashExposure(state, { menu: true }); assert.equal(veils.length, 3);
+});
+
+test('flashbang bloom requires current sight, clips at walls, and has a quiet reduced-motion variant', () => {
+  const { renderer, state } = fixture(), images = [], arcs = [];
+  renderer.ctx.drawImage = (...args) => images.push(args);
+  renderer.ctx.arc = (x, y, radius) => arcs.push({ x, y, radius });
+  renderer.radialSprite = () => ({});
+  state.world.walls = [{ id: 'screen', x: 1280, y: 800, w: 10, h: 400 }];
+  state.effects = [{ type: 'flashbang', x: 1250, y: 950, radius: 240, ttl: .25, maxTtl: .35 }];
+  renderer.drawEffects(renderer.ctx, state, 10);
+  assert.equal(images.length, 1);
+  const mask = [...renderer.flashMasks.values()][0];
+  assert.ok(mask.every(point => point.x < 1280.001));
+  renderer.drawEffects(renderer.ctx, state, 10.1, { reducedMotion: true });
+  assert.equal(images.length, 1, 'reduced motion suppresses the bloom');
+  assert.equal(arcs.at(-1).radius, 7);
+  assert.equal([...renderer.flashMasks.values()][0], mask, 'an unchanged burst reuses its light mask');
+  images.length = 0; arcs.length = 0;
+  renderer.drawEffects(renderer.ctx, state, 10.2, { showMap: true });
+  state.effects[0].x = 1350; renderer.drawEffects(renderer.ctx, state, 10.2);
+  assert.equal(images.length, 0); assert.equal(arcs.length, 0, 'the flash cannot reveal a burst behind a solid wall');
+});
+
+test('mobile throw preview stops at a wall and disappears on map or canceled aim', () => {
+  const { renderer, state } = fixture(), endpoints = [];
+  renderer.updateCamera(state, { touch: true, reducedMotion: true });
+  renderer.ctx.quadraticCurveTo = (_cx, _cy, x, y) => endpoints.push({ x, y });
+  state.world.walls = [{ x: 1280, y: 800, w: 10, h: 400 }];
+  const throwableAim = { x: 1425, y: 950, type: 'frag' };
+  renderer.drawThrowableAim(state, { throwableAim });
+  const expected = renderer.worldToScreen(1280, 950);
+  near(endpoints[0].x, expected.x); near(endpoints[0].y, expected.y);
+  renderer.drawThrowableAim(state, { throwableAim, showMap: true });
+  renderer.drawThrowableAim(state, { throwableAim: null });
+  renderer.drawThrowableAim(state, { throwableAim: { type: 'frag' } });
+  assert.equal(endpoints.length, 1);
+});
+
 test('persistent remains are culled, honor closed roofs, and render below the sight memory', () => {
   const { renderer, state, actor, house } = indoorFixture(), drawn = [], order = [];
   actor.x = 900; actor.y = 1100;

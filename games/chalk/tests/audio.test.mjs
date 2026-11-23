@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { GameAudio } from '../public/audio.mjs';
+import { VOICE_LINES } from '../public/squad-voice-lines.mjs';
 import { reverbImpulseData, environmentAt, eventEnvironment, acousticLineBlocked } from '../public/audio-environments.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { SQUAD_ROLES } from '../public/squad-roles.mjs';
@@ -40,7 +41,7 @@ class Context {
     const data = Array.from({ length: channels }, () => new Float32Array(length));
     return { length, duration: length / sampleRate, getChannelData: channel => data[channel] };
   }
-  async decodeAudioData() { return this.createBuffer(1, 17600, this.sampleRate); }
+  async decodeAudioData(bytes) { return this.createBuffer(1, bytes.byteLength === 16 ? 112000 : 17600, this.sampleRate); }
   addEventListener(type, callback) { this.listeners.set(type, callback); }
   async resume() { this.state = 'running'; this.listeners.get('statechange')?.(); }
 }
@@ -52,9 +53,9 @@ function setup(t, { failedAssets = false } = {}) {
   globalThis.AudioContext = Context; globalThis.document = document;
   t.mock.method(globalThis, 'setInterval', callback => { const id = ++nextTimer; timers.set(id, callback); return id; });
   t.mock.method(globalThis, 'clearInterval', id => timers.delete(id));
-  t.mock.method(globalThis, 'fetch', async () => {
+  t.mock.method(globalThis, 'fetch', async url => {
     if (failedAssets) throw new Error('Offline');
-    return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+    return { ok: true, arrayBuffer: async () => new ArrayBuffer(String(url).includes('squad-voice-bank') ? 16 : 8) };
   });
   const audio = new GameAudio();
   t.after(() => { audio.stop(); globalThis.AudioContext = originalContext; globalThis.document = originalDocument; });
@@ -244,7 +245,7 @@ test('running into a house preserves an outdoor tail and muffles its still-pendi
   assert.equal(audio.reverbBanks.exterior, resumed, 'ordinary outdoor updates retain the same shared convolver');
 });
 
-test('menu waits for a gesture, opens with a recorded command, and stays sparse', async t => {
+test('menu waits for a gesture, uses background radio without movement orders, and stays sparse', async t => {
   const h = setup(t), { audio } = h;
   audio.setScene('menu');
   assert.equal(audio.context, null);
@@ -253,8 +254,9 @@ test('menu waits for a gesture, opens with a recorded command, and stays sparse'
   assert.equal(h.timers.size, 1);
   assert.ok(audio.loops.has('menu:wind'));
   h.advance(1.8);
-  const voice = [...audio.voices].find(v => v.source.buffer === audio.samples.get('commandMove'));
-  assert.ok(voice, 'the first voice is the complete move-out recording');
+  const voice = [...audio.voices].find(v => v.source.buffer === audio.samples.get('radio'));
+  assert.ok(voice, 'the first voice is background radio, not an order to move out');
+  assert.ok(![...audio.voices].some(v => ['commandMove', 'commandGo'].some(key => v.source.buffer === audio.samples.get(key))));
   assert.equal(voice.bus, 'menu');
   assert.equal(voice.priority, -2);
   assert.ok(voice.nodes.some(node => node?.connections.includes(audio.menuBus)));
@@ -290,7 +292,7 @@ test('menu uses ambience volume independently of effects and respects mute', asy
   audio.setLevels({ effects: 0, ambience: .4, master: .8 });
   audio.setScene('menu'); await h.unlock(); h.advance(1.8);
   assert.equal(audio.effectsBus.gain.value, 0); assert.equal(audio.ambienceBus.gain.value, .4);
-  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('commandMove')));
+  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('radio')));
   audio.setLevels({ ambience: 0 });
   assert.equal(h.timers.size, 0); assert.equal(audio.loops.size, 0); assert.equal(audio.voices.size, 0);
   assert.equal(h.document.documentElement.dataset.audioLoops, '0');
@@ -314,21 +316,24 @@ test('hidden and suspended contexts stop all scheduling without automatically re
   assert.equal(h.timers.size, 0); assert.equal(audio.loops.size, 0);
 });
 
-test('mission recordings follow movement radio calls and never contradict hold or casualty messages', async t => {
+test('routine orders share a minute of silence while urgent casualty speech remains contextual', async t => {
   const h = setup(t), { audio } = h;
   audio.setScene('mission'); await h.unlock();
-  const state = { time: 0, status: 'playing', missionIndex: 1, playerId: 'hale', squad: [{ id: 'hale', x: 0, y: 0, hp: 100 }],
-    radio: [], stats: { shots: 0 }, soundEvents: [], vehicles: [], world: { roads: [], buildings: [] } };
-  audio.tick(state, .016);
-  state.radio.push({ id: 1, text: 'Move to your marker.', speaker: 'HALE' }); audio.tick(state, .016);
-  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('commandMove') && v.priority === 3));
-  h.advance(4);
-  for (const [id, text] of [[2, 'Hold this position.'], [3, 'Webb down. Need help here.']]) {
-    state.radio.push({ id, text }); audio.tick(state, .016);
-    assert.equal([...audio.voices].filter(v => v.source.buffer === audio.samples.get('commandMove') || v.source.buffer === audio.samples.get('commandGo')).length, 0);
-  }
-  state.radio.push({ id: 4, text: 'Smoke out. Keep moving.' }); audio.tick(state, .016);
-  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('commandGo')));
+  const state = missionState(); audio.tick(state, .016);
+  const say = (id, text) => { state.radio.push({ id, text, speaker: 'HALE' }); audio.tick(state, .016); };
+  say(1, 'Move to your marker.');
+  const first = audio.activeSpeech;
+  assert.ok(first && first.line.categories.includes('move'));
+  assert.equal(first.route.mode, 'local', 'own voice is never an earpiece transmission');
+  h.advance(4); say(2, 'Hold this position.');
+  assert.equal(audio.activeSpeech, null, 'a second routine order is silent');
+  say(3, 'Hale down. Need help here.');
+  assert.equal(audio.activeSpeech.line.id, 'medic', 'a real help call can take a separate opportunity');
+  h.advance(4); say(4, 'Smoke out. Keep moving.');
+  assert.equal(audio.activeSpeech, null, 'smoke cannot bypass the routine-order cooldown');
+  h.advance(53); say(5, 'Move to your marker.');
+  assert.ok(audio.activeSpeech && audio.activeSpeech.line.id !== first.line.id);
+  assert.ok(![...audio.voices].some(v => ['commandMove','commandGo'].some(key => v.source.buffer === audio.samples.get(key))), 'old movement clips are retired from play');
 });
 
 test('missing recordings fall back quietly without blocking menu playback', async t => {
@@ -482,8 +487,8 @@ test('distress volume silences voices independently while preserving impact and 
   audio.setLevels({ distress: 0 }); assert.equal(audio.distressBus.gain.value, 0); assert.equal(distressVoices(audio).length, 0);
   audio._event({ type: 'victim_hit', victimId: player.id, x: 0, y: 0, alive: true, cause: 'bullet' }, player, state);
   assert.equal(audio.voices.size, 2); assert.equal(audio.effectsBus.gain.value, 1);
-  audio._radio({ text: 'Move to your marker.' });
-  assert.ok([...audio.voices].some(voice => voice.source.buffer === audio.samples.get('commandMove')));
+  audio._radio({ text: 'Move to your marker.', speaker: 'HALE' }, player, state);
+  assert.ok([...audio.voices].some(voice => voice.kind === 'squad-speech'));
   assert.equal(audio.setLevels({ distress: 4 }).distress, 1);
   assert.equal(audio.setLevels({ distress: NaN }).distress, 1);
   audio.setEnabled(false); assert.equal(audio.voices.size, 0);
@@ -517,7 +522,7 @@ test('wreck ambience follows the actual crash, recedes at night, and gives way t
   const fire = audio.loops.get('wreck-fire'), gain = fire.volume.gain.value;
   state.missionIndex = 2; audio._ambience(state, player, .016);
   assert.ok(fire.volume.gain.value < gain, 'night ambient bed is more restrained');
-  audio._radio({ text: 'Move to your marker.' }); audio._ambience(state, player, .016);
+  audio._radio({ text: 'Move to your marker.', speaker: 'HALE' }, player, state); audio._ambience(state, player, .016);
   assert.ok(audio.missionAmbienceBus.gain.value < .7, 'all ambience ducks during a human command');
   player.x = 800; audio._ambience(state, player, .016);
   assert.equal(audio.loops.has('wreck-fire'), false, 'a distant crash does not create a global fire loop');
@@ -804,4 +809,75 @@ for (const control of ['master','ambience']) test(`${control} mute immediately d
   assert.ok(![...audio.loops.keys()].some(key=>!key.startsWith('menu:')));
   assert.ok(![...audio.voices].some(v=>v.bus==='ambience'));
   state.time+=.01;audio.tick(state,.01);assert.ok(![...audio.voices].some(v=>v.bus==='ambience'));
+});
+
+test('one spoken source smoothly crosses local and radio paths without restarting its words', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0];
+  const speaker = { id: 'webb', name: 'Webb', x: 110, y: 0, alive: true, team: 'squad' }; state.squad.push(speaker);
+  audio.tick(state, .016); assert.equal(audio._say('frag', speaker, player, state), true);
+  const speech = audio.activeSpeech, source = speech.voice.source, began = source.startedAt;
+  assert.equal(speech.route.mode, 'local'); assert.ok(speech.pan.pan.value > 0);
+  assert.equal(speech.radioGain.gain.value, 0);
+  state.world.walls = [{ id: 'test-wall', x: 55, y: -50, w: 8, h: 100 }];
+  h.advance(.2); state.time += .2; audio._updateSpeech(state, player);
+  assert.equal(audio.activeSpeech.voice.source, source); assert.equal(source.startedAt, began);
+  assert.equal(speech.route.mode, 'radio'); assert.equal(speech.localGain.gain.value, 0);
+  assert.ok(speech.radioGain.gain.value > 0);
+  assert.ok(speech.localGain.gain.events.some(e => e[0] === 'target' && e[3] >= .09));
+  state.world.walls = []; h.advance(.2); state.time += .2; audio._updateSpeech(state, player);
+  assert.equal(speech.route.mode, 'local'); assert.equal(speech.voice.source, source);
+  assert.equal([...audio.voices].filter(v => v.kind === 'squad-speech').length, 1);
+  assert.ok(speech.sends.street.connections.includes(audio.speechReverbBanks.street.input));
+  assert.ok(audio.speechReverbBanks.street.output.connections.includes(audio.squadBus));
+});
+
+test('squad voice mute and reflection mute clear their histories without silencing gunfire', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0]; audio.tick(state, .016);
+  audio._say('move', player, player, state); const speech = audio.activeSpeech;
+  const oldRoom = audio.speechReverbBanks.room.convolver;
+  audio.setLevels({ reflections: 0 });
+  assert.equal(audio.activeSpeech.voice.source, speech.voice.source, 'wet mute leaves the direct phrase running');
+  assert.notEqual(audio.speechReverbBanks.room.convolver, oldRoom);
+  const mutedRoom = audio.speechReverbBanks.room.convolver;
+  audio.setLevels({ reflections: .8 });
+  assert.notEqual(audio.speechReverbBanks.room.convolver, mutedRoom, 'audio accumulated during wet mute cannot reappear');
+  assert.ok(speech.sends.room.connections.includes(audio.speechReverbBanks.room.input));
+  audio._shot({ type:'shot', actorId:player.id, x:0, y:0, weapon:'rifle', team:'squad' }, player, state);
+  audio.setLevels({ squad:0 });
+  assert.equal(audio.activeSpeech, null); assert.equal(audio.squadBus.gain.value, 0);
+  assert.ok([...audio.voices].some(v => v.kind === 'report'), 'squad slider does not mute the rifle');
+  assert.equal([...audio.voices].filter(v => v.bus === 'squad').length, 0);
+  audio.setLevels({ squad: .85 }); audio.tick(state, .016);
+  assert.equal(audio.activeSpeech, null, 'unmute does not replay the consumed order');
+});
+
+test('flash hearing recovers even with effects muted and ringing has its own level', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0]; audio.tick(state, .016);
+  Object.assign(player, { flashStartedAt: state.time, flashUntil: state.time + 3.5, flashStrength: 1 });
+  audio.tick(state, .016);
+  assert.ok(audio.hearingFilter.frequency.value < 2000); assert.ok(audio.hearingGain.gain.value < .5);
+  assert.equal([...audio.voices].filter(v => v.kind === 'flash-ringing').length, 1);
+  audio.tick(state, .016); assert.equal([...audio.voices].filter(v => v.kind === 'flash-ringing').length, 1, 'snapshot does not repeat ring');
+  audio.setLevels({ ringing: 0 }); assert.equal([...audio.voices].filter(v => v.kind === 'flash-ringing').length, 0);
+  assert.ok(audio.hearingFilter.frequency.value < 2000, 'ringing preference does not remove the hearing gameplay effect');
+  audio.setLevels({ effects: 0 }); h.advance(4); state.time += 4; audio.tick(state, .016);
+  assert.equal(audio.hearingFilter.frequency.value, 20000); assert.equal(audio.hearingGain.gain.value, 1);
+  assert.equal(audio.effectsBus.gain.value, 0); assert.ok(audio.ambienceBus.gain.value > 0);
+  audio.setLevels({ effects: 1, ringing: .35 }); audio.tick(state, .016);
+  assert.equal([...audio.voices].filter(v => v.kind === 'flash-ringing').length, 0);
+});
+
+test('listener switches discard old speech and flash ringing without resetting the order cooldown', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ coop: true }), player = state.squad[0];
+  state.squad.push({ id:'webb', x:80, y:0, alive:true, team:'squad', hp:100 });
+  audio.tick(state, .016, {epoch:1}); audio._say('move', player, player, state);
+  const spokenAt = audio.voiceDirector.lastSpokeAt;
+  state.playerId = 'webb'; state.time += .05; audio.tick(state, .05, {epoch:2});
+  assert.equal(audio.activeSpeech, null); assert.equal(audio.voiceDirector.lastSpokeAt, spokenAt);
+  assert.equal(audio._say('move', state.squad[1], state.squad[1], state), false);
+  assert.equal(audio.hearingGain.gain.value, 1);
 });

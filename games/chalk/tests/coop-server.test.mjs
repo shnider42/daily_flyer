@@ -89,6 +89,50 @@ test('the grenadier keeps finite launcher ownership and observation ends on stal
   assert.equal(room.game.humanIds.length,2);assert.equal(room.game.squad.filter(a=>!a.human).length,2);
 });
 
+test('hand-grenade edges latch once per client, replicate inventories and clear across role changes',()=>{
+  const {rooms,room,host,guest,start,step,command}=setup();start();room.game.civilians=[];
+  const [hale,mercer]=room.game.squad;
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:1,input:{frag:true,aimX:hale.x-160,aimY:hale.y}});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:2,input:{}});
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:1,input:{flashbang:true,aimX:mercer.x+160,aimY:mercer.y}});
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:2,input:{}});
+  step(6);
+  assert.equal(hale.frags,1);assert.equal(hale.flashbangs,2);assert.equal(mercer.frags,2);assert.equal(mercer.flashbangs,1);
+  assert.deepEqual(room.game.grenades.map(g=>[g.owner,g.weapon]),[[hale.id,'frag'],[mercer.id,'flashbang']]);
+  assert.equal(host.latest.state.squad[0].frags,1);assert.equal(guest.latest.state.squad[1].flashbangs,1);
+  step(36);assert.equal(hale.frags,1);assert.equal(mercer.flashbangs,1,'consumed inputs are not replayed after the throw cooldown');
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:3,input:{flashbang:true}});
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:3,input:{frag:true}});
+  command(host,'swap_roles');step();
+  assert.equal(hale.flashbangs,2);assert.equal(mercer.frags,2,'queued throws cannot leak to another assigned soldier');
+  assert.equal(room.game.squad.length,4);assert.equal(room.game.humanIds.length,2);
+});
+
+test('burst input packets retain each throw target independently of later neutral aiming',()=>{
+  const {rooms,room,host,start,step}=setup();start();
+  const actor=room.game.squad[0];Object.assign(actor,{x:300,y:500});
+  room.game.world.walls=[];room.game.world.buildings=[];room.game.world.streetSolids=[];room.game.grid.fill(0);room.game.civilians=[];
+  for(const other of room.game.squad.slice(1))Object.assign(other,{x:2100,y:1700});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:1,input:{frag:true,throwAimX:480,throwAimY:500,aimX:480,aimY:500}});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:2,input:{smoke:true,throwTargets:{smoke:{x:300,y:645}},aimX:300,aimY:645}});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:3,input:{aimX:300,aimY:250}});
+  step();
+  assert.equal(actor.frags,1);assert.equal(actor.smokes,2);
+  assert.deepEqual([room.game.grenades[0].targetX,room.game.grenades[0].targetY],[480,500]);
+  assert.deepEqual([room.game.smokes[0].x,room.game.smokes[0].y],[300,645]);
+  assert.equal(actor.angle,-Math.PI/2,'latest rifle aim remains separate from both latched throwable targets');
+});
+
+test('an explicit cancellation clears server-pending throws while ordinary neutral input preserves a quick click',()=>{
+  const {rooms,room,host,start,step}=setup();start();const actor=room.game.squad[0];
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:1,input:{frag:true,flashbang:true,smoke:true,reload:true}});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:2,cancelActions:true,input:{}});
+  step();assert.equal(actor.frags,2);assert.equal(actor.flashbangs,2);assert.equal(actor.smokes,3);assert.equal(room.game.grenades.length,0);
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:3,input:{flashbang:true}});
+  rooms.handle(host,{type:'input',epoch:room.epoch,seq:4,input:{}});
+  step();assert.equal(actor.flashbangs,1);assert.equal(room.game.grenades.length,1);
+});
+
 test('old map, movement and breach protocol versions cannot join a current authoritative room',()=>{
   const {rooms,room}=setup(),old=new Peer();
   rooms.handle(old,{type:'join',protocol:PROTOCOL-1,code:room.code,name:'Old tab'});

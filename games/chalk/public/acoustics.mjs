@@ -36,5 +36,5 @@ export const REPORT_PROFILES = Object.freeze({
 export function reportProfile(weapon) { return REPORT_PROFILES[weapon] || REPORT_PROFILES.rifle; }
 
 export function acousticHearingRange(type) {
-  return type === 'explosion' ? 2400 : type === 'shot' ? 1800 : type === 'near_pass' ? 100 : 550;
+  return type === 'explosion' ? 2400 : type === 'shot' ? 1800 : type === 'flashbang' ? 1100 : type === 'near_pass' ? 100 : type === 'grenade_throw' ? 180 : 550;
 }

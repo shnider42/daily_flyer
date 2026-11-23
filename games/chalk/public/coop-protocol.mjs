@@ -9,9 +9,10 @@
  *   story_choice {id,epoch,decisionId,optionId}; members recommend, leaders decide.
  *   leave; ping {sentAt}; resync. Commands optionally receive result {id,ok,reason}.
  * Shared play has no global pause: opening a local menu sends neutral input.
+ * Explicit neutral frames carry cancelActions:true to discard pending one-shots.
  */
-// Version 7 adds seeded street cover to shared collision, sight and navigation.
-export const PROTOCOL = 7;
+// Version 8 adds finite hand grenades and authoritative flash exposure.
+export const PROTOCOL = 8;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;
@@ -19,6 +20,7 @@ export const INPUT_TIMEOUT_MS = 500;
 export const DISCONNECT_GRACE_MS = 30000;
 export const HOST_PROMOTION_MS = 5000;
 export const MAX_HUMANS = 2;
+export const THROW_ACTIONS = Object.freeze(['frag','flashbang','grenade','smoke']);
 export const ROOM_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 export const normalizeRoomCode = code => String(code || '').trim().toUpperCase().replace(/[\s-]/g, '');
 export const validRoomCode = code => ROOM_CODE_PATTERN.test(normalizeRoomCode(code));
@@ -28,9 +30,18 @@ export function cleanInput(raw = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
   let moveX=clamp(number(raw.moveX),-1,1),moveY=clamp(number(raw.moveY),-1,1);
   const length=Math.hypot(moveX,moveY);if(length>1){moveX/=length;moveY/=length;}
+  const throwTargets={};
+  for(const type of THROW_ACTIONS){
+    const point=raw.throwTargets?.[type];
+    if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))throwTargets[type]={x:clamp(point.x,-1200,3600),y:clamp(point.y,-1200,3100)};
+  }
   return {moveX,moveY,aimX:Number.isFinite(raw.aimX)?clamp(raw.aimX,-1200,3600):null,
     aimY:Number.isFinite(raw.aimY)?clamp(raw.aimY,-1200,3100):null,
+    throwAimX:Number.isFinite(raw.throwAimX)?clamp(raw.throwAimX,-1200,3600):null,
+    throwAimY:Number.isFinite(raw.throwAimY)?clamp(raw.throwAimY,-1200,3100):null,
+    throwTargets,
     fire:raw.fire===true,interact:raw.interact===true,reload:raw.reload===true,
-    smoke:raw.smoke===true,sprint:raw.sprint===true,grenade:raw.grenade===true,observe:raw.observe===true};
+    smoke:raw.smoke===true,sprint:raw.sprint===true,grenade:raw.grenade===true,observe:raw.observe===true,
+    frag:raw.frag===true,flashbang:raw.flashbang===true};
 }
 export const EMPTY_INPUT = Object.freeze(cleanInput());

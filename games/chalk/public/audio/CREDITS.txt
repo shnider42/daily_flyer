@@ -5,6 +5,40 @@ https://creativecommons.org/publicdomain/zero/1.0/
 The version 1.11 rifle and SAW report banks use CC BY 4.0, with attribution
 and adaptation details in the following section.
 
+Squad speech variety — version 1.14
+
+squad-voice-bank.wav
+Source: Voiceover Pack (40+ lines) — Kenney / Kenney Vleugels
+https://opengameart.org/content/voiceover-pack-40-lines
+Original archive:
+https://opengameart.org/sites/default/files/Voiceover%20Pack.zip
+Male performer: Jeffrey M. Smith, as named in the original Credits.txt.
+https://www.kenney.nl/
+License: CC0 1.0, explicitly offered on the source page and in the archive's
+License.txt: https://creativecommons.org/publicdomain/zero/1.0/
+
+Fourteen complete male performances are adapted from these original files:
+Male/go.ogg, Male/hurry_up.ogg, Male/war_go_go_go.ogg, Male/hold.ogg,
+Male/war_watch_my_back.ogg, Male/war_cover_me.ogg, Male/war_look_out.ogg,
+Male/war_get_down.ogg, Male/war_reloading.ogg, Male/war_medic.ogg,
+Male/war_suppressing_fire.ogg, Male/war_fire_in_the_hole.ogg,
+Male/war_target_engaged.ogg and Male/war_sniper.ogg.
+The source page's listed scripts and the publisher's individual filenames
+identify the phrases. CHALK does not use this pack's scoring, kill, victory,
+or other game-announcer lines. These are fictional human voice performances,
+not field recordings, not cloned voices, and not 1993 Mogadishu communication.
+
+Processing: mono 22,050 Hz PCM16; 75 Hz high-pass / 7,600 Hz low-pass; per-clip
+gain targets RMS 0.15 without exceeding peak 0.68; 3 ms opening and 12 ms
+closing fades. Natural speed and the complete recordings are retained, with
+100 ms silent separators in the bank. No pitch shift, compression, synthesized
+voice, or radio filtering is baked into these assets. The running game selects
+local room/street acoustics or radio processing using the squad's positions.
+Playback offsets, durations, scripts and categories: public/squad-voice-lines.mjs.
+Reproduction: tools/prepare-squad-voice.py with the original extracted archive.
+The former command-move.mp3 recording remains available in the repository,
+but the repeated "alright, let's move out" line is retired from playback.
+
 Recorded footsteps and sheltered street life — version 1.13
 
 footsteps-dirt-bank.wav / footsteps-stone-bank.wav

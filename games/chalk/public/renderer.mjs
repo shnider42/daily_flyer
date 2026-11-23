@@ -2,6 +2,7 @@ import { traceAim } from './desktop-input.mjs';
 import { roleProfile } from './squad-roles.mjs';
 import { enemyInSharedSight, squadCanSeePoint, rayWallDistance, SharedSightLayer } from './visibility.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
+import { flashIntensity } from './hand-grenades.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -153,6 +154,7 @@ export class Renderer {
     this.muzzleCursor = 0;
     this.muzzleScene = null;
     this.muzzleStateTime = null;
+    this.flashMasks = new Map(); this.flashWorld = null;
     this.dust = Array.from({length:32}, (_, i) => ({x:hash(i+2), y:hash(i+23), speed:4+hash(i+99)*8, alpha:.07+hash(i+35)*.08, size:1+hash(i+56)*2, phase:i}));
     this.resize(this.width, this.height, globalThis.devicePixelRatio || 1);
   }
@@ -1461,10 +1463,13 @@ export class Renderer {
   drawEffects(ctx, state, time, view = {}) {
     for (const grenade of state.grenades || []) {
       if (!this.inView(grenade.x, grenade.y, 35) || this.houseVisibility(grenade, view) <= .05) continue;
-      const progress = clamp(finite(grenade.progress), 0, 1), lift = Math.sin(progress * Math.PI) * 22;
+      const hand = grenade.kind === 'hand' || grenade.weapon === 'frag' || grenade.weapon === 'flashbang';
+      if (hand && (view.menu || view.showMap || !squadCanSeePoint(state, grenade))) continue;
+      const progress = clamp(finite(grenade.progress), 0, 1), lift = grenade.landed ? 0 : Math.sin(progress * Math.PI) * (hand ? 30 : 22);
       circle(ctx, grenade.x + 2, grenade.y + 3, 3.5, 'rgba(24,30,22,.35)');
-      line(ctx, finite(grenade.px, grenade.x), finite(grenade.py, grenade.y) - lift, grenade.x, grenade.y - lift, 'rgba(205,186,130,.55)', 1.3 / this.camera.zoom);
-      circle(ctx, grenade.x, grenade.y - lift, 2.8, '#c2b27e', '#3f4a34', 1);
+      if (!grenade.landed) line(ctx, finite(grenade.px, grenade.x), finite(grenade.py, grenade.y) - lift, grenade.x, grenade.y - lift, 'rgba(205,186,130,.55)', 1.3 / this.camera.zoom);
+      circle(ctx, grenade.x, grenade.y - lift, hand ? 3.7 : 2.8, grenade.weapon === 'flashbang' ? '#bdc9c4' : hand ? '#737b43' : '#c2b27e', '#293d30', 1);
+      if (hand) line(ctx, grenade.x - 2, grenade.y - lift - 3, grenade.x + 2, grenade.y - lift - 3, '#d4d3b6', 1.4);
     }
     for (const b of state.bullets || []) {
       if (!this.inView(b.x, b.y, 30) || this.houseVisibility(b, view) <= .05) continue;
@@ -1481,6 +1486,7 @@ export class Renderer {
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
       if (e.type === 'blood' && (view.menu || view.bloodEffects === false || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e, { ignoreRange: e.farWitness === true }))) continue;
       if (e.type === 'breach' && (view.menu || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e))) continue;
+      if (e.type === 'flashbang' && (view.menu || view.showMap || !squadCanSeePoint(state, e))) continue;
       const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
       ctx.save(); ctx.globalAlpha = life;
       if (e.type === 'muzzle') {
@@ -1497,6 +1503,25 @@ export class Renderer {
         const radius = 20 + (1 - life) * 35;
         ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle));
         ctx.drawImage(dust, -radius * 1.25, -radius * .5, radius * 2.5, radius * 1.5);
+      } else if (e.type === 'flashbang') {
+        // One brief bloom, clipped to actual masonry. No repeating flash,
+        // fire plume, fragments, or persistent lethal-explosion decal.
+        if (this.flashWorld !== state.world) { this.flashMasks.clear(); this.flashWorld = state.world; }
+        const radius = Math.min(110, finite(e.radius, 240) * .4);
+        const key = `${state.world.geometryRevision || 0}:${e.x}:${e.y}:${radius}`;
+        if (!this.flashMasks.has(key)) {
+          if (this.flashMasks.size >= 16) this.flashMasks.delete(this.flashMasks.keys().next().value);
+          this.flashMasks.set(key, muzzleLightPolygon(state.world, e, radius));
+        }
+        const polygon = this.flashMasks.get(key);
+        ctx.beginPath(); ctx.moveTo(polygon[0].x, polygon[0].y);
+        for (let i = 1; i < polygon.length; i++) ctx.lineTo(polygon[i].x, polygon[i].y);
+        ctx.closePath(); ctx.clip();
+        if (!view.reducedMotion) {
+          const glow = this.radialSprite('flashbang-bloom', [[0, 'rgba(237,239,220,.88)'], [.25, 'rgba(222,230,218,.32)'], [1, 'rgba(218,226,216,0)']]);
+          ctx.drawImage(glow, e.x - radius, e.y - radius, radius * 2, radius * 2);
+        }
+        circle(ctx, e.x, e.y, view.reducedMotion ? 7 : 7 + life * 9, view.reducedMotion ? 'rgba(187,202,191,.45)' : 'rgba(236,236,211,.8)');
       } else if (e.type === 'explosion') {
         if (e.weapon === 'grenade' || e.radius) {
           const reach = clamp(finite(e.radius, 76), 24, 110), spread = Math.sqrt(1 - life), radius = 7 + spread * reach * .72;
@@ -1585,6 +1610,33 @@ export class Renderer {
       ctx.moveTo(bx, cy + 29); ctx.lineTo(bx, cy + 42); ctx.lineTo(bx - side * 12, cy + 42); ctx.stroke();
     }
     ctx.restore();
+  }
+
+  drawThrowableAim(state, view) {
+    const target = view.throwableAim, player = state.squad?.find(actor => actor.id === state.playerId);
+    if (view.menu || view.showMap || !player?.alive || player.downed || !Number.isFinite(target?.x) || !Number.isFinite(target?.y)) return;
+    const trace = traceAim(state.world, player, target), landing = trace?.point || target;
+    const a = this.worldToScreen(player.x, player.y), b = this.worldToScreen(landing.x, landing.y), ctx = this.ctx;
+    ctx.save(); ctx.setLineDash([4, 5]); ctx.lineWidth = 1.5;
+    ctx.strokeStyle = trace?.blocked ? '#dca780' : target.type === 'flashbang' ? '#d5e4db' : '#e2cc97';
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 26, b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+    circle(ctx, b.x, b.y, 8, 'rgba(20,31,23,.35)', ctx.strokeStyle, 1.5);
+    circle(ctx, b.x, b.y, 2, ctx.strokeStyle); ctx.restore();
+  }
+
+  drawFlashExposure(state, view = {}) {
+    if (view.menu) return;
+    const player = state.squad?.find(actor => actor.id === state.playerId);
+    if (!player || player.alive === false || player.downed) return;
+    const intensity = flashIntensity(player, state.time);
+    if (intensity <= .001) return;
+    const ctx = this.ctx;
+    ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    // A single smooth recovery veil also covers the map, so opening it cannot
+    // reveal threats while blinded. HUD buttons remain usable above the canvas.
+    ctx.globalAlpha = intensity * .96;
+    ctx.fillStyle = view.reducedMotion ? '#17201f' : '#dfded0';
+    ctx.fillRect(0, 0, this.width, this.height); ctx.restore();
   }
 
   keepDesktopActorClear(player, world, obstacles) {
@@ -1787,6 +1839,7 @@ export class Renderer {
     this.drawTouchAim(state, view); this.drawObjectiveIndicator(state, view); this.drawLeaderIndicator(state, view);
     this.drawDesktopAim(state, view);
     this.drawObservation(state, view);
+    this.drawThrowableAim(state, view);
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
@@ -1796,6 +1849,7 @@ export class Renderer {
         ctx.fillText('Clear ground: squad sight · Muted: terrain only', safe.cx, view.touch ? safe.top + 21 : 39);
       }
     }
+    this.drawFlashExposure(state, view);
   }
 
   renderMinimap(canvas, state) { return renderMinimap(canvas, state, { camera: this.camera, viewport: { width: this.width, height: this.height } }); }

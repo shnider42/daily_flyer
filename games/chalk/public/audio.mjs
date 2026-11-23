@@ -5,6 +5,9 @@ import { environmentAt, eventEnvironment, reverbImpulseData } from './audio-envi
 import { streetReflectionPlan } from './street-reflections.mjs';
 import { fallbackReportData } from './weapon-reports.mjs';
 import { cityAmbienceProfile, createCityAmbience, advanceCityAmbience } from './city-ambience.mjs';
+import { VOICE_SAMPLE_FILES, VOICE_LINES } from './squad-voice-lines.mjs';
+import { createVoiceDirector, chooseVoiceLine, squadVoiceCategory, findVoiceSpeaker, squadVoiceRoute, voicePolicy } from './squad-voice.mjs';
+import { flashIntensity } from './hand-grenades.mjs';
 import { SOUND_SPEED_MPS, WORLD_UNITS_PER_METRE, MAX_PENDING_ARRIVALS, ARRIVAL_LOOKAHEAD,
   ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticHearingRange, reportProfile } from './acoustics.mjs';
 
@@ -16,13 +19,14 @@ const SAMPLE_FILES = {
   radio: 'radio-chatter.mp3', commandGo: 'command-go.mp3', commandMove: 'command-move.mp3',
   pain1: 'pain-1.mp3', pain2: 'pain-2.mp3', fear1: 'fear-1.mp3', fear2: 'fear-2.mp3',
   footStone: 'footsteps-stone-bank.wav', footDirt: 'footsteps-dirt-bank.wav', dog: 'ambient-dog.wav',
+  ...VOICE_SAMPLE_FILES,
 };
 const SCENES = new Set(['menu', 'mission', 'paused']);
 
 export class GameAudio {
   constructor() {
     this.enabled = true; this.context = null; this.master = null; this.noise = null;
-    this.levels = { master: 1, effects: 1, ambience: 1, distress: .65, reflections: .8 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
+    this.levels = { master: 1, effects: 1, ambience: 1, distress: .65, reflections: .8, squad: .85, ringing: .35 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
     this.reverbBanks = {}; this.reverbBuffers = {}; this.reflectionsNeedFlush = false; this.listenerEnvironment = null;
     this.environmentTimer = 0; this.environmentKey = ''; this.lastAcousticSpace = null;
     this.nextStreetEchoAt = 0;
@@ -35,7 +39,9 @@ export class GameAudio {
     this.footstepBuffers = new Map(); this.footstepTurn = 0; this.cityDirector = null; this.cityPasses = [];
     this.scene = 'paused'; this.menuBus = null; this.missionAmbienceBus = null;
     this.menuTimer = null; this.menuSchedule = null; this.lastMenuVoice = null;
-    this.lastCommandVoiceTime = -Infinity;
+    this.voiceDirector = createVoiceDirector(); this.activeSpeech = null; this.lastSpeech = null; this.lastCarrierAt = -Infinity;
+    this.speechReverbBanks = {}; this.speechReflectionsNeedFlush = false; this.speechMixTimer = 0;
+    this.lastFlashKey = null;
     this.hitTimes = new Map(); this.painTimes = new Map(); this.fearTimes = new Map();
     this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
     this.lastSceneKey = null; this.lastStateTime = -Infinity; this.painVariant = 0; this.fearVariant = 0;
@@ -58,7 +64,12 @@ export class GameAudio {
         this.master = context.createGain(); this.master.gain.value = this.enabled ? MASTER_GAIN * this.levels.master : 0;
         this.effectsBus = context.createGain(); this.effectsBus.gain.value = this.levels.effects;
         this.ambienceBus = context.createGain(); this.ambienceBus.gain.value = this.levels.ambience;
-        this.effectsBus.connect(this.master); this.ambienceBus.connect(this.master);
+        this.hearingFilter = context.createBiquadFilter(); this.hearingFilter.type = 'lowpass'; this.hearingFilter.frequency.value = 20000;
+        this.hearingGain = context.createGain(); this.hearingGain.gain.value = 1;
+        this.effectsBus.connect(this.hearingFilter); this.ambienceBus.connect(this.hearingFilter);
+        this.hearingFilter.connect(this.hearingGain); this.hearingGain.connect(this.master);
+        this.squadBus = context.createGain(); this.squadBus.gain.value = this.levels.squad; this.squadBus.connect(this.effectsBus);
+        this.ringingBus = context.createGain(); this.ringingBus.gain.value = this.levels.ringing * this.levels.effects; this.ringingBus.connect(this.master);
         this.earlyReflectionBus = context.createGain(); this.earlyReflectionBus.gain.value = this.levels.reflections;
         this.reflectionListeningFilter = context.createBiquadFilter(); this.reflectionListeningFilter.type = 'lowpass';
         this.reflectionListeningFilter.frequency.value = 16000;
@@ -75,7 +86,7 @@ export class GameAudio {
         this.noise = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
         const noise = this.noise.getChannelData(0);
         for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
-        this._makeReflections(); this._makeReports(); this._makeEngine(); this._makeRumble(); this._makeFire(); this._makeCrack(); this._makeCityFoley();
+        this._makeReflections(); this._makeSpeechReflections(); this._makeReports(); this._makeEngine(); this._makeRumble(); this._makeFire(); this._makeCrack(); this._makeCityFoley();
         context.addEventListener?.('statechange', this.onContextState);
         if (!this.lifecycleAttached) { globalThis.document?.addEventListener?.('visibilitychange', this.onVisibility); this.lifecycleAttached = true; }
         void this._loadSamples();
@@ -120,6 +131,35 @@ export class GameAudio {
     data.audioCity = JSON.stringify({ phase: this.lastState ? cityAmbienceProfile(this.lastState).phase : null,
       passes: this.cityPasses.length, voices: [...this.voices].filter(v => v.bus === 'ambience').length,
       fires: this.lastState?.world?.ambientFires?.length || 0 });
+    data.audioSpeech = JSON.stringify(this.activeSpeech ? { line: this.activeSpeech.line.id, text: this.activeSpeech.line.text,
+      speakerId: this.activeSpeech.actorId, route: this.activeSpeech.route.mode, active: true } : { ...this.lastSpeech, active: false });
+    data.audioFlash = JSON.stringify({ cutoff: this.hearingFilter?.frequency.value || 20000,
+      ringing: [...this.voices].some(voice => voice.kind === 'flash-ringing') });
+  }
+
+  _makeSpeechReflections() {
+    const c = this.context;
+    if (!c || !this.squadBus) return;
+    for (const kind of ['room', 'street']) {
+      const old = this.speechReverbBanks[kind];
+      if (old) for (const node of Object.values(old)) node.disconnect?.();
+      const input = c.createGain(), convolver = c.createConvolver(), output = c.createGain();
+      input.gain.value = 1; convolver.normalize = false; convolver.buffer = this.reverbBuffers[kind]; output.gain.value = 0;
+      input.connect(convolver); convolver.connect(output); output.connect(this.squadBus);
+      this.speechReverbBanks[kind] = { input, convolver, output };
+      const activeSend = this.activeSpeech?.sends[kind];
+      if (activeSend) { activeSend.disconnect(); activeSend.connect(input); }
+    }
+    this.speechReflectionsNeedFlush = false;
+  }
+
+  _clearSpeech() {
+    this._stopVoices(voice => voice.bus === 'squad'); this.activeSpeech = null;
+    const now = this.context?.currentTime || 0;
+    for (const bank of Object.values(this.speechReverbBanks)) {
+      bank.output.gain.cancelScheduledValues(now); bank.output.gain.setTargetAtTime(0, now, .01);
+    }
+    this.speechReflectionsNeedFlush = true;
   }
 
   _makeReports() {
@@ -339,8 +379,8 @@ export class GameAudio {
       }
     }
     if (now >= schedule.radioAt) {
-      // Give the small recorded command files time to arrive before the opening call.
-      if (schedule.firstVoice && !this.samples.has('commandMove') && !this.samples.has('commandGo') && elapsed < 5) schedule.radioAt = now + .25;
+      // Background radio is texture; orders belong to actual squad actions.
+      if (schedule.firstVoice && !this.samples.has('radio') && elapsed < 5) schedule.radioAt = now + .25;
       else { this._menuRadio(schedule.firstVoice); schedule.firstVoice = false; schedule.radioAt = now + 11 + Math.random() * 13; }
     }
     if (now >= schedule.impactAt) { this._menuImpact(); schedule.impactAt = now + 19 + Math.random() * 18; }
@@ -348,8 +388,7 @@ export class GameAudio {
   }
 
   _menuRadio(first = false) {
-    const choices = ['commandMove', 'radio', 'commandGo'].filter(key => this.samples.has(key) && key !== this.lastMenuVoice);
-    const key = first && this.samples.has('commandMove') ? 'commandMove' : first && this.samples.has('commandGo') ? 'commandGo' : choices[Math.floor(Math.random() * choices.length)];
+    const key = 'radio';
     const buffer = this.samples.get(key), pan = -.3 + Math.random() * .6;
     this._voice({ duration: .11, gain: .022, lowpass: 2200, highpass: 650, pan, bus: 'menu', priority: -2, attack: .015 });
     if (buffer) {
@@ -385,10 +424,12 @@ export class GameAudio {
 
   setLevels(levels = {}) {
     const effectsAudible = this.levels.master > 0 && this.levels.effects > 0;
-    for (const key of ['master', 'effects', 'ambience', 'distress', 'reflections']) {
+    const reflectionsAudible = this.levels.reflections > 0;
+    for (const key of ['master', 'effects', 'ambience', 'distress', 'reflections', 'squad', 'ringing']) {
       if (Number.isFinite(levels?.[key])) this.levels[key] = clamp(levels[key], 0, 1);
     }
     this._applyLevels();
+    if (this.context && reflectionsAudible !== (this.levels.reflections > 0)) this._makeSpeechReflections();
     if (effectsAudible !== (this.levels.master > 0 && this.levels.effects > 0)) {
       this._cancelArrivals();
       if (this.lastState) this.needsLiveCursor = true;
@@ -397,6 +438,12 @@ export class GameAudio {
     this.environmentKey='';
     if (this.levels.master === 0 || this.levels.effects === 0) this._stopVoices(voice => voice.bus !== 'menu' && voice.bus !== 'ambience');
     if (this.levels.distress === 0) this._stopVoices(voice => voice.bus === 'distress');
+    if (this.levels.master === 0 || this.levels.effects === 0 || this.levels.squad === 0) this._clearSpeech();
+    if (this.levels.master === 0 || this.levels.effects === 0 || this.levels.ringing === 0) this._stopVoices(voice => voice.bus === 'ringing');
+    if (this.levels.reflections === 0) {
+      const now = this.context?.currentTime || 0;
+      for (const bank of Object.values(this.speechReverbBanks)) bank.output.gain.setTargetAtTime(0, now, .018);
+    }
     if (this.levels.master === 0 || this.levels.ambience === 0) {
       this.cityDirector = null; this.cityPasses.length = 0;
       this._stopVoices(voice => voice.bus === 'ambience');
@@ -414,6 +461,7 @@ export class GameAudio {
       [this.master, this.enabled ? MASTER_GAIN * this.levels.master : 0],
       [this.effectsBus, this.levels.effects], [this.ambienceBus, this.levels.ambience],
       [this.distressBus, this.levels.distress],
+      [this.squadBus, this.levels.squad], [this.ringingBus, this.levels.ringing * this.levels.effects],
       [this.earlyReflectionBus, this.levels.reflections],
     ]) {
       if (!node) continue;
@@ -427,6 +475,7 @@ export class GameAudio {
     lowpass = 6500, highpass = 60, pan = 0, delay = 0, attack = .0015,
     rate = 1, wet = 0, space = null, priority = 0, bus = 'effects', offset = 0, actorId = null, kind = null } = {}) {
     if (!this._ready() || this.levels.master === 0 || bus === 'distress' && this.levels.distress === 0 ||
+      bus === 'squad' && this.levels.squad === 0 || bus === 'ringing' && this.levels.ringing === 0 ||
       (bus === 'ambience' || bus === 'menu') && this.levels.ambience === 0 ||
       bus === 'reflection' && this.levels.reflections === 0 ||
       bus !== 'menu' && bus !== 'ambience' && this.levels.effects === 0) return;
@@ -459,7 +508,8 @@ export class GameAudio {
     let panner = null;
     if (c.createStereoPanner) { panner = c.createStereoPanner(); panner.pan.value = clamp(pan, -.9, .9); envelope.connect(panner); }
     const output = panner || envelope;
-    output.connect(bus === 'menu' ? this.menuBus : bus === 'distress' ? this.distressBus : bus === 'ambience' ? this.missionAmbienceBus : bus === 'reflection' ? this.earlyReflectionBus : this.effectsBus);
+    output.connect(bus === 'menu' ? this.menuBus : bus === 'distress' ? this.distressBus : bus === 'ambience' ? this.missionAmbienceBus :
+      bus === 'reflection' ? this.earlyReflectionBus : bus === 'squad' ? this.squadBus : bus === 'ringing' ? this.ringingBus : this.effectsBus);
     const sends=[];
     // Distress has its own volume path; a shared effects reverb must not bypass it.
     if (wet && bus === 'effects' && this.levels.reflections > 0) {
@@ -472,7 +522,7 @@ export class GameAudio {
         output.connect(send);send.connect(this.reverbBanks.exterior.input);sends.push(send);
       }
     }
-    const voice = { source, envelope, priority, bus, actorId, kind, start, space, nodes: [source, envelope, low, high, panner, ...sends] };
+    const voice = { source, envelope, output, priority, bus, actorId, kind, start, end: start + duration, space, nodes: [source, envelope, low, high, panner, ...sends] };
     this.voices.add(voice);
     source.onended = () => { this.voices.delete(voice); for (const n of voice.nodes) if (n) { try { n.disconnect(); } catch {} } };
     if (frequency) source.start(start); else if (sample) source.start(start, offset); else source.start(start, Math.random() * .8);
@@ -543,7 +593,7 @@ export class GameAudio {
       !Number.isFinite(event.missDistance) || event.missDistance < 0 || event.missDistance > 100)) return;
     const own = event.type === 'victim_hit' ? (event.victimId ?? event.actorId) === player.id
       : event.actorId === player.id && event.type !== 'near_pass';
-    const local = own && ['shot', 'grenade_launch', 'reload_start', 'reload_end', 'victim_hit'].includes(event.type);
+    const local = own && ['shot', 'grenade_launch', 'grenade_throw', 'reload_start', 'reload_end', 'victim_hit'].includes(event.type);
     const sourceTime = acousticSourceTime(event, state.time);
     const arrival = local ? sourceTime : acousticArrivalTime(point, player, state.time);
     const remaining = arrival - presentationTime;
@@ -553,7 +603,7 @@ export class GameAudio {
       this.propagationStats.late++; return;
     }
     const priority = event.type === 'near_pass' || own && event.type === 'victim_hit' ? 5
-      : event.type === 'explosion' || own && event.type === 'shot' ? 3 : event.team === 'squad' ? 2 : 1;
+      : ['explosion', 'flashbang'].includes(event.type) || own && event.type === 'shot' ? 3 : event.team === 'squad' ? 2 : 1;
     const pending = { event: { ...point, sourceTime }, at: (this.context?.currentTime || 0) + remaining,
       arrival, sourceTime, distance: d, priority, listenerId: player.id, lateTolerance };
     if (this.pendingArrivals.length >= MAX_PENDING_ARRIVALS) {
@@ -708,13 +758,23 @@ export class GameAudio {
 
   _event(event, player, state = this.lastState) {
     if (!player) return;
-    if (event.type === 'shot') { this._shot(event, player, state); return; }
-    if (event.type === 'near_pass') { this._nearPass(event, player, state); return; }
+    if (event.type === 'shot') { this._shot(event, player, state); this._combatSpeech(event, player, state); return; }
+    if (event.type === 'near_pass') { this._nearPass(event, player, state); this._combatSpeech(event, player, state); return; }
     if (event.type === 'victim_hit') { this._victimHit(event, player, state); return; }
     if (event.type === 'civilian_fear') { this._civilianFear(event, player, state); return; }
     const s = this._spatial(event, player, state?.world); if (s.d > acousticHearingRange(event.type)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
-    if (event.type === 'grenade_launch') {
+    if (event.type === 'grenade_throw') {
+      this._voice({ buffer: this.cityMetal, duration: .07, gain: .035 * gain, highpass: 700, lowpass: 4800,
+        pan: s.pan, priority: own ? 2 : 0, kind: 'grenade-pin' });
+      this._voice({ duration: .13, gain: .025 * gain, highpass: 160, lowpass: 1600,
+        delay: .055, pan: s.pan, priority: own ? 2 : 0, kind: 'grenade-throw' });
+    } else if (event.type === 'flashbang') {
+      this._voice({ buffer: this.crack, duration: .055, gain: .36 * s.gain, highpass: 300,
+        lowpass: Math.min(6700, s.lowpass), pan: s.pan, wet: .24, space: s.space, priority: 3, kind: 'flashbang-pop' });
+      this._voice({ duration: .18, gain: .18 * s.gain, highpass: 100, lowpass: Math.min(2400, s.lowpass),
+        pan: s.pan, wet: .34, space: s.space, delay: .025, priority: 2, kind: 'flashbang-body' });
+    } else if (event.type === 'grenade_launch') {
       this._voice({ duration: .12, gain: .23 * gain, highpass: 65, lowpass: 1000, pan: s.pan, wet: .32, space:s.space, priority: own ? 3 : 1 });
       this._voice({ duration: .16, gain: .12 * gain, frequency: 145, endFrequency: 48, highpass: 30, lowpass: 480, pan: s.pan, priority: own ? 3 : 1 });
     } else if (event.type === 'explosion') {
@@ -732,6 +792,7 @@ export class GameAudio {
       this._voice({ duration: .06, gain: .09 * gain, highpass: 650, lowpass: 3200, pan: s.pan, priority: own ? 2 : 0 });
       this._voice({ duration: .15, gain: .065 * gain, highpass: 300, lowpass: 1800, delay: .19, pan: s.pan });
       this._voice({ duration: .05, gain: .055 * gain, highpass: 950, lowpass: 3700, delay: .43, pan: s.pan });
+      this._combatSpeech(event, player, state);
     } else if (event.type === 'reload_end') {
       this._voice({ duration: .075, gain: .1 * gain, highpass: 500, lowpass: 4200, pan: s.pan, priority: own ? 2 : 0 });
       this._voice({ duration: .04, gain: .065 * gain, highpass: 1300, lowpass: 5100, delay: .07, pan: s.pan });
@@ -752,20 +813,132 @@ export class GameAudio {
     }
   }
 
-  _radio(message) {
-    this._voice({ duration: .07, gain: .045, highpass: 800, lowpass: 2500 });
-    this._voice({ duration: .07, gain: .04, frequency: 920, endFrequency: 850, highpass: 300, lowpass: 1600, delay: .025 });
-    this._voice({ duration: .05, gain: .025, highpass: 1200, lowpass: 2400, delay: .1 });
-    const text = String(message?.text || '');
-    const key = /^(?:Move to (?:your|the) marker|Regroup on (?:you|the leader))\./i.test(text) ? 'commandMove'
-      : /^(?:Smoke out\. Keep moving|Route is open\. Keep up with the vehicles)\./i.test(text) ? 'commandGo' : null;
-    const buffer = this.samples.get(key), now = this.context?.currentTime || 0;
-    if (buffer && now - this.lastCommandVoiceTime > 2.8) {
-      this.lastCommandVoiceTime = now;
-      this.foregroundUntil = Math.max(this.foregroundUntil, now + buffer.duration + .25);
-      this._voice({ buffer, duration: buffer.duration, delay: .1, gain: .38, lowpass: 3200, highpass: 300, attack: .035, priority: 3 });
+  _say(category, speaker, player, state = this.lastState) {
+    if (!speaker || speaker.alive === false || !player || !this._ready() || this.scene !== 'mission' ||
+        this.levels.master === 0 || this.levels.effects === 0 || this.levels.squad === 0) return false;
+    const policy = voicePolicy(category), now = this.context.currentTime;
+    if (!policy) return false;
+    const current = this.activeSpeech;
+    if (current && this.voices.has(current.voice) && current.voice.end > now &&
+        (policy.priority < 3 || current.priority >= 3)) return false;
+    const selected = chooseVoiceLine(this.voiceDirector, category, VOICE_LINES, now, line => {
+      const sample = this.samples.get(line.sample);
+      return sample && sample.duration >= line.offset + line.duration - .002;
+    });
+    if (!selected) return false;
+    if (current) this._clearSpeech();
+    if (this.speechReflectionsNeedFlush) this._makeSpeechReflections();
+    const { line } = selected, c = this.context, route = squadVoiceRoute(state?.world, speaker, player);
+    const voice = this._voice({ buffer: this.samples.get(line.sample), offset: line.offset, duration: line.duration,
+      gain: .48, lowpass: 16000, highpass: 65, attack: .008, priority: policy.priority + 1,
+      bus: 'squad', actorId: speaker.id, kind: 'squad-speech' });
+    if (!voice) return false;
+    // One source, two listening paths. A doorway crossfade never restarts words.
+    const localLow = c.createBiquadFilter(), localHigh = c.createBiquadFilter(), localGain = c.createGain();
+    const radioLow = c.createBiquadFilter(), radioHigh = c.createBiquadFilter(), radioGain = c.createGain();
+    localLow.type = 'lowpass'; localLow.frequency.value = route.lowpass;
+    localHigh.type = 'highpass'; localHigh.frequency.value = route.highpass;
+    radioLow.type = 'lowpass'; radioLow.frequency.value = 2850;
+    radioHigh.type = 'highpass'; radioHigh.frequency.value = 370;
+    localGain.gain.value = route.local * route.gain; radioGain.gain.value = route.radio * .72;
+    voice.output.disconnect(); voice.output.connect(localHigh); localHigh.connect(localLow); localLow.connect(localGain);
+    let pan = null, localOutput = localGain;
+    if (c.createStereoPanner) { pan = c.createStereoPanner(); pan.pan.value = route.pan; localGain.connect(pan); localOutput = pan; }
+    localOutput.connect(this.squadBus);
+    voice.output.connect(radioHigh); radioHigh.connect(radioLow); radioLow.connect(radioGain); radioGain.connect(this.squadBus);
+    const sends = {};
+    for (const kind of ['room', 'street']) {
+      const send = c.createGain(); send.gain.value = this.levels.reflections > 0 ? .22 * (route.space[kind] || 0) : 0;
+      localOutput.connect(send); send.connect(this.speechReverbBanks[kind].input); sends[kind] = send;
+    }
+    voice.nodes.push(localLow, localHigh, localGain, radioLow, radioHigh, radioGain, pan, ...Object.values(sends));
+    this.activeSpeech = { voice, line, actorId: speaker.id, priority: policy.priority, route,
+      localLow, localHigh, localGain, radioGain, pan, sends, nextMixAt: now };
+    this.lastSpeech = { line: line.id, text: line.text, speakerId: speaker.id, route: route.mode };
+    this.foregroundUntil = Math.max(this.foregroundUntil, now + line.duration + .25);
+    if (route.mode === 'radio') this._carrier(.018);
+    this._updateSpeech(state, player, true);
+    return true;
+  }
+
+  _carrier(gain = .014) {
+    const now = this.context?.currentTime || 0;
+    if (now - this.lastCarrierAt < 5 || this.levels.squad === 0) return;
+    this.lastCarrierAt = now;
+    this._voice({ duration: .065, gain, lowpass: 2500, highpass: 850,
+      bus: 'squad', kind: 'radio-carrier', priority: 1, attack: .007 });
+  }
+
+  _updateSpeech(state, player, force = false) {
+    if (!this.context || !player) return;
+    const now = this.context.currentTime, speech = this.activeSpeech;
+    if (speech && (!this.voices.has(speech.voice) || now >= speech.voice.end)) this.activeSpeech = null;
+    if (speech && this.activeSpeech) {
+      const speaker = state?.squad?.find(actor => actor.id === speech.actorId);
+      if (!speaker || speaker.alive === false) { this._clearSpeech(); return; }
+      if (force || now >= speech.nextMixAt) {
+        speech.nextMixAt = now + .07;
+        const previous = speech.route.mode, route = squadVoiceRoute(state.world, speaker, player, previous);
+        speech.route = route;
+        speech.localGain.gain.setTargetAtTime(route.local * route.gain, now, .09);
+        speech.radioGain.gain.setTargetAtTime(route.radio * .72, now, .09);
+        speech.localLow.frequency.setTargetAtTime(route.lowpass, now, .1);
+        speech.localHigh.frequency.setTargetAtTime(route.highpass, now, .1);
+        speech.pan?.pan.setTargetAtTime(route.pan, now, .09);
+        for (const kind of ['room', 'street']) speech.sends[kind].gain.setTargetAtTime(
+          this.levels.reflections > 0 ? .22 * (route.space[kind] || 0) : 0, now, .1);
+        this.lastSpeech = { line: speech.line.id, text: speech.line.text, speakerId: speaker.id, route: route.mode };
+        if (previous !== route.mode && route.mode === 'radio') this._carrier(.009);
+      }
+    }
+    if (!this.speechReflectionsNeedFlush && this.levels.squad > 0) {
+      const env = this.listenerEnvironment || environmentAt(state?.world, player);
+      for (const kind of ['room', 'street']) this.speechReverbBanks[kind]?.output.gain.setTargetAtTime(
+        env[`${kind}Return`] * this.levels.reflections, now, .16);
     }
   }
+
+  _radio(message, player = this.lastState?.squad?.find(actor => actor.id === this.lastState.playerId), state = this.lastState) {
+    const speaker = findVoiceSpeaker(state, message), category = squadVoiceCategory(message);
+    if (category) return this._say(category, speaker, player, state);
+    // Unknown story lines retain their written wording; only off-map radio
+    // gets a restrained carrier, never an unrelated movement recording.
+    if (!speaker && /^(?:RADIO|DRIVER)$/i.test(message?.speaker || '')) this._carrier();
+    return false;
+  }
+
+  _combatSpeech(event, player, state) {
+    if (event.type === 'near_pass' && event.victimId === player.id) {
+      if (player.alive !== false && !player.downed) this._say('warning', player, player, state);
+      return;
+    }
+    const speaker = state?.squad?.find(actor => actor.id === event.actorId);
+    if (!speaker || speaker.alive === false || speaker.downed) return;
+    if (event.type === 'reload_start') {
+      // One truthful reload call, then cover requests offer real variation.
+      if (!this._say('reload', speaker, player, state)) this._say('cover', speaker, player, state);
+    } else if (event.type === 'shot' && speaker.target != null &&
+        state.enemies?.some(enemy => enemy.id === speaker.target && enemy.alive !== false)) {
+      this._say(event.weapon === 'support' ? 'suppression' : 'contact', speaker, player, state);
+    }
+  }
+
+  _flashHearing(state, player, presentationTime, canRing) {
+    if (!this.context || !this.hearingFilter || !this.hearingGain) return;
+    const now = this.context.currentTime, strength = player?.alive === false ? 0 : flashIntensity(player, presentationTime);
+    this.hearingFilter.frequency.setTargetAtTime(20000 - 19000 * strength, now, strength > .6 ? .025 : .13);
+    this.hearingGain.gain.setTargetAtTime(1 - .64 * strength, now, strength > .6 ? .025 : .13);
+    const key = strength > 0 ? `${player.id}:${player.flashStartedAt}` : null;
+    if (key && key !== this.lastFlashKey && canRing && presentationTime - player.flashStartedAt < .45) {
+      this._stopVoices(voice => voice.kind === 'flash-ringing', .015);
+      // A brief, low-level cue; its own slider never changes gameplay exposure.
+      this._voice({ frequency: 1950, endFrequency: 1750, duration: 1.05 + strength * .25,
+        gain: .065 * strength, highpass: 900, lowpass: 3000, attack: .025,
+        bus: 'ringing', kind: 'flash-ringing', priority: 4, actorId: player.id });
+    }
+    this.lastFlashKey = key;
+  }
+
   click() { this._voice({ duration: .035, gain: .035, highpass: 950, lowpass: 2000 }); }
 
   _movement(state, player, audible) {
@@ -916,7 +1089,8 @@ export class GameAudio {
     if (fresh) {
       this._stopMission(); this.lastState = state; this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds.clear();
       this.footTravel.clear(); this.vehiclePositions.clear(); this.lastShots = 0; this.lastRadio = state.radio?.at(-1)?.id;
-      this.shotBudget = 8; this.lastPlayerId = null; this.lastCommandVoiceTime = -Infinity;
+      this.shotBudget = 8; this.lastPlayerId = null; this.voiceDirector = createVoiceDirector(state.seed);
+      this.lastSpeech = null; this.lastCarrierAt = -Infinity; this.lastFlashKey = null;
       this.reportTurns.clear(); this.lastReport = null;
       this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
       this.hitTimes.clear(); this.painTimes.clear(); this.fearTimes.clear();
@@ -925,7 +1099,7 @@ export class GameAudio {
     } else if (changedListener || changedEpoch) {
       // A role swap changes transport epoch but keeps the same mission's event
       // ring. Keep its cursor; discard old-perspective arrivals without replay.
-      this._cancelArrivals(); this._stopVoices(voice => voice.bus !== 'menu'); this._clearReflections();
+      this._cancelArrivals(); this._stopVoices(voice => voice.bus !== 'menu'); this._clearReflections(); this._clearSpeech();
       this.needsLiveCursor = true; this.presentationAnchor = null;
       for (const key of [...this.loops.keys()]) if (key.startsWith('city-pass:')) this._stopLoop(key);
       this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
@@ -941,6 +1115,10 @@ export class GameAudio {
     const skipBatch = this.needsLiveCursor;
     if (effectsAudible) this.needsLiveCursor = false; else this._cancelArrivals();
     const presentationTime = this._presentationTime(state, timing);
+    if (audible && player) {
+      if (effectsAudible && this.levels.ambience === 0) this._mixReflections(state, player, seconds);
+      this._flashHearing(state, player, presentationTime, effectsAudible && !skipBatch);
+    }
     if (Array.isArray(state.soundEvents)) {
       const events = state.soundEvents.filter(e => Number.isFinite(e.id) && e.id > this.lastEventId);
       for (const event of events) this.lastEventId = Math.max(this.lastEventId, event.id);
@@ -972,7 +1150,14 @@ export class GameAudio {
     if (effectsAudible && player && !skipBatch) this._drainArrivals(state, player);
     this._movement(state, player || { x: 0, y: 0 }, effectsAudible && !skipBatch);
     const radio = state.radio?.at(-1), radioId = radio?.id ?? null;
-    if (effectsAudible && !skipBatch && radioId != null && radioId !== this.lastRadio) this._radio(radio);
+    if (effectsAudible && !skipBatch && player && radioId != null && radioId !== this.lastRadio) {
+      const messages = (state.radio || []).filter(message => message.id > (this.lastRadio ?? -Infinity) &&
+        (!Number.isFinite(message.time) || presentationTime - message.time < 1.1));
+      messages.sort((a, b) => (voicePolicy(squadVoiceCategory(b))?.priority || 0) -
+        (voicePolicy(squadVoiceCategory(a))?.priority || 0) || b.id - a.id);
+      for (const message of messages) if (this._radio(message, player, state)) break;
+    }
+    if (effectsAudible && player) this._updateSpeech(state, player);
     if (effectsAudible && !skipBatch && player && !Array.isArray(state.soundEvents) && this.lastHealth != null && player.hp < this.lastHealth) {
       this._victimHit({ ...player, victimId: player.id, damage: this.lastHealth - player.hp, cause: 'bullet', alive: player.alive !== false }, player, state);
     }
@@ -993,11 +1178,14 @@ export class GameAudio {
 
   _stopMission() {
     this._cancelArrivals();
+    this._clearSpeech();
     this.cityDirector = null; this.cityPasses.length = 0;
     const now = this.context?.currentTime || 0;
     for (const key of [...this.loops.keys()]) if (!key.startsWith('menu:')) this._stopLoop(key);
     this._stopVoices(voice => voice.bus !== 'menu');
     this._clearReflections();
+    this.hearingFilter?.frequency.setTargetAtTime(20000, now, .025);
+    this.hearingGain?.gain.setTargetAtTime(1, now, .025);
   }
 
   stop() {
