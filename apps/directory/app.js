@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const star='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z"/></svg>';
 const copyIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1"/></svg>';
-const ACCENTS={dsl:'#c4cf9d',gridiron:'#cfeaa4',infierno:'#dfaf9e','further-in':'#d6cd96',breach:'#f2b19c','irish-today':'#b1d4b7',garage:'#9dc9df','night-transfer':'#9dcbd0',mypassages:'#b1dacf',saltbound:'#96d7cc',empires:'#d0bd90',huddle:'#b8cc8d',vineyard:'#c3b99d','roster-radar':'#adce96',lockstep:'#d8c09a','next-chapter':'#e1c4a6','soph-slump':'#dcc39b','magic-catch-up':'#d3b4de',rlcs:'#9ebfe5',skyward:'#abd1e5',hockey:'#a7d7e7',soccer:'#d4d885','sleeve-notes':'#e4bb91',battlezone:'#a4de9e','when-ants-stare':'#ceab8c','last-exit':'#c4b1d8',afterglow:'#d6b2dd','claim-denied':'#d5a29a','magic-duel':'#c9aed3','relay-fieldguide':'#e1b892',farwake:'#acb8da',dayboard:'#c1ccaf',gravebloom:'#d3b38b',baseball:'#d8dfb4','sunday-broadcast':'#e7c589','shenanigans-golf':'#bcd49e','corner-pocket':'#e1c092','low-water':'#aac6bc',skybreak:'#b4d6df',trailmark:'#cfcea7',loudsource:'#edbd8a'};
+const ACCENTS={dsl:'#c4cf9d',gridiron:'#cfeaa4',infierno:'#dfaf9e','further-in':'#d6cd96',breach:'#f2b19c','irish-today':'#b1d4b7',garage:'#9dc9df','night-transfer':'#9dcbd0',mypassages:'#b1dacf',saltbound:'#96d7cc',empires:'#d0bd90',huddle:'#b8cc8d',vineyard:'#c3b99d','roster-radar':'#adce96',lockstep:'#d8c09a','next-chapter':'#e1c4a6','soph-slump':'#dcc39b','magic-catch-up':'#d3b4de',rlcs:'#9ebfe5',skyward:'#abd1e5',hockey:'#a7d7e7',soccer:'#d4d885','sleeve-notes':'#e4bb91',battlezone:'#a4de9e','when-ants-stare':'#ceab8c','last-exit':'#c4b1d8',afterglow:'#d6b2dd','claim-denied':'#d5a29a','magic-duel':'#c9aed3','relay-fieldguide':'#e1b892',farwake:'#acb8da',dayboard:'#c1ccaf',gravebloom:'#d3b38b',baseball:'#d8dfb4','sunday-broadcast':'#e7c589','shenanigans-golf':'#bcd49e','corner-pocket':'#e1c092','low-water':'#aac6bc',skybreak:'#b4d6df',trailmark:'#cfcea7',loudsource:'#edbd8a',lmw:'#f6bd91',suncoast:'#bce9e0','first-riff':'#e1be73','galaxy-granite':'#c6bda6','hll-daily':'#c4c9a9','magic-quadratic':'#b9cbe3',birthday:'#e3c094','passages-daily':'#c3d8ba'};
 function readStored(){try{const value=JSON.parse(localStorage.getItem(STORE)||'{}');return value&&typeof value==='object'?value:{};}catch{return {};}}
 const stored=readStored(),params=new URLSearchParams(location.search);
 const fromURL=['q','type','sort','saved','kind'].some(k=>params.has(k));
@@ -13,11 +13,13 @@ const fromURL=['q','type','sort','saved','kind'].some(k=>params.has(k));
 const initialType=params.get('type')||(fromURL?'all':'games');
 const initialSort=params.get('sort')||'newest';
 const state={query:fromURL?(params.get('q')||''):'',type:initialType==='all'||TYPE_LABELS[initialType]?initialType:'games',sort:SORTS.includes(initialSort)?initialSort:'newest',favoritesOnly:fromURL?params.get('saved')==='1':false,view:stored.view==='list'?'list':'grid',kind:fromURL?(params.get('kind')||''):''};
+// Games is the landing view, not an implicit restriction on a new search.
+let defaultBrowse=!fromURL;
 const favorites=new Set(Array.isArray(stored.favorites)?stored.favorites.filter(x=>typeof x==='string'):[]);
 let projects=[],visible=[],featured=[],toastTimer,catalogReady=false;
 function setBrowseEnabled(enabled){document.querySelectorAll('.browse-controls input,.browse-controls select,.browse-controls button,#clear-filters,#empty-reset,#explore-all').forEach(control=>control.disabled=!enabled);$('copy-visible').disabled=!enabled||!visible.length;}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({view:state.view,favorites:[...favorites]}));}catch{}}
-function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(state.type!=='games'||state.query||state.sort!=='newest'||state.favoritesOnly||state.kind)url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
+function updateURL(){const url=new URL(location.href);url.search='';if(state.query)url.searchParams.set('q',state.query);if(!defaultBrowse||state.type!=='games'||state.query||state.sort!=='newest'||state.favoritesOnly||state.kind)url.searchParams.set('type',state.type);if(state.sort!=='newest')url.searchParams.set('sort',state.sort);if(state.favoritesOnly)url.searchParams.set('saved','1');if(state.kind)url.searchParams.set('kind',state.kind);history.replaceState(null,'',url);}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
 async function copy(text,message){try{await navigator.clipboard.writeText(text);toast(message);}catch{$('copy-text').value=text;$('copy-dialog').showModal();$('copy-text').focus();$('copy-text').select();}}
 function displayURL(link){const url=new URL(link);return {host:url.hostname,path:(url.pathname==='/'?'':url.pathname)+url.search+url.hash};}
@@ -60,15 +62,22 @@ function render({persist=true}={}){
   const narrowed=state.query||state.favoritesOnly||state.kind;
   const noun=state.type==='games'?'game':'project';
   $('page-title').textContent=state.type==='all'?'All projects':TYPE_LABELS[state.type];
+  $('search').placeholder=defaultBrowse||state.type==='all'?'Search all projects':`Search ${TYPE_LABELS[state.type].toLowerCase()}`;
   $('results-description').textContent=`${visible.length}${narrowed?` of ${scopedCount}`:''} ${noun}${visible.length===1&&!narrowed?'':'s'}${state.favoritesOnly?' · favorites':''}`;
   $('clear-filters').hidden=!narrowed;$('copy-visible').disabled=!catalogReady||!visible.length;$('empty-state').hidden=visible.length>0;
   $('empty-state').querySelector('h2').textContent=state.favoritesOnly&&!favorites.size?'No favorites yet.':`No matches${state.type==='all'?'':` in ${TYPE_LABELS[state.type]}`}.`;
-  $('empty-message').textContent=state.favoritesOnly&&!favorites.size?'Star a project to save it here.':'Try another title or show all projects.';
+  const otherMatches=!visible.length&&state.query.trim()?selectProjects(projects,{query:state.query}).length:0;
+  $('empty-message').textContent=otherMatches?`${otherMatches} matching ${otherMatches===1?'project is':'projects are'} outside the current filters.`:state.favoritesOnly&&!favorites.size?'Star a project to save it here.':'Try another title or show all projects.';
+  $('empty-reset').textContent=otherMatches?'Search all projects':'Show all projects';
   $('game-kind').hidden=state.type!=='games';$('game-kind-slot').hidden=state.type!=='games';$('game-kind').value=state.kind;
   $('collection-hint').hidden=state.type!=='games';
   if(persist){save();updateURL();}
 }
-function reset(){state.query='';state.type='all';state.kind='';state.favoritesOnly=false;$('search').value='';render();}
+function reset(){defaultBrowse=false;state.query='';state.type='all';state.kind='';state.favoritesOnly=false;$('search').value='';render();}
+function expandSearch(){
+  if(state.query.trim()&&selectProjects(projects,{query:state.query}).length){defaultBrowse=false;state.type='all';state.kind='';state.favoritesOnly=false;render();}
+  else reset();
+}
 async function init(){
   try{
     const response=await fetch('./projects.json');if(!response.ok)throw new Error('Could not load the catalog.');
@@ -83,14 +92,14 @@ async function init(){
     const kindSelect=document.createElement('select');kindSelect.id='game-kind';kindSelect.className='game-kind';kindSelect.disabled=true;kindSelect.setAttribute('aria-label','Filter games by kind');kindSelect.innerHTML='<option value="">All game types</option>'+kinds.map(k=>`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
     $('game-kind-slot').append(kindSelect);
     if(state.type!=='games'||!kinds.includes(state.kind))state.kind='';
-    kindSelect.addEventListener('change',()=>{state.kind=kindSelect.value;render();});
+    kindSelect.addEventListener('change',()=>{defaultBrowse=false;state.kind=kindSelect.value;render();});
     $('search').value=state.query;
-    $('search').addEventListener('input',()=>{state.query=$('search').value;render();});
+    $('search').addEventListener('input',()=>{state.query=$('search').value;if(defaultBrowse&&state.query.trim()){state.type='all';state.kind='';defaultBrowse=false;}render();});
     $('sort').addEventListener('change',()=>{state.sort=$('sort').value;render();});
-    $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;state.type=b.dataset.type;state.kind='';render();window.scrollTo({top:0,behavior:'auto'});});
-    $('favorites-filter').addEventListener('click',()=>{state.favoritesOnly=!state.favoritesOnly;render();});
+    $('type-filters').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;defaultBrowse=false;state.type=b.dataset.type;state.kind='';render();window.scrollTo({top:0,behavior:'auto'});});
+    $('favorites-filter').addEventListener('click',()=>{defaultBrowse=false;state.favoritesOnly=!state.favoritesOnly;render();});
     for(const view of ['grid','list'])$(`view-${view}`).addEventListener('click',()=>{state.view=view;render();});
-    $('clear-filters').addEventListener('click',reset);$('empty-reset').addEventListener('click',reset);$('explore-all').addEventListener('click',reset);
+    $('clear-filters').addEventListener('click',reset);$('empty-reset').addEventListener('click',expandSearch);$('explore-all').addEventListener('click',reset);
     $('collection').addEventListener('click',e=>{
       const fav=e.target.closest('[data-favorite]');
       if(fav){const id=fav.dataset.favorite;favorites.has(id)?favorites.delete(id):favorites.add(id);render();const button=document.querySelector(`[data-favorite="${id}"]`);if(button)button.focus({preventScroll:true});else $('favorites-filter').focus({preventScroll:true});return;}

@@ -229,8 +229,7 @@
     "aliases": [
       "Your Passage",
       "New Passage",
-      "My Passages",
-      "Tim Today"
+      "My Passages"
     ]
   },
   {
@@ -1152,6 +1151,244 @@
       "Mogadishu",
       "Squad game"
     ]
+  },
+  {
+    "id": "lmw",
+    "title": "LMW Connections",
+    "subtitle": "Leadership MetroWest event follow-through",
+    "description": "An independent alumni networking pilot for sharing interests, volunteering and committee preferences, with consent-based follow-up and a separate organizer workspace.",
+    "type": "tools",
+    "subtype": "Community",
+    "tags": [
+      "Networking",
+      "Alumni",
+      "Volunteering",
+      "Events"
+    ],
+    "art": "lmw",
+    "url": "https://dfe-lmw.onrender.com/?event=networking-night",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/lmw-connect",
+    "createdAt": "2026-11-20",
+    "datePrecision": "day",
+    "dateSource": "First LMW implementation commit and Render service recorded on November 20, 2026; America/New_York calendar date.",
+    "aliases": [
+      "LMW",
+      "Leadership MetroWest",
+      "Leadership Metrowest",
+      "LMW Connect",
+      "LMW Connections",
+      "Alumni Networking"
+    ],
+    "updatedAt": "2026-11-21",
+    "updateSummary": "Added the supplied logo with a coordinated navy and orange palette.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/32a36ddc130ca98c6cd753ed2df917576d734a08"
+  },
+  {
+    "id": "suncoast",
+    "title": "SUNCOAST",
+    "subtitle": "Three islands. Your way through the city.",
+    "description": "Play Lucía Reyes in a coastal city story with three islands, eighteen missions, vehicles, enterable buildings and lasting choices.",
+    "type": "games",
+    "subtype": "Adventure",
+    "tags": [
+      "Top down",
+      "Open world",
+      "Driving",
+      "Story",
+      "Solo"
+    ],
+    "art": "suncoast",
+    "url": "https://dfe-suncoast.onrender.com/",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/suncoast",
+    "createdAt": "2026-11-19",
+    "datePrecision": "day",
+    "dateSource": "First SUNCOAST implementation commit and Render service recorded just before 8 p.m. on November 19, 2026; America/New_York calendar date.",
+    "aliases": [
+      "Suncoast",
+      "Bahía Lucero",
+      "Bahia Lucero",
+      "Lucía Reyes",
+      "Lucia Reyes",
+      "Miami",
+      "GTA"
+    ],
+    "updatedAt": "2026-11-19",
+    "updateSummary": "Sharper phone rendering, clearer portrait and landscape controls, and touch braking and reverse.",
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/3399934e66672f49fabe0afc0f601e517f3fdfc8"
+  },
+  {
+    "id": "first-riff",
+    "title": "First Riff",
+    "subtitle": "From the first rehearsal to the first show",
+    "description": "Plan a metal band's rehearsals, songs, setlists and gigs, then export a band page from a browser-local workspace.",
+    "type": "tools",
+    "subtype": "Music workspace",
+    "tags": [
+      "Music",
+      "Bands",
+      "Setlists",
+      "Rehearsal",
+      "Local storage"
+    ],
+    "art": "first-riff",
+    "url": "https://first-riff.onrender.com/?theme=metal_band",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/agent/metal-band-starter",
+    "createdAt": "2026-09-30",
+    "datePrecision": "day",
+    "dateSource": "First First Riff implementation commit and Render service recorded September 30, 2026; America/New_York calendar date.",
+    "aliases": [
+      "Metal Band",
+      "Metal Band Starter",
+      "metal_band",
+      "Band Planner",
+      "First Riff"
+    ]
+  },
+  {
+    "id": "galaxy-granite",
+    "title": "Galaxy Granite Journal",
+    "subtitle": "Countertop ideas and project guidance",
+    "description": "Browse daily homeowner articles about countertop materials, project planning, installation and care.",
+    "type": "stories",
+    "subtype": "Homeowner journal",
+    "tags": [
+      "Home",
+      "Countertops",
+      "Materials",
+      "Project planning"
+    ],
+    "art": "galaxy-granite",
+    "url": "https://galgran.onrender.com/?theme=galaxy_granite_daily",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/agent/galaxy-granite-daily",
+    "createdAt": "2026-07-13",
+    "datePrecision": "day",
+    "dateSource": "First Galaxy Granite theme commit and Render service recorded July 13, 2026; America/New_York calendar date.",
+    "aliases": [
+      "Galaxy Granite",
+      "Galaxy Granite Daily",
+      "galaxy_granite_daily",
+      "Galgran",
+      "Countertop Ideas"
+    ]
+  },
+  {
+    "id": "hll-daily",
+    "title": "Hell Let Loose Field Brief",
+    "subtitle": "A daily briefing for your squad",
+    "description": "An unofficial Hell Let Loose field guide with daily command intent, map and weapon notes, radio discipline, squad logistics, and historical context.",
+    "type": "catch-up",
+    "subtype": "Game field guide",
+    "tags": [
+      "Hell Let Loose",
+      "HLL",
+      "Squad",
+      "Leadership",
+      "Logistics",
+      "History"
+    ],
+    "art": "hll-daily",
+    "url": "https://hll-daily.onrender.com/?theme=hell_let_loose",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/agent/hell-let-loose-theme-staging",
+    "createdAt": "2026-07-23",
+    "datePrecision": "day",
+    "dateSource": "First Hell Let Loose Field Brief source build and Render service on July 23, 2026; America/New_York calendar date. Source commit c5ca1b3e38c5515f85c4890b8accddab7d9e7c13.",
+    "aliases": [
+      "HLL Daily",
+      "Hell Let Loose Daily",
+      "Field Brief",
+      "hell_let_loose"
+    ]
+  },
+  {
+    "id": "magic-quadratic",
+    "title": "Commander Opening Plan",
+    "subtitle": "Test your deck’s early turns",
+    "description": "A Magic: The Gathering Commander deck-planning prototype. Import a decklist, look up card data, and explore early-game readiness and possible deck adjustments.",
+    "type": "tools",
+    "subtype": "Deck planning",
+    "tags": [
+      "Magic",
+      "MTG",
+      "Commander",
+      "Decklist",
+      "Moxfield",
+      "Simulation"
+    ],
+    "art": "magic-quadratic",
+    "url": "https://magic-quadratic.onrender.com/?theme=commander_readiness",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/deck-intake-mode",
+    "createdAt": "2026-05-15",
+    "datePrecision": "day",
+    "dateSource": "First Commander readiness theme commit 5081ffd86af5315907af13c39078e20c65abac42 and first Render service on May 15, 2026; America/New_York calendar date.",
+    "aliases": [
+      "Magic Quadratic",
+      "Commander Readiness",
+      "Commander deck intake",
+      "Deck Intake",
+      "commander_readiness"
+    ]
+  },
+  {
+    "id": "birthday",
+    "title": "BirthDay Today",
+    "subtitle": "Birthdays and a little history",
+    "description": "A birthday calendar and message-drafting companion, with on-this-day history, famous birthdays, music, sports and other date-specific facts.",
+    "type": "tools",
+    "subtype": "Birthday companion",
+    "tags": [
+      "Birthdays",
+      "Calendar",
+      "History",
+      "Messages",
+      "Daily facts"
+    ],
+    "art": "birthday",
+    "url": "https://this-day-birthday.onrender.com/?theme=this_day_birthday",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/birthday-content-quality",
+    "createdAt": "2026-04-06",
+    "datePrecision": "day",
+    "dateSource": "First Birthday Flyer theme source commit a4293455d1460853b8879941bc72a654df3a8260 on April 6, 2026; America/New_York calendar date. The hosting service predates this theme source.",
+    "aliases": [
+      "This Day Birthday",
+      "Birthday Today",
+      "Birthday Flyer",
+      "this_day_birthday"
+    ]
+  },
+  {
+    "id": "passages-daily",
+    "title": "Passages Daily",
+    "subtitle": "One skill, one next step",
+    "description": "A daily practice companion for students, families, mentors and coaches, with real-world skills, interactive scenarios, reflection prompts and small next steps.",
+    "type": "tools",
+    "subtype": "Daily practice",
+    "tags": [
+      "Skills",
+      "Confidence",
+      "Students",
+      "Reflection",
+      "Coaching",
+      "Interactive"
+    ],
+    "art": "passages-daily",
+    "url": "https://tim-today.onrender.com/?theme=topic_signal_daily",
+    "linkKind": "app",
+    "sourceUrl": "https://github.com/shnider42/daily_flyer/blob/staging/daily_flyer/themes/topic_signal_daily.py",
+    "createdAt": "2026-05-13",
+    "datePrecision": "day",
+    "dateSource": "First Topic Signal Daily / Passages Daily theme commit 32992a9ebcd34d647abf6146ffe248624937d008 and first Render service on May 13, 2026; America/New_York calendar date.",
+    "aliases": [
+      "Tim Today",
+      "Topic Signal Daily",
+      "My Passages Daily",
+      "topic_signal_daily"
+    ]
   }
 ]
-

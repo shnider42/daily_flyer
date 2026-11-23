@@ -45,6 +45,14 @@ export const ART_PALETTES = Object.freeze({
   loudsource:{background:'#e37b43',foreground:'#f4e5c6',accent:'#36273f'},
   gravebloom:{background:'#17221e',foreground:'#e9dec2',accent:'#bd5349'},
   chalk:{background:'#262923',foreground:'#e6dcc3',accent:'#c58c4b'},
+  lmw:{background:'#0F2346',foreground:'#ffffff',accent:'#F37721'},
+  suncoast:{background:'#214e61',foreground:'#f8e4c8',accent:'#ed8a7a'},
+  'first-riff':{background:'#262526',foreground:'#e9e1cc',accent:'#d46c43'},
+  'galaxy-granite':{background:'#fbfaf7',foreground:'#151515',accent:'#b79255'},
+  'hll-daily':{background:'#e4ddc8',foreground:'#29372d',accent:'#a74e35'},
+  'magic-quadratic':{background:'#2e3046',foreground:'#eee4c8',accent:'#a5bb94'},
+  birthday:{background:'#f3e6c8',foreground:'#403d37',accent:'#bb643d'},
+  'passages-daily':{background:'#082b66',foreground:'#fff2a6',accent:'#00cf9a'},
 });
 const F={display:"Impact, Haettenschweiler, 'Arial Narrow', sans-serif",sans:'Arial, Helvetica, sans-serif',serif:"Georgia, 'Times New Roman', serif",mono:"'Courier New', Courier, monospace"};
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -399,6 +407,77 @@ const covers={
       <g transform="translate(355 274) rotate(-26)"><path d="M-18-28Q0-44 18-28L16 25 5 35 5 73H-5V35L-16 25Z" fill="#171c19" stroke="#b6aa8e" stroke-width="2"/><path d="M-13-20H13V-8H-13Z" fill="#6f8b85"/>${line('M-63 0H63M0-57V57','#b6aa8e',3)}${line('M-20 65H20','#b6aa8e',3)}</g>
       <g fill="#89a69a" stroke="#19231e" stroke-width="2"><circle cx="281" cy="344" r="7"/><circle cx="301" cy="355" r="7"/><circle cx="281" cy="368" r="7"/><circle cx="322" cy="366" r="7"/></g>
       ${rect(20,382,600,18,'#c58c4b')}${note('LEAD THE SQUAD / FOLLOW THE LEADER',31,395,'#262923',{size:10,spacing:1.1})}${paper(u,.3)}`,
+  }),
+  lmw:u=>({
+    body:`${rect(0,0,640,420,'#0F2346')}${rect(0,0,15,420,'#F37721')}${rect(32,25,580,370,'none','stroke="#63728c" stroke-width="1"')}
+      ${note('KEEP THE CONNECTION GOING',50,57,'#ffffff',{size:13,spacing:2})}${type('LMW',42,216,175,'#ffffff',{width:536,family:'sans',weight:800})}
+      ${type('CONNECTIONS',48,272,52,'#F37721',{width:540,family:'sans',weight:700})}${line('M50 293H594','#63728c',1)}
+      ${line('M109 343H321M321 343H535','#F37721',3)}
+      <g fill="#0F2346" stroke="#F37721" stroke-width="2"><rect x="64" y="318" width="90" height="50" rx="3"/><rect x="276" y="318" width="90" height="50" rx="3"/><rect x="490" y="318" width="90" height="50" rx="3"/></g>
+      <g fill="#ffffff"><circle cx="88" cy="337" r="6"/><circle cx="300" cy="337" r="6"/><circle cx="514" cy="337" r="6"/></g>
+      ${line('M79 354Q88 340 97 354M291 354Q300 340 309 354M505 354Q514 340 523 354','#ffffff',2)}${line('M106 336H139M106 348H131M318 336H351M318 348H343M532 336H565M532 348H557','#8e9db4',2)}
+      ${note('MEET / VOLUNTEER / STAY INVOLVED',50,390,'#ffffff',{size:10,spacing:1.6})}`,
+  }),
+  suncoast:u=>({
+    body:`${rect(0,0,640,420,'#214e61')}${rect(0,0,640,204,'#ed8a7a')}<circle cx="504" cy="145" r="97" fill="#f8d898"/>
+      ${note('THREE ISLANDS. YOUR WAY THROUGH.',29,42,'#253e4a',{size:12,spacing:1.2})}${type('SUNCOAST',24,151,119,'#f8e4c8',{width:590,stroke:'#253e4a',strokeWidth:2})}
+      <path d="M0 241H45V187H69V166H99V219H131V190H177V217H211V163H234V147H252V199H289V178H325V237H363V200H399V175H424V248H0Z" fill="#253e4a"/>
+      ${line('M54 196H84M54 207H84M145 200H165M221 175H243M221 188H243M298 190H315M372 214H389','#ed8a7a',3)}
+      <path d="M0 289 184 271 265 292 366 267 443 284 640 258V420H0Z" fill="#648f7c"/>
+      <path d="M0 353 153 310 297 335 435 307 640 338" fill="none" stroke="#f8e4c8" stroke-width="35"/><path d="M0 353 153 310 297 335 435 307 640 338" fill="none" stroke="#253e4a" stroke-width="26"/>${line('M0 353 153 310 297 335 435 307 640 338','#f8e4c8',2,'stroke-dasharray="18 17"')}
+      <g transform="translate(408 312) rotate(-11)"><rect x="-24" y="-11" width="48" height="22" rx="5" fill="#ed8a7a" stroke="#253e4a" stroke-width="2"/><path d="M-9-8H11V8H-9Z" fill="#f8e4c8"/><path d="M-5-8V8" stroke="#253e4a" stroke-width="2"/></g>
+      <path d="M548 295Q541 244 551 207M551 209Q521 179 501 202M551 209Q577 178 605 202M551 209Q517 208 504 233M551 209Q580 204 599 229M551 209Q546 179 565 169" fill="none" stroke="#253e4a" stroke-width="7" stroke-linecap="round"/>
+      ${rect(0,381,640,39,'#253e4a')}${note('A CITY OF CHOICES',29,406,'#f8e4c8',{size:13,spacing:3})}${paper(u,.15)}`,
+  }),
+  'first-riff':u=>({
+    body:`${rect(0,0,640,420,'#262526')}${rect(20,20,600,380,'none','stroke="#776d60" stroke-width="1.5"')}${hatch(u,21,21,598,378,.08)}
+      ${note('FROM REHEARSAL TO THE STAGE',34,51,'#d46c43',{size:12,spacing:2})}${type('FIRST RIFF',27,168,119,'#e9e1cc',{width:583})}${line('M31 190H607','#d46c43',3)}
+      <g transform="translate(180 281) rotate(-24)"><path d="M-25-45Q-62-52-64-21-91-10-84 23-78 51-45 54-19 55-12 32 22 22 9-8 9-26-9-29Z" fill="#d46c43" stroke="#e9e1cc" stroke-width="2"/><path d="M-14-20 92-20V-6H-14Z" fill="#b79a71" stroke="#262526" stroke-width="2"/><path d="M90-24 127-30 135-9 94-4Z" fill="#d46c43" stroke="#e9e1cc" stroke-width="2"/>${line('M-51-14H125M-51-9H125','#e9e1cc',1)}<path d="M-47-24V1M-25-24V1" stroke="#262526" stroke-width="6"/>${line('M17-19V-5M39-19V-5M58-19V-5M75-19V-5','#262526',1.5)}<circle cx="-51" cy="26" r="4" fill="#262526"/></g>
+      ${rect(369,217,229,147,'#e9e1cc')}${note('SETLIST',385,246,'#262526',{size:18,spacing:3})}${line('M385 261H579','#262526',2)}
+      ${line('M407 282H576M407 310H555M407 338H567','#776d60',3)}<g fill="none" stroke="#d46c43" stroke-width="2"><rect x="384" y="274" width="12" height="12"/><rect x="384" y="302" width="12" height="12"/><rect x="384" y="330" width="12" height="12"/></g>
+      ${note('SONGS / SETLISTS / GIGS',34,389,'#e9e1cc',{size:12,spacing:2})}${paper(u,.23)}`,
+  }),
+  'galaxy-granite':u=>({
+    body:`${rect(0,0,640,420,'#fbfaf7')}${rect(19,19,602,382,'none','stroke="#b79255" stroke-width="1.5"')}${note('MATERIALS / IDEAS / PROCESS',32,48,'#6e6b66',{size:12,spacing:2})}
+      ${type('GALAXY',28,125,81,'#151515',{family:'serif',width:578,weight:700})}${type('GRANITE',28,205,81,'#151515',{family:'serif',width:578,weight:700})}${note('J O U R N A L',32,237,'#8f6e38',{size:15,spacing:2})}
+      ${rect(31,257,176,109,'#272727')}${rect(229,257,176,109,'#eee8dc')}${rect(427,257,182,109,'#6e6b66')}
+      ${line('M31 285 76 300 89 332 148 341 179 366M75 257 91 277 132 281 161 312 207 321','#a9a49a',1.5)}${line('M31 346 73 338 89 332M161 312 179 290 207 284','#b79255',1)}
+      ${line('M229 272 268 293 279 322 312 329 340 366M279 322 325 298 358 309 405 288M358 309 376 346 405 354','#b1aba0',1.5)}${line('M229 352 274 344 312 329','#d1c4ac',2)}
+      ${line('M427 269 464 285 480 313 530 320 552 344 609 356M480 313 463 350 427 366M530 320 554 285 609 273','#e7d8bc',1.5)}
+      ${line('M31 378H609','#b79255',1)}${note('A CLOSER LOOK AT STONE',32,397,'#151515',{size:11,spacing:2})}${paper(u,.15)}`,
+  }),
+  'hll-daily':u=>({
+    body:`${rect(0,0,640,420,'#e4ddc8')}${rect(21,21,598,378,'none','stroke="#29372d" stroke-width="1.5"')}${note('COMMUNITY FIELD GUIDE',34,50,'#29372d',{size:12,spacing:2})}
+      ${type('HELL LET LOOSE',29,133,79,'#29372d',{width:582})}${type('FIELD BRIEF',31,188,54,'#a74e35',{width:580})}${line('M33 206H607','#29372d',2)}
+      ${rect(33,225,306,146,'#29372d')}${line('M33 261H339M33 298H339M33 335H339M94 225V371M155 225V371M216 225V371M277 225V371','#68715f',1)}
+      ${line('M63 346 124 316 185 316 246 252 309 252','#e4ddc8',3,'stroke-dasharray="8 6"')}<g fill="#a74e35" stroke="#e4ddc8" stroke-width="2"><rect x="116" y="308" width="16" height="16"/><rect x="238" y="244" width="16" height="16"/></g>
+      <circle cx="63" cy="346" r="7" fill="#e4ddc8"/><path d="m301 245 15 7-15 7Z" fill="#e4ddc8"/>
+      ${note('LEADERSHIP',362,249,'#29372d',{size:15,spacing:1})}${line('M362 263H600M362 276H579','#8d927e',2)}${note('LOGISTICS',362,306,'#29372d',{size:15,spacing:1})}${line('M362 320H600M362 333H558','#8d927e',2)}
+      ${rect(362,349,238,22,'#a74e35')}${note('SQUAD / TEAM / FRONT',372,365,'#e4ddc8',{size:10,spacing:1})}${note('BRIEF / COORDINATE / ADAPT',34,393,'#29372d',{size:11,spacing:2})}${paper(u,.29)}`,
+  }),
+  'magic-quadratic':u=>({
+    body:`${rect(0,0,640,420,'#2e3046')}${rect(19,19,602,382,'none','stroke="#858393" stroke-width="1"')}${note('KNOW YOUR OPENING HAND',31,46,'#a5bb94',{size:13,spacing:2})}
+      ${type('COMMANDER',25,143,104,'#eee4c8',{width:589})}${type('OPENING PLAN',31,198,46,'#a5bb94',{width:578,family:'sans',weight:700})}${line('M30 217H610','#858393',1.5)}
+      <g transform="translate(96 246) rotate(-12 55 62)"><rect width="110" height="128" rx="5" fill="#858393" stroke="#eee4c8" stroke-width="2"/><rect x="10" y="12" width="90" height="67" fill="#42465c"/><path d="m25 63 22-31 16 22 16-15 14 29H25Z" fill="#a5bb94"/>${line('M12 94H95M12 105H80M12 116H90','#eee4c8',2)}</g>
+      <g transform="translate(188 240) rotate(7 55 62)"><rect width="110" height="128" rx="5" fill="#eee4c8" stroke="#2e3046" stroke-width="2"/><rect x="10" y="12" width="90" height="67" fill="#a5bb94"/><circle cx="55" cy="45" r="22" fill="none" stroke="#2e3046" stroke-width="2"/><path d="m55 27 7 14 15 4-15 4-7 14-7-14-15-4 15-4Z" fill="#2e3046"/>${line('M12 94H95M12 105H80M12 116H90','#858393',2)}</g>
+      ${line('M358 250V365H600','#858393',2)}${rect(377,324,32,40,'#a5bb94')}${rect(428,294,32,70,'#eee4c8')}${rect(479,268,32,96,'#a5bb94')}${rect(530,308,32,56,'#eee4c8')}
+      ${note('DECK IN / PLAN OUT',31,394,'#eee4c8',{size:11,spacing:2})}${paper(u,.2)}`,
+  }),
+  birthday:u=>({
+    body:`${rect(0,0,640,420,'#f3e6c8')}${rect(19,19,602,382,'none','stroke="#bb643d" stroke-width="1.5"')}${note('A DATE. A STORY. A NOTE TO SHARE.',32,48,'#403d37',{size:12,spacing:1.4})}
+      ${type('BirthDay',29,151,112,'#403d37',{family:'serif',width:577,weight:700})}${type('TODAY',31,208,51,'#bb643d',{width:579,family:'sans',weight:700,spacing:12})}${line('M32 227H608','#bb643d',1.5)}
+      <g transform="translate(51 251)"><rect width="218" height="120" rx="4" fill="#fbf7ec" stroke="#403d37" stroke-width="2"/><path d="M0 29H218" stroke="#403d37" stroke-width="2"/><path d="M42-7V11M176-7V11" stroke="#bb643d" stroke-width="6" stroke-linecap="round"/>
+      <g fill="#c9bea8"><circle cx="28" cy="52" r="4"/><circle cx="69" cy="52" r="4"/><circle cx="110" cy="52" r="4"/><circle cx="151" cy="52" r="4"/><circle cx="191" cy="52" r="4"/><circle cx="28" cy="78" r="4"/><circle cx="69" cy="78" r="4"/><circle cx="110" cy="78" r="4"/><circle cx="151" cy="78" r="4"/><circle cx="191" cy="78" r="4"/><circle cx="28" cy="104" r="4"/><circle cx="69" cy="104" r="4"/><circle cx="110" cy="104" r="4"/><circle cx="151" cy="104" r="4"/><circle cx="191" cy="104" r="4"/></g><circle cx="110" cy="78" r="14" fill="none" stroke="#bb643d" stroke-width="3"/></g>
+      <g transform="translate(332 259) rotate(-4 117 52)"><rect width="236" height="108" fill="#bb643d"/><path d="m0 0 118 72L236 0M0 108l80-60m156 60-80-60" fill="none" stroke="#f3e6c8" stroke-width="2"/><circle cx="118" cy="72" r="12" fill="#f3e6c8"/><path d="m113 71 4 4 7-8" fill="none" stroke="#bb643d" stroke-width="2"/></g>
+      ${note('BIRTHDAYS / HISTORY / PERSONAL MESSAGES',32,395,'#403d37',{size:10,spacing:1.2})}${paper(u,.22)}`,
+  }),
+  'passages-daily':u=>({
+    body:`${rect(0,0,640,420,'#082b66')}${rect(20,20,600,380,'none','stroke="#a8e2e5" stroke-width="1"')}${note('ONE SMALL PRACTICE AT A TIME',33,48,'#a8e2e5',{size:12,spacing:2})}
+      ${type('PASSAGES',27,141,105,'#fff2a6',{family:'sans',width:582,weight:800})}${type('DAILY',29,251,119,'#00cf9a',{family:'sans',width:367,weight:800})}
+      <g transform="translate(488 205) rotate(8)"><path d="M-69-43Q-34-59 0-39 34-59 69-43V50Q34 34 0 53-34 34-69 50Z" fill="#a8e2e5" stroke="#082b66" stroke-width="3"/><path d="M0-39V53" fill="none" stroke="#082b66" stroke-width="2"/>${line('M-56-25Q-34-32-13-24M-56-7Q-34-14-13-6M-56 11Q-34 4-13 12M13-24Q34-32 56-25M13-6Q34-14 56-7M13 12Q34 4 56 11','#082b66',2)}</g>
+      ${line('M34 279H606','#a8e2e5',1)}${rect(34,301,169,65,'#fff2a6')}${rect(235,301,169,65,'#00cf9a')}${rect(436,301,169,65,'#ff9d7b')}
+      ${type('READ',118,344,27,'#082b66',{family:'sans',anchor:'middle',weight:700})}${type('TRY',319,344,27,'#082b66',{family:'sans',anchor:'middle',weight:700})}${type('REFLECT',520,344,27,'#082b66',{family:'sans',anchor:'middle',weight:700})}
+      ${note('SKILLS / CONFIDENCE / CONVERSATION',33,391,'#a8e2e5',{size:10,spacing:1.6})}`,
   }),
   dayboard:u=>({
     body:`${rect(0,0,640,420,'#e9e5d9')}${rect(0,0,640,23,'#db7040')}${rect(29,44,582,353,'none','stroke="#252c29" stroke-width="1.5"')}
