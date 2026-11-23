@@ -120,9 +120,11 @@ test('roofs lift at actual door approaches and for squad occupants, not arbitrar
   assert.equal(houseRevealed(house,state),false,'a solid side wall does not expose the room');
   actor.x=door.x+door.width; actor.y=door.y+25;
   assert.equal(houseRevealed(house,state),false,'being near the front facade is insufficient');
-  state.squad.push({id:2,x:house.x+35,y:house.y+35,alive:false,downed:true,team:'squad'});
+  state.squad.push({id:2,x:house.x+35,y:house.y+35,alive:true,downed:true,team:'squad'});
   assert.equal(houseRevealed(house,state),true,'a downed teammate remains visible for rescue');
   assert.equal(houseRevealed(house,state,{menu:true}),false,'menu panorama retains roofs');
+  state.squad[1].alive=false;
+  assert.equal(houseRevealed(house,state),false,'a body cannot keep a distant roof open after death');
 });
 
 test('hostile and civilian occupants never trigger a roof reveal', () => {
@@ -268,4 +270,116 @@ test('launcher projectiles have a raised arc and a short ground blast without un
   const blast = arcs.find(arc => arc.x === 1400 && arc.y === 950);
   assert.ok(blast.radius > 20 && blast.radius < 76);
   assert.ok(arcs.every(arc => Number.isFinite(arc.radius)));
+});
+
+test('persistent remains are culled, honor closed roofs, and render below the sight memory', () => {
+  const { renderer, state, actor, house } = indoorFixture(), drawn = [], order = [];
+  actor.x = 900; actor.y = 1100;
+  state.bodies = [
+    { id: 'body:1', x: 950, y: 1100, angle: .3, team: 'enemy', seen: true },
+    { id: 'body:2', x: 1000, y: 1100, team: 'enemy', seen: false },
+    { id: 'body:3', x: house.x + 40, y: house.y + 40, team: 'squad', seen: true },
+    { id: 'body:4', x: 9000, y: 9000, team: 'civilian', seen: true },
+  ];
+  renderer.bodySprite = body => { drawn.push(body.id); order.push('body'); return {}; };
+  renderer.bloodSprite = () => ({});
+  renderer.sharedSight.draw = () => order.push('sight');
+  renderer.drawActor = () => order.push('living');
+  renderer.render(state, { quality: 'performance', reducedMotion: true });
+  assert.deepEqual(drawn, ['body:1'], 'unknown, roofed and distant bodies draw nothing');
+  assert.ok(order.indexOf('body') < order.indexOf('sight'));
+  assert.ok(order.indexOf('sight') < order.indexOf('living'));
+  drawn.length = 0;
+  renderer.drawBodies(renderer.ctx, state, { showMap: true });
+  assert.deepEqual(drawn, ['body:1', 'body:3'], 'the map exposes only already observed remains');
+  drawn.length = 0; renderer.drawBodies(renderer.ctx, state, { menu: true });
+  assert.deepEqual(drawn, []);
+});
+
+test('dead actors cannot retain wounded badges or living squad minimap markers', () => {
+  const { renderer, state, actor } = fixture(), badges = [], liveDraws = [], arcs = [];
+  const wounded = { ...actor, id: 2, x: 1300, downed: true, hp: 0 };
+  const dead = { ...wounded, id: 3, x: 1350, alive: false };
+  const civilian = { ...dead, id: 4, x: 1400, team: 'civilian' };
+  renderer.screenBadge = (_x, _y, label) => badges.push(label);
+  renderer.drawActor(renderer.ctx, wounded, state, 1, {});
+  renderer.drawActor(renderer.ctx, dead, state, 1, {});
+  renderer.drawActor(renderer.ctx, civilian, state, 1, {});
+  assert.deepEqual(badges, ['HELP'], 'only a living casualty asks for aid');
+  state.squad.push(wounded, dead); state.civilians = [civilian];
+  renderer.drawActor = (_ctx, unit) => liveDraws.push(unit.id);
+  renderer.render(state, { quality: 'performance', reducedMotion: true });
+  assert.deepEqual(liveDraws.sort(), [1, 2]);
+  renderer.ctx.arc = (x, y) => arcs.push({ x, y });
+  renderMinimap({ width: 180, height: 144, getContext: () => renderer.ctx }, state);
+  assert.ok(arcs.some(arc => arc.x === wounded.x));
+  assert.ok(!arcs.some(arc => arc.x === dead.x));
+});
+
+test('blood settings hide marks and pools without removing bodies; reduced motion retains static marks', () => {
+  const { renderer, state } = fixture(), drawn = [];
+  const body = { x: 1250, y: 950, seen: true, team: 'enemy', pose: 1 };
+  state.bodies = [body]; state.bloodstains = [{ x: 1300, y: 950, seen: true, amount: .5, seed: 1 }, { x: 1350, y: 950, seen: false }];
+  renderer.bloodSprite = () => ({ kind: 'blood' }); renderer.bodySprite = () => ({ kind: 'body' });
+  renderer.ctx.drawImage = sprite => drawn.push(sprite.kind);
+  renderer.drawBloodstains(renderer.ctx, state, { reducedMotion: true }); renderer.drawBodies(renderer.ctx, state, { reducedMotion: true });
+  assert.deepEqual(drawn, ['blood', 'blood', 'body']);
+  drawn.length = 0;
+  renderer.drawBloodstains(renderer.ctx, state, { bloodEffects: false }); renderer.drawBodies(renderer.ctx, state, { bloodEffects: false });
+  assert.deepEqual(drawn, ['body']);
+  renderer.houseCutaways = [{ building: { x: 1200, y: 900, w: 200, h: 100 }, amount: 0 }];
+  drawn.length = 0; renderer.drawBloodstains(renderer.ctx, state, {}); renderer.drawBodies(renderer.ctx, state, {});
+  assert.deepEqual(drawn, [], 'blood and remains cannot paint onto a closed roof');
+});
+
+test('brief blood impacts require witnessed and current sight and respect both visual preferences', () => {
+  const { renderer, state } = fixture(), droplets = [];
+  state.effects = [{ type: 'blood', x: 1300, y: 950, angle: 0, seed: 18, amount: .5, ttl: .18, maxTtl: .24, seen: true }];
+  renderer.ctx.arc = (x, y, radius) => droplets.push({ x, y, radius });
+  renderer.drawEffects(renderer.ctx, state, 1);
+  assert.equal(droplets.length, 5); assert.ok(droplets.every(point => Number.isFinite(point.x) && point.radius < 3));
+  for (const view of [{ bloodEffects: false }, { reducedMotion: true }, { menu: true }]) {
+    droplets.length = 0; renderer.drawEffects(renderer.ctx, state, 1, view); assert.equal(droplets.length, 0);
+  }
+  droplets.length = 0;
+  state.world.walls = [{ x: 1250, y: 0, w: 10, h: 1900 }];
+  renderer.drawEffects(renderer.ctx, state, 1); assert.equal(droplets.length, 0, 'a fresh wall blocks a stale witnessed effect');
+  state.world.walls = []; state.smokes = [{ x: 1250, y: 950, radius: 90, ttl: 8 }];
+  renderer.drawEffects(renderer.ctx, state, 1); assert.equal(droplets.length, 0, 'fresh smoke also blocks the impact');
+  state.smokes = []; state.effects[0].seen = false;
+  renderer.drawEffects(renderer.ctx, state, 1); assert.equal(droplets.length, 0, 'unwitnessed impacts do not appear retroactively');
+});
+
+test('corpse and ground-mark textures are small and shared across repeated frames and snapshots', t => {
+  const original = globalThis.OffscreenCanvas, created = [];
+  globalThis.OffscreenCanvas = class {
+    constructor(width, height) {
+      this.width = width; this.height = height; created.push(this);
+      this.context = new Proxy({}, { get: (target, key) => key in target ? target[key] : (() => {}) });
+    }
+    getContext() { return this.context; }
+  };
+  t.after(() => { if (original === undefined) delete globalThis.OffscreenCanvas; else globalThis.OffscreenCanvas = original; });
+  const { renderer } = fixture(), body = { team: 'squad', role: 'support', pose: 2 };
+  const sprite = renderer.bodySprite(body), blood = renderer.bloodSprite(5);
+  const count = created.length;
+  for (let frame = 0; frame < 100; frame++) {
+    assert.equal(renderer.bodySprite({ ...body, actorId: frame }), sprite);
+    assert.equal(renderer.bloodSprite(5 + frame * 4), blood);
+  }
+  assert.equal(created.length, count, 'new snapshot objects reuse the existing texture');
+  assert.ok(created.every(canvas => canvas.width <= 64 && canvas.height <= 48));
+});
+
+test('field aid markers appear only for revealed unresolved opportunities', () => {
+  const { renderer, state } = fixture(), markers = [], labels = [];
+  const opportunity = { x: 1250, y: 950, radius: 60, status: 'available', revealed: true, progress: 0 };
+  state.story = { opportunities: [opportunity, { ...opportunity, x: 1300, revealed: false }, { ...opportunity, x: 1350, status: 'assisted' }, { ...opportunity, x: 9000 }] };
+  renderer.ctx.arc = (x, y, radius) => markers.push(radius);
+  renderer.worldLabel = (_x, _y, text) => labels.push(text);
+  renderer.drawStoryOpportunities(state);
+  assert.equal(markers.length, 1); assert.deepEqual(labels, ['AID']);
+  markers.length = 0; renderer.drawStoryOpportunities(state, { menu: true }); assert.equal(markers.length, 0);
+  renderer.houseCutaways = [{ building: { x: 1200, y: 900, w: 200, h: 100 }, amount: 0 }];
+  renderer.drawStoryOpportunities(state); assert.equal(markers.length, 0);
 });

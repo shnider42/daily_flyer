@@ -10,6 +10,7 @@ test('defaults respect system motion and optional touch detection without sharin
   assert.equal(first.reducedMotion, true); assert.equal(first.touchControls, false);
   assert.equal(second.graphicsQuality, 'balanced'); assert.equal(second.renderScale, 'auto');
   assert.equal(second.frameLimit, 60); assert.equal(second.aimLine, true);
+  assert.equal(second.bloodEffects, true); assert.equal(second.distressVolume, .65);
   assert.equal(Object.hasOwn(second, 'touchControls'), false);
   first.completed.cordon = true;
   assert.deepEqual(second.completed, {});
@@ -20,7 +21,7 @@ test('saved and form settings normalize numeric strings, clamp ranges, and rejec
     role: 'member', difficulty: 'veteran', guidance: 'expert', graphicsQuality: 'high',
     renderScale: '0.75', frameLimit: '120', cameraZoom: 8, cameraLookahead: -5,
     crosshairStyle: 'ring', crosshairScale: .1, aimColor: 'teal',
-    masterVolume: '0.4', effectsVolume: -1, ambienceVolume: 4, hudScale: 9,
+    masterVolume: '0.4', effectsVolume: -1, ambienceVolume: 4, distressVolume: '0.25', bloodEffects: false, hudScale: 9,
     hudDetail: 'compact', sound: false, showFPS: true, autoReload: false,
     touchControls: false, callsign: '  Red\n Fox  ', debugGodMode: true,
   });
@@ -28,6 +29,7 @@ test('saved and form settings normalize numeric strings, clamp ranges, and rejec
   assert.equal(settings.cameraZoom, 1.4); assert.equal(settings.cameraLookahead, 0);
   assert.equal(settings.crosshairScale, .75); assert.equal(settings.masterVolume, .4);
   assert.equal(settings.effectsVolume, 0); assert.equal(settings.ambienceVolume, 1);
+  assert.equal(settings.distressVolume, .25); assert.equal(settings.bloodEffects, false);
   assert.equal(settings.hudScale, 1.3); assert.equal(settings.callsign, 'Red Fox');
   assert.equal(settings.touchControls, false); assert.equal(settings.autoReload, false);
   assert.equal(Object.hasOwn(settings, 'debugGodMode'), false);
@@ -37,7 +39,7 @@ test('malformed storage restores validated defaults without treating strings as 
   const defaults = createDefaults({ reducedMotion: true });
   const result = normalizePreferences({
     role: 'commander', guidance: 'maximum', renderScale: 20, frameLimit: 10000,
-    sound: 'false', reducedMotion: null, aimLine: 0, cameraZoom: NaN,
+    sound: 'false', reducedMotion: null, bloodEffects: 'false', distressVolume: Infinity, aimLine: 0, cameraZoom: NaN,
     masterVolume: Infinity, hudScale: {}, touchControls: 'false', completed: [],
   }, defaults);
   assert.deepEqual(result, normalizePreferences({}, defaults));

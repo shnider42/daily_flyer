@@ -84,3 +84,42 @@ convoy route. Browser speech synthesis is not used.
 Menu wind and helicopter layers reuse the recorded assets credited above.
 Subdued distant impact/rumble and carrier-squelch layers are procedural sound
 design made for CHALK. They are not recordings of actual explosions or voices.
+
+
+
+Performed pain and alarm voices — verified 23 November 2026
+
+pain-1.mp3 / pain-2.mp3
+Source: hurt_01.mp3 (download filename hurt_01_0.mp3) / hurt_05.mp3
+Creator: EZduzziteh
+https://opengameart.org/content/hurt-sound-effects
+Public media:
+https://opengameart.org/sites/default/files/hurt_01_0.mp3
+https://opengameart.org/sites/default/files/hurt_05.mp3
+License: CC0 1.0, explicitly linked on the creator's source page.
+The creator identifies these as original hurt/pain/grunt vocalizations made
+for a game jam. They are performed game assets, not real injury recordings.
+
+fear-1.mp3 / fear-2.mp3
+Source: 1yell2.wav / 2yell1.wav, from "Male Grunt/Yelling sounds"
+Creator: HaelDB
+https://opengameart.org/content/male-gruntyelling-sounds
+Public archive:
+https://opengameart.org/sites/default/files/yelling%20sounds.zip
+License selected: CC0 1.0, explicitly offered on the source page alongside
+OGA-BY 3.0. The page describes four male vocal performances recorded on a
+Neuman microphone and Avalon 2022 preamp. The two short vocalizations come
+from different numbered performers. Their in-game fear/alarm context is
+fictional sound design, not a claim about an actual emergency or the battle.
+
+Processing for all four files: remove leading/trailing silence with a short
+safety margin; high-pass at 85 Hz and low-pass at 8 kHz; normalize peak to
+approximately -4 dBFS; apply 5 ms opening and 15 ms closing fades; convert to
+mono 24,000 Hz, 64 kbps MP3. Active edited durations before MP3 padding:
+pain-1 0.264 seconds; pain-2 0.410 seconds; fear-1 0.781 seconds;
+fear-2 0.518 seconds. Playback applies distance, stereo placement and room
+filtering. No archival injury or 1993 victim audio is used.
+
+Cloth/gear bullet impacts, the player's low impact thud, and the restrained
+near-wreck fire/crackle bed are procedural sound design made for CHALK.
+They are separate from the performed voices and are not injury recordings.

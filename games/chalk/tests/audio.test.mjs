@@ -213,3 +213,128 @@ test('launcher, blast, and sniper events remain spatial, bounded, and governed b
   audio._event({ type:'explosion', x:320, y:200 },player);
   assert.equal(audio.voices.size,0,'mute also governs the new weapons');
 });
+
+function missionState(extra = {}) {
+  return { seed: 173, time: 1, status: 'playing', missionIndex: 1, playerId: 'hale',
+    squad: [{ id: 'hale', x: 0, y: 0, hp: 100, alive: true, team: 'squad' }],
+    radio: [], stats: { shots: 0 }, soundEvents: [], vehicles: [], world: { roads: [], buildings: [] }, ...extra };
+}
+const distressVoices = audio => [...audio.voices].filter(voice => voice.bus === 'distress');
+
+test('hits layer recorded pain and local gear impact once, with per-actor voice spacing', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0]; audio.tick(state, .016);
+  const hit = { type: 'victim_hit', actorId: player.id, victimId: player.id, x: 0, y: 0, team: 'squad', alive: true, damage: 15, cause: 'bullet' };
+  audio._event(hit, player, state);
+  assert.equal(audio.voices.size, 3, 'one cloth impact, one low impact, and one performed voice');
+  const voice = distressVoices(audio)[0];
+  assert.equal(voice.source.buffer, audio.samples.get('pain1'));
+  assert.equal(voice.priority, 4, 'player pain can displace low-priority ambience');
+  assert.ok(voice.nodes.some(node => node?.connections.includes(audio.distressBus)));
+  assert.ok(audio.distressBus.connections.includes(audio.effectsBus));
+  assert.ok(!voice.nodes.some(node => node?.connections.includes(audio.reverbInput)), 'distress cannot bypass its volume through reverb');
+  audio._event(hit, player, state); assert.equal(audio.voices.size, 3, 'a burst does not duplicate the same immediate impact');
+  h.advance(.2); audio._event(hit, player, state);
+  assert.equal(distressVoices(audio).length, 1, 'rapid further wounds play foley without repeated cries');
+  h.advance(2.2); audio._event(hit, player, state);
+  assert.equal(distressVoices(audio)[0].source.buffer, audio.samples.get('pain2'), 'later wounds alternate performances');
+});
+
+test('fatal, stale, and inaudibly distant victims never call out', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const state = missionState({ enemies: [{ id: 'dead', alive: false, x: 40, y: 0 }] }), player = state.squad[0];
+  const hit = { type: 'victim_hit', actorId: 'dead', victimId: 'dead', team: 'enemy', x: 40, y: 0, alive: true, damage: 12, cause: 'bullet' };
+  audio._event(hit, player, state);
+  assert.equal(distressVoices(audio).length, 0, 'current death state overrides an earlier living snapshot event');
+  assert.equal(audio.voices.size, 2, 'impact foley remains audible at the moment of impact');
+  h.advance(1);
+  audio._event({ ...hit, victimId: 'fatal', actorId: 'fatal', alive: false }, player, state);
+  assert.equal(distressVoices(audio).length, 0);
+  const before = audio.voices.size;
+  audio._event({ ...hit, victimId: 'far', actorId: 'far', x: 900, alive: true }, player, state);
+  audio._event({ ...hit, type: 'civilian_fear', victimId: 'far', actorId: 'far', x: 900, alive: true }, player, state);
+  assert.equal(audio.voices.size, before, 'unseen distant hits do not reveal victims through sound');
+  audio._event({ type: 'civilian_fear', victimId: 'frightened', actorId: 'frightened', x: 30, y: 0, alive: true }, player, state);
+  assert.equal(distressVoices(audio).length, 1);
+  audio._event({ ...hit, victimId: 'frightened', actorId: 'frightened', alive: false }, player, state);
+  assert.equal(distressVoices(audio).length, 0, 'a current cry ends promptly when that person dies');
+});
+
+test('fear is a sparse spatial response from living civilians and muffles across interiors', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0];
+  const fear = { type: 'civilian_fear', victimId: 'civilian1', actorId: 'civilian1', alive: true, downed: false, team: 'civilian', x: 140, y: 0 };
+  audio._event(fear, player, state);
+  let voice = distressVoices(audio)[0]; assert.equal(voice.source.buffer, audio.samples.get('fear1'));
+  const clearGain = voice.envelope.gain.events.find(event => event[0] === 'linear')[1];
+  assert.ok(voice.nodes.some(node => node?.pan.value > 0), 'voice pans toward the person');
+  audio._event({ ...fear, actorId: 'civilian2', victimId: 'civilian2' }, player, state);
+  assert.equal(distressVoices(audio).length, 1, 'global spacing prevents a crowd scream loop');
+  h.advance(5); audio._event(fear, player, state);
+  assert.equal(distressVoices(audio).length, 0, 'the same civilian stays quiet through its own cooldown');
+  state.world.buildings.push({ x: 100, y: -100, w: 200, h: 200, enterable: true });
+  audio._event({ ...fear, actorId: 'civilian2', victimId: 'civilian2' }, player, state);
+  voice = distressVoices(audio)[0]; assert.equal(voice.source.buffer, audio.samples.get('fear2'));
+  assert.ok(voice.envelope.gain.events.find(event => event[0] === 'linear')[1] < clearGain * .55);
+  assert.ok(voice.nodes.some(node => node?.type === 'lowpass' && node.frequency.value === 1350));
+  h.advance(13);
+  audio._event({ ...fear, alive: false }, player, state);
+  audio._event({ ...fear, downed: true }, player, state);
+  assert.equal(distressVoices(audio).length, 0, 'dead or downed people do not emit fear cries');
+  assert.equal([...audio.loops.keys()].filter(key => /fear|pain/.test(key)).length, 0);
+});
+
+test('distress volume silences voices independently while preserving impact and commands', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0];
+  audio._event({ type: 'civilian_fear', victimId: 'c', x: 100, y: 0, alive: true }, player, state);
+  assert.equal(distressVoices(audio).length, 1);
+  audio.setLevels({ distress: 0 }); assert.equal(audio.distressBus.gain.value, 0); assert.equal(distressVoices(audio).length, 0);
+  audio._event({ type: 'victim_hit', victimId: player.id, x: 0, y: 0, alive: true, cause: 'bullet' }, player, state);
+  assert.equal(audio.voices.size, 2); assert.equal(audio.effectsBus.gain.value, 1);
+  audio._radio({ text: 'Move to your marker.' });
+  assert.ok([...audio.voices].some(voice => voice.source.buffer === audio.samples.get('commandMove')));
+  assert.equal(audio.setLevels({ distress: 4 }).distress, 1);
+  assert.equal(audio.setLevels({ distress: NaN }).distress, 1);
+  audio.setEnabled(false); assert.equal(audio.voices.size, 0);
+});
+
+test('repeated co-op snapshots and unmuting do not replay injury or fear events', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  let state = missionState();
+  state.soundEvents = [{ id: 1, time: 1, type: 'victim_hit', victimId: 'hale', actorId: 'hale', x: 0, y: 0, alive: true, cause: 'bullet' }];
+  audio.tick(state, .016);
+  const before = audio.context.sources.length;
+  state = structuredClone(state); state.time += .05; audio.tick(state, .05);
+  assert.equal(audio.context.sources.length, before, 'same mission snapshots retain event cursor and loops');
+  audio.setEnabled(false);
+  state = structuredClone(state); state.time += .05;
+  state.soundEvents.push({ id: 2, time: state.time, type: 'civilian_fear', victimId: 'c', x: 120, y: 0, alive: true });
+  audio.tick(state, .05); assert.equal(audio.lastEventId, 2);
+  audio.setEnabled(true); state = structuredClone(state); audio.tick(state, .016);
+  assert.equal(distressVoices(audio).length, 0, 'events consumed while muted stay consumed');
+  state.seed++; state.soundEvents = [{ id: 1, time: state.time, type: 'victim_hit', victimId: 'hale', actorId: 'hale', x: 0, y: 0, alive: true }];
+  audio.tick(state, .016); assert.equal(distressVoices(audio).length, 1, 'a genuinely new mission resets the event cursor');
+});
+
+test('wreck ambience follows the actual crash, recedes at night, and gives way to commands', async t => {
+  const h = setup(t), { audio } = h;
+  audio.setScene('mission'); await h.unlock();
+  const state = missionState({ vehicles: [{ id: 'crash', kind: 'helicopter', active: false, x: 140, y: 0 }] });
+  const player = state.squad[0]; audio.tick(state, .016);
+  assert.ok(audio.loops.has('wreck-fire'));
+  const fire = audio.loops.get('wreck-fire'), gain = fire.volume.gain.value;
+  state.missionIndex = 2; audio._ambience(state, player, .016);
+  assert.ok(fire.volume.gain.value < gain, 'night ambient bed is more restrained');
+  const nightGain = fire.volume.gain.value;
+  audio._radio({ text: 'Move to your marker.' }); audio._ambience(state, player, .016);
+  assert.ok(fire.volume.gain.value < nightGain * .7, 'ambient bed ducks during a human command');
+  player.x = 800; audio._ambience(state, player, .016);
+  assert.equal(audio.loops.has('wreck-fire'), false, 'a distant crash does not create a global fire loop');
+  audio.setScene('paused'); assert.equal(audio.loops.size, 0); assert.equal(audio.voices.size, 0);
+});

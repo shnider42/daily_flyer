@@ -172,3 +172,34 @@ test('session resume and role changes clear old inputs and preserve the assigned
     second.receive({type:'result',id:outgoing.id,ok:true}); await command;
   } finally { client.leave(); }
 });
+
+test('radio choices and continuation use acknowledged commands, with neutral controls before the next chapter',async()=>{
+  const {client,socket}=await connectedClient();
+  try{
+    const request=client.storyChoice('cordon-pickup','reposition'),choice=socket.sent.at(-1);
+    assert.equal(choice.type,'story_choice');assert.equal(choice.decisionId,'cordon-pickup');assert.equal(choice.optionId,'reposition');assert.equal(choice.epoch,1);
+    assert.equal(Object.hasOwn(choice,'actorId'),false,'the authority derives ownership from the authenticated session');
+    socket.receive({type:'result',id:choice.id,ok:true});await request;
+    client.input({moveX:1,fire:true,grenade:true});const continuation=client.continueOperation(),command=socket.sent.at(-1);
+    assert.equal(command.type,'continue_operation');assert.equal(command.epoch,1);assert.equal(client._input.fire,false);assert.equal(client._input.moveX,0);
+    socket.receive({type:'result',id:command.id,ok:true});await continuation;
+  }finally{client.leave();}
+});
+
+test('hydration preserves story and persistent remains through updates, then reconstructs a continued chapter with its bounded carry',()=>{
+  const hydrator=new CoopStateHydrator(),packet=fixture();
+  packet.state.story.summary=['The pickup was moved.'];packet.state.story.resolved['cordon-pickup']={optionId:'reposition',actorId:1,time:8,reason:'order'};
+  packet.state.bodies=[{id:'body:99',actorId:99,team:'enemy',kind:'rifleman',x:680,y:1340,angle:0,pose:1,diedAt:8,seen:true}];
+  packet.state.bloodstains=[{id:'blood:1',x:680,y:1340,angle:0,amount:1,seed:7,at:8,seen:true}];
+  const first=hydrator.apply(packet,'peer1').game,world=first.world;
+  packet.state.time=9;hydrator.apply(packet,'peer1');assert.equal(hydrator.game.world,world);
+  assert.deepEqual(hydrator.game.story,packet.state.story);assert.deepEqual(hydrator.game.bodies,packet.state.bodies);assert.deepEqual(hydrator.game.bloodstains,packet.state.bloodstains);
+  packet.state.bodies[0].x=999;assert.equal(hydrator.game.bodies[0].x,680,'network objects do not alias the rendered persistent records');
+  const campaign={version:1,fromMission:0,medicalDebt:1,smokeDebt:1,fatigue:1,civilianHarm:0,aided:1};
+  const next=createGame({mission:1,seed:2468,difficulty:'story',campaign}),{world:nextWorld,grid,stages,...state}=next;
+  const continued={...packet,init:{seed:2468,mission:1,difficulty:'story',epoch:2,campaign},state,
+    room:{...packet.room,mission:1,epoch:2},worldProps:structuredClone(nextWorld.props)};
+  const result=hydrator.apply(continued,'peer1');assert.equal(result.changedEpoch,true);assert.notEqual(result.game.world,world);
+  assert.deepEqual(result.game.campaign,campaign);assert.equal(result.game.stages[0].duration,4);assert.equal(result.game.squad[2].medkits,5);
+  assert.deepEqual(result.game.bodies,[]);assert.deepEqual(result.game.bloodstains,[]);assert.equal(result.game.squad.length,4);
+});

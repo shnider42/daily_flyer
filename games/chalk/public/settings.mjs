@@ -21,10 +21,11 @@ const RANGES = {
   masterVolume: [0, 1],
   effectsVolume: [0, 1],
   ambienceVolume: [0, 1],
+  distressVolume: [0, 1],
   hudScale: [.85, 1.3],
   mobileHudScale: [.75, 1.15],
 };
-const BOOLEANS = ['sound', 'reducedMotion', 'aimLine', 'autoReload', 'showFPS'];
+const BOOLEANS = ['sound', 'reducedMotion', 'aimLine', 'autoReload', 'showFPS', 'bloodEffects'];
 const FRAME_LIMITS = [0, 60, 120];
 
 export function createDefaults({ reducedMotion = false, touchControls } = {}) {
@@ -34,7 +35,8 @@ export function createDefaults({ reducedMotion = false, touchControls } = {}) {
     graphicsQuality: 'balanced', renderScale: 'auto', frameLimit: 60,
     cameraZoom: 1, cameraLookahead: 0, crosshairStyle: 'cross', crosshairScale: 1,
     aimColor: 'white', aimLine: true, autoReload: true,
-    masterVolume: 1, effectsVolume: 1, ambienceVolume: 1,
+    masterVolume: 1, effectsVolume: 1, ambienceVolume: 1, distressVolume: .65,
+    bloodEffects: true,
     hudScale: 1, hudDetail: 'standard', showFPS: false,
     mobileCameraZoom: .75, mobileHudScale: .85, mobileHudDetail: 'compact',
     ...(typeof touchControls === 'boolean' ? { touchControls } : {}),

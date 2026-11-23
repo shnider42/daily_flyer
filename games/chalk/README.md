@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.6 gives the four soldiers distinct specialties, adds immediate mobile squad orders and solo soldier selection, widens formations, introduces occasional snipers, varies the district each play, and clarifies shared sight. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
+Version 1.7 adds decisions with field and cross-chapter consequences, optional aid to residents, persistent bodies, blood on bullet and blast hits, and expanded distress/impact audio. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
 
 ## Play
 
@@ -14,6 +14,31 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 | Dawn Mile | Move through three rally positions and bring the surviving squad to the aid station. |
 
 The missions share a compact city street layout, with varying blocks, landmarks, objectives, and afternoon/night/dawn lighting. They are intentionally short; an efficient route takes roughly one to two minutes, with human play varying by exploration and combat. Vehicles follow a route and wait for the squad. They do not have a damage model in this version.
+
+## Decisions, consequences, and casualties: version 1.7
+
+The four chapters now reveal changing orders through radio updates. The raid begins with a planned ground pickup; helicopter losses and blocked routes change the operation. The squad, dialogue, decision points, resident encounters, compressed geography, and outcomes are fictional composites. The historical context panel distinguishes that fiction from the real battle and links to Army accounts of the original extraction plan and multinational relief.
+
+| Chapter | Decision and concrete effects |
+| --- | --- |
+| Cordon | Keep the original, farther pickup and add one fatigue step for later chapters, or hold eight seconds longer while vehicles move to a closer street. |
+| First Crash | Preserve smoke for withdrawal, or expend one actual squad round on a twenty-second screen at the wreck. Visibility changes for both sides. |
+| Night Relief | Keep the assigned load, or take two additional wounded residents with twelve more seconds of exposed loading and added fatigue. The debrief reports how many actually survived to board. |
+| Dawn Mile | Use the shorter market route with more corners, or the longer, open eastern avenue. The choice changes a real rally position; approaching the eastern route can itself communicate the request. |
+
+Open the compact **Radio** chip or press **C**, then choose **Z / X**. The mission continues. The standing plan takes effect if nobody answers before the displayed deadline. A controlled squad mate can recommend; a human leader retains the final decision, and an AI leader acknowledges an accepted recommendation. Dead and incapacitated soldiers cannot issue story choices. The leader card shows a partner's current recommendation.
+
+Each chapter includes an injured resident near the route. Squad sight discovers the opportunity; it is not marked across unexplored streets. Move within reach and hold **E / Assist** to provide aid. It takes one of that soldier's finite medical supplies and six seconds (4.5 for the medic), with nearby downed squad mates and core rescue/route work taking priority. Helping allows the resident to reach cover; it does not guarantee intelligence or a combat advantage. Passing them leaves their later condition uncertain. Civilian harm quiets distant calls for help and requires closer observation; it does not summon extra enemies as a punishment.
+
+After a win, **Continue operation** carries bounded medical/smoke supply costs, fatigue, and civilian consequences to the next chronological chapter. Fatigue adds two seconds per level to later regroup stages. The carry is capped and validated, and affects actual supplies and durations. Solo continuation is saved on this device; a separately selected mission can still start independently. **Start this mission fresh** clears the saved carry. Replaying uses the chapter's initial carry, so failed attempts do not stack penalties. Each chapter creates a fresh actor state; this is not continuous soldier permadeath or a mid-mission save system. In co-op, only the host can continue, the server computes the carry, and the two human seats remain assigned. Both clients should refresh for protocol 3.
+
+True deaths now leave stable prone bodies, with distinct poses and dropped equipment, for the rest of that mission. Living casualties keep their aid indicators and can still be recovered. Dead soldiers are labelled Lost. Bodies do not block movement or hold roofs open; unknown deaths remain hidden until actual squad sight discovers them. Previously observed bodies remain as inert terrain memory. A new mission or restart clears the remains.
+
+Bullet and blast damage produces a short blood spurt and a small persistent ground mark; bodies have restrained side pools. No dismemberment is depicted. Blood respects walls, smoke, sight, and roof visibility. **Settings → Video → Blood marks** hides blood while retaining bodies. **Reduce motion** suppresses the animated spurt while retaining static stains. Ground marks merge by cell and cap at 512; bodies remain for the full mission. Cached sprites and viewport culling keep these details cheap to draw.
+
+Performed pain reactions and fear/startle calls use four short CC0 recordings by EZduzziteh and HaelDB. **Settings → Audio → Distress voices** starts at 65% and controls those voices without muting the physical impact layer or commands. Pain and fear react to actual simulation events, with per-person and global spacing, distance/panning, interior muffling, and no speech from the dead. Wreck-fire ambience follows the crash location, night ambience is reduced, and commands and hits briefly lower the ambient bed. Existing recordings and any music assets are retained. These are edited game performances, not recordings of the historical battle.
+
+Version 1.7 validation: the complete suite passes **185 tests** and the static build passes syntax validation and **169 regression tests**. Foreground Linux Chromium Cordon/Story checks with sound enabled measured approximately **60 FPS** at a **1280 × 720 viewport and buffer**, and **51 FPS** at a **2560 × 1440 viewport / 1920 × 1080 buffer**, using Canvas 2D, Balanced/Auto. These are environmental measurements, not guarantees for a particular device. Radio choices and blood/body settings were checked visually; phone-layout checks at 390 × 844 and 844 × 390 confirmed the expanded decision panel leaves the thumb controls accessible. Two local browser clients verified a member recommendation appearing on the leader’s card, the leader selecting a different option, synchronized resolution, exactly two AI squad mates, and all 11 audio samples loading. Physical multi-touch and mobile Safari remain untested.
 
 ## Squad and field control: version 1.6
 
@@ -38,7 +63,7 @@ Occasional enemy snipers have a slower shot cycle and a visible aim-charge glint
 
 Shared squad sight now has a light terrain overlay that distinguishes current observation from remembered and unseen terrain. Daylight terrain remains readable. Walls, doors, and smoke shape visibility, and out-of-sight enemies are hidden rather than frozen in place on the map. The overlay uses cached, low-resolution masks refreshed at 8 Hz; drawing still uses the existing bounded Canvas 2D buffer. Night retains its existing darker treatment.
 
-The co-op seats remain Hale and Mercer, with Ames and Webb under AI control when both humans are connected. Solo selection does not steal a partner's soldier. Protocol 2 protects the new map and movement contract: after the update, both people should refresh before joining the same room. Existing music and all earlier audio assets are retained; new launcher/blast cues use the existing bounded audio mixer.
+The co-op seats remain Hale and Mercer, with Ames and Webb under AI control when both humans are connected. Solo selection does not steal a partner's soldier. Protocol 3 includes the map, movement, narrative, and remains contract: after the update, both people should refresh before joining the same room. Existing music and all earlier audio assets are retained; new launcher/blast cues use the existing bounded audio mixer.
 
 Foreground Linux Chromium checks of Cordon/Story with audio off measured approximately 60 FPS at a 1280 × 720 viewport and buffer, and 53 FPS at a 2560 × 1440 viewport with a 1920 × 1080 buffer, using Balanced/Auto. These are measurements of this browser environment, not guarantees for a physical desktop or phone. F3 exposes the same diagnostics during play.
 
@@ -66,9 +91,9 @@ The camera is prepared before mouse coordinates are converted into the world, an
 
 | Category | Controls |
 | --- | --- |
-| Video | Performance / Balanced / High effects; Automatic / 75% / 100% rendering; 60 / 120 / uncapped frame limit; camera zoom; reduced motion; performance display |
+| Video | Performance / Balanced / High effects; Automatic / 75% / 100% rendering; 60 / 120 / uncapped frame limit; camera zoom; reduced motion; blood marks; performance display |
 | Aim & controls | Camera lookahead; cross / ring / dot reticle; reticle size and color; optional wall obstruction cue; reload on empty; touch controls |
-| Audio | Separate master, effects, and ambience levels; the Sound switch mutes without losing the mix |
+| Audio | Separate master, effects, ambience, and distress-voice levels; the Sound switch mutes without losing the mix |
 | HUD | HUD size from 85% to 130%; Standard / Compact detail; guidance level |
 
 The aim path uses the simulation's solid-wall intersection math. It indicates cover, not hit probability, bullet range, or actor hits. Disabling **Reload when empty** stops the client from requesting an idle reload; pressing R or firing an empty magazine still starts a reload. Input is absolute mouse aim, so there is no artificial mouse-sensitivity multiplier or smoothing slider.
@@ -157,6 +182,7 @@ Primary references are included in the game's **Historical context** panel:
 
 - [U.S. Army Center of Military History: The U.S. Army in Somalia, 1992–1994](https://history.army.mil/portals/143/Images/Publications/catalog/70-81-1.pdf)
 - [U.S. Army veteran accounts of the Mogadishu rescue](https://www.army.mil/article/113311/we_didnt_leave_anybody_behind_10th_mountain_division_veterans_reflect_on_mogadishu_rescue_missi)
+- [U.S. Army: veterans reflect on the raid plan and battle](https://www.army.mil/article/156778/veterans_reflect_on_battle_of_mogadishu)
 - [U.S. Department of State: Somalia, 1992–1993](https://history.state.gov/milestones/1993-2000/somalia)
 
 ## Run and validate
@@ -178,9 +204,9 @@ npm test --prefix games/chalk
 npm run test:server --prefix games/chalk
 ```
 
-The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 143-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
+The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
 
-The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, 11 role/combat tests, nine touch-input tests, 11 client tests, 14 server tests, seven desktop-input/aim tests, 14 renderer/camera tests, eight shared-visibility tests, six world-variation tests, seven settings tests, seven frame-pacing/meter tests, 11 building/interior tests, and eight audio scene tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Earlier co-op release checks covered two separate browser sessions, four-person rosters, a member hosting while their friend leads, role swaps, field menus, invite links, reload recovery, and the deployed service with two real clients. Version 1.6 adds automated protocol, finite launcher ownership, observation cancellation, and seeded map reconstruction checks. Two separate browser tabs also verified the local current-version service: a grenadier host and leader guest, exactly two AI soldiers, binocular controls, launcher ammunition changing from four to three, and a role exchange retaining those three rounds. Browser QA covers direct ground orders, all four solo selections, binocular/launcher controls, and portrait/landscape layouts at 390 × 844 and 844 × 390. These checks do not include physical multi-touch hardware or iPhone/Safari.
+The simulation is deterministic and independent of the DOM. The suite covers solo and co-op simulation, role/combat behavior, touch and desktop input, client and server transport, renderer/camera behavior, shared visibility, world variation, settings, frame pacing, building interiors, narrative consequences, casualty persistence, blood, and audio scenes. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Earlier co-op release checks covered two separate browser sessions, four-person rosters, a member hosting while their friend leads, role swaps, field menus, invite links, reload recovery, and the deployed service with two real clients. Version 1.6 adds automated protocol, finite launcher ownership, observation cancellation, and seeded map reconstruction checks. Two separate browser tabs also verified the local current-version service: a grenadier host and leader guest, exactly two AI soldiers, binocular controls, launcher ammunition changing from four to three, and a role exchange retaining those three rounds. Browser QA covers direct ground orders, all four solo selections, binocular/launcher controls, and portrait/landscape layouts at 390 × 844 and 844 × 390. These checks do not include physical multi-touch hardware or iPhone/Safari.
 
 ## Farwake reuse and networking
 

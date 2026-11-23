@@ -8,13 +8,14 @@ const MASTER_GAIN = .44;
 const SAMPLE_FILES = {
   rifle: 'rifle-shot.mp3', hostile: 'hostile-shot.mp3', rotor: 'rotor-loop.mp3', wind: 'wind.mp3',
   radio: 'radio-chatter.mp3', commandGo: 'command-go.mp3', commandMove: 'command-move.mp3',
+  pain1: 'pain-1.mp3', pain2: 'pain-2.mp3', fear1: 'fear-1.mp3', fear2: 'fear-2.mp3',
 };
 const SCENES = new Set(['menu', 'mission', 'paused']);
 
 export class GameAudio {
   constructor() {
     this.enabled = true; this.context = null; this.master = null; this.noise = null;
-    this.levels = { master: 1, effects: 1, ambience: 1 }; this.effectsBus = null; this.ambienceBus = null;
+    this.levels = { master: 1, effects: 1, ambience: 1, distress: .65 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
     this.voices = new Set(); this.loops = new Map(); this.samples = new Map(); this.sampleStatus = {};
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
@@ -23,6 +24,9 @@ export class GameAudio {
     this.scene = 'paused'; this.menuBus = null; this.missionAmbienceBus = null;
     this.menuTimer = null; this.menuSchedule = null; this.lastMenuVoice = null;
     this.lastCommandVoiceTime = -Infinity;
+    this.hitTimes = new Map(); this.painTimes = new Map(); this.fearTimes = new Map();
+    this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
+    this.lastSceneKey = null; this.lastStateTime = -Infinity; this.painVariant = 0; this.fearVariant = 0;
     this.hidden = Boolean(globalThis.document?.hidden); this.lifecycleAttached = false;
     this.onVisibility = () => { this.hidden = Boolean(globalThis.document?.hidden); if (this.hidden) this.stop(); else this._syncScene(); };
     this.onContextState = () => { if (this.context?.state !== 'running') this.stop(); else this._syncScene(); };
@@ -40,6 +44,7 @@ export class GameAudio {
         this.effectsBus = context.createGain(); this.effectsBus.gain.value = this.levels.effects;
         this.ambienceBus = context.createGain(); this.ambienceBus.gain.value = this.levels.ambience;
         this.effectsBus.connect(this.master); this.ambienceBus.connect(this.master);
+        this.distressBus = context.createGain(); this.distressBus.gain.value = this.levels.distress; this.distressBus.connect(this.effectsBus);
         this.menuBus = context.createGain(); this.menuBus.gain.value = 0; this.menuBus.connect(this.ambienceBus);
         this.missionAmbienceBus = context.createGain(); this.missionAmbienceBus.gain.value = 0; this.missionAmbienceBus.connect(this.ambienceBus);
         const limiter = context.createDynamicsCompressor();
@@ -49,7 +54,7 @@ export class GameAudio {
         this.noise = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
         const noise = this.noise.getChannelData(0);
         for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
-        this._makeReflections(); this._makeEngine(); this._makeRumble();
+        this._makeReflections(); this._makeEngine(); this._makeRumble(); this._makeFire();
         context.addEventListener?.('statechange', this.onContextState);
         if (!this.lifecycleAttached) { globalThis.document?.addEventListener?.('visibilitychange', this.onVisibility); this.lifecycleAttached = true; }
         void this._loadSamples();
@@ -126,6 +131,19 @@ export class GameAudio {
       low = low * .994 + noise * .006; body = body * .91 + noise * .09;
       const envelope = Math.min(1, t / .085) * Math.exp(-t * 1.45);
       data[i] = clamp((low * 4.5 + body * .65 + Math.sin(t * 2 * Math.PI * 43) * .05) * envelope, -.8, .8);
+    }
+  }
+
+  _makeFire() {
+    const c = this.context, length = c.sampleRate * 2;
+    this.fire = c.createBuffer(1, length, c.sampleRate);
+    const data = this.fire.getChannelData(0); let low = 0, crackle = 0;
+    for (let i = 0; i < length; i++) {
+      const n = Math.random() * 2 - 1;
+      low = low * .96 + n * .04;
+      if (Math.random() < 7 / c.sampleRate) crackle = .2 + Math.random() * .45;
+      crackle *= .993;
+      data[i] = low * .55 + n * (.035 + crackle);
     }
   }
 
@@ -233,10 +251,11 @@ export class GameAudio {
   }
 
   setLevels(levels = {}) {
-    for (const key of ['master', 'effects', 'ambience']) {
+    for (const key of ['master', 'effects', 'ambience', 'distress']) {
       if (Number.isFinite(levels?.[key])) this.levels[key] = clamp(levels[key], 0, 1);
     }
     this._applyLevels();
+    if (this.levels.distress === 0) this._stopVoices(voice => voice.bus === 'distress');
     this._syncScene();
     this._diagnostics();
     return { ...this.levels };
@@ -248,6 +267,7 @@ export class GameAudio {
     for (const [node, value] of [
       [this.master, this.enabled ? MASTER_GAIN * this.levels.master : 0],
       [this.effectsBus, this.levels.effects], [this.ambienceBus, this.levels.ambience],
+      [this.distressBus, this.levels.distress],
     ]) {
       if (!node) continue;
       node.gain.cancelScheduledValues(now); node.gain.setTargetAtTime(value, now, .018);
@@ -258,8 +278,8 @@ export class GameAudio {
 
   _voice({ buffer = null, duration = .1, gain = .08, frequency = 0, endFrequency,
     lowpass = 6500, highpass = 60, pan = 0, delay = 0, attack = .0015,
-    rate = 1, wet = 0, priority = 0, bus = 'effects', offset = 0 } = {}) {
-    if (!this._ready()) return;
+    rate = 1, wet = 0, priority = 0, bus = 'effects', offset = 0, actorId = null } = {}) {
+    if (!this._ready() || bus === 'distress' && this.levels.distress === 0) return;
     if (this.voices.size >= 32) {
       const victim = [...this.voices].find(v => v.priority < priority);
       if (!victim) return;
@@ -286,10 +306,12 @@ export class GameAudio {
     source.connect(high); high.connect(low); low.connect(envelope);
     let panner = null;
     if (c.createStereoPanner) { panner = c.createStereoPanner(); panner.pan.value = clamp(pan, -.9, .9); envelope.connect(panner); }
-    const output = panner || envelope; output.connect(bus === 'menu' ? this.menuBus : this.effectsBus);
+    const output = panner || envelope;
+    output.connect(bus === 'menu' ? this.menuBus : bus === 'distress' ? this.distressBus : bus === 'ambience' ? this.missionAmbienceBus : this.effectsBus);
     let send = null;
-    if (wet && this.reverbInput) { send = c.createGain(); send.gain.value = wet; output.connect(send); send.connect(this.reverbInput); }
-    const voice = { source, envelope, priority, bus, nodes: [source, envelope, low, high, panner, send] };
+    // Distress has its own volume path; a shared effects reverb must not bypass it.
+    if (wet && bus === 'effects' && this.reverbInput) { send = c.createGain(); send.gain.value = wet; output.connect(send); send.connect(this.reverbInput); }
+    const voice = { source, envelope, priority, bus, actorId, nodes: [source, envelope, low, high, panner, send] };
     this.voices.add(voice);
     source.onended = () => { this.voices.delete(voice); for (const n of voice.nodes) if (n) { try { n.disconnect(); } catch {} } };
     if (frequency) source.start(start); else if (sample) source.start(start, offset); else source.start(start, Math.random() * .8);
@@ -328,15 +350,17 @@ export class GameAudio {
     try { loop.source.stop(now + fade); } catch {}
   }
 
-  _spatial(event, player) {
+  _spatial(event, player, world = null) {
     const d = distance({ x: event.x ?? player.x, y: event.y ?? player.y }, player);
-    return { d, gain: 1 / (1 + (d / 165) ** 1.25), pan: ((event.x ?? player.x) - player.x) / 390,
-      lowpass: clamp(9000 / (1 + d / 155), 950, 9000) };
+    const sourceRoom = buildingAt(world, event), listenerRoom = buildingAt(world, player);
+    const occluded = sourceRoom !== listenerRoom && Boolean(sourceRoom || listenerRoom);
+    return { d, gain: (occluded ? .48 : 1) / (1 + (d / 165) ** 1.25), pan: ((event.x ?? player.x) - player.x) / 390,
+      lowpass: Math.min(occluded ? 1350 : 9000, clamp(9000 / (1 + d / 155), 950, 9000)), occluded };
   }
 
-  _shot(event, player) {
+  _shot(event, player, state = this.lastState) {
     if (!player) return;
-    const spatial = this._spatial(event, player), own = event.actorId === player.id;
+    const spatial = this._spatial(event, player, state?.world), own = event.actorId === player.id;
     if (spatial.d > 1200 || !own && this.shotBudget < 1) return;
     this.shotBudget = Math.max(0, this.shotBudget - 1);
     const weapon = event.weapon || (event.team === 'enemy' ? 'hostile' : 'rifle');
@@ -358,10 +382,69 @@ export class GameAudio {
     if (weapon === 'sniper') this._voice({ duration: .38, gain: .10 * gain, highpass: 140, lowpass: Math.min(1800,spatial.lowpass), delay: .14, pan, wet: .2, priority: 1 });
   }
 
-  _event(event, player) {
+  _cooldown(map, key, now, seconds) {
+    if (now - (map.get(key) ?? -Infinity) < seconds) return false;
+    map.set(key, now);
+    if (map.size > 128) map.delete(map.keys().next().value);
+    return true;
+  }
+
+  _victimAlive(event, state) {
+    if (event.alive === false) return false;
+    const id = event.victimId ?? event.actorId;
+    // A late network batch may contain an earlier hit followed by a death.
+    for (const actors of [state?.squad, state?.enemies, state?.civilians, state?.survivors]) {
+      const actor = actors?.find(a => a.id === id);
+      if (actor) return actor.alive !== false;
+    }
+    return event.alive === true;
+  }
+
+  _victimHit(event, player, state) {
+    const alive = this._victimAlive(event, state), id = event.victimId ?? event.actorId;
+    if (!alive) this._stopVoices(voice => voice.bus === 'distress' && voice.actorId === id, .015);
+    const s = this._spatial(event, player, state?.world), own = (event.victimId ?? event.actorId) === player.id;
+    if (s.d > (s.occluded ? 290 : 470)) return;
+    const now = this.context?.currentTime || 0;
+    if (!this._cooldown(this.hitTimes, id, now, .09)) return;
+    const gain = own ? 1 : s.gain, pan = own ? 0 : s.pan, priority = own ? 4 : event.team === 'squad' ? 2 : 1;
+    // Cloth/gear impact is separate from a bullet passing nearby or striking masonry.
+    this._voice({ duration: .055, gain: (own ? .19 : .12) * gain, highpass: 180,
+      lowpass: Math.min(2200, s.lowpass), pan, priority });
+    this._voice({ duration: event.cause === 'blast' ? .19 : .115, gain: (own ? .14 : .07) * gain,
+      frequency: own ? 91 : 126, endFrequency: 42, highpass: 25, lowpass: 340, pan, priority });
+    this.foregroundUntil = Math.max(this.foregroundUntil, now + .65);
+    if (!alive || this.levels.distress === 0 ||
+      now - this.lastPainTime < (own ? .18 : .38) || !this._cooldown(this.painTimes, id, now, 1.1)) return;
+    const sample = this.samples.get(++this.painVariant % 2 ? 'pain1' : 'pain2');
+    if (!sample) return; // Failed recordings leave grounded foley, never a synthetic scream.
+    this.lastPainTime = now;
+    const rate = .97 + Math.random() * .06;
+    this._voice({ buffer: sample, duration: sample.duration / rate, gain: (own ? .43 : .29) * gain,
+      lowpass: own ? 7800 : s.lowpass, highpass: 100, pan, rate, delay: .015, attack: .004,
+      bus: 'distress', priority: own ? 4 : 2, actorId: id });
+  }
+
+  _civilianFear(event, player, state) {
+    if (!this._victimAlive(event, state) || event.downed || this.levels.distress === 0) return;
+    const s = this._spatial(event, player, state?.world), now = this.context?.currentTime || 0;
+    if (s.d > (s.occluded ? 300 : 530) || now - this.lastFearTime < 4.5 ||
+      now - this.lastPainTime < .65 || !this._cooldown(this.fearTimes, event.victimId ?? event.actorId, now, 12)) return;
+    const sample = this.samples.get(++this.fearVariant % 2 ? 'fear1' : 'fear2');
+    if (!sample) return;
+    this.lastFearTime = now;
+    const rate = .97 + Math.random() * .06, night = state?.missionIndex === 2 ? .8 : 1;
+    this._voice({ buffer: sample, duration: Math.min(1.15, sample.duration / rate), gain: .26 * s.gain * night,
+      lowpass: s.lowpass, highpass: 160, pan: s.pan, rate, attack: .012, bus: 'distress', priority: 1,
+      actorId: event.victimId ?? event.actorId });
+  }
+
+  _event(event, player, state = this.lastState) {
     if (!player) return;
-    if (event.type === 'shot') { this._shot(event, player); return; }
-    const s = this._spatial(event, player); if (s.d > (event.type === 'explosion' ? 1250 : 500)) return;
+    if (event.type === 'shot') { this._shot(event, player, state); return; }
+    if (event.type === 'victim_hit') { this._victimHit(event, player, state); return; }
+    if (event.type === 'civilian_fear') { this._civilianFear(event, player, state); return; }
+    const s = this._spatial(event, player, state?.world); if (s.d > (event.type === 'explosion' ? 1250 : 500)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
     if (event.type === 'grenade_launch') {
       this._voice({ duration: .12, gain: .23 * gain, highpass: 65, lowpass: 1000, pan: s.pan, wet: .08, priority: own ? 3 : 1 });
@@ -396,6 +479,7 @@ export class GameAudio {
     const buffer = this.samples.get(key), now = this.context?.currentTime || 0;
     if (buffer && now - this.lastCommandVoiceTime > 2.8) {
       this.lastCommandVoiceTime = now;
+      this.foregroundUntil = Math.max(this.foregroundUntil, now + buffer.duration + .25);
       this._voice({ buffer, duration: buffer.duration, delay: .1, gain: .38, lowpass: 3200, highpass: 300, attack: .035, priority: 3 });
     }
   }
@@ -426,15 +510,16 @@ export class GameAudio {
   _ambience(state, player, dt) {
     if (!this._ready() || !player) return;
     const indoors = Boolean(buildingAt(state.world, player)), wind = this.samples.get('wind');
+    const bed = (state.missionIndex === 2 ? .78 : 1) * (this.context.currentTime < this.foregroundUntil ? .58 : 1);
     const breeze = .83 + Math.sin(state.time * .19) * .12 + Math.sin(state.time * .071) * .05;
     // Existing loop gain/filter ramps soften each threshold crossing without
     // rebuilding audio nodes or tracing sound paths through individual walls.
-    this._loop('wind', wind || this.noise, { gain: (wind ? .035 : .022) * breeze * (indoors ? .62 : 1),
+    this._loop('wind', wind || this.noise, { gain: (wind ? .035 : .022) * breeze * (indoors ? .62 : 1) * bed,
       lowpass: indoors ? 1050 : 1600, highpass: 85, rate: wind ? 1 : .7 });
     if (state.missionIndex === 0 && state.time < 20) {
       const rotor = this.samples.get('rotor');
       const pass = Math.sin(Math.PI * clamp(state.time / 20, 0, 1));
-      if (rotor) this._loop('rotor', rotor, { gain: .085 * pass * (indoors ? .72 : 1),
+      if (rotor) this._loop('rotor', rotor, { gain: .085 * pass * (indoors ? .72 : 1) * bed,
         lowpass: indoors ? 1400 : 2100, highpass: 45, pan: (state.time / 20 - .5) * 1.6, rate: 1 });
     } else this._stopLoop('rotor');
     const vehicles = (state.vehicles || []).filter(v => v.active && v.kind !== 'helicopter');
@@ -442,9 +527,15 @@ export class GameAudio {
     if (nearest && distance(nearest, player) < 650) {
       const previous = this.vehiclePositions.get(nearest.id), speed = previous && dt > 0 ? distance(previous, nearest) / dt : 0;
       const s = this._spatial(nearest, player);
-      this._loop('engine', this.engine, { gain: .11 * s.gain * (indoors ? .76 : 1),
+      this._loop('engine', this.engine, { gain: .11 * s.gain * (indoors ? .76 : 1) * bed,
         lowpass: clamp(700 - s.d, 180, 700) * (indoors ? .72 : 1), highpass: 35, pan: s.pan, rate: speed > 5 ? 1.08 : .77 });
     } else this._stopLoop('engine');
+    const wreck = (state.vehicles || []).find(v => !v.active && (v.kind === 'helicopter' || v.kind === 'crash') && distance(v, player) < 410);
+    if (wreck) {
+      const s = this._spatial(wreck, player, state.world);
+      this._loop('wreck-fire', this.fire, { gain: .075 * s.gain * bed, lowpass: Math.min(1900, s.lowpass),
+        highpass: 130, pan: s.pan, rate: .94 + Math.sin(state.time * .27) * .025 });
+    } else this._stopLoop('wreck-fire');
     for (const v of vehicles) this.vehiclePositions.set(v.id, { x: v.x, y: v.y });
     const density = (state.world?.buildings || []).filter(b => distance({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, player) < 310).length;
     this.reverbReturn?.gain.setTargetAtTime(Math.min(.34, .13 + Math.min(density, 5) * .035 + (indoors ? .04 : 0)), this.context.currentTime, .3);
@@ -453,12 +544,17 @@ export class GameAudio {
   tick(state, dt = 0) {
     if (!state) return;
     const player = state.squad?.find(a => a.id === state.playerId);
-    const fresh = state !== this.lastState;
+    const sceneKey = state.seed == null ? null : `${state.seed}:${state.missionIndex}`;
+    const fresh = !this.lastState || sceneKey !== this.lastSceneKey || state.time < this.lastStateTime - .5 ||
+      sceneKey == null && state !== this.lastState;
     if (fresh) {
       this._stopMission(); this.lastState = state; this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds.clear();
       this.footTravel.clear(); this.vehiclePositions.clear(); this.lastShots = 0; this.lastRadio = state.radio?.at(-1)?.id;
       this.shotBudget = 8; this.lastPlayerId = null; this.lastCommandVoiceTime = -Infinity;
+      this.hitTimes.clear(); this.painTimes.clear(); this.fearTimes.clear();
+      this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
     }
+    this.lastState = state; this.lastSceneKey = sceneKey; this.lastStateTime = state.time;
     if (state.playerId !== this.lastPlayerId) { this.lastHealth = player?.hp ?? null; this.lastPlayerId = state.playerId; }
     const seconds = clamp(Number(dt) || 0, 0, .25), shots = Number(state.stats?.shots) || 0;
     this.shotBudget = Math.min(8, this.shotBudget + seconds * 24);
@@ -491,9 +587,8 @@ export class GameAudio {
     this._movement(state, player || { x: 0, y: 0 }, audible);
     const radio = state.radio?.at(-1), radioId = radio?.id ?? null;
     if (audible && radioId != null && radioId !== this.lastRadio) this._radio(radio);
-    if (audible && player && this.lastHealth != null && player.hp < this.lastHealth) {
-      this._voice({ duration: .14, gain: .08, frequency: 76, endFrequency: 42, highpass: 20, lowpass: 300, priority: 2 });
-      this._voice({ duration: .075, gain: .04, highpass: 300, lowpass: 1800, priority: 2 });
+    if (audible && player && !Array.isArray(state.soundEvents) && this.lastHealth != null && player.hp < this.lastHealth) {
+      this._victimHit({ ...player, victimId: player.id, damage: this.lastHealth - player.hp, cause: 'bullet', alive: player.alive !== false }, player, state);
     }
     this.lastShots = shots; this.lastRadio = radioId; this.lastHealth = player?.hp ?? null;
     this.diagnosticTime += seconds;

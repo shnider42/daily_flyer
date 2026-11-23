@@ -2,15 +2,16 @@
  * First C -> S: create {protocol,name,mission,difficulty,role}; join {protocol,code,name};
  *   resume {protocol,code,playerId,token}. S -> C: joined {session:{code,playerId,token},room}.
  * Then Farwake snapshot-delta packets decode to snapshot {state,room,init,worldProps,
- *   selfId,actorId,ack,tick,serverTime}. init={seed,mission,difficulty,epoch}.
+ *   selfId,actorId,ack,tick,serverTime}. init={seed,mission,difficulty,epoch,campaign}.
  * Preserve a locally generated world's identity; merge state and worldProps in place.
  * C -> S input {seq,epoch,input}; order {id,epoch,order,point?}; start/restart/
- *   swap_roles/return_lobby {id,epoch}; configure {id,epoch,mission,difficulty};
+ *   swap_roles/return_lobby/continue_operation {id,epoch}; configure {id,epoch,mission,difficulty};
+ *   story_choice {id,epoch,decisionId,optionId}; members recommend, leaders decide.
  *   leave; ping {sentAt}; resync. Commands optionally receive result {id,ok,reason}.
  * Shared play has no global pause: opening a local menu sends neutral input.
  */
-// Version 2 shares revised city generation and role movement with the authority.
-export const PROTOCOL = 2;
+// Version 3 shares story authority, bounded chapter carry and permanent remains.
+export const PROTOCOL = 3;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;

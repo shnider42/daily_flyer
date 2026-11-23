@@ -1,6 +1,6 @@
 // Small invitation rooms using Farwake's single-authority, authenticated-session model.
 import {randomBytes} from 'node:crypto';
-import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
+import {createGame,stepCoop,setHumanPlayers,issueCoopOrder,chooseStoryOption,campaignOutcome,MISSIONS,DIFFICULTIES} from '../public/sim.mjs';
 import {SnapshotDeltaEncoder} from '../public/snapshot-delta.mjs';
 import {PROTOCOL,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,HOST_PROMOTION_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
@@ -11,7 +11,7 @@ const actorView = actor => {
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
   'progress','radio','stats','order','leaderOrder','phaseTime','objective','convoyIndex','convoyClear','convoyCleared',
-  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds'];
+  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign'];
 const statusOf = room => room.status==='lobby'?'lobby':room.game.status;
 const validMission = value => Number.isInteger(value)&&value>=0&&value<MISSIONS.length;
 const validDifficulty = value => Object.hasOwn(DIFFICULTIES,value);
@@ -35,7 +35,7 @@ export class CoopRooms {
     tokenHash:secretHash(token),peer:null,seq:0,input:{...EMPTY_INPUT},actions:{reload:false,smoke:false,grenade:false},lastInput:this.now(),disconnectedAt:null,commands:new Map()},token};}
   _newGame(room){
     room.seed=this.seed();room.epoch++;room.tick=0;
-    room.game=createGame({mission:room.mission,difficulty:room.difficulty,role:'leader',seed:room.seed});
+    room.game=createGame({mission:room.mission,difficulty:room.difficulty,role:'leader',seed:room.seed,campaign:room.campaign});
     for(const p of room.players){p.input={...EMPTY_INPUT};p.actions={reload:false,smoke:false,grenade:false};p.lastInput=this.now();}
     this._syncHumans(room);
   }
@@ -62,7 +62,7 @@ export class CoopRooms {
     let code;do{code=newRoomCode();}while(this.rooms.has(code));
     const {player,token}=this._newPlayer(message.role==='member'?1:0,message.name);
     const now=this.now(),room={code,hostId:player.id,players:[player],mission,difficulty,epoch:0,seed:0,game:null,tick:0,transportTick:0,
-      status:'lobby',reason:'Share the squad code to invite a friend.',createdAt:now,lastActivity:now,emptySince:null};
+      status:'lobby',campaign:null,reason:'Share the squad code to invite a friend.',createdAt:now,lastActivity:now,emptySince:null};
     this._newGame(room);this.rooms.set(code,room);this._attach(room,player,peer,token);return true;
   }
   join(peer,message,resume=false){
@@ -106,20 +106,28 @@ export class CoopRooms {
     const finish=(ok,reason='')=>{const result=this.result(peer,message,ok,reason);if(message.id){p.commands.set(message.id,result);while(p.commands.size>64)p.commands.delete(p.commands.keys().next().value);}return ok;};
     if(message.epoch!==room.epoch)return finish(false,'The squad changed. Wait for the current mission state.');
     const host=p.id===room.hostId;
-    if(['start','restart','configure','swap_roles','return_lobby'].includes(type)&&!host)return finish(false,'Only the room host can change this setting.');
+    if(['start','restart','configure','swap_roles','return_lobby','continue_operation'].includes(type)&&!host)return finish(false,'Only the room host can change this setting.');
     if(type==='configure'){
       if(room.status!=='lobby')return finish(false,'Return to the lobby before changing the mission.');
       const mission=message.mission??room.mission,difficulty=message.difficulty??room.difficulty;
       if(!validMission(mission)||!validDifficulty(difficulty))return finish(false,'Choose an available mission and difficulty.');
-      room.mission=mission;room.difficulty=difficulty;this._newGame(room);room.reason='Mission updated.';
+      room.mission=mission;room.difficulty=difficulty;room.campaign=null;this._newGame(room);room.reason='Mission updated.';
     }else if(type==='start'||type==='restart'){
       if(type==='start'&&room.status!=='lobby')return finish(false,'The mission has already started.');
       this._newGame(room);room.status='playing';room.reason='Stay together. Bring the squad home.';
+    }else if(type==='continue_operation'){
+      if(statusOf(room)!=='won'||room.mission>=MISSIONS.length-1)return finish(false,'Finish this chapter before continuing to an available next chapter.');
+      room.campaign=campaignOutcome(room.game);room.mission++;this._newGame(room);room.status='playing';
+      room.reason='The operation continues. Earlier supply, fatigue and civilian outcomes carry into this chapter.';
     }else if(type==='return_lobby'){
-      room.status='lobby';this._newGame(room);room.reason='Choose the next mission together.';
+      room.status='lobby';room.campaign=null;this._newGame(room);room.reason='Choose a fresh mission together.';
     }else if(type==='swap_roles'){
       for(const member of room.players){member.slot=1-member.slot;member.input={...EMPTY_INPUT};member.actions={reload:false,smoke:false,grenade:false};}
       room.epoch++;this._syncHumans(room);room.reason='Command changed hands. Your assigned soldier has changed.';
+    }else if(type==='story_choice'){
+      if(statusOf(room)!=='playing')return finish(false,'Deploy before replying to a radio decision.');
+      if(typeof message.decisionId!=='string'||message.decisionId.length>80||typeof message.optionId!=='string'||message.optionId.length>40)return finish(false,'Invalid radio choice.');
+      if(!chooseStoryOption(room.game,message.decisionId,message.optionId,room.game.squad[p.slot].id))return finish(false,'That radio choice is unavailable to your soldier or has already been resolved.');
     }else if(type==='order'){
       if(statusOf(room)!=='playing')return finish(false,'Deploy before giving squad orders.');
       const order=message.order;
@@ -134,10 +142,10 @@ export class CoopRooms {
     const state={};for(const key of stateFields)if(room.game[key]!==undefined)state[key]=room.game[key];
     for(const key of ['squad','civilians','survivors'])state[key]=room.game[key].map(actorView);
     state.enemies=room.game.enemies.filter(a=>a.visible).map(actorView);
-    for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes'])state[key]=room.game[key];
+    for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
     const actorId=room.game.squad[p.slot].id;state.playerId=actorId;state.role=p.slot===0?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,
-      init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch},
+      init:{seed:room.seed,mission:room.mission,difficulty:room.difficulty,epoch:room.epoch,campaign:room.game.campaign},
       room:this._publicRoom(room),state,worldProps:room.game.world.props};
   }
   snapshot(room,{only=null,reset=false}={}){

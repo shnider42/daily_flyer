@@ -1,4 +1,4 @@
-import { MISSIONS, createGame, step, issueOrder, selectSquadMember, getObjective, hasLineOfSight } from './sim.mjs';
+import { MISSIONS, createGame, step, issueOrder, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
 import { stickVector, touchIntent, GroundOrderTap } from './touch-input.mjs';
@@ -15,6 +15,7 @@ const canvas = $('world');
 const renderer = new Renderer(canvas);
 const audio = new GameAudio();
 const STORAGE = 'dfe-chalk-v1';
+const OPERATION_STORAGE = 'dfe-chalk-operation-v1';
 const defaults = createDefaults({ reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
 let preferences = normalizePreferences({}, defaults);
 try { preferences = normalizePreferences(JSON.parse(localStorage.getItem(STORAGE) || '{}'), defaults); } catch { /* Gameplay works when storage is unavailable. */ }
@@ -24,6 +25,15 @@ const frameMeter = new FrameMeter();
 const touchQuery = matchMedia('(pointer: coarse)');
 let touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0);
 let selectedMission = 0;
+let operationPlan = null;
+let missionCarry = null;
+try {
+  const saved = JSON.parse(localStorage.getItem(OPERATION_STORAGE) || 'null');
+  if (saved && Number.isInteger(saved.nextMission) && saved.nextMission > 0 && saved.nextMission < MISSIONS.length && saved.carry && typeof saved.carry === 'object') {
+    const carry = normalizeCampaignCarry(saved.carry);
+    if (carry && carry.fromMission === saved.nextMission - 1) { operationPlan = { nextMission: saved.nextMission, carry }; selectedMission = saved.nextMission; }
+  }
+} catch { /* A fresh mission remains available without saved operation data. */ }
 let game = null;
 let menuScene = createGame({ mission: 1, role: 'leader', difficulty: 'story', seed: 19931003 });
 let mode = 'menu';
@@ -49,6 +59,9 @@ let touchAim = null;
 let interactionPointer = null;
 let observing = false;
 let quickOrder = null;
+let storyDecisionId = '';
+let storyCardOpen = false;
+let storyRenderKey = '';
 const groundOrderTap = new GroundOrderTap();
 let coop = null;
 let onlineEpoch = null;
@@ -71,6 +84,7 @@ const clock = value => `${String(Math.floor(value / 60)).padStart(2, '0')}:${Str
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 function save() { try { localStorage.setItem(STORAGE, JSON.stringify(preferences)); } catch { /* Gameplay works without persistent storage. */ } }
+function saveOperation() { try { if (operationPlan) localStorage.setItem(OPERATION_STORAGE, JSON.stringify(operationPlan)); else localStorage.removeItem(OPERATION_STORAGE); } catch { /* Continue works for this session even without storage. */ } }
 function text(id, value) { const node = typeof id === 'string' ? $(id) : id, content = String(value ?? ''); if (node && node.textContent !== content) node.textContent = content; }
 function attr(node, name, value) { value = String(value); if (node.getAttribute(name) !== value) node.setAttribute(name, value); }
 function style(node, name, value) { if (node.style[name] !== value) node.style[name] = value; }
@@ -89,12 +103,15 @@ function fit() {
   measureSafeInsets();
 }
 function measureSafeInsets() {
+  const objectiveBounds = document.querySelector('.objective-panel').getBoundingClientRect();
+  const nextStoryTop = `${Math.round(objectiveBounds.bottom - (canvasRect?.top || 0) + 8)}px`;
+  if ($('hud').style.getPropertyValue('--story-top') !== nextStoryTop) $('hud').style.setProperty('--story-top', nextStoryTop);
   if (!touch || mode === 'menu') {
     safeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
     const next = [];
     if (!touch && mode === 'playing' && !$('hud').hidden) {
       const origin = canvasRect || { left: 0, top: 0 };
-      for (const selector of ['.topbar', '.objective-panel', '.squad-status-stack', '.orders', '.weapon-panel']) {
+      for (const selector of ['.topbar', '.objective-panel', '.story-radio', '.squad-status-stack', '.orders', '.weapon-panel']) {
         const el = document.querySelector(selector), r = el.getBoundingClientRect();
         if (r.width && r.height) next.push({ left: r.left - origin.left, top: r.top - origin.top, right: r.right - origin.left, bottom: r.bottom - origin.top });
       }
@@ -106,7 +123,7 @@ function measureSafeInsets() {
   desktopObstacles = []; desktopObstacleKey = '';
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
-  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad')];
+  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio')];
   const top = Math.max(...topElements.map(el => el?.getBoundingClientRect().bottom || rect.top)) - rect.top + 10;
   safeInsets = { top: Math.min(rect.height * .43, top), right: 20, bottom: showMap ? 58 : Math.min(rect.height * .43, rect.bottom - controlsRect.top + 10), left: 20 };
 }
@@ -123,7 +140,7 @@ function soundUI() {
   $('motionToggle').checked = preferences.reducedMotion;
   $('touchToggle').checked = touch;
   audio.setEnabled(preferences.sound);
-  audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume });
+  audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume, distress: preferences.distressVolume });
 }
 function wakeAudio(event) {
   if (!preferences.sound || event?.target?.closest?.('#menuSound') || audio.context?.state === 'running') return;
@@ -205,6 +222,12 @@ function missionMenu() {
   $('briefDescription').textContent = mission.description;
   $('briefGoal').textContent = mission.goals?.[0] || mission.briefing?.[0] || '';
   $('deploy').textContent = `DEPLOY TO ${mission.title.toUpperCase()}`;
+  const continuing = operationPlan?.nextMission === selectedMission;
+  $('operationStatus').hidden = !operationPlan;
+  text('operationDetail', continuing ? 'Continuing your operation. Earlier supply costs, fatigue, and civilian consequences carry into this mission.' : operationPlan ? `Operation saved at ${MISSIONS[operationPlan.nextMission].title}. This selection starts independently.` : '');
+  $('operationResume').hidden = !operationPlan || continuing;
+  $('operationFresh').hidden = !continuing;
+  if (continuing) text('deploy', `CONTINUE TO ${mission.title.toUpperCase()}`);
 }
 function clearInput() {
   keys.clear(); pointer.fire = false; pointer.valid = false;
@@ -222,11 +245,13 @@ function clearInput() {
   $('touchInteract').classList.remove('working');
   if (online()) coop.clearInput();
 }
-function startMission(index = selectedMission) {
+function startMission(index = selectedMission, { restart = false, fresh = false } = {}) {
   if (online()) coop.leave();
   onlineEpoch = null; onlineRole = null; document.body.classList.remove('online'); $('coopBadge').hidden = true;
   selectedMission = clamp(index, 0, MISSIONS.length - 1);
-  game = createGame({ mission: selectedMission, role: preferences.role, difficulty: preferences.difficulty, seed: Date.now() >>> 0 });
+  missionCarry = restart ? missionCarry : !fresh && operationPlan?.nextMission === selectedMission ? normalizeCampaignCarry(operationPlan.carry) : null;
+  game = createGame({ mission: selectedMission, role: preferences.role, difficulty: preferences.difficulty, seed: Date.now() >>> 0, campaign: missionCarry });
+  resetStoryUI();
   mode = 'playing'; paused = false; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
   clearInput();
   document.body.classList.remove('in-menu', 'orders-open', 'map-open', 'placing-order');
@@ -244,6 +269,7 @@ function returnToMenu() {
   coopCommandEpoch = null;
   onlineEpoch = null; onlineRole = null; $('coopOverlay').hidden = true; $('coopBadge').hidden = true;
   mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.setScene('menu');
+  resetStoryUI();
   document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'online');
   $('menu').hidden = false; $('hud').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = true;
   missionMenu(); fit(); $('deploy').focus({ preventScroll: true });
@@ -335,8 +361,73 @@ function assistAction() {
   const objective = getObjective(game), distance = objective ? Math.hypot(p.x-objective.x,p.y-objective.y) : Infinity;
   if (objective?.kind === 'rescue' && distance < objective.radius && hasLineOfSight(game, p, objective)) return { label: 'Rescue', detail: 'Hold to stabilize the crew', progress: objective.progress || 0 };
   if (objective?.kind === 'barricade' && distance < 85 && hasLineOfSight(game, p, objective)) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
+  const fieldAction = getStoryInteraction(game, p.id);
+  if (fieldAction) return { ...fieldAction, detail: `Hold to aid resident · ${fieldAction.detail.replace(/^Hold to use /, 'uses ')}` };
   if (p.hp < p.maxHp && p.medkits > 0 && !['rescue','barricade'].includes(objective?.kind)) return { label: 'Bandage', detail: 'Hold to bandage yourself', progress: (p.bandageProgress || 0) / 3 };
   return null;
+}
+function resetStoryUI() {
+  storyDecisionId = ''; storyCardOpen = false; storyRenderKey = '';
+  $('storyRadio').hidden = true; $('storyCard').hidden = true;
+  attr($('storyToggle'), 'aria-expanded', false);
+  document.body.classList.remove('story-open');
+}
+function updateStoryUI() {
+  const decision = game?.story?.activeDecision;
+  const available = mode === 'playing' && !paused && !showMap && !placingOrder && !!decision;
+  $('storyRadio').hidden = !available;
+  flag(document.body, 'story-open', available && storyCardOpen);
+  if (!decision) { if (storyDecisionId) resetStoryUI(); return; }
+  if (storyDecisionId !== decision.id) { storyDecisionId = decision.id; storyCardOpen = false; storyRenderKey = ''; }
+  const leader = getStoryLeaderId(game) === game.playerId;
+  text('storyTeaser', `Radio · ${decision.title}`);
+  text('storyToggleHint', storyCardOpen ? 'CLOSE' : touch ? 'OPEN' : 'C');
+  attr($('storyToggle'), 'aria-expanded', storyCardOpen);
+  attr($('storyToggle'), 'aria-label', `${storyCardOpen ? 'Close' : 'Open'} radio decision: ${decision.title}`);
+  $('storyCard').hidden = !storyCardOpen;
+  flag(document.body, 'story-open', available && storyCardOpen);
+  const key = `${game.seed}:${decision.id}:${leader}:${touch}:${JSON.stringify(decision.options)}`;
+  if (key !== storyRenderKey) {
+    text('storyAuthority', leader ? 'YOUR CALL · MISSION CONTINUES' : 'YOUR RECOMMENDATION · THE LEADER DECIDES');
+    text('storyTitle', decision.title); text('storyDetail', decision.detail);
+    $('storyOptions').innerHTML = decision.options.map((option, i) => `<button type="button" data-story-option="${escape(option.id)}"><strong>${!touch ? `<kbd>${['Z','X'][i] || ''}</kbd>` : ''}${escape(option.label)}</strong><span>${escape(option.available === false ? option.disabledReason || option.detail : option.detail)}</span></button>`).join('');
+    storyRenderKey = key;
+  }
+  for (const button of $('storyOptions').querySelectorAll('button')) button.disabled = !canAct() || decision.options.find(option => option.id === button.dataset.storyOption)?.available === false;
+  const recommendation = decision.recommendation;
+  const suggested = recommendation && decision.options.find(option => option.id === recommendation.optionId);
+  $('storyRecommendation').hidden = !suggested;
+  text('storyRecommendation', suggested ? `${recommendation.speaker || 'Squad mate'} recommends: ${suggested.label.toLowerCase()}.` : '');
+  const fallback = decision.options.find(option => option.id === decision.defaultOption);
+  const remaining = Math.max(0, Math.ceil(decision.deadline - game.time));
+  text('storyTiming', Number.isFinite(remaining) && fallback ? `No reply: ${fallback.label.toLowerCase()} · ${remaining}s` : 'The mission continues while you read.');
+  attr($('storyRadio'), 'data-decision', decision.id);
+}
+async function selectStoryOption(optionId) {
+  const decision = game?.story?.activeDecision;
+  if (!decision || !canAct() || !decision.options.some(option => option.id === optionId && option.available !== false)) return;
+  const leader = getStoryLeaderId(game) === game.playerId;
+  try {
+    const accepted = online() ? await coop.storyChoice(decision.id, optionId) : chooseStoryOption(game, decision.id, optionId, game.playerId);
+    if (accepted === false) { toast('That decision is no longer available.'); return; }
+    storyCardOpen = false; updateStoryUI(); updateHUD();
+    if (!leader) toast('Recommendation sent to the squad leader.');
+    if (!touch) canvas.focus({ preventScroll: true });
+  } catch (error) { toast(error.message || 'The radio choice could not be sent.'); }
+}
+function continueOperation() {
+  if (!game) return;
+  const nextMission = game.missionIndex + 1;
+  if (online()) {
+    runCoopAction(() => game.status === 'won' && nextMission < MISSIONS.length ? coop.continueOperation() : coop.returnToLobby());
+    return;
+  }
+  if (game.status === 'won' && nextMission < MISSIONS.length) {
+    const carry = campaignOutcome(game);
+    if (carry) { operationPlan = { nextMission, carry }; saveOperation(); }
+    selectedMission = nextMission;
+  } else if (game.status === 'won' && operationPlan?.nextMission === game.missionIndex) { operationPlan = null; saveOperation(); }
+  returnToMenu();
 }
 function openInfo(id) {
   previousDialogFocus = document.activeElement;
@@ -355,6 +446,7 @@ document.addEventListener('click', event => {
   if (button.dataset.dialog) openInfo(button.dataset.dialog);
   if (button.dataset.order) doOrder(button.dataset.order);
   if (button.dataset.soldier) switchSoldier(button.dataset.soldier);
+  if (button.dataset.storyOption) selectStoryOption(button.dataset.storyOption);
 });
 $('difficulty').value = preferences.difficulty;
 $('guidance').value = preferences.guidance;
@@ -374,11 +466,15 @@ $('switchRole').addEventListener('click', () => {
   if (online()) { clearInput(); runCoopAction(() => coop.swapRoles()); return; }
   const next = game.squad.find(s => s.alive && !s.downed && s.id !== game.playerId); if (next) switchSoldier(next.id);
 });
-$('restart').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission());
+$('restart').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission(selectedMission, { restart: true }));
 $('returnMenu').addEventListener('click', returnToMenu);
 $('resultMenu').addEventListener('click', returnToMenu);
-$('replay').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission());
-$('nextMission').addEventListener('click', () => { if (online()) { runCoopAction(() => coop.returnToLobby()); return; } if (selectedMission + 1 < MISSIONS.length) { selectedMission++; returnToMenu(); } else returnToMenu(); });
+$('replay').addEventListener('click', () => online() ? runCoopAction(() => coop.restart()) : startMission(selectedMission, { restart: true }));
+$('nextMission').addEventListener('click', continueOperation);
+$('operationResume').addEventListener('click', () => { if (operationPlan) { selectedMission = operationPlan.nextMission; missionMenu(); } });
+$('operationFresh').addEventListener('click', () => { operationPlan = null; saveOperation(); missionMenu(); toast('Fresh mission selected. Earlier operation carryover cleared.'); });
+$('storyToggle').addEventListener('click', () => { storyCardOpen = !storyCardOpen; updateStoryUI(); measureSafeInsets(); });
+$('storyClose').addEventListener('click', () => { storyCardOpen = false; updateStoryUI(); if (!touch) canvas.focus({ preventScroll: true }); });
 $('mapToggle').addEventListener('click', toggleMap);
 $('touchOrder').addEventListener('click', () => {
   if (mode !== 'playing' || paused || showMap || placingOrder) return;
@@ -491,12 +587,15 @@ window.addEventListener('keydown', event => {
     if (placingOrder) { cancelOrder(); return; }
     if (showMap) { toggleMap(); return; }
     if (document.body.classList.contains('orders-open')) { clearInput(); closeOrders(); return; }
+    if (storyCardOpen) { storyCardOpen = false; updateStoryUI(); canvas.focus({ preventScroll: true }); return; }
     pause(!paused); return;
   }
   if (paused) return;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code)) event.preventDefault();
   keys.add(event.code);
   if (event.repeat) return;
+  if (event.code === 'KeyC' && game?.story?.activeDecision && !showMap && !placingOrder) { event.preventDefault(); storyCardOpen = !storyCardOpen; updateStoryUI(); measureSafeInsets(); return; }
+  if (['KeyZ', 'KeyX'].includes(event.code) && storyCardOpen && game?.story?.activeDecision) { event.preventDefault(); const option = game.story.activeDecision.options[event.code === 'KeyZ' ? 0 : 1]; if (option) selectStoryOption(option.id); return; }
   if (/^Digit[1-4]$/.test(event.code) && !online()) { event.preventDefault(); const soldier = game.squad[Number(event.code.slice(-1))-1]; if (soldier) switchSoldier(soldier.id); return; }
   if (event.code === 'KeyR' && canAct()) actions.reload = true;
   if (event.code === 'KeyG' && canAct()) actions.smoke = true;
@@ -570,9 +669,9 @@ function updateHUD() {
     row.root.disabled = shared || !soldier.alive || soldier.downed;
     attr(row.root, 'data-soldier', soldier.id); attr(row.root, 'aria-pressed', mine);
     attr(row.root, 'data-human', !!peer); attr(row.root, 'title', `${soldier.name} · ${profile.label} · ${shared ? peer?.name || 'Computer controlled' : mine ? 'You' : `Take control (${i+1})`}`);
-    attr(row.root, 'aria-label', `${soldier.name}, ${profile.label}${mine ? ', controlling' : shared ? ', '+(peer?.name || 'AI') : ', select soldier '+(i+1)}${soldier.downed ? ', down' : !soldier.alive ? ', lost' : ''}`);
+    attr(row.root, 'aria-label', `${soldier.name}, ${profile.label}${mine ? ', controlling' : shared ? ', '+(peer?.name || 'AI') : ', select soldier '+(i+1)}${!soldier.alive ? ', lost' : soldier.downed ? ', down' : ''}`);
     text(row.name, soldier.name + (mine ? ' ·' : ''));
-    text(row.role, soldier.downed ? 'DOWN' : !soldier.alive ? 'LOST' : profile.shortLabel + (shared && !peer ? ' · AI' : ''));
+    text(row.role, !soldier.alive ? 'LOST' : soldier.downed ? 'DOWN' : profile.shortLabel + (shared && !peer ? ' · AI' : ''));
     style(row.health, 'width', `${Math.round(clamp(soldier.hp / soldier.maxHp, 0, 1) * 100)}%`);
   });
   if (p) {
@@ -612,10 +711,10 @@ function updateHUD() {
   const radioKey = messages.map(m => `${m.id}:${m.text}`).join('|');
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
   const interactText = shared ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
-  let hint = interactText;
+  let hint = interactText || (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '');
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? 'Follow the amber marker. Right click to send your squad.' : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = assist ? assist.detail : game.role === 'leader' && game.time < 18 ? 'Tap ground: move squad · Tap soldier: take control' : '';
+  if (touch) hint = assist ? assist.detail : game.role === 'leader' && game.time < 18 ? shared ? 'Tap ground: move squad · Regroup / Hold act immediately' : 'Tap ground: move squad · Tap soldier: take control' : '';
   if (!hint && observing) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : 'Binoculars · Mouse to scan · B to lower';
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
@@ -626,6 +725,7 @@ function updateHUD() {
   }
   attr($('hud'), 'data-building', house?.id || '');
   text('contextHint', hint); style($('desktopHint'), 'visibility', preferences.guidance === 'expert' ? 'hidden' : 'visible');
+  updateStoryUI();
   for (const [key,value] of Object.entries({ stage: game.stageIndex, status: game.status, role: game.role, online: shared, room: shared ? coop.room?.code || '' : '', humans: shared ? game.humanIds?.length || 0 : 1, player: game.playerId, specialty: p?.role || '', observing: observing && p?.role === 'grenadier', grenades: p?.grenades ?? 0, seed: game.seed, order: game.order?.type || '', 'order-x': Math.round(game.order?.x || 0), 'order-y': Math.round(game.order?.y || 0) })) attr($('hud'), `data-${key}`, value);
   measureSafeInsets();
 }
@@ -644,11 +744,18 @@ function finishMission() {
   $('resultDescription').textContent = game.endReason || (won ? 'The squad reached the end of its orders.' : 'Your squad could not complete the mission. Regroup and try again.');
   const stats = [[`${fitSquad} / ${game.squad.length}`, 'Squad standing'], [String(game.stats.rescued || 0), 'People rescued'], [String(harmed), 'Civilians harmed'], [clock(game.time), 'Time in the field']];
   $('resultStats').innerHTML = stats.map(([value,label]) => `<div class="result-stat"><strong>${escape(value)}</strong><span>${escape(label)}</span></div>`).join('');
+  resetStoryUI();
+  const summary = (game.story?.summary || []).filter(item => typeof item === 'string').slice(-8);
+  const log = (game.story?.log || []).filter(item => item && typeof item.text === 'string').slice(-10);
+  $('storyDebrief').hidden = !summary.length && !log.length;
+  $('storySummary').innerHTML = summary.map(item => `<li>${escape(item)}</li>`).join('');
+  $('storyLog').innerHTML = log.map(item => `<li><time>${clock(Number(item.time) || 0)}</time><span><strong>${escape(item.speaker || 'FIELD')}</strong> ${escape(item.text)}</span></li>`).join('');
+  text('operationCarryHint', won && game.missionIndex + 1 < MISSIONS.length ? 'Continue operation to carry supply costs, fatigue, and civilian consequences into the next mission. Each chapter assembles a new squad state.' : 'These decisions belong to this playthrough. Replay to take a different approach.');
   $('nextMission').hidden = !won;
-  $('nextMission').textContent = selectedMission + 1 < MISSIONS.length ? 'NEXT MISSION BRIEFING' : 'RETURN TO FIELD ORDERS';
+  $('nextMission').textContent = selectedMission + 1 < MISSIONS.length ? 'CONTINUE OPERATION' : 'RETURN TO FIELD ORDERS';
   $('replay').disabled = false; $('nextMission').disabled = false; $('coopResultWait').hidden = true; $('resultMenu').textContent = 'Back to field orders';
   if (online()) {
-    $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = 'SQUAD BRIEFING';
+    $('nextMission').hidden = !coop.isHost; $('nextMission').textContent = won && game.missionIndex + 1 < MISSIONS.length ? 'CONTINUE WITH SQUAD' : 'SQUAD BRIEFING';
     $('replay').disabled = !coop.isHost; $('replay').textContent = 'Replay with squad';
     $('coopResultWait').hidden = coop.isHost; $('resultMenu').textContent = 'Leave squad';
   } else $('replay').textContent = 'Replay mission';
@@ -664,7 +771,7 @@ function updatePauseUI() {
   $('switchRole').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
   $('switchRole').hidden = !shared;
   $('soloSquadPicker').hidden = shared; $('soloSwitchHint').hidden = shared;
-  if (!shared && game) $('soloSquadPicker').innerHTML = game.squad.map((soldier,i) => `<button type="button" data-soldier="${escape(soldier.id)}" aria-pressed="${soldier.id === game.playerId}" ${!soldier.alive || soldier.downed ? 'disabled' : ''}><strong>${escape(soldier.name)}</strong><small>${escape(roleProfile(soldier).label)}${soldier.downed ? ' · Down' : !soldier.alive ? ' · Lost' : !touch ? ` · ${i+1}` : ''}</small></button>`).join('');
+  if (!shared && game) $('soloSquadPicker').innerHTML = game.squad.map((soldier,i) => `<button type="button" data-soldier="${escape(soldier.id)}" aria-pressed="${soldier.id === game.playerId}" ${!soldier.alive || soldier.downed ? 'disabled' : ''}><strong>${escape(soldier.name)}</strong><small>${escape(roleProfile(soldier).label)}${!soldier.alive ? ' · Lost' : soldier.downed ? ' · Down' : !touch ? ` · ${i+1}` : ''}</small></button>`).join('');
   $('restart').textContent = shared ? 'Restart for squad' : 'Restart mission';
   $('restart').disabled = shared && (!coop.isHost || !coop.connected || coopCommandEpoch !== null);
   $('returnMenu').textContent = shared ? 'Leave squad' : 'Field orders';
@@ -777,6 +884,7 @@ function receiveCoopState(state) {
   const keepMenu = paused && changedRole && game?.coop && game.seed === state.seed && game.missionIndex === state.missionIndex;
   game = state;
   if (fresh) {
+    resetStoryUI();
     onlineEpoch = room.epoch; selectedMission = state.missionIndex;
     mode = 'playing'; paused = !!keepMenu; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
     clearInput(); closeOrders(); audio.setScene(paused ? 'paused' : 'mission');
@@ -847,7 +955,7 @@ function renderView(now) {
   flag(document.body, 'desktop-aim', aimActive);
   return { time: now / 1000, menu: mode === 'menu', paused, pointer: aimActive ? pointer : null, showMap, placingOrder,
     observing: observing && player()?.role === 'grenadier' && canAct(), quickOrder: quickOrder?.until > now ? { point: quickOrder.point, active: true } : null,
-    guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
+    guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, bloodEffects: preferences.bloodEffects, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
     quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,
     crosshair: preferences.crosshairStyle, crosshairScale: preferences.crosshairScale, aimColor: preferences.aimColor, aimLine: preferences.aimLine };
 }

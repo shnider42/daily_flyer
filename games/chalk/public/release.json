@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "date": "2026-11-22",
   "missions": 4,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "layered menu ambience with recorded radio and command voices, helicopter passes, wind, and procedural distant impacts; context-matched squad commands during play",
+  "audio": "Recorded pain and fear performances, separate distress mix, distinct hit foley, spatial wreck-fire ambience and night attenuation, with priority for commands and nearby action; existing ambient menu and music assets retained",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -42,7 +42,9 @@
       "reload on empty",
       "master/effects/ambience volume",
       "HUD scale/detail",
-      "performance display"
+      "performance display",
+      "distress voice volume",
+      "blood marks"
     ],
     "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
     "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
@@ -59,7 +61,7 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 2,
+  "protocol": 3,
   "squad": {
     "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
     "formation": "wider outside, compressed through doors",
@@ -69,5 +71,27 @@
   },
   "worldVariation": "Seeded building footprints, alleys, courtyards and district details; fixed mission routes and anchors",
   "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts",
-  "enemies": "Occasional single sniper with visible aim warning and slow follow-up"
+  "enemies": "Occasional single sniper with visible aim warning and slow follow-up",
+  "story": {
+    "chapters": 4,
+    "radioDecisions": 4,
+    "residentAidEachChapter": true,
+    "humanLeaderAuthority": true,
+    "memberRecommendations": true,
+    "physicalRouteChoice": true,
+    "continuation": "bounded supply costs, fatigue and civilian communication consequences; fresh actor state each chapter",
+    "soloContinuationSavedLocally": true,
+    "coopContinuationHostOnly": true,
+    "historicalFraming": "fictional choices and composite encounters within documented raid-to-rescue context"
+  },
+  "casualties": {
+    "bodies": "persist until new mission or restart",
+    "woundedRemainRecoverable": true,
+    "blood": "short hit spurts, persistent ground marks and small pools",
+    "visibility": "shared sight, smoke, roofs, then stationary terrain memory",
+    "bloodToggle": true,
+    "reducedMotionKeepsStaticMarks": true,
+    "stainLimit": 512,
+    "bodyLimit": null
+  }
 }

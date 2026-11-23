@@ -72,7 +72,7 @@ export class CoopStateHydrator {
     const epoch = `${packet.room.code}:${packet.init.epoch}`;
     const changedEpoch = !this.game || epoch !== this.epoch;
     if (changedEpoch) {
-      this.game = createGame({ seed: packet.init.seed, mission: packet.init.mission, difficulty: packet.init.difficulty });
+      this.game = createGame({ seed: packet.init.seed, mission: packet.init.mission, difficulty: packet.init.difficulty, campaign: packet.init.campaign });
       this.epoch = epoch;
     }
     const game = this.game;
@@ -395,6 +395,8 @@ export class CoopClient {
     });
   }
   order(type,point) { return this._command('order',{order:type,...(point?{point}: {})}); }
+  storyChoice(decisionId,optionId) { return this._command('story_choice',{decisionId,optionId}); }
+  continueOperation() { this.clearInput(); return this._command('continue_operation'); }
   start() { return this._command('start'); }
   restart() { return this._command('restart'); }
   configure({mission,difficulty}={}) { return this._command('configure',{...(mission!==undefined?{mission}:{}),...(difficulty?{difficulty}:{})}); }

@@ -175,6 +175,50 @@ test('Farwake deltas resume from the last successful send and full resync includ
   assert.ok(rooms.metrics.skipped>=2);
 });
 
+test('radio authority follows assigned soldiers, recommendations survive reconnect, and dead remains are shared',()=>{
+  const {rooms,room,host,guest,start,step,command}=setup({role:'member'});start();
+  room.game.time=8;step();const decision=room.game.story.activeDecision;
+  command(host,'story_choice',{decisionId:decision.id,optionId:'reposition',actorId:room.game.squad[0].id});
+  assert.equal(host.messages.at(-1).ok,true);assert.equal(room.game.stages[1].duration,55);
+  assert.equal(room.game.story.activeDecision.recommendation.actorId,room.game.squad[1].id,'a forged actorId cannot turn the room host into the squad leader');
+  assert.deepEqual(host.latest.state.story,guest.latest.state.story);
+  const packet={type:'story_choice',id:'final-radio-order',epoch:room.epoch,decisionId:decision.id,optionId:'reposition'};
+  rooms.handle(guest,packet);assert.equal(room.game.stages[1].duration,63);assert.equal(room.game.story.activeDecision,null);
+  rooms.handle(guest,packet);assert.equal(room.game.stages[1].duration,63,'a repeated command acknowledgement cannot apply the cost twice');
+  room.game.enemies.push({id:999,team:'enemy',kind:'rifleman',x:200,y:1720,angle:0,hp:0,maxHp:72,alive:false,downed:true,deathTime:0});
+  room.game.bloodstains.push({id:'blood-network',x:200,y:1720,angle:0,amount:1,seed:4,at:8,seen:true});
+  step();rooms.snapshot(room,{reset:true});
+  assert.ok(host.latest.state.bodies.some(body=>body.actorId===999));assert.deepEqual(host.latest.state.bodies,guest.latest.state.bodies);
+  const session=guest.session;rooms.disconnect(guest);const back=new Peer();rooms.handle(back,{type:'resume',protocol:PROTOCOL,...session});
+  assert.deepEqual(back.latest.state.story,room.game.story);assert.deepEqual(back.latest.state.bodies,room.game.bodies);assert.deepEqual(back.latest.state.bloodstains,room.game.bloodstains);
+  assert.equal(back.latest.state.story.resolved[decision.id].optionId,'reposition');
+  command(host,'restart');room.game.enemies=[];room.game.maxEnemies=0;room.game.time=8;step();rooms.disconnect(back);
+  command(host,'story_choice',{decisionId:room.game.story.activeDecision.id,optionId:'reposition'});
+  assert.equal(room.game.stages[1].duration,63,'a remaining member can recommend a real change to the AI leader');
+});
+
+test('only the host can continue a completed operation; carry and assignments survive restart but fresh lobby missions reset them',()=>{
+  const {rooms,room,host,guest,start,step,command}=setup({role:'member'});start();
+  command(host,'continue_operation');assert.equal(host.messages.at(-1).ok,false);assert.equal(room.mission,0);
+  room.game.time=8;step();command(guest,'story_choice',{decisionId:room.game.story.activeDecision.id,optionId:'original'});
+  room.game.story.consequences.medicalSpent=1;room.game.story.consequences.smokeSpent=1;room.game.stats.civilianHarm=1;room.game.status='won';
+  const assignments=room.players.map(p=>({id:p.id,slot:p.slot})),epoch=room.epoch;
+  command(guest,'continue_operation');assert.equal(guest.messages.at(-1).ok,false);assert.equal(room.mission,0);
+  const packet={type:'continue_operation',id:'continue-once',epoch,campaign:{version:1,fromMission:0,medicalDebt:0}};
+  rooms.handle(host,packet);assert.equal(host.messages.at(-1).ok,true);assert.equal(room.mission,1);assert.equal(room.game.status,'playing');
+  assert.deepEqual(room.players.map(p=>({id:p.id,slot:p.slot})),assignments);assert.equal(room.game.squad.length,4);assert.equal(room.game.squad.filter(a=>a.human).length,2);
+  assert.deepEqual(room.game.campaign,{version:1,fromMission:0,medicalDebt:1,smokeDebt:1,fatigue:1,civilianHarm:1,aided:0});
+  assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.squad[0].smokes,2);assert.equal(room.game.stages[0].duration,4);
+  assert.deepEqual(host.latest.init.campaign,room.game.campaign);assert.deepEqual(host.latest.state.campaign,guest.latest.state.campaign);
+  assert.deepEqual(room.game.bodies,[]);assert.deepEqual(room.game.bloodstains,[]);
+  rooms.handle(host,packet);assert.equal(room.mission,1,'replaying Continue cannot skip a chapter');
+  command(host,'restart');assert.equal(room.game.squad[2].medkits,5);assert.equal(room.game.stages[0].duration,4,'restart reapplies initial carry once');
+  const carry=structuredClone(room.game.campaign);command(host,'swap_roles');assert.deepEqual(room.game.campaign,carry);assert.equal(room.game.squad.length,4);
+  command(host,'return_lobby');assert.equal(room.campaign,null);assert.equal(room.game.campaign,null);assert.equal(room.game.squad[2].medkits,6);
+  command(host,'configure',{mission:3});command(host,'start');room.game.status='won';command(host,'continue_operation');
+  assert.equal(host.messages.at(-1).ok,false);assert.equal(room.mission,3,'the final chapter has no invented fifth mission');
+});
+
 test('untrusted controls, session verification and origin permissions are bounded',()=>{
   const input=cleanInput({moveX:999,moveY:999,aimX:Infinity,aimY:1e9,fire:'yes',smoke:true,grenade:'yes',observe:1});
   assert.ok(Math.abs(Math.hypot(input.moveX,input.moveY)-1)<1e-12);assert.equal(input.aimX,null);assert.equal(input.aimY,3100);

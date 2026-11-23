@@ -431,3 +431,75 @@ button.squad-member.active:disabled{opacity:1}
   .touch.orders-open .orders{bottom:calc(var(--touch-height) + 6px)}
   .touch .toast{bottom:calc(var(--touch-height) + 12px)}
 }
+
+/* Radio decisions stay beside the current order, with one deliberate expansion. */
+.story-radio{position:absolute;top:var(--story-top,174px);right:22px;width:min(340px,40vw);z-index:3;pointer-events:auto;transform-origin:top right}
+.story-toggle{width:100%;min-height:40px;display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid #a8b6a155;border-radius:5px;background:#14231eea;text-align:left;color:#cad7c6;font:12px/1.3 Arial,sans-serif}
+.story-toggle:hover,.story-toggle[aria-expanded="true"]{border-color:#c9b98299;background:#233127}
+.story-signal{font:24px/1 var(--mono);color:#a9c8bb;flex:none}
+#storyTeaser{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#storyToggleHint{flex:none;font:10px var(--mono);color:#baa977;letter-spacing:.05em}
+.story-card{margin-top:6px;padding:13px 13px 10px;border:1px solid #9baa8c75;border-radius:6px;background:#13211bf5;box-shadow:0 5px 18px #0003;max-height:min(380px,calc(100dvh - 300px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.story-authority{font:9px/1.4 var(--mono);letter-spacing:.055em;color:#abbba3;margin:0 0 8px}
+.story-card h3{font:600 16px/1.25 Arial,sans-serif;color:#e5ddbd;margin:0 0 7px}
+#storyDetail{font:13px/1.45 Arial,sans-serif;color:#bccbb5;margin:0 0 11px}
+.story-options{display:grid;gap:7px}
+.story-options button{display:block;text-align:left;width:100%;min-height:58px;padding:9px 10px;border:1px solid #8ca17e66;border-radius:4px;background:#28382b70}
+.story-options button:hover:not(:disabled){border-color:#d3bc83;background:#c6b17618}
+.story-options button strong{display:block;font:600 13px/1.3 Arial,sans-serif;color:#e2ddc5}
+.story-options button kbd{font:10px var(--mono);padding:2px 4px;margin-right:7px;border:1px solid #a6b59466;border-radius:3px;color:#b9c6ac}
+.story-options button span{display:block;font:12px/1.4 Arial,sans-serif;color:#b4c2ab;margin-top:4px}
+.story-timing{font:10px/1.4 var(--mono);color:#9eae97;margin:9px 0 0}
+.operation-status{padding:10px 12px;margin:0 0 12px;border:1px solid #8da38b44;border-radius:5px;background:#9cb19b09}
+.operation-status p{margin:0;color:#b9cbb4;font:12px/1.45 Arial,sans-serif}
+.operation-status .text-button{font-size:12px;color:#d1c18f;min-height:36px;padding-bottom:0}
+.story-debrief{text-align:left;border-top:1px solid #7b8a6666;padding-top:15px;margin:15px 0}
+.story-debrief h3{font:600 14px/1.4 var(--mono);color:#dcc998;margin:0 0 8px}
+.story-debrief ul{padding-left:18px;margin:0 0 12px;display:grid;gap:6px;color:#c1cdb7;font:13px/1.5 Arial,sans-serif}
+.story-debrief details{border-top:1px solid #6e7f5955;padding-top:8px}
+.story-debrief summary{cursor:pointer;font:12px/1.5 var(--mono);color:#a9c1af;padding:5px 0}
+.story-debrief ol{list-style:none;padding:0;margin:9px 0;display:grid;gap:8px;max-height:180px;overflow-y:auto}
+.story-debrief ol li{display:flex;gap:10px;font:12px/1.45 Arial,sans-serif;color:#bac6b1}
+.story-debrief time{font:10px/1.6 var(--mono);color:#9baa8a;flex:none}
+.story-debrief ol strong{font:10px var(--mono);color:#ccbd8d}
+#operationCarryHint{font:11px/1.5 Arial,sans-serif;color:#98aa93;margin:12px 0 0}
+.result-card{max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain}
+.touch .hud{grid-template-rows:var(--mobile-topbar-height) auto auto auto auto 1fr}
+.touch .story-radio{position:relative;top:auto;right:auto;width:auto;min-width:0;grid-column:1;grid-row:4;align-self:start;transform:none;z-index:4}
+.touch .story-toggle{min-height:40px;padding:6px 9px;font-size:12px}
+.touch .story-signal{font-size:20px}
+.touch .story-card{position:absolute;top:100%;left:0;right:0;max-height:min(360px,calc(100dvh - 380px));padding:12px;background:#14241cfb}
+.touch .story-options button{min-height:62px}
+.touch .radio-feed{grid-row:5}
+.touch.story-open .radio-feed{visibility:hidden}
+.touch .story-options button strong{font-size:13px}
+@media(orientation:landscape) and (max-height:600px){
+  .touch .hud{grid-template-rows:var(--mobile-topbar-height) auto auto 1fr}
+  .touch .story-radio{grid-column:1;grid-row:3}
+  .touch .story-toggle{min-height:36px}
+  .touch .story-card{width:min(395px,calc(100vw - 36px));max-height:calc(100dvh - 170px);right:auto}
+  .touch .radio-feed{grid-column:2;grid-row:3;max-width:100%;justify-self:stretch}
+  .touch .story-card h3{font-size:14px}
+  .touch #storyDetail{font-size:12px}
+  .touch .story-options button{min-height:54px;padding:7px 9px}
+}
+@media(max-width:700px){.operation-status{margin:2px 0 8px}.story-debrief ul{font-size:12px}.result-card{padding:22px}.result-card h2{font-size:30px}}
+
+.story-recommendation{margin:0 0 10px;padding:7px 9px;border-left:2px solid #9ebba5;background:#adc8b40a;color:#c5d8bc;font:12px/1.4 Arial,sans-serif}
+
+.story-card{position:relative}
+.story-close{position:absolute;top:4px;right:5px;width:32px;height:32px;display:grid;place-items:center;padding:0;color:#bbcab4;font:22px/1 Arial,sans-serif;border-radius:4px}
+.story-close:hover{background:#d2ddc418;color:#f1e7ca}
+.story-authority{padding-right:26px}
+@media(orientation:landscape) and (max-height:600px){
+  .touch .story-card{position:fixed;left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 44px);width:auto;max-height:calc(100dvh - var(--mobile-stick-height) - var(--touch-bottom) - 55px);margin:0;padding:10px 12px}
+  .touch .story-card .story-authority{margin-bottom:3px;font-size:8px}
+  .touch .story-card h3{margin-bottom:4px;font-size:14px}
+  .touch .story-card #storyDetail{font-size:11px;line-height:1.35;margin-bottom:7px}
+  .touch .story-options{grid-template-columns:1fr 1fr;gap:8px}
+  .touch .story-options button{min-height:65px;padding:7px 9px}
+  .touch .story-options button strong{font-size:12px}
+  .touch .story-options button span{font-size:11px;line-height:1.3;margin-top:3px}
+  .touch .story-timing{margin-top:5px;font-size:9px}
+  .touch .story-recommendation{margin-bottom:5px;padding:4px 7px;font-size:10px}
+}

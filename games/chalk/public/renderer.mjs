@@ -1,6 +1,6 @@
 import { traceAim } from './desktop-input.mjs';
 import { roleProfile } from './squad-roles.mjs';
-import { enemyInSharedSight, SharedSightLayer } from './visibility.mjs';
+import { enemyInSharedSight, squadCanSeePoint, SharedSightLayer } from './visibility.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -40,10 +40,10 @@ export function houseRevealed(building, state, view = {}) {
   if (!building.enterable || view.menu) return false;
   const squad = state.squad || [];
   // Keep a separated teammate, including someone waiting for aid, readable.
-  if (squad.some(actor => (actor.alive !== false || actor.downed) && insideBuilding(building, actor))) return true;
+  if (squad.some(actor => actor.alive !== false && insideBuilding(building, actor))) return true;
   if ((state.survivors || []).some(actor => actor.stabilized && actor.alive !== false && insideBuilding(building, actor))) return true;
   const player = squad.find(actor => view.followActorId && actor.id === view.followActorId) || squad.find(actor => actor.id === state.playerId) || squad[0];
-  if (!player) return false;
+  if (!player || player.alive === false) return false;
   // Approach through the actual opening. Walking alongside a solid wall does
   // not expose its rooms, and hostile/civilian occupants cannot lift a roof.
   return (building.doors || []).some(door => {
@@ -155,6 +155,91 @@ export class Renderer {
       ctx.fillStyle = gradient; ctx.fillRect(x - 80, y - 80, 160, 160);
     }
     this.sprites.set('smoke', sprite); return sprite;
+  }
+
+  bloodSprite(variant = 0) {
+    const variation = Math.abs(Math.trunc(finite(variant))) % 4, key = `blood:${variation}`;
+    if (this.sprites.has(key)) return this.sprites.get(key);
+    const sprite = newCanvas(64, 48), ctx = sprite.getContext('2d');
+    ctx.translate(32, 24);
+    // A few irregular, dried marks read at phone scale without a glossy pool
+    // or a separate particle simulation. These four small textures are reused.
+    ctx.fillStyle = 'rgba(126,45,38,.9)';
+    ctx.beginPath(); ctx.ellipse(-3, 0, 14, 7, -.25 + variation * .17, 0, TAU); ctx.fill();
+    for (let i = 0; i < 10; i++) {
+      const seed = variation * 31 + i * 7, angle = hash(seed + 4) * TAU, reach = 8 + hash(seed + 9) * 17;
+      circle(ctx, Math.cos(angle) * reach, Math.sin(angle) * reach * .61, 1 + hash(seed + 12) * 2.7, i % 3 ? 'rgba(135,43,36,.9)' : 'rgba(156,53,43,.83)');
+    }
+    this.sprites.set(key, sprite); return sprite;
+  }
+
+  bodySprite(body) {
+    const team = ['squad', 'civilian', 'survivor'].includes(body.team) ? body.team : 'enemy';
+    const kit = team === 'squad' && ['leader', 'medic', 'support', 'grenadier'].includes(body.role) ? body.role : body.kind === 'sniper' ? 'sniper' : 'rifleman';
+    const pose = Math.abs(Math.trunc(finite(body.pose))) % 3, key = `body:${team}:${kit}:${pose}`;
+    if (this.sprites.has(key)) return this.sprites.get(key);
+    const sprite = newCanvas(64, 48), ctx = sprite.getContext('2d');
+    const civilian = team === 'civilian', uniform = team === 'squad' ? '#788062' : civilian ? '#91889b' : team === 'survivor' ? '#938e6d' : '#866b4f';
+    const gear = team === 'squad' ? '#414b38' : '#514c3b', bend = [-1, 1, .35][pose];
+    ctx.translate(32, 24); ctx.lineCap = 'round';
+    ctx.fillStyle = 'rgba(23,27,21,.38)'; ctx.beginPath(); ctx.ellipse(-1, 3, 24, 10, .1, 0, TAU); ctx.fill();
+    // Relaxed, uneven limbs and a dropped weapon distinguish a true death
+    // from the tidy casualty pose, aid ring and HELP badge of a living soldier.
+    line(ctx, -9, -3, -18, -5 - bend * 3, uniform, 5);
+    line(ctx, -18, -5 - bend * 3, -25, -2 - bend * 5, gear, 4);
+    line(ctx, -9, 4, -19, 6 + bend * 3, uniform, 5);
+    line(ctx, -19, 6 + bend * 3, -23, 10 + bend * 2, gear, 4);
+    line(ctx, 4, -5, 1 - bend * 4, -12, uniform, 4);
+    line(ctx, 1 - bend * 4, -12, 8, -15 + bend * 2, civilian ? '#6c5649' : '#8a8464', 3);
+    line(ctx, 4, 5, 10, 11 + bend, uniform, 4);
+    line(ctx, 10, 11 + bend, 17, 9 + bend * 3, civilian ? '#6c5649' : '#8a8464', 3);
+    roundRect(ctx, -12, -6, 22, 12, 4, uniform, 'rgba(37,42,31,.5)');
+    if (!civilian) {
+      roundRect(ctx, -7, -5, kit === 'grenadier' ? 13 : 10, 10, 2, gear);
+      line(ctx, -5, -3, -5, 3, '#9d9673', 1);
+      if (kit === 'medic') {
+        ctx.fillStyle = '#aeb698'; ctx.fillRect(-10, -6, 5, 5);
+        line(ctx, -7.5, -5, -7.5, -2, '#5c6b51', 1); line(ctx, -9, -3.5, -6, -3.5, '#5c6b51', 1);
+      }
+    }
+    circle(ctx, 13, bend, 4.7, civilian ? '#695449' : '#908767', 'rgba(40,43,32,.55)', 1);
+    if (!civilian) {
+      ctx.fillStyle = team === 'squad' ? '#808568' : '#8d7d5d';
+      ctx.beginPath(); ctx.ellipse(14, bend - 1, 4.5, 3.5, -.2, 0, TAU); ctx.fill();
+      if (team !== 'survivor') {
+        const length = kit === 'support' || kit === 'sniper' ? 26 : 20;
+        line(ctx, -3, 16, -3 + length, 13, '#30382b', kit === 'support' ? 3 : 2);
+        line(ctx, 0, 15.6, 6, 15, '#5e6148', 3.5);
+        if (kit === 'support') { ctx.fillStyle = '#626546'; ctx.fillRect(4, 16, 5, 3); }
+      }
+    }
+    this.sprites.set(key, sprite); return sprite;
+  }
+
+  drawBloodstains(ctx, state, view = {}) {
+    if (view.menu || view.bloodEffects === false) return;
+    for (const stain of state.bloodstains || []) {
+      if (!stain.seen || !Number.isFinite(stain.x) || !Number.isFinite(stain.y) || !this.inView(stain.x, stain.y, 35)) continue;
+      const visibility = this.houseVisibility(stain, view);
+      if (visibility <= .01) continue;
+      const width = 32 + clamp(finite(stain.amount, .5), 0, 1) * 18;
+      ctx.save(); ctx.globalAlpha = Math.min(1, visibility); ctx.translate(stain.x, stain.y); ctx.rotate(finite(stain.angle));
+      // Land slightly beyond the impact so the mark can be read beside a
+      // standing actor rather than disappearing entirely under their uniform.
+      ctx.drawImage(this.bloodSprite(stain.seed), -width / 2 + 8, -width * .375, width, width * .75); ctx.restore();
+    }
+  }
+
+  drawBodies(ctx, state, view = {}) {
+    if (view.menu) return;
+    for (const body of state.bodies || []) {
+      if (!body.seen || !Number.isFinite(body.x) || !Number.isFinite(body.y) || !this.inView(body.x, body.y, 40)) continue;
+      const visibility = this.houseVisibility(body, view);
+      if (visibility <= .01) continue;
+      ctx.save(); ctx.globalAlpha = Math.min(1, visibility); ctx.translate(body.x, body.y); ctx.rotate(finite(body.angle));
+      if (view.bloodEffects !== false) ctx.drawImage(this.bloodSprite(body.pose), -31, -12, 58, 44);
+      ctx.drawImage(this.bodySprite(body), -32, -24); ctx.restore();
+    }
   }
 
   atmosphereSprites() {
@@ -584,7 +669,7 @@ export class Renderer {
   }
 
   drawActor(ctx, actor, state, time, view) {
-    if (actor.alive === false && !actor.downed) return;
+    if (actor.alive === false) return;
     const isPlayer = actor.id === state.playerId, ally = actor.team === 'squad', civilian = actor.team === 'civilian', survivor = actor.team === 'survivor';
     const radius = Math.max(7, finite(actor.radius, 10)), profile = ally ? roleProfile(actor) : null;
     const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
@@ -722,6 +807,25 @@ export class Renderer {
     if (o.progress > 0) { ctx.lineWidth = 4 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, r + 5, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(o.progress, 0, 1)); ctx.stroke(); }
     ctx.restore();
     if (this.camera.zoom > .55 && view.guidance !== 'expert') this.worldLabel(o.x, o.y - r - 16, (o.title || 'OBJECTIVE').toUpperCase(), COLORS.objective, 11);
+  }
+
+  drawStoryOpportunities(state, view = {}) {
+    if (view.menu) return;
+    const player = (state.squad || []).find(actor => actor.id === (view.followActorId || state.playerId));
+    const ctx = this.ctx, size = 11 / this.camera.zoom;
+    for (const opportunity of state.story?.opportunities || []) {
+      if (!opportunity.revealed || opportunity.status !== 'available' || !Number.isFinite(opportunity.x) || !Number.isFinite(opportunity.y) || !this.inView(opportunity.x, opportunity.y, 45) || this.houseVisibility(opportunity, view) <= .05) continue;
+      ctx.save(); ctx.translate(opportunity.x, opportunity.y);
+      circle(ctx, 0, 0, size, 'rgba(25,36,33,.55)', 'rgba(175,196,202,.8)', 1 / this.camera.zoom);
+      line(ctx, -size * .4, 0, size * .4, 0, '#bdcdd1', 1.5 / this.camera.zoom);
+      line(ctx, 0, -size * .4, 0, size * .4, '#bdcdd1', 1.5 / this.camera.zoom);
+      if (opportunity.progress > 0) {
+        ctx.strokeStyle = '#bfdbd8'; ctx.lineWidth = 2 / this.camera.zoom;
+        ctx.beginPath(); ctx.arc(0, 0, size + 4 / this.camera.zoom, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(opportunity.progress, 0, 1)); ctx.stroke();
+      }
+      ctx.restore();
+      if (view.guidance !== 'expert' && player && distance(player, opportunity) < 185 && this.camera.zoom > .55) this.worldLabel(opportunity.x, opportunity.y - size - 12 / this.camera.zoom, 'AID', '#bdcdd1', 10);
+    }
   }
 
   drawObjectiveIndicator(state, view) {
@@ -894,10 +998,18 @@ export class Renderer {
       if (!this.inView(e.x, e.y, 50) || this.houseVisibility(e, view) <= .05) continue;
       // A revealed floor plan does not expose a gunman behind its partition.
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
+      if (e.type === 'blood' && (view.menu || view.bloodEffects === false || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e, { ignoreRange: e.farWitness === true }))) continue;
       const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
       ctx.save(); ctx.globalAlpha = life;
       if (e.type === 'muzzle') {
         ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle)); ctx.fillStyle = '#ffd88c'; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(10, 0); ctx.lineTo(0, 3); ctx.lineTo(3, 0); ctx.fill();
+      } else if (e.type === 'blood') {
+        const travel = (1 - life) * (11 + finite(e.amount, .5) * 12);
+        ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle));
+        for (let i = 0; i < 5; i++) {
+          const spread = (hash(finite(e.seed) + i * 7) - .5) * 1.8, reach = travel * (.5 + i * .15);
+          circle(ctx, Math.cos(spread) * reach, Math.sin(spread) * reach, 1.2 + (i % 3) * .45, i % 2 ? '#963b32' : '#782a29');
+        }
       } else if (e.type === 'explosion') {
         if (e.weapon === 'grenade' || e.radius) {
           const reach = clamp(finite(e.radius, 76), 24, 110), spread = Math.sqrt(1 - life), radius = 7 + spread * reach * .72;
@@ -1122,18 +1234,21 @@ export class Renderer {
     const bottom = clamp(Math.ceil(this.camera.y + this.height / zoom / 2) + 1, 0, world.height);
     if (right > left && bottom > top) ctx.drawImage(this.mapCache, left, top, right-left, bottom-top, left, top, right-left, bottom-top);
     this.drawHouseCutaways(ctx, view, {left, top, right, bottom});
+    // Inert, previously observed ground details sit under the sight overlay.
+    // New deaths are discovered by simulation sight, never by map exploration.
+    this.drawBloodstains(ctx, state, view); this.drawBodies(ctx, state, view);
     if (!view.menu) {
       this.sharedSight.update(state, time);
       this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:state.missionIndex === 2, map:view.showMap});
     }
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
-    this.drawObjective(state, time, view); this.drawOrder(state, time, view);
+    this.drawObjective(state, time, view); this.drawStoryOpportunities(state, view); this.drawOrder(state, time, view);
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
     this.visibleEnemies.length = 0;
     for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.houseVisibility(actor, view) > .01 && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
     const actors = this.actorBuffer; actors.length = 0;
-    for (const group of [state.civilians, state.survivors, this.visibleEnemies, state.squad]) for (const actor of group || []) if (this.inView(actor.x, actor.y, 65)) actors.push(actor);
+    for (const group of [state.civilians, state.survivors, this.visibleEnemies, state.squad]) for (const actor of group || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65)) actors.push(actor);
     actors.sort((a, b) => a.y - b.y);
     for (const actor of actors) {
       const visibility = this.houseVisibility(actor, view);
@@ -1201,7 +1316,7 @@ export function renderMinimap(canvas, state, options = {}) {
     const visible = enemyInSharedSight(state, a);
     if (visible) circle(ctx, a.x, a.y, 1.5 / scale, '#d57e62');
   }
-  for (const a of state.squad || []) if (a.alive !== false || a.downed) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
+  for (const a of state.squad || []) if (a.alive !== false) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
   if (options.camera && options.viewport) {
     const c = options.camera, v = options.viewport, w = v.width / c.zoom, h = v.height / c.zoom;
     ctx.strokeStyle = 'rgba(200,215,180,.35)'; ctx.lineWidth = .8 / scale; ctx.strokeRect(c.x - w / 2, c.y - h / 2, w, h);
