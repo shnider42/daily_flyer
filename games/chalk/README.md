@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.10 expands destructible building sections and makes night muzzle flashes visibly brighter. The six operations retain physical mission equipment, reconnaissance, casualty escorts, authored enemy encounters, improved navigation, and room/street acoustics. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play alone or with a friend: either person can lead the four-person fictional squad, and computer-controlled soldiers fill every remaining position. Four chronological campaign chapters sit alongside two clearly fictional standalone operations. The setting is historically informed; the characters, dialogue, maps, and gameplay are invented or compressed.
+Version 1.11 rebuilds the SAW and carbine reports around three recorded shots and adds early street echoes from actual building facades. The six operations retain physical mission equipment, reconnaissance, casualty escorts, authored enemy encounters, improved navigation, room acoustics, expanded breaches, and stronger night muzzle flashes. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play alone or with a friend: either person can lead the four-person fictional squad, and computer-controlled soldiers fill every remaining position. Four chronological campaign chapters sit alongside two clearly fictional standalone operations. The setting is historically informed; the characters, dialogue, maps, and gameplay are invented or compressed.
 
 ## Play
 
@@ -18,6 +18,16 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 The operations use a compact city with seeded variation in blocks, alleys, courtyards, and frontage. Their longer stage sequences combine movement and observation with physical work, transport, and protection. Holding an area remains part of collection or casualty loading. Vehicles follow authored routes and wait for the squad; Night Relief includes a contextual carrier restart. General combat damage, towing, and free vehicle control are not implemented.
 
 **Continue operation** follows Cordon → First Crash → Night Relief → Dawn Mile, carrying bounded consequences between those four chapters. The campaign ends after Dawn Mile. Signal House and Courtyard Evacuation are independent fictional situations, not additional claims about the historical sequence.
+
+## Recorded weapon reports and street echoes: version 1.11
+
+The SAW and carbine now use separately shaped banks of three recorded single shots, with short lead-ins and controlled decay. Both banks adapt Baelphazoar's M249 range recording under **CC BY 4.0**. The carbine treatment uses the same source with different filtering and envelope shaping; it is not a separately recorded M16. The prior additional mechanical and synthetic body-noise layers have been removed from recorded gunfire. All earlier recordings and music assets remain. [Full sound credits and processing notes](public/audio/CREDITS.txt) identify the source, license, and adaptations.
+
+Clear outdoor shots can produce up to **two early facade echoes**. Their paths use remaining exterior wall sections, so wall position, obstructions, doorways, and explosive openings affect the result. Each return has its own travel delay, direction, level, and filtering, supplementing the existing later street response. This is a bounded approximation of the district's geometry, not measured historical acoustics or a full sound-wave simulation.
+
+The existing room response, indirect hearing, distance filtering, and source-to-listener sound delay remain. **Settings → Audio → Room & street reflections** still controls the reflected layer independently of direct gunfire. The mixer retains its **32 active-voice budget**; the new returns have lower priority than direct shots. Missing recordings use a cached procedural fallback.
+
+Version 1.11 validation: the static build passes syntax checks and **257 regression tests**, including actual PCM bank boundaries, prompt attacks, decay between SAW rounds, reflection geometry, cancellation, and voice priority. Chromium OfflineAudioContext renders of sustained SAW fire, a four-weapon mix, street, room, obstructed, and distant reports produced finite output without full-scale samples. The busiest checked mix used 25 voices. A playable mission check confirmed the recorded SAW bank and all 12 audio assets loading. These are signal and integration checks; listening on physical headphones, speakers, and phones remains part of further balance work.
 
 ## More breachable walls and stronger night flashes: version 1.10
 

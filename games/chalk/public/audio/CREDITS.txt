@@ -1,6 +1,40 @@
 CHALK — recorded sound sources
-Verified 22 November 2026. All listed recordings are offered under CC0 1.0:
+Source pages verified 22–23 November 2026. Licenses are identified below.
+Most earlier recordings use CC0 1.0:
 https://creativecommons.org/publicdomain/zero/1.0/
+The version 1.11 rifle and SAW report banks use CC BY 4.0, with attribution
+and adaptation details in the following section.
+
+Recorded rifle and SAW report banks — version 1.11
+
+rifle-report-bank.wav / saw-report-bank.wav
+Source: 249 single shot.wav — Baelphazoar
+https://freesound.org/people/Baelphazoar/sounds/568007/
+Public player media: https://cdn.freesound.org/previews/568/568007_12768240-hq.mp3
+License: Creative Commons Attribution 4.0 International (CC BY 4.0),
+explicitly linked on the source page:
+https://creativecommons.org/licenses/by/4.0/
+The uploader describes three single shots from an M249 machine gun recorded
+on a range around 2009. This is not a recording of the 1993 battle.
+
+Both banks adapt the same three recorded shots. The SAW bank uses the M249
+source directly as its recorded basis. The carbine/rifle bank is a separate
+sound design made from that M249 recording; it is not a separately recorded
+M16 or carbine. No endorsement by the source creator is implied.
+
+Processed for CHALK from the publisher's HQ MP3 preview: isolate shots at
+8.727667, 10.617063, and 11.824292 seconds, retaining 1.5 ms before each onset;
+convert to mono at 44,100 Hz; high-pass at 55 Hz and low-pass at 11 kHz.
+The rifle treatment adds upper-frequency emphasis above 1.5 kHz; the SAW
+treatment reinforces the recorded 120–650 Hz body. Each uses its own body
+envelope and decay shaping after 65 ms to reduce the original range tail.
+Apply a 0.3 ms opening fade and 28 ms closing fade, remove DC offset, and
+normalize each take to a peak of 0.86. The rifle takes last 0.42 seconds;
+the SAW takes last 0.28 seconds. Each three-take bank uses 0.6-second slots
+and is saved as mono 16-bit PCM WAV. Reproduction script:
+tools/prepare-weapon-audio.py
+
+Earlier recorded sources — retained in version 1.11
 
 rifle-shot.mp3
 Source: M16 Single Shot 1.flac — qubodup
@@ -9,6 +43,8 @@ Public player media: https://cdn.freesound.org/previews/162/162398_71257-hq.mp3
 The uploader describes rifle training on an aircraft carrier, extracted from
 U.S. government video. The sound page explicitly lists Creative Commons 0.
 This file is the publisher's HQ MP3 preview, with no additional processing.
+It remains in the project; normal rifle and SAW playback now uses the edited
+report banks credited above.
 
 rotor-loop.mp3
 Source: Helicopter Loop.flac — qubodup
@@ -134,11 +170,14 @@ reconstruction of atmospheric conditions during the historical battle.
 Reference physics: NASA Glenn, Speed of Sound Interactive:
 https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/speed-of-sound-interactive/
 
-Rifle, SAW/support, opposing support, and sniper playback reuse the credited
-rifle-shot.mp3 and hostile-shot.mp3 recordings with different report lengths,
-filters, restrained pitch variation, mechanical layers, low-frequency bodies,
-and decay tails. These are distinct sound designs, not newly sourced recordings
-of each named weapon. No existing recording or music asset was removed.
+Current weapon playback in version 1.11 uses the three-take rifle and SAW banks
+credited above, alongside hostile-shot.mp3 for opposing weapons and the sniper.
+Report length, filtering, level, and restrained pitch variation shape their
+playback. The previous additional per-shot mechanical and synthetic body-noise
+layers have been removed from recorded gunfire. If a recording cannot load,
+a cached procedural report supplies a fallback; it is not a firearm recording.
+The remaining weapon families do not each have a separately sourced recording.
+All earlier recording and music assets remain in the project.
 
 The near-pass crack is a short procedural bipolar/broadband transient. It is
 triggered only by the simulation's actual collision-clipped near-pass event
@@ -160,3 +199,13 @@ source and listener locations, room enclosure, walls, doors, and explosive
 openings. This is a bounded geometry-based approximation, not a full sound-wave
 simulation. The Room & street reflections control changes the reflected layer
 without removing direct effects. Existing recordings and music assets remain.
+
+Version 1.11 also adds at most two early facade reflections per eligible shot.
+These reuse the report and follow paths from the source to an actual remaining
+exterior wall section and then to the listener. Path length, surface position,
+and obstruction checks determine delay, stereo placement, and filtering;
+doors and breaches can remove a reflecting section. The extra reflections
+apply to clear outdoor hearing. Indoor and obstructed hearing retain the
+existing room and indirect mix. This supplements the shared later street
+response within the existing 32-voice limit; it is a bounded gameplay model,
+not measured acoustics or a full sound-wave simulation.

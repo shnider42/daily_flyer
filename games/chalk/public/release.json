@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "date": "2026-11-23",
   "missions": 6,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Distance-delayed muzzle reports, real projectile near-passes, impacts and explosions; distinct rifle/SAW/support/sniper mixes; source/listener-aware room and street reflections with an independent reflections slider; performed pain and fear, contextual ambience and command priority. Existing ambient menu and music assets retained.",
+  "audio": "Onset-aligned recorded SAW and carbine banks with three real takes, clearer opposing reports, and geometry-driven early facade reflections. Existing source/listener-aware rooms, indirect hearing, distance-delayed reports and real projectile near-passes remain. Performed voices, ambient menu and existing music assets retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -146,7 +146,19 @@
     "environmentResponses": "Two cached procedural stereo response kernels: short dense room reflections and later spaced street reflections",
     "environmentGeometry": "Source and listener rooms, walls, openings and breaches select the response; bounded approximation, not a full acoustic solver",
     "reflectionsDefault": 0.8,
-    "reflectionsZeroKeepsDirectSound": true
+    "reflectionsZeroKeepsDirectSound": true,
+    "earlyStreetReflections": {
+      "maxPerShot": 2,
+      "geometry": "Remaining exterior wall fragments; openings and breaches remove their reflecting surface",
+      "delay": "Extra reflected-path travel after the direct arrival",
+      "voicePriority": "Below direct reports; shares the 32-voice budget",
+      "indoorsAndOccluded": "Use the existing room and indirect sound treatment"
+    },
+    "recordedWeaponTakes": {
+      "rifle": 3,
+      "support": 3,
+      "source": "Edited and separately shaped M249 recordings by Baelphazoar, CC BY 4.0; full attribution in audio/CREDITS.txt"
+    }
   },
   "campaignMissions": 4,
   "standaloneOperations": 2,

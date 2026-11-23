@@ -527,8 +527,59 @@ test('arrival storms stay bounded and an actual breach alone adds its debris tai
   assert.equal(audio.voices.size, plain + 2, 'one restrained debris tail per actual blast breach');
   const before = audio.voices.size; audio._event({ type: 'breach', x: 50, y: 0 }, state.squad[0], state);
   assert.equal(audio.voices.size, before, 'cosmetic breach/dust effects do not duplicate the blast');
-  assert.notEqual(reportProfile('support').duration, reportProfile('rifle').duration);
-  assert.ok(reportProfile('support').mechanism > reportProfile('rifle').mechanism);
-  assert.ok(reportProfile('sniper').tail > reportProfile('hostile').tail);
-  assert.notEqual(reportProfile('hostile_support').body, reportProfile('hostile').body);
+});
+
+
+test('SAW bursts use a dedicated recorded bank, vary real takes, and stay inside each source slot', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:10}),player=state.squad[0],offsets=[];
+  for(let round=0;round<6;round++) {
+    audio._shot({id:round+1,type:'shot',actorId:player.id,weapon:'support',x:player.x,y:player.y,team:'squad'},player,state);
+    const voices=[...audio.voices],report=voices.find(v=>v.kind==='report');
+    assert.equal(voices.length,1,'each open-ground shot has one complete report, without added mechanical noise layers');
+    assert.equal(report.source.buffer,audio.samples.get('support'));
+    assert.notEqual(report.source.buffer,audio.samples.get('rifle'));
+    offsets.push(report.source.offset);
+    const segmentEnd=reportProfile('support').offsets.find(offset=>offset>report.source.offset)??report.source.buffer.duration;
+    assert.ok(report.source.offset+(report.source.stoppedAt-report.start)*report.source.playbackRate.value<segmentEnd,'playback cannot reach the next take');
+    h.advance(.5);
+  }
+  assert.equal(new Set(offsets.slice(0,3)).size,3);
+  assert.deepEqual(offsets.slice(0,3),offsets.slice(3));
+});
+
+test('facade taps follow the direct arrival once and the reflections slider cancels them without muting reports', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const world=prepareBuildingInteriors({buildings:[{id:'left',x:100,y:100,w:260,h:700},{id:'right',x:600,y:100,w:260,h:700}]});
+  const state=missionState({time:10});state.world=world;const player=state.squad[0];Object.assign(player,{x:480,y:440});
+  audio._ambience(state,player,.016);audio.eventDelay=.05;
+  audio._shot({id:1,type:'shot',actorId:player.id,weapon:'rifle',x:480,y:440,team:'squad'},player,state);audio.eventDelay=0;
+  const dry=[...audio.voices].find(v=>v.kind==='report'),taps=[...audio.voices].filter(v=>v.kind==='street-reflection');
+  assert.equal(dry.start,.05);assert.equal(taps.length,2);
+  for(const tap of taps) {
+    assert.ok(Math.abs(tap.start-(.05+240/8/343))<1e-8,'the tap adds only its extra facade path');
+    assert.ok(tap.priority<dry.priority);
+    assert.ok(tap.nodes.some(node=>node?.connections.includes(audio.earlyReflectionBus)));
+    assert.ok(!tap.nodes.some(node=>node?.connections.includes(audio.effectsBus)),'a facade return cannot bypass its own level control');
+  }
+  assert.ok(audio.earlyReflectionBus.connections.includes(audio.effectsBus));
+  audio.setLevels({reflections:0});
+  assert.equal(audio.earlyReflectionBus.gain.value,0);
+  assert.ok(audio.voices.has(dry));assert.ok(taps.every(tap=>!audio.voices.has(tap)&&tap.source.stoppedAt<tap.start));
+  h.advance(1);audio._shot({id:2,type:'shot',actorId:player.id,weapon:'rifle',x:480,y:440,team:'squad'},player,state);
+  assert.equal([...audio.voices].filter(v=>v.kind==='report').length,1);
+  assert.equal([...audio.voices].filter(v=>v.bus==='reflection').length,0);
+});
+
+test('direct shots displace facade returns at the voice limit and failed recordings use one cached fallback', async t => {
+  const h=setup(t,{failedAssets:true}),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:10}),player=state.squad[0];
+  for(let i=0;i<32;i++) audio._voice({buffer:audio.noise,duration:.15,gain:.01,bus:'reflection',priority:0,kind:'street-reflection'});
+  audio._shot({type:'shot',actorId:player.id,weapon:'support',x:0,y:0,team:'squad'},player,state);
+  assert.equal(audio.voices.size,32);
+  const report=[...audio.voices].find(v=>v.kind==='report');assert.ok(report);
+  assert.equal(report.source.buffer,audio.fallbackReports.get('support'));
+  h.advance(1);
+  audio._shot({type:'shot',actorId:player.id,weapon:'support',x:0,y:0,team:'squad'},player,state);
+  assert.equal(audio.voices.size,1);assert.equal([...audio.voices][0].source.buffer,report.source.buffer,'fallback is generated once, not rebuilt in the firing path');
 });
