@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer, houseRevealed, renderMinimap } from '../public/renderer.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
+import { breachAtBlast, createDestructionState } from '../public/destruction.mjs';
 
 function fixture(ratio=1) {
   const methods = { measureText: text => ({width:String(text).length*6}) };
@@ -382,4 +383,66 @@ test('field aid markers appear only for revealed unresolved opportunities', () =
   markers.length = 0; renderer.drawStoryOpportunities(state, { menu: true }); assert.equal(markers.length, 0);
   renderer.houseCutaways = [{ building: { x: 1200, y: 900, w: 200, h: 100 }, amount: 0 }];
   renderer.drawStoryOpportunities(state); assert.equal(markers.length, 0);
+});
+
+test('a sidewall breach lifts the roof only when approached through its actual opening', () => {
+  const { state, actor, house } = indoorFixture();
+  actor.x = house.x - 60; actor.y = 860;
+  assert.equal(houseRevealed(house, state), false);
+  const result = breachAtBlast(state.world, createDestructionState(), { x: house.x - 1, y: 860, wallId: 'home:west' });
+  assert.equal(result.changed, true);
+  assert.equal(houseRevealed(house, state), true);
+  actor.y = 1010;
+  assert.equal(houseRevealed(house, state), false, 'an intact stretch beside the breach stays roofed');
+  assert.equal(houseRevealed(house, state, { menu: true }), false);
+});
+
+test('geometry changes repaint only the affected room texture and a same-seed restart restores it', () => {
+  const { renderer, state } = indoorFixture(), pristine = structuredClone(state.world), map = renderer.mapCache, repainted = [];
+  for (const house of renderer.houseCutaways) house.canvas.getContext = () => renderer.ctx;
+  const patch = renderer.houseCutaways[0].canvas;
+  renderer.drawInterior = (_ctx, building) => repainted.push(building.id);
+  renderer.makeMap = () => assert.fail('a breach must not rebuild the district texture');
+  renderer.refreshHouseGeometry(state.world);
+  assert.deepEqual(repainted, []);
+  breachAtBlast(state.world, createDestructionState(), { x: 1099, y: 860, wallId: 'home:west' });
+  renderer.refreshHouseGeometry(state.world);
+  assert.deepEqual(repainted, ['home']);
+  renderer.refreshHouseGeometry(state.world);
+  assert.deepEqual(repainted, ['home'], 'unchanged frames do no texture work');
+  renderer.refreshHouseGeometry(pristine);
+  assert.deepEqual(repainted, ['home', 'home']);
+  assert.equal(renderer.houseCutaways[0].building, pristine.buildings[0]);
+  assert.equal(renderer.houseCutaways[0].canvas, patch); assert.equal(renderer.mapCache, map);
+  assert.equal(renderer.houseCutaways[0].building.breaches.length, 0);
+});
+
+test('a stationary aim cue immediately sees a new breach without cursor movement', () => {
+  const { renderer, state, actor } = indoorFixture();
+  actor.x = 1040; actor.y = 860;
+  const view = { pointer: renderer.worldToScreen(1200, 860), aimLine: true, crosshair: 'dot' };
+  renderer.drawDesktopAim(state, view);
+  const original = renderer.aimTrace;
+  assert.equal(original.result.blocked, true);
+  renderer.drawDesktopAim(state, view); assert.equal(renderer.aimTrace, original);
+  breachAtBlast(state.world, createDestructionState(), { x: 1099, y: 860, wallId: 'home:west' });
+  renderer.drawDesktopAim(state, view);
+  assert.notEqual(renderer.aimTrace, original);
+  assert.equal(renderer.aimTrace.result.blocked, false);
+});
+
+test('breach rubble stays local and dust is witnessed, temporary and reduced-motion aware', () => {
+  const { renderer, state } = fixture(), draws = [];
+  state.world.buildings = [{ breaches: [{ x: 1300, y: 950, width: 80, thickness: 10, from: 910, angle: 0 }, { x: 9000, y: 9000 }] }];
+  renderer.breachSprite = () => ({ kind: 'rubble' }); renderer.radialSprite = () => ({ kind: 'dust' });
+  renderer.ctx.drawImage = sprite => draws.push(sprite.kind);
+  renderer.drawBreaches(renderer.ctx, state, { reducedMotion: true });
+  assert.deepEqual(draws, ['rubble']);
+  state.effects = [{ type: 'breach', x: 1300, y: 950, angle: 0, ttl: .6, maxTtl: .7, seen: true }];
+  renderer.drawEffects(renderer.ctx, state, 1);
+  assert.deepEqual(draws, ['rubble', 'dust']);
+  draws.length = 0;
+  renderer.drawEffects(renderer.ctx, state, 1, { reducedMotion: true }); assert.deepEqual(draws, []);
+  state.world.walls = [{ x: 1250, y: 0, w: 10, h: 1900 }];
+  renderer.drawEffects(renderer.ctx, state, 1); assert.deepEqual(draws, [], 'fresh cover blocks stale witnessed dust');
 });

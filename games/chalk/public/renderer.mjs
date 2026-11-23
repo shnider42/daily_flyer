@@ -46,13 +46,14 @@ export function houseRevealed(building, state, view = {}) {
   if (!player || player.alive === false) return false;
   // Approach through the actual opening. Walking alongside a solid wall does
   // not expose its rooms, and hostile/civilian occupants cannot lift a roof.
-  return (building.doors || []).some(door => {
+  const approach = door => {
     const vertical = door.side === 'east' || door.side === 'west';
     const normal = vertical ? player.x - door.x : player.y - door.y;
     const outward = normal * (door.side === 'south' || door.side === 'east' ? 1 : -1);
     const across = vertical ? player.y - door.y : player.x - door.x;
     return outward >= -12 && outward <= 72 && Math.abs(across) <= Math.max(12, door.width / 2 - 5);
-  });
+  };
+  return (building.doors || []).some(approach) || (building.breaches || []).some(approach);
 }
 
 /** Draws the battlefield at native map resolution once, then composites dynamic units. */
@@ -173,9 +174,31 @@ export class Renderer {
     this.sprites.set(key, sprite); return sprite;
   }
 
+  breachSprite(variant = 0) {
+    const variation = Math.abs(Math.trunc(finite(variant))) % 3, key = `breach:${variation}`;
+    if (this.sprites.has(key)) return this.sprites.get(key);
+    const sprite = newCanvas(128, 64), ctx = sprite.getContext('2d');
+    ctx.translate(64, 16);
+    ctx.fillStyle = 'rgba(167,150,115,.24)'; ctx.beginPath(); ctx.ellipse(0, 13, 49, 18, 0, 0, TAU); ctx.fill();
+    // Most of the masonry falls beside the usable center of the passage.
+    for (let i = 0; i < 16; i++) {
+      const seed = variation * 23 + i * 11, side = i % 2 ? 1 : -1;
+      const x = side * (30 + hash(seed + 3) * 21), y = -1 + hash(seed + 7) * 25;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(hash(seed + 9) * Math.PI);
+      ctx.fillStyle = 'rgba(38,40,30,.35)'; ctx.fillRect(-2, -1, 5 + hash(seed) * 4, 5);
+      ctx.fillStyle = i % 3 ? '#a99a78' : '#c0ae87'; ctx.fillRect(-3, -3, 4 + hash(seed) * 4, 4);
+      ctx.restore();
+    }
+    for (let i = 0; i < 7; i++) {
+      const x = (hash(i + variation * 17) - .5) * 51, y = 8 + hash(i + 31) * 26;
+      ctx.fillStyle = '#93876b'; ctx.fillRect(x, y, 2, 2);
+    }
+    this.sprites.set(key, sprite); return sprite;
+  }
+
   bodySprite(body) {
     const team = ['squad', 'civilian', 'survivor'].includes(body.team) ? body.team : 'enemy';
-    const kit = team === 'squad' && ['leader', 'medic', 'support', 'grenadier'].includes(body.role) ? body.role : body.kind === 'sniper' ? 'sniper' : 'rifleman';
+    const kit = team === 'squad' && ['leader', 'medic', 'support', 'grenadier'].includes(body.role) ? body.role : ['sniper', 'gunner', 'flanker'].includes(body.kind) ? body.kind : 'rifleman';
     const pose = Math.abs(Math.trunc(finite(body.pose))) % 3, key = `body:${team}:${kit}:${pose}`;
     if (this.sprites.has(key)) return this.sprites.get(key);
     const sprite = newCanvas(64, 48), ctx = sprite.getContext('2d');
@@ -195,7 +218,7 @@ export class Renderer {
     line(ctx, 10, 11 + bend, 17, 9 + bend * 3, civilian ? '#6c5649' : '#8a8464', 3);
     roundRect(ctx, -12, -6, 22, 12, 4, uniform, 'rgba(37,42,31,.5)');
     if (!civilian) {
-      roundRect(ctx, -7, -5, kit === 'grenadier' ? 13 : 10, 10, 2, gear);
+      roundRect(ctx, -7, -5, kit === 'grenadier' ? 13 : kit === 'flanker' ? 6 : 10, 10, 2, gear);
       line(ctx, -5, -3, -5, 3, '#9d9673', 1);
       if (kit === 'medic') {
         ctx.fillStyle = '#aeb698'; ctx.fillRect(-10, -6, 5, 5);
@@ -207,10 +230,10 @@ export class Renderer {
       ctx.fillStyle = team === 'squad' ? '#808568' : '#8d7d5d';
       ctx.beginPath(); ctx.ellipse(14, bend - 1, 4.5, 3.5, -.2, 0, TAU); ctx.fill();
       if (team !== 'survivor') {
-        const length = kit === 'support' || kit === 'sniper' ? 26 : 20;
-        line(ctx, -3, 16, -3 + length, 13, '#30382b', kit === 'support' ? 3 : 2);
+        const beltFed = kit === 'support' || kit === 'gunner', length = beltFed || kit === 'sniper' ? 26 : kit === 'flanker' ? 18 : 20;
+        line(ctx, -3, 16, -3 + length, 13, '#30382b', beltFed ? 3 : 2);
         line(ctx, 0, 15.6, 6, 15, '#5e6148', 3.5);
-        if (kit === 'support') { ctx.fillStyle = '#626546'; ctx.fillRect(4, 16, 5, 3); }
+        if (beltFed) { ctx.fillStyle = '#626546'; ctx.fillRect(4, 16, 5, 3); }
       }
     }
     this.sprites.set(key, sprite); return sprite;
@@ -291,12 +314,13 @@ export class Renderer {
       const roomCtx = patch.getContext('2d', {alpha:false});
       roomCtx.translate(-building.x, -building.y);
       this.drawInterior(roomCtx, building);
-      this.houseCutaways.push({building, canvas:patch, amount:0});
+      this.houseCutaways.push({building, canvas:patch, amount:0, wallRevision:finite(building.wallRevision)});
     }
     // Uneven edge establishes the playable district without a bright game-board border.
     ctx.strokeStyle = 'rgba(35,34,27,.55)'; ctx.lineWidth = 14; ctx.strokeRect(0, 0, w, h);
     this.mapCache = cache; this.mapIdentity = world; this.mapMission = missionIndex;
     this.mapLayoutVersion = world.layoutVersion; this.mapLayoutSeed = world.layoutSeed;
+    this.geometryWorld = world; this.mapGeometryRevision = finite(world.geometryRevision);
   }
 
   drawDistrict(ctx, district) {
@@ -510,6 +534,23 @@ export class Renderer {
     }
   }
 
+  refreshHouseGeometry(world) {
+    const revision = finite(world.geometryRevision);
+    if (this.geometryWorld === world && this.mapGeometryRevision === revision) return;
+    this.geometryWorld = world; this.mapGeometryRevision = revision;
+    for (const house of this.houseCutaways) {
+      // A restart or fresh co-op object may retain the same layout texture.
+      // Rebind the small cutaways without keeping damaged building references.
+      house.building = (world.buildings || []).find(building => building.id === house.building.id) || house.building;
+      const building = house.building, wallRevision = finite(building.wallRevision);
+      if (finite(house.wallRevision) === wallRevision) continue;
+      const ctx = house.canvas.getContext('2d', { alpha: false });
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#777762'; ctx.fillRect(0, 0, house.canvas.width, house.canvas.height);
+      ctx.translate(-building.x, -building.y); this.drawInterior(ctx, building);
+      house.wallRevision = wallRevision;
+    }
+  }
+
   houseVisibility(point, view = {}) {
     if (view.showMap) return 1;
     for (const house of this.houseCutaways) if (insideBuilding(house.building, point)) return view.menu ? 0 : house.amount;
@@ -524,6 +565,23 @@ export class Renderer {
       ctx.globalAlpha = alpha; ctx.drawImage(house.canvas, b.x, b.y, b.w, b.h);
     }
     ctx.globalAlpha = 1;
+  }
+
+  drawBreaches(ctx, state, view = {}) {
+    if (view.menu) return;
+    for (const building of state.world?.buildings || []) for (const breach of building.breaches || []) {
+      if (!this.inView(breach.x, breach.y, 90)) continue;
+      const half = finite(breach.width, 80) / 2, thickness = finite(breach.thickness, 10);
+      ctx.save(); ctx.translate(breach.x, breach.y); ctx.rotate(finite(breach.angle));
+      // This small sill covers the old roof edge; the rest of the roof and
+      // building footprint remain intact. The house patch supplies the room.
+      ctx.fillStyle = '#777762'; ctx.fillRect(-half, -thickness - 11, half * 2, thickness + 16);
+      line(ctx, -half, -thickness - 8, -half, 4, '#474b3a', 3);
+      line(ctx, half, -thickness - 8, half, 4, '#474b3a', 3);
+      line(ctx, -half - 2, -thickness - 6, -half + 3, -thickness + 3, '#b6a680', 4);
+      line(ctx, half - 3, -thickness + 2, half + 2, -thickness - 7, '#b6a680', 4);
+      ctx.drawImage(this.breachSprite(breach.from), -64, -16); ctx.restore();
+    }
   }
 
   isDynamicProp(p) { return ['crash', 'helicopter', 'barricade', 'barrier', 'fire', 'checkpoint'].includes(p.type); }
@@ -688,7 +746,7 @@ export class Renderer {
       ctx.beginPath(); ctx.moveTo(0, -radius - 5); ctx.lineTo(radius + 5, 0); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 5, 0); ctx.closePath(); ctx.stroke();
     }
     ctx.save(); ctx.rotate(angle);
-    const uniform = ally ? '#8e9770' : civilian ? '#b3a8c0' : survivor ? '#b2ac85' : '#a37f58';
+    const uniform = ally ? '#8e9770' : civilian ? '#b3a8c0' : survivor ? '#b2ac85' : actor.kind === 'flanker' ? '#ac936c' : actor.kind === 'gunner' ? '#8e8061' : '#a37f58';
     const gear = ally ? '#4c5a40' : '#615d44';
     if (actor.downed) {
       ctx.fillStyle = 'rgba(21,27,22,.45)'; ctx.beginPath(); ctx.ellipse(4, 5, 17, 9, 0, 0, TAU); ctx.fill();
@@ -698,12 +756,13 @@ export class Renderer {
     } else {
       ctx.fillStyle = view.touch ? 'rgba(17,22,18,.56)' : 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
       const walk = actor.moving || actor.speed > 1 || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
-      const stride = walk ? Math.sin(time * 16 + finite(actor.id?.length)) * 2.5 : 0;
-      line(ctx, -5, -4, -10 + stride, -5, '#494b36', 4); line(ctx, -5, 4, -10 - stride, 5, '#494b36', 4);
+      const braced = actor.kind === 'gunner' && actor.braced, stride = walk && !braced ? Math.sin(time * 16 + finite(actor.id?.length)) * 2.5 : 0;
+      line(ctx, -5, -4, (braced ? -14 : -10) + stride, braced ? -8 : -5, '#494b36', 4); line(ctx, -5, 4, (braced ? -14 : -10) - stride, braced ? 8 : 5, '#494b36', 4);
       ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
       if (view.touch) { ctx.strokeStyle = 'rgba(24,31,24,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       if (!civilian) {
-        ctx.fillStyle = gear; ctx.fillRect(-6, -6, 7, 12);
+        ctx.fillStyle = gear; ctx.fillRect(-6, -6, actor.kind === 'flanker' ? 4 : 7, 12);
+        if (actor.kind === 'gunner') { ctx.fillStyle = '#6c6a4c'; ctx.fillRect(-10, -7, 4, 6); ctx.fillRect(-10, 2, 4, 6); }
         if (profile?.id === 'grenadier') { ctx.fillStyle = '#596445'; ctx.fillRect(-11, -8, 7, 16); line(ctx, -9, -6, -9, 5, '#aaa37a', 2); }
         ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3);
       }
@@ -715,12 +774,14 @@ export class Renderer {
           ctx.fillStyle = '#25362c'; ctx.fillRect(8, -6, 8, 4); ctx.fillRect(8, 2, 8, 4);
           line(ctx, 11, -2, 11, 2, '#8d9d83', 2);
         } else {
-          const barrel = profile?.id === 'support' ? 30 : actor.kind === 'sniper' ? 32 : 24;
-          line(ctx, 4, 2, barrel, 2, '#202d25', profile?.id === 'support' ? 3.8 : 3);
+          const beltFed = profile?.id === 'support' || actor.kind === 'gunner';
+          const barrel = beltFed ? 30 : actor.kind === 'sniper' ? 32 : actor.kind === 'flanker' ? 21 : 24;
+          line(ctx, 4, 2, barrel, 2, '#202d25', beltFed ? 3.8 : 3);
           ctx.fillStyle = '#48513c'; ctx.fillRect(10, 0, 5, 5);
-          if (profile?.id === 'support') {
+          if (beltFed) {
             ctx.fillStyle = '#6f7550'; ctx.fillRect(10, 4, 8, 6);
-            line(ctx, 24, 2, 27, -3, '#293a2d', 1.5); line(ctx, 24, 2, 27, 7, '#293a2d', 1.5);
+            const spread = actor.kind === 'gunner' ? 2 + clamp(finite(actor.braceProgress), 0, 1) * 4 : 5;
+            line(ctx, 24, 2, 27, 2 - spread, '#293a2d', 1.5); line(ctx, 24, 2, 27, 2 + spread, '#293a2d', 1.5);
           } else if (profile?.id === 'grenadier') line(ctx, 10, 6, 22, 6, '#556047', 4);
           else if (actor.kind === 'sniper') { ctx.fillStyle = '#3b493a'; ctx.fillRect(12, -1, 8, 3); }
           if (view.touch) line(ctx, 15, 1, barrel - 1, 1, '#8b9078', .7);
@@ -918,8 +979,8 @@ export class Renderer {
       if (length > 26) {
         const from = {x:player.x+dx/length*20, y:player.y+dy/length*20};
         const previous = this.aimTrace;
-        if (!previous || previous.world !== state.world || Math.abs(from.x-previous.from.x) + Math.abs(from.y-previous.from.y) + Math.abs(target.x-previous.target.x) + Math.abs(target.y-previous.target.y) > .5) {
-          this.aimTrace = {world:state.world, from, target, result:traceAim(state.world,from,target)};
+        if (!previous || previous.world !== state.world || previous.geometryRevision !== finite(state.world.geometryRevision) || Math.abs(from.x-previous.from.x) + Math.abs(from.y-previous.from.y) + Math.abs(target.x-previous.target.x) + Math.abs(target.y-previous.target.y) > .5) {
+          this.aimTrace = {world:state.world, geometryRevision:finite(state.world.geometryRevision), from, target, result:traceAim(state.world,from,target)};
         }
         const trace = this.aimTrace.result, start = this.worldToScreen(from.x,from.y);
         const end = trace ? this.worldToScreen(trace.point.x,trace.point.y) : {x,y};
@@ -999,6 +1060,7 @@ export class Renderer {
       // A revealed floor plan does not expose a gunman behind its partition.
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
       if (e.type === 'blood' && (view.menu || view.bloodEffects === false || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e, { ignoreRange: e.farWitness === true }))) continue;
+      if (e.type === 'breach' && (view.menu || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e))) continue;
       const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
       ctx.save(); ctx.globalAlpha = life;
       if (e.type === 'muzzle') {
@@ -1010,6 +1072,11 @@ export class Renderer {
           const spread = (hash(finite(e.seed) + i * 7) - .5) * 1.8, reach = travel * (.5 + i * .15);
           circle(ctx, Math.cos(spread) * reach, Math.sin(spread) * reach, 1.2 + (i % 3) * .45, i % 2 ? '#963b32' : '#782a29');
         }
+      } else if (e.type === 'breach') {
+        const dust = this.radialSprite('breach-dust', [[0,'rgba(181,164,130,.6)'], [1,'rgba(174,158,126,0)']]);
+        const radius = 20 + (1 - life) * 35;
+        ctx.translate(e.x, e.y); ctx.rotate(finite(e.angle));
+        ctx.drawImage(dust, -radius * 1.25, -radius * .5, radius * 2.5, radius * 1.5);
       } else if (e.type === 'explosion') {
         if (e.weapon === 'grenade' || e.radius) {
           const reach = clamp(finite(e.radius, 76), 24, 110), spread = Math.sqrt(1 - life), radius = 7 + spread * reach * .72;
@@ -1219,6 +1286,7 @@ export class Renderer {
     if (!view.cameraPrepared || !this.cameraReady) this.updateCamera(state, view);
     const world = state.world, time = finite(view.time, state.time || 0), zoom = this.camera.zoom, safe = this.safeRect;
     this.quality = ['performance','balanced','high'].includes(view.quality) ? view.quality : 'balanced';
+    this.refreshHouseGeometry(world);
     this.updateHouseCutaways(state, view, time);
     const ctx = this.ctx;
     ctx.imageSmoothingQuality = this.quality === 'high' ? 'high' : 'low';
@@ -1234,6 +1302,7 @@ export class Renderer {
     const bottom = clamp(Math.ceil(this.camera.y + this.height / zoom / 2) + 1, 0, world.height);
     if (right > left && bottom > top) ctx.drawImage(this.mapCache, left, top, right-left, bottom-top, left, top, right-left, bottom-top);
     this.drawHouseCutaways(ctx, view, {left, top, right, bottom});
+    this.drawBreaches(ctx, state, view);
     // Inert, previously observed ground details sit under the sight overlay.
     // New deaths are discovered by simulation sight, never by map exploration.
     this.drawBloodstains(ctx, state, view); this.drawBodies(ctx, state, view);

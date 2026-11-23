@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { clientToCanvasPoint, traceAim } from '../public/desktop-input.mjs';
 import { createGame, step } from '../public/sim.mjs';
+import { ballisticProfile, WORLD_UNITS_PER_METRE } from '../public/combat-profiles.mjs';
 
 test('pointer coordinates use cached CSS geometry independently of the rendering buffer', () => {
   const rect = { left: 140, top: 80, width: 1280, height: 720 };
@@ -71,8 +72,9 @@ test('human weapon orientation stays on the cursor while the original seeded sho
   const muzzle=state.effects.find(effect=>effect.type==='muzzle'&&effect.actorId===actor.id);
   assert.equal(actor.angle,0,'dispersion must not move the human away from their exact cursor direction');
   assert.ok(bullet); assert.ok(muzzle);
-  assert.ok(Math.abs(bullet.vx-Math.cos(expectedShotAngle)*930)<1e-9);
-  assert.ok(Math.abs(bullet.vy-Math.sin(expectedShotAngle)*930)<1e-9);
+  const speed=ballisticProfile('rifle').speedMps*WORLD_UNITS_PER_METRE;
+  assert.ok(Math.abs(bullet.vx-Math.cos(expectedShotAngle)*speed)<1e-9);
+  assert.ok(Math.abs(bullet.vy-Math.sin(expectedShotAngle)*speed)<1e-9);
   assert.ok(Math.abs(muzzle.angle-expectedShotAngle)<1e-12);
   assert.ok(Math.abs(muzzle.x-(actor.x+Math.cos(expectedShotAngle)*20))<1e-9);
   assert.ok(Math.abs(muzzle.y-(actor.y+Math.sin(expectedShotAngle)*20))<1e-9);

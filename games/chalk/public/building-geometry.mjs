@@ -1,4 +1,4 @@
-// Static, deterministic interior geometry shared by simulation and rendering.
+// Deterministic interior geometry shared by simulation and rendering.
 // Furniture is decorative; perimeter and partition rectangles are the solids.
 const WALL = 10;
 const DOOR = 80;
@@ -36,14 +36,14 @@ export function prepareBuildingInteriors(world) {
     const doorX = firstGrid <= lastGrid ? clamp(snap(x + w / 2), firstGrid, lastGrid) : (minDoor + maxDoor) / 2;
     const gapLeft = doorX - DOOR / 2, gapRight = doorX + DOOR / 2;
     const walls = [];
-    const wall = (wx, wy, ww, wh, kind = 'perimeter') => {
+    const wall = (key, side, wx, wy, ww, wh, kind = 'perimeter') => {
       if (ww <= 0 || wh <= 0) return;
-      walls.push({ x: wx, y: wy, w: ww, h: wh, buildingId: id, kind });
+      walls.push({ id: `${id}:${key}`, x: wx, y: wy, w: ww, h: wh, buildingId: id, kind, side, axis: ww > wh ? 'x' : 'y' });
     };
-    wall(x, y, WALL, h); wall(x + w - WALL, y, WALL, h);
-    for (const edgeY of [y, y + h - WALL]) {
-      wall(x + WALL, edgeY, gapLeft - x - WALL, WALL);
-      wall(gapRight, edgeY, x + w - WALL - gapRight, WALL);
+    wall('west', 'west', x, y, WALL, h); wall('east', 'east', x + w - WALL, y, WALL, h);
+    for (const [side, edgeY] of [['north', y], ['south', y + h - WALL]]) {
+      wall(`${side}-left`, side, x + WALL, edgeY, gapLeft - x - WALL, WALL);
+      wall(`${side}-right`, side, gapRight, edgeY, x + w - WALL - gapRight, WALL);
     }
     const interior = { x: x + WALL, y: y + WALL, w: w - WALL * 2, h: h - WALL * 2 };
     const doors = [
@@ -53,8 +53,8 @@ export function prepareBuildingInteriors(world) {
     const rooms = [];
     if (w >= 190) {
       const partitionY = clamp(snap(y + h / 2), y + 65, y + h - 65);
-      wall(interior.x, partitionY - WALL / 2, gapLeft - interior.x, WALL, 'partition');
-      wall(gapRight, partitionY - WALL / 2, interior.x + interior.w - gapRight, WALL, 'partition');
+      wall('partition-left', 'interior', interior.x, partitionY - WALL / 2, gapLeft - interior.x, WALL, 'partition');
+      wall('partition-right', 'interior', gapRight, partitionY - WALL / 2, interior.x + interior.w - gapRight, WALL, 'partition');
       rooms.push({ x: interior.x, y: interior.y, w: interior.w, h: partitionY - WALL / 2 - interior.y });
       rooms.push({ x: interior.x, y: partitionY + WALL / 2, w: interior.w, h: interior.y + interior.h - partitionY - WALL / 2 });
     } else rooms.push({ ...interior });
@@ -66,9 +66,11 @@ export function prepareBuildingInteriors(world) {
         { type: 'shelf', x: room.x + room.w - 12, y: room.y + 18, w: 9, h: Math.min(42, room.h - 30), tone: building.tone },
       ];
     });
-    Object.assign(building, { enterable: true, wallThickness: WALL, doors, interior, rooms, walls, furniture });
+    Object.assign(building, { enterable: true, wallThickness: WALL, doors, interior, rooms, walls, furniture,
+      baseWalls: walls.map(wall => ({ ...wall })), breaches: [], wallRevision: 0 });
     solids.push(...walls);
   }
   world.walls = solids;
+  world.geometryRevision = 0;
   return world;
 }

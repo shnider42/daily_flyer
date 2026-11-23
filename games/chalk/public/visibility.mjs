@@ -168,6 +168,8 @@ export class SharedSightLayer {
 
   update(state, now = state.time || 0) {
     const world = state.world;
+    const geometryRevision = Number.isSafeInteger(world.geometryRevision) ? world.geometryRevision : 0;
+    const geometryChanged = this.geometryRevision !== geometryRevision;
     const key = `${state.seed ?? 'unseeded'}:${state.missionIndex}:${world.width}:${world.height}:${world.layoutVersion ?? ''}:${world.layoutSeed ?? ''}`;
     const changed = this.sceneKey !== key || now < this.lastUpdate || (!Number.isFinite(state.seed) && this.world !== world);
     if (changed) {
@@ -183,7 +185,8 @@ export class SharedSightLayer {
       this.remembered?.getContext('2d').clearRect(0, 0, this.width, this.height);
     }
     this.world = world;
-    if (now - this.lastUpdate < this.interval - 1e-8) return false;
+    this.geometryRevision = geometryRevision;
+    if (!geometryChanged && now - this.lastUpdate < this.interval - 1e-8) return false;
     this.lastUpdate = now; this.revision++;
     this.polygons = sightObservers(state).map(observer => sightPolygon(state, observer));
     if (!this.current || !this.remembered || !this.overlay) return true;

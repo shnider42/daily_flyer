@@ -6,12 +6,12 @@ import {PROTOCOL,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
 
 const actorView = actor => {
-  const {path,pathTimer,pathTarget,target,...view}=actor;
+  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,...view}=actor;
   return view;
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
   'progress','radio','stats','order','leaderOrder','phaseTime','objective','convoyIndex','convoyClear','convoyCleared',
-  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign'];
+  'waitUntil','helpRequested','helpTargetId','aidTimer','coop','lastShot','interactionPrompt','interactionPrompts','humanIds','story','campaign','destruction'];
 const statusOf = room => room.status==='lobby'?'lobby':room.game.status;
 const validMission = value => Number.isInteger(value)&&value>=0&&value<MISSIONS.length;
 const validDifficulty = value => Object.hasOwn(DIFFICULTIES,value);

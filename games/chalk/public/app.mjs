@@ -987,7 +987,13 @@ function frame(now) {
     coop.input(!blocked ? controls() : neutralInput());
     game = coop.getState(dt) || game;
     actions.reload = false; actions.smoke = false; actions.grenade = false;
-    if (!blocked && coop.connected) audio.tick(game, dt);
+    if (!blocked && coop.connected) {
+      const latency = coop.latency;
+      audio.tick(game, dt, {
+        presentationTime: game.time + clamp(((latency.snapshotAgeMs || 0) + (latency.rtt || 0) / 2) / 1000, 0, .25),
+        epoch: `${coop.room?.code || ''}:${coop.room?.epoch ?? ''}`,
+      });
+    }
     hudTimer += dt;
     if (hudTimer >= .1) { updateHUD(); hudTimer %= .1; }
     if (game.status !== 'playing') finishMission();

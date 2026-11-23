@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame } from '../public/sim.mjs';
+import { createGame, applyBreach } from '../public/sim.mjs';
 import { SnapshotDeltaEncoder } from '../public/snapshot-delta.mjs';
 import { CoopClient, CoopStateHydrator, SquadInterpolator, predictMovement, readCoopSession, socketURL, COOP_SESSION_KEY } from '../public/coop-client.mjs';
 
@@ -202,4 +202,21 @@ test('hydration preserves story and persistent remains through updates, then rec
   const result=hydrator.apply(continued,'peer1');assert.equal(result.changedEpoch,true);assert.notEqual(result.game.world,world);
   assert.deepEqual(result.game.campaign,campaign);assert.equal(result.game.stages[0].duration,4);assert.equal(result.game.squad[2].medkits,5);
   assert.deepEqual(result.game.bodies,[]);assert.deepEqual(result.game.bloodstains,[]);assert.equal(result.game.squad.length,4);
+});
+
+test('breach snapshots update collision before prediction, retain map identity, and reconstruct late joins and clean restarts',()=>{
+  const source=createGame({seed:17}),packet=fixture(),hydrator=new CoopStateHydrator();
+  Object.assign(source.squad[0],{x:270,y:1500});
+  const state=()=>{const {world,grid,stages,...view}=source;return structuredClone(view);};
+  packet.init.seed=17;packet.state=state();packet.worldProps=structuredClone(source.world.props);
+  const first=hydrator.apply(packet,'peer1').game,world=first.world,blocked=predictMovement(first.squad[0],{moveX:1},.22,world);
+  assert.ok(blocked.x<280);
+  applyBreach(source,{x:289,y:1500,radius:76,wallId:'b30a:west'});packet.state=state();
+  const changed=hydrator.apply(packet,'peer1');assert.equal(changed.changedGeometry,true);assert.equal(changed.game.world,world);
+  assert.equal(changed.game.world.geometryRevision,1);assert.ok(predictMovement(changed.game.squad[0],{moveX:1},.22,world).x>290);
+  assert.equal(hydrator.apply(packet,'peer1').changedGeometry,false,'repeated snapshots do not rebuild the map');
+  const late=new CoopStateHydrator().apply(packet,'peer2').game;assert.deepEqual(late.world.walls,source.world.walls);assert.deepEqual(late.grid,source.grid);
+  const restarted=createGame({seed:17}),{world:newWorld,grid,stages,...freshState}=restarted;
+  const fresh={...packet,state:freshState,init:{...packet.init,epoch:2},room:{...packet.room,epoch:2},worldProps:newWorld.props};
+  const reset=hydrator.apply(fresh,'peer1');assert.equal(reset.changedEpoch,true);assert.equal(reset.game.destruction.revision,0);assert.equal(reset.game.world.geometryRevision,0);
 });

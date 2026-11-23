@@ -123,3 +123,26 @@ filtering. No archival injury or 1993 victim audio is used.
 Cloth/gear bullet impacts, the player's low impact thud, and the restrained
 near-wreck fire/crackle bed are procedural sound design made for CHALK.
 They are separate from the performed voices and are not injury recordings.
+
+Propagation and weapon playback design — 23 November 2026
+
+CHALK uses a reference sound speed of 343 metres/second at its displayed
+scale of 8 world units/metre. Reports and impacts travel from their separate
+source positions and source timestamps; network elapsed time is subtracted
+from the remaining travel time. This is a gameplay approximation, not a
+reconstruction of atmospheric conditions during the historical battle.
+Reference physics: NASA Glenn, Speed of Sound Interactive:
+https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/speed-of-sound-interactive/
+
+Rifle, SAW/support, opposing support, and sniper playback reuse the credited
+rifle-shot.mp3 and hostile-shot.mp3 recordings with different report lengths,
+filters, restrained pitch variation, mechanical layers, low-frequency bodies,
+and decay tails. These are distinct sound designs, not newly sourced recordings
+of each named weapon. No existing recording or music asset was removed.
+
+The near-pass crack is a short procedural bipolar/broadband transient. It is
+triggered only by the simulation's actual collision-clipped near-pass event
+for the listener and only at a projectile speed above the reference sound
+speed. Its short lateral sound travel uses the closest-approach approximation.
+Concrete chips and opened-wall debris tails are procedural; a heavier tail
+requires a blast that actually breached geometry, not a cosmetic dust effect.

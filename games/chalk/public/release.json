@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "date": "2026-11-22",
   "missions": 4,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Recorded pain and fear performances, separate distress mix, distinct hit foley, spatial wreck-fire ambience and night attenuation, with priority for commands and nearby action; existing ambient menu and music assets retained",
+  "audio": "Distance-delayed muzzle reports, projectile near-passes, impacts and explosions; distinct rifle/SAW/support/sniper mixes; recorded pain and fear performances, separate distress mix, contextual ambience and command priority. Existing ambient menu and music assets retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -51,9 +51,17 @@
   },
   "buildings": {
     "enterable": true,
-    "entry": "walk through open north/south doorways",
+    "entry": "Open north/south doorways or an explosive breach in a qualifying perimeter section",
     "interiors": "shared walls, room partitions, decorative furnishings and automatic roof cutaways",
-    "sharedCollision": "solo, AI navigation, bullets, sight lines, desktop aim and co-op prediction"
+    "sharedCollision": "solo, AI navigation, bullets, sight lines, desktop aim and co-op prediction",
+    "destruction": {
+      "type": "localized perimeter openings",
+      "maxPerBuilding": 2,
+      "openingWidthWorldUnits": 80,
+      "persistentForMission": true,
+      "sharedWithCoop": true,
+      "scope": "remaining walls, fixed doors, corners, partitions and roof stay intact; no structural collapse"
+    }
   },
   "squadRoles": [
     "leader",
@@ -61,7 +69,7 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 3,
+  "protocol": 4,
   "squad": {
     "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
     "formation": "wider outside, compressed through doors",
@@ -71,7 +79,22 @@
   },
   "worldVariation": "Seeded building footprints, alleys, courtyards and district details; fixed mission routes and anchors",
   "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts",
-  "enemies": "Occasional single sniper with visible aim warning and slow follow-up",
+  "enemies": {
+    "types": [
+      "rifleman",
+      "support gunner",
+      "flanker",
+      "sniper"
+    ],
+    "liveLimits": {
+      "story": 10,
+      "standard": 16,
+      "veteran": 20
+    },
+    "weightedAndRoleLimits": true,
+    "visibleSpawnExclusion": true,
+    "sniperLimit": 1
+  },
   "story": {
     "chapters": 4,
     "radioDecisions": 4,
@@ -93,5 +116,14 @@
     "reducedMotionKeepsStaticMarks": true,
     "stainLimit": 512,
     "bodyLimit": null
+  },
+  "acoustics": {
+    "referenceMetresPerSecond": 343,
+    "worldUnitsPerMetre": 8,
+    "supersonicProjectiles": true,
+    "nearPassRequiresActualTrajectory": true,
+    "pendingLimit": 96,
+    "activeVoiceLimit": 32,
+    "pausedOrHiddenClearsQueue": true
   }
 }

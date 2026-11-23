@@ -5,6 +5,9 @@ import { roleProfile, movementSpeed, visionRange } from './squad-roles.mjs';
 import { varyWorldLayout } from './world-variation.mjs';
 import { recordDeadActors, recordBloodHit } from './bodies.mjs';
 import { initializeStory, updateStory, finalizeStory, chooseOption, storyInteraction } from './story.mjs';
+import { WORLD_UNITS_PER_METRE, ballisticProfile, enemyProfile, encounterBudget, canAddEnemy } from './combat-profiles.mjs';
+import { squadCanSeePoint } from './visibility.mjs';
+import { createDestructionState, breachAtBlast } from './destruction.mjs';
 export { campaignOutcome, normalizeCampaignCarry } from './story.mjs';
 export { getSolidWalls, buildingAt } from './building-geometry.mjs';
 export const MISSIONS = [
@@ -14,7 +17,7 @@ export const MISSIONS = [
   { id:'dawn-mile', title:'Dawn Mile', subtitle:'Get the survivors through', time:'4 OCT 1993 · DAWN', description:'Move through the city to the aid station. Keep the squad together; there is no need to clear every street.', briefing:['The night is ending. Casualties fill the transport, and your chalk is moving out on foot.','Follow the rally points to the stadium medical station. Help anyone who goes down and get every surviving squad member inside.'], goals:['Reach three rally positions','Keep the squad together','Extract at the aid station'] },
 ];
 
-export const DIFFICULTIES = { story:{enemyDamage:7,enemyHp:54,maxEnemies:8,spawnDelay:17,playerHp:140}, standard:{enemyDamage:10,enemyHp:72,maxEnemies:12,spawnDelay:12,playerHp:120}, veteran:{enemyDamage:15,enemyHp:92,maxEnemies:16,spawnDelay:9,playerHp:100} };
+export const DIFFICULTIES = { story:{enemyDamage:7,enemyHp:54,maxEnemies:10,spawnDelay:17,playerHp:140}, standard:{enemyDamage:10,enemyHp:72,maxEnemies:16,spawnDelay:18,playerHp:120}, veteran:{enemyDamage:15,enemyHp:92,maxEnemies:20,spawnDelay:14,playerHp:100} };
 const W=2400,H=1900,CELL=40,COLS=W/CELL,ROWS=Math.ceil(H/CELL);
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -25,7 +28,7 @@ function random(s){s.rngState=(Math.imul(s.rngState,1664525)+1013904223)>>>0;ret
 function range(s,a,b){return a+(b-a)*random(s);}
 function radio(s,speaker,text){s.radio.push({id:++s.nextId,time:s.time,speaker,text});if(s.radio.length>10)s.radio.shift();}
 function effect(s,type,x,y,ttl=.2,angle=0,metadata={}){s.effects.push({type,x,y,ttl,maxTtl:ttl,angle,...metadata});if(s.effects.length>220)s.effects.shift();}
-function weaponFor(a){return a.team==='enemy'?(a.kind==='sniper'?'sniper':'hostile'):roleProfile(a).weapon;}
+function weaponFor(a){return a.team==='enemy'?enemyProfile(a).weapon:roleProfile(a).weapon;}
 function soundEvent(s,type,a,extra={}){
   // Audio reads a separate event ring: a brief muzzle flash may expire between
   // render frames while catch-up simulation still needs to produce its sound.
@@ -73,8 +76,25 @@ function makeWorld(s){
   prepareBuildingInteriors(world);
   for(let i=0;i<80;i++){const p=nearbyFree(s,range(s,70,W-70),range(s,70,H-70));world.props.push({type:i%3===0?'crate':'debris',x:p.x,y:p.y,w:range(s,5,16),h:range(s,5,13),angle:range(s,0,TAU)});}
   world.props.push({type:'stadium',x:2180,y:12,w:200,h:115});
-  s.grid=new Uint8Array(COLS*ROWS);
-  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(!free(s,x*CELL+CELL/2,y*CELL+CELL/2,17))s.grid[y*COLS+x]=1;
+  rebuildNavigationGrid(s);
+}
+
+/** Geometry changes are rare; rebuild this small grid once, never per frame. */
+export function rebuildNavigationGrid(s){
+  s.grid ||= new Uint8Array(COLS*ROWS);
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)s.grid[y*COLS+x]=free(s,x*CELL+CELL/2,y*CELL+CELL/2,17)?0:1;
+}
+export function applyBreach(s,impact){
+  s.destruction ||= createDestructionState();
+  const result=breachAtBlast(s.world,s.destruction,impact);if(!result.changed)return result;
+  rebuildNavigationGrid(s);
+  for(const a of [...s.squad,...s.enemies,...s.civilians,...s.survivors]){
+    a.path=[];a.pathTarget=null;a.pathTimer=0;
+    if(a.team==='enemy'){a.senseTimer=0;a.flankGoal=null;a.nextFlankAt=0;}
+  }
+  s.visibilityTimer=0;
+  for(const opening of result.created)effect(s,'breach',opening.x,opening.y,.7,opening.angle,{seen:squadCanSeePoint(s,opening)});
+  return result;
 }
 
 function nodeFor(s,p){
@@ -154,6 +174,7 @@ function stagesFor(m){
 export function createGame({mission=0,role='leader',difficulty='standard',seed=19931003,campaign=null}={}){
   const missionIndex=clamp(Math.floor(finite(mission)),0,MISSIONS.length-1);if(!DIFFICULTIES[difficulty])difficulty='standard';role=role==='member'?'member':'leader';
   const s={missionIndex,mission:MISSIONS[missionIndex],role,difficulty,seed,rngState:(seed>>>0)||1,time:0,status:'playing',endReason:'',nextId:0,world:null,squad:[],enemies:[],civilians:[],survivors:[],vehicles:[],bullets:[],grenades:[],effects:[],soundEvents:[],smokes:[],bodies:[],bloodstains:[],objective:null,stageIndex:0,stageCount:0,progress:0,radio:[],stats:{shots:0,hits:0,squadDowns:0,rescued:0,civilianHarm:0,objectives:0,elapsed:0},order:{type:'follow',x:200,y:1720,label:'Regroup on you'},leaderOrder:'Move to the first rally point',playerId:null,waitUntil:0,spawnTimer:16,visibilityTimer:0,aidTimer:0,maxEnemies:DIFFICULTIES[difficulty].maxEnemies,convoyIndex:0,convoyClear:0,convoyCleared:[],lastLeaderState:'',lastCommand:-20,lastSniperAt:-100,lastFearAt:-100,phaseTime:0};
+  s.destruction=createDestructionState();
   makeWorld(s);
   const hp=DIFFICULTIES[difficulty].playerHp;
   s.squad=[['Hale','leader',200,1720],['Mercer','grenadier',260,1768],['Ames','medic',140,1768],['Webb','support',200,1824]].map(([name,role,x,y])=>{
@@ -186,14 +207,24 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
 }
 
 function seedEnemies(s){
-  const points=[{x:680,y:1100},{x:950,y:960},{x:1370,y:960},{x:1640,y:800},{x:1870,y:580},{x:2120,y:330}];
-  for(let i=0;i<Math.min(6,s.maxEnemies);i++){const p=nearbyFree(s,points[i].x+range(s,-35,35),points[i].y+range(s,-35,35));spawnEnemy(s,p,i>=3);}
+  const points=[{x:680,y:1100},{x:950,y:960},{x:1370,y:960},{x:1640,y:800},{x:1870,y:580},{x:2120,y:330},{x:1640,y:1340},{x:2120,y:960},{x:680,y:580}];
+  for(let i=0;i<Math.min(encounterBudget(s.difficulty).initial,s.maxEnemies);i++){
+    const p=nearbyFree(s,points[i].x+range(s,-35,35),points[i].y+range(s,-35,35));
+    spawnEnemy(s,p,i===5,i===1?'flanker':i===2?'gunner':null);
+  }
 }
-function spawnEnemy(s,p,allowSniper=false){
-  const hp=DIFFICULTIES[s.difficulty].enemyHp,sniper=allowSniper&&s.time-s.lastSniperAt>90&&!s.enemies.some(a=>a.alive&&a.kind==='sniper')&&random(s)<.08;
-  const kind=sniper?'sniper':random(s)<.2?'gunner':'rifleman';
-  if(sniper)s.lastSniperAt=s.time;
-  s.enemies.push(actor(s,'enemy',sniper?'Sniper':'Armed fighter',kind,p.x,p.y,{hp,maxHp:hp,home:{...p},ammo:sniper?5:30,magSize:sniper?5:30,reserve:sniper?25:300,alert:false,accuracy:sniper?.012:range(s,.09,.16),aimCharge:0,aimTargetId:null}));
+function spawnEnemy(s,p,allowSniper=false,preferredKind=null){
+  if(!canAddEnemy(s,'rifleman'))return false;
+  const hp=DIFFICULTIES[s.difficulty].enemyHp,sniper=allowSniper&&s.time-s.lastSniperAt>90&&canAddEnemy(s,'sniper')&&random(s)<.08;
+  let kind=preferredKind||(sniper?'sniper':null);
+  if(!kind){const roll=random(s);kind=roll<.17?'gunner':roll<.36?'flanker':'rifleman';}
+  if(!canAddEnemy(s,kind))kind='rifleman';
+  const profile=enemyProfile(kind);
+  if(kind==='sniper')s.lastSniperAt=s.time;
+  s.enemies.push(actor(s,'enemy',profile.name,kind,p.x,p.y,{hp,maxHp:hp,home:{...p},ammo:profile.magazine,magSize:profile.magazine,reserve:profile.reserve,
+    alert:false,accuracy:range(s,...profile.spread),aimCharge:0,aimTargetId:null,braceProgress:0,braced:false,
+    senseTimer:(s.nextId%5)*.04,perceivedTargetId:null,lastKnown:null,lastSeenAt:-100,flankSide:random(s)<.5?-1:1,nextFlankAt:0,tactic:'watch'}));
+  return true;
 }
 function aliveSquad(s){return s.squad.filter(a=>a.alive&&!a.downed);}
 function player(s){return s.squad.find(a=>a.id===s.playerId);}
@@ -325,13 +356,13 @@ export function combatLOS(s,a,b){
 function targetFor(s,a,targets,maxRange){
   let best=null,bestDist=maxRange;for(const t of targets){if(!t.alive||t.downed)continue;const d=distance(a,t);if(d<bestDist&&combatLOS(s,a,t)){best=t;bestDist=d;}}return best;
 }
-function tryReload(s,a){if(a.reloadTimer<=0&&a.ammo<a.magSize&&a.reserve>0){a.reloadTimer=a.team==='enemy'?(a.kind==='sniper'?3:2.2):roleProfile(a).reloadDuration;soundEvent(s,'reload_start',a);}}
-function shoot(s,a,angle,isPlayer=false){
+function tryReload(s,a){if(a.reloadTimer<=0&&a.ammo<a.magSize&&a.reserve>0){a.reloadTimer=a.team==='enemy'?enemyProfile(a).reload:roleProfile(a).reloadDuration;soundEvent(s,'reload_start',a);}}
+function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
   if(a.downed||!a.alive||a.observing||a.cooldown>0||a.reloadTimer>0)return;
   if(a.ammo<=0){tryReload(s,a);return;}
   a.ammo--;
-  if(a.kind==='sniper'){a.cooldown=range(s,3.4,4.2);a.aimCharge=0;}
-  else if(a.team==='enemy'){a.burst=(a.burst||0)+1;a.cooldown=a.burst%3===0?range(s,1.25,1.75):.19;}
+  if(a.kind==='sniper'){a.cooldown=range(s,...enemyProfile(a).recovery);a.aimCharge=0;}
+  else if(a.team==='enemy'){const profile=enemyProfile(a);a.burst=(a.burst||0)+1;a.cooldown=a.burst%profile.burst===0?range(s,...profile.recovery):profile.interval;}
   else if(isPlayer)a.cooldown=roleProfile(a).fireInterval;
   else if(a.role==='support'){a.burst=(a.burst||0)+1;a.cooldown=a.burst%5===0?.85:.16;}
   else a.cooldown=.56;
@@ -345,42 +376,48 @@ function shoot(s,a,angle,isPlayer=false){
   // that shot on this side of the wall so a thin partition cannot be skipped.
   if(!hasLineOfSight(s,a,{x,y})){x=a.x;y=a.y;}
   const metadata={team:a.team,actorId:a.id,weapon:weaponFor(a)};
-  const sniper=a.kind==='sniper',speed=sniper?1050:930;
-  s.bullets.push({id:++s.nextId,x,y,px:x,py:y,vx:Math.cos(shotAngle)*speed,vy:Math.sin(shotAngle)*speed,team:a.team,owner:a.id,weapon:metadata.weapon,damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage*(sniper?2.5:1):24,ttl:sniper?.85:.64});
-  effect(s,'muzzle',x,y,.075,shotAngle,metadata);soundEvent(s,'shot',a,{x,y});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
+  const sniper=a.kind==='sniper',ballistics=ballisticProfile(metadata.weapon),speed=ballistics.speedMps*WORLD_UNITS_PER_METRE;
+  s.bullets.push({id:++s.nextId,x,y,px:x,py:y,vx:Math.cos(shotAngle)*speed,vy:Math.sin(shotAngle)*speed,team:a.team,owner:a.id,weapon:metadata.weapon,
+    damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage*(sniper?2.5:1):24,ttl:ballistics.range/speed,
+    speedMps:ballistics.speedMps,rangeRemaining:ballistics.range,firedAt:sourceTime,originX:x,originY:y,travelled:0,nearPassIds:[]});
+  effect(s,'muzzle',x,y,.075,shotAngle,metadata);soundEvent(s,'shot',a,{x,y,sourceTime,sourceActorId:a.id,speedMps:ballistics.speedMps,angle:shotAngle});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
 }
-function launchGrenade(s,a,input){
+function launchGrenade(s,a,input,sourceTime=s.time){
   if(a.role!=='grenadier'||a.grenades<=0||a.grenadeCooldown>0||a.reloadTimer>0||a.observing)return false;
   // Manual launcher use only: the human chooses where a blast is safe.
   const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?{x:input.aimX,y:input.aimY}:{x:a.x+Math.cos(a.angle)*280,y:a.y+Math.sin(a.angle)*280};
   const direction=Math.atan2(aim.y-a.y,aim.x-a.x),reach=clamp(distance(a,aim),90,360);
   const targetX=clamp(a.x+Math.cos(direction)*reach,12,W-12),targetY=clamp(a.y+Math.sin(direction)*reach,12,H-12);
   a.grenades--;a.grenadeCooldown=3;a.cooldown=Math.max(a.cooldown,.45);
-  s.grenades.push({id:++s.nextId,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,progress:0,duration:.55+reach/850,owner:a.id,team:a.team});
-  soundEvent(s,'grenade_launch',a,{weapon:'grenade'});s.stats.shots++;s.lastShot=s.time;
+  s.grenades.push({id:++s.nextId,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,progress:0,duration:.55+reach/850,owner:a.id,team:a.team,firedAt:sourceTime});
+  soundEvent(s,'grenade_launch',a,{weapon:'grenade',sourceTime});s.stats.shots++;s.lastShot=s.time;
   return true;
 }
-function explodeGrenade(s,g){
+function explodeGrenade(s,g,sourceTime=s.time){
   const radius=76;
   effect(s,'explosion',g.x,g.y,.6,0,{radius,team:g.team,actorId:g.owner,weapon:'grenade'});
-  soundEvent(s,'explosion',{id:g.owner,x:g.x,y:g.y,team:g.team},{weapon:'grenade',radius});
   for(const a of [...s.enemies,...s.squad,...s.civilians,...s.survivors]){
     if(!a.alive||a.downed)continue;
     const d=distance(a,g);if(d>=radius||!hasLineOfSight(s,g,a))continue;
-    damage(s,a,Math.round(74*(1-d/radius)+14),g.owner,'blast',Math.atan2(a.y-g.y,a.x-g.x));
+    damage(s,a,Math.round(74*(1-d/radius)+14),g.owner,'blast',Math.atan2(a.y-g.y,a.x-g.x),sourceTime);
   }
+  // The original wall shields this blast. The resulting opening changes only
+  // subsequent sight, movement and projectiles.
+  const breach=applyBreach(s,{x:g.x,y:g.y,radius,wallId:g.impactWallId});
+  soundEvent(s,'explosion',{id:g.owner,x:g.x,y:g.y,team:g.team},{weapon:'grenade',radius,sourceTime,sourceActorId:g.owner,breached:breach.changed,breachCount:breach.created.length});
 }
-function updateGrenades(s,dt){
+function updateGrenades(s,dt,frameStart=s.time-dt){
   for(const g of s.grenades){
-    g.px=g.x;g.py=g.y;g.progress=Math.min(1,g.progress+dt/g.duration);
+    const travelTime=Math.min(dt,(1-g.progress)*g.duration);
+    g.px=g.x;g.py=g.y;g.progress=Math.min(1,g.progress+travelTime/g.duration);
     const origin={x:g.x,y:g.y},next={x:g.startX+(g.targetX-g.startX)*g.progress,y:g.startY+(g.targetY-g.startY)*g.progress};
-    let collision=Infinity;for(const wall of getSolidWalls(s.world))collision=Math.min(collision,segmentRectEntry(origin,next,wall));
+    let collision=Infinity;for(const wall of getSolidWalls(s.world)){const entry=segmentRectEntry(origin,next,wall);if(entry<collision){collision=entry;g.impactWallId=wall.id;}}
     if(Number.isFinite(collision)){
       // Detonate just before the obstruction so the wall still shields its far side.
       const length=distance(origin,next),t=Math.max(0,collision-.75/Math.max(1,length));
       g.x=origin.x+(next.x-origin.x)*t;g.y=origin.y+(next.y-origin.y)*t;g.progress=1;
     }else{g.x=next.x;g.y=next.y;}
-    if(g.progress>=1)explodeGrenade(s,g);
+    if(g.progress>=1)explodeGrenade(s,g,frameStart+travelTime*(Number.isFinite(collision)?collision:1));
   }
   s.grenades=s.grenades.filter(g=>g.progress<1);
 }
@@ -388,7 +425,7 @@ function safeShot(s,a,t){
   const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy;
   return !s.civilians.some(c=>{if(!c.alive||c.downed)return false;const f=((c.x-a.x)*dx+(c.y-a.y)*dy)/len2;if(f<=0||f>=1)return false;return Math.hypot(c.x-a.x-f*dx,c.y-a.y-f*dy)<24;});
 }
-function damage(s,a,amount,source,cause='bullet',angle){
+function damage(s,a,amount,source,cause='bullet',angle,sourceTime=s.time){
   if(!a.alive||a.downed||!Number.isFinite(amount)||amount<=0)return;
   const applied=Math.min(a.hp,amount);a.hp=Math.max(0,a.hp-amount);a.suppression=clamp((a.suppression||0)+.3,0,1);
   if(a.team==='civilian'&&!a.harmed){a.harmed=true;s.stats.civilianHarm++;radio(s,'RADIO','Civilian hurt. Check your fire.');}
@@ -400,7 +437,7 @@ function damage(s,a,amount,source,cause='bullet',angle){
     else if(a.team==='civilian'){a.alive=false;}
   }
   recordBloodHit(s,a,{cause,damage:applied,sourceId:source,angle});
-  soundEvent(s,'victim_hit',a,{victimId:a.id,damage:applied,cause,alive:a.alive,downed:a.downed,sourceId:source});
+  soundEvent(s,'victim_hit',a,{victimId:a.id,damage:applied,cause,alive:a.alive,downed:a.downed,sourceId:source,sourceActorId:source,sourceTime});
 }
 function segmentActor(a,b,p,r){const dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy,f=len?clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/len,0,1):0;return Math.hypot(p.x-a.x-dx*f,p.y-a.y-dy*f)<=r;}
 function segmentActorEntry(a,b,p,r){
@@ -412,10 +449,31 @@ function segmentActorEntry(a,b,p,r){
   const t=(-projection-Math.sqrt(disc))/len;
   return t>=0&&t<=1?t:Infinity;
 }
-function updateBullets(s,dt){
+function nearPasses(s,b,origin,end,hitActor,sourceTime,speed){
+  if(b.team!=='enemy'||speed/WORLD_UNITS_PER_METRE<=343)return;
+  const dx=end.x-origin.x,dy=end.y-origin.y,length=Math.hypot(dx,dy);if(length<1e-8)return;
+  b.nearPassIds ||= [];
+  for(const listener of s.squad){
+    if(!listener.alive||listener.downed||listener.id===hitActor?.id||b.nearPassIds.includes(listener.id))continue;
+    // The actual projection must have been passed. A nearby stopped endpoint
+    // is not a passing bullet, especially on the far side of a wall.
+    const along=((listener.x-origin.x)*dx+(listener.y-origin.y)*dy)/length;
+    if(along<0||along>length)continue;
+    const closest={x:origin.x+dx/length*along,y:origin.y+dy/length*along},miss=distance(listener,closest);
+    if(miss<=listener.radius+2||miss>34||!hasLineOfSight(s,closest,listener))continue;
+    b.nearPassIds.push(listener.id);
+    soundEvent(s,'near_pass',listener,{x:closest.x,y:closest.y,victimId:listener.id,sourceActorId:b.owner,sourceId:b.owner,bulletId:b.id,
+      weapon:b.weapon||'hostile',speedMps:speed/WORLD_UNITS_PER_METRE,firedAt:b.firedAt??sourceTime,sourceTime:sourceTime+along/speed,
+      originX:b.originX??origin.x,originY:b.originY??origin.y,directionX:b.vx/speed,directionY:b.vy/speed,
+      closestX:closest.x,closestY:closest.y,missDistance:miss,segmentStart:{...origin},segmentEnd:{x:end.x,y:end.y}});
+  }
+}
+function updateBullets(s,dt,frameStart=s.time-dt){
   for(const b of s.bullets){
-    b.px=b.x;b.py=b.y;b.x+=b.vx*dt;b.y+=b.vy*dt;b.ttl-=dt;
-    const origin={x:b.px,y:b.py},end={x:b.x,y:b.y};
+    const speed=Math.hypot(b.vx,b.vy);if(!Number.isFinite(speed)||speed<=0){b.ttl=0;continue;}
+    const travelTime=Math.min(dt,Math.max(0,b.ttl),Number.isFinite(b.rangeRemaining)?Math.max(0,b.rangeRemaining)/speed:Infinity);
+    b.px=b.x;b.py=b.y;
+    const origin={x:b.x,y:b.y},end={x:b.x+b.vx*travelTime,y:b.y+b.vy*travelTime};
     let hitTime=Infinity,hitActor=null;
     for(const wall of getSolidWalls(s.world))hitTime=Math.min(hitTime,segmentRectEntry(origin,end,wall));
     const targets=b.team==='enemy'?[...s.squad,...s.survivors]:[...s.enemies,...s.civilians];
@@ -425,13 +483,18 @@ function updateBullets(s,dt){
       if(t<hitTime){hitTime=t;hitActor=a;}
     }
     if(Number.isFinite(hitTime)){
-      b.x=origin.x+(end.x-origin.x)*hitTime;b.y=origin.y+(end.y-origin.y)*hitTime;b.ttl=0;
-      if(hitActor)damage(s,hitActor,b.damage,b.owner,'bullet',Math.atan2(b.vy,b.vx));
-      else{effect(s,'dust',b.x,b.y,.25);soundEvent(s,'impact',{id:b.owner,x:b.x,y:b.y,team:b.team},{weapon:b.weapon||(b.team==='enemy'?'hostile':'rifle'),material:'concrete'});}
-    }
+      b.x=origin.x+(end.x-origin.x)*hitTime;b.y=origin.y+(end.y-origin.y)*hitTime;
+      const sourceTime=frameStart+travelTime*hitTime;
+      if(hitActor)damage(s,hitActor,b.damage,b.owner,'bullet',Math.atan2(b.vy,b.vx),sourceTime);
+      else{effect(s,'dust',b.x,b.y,.25);soundEvent(s,'impact',{id:b.owner,x:b.x,y:b.y,team:b.team},{weapon:b.weapon||(b.team==='enemy'?'hostile':'rifle'),material:'concrete',sourceActorId:b.owner,sourceTime});}
+    }else{b.x=end.x;b.y=end.y;}
+    nearPasses(s,b,origin,b,hitActor,frameStart,speed);
+    const travelled=distance(origin,b);b.travelled=(b.travelled||0)+travelled;
+    if(Number.isFinite(b.rangeRemaining))b.rangeRemaining=Math.max(0,b.rangeRemaining-travelled);
+    b.ttl=Number.isFinite(hitTime)||b.rangeRemaining<=1e-7?0:b.ttl-dt;
     for(const a of targets){
-      if(a.alive&&!a.downed&&segmentActor(origin,b,a,b.weapon==='support'?62:43)){
-        if(a.team==='squad')a.suppression=Math.min(1,a.suppression+.1);
+      if(a.alive&&!a.downed&&segmentActor(origin,b,a,b.weapon==='support'||b.weapon==='hostile_support'?62:43)){
+        if(a.team==='squad')a.suppression=Math.min(1,a.suppression+(b.weapon==='hostile_support'?.16:.1));
         else if(a.team==='enemy'&&b.weapon==='support')a.suppression=Math.min(1,a.suppression+.23);
       }
     }
@@ -461,7 +524,7 @@ function formationPoint(s,anchor,offset){
   if(room){x=clamp(x,room.interior.x+18,room.interior.x+room.interior.w-18);y=clamp(y,room.interior.y+18,room.interior.y+room.interior.h-18);}
   return nearbyFree(s,x,y);
 }
-function updateSquad(s,inputs,dt){
+function updateSquad(s,inputs,dt,frameStart=s.time-dt){
   const pl=player(s),leader=currentLeader(s),dest=s.role==='member'?aiTarget(s):null,anchorPlayer=s.coop?leader:pl;
   const casualties=[...s.squad,...s.survivors.filter(a=>a.stabilized)].filter(a=>a.alive&&a.downed),helper=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&!controlled(s,a))||s.squad.find(a=>a.alive&&!a.downed&&!controlled(s,a));
   const aidTarget=s.squad.find(a=>a.id===s.helpTargetId&&a.alive&&!a.downed)||pl;
@@ -475,7 +538,7 @@ function updateSquad(s,inputs,dt){
       let mx=finite(input.moveX),my=finite(input.moveY);const len=Math.hypot(mx,my);if(len>1){mx/=len;my/=len;}
       a.moving=len>.05;const speed=movementSpeed(a,input.sprint);move(s,a,mx*speed*dt,my*speed*dt);
       if(Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX-a.x,input.aimY-a.y)>2)a.angle=Math.atan2(input.aimY-a.y,input.aimX-a.x);else if(len>.05&&!input.fire)a.angle=Math.atan2(my,mx);
-      if(input.reload)tryReload(s,a);if(input.grenade&&!input.sprint)launchGrenade(s,a,input);if(input.fire&&!input.sprint)shoot(s,a,a.angle,true);
+      if(input.reload)tryReload(s,a);if(input.grenade&&!input.sprint)launchGrenade(s,a,input,frameStart);if(input.fire&&!input.sprint)shoot(s,a,a.angle,true,frameStart);
       if(input.smoke&&a.smokes>0){a.smokes--;const aim={x:a.x+Math.cos(a.angle)*145,y:a.y+Math.sin(a.angle)*145},p=nearbyFree(s,aim.x,aim.y);s.smokes.push({...p,radius:105,ttl:14});effect(s,'smoke',p.x,p.y,1);soundEvent(s,'smoke',a,{x:p.x,y:p.y});radio(s,a.name.toUpperCase(),'Smoke out. Keep moving.');}
       if(input.interact){const down=casualties.filter(c=>distance(a,c)<70&&hasLineOfSight(s,a,c)).sort((c,d)=>distance(a,c)-distance(a,d))[0];if(down){revive(s,down,a,dt);s.interactionPrompt=`Helping ${down.name} · ${Math.round(down.reviveProgress/4*100)}%`;}
         else if(a.hp<a.maxHp&&a.medkits>0&&!getStoryInteraction(s,a.id)&&s.objective?.kind!=='rescue'&&s.objective?.kind!=='barricade'){a.bandageProgress=(a.bandageProgress||0)+dt*(a.role==='medic'?1.35:1);if(a.bandageProgress>=3){a.medkits--;a.hp=Math.min(a.maxHp,a.hp+55);a.bandageProgress=0;effect(s,'heal',a.x,a.y,1);radio(s,a.name.toUpperCase(),'Bandaged. Ready to move.');}s.interactionPrompt=`Bandaging · ${Math.round(a.bandageProgress/3*100)}%`;}}
@@ -496,7 +559,7 @@ function updateSquad(s,inputs,dt){
       navigate(s,a,target,movementSpeed(a)*116/112,dt,s.role==='member'&&a===leader?26:20);
     }
     const enemy=targetFor(s,a,s.enemies,s.missionIndex===2?350:440);a.target=enemy?.id||null;
-    if(enemy){a.angle=Math.atan2(enemy.y-a.y,enemy.x-a.x);if(!work&&safeShot(s,a,enemy))shoot(s,a,a.angle);}
+    if(enemy){a.angle=Math.atan2(enemy.y-a.y,enemy.x-a.x);if(!work&&safeShot(s,a,enemy))shoot(s,a,a.angle,false,frameStart);}
     if(a.ammo<=0)tryReload(s,a);
   }
   // Gentle separation prevents identical stacked silhouettes without blocking paths.
@@ -506,33 +569,102 @@ function updateSquad(s,inputs,dt){
     if(d>0&&d<gap){const n=(gap-d)*.25,dx=(a.x-b.x)/d*n,dy=(a.y-b.y)/d*n;if(!controlled(s,a))move(s,a,dx,dy);if(!controlled(s,b))move(s,b,-dx,-dy);}
   }
 }
-function updateEnemies(s,dt){
+function perceiveEnemy(s,a,targets,dt){
+  const profile=enemyProfile(a),limit=s.missionIndex===2?profile.nightRange:profile.range;
+  a.senseTimer=(a.senseTimer||0)-dt;
+  let target=targets.find(candidate=>candidate.id===a.perceivedTargetId)||null;
+  if(a.senseTimer<=0||a.perceivedTargetId!=null&&!target){
+    // Stagger the costly candidate/LOS search. A shot still checks current sight
+    // immediately, so cached perception never permits firing through fresh cover.
+    a.senseTimer=.18+(a.id%3)*.016;a.sensedAt=s.time;
+    target=targetFor(s,a,targets,limit);a.perceivedTargetId=target?.id??null;
+    if(target){a.lastKnown={x:target.x,y:target.y};a.lastSeenAt=s.time;}
+    else if(a.kind==='flanker'){
+      const heard=s.soundEvents.findLast(event=>event.type==='shot'&&event.team==='squad'&&s.time-event.time<.3&&distance(a,event)<700);
+      if(heard){a.lastKnown={x:heard.x,y:heard.y};a.lastSeenAt=s.time;}
+    }
+  }
+  return target;
+}
+function chooseFlankGoal(s,a){
+  const known=a.lastKnown;if(!known)return false;
+  const dx=a.x-known.x,dy=a.y-known.y,len=Math.max(1,Math.hypot(dx,dy)),nx=dx/len,ny=dy/len,side=a.flankSide||1;
+  const candidates=[side,-side].map(sign=>nearbyFree(s,known.x+nx*205-ny*sign*210,known.y+ny*205+nx*sign*210));
+  // At most two bounded route searches per plan, never one per render frame.
+  for(const goal of candidates){
+    if(distance(a,goal)<60||distance(known,goal)<150)continue;
+    const path=findPath(s,a,goal);if(!path.length)continue;
+    a.flankGoal=goal;a.path=path;a.pathTarget={...goal};a.pathTimer=1.1;
+    a.flankReached=false;a.flankHoldUntil=0;a.flankExpiresAt=s.time+8;
+    a.nextFlankAt=s.time+enemyProfile(a).flankInterval;a.flankPlannedAt=s.time;
+    return true;
+  }
+  a.nextFlankAt=s.time+enemyProfile(a).flankInterval;a.flankGoal=null;return false;
+}
+function updateFlanker(s,a,target,dt,frameStart){
+  const profile=enemyProfile(a),remembered=a.lastKnown&&s.time-a.lastSeenAt<=profile.memorySeconds;
+  if(!remembered){a.tactic='search';a.moving=false;a.flankGoal=null;a.settleTime=0;return;}
+  if((!a.flankGoal||a.flankReached&&s.time>=a.flankHoldUntil||s.time>=a.flankExpiresAt)&&s.time>=(a.nextFlankAt||0))chooseFlankGoal(s,a);
+  if(a.flankGoal&&a.suppression<.7){
+    const arrived=navigate(s,a,a.flankGoal,profile.speed*(1-a.suppression*.25),dt,22);
+    if(arrived&&!a.flankReached){a.flankReached=true;a.flankHoldUntil=s.time+1.2;}
+    a.tactic=arrived?'watch':'flank';
+  }else{a.tactic='cover';a.moving=false;}
+  a.settleTime=a.moving?0:(a.settleTime||0)+dt;
+  if(target){
+    a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+    if(a.settleTime>=.25&&a.cooldown<=0&&distance(a,target)<(s.missionIndex===2?profile.nightRange:profile.range)&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
+  }
+}
+function updateEnemies(s,dt,frameStart=s.time-dt){
   const targets=aliveSquad(s);
   for(const a of s.enemies){
     if(!a.alive)continue;const near=targets.reduce((best,t)=>!best||distance(a,t)<distance(a,best)?t:best,null);if(!near)continue;
     const d=distance(a,near);if(d<(a.kind==='sniper'?850:650))a.alert=true;if(!a.alert)continue;
+    const profile=enemyProfile(a),target=perceiveEnemy(s,a,targets,dt),limit=s.missionIndex===2?profile.nightRange:profile.range;
+    a.target=target?.id||null;
     if(a.kind==='sniper'){
-      const target=targetFor(s,a,targets,s.missionIndex===2?520:760);a.target=target?.id||null;
-      if(target){
+      if(target&&distance(a,target)<limit&&combatLOS(s,a,target)){
         a.moving=false;a.angle=Math.atan2(target.y-a.y,target.x-a.x);
         if(a.aimTargetId!==target.id){a.aimCharge=0;a.aimTargetId=target.id;}
         if(a.cooldown<=0&&a.reloadTimer<=0&&a.ammo>0){
-          a.aimCharge=Math.min(1,(a.aimCharge||0)+dt/(1.55+(a.suppression||0)*.9));
-          if(a.aimCharge>=1)shoot(s,a,a.angle);
+          a.aimCharge=Math.min(1,(a.aimCharge||0)+dt/(profile.braceDuration+(a.suppression||0)*.9));
+          if(a.aimCharge>=1)shoot(s,a,a.angle,false,frameStart);
         }else a.aimCharge=0;
       }else{a.aimCharge=0;a.aimTargetId=null;if(d<950)navigate(s,a,near,35,dt,410);}
-      if(a.ammo<=0)tryReload(s,a);
-      continue;
-    }
-    const target=targetFor(s,a,targets,s.missionIndex===2?370:450);a.target=target?.id||null;
-    if(target){a.angle=Math.atan2(target.y-a.y,target.x-a.x);if(distance(a,target)>290)navigate(s,a,target,49,dt,270);else a.moving=false;shoot(s,a,a.angle);}
-    else if(d<900)navigate(s,a,near,57,dt,230);
+    }else if(a.kind==='gunner'){
+      const sight=target&&distance(a,target)<limit&&combatLOS(s,a,target);
+      if(sight){
+        a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+        if(distance(a,target)>profile.stop+20)navigate(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+        if(a.moving||a.reloadTimer>0||a.suppression>.65)a.braceProgress=0;
+        else a.braceProgress=Math.min(1,(a.braceProgress||0)+dt/(profile.braceDuration*(1+a.suppression*.8)));
+        a.braced=a.braceProgress>=1;a.tactic=a.braced?'support':'brace';
+        if(a.braced&&a.cooldown<=0)shoot(s,a,a.angle,false,frameStart);
+      }else{
+        a.braceProgress=0;a.braced=false;a.tactic='advance';
+        if(d<900)navigate(s,a,a.lastKnown||near,profile.speed,dt,profile.stop);else a.moving=false;
+      }
+    }else if(a.kind==='flanker')updateFlanker(s,a,target,dt,frameStart);
+    else if(target){
+      a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+      if(distance(a,target)>profile.stop+20)navigate(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+      if(a.cooldown<=0&&distance(a,target)<limit&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
+    }else if(d<900)navigate(s,a,near,profile.speed,dt,230);else a.moving=false;
     if(a.ammo<=0)tryReload(s,a);
   }
   s.spawnTimer-=dt;
-  if(s.spawnTimer<=0){s.spawnTimer=DIFFICULTIES[s.difficulty].spawnDelay;const live=s.enemies.filter(a=>a.alive).length;
-    if(live<s.maxEnemies){const p=s.objective||player(s);for(let n=0;n<18;n++){const angle=range(s,0,TAU),r=range(s,470,680),dest=nearbyFree(s,p.x+Math.cos(angle)*r,p.y+Math.sin(angle)*r);
-      if(targets.every(a=>distance(a,dest)>360&&(!hasLineOfSight(s,a,dest)||distance(a,dest)>550))){spawnEnemy(s,dest,s.time>30);break;}}}
+  if(s.spawnTimer<=0){
+    const budget=encounterBudget(s.difficulty);s.spawnTimer=budget.spawnDelay;
+    for(let recruit=0;recruit<budget.reinforcementCount&&canAddEnemy(s,'rifleman');recruit++){
+      const p=s.objective||player(s);
+      for(let n=0;n<18;n++){
+        const angle=range(s,0,TAU),r=range(s,470,720),dest=nearbyFree(s,p.x+Math.cos(angle)*r,p.y+Math.sin(angle)*r);
+        if(targets.every(a=>distance(a,dest)>420)&&!squadCanSeePoint(s,dest)&&s.enemies.every(a=>!a.alive||distance(a,dest)>70)){
+          spawnEnemy(s,dest,s.time>30);break;
+        }
+      }
+    }
   }
 }
 function updateCivilians(s,dt){
@@ -624,10 +756,10 @@ export function stepCoop(s,inputsByActorId={},dt=1/60){
   return advanceSimulation(s,inputsByActorId,dt);
 }
 function advanceSimulation(s,input,dt){
-  if(s.status!=='playing')return s;dt=clamp(finite(dt),0,.05);if(!dt)return s;s.time+=dt;s.stats.elapsed=s.time;s.interactionPrompt='';
+  if(s.status!=='playing')return s;dt=clamp(finite(dt),0,.05);if(!dt)return s;const frameStart=s.time;s.time+=dt;s.stats.elapsed=s.time;s.interactionPrompt='';
   if(s.coop)syncCoopControl(s);
   for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
-  updateSquad(s,input,dt);updateEnemies(s,dt);updateBullets(s,dt);updateGrenades(s,dt);updateCivilians(s,dt);
+  updateSquad(s,input,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
   else if(s.coop&&s.squad.slice(0,2).every(a=>!a.alive)){s.status='lost';s.endReason='Neither player soldier could be recovered. Regroup and retry the mission.';}
   if(s.status==='playing')updateStory(s,input,dt,storyHooks);

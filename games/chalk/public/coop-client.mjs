@@ -1,4 +1,5 @@
-import { createGame } from './sim.mjs';
+import { createGame, rebuildNavigationGrid } from './sim.mjs';
+import { syncBuildingDamage } from './destruction.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
 import { movementSpeed } from './squad-roles.mjs';
 import { PROTOCOL, INPUT_HZ, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
@@ -77,6 +78,8 @@ export class CoopStateHydrator {
     }
     const game = this.game;
     for (const [key, value] of Object.entries(packet.state)) if (!staticKeys.has(key)) game[key] = clone(value);
+    const changedGeometry=syncBuildingDamage(game.world,game.destruction).changed;
+    if(changedGeometry)rebuildNavigationGrid(game);
     if (Array.isArray(packet.worldProps)) {
       // Keep both world and props arrays stable; cached static city art stays valid.
       for (let i=0; i<packet.worldProps.length; i++) {
@@ -95,7 +98,7 @@ export class CoopStateHydrator {
     game.playerId = actorId; game.role = role; game.coop = true;
     game.multiplayer = { code: packet.room.code, selfId: playerId || packet.selfId, hostId: packet.room.hostId, players: clone(packet.room.players || []) };
     this.actorId = actorId;
-    return { game, changedEpoch, changedActor };
+    return { game, changedEpoch, changedActor, changedGeometry };
   }
 }
 
@@ -340,10 +343,11 @@ export class CoopClient {
     const authoritative=this.game.squad.find(actor => actor.id===this.game.playerId);
     const transition=hydrated.changedEpoch||hydrated.changedActor||!this._authorityPlayer||this._authorityPlayer.downed!==authoritative?.downed||this._authorityPlayer.alive!==authoritative?.alive;
     if (transition) { this._resetPrediction(); this._authorityAt=now; this.interpolator.reset(); }
+    else if(hydrated.changedGeometry){this._history=[];this._unacknowledged=[];this._renderAt=now;this._authorityAt=now;}
     this._authorityPlayer=authoritative ? {...authoritative} : null;
     const predicted=this._predictAt(now);
     const error=displayed&&predicted ? Math.hypot(displayed.x-predicted.x,displayed.y-predicted.y) : Infinity;
-    if (transition||error>140) { this._correction={x:0,y:0}; if (error>140) { this._history=[]; this._input={...EMPTY_INPUT}; this._edges={}; } }
+    if (transition||hydrated.changedGeometry||error>140) { this._correction={x:0,y:0}; if (error>140) { this._history=[]; this._input={...EMPTY_INPUT}; this._edges={}; } }
     else this._correction={x:displayed.x-predicted.x,y:displayed.y-predicted.y};
     this.interpolator.push(packet.state,this._authorityAt,now);
     this.onState(this.game);

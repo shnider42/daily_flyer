@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameAudio } from '../public/audio.mjs';
+import { WORLD_UNITS_PER_METRE, SOUND_SPEED_MPS, MAX_PENDING_ARRIVALS, acousticTravelDelay,
+  acousticSourceTime, acousticArrivalTime, reportProfile } from '../public/acoustics.mjs';
 
 class Param {
   constructor(value = 0) { this.value = value; this.events = []; }
@@ -337,4 +339,126 @@ test('wreck ambience follows the actual crash, recedes at night, and gives way t
   player.x = 800; audio._ambience(state, player, .016);
   assert.equal(audio.loops.has('wreck-fire'), false, 'a distant crash does not create a global fire loop');
   audio.setScene('paused'); assert.equal(audio.loops.size, 0); assert.equal(audio.voices.size, 0);
+});
+
+test('acoustic timing uses the displayed metre scale and the source timestamp', () => {
+  assert.equal(WORLD_UNITS_PER_METRE, 8); assert.equal(SOUND_SPEED_MPS, 343);
+  assert.equal(acousticTravelDelay(800), 100 / 343);
+  assert.equal(acousticTravelDelay(-20), 0); assert.equal(acousticTravelDelay(NaN), 0);
+  assert.equal(acousticSourceTime({ time: 12, sourceTime: 11.9 }), 11.9);
+  assert.equal(acousticArrivalTime({ x: 0, y: 0, time: 12, sourceTime: 11.9 }, { x: 800, y: 0 }), 11.9 + 100 / 343);
+  assert.equal(acousticArrivalTime({ type: 'near_pass', time: 12, missDistance: 16 }, { x: 800, y: 0 }), 12 + 2 / 343);
+});
+
+test('a nearby impact arrives before the remote muzzle report that caused it', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }); state.squad[0].x = 800;
+  state.soundEvents = [{ id: 1, type: 'shot', time: 10, sourceTime: 10, actorId: 'enemy', team: 'enemy', weapon: 'hostile', x: 0, y: 0 }];
+  audio.tick(state, .016);
+  assert.equal(audio.pendingArrivals.length, 1); assert.equal(audio.voices.size, 0, 'a distant report is still travelling');
+  h.advance(.125); state.time += .125;
+  state.soundEvents.push({ id: 2, type: 'impact', time: state.time, sourceTime: 10.125, actorId: 'enemy', x: 792, y: 0, material: 'concrete' });
+  audio.tick(state, .125);
+  assert.equal(audio.arrivalTrace[0].type, 'impact');
+  const impactStart = Math.min(...[...audio.voices].map(v => v.start));
+  assert.ok(Math.abs(impactStart - (.125 + 1 / 343)) < 1e-8);
+  assert.ok(![...audio.voices].some(v => v.source.buffer === audio.samples.get('hostile')));
+  h.advance(.12); state.time += .12; audio.tick(state, .12);
+  const report = [...audio.voices].find(v => v.source.buffer === audio.samples.get('hostile'));
+  assert.ok(report); assert.ok(Math.abs(report.start - 100 / 343) < 1e-8);
+  assert.ok(report.start - impactStart > .15);
+  assert.deepEqual(audio.arrivalTrace.map(event => event.type), ['impact', 'shot']);
+});
+
+test('late-discovered remote reports subtract travel already elapsed in co-op', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ coop: true, time: 10.4 }); state.squad[0].x = 1440;
+  state.soundEvents = [{ id: 1, type: 'shot', time: 10, sourceTime: 10, actorId: 'enemy', weapon: 'hostile', x: 0, y: 0 }];
+  audio.tick(state, .016, { presentationTime: 10.45, epoch: 'room:1' });
+  const report = [...audio.voices].find(v => v.source.buffer === audio.samples.get('hostile'));
+  assert.ok(report, 'an event older than0.3s can still have an upcoming arrival');
+  assert.ok(Math.abs(report.start - (180 / 343 - .45)) < 1e-8);
+  const sources = audio.context.sources.length;
+  audio.tick(structuredClone(state), .016, { presentationTime: 10.46, epoch: 'room:1' });
+  assert.equal(audio.context.sources.length, sources, 'same snapshot cannot schedule the report twice');
+  state.soundEvents.push({ id: 2, type: 'shot', time: 8, sourceTime: 8, actorId: 'old', weapon: 'hostile', x: 0, y: 0 });
+  audio.tick(state, .016, { presentationTime: 10.47, epoch: 'room:1' });
+  assert.equal(audio.context.sources.length, sources); assert.ok(audio.propagationStats.late > 0);
+});
+
+test('only the actual controlled listener hears a supersonic near-pass crack', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 }), player = state.squad[0];
+  const pass = { id: 1, type: 'near_pass', time: 10, sourceTime: 10, victimId: player.id, actorId: player.id,
+    sourceActorId: 'enemy', bulletId: 20, speedMps: 800, missDistance: 24, x: 0, y: 24, closestX: 0, closestY: 24 };
+  state.soundEvents = [pass]; audio.tick(state, .016);
+  const crack = [...audio.voices].find(v => v.source.buffer === audio.crack);
+  assert.ok(crack); assert.ok(Math.abs(crack.start - 3 / 343) < 1e-8);
+  h.advance(.2); state.time += .2;
+  state.soundEvents.push({ ...pass, id: 2, time: state.time, sourceTime: state.time, victimId: 'someone-else' },
+    { ...pass, id: 3, time: state.time, sourceTime: state.time, speedMps: 300 });
+  audio.tick(state, .2);
+  assert.ok(![...audio.voices].some(v => v.source.buffer === audio.crack), 'other listeners and subsonic fixtures get no sonic crack');
+});
+
+for (const [name, cancel] of [
+  ['pause', h => h.audio.setScene('paused')], ['mute', h => h.audio.setEnabled(false)],
+  ['hidden tab', h => h.visibility(true)], ['suspension', h => h.contextState('suspended')],
+  ['effects volume', h => h.audio.setLevels({ effects: 0 })], ['master volume', h => h.audio.setLevels({ master: 0 })],
+]) test(`${name} cancels both pending and already-scheduled arrivals`, async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 });
+  state.soundEvents = [160, 1600].map((x, i) => ({ id: i + 1, type: 'shot', time: 10, sourceTime: 10,
+    actorId: `enemy${i}`, team: 'enemy', weapon: 'hostile', x, y: 0 }));
+  audio.tick(state, .016);
+  assert.equal(audio.pendingArrivals.length, 1);
+  const scheduled = [...audio.voices].find(v => v.start > audio.context.currentTime); assert.ok(scheduled);
+  cancel(h);
+  assert.equal(audio.pendingArrivals.length, 0); assert.equal(audio.voices.size, 0);
+  assert.ok(scheduled.source.stoppedAt < scheduled.start, 'a scheduled report is stopped before it can start');
+});
+
+test('resume, role changes, stale snapshots, and short restarts never replay the old ring', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ coop: true, time: 10 }); state.squad.push({ id: 'mercer', x: 20, y: 0, hp: 100, alive: true });
+  state.soundEvents = [{ id: 40, type: 'shot', time: 10, sourceTime: 10, actorId: 'enemy', weapon: 'hostile', x: 1600, y: 0 }];
+  audio.tick(state, .016, { epoch: 'room:1' }); assert.equal(audio.pendingArrivals.length, 1);
+  audio.setScene('paused'); h.advance(.1); state.time += .1;
+  state.soundEvents.push({ ...state.soundEvents[0], id: 41, time: state.time, sourceTime: state.time });
+  audio.setScene('mission'); audio.tick(state, .1, { epoch: 'room:1' });
+  assert.equal(audio.pendingArrivals.length, 0); assert.equal(audio.lastEventId, 41);
+  state.playerId = 'mercer'; state.time += .1;
+  audio.tick(structuredClone(state), .1, { epoch: 'room:2' });
+  assert.equal(audio.lastEventId, 41); assert.equal(audio.pendingArrivals.length, 0);
+  const stale = structuredClone(state); stale.time = 9;
+  audio.tick(stale, .016, { epoch: 'room:2' }); assert.equal(audio.lastEventId, 41); assert.equal(audio.lastStateTime, state.time);
+  const restart = missionState({ time: .3, seed: 174 });
+  restart.soundEvents = [{ id: 50, type: 'shot', time: .3, actorId: 'enemy', weapon: 'hostile', x: 1600, y: 0 }];
+  audio.tick(restart, .016); assert.equal(audio.pendingArrivals.length, 1);
+  restart.time = .05; restart.soundEvents = [{ id: 1, type: 'shot', time: .05, actorId: 'hale', weapon: 'rifle', x: 0, y: 0 }];
+  audio.tick(restart, .016);
+  assert.equal(audio.lastEventId, 1); assert.equal(audio.pendingArrivals.length, 0);
+  assert.ok([...audio.voices].some(v => v.source.buffer === audio.samples.get('rifle')));
+});
+
+test('arrival storms stay bounded and an actual breach alone adds its debris tail', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time: 10 });
+  state.soundEvents = Array.from({ length: 120 }, (_, i) => ({ id: i + 1, type: 'shot', time: 10, sourceTime: 10,
+    actorId: i + 1000, team: 'enemy', weapon: 'hostile_support', x: 1600, y: 0 }));
+  audio.tick(state, .016); assert.equal(audio.pendingArrivals.length, MAX_PENDING_ARRIVALS);
+  assert.equal(audio.propagationStats.dropped, 120 - MAX_PENDING_ARRIVALS);
+  h.advance(.55); state.time += .55; audio.tick(state, .25);
+  assert.equal(audio.pendingArrivals.length, 0); assert.ok(audio.voices.size <= 32);
+  audio._stopVoices();
+  audio._event({ type: 'explosion', x: 50, y: 0 }, state.squad[0], state);
+  const plain = audio.voices.size; audio._stopVoices();
+  audio._event({ type: 'explosion', x: 50, y: 0, breached: true, breachCount: 2 }, state.squad[0], state);
+  assert.equal(audio.voices.size, plain + 2, 'one restrained debris tail per actual blast breach');
+  const before = audio.voices.size; audio._event({ type: 'breach', x: 50, y: 0 }, state.squad[0], state);
+  assert.equal(audio.voices.size, before, 'cosmetic breach/dust effects do not duplicate the blast');
+  assert.notEqual(reportProfile('support').duration, reportProfile('rifle').duration);
+  assert.ok(reportProfile('support').mechanism > reportProfile('rifle').mechanism);
+  assert.ok(reportProfile('sniper').tail > reportProfile('hostile').tail);
+  assert.notEqual(reportProfile('hostile_support').body, reportProfile('hostile').body);
 });

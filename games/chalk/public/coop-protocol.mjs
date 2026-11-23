@@ -10,8 +10,8 @@
  *   leave; ping {sentAt}; resync. Commands optionally receive result {id,ok,reason}.
  * Shared play has no global pause: opening a local menu sends neutral input.
  */
-// Version 3 shares story authority, bounded chapter carry and permanent remains.
-export const PROTOCOL = 3;
+// Version 4 shares revised encounters, projectile timing and breached geometry.
+export const PROTOCOL = 4;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;

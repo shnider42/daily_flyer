@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.7 adds decisions with field and cross-chapter consequences, optional aid to residents, persistent bodies, blood on bullet and blast hits, and expanded distress/impact audio. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
+Version 1.8 adds localized explosive wall breaches, distance-delayed combat audio, supersonic bullet travel, and stronger enemy variety. It retains the 1.7 field decisions, consequences, resident aid, persistent bodies, blood, and distress audio. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
 
 ## Play
 
@@ -14,6 +14,31 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 | Dawn Mile | Move through three rally positions and bring the surviving squad to the aid station. |
 
 The missions share a compact city street layout, with varying blocks, landmarks, objectives, and afternoon/night/dawn lighting. They are intentionally short; an efficient route takes roughly one to two minutes, with human play varying by exploration and combat. Vehicles follow a route and wait for the squad. They do not have a damage model in this version.
+
+## Breaches, sound propagation, and enemy variety: version 1.8
+
+Mercer's **V / 40 mm** launcher can now open a soldier-wide gap in a qualifying section of a house's perimeter. The opening changes movement, AI routes, bullet collision, line of sight, the aim obstruction cue, and co-op prediction. Approach it to lift the roof, then walk through normally. Broken edges and persistent rubble mark the opening; only the affected house texture is refreshed. Initial blast damage uses the wall that existed at detonation, then the new geometry applies to subsequent movement and fire.
+
+There are at most **two openings per house**. Corners, fixed doors, interior partitions, and remaining walls stay intact. Short or obstructed sections are deliberately left solid when they cannot produce a usable passage. This is local gameplay destruction; structural collapse and arbitrary whole-building demolition are future work.
+
+Combat sounds now have source times and positions. Muzzle reports, real projectile near-passes, impacts, and detonations arrive separately using a reference **343 m/s at eight world units per metre**. Game-tuned bullets travel faster than sound while retaining their existing finite ranges. A distant nearby strike can therefore arrive before its muzzle report. Only a real, sufficiently close supersonic trajectory generates the listener's pass sound. Weapon-specific recording/procedural mixes distinguish the carbine, SAW, opposing support gun, sniper, and launcher. Existing recordings and music assets remain; the credits identify reused samples and synthesized layers.
+
+Sound still uses a bounded approximation: stereo direction, distance attenuation, high-frequency roll-off, and building/interior muffling. It does not trace every acoustic reflection or model weather. Pending arrivals cap at 96 and active voices at 32. Pause, mute, hidden tabs, mission resets, and transport changes clear obsolete playback. Co-op uses authoritative source times and a bounded presentation-time estimate; real network latency still limits exact timing.
+
+| Enemy | Behavior |
+| --- | --- |
+| Rifleman | Short bursts and ordinary advance/fire behavior. |
+| Support gunner | Braces before longer suppressive bursts, pauses between bursts, and reloads a larger magazine. Suppression and lost sight interrupt the firing position. |
+| Flanker | Chooses reachable lateral positions, moves faster, pauses to fire, and pursues only observed or briefly remembered positions. |
+| Sniper | Existing deliberate aimed shot and visible warning, with one active sniper at a time. |
+
+Live enemy limits are **10 / 16 / 20** for Story / Standard / Veteran, with additional weighted threat and role caps. Reinforcements avoid actual squad sight, including binoculars and newly opened walls, and maintain minimum separation. Target checks and path replanning are staggered. Persistent bodies do not consume live encounter slots.
+
+The authoritative server sends the stable breach records; clients reconstruct geometry before predicting movement. Restarting the mission restores the original walls. **Both players should refresh for protocol 4.** The current room still supports two humans and two AI squad mates; four-human co-op is a separate proposed expansion.
+
+Version 1.8 validation: **219 automated tests** pass, and the static build passes syntax checks and **202 regression tests**. Coverage includes real launcher collision and damage ordering, movement/LOS/aim agreement, AI passage through rebuilt navigation, co-op reconnect/restart and hydration order, enemy behavior and spawn limits, range-clipped projectile timestamps, and bounded/cancelled audio arrivals. Browser QA confirmed a visible launcher-made opening, actual passage, automatic roof cutaway, and the localized blast sound arriving through the scheduler. Foreground Linux Chromium, Balanced/Auto with sound on, measured 60 FPS at a 1280 × 720 viewport/buffer and approximately 42–48 FPS in the Standard Cordon scene at a 2560 × 1440 viewport / 1920 × 1080 buffer. These are environment-specific measurements, not a 60 FPS guarantee on every desktop. Physical phone/headphone calibration and high-latency co-op listening remain untested.
+
+See [EXPANSION.md](EXPANSION.md) for the proposed next systems: casualty dragging/carrying, nearby supply handoffs, bounding pairs, a carefully telegraphed rocket threat, uncertain route reports, convoy recovery, richer interiors, and four-human co-op. These are a design roadmap, not shipped features.
 
 ## Decisions, consequences, and casualties: version 1.7
 
@@ -30,7 +55,7 @@ Open the compact **Radio** chip or press **C**, then choose **Z / X**. The missi
 
 Each chapter includes an injured resident near the route. Squad sight discovers the opportunity; it is not marked across unexplored streets. Move within reach and hold **E / Assist** to provide aid. It takes one of that soldier's finite medical supplies and six seconds (4.5 for the medic), with nearby downed squad mates and core rescue/route work taking priority. Helping allows the resident to reach cover; it does not guarantee intelligence or a combat advantage. Passing them leaves their later condition uncertain. Civilian harm quiets distant calls for help and requires closer observation; it does not summon extra enemies as a punishment.
 
-After a win, **Continue operation** carries bounded medical/smoke supply costs, fatigue, and civilian consequences to the next chronological chapter. Fatigue adds two seconds per level to later regroup stages. The carry is capped and validated, and affects actual supplies and durations. Solo continuation is saved on this device; a separately selected mission can still start independently. **Start this mission fresh** clears the saved carry. Replaying uses the chapter's initial carry, so failed attempts do not stack penalties. Each chapter creates a fresh actor state; this is not continuous soldier permadeath or a mid-mission save system. In co-op, only the host can continue, the server computes the carry, and the two human seats remain assigned. Both clients should refresh for protocol 3.
+After a win, **Continue operation** carries bounded medical/smoke supply costs, fatigue, and civilian consequences to the next chronological chapter. Fatigue adds two seconds per level to later regroup stages. The carry is capped and validated, and affects actual supplies and durations. Solo continuation is saved on this device; a separately selected mission can still start independently. **Start this mission fresh** clears the saved carry. Replaying uses the chapter's initial carry, so failed attempts do not stack penalties. Each chapter creates a fresh actor state; this is not continuous soldier permadeath or a mid-mission save system. In co-op, only the host can continue, the server computes the carry, and the two human seats remain assigned. Both clients should refresh for the current protocol 4.
 
 True deaths now leave stable prone bodies, with distinct poses and dropped equipment, for the rest of that mission. Living casualties keep their aid indicators and can still be recovered. Dead soldiers are labelled Lost. Bodies do not block movement or hold roofs open; unknown deaths remain hidden until actual squad sight discovers them. Previously observed bodies remain as inert terrain memory. A new mission or restart clears the remains.
 
@@ -63,7 +88,7 @@ Occasional enemy snipers have a slower shot cycle and a visible aim-charge glint
 
 Shared squad sight now has a light terrain overlay that distinguishes current observation from remembered and unseen terrain. Daylight terrain remains readable. Walls, doors, and smoke shape visibility, and out-of-sight enemies are hidden rather than frozen in place on the map. The overlay uses cached, low-resolution masks refreshed at 8 Hz; drawing still uses the existing bounded Canvas 2D buffer. Night retains its existing darker treatment.
 
-The co-op seats remain Hale and Mercer, with Ames and Webb under AI control when both humans are connected. Solo selection does not steal a partner's soldier. Protocol 3 includes the map, movement, narrative, and remains contract: after the update, both people should refresh before joining the same room. Existing music and all earlier audio assets are retained; new launcher/blast cues use the existing bounded audio mixer.
+The co-op seats remain Hale and Mercer, with Ames and Webb under AI control when both humans are connected. Solo selection does not steal a partner's soldier. Protocol 4 includes the map, movement, narrative, remains, and destruction contract: after the update, both people should refresh before joining the same room. Existing music and all earlier audio assets are retained; new launcher/blast cues use the existing bounded audio mixer.
 
 Foreground Linux Chromium checks of Cordon/Story with audio off measured approximately 60 FPS at a 1280 × 720 viewport and buffer, and 53 FPS at a 2560 × 1440 viewport with a 1920 × 1080 buffer, using Balanced/Auto. These are measurements of this browser environment, not guarantees for a physical desktop or phone. F3 exposes the same diagnostics during play.
 
@@ -71,7 +96,7 @@ Foreground Linux Chromium checks of Cordon/Story with audio off measured approxi
 
 Every ordinary house is enterable: walk through an open doorway without an interaction button. Roofs lift on a doorway approach or friendly occupancy and close after the squad leaves. Interiors contain masonry walls, wider houses have two connected rooms, and small furnishings are decorative. Doors and internal passages are wide enough for the complete squad and rescued crew. The overview map shows floor plans and the minimap shows the openings.
 
-Movement, AI navigation, bullets, sight lines, aim obstruction cues, and co-op prediction share the same deterministic wall geometry. Walls also prevent reviving or rescuing someone from the other side. Doorways remain exposed. Both the frontend and authoritative co-op server require this release; the network protocol remains unchanged.
+Movement, AI navigation, bullets, sight lines, aim obstruction cues, and co-op prediction share the same deterministic wall geometry. Walls also prevent reviving or rescuing someone from the other side. Doorways remain exposed. Both the frontend and authoritative co-op server require this release; the current network protocol is 4.
 
 Mobile now defaults to **75% camera zoom**, **85% HUD size**, and **Compact** detail. These preferences are independent of desktop settings and are added automatically to existing saves. Camera zoom ranges from 60% to 125%, and mobile HUD size from 75% to 115%. Compact keeps the current objective, mission stage, squad health, and ammunition. Touch buttons and thumbsticks retain their full hit areas. The camera safe area follows the smaller panels and the contextual Assist control in portrait and landscape.
 
@@ -231,6 +256,7 @@ Files:
 - `public/settings.mjs`, `performance.mjs`: validated local preferences, rendering budgets, frame pacing, and diagnostics.
 - `public/audio.mjs`: menu/mission audio scenes, recorded rifle, helicopter, wind and command/radio samples, with procedural foley and distant impacts. Source credits and CC0 licenses are in `public/audio/CREDITS.txt`.
 - `public/coop-client.mjs`: client connection, session recovery, state hydration, movement prediction, and interpolation.
+- `public/destruction.mjs`, `combat-profiles.mjs`, `acoustics.mjs`: deterministic wall damage, shared threat/ballistic profiles, and propagation timing.
 - `public/coop-protocol.mjs`, `snapshot-delta.mjs`: shared wire contract, input cleaning, and snapshot codec.
 - `public/network-config.mjs`: same-origin local WebSocket selection and the production backend address.
 - `server/index.mjs`: combined local HTTP/WebSocket server and production backend entry point.

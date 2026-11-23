@@ -219,6 +219,20 @@ test('only the host can continue a completed operation; carry and assignments su
   assert.equal(host.messages.at(-1).ok,false);assert.equal(room.mission,3,'the final chapter has no invented fifth mission');
 });
 
+test('a real co-op launcher creates one authoritative breach that survives reconnect and resets on restart',()=>{
+  const {rooms,room,host,guest,start,step,command}=setup({seed:()=>17});start();
+  Object.assign(room.game.squad[1],{x:210,y:1500});room.game.civilians=[];
+  rooms.handle(guest,{type:'input',epoch:room.epoch,seq:1,input:{grenade:true,aimX:350,aimY:1500}});step(18);
+  assert.equal(room.game.destruction.revision,1);assert.equal(room.game.squad[1].grenades,3);
+  assert.deepEqual(host.latest.state.destruction,room.game.destruction);assert.deepEqual(guest.latest.state.destruction,room.game.destruction);
+  const blast=host.latest.state.soundEvents.find(e=>e.type==='explosion');assert.ok(blast.breached);assert.equal(blast.sourceActorId,room.game.squad[1].id);assert.ok(blast.sourceTime<=blast.time);
+  command(host,'breach',{x:1000,y:1000});assert.equal(host.messages.at(-1).ok,false);assert.equal(room.game.destruction.revision,1,'there is no client-supplied geometry command');
+  const session=guest.session;rooms.disconnect(guest);const back=new Peer();rooms.handle(back,{type:'resume',protocol:PROTOCOL,...session});
+  assert.deepEqual(back.latest.state.destruction,room.game.destruction);assert.equal(back.latest.actorId,room.game.squad[1].id);
+  command(host,'restart');assert.equal(room.game.destruction.revision,0);assert.equal(room.game.world.geometryRevision,0);assert.equal(back.latest.state.destruction.revision,0);
+  assert.equal(room.game.squad.length,4);assert.equal(room.game.squad.filter(a=>a.human).length,2);
+});
+
 test('untrusted controls, session verification and origin permissions are bounded',()=>{
   const input=cleanInput({moveX:999,moveY:999,aimX:Infinity,aimY:1e9,fire:'yes',smoke:true,grenade:'yes',observe:1});
   assert.ok(Math.abs(Math.hypot(input.moveX,input.moveY)-1)<1e-12);assert.equal(input.aimX,null);assert.equal(input.aimY,3100);

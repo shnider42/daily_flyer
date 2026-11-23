@@ -173,3 +173,20 @@ test('parallel and zero-length wall intersections remain finite and conservative
   assert.equal(rayWallDistance(110, 140, 1, 0, wall, 500), 0);
   assert.equal(rayWallDistance(110, 190, 0, 1, wall, 500), 500);
 });
+
+test('a geometry revision refreshes current sight immediately while preserving explored terrain', () => {
+  const { state } = fixture(), layer = new SharedSightLayer({ createCanvas: fakeCanvas });
+  state.world.geometryRevision = 0;
+  state.world.walls = [{ x: 150, y: 0, w: 10, h: 1600 }];
+  layer.update(state, 1);
+  const memory = layer.remembered, resets = layer.resetCount, clears = memory.calls.filter(call => call.method === 'clearRect').length;
+  assert.equal(inside({ x: 300, y: 300 }, layer.polygons[0]), false);
+  state.world.walls = [{ x: 150, y: 0, w: 10, h: 260 }, { x: 150, y: 340, w: 10, h: 1260 }];
+  state.world.geometryRevision++;
+  assert.equal(layer.update(state, 1.01), true, 'a breach bypasses the ordinary 8Hz throttle');
+  assert.equal(inside({ x: 300, y: 300 }, layer.polygons[0]), true);
+  assert.equal(inside({ x: 300, y: 80 }, layer.polygons[0]), false);
+  assert.equal(layer.remembered, memory); assert.equal(layer.resetCount, resets);
+  assert.equal(memory.calls.filter(call => call.method === 'clearRect').length, clears);
+  assert.equal(layer.update(state, 1.02), false, 'unchanged geometry returns to throttled work');
+});
