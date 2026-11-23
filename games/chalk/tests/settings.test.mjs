@@ -55,6 +55,19 @@ test('valid saved mission results survive normalization and malformed records ca
   assert.equal({}.polluted, undefined);
 });
 
+test('existing desktop preferences gain independent mobile defaults without overwriting either device setup', () => {
+  const old = { cameraZoom: 1.3, hudScale: 1.2, hudDetail: 'standard', completed: { cordon: true } };
+  const migrated = normalizePreferences(old);
+  assert.equal(migrated.mobileCameraZoom, .75); assert.equal(migrated.mobileHudScale, .85); assert.equal(migrated.mobileHudDetail, 'compact');
+  assert.equal(migrated.cameraZoom, 1.3); assert.equal(migrated.hudScale, 1.2); assert.equal(migrated.hudDetail, 'standard');
+  assert.deepEqual(migrated.completed, { cordon: true });
+  const customized = normalizePreferences({ ...migrated, mobileCameraZoom: '0.6', mobileHudScale: '1.1', mobileHudDetail: 'standard' });
+  assert.equal(customized.mobileCameraZoom, .6); assert.equal(customized.mobileHudScale, 1.1); assert.equal(customized.mobileHudDetail, 'standard');
+  assert.equal(customized.cameraZoom, 1.3); assert.equal(customized.hudScale, 1.2);
+  const bounded = normalizePreferences({ mobileCameraZoom: 0, mobileHudScale: 5, mobileHudDetail: 'hidden' });
+  assert.equal(bounded.mobileCameraZoom, .6); assert.equal(bounded.mobileHudScale, 1.15); assert.equal(bounded.mobileHudDetail, 'compact');
+});
+
 test('automatic rendering observes pixel budgets and quality DPR caps at desktop and mobile sizes', () => {
   for (const [quality, pixels, maxDpr] of [['performance',1_600_000,1],['balanced',2_073_600,1.5],['high',5_300_000,2]]) {
     const density = renderDensity(2560, 1440, 2, 'auto', quality);

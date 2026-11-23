@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Renderer } from '../public/renderer.mjs';
+import { Renderer, houseRevealed } from '../public/renderer.mjs';
+import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 
 function fixture(ratio=1) {
   const methods = { measureText: text => ({width:String(text).length*6}) };
@@ -80,4 +81,112 @@ test('desktop HUD obstacles do not change touch, overview-map, or menu framing',
     renderer.updateCamera(state,{...mode,reducedMotion:true,desktopObstacles});
     assert.deepEqual(renderer.camera,camera);
   }
+});
+
+test('touch camera accepts its wider zoom range independently of desktop zoom', () => {
+  const {renderer,state}=fixture();
+  renderer.resize(844,390,1);
+  renderer.updateCamera(state,{touch:true,zoom:.75,reducedMotion:true});
+  near(renderer.camera.zoom,1.04*.75);
+  renderer.resize(390,844,1);
+  renderer.updateCamera(state,{touch:true,zoom:.75,reducedMotion:true});
+  near(renderer.camera.zoom,1.1*.75);
+  renderer.updateCamera(state,{touch:true,zoom:.1,reducedMotion:true});
+  near(renderer.camera.zoom,1.1*.6);
+  renderer.updateCamera(state,{touch:true,zoom:2,reducedMotion:true});
+  near(renderer.camera.zoom,1.1*1.25);
+  renderer.resize(1440,900,1);
+  renderer.updateCamera(state,{touch:false,zoom:.6,reducedMotion:true});
+  near(renderer.camera.zoom,1.2*.8);
+});
+
+function indoorFixture() {
+  const fixtureState=fixture(), {renderer,state}=fixtureState;
+  state.world.buildings=[
+    {id:'home',x:1100,y:800,w:240,h:240,tone:.3},
+    {id:'neighbor',x:1400,y:800,w:120,h:240,tone:.6},
+  ];
+  prepareBuildingInteriors(state.world);
+  renderer.houseCutaways=state.world.buildings.map(building=>({building,canvas:{width:building.w,height:building.h},amount:0}));
+  return {...fixtureState,house:state.world.buildings[0]};
+}
+
+test('roofs lift at actual door approaches and for squad occupants, not arbitrary nearby walls', () => {
+  const {state,actor,house}=indoorFixture();
+  const door=house.doors.find(door=>door.side==='south');
+  actor.x=door.x; actor.y=door.y+65;
+  assert.equal(houseRevealed(house,state),true,'entrance opens before crossing the threshold');
+  actor.x=house.x-22; actor.y=house.y+100;
+  assert.equal(houseRevealed(house,state),false,'a solid side wall does not expose the room');
+  actor.x=door.x+door.width; actor.y=door.y+25;
+  assert.equal(houseRevealed(house,state),false,'being near the front facade is insufficient');
+  state.squad.push({id:2,x:house.x+35,y:house.y+35,alive:false,downed:true,team:'squad'});
+  assert.equal(houseRevealed(house,state),true,'a downed teammate remains visible for rescue');
+  assert.equal(houseRevealed(house,state,{menu:true}),false,'menu panorama retains roofs');
+});
+
+test('hostile and civilian occupants never trigger a roof reveal', () => {
+  const {state,actor,house}=indoorFixture();
+  actor.x=900; actor.y=1100;
+  state.enemies=[{id:20,x:1200,y:900,alive:true,visible:true,team:'enemy'}];
+  state.civilians=[{id:30,x:1200,y:900,alive:true,team:'civilian'}];
+  assert.equal(houseRevealed(house,state),false);
+  state.squad.push({id:2,x:1200,y:900,alive:false,downed:false,team:'squad'});
+  assert.equal(houseRevealed(house,state),false,'a removed squad member cannot keep a roof open');
+  state.survivors=[{id:40,x:1200,y:900,alive:true,team:'survivor',stabilized:false}];
+  assert.equal(houseRevealed(house,state),false,'unrecovered occupants do not open distant houses');
+  state.survivors[0].stabilized=true;
+  assert.equal(houseRevealed(house,state),true,'recovered crew members remain visible while following the squad');
+});
+
+test('cutaways fade, honor reduced motion, and reuse district and room textures on entry and exit', () => {
+  const {renderer,state,actor,house}=indoorFixture();
+  const map=renderer.mapCache, patch=renderer.houseCutaways[0].canvas;
+  actor.x=house.x+40; actor.y=house.y+40;
+  renderer.updateHouseCutaways(state,{},10);
+  assert.ok(renderer.houseCutaways[0].amount>0&&renderer.houseCutaways[0].amount<1);
+  for(const time of [10.08,10.16,10.24]) renderer.updateHouseCutaways(state,{},time);
+  assert.equal(renderer.houseCutaways[0].amount,1);
+  actor.x=900; actor.y=1100;
+  renderer.updateHouseCutaways(state,{},10.32);
+  assert.ok(renderer.houseCutaways[0].amount>0&&renderer.houseCutaways[0].amount<1,'roof fades back after leaving');
+  renderer.makeMap=()=>assert.fail('entering or leaving must not bake the district again');
+  const view={time:11,quality:'performance',reducedMotion:true};
+  renderer.render(state,view);
+  assert.equal(renderer.houseCutaways[0].amount,0);
+  actor.x=house.x+40; actor.y=house.y+40;
+  // A fresh co-op snapshot with the same layout must also retain the textures.
+  state.world={...state.world};
+  renderer.render(state,{...view,time:12});
+  assert.equal(renderer.houseCutaways[0].amount,1);
+  assert.equal(renderer.mapCache,map);
+  assert.equal(renderer.houseCutaways[0].canvas,patch);
+});
+
+test('an open roof keeps friendly actors readable without exposing enemies behind partitions', () => {
+  const {renderer,state,actor,house}=indoorFixture();
+  actor.x=house.x+35; actor.y=house.y+60;
+  state.enemies=[
+    {id:20,x:house.x+35,y:house.y+180,alive:true,team:'enemy'},
+    {id:21,x:house.x+65,y:house.y+60,alive:true,team:'enemy'},
+    {id:22,x:house.x+75,y:house.y+60,alive:true,team:'enemy',visible:false},
+  ];
+  state.civilians=[{id:30,x:1435,y:850,alive:true,team:'civilian'}];
+  const drawn=[];
+  renderer.drawActor=(_ctx,actor)=>drawn.push(actor.id);
+  renderer.render(state,{time:1,quality:'performance',reducedMotion:true});
+  assert.equal(renderer.houseCutaways[0].amount,1);
+  assert.ok(drawn.includes(1),'controlled soldier is visible inside');
+  assert.ok(drawn.includes(21),'enemy with direct squad sight is visible');
+  assert.ok(!drawn.includes(20),'partition still blocks enemy sight after the roof lifts');
+  assert.ok(!drawn.includes(22),'authoritative hidden state is retained');
+  assert.ok(!drawn.includes(30),'closed neighboring roofs suppress actor bodies and labels');
+  const muzzleAngles=[];
+  renderer.ctx.rotate=angle=>muzzleAngles.push(angle);
+  state.effects=[
+    {type:'muzzle',team:'enemy',actorId:20,x:1135,y:980,angle:.2,ttl:.05,maxTtl:.075},
+    {type:'muzzle',team:'enemy',actorId:21,x:1165,y:860,angle:.7,ttl:.05,maxTtl:.075},
+  ];
+  renderer.drawEffects(renderer.ctx,state,1);
+  assert.deepEqual(muzzleAngles,[.7],'a hidden indoor enemy does not leak its position through a muzzle flash');
 });

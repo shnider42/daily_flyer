@@ -278,3 +278,70 @@ body.desktop-aim #world{cursor:none}
   body:not(.touch) .squad-status-stack .radio-line:not(:last-child){display:none}
   body:not(.touch) .squad-status-stack .leader-intent{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+
+/* Mobile status scales independently; controls retain their full touch area. */
+.touch{
+  --mobile-scale:var(--mobile-hud-scale,.85);
+  --mobile-topbar-height:44px;
+  --mobile-panel-gap:calc(5px * var(--mobile-scale));
+  --mobile-edge-left:max(12px,env(safe-area-inset-left));
+  --mobile-edge-right:max(12px,env(safe-area-inset-right));
+  --mobile-stick-height:140px;
+  --mobile-weapon-gap:10px;
+  --touch-height:calc(var(--touch-bottom) + var(--mobile-stick-height));
+  --control-safe-bottom:var(--touch-height);
+}
+.touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--touch-height:calc(var(--touch-bottom) + 188px)}
+.touch .hud{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:var(--mobile-topbar-height) auto auto auto 1fr;gap:var(--mobile-panel-gap);padding:env(safe-area-inset-top) var(--mobile-edge-right) 0 var(--mobile-edge-left)}
+.touch .hud:before{z-index:0;height:calc(env(safe-area-inset-top) + var(--mobile-topbar-height) + 110px * var(--mobile-scale))}
+.touch .topbar,.touch .objective-panel,.touch .squad-panel,.touch .radio-feed{z-index:1}
+.touch .topbar{position:static;grid-column:1/-1;grid-row:1;height:var(--mobile-topbar-height);padding:0;gap:8px;min-width:0}
+.touch .field-title{gap:calc(10px * var(--mobile-scale));min-width:0}
+.touch .field-title strong{font-size:calc(21px * var(--mobile-scale));flex:none}
+.touch .field-title>span{font-size:max(10px,calc(11px * var(--mobile-scale)));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.touch .top-actions{gap:3px;font-size:max(10px,calc(12px * var(--mobile-scale)));flex:none}
+.touch .top-actions button,.touch .coop-badge{min-width:44px;min-height:44px}
+.touch #mapToggle{font-size:max(10px,calc(11px * var(--mobile-scale)))}
+.touch .objective-panel{position:static;grid-column:1;grid-row:2;width:auto;min-width:0;margin:0;padding:calc(7px * var(--mobile-scale)) calc(10px * var(--mobile-scale)) calc(6px * var(--mobile-scale));border-radius:6px;transform:none}
+.touch .objective-heading{gap:calc(8px * var(--mobile-scale));min-width:0}
+.touch .objective-heading>div{min-width:0}
+.touch .objective-mark{font-size:calc(24px * var(--mobile-scale));flex:none}
+.touch #objectiveTitle{font-size:max(12px,calc(14px * var(--mobile-scale)));line-height:1.25}
+.touch #objectiveDetail{font-size:max(11px,calc(12px * var(--mobile-scale)));line-height:1.35;margin-top:calc(3px * var(--mobile-scale))}
+.touch #stageNumber{font-size:max(10px,calc(11px * var(--mobile-scale)));white-space:nowrap;flex:none}
+.touch .progress-track{margin-top:calc(5px * var(--mobile-scale))}
+.touch .squad-status-stack{display:contents}
+.touch .squad-panel{position:static;grid-column:1;grid-row:3;align-self:start;width:auto;min-width:0;margin:0;padding:calc(2px * var(--mobile-scale)) 0;gap:calc(9px * var(--mobile-scale));transform:none}
+.touch .squad-member strong{font-size:max(10px,calc(12px * var(--mobile-scale)));line-height:1.3}
+.touch .squad-member .squad-health{height:3px;margin-top:calc(4px * var(--mobile-scale))}
+.touch .squad-member.downed small{position:static;width:max-content;max-width:100%;font-size:10px;line-height:1.2;margin-top:2px;white-space:normal}
+.touch .radio-feed{position:static;grid-column:1/-1;grid-row:4;align-self:start;max-width:100%;width:auto;margin:0;padding:0;transform:none}
+.touch .radio-line{font-size:max(11px,calc(12px * var(--mobile-scale)));line-height:1.35;padding:calc(5px * var(--mobile-scale)) calc(9px * var(--mobile-scale));border-radius:4px}
+.touch .radio-line strong{font-size:max(10px,calc(11px * var(--mobile-scale)))}
+.touch .weapon-panel{right:calc(var(--mobile-edge-right) + 12px);bottom:calc(var(--touch-bottom) + var(--mobile-stick-height) + var(--mobile-weapon-gap));min-width:calc(90px * var(--mobile-scale));padding:calc(5px * var(--mobile-scale)) calc(9px * var(--mobile-scale));transform:none;border-radius:5px}
+.touch .ammo{font-size:max(10px,calc(12px * var(--mobile-scale)));gap:calc(6px * var(--mobile-scale))}
+.touch .ammo strong{font-size:max(20px,calc(25px * var(--mobile-scale)));line-height:1.1}
+.touch #reloadLabel{font-size:max(10px,calc(10px * var(--mobile-scale)))}
+.touch .context-hint{font-size:max(12px,calc(13px * var(--mobile-scale)));padding:6px 10px}
+.touch[data-mobile-hud-detail="compact"] #objectiveDetail,.touch[data-mobile-hud-detail="compact"] .objective-mark,.touch[data-mobile-hud-detail="compact"] .field-title>span,.touch[data-mobile-hud-detail="compact"] #mapToggleLabel{display:none}
+.touch[data-mobile-hud-detail="compact"] .objective-panel{padding-top:calc(5px * var(--mobile-scale));padding-bottom:calc(5px * var(--mobile-scale))}
+.touch[data-mobile-hud-detail="compact"] .hud:before{height:calc(env(safe-area-inset-top) + var(--mobile-topbar-height) + 80px * var(--mobile-scale))}
+.touch.map-open .hud:before{height:calc(env(safe-area-inset-top) + var(--mobile-topbar-height) + 8px)}
+@media(orientation:landscape) and (max-height:600px){
+  .touch{--mobile-panel-gap:calc(4px * var(--mobile-scale));--mobile-edge-left:max(18px,env(safe-area-inset-left));--mobile-edge-right:max(18px,env(safe-area-inset-right));--mobile-stick-height:124px;--mobile-weapon-gap:8px}
+  .touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--touch-height:calc(var(--touch-bottom) + var(--mobile-stick-height))}
+  .touch .hud{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:var(--mobile-topbar-height) auto auto 1fr;column-gap:24px}
+  .touch .objective-panel{grid-column:1;grid-row:2;align-self:start}
+  .touch #objectiveTitle{font-size:max(11px,calc(13px * var(--mobile-scale)))}
+  .touch #objectiveDetail{font-size:max(10px,calc(11px * var(--mobile-scale)))}
+  .touch .squad-panel{grid-column:2;grid-row:2;align-self:start;padding-top:calc(6px * var(--mobile-scale));gap:calc(10px * var(--mobile-scale))}
+  .touch .radio-feed{grid-row:3;justify-self:center;max-width:55%}
+  .touch .radio-line{font-size:max(10px,calc(11px * var(--mobile-scale)))}
+  .touch .weapon-panel{right:calc(var(--mobile-edge-right) + 22px);min-width:calc(80px * var(--mobile-scale))}
+  .touch .ammo strong{font-size:max(19px,calc(23px * var(--mobile-scale)))}
+  .touch .context-hint{max-width:calc(100% - 340px);font-size:12px}
+}
+@media(pointer:coarse){
+  .menu-settings-button,.settings-tabs button,.settings-footer .text-button,.settings-done{min-height:44px}
+  .setting-field input[type="range"]{height:44px}.setting-field select{min-height:44px}
+}

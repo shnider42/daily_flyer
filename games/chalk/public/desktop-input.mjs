@@ -1,4 +1,5 @@
 import { segmentRectEntry } from './sim.mjs';
+import { getSolidWalls } from './building-geometry.mjs';
 
 const pointIsFinite = point => !!point && Number.isFinite(point.x) && Number.isFinite(point.y);
 
@@ -22,8 +23,7 @@ export function clientToCanvasPoint(clientX, clientY, rect, viewport = rect) {
 export function traceAim(world, from, to) {
   if (!pointIsFinite(from) || !pointIsFinite(to)) return null;
   let fraction = Infinity, wall = null;
-  const buildings = Array.isArray(world?.buildings) ? world.buildings : [];
-  for (const candidate of buildings) {
+  for (const candidate of getSolidWalls(world)) {
     if (!pointIsFinite(candidate) || !Number.isFinite(candidate.w) || !Number.isFinite(candidate.h) || candidate.w < 0 || candidate.h < 0) continue;
     const entry = segmentRectEntry(from, to, candidate);
     if (entry < fraction) { fraction = entry; wall = candidate; }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MISSIONS,createGame,step,issueOrder,setRole,getObjective,hasLineOfSight,findPath} from '../public/sim.mjs';
+import {MISSIONS,createGame,step,issueOrder,setRole,getObjective,hasLineOfSight,findPath,getSolidWalls} from '../public/sim.mjs';
 
 const pl=s=>s.squad.find(a=>a.id===s.playerId);
 function clearThreats(s){s.enemies=[];s.maxEnemies=0;}
@@ -17,7 +17,7 @@ test('all four missions create isolated, deterministic states and objectives',()
   for(let m=0;m<4;m++){const a=createGame({mission:m,seed:42}),b=createGame({mission:m,seed:42});assert.deepEqual(a,b);assert.equal(a.squad.length,4);assert.ok(getObjective(a).title);assert.equal(a.status,'playing');step(a,{moveX:1},1/30);assert.notEqual(pl(a).x,pl(b).x);}
 });
 test('collision and pathfinding keep mission routes reachable',()=>{
-  for(let m=0;m<4;m++){const s=createGame({mission:m,seed:4});for(const stage of s.stages){const route=findPath(s,pl(s),stage);assert.ok(route.length,`mission ${m}, ${stage.title}`);for(const p of route)assert.ok(!s.world.buildings.some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h));}}
+  for(let m=0;m<4;m++){const s=createGame({mission:m,seed:4});for(const stage of s.stages){const route=findPath(s,pl(s),stage);assert.ok(route.length,`mission ${m}, ${stage.title}`);for(const p of route)assert.ok(!getSolidWalls(s.world).some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h));}}
   const s=createGame();clearThreats(s);const b=s.world.buildings[0];pl(s).x=b.x-15;pl(s).y=b.y+30;run(s,2,{moveX:1});assert.ok(pl(s).x<b.x);assert.equal(hasLineOfSight(s,{x:b.x-50,y:b.y+50},{x:b.x+b.w+50,y:b.y+50}),false);
 });
 test('commander orders are different from member requests',()=>{

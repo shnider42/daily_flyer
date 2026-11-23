@@ -7,6 +7,7 @@ import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
 import { createDefaults, normalizePreferences, renderDensity } from './settings.mjs';
 import { FramePacer, FrameMeter } from './performance.mjs';
+import { buildingAt } from './building-geometry.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
@@ -42,6 +43,7 @@ let statsAt = 0;
 let statsMode = '';
 let squadRowsKey = '';
 let squadRows = [];
+let interiorNotice = { scene: '', id: '', at: 0 };
 let touchAim = null;
 let interactionPointer = null;
 let coop = null;
@@ -108,14 +110,23 @@ new ResizeObserver(fit).observe($('battlefield'));
 window.addEventListener('resize', fit);
 touchQuery.addEventListener('change', () => { clearInput(); touch = preferences.touchControls ?? (touchQuery.matches || navigator.maxTouchPoints > 0); $('touchControls').hidden = !touch || mode === 'menu'; fit(); soundUI(); });
 
+function menuSoundLabel() {
+  text('menuSound', !preferences.sound ? 'Sound off' : audio.context?.state === 'running' ? 'Sound on' : 'Enable sound');
+}
 function soundUI() {
-  $('menuSound').textContent = preferences.sound ? 'Sound on' : 'Sound off';
+  menuSoundLabel();
   $('soundToggle').checked = preferences.sound;
   $('motionToggle').checked = preferences.reducedMotion;
   $('touchToggle').checked = touch;
   audio.setEnabled(preferences.sound);
   audio.setLevels({ master: preferences.masterVolume, effects: preferences.effectsVolume, ambience: preferences.ambienceVolume });
 }
+function wakeAudio(event) {
+  if (!preferences.sound || event?.target?.closest?.('#menuSound') || audio.context?.state === 'running') return;
+  void audio.unlock().then(menuSoundLabel);
+}
+document.addEventListener('pointerdown', wakeAudio, { passive: true });
+document.addEventListener('keydown', wakeAudio);
 
 function syncSettings() {
   for (const field of document.querySelectorAll('[data-setting]')) {
@@ -133,10 +144,12 @@ function applySettings(key) {
     $('touchControls').hidden = !touch || mode === 'menu';
   }
   document.body.dataset.hudDetail = preferences.hudDetail;
+  document.body.dataset.mobileHudDetail = preferences.mobileHudDetail;
   document.documentElement.style.setProperty('--hud-scale', String(preferences.hudScale));
+  document.documentElement.style.setProperty('--mobile-hud-scale', String(preferences.mobileHudScale));
   $('performanceStats').hidden = !preferences.showFPS;
   soundUI(); syncSettings();
-  if (!key || ['graphicsQuality','renderScale','hudScale','touchControls'].includes(key)) fit();
+  if (!key || ['graphicsQuality','renderScale','hudScale','hudDetail','mobileHudScale','mobileHudDetail','touchControls'].includes(key)) fit();
   if (!key || ['graphicsQuality','renderScale','frameLimit'].includes(key)) { framePacer.reset(); frameMeter.reset(); }
   if (game) updateHUD();
 }
@@ -213,7 +226,7 @@ function startMission(index = selectedMission) {
   $('menu').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
   $('mapLegend').hidden = true; $('orderHint').hidden = true;
   $('missionName').textContent = game.mission.title.toUpperCase();
-  updateOrders(); audio.unlock(); audio.setEnabled(preferences.sound); fit(); updateHUD();
+  updateOrders(); audio.setScene('mission'); audio.unlock(); audio.setEnabled(preferences.sound); fit(); updateHUD();
   canvas.focus({ preventScroll: true });
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
@@ -223,7 +236,7 @@ function returnToMenu() {
   if (online()) coop.leave();
   coopCommandEpoch = null;
   onlineEpoch = null; onlineRole = null; $('coopOverlay').hidden = true; $('coopBadge').hidden = true;
-  mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.stop();
+  mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.setScene('menu');
   document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'online');
   $('menu').hidden = false; $('hud').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = true;
   missionMenu(); fit(); $('deploy').focus({ preventScroll: true });
@@ -233,7 +246,8 @@ function pause(value = true) {
   paused = value; accumulator = 0; clearInput(); closeOrders();
   $('pauseOverlay').hidden = !value;
   updatePauseUI();
-  if (value) { audio.stop(); $('resume').focus(); } else { audio.unlock(); audio.setEnabled(preferences.sound); canvas.focus({ preventScroll: true }); }
+  audio.setScene(value ? 'paused' : 'mission');
+  if (value) { $('resume').focus(); } else { audio.unlock(); audio.setEnabled(preferences.sound); canvas.focus({ preventScroll: true }); }
 }
 function updateOrders() {
   const leader = game.role === 'leader';
@@ -283,11 +297,11 @@ function canAct() { return mode === 'playing' && !paused && (!online() || coop.c
 
 function assistAction() {
   const p = player(); if (!p || !p.alive || p.downed || !game) return null;
-  const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
+  const down = [...game.squad, ...(game.survivors || []).filter(s => s.stabilized)].filter(s => s.alive && s.downed && s.id !== p.id && Math.hypot(s.x - p.x, s.y - p.y) < 70 && hasLineOfSight(game, p, s)).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y) - Math.hypot(b.x-p.x,b.y-p.y))[0];
   if (down) return { label: 'Revive', detail: `Hold to help ${down.name}`, progress: (down.reviveProgress || 0) / 4 };
   const objective = getObjective(game), distance = objective ? Math.hypot(p.x-objective.x,p.y-objective.y) : Infinity;
-  if (objective?.kind === 'rescue' && distance < objective.radius) return { label: 'Rescue', detail: 'Hold to stabilize the crew', progress: objective.progress || 0 };
-  if (objective?.kind === 'barricade' && distance < 85) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
+  if (objective?.kind === 'rescue' && distance < objective.radius && hasLineOfSight(game, p, objective)) return { label: 'Rescue', detail: 'Hold to stabilize the crew', progress: objective.progress || 0 };
+  if (objective?.kind === 'barricade' && distance < 85 && hasLineOfSight(game, p, objective)) return { label: 'Clear', detail: 'Hold to clear the route', progress: objective.progress || 0 };
   if (p.hp < p.maxHp && p.medkits > 0 && !['rescue','barricade'].includes(objective?.kind)) return { label: 'Bandage', detail: 'Hold to bandage yourself', progress: (p.bandageProgress || 0) / 3 };
   return null;
 }
@@ -313,8 +327,11 @@ $('guidance').value = preferences.guidance;
 $('difficulty').addEventListener('change', event => { preferences.difficulty = event.target.value; save(); });
 $('guidance').addEventListener('change', event => changeSetting('guidance', event.target.value));
 $('deploy').addEventListener('click', () => startMission());
-$('menuSound').addEventListener('click', () => { preferences.sound = !preferences.sound; soundUI(); if (preferences.sound) audio.unlock(); save(); });
-$('soundToggle').addEventListener('change', event => { preferences.sound = event.target.checked; soundUI(); save(); });
+$('menuSound').addEventListener('click', () => {
+  preferences.sound = !preferences.sound || audio.context?.state !== 'running';
+  soundUI(); if (preferences.sound) void audio.unlock().then(menuSoundLabel); save();
+});
+$('soundToggle').addEventListener('change', event => { preferences.sound = event.target.checked; soundUI(); if (preferences.sound) void audio.unlock().then(menuSoundLabel); save(); });
 $('motionToggle').addEventListener('change', event => changeSetting('reducedMotion', event.target.checked));
 $('touchToggle').addEventListener('change', event => changeSetting('touchControls', event.target.checked));
 $('pauseButton').addEventListener('click', () => pause());
@@ -523,16 +540,24 @@ function updateHUD() {
   if (lastRadio !== radioKey) { $('radio').innerHTML = messages.map(m => `<div class="radio-line"><strong>${escape(m.speaker)}</strong>${escape(m.text)}</div>`).join(''); lastRadio = radioKey; }
   const interactText = shared ? (assist ? `${touch ? 'Hold ASSIST' : 'Hold E'} to ${assist.detail.replace(/^Hold to /,'')}.` : '') : typeof game.interactionPrompt === 'string' ? game.interactionPrompt : '';
   let hint = interactText;
-  if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
+  if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : 'Hold E to work on the objective.';
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? 'Follow the amber marker. Right click to send your squad.' : 'Stay near Hale. He will lead you to the objective.';
   if (touch) hint = assist ? assist.detail : '';
+  const house = p ? buildingAt(game.world, p) : null;
+  const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
+  if (interiorNotice.scene !== scene || interiorNotice.id !== (house?.id || '')) interiorNotice = { scene, id: house?.id || '', at: game.time };
+  if (!hint && p?.alive && !p.downed && preferences.guidance !== 'expert' && !showMap && !placingOrder) {
+    if (house && game.time - interiorNotice.at < 4) hint = 'Inside · Doorways stay exposed';
+    else if (!house && game.world.buildings.some(b => b.enterable && b.doors?.some(d => Math.hypot(p.x - d.x, p.y - d.y) < 65))) hint = 'Open doorway · Walk inside';
+  }
+  attr($('hud'), 'data-building', house?.id || '');
   text('contextHint', hint); style($('desktopHint'), 'visibility', preferences.guidance === 'expert' ? 'hidden' : 'visible');
   for (const [key,value] of Object.entries({ stage: game.stageIndex, status: game.status, role: game.role, online: shared, room: shared ? coop.room?.code || '' : '', humans: shared ? game.humanIds?.length || 0 : 1 })) attr($('hud'), `data-${key}`, value);
   measureSafeInsets();
 }
 
 function finishMission() {
-  mode = 'result'; paused = false; $('pauseOverlay').hidden = true; clearInput(); closeOrders(); audio.stop();
+  mode = 'result'; paused = false; $('pauseOverlay').hidden = true; clearInput(); closeOrders(); audio.setScene('paused');
   const won = game.status === 'won';
   const fitSquad = game.squad.filter(s => s.alive && !s.downed).length;
   const harmed = game.stats.civilianHarm || 0;
@@ -658,7 +683,7 @@ function renderCoopRoom(room) {
   if (room.status === 'lobby') {
     const entering = $('coopLobby').hidden || mode !== 'menu';
     mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; onlineEpoch = null; onlineRole = null;
-    clearInput(); closeOrders(); audio.stop();
+    clearInput(); closeOrders(); audio.setScene('menu');
     document.body.classList.add('in-menu','online'); document.body.classList.remove('touch','map-open','placing-order');
     $('menu').hidden = false; $('hud').hidden = true; $('touchControls').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true;
     $('coopOverlay').hidden = false; $('coopConnectForm').hidden = true; $('coopLobby').hidden = false;
@@ -677,7 +702,7 @@ function receiveCoopState(state) {
   if (fresh) {
     onlineEpoch = room.epoch; selectedMission = state.missionIndex;
     mode = 'playing'; paused = !!keepMenu; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
-    clearInput(); closeOrders(); audio.stop();
+    clearInput(); closeOrders(); audio.setScene(paused ? 'paused' : 'mission');
     document.body.classList.remove('in-menu','orders-open','map-open','placing-order'); document.body.classList.add('online');
     $('menu').hidden = true; $('coopOverlay').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = !paused; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
     $('missionName').textContent = game.mission.title.toUpperCase();
@@ -745,7 +770,7 @@ function renderView(now) {
   flag(document.body, 'desktop-aim', aimActive);
   return { time: now / 1000, menu: mode === 'menu', paused, pointer: aimActive ? pointer : null, showMap, placingOrder,
     guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
-    quality: preferences.graphicsQuality, zoom: preferences.cameraZoom, lookahead: preferences.cameraLookahead,
+    quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,
     crosshair: preferences.crosshairStyle, crosshairScale: preferences.crosshairScale, aimColor: preferences.aimColor, aimLine: preferences.aimLine };
 }
 function updatePerformance(now) {
@@ -761,6 +786,8 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (document.hidden) return;
   const blocked = paused || !!document.querySelector('dialog[open]');
+  const audioScene = mode === 'menu' ? 'menu' : mode === 'playing' && !blocked && (!online() || coop.connected) ? 'mission' : 'paused';
+  if (audio.scene !== audioScene) audio.setScene(audioScene);
   const cap = mode === 'playing' && !blocked ? preferences.frameLimit : 30;
   const dt = framePacer.next(now, cap);
   if (dt === null) return;
@@ -797,5 +824,5 @@ function frame(now) {
   updatePerformance(now);
 }
 
-chooseRole(preferences.role); applySettings(); missionMenu();
+chooseRole(preferences.role); applySettings(); missionMenu(); audio.setScene('menu');
 initializeCoop(); requestAnimationFrame(frame);

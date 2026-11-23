@@ -29,6 +29,31 @@ function newCanvas(width, height) {
   canvas.width = width; canvas.height = height; return canvas;
 }
 
+function insideBuilding(building, point) {
+  return point && point.x >= building.x && point.x <= building.x + (building.w ?? building.width) &&
+    point.y >= building.y && point.y <= building.y + (building.h ?? building.height);
+}
+
+/** Roof removal is a viewing aid, never a source of enemy visibility. */
+export function houseRevealed(building, state, view = {}) {
+  if (!building.enterable || view.menu) return false;
+  const squad = state.squad || [];
+  // Keep a separated teammate, including someone waiting for aid, readable.
+  if (squad.some(actor => (actor.alive !== false || actor.downed) && insideBuilding(building, actor))) return true;
+  if ((state.survivors || []).some(actor => actor.stabilized && actor.alive !== false && insideBuilding(building, actor))) return true;
+  const player = squad.find(actor => view.followActorId && actor.id === view.followActorId) || squad.find(actor => actor.id === state.playerId) || squad[0];
+  if (!player) return false;
+  // Approach through the actual opening. Walking alongside a solid wall does
+  // not expose its rooms, and hostile/civilian occupants cannot lift a roof.
+  return (building.doors || []).some(door => {
+    const vertical = door.side === 'east' || door.side === 'west';
+    const normal = vertical ? player.x - door.x : player.y - door.y;
+    const outward = normal * (door.side === 'south' || door.side === 'east' ? 1 : -1);
+    const across = vertical ? player.y - door.y : player.x - door.x;
+    return outward >= -12 && outward <= 72 && Math.abs(across) <= Math.max(12, door.width / 2 - 5);
+  });
+}
+
 /** Draws the battlefield at native map resolution once, then composites dynamic units. */
 export class Renderer {
   constructor(canvas) {
@@ -40,6 +65,8 @@ export class Renderer {
     this.camera = { x: 1200, y: 950, zoom: 1 };
     this.mapCache = null;
     this.mapIdentity = null;
+    this.houseCutaways = [];
+    this.lastHouseTime = null;
     this.lastPlayerId = null;
     this.lastRender = 0;
     this.cameraReady = false;
@@ -164,7 +191,20 @@ export class Renderer {
     for (const prop of world.props || []) {
       if (!this.isDynamicProp(prop)) this.drawProp(ctx, prop, 0, false);
     }
-    for (const building of world.buildings || []) this.drawBuilding(ctx, building);
+    this.houseCutaways.length = 0;
+    this.lastHouseTime = null;
+    for (const building of world.buildings || []) {
+      this.drawBuilding(ctx, building);
+      if (!building.enterable) continue;
+      this.drawDoorways(ctx, building);
+      // Closed roofs remain part of the single district texture. Only these
+      // small, opaque room patches need compositing when a house opens.
+      const patch = newCanvas(Math.ceil(building.w), Math.ceil(building.h));
+      const roomCtx = patch.getContext('2d', {alpha:false});
+      roomCtx.translate(-building.x, -building.y);
+      this.drawInterior(roomCtx, building);
+      this.houseCutaways.push({building, canvas:patch, amount:0});
+    }
     // Uneven edge establishes the playable district without a bright game-board border.
     ctx.strokeStyle = 'rgba(35,34,27,.55)'; ctx.lineWidth = 14; ctx.strokeRect(0, 0, w, h);
     this.mapCache = cache; this.mapIdentity = world; this.mapMission = missionIndex;
@@ -258,6 +298,110 @@ export class Renderer {
       ctx.fillStyle = '#7b725d'; ctx.beginPath(); ctx.moveTo(x + w, y + h - 25); ctx.lineTo(x + w - 14, y + h - 18); ctx.lineTo(x + w - 23, y + h); ctx.lineTo(x + w, y + h); ctx.fill();
       for (let k = 0; k < 5; k++) { ctx.fillStyle = '#8d846b'; ctx.fillRect(x + w + hash(seed + k) * 13, y + h + hash(seed + k + 6) * 10, 4, 3); }
     }
+  }
+
+  drawDoorways(ctx, building) {
+    const thickness = finite(building.wallThickness, 10);
+    for (const door of building.doors || []) {
+      ctx.save(); ctx.translate(door.x, door.y);
+      if (door.side === 'north') ctx.rotate(Math.PI);
+      else if (door.side === 'east') ctx.rotate(-Math.PI / 2);
+      else if (door.side === 'west') ctx.rotate(Math.PI / 2);
+      const half = door.width / 2;
+      // A recessed opening, worn step and masonry jambs read as part of the
+      // street, including at a small phone zoom. No floating entrance icon.
+      ctx.fillStyle = '#323d33'; ctx.fillRect(-half, -thickness - 6, door.width, thickness + 7);
+      ctx.fillStyle = '#a59b7c'; ctx.fillRect(-half - 1, 1, door.width + 2, 8);
+      ctx.fillStyle = '#b7ad8c'; ctx.fillRect(-half + 5, 1, door.width - 10, 2);
+      ctx.fillStyle = 'rgba(55,53,40,.35)'; ctx.fillRect(-half - 3, 9, door.width + 6, 3);
+      ctx.fillStyle = '#b6aa8a'; ctx.fillRect(-half - 4, -thickness, 5, thickness + 12); ctx.fillRect(half - 1, -thickness, 5, thickness + 12);
+      // Open timber leaves fold back beside the passage rather than crossing it.
+      ctx.fillStyle = '#5c6451'; ctx.fillRect(-half - 7, -thickness - 14, 4, 23);
+      line(ctx, -half - 5, -thickness - 12, -half - 5, 5, '#8b8f6f', 1);
+      ctx.restore();
+    }
+  }
+
+  drawInterior(ctx, building) {
+    const {x, y, w, h} = building, seed = x * 1.32 + y * 2.71;
+    ctx.fillStyle = '#777762'; ctx.fillRect(x, y, w, h);
+    for (let i = 0; i < (building.rooms || [building.interior]).length; i++) {
+      const room = (building.rooms || [building.interior])[i];
+      if (!room) continue;
+      ctx.fillStyle = colorPick(['#767862', '#827d65', '#777a68', '#837a64'], seed + i * 11);
+      ctx.fillRect(room.x, room.y, room.w, room.h);
+      // Worn cement tiles and low-contrast dirt are baked once, not sampled
+      // from noise on every frame. Their scale survives the wider mobile view.
+      for (let xx = room.x + 30; xx < room.x + room.w; xx += 30) line(ctx, xx, room.y, xx, room.y + room.h, 'rgba(40,47,36,.13)');
+      for (let yy = room.y + 30; yy < room.y + room.h; yy += 30) line(ctx, room.x, yy, room.x + room.w, yy, 'rgba(40,47,36,.13)');
+      ctx.strokeStyle = 'rgba(36,44,34,.22)'; ctx.lineWidth = 7; ctx.strokeRect(room.x + 3, room.y + 3, room.w - 6, room.h - 6);
+    }
+    for (let i = 0; i < 50; i++) {
+      ctx.fillStyle = i % 3 ? 'rgba(37,43,32,.09)' : 'rgba(204,196,155,.12)';
+      ctx.fillRect(x + 12 + hash(seed + i * 7) * (w - 25), y + 12 + hash(seed + i * 7 + 1) * (h - 25), 2 + hash(seed + i) * 7, 1.5);
+    }
+    for (const furniture of building.furniture || []) this.drawFurnishing(ctx, furniture);
+    for (const wall of building.walls || []) {
+      ctx.fillStyle = 'rgba(30,37,29,.32)'; ctx.fillRect(wall.x + 3, wall.y + 5, wall.w, wall.h);
+    }
+    for (const wall of building.walls || []) {
+      ctx.fillStyle = '#484f40'; ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+      ctx.fillStyle = wall.kind === 'partition' ? '#b5aa87' : '#bcb08e'; ctx.fillRect(wall.x + 1, wall.y + 1, Math.max(1, wall.w - 2), Math.max(1, wall.h - 3));
+      ctx.fillStyle = '#d0c3a0'; ctx.fillRect(wall.x + 1, wall.y + 1, Math.max(1, wall.w - 2), 2);
+    }
+    // The same geometry supplies the exterior steps and the now-open sill.
+    for (const door of building.doors || []) {
+      const t = finite(building.wallThickness, 10);
+      ctx.fillStyle = '#9d9476';
+      if (door.side === 'north' || door.side === 'south') ctx.fillRect(door.x - door.width / 2, door.y - (door.side === 'south' ? t : 0), door.width, t);
+      else ctx.fillRect(door.x - (door.side === 'east' ? t : 0), door.y - door.width / 2, t, door.width);
+    }
+  }
+
+  drawFurnishing(ctx, item) {
+    const {x, y, w, h} = item, seed = x + y + finite(item.tone) * 100;
+    if (item.type === 'mat' || item.type === 'rug') {
+      ctx.fillStyle = 'rgba(28,34,27,.2)'; ctx.fillRect(x + 2, y + 3, w, h);
+      ctx.fillStyle = colorPick(['#976b4e', '#727d62', '#a08c61', '#6c8073'], seed); ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#b3a079'; ctx.lineWidth = 2; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+      for (let yy = y + 7; yy < y + h - 4; yy += 5) line(ctx, x + 5, yy, x + w - 5, yy, 'rgba(225,207,157,.13)');
+      // Rolled bedding makes these homes feel occupied without filling the
+      // navigable central lane with furniture that has no collision body.
+      ctx.fillStyle = '#a7a78a'; ctx.fillRect(x + 5, y + 5, Math.max(7, w - 10), 7);
+      line(ctx, x + 6, y + 11, x + w - 6, y + 11, '#646f58', 2);
+    } else {
+      ctx.fillStyle = 'rgba(25,34,26,.35)'; ctx.fillRect(x - 3, y + 3, w + 3, h);
+      ctx.fillStyle = '#554f3b'; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#8c8260'; ctx.fillRect(x + 1, y + 1, w - 2, h - 3);
+      for (let yy = y + 9; yy < y + h - 2; yy += 10) line(ctx, x + 1, yy, x + w - 1, yy, '#555b44', 1.5);
+      ctx.fillStyle = '#b9ac82'; ctx.fillRect(x + 2, y + 3, Math.max(2, w - 4), 4);
+      if (h > 25) { ctx.fillStyle = '#647d70'; ctx.fillRect(x + 2, y + h - 11, Math.max(2, w - 4), 6); }
+    }
+  }
+
+  updateHouseCutaways(state, view, time) {
+    const delta = this.lastHouseTime === null ? 1 / 60 : clamp(time - this.lastHouseTime, 0, .08);
+    this.lastHouseTime = time;
+    for (const house of this.houseCutaways) {
+      const target = houseRevealed(house.building, state, view) ? 1 : 0;
+      house.amount = view.reducedMotion ? target : target ? Math.min(1, house.amount + delta / .18) : Math.max(0, house.amount - delta / .22);
+    }
+  }
+
+  houseVisibility(point, view = {}) {
+    if (view.showMap) return 1;
+    for (const house of this.houseCutaways) if (insideBuilding(house.building, point)) return view.menu ? 0 : house.amount;
+    return 1;
+  }
+
+  drawHouseCutaways(ctx, view, bounds) {
+    if (view.menu) return;
+    for (const house of this.houseCutaways) {
+      const b = house.building, alpha = view.showMap ? 1 : house.amount;
+      if (alpha <= 0 || b.x > bounds.right || b.x + b.w < bounds.left || b.y > bounds.bottom || b.y + b.h < bounds.top) continue;
+      ctx.globalAlpha = alpha; ctx.drawImage(house.canvas, b.x, b.y, b.w, b.h);
+    }
+    ctx.globalAlpha = 1;
   }
 
   isDynamicProp(p) { return ['crash', 'helicopter', 'barricade', 'barrier', 'fire', 'checkpoint'].includes(p.type); }
@@ -652,15 +796,17 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawEffects(ctx, state, time) {
+  drawEffects(ctx, state, time, view = {}) {
     for (const b of state.bullets || []) {
-      if (!this.inView(b.x, b.y, 30)) continue;
+      if (!this.inView(b.x, b.y, 30) || this.houseVisibility(b, view) <= .05) continue;
       const px = Number.isFinite(b.px) ? b.px : b.x - finite(b.vx) * .013, py = Number.isFinite(b.py) ? b.py : b.y - finite(b.vy) * .013;
       line(ctx, px, py, b.x, b.y, b.team === 'squad' ? 'rgba(255,225,151,.85)' : 'rgba(246,161,102,.82)', 1.3 / this.camera.zoom);
       circle(ctx, b.x, b.y, 1.5 / this.camera.zoom, '#fff0ba');
     }
     for (const e of state.effects || []) {
-      if (!this.inView(e.x, e.y, 50)) continue;
+      if (!this.inView(e.x, e.y, 50) || this.houseVisibility(e, view) <= .05) continue;
+      // A revealed floor plan does not expose a gunman behind its partition.
+      if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
       const life = clamp(e.ttl / (e.maxTtl || .3), 0, 1);
       ctx.save(); ctx.globalAlpha = life;
       if (e.type === 'muzzle') {
@@ -779,7 +925,7 @@ export class Renderer {
     this.touchView = !!view.touch; this.mapView = !!view.showMap; this.menuView = !!view.menu;
     this.safeRect = this.playableRect(view);
     const safe = this.safeRect;
-    let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), .8, 1.4);
+    let zoom = (view.touch ? (this.height > this.width ? 1.1 : 1.04) : this.width < 600 ? 1.02 : this.width < 1000 ? 1.08 : 1.2) * clamp(finite(view.zoom, 1), view.touch ? .6 : .8, view.touch ? 1.25 : 1.4);
     let tx = player.x, ty = player.y;
     // Keep the soldier in the usable battlefield between the HUD and thumb controls.
     if (!view.menu && !view.showMap) {
@@ -836,6 +982,7 @@ export class Renderer {
     if (!view.cameraPrepared || !this.cameraReady) this.updateCamera(state, view);
     const world = state.world, time = finite(view.time, state.time || 0), zoom = this.camera.zoom, safe = this.safeRect;
     this.quality = ['performance','balanced','high'].includes(view.quality) ? view.quality : 'balanced';
+    this.updateHouseCutaways(state, view, time);
     const ctx = this.ctx;
     ctx.imageSmoothingQuality = this.quality === 'high' ? 'high' : 'low';
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.fillStyle = view.showMap ? '#101b17' : '#252f28'; ctx.fillRect(0, 0, this.width, this.height);
@@ -849,17 +996,23 @@ export class Renderer {
     const right = clamp(Math.ceil(this.camera.x + this.width / zoom / 2) + 1, 0, world.width);
     const bottom = clamp(Math.ceil(this.camera.y + this.height / zoom / 2) + 1, 0, world.height);
     if (right > left && bottom > top) ctx.drawImage(this.mapCache, left, top, right-left, bottom-top, left, top, right-left, bottom-top);
+    this.drawHouseCutaways(ctx, view, {left, top, right, bottom});
     if (view.showMap) { ctx.strokeStyle = '#718272'; ctx.lineWidth = 1 / this.camera.zoom; ctx.strokeRect(0, 0, world.width, world.height); }
     for (const prop of world.props || []) if (this.isDynamicProp(prop) && this.inView(prop.x, prop.y, 150)) this.drawProp(ctx, prop, time, true);
     this.drawObjective(state, time, view); this.drawOrder(state, time, view);
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
     this.visibleEnemies.length = 0;
-    for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
+    for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.houseVisibility(actor, view) > .01 && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
     const actors = this.actorBuffer; actors.length = 0;
     for (const group of [state.civilians, state.survivors, this.visibleEnemies, state.squad]) for (const actor of group || []) if (this.inView(actor.x, actor.y, 65)) actors.push(actor);
     actors.sort((a, b) => a.y - b.y);
-    for (const actor of actors) this.drawActor(ctx, actor, state, time, view);
-    this.drawEffects(ctx, state, time);
+    for (const actor of actors) {
+      const visibility = this.houseVisibility(actor, view);
+      if (visibility <= .01) continue;
+      ctx.save(); ctx.globalAlpha = Math.min(1, visibility * 1.5);
+      this.drawActor(ctx, actor, state, time, view); ctx.restore();
+    }
+    this.drawEffects(ctx, state, time, view);
     for (const smoke of state.smokes || []) if (this.inView(smoke.x, smoke.y, finite(smoke.radius, 90) * 1.5)) this.drawSmoke(ctx, smoke, time);
     // The wreck's rising plume stays separate from gameplay smoke and drifts with the wind.
     const wrecks = (state.vehicles || []).filter(v => v.kind === 'helicopter' || v.kind === 'crash');
@@ -877,7 +1030,7 @@ export class Renderer {
     if (view.showMap) {
       ctx.fillStyle = '#e2d9bb'; ctx.font = '600 12px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('DISTRICT MAP', safe.cx, view.touch ? safe.top + 5 : 22);
       ctx.fillStyle = '#b9c7ad'; ctx.font = '11px ui-monospace, monospace';
-      ctx.fillText(view.touch ? (view.placingOrder ? 'Tap a street to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a position • M to close' : 'Stay with the marked squad • M to close', safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
+      ctx.fillText(view.touch ? (view.placingOrder ? 'Tap a street or room to set the destination' : 'Squad and objective positions') : state.role === 'leader' ? 'Select MOVE, then a street or room • M to close' : 'Stay with the marked squad • M to close', safe.cx, view.touch ? safe.bottom - 4 : this.height - 22);
     }
   }
 
@@ -895,7 +1048,17 @@ export function renderMinimap(canvas, state, options = {}) {
   ctx.save(); ctx.translate(ox, oy); ctx.scale(scale, scale);
   ctx.fillStyle = '#394439'; ctx.fillRect(0, 0, world.width, world.height);
   for (const r of world.roads || []) { ctx.fillStyle = '#465245'; ctx.fillRect(r.x, r.y, r.w ?? r.width, r.h ?? r.height); }
-  for (const b of world.buildings || []) { ctx.fillStyle = '#72806a'; ctx.fillRect(b.x, b.y, b.w ?? b.width, b.h ?? b.height); }
+  for (const b of world.buildings || []) {
+    ctx.fillStyle = b.enterable ? '#4b5645' : '#72806a'; ctx.fillRect(b.x, b.y, b.w ?? b.width, b.h ?? b.height);
+    if (!b.enterable) continue;
+    ctx.fillStyle = '#859075';
+    for (const wall of b.walls || []) ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+    for (const door of b.doors || []) {
+      const half = door.width / 2 - 5, thickness = Math.max(5, .6 / scale);
+      if (door.side === 'north' || door.side === 'south') line(ctx, door.x - half, door.y, door.x + half, door.y, '#9baf8c', thickness);
+      else line(ctx, door.x, door.y - half, door.x, door.y + half, '#9baf8c', thickness);
+    }
+  }
   for (const v of state.vehicles || []) { ctx.fillStyle = '#b7c5a1'; ctx.fillRect(v.x - 3 / scale, v.y - 1.5 / scale, 6 / scale, 3 / scale); }
   const o = state.objective;
   if (o && Number.isFinite(o.x)) { circle(ctx, o.x, o.y, 5 / scale, 'rgba(237,191,112,.2)', COLORS.objective, 1.4 / scale); }

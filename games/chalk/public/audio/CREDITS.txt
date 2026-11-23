@@ -43,3 +43,44 @@ an exact weapon model for every character or an original 1993 recording.
 These are reusable recordings from other places and times, not archival audio
 of the Battle of Mogadishu. In-game distance filtering, stereo placement, and
 level changes are playback processing rather than separate recordings.
+
+Menu ambience and command recordings — verified 22 November 2026
+
+radio-chatter.mp3
+Source: Military Plane Radio Chatter.flac — qubodup / Iwan Gabovitch
+https://freesound.org/people/qubodup/sounds/182817/
+Public player media: https://cdn.freesound.org/previews/182/182817_71257-hq.mp3
+License: CC0 1.0, explicitly linked on the sound page.
+The uploader describes bomber-crew and flight-control communication at
+Barksdale AFB, extracted from U.S. government video. This is not communication
+from the Battle of Mogadishu and is used only as background radio texture.
+Processed for CHALK: a 30-second excerpt beginning at 5 seconds, band limited
+to 260–3,200 Hz, loudness adjusted, short edge fades, mono 22,050 Hz / 64 kbps MP3.
+Playback selects sparse 3.2–4.9-second fragments, rather than looping all speech.
+
+command-go.mp3
+Source: com_go.ogg — insanity54
+https://freesound.org/people/insanity54/sounds/349661/
+Public player media: https://cdn.freesound.org/previews/349/349661_464940-hq.mp3
+License: CC0 1.0, explicitly linked on the sound page.
+The publisher describes an original human performance of "Go Go Go!", made
+as an alternative to using a commercial game's sound effects.
+
+command-move.mp3
+Source: moveout.ogg — insanity54
+https://freesound.org/people/insanity54/sounds/349667/
+Public player media: https://cdn.freesound.org/previews/349/349667_464940-hq.mp3
+License: CC0 1.0, explicitly linked on the sound page.
+The publisher describes an original human performance of "alright, let's move
+out", made as an alternative to using a commercial game's sound effects.
+
+Both command files retain the complete short spoken phrase, with band limiting
+to 220–3,600 Hz, loudness adjustment and brief edge fades. Converted to mono
+22,050 Hz / 64 kbps MP3. They are fictional performance assets, not historical
+radio traffic. Menu playback keeps them sparse; mission playback uses them
+only for corresponding movement orders, smoke movement calls, and a cleared
+convoy route. Browser speech synthesis is not used.
+
+Menu wind and helicopter layers reuse the recorded assets credited above.
+Subdued distant impact/rumble and carrier-squelch layers are procedural sound
+design made for CHALK. They are not recordings of actual explosions or voices.

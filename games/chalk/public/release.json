@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "date": "2026-11-22",
   "missions": 4,
   "roles": [
@@ -16,8 +16,14 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "recorded rifle, rotor and wind samples with spatial processing",
-  "mobile": "full-screen HUD, adaptive thumb controls, contextual assistance",
+  "audio": "layered menu ambience with recorded radio and command voices, helicopter passes, wind, and procedural distant impacts; context-matched squad commands during play",
+  "mobile": {
+    "cameraZoomDefault": 0.75,
+    "hudScaleDefault": 0.85,
+    "hudDetailDefault": "compact",
+    "separateDesktopPreferences": true,
+    "fullSizeTouchTargets": true
+  },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
     "aim": "single adjustable reticle with optional cover cue",
@@ -35,5 +41,11 @@
     ],
     "performance": "cached effects, cropped map rendering, bounded render buffers, change-only HUD updates",
     "diagnostics": "F3: FPS, frame time and actual Canvas 2D buffer dimensions"
+  },
+  "buildings": {
+    "enterable": true,
+    "entry": "walk through open north/south doorways",
+    "interiors": "shared walls, room partitions, decorative furnishings and automatic roof cutaways",
+    "sharedCollision": "solo, AI navigation, bullets, sight lines, desktop aim and co-op prediction"
   }
 }

@@ -11,15 +11,18 @@ const ENUMS = {
   crosshairStyle: ['cross', 'ring', 'dot'],
   aimColor: ['white', 'amber', 'teal'],
   hudDetail: ['standard', 'compact'],
+  mobileHudDetail: ['standard', 'compact'],
 };
 const RANGES = {
   cameraZoom: [.8, 1.4],
+  mobileCameraZoom: [.6, 1.25],
   cameraLookahead: [0, 1],
   crosshairScale: [.75, 1.5],
   masterVolume: [0, 1],
   effectsVolume: [0, 1],
   ambienceVolume: [0, 1],
   hudScale: [.85, 1.3],
+  mobileHudScale: [.75, 1.15],
 };
 const BOOLEANS = ['sound', 'reducedMotion', 'aimLine', 'autoReload', 'showFPS'];
 const FRAME_LIMITS = [0, 60, 120];
@@ -33,6 +36,7 @@ export function createDefaults({ reducedMotion = false, touchControls } = {}) {
     aimColor: 'white', aimLine: true, autoReload: true,
     masterVolume: 1, effectsVolume: 1, ambienceVolume: 1,
     hudScale: 1, hudDetail: 'standard', showFPS: false,
+    mobileCameraZoom: .75, mobileHudScale: .85, mobileHudDetail: 'compact',
     ...(typeof touchControls === 'boolean' ? { touchControls } : {}),
   };
 }

@@ -1,9 +1,15 @@
 // Field audio: CC0 recordings where available, with bounded procedural fallbacks.
 // Source attribution and editing notes are in audio/CREDITS.txt.
+import { buildingAt } from './building-geometry.mjs';
+
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const MASTER_GAIN = .44;
-const SAMPLE_FILES = { rifle: 'rifle-shot.mp3', hostile: 'hostile-shot.mp3', rotor: 'rotor-loop.mp3', wind: 'wind.mp3' };
+const SAMPLE_FILES = {
+  rifle: 'rifle-shot.mp3', hostile: 'hostile-shot.mp3', rotor: 'rotor-loop.mp3', wind: 'wind.mp3',
+  radio: 'radio-chatter.mp3', commandGo: 'command-go.mp3', commandMove: 'command-move.mp3',
+};
+const SCENES = new Set(['menu', 'mission', 'paused']);
 
 export class GameAudio {
   constructor() {
@@ -14,11 +20,18 @@ export class GameAudio {
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
     this.lastShots = 0; this.lastRadio = null; this.shotBudget = 8;
     this.footTravel = new Map(); this.vehiclePositions = new Map(); this.diagnosticTime = 0;
+    this.scene = 'paused'; this.menuBus = null; this.missionAmbienceBus = null;
+    this.menuTimer = null; this.menuSchedule = null; this.lastMenuVoice = null;
+    this.lastCommandVoiceTime = -Infinity;
+    this.hidden = Boolean(globalThis.document?.hidden); this.lifecycleAttached = false;
+    this.onVisibility = () => { this.hidden = Boolean(globalThis.document?.hidden); if (this.hidden) this.stop(); else this._syncScene(); };
+    this.onContextState = () => { if (this.context?.state !== 'running') this.stop(); else this._syncScene(); };
   }
 
   async unlock() {
     if (this.unavailable) return false;
     try {
+      this.hidden = Boolean(globalThis.document?.hidden);
       if (!this.context) {
         const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
         if (!AudioContextClass) { this.unavailable = true; return false; }
@@ -27,6 +40,8 @@ export class GameAudio {
         this.effectsBus = context.createGain(); this.effectsBus.gain.value = this.levels.effects;
         this.ambienceBus = context.createGain(); this.ambienceBus.gain.value = this.levels.ambience;
         this.effectsBus.connect(this.master); this.ambienceBus.connect(this.master);
+        this.menuBus = context.createGain(); this.menuBus.gain.value = 0; this.menuBus.connect(this.ambienceBus);
+        this.missionAmbienceBus = context.createGain(); this.missionAmbienceBus.gain.value = 0; this.missionAmbienceBus.connect(this.ambienceBus);
         const limiter = context.createDynamicsCompressor();
         limiter.threshold.value = -12; limiter.knee.value = 8; limiter.ratio.value = 10;
         limiter.attack.value = .002; limiter.release.value = .16;
@@ -34,10 +49,13 @@ export class GameAudio {
         this.noise = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
         const noise = this.noise.getChannelData(0);
         for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
-        this._makeReflections(); this._makeEngine();
+        this._makeReflections(); this._makeEngine(); this._makeRumble();
+        context.addEventListener?.('statechange', this.onContextState);
+        if (!this.lifecycleAttached) { globalThis.document?.addEventListener?.('visibilitychange', this.onVisibility); this.lifecycleAttached = true; }
         void this._loadSamples();
       }
-      if (this.context.state !== 'running' && this.context.state !== 'closed') await this.context.resume();
+      if (!this.hidden && this.context.state !== 'running' && this.context.state !== 'closed') await this.context.resume();
+      this._syncScene();
       this._diagnostics(); return this.context.state === 'running';
     } catch { this._diagnostics(); return false; }
   }
@@ -64,6 +82,8 @@ export class GameAudio {
     data.audioSamples = Object.keys(SAMPLE_FILES).map(k => `${k}:${this.sampleStatus[k] || 'pending'}`).join(',');
     data.audioVoices = String(this.voices.size);
     data.audioLoops = String(this.loops.size);
+    data.audioScene = this.scene;
+    data.audioMenuScheduler = this.menuTimer == null ? 'stopped' : 'running';
   }
 
   _makeReflections() {
@@ -97,10 +117,119 @@ export class GameAudio {
     }
   }
 
+  _makeRumble() {
+    const c = this.context, length = Math.floor(c.sampleRate * 4);
+    this.rumble = c.createBuffer(1, length, c.sampleRate);
+    const data = this.rumble.getChannelData(0); let low = 0, body = 0;
+    for (let i = 0; i < length; i++) {
+      const t = i / c.sampleRate, noise = Math.random() * 2 - 1;
+      low = low * .994 + noise * .006; body = body * .91 + noise * .09;
+      const envelope = Math.min(1, t / .085) * Math.exp(-t * 1.45);
+      data[i] = clamp((low * 4.5 + body * .65 + Math.sin(t * 2 * Math.PI * 43) * .05) * envelope, -.8, .8);
+    }
+  }
+
+  // Scene selection never unlocks audio. Call unlock() from a user gesture first.
+  setScene(scene) {
+    if (!SCENES.has(scene)) return this.scene;
+    if (this.scene === scene) return this.scene;
+    this._cancelMenuScheduler(); this.scene = scene;
+    this._syncScene(); this._diagnostics(); return this.scene;
+  }
+
+  _cancelMenuScheduler() {
+    if (this.menuTimer != null) clearInterval(this.menuTimer);
+    this.menuTimer = null; this.menuSchedule = null;
+  }
+
+  _syncScene() {
+    if (!this.context) return;
+    const now = this.context.currentTime, ready = this._ready();
+    for (const [bus, active] of [[this.menuBus, this.scene === 'menu'], [this.missionAmbienceBus, this.scene === 'mission']]) {
+      bus.gain.cancelScheduledValues(now); bus.gain.setTargetAtTime(ready && active ? 1 : 0, now, .18);
+    }
+    if (!ready || this.scene === 'paused') { this.stop(); return; }
+    const menu = this.scene === 'menu';
+    for (const key of [...this.loops.keys()]) if (key.startsWith('menu:') !== menu) this._stopLoop(key, .55);
+    this._stopVoices(voice => menu ? voice.bus !== 'menu' : voice.bus === 'menu', .22);
+    if (!menu || this.levels.master === 0 || this.levels.ambience === 0) {
+      this._cancelMenuScheduler();
+      if (menu) {
+        for (const key of [...this.loops.keys()]) if (key.startsWith('menu:')) this._stopLoop(key);
+        this._stopVoices(voice => voice.bus === 'menu');
+      }
+      return;
+    }
+    if (this.menuTimer == null) {
+      this.menuSchedule = { radioAt: now + 1.6, impactAt: now + 7 + Math.random() * 5,
+        rotorAt: now + 2.5, rotorStart: null, rotorDuration: 24, startedAt: now, voiceUntil: now, firstVoice: true };
+      this._menuAmbience();
+      this.menuTimer = setInterval(() => this._menuAmbience(), 250);
+    }
+  }
+
+  _menuAmbience() {
+    if (!this._ready() || this.scene !== 'menu') { this._cancelMenuScheduler(); return; }
+    const schedule = this.menuSchedule; if (!schedule) return;
+    const now = this.context.currentTime, elapsed = now - schedule.startedAt;
+    const wind = this.samples.get('wind'), breeze = .85 + Math.sin(elapsed * .16) * .1 + Math.sin(elapsed * .041) * .05;
+    const speechDuck = now < schedule.voiceUntil ? .42 : 1;
+    this._loop('menu:wind', wind || this.noise, { gain: (wind ? .06 : .028) * breeze * (speechDuck < 1 ? .7 : 1), lowpass: 1550, highpass: 85, rate: wind ? 1 : .72, bus: 'menu' });
+    if (schedule.rotorStart == null && now >= schedule.rotorAt) {
+      schedule.rotorStart = now; schedule.rotorDuration = 22 + Math.random() * 8;
+      schedule.rotorAt = now + schedule.rotorDuration + 25 + Math.random() * 22;
+    }
+    if (schedule.rotorStart != null) {
+      const phase = (now - schedule.rotorStart) / schedule.rotorDuration;
+      if (phase >= 1) { this._stopLoop('menu:rotor', .65); schedule.rotorStart = null; }
+      else {
+        const rotor = this.samples.get('rotor');
+        if (rotor) this._loop('menu:rotor', rotor, { gain: .065 * Math.sin(Math.PI * phase) * speechDuck, lowpass: 1250 + Math.sin(Math.PI * phase) * 450,
+          highpass: 45, pan: -.65 + phase * 1.3, rate: .96, bus: 'menu' });
+      }
+    }
+    if (now >= schedule.radioAt) {
+      // Give the small recorded command files time to arrive before the opening call.
+      if (schedule.firstVoice && !this.samples.has('commandMove') && !this.samples.has('commandGo') && elapsed < 5) schedule.radioAt = now + .25;
+      else { this._menuRadio(schedule.firstVoice); schedule.firstVoice = false; schedule.radioAt = now + 11 + Math.random() * 13; }
+    }
+    if (now >= schedule.impactAt) { this._menuImpact(); schedule.impactAt = now + 19 + Math.random() * 18; }
+    this._diagnostics();
+  }
+
+  _menuRadio(first = false) {
+    const choices = ['commandMove', 'radio', 'commandGo'].filter(key => this.samples.has(key) && key !== this.lastMenuVoice);
+    const key = first && this.samples.has('commandMove') ? 'commandMove' : first && this.samples.has('commandGo') ? 'commandGo' : choices[Math.floor(Math.random() * choices.length)];
+    const buffer = this.samples.get(key), pan = -.3 + Math.random() * .6;
+    this._voice({ duration: .11, gain: .022, lowpass: 2200, highpass: 650, pan, bus: 'menu', priority: -2, attack: .015 });
+    if (buffer) {
+      this.lastMenuVoice = key;
+      const duration = key === 'radio' ? 3.2 + Math.random() * 1.7 : buffer.duration;
+      const offset = key === 'radio' ? Math.random() * Math.max(0, buffer.duration - duration - .1) : 0;
+      if (this.menuSchedule) this.menuSchedule.voiceUntil = this.context.currentTime + duration + .3;
+      this._voice({ buffer, duration, offset, delay: .07, gain: key === 'radio' ? .2 : .24,
+        lowpass: key === 'radio' ? 2200 : 2700, highpass: 420, pan, attack: .055, bus: 'menu', priority: -2 });
+      this._voice({ duration: .1, delay: duration + .1, gain: .017, lowpass: 1700, highpass: 750, pan, attack: .015, bus: 'menu', priority: -2 });
+    } else {
+      // A restrained carrier/squelch fallback, not synthesized intelligible speech.
+      for (let i = 0; i < 7; i++) this._voice({ duration: .09 + Math.random() * .12, delay: .1 + i * .17,
+        gain: .009 + Math.random() * .009, lowpass: 1500 + Math.random() * 650, highpass: 500 + Math.random() * 250,
+        pan, attack: .02, bus: 'menu', priority: -2 });
+    }
+  }
+
+  _menuImpact() {
+    const pan = (Math.random() < .5 ? -1 : 1) * (.3 + Math.random() * .35);
+    this._voice({ buffer: this.rumble, duration: 3.8, gain: .1, lowpass: 370, highpass: 35, pan, attack: .085, bus: 'menu', priority: -2 });
+    this._voice({ duration: .38, delay: .11, gain: .018, lowpass: 850, highpass: 120, pan, attack: .035, bus: 'menu', priority: -2 });
+  }
+
   setEnabled(enabled) {
     this.enabled = Boolean(enabled);
     this._applyLevels();
     if (!this.enabled) this.stop();
+    else this._syncScene();
+    this._diagnostics();
   }
 
   setLevels(levels = {}) {
@@ -108,6 +237,8 @@ export class GameAudio {
       if (Number.isFinite(levels?.[key])) this.levels[key] = clamp(levels[key], 0, 1);
     }
     this._applyLevels();
+    this._syncScene();
+    this._diagnostics();
     return { ...this.levels };
   }
 
@@ -123,11 +254,11 @@ export class GameAudio {
     }
   }
 
-  _ready() { return Boolean(this.enabled && this.context?.state === 'running'); }
+  _ready() { return Boolean(this.enabled && !this.hidden && this.context?.state === 'running'); }
 
   _voice({ buffer = null, duration = .1, gain = .08, frequency = 0, endFrequency,
     lowpass = 6500, highpass = 60, pan = 0, delay = 0, attack = .0015,
-    rate = 1, wet = 0, priority = 0 } = {}) {
+    rate = 1, wet = 0, priority = 0, bus = 'effects', offset = 0 } = {}) {
     if (!this._ready()) return;
     if (this.voices.size >= 32) {
       const victim = [...this.voices].find(v => v.priority < priority);
@@ -138,7 +269,8 @@ export class GameAudio {
       this.voices.delete(victim);
     }
     const c = this.context, start = c.currentTime + delay;
-    const sample = Boolean(buffer); duration = Math.max(.015, sample ? Math.min(duration, buffer.duration / rate) : duration);
+    const sample = Boolean(buffer); offset = sample ? clamp(offset, 0, Math.max(0, buffer.duration - .02)) : 0;
+    duration = Math.max(.015, sample ? Math.min(duration, (buffer.duration - offset) / rate) : duration);
     gain = clamp(gain, 0, .55);
     const source = frequency ? c.createOscillator() : c.createBufferSource();
     const envelope = c.createGain(), low = c.createBiquadFilter(), high = c.createBiquadFilter();
@@ -154,17 +286,17 @@ export class GameAudio {
     source.connect(high); high.connect(low); low.connect(envelope);
     let panner = null;
     if (c.createStereoPanner) { panner = c.createStereoPanner(); panner.pan.value = clamp(pan, -.9, .9); envelope.connect(panner); }
-    const output = panner || envelope; output.connect(this.effectsBus);
+    const output = panner || envelope; output.connect(bus === 'menu' ? this.menuBus : this.effectsBus);
     let send = null;
     if (wet && this.reverbInput) { send = c.createGain(); send.gain.value = wet; output.connect(send); send.connect(this.reverbInput); }
-    const voice = { source, envelope, priority, nodes: [source, envelope, low, high, panner, send] };
+    const voice = { source, envelope, priority, bus, nodes: [source, envelope, low, high, panner, send] };
     this.voices.add(voice);
     source.onended = () => { this.voices.delete(voice); for (const n of voice.nodes) if (n) { try { n.disconnect(); } catch {} } };
-    if (frequency || sample) source.start(start); else source.start(start, Math.random() * .8);
+    if (frequency) source.start(start); else if (sample) source.start(start, offset); else source.start(start, Math.random() * .8);
     source.stop(start + duration + .015);
   }
 
-  _loop(key, buffer, { gain = 0, lowpass = 1000, highpass = 40, pan = 0, rate = 1 } = {}) {
+  _loop(key, buffer, { gain = 0, lowpass = 1000, highpass = 40, pan = 0, rate = 1, bus = 'mission' } = {}) {
     if (!this._ready() || !buffer) return;
     let loop = this.loops.get(key);
     if (loop && loop.buffer !== buffer) { this._stopLoop(key); loop = null; }
@@ -175,8 +307,9 @@ export class GameAudio {
       low.type = 'lowpass'; low.frequency.value = lowpass; high.type = 'highpass'; high.frequency.value = highpass;
       volume.gain.value = 0; source.connect(high); high.connect(low); low.connect(volume);
       let panner = null;
-      if (c.createStereoPanner) { panner = c.createStereoPanner(); volume.connect(panner); panner.connect(this.ambienceBus); }
-      else volume.connect(this.ambienceBus);
+      const destination = bus === 'menu' ? this.menuBus : this.missionAmbienceBus;
+      if (c.createStereoPanner) { panner = c.createStereoPanner(); volume.connect(panner); panner.connect(destination); }
+      else volume.connect(destination);
       loop = { buffer, source, volume, low, high, panner }; this.loops.set(key, loop);
       source.onended = () => { for (const node of [source, volume, low, high, panner]) if (node) { try { node.disconnect(); } catch {} } };
       source.start();
@@ -188,11 +321,11 @@ export class GameAudio {
     loop.panner?.pan.setTargetAtTime(clamp(pan, -.85, .85), now, .14);
   }
 
-  _stopLoop(key) {
+  _stopLoop(key, fade = .13) {
     const loop = this.loops.get(key); if (!loop) return;
     this.loops.delete(key); const now = this.context?.currentTime || 0;
-    loop.volume.gain.cancelScheduledValues(now); loop.volume.gain.setTargetAtTime(0, now, .025);
-    try { loop.source.stop(now + .13); } catch {}
+    loop.volume.gain.cancelScheduledValues(now); loop.volume.gain.setTargetAtTime(0, now, fade / 5);
+    try { loop.source.stop(now + fade); } catch {}
   }
 
   _spatial(event, player) {
@@ -245,10 +378,18 @@ export class GameAudio {
     }
   }
 
-  _radio() {
+  _radio(message) {
     this._voice({ duration: .07, gain: .045, highpass: 800, lowpass: 2500 });
     this._voice({ duration: .07, gain: .04, frequency: 920, endFrequency: 850, highpass: 300, lowpass: 1600, delay: .025 });
     this._voice({ duration: .05, gain: .025, highpass: 1200, lowpass: 2400, delay: .1 });
+    const text = String(message?.text || '');
+    const key = /^(?:Move to (?:your|the) marker|Regroup on (?:you|the leader))\./i.test(text) ? 'commandMove'
+      : /^(?:Smoke out\. Keep moving|Route is open\. Keep up with the vehicles)\./i.test(text) ? 'commandGo' : null;
+    const buffer = this.samples.get(key), now = this.context?.currentTime || 0;
+    if (buffer && now - this.lastCommandVoiceTime > 2.8) {
+      this.lastCommandVoiceTime = now;
+      this._voice({ buffer, duration: buffer.duration, delay: .1, gain: .38, lowpass: 3200, highpass: 300, attack: .035, priority: 3 });
+    }
   }
   click() { this._voice({ duration: .035, gain: .035, highpass: 950, lowpass: 2000 }); }
 
@@ -276,24 +417,29 @@ export class GameAudio {
 
   _ambience(state, player, dt) {
     if (!this._ready() || !player) return;
-    const wind = this.samples.get('wind');
+    const indoors = Boolean(buildingAt(state.world, player)), wind = this.samples.get('wind');
     const breeze = .83 + Math.sin(state.time * .19) * .12 + Math.sin(state.time * .071) * .05;
-    this._loop('wind', wind || this.noise, { gain: (wind ? .035 : .022) * breeze, lowpass: 1600, highpass: 85, rate: wind ? 1 : .7 });
+    // Existing loop gain/filter ramps soften each threshold crossing without
+    // rebuilding audio nodes or tracing sound paths through individual walls.
+    this._loop('wind', wind || this.noise, { gain: (wind ? .035 : .022) * breeze * (indoors ? .62 : 1),
+      lowpass: indoors ? 1050 : 1600, highpass: 85, rate: wind ? 1 : .7 });
     if (state.missionIndex === 0 && state.time < 20) {
       const rotor = this.samples.get('rotor');
       const pass = Math.sin(Math.PI * clamp(state.time / 20, 0, 1));
-      if (rotor) this._loop('rotor', rotor, { gain: .085 * pass, lowpass: 2100, highpass: 45, pan: (state.time / 20 - .5) * 1.6, rate: 1 });
+      if (rotor) this._loop('rotor', rotor, { gain: .085 * pass * (indoors ? .72 : 1),
+        lowpass: indoors ? 1400 : 2100, highpass: 45, pan: (state.time / 20 - .5) * 1.6, rate: 1 });
     } else this._stopLoop('rotor');
     const vehicles = (state.vehicles || []).filter(v => v.active && v.kind !== 'helicopter');
     const nearest = vehicles.sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (nearest && distance(nearest, player) < 650) {
       const previous = this.vehiclePositions.get(nearest.id), speed = previous && dt > 0 ? distance(previous, nearest) / dt : 0;
       const s = this._spatial(nearest, player);
-      this._loop('engine', this.engine, { gain: .11 * s.gain, lowpass: clamp(700 - s.d, 180, 700), highpass: 35, pan: s.pan, rate: speed > 5 ? 1.08 : .77 });
+      this._loop('engine', this.engine, { gain: .11 * s.gain * (indoors ? .76 : 1),
+        lowpass: clamp(700 - s.d, 180, 700) * (indoors ? .72 : 1), highpass: 35, pan: s.pan, rate: speed > 5 ? 1.08 : .77 });
     } else this._stopLoop('engine');
     for (const v of vehicles) this.vehiclePositions.set(v.id, { x: v.x, y: v.y });
     const density = (state.world?.buildings || []).filter(b => distance({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, player) < 310).length;
-    this.reverbReturn?.gain.setTargetAtTime(.13 + Math.min(density, 5) * .035, this.context.currentTime, .3);
+    this.reverbReturn?.gain.setTargetAtTime(Math.min(.34, .13 + Math.min(density, 5) * .035 + (indoors ? .04 : 0)), this.context.currentTime, .3);
   }
 
   tick(state, dt = 0) {
@@ -301,15 +447,15 @@ export class GameAudio {
     const player = state.squad?.find(a => a.id === state.playerId);
     const fresh = state !== this.lastState;
     if (fresh) {
-      this.stop(); this.lastState = state; this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds.clear();
+      this._stopMission(); this.lastState = state; this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds.clear();
       this.footTravel.clear(); this.vehiclePositions.clear(); this.lastShots = 0; this.lastRadio = state.radio?.at(-1)?.id;
-      this.shotBudget = 8; this.lastPlayerId = null;
+      this.shotBudget = 8; this.lastPlayerId = null; this.lastCommandVoiceTime = -Infinity;
     }
     if (state.playerId !== this.lastPlayerId) { this.lastHealth = player?.hp ?? null; this.lastPlayerId = state.playerId; }
     const seconds = clamp(Number(dt) || 0, 0, .25), shots = Number(state.stats?.shots) || 0;
     this.shotBudget = Math.min(8, this.shotBudget + seconds * 24);
-    const playing = state.status === 'playing', audible = playing && this._ready();
-    if (audible) this._ambience(state, player, seconds); else if (this.loops.size || this.voices.size) this.stop();
+    const playing = state.status === 'playing', audible = playing && this.scene === 'mission' && this._ready();
+    if (audible) this._ambience(state, player, seconds); else this._stopMission();
     if (Array.isArray(state.soundEvents)) {
       const events = state.soundEvents.filter(e => Number.isFinite(e.id) && e.id > this.lastEventId);
       for (const event of events) this.lastEventId = Math.max(this.lastEventId, event.id);
@@ -336,7 +482,7 @@ export class GameAudio {
     }
     this._movement(state, player || { x: 0, y: 0 }, audible);
     const radio = state.radio?.at(-1), radioId = radio?.id ?? null;
-    if (audible && radioId != null && radioId !== this.lastRadio) this._radio();
+    if (audible && radioId != null && radioId !== this.lastRadio) this._radio(radio);
     if (audible && player && this.lastHealth != null && player.hp < this.lastHealth) {
       this._voice({ duration: .14, gain: .08, frequency: 76, endFrequency: 42, highpass: 20, lowpass: 300, priority: 2 });
       this._voice({ duration: .075, gain: .04, highpass: 300, lowpass: 1800, priority: 2 });
@@ -346,15 +492,28 @@ export class GameAudio {
     if (this.diagnosticTime > .5) { this.diagnosticTime = 0; this._diagnostics(); }
   }
 
-  stop() {
+  _stopVoices(matches = () => true, fade = .03) {
     const now = this.context?.currentTime || 0;
-    for (const key of [...this.loops.keys()]) this._stopLoop(key);
-    if (this.reverbReturn) { this.reverbReturn.gain.cancelScheduledValues(now); this.reverbReturn.gain.setTargetAtTime(0, now, .015); }
-    for (const voice of this.voices) {
-      voice.envelope.gain.cancelScheduledValues(now); voice.envelope.gain.setTargetAtTime(0, now, .006);
-      try { voice.source.stop(now + .03); } catch {}
+    for (const voice of [...this.voices]) {
+      if (!matches(voice)) continue;
+      voice.envelope.gain.cancelScheduledValues(now); voice.envelope.gain.setTargetAtTime(0, now, fade / 5);
+      try { voice.source.stop(now + fade); } catch {}
+      this.voices.delete(voice);
     }
-    this.voices.clear();
+  }
+
+  _stopMission() {
+    const now = this.context?.currentTime || 0;
+    for (const key of [...this.loops.keys()]) if (!key.startsWith('menu:')) this._stopLoop(key);
+    this._stopVoices(voice => voice.bus !== 'menu');
+    if (this.reverbReturn) { this.reverbReturn.gain.cancelScheduledValues(now); this.reverbReturn.gain.setTargetAtTime(0, now, .015); }
+  }
+
+  stop() {
+    this._cancelMenuScheduler();
+    this._stopMission();
+    for (const key of [...this.loops.keys()]) this._stopLoop(key);
+    this._stopVoices();
     this._diagnostics();
   }
 }

@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.4 improves desktop performance, mouse aiming, HUD layout, and settings in this standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
+Version 1.5 adds enterable houses, wider mobile framing, a compact mobile HUD, and a layered ambient soundscape in this standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play four short missions alone or with a friend. Either person can lead the four-person fictional squad; computer-controlled soldiers fill every remaining position. The setting and mission structure are historically inspired, while the characters and gameplay are fictional.
 
 ## Play
 
@@ -15,6 +15,22 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 
 The missions share a compact city street layout, with varying blocks, landmarks, objectives, and afternoon/night/dawn lighting. They are intentionally short; an efficient route takes roughly one to two minutes, with human play varying by exploration and combat. Vehicles follow a route and wait for the squad. They do not have a damage model in this version.
 
+## Houses, mobile framing, and ambience: version 1.5
+
+Every ordinary house is enterable: walk through an open doorway without an interaction button. Roofs lift on a doorway approach or friendly occupancy and close after the squad leaves. Interiors contain masonry walls, wider houses have two connected rooms, and small furnishings are decorative. Doors and internal passages are wide enough for the complete squad and rescued crew. The overview map shows floor plans and the minimap shows the openings.
+
+Movement, AI navigation, bullets, sight lines, aim obstruction cues, and co-op prediction share the same deterministic wall geometry. Walls also prevent reviving or rescuing someone from the other side. Doorways remain exposed. Both the frontend and authoritative co-op server require this release; the network protocol remains unchanged.
+
+Mobile now defaults to **75% camera zoom**, **85% HUD size**, and **Compact** detail. These preferences are independent of desktop settings and are added automatically to existing saves. Camera zoom ranges from 60% to 125%, and mobile HUD size from 75% to 115%. Compact keeps the current objective, mission stage, squad health, and ammunition. Touch buttons and thumbsticks retain their full hit areas. The camera safe area follows the smaller panels and the contextual Assist control in portrait and landscape.
+
+The menu uses a sparse ambient scene: recorded wind, moving helicopter passes, filtered human radio fragments, short performed commands, and distant synthesized impact/rumble tails. The first click or tap enables browser audio; **Enable sound** also starts it directly. Voices have gaps between them and lower the menu wind/rotor bed while they play. There is no continuous music bed. The scene crossfades into mission audio, stops on pause or a hidden tab, and respects mute and the Ambience slider. Entering a house smoothly softens outdoor wind, rotors, and engine noise, with a restrained increase in room reflections.
+
+During a mission, existing movement and regroup radio events can play a recorded move-out call, and smoke/route-open movement events can play a short Go call. Hold and casualty messages do not trigger contradictory movement speech. These calls are a small initial voice vocabulary, not a full voiced dialogue system. Action volume controls nearby effects and squad calls; Ambience controls the background mix. Recordings and their edits are credited in `public/audio/CREDITS.txt`; none is presented as archival audio from the battle.
+
+Browser checks for this release covered walking into and out of a house with the squad, menu audio assets loading, scene transitions, volume controls, and mobile layouts at 390 × 844 and 844 × 390, including the largest mobile HUD setting. In a foreground Linux Chromium Cordon scene, Balanced Auto measured about 60 FPS at 1280 × 720 (1280 × 720 buffer) and 59 FPS at 2560 × 1440 (1920 × 1080 buffer). These are checks in the test environment, not guarantees for a particular phone or desktop. Physical mobile speaker/headphone and Safari testing remain separate.
+
+Roofs remain baked into the district cache. Only revealed houses add small cached interior patches, so entering a house does not rebuild the map. The wider mobile camera retains the existing bounded render resolution and fixed simulation step.
+
 ## Desktop update: version 1.4
 
 The camera is prepared before mouse coordinates are converted into the world, and drawing uses that same transform. Human weapon spread affects the projectile without moving the soldier's requested facing. There is one custom reticle; the native cursor returns in menus and on interface controls. Immediate Regroup, Hold, and Assist commands preserve held movement and fire. Camera lookahead defaults off. Near map edges, the followed soldier is kept clear of the desktop HUD with bounded extra framing.
@@ -28,7 +44,7 @@ The camera is prepared before mouse coordinates are converted into the world, an
 | Audio | Separate master, effects, and ambience levels; the Sound switch mutes without losing the mix |
 | HUD | HUD size from 85% to 130%; Standard / Compact detail; guidance level |
 
-The aim path uses the simulation's solid-building intersection math. It indicates cover, not hit probability, bullet range, or actor hits. Disabling **Reload when empty** stops the client from requesting an idle reload; pressing R or firing an empty magazine still starts a reload. Input is absolute mouse aim, so there is no artificial mouse-sensitivity multiplier or smoothing slider.
+The aim path uses the simulation's solid-wall intersection math. It indicates cover, not hit probability, bullet range, or actor hits. Disabling **Reload when empty** stops the client from requesting an idle reload; pressing R or firing an empty magazine still starts a reload. Input is absolute mouse aim, so there is no artificial mouse-sensitivity multiplier or smoothing slider.
 
 **F3** toggles actual rendered FPS, frame time, p95 frame time, the Canvas 2D backend, and backing-buffer dimensions. The frame cap does not change the simulation's fixed step or the co-op server's timing. Menus and paused rendering are capped at 30 FPS, and hidden-page drawing stops. A lower canvas resolution does not lower HUD text resolution or change cursor-to-world mapping.
 
@@ -100,9 +116,9 @@ As **Hale**, command Move, Regroup, Hold, and Assist. As **Mercer**, request Rea
 
 Touch uses a full-screen battlefield with translucent controls. The left stick anchors near your thumb; drag gently to walk and to the outer edge to sprint. A light right-stick drag aims, and pushing farther fires. Sprint stops while aiming or assisting. By default, an empty magazine reloads automatically when ammunition remains; Settings can disable the idle reload request. Smoke and reload sit between the sticks; the contextual assistance button appears for nearby wounded people, rescue work, route obstructions, or self-bandaging. The Squad / Radio button opens a compact command panel; Move opens the district map with a visible Cancel action. Opening the map or field menu, changing touch mode, and rotating the phone release held input. The field menu can enable touch controls manually. Landscape and portrait layouts are supported. Reduce motion suppresses the drifting atmosphere.
 
-Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 250 KB and load asynchronously, with procedural fallback.
+Audio starts only after a user gesture, and can be disabled. Rifle and opposing-fire reports use distinct recorded samples, processed for distance and stereo position. A helicopter pass fades after the Cordon insertion. Recorded wind, footsteps, reload handling, and convoy engines remain quieter than nearby shots. Samples total approximately 530 KB and load asynchronously, with procedural fallback.
 
-Squad members navigate around buildings, fire at visible armed opponents, and help downed teammates. The medic can recover either human player. Ammunition, smoke, and bandages are limited. Squad members who are down for too long can be lost. In solo, an unrecoverable player ends the mission; in co-op, the surviving player can continue after the other is lost. The shared mission fails when the whole squad is incapacitated or neither playable soldier can recover. Mission results emphasize survival, rescues, civilian harm, and completion time rather than kills.
+Squad members navigate around buildings and through open doorways, fire at visible armed opponents, and help downed teammates. The medic can recover either human player. Ammunition, smoke, and bandages are limited. Squad members who are down for too long can be lost. In solo, an unrecoverable player ends the mission; in co-op, the surviving player can continue after the other is lost. The shared mission fails when the whole squad is incapacitated or neither playable soldier can recover. Mission results emphasize survival, rescues, civilian harm, and completion time rather than kills.
 
 ## Historical framing
 
@@ -133,9 +149,9 @@ npm test --prefix games/chalk
 npm run test:server --prefix games/chalk
 ```
 
-The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 83-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
+The static `build` checks browser-module syntax and runs the simulation, input, renderer, settings, frame-pacing, and client tests. It deliberately excludes the server tests and does not require installing the server's `ws` dependency. `npm test` runs the complete 107-test suite, including actual WebSocket connections. `test:server` runs the backend and simulation regression tests used by the backend deployment.
 
-The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, seven touch-input tests, ten client tests, 12 server tests, seven desktop-input/aim tests, four renderer/camera tests, six settings tests, and seven frame-pacing/meter tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Release browser checks cover two separate sessions creating and joining a room, four-person rosters, a member hosting while their friend leads, role swaps, local field menus, invite links, reload recovery, and mobile layouts at 390 × 844 and 844 × 390. The deployed WebSocket service was also checked with two real clients. These checks do not include a physical iPhone/Safari session.
+The simulation is deterministic and independent of the DOM. The suite contains 19 original solo simulation tests, 11 co-op simulation tests, seven touch-input tests, ten client tests, 12 server tests, seven desktop-input/aim tests, nine renderer/camera tests, seven settings tests, seven frame-pacing/meter tests, 11 building/interior tests, and seven audio scene tests. Coverage includes all four mission routes, independent human movement, two remaining AI squad mates, command permissions, role exchange, AI recovery of either human, shared interaction progress, cohesion and extraction, disconnect takeover, authenticated reconnect, host promotion, expired rooms, stale controls, one-shot actions, snapshot recovery, and WebSocket/HTTP boundaries. Release browser checks cover two separate sessions creating and joining a room, four-person rosters, a member hosting while their friend leads, role swaps, local field menus, invite links, reload recovery, and mobile layouts at 390 × 844 and 844 × 390. The deployed WebSocket service was also checked with two real clients. These checks do not include a physical iPhone/Safari session.
 
 ## Farwake reuse and networking
 
@@ -151,10 +167,11 @@ The server advances the shared simulation at 30 Hz, accepts controls at 30 Hz, a
 Files:
 
 - `public/sim.mjs`: collision, navigation, combat, squad AI, civilians, and mission progression.
-- `public/renderer.mjs`: original Canvas 2D artwork, city cache, camera, effects, and map.
+- `public/building-geometry.mjs`: deterministic doorways, walls, rooms, and shared solid geometry.
+- `public/renderer.mjs`: original Canvas 2D artwork, cached city/interiors, roof cutaways, camera, effects, and map.
 - `public/app.mjs`, `touch-input.mjs`, `desktop-input.mjs`, `index.html`, `style.css`: menus, input, HUD, and debrief.
 - `public/settings.mjs`, `performance.mjs`: validated local preferences, rendering budgets, frame pacing, and diagnostics.
-- `public/audio.mjs`: spatial playback of recorded rifle, helicopter, and wind samples, with procedural foley and fallback. Source credits and CC0 licenses are in `public/audio/CREDITS.txt`.
+- `public/audio.mjs`: menu/mission audio scenes, recorded rifle, helicopter, wind and command/radio samples, with procedural foley and distant impacts. Source credits and CC0 licenses are in `public/audio/CREDITS.txt`.
 - `public/coop-client.mjs`: client connection, session recovery, state hydration, movement prediction, and interpolation.
 - `public/coop-protocol.mjs`, `snapshot-delta.mjs`: shared wire contract, input cleaning, and snapshot codec.
 - `public/network-config.mjs`: same-origin local WebSocket selection and the production backend address.

@@ -1,4 +1,5 @@
 import { createGame } from './sim.mjs';
+import { getSolidWalls } from './building-geometry.mjs';
 import { PROTOCOL, INPUT_HZ, cleanInput, EMPTY_INPUT, normalizeRoomCode, validRoomCode } from './coop-protocol.mjs';
 import { SnapshotDeltaDecoder } from './snapshot-delta.mjs';
 
@@ -44,7 +45,7 @@ export function predictMovement(actor, input, seconds, world) {
   const controls = cleanInput(input), duration = Math.min(seconds, MAX_PREDICTION_MS / 1000);
   const radius = finite(actor.radius, 13), width = finite(world.width, 2400), height = finite(world.height, 1900);
   const free = (x, y) => x >= radius && y >= radius && x <= width-radius && y <= height-radius &&
-    !(world.buildings || []).some(b => x >= b.x-radius && x <= b.x+b.w+radius && y >= b.y-radius && y <= b.y+b.h+radius);
+    !getSolidWalls(world).some(b => x >= b.x-radius && x <= b.x+b.w+radius && y >= b.y-radius && y <= b.y+b.h+radius);
   const speed = (controls.sprint ? 166 : 112) * (1 - clamp(finite(actor.suppression), 0, 1) * .22);
   for (let remaining = duration; remaining > 0;) {
     const dt = Math.min(1/60, remaining); remaining -= dt;
