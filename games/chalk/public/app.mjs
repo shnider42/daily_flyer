@@ -955,7 +955,7 @@ function updateHUD() {
     attr(row.root, 'data-human', !!peer?.connected); attr(row.root, 'title', `${soldier.name} · ${profile.label} · ${ownership}`);
     attr(row.root, 'aria-label', `${soldier.name}, ${profile.label}, ${ownership}${!soldier.alive ? ', lost' : soldier.downed ? ', down' : ''}`);
     text(row.name, soldier.name); text(row.owner, !soldier.alive ? 'Lost' : soldier.downed ? 'Needs help' : ownership);
-    text(row.role, !soldier.alive ? 'LOST' : soldier.downed ? 'DOWN' : (preferences.guidance === 'simple' ? ({leader:'Leader',grenadier:'Grenades',medic:'Medic',support:'Machine gun'}[soldier.role] || profile.label) : profile.shortLabel) + (shared && !peer ? ' · AI' : ''));
+    text(row.role, !soldier.alive ? 'LOST' : soldier.downed ? 'DOWN' : (preferences.guidance === 'simple' ? ({leader:'Leader',grenadier:'Grenades',medic:'Medic',support:'Machine gun'}[soldier.role] || profile.label) : profile.shortLabel) + (shared && !peer && preferences.guidance !== 'simple' ? ' · AI' : ''));
     style(row.health, 'width', `${Math.round(clamp(soldier.hp / soldier.maxHp, 0, 1) * 100)}%`);
   });
   if (p) {
@@ -984,7 +984,11 @@ function updateHUD() {
     text('flashStatus', flashed > .05 ? 'VISION RECOVERING' : '');
     attr($('flashStatus'), 'data-strength', flashed.toFixed(2));
     text('weaponName', profile.weaponLabel);
-    text('specialtyText', heavy ? `${usingBinos ? 'BINOCULARS · ' : ''}40 mm × ${p.grenades ?? 0}${p.grenadeCooldown > 0 ? ' · Loading' : touch ? '' : ` · ${bind('observe')} scan / ${bind('launcher')} launch`}` : p.role === 'medic' ? `MEDIC · AID × ${p.medkits ?? 0}` : p.role === 'support' ? 'SAW · SUSTAINED FIRE' : touch ? 'LEAD · TAP GROUND TO COMMAND' : `LEAD · ${bind('moveOrder')} TO COMMAND`);
+    let specialty = heavy ? `${usingBinos ? 'BINOCULARS · ' : ''}40 mm × ${p.grenades ?? 0}${p.grenadeCooldown > 0 ? ' · Loading' : touch ? '' : ` · ${bind('observe')} scan / ${bind('launcher')} launch`}` : p.role === 'medic' ? `MEDIC · AID × ${p.medkits ?? 0}` : p.role === 'support' ? 'SAW · SUSTAINED FIRE' : touch ? 'LEAD · TAP GROUND TO COMMAND' : `LEAD · ${bind('moveOrder')} TO COMMAND`;
+    if (preferences.guidance === 'simple' && !touch) {
+      specialty = heavy ? `${bind('observe')}: binoculars · ${bind('launcher')}: launcher (${p.grenades ?? 0} rounds)` : p.role === 'medic' ? `Aid kits: ${p.medkits ?? 0}. Hold ${bind('interact')} to help.` : p.role === 'support' ? `Machine gun: ${p.magSize}-round belt; slower reload.` : `${bind('moveOrder')} sends the squad to a point.`;
+    }
+    text('specialtyText', specialty);
     $('touchSpecialty').hidden = !heavy;
     text('touchGrenadeQty', p.grenades ?? 0); $('touchGrenade').disabled = !p.grenades || p.grenadeCooldown > 0 || reloading || usingBinos || !p.alive || p.downed;
     attr($('touchGrenade'), 'aria-label', `Launch 40 mm grenade toward your aim, ${p.grenades ?? 0} remaining${p.grenadeCooldown > 0 ? ', reloading' : ''}`);
