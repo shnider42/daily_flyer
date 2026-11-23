@@ -1,4 +1,4 @@
-// Field audio: CC0 recordings where available, with bounded procedural fallbacks.
+// Field audio: credited recordings with bounded procedural fallbacks.
 // Source attribution and editing notes are in audio/CREDITS.txt.
 import { buildingAt } from './building-geometry.mjs';
 import { environmentAt, eventEnvironment, reverbImpulseData } from './audio-environments.mjs';
@@ -23,6 +23,7 @@ export class GameAudio {
     this.levels = { master: 1, effects: 1, ambience: 1, distress: .65, reflections: .8 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
     this.reverbBanks = {}; this.reverbBuffers = {}; this.reflectionsNeedFlush = false; this.listenerEnvironment = null;
     this.environmentTimer = 0; this.environmentKey = ''; this.lastAcousticSpace = null;
+    this.exteriorNeedsFlush = false; this.nextStreetEchoAt = 0;
     this.voices = new Set(); this.loops = new Map(); this.samples = new Map(); this.sampleStatus = {};
     this.fallbackReports = new Map(); this.reportTurns = new Map(); this.earlyReflectionBus = null; this.lastReport = null;
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
@@ -106,7 +107,8 @@ export class GameAudio {
     data.audioPropagation = `${SOUND_SPEED_MPS}m/s@${WORLD_UNITS_PER_METRE}units/m`;
     data.audioArrivals = JSON.stringify({ ...this.propagationStats, last: this.arrivalTrace.at(-1) || null });
     data.audioEnvironment = this.listenerEnvironment?.kind || 'open';
-    data.audioReflections = JSON.stringify({ room:this.reverbBanks.room?.output.gain.value||0, street:this.reverbBanks.street?.output.gain.value||0, source:this.lastAcousticSpace?.sourceKind||null, occluded:this.lastAcousticSpace?.occluded||false });
+    data.audioReflections = JSON.stringify({ room:this.reverbBanks.room?.output.gain.value||0, street:this.reverbBanks.street?.output.gain.value||0,
+      exterior:this.reverbBanks.exterior?.output.gain.value||0, source:this.lastAcousticSpace?.sourceKind||null, occluded:this.lastAcousticSpace?.occluded||false });
     data.audioGunfire = JSON.stringify(this.lastReport);
   }
 
@@ -118,34 +120,46 @@ export class GameAudio {
     }
   }
 
-  _makeReflections() {
+  _makeReflectionBank(kind) {
     const c = this.context;
-    for(const kind of ['room','street']) {
-      if(!this.reverbBuffers[kind]) {
-        const channels=reverbImpulseData(c.sampleRate,kind),buffer=c.createBuffer(2,channels[0].length,c.sampleRate);
-        channels.forEach((channel,i)=>buffer.getChannelData(i).set(channel)); this.reverbBuffers[kind]=buffer;
-      }
-      const old=this.reverbBanks[kind];
-      if(old)for(const node of Object.values(old))node.disconnect?.();
-      const input=c.createGain(),filter=c.createBiquadFilter(),convolver=c.createConvolver(),output=c.createGain();
-      input.gain.value=1; filter.type='lowpass';filter.frequency.value=kind==='room'?3100:2500;
-      convolver.normalize=false;convolver.buffer=this.reverbBuffers[kind]; output.gain.value=0;
-      input.connect(filter);filter.connect(convolver);convolver.connect(output);output.connect(this.effectsBus);
-      this.reverbBanks[kind]={input,filter,convolver,output};
+    if(!this.reverbBuffers[kind]) {
+      const channels=reverbImpulseData(c.sampleRate,kind),buffer=c.createBuffer(2,channels[0].length,c.sampleRate);
+      channels.forEach((channel,i)=>buffer.getChannelData(i).set(channel)); this.reverbBuffers[kind]=buffer;
     }
+    const old=this.reverbBanks[kind];
+    if(old)for(const node of Object.values(old))node.disconnect?.();
+    const input=c.createGain(),filter=c.createBiquadFilter(),convolver=c.createConvolver(),output=c.createGain();
+    input.gain.value=1; filter.type='lowpass';filter.frequency.value=kind==='room'?3100:2500;
+    convolver.normalize=false;convolver.buffer=this.reverbBuffers[kind]; output.gain.value=0;
+    input.connect(filter);filter.connect(convolver);convolver.connect(output);output.connect(this.effectsBus);
+    this.reverbBanks[kind]={input,filter,convolver,output};
+  }
+
+  _makeReflections() {
+    for(const kind of ['room','street','exterior'])this._makeReflectionBank(kind);
     // Retain these aliases for existing diagnostics and voice-route inspection.
     this.reverbInput=this.reverbBanks.room.input;this.reverbReturn=this.reverbBanks.room.output;
-    this.reflectionsNeedFlush=false;this.environmentKey='';this.environmentTimer=0;
+    this.reflectionsNeedFlush=false;this.exteriorNeedsFlush=false;this.environmentKey='';this.environmentTimer=0;
+  }
+
+  _clearExteriorReflections() {
+    this._stopVoices(voice => voice.kind === 'street-echo', .012);
+    this.nextStreetEchoAt=0;
+    if(this.exteriorNeedsFlush)return;
+    const bank=this.reverbBanks.exterior,now=this.context?.currentTime||0;
+    if(bank){bank.output.gain.cancelScheduledValues(now);bank.output.gain.setTargetAtTime(0,now,.012);}
+    this.exteriorNeedsFlush=true;
   }
 
   _clearReflections() {
     // Early facade returns are scheduled voices, so muting only the shared
     // convolvers would leave those old taps audible after a pause or slider0.
     this._stopVoices(voice => voice.bus === 'reflection', .012);
+    this.nextStreetEchoAt=0;
     if(this.reflectionsNeedFlush)return;
     const now=this.context?.currentTime||0;
     for(const bank of Object.values(this.reverbBanks)) {bank.output.gain.cancelScheduledValues(now);bank.output.gain.setTargetAtTime(0,now,.012);}
-    // Reconnect the two nodes with cached kernels on resume. An old convolution
+    // Reconnect the nodes with cached kernels on resume. An old convolution
     // tail must not reappear after a very short pause, mute, or listener swap.
     this.reflectionsNeedFlush=true;
   }
@@ -159,10 +173,19 @@ export class GameAudio {
     if(this.environmentKey===key&&this.environmentTimer>0)return;
     this.environmentKey=key;this.environmentTimer=.12;
     const env=this.listenerEnvironment=environmentAt(state.world,player),now=this.context.currentTime;
+    // Entering a room must not carry a long outdoor ring into its established
+    // mix, or resurrect that ring when immediately stepping outside again.
+    if(env.kind==='room')this._clearExteriorReflections();
+    else if(this.exteriorNeedsFlush){this._makeReflectionBank('exterior');this.exteriorNeedsFlush=false;}
     for(const kind of ['room','street']) {
       const bank=this.reverbBanks[kind];
       bank.output.gain.setTargetAtTime(env[`${kind}Return`]*this.levels.reflections,now,.16);
       bank.filter.frequency.setTargetAtTime(env[`${kind}Cutoff`],now,.2);
+    }
+    if(env.kind!=='room') {
+      const bank=this.reverbBanks.exterior;
+      bank.output.gain.setTargetAtTime(env.exteriorReturn*this.levels.reflections,now,.16);
+      bank.filter.frequency.setTargetAtTime(env.exteriorCutoff,now,.2);
     }
   }
 
@@ -397,6 +420,10 @@ export class GameAudio {
       for(const kind of ['room','street'])if(mix[kind]>.015&&this.reverbBanks[kind]) {
         const send=c.createGain();send.gain.value=clamp(wet*mix[kind],0,.85);output.connect(send);send.connect(this.reverbBanks[kind].input);sends.push(send);
       }
+      if(kind==='report'&&mix.exterior>.015&&this.reverbBanks.exterior) {
+        const send=c.createGain();send.gain.value=clamp(wet*mix.exterior,0,.75);
+        output.connect(send);send.connect(this.reverbBanks.exterior.input);sends.push(send);
+      }
     }
     const voice = { source, envelope, priority, bus, actorId, kind, start, space, nodes: [source, envelope, low, high, panner, ...sends] };
     this.voices.add(voice);
@@ -542,11 +569,22 @@ export class GameAudio {
       pan, wet: profile.wet, space: spatial.space, priority, actorId: event.actorId, kind: 'report' });
     if (!direct) return;
     const taps = this.levels.reflections > 0 ? streetReflectionPlan(state?.world, event, player) : [];
-    for (const tap of taps) this._voice({ buffer: sample, offset, duration: Math.min(duration, profile.reflectionDuration),
-      rate, attack: .001, gain: profile.gain * gain * tap.gain, highpass: 120, lowpass: tap.lowpass,
-      pan: tap.pan, delay: tap.delay, priority: 0, bus: 'reflection', actorId: event.actorId, kind: 'street-reflection' });
+    const now=this.context.currentTime+this.eventDelay;let earlyReflections=0,lateEchoes=0,lateEchoDelayMs=null;
+    for (const tap of taps) {
+      const late=tap.kind==='late';
+      // Long pending echoes consume voices before they start. A dense SAW burst
+      // must not reserve the mix for returns that displace incoming gunfire.
+      if(late&&(now<this.nextStreetEchoAt||[...this.voices].filter(v=>v.kind==='street-echo').length>=2))continue;
+      const reflected=this._voice({ buffer: sample, offset, duration: Math.min(duration, profile.reflectionDuration),
+        rate, attack: late?.0025:.001, gain: profile.gain * gain * tap.gain, highpass: late?160:120, lowpass: tap.lowpass,
+        pan: tap.pan, delay: tap.delay, priority: 0, bus: 'reflection', actorId: event.actorId, kind: late?'street-echo':'street-reflection' });
+      if(!reflected)continue;
+      if(late){lateEchoes++;lateEchoDelayMs=Math.round(tap.delay*1000);this.nextStreetEchoAt=now+.24;}
+      else earlyReflections++;
+    }
     this.lastReport = { weapon, sample: recorded ? profile.sample : 'fallback', variant: turn % variants.length,
-      earlyReflections: taps.length, source: spatial.space.sourceKind, occluded: spatial.occluded };
+      earlyReflections,lateEchoes,lateEchoDelayMs,exteriorTail:spatial.space.exterior>.015&&this.levels.reflections>0,
+      source: spatial.space.sourceKind, occluded: spatial.occluded };
   }
 
   _nearPass(event, player, state) {

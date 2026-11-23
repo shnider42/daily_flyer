@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { GameAudio } from '../public/audio.mjs';
 import { reverbImpulseData, environmentAt, eventEnvironment, acousticLineBlocked } from '../public/audio-environments.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
+import { SQUAD_ROLES } from '../public/squad-roles.mjs';
 import { WORLD_UNITS_PER_METRE, SOUND_SPEED_MPS, MAX_PENDING_ARRIVALS, acousticTravelDelay,
   acousticSourceTime, acousticArrivalTime, reportProfile } from '../public/acoustics.mjs';
 
@@ -80,6 +82,40 @@ test('room response starts densely while the street response has separated later
   for(const data of [...room,...street]) assert.ok(data.every(value=>Number.isFinite(value)&&Math.abs(value)<.8));
 });
 
+test('the established room and indirect response waveforms remain unchanged', () => {
+  // Captured from the published response generator before adding the exterior
+  // layer: preserving these mixes is an explicit constraint of this change.
+  const expected = {
+    8000: { room: '92dc67e5990feb7e6b871e6ec8c3d1be69d9bcec0134d13aac8284819698cf74', street: '245b940ec855d837021aa43d60394161e59661509695e4c54d639c1ffd2bbdd3' },
+    48000: { room: '079097c05effd72f5f9695c307b42a86b2ecbe6a360cc264a84eefbb256cb055', street: 'd9369cc17a83b29098d97f642c12bafb6448be320c756a7875313be1fdb04773' },
+  };
+  for (const rate of [8000, 48000]) for (const kind of ['room', 'street']) {
+    const bytes = Buffer.concat(reverbImpulseData(rate, kind).map(channel => Buffer.from(channel.buffer, channel.byteOffset, channel.byteLength)));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected[rate][kind], `${kind}/${rate} retains its original response`);
+  }
+});
+
+test('the cached exterior response has a bounded diffuse tail beyond the old street response', () => {
+  const lateEnergies = [];
+  for (const rate of [8000, 48000]) {
+    const channels = reverbImpulseData(rate, 'exterior'), previousLength = reverbImpulseData(rate, 'street')[0].length;
+    assert.equal(channels.length, 2);
+    assert.ok(channels[0].length > previousLength && channels[0].length <= rate * 4, 'the longer response retains a bounded allocation');
+    assert.deepEqual(channels, reverbImpulseData(rate, 'exterior'), 'the shared response is deterministic');
+    assert.notDeepEqual(channels[0], channels[1], 'the diffuse tail has stereo variation');
+    const energy = data => data.reduce((sum, value) => sum + value * value, 0);
+    for (const data of channels) {
+      assert.ok(data.every(value => Number.isFinite(value) && Math.abs(value) < .8));
+      assert.equal(energy(data.subarray(0, Math.floor(rate * .06))), 0, 'the extra tail cannot blur the direct attack');
+      const late = energy(data.subarray(previousLength)), early = energy(data.subarray(0, previousLength));
+      assert.ok(late > early * .005 && late < early * .25, 'there is a meaningful, decaying tail after the earlier response has ended');
+      assert.ok(energy(data.subarray(-Math.floor(rate * .1))) < late * .01, 'the response fades before its allocation ends');
+    }
+    lateEnergies.push(energy(channels[0].subarray(previousLength)));
+  }
+  assert.ok(Math.abs(lateEnergies[0] / lateEnergies[1] - 1) < .15, 'device sample rate does not substantially change late-tail energy');
+});
+
 test('real doorways transmit direct sound while perimeter and partition walls muffle it', () => {
   const world={buildings:[{id:'house',x:100,y:100,w:260,h:220,tone:.5}]};prepareBuildingInteriors(world);
   const b=world.buildings[0],door=b.doors[0],outside=door.outside,inside=door.inside;
@@ -111,23 +147,97 @@ test('source location selects room or street response and reflections never bypa
   assert.ok(report.nodes.some(node=>node?.connections.includes(audio.reverbBanks.street.input)));
 });
 
+test('only unobstructed outdoor gun reports gain the new exterior send', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const world = prepareBuildingInteriors({ buildings: [
+    { id: 'left', x: 100, y: 100, w: 260, h: 700 }, { id: 'right', x: 600, y: 100, w: 260, h: 700 },
+  ] });
+  const door = world.buildings[0].doors[0], source = { x: 480, y: 440 }, listener = { x: 480, y: 520 };
+  const player = { id: 'listener', hp: 100 }, state = { time: 10, seed: 1, missionIndex: 0, world, vehicles: [] };
+  const sendTo = (voice, kind) => voice.nodes.filter(node => node?.connections.includes(audio.reverbBanks[kind].input));
+  const cases = [
+    { name: 'clear street', source, listener, exterior: true, legacy: [0, 1] },
+    { name: 'outdoor source through an open door', source: door.outside, listener: door.inside, exterior: false, legacy: [.17095833333333335, .6360250000000001] },
+    { name: 'indoor source through an open door', source: door.inside, listener: door.outside, exterior: false, legacy: [.7922916666666666, .3641916666666667] },
+    { name: 'obstructed street', source, listener, exterior: false, legacy: [0, 1], blocked: true },
+  ];
+  for (const item of cases) {
+    audio._stopVoices();
+    if (item.blocked) world.walls.push({ id: 'obstruction', x: 450, y: 470, w: 60, h: 8 });
+    Object.assign(player, item.listener); audio._ambience(state, player, .016);
+    audio._shot({ type: 'shot', actorId: 'shooter', weapon: 'rifle', team: 'squad', ...item.source }, player, state);
+    const report = [...audio.voices].find(voice => voice.kind === 'report'); assert.ok(report, item.name);
+    assert.equal(report.space.occluded, Boolean(item.blocked), `${item.name} keeps the established obstruction result`);
+    assert.equal(sendTo(report, 'exterior').length, item.exterior ? 1 : 0, item.name);
+    assert.equal(report.space.exterior > 0, item.exterior, item.name);
+    for (const [index, kind] of ['room', 'street'].entries()) {
+      assert.ok(Math.abs(report.space[kind] - item.legacy[index]) < 1e-12, `${item.name} retains its ${kind} mix`);
+      const sends = sendTo(report, kind);
+      assert.equal(sends.length, item.legacy[index] ? 1 : 0);
+      if (sends.length) assert.ok(Math.abs(sends[0].gain.value - reportProfile('rifle').wet * item.legacy[index]) < 1e-12);
+    }
+  }
+  assert.ok(audio.reverbBanks.exterior.output.connections.includes(audio.effectsBus), 'the new return remains governed by effects and master volume');
+  world.walls.pop(); Object.assign(player, listener); audio._ambience(state, player, .016);
+  const space = eventEnvironment(world, source, listener); assert.ok(space.exterior > 0);
+  for (const [kind, bus] of [['impact', 'effects'], ['street-echo', 'reflection'], ['distress', 'distress']]) {
+    const voice = audio._voice({ buffer: audio.noise, duration: .1, wet: .5, space, kind, bus });
+    assert.equal(sendTo(voice, 'exterior').length, 0, `${kind} cannot feed the new report-only response`);
+  }
+  const unspecified = audio._voice({ buffer: audio.noise, duration: .1, wet: .5, kind: 'report' });
+  assert.equal(sendTo(unspecified, 'exterior').length, 0, 'a missing source classification does not assume clear outdoor hearing');
+});
+
 test('reflections volume can be muted without changing the dry weapon report or retaining an old tail', async t => {
   const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
   const player={id:1,x:10,y:10,hp:100},state={time:0,missionIndex:0,world:{buildings:[]},vehicles:[]};
-  audio._ambience(state,player,.016);const buffers={...audio.reverbBuffers},oldBank=audio.reverbBanks.street;
+  audio._ambience(state,player,.016);const buffers={...audio.reverbBuffers},oldBanks={...audio.reverbBanks};
   audio.setLevels({reflections:0});
   audio._shot({type:'shot',actorId:1,x:10,y:10,weapon:'rifle',team:'squad'},player,state);
   const voice=[...audio.voices].find(v=>v.source.buffer===audio.samples.get('rifle'));
   assert.ok(voice);assert.ok(voice.nodes.some(n=>n?.connections.includes(audio.effectsBus)));
-  assert.ok(!voice.nodes.some(n=>n?.connections.includes(oldBank.input)));
-  assert.equal(oldBank.output.gain.value,0);
+  for (const bank of Object.values(oldBanks)) {
+    assert.ok(!voice.nodes.some(n=>n?.connections.includes(bank.input)));
+    assert.equal(bank.output.gain.value,0);
+  }
   audio.setLevels({reflections:.8});audio._ambience(state,player,.016);
-  assert.notEqual(audio.reverbBanks.street.convolver,oldBank.convolver);
-  assert.equal(audio.reverbBuffers.street,buffers.street,'clearing a tail reuses the cached response');
-  assert.ok(oldBank.convolver.disconnected);
-  const resumed=audio.reverbBanks.street.convolver;
+  for (const kind of ['room', 'street', 'exterior']) {
+    assert.notEqual(audio.reverbBanks[kind].convolver,oldBanks[kind].convolver);
+    assert.equal(audio.reverbBuffers[kind],buffers[kind],'clearing a tail reuses the cached response');
+    assert.ok(oldBanks[kind].convolver.disconnected);
+  }
+  const resumed={...audio.reverbBanks};
   audio.setScene('paused');audio.setScene('mission');audio._ambience(state,player,.016);
-  assert.notEqual(audio.reverbBanks.street.convolver,resumed,'quick pause cannot replay the previous tail');
+  for (const kind of ['room', 'street', 'exterior']) assert.notEqual(audio.reverbBanks[kind].convolver,resumed[kind].convolver,'quick pause cannot replay the previous tail');
+});
+
+test('entering a house cancels long echoes and flushes only the exterior response', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const world = prepareBuildingInteriors({ buildings: [{ id: 'house', x: 100, y: 100, w: 260, h: 220, tone: .5 }] });
+  const door = world.buildings[0].doors[0], player = { id: 'listener', hp: 100, ...door.outside };
+  const state = { time: 10, seed: 1, missionIndex: 0, world, vehicles: [] };
+  audio._ambience(state, player, .016);
+  const original = { ...audio.reverbBanks }, exteriorBuffer = audio.reverbBuffers.exterior;
+  assert.ok(original.exterior.output.gain.value > 0);
+  const echo = audio._voice({ buffer: audio.samples.get('rifle'), duration: .1, delay: .5, bus: 'reflection', kind: 'street-echo', priority: 0 });
+  audio.nextStreetEchoAt = audio.context.currentTime + .24;
+  Object.assign(player, door.inside); audio._ambience(state, player, .016);
+  assert.equal(original.exterior.output.gain.value, 0);
+  assert.ok(!audio.voices.has(echo) && echo.source.stoppedAt < echo.start, 'an outdoor echo cannot start after entering the room');
+  assert.equal(audio.nextStreetEchoAt, 0);
+  assert.ok(audio.exteriorNeedsFlush);
+  for (const kind of ['room', 'street']) assert.equal(audio.reverbBanks[kind], original[kind], 'the existing interior and indirect responses keep running');
+  h.advance(.15); audio._ambience(state, player, .15);
+  assert.equal(audio.reverbBanks.exterior, original.exterior, 'remaining indoors does not allocate replacement convolvers each update');
+  Object.assign(player, door.outside); audio._ambience(state, player, .016);
+  assert.notEqual(audio.reverbBanks.exterior, original.exterior);
+  assert.ok(original.exterior.convolver.disconnected);
+  assert.equal(audio.reverbBuffers.exterior, exteriorBuffer, 'returning outdoors reuses the cached impulse, with an empty convolution history');
+  assert.equal(audio.exteriorNeedsFlush, false);
+  for (const kind of ['room', 'street']) assert.equal(audio.reverbBanks[kind], original[kind]);
+  const resumed = audio.reverbBanks.exterior;
+  h.advance(.15); audio._ambience(state, player, .15);
+  assert.equal(audio.reverbBanks.exterior, resumed, 'ordinary outdoor updates retain the same shared convolver');
 });
 
 test('menu waits for a gesture, opens with a recorded command, and stays sparse', async t => {
@@ -483,9 +593,14 @@ for (const [name, cancel] of [
   audio.tick(state, .016);
   assert.equal(audio.pendingArrivals.length, 1);
   const scheduled = [...audio.voices].find(v => v.start > audio.context.currentTime); assert.ok(scheduled);
+  const echo = audio._voice({ buffer: audio.samples.get('rifle'), duration: .1, delay: .5, bus: 'reflection', kind: 'street-echo', priority: 0 });
+  assert.ok(echo); audio.nextStreetEchoAt = audio.context.currentTime + .24;
   cancel(h);
   assert.equal(audio.pendingArrivals.length, 0); assert.equal(audio.voices.size, 0);
   assert.ok(scheduled.source.stoppedAt < scheduled.start, 'a scheduled report is stopped before it can start');
+  assert.ok(echo.source.stoppedAt < echo.start, 'a long outdoor echo is cancelled before it can start');
+  assert.equal(audio.nextStreetEchoAt, 0);
+  for (const bank of Object.values(audio.reverbBanks)) assert.equal(bank.output.gain.value, 0, 'all shared response tails are muted');
 });
 
 test('resume, role changes, stale snapshots, and short restarts never replay the old ring', async t => {
@@ -569,6 +684,43 @@ test('facade taps follow the direct arrival once and the reflections slider canc
   h.advance(1);audio._shot({id:2,type:'shot',actorId:player.id,weapon:'rifle',x:480,y:440,team:'squad'},player,state);
   assert.equal([...audio.voices].filter(v=>v.kind==='report').length,1);
   assert.equal([...audio.voices].filter(v=>v.bus==='reflection').length,0);
+});
+
+test('long echoes stay occasional and capped while every SAW round retains its direct report', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  // A broad facade at this distance produces a real return long enough for
+  // two pending echoes to overlap across several 95 ms automatic rounds.
+  const world = prepareBuildingInteriors({ buildings: [{ id: 'far', x: 740, y: -200, w: 180, h: 400, tone: .4 }] });
+  const player = { id: 'gunner', x: 0, y: 60, hp: 100 }, state = { time: 10, seed: 1, missionIndex: 0, world, vehicles: [] };
+  const emissions = []; let maximum = 0, capacitySuppressed = false;
+  audio._ambience(state, player, .016);
+  for (let round = 0; round < 20; round++) {
+    if (round) h.advance(SQUAD_ROLES.support.fireInterval);
+    const before = new Set(audio.voices), pending = [...before].filter(voice => voice.kind === 'street-echo');
+    audio.eventDelay = .05;
+    const atCapacity = pending.length === 2 && audio.context.currentTime + audio.eventDelay >= audio.nextStreetEchoAt;
+    audio._shot({ type: 'shot', actorId: player.id, team: 'squad', weapon: 'support', x: player.x, y: player.y }, player, state);
+    audio.eventDelay = 0;
+    const added = [...audio.voices].filter(voice => !before.has(voice)), reports = added.filter(voice => voice.kind === 'report');
+    assert.equal(reports.length, 1, 'a queued outdoor echo cannot suppress the controlled player’s next round');
+    const echoes = added.filter(voice => voice.kind === 'street-echo');
+    assert.ok(echoes.length <= 1);
+    assert.ok(added.filter(voice => voice.bus === 'reflection').length <= 3, 'all reflection types share a bounded per-shot allocation');
+    for (const echo of echoes) {
+      emissions.push(reports[0].start);
+      assert.ok(Math.abs(echo.start - reports[0].start - 1480 / WORLD_UNITS_PER_METRE / SOUND_SPEED_MPS) < 1e-8, 'the return adds only the actual extra facade travel');
+      assert.ok(echo.priority < reports[0].priority);
+      assert.ok(echo.nodes.some(node => node?.connections.includes(audio.earlyReflectionBus)));
+      assert.ok(!echo.nodes.some(node => Object.values(audio.reverbBanks).some(bank => node?.connections.includes(bank.input))), 'a late echo cannot create another reverberant tail');
+    }
+    const count = [...audio.voices].filter(voice => voice.kind === 'street-echo').length;
+    maximum = Math.max(maximum, count); assert.ok(count <= 2, 'both waiting and sounding long echoes count toward the cap');
+    if (atCapacity) { assert.equal(echoes.length, 0); capacitySuppressed = true; }
+    assert.ok(audio.voices.size <= 32);
+  }
+  assert.equal(maximum, 2); assert.ok(capacitySuppressed, 'the fixture exercises the pending-echo cap separately from the cooldown');
+  assert.ok(emissions.length >= 3 && emissions.length < 10, 'a burst has occasional echoes rather than one echo per round');
+  for (let index = 1; index < emissions.length; index++) assert.ok(emissions[index] - emissions[index - 1] >= .24 - 1e-8);
 });
 
 test('direct shots displace facade returns at the voice limit and failed recordings use one cached fallback', async t => {

@@ -170,7 +170,7 @@ reconstruction of atmospheric conditions during the historical battle.
 Reference physics: NASA Glenn, Speed of Sound Interactive:
 https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/speed-of-sound-interactive/
 
-Current weapon playback in version 1.11 uses the three-take rifle and SAW banks
+Weapon playback introduced in version 1.11 uses the three-take rifle and SAW banks
 credited above, alongside hostile-shot.mp3 for opposing weapons and the sniper.
 Report length, filtering, level, and restrained pitch variation shape their
 playback. The previous additional per-shot mechanical and synthetic body-noise
@@ -194,7 +194,7 @@ a short, dense room response and a later, more widely spaced urban street
 response. These are not recorded or measured impulse responses of actual rooms,
 streets, Mogadishu buildings, or locations from the historical battle.
 
-The game reuses the two response buffers and selects their sends using the
+The game reuses these response buffers and selects their sends using the
 source and listener locations, room enclosure, walls, doors, and explosive
 openings. This is a bounded geometry-based approximation, not a full sound-wave
 simulation. The Room & street reflections control changes the reflected layer
@@ -209,3 +209,18 @@ apply to clear outdoor hearing. Indoor and obstructed hearing retain the
 existing room and indirect mix. This supplements the shared later street
 response within the existing 32-voice limit; it is a bounded gameplay model,
 not measured acoustics or a full sound-wave simulation.
+
+Version 1.12 adds a separate procedural 2.8-second diffuse outdoor response.
+It uses its own seeded noise and shaped decay, with no additional recording.
+Only unobstructed gunfire with both source and listener outdoors uses this
+layer; city density sets its strength. The previous room and indirect street
+response kernels are unchanged. Entering a building mutes and flushes the
+new outdoor tail without rebuilding those established responses.
+
+A sufficiently large, unobstructed distant facade can add one later report
+return, 0.18-0.55 seconds after the direct arrival, with a lower level and
+less high-frequency content. Early plus late returns total at most three
+per shot. A global 0.24-second spacing and two-voice late-echo cap prevent
+automatic bursts from reserving the voice budget for pending echoes. Doors,
+breaches and intervening solids still govern the actual path. No randomly
+placed or prerecorded environmental echo is substituted for this geometry.

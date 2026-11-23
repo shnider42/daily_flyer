@@ -1,4 +1,4 @@
-// Deliberately bounded acoustic approximation: two reusable response kernels,
+// Deliberately bounded acoustic approximation: reusable response kernels,
 // with sends/returns selected from the actual source, listener and wall geometry.
 import { buildingAt, getSolidWalls } from './building-geometry.mjs';
 
@@ -11,6 +11,9 @@ export const REVERB_PROFILES = Object.freeze({
     taps: [[.012,.52],[.023,.39],[.038,.28],[.061,.18],[.089,.12]] },
   street: { seconds: 1.22, onset: .065, decay: 4.7, noise: 1.35,
     taps: [[.083,.43],[.147,.31],[.238,.22],[.366,.13],[.521,.07]] },
+  // A diffuse outdoor decay supplements, rather than retunes, the existing
+  // room/indirect response. Distinct late echoes come from actual wall paths.
+  exterior: { seconds: 2.8, onset: .12, decay: 1.65, noise: 5.2, taps: [] },
 });
 
 /** Game-designed impulse responses, not sampled measurements of a real room. */
@@ -18,12 +21,13 @@ export function reverbImpulseData(sampleRate, kind) {
   const p = REVERB_PROFILES[kind] || REVERB_PROFILES.street;
   const rate = Math.max(8000, Number(sampleRate) || 44100), length = Math.ceil(rate*p.seconds);
   return [0,1].map(channel => {
-    const data = new Float32Array(length); let seed = (kind==='room'?4171:9917)+channel*7919, color=0;
+    const data = new Float32Array(length); let seed = (kind==='room'?4171:kind==='exterior'?18743:9917)+channel*7919, color=0;
     for (let i=0;i<length;i++) {
       seed=(Math.imul(seed,1664525)+1013904223)>>>0;
       const noise=seed/4294967296*2-1, t=i/rate;
       color=color*.38+noise*.62;
       if(t>=p.onset) data[i]=color*p.noise/Math.sqrt(rate)*Math.exp(-(t-p.onset)*p.decay);
+      if(kind==='exterior')data[i]*=clamp((t-p.onset)/.045,0,1)*clamp((p.seconds-t)/.18,0,1);
     }
     for(let k=0;k<p.taps.length;k++) {
       const [time,level]=p.taps[k], offset=channel*(kind==='room'?.0018:.008)*(k%2?-.6:1);
@@ -82,12 +86,14 @@ export function environmentAt(world, point) {
   const streetDensity=clamp(nearby/5,0,1)*clamp(1-nearest/480,0,1);
   return { kind:house?'room':streetDensity>.25?'street':'open',houseId:house?.id||null,enclosure,streetDensity,
     roomReturn:(.12+.65*enclosure)*size,streetReturn:(.12+.48*streetDensity)*(1-.7*enclosure),
-    roomCutoff:clamp(4100-size*1100,2500,3600),streetCutoff:2100+streetDensity*700 };
+    roomCutoff:clamp(4100-size*1100,2500,3600),streetCutoff:2100+streetDensity*700,
+    exteriorReturn:house?0:.18+.68*streetDensity,exteriorCutoff:1750+streetDensity*950 };
 }
 
 export function eventEnvironment(world, source, listener) {
   const a=environmentAt(world,source),b=environmentAt(world,listener),blocked=acousticLineBlocked(world,source,listener);
   return { room:clamp(a.enclosure+(1-a.enclosure)*b.enclosure*.2,0,1),
     street:clamp((1-a.enclosure*.8)*(1-b.enclosure*.45),.08,1),
+    exterior:!blocked&&a.kind!=='room'&&b.kind!=='room'?clamp((a.streetDensity+b.streetDensity)*.5,0,1):0,
     occluded:blocked,sourceKind:a.kind,listenerKind:b.kind };
 }

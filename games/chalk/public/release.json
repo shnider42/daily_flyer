@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "date": "2026-11-23",
   "missions": 6,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Onset-aligned recorded SAW and carbine banks with three real takes, clearer opposing reports, and geometry-driven early facade reflections. Existing source/listener-aware rooms, indirect hearing, distance-delayed reports and real projectile near-passes remain. Performed voices, ambient menu and existing music assets retained.",
+  "audio": "Recorded three-take SAW and carbine reports, longer outdoor resonance in built-up streets, and occasional delayed echoes from large clear facade paths. Indoor and obstructed-hearing responses remain unchanged. Existing distance propagation, performed voices, ambient menu and music assets retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -143,7 +143,7 @@
     "pendingLimit": 96,
     "activeVoiceLimit": 32,
     "pausedOrHiddenClearsQueue": true,
-    "environmentResponses": "Two cached procedural stereo response kernels: short dense room reflections and later spaced street reflections",
+    "environmentResponses": "Existing room and indirect-street kernels plus a separate cached 2.8-second diffuse exterior kernel for unobstructed outdoor gunfire",
     "environmentGeometry": "Source and listener rooms, walls, openings and breaches select the response; bounded approximation, not a full acoustic solver",
     "reflectionsDefault": 0.8,
     "reflectionsZeroKeepsDirectSound": true,
@@ -158,6 +158,23 @@
       "rifle": 3,
       "support": 3,
       "source": "Edited and separately shaped M249 recordings by Baelphazoar, CC BY 4.0; full attribution in audio/CREDITS.txt"
+    },
+    "exteriorResonance": {
+      "maximumTailSeconds": 2.8,
+      "strength": "Scaled by source/listener street density; no added tail on empty open ground",
+      "indoors": "New exterior tail mutes and flushes on entry, preserving the existing room and indirect mix"
+    },
+    "lateStreetEchoes": {
+      "maxPerShot": 1,
+      "maxScheduledOrActive": 2,
+      "minimumSpacingSeconds": 0.24,
+      "additionalDelaySeconds": [
+        0.18,
+        0.55
+      ],
+      "geometry": "Large remaining exterior facade with clear outgoing and return paths; removed wall sections cannot reflect",
+      "combinedFacadeTapLimit": 3,
+      "priority": "Below direct gunfire, within the existing 32-voice limit"
     }
   },
   "campaignMissions": 4,

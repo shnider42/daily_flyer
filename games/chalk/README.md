@@ -1,6 +1,6 @@
 # CHALK
 
-Version 1.11 rebuilds the SAW and carbine reports around three recorded shots and adds early street echoes from actual building facades. The six operations retain physical mission equipment, reconnaissance, casualty escorts, authored enemy encounters, improved navigation, room acoustics, expanded breaches, and stronger night muzzle flashes. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play alone or with a friend: either person can lead the four-person fictional squad, and computer-controlled soldiers fill every remaining position. Four chronological campaign chapters sit alongside two clearly fictional standalone operations. The setting is historically informed; the characters, dialogue, maps, and gameplay are invented or compressed.
+Version 1.12 adds a longer outdoor gunfire decay and occasional distant facade echoes, while retaining the established indoor and indirect-hearing mix. The three-take SAW and carbine reports from 1.11 remain. The six operations retain physical mission equipment, reconnaissance, casualty escorts, authored enemy encounters, improved navigation, room acoustics, expanded breaches, and stronger night muzzle flashes. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. Play alone or with a friend: either person can lead the four-person fictional squad, and computer-controlled soldiers fill every remaining position. Four chronological campaign chapters sit alongside two clearly fictional standalone operations. The setting is historically informed; the characters, dialogue, maps, and gameplay are invented or compressed.
 
 ## Play
 
@@ -18,6 +18,16 @@ For solo play, select any mission and choose **Lead the squad** or **Follow the 
 The operations use a compact city with seeded variation in blocks, alleys, courtyards, and frontage. Their longer stage sequences combine movement and observation with physical work, transport, and protection. Holding an area remains part of collection or casualty loading. Vehicles follow authored routes and wait for the squad; Night Relief includes a contextual carrier restart. General combat damage, towing, and free vehicle control are not implemented.
 
 **Continue operation** follows Cordon → First Crash → Night Relief → Dawn Mile, carrying bounded consequences between those four chapters. The campaign ends after Dawn Mile. Signal House and Courtyard Evacuation are independent fictional situations, not additional claims about the historical sequence.
+
+## Longer outdoor resonance and contextual echoes: version 1.12
+
+Clear outdoor gunfire now feeds a separate **2.8-second diffuse response**, with its level shaped by the buildings around the source and listener. Built-up streets retain a softer ring after the report; empty open ground gets no added exterior layer. The existing room and indirect-street responses remain unchanged. Entering a building fades and clears only the new outdoor tail, preventing it from reappearing on a quick step outside.
+
+A clear outgoing and return path to a sufficiently large, more distant facade can also produce **one distinct late echo**, arriving 0.18–0.55 seconds after the direct report. Wall position determines its timing and direction. Open doors, blast openings, and intervening walls affect eligibility. Up to two early reflections remain; the combined facade plan is capped at three returns. The late return is quieter and darker, with a shared 0.24-second spacing and at most two pending/active late-echo voices so sustained SAW fire cannot reserve the mix for delayed echoes.
+
+**Settings → Audio → Room & street reflections** controls both additions. Direct reports, weapon recordings, indoor balance, sound-travel timing, and the 32-voice limit remain. This is a bounded game-acoustics model; it does not claim to reconstruct the actual city's sound field.
+
+Version 1.12 validation: the static build passes syntax checks and **266 regression tests**. Tests preserve the previous room/street waveform hashes, verify selective doorway flushing, and exercise late-echo geometry, actual breach removal, cancellation, spacing, and the two-voice pending cap. Deterministic Chromium audio renders confirmed the longer exterior tail and a separate approximately 459 ms facade return on a real First Crash layout. Indoor and obstructed renders matched 1.11 within floating-point rounding. A 36-shot, four-weapon mix at maximum reflections stayed at 25 active voices with no clipped or invalid samples. These are signal and integration checks, not physical headphone or speaker calibration.
 
 ## Recorded weapon reports and street echoes: version 1.11
 
