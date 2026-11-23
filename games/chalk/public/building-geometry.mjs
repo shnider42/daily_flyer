@@ -1,5 +1,6 @@
 // Deterministic interior geometry shared by simulation and rendering.
 // Furniture is decorative; perimeter and partition rectangles are the solids.
+import { populateDistrictLife } from './district-life.mjs';
 const WALL = 10;
 const DOOR = 80;
 const GRID = 40;
@@ -8,9 +9,19 @@ const snap = value => Math.round((value - GRID / 2) / GRID) * GRID + GRID / 2;
 const contains = (rect, point, margin = 0) => point.x >= rect.x + margin && point.y >= rect.y + margin &&
   point.x <= rect.x + rect.w - margin && point.y <= rect.y + rect.h - margin;
 
-/** Existing/custom worlds without interior geometry retain solid footprints. */
+const solidCache = new WeakMap();
+/** Shared collision for walls and real street cover. Destruction can replace
+ * wall segments in place; revision changes invalidate this stable merged list. */
 export function getSolidWalls(world) {
-  return Array.isArray(world?.walls) ? world.walls : Array.isArray(world?.buildings) ? world.buildings : [];
+  const walls = Array.isArray(world?.walls) ? world.walls : Array.isArray(world?.buildings) ? world.buildings : [];
+  const street = world?.streetSolids;
+  if (!Array.isArray(street) || !street.length) return walls;
+  const old = solidCache.get(world), revision = world.geometryRevision || 0;
+  if (old?.walls === walls && old.wallCount === walls.length && old.street === street &&
+    old.streetCount === street.length && old.revision === revision) return old.solids;
+  const solids = [...walls, ...street];
+  solidCache.set(world, { walls, wallCount: walls.length, street, streetCount: street.length, revision, solids });
+  return solids;
 }
 
 /** The enterable footprint containing a point, including its open threshold. */
@@ -72,5 +83,6 @@ export function prepareBuildingInteriors(world) {
   }
   world.walls = solids;
   world.geometryRevision = 0;
+  if (world.layoutVersion) populateDistrictLife(world);
   return world;
 }

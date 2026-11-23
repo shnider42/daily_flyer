@@ -6,7 +6,7 @@ import {PROTOCOL,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNECT_GRACE_MS,
   normalizeRoomCode,validRoomCode,cleanInput,EMPTY_INPUT,newRoomCode,newPlayerId,newSecret,secretHash,verifySecret,cleanName} from './protocol.mjs';
 
 const actorView = actor => {
-  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,...view}=actor;
+  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,coverPoint,coverShelter,nextCoverPlanAt,coverRevision,coverAnchor,formationGoal,formationOrderKey,nextFormationAt,...view}=actor;
   return view;
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',

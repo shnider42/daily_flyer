@@ -7,7 +7,7 @@ import {squadCanSeePoint} from '../public/visibility.mjs';
 function run(s,seconds,input={}){for(let i=0;i<Math.ceil(seconds*30)&&s.status==='playing';i++)step(s,input,1/30);}
 function arena(kind=null){
   const s=createGame({seed:17,difficulty:'story'}),template={...s.enemies[0]},p=s.squad[0];
-  s.enemies=[];s.civilians=[];s.maxEnemies=0;s.world.buildings=[];s.world.walls=[];s.grid.fill(0);s.story.opportunities=[];
+  s.enemies=[];s.civilians=[];s.maxEnemies=0;s.world.buildings=[];s.world.walls=[];s.world.streetSolids=[];s.grid.fill(0);s.story.opportunities=[];
   Object.assign(p,{x:500,y:500,hp:100000,maxHp:100000});
   for(const other of s.squad)if(other!==p)other.alive=false;
   let enemy=null;
@@ -26,9 +26,10 @@ function projectile(s,{x=300,y=525,range=600,weapon='hostile'}={}){
 test('the support gunner must brace, fires a distinct finite burst, and loses its firing posture under smoke or suppression',()=>{
   const {s,enemy}=arena('gunner');run(s,.6);assert.ok(enemy.braceProgress>0&&enemy.braceProgress<1);
   assert.equal(s.soundEvents.some(e=>e.type==='shot'),false);
-  run(s,.95);const shots=s.soundEvents.filter(e=>e.type==='shot');
-  assert.equal(shots.length,6);assert.ok(shots[0].sourceTime>=.8-1e-6);assert.ok(shots.every(e=>e.weapon==='hostile_support'));
-  assert.equal(enemy.ammo,54);assert.ok(enemy.cooldown>2);assert.equal(enemy.braced,true);
+  run(s,1.7);const shots=s.soundEvents.filter(e=>e.type==='shot');
+  assert.equal(shots.length,12);assert.ok(shots[0].sourceTime>=.8-1e-6);assert.ok(shots.every(e=>e.weapon==='hostile_support'));
+  assert.ok(shots.at(-1).sourceTime-shots[0].sourceTime>=1.05,'the support burst audibly lasts longer than a rifle string');
+  assert.equal(enemy.ammo,48);assert.ok(enemy.cooldown>1);assert.equal(enemy.braced,true);
   s.smokes=[{x:640,y:500,radius:105,ttl:14}];step(s,{},1/30);assert.equal(enemy.braced,false);assert.equal(enemy.braceProgress,0);
   s.smokes=[];enemy.suppression=.9;run(s,.3);assert.equal(enemy.braced,false);
   enemy.ammo=0;step(s,{},1/30);assert.equal(enemy.reloadTimer,4.4);
@@ -64,8 +65,8 @@ test('supersonic bullets retain a fixed gameplay range instead of gaining range 
   const {s,p}=arena();step(s,{fire:true,aimX:2000,aimY:500},.05);
   const bullet=s.bullets[0],shot=s.soundEvents.find(e=>e.type==='shot');assert.ok(bullet);
   assert.equal(shot.sourceTime,0);assert.equal(shot.time,.05);assert.equal(bullet.firedAt,0);
-  assert.equal(Math.hypot(bullet.vx,bullet.vy),800*WORLD_UNITS_PER_METRE);assert.equal(bullet.speedMps,800);
-  step(s,{},.05);assert.equal(s.bullets.length,0);assert.ok(Math.abs(bullet.travelled-600)<1e-8);assert.equal(bullet.rangeRemaining,0);
+  assert.ok(Math.abs(Math.hypot(bullet.vx,bullet.vy)-800*WORLD_UNITS_PER_METRE)<1e-8);assert.equal(bullet.speedMps,800);
+  step(s,{},.05);assert.equal(s.bullets.length,0);assert.ok(Math.abs(bullet.travelled-600)<1e-8);assert.ok(bullet.rangeRemaining<1e-8);
   assert.ok(Math.abs(Math.hypot(bullet.x-bullet.originX,bullet.y-bullet.originY)-600)<1e-8);assert.equal(p.ammo,29);
 });
 

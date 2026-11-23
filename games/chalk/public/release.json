@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "date": "2026-11-23",
   "missions": 6,
   "roles": [
@@ -16,7 +16,7 @@
     "reconnect": true
   },
   "rendering": "Canvas 2D",
-  "audio": "Recorded three-take SAW and carbine reports, longer outdoor resonance in built-up streets, and occasional delayed echoes from large clear facade paths. Indoor and obstructed-hearing responses remain unchanged. Existing distance propagation, performed voices, ambient menu and music assets retained.",
+  "audio": "Layered day/dawn/night city ambience; distant finite battle bursts, helicopter and engine passes, residential dogs, metal and local fire. Quieter six-take recorded footfalls. Outdoor gunfire tails remain audible and become muffled through doorway crossings. Existing weapon reports, voices, propagation and music retained.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -80,15 +80,15 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 6,
+  "protocol": 7,
   "squad": {
     "soloSelection": "HUD cards or keyboard 1\u20134, retaining each soldier state",
-    "formation": "wider outside, compressed through doors",
+    "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
     "grenadier": "slower; four launcher rounds and directional binoculars",
     "medic": "faster revival and six supplies",
-    "machineGunner": "M249 SAW with 100-round belt"
+    "machineGunner": "M249 SAW with 100-round belt; AI fires bounded 12-round strings at weapon cadence with pauses and reloads"
   },
-  "worldVariation": "Seeded building footprints, alleys, courtyards and district details; fixed mission routes and anchors",
+  "worldVariation": "Six distinct seeded mission layouts with district identities, parked sedans/pickups/vans, abandoned stalls, handcarts, work yards, materials and constrained fires; fixed routes, doors, casualty access and usable breach approaches reserved",
   "visibility": "Shared current sight and subtle remembered terrain; walls/smoke occlude contacts",
   "enemies": {
     "types": [
@@ -105,12 +105,13 @@
     "weightedAndRoleLimits": true,
     "visibleSpawnExclusion": true,
     "sniperLimit": 1,
-    "encounters": "Finite groups at authored approaches; no random around-player reinforcement ring",
+    "encounters": "Finite coherent 3\u20134-person authored groups (one extra on Veteran), placed at nearby approaches before the player reaches them; independent safe-placement retries and expiry; no random around-player reinforcement ring",
     "deliberateSniperOperations": [
       "First Crash",
       "Dawn Mile",
       "Signal House"
-    ]
+    ],
+    "behavior": "Cover and reload refuges, expiring nearby group contact reports, opportunistic repositioning, sustained bounded gunner bursts; no fire through cover"
   },
   "story": {
     "chapters": 4,
@@ -162,7 +163,7 @@
     "exteriorResonance": {
       "maximumTailSeconds": 2.8,
       "strength": "Scaled by source/listener street density; no added tail on empty open ground",
-      "indoors": "New exterior tail mutes and flushes on entry, preserving the existing room and indirect mix"
+      "indoors": "Existing exterior tails and scheduled facade returns continue with smooth listener attenuation and post-convolution low-pass filtering; new indoor shots retain their established room treatment; pause/mute/role changes still flush history"
     },
     "lateStreetEchoes": {
       "maxPerShot": 1,
@@ -175,6 +176,31 @@
       "geometry": "Large remaining exterior facade with clear outgoing and return paths; removed wall sections cannot reflect",
       "combinedFacadeTapLimit": 3,
       "priority": "Below direct gunfire, within the existing 32-voice limit"
+    },
+    "cityAmbience": {
+      "deterministicPresentationOnly": true,
+      "sourcePlacement": "Stable district anchors and map perimeter; never generated around the listener",
+      "ordinaryBedMultipliers": {
+        "day": 1,
+        "dawn": 0.66,
+        "night": 0.42
+      },
+      "battleGainUnaffectedByNight": true,
+      "maxAmbientOneShotVoices": 8,
+      "maxPassingSources": 2,
+      "largeClockGapsDiscardBacklog": true,
+      "ownShotsAndCommandsDuckAmbience": true
+    },
+    "footsteps": {
+      "recordedTakesPerSurface": 6,
+      "surfaces": [
+        "stone",
+        "dirt/sand"
+      ],
+      "voicesPerContact": 1,
+      "priority": "Below combat reports",
+      "maximumNearbyDistanceWorldUnits": 145,
+      "source": "Fantozzi, CC0; full attribution in audio/CREDITS.txt"
     }
   },
   "campaignMissions": 4,
@@ -225,5 +251,14 @@
       "width": 1.45
     },
     "activeLightLimit": 24
+  },
+  "streetLife": {
+    "layoutVersion": 2,
+    "staticCover": "Parked civilian vehicles and material stacks share collision with AI navigation, sight, bullets and co-op prediction",
+    "dressing": "District-specific laundry, handcarts, tires, barrels, sacks and rubble",
+    "ambientFireLimit": 3,
+    "firePresentation": "Positioned crackle, bounded flames and smoke; observed visibility and wall-clipped glow",
+    "drivableVehicles": false,
+    "generalVehicleDamage": false
   }
 }

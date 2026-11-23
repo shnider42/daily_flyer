@@ -4,6 +4,7 @@ import { buildingAt } from './building-geometry.mjs';
 import { environmentAt, eventEnvironment, reverbImpulseData } from './audio-environments.mjs';
 import { streetReflectionPlan } from './street-reflections.mjs';
 import { fallbackReportData } from './weapon-reports.mjs';
+import { cityAmbienceProfile, createCityAmbience, advanceCityAmbience } from './city-ambience.mjs';
 import { SOUND_SPEED_MPS, WORLD_UNITS_PER_METRE, MAX_PENDING_ARRIVALS, ARRIVAL_LOOKAHEAD,
   ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticHearingRange, reportProfile } from './acoustics.mjs';
 
@@ -14,6 +15,7 @@ const SAMPLE_FILES = {
   rifle: 'rifle-report-bank.wav', support: 'saw-report-bank.wav', hostile: 'hostile-shot.mp3', rotor: 'rotor-loop.mp3', wind: 'wind.mp3',
   radio: 'radio-chatter.mp3', commandGo: 'command-go.mp3', commandMove: 'command-move.mp3',
   pain1: 'pain-1.mp3', pain2: 'pain-2.mp3', fear1: 'fear-1.mp3', fear2: 'fear-2.mp3',
+  footStone: 'footsteps-stone-bank.wav', footDirt: 'footsteps-dirt-bank.wav', dog: 'ambient-dog.wav',
 };
 const SCENES = new Set(['menu', 'mission', 'paused']);
 
@@ -23,13 +25,14 @@ export class GameAudio {
     this.levels = { master: 1, effects: 1, ambience: 1, distress: .65, reflections: .8 }; this.effectsBus = null; this.ambienceBus = null; this.distressBus = null;
     this.reverbBanks = {}; this.reverbBuffers = {}; this.reflectionsNeedFlush = false; this.listenerEnvironment = null;
     this.environmentTimer = 0; this.environmentKey = ''; this.lastAcousticSpace = null;
-    this.exteriorNeedsFlush = false; this.nextStreetEchoAt = 0;
+    this.nextStreetEchoAt = 0;
     this.voices = new Set(); this.loops = new Map(); this.samples = new Map(); this.sampleStatus = {};
     this.fallbackReports = new Map(); this.reportTurns = new Map(); this.earlyReflectionBus = null; this.lastReport = null;
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
     this.lastShots = 0; this.lastRadio = null; this.shotBudget = 8;
     this.footTravel = new Map(); this.vehiclePositions = new Map(); this.diagnosticTime = 0;
+    this.footstepBuffers = new Map(); this.footstepTurn = 0; this.cityDirector = null; this.cityPasses = [];
     this.scene = 'paused'; this.menuBus = null; this.missionAmbienceBus = null;
     this.menuTimer = null; this.menuSchedule = null; this.lastMenuVoice = null;
     this.lastCommandVoiceTime = -Infinity;
@@ -57,7 +60,11 @@ export class GameAudio {
         this.ambienceBus = context.createGain(); this.ambienceBus.gain.value = this.levels.ambience;
         this.effectsBus.connect(this.master); this.ambienceBus.connect(this.master);
         this.earlyReflectionBus = context.createGain(); this.earlyReflectionBus.gain.value = this.levels.reflections;
-        this.earlyReflectionBus.connect(this.effectsBus);
+        this.reflectionListeningFilter = context.createBiquadFilter(); this.reflectionListeningFilter.type = 'lowpass';
+        this.reflectionListeningFilter.frequency.value = 16000;
+        this.reflectionListeningGain = context.createGain(); this.reflectionListeningGain.gain.value = 1;
+        this.earlyReflectionBus.connect(this.reflectionListeningFilter); this.reflectionListeningFilter.connect(this.reflectionListeningGain);
+        this.reflectionListeningGain.connect(this.effectsBus);
         this.distressBus = context.createGain(); this.distressBus.gain.value = this.levels.distress; this.distressBus.connect(this.effectsBus);
         this.menuBus = context.createGain(); this.menuBus.gain.value = 0; this.menuBus.connect(this.ambienceBus);
         this.missionAmbienceBus = context.createGain(); this.missionAmbienceBus.gain.value = 0; this.missionAmbienceBus.connect(this.ambienceBus);
@@ -68,7 +75,7 @@ export class GameAudio {
         this.noise = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
         const noise = this.noise.getChannelData(0);
         for (let i = 0; i < noise.length; i++) noise[i] = Math.random() * 2 - 1;
-        this._makeReflections(); this._makeReports(); this._makeEngine(); this._makeRumble(); this._makeFire(); this._makeCrack();
+        this._makeReflections(); this._makeReports(); this._makeEngine(); this._makeRumble(); this._makeFire(); this._makeCrack(); this._makeCityFoley();
         context.addEventListener?.('statechange', this.onContextState);
         if (!this.lifecycleAttached) { globalThis.document?.addEventListener?.('visibilitychange', this.onVisibility); this.lifecycleAttached = true; }
         void this._loadSamples();
@@ -110,6 +117,9 @@ export class GameAudio {
     data.audioReflections = JSON.stringify({ room:this.reverbBanks.room?.output.gain.value||0, street:this.reverbBanks.street?.output.gain.value||0,
       exterior:this.reverbBanks.exterior?.output.gain.value||0, source:this.lastAcousticSpace?.sourceKind||null, occluded:this.lastAcousticSpace?.occluded||false });
     data.audioGunfire = JSON.stringify(this.lastReport);
+    data.audioCity = JSON.stringify({ phase: this.lastState ? cityAmbienceProfile(this.lastState).phase : null,
+      passes: this.cityPasses.length, voices: [...this.voices].filter(v => v.bus === 'ambience').length,
+      fires: this.lastState?.world?.ambientFires?.length || 0 });
   }
 
   _makeReports() {
@@ -131,24 +141,21 @@ export class GameAudio {
     const input=c.createGain(),filter=c.createBiquadFilter(),convolver=c.createConvolver(),output=c.createGain();
     input.gain.value=1; filter.type='lowpass';filter.frequency.value=kind==='room'?3100:2500;
     convolver.normalize=false;convolver.buffer=this.reverbBuffers[kind]; output.gain.value=0;
-    input.connect(filter);filter.connect(convolver);convolver.connect(output);output.connect(this.effectsBus);
-    this.reverbBanks[kind]={input,filter,convolver,output};
+    input.connect(filter);filter.connect(convolver);output.connect(this.effectsBus);
+    // Filtering after convolution also muffles the energy already in flight
+    // when the listener runs through a doorway; input filtering cannot do that.
+    if(kind==='exterior') {
+      const listeningFilter=c.createBiquadFilter();listeningFilter.type='lowpass';listeningFilter.frequency.value=16000;
+      convolver.connect(listeningFilter);listeningFilter.connect(output);
+      this.reverbBanks[kind]={input,filter,convolver,output,listeningFilter};
+    } else {convolver.connect(output);this.reverbBanks[kind]={input,filter,convolver,output};}
   }
 
   _makeReflections() {
     for(const kind of ['room','street','exterior'])this._makeReflectionBank(kind);
     // Retain these aliases for existing diagnostics and voice-route inspection.
     this.reverbInput=this.reverbBanks.room.input;this.reverbReturn=this.reverbBanks.room.output;
-    this.reflectionsNeedFlush=false;this.exteriorNeedsFlush=false;this.environmentKey='';this.environmentTimer=0;
-  }
-
-  _clearExteriorReflections() {
-    this._stopVoices(voice => voice.kind === 'street-echo', .012);
-    this.nextStreetEchoAt=0;
-    if(this.exteriorNeedsFlush)return;
-    const bank=this.reverbBanks.exterior,now=this.context?.currentTime||0;
-    if(bank){bank.output.gain.cancelScheduledValues(now);bank.output.gain.setTargetAtTime(0,now,.012);}
-    this.exteriorNeedsFlush=true;
+    this.reflectionsNeedFlush=false;this.environmentKey='';this.environmentTimer=0;
   }
 
   _clearReflections() {
@@ -173,20 +180,19 @@ export class GameAudio {
     if(this.environmentKey===key&&this.environmentTimer>0)return;
     this.environmentKey=key;this.environmentTimer=.12;
     const env=this.listenerEnvironment=environmentAt(state.world,player),now=this.context.currentTime;
-    // Entering a room must not carry a long outdoor ring into its established
-    // mix, or resurrect that ring when immediately stepping outside again.
-    if(env.kind==='room')this._clearExteriorReflections();
-    else if(this.exteriorNeedsFlush){this._makeReflectionBank('exterior');this.exteriorNeedsFlush=false;}
+    // Keep the same convolution and scheduled facade returns across a doorway.
+    // Only the listener's transfer changes. Pause/mute/swap still clear history.
+    this.reflectionListeningGain.gain.setTargetAtTime(env.exteriorListeningGain,now,.18);
+    this.reflectionListeningFilter.frequency.setTargetAtTime(env.exteriorListeningCutoff,now,.2);
     for(const kind of ['room','street']) {
       const bank=this.reverbBanks[kind];
       bank.output.gain.setTargetAtTime(env[`${kind}Return`]*this.levels.reflections,now,.16);
       bank.filter.frequency.setTargetAtTime(env[`${kind}Cutoff`],now,.2);
     }
-    if(env.kind!=='room') {
-      const bank=this.reverbBanks.exterior;
-      bank.output.gain.setTargetAtTime(env.exteriorReturn*this.levels.reflections,now,.16);
-      bank.filter.frequency.setTargetAtTime(env.exteriorCutoff,now,.2);
-    }
+    const bank=this.reverbBanks.exterior;
+    bank.output.gain.setTargetAtTime(env.exteriorReturn*this.levels.reflections,now,.18);
+    bank.filter.frequency.setTargetAtTime(env.exteriorCutoff,now,.2);
+    bank.listeningFilter.frequency.setTargetAtTime(env.exteriorListeningCutoff,now,.2);
   }
 
   _makeEngine() {
@@ -235,6 +241,41 @@ export class GameAudio {
       // edge. It has no pitched oscillator or looping pass-by effect.
       const wave = t < .0024 ? (1 - t / .0012) * .65 : 0;
       data[i] = clamp(wave + (Math.random() * 2 - 1) * .27 * Math.exp(-t * 145), -.9, .9);
+    }
+  }
+
+  _makeCityFoley() {
+    const c = this.context;
+    // Quiet, cached sole contacts are the offline fallback. One source per step
+    // replaces the paired sharp noise clicks; no oscillator is used for feet.
+    for (const surface of ['stone', 'earth']) for (let variant = 0; variant < 4; variant++) {
+      const length = Math.ceil(c.sampleRate * .2), buffer = c.createBuffer(1, length, c.sampleRate), data = buffer.getChannelData(0);
+      let seed = 8219 + variant * 7919 + (surface === 'earth' ? 191 : 0), low = 0, grit = 0;
+      for (let i = 0; i < length; i++) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        const noise = seed / 4294967296 * 2 - 1, t = i / c.sampleRate;
+        low = low * .82 + noise * .18; grit = grit * .35 + noise * .65;
+        data[i] = (low * 1.1 * Math.exp(-t * 42) + grit * (surface === 'earth' ? .045 : .018) * Math.exp(-t * 22)) * Math.min(1, t / .004);
+      }
+      this.footstepBuffers.set(`${surface}:${variant}`, buffer);
+    }
+    // A low city horizon and a sparse sheet-metal rattle, never speech or music.
+    this.cityBed = c.createBuffer(1, c.sampleRate * 8, c.sampleRate);
+    const horizon = this.cityBed.getChannelData(0); let low = 0, seed = 93812;
+    for (let i = 0; i < horizon.length; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      low = low * .986 + (seed / 4294967296 * 2 - 1) * .014;
+      const t = i / c.sampleRate;
+      horizon[i] = low * 2.8 * (.7 + .12 * Math.sin(t * Math.PI / 2)) * Math.min(1, t / .12, (8-t) / .12);
+    }
+    this.cityMetal = c.createBuffer(1, Math.ceil(c.sampleRate * .8), c.sampleRate);
+    const metal = this.cityMetal.getChannelData(0);
+    for (let i = 0; i < metal.length; i++) {
+      const t = i / c.sampleRate;
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      metal[i] = ((seed / 4294967296 * 2 - 1) * .14 * Math.exp(-t * 25) +
+        Math.sin(t * 2 * Math.PI * 417) * .06 * Math.exp(-t * 13) +
+        Math.sin(t * 2 * Math.PI * 1093) * .025 * Math.exp(-t * 18)) * Math.min(1, t / .002);
     }
   }
 
@@ -356,6 +397,11 @@ export class GameAudio {
     this.environmentKey='';
     if (this.levels.master === 0 || this.levels.effects === 0) this._stopVoices(voice => voice.bus !== 'menu' && voice.bus !== 'ambience');
     if (this.levels.distress === 0) this._stopVoices(voice => voice.bus === 'distress');
+    if (this.levels.master === 0 || this.levels.ambience === 0) {
+      this.cityDirector = null; this.cityPasses.length = 0;
+      this._stopVoices(voice => voice.bus === 'ambience');
+      for (const key of [...this.loops.keys()]) if (!key.startsWith('menu:')) this._stopLoop(key);
+    }
     this._syncScene();
     this._diagnostics();
     return { ...this.levels };
@@ -381,6 +427,7 @@ export class GameAudio {
     lowpass = 6500, highpass = 60, pan = 0, delay = 0, attack = .0015,
     rate = 1, wet = 0, space = null, priority = 0, bus = 'effects', offset = 0, actorId = null, kind = null } = {}) {
     if (!this._ready() || this.levels.master === 0 || bus === 'distress' && this.levels.distress === 0 ||
+      (bus === 'ambience' || bus === 'menu') && this.levels.ambience === 0 ||
       bus === 'reflection' && this.levels.reflections === 0 ||
       bus !== 'menu' && bus !== 'ambience' && this.levels.effects === 0) return;
     if (this.voices.size >= 32) {
@@ -434,7 +481,7 @@ export class GameAudio {
   }
 
   _loop(key, buffer, { gain = 0, lowpass = 1000, highpass = 40, pan = 0, rate = 1, bus = 'mission' } = {}) {
-    if (!this._ready() || !buffer) return;
+    if (!this._ready() || !buffer || this.levels.master === 0 || this.levels.ambience === 0) return;
     let loop = this.loops.get(key);
     if (loop && loop.buffer !== buffer) { this._stopLoop(key); loop = null; }
     const c = this.context;
@@ -568,6 +615,7 @@ export class GameAudio {
       rate, attack: profile.attack, highpass: profile.highpass, lowpass: own ? 11000 : spatial.lowpass,
       pan, wet: profile.wet, space: spatial.space, priority, actorId: event.actorId, kind: 'report' });
     if (!direct) return;
+    if (own) this.foregroundUntil = Math.max(this.foregroundUntil, this.context.currentTime + this.eventDelay + .25);
     const taps = this.levels.reflections > 0 ? streetReflectionPlan(state?.world, event, player) : [];
     const now=this.context.currentTime+this.eventDelay;let earlyReflections=0,lateEchoes=0,lateEchoDelayMs=null;
     for (const tap of taps) {
@@ -691,6 +739,12 @@ export class GameAudio {
       this._voice({ duration: .12, gain: .11 * s.gain, highpass: 80, lowpass: 1100, pan: s.pan, wet: .14, space:s.space });
       this._voice({ duration: 1.2, gain: .035 * s.gain, highpass: 900, lowpass: 4000, delay: .08, pan: s.pan, attack: .07 });
     } else if (event.type === 'impact') {
+      if (event.material === 'metal') {
+        this._voice({ buffer: this.cityMetal, duration: .22, gain: .23 * s.gain, highpass: 260,
+          lowpass: Math.min(4200, s.lowpass), pan: s.pan, wet: .12, space: s.space,
+          attack: .001, priority: s.d < 80 ? 3 : 0, kind: 'metal-impact' });
+        return;
+      }
       this._voice({ duration: event.material === 'concrete' ? .075 : .055, gain: .085 * s.gain,
         highpass: event.material === 'concrete' ? 1100 : 240, lowpass: Math.min(4500, s.lowpass), pan: s.pan, wet: .15, space:s.space, priority: s.d < 80 ? 3 : 0 });
       if (event.material === 'concrete' && s.d < 220) this._voice({ duration: .08, gain: .026 * s.gain,
@@ -716,19 +770,26 @@ export class GameAudio {
 
   _movement(state, player, audible) {
     let played = 0;
-    for (const actor of state.squad || []) {
+    // A solo switch to the medic/grenadier must not put the controlled feet
+    // behind two AI soldiers in the per-frame foley budget.
+    const actors = [...(state.squad || [])].sort((a,b) => Number(b.id === player.id) - Number(a.id === player.id));
+    for (const actor of actors) {
       const previous = this.footTravel.get(actor.id);
       const moved = previous ? distance(previous, actor) : 0;
       let travel = (previous?.travel || 0) + (moved < 70 ? moved : 0);
       if (actor.downed || actor.alive === false) travel = 0;
       if (travel > 43) {
         travel %= 43;
-        if (audible && played < 2 && distance(actor, player) < 200 && !actor.downed) {
+        if (audible && played < 2 && distance(actor, player) < 145 && !actor.downed && actor.alive !== false) {
           const road = state.world?.roads?.some(r => actor.x >= r.x && actor.x <= r.x + r.w && actor.y >= r.y && actor.y <= r.y + r.h);
-          const s = this._spatial(actor, player), own = actor.id === player.id;
-          this._voice({ duration: road ? .065 : .1, gain: (own ? .05 : .025) * s.gain,
-            highpass: road ? 110 : 350, lowpass: road ? 1900 : 3100, pan: own ? 0 : s.pan });
-          if (own) this._voice({ duration: .035, gain: .015, highpass: 1400, lowpass: 3500, delay: .025 });
+          const indoors = Boolean(buildingAt(state.world, actor)), surface = road || indoors ? 'stone' : 'earth';
+          const s = this._spatial(actor, player, state.world), own = actor.id === player.id;
+          const turn = this.footstepTurn++, recorded = this.samples.get(surface === 'stone' ? 'footStone' : 'footDirt');
+          const bank = recorded?.duration >= 2.99 ? recorded : null;
+          const buffer = bank || this.footstepBuffers.get(`${surface}:${turn % 4}`);
+          this._voice({ buffer, offset: bank ? turn % 6 * .5 : 0, duration: bank ? .49 : .2, gain: (own ? .0125 : .0065) * s.gain,
+            highpass: 80, lowpass: Math.min(s.lowpass, indoors ? 1750 : surface === 'stone' ? 2100 : 2800),
+            pan: own ? 0 : s.pan, attack: .004, priority: -1, kind: 'footstep', actorId: actor.id });
           played++;
         }
       }
@@ -736,15 +797,78 @@ export class GameAudio {
     }
   }
 
+  _cityEvent(event, player, state) {
+    if (this.levels.ambience === 0 || this.levels.master === 0) return;
+    if (event.kind === 'rotor' || event.kind === 'engine') {
+      if (this.cityPasses.length < 2) this.cityPasses.push({ ...event, startedAt: state.time, key: `city-pass:${event.kind}:${event.id}` });
+      return;
+    }
+    let remaining = Math.max(0, 8 - [...this.voices].filter(v => v.bus === 'ambience').length);
+    if (!remaining) return;
+    const s = this._spatial(event, player, state.world), indoors = Boolean(buildingAt(state.world, player));
+    const presence = (s.occluded ? .58 : 1) / (1 + (s.d / 650) ** 1.2) * (indoors ? .58 : 1);
+    const delay = Math.min(1.2, s.d / WORLD_UNITS_PER_METRE / SOUND_SPEED_MPS), intensity = clamp(event.intensity || .7, 0, 1);
+    const emit = options => {
+      if (remaining-- <= 0) return;
+      return this._voice({ pan: s.pan, priority: -2, bus: 'ambience', kind: `city-${event.kind}`, ...options });
+    };
+    if (event.kind === 'battle') {
+      if (event.variant === 'rumble') {
+        emit({ buffer: this.rumble, duration: 3.8, delay, gain: .28 * presence * intensity,
+          lowpass: indoors ? 350 : 650, highpass: 32, attack: .06 });
+        return;
+      }
+      const weapon = event.seed % 2 ? 'hostile_support' : 'rifle', profile = reportProfile(weapon);
+      const recorded = this.samples.get(profile.sample), buffer = recorded || this.fallbackReports.get(weapon);
+      const offsets = recorded ? profile.offsets : [0], count = event.variant === 'automatic' ? 5 + event.seed % 3 : 2;
+      for (let i = 0; i < count && remaining > 0; i++) {
+        const offset = offsets[(event.seed + i) % offsets.length];
+        emit({ buffer, offset, duration: Math.min(profile.duration, .3), delay: delay + i * (event.variant === 'automatic' ? .105 : .55),
+          gain: .24 * presence * intensity, lowpass: Math.min(s.lowpass, indoors ? 750 : 1450), highpass: 75,
+          rate: .97 + (event.seed % 7) * .005, attack: .001 });
+      }
+      if (remaining > 0) emit({ buffer: this.rumble, duration: 1.6, delay: delay + .2,
+        gain: .055 * presence * intensity, lowpass: 420, highpass: 55, attack: .08 });
+    } else if (event.kind === 'metal') {
+      if (s.d > 750) return;
+      emit({ buffer: this.cityMetal, duration: .65, delay, gain: .18 * s.gain * intensity,
+        highpass: 180, lowpass: Math.min(s.lowpass, indoors ? 900 : 2400), rate: .85 + event.seed % 31 / 100, attack: .002 });
+    } else if (event.kind === 'domestic' && event.variant === 'dog') {
+      const buffer = this.samples.get('dog');
+      if (buffer && s.d < 1200) emit({ buffer, duration: Math.min(buffer.duration, 2.1), delay,
+        gain: .13 * presence * intensity, lowpass: Math.min(s.lowpass, indoors ? 1100 : 2600), highpass: 180,
+        rate: .97 + event.seed % 7 / 100, attack: .012 });
+    }
+  }
+
+  _cityPasses(state, player, indoors, profile) {
+    this.cityPasses = this.cityPasses.filter(pass => {
+      const phase = (state.time - pass.startedAt) / pass.duration;
+      if (phase < 0 || phase >= 1 || this.levels.ambience === 0) { this._stopLoop(pass.key, .4); return false; }
+      const point = { x: pass.x + (pass.toX-pass.x) * phase, y: pass.y + (pass.toY-pass.y) * phase };
+      const s = this._spatial(point, player, state.world), rotor = pass.kind === 'rotor';
+      const presence = Math.sin(Math.PI * phase) ** .8 / (1 + (s.d / (rotor ? 850 : 550)) ** 1.2);
+      const gain = (rotor ? .12 : .085) * presence * pass.intensity * (indoors ? .55 : 1) * (rotor ? 1 : profile.domesticGain);
+      this._loop(pass.key, rotor ? this.samples.get('rotor') : this.engine, { gain,
+        lowpass: rotor ? (indoors ? 900 : 1700) : (indoors ? 280 : 580), highpass: 45, pan: s.pan,
+        rate: rotor ? .94 + .05 * (1-phase) : .8 + .25 * Math.sin(Math.PI * phase) });
+      return true;
+    });
+  }
+
   _ambience(state, player, dt) {
     if (!this._ready() || !player) return;
     const indoors = Boolean(buildingAt(state.world, player)), wind = this.samples.get('wind');
-    const bed = ((state.mission?.lighting==='night'||!state.mission?.lighting&&state.missionIndex===2) ? .78 : 1) * (this.context.currentTime < this.foregroundUntil ? .58 : 1);
+    const profile = cityAmbienceProfile(state), bed = profile.bedGain;
+    const duck = this.context.currentTime < this.foregroundUntil ? .58 : 1;
+    this.missionAmbienceBus.gain.setTargetAtTime(duck, this.context.currentTime, duck < 1 ? .025 : .24);
     const breeze = .83 + Math.sin(state.time * .19) * .12 + Math.sin(state.time * .071) * .05;
     // Existing loop gain/filter ramps soften each threshold crossing without
     // rebuilding audio nodes or tracing sound paths through individual walls.
-    this._loop('wind', wind || this.noise, { gain: (wind ? .035 : .022) * breeze * (indoors ? .62 : 1) * bed,
-      lowpass: indoors ? 1050 : 1600, highpass: 85, rate: wind ? 1 : .7 });
+    this._loop('wind', wind || this.noise, { gain: (wind ? .058 : .03) * breeze * (indoors ? .62 : 1) * bed,
+      lowpass: indoors ? 1050 : profile.phase === 'night' ? 1250 : 1850, highpass: 85, rate: wind ? 1 : .7 });
+    this._loop('city-bed', this.cityBed, { gain: .07 * bed * (indoors ? .5 : 1), lowpass: indoors ? 350 : 650,
+      highpass: 65, rate: profile.phase === 'night' ? .87 : 1 });
     if (state.missionIndex === 0 && state.time < 20) {
       const rotor = this.samples.get('rotor');
       const pass = Math.sin(Math.PI * clamp(state.time / 20, 0, 1));
@@ -755,7 +879,7 @@ export class GameAudio {
     const nearest = vehicles.sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (nearest && distance(nearest, player) < 650) {
       const previous = this.vehiclePositions.get(nearest.id), speed = previous && dt > 0 ? distance(previous, nearest) / dt : 0;
-      const s = this._spatial(nearest, player);
+      const s = this._spatial(nearest, player, state.world);
       this._loop('engine', this.engine, { gain: .11 * s.gain * (indoors ? .76 : 1) * bed,
         lowpass: clamp(700 - s.d, 180, 700) * (indoors ? .72 : 1), highpass: 35, pan: s.pan, rate: speed > 5 ? 1.08 : .77 });
     } else this._stopLoop('engine');
@@ -765,6 +889,17 @@ export class GameAudio {
       this._loop('wreck-fire', this.fire, { gain: .075 * s.gain * bed, lowpass: Math.min(1900, s.lowpass),
         highpass: 130, pan: s.pan, rate: .94 + Math.sin(state.time * .27) * .025 });
     } else this._stopLoop('wreck-fire');
+    const fires = [...(state.world?.ambientFires || [])].filter(f => distance(f, player) < 390)
+      .sort((a,b) => distance(a,player)-distance(b,player)).slice(0,2), fireKeys = new Set();
+    for (const fire of fires) {
+      const key = `city-fire:${fire.id}`, s = this._spatial(fire, player, state.world); fireKeys.add(key);
+      this._loop(key, this.fire, { gain: .09 * (fire.intensity || 1) * s.gain * (profile.phase === 'night' ? .8 : 1),
+        lowpass: Math.min(1800, s.lowpass), highpass: 110, pan: s.pan, rate: .91 + Math.sin(state.time * .24) * .025 });
+    }
+    for (const key of [...this.loops.keys()]) if (key.startsWith('city-fire:') && !fireKeys.has(key)) this._stopLoop(key);
+    if (!this.cityDirector) this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time);
+    for (const event of advanceCityAmbience(this.cityDirector, state)) this._cityEvent(event, player, state);
+    this._cityPasses(state, player, indoors, profile);
     for (const v of vehicles) this.vehiclePositions.set(v.id, { x: v.x, y: v.y });
     this._mixReflections(state,player,dt);
   }
@@ -783,6 +918,7 @@ export class GameAudio {
       this.footTravel.clear(); this.vehiclePositions.clear(); this.lastShots = 0; this.lastRadio = state.radio?.at(-1)?.id;
       this.shotBudget = 8; this.lastPlayerId = null; this.lastCommandVoiceTime = -Infinity;
       this.reportTurns.clear(); this.lastReport = null;
+      this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
       this.hitTimes.clear(); this.painTimes.clear(); this.fearTimes.clear();
       this.lastPainTime = -Infinity; this.lastFearTime = -Infinity; this.foregroundUntil = 0;
       this.lastNearPassTime = -Infinity; this.presentationAnchor = null; this.needsLiveCursor = false; this.arrivalTrace.length = 0;
@@ -791,6 +927,8 @@ export class GameAudio {
       // ring. Keep its cursor; discard old-perspective arrivals without replay.
       this._cancelArrivals(); this._stopVoices(voice => voice.bus !== 'menu'); this._clearReflections();
       this.needsLiveCursor = true; this.presentationAnchor = null;
+      for (const key of [...this.loops.keys()]) if (key.startsWith('city-pass:')) this._stopLoop(key);
+      this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
     }
     this.transportEpoch = timing.epoch ?? this.transportEpoch;
     this.lastState = state; this.lastSceneKey = sceneKey; this.lastStateTime = state.time;
@@ -855,6 +993,7 @@ export class GameAudio {
 
   _stopMission() {
     this._cancelArrivals();
+    this.cityDirector = null; this.cityPasses.length = 0;
     const now = this.context?.currentTime || 0;
     for (const key of [...this.loops.keys()]) if (!key.startsWith('menu:')) this._stopLoop(key);
     this._stopVoices(voice => voice.bus !== 'menu');

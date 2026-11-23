@@ -19,6 +19,36 @@ function fixture(ratio=1) {
 }
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} differs from ${expected}`);
 
+test('ambient flames require current squad sight, clip to masonry, and stay beneath fog memory', () => {
+  const { renderer, state } = fixture(), drawn = [], order = [];
+  state.missionIndex = 2; renderer.mapMission = 2;
+  state.world.walls = [{ id: 'screen', x: 1280, y: 800, w: 10, h: 400 }];
+  state.world.ambientFires = [
+    { id: 'near', x: 1250, y: 950, intensity: .8, phase: 3 },
+    { id: 'behind-wall', x: 1320, y: 950, intensity: .8, phase: 1 },
+    { id: 'far', x: 2200, y: 150, intensity: .8, phase: 2 },
+  ];
+  renderer.drawFire = (_ctx, x, y, time) => { drawn.push({ x, y, time }); order.push('fire'); };
+  renderer.radialSprite = () => ({});
+  renderer.sharedSight.draw = () => order.push('sight');
+  renderer.render(state, { quality: 'performance', reducedMotion: true });
+  assert.deepEqual(drawn, [{ x: 1250, y: 950, time: 3 }]);
+  assert.ok(order.indexOf('fire') < order.indexOf('sight'));
+  const mask = renderer.ambientFireMasks.get('near');
+  assert.ok(mask.every(point => point.x < 1280.001), 'the glow cannot spill through the nearby solid facade');
+  renderer.drawAmbientFires(renderer.ctx, state, 200, { reducedMotion: true });
+  assert.deepEqual(drawn[1], drawn[0], 'reduced motion keeps a steady flame and plume');
+  assert.equal(renderer.ambientFireMasks.get('near'), mask, 'a stationary fire reuses its visibility fan');
+  drawn.length = 0;
+  renderer.drawAmbientFires(renderer.ctx, state, 300, { showMap: true });
+  renderer.drawAmbientFires(renderer.ctx, state, 300, { menu: true });
+  assert.equal(drawn.length, 0, 'ambient decoration never reveals extra intelligence on the map');
+  state.world.walls = []; state.world.geometryRevision = 1;
+  renderer.drawAmbientFires(renderer.ctx, state, 300, {});
+  assert.notEqual(renderer.ambientFireMasks.get('near'), mask, 'a new breach refreshes local fire light geometry');
+  assert.equal(drawn.length, 2, 'the former hidden source appears only after its sight obstruction is removed');
+});
+
 test('cursor world mapping uses CSS viewport dimensions at every render resolution', () => {
   let expected;
   for (const ratio of [.5,.75,1,1.5,2]) {

@@ -15,7 +15,7 @@ function run(game,seconds,input={}){
 function openArena(role='leader'){
   const game=quietGame(),actor=game.squad.find(a=>a.role===role);
   selectSquadMember(game,actor.id);
-  game.world.walls=[];game.world.buildings=[];game.grid.fill(0);
+  game.world.walls=[];game.world.buildings=[];game.world.streetSolids=[];game.grid.fill(0);
   Object.assign(actor,{x:300,y:500,angle:0,cooldown:0});
   for(const other of game.squad)if(other!==actor)Object.assign(other,{x:2100,y:1700});
   game.waitUntil=10000;
@@ -162,7 +162,7 @@ test('a sniper gives an aimed-shot warning, breaks charge on lost sight, and can
   game.smokes=[{x:650,y:500,radius:105,ttl:14}];run(game,.2);
   assert.equal(sniper.aimCharge,0);assert.equal(sniper.visible,false);
   game.smokes=[];run(game,1.3);assert.equal(game.soundEvents.filter(e=>e.type==='shot').length,0);
-  run(game,.35);const shot=game.soundEvents.find(e=>e.type==='shot');assert.ok(shot);assert.equal(shot.weapon,'sniper');assert.ok(sniper.cooldown>3);
+  run(game,.55);const shot=game.soundEvents.find(e=>e.type==='shot');assert.ok(shot);assert.equal(shot.weapon,'sniper');assert.ok(sniper.cooldown>3);
   run(game,.7);assert.ok(actor.hp<actor.maxHp);assert.ok(actor.hp>0);assert.equal(actor.downed,false);
   run(game,1.7);assert.equal(game.soundEvents.filter(e=>e.type==='shot').length,1,'sniper fires measured shots rather than automatic bursts');
   game.world.walls=[{x:650,y:0,w:20,h:1900}];run(game,2);assert.equal(sniper.aimCharge,0);

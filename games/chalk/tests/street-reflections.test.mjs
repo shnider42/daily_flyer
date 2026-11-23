@@ -125,11 +125,11 @@ test('long echoes remain contextual to large clear exterior facades and respect 
 });
 
 test('a real long street view produces an occasional facade echo at its actual return point', () => {
-  const { world } = createGame({ mission: 4, seed: 17 }), source = { x: 820, y: 140 };
+  const { world } = createGame({ mission: 4, seed: 17 }), source = { x: 1340, y: 300 };
   const taps = streetReflectionPlan(world, source, source), late = taps.find(tap => tap.kind === 'late');
-  assert.ok(late); assert.equal(late.wallId, 'b11:north-left');
-  close(late.x, 820); close(late.y, 686);
-  close(late.delay, 1092 / (WORLD_UNITS_PER_METRE * SOUND_SPEED_MPS));
+  assert.ok(late); assert.equal(late.wallId, 'b03:west');
+  close(late.x, 1730); close(late.y, 300);
+  close(late.delay, 780 / (WORLD_UNITS_PER_METRE * SOUND_SPEED_MPS));
   assert.deepEqual(streetReflectionPlan(world, { x: 680, y: 1340 }, { x: 680, y: 1340 }).filter(tap => tap.kind === 'late'), [], 'an ordinary open junction has no fabricated long return');
 });
 

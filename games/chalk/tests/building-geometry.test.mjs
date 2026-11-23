@@ -210,9 +210,11 @@ test('AI routes and all three squadmates use a narrow breach in a formerly unbre
 
 test('late co-op joins reconstruct narrow and door-adjacent openings before prediction and navigation', () => {
   const original = quietGame({ mission: 0, seed: 17 });
-  applyBreach(original, { x: 1309, y: 340, wallId: 'b02:west' });
-  applyBreach(original, { x: 1345, y: 305, wallId: 'b02:north-left' });
-  const house = original.world.buildings.find(building => building.id === 'b02');
+  // This shallow setback house retains clear approaches through the seeded
+  // street cover, including a narrow side cut and an expanded north doorway.
+  applyBreach(original, { x: 1789, y: 340, wallId: 'b03:west' });
+  applyBreach(original, { x: 1825, y: 305, wallId: 'b03:north-left' });
+  const house = original.world.buildings.find(building => building.id === 'b03');
   assert.deepEqual(house.breaches.map(opening => opening.width), [48, 50]);
   const { world, grid, stages, ...state } = original;
   const packet = { state, init: { seed: 17, mission: 0, difficulty: 'standard', epoch: 1 }, room: { code: 'ABCDEF', players: [{ id: 'human', actorId: original.playerId, role: 'leader' }] } };

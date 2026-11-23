@@ -1,7 +1,7 @@
 // CHALK — deterministic, browser-independent solo and authoritative co-op simulation.
 // Fictional squad and compressed mission geography inspired by October 1993.
 import { getSolidWalls, prepareBuildingInteriors, buildingAt } from './building-geometry.mjs';
-import { roleProfile, movementSpeed, visionRange } from './squad-roles.mjs';
+import { roleProfile, movementSpeed, visionRange, AI_FIRE_DISCIPLINE } from './squad-roles.mjs';
 import { varyWorldLayout } from './world-variation.mjs';
 import { recordDeadActors, recordBloodHit } from './bodies.mjs';
 import { initializeStory, updateStory, finalizeStory, chooseOption, storyInteraction } from './story.mjs';
@@ -152,11 +152,73 @@ function move(s,a,dx,dy){
   const r=a.radius||13;const nx=clamp(a.x+dx,r,W-r),ny=clamp(a.y+dy,r,H-r);
   if(free(s,nx,a.y,r))a.x=nx;if(free(s,a.x,ny,r))a.y=ny;
 }
+
+// Sparse, physical cover edges are shared by the whole district. Only nearby
+// candidates are scored, and route searches run on a staggered planning clock.
+// The cache stays outside authoritative snapshots and follows real breaches.
+const coverCache=new WeakMap();
+function coverCandidates(s){
+  const walls=getSolidWalls(s.world),revision=s.world.geometryRevision||0;
+  let cached=coverCache.get(s.world);
+  if(cached&&cached.walls===walls&&cached.count===walls.length&&cached.revision===revision)return cached.points;
+  const points=[],seen=new Set(),padding=24;
+  for(const wall of walls){
+    if(wall.w<3||wall.h<3)continue;
+    const left=wall.x-padding,right=wall.x+wall.w+padding,top=wall.y-padding,bottom=wall.y+wall.h+padding;
+    const middleX=wall.x+wall.w/2,middleY=wall.y+wall.h/2;
+    for(const [x,y] of [[left,top],[right,top],[left,bottom],[right,bottom],[left,middleY],[right,middleY],[middleX,top],[middleX,bottom]]){
+      if(x<25||y<25||x>W-25||y>H-25)continue;
+      const key=`${Math.round(x/8)}:${Math.round(y/8)}`;if(seen.has(key))continue;seen.add(key);points.push({x,y});
+    }
+  }
+  cached={walls,count:walls.length,revision,points};coverCache.set(s.world,cached);return points;
+}
+function approachPositions(s,base,kind){
+  // Keep the authored sniper's long sightline. Other members begin beside a
+  // real wall or parked vehicle overlooking their own approach, when possible.
+  if(kind==='sniper')return [base];
+  return coverCandidates(s).filter(p=>distance(p,base)<115&&free(s,p.x,p.y,15)&&!buildingAt(s.world,p)&&hasLineOfSight(s,p,base))
+    .sort((a,b)=>distance(a,base)-distance(b,base)).slice(0,8);
+}
+function planCover(s,a,threat,anchor=a.home||a,maxTravel=170,leash=220){
+  const revision=s.world.geometryRevision||0;
+  if(s.time<(a.nextCoverPlanAt||0)&&a.coverRevision===revision&&a.coverAnchor&&distance(a.coverAnchor,anchor)<70)return;
+  a.nextCoverPlanAt=s.time+2.5+(a.id%5)*.19;a.coverRevision=revision;a.coverAnchor={x:anchor.x,y:anchor.y};
+  const allies=a.team==='enemy'?s.enemies:s.squad;
+  const candidates=coverCandidates(s).filter(p=>distance(a,p)<=maxTravel&&distance(anchor,p)<=leash&&free(s,p.x,p.y,a.radius||13)&&
+    (!a.defensive||distance(a.home,p)<(a.defenseRadius||310))&&
+    !allies.some(other=>other!==a&&other.alive&&!other.downed&&(distance(other,p)<42||other.coverPoint&&distance(other.coverPoint,p)<46)))
+    .sort((p,q)=>distance(a,p)+distance(anchor,p)*.3-distance(a,q)-distance(anchor,q)*.3).slice(0,22);
+  const visible=[],sheltered=[];
+  for(const point of candidates){
+    const score=distance(a,point)*.65+distance(anchor,point)*.35-(a.coverPoint&&distance(point,a.coverPoint)<8?35:0);
+    if(combatLOS(s,point,threat))visible.push({point,score});
+    else{
+      const len=Math.max(1,distance(point,threat)),dx=-(point.y-threat.y)/len*17,dy=(point.x-threat.x)/len*17;
+      if(!hasLineOfSight(s,{x:point.x+dx,y:point.y+dy},threat)&&!hasLineOfSight(s,{x:point.x-dx,y:point.y-dy},threat))sheltered.push({point,score});
+    }
+  }
+  const reachable=list=>{
+    for(const {point} of list.sort((p,q)=>p.score-q.score).slice(0,3)){
+      const path=findPath(s,a,point);if(!path.length)continue;
+      let length=0,previous=a;for(const next of path){length+=distance(previous,next);previous=next;}
+      if(length<=maxTravel*1.8)return{x:point.x,y:point.y};
+    }return null;
+  };
+  a.coverPoint=reachable(visible);
+  // A reload/suppression refuge must be a nearby step off the firing edge,
+  // rather than a long unexplained retreat into a different building.
+  a.coverShelter=reachable(sheltered.filter(({point})=>distance(point,a.coverPoint||a)<115));
+}
 function navigate(s,a,target,speed,dt,stop=12){
-  const radius=a.radius||13;
+  const radius=a.radius||13,remaining=distance(a,target);
+  // An exterior formation slot can be close to a doorway. Do not finish at
+  // its usual arrival radius while the follower's body is still across that
+  // threshold; clearing the footprint also leaves the door usable by others.
+  if(remaining<=stop&&!buildingAt(s.world,target)&&(s.world.buildings||[]).some(b=>b.enterable&&rectContains(b,a.x,a.y,radius+1)))stop=Math.min(stop,6);
   // A nearby point may be in another room. Proximity only counts when the
   // actor can reach the target on its own side of the wall.
-  if(distance(a,target)<=stop&&walkLine(s,a,target,radius)){a.moving=false;a.navStalled=0;return true;}
+  if(remaining<=stop&&walkLine(s,a,target,radius)){a.moving=false;a.navStalled=0;return true;}
   a.pathTimer=(a.pathTimer||0)-dt;
   const shifted=!a.pathTarget||distance(target,a.pathTarget)>65;
   if(!a.path||a.pathTimer<=0||shifted){a.path=findPath(s,a,target);a.pathTarget={x:target.x,y:target.y};a.pathTimer=.9+(a.id%7)*.045;}
@@ -174,7 +236,12 @@ function navigate(s,a,target,speed,dt,stop=12){
   a.navStalled=moved<amount*.12?(a.navStalled||0)+dt:0;
   if(a.path.length>1&&distance(a,dest)<.6)a.path.shift();
   if(a.navStalled>.45){a.path=[];a.pathTimer=0;a.navStalled=0;}
-  return distance(a,target)<=stop&&walkLine(s,a,target,radius);
+  const finalDistance=distance(a,target);
+  if(finalDistance>stop)return false;
+  // A move can cross into the arrival band this tick. Flankers use the return
+  // value to settle, so apply the same doorway rule after movement as before it.
+  if(stop>6&&!buildingAt(s.world,target)&&(s.world.buildings||[]).some(b=>b.enterable&&rectContains(b,a.x,a.y,radius+1)))stop=6;
+  return finalDistance<=stop&&walkLine(s,a,target,radius);
 }
 function actor(s,team,name,kind,x,y,extra={}){return{id:++s.nextId,team,name,kind,x,y,angle:-Math.PI/2,hp:100,maxHp:100,alive:true,downed:false,radius:13,cooldown:range(s,.1,.8),suppression:0,reloadTimer:0,ammo:30,magSize:30,reserve:180,path:[],pathTimer:0,reviveProgress:0,bleed:0,visible:team!=='enemy',...extra};}
 export function createGame({mission=0,role='leader',difficulty='standard',seed=19931003,campaign=null}={}){
@@ -215,7 +282,7 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
 }
 
 function seedEnemies(s){initializeEncounters(s,encounterHooks);}
-const encounterHooks={nearbyFree,canAddEnemy,squadCanSeePoint,spawnEnemy};
+const encounterHooks={nearbyFree,canAddEnemy,squadCanSeePoint,spawnEnemy,approachPositions};
 function spawnEnemy(s,p,allowSniper=false,preferredKind=null){
   if(!canAddEnemy(s,'rifleman'))return false;
   const hp=DIFFICULTIES[s.difficulty].enemyHp,sniper=allowSniper&&s.time-s.lastSniperAt>90&&canAddEnemy(s,'sniper')&&random(s)<.08;
@@ -380,9 +447,8 @@ function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
   if(a.kind==='sniper'){a.cooldown=range(s,...enemyProfile(a).recovery);a.aimCharge=0;}
   else if(a.team==='enemy'){const profile=enemyProfile(a);a.burst=(a.burst||0)+1;a.cooldown=a.burst%profile.burst===0?range(s,...profile.recovery):profile.interval;}
   else if(isPlayer)a.cooldown=roleProfile(a).fireInterval;
-  else if(a.role==='support'){a.burst=(a.burst||0)+1;a.cooldown=a.burst%5===0?.85:.16;}
-  else a.cooldown=.56;
-  const spread=a.team==='enemy'?a.accuracy+(a.suppression||0)*.07:isPlayer?.018+.045*(a.suppression||0)+(a.moving?.02:0):a.role==='support'?.055:.04;
+  else{const discipline=AI_FIRE_DISCIPLINE[a.role]||AI_FIRE_DISCIPLINE.leader;a.burst=(a.burst||0)+1;a.cooldown=a.burst%discipline.burst===0?range(s,...discipline.recovery):roleProfile(a).fireInterval;}
+  const spread=a.team==='enemy'?a.accuracy+(a.suppression||0)*.07+(a.moving?.04:0):isPlayer?.018+.045*(a.suppression||0)+(a.moving?.02:0):(a.role==='support'?.065:.045)+(a.moving?.045:0);
   const shotAngle=angle+range(s,-spread,spread);
   // Projectile dispersion should not pull a human's aim away from the cursor.
   // Preserve the same random draw and projectile trajectory as before.
@@ -438,8 +504,8 @@ function updateGrenades(s,dt,frameStart=s.time-dt){
   s.grenades=s.grenades.filter(g=>g.progress<1);
 }
 function safeShot(s,a,t){
-  const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy;
-  return !s.civilians.some(c=>{if(!c.alive||c.downed)return false;const f=((c.x-a.x)*dx+(c.y-a.y)*dy)/len2;if(f<=0||f>=1)return false;return Math.hypot(c.x-a.x-f*dx,c.y-a.y-f*dy)<24;});
+  const dx=t.x-a.x,dy=t.y-a.y,len2=dx*dx+dy*dy,spread=(a.role==='support'?.065:.045)+(a.moving?.045:0);
+  return !s.civilians.some(c=>{if(!c.alive||c.downed)return false;const f=((c.x-a.x)*dx+(c.y-a.y)*dy)/len2;if(f<=0||f>=1)return false;return Math.hypot(c.x-a.x-f*dx,c.y-a.y-f*dy)<24+f*Math.sqrt(len2)*spread;});
 }
 function damage(s,a,amount,source,cause='bullet',angle,sourceTime=s.time){
   if(!a.alive||a.downed||!Number.isFinite(amount)||amount<=0)return;
@@ -490,8 +556,8 @@ function updateBullets(s,dt,frameStart=s.time-dt){
     const travelTime=Math.min(dt,Math.max(0,b.ttl),Number.isFinite(b.rangeRemaining)?Math.max(0,b.rangeRemaining)/speed:Infinity);
     b.px=b.x;b.py=b.y;
     const origin={x:b.x,y:b.y},end={x:b.x+b.vx*travelTime,y:b.y+b.vy*travelTime};
-    let hitTime=Infinity,hitActor=null;
-    for(const wall of getSolidWalls(s.world))hitTime=Math.min(hitTime,segmentRectEntry(origin,end,wall));
+    let hitTime=Infinity,hitActor=null,hitWall=null;
+    for(const wall of getSolidWalls(s.world)){const entry=segmentRectEntry(origin,end,wall);if(entry<hitTime){hitTime=entry;hitWall=wall;}}
     const targets=b.team==='enemy'?[...s.squad,...s.survivors]:[...s.enemies,...s.civilians];
     for(const a of targets){
       if(!a.alive||a.downed)continue;
@@ -502,7 +568,7 @@ function updateBullets(s,dt,frameStart=s.time-dt){
       b.x=origin.x+(end.x-origin.x)*hitTime;b.y=origin.y+(end.y-origin.y)*hitTime;
       const sourceTime=frameStart+travelTime*hitTime;
       if(hitActor)damage(s,hitActor,b.damage,b.owner,'bullet',Math.atan2(b.vy,b.vx),sourceTime);
-      else{effect(s,'dust',b.x,b.y,.25);soundEvent(s,'impact',{id:b.owner,x:b.x,y:b.y,team:b.team},{weapon:b.weapon||(b.team==='enemy'?'hostile':'rifle'),material:'concrete',sourceActorId:b.owner,sourceTime});}
+      else{effect(s,'dust',b.x,b.y,.25);soundEvent(s,'impact',{id:b.owner,x:b.x,y:b.y,team:b.team},{weapon:b.weapon||(b.team==='enemy'?'hostile':'rifle'),material:hitWall?.material||'concrete',propId:hitWall?.propId,sourceActorId:b.owner,sourceTime});}
     }else{b.x=end.x;b.y=end.y;}
     nearPasses(s,b,origin,b,hitActor,frameStart,speed);
     const travelled=distance(origin,b);b.travelled=(b.travelled||0)+travelled;
@@ -536,16 +602,36 @@ function aiTarget(s){
   if(p.kind==='hold'&&distance(leader,p)<p.radius){describeLeader(s,'Hold this area · watch your squad');return{x:p.x,y:p.y};}
   describeLeader(s,`Moving · ${p.title}`);return{x:p.x,y:p.y};
 }
-function formationPoint(s,anchor,offset){
+function formationPoint(s,anchor,offset,heading=-Math.PI/2){
   // Open streets use a broad formation. Rooms and thresholds naturally compress
   // it so soldiers can take the same doorway without crowding its frame.
-  const room=buildingAt(s.world,anchor),scale=room?.45:!anchor.team&&Number.isFinite(anchor.radius)?Math.min(1,Math.max(28,anchor.radius-28)/102):1;
-  let x=anchor.x+offset[0]*scale,y=anchor.y+offset[1]*scale;
+  const room=buildingAt(s.world,anchor),scale=room?.34:!anchor.team&&Number.isFinite(anchor.radius)?Math.min(1,Math.max(28,anchor.radius-28)/150):1;
+  // Formation follows travel, never the player's mouse aim. In a room it
+  // compresses to the same doorway-safe footprint as the previous formation.
+  if(room)heading=-Math.PI/2;
+  let x=anchor.x+(-Math.sin(heading)*offset[0]-Math.cos(heading)*offset[1])*scale;
+  let y=anchor.y+(Math.cos(heading)*offset[0]-Math.sin(heading)*offset[1])*scale;
   if(room){x=clamp(x,room.interior.x+18,room.interior.x+room.interior.w-18);y=clamp(y,room.interior.y+18,room.interior.y+room.interior.h-18);}
+  else{
+    // A broad street slot must not send a follower through an unrelated house
+    // just because its mathematical offset landed beyond the kerb. Compress at
+    // narrow corners and parked cars, then open back out at the next junction.
+    for(const compression of [1,.84,.68,.52,.36,.2]){
+      const point={x:anchor.x+(x-anchor.x)*compression,y:anchor.y+(y-anchor.y)*compression};
+      if(!buildingAt(s.world,point)&&free(s,point.x,point.y,15))return point;
+    }
+  }
   return nearbyFree(s,x,y);
 }
 function updateSquad(s,inputs,dt,frameStart=s.time-dt){
   const pl=player(s),leader=currentLeader(s),dest=s.role==='member'?aiTarget(s):null,anchorPlayer=s.coop?leader:pl;
+  const followAnchor=s.role==='member'?leader:anchorPlayer,previous=s.formationAnchor;
+  if(previous?.id===followAnchor.id&&distance(previous,followAnchor)>1){
+    const direction=Math.atan2(followAnchor.y-previous.y,followAnchor.x-previous.x),old=s.formationHeading??-Math.PI/2;
+    s.formationHeading=old+Math.atan2(Math.sin(direction-old),Math.cos(direction-old))*Math.min(1,dt*7);
+  }
+  s.formationAnchor={id:followAnchor.id,x:followAnchor.x,y:followAnchor.y};
+  const following=s.squad.filter(a=>a.alive&&!a.downed&&!controlled(s,a)&&a!==leader),covering=following[Math.floor(s.time/1.55)%Math.max(1,following.length)];
   const casualties=[...s.squad,...s.survivors.filter(a=>a.stabilized)].filter(a=>a.alive&&a.downed),helper=s.squad.find(a=>a.role==='medic'&&a.alive&&!a.downed&&!controlled(s,a))||s.squad.find(a=>a.alive&&!a.downed&&!controlled(s,a));
   const aidTarget=s.squad.find(a=>a.id===s.helpTargetId&&a.alive&&!a.downed)||pl;
   for(const a of s.squad){
@@ -566,6 +652,7 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
       continue;
     }
     a.observing=false;
+    const enemy=targetFor(s,a,s.enemies,nightMission(s)?350:440);a.target=enemy?.id||null;
     let work=false;
     if(a===helper&&casualties.length){const wounded=casualties.sort((b,c)=>distance(a,b)-distance(a,c))[0];navigate(s,a,wounded,movementSpeed(a)*128/112,dt,40);if(distance(a,wounded)<65&&hasLineOfSight(s,a,wounded)){revive(s,wounded,a,dt);work=true;}a.medicTarget=wounded.id;}
     else if(a.role==='medic'&&s.helpRequested&&aidTarget.alive&&!aidTarget.downed&&aidTarget.hp<aidTarget.maxHp&&a.medkits>0){navigate(s,a,aidTarget,128,dt,55);if(distance(a,aidTarget)<72&&hasLineOfSight(s,a,aidTarget)){s.aidTimer+=dt*1.35;work=true;if(s.aidTimer>3){aidTarget.hp=Math.min(aidTarget.maxHp,aidTarget.hp+55);a.medkits--;s.helpRequested=false;s.helpTargetId=null;s.aidTimer=0;radio(s,'AMES','You are patched. Stay with us.');}}}
@@ -574,13 +661,33 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
     else{
       let target;
       if(s.role==='member'&&a===leader)target=dest;
-      else if(s.role==='member'){const idx=s.squad.indexOf(a),off=[[0,0],[66,48],[-66,48],[0,102]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(leader,p)<p.radius+15?p:leader;target=formationPoint(s,anchor,off);}
-      else if(s.order.type==='follow'){const idx=s.squad.indexOf(a),off=[[0,0],[66,48],[-66,48],[0,102]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(anchorPlayer,p)<p.radius+15?p:anchorPlayer;target=formationPoint(s,anchor,off);}
-      else{const idx=s.squad.indexOf(a),off=[[-60,-55],[60,-55],[-60,55],[60,55]][idx];target=formationPoint(s,s.order,off);}
-      navigate(s,a,target,movementSpeed(a)*116/112,dt,s.role==='member'&&a===leader?(['interact','deliver'].includes(phase(s)?.kind)?6:26):20);
+      else if(s.role==='member'){const idx=s.squad.indexOf(a),off=[[0,0],[92,76],[-102,62],[12,148]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(leader,p)<p.radius+15?p:leader;target=formationPoint(s,anchor,off,s.formationHeading);}
+      else if(s.order.type==='follow'){const idx=s.squad.indexOf(a),off=[[0,0],[92,76],[-102,62],[12,148]][idx],p=phase(s),anchor=p&&p.kind!=='convoy'&&distance(anchorPlayer,p)<p.radius+15?p:anchorPlayer;target=formationPoint(s,anchor,off,s.formationHeading);}
+      else{const idx=s.squad.indexOf(a),off=[[-78,-70],[78,-70],[-78,70],[78,70]][idx];target=formationPoint(s,s.order,off);}
+      if(a!==leader){
+        // Each soldier reacts on a slightly different clock instead of tracing
+        // the same moving point every frame. Fresh orders bypass that delay.
+        const orderKey=`${s.role}:${s.order.type}:${s.order.x}:${s.order.y}:${s.playerId}:${s.stageIndex}`;
+        if(!a.formationGoal||a.formationOrderKey!==orderKey||s.time>=(a.nextFormationAt||0)||distance(target,a.formationGoal)>70){
+          a.formationGoal=target;a.formationOrderKey=orderKey;a.nextFormationAt=s.time+.28+(a.id%3)*.09;
+        }
+        target=a.formationGoal;
+      }
+      const mayCover=enemy&&a!==leader&&(s.role==='member'||s.order.type==='follow')&&distance(a,followAnchor)<235&&!buildingAt(s.world,a)&&!buildingAt(s.world,followAnchor);
+      if(mayCover){
+        planCover(s,a,enemy,target,145,105);
+        const shelter=(a.reloadTimer>0||a.suppression>.72)&&a.coverShelter;
+        const edge=shelter||a.coverPoint;if(edge&&distance(edge,followAnchor)<235)target=edge;
+      }else{a.coverPoint=null;a.coverShelter=null;}
+      const coveringNow=mayCover&&a===covering&&s.time%1.55<1.15&&distance(a,followAnchor)<190&&distance(a,target)>32&&a.reloadTimer<=0&&s.time-s.lastCommand>1&&safeShot(s,a,enemy);
+      if(coveringNow){a.moving=false;a.tactic='covering';}
+      else{
+        const catchup=distance(a,followAnchor)>220?1.18:1,pace=a.role==='medic'?1.03:a.role==='grenadier'?.98:1;
+        navigate(s,a,target,movementSpeed(a)*116/112*catchup*pace,dt,s.role==='member'&&a===leader?(['interact','deliver'].includes(phase(s)?.kind)?6:26):20);
+        a.tactic=mayCover?(a.moving?'bound':'covering'):(a.moving?'follow':'watch');
+      }
     }
-    const enemy=targetFor(s,a,s.enemies,nightMission(s)?350:440);a.target=enemy?.id||null;
-    if(enemy){a.angle=Math.atan2(enemy.y-a.y,enemy.x-a.x);if(!work&&safeShot(s,a,enemy))shoot(s,a,a.angle,false,frameStart);}
+    if(enemy){a.angle=Math.atan2(enemy.y-a.y,enemy.x-a.x);if(!work&&combatLOS(s,a,enemy)&&safeShot(s,a,enemy))shoot(s,a,a.angle,false,frameStart);}
     if(a.ammo<=0)tryReload(s,a);
   }
   // Gentle separation prevents identical stacked silhouettes without blocking paths.
@@ -603,6 +710,12 @@ function perceiveEnemy(s,a,targets,dt){
     else{
       const heard=s.soundEvents.findLast(event=>(event.type==='shot'||event.type==='explosion')&&event.team==='squad'&&s.time-event.time<.3&&distance(a,event)<(hasLineOfSight(s,a,event)?700:320));
       if(heard){a.lastKnown={x:heard.x,y:heard.y};a.lastSeenAt=s.time;}
+      // A nearby member can react to its own group's fresh contact. Copy the
+      // original observation time: reports cannot refresh one another forever
+      // or reveal a player's new position through a wall.
+      const report=a.encounterId&&s.enemies.find(other=>other!==a&&other.alive&&other.encounterId===a.encounterId&&other.perceivedTargetId!=null&&
+        other.lastKnown&&s.time-other.lastSeenAt<.3&&other.lastSeenAt>a.lastSeenAt&&distance(a,other)<430);
+      if(report){a.lastKnown={...report.lastKnown};a.lastSeenAt=report.lastSeenAt;}
     }
   }
   return target;
@@ -655,7 +768,13 @@ function updateEnemies(s,dt,frameStart=s.time-dt){
       if(a.defensive&&a.home&&distance(a,a.home)>35)enemyAdvance(s,a,a.home,profile.speed*.75,dt,25);else a.moving=false;
       continue;
     }
-    if(a.kind==='sniper'){
+    if((a.kind==='rifleman'||a.kind==='gunner')&&remembered)planCover(s,a,a.lastKnown);
+    const shelter=(a.reloadTimer>0||a.suppression>.68)&&a.coverShelter;
+    if(shelter&&a.kind!=='sniper'){
+      navigate(s,a,shelter,profile.speed*(1-a.suppression*.15),dt,6);
+      a.tactic=a.reloadTimer>0?'reload':'cover';a.braceProgress=0;a.braced=false;
+      if(target)a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+    }else if(a.kind==='sniper'){
       a.moving=false;
       if(target&&distance(a,target)<limit&&combatLOS(s,a,target)){
         a.angle=Math.atan2(target.y-a.y,target.x-a.x);
@@ -675,21 +794,25 @@ function updateEnemies(s,dt,frameStart=s.time-dt){
       const sight=target&&distance(a,target)<limit&&combatLOS(s,a,target);
       if(sight){
         a.angle=Math.atan2(target.y-a.y,target.x-a.x);
-        if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+        if(a.coverPoint)navigate(s,a,a.coverPoint,profile.speed,dt,18);
+        else if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
         if(a.moving||a.reloadTimer>0||a.suppression>.65)a.braceProgress=0;
         else a.braceProgress=Math.min(1,(a.braceProgress||0)+dt/(profile.braceDuration*(1+a.suppression*.8)));
         a.braced=a.braceProgress>=1;a.tactic=a.braced?'support':'brace';
         if(a.braced&&a.cooldown<=0)shoot(s,a,a.angle,false,frameStart);
       }else{
         a.braceProgress=0;a.braced=false;a.tactic='search';
-        if(remembered)enemyAdvance(s,a,a.lastKnown,profile.speed,dt,profile.stop);else a.moving=false;
+        if(remembered&&a.coverPoint)navigate(s,a,a.coverPoint,profile.speed,dt,18);
+        else if(remembered)enemyAdvance(s,a,a.lastKnown,profile.speed,dt,profile.stop);else a.moving=false;
       }
     }else if(a.kind==='flanker')updateFlanker(s,a,target,dt,frameStart);
     else if(target){
       a.angle=Math.atan2(target.y-a.y,target.x-a.x);
-      if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+      if(a.coverPoint)navigate(s,a,a.coverPoint,profile.speed,dt,18);
+      else if(distance(a,target)>profile.stop+20)enemyAdvance(s,a,target,profile.advanceSpeed,dt,profile.stop);else a.moving=false;
+      a.tactic=a.moving?'reposition':'fire';
       if(a.cooldown<=0&&distance(a,target)<limit&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
-    }else if(remembered)enemyAdvance(s,a,a.lastKnown,profile.speed,dt,230);else a.moving=false;
+    }else if(remembered){a.tactic='search';if(a.coverPoint)navigate(s,a,a.coverPoint,profile.speed,dt,18);else enemyAdvance(s,a,a.lastKnown,profile.speed,dt,230);}else a.moving=false;
     if(a.ammo<=0)tryReload(s,a);
   }
   updateEncounters(s,dt,encounterHooks);

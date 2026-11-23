@@ -22,7 +22,7 @@ const overlaps = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w > b.x - p
 /** Mutates only static layout; does not consume the combat simulation RNG. */
 export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
   if (!world || !Array.isArray(world.buildings)) return world;
-  const mission = Math.max(0, Math.min(3, Math.floor(Number.isFinite(missionIndex) ? missionIndex : 0)));
+  const mission = Math.max(0, Math.min(5, Math.floor(Number.isFinite(missionIndex) ? missionIndex : 0)));
   const random = seeded(seed, mission), pick = choices => choices[Math.floor(random() * choices.length)];
   const original = world.buildings;
   const buildings = [], districts = [], decorations = [];
@@ -33,6 +33,8 @@ export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
     if (mission === 1 && row >= 1 && row <= 2 && col >= 1 && col <= 2) kind = 'market';
     else if (mission === 2 && row === 2 && col <= 2) kind = pick(['workshop', 'courtyard']);
     else if (mission === 3 && row === 0) kind = pick(['courtyard', 'residential']);
+    else if (mission === 4 && col >= 2) kind = pick(['workshop', 'residential']);
+    else if (mission === 5 && row <= 1) kind = pick(['courtyard', 'residential']);
     const variant = row === 1 && col === 1 ? 0 : Math.floor(random() * 4);
     const district = { id, row, col, x: XS[col] + 76, y: YS[row] + 72, w: 328, h: 236,
       kind, tone: random(), variant: ['frontage', 'alley', 'court', 'setback'][variant] };
@@ -77,10 +79,10 @@ export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
     if (district.variant === 'insertion') continue;
     const localBuildings = buildings.filter(building => building.districtId === district.id);
     const items = district.kind === 'market' ? ['stall', 'stall', 'crate']
-      : district.kind === 'workshop' ? ['car', 'crate', 'crate']
+      : district.kind === 'workshop' ? ['oil-stain', 'crate', 'crate']
       : district.kind === 'courtyard' ? ['rubble', 'debris'] : ['rubble', 'crate'];
     for (const type of items) {
-      const [w, h] = type === 'stall' ? [40, 25] : type === 'car' ? [27, 52] : type === 'rubble' ? [22, 15] : [12, 12];
+      const [w, h] = type === 'stall' ? [40, 25] : type === 'oil-stain' ? [27, 52] : type === 'rubble' ? [22, 15] : [12, 12];
       const angle = type === 'rubble' || type === 'debris' ? random() * Math.PI * 2 : 0;
       const halfW = (Math.abs(Math.cos(angle)) * w + Math.abs(Math.sin(angle)) * h) / 2;
       const halfH = (Math.abs(Math.sin(angle)) * w + Math.abs(Math.cos(angle)) * h) / 2;
@@ -106,7 +108,8 @@ export function varyWorldLayout(world, seed = 1, missionIndex = 0) {
   world.buildings = buildings;
   world.districts = districts;
   world.layoutSeed = seed >>> 0;
-  world.layoutVersion = 1;
-  world.props = [...(world.props || []).filter(prop => !prop.layoutDecoration && !['rubble', 'car', 'stall'].includes(prop.type)), ...decorations];
+  world.layoutMission = mission;
+  world.layoutVersion = 2;
+  world.props = [...(world.props || []).filter(prop => !prop.layoutDecoration && !prop.streetDecoration && !['rubble', 'car', 'stall'].includes(prop.type)), ...decorations];
   return world;
 }

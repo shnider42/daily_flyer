@@ -524,6 +524,17 @@ export class Renderer {
         ctx.fillStyle = 'rgba(207,173,116,.065)'; ctx.fillRect(px, py, 22 + tone * 24, 10);
       }
     }
+    // Worn access paths and patches differ by neighbourhood, while navigation
+    // still follows the shared road geometry. All marks are baked just once.
+    if (district.surface === 'rutted') {
+      for (const offset of [0, 11]) {
+        ctx.setLineDash([18, 4, 7, 13]);
+        line(ctx, x + 5 + offset, y + 22, x + 17 + offset, y + h - 18, 'rgba(48,47,36,.22)', 2);
+      }
+    } else if (district.surface === 'patched') {
+      ctx.fillStyle = 'rgba(57,59,49,.15)'; ctx.fillRect(x - 8, y + h * .3, 27, 66);
+      ctx.fillStyle = 'rgba(181,156,111,.15)'; ctx.fillRect(x + w - 15, y + 32, 27, 52);
+    }
     ctx.restore();
   }
 
@@ -803,13 +814,15 @@ export class Renderer {
       ctx.fillStyle = '#bdb99a'; ctx.fillRect(-53, h - 36, 43, 32); ctx.fillRect(-53, h - 79, 43, 32);
       line(ctx, -31, h - 36, -31, h - 4, '#777b62', 2); line(ctx, -31, h - 79, -31, h - 47, '#777b62', 2);
       ctx.fillStyle = '#5c7058'; ctx.fillRect(-40, h - 25, 16, 6); ctx.fillRect(-35, h - 30, 6, 16);
-    } else if (type === 'car' || type === 'wreck' || type === 'wrecked-car') {
-      ctx.fillStyle = 'rgba(25,28,23,.3)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 7, w, h);
-      for (const yy of [-h / 2 - 2, h / 2 - 2]) { ctx.fillStyle = '#252c26'; ctx.fillRect(-w / 2 + 6, yy, 9, 4); ctx.fillRect(w / 2 - 15, yy, 9, 4); }
-      roundRect(ctx, -w / 2, -h / 2, w, h, 3, colorPick(['#7d8a7d', '#b4a583', '#896d56', '#84857b'], x + y), '#494d40');
-      ctx.fillStyle = '#414d49'; ctx.fillRect(-w * .12, -h / 2 + 3, w * .23, h - 6);
-      ctx.fillStyle = 'rgba(213,203,163,.21)'; ctx.fillRect(w / 2 - 10, -h / 2 + 3, 6, h - 6);
-      if (type !== 'car') { line(ctx, -w / 2, -h / 2, w / 3, h / 3, '#4a4536', 3); circle(ctx, -w * .3, 0, h * .48, 'rgba(29,30,24,.65)'); }
+    } else if (type === 'oil-stain') {
+      ctx.fillStyle = 'rgba(42,43,33,.19)'; ctx.beginPath(); ctx.ellipse(1, -3, w * .42, h * .32, -.15, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(47,46,35,.16)'; ctx.beginPath(); ctx.ellipse(-3, h * .2, w * .31, h * .25, .2, 0, TAU); ctx.fill();
+      for (let i = 0; i < 6; i++) circle(ctx, (hash(x + i) - .5) * w, (hash(y + i) - .5) * h, 1.5 + hash(x + y + i) * 2, 'rgba(40,42,33,.15)');
+    } else if (['car', 'pickup', 'van', 'wreck', 'wrecked-car'].includes(type)) {
+      // Old yard decoration used a vertical width/height convention. Real
+      // parked cover uses its longitudinal body dimensions and an exact angle.
+      if (h > w) ctx.rotate(Math.PI / 2);
+      this.drawCivilianVehicle(ctx, p, Math.max(w, h), Math.min(w, h));
     } else if (type === 'tree' || type === 'palm') {
       ctx.save(); ctx.translate(8, 10); this.drawPalm(ctx, .4, '#3c4530'); ctx.restore();
       this.drawPalm(ctx, .9, '#63714a');
@@ -820,6 +833,53 @@ export class Renderer {
       ctx.fillStyle = colorPick(['#a9895e', '#738975', '#ad7758'], x * 3 + y); ctx.fillRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
       for (let i = -w / 2; i < w / 2; i += 11) { ctx.fillStyle = 'rgba(245,222,171,.15)'; ctx.fillRect(i, -h / 2 - 2, 5, h + 4); }
       line(ctx, -w / 2, 0, w / 2, 0, 'rgba(42,44,32,.3)');
+      for (const xx of [-w / 2 + 2, w / 2 - 2]) for (const yy of [-h / 2 + 2, h / 2 - 2]) circle(ctx, xx, yy, 1.8, '#514934');
+      ctx.fillStyle = 'rgba(228,207,161,.25)'; ctx.fillRect(-w / 2 + 2, -h / 2 + 1, w - 4, 2);
+    } else if (type === 'handcart') {
+      ctx.fillStyle = 'rgba(31,32,25,.24)'; ctx.fillRect(-w / 2 + 4, -h / 2 + 6, w - 6, h);
+      for (const yy of [-h / 2, h / 2 - 4]) { ctx.fillStyle = '#34372d'; ctx.fillRect(-w * .12, yy, 11, 4); }
+      ctx.fillStyle = '#8d7957'; ctx.fillRect(-w / 2, -h / 2 + 3, w - 9, h - 6);
+      for (let xx = -w / 2 + 4; xx < w / 2 - 10; xx += 7) line(ctx, xx, -h / 2 + 3, xx, h / 2 - 3, '#b3a079', 1.2);
+      line(ctx, w / 2 - 11, -h / 2 + 4, w / 2, -h / 2 + 4, '#5b523c', 2);
+      line(ctx, w / 2 - 11, h / 2 - 4, w / 2, h / 2 - 4, '#5b523c', 2);
+      for (let i = 0; i < 3; i++) circle(ctx, -w / 2 + 6 + i * 6, 1, 3.5, ['#8c8151', '#a38f5d', '#8b7650'][i], '#665b3d');
+    } else if (type === 'materials') {
+      ctx.fillStyle = 'rgba(28,30,24,.28)'; ctx.fillRect(-w / 2 + 4, -h / 2 + 5, w, h);
+      for (let row = 0; row < 3; row++) for (let col = 0; col < 4; col++) {
+        const px = -w / 2 + col * w / 4, py = -h / 2 + row * h / 3;
+        ctx.fillStyle = (row + col) % 3 ? '#aaa28b' : '#8e8b78'; ctx.fillRect(px, py, w / 4 - 1, h / 3 - 1);
+        ctx.fillStyle = '#6e7060'; ctx.fillRect(px + 3, py + 2, 2, 2); ctx.fillRect(px + 7, py + 2, 2, 2);
+      }
+      line(ctx, -w * .25, -h / 2, -w * .25, h / 2, '#625d48', 1.4);
+    } else if (type === 'tires') {
+      for (let i = 0; i < 3; i++) {
+        const px = (i % 2 - .5) * 12, py = i < 2 ? -4 : 5;
+        circle(ctx, px + 3, py + 4, 7, 'rgba(26,29,23,.3)');
+        circle(ctx, px, py, 7, '#3f4439', '#696956', 1.4); circle(ctx, px, py, 3, '#80765a', '#292f27');
+      }
+    } else if (type === 'barrels') {
+      for (let i = 0; i < 2; i++) {
+        const px = (i - .5) * 10, py = i ? 4 : -4;
+        circle(ctx, px + 3, py + 4, 7, 'rgba(27,29,24,.3)');
+        circle(ctx, px, py, 7, i ? '#8b6951' : '#6d7b72', '#3f4a40', 1.5);
+        circle(ctx, px, py, 5, null, '#a09a78'); circle(ctx, px + 2, py - 2, 1, '#424b3b');
+      }
+    } else if (type === 'sacks' || type === 'jars') {
+      for (let i = 0; i < 3; i++) {
+        const px = (i - 1) * w * .27, py = i % 2 ? -h * .15 : h * .12;
+        if (type === 'jars') { circle(ctx, px + 2, py + 3, 5, 'rgba(40,34,23,.25)'); circle(ctx, px, py, 5, '#ad8b64', '#695d42'); circle(ctx, px, py, 2, '#615c43'); }
+        else { roundRect(ctx, px - 5, py - 6, 10, 13, 4, '#b2a47d', '#796e50'); line(ctx, px - 3, py - 3, px + 3, py - 3, '#d0c29a'); }
+      }
+    } else if (type === 'washline') {
+      line(ctx, -w / 2 + 2, -h / 2 + 4, w / 2 - 2, -h / 2 + 4, '#4c5142', .9);
+      for (const xx of [-w / 2 + 2, w / 2 - 2]) circle(ctx, xx, -h / 2 + 4, 2, '#726a4d');
+      for (let i = 0; i < 4; i++) {
+        const xx = -w * .35 + i * w * .2;
+        ctx.fillStyle = 'rgba(27,31,25,.15)'; ctx.fillRect(xx + 3, 0, 8, 6);
+        ctx.fillStyle = colorPick(['#bcb197', '#8b9b8c', '#a68c79', '#b2ae91'], x + i * 13);
+        ctx.fillRect(xx, -h / 2 + 2, 8, 8 + i % 2 * 2);
+        line(ctx, xx + 1, -h / 2 + 3, xx + 1, h / 2 - 2, 'rgba(240,223,182,.3)', .7);
+      }
     } else if (type === 'sandbag' || type === 'sandbags' || type === 'barricade' || type === 'barrier') {
       ctx.fillStyle = 'rgba(26,29,24,.28)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 6, w, h);
       for (let i = -w / 2; i < w / 2; i += 13) {
@@ -849,6 +909,52 @@ export class Renderer {
       }
     }
     ctx.restore();
+  }
+
+  drawCivilianVehicle(ctx, prop, w, h) {
+    const burned = prop.condition === 'burned' || ['wreck', 'wrecked-car'].includes(prop.type);
+    const paint = burned ? '#696653' : prop.paint || colorPick(['#87958c', '#b4a583', '#92745e', '#909388'], prop.x + prop.y);
+    if (burned) {
+      ctx.fillStyle = 'rgba(34,33,27,.40)'; ctx.beginPath(); ctx.ellipse(0, 0, w * .67, h * .8, .14, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(24,29,24,.35)'; ctx.fillRect(-w / 2 + 5, -h / 2 + 6, w, h);
+    for (const xx of [-w * .31, w * .28]) for (const yy of [-h / 2, h / 2 - 4]) {
+      roundRect(ctx, xx - 5, yy, 11, 4, 1, '#282e28');
+    }
+    roundRect(ctx, -w / 2, -h / 2 + 2, w, h - 4, prop.type === 'van' ? 3 : 5, paint, '#454c40');
+    line(ctx, -w / 2 + 5, -h / 2 + 3, w / 2 - 5, -h / 2 + 3, burned ? '#8c8468' : '#c7c2a7', 1.5);
+    for (const xx of [-w / 2 + 1, w / 2 - 2]) { ctx.fillStyle = '#7f8270'; ctx.fillRect(xx, -h / 2 + 4, 2, h - 8); }
+    if (prop.type === 'pickup') {
+      ctx.fillStyle = burned ? '#45483d' : '#666e5d'; ctx.fillRect(-w / 2 + 5, -h / 2 + 5, w * .42, h - 10);
+      for (let xx = -w / 2 + 9; xx < -w * .08; xx += 6) line(ctx, xx, -h / 2 + 6, xx, h / 2 - 6, '#8f9276');
+      ctx.fillStyle = '#3a514d'; ctx.fillRect(w * .10, -h / 2 + 4, w * .08, h - 8);
+      ctx.fillStyle = paint; ctx.fillRect(-w * .02, -h / 2 + 4, w * .12, h - 8);
+      ctx.strokeStyle = '#545d4d'; ctx.lineWidth = 1; ctx.strokeRect(-w * .02, -h / 2 + 4, w * .20, h - 8);
+      line(ctx, w * .29, -h / 2 + 4, w * .29, h / 2 - 4, '#5e6654');
+    } else if (prop.type === 'van') {
+      roundRect(ctx, -w / 2 + 6, -h / 2 + 5, w * .68, h - 10, 2, burned ? '#74725b' : paint, '#68715e');
+      for (let xx = -w / 2 + 11; xx < w * .15; xx += 13) line(ctx, xx, -h / 2 + 7, xx, h / 2 - 7, 'rgba(218,214,184,.24)');
+      ctx.fillStyle = '#3f5753'; ctx.fillRect(w * .23, -h / 2 + 4, w * .10, h - 8);
+      line(ctx, w * .36, -h / 2 + 4, w * .36, h / 2 - 4, '#737b65');
+    } else {
+      ctx.fillStyle = '#3d524d'; ctx.fillRect(-w * .23, -h / 2 + 5, w * .48, h - 10);
+      roundRect(ctx, -w * .14, -h / 2 + 6, w * .26, h - 12, 2, paint, '#727965');
+      line(ctx, w * .29, -h / 2 + 4, w * .29, h / 2 - 4, '#666f5a');
+      line(ctx, -w * .31, -h / 2 + 4, -w * .31, h / 2 - 4, '#666f5a');
+    }
+    for (const yy of [-h / 2 + 4, h / 2 - 8]) {
+      ctx.fillStyle = burned ? '#78775b' : '#d0c79c'; ctx.fillRect(w / 2 - 4, yy, 3, 4);
+      ctx.fillStyle = '#815546'; ctx.fillRect(-w / 2 + 1, yy, 2, 4);
+    }
+    if (prop.condition === 'damaged' || burned) {
+      line(ctx, w * .18, -h * .25, w * .05, h * .18, '#a5aa92', .9);
+      line(ctx, w * .07, -h * .06, w * .22, h * .14, '#a5aa92', .8);
+      line(ctx, -w * .30, h / 2 - 2, -w * .10, h / 2 - 4, '#645541', 2);
+    }
+    if (burned) {
+      circle(ctx, w * .3, 0, h * .37, 'rgba(28,31,26,.78)');
+      line(ctx, w * .20, -h / 2 + 3, w * .38, h / 2 - 4, '#3b4034', 2);
+    }
   }
 
   drawPalm(ctx, alpha, color) {
@@ -890,6 +996,43 @@ export class Renderer {
     for (let i = 0; i < 5; i++) {
       const dx = Math.sin(time * 7 + i * 3) * size * .35, dy = Math.cos(time * 9 + i * 2) * size * .3;
       circle(ctx, x + dx, y + dy, size * (.55 - i * .075) * pulse, ['#9d542e', '#cc7534', '#e29c47', '#ecc372', '#f4dda1'][i]);
+    }
+  }
+
+  drawAmbientFires(ctx, state, time, view = {}) {
+    if (view.showMap || view.menu) return;
+    const world = state.world;
+    if (this.ambientFireWorld !== world || this.ambientFireRevision !== world.geometryRevision) {
+      this.ambientFireWorld = world; this.ambientFireRevision = world.geometryRevision;
+      this.ambientFireMasks = new Map();
+    }
+    // Three sources per authored world at most. No per-frame particle array,
+    // allocation, unbounded emitter, or additional full-screen render layer.
+    const fires = world.ambientFires || [];
+    for (let index = 0; index < Math.min(fires.length, 4); index++) {
+      const fire = fires[index];
+      if (!this.inView(fire.x, fire.y, 110) || !squadCanSeePoint(state, fire)) continue;
+      let polygon = this.ambientFireMasks.get(fire.id);
+      if (!polygon) {
+        polygon = muzzleLightPolygon(world, fire, 110);
+        this.ambientFireMasks.set(fire.id, polygon);
+      }
+      ctx.save(); ctx.beginPath();
+      for (let i = 0; i < polygon.length; i++) {
+        const point = polygon[i]; if (i) ctx.lineTo(point.x, point.y); else ctx.moveTo(point.x, point.y);
+      }
+      ctx.closePath(); ctx.clip();
+      const animation = (view.reducedMotion ? 0 : time) + finite(fire.phase), strength = clamp(finite(fire.intensity, .6), .2, 1);
+      this.drawFire(ctx, fire.x, fire.y, animation, 8 + strength * 7);
+      const plume = this.radialSprite('street-plume', [[0, 'rgba(48,46,36,.8)'], [1, 'rgba(48,46,36,0)']]);
+      const count = this.quality === 'performance' ? 2 : 4;
+      for (let i = 0; i < count; i++) {
+        const drift = ((animation * 5 + i * 23) % 83), r = 9 + drift * .20;
+        const x = fire.x + drift * .30, y = fire.y - drift * .57;
+        ctx.globalAlpha = (.30 + strength * .12) * (1 - drift / 100);
+        ctx.drawImage(plume, x - r, y - r, r * 2, r * 2);
+      }
+      ctx.restore();
     }
   }
 
@@ -1601,6 +1744,9 @@ export class Renderer {
     // Inert, previously observed ground details sit under the sight overlay.
     // New deaths are discovered by simulation sight, never by map exploration.
     this.drawBloodstains(ctx, state, view); this.drawBodies(ctx, state, view);
+    // Ambient flames and smoke share the same terrain occlusion as a person.
+    // Cached light fans keep their glow out of intact buildings and unseen rooms.
+    this.drawAmbientFires(ctx, state, time, view);
     if (!view.menu) {
       this.sharedSight.update(state, time);
       this.sharedSight.draw(ctx, {left, top, right, bottom}, {night:missionLighting(state) === 'night', map:view.showMap});

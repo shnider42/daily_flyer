@@ -8,6 +8,15 @@ export const SQUAD_ROLES = Object.freeze({
 });
 
 export const OBSERVE_HALF_ANGLE = .55;
+// AI fire uses the same weapon cadence as a human, with finite, audible strings
+// and pauses. Ammunition, reloads and civilian-safe sight checks still apply to
+// every round. The slower grenadier/medic conserve ammunition between contacts.
+export const AI_FIRE_DISCIPLINE = Object.freeze({
+  leader: Object.freeze({ burst: 3, recovery: [1.05, 1.45] }),
+  grenadier: Object.freeze({ burst: 2, recovery: [1.2, 1.7] }),
+  medic: Object.freeze({ burst: 2, recovery: [1.3, 1.85] }),
+  support: Object.freeze({ burst: 12, recovery: [.85, 1.35] }),
+});
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 

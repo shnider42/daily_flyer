@@ -87,7 +87,10 @@ export function environmentAt(world, point) {
   return { kind:house?'room':streetDensity>.25?'street':'open',houseId:house?.id||null,enclosure,streetDensity,
     roomReturn:(.12+.65*enclosure)*size,streetReturn:(.12+.48*streetDensity)*(1-.7*enclosure),
     roomCutoff:clamp(4100-size*1100,2500,3600),streetCutoff:2100+streetDensity*700,
-    exteriorReturn:house?0:.18+.68*streetDensity,exteriorCutoff:1750+streetDensity*950 };
+    // Existing outdoor energy still reaches an indoor listener, attenuated by
+    // the enclosure. eventEnvironment separately gates new indoor report sends.
+    exteriorReturn:(.18+.68*streetDensity)*(house?1-.82*enclosure:1),exteriorCutoff:1750+streetDensity*950,
+    exteriorListeningGain:house?1-.82*enclosure:1,exteriorListeningCutoff:house?3000-2250*enclosure:16000 };
 }
 
 export function eventEnvironment(world, source, listener) {

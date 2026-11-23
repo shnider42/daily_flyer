@@ -77,9 +77,9 @@ test('near-corner blasts remove a usable wall section without removing the corne
 
 test('street-facing walls can open into existing doors while the outer supports and partitions stay intact', () => {
   for (const side of ['north', 'south']) {
-    const { world } = createGame({ mission: 0, seed: 17 }), house = world.buildings.find(building => building.id === 'b02');
+    const { world } = createGame({ mission: 0, seed: 17 }), house = world.buildings.find(building => building.id === 'b03');
     const original = structuredClone(house), door = house.doors.find(door => door.side === side), destruction = createDestructionState();
-    const result = breachAtBlast(world, destruction, { x: 1345, y: door.y + (side === 'north' ? -1 : 1), wallId: `b02:${side}-left` });
+    const result = breachAtBlast(world, destruction, { x: 1825, y: door.y + (side === 'north' ? -1 : 1), wallId: `b03:${side}-left` });
     assert.equal(result.changed, true);
     const opening = result.created[0];
     assert.equal(opening.width, 50);

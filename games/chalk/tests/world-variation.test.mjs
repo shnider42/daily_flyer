@@ -22,12 +22,12 @@ function assertClearRoute(game, from, to, label) {
 }
 
 test('a replay seed changes playable footprints and districts without changing the mission street grid', () => {
-  for (let mission = 0; mission < 4; mission++) {
+  for (let mission = 0; mission < 6; mission++) {
     const games = SEEDS.map(seed => createGame({ mission, seed }));
     const signatures = games.map(game => JSON.stringify(geometry(game.world).filter(building => !/^b30/.test(building.id))));
     assert.equal(new Set(signatures).size, SEEDS.length, `mission ${mission}: every seed changes usable building geometry`);
     for (const game of games) {
-      assert.equal(game.world.layoutVersion, 1, 'simulation invokes shared variation before preparing interiors');
+      assert.equal(game.world.layoutVersion, 2, 'simulation invokes shared variation before preparing interiors');
       assert.equal(game.world.layoutSeed, game.seed >>> 0);
       assert.equal(game.world.width, 2400); assert.equal(game.world.height, 1900);
       assert.deepEqual(game.world.roads, games[0].world.roads);
@@ -43,7 +43,7 @@ test('variation is deterministic, independent of Math.random, and mission-specif
   const originalRandom = Math.random;
   try {
     Math.random = () => { throw new Error('world layout must use the shared seed'); };
-    for (let mission = 0; mission < 4; mission++) for (const seed of SEEDS) {
+    for (let mission = 0; mission < 6; mission++) for (const seed of SEEDS) {
       const a = createGame({ mission, seed }), b = createGame({ mission, seed });
       assert.deepEqual(a.world, b.world);
       assert.deepEqual(a.grid, b.grid);
@@ -53,13 +53,13 @@ test('variation is deterministic, independent of Math.random, and mission-specif
       varyWorldLayout(fixture, seed, mission);
       assert.deepEqual(fixture, firstLayout, 'reapplying variation does not accumulate geometry or decoration');
     }
-    const missionLayouts = Array.from({ length: 4 }, (_, mission) => JSON.stringify(geometry(createGame({ mission, seed: 123 }).world)));
-    assert.equal(new Set(missionLayouts).size, 4);
+    const missionLayouts = Array.from({ length: 6 }, (_, mission) => JSON.stringify(geometry(createGame({ mission, seed: 123 }).world)));
+    assert.equal(new Set(missionLayouts).size, 6);
   } finally { Math.random = originalRandom; }
 });
 
 test('all varied homes have legal doors, street approaches, rooms, and passable alleys', () => {
-  for (let mission = 0; mission < 4; mission++) for (const seed of SEEDS) {
+  for (let mission = 0; mission < 6; mission++) for (const seed of SEEDS) {
     const game = createGame({ mission, seed });
     for (const building of game.world.buildings) {
       const district = game.world.districts.find(item => item.id === building.districtId);
@@ -91,7 +91,7 @@ test('all varied homes have legal doors, street approaches, rooms, and passable 
 });
 
 test('the insertion doorway, every mission anchor, and full convoy route remain usable', () => {
-  for (let mission = 0; mission < 4; mission++) for (const seed of SEEDS) {
+  for (let mission = 0; mission < 6; mission++) for (const seed of SEEDS) {
     const game = createGame({ mission, seed }), spawn = { x: 200, y: 1720 };
     if (mission === 0) {
       const house = game.world.buildings.find(building => building.id === 'b30a');
@@ -112,7 +112,7 @@ test('the insertion doorway, every mission anchor, and full convoy route remain 
 
 test('district finishes and varied street decoration are coherent and clear of buildings and doorways', () => {
   const seenTypes = new Set();
-  for (let mission = 0; mission < 4; mission++) for (const seed of SEEDS) {
+  for (let mission = 0; mission < 6; mission++) for (const seed of SEEDS) {
     const { world } = createGame({ mission, seed });
     for (const district of world.districts) {
       assert.ok(['residential', 'market', 'workshop', 'courtyard'].includes(district.kind));
@@ -136,11 +136,11 @@ test('district finishes and varied street decoration are coherent and clear of b
       assert.ok(world.districts.filter(district => [1, 2].includes(district.row) && [1, 2].includes(district.col)).every(district => district.kind === 'market'));
     }
   }
-  assert.deepEqual([...seenTypes].sort(), ['car', 'crate', 'debris', 'rubble', 'stall']);
+  assert.deepEqual([...seenTypes].sort(), ['crate', 'debris', 'oil-stain', 'rubble', 'stall']);
 });
 
 test('co-op hydration reconstructs the same varied neighbourhood and navigation grid', () => {
-  for (let mission = 0; mission < 4; mission++) {
+  for (let mission = 0; mission < 6; mission++) {
     const original = createGame({ mission, seed: 7721 });
     const { world, grid, stages, ...state } = original;
     const packet = { state, init: { seed: 7721, mission, difficulty: 'standard', epoch: 1 }, room: { code: 'ABCDEF', players: [{ id: 'human', actorId: original.playerId, role: 'leader' }] }, selfId: 'human' };

@@ -5,6 +5,38 @@ https://creativecommons.org/publicdomain/zero/1.0/
 The version 1.11 rifle and SAW report banks use CC BY 4.0, with attribution
 and adaptation details in the following section.
 
+Recorded footsteps and sheltered street life — version 1.13
+
+footsteps-dirt-bank.wav / footsteps-stone-bank.wav
+Source: Fantozzi's Footsteps (Grass/Sand & Stone) — Fantozzi
+Submitted by qubodup:
+https://opengameart.org/content/fantozzis-footsteps-grasssand-stone
+Original archive: https://opengameart.org/sites/default/files/Fantozzi-footsteps.7z
+License: CC0 1.0, explicitly offered on the source page.
+Adapted from the original Sand and Stone FLACs. Six recorded takes per
+material, ordered L1/R1/L2/R2/L3/R3 in fixed 0.5-second slots; mono 22,050 Hz
+PCM16, 80 Hz high-pass / 5,400 Hz low-pass, shared gain per material bank
+preserving the original differences in take level, peak no greater than 0.68,
+2 ms entrance and 16 ms exit fades. Silence padded to each slot boundary.
+No pitch shift, compression, or synthesized layers in these recordings.
+Gameplay plays one quieter contact per step, with indoor/obstruction filtering.
+
+ambient-dog.wav
+Source: Dog barking (Mono) — Brandon Morris, submitted by HaelDB
+https://opengameart.org/content/dog-barking-mono
+Original: https://opengameart.org/sites/default/files/dog_barking_mono.wav
+License chosen: CC0 1.0 (the source also offers OGA-BY 3.0).
+Complete approximately 2.04-second fragment, converted to mono 22,050 Hz PCM16;
+180 Hz high-pass / 6,000 Hz low-pass, peak no greater than 0.68, 12 ms entrance
+and 25 ms exit fades. Used as a sparse, distant cue from a residential block.
+These are generic contemporary effects, not recordings of Mogadishu in 1993.
+Reproduction script for these three assets: tools/prepare-city-audio.py
+
+The city ambience director reuses the credited weapon and rotor recordings
+below. Its distant engine, low city bed, fire, and sheet-metal cues are original
+procedural sound design. It does not synthesize speech or reuse injury voices
+as a crowd bed. No new music has been added; earlier music files are retained.
+
 Recorded rifle and SAW report banks — version 1.11
 
 rifle-report-bank.wav / saw-report-bank.wav
@@ -214,8 +246,11 @@ Version 1.12 adds a separate procedural 2.8-second diffuse outdoor response.
 It uses its own seeded noise and shaped decay, with no additional recording.
 Only unobstructed gunfire with both source and listener outdoors uses this
 layer; city density sets its strength. The previous room and indirect street
-response kernels are unchanged. Entering a building mutes and flushes the
-new outdoor tail without rebuilding those established responses.
+response kernels are unchanged. Version 1.13 corrects its original doorway
+cutoff: the existing outdoor tail and scheduled returns keep decaying while
+the listener transfer smoothly attenuates and low-pass filters that energy.
+New indoor reports still do not feed the exterior response. Deliberate pause,
+mute and listener changes flush old history.
 
 A sufficiently large, unobstructed distant facade can add one later report
 return, 0.18-0.55 seconds after the direct arrival, with a lower level and

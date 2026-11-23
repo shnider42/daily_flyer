@@ -211,7 +211,7 @@ test('reflections volume can be muted without changing the dry weapon report or 
   for (const kind of ['room', 'street', 'exterior']) assert.notEqual(audio.reverbBanks[kind].convolver,resumed[kind].convolver,'quick pause cannot replay the previous tail');
 });
 
-test('entering a house cancels long echoes and flushes only the exterior response', async t => {
+test('running into a house preserves an outdoor tail and muffles its still-pending echoes', async t => {
   const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
   const world = prepareBuildingInteriors({ buildings: [{ id: 'house', x: 100, y: 100, w: 260, h: 220, tone: .5 }] });
   const door = world.buildings[0].doors[0], player = { id: 'listener', hp: 100, ...door.outside };
@@ -219,21 +219,25 @@ test('entering a house cancels long echoes and flushes only the exterior respons
   audio._ambience(state, player, .016);
   const original = { ...audio.reverbBanks }, exteriorBuffer = audio.reverbBuffers.exterior;
   assert.ok(original.exterior.output.gain.value > 0);
+  const outsideGain = original.exterior.output.gain.value, outsideCutoff = original.exterior.listeningFilter.frequency.value;
   const echo = audio._voice({ buffer: audio.samples.get('rifle'), duration: .1, delay: .5, bus: 'reflection', kind: 'street-echo', priority: 0 });
   audio.nextStreetEchoAt = audio.context.currentTime + .24;
   Object.assign(player, door.inside); audio._ambience(state, player, .016);
-  assert.equal(original.exterior.output.gain.value, 0);
-  assert.ok(!audio.voices.has(echo) && echo.source.stoppedAt < echo.start, 'an outdoor echo cannot start after entering the room');
-  assert.equal(audio.nextStreetEchoAt, 0);
-  assert.ok(audio.exteriorNeedsFlush);
-  for (const kind of ['room', 'street']) assert.equal(audio.reverbBanks[kind], original[kind], 'the existing interior and indirect responses keep running');
+  assert.ok(original.exterior.output.gain.value > 0 && original.exterior.output.gain.value < outsideGain);
+  assert.ok(audio.voices.has(echo) && echo.source.stoppedAt > echo.start, 'the outdoor return still arrives after crossing the threshold');
+  assert.equal(audio.nextStreetEchoAt, .24, 'crossing does not reset the density limiter');
+  assert.ok(original.exterior.listeningFilter.frequency.value < outsideCutoff, 'already buffered energy loses high frequencies');
+  assert.ok(audio.reflectionListeningGain.gain.value < 1 && audio.reflectionListeningGain.gain.value > 0);
+  for (const param of [original.exterior.output.gain, original.exterior.listeningFilter.frequency, audio.reflectionListeningGain.gain])
+    assert.ok(param.events.at(-1)[3] >= .18, 'listener transfer changes smoothly');
+  for (const kind of ['room', 'street', 'exterior']) assert.equal(audio.reverbBanks[kind], original[kind], 'all existing responses keep running');
   h.advance(.15); audio._ambience(state, player, .15);
   assert.equal(audio.reverbBanks.exterior, original.exterior, 'remaining indoors does not allocate replacement convolvers each update');
   Object.assign(player, door.outside); audio._ambience(state, player, .016);
-  assert.notEqual(audio.reverbBanks.exterior, original.exterior);
-  assert.ok(original.exterior.convolver.disconnected);
-  assert.equal(audio.reverbBuffers.exterior, exteriorBuffer, 'returning outdoors reuses the cached impulse, with an empty convolution history');
-  assert.equal(audio.exteriorNeedsFlush, false);
+  assert.equal(audio.reverbBanks.exterior, original.exterior);
+  assert.ok(!original.exterior.convolver.disconnected);
+  assert.equal(audio.reverbBuffers.exterior, exteriorBuffer, 'returning outdoors keeps the same decay in progress');
+  assert.equal(original.exterior.output.gain.value, outsideGain);
   for (const kind of ['room', 'street']) assert.equal(audio.reverbBanks[kind], original[kind]);
   const resumed = audio.reverbBanks.exterior;
   h.advance(.15); audio._ambience(state, player, .15);
@@ -356,7 +360,7 @@ test('crossing a doorway fades exterior ambience and exchanges street reflection
   for (const [key, before] of outside) {
     const loop = audio.loops.get(key);
     assert.equal(loop, before.loop, `${key} keeps playing through the threshold`);
-    assert.ok(loop.volume.gain.value < before.gain && loop.volume.gain.value > before.gain * .5, `${key} is attenuated, not silenced`);
+    assert.ok(loop.volume.gain.value < before.gain && loop.volume.gain.value > before.gain * .2, `${key} is attenuated, not silenced, including wall obstruction`);
     assert.ok(loop.low.frequency.value < before.cutoff, `${key} loses exterior high frequencies`);
     for (const param of [loop.volume.gain, loop.low.frequency]) {
       const event = param.events.at(-1);
@@ -513,9 +517,8 @@ test('wreck ambience follows the actual crash, recedes at night, and gives way t
   const fire = audio.loops.get('wreck-fire'), gain = fire.volume.gain.value;
   state.missionIndex = 2; audio._ambience(state, player, .016);
   assert.ok(fire.volume.gain.value < gain, 'night ambient bed is more restrained');
-  const nightGain = fire.volume.gain.value;
   audio._radio({ text: 'Move to your marker.' }); audio._ambience(state, player, .016);
-  assert.ok(fire.volume.gain.value < nightGain * .7, 'ambient bed ducks during a human command');
+  assert.ok(audio.missionAmbienceBus.gain.value < .7, 'all ambience ducks during a human command');
   player.x = 800; audio._ambience(state, player, .016);
   assert.equal(audio.loops.has('wreck-fire'), false, 'a distant crash does not create a global fire loop');
   audio.setScene('paused'); assert.equal(audio.loops.size, 0); assert.equal(audio.voices.size, 0);
@@ -677,7 +680,9 @@ test('facade taps follow the direct arrival once and the reflections slider canc
     assert.ok(tap.nodes.some(node=>node?.connections.includes(audio.earlyReflectionBus)));
     assert.ok(!tap.nodes.some(node=>node?.connections.includes(audio.effectsBus)),'a facade return cannot bypass its own level control');
   }
-  assert.ok(audio.earlyReflectionBus.connections.includes(audio.effectsBus));
+  assert.ok(audio.earlyReflectionBus.connections.includes(audio.reflectionListeningFilter));
+  assert.ok(audio.reflectionListeningFilter.connections.includes(audio.reflectionListeningGain));
+  assert.ok(audio.reflectionListeningGain.connections.includes(audio.effectsBus));
   audio.setLevels({reflections:0});
   assert.equal(audio.earlyReflectionBus.gain.value,0);
   assert.ok(audio.voices.has(dry));assert.ok(taps.every(tap=>!audio.voices.has(tap)&&tap.source.stoppedAt<tap.start));
@@ -734,4 +739,69 @@ test('direct shots displace facade returns at the voice limit and failed recordi
   h.advance(1);
   audio._shot({type:'shot',actorId:player.id,weapon:'support',x:0,y:0,team:'squad'},player,state);
   assert.equal(audio.voices.size,1);assert.equal([...audio.voices][0].source.buffer,report.source.buffer,'fallback is generated once, not rebuilt in the firing path');
+});
+
+test('footsteps use one quiet recorded contact, alternate real takes, and stop for dead actors', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState(), player = state.squad[0];
+  state.world.roads = [{x:0,y:0,w:800,h:120}];
+  const bank = audio.context.createBuffer(1, 24000, 8000); audio.samples.set('footStone', bank);
+  audio._movement(state, player, true);
+  const offsets = [];
+  for (let i = 0; i < 6; i++) {
+    h.advance(.55); player.x += 44; audio._movement(state, player, true);
+    const steps = [...audio.voices].filter(v => v.kind === 'footstep');
+    assert.equal(steps.length, 1, 'there is no second synthetic scuff over a contact');
+    const step = steps[0]; offsets.push(step.source.offset); assert.equal(step.source.buffer, bank);
+    const gain = step.envelope.gain.events.find(e => e[0] === 'linear')[1];
+    assert.ok(gain <= .0125 && gain < reportProfile('rifle').gain / 70);
+    assert.ok(step.source.offset + step.source.stoppedAt - step.start - .015 < step.source.offset + .5, 'a contact stops before the adjacent take');
+  }
+  assert.deepEqual(offsets, [0,.5,1,1.5,2,2.5]);
+  h.advance(1); player.alive = false; player.x += 50; audio._movement(state, player, true);
+  assert.equal([...audio.voices].filter(v=>v.kind==='footstep').length, 0);
+});
+
+test('distant city activity reserves voices for real weapons and obeys ambience independently', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({ time:10 }), player = state.squad[0];
+  const event = { kind:'battle', variant:'automatic', seed:17, intensity:1, x:500, y:0 };
+  for (let i=0;i<8;i++) audio._cityEvent(event,player,state);
+  assert.equal([...audio.voices].filter(v=>v.bus==='ambience').length,8);
+  assert.ok([...audio.voices].every(v=>v.priority===-2 && v.nodes.some(n=>n?.connections.includes(audio.missionAmbienceBus))));
+  for (let i=0;i<24;i++) audio._voice({buffer:audio.noise,duration:1,gain:.01,priority:0});
+  assert.equal(audio.voices.size,32);
+  audio._shot({type:'shot',actorId:player.id,x:0,y:0,weapon:'rifle',team:'squad'},player,state);
+  assert.ok([...audio.voices].some(v=>v.kind==='report'),'the controlled weapon takes priority over a background burst');
+  assert.ok(audio.voices.size<=32);
+  audio.setLevels({ambience:0}); audio._cityEvent(event,player,state);
+  assert.equal([...audio.voices].filter(v=>v.bus==='ambience').length,0);
+  assert.ok([...audio.voices].some(v=>v.kind==='report'),'ambience mute does not silence gunfire');
+});
+
+test('city fires stay attached to visible world props and role changes cannot strand pass loops', async t => {
+  const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
+  const state = missionState({time:10}); state.world.ambientFires=[{id:'car',x:90,y:0,intensity:.8}];
+  state.squad.push({id:'other',x:40,y:0,hp:100,alive:true});
+  audio.tick(state,.016); assert.ok(audio.loops.has('city-fire:car'));
+  audio._cityEvent({kind:'engine',id:1,seed:1,x:100,y:0,toX:200,toY:0,intensity:1,duration:6},state.squad[0],state);
+  state.time+=.5;audio.tick(state,.5);assert.ok(audio.loops.has('city-pass:engine:1'));
+  state.playerId='other';state.time+=.05;audio.tick(state,.05);
+  assert.equal(audio.cityPasses.length,0);assert.equal(audio.loops.has('city-pass:engine:1'),false);
+  state.squad[1].x=900;state.time+=.05;audio.tick(state,.05);
+  assert.equal(audio.loops.has('city-fire:car'),false,'a fire is local, not a global crackle bed');
+  audio.setScene('paused');assert.equal(audio.loops.size,0);assert.equal(audio.cityDirector,null);
+});
+
+for (const control of ['master','ambience']) test(`${control} mute immediately discards city passes and delayed bursts before a quick unmute`, async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:10}),player=state.squad[0];audio.tick(state,.016);
+  audio._cityEvent({kind:'engine',id:1,x:100,y:0,toX:200,toY:0,intensity:1,duration:6},player,state);
+  audio._cityEvent({kind:'battle',variant:'automatic',seed:17,intensity:1,x:900,y:0},player,state);
+  state.time+=.2;audio.tick(state,.2);assert.ok(audio.cityPasses.length&&audio.voices.size);
+  audio.setLevels({[control]:0});audio.setLevels({[control]:1});
+  assert.equal(audio.cityDirector,null);assert.equal(audio.cityPasses.length,0);
+  assert.ok(![...audio.loops.keys()].some(key=>!key.startsWith('menu:')));
+  assert.ok(![...audio.voices].some(v=>v.bus==='ambience'));
+  state.time+=.01;audio.tick(state,.01);assert.ok(![...audio.voices].some(v=>v.bus==='ambience'));
 });

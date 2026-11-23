@@ -13,7 +13,7 @@ function clearSegment(s,from,to,radius=13){return getSolidWalls(s.world).every(w
 function alone(s){for(const other of s.squad.slice(1))other.alive=false;s.survivors=[];return s.squad[0];}
 
 test('navigation rejects thin walls between otherwise free grid cells and retains a valid route around them',()=>{
-  const s=quiet();s.world.buildings=[];s.world.walls=[{id:'thin',x:119,y:950,w:2,h:100}];s.world.geometryRevision++;rebuildNavigationGrid(s);
+  const s=quiet();s.world.buildings=[];s.world.streetSolids=[];s.world.walls=[{id:'thin',x:119,y:950,w:2,h:100}];s.world.geometryRevision++;rebuildNavigationGrid(s);
   const from={x:100,y:980},to={x:140,y:980},route=findPath(s,from,to);
   assert.equal(s.grid[24*60+2],0);assert.equal(s.grid[24*60+3],0,'both endpoint cells alone are free');
   assert.ok(route.length>1,'must go around the wall instead of crossing its unoccupied grid edge');
@@ -32,11 +32,15 @@ test('a civilian reaches a final waypoint inside the old 18px discard distance i
 });
 
 test('a smaller rescued resident can replan from a legal tight corner without moving their valid destination',()=>{
-  const s=quiet(17,5),from={x:1081.4008,y:313.9837,radius:11},target={x:1081.7,y:400};
+  const s=quiet(17,5),from={x:288,y:320,radius:11},target={x:550,y:340};
+  // Exercise radius-sensitive source attachment independently of a district
+  // seed: the 11-unit resident clears this corner; a 13-unit soldier does not.
+  s.world.buildings=[];s.world.streetSolids=[];s.world.walls=[{id:'tight-corner',x:300,y:300,w:200,h:10}];s.world.geometryRevision++;rebuildNavigationGrid(s);
   assert.ok(clearSegment(s,from,from,11),'the resident is outside the actual collision radius');
   assert.equal(clearSegment(s,from,from,13),false,'the old fixed soldier clearance rejected this source attachment');
   assert.ok(clearSegment(s,target,target,11));
-  const route=findPath(s,from,target);assert.ok(route.length);
+  assert.equal(clearSegment(s,from,target,11),false,'the attachment must route around the corner rather than take a direct shortcut');
+  const route=findPath(s,from,target);assert.ok(route.length>1);
   let previous=from;for(const point of route){assert.ok(clearSegment(s,previous,point,11));previous=point;}
   assert.ok(distance(previous,target)<1e-6,'a valid small-actor goal is not shifted across the neighbouring wall');
 });
@@ -109,9 +113,11 @@ test('the AI squad and recovered crew negotiate both doors and a partition toget
   for(const seed of [4,17,90210]){
     const s=quiet(seed,1);s.civilians=[];
     const house=s.world.buildings.find(b=>b.id==='b30'),south=house.doors[1],north=house.doors[0],leader=s.squad[0];
+    const gatheringY=s.world.roads.filter(r=>r.w>r.h&&r.y+r.h/2>south.y).map(r=>r.y+r.h/2).sort((a,b)=>a-b)[0];
     Object.assign(leader,{x:south.x,y:house.y+66});
     s.squad.slice(1).forEach((a,i)=>Object.assign(a,{x:south.x+(i-1)*35,y:south.outside.y+30+i*24,path:[],pathTimer:0}));
-    s.survivors.forEach((a,i)=>Object.assign(a,{x:south.x+i*20,y:south.outside.y+100,alive:true,downed:false,stabilized:true,missionWait:false,path:[],pathTimer:0}));
+    s.survivors.forEach((a,i)=>Object.assign(a,{x:south.x+(i?55:-55),y:gatheringY,alive:true,downed:false,stabilized:true,missionWait:false,path:[],pathTimer:0}));
+    assert.ok([...s.squad,...s.survivors].every(a=>clearSegment(s,a,a,a.radius)),`${seed}: the staged party begins outside every building and vehicle solid`);
     run(s,15);
     assert.ok([...s.squad,...s.survivors].every(a=>buildingAt(s.world,a)===house),`${seed}: the full party comes inside`);
     Object.assign(leader,{x:north.x,y:north.outside.y-105});run(s,18);
