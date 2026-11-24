@@ -24,7 +24,12 @@
       "Double Secret Probation Squad Leader",
       "Squad Leader",
       "SL Jake"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "A larger map and mouse make unit selection, orders and battle planning easier."
+    },
+    "featureWeight": 4
   },
   {
     "id": "gridiron",
@@ -52,7 +57,12 @@
     ],
     "updatedAt": "2026-11-08",
     "updateSummary": "Adjustable follow cameras, saved zoom and a draggable minimap for choosing the view.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b21c63ba9c9eb2ed8eb61cfc5c7f5748a6240227"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b21c63ba9c9eb2ed8eb61cfc5c7f5748a6240227",
+    "device": {
+      "best": "mobile",
+      "note": "Built around thumb controls and quick play calls; keyboard play is available too."
+    },
+    "featureWeight": 4
   },
   {
     "id": "infierno",
@@ -81,7 +91,12 @@
     ],
     "updatedAt": "2026-11-18",
     "updateSummary": "Reviewed 123 issue dossiers, 56 content topics and 20 Catch Up briefings against the latest official plans and supporting evidence.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e7d1b143eedf6e69b480acab92a0f4f21bce0578"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e7d1b143eedf6e69b480acab92a0f4f21bce0578",
+    "device": {
+      "best": "both",
+      "note": "Read briefings on a phone; use a larger screen to compare issues and evidence."
+    },
+    "featureWeight": 4
   },
   {
     "id": "further-in",
@@ -107,7 +122,12 @@
     ],
     "updatedAt": "2026-11-09",
     "updateSummary": "Three additional floors, checkpoints within each floor and a revised title screen.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8ee3abd6b6882bbbf49b805cbd65414f136d6939"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8ee3abd6b6882bbbf49b805cbd65414f136d6939",
+    "device": {
+      "best": "desktop",
+      "note": "Keyboard movement and mouse look suit the first-person puzzles and exploration."
+    },
+    "featureWeight": 3
   },
   {
     "id": "breach",
@@ -132,7 +152,12 @@
       "Blacksite 07",
       "Dead Relay",
       "Beneath the Shadow"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Mouse aiming and keyboard shortcuts help with combat and equipment."
+    },
+    "featureWeight": 3
   },
   {
     "id": "irish-today",
@@ -157,7 +182,12 @@
       "Irish Today Daily",
       "Daily Flyer",
       "Irish Today Improved"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Short daily reading fits a phone; use desktop for longer history sessions."
+    },
+    "featureWeight": 4
   },
   {
     "id": "garage",
@@ -182,7 +212,12 @@
       "Garage",
       "J BMW",
       "JBMW"
-    ]
+    ],
+    "device": {
+      "best": "both",
+      "note": "Check upkeep notes on a phone or explore vehicle and instrument details at a desk."
+    },
+    "featureWeight": 4
   },
   {
     "id": "night-transfer",
@@ -205,7 +240,12 @@
     "dateSource": "First Render service recorded; America/New_York calendar date.",
     "aliases": [
       "Dead Air"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Mouse look and a larger view make clues and first-person navigation easier."
+    },
+    "featureWeight": 3
   },
   {
     "id": "mypassages",
@@ -230,7 +270,12 @@
       "Your Passage",
       "New Passage",
       "My Passages"
-    ]
+    ],
+    "device": {
+      "best": "both",
+      "note": "Browse coaching and short exercises on either screen; a keyboard helps with longer reflections."
+    },
+    "featureWeight": 3
   },
   {
     "id": "saltbound",
@@ -251,7 +296,12 @@
     "createdAt": "2026-11-04",
     "datePrecision": "day",
     "dateSource": "First Render service recorded; America/New_York calendar date.",
-    "aliases": []
+    "aliases": [],
+    "device": {
+      "best": "desktop",
+      "note": "A larger view helps with sailing, combat and keeping track of the crew."
+    },
+    "featureWeight": 3
   },
   {
     "id": "empires",
@@ -275,7 +325,12 @@
     "aliases": [
       "The Riverlands",
       "Civilization builder"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "The civilization map, city management and research choices benefit from more screen space."
+    },
+    "featureWeight": 3
   },
   {
     "id": "huddle",
@@ -313,7 +368,12 @@
     ],
     "updatedAt": "2026-11-16",
     "updateSummary": "NFL and Manchester City coverage refreshed Nov 16, with dated game details, team news and explainers.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e9d38bcb7dbf4b6e2dc67bf6959a7f8d2054459c"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/e9d38bcb7dbf4b6e2dc67bf6959a7f8d2054459c",
+    "device": {
+      "best": "mobile",
+      "note": "Short team briefings and explainers suit catching up from a phone."
+    },
+    "featureWeight": 4
   },
   {
     "id": "vineyard",
@@ -337,7 +397,12 @@
     "aliases": [
       "Vineyard",
       "Viticulture inspired"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Use a larger screen to compare worker spaces, resources and wine orders."
+    },
+    "featureWeight": 3
   },
   {
     "id": "roster-radar",
@@ -364,7 +429,12 @@
     ],
     "updatedAt": "2026-11-09",
     "updateSummary": "A compact fantasy desk with chronological reports, player tables and clearer source dates.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bab3b5b43af495749bfdcd15bfcf7fc0a2ed92d6"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/bab3b5b43af495749bfdcd15bfcf7fc0a2ed92d6",
+    "device": {
+      "best": "desktop",
+      "note": "Player tables, league imports and side-by-side fantasy research are easier at a desk."
+    },
+    "featureWeight": 3
   },
   {
     "id": "lockstep",
@@ -388,7 +458,12 @@
     "aliases": [
       "A Blackwell Escape",
       "Blackwell"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "A larger screen helps with reading clues and working through room puzzles."
+    },
+    "featureWeight": 3
   },
   {
     "id": "next-chapter",
@@ -412,7 +487,12 @@
     "aliases": [
       "Prospect Tracker",
       "Career Journal"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Typing applications, contact notes and follow-ups is easier with a keyboard."
+    },
+    "featureWeight": 3
   },
   {
     "id": "soph-slump",
@@ -439,7 +519,12 @@
       "Soph Slump",
       "QB Year Two",
       "Year Two Explorer"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Charts, tables and player comparisons benefit from a larger screen."
+    },
+    "featureWeight": 3
   },
   {
     "id": "magic-catch-up",
@@ -463,7 +548,12 @@
     "aliases": [
       "MTG Catch Up",
       "Magic the Gathering Catch-up"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Read format guides and work through returning-player paths in short phone sessions."
+    },
+    "featureWeight": 3
   },
   {
     "id": "rlcs",
@@ -487,7 +577,12 @@
     "aliases": [
       "Rocket League Championship Series",
       "Rocket League Catch-up"
-    ]
+    ],
+    "device": {
+      "best": "both",
+      "note": "Browse the esports timeline and choose where to resume on either screen."
+    },
+    "featureWeight": 3
   },
   {
     "id": "skyward",
@@ -517,7 +612,12 @@
     ],
     "updatedAt": "2026-11-14",
     "updateSummary": "Distinct engine sounds, mouse look, adjustable outside cameras, revised explosions and large-screen rendering controls.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/2a283f83b2ad0759c90858dad053ec3ce0231bdd"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/2a283f83b2ad0759c90858dad053ec3ce0231bdd",
+    "device": {
+      "best": "desktop",
+      "note": "Separate flight controls, mouse look and cockpit detail suit a keyboard and larger display."
+    },
+    "featureWeight": 3
   },
   {
     "id": "hockey",
@@ -546,7 +646,12 @@
     ],
     "updatedAt": "2026-11-09",
     "updateSummary": "Co-op and versus rooms, a larger rink, revised controls and more varied passes and shots.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc",
+    "device": {
+      "best": "both",
+      "note": "Touch movement and action buttons support phone play; keyboard and gamepad controls suit desktop."
+    },
+    "featureWeight": 3
   },
   {
     "id": "soccer",
@@ -574,7 +679,12 @@
     ],
     "updatedAt": "2026-11-09",
     "updateSummary": "Pressure affects passes and shots; A switches defenders, with a separate contain control.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b2067c82307f01fcb4d4331b443e3d3a617a95fc",
+    "device": {
+      "best": "both",
+      "note": "Play with thumb controls on a phone or use keyboard and gamepad controls at a desk."
+    },
+    "featureWeight": 3
   },
   {
     "id": "sleeve-notes",
@@ -600,7 +710,12 @@
       "Vinyl Crossovers",
       "Music Master",
       "Sleeve Notes"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "A larger screen helps trace music connections and compare album credits."
+    },
+    "featureWeight": 3
   },
   {
     "id": "battlezone",
@@ -623,7 +738,12 @@
     "dateSource": "First saved Battlezone build in project history; the Render service was added later on 29 Oct.",
     "aliases": [
       "Battlezone"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Keyboard steering and a clear view of distant targets suit arcade tank combat."
+    },
+    "featureWeight": 3
   },
   {
     "id": "when-ants-stare",
@@ -646,7 +766,12 @@
     "dateSource": "First Render service recorded; America/New_York calendar date.",
     "aliases": [
       "When Ants Stare"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "A phone suits reading a few pages at a time with saved reading progress."
+    },
+    "featureWeight": 3
   },
   {
     "id": "last-exit",
@@ -671,7 +796,12 @@
       "Last Exit Driving",
       "Boston",
       "Cambridge"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Driving, police chases and switching to on-foot play benefit from keyboard controls."
+    },
+    "featureWeight": 3
   },
   {
     "id": "afterglow",
@@ -695,7 +825,12 @@
     "aliases": [
       "Shows Tracker",
       "Live Music Tracker"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Browse artists and shows, then save discoveries while you are out."
+    },
+    "featureWeight": 3
   },
   {
     "id": "claim-denied",
@@ -718,7 +853,12 @@
     "dateSource": "First Render service recorded; America/New_York calendar date.",
     "aliases": [
       "Executive Retreat"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Mouse aiming and quick weapon or barricade choices are easier on a larger screen."
+    },
+    "featureWeight": 3
   },
   {
     "id": "magic-duel",
@@ -743,7 +883,12 @@
       "Magic Duel Tabletop",
       "Magic Duel Tabletop v2",
       "Mag the Gag"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "The tabletop, card text, mana and blocking choices are easier to read together."
+    },
+    "featureWeight": 2
   },
   {
     "id": "relay-fieldguide",
@@ -768,7 +913,12 @@
       "Ragnar prototype",
       "Relay Companion",
       "Race-day Companion"
-    ]
+    ],
+    "device": {
+      "best": "both",
+      "note": "Read the guide on a phone; a keyboard helps with team rosters and planning notes."
+    },
+    "featureWeight": 1
   },
   {
     "id": "farwake",
@@ -799,7 +949,12 @@
     ],
     "updatedAt": "2026-11-19",
     "updateSummary": "The Quiet Earth corridor opening adds staged lighting, fog of war and looping ambience. New captain perks, clearer faction guidance and revised danger music.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b7c29941bd6a1ae2af0d7adbb706d5f0197c6123"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/b7c29941bd6a1ae2af0d7adbb706d5f0197c6123",
+    "device": {
+      "best": "desktop",
+      "note": "Ship controls, crew management and ground combat benefit from a keyboard and more screen space."
+    },
+    "featureWeight": 4
   },
   {
     "id": "dayboard",
@@ -831,9 +986,13 @@
     "updatedAt": "2026-11-16",
     "updateSummary": "Custom areas preserve existing tasks; adjustable text, contrast and spacing, plus a readable privacy policy. Personal boards stay in your browser.",
     "updateSource": "https://github.com/shnider42/daily_flyer/commit/ab9c64dc1beece7cc0412b63a111a41477d6eb53",
-    "featuredRank": 2,
     "featuredLabel": "Personal task board",
-    "featuredSummary": "Custom areas, a Today shortlist and recurring tasks, with text-size and contrast options. Saves in your browser."
+    "featuredSummary": "Custom areas, a Today shortlist and recurring tasks, with text-size and contrast options. Saves in your browser.",
+    "device": {
+      "best": "desktop",
+      "note": "A wide board and keyboard suit planning; a phone works for quick Today check-ins."
+    },
+    "featureWeight": 4
   },
   {
     "id": "pocket-baseball",
@@ -863,7 +1022,12 @@
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/pocket-baseball",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/72e62021de150993d800048d447c48c98715fcaf"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/72e62021de150993d800048d447c48c98715fcaf",
+    "device": {
+      "best": "desktop",
+      "note": "A larger field view helps with pitching, fielding and baserunning decisions."
+    },
+    "featureWeight": 3
   },
   {
     "id": "sunday-broadcast",
@@ -893,7 +1057,12 @@
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/sunday-broadcast",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/a79e545346241caa4921e8ec69530b7cd3736e8d"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/a79e545346241caa4921e8ec69530b7cd3736e8d",
+    "device": {
+      "best": "desktop",
+      "note": "Mouse-led passing and a wide view of the field suit desktop play."
+    },
+    "featureWeight": 3
   },
   {
     "id": "shenanigans-golf",
@@ -925,7 +1094,12 @@
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/shenanigans-golf",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/19b6c8cf0288e9d9722f5d0463e910d64bfe3b59"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/19b6c8cf0288e9d9722f5d0463e910d64bfe3b59",
+    "device": {
+      "best": "both",
+      "note": "Touch or click to aim, adjust power and putt; on-screen buttons handle fine adjustments."
+    },
+    "featureWeight": 3
   },
   {
     "id": "corner-pocket",
@@ -957,7 +1131,12 @@
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/corner-pocket",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4dd386863af0a12afc9bcfb95769ab635b0b4809"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4dd386863af0a12afc9bcfb95769ab635b0b4809",
+    "device": {
+      "best": "both",
+      "note": "Aim by touch or mouse; the table turns vertically on phones and shots wait for you."
+    },
+    "featureWeight": 3
   },
   {
     "id": "low-water",
@@ -986,7 +1165,12 @@
     "sourceUrl": "https://github.com/shnider42/daily_flyer/tree/feat/low-water",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8a95ae449ecbd397d21ac2c453931ae534862b25"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/8a95ae449ecbd397d21ac2c453931ae534862b25",
+    "device": {
+      "best": "desktop",
+      "note": "Mouse look and a larger view help with machinery puzzles and first-person exploration."
+    },
+    "featureWeight": 3
   },
   {
     "id": "skybreak",
@@ -995,7 +1179,14 @@
     "description": "Drop into a ten-player island battle royale with scavenged weapons, buildable walls and ramps, and a closing storm. Bots fill empty seats.",
     "type": "games",
     "subtype": "Battle royale",
-    "tags": ["3D", "Multiplayer", "10 players", "Solo", "Bots", "Building"],
+    "tags": [
+      "3D",
+      "Multiplayer",
+      "10 players",
+      "Solo",
+      "Bots",
+      "Building"
+    ],
     "art": "skybreak",
     "url": "https://dfe-skybreak.onrender.com/",
     "linkKind": "app",
@@ -1003,10 +1194,19 @@
     "createdAt": "2026-11-14",
     "datePrecision": "day",
     "dateSource": "First game build and Render deployment verified; America/New_York calendar date.",
-    "aliases": ["Skybreak Royale", "Battle Royale", "Fortnite concept"],
+    "aliases": [
+      "Skybreak Royale",
+      "Battle Royale",
+      "Fortnite concept"
+    ],
     "updatedAt": "2026-11-14",
     "updateSummary": "Solo practice, quick matches and private rooms, with gliders, building and controller or touch controls.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/cff20f8cad3175142494e3ae7e859f21b8f2be39"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/cff20f8cad3175142494e3ae7e859f21b8f2be39",
+    "device": {
+      "best": "desktop",
+      "note": "Fast aiming, building and storm awareness are easier with mouse and keyboard."
+    },
+    "featureWeight": 2
   },
   {
     "id": "trailmark",
@@ -1015,7 +1215,15 @@
     "description": "A hiking pilot for Four Ponds in Bourne, with a local trail map, GPS route checks, checkpoint guidance and offline saving.",
     "type": "tools",
     "subtype": "Hiking pilot",
-    "tags": ["Outdoors", "Hiking", "Maps", "GPS", "GPX", "Four Ponds", "Bourne"],
+    "tags": [
+      "Outdoors",
+      "Hiking",
+      "Maps",
+      "GPS",
+      "GPX",
+      "Four Ponds",
+      "Bourne"
+    ],
     "art": "trailmark",
     "url": "https://dfe-trailmark.onrender.com/",
     "linkKind": "app",
@@ -1023,10 +1231,19 @@
     "createdAt": "2026-11-14",
     "datePrecision": "day",
     "dateSource": "First Trailmark build and public Render deployment verified; America/New_York calendar date.",
-    "aliases": ["Four Ponds", "Bourne hiking", "Trail guide"],
+    "aliases": [
+      "Four Ponds",
+      "Bourne hiking",
+      "Trail guide"
+    ],
     "updatedAt": "2026-11-14",
     "updateSummary": "Route imports, local field notes and GPX export. GPS monitoring needs the app visible; routes await field checks.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/67f5389b799ed335b6cdc5d989f539c2bddf9683"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/67f5389b799ed335b6cdc5d989f539c2bddf9683",
+    "device": {
+      "best": "mobile",
+      "note": "Phone GPS supports trail checks; keep the app visible while using the hiking pilot."
+    },
+    "featureWeight": 2
   },
   {
     "id": "loudsource",
@@ -1035,7 +1252,15 @@
     "description": "Request songs, vote on the party queue and play trivia or polls from your phone. Guests join with a nickname; the host controls Spotify.",
     "type": "tools",
     "subtype": "Party music",
-    "tags": ["Music", "Party", "Voting", "Spotify", "Trivia", "Polls", "Asynchronous"],
+    "tags": [
+      "Music",
+      "Party",
+      "Voting",
+      "Spotify",
+      "Trivia",
+      "Polls",
+      "Asynchronous"
+    ],
     "art": "loudsource",
     "url": "https://ds-ls-1.onrender.com/",
     "linkKind": "app",
@@ -1043,10 +1268,20 @@
     "createdAt": "2026-04-21",
     "datePrecision": "day",
     "dateSource": "Earliest verified Render service creation: April 22 at 03:18 UTC, April 21 in America/New_York. The party redesign shipped November 14.",
-    "aliases": ["Loud Source", "Loudsource4", "Party playlist", "ds-ls-1"],
+    "aliases": [
+      "Loud Source",
+      "Loudsource4",
+      "Party playlist",
+      "ds-ls-1"
+    ],
     "updatedAt": "2026-11-14",
     "updateSummary": "Simpler guest voting, separate song requests, asynchronous trivia and polls, and clearer Spotify host controls.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cf65a1bdd7fb5429b26f74b8eceb2834ec9fe19"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/4cf65a1bdd7fb5429b26f74b8eceb2834ec9fe19",
+    "device": {
+      "best": "mobile",
+      "note": "Guests vote and request songs from phones; a desktop suits the host controls."
+    },
+    "featureWeight": 3
   },
   {
     "id": "gravebloom",
@@ -1082,9 +1317,13 @@
     "updatedAt": "2026-11-19",
     "updateSummary": "First playable descent: three classes, three areas and bosses, personal loot and four-player co-op. Includes solo checkpoints and party reconnect fixes.",
     "updateSource": "https://github.com/shnider42/daily_flyer/commit/27dc1659e28194d9e9b2e0df5da0a3b38c1317cc",
-    "featuredRank": 1,
     "featuredLabel": "Diablo-style co-op",
-    "featuredSummary": "Choose Warrior, Archer or Wizard. Fight through three areas, beat their bosses and roll new loot, alone or with up to three friends."
+    "featuredSummary": "Choose Warrior, Archer or Wizard. Fight through three areas, beat their bosses and roll new loot, alone or with up to three friends.",
+    "device": {
+      "best": "both",
+      "note": "Touch uses assisted targeting; mouse and keyboard give direct aim and ability shortcuts."
+    },
+    "featureWeight": 2
   },
   {
     "id": "volleyball",
@@ -1113,10 +1352,19 @@
     "createdAt": "2026-11-22",
     "datePrecision": "day",
     "dateSource": "First Pocket Volleyball build and Render release, 22 Nov 2026 in America/New_York; source commit dc6190071b03e0e85a1d14608746439657e83813.",
-    "aliases": ["Pocket Volley", "Beach volleyball", "Pocket Sports Volleyball"],
+    "aliases": [
+      "Pocket Volley",
+      "Beach volleyball",
+      "Pocket Sports Volleyball"
+    ],
     "updatedAt": "2026-11-22",
     "updateSummary": "First playable release, v0.1.0: solo doubles, same-screen versus and co-op, and private online versus or co-op for two devices. Touch, keyboard and gamepad controls; online reconnect pauses the match until both players are ready.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/dc6190071b03e0e85a1d14608746439657e83813"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/dc6190071b03e0e85a1d14608746439657e83813",
+    "device": {
+      "best": "both",
+      "note": "Touch controls suit solo or online play; local two-player play uses a shared keyboard or gamepads."
+    },
+    "featureWeight": 2
   },
   {
     "id": "chalk",
@@ -1150,7 +1398,12 @@
       "Black Hawk Down",
       "Mogadishu",
       "Squad game"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Mouse aiming, squad orders, map pings and rebindable shortcuts suit desktop play."
+    },
+    "featureWeight": 4
   },
   {
     "id": "lmw",
@@ -1182,7 +1435,12 @@
     ],
     "updatedAt": "2026-11-21",
     "updateSummary": "Added the supplied logo with a coordinated navy and orange palette.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/32a36ddc130ca98c6cd753ed2df917576d734a08"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/32a36ddc130ca98c6cd753ed2df917576d734a08",
+    "device": {
+      "best": "mobile",
+      "note": "Guests can complete the event form on a phone; organizers benefit from a larger screen."
+    },
+    "featureWeight": 2
   },
   {
     "id": "suncoast",
@@ -1216,7 +1474,12 @@
     ],
     "updatedAt": "2026-11-19",
     "updateSummary": "Sharper phone rendering, clearer portrait and landscape controls, and touch braking and reverse.",
-    "updateSource": "https://github.com/shnider42/daily_flyer/commit/3399934e66672f49fabe0afc0f601e517f3fdfc8"
+    "updateSource": "https://github.com/shnider42/daily_flyer/commit/3399934e66672f49fabe0afc0f601e517f3fdfc8",
+    "device": {
+      "best": "desktop",
+      "note": "Driving, aiming and city navigation benefit from a keyboard and a wider view."
+    },
+    "featureWeight": 2
   },
   {
     "id": "first-riff",
@@ -1245,7 +1508,12 @@
       "metal_band",
       "Band Planner",
       "First Riff"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "A keyboard and larger workspace help with songs, setlists and band-page exports."
+    },
+    "featureWeight": 3
   },
   {
     "id": "galaxy-granite",
@@ -1273,7 +1541,12 @@
       "galaxy_granite_daily",
       "Galgran",
       "Countertop Ideas"
-    ]
+    ],
+    "device": {
+      "best": "both",
+      "note": "Read homeowner articles on a phone or compare project ideas on a larger screen."
+    },
+    "featureWeight": 3
   },
   {
     "id": "hll-daily",
@@ -1302,7 +1575,12 @@
       "Hell Let Loose Daily",
       "Field Brief",
       "hell_let_loose"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Keep briefings and squad reference notes beside you on a phone."
+    },
+    "featureWeight": 3
   },
   {
     "id": "magic-quadratic",
@@ -1332,7 +1610,12 @@
       "Commander deck intake",
       "Deck Intake",
       "commander_readiness"
-    ]
+    ],
+    "device": {
+      "best": "desktop",
+      "note": "Decklist imports, card data and simulation results benefit from a keyboard and larger screen."
+    },
+    "featureWeight": 1
   },
   {
     "id": "birthday",
@@ -1360,7 +1643,12 @@
       "Birthday Today",
       "Birthday Flyer",
       "this_day_birthday"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Check birthdays and draft a quick greeting from your phone."
+    },
+    "featureWeight": 3
   },
   {
     "id": "passages-daily",
@@ -1389,6 +1677,11 @@
       "Topic Signal Daily",
       "My Passages Daily",
       "topic_signal_daily"
-    ]
+    ],
+    "device": {
+      "best": "mobile",
+      "note": "Short scenarios and reflection prompts fit a few minutes on a phone."
+    },
+    "featureWeight": 3
   }
 ]

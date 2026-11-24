@@ -21,7 +21,7 @@
       <div class="search-box">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 4.6 4.6"/></svg>
         <label class="sr-only" for="search">Search projects, names, or URLs</label>
-        <input type="search" id="search" placeholder="Search titles or URLs" autocomplete="off" spellcheck="false" disabled>
+        <input type="search" id="search" placeholder="Search all themes" autocomplete="off" spellcheck="false" disabled>
         <kbd aria-hidden="true">/</kbd>
       </div>
     </div>
@@ -31,8 +31,8 @@
       <div class="sidebar-navigation">
         <p class="sidebar-label">Browse</p>
         <nav class="type-filters" aria-label="Filter by project type" id="type-filters">
-          <button type="button" data-type="games" aria-pressed="true" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10c2 0 3 1 3.5 3l1 6c.4 2-1.6 3.3-3 2l-3-3h-7l-3 3c-1.4 1.3-3.4 0-3-2l1-6C4 8 5 7 7 7Z"/><path d="M7 10v4m-2-2h4m7-1h.01m3 2h.01"/></svg><span class="nav-label">Games</span><span data-count="games">—</span></button>
-          <button type="button" data-type="all" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">All projects</span><span data-count="all">—</span></button>
+          <button type="button" data-type="all" aria-pressed="true" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">All themes</span><span data-count="all">—</span></button>
+          <button type="button" data-type="games" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10c2 0 3 1 3.5 3l1 6c.4 2-1.6 3.3-3 2l-3-3h-7l-3 3c-1.4 1.3-3.4 0-3-2l1-6C4 8 5 7 7 7Z"/><path d="M7 10v4m-2-2h4m7-1h.01m3 2h.01"/></svg><span class="nav-label">Games</span><span data-count="games">—</span></button>
           <button type="button" data-type="catch-up" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h15v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8h3m1 0h9m-9 4h9m-9 4h6"/></svg><span class="nav-label">Catch up</span><span data-count="catch-up">—</span></button>
           <button type="button" data-type="tools" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="1"/><path d="M8 7V3h8v4M3 12h18m-11-2v5h4v-5"/></svg><span class="nav-label">Tools</span><span data-count="tools">—</span></button>
           <button type="button" data-type="stories" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6C8 2 3 3 3 3v16s5-1 9 2c4-3 9-2 9-2V3s-5-1-9 3Zm0 0v15"/></svg><span class="nav-label">Stories &amp; culture</span><span data-count="stories">—</span></button>
@@ -42,13 +42,9 @@
       <div class="sidebar-bottom"><p><strong id="total-count">—</strong> projects in the library</p><p>Favorites stay in this browser.</p></div>
     </aside>
     <main class="library-main" id="library-main">
-      <section id="featured" class="featured-section" aria-labelledby="featured-title" hidden>
-        <h2 id="featured-title">Featured</h2>
-        <div id="featured-projects" class="featured-grid"></div>
-      </section>
       <div class="library-heading">
         <div class="heading-copy">
-          <h1 id="page-title">Games</h1>
+          <h1 id="page-title">All themes</h1>
           <p id="collection-hint" class="collection-hint" hidden><span id="other-projects-count">—</span> more projects<span class="hint-detail"> — tools, catch-ups &amp; stories</span>. <button type="button" id="explore-all" disabled>Browse all <span data-count="all">—</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button></p>
         </div>
         <div class="view-control browse-controls" aria-label="Display style">
@@ -56,6 +52,15 @@
           <button type="button" id="view-list" aria-label="List view" aria-pressed="false" title="List view" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h13M8 12h13M8 19h13M3 5h1M3 12h1M3 19h1"/></svg></button>
         </div>
       </div>
+      <section class="device-browse browse-controls" aria-label="Find themes for your device">
+        <div class="device-filter-control"><label for="device-filter">Device</label><select id="device-filter" disabled><option value="all">Any device</option><option value="mobile">Mobile-friendly</option><option value="desktop">Desktop-friendly</option><option value="both">Good on both</option></select></div>
+        <button type="button" id="suggest-device" class="device-suggestion" disabled>Good on this device</button>
+        <p>Recommendations for the main experience. Check each theme’s note for details.</p>
+      </section>
+      <section id="featured" class="featured-section" aria-labelledby="featured-title" hidden>
+        <div class="featured-heading"><div><h2 id="featured-title">Featured this week</h2><p id="featured-context">Three themes. Different kinds of experience.</p></div><time id="featured-week" title="New picks every Monday, Eastern time"></time></div>
+        <div id="featured-projects" class="featured-grid"></div>
+      </section>
       <section class="library-toolbar browse-controls" aria-label="Arrange projects">
         <div class="results-bar"><p id="results-description" role="status" aria-live="polite">Loading projects…</p><button type="button" id="clear-filters" hidden disabled>Clear filters</button></div>
         <div class="sort-controls">
@@ -70,7 +75,7 @@
         <h2>No matches.</h2><p id="empty-message">Try another title or show all projects.</p><button type="button" id="empty-reset" disabled>Show all projects</button>
       </section>
       <noscript><div class="empty-state"><h2>JavaScript is needed to browse the library.</h2><p>The names and links are also available in <a href="./projects.json">the complete catalog</a>.</p></div></noscript>
-      <footer class="library-footer"><details><summary>About this library</summary><div><p>Each project opens in a new tab. Favorites are saved in this browser.</p><p>Dates use the earliest recorded build or deployment for each theme. Approximate dates are marked; missing dates sort last. Update notes describe verified published changes. Recently updated sorts by that date, falling back to the first recorded release.</p><p>This is a link directory. Some apps may take a moment to wake up.</p></div></details><a href="#top">Back to top <span aria-hidden="true">↑</span></a></footer>
+      <footer class="library-footer"><details><summary>About this library</summary><div><p>Each project opens in a new tab. Favorites are saved in this browser.</p><p>Dates use the earliest recorded build or deployment for each theme. Approximate dates are marked; missing dates sort last. Update notes describe verified published changes. Recently updated sorts by that date, falling back to the first recorded release.</p><p>Device labels recommend where the main experience fits best. Mobile-friendly and desktop-friendly filters also include themes that suit both. Notes distinguish tasks such as joining on a phone and organizing on a desktop.</p><p>Three featured themes rotate every Monday, Eastern time. The selection mixes theme types, favors more developed experiences, and occasionally focuses on mobile or desktop. Everyone sees the same weekly selection.</p><p>This is a link directory. Some apps may take a moment to wake up.</p></div></details><a href="#top">Back to top <span aria-hidden="true">↑</span></a></footer>
     </main>
   </div>
   <div id="toast" role="status" aria-live="polite" class="toast"></div>
