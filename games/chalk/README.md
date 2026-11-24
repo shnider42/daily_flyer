@@ -2,6 +2,14 @@
 
 Version 1.16 gives other squads their own work, replaces simulated background fighting with real distant encounters, expands recorded speech, adds detail to people, and opens up the mobile interface. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
 
+## Mobile HUD repair: version 1.16.1
+
+A portrait-only CSS regression in 1.16 placed both visible thumbsticks 50 CSS pixels above and to the left of their touch pads. The old phone media rule and the new shared touch rule each applied centering. The redundant rule is removed, and portrait/landscape now share one explicit center calculation. The objective remains in its own grid row.
+
+Both sticks begin neutral where the thumb lands. Their visual centers remain inside the touch pads, and movement/aim continue to use the original pickup point for the whole gesture. Releasing, cancellation, pausing, or resizing clears the held input. This repair does not change desktop bindings, combat, squad AI, sound rules, or the co-op protocol.
+
+The stylesheet and changed entrypoint are versioned so a returning browser requests this repair. `public/layout-check.html` is an unlinked developer fixture for viewing the actual game at 375/390/430 px portrait, 812/844/932 px landscape, and 1280 × 720 desktop viewports. It preserves the running mission when resized. It checks browser layout and single-pointer controls; it does not simulate physical phone hardware, safe-area insets, or multitouch.
+
 ## A living district: version 1.16
 
 Two independent friendly groups, **Raven** and **Hammer**, can patrol the north route and relieve an eastern crossing. Their five soldiers remain separate from the player's four-person chalk. Up to six additional hostile patrol and building-guard members use the existing difficulty budget; this does not increase the overall hostile cap. Story missions can omit extra groups when their opening threats already fill that budget.

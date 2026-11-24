@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>CHALK viewport check</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#171c19;color:#e6eadf;font:14px/1.45 system-ui,sans-serif}
+    header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px;background:#242d27;border-bottom:1px solid #536355}
+    h1{font-size:16px;margin:0 12px 0 0}
+    label{display:flex;align-items:center;gap:7px}
+    select,button,a{font:inherit;color:inherit}
+    select,button{min-height:36px;background:#17251d;border:1px solid #718471;border-radius:4px;padding:5px 9px}
+    a{color:#dec995}
+    p{margin:0;padding:9px 16px;color:#b8c7b9;font-size:12px}
+    main{width:max-content;min-width:100%;padding:0 16px 16px;display:flex;justify-content:center}
+    iframe{display:block;border:0;outline:1px solid #718471;background:#101710;flex:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CHALK viewport check</h1>
+    <label for="viewport">Viewport
+      <select id="viewport">
+        <option value="375,667">Small portrait · 375 × 667</option>
+        <option value="390,844" selected>Portrait · 390 × 844</option>
+        <option value="430,932">Large portrait · 430 × 932</option>
+        <option value="812,375">Small landscape · 812 × 375</option>
+        <option value="844,390">Landscape · 844 × 390</option>
+        <option value="932,430">Large landscape · 932 × 430</option>
+        <option value="1280,720">Desktop · 1280 × 720</option>
+      </select>
+    </label>
+    <button id="rotate" type="button">Rotate</button>
+    <a href="./index.html" target="_blank" rel="noopener">Open game</a>
+  </header>
+  <p>Developer layout check. Enable Touch controls in the game’s pause menu. Resizing preserves the current mission. This checks real viewport layout; it does not emulate phone hardware, safe-area insets, or multiple fingers.</p>
+  <main><iframe id="preview" title="CHALK viewport preview" src="./index.html" width="390" height="844" allow="autoplay; fullscreen"></iframe></main>
+  <script>
+    const viewport = document.getElementById('viewport');
+    const preview = document.getElementById('preview');
+    function resize(width,height){preview.width=width;preview.height=height;preview.style.width=width+'px';preview.style.height=height+'px';}
+    viewport.addEventListener('change',()=>resize(...viewport.value.split(',').map(Number)));
+    document.getElementById('rotate').addEventListener('click',()=>resize(Number(preview.height),Number(preview.width)));
+    resize(...viewport.value.split(',').map(Number));
+  </script>
+</body>
+</html>

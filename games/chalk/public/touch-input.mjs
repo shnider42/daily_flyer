@@ -89,9 +89,34 @@ export function touchGroundAction({ role, map = false, order = false, ping = fal
   return role === 'leader' ? 'move' : null;
 }
 
-/** The aim pad starts under the finger, avoiding a jump/fire when picked up
- * off-centre. Movement retains its limited floating origin for quick running. */
+/** Both pads start at the actual touchdown. A finger landing near an edge
+ * cannot move the soldier or fire before a deliberate drag. Visual placement
+ * is bounded separately; it must never change this logical gesture origin. */
 export function thumbOrigin(kind, x, y, centerX, centerY) {
   if (![x, y, centerX, centerY].every(Number.isFinite)) return null;
-  return kind === 'aim' ? { x, y } : { x: clamp(x, centerX - 22, centerX + 22), y: clamp(y, centerY - 22, centerY + 22) };
+  return { x, y };
+}
+
+/** Keep the floating circle inside its real hit pad and canvas viewport.
+ * All measurements are CSS pixels, independent of device/render resolution. */
+export function thumbDisplayOrigin(x, y, pad, base, viewport = pad) {
+  if (![x,y,pad?.left,pad?.top,pad?.width,pad?.height,base?.width,base?.height].every(Number.isFinite)||
+      pad.width<=0||pad.height<=0||base.width<=0||base.height<=0)return null;
+  const axis=(value,start,size,diameter,viewStart,viewSize)=>{
+    const middle=start+size/2,half=Math.min(diameter,size)/2;
+    let low=start+half,high=start+size-half;
+    if(Number.isFinite(viewStart)&&Number.isFinite(viewSize)&&viewSize>0){
+      low=Math.max(low,viewStart+half);high=Math.min(high,viewStart+viewSize-half);
+    }
+    if(low<=high)return clamp(value,low,high);
+    if(Number.isFinite(viewStart)&&Number.isFinite(viewSize)&&viewSize>0){
+      const visibleHalf=Math.min(half,viewSize/2);
+      return clamp(middle,viewStart+visibleHalf,viewStart+viewSize-visibleHalf);
+    }
+    return middle;
+  };
+  return {
+    x:axis(x,pad.left,pad.width,base.width,viewport?.left,viewport?.width),
+    y:axis(y,pad.top,pad.height,base.height,viewport?.top,viewport?.height),
+  };
 }

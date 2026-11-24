@@ -1,6 +1,6 @@
 {
   "game": "CHALK",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "date": "2026-11-24",
   "missions": 10,
   "roles": [
@@ -30,13 +30,14 @@
     "throwables": "Gear opens grenade types and drag-to-aim throw; tray clears during aiming and closes after a completed throw",
     "dock": "Compact Squad / Gear dock; reload always reachable, Assist contextual; full-size thumb targets",
     "pings": "Squad > Ping a place or tap overview map; both roles, no changed movement order",
-    "aimPickup": "Floating thumb origin prevents off-center pickup from jumping aim or firing",
+    "aimPickup": "Both sticks start neutral at the actual thumb pickup; bounded visual centers keep the rings inside their touch pads",
     "objective": "Compact title and progress, full explanation expands on demand",
     "closedControlBandPixels": {
       "portrait": 140,
       "shortLandscape": 124,
       "plusSafeBottomInset": true
-    }
+    },
+    "thumbstickGeometry": "One centering rule in portrait and landscape keeps drawn rings and knobs aligned with the touch pads; no doubled portrait translation"
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",

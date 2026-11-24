@@ -117,13 +117,6 @@ button svg,.role-symbol{width:22px;height:22px;flex:none;stroke:currentColor;str
   #touchReload,#touchSmoke{width:50px}#touchOrder{width:102px;left:calc(50% - 51px)}
 }
 
-/* Reserve a real gap between thumb zones and center actions at every phone width. */
-@media(orientation:portrait) and (max-width:700px){
-  .joystick{width:min(140px,calc(50vw - 75px));left:max(5px,env(safe-area-inset-left))}
-  .aim-stick{left:auto;right:max(5px,env(safe-area-inset-right))}
-  .stick-base{--stick-size:min(104px,calc(50vw - 80px));width:var(--stick-size);height:var(--stick-size);left:50%;top:50%;transform:translate(calc(-50% + var(--stick-origin-x)),calc(-50% + var(--stick-origin-y)))}
-}
-
 /* Phones in landscape keep the center open, with commands along the lower edge. */
 @media(orientation:landscape) and (max-height:600px){
   .menu-screen{padding:12px max(20px,env(safe-area-inset-right)) 12px max(20px,env(safe-area-inset-left));overflow-y:auto}.menu-header{padding-bottom:9px;min-height:28px}.edition{font-size:10px}
@@ -729,7 +722,9 @@ body:not(.touch).map-open .map-legend{bottom:22px;width:max-content;max-width:ca
 .touch .touch-controls{height:var(--touch-height);background:linear-gradient(0deg,#07120e42,transparent 82%)}
 .touch .joystick{width:clamp(110px,33vw,140px);height:140px;left:max(4px,env(safe-area-inset-left));bottom:var(--touch-bottom)}
 .touch .aim-stick{left:auto;right:max(4px,env(safe-area-inset-right))}
-.touch .stick-base{width:100px;height:100px;left:calc(50% - 50px);top:calc(50% - 50px);background:#11221b50;border-color:#bdceb242}
+/* Use one centering rule in every orientation. Live origin offsets move the
+   visible base within the same hit pad used by the pointer controller. */
+.touch .stick-base{--stick-size:100px;width:var(--stick-size);height:var(--stick-size);left:50%;top:50%;transform:translate(calc(-50% + var(--stick-origin-x)),calc(-50% + var(--stick-origin-y)));background:#11221b50;border-color:#bdceb242}
 .touch .stick-knob{width:42px;height:42px;left:calc(50% - 21px);top:calc(50% - 21px);background:#b8c7a64f;border-color:#d2dcc474}
 .touch .stick-label{font:10px/1.2 Arial,sans-serif;bottom:3px;letter-spacing:.04em;color:#d3ddc5}
 .touch .touch-actions{position:static;left:auto;right:auto;bottom:auto;transform:none;display:block;max-width:none;width:auto}
@@ -779,7 +774,7 @@ body:not(.touch).map-open .map-legend{bottom:22px;width:max-content;max-width:ca
   .touch,.touch:has(#touchInteract:not(:disabled)),.touch:has(#touchInteract.working){--mobile-stick-height:124px}
   .touch .joystick{height:124px;width:136px;left:max(12px,env(safe-area-inset-left))}
   .touch .aim-stick{left:auto;right:max(12px,env(safe-area-inset-right))}
-  .touch .stick-base{width:96px;height:96px;left:calc(50% - 48px);top:calc(50% - 48px)}
+  .touch .stick-base{--stick-size:96px}
   .touch .touch-dock{bottom:calc(var(--touch-bottom) + 3px);gap:7px}
   .touch .touch-dock #touchOrder,.touch .touch-dock #touchGear{width:66px;height:46px;flex-direction:row;gap:5px;font-size:12px}
   .touch .touch-actions #touchReload{bottom:calc(var(--touch-bottom) + 121px);left:max(24px,env(safe-area-inset-left))}

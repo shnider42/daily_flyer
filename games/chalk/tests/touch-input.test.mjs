@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, thumbOrigin, touchGroundAction } from '../public/touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, thumbOrigin, thumbDisplayOrigin, touchGroundAction } from '../public/touch-input.mjs';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
@@ -123,7 +123,21 @@ test('picking up the aim stick away from its centre starts neutral and follows t
   assert.ok(left.x < 0); assert.equal(left.y, 0);
   assert.equal(touchIntent({ aimX: left.x, aimY: left.y, aimStrength: left.magnitude }).firing, false);
   assert.equal(thumbOrigin('aim', NaN, 2, 1, 1), null);
-  assert.deepEqual(thumbOrigin('move', 230, 360, 180, 320), { x: 202, y: 342 });
+  assert.deepEqual(thumbOrigin('move', 230, 360, 180, 320), { x: 230, y: 360 });
+});
+
+test('floating visuals stay inside portrait and notched landscape pads without shifting the gesture origin', () => {
+  for(const pad of [{left:4,top:600,width:128.7,height:140},{left:47,top:245,width:136,height:124}]){
+    const base={width:100,height:100},viewport={left:0,top:0,width:844,height:932};
+    for(const [x,y] of [[pad.left,pad.top],[pad.left+pad.width,pad.top+pad.height]]){
+      const origin=thumbOrigin('move',x,y,pad.left+pad.width/2,pad.top+pad.height/2);
+      const display=thumbDisplayOrigin(x,y,pad,base,viewport);
+      assert.deepEqual(stickVector(x-origin.x,y-origin.y,34),{x:0,y:0,magnitude:0});
+      assert.ok(display.x>=pad.left+50&&display.x<=pad.left+pad.width-50);
+      assert.ok(display.y>=pad.top+50&&display.y<=pad.top+pad.height-50);
+    }
+  }
+  assert.equal(thumbDisplayOrigin(0,0,{left:0,top:0,width:0,height:100},{width:100,height:100}),null);
 });
 
 test('mobile targeting respects role, explicit commands, map semantics and blocked input', () => {

@@ -1,7 +1,7 @@
 import { MISSIONS, createGame, step, issueOrder, placePing, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin } from './touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin, thumbDisplayOrigin } from './touch-input.mjs?v=1.16.1';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
@@ -164,6 +164,9 @@ function measureSafeInsets() {
     return;
   }
   desktopObstacles = []; desktopObstacleKey = '';
+  // Desktop's measured inline position must not override the touch stylesheet
+  // after switching controls on a convertible device or in Settings.
+  style($('contextHint'), 'left', ''); style($('contextHint'), 'maxWidth', '');
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
   const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder || placingPing ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio'), $('radio')];
@@ -767,11 +770,18 @@ function bindStick(element, kind) {
     if (!canAct() || event.button > 0 || [...activeSticks.values()].some(record => record.kind === kind)) return;
     event.preventDefault(); pointer.fire = false; pointer.valid = false;
     const rect = element.getBoundingClientRect(), base = element.querySelector('.stick-base')?.getBoundingClientRect() || rect;
+    const knob = element.querySelector('.stick-knob').getBoundingClientRect();
+    const radius = Math.min(base.width, base.height) * .34;
     const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
-    const { x, y } = thumbOrigin(kind, event.clientX, event.clientY, cx, cy);
-    element.style.setProperty('--stick-origin-x',`${x-cx}px`); element.style.setProperty('--stick-origin-y',`${y-cy}px`);
+    const origin = thumbOrigin(kind, event.clientX, event.clientY, cx, cy);
+    // Account for the knob at full deflection as well as the resting circle.
+    const footprint = { width: Math.max(base.width, radius * 2 + knob.width), height: Math.max(base.height, radius * 2 + knob.height) };
+    const display = thumbDisplayOrigin(event.clientX, event.clientY, rect, footprint, canvasRect);
+    if (!origin || !display) return;
+    const { x, y } = origin;
+    element.style.setProperty('--stick-origin-x',`${display.x-cx}px`); element.style.setProperty('--stick-origin-y',`${display.y-cy}px`);
     element.setPointerCapture(event.pointerId); element.classList.add('active');
-    activeSticks.set(event.pointerId,{element,kind,x,y,radius:Math.min(base.width,base.height)*.34,startX:event.clientX,startY:event.clientY,dragged:false});
+    activeSticks.set(event.pointerId,{element,kind,x,y,radius,startX:event.clientX,startY:event.clientY,dragged:false});
     update(event); audio.unlock();
   });
   element.addEventListener('pointermove', event => { if (!activeSticks.has(event.pointerId)) return; event.preventDefault(); update(event); });
