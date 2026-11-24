@@ -4,7 +4,7 @@ Version 1.16 gives other squads their own work, replaces simulated background fi
 
 ## Mobile HUD repair: version 1.16.1
 
-A portrait-only CSS regression in 1.16 placed both visible thumbsticks 50 CSS pixels above and to the left of their touch pads. The old phone media rule and the new shared touch rule each applied centering. The redundant rule is removed, and portrait/landscape now share one explicit center calculation. The objective remains in its own grid row.
+A portrait-only CSS regression in 1.16 placed both visible thumbsticks 50 CSS pixels above and to the left of their touch pads. The old phone media rule and the new shared touch rule each applied centering. The redundant rule is removed, and portrait/landscape now share one explicit center calculation. The objective remains in its own grid row. A second obsolete high-specificity landscape rule was covering the Throw button with grenade-type controls for soldiers without specialist gear; removing it restores separate, reachable Gear columns. Optional FPS diagnostics now sit above Reload instead of covering it.
 
 Both sticks begin neutral where the thumb lands. Their visual centers remain inside the touch pads, and movement/aim continue to use the original pickup point for the whole gesture. Releasing, cancellation, pausing, or resizing clears the held input. This repair does not change desktop bindings, combat, squad AI, sound rules, or the co-op protocol.
 
