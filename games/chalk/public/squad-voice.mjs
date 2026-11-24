@@ -22,6 +22,17 @@ const POLICIES = Object.freeze({
   warning: { group: 'danger', cooldown: 12, priority: 3 },
   frag: { group: 'grenades', cooldown: 8, priority: 3 },
   flash: { group: 'grenades', cooldown: 8, priority: 3 },
+  backup: { group: 'contact', cooldown: 35, priority: 2 },
+  dispatch_six: { group: 'danger', cooldown: 20, priority: 2 },
+  dispatch_sniper: { group: 'danger', cooldown: 20, priority: 3 },
+  dispatch_extraction: { group: 'field-radio', cooldown: 45, priority: 1 },
+  dispatch_ammo: { group: 'field-radio', cooldown: 45, priority: 1 },
+  dispatch_recovered: { group: 'field-radio', cooldown: 45, priority: 1 },
+  dispatch_moving: { group: 'contact', cooldown: 35, priority: 2 },
+  dispatch_perimeter: { group: 'orders', cooldown: 60, priority: 1 },
+  dispatch_hold: { group: 'orders', cooldown: 60, priority: 1 },
+  dispatch_attack: { group: 'contact', cooldown: 35, priority: 2 },
+  dispatch_arrival: { group: 'field-radio', cooldown: 45, priority: 1 },
 });
 
 export function createVoiceDirector(seed = 0) {
@@ -67,7 +78,7 @@ export function chooseVoiceLine(director, category, lines, now, available = () =
 
 export function findVoiceSpeaker(state, message) {
   const name = String(message?.speaker || '').toUpperCase();
-  const actor = message?.actorId != null ? (state?.squad || []).find(actor => actor.id === message.actorId)
+  const actor = message?.actorId != null ? [...(state?.squad || []), ...(state?.allies || [])].find(actor => actor.id === message.actorId)
     : (state?.squad || []).find(actor => String(actor.name || actor.id).toUpperCase() === name);
   return actor?.alive === false ? null : actor || null;
 }
@@ -101,4 +112,50 @@ export function squadVoiceRoute(world, speaker, listener, previous = 'radio') {
     gain, pan: own ? 0 : clamp((origin.x - listener.x) / 210, -.85, .85), distance: d,
     lowpass: portal ? 2600 : clamp(10000 / (1 + heardDistance / 420), 3500, 10000),
     highpass: space.sourceKind === 'room' ? 75 : 110, space, portal: Boolean(portal) };
+}
+
+// Field squads have their own radio net. Hearing one speak nearby does not
+// connect that soldier to the player's headset or reveal their coordinates.
+export function fieldVoiceRoute(world, speaker, listener, previous = 'local') {
+  const route = squadVoiceRoute(world, speaker, listener, previous);
+  if (route.mode === 'local') return { ...route, radio: 0 };
+  return { ...route, mode: 'inaudible', local: 0, radio: 0 };
+}
+
+export const FIELD_RADIO_SPEAKER = Object.freeze({ id: 'field-radio', name: 'RADIO', alive: true, radioOnly: true });
+
+export function createFieldRadioDirector(atTime = 0) {
+  return { startedAt: atTime, nextCheck: atTime, lastTime: atTime, objective: null, objectiveAt: -Infinity,
+    arrivalDone: atTime > 2, downed: new Set(), lastOffer: -Infinity, offers: new Map() };
+}
+
+// Sparse and factual. This reads only friendly status, the active objective,
+// and enemies already seen by the player's squad. No kill totals or hidden
+// patrol positions become radio intelligence. No overdue speech is queued.
+export function fieldRadioCue(director, state, player) {
+  const now = state?.time;
+  if (!director || !Number.isFinite(now) || !player || player.alive === false || player.downed ||
+    state.status !== 'playing' || state.paused || now < director.nextCheck) return null;
+  director.nextCheck = now + 1.1;
+  const gap = now - director.lastTime; director.lastTime = now;
+  const objective = state.objective;
+  if (objective?.id !== director.objective) {
+    if (director.objective != null) director.objectiveAt = now;
+    director.objective = objective?.id ?? null;
+  }
+  const recovered = (state.squad || []).some(actor => director.downed.has(actor.id) && actor.alive && !actor.downed);
+  director.downed = new Set((state.squad || []).filter(actor => actor.alive && actor.downed).map(actor => actor.id));
+  if (gap > 4 || now - director.lastOffer < 20) return null;
+  const candidates = [];
+  if (now - director.objectiveAt < 10 && objective?.kind === 'extract') candidates.push('extraction');
+  if (recovered) candidates.push('recovered');
+  if (player.ammo <= 4 && player.ammo >= 0 && player.reserve > 0 && state.stats?.shots > 0 && !player.reloadTimer) candidates.push('ammo');
+  if (now - director.objectiveAt < 10 && objective?.kind === 'hold') candidates.push('perimeter');
+  if (!director.arrivalDone && now >= 8 && now <= 16 && !(player.suppression > .2)) candidates.push('arrival');
+  if ((state.enemies || []).some(enemy => enemy.visible === true && enemy.alive && enemy.moving && distance(enemy, player) < 500)) candidates.push('moving');
+  const cue = candidates.find(kind => now - (director.offers.get(kind) ?? -Infinity) >= 180);
+  if (!cue) return null;
+  director.lastOffer = now; director.offers.set(cue, now);
+  if (cue === 'arrival') director.arrivalDone = true;
+  return `dispatch_${cue}`;
 }

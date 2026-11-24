@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag } from '../public/touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, thumbOrigin, touchGroundAction } from '../public/touch-input.mjs';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} is not close to ${expected}`);
 
@@ -113,4 +113,26 @@ test('cancellation and invalid throw coordinates cannot leave an armed gesture b
   drag.begin(2, 100, 100); drag.move(2, Infinity, 100);
   assert.equal(drag.pending, null);
   drag.begin(3, 100, 100); assert.equal(drag.end(3, 100, NaN), null);
+});
+
+
+test('picking up the aim stick away from its centre starts neutral and follows the actual drag', () => {
+  const origin = thumbOrigin('aim', 210, 350, 180, 320);
+  assert.deepEqual(stickVector(210 - origin.x, 350 - origin.y, 34), { x: 0, y: 0, magnitude: 0 });
+  const left = stickVector(200 - origin.x, 350 - origin.y, 34);
+  assert.ok(left.x < 0); assert.equal(left.y, 0);
+  assert.equal(touchIntent({ aimX: left.x, aimY: left.y, aimStrength: left.magnitude }).firing, false);
+  assert.equal(thumbOrigin('aim', NaN, 2, 1, 1), null);
+  assert.deepEqual(thumbOrigin('move', 230, 360, 180, 320), { x: 202, y: 342 });
+});
+
+test('mobile targeting respects role, explicit commands, map semantics and blocked input', () => {
+  assert.equal(touchGroundAction({role:'leader'}), 'move');
+  assert.equal(touchGroundAction({role:'member'}), null);
+  assert.equal(touchGroundAction({role:'leader', map:true}), 'ping');
+  assert.equal(touchGroundAction({role:'member', map:true}), 'ping');
+  assert.equal(touchGroundAction({role:'leader', map:true, order:true}), 'move');
+  assert.equal(touchGroundAction({role:'member', order:true}), null);
+  assert.equal(touchGroundAction({role:'leader', order:true, ping:true}), 'ping');
+  assert.equal(touchGroundAction({role:'leader', map:true, ping:true, active:false}), null);
 });

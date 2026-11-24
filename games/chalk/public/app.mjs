@@ -1,7 +1,7 @@
 import { MISSIONS, createGame, step, issueOrder, placePing, selectSquadMember, getObjective, hasLineOfSight, chooseStoryOption, getStoryInteraction, getStoryLeaderId, getMissionInteraction, getNextCampaignMission, campaignOutcome, normalizeCampaignCarry } from './sim.mjs';
 import { Renderer } from './renderer.mjs';
 import { GameAudio } from './audio.mjs';
-import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag } from './touch-input.mjs';
+import { stickVector, touchIntent, GroundOrderTap, ThrowableDrag, touchGroundAction, thumbOrigin } from './touch-input.mjs';
 import { CoopClient } from './coop-client.mjs';
 import { coopServerURL } from './network-config.mjs';
 import { clientToCanvasPoint } from './desktop-input.mjs';
@@ -52,6 +52,7 @@ let mode = 'menu';
 let paused = false;
 let showMap = false;
 let placingOrder = false;
+let placingPing = false;
 let accumulator = 0;
 let hudTimer = 0;
 let lastRadio = '';
@@ -69,6 +70,8 @@ let squadRows = [];
 let interiorNotice = { scene: '', id: '', at: 0 };
 let touchAim = null;
 let interactionPointer = null;
+let gearOpen = false;
+let objectiveExpanded = false;
 let observing = false;
 let quickOrder = null;
 let storyDecisionId = '';
@@ -163,7 +166,7 @@ function measureSafeInsets() {
   desktopObstacles = []; desktopObstacleKey = '';
   const rect = canvas.getBoundingClientRect();
   const controlsRect = $('touchControls').getBoundingClientRect();
-  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio'), $('radio')];
+  const topElements = showMap ? [document.querySelector('.topbar'), ...(placingOrder || placingPing ? [$('orderHint'), $('cancelOrder')] : [])] : [document.querySelector('.topbar'), document.querySelector('.objective-panel'), $('squad'), $('storyRadio'), $('radio')];
   const top = Math.max(...topElements.map(el => el?.getBoundingClientRect().bottom || rect.top)) - rect.top + 10;
   const hintRect = $('contextHint').getBoundingClientRect();
   const controlsTop = hintRect.width && hintRect.height ? Math.min(controlsRect.top, hintRect.top) : controlsRect.top;
@@ -239,7 +242,7 @@ function syncControlHints() {
   attr($('mapToggle'), 'title', `Map (${actionLabel('map', preferences.keyBindings)})`);
   attr($('pauseButton'), 'title', `Mission menu (${actionLabel('pause', preferences.keyBindings)})`);
   syncMapControlHints();
-  text('soloSwitchHint', 'Click a soldier below or on the battlefield HUD to take control. Each soldier also has a shortcut in Settings → Aim & controls.');
+  text('soloSwitchHint', touch ? 'Tap an available soldier below or in the squad row to take control.' : 'Click a soldier below or on the battlefield HUD to take control. Each soldier also has a shortcut in Settings → Aim & controls.');
   controlsEditor?.sync();
 }
 function persistGuidance() {
@@ -356,7 +359,7 @@ function clearInput() {
   const throwPointer = throwableDrag.pending?.id;
   throwableDrag.cancel();
   if (throwPointer !== undefined) { try { $('touchThrow').releasePointerCapture(throwPointer); } catch {} }
-  $('touchThrow').classList.remove('working');
+  $('touchThrow').classList.remove('working'); document.body.classList.remove('throwing');
   const tapId = groundOrderTap.pending?.id;
   groundOrderTap.cancel();
   if (tapId !== undefined) { try { canvas.releasePointerCapture(tapId); } catch {} }
@@ -375,9 +378,10 @@ function startMission(index = selectedMission, { restart = false, fresh = false 
   missionCarry = restart ? missionCarry : !fresh && operationPlan?.nextMission === selectedMission ? normalizeCampaignCarry(operationPlan.carry) : null;
   game = createGame({ mission: selectedMission, role: preferences.role, difficulty: preferences.difficulty, seed: Date.now() >>> 0, campaign: missionCarry });
   resetStoryUI();
-  mode = 'playing'; paused = false; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
+  mode = 'playing'; paused = false; accumulator = 0; showMap = false; placingOrder = false; placingPing = false; lastRadio = ''; hudTimer = 0;
   clearInput();
-  document.body.classList.remove('in-menu', 'orders-open', 'map-open', 'placing-order');
+  document.body.classList.remove('in-menu', 'orders-open', 'gear-open', 'map-open', 'placing-order', 'placing-ping', 'objective-expanded');
+  objectiveExpanded = false; syncObjectiveDetails();
   $('menu').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
   $('mapLegend').hidden = true; $('orderHint').hidden = true;
   $('missionName').textContent = game.mission.title.toUpperCase();
@@ -386,15 +390,15 @@ function startMission(index = selectedMission, { restart = false, fresh = false 
   syncMapUI(); closeOrders();
   clearTimeout(toastTimer); $('toast').hidden = true;
   startGuidance();
-  if (touch && preferences.guidance === 'simple') toast(game.role === 'leader' ? 'Tap ground to move the squad · Tap a soldier to take control' : 'Tap a soldier to take control · Right stick: aim and fire');
+  if (touch && preferences.guidance === 'simple') toast('Gear: grenades · Squad: orders and ping · Objective arrow: details');
 }
 function returnToMenu() {
   if (online()) coop.leave();
   coopCommandEpoch = null;
   onlineEpoch = null; onlineRole = null; $('coopOverlay').hidden = true; $('coopBadge').hidden = true;
-  mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; clearInput(); audio.setScene('menu');
+  mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; placingPing = false; clearInput(); audio.setScene('menu');
   resetStoryUI();
-  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'online');
+  document.body.classList.add('in-menu'); document.body.classList.remove('orders-open', 'touch', 'map-open', 'placing-order', 'placing-ping', 'gear-open', 'objective-expanded', 'online');
   $('menu').hidden = false; $('hud').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true; $('touchControls').hidden = true;
   updateGuidance(); missionMenu(); fit(); $('deploy').focus({ preventScroll: true });
 }
@@ -413,18 +417,15 @@ function updateOrders() {
   const items = leader ? [['move', 'moveOrder', 'Move', 'Send the squad to a point'], ['follow', 'regroup', 'Regroup', 'Bring the squad back to you'], ['hold', 'hold', 'Hold', 'Keep the squad here'], ['assist', 'assist', 'Assist', 'Help the wounded']] : [['ready', 'regroup', 'Ready', 'Tell Hale you can move'], ['wait', 'hold', 'Wait', 'Ask Hale to wait'], ['help', 'assist', 'Need help', 'Ask for help']];
   $('orderButtons').innerHTML = items.map(([type, action, label, detail]) => `<button data-order="${type}" title="${escape(detail)} (${escape(actionLabel(action, preferences.keyBindings))})"><span><kbd>${escape(bind(action))}</kbd>${label}</span><small class="order-explanation">${detail}</small></button>`).join('');
   ($('touchOrderLabel') || $('touchOrder')).textContent = leader ? 'Squad' : 'Radio';
-  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders' : 'Radio requests');
+  $('touchOrder').setAttribute('aria-label', leader ? 'Squad orders and ping' : 'Radio requests and ping');
   $('touchOrder').setAttribute('aria-controls', 'orderButtons');
-  text('touchRegroup', leader ? 'Regroup' : 'Ready'); text('touchHold', leader ? 'Hold' : 'Wait');
-  attr($('touchRegroup'), 'aria-label', leader ? 'Regroup the squad now' : 'Tell the leader you are ready');
-  attr($('touchHold'), 'aria-label', leader ? 'Hold the squad here' : 'Ask the leader to wait');
   syncControlHints();
 }
 function doOrder(type, point) {
   if (mode !== 'playing' || paused || soldierSelectionPending || !player()?.alive || player()?.downed || online() && !coop.connected) return;
   if (type === 'move' && !point) {
     if (game.role !== 'leader') return;
-    clearInput(); closeOrders(); placingOrder = true;
+    clearInput(); closeOrders(); placingOrder = true; placingPing = false;
     syncMapUI();
     return;
   }
@@ -433,7 +434,7 @@ function doOrder(type, point) {
     if (mode !== 'playing' || game?.playerId !== actor || (wasOnline ? !online() || onlineEpoch !== epoch : game !== scene)) return;
     recordGuidance('order', { accepted: true, order: type });
     if (placingOrder || showMap) clearInput();
-    placingOrder = false; closeOrders();
+    placingOrder = false; placingPing = false; closeOrders();
     if (touch && type === 'move') showMap = false;
     if (type === 'move' && point) quickOrder = { point: { ...point }, until: performance.now()+1050 };
     syncMapUI(); audio.click(); updateHUD();
@@ -441,16 +442,30 @@ function doOrder(type, point) {
   if (wasOnline) coop.order(type, point).then(accepted).catch(() => {});
   else if (issueOrder(game, type, point)) accepted();
 }
-function closeOrders() { document.body.classList.remove('orders-open'); $('touchOrder').setAttribute('aria-expanded', 'false'); }
+function closeGear() {
+  gearOpen = false; document.body.classList.remove('gear-open', 'throwing'); $('touchGearTray').hidden = true;
+  attr($('touchGear'), 'aria-expanded', false);
+}
+function closeOrders() { document.body.classList.remove('orders-open'); $('touchOrder').setAttribute('aria-expanded', 'false'); closeGear(); }
+function syncObjectiveDetails() {
+  flag(document.body, 'objective-expanded', objectiveExpanded);
+  attr($('objectiveToggle'), 'aria-expanded', objectiveExpanded);
+  attr($('objectiveToggle'), 'aria-label', objectiveExpanded ? 'Hide objective details' : 'Show objective details');
+}
+function beginTouchPing() {
+  if (mode !== 'playing' || paused || !player()?.alive || player()?.downed || soldierSelectionPending || online() && !coop.connected) return;
+  clearInput(); closeOrders(); placingOrder = false; placingPing = true; syncMapUI();
+}
 function syncMapControlHints() {
-  text('orderHint', touch ? 'Tap a destination for the squad.' : `${bindingLabel(`Mouse${orderConfirmButton()}`)}: choose a destination for the squad. ${bind('ping')} only pings. Escape cancels.`);
-  text('mapInstructions', touch ? 'Tap the Map button to close' : `${bind('ping')}: ping · ${bind('map')}: close map`);
+  text('orderHint', touch ? (placingPing ? 'Tap a place to ping. Orders stay the same.' : 'Tap a destination for the squad.') : `${bindingLabel(`Mouse${orderConfirmButton()}`)}: choose a destination for the squad. ${bind('ping')} only pings. Escape cancels.`);
+  text('mapInstructions', touch ? (placingOrder ? 'Tap a destination · Map: close' : 'Tap to ping · Map: close') : `${bind('ping')}: ping · ${bind('map')}: close map`);
 }
 function syncMapUI() {
   document.body.classList.toggle('map-open', showMap);
   document.body.classList.toggle('placing-order', placingOrder);
+  document.body.classList.toggle('placing-ping', placingPing);
   $('mapLegend').hidden = !showMap;
-  $('orderHint').hidden = !placingOrder;
+  $('orderHint').hidden = !placingOrder && !placingPing;
   syncMapControlHints();
   ($('mapToggleLabel') || $('mapToggle')).textContent = showMap ? 'Close' : 'Map';
   $('mapToggle').setAttribute('aria-pressed', String(showMap));
@@ -459,10 +474,10 @@ function syncMapUI() {
 }
 function toggleMap() {
   if (mode !== 'playing' || paused) return;
-  clearInput(); closeOrders(); showMap = !showMap; placingOrder = false; syncMapUI(); updateGuidance();
+  clearInput(); closeOrders(); showMap = !showMap; placingOrder = false; placingPing = false; syncMapUI(); updateGuidance();
 }
-function cancelOrder() { clearInput(); placingOrder = false; if (touch) showMap = false; syncMapUI(); }
-function canAct() { return mode === 'playing' && !paused && !soldierSelectionPending && !document.querySelector('dialog[open]') && (!online() || coop.connected) && !showMap && !placingOrder && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
+function cancelOrder() { clearInput(); placingOrder = false; placingPing = false; if (touch) showMap = false; syncMapUI(); }
+function canAct() { return mode === 'playing' && !paused && !soldierSelectionPending && !document.querySelector('dialog[open]') && (!online() || coop.connected) && !showMap && !placingOrder && !placingPing && !document.body.classList.contains('orders-open') && player()?.alive && !player()?.downed; }
 
 async function selectCoopSoldier(id) {
   if (!coop?.connected || soldierSelectionPending) return;
@@ -514,7 +529,7 @@ function switchSoldier(id) {
   if (online()) { selectCoopSoldier(id); return; }
   const next = game.squad.find(soldier => String(soldier.id) === String(id));
   if (!next || next.id === game.playerId || !selectSquadMember(game, next.id)) return;
-  clearInput(); closeOrders(); placingOrder = false; showMap = false; quickOrder = null;
+  clearInput(); closeOrders(); placingOrder = false; placingPing = false; showMap = false; quickOrder = null;
   chooseRole(game.role); syncMapUI(); updateOrders(); updateHUD(); updatePauseUI();
   if (paused) pause(false); else canvas.focus({ preventScroll: true });
   // The selected card, equipment and radio line already identify the new soldier.
@@ -677,14 +692,23 @@ $('replay').addEventListener('click', () => online() ? runCoopAction(() => coop.
 $('nextMission').addEventListener('click', continueOperation);
 $('operationResume').addEventListener('click', () => { if (operationPlan) { selectedMission = operationPlan.nextMission; missionMenu(); } });
 $('operationFresh').addEventListener('click', () => { operationPlan = null; saveOperation(); missionMenu(); toast('Fresh mission selected. Earlier operation carryover cleared.'); });
-$('storyToggle').addEventListener('click', () => { storyCardOpen = !storyCardOpen; updateStoryUI(); measureSafeInsets(); });
+$('storyToggle').addEventListener('click', () => { if (touch) { clearInput(); closeOrders(); } storyCardOpen = !storyCardOpen; updateStoryUI(); measureSafeInsets(); });
 $('storyClose').addEventListener('click', () => { storyCardOpen = false; updateStoryUI(); if (!touch) canvas.focus({ preventScroll: true }); });
 $('mapToggle').addEventListener('click', toggleMap);
 $('touchOrder').addEventListener('click', () => {
-  if (mode !== 'playing' || paused || showMap || placingOrder) return;
-  clearInput(); const open = document.body.classList.toggle('orders-open'); $('touchOrder').setAttribute('aria-expanded', String(open));
+  if (mode !== 'playing' || paused || showMap || placingOrder || placingPing) return;
+  clearInput(); closeGear(); if (storyCardOpen) { storyCardOpen = false; updateStoryUI(); } const open = document.body.classList.toggle('orders-open'); $('touchOrder').setAttribute('aria-expanded', String(open));
 });
 $('orderClose')?.addEventListener('click', closeOrders);
+$('touchGear').addEventListener('click', () => {
+  if (mode !== 'playing' || paused || showMap || placingOrder || placingPing || !player()?.alive || player()?.downed) return;
+  const next = !gearOpen, wasObserving = observing; if (storyCardOpen) { storyCardOpen = false; updateStoryUI(); } clearInput(); observing = wasObserving; closeOrders(); gearOpen = next;
+  $('touchGearTray').hidden = !next; flag(document.body, 'gear-open', next); attr($('touchGear'), 'aria-expanded', next);
+  updateHUD();
+});
+$('touchGearClose').addEventListener('click', () => { clearInput(); closeGear(); updateHUD(); });
+$('touchPing').addEventListener('click', beginTouchPing);
+$('objectiveToggle').addEventListener('click', () => { objectiveExpanded = !objectiveExpanded; syncObjectiveDetails(); measureSafeInsets(); });
 $('cancelOrder')?.addEventListener('click', cancelOrder);
 $('touchReload').addEventListener('click', () => { if (canAct()) actions.reload = true; });
 $('touchSmoke').addEventListener('click', () => selectThrowable());
@@ -692,7 +716,7 @@ document.querySelectorAll('button[data-throwable]').forEach(button => button.add
 $('touchThrow').addEventListener('pointerdown', event => {
   if (event.button > 0 || !canThrow() || !throwableDrag.begin(event.pointerId, event.clientX, event.clientY)) return;
   event.preventDefault(); event.stopPropagation(); dragThrowable = selectedThrowable; pointer.fire = false; groundOrderTap.cancel();
-  $('touchThrow').setPointerCapture(event.pointerId); $('touchThrow').classList.add('working'); audio.unlock();
+  $('touchThrow').setPointerCapture(event.pointerId); $('touchThrow').classList.add('working'); document.body.classList.add('throwing'); audio.unlock();
   text('touchThrowLabel', 'Drag');
 });
 $('touchThrow').addEventListener('pointermove', event => {
@@ -704,19 +728,17 @@ $('touchThrow').addEventListener('pointerup', event => {
   if (throwableDrag.pending?.id !== event.pointerId) return;
   event.preventDefault(); event.stopPropagation();
   const vector = throwableDrag.end(event.pointerId, event.clientX, event.clientY);
-  if (vector) throwSelected(dragThrowable, targetForThrow(vector, dragThrowable));
-  $('touchThrow').classList.remove('working'); text('touchThrowLabel', 'Drag throw');
+  if (vector) { throwSelected(dragThrowable, targetForThrow(vector, dragThrowable)); closeGear(); }
+  document.body.classList.remove('throwing'); $('touchThrow').classList.remove('working'); text('touchThrowLabel', 'Drag throw');
 });
 for (const type of ['pointercancel', 'lostpointercapture']) $('touchThrow').addEventListener(type, event => {
   if (throwableDrag.pending?.id !== event.pointerId) return;
-  throwableDrag.cancel(event.pointerId); $('touchThrow').classList.remove('working'); text('touchThrowLabel', 'Drag throw');
+  throwableDrag.cancel(event.pointerId); document.body.classList.remove('throwing'); $('touchThrow').classList.remove('working'); text('touchThrowLabel', 'Drag throw');
 });
 // Keyboard and assistive button activation uses the soldier's current aim.
 $('touchThrow').addEventListener('click', event => { if (event.detail === 0) throwSelected(); });
-$('touchRegroup').addEventListener('click', () => doOrder(game?.role === 'leader' ? 'follow' : 'ready'));
-$('touchHold').addEventListener('click', () => doOrder(game?.role === 'leader' ? 'hold' : 'wait'));
-$('touchObserve').addEventListener('click', toggleObservation);
-$('touchGrenade').addEventListener('click', launchGrenade);
+$('touchObserve').addEventListener('click', () => { toggleObservation(); closeGear(); measureSafeInsets(); });
+$('touchGrenade').addEventListener('click', () => { launchGrenade(); closeGear(); measureSafeInsets(); });
 $('touchInteract').addEventListener('pointerdown', event => {
   if (!canAct() || !assistAction() || interactionPointer !== null) return;
   event.preventDefault(); interactionPointer = event.pointerId; touchInput.interact = true;
@@ -746,8 +768,7 @@ function bindStick(element, kind) {
     event.preventDefault(); pointer.fire = false; pointer.valid = false;
     const rect = element.getBoundingClientRect(), base = element.querySelector('.stick-base')?.getBoundingClientRect() || rect;
     const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
-    const x = kind === 'move' ? clamp(event.clientX,cx-22,cx+22) : cx;
-    const y = kind === 'move' ? clamp(event.clientY,cy-22,cy+22) : cy;
+    const { x, y } = thumbOrigin(kind, event.clientX, event.clientY, cx, cy);
     element.style.setProperty('--stick-origin-x',`${x-cx}px`); element.style.setProperty('--stick-origin-y',`${y-cy}px`);
     element.setPointerCapture(event.pointerId); element.classList.add('active');
     activeSticks.set(event.pointerId,{element,kind,x,y,radius:Math.min(base.width,base.height)*.34,startX:event.clientX,startY:event.clientY,dragged:false});
@@ -790,9 +811,9 @@ function dispatchControl(action) {
   if (mode !== 'playing') return;
   if (action === 'pause') {
     if (paused) { pause(false); return; }
-    if (placingOrder) { cancelOrder(); return; }
+    if (placingOrder || placingPing) { cancelOrder(); return; }
     if (showMap) { toggleMap(); return; }
-    if (document.body.classList.contains('orders-open')) { clearInput(); closeOrders(); return; }
+    if (document.body.classList.contains('orders-open') || gearOpen) { clearInput(); closeOrders(); return; }
     if (storyCardOpen) { storyCardOpen = false; updateStoryUI(); canvas.focus({ preventScroll: true }); return; }
     pause(true); return;
   }
@@ -821,8 +842,9 @@ canvas.addEventListener('pointerdown', event => {
     // Ground taps are handled here; do not generate a second mouse action.
     event.preventDefault();
     pointer.valid = false;
-    if (placingOrder) { if (game.role === 'leader') doOrder('move', renderer.screenToWorld(point.x, point.y)); return; }
-    if (game.role === 'leader' && (canAct() || showMap) && event.button <= 0 && groundOrderTap.begin(event.pointerId,event.clientX,event.clientY,event.timeStamp)) canvas.setPointerCapture(event.pointerId);
+    if (gearOpen) { clearInput(); closeGear(); return; }
+    const action = touchGroundAction({ role: game.role, map: showMap, order: placingOrder, ping: placingPing, active: canAct() || showMap || placingOrder || placingPing });
+    if (action && event.button <= 0 && groundOrderTap.begin(event.pointerId,event.clientX,event.clientY,event.timeStamp)) canvas.setPointerCapture(event.pointerId);
     return;
   }
   desktopPointerId = event.pointerId;
@@ -846,10 +868,13 @@ canvas.addEventListener('mousedown', event => {
 });
 canvas.addEventListener('pointerup', event => {
   if (event.pointerType !== 'touch') return;
-  if (groundOrderTap.end(event.pointerId,event.clientX,event.clientY,event.timeStamp) && game?.role === 'leader' && (canAct() || showMap && !paused)) {
-    const point = screenPoint(event);
-    if (point?.inside) doOrder('move', renderer.screenToWorld(point.x,point.y));
-  }
+  if (!groundOrderTap.end(event.pointerId,event.clientX,event.clientY,event.timeStamp) || paused) return;
+  const action = touchGroundAction({ role: game?.role, map: showMap, order: placingOrder, ping: placingPing, active: canAct() || showMap || placingOrder || placingPing });
+  const point = screenPoint(event);
+  if (!point?.inside || !action) return;
+  const target = renderer.screenToWorld(point.x, point.y);
+  if (action === 'ping') { placingPing = false; syncMapUI(); pingLocation(target); }
+  else doOrder('move', target);
 });
 // Mouse events describe every button transition. Pointer events only describe
 // the first press and last release, which would miss a ping while firing.
@@ -970,6 +995,7 @@ function updateHUD() {
     const throwableHelp = { frag: 'Explodes and can hurt anyone nearby.', flashbang: 'Briefly blinds people who can see the burst, including your squad.', smoke: 'Hides movement for a short time. It does not stop bullets.' };
     text('throwableExplanation', throwableHelp[selectedThrowable]);
     text('touchSmokeQty', throwableCount(p)); text('touchSmokeLabel', throwableLabels[selectedThrowable]);
+    text('touchGearHint', `${throwableHelp[selectedThrowable]} Drag Throw to aim; release to throw. Drag back to cancel.`);
     attr($('touchSmoke'), 'aria-label', `${throwableLabels[selectedThrowable]}, ${throwableCount(p)} remaining. Tap to select another grenade type.`);
     attr($('touchThrow'), 'aria-label', `Throw ${throwableLabels[selectedThrowable].toLowerCase()}. Drag to aim, release to throw. Return to the button to cancel.`);
     $('touchThrow').disabled = !canThrow();
@@ -997,7 +1023,7 @@ function updateHUD() {
     text($('aimStick').querySelector('.stick-label'), usingBinos ? 'SCAN' : 'AIM / FIRE');
     attr($('aimStick'), 'aria-label', usingBinos ? 'Scan with binoculars thumbstick' : 'Aim and fire thumbstick');
     flag(document.body, 'observing', usingBinos);
-    for (const id of ['touchRegroup','touchHold','touchOrder']) $(id).disabled = !p.alive || p.downed;
+    for (const id of ['touchGear','touchOrder','touchPing']) $(id).disabled = !p.alive || p.downed;
     text('touchReloadLabel', reloading ? 'Loading' : 'Reload');
     attr($('touchReload'), 'aria-label', reloading ? 'Reloading' : 'Reload weapon'); flag($('touchReload'), 'reloading', reloading);
     $('downedBanner').hidden = !p.downed && p.alive;
@@ -1022,7 +1048,7 @@ function updateHUD() {
   let hint = interactText || assistHint;
   if (!hint && p && objective?.interaction && Math.hypot(p.x - objective.x, p.y - objective.y) < (objective.radius || 60) + 20 && hasLineOfSight(game, p, objective)) hint = touch ? 'Hold ASSIST to work on the objective.' : `Hold ${bind('interact')} to work on the objective.`;
   if (!hint && !touch && preferences.guidance === 'simple' && game.time < 13) hint = game.role === 'leader' ? `Follow the amber marker. ${bind('moveOrder')} sends the squad there.` : 'Stay near Hale. He will lead you to the objective.';
-  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 18 ? shared ? 'Tap ground: move squad · Regroup / Hold act immediately' : 'Tap ground: move squad · Tap soldier: take control' : '';
+  if (touch) hint = minimalGuidance ? '' : assist ? assist.detail : preferences.guidance === 'simple' && game.role === 'leader' && game.time < 8 ? 'Tap ground: move squad · Squad: orders / ping' : '';
   if (!hint && observing && !(touch && minimalGuidance)) hint = touch ? 'Binoculars · Aim stick scans · Tap Lower to fight' : `Binoculars · Mouse to scan · ${bind('observe')} to lower`;
   const house = p ? buildingAt(game.world, p) : null;
   const scene = `${game.seed}:${game.missionIndex}:${game.playerId}`;
@@ -1034,7 +1060,7 @@ function updateHUD() {
   attr($('hud'), 'data-building', house?.id || '');
   const coaching = contextualGuidance({ game, player: p, assist, objective, guidance: preferences.guidance, bind, observing, inside: !!house, touch });
   if (!touch && !showMap && !placingOrder && coaching) hint = `${coaching.title}. ${coaching.body}`;
-  if (showMap || placingOrder) hint = '';
+  if (showMap || placingOrder || placingPing || gearOpen || document.body.classList.contains('orders-open')) hint = '';
   attr($('contextHint'), 'data-tone', coaching?.tone || 'info');
   text('objectiveExplanation', preferences.guidance === 'expert' ? '' : explainObjective(objective, { guidance: preferences.guidance, bind, role: game.role, touch }));
   text('squadExplanation', shared ? 'Click any free soldier to take control. Your partner’s soldier is labelled with their name.' : 'Highlighted name: you. Click another standing soldier to control them.');
@@ -1193,7 +1219,7 @@ function renderCoopRoom(room) {
   $('coopLobbyHint').textContent = coop.isHost ? `You host the room. ${connected.length === 1 ? 'Choose any free soldier. Your friend can join now or during play.' : 'Choose any free soldier above. Hale gives orders; other soldiers keep their own jobs.'}` : 'Choose any free soldier above. The host chooses the mission and deploys the squad.';
   if (room.status === 'lobby') {
     const entering = $('coopLobby').hidden || mode !== 'menu';
-    mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; onlineEpoch = null; onlineRole = null;
+    mode = 'menu'; paused = false; game = null; showMap = false; placingOrder = false; placingPing = false; onlineEpoch = null; onlineRole = null;
     clearInput(); closeOrders(); audio.setScene('menu');
     document.body.classList.add('in-menu','online'); document.body.classList.remove('touch','map-open','placing-order');
     $('menu').hidden = false; $('hud').hidden = true; $('touchControls').hidden = true; $('pauseOverlay').hidden = true; $('resultOverlay').hidden = true;
@@ -1215,7 +1241,7 @@ function receiveCoopState(state) {
   if (fresh) {
     resetStoryUI();
     onlineEpoch = room.epoch; selectedMission = state.missionIndex;
-    mode = 'playing'; paused = !!keepMenu; accumulator = 0; showMap = false; placingOrder = false; lastRadio = ''; hudTimer = 0;
+    mode = 'playing'; paused = !!keepMenu; accumulator = 0; showMap = false; placingOrder = false; placingPing = false; lastRadio = ''; hudTimer = 0;
     clearInput(); closeOrders(); audio.setScene(paused ? 'paused' : 'mission');
     document.body.classList.remove('in-menu','orders-open','map-open','placing-order'); document.body.classList.add('online');
     $('menu').hidden = true; $('coopOverlay').hidden = true; $('hud').hidden = false; $('pauseOverlay').hidden = !paused; $('resultOverlay').hidden = true; $('touchControls').hidden = !touch;
@@ -1224,7 +1250,7 @@ function receiveCoopState(state) {
     if (!document.querySelector('dialog[open]')) (paused ? $('resume') : canvas).focus({preventScroll:true});
   }
   if (fresh || changedRole) {
-    clearInput(); closeOrders(); placingOrder = false; showMap = false; syncMapUI(); updateOrders();
+    clearInput(); closeOrders(); placingOrder = false; placingPing = false; showMap = false; syncMapUI(); updateOrders();
     if (changedRole) toast(state.role === 'leader' ? 'You now lead the squad.' : `You now control ${player()?.name || 'a squad member'}.`);
   }
   onlineRole = state.role;
@@ -1286,7 +1312,7 @@ function renderView(now) {
     throwableAim: canAct() && throwableDrag.pending ? { ...targetForThrow(throwableDrag.vector(), dragThrowable), type: dragThrowable } : null,
     effectEpoch: online() ? `${coop.room?.code || ''}:${coop.room?.epoch ?? ''}` : null,
     observing: observing && player()?.role === 'grenadier' && canAct(), quickOrder: quickOrder?.until > now ? { point: quickOrder.point, active: true } : null,
-    mapHint: touch ? 'Tap Map to close' : `${bind('map')}: close map  ·  ${bind('ping')}: ping a location`,
+    mapHint: touch ? (placingOrder ? 'Tap a destination · Map: close' : 'Tap map to ping · Map: close') : `${bind('map')}: close map  ·  ${bind('ping')}: ping a location`,
     mapLegend: 'Bright: visible now · Dim: explored · Dark: unseen · Blue: ping',
     guidance: preferences.guidance, reducedMotion: preferences.reducedMotion, bloodEffects: preferences.bloodEffects, touch: touch && mode !== 'menu', safeInsets, desktopObstacles, aim: touchAim, followActorId,
     quality: preferences.graphicsQuality, zoom: touch ? preferences.mobileCameraZoom : preferences.cameraZoom, lookahead: preferences.cameraLookahead,
@@ -1338,7 +1364,7 @@ function frame(now) {
       const controlledBefore = game.playerId;
       step(game, input, 1 / 60);
       if (game.playerId !== controlledBefore) {
-        clearInput(); Object.assign(input, neutralInput()); closeOrders(); placingOrder = false; showMap = false; quickOrder = null;
+        clearInput(); Object.assign(input, neutralInput()); closeOrders(); placingOrder = false; placingPing = false; showMap = false; quickOrder = null;
         syncMapUI(); updateOrders(); updateHUD();
         toast(`${player().name} selected · ${roleProfile(player()).label}`);
       }

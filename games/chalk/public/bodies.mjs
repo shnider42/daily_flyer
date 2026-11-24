@@ -3,7 +3,7 @@ import { squadCanSeePoint } from './visibility.mjs';
 // Corpse state is plain serializable mission data. The weak clock is only a
 // local work throttle; replacing a snapshot or restarting never depends on it.
 const sightClocks = new WeakMap();
-const groups = ['squad', 'enemies', 'civilians', 'survivors'];
+const groups = ['squad', 'enemies', 'civilians', 'survivors', 'allies'];
 const MAX_BLOOD_STAINS = 512;
 const STAIN_CELL = 28;
 

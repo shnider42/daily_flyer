@@ -17,8 +17,9 @@
  * Shared play has no global pause: opening a local menu sends neutral input.
  * Explicit neutral frames carry cancelActions:true to discard pending one-shots.
  */
-// Version 9 adds shared tactical pings, operations and four-slot soldier selection.
-export const PROTOCOL = 9;
+// Version 10 adds independently simulated allied squads and their sound events.
+// Both ends refresh together so a prior server cannot leave locally seeded NPCs.
+export const PROTOCOL = 10;
 export const SIMULATION_HZ = 30;
 export const INPUT_HZ = 30;
 export const SNAPSHOT_HZ = 10;

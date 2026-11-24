@@ -78,3 +78,20 @@ export class ThrowableDrag {
   }
   cancel(id) { if (id === undefined || this.pending?.id === id) this.pending = null; }
 }
+
+/** Touch map taps are markers; battlefield taps only command when leading.
+ * Explicit targeting wins, so marking a place never becomes a movement order. */
+export function touchGroundAction({ role, map = false, order = false, ping = false, active = true } = {}) {
+  if (!active) return null;
+  if (ping) return 'ping';
+  if (order) return role === 'leader' ? 'move' : null;
+  if (map) return 'ping';
+  return role === 'leader' ? 'move' : null;
+}
+
+/** The aim pad starts under the finger, avoiding a jump/fire when picked up
+ * off-centre. Movement retains its limited floating origin for quick running. */
+export function thumbOrigin(kind, x, y, centerX, centerY) {
+  if (![x, y, centerX, centerY].every(Number.isFinite)) return null;
+  return kind === 'aim' ? { x, y } : { x: clamp(x, centerX - 22, centerX + 22), y: clamp(y, centerY - 22, centerY + 22) };
+}

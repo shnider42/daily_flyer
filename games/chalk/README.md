@@ -1,6 +1,34 @@
 # CHALK
 
-Version 1.15 adds plain-language guidance, a replayable desktop introduction, independent tactical pings, keyboard/mouse rebinding, four distinct standalone missions, clearer fog of war, and direct co-op soldier selection. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
+Version 1.16 gives other squads their own work, replaces simulated background fighting with real distant encounters, expands recorded speech, adds detail to people, and opens up the mobile interface. CHALK is a standalone Daily Flyer top-down squad game inspired by the Battle of Mogadishu, 3–4 October 1993. The four-person squad, missions, dialogue, and outcomes are fictionalized; the six standalone operations are explicitly fictional scenarios.
+
+## A living district: version 1.16
+
+Two independent friendly groups, **Raven** and **Hammer**, can patrol the north route and relieve an eastern crossing. Their five soldiers remain separate from the player's four-person chalk. Up to six additional hostile patrol and building-guard members use the existing difficulty budget; this does not increase the overall hostile cap. Story missions can omit extra groups when their opening threats already fill that budget.
+
+These groups follow their own routes, halt, regroup when scattered, react to current contacts or nearby actual reports, and return to their assignments after losing contact. Heavy losses can make a mobile group withdraw. Cohesion varies between groups and seeds: some hostile groups are loose, while building defenders can hold their approaches effectively. The implementation is a bounded assignment system, not a strategic campaign or a simulation of the historical units.
+
+Building guards begin at real interior posts connected to actual doorways. They occupy different sides of rooms and use the existing navigation, sight, cover, suppression, reload and projectile rules. Independent squads can fight each other before the player arrives. A field group has at most one automatic frag opportunity, requiring a current close contact, clear travel and safe distance from bystanders. Casualties persist through the existing body system. These troops never add an extraction requirement or a kill-all objective. Their offscreen kills and accidental civilian damage do not become the player's statistics or campaign penalties; harm caused by the playable chalk still counts.
+
+Independent friendlies do **not** contribute to shared sight. They render only while the playable squad can see them, with a muted blue broken ring distinct from the squad's green rings. Desktop leader labels show a callsign and, in Simple guidance, the current assignment. Co-op sends only visible allied actors and strips private routes, posts, targets and navigation fields. Client terrain reconstruction also discards locally seeded field orders. Protocol **10** requires both clients and the service to update together.
+
+### Hearing the district
+
+Mission battle sounds now come from real simulation events. Random background gunfire/explosions have been retired; ordinary city ambience remains. Shots and explosions are audible across the district with travel delay, distance filtering, cover attenuation and the established room/street responses. Beyond 650 world units, a separate distant-shot budget permits a four-shot burst and refills at eight shots per second. Nearby reports retain priority, so several remote automatic weapons cannot drown out immediate danger or grow an unbounded audio queue.
+
+There are **25 complete human voice recordings**, up from 14: 15 clean recordings and 10 additional radio-only performances. The new radio bank covers contextual ammunition, contact, movement, perimeter and extraction calls. Its baked-in radio treatment is used only for actual radio traffic. Independent friendly speech is physical sound at the soldier, with no fallback onto the player's radio if they are distant or blocked. Short field callout text varies with moving, contact, holding, regrouping and withdrawal. Nearby NPC footsteps use the existing surface and priority rules.
+
+The shared **60-second routine-order cooldown**, **180-second ordinary phrase cooldown**, single intelligible phrase limit, natural nearby squad speech, seamless same-recording local/radio transitions, separate voice volume and existing music remain. The retired “All right, let's move out” recording stays excluded. Asset sources, license terms and reproducible preparation steps are in `public/audio/CREDITS.txt` and `tools/prepare-field-radio.py`.
+
+### People and mobile handling
+
+People have stable variations in clothing, headwear, skin, gear and build, with clearer boots, shoulder seams, hands, packs, radios and role equipment. Gait phases vary by person; stationary actors no longer walk in place simply because they have a movement-speed statistic. Small idle motion and reload gestures respect Reduce motion. Cosmetic variation changes no collision or combat statistics.
+
+Mobile now keeps a compact **Squad / Gear** dock alongside the thumb controls. Reload stays immediately reachable; Assist appears when relevant. Gear opens grenade selection and deliberate drag-to-throw, plus the grenadier's binoculars and launcher. The equipment tray clears during the drag and closes after a completed throw. Squad, Gear and expanded radio panels close each other. The closed control band is 140 CSS pixels plus the safe bottom inset in portrait, or 124 in short landscape.
+
+The objective title/progress remain compact, with an expansion button for the full explanation. **Squad → Ping a place**, or a tap on the overview map, marks a place for either role without moving the squad. Leader battlefield taps retain movement orders. Touch destinations require a completed tap, and the aiming stick starts where the thumb actually lands, avoiding an aim/fire jump on off-center pickup. Settings and help remain in the pause menu. Desktop bindings and the existing Simple/Moderate/Expert guidance remain available.
+
+Version 1.16 validation: **433 full-suite tests**, **408 frontend build tests**, and **232 authoritative server tests** pass (the suites overlap). Coverage includes independent combat and collateral attribution, all mission/difficulty population budgets and usable building posts, fog and private co-op state, finite NPC grenades, speech and distant-report budgets, real asset boundaries, mobile destination cancellation, thumb pickup, pings and panel lifecycle. The production Canvas renderer was inspected at 2560 × 1440, 390 × 844 and 844 × 390 using a native CPU rasterizer; those are rendering checks, not physical-device frame-rate measurements.
 
 ## Guidance, controls, and field operations: version 1.15
 

@@ -31,6 +31,17 @@ function fixture({time=0,epoch=1,role='leader'}={}) {
 }
 const session={code:'ABCDEF',playerId:'peer1',token:'t'.repeat(32)};
 
+test('co-op terrain reconstruction discards seeded NPC orders and any unseen local allies', () => {
+  const hydrator=new CoopStateHydrator(), packet=fixture();
+  assert.ok(packet.state.fieldSquads.groups.length,'fixture has the full solo seed');
+  packet.state.allies=[];delete packet.state.fieldSquads;
+  const {game}=hydrator.apply(packet,'peer1');
+  assert.deepEqual(game.allies,[]);assert.equal('fieldSquads' in game,false);
+  const next=fixture({time:.1});next.state.allies=[];
+  hydrator.apply(next,'peer1');
+  assert.equal('fieldSquads' in game,false,'private routes cannot reappear in later packets');
+});
+
 async function connectedClient(options={}) {
   let time=0; const storage=new MemoryStorage(), statuses=[], errors=[], rooms=[], states=[];
   const client=new CoopClient({url:'https://squad.example',WebSocketImpl:FakeSocket,storage,now:()=>time,wallNow:()=>100000+time,autoTimers:false,autoReconnect:false,
@@ -132,6 +143,18 @@ test('movement prediction respects walls, diagonal speed, incapacitation, and se
   assert.ok(Math.abs(Math.hypot(diagonal.x-100,diagonal.y-100)-11.2)<.001);
   assert.equal(predictMovement({...actor,downed:true},{moveX:1},.1,clear).x,100);
   const bounded=predictMovement(actor,{moveX:1},10,clear); assert.ok(bounded.x<=124.65,'prediction cannot run indefinitely ahead');
+});
+
+test('independent allies interpolate without resurrecting contacts after sight is lost', () => {
+  const interpolator = new SquadInterpolator({ delayMs: 80 });
+  const first = { squad: [], allies: [{ id: 701, team: 'allied', x: 300, y: 200, angle: 0, alive: true }] };
+  const second = structuredClone(first); second.allies[0].x = 320;
+  interpolator.push(first, 0); interpolator.push(second, 100);
+  const view = structuredClone(second); interpolator.apply(view, 130, 1);
+  assert.ok(view.allies[0].x > 300 && view.allies[0].x < 320);
+  const unseen = { squad: [], allies: [] };
+  interpolator.push(unseen, 200); interpolator.apply(unseen, 220, 1);
+  assert.deepEqual(unseen.allies, []);
 });
 
 test('remote interpolation blends position but snaps incapacitation and keeps the local player untouched', () => {

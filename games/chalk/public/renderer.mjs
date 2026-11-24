@@ -3,6 +3,7 @@ import { roleProfile } from './squad-roles.mjs';
 import { enemyInSharedSight, squadCanSeePoint, rayWallDistance, SharedSightLayer } from './visibility.mjs';
 import { getSolidWalls } from './building-geometry.mjs';
 import { flashIntensity } from './hand-grenades.mjs';
+import { personAppearance } from './person-appearance.mjs';
 
 const TAU = Math.PI * 2;
 const COLORS = {
@@ -146,6 +147,7 @@ export class Renderer {
     this.lastRender = 0;
     this.cameraReady = false;
     this.visibleEnemies = [];
+    this.visibleAllies = [];
     this.actorBuffer = [];
     this.sprites = new Map();
     this.atmosphereCache = null;
@@ -381,7 +383,7 @@ export class Renderer {
   }
 
   bodySprite(body) {
-    const team = ['squad', 'civilian', 'survivor'].includes(body.team) ? body.team : 'enemy';
+    const team = body.team === 'allied' ? 'squad' : ['squad', 'civilian', 'survivor'].includes(body.team) ? body.team : 'enemy';
     const kit = team === 'squad' && ['leader', 'medic', 'support', 'grenadier'].includes(body.role) ? body.role : ['sniper', 'gunner', 'flanker'].includes(body.kind) ? body.kind : 'rifleman';
     const pose = Math.abs(Math.trunc(finite(body.pose))) % 3, key = `body:${team}:${kit}:${pose}`;
     if (this.sprites.has(key)) return this.sprites.get(key);
@@ -1072,8 +1074,9 @@ export class Renderer {
 
   drawActor(ctx, actor, state, time, view) {
     if (actor.alive === false) return;
-    const isPlayer = actor.id === state.playerId, ally = actor.team === 'squad', civilian = actor.team === 'civilian', survivor = actor.team === 'survivor';
+    const isPlayer = actor.id === state.playerId, squadmate = actor.team === 'squad', alliedPatrol = actor.team === 'allied', ally = squadmate || alliedPatrol, civilian = actor.team === 'civilian', survivor = actor.team === 'survivor';
     const radius = Math.max(7, finite(actor.radius, 10)), profile = ally ? roleProfile(actor) : null;
+    const appearance = personAppearance(actor);
     const angle = finite(actor.angle), pulse = .5 + Math.sin(time * 4) * .5;
     ctx.save(); ctx.translate(actor.x, actor.y);
     if (!view.menu && isPlayer) {
@@ -1083,8 +1086,9 @@ export class Renderer {
       ctx.strokeStyle = COLORS.player; ctx.lineWidth = 1.7 / this.camera.zoom; ctx.beginPath(); ctx.arc(0, 0, ringRadius, .15, TAU - .15); ctx.stroke();
       ctx.save(); ctx.rotate(angle); ctx.fillStyle = COLORS.player; ctx.beginPath(); ctx.moveTo(radius + 13, 0); ctx.lineTo(radius + 7, -3.5); ctx.lineTo(radius + 7, 3.5); ctx.fill(); ctx.restore();
     } else if (!view.menu && ally) {
-      ctx.strokeStyle = actor.downed ? '#e2a16c' : 'rgba(135,202,180,.65)'; ctx.lineWidth = 1.4 / this.camera.zoom;
-      ctx.beginPath(); ctx.arc(0, 0, radius + 4, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = actor.downed ? '#e2a16c' : alliedPatrol ? 'rgba(147,185,205,.7)' : 'rgba(135,202,180,.65)'; ctx.lineWidth = 1.4 / this.camera.zoom;
+      if (alliedPatrol) ctx.setLineDash([5 / this.camera.zoom, 4 / this.camera.zoom]);
+      ctx.beginPath(); ctx.arc(0, 0, radius + 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     } else if (!view.menu && (civilian || survivor)) {
       ctx.strokeStyle = 'rgba(206,204,231,.45)'; ctx.lineWidth = 1 / this.camera.zoom;
       ctx.beginPath(); ctx.moveTo(0, -radius - 5); ctx.lineTo(radius + 5, 0); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 5, 0); ctx.closePath(); ctx.stroke();
@@ -1092,30 +1096,45 @@ export class Renderer {
     ctx.save(); ctx.rotate(angle);
     const frightened = civilian && !actor.downed && (['sheltered', 'cowering'].includes(actor.civilianState) || finite(actor.panicked) > 0);
     if (frightened) ctx.scale(.88, .86);
-    const uniform = ally ? '#8e9770' : civilian ? '#b3a8c0' : survivor ? '#b2ac85' : actor.kind === 'flanker' ? '#ac936c' : actor.kind === 'gunner' ? '#8e8061' : '#a37f58';
-    const gear = ally ? '#4c5a40' : '#615d44';
+    const uniform = appearance.uniform, gear = appearance.gear;
     if (actor.downed) {
       ctx.fillStyle = 'rgba(21,27,22,.45)'; ctx.beginPath(); ctx.ellipse(4, 5, 17, 9, 0, 0, TAU); ctx.fill();
       roundRect(ctx, -13, -5, 24, 10, 4, uniform);
-      circle(ctx, 12, 0, 5, ally ? '#9b9f7b' : '#b29c76');
+      circle(ctx, 12, 0, 5, appearance.headwear === 'helmet' ? uniform : appearance.skin);
       line(ctx, -13, -3, -20, -6, gear, 4); line(ctx, -13, 3, -19, 8, gear, 4);
     } else {
       ctx.fillStyle = view.touch ? 'rgba(17,22,18,.56)' : 'rgba(21,27,22,.4)'; ctx.beginPath(); ctx.ellipse(5, 6, 12, 9, -.2, 0, TAU); ctx.fill();
-      const walk = actor.moving || actor.speed > 1 || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
-      const braced = actor.kind === 'gunner' && actor.braced, cowering = frightened && !walk;
-      const stride = walk && !braced ? Math.sin(time * (frightened ? 20 : 16) + finite(actor.id?.length)) * 2.5 : 0;
+      const walk = actor.moving || Math.hypot(actor.vx || 0, actor.vy || 0) > 3;
+      const braced = actor.kind === 'gunner' && actor.braced || (ally && actor.role === 'support' && !walk && actor.tactic === 'contact'), cowering = frightened && !walk;
+      const animationTime = view.reducedMotion ? 0 : time;
+      const stride = !view.reducedMotion && walk && !braced ? Math.sin(animationTime * (frightened ? 20 : 16) + appearance.phase) * 3.1 : 0;
+      const breath = !walk && !view.reducedMotion ? Math.sin(animationTime * 2.8 + appearance.phase) * .28 : 0;
       line(ctx, -5, -4, (braced ? -14 : cowering ? -7 : -10) + stride, braced ? -8 : cowering ? -8 : -5, '#494b36', 4);
       line(ctx, -5, 4, (braced ? -14 : cowering ? -7 : -10) - stride, braced ? 8 : cowering ? 8 : 5, '#494b36', 4);
-      ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10, 0, 0, TAU); ctx.fill();
+      // Separate boots, shoulder seams and worn cloth keep the silhouettes
+      // legible at normal zoom; the simulation still uses the same radius.
+      line(ctx, -10 + stride, -5, -12 + stride, -5.5, '#30382d', 3.3);
+      line(ctx, -10 - stride, 5, -12 - stride, 5.5, '#30382d', 3.3);
+      ctx.translate(breath, 0);
+      ctx.fillStyle = uniform; ctx.beginPath(); ctx.ellipse(-1, 0, 8, 10 * appearance.width, 0, 0, TAU); ctx.fill();
       if (view.touch) { ctx.strokeStyle = 'rgba(24,31,24,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); }
+      line(ctx, -4, -8, 2, -8, '#c2b697', .8); line(ctx, -4, 8, 2, 8, '#625e49', .8);
+      if (appearance.pack) roundRect(ctx, -11, -5.5, 6, 11, 1.7, gear, '#3f4938');
       if (!civilian) {
         ctx.fillStyle = gear; ctx.fillRect(-6, -6, actor.kind === 'flanker' ? 4 : 7, 12);
         if (actor.kind === 'gunner') { ctx.fillStyle = '#6c6a4c'; ctx.fillRect(-10, -7, 4, 6); ctx.fillRect(-10, 2, 4, 6); }
         if (profile?.id === 'grenadier') { ctx.fillStyle = '#596445'; ctx.fillRect(-11, -8, 7, 16); line(ctx, -9, -6, -9, 5, '#aaa37a', 2); }
         ctx.fillStyle = '#b4ad83'; ctx.fillRect(-5, -5, 2, 3); ctx.fillRect(-5, 2, 2, 3);
+        line(ctx, -5, -7, 5, 5, '#3f4635', 1.1);
+        if (ally && (profile?.id === 'leader' || alliedPatrol && actor.role === 'leader')) {
+          ctx.fillStyle = '#384734'; ctx.fillRect(-7, -8, 3, 5); line(ctx, -7, -8, -12, -14, '#28392c', .9);
+        }
       }
       if (!civilian && !survivor) {
-        line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, 11, 3, uniform, 4);
+        const reloading = finite(actor.reloadTimer) > 0;
+        const reloadReach = reloading ? 5 + (!view.reducedMotion ? Math.sin(time * 7 + appearance.phase) * 1.5 : 0) : 11;
+        line(ctx, 2, -6, 10, -3, uniform, 4); line(ctx, 2, 6, reloadReach, 3, uniform, 4);
+        circle(ctx, 10, -3, 1.8, appearance.skin); circle(ctx, reloadReach, 3, 1.8, appearance.skin);
         if (profile?.id === 'grenadier' && actor.observing) {
           // Slung launcher and raised binoculars, rather than a second HUD panel.
           line(ctx, 0, 8, 18, 8, '#29392e', 3);
@@ -1142,8 +1161,18 @@ export class Renderer {
       } else {
         line(ctx, 0, -7, 8, -8, uniform, 3.5); line(ctx, 0, 7, 8, 8, uniform, 3.5);
       }
-      circle(ctx, 2, 0, civilian ? 5 : 6.2, civilian ? '#695449' : ally ? '#a0a380' : '#b49a70', civilian ? null : gear, 1.2);
-      if (ally) { line(ctx, 0, -3, 6, -3, '#bfbe93', 1.1); circle(ctx, -2, 1, 2, '#747b59'); }
+      circle(ctx, 3.5, 0, 4.8, appearance.skin);
+      if (appearance.headwear === 'helmet') {
+        circle(ctx, 1, 0, 6.2, uniform, gear, 1.2);
+        line(ctx, 0, -3, 6, -3, '#c0b997', 1.1); circle(ctx, -2, 1, 2, '#747b59');
+        line(ctx, -1, 4, 5, 4, '#4b523e', .8);
+      } else if (appearance.headwear === 'wrap') {
+        circle(ctx, 1.5, 0, 5.6, '#b7ad91', gear, .7);
+        line(ctx, -2, -3, 5, -2, '#84785c', 1); line(ctx, -2, 3, 4, 3, '#d0c5a5', .8);
+      } else {
+        circle(ctx, 1, 0, 4.6, appearance.headwear === 'cap' ? gear : appearance.hair);
+        if (appearance.headwear === 'cap') line(ctx, 4, -3, 7, 3, gear, 2.3);
+      }
       if (profile?.id === 'medic' || actor.kind === 'medic') {
         ctx.fillStyle = '#d6ddbd'; ctx.fillRect(-7, -9, 6, 6);
         line(ctx, -4, -8, -4, -4, '#66765b', 1.2); line(ctx, -6, -6, -2, -6, '#66765b', 1.2);
@@ -1164,7 +1193,7 @@ export class Renderer {
     if (actor.downed && !view.menu) {
       const p = this.worldToScreen(actor.x, actor.y - 22);
       this.screenBadge(p.x, p.y, ally ? 'HELP' : 'WOUNDED', '#edb37b', .8 + pulse * .2);
-    } else if (ally && this.camera.zoom > .65 && !view.menu) {
+    } else if (squadmate && this.camera.zoom > .65 && !view.menu) {
       const hp = clamp(actor.hp / (actor.maxHp || 100), 0, 1);
       if (hp < .85) {
         const p = this.worldToScreen(actor.x, actor.y - 24);
@@ -1176,6 +1205,9 @@ export class Renderer {
         const name = (actor.name || '').split(' ').at(-1).toUpperCase();
         this.worldLabel(actor.x, actor.y + 25, `${name}${name ? ' · ' : ''}${profile.shortLabel}`, '#c3d5be', 10);
       }
+    } else if (alliedPatrol && actor.role === 'leader' && this.camera.zoom > .65 && !view.menu && !view.touch) {
+      this.worldLabel(actor.x, actor.y + 25, actor.callsign || 'FRIENDLY PATROL', '#acc8d3', 10);
+      if (view.guidance === 'simple' && actor.assignment) this.worldLabel(actor.x, actor.y + 39, actor.assignment, '#acbdb4', 9);
     }
   }
 
@@ -1514,7 +1546,7 @@ export class Renderer {
     for (const b of state.bullets || []) {
       if (!this.inView(b.x, b.y, 30) || this.houseVisibility(b, view) <= .05) continue;
       const px = Number.isFinite(b.px) ? b.px : b.x - finite(b.vx) * .013, py = Number.isFinite(b.py) ? b.py : b.y - finite(b.vy) * .013;
-      line(ctx, px, py, b.x, b.y, b.team === 'squad' ? 'rgba(255,225,151,.85)' : 'rgba(246,161,102,.82)', 1.3 / this.camera.zoom);
+      line(ctx, px, py, b.x, b.y, ['squad', 'allied'].includes(b.team) ? 'rgba(255,225,151,.85)' : 'rgba(246,161,102,.82)', 1.3 / this.camera.zoom);
       circle(ctx, b.x, b.y, 1.5 / this.camera.zoom, '#fff0ba');
     }
     for (const e of state.effects || []) {
@@ -1524,6 +1556,7 @@ export class Renderer {
       if (!this.inView(e.x, e.y, 50) || this.houseVisibility(e, view) <= .05) continue;
       // A revealed floor plan does not expose a gunman behind its partition.
       if (e.type === 'muzzle' && e.team === 'enemy' && !this.visibleEnemies.some(actor => actor.id === e.actorId)) continue;
+      if (e.type === 'muzzle' && e.team === 'allied' && !this.visibleAllies.some(actor => actor.id === e.actorId)) continue;
       if (e.type === 'blood' && (view.menu || view.bloodEffects === false || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e, { ignoreRange: e.farWitness === true }))) continue;
       if (e.type === 'breach' && (view.menu || view.reducedMotion || !e.seen || !squadCanSeePoint(state, e))) continue;
       if (e.type === 'flashbang' && (view.menu || view.showMap || !squadCanSeePoint(state, e))) continue;
@@ -1850,8 +1883,10 @@ export class Renderer {
     for (const v of state.vehicles || []) if (this.inView(v.x, v.y, 140)) this.drawVehicle(ctx, v, time);
     this.visibleEnemies.length = 0;
     for (const actor of state.enemies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.houseVisibility(actor, view) > .01 && this.actorVisible(state, actor)) this.visibleEnemies.push(actor);
+    this.visibleAllies.length = 0;
+    for (const actor of state.allies || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65) && this.houseVisibility(actor, view) > .01 && this.actorVisible(state, actor)) this.visibleAllies.push(actor);
     const actors = this.actorBuffer; actors.length = 0;
-    for (const group of [state.civilians, state.survivors, this.visibleEnemies, state.squad]) for (const actor of group || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65)) actors.push(actor);
+    for (const group of [state.civilians, state.survivors, this.visibleEnemies, this.visibleAllies, state.squad]) for (const actor of group || []) if (actor.alive !== false && this.inView(actor.x, actor.y, 65)) actors.push(actor);
     actors.sort((a, b) => a.y - b.y);
     for (const actor of actors) {
       const visibility = this.houseVisibility(actor, view);
@@ -1928,6 +1963,7 @@ export function renderMinimap(canvas, state, options = {}) {
     if (visible) circle(ctx, a.x, a.y, 1.5 / scale, '#d57e62');
   }
   for (const a of state.squad || []) if (a.alive !== false) circle(ctx, a.x, a.y, (a.id === state.playerId ? 3.2 : 2) / scale, a.downed ? '#e8ad6d' : a.id === state.playerId ? '#e0efd6' : '#88c2aa');
+  for (const a of state.allies || []) if (a.alive !== false && enemyInSharedSight(state, a)) circle(ctx, a.x, a.y, 1.8 / scale, '#9cbfce');
   for (const ping of (state.pings||[]).slice(-4)) {
     if (!Number.isFinite(ping.x)||!Number.isFinite(ping.y)||!(ping.expiresAt>state.time)) continue;
     const size=3.8/scale;ctx.beginPath();ctx.moveTo(ping.x,ping.y-size);ctx.lineTo(ping.x+size,ping.y);ctx.lineTo(ping.x,ping.y+size);ctx.lineTo(ping.x-size,ping.y);ctx.closePath();

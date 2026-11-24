@@ -15,6 +15,7 @@ import { MISSIONS, stagesFor, getNextCampaignMission, nightMission } from './mis
 import { initializeOperations, updateOperations, operationWork, missionInteraction, missionActionTarget, operationItem } from './operations.mjs';
 import { initializeEncounters, updateEncounters } from './encounters.mjs';
 import { HAND_GRENADES, flashIntensity, flashExposure, applyFlashStatus } from './hand-grenades.mjs';
+import { initializeIndependentSquads, updateIndependentOrders, moveOnAssignment, tryFieldGrenade } from './independent-squads.mjs';
 export { MISSIONS, getNextCampaignMission } from './mission-definitions.mjs';
 
 export const DIFFICULTIES = { story:{enemyDamage:7,enemyHp:54,maxEnemies:10,spawnDelay:17,playerHp:140}, standard:{enemyDamage:10,enemyHp:72,maxEnemies:16,spawnDelay:18,playerHp:120}, veteran:{enemyDamage:15,enemyHp:92,maxEnemies:20,spawnDelay:14,playerHp:100} };
@@ -88,7 +89,7 @@ export function applyBreach(s,impact){
   s.destruction ||= createDestructionState();
   const result=breachAtBlast(s.world,s.destruction,impact);if(!result.changed)return result;
   rebuildNavigationGrid(s);
-  for(const a of [...s.squad,...s.enemies,...s.civilians,...s.survivors]){
+  for(const a of [...s.squad,...(s.allies||[]),...s.enemies,...s.civilians,...s.survivors]){
     a.path=[];a.pathTarget=null;a.pathTimer=0;
     if(a.team==='enemy'){a.senseTimer=0;a.flankGoal=null;a.nextFlankAt=0;}
   }
@@ -185,7 +186,7 @@ function planCover(s,a,threat,anchor=a.home||a,maxTravel=170,leash=220){
   const revision=s.world.geometryRevision||0;
   if(s.time<(a.nextCoverPlanAt||0)&&a.coverRevision===revision&&a.coverAnchor&&distance(a.coverAnchor,anchor)<70)return;
   a.nextCoverPlanAt=s.time+2.5+(a.id%5)*.19;a.coverRevision=revision;a.coverAnchor={x:anchor.x,y:anchor.y};
-  const allies=a.team==='enemy'?s.enemies:s.squad;
+  const allies=a.team==='enemy'?s.enemies:[...s.squad,...(s.allies||[])];
   const candidates=coverCandidates(s).filter(p=>distance(a,p)<=maxTravel&&distance(anchor,p)<=leash&&free(s,p.x,p.y,a.radius||13)&&
     (!a.defensive||distance(a.home,p)<(a.defenseRadius||310))&&
     !allies.some(other=>other!==a&&other.alive&&!other.downed&&(distance(other,p)<42||other.coverPoint&&distance(other.coverPoint,p)<46)))
@@ -283,6 +284,7 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
   seedCivilianShelters(s,{free,hasLineOfSight,findPath,walkLine,navigate,soundEvent});
   initializeOperations(s,operationHooks);
   seedEnemies(s);
+  initializeIndependentSquads(s,fieldHooks);
   initializeStory(s,campaign,storyHooks);
   updateObjective(s);
   radio(s,'RADIO','Chalk, stay together. Watch for civilians.');
@@ -292,6 +294,7 @@ export function createGame({mission=0,role='leader',difficulty='standard',seed=1
 
 function seedEnemies(s){initializeEncounters(s,encounterHooks);}
 const encounterHooks={nearbyFree,canAddEnemy,squadCanSeePoint,spawnEnemy,approachPositions};
+const fieldHooks={nearbyFree,free,walkLine,findPath,squadCanSeePoint,spawnEnemy,actor,navigate,soundEvent,combatLOS,throwHandGrenade};
 function spawnEnemy(s,p,allowSniper=false,preferredKind=null){
   if(!canAddEnemy(s,'rifleman'))return false;
   const hp=DIFFICULTIES[s.difficulty].enemyHp,sniper=allowSniper&&s.time-s.lastSniperAt>90&&canAddEnemy(s,'sniper')&&random(s)<.08;
@@ -489,7 +492,7 @@ function shoot(s,a,angle,isPlayer=false,sourceTime=s.time){
   const metadata={team:a.team,actorId:a.id,weapon:weaponFor(a)};
   const sniper=a.kind==='sniper',ballistics=ballisticProfile(metadata.weapon),speed=ballistics.speedMps*WORLD_UNITS_PER_METRE;
   s.bullets.push({id:++s.nextId,x,y,px:x,py:y,vx:Math.cos(shotAngle)*speed,vy:Math.sin(shotAngle)*speed,team:a.team,owner:a.id,weapon:metadata.weapon,
-    damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage*(sniper?2.5:1):24,ttl:ballistics.range/speed,
+    damage:a.team==='enemy'?DIFFICULTIES[s.difficulty].enemyDamage*(sniper?2.5:1):a.team==='allied'?16:24,ttl:ballistics.range/speed,
     speedMps:ballistics.speedMps,rangeRemaining:ballistics.range,firedAt:sourceTime,originX:x,originY:y,travelled:0,nearPassIds:[]});
   effect(s,'muzzle',x,y,.075,shotAngle,metadata);soundEvent(s,'shot',a,{x,y,sourceTime,sourceActorId:a.id,speedMps:ballistics.speedMps,angle:shotAngle});s.lastShot=s.time;if(isPlayer)s.stats.shots++;
 }
@@ -521,14 +524,15 @@ function throwHandGrenade(s,a,input,weapon,sourceTime=s.time){
   s.grenades.push({id:++s.nextId,kind:'hand',weapon,x:a.x,y:a.y,px:a.x,py:a.y,startX:a.x,startY:a.y,targetX,targetY,
     progress:0,duration:.42+reach/700,owner:a.id,team:a.team,firedAt:sourceTime,fuseUntil:sourceTime+config.fuse,landed:false,detonated:false});
   soundEvent(s,'grenade_throw',a,{weapon,sourceTime});
-  radio(s,a.name.toUpperCase(),weapon==='frag'?'Frag out.':'Flashbang out.');
-  s.stats.shots++;return true;
+  if(a.team==='squad')radio(s,a.name.toUpperCase(),weapon==='frag'?'Frag out.':'Flashbang out.');
+  else if(a.team==='allied')soundEvent(s,'field_voice',a,{category:'frag',text:'Frag out. Keep clear.',sourceTime});
+  if(controlled(s,a))s.stats.shots++;return true;
 }
 function explodeGrenade(s,g,sourceTime=s.time){
   const weapon=g.weapon||'grenade';
   if(weapon==='flashbang'){
     const radius=HAND_GRENADES.flashbang.radius;
-    for(const a of [...s.enemies,...s.squad,...s.civilians,...s.survivors]){
+    for(const a of [...s.enemies,...s.squad,...(s.allies||[]),...s.civilians,...s.survivors]){
       if(!a.alive||a.evacuated)continue;
       const strength=flashExposure(s.world,g,a);if(!applyFlashStatus(a,strength,sourceTime))continue;
       if(a.team==='civilian')a.lastDanger={x:g.x,y:g.y,type:'flashbang',time:s.time};
@@ -539,7 +543,7 @@ function explodeGrenade(s,g,sourceTime=s.time){
   }
   const radius=weapon==='frag'?HAND_GRENADES.frag.radius:76;
   effect(s,'explosion',g.x,g.y,.6,0,{radius,team:g.team,actorId:g.owner,weapon});
-  for(const a of [...s.enemies,...s.squad,...s.civilians,...s.survivors]){
+  for(const a of [...s.enemies,...s.squad,...(s.allies||[]),...s.civilians,...s.survivors]){
     if(!a.alive||a.downed)continue;
     const d=distance(a,g);if(d>=radius||!hasLineOfSight(s,g,a))continue;
     damage(s,a,Math.round((weapon==='frag'?96:74)*(1-d/radius)+14),g.owner,'blast',Math.atan2(a.y-g.y,a.x-g.x),sourceTime);
@@ -583,12 +587,19 @@ function safeShot(s,a,t){
 function damage(s,a,amount,source,cause='bullet',angle,sourceTime=s.time){
   if(!a.alive||a.downed||!Number.isFinite(amount)||amount<=0)return;
   const applied=Math.min(a.hp,amount);a.hp=Math.max(0,a.hp-amount);a.suppression=clamp((a.suppression||0)+.3,0,1);
-  if(a.team==='civilian'&&!a.harmed){a.harmed=true;s.stats.civilianHarm++;radio(s,'RADIO','Civilian hurt. Check your fire.');}
+  if(a.team==='civilian'){
+    a.harmed=true;
+    // Independent fighting can harm the world, but only the playable chalk's
+    // own fire belongs in its mission record and carried campaign consequences.
+    if(!a.chalkHarmed&&s.squad.some(soldier=>soldier.id===source)){
+      a.chalkHarmed=true;s.stats.civilianHarm++;radio(s,'RADIO','Civilian hurt. Check your fire.');
+    }
+  }
   if((s.coop?s.humanIds.includes(source):source===s.playerId)&&a.team==='enemy')s.stats.hits++;
   if(a.hp<=0){
     a.downed=true;a.bleed=0;a.reviveProgress=0;a.path=[];
     if(a.team==='squad'){s.stats.squadDowns++;radio(s,a.name.toUpperCase(),`${a.name} down. Need help here.`);}
-    else if(a.team==='enemy'){a.alive=false;a.deathTime=s.time;}
+    else if(a.team==='enemy'||a.team==='allied'){a.alive=false;a.deathTime=s.time;}
     else if(a.team==='civilian'){a.alive=false;}
   }
   recordBloodHit(s,a,{cause,damage:applied,sourceId:source,angle});
@@ -631,7 +642,7 @@ function updateBullets(s,dt,frameStart=s.time-dt){
     const origin={x:b.x,y:b.y},end={x:b.x+b.vx*travelTime,y:b.y+b.vy*travelTime};
     let hitTime=Infinity,hitActor=null,hitWall=null;
     for(const wall of getSolidWalls(s.world)){const entry=segmentRectEntry(origin,end,wall);if(entry<hitTime){hitTime=entry;hitWall=wall;}}
-    const targets=b.team==='enemy'?[...s.squad,...s.survivors]:[...s.enemies,...s.civilians];
+    const targets=b.team==='enemy'?[...s.squad,...(s.allies||[]),...s.survivors]:[...s.enemies,...s.civilians];
     for(const a of targets){
       if(!a.alive||a.downed)continue;
       const t=segmentActorEntry(origin,end,a,a.radius+2);
@@ -649,7 +660,7 @@ function updateBullets(s,dt,frameStart=s.time-dt){
     b.ttl=Number.isFinite(hitTime)||b.rangeRemaining<=1e-7?0:b.ttl-dt;
     for(const a of targets){
       if(a.alive&&!a.downed&&segmentActor(origin,b,a,b.weapon==='support'||b.weapon==='hostile_support'?62:43)){
-        if(a.team==='squad')a.suppression=Math.min(1,a.suppression+(b.weapon==='hostile_support'?.16:.1));
+        if(a.team==='squad'||a.team==='allied')a.suppression=Math.min(1,a.suppression+(b.weapon==='hostile_support'?.16:.1));
         else if(a.team==='enemy'&&b.weapon==='support')a.suppression=Math.min(1,a.suppression+.23);
       }
     }
@@ -772,6 +783,59 @@ function updateSquad(s,inputs,dt,frameStart=s.time-dt){
     if(d>0&&d<gap){const n=(gap-d)*.25,dx=(a.x-b.x)/d*n,dy=(a.y-b.y)/d*n;if(!controlled(s,a))move(s,a,dx,dy);if(!controlled(s,b))move(s,b,-dx,-dy);}
   }
 }
+function updateAllies(s,dt,frameStart=s.time-dt){
+  if(!s.fieldSquads?.enabled||s.maxEnemies<=0)return;
+  const standing=(s.allies||[]).filter(a=>a.alive&&!a.downed);
+  for(const a of standing){
+    if(flashIntensity(a,s.time)>.25){a.moving=false;a.target=null;a.perceivedTargetId=null;a.senseTimer=0;a.tactic='disoriented';continue;}
+    a.senseTimer=(a.senseTimer||0)-dt;
+    let target=s.enemies.find(other=>other.id===a.perceivedTargetId&&other.alive&&!other.downed)||null;
+    if(a.senseTimer<=0||a.perceivedTargetId!=null&&!target){
+      a.senseTimer=.2+(a.id%4)*.02;
+      target=targetFor(s,a,s.enemies,nightMission(s)?350:430);a.perceivedTargetId=target?.id??null;
+      if(target){a.lastKnown={x:target.x,y:target.y};a.lastSeenAt=s.time;}
+      else{
+        const heard=s.soundEvents.findLast(event=>['shot','explosion'].includes(event.type)&&event.team==='enemy'&&
+          s.time-event.time<.3&&distance(a,event)<(hasLineOfSight(s,a,event)?650:300));
+        if(heard){a.lastKnown={x:heard.x,y:heard.y};a.lastSeenAt=heard.time;}
+        const report=standing.find(other=>other!==a&&other.fieldSquadId===a.fieldSquadId&&other.perceivedTargetId!=null&&
+          other.lastKnown&&s.time-other.lastSeenAt<.3&&other.lastSeenAt>a.lastSeenAt&&distance(a,other)<420);
+        if(report){a.lastKnown={...report.lastKnown};a.lastSeenAt=report.lastSeenAt;}
+      }
+    }
+    a.target=target?.id??null;
+    if(a.fieldRetreat){
+      moveOnAssignment(s,a,dt,78,fieldHooks);
+      if(target){a.angle=Math.atan2(target.y-a.y,target.x-a.x);if(combatLOS(s,a,target)&&safeShot(s,a,target))shoot(s,a,a.angle,false,frameStart);}
+      if(a.ammo<=0)tryReload(s,a);
+      continue;
+    }
+    const remembered=a.lastKnown&&s.time-a.lastSeenAt<6;
+    if(!target&&!remembered){
+      a.coverPoint=null;a.coverShelter=null;
+      moveOnAssignment(s,a,dt,a.role==='support'?68:74,fieldHooks);
+      if(a.ammo<a.magSize*.35)tryReload(s,a);
+      continue;
+    }
+    planCover(s,a,a.lastKnown,a,145,180);
+    const shelter=(a.reloadTimer>0||a.suppression>.65)&&a.coverShelter;
+    if(shelter){navigate(s,a,shelter,72*(1-a.suppression*.2),dt,6);a.tactic=a.reloadTimer>0?'reload':'cover';}
+    else if(a.coverPoint){navigate(s,a,a.coverPoint,68,dt,14);a.tactic=a.moving?'reposition':'covering';}
+    else{a.moving=false;a.tactic=target?'covering':'watch';}
+    if(target){
+      a.angle=Math.atan2(target.y-a.y,target.x-a.x);
+      if(combatLOS(s,a,target)&&safeShot(s,a,target))shoot(s,a,a.angle,false,frameStart);
+      tryFieldGrenade(s,a,target,fieldHooks,frameStart);
+    }
+    if(a.ammo<=0)tryReload(s,a);
+  }
+  // Independent troops share real space without becoming blockers in narrow
+  // doors, and they never push or redirect the player's four soldiers.
+  for(let i=0;i<standing.length;i++)for(let j=i+1;j<standing.length;j++){
+    const a=standing[i],b=standing[j],d=distance(a,b);
+    if(d>0&&d<32){const n=(32-d)*.22,dx=(a.x-b.x)/d*n,dy=(a.y-b.y)/d*n;move(s,a,dx,dy);move(s,b,-dx,-dy);}
+  }
+}
 function perceiveEnemy(s,a,targets,dt){
   const profile=enemyProfile(a),limit=nightMission(s)?profile.nightRange:profile.range;
   a.senseTimer=(a.senseTimer||0)-dt;
@@ -783,13 +847,13 @@ function perceiveEnemy(s,a,targets,dt){
     target=targetFor(s,a,targets,limit);a.perceivedTargetId=target?.id??null;
     if(target){a.lastKnown={x:target.x,y:target.y};a.lastSeenAt=s.time;}
     else{
-      const heard=s.soundEvents.findLast(event=>(event.type==='shot'||event.type==='explosion')&&event.team==='squad'&&s.time-event.time<.3&&distance(a,event)<(hasLineOfSight(s,a,event)?700:320));
+      const heard=s.soundEvents.findLast(event=>(event.type==='shot'||event.type==='explosion')&&(event.team==='squad'||event.team==='allied')&&s.time-event.time<.3&&distance(a,event)<(hasLineOfSight(s,a,event)?700:320));
       if(heard){a.lastKnown={x:heard.x,y:heard.y};a.lastSeenAt=s.time;}
       // A nearby member can react to its own group's fresh contact. Copy the
       // original observation time: reports cannot refresh one another forever
       // or reveal a player's new position through a wall.
       const report=a.encounterId&&s.enemies.find(other=>other!==a&&other.alive&&other.encounterId===a.encounterId&&other.perceivedTargetId!=null&&
-        other.lastKnown&&s.time-other.lastSeenAt<.3&&other.lastSeenAt>a.lastSeenAt&&distance(a,other)<430);
+        other.lastKnown&&s.time-other.lastSeenAt<.3&&other.lastSeenAt>a.lastSeenAt&&distance(a,other)<(a.fieldCohesion?250+a.fieldCohesion*200:430));
       if(report){a.lastKnown={...report.lastKnown};a.lastSeenAt=report.lastSeenAt;}
     }
   }
@@ -832,19 +896,27 @@ function enemyAdvance(s,a,point,speed,dt,stop){
   navigate(s,a,goal,speed,dt,stop);
 }
 function updateEnemies(s,dt,frameStart=s.time-dt){
-  const targets=aliveSquad(s);
+  const targets=[...aliveSquad(s),...(s.maxEnemies>0?(s.allies||[]).filter(a=>a.alive&&!a.downed):[])];
   for(const a of s.enemies){
     if(!a.alive)continue;
     if(flashIntensity(a,s.time)>.25){a.moving=false;a.alert=false;a.target=null;a.perceivedTargetId=null;a.senseTimer=0;a.tactic='disoriented';continue;}
     const profile=enemyProfile(a),target=perceiveEnemy(s,a,targets,dt),limit=nightMission(s)?profile.nightRange:profile.range;
     const remembered=a.lastKnown&&s.time-a.lastSeenAt<=6;
     a.alert=!!(target||remembered);a.target=target?.id||null;
-    if(!a.alert){
-      a.aimCharge=0;a.aimTargetId=null;a.braced=false;a.braceProgress=0;a.tactic=a.kind==='flanker'?'search':'watch';
-      if(a.defensive&&a.home&&distance(a,a.home)>35)enemyAdvance(s,a,a.home,profile.speed*.75,dt,25);else a.moving=false;
+    if(a.fieldRetreat){
+      moveOnAssignment(s,a,dt,profile.speed*1.12,fieldHooks);
+      if(target){a.angle=Math.atan2(target.y-a.y,target.x-a.x);if(combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);}
+      if(a.ammo<=0)tryReload(s,a);
       continue;
     }
-    if((a.kind==='rifleman'||a.kind==='gunner')&&remembered)planCover(s,a,a.lastKnown);
+    if(!a.alert){
+      a.aimCharge=0;a.aimTargetId=null;a.braced=false;a.braceProgress=0;a.tactic=a.kind==='flanker'?'search':'watch';
+      if(!moveOnAssignment(s,a,dt,profile.speed,fieldHooks)){
+        if(a.defensive&&a.home&&distance(a,a.home)>35)enemyAdvance(s,a,a.home,profile.speed*.75,dt,25);else a.moving=false;
+      }
+      continue;
+    }
+    if((a.kind==='rifleman'||a.kind==='gunner')&&remembered)planCover(s,a,a.lastKnown,a.fieldSquadId?a:a.home||a);
     const shelter=(a.reloadTimer>0||a.suppression>.68)&&a.coverShelter;
     if(shelter&&a.kind!=='sniper'){
       navigate(s,a,shelter,profile.speed*(1-a.suppression*.15),dt,6);
@@ -889,6 +961,7 @@ function updateEnemies(s,dt,frameStart=s.time-dt){
       a.tactic=a.moving?'reposition':'fire';
       if(a.cooldown<=0&&distance(a,target)<limit&&combatLOS(s,a,target))shoot(s,a,a.angle,false,frameStart);
     }else if(remembered){a.tactic='search';if(a.coverPoint)navigate(s,a,a.coverPoint,profile.speed,dt,18);else enemyAdvance(s,a,a.lastKnown,profile.speed,dt,230);}else a.moving=false;
+    tryFieldGrenade(s,a,target,fieldHooks,frameStart);
     if(a.ammo<=0)tryReload(s,a);
   }
   updateEncounters(s,dt,encounterHooks);
@@ -972,7 +1045,7 @@ function updateMission(s,inputs,dt){
 }
 function updateVisibility(s,dt){
   s.visibilityTimer-=dt;if(s.visibilityTimer>0)return;s.visibilityTimer=.12;const eyes=aliveSquad(s).filter(a=>flashIntensity(a,s.time)<.8);
-  for(const e of s.enemies)e.visible=eyes.some(a=>{
+  for(const e of [...s.enemies,...(s.allies||[])])e.visible=eyes.some(a=>{
     const recovery=1-flashIntensity(a,s.time)*.8,range=visionRange(a,s.missionIndex,e)*recovery,glint=e.kind==='sniper'&&e.aimCharge>0?(nightMission(s)?520:760)*recovery:0;
     return distance(a,e)<Math.max(range,glint)&&combatLOS(s,a,e);
   });
@@ -988,8 +1061,9 @@ export function stepCoop(s,inputsByActorId={},dt=1/60){
 function advanceSimulation(s,input,dt){
   if(s.status!=='playing')return s;dt=clamp(finite(dt),0,.05);if(!dt)return s;const frameStart=s.time;s.time+=dt;s.stats.elapsed=s.time;s.interactionPrompt='';
   if(s.coop)syncCoopControl(s);
-  for(const a of [...s.squad,...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.handThrowCooldown=Math.max(0,(a.handThrowCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
-  updateSquad(s,input,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
+  for(const a of [...s.squad,...(s.allies||[]),...s.enemies]){a.cooldown=Math.max(0,(a.cooldown||0)-dt);a.grenadeCooldown=Math.max(0,(a.grenadeCooldown||0)-dt);a.handThrowCooldown=Math.max(0,(a.handThrowCooldown||0)-dt);a.suppression=Math.max(0,(a.suppression||0)-dt*.22);if(a.reloadTimer>0){a.reloadTimer-=dt;if(a.reloadTimer<=0){const add=Math.min(a.magSize-a.ammo,a.reserve);a.ammo+=add;a.reserve-=add;a.reloadTimer=0;soundEvent(s,'reload_end',a);}}}
+  updateIndependentOrders(s,dt,fieldHooks);
+  updateSquad(s,input,dt,frameStart);updateAllies(s,dt,frameStart);updateEnemies(s,dt,frameStart);updateBullets(s,dt,frameStart);updateGrenades(s,dt,frameStart);updateCivilians(s,dt);
   if(!s.squad.some(a=>a.alive&&!a.downed)){s.status='lost';s.endReason='The entire chalk is down. Retry and keep the squad together.';}
   // A human may take over any standing AI squadmate. Losing the two initially
   // selected soldiers must not end a mission while another soldier can continue.

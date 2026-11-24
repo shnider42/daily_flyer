@@ -8,7 +8,7 @@ import {PROTOCOL,MAX_HUMANS,SIMULATION_HZ,SNAPSHOT_HZ,INPUT_TIMEOUT_MS,DISCONNEC
 const emptyActions=()=>({reload:false,smoke:false,grenade:false,frag:false,flashbang:false,throwTargets:{}});
 
 const actorView = actor => {
-  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,coverPoint,coverShelter,nextCoverPlanAt,coverRevision,coverAnchor,formationGoal,formationOrderKey,nextFormationAt,...view}=actor;
+  const {path,pathTimer,pathTarget,target,senseTimer,sensedAt,perceivedTargetId,lastKnown,lastSeenAt,flankGoal,flankSide,nextFlankAt,flankExpiresAt,flankHoldUntil,flankReached,flankPlannedAt,settleTime,navStalled,lastDanger,nextShelterPlanAt,shelterRevision,shelterAssigned,wasAwaitingAid,shelterBlockedFor,lastThreatSoundId,coverPoint,coverShelter,nextCoverPlanAt,coverRevision,coverAnchor,formationGoal,formationOrderKey,nextFormationAt,fieldGoal,fieldHome,fieldPost,fieldWaiting,fieldCohesion,fieldSlot,fieldRetreat,home,...view}=actor;
   return view;
 };
 const stateFields=['missionIndex','mission','difficulty','seed','time','status','endReason','stageIndex','stageCount',
@@ -184,6 +184,9 @@ export class CoopRooms {
     const state={};for(const key of stateFields)if(room.game[key]!==undefined)state[key]=room.game[key];
     for(const key of ['squad','civilians','survivors'])state[key]=room.game[key].map(actorView);
     state.enemies=room.game.enemies.filter(a=>a.visible).map(actorView);
+    // Independent friendly squads do not lend their eyes to the player. Their
+    // unseen positions and internal assignments remain on the authority.
+    state.allies=(room.game.allies||[]).filter(a=>a.visible).map(actorView);
     for(const key of ['vehicles','bullets','grenades','effects','soundEvents','smokes','bodies','bloodstains'])state[key]=room.game[key];
     const actor=room.game.squad[p.slot],actorId=actor.id;state.playerId=actorId;state.role=actor.role==='leader'?'leader':'member';
     return {type:'snapshot',tick:room.tick,serverTime:this.now(),selfId:p.id,actorId,ack:p.seq,

@@ -1,4 +1,56 @@
 CHALK — recorded sound sources
+Version 1.16 additions verified 24 November 2026.
+
+Contextual field radio — version 1.16
+
+field-radio-bank.wav / field-radio-lines.mjs
+Source: RADIO SOLDIER - Video Game Announcer — VoiceBosch / SoundBiter
+https://opengameart.org/content/radio-soldier-video-game-announcer
+Creator: https://www.voicebosch.com/
+License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0),
+explicitly offered on the creator's source page:
+https://creativecommons.org/licenses/by-sa/4.0/
+The adapted field-radio-bank.wav and its field-radio-lines.mjs catalog are
+distributed under the same CC BY-SA 4.0 license. Attribution: VoiceBosch.
+No endorsement of CHALK by VoiceBosch or SoundBiter is implied.
+
+Ten complete human performances adapted from these source files under
+https://opengameart.org/sites/default/files/ :
+01._watch_your_six.wav
+03._take_out_that_sniper.wav
+06._get_to_the_extraction_point.wav
+11._watch_your_ammo.wav
+13._good_work_soldier.wav
+16._enemy_on_the_move.wav
+22._secure_the_perimeter.wav
+23._hold_your_position.wav
+25._were_under_attack.wav
+26._entering_hostile_territory.wav
+The source's numbered script list identifies each exact spoken line.
+These are performed contemporary game assets, not historical communications.
+
+Adaptation: retain complete natural-speed takes and their original radio
+treatment; mix stereo to mono; convert to 22,050 Hz PCM16; per-take level targets
+RMS 0.12 with peak at most 0.60; 3 ms opening / 15 ms closing edge fades; 120 ms
+silent separators. No generated voice, voice cloning, word rearrangement,
+pitch shift, or additional dynamic compression. These recordings are used only
+as radio traffic, never passed off as clean nearby physical speech.
+Rebuild: tools/prepare-field-radio.py and the original downloaded WAV files.
+
+The original Kenney bank now additionally contains Male/war_call_for_backup.ogg,
+the complete "Call for backup!" performance, with the same CC0 provenance,
+processing, natural speed and guard intervals documented below. It plays for
+actual independent allied squads falling back under losses. The clean bank now
+contains fifteen performances, alongside ten additional radio performances.
+
+Only actual simulation shot/explosion events create mission combat sounds in
+version 1.16. The former invented distant battle-ambience channel is retired.
+Independent friendly/enemy shots propagate from their true source timestamps
+and locations across the whole district, retain obstruction and distance
+filtering, and share cached room/street responses. A separate distant-report
+budget reserves nearby weapon capacity. This changes no explored terrain or
+enemy visibility. Menu atmosphere and all earlier music remain unchanged.
+
 Source pages verified 22–23 November 2026. Licenses are identified below.
 Most earlier recordings use CC0 1.0:
 https://creativecommons.org/publicdomain/zero/1.0/

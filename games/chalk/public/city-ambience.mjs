@@ -1,27 +1,27 @@
-// Presentation-only city life. This director never advances the simulation RNG,
-// spawns actors, or places a sound relative to the listener. A battle beyond the
-// neighbourhood keeps its bearing when the player changes direction or role.
-const KINDS = ['battle', 'rotor', 'engine', 'metal', 'domestic'];
+// Presentation-only city life. Gunfire and blasts come only from real simulated
+// actors through soundEvents. This director never advances the simulation RNG,
+// spawns actors, or places a sound relative to the listener.
+const KINDS = ['rotor', 'engine', 'metal', 'domestic'];
 const RECENT_DEADLINE = .45;
 const MAX_CLOCK_GAP = 2;
 const MAX_EVENTS = 2;
 
 function profile(phase, bedGain, domesticGain, intervals) {
   for (const range of Object.values(intervals)) Object.freeze(range);
-  return Object.freeze({ phase, bedGain, domesticGain, battleGain: 1, intervals: Object.freeze(intervals) });
+  return Object.freeze({ phase, bedGain, domesticGain, intervals: Object.freeze(intervals) });
 }
 
 const PROFILES = Object.freeze({
   day: profile('day', 1, 1, {
-    battle: [8, 17], rotor: [48, 85], engine: [24, 45], metal: [11, 24], domestic: [32, 65],
+    rotor: [48, 85], engine: [24, 45], metal: [11, 24], domestic: [32, 65],
   }),
   dawn: profile('dawn', .66, .76, {
-    battle: [10, 21], rotor: [48, 82], engine: [32, 55], metal: [18, 36], domestic: [38, 74],
+    rotor: [48, 82], engine: [32, 55], metal: [18, 36], domestic: [38, 74],
   }),
   night: profile('night', .42, .55, {
     // Night reduces everyday activity, not the level of an actual gun report.
     // The historical relief operation and helicopter support continued at night.
-    battle: [10, 22], rotor: [42, 78], engine: [48, 82], metal: [26, 48], domestic: [46, 88],
+    rotor: [42, 78], engine: [48, 82], metal: [26, 48], domestic: [46, 88],
   }),
 });
 
@@ -62,7 +62,7 @@ export function createCityAmbience(seed = 1, missionIndex = 0, atTime = 0) {
 }
 
 function arm(director, scene, atTime, initial = false) {
-  const leadIn = { battle: .35, rotor: .42, engine: .4, metal: .2, domestic: .45 };
+  const leadIn = { rotor: .42, engine: .4, metal: .2, domestic: .45 };
   for (const channel of director.channels) {
     const [lo, hi] = scene.intervals[channel.kind];
     channel.due = atTime + range(director, lo, hi) * (initial ? leadIn[channel.kind] : 1);
@@ -120,12 +120,7 @@ function describe(director, channel, scene, anchors, now) {
   const event = { kind, x: anchor.x, y: anchor.y, anchorId: anchor.id,
     intensity: range(director, .62, 1), seed: (random(director) * 4294967296) >>> 0,
     duration: 1, variant: kind, time: now, id: ++director.sequence };
-  if (kind === 'battle') {
-    const roll = random(director);
-    event.variant = roll < .56 ? 'automatic' : roll < .84 ? 'rifle' : 'rumble';
-    event.duration = event.variant === 'rumble' ? range(director, 3, 5.5) : range(director, 1.4, 3.4);
-    event.intensity *= scene.battleGain;
-  } else if (kind === 'rotor') {
+  if (kind === 'rotor') {
     event.variant = 'pass';
     event.duration = range(director, 10, 16);
     event.toX = anchor.side === 'east' || anchor.side === 'west' ? anchors.width - anchor.x : anchor.x;

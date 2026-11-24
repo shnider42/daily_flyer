@@ -34,12 +34,12 @@ test('night and dawn change the ordinary city bed without quietening gun reports
   const dawn = cityAmbienceProfile(fixture('dawn'));
   assert.ok(night.bedGain < dawn.bedGain && dawn.bedGain < day.bedGain);
   assert.ok(night.domesticGain < day.domesticGain);
-  assert.equal(night.battleGain, day.battleGain);
+  assert.equal(night.intervals.battle, undefined, 'combat scheduling is owned by the simulation');
   assert.equal(cityAmbienceProfile({ missionIndex: 2 }).phase, 'night');
   assert.equal(cityAmbienceProfile({ missionIndex: 3 }).phase, 'dawn');
   assert.equal(cityAmbienceProfile({ missionIndex: 2, mission: { lighting: 'day' } }).phase, 'day');
   assert.equal(cityAmbienceProfile(fixture('late-afternoon')).phase, 'day');
-  assert.ok(Object.isFrozen(day) && Object.isFrozen(day.intervals) && Object.isFrozen(day.intervals.battle));
+  assert.ok(Object.isFrozen(day) && Object.isFrozen(day.intervals) && Object.isFrozen(day.intervals.rotor));
 });
 
 test('ambience is deterministic, independent of listener motion and the gameplay RNG', () => {
@@ -50,10 +50,8 @@ test('ambience is deterministic, independent of listener motion and the gameplay
   assert.equal(state.rngState, originalRng);
   assert.equal(moved.rngState, originalRng);
   assert.notDeepEqual(a.events, run(fixture(), 360, .1, 125).events);
-  assert.deepEqual(new Set(a.events.map(event => event.kind)), new Set(['battle', 'rotor', 'engine', 'metal', 'domestic']));
-  assert.ok(a.events.some(event => event.variant === 'automatic'));
-  assert.ok(a.events.some(event => event.variant === 'rifle'));
-  assert.ok(a.events.some(event => event.variant === 'rumble'));
+  assert.deepEqual(new Set(a.events.map(event => event.kind)), new Set(['rotor', 'engine', 'metal', 'domestic']));
+  assert.ok(a.events.every(event => event.kind !== 'battle'), 'only real simulation sound events create combat');
 });
 
 test('sources belong to real districts or the map perimeter and do not orbit the player', () => {
@@ -81,11 +79,11 @@ test('sources belong to real districts or the map perimeter and do not orbit the
   }
 });
 
-test('day has more everyday activity while nighttime still contains battle and aircraft', () => {
+test('day has more everyday activity while nighttime still contains aircraft', () => {
   const day = run(fixture('day'), 900).events, night = run(fixture('night'), 900).events;
   const everyday = events => events.filter(event => ['engine', 'metal', 'domestic'].includes(event.kind)).length;
   assert.ok(everyday(day) > everyday(night) * 1.4);
-  assert.ok(night.some(event => event.kind === 'battle'));
+  assert.ok(!night.some(event => event.kind === 'battle'));
   assert.ok(night.some(event => event.kind === 'rotor'));
   const barks = day.filter(event => event.kind === 'domestic');
   for (let i = 1; i < barks.length; i++) assert.ok(barks[i].time - barks[i - 1].time >= 32);

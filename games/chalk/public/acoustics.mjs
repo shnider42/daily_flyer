@@ -35,6 +35,20 @@ export const REPORT_PROFILES = Object.freeze({
 });
 export function reportProfile(weapon) { return REPORT_PROFILES[weapon] || REPORT_PROFILES.rifle; }
 
-export function acousticHearingRange(type) {
-  return type === 'explosion' ? 2400 : type === 'shot' ? 1800 : type === 'flashbang' ? 1100 : type === 'near_pass' ? 100 : type === 'grenade_throw' ? 180 : 550;
+export function acousticHearingRange(type, world = null) {
+  if (type === 'shot' || type === 'explosion') {
+    // Combat belongs to the simulated district, even when the shooters are
+    // outside the viewport or behind unexplored terrain. Do not grant sight.
+    const diagonal = Math.hypot(Number(world?.width) || 0, Number(world?.height) || 0);
+    return Math.min(6000, Math.max(type === 'explosion' ? 2400 : 1800, diagonal + 64));
+  }
+  return type === 'flashbang' ? 1100 : type === 'near_pass' ? 100 : type === 'grenade_throw' ? 180 : type === 'field_voice' ? 290 : 550;
+}
+
+export function distantCombatMix(type, distance, occluded = false) {
+  const far = Math.max(0, Math.min(1, (distance - 500) / 1800));
+  const combat = type === 'shot' || type === 'explosion';
+  return { gain: combat ? 1 + far * .5 : 1,
+    lowpass: combat ? (occluded ? 1350 : 10000) / (1 + far * .8) : Infinity,
+    distant: combat && distance > 650 };
 }

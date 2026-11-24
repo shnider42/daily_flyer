@@ -19,6 +19,24 @@ function fixture(ratio=1) {
 }
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} differs from ${expected}`);
 
+test('independent allies use player sight and never reveal their own or hostile rooms', () => {
+  const { renderer, state, actor } = fixture(), drawn = [];
+  state.world.walls = [{ id: 'screen', x: 1280, y: 800, w: 10, h: 400 }];
+  state.allies = [
+    { ...actor, id: 801, team: 'allied', x: 1240, y: 950, visible: true },
+    { ...actor, id: 802, team: 'allied', x: 1320, y: 950, visible: true },
+    { ...actor, id: 803, team: 'allied', x: 1240, y: 920, visible: false },
+  ];
+  state.enemies = [{ ...actor, id: 804, team: 'enemy', x: 1350, y: 950, visible: false }];
+  renderer.drawActor = (_ctx, unit) => drawn.push(unit.id);
+  renderer.render(state, { quality: 'performance', reducedMotion: true });
+  assert.ok(drawn.includes(801));
+  assert.ok(!drawn.includes(802), 'a stale visible flag cannot see through a wall');
+  assert.ok(!drawn.includes(803), 'authority can hide an independent ally');
+  assert.ok(!drawn.includes(804), 'a friendly patrol does not expand player sight');
+  assert.equal(state.squad.length, 1);
+});
+
 test('ambient flames require current squad sight, clip to masonry, and stay beneath fog memory', () => {
   const { renderer, state } = fixture(), drawn = [], order = [];
   state.missionIndex = 2; renderer.mapMission = 2;

@@ -1,7 +1,7 @@
 {
   "game": "CHALK",
-  "version": "1.15.0",
-  "date": "2026-11-23",
+  "version": "1.16.0",
+  "date": "2026-11-24",
   "missions": 10,
   "roles": [
     "leader",
@@ -17,7 +17,7 @@
     "soldierSelection": "Each player can choose any free Hale/Mercer/Ames/Webb slot in the briefing or during a mission; occupied slots are labelled, inventory persists, host status stays separate from command."
   },
   "rendering": "Canvas 2D",
-  "audio": "Fourteen recorded squad phrases; routine orders share a sixty-second speech cooldown and ordinary exact lines rest for three minutes. Old move-out clip retained but removed from menu and mission playback. Nearby voices use position and room/street reflections; blocked or distant squadmates use radio, crossfading the same running phrase. Separate squad voice and flashbang ringing levels. Existing city ambience, gunfire propagation, doorway tails and music retained.",
+  "audio": "25 complete human performances: 15 clean squad/local recordings and 10 additional radio-only calls. Truthful contextual dispatch, local-only independent allied speech, real across-map fighting with propagation delay and distance/cover filtering. Routine orders share a 60-second cooldown; ordinary exact phrases rest for 180 seconds. Existing local/radio crossfades, room/street tails, voice slider and music remain.",
   "mobile": {
     "cameraZoomDefault": 0.75,
     "hudScaleDefault": 0.85,
@@ -25,13 +25,18 @@
     "separateDesktopPreferences": true,
     "fullSizeTouchTargets": true,
     "directGroundOrders": true,
-    "immediateCommands": [
-      "Regroup",
-      "Hold"
-    ],
     "camera": "Controlled soldier stays centered in the usable area between HUD and thumb controls, including world edges and zoom transitions",
     "guidance": "Healthy world names and roles appear in Simple only; Expert removes routine world labels and coaching while preserving target markers and critical casualty cues",
-    "throwables": "Compact type selector and drag-to-aim release-to-throw control with cancellation"
+    "throwables": "Gear opens grenade types and drag-to-aim throw; tray clears during aiming and closes after a completed throw",
+    "dock": "Compact Squad / Gear dock; reload always reachable, Assist contextual; full-size thumb targets",
+    "pings": "Squad > Ping a place or tap overview map; both roles, no changed movement order",
+    "aimPickup": "Floating thumb origin prevents off-center pickup from jumping aim or firing",
+    "objective": "Compact title and progress, full explanation expands on demand",
+    "closedControlBandPixels": {
+      "portrait": 140,
+      "shortLandscape": 124,
+      "plusSafeBottomInset": true
+    }
   },
   "desktop": {
     "camera": "stable by default; camera and mouse input share one transform",
@@ -94,7 +99,7 @@
     "medic",
     "machine gunner"
   ],
-  "protocol": 9,
+  "protocol": 10,
   "squad": {
     "soloSelection": "HUD cards or rebindable soldier shortcuts, retaining each soldier state",
     "formation": "Wider travel-oriented positions, staggered movement, individual cover, responsive explicit orders and doorway compression",
@@ -203,7 +208,8 @@
       "maxAmbientOneShotVoices": 8,
       "maxPassingSources": 2,
       "largeClockGapsDiscardBacklog": true,
-      "ownShotsAndCommandsDuckAmbience": true
+      "ownShotsAndCommandsDuckAmbience": true,
+      "combatSource": "Actual simulated shot/explosion events; synthetic mission battle cues disabled"
     },
     "footsteps": {
       "recordedTakesPerSurface": 6,
@@ -215,7 +221,14 @@
       "priority": "Below combat reports",
       "maximumNearbyDistanceWorldUnits": 145,
       "source": "Fantozzi, CC0; full attribution in audio/CREDITS.txt"
-    }
+    },
+    "districtCombat": {
+      "range": "World diagonal plus a margin",
+      "distantShotBudget": "4-token burst, 8 per second beyond 650 world units",
+      "nearbyPriority": "Nearby player/squad fire bypasses distant sampling",
+      "distanceTreatment": "Travel delay, stronger low-pass and reduced detail with distance, geometry occlusion and existing acoustic tails"
+    },
+    "fieldSpeech": "Independent allied speech stays physical/local; it never becomes a remote player radio message"
   },
   "campaignMissions": 4,
   "standaloneOperations": 6,
@@ -289,6 +302,33 @@
     "frag": "Timed thrown blast; walls shield actors; exposed allies/civilians can be harmed; no masonry breach.",
     "flashbang": "Nonlethal LOS and distance exposure; strong shared-room effect; smooth vision/hearing recovery; brief configurable ringing; blinded AI pauses firing and scouting.",
     "flight": "Short arc, wall stop, ground fuse; no bounce/roll simulation.",
-    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol9."
+    "coop": "Server-authoritative inventory/exposure, per-action aim latching, explicit pause/cancel, protocol10."
+  },
+  "independentSquads": {
+    "alliedMaximum": 5,
+    "hostileMaximum": 6,
+    "groupMaximum": 4,
+    "hostilesShareExistingBudget": true,
+    "spawn": "Finite initial patrol, crossing relief and building garrison; no invisible around-player spawn ring",
+    "orders": "Own routes, short halts, cohesion/regroup, response to actual contacts and heard shots, return to assignment, withdrawal under severe losses",
+    "training": "Group and seed-dependent cohesion; well-organized defenders coexist with looser patrols",
+    "buildingGuards": "Interior posts with a real navigable doorway; Story can omit extra guards when the existing threat budget is full",
+    "sight": "Only the playable four supply shared sight; unseen NPC positions and private orders excluded from co-op snapshots and local reconstruction",
+    "combat": "Real ammunition, reloads, projectiles, cover, suppression, casualties and at most one safe frag per field group",
+    "playerResponsibility": "Offscreen NPC kills and collateral do not inflate player kill/civilian-harm statistics; player-caused harm still counts",
+    "missionCompletion": "Independent squads do not join playable roster, require extraction, or add kill-all gates"
+  },
+  "people": "Stable clothing, skin, headwear, load-bearing kit and small build differences; boots, shoulder seams, packs, radios, hands and readable specialties. Individual gait phases, restrained idle movement, reload gestures and reduced-motion support. Independent friendly squads use a distinct ring and leader callsign.",
+  "validation": {
+    "fullTests": 433,
+    "frontendBuildTests": 408,
+    "authoritativeServerTests": 232,
+    "suitesOverlap": true,
+    "nativeCanvasChecks": [
+      "2560x1440 desktop",
+      "390x844 portrait",
+      "844x390 night landscape"
+    ],
+    "nativeCanvasNote": "Production renderer exercised with a CPU rasterizer; not a physical device or browser FPS claim"
   }
 }

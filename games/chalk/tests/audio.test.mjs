@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { GameAudio } from '../public/audio.mjs';
 import { VOICE_LINES } from '../public/squad-voice-lines.mjs';
+import { FIELD_RADIO_SPEAKER } from '../public/squad-voice.mjs';
 import { reverbImpulseData, environmentAt, eventEnvironment, acousticLineBlocked } from '../public/audio-environments.mjs';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { SQUAD_ROLES } from '../public/squad-roles.mjs';
 import { WORLD_UNITS_PER_METRE, SOUND_SPEED_MPS, MAX_PENDING_ARRIVALS, acousticTravelDelay,
-  acousticSourceTime, acousticArrivalTime, reportProfile } from '../public/acoustics.mjs';
+  acousticSourceTime, acousticArrivalTime, acousticHearingRange, reportProfile } from '../public/acoustics.mjs';
 
 class Param {
   constructor(value = 0) { this.value = value; this.events = []; }
@@ -41,7 +42,7 @@ class Context {
     const data = Array.from({ length: channels }, () => new Float32Array(length));
     return { length, duration: length / sampleRate, getChannelData: channel => data[channel] };
   }
-  async decodeAudioData(bytes) { return this.createBuffer(1, bytes.byteLength === 16 ? 112000 : 17600, this.sampleRate); }
+  async decodeAudioData(bytes) { return this.createBuffer(1, bytes.byteLength === 16 ? 240000 : 17600, this.sampleRate); }
   addEventListener(type, callback) { this.listeners.set(type, callback); }
   async resume() { this.state = 'running'; this.listeners.get('statechange')?.(); }
 }
@@ -55,7 +56,7 @@ function setup(t, { failedAssets = false } = {}) {
   t.mock.method(globalThis, 'clearInterval', id => timers.delete(id));
   t.mock.method(globalThis, 'fetch', async url => {
     if (failedAssets) throw new Error('Offline');
-    return { ok: true, arrayBuffer: async () => new ArrayBuffer(String(url).includes('squad-voice-bank') ? 16 : 8) };
+    return { ok: true, arrayBuffer: async () => new ArrayBuffer((String(url).includes('squad-voice-bank') || String(url).includes('field-radio-bank')) ? 16 : 8) };
   });
   const audio = new GameAudio();
   t.after(() => { audio.stop(); globalThis.AudioContext = originalContext; globalThis.document = originalDocument; });
@@ -770,7 +771,7 @@ test('footsteps use one quiet recorded contact, alternate real takes, and stop f
 test('distant city activity reserves voices for real weapons and obeys ambience independently', async t => {
   const h = setup(t), { audio } = h; audio.setScene('mission'); await h.unlock();
   const state = missionState({ time:10 }), player = state.squad[0];
-  const event = { kind:'battle', variant:'automatic', seed:17, intensity:1, x:500, y:0 };
+  const event = { kind:'metal', variant:'shutter', seed:17, intensity:1, x:500, y:0 };
   for (let i=0;i<8;i++) audio._cityEvent(event,player,state);
   assert.equal([...audio.voices].filter(v=>v.bus==='ambience').length,8);
   assert.ok([...audio.voices].every(v=>v.priority===-2 && v.nodes.some(n=>n?.connections.includes(audio.missionAmbienceBus))));
@@ -802,7 +803,7 @@ for (const control of ['master','ambience']) test(`${control} mute immediately d
   const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
   const state=missionState({time:10}),player=state.squad[0];audio.tick(state,.016);
   audio._cityEvent({kind:'engine',id:1,x:100,y:0,toX:200,toY:0,intensity:1,duration:6},player,state);
-  audio._cityEvent({kind:'battle',variant:'automatic',seed:17,intensity:1,x:900,y:0},player,state);
+  audio._cityEvent({kind:'metal',variant:'shutter',seed:17,intensity:1,x:90,y:0},player,state);
   state.time+=.2;audio.tick(state,.2);assert.ok(audio.cityPasses.length&&audio.voices.size);
   audio.setLevels({[control]:0});audio.setLevels({[control]:1});
   assert.equal(audio.cityDirector,null);assert.equal(audio.cityPasses.length,0);
@@ -880,4 +881,64 @@ test('listener switches discard old speech and flash ringing without resetting t
   assert.equal(audio.activeSpeech, null); assert.equal(audio.voiceDirector.lastSpokeAt, spokenAt);
   assert.equal(audio._say('move', state.squad[1], state.squad[1], state), false);
   assert.equal(audio.hearingGain.gain.value, 1);
+});
+
+test('real offscreen squad shots cross the whole district with travel delay and no sight reveal', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:30}),player=state.squad[0];
+  state.world.width=2400;state.world.height=1900;
+  const ally={id:'distant-ally',team:'allied',x:2350,y:1850,alive:true,visible:false};state.allies=[ally];
+  assert.ok(acousticHearingRange('shot',state.world)>Math.hypot(ally.x,ally.y));
+  state.soundEvents=[{...ally,id:1,type:'shot',actorId:ally.id,weapon:'rifle',sourceTime:30}];
+  audio.tick(state,.016);assert.equal(audio.pendingArrivals.length,1);
+  assert.equal([...audio.voices].filter(v=>v.kind==='report').length,0);
+  for(let i=0;i<22;i++){h.advance(.05);state.time+=.05;audio.tick(state,.05);}
+  const report=[...audio.voices].find(v=>v.kind==='report');assert.ok(report);
+  assert.ok(Math.abs(report.start-acousticTravelDelay(Math.hypot(ally.x,ally.y)))<1e-7);
+  assert.equal(ally.visible,false,'audio never writes visibility');
+  assert.equal(report.nodes.find(n=>n?.type==='lowpass').frequency.value<1000,true);
+  assert.equal([...audio.voices].filter(v=>v.kind==='street-echo'||v.kind==='street-reflection').length,0);
+  assert.ok(report.nodes.some(n=>n?.connections.includes(audio.reverbBanks.street.input)),'shared street tail remains');
+});
+
+test('distant firefights cannot consume the nearby shot budget and synthetic battles are retired', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:30}),player=state.squad[0];state.world.width=2400;state.world.height=1900;
+  audio.tick(state,.016);const before=audio.shotBudget;
+  for(let i=0;i<12;i++)audio._shot({type:'shot',x:1200,y:0,actorId:`far-${i}`,team:'enemy',weapon:'hostile'},player,state);
+  assert.equal([...audio.voices].filter(v=>v.kind==='report').length,4);
+  assert.equal(audio.shotBudget,before);
+  audio._shot({type:'shot',x:20,y:0,actorId:'close',team:'enemy',weapon:'hostile'},player,state);
+  audio._shot({type:'shot',x:0,y:0,actorId:player.id,team:'squad',weapon:'rifle'},player,state);
+  assert.equal([...audio.voices].filter(v=>v.kind==='report').length,6);
+  const voiceCount=audio.voices.size;
+  audio._cityEvent({kind:'battle',variant:'automatic',x:100,y:0,intensity:1,seed:1},player,state);
+  assert.equal(audio.voices.size,voiceCount);
+});
+
+test('nearby independent allies speak physically then fade instead of switching to the player radio', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:30}),player=state.squad[0];
+  const ally={id:'raven',name:'Raven',x:100,y:0,alive:true,team:'allied'};state.allies=[ally];
+  audio.tick(state,.016);audio._event({type:'field_voice',actorId:ally.id,category:'backup',x:100,y:0},player,state);
+  assert.equal(audio.activeSpeech?.line.text,'Call for backup!');
+  const speech=audio.activeSpeech,source=speech.voice.source;
+  assert.equal(speech.route.mode,'local');assert.equal(speech.radioGain.gain.value,0);
+  h.advance(.1);ally.x=400;audio._updateSpeech(state,player);
+  assert.equal(speech.voice.source,source);assert.equal(speech.route.mode,'inaudible');
+  assert.equal(speech.radioGain.gain.value,0);assert.equal(speech.localGain.gain.value,0);
+  ally.alive=false;audio._updateSpeech(state,player);assert.equal(audio.activeSpeech,null);
+});
+
+test('additional dispatch performances use one radio-only source and share the established speech budget', async t => {
+  const h=setup(t),{audio}=h;audio.setScene('mission');await h.unlock();
+  const state=missionState({time:30}),player=state.squad[0];audio.tick(state,.016);
+  assert.equal(audio._say('dispatch_ammo',player,player,state),false,'processed recordings cannot masquerade as nearby clean speech');
+  assert.equal(audio._say('dispatch_ammo',FIELD_RADIO_SPEAKER,player,state),true);
+  const speech=audio.activeSpeech;
+  assert.equal(speech.line.text,'Watch your ammo.');assert.equal(speech.route.mode,'radio');
+  assert.equal(speech.localGain.gain.value,0);assert.ok(speech.radioGain.gain.value>0);
+  assert.equal(audio._say('move',player,player,state),false,'no overlapping intelligible sentence');
+  h.advance(.5);audio._updateSpeech(state,player);assert.equal(audio.activeSpeech,speech);
+  assert.equal(speech.route.mode,'radio');
 });

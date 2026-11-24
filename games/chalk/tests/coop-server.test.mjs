@@ -28,6 +28,26 @@ function setup({role='leader',duo=true,...options}={}){
   return {rooms,room,host,guest,command,step,advance,start};
 }
 
+test('independent squad snapshots preserve hidden positions and orders on the authority',()=>{
+  const {rooms,room,host,start}=setup();start();
+  const soldier=room.game.squad[0];
+  room.game.allies=[
+    {...soldier,id:9001,team:'allied',visible:true,callsign:'Raven 2',assignment:'Checking the north route',fieldGoal:{x:1800,y:150},fieldPost:{x:700,y:600},fieldHome:{x:1600,y:900},home:{x:2,y:3},path:[{x:1700,y:100}],perceivedTargetId:999},
+    {...soldier,id:9002,team:'allied',visible:false,x:1900,y:400},
+  ];
+  room.game.fieldSquads=[{id:'private-patrol',route:[{x:1900,y:400}]}];
+  rooms.snapshot(room,{reset:true});
+  assert.equal(host.latest.state.allies.length,1);
+  const visible=host.latest.state.allies[0];
+  assert.equal(visible.id,9001);assert.equal(visible.callsign,'Raven 2');
+  for(const key of ['path','perceivedTargetId','fieldGoal','fieldPost','fieldHome','home'])assert.equal(key in visible,false,key);
+  assert.equal('fieldSquads' in host.latest.state,false);
+  assert.equal(room.game.allies.length,2,'snapshot must not change authoritative population');
+  room.game.allies[0].visible=false;rooms.snapshot(room,{reset:true});
+  assert.deepEqual(host.latest.state.allies,[],'losing sight removes the old friendly contact');
+  assert.equal(host.latest.state.squad.length,4);
+});
+
 test('shared tactical pings identify the assigned soldier without moving the squad or revealing enemies',()=>{
   const {rooms,room,host,guest,command,start}=setup();start();
   command(host,'order',{order:'hold'});

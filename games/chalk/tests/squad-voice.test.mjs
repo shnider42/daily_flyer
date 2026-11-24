@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { prepareBuildingInteriors } from '../public/building-geometry.mjs';
 import { VOICE_LINES } from '../public/squad-voice-lines.mjs';
 import { ORDER_VOICE_COOLDOWN, VOICE_LINE_COOLDOWN, createVoiceDirector,
-  chooseVoiceLine, squadVoiceCategory, voicePolicy, findVoiceSpeaker, squadVoiceRoute } from '../public/squad-voice.mjs';
+  chooseVoiceLine, squadVoiceCategory, voicePolicy, findVoiceSpeaker, squadVoiceRoute, fieldVoiceRoute,
+  createFieldRadioDirector, fieldRadioCue } from '../public/squad-voice.mjs';
 
 const open = { buildings: [], walls: [] };
 const soldier = (id, x, y, extra = {}) => ({ id, x, y, alive: true, ...extra });
@@ -144,4 +145,44 @@ test('an open doorway carries quieter indirect speech and a blocked doorway cann
   world.walls.push({ id: 'door-block', x: 80, y: -2, w: 40, h: 4 });
   const blocked = squadVoiceRoute(world, speaker, listener, 'local');
   assert.equal(blocked.mode, 'radio'); assert.equal(blocked.portal, false);
+});
+
+test('an independent allied soldier never becomes an unsolicited radio speaker', () => {
+  const listener = soldier('player', 0, 0), ally = soldier('field', 100, 0, {team:'allied'});
+  assert.equal(fieldVoiceRoute(open, ally, listener).mode, 'local');
+  ally.x = 350;
+  const far = fieldVoiceRoute(open, ally, listener);
+  assert.equal(far.mode, 'inaudible'); assert.equal(far.radio, 0); assert.equal(far.local, 0);
+  ally.x = 100;
+  const blocked = fieldVoiceRoute({ buildings:[], walls:[{x:45,y:-40,w:10,h:80}] }, ally, listener);
+  assert.equal(blocked.mode, 'inaudible'); assert.equal(blocked.radio, 0);
+  assert.equal(findVoiceSpeaker({squad:[listener], allies:[ally]}, {actorId:'field'}), ally);
+});
+
+test('contextual radio uses current friendly status and visible movement without unseen enemy intelligence', () => {
+  const player = soldier(1, 0, 0, {ammo:30,reserve:60});
+  const state = {time:30,status:'playing',squad:[player],stats:{shots:1},objective:{id:'first',kind:'move'},
+    enemies:[{id:4,x:80,y:0,alive:true,moving:true,visible:false}]};
+  const d = createFieldRadioDirector(30);
+  assert.equal(fieldRadioCue(d,state,player),null, 'joining a mission does not repeat its arrival speech');
+  state.time=32;state.enemies[0].visible=true;
+  assert.equal(fieldRadioCue(d,state,player),'dispatch_moving');
+  state.time=34;
+  assert.equal(fieldRadioCue(d,state,player),null, 'one live cue does not chatter on every snapshot');
+  for(let t=36;t<=60;t+=2){state.time=t;state.enemies[0].visible=false;fieldRadioCue(d,state,player);}
+  player.ammo=3;state.time=62;
+  assert.equal(fieldRadioCue(d,state,player),'dispatch_ammo');
+  state.time=200;state.objective={id:'extract',kind:'extract'};
+  assert.equal(fieldRadioCue(d,state,player),null,'a resumed clock does not dump delayed radio traffic');
+});
+
+test('extraction and recovery callouts require a real observed transition', () => {
+  const player = soldier(1,0,0), injured=soldier(2,5,0,{downed:true});
+  const state={time:30,status:'playing',squad:[player,injured],objective:{id:'before',kind:'move'},enemies:[]};
+  let d=createFieldRadioDirector(30);fieldRadioCue(d,state,player);
+  state.time=32;state.objective={id:'evac',kind:'extract'};
+  assert.equal(fieldRadioCue(d,state,player),'dispatch_extraction');
+  d=createFieldRadioDirector(32);fieldRadioCue(d,state,player);
+  state.time=34;injured.downed=false;
+  assert.equal(fieldRadioCue(d,state,player),'dispatch_recovered');
 });

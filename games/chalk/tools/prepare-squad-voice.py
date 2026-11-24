@@ -48,6 +48,7 @@ LINES = [
     ('fire-in-the-hole', 'war_fire_in_the_hole', 'Fire in the hole!', ['frag']),
     ('target-engaged', 'war_target_engaged', 'Target engaged!', ['contact']),
     ('sniper', 'war_sniper', 'Sniper!', ['sniper']),
+    ('call-for-backup', 'war_call_for_backup', 'Call for backup!', ['backup']),
 ]
 
 
@@ -91,9 +92,10 @@ def build(source, output, catalog):
         "// Complete human performances from Kenney's CC0 Voiceover Pack.\n"
         "// Male voice: Jeffrey M. Smith. See audio/CREDITS.txt and tools/prepare-squad-voice.py.\n"
         "// Full bandwidth; local/radio filtering belongs to the live audio graph.\n"
-        "export const VOICE_SAMPLE_FILES = Object.freeze({ squadVoice: 'squad-voice-bank.wav' });\n"
-        "export const VOICE_LINES = Object.freeze(" + json.dumps(lines, indent=2) +
-        ".map(line => Object.freeze({ ...line, categories: Object.freeze(line.categories) })));\n",
+        "import { FIELD_RADIO_LINES } from './field-radio-lines.mjs';\n"
+        "export const VOICE_SAMPLE_FILES = Object.freeze({ squadVoice: 'squad-voice-bank.wav', fieldRadio: 'field-radio-bank.wav' });\n"
+        "export const VOICE_LINES = Object.freeze([..." + json.dumps(lines, indent=2) +
+        ", ...FIELD_RADIO_LINES].map(line => Object.freeze({ ...line, categories: Object.freeze(line.categories) })));\n",
         encoding='utf-8')
     return {'file': path.name, 'lines': len(lines), 'seconds': len(bank) / RATE,
             'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}

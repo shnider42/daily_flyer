@@ -6,10 +6,12 @@ import { streetReflectionPlan } from './street-reflections.mjs';
 import { fallbackReportData } from './weapon-reports.mjs';
 import { cityAmbienceProfile, createCityAmbience, advanceCityAmbience } from './city-ambience.mjs';
 import { VOICE_SAMPLE_FILES, VOICE_LINES } from './squad-voice-lines.mjs';
-import { createVoiceDirector, chooseVoiceLine, squadVoiceCategory, findVoiceSpeaker, squadVoiceRoute, voicePolicy } from './squad-voice.mjs';
+import { createVoiceDirector, chooseVoiceLine, squadVoiceCategory, findVoiceSpeaker, squadVoiceRoute, fieldVoiceRoute,
+  FIELD_RADIO_SPEAKER, createFieldRadioDirector, fieldRadioCue, voicePolicy } from './squad-voice.mjs';
 import { flashIntensity } from './hand-grenades.mjs';
 import { SOUND_SPEED_MPS, WORLD_UNITS_PER_METRE, MAX_PENDING_ARRIVALS, ARRIVAL_LOOKAHEAD,
-  ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticHearingRange, reportProfile } from './acoustics.mjs';
+  ARRIVAL_LATE_TOLERANCE, acousticSourceTime, acousticArrivalTime, acousticTravelDelay, acousticHearingRange,
+  distantCombatMix, reportProfile } from './acoustics.mjs';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -35,11 +37,13 @@ export class GameAudio {
     this.unavailable = false; this.lastState = null; this.lastPlayerId = null; this.lastHealth = null;
     this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds = new Set();
     this.lastShots = 0; this.lastRadio = null; this.shotBudget = 8;
+    this.distantShotBudget = 4; this.distantShooters = new Map();
     this.footTravel = new Map(); this.vehiclePositions = new Map(); this.diagnosticTime = 0;
     this.footstepBuffers = new Map(); this.footstepTurn = 0; this.cityDirector = null; this.cityPasses = [];
     this.scene = 'paused'; this.menuBus = null; this.missionAmbienceBus = null;
     this.menuTimer = null; this.menuSchedule = null; this.lastMenuVoice = null;
     this.voiceDirector = createVoiceDirector(); this.activeSpeech = null; this.lastSpeech = null; this.lastCarrierAt = -Infinity;
+    this.fieldRadioDirector = createFieldRadioDirector();
     this.speechReverbBanks = {}; this.speechReflectionsNeedFlush = false; this.speechMixTimer = 0;
     this.lastFlashKey = null;
     this.hitTimes = new Map(); this.painTimes = new Map(); this.fearTimes = new Map();
@@ -566,8 +570,10 @@ export class GameAudio {
     const source={x:event.x??player.x,y:event.y??player.y},d=distance(source,player);
     const space=eventEnvironment(world,source,player),occluded=space.occluded;
     this.lastAcousticSpace=space;
-    return { d, gain: (occluded ? .48 : 1) / (1 + (d / 165) ** 1.25), pan: ((event.x ?? player.x) - player.x) / 390,
-      lowpass: Math.min(occluded ? 1350 : 10000, clamp(10000 / (1 + d / 270), 850, 10000)), occluded, space };
+    const distant = distantCombatMix(event.type, d, occluded);
+    return { d, gain: distant.gain * (occluded ? .48 : 1) / (1 + (d / 165) ** 1.25), pan: ((event.x ?? player.x) - player.x) / 390,
+      lowpass: Math.min(distant.lowpass, occluded ? 1350 : 10000, clamp(10000 / (1 + d / 270), 550, 10000)),
+      distant: distant.distant, occluded, space };
   }
 
   _presentationTime(state, timing = {}) {
@@ -588,7 +594,7 @@ export class GameAudio {
   _queueEvent(event, player, state, presentationTime) {
     const point = event.type === 'near_pass' ? { ...event, x: event.closestX ?? event.x, y: event.closestY ?? event.y } : event;
     const d = distance({ x: point.x ?? player.x, y: point.y ?? player.y }, player);
-    if (!Number.isFinite(d) || d > acousticHearingRange(event.type)) return;
+    if (!Number.isFinite(d) || d > acousticHearingRange(event.type, state.world)) return;
     if (event.type === 'near_pass' && (event.victimId !== player.id || !Number.isFinite(event.speedMps) ||
       !Number.isFinite(event.missDistance) || event.missDistance < 0 || event.missDistance > 100)) return;
     const own = event.type === 'victim_hit' ? (event.victimId ?? event.actorId) === player.id
@@ -598,7 +604,7 @@ export class GameAudio {
     const arrival = local ? sourceTime : acousticArrivalTime(point, player, state.time);
     const remaining = arrival - presentationTime;
     const lateTolerance = local ? .3 : ARRIVAL_LATE_TOLERANCE;
-    if (!Number.isFinite(remaining) || sourceTime > presentationTime + .1 || remaining > 1.25 ||
+    if (!Number.isFinite(remaining) || sourceTime > presentationTime + .1 || remaining > acousticTravelDelay(acousticHearingRange(event.type, state.world)) + .12 ||
       remaining < -lateTolerance) {
       this.propagationStats.late++; return;
     }
@@ -641,8 +647,16 @@ export class GameAudio {
   _shot(event, player, state = this.lastState) {
     if (!player) return;
     const spatial = this._spatial(event, player, state?.world), own = event.actorId === player.id;
-    if (spatial.d > acousticHearingRange('shot') || !own && this.shotBudget < 1) return;
-    this.shotBudget = Math.max(0, this.shotBudget - 1);
+    if (spatial.d > acousticHearingRange('shot', state?.world)) return;
+    const distant = !own && spatial.d > 650;
+    if (!own && (distant ? this.distantShotBudget : this.shotBudget) < 1) return;
+    if (distant) {
+      const at = this.context.currentTime + this.eventDelay, last = this.distantShooters.get(event.actorId) ?? -Infinity;
+      if (at - last < .105) return;
+      this.distantShooters.set(event.actorId, at);
+      if (this.distantShooters.size > 64) this.distantShooters.delete(this.distantShooters.keys().next().value);
+      this.distantShotBudget = Math.max(0, this.distantShotBudget - 1);
+    } else this.shotBudget = Math.max(0, this.shotBudget - 1);
     const weapon = event.weapon || (event.team === 'enemy' ? 'hostile' : 'rifle');
     const profile = reportProfile(weapon), recorded = this.samples.get(profile.sample);
     const sample = recorded || this.fallbackReports.get(weapon) || this.fallbackReports.get('rifle');
@@ -666,7 +680,9 @@ export class GameAudio {
       pan, wet: profile.wet, space: spatial.space, priority, actorId: event.actorId, kind: 'report' });
     if (!direct) return;
     if (own) this.foregroundUntil = Math.max(this.foregroundUntil, this.context.currentTime + this.eventDelay + .25);
-    const taps = this.levels.reflections > 0 ? streetReflectionPlan(state?.world, event, player) : [];
+    // Distant reports retain the shared room/street response; nearby exchanges
+    // get the discrete facade returns. This bounds a busy district's node load.
+    const taps = this.levels.reflections > 0 && !distant ? streetReflectionPlan(state?.world, event, player) : [];
     const now=this.context.currentTime+this.eventDelay;let earlyReflections=0,lateEchoes=0,lateEchoDelayMs=null;
     for (const tap of taps) {
       const late=tap.kind==='late';
@@ -710,7 +726,7 @@ export class GameAudio {
     if (event.alive === false) return false;
     const id = event.victimId ?? event.actorId;
     // A late network batch may contain an earlier hit followed by a death.
-    for (const actors of [state?.squad, state?.enemies, state?.civilians, state?.survivors]) {
+    for (const actors of [state?.squad, state?.allies, state?.enemies, state?.civilians, state?.survivors]) {
       const actor = actors?.find(a => a.id === id);
       if (actor) return actor.alive !== false;
     }
@@ -757,12 +773,18 @@ export class GameAudio {
   }
 
   _event(event, player, state = this.lastState) {
+    if (event.type === 'field_voice') {
+      const speaker = state?.allies?.find(actor => actor.id === event.actorId);
+      const category = ({ regroup:'move', moving:'move', support:'suppression', grenade:'frag' })[event.category] || event.category;
+      if (speaker && !speaker.downed) this._say(category, speaker, player, state);
+      return;
+    }
     if (!player) return;
     if (event.type === 'shot') { this._shot(event, player, state); this._combatSpeech(event, player, state); return; }
     if (event.type === 'near_pass') { this._nearPass(event, player, state); this._combatSpeech(event, player, state); return; }
     if (event.type === 'victim_hit') { this._victimHit(event, player, state); return; }
     if (event.type === 'civilian_fear') { this._civilianFear(event, player, state); return; }
-    const s = this._spatial(event, player, state?.world); if (s.d > acousticHearingRange(event.type)) return;
+    const s = this._spatial(event, player, state?.world); if (s.d > acousticHearingRange(event.type, state?.world)) return;
     const own = event.actorId === player.id, gain = own ? 1 : s.gain * .65;
     if (event.type === 'grenade_throw') {
       this._voice({ buffer: this.cityMetal, duration: .07, gain: .035 * gain, highpass: 700, lowpass: 4800,
@@ -818,17 +840,22 @@ export class GameAudio {
         this.levels.master === 0 || this.levels.effects === 0 || this.levels.squad === 0) return false;
     const policy = voicePolicy(category), now = this.context.currentTime;
     if (!policy) return false;
+    const routeFor = (speaker, previous) => speaker.radioOnly ? squadVoiceRoute(state?.world, null, player)
+      : speaker.team === 'allied' ? fieldVoiceRoute(state?.world, speaker, player, previous)
+        : squadVoiceRoute(state?.world, speaker, player, previous);
+    const route = routeFor(speaker);
+    if (route.mode === 'inaudible') return false;
     const current = this.activeSpeech;
     if (current && this.voices.has(current.voice) && current.voice.end > now &&
         (policy.priority < 3 || current.priority >= 3)) return false;
     const selected = chooseVoiceLine(this.voiceDirector, category, VOICE_LINES, now, line => {
       const sample = this.samples.get(line.sample);
-      return sample && sample.duration >= line.offset + line.duration - .002;
+      return sample && (!line.radioOnly || speaker.radioOnly) && sample.duration >= line.offset + line.duration - .002;
     });
     if (!selected) return false;
     if (current) this._clearSpeech();
     if (this.speechReflectionsNeedFlush) this._makeSpeechReflections();
-    const { line } = selected, c = this.context, route = squadVoiceRoute(state?.world, speaker, player);
+    const { line } = selected, c = this.context;
     const voice = this._voice({ buffer: this.samples.get(line.sample), offset: line.offset, duration: line.duration,
       gain: .48, lowpass: 16000, highpass: 65, attack: .008, priority: policy.priority + 1,
       bus: 'squad', actorId: speaker.id, kind: 'squad-speech' });
@@ -838,8 +865,8 @@ export class GameAudio {
     const radioLow = c.createBiquadFilter(), radioHigh = c.createBiquadFilter(), radioGain = c.createGain();
     localLow.type = 'lowpass'; localLow.frequency.value = route.lowpass;
     localHigh.type = 'highpass'; localHigh.frequency.value = route.highpass;
-    radioLow.type = 'lowpass'; radioLow.frequency.value = 2850;
-    radioHigh.type = 'highpass'; radioHigh.frequency.value = 370;
+    radioLow.type = 'lowpass'; radioLow.frequency.value = line.radioOnly ? 7600 : 2850;
+    radioHigh.type = 'highpass'; radioHigh.frequency.value = line.radioOnly ? 90 : 370;
     localGain.gain.value = route.local * route.gain; radioGain.gain.value = route.radio * .72;
     voice.output.disconnect(); voice.output.connect(localHigh); localHigh.connect(localLow); localLow.connect(localGain);
     let pan = null, localOutput = localGain;
@@ -852,7 +879,7 @@ export class GameAudio {
       localOutput.connect(send); send.connect(this.speechReverbBanks[kind].input); sends[kind] = send;
     }
     voice.nodes.push(localLow, localHigh, localGain, radioLow, radioHigh, radioGain, pan, ...Object.values(sends));
-    this.activeSpeech = { voice, line, actorId: speaker.id, priority: policy.priority, route,
+    this.activeSpeech = { voice, line, actorId: speaker.id, radioOnly: speaker.radioOnly, field: speaker.team === 'allied', priority: policy.priority, route,
       localLow, localHigh, localGain, radioGain, pan, sends, nextMixAt: now };
     this.lastSpeech = { line: line.id, text: line.text, speakerId: speaker.id, route: route.mode };
     this.foregroundUntil = Math.max(this.foregroundUntil, now + line.duration + .25);
@@ -874,11 +901,13 @@ export class GameAudio {
     const now = this.context.currentTime, speech = this.activeSpeech;
     if (speech && (!this.voices.has(speech.voice) || now >= speech.voice.end)) this.activeSpeech = null;
     if (speech && this.activeSpeech) {
-      const speaker = state?.squad?.find(actor => actor.id === speech.actorId);
+      const speaker = speech.radioOnly ? FIELD_RADIO_SPEAKER
+        : [...(state?.squad || []), ...(state?.allies || [])].find(actor => actor.id === speech.actorId);
       if (!speaker || speaker.alive === false) { this._clearSpeech(); return; }
       if (force || now >= speech.nextMixAt) {
         speech.nextMixAt = now + .07;
-        const previous = speech.route.mode, route = squadVoiceRoute(state.world, speaker, player, previous);
+        const previous = speech.route.mode, route = speech.radioOnly ? squadVoiceRoute(state.world, null, player)
+          : speech.field ? fieldVoiceRoute(state.world, speaker, player, previous) : squadVoiceRoute(state.world, speaker, player, previous);
         speech.route = route;
         speech.localGain.gain.setTargetAtTime(route.local * route.gain, now, .09);
         speech.radioGain.gain.setTargetAtTime(route.radio * .72, now, .09);
@@ -900,6 +929,12 @@ export class GameAudio {
 
   _radio(message, player = this.lastState?.squad?.find(actor => actor.id === this.lastState.playerId), state = this.lastState) {
     const speaker = findVoiceSpeaker(state, message), category = squadVoiceCategory(message);
+    if (category === 'hold' && speaker && squadVoiceRoute(state?.world, speaker, player).mode === 'radio') {
+      return this._say('dispatch_hold', FIELD_RADIO_SPEAKER, player, state) || this._say(category, speaker, player, state);
+    }
+    if (category === 'sniper' && (message.id || 0) % 2 === 0) {
+      return this._say('dispatch_sniper', FIELD_RADIO_SPEAKER, player, state) || this._say(category, speaker, player, state);
+    }
     if (category) return this._say(category, speaker, player, state);
     // Unknown story lines retain their written wording; only off-map radio
     // gets a restrained carrier, never an unrelated movement recording.
@@ -909,7 +944,12 @@ export class GameAudio {
 
   _combatSpeech(event, player, state) {
     if (event.type === 'near_pass' && event.victimId === player.id) {
-      if (player.alive !== false && !player.downed) this._say('warning', player, player, state);
+      if (player.alive !== false && !player.downed) {
+        const variant = (Number(event.id) || 0) % 3;
+        if (variant === 0) this._say('dispatch_attack', FIELD_RADIO_SPEAKER, player, state);
+        else if (variant === 1) this._say('dispatch_six', FIELD_RADIO_SPEAKER, player, state);
+        else this._say('warning', player, player, state);
+      }
       return;
     }
     const speaker = state?.squad?.find(actor => actor.id === event.actorId);
@@ -945,7 +985,8 @@ export class GameAudio {
     let played = 0;
     // A solo switch to the medic/grenadier must not put the controlled feet
     // behind two AI soldiers in the per-frame foley budget.
-    const actors = [...(state.squad || [])].sort((a,b) => Number(b.id === player.id) - Number(a.id === player.id));
+    const actors = [...(state.squad || []), ...(state.allies || []), ...(state.enemies || [])].sort((a,b) =>
+      Number(b.id === player.id) - Number(a.id === player.id) || distance(a,player) - distance(b,player));
     for (const actor of actors) {
       const previous = this.footTravel.get(actor.id);
       const moved = previous ? distance(previous, actor) : 0;
@@ -968,9 +1009,14 @@ export class GameAudio {
       }
       this.footTravel.set(actor.id, { x: actor.x, y: actor.y, travel });
     }
+    if (this.footTravel.size > 128) {
+      const present = new Set(actors.map(actor => actor.id));
+      for (const id of this.footTravel.keys()) if (!present.has(id)) this.footTravel.delete(id);
+    }
   }
 
   _cityEvent(event, player, state) {
+    if (event.kind === 'battle') return; // Retired synthetic battle cues cannot reappear after a stale call.
     if (this.levels.ambience === 0 || this.levels.master === 0) return;
     if (event.kind === 'rotor' || event.kind === 'engine') {
       if (this.cityPasses.length < 2) this.cityPasses.push({ ...event, startedAt: state.time, key: `city-pass:${event.kind}:${event.id}` });
@@ -985,24 +1031,7 @@ export class GameAudio {
       if (remaining-- <= 0) return;
       return this._voice({ pan: s.pan, priority: -2, bus: 'ambience', kind: `city-${event.kind}`, ...options });
     };
-    if (event.kind === 'battle') {
-      if (event.variant === 'rumble') {
-        emit({ buffer: this.rumble, duration: 3.8, delay, gain: .28 * presence * intensity,
-          lowpass: indoors ? 350 : 650, highpass: 32, attack: .06 });
-        return;
-      }
-      const weapon = event.seed % 2 ? 'hostile_support' : 'rifle', profile = reportProfile(weapon);
-      const recorded = this.samples.get(profile.sample), buffer = recorded || this.fallbackReports.get(weapon);
-      const offsets = recorded ? profile.offsets : [0], count = event.variant === 'automatic' ? 5 + event.seed % 3 : 2;
-      for (let i = 0; i < count && remaining > 0; i++) {
-        const offset = offsets[(event.seed + i) % offsets.length];
-        emit({ buffer, offset, duration: Math.min(profile.duration, .3), delay: delay + i * (event.variant === 'automatic' ? .105 : .55),
-          gain: .24 * presence * intensity, lowpass: Math.min(s.lowpass, indoors ? 750 : 1450), highpass: 75,
-          rate: .97 + (event.seed % 7) * .005, attack: .001 });
-      }
-      if (remaining > 0) emit({ buffer: this.rumble, duration: 1.6, delay: delay + .2,
-        gain: .055 * presence * intensity, lowpass: 420, highpass: 55, attack: .08 });
-    } else if (event.kind === 'metal') {
+    if (event.kind === 'metal') {
       if (s.d > 750) return;
       emit({ buffer: this.cityMetal, duration: .65, delay, gain: .18 * s.gain * intensity,
         highpass: 180, lowpass: Math.min(s.lowpass, indoors ? 900 : 2400), rate: .85 + event.seed % 31 / 100, attack: .002 });
@@ -1090,6 +1119,7 @@ export class GameAudio {
       this._stopMission(); this.lastState = state; this.lastEventId = 0; this.seenEffects = new WeakSet(); this.effectIds.clear();
       this.footTravel.clear(); this.vehiclePositions.clear(); this.lastShots = 0; this.lastRadio = state.radio?.at(-1)?.id;
       this.shotBudget = 8; this.lastPlayerId = null; this.voiceDirector = createVoiceDirector(state.seed);
+      this.distantShotBudget = 4; this.distantShooters.clear(); this.fieldRadioDirector = createFieldRadioDirector(state.time);
       this.lastSpeech = null; this.lastCarrierAt = -Infinity; this.lastFlashKey = null;
       this.reportTurns.clear(); this.lastReport = null;
       this.cityDirector = createCityAmbience(state.seed, state.missionIndex, state.time); this.cityPasses.length = 0;
@@ -1109,6 +1139,7 @@ export class GameAudio {
     if (state.playerId !== this.lastPlayerId) { this.lastHealth = player?.hp ?? null; this.lastPlayerId = state.playerId; }
     const seconds = clamp(Number(dt) || 0, 0, .25), shots = Number(state.stats?.shots) || 0;
     this.shotBudget = Math.min(8, this.shotBudget + seconds * 24);
+    this.distantShotBudget = Math.min(4, this.distantShotBudget + seconds * 8);
     const playing = state.status === 'playing', audible = playing && this.scene === 'mission' && this._ready();
     if (audible) this._ambience(state, player, seconds); else this._stopMission();
     const effectsAudible = audible && this.levels.master > 0 && this.levels.effects > 0;
@@ -1157,7 +1188,13 @@ export class GameAudio {
         (voicePolicy(squadVoiceCategory(a))?.priority || 0) || b.id - a.id);
       for (const message of messages) if (this._radio(message, player, state)) break;
     }
-    if (effectsAudible && player) this._updateSpeech(state, player);
+    if (effectsAudible && player) {
+      this._updateSpeech(state, player);
+      if (!skipBatch && !this.activeSpeech) {
+        const category = fieldRadioCue(this.fieldRadioDirector, state, player);
+        if (category) this._say(category, FIELD_RADIO_SPEAKER, player, state);
+      }
+    }
     if (effectsAudible && !skipBatch && player && !Array.isArray(state.soundEvents) && this.lastHealth != null && player.hp < this.lastHealth) {
       this._victimHit({ ...player, victimId: player.id, damage: this.lastHealth - player.hp, cause: 'bullet', alive: player.alive !== false }, player, state);
     }

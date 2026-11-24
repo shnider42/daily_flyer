@@ -1,8 +1,9 @@
 // Complete human performances from Kenney's CC0 Voiceover Pack.
 // Male voice: Jeffrey M. Smith. See audio/CREDITS.txt and tools/prepare-squad-voice.py.
 // Full bandwidth; local/radio filtering belongs to the live audio graph.
-export const VOICE_SAMPLE_FILES = Object.freeze({ squadVoice: 'squad-voice-bank.wav' });
-export const VOICE_LINES = Object.freeze([
+import { FIELD_RADIO_LINES } from './field-radio-lines.mjs';
+export const VOICE_SAMPLE_FILES = Object.freeze({ squadVoice: 'squad-voice-bank.wav', fieldRadio: 'field-radio-bank.wav' });
+export const VOICE_LINES = Object.freeze([...[
   {
     "id": "go",
     "sample": "squadVoice",
@@ -145,5 +146,15 @@ export const VOICE_LINES = Object.freeze([
     "categories": [
       "sniper"
     ]
+  },
+  {
+    "id": "call-for-backup",
+    "sample": "squadVoice",
+    "offset": 13.574013605442177,
+    "duration": 1.0323809523809524,
+    "text": "Call for backup!",
+    "categories": [
+      "backup"
+    ]
   }
-].map(line => Object.freeze({ ...line, categories: Object.freeze(line.categories) })));
+], ...FIELD_RADIO_LINES].map(line => Object.freeze({ ...line, categories: Object.freeze(line.categories) })));

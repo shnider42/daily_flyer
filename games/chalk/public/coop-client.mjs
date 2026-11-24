@@ -18,8 +18,8 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const finite = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const monotonicNow = () => globalThis.performance?.now?.() ?? Date.now();
 const defaultStorage = () => { try { return globalThis.sessionStorage; } catch { return undefined; } };
-const actorCollections = ['squad', 'enemies', 'civilians', 'survivors', 'vehicles'];
-const staticKeys = new Set(['world', 'grid', 'stages', '__proto__', 'constructor', 'prototype']);
+const actorCollections = ['squad', 'allies', 'enemies', 'civilians', 'survivors', 'vehicles'];
+const staticKeys = new Set(['world', 'grid', 'stages', 'fieldSquads', '__proto__', 'constructor', 'prototype']);
 const angleBetween = (from, to, fraction) => from + Math.atan2(Math.sin(to-from), Math.cos(to-from)) * fraction;
 
 export function socketURL(value = globalThis.location?.origin) {
@@ -74,6 +74,10 @@ export class CoopStateHydrator {
     const changedEpoch = !this.game || epoch !== this.epoch;
     if (changedEpoch) {
       this.game = createGame({ seed: packet.init.seed, mission: packet.init.mission, difficulty: packet.init.difficulty, campaign: packet.init.campaign });
+      // Reconstruct terrain only: NPC orders and unseen garrison posts belong
+      // to the authority, and are not retained from the seeded local setup.
+      delete this.game.fieldSquads;
+      this.game.allies = [];
       this.epoch = epoch;
     }
     const game = this.game;

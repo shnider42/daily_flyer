@@ -29,12 +29,13 @@ function pcm(file) {
 
 test('squad speech bank has complete distinct natural performances and safe playback boundaries', () => {
   const { samples, rate, payload } = pcm(VOICE_SAMPLE_FILES.squadVoice), signatures = new Set();
-  assert.equal(VOICE_LINES.length, 14);
+  const lines = VOICE_LINES.filter(line => line.sample === 'squadVoice');
+  assert.equal(lines.length, 15);
   assert.equal(new Set(VOICE_LINES.map(line => line.id)).size, VOICE_LINES.length);
   assert.ok(samples.every(value => Number.isFinite(value) && Math.abs(value) <= .681), 'quiet headroom without clipped samples');
-  for (let i = 0; i < VOICE_LINES.length; i++) {
-    const line = VOICE_LINES[i], start = Math.round(line.offset * rate), end = Math.round((line.offset + line.duration) * rate);
-    const next = i + 1 < VOICE_LINES.length ? Math.round(VOICE_LINES[i + 1].offset * rate) : samples.length;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i], start = Math.round(line.offset * rate), end = Math.round((line.offset + line.duration) * rate);
+    const next = i + 1 < lines.length ? Math.round(lines[i + 1].offset * rate) : samples.length;
     assert.equal(line.sample, 'squadVoice');
     assert.ok(start >= 0 && end > start && end <= samples.length, `${line.id}: entire recording is present`);
     assert.ok(line.duration >= .5 && line.duration < 1.5, `${line.id}: short, complete tactical phrase`);
@@ -47,7 +48,27 @@ test('squad speech bank has complete distinct natural performances and safe play
     assert.ok(rms > .08 && rms <= .151, `${line.id}: comparable intelligible phrase levels`);
     signatures.add(createHash('sha256').update(payload.subarray(start * 2, end * 2)).digest('hex'));
   }
-  assert.equal(signatures.size, VOICE_LINES.length, 'variety comes from different recordings, not waveform copies');
+  assert.equal(signatures.size, lines.length, 'variety comes from different recordings, not waveform copies');
+});
+
+test('additional radio recordings are complete distinct takes and remain confined to radio categories', () => {
+  const { samples, rate, payload } = pcm(VOICE_SAMPLE_FILES.fieldRadio), signatures = new Set();
+  const lines = VOICE_LINES.filter(line => line.sample === 'fieldRadio');
+  assert.equal(lines.length, 10); assert.equal(VOICE_LINES.length, 25);
+  for (const [i, line] of lines.entries()) {
+    const start = Math.round(line.offset * rate), end = Math.round((line.offset + line.duration) * rate);
+    const next = i + 1 < lines.length ? Math.round(lines[i + 1].offset * rate) : samples.length;
+    assert.ok(line.radioOnly && line.categories.every(category => category.startsWith('dispatch_')));
+    assert.ok(start >= 0 && end > start && end <= samples.length);
+    assert.ok(line.duration > 2 && line.duration < 3.5, `${line.id} keeps the full performance`);
+    assert.ok(next - end >= rate * .119 && samples.subarray(end, next).every(value => value === 0));
+    assert.equal(samples[start], 0); assert.equal(samples[end - 1], 0);
+    const take = samples.subarray(start, end);
+    assert.ok(take.every(value => Math.abs(value) <= .601));
+    assert.ok(Math.sqrt(take.reduce((sum,value) => sum + value * value, 0) / take.length) > .04);
+    signatures.add(createHash('sha256').update(payload.subarray(start * 2, end * 2)).digest('hex'));
+  }
+  assert.equal(signatures.size, lines.length);
 });
 
 test('voice categories preserve what was actually said and omit the retired movement line', () => {
