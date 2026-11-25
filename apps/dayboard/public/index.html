@@ -12,6 +12,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./import.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
@@ -42,7 +43,7 @@
       </header>
       <section class="workspace-header">
         <div><div class="page-eyebrow" id="page-eyebrow">SUNDAY, NOVEMBER 8</div><h1 id="page-title">My board</h1><p id="page-description">A place for what needs doing. One next step at a time.</p></div>
-        <div class="header-actions"><button class="button subtle" data-action="capture-list" aria-label="Paste a list" title="Paste a list"><span data-icon="list-plus"></span><span>Paste a list</span></button><button class="button primary" data-action="new-task" aria-label="New task"><span data-icon="plus"></span><span>New task</span></button></div>
+        <div class="header-actions"><button class="button subtle external-import-button" data-action="import-work" aria-label="Import work"><span data-icon="upload"></span><span>Import</span></button><button class="button subtle" data-action="capture-list" aria-label="Paste a list" title="Paste a list"><span data-icon="list-plus"></span><span>Paste a list</span></button><button class="button primary" data-action="new-task" aria-label="New task"><span data-icon="plus"></span><span>New task</span></button></div>
       </section>
       <div id="notice-region"></div>
       <section class="focus-strip" id="focus-strip" aria-label="Today's focus"></section>
@@ -52,6 +53,7 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="external-import-dialog" class="external-import-dialog" aria-labelledby="external-import-title"></dialog>
   <dialog id="task-dialog" class="task-dialog" aria-labelledby="task-dialog-title"></dialog>
   <dialog id="utility-dialog" class="utility-dialog" aria-labelledby="utility-title"></dialog>
   <input type="file" id="import-file" accept="application/json,.json" hidden>

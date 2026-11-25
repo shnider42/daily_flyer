@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
 const root=dirname(fileURLToPath(import.meta.url));
-for(const script of ['app.js','display.mjs']){
+for(const script of ['app.js','display.mjs','importers.mjs','import-model.mjs','import-ui.mjs','xlsx-reader.mjs']){
   const checks=spawnSync(process.execPath,['--check',join(root,'public',script)],{stdio:'inherit'});
   if(checks.status!==0)process.exit(checks.status||1);
 }

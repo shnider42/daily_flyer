@@ -16,6 +16,8 @@
  * Version 1 boards are normalized in memory to version 2 with their original
  * area IDs intact. Before their first durable write, exact original bytes are
  * retained at `${key}.before-areas-v2`; the primary storage key stays unchanged.
+ * External imports opt into schema 3. Their first durable save retains the
+ * exact preceding saved board at `${key}.before-imports-v3`.
  */
 export const AREAS = Object.freeze(['career', 'life', 'custom']);
 export const AREA_COLORS = Object.freeze(['blue', 'green', 'amber', 'purple', 'teal', 'rose', 'slate']);
@@ -27,7 +29,8 @@ const EFFORTS = [0, 15, 30, 60, 90];
 const MAX_TASKS = 10000;
 const MAX_PROJECTS = 1000;
 const MAX_JSON_LENGTH = 10 * 1024 * 1024;
-const TASK_KEYS = ['id', 'number', 'title', 'area', 'status', 'priority', 'projectId', 'notes', 'due', 'followUp', 'effort', 'today', 'checklist', 'createdAt', 'updatedAt', 'completedAt', 'archived', 'starter', 'repeat', 'repeatNextId', 'url', 'order'];
+const TASK_KEYS = ['id', 'number', 'title', 'area', 'status', 'priority', 'projectId', 'notes', 'due', 'followUp', 'effort', 'today', 'checklist', 'createdAt', 'updatedAt', 'completedAt', 'archived', 'starter', 'repeat', 'repeatNextId', 'url', 'order', 'source'];
+const SOURCE_FIELDS = ['title', 'notes', 'status', 'priority', 'due', 'followUp', 'effort', 'checklist', 'url'];
 const PROJECT_KEYS = ['id', 'name', 'area', 'url', 'description', 'starter', 'archived'];
 const AREA_KEYS = ['id', 'name', 'color'];
 const SETTINGS_KEYS = ['theme', 'density', 'welcomeDismissed', 'lastBackupAt', 'lastReviewAt'];
@@ -201,6 +204,37 @@ function checkedUrl(value, label) {
   return result;
 }
 
+/** Source evidence is inert, bounded data; it is never an executable instruction. */
+function normalizeSource(value) {
+  object(value, 'Import source');
+  knownKeys(value, ['provider', 'scope', 'itemId', 'url', 'fingerprint', 'original', 'importedAt', 'baseline'], 'Import source');
+  const original = field(value, 'original', {});
+  object(original, 'Original source fields');
+  const entries = Object.entries(original);
+  if (entries.length > 128) fail('An import source can retain at most 128 original fields.');
+  const retained = Object.fromEntries(entries.map(([key, entry]) => {
+    string(key, 'Original field name', {empty: false, max: 200});
+    if (['__proto__', 'constructor', 'prototype'].includes(key)) fail('The original source contains an unsupported field name.');
+    if (entry !== null && typeof entry !== 'boolean' && !(typeof entry === 'number' && Number.isFinite(entry)) && typeof entry !== 'string') fail('Original source values must be text, finite numbers, booleans, or null.');
+    return [key, typeof entry === 'string' ? string(entry, 'Original source value', {max: 50000}) : entry];
+  }));
+  if (JSON.stringify(retained).length > 100000) fail('Original source information is too large (maximum 100,000 characters per task).');
+  const baseline = field(value, 'baseline', {});
+  object(baseline, 'Imported field baseline');
+  knownKeys(baseline, SOURCE_FIELDS, 'Imported field baseline');
+  const savedBaseline = Object.fromEntries(Object.entries(baseline).map(([key, entry]) => [key, string(entry, 'Imported field fingerprint', {empty: false, max: 200})]));
+  return {
+    provider: string(value.provider, 'Source service', {empty: false, trim: true, max: 80}),
+    scope: string(field(value, 'scope', ''), 'Source workspace or board', {trim: true, max: 500}),
+    itemId: string(field(value, 'itemId', ''), 'Source item ID', {trim: true, max: 500}),
+    url: checkedUrl(field(value, 'url', ''), 'Source link'),
+    fingerprint: string(field(value, 'fingerprint', ''), 'Source fingerprint', {max: 200}),
+    original: retained,
+    importedAt: instant(value.importedAt, 'Imported at'),
+    baseline: savedBaseline,
+  };
+}
+
 /** Create a task with validated fields and stable, serializable defaults. */
 export function makeTask(fields = {}, now) {
   object(fields, 'Task');
@@ -243,6 +277,7 @@ export function makeTask(fields = {}, now) {
     repeatNextId: string(field(fields, 'repeatNextId', ''), 'Next repeat task ID', {trim: true, max: 200}),
     url: checkedUrl(field(fields, 'url', ''), 'Task link'),
     order,
+    ...(own(fields, 'source') ? {source: normalizeSource(fields.source)} : {}),
   };
 }
 
@@ -263,7 +298,7 @@ function normalizeProject(project) {
 /** Validate an entire workspace, reconstructing only supported schema fields. */
 export function normalizeWorkspace(data) {
   object(data, 'Workspace');
-  if (![1, 2].includes(data.schemaVersion)) fail('This file uses an unsupported workspace format. Expected schemaVersion 1 or 2.');
+  if (![1, 2, 3].includes(data.schemaVersion)) fail('This file uses an unsupported workspace format. Expected schemaVersion 1, 2, or 3.');
   const legacy = data.schemaVersion === 1;
   knownKeys(data, legacy ? WORKSPACE_KEYS.filter(key => key !== 'areas') : WORKSPACE_KEYS, 'Workspace');
   if (!Array.isArray(data.tasks) || data.tasks.length > MAX_TASKS) fail(`Tasks must be an array with at most ${MAX_TASKS} items.`);
@@ -289,6 +324,7 @@ export function normalizeWorkspace(data) {
     object(raw, 'Task');
     // An imported record needs a real identity; only makeTask creates new IDs.
     if (!own(raw, 'id')) fail('Every saved task must have an ID.');
+    if (own(raw, 'source') && data.schemaVersion !== 3) fail('Imported source information requires workspace schemaVersion 3.');
     const task = makeTask(raw, now);
     if (legacy) choice(task.area, LEGACY_AREAS, 'Area');
     if (!areaIds.has(task.area)) fail(`Task “${task.title}” refers to a missing area.`);
@@ -307,7 +343,7 @@ export function normalizeWorkspace(data) {
     task.number = nextNumber++;
   }
   return {
-    schemaVersion: 2,
+    schemaVersion: data.schemaVersion === 3 ? 3 : 2,
     revision: integer(field(data, 'revision', 0), 'Workspace revision'),
     updatedAt: instant(field(data, 'updatedAt', now), 'Workspace updated at'),
     tasks,
@@ -416,8 +452,11 @@ export function transitionTask(state, taskId, status, options = {}) {
     const order = Math.max(0, ...state.tasks.map(item => item.order)) + 1;
     // Build and validate the successor before changing its parent. makeTask
     // reconstructs checklist objects, keeping occurrences independent.
+    // A locally generated occurrence is new work, not another copy of the same
+    // external item. Preserve its useful notes but detach the source identity.
+    const {source: _source, ...repeatFields} = task;
     next = makeTask({
-      ...task,
+      ...repeatFields,
       id: uid(),
       number,
       order,
@@ -472,6 +511,7 @@ function emptyWorkspace() { return {schemaVersion: 2, revision: 0, updatedAt: ti
 function errorText(error) { return error instanceof Error ? error.message : String(error); }
 function mergeWorkspaces(current, incoming) {
   const result = clone(current);
+  result.schemaVersion = current.schemaVersion === 3 || incoming.schemaVersion === 3 ? 3 : 2;
   const knownAreas = new Set(result.areas.map(area => area.id));
   const areaNames = new Set(result.areas.map(area => nameKey(area.name)));
   for (const source of incoming.areas) if (!knownAreas.has(source.id)) {
@@ -525,6 +565,7 @@ export class BoardStore {
     this.previousKey = `${this.key}.previous`;
     this.corruptKey = `${this.key}.corrupt`;
     this.legacyKey = `${this.key}.before-areas-v2`;
+    this.beforeImportsKey = `${this.key}.before-imports-v3`;
     this._initial = normalizeWorkspace(initialState === undefined ? emptyWorkspace() : initialState);
     this._state = freeze(clone(this._initial));
     this._raw = null;
@@ -622,6 +663,7 @@ export class BoardStore {
       // bytes are retained once before the first durable v2 write, under the
       // same browser origin. A failed preservation write stops the board save.
       if (this._legacyRaw !== null && this.storage.getItem(this.legacyKey) === null) this.storage.setItem(this.legacyKey, this._legacyRaw);
+      if (next.schemaVersion === 3 && currentRaw !== null && !this._writeBlocked && JSON.parse(currentRaw).schemaVersion !== 3 && this.storage.getItem(this.beforeImportsKey) === null) this.storage.setItem(this.beforeImportsKey, currentRaw);
       if (this._writeBlocked && recovery && this._raw !== null) this.storage.setItem(this.corruptKey, this._raw);
       this.storage.setItem(this.previousKey, previousRaw);
       this.storage.setItem(this.key, serialized);

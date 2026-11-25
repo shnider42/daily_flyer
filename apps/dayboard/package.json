@@ -1,1 +1,1 @@
-{"name":"dfe-dayboard","version":"1.2.1","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check public/app.js && node --check public/display.mjs && node --test tests/*.test.mjs"},"engines":{"node":">=22"}}
+{"name":"dfe-dayboard","version":"1.4.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check public/app.js && node --check public/display.mjs && node --check public/import-ui.mjs && node --test tests/*.test.mjs"},"engines":{"node":">=22"}}

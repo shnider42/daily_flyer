@@ -13,6 +13,23 @@ A small, personal Kanban workspace with customizable areas for work, life, and o
 - The public app starts with no tasks or projects. A separate local JSON import can provide starter suggestions. Clear suggestions only removes untouched starter tasks.
 - Projects are a directory of user-entered links and context, not a list of automatic commitments. No personal project URLs are embedded in the public app.
 
+## Import work (1.4.0)
+
+Use **Import** beside New task, or **Settings & backup → Import work**. This is a personal-board feature. It does not activate the separate shared-workspace pilot.
+
+- **ClickUp:** choose a task-data CSV export. IDs, task links, descriptions, statuses, dates, priorities, owners, checklists, and original columns are retained where provided.
+- **Monday:** choose an Excel `.xlsx` export and select **Monday** as the source. Choose the worksheet to review; updates on other worksheets are not automatically joined to tasks. Formatting-only group/subitem relationships and hyperlink destinations are not reconstructed. Explicit parent IDs remain in source details.
+- **Other task tables:** CSV, TSV, semicolon-separated files, and ordinary `.xlsx` workbooks can be mapped by column. A custom title column can be chosen even when automatic detection fails.
+- **Slack, Teams, OneNote, or other text:** paste selected content, including relevant replies. Local rules suggest action lines and checkboxes. Reference passages, completed checkboxes, requests, and uncertain ideas start skipped. This is basic text extraction, not AI interpretation or a live account connection.
+
+Every import previews editable titles, notes, statuses, priorities, due dates, and follow-up dates. Select an existing Area and optional Project for new tasks. Source status mappings and individual overrides are available for task tables. No new Areas or Projects are created automatically. New tasks are not pinned to Today, and imported recurrence rules are not activated.
+
+Use a stable **Workspace / board name** across exports. Matching uses the source service, namespace, and item ID (or a supported task URL). Exact unchanged matches are skipped; changes require an explicit **Update existing task** choice. Title-only matches are possible matches and cannot overwrite existing tasks. Updates preserve local Area, Project, recurrence, and edited personal notes; checklist and task-field replacements are shown in the preview. Missing source records never delete Dayboard work.
+
+The entire batch is one validated save. **Undo this import** restores the preceding board until another change is saved. Storage failures or stale concurrent edits leave the existing board intact and retain the preview. Source information is visible in task details and included in JSON backups. The first import advances the workspace to schema v3 and retains the exact previous saved record once under `dfe.dayboard.v1.before-imports-v3`; existing v1/v2 boards remain readable.
+
+Files and pasted content are processed in the browser. No source content is uploaded, no links are fetched, and no remote AI or third-party scripts are loaded. Preview data stays in page memory. Source attachments are references only. Files must be at most 8 MB for Excel or 5 MB of text for CSV/TSV; a batch may contain up to 500 proposals. Pasted text is limited to 100,000 characters. Excel reading requires a browser with `DecompressionStream('deflate-raw')`; use a current browser or CSV when unavailable. Encrypted/macro-enabled or malformed workbooks are rejected. Formulas are never evaluated; available saved values are read.
+
 ## Display
 
 Use **Display** in the top bar, or open it from Settings & backup. Choices apply immediately and are saved in the current browser:
@@ -38,7 +55,7 @@ Existing schema v1 boards automatically receive **Career, Life, DFE, and Custom*
 
 The application shell is public. Board data is browser-local under `dfe.dayboard.v1` and is not uploaded. Every browser/device has its own workspace. No authentication, analytics, external fonts, external script dependencies, or cloud synchronization are present.
 
-Download a JSON backup to preserve the entire workspace, including area names and colors, or transfer it manually. Both schema v1 and v2 backups can be imported. Merge adds incoming records and keeps the newer timestamp for matching tasks; current project and area metadata win matching-ID collisions. Distinct imported areas keep their own identities even if their names collide, in which case the imported name receives an `(imported)` suffix. Replace validates the entire file before replacing the workspace. CSV export uses current area names and is for reading in spreadsheets, not complete restoration. CSV cells are protected against formula execution.
+Download a JSON backup to preserve the entire workspace, including area names and colors, or transfer it manually. Schema v1, v2, and v3 backups can be imported. Schema v3 includes imported source metadata. Merge adds incoming records and keeps the newer timestamp for matching tasks; current project and area metadata win matching-ID collisions. Distinct imported areas keep their own identities even if their names collide, in which case the imported name receives an `(imported)` suffix. Replace validates the entire file before replacing the workspace. CSV export uses current area names and is for reading in spreadsheets, not complete restoration. CSV cells are protected against formula execution.
 
 Writes validate state before persisting. A failed durable write does not publish the change to in-memory state. A previous snapshot supports recovery, and conflicting writes from another tab are rejected. Corrupt local data is never silently reset. A valid replacement import is the explicit recovery path. Settings clearly describe device-local storage, backup, and lack of notifications. Due dates are in-app dates; they do not send messages or system reminders.
 
@@ -64,4 +81,6 @@ Render configuration:
 
 ## Important boundaries
 
-The board is not connected to Jira, email, calendars, job applications, or other career applications. Future account-based sync needs authenticated per-user durable storage and a local-data import path; a public write endpoint or a server-local JSON file would not provide those guarantees.
+The disabled shared-workspace branch must incorporate the import schema and compatibility changes before any later activation; importing here does not enable or modify shared storage.
+
+The board does not connect to external accounts or synchronize changes with their services. Import work reads files and pasted text only. Future account-based sync needs authenticated per-user durable storage and a local-data import path; a public write endpoint or a server-local JSON file would not provide those guarantees.
