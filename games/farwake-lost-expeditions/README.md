@@ -1,6 +1,6 @@
 # Farwake: Lost Expeditions
 
-## Nightglass · first release 0.1.0
+## Nightglass · 0.1.1
 
 A standalone first-person expedition mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna into an explorable recovery mission. It is a complete small case and a foundation for an anthology, not the full planned collection.
 
@@ -14,11 +14,21 @@ The survey is over. The receiver is still answering. Follow photographs, mainten
 - A stable route home, optional hints, and a completed field report that can be downloaded.
 - Local progress and settings, synthesized ambient sound, written sound clues, keyboard controls, and responsive layouts.
 
-Mouse/touch: select markers or the actions below the view. Drag across a cropped scene to look sideways. Every route is available below the scene even when its edge is offscreen.
+On a phone, select a labeled object or use the fixed **Inspect**, **Move**, and **Notebook** dock. The whole scene is visible by default. **Expand view** opens a closer view with explicit left and right pan buttons; **Back to controls** restores the normal layout. Every required action and route is available in the dock even when scene markers are hidden.
+
+On desktop, select markers or the actions below the view. Drag across a cropped scene to look sideways. Every route is also available below the scene.
 
 Keyboard: Tab, Enter, and Space operate controls. J opens the notebook; H shows a lead; M toggles sound. Left/right pan. Escape closes a panel.
 
 Progress is stored only in this browser. Clearing site data removes it. There are no accounts, analytics, external fonts, online saves, or network dependencies after the local assets load.
+
+### Mobile revision · 0.1.1
+
+- The scene and Inspect/Move/Notebook dock stay in a stable viewport layout. Reading and interaction content use a single scrolling lower pane.
+- The default phone view fits the whole illustration. Expanding and panning are explicit controls rather than necessary gestures for finding objects.
+- Collected records open inline below the scene. Action feedback remains available in the lower pane, including the receiver comparison and its outcome.
+- Scene markers have short visible labels, and the listening and mute controls no longer create overlapping targets. Completed interactions leave the primary action list; collected evidence remains readable in the notebook.
+- Existing 0.1.0 saves remain compatible. The puzzle gates, independent return lights, and both receiver resolutions are unchanged.
 
 ### Run and validate
 
@@ -30,7 +40,7 @@ npm run check
 npm test
 ```
 
-Tests exercise both complete endings, evidence prerequisites, incorrect circuit feedback, return-route reachability, save hydration, malformed save recovery, and completed-state stability.
+The 17 automated tests exercise both complete endings, evidence prerequisites, incorrect circuit feedback, return-route reachability, save hydration, malformed save recovery, and completed-state stability. Presentation coverage checks new clues, collected-record access, locked-route explanations, completed-control cleanup, marker overlap, and immutability. This total includes two completion tests that follow the mute and redirect paths using only the actions presented by the mobile interface.
 
 ### Render deployment
 
@@ -49,11 +59,14 @@ Keep this deployment separate from the existing Farwake game and universe servic
 | --- | --- |
 | `dist/content.mjs` | Scene, record, and ending text |
 | `dist/state.mjs` | Pure state transitions, gates, objectives, and save normalization |
-| `dist/app.mjs` | Viewpoints, markers, panels, local save, and interaction wiring |
+| `dist/app.mjs` | Viewpoints, markers, dock, inline reading, panels, local save, and interaction wiring |
+| `dist/mobile-actions.mjs` | Pure mobile action presentation, short marker labels, and completed-control filtering |
 | `dist/audio.mjs` | Web Audio atmosphere and interaction cues |
-| `dist/style.css` | Desktop, phone, and reduced-motion presentation |
+| `dist/style.css` | Base, desktop, and reduced-motion presentation |
+| `dist/mobile.css` | Phone viewport layout, fixed dock, scrolling reading pane, and expanded scene controls |
 | `dist/assets/` | Six optimized WebP scene illustrations |
 | `tests/state.test.mjs` | State and completion regression tests |
+| `tests/mobile-actions.test.mjs` | Mobile presentation and both endings through presented controls |
 
 ### Narrative boundaries
 
