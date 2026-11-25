@@ -10,15 +10,15 @@
   <title>Nightglass · Farwake: Lost Expeditions</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preload" as="image" href="assets/approach.webp">
-  <link rel="stylesheet" href="style.css?v=0.1.1">
-  <link rel="stylesheet" href="mobile.css?v=0.1.1">
-  <script type="module" src="app.mjs?v=0.1.1"></script>
+  <link rel="stylesheet" href="style.css?v=0.2.0">
+  <link rel="stylesheet" href="mobile.css?v=0.2.0">
+  <script type="module" src="app.mjs?v=0.2.0"></script>
 </head>
 <body>
   <main id="game" aria-label="Nightglass expedition">
     <header class="topbar">
       <button id="home-button" class="wordmark" aria-label="Open expedition menu"><span>FARWAKE</span><small>LOST EXPEDITIONS</small></button>
-      <div class="top-location"><span id="header-location">NIGHTGLASS</span><small>LUNA · RECOVERED FIELD RECORD</small></div>
+      <div class="top-location"><span id="header-location">NIGHTGLASS</span><small>LUNA · RECOVERY EXPEDITION</small></div>
       <nav class="top-controls" aria-label="Expedition tools">
         <button id="journal-button" class="tool-button" aria-label="Open field notebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM9 3v18M12 7h4M12 11h4"/></svg><span>Notebook</span><b id="record-count">0</b></button>
         <button id="settings-button" class="tool-button" aria-label="Open settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg><span>Settings</span></button>
@@ -33,37 +33,30 @@
       <div class="scene-heading"><p id="scene-subtitle">LUNAR SURVEY ARCHIVE</p><h1 id="scene-title">Nightglass</h1></div>
       <div id="scene-hotspots" aria-label="Things in this view"></div>
       <div class="view-footer"><span id="view-instruction">Drag to look · select a marker to explore</span><span id="scene-status">RETURN ROUTE AVAILABLE</span></div>
-      <div class="pan-controls" hidden><button id="pan-left" aria-label="Look left">‹</button><button id="pan-right" aria-label="Look right">›</button></div>
-      <div class="view-tools"><button id="view-toggle" aria-expanded="false">Expand view</button></div>
       <div id="scene-loading" class="scene-loading" hidden>Opening viewpoint…</div>
       <p id="scene-caption" class="scene-caption" aria-live="polite"></p>
     </section>
 
-    <section class="field-controls" aria-label="Current task and available actions" data-dock="inspect" data-reading="false">
+    <section class="field-controls" aria-label="Current task and available actions">
       <div class="objective-row"><div><p class="eyebrow">CURRENT TASK</p><h2 id="objective-title">Recover the Nightglass record</h2><p id="objective-text">Read your field dispatch before entering.</p></div><button id="hint-button" class="text-button">Need a lead?</button></div>
       <div id="hint-box" class="hint-box" hidden></div>
       <div class="action-area">
-        <div id="mobile-feedback" aria-live="polite" hidden></div>
+        <p id="mobile-feedback" aria-live="polite" hidden></p>
         <div class="action-group inspection-group" id="inspect-content">
-          <section id="mobile-observation" aria-label="Recovered record" tabindex="-1" hidden></section>
           <div class="inspection-actions"><p class="eyebrow">IN REACH</p><div id="interactions" class="action-list"></div></div>
         </div>
         <div class="action-group route-group" id="move-content"><p class="eyebrow">CHOOSE A ROUTE</p><div id="routes" class="action-list"></div></div>
       </div>
       <div class="lower-status"><span id="save-status">Progress stays on this device</span><span id="sound-status">Sound starts with your expedition</span></div>
-      <nav class="mobile-dock" aria-label="Expedition controls">
-        <button id="inspect-tab" aria-controls="inspect-content" aria-pressed="true"><span>Inspect</span><small id="inspect-count"></small></button>
-        <button id="move-tab" aria-controls="move-content" aria-pressed="false"><span>Move</span><small id="move-count"></small></button>
-        <button id="mobile-journal-button" aria-label="Open field notebook"><span>Notebook</span><small id="mobile-record-count">0 records</small></button>
-      </nav>
+
     </section>
   </main>
 
   <section id="intro" class="intro" aria-label="Nightglass expedition menu">
     <div class="intro-backdrop"></div>
-    <div class="intro-top"><div class="intro-brand">FARWAKE<span>LOST EXPEDITIONS</span></div><span class="archive-stamp">VESPER / FIELD ARCHIVE</span></div>
-    <div class="intro-content"><p class="chapter-label"><span></span> A LUNAR EXPEDITION</p><h1>Nightglass</h1><p class="intro-deck">The survey is over.<br>The receiver is still answering.</p><p class="intro-copy">Follow an abandoned survey through photographs, maintenance records, and the rooms it left behind. Keep the return lights on.</p><div class="intro-actions"><button id="begin-button" class="primary-button">Enter expedition</button><button id="intro-restart" class="secondary-button" hidden>Start over</button></div><p class="play-note">A first-person mystery · Mouse, touch, or keyboard<br>Sound recommended. Every sound also has a written clue.</p></div>
-    <footer class="intro-bottom"><span>CASE: NIGHTGLASS LISTENING SHAFT</span><button id="about-button">About this expedition</button><span>VERSION 0.1.1</span></footer>
+    <div class="intro-top"><div class="intro-brand">FARWAKE<span>LOST EXPEDITIONS</span></div><span class="archive-stamp">LUNA / RECOVERY 01</span></div>
+    <div class="intro-content"><p class="chapter-label"><span></span> A LUNAR EXPEDITION</p><h1>Nightglass</h1><p class="intro-deck">The survey is over.<br>The receiver is still answering.</p><p class="intro-copy">You are a recovery operator at a deserted station on the Moon. Retrieve its field recorder, warn the next crew, then return to the airlock. The crew’s last call is still repeating.</p><div class="intro-actions"><a id="explore-link" class="primary-button" href="explore.html">Explore in 3D</a><button id="begin-button" class="secondary-button">Play snapshot version</button><button id="intro-restart" class="secondary-button" hidden>Start over</button></div><p class="play-note">3D movement preview or the original snapshot view.<br>Both keep your progress. All sound clues are readable.</p></div>
+    <footer class="intro-bottom"><span>CASE: NIGHTGLASS LISTENING SHAFT</span><button id="about-button">About this expedition</button><span>VERSION 0.2.0</span></footer>
   </section>
 
   <dialog id="panel" aria-labelledby="panel-title"><div class="panel-heading"><div><p id="panel-kicker" class="eyebrow">FIELD NOTEBOOK</p><h2 id="panel-title">Your records</h2></div><button id="close-panel" class="close-button" aria-label="Close panel">Close</button></div><div id="panel-body"></div><button id="panel-done" class="primary-button">Back to expedition</button></dialog>

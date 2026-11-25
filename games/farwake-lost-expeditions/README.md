@@ -1,38 +1,35 @@
 # Farwake: Lost Expeditions
 
-## Nightglass · 0.1.1
+## Nightglass · 0.2.0
 
-A standalone first-person expedition mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna into an explorable recovery mission. It is a complete small case and a foundation for an anthology, not the full planned collection.
+A standalone first-person expedition mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna into a small recovery mission. Future anthology destinations remain unimplemented.
 
-The survey is over. The receiver is still answering. Follow photographs, maintenance records, and the rooms left behind; recover the lower field recorder, identify the repeated call, and leave a useful warning.
+You are a recovery operator investigating an earlier expedition. Retrieve its field recorder, upload the evidence and a warning at the surface beacon, then return to the airlock to finish the recovery. The earlier crew’s departure was never logged; the station is still repeating a call.
 
-### Playable now
+### Two ways to explore the same case
 
-- Eight viewpoints built from six scene illustrations.
-- Six recoverable records, a field notebook, and a record of visited locations.
-- A circuit investigation and evidence comparison, followed by two receiver resolutions.
-- A stable route home, optional hints, and a completed field report that can be downloaded.
-- Local progress and settings, synthesized ambient sound, written sound clues, keyboard controls, and responsive layouts.
+**3D exploration preview** (`explore.html`) is a connected station with free movement, real doorways, physical equipment, a descending listening-shaft ramp, and an outdoor beacon. It is an experiment in movement and spatial understanding, with simplified procedural artwork. It is not a finished high-detail replacement for the illustrated scenes.
 
-On a phone, select a labeled object or use the fixed **Inspect**, **Move**, and **Notebook** dock. The whole scene is visible by default. **Expand view** opens a closer view with explicit left and right pan buttons; **Back to controls** restores the normal layout. Every required action and route is available in the dock even when scene markers are hidden.
+On touch screens, drag to look and tap the floor or a doorway to walk. Tap equipment to approach and inspect it. The optional arrow control walks forward while held. The **Nearby** button provides named equipment and connected destinations as an alternative to aiming at the scene. Reading a record stops movement. There is no head bob or required pointer lock. A Stop control appears during automatic walking. Browsers without WebGL2 use a simpler Canvas renderer of the same 3D geometry; this mode is labelled Basic graphics.
 
-On desktop, select markers or the actions below the view. Drag across a cropped scene to look sideways. Every route is also available below the scene.
+On desktop, use W/A/S/D or the arrow keys to walk, drag to look, and E to interact. Clicking the floor and using Nearby work here too. J opens the notebook; H opens the assignment. Escape closes a record or menu.
 
-Keyboard: Tab, Enter, and Space operate controls. J opens the notebook; H shows a lead; M toggles sound. Left/right pan. Escape closes a panel.
+**Snapshot version** (`index.html`) retains the six original illustrations and eight viewpoints. On a phone it now uses one scrolling page with the picture, visible task explanation, room actions, and exits. There are no Inspect/Move tabs, automatic tab changes, separate reading pane, or expanded-image mode. Records open in a consistent notebook sheet. The recorder and beacon have distinct close framing; the reference evidence is presented as the crew’s annotations, rather than implying a visual difference between identical images.
 
-Progress is stored only in this browser. Clearing site data removes it. There are no accounts, analytics, external fonts, online saves, or network dependencies after the local assets load.
+Both versions use the same deterministic game state and browser save. Switching versions keeps recovered records and mission progress; free movement resumes at a safe position in the saved room. Existing v0.1 saves remain valid. Clearing browser site data removes the save. There are no accounts, analytics, external fonts, or online save sync.
 
-### Mobile revision · 0.1.1
+### Mission and interaction
 
-- The scene and Inspect/Move/Notebook dock stay in a stable viewport layout. Reading and interaction content use a single scrolling lower pane.
-- The default phone view fits the whole illustration. Expanding and panning are explicit controls rather than necessary gestures for finding objects.
-- Collected records open inline below the scene. Action feedback remains available in the lower pane, including the receiver comparison and its outcome.
-- Scene markers have short visible labels, and the listening and mute controls no longer create overlapping targets. Completed interactions leave the primary action list; collected evidence remains readable in the notebook.
-- Existing 0.1.0 saves remain compatible. The puzzle gates, independent return lights, and both receiver resolutions are unchanged.
+- A visible briefing establishes the role, recovery target, warning, and final check-in. The first step is entering the airlock; the physical dispatch is an optional record.
+- Guidance adapts to the room and the next useful local action, including visits made out of order. It does not add progression gates.
+- Six recoverable records, a field notebook, circuit investigation, evidence comparison, and two receiver resolutions remain available.
+- The independent green exit lights preserve the route home. All sound clues also have written equivalents.
+- The case ends with an accurate, downloadable field report. The fate of the earlier crew and the animal’s origin remain unresolved.
+- Every required action is available through text controls as well as scene interaction. 3D has collision, locked access gates, and a visible tap-to-walk destination marker.
 
 ### Run and validate
 
-Serve `dist/` with a static HTTP server. Native ES modules require HTTP rather than opening `index.html` directly from disk. There is no bundling or dependency installation step.
+Serve `dist/` with a static HTTP server. Native ES modules require HTTP rather than opening the files directly from disk. There is no bundling or package installation step.
 
 ```sh
 cd games/farwake-lost-expeditions
@@ -40,7 +37,7 @@ npm run check
 npm test
 ```
 
-The 17 automated tests exercise both complete endings, evidence prerequisites, incorrect circuit feedback, return-route reachability, save hydration, malformed save recovery, and completed-state stability. Presentation coverage checks new clues, collected-record access, locked-route explanations, completed-control cleanup, marker overlap, and immutability. This total includes two completion tests that follow the mute and redirect paths using only the actions presented by the mobile interface.
+Regression coverage includes both endings, evidence prerequisites, wrong-circuit feedback, return routes, malformed and existing saves, presented mobile actions, local mission guidance, physical doorway connectivity, gated movement, furniture and wall collision, navigation paths, and safe room spawns. Browser QA must separately verify the beginning of the mission, actual touch-style interactions, modal pausing, and a complete recovery. Phone-sized Chrome checks do not substitute for a physical iPhone/Safari playtest.
 
 ### Render deployment
 
@@ -49,7 +46,7 @@ The 17 automated tests exercise both complete endings, evidence prerequisites, i
 - Service type: Static Site
 - Build command: `cd games/farwake-lost-expeditions && npm run check && npm test`
 - Publish directory: `games/farwake-lost-expeditions/dist`
-- Environment: `SKIP_INSTALL_DEPS=true` (this game has no dependencies)
+- Environment: `SKIP_INSTALL_DEPS=true` (the renderer is vendored; no package installation is needed)
 
 Keep this deployment separate from the existing Farwake game and universe services. This directory does not modify their code or saves.
 
@@ -59,14 +56,18 @@ Keep this deployment separate from the existing Farwake game and universe servic
 | --- | --- |
 | `dist/content.mjs` | Scene, record, and ending text |
 | `dist/state.mjs` | Pure state transitions, gates, objectives, and save normalization |
-| `dist/app.mjs` | Viewpoints, markers, dock, inline reading, panels, local save, and interaction wiring |
-| `dist/mobile-actions.mjs` | Pure mobile action presentation, short marker labels, and completed-control filtering |
+| `dist/mission.mjs` | Shared mission briefing and contextual next-step guidance |
+| `dist/explore.html`, `dist/explore.css`, `dist/explore.mjs` | 3D HUD, touch/keyboard input, panels, local saves, and sound integration |
+| `dist/world3d.mjs` | Three.js station geometry, rendering, picking, camera, and physical interactions |
+| `dist/software3d.mjs` | Basic Canvas renderer used when WebGL2 is unavailable |
+| `dist/world-layout.mjs` | Pure room layout, collision, gates, and tap navigation paths |
+| `dist/app.mjs` | Illustrated viewpoints, markers, actions, notebook, and local save |
+| `dist/mobile-actions.mjs` | Presentation filters and short marker labels |
 | `dist/audio.mjs` | Web Audio atmosphere and interaction cues |
-| `dist/style.css` | Base, desktop, and reduced-motion presentation |
-| `dist/mobile.css` | Phone viewport layout, fixed dock, scrolling reading pane, and expanded scene controls |
-| `dist/assets/` | Six optimized WebP scene illustrations |
-| `tests/state.test.mjs` | State and completion regression tests |
-| `tests/mobile-actions.test.mjs` | Mobile presentation and both endings through presented controls |
+| `dist/style.css`, `dist/mobile.css` | Snapshot desktop and phone presentation |
+| `dist/assets/` | Six optimized fictional WebP scene illustrations |
+| `dist/vendor/` | Official Three.js r170 module and MIT license |
+| `tests/` | State, guidance, action presentation, and physical-layout regression tests |
 
 ### Narrative boundaries
 
@@ -76,6 +77,10 @@ The local case concerns an animal imitating a damaged survey call and a faulty r
 
 The scene art is generated fictional artwork, not authentic lunar photography. Audio is synthesized locally. Future cases may use properly attributed real mission imagery as references, with a clear distinction between archival material and fiction.
 
+### Third-party renderer
+
+The 3D preview vendors the official `build/three.module.min.js` from [Three.js r170](https://github.com/mrdoob/three.js/tree/r170), renamed locally to `three.module.js`. Its MIT license is preserved in `dist/vendor/THREE-LICENSE.txt`. It is served from the same site; no runtime CDN dependency is required.
+
 ### Next design question
 
-Test whether observing and comparing views feels satisfying before adding more destinations. The current case establishes atmosphere, navigation, persistence, and an ending. A subsequent pass should deepen direct visual manipulation and photographic comparison. Deep sea Earth, Mars, Europa, and other anthology destinations remain unimplemented.
+Evaluate whether freely walking through the station makes the case more understandable and engaging on a real phone. Keep the existing snapshot version available while deciding. Deeper physical puzzles, richer photographic comparison, final 3D art, and additional expeditions are later work.

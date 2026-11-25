@@ -51,6 +51,7 @@ export function availableActions(state) {
   if (s.completed) return [];
   const f = s.flags;
   const receiverReady = f.signalCompared && !s.receiverMode;
+  const missingClues = [!has(s,'photograph') && 'reference notes', !has(s,'survey_log') && 'survey log', !f.receiverListened && 'a listen to the call', !has(s,'cable_marks') && 'cable marks'].filter(Boolean);
   switch (s.scene) {
     case 'approach': return [
       move('airlock', 'Enter the airlock', 53, 57),
@@ -71,23 +72,23 @@ export function availableActions(state) {
     ];
     case 'survey': return [
       move('junction', 'Service junction', 12, 72),
-      inspect('take-photo', has(s, 'photograph') ? 'Reference photograph' : 'Take the reference photograph', 57, 48, { record: 'photograph' }),
+      inspect('take-photo', has(s, 'photograph') ? 'Reference notes' : 'Collect the reference notes', 57, 48, { record: 'photograph' }),
       inspect('read-survey-log', 'Survey log', 73, 66, { record: 'survey_log' })
     ];
     case 'service': return [
       move('junction', 'Service junction', 13, 73),
       inspect('read-maintenance', 'Maintenance card', 29, 48, { record: 'maintenance' }),
       ...(!f.panelOpened ? [operate('open-panel', 'Open the service panel', 68, 50)] : [
-        operate('power-inspection', f.inspectionPowered ? 'Inspection lamps restored' : 'Restore INSPECTION', 59, 47, !f.inspectionPowered && has(s, 'maintenance'), f.inspectionPowered ? 'The inspection lamps are already on.' : 'Read the maintenance card before switching a circuit.'),
+        operate('power-inspection', f.inspectionPowered ? 'Inspection lamps restored' : 'Switch on inspection lights', 59, 47, !f.inspectionPowered && has(s, 'maintenance'), f.inspectionPowered ? 'The inspection lamps are already on.' : 'Read the maintenance card before switching a circuit.'),
         operate('power-receiver', 'Test RECEIVER supply', 78, 58, !f.inspectionPowered, 'The receiver already has power; the inspection lamps are restored.')
       ])
     ];
     case 'shaft': return [
-      move('junction', 'Follow green lights back', 12, 73),
+      move('junction', 'Back to service junction', 12, 73),
       move('lower', 'Lower landing', 53, 64, Boolean(s.receiverMode), 'Identify and isolate the repeated call before approaching its lower pickup.'),
       inspect('listen-receiver', s.receiverMode ? 'Listen to the changed signal' : 'Listen to the receiver', 72, 38),
       inspect('inspect-cable', 'Inspect the cable marks', 66, 61, { record: 'cable_marks' }),
-      ...(!f.signalCompared ? [operate('compare-signal', 'Compare photograph and signal', 37, 47, has(s, 'photograph') && has(s, 'survey_log') && has(s, 'cable_marks') && f.receiverListened, 'You need the reference photograph, survey log, cable marks, and a careful listen.')] : []),
+      ...(!f.signalCompared ? [operate('compare-signal', 'Compare the four clues', 37, 47, has(s, 'photograph') && has(s, 'survey_log') && has(s, 'cable_marks') && f.receiverListened, `Still needed: ${missingClues.join(', ')}.`)] : []),
       ...(receiverReady ? [
         operate('mute-receiver', 'Mute the receiver', 35, 44),
         operate('redirect-receiver', 'Redirect into the side shaft', 73, 48)
@@ -98,8 +99,8 @@ export function availableActions(state) {
       operate('recover-recorder', f.recorderRecovered ? 'Read the recovered recording' : 'Recover the field recorder', 62, 66, Boolean(s.receiverMode), 'Isolate the repeated call before approaching.', { record: 'field_recorder' })
     ];
     case 'beacon': return [
-      move('approach', 'Return to the airlock path', 23, 71),
-      operate('publish-warning', f.warningPublished ? 'Warning transmitted' : 'Replace the access warning', 73, 56, f.recorderRecovered && !f.warningPublished, f.warningPublished ? 'The truthful warning has been saved and transmitted.' : 'Recover the lower field recorder before replacing the warning.')
+      move('approach', 'Back to the station entrance', 23, 71),
+      operate('publish-warning', f.warningPublished ? 'Warning transmitted' : 'Upload recorder and warning', 73, 56, f.recorderRecovered && !f.warningPublished, f.warningPublished ? 'The truthful warning has been saved and transmitted.' : 'Recover the lower field recorder before replacing the warning.')
     ];
     default: return [];
   }
@@ -144,7 +145,7 @@ export function perform(state, actionId) {
       return { state: s, message: 'The green exit supply has an independent cell. It is healthy. There is no reason to disconnect it.', event: 'panel' };
     case 'take-photo':
       addRecord(s, 'photograph');
-      return { state: s, message: 'Reference photograph saved. Compare the receiver position and white lead when you reach the shaft.', event: 'record', record: 'photograph' };
+      return { state: s, message: 'Reference notes saved. Compare the recorded receiver position and white lead when you reach the shaft.', event: 'record', record: 'photograph' };
     case 'read-survey-log':
       addRecord(s, 'survey_log');
       return { state: s, message: 'The operator noticed a repeated call with the final breath missing.', event: 'record', record: 'survey_log' };

@@ -15,18 +15,18 @@ export const SCENES = Object.freeze({
   approach: scene('approach', 'The approach', 'Lunar survey perimeter', 'approach', 'A low installation sits at the edge of the crater. Green lamps mark a narrow route from its airlock to a surface beacon. The receiver is still powered.'),
   airlock: scene('airlock', 'The airlock', 'A way back', 'airlock', 'The inner seal is intact. A green cable follows the doorway into the installation, separate from the overhead service wiring. Your return route has its own supply.'),
   junction: scene('junction', 'Service junction', 'Three doors. One return line.', 'junction', 'The green strip continues behind you. The survey room and service bay are close by; the shaft access is too dark to inspect safely.'),
-  survey: scene('survey', 'The survey room', 'Before the last shift', 'survey', 'A reference photograph is clipped beside the survey log. The room looks recently used, but the fine dust on the writing surface has not been disturbed.'),
+  survey: scene('survey', 'The survey room', 'Before the last shift', 'survey', 'The crew left annotated reference notes beside the survey log. The room looks recently used, but the fine dust on the writing surface has not been disturbed.'),
   service: scene('service', 'The service bay', 'Independent circuits', 'service', 'A maintenance card identifies the three circuits. The inspection supply is isolated at the panel. A low receiver tone continues through the wall.'),
   shaft: scene('shaft', 'The listening shaft', 'A voice without a breath', 'shaft', 'A receiver faces the lower passage. Its white lead has been moved since the reference photograph. A separate branch points into an empty side shaft.'),
-  lower: scene('lower', 'The lower landing', 'The last observation', 'shaft', 'The field recorder rests in a bracket beside the lower pickup. Your green return markers remain visible above. A narrow side opening leads away from the recovery route.'),
-  beacon: scene('beacon', 'The surface beacon', 'For the next crew', 'approach', 'The beacon still advertises clear survey access. A recovered recording and a truthful warning can outlast this visit.')
+  lower: scene('lower', 'The lower landing', 'Field recorder · close view', 'shaft', 'The field recorder rests in a bracket beside the lower pickup. Your green return markers remain visible above. A narrow side opening leads away from the recovery route.'),
+  beacon: scene('beacon', 'The surface beacon', 'Beacon terminal · close view', 'approach', 'The beacon still advertises clear survey access. A recovered recording and a truthful warning can outlast this visit.')
 });
 
 const record = (id, title, kind, source, body) => Object.freeze({ id, title, kind, source, body });
 export const RECORDS = Object.freeze({
   dispatch: record('dispatch', 'Recovery assignment', 'document', 'Surface dispatch sleeve',
-    'Nightglass survey access is suspended. The beacon is repeating an old clearance. Recover the lower field recorder and identify the return signal. Preserve the independent exit lamps. The earlier crew’s departure was never logged. Check the recorder before assigning a final status.'),
-  photograph: record('photograph', 'Before the last shift', 'photo', 'Reference photograph · survey room',
+    'Nightglass survey access is suspended. The beacon is repeating an old clearance. Recover the lower field recorder and identify the repeated call. The green exit lights have a separate supply. After transmitting the warning, return to the airlock to finish the recovery. The earlier crew’s departure was never logged. Check the recorder before assigning a final status.'),
+  photograph: record('photograph', 'Before the last shift', 'photo', 'Annotations on survey photograph · survey room',
     'The receiver is aimed down the central passage. A white lead enters its listening input. The unused side-shaft socket is capped. Above both, the green return-light cable runs unbroken. Someone has circled the receiver bracket and written: “Record the position before moving it.”'),
   survey_log: record('survey_log', 'The missing breath', 'audio', 'Survey log · final legible entry',
     '“North team. Hold the light.” The call repeats with the same clipped ending. The return always omits the speaker’s final breath. Do not treat it as a live reply. Photograph the wiring, trace the pickup, and compare the signal before changing the receiver.'),
