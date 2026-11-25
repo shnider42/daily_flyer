@@ -10,15 +10,15 @@
   <title>Nightglass · Farwake: Lost Expeditions</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preload" as="image" href="assets/approach.webp">
-  <link rel="stylesheet" href="style.css?v=0.3.1">
-  <link rel="stylesheet" href="scene.css?v=0.3.1">
-  <link rel="stylesheet" href="mobile.css?v=0.3.1">
-  <script type="module" src="app.mjs?v=0.3.1"></script>
+  <link rel="stylesheet" href="style.css?v=0.3.2">
+  <link rel="stylesheet" href="scene.css?v=0.3.2">
+  <link rel="stylesheet" href="mobile.css?v=0.3.2">
+  <script type="module" src="app.mjs?v=0.3.2"></script>
 </head>
 <body>
   <main id="game" aria-label="Nightglass expedition">
     <header class="topbar">
-      <button id="home-button" class="wordmark" aria-label="Open expedition menu"><span>FARWAKE</span><small>LOST EXPEDITIONS</small></button>
+      <button id="home-button" class="wordmark" aria-label="Open expedition menu"><span>FARWAKE</span><small>LOST EXPEDITIONS</small><span id="mobile-location" class="mobile-location">Nightglass</span></button>
       <div class="top-location"><span id="header-location">NIGHTGLASS</span><small>LUNA · RECOVERY EXPEDITION</small></div>
       <nav class="top-controls" aria-label="Expedition tools">
         <button id="journal-button" class="tool-button" aria-label="Open field notebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM9 3v18M12 7h4M12 11h4"/></svg><span>Notebook</span><b id="record-count">0</b></button>
@@ -26,7 +26,7 @@
       </nav>
     </header>
 
-    <section id="stage" class="stage" aria-label="Expedition viewpoint" tabindex="0">
+    <section id="stage" class="stage" aria-label="Expedition viewpoint" tabindex="0" style="--scene-backdrop: url('assets/approach.webp')">
       <img id="scene-image" src="assets/approach.webp" alt="A low survey outpost stands in a lunar crater beneath a black sky." draggable="false">
       <div class="scene-shade" aria-hidden="true"></div>
       <div class="scene-texture" aria-hidden="true"></div>
@@ -34,15 +34,17 @@
       <div class="scene-heading"><p id="scene-subtitle">LUNAR SURVEY ARCHIVE</p><h1 id="scene-title">Nightglass</h1></div>
       <div id="scene-hotspots" aria-label="Things in this view"></div>
       <nav id="scene-directions" aria-label="Directions from this scene"></nav>
-      <button id="look-closer" class="look-closer" aria-label="Look closer at this scene">Look closer</button>
+      <button id="look-closer" class="look-closer" aria-label="Look closer at this scene" title="Look closer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><span>Look closer</span></button>
       <div class="view-footer"><span id="view-instruction">Drag to look · select a marker to explore</span><span id="scene-status">RETURN ROUTE AVAILABLE</span></div>
       <div id="scene-loading" class="scene-loading" hidden>Opening viewpoint…</div>
       <p id="scene-caption" class="scene-caption" aria-live="polite"></p>
     </section>
 
-    <section class="field-controls" aria-label="Current task and available actions">
+    <p id="mobile-feedback" aria-live="polite" hidden></p>
+    <details id="field-tools" class="field-controls" open>
+      <summary id="mobile-task"><span class="mobile-task-caption">Task</span><span id="mobile-task-label">Enter the airlock</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <div class="field-content">
       <p id="scene-observation" class="scene-observation"></p>
-      <p id="mobile-feedback" aria-live="polite" hidden></p>
       <div class="objective-row"><div class="objective-copy"><p id="objective-phase" class="eyebrow">YOUR ASSIGNMENT</p><h2 id="objective-title">Recover the field recorder</h2><p id="objective-text">Enter the airlock, then find the crew’s notes in the survey room.</p></div><button id="hint-button" class="text-button">Help</button></div>
       <button id="primary-action" class="primary-action" hidden></button>
       <div id="hint-box" class="hint-box" hidden></div>
@@ -53,15 +55,15 @@
         </div>
       </div>
       <div class="lower-status"><span id="save-status">Progress stays on this device</span><span id="sound-status">Sound starts with your expedition</span></div>
-
-    </section>
+      </div>
+    </details>
   </main>
 
   <section id="intro" class="intro" aria-label="Nightglass expedition menu">
     <div class="intro-backdrop"></div>
     <div class="intro-top"><div class="intro-brand">FARWAKE<span>LOST EXPEDITIONS</span></div><span class="archive-stamp">LUNA / RECOVERY 01</span></div>
-    <div class="intro-content"><p class="chapter-label"><span></span> A LUNAR EXPEDITION</p><h1>Nightglass</h1><p class="intro-deck">The survey is over.<br>The receiver is still answering.</p><p class="intro-copy">You’ve come to recover a missing expedition’s field recorder. Search the deserted station, work out what its crew heard, and bring back a warning the next crew can use.</p><div class="intro-actions"><button id="begin-button" class="primary-button">Begin expedition</button><button id="intro-restart" class="secondary-button" hidden>Start over</button></div><p class="play-note">Explore one scene at a time. Tap an object to inspect it.<br>Tap a direction in the scene to move. Your progress saves here.</p></div>
-    <footer class="intro-bottom"><span>CASE: NIGHTGLASS LISTENING SHAFT</span><button id="about-button">About this expedition</button><span>VERSION 0.3.1</span></footer>
+    <div class="intro-content"><p class="chapter-label"><span></span> A LUNAR EXPEDITION</p><h1>Nightglass</h1><p class="intro-deck">The survey is over.<br>The receiver is still answering.</p><p class="intro-copy">You’ve come to recover a missing expedition’s field recorder. Search the deserted station, work out what its crew heard, and bring back a warning the next crew can use.</p><div class="intro-actions"><button id="begin-button" class="primary-button">Begin expedition</button><button id="intro-restart" class="secondary-button" hidden>Start over</button></div><p class="play-note">Tap arrows to move and dots to inspect.<br>On phones, open Task for your assignment and actions. Progress saves here.</p></div>
+    <footer class="intro-bottom"><span>CASE: NIGHTGLASS LISTENING SHAFT</span><button id="about-button">About this expedition</button><span>VERSION 0.3.2</span></footer>
   </section>
 
   <dialog id="panel" aria-labelledby="panel-title"><div class="panel-heading"><div><p id="panel-kicker" class="eyebrow">FIELD NOTEBOOK</p><h2 id="panel-title">Your records</h2></div><button id="close-panel" class="close-button" aria-label="Close panel">Close</button></div><div id="panel-body"></div><button id="panel-done" class="secondary-button" data-panel-action="close">Back to expedition</button></dialog>

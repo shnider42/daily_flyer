@@ -1,4 +1,5 @@
 /* Illustrated investigation: shared styles for scene controls and close views. */
+.mobile-location, #mobile-task, .look-closer > svg { display: none; }
 #scene-directions { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .scene-direction { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 116px; min-height: 64px; padding: 8px; border: 1px solid #bacbad91; border-radius: 4px; background: #10191bdc; color: #e4edda; box-shadow: 0 2px 12px #0005; pointer-events: auto; touch-action: manipulation; }
 .scene-direction > svg { flex: 0 0 auto; width: 26px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

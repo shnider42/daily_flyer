@@ -40,6 +40,7 @@ const stage = $('#stage');
 const panel = $('#panel');
 const fieldControls = $('.field-controls');
 document.body.classList.toggle('compact-layout', compact);
+fieldControls.open = !compact;
 
 // Anchors are in the source photograph's coordinate system. Movement also has a
 // persistent button, so a cropped panoramic edge never hides the way home.
@@ -95,6 +96,7 @@ function directionButton(action,nextId){
   button.type='button';button.dataset.action=action.id;
   button.className=`scene-direction direction-${route.direction}${action.id===nextId?' suggested':''}`;
   button.setAttribute('aria-label',action.label+(action.disabled?' · not yet available':''));
+  button.title=action.label;
   if(action.disabled){button.setAttribute('aria-disabled','true');button.title=action.reason;}
   if(route.direction!=='back'){button.dataset.x=route.x;button.dataset.y=route.y;}
   button.innerHTML=`<svg viewBox="0 0 24 26" aria-hidden="true"><path d="${DIRECTION_PATHS[route.direction]}"/></svg><span class="direction-label">${escape(route.label)}</span>${action.disabled?'<span class="direction-lock" aria-hidden="true"><svg viewBox="0 0 16 18"><path d="M4 7V5a4 4 0 0 1 8 0v2M2 7h12v9H2z"/></svg></span>':''}`;
@@ -156,7 +158,7 @@ function openPanel(kicker,title,html){
 }
 function closePanel(){ panel.close(); }
 panel.addEventListener('close',()=>{
-  if(panelReturn?.isConnected&&!panel.contains(panelReturn))panelReturn.focus({preventScroll:true});
+  if(panelReturn?.isConnected&&panelReturn.tabIndex>=0&&!panelReturn.matches(':disabled')&&!panel.contains(panelReturn)&&panelReturn.getClientRects().length&&!panelReturn.closest('details:not([open])'))panelReturn.focus({preventScroll:true});
   else if(active)stage.focus({preventScroll:true});
 });
 $('#close-panel').addEventListener('click',closePanel);
@@ -172,15 +174,27 @@ function positionScene(){
   pan=Math.max(-maxPan,Math.min(maxPan,pan));
   const left=(rect.width-width)/2+pan;
   const top=(rect.height-height)/2;
+  const topClearance=compact?$('.topbar').getBoundingClientRect().height+4:48;
+  const bottomClearance=compact?$('#mobile-task').getBoundingClientRect().height+parseFloat(getComputedStyle(fieldControls).paddingBottom)+10:10;
   Object.assign(image.style,{width:`${width}px`,height:`${height}px`,left:`${left}px`,top:`${top}px`});
   geometry={width,height,left,top,maxPan};
+  const closer=$('#look-closer');
+  const controlBottom=Math.max(bottomClearance,rect.height-(top+height)+8);
+  if(compact){
+    closer.style.bottom=`${controlBottom}px`;
+    closer.style.right=`${Math.max(8,rect.width-left-width+8)}px`;
+  }else{
+    closer.style.removeProperty('bottom');closer.style.removeProperty('right');
+  }
   const directionBounds=[];
   for(const el of $('#scene-directions').children){
     if(el.dataset.x){
       const halfWidth=el.offsetWidth/2,halfHeight=el.offsetHeight/2;
       const x=Math.max(halfWidth+8,Math.min(rect.width-halfWidth-8,Number(el.dataset.x)/100*width+left));
-      const y=Math.max(halfHeight+48,Math.min(rect.height-halfHeight-10,Number(el.dataset.y)/100*height+top));
+      const y=Math.max(halfHeight+topClearance,Math.min(rect.height-halfHeight-bottomClearance,Number(el.dataset.y)/100*height+top));
       el.style.left=`${x}px`;el.style.top=`${y}px`;
+    }else if(compact){
+      el.style.left=`${Math.max(8,left+8)}px`;el.style.bottom=`${controlBottom}px`;
     }
     directionBounds.push(el.getBoundingClientRect());
   }
@@ -189,16 +203,13 @@ function positionScene(){
     const x=Number(el.dataset.x)/100*width+left,y=Number(el.dataset.y)/100*height+top;
     el.style.left=`${x}px`;el.style.top=`${y}px`;
     el.classList.toggle('label-below',compact?y<rect.height*.55:['listen-receiver','power-receiver'].includes(el.dataset.action));
-    const crowded=compact&&occupied.some(point=>Math.abs(x-point.x)<112&&Math.abs(y-point.y)<64);
-    el.hidden=x<24||x>rect.width-24||y<(compact?67:75)||y>rect.height-(compact?40:35)||crowded;
+    const crowded=compact&&occupied.some(point=>Math.abs(x-point.x)<52&&Math.abs(y-point.y)<52);
+    el.hidden=x<24||x>rect.width-24||y<(compact?topClearance+24:75)||y>rect.height-(compact?bottomClearance+22:35)||crowded;
     if(compact&&!el.hidden){
       const overlaps=(a,b)=>a.left<b.right+4&&a.right>b.left-4&&a.top<b.bottom+4&&a.bottom>b.top-4;
-      const collides=()=>directionBounds.some(route=>[el.getBoundingClientRect(),el.querySelector('.hotspot-label').getBoundingClientRect()].some(object=>overlaps(object,route)));
-      if(collides()&&el.classList.contains('label-below')){
-        el.classList.remove('label-below');
-        if(overlaps(el.querySelector('.hotspot-label').getBoundingClientRect(),$('.scene-heading').getBoundingClientRect()))el.classList.add('label-below');
-      }
-      el.hidden=collides();
+      // Phone labels are only shown on keyboard focus; reserve the actual tap
+      // targets instead of hiding objects behind their invisible label bounds.
+      el.hidden=[...directionBounds,closer.getBoundingClientRect()].some(control=>overlaps(el.getBoundingClientRect(),control));
     }
     if(!el.hidden)occupied.push({x,y});
   }
@@ -214,6 +225,7 @@ function actionButton(action,hotspot=false){
   if(hotspot){
     button.className=`hotspot ${action.kind}${['listen-receiver','power-receiver'].includes(action.id)?' label-below':''}`;
     button.setAttribute('aria-label',action.label+(action.disabled?' · not yet available':''));
+    button.title=action.disabled?action.reason:action.label;
     const [x,y]=ANCHORS[action.id]||[action.x??50,action.y??60];
     button.dataset.x=x;button.dataset.y=y;
     button.innerHTML=`<span class="pin" aria-hidden="true"></span><span class="hotspot-label">${escape(compact?mobileLabel(action):action.label)}</span>`;
@@ -255,12 +267,15 @@ function renderActions(){
 function render(){
   const scene=SCENES[state.scene];
   $('#header-location').textContent=scene.title.toUpperCase();
+  $('#mobile-location').textContent=scene.title;
   $('#scene-subtitle').textContent=scene.subtitle.toUpperCase();
   $('#scene-title').textContent=scene.title;
   image.alt=sceneDescription(state);
   $('#record-count').textContent=state.records.length;
   $('#journal-button').setAttribute('aria-label',`Open field notebook · ${state.records.length} records`);
   const task=missionStatus(state);
+  $('#mobile-task-label').textContent=task.title;
+  $('#mobile-task').setAttribute('aria-label',`Task: ${task.title}. Assignment and available actions`);
   const phases={recover:'Recover the field recorder',warn:'Warn the next crew',return:'Return to the airlock',complete:'Recovery complete'};
   $('#objective-phase').textContent=task.phase==='complete'?'EXPEDITION RECORD':'YOUR ASSIGNMENT';
   $('#objective-title').textContent=state.flags.signalCompared&&!state.receiverMode?'Control the repeated call':phases[task.phase];
@@ -279,7 +294,7 @@ function render(){
     const token=++sceneToken,source=`assets/${scene.image}.webp`;
     stage.classList.add('changing');
     const preload=new Image();
-    preload.onload=()=>{if(token!==sceneToken)return;image.src=source;stage.classList.remove('changing');$('#scene-loading').hidden=true;requestAnimationFrame(positionScene);};
+    preload.onload=()=>{if(token!==sceneToken)return;image.src=source;stage.style.setProperty('--scene-backdrop',`url("${source}")`);stage.classList.remove('changing');$('#scene-loading').hidden=true;requestAnimationFrame(positionScene);};
     preload.onerror=()=>{if(token!==sceneToken)return;stage.classList.remove('changing');$('#scene-loading').hidden=true;toast('This view could not load. Your progress is safe; reload to try again.');};
     preload.src=source;
     setTimeout(()=>{if(token===sceneToken&&!preload.complete)$('#scene-loading').hidden=false;},400);
@@ -291,6 +306,7 @@ function render(){
 async function begin(){
   active=true;$('#intro').hidden=true;
   $('#game').inert=false;
+  fieldControls.open=!compact;
   audioAvailable=await sound.start();applyPreferences();render();persist();
   if(state.completed)showEnding();else stage.focus({preventScroll:true});
 }
@@ -321,7 +337,7 @@ function execute(actionId, direct=false){
   if(entry.kind==='move'&&panel.open)closePanel();
   const result=perform(state,actionId);
   state=result.state;
-  if(entry.kind==='move'){hintOpen=false;latestFeedback=null;travelReadyAt=performance.now()+350;}
+  if(entry.kind==='move'){hintOpen=false;latestFeedback=null;travelReadyAt=performance.now()+350;if(compact)fieldControls.open=false;}
   render();persist();
   if(result.event)sound.cue(result.event);
   if(result.record)showRecord(result.record);
@@ -396,14 +412,14 @@ function showSettings(){
   openPanel('EXPEDITION SETTINGS','Make yourself comfortable',`
     <div class="setting-row"><label for="pref-sound">Sound<small>All recorded information is also available as text.</small></label><input id="pref-sound" type="checkbox" ${preferences.sound?'checked':''}></div>
     <div class="setting-row"><label for="pref-volume">Volume</label><input id="pref-volume" type="range" min="0" max="1" step=".05" value="${preferences.volume}" aria-label="Sound volume"></div>
-    <div class="setting-row"><label for="pref-markers">Object markers<small>Direction arrows stay visible. Object actions remain below the view.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
-    <div class="setting-row"><label for="pref-labels">Always show desktop marker labels<small>Phone markers always show their short names. Every action also has a text button.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
+    <div class="setting-row"><label for="pref-markers">Object markers<small>Direction arrows stay visible. Open Task on phones for every object action.</small></label><input id="pref-markers" type="checkbox" ${preferences.markers?'checked':''}></div>
+    <div class="setting-row"><label for="pref-labels">Always show desktop marker labels<small>Phone labels appear on keyboard focus. Open Task or Look closer for the action names.</small></label><input id="pref-labels" type="checkbox" ${preferences.labels?'checked':''}></div>
     <div class="setting-row"><label for="pref-motion">Reduce motion<small>Use immediate transitions between viewpoints.</small></label><input id="pref-motion" type="checkbox" ${preferences.reducedMotion?'checked':''}></div>
     <div class="settings-foot"><button class="secondary-button" data-panel-action="about">About & controls</button><button class="secondary-button" data-panel-action="restart">Start over</button></div>
     <p class="credits">Your progress and settings are saved only in this browser. This game has no accounts, analytics, or online save sync.</p>`);
 }
 function showAbout(){
-  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap an arrow in the scene to move in that direction. Dots mark objects to inspect. On phones, List of exits opens the text alternative. Look closer reveals optional details; records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.1.</p>`);
+  openPanel('FARWAKE · LOST EXPEDITIONS','Nightglass',`<div class="panel-copy"><p>${escape(CHAPTER.fiction)}</p><p>A scene-by-scene investigation on Luna. Follow the physical evidence, recover the recorder, and leave a useful warning.</p><p><strong>Controls:</strong> tap an arrow in the scene to move in that direction. Dots mark objects to inspect. On phones, open Task for your assignment, help, and all actions, including List of exits. The magnifier opens Look closer for objects and optional details. Records stay in your notebook. Closing an inspection returns you to the same view.</p><p><strong>Keyboard:</strong> Tab through controls, Enter or Space to activate, J for the notebook, H for help, M to toggle sound, and Escape to close a panel. Left and right keys pan a cropped desktop view.</p><p>Your notebook and progress stay in this browser. You can leave, reload, and continue. Clearing this browser’s site data removes the save.</p><p><strong>Atmosphere:</strong> isolation, an imitated call, and brief implied animal movement. All sound clues are readable. There are no timed reading challenges.</p></div><p class="credits">Created for Christopher Holtsnider’s DailyFlyer project. Original Farwake setting and Nightglass adaptation. Fictional scene artwork generated for this game; it is not authentic lunar photography. Sound is generated locally. Version 0.3.2.</p>`);
 }
 function confirmRestart(){
   openPanel('START A NEW RECORD','Restart this expedition?',`<div class="panel-copy"><p>This replaces the Nightglass progress saved in this browser. Your sound and display settings stay as they are.</p></div><div class="inline-buttons"><button class="secondary-button" data-panel-action="close">Keep my progress</button><button class="primary-button" data-panel-action="confirm-restart">Start over</button></div>`);
@@ -414,7 +430,7 @@ function showEnding(){
 }
 function downloadReport(){
   const ending=getEnding(state);if(!ending)return;
-  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.1\n`;
+  const report=`FARWAKE: LOST EXPEDITIONS\nNIGHTGLASS — FIELD REPORT\n\n${ending.title}\n${ending.text}\n\n${ending.details.join('\n')}\n\nRECOVERED RECORDS\n\n${RECORD_ORDER.filter(id=>state.records.includes(id)).map(id=>`${RECORDS[id].title}\n${RECORDS[id].source}\n${RECORDS[id].body}`).join('\n\n')}\n\n${CHAPTER.fiction}\nVersion 0.3.2\n`;
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain;charset=utf-8'}));
   const a=document.createElement('a');a.href=url;a.download='nightglass-field-report.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -495,6 +511,7 @@ const release=()=>{pointer=null;stage.classList.remove('dragging');};
 stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
 compactMedia.addEventListener('change',event=>{
   compact=event.matches;document.body.classList.toggle('compact-layout',compact);
+  fieldControls.open=!compact;
   render();
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)sound.pause();else if(active)sound.resume();});

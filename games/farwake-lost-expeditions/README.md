@@ -1,6 +1,6 @@
 # Farwake: Lost Expeditions
 
-## Nightglass · 0.3.1
+## Nightglass · 0.3.2
 
 A standalone, scene-by-scene first-person mystery for DailyFlyer, set in the existing Farwake universe. The first case adapts the Nightglass listening-shaft incident on Luna. Future anthology destinations remain unimplemented.
 
@@ -10,7 +10,7 @@ You are a recovery operator investigating an earlier expedition. Retrieve its fi
 
 `index.html` is the player entry point. Eight distinct illustrated views cover the approach, airlock, junction, survey room, service bay, listening shaft, lower landing, and surface beacon. The lower landing and beacon now have their own artwork.
 
-Tap labelled direction arrows in the illustration to move between scenes. Left, right, forward, down, and return arrows follow each view’s geography. On phones, movement no longer requires a button below the picture; **List of exits** opens an optional text alternative. Navigation stays visible when object markers are off, and a blocked direction explains what is needed. A short movement guard prevents a repeated tap from skipping through the next scene. Tap a scene marker or its text action to inspect something. **Look closer** opens the scene’s objects and optional details in the same reader used for records. There are no movement sticks, Inspect/Move tabs, or automatic mode changes. All required actions remain available as text controls when scene markers are off or outside the visible image.
+Tap direction arrows in the illustration to move between scenes. Left, right, forward, down, and return arrows follow each view’s geography. Phone controls use small visible arrows and dots with generous touch targets. A compact **Task** strip shows the next lead; expand it for the assignment, object actions, help, and **List of exits** text alternative. It closes when moving to another scene. Phones use a full-viewport scene viewer with a slim header and docked Task strip. The complete illustration stays visible in both orientations; portrait adds a subdued decorative backdrop derived from the same image. Navigation stays visible when object markers are off, and a blocked direction explains what is needed. A short movement guard prevents a repeated tap from skipping through the next scene. Tap a scene marker or its text action to inspect something. The magnifier (**Look closer**) opens the scene’s objects and optional details in the same reader used for records. All required actions remain available as text controls when scene markers are off or outside the visible image. Desktop keeps its labelled controls and expanded assignment.
 
 The investigation includes:
 
