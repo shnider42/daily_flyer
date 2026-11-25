@@ -13,7 +13,7 @@ async function until(predicate, description, ms = 3000) {
   throw new Error(`Timed out: ${description}`);
 }
 async function fixture(t, options = {}) {
-  const server = await createServer({ port: 0, host: '127.0.0.1', ...options });
+  const server = await createServer({ port: 0, host: '127.0.0.1', production: false, ...options });
   const clients = [];
   t.after(async () => { for (const client of clients) client.socket.terminate(); await server.close(); });
   async function connect(message, extra = {}) {

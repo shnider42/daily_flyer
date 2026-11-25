@@ -16,7 +16,7 @@ function memoryStorage(initial = {}) {
   return { getItem: key => entries.get(key) ?? null, setItem: (key, value) => entries.set(key, String(value)), removeItem: key => entries.delete(key) };
 }
 async function fixture(t, options = {}) {
-  const server = await createServer({ port: 0, host: '127.0.0.1', ...options }), clients = [];
+  const server = await createServer({ port: 0, host: '127.0.0.1', production: false, ...options }), clients = [];
   t.after(async () => { for (const record of clients) record.client.leave(); await server.close(); });
   function makeClient() {
     const storage = memoryStorage({ 'dfe.suncoast.save.v1': '{"solo":"unchanged"}' }), record = { storage, results: [], joined: [], statuses: [], checkpoints: [] };
