@@ -1,0 +1,177 @@
+[
+  {
+    "prompt": "Which pulp hero made appearances in Hellboy and BPRD comics before getting his own spin-off?",
+    "rarity": "epic",
+    "factGroup": "hellboy-lobster",
+    "editorialRationale": "Specific supporting-character publishing history.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What was the name of the hero in the 80s animated video game 'Dragon's Lair'?",
+    "rarity": "epic",
+    "factGroup": "dragons-lair-hero",
+    "editorialRationale": "Proper-name detail of an older arcade game.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What was the code name for the Allied invasion of Southern France on August 15th, 1944?",
+    "rarity": "epic",
+    "factGroup": "operation-dragoon",
+    "editorialRationale": "Named military operation with a fixed date and region.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Which of the following famous mathematicians died in a duel at the age of 20?",
+    "rarity": "epic",
+    "factGroup": "galois-duel",
+    "editorialRationale": "Biographical detail beyond the mathematician’s main work.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Which ability from the \"Magic: The Gathering\" Scars of Mirrodin expansion involves having at least three artifacts in play?",
+    "rarity": "epic",
+    "factGroup": "mtg-metalcraft",
+    "editorialRationale": "Expansion-specific game mechanic.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In the Magic: The Gathering universe, which plane does the Homelands expansion take place in?",
+    "rarity": "epic",
+    "factGroup": "mtg-homelands",
+    "editorialRationale": "Specific location in a large fictional setting.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In the Magic: The Gathering universe, the Fallen Empires expansion takes place on which continent?",
+    "rarity": "epic",
+    "factGroup": "mtg-fallen-empires",
+    "editorialRationale": "Specific location in a large fictional setting.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What scientific suborder does the family Hyaenidae belong to?",
+    "rarity": "epic",
+    "factGroup": "hyena-taxonomy",
+    "editorialRationale": "Scientific taxonomy beyond the everyday animal name.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In addition to his career as an astrologer and \"prophet\", Nostradamus published a 1555 treatise that included a section on what?",
+    "rarity": "epic",
+    "factGroup": "nostradamus-preserves",
+    "editorialRationale": "Unexpected subject in a historically dated publication.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What is the name of the copper-rich protein that creates the blue blood in the Antarctic octopus?",
+    "rarity": "epic",
+    "factGroup": "octopus-blood",
+    "editorialRationale": "Specialist biological terminology.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Autosomal-dominant Compelling Helio-Ophthalmic Outburst syndrome is the need to do what when seeing the Sun?",
+    "rarity": "epic",
+    "factGroup": "achoo-syndrome",
+    "editorialRationale": "Specialist expanded syndrome name, with unambiguous alternatives.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In physics, conservation of energy and conservation of momentum are both consequences of which of the following?",
+    "rarity": "epic",
+    "factGroup": "noether-theorem",
+    "editorialRationale": "Connects physics conservation laws to a named theorem.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What is the name for the auditory illusion of a note that seems to be rising infinitely?",
+    "rarity": "epic",
+    "factGroup": "shepard-tone",
+    "editorialRationale": "Named auditory-illusion terminology.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In Norse mythology, what is the name of the serpent which eats the roots of the ash tree Yggdrasil?",
+    "rarity": "epic",
+    "factGroup": "norse-yggdrasil",
+    "editorialRationale": "Specific mythological figure associated with Yggdrasil.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Who is a minor god that is protector and creator of various arts, such as cheese making and bee keeping.",
+    "rarity": "epic",
+    "factGroup": "greek-aristaeus",
+    "editorialRationale": "Lesser-known mythological figure and attributes.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What scientific family does the Aardwolf belong to?",
+    "rarity": "epic",
+    "factGroup": "hyena-taxonomy",
+    "editorialRationale": "Scientific family of an unfamiliar mammal.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In the Harry Potter universe, what is Cornelius Fudge's middle name?",
+    "rarity": "epic",
+    "factGroup": "cornelius-fudge-name",
+    "editorialRationale": "Minor-character middle name in a defined fictional series.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Who invented the \"Spanning Tree Protocol\"?",
+    "rarity": "epic",
+    "factGroup": "spanning-tree-history",
+    "editorialRationale": "Identifies the inventor of a specific networking protocol.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Some of the \"Fallen Empires\" cards from \"Magic: The Gathering\" were misprinted on the backs of which other card game?",
+    "rarity": "epic",
+    "factGroup": "mtg-wyvern-misprint",
+    "editorialRationale": "Specialist collectible-card production history.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Which Variable Valve Timing technology is used by BMW?",
+    "rarity": "epic",
+    "factGroup": "bmw-valve-timing",
+    "editorialRationale": "Manufacturer-specific engineering terminology.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What was the development code name for the \"Urza's Destiny\" expansion for \"Magic: The Gathering\", released in 1999?",
+    "rarity": "epic",
+    "factGroup": "mtg-urzas-destiny",
+    "editorialRationale": "Development codename for a particular expansion.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What is the plane curve proposed by Descartes to challenge Fermat's extremum-finding techniques called?",
+    "rarity": "epic",
+    "factGroup": "descartes-folium",
+    "editorialRationale": "Named mathematical curve and historical context.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "In the Magic: The Gathering universe,  the Antiquities, Ice Age, and Alliances expansions take place on which continent?",
+    "rarity": "epic",
+    "factGroup": "mtg-terisiare",
+    "editorialRationale": "Specific location shared by named expansions.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "Who built the first laser?",
+    "rarity": "epic",
+    "factGroup": "laser-history",
+    "editorialRationale": "Identifies the first working laser’s builder.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  },
+  {
+    "prompt": "What internet protocol was documented in RFC 1459?",
+    "rarity": "epic",
+    "factGroup": "rfc1459",
+    "editorialRationale": "Recognition of a protocol from a particular published RFC.",
+    "review": "Prompt, correct answer and alternatives inspected; factual provenance remains Open Trivia DB, not independently source checked."
+  }
+]

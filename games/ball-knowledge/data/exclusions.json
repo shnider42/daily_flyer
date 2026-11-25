@@ -1,0 +1,4557 @@
+[
+  {
+    "id": "otdb_b5fe43077954ffd5",
+    "prompt": "The first Grand Theft Auto was also planned for the Nintendo 64.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_637912c77ffbda31",
+    "prompt": "What is the largest animal currently on Earth?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_2d63264858b0e581",
+    "prompt": "Which film has been critically regarded as the best film of all time?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_f10c6d0c1c79c01d",
+    "prompt": "The 2011 movie \"The Adventures of Tintin\" was directed by Steven Spielberg.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6cbd322488191306",
+    "prompt": "In the original Star Wars: A New Hope, Han Solo is the first to shoot his blaster in a conversation with Greedo.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_773dcbfcb4261350",
+    "prompt": "In the \"S.T.A.L.K.E.R.\" series, the Freedom faction wishes to destroy the supernatural area known as \"the Zone\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_056cd1e7084504f2",
+    "prompt": "When setting up a chess board, the king is placed on a square of his own color.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_949a785221bd0519",
+    "prompt": "Metal Gear Solid V: The Phantom Pain runs on the Fox Engine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0d310faa5f2b7fa5",
+    "prompt": "The Doppler effect applies to light.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6fd59355237845cf",
+    "prompt": "An exothermic reaction is a chemical reaction that releases energy by radiating electricity.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6f9ed797345d2a9d",
+    "prompt": "Super Mario and Paarthurnax (Skyrim) are voiced by the same actor.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bb629dc6cb873ed2",
+    "prompt": "The main antagonist in the videogame Saints Row IV is an entity known as The Mastermind.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_29fc1e2b7622ee64",
+    "prompt": "In the game \"Until Dawn\" Emily is the only playable character who can be killed by another playable character directly.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6916263d84249eab",
+    "prompt": "In 2010, Twitter and the United States Library of Congress partnered together to archive every tweet by American citizens.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3201f71f0ae2be82",
+    "prompt": "What is the best selling album of all time from 1976 to 2018?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_19d808c073354d6d",
+    "prompt": "Japan has left-hand side traffic.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_750b22b47e5a7f0d",
+    "prompt": "The Ace Attorney trilogy was suppose to end with \"Phoenix Wright: Ace Attorney − Trials and Tribulations\" as its final game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2af90b02284dd730",
+    "prompt": "The mitochondria is the powerhouse of the cell.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d263e38925a17489",
+    "prompt": "According to Greek Mythology, Zeus can control lightning.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_69b4d926117a35ef",
+    "prompt": "Washington, D.C. is considered a US state.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_582d3c097df40b01",
+    "prompt": "In \"To Love-Ru: Darkness\", Yami reveals her real name is Eve.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9d4526031cd7669e",
+    "prompt": "What animal takes part in Schrödinger's most famous thought experiment?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_83b5066a8c7d72a1",
+    "prompt": "\"Typewriter\" is the longest word that can be typed using only the first row on a QWERTY keyboard.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9930cbbbe2579836",
+    "prompt": "Fast food restaurant chains Carl's Jr. and Hardee's are owned by the same company.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9edef4c373b7a87a",
+    "prompt": "Shrimp can swim backwards.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9e96c25057181c3a",
+    "prompt": "The video game \"Fuel\" has an open world that is 5,560 square miles?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b9fdc71fea96f0ea",
+    "prompt": "Peyton Manning retired after winning Super Bowl XLIX.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_eb0dd62ba3b5a4da",
+    "prompt": "Alaska and Hawaii are the only US states that have their own timezones.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1f447884450f5be6",
+    "prompt": "The names of Tom Nook's cousins in the Animal Crossing franchise are named \"Timmy\" and \"Jimmy\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d3b5455524d260cf",
+    "prompt": "In \"Tony Hawk's Underground\", the main character's friend turned rival is named \"Jeff Sampson\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a127c04b0da7f8a6",
+    "prompt": "Pure water effectively conducts electricity",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c17239e1b8c2ba6c",
+    "prompt": "Amazon acquired Twitch in August 2014 for $970 million dollars.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_efaa7f163450ce0d",
+    "prompt": "Stagecoach owned \"South West Trains\" before losing the rights to FirstGroup and MTR in March of 2017.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_eaabf96294bdd097",
+    "prompt": "The song \"Mystery Train\" was released by artist \"Little Junior's Blue Flames\" in 1953.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ce72a4f85a50898e",
+    "prompt": "In \"Super Mario 3D World\", the Double Cherry power-up originated from a developer accidentally making two characters controllable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_660f8be6cfa2001a",
+    "prompt": "Solid Snake is actually a clone from the DNA of Big Boss in the Metal Gear Solid series' history.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3eb7a90c15b07cac",
+    "prompt": "The capital of Indonesia is Bali.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dc8998a70474291d",
+    "prompt": "Sea sponges can have hearts.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e48323096cbae61d",
+    "prompt": "The \"Gympie Stinger\" is the deadliest plant in the world.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7a19b11a399e8b37",
+    "prompt": "In \"Star Trek\", Klaang is a typical Klingon male.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4680720cfda157c6",
+    "prompt": "In the game \"Destiny,\" the three subclasses of the Hunter are Bladedancer, Nightstalker, and Sunsinger.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a179b1803fc6171b",
+    "prompt": "The protagonist of Dead Rising 3 is called Chuck Greene.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cdc8e7c782c839be",
+    "prompt": "Colombia is named after Christopher Columbus.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9b630075cc58ff58",
+    "prompt": "Denmark has a monarch.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_79db67645f933996",
+    "prompt": "Which Landsat Satellite currently has had the longest operational life?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_1d90d7759258435d",
+    "prompt": "The word \"news\" originates from the first letters of the 4 main directions on a compass (North, East, West, South).",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cfaaccbc6a9e11c6",
+    "prompt": "The \"Pepe\" meme originated from a comic drawn by Matt Furie called \"Boy's Club\"?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_af96eb675556c39c",
+    "prompt": "Cucumbers are usually more than 90% water.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ea8001d4c444d772",
+    "prompt": "What fast food chain has the most locations globally?",
+    "reason": "unbounded commercial count"
+  },
+  {
+    "id": "otdb_0458345c2278cd91",
+    "prompt": "Soccer player Cristiano Ronaldo opened a museum dedicated to himself.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_57b2560d65959ff7",
+    "prompt": "Han Solo's co-pilot and best friend, \"Chewbacca\", is an Ewok.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_95fc6fc331e69622",
+    "prompt": "The Panama Canal was opened to traffic within 30 days of the beginning of World War I.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7144309772f2995e",
+    "prompt": "Salt is 100% composed of Sodium.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_835830b695f70a03",
+    "prompt": "Unturned originally started as a Roblox game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_57be6583aa79f3af",
+    "prompt": "California is larger than Japan.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cc0b4bcb0ae22141",
+    "prompt": "At what temperature does temp in °C equal temp in °F?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_ec3d3564b27e6e83",
+    "prompt": "In \"Space Station 13\", the station has a clown aboard it.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_188181400b5dcb9a",
+    "prompt": "Seoul is the capital of North Korea.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_36079decdaf91c6c",
+    "prompt": "A person can get sunburned on a cloudy day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d55ce02908bb18b3",
+    "prompt": "Folic acid is the synthetic form of which vitamin?",
+    "reason": "imprecise vitamin answer"
+  },
+  {
+    "id": "otdb_e49d60e167a39fe2",
+    "prompt": "\"I disapprove of what you say, but I will defend to the death your right to say it\" is a quote from French philosopher Voltaire.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_413cadfa46c2011e",
+    "prompt": "Leonardo da Vinci's Mona Lisa does not have eyebrows.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d1b4700afbb4a706",
+    "prompt": "The ARM computer chip was originally developed by Acorn Computers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_61cbba26f2313bdd",
+    "prompt": "Which best selling toy of 1983 caused hysteria, resulting in riots breaking out in stores?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_567d56100eb24c5b",
+    "prompt": "The New York Subway is the oldest underground in the world.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8e6c0537582cd851",
+    "prompt": "In \"Sonic Adventure\", you are able to transform into Super Sonic at will after completing the main story.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2f5c8260672b2143",
+    "prompt": "The chemical element Lithium is named after the country of Lithuania.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_71fb6f3618666712",
+    "prompt": "Theodore Roosevelt Jr. was the only General involved in the initial assault on D-Day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c4bb9be4354c796b",
+    "prompt": "How many syllables make up a haiku?",
+    "reason": "imprecise poetic-language unit"
+  },
+  {
+    "id": "otdb_c27d4ac550296ea4",
+    "prompt": "The first IBM PC was released in 1981.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2a398d09ba22426f",
+    "prompt": "FLAC stands for \"Free Lossless Audio Condenser\"'",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_59f62f9a4ecba6e3",
+    "prompt": "According to Greek Mythology, Atlas was an Olympian God.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_31ecfd1c68dab8ec",
+    "prompt": "In the \"Melancholy of Haruhi Suzumiya\" series, the narrator goes by the nickname Kyon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d06a0967a65176a9",
+    "prompt": "The two atomic bombs dropped on Japan by the United States in August 1945 were named 'Little Man' and 'Fat Boy'.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_406f080c3b281ba3",
+    "prompt": "The Earth revolves around the Sun in one year.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_168f90d330574038",
+    "prompt": "Australia is greater than Greenland in size.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_16c4f72f0b243870",
+    "prompt": "A universal set, or a set that contains all sets, exists.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bb818e8b4590f075",
+    "prompt": "In \"The Sims\" series, the most members in a household you can have is 8.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_07b04d21d268a8f9",
+    "prompt": "Arcade Fire's 'The Suburbs' won the Album of the Year award in the 2011 Grammys.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a6795ec6bfe497cf",
+    "prompt": "What is considered the rarest form of color blindness?",
+    "reason": "species-specific taste ambiguity"
+  },
+  {
+    "id": "otdb_f3a4a2663178302e",
+    "prompt": "Kublai Khan is the grandchild of Genghis Khan?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d4c970f3dc119a2c",
+    "prompt": "Africa is a country.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c7f683f0a4eb5a36",
+    "prompt": "St. Louis is the capital of the US State Missouri.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ba0a4a551eb94047",
+    "prompt": "The Pythagorean theorem states that the square of the hypotenuse is equal to the product of the squares of the other two sides.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b0854c4419c8e56c",
+    "prompt": "Furby was released in 1998.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f8006a3db6db6bf0",
+    "prompt": "The end credits sequence in Grand Theft Auto 5 is over half an hour long.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3ecf92a724c7d94c",
+    "prompt": "In the game \"Subnautica\", a \"Cave Crawler\" will attack you.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_22cec26502b07a8d",
+    "prompt": "L'Hôpital was the mathematician who created the homonymous rule that uses derivatives to evaluate limits with indeterminations.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5dcdd958f221e811",
+    "prompt": "Samhainophobia is the term used for an abnormal and persistent fear of halloween.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1f8a7e3f796932d5",
+    "prompt": "What film did James Cameron's Avatar dethrone as the highest-grossing film ever?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_528bd68d75273798",
+    "prompt": "In AMC's \"The Walking Dead,\" the characters Rick, Carl, Daryl, Morgan, Carol and Maggie were introduced in Season 1.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8ea552204f91d12f",
+    "prompt": "There exists an island named \"Java\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_256e36fcae18cb51",
+    "prompt": "In Monster Hunter Generations, guild style is a type of hunting style.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6e67982e33bd7b03",
+    "prompt": "The card game \"Munchkin\" won the 2001 Origins Award for Best Traditional Card Game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6c54edee5549ecc2",
+    "prompt": "The internet browser Firefox is named after the Red Panda.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c8ad0f066fa3401d",
+    "prompt": "In \"Call Of Duty: World At War\", the first appearance of the \"PPSH-41\" in \"Zombies\" was in the map \"Der Riese\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_efc79d9cff7c5eed",
+    "prompt": "The game \"Battlefield 1\" takes place during World War I.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2ca20c3335adac64",
+    "prompt": "In Kill La Kill, the weapon of the main protagonist is a katana.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_231bf8841e3dd122",
+    "prompt": "The iPhone 3G was the second iPhone generation.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_82d51dc1864069be",
+    "prompt": "Ana was added as a new hero for the game Overwatch on July 19th, 2016.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_63adbcdbb143b59b",
+    "prompt": "An average human can go two weeks without water.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f783cdb6975cdab9",
+    "prompt": "Deus Ex (2000) does not feature the World Trade Center because it was destroyed by terrorist attacks according to the game's plot.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_446f9318fc161032",
+    "prompt": "The main playable character of the 2015 RPG \"Undertale\" is a monster.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_adfb83d770b3477d",
+    "prompt": "Liechtenstein does not have an airport.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9803f1b2dd3a7c0a",
+    "prompt": "\"The Crucible\" was written by William Shakespeare.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_af3b4a5674eb6f84",
+    "prompt": "Greenland is almost as big as Africa.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8a10099f4b165e68",
+    "prompt": "JavaScript derives from a later version of Java",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_739f84a23e1fac14",
+    "prompt": "There are 6 legendary cards in \"Clash Royale\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_801ff7b993709b29",
+    "prompt": "The Lego Group was founded in 1932.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_743828f7ddc3b5c3",
+    "prompt": "Michael Jackson wrote The Simpsons song \"Do the Bartman\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9dcb52eefc5c797c",
+    "prompt": "What is the equation for the area of a sphere?",
+    "reason": "incorrect area-versus-volume formula"
+  },
+  {
+    "id": "otdb_874a17c25fd94809",
+    "prompt": "Doki Doki Literature Club was developed in Japan.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_20c60c0ba041530a",
+    "prompt": "\"The Big Bang Theory\" was first theorized by a priest of what religious ideology?",
+    "reason": "religious answer options overlap"
+  },
+  {
+    "id": "otdb_a013c3d33b202b9c",
+    "prompt": "The average lifespan of a wildcat is only around 5-6 years.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_078f5c23a9c29c4e",
+    "prompt": "In the original Star Wars trilogy, David Prowse was the actor who physically portrayed Darth Vader.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_99a39e0cc943caea",
+    "prompt": "The pickled gherkin was first added to hamburgers because a US health law required all fast-food to include a source of Vitamin C.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bd1a896219c35ab9",
+    "prompt": "The K-Pop Boy Band BTS debuted in the year 2013.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bff767efff0975a7",
+    "prompt": "Only one country in the world starts with the letter Q.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1cbab47990c9064",
+    "prompt": "Samuel L. Jackson had the words, 'Bad Motherf*cker' in-scripted on his lightsaber during the filming of Star Wars.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7cccacbf72f9281f",
+    "prompt": "RAM stands for Random Access Memory.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8b2a542c7a0fa369",
+    "prompt": "Enthalpy is a measure of the energy that is not available for work during a thermodynamic process.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7e3bd63844f2799f",
+    "prompt": "\"27 Club\" is a term used to refer to a list of famous actors, musicians, and artists who died at the age of 27.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c838993e47a84c9e",
+    "prompt": "There is a city called Rome in every continent on Earth.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_acdf152ea44cd6de",
+    "prompt": "In \"Portal 2\", Cave Johnson started out Aperture Science as a shower curtain company.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8609b83fffb1069d",
+    "prompt": "The fourth funnel of the RMS Titanic was fake designed to make the ship look more powerful and symmetrical.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0a84626b02a16ddb",
+    "prompt": "Rollercoaster Tycoon 1 and 2 were developed by Chris Sawyer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cc424f2f764df53d",
+    "prompt": "Switzerland has four national languages, English being one of them.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b294006109fcdb3a",
+    "prompt": "In 2016, the IUCN reclassified the status of Giant Pandas from endangered to vulnerable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_00a34dcbbd15c66c",
+    "prompt": "Michael Jackson had a pet python named ‘Crusher’.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d8313f278d59ba3d",
+    "prompt": "In most programming languages, the operator ++ is equivalent to the statement \"+= 1\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_034b0b7e48dc7cdf",
+    "prompt": "Who is regarded as the best Romanian footballer of all time?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_2e663962c8e85049",
+    "prompt": "Vikings were the first Europeans to discover North America.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_58af4bc07a451237",
+    "prompt": "\"Friday,\" the single by Rebecca Black, was released in February 10th, 2011.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_345b148983cf7dfe",
+    "prompt": "Frederick Banting and John Macleod won a Nobel Prize for their contributions to the scientific fields of quantum mechanics.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b1e3104a2b1faa31",
+    "prompt": "Francis Bacon died from a fatal case of pneumonia while he was attempting to preserve meat by stuffing a chicken with snow.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_687298bf8cd53a92",
+    "prompt": "Antarctica is the largest desert in the world.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b42b3b40e3b841b",
+    "prompt": "Like with the Neanderthals, Homo sapiens sapiens also interbred with the Denisovans.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cb812d8f1f0adf7a",
+    "prompt": "Shaquille O'Neal appeared in the 1997 film \"Space Jam\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_24d03ffc84a9771f",
+    "prompt": "Gothenburg is the capital of Sweden.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_061d98b08cc6d730",
+    "prompt": "Pac-Man was invented by the designer Toru Iwatani while he was eating pizza.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4fca0fc1d376e357",
+    "prompt": "As of February 2019, the \"Donkey Kong Country\" series only had released five games (not counting remakes or ports).",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_22702df5f4afee6e",
+    "prompt": "In RuneScape, one must complete the \"Dragon Slayer\" quest before equipping Rune Platelegs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ff0217ab682d8db3",
+    "prompt": "EDM label Monstercat signs tracks instead of artists.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1e3ce591df3aa5e",
+    "prompt": "Did Michael Jackson invent the moonwalk?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3e1a4c2c6861458a",
+    "prompt": "In Harry Potter and the Deathly Hallows, Hermione destroyed the fourth Horcrux by stabbing it with the Sword of Gryffindor.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e982f8a24ae3fb66",
+    "prompt": "Hyenas are more closely related to cats than to dogs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0cb04fab58c7ffc3",
+    "prompt": "David Baszucki was a co-founder of ROBLOX Corporation.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_19228d4c7241deca",
+    "prompt": "What is the largest living organism currently known to man?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_cf68df1e5e9f5000",
+    "prompt": "In the game \"Subnautica\", a \"Spadefish\" will attack you.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_77ad68298178b5da",
+    "prompt": "Which country did the Eureka Rebellion, an 1856 battle against colonial rule, take place in?",
+    "reason": "incorrect rebellion date"
+  },
+  {
+    "id": "otdb_af95ca963e7ed239",
+    "prompt": "The protagonist's names in 'Who's Afraid of Virginia Woolf', George and Martha, were derived from George Washington and his wife.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a312c9f763b77320",
+    "prompt": "What is the standard SI unit for electric current?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_2c9f7f068bb28412",
+    "prompt": "Pink Guy's debut album was \"Pink Season\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5cff77e73c8c44fd",
+    "prompt": "The cover of The Beatles album \"Abbey Road\" featured a Volkswagen Beetle in the background.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c58c9f1035e42402",
+    "prompt": "Coca-Cola's original colour was green.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b273b37dd03bc431",
+    "prompt": "The names of Roxas's Keyblades in Kingdom Hearts are \"Oathkeeper\" and \"Oblivion\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_54ee28d5ae60d40f",
+    "prompt": "Tennis was once known as Racquetball.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_33bef8026e43eb6e",
+    "prompt": "During Wimbledon, spectators in the grounds can buy the tennis balls that have been used in matches.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_562951cb3c5f777a",
+    "prompt": "Water is naturally coloured blue.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c899ad002a76e25f",
+    "prompt": "Not including false teeth; A human has two sets of teeth in their lifetime.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_db501598c11b929e",
+    "prompt": "March 10th is also known as Mar10 Day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ad3b47326c4231d8",
+    "prompt": "The animated film \"Spirited Away\" won the Academy Award for Best Animated Feature at the 75th Academy Awards in 2003.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d9982224d0fe0981",
+    "prompt": "The Kingdom of Prussia briefly held land in Estonia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1a0ecf0e1c021d1d",
+    "prompt": "Instant mashed potatoes were invented by Canadian Edward Asselbergs in 1962.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_34f67918572d783e",
+    "prompt": "Wooden molding scraps were used to make the original Monopoly houses and hotels.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a751257bf9c271af",
+    "prompt": "\"Sonic the Hedgehog 2\" originally was going to have a time travel system.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8316df09fdb0e93e",
+    "prompt": "United States President Ronald Reagan was the first president to appoint a woman to the Supreme Court.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_438e917805232384",
+    "prompt": "The Kerbol System (from Kerbal Space Program) includes a Saturn analogue.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c5004f73c7ff094b",
+    "prompt": "The Enlightenment was an era of philosophies, advancements, and scientific theories to improve society.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cdd586a0ed7e81e5",
+    "prompt": "Rannamaari was a sea demon that haunted the people of the Maldives and had to be appeased monthly with the sacrifice of a virgin girl.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3a2a083299431b41",
+    "prompt": "A Saxophone is a brass instrument.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_547d7b94920c1368",
+    "prompt": "The flag of South Africa features 7 colours.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5a136298722bb05b",
+    "prompt": "The Original Jack-o-Lanterns were actually hollowed out turnips.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1818cdf6cce7d4ed",
+    "prompt": "Pink Floyd's 1973 album \"Animals\" features a photograph of Battersea Power Station.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_78c319db985eeef8",
+    "prompt": "Hippopotomonstrosesquippedaliophobia is the irrational fear of long words.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f0e76c2db7674654",
+    "prompt": "George W. Bush lost the popular vote in the 2004 United States presidential election.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d13c0144c3601ef8",
+    "prompt": "The edutainment video game series character, Carmen Sandiego, is partially named after Brazilian actress, Carmen Miranda.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_980cf341ff73aae0",
+    "prompt": "Spoon theory is a theory, utilizing \"Spoons\" as a metaphor for energy they can use in a day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a0b266d976ca11c5",
+    "prompt": "Scientists accidentally killed the once known world's oldest living creature, a mollusc, known to be aged as 507 years old.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3d37d2066865f5b6",
+    "prompt": "Which of the following languages is used as a scripting language in the Unity 3D game engine?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_6008608662704d7e",
+    "prompt": "A group of islands is called an 'archipelago'.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_64e5957fb656be0a",
+    "prompt": "The 2005 video game \"Call of Duty 2: Big Red One\" is not available on PC.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9cee304f7537a61d",
+    "prompt": "Upwelling in the ocean provides colder nutrient rich water for plants and decomposers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8298ae37b8f10e95",
+    "prompt": "Microphones can be used not only to pick up sound, but also to project sound similar to a speaker.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4cd270d18382ca51",
+    "prompt": "Rabbits are rodents.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_291c9750b2fc3ddc",
+    "prompt": "In \"JoJo's Bizarre Adventure\", Father Enrico Pucchi uses a total of 3 stands in Part 6: Stone Ocean.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b8603887c8b25360",
+    "prompt": "Otters have pockets under their arms for carrying their favourite snacks and rocks.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9b7bcc4fe73935d3",
+    "prompt": "Pointers were not used in the original C programming language; they were added later on in C++.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5e0877a6c7ed2ac7",
+    "prompt": "\"The Simpsons\" family is named after creator Matt Groening's real family.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_be02c6000a3ae646",
+    "prompt": "French is an official language in Canada.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f9ad66c4120ee1b0",
+    "prompt": "Janus was the Roman god of doorways and passageways.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ff464fbcf6db8537",
+    "prompt": "Pete Townshend's solo album, \"White City: A Novel\", is set in the metropolitan area of Chicago.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4bb9e4e548adfb59",
+    "prompt": "Vatican City is a country.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_98a7c6a5b3273fd8",
+    "prompt": "The show \"Gilligan's Island\" was cancelled because of low ratings.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_adb4a25651d3f0c4",
+    "prompt": "The capital of the US State Ohio is the city of Chillicothe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_513a403dbe88f54a",
+    "prompt": "Rabbits can see what's behind themselves without turning their heads.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f275747fd1cd061b",
+    "prompt": "Who succeeded Joseph Stalin as General Secretary of the Communist Party of the Soviet Union?",
+    "reason": "ambiguous Soviet party succession title"
+  },
+  {
+    "id": "otdb_90ca536e7ecbce9a",
+    "prompt": "\"Return to Castle Wolfenstein\" was the only game of the Wolfenstein series where you don't play as William \"B.J.\" Blazkowicz.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b996ef7414bdb64f",
+    "prompt": "Italy and Ireland are the only countries in Europe that start with the letter I.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_da3adece7173922e",
+    "prompt": "If you could fold a piece of paper in half 50 times, its' thickness will be 3/4th the distance from the Earth to the Sun.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f246857f2d449d06",
+    "prompt": "The retail disc of Tony Hawk's Pro Skater 5 only comes with the tutorial.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_12a8937a426bc96b",
+    "prompt": "The Chevrolet Corvette has always been made exclusively with V8 engines only.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b70566d922d48a86",
+    "prompt": "The term \"GTO\" was originated by Ferrari?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ea6fb0a67c44e585",
+    "prompt": "What numbers are in the 5th row of Pascal's Triangle?",
+    "reason": "ambiguous Pascal row convention"
+  },
+  {
+    "id": "otdb_8e340ff5b569d4c3",
+    "prompt": "The echidna is a monotreme.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_81adb5829157fa7a",
+    "prompt": "Crystal Pepsi was first sold in US markets in 1993.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1f9201dd3843800",
+    "prompt": "Bosnia and Herzegovina is a country located in the Baltic region in Europe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df076a64e981667b",
+    "prompt": "Nickelodeon rejected the pilot to Adventure Time.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4030a1a6a13e2a64",
+    "prompt": "The third largest country (by square kilometres) in South America is Colombia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_35d102668ebc1501",
+    "prompt": "United States President John F. Kennedy was assassinated during his presidential motorcade in Atlanta, Georgia on November 22nd, 1963.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_186c5b4b57c38e23",
+    "prompt": "In 1993 Swedish car manufacturer Saab experimented with replacing the steering wheel with a joystick in a Saab 9000.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_20b9741dc8cfd590",
+    "prompt": "Donald Trump won the popular vote in the 2016 United States presidential election.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_02c222372981a22b",
+    "prompt": "Blue Danube was one of the musical pieces featured in Disney's 1940's film Fantasia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9e232e159e77dfd7",
+    "prompt": "Joko Widodo has appeared in the cover of a TIME magazine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_36578833c7fb9ff8",
+    "prompt": "\"Rich Uncle Pennybags\" from the board game \"Monopoly\" wears a monocle.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d78fb48932e17eba",
+    "prompt": "McCree from Overwatch originally started as a character that was going to appear in a scrapped Starcraft game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2a659ef3f52c5582",
+    "prompt": "The Windows 7 operating system has six main editions.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5903c5bbee929ac6",
+    "prompt": "Helen Clark was the 37th Prime Minister of Australia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0b92b5a1c3ca3ccd",
+    "prompt": "Studies suggest that approximately 40% of the world population is left-handed.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_988a98adac7dc3d8",
+    "prompt": "The French scientists Louis Pasteur and Émile Roux developed the first rabies vaccination in 1885.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a6d3faf289ff5b83",
+    "prompt": "What is radiation measured in?",
+    "reason": "ambiguous radiation unit"
+  },
+  {
+    "id": "otdb_25950e5060690bae",
+    "prompt": "In Greek Mythology, who was the daughter of King Minos?",
+    "reason": "unqualified Greek mythology uniqueness"
+  },
+  {
+    "id": "otdb_455959cbc9752b6d",
+    "prompt": "All program codes have to be compiled into an executable file in order to be run. This file can then be executed on any machine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dcac9059bdbe3aaa",
+    "prompt": "YouTube personality Jenna Marbles served as an executive producer of the film Maximum Ride (2016).",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a3a7aead081075ce",
+    "prompt": "The Harry Potter series of books, combined, are over 1,000,000 words in length.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_de73d9d1c4b26a2b",
+    "prompt": "Originally, the character Charlie from Charlie and the Chocolate Factory was going to be black.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_98bce4394af3b9c0",
+    "prompt": "In 2008, Usain Bolt set the world record for the 100 meters with one shoelace untied.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ea25e857b5c49086",
+    "prompt": "Sugar contains fat.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_853f467d465a0f12",
+    "prompt": "In Battlestar Galactica (2004), Cylons were created by man as cybernetic workers and soldiers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_06346288e32fa3e3",
+    "prompt": "According to DeMorgan's Theorem, the Boolean expression (AB)' is equivalent to:",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_bf8ad531370701f2",
+    "prompt": "Celiac Disease is a disease that effects the heart, causing those effected to be unable to eat meat.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1f767257803ec2b4",
+    "prompt": "IMAX stands for Image Maximum.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5e966b2a5aa47c0e",
+    "prompt": "The term \"Spam\" came before the food product \"Spam\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_173e4127580ad2b5",
+    "prompt": "Eurobeat is primarily an Italian genre of music.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_11ce9ed4a6269704",
+    "prompt": "Japan was part of the Allied Powers during World War I.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fc939488c462e5c8",
+    "prompt": "The French Kingdom helped the United States gain their independence over Great Britain during the Revolutionary War.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f2d3c3703fd92350",
+    "prompt": "\"Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo.\" is a grammatically correct sentence.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_01b99d4dcc94b6f7",
+    "prompt": "This is the correct spelling of \"Supercalifragilisticexpialidocious\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_25ff4b0a9f80a205",
+    "prompt": "What is the atomic mass of Carbon?",
+    "reason": "atomic mass and isotope ambiguity"
+  },
+  {
+    "id": "otdb_ecd0fc72ac27655f",
+    "prompt": "In Pokémon, Bulbasaur is the only starter pokemon that is a Grass/Poison type.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e2a8bcf740a18757",
+    "prompt": "In France, a hunting license or a sport-shooting license is needed to purchase any firearm.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_af4f559f68682904",
+    "prompt": "The Battle of Trafalgar took place on October 23rd, 1805",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b4662c44c6ff46e3",
+    "prompt": "Zero factorial is equal to zero.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ed04cef768ba4aa8",
+    "prompt": "The S in Harry S. Truman stands for \"Samuel\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_41206d766aad327e",
+    "prompt": "Which of the following is the world's best-selling book?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_eca4f2884236e90a",
+    "prompt": "In baseball, how many fouls are an out?",
+    "reason": "ambiguous baseball foul rule"
+  },
+  {
+    "id": "otdb_f9187ed108b873ee",
+    "prompt": "Oxford University is older than the Aztec Empire.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1ae41e917ba3ab53",
+    "prompt": "Resident Evil 4 was originally meant to be a Nintendo GameCube exclusive.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2fc689bfd810640f",
+    "prompt": "111,111,111 x 111,111,111 = 12,345,678,987,654,321",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_60746c4135056d5a",
+    "prompt": "Which historical conflict killed the most people?",
+    "reason": "unbounded mortality estimate"
+  },
+  {
+    "id": "otdb_446c90dee17990bc",
+    "prompt": "How did the Vikings call their short-lived colony in today's Canada?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_6ec4e41afeb7f9a7",
+    "prompt": "In Pokémon Sun and Moon, a male Salandit can evolve to a Salazzle.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3015b10777f107b1",
+    "prompt": "The pantheon in Rome was used to worship what god?",
+    "reason": "incorrect globe organism or anatomy simplification"
+  },
+  {
+    "id": "otdb_6aace4ef6921c4ae",
+    "prompt": "NCIS stands for \"Navy Corps Investigative Service\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a91163fb1ec1bad3",
+    "prompt": "The longest place named in the United States is Lake Chargoggagoggmanchauggagoggchaubunagungamaugg, located near Webster, MA.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_80c09385c15078a6",
+    "prompt": "Dihydrogen Monoxide is a dangerous chemical.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aa2635e02f615e8c",
+    "prompt": "An episode of \"The Simpsons\" is dedicated to Moe Szyslak's bar rag.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_680d682ef0855649",
+    "prompt": "The HTML5 standard was published in 2014.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f9b0c09dee0aea34",
+    "prompt": "A defibrillator is used to start up a heartbeat once a heart has stopped beating.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ebfc58ac1fdfd9c5",
+    "prompt": "Argentina's name comes from the latin name for Silver.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b5f120fb92e8322c",
+    "prompt": "An octopus can fit through any hole larger than its beak.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_679d5dbd110fcc2c",
+    "prompt": "Video streaming website YouTube was purchased in it's entirety by Facebook for US$1.65 billion in stock.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0c5a705e1c75a3b7",
+    "prompt": "What is the area of a circle with a diameter of 20 inches if π= 3.1415?",
+    "reason": "area measurement has linear units"
+  },
+  {
+    "id": "otdb_af4844a3d73badb0",
+    "prompt": "King Gizzard & The Lizard Wizard's album \"Nonagon Infinity\" can be looped seamlessly.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_71fb8448c17591ae",
+    "prompt": "Zebras are white with black stripes.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1bf2d9c48ced5a1c",
+    "prompt": "Which of the following African countries was most successful in resisting colonization?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_0bfff4237b6f6ddd",
+    "prompt": "Jeb Bush was elected as Governor of Florida in 2002, starting his political career.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3de297f6c1449d2e",
+    "prompt": "The Western Electric Model 500 telephone uses tone dialing to dial phone numbers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e06180471cdc96f5",
+    "prompt": "Dave Grohl recorded the Foo Fighters' debut, \"Foo Fighters,\" by himself.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6ac21c92ab767a9c",
+    "prompt": "What is widely considered to be the oldest civilization known to mankind?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_0b7a7981ebd698c7",
+    "prompt": "The X-Men's Storm and Nightcrawler were originally planned to be characters in DC Comics' Legion of Super-Heroes.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ffb3a9f13358c772",
+    "prompt": "What is the world's most expensive spice by weight?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_412cd9bd3c86924d",
+    "prompt": "The commercial UK channel ITV stands for \"International Television\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9f9e76a393946e24",
+    "prompt": "Lead Singer Rivers Cuomo of American rock band Weezer attended Harvard.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3e8f677562c5a955",
+    "prompt": "There are 13 months in the Ethiopian calendar.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_14f48e9d8d20034a",
+    "prompt": "Elephants are physically unable to jump.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5f4a7a8bf4ec1d8b",
+    "prompt": "Rhode Island is actually located on the US mainland, despite its name.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a6ca718d3adc03cc",
+    "prompt": "What is the name of Nissan's most popular electric car?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_6292eb0a1699cd5c",
+    "prompt": "Adolf Hitler was a german soldier in World War I.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1e6036a85ab8ad53",
+    "prompt": "The shotgun appears in every numbered Resident Evil game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4588fd533b2e1217",
+    "prompt": "The author behind the acclaimed novel \"Leaving Las Vegas\" also wrote an episode of Rugrats.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fd7d93a775b38ce6",
+    "prompt": "The character that would eventually become Dr. Eggman was considered for the role of Sega's new flagship mascot before Sonic was.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fe9fffe0dc66b6bb",
+    "prompt": "The man that shot Alexander Hamilton was named Aaron Burr.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8dd3d7318b8c54c0",
+    "prompt": "Shaquille O’Neal has only made one three pointer in his career.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0de0f73fe6bda590",
+    "prompt": "The scientific name for the Southern Lights is Aurora Australis?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7fa91e41bdc0107d",
+    "prompt": "Ancient Greek and Roman sculptors often colored their statues.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f1fdef05df27dbb7",
+    "prompt": "Norway has a larger land area than Sweden.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aab95fdeaf96528f",
+    "prompt": "The Republic of Malta is the smallest microstate worldwide.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2b3b15d8424eda01",
+    "prompt": "In the video game, Half-life, what event started the Half-life universe as we know today?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_80aec8d3400f8009",
+    "prompt": "In the canon \"Neptunia\" games, Neptune is always the main protagonist.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f4b4566f698d502a",
+    "prompt": "Waylon Smithers from \"The Simpsons\" was originally black when he first appeared in the series.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1d7f93d374c2f240",
+    "prompt": "George Lucas directed the entire original Star Wars trilogy.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_90ecf0328c37b47f",
+    "prompt": "The name \"Impressionsim\" was first given to that art movement by a critic's satirical review of a Monet painting.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_737d6922f66c4858",
+    "prompt": "Linux was first created as an alternative to Windows XP.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df648cc721c8bd5e",
+    "prompt": "In the Resident Evil series, Leon S. Kennedy is a member of STARS.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2196370d65e1367e",
+    "prompt": "\"Undertale\" is an RPG created by Toby Fox and released in 2015.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9d4d5a01bfd7724d",
+    "prompt": "Vincent van Gogh cut off one of his ears.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_347458cb99988855",
+    "prompt": "The main character in the \"Half-Life\" franchise is named Morgan Freeman.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6fad3b4654bd5dd1",
+    "prompt": "Skaði is the Norse Goddess of skiing, mountains, winter and bowhunting.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1aea1612d0f7587",
+    "prompt": "Water always boils at 100°C, 212°F, 373.15K, no matter where you are.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c8b94c8ff2d0baa",
+    "prompt": "Gordon Freeman, the protagonist of \"Half-Life\", is said to have once had a ponytail.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_295f9c3f5f586d7b",
+    "prompt": "The movie \"Tron\" received an Oscar nomination for Best Visual Effects.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4e5b0181403ba89c",
+    "prompt": "Scottish producer Calvin Harris is from the town of Dumfries, Scotland.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5a1166a4bb3fd3da",
+    "prompt": "\"Half-Life 2\" runs on the Source Engine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c4f7faef050a0cd",
+    "prompt": "Martin Luther King Jr. and Anne Frank were born the same year.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5b462ffc47d8a3c8",
+    "prompt": "Soulja Boy's 'Crank That' won a Grammy for Best Rap Song in 2007.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3a7cf1cabf0e03b0",
+    "prompt": "A flock of crows is known as a homicide.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b5939052f6619ee",
+    "prompt": "The US emergency hotline is 911 because of the September 11th terrorist attacks.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2167a18b17c15053",
+    "prompt": "The Sonoran Desert is located in eastern Africa.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ee803fe276056e44",
+    "prompt": "Mortal Kombat was almost based on Jean-Claude Van Damme movie.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_520ddd92e887c24e",
+    "prompt": "A pencil's lead is typically made from graphite, not lead",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fa2ef202528cc9f6",
+    "prompt": "Terry Gilliam is the only American member of the comedy troupe \"Monty Python.\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4ba63acdd7151abf",
+    "prompt": "Kissing someone for one minute burns about 2 calories.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c1dd9e3a2550995e",
+    "prompt": "Grand Theft Auto V is the fifteenth installment of the Grand Theft Auto series.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c7fc5bad96ef483b",
+    "prompt": "Rebecca Chambers does not appear in any Resident Evil except for the original Resident Evil and the Gamecube remake.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ef839f7c16d42feb",
+    "prompt": "Romanian belongs to the Romance language family, shared with French, Spanish, Portuguese and Italian.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a803b9cd145e9751",
+    "prompt": "Like his character in \"Parks and Recreation\", Aziz Ansari was born in South Carolina.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_790636ea2945b0ff",
+    "prompt": "In the Fallout: New Vegas add-on Lonesome Road, Ulysses wields a flag pole named The Liberator.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2f4f8731e7ef136d",
+    "prompt": "The name of the main character of the video game \"The Legend of Zelda\", is Zelda.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2f3a60c7cfc54c4a",
+    "prompt": "The value of one Calorie is different than the value of one calorie.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_12b695315536510e",
+    "prompt": "The flag of Belarus has a red and white embroidery pattern on the hoist side.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_65850e5ff28066d9",
+    "prompt": "POLYBIUS is a myth arcade cabinet/game",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_15698be8f70795fa",
+    "prompt": "Early RAM was directly seated onto the motherboard and could not be easily removed.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4228ccb372335c1e",
+    "prompt": "When BMW was established in 1916, it was producing automobiles.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_03cea55d535dbdc2",
+    "prompt": "TF2: Sentry rocket damage falloff is calculated based on the distance between the sentry and the enemy, not the engineer and the enemy",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0ed37b3a9a79b70b",
+    "prompt": "The CEO of tech company Apple following Steve Jobs is named Tim Apple.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d0b7e79c86ebcae1",
+    "prompt": "Haggis is traditionally ate on Burns Night.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d26ec973df343a32",
+    "prompt": "Vatican city is a full member of United Nations.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_effece97ac55994a",
+    "prompt": "In \"Starbound\", the track played by the Decorated Music Box is named \"Atlas\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d76f80f3fba1c340",
+    "prompt": "The song \"Megalovania\" by Toby Fox made its third appearence in the 2015 RPG \"Undertale\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8b7b58117e32a1b5",
+    "prompt": "Adolf Hitler was tried at the Nuremberg trials.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f349cdc1120c6ef7",
+    "prompt": "Each piece in Tetris is called a tetris.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ac5197afd5d6a971",
+    "prompt": "Nutella is produced by the German company Ferrero.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_53363429d9baf737",
+    "prompt": "What year was the Mona Lisa finished?",
+    "reason": "unreliable painting completion date"
+  },
+  {
+    "id": "otdb_b423baf09f80eb60",
+    "prompt": "The ultimate phrase used by Pharah from Overwatch is: \"Justice rains from above!\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dba8ab9df0ce82fd",
+    "prompt": "iRobot's revolutionary floor-cleaning vacuum, the Roomba, was first invented in 2002",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_121dee6493b9acb0",
+    "prompt": "There aren't any live-action clones in \"Star Wars: Episode III - Revenge of the Sith\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a1a993c19f7d93c1",
+    "prompt": "Gosho Aoyama Made This Series: (Detective Conan / Case Closed!)",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b6bfee98ddd7913a",
+    "prompt": "The Platypus is a mammal.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df9205468b907398",
+    "prompt": "A Mac is not a PC",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_515696380fa9b1bd",
+    "prompt": "In \"Super Mario 64\", collecting 100 coins on a level will give you a 1-UP.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cc6ae7c1cf40ca73",
+    "prompt": "In Chobits, Hideki found Chii in his apartment.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_93736748de5f13eb",
+    "prompt": "The French word to travel is \"Travail\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d6d44a9cd615d473",
+    "prompt": "The United States was a member of the League of Nations.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6f63ff6a77b0b871",
+    "prompt": "Who is the founder of Palantir?",
+    "reason": "multiple-founder ambiguity"
+  },
+  {
+    "id": "otdb_b053cc1cd26d86f8",
+    "prompt": "What is the only Millennium Prize Problem that has been solved so far?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_f073006d28493695",
+    "prompt": "A scientific study on peanuts in bars found traces of over 100 unique specimens of urine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9c15320cc47afead",
+    "prompt": "In Pokémon, Arbok evolves into Seviper.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_67d5b18f40c177f8",
+    "prompt": "Pablo Picasso is one of the founding fathers of \"Cubism.\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5e60f75f28302ade",
+    "prompt": "Which dictator killed the most people?",
+    "reason": "unbounded mortality estimate"
+  },
+  {
+    "id": "otdb_6d0d061745878d8c",
+    "prompt": "The two largest ethnic groups of Belgium are Flemish and Walloon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cc110c04fc286e19",
+    "prompt": "Polaris is the brightest star in the northern hemisphere night sky.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3f19c392df8fb332",
+    "prompt": "Brazil used to be an empire.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b7b30381dd11240d",
+    "prompt": "The freshwater amphibian, the Axolotl, can regrow it's limbs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c75208a7cf7a6b19",
+    "prompt": "Until 1939, Laos was called Siam.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a73ac237432e4d36",
+    "prompt": "The proof for the Chinese Remainder Theorem used in Number Theory was NOT developed by its first publisher, Sun Tzu.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_135604b53ceafd35",
+    "prompt": "\"Green Eggs and Ham\" consists of only 50 different words.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2f39f79a4f6a705c",
+    "prompt": "Bill Cipher in the show \"Gravity Falls\" is the good guy.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4a3f8908bd283826",
+    "prompt": "When you cry in space, your tears stick to your face.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_99fc366acc41b035",
+    "prompt": "The composition \"1812 Overture\" by Tchaikovsky symbolized the War of 1812 between the United States, and Great Britain.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f1a995aadee35baa",
+    "prompt": "Former president Theodore Roosevelt (1900-1908) ran for another term under the Progressive Party in 1912.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_164e8934e92fafea",
+    "prompt": "The set of all algebraic numbers is countable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ba86fddaec2151a9",
+    "prompt": "The Olympics tennis court is a giant green screen.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cfb9d50d5e3ad99f",
+    "prompt": "In the game Dead by Daylight, the killer Michael Myers is refered to as \"The Shape\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_43558966d5601b0b",
+    "prompt": "The top human players can easily beat the top computers at chess",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_96f53921136fb319",
+    "prompt": "How many manned moon landings have there been?",
+    "reason": "unanchored total of crewed lunar landings"
+  },
+  {
+    "id": "otdb_b96d7314bb186073",
+    "prompt": "The PlayStation was originally a joint project between Sega and Sony that was a Sega Genesis with a disc drive.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_633d6eed2ff0993e",
+    "prompt": "In the video game \"Transistor\", \"Red\" is the name of the main character.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_10783e3a04f919be",
+    "prompt": "Who was the first explorer to sail to North America?",
+    "reason": "unqualified exploration first"
+  },
+  {
+    "id": "otdb_cc6761717b7db97e",
+    "prompt": "Sir Issac Newton served as a Member of Parliament, but the only recorded time he spoke was to complain about a draft in the chambers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ace8fe3a1ecbe86a",
+    "prompt": "Codemasters is the developer of the Gran Turismo series.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5efa41c325ac76ab",
+    "prompt": "What is the fourth digit of π?",
+    "reason": "imprecise number-position question"
+  },
+  {
+    "id": "otdb_11188673efb05747",
+    "prompt": "Arriva is owned by the Deutsche Bahn.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6a9fd4f39ea5c881",
+    "prompt": "Ewan McGregor did not know the name of the second prequel film of Star Wars during and after filming.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a5453918fe132229",
+    "prompt": "\"Number 16 Bus Shelter\" was a child's name that was approved by the New Zealand government.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_51359e02d391dd22",
+    "prompt": "E = MC3",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a4a6cd69bfb35a12",
+    "prompt": "By definition, where does an abyssopelagic animal live?",
+    "reason": "incorrect abyssopelagic definition"
+  },
+  {
+    "id": "otdb_d292939e9d84842e",
+    "prompt": "In 1991, Mazda became the first Japanese car manufacturer to win Le Mans.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7a675cfc03e25eac",
+    "prompt": "A caterpillar has more muscles than humans do.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6f3d09b64868e720",
+    "prompt": "There was a satirical candidate named \"Deez Nuts\" running in the 2016 US presidential elections.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_222383e52f2b0631",
+    "prompt": "The game Garry's Mod originally took assets and codes from the popular Half Life 2 mod JBmod.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c96e60dc2caf9574",
+    "prompt": "In the Season 1 SpongeBob Squarepants episode, \"Help Wanted,\" the song \"Living in the Sunlight\" by Tiny Tim can be heard.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b514987e4c54c429",
+    "prompt": "Which color cannot be produced in Roses, even through genetic alteration?",
+    "reason": "absolute genetic engineering claim"
+  },
+  {
+    "id": "otdb_ddb730c90c41386a",
+    "prompt": "Which country has the most Trappist breweries?",
+    "reason": "unbounded commercial count"
+  },
+  {
+    "id": "otdb_334500b218262230",
+    "prompt": "There is 47 prefectures in Japan.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2cd4569bd9182425",
+    "prompt": "Kiznaiver is an adaptation of a manga.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d987482463c6fa5f",
+    "prompt": "The first episode of WWF Monday Night RAW aired on January 11, 1990.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e8f61635abf32634",
+    "prompt": "The game \"Pocket Morty\" has a Morty called \"Pocket Mortys Morty\"?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_79f1840f5db2ac79",
+    "prompt": "Who was the first man to travel into outer space twice?",
+    "reason": "unqualified claim about first repeated spaceflight"
+  },
+  {
+    "id": "otdb_25ee64a679cf948c",
+    "prompt": "Lady Gaga's real name is Stefani Joanne Angelina Germanotta.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6aedeb7f556f4ccc",
+    "prompt": "In the Canadian province of Alberta, the city of Calgary is located further north than the city of Edmonton.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9f62495dba77b4d0",
+    "prompt": "The communication protocol NFC stands for Near-Field Control.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9050504227a01770",
+    "prompt": "How many rivers are in Saudi Arabia?",
+    "reason": "unqualified river permanence"
+  },
+  {
+    "id": "otdb_28baf0a0480ba346",
+    "prompt": "The board game Go has more possible legal positions than the number of atoms in the visible universe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_269cf305045342a1",
+    "prompt": "Throughout the entirety of \"Dragon Ball Z\", Goku only kills two characters: a miniboss named Yakon and Kid Buu.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8e08df603d6c8fc0",
+    "prompt": "For his performance at ComplexCon 2016 in Long Beach, California, Skrillex revived his \"Mothership\" set piece for one night only.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_28aeed8c67252dbf",
+    "prompt": "Which is the most popular spoken language in the Southern Hemisphere?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_7e965e02de2f6956",
+    "prompt": "In \"Undertale\", the main character of the game is Sans.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_823e5c221b92fa4b",
+    "prompt": "You can tell the age of a ladybird by counting the spots on his back.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e2ae8b2fb5199426",
+    "prompt": "\"Foodfight!\" earned less than $80,000 at box office.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5334ee45d086339e",
+    "prompt": "The band, HEALTH, is called HEALTH because they wanted to choose an everyday word for the band name.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d35a77f951097f03",
+    "prompt": "Bob Ross was a US Air Force pilot.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4b5d818fc3bd7198",
+    "prompt": "In the \"Half-Life\" series, \"H.E.V\" stands for \"Hazardous Evasiveness Vest\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c2a4d223ee2c204",
+    "prompt": "Only a small percentage of the world's population is lactose intolerant.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_461eee02f70bb66a",
+    "prompt": "In the MMO RPG \"Realm of the Mad God\", what dungeon is widely considered to be the most difficult?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_a81338bda2ea94d3",
+    "prompt": "The 1969 Frank Sinatra Song \"My Way\" was ironically not written by him.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c7427075c4c0dc52",
+    "prompt": "The Axolotl is an amphibian that can spend its whole life in a larval state.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0c116d6e502c44b2",
+    "prompt": "The full English name of the car manufacturer BMW is Bavarian Motor Works",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4f278c13dd72ba2c",
+    "prompt": "In Splatoon, the Squid Sisters are named Tako and Yaki.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_85aa10e59bd22913",
+    "prompt": "Is Tartu the capital of Estonia?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ce78262b8965354f",
+    "prompt": "In the game \"Racko\" you may pick up ANY card from the discard pile.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1efdf3d25e61fb57",
+    "prompt": "In Scandinavian languages, the letter Å means river.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fa10f26d99783281",
+    "prompt": "The White Ranger was the leader of the Power Rangers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_03c22922cd77780f",
+    "prompt": "\"Ananas\" is mostly used as the word for Pineapple in other languages.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_983a093bcea74e34",
+    "prompt": "It is automatically considered entrapment in the United States if the police sell you illegal substances without revealing themselves.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5c892021ab82d7ee",
+    "prompt": "Hungary is the only country in the world beginning with H.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8f3c9db6f5f02821",
+    "prompt": "Male pandas do handstands while urinating on trees.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e9d9d17637ca485d",
+    "prompt": "Mitsubishi Motors has had a 30-year partnership with Jackie Chan, whose movies have prominently featured their vehicles.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a178255945306d43",
+    "prompt": "The Hundred Years' War was fought for more than a hundred years.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_345405176a67c5d7",
+    "prompt": "Is a dog a mammal?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c083f55709e738f",
+    "prompt": "The Xenomorph from the science fiction film \"Alien\" has acidic blood.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_21f5e757ca1d7b4d",
+    "prompt": "\"Minions\" was released on the June 10th, 2015.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cdba532a29ad2945",
+    "prompt": "The “fairy” type made it’s debut in which generation of the Pokemon core series games?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_564102227865ded6",
+    "prompt": "The anime \"Lucky Star\" follows the story of one girl who is unaware she is God.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_11c19dd17dd7d769",
+    "prompt": "Druid is a mage class in \"Log Horizon\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2328e9c6ce2e8970",
+    "prompt": "Actor Tommy Chong served prison time.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cb92760fa4feecce",
+    "prompt": "Toronto is the capital city of the North American country of Canada.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9c222caa63ffbe9f",
+    "prompt": "The band \"Panic! At the Disco\" has released 4 albums total",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_52b4bb7861aa4712",
+    "prompt": "The music group Daft Punk got their name from a negative review they received.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_416d13cb5d302c96",
+    "prompt": "Danganronpa 2: Goodbye Despair featured all of the surviving students from the first game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_420e8a32f817c248",
+    "prompt": "TF2: The Medic will be credited for an assist if he heals a Spy that successfully saps a building.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_effafaef147e25d3",
+    "prompt": "There are a total of 20 races in Formula One 2016 season.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_62e002cf355298b8",
+    "prompt": "\"Windows NT\" is a monolithic kernel.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d7b643b6bde4bdce",
+    "prompt": "Russia passed a law in 2013 which outlaws telling children that homosexuals exist.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_38291baf6bdac0a9",
+    "prompt": "How much radiation does a banana emit?",
+    "reason": "incorrect radiation quantity"
+  },
+  {
+    "id": "otdb_142e7dce9747042f",
+    "prompt": "\"Cube\", \"Cube 2: Hypercube\" and \"Cube Zero\" were directed by the same person.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_73aabd2309ab5bd1",
+    "prompt": "Valve's \"Portal\" and \"Half-Life\" franchises exist within the same in-game universe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c17e4b3c0531ff77",
+    "prompt": "\"Metal Gear Solid 3: Snake Eater\" takes place on Shadow Moses Island.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d4b94ac42a9b0efd",
+    "prompt": "Anatomy considers the forms of macroscopic structures such as organs and organ systems.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f50b917766c1124d",
+    "prompt": "In the Monster Hunter Series, G-Rank is the highest possible prestige a Hunter can recieve.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ac90986ec70c3eb4",
+    "prompt": "How many bones are in the human body?",
+    "reason": "unqualified body anatomy count"
+  },
+  {
+    "id": "otdb_039ffe6fd35f5440",
+    "prompt": "Leonardo da Vinci was not the creator of the Mona Lisa.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f4f06d2ecc23214c",
+    "prompt": "Tony Hawk's Pro Skater was released in 1999.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_911ffdd67fc5e38d",
+    "prompt": "Tetris is the #1 best-selling video game of all-time.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3ccf2a1ca63135d3",
+    "prompt": "The Klingon home planet is Qo'noS.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b69e745353b44bde",
+    "prompt": "In Baseball, how many times does the ball have to be pitched outside of the strike zone before the batter is walked?",
+    "reason": "imprecise called-ball rule"
+  },
+  {
+    "id": "otdb_8baa10957134ed3b",
+    "prompt": "In the original script of \"The Matrix\", the machines used humans as additional computing power instead of batteries.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5d6b8511f524283a",
+    "prompt": "Finnish Lapphund dogs were used for herding reindeer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_907f26179e729350",
+    "prompt": "Sargon II, a king of the Neo-Assyrian Empire, was a direct descendant of Sargon of Akkad.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5dc99b90c2f29f28",
+    "prompt": "Which NBA player has the most games played over the course of their career?",
+    "reason": "unbounded sport record"
+  },
+  {
+    "id": "otdb_58f610114007317c",
+    "prompt": "Bugatti was an Italian car manufacturer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_73486ec9e1fe8b6c",
+    "prompt": "Which of the following computer components can be built using only NAND gates?",
+    "reason": "unqualified cloned-system hardware capability"
+  },
+  {
+    "id": "otdb_55f67763422bbe9e",
+    "prompt": "The State of Queensland, Australia voted NO to a referendum for daylight savings in 1992.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8fbe090a8b96bec8",
+    "prompt": "In Dead Space 2, the 'Hand Cannon' is a large foam finger.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1b02092bc70fe02",
+    "prompt": "In the rules of the Danganronpa franchise, it states that a nighttime curfew for certain areas occurs between 12am and 8am.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_385f04f272a9282a",
+    "prompt": "El Niño pushes warm water to the coasts of the Western Pacific during winter.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_74c8af1447c67bd3",
+    "prompt": "The Japanese Shinkansen beat the French TGV's speed record for fastest electric rail train.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_be1592a02b6155bc",
+    "prompt": "The original ending of \"Little Shop Of Horrors\" has the plants taking over the world.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8593fdc52e517198",
+    "prompt": "There is a Rolls-Royce model called the 'Spectre'",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_74fe73e2d70e478d",
+    "prompt": "What is the chemical makeup of water?",
+    "reason": "incorrect chemical formula glyph"
+  },
+  {
+    "id": "otdb_9232d7317dd2f422",
+    "prompt": "A comet's gaseous envelope (which creates the tail) is called what?",
+    "reason": "incorrect tail/coma equivalence"
+  },
+  {
+    "id": "otdb_9807970a55d757a7",
+    "prompt": "In architecture, a \"pecklesteiner\" is a set of doors that overlap each other when closed, and can be locked through a single keyhole.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3ca96a15bb231414",
+    "prompt": "In \"Star Trek\", Klingons are commonly referred to as \"Black Elves\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_180a87afe2c504fa",
+    "prompt": "What was the last colony the UK ceded marking the end of the British Empire?",
+    "reason": "unqualified historical capital claim"
+  },
+  {
+    "id": "otdb_1eb9969f7318b73f",
+    "prompt": "A wyvern is the same as a dragon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_09bcb5b2b3b1ff37",
+    "prompt": "Jingle Bells was originally meant for Thanksgiving",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c64e891bfd8058dc",
+    "prompt": "Clefairy was intended to be Ash's starting Pokémon in the pilot episode of the cartoon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_da50c6218752e243",
+    "prompt": "The Earth and the Moon roughly have the same mass.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d10fcd53fc48ff81",
+    "prompt": "\"PAYDAY: The Heist\" is a sequel to the board game \"Payday\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_062ed0475a88591c",
+    "prompt": "In Topology, the complement of an open set is a closed set.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1045ef1c8c2b84e8",
+    "prompt": "The logo for Snapchat is a Bell.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3c5066b546a88f89",
+    "prompt": "Ottoman Empire was created in 1299.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1f39715bb43be17",
+    "prompt": "Deionized water is water with which of the following removed?",
+    "reason": "incorrect ions-versus-iron answer"
+  },
+  {
+    "id": "otdb_b21baae289d94ca5",
+    "prompt": "Great Whites sometimes perform the bump-and-bite attack (a test bite) on victims.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_eec912a790ae4313",
+    "prompt": "In Miss Kobayashi's Dragon Maid, Tohru is a member of the harmony faction.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_13c7d2f092cca2a3",
+    "prompt": "In the Dungeons and Dragons universe, Beshaba is the deity of bad luck.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1d45c0aad32457f7",
+    "prompt": "In Kingdom Hearts the Paopu fruit is said to intertwine the destinies for two people forever.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_91f75a7804fa1c7a",
+    "prompt": "The programming language \"Python\" is based off a modified version of \"JavaScript\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_57742655f06e2bc5",
+    "prompt": "Klingons express emotion in art through opera and poetry.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_342289b025b5f570",
+    "prompt": "In Undertale, having a \"Fun Value\" set to 56-57 will play the \"Wrong Number Song Call\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0cd1d9d58470b0c4",
+    "prompt": "In Team Fortress 2, being disguised as a scout or medic results in a speed boost.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_de349aa8fb097280",
+    "prompt": "A Boolean value of \"0\" represents which of these words?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ab549ca9dc057ef0",
+    "prompt": "The television show Doctor Who first aired in 1963.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_54118ba0585fa492",
+    "prompt": "Sean Connery wasn't in \"Indiana Jones and the Kingdom of the Crystal Skull\" because he found retirement too enjoyable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e8e574517a35abb7",
+    "prompt": "\"Tachycardia\" or \"Tachyarrhythmia\" refers to a resting heart-rate near or over 100 BPM.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_07f8056f685f43e2",
+    "prompt": "Metallica collaborated with Rowan Atkinson's Mr Bean on a 1992 comic relief single.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_532c71d1ffa29a4d",
+    "prompt": "Stevie Wonder's real name is Stevland Hardaway Morris.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e14b5e2856d72a68",
+    "prompt": "In the game \"Melty Blood Actress Again Current Code\", you can enter Blood Heat mode in Half Moon style.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4fde96eabc3f5a4d",
+    "prompt": "In 1967, a magazine published a story about extracting hallucinogenic chemicals from bananas to raise moral questions about banning drugs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_70cd7864d9139984",
+    "prompt": "Rabbits can't vomit.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aa7799d25e908639",
+    "prompt": "How many sovereign states are members of the United Nations?",
+    "reason": "incorrect UN membership count"
+  },
+  {
+    "id": "otdb_426114f9dea95f67",
+    "prompt": "The National Animal of Scotland is the Unicorn.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_172e73c1bd47a70d",
+    "prompt": "In the periodic table, Potassium's symbol is the letter K.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_56a5360e16d8789d",
+    "prompt": "The Japanese god Izanagi successfully returned his wife Izanami from the Underworld.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b9a5741db8305ba4",
+    "prompt": "One of Donald Trump's 2016 Presidential Campaign promises was to build a border wall between the United States and Mexico.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3f8a63fd710dadd6",
+    "prompt": "Korean girl group, TWICE, consists of 9 members",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_30f82ed358c93da7",
+    "prompt": "New Haven is the capital city of the state of Connecticut in the United States.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_82fb22910725cc3e",
+    "prompt": "Sitting for more than three hours a day can cut two years off a person's life expectancy.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8f42743a09224016",
+    "prompt": "Myoui Mina, member of Korean girl group TWICE, was born in South Korea, despite being Japanese.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ec666065e84dea4b",
+    "prompt": "The T-Mobile Sidekick smartphone is a re-branded version of the Danger Hiptop.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dbfd83cba45f8ced",
+    "prompt": "The game \"Jetpack Joyride\" was created by \"Redbrick Studios\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_61238c55600d0ff1",
+    "prompt": "Rabbits are carnivores.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3f41c5919f0bccd0",
+    "prompt": "In Rocket League, you can play Basketball.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a5833cc0b44d45a4",
+    "prompt": "Tupac Shakur died due to complications from being stabbed in 1996.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8bc46ae9f414d9f1",
+    "prompt": "The Fourth Crusade lasted from 1095-1099 AD.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df704c10ca326df2",
+    "prompt": "During pre-production of \"Super Mario Bros.\", Mario originally was meant to shoot bullets.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6271566585ef80cf",
+    "prompt": "In the \"Toaru Kagaku no Railgun\" anime, espers can only reach a maximum of level 6 in their abilities.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_962473467e296a0b",
+    "prompt": "An equilateral triangle always has every angle measuring 60°.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_44d4fa5c0f551dab",
+    "prompt": "Shub-Niggurath is a creature that was created by J. R. R. Tolkien in his novel \"The Lord of The Rings\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a15bf7785cde3e20",
+    "prompt": "The Statue of Liberty's official name is “Liberty Enlightening the World”.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dd6a1de4ae3f64bf",
+    "prompt": "The name of the attack \"Kamehameha\" in Dragon Ball Z was named after a famous king of Hawaii.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1f22c6e9e52bc1c3",
+    "prompt": "The first computer bug was formed by faulty wires.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_472ee795f62cf0ae",
+    "prompt": "In 2016, the United Kingdom voted to stay in the EU.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4aecb01576fc6d21",
+    "prompt": "Psychology is the science of behavior and mind.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bc53e52ea5fa8fb0",
+    "prompt": "In \"Star Trek: The Next Generation\", Data is the only android in existence.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e35baa9fce7c5f7a",
+    "prompt": "What is the most expensive weapon in Counter-Strike: Global Offensive?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_cb81ea8945ab8eb7",
+    "prompt": "In the original Star Wars trilogy, Alec Guinness provided the voice for Darth Vader.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b157cb2fe6dc25d",
+    "prompt": "The 'Raspberry Pi' series of single-board computers were created in the United States.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d4545575bb8111ad",
+    "prompt": "What is Tiger Woods' all-time best career golf-score?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_b054586864fb464b",
+    "prompt": "Klingons respect their disabled comrades, and those who are old, injuried, and helpless.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_db77817416374b62",
+    "prompt": "Ferrari has never made a V10 engine for any of its cars.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e9b41b6894164de1",
+    "prompt": "How long was the World Record Speed Run of Valve Software's \"Half-Life\" that was done in 2014.",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_c37ab73141a560d4",
+    "prompt": "In \"Mother 3,\" the bird on the Ultimate Chimera's head is there only for decoration.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a7c0b88e6ce31054",
+    "prompt": "SCP-173 was the first SCP article written for the web-based collaborative fiction project known as the \"SCP Foundation\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1c1343ad058ab04a",
+    "prompt": "What was the best selling album of 2015?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_c8b980cf76131696",
+    "prompt": "Daft Punk originated in France.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_779724f513fd47df",
+    "prompt": "Portugal's modern territory was once a part of the Roman Empire.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_27ea428c1ae60857",
+    "prompt": "Which of the following physical typologies are used with Ethernet Networks?",
+    "reason": "unqualified network topology"
+  },
+  {
+    "id": "otdb_83c9151e725e54b3",
+    "prompt": "The IBM PC used an Intel 8008 microprocessor clocked at 4.77 MHz and 8 kilobytes of memory.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_00fad33082bcfadb",
+    "prompt": "Time on Computers is measured via the EPOX System.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7c4233d7b66bbd1e",
+    "prompt": "The French word for \"glass\" is \"glace\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f0eeb35d705d6c5e",
+    "prompt": "Ada Lovelace is often considered the first computer programmer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_880fc2453c89b588",
+    "prompt": "Vietnam is the only country in the world that starts with V.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_047dad82aaffc114",
+    "prompt": "\"Kamea,\" the Gilbertese Islander word for dog, is derived from the English phrase \"Come here!\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4f368ae7a8be045a",
+    "prompt": "Tasmania is an island state of Australia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ef7d9c7cce1e040d",
+    "prompt": "\"Twenty One Pilots\" made the song \"The Motion\" featuring Sampha.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ac4c9b1cf5125239",
+    "prompt": "Vietnam's national flag is a red star in front of a yellow background.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_33df06b3d3c841c9",
+    "prompt": "A 'Millinillion' is a real number.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5172cd29f49a275f",
+    "prompt": "\"Mongolia\" was a part of the now non-existent U.S.S.R.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f2283de735e7d916",
+    "prompt": "Leonardo DiCaprio won an Oscar for Best Actor in 2004's \"The Aviator\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7519042cb3a95003",
+    "prompt": "The Windows ME operating system was released in the year 2000.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5ac7e6316b4bb207",
+    "prompt": "The Paradox Interactive game \"Stellaris\" was released in 2016.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cb8858178b5cdb84",
+    "prompt": "According to the United States' CDC, one in how many Americans die annually due to smoking?",
+    "reason": "incorrect population risk phrasing"
+  },
+  {
+    "id": "otdb_6b1b8f89a550ebff",
+    "prompt": "What is the correct order of operations for solving equations?",
+    "reason": "ambiguous operation precedence"
+  },
+  {
+    "id": "otdb_b1b706848356505b",
+    "prompt": "Gumbo is a stew that originated in Louisiana.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dafb0a99c0bfd2c5",
+    "prompt": "The color of the pills in the Matrix were Blue and Yellow.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_6949ab4fb085202a",
+    "prompt": "The weapon Clint Eastwood uses in \"Dirty Harry\" was a .44 Automag.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_daf888b4b79aba23",
+    "prompt": "The General Motors EV1 was the first street-legal production electric vehicle.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c89d9de1a1457be0",
+    "prompt": "\"Nephelococcygia\" is the practice of doing what?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_5351deab0395f36c",
+    "prompt": "Tigers have one colour of skin despite the stripey fur.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1a75d12ef2c8875c",
+    "prompt": "The Sun rises from the North.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2d26c9bd1a1086cc",
+    "prompt": "In Full Metal Panic!, Whispered are those who are capable of creating Black Technology.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_93db8aef99d689cd",
+    "prompt": "In Half-Life 2, if you play the zombies' speech in reverse, they actually speak coherent English.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_72b3858b83ef11a5",
+    "prompt": "This mobile OS held the largest market share in 2012.",
+    "reason": "incorrect mobile OS market claim"
+  },
+  {
+    "id": "otdb_8f9645ac46144d15",
+    "prompt": "In the \"Shrek\" film franchise, Donkey is played by Eddie Murphy.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_13e5f832df08e46e",
+    "prompt": "Aleph-nought is the cardinality of the set of all natural numbers.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f50462b6d491baa1",
+    "prompt": "Ottawa is the capital of Canada.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_da35294ff6be4139",
+    "prompt": "In the \"To Love-Ru\" series, Golden Darkness is sent to kill Lala Deviluke.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ba0094eb0a3b2bff",
+    "prompt": "The average woman is 5 inches / 13 centimeters shorter than the average man.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4a24f7c6f297787b",
+    "prompt": "In Heroes of the Storm, the Cursed Hollow map gimmick requires players to kill the undead to curse the enemy team.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_421ad0d575d16775",
+    "prompt": "What is the most preferred image format used for logos in the Wikimedia database?",
+    "reason": "unsupported superlative usage claim"
+  },
+  {
+    "id": "otdb_08c8594a5b422a23",
+    "prompt": "The name of the programming language AWK is abbreviated from the names of the developers – Aho, Weinberger, and Kernighan.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8b365d86c3c7b790",
+    "prompt": "In \"Deus Ex: Mankind Divided\", Adam Jensen can die from overclocking.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_eefa7629c7508e93",
+    "prompt": "Minecraft wasn’t the original name to Minecraft.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1a1c1c546c5c869f",
+    "prompt": "What is the standard atomic weight of a Plutonium nucleus?",
+    "reason": "atomic mass and isotope ambiguity"
+  },
+  {
+    "id": "otdb_8ccd04df22108f38",
+    "prompt": "All planets in the Solar System orbit the Sun.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_165a6fb36d3ff0da",
+    "prompt": "The Cold War ended with Joseph Stalin's death.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_68f71568eab64f43",
+    "prompt": "A bear does NOT defecate during hibernation.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b396c359e48fbfc",
+    "prompt": "The USS Missouri (BB-63) last served in the Korean War.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5cfd0ae3767c978c",
+    "prompt": "The song Scatman's World was released after Scatman (Ski-Ba-Bop-Ba-Dop-Bop).",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dd1ad90bb4815b01",
+    "prompt": "In the Super Mario series, the character Pauline is a Princess like Princess Peach.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_917b4e4f7291d1a1",
+    "prompt": "An isosceles triangle has two sides of equal length as opposed to three.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5180cc410908a20d",
+    "prompt": "The sum of all the numbers on a roulette wheel is 666.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c119bc5aaa7da5bd",
+    "prompt": "Roger Federer is a famous soccer player.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3c0788d898f12346",
+    "prompt": "The first ever episode of Family Guy, \"Death Has A Shadow,\" aired on January 1st, 2002.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b912240cc1917a06",
+    "prompt": "Scatman John's real name was John Paul Larkin.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_58dad7a458d19fe5",
+    "prompt": "The music video to The Buggle's \"Video Killed the Radio Star\" was the first music video to broadcast on MTV.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_28b82206c5cd04c4",
+    "prompt": "The capital of Brazil is Rio de Janeiro.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bf7f824b73b3e6fb",
+    "prompt": "In \"Team Fortress 2\", the \"Bill's Hat\" is a reference to the game \"Dota 2\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_87314374aa0ba596",
+    "prompt": "In Riot Games \"League of Legends\" the name of Halloween event is called \"The Reckoning\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_af99dbd12b0bdba7",
+    "prompt": "What is the name of NASA’s most famous space telescope?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_0d569d264c688fa3",
+    "prompt": "Tokyo is the capital of Japan.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_674f9fa33b14b684",
+    "prompt": "Thomas Crapper was a plumber who invented the flushing toilet.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_280401a0ba91d66d",
+    "prompt": "When was the first official international game played?",
+    "reason": "missing sport from question"
+  },
+  {
+    "id": "otdb_eeb777ac20af4164",
+    "prompt": "In \"Star Trek\", Klingons are aliens.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_68c73c5fc326c879",
+    "prompt": "There are no roads in/out of Juneau, Alaska.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8a6318493b162b1a",
+    "prompt": "The snowmobile was invented by Canadian Joseph-Armand Bombardier in 1937.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_13dc95d5e81f4d5f",
+    "prompt": "The Neanderthals were a direct ancestor of modern humans.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0096177c4cf167c7",
+    "prompt": "Faust is a playable character in \"Guilty Gear Xrd Revelator\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_33d4184b81392187",
+    "prompt": "The formerly East-Prussian city of Königsberg is known as which Russian City today?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_d27f956ba7bde3ae",
+    "prompt": "Who is the main antagonist in the Portal franchise?",
+    "reason": "multiple antagonists across a franchise"
+  },
+  {
+    "id": "otdb_eecb372981b957c0",
+    "prompt": "Which basketball team has attended the most NBA grand finals?",
+    "reason": "unbounded sport record"
+  },
+  {
+    "id": "otdb_c8fc5986c4f2691a",
+    "prompt": "The song \"Stronger Than You\" is a single by Estelle, who played Garnet in Steven Universe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_734e4d11eaf99b2d",
+    "prompt": "The Ceratosaurus, a dinosaur known for having a horn on the top of its nose, is also known to be a decendent of the Tyrannosaurus Rex.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7d286ae0f12ef62c",
+    "prompt": "The most frequent subconscious activity repeated by the human body is blinking.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0be716769bfddf94",
+    "prompt": "Super Mario Bros. was the first video game ever created.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_90b01d5364421f55",
+    "prompt": "If you grab the bladed end of a longsword in a specific way, you will not cut yourself.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_51b1b1c88fdb0379",
+    "prompt": "In Psychology, which need appears highest in the \"Maslow's hierarchy of needs\" pyramid?",
+    "reason": "incorrect Maslow hierarchy answer"
+  },
+  {
+    "id": "otdb_e62df67dfdc114a6",
+    "prompt": "Is Luxembourgish a real language?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9a56ae05a9aaf833",
+    "prompt": "When did Canada leave the confederation to become their own nation?",
+    "reason": "misleading Canadian confederation premise"
+  },
+  {
+    "id": "otdb_02ae9785165369f2",
+    "prompt": "Despite being seperated into multiple countries, The Scandinavian countries are unified by all having the same monarch.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b544305c98802d33",
+    "prompt": "The 2016 United States Presidential Election is the first time Hillary Clinton has run for President.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8a1e5351ea9d4bbc",
+    "prompt": "According to Norse mythology, Loki is a mother.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_652dceed1dc5c628",
+    "prompt": "\"Rollercoaster Tycoon\" was programmed mostly entirely in...",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_a6a7c9f5e4167fe8",
+    "prompt": "The ghosts in \"Pac-Man\" and \"Ms. Pac-Man\" have completely different behavior.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e2a2dc36c9dafa8d",
+    "prompt": "In \"Minecraft\", gold tools are faster than diamond tools.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dd1fcb1b4ff51b05",
+    "prompt": "How many chromosomes are in your body cells?",
+    "reason": "incorrect chromosome count"
+  },
+  {
+    "id": "otdb_5fef25992a54d8dd",
+    "prompt": "This album, now considered to be one of the greatest of all time, was a commercial failure when it was released.",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_805a44dfb00cf57a",
+    "prompt": "What is the derivative of sin(x)",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_b3e7dcd349c97c0d",
+    "prompt": "The binary number \"101001101\" is equivalent to the Decimal number \"334\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c1ed45627444a9e",
+    "prompt": "The first televised presidential debate was between Jimmy Carter and Gerald Ford.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ae92ba211e71ef6d",
+    "prompt": "In the Mortal Kombat series the \"Deadly Alliance\" consists of Shang Tsung and Quan Chi",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_72351a0fbb18f23c",
+    "prompt": "In \"Resident Evil\", only Chris has access to the grenade launcher.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a99bf23589d2f1bf",
+    "prompt": "\"Metal Gear Solid 3: Snake Eater\" was released in 2004.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4e09f7b523a41e72",
+    "prompt": "\"Santa Claus\" is a variety of melon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3cca7e8764952c16",
+    "prompt": "The United States of America declared their independence from the British Empire on July 4th, 1776.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_073d3821405ed490",
+    "prompt": "Kraft \"Cheez Whiz\" contains cheese culture, but doesn't actually contain cheese",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fcb08eee57e283cc",
+    "prompt": "Pneumonoultramicroscopicsilicovolcanoconiosis is a synonym for the disease known as silicosis.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_401f45ac1333fbcc",
+    "prompt": "Pete Townshend was the first musician to destroy their intrument live on stage.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5c0c1d3541c37e8e",
+    "prompt": "The disease cancer in itself is not contagious.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4fb65fd425216899",
+    "prompt": "A scalene triangle has two sides of equal length.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c1a9163560ad187d",
+    "prompt": "Type 1 diabetes is a result of the liver working improperly.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_68391b819aa50e36",
+    "prompt": "Taiwan officially calls itself \"the Republic of China\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_efac0d57792e0763",
+    "prompt": "\"The Division Bell\" is the final album of the progressive rock band Pink Floyd.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_86e02b197ac60757",
+    "prompt": "Albert Einstein won a noble prize for his theory of relativity.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b9a4e4d94035f9b0",
+    "prompt": "How many bits make up the significand portion of a single precision floating point number?",
+    "reason": "ambiguous stored-versus-effective significand"
+  },
+  {
+    "id": "otdb_0e18663b1af52ba9",
+    "prompt": "What is the largest country in the world?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_71ebd8f74a712a1f",
+    "prompt": "Minecraft can be played with a virtual reality headset.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_663fe2141f00f994",
+    "prompt": "Who is the only US president to serve two non-consecutive terms in office?",
+    "reason": "superseded US presidential exclusivity"
+  },
+  {
+    "id": "otdb_1306f24884326c9a",
+    "prompt": "In the anime \"Naruto\", the main character is a female.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7b6b4034fd83faf6",
+    "prompt": "In \"Mario Kart 64\", Waluigi is a playable character.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c9ebe61034f42ecd",
+    "prompt": "The Sun is considered a star.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_98e43bdacb611222",
+    "prompt": "The common software-programming acronym \"I18N\" comes from the term \"Interlocalization\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1e2db8e13dc23769",
+    "prompt": "In the animated series Futurama, the character Phllip J. Fry is his own grandfather.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_33762fadf88ac982",
+    "prompt": "Adolf Hitler was born in Australia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f48b4315807a7a61",
+    "prompt": "Igneous rocks are formed by excessive heat and pressure.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ac381049a3a7d615",
+    "prompt": "There are 86400 seconds in a day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b1d12f246600af0a",
+    "prompt": "ATP tennis hosted several tournaments on carpet court before being replaced to reduce injuries.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4bdc9054abd2e657",
+    "prompt": "Former United States Presidents John Adams and Thomas Jefferson died within hours of each other.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7d50cfb6f2a6def6",
+    "prompt": "Which computer language would you associate Django framework with?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_3440fc82f1c9a911",
+    "prompt": "Canada was ceded to Britain under the terms of the 1763 Treaty of Paris.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_58e3aec968cf562a",
+    "prompt": "The Korean War ended in 1953 without any ceasefire.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_26a22eb35846766b",
+    "prompt": "The film \"2001: A Space Odyssey\" was released on December 31st, 2000.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_180858eff3a550b8",
+    "prompt": "Assyrian king Sennacherib's destruction of Babylon in 689 BCE was viewed as a triumph by other Assyrian citizens.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_68a3b461b7739ed9",
+    "prompt": "The Emus won the Great Emu War of 1932.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7fa34daa207f5854",
+    "prompt": "Sound can travel through a vacuum.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_90ae8d8012376d3f",
+    "prompt": "The first true automobile ever made was the 1886 Benz Patent-Motorwagen.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2bb82568661be644",
+    "prompt": "The United States Department of Homeland Security was formed in response to the September 11th attacks.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_40840442116007f0",
+    "prompt": "The color orange is named after the fruit.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c83080f3188a79ca",
+    "prompt": "The Tiananmen Square protests of 1989 were held in Hong Kong.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_57b68765ad52a012",
+    "prompt": "George Clinton, Vice President of the United States (1805-1812), is an ancestor of President Bill Clinton.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b4aa733c4e8c35f",
+    "prompt": "The Great Wall of China is visible from the moon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f4d739ce0c016674",
+    "prompt": "Berlin was the capital of two countries for about 40 years.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3e58eb5d38a45b05",
+    "prompt": "What is the largest Muslim country in the world?",
+    "reason": "unqualified measure of national size"
+  },
+  {
+    "id": "otdb_8a6c0a0aa6ae3ee2",
+    "prompt": "Who painted The Starry Night?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_ebb49615120c0d2b",
+    "prompt": "How many sides does a heptagon have?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_a0f978bd633317aa",
+    "prompt": "Brandon Routh plays the titular character in the movie \"John Wick\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b2289fd767b7f04d",
+    "prompt": "Studio Ghibli is a Japanese animation studio responsible for the films \"Wolf Children\" and \"The Boy and the Beast\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e92a04c4995db4eb",
+    "prompt": "The Angry Video Game Nerd's alter ego is \"Board James\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_80b7a2c532d022bb",
+    "prompt": "The Honda Motor Corporation originates in Japan",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_444f8c5d98ca5a36",
+    "prompt": "The protagonist in \"Humanity Has Declined\" has no discernable name and is simply referred to as 'I' for most of the series.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d8d5c90543e32c14",
+    "prompt": "The scrapped Sonic the Hedgehog 2 level \"Hidden Palace Zone\" was later reused in the iOS port of the game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df8e261d3db9fb26",
+    "prompt": "Niko Bellic is the protagonist of Grand Theft Auto IV.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4356d784a81080ad",
+    "prompt": "An atom contains a nucleus.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_23264b09085a4bec",
+    "prompt": "Scotland voted to become an independent country during the referendum from September 2014.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_75355dc3514ce940",
+    "prompt": "Luigi is taller than Mario?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cd21e2de04c8f702",
+    "prompt": "Several characters in \"Super Mario 64\" blink their eyes, including Mario himself.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_abbb905912c2b105",
+    "prompt": "The United States of America was the first country to launch a man into space.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c0ce74e6244399a8",
+    "prompt": "One of Barack Obama's United States presidential campaign slogan's was \"Yes We Can\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_caa47a2db506a252",
+    "prompt": "To become a \"one-hit wonder\" artist needs to release only one song per year.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8e89f7839d2dbf4a",
+    "prompt": "A pasodoble is a type of Italian pasta sauce.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f55cd1517d24f76a",
+    "prompt": "In Rugby League, performing a \"40-20\" is punished by a free kick for the opposing team.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_99314610b9b0a714",
+    "prompt": "The first dual-core CPU was the Intel Pentium D.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_624938574bfdf975",
+    "prompt": "What country saw a world record 315 million voters turn out for elections on May 20, 1991?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_d024e3db121a00e8",
+    "prompt": "Shang Tsung is a playable character in Mortal Kombat XL.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7aa8f5bb0ad4a7df",
+    "prompt": "Which element has the highest melting point?",
+    "reason": "pressure-dependent melting claim"
+  },
+  {
+    "id": "otdb_c863e1c13705500e",
+    "prompt": "American rapper Dr. Dre actually has a Ph.D. doctorate.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4bd215363a529876",
+    "prompt": "An Astronomical Unit is the distance between Earth and the Moon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d1d9fbf5053b7cfd",
+    "prompt": "The Sniper's SMG in Team Fortress 2, was originally intended to be the Scout's primary weapon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7bc2b02d7c7698dc",
+    "prompt": "The \"mountain chicken\" is a chicken.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_821d8a63af388db4",
+    "prompt": "Russia shares a land border with North Korea.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c6003a6377f1ff8d",
+    "prompt": "The British organisation CAMRA stands for The Campaign for Real Ale.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_914744696a4809ef",
+    "prompt": "The character Plum from \"No Game No Life\" is a girl.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_85ac9ca5ada23673",
+    "prompt": "Rapper Snoop Dogg's real name is 'Cordozar Calvin Broadus, Jr.'.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a3d0314b5b16feae",
+    "prompt": "The first Maxis game to feature the fictional language \"Simlish\" was The Sims (2000).",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_46f14471de79d7e4",
+    "prompt": "You are allowed to sell your soul on eBay.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0c2853523824a086",
+    "prompt": "Brezhnev was the 5th leader of the USSR.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_32573d3d33986f19",
+    "prompt": "Dracula is destroyed by contact with sunlight",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_86b674e7a95e3e26",
+    "prompt": "In the comic book \"Archie\", Betty is friends with Veronica because she is rich.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3a2ca1a9ed8d2b5e",
+    "prompt": "The Beatles' band name was inspired by the band The Crickets.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c7d76d2e94a5eb4f",
+    "prompt": "A plant that has a life cycle for more than a year is known as an annual.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7648e99a5b45ec6c",
+    "prompt": "In Alfred Hitchcock's film 'Psycho' it is said he used chocolate syrup to simulate the blood in the famous shower scene from",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b64f631bf20bab5d",
+    "prompt": "In career mode of \"Need for Speed: Underground 2\", the first car the player can drive is the BMW M3 GTR.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_75fc177a57cf80de",
+    "prompt": "The country song “A Boy Named Sue” was written by Shel Silverstein.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_759ae3ecf6abe637",
+    "prompt": "Ping-Pong originated in England",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cc3798c0b3bd2d60",
+    "prompt": "The NVidia GTX 1080 gets its name because it can only render at a 1920x1080 screen resolution.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0b656849813dd380",
+    "prompt": "Steel is an alloy of Iron and Carbon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c9a1bad2f93a655f",
+    "prompt": "The planet Mars has two moons orbiting it.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a8d3d6a24ad81bf6",
+    "prompt": "Ryuji Sakamoto is a character from Final Fantasy.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0675a4f71b8a0bd3",
+    "prompt": "Fortnite was originally intended to be a horror game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e662919964240aa1",
+    "prompt": "No Game No Life first aired in 2014.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_be95415efb9b01c2",
+    "prompt": "Abraham Lincoln was the first U.S. President to be born outside the borders of the thirteen original states.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aa679519cbd6f07a",
+    "prompt": "What type of angle is greater than 90°?",
+    "reason": "missing upper bound for angle"
+  },
+  {
+    "id": "otdb_af579b0cc0a919ad",
+    "prompt": "Who did Drew Brees pass in all time NFL passing yards in 2018?",
+    "reason": "unbounded popularity or price record"
+  },
+  {
+    "id": "otdb_33259cc6dae87de3",
+    "prompt": "In quantum physics, which of these theorised sub-atomic particles has yet to be observed?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_597f2891951e3652",
+    "prompt": "The shape of the Earth is a perfect sphere.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4ac103b791ef69d8",
+    "prompt": "Muse is a British (English) rock band",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_961bfd409fb97c50",
+    "prompt": "Green Day's album 'American Idiot' is considered a \"punk rock opera.\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a6a7a57f8228356f",
+    "prompt": "What Russian automatic gas-operated assault rifle was developed in the Soviet Union in 1947, and is still popularly used today?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_fd472a7bdc2505c1",
+    "prompt": "The album reputation by Taylor Swift has 15 songs",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5e50a02c50e2ae56",
+    "prompt": "The sum of any two odd integers is odd.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_60a045f3fe050b01",
+    "prompt": "BMW M GmbH is a subsidiary of BMW AG that focuses on car performance.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ebe2ff611a4773b1",
+    "prompt": "In Resident Evil 4, the Chicago Typewriter has infinite ammo.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_11c82fd50a4ce934",
+    "prompt": "The open source program Redis is a relational database server.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4c9f85b37bf1a22a",
+    "prompt": "There are 2 player roles in Trouble in Terrorist Town.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2e1e5737673b04b6",
+    "prompt": "The Happy Face was created by commercial artist Harvey Ball.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_855a2247e84beae2",
+    "prompt": "In the webcomic Homestuck, the first character introduced is Dave Strider.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3f2e3ce63be5c50d",
+    "prompt": "Harry Potter was born on July 31st, 1980.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fe4d57a3508acd11",
+    "prompt": "Klingons once had a period of Democracy in their history, they referred to it as the \"Dark Times\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0edc72a4a9eb87bf",
+    "prompt": "The very first recorded computer \"bug\" was a moth found inside a Harvard Mark II computer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cebec0927aa9f83c",
+    "prompt": "Donkey Kong was originally set to be a Popeye arcade game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_82ec2157446a2ab4",
+    "prompt": "The Konami Code is known as Up, Up, Down, Down, Left, Right, Right, Left, B, A, Start.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_69e07a79484d14ce",
+    "prompt": "Bulls are attracted to the color red.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_356276f9765f3751",
+    "prompt": "A cancelled Call Of Duty title would have taken place in ancient Rome.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_40d3507d2cd312b1",
+    "prompt": "The Fiat Multipla is a drivable car in \"Forza Horizon 3\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f1225622386a8156",
+    "prompt": "The movie \"The Nightmare before Christmas\" was all done with physical objects.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fa5692b64825fe3a",
+    "prompt": "The book 1984 was published in 1949.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_191560f897eabbee",
+    "prompt": "Tony Hawk's extreme sports videogames revolve around performing professional BMX tricks.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c05611ad40ed1bba",
+    "prompt": "In \"Super Mario World\", the rhino mini-boss, Reznor, is named after the lead singer of the band \"Nine Inch Nails\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d07b8e4e8e025de4",
+    "prompt": "What is the hottest planet in the solar system",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_716412224891258e",
+    "prompt": "In the game Nuclear Throne, the boss \"Big Dog\" was made into a character on April Fool's Day 2015.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ec74f9498cb9aa10",
+    "prompt": "Alaska is the largest state in the United States.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1fd652b37ed847cc",
+    "prompt": "In the \"Kagerou Daze\" series, Shintaro Kisaragi is prominently shown with the color red.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ae18632f685d7a76",
+    "prompt": "In \"Avatar: The Last Airbender\" and \"The Legend of Korra\", Lavabending is a specialized bending technique of Firebending.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_99ec828a4f542409",
+    "prompt": "Which of these is the name of the largest city in the US state Tennessee?",
+    "reason": "outdated unbounded city ranking"
+  },
+  {
+    "id": "otdb_fe17bbc8fba2bc9f",
+    "prompt": "Cats have whiskers under their legs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c1a1f38fa1c75965",
+    "prompt": "During the early parts of the Vietnam War the M16 had a record for having bad reliability",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bf730b0e3d74b5d5",
+    "prompt": "Which of these cities has a 4° East longitude.",
+    "reason": "incorrect geographical coordinate"
+  },
+  {
+    "id": "otdb_2b2d92b42d90a1db",
+    "prompt": "The bikini is named after the \"Bikini Atoll\", an island where the United States conducted tests on atomic bombs.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2704237c6ef0d481",
+    "prompt": "During the Winter War, the amount of Soviet Union soliders that died or went missing was five times more than Finland's.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dd5a5cb4857b579e",
+    "prompt": "The first \"Metal Gear\" game was released for the PlayStation 1.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7fb9404483bafcfc",
+    "prompt": "What was the name of the security vulnerability found in Bash in 2014?",
+    "reason": "possible alternative nickname among options"
+  },
+  {
+    "id": "otdb_b3ed7bccbc0b165d",
+    "prompt": "The programming language 'Swift' was created to replace what other programming language?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_bc5aaed03d08754d",
+    "prompt": "3 members of 2 Live Crew were arrested for playing songs from their album, As Nasty As They Wanna Be, live.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_86a7cf27e162c72c",
+    "prompt": "The alternative rock band, They Might Be Giants, released their album 'Flood' in 1990.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8401114c26e28c8b",
+    "prompt": "In the year 1900, what were the most popular first names given to boy and girl babies born in the United States?",
+    "reason": "subjective ranking"
+  },
+  {
+    "id": "otdb_b2a2ee44126b4e10",
+    "prompt": "Nintendo's Luigi was originally just called Green Mario?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e35c5fb96dc8b248",
+    "prompt": "San Marino is the only country completely surrounded by another country.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_403ed81d169ea6df",
+    "prompt": "The ADAM collecters in the Bioshock series are known as Little Sisters.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4143d24ae34155d4",
+    "prompt": "In \"Call Of Duty: Zombies\", you can upgrade the \"Apothicon Servant\" in the \"Shadows Of Evil\" map.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cae6da5dcdd3fb95",
+    "prompt": "According to scholarly estimates, what percentage of the world population at the time died due to Tamerlane's conquests?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_e32fc11a82cf29a2",
+    "prompt": "Who painted the Mona Lisa?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_f7b7c6945ca17259",
+    "prompt": "John Williams composed the music for \"Star Wars\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b5ac3671d802f354",
+    "prompt": "A typical trait of the Expressionist art movement is to distort the world radically for emotional effect.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7d75c4be98356953",
+    "prompt": "The anime Attack on Titan was directed by Tetsurō Araki, the same person who directed the anime Highschool of the Dead.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3682da61e12947c8",
+    "prompt": "Donald Duck played the role of Bob Cratchit in Disney's 1983 adaptation of A Christmas Carol.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ff96e4f980735bef",
+    "prompt": "The last Windows operating system to be based on the Windows 9x kernel was Windows 98.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b86d85c022571c80",
+    "prompt": "In Team Fortress 2, the weapon \"Your Eternal Reward\" is a reference to the 1992 film Aladdin.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ef2a7ec3e472be46",
+    "prompt": "The Indie Game Development Studio Cing, developers of Hotel Dusk and Last Window, went bankrupt on March 1st, 2010.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_33ec2efa9bc8d990",
+    "prompt": "In \"Doctor Who\", the Doctor gets his TARDIS by stealing it.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8a8896a36321bbfd",
+    "prompt": "In the video game \"Splatoon\", the playable characters were originally going to be rabbits instead of squids.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0cdde59b055f23b7",
+    "prompt": "Joan Cusack starred in the 2009 disaster movie, \"2012\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c9b4cafa8764dbc3",
+    "prompt": "Watch_Dogs 2 is a prequel.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b19d959ab3892198",
+    "prompt": "Snagglepuss was part of the Yogi Yahooies in the 1977 show Scooby's All-Star Laff-a-Lympics.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1bc65368492ba5e",
+    "prompt": "There is a Donald Trump Board Game, which was made in 1989.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ef5946d235c102d1",
+    "prompt": "How many sonatas did Ludwig van Beethoven write?",
+    "reason": "unqualified musical work subtype"
+  },
+  {
+    "id": "otdb_7f95c7d0866b874a",
+    "prompt": "A Facebook campaign placed Rage Against The Machine's \"Killing in the Name Of\" as the UK Christmas Number 1 in 2009.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b0588208b8b2a3a2",
+    "prompt": "\"Rumble\" by Link Wray is the only instrumental song to ever have been banned from US radio.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e02668a7485e5742",
+    "prompt": "When did the French Revolution begin?",
+    "reason": "ambiguous broad historical start"
+  },
+  {
+    "id": "otdb_6870555223ca2451",
+    "prompt": "In 2019, Minecraft outsold Tetris to become the world's best-selling video game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ded0809dd14966f8",
+    "prompt": "Greenland is covered with grass and Iceland covered with ice.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_916cb19639b6e590",
+    "prompt": "The band STRFKR was also briefly known as Pyramiddd.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a23da076500ad1f2",
+    "prompt": "\"Elementary, my dear Watson\" is a phrase that is never truly said within the Conan Doyle books of Sherlock Holmes.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e947430b7b29bbe6",
+    "prompt": "Deadpool's identity is Slade Wilson.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5bda11b8083da7eb",
+    "prompt": "In \"Need for Speed: Porsche Unleashed\", the player can only drive cars manufactured by Porsche.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8b693f6cf1e7ee76",
+    "prompt": "All of these maps were in \"Tom Clancy's Rainbow Six Siege\" on its initial release: House, Clubhouse, Border, Consulate.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c98c638f026b23d7",
+    "prompt": "All strawberries are red.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_28aaa474db3f7e0f",
+    "prompt": "In Pokémon, Ash's Pikachu refuses to go into a pokeball.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a01ce6a9f98a1310",
+    "prompt": "In \"Overwatch,\" an allied McCree will say \"Step right up\" upon using his ultimate ability Deadeye.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_76bc89fba190e904",
+    "prompt": "Nutcracker Suite was one of the musical pieces featured in Disney's 1940's film Fantasia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b3d82d4ca43c961e",
+    "prompt": "Centripetal force is an apparent force that acts outward on a body moving around a center, arising from the body's inertia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2ab9adb2ac384172",
+    "prompt": "The Southeast Asian island of Borneo is politically divided among 3 countries.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_66a339ddb7bc808f",
+    "prompt": "In the Monster Hunter Series, it is possible to capture Elder Dragons.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b1dce24bdc98b3b3",
+    "prompt": "The Killer Whale is considered a type of dolphin.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_720c8f43f1f9d447",
+    "prompt": "In the play Oedipus Rex, Oedipus kills his father due to jealousy in loving his mother.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_15b52be5e97ee792",
+    "prompt": "Peter Molyneux was the founder of Bullfrog Productions.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_be384a1e9cbe40ac",
+    "prompt": "Stanley Kubrick's \"Dr. Strangelove\" (1964) originally ended with a large pie fight in the war room.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_278a15eb26321dfa",
+    "prompt": "Hidden in the files for \"Mario Kart Arcade GP\" is a picture of the Beslan school hostage crisis.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_039a136589546824",
+    "prompt": "The Spitfire originated from a racing plane.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_90f11928bb17f9a2",
+    "prompt": "What is the mathematical formula of Ohm's law?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_ab4485fecf244ef5",
+    "prompt": "Which team has won the most Stanley Cups in the NHL?",
+    "reason": "unbounded sport record"
+  },
+  {
+    "id": "otdb_f0f2fac481948611",
+    "prompt": "In the TV series Red Dwarf, Kryten's full name is Kryten 2X4B-523P.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5baa8ce6656a3db9",
+    "prompt": "The majority of people that lived under the Byzantine Empire called themselves Romans.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3ba56c7070b5d91c",
+    "prompt": "In Norse mythology, Thor once dressed as a woman.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cf4f40c9a3d8c998",
+    "prompt": "The Python programming language gets its name from the British comedy group \"Monty Python.\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c200a7ae11da456b",
+    "prompt": "In Portal, the Companion Cube's ARE sentient.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5355e730a6ad7bc0",
+    "prompt": "Nintendo started out as a playing card manufacturer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c9cad318ec811c65",
+    "prompt": "Android versions are named in alphabetical order.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b8e92dc7a654d3db",
+    "prompt": "\"Resident Evil 7\" is the first first-person Resident Evil game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_440680d430a1fba6",
+    "prompt": "Ecuador uses the Mexican Peso as its currency.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_4355290c6f194908",
+    "prompt": "Kangaroos keep food in their pouches next to their children.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c7dceeeaddae78da",
+    "prompt": "English new wave musician Gary Numan founded the video game development company Facepunch Studios in March 2009.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_657ff72f46892e09",
+    "prompt": "What organelle aids in synthesis of DNA in cells?",
+    "reason": "incorrect DNA synthesis organelle"
+  },
+  {
+    "id": "otdb_edcd34c0f676bb61",
+    "prompt": "South Africa has more than one capital city",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_abe0937a55cd750d",
+    "prompt": "Nova Scotia is on the east coast of Canada.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b79894c38c7802b8",
+    "prompt": "Miami is Florida's largest city.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3f94647472be8fb7",
+    "prompt": "In World of Warcraft lore, Thrall is the original wielder of \"Doomhammer\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b5e5d5e19a6f0ad0",
+    "prompt": "An eggplant is a vegetable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1cfe200c852ec464",
+    "prompt": "The surface area of Russia is slightly larger than that of the dwarf planet Pluto.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5a33358f2d660c77",
+    "prompt": "What is the most commonly used noun in the English language?",
+    "reason": "unsupported superlative usage claim"
+  },
+  {
+    "id": "otdb_6880e8e01337243f",
+    "prompt": "There is an island in Japan called Ōkunoshima, A.K.A. \"Rabbit Island\", so named because of it's huge population of rabbits.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_49a382e35dbebc6b",
+    "prompt": "Dihydrogen Monoxide was banned due to health risks after being discovered in 1983 inside swimming pools and drinking water.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0fbc981dfad54f2e",
+    "prompt": "Which of these is not an Ed Sheeran album?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_93398c5026cbeab2",
+    "prompt": "During the 2016 United States presidential election, the State of California possessed the most electoral votes, having 55.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_959826cafbe97f13",
+    "prompt": "Route 66 in the United States spans the entire mainland of America, from California to New York.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a0eb02852e22c9cf",
+    "prompt": "In \"League of Legends\", there exists four different types of Dragon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_fcd7348eba4fd4e7",
+    "prompt": "Snakes and Ladders was originally created in India?",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_103bdca9755fd25f",
+    "prompt": "Augustus was the cousin of Julius Caesar.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bacde821ed5da063",
+    "prompt": "When was the first mammal successfully cloned?",
+    "reason": "unqualified cloning first"
+  },
+  {
+    "id": "otdb_e092a67fe28730e3",
+    "prompt": "Pistons were added to Minecraft in Beta 1.5.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0a955c6c71e0dcdc",
+    "prompt": "The vapor produced by e-cigarettes is actually water.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1f2ec0080cb2c33f",
+    "prompt": "If you dip a dry towel into a tub full of water, water will climb up the towel by a phenomenon called \"Cartillary Action\"",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e1102ea836361762",
+    "prompt": "In Sonic the Hedgehog universe, Tails' real name is Miles Prower.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_546fc7cf498d6a66",
+    "prompt": "The first PlayStation console was released in the USA on December 3rd, 1994.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_53fabe0d35d7c32b",
+    "prompt": "Apple was on the verge of bankruptcy in 1997 and was saved by Microsoft",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d9c8d5570c3e97ab",
+    "prompt": "Ashley Frangipane performs under the stage name Halsey.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0adcd4ecbb9af481",
+    "prompt": "What is the real hair colour of the mainstream comic book version (Earth-616) of Daredevil?",
+    "reason": "incorrect character hair colour"
+  },
+  {
+    "id": "otdb_8c8b80c43481ca32",
+    "prompt": "In programming, the ternary operator is mostly defined with what symbol(s)?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_b0a6f9a01a5a980e",
+    "prompt": "It was once believed that injecting shark cartilage into people would prevent them from contracting cancer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aea09ee3c8fed65e",
+    "prompt": "The movie \"The Rocky Horror Picture Show\" (1975) opens with giant floating lips singing the opening song",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_8259e56f1b0722fc",
+    "prompt": "The Roman god \"Jupiter\" was first known as \"Zeus\" to the Greeks.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ddede9ef0e44dda7",
+    "prompt": "Norwegian producer Kygo released a remix of the song \"Sexual Healing\" by Marvin Gaye.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3939ca0203eccbac",
+    "prompt": "What name was historically used for the Turkish city currently known as Istanbul?",
+    "reason": "time-sensitive wording"
+  },
+  {
+    "id": "otdb_9e0ee11908c88cff",
+    "prompt": "TF2: The Heavy's voice actor, Gary Schwartz, voices the Demoman as well",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_eb99d6b1d2648035",
+    "prompt": "In World War ll, Great Britian used inflatable tanks on the ports of Great Britain to divert Hitler away from Normandy/D-day landing.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_351cae8fb2630991",
+    "prompt": "The fork came to Italy before any other European country.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2de597d3113991da",
+    "prompt": "In the Season One Championship of \"League of Legends\", the highest achievable rank was Diamond.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_aa28c26276dccd3a",
+    "prompt": "Matt Damon played an astronaut stranded on an extraterrestrial planet in both of the movies Interstellar and The Martian.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f3a61565b03ea3b9",
+    "prompt": "Super Mario Bros. was released in 1990.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a7c6b7d3327a6c1d",
+    "prompt": "In \"Super Mario Bros.\", the clouds and bushes have the same artwork and are just different colors.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_51bafe1a26ae6c48",
+    "prompt": "MacOS is based on Linux.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9dace1bbf68c0eac",
+    "prompt": "In the 1988 film \"Akira\", Tetsuo ends up destroying Tokyo.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0cbaa4e6a838fd9d",
+    "prompt": "What major programming language does Unreal Engine 4 use?",
+    "reason": "duplicate or equivalent answer text"
+  },
+  {
+    "id": "otdb_b89aefb0bba11186",
+    "prompt": "Theresa May was the first female Prime Minister of the United Kingdom.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ce256b99f7faa517",
+    "prompt": "Adolf Hitler was accepted into the Vienna Academy of Fine Arts.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_20519dfe5d4df56f",
+    "prompt": "It's not possible to format a write-protected DVD-R Hard Disk.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_210a0c2c09d15289",
+    "prompt": "In the Greek Mythology, the god of war is called Mars.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_850f51013c361146",
+    "prompt": "You can square root a negative number with an imaginary number \"i\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e81c0048cdbe4ad7",
+    "prompt": "In the movie The Revenant, DiCaprio's character hunts down the killer of his son.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_47ab8cb50fee8c46",
+    "prompt": "Linus Torvalds created Linux and Git.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_adf5d35fe977bca0",
+    "prompt": "The Axiom of Preventive Medicine states that people with ___ risk for a disease should be screened and we should treat ___ of those people.",
+    "reason": "unsupported preventive-medicine assertion"
+  },
+  {
+    "id": "otdb_870289cf2c11112a",
+    "prompt": "AMD created the first consumer 64-bit processor.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c8f4eaa97e9bcc36",
+    "prompt": "In Until Dawn, both characters Sam and Mike cannot be killed under any means until the final chapter of the game.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1eab0c2b0f7b4ff7",
+    "prompt": "Franz Joseph I was the last emperor of Austria.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_a8c06287a00d8ad2",
+    "prompt": "Nazi Germany surrendered on Harry Truman's birthday while he was president.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2e562ffd755b870f",
+    "prompt": "Linus Sebastian is the creator of the Linux kernel, which went on to be used in Linux, Android, and Chrome OS.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_9229441307270fd2",
+    "prompt": "In Terraria, you can craft the Cell Phone pre-hardmode.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0a120a60d5aca512",
+    "prompt": "In the Greek Mythology, the Gorgon can turn those who behold her to stone.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_2c10623d0ad3889d",
+    "prompt": "DHCP stands for Dynamic Host Configuration Port.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_dcb3635b49bf17ad",
+    "prompt": "In Greek mythology, Hera is the goddess of harvest.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e18906e4f03fbd82",
+    "prompt": "A slug’s blood is green.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_46006f31a3d6be91",
+    "prompt": "In The Witcher 3, the Zoltan Chivay Gwent card can be found under the Hanged Man's Tree.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_7ab93967e4ce095e",
+    "prompt": "There are no deserts in Europe.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e02668a7485e5742",
+    "prompt": "When did the French Revolution begin?",
+    "reason": "ambiguous broad historical start"
+  },
+  {
+    "id": "otdb_5b6dd44e6e957e88",
+    "prompt": "There is only 1 root name server, among 13 in total, that is currently located in Asia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_d7892ae9ae2b3bb5",
+    "prompt": "Activision created Battlefield 1.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_39148341829c1145",
+    "prompt": "On average, at least 1 person is killed by a drunk driver in the United States every hour.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_23e242a42db5e2c8",
+    "prompt": "What did Gregory Mendel use to test genetic crossovers?",
+    "reason": "unsupported mechanism in Mendel premise"
+  },
+  {
+    "id": "otdb_48605b47f128a475",
+    "prompt": "DragonForce's 'Through the Fire and Flames' is widely considered to be the hardest song in the Guitar Hero series.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e64c894fd3c0e62d",
+    "prompt": "The majority of Subaru vehicles are made in China.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_b182706d73845d21",
+    "prompt": "Israel is 7 hours ahead of New York.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_03027b023009ae79",
+    "prompt": "Pluto is a planet.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_824bf7ee93d1e5ed",
+    "prompt": "In any programming language, what is the most common way to iterate through an array?",
+    "reason": "unqualified universal programming claim"
+  },
+  {
+    "id": "otdb_0d76c15e03f1e953",
+    "prompt": "Musical artist, Future, collaborated with Kendrick Lamar for the song: \"Mask Off\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_920c136f775c754a",
+    "prompt": "In association football, or soccer, a corner kick is when the game restarts after someone scores a goal.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5452de80f86c0edc",
+    "prompt": "Which is the largest freshwater lake in the world?",
+    "reason": "unqualified freshwater lake measurement"
+  },
+  {
+    "id": "otdb_6069fe99b5b52c24",
+    "prompt": "In the Disgaea series, any character can equip any weapon.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_326866c28ca12815",
+    "prompt": "The singer Billie Holiday was also known as \"Lady Day\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1bd81aa560bf0aeb",
+    "prompt": "In the video game \"Blue Reflection\", the main protagonist, Hinako Shirai, was a ballet dancer.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_716f03670cd49ec4",
+    "prompt": "The \"Berenstein Bears\" is the correct spelling of the educational children's book series' name.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_782b10d4bd0d9339",
+    "prompt": "To bypass US Munitions Export Laws, the creator of the PGP published all the source code in book form.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0ff332d67137a42a",
+    "prompt": "Wilt Chamberlain scored his infamous 100-point-game against the New York Knicks in 1962.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5f2f9b8d062d24f4",
+    "prompt": "You can legally drink alcohol while driving in Mississippi.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_f23ebb22a34feecd",
+    "prompt": "\"Neutral Milk Hotel\" is a real band.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_cb442e8beb946dcf",
+    "prompt": "The M41 Walker Bulldog remains in service in some countries to this day.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3a930c01a4e6bd3a",
+    "prompt": "Stephen Chbosky wrote the book 'The Perks of Being A Wallflower'.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bee52070bca78d8f",
+    "prompt": "You could walk from Norway to North Korea while only passing through Russia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1b998be0776ab9bc",
+    "prompt": "Joseph Stalin's real name was Ioseb Bessarionis dze Dzugashvili.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_5fc91052ffdbf882",
+    "prompt": "Formula E is an auto racing series that uses hybrid electric race cars.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_07488d3056a12239",
+    "prompt": "The word \"Inception\" came from the 2010 blockbuster hit \"Inception\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_371e89e447fa90c2",
+    "prompt": "In World War II, Hawker Typhoons served in the Pacific theater.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_bd7e8e316883e661",
+    "prompt": "The game series \"Titanfall\" runs on the Unreal Engine.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_24b859fa1cf8cb2e",
+    "prompt": "The 'Squaring the Circle' problem is solvable.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0e295f2ffbf60689",
+    "prompt": "Albert Einstein had trouble with mathematics when he was in school.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_1fdfaa8f9787f130",
+    "prompt": "Slovakia is a member of European Union-",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c0d91a318cad392d",
+    "prompt": "Venus of Willendorf is one of the earliest works of art, depicting the planets Mars and Venus embrace in the heavens at night.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_11cacc183d657dd7",
+    "prompt": "Nick Mason is the only member to appear on every Pink Floyd album.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_e879a64d0216579e",
+    "prompt": "Big the Cat is a playable character in \"Sonic Generations\".",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_02283776cbf085ee",
+    "prompt": "The 2010 film \"The Social Network\" is a biographical drama film about MySpace founder Tom Anderson.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_943e87b79d585753",
+    "prompt": "If you planted the seeds of Quercus robur, what would grow?",
+    "reason": "duplicate canonical prompt"
+  },
+  {
+    "id": "otdb_86872bb87c610d00",
+    "prompt": "\"HTML\" stands for Hypertext Markup Language.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_de96ba3b664a9db2",
+    "prompt": "Marilyn Monroe was born on July 1, 1926.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_c32c9b8db1a4c120",
+    "prompt": "Don Cheto is the host of the radio station \"East Los FM\" in GTA V.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_3a7ba3164c29a562",
+    "prompt": "Skateboarding was included in the 2020 Summer Olympics in Tokyo.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_84ed2e6a9999e620",
+    "prompt": "In 1993, Prince changed his name to an unpronounceable symbol because he was unhappy with his contract with Warner Bros.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_004d17419745e108",
+    "prompt": "Popcorn was invented in 1871 by Frederick W. Rueckheim in the USA where he sold the snack on the streets of Chicago.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_97a55415b880529d",
+    "prompt": "In the \"To Love-Ru\" series, Peke is considered a female robot.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_52daeab3c7b89796",
+    "prompt": "In \"Star Trek\", Klingons respect William Shakespeare, they even suspect him having a Klingon lineage.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_df7a94d94e6ee267",
+    "prompt": "The title of the 1969 film \"Krakatoa, East_of Java\" is incorrect, as Krakatoa is in fact west of Java.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_0cda1d6bd245c6cb",
+    "prompt": "Night on Bald Mountain was one of the musical pieces featured in Disney's 1940's film Fantasia.",
+    "reason": "not four-choice multiple choice"
+  },
+  {
+    "id": "otdb_ea9d88e0a80ed415",
+    "prompt": "The Mann Co. Store from Team Fortress 2 has the slogan \"We hire mercenaries and get in fights\".",
+    "reason": "not four-choice multiple choice"
+  }
+]

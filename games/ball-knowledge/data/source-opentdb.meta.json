@@ -1,0 +1,14 @@
+{
+  "source": "Open Trivia DB",
+  "source_url": "https://opentdb.com/",
+  "api_documentation": "https://opentdb.com/api_config.php",
+  "license": "CC BY-SA 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "retrieved_at": "2026-11-25T22:26:46.443889+00:00",
+  "count": 5299,
+  "expected": 5299,
+  "sha256": "5cda9007c6d2e8149b058251728cf52487f32874e1015b5a367f44d6f060ff37",
+  "complete": true,
+  "api_encoding": "base64 decoded to UTF-8",
+  "source_status": "Complete official API export of community-approved questions; fetched with a no-repeat session token."
+}

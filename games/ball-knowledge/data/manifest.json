@@ -1,0 +1,271 @@
+{
+  "bankVersion": "2026-11-25.v1",
+  "version": "2026-11-25.v1",
+  "questionCount": 4424,
+  "total": 4424,
+  "categoryCount": 24,
+  "rarityCounts": {
+    "common": 1366,
+    "uncommon": 2051,
+    "obscure": 946,
+    "epic": 25,
+    "legendary": 21,
+    "one-of-one": 15
+  },
+  "categories": [
+    {
+      "id": "animals",
+      "slug": "animals",
+      "label": "Animals",
+      "count": 68
+    },
+    {
+      "id": "animation",
+      "slug": "animation",
+      "label": "Animation",
+      "count": 97
+    },
+    {
+      "id": "anime",
+      "slug": "anime",
+      "label": "Anime & manga",
+      "count": 177
+    },
+    {
+      "id": "art",
+      "slug": "art",
+      "label": "Art",
+      "count": 52
+    },
+    {
+      "id": "board-games",
+      "slug": "board-games",
+      "label": "Board games",
+      "count": 66
+    },
+    {
+      "id": "books",
+      "slug": "books",
+      "label": "Books & literature",
+      "count": 110
+    },
+    {
+      "id": "comics",
+      "slug": "comics",
+      "label": "Comics",
+      "count": 73
+    },
+    {
+      "id": "film",
+      "slug": "film",
+      "label": "Film",
+      "count": 269
+    },
+    {
+      "id": "gadgets",
+      "slug": "gadgets",
+      "label": "Gadgets & inventions",
+      "count": 34
+    },
+    {
+      "id": "general",
+      "slug": "general",
+      "label": "General knowledge",
+      "count": 368
+    },
+    {
+      "id": "geography",
+      "slug": "geography",
+      "label": "Geography",
+      "count": 312
+    },
+    {
+      "id": "history",
+      "slug": "history",
+      "label": "History",
+      "count": 341
+    },
+    {
+      "id": "mathematics",
+      "slug": "mathematics",
+      "label": "Mathematics",
+      "count": 51
+    },
+    {
+      "id": "music",
+      "slug": "music",
+      "label": "Music",
+      "count": 439
+    },
+    {
+      "id": "mythology",
+      "slug": "mythology",
+      "label": "Mythology",
+      "count": 57
+    },
+    {
+      "id": "people",
+      "slug": "people",
+      "label": "Famous people",
+      "count": 48
+    },
+    {
+      "id": "politics",
+      "slug": "politics",
+      "label": "Politics & society",
+      "count": 50
+    },
+    {
+      "id": "science",
+      "slug": "science",
+      "label": "Science & nature",
+      "count": 231
+    },
+    {
+      "id": "sports",
+      "slug": "sports",
+      "label": "Sports",
+      "count": 153
+    },
+    {
+      "id": "technology",
+      "slug": "technology",
+      "label": "Computers & technology",
+      "count": 142
+    },
+    {
+      "id": "television",
+      "slug": "television",
+      "label": "Television",
+      "count": 173
+    },
+    {
+      "id": "theatre",
+      "slug": "theatre",
+      "label": "Theatre",
+      "count": 33
+    },
+    {
+      "id": "vehicles",
+      "slug": "vehicles",
+      "label": "Vehicles",
+      "count": 68
+    },
+    {
+      "id": "video-games",
+      "slug": "video-games",
+      "label": "Video games",
+      "count": 1012
+    }
+  ],
+  "license": "CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "attribution": "Includes adapted questions from Open Trivia DB (https://opentdb.com/), CC BY-SA 4.0. Additional DFE question wording is shared under CC BY-SA 4.0; linked factual references retain their own terms.",
+  "sourceExport": {
+    "source": "Open Trivia DB",
+    "source_url": "https://opentdb.com/",
+    "api_documentation": "https://opentdb.com/api_config.php",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "retrieved_at": "2026-11-25T22:26:46.443889+00:00",
+    "count": 5299,
+    "expected": 5299,
+    "sha256": "5cda9007c6d2e8149b058251728cf52487f32874e1015b5a367f44d6f060ff37",
+    "complete": true,
+    "api_encoding": "base64 decoded to UTF-8",
+    "source_status": "Complete official API export of community-approved questions; fetched with a no-repeat session token."
+  },
+  "sha256": "5e5473868c9c35f422d63f9ea2a509bf87fe15c8684fbd131204e11333a55820",
+  "methodology": {
+    "baseRarity": {
+      "easy": "common",
+      "medium": "uncommon",
+      "hard": "obscure"
+    },
+    "upperRarities": "Explicit reviewed-question records and editorial overrides only; no hash, RNG, or automatic length-based promotion.",
+    "calibration": "Launch tiers are editorial estimates for a broad general audience, not measured population difficulty. One-of-one is the top rarity label, not a claim that only one person knows the answer.",
+    "cleanup": "HTML/entity and Unicode normalization; exactly four distinct answer texts; canonical prompt deduplication; conservative temporal, subjective, ambiguity, known-error, and mobile-length exclusions.",
+    "accuracy": "Imported questions were approved by the source community, not individually fact-checked by DFE. The reviewed additions were checked against their linked references. Errors may remain; question reporting and review are supported.",
+    "changes": "Original question text normalized, one IRA acronym question neutrally reworded, category names mapped, three source difficulties mapped to the first three rarity tiers, reviewed exceptions and new original questions added. See editorial overrides and exclusion log."
+  },
+  "editorialStatus": {
+    "providerQuestions": 4388,
+    "linkedReferenceQuestions": 36,
+    "rarityOverridesApplied": 25,
+    "rarityOverridesNotInExport": []
+  },
+  "exclusions": {
+    "count": 911,
+    "byReason": {
+      "not four-choice multiple choice": 789,
+      "time-sensitive wording": 11,
+      "subjective ranking": 10,
+      "unbounded popularity or price record": 12,
+      "unbounded commercial count": 2,
+      "duplicate or equivalent answer text": 12,
+      "imprecise vitamin answer": 1,
+      "imprecise poetic-language unit": 1,
+      "species-specific taste ambiguity": 1,
+      "incorrect area-versus-volume formula": 1,
+      "religious answer options overlap": 1,
+      "incorrect rebellion date": 1,
+      "ambiguous Soviet party succession title": 1,
+      "ambiguous Pascal row convention": 1,
+      "ambiguous radiation unit": 1,
+      "unqualified Greek mythology uniqueness": 1,
+      "atomic mass and isotope ambiguity": 2,
+      "ambiguous baseball foul rule": 1,
+      "unbounded mortality estimate": 2,
+      "incorrect globe organism or anatomy simplification": 1,
+      "area measurement has linear units": 1,
+      "unreliable painting completion date": 1,
+      "multiple-founder ambiguity": 1,
+      "unanchored total of crewed lunar landings": 1,
+      "unqualified exploration first": 1,
+      "imprecise number-position question": 1,
+      "incorrect abyssopelagic definition": 1,
+      "absolute genetic engineering claim": 1,
+      "unqualified claim about first repeated spaceflight": 1,
+      "unqualified river permanence": 1,
+      "duplicate canonical prompt": 8,
+      "incorrect radiation quantity": 1,
+      "unqualified body anatomy count": 1,
+      "imprecise called-ball rule": 1,
+      "unbounded sport record": 3,
+      "unqualified cloned-system hardware capability": 1,
+      "incorrect chemical formula glyph": 1,
+      "incorrect tail/coma equivalence": 1,
+      "unqualified historical capital claim": 1,
+      "incorrect ions-versus-iron answer": 1,
+      "incorrect UN membership count": 1,
+      "unqualified network topology": 1,
+      "incorrect population risk phrasing": 1,
+      "ambiguous operation precedence": 1,
+      "incorrect mobile OS market claim": 1,
+      "unsupported superlative usage claim": 2,
+      "missing sport from question": 1,
+      "multiple antagonists across a franchise": 1,
+      "incorrect Maslow hierarchy answer": 1,
+      "misleading Canadian confederation premise": 1,
+      "incorrect chromosome count": 1,
+      "ambiguous stored-versus-effective significand": 1,
+      "superseded US presidential exclusivity": 1,
+      "unqualified measure of national size": 1,
+      "pressure-dependent melting claim": 1,
+      "missing upper bound for angle": 1,
+      "outdated unbounded city ranking": 1,
+      "incorrect geographical coordinate": 1,
+      "possible alternative nickname among options": 1,
+      "unqualified musical work subtype": 1,
+      "ambiguous broad historical start": 2,
+      "incorrect DNA synthesis organelle": 1,
+      "unqualified cloning first": 1,
+      "incorrect character hair colour": 1,
+      "unsupported preventive-medicine assertion": 1,
+      "unsupported mechanism in Mendel premise": 1,
+      "unqualified universal programming claim": 1,
+      "unqualified freshwater lake measurement": 1
+    },
+    "log": "exclusions.json"
+  }
+}

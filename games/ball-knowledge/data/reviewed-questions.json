@@ -1,0 +1,830 @@
+[
+  {
+    "prompt": "Which ensemble performs Beethoven’s Cavatina on the Voyager Golden Record?",
+    "options": [
+      "Budapest String Quartet",
+      "Juilliard String Quartet",
+      "Amadeus Quartet",
+      "Borodin Quartet"
+    ],
+    "answerIndex": 0,
+    "category": "music",
+    "categoryLabel": "Music",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "NASA: Golden Record music",
+      "url": "https://science.nasa.gov/mission/voyager/golden-record-contents/sounds/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA credits the Budapest String Quartet.",
+    "factGroup": "voyager",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Who performs the shakuhachi piece “Tsuru No Sugomori” on the Voyager Golden Record?",
+    "options": [
+      "Goro Yamaguchi",
+      "Toru Takemitsu",
+      "Katsuya Yokoyama",
+      "Hozan Yamamoto"
+    ],
+    "answerIndex": 0,
+    "category": "music",
+    "categoryLabel": "Music",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "NASA: Golden Record music",
+      "url": "https://science.nasa.gov/mission/voyager/golden-record-contents/sounds/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA’s track list credits Goro Yamaguchi.",
+    "factGroup": "voyager",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which element causes the distinctive green and yellow colors in Timpanogos Cave formations?",
+    "options": [
+      "Nickel",
+      "Copper",
+      "Chromium",
+      "Cobalt"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "National Park Service: Timpanogos cave geology",
+      "url": "https://www.nps.gov/tica/learn/nature/cave.htm",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The National Park Service identifies nickel in the crystals.",
+    "factGroup": "caves",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "GSI first produced meitnerium by combining nuclei of which two elements?",
+    "options": [
+      "Bismuth and iron",
+      "Lead and nickel",
+      "Zinc and lead",
+      "Nickel and bismuth"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "GSI: Discovery of new elements",
+      "url": "https://www.gsi.de/en/researchaccelerators/research_an_overview/new_elements",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "GSI lists bismuth and iron for the 1982 discovery.",
+    "factGroup": "elements",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Who donated Dickens’s preserved raven Grip to the Free Library of Philadelphia in 1970?",
+    "options": [
+      "Richard Gimbel",
+      "J. P. Morgan",
+      "Henry Clay Folger",
+      "Henry E. Huntington"
+    ],
+    "answerIndex": 0,
+    "category": "books",
+    "categoryLabel": "Books & literature",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "Free Library of Philadelphia: Grip collection record",
+      "url": "https://libwww.freelibrary.org/digital/item/cdc102140",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The collection record identifies Colonel Richard Gimbel.",
+    "factGroup": "grip",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "In the joke RFC 2549, which avian-network service class offers expedited delivery?",
+    "options": [
+      "Concorde",
+      "Falcon",
+      "Supersonic",
+      "Express"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "RFC Editor: RFC 2549",
+      "url": "https://www.rfc-editor.org/rfc/rfc2549",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "Its service classes include Concorde, First, Business, and Coach.",
+    "factGroup": "avian-qos",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which corona on Uranus’s moon Miranda is named for Macbeth’s castle?",
+    "options": [
+      "Inverness Corona",
+      "Elsinore Corona",
+      "Arden Corona",
+      "Titania Corona"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "USGS / IAU: Gazetteer of Planetary Nomenclature",
+      "url": "https://planetarynames.wr.usgs.gov/SearchResults?Target=98_Miranda",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The USGS/IAU gazetteer gives the Macbeth connection.",
+    "factGroup": "miranda",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Who hit the line drive that began Bill Wambsganss’s unassisted triple play in the 1920 World Series?",
+    "options": [
+      "Clarence Mitchell",
+      "Zack Wheat",
+      "Pete Kilduff",
+      "Otto Miller"
+    ],
+    "answerIndex": 0,
+    "category": "sports",
+    "categoryLabel": "Sports",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "Library of Congress: Early baseball photographs",
+      "url": "https://www.loc.gov/collections/jackie-robinson-baseball/articles-and-essays/early-baseball-pictures-1860s-to-1920s/major-league-teams-and-games/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Library of Congress identifies Mitchell as the batter.",
+    "factGroup": "baseball",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "In Titus Andronicus, whose severed heads return with Titus’s hand in Act 3, Scene 1?",
+    "options": [
+      "Martius and Quintus",
+      "Chiron and Demetrius",
+      "Lucius and Marcus",
+      "Bassianus and Saturninus"
+    ],
+    "answerIndex": 0,
+    "category": "theatre",
+    "categoryLabel": "Theatre",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "Folger Shakespeare Library: Titus Andronicus, 3.1",
+      "url": "https://www.folger.edu/explore/shakespeares-works/titus-andronicus/read/3/1/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "Folger’s scene synopsis names Martius and Quintus.",
+    "factGroup": "titus",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "In Holbein’s The Ambassadors, which voice part appears in the open hymn book?",
+    "options": [
+      "Tenor",
+      "Soprano",
+      "Alto",
+      "Bass"
+    ],
+    "answerIndex": 0,
+    "category": "art",
+    "categoryLabel": "Art",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "National Gallery: The Ambassadors catalogue",
+      "url": "https://www.nationalgallery.org.uk/paintings/catalogues/foister-2024/the-ambassadors",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The National Gallery identifies the tenor part of a four-part setting.",
+    "factGroup": "holbein",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which short won the cartoon Oscar at the 1939 Academy Awards?",
+    "options": [
+      "Ferdinand the Bull",
+      "Brave Little Tailor",
+      "Mother Goose Goes Hollywood",
+      "Good Scouts"
+    ],
+    "answerIndex": 0,
+    "category": "film",
+    "categoryLabel": "Film",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "Academy of Motion Picture Arts and Sciences: 1939 ceremony",
+      "url": "https://www.oscars.org/oscars/ceremonies/1939",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Academy lists Ferdinand the Bull as the winner.",
+    "factGroup": "oscars-1939-cartoon",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "What wood supports Pieter Bruegel the Elder’s The Harvesters (1565)?",
+    "options": [
+      "Oak",
+      "Poplar",
+      "Walnut",
+      "Mahogany"
+    ],
+    "answerIndex": 0,
+    "category": "art",
+    "categoryLabel": "Art",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "The Metropolitan Museum of Art: The Harvesters",
+      "url": "https://www.metmuseum.org/art/collection/search/435809",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Met records its medium as oil on oak.",
+    "factGroup": "harvesters",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which two numbers sit in the middle of the bottom row of Dürer’s Melencolia I magic square?",
+    "options": [
+      "15 and 14",
+      "13 and 16",
+      "12 and 17",
+      "11 and 18"
+    ],
+    "answerIndex": 0,
+    "category": "art",
+    "categoryLabel": "Art",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "National Gallery of Art: Melencolia I",
+      "url": "https://www.nga.gov/artworks/35101-melencolia-i",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The bottom row reads 4, 15, 14, 1.",
+    "factGroup": "melencolia",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which pair of elements did GSI use in the first production of copernicium?",
+    "options": [
+      "Zinc and lead",
+      "Iron and uranium",
+      "Nickel and gold",
+      "Calcium and plutonium"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "GSI: Discovery of new elements",
+      "url": "https://www.gsi.de/en/researchaccelerators/research_an_overview/new_elements",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "GSI lists zinc and lead for the 1996 discovery.",
+    "factGroup": "elements",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Which named chamber in Timpanogos Cave contains hundreds of long helictites?",
+    "options": [
+      "Chimes Chamber",
+      "Throne Chamber",
+      "Crystal Chamber",
+      "Echo Chamber"
+    ],
+    "answerIndex": 0,
+    "category": "geography",
+    "categoryLabel": "Geography",
+    "rarity": "one-of-one",
+    "source": {
+      "name": "National Park Service: Timpanogos cave geology",
+      "url": "https://www.nps.gov/tica/learn/nature/cave.htm",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The National Park Service names the Chimes Chamber.",
+    "factGroup": "caves",
+    "editorialRationale": "Specialist detail within a named work, collection, or documented event."
+  },
+  {
+    "prompt": "Who wrote “Vague, but exciting” on Tim Berners-Lee’s 1989 Web proposal?",
+    "options": [
+      "Mike Sendall",
+      "Robert Cailliau",
+      "Vint Cerf",
+      "Douglas Engelbart"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "CERN: Tim Berners-Lee proposal",
+      "url": "https://info.cern.ch/Proposal.html",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "CERN identifies Sendall as Berners-Lee’s manager.",
+    "factGroup": "early-web",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which Belgian engineer helped Berners-Lee formalize the Web proposal in November 1990?",
+    "options": [
+      "Robert Cailliau",
+      "Paul Otlet",
+      "Luc Steels",
+      "Edsger Dijkstra"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "CERN: A short history of the Web",
+      "url": "https://home.cern/science/computing/the-birth-of-the-web/short-history-web/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "CERN credits Robert Cailliau as the collaborator.",
+    "factGroup": "early-web",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "What make of computer hosted the world’s first website at CERN?",
+    "options": [
+      "NeXT",
+      "Sun Microsystems",
+      "Silicon Graphics",
+      "Commodore"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "CERN: A short history of the Web",
+      "url": "https://home.cern/science/computing/the-birth-of-the-web/short-history-web/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "Berners-Lee’s NeXT computer hosted the first server.",
+    "factGroup": "early-web",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "The moth preserved in a 1947 Harvard computer logbook came from which machine?",
+    "options": [
+      "Mark II",
+      "ENIAC",
+      "UNIVAC I",
+      "EDSAC"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "Smithsonian: Log Book With Computer Bug",
+      "url": "https://americanhistory.si.edu/collections/object/nmah_334663",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Smithsonian identifies Harvard’s Mark II.",
+    "factGroup": "moth",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "What was the call sign of Apollo 12’s command module?",
+    "options": [
+      "Yankee Clipper",
+      "Gumdrop",
+      "Odyssey",
+      "Casper"
+    ],
+    "answerIndex": 0,
+    "category": "history",
+    "categoryLabel": "History",
+    "rarity": "legendary",
+    "source": {
+      "name": "NASA: Apollo 12 mission summary",
+      "url": "https://www.nasa.gov/missions/apollo/apollo-12-the-pinpoint-mission/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA identifies the command module as Yankee Clipper.",
+    "factGroup": "apollo12",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "What was the call sign of Apollo 12’s lunar module?",
+    "options": [
+      "Intrepid",
+      "Snoopy",
+      "Aquarius",
+      "Orion"
+    ],
+    "answerIndex": 0,
+    "category": "history",
+    "categoryLabel": "History",
+    "rarity": "legendary",
+    "source": {
+      "name": "NASA: Apollo 12 mission summary",
+      "url": "https://www.nasa.gov/missions/apollo/apollo-12-the-pinpoint-mission/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA identifies the lunar module as Intrepid.",
+    "factGroup": "apollo12",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which Georgian choral song was included on the Voyager Golden Record?",
+    "options": [
+      "Tchakrulo",
+      "Suliko",
+      "Mravalzhamier",
+      "Chito-Gvrito"
+    ],
+    "answerIndex": 0,
+    "category": "music",
+    "categoryLabel": "Music",
+    "rarity": "legendary",
+    "source": {
+      "name": "NASA: Golden Record music",
+      "url": "https://science.nasa.gov/mission/voyager/golden-record-contents/sounds/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA’s music list names Tchakrulo.",
+    "factGroup": "voyager",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Whose performance of “Dark Was the Night” travels on the Voyager Golden Record?",
+    "options": [
+      "Blind Willie Johnson",
+      "Blind Lemon Jefferson",
+      "Son House",
+      "Robert Johnson"
+    ],
+    "answerIndex": 0,
+    "category": "music",
+    "categoryLabel": "Music",
+    "rarity": "legendary",
+    "source": {
+      "name": "NASA: Golden Record music",
+      "url": "https://science.nasa.gov/mission/voyager/golden-record-contents/sounds/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NASA credits Blind Willie Johnson as writer and performer.",
+    "factGroup": "voyager",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "The element hassium is named after which German state?",
+    "options": [
+      "Hesse",
+      "Saxony",
+      "Bavaria",
+      "Thuringia"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "legendary",
+    "source": {
+      "name": "GSI: Discovery of new elements",
+      "url": "https://www.gsi.de/en/researchaccelerators/research_an_overview/new_elements",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "GSI identifies its home state, Hesse, as the namesake.",
+    "factGroup": "elements",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which SI prefix denotes a factor of 10 to the power of minus 30?",
+    "options": [
+      "Quecto",
+      "Ronto",
+      "Yocto",
+      "Zepto"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "legendary",
+    "source": {
+      "name": "NIST: The Twelve Days of Metric",
+      "url": "https://www.nist.gov/blogs/taking-measure/twelve-days-metric",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "Quecto is the inverse of quetta.",
+    "factGroup": "metric-small-prefixes",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which SI prefix denotes a factor of 10 to the power of 27?",
+    "options": [
+      "Ronna",
+      "Quetta",
+      "Yotta",
+      "Zetta"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "legendary",
+    "source": {
+      "name": "NIST: The Twelve Days of Metric",
+      "url": "https://www.nist.gov/blogs/taking-measure/twelve-days-metric",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "NIST defines ronna as a factor of 10²⁷.",
+    "factGroup": "metric-large-prefixes",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which Cleveland player completed an unassisted triple play in Game 5 of the 1920 World Series?",
+    "options": [
+      "Bill Wambsganss",
+      "Ray Chapman",
+      "Tris Speaker",
+      "Larry Gardner"
+    ],
+    "answerIndex": 0,
+    "category": "sports",
+    "categoryLabel": "Sports",
+    "rarity": "legendary",
+    "source": {
+      "name": "Library of Congress: Early baseball photographs",
+      "url": "https://www.loc.gov/collections/jackie-robinson-baseball/articles-and-essays/early-baseball-pictures-1860s-to-1920s/major-league-teams-and-games/",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "Wambsganss caught a liner, touched second, then tagged a runner.",
+    "factGroup": "baseball",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "What was the denomination of the 1886 U.S. silver certificate featuring Martha Washington?",
+    "options": [
+      "$1",
+      "$2",
+      "$5",
+      "$10"
+    ],
+    "answerIndex": 0,
+    "category": "history",
+    "categoryLabel": "History",
+    "rarity": "legendary",
+    "source": {
+      "name": "U.S. Currency Education Program: 1886 silver certificate",
+      "url": "https://www.uscurrency.gov/media/multimedia-library/32",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The U.S. Currency Education Program identifies the $1 certificate.",
+    "factGroup": "martha",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Bette Davis won Best Actress at the 1939 Oscars for which film?",
+    "options": [
+      "Jezebel",
+      "Dark Victory",
+      "Of Human Bondage",
+      "The Letter"
+    ],
+    "answerIndex": 0,
+    "category": "film",
+    "categoryLabel": "Film",
+    "rarity": "legendary",
+    "source": {
+      "name": "Academy of Motion Picture Arts and Sciences: 1939 ceremony",
+      "url": "https://www.oscars.org/oscars/ceremonies/1939",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The 1939 ceremony honored films released in 1938.",
+    "factGroup": "oscars-1939-actress",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Who presented Walt Disney’s Snow White honorary Oscar and seven miniatures in 1939?",
+    "options": [
+      "Shirley Temple",
+      "Judy Garland",
+      "Deanna Durbin",
+      "Mickey Rooney"
+    ],
+    "answerIndex": 0,
+    "category": "film",
+    "categoryLabel": "Film",
+    "rarity": "legendary",
+    "source": {
+      "name": "Academy of Motion Picture Arts and Sciences: 1939 ceremony",
+      "url": "https://www.oscars.org/oscars/ceremonies/1939",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Academy’s ceremony record identifies Shirley Temple.",
+    "factGroup": "oscars-1939-disney",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which bishop stands on the right in Holbein’s The Ambassadors?",
+    "options": [
+      "Georges de Selve",
+      "Jean de Dinteville",
+      "Thomas Wolsey",
+      "Jean du Bellay"
+    ],
+    "answerIndex": 0,
+    "category": "art",
+    "categoryLabel": "Art",
+    "rarity": "legendary",
+    "source": {
+      "name": "National Gallery: The Ambassadors catalogue",
+      "url": "https://www.nationalgallery.org.uk/paintings/catalogues/foister-2024/the-ambassadors",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The sitter is Georges de Selve, Bishop of Lavaur.",
+    "factGroup": "holbein",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "The Harvesters originally belonged to a seasonal cycle of how many paintings?",
+    "options": [
+      "Six",
+      "Four",
+      "Eight",
+      "Twelve"
+    ],
+    "answerIndex": 0,
+    "category": "art",
+    "categoryLabel": "Art",
+    "rarity": "legendary",
+    "source": {
+      "name": "The Metropolitan Museum of Art: The Harvesters",
+      "url": "https://www.metmuseum.org/art/collection/search/435809",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Met identifies an original six-part seasonal cycle.",
+    "factGroup": "harvesters",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "What was the name of Charles Dickens’s pet raven, preserved after its death?",
+    "options": [
+      "Grip",
+      "Quoth",
+      "Jet",
+      "Rook"
+    ],
+    "answerIndex": 0,
+    "category": "books",
+    "categoryLabel": "Books & literature",
+    "rarity": "legendary",
+    "source": {
+      "name": "Free Library of Philadelphia: Grip collection record",
+      "url": "https://libwww.freelibrary.org/digital/item/cdc102140",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The Free Library’s collection record identifies the raven as Grip.",
+    "factGroup": "grip",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "The cliff called Verona Rupes is located on which moon?",
+    "options": [
+      "Miranda",
+      "Triton",
+      "Iapetus",
+      "Charon"
+    ],
+    "answerIndex": 0,
+    "category": "science",
+    "categoryLabel": "Science & nature",
+    "rarity": "legendary",
+    "source": {
+      "name": "USGS / IAU: Gazetteer of Planetary Nomenclature",
+      "url": "https://planetarynames.wr.usgs.gov/SearchResults?Target=98_Miranda",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The USGS/IAU gazetteer places Verona Rupes on Miranda.",
+    "factGroup": "miranda",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "In the original joke RFC 1149, printed avian-carrier datagrams use which numeral system?",
+    "options": [
+      "Hexadecimal",
+      "Binary",
+      "Decimal",
+      "Octal"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "RFC Editor: RFC 1149",
+      "url": "https://www.rfc-editor.org/rfc/rfc1149",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "RFC 1149 specifies hexadecimal text on a small paper scroll.",
+    "factGroup": "avian",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  },
+  {
+    "prompt": "Which new request-method name in the joke RFC 2324 explicitly orders coffee?",
+    "options": [
+      "BREW",
+      "POUR",
+      "ROAST",
+      "STEEP"
+    ],
+    "answerIndex": 0,
+    "category": "technology",
+    "categoryLabel": "Computers & technology",
+    "rarity": "legendary",
+    "source": {
+      "name": "RFC Editor: RFC 2324",
+      "url": "https://www.rfc-editor.org/rfc/rfc2324",
+      "license": "Original DFE question: CC BY-SA 4.0; reference retains its own terms"
+    },
+    "sourceReview": "checked against linked reference",
+    "reviewedOn": "2026-11-25",
+    "explanation": "The coffee-pot protocol adds BREW alongside existing POST support.",
+    "factGroup": "coffee",
+    "editorialRationale": "Requires detailed knowledge beyond the headline fact; launch editorial estimate."
+  }
+]
